@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Dirac Of Fragrance — Reseller Parfum (Mobile)</title>
+  <meta name="description" content="Dirac Of Fragrance — Reseller parfum profesional. Mobile-friendly company profile." />
+  <style>
+    /* Mobile-first clean styles */
+    :root{
+      --accent-1: #1e73c6;
+      --accent-2: #0b84ff;
+      --muted: #556172;
+      --bg: #fcfdff;
+      --card: #ffffff;
+      --radius: 12px;
+      --max-width: 920px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:#041826}
+    a{color:inherit;text-decoration:none}
+    .container{max-width:var(--max-width);margin:0 auto;padding:14px}
+
+    /* Header */
+    header{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:10px 0;
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{width:48px;height:48px;border-radius:10px;object-fit:contain;background:#fff;padding:6px;box-shadow:0 6px 20px rgba(4,24,40,0.06)}
+    .brand .title{font-weight:700;font-size:16px;line-height:1}
+    .brand .sub{font-size:12px;color:var(--muted)}
+
+    /* hamburger */
+    .hamburger{width:44px;height:44px;border-radius:10px;background:white;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(4,24,40,0.05);cursor:pointer}
+    .hamburger div{width:20px;height:2px;background:#092033;box-shadow:0 6px 0 #092033,0 -6px 0 #092033;border-radius:2px}
+
+    /* Navigation drawer */
+    .nav-drawer{position:fixed;top:0;right:-100%;height:100vh;width:86%;max-width:320px;background:linear-gradient(180deg,#fff,#f7fbff);box-shadow:-12px 0 40px rgba(4,24,40,0.08);transition:right .28s;z-index:60;padding:18px}
+    .nav-drawer.open{right:0}
+    .nav-drawer a{display:block;padding:12px 10px;border-radius:10px;color:#082233;margin-bottom:6px;font-weight:600}
+    .nav-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .overlay{position:fixed;inset:0;background:rgba(2,6,23,0.35);opacity:0;pointer-events:none;transition:opacity .22s;z-index:50}
+    .overlay.visible{opacity:1;pointer-events:auto}
+
+    /* Hero */
+    .hero{background:linear-gradient(90deg, rgba(30,115,198,0.06), rgba(11,132,255,0.03));padding:14px;border-radius:14px;margin:10px 0;display:flex;gap:12px;align-items:center}
+    .hero .left{flex:1}
+    .hero h1{font-size:18px;margin:0 0 6px}
+    .hero p{margin:0;color:var(--muted);font-size:13px}
+    .cta-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .btn{padding:10px 14px;border-radius:10px;font-weight:700;border:0;cursor:pointer;font-size:14px}
+    .btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:white;box-shadow:0 8px 30px rgba(11,132,255,0.12)}
+    .btn.ghost{background:transparent;border:1px solid rgba(4,24,40,0.06);color:var(--muted)}
+
+    /* Cards and sections */
+    section{margin-top:14px}
+    .card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 8px 30px rgba(4,24,40,0.03)}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .muted{color:var(--muted);font-size:13px}
+
+    /* slider (simple) */
+    .slider{position:relative;border-radius:10px;overflow:hidden;height:180px}
+    .slides{display:flex;height:100%;transition:transform .45s ease}
+    .slide{min-width:100%;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:12px;color:white}
+    .slide .label{background:linear-gradient(180deg,transparent,rgba(0,0,0,0.45));padding:8px;border-radius:8px;font-weight:700;font-size:14px}
+
+    /* features */
+    .features{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+    .feature{flex:1;min-width:140px;padding:10px;border-radius:10px;background:#fff;border:1px solid rgba(6,20,36,0.03);text-align:center;font-weight:600;color:#0b2b3d}
+
+    /* gallery 8 images responsive */
+    .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+    .gallery img{width:100%;height:0;padding-bottom:56.25%;object-fit:cover;border-radius:8px;background:#f0f4fb;display:block}
+    /* adapt for small screens */
+    @media (max-width:640px){
+      .gallery{grid-template-columns:repeat(2,1fr)}
+      .grid-2{grid-template-columns:1fr}
+      .team-grid{grid-template-columns:1fr 1fr}
+    }
+
+    /* clients/testimonials */
+    .clients{display:flex;gap:8px;overflow:auto;padding:6px 0}
+    .client{min-width:110px;height:44px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(4,24,40,0.03)}
+    .testi-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .testi{background:#fff;padding:10px;border-radius:10px;box-shadow:0 8px 20px rgba(4,24,40,0.03)}
+    .testi strong{display:block;margin-bottom:6px}
+
+    /* team */
+    .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .member{background:#fff;padding:10px;border-radius:10px;text-align:center}
+    .avatar{width:100%;height:110px;background:#f3f7ff;border-radius:8px;margin-bottom:8px;object-fit:cover}
+
+    /* career */
+    .note{background:linear-gradient(90deg,#fff,#f7fbff);padding:10px;border-radius:10px;margin-bottom:10px}
+
+    /* news */
+    .post{background:#fff;padding:10px;border-radius:10px;margin-bottom:8px}
+
+    /* faq */
+    .faq .q{font-weight:700}
+    .faq .a{color:var(--muted);margin-bottom:8px}
+
+    /* contact */
+    .contact-row{display:grid;grid-template-columns:1fr;gap:8px}
+    .map{min-height:160px;border-radius:10px;background:#eef6ff;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+
+    /* footer */
+    footer{margin:18px 0 36px;display:flex;flex-direction:column;gap:8px;align-items:center}
+    footer .small{font-size:13px;color:var(--muted);text-align:center}
+
+    /* utility spacing */
+    .s-6{height:6px}
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="brand" aria-label="Dirac Of Fragrance">
+        <img src="assets/logo.png" alt="Dirac Of Fragrance logo (placeholder)">
+        <div>
+          <div class="title">Dirac Of Fragrance</div>
+          <div class="sub">Reseller Parfum • CEO: A.Zaenuddin</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="tel:+6281937036039" class="btn ghost" style="padding:8px 10px;border-radius:10px;font-weight:700;font-size:13px">WhatsApp</a>
+        <div class="hamburger" id="hambtn" aria-label="Buka menu" role="button" tabindex="0"><div></div></div>
+      </div>
+    </header>
+
+    <!-- Nav Drawer -->
+    <div class="nav-drawer" id="drawer" aria-hidden="true">
+      <div class="nav-header">
+        <div style="font-weight:800">Menu</div>
+        <div style="font-size:13px;color:var(--muted)"><a href="mailto:companydirac@gmail.com">companydirac@gmail.com</a></div>
+      </div>
+      <nav>
+        <a href="#home">Beranda</a>
+        <a href="#about">Tentang</a>
+        <a href="#gallery">Galeri</a>
+        <a href="#products">Produk</a>
+        <a href="#clients">Klien</a>
+        <a href="#team">Tim</a>
+        <a href="#career">Karir</a>
+        <a href="#news">Berita</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact" class="primary" style="display:inline-block;margin-top:8px;padding:10px 12px;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:white;border-radius:10px">Hubungi Kami</a>
+      </nav>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <!-- HERO -->
+    <section id="home" class="hero card">
+      <div class="left">
+        <h1>We curate scents that tell your story</h1>
+        <p class="muted">Dirac Of Fragrance — reseller parfum original. Pilihan brand terkenal, layanan cepat, harga reseller.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="#products">Lihat Produk</a>
+          <a class="btn ghost" href="#contact">Hubungi</a>
+        </div>
+
+        <div class="features" style="margin-top:12px">
+          <div class="feature">Original</div>
+          <div class="feature">Harga Grosir</div>
+          <div class="feature">Pengiriman Cepat</div>
+        </div>
+      </div>
+      <div style="width:160px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">Fast Picks</div>
+        <div class="slider" aria-hidden="false">
+          <div id="slides" class="slides">
+            <div class="slide" style="background-image:url('assets/slide1.jpg')"><div class="label">Dior Sauvage • 100ml</div></div>
+            <div class="slide" style="background-image:url('assets/slide2.jpg')"><div class="label">Best Seller • Tahan Lama</div></div>
+            <div class="slide" style="background-image:url('assets/slide3.jpg')"><div class="label">Promo Grosir</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2 style="margin:0 0 6px">Tentang Dirac Of Fragrance</h2>
+            <div class="muted">Reseller parfum yang fokus pada kualitas, keaslian produk, dan layanan untuk reseller & ritel.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px" class="grid-2">
+          <div>
+            <h4 style="margin:6px 0">Visi</h4>
+            <div class="muted">Menjadi distributor & reseller parfum pilihan yang terpercaya di Indonesia.</div>
+          </div>
+          <div>
+            <h4 style="margin:6px 0">Misi</h4>
+            <ul style="margin:0;padding-left:16px;color:var(--muted)">
+              <li>Menyediakan parfum original dari brand ternama.</li>
+              <li>Mendukung reseller dengan harga dan stok stabil.</li>
+              <li>Mendahulukan kepuasan pelanggan.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="margin-top:10px" class="muted">
+          <strong>Sejarah singkat:</strong> Berdiri sejak 2021, mulai sebagai reseller kecil dan berkembang menjadi partner bisnis banyak toko online dan reseller di Indonesia.
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery (8) -->
+    <section id="gallery">
+      <h3 style="margin:10px 0 6px">Galeri — 8 Foto (16:9)</h3>
+      <div class="muted">Ganti file: assets/slide1.jpg ... slide8.jpg</div>
+      <div class="gallery" style="margin-top:8px">
+        <img src="assets/slide1.jpg" alt="Foto 1">
+        <img src="assets/slide2.jpg" alt="Foto 2">
+        <img src="assets/slide3.jpg" alt="Foto 3">
+        <img src="assets/slide4.jpg" alt="Foto 4">
+        <img src="assets/slide5.jpg" alt="Foto 5">
+        <img src="assets/slide6.jpg" alt="Foto 6">
+        <img src="assets/slide7.jpg" alt="Foto 7">
+        <img src="assets/slide8.jpg" alt="Foto 8">
+      </div>
+    </section>
+
+    <!-- Clients & Testimonials -->
+    <section id="clients">
+      <div class="card">
+        <h3 style="margin:0 0 6px">Klien & Testimoni</h3>
+        <div class="muted">Logo klien: assets/clients/*.png</div>
+        <div class="clients" style="margin-top:10px">
+          <div class="client"><img src="assets/clients/client1.png" alt="client" style="max-width:90%;max-height:36px"></div>
+          <div class="client"><img src="assets/clients/client2.png" alt="client" style="max-width:90%;max-height:36px"></div>
+          <div class="client"><img src="assets/clients/client3.png" alt="client" style="max-width:90%;max-height:36px"></div>
+          <div class="client"><img src="assets/clients/client4.png" alt="client" style="max-width:90%;max-height:36px"></div>
+        </div>
+
+        <div class="testi-list" style="margin-top:12px">
+          <!-- 10 tidy testimonials -->
+          <div class="testi"><strong>Rizki — Jakarta</strong><div class="muted">"Produk asli, harga terjangkau. Support cepat."</div></div>
+          <div class="testi"><strong>Sari — Bandung</strong><div class="muted">"Pengiriman rapi & aroma sesuai deskripsi."</div></div>
+          <div class="testi"><strong>Budi — Surabaya</strong><div class="muted">"Stok stabil, cocok untuk reseller."</div></div>
+          <div class="testi"><strong>Maya — Yogyakarta</strong><div class="muted">"Kualitas bagus, pelanggan suka."</div></div>
+          <div class="testi"><strong>Anton — Medan</strong><div class="muted">"Proses retur mudah jika perlu."</div></div>
+          <div class="testi"><strong>Lestari — Semarang</strong><div class="muted">"Pilihan varian lengkap."</div></div>
+          <div class="testi"><strong>Dimas — Bali</strong><div class="muted">"Pengiriman antar pulau cepat."</div></div>
+          <div class="testi"><strong>Nita — Malang</strong><div class="muted">"Aroma tahan lama, pelanggan puas."</div></div>
+          <div class="testi"><strong>Rina — Pekanbaru</strong><div class="muted">"Transparan soal harga & diskon."</div></div>
+          <div class="testi"><strong>Hendra — Makassar</strong><div class="muted">"Layanan after-sales memuaskan."</div></div>
+        </div>
+
+        <div style="margin-top:10px" class="muted">Cerita sukses: Seorang reseller tumbuh dari omzet kecil menjadi 4x lipat dalam 6 bulan bermitra dengan Dirac Of Fragrance (paket & dukungan pemasaran).</div>
+      </div>
+    </section>
+
+    <!-- Team -->
+    <section id="team">
+      <h3 style="margin:10px 0 6px">Tim</h3>
+      <div class="muted">Tim inti (foto: assets/team/*.jpg)</div>
+      <div class="team-grid" style="margin-top:8px">
+        <div class="member card">
+          <img src="assets/team/ceo.jpg" alt="CEO" class="avatar">
+          <div style="font-weight:700">A.Zaenuddin</div>
+          <div class="muted">CEO & Founder</div>
+          <div class="muted" style="font-size:13px;margin-top:6px">LinkedIn: (kosong)</div>
+        </div>
+        <div class="member card">
+          <img src="assets/team/sales.jpg" alt="Head Sales" class="avatar">
+          <div style="font-weight:700">(Nama)</div>
+          <div class="muted">Head of Sales</div>
+        </div>
+        <div class="member card">
+          <img src="assets/team/ops.jpg" alt="Head Ops" class="avatar">
+          <div style="font-weight:700">(Nama)</div>
+          <div class="muted">Head of Operations</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Career -->
+    <section id="career">
+      <div class="card">
+        <h3 style="margin:0 0 6px">Karir</h3>
+        <div class="note"><strong>Saat ini tidak ada lowongan aktif.</strong><div class="muted" style="margin-top:6px">Anda bisa kirim CV ke <a href="mailto:companydirac@gmail.com">companydirac@gmail.com</a></div></div>
+
+        <div style="margin-top:6px">
+          <form onsubmit="return false;">
+            <input type="text" placeholder="Nama lengkap" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eefc;margin-bottom:8px" disabled>
+            <input type="email" placeholder="Email" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eefc;margin-bottom:8px" disabled>
+            <input type="file" disabled style="margin-bottom:8px">
+            <button class="btn primary" disabled>Kirim</button>
+            <div class="muted" style="margin-top:8px">Form dinonaktifkan — tidak ada lowongan saat ini.</div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- News / Blog -->
+    <section id="news">
+      <h3 style="margin:10px 0 6px">Berita & Artikel</h3>
+      <div class="post card">
+        <strong>Peluncuran Koleksi Musim Panas</strong>
+        <div class="muted" style="font-size:13px">12 Juli 2025</div>
+        <p class="muted" style="margin-top:6px">Varian aroma segar untuk musim panas — ideal untuk hadiah dan event.</p>
+      </div>
+      <div class="post card" style="margin-top:8px">
+        <strong>Tips Menjaga Aroma Parfum</strong>
+        <div class="muted" style="font-size:13px">5 Juni 2025</div>
+        <p class="muted" style="margin-top:6px">Simpan di tempat sejuk, hindari cahaya langsung, dan simpan pada suhu stabil.</p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+      <div class="card">
+        <h3 style="margin:0 0 6px">FAQ</h3>
+        <div class="faq">
+          <div class="q">Apakah produk dijamin original?</div>
+          <div class="a muted">Ya. Semua produk kami dari sumber tepercaya dan distributor resmi.</div>
+
+          <div class="q" style="margin-top:8px">Berapa lama pengiriman?</div>
+          <div class="a muted">1-5 hari kerja (bervariasi sesuai lokasi dan kurir).</div>
+
+          <div class="q" style="margin-top:8px">Bagaimana cara menjadi reseller?</div>
+          <div class="a muted">Hubungi WA +62 819-3703-6039 atau email companydirac@gmail.com untuk paket reseller.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact">
+      <div class="card">
+        <h3 style="margin:0 0 6px">Hubungi Kami</h3>
+        <div class="muted">Kantor Pusat: (Isi alamat kantor Anda)<br>Tel/WA: +62 819-3703-6039<br>Email: <a href="mailto:companydirac@gmail.com">companydirac@gmail.com</a></div>
+
+        <div style="margin-top:10px" class="contact-row">
+          <form onsubmit="alert('Terima kasih! Kami akan menghubungi Anda.');return false;">
+            <input type="text" placeholder="Nama" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eefc;margin-bottom:8px">
+            <input type="email" placeholder="Email" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eefc;margin-bottom:8px">
+            <textarea placeholder="Pesan" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eefc;margin-bottom:8px" rows="4"></textarea>
+            <button class="btn primary" type="submit">Kirim Pesan</button>
+          </form>
+
+          <div style="margin-top:8px">
+            <h4 style="margin:8px 0 6px">Lokasi (Google Maps)</h4>
+            <div class="map card">
+              <div class="muted">[Google Maps iframe dikosongkan — masukkan embed URL Anda di file HTML]</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div style="font-weight:700">Dirac Of Fragrance</div>
+      <div class="small muted">© <span id="year"></span> Dirac Of Fragrance • companydirac@gmail.com • +62 819-3703-6039</div>
+      <div class="small muted" style="font-size:12px">Syarat & Ketentuan • Kebijakan Privasi</div>
+    </footer>
+
+  </div>
+
+  <script>
+    // set year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Drawer toggle
+    const hamb = document.getElementById('hambtn');
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('overlay');
+    function openDrawer(){ drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); overlay.classList.add('visible'); }
+    function closeDrawer(){ drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); overlay.classList.remove('visible'); }
+    hamb.addEventListener('click', openDrawer);
+    overlay.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeDrawer(); });
+
+    // Simple slider auto-rotate
+    (function(){
+      const slides = document.getElementById('slides');
+      const count = slides.children.length;
+      let idx = 0;
+      function show(i){ slides.style.transform = 'translateX(' + (-i*100) + '%)'; }
+      show(0);
+      setInterval(()=>{ idx = (idx+1)%count; show(idx); },4000);
+    })();
+  </script>
+</body>
+</html>
