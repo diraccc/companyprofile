@@ -474,7 +474,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   font-size:16px;
   backdrop-filter: blur(6px);
 }
-unmute.hidden{display:none!important}
+.video-unmute.hidden{ display:none !important; }
 /* Stronger mobile-only rules */
 @media (max-width: 820px) {
   .slide video {
@@ -1012,7 +1012,24 @@ unmute.hidden{display:none!important}
 <button aria-label="Tutup" class="close-modal" id="closeLightbox">✕</button>
 </div>
 <script>
-  
-<script> document.addEventListener('DOMContentLoaded',function(){ const v=document.getElementById('hero-video'), b=document.getElementById('unmuteBtn'); if(!v||!b) return; try{ const s=localStorage.getItem('heroVideoMuted'); if(s!==null) v.muted=(s==='true'); }catch(e){} function update(){ if(v.muted){ b.textContent='🔊'; b.setAttribute('aria-label','Hidupkan suara'); b.setAttribute('aria-pressed','false'); } else { b.textContent='🔈'; b.setAttribute('aria-label','Matikan suara'); b.setAttribute('aria-pressed','true'); } } update(); b.addEventListener('click',async e=>{ e.preventDefault(); v.muted=!v.muted; if(!v.muted){ v.volume=0.8; try{ await v.play(); }catch(e){} } try{ localStorage.setItem('heroVideoMuted',v.muted.toString()); }catch(e){} update(); }); v.addEventListener('click',()=>b.click()); }); </script>
+document.addEventListener('DOMContentLoaded', function(){
+  const v = document.getElementById('hero-video');
+  const b = document.getElementById('unmuteBtn');
+  if(!v || !b) return;
+  if(!v.muted) b.classList.add('hidden');
+
+  b.addEventListener('click', async function(){
+    try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
+    catch (err) { console.warn('Gagal play/unmute:', err); }
+  });
+
+  v.addEventListener('click', async function(){
+    if(v.muted){
+      try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
+      catch(e){ console.warn(e); }
+    }
+  });
+});
+</script>
 </body>
 </html>
