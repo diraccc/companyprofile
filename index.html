@@ -468,7 +468,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
     max-height: none !important;
   }
 }
-
+</style>
 
 </head>
 <body>
@@ -505,25 +505,21 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <!-- Hero slider -->
 <div aria-label="Hero slideshow" aria-roledescription="carousel" class="slider" data-autoplay="true" data-interval="false">
 <div aria-live="polite" class="slides" id="heroSlides">
-<!-- REPLACE: swap the old hero slideshow block with this static hero block -->
-<div aria-label="Hero (statik)" class="slider" id="heroStatic" role="region">
-  <figure aria-label="Hero" class="slide" role="group" style="margin:0">
-    <div class="media">
-      <video id="hero-video" autoplay muted loop playsinline preload="auto" poster="images/slide1-16x9.jpg" aria-hidden="false">
-        <source src="hero.MOV" type="video/quicktime">
-        Your browser does not support the video tag.
-      </video>
-    </div>
-    <figcaption style="position:relative;left:1rem;right:1rem;bottom:0;margin-top:0.6rem">
-      <!-- optional caption content -->
-    </figcaption>
-  </figure>
-
-  <!-- Highlights & CTA remain as before; keep the following container below hero -->
-  <div aria-label="Highlight layanan" class="highlights" style="margin-top:1rem">
-    <!-- existing highlight cards... -->
-  </div>
+<!-- Single video slide (replaced multiple slides with one video) -->
+<figure aria-label="Slide 1 of 1" aria-roledescription="slide" class="slide" data-index="0" role="group">
+<div class="media">
+<section class="hero">
+  <video id="hero-video" autoplay muted loop playsinline preload="auto" poster="images/slide1-16x9.jpg">
+    <source src="hero.MOV" type="video/quicktime">
+    Your browser does not support the video tag.
+  </video>
+</section>
 </div>
+<figcaption>
+<strong></strong>
+<div class="muted"></div>
+</figcaption>
+</figure>
 <!-- Controls -->
 <div aria-hidden="false" class="slider-controls">
 <button aria-label="Sebelumnya" class="arrow left" id="heroPrev" title="Sebelumnya">←</button>
