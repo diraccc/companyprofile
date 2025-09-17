@@ -408,6 +408,15 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   .container{padding-left:0.9rem;padding-right:0.9rem}
 }
 
+.testimonials .slides {
+  display: flex !important;
+  transition: transform 0.6s cubic-bezier(.22,.9,.35,1);
+  will-change: transform;
+}
+.test-slide {
+  min-width: 100% !important;
+  box-sizing: border-box;
+}
 
 /* Fixes for mobile scrolling and touch interactions on hero slider */
 .slider, .slides { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
@@ -548,11 +557,11 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   </div>
 </div>
 <!-- Controls -->
-<div aria-hidden="false" class="slider-controls">
-<button aria-label="Sebelumnya" class="arrow left" id="heroPrev" title="Sebelumnya"></button>
-<button aria-label="Berikutnya" class="arrow right" id="heroNext" title="Berikutnya"></button>
-<div aria-label="Navigasi slide" class="dots" id="heroDots" role="tablist"></div>
-</div>
+<!-- Controls -->
+<div class="slider-controls" style="bottom:8px;">
+  <button aria-label="Sebelumnya (testimoni)" class="arrow left" id="testPrev">←</button>
+  <button aria-label="Berikutnya (testimoni)" class="arrow right" id="testNext">→</button>
+  <div aria-label="Navigasi testimoni" class="dots" id="testDots" role="tablist"></div>
 </div>
 <!-- Highlights & CTA -->
 <div aria-label="Highlight layanan" class="highlights">
@@ -1011,6 +1020,31 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 <button aria-label="Tutup" class="close-modal" id="closeLightbox">✕</button>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const slides = document.querySelectorAll('.test-slide');
+  const container = document.getElementById('testSlides');
+  let idx = 0;
+  const total = slides.length;
+  function showSlide(i){
+    container.style.transform = `translateX(-${i * 100}%)`;
+  }
+  // Pastikan semua test-slide min-width:100%
+  slides.forEach(s => s.style.minWidth = "100%");
+  // Atur parent .slides ke flex row
+  container.style.display = "flex";
+  container.style.transition = "transform 0.6s cubic-bezier(.22,.9,.35,1)";
+  // Mulai auto-slide
+  setInterval(function(){
+    idx = (idx + 1) % total;
+    showSlide(idx);
+  }, 5000);
+  // Inisialisasi posisi awal
+  showSlide(idx);
+});
+</script>
+  
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   const v = document.getElementById('hero-video');
