@@ -377,7 +377,35 @@
     .close-modal{
       position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.4);border:none;color:var(--text);padding:0.6rem;border-radius:8px;cursor:pointer;
     }
-  </style>
+  
+/* Additional mobile tweaks: prevent header overlap, allow nav scrolling and reduce sizes */
+@media(max-width:700px){
+  /* Make topbar wrap so nav moves under brand and doesn't overlap hero */
+  .topbar{flex-wrap:wrap;align-items:center;gap:0.45rem;padding:0.4rem 0;}
+  .brand-logo{width:40px;height:40px;font-size:15px;border-radius:8px;}
+  .brand h1{font-size:0.95rem;margin:0;line-height:1;}
+  .brand p{font-size:0.72rem;margin:0;}
+  /* Make nav full width and horizontally scrollable instead of wrapping into multiple lines */
+  nav.main-nav{order:3;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;display:flex;gap:0.45rem;padding:0.25rem 0;}
+  nav.main-nav a{font-size:0.86rem;padding:0.35rem 0.55rem;white-space:nowrap;flex:0 0 auto;}
+  /* Reduce header height visual impact on hero */
+  header.site-header{backdrop-filter:blur(6px);}
+  /* Ensure hero content not hidden under sticky header */
+  .hero{padding-top:0.6rem;}
+  /* Slightly smaller hero texts for small screens */
+  .hero h2{font-size:1.25rem !important;line-height:1.25;}
+  .hero p{font-size:0.9rem !important;}
+  .slider{border-radius:10px;overflow:hidden;}
+  .slide figcaption{font-size:0.82rem !important;padding:0.55rem 0.7rem !important;left:0.6rem;right:0.6rem;bottom:0.9rem}
+  .arrow{width:36px !important;height:36px !important;}
+  /* Make dots a little smaller to fit */
+  .dots{gap:0.3rem}
+  .dot{width:9px;height:9px}
+  /* Reduce padding of container to maximize visible area */
+  .container{padding-left:0.9rem;padding-right:0.9rem}
+}
+
+</style>
 </head>
 <body>
   <header class="site-header" role="banner" aria-label="Header utama Dirac Of Fragrance">
