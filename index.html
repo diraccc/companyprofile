@@ -1190,5 +1190,73 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   });
 })();
 </script>
+
+<!-- Recovery script for hero video: detects stalls/errors and tries a graceful reload/play without changing the video filename -->
+<script>
+(function(){
+  try{
+    var v = document.querySelector('.slide video');
+    if(!v) return;
+    // Minimal watchdog: if the video appears stalled (time not advancing), attempt recovery
+    var lastTime = -1;
+    var checks = 0;
+    function tryRecover(reason){
+      // Try gentle recovery steps
+      try{
+        console.warn('Video recovery triggered:', reason);
+        // small seek can unblock some decoders
+        if (!v.paused) {
+          try { v.pause(); } catch(e){}
+        }
+        try { v.currentTime = Math.max(0, (v.currentTime || 0) + 0.05); } catch(e){}
+        // reload and attempt play
+        try { v.load(); } catch(e){}
+        // attempt play after a short delay to give browser time to recover
+        setTimeout(function(){ try { v.play(); } catch(e){} }, 150);
+      }catch(err){
+        console.error('Recovery failed', err);
+      }
+    }
+    // on error / waiting / stalled events, try recover
+    ['error','stalled','waiting','suspend'].forEach(function(ev){
+      v.addEventListener(ev, function(e){ tryRecover(ev); }, {passive:true});
+    });
+    // monitor progress: if time hasn't advanced for 1.2s while not paused, try recover (but limit attempts)
+    setInterval(function(){
+      try{
+        if(v.paused) { lastTime = v.currentTime; checks = 0; return; }
+        var t = v.currentTime || 0;
+        if(Math.abs(t - lastTime) < 0.08){
+          checks++;
+        } else {
+          checks = 0;
+        }
+        lastTime = t;
+        if(checks >= 15){ // ~15 * 100ms = 1500ms of no progress
+          tryRecover('watchdog');
+          checks = 0;
+        }
+      }catch(err){ /* ignore */ }
+    }, 100);
+    // Also ensure muted & playsinline for autoplay policies
+    try{ v.muted = true; v.playsInline = true; } catch(e){}
+    // Last resort: if video produces an error, show the poster image (keep file name unchanged)
+    v.addEventListener('error', function(){
+      var poster = v.getAttribute('poster') || '';
+      if(poster){
+        var img = document.createElement('img');
+        img.src = poster;
+        img.alt = v.alt || 'Hero image';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        var parent = v.parentNode;
+        if(parent){ parent.replaceChild(img, v); }
+      }
+    });
+  }catch(e){}
+})();
+</script>
+
 </body>
 </html>
