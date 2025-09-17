@@ -468,6 +468,66 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
     max-height: none !important;
   }
 }
+
+<!-- ADD: CSS override for static hero (paste at end of <head>) -->
+</style>
+  /* Static hero wrapper */
+  #heroStatic.slider {
+    position: relative;
+    width: 100%;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  }
+
+  /* Force media aspect box */
+  #heroStatic .media {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-top: 56.25%; /* 16:9 */
+    overflow: hidden;
+    background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+  }
+
+  /* Ensure video always fills & centered, no translate */
+  #heroStatic video {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: 50% 50% !important;
+    transform: none !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+
+  /* Hide the old arrows/dots if they still exist inside this section */
+  #heroStatic .slider-controls,
+  #heroStatic .arrow,
+  #heroStatic .dots {
+    display: none !important;
+  }
+
+  /* Safety: prevent any script or CSS elsewhere from translating this wrapper */
+  #heroStatic, #heroStatic .slide, #heroStatic .media {
+    transform: none !important;
+    -webkit-transform: none !important;
+  }
+
+  /* Mobile explicitly keep center */
+  @media (max-width: 820px) {
+    #heroStatic video {
+      object-position: 50% 50% !important;
+      transform: none !important;
+    }
+  }
 </style>
 
 </head>
@@ -505,21 +565,25 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <!-- Hero slider -->
 <div aria-label="Hero slideshow" aria-roledescription="carousel" class="slider" data-autoplay="true" data-interval="false">
 <div aria-live="polite" class="slides" id="heroSlides">
-<!-- Single video slide (replaced multiple slides with one video) -->
-<figure aria-label="Slide 1 of 1" aria-roledescription="slide" class="slide" data-index="0" role="group">
-<div class="media">
-<section class="hero">
-  <video id="hero-video" autoplay muted loop playsinline preload="auto" poster="images/slide1-16x9.jpg">
-    <source src="hero.MOV" type="video/quicktime">
-    Your browser does not support the video tag.
-  </video>
-</section>
+<!-- REPLACE: swap the old hero slideshow block with this static hero block -->
+<div aria-label="Hero (statik)" class="slider" id="heroStatic" role="region">
+  <figure aria-label="Hero" class="slide" role="group" style="margin:0">
+    <div class="media">
+      <video id="hero-video" autoplay muted loop playsinline preload="auto" poster="images/slide1-16x9.jpg" aria-hidden="false">
+        <source src="hero.MOV" type="video/quicktime">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <figcaption style="position:relative;left:1rem;right:1rem;bottom:0;margin-top:0.6rem">
+      <!-- optional caption content -->
+    </figcaption>
+  </figure>
+
+  <!-- Highlights & CTA remain as before; keep the following container below hero -->
+  <div aria-label="Highlight layanan" class="highlights" style="margin-top:1rem">
+    <!-- existing highlight cards... -->
+  </div>
 </div>
-<figcaption>
-<strong></strong>
-<div class="muted"></div>
-</figcaption>
-</figure>
 <!-- Controls -->
 <div aria-hidden="false" class="slider-controls">
 <button aria-label="Sebelumnya" class="arrow left" id="heroPrev" title="Sebelumnya">←</button>
