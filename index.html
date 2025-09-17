@@ -630,6 +630,46 @@ button:hover, .btn:hover, a.button:hover {
 </style>
 <!-- END: FULL-PAGE ANIMATIONS (INJECTED) -->
 
+
+<!-- BEGIN: HERO NO-HIDE OVERRIDE -->
+<style id="hero-nohide-style">
+/* Force hero区域 to be fully visible and non-animated */
+.hero, .hero-section, #hero, .hero-banner, .hero-main, .hero-title, [data-hero], [data-hero="true"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure children headings in hero are visible */
+.hero h1, .hero h2, .hero-title h1, .hero-title h2, .hero-section h1, .hero-section h2 {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Remove any hiding via inline styles targeting hero */
+[data-hero-hidden] { display: block !important; }
+
+/* If reveal class exists, neutralize its effect inside hero */
+.hero .reveal, .hero-section .reveal, #hero .reveal, .hero-banner .reveal {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  visibility: visible !important;
+}
+
+/* Make sure hero is above overlays if overlay injects high z-index */
+.hero, .hero-section, #hero, .hero-banner { z-index: 10000 !important; position: relative !important; }
+
+/* Respect reduced motion: nothing to do here, but keep */
+@media (prefers-reduced-motion: reduce) {
+  .hero, .hero * { transition: none !important; animation: none !important; transform: none !important; }
+}
+</style>
+<!-- END: HERO NO-HIDE OVERRIDE -->
+
 </head>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
@@ -1444,6 +1484,69 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 <!-- END: HERO FIX -->
+
+
+<!-- BEGIN: HERO NO-HIDE SCRIPT -->
+<script id="hero-nohide-script">
+(function(){
+  try {
+    var selectors = ['.hero', '.hero-section', '#hero', '.hero-banner', '.hero-main', '.hero-title', '[data-hero]', '[data-hero="true"]'];
+    function enforceHeroVisible(){
+      selectors.forEach(function(sel){
+        var els = Array.prototype.slice.call(document.querySelectorAll(sel));
+        els.forEach(function(el){
+          // remove any reveal-related classes
+          el.classList.remove('reveal','up','down','left','right','zoom','fade','visible');
+          // ensure inline styles force visible state
+          try {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+            el.style.transform = 'none';
+            el.style.transition = 'none';
+            el.style.animation = 'none';
+          } catch(e){}
+          // make sure children also visible
+          var children = el.querySelectorAll('*');
+          for(var i=0;i<children.length;i++){
+            var c = children[i];
+            c.classList.remove('reveal','visible','up','down','left','right','zoom','fade');
+            c.style.opacity = '1';
+            c.style.visibility = 'visible';
+            c.style.transform = 'none';
+            c.style.transition = 'none';
+            c.style.animation = 'none';
+          }
+          // mark as hero-protected
+          el.setAttribute('data-no-anim','true');
+        });
+      });
+    }
+
+    // Run as soon as possible
+    if(document.readyState === 'complete' || document.readyState === 'interactive'){
+      setTimeout(enforceHeroVisible, 20);
+    } else {
+      document.addEventListener('DOMContentLoaded', function(){ setTimeout(enforceHeroVisible, 20); });
+    }
+
+    // Also watch for DOM changes and re-apply if new hero nodes inserted
+    var mo = new MutationObserver(function(mutations){
+      mutations.forEach(function(m){
+        if(m.addedNodes && m.addedNodes.length){
+          enforceHeroVisible();
+        }
+      });
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+
+    // Provide a debug function
+    window.ensureHeroVisible = enforceHeroVisible;
+  } catch(err){
+    console.warn('Hero no-hide script error:', err);
+  }
+})();
+</script>
+<!-- END: HERO NO-HIDE SCRIPT -->
 
 </body>
 </html>
