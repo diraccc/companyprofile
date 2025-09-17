@@ -405,6 +405,15 @@
   .container{padding-left:0.9rem;padding-right:0.9rem}
 }
 
+
+/* Fixes for mobile scrolling and touch interactions on hero slider */
+.slider, .slides { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.slide img { -webkit-transform: translateZ(0); transform: translateZ(0); will-change: transform; object-position: center center; }
+.slide .media { min-height: 160px; }
+@media(max-width:420px){
+  .slide .media { min-height: 140px; padding-top:56.25%; }
+}
+
 </style>
 </head>
 <body>
@@ -440,7 +449,7 @@
           <p class="muted" style="margin:0.25rem 0 0 0">Dirac Of Fragrance — Solusi reseller parfum yang andal, jujur, dan siap mendukung pertumbuhan toko Anda.</p>
         </div>
         <!-- Hero slider -->
-        <div class="slider" aria-roledescription="carousel" aria-label="Hero slideshow" data-autoplay="true" data-interval="4500">
+        <div class="slider" aria-roledescription="carousel" aria-label="Hero slideshow" data-autoplay="true" data-interval="5000">
           <div class="slides" id="heroSlides" aria-live="polite">
             <!-- Slide 1 -->
             <figure class="slide" role="group" aria-roledescription="slide" aria-label="Slide 1 of 8" data-index="0">
@@ -1070,7 +1079,7 @@
         var slidesContainer = q('#heroSlides');
         var slides = slidesContainer ? slidesContainer.children : [];
         var heroIndex = 0;
-        var heroInterval = parseInt(hero ? hero.dataset.interval || 5000 : 5000, 10);
+        var heroInterval = parseInt(hero ? hero.dataset.interval || 5000 : 5000, 10); // forced default 5000ms
         var heroAutoplay = hero ? hero.dataset.autoplay === 'true' : true;
         var heroTimer = null;
         var heroDotsContainer = q('#heroDots');
@@ -1233,5 +1242,85 @@
       });
     })();
   </script>
+
+<script>
+(function(){
+  // Safe guard
+  var slidesContainer = document.getElementById('heroSlides');
+  if(!slidesContainer) return;
+  var slides = slidesContainer.children;
+  var heroDots = document.querySelectorAll('#heroDots .dot');
+  var currentIndex = 0;
+  // init currentIndex from dot pressed
+  heroDots.forEach(function(d,i){ if(d.getAttribute('aria-pressed')==='true') currentIndex = i; });
+
+  var startX = 0, startY = 0, currentX = 0, dragging = false, deltaX = 0;
+  var containerWidth = function(){ return slidesContainer.offsetWidth || window.innerWidth; };
+  slidesContainer.style.touchAction = 'pan-y';
+
+  slidesContainer.addEventListener('pointerdown', function(e){
+    if(e.pointerType !== 'touch') return;
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    slidesContainer.style.transition = 'none';
+    slidesContainer.setPointerCapture(e.pointerId);
+  }, {passive:true});
+
+  slidesContainer.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    currentX = e.clientX;
+    var currentY = e.clientY;
+    deltaX = currentX - startX;
+    var deltaY = currentY - startY;
+    // If vertical movement dominates, abort dragging so page can scroll naturally
+    if(Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 8){
+      dragging = false;
+      slidesContainer.style.transition = '';
+      slidesContainer.releasePointerCapture && slidesContainer.releasePointerCapture(e.pointerId);
+      return;
+    }
+    // move slides by deltaX (in percent)
+    var movePercent = (deltaX / containerWidth()) * 100;
+    slidesContainer.style.transform = 'translateX(' + ( -currentIndex*100 + movePercent ) + '%)';
+  }, {passive:true});
+
+  slidesContainer.addEventListener('pointerup', endGesture, {passive:true});
+  slidesContainer.addEventListener('pointercancel', endGesture, {passive:true});
+
+  function clampIndex(i){
+    if(i < 0) return 0;
+    if(i > slides.length - 1) return slides.length - 1;
+    return i;
+  }
+
+  function endGesture(e){
+    if(!dragging) return;
+    dragging = false;
+    slidesContainer.style.transition = 'transform 300ms cubic-bezier(.22,.9,.35,1)';
+    var threshold = containerWidth() * 0.15; // 15% swipe to change slide
+    if(Math.abs(deltaX) > threshold){
+      if(deltaX < 0 && currentIndex < slides.length - 1) currentIndex++;
+      else if(deltaX > 0 && currentIndex > 0) currentIndex--;
+    }
+    slidesContainer.style.transform = 'translateX(' + (-currentIndex*100) + '%)';
+    // update dots state for accessibility
+    try{
+      heroDots.forEach(function(d,i){
+        d.setAttribute('aria-pressed', i === currentIndex ? 'true' : 'false');
+      });
+    }catch(err){ /* ignore */ }
+    deltaX = 0;
+  }
+
+  // If orientation or resize happens, ensure slides snap correctly
+  window.addEventListener('resize', function(){
+    slidesContainer.style.transition = 'none';
+    slidesContainer.style.transform = 'translateX(' + (-currentIndex*100) + '%)';
+    setTimeout(function(){ slidesContainer.style.transition = ''; }, 120);
+  });
+})();
+</script>
+
 </body>
 </html>
