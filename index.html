@@ -1392,5 +1392,58 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 <!-- END: FULL-PAGE ANIMATIONS SCRIPT (INJECTED) -->
 
+
+<!-- BEGIN: HERO FIX - keep hero visible on initial load -->
+<script id="hero-fix-script">
+(function(){
+  try {
+    var selectors = ['.hero', '.hero-section', '#hero', '.hero-title', '.hero-banner', '.hero-hero', '.hero-main', '[data-hero]'];
+    var els = [];
+    selectors.forEach(function(s){ Array.prototype.forEach.call(document.querySelectorAll(s), function(e){ els.push(e); }); });
+    // dedupe
+    els = Array.prototype.filter.call(els, function(el, idx){ return els.indexOf(el) === idx; });
+
+    function applyHeroFix(){
+      els.forEach(function(el){
+        // remove reveal behavior so it doesn't disappear
+        el.classList.remove('reveal','up','down','left','right','zoom','fade');
+        // ensure visible immediately
+        el.classList.add('visible','hero-entrance');
+        el.style.transitionDelay = '0ms';
+        // remove inline opacity hiding if any
+        el.style.opacity = '1';
+        // ensure transform is neutral initially
+        el.style.transform = 'none';
+        // Add subtle attributes: make headings shimmer but not hide
+        var headings = el.querySelectorAll('h1, h2, .hero-title');
+        headings.forEach(function(h){ if(!h.classList.contains('shimmer')) h.classList.add('shimmer'); });
+      });
+    }
+
+    if(document.readyState === 'complete' || document.readyState === 'interactive'){
+      setTimeout(applyHeroFix, 40);
+    } else {
+      window.addEventListener('DOMContentLoaded', function(){ setTimeout(applyHeroFix, 40); });
+    }
+
+    // Define CSS for hero entrance (non-fading, gentle slide/scale)
+    var css = '\
+    .hero-entrance {\
+      transition: transform 900ms cubic-bezier(.2,.9,.3,1), box-shadow 900ms cubic-bezier(.2,.9,.3,1); \
+      will-change: transform; \
+      transform: translateY(0) scale(1); \
+    } \
+    @media (prefers-reduced-motion: reduce) { .hero-entrance { transition: none !important; } }';
+    var style = document.createElement('style');
+    style.innerHTML = css;
+    document.head.appendChild(style);
+
+  } catch(err){
+    console.warn('Hero fix script error:', err);
+  }
+})();
+</script>
+<!-- END: HERO FIX -->
+
 </body>
 </html>
