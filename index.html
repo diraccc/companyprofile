@@ -474,7 +474,8 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   font-size:16px;
   backdrop-filter: blur(6px);
 }
-.video-unmute.hidden{ display:none !important; }
+.video-unmute:active{ transform: scale(0.98); }
+.video-unmute.hidden{ display: none !important; }
 /* Stronger mobile-only rules */
 @media (max-width: 820px) {
   .slide video {
@@ -1012,23 +1013,48 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <button aria-label="Tutup" class="close-modal" id="closeLightbox">✕</button>
 </div>
 <script>
+  
+<script>
 document.addEventListener('DOMContentLoaded', function(){
   const v = document.getElementById('hero-video');
   const b = document.getElementById('unmuteBtn');
   if(!v || !b) return;
-  if(!v.muted) b.classList.add('hidden');
 
-  b.addEventListener('click', async function(){
-    try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
-    catch (err) { console.warn('Gagal play/unmute:', err); }
-  });
+  // restore preferensi sederhana (opsional)
+  try {
+    const saved = localStorage.getItem('heroVideoMuted');
+    if (saved !== null) v.muted = (saved === 'true');
+  } catch (e) {}
 
-  v.addEventListener('click', async function(){
-    if(v.muted){
-      try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
-      catch(e){ console.warn(e); }
+  function updateButton(){
+    if (v.muted) {
+      b.textContent = '🔊';
+      b.setAttribute('aria-label', 'Hidupkan suara');
+      b.setAttribute('aria-pressed', 'false');
+      b.title = 'Hidupkan suara';
+    } else {
+      b.textContent = '🔈';
+      b.setAttribute('aria-label', 'Matikan suara');
+      b.setAttribute('aria-pressed', 'true');
+      b.title = 'Matikan suara';
     }
+  }
+
+  updateButton();
+
+  b.addEventListener('click', async function(e){
+    e.preventDefault();
+    v.muted = !v.muted;
+    if (!v.muted) {
+      v.volume = 0.8;
+      try { await v.play(); } catch (err) { /* ignore play errors */ }
+    }
+    try { localStorage.setItem('heroVideoMuted', v.muted.toString()); } catch (e) {}
+    updateButton();
   });
+
+  // opsional: klik video juga toggle suara
+  v.addEventListener('click', function(){ b.click(); });
 });
 </script>
 </body>
