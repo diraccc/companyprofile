@@ -1223,5 +1223,126 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 
+
+<!-- AUTO HERO SLIDESHOW: cycles through provided media filenames every 5s without changing filenames -->
+<script>
+(function(){
+  try {
+    const sources = [
+      'hero.MOV',
+      'videos/hero.mp4',
+      'images/slide1-16x9.jpg','images/slide2-16x9.jpg','images/slide3-16x9.jpg',
+      'images/slide4-16x9.jpg','images/slide5-16x9.jpg','images/slide6-16x9.jpg',
+      'images/slide7-16x9.jpg','images/slide8-16x9.jpg'
+    ];
+    let idx = 0;
+    const mediaContainer = document.querySelector('.hero .media') || document.querySelector('.hero');
+    if(!mediaContainer) return;
+    mediaContainer.style.position = mediaContainer.style.position || 'relative';
+
+    // ensure hero image fallback exists
+    let heroImg = mediaContainer.querySelector('#heroImg');
+    if(!heroImg){
+      heroImg = document.createElement('img');
+      heroImg.id = 'heroImg';
+      heroImg.alt = 'Hero slide';
+      Object.assign(heroImg.style, {
+        position:'absolute', inset:'0', width:'100%', height:'100%', objectFit:'cover', display:'none'
+      });
+      // keep non-destructive: append but don't remove existing elements
+      mediaContainer.appendChild(heroImg);
+    }
+
+    const heroVideo = document.getElementById('hero-video');
+
+    function showImage(src){
+      if(heroVideo){
+        try { heroVideo.pause(); heroVideo.style.display='none'; } catch(e){/*ignore*/ }
+      }
+      heroImg.src = src;
+      heroImg.style.display = 'block';
+    }
+
+    function showVideo(src){
+      if(heroVideo){
+        const s = heroVideo.querySelector('source');
+        if(s && s.getAttribute('src') !== src){
+          s.setAttribute('src', src);
+          try { heroVideo.load(); } catch(e){}
+        }
+        heroVideo.style.display = 'block';
+        heroImg.style.display = 'none';
+        heroVideo.muted = true;
+        heroVideo.play().catch(()=>{});
+        return;
+      }
+      // if no existing video, create ephemeral one (keeps original content intact)
+      const v = document.createElement('video');
+      v.setAttribute('playsinline','');
+      v.autoplay = true; v.muted = true; v.loop = true;
+      Object.assign(v.style, {position:'absolute', inset:'0', width:'100%', height:'100%', objectFit:'cover'});
+      const srcEl = document.createElement('source');
+      srcEl.src = src;
+      v.appendChild(srcEl);
+      mediaContainer.appendChild(v);
+      heroImg.style.display = 'none';
+    }
+
+    let timeoutId = null;
+    function scheduleNext(delay=5000){
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(()=>{ idx = (idx+1) % sources.length; attemptShow(idx); }, delay);
+    }
+
+    function attemptShow(i){
+      const src = sources[i % sources.length];
+      const isVideo = /\.(mp4|mov|webm)$/i.test(src);
+      if(isVideo){
+        // try to set video; if it errors, move to next
+        if(heroVideo){
+          const s = heroVideo.querySelector('source');
+          if(s) s.onerror = function(){ scheduleNext(200); idx=(idx+1)%sources.length; attemptShow(idx); };
+        }
+        showVideo(src);
+        scheduleNext(5000);
+      } else {
+        // test image availability
+        const test = new Image();
+        let settled = false;
+        test.onload = function(){
+          if(settled) return; settled = true;
+          showImage(src);
+          scheduleNext(5000);
+        };
+        test.onerror = function(){
+          if(settled) return; settled = true;
+          // skip to next if image not found
+          idx = (idx+1) % sources.length;
+          attemptShow(idx);
+        };
+        // start loading
+        test.src = src + '?_t=' + Date.now(); // cache-bust to improve detection
+      }
+    }
+
+    // start carousel — but respect reduced motion
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      // show first available media only
+      attemptShow(0);
+    } else {
+      attemptShow(idx);
+    }
+
+    // pause on user hover/focus to avoid disrupting interaction
+    ['mouseenter','focusin'].forEach(ev => mediaContainer.addEventListener(ev, ()=> clearTimeout(timeoutId)));
+    ['mouseleave','focusout'].forEach(ev => mediaContainer.addEventListener(ev, ()=> scheduleNext()));
+
+  } catch(e){
+    console.warn('Hero slideshow error', e);
+  }
+})();
+</script>
+<!-- END AUTO HERO SLIDESHOW -->
+
 </body>
 </html>
