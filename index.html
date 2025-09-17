@@ -491,6 +491,145 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 }
 </style>
 
+
+<!-- BEGIN: FULL-PAGE ANIMATIONS (INJECTED) -->
+<style id="anim-inject">
+:root{
+  --anim-duration: 700ms;
+  --anim-ease: cubic-bezier(.2,.9,.3,1);
+  --accent: rgba(29,161,242,0.95);
+  --card-shadow: 0 12px 30px rgba(2,6,23,0.30);
+  --max-stagger: 600; /* ms maximum stagger from top to bottom */
+}
+
+/* 1) Page sweep overlay (top -> bottom) */
+#pageSweep {
+  position: fixed;
+  left: 0;
+  top: -150%;
+  width: 100%;
+  height: 300%;
+  pointer-events: none;
+  z-index: 999999;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.00) 0%,
+    rgba(255,255,255,0.02) 6%,
+    rgba(255,255,255,0.06) 20%,
+    rgba(255,255,255,0.10) 45%,
+    rgba(255,255,255,0.02) 70%,
+    rgba(255,255,255,0.00) 100%);
+  mix-blend-mode: screen;
+  opacity: 0.8;
+  transform: translateY(0);
+}
+#pageSweep.play {
+  animation: sweepY 6s linear infinite;
+}
+@keyframes sweepY {
+  0%   { transform: translateY(-100%); }
+  50%  { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+
+/* 2) Subtle animated gradient background (non-invasive) */
+body::before{
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  background: linear-gradient(120deg, rgba(8,10,15,0.96), rgba(12,14,20,0.94));
+  background-size: 400% 400%;
+  animation: bgShift 20s linear infinite;
+  pointer-events: none;
+  opacity: 0.03;
+}
+@keyframes bgShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 3) Reveal-on-scroll base classes */
+.reveal {
+  opacity: 0;
+  transform-origin: center;
+  transition-property: opacity, transform;
+  transition-duration: var(--anim-duration);
+  transition-timing-function: var(--anim-ease);
+  will-change: transform, opacity;
+}
+
+/* variants */
+.reveal.up    { transform: translateY(18px); }
+.reveal.down  { transform: translateY(-18px); }
+.reveal.left  { transform: translateX(-18px); }
+.reveal.right { transform: translateX(18px); }
+.reveal.zoom  { transform: scale(0.985); }
+.reveal.fade  { transform: none; }
+
+/* when visible */
+.reveal.visible { opacity: 1; transform: none; }
+
+/* 4) Shimmer effect for headings */
+.shimmer { position: relative; display: inline-block; overflow: hidden; }
+.shimmer::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-110%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+  animation: shimmer 3.2s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+@keyframes shimmer { 0% { transform: translateX(-110%);} 100% { transform: translateX(110%);} }
+
+/* 5) Card/wrap hover lifts */
+.card, article, .timeline-card, .product-card {
+  transition: transform 420ms var(--anim-ease), box-shadow 420ms var(--anim-ease);
+  will-change: transform, box-shadow;
+  backface-visibility: hidden;
+}
+.card:hover, article:hover, .timeline-card:hover, .product-card:hover {
+  transform: translateY(-10px);
+  box-shadow: var(--card-shadow);
+}
+
+/* 6) Image/video gentle zoom on hover */
+img, video {
+  transition: transform 650ms var(--anim-ease), opacity 650ms var(--anim-ease);
+  will-change: transform;
+}
+img:hover, video:hover { transform: scale(1.03); }
+
+/* 7) Button hover */
+button, .btn, a.button {
+  transition: transform 220ms var(--anim-ease), box-shadow 220ms var(--anim-ease);
+}
+button:hover, .btn:hover, a.button:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 0 20px rgba(29,161,242,0.06);
+}
+
+/* 8) Floating micro-animations */
+.floating { animation: floaty 6s ease-in-out infinite; }
+@keyframes floaty { 0% { transform: translateY(0px);} 50% { transform: translateY(-6px);} 100% { transform: translateY(0px);} }
+
+/* 9) Parallax container */
+[data-parallax] { transform: translateZ(0); will-change: transform; }
+
+/* 10) Accessibility & reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  #pageSweep { animation: none !important; opacity: 0 !important; }
+  body::before { animation: none !important; }
+  .shimmer::after { display: none !important; }
+  img, video, a, button, .card, article { transition: none !important; transform: none !important; }
+  .reveal { transition: none !important; opacity: 1 !important; transform: none !important; }
+  [data-parallax] { transform: none !important; }
+}
+</style>
+<!-- END: FULL-PAGE ANIMATIONS (INJECTED) -->
+
 </head>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
@@ -1031,5 +1170,227 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 </script>
+
+<!-- BEGIN: FULL-PAGE ANIMATIONS SCRIPT (INJECTED) -->
+<script id="anim-inject-script">
+(function(){
+  try {
+    // Respect reduced motion
+    var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 1) Insert page sweep overlay
+    var sweep = document.createElement('div');
+    sweep.id = 'pageSweep';
+    sweep.setAttribute('aria-hidden','true');
+    document.body.appendChild(sweep);
+    if(!prefersReduced) sweep.classList.add('play');
+
+    // 2) Utility: throttle via rAF
+    function rafThrottle(fn){
+      var busy = false;
+      return function(){
+        var args = arguments;
+        if(busy) return;
+        busy = true;
+        requestAnimationFrame(function(){
+          fn.apply(null, args);
+          busy = false;
+        });
+      };
+    }
+
+    // 3) Reveal-on-scroll: select visible elements across the page in top-to-bottom order
+    // Exclude script/style and elements with data-no-anim
+    function collectRevealTargets(){
+      var all = Array.prototype.slice.call(document.querySelectorAll('body *'));
+      // filter out non-visual and very small elements
+      all = all.filter(function(el){
+        if(!el.offsetParent && getComputedStyle(el).position !== 'fixed') return false;
+        if(el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'META' || el.tagName === 'LINK') return false;
+        if(el.closest('svg')) return false;
+        if(el.hasAttribute('data-no-anim')) return false;
+        if(el.clientHeight < 8 && el.clientWidth < 8) return false;
+        return true;
+      });
+      // de-duplicate and keep meaningful containers (prefer top-level blocks)
+      var unique = [];
+      var seen = new Set();
+      all.forEach(function(el){
+        if(seen.has(el)) return;
+        unique.push(el);
+        seen.add(el);
+      });
+      // map to objects with top offset
+      var list = unique.map(function(el){
+        var rect = el.getBoundingClientRect();
+        var top = rect.top + window.scrollY;
+        return {el: el, top: top};
+      });
+      // sort by top offset (ascending)
+      list.sort(function(a,b){ return a.top - b.top; });
+      return list.map(function(item){ return item.el; });
+    }
+
+    // Add reveal classes to targets with variants heuristically
+    function prepRevealTargets(){
+      var targets = collectRevealTargets();
+      targets.forEach(function(el, idx){
+        // don't overwrite existing classes
+        if(!el.classList.contains('reveal')){
+          el.classList.add('reveal');
+          // choose variant based on tag or role
+          var tag = el.tagName.toLowerCase();
+          var variant = 'up';
+          if(tag === 'img' || tag === 'picture' || el.querySelector('img') ) variant = 'zoom';
+          else if(tag === 'h1' || tag === 'h2' || el.classList.contains('headline')) variant = 'fade';
+          else if(tag === 'nav' || el.classList.contains('nav') ) variant = 'down';
+          else if(el.classList.contains('timeline') || el.classList.contains('timeline-card')) variant = 'left';
+          else variant = 'up';
+          el.classList.add(variant);
+          // set will-animate attribute to help observer compute stagger
+          el.setAttribute('data-will-animate', 'true');
+        }
+      });
+      return targets;
+    }
+
+    // IntersectionObserver to reveal as elements come into view; using top-to-bottom stagger
+    var io = null;
+    function setupObserver(){
+      if(prefersReduced) {
+        // Just make everything visible
+        var all = document.querySelectorAll('.reveal');
+        all.forEach(function(el){ el.classList.add('visible'); el.style.transitionDelay = '0ms'; });
+        return;
+      }
+      var targets = Array.from(document.querySelectorAll('.reveal[data-will-animate]'));
+      if(targets.length === 0) return;
+      // compute minTop and maxTop to map to delay range
+      var tops = targets.map(function(el){ return el.getBoundingClientRect().top + window.scrollY; });
+      var minTop = Math.min.apply(null, tops);
+      var maxTop = Math.max.apply(null, tops);
+      var range = Math.max(1, maxTop - minTop);
+      io = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(!entry.isIntersecting) return;
+          var el = entry.target;
+          // compute delay based on element top position
+          var top = el.getBoundingClientRect().top + window.scrollY;
+          var normalized = (top - minTop) / range; // 0..1
+          var delay = Math.round(normalized * (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--max-stagger')) || 600));
+          el.style.transitionDelay = delay + 'ms';
+          el.classList.add('visible');
+          // once visible, unobserve
+          io.unobserve(el);
+        });
+      }, { root: null, rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+      targets.forEach(function(t){ io.observe(t); });
+    }
+
+    // 4) Parallax: small translate for elements with data-parallax attribute or images
+    var parallaxEls = [];
+    function gatherParallax(){
+      parallaxEls = Array.prototype.slice.call(document.querySelectorAll('[data-parallax], img[data-parallax], video[data-parallax]'));
+    }
+    var lastScrollY = window.scrollY;
+    var applyParallax = rafThrottle(function(){
+      var sc = window.scrollY;
+      var vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+      parallaxEls.forEach(function(el){
+        var rect = el.getBoundingClientRect();
+        var elMid = rect.top + rect.height/2;
+        var offset = (elMid - vh/2) / vh; // -1 .. 1
+        var strength = parseFloat(el.getAttribute('data-parallax-strength') || '12');
+        var translateY = -offset * strength;
+        el.style.transform = 'translateY(' + translateY + 'px)';
+      });
+      lastScrollY = sc;
+    });
+
+    // 5) Re-run prep on DOM changes (mutation observer) to support SPA or dynamic content
+    var mo = new MutationObserver(rafThrottle(function(){
+      // re-prepare reveal targets and parallax
+      prepRevealTargets();
+      gatherParallax();
+      // re-init observer if needed
+      if(io) io.disconnect();
+      setupObserver();
+    }));
+    mo.observe(document.body, { childList: true, subtree: true, attributes: false });
+
+    // 6) Initial run: prepare and observe
+    function initAnimations(){
+      var targets = prepRevealTargets();
+      gatherParallax();
+      setupObserver();
+      // initial parallax application
+      applyParallax();
+    }
+
+    // Run after load to allow layout to stabilize
+    if(document.readyState === 'complete' || document.readyState === 'interactive'){
+      setTimeout(initAnimations, 120);
+    } else {
+      window.addEventListener('DOMContentLoaded', function(){ setTimeout(initAnimations, 120); });
+    }
+
+    // Hook scroll for parallax
+    window.addEventListener('scroll', applyParallax, { passive: true });
+    window.addEventListener('resize', rafThrottle(function(){
+      // re-collect targets to recompute stagger mapping
+      if(io) io.disconnect();
+      setupObserver();
+      gatherParallax();
+      applyParallax();
+    }));
+
+    // 7) Shimmer heading auto-tagging: add .shimmer to top headings for subtle luxury feel
+    function autoShimmer(){
+      var h = document.querySelectorAll('h1, h2, .hero-title');
+      for(var i=0;i<h.length;i++){
+        var el = h[i];
+        if(!el.classList.contains('shimmer')) el.classList.add('shimmer');
+      }
+    }
+    autoShimmer();
+
+    // 8) Keyboard toggle (Shift+S) to toggle all animations
+    window.addEventListener('keydown', function(e){
+      if(e.shiftKey && (e.key === 'S' || e.key === 's')){
+        var disabled = document.documentElement.hasAttribute('data-anim-disabled');
+        if(disabled){
+          document.documentElement.removeAttribute('data-anim-disabled');
+          // re-enable behaviors
+          if(!prefersReduced) sweep.classList.add('play');
+          initAnimations();
+        } else {
+          document.documentElement.setAttribute('data-anim-disabled', '1');
+          // disable visuals
+          if(sweep) sweep.classList.remove('play');
+          // make reveals visible immediately
+          var r = document.querySelectorAll('.reveal');
+          r.forEach(function(el){ el.classList.add('visible'); el.style.transitionDelay = '0ms'; });
+          // stop parallax
+          parallaxEls.forEach(function(el){ el.style.transform = 'none'; });
+        }
+      }
+    });
+
+    // Expose toggle function
+    window.toggleFullPageAnimations = function(){
+      var disabled = document.documentElement.hasAttribute('data-anim-disabled');
+      var ev = new KeyboardEvent('keydown', {key:'S', shiftKey:true});
+      window.dispatchEvent(ev);
+      return !disabled;
+    };
+
+    // safety: ensure no errors break page scripts
+  } catch(err){
+    console.warn('Animation injection error:', err);
+  }
+})();
+</script>
+<!-- END: FULL-PAGE ANIMATIONS SCRIPT (INJECTED) -->
+
 </body>
 </html>
