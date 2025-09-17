@@ -1,3 +1,7 @@
+<!-- Single-file build summary:
+Missing assets left as external references (not found in /mnt/data): images/slide1-16x9.jpg, images/slide2-16x9.jpg, images/slide3-16x9.jpg, images/slide4-16x9.jpg, images/slide5-16x9.jpg, images/slide6-16x9.jpg, images/slide7-16x9.jpg, images/slide8-16x9.jpg, images/team_1.jpg, images/team_2.jpg, images/team_3.jpg, logos/client1.png, logos/client2.png, logos/client3.png, logos/client4.png, logos/client5.png, logos/client6.png, videos/hero.mp4
+Note: Autoplay video will be embedded only if the mp4 was present. -->
+
 <!-- index.html -->
 <!--
   GENERATED FOR: Dirac Of Fragrance
@@ -414,6 +418,9 @@
   .slide .media { min-height: 140px; padding-top:56.25%; }
 }
 
+
+/* video support for hero - ensure full cover like images */
+.slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 </style>
 </head>
 <body>
@@ -455,7 +462,7 @@
             <figure class="slide" role="group" aria-roledescription="slide" aria-label="Slide 1 of 8" data-index="0">
               <div class="media">
                 <!-- TODO: upload images/slide1-16x9.jpg -->
-                <img src="images/slide1-16x9.jpg" alt="Tampilan botol parfum elegan di studio, representasi produk unggulan" loading="lazy" />
+                <video src="videos/hero.mp4" poster="images/slide1-16x9.jpg" autoplay muted loop playsinline preload="metadata"></video>
               </div>
               <figcaption>
                 <strong>Original Brands, Trusted Sourcing</strong>
