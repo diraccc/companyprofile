@@ -670,6 +670,181 @@ button:hover, .btn:hover, a.button:hover {
 </style>
 <!-- END: HERO NO-HIDE OVERRIDE -->
 
+
+<!-- BEGIN: HERO FORCE VISIBLE (CRITICAL OVERRIDE) -->
+<style id="hero-force-style">
+/* Highest-priority overrides to absolutely keep hero visible */
+.hero, .hero-section, #hero, .hero-banner, .hero-main, .hero-title, [data-hero], [data-hero="true"], [data-hero="1"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  pointer-events: auto !important;
+  z-index: 2147483647 !important; /* very high to stay on top */
+}
+
+/* Ensure children are visible */
+.hero * , .hero-section * , #hero * , .hero-banner * {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Neutralize reveal classes specifically inside hero */
+.hero .reveal, .hero-section .reveal, #hero .reveal, .hero-banner .reveal {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Ensure no overlay covers hero by forcing pointer-events on hero */
+.hero, .hero * { pointer-events: auto !important; }
+
+/* Make hero appear above any injected overlay */
+#pageSweep { z-index: 999990 !important; } /* keep sweep below hero */
+</style>
+<!-- END: HERO FORCE VISIBLE (CRITICAL OVERRIDE) -->
+
+
+<!-- BEGIN: HERO FORCE SCRIPT (CRITICAL) -->
+<script id="hero-force-script">
+(function(){
+  try {
+    var selectors = ['.hero', '.hero-section', '#hero', '.hero-banner', '.hero-main', '.hero-title', '[data-hero]', '[data-hero="true"]', '[data-hero="1"]'];
+    var bannedClasses = ['reveal','visible','up','down','left','right','zoom','fade','hidden','is-hidden','hide','animate-hide'];
+
+    function isHeroElement(el){
+      if(!el || el.nodeType !== 1) return false;
+      try {
+        for(var i=0;i<selectors.length;i++){
+          if(el.matches && el.matches(selectors[i])) return true;
+        }
+      } catch(e){}
+      // Also consider ancestors: if element is inside a hero container, treat as hero-child
+      var p = el;
+      while(p && p !== document.documentElement){
+        try {
+          for(var j=0;j<selectors.length;j++){
+            if(p.matches && p.matches(selectors[j])) return true;
+          }
+        } catch(e){}
+        p = p.parentElement;
+      }
+      return false;
+    }
+
+    function forceStyleOn(el){
+      if(!el || el.nodeType !== 1) return;
+      try {
+        // remove problematic classes
+        bannedClasses.forEach(function(c){ if(el.classList && el.classList.contains(c)) el.classList.remove(c); });
+        // clear 'hidden' attributes
+        if(el.hasAttribute('hidden')) el.removeAttribute('hidden');
+        if(el.getAttribute('aria-hidden') === 'true') el.setAttribute('aria-hidden','false');
+        // strongly set inline css (using cssText to include !important)
+        var css = 'opacity:1 !important; visibility:visible !important; display:block !important; transform:none !important; transition:none !important; animation:none !important; pointer-events:auto !important; z-index:2147483647 !important;';
+        // preserve existing styles? append
+        try {
+          // Prepend to ensure dominance
+          el.style.cssText = css + el.style.cssText;
+        } catch(e){
+          // fallback
+          el.setAttribute('style', css + (el.getAttribute('style') || ''));
+        }
+      } catch(err){}
+    }
+
+    function forceOnAllHeroes(){
+      try {
+        var list = [];
+        selectors.forEach(function(s){ Array.prototype.forEach.call(document.querySelectorAll(s), function(e){ list.push(e); }); });
+        // dedupe
+        list = list.filter(function(el, idx){ return list.indexOf(el) === idx; });
+        list.forEach(function(el){
+          forceStyleOn(el);
+          // ensure children are visible
+          var children = el.querySelectorAll('*');
+          for(var i=0;i<children.length;i++) forceStyleOn(children[i]);
+          // tag to avoid repeated work
+          el.setAttribute('data-hero-force-visible','1');
+        });
+      } catch(e){}
+    }
+
+    // Observe mutations and re-assert hero visibility immediately when classes/styles change
+    var mo = new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        try {
+          if(m.type === 'attributes'){
+            var target = m.target;
+            if(isHeroElement(target)){
+              forceStyleOn(target);
+            } else {
+              // if attribute change occurs to a child that sits under hero ancestor, enforce hero ancestor
+              var anc = target.closest && target.closest(selectors.join(','));
+              if(anc) forceStyleOn(anc);
+            }
+          } else if(m.type === 'childList'){
+            // newly added nodes: if they are hero or within hero, enforce
+            m.addedNodes && m.addedNodes.forEach && m.addedNodes.forEach(function(node){
+              if(node.nodeType !== 1) return;
+              if(isHeroElement(node)) forceStyleOn(node);
+              var anc = node.closest && node.closest(selectors.join(','));
+              if(anc) forceStyleOn(anc);
+            });
+          }
+        } catch(e){}
+      });
+    });
+    mo.observe(document.documentElement || document.body, { attributes: true, attributeFilter: ['class','style','hidden','aria-hidden'], childList: true, subtree: true });
+
+    // Monkey-patch Element.prototype.setAttribute to prevent hiding via attributes on hero elements
+    var origSetAttr = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function(name, value){
+      try {
+        if((name === 'style' || name === 'class' || name === 'hidden' || name === 'aria-hidden') && isHeroElement(this)){
+          // if trying to set style that hides, ignore harmful bits by applying force after original
+          origSetAttr.call(this, name, value);
+          // re-force visible
+          forceStyleOn(this);
+          return;
+        }
+      } catch(e){}
+      return origSetAttr.call(this, name, value);
+    };
+
+    // Initial enforcement ASAP and repeated short bursts to beat other scripts
+    forceOnAllHeroes();
+    var burst = 0;
+    var burstInterval = setInterval(function(){
+      forceOnAllHeroes();
+      burst++;
+      if(burst > 40){ clearInterval(burstInterval); } // ~40*100ms = 4s burst
+    }, 100);
+
+    // Longer-term periodic enforcement every 1.5s to catch late modifications
+    setInterval(forceOnAllHeroes, 1500);
+
+    // Also run on DOMContentLoaded and load
+    document.addEventListener('DOMContentLoaded', forceOnAllHeroes);
+    window.addEventListener('load', function(){ setTimeout(forceOnAllHeroes, 20); });
+
+    // Expose for debugging
+    window.forceHeroNow = forceOnAllHeroes;
+  } catch(err){
+    console.warn('hero-force-script error', err);
+  }
+})();
+</script>
+<!-- END: HERO FORCE SCRIPT (CRITICAL) -->
+
 </head>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
