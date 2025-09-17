@@ -425,9 +425,26 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <style>
 /* Force video not rotated and nudge position on mobile */
 
+/* Ganti semua rule .slide video yang ada dengan ini (letakkan di akhir <head>) */
 .slide video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover !important;
-  object-position: center center !important;
+  object-position: 50% 50% !important; /* pusatkan isi video */
+  transform: none !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 auto !important;
+}
+
+/* Pastikan tidak ada override mobile yang mengubah object-position kembali */
+@media (max-width: 820px) {
+  .slide video {
+    object-position: 50% 50% !important;
+    transform: none !important;
+  }
 }
 
 
