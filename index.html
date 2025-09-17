@@ -460,6 +460,21 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   pointer-events: none !important;
 }
 
+.video-unmute{
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  z-index:40;
+  background: rgba(0,0,0,0.6);
+  color:#fff;
+  border: none;
+  padding:8px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:16px;
+  backdrop-filter: blur(6px);
+}
+.video-unmute.hidden{ display:none !important; }
 /* Stronger mobile-only rules */
 @media (max-width: 820px) {
   .slide video {
@@ -519,12 +534,14 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
         <source src="hero.MOV" type="video/quicktime">
         Your browser does not support the video tag.
       </video>
-    </div>
+        <!-- TAMBAHKAN TOMBOL UNMUTE DI SINI (NO 1) -->
+  <button id="unmuteBtn" class="video-unmute" aria-label="Hidupkan suara">🔊</button>
+</div>
     <figcaption style="position:relative;left:1rem;right:1rem;bottom:0;margin-top:0.6rem">
       <!-- optional caption content -->
     </figcaption>
   </figure>
-
+  
   <!-- Highlights & CTA remain as before; keep the following container below hero -->
   <div aria-label="Highlight layanan" class="highlights" style="margin-top:1rem">
     <!-- existing highlight cards... -->
@@ -972,6 +989,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <div class="muted">Reseller parfum original | companydirac@gmail.com | +62 819-3703-6039</div>
 </div>
 <div aria-label="Sosial media" class="socials">
+
 <!-- social icon placeholders -->
 <a aria-disabled="true" href="#" title="Instagram"><svg aria-hidden="true" fill="none" height="28" viewbox="0 0 24 24" width="28"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2"></circle></svg></a>
 <a aria-disabled="true" href="#" title="Facebook"><svg aria-hidden="true" fill="none" height="28" viewbox="0 0 24 24" width="28"><rect height="16" rx="3" stroke="currentColor" stroke-width="1.2" width="16" x="4" y="4"></rect></svg></a>
@@ -993,6 +1011,25 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 <button aria-label="Tutup" class="close-modal" id="closeLightbox">✕</button>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const v = document.getElementById('hero-video');
+  const b = document.getElementById('unmuteBtn');
+  if(!v || !b) return;
+  if(!v.muted) b.classList.add('hidden');
 
+  b.addEventListener('click', async function(){
+    try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
+    catch (err) { console.warn('Gagal play/unmute:', err); }
+  });
+
+  v.addEventListener('click', async function(){
+    if(v.muted){
+      try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
+      catch(e){ console.warn(e); }
+    }
+  });
+});
+</script>
 </body>
 </html>
