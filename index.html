@@ -1133,5 +1133,70 @@ document.addEventListener('DOMContentLoaded', function(){
   items.forEach(item => itemObserver.observe(item));
 });
 </script>
+
+<!-- Testimonial auto‑slider script -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Grab testimonial slide elements and controls
+  const container = document.getElementById('testSlides');
+  const slides = container ? container.children : [];
+  const prevBtn = document.getElementById('testPrev');
+  const nextBtn = document.getElementById('testNext');
+  const dotsContainer = document.getElementById('testDots');
+  if(!container || !slides || slides.length === 0) return;
+  let currentIndex = 0;
+  const total = slides.length;
+  // Build dot navigation based on number of slides
+  for(let i = 0; i < total; i++){
+    const dot = document.createElement('button');
+    dot.className = 'dot';
+    dot.setAttribute('role','tab');
+    dot.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+    dot.addEventListener('click', function(){ goTo(i); });
+    dotsContainer.appendChild(dot);
+  }
+  function update(){
+    // move slides container horizontally
+    container.style.transform = 'translateX(' + (-100 * currentIndex) + '%)';
+    // update dots state
+    const dots = dotsContainer.querySelectorAll('.dot');
+    dots.forEach((d, idx) => {
+      if(idx === currentIndex){
+        d.setAttribute('aria-pressed','true');
+      } else {
+        d.setAttribute('aria-pressed','false');
+      }
+    });
+  }
+  function goTo(index){
+    currentIndex = (index + total) % total;
+    update();
+    restartAuto();
+  }
+  function next(){
+    goTo(currentIndex + 1);
+  }
+  function prev(){
+    goTo(currentIndex - 1);
+  }
+  // Bind arrow buttons
+  if(prevBtn){ prevBtn.addEventListener('click', prev); }
+  if(nextBtn){ nextBtn.addEventListener('click', next); }
+  // Auto‑slide timer
+  let autoTimer;
+  function startAuto(){
+    autoTimer = setInterval(next, 6000); // slide every 6 seconds
+  }
+  function stopAuto(){
+    clearInterval(autoTimer);
+  }
+  function restartAuto(){
+    stopAuto();
+    startAuto();
+  }
+  // Start autoplay
+  startAuto();
+});
+</script>
 </body>
 </html>
