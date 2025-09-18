@@ -558,6 +558,48 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </style>
 
 </head>
+<!-- Additional interactive CSS for micro-interactions, nav underline, and fade-in animations -->
+<style>
+/* Animations pack v1 (lightweight & accessible) */
+@media (prefers-reduced-motion: no-preference) {
+  [data-animate]{
+    opacity:0; transform:translateY(16px);
+    transition:opacity .5s ease, transform .6s ease;
+  }
+  [data-animate].in{ opacity:1; transform:none; }
+}
+
+/* Micro‑interactions for buttons and cards */
+.btn{
+  transition: transform .12s ease, box-shadow .18s ease, background .2s ease;
+}
+.btn:hover{ transform:translateY(-1px); box-shadow:0 12px 34px rgba(13,110,253,.18); }
+.btn:active{ transform:translateY(0); }
+.card, .article, .team-card{
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.card:hover, .article:hover, .team-card:hover{
+  transform:translateY(-3px); box-shadow:0 16px 44px rgba(0,0,0,.35);
+}
+
+/* Navbar underline animation */
+.main-nav a{ position:relative; overflow:hidden; }
+.main-nav a::after{
+  content:""; position:absolute; left:8px; right:8px; bottom:6px; height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  transform:scaleX(0); transform-origin:left; transition:transform .2s ease;
+}
+.main-nav a:hover::after{ transform:scaleX(1); }
+
+/* Lightbox fade + scale */
+.modal .figure, .modal img{
+  transform:scale(.96); opacity:0;
+  transition: transform .18s ease, opacity .18s ease;
+}
+.modal.show .figure, .modal.show img{
+  transform:none; opacity:1;
+}
+</style>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
 <div class="container topbar">
@@ -1197,6 +1239,68 @@ document.addEventListener('DOMContentLoaded', function(){
   // Start autoplay
   startAuto();
 });
+</script>
+<script>
+/* Scroll reveal using IntersectionObserver */
+(() => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('[data-animate]').forEach(el => io.observe(el));
+})();
+</script>
+<script>
+/* Smooth scroll for anchor links */
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click', e=>{
+    const id=a.getAttribute('href');
+    const t=id && id.length>1 ? document.querySelector(id) : null;
+    if(t){ e.preventDefault(); t.scrollIntoView({behavior:'smooth', block:'start'}); }
+  });
+});
+</script>
+<script>
+/* Hero parallax effect */
+(() => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const hero=document.querySelector('#home');
+  if(!hero) return;
+  const title=hero.querySelector('h1');
+  window.addEventListener('scroll', ()=>{
+    const r=hero.getBoundingClientRect();
+    if(r.bottom<0||r.top>window.innerHeight) return;
+    const y = r.top * -0.04;
+    if(title) title.style.transform = `translateY(${y}px)`;
+  }, {passive:true});
+})();
+</script>
+<script>
+/* Lightbox open/close with animation */
+(() => {
+  const m=document.getElementById('lightbox') || document.querySelector('.modal');
+  const img=document.getElementById('lightboxImg') || (m && m.querySelector('img'));
+  const close=document.getElementById('closeLightbox') || (m && m.querySelector('[data-close]'));
+  if(!m || !img) return;
+  document.querySelectorAll('.gallery-grid img').forEach(i=>{
+    i.addEventListener('click', ()=>{
+      img.src = i.src;
+      m.classList.add('show');
+      m.style.display='flex';
+    });
+  });
+  if(close){
+    close.addEventListener('click', ()=>{
+      m.classList.remove('show');
+      setTimeout(() => { m.style.display='none'; img.src=''; }, 180);
+    });
+  }
+})();
 </script>
 </body>
 </html>
