@@ -558,48 +558,6 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </style>
 
 </head>
-<!-- Additional interactive CSS for micro-interactions, nav underline, and fade-in animations -->
-<style>
-/* Animations pack v1 (lightweight & accessible) */
-@media (prefers-reduced-motion: no-preference) {
-  [data-animate]{
-    opacity:0; transform:translateY(16px);
-    transition:opacity .5s ease, transform .6s ease;
-  }
-  [data-animate].in{ opacity:1; transform:none; }
-}
-
-/* Micro‑interactions for buttons and cards */
-.btn{
-  transition: transform .12s ease, box-shadow .18s ease, background .2s ease;
-}
-.btn:hover{ transform:translateY(-1px); box-shadow:0 12px 34px rgba(13,110,253,.18); }
-.btn:active{ transform:translateY(0); }
-.card, .article, .team-card{
-  transition: transform .18s ease, box-shadow .18s ease;
-}
-.card:hover, .article:hover, .team-card:hover{
-  transform:translateY(-3px); box-shadow:0 16px 44px rgba(0,0,0,.35);
-}
-
-/* Navbar underline animation */
-.main-nav a{ position:relative; overflow:hidden; }
-.main-nav a::after{
-  content:""; position:absolute; left:8px; right:8px; bottom:6px; height:2px;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));
-  transform:scaleX(0); transform-origin:left; transition:transform .2s ease;
-}
-.main-nav a:hover::after{ transform:scaleX(1); }
-
-/* Lightbox fade + scale */
-.modal .figure, .modal img{
-  transform:scale(.96); opacity:0;
-  transition: transform .18s ease, opacity .18s ease;
-}
-.modal.show .figure, .modal.show img{
-  transform:none; opacity:1;
-}
-</style>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
 <div class="container topbar">
@@ -1001,19 +959,19 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <h4 id="a1">Memilih Varian Parfum yang Tepat untuk Pasar Lokal</h4>
 <div class="muted">10 September 2025</div>
 <p>Memahami preferensi aroma lokal adalah kunci keberhasilan pemasaran parfum. Misalnya, pasar di daerah pesisir sering cenderung menyukai aroma segar dan aquatic, sedangkan kota-kota besar mungkin lebih menerima aroma gourmand dan woody yang kuat. Kami merekomendasikan pendekatan sampling untuk menguji respon pelanggan: sediakan tester di toko, lakukan promosi kecil-besaran, dan pantau penjualan untuk tiap varian. Dengan data tersebut, reseller dapat menyesuaikan stok serta promosi, sehingga mengurangi risiko overstock dan meningkatkan perputaran modal secara signifikan.</p>
-<a class="btn primary" href="https://example.com/a1">Read more</a>
+<a aria-disabled="true" class="muted" href="#">Read more</a>
 </article>
 <article aria-labelledby="a2" class="article" role="article">
 <h4 id="a2">Strategi Harga untuk Reseller Parfum</h4>
 <div class="muted">22 Agustus 2025</div>
 <p>Menentukan margin yang sehat membuat bisnis reseller tetap berkelanjutan. Hitunglah biaya per unit secara lengkap: harga beli, biaya pengiriman, biaya packing, dan fee marketplace. Sisipkan margin minimal 25-40% untuk menutup biaya operasional dan promosi. Untuk varian premium, margin lebih tinggi dapat diterapkan, sementara varian populer biasanya bergerak dengan margin lebih tipis tetapi volume tinggi. Dirac Of Fragrance menyediakan struktur harga bertingkat untuk membantu reseller menyesuaikan strategi harga berdasarkan volume pembelian.</p>
-<a class="btn primary" href="https://example.com/a2">Read more</a>
+<a aria-disabled="true" class="muted" href="#">Read more</a>
 </article>
 <article aria-labelledby="a3" class="article" role="article">
 <h4 id="a3">Kebijakan Garansi &amp; Autentikasi Produk</h4>
 <div class="muted">1 Juli 2025</div>
 <p>Keaslian produk adalah prioritas utama kami. Setiap unit diperiksa pada saat penerimaan stok dan kami mendokumentasikan batch. Jika terjadi klaim keaslian, kami menyediakan proses verifikasi yang transparan dan kebijakan pengembalian untuk pesanan yang terbukti tidak sesuai. Reseller diuntungkan karena kami memberikan bukti dokumentasi yang dapat diserahkan ke konsumen akhir, meningkatkan kepercayaan pada toko Anda.</p>
-<a class="btn primary" href="https://example.com/a3">Read more</a>
+<a aria-disabled="true" class="muted" href="#">Read more</a>
 </article>
 </div>
 </section>
@@ -1240,8 +1198,8 @@ document.addEventListener('DOMContentLoaded', function(){
   startAuto();
 });
 </script>
+<!-- Additional scripts for scroll reveal, smooth scroll, parallax, and lightbox -->
 <script>
-/* Scroll reveal using IntersectionObserver */
 (() => {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const io = new IntersectionObserver((entries) => {
@@ -1256,7 +1214,6 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 <script>
-/* Smooth scroll for anchor links */
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click', e=>{
     const id=a.getAttribute('href');
@@ -1266,7 +1223,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
 });
 </script>
 <script>
-/* Hero parallax effect */
 (() => {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const hero=document.querySelector('#home');
@@ -1281,26 +1237,200 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
 })();
 </script>
 <script>
-/* Lightbox open/close with animation */
 (() => {
   const m=document.getElementById('lightbox') || document.querySelector('.modal');
   const img=document.getElementById('lightboxImg') || (m && m.querySelector('img'));
   const close=document.getElementById('closeLightbox') || (m && m.querySelector('[data-close]'));
   if(!m || !img) return;
   document.querySelectorAll('.gallery-grid img').forEach(i=>{
-    i.addEventListener('click', ()=>{
+    i.addEventListener('click', () =>{
       img.src = i.src;
       m.classList.add('show');
       m.style.display='flex';
     });
   });
   if(close){
-    close.addEventListener('click', ()=>{
+    close.addEventListener('click', () =>{
       m.classList.remove('show');
       setTimeout(() => { m.style.display='none'; img.src=''; }, 180);
     });
   }
 })();
 </script>
+<!-- WhatsApp floating button style and markup -->
+<style>
+  .whatsapp-btn {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background-color: #25D366;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .whatsapp-btn:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+  .whatsapp-btn svg{
+    width: 28px;
+    height: 28px;
+    fill: currentColor;
+  }
+</style>
+<a href="#" class="whatsapp-btn" aria-label="Chat via WhatsApp">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+    <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+  </svg>
+</a>
+
+  <!-- BEGIN: In‑page WhatsApp‑style chat overlay. Added to provide a chat interface without leaving the site. -->
+  <style>
+    .wa-overlay{
+      position:fixed; right:0.75rem; bottom:84px;
+      width:360px; max-width:calc(100vw - 1.5rem);
+      border-radius:14px; background:#fff;
+      box-shadow:0 16px 48px rgba(0,0,0,0.35);
+      z-index:10000; overflow:hidden; display:none;
+    }
+    .wa-close{
+      position:absolute; top:10px; right:10px;
+      width:28px; height:28px; border:none; border-radius:50%;
+      background:#25D366; color:#fff; font-size:18px;
+      line-height:28px; cursor:pointer;
+      box-shadow:0 6px 14px rgba(0,0,0,0.15);
+      display:inline-grid; place-items:center;
+    }
+    .wa-body{
+      min-height:320px; background:#efeae2;
+      /* subtle pattern; encoded SVG to avoid external images */
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='%23e4ddd4' opacity='0.9'><circle cx='12' cy='12' r='3'/><circle cx='80' cy='20' r='2'/><rect x='50' y='50' width='20' height='10' rx='5'/><circle cx='18' cy='90' r='2.5'/><rect x='90' y='80' width='14' height='6' rx='3'/></g></svg>");
+      background-size:120px 120px;
+      position:relative;
+    }
+    .wa-bubble{
+      position:absolute; top:14px; left:14px; right:14px;
+      max-width:86%;
+      padding:0.65rem 0.9rem;
+      border-radius:14px;
+      background:#fff;
+      color:#111; font-weight:600;
+      box-shadow:0 6px 16px rgba(0,0,0,0.1);
+    }
+    .wa-actions{
+      display:flex; align-items:center; gap:0.55rem;
+      padding:0.9rem; background:#f6f1eb; border-top:1px solid rgba(0,0,0,0.06);
+    }
+    .wa-input{
+      flex:1;
+      min-height:44px; /* allow multi‑line content without triggering auto‑zoom */
+      border-radius:24px;
+      border:none;
+      padding:10px 14px;
+      background:#fff;
+      outline:none;
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);
+      font-size:16px; /* >= 16px to prevent mobile auto zoom */
+      line-height:1.3;
+      overflow-y:auto;
+      word-wrap:break-word;
+    }
+    /* Placeholder text for the contenteditable message input */
+    .wa-input:empty::before {
+      content: attr(data-placeholder);
+      color: #8a8a8a;
+      pointer-events: none;
+    }
+    .wa-send{
+      width:46px; height:46px; border-radius:50%; border:none;
+      background:#25D366; color:#fff; display:inline-grid; place-items:center;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(37,211,102,0.35);
+    }
+    .wa-send svg{ width:22px; height:22px; }
+    @media (max-width:420px){
+      .wa-body{ min-height:280px; }
+    }
+  </style>
+  <div class="wa-overlay" id="waOverlay" role="dialog" aria-label="Chat support">
+    <div class="wa-body">
+      <button class="wa-close" id="waClose" aria-label="Tutup">&times;</button>
+      <div class="wa-bubble">How can I help you? :)</div>
+    </div>
+    <div class="wa-actions" role="group">
+      <!-- Use a contenteditable div instead of an input element to avoid iOS Safari auto‑zoom on focus.
+           A pseudo‑placeholder is added via the data‑placeholder attribute and CSS. -->
+      <div class="wa-input" id="waInput" contenteditable="true" role="textbox" data-placeholder="Tulis pesan..." aria-label="Tulis pesan..."></div>
+      <button class="wa-send" id="waSend" aria-label="Kirim">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+  </div>
+  <script>
+    // Toggle the chat overlay and send messages via WhatsApp link.
+    (function(){
+      var btn = document.querySelector('.whatsapp-btn');
+      var overlay = document.getElementById('waOverlay');
+      var closeBtn = document.getElementById('waClose');
+      var input = document.getElementById('waInput');
+      var sendBtn = document.getElementById('waSend');
+      var phone = '6281937036039'; // update number if needed
+      function toggle(e){
+        if(e) e.preventDefault();
+        if(!overlay) return;
+        if(overlay.style.display === 'block'){
+          overlay.style.display = 'none';
+        } else {
+          overlay.style.display = 'block';
+          // Do not auto‑focus to avoid potential mobile zoom; the user can tap to focus.
+        }
+      }
+      if(btn){ btn.addEventListener('click', toggle); }
+      if(closeBtn){ closeBtn.addEventListener('click', function(){ overlay.style.display='none'; }); }
+      document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape'){ overlay.style.display='none'; } });
+      if(sendBtn){
+        sendBtn.addEventListener('click', function(){
+          if(!input) return;
+          // use textContent instead of value because waInput is now contenteditable
+          var msg = (input.textContent || '').trim();
+          if(!msg){
+            input.focus();
+            return;
+          }
+          var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+          // open new tab to send message; fallback to anchor click if blocked
+          var win = window.open(url, '_blank', 'noopener');
+          if(!win || win.closed){
+            var a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
+          // clear message after sending
+          input.textContent = '';
+        });
+      }
+      if(input){
+        input.addEventListener('keydown', function(ev){
+          if(ev.key === 'Enter'){
+            // prevent newline insertion and send message on Enter
+            ev.preventDefault();
+            if(sendBtn){ sendBtn.click(); }
+          }
+        });
+      }
+    })();
+  </script>
+  <!-- END: In‑page WhatsApp‑style chat overlay -->
 </body>
 </html>
