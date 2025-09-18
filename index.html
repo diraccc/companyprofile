@@ -510,14 +510,18 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   right:12px;
   bottom:12px;
   z-index:40;
-  background: rgba(0,0,0,0.6);
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:rgba(0,0,0,0.6);
   color:#fff;
-  border: none;
-  padding:8px 10px;
-  border-radius:8px;
+  border:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   cursor:pointer;
-  font-size:16px;
-  backdrop-filter: blur(6px);
+  font-size:20px;
+  backdrop-filter:blur(6px);
 }
 .video-unmute.hidden{ display:none !important; }
 /* Stronger mobile-only rules */
@@ -1078,22 +1082,36 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <button aria-label="Tutup" class="close-modal" id="closeLightbox">✕</button>
 </div>
 <script>
+// Hero video mute/unmute toggle. Show a button overlay to toggle sound.
 document.addEventListener('DOMContentLoaded', function(){
   const v = document.getElementById('hero-video');
   const b = document.getElementById('unmuteBtn');
   if(!v || !b) return;
-  if(!v.muted) b.classList.add('hidden');
-
-  b.addEventListener('click', async function(){
-    try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
-    catch (err) { console.warn('Gagal play/unmute:', err); }
-  });
-
-  v.addEventListener('click', async function(){
-    if(v.muted){
-      try { v.muted = false; v.volume = 0.8; await v.play(); b.classList.add('hidden'); }
-      catch(e){ console.warn(e); }
+  function updateBtn(){
+    // When muted (or volume zero), display speaker icon; otherwise display muted icon
+    if(v.muted || v.volume === 0){
+      b.textContent = '🔊';
+      b.setAttribute('aria-label','Hidupkan suara');
+    } else {
+      b.textContent = '🔇';
+      b.setAttribute('aria-label','Matikan suara');
     }
+  }
+  updateBtn();
+  b.addEventListener('click', async function(){
+    try {
+      if(v.muted || v.volume === 0){
+        v.muted = false;
+        v.volume = 0.8;
+        await v.play();
+      } else {
+        v.muted = true;
+        v.volume = 0;
+      }
+    } catch(err){
+      console.warn('Gagal toggle suara:', err);
+    }
+    updateBtn();
   });
 });
 // end hero video script
