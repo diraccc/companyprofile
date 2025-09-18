@@ -1137,8 +1137,12 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     .wa-chat{
       flex:1;
-      padding:14px;
+      /* Provide space for the close button but keep messages anchored to the bottom like a real chat */
+      padding:56px 14px 14px;
       overflow-y:auto;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
       background:#efeae2;
       background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='%23e4ddd4' opacity='0.9'><circle cx='12' cy='12' r='3'/><circle cx='80' cy='20' r='2'/><rect x='50' y='50' width='20' height='10' rx='5'/><circle cx='18' cy='90' r='2.5'/><rect x='90' y='80' width='14' height='6' rx='3'/></g></svg>");
       background-size:120px 120px;
@@ -1147,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', function(){
       display:inline-block;
       clear:both;
       max-width:75%;
-      margin-bottom:0.45rem;
+      margin:0.3rem 0 0.45rem;
       padding:0.6rem 0.9rem;
       font-size:0.92rem;
       line-height:1.35;
@@ -1158,12 +1162,13 @@ document.addEventListener('DOMContentLoaded', function(){
       background:#ffffff;
       color:#111;
       border-radius:0 12px 12px 12px;
+      align-self:flex-start;
     }
     .wa-message.user{
       background:#dcf8c6;
       color:#111;
-      float:right;
       border-radius:12px 0 12px 12px;
+      align-self:flex-end;
     }
     .wa-input-area{
       display:flex;
