@@ -422,6 +422,51 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 .slide video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% center;display:block}
 </style>
 
+<!-- Enhanced wow animations -->
+<style>
+  /*
+    Additional animation rules to bring the site to life.  These
+    enhancements stay purely within CSS and do not alter any of the
+    existing content or structure.  Elements will subtly rise and scale
+    into view when scrolled into the viewport, icons will pulse
+    continuously, and hover interactions will cause cards, team
+    members, gallery thumbs and buttons to lift off the page with a
+    shadow.  Everything remains responsive and respects the current
+    design language.
+  */
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 rgba(30,144,255,0.4); }
+    50% { box-shadow: 0 0 20px rgba(30,144,255,0.7); }
+  }
+  /* Apply a gentle glow to service icons */
+  .icon {
+    animation: pulseGlow 3s infinite;
+  }
+  /* Base state for items that will be animated as they enter view */
+  .card, .team-card, .thumb, .article, details {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  /* Smooth transitions on transform and shadow for hover interactions */
+  .card, .team-card, .thumb, .btn {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  /* Reveal items with a smooth rise and scale */
+  .card.animate-item, .team-card.animate-item, .thumb.animate-item, .article.animate-item, details.animate-item {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition: transform 0.7s cubic-bezier(.22,1,.36,1), opacity 0.7s ease-out;
+  }
+  /* Hover effects that add depth and motion */
+  .card:hover, .team-card:hover, .thumb:hover, .btn:hover {
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  }
+  .btn:active {
+    transform: translateY(-4px) scale(1.01);
+  }
+</style>
+
 <style>
 /* Force video not rotated and nudge position on mobile */
 
@@ -492,16 +537,23 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </style>
 <!-- Animation styles -->
 <style>
-  /* Fade-up animation for each section when it enters the viewport */
+  /* Fade‑up animation for each section when it enters the viewport */
+  /*
+    Improve the base animation by adding a subtle scale and using a more
+    dynamic easing curve.  When a [data‑animate] element scrolls into view
+    (the script adds the .animated class), it will fade in and gently
+    grow from 95% to full size.  This creates a smoother “wow” effect
+    compared to a simple translation alone.  The cubic‑bezier timing
+    function adds a touch of spring without relying on external libraries.
+  */
   [data-animate] {
     opacity: 0;
-    transform: translateY(40px);
-    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-    will-change: opacity, transform;
+    transform: translateY(60px) scale(0.95);
+    transition: transform 0.8s cubic-bezier(.22,.61,.36,1), opacity 0.8s ease-out;
   }
   [data-animate].animated {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 </style>
 
@@ -1049,6 +1101,10 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- Intersection Observer to animate sections on scroll -->
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  // Observe sections with the data‑animate attribute.  When they enter the
+  // viewport the .animated class will be applied to trigger the fade/scale
+  // effect defined in CSS.  Each section is unobserved after it animates
+  // once to avoid repeated triggers when scrolling back and forth.
   const sections = document.querySelectorAll('[data-animate]');
   const observer = new IntersectionObserver(function(entries, obs){
     entries.forEach(entry => {
@@ -1059,6 +1115,22 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }, { threshold: 0.2 });
   sections.forEach(sec => observer.observe(sec));
+
+  // Additionally observe individual cards, team members, gallery thumbs,
+  // blog articles and FAQ details for their own entrance animation.  Each
+  // element will receive the .animate-item class the first time it
+  // scrolls into view.  This provides a per-element wow effect beyond
+  // section level animations.
+  const items = document.querySelectorAll('.card, .team-card, .thumb, .article, details');
+  const itemObserver = new IntersectionObserver(function(entries, obs){
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('animate-item');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.2 });
+  items.forEach(item => itemObserver.observe(item));
 });
 </script>
 </body>
