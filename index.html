@@ -490,6 +490,20 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   }
 }
 </style>
+<!-- Animation styles -->
+<style>
+  /* Fade-up animation for each section when it enters the viewport */
+  [data-animate] {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    will-change: opacity, transform;
+  }
+  [data-animate].animated {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
 
 </head>
 <body>
@@ -516,7 +530,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </header>
 <main aria-labelledby="hero-heading" class="site-main" id="home" role="main">
-<section aria-label="Halaman utama" class="container hero">
+<section aria-label="Halaman utama" class="container hero" data-animate>
 <!-- Hero headline & tagline -->
 <div style="display:flex;align-items:flex-start;gap:1rem;flex-direction:column;">
 <div>
@@ -594,7 +608,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </div></section>
 <!-- About -->
-<section aria-labelledby="aboutHeading" class="container" id="about">
+<section aria-labelledby="aboutHeading" class="container" id="about" data-animate>
 <h2 id="aboutHeading">Tentang Dirac Of Fragrance</h2>
 <div aria-label="Profil perusahaan dan timeline" class="two-col" role="region">
 <div>
@@ -658,7 +672,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- Products / Highlights -->
-<section aria-labelledby="productsHeading" class="container" id="products">
+<section aria-labelledby="productsHeading" class="container" id="products" data-animate>
 <h2 id="productsHeading">Produk &amp; Layanan Utama</h2>
 <div class="highlights">
 <article aria-labelledby="p1" class="card">
@@ -676,7 +690,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- Gallery (8 images) -->
-<section aria-labelledby="galleryHeading" class="container" id="gallery">
+<section aria-labelledby="galleryHeading" class="container" id="gallery" data-animate>
 <h2 id="galleryHeading">Galeri Foto Produk &amp; Display</h2>
 <p class="muted">Klik gambar untuk melihat lebih besar. (Placeholder images; upload 8 gambar ke folder images/)</p>
 <div class="gallery-grid" role="list">
@@ -715,7 +729,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- Clients & Testimonials -->
-<section aria-labelledby="clientsHeading" class="container" id="clients">
+<section aria-labelledby="clientsHeading" class="container" id="clients" data-animate>
 <h2 id="clientsHeading">Klien &amp; Testimoni</h2>
 <!-- Client logos -->
 <div aria-label="Client logos" class="card" style="display:flex;gap:0.8rem;flex-wrap:wrap;align-items:center">
@@ -822,7 +836,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- Team -->
-<section aria-labelledby="teamHeading" class="container" id="team">
+<section aria-labelledby="teamHeading" class="container" id="team" data-animate>
 <h2 id="teamHeading">Tim Inti</h2>
 <div class="team-grid" role="list">
 <div class="team-card" role="listitem">
@@ -856,7 +870,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- Career -->
-<section aria-labelledby="careerHeading" class="container" id="career">
+<section aria-labelledby="careerHeading" class="container" id="career" data-animate>
 <h2 id="careerHeading">Karir &amp; Bergabung Bersama Kami</h2>
 <article class="card">
 <h3>Budaya Kerja &amp; Benefit</h3>
@@ -886,7 +900,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </article>
 </section>
 <!-- Blog / Insights -->
-<section aria-labelledby="blogHeading" class="container" id="blog">
+<section aria-labelledby="blogHeading" class="container" id="blog" data-animate>
 <h2 id="blogHeading">News &amp; Insights</h2>
 <div class="blog-list" role="list">
 <article aria-labelledby="a1" class="article" role="article">
@@ -910,7 +924,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- FAQ -->
-<section aria-labelledby="faqHeading" class="container" id="faq">
+<section aria-labelledby="faqHeading" class="container" id="faq" data-animate>
 <h2 id="faqHeading">FAQ — Pertanyaan Umum</h2>
 <div class="faq">
 <details>
@@ -940,7 +954,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- Contact -->
-<section aria-labelledby="contactHeading" class="container" id="contact">
+<section aria-labelledby="contactHeading" class="container" id="contact" data-animate>
 <h2 id="contactHeading">Hubungi Kami</h2>
 <div class="two-col">
 <div>
@@ -1029,6 +1043,22 @@ document.addEventListener('DOMContentLoaded', function(){
       catch(e){ console.warn(e); }
     }
   });
+});
+// end hero video script
+</script>
+<!-- Intersection Observer to animate sections on scroll -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const sections = document.querySelectorAll('[data-animate]');
+  const observer = new IntersectionObserver(function(entries, obs){
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('animated');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.2 });
+  sections.forEach(sec => observer.observe(sec));
 });
 </script>
 </body>
