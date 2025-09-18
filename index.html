@@ -1363,6 +1363,26 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
   document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape') overlay.style.display='none'; });
 })();
 </script>
+
+<script>
+(function(){
+  var sendBtn = document.getElementById('waSend');
+  var input = document.getElementById('waInput');
+  if(!sendBtn || !input) return;
+  function send(){
+    var msg = (input.value || '').trim();
+    if(!msg){ input.focus(); return; }
+    var phone = '6281937036039'; // ganti kalau perlu
+    var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank', 'noopener'); // tidak menutup halaman
+  }
+  sendBtn.addEventListener('click', send);
+  input.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); send(); }
+  });
+})();
+</script>
+
 <!-- END: In‑page WhatsApp‑style chat overlay -->
 
 </body>
