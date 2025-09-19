@@ -1671,8 +1671,7 @@ document.addEventListener('DOMContentLoaded', function(){
         'Email: ' + email,
         (cvEl && cvEl.files && cvEl.files[0]) ? ('CV: ' + cvEl.files[0].name + ' (lampirkan saat chat/email)') : 'CV: (opsional)'
       ];
-      const text = encodeURIComponent(lines.join('
-'));
+      const text = encodeURIComponent(lines.join('\n'));
       const wa = 'https://wa.me/6281937036039?text=' + text;
       const w = window.open(wa, '_blank', 'noopener');
       if(!w || w.closed){
@@ -1716,6 +1715,46 @@ document.addEventListener('DOMContentLoaded', function(){
   } else {
     targets.forEach(function(el){ el.classList.add('shine-sweep'); });
   }
+});
+</script>
+
+
+<script>
+// Contact form handler — validate and send to WhatsApp (fallback to email)
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('sendMsgBtn');
+  var nameEl = document.getElementById('name');
+  var emailEl = document.getElementById('email');
+  var phoneEl = document.getElementById('phone');
+  var msgEl = document.getElementById('message');
+  if(!btn || !nameEl || !emailEl || !phoneEl || !msgEl) return;
+  btn.addEventListener('click', function(){
+    var name = (nameEl.value || '').trim();
+    var email = (emailEl.value || '').trim();
+    var phone = (phoneEl.value || '').trim();
+    var msg = (msgEl.value || '').trim();
+    if(!name || !email || !phone || !msg){
+      alert('Mohon lengkapi Nama, Email, Nomor Telepon, dan Pesan.');
+      return;
+    }
+    var lines = [
+      '*Pesan dari Website*',
+      'Nama: ' + name,
+      'Email: ' + email,
+      'Telepon: ' + phone,
+      '',
+      msg
+    ];
+    var text = encodeURIComponent(lines.join('\n'));
+    // Try WhatsApp first
+    var waUrl = 'https://wa.me/6281937036039?text=' + text;
+    var w = window.open(waUrl, '_blank', 'noopener');
+    if(!w || w.closed){
+      // Fallback to mailto if popups are blocked
+      var subject = encodeURIComponent('Pesan dari Website - ' + name);
+      window.location.href = 'mailto:companydirac@gmail.com?subject=' + subject + '&body=' + text;
+    }
+  });
 });
 </script>
 
