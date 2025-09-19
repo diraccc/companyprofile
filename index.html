@@ -631,44 +631,6 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
   #promo-xerjoff .slides { border-radius: 8px; }
 }
 </style>
-
-<style id="shine-restorer">
-/* White sweep effect — safe, readable, no layout shift */
-:root{ --shine-duration: 1.7s; --shine-max-alpha: 0.34; }
-.promo-sweep{ position: relative; overflow: hidden; }
-.promo-sweep::before{
-  content:""; position:absolute; inset:-8% -30%;
-  background: linear-gradient(120deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,var(--shine-max-alpha)) 15%,
-    rgba(255,255,255,0.10) 28%,
-    rgba(255,255,255,0) 48%);
-  transform: translateX(-120%) skewX(-15deg);
-  filter: blur(0.6px);
-  pointer-events:none; mix-blend-mode: screen;
-  animation: promoSweep var(--shine-duration) ease-out forwards;
-}
-@keyframes promoSweep{
-  0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0.95; }
-  70%  { opacity: 0.7; }
-  100% { transform: translateX(220%)  skewX(-15deg); opacity: 0.0; }
-}
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce){
-  .promo-sweep::before{ animation: none !important; opacity: 0 !important; }
-}
-/* Button hover ripple (subtle, no layout change) */
-.btn.primary{ position:relative; overflow:hidden; }
-.btn.primary::after{
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15), transparent 45%);
-  opacity:0; transform: scale(0.9);
-  transition: opacity .25s ease, transform .25s ease;
-}
-.btn.primary:hover::after,
-.btn.primary:focus-visible::after{ opacity:1; transform: scale(1.03); }
-</style>
-
 </head>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
@@ -1625,57 +1587,91 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
 </svg>
 </a>
 
-<script id="shine-restorer-js">
-(function(){
-  // Attach sweep class when in view, then unobserve (no layout shift)
-  var sel = [
-    '[data-animate] h2', 
-    'section h2', 
-    '.card h3', 
-    '.blog .card', 
-    '.faq-item header',
-    '.hero .content'
-  ].join(',');
-  var items = document.querySelectorAll(sel);
-  if('IntersectionObserver' in window){
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if(e.isIntersecting){
-          e.target.classList.add('promo-sweep');
-          io.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.24 });
-    items.forEach(function(el){ io.observe(el); });
-  }else{
-    items.forEach(function(el){ el.classList.add('promo-sweep'); });
+<style>
+/* --- Extra micro-animations (no layout shift) --- */
+@media (prefers-reduced-motion: no-preference){
+  /* subtle hover ripple for primary buttons */
+  .btn.primary{ position: relative; overflow: hidden; }
+  .btn.primary:after{
+    content:""; position:absolute; inset:auto -40% -40% -40%;
+    height:0; padding-bottom:140%; border-radius:50%;
+    transform: translateY(60%) scale(0); opacity:0.0;
+    transition: transform .6s ease, opacity .6s ease;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.15), transparent 60%);
+    pointer-events:none;
   }
+  .btn.primary:hover:after{ transform: translateY(60%) scale(1); opacity:1; }
+}
+/* gentle shimmer for section headings */
+@keyframes headingShine{
+  0%{ background-position: -200% 0; }
+  100%{ background-position: 200% 0; }
+}
+.section h2, .container > h2{
+  background-image: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.35), rgba(255,255,255,.05));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 200% 100%;
+  animation: headingShine 2.4s ease infinite;
+  animation-play-state: paused;
+}
+[data-animate].animated > h2{ animation-play-state: running; }
+</style>
 
-  // Keep "Daftar" active (WhatsApp first, email fallback)
-  var form = document.getElementById('applyForm') || document.querySelector('form[action="#apply"]');
-  var btn  = document.getElementById('applyBtn')  || document.querySelector('button[data-apply], button.apply, .apply-btn, .btn.apply');
-  var name = document.getElementById('appName')  || document.querySelector('input[name="appName"], input#name, input[name="name"]');
-  var email= document.getElementById('appEmail') || document.querySelector('input[name="appEmail"], input#email, input[type="email"]');
-  var file = document.getElementById('appResume')|| document.querySelector('input[type="file"]');
+<script>
+// --- Activate Career form without changing layout/content ---
+document.addEventListener('DOMContentLoaded', function(){
+  const nameEl = document.getElementById('appName');
+  const emailEl = document.getElementById('appEmail');
+  const cvEl = document.getElementById('appResume');
+  const form = document.querySelector('#career form');
+  const btn = form ? form.querySelector('button.btn.primary') : null;
+  if(nameEl) nameEl.disabled = false;
+  if(emailEl) emailEl.disabled = false;
+  if(cvEl) cvEl.disabled = false;
   if(btn){
-    btn.removeAttribute('disabled');
-    btn.textContent = (btn.textContent||'').replace(/Dinonaktifkan/i,'').trim() || 'Daftar';
-    btn.addEventListener('click', function(ev){
-      ev.preventDefault();
-      var n = (name && name.value || '').trim();
-      var e = (email&& email.value|| '').trim();
-      var f = (file && file.value || '').split('\\').pop();
-      if(!n || !e){ alert('Mohon isi Nama dan Email.'); return; }
-      var text = 'Lamaran: ' + encodeURIComponent(n) + '%0AEmail: ' + encodeURIComponent(e);
-      if(f) text += '%0ACV: ' + encodeURIComponent(f);
-      var wa = 'https://wa.me/6281937036039?text=' + text;
-      var w = window.open(wa, '_blank', 'noopener');
+    btn.disabled = false;
+    if(/Dinonaktifkan/i.test(btn.textContent)) btn.textContent = 'Daftar';
+    btn.addEventListener('click', function(){
+      // simple validation
+      const name = (nameEl && nameEl.value || '').trim();
+      const email = (emailEl && emailEl.value || '').trim();
+      if(!name || !email){
+        alert('Mohon isi Nama dan Email.');
+        return;
+      }
+      const lines = [
+        '*Lamaran Kerja via Website*',
+        'Nama: ' + name,
+        'Email: ' + email,
+        (cvEl && cvEl.files && cvEl.files[0]) ? ('CV: ' + cvEl.files[0].name + ' (lampirkan saat chat/email)') : 'CV: (opsional)'
+      ];
+      const text = encodeURIComponent(lines.join('
+'));
+      const wa = 'https://wa.me/6281937036039?text=' + text;
+      const w = window.open(wa, '_blank', 'noopener');
       if(!w || w.closed){
-        window.location.href = 'mailto:companydirac@gmail.com?subject=' + encodeURIComponent('Lamaran') + '&body=' + text;
+        // fallback to email if popup blocked
+        window.location.href = 'mailto:companydirac@gmail.com?subject=' + encodeURIComponent('Lamaran Kerja - ' + name) + '&body=' + text;
       }
     });
   }
-})();
+
+  // --- Stagger on-view animations (no reflow/layout change) ---
+  const groups = [
+    '.team-grid > *',
+    '.gallery-grid > *',
+    '.blog-list > *',
+    '.product-grid > *',
+    '.faq > *'
+  ];
+  groups.forEach(sel => {
+    document.querySelectorAll(sel).forEach((el,i) => {
+      el.style.transitionDelay = (i * 0.06) + 's';
+    });
+  });
+});
 </script>
 
 </body>
