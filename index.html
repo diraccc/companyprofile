@@ -568,9 +568,68 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </style>
 
 <style>
-  /* Slim frame for promo 16:9 slider */
-  #promo-xerjoff .promo16x9 { background: transparent !important; box-shadow: none !important; border: 0 !important; }
-  #promo-xerjoff .slide .media { padding-top:56.25% !important; border-radius: 10px; }
+/* Promo 16:9 – Ken Burns Crossfade (5s cadence), slim frame */
+#promo-xerjoff{ --hold:5s; --n:9; --dur:calc(var(--hold) * var(--n)); }
+#promo-xerjoff .promo16x9{ background:transparent!important; box-shadow:none!important; border:0!important; }
+#promo-xerjoff .stage{ position:relative; width:100%; overflow:hidden; border-radius:10px; }
+#promo-xerjoff .stage::before{ content:""; display:block; padding-top:56.25%; } /* 16:9 */
+#promo-xerjoff .slide{ position:absolute; inset:0; margin:0; opacity:0; }
+#promo-xerjoff .slide .media, 
+#promo-xerjoff .slide img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+#promo-xerjoff .slide{ animation:promoShow var(--dur) infinite; animation-delay:calc(var(--i) * var(--hold)); will-change:opacity, transform; transform-origin:center; }
+@keyframes promoShow{
+  0%{ opacity:0; transform:scale(1) translate3d(0,0,0); }
+  2%{ opacity:1; }               /* quick fade in */
+  10%{ opacity:1; transform:scale(1.07) translate3d(var(--tx,0), var(--ty,0), 0);} /* slow zoom/pan */
+  12%{ opacity:0; }              /* crossfade out */
+  100%{ opacity:0; }
+}
+/* subtle pan direction variety */
+#promo-xerjoff .slide:nth-child(3n+1){ --tx: 1.5%; --ty: 1.5%; }
+#promo-xerjoff .slide:nth-child(3n+2){ --tx:-1.5%; --ty: 1.0%; }
+#promo-xerjoff .slide:nth-child(3n){   --tx: 0.5%; --ty:-1.2%; }
+
+/* Hover pause (optional quality-of-life) */
+#promo-xerjoff:hover .slide{ animation-play-state:paused; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  #promo-xerjoff .slide{ animation:none; opacity:0; }
+  #promo-xerjoff .slide:first-child{ opacity:1; }
+}
+</style>
+<style>
+/* === Promo 16:9 Advanced Animations (scoped) === */
+#promo-xerjoff .promo16x9 { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+#promo-xerjoff .slides { position: relative; overflow: hidden; border-radius: 10px; }
+#promo-xerjoff .slide { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+#promo-xerjoff .slide.active { opacity: 1; pointer-events: auto; }
+#promo-xerjoff .slide, #promo-xerjoff .slide * { transition: opacity .9s ease; }
+#promo-xerjoff .slide .media { position: relative; width: 100%; padding-top: 56.25% !important; overflow: hidden; }
+#promo-xerjoff .slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transform: scale(1.08) translate3d(var(--dx,0), var(--dy,0), 0) rotate(.001deg);
+  transition: transform 5s ease-in-out, filter 5s ease-in-out;
+  will-change: transform, filter;
+}
+/* Subtle depth + vignette */
+#promo-xerjoff .slide.active img { filter: saturate(1.05) contrast(1.03); }
+/* Decorative reveal mask using pseudo element */
+#promo-xerjoff .slide.active::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 40%);
+  transform: translateX(-40%);
+  animation: promoSweep 1.2s ease-out forwards;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+@keyframes promoSweep {
+  to { transform: translateX(120%); opacity: 0; }
+}
+/* Responsive tweak: keep frame slim on small screens */
+@media (max-width: 480px){
+  #promo-xerjoff .slides { border-radius: 8px; }
+}
 </style>
 </head>
 <body>
@@ -788,17 +847,17 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <!-- Clients & Testimonials -->
 <!-- BEGIN: Promo image under XERJOFF with Web To Order button -->
 <section class="container" id="promo-xerjoff" data-animate>
-  <div class="slider promo16x9" aria-label="Promo 16:9 Carousel" aria-roledescription="carousel" style="background:transparent;box-shadow:none;border:none;margin:0;">
-    <div class="slides" id="promoSlides">
-      <figure class="slide" style="margin:0"><div class="media"><img src="s1.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s2.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s3.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s4.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s5.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s6.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s7.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s8.PNG" alt="" loading="lazy"/></div></figure>
-      <figure class="slide" style="margin:0"><div class="media"><img src="s9.PNG" alt="" loading="lazy"/></div></figure>
+  <div class="promo16x9" style="background:transparent;box-shadow:none;border:none;margin:0;">
+    <div class="stage">
+      <figure class="slide" style="--i:0"><div class="media"><img src="xerjoff-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:1"><div class="media"><img src="images/slide1-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:2"><div class="media"><img src="images/slide2-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:3"><div class="media"><img src="images/slide3-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:4"><div class="media"><img src="images/slide4-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:5"><div class="media"><img src="images/slide5-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:6"><div class="media"><img src="images/slide6-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:7"><div class="media"><img src="images/slide7-16x9.jpg" alt="" loading="lazy"/></div></figure>
+      <figure class="slide" style="--i:8"><div class="media"><img src="images/slide8-16x9.jpg" alt="" loading="lazy"/></div></figure>
     </div>
   </div>
   <div class="center-cta" style="padding-top:0.6rem">
@@ -1527,15 +1586,5 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
 <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"></path>
 </svg>
 </a>
-<script>
-// Promo 16:9 auto slider (5s)
-document.addEventListener('DOMContentLoaded', function(){
-  var wrap = document.getElementById('promoSlides');
-  if(!wrap) return;
-  var idx = 0, total = wrap.children.length;
-  function go(i){ idx = (i + total) % total; wrap.style.transform = 'translateX(' + (-100*idx) + '%)'; }
-  setInterval(function(){ go(idx + 1); }, 5000);
-});
-</script>
 </body>
 </html>
