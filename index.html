@@ -632,27 +632,114 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 }
 </style>
 
-<style id="shine-sweep">
-:root{ --shine-duration: 1.8s; --shine-alpha: .32; }
-.shine-sweep{ position: relative; }
-.shine-sweep::before{
-  content:""; position:absolute; inset:-12% -30%;
-  background: linear-gradient(120deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,var(--shine-alpha)) 18%,
-    rgba(255,255,255,0) 42%);
-  transform: translateX(-120%) skewX(-12deg);
-  mix-blend-mode: screen;
-  filter: blur(.5px);
-  pointer-events:none;
-  animation: shineSweep var(--shine-duration) ease-out both;
+<style id="pro-anim-pack">
+/* === Animation Tokens === */
+:root{
+  --dur-hover: .2s;
+  --dur-in: .38s;
+  --dur-fast: .18s;
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --shadow-elev: 0 10px 30px -20px rgba(0,0,0,.45);
 }
-@keyframes shineSweep{
-  to{ transform: translateX(220%) skewX(-12deg); opacity: 0; }
-}
+
+/* Respect reduced motion globally */
 @media (prefers-reduced-motion: reduce){
-  .shine-sweep::before{ animation: none !important; opacity: 0 !important; }
+  *, *::before, *::after{
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
+
+/* === 2) Header elevation (no layout shift) === */
+header, .site-header, #header{
+  transition: box-shadow var(--dur-hover) var(--ease), background-color var(--dur-hover) var(--ease);
+  will-change: box-shadow;
+}
+.header--scrolled{ box-shadow: var(--shadow-elev); }
+
+/* === 3) Nav underline slide (no movement) === */
+header nav a, .nav a, nav a{
+  position: relative; text-decoration: none;
+}
+header nav a::after, .nav a::after, nav a::after{
+  content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px;
+  background: currentColor; opacity:.65;
+  transform: scaleX(0); transform-origin: 10% 50%;
+  transition: transform var(--dur-hover) var(--ease), opacity var(--dur-hover) var(--ease);
+}
+header nav a:hover::after, .nav a:hover::after, nav a:hover::after,
+header nav a[aria-current="page"]::after, .nav a[aria-current="page"]::after, nav a[aria-current="page"]::after{
+  transform: scaleX(1); opacity: .9;
+}
+
+/* === 4) Stagger helper (only adds delay, no initial transform here) === */
+.stagger-in{ transition-delay: var(--stagger, 0s) !important; }
+
+/* === 5) Card hover elevation + spotlight (desktop only) === */
+@media (hover:hover) and (pointer:fine){
+  .card{ position:relative; will-change: transform; transition: transform var(--dur-hover) var(--ease), box-shadow var(--dur-hover) var(--ease); }
+  .card:hover{ transform: translateY(-2px) scale(1.02); }
+  .card::after{
+    content:""; position:absolute; inset:-1px; pointer-events:none; opacity:0;
+    background: radial-gradient(240px 240px at var(--mx,50%) var(--my,50%), rgba(255,255,255,.12), transparent 60%);
+    transition: opacity var(--dur-hover) var(--ease);
+  }
+  .card:hover::after{ opacity:1; }
+}
+
+/* === 6) Reveal images (wipe + blur) === */
+.reveal-img{
+  filter: blur(2px); transform: translateZ(0);
+  clip-path: inset(0 100% 0 0); /* hidden from right */
+  transition: filter var(--dur-in) var(--ease), clip-path .44s var(--ease);
+}
+.reveal-img.revealed{
+  filter: blur(0); clip-path: inset(0 0 0 0);
+}
+
+/* === 7) Lightbox overlay (zoom/fade) === */
+#lb-overlay{
+  position: fixed; inset:0; background: rgba(0,0,0,.72);
+  display:none; align-items:center; justify-content:center; z-index: 9999;
+  opacity:0; transition: opacity .24s var(--ease);
+}
+#lb-overlay.active{ display:flex; opacity:1; }
+#lb-overlay img{
+  max-width: min(92vw, 1280px); max-height: 88vh;
+  transform: scale(.98); opacity: 0; transition: transform .24s var(--ease), opacity .24s var(--ease);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.6);
+}
+#lb-overlay.active img{ transform: scale(1); opacity:1; }
+
+/* === 8) CTA states: press & focus ring === */
+.btn, .button, button, [role="button"]{
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-hover) var(--ease);
+}
+.btn:active, .button:active, button:active, [role="button"]:active{
+  transform: scale(.98);
+}
+.btn:focus-visible, .button:focus-visible, button:focus-visible, [role="button"]:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(24,144,255,.3);
+}
+
+/* === 9) Generic slider cross-fade (if classes exist) === */
+.slider .slide{ 
+  transition: opacity .26s var(--ease), transform .26s var(--ease);
+}
+.slider .slide:not(.active){ opacity: 0; pointer-events:none; }
+.slider .slide.active{ opacity: 1; pointer-events:auto; }
+
+/* === 10) Toast === */
+#toast{
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: rgba(20,20,20,.92); color:#fff; padding:10px 14px; border-radius:10px;
+  font-size:.95rem; box-shadow: 0 10px 30px -15px rgba(0,0,0,.6);
+  opacity:0; pointer-events:none; transition: opacity .22s var(--ease), transform .22s var(--ease);
+  z-index: 10000;
+}
+#toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
 </style>
 
 </head>
@@ -1699,24 +1786,95 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 
-<script id="shine-sweep-js">
-document.addEventListener('DOMContentLoaded', function(){
-  // Target only text elements so readability stays high
-  var targets = document.querySelectorAll('[data-animate] h2, .card h3, .article h4');
+<script id="pro-anim-pack-js">
+(function(){
+  // 2) Header elevation on scroll (no hide to avoid layout changes)
+  var header = document.querySelector('header, .site-header, #header');
+  var lastY = window.scrollY;
+  function onScroll(){
+    if(!header) return;
+    if(window.scrollY > 8){ header.classList.add('header--scrolled'); }
+    else { header.classList.remove('header--scrolled'); }
+  }
+  window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  // 4) Stagger: add only delays (no transforms)
+  function applyStagger(container, step){
+    var items = container ? container.children : [];
+    for(var i=0;i<items.length;i++){
+      var it = items[i];
+      it.classList && it.classList.add('stagger-in');
+      it.style.setProperty('--stagger', (i*step)+'ms');
+    }
+  }
+  var grids = document.querySelectorAll('.gallery .grid, .team .grid, .blog .grid, .products .grid, .grid.cards');
+  grids.forEach(function(g){ applyStagger(g, 60); });
+
+  // 5) Spotlight follow on cards
+  document.addEventListener('pointermove', function(e){
+    var t = e.target.closest('.card');
+    if(!t) return;
+    var rect = t.getBoundingClientRect();
+    var x = ((e.clientX - rect.left)/rect.width)*100;
+    var y = ((e.clientY - rect.top)/rect.height)*100;
+    t.style.setProperty('--mx', x+'%');
+    t.style.setProperty('--my', y+'%');
+  }, {passive:true});
+
+  // 6) Reveal images for gallery-like sections
+  var imgs = document.querySelectorAll('#gallery img, .gallery img, .grid.gallery img, img[data-reveal]');
+  imgs.forEach(function(img){ img.classList.add('reveal-img'); });
   if('IntersectionObserver' in window){
     var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if(e.isIntersecting){
-          e.target.classList.add('shine-sweep');
-          io.unobserve(e.target);
-        }
+      entries.forEach(function(ent){
+        if(ent.isIntersecting){ ent.target.classList.add('revealed'); io.unobserve(ent.target); }
       });
-    }, { threshold: 0.24 });
-    targets.forEach(function(el){ io.observe(el); });
-  } else {
-    targets.forEach(function(el){ el.classList.add('shine-sweep'); });
+    }, {threshold: .18});
+    imgs.forEach(function(img){ io.observe(img); });
+  }else{
+    imgs.forEach(function(img){ img.classList.add('revealed'); });
   }
-});
+
+  // 7) Lightbox (only for images in gallery; skip if inside a real link)
+  var overlay = document.createElement('div');
+  overlay.id = 'lb-overlay';
+  var pic = document.createElement('img');
+  overlay.appendChild(pic);
+  overlay.addEventListener('click', function(){ overlay.classList.remove('active'); });
+  document.body.appendChild(overlay);
+
+  function enableLightbox(img){
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', function(ev){
+      if(img.closest('a') && img.closest('a').getAttribute('href') && img.closest('a').getAttribute('href') !== '#') return;
+      pic.src = img.currentSrc || img.src;
+      overlay.classList.add('active');
+    });
+  }
+  imgs.forEach(enableLightbox);
+
+  // 10) Toast helper (used for WhatsApp actions)
+  var toast = document.createElement('div');
+  toast.id = 'toast'; toast.textContent = 'Membuka WhatsApp…';
+  document.body.appendChild(toast);
+  function showToast(msg){
+    toast.textContent = msg || 'Berhasil';
+    toast.classList.add('show');
+    setTimeout(function(){ toast.classList.remove('show'); }, 1600);
+  }
+
+  // Hook WA links/buttons
+  function hookWhatsApp(node){
+    node.addEventListener('click', function(){
+      showToast('Membuka WhatsApp…');
+    });
+  }
+  document.querySelectorAll('a[href^="https://wa.me"], a[href^="wa.me"], a[href*="api.whatsapp.com"], button[data-wa]').forEach(hookWhatsApp);
+
+  // Keep existing "Daftar" flow toasted as well if exists
+  var applyBtn = document.getElementById('applyBtn') || document.querySelector('button.apply, .apply-btn');
+  if(applyBtn){ applyBtn.addEventListener('click', function(){ showToast('Membuka WhatsApp…'); }); }
+})();
 </script>
 
 </body>
