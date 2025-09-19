@@ -558,6 +558,15 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
     transform: translateY(0) scale(1);
   }
 </style>
+
+<style>
+  /* Utility: 16:9 media wrapper for promo image */
+  .media-16x9{position:relative;width:100%;height:0;padding-top:56.25%;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));}
+  .media-16x9 > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  /* Center CTA below the image */
+  .center-cta{display:flex;justify-content:center;padding:0.8rem 1rem 1rem 1rem}
+</style>
+
 </head>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
@@ -772,6 +781,20 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 </div>
 </section>
 <!-- Clients & Testimonials -->
+<!-- BEGIN: Promo image under XERJOFF with Web To Order button -->
+<section class="container" id="promo-xerjoff" data-animate>
+  <figure class="card" style="padding:0;margin:0;overflow:hidden;border-radius:12px">
+    <div class="media-16x9">
+      <img src="xerjoff-16x9.jpg" alt="Promo XERJOFF" loading="lazy" />
+    </div>
+    <div class="center-cta">
+      <a class="btn primary" href="https://diracscent.github.io/Company/">Web To Order</a>
+    </div>
+  </figure>
+</section>
+<!-- END: Promo image under XERJOFF with Web To Order button -->
+
+
 <section aria-labelledby="clientsHeading" class="container" data-animate="" id="clients">
 <h2 id="clientsHeading">Klien &amp; Testimoni</h2>
 <!-- Client logos -->
