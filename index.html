@@ -723,79 +723,6 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
 <!-- END: Replaced - Button idle + simple shimmer-on-press effects -->
 
 
-
-<style>
-/* Unique emphasis for the single “Web To Order” CTA only */
-#promo-xerjoff .web-order-cta{
-  position:relative;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:.45rem;
-  min-width:220px;
-  padding:.95rem 1.7rem;
-  border-radius:999px;
-  font-weight:800;
-  letter-spacing:.4px;
-  text-transform:uppercase;
-  color:#fffdf7;
-  background:linear-gradient(135deg,#ffcf5a 0%,#ff8a3d 44%,#ff5d8f 100%) !important;
-  border:1px solid rgba(255,255,255,.28);
-  box-shadow:0 16px 34px rgba(255,138,61,.28), 0 0 0 6px rgba(255,255,255,.03);
-  overflow:hidden;
-  transform:translateZ(0);
-  animation:webOrderFloat 4.6s ease-in-out infinite, webOrderGlow 2.8s ease-in-out infinite;
-  transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
-}
-#promo-xerjoff .web-order-cta::before{
-  content:"";
-  position:absolute;
-  inset:-35% -55%;
-  background:linear-gradient(120deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%);
-  transform:translateX(-65%) rotate(8deg);
-  animation:webOrderShine 3.8s ease-in-out infinite;
-  pointer-events:none;
-}
-#promo-xerjoff .web-order-cta::after{
-  content:"→";
-  position:relative;
-  font-size:1.05em;
-  line-height:1;
-  opacity:.98;
-}
-#promo-xerjoff .web-order-cta:hover{
-  transform:translateY(-5px) scale(1.05);
-  box-shadow:0 22px 42px rgba(255,138,61,.36), 0 0 0 8px rgba(255,255,255,.05);
-  filter:saturate(1.08) brightness(1.02);
-  text-decoration:none;
-}
-#promo-xerjoff .web-order-cta:active{
-  transform:translateY(-1px) scale(1.01);
-}
-#promo-xerjoff .web-order-cta:focus-visible{
-  outline:3px solid rgba(255,255,255,.9);
-  outline-offset:4px;
-}
-@keyframes webOrderFloat{
-  0%,100%{ transform:translateY(0); }
-  50%{ transform:translateY(-3px); }
-}
-@keyframes webOrderGlow{
-  0%,100%{ box-shadow:0 16px 34px rgba(255,138,61,.28), 0 0 0 6px rgba(255,255,255,.03); }
-  50%{ box-shadow:0 18px 40px rgba(255,93,143,.34), 0 0 0 10px rgba(255,255,255,.05); }
-}
-@keyframes webOrderShine{
-  0%{ transform:translateX(-65%) rotate(8deg); opacity:0; }
-  15%{ opacity:.85; }
-  45%{ opacity:0; }
-  100%{ transform:translateX(190%) rotate(8deg); opacity:0; }
-}
-@media (prefers-reduced-motion: reduce){
-  #promo-xerjoff .web-order-cta{ animation:none !important; }
-  #promo-xerjoff .web-order-cta::before{ animation:none !important; opacity:0 !important; }
-}
-</style>
-
 </head>
 <body>
 <header aria-label="Header utama Dirac Of Fragrance" class="site-header" role="banner">
@@ -1021,7 +948,7 @@ Note: Autoplay video will be embedded only if the mp4 was present. -->
     </div>
   </div>
   <div class="center-cta" style="padding-top:0.6rem">
-    <a class="btn primary web-order-cta" href="https://diracscent.github.io/company/">Web To Order</a>
+    <a class="btn primary" href="https://diracscent.github.io/company/">Web To Order</a>
   </div>
 </section>
 <!-- END: Promo image under XERJOFF with Web To Order button -->
