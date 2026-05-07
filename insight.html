@@ -1,1 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Insights — Dirac Of Fragrance (Speaker Outside)</title>
+  <meta name="description" content="Kumpulan insight dari Dirac Of Fragrance">
+  <style>
+    :root{
+      --bg:#0b0e12;
+      --panel:#0f1720;
+      --text:#e6edf3;
+      --muted:#9aa7b3;
+      --accent:#3b82f6;
+      --accent2:#2563eb;
+      --border:rgba(255,255,255,.08);
+      --shadow:0 6px 30px rgba(0,0,0,.35);
+      --glass:rgba(0,0,0,.55);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6}
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1040px,92%);margin-inline:auto}
 
+    /* Sticky Header */
+    header{
+      position:sticky; top:0; z-index:1000;
+      background:linear-gradient(180deg, rgba(15,23,32,.98), rgba(15,23,32,.92) 60%, rgba(15,23,32,0));
+      backdrop-filter:saturate(140%) blur(6px);
+      border-bottom:1px solid var(--border);
+      animation: dropin .5s ease-out both;
+    }
+    @keyframes dropin{
+      from{opacity:0; transform:translateY(-8px)}
+      to{opacity:1; transform:translateY(0)}
+    }
+
+    .brand-row{display:flex;align-items:center;gap:.8rem;padding:.7rem .2rem .5rem}
+    .logo{
+      width:44px;height:44px;border-radius:12px;position:relative;
+      background:#0ea5e9; overflow:hidden; box-shadow:0 8px 24px rgba(14,165,233,.25);
+      animation: logoFloat 5s ease-in-out infinite;
+    }
+    @keyframes logoFloat{
+      0%,100%{transform:translateY(0)}
+      50%{transform:translateY(-2px)}
+    }
+    .logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border-radius:12px}
+    .logo .fallback{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;color:#001018;font-size:1.1rem}
+    .brand h1{margin:0;font-size:1.05rem;font-weight:800}
+    .brand .sub{margin-top:2px;color:var(--muted);font-size:.85rem}
+
+    /* NAV: left-aligned, compact */
+    .nav{
+      display:flex;gap:.6rem;overflow-x:auto;-webkit-overflow-scrolling:touch;
+      padding:.45rem 0 .7rem;scrollbar-width:none; justify-content:flex-start;
+    }
+    .nav::-webkit-scrollbar{display:none}
+    .nav .btn-home{
+      padding:.55rem .9rem;border-radius:10px;white-space:nowrap;
+      border:1px solid rgba(59,130,246,.35);
+      background:rgba(59,130,246,.18); color:#dbeafe;font-weight:700;
+      position:relative; overflow:hidden; transition:transform .15s ease, box-shadow .2s ease;
+      box-shadow:0 6px 18px rgba(59,130,246,.15);
+      text-transform:capitalize;
+      animation:pulseGlow 3.5s ease-in-out infinite;
+    }
+    @keyframes pulseGlow{
+      0%,100%{box-shadow:0 6px 18px rgba(59,130,246,.12)}
+      50%{box-shadow:0 8px 26px rgba(59,130,246,.28)}
+    }
+    .nav .btn-home:hover{transform:translateY(-1px)}
+    .nav .btn-home::after{
+      content:""; position:absolute; top:-120%; left:-30%;
+      width:60%; height:340%; pointer-events:none;
+      background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,.18) 48%, rgba(255,255,255,.45) 52%, transparent 100%);
+      transform:translateX(-120%) rotate(25deg);
+    }
+    .nav .btn-home:hover::after{animation:shine .9s ease forwards}
+    @keyframes shine{
+      from{transform:translateX(-120%) rotate(25deg)}
+      to{transform:translateX(220%) rotate(25deg)}
+    }
+
+    main{padding:14px 0 64px}
+    .list{display:grid;gap:1.1rem}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;
+          padding:1rem;box-shadow:var(--shadow)}
+    .card h2{margin:.4rem 0 .4rem;font-size:1.12rem}
+    .date{color:var(--muted);font-size:.9rem;margin-bottom:.6rem}
+    .card p{margin:.65rem 0}
+    .lead{font-weight:600}
+
+    /* Video wrapper */
+    .vid{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;margin-bottom:.6rem}
+    .vid video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+    .cap{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.45);
+      color:#fff;padding:.25rem .5rem;border-radius:8px;font-size:.75rem}
+
+    /* Speaker button OUTSIDE video */
+    .card-tools{display:flex;gap:.5rem;align-items:center;margin:.4rem 0 .2rem}
+    .mute-toggle{
+      position:static; border:1px solid var(--border); color:#fff; cursor:pointer;
+      display:inline-grid; place-items:center; line-height:1;
+      background:var(--panel); padding:.45rem .65rem; border-radius:10px; font-size:18px;
+      transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
+      box-shadow:0 6px 18px rgba(0,0,0,.18);
+    }
+    .mute-toggle:hover{transform:translateY(-1px); background:#111827}
+    .mute-toggle:active{transform:scale(.98)}
+    /* (Optional) overlay style if ever needed in future */
+    .mute-overlay{position:absolute; top:10px; right:10px; width:44px; height:44px; border-radius:999px;
+      background:var(--glass); font-size:20px; box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .play-overlay{display:none} /* not used here */
+
+    .photo{position:relative;aspect-ratio:16/9;background:#111;border-radius:12px;overflow:hidden;margin-bottom:.6rem}
+    .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+
+    footer{border-top:1px solid var(--border);padding:18px 0;color:var(--muted)}
+    .copy{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+
+    @media (max-width:480px){
+      .brand h1{font-size:1rem}
+      .brand .sub{font-size:.8rem}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="brand-row">
+        <div class="logo">
+          <img src="logo.JPG" alt="Logo Dirac Of Fragrance">
+          <span class="fallback">?</span>
+        </div>
+        <div class="brand">
+          <h1>Dirac Of Fragrance</h1>
+          <div class="sub">Reseller Parfum • CEO A. Zaenuddin</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a class="btn-home" href="https://diraccc.github.io/companyprofilee/" aria-label="Kembali ke beranda">
+          kembali ke beranda
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="list">
+
+        <!-- INSIGHT 1 -->
+        <article class="card">
+          <div class="vid">
+            <video autoplay muted playsinline loop preload="metadata" src="1.mp4"></video>
+            <div class="cap"></div>
+          </div>
+          <h2>Gimana Sih Caranya Sukses di Bidang Reseller Produk?</h2>
+          <div class="date">Diperbarui</div>
+          <div class="card-tools">
+            <button class="mute-toggle" type="button" aria-label="Unmute video" data-state="muted">🔇</button>
+          </div>
+          <p class="lead">Sukses di bidang reseller produk dimulai dari memahami kebutuhan pasar. Produk yang kamu jual harus relevan dengan gaya hidup dan selera konsumen.</p>
+          <p>Kalau di parfum, misalnya, ada pembeli yang mencari aroma segar untuk aktivitas harian, ada juga yang ingin aroma elegan untuk acara formal. Dengan mengenali kebutuhan ini, kamu bisa lebih tepat dalam memberi rekomendasi dan membangun kesan bahwa kamu bukan hanya menjual produk, tetapi juga memberi solusi.</p>
+          <p>Langkah berikutnya adalah membangun branding yang kuat dan konsisten. Branding ini mencakup cara kamu mempresentasikan produk—baik dari packaging, konten promosi, sampai storytelling yang kamu bangun. Produk reseller sering kalah bersaing kalau hanya mengandalkan harga, karena itu kamu perlu membedakan diri dengan menghadirkan pengalaman emosional. Misalnya, bukan hanya memajang parfum, tapi menceritakan sensasi dan karakter yang ditimbulkan aromanya.</p>
+          <p>Terakhir, kunci keberhasilan reseller adalah menciptakan pengalaman pelanggan yang positif. Respons cepat, pelayanan ramah, dan bonus kecil bisa membuat orang merasa dihargai. Setelah itu, lakukan inovasi: tawarkan bundling, paket tester, atau varian baru agar pembeli lama tetap tertarik. Dengan kombinasi pemahaman pasar, branding yang tepat, dan pelayanan yang memuaskan, kamu bisa membangun bisnis reseller produk yang tidak hanya bertahan, tapi juga terus berkembang.</p>
+        </article>
+
+        <!-- INSIGHT 2 -->
+        <article class="card">
+          <div class="photo">
+            <img src="11.PNG" alt="Foto Insight 2" loading="lazy">
+          </div>
+          <h2>Rahasia Membaca Pasar Biar Produk Cepat Laku</h2>
+          <div class="date">Diperbarui</div>
+          <p class="lead">Sebagai reseller, memahami pasar adalah pondasi kesuksesan yang paling penting. Produk yang kamu jual tidak akan cepat laku jika hanya sekadar dipajang tanpa pemahaman siapa target pembelinya.</p>
+          <p>Konsumen membeli sesuatu karena merasa produk tersebut relevan dengan kebutuhan mereka. Itulah mengapa riset kecil seperti melihat tren media sosial, membaca ulasan kompetitor, atau bertanya langsung ke pelanggan tentang preferensi mereka sangat penting. Dengan langkah sederhana ini, kamu bisa memberikan kesan bahwa produkmu bukan sekadar barang, tetapi jawaban atas kebutuhan nyata.</p>
+          <p>Lebih dari sekadar mengikuti tren, membaca pasar juga menuntut kemampuan untuk mengantisipasi kebutuhan yang belum disadari pembeli. Banyak orang bahkan tidak tahu mereka menginginkan sebuah produk sampai ada yang memperkenalkannya. Misalnya, ketika tren parfum unisex mulai populer, reseller yang tanggap bisa lebih dulu menyediakan pilihan tersebut dibanding pesaingnya. Dengan begitu, kamu tidak hanya mengikuti arus, melainkan mampu menjadi penggerak tren di kalangan pelangganmu.</p>
+          <p>Selain itu, pemahaman pasar yang tajam juga membantu menghindari risiko stok menumpuk. Dengan mengetahui produk mana yang sedang diminati dan mana yang kurang relevan, kamu bisa mengatur strategi pembelian dan promosi dengan lebih efisien. Hasil akhirnya, modal berputar lebih cepat, penjualan lebih lancar, dan bisnis reseller terasa lebih stabil. Membaca pasar pada dasarnya adalah seni sekaligus ilmu: seni dalam mengamati perilaku konsumen, dan ilmu dalam menafsirkan data untuk membuat keputusan tepat.</p>
+        </article>
+
+        <!-- INSIGHT 3 -->
+        <article class="card">
+          <div class="photo">
+            <img src="22.JPG" alt="Foto Insight 3" loading="lazy">
+          </div>
+          <h2>Branding yang Bikin Orang Ingat Selamanya</h2>
+          <div class="date">Diperbarui</div>
+          <p class="lead">Branding adalah kunci agar produkmu menonjol di tengah keramaian pasar. Banyak reseller hanya fokus pada harga, padahal konsumen sering membeli karena cerita atau citra yang melekat pada sebuah produk.</p>
+          <p>Branding bukan cuma soal logo, warna, atau kemasan, melainkan bagaimana kamu menghadirkan pengalaman menyeluruh. Mulai dari cara kamu berkomunikasi di media sosial, gaya foto produk, hingga tone bahasa yang konsisten, semuanya berperan membentuk persepsi konsumen. Jika branding kuat, orang akan lebih mudah mengingatmu dibanding ratusan reseller lain yang menawarkan produk serupa.</p>
+          <p>Branding yang emosional juga bisa menciptakan koneksi batin dengan konsumen. Misalnya, saat menjual parfum, kamu tidak hanya mengatakan “aromanya segar”, tetapi menambahkan cerita seperti “parfum ini sering disebut senjata rahasia saat first date”. Narasi semacam itu membuat konsumen merasa mereka sedang membeli pengalaman, bukan sekadar botol parfum. Storytelling inilah yang mampu mengubah produk biasa menjadi sesuatu yang bernilai lebih tinggi di mata pembeli.</p>
+          <p>Selain membedakan diri, branding juga berfungsi membangun loyalitas jangka panjang. Jika konsumen merasa nyaman dan percaya dengan citra yang kamu bangun, mereka akan kembali membeli tanpa perlu bujukan besar. Bahkan, mereka bisa menjadi promotor sukarela yang merekomendasikan produkmu ke orang lain. Jadi, branding bukan hanya kosmetik, melainkan investasi yang menentukan daya tahan dan pertumbuhan bisnis reseller dalam jangka panjang.</p>
+        </article>
+
+        <!-- INSIGHT 4 -->
+        <article class="card">
+          <div class="photo">
+            <img src="33.PNG" alt="Foto Insight 4" loading="lazy">
+          </div>
+          <h2>Rasa Penasaran Sebagai Senjata Jitu</h2>
+          <div class="date">Diperbarui</div>
+          <p class="lead">Dalam dunia reseller, menciptakan rasa penasaran bisa menjadi strategi pemasaran yang sangat efektif. Alih-alih membocorkan semua detail produk, cobalah memberi sedikit teaser yang mengundang rasa ingin tahu.</p>
+          <p>Misalnya, dengan kalimat “Ada aroma yang bikin orang balik lagi cuma buat cari tahu, kira-kira wangi apa ya?” Teknik seperti ini membuat calon pembeli tertarik untuk berinteraksi lebih jauh. Mereka terdorong untuk bertanya, menebak, bahkan mencari tahu langsung dengan mencoba produknya.</p>
+          <p>Rasa penasaran juga bekerja sangat baik di media sosial karena mampu meningkatkan interaksi. Setiap kali orang ikut menebak, berkomentar, atau membagikan postinganmu, produkmu dipromosikan secara gratis. Semakin tinggi interaksi, semakin besar peluang audiens baru untuk tertarik mencoba produk tersebut. Strategi ini cocok dipadukan dengan konten interaktif seperti polling, kuis, atau “tebak aroma” agar lebih menarik.</p>
+          <p>Selain mendatangkan interaksi, rasa penasaran juga menambah nilai eksklusivitas pada produk. Konsumen akan merasa bahwa produk tersebut memiliki rahasia yang hanya bisa diungkap dengan mencobanya sendiri. Perasaan ini menciptakan dorongan psikologis yang kuat untuk membeli. Jadi, membangun sedikit misteri bukan berarti menyembunyikan kualitas produk, tetapi justru cara cerdas untuk membuat orang semakin penasaran dan akhirnya jatuh hati pada produkmu.</p>
+        </article>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container copy">
+      <span>&copy; <span id="y"></span> Dirac, Inc.</span><span class="dot"></span><span>All rights reserved.</span>
+    </div>
+  </footer>
+
+  <script>
+    // Tahun
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // Logo fallback: sembunyikan tanda "?" saat gambar berhasil dimuat
+    (function(){
+      const logo = document.querySelector('.logo');
+      if(!logo) return;
+      const img = logo.querySelector('img');
+      const fb  = logo.querySelector('.fallback');
+      const hideFallback = () => { if(fb) fb.style.display = 'none'; };
+      const showFallback = () => { if(fb) fb.style.display = 'grid'; };
+      if (img && img.complete && img.naturalWidth > 0) hideFallback();
+      if (img){
+        img.addEventListener('load', hideFallback);
+        img.addEventListener('error', showFallback);
+      }
+    })();
+
+    // === Toggle mute/unmute pada tombol speaker (per card) ===
+    document.querySelectorAll('article.card').forEach(function(card){
+      const video = card.querySelector('.vid video');
+      const btn = card.querySelector('.mute-toggle');
+      if(!video || !btn) return;
+
+      // Pastikan atribut sesuai kebijakan autoplay
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      if (!video.getAttribute('preload')) video.setAttribute('preload', 'metadata');
+      let targetVolume = 0.85;
+      video.volume = targetVolume;
+
+      const tryPlay = () => {
+        const p = video.play();
+        if (p && typeof p.catch === 'function') p.catch(()=>{});
+      };
+
+      function updateIcon(){
+        const isMuted = video.muted || video.volume === 0;
+        btn.textContent = isMuted ? '🔇' : '🔊';
+        btn.setAttribute('data-state', isMuted ? 'muted' : 'unmuted');
+        btn.setAttribute('aria-label', isMuted ? 'Unmute video' : 'Mute video');
+      }
+
+      updateIcon();
+      tryPlay();
+      video.addEventListener('loadedmetadata', tryPlay);
+
+      btn.addEventListener('click', function(){
+        video.muted = !video.muted;
+        if (!video.muted) {
+          video.volume = targetVolume;
+          if (video.paused) tryPlay();
+        }
+        updateIcon();
+      });
+
+      // Opsional: klik video untuk play/pause
+      video.addEventListener('click', function(){
+        if (video.paused) tryPlay(); else video.pause();
+      });
+    });
+  </script>
+</body>
+</html>
