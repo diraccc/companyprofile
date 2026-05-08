@@ -3,282 +3,389 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Parfum</title>
+  <title>DIRAC GROUP • Order Parfum</title>
   <style>
     :root{
-      --bg:#05070c;
-      --panel:#0c1220cc;
-      --panel2:#0b1020;
-      --line:#17365f;
-      --text:#e8f2ff;
-      --muted:#a7b8d6;
-      --blue:#2a7cff;
-      --blue2:#1dd3ff;
-      --blue3:#0d5eff;
-      --green:#1fd18a;
-      --red:#ff5f73;
-      --shadow: 0 22px 60px rgba(0,0,0,.45);
-      --radius: 22px;
+      --bg:#04050a;
+      --panel:rgba(10,16,28,.88);
+      --panel2:rgba(8,12,22,.95);
+      --line:rgba(45,132,255,.18);
+      --text:#ecf5ff;
+      --muted:#99add0;
+      --blue:#2b7cff;
+      --blue2:#19d5ff;
+      --blue3:#0d54ff;
+      --good:#1fd18a;
+      --warn:#ffb84d;
+      --bad:#ff647c;
+      --shadow:0 22px 60px rgba(0,0,0,.48);
+      --radius:24px;
     }
     *{box-sizing:border-box}
     html,body{margin:0;padding:0;background:
-      radial-gradient(circle at 15% 15%, rgba(42,124,255,.16), transparent 26%),
-      radial-gradient(circle at 80% 20%, rgba(29,211,255,.10), transparent 22%),
-      radial-gradient(circle at 50% 85%, rgba(42,124,255,.12), transparent 25%),
-      linear-gradient(180deg, #04050a 0%, #05070c 50%, #030408 100%);
-      color:var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      radial-gradient(circle at 12% 18%, rgba(43,124,255,.18), transparent 24%),
+      radial-gradient(circle at 84% 14%, rgba(25,213,255,.12), transparent 22%),
+      radial-gradient(circle at 60% 78%, rgba(43,124,255,.10), transparent 26%),
+      linear-gradient(180deg, #030408 0%, #05070d 100%);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       overflow-x:hidden;
     }
     body::before, body::after{
       content:""; position:fixed; inset:auto; pointer-events:none; z-index:0;
-      width:420px;height:420px;border-radius:50%;
-      background: radial-gradient(circle, rgba(42,124,255,.18), transparent 62%);
-      filter: blur(10px);
-      animation: floatGlow 10s ease-in-out infinite;
+      width:520px; height:520px; border-radius:50%;
+      background: radial-gradient(circle, rgba(25,213,255,.16), transparent 66%);
+      filter: blur(8px);
+      animation: floatGlow 12s ease-in-out infinite;
     }
-    body::before{top:-120px;left:-120px}
-    body::after{right:-120px;bottom:-120px;animation-delay:-4s}
+    body::before{top:-160px;left:-160px}
+    body::after{right:-180px;bottom:-180px;animation-delay:-5s}
     @keyframes floatGlow{
       0%,100%{transform:translate3d(0,0,0) scale(1)}
-      50%{transform:translate3d(18px,14px,0) scale(1.08)}
+      50%{transform:translate3d(16px,12px,0) scale(1.07)}
     }
-    .wrap{position:relative; z-index:1; max-width:1500px; margin:0 auto; padding:24px}
+    .wrap{position:relative;z-index:1;max-width:1560px;margin:0 auto;padding:24px}
     .hero{
-      display:grid; gap:18px; grid-template-columns:1.5fr .9fr; align-items:stretch;
-      margin-bottom:18px;
+      display:grid;grid-template-columns:1.25fr .95fr;gap:18px;margin-bottom:18px;
+      align-items:stretch;
     }
-    .hero-card, .side-card, .toolbar, .product-card, .cart-panel, .checkout{
-      background: linear-gradient(180deg, rgba(12,18,32,.88), rgba(7,11,20,.94));
-      border:1px solid rgba(42,124,255,.18);
-      box-shadow: var(--shadow);
-      border-radius: var(--radius);
+    .hero-main,.hero-side,.toolbar,.product-card,.cart-panel,.checkout{
+      background:linear-gradient(180deg, rgba(12,18,32,.90), rgba(7,10,18,.96));
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      border-radius:var(--radius);
       backdrop-filter: blur(14px);
     }
-    .hero-card{padding:28px; position:relative; overflow:hidden}
-    .hero-card::after{
-      content:""; position:absolute; inset:auto -20px -35px auto; width:220px; height:220px;
-      border-radius:50%; background: radial-gradient(circle, rgba(29,211,255,.14), transparent 68%);
-      animation: drift 7s ease-in-out infinite;
+    .hero-main{
+      padding:30px; position:relative; overflow:hidden; min-height:420px;
+      isolation:isolate;
     }
-    @keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    .hero-main::before{
+      content:""; position:absolute; inset:-2px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(43,124,255,.18), transparent 18%),
+        radial-gradient(circle at 80% 16%, rgba(25,213,255,.14), transparent 18%),
+        radial-gradient(circle at 64% 80%, rgba(43,124,255,.11), transparent 18%);
+      z-index:-2;
+      animation: drift 8s ease-in-out infinite;
+    }
+    .hero-main::after{
+      content:""; position:absolute; inset:auto -120px -130px auto; width:380px; height:380px;
+      border-radius:50%;
+      background: radial-gradient(circle, rgba(25,213,255,.16), transparent 66%);
+      z-index:-1;
+      animation: drift 9s ease-in-out infinite reverse;
+    }
+    @keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
     .eyebrow{
-      display:inline-flex; align-items:center; gap:10px; padding:8px 14px; border-radius:999px;
-      background:rgba(42,124,255,.12); color:#bcd7ff; border:1px solid rgba(42,124,255,.25);
-      font-size:13px; letter-spacing:.4px; text-transform:uppercase;
+      display:inline-flex; align-items:center; gap:10px;
+      padding:8px 14px; border-radius:999px;
+      background:rgba(43,124,255,.12);
+      border:1px solid rgba(43,124,255,.26);
+      color:#c8ddff; font-size:13px; letter-spacing:.45px; text-transform:uppercase;
+      animation: popIn .7s ease both;
     }
-    .eyebrow-dot{width:9px; height:9px; border-radius:50%; background:var(--blue2); box-shadow:0 0 18px var(--blue2)}
-    h1{margin:16px 0 10px; font-size: clamp(32px, 5vw, 62px); line-height:1.02}
-    .sub{max-width:780px; color:var(--muted); line-height:1.7; font-size:15px}
-    .hero-actions{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px}
+    .eyebrow-dot{width:9px;height:9px;border-radius:50%;background:var(--blue2);box-shadow:0 0 18px var(--blue2)}
+    h1{margin:16px 0 12px;font-size:clamp(34px,5.2vw,68px);line-height:1.02;max-width:840px}
+    .sub{max-width:850px;color:var(--muted);line-height:1.72;font-size:15px;margin:0}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
     .btn{
-      appearance:none; border:0; cursor:pointer; color:white; font-weight:700; letter-spacing:.2px;
-      padding:13px 18px; border-radius:14px; transition:.25s transform, .25s box-shadow, .25s opacity;
+      appearance:none;border:0;cursor:pointer;color:#fff;font-weight:800;letter-spacing:.2px;
+      padding:13px 18px;border-radius:14px;transition:.24s transform,.24s box-shadow,.24s opacity;
       background:linear-gradient(135deg, var(--blue), var(--blue3));
-      box-shadow:0 14px 30px rgba(42,124,255,.22);
+      box-shadow:0 14px 30px rgba(43,124,255,.24);
     }
     .btn:hover{transform:translateY(-2px)}
     .btn.secondary{
-      background:rgba(255,255,255,.04); border:1px solid rgba(42,124,255,.22);
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(43,124,255,.22);
       color:var(--text)
     }
-    .side-card{padding:20px; display:grid; gap:14px}
-    .stat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+
+    .hero-badges{
+      display:flex;flex-wrap:wrap;gap:10px;margin-top:22px
+    }
+    .mini-badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:10px 14px;border-radius:999px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(43,124,255,.16);
+      color:#dceaff;font-size:13px
+    }
+    .mini-badge i{width:8px;height:8px;border-radius:50%;background:var(--blue2);box-shadow:0 0 12px var(--blue2);display:inline-block}
+    .hero-visual{
+      position:absolute; inset:0; pointer-events:none;
+    }
+    .grid-glow{
+      position:absolute; inset:0; opacity:.55;
+      background-image:
+        linear-gradient(rgba(43,124,255,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(43,124,255,.08) 1px, transparent 1px);
+      background-size:42px 42px;
+      mask-image: radial-gradient(circle at 60% 35%, black 0, black 35%, transparent 72%);
+      transform: perspective(900px) rotateX(60deg) translateY(140px) scale(1.12);
+      transform-origin:center;
+      animation: gridMove 16s linear infinite;
+    }
+    @keyframes gridMove{from{background-position:0 0,0 0}to{background-position:0 42px,42px 0}}
+    .floating-card{
+      position:absolute; width:160px; padding:12px; border-radius:18px;
+      background:linear-gradient(180deg, rgba(16,26,44,.82), rgba(7,10,18,.92));
+      border:1px solid rgba(43,124,255,.22);
+      box-shadow:0 20px 40px rgba(0,0,0,.4);
+      animation: floatCard 6s ease-in-out infinite;
+    }
+    .floating-card strong{display:block;font-size:14px;line-height:1.35}
+    .floating-card span{display:block;color:var(--muted);font-size:12px;margin-top:6px}
+    .fc1{right:26px;top:28px;animation-delay:-1s}
+    .fc2{right:165px;top:120px;animation-delay:-3s}
+    .fc3{right:34px;bottom:32px;animation-delay:-5s}
+    @keyframes floatCard{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-10px) rotate(-1deg)}}
+
+    .hero-side{
+      padding:18px; display:grid; gap:14px; align-content:start;
+    }
+    .side-top{
+      display:grid; grid-template-columns:1fr 1fr; gap:12px;
+    }
     .stat{
-      padding:16px; border-radius:18px; background:rgba(255,255,255,.03);
-      border:1px solid rgba(42,124,255,.12)
+      padding:16px;border-radius:18px;background:rgba(255,255,255,.03);
+      border:1px solid rgba(43,124,255,.12)
     }
-    .stat strong{display:block; font-size:24px}
-    .stat span{color:var(--muted); font-size:13px}
-    .bar{height:10px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; margin-top:10px}
-    .bar > i{display:block; height:100%; width:72%; border-radius:inherit; background:linear-gradient(90deg, var(--blue), var(--blue2))}
+    .stat strong{display:block;font-size:26px;line-height:1}
+    .stat span{display:block;color:var(--muted);font-size:13px;margin-top:8px}
+    .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+    .bar > i{display:block;height:100%;width:82%;border-radius:inherit;background:linear-gradient(90deg,var(--blue),var(--blue2));animation: barPulse 2.6s ease-in-out infinite}
+    @keyframes barPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+    .ring{
+      position:relative;height:160px;border-radius:22px;overflow:hidden;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(25,213,255,.15), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      border:1px solid rgba(43,124,255,.12);
+    }
+    .ring::before,.ring::after{
+      content:""; position:absolute; inset:18px; border-radius:50%;
+      border:1px solid rgba(25,213,255,.22);
+      animation: spin 11s linear infinite;
+    }
+    .ring::after{inset:38px;border-style:dashed;animation-direction:reverse;animation-duration:16s}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .ring-content{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:18px}
+    .ring-content strong{font-size:28px;display:block}
+    .ring-content span{color:var(--muted);font-size:13px}
+    .quick-cats{display:flex;flex-wrap:wrap;gap:10px}
+    .tag{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:9px 12px;border-radius:999px;background:rgba(255,255,255,.03);
+      border:1px solid rgba(43,124,255,.14);font-size:13px;color:#dcecff
+    }
+    .tag b{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--blue2);box-shadow:0 0 12px var(--blue2)}
+
     .toolbar{
-      padding:14px; display:grid; grid-template-columns:1.25fr .85fr .85fr auto; gap:12px;
-      align-items:center; position:sticky; top:12px; z-index:5; margin-bottom:18px;
+      padding:14px;display:grid;grid-template-columns:1.2fr .8fr .8fr auto;gap:12px;align-items:center;
+      position:sticky;top:12px;z-index:8;margin-bottom:18px
     }
-    .search, .select{
-      width:100%; border:1px solid rgba(42,124,255,.18); background:rgba(255,255,255,.04); color:var(--text);
-      border-radius:14px; padding:14px 14px; outline:none;
+    .search,.select{
+      width:100%;border:1px solid rgba(43,124,255,.18);background:rgba(255,255,255,.04);color:var(--text);
+      border-radius:14px;padding:14px 14px;outline:none
     }
-    .search::placeholder{color:#89a1c7}
-    .chips{display:flex; gap:10px; flex-wrap:wrap; padding:2px 0}
+    .search::placeholder{color:#88a0c6}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;padding:2px 0}
     .chip{
-      border:1px solid rgba(42,124,255,.16); background:rgba(255,255,255,.03); color:var(--text);
-      padding:10px 14px; border-radius:999px; cursor:pointer; transition:.2s;
+      border:1px solid rgba(43,124,255,.16);background:rgba(255,255,255,.03);color:var(--text);
+      padding:10px 14px;border-radius:999px;cursor:pointer;transition:.2s
     }
-    .chip.active{background:linear-gradient(135deg, rgba(42,124,255,.25), rgba(29,211,255,.16)); border-color:rgba(29,211,255,.45)}
-    .layout{
-      display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:18px; align-items:start;
-    }
-    .grid{
-      display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px;
-    }
+    .chip.active{background:linear-gradient(135deg, rgba(43,124,255,.25), rgba(25,213,255,.15)); border-color:rgba(25,213,255,.45)}
+
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:18px;align-items:start}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
     .product-card{
-      overflow:hidden; position:relative; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+      overflow:hidden;position:relative;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;
     }
-    .product-card:hover{
-      transform:translateY(-5px);
-      border-color:rgba(29,211,255,.42);
-      box-shadow:0 28px 60px rgba(0,0,0,.55);
-    }
+    .product-card:hover{transform:translateY(-5px);border-color:rgba(25,213,255,.42);box-shadow:0 28px 60px rgba(0,0,0,.58)}
     .thumb{
-      position:relative; aspect-ratio: 4/3; overflow:hidden; background:
-        radial-gradient(circle at 30% 30%, rgba(29,211,255,.22), transparent 35%),
-        linear-gradient(135deg, rgba(42,124,255,.18), rgba(0,0,0,.25));
-      border-bottom:1px solid rgba(42,124,255,.14);
+      position:relative;aspect-ratio:4/3;overflow:hidden;
+      background:
+        radial-gradient(circle at 28% 26%, rgba(25,213,255,.22), transparent 36%),
+        linear-gradient(135deg, rgba(43,124,255,.18), rgba(0,0,0,.26));
+      border-bottom:1px solid rgba(43,124,255,.14)
     }
-    .thumb img{
-      width:100%; height:100%; object-fit:cover; display:block; filter:saturate(1.05) contrast(1.05);
-      transform:scale(1.01);
-    }
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05) contrast(1.04)}
     .thumb .filetag{
-      position:absolute; left:12px; bottom:12px; padding:7px 10px; border-radius:999px;
-      background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08); color:#dbeaff; font-size:12px
+      position:absolute;left:12px;bottom:12px;padding:7px 10px;border-radius:999px;
+      background:rgba(0,0,0,.56);border:1px solid rgba(255,255,255,.08);color:#dbeaff;font-size:12px
     }
     .content{padding:16px}
-    .meta{display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:10px}
-    .title{font-size:18px; font-weight:800; margin:0 0 6px}
-    .price{font-size:18px; font-weight:800; color:#dff0ff}
-    .desc{color:var(--muted); line-height:1.55; font-size:13px; min-height:42px}
+    .meta{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+    .title{font-size:18px;font-weight:850;margin:0 0 6px}
+    .price{font-size:18px;font-weight:850;color:#dff0ff;white-space:nowrap}
+    .desc{color:var(--muted);line-height:1.55;font-size:13px;min-height:42px}
     .badge{
-      display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.3px;
-      padding:7px 10px; border-radius:999px; text-transform:uppercase;
+      display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.3px;
+      padding:7px 10px;border-radius:999px;text-transform:uppercase;vertical-align:middle
     }
-    .badge::before{content:""; width:8px; height:8px; border-radius:50%; background:currentColor}
-    .niche{color:#71d0ff; background:rgba(113,208,255,.08); border:1px solid rgba(113,208,255,.2)}
-    .designer{color:#8ab4ff; background:rgba(138,180,255,.08); border:1px solid rgba(138,180,255,.2)}
-    .timteng{color:#b7c7ff; background:rgba(183,199,255,.08); border:1px solid rgba(183,199,255,.2)}
-    .lokal{color:#86f0ff; background:rgba(134,240,255,.08); border:1px solid rgba(134,240,255,.2)}
-    .card-actions{display:flex; gap:10px; margin-top:14px}
+    .badge::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+    .niche{color:#71d0ff;background:rgba(113,208,255,.08);border:1px solid rgba(113,208,255,.2)}
+    .designer{color:#8ab4ff;background:rgba(138,180,255,.08);border:1px solid rgba(138,180,255,.2)}
+    .timteng{color:#b7c7ff;background:rgba(183,199,255,.08);border:1px solid rgba(183,199,255,.2)}
+    .lokal{color:#86f0ff;background:rgba(134,240,255,.08);border:1px solid rgba(134,240,255,.2)}
+    .status{
+      margin-left:8px;
+      color:#dfefff;background:rgba(255,255,255,.03);border:1px solid rgba(43,124,255,.14)
+    }
+    .card-actions{display:flex;gap:10px;margin-top:14px}
     .add{
-      flex:1; border:0; border-radius:14px; padding:12px 14px; cursor:pointer; font-weight:800; color:white;
-      background:linear-gradient(135deg, rgba(42,124,255,.95), rgba(29,211,255,.85));
-      box-shadow:0 16px 24px rgba(42,124,255,.15);
+      flex:1;border:0;border-radius:14px;padding:12px 14px;cursor:pointer;font-weight:800;color:#fff;
+      background:linear-gradient(135deg, rgba(43,124,255,.96), rgba(25,213,255,.86));
+      box-shadow:0 16px 24px rgba(43,124,255,.15);
     }
     .ghost{
-      border:1px solid rgba(42,124,255,.18); background:rgba(255,255,255,.03); color:var(--text);
-      padding:12px 13px; border-radius:14px; cursor:pointer;
+      border:1px solid rgba(43,124,255,.18);background:rgba(255,255,255,.03);color:var(--text);
+      padding:12px 13px;border-radius:14px;cursor:pointer
     }
     .cart-toggle{
-      position:fixed; right:18px; bottom:18px; z-index:20; display:flex; align-items:center; gap:10px;
-      padding:15px 18px; border:1px solid rgba(29,211,255,.26); border-radius:999px;
-      background:linear-gradient(135deg, rgba(8,13,24,.95), rgba(11,18,34,.95)); color:var(--text);
-      box-shadow:var(--shadow); cursor:pointer;
+      position:fixed;right:18px;bottom:18px;z-index:20;display:flex;align-items:center;gap:10px;
+      padding:15px 18px;border:1px solid rgba(25,213,255,.26);border-radius:999px;
+      background:linear-gradient(135deg, rgba(8,13,24,.95), rgba(11,18,34,.95));color:var(--text);
+      box-shadow:var(--shadow);cursor:pointer
     }
-    .cart-badge{
-      min-width:24px; height:24px; border-radius:999px; display:grid; place-items:center;
-      background:linear-gradient(135deg, var(--blue), var(--blue2)); font-size:12px; font-weight:900;
-    }
-    .cart-panel{
-      position:sticky; top:92px; padding:16px; overflow:hidden;
-    }
-    .cart-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px}
-    .cart-head h2{margin:0; font-size:20px}
-    .small{color:var(--muted); font-size:13px}
-    .cart-list{display:grid; gap:12px; max-height:52vh; overflow:auto; padding-right:4px}
+    .cart-badge{min-width:24px;height:24px;border-radius:999px;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),var(--blue2));font-size:12px;font-weight:900}
+    .cart-panel{position:sticky;top:92px;padding:16px;overflow:hidden}
+    .cart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .cart-head h2{margin:0;font-size:20px}
+    .small{color:var(--muted);font-size:13px}
+    .cart-list{display:grid;gap:12px;max-height:52vh;overflow:auto;padding-right:4px}
     .cart-item{
-      display:grid; grid-template-columns:66px 1fr; gap:12px; padding:12px; border-radius:18px;
-      background:rgba(255,255,255,.03); border:1px solid rgba(42,124,255,.12)
+      display:grid;grid-template-columns:66px 1fr;gap:12px;padding:12px;border-radius:18px;
+      background:rgba(255,255,255,.03);border:1px solid rgba(43,124,255,.12)
     }
-    .cart-thumb{width:66px; height:66px; border-radius:14px; overflow:hidden; background:rgba(255,255,255,.04)}
-    .cart-thumb img{width:100%; height:100%; object-fit:cover}
-    .cart-info h4{margin:0 0 4px; font-size:14px}
-    .cart-info .line{display:flex; justify-content:space-between; gap:10px; align-items:center; margin-top:8px}
+    .cart-thumb{width:66px;height:66px;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.04)}
+    .cart-thumb img{width:100%;height:100%;object-fit:cover}
+    .cart-info h4{margin:0 0 4px;font-size:14px}
+    .cart-info .line{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:8px}
     .qty{
-      display:inline-flex; align-items:center; gap:8px; padding:6px; border-radius:999px;
-      background:rgba(0,0,0,.18); border:1px solid rgba(42,124,255,.12)
+      display:inline-flex;align-items:center;gap:8px;padding:6px;border-radius:999px;
+      background:rgba(0,0,0,.18);border:1px solid rgba(43,124,255,.12)
     }
     .qty button{
-      width:26px; height:26px; border:0; border-radius:50%; background:rgba(42,124,255,.18); color:var(--text);
-      cursor:pointer; font-weight:900;
+      width:26px;height:26px;border:0;border-radius:50%;background:rgba(43,124,255,.18);color:var(--text);
+      cursor:pointer;font-weight:900
     }
-    .qty span{min-width:18px; text-align:center; font-weight:800}
-    .remove{
-      margin-left:auto; border:0; background:transparent; color:#ff97a4; cursor:pointer; font-weight:700
-    }
+    .qty span{min-width:18px;text-align:center;font-weight:800}
+    .remove{margin-left:auto;border:0;background:transparent;color:#ff97a4;cursor:pointer;font-weight:700}
     .summary{
-      margin-top:14px; padding:14px; border-radius:18px; background:rgba(255,255,255,.03); border:1px solid rgba(42,124,255,.12)
+      margin-top:14px;padding:14px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(43,124,255,.12)
     }
-    .sum-row{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:8px 0}
+    .sum-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}
     .sum-row strong{font-size:20px}
-    .checkout{
-      margin-top:16px; padding:16px;
-    }
+    .checkout{margin-top:16px;padding:16px}
     .checkout h3{margin:0 0 12px}
     .field{
-      width:100%; margin-bottom:10px; border:1px solid rgba(42,124,255,.16); background:rgba(255,255,255,.04);
-      border-radius:14px; padding:12px 14px; color:var(--text); outline:none;
+      width:100%;margin-bottom:10px;border:1px solid rgba(43,124,255,.16);background:rgba(255,255,255,.04);
+      border-radius:14px;padding:12px 14px;color:var(--text);outline:none
     }
-    textarea.field{min-height:92px; resize:vertical}
-    .checkout-actions{display:grid; gap:10px; grid-template-columns:1fr 1fr}
-    .note{
-      color:#8da8ce; font-size:12px; line-height:1.5; margin-top:10px;
-    }
+    textarea.field{min-height:92px;resize:vertical}
+    .checkout-actions{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+    .note{color:#8da8ce;font-size:12px;line-height:1.55;margin-top:10px}
     .empty{
-      text-align:center; color:var(--muted); padding:18px 10px; border:1px dashed rgba(42,124,255,.2);
-      border-radius:18px; background:rgba(255,255,255,.02)
+      text-align:center;color:var(--muted);padding:18px 10px;border:1px dashed rgba(43,124,255,.2);
+      border-radius:18px;background:rgba(255,255,255,.02)
     }
     .hidden{display:none !important}
-
-    .reveal{animation: reveal .5s ease both}
-    @keyframes reveal{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
-
-    @media (max-width: 1240px){
+    .reveal{animation:reveal .5s ease both}
+    @keyframes reveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes popIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @media (max-width:1240px){
       .layout{grid-template-columns:1fr}
-      .cart-panel{position:relative; top:auto}
-      .grid{grid-template-columns:repeat(2, minmax(0,1fr))}
-      .toolbar{grid-template-columns:1fr 1fr; }
-    }
-    @media (max-width: 720px){
+      .cart-panel{position:relative;top:auto}
+      .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .toolbar{grid-template-columns:1fr 1fr}
       .hero{grid-template-columns:1fr}
+    }
+    @media (max-width:720px){
+      .wrap{padding:16px}
       .grid{grid-template-columns:1fr}
-      .toolbar{grid-template-columns:1fr; top:0}
+      .toolbar{grid-template-columns:1fr;top:0}
       .checkout-actions{grid-template-columns:1fr}
-      .cart-toggle{right:12px; bottom:12px}
+      .cart-toggle{right:12px;bottom:12px}
+      .hero-main{min-height:auto;padding:22px}
+      .floating-card{display:none}
+      .side-top{grid-template-columns:1fr}
     }
-    .pulse{
-      animation:pulse 1.2s ease;
-    }
-    @keyframes pulse{
-      0%{transform:scale(1)}
-      25%{transform:scale(1.06)}
-      100%{transform:scale(1)}
-    }
+    .pulse{animation:pulse 1.2s ease}
+    @keyframes pulse{0%{transform:scale(1)}25%{transform:scale(1.06)}100%{transform:scale(1)}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="hero">
-      <div class="hero-card reveal">
-        <div class="eyebrow"><span class="eyebrow-dot"></span> Website Order Parfum Premium</div>
-        <h1>Catalog order modern untuk parfum niche, designer, timteng, dan lokal.</h1>
+      <div class="hero-main reveal">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> DIRAC GROUP • parfum order modern</div>
+        <h1>Katalog parfum hitam-biru yang lebih ramai, lebih mewah, dan siap dipakai untuk order.</h1>
         <p class="sub">
-          Desain hitam-biru dengan ornamen animasi, kartu produk rapi, label kategori yang jelas, dan sistem keranjang yang modern.
-          Gambar bisa diganti cukup dengan mengganti nama file di folder <b>images</b> sesuai nomor produk.
+          Card produk dibuat bersih dan modern, label kategori jelas untuk membedakan niche, designer, timteng, dan lokal,
+          lalu keranjang dibuat modern dengan total otomatis. Nama file gambar tinggal diganti sesuai file di folder <b>images</b>.
         </p>
+
         <div class="hero-actions">
           <button class="btn" id="scrollProducts">Lihat Produk</button>
           <button class="btn secondary" id="openCart">Buka Keranjang</button>
         </div>
-      </div>
-      <aside class="side-card reveal">
-        <div>
-          <div class="small">Ringkasan toko</div>
-          <div class="stat-grid" style="margin-top:10px">
-            <div class="stat"><strong>60</strong><span>Card produk</span></div>
-            <div class="stat"><strong>4</strong><span>Label kategori</span></div>
-            <div class="stat"><strong>∞</strong><span>Ubah gambar via file</span></div>
-            <div class="stat"><strong>1</strong><span>Cart total otomatis</span></div>
+
+        <div class="hero-badges">
+          <div class="mini-badge"><i></i><span id="countAll">44 produk</span></div>
+          <div class="mini-badge"><i></i>4 kategori utama</div>
+          <div class="mini-badge"><i></i>Keranjang modern</div>
+          <div class="mini-badge"><i></i>Gambar via nama file</div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="grid-glow"></div>
+          <div class="floating-card fc1">
+            <strong>Label rapi</strong>
+            <span>Niche / Designer / Timteng / Lokal</span>
+          </div>
+          <div class="floating-card fc2">
+            <strong>Animasi halus</strong>
+            <span>Glow, drift, dan floating glass</span>
+          </div>
+          <div class="floating-card fc3">
+            <strong>Order cepat</strong>
+            <span>Add to cart, update qty, copy ringkasan</span>
           </div>
         </div>
+      </div>
+
+      <aside class="hero-side reveal">
+        <div class="side-top">
+          <div class="stat"><strong>44</strong><span>Produk aktif</span></div>
+          <div class="stat"><strong>4</strong><span>Label kategori</span></div>
+          <div class="stat"><strong>1</strong><span>Keranjang otomatis</span></div>
+          <div class="stat"><strong>∞</strong><span>Ganti file gambar</span></div>
+        </div>
+
+        <div class="ring">
+          <div class="ring-content">
+            <strong>DIRAC GROUP</strong>
+            <span>black • blue • luxury order UI</span>
+          </div>
+        </div>
+
         <div>
-          <div class="small">Tema visual</div>
-          <div class="bar"><i></i></div>
+          <div class="small" style="margin-bottom:10px">Kategori cepat</div>
+          <div class="quick-cats">
+            <span class="tag"><b></b>Niche</span>
+            <span class="tag"><b></b>Designer</span>
+            <span class="tag"><b></b>Timteng</span>
+            <span class="tag"><b></b>Lokal</span>
+          </div>
         </div>
       </aside>
     </section>
 
     <section class="toolbar reveal">
-      <input id="search" class="search" type="text" placeholder="Cari parfum, notes, atau kategori..." />
+      <input id="search" class="search" type="text" placeholder="Cari parfum, kategori, harga, atau nama produk..." />
       <select id="sort" class="select">
         <option value="default">Urutkan: default</option>
         <option value="price-asc">Harga termurah</option>
@@ -327,8 +434,8 @@
             <button class="btn secondary" id="clearCart">Kosongkan Cart</button>
           </div>
           <div class="note">
-            Gambar produk disarankan bernama <b>01.jpg</b> sampai <b>60.jpg</b> di folder <b>images</b>.
-            Saat ingin ganti foto, cukup replace file dengan nama yang sama.
+            Nama file gambar mengikuti data yang Anda kirim, misalnya <b>all_parfum_timteng.PNG</b>,
+            <b>produk6.PNG</b>, dan seterusnya. Saat ingin ganti foto, cukup replace file dengan nama yang sama.
           </div>
         </div>
       </aside>
@@ -340,75 +447,7 @@
   </button>
 
 <script>
-const products = [
-  // Niche (15)
-  {id:"N01", name:"Apex Oud", category:"niche", price:1250000, desc:"Oud kering, resinous, dan elegan dengan dry-down mewah.", image:"images/01.jpg"},
-  {id:"N02", name:"Velvet Amber", category:"niche", price:1150000, desc:"Hangat, lembut, dan creamy dengan karakter amber modern.", image:"images/02.jpg"},
-  {id:"N03", name:"Noir Patchouli", category:"niche", price:980000, desc:"Patchouli gelap dengan sentuhan smoky yang tegas.", image:"images/03.jpg"},
-  {id:"N04", name:"Lunar Iris", category:"niche", price:1450000, desc:"Iris powdery, bersih, dan classy untuk kesan premium.", image:"images/04.jpg"},
-  {id:"N05", name:"Saffron Veil", category:"niche", price:1320000, desc:"Saffron mewah dengan nuansa spicy-woody yang rapi.", image:"images/05.jpg"},
-  {id:"N06", name:"Musk Chapter", category:"niche", price:890000, desc:"White musk yang halus, bersih, dan mudah dipakai harian.", image:"images/06.jpg"},
-  {id:"N07", name:"Obsidian Rose", category:"niche", price:1380000, desc:"Rose gelap dengan aksen resin dan kesan mahal.", image:"images/07.jpg"},
-  {id:"N08", name:"Cedar Mirage", category:"niche", price:1040000, desc:"Cedar kering dengan aura maskulin dan tenang.", image:"images/08.jpg"},
-  {id:"N09", name:"Ember Tuberose", category:"niche", price:1490000, desc:"Tuberose creamy yang memikat dan intens.", image:"images/09.jpg"},
-  {id:"N10", name:"Ivory Smoke", category:"niche", price:1120000, desc:"Bersih, berasap tipis, dan penuh karakter.", image:"images/10.jpg"},
-  {id:"N11", name:"Royal Fig", category:"niche", price:960000, desc:"Fig hijau yang segar namun tetap berkelas.", image:"images/11.jpg"},
-  {id:"N12", name:"Boreal Leather", category:"niche", price:1550000, desc:"Leather halus dengan kesan dingin dan mewah.", image:"images/12.jpg"},
-  {id:"N13", name:"Azure Incense", category:"niche", price:1200000, desc:"Incense bersih dengan vibe misterius dan calm.", image:"images/13.jpg"},
-  {id:"N14", name:"Frosted Vetiver", category:"niche", price:1020000, desc:"Vetiver segar, modern, dan serbaguna.", image:"images/14.jpg"},
-  {id:"N15", name:"Midnight Jasmine", category:"niche", price:940000, desc:"Jasmine anggun dengan finish lembut dan hangat.", image:"images/15.jpg"},
-
-  // Designer (15)
-  {id:"D01", name:"Urban Code", category:"designer", price:650000, desc:"Aromatik modern untuk gaya harian yang rapi.", image:"images/16.jpg"},
-  {id:"D02", name:"Blue District", category:"designer", price:720000, desc:"Fresh, clean, dan mudah disukai banyak orang.", image:"images/17.jpg"},
-  {id:"D03", name:"Signature One", category:"designer", price:780000, desc:"Aman dipakai ke kantor, lembut dan profesional.", image:"images/18.jpg"},
-  {id:"D04", name:"Carbon Rush", category:"designer", price:690000, desc:"Fresh spicy dengan vibe maskulin yang sporty.", image:"images/19.jpg"},
-  {id:"D05", name:"Glass Amber", category:"designer", price:740000, desc:"Amber halus dengan kesan modern dan clean.", image:"images/20.jpg"},
-  {id:"D06", name:"Atlas Noir", category:"designer", price:810000, desc:"Woody-aromatic yang elegan dan mudah dipakai.", image:"images/21.jpg"},
-  {id:"D07", name:"Pulse Wave", category:"designer", price:580000, desc:"Cerah, energik, dan cocok untuk harian.", image:"images/22.jpg"},
-  {id:"D08", name:"Silver Line", category:"designer", price:860000, desc:"Fresh metallic yang terasa premium dan bersih.", image:"images/23.jpg"},
-  {id:"D09", name:"Elevate Man", category:"designer", price:930000, desc:"Maskulin, smooth, dan sangat versatile.", image:"images/24.jpg"},
-  {id:"D10", name:"Metro Bloom", category:"designer", price:640000, desc:"Floral fresh untuk tampilan yang friendly dan modern.", image:"images/25.jpg"},
-  {id:"D11", name:"Prime Woody", category:"designer", price:700000, desc:"Woody clean dengan aura aman dan elegan.", image:"images/26.jpg"},
-  {id:"D12", name:"Night Transit", category:"designer", price:760000, desc:"Sedikit gelap, urban, dan stylish.", image:"images/27.jpg"},
-  {id:"D13", name:"Crystal Sport", category:"designer", price:550000, desc:"Segar dan ringan untuk aktivitas sehari-hari.", image:"images/28.jpg"},
-  {id:"D14", name:"Monarch Blue", category:"designer", price:880000, desc:"Blue scent yang tenang namun tetap standout.", image:"images/29.jpg"},
-  {id:"D15", name:"Modern Muse", category:"designer", price:990000, desc:"Lembut, classy, dan cocok jadi signature scent.", image:"images/30.jpg"},
-
-  // Timteng (15)
-  {id:"T01", name:"Royal Bakhoor", category:"timteng", price:450000, desc:"Nuansa bakhoor yang hangat dan khas Timur Tengah.", image:"images/31.jpg"},
-  {id:"T02", name:"Musk Sultan", category:"timteng", price:520000, desc:"Musk tebal yang mewah dan tahan lama.", image:"images/32.jpg"},
-  {id:"T03", name:"Oud Al Noor", category:"timteng", price:780000, desc:"Oud kuat dengan karakter elegan dan smoky.", image:"images/33.jpg"},
-  {id:"T04", name:"Amber Majlis", category:"timteng", price:610000, desc:"Amber manis-hangat dengan kesan berkelas.", image:"images/34.jpg"},
-  {id:"T05", name:"Wardah Oud", category:"timteng", price:670000, desc:"Perpaduan floral dan oud yang sangat khas.", image:"images/35.jpg"},
-  {id:"T06", name:"Makhmali Rose", category:"timteng", price:590000, desc:"Rose tebal dan mewah dengan silage lembut.", image:"images/36.jpg"},
-  {id:"T07", name:"Desert Pearl", category:"timteng", price:730000, desc:"Aroma bersih dengan sentuhan oriental modern.", image:"images/37.jpg"},
-  {id:"T08", name:"Arabian Spice", category:"timteng", price:480000, desc:"Spicy-woody yang hangat dan berkarakter.", image:"images/38.jpg"},
-  {id:"T09", name:"Noor Musk", category:"timteng", price:560000, desc:"Musk clean yang nyaman dipakai setiap hari.", image:"images/39.jpg"},
-  {id:"T10", name:"Qamar Oud", category:"timteng", price:820000, desc:"Oud premium dengan aura mewah dan tenang.", image:"images/40.jpg"},
-  {id:"T11", name:"Sahara Cream", category:"timteng", price:410000, desc:"Creamy sweet yang lembut dan mudah disukai.", image:"images/41.jpg"},
-  {id:"T12", name:"Bakhoor Cloud", category:"timteng", price:390000, desc:"Aroma bakhoor ringan untuk suasana hangat.", image:"images/42.jpg"},
-  {id:"T13", name:"Emirate Cedar", category:"timteng", price:640000, desc:"Cedar dan resin dengan feel mewah.", image:"images/43.jpg"},
-  {id:"T14", name:"Sultan Leather", category:"timteng", price:860000, desc:"Leather oriental yang tegas dan premium.", image:"images/44.jpg"},
-  {id:"T15", name:"Habibii Rose", category:"timteng", price:530000, desc:"Floral oriental yang elegan dan romantis.", image:"images/45.jpg"},
-
-  // Lokal (15)
-  {id:"L01", name:"Kopi Pagi", category:"lokal", price:175000, desc:"Aroma kopi manis dengan sentuhan creamy yang hangat.", image:"images/46.jpg"},
-  {id:"L02", name:"Laut Biru", category:"lokal", price:160000, desc:"Fresh aquatic yang ringan dan nyaman dipakai.", image:"images/47.jpg"},
-  {id:"L03", name:"Senja Kota", category:"lokal", price:190000, desc:"Woody fresh dengan vibe urban yang santai.", image:"images/48.jpg"},
-  {id:"L04", name:"Rimba Hijau", category:"lokal", price:145000, desc:"Green aromatic yang seger dan natural.", image:"images/49.jpg"},
-  {id:"L05", name:"Bunga Nusantara", category:"lokal", price:155000, desc:"Floral manis yang lembut dan friendly.", image:"images/50.jpg"},
-  {id:"L06", name:"Hujan Tropis", category:"lokal", price:165000, desc:"Aqua fresh dengan nuansa bersih dan ringan.", image:"images/51.jpg"},
-  {id:"L07", name:"Akar Wangi", category:"lokal", price:185000, desc:"Vetiver lokal dengan kesan earthy yang natural.", image:"images/52.jpg"},
-  {id:"L08", name:"Kelapa Muda", category:"lokal", price:130000, desc:"Fresh creamy yang cerah dan santai.", image:"images/53.jpg"},
-  {id:"L09", name:"Malam Minggu", category:"lokal", price:210000, desc:"Manis, hangat, dan cocok untuk night out.", image:"images/54.jpg"},
-  {id:"L10", name:"Rempah Laut", category:"lokal", price:225000, desc:"Spicy fresh yang unik dan mudah diingat.", image:"images/55.jpg"},
-  {id:"L11", name:"Seruni", category:"lokal", price:140000, desc:"Floral lembut dengan karakter kalem.", image:"images/56.jpg"},
-  {id:"L12", name:"Bambu Hijau", category:"lokal", price:150000, desc:"Clean green scent yang fresh dan simple.", image:"images/57.jpg"},
-  {id:"L13", name:"Nusa Cream", category:"lokal", price:170000, desc:"Creamy woody yang nyaman dan modern.", image:"images/58.jpg"},
-  {id:"L14", name:"Pandan Spice", category:"lokal", price:180000, desc:"Pandan manis dengan rempah halus.", image:"images/59.jpg"},
-  {id:"L15", name:"Angin Pantai", category:"lokal", price:135000, desc:"Sea breeze fresh yang ringan dan adem.", image:"images/60.jpg"},
-];
+const products = [{"id": 1, "title": "All Parfum Timteng", "desc": "All Parfum Timteng", "price": 600000, "img": "all_parfum_timteng.PNG", "tag": "sold", "link": "All Parfum Timteng", "category": "timteng"}, {"id": 2, "title": "All Parfum Designer", "desc": "All Parfum Designer", "price": 1000000, "img": "all_parfum_desaigner.PNG", "tag": "avaible", "link": "All Parfum Designer", "category": "designer"}, {"id": 3, "title": "All Parfum Lokal", "desc": "All Parfum Lokal", "price": 250000, "img": "all_parfum_lokal.PNG", "tag": "daily", "link": "All Parfum Lokal", "category": "lokal"}, {"id": 4, "title": "All Parfum Niche", "desc": "All Parfum Niche", "price": 1000000, "img": "all_parfum_niche.PNG", "tag": "daily", "link": "All Parfum Niche", "category": "niche"}, {"id": 5, "title": "Botol Kosong Niche", "desc": "Botol Kosong Niche", "price": 1000000000000, "img": "botol_kosong_niche.JPEG", "tag": "daily", "link": "Botol Kosong Niche", "category": "niche"}, {"id": 6, "title": "Louis Voitton Imagination 100 ml", "desc": "Louis Voitton Imagination 100 ml", "price": 6200000, "img": "produk6.PNG", "tag": "daily", "link": "Produk 6", "category": "niche"}, {"id": 7, "title": "Xerjoff Torino 21 100 ml", "desc": "Xerjoff Torino 21 100 ml", "price": 7500000, "img": "produk7.PNG", "tag": "special", "link": "Produk 7", "category": "niche"}, {"id": 8, "title": "Yves Saint Laurend Myself 100 ml", "desc": "Yves Saint Laurend Myself 100 ml", "price": 1650000, "img": "produk8.PNG", "tag": "daily", "link": "Produk 8", "category": "designer"}, {"id": 9, "title": "Xerjoff Erba Pura 100 ml", "desc": "Xerjoff Erba Pura 100 ml", "price": 4500000, "img": "produk9.PNG", "tag": "premium", "link": "Produk 9", "category": "niche"}, {"id": 10, "title": "Jean Paul Gaultier Le Male Elixir 125 ml", "desc": "Jean Paul Gaultier Le Male Elixir 125 ml", "price": 1600000, "img": "produk10.PNG", "tag": "premium", "link": "Produk 10", "category": "designer"}, {"id": 11, "title": "Yves Saint Laurend Y Edp 100 ml", "desc": "Yves Saint Laurend Y Edp 100 ml", "price": 1850000, "img": "produk11.PNG", "tag": "premium", "link": "Produk 11", "category": "designer"}, {"id": 12, "title": "Louis Voitton Symphony 100 ml", "desc": "Louis Voitton Symphony 100 ml", "price": 10200000, "img": "produk12.PNG", "tag": "premium", "link": "Produk 12", "category": "niche"}, {"id": 13, "title": "Jean Paul Gaultier Le Male Parfum 125 ml", "desc": "Jean Paul Gaultier Le Male Parfum 125 ml", "price": 1600000, "img": "produk13.PNG", "tag": "premium", "link": "Produk 13", "category": "designer"}, {"id": 14, "title": "Nishane Wulong Cha 100 ml", "desc": "Nishane Wulong Cha 100 ml", "price": 3200000, "img": "produk14.PNG", "tag": "daily", "link": "Produk 14", "category": "niche"}, {"id": 15, "title": "Yves Saint Laurend Libre 90 ml", "desc": "Yves Saint Laurend Libre 90 ml", "price": 1800000, "img": "produk15.PNG", "tag": "premium", "link": "Produk 15", "category": "designer"}, {"id": 16, "title": "Dior Sauvage 100 ml", "desc": "Dior Sauvage 100 ml", "price": 2800000, "img": "produk16.PNG", "tag": "premium", "link": "Produk 16", "category": "designer"}, {"id": 17, "title": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml", "desc": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml", "price": 1600000, "img": "produk1.PNG", "tag": "premium", "link": "Produk 1", "category": "designer"}, {"id": 18, "title": "Stronger With You Intensely 100 ml", "desc": "Stronger With You Intensely 100 ml", "price": 1600000, "img": "produk2.PNG", "tag": "premium", "link": "Produk 2", "category": "designer"}, {"id": 19, "title": "Stronger With You Parfum 100 ml", "desc": "Stronger With You Parfum 100 ml", "price": 2500000, "img": "produk3.PNG", "tag": "premium", "link": "Produk 3", "category": "designer"}, {"id": 20, "title": "Louis Voitton City Of Stars 100ml", "desc": "Louis Voitton City Of Stars 100ml", "price": 5500000, "img": "produk4.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 21, "title": "Louis Voitton Meteore 100ml", "desc": "Louis Voitton Meteore 100ml", "price": 6500000, "img": "produk5.PNG", "tag": "premium", "link": "Produk 5", "category": "niche"}, {"id": 22, "title": "Jean Paul Gaultier Le Male Elixir Absolu 125ml", "desc": "Jean Paul Gaultier Le Male Elixir Absolu 125ml", "price": 1800000, "img": "produk18.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 23, "title": "Nishane Hacivat", "desc": "Nishane Hacivat", "price": 3100000, "img": "produk19.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 24, "title": "Versace Eros Flame 200ml", "desc": "Versace Eros Flame 200ml", "price": 2200000, "img": "produk20.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 25, "title": "Xerjoff Renaissance 100ml", "desc": "Xerjoff Renaissance 100ml", "price": 3200000, "img": "produk21.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 26, "title": "Valentino Uomo Born In Roma 100ml", "desc": "Valentino Uomo Born In Roma 100ml", "price": 2200000, "img": "produk22.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 27, "title": "Acqua Di Gio 100ml", "desc": "Acqua Di Gio 100ml", "price": 1860000, "img": "produk23.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 28, "title": "Nishane Ani X", "desc": "Nishane Ani X", "price": 3500000, "img": "produk24.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 29, "title": "Jean Paul Gaultier Le Beau 125ml", "desc": "Jean Paul Gaultier Le Beau 125ml", "price": 1500000, "img": "produk25.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 30, "title": "Giorgio Armani Code Edp 75ml", "desc": "Giorgio Armani Code Edp 75ml", "price": 1500000, "img": "produk26.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 31, "title": "Versace Eros Energy 100ml", "desc": "Versace Eros Energy 100ml", "price": 1500000, "img": "produk27.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 32, "title": "Versace Eros 100ml", "desc": "Versace Eros 100ml", "price": 1500000, "img": "produk28.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 33, "title": "Xerjoff Naxos 100ml", "desc": "Xerjoff Naxos 100ml", "price": 5350000, "img": "produk29.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 34, "title": "Rasasi Hawas Black 100ml", "desc": "Rasasi Hawas Black100ml", "price": 750000, "img": "produk30.PNG", "tag": "premium", "link": "Produk 4", "category": "timteng"}, {"id": 35, "title": "Blue De Chanel Edp 100ml", "desc": "Blue De Chanel Edp 100ml", "price": 4000000, "img": "produk31.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 36, "title": "Louis Vuitton Pacific Chill 100ml", "desc": "Louis Vuitton Pacific Chill 100ml", "price": 5800000, "img": "produk32.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 37, "title": "Louis Vuitton Ombre Nomade 100ml", "desc": "Louis Vuitton Ombre Nomade 100ml", "price": 7500000, "img": "produk33.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 38, "title": "Louis Vuitton Rhapsody 100ml", "desc": "Louis Vuitton Rhapsody 100ml", "price": 9700000, "img": "produk34.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 39, "title": "Louis Vuitton Afternoon Swim 100ml", "desc": "Louis Vuitton Afternoon Swim 100ml", "price": 6300000, "img": "produk35.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 40, "title": "Rasasi Hawa For Him 100ml", "desc": "Rasasi Hawa For Him 100ml", "price": 700000, "img": "produk36.PNG", "tag": "premium", "link": "Produk 4", "category": "timteng"}, {"id": 41, "title": "Tom Ford Tusan Leather 50ml", "desc": "Tom Ford Tusan Leather 50ml", "price": 3750000, "img": "produk37.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 42, "title": "Yves Saint Laurend Myself Le Parfum 100ml", "desc": "Yves Saint Laurend Myself Le Parfum 100ml", "price": 2430000, "img": "produk38.PNG", "tag": "premium", "link": "Produk 4", "category": "designer"}, {"id": 43, "title": "Xerjoff Erba Gold 100ml", "desc": "Xerjoff Erba Gold 100m", "price": 6350000, "img": "produk39.PNG", "tag": "premium", "link": "Produk 4", "category": "niche"}, {"id": 44, "title": "Rasasi Hawas Elixir 100ml", "desc": "Rasasi Hawas Elixir 100ml", "price": 770000, "img": "produk40.PNG", "tag": "premium", "link": "Produk 4", "category": "timteng"}];
 
 const categoryName = {
   niche: "Niche",
@@ -438,10 +477,6 @@ function saveCart(){
   localStorage.setItem('parfum_cart', JSON.stringify(state.cart));
 }
 
-function sanitizeImage(src){
-  return src;
-}
-
 function getCartCount(){
   return Object.values(state.cart).reduce((a, b) => a + b.qty, 0);
 }
@@ -460,8 +495,9 @@ function applyFilters(list){
   if(state.query.trim()){
     const q = state.query.toLowerCase();
     out = out.filter(p =>
-      p.name.toLowerCase().includes(q) ||
+      p.title.toLowerCase().includes(q) ||
       p.desc.toLowerCase().includes(q) ||
+      p.tag.toLowerCase().includes(q) ||
       categoryName[p.category].toLowerCase().includes(q)
     );
   }
@@ -477,41 +513,8 @@ function applyFilters(list){
 
   if(state.sort === 'price-asc') out.sort((a,b)=>a.price-b.price);
   if(state.sort === 'price-desc') out.sort((a,b)=>b.price-a.price);
-  if(state.sort === 'name-asc') out.sort((a,b)=>a.name.localeCompare(b.name,'id'));
+  if(state.sort === 'name-asc') out.sort((a,b)=>a.title.localeCompare(b.title,'id'));
   return out;
-}
-
-function renderProducts(){
-  const list = applyFilters(products);
-
-  grid.innerHTML = list.map(p => `
-    <article class="product-card reveal">
-      <div class="thumb">
-        <img src="${sanitizeImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(placeholderSvg(p.name))}'">
-        <div class="filetag">${p.image}</div>
-      </div>
-      <div class="content">
-        <div class="meta">
-          <div>
-            <span class="badge ${p.category}">${categoryName[p.category]}</span>
-            <h3 class="title">${p.name}</h3>
-          </div>
-          <div class="price">${fmt.format(p.price)}</div>
-        </div>
-        <div class="desc">${p.desc}</div>
-        <div class="card-actions">
-          <button class="add" onclick="addToCart('${p.id}')">Tambah ke Keranjang</button>
-          <button class="ghost" onclick="quickView('${p.id}')">Info</button>
-        </div>
-      </div>
-    </article>
-  `).join('');
-
-  if(!list.length){
-    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Produk tidak ditemukan. Coba kata kunci lain.</div>`;
-  }
-
-  setTimeout(()=>document.querySelectorAll('.product-card').forEach((el,i)=>{el.style.animationDelay = `${i*12}ms`; el.classList.add('reveal')}), 0);
 }
 
 function placeholderSvg(text){
@@ -535,6 +538,44 @@ function placeholderSvg(text){
     <text x="400" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="700" fill="#dbeeff">${initials}</text>
     <text x="400" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#a7b8d6">${text}</text>
   </svg>`;
+}
+
+function renderProducts(){
+  const list = applyFilters(products);
+
+  grid.innerHTML = list.map(p => `
+    <article class="product-card reveal">
+      <div class="thumb">
+        <img src="images/${p.img}" alt="${p.title}" loading="lazy"
+          onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(placeholderSvg(p.title))}'">
+        <div class="filetag">${p.img}</div>
+      </div>
+      <div class="content">
+        <div class="meta">
+          <div>
+            <span class="badge ${p.category}">${categoryName[p.category]}</span>
+            <span class="badge status">${p.tag}</span>
+            <h3 class="title">${p.title}</h3>
+          </div>
+          <div class="price">${fmt.format(p.price)}</div>
+        </div>
+        <div class="desc">${p.desc}</div>
+        <div class="card-actions">
+          <button class="add" onclick="addToCart(${p.id})">Tambah ke Keranjang</button>
+          <button class="ghost" onclick="quickView(${p.id})">Info</button>
+        </div>
+      </div>
+    </article>
+  `).join('');
+
+  if(!list.length){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Produk tidak ditemukan. Coba kata kunci lain.</div>`;
+  }
+
+  setTimeout(()=>document.querySelectorAll('.product-card').forEach((el,i)=>{
+    el.style.animationDelay = `${i*12}ms`;
+    el.classList.add('reveal');
+  }), 0);
 }
 
 function addToCart(id){
@@ -586,18 +627,19 @@ function renderCart(){
   cartList.innerHTML = items.map(item => `
     <div class="cart-item">
       <div class="cart-thumb">
-        <img src="${sanitizeImage(item.image)}" alt="${item.name}" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(placeholderSvg(item.name))}'">
+        <img src="images/${item.img}" alt="${item.title}"
+          onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(placeholderSvg(item.title))}'">
       </div>
       <div class="cart-info">
-        <h4>${item.name}</h4>
+        <h4>${item.title}</h4>
         <div class="small">${categoryName[item.category]} · ${fmt.format(item.price)}</div>
         <div class="line">
           <div class="qty">
-            <button onclick="changeQty('${item.id}', -1)">−</button>
+            <button onclick="changeQty(${item.id}, -1)">−</button>
             <span>${item.qty}</span>
-            <button onclick="changeQty('${item.id}', 1)">+</button>
+            <button onclick="changeQty(${item.id}, 1)">+</button>
           </div>
-          <button class="remove" onclick="removeItem('${item.id}')">Hapus</button>
+          <button class="remove" onclick="removeItem(${item.id})">Hapus</button>
         </div>
       </div>
     </div>
@@ -606,7 +648,7 @@ function renderCart(){
 
 function quickView(id){
   const p = products.find(x => x.id === id);
-  alert(`${p.name}\nKategori: ${categoryName[p.category]}\nHarga: ${fmt.format(p.price)}\n\n${p.desc}\n\nGambar: ${p.image}`);
+  alert(`${p.title}\nKategori: ${categoryName[p.category]}\nStatus: ${p.tag}\nHarga: ${fmt.format(p.price)}\n\n${p.desc}\n\nGambar: ${p.img}`);
 }
 
 document.getElementById('search').addEventListener('input', e => {
@@ -655,7 +697,7 @@ document.getElementById('copyOrder').addEventListener('click', async () => {
     alert('Keranjang masih kosong.');
     return;
   }
-  const lines = items.map(i => `- ${i.name} x${i.qty} (${fmt.format(i.price)})`).join('\n');
+  const lines = items.map(i => `- ${i.title} x${i.qty} (${fmt.format(i.price)})`).join('\n');
   const text =
 `Nama: ${name}
 WA: ${phone}
@@ -679,6 +721,7 @@ window.addToCart = addToCart;
 window.changeQty = changeQty;
 window.removeItem = removeItem;
 window.quickView = quickView;
+window.products = products;
 
 renderProducts();
 renderCart();
