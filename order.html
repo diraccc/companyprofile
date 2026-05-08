@@ -522,7 +522,7 @@ to { background-size:120%;}
 
 /* Minor typography */
 .section-title { color:#ffd966; }
-</style></head>
+</style>
 <!-- Open Graph & Twitter (added by assistant) -->
 <meta content="Dirac Parfum — Reseller Parfum Premium &amp; Resmi" property="og:title"/>
 <meta content="Dirac Parfum — reseller parfum premium, original &amp; inspired. Pesan +62 878-9252-3968" property="og:description"/>
@@ -549,7 +549,7 @@ to { background-size:120%;}
 Example (images.weserv.nl proxy): <source type="image/webp" srcset="https://images.weserv.nl/?url=images.pexels.com/photos/1190829/pexels-photo-1190829.jpeg&output=webp&w=600">
 It's recommended to generate optimized WebP files and serve them with proper cache headers.
 -->
-<body><a class="skip-link" href="#main">Lewati ke konten</a>
+</head><body><a class="skip-link" href="#main">Lewati ke konten</a>
 <a class="skip-link" href="#main">Lewati ke konten utama</a>
 <!-- Topbar -->
 <div class="topbar">
@@ -1339,17 +1339,17 @@ It's recommended to generate optimized WebP files and serve them with proper cac
 (function(){
   const root = document.getElementById('testimoni');
   if(!root) return;
-  const slides = Array.from(root.querySelectorAll('.slides .slide'));
-  const dots = Array.from(root.querySelectorAll('.dots .dot'));
-  if(slides.length <= 1) { slides[0]?.classList.add('active'); dots[0]?.classList.add('active'); return; }
+  const testiSlides = Array.from(root.querySelectorAll('.slides .slide'));
+  const testiDots = Array.from(root.querySelectorAll('.dots .dot'));
+  if(testiSlides.length <= 1) { testiSlides[0]?.classList.add('active'); testiDots[0]?.classList.add('active'); return; }
   let i = 0;
   const setActive = (idx)=>{
-    slides.forEach((s, k)=> s.classList.toggle('active', k===idx));
-    dots.forEach((d, k)=> d.classList.toggle('active', k===idx));
+    testiSlides.forEach((s, k)=> s.classList.toggle('active', k===idx));
+    testiDots.forEach((d, k)=> d.classList.toggle('active', k===idx));
     i = idx;
   };
-  const next = ()=> setActive((i+1) % slides.length);
-  let timer = setInterval(next, 5000);
+  const nextBtn = ()=> setActive((i+1) % testiSlides.length);
+  let timer = setInterval(nextBtnTick, 5000);
   root.addEventListener('mouseenter', ()=> { clearInterval(timer); });
   root.addEventListener('mouseleave', ()=> { timer = setInterval(next, 5000); });
   dots.forEach((d, idx)=> d.addEventListener('click', ()=> setActive(idx)));
@@ -1668,7 +1668,7 @@ It's recommended to generate optimized WebP files and serve them with proper cac
 </div>
 <!-- Script data produk -->
 <script>
-const productDescriptions = {
+const productDescriptionsMini = {
   "all-parfum-niche": {
     "title": "All Parfum Niche",
     "img": "all_parfum_niche.PNG",
@@ -1678,7 +1678,7 @@ const productDescriptions = {
 
   "all-parfum-designer": {
     "title": "All Parfum Designer",
-    "img": "all_parfum_designer.PNG",
+    "img": "all_parfum_desaigner.PNG",
     "price": "Rp 850.000",
     "desc": "Pilihan parfum desainer ternama dengan aroma modern dan stylish. Cocok dipakai sehari-hari untuk menunjang penampilan berkelas."
   },
@@ -1700,7 +1700,7 @@ const productDescriptions = {
 </script>
 <!-- Animasi produk (versi lebih cepat + efek gambar singkat) -->
 <script>
-   const observer = new IntersectionObserver((entries, obs) => {
+   const revealObserver = new IntersectionObserver((entries, obs) => {
      entries.forEach(entry => {
        if (entry.isIntersecting) {
          entry.target.classList.add("show");
@@ -1717,7 +1717,7 @@ const productDescriptions = {
      }
      // delay sedikit lebih cepat
      card.style.transitionDelay = `${i * 0.06}s`;
-     observer.observe(card);
+     revealObserver.observe(card);
    });
    </script>
 <style>
@@ -2686,7 +2686,7 @@ const products = [
 
 
     // Helper: format harga
-    function formatRupiah(num){
+    function formatRupiahCatalog(num){
       return 'Rp' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
@@ -2702,7 +2702,7 @@ const products = [
           <img src="${p.img}" alt="${p.title}" loading="lazy" decoding="async" width="300" height="400">
           <div class="product-body">
             <div class="product-title">${p.title}</div>
-            <div class="product-price">${formatRupiah(p.price)}</div>
+            <div class="product-price">${formatRupiahCatalog(p.price)}</div>
             <p class="muted small">${p.desc}</p>
             <div class="d-flex justify-content-center gap-2 mt-2 flex-wrap">
               <button class="btn btn-sm btn-outline-secondary" onclick="viewProduct(${p.id})">Lihat</button>
@@ -2728,7 +2728,7 @@ const products = [
             <img src="${p.img}" alt="${p.title}" loading="lazy" decoding="async" width="300" height="400" data-id="${p.id}" style="cursor:pointer">
             <div class="product-body">
               <div class="product-title">${p.title}</div>
-              <div class="product-price">${formatRupiah(p.price)}</div>
+              <div class="product-price">${formatRupiahCatalog(p.price)}</div>
               <p class="muted small">${p.desc}</p>
               <div class="d-flex justify-content-center gap-2 mt-2 flex-wrap">
                 <button class="btn btn-sm btn-outline-secondary view-btn" data-id="${p.id}">Lihat</button>
@@ -2770,7 +2770,7 @@ const products = [
     function openModal(id){
       const p = products.find(x=>x.id===id); if(!p) return;
       // custom modal: simple window.open for demo, or Bootstrap modal could be used.
-      const details = `*${p.title}*%0A${p.desc}%0AHarga: ${formatRupiah(p.price)}%0A%0AIngin pesan? Kirim pesan ini ke WA.`;
+      const details = `*${p.title}*%0A${p.desc}%0AHarga: ${formatRupiahCatalog(p.price)}%0A%0AIngin pesan? Kirim pesan ini ke WA.`;
       window.open('https://wa.me/6287892523968?text='+encodeURIComponent(details),'_blank');
     }
     function viewProduct(id){ openModal(id); }
@@ -2800,7 +2800,7 @@ const products = [
     // --- Enhanced interactions (added by assistant) ---
 
     // Format rupiah (re-use if needed)
-    function formatRupiah(num){
+    function formatRupiahModal(num){
       return 'Rp' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
@@ -2811,7 +2811,7 @@ const products = [
       document.getElementById('productModalImg').src = p.img;
       document.getElementById('productModalImg').alt = p.title;
       document.getElementById('productModalDesc').textContent = p.desc;
-      document.getElementById('productModalPrice').textContent = formatRupiah(p.price);
+      document.getElementById('productModalPrice').textContent = formatRupiahModal(p.price);
       document.getElementById('productModalNotes').innerHTML = '<small class="muted">Kategori: '+p.tag+'</small>';
       const waLink = 'https://wa.me/6287892523968?text=' + encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan '+p.title+' (ID:'+p.id+'). Mohon info stok & total.');
       document.getElementById('productModalWA').href = waLink;
@@ -2922,8 +2922,8 @@ function resetForm(){
 <script>
     (function(){
       const track = document.querySelector('.testi-track');
-      const next = document.querySelector('.testi-next');
-      if(!track || !next) return;
+      const nextBtnTrack = document.querySelector('.testi-next');
+      if(!track || !nextBtnTrack) return;
 
       function getStep(){
         const card = track.querySelector('.testi-card');
@@ -2968,7 +2968,7 @@ function resetForm(){
 </div>
 <script>
   // productDescriptions mapping (auto-generated)
-  const productDescriptions = {"kajal-almaz-edp-100-ml": {"title": "Kajal – Almaz EDP 100 ml", "img": "produk1.jpg", "price": "Rp 4.630.000", "desc": "Kajal – Almaz EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "spirit-of-kings-aludra-edp-100-ml": {"title": "Spirit of Kings – Aludra EDP 100 ml", "img": "produk2.jpg", "price": "Rp 3.050.000", "desc": "Spirit of Kings – Aludra EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "ajmal-amber-wood-edp-100-ml": {"title": "Ajmal – Amber Wood EDP 100 ml", "img": "produk3.jpg", "price": "Rp 2.108.500", "desc": "Ajmal – Amber Wood EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "swiss-arabian-shaghaf-oud-edp-75-ml": {"title": "Swiss Arabian – Shaghaf Oud EDP 75 ml", "img": "produk4.jpg", "price": "Rp 1.850.000", "desc": "Swiss Arabian – Shaghaf Oud EDP 75 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "al-haramain-amber-oud-gold-edition-edp-60-ml": {"title": "Al Haramain – Amber Oud Gold Edition EDP 60 ml", "img": "produk5.jpg", "price": "Rp 1.350.000", "desc": "Al Haramain – Amber Oud Gold Edition EDP 60 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "rasasi-hawas-for-him-edt-100-ml": {"title": "Rasasi – Hawas for Him EDT 100 ml", "img": "produk6.jpg", "price": "Rp 753.500", "desc": "Rasasi – Hawas for Him EDT 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "lattafa-bade-e-al-oud-amethyst-edp-100-ml": {"title": "Lattafa – Bade’e Al Oud Amethyst EDP 100 ml", "img": "produk7.jpg", "price": "Rp 650.000", "desc": "Lattafa – Bade’e Al Oud Amethyst EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "afnan-9pm-edp-100-ml": {"title": "Afnan – 9PM EDP 100 ml", "img": "produk8.jpg", "price": "Rp 441.000", "desc": "Afnan – 9PM EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "dior-sauvage-edp-100-ml": {"title": "Dior – Sauvage EDP 100 ml", "img": "produk9.jpg", "price": "Rp 2.600.000", "desc": "Dior – Sauvage EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "yves-saint-laurent-y-edp-100-ml": {"title": "Yves Saint Laurent – Y EDP 100 ml", "img": "produk10.jpg", "price": "Rp 2.750.000", "desc": "Yves Saint Laurent – Y EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "chanel-bleu-de-chanel-edp-100-ml": {"title": "Chanel – Bleu de Chanel EDP 100 ml", "img": "produk11.jpg", "price": "Rp 3.433.000", "desc": "Chanel – Bleu de Chanel EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "montblanc-explorer-edp-100-ml": {"title": "Montblanc – Explorer EDP 100 ml", "img": "produk12.jpg", "price": "Rp 1.225.000", "desc": "Montblanc – Explorer EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "giorgio-armani-acqua-di-gi-parfum-100-ml": {"title": "Giorgio Armani – Acqua di Giò Parfum 100 ml", "img": "produk13.jpg", "price": "Rp 1.856.000", "desc": "Giorgio Armani – Acqua di Giò Parfum 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "dolce-gabbana-k-edt-100-ml": {"title": "Dolce & Gabbana – K EDT 100 ml", "img": "produk14.jpg", "price": "Rp 990.000", "desc": "Dolce & Gabbana – K EDT 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "hugo-boss-the-scent-le-parfum-men-100-ml": {"title": "Hugo Boss – The Scent Le Parfum Men 100 ml", "img": "produk15.jpg", "price": "Rp 1.544.000", "desc": "Hugo Boss – The Scent Le Parfum Men 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "carolina-herrera-bad-boy-edt-100-ml": {"title": "Carolina Herrera – Bad Boy EDT 100 ml", "img": "produk16.jpg", "price": "Rp 1.550.000", "desc": "Carolina Herrera – Bad Boy EDT 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "memilih-parfum-sesuai-kepribadian": {"title": "Memilih Parfum Sesuai Kepribadian", "img": "https://images.weserv.nl/?url=images.pexels.com/photos/33711971/pexels-photo-33711971.jpeg&output=webp&w=1200", "price": "", "desc": "Memilih Parfum Sesuai Kepribadian menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "cara-menyimpan-parfum-agar-awet": {"title": "Cara Menyimpan Parfum Agar Awet", "img": "https://images.weserv.nl/?url=images.pexels.com/photos/16722498/pexels-photo-16722498.jpeg&output=webp&w=1200", "price": "", "desc": "Cara Menyimpan Parfum Agar Awet menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "parfum-original-vs-inspired-penjelasan": {"title": "Parfum Original vs Inspired: Penjelasan", "img": "https://images.weserv.nl/?url=images.pexels.com/photos/23230654/pexels-photo-23230654.jpeg&output=webp&w=1200", "price": "", "desc": "Parfum Original vs Inspired: Penjelasan menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}};
+  const productDescriptionsExtended = {"kajal-almaz-edp-100-ml": {"title": "Kajal – Almaz EDP 100 ml", "img": "produk1.PNG", "price": "Rp 4.630.000", "desc": "Kajal – Almaz EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "spirit-of-kings-aludra-edp-100-ml": {"title": "Spirit of Kings – Aludra EDP 100 ml", "img": "produk2.PNG", "price": "Rp 3.050.000", "desc": "Spirit of Kings – Aludra EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "ajmal-amber-wood-edp-100-ml": {"title": "Ajmal – Amber Wood EDP 100 ml", "img": "produk3.PNG", "price": "Rp 2.108.500", "desc": "Ajmal – Amber Wood EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "swiss-arabian-shaghaf-oud-edp-75-ml": {"title": "Swiss Arabian – Shaghaf Oud EDP 75 ml", "img": "produk4.PNG", "price": "Rp 1.850.000", "desc": "Swiss Arabian – Shaghaf Oud EDP 75 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "al-haramain-amber-oud-gold-edition-edp-60-ml": {"title": "Al Haramain – Amber Oud Gold Edition EDP 60 ml", "img": "produk5.PNG", "price": "Rp 1.350.000", "desc": "Al Haramain – Amber Oud Gold Edition EDP 60 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "rasasi-hawas-for-him-edt-100-ml": {"title": "Rasasi – Hawas for Him EDT 100 ml", "img": "produk6.PNG", "price": "Rp 753.500", "desc": "Rasasi – Hawas for Him EDT 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "lattafa-bade-e-al-oud-amethyst-edp-100-ml": {"title": "Lattafa – Bade’e Al Oud Amethyst EDP 100 ml", "img": "produk7.PNG", "price": "Rp 650.000", "desc": "Lattafa – Bade’e Al Oud Amethyst EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "afnan-9pm-edp-100-ml": {"title": "Afnan – 9PM EDP 100 ml", "img": "produk8.PNG", "price": "Rp 441.000", "desc": "Afnan – 9PM EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "dior-sauvage-edp-100-ml": {"title": "Dior – Sauvage EDP 100 ml", "img": "produk9.PNG", "price": "Rp 2.600.000", "desc": "Dior – Sauvage EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "yves-saint-laurent-y-edp-100-ml": {"title": "Yves Saint Laurent – Y EDP 100 ml", "img": "produk10.PNG", "price": "Rp 2.750.000", "desc": "Yves Saint Laurent – Y EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "chanel-bleu-de-chanel-edp-100-ml": {"title": "Chanel – Bleu de Chanel EDP 100 ml", "img": "produk11.PNG", "price": "Rp 3.433.000", "desc": "Chanel – Bleu de Chanel EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "montblanc-explorer-edp-100-ml": {"title": "Montblanc – Explorer EDP 100 ml", "img": "produk12.PNG", "price": "Rp 1.225.000", "desc": "Montblanc – Explorer EDP 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "giorgio-armani-acqua-di-gi-parfum-100-ml": {"title": "Giorgio Armani – Acqua di Giò Parfum 100 ml", "img": "produk13.PNG", "price": "Rp 1.856.000", "desc": "Giorgio Armani – Acqua di Giò Parfum 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "dolce-gabbana-k-edt-100-ml": {"title": "Dolce & Gabbana – K EDT 100 ml", "img": "produk14.PNG", "price": "Rp 990.000", "desc": "Dolce & Gabbana – K EDT 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "hugo-boss-the-scent-le-parfum-men-100-ml": {"title": "Hugo Boss – The Scent Le Parfum Men 100 ml", "img": "produk15.PNG", "price": "Rp 1.544.000", "desc": "Hugo Boss – The Scent Le Parfum Men 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "carolina-herrera-bad-boy-edt-100-ml": {"title": "Carolina Herrera – Bad Boy EDT 100 ml", "img": "produk16.PNG", "price": "Rp 1.550.000", "desc": "Carolina Herrera – Bad Boy EDT 100 ml menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "memilih-parfum-sesuai-kepribadian": {"title": "Memilih Parfum Sesuai Kepribadian", "img": "https://images.weserv.nl/?url=images.pexels.com/photos/33711971/pexels-photo-33711971.jpeg&output=webp&w=1200", "price": "", "desc": "Memilih Parfum Sesuai Kepribadian menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "cara-menyimpan-parfum-agar-awet": {"title": "Cara Menyimpan Parfum Agar Awet", "img": "https://images.weserv.nl/?url=images.pexels.com/photos/16722498/pexels-photo-16722498.jpeg&output=webp&w=1200", "price": "", "desc": "Cara Menyimpan Parfum Agar Awet menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}, "parfum-original-vs-inspired-penjelasan": {"title": "Parfum Original vs Inspired: Penjelasan", "img": "https://images.weserv.nl/?url=images.pexels.com/photos/23230654/pexels-photo-23230654.jpeg&output=webp&w=1200", "price": "", "desc": "Parfum Original vs Inspired: Penjelasan menawarkan aroma seimbang yang cocok untuk berbagai suasana. Daya tahan dan projeknya memadai untuk penggunaan sehari-hari hingga malam."}};
 
   function openProductModal(slug){
     const info = productDescriptions[slug];
