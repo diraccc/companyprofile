@@ -1,19 +1,30 @@
 export default async function handler(req, res) {
-  const { target, message } = req.body;
+  try {
+    const target = req.body?.target || "6287892523968";
+    const message = req.body?.message || "TEST BERHASIL";
+    const token = process.env.FONNTE_TOKEN;
 
-  const formData = new FormData();
-  formData.append("target", target || "6287892523968");
-  formData.append("message", message || "TEST BERHASIL");
+    console.log("TOKEN:", token ? "ADA" : "KOSONG");
 
-  const response = await fetch("https://api.fonnte.com/send", {
-    method: "POST",
-    headers: {
-      Authorization: process.env.FONNTE_TOKEN,
-      // ❌ Hapus Content-Type, biar FormData yang atur otomatis
-    },
-    body: formData
-  });
+    const params = new URLSearchParams();
+    params.append("target", target);
+    params.append("message", message);
 
-  const data = await response.json();
-  return res.status(200).json(data);
+    const response = await fetch("https://api.fonnte.com/send", {
+      method: "POST",
+      headers: {
+        Authorization: token,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: params.toString()
+    });
+
+    const data = await response.json();
+    console.log("RESPONSE FONNTE:", data);
+    return res.status(200).json(data);
+
+  } catch (err) {
+    console.error("ERROR:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
 }
