@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Parfum</title>
+  <style>
+    :root{
+      --bg:#05070c;
+      --panel:#0c1220cc;
+      --panel2:#0b1020;
+      --line:#17365f;
+      --text:#e8f2ff;
+      --muted:#a7b8d6;
+      --blue:#2a7cff;
+      --blue2:#1dd3ff;
+      --blue3:#0d5eff;
+      --green:#1fd18a;
+      --red:#ff5f73;
+      --shadow: 0 22px 60px rgba(0,0,0,.45);
+      --radius: 22px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:
+      radial-gradient(circle at 15% 15%, rgba(42,124,255,.16), transparent 26%),
+      radial-gradient(circle at 80% 20%, rgba(29,211,255,.10), transparent 22%),
+      radial-gradient(circle at 50% 85%, rgba(42,124,255,.12), transparent 25%),
+      linear-gradient(180deg, #04050a 0%, #05070c 50%, #030408 100%);
+      color:var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow-x:hidden;
+    }
+    body::before, body::after{
+      content:""; position:fixed; inset:auto; pointer-events:none; z-index:0;
+      width:420px;height:420px;border-radius:50%;
+      background: radial-gradient(circle, rgba(42,124,255,.18), transparent 62%);
+      filter: blur(10px);
+      animation: floatGlow 10s ease-in-out infinite;
+    }
+    body::before{top:-120px;left:-120px}
+    body::after{right:-120px;bottom:-120px;animation-delay:-4s}
+    @keyframes floatGlow{
+      0%,100%{transform:translate3d(0,0,0) scale(1)}
+      50%{transform:translate3d(18px,14px,0) scale(1.08)}
+    }
+    .wrap{position:relative; z-index:1; max-width:1500px; margin:0 auto; padding:24px}
+    .hero{
+      display:grid; gap:18px; grid-template-columns:1.5fr .9fr; align-items:stretch;
+      margin-bottom:18px;
+    }
+    .hero-card, .side-card, .toolbar, .product-card, .cart-panel, .checkout{
+      background: linear-gradient(180deg, rgba(12,18,32,.88), rgba(7,11,20,.94));
+      border:1px solid rgba(42,124,255,.18);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      backdrop-filter: blur(14px);
+    }
+    .hero-card{padding:28px; position:relative; overflow:hidden}
+    .hero-card::after{
+      content:""; position:absolute; inset:auto -20px -35px auto; width:220px; height:220px;
+      border-radius:50%; background: radial-gradient(circle, rgba(29,211,255,.14), transparent 68%);
+      animation: drift 7s ease-in-out infinite;
+    }
+    @keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    .eyebrow{
+      display:inline-flex; align-items:center; gap:10px; padding:8px 14px; border-radius:999px;
+      background:rgba(42,124,255,.12); color:#bcd7ff; border:1px solid rgba(42,124,255,.25);
+      font-size:13px; letter-spacing:.4px; text-transform:uppercase;
+    }
+    .eyebrow-dot{width:9px; height:9px; border-radius:50%; background:var(--blue2); box-shadow:0 0 18px var(--blue2)}
+    h1{margin:16px 0 10px; font-size: clamp(32px, 5vw, 62px); line-height:1.02}
+    .sub{max-width:780px; color:var(--muted); line-height:1.7; font-size:15px}
+    .hero-actions{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px}
+    .btn{
+      appearance:none; border:0; cursor:pointer; color:white; font-weight:700; letter-spacing:.2px;
+      padding:13px 18px; border-radius:14px; transition:.25s transform, .25s box-shadow, .25s opacity;
+      background:linear-gradient(135deg, var(--blue), var(--blue3));
+      box-shadow:0 14px 30px rgba(42,124,255,.22);
+    }
+    .btn:hover{transform:translateY(-2px)}
+    .btn.secondary{
+      background:rgba(255,255,255,.04); border:1px solid rgba(42,124,255,.22);
+      color:var(--text)
+    }
+    .side-card{padding:20px; display:grid; gap:14px}
+    .stat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+    .stat{
+      padding:16px; border-radius:18px; background:rgba(255,255,255,.03);
+      border:1px solid rgba(42,124,255,.12)
+    }
+    .stat strong{display:block; font-size:24px}
+    .stat span{color:var(--muted); font-size:13px}
+    .bar{height:10px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; margin-top:10px}
+    .bar > i{display:block; height:100%; width:72%; border-radius:inherit; background:linear-gradient(90deg, var(--blue), var(--blue2))}
+    .toolbar{
+      padding:14px; display:grid; grid-template-columns:1.25fr .85fr .85fr auto; gap:12px;
+      align-items:center; position:sticky; top:12px; z-index:5; margin-bottom:18px;
+    }
+    .search, .select{
+      width:100%; border:1px solid rgba(42,124,255,.18); background:rgba(255,255,255,.04); color:var(--text);
+      border-radius:14px; padding:14px 14px; outline:none;
+    }
+    .search::placeholder{color:#89a1c7}
+    .chips{display:flex; gap:10px; flex-wrap:wrap; padding:2px 0}
+    .chip{
+      border:1px solid rgba(42,124,255,.16); background:rgba(255,255,255,.03); color:var(--text);
+      padding:10px 14px; border-radius:999px; cursor:pointer; transition:.2s;
+    }
+    .chip.active{background:linear-gradient(135deg, rgba(42,124,255,.25), rgba(29,211,255,.16)); border-color:rgba(29,211,255,.45)}
+    .layout{
+      display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:18px; align-items:start;
+    }
+    .grid{
+      display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px;
+    }
+    .product-card{
+      overflow:hidden; position:relative; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+    .product-card:hover{
+      transform:translateY(-5px);
+      border-color:rgba(29,211,255,.42);
+      box-shadow:0 28px 60px rgba(0,0,0,.55);
+    }
+    .thumb{
+      position:relative; aspect-ratio: 4/3; overflow:hidden; background:
+        radial-gradient(circle at 30% 30%, rgba(29,211,255,.22), transparent 35%),
+        linear-gradient(135deg, rgba(42,124,255,.18), rgba(0,0,0,.25));
+      border-bottom:1px solid rgba(42,124,255,.14);
+    }
+    .thumb img{
+      width:100%; height:100%; object-fit:cover; display:block; filter:saturate(1.05) contrast(1.05);
+      transform:scale(1.01);
+    }
+    .thumb .filetag{
+      position:absolute; left:12px; bottom:12px; padding:7px 10px; border-radius:999px;
+      background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08); color:#dbeaff; font-size:12px
+    }
+    .content{padding:16px}
+    .meta{display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:10px}
+    .title{font-size:18px; font-weight:800; margin:0 0 6px}
+    .price{font-size:18px; font-weight:800; color:#dff0ff}
+    .desc{color:var(--muted); line-height:1.55; font-size:13px; min-height:42px}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.3px;
+      padding:7px 10px; border-radius:999px; text-transform:uppercase;
+    }
+    .badge::before{content:""; width:8px; height:8px; border-radius:50%; background:currentColor}
+    .niche{color:#71d0ff; background:rgba(113,208,255,.08); border:1px solid rgba(113,208,255,.2)}
+    .designer{color:#8ab4ff; background:rgba(138,180,255,.08); border:1px solid rgba(138,180,255,.2)}
+    .timteng{color:#b7c7ff; background:rgba(183,199,255,.08); border:1px solid rgba(183,199,255,.2)}
+    .lokal{color:#86f0ff; background:rgba(134,240,255,.08); border:1px solid rgba(134,240,255,.2)}
+    .card-actions{display:flex; gap:10px; margin-top:14px}
+    .add{
+      flex:1; border:0; border-radius:14px; padding:12px 14px; cursor:pointer; font-weight:800; color:white;
+      background:linear-gradient(135deg, rgba(42,124,255,.95), rgba(29,211,255,.85));
+      box-shadow:0 16px 24px rgba(42,124,255,.15);
+    }
+    .ghost{
+      border:1px solid rgba(42,124,255,.18); background:rgba(255,255,255,.03); color:var(--text);
+      padding:12px 13px; border-radius:14px; cursor:pointer;
+    }
+    .cart-toggle{
+      position:fixed; right:18px; bottom:18px; z-index:20; display:flex; align-items:center; gap:10px;
+      padding:15px 18px; border:1px solid rgba(29,211,255,.26); border-radius:999px;
+      background:linear-gradient(135deg, rgba(8,13,24,.95), rgba(11,18,34,.95)); color:var(--text);
+      box-shadow:var(--shadow); cursor:pointer;
+    }
+    .cart-badge{
+      min-width:24px; height:24px; border-radius:999px; display:grid; place-items:center;
+      background:linear-gradient(135deg, var(--blue), var(--blue2)); font-size:12px; font-weight:900;
+    }
+    .cart-panel{
+      position:sticky; top:92px; padding:16px; overflow:hidden;
+    }
+    .cart-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px}
+    .cart-head h2{margin:0; font-size:20px}
+    .small{color:var(--muted); font-size:13px}
+    .cart-list{display:grid; gap:12px; max-height:52vh; overflow:auto; padding-right:4px}
+    .cart-item{
+      display:grid; grid-template-columns:66px 1fr; gap:12px; padding:12px; border-radius:18px;
+      background:rgba(255,255,255,.03); border:1px solid rgba(42,124,255,.12)
+    }
+    .cart-thumb{width:66px; height:66px; border-radius:14px; overflow:hidden; background:rgba(255,255,255,.04)}
+    .cart-thumb img{width:100%; height:100%; object-fit:cover}
+    .cart-info h4{margin:0 0 4px; font-size:14px}
+    .cart-info .line{display:flex; justify-content:space-between; gap:10px; align-items:center; margin-top:8px}
+    .qty{
+      display:inline-flex; align-items:center; gap:8px; padding:6px; border-radius:999px;
+      background:rgba(0,0,0,.18); border:1px solid rgba(42,124,255,.12)
+    }
+    .qty button{
+      width:26px; height:26px; border:0; border-radius:50%; background:rgba(42,124,255,.18); color:var(--text);
+      cursor:pointer; font-weight:900;
+    }
+    .qty span{min-width:18px; text-align:center; font-weight:800}
+    .remove{
+      margin-left:auto; border:0; background:transparent; color:#ff97a4; cursor:pointer; font-weight:700
+    }
+    .summary{
+      margin-top:14px; padding:14px; border-radius:18px; background:rgba(255,255,255,.03); border:1px solid rgba(42,124,255,.12)
+    }
+    .sum-row{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:8px 0}
+    .sum-row strong{font-size:20px}
+    .checkout{
+      margin-top:16px; padding:16px;
+    }
+    .checkout h3{margin:0 0 12px}
+    .field{
+      width:100%; margin-bottom:10px; border:1px solid rgba(42,124,255,.16); background:rgba(255,255,255,.04);
+      border-radius:14px; padding:12px 14px; color:var(--text); outline:none;
+    }
+    textarea.field{min-height:92px; resize:vertical}
+    .checkout-actions{display:grid; gap:10px; grid-template-columns:1fr 1fr}
+    .note{
+      color:#8da8ce; font-size:12px; line-height:1.5; margin-top:10px;
+    }
+    .empty{
+      text-align:center; color:var(--muted); padding:18px 10px; border:1px dashed rgba(42,124,255,.2);
+      border-radius:18px; background:rgba(255,255,255,.02)
+    }
+    .hidden{display:none !important}
+
+    .reveal{animation: reveal .5s ease both}
+    @keyframes reveal{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
+
+    @media (max-width: 1240px){
+      .layout{grid-template-columns:1fr}
+      .cart-panel{position:relative; top:auto}
+      .grid{grid-template-columns:repeat(2, minmax(0,1fr))}
+      .toolbar{grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width: 720px){
+      .hero{grid-template-columns:1fr}
+      .grid{grid-template-columns:1fr}
+      .toolbar{grid-template-columns:1fr; top:0}
+      .checkout-actions{grid-template-columns:1fr}
+      .cart-toggle{right:12px; bottom:12px}
+    }
+    .pulse{
+      animation:pulse 1.2s ease;
+    }
+    @keyframes pulse{
+      0%{transform:scale(1)}
+      25%{transform:scale(1.06)}
+      100%{transform:scale(1)}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-card reveal">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Website Order Parfum Premium</div>
+        <h1>Catalog order modern untuk parfum niche, designer, timteng, dan lokal.</h1>
+        <p class="sub">
+          Desain hitam-biru dengan ornamen animasi, kartu produk rapi, label kategori yang jelas, dan sistem keranjang yang modern.
+          Gambar bisa diganti cukup dengan mengganti nama file di folder <b>images</b> sesuai nomor produk.
+        </p>
+        <div class="hero-actions">
+          <button class="btn" id="scrollProducts">Lihat Produk</button>
+          <button class="btn secondary" id="openCart">Buka Keranjang</button>
+        </div>
+      </div>
+      <aside class="side-card reveal">
+        <div>
+          <div class="small">Ringkasan toko</div>
+          <div class="stat-grid" style="margin-top:10px">
+            <div class="stat"><strong>60</strong><span>Card produk</span></div>
+            <div class="stat"><strong>4</strong><span>Label kategori</span></div>
+            <div class="stat"><strong>∞</strong><span>Ubah gambar via file</span></div>
+            <div class="stat"><strong>1</strong><span>Cart total otomatis</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="small">Tema visual</div>
+          <div class="bar"><i></i></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="toolbar reveal">
+      <input id="search" class="search" type="text" placeholder="Cari parfum, notes, atau kategori..." />
+      <select id="sort" class="select">
+        <option value="default">Urutkan: default</option>
+        <option value="price-asc">Harga termurah</option>
+        <option value="price-desc">Harga termahal</option>
+        <option value="name-asc">Nama A-Z</option>
+      </select>
+      <select id="priceFilter" class="select">
+        <option value="all">Semua harga</option>
+        <option value="under500">Di bawah Rp500.000</option>
+        <option value="500to1000">Rp500.000 - Rp1.000.000</option>
+        <option value="over1000">Di atas Rp1.000.000</option>
+      </select>
+      <div class="chips" id="chips">
+        <button class="chip active" data-cat="all">Semua</button>
+        <button class="chip" data-cat="niche">Niche</button>
+        <button class="chip" data-cat="designer">Designer</button>
+        <button class="chip" data-cat="timteng">Timteng</button>
+        <button class="chip" data-cat="lokal">Lokal</button>
+      </div>
+    </section>
+
+    <section class="layout">
+      <main>
+        <div id="productGrid" class="grid"></div>
+      </main>
+
+      <aside class="cart-panel reveal" id="cartPanel">
+        <div class="cart-head">
+          <h2>Keranjang</h2>
+          <div class="small" id="cartCountText">0 item</div>
+        </div>
+        <div class="cart-list" id="cartList"></div>
+
+        <div class="summary">
+          <div class="sum-row"><span>Subtotal</span><strong id="subtotal">Rp0</strong></div>
+          <div class="sum-row"><span>Total</span><strong id="total">Rp0</strong></div>
+        </div>
+
+        <div class="checkout">
+          <h3>Checkout cepat</h3>
+          <input id="customerName" class="field" type="text" placeholder="Nama pembeli" />
+          <input id="customerPhone" class="field" type="text" placeholder="Nomor WhatsApp" />
+          <textarea id="customerNote" class="field" placeholder="Catatan pesanan, alamat, dll."></textarea>
+          <div class="checkout-actions">
+            <button class="btn" id="copyOrder">Salin Ringkasan</button>
+            <button class="btn secondary" id="clearCart">Kosongkan Cart</button>
+          </div>
+          <div class="note">
+            Gambar produk disarankan bernama <b>01.jpg</b> sampai <b>60.jpg</b> di folder <b>images</b>.
+            Saat ingin ganti foto, cukup replace file dengan nama yang sama.
+          </div>
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <button class="cart-toggle" id="cartToggle">
+    Keranjang <span class="cart-badge" id="cartBadge">0</span>
+  </button>
+
+<script>
+const products = [
+  // Niche (15)
+  {id:"N01", name:"Apex Oud", category:"niche", price:1250000, desc:"Oud kering, resinous, dan elegan dengan dry-down mewah.", image:"images/01.jpg"},
+  {id:"N02", name:"Velvet Amber", category:"niche", price:1150000, desc:"Hangat, lembut, dan creamy dengan karakter amber modern.", image:"images/02.jpg"},
+  {id:"N03", name:"Noir Patchouli", category:"niche", price:980000, desc:"Patchouli gelap dengan sentuhan smoky yang tegas.", image:"images/03.jpg"},
+  {id:"N04", name:"Lunar Iris", category:"niche", price:1450000, desc:"Iris powdery, bersih, dan classy untuk kesan premium.", image:"images/04.jpg"},
+  {id:"N05", name:"Saffron Veil", category:"niche", price:1320000, desc:"Saffron mewah dengan nuansa spicy-woody yang rapi.", image:"images/05.jpg"},
+  {id:"N06", name:"Musk Chapter", category:"niche", price:890000, desc:"White musk yang halus, bersih, dan mudah dipakai harian.", image:"images/06.jpg"},
+  {id:"N07", name:"Obsidian Rose", category:"niche", price:1380000, desc:"Rose gelap dengan aksen resin dan kesan mahal.", image:"images/07.jpg"},
+  {id:"N08", name:"Cedar Mirage", category:"niche", price:1040000, desc:"Cedar kering dengan aura maskulin dan tenang.", image:"images/08.jpg"},
+  {id:"N09", name:"Ember Tuberose", category:"niche", price:1490000, desc:"Tuberose creamy yang memikat dan intens.", image:"images/09.jpg"},
+  {id:"N10", name:"Ivory Smoke", category:"niche", price:1120000, desc:"Bersih, berasap tipis, dan penuh karakter.", image:"images/10.jpg"},
+  {id:"N11", name:"Royal Fig", category:"niche", price:960000, desc:"Fig hijau yang segar namun tetap berkelas.", image:"images/11.jpg"},
+  {id:"N12", name:"Boreal Leather", category:"niche", price:1550000, desc:"Leather halus dengan kesan dingin dan mewah.", image:"images/12.jpg"},
+  {id:"N13", name:"Azure Incense", category:"niche", price:1200000, desc:"Incense bersih dengan vibe misterius dan calm.", image:"images/13.jpg"},
+  {id:"N14", name:"Frosted Vetiver", category:"niche", price:1020000, desc:"Vetiver segar, modern, dan serbaguna.", image:"images/14.jpg"},
+  {id:"N15", name:"Midnight Jasmine", category:"niche", price:940000, desc:"Jasmine anggun dengan finish lembut dan hangat.", image:"images/15.jpg"},
+
+  // Designer (15)
+  {id:"D01", name:"Urban Code", category:"designer", price:650000, desc:"Aromatik modern untuk gaya harian yang rapi.", image:"images/16.jpg"},
+  {id:"D02", name:"Blue District", category:"designer", price:720000, desc:"Fresh, clean, dan mudah disukai banyak orang.", image:"images/17.jpg"},
+  {id:"D03", name:"Signature One", category:"designer", price:780000, desc:"Aman dipakai ke kantor, lembut dan profesional.", image:"images/18.jpg"},
+  {id:"D04", name:"Carbon Rush", category:"designer", price:690000, desc:"Fresh spicy dengan vibe maskulin yang sporty.", image:"images/19.jpg"},
+  {id:"D05", name:"Glass Amber", category:"designer", price:740000, desc:"Amber halus dengan kesan modern dan clean.", image:"images/20.jpg"},
+  {id:"D06", name:"Atlas Noir", category:"designer", price:810000, desc:"Woody-aromatic yang elegan dan mudah dipakai.", image:"images/21.jpg"},
+  {id:"D07", name:"Pulse Wave", category:"designer", price:580000, desc:"Cerah, energik, dan cocok untuk harian.", image:"images/22.jpg"},
+  {id:"D08", name:"Silver Line", category:"designer", price:860000, desc:"Fresh metallic yang terasa premium dan bersih.", image:"images/23.jpg"},
+  {id:"D09", name:"Elevate Man", category:"designer", price:930000, desc:"Maskulin, smooth, dan sangat versatile.", image:"images/24.jpg"},
+  {id:"D10", name:"Metro Bloom", category:"designer", price:640000, desc:"Floral fresh untuk tampilan yang friendly dan modern.", image:"images/25.jpg"},
+  {id:"D11", name:"Prime Woody", category:"designer", price:700000, desc:"Woody clean dengan aura aman dan elegan.", image:"images/26.jpg"},
+  {id:"D12", name:"Night Transit", category:"designer", price:760000, desc:"Sedikit gelap, urban, dan stylish.", image:"images/27.jpg"},
+  {id:"D13", name:"Crystal Sport", category:"designer", price:550000, desc:"Segar dan ringan untuk aktivitas sehari-hari.", image:"images/28.jpg"},
+  {id:"D14", name:"Monarch Blue", category:"designer", price:880000, desc:"Blue scent yang tenang namun tetap standout.", image:"images/29.jpg"},
+  {id:"D15", name:"Modern Muse", category:"designer", price:990000, desc:"Lembut, classy, dan cocok jadi signature scent.", image:"images/30.jpg"},
+
+  // Timteng (15)
+  {id:"T01", name:"Royal Bakhoor", category:"timteng", price:450000, desc:"Nuansa bakhoor yang hangat dan khas Timur Tengah.", image:"images/31.jpg"},
+  {id:"T02", name:"Musk Sultan", category:"timteng", price:520000, desc:"Musk tebal yang mewah dan tahan lama.", image:"images/32.jpg"},
+  {id:"T03", name:"Oud Al Noor", category:"timteng", price:780000, desc:"Oud kuat dengan karakter elegan dan smoky.", image:"images/33.jpg"},
+  {id:"T04", name:"Amber Majlis", category:"timteng", price:610000, desc:"Amber manis-hangat dengan kesan berkelas.", image:"images/34.jpg"},
+  {id:"T05", name:"Wardah Oud", category:"timteng", price:670000, desc:"Perpaduan floral dan oud yang sangat khas.", image:"images/35.jpg"},
+  {id:"T06", name:"Makhmali Rose", category:"timteng", price:590000, desc:"Rose tebal dan mewah dengan silage lembut.", image:"images/36.jpg"},
+  {id:"T07", name:"Desert Pearl", category:"timteng", price:730000, desc:"Aroma bersih dengan sentuhan oriental modern.", image:"images/37.jpg"},
+  {id:"T08", name:"Arabian Spice", category:"timteng", price:480000, desc:"Spicy-woody yang hangat dan berkarakter.", image:"images/38.jpg"},
+  {id:"T09", name:"Noor Musk", category:"timteng", price:560000, desc:"Musk clean yang nyaman dipakai setiap hari.", image:"images/39.jpg"},
+  {id:"T10", name:"Qamar Oud", category:"timteng", price:820000, desc:"Oud premium dengan aura mewah dan tenang.", image:"images/40.jpg"},
+  {id:"T11", name:"Sahara Cream", category:"timteng", price:410000, desc:"Creamy sweet yang lembut dan mudah disukai.", image:"images/41.jpg"},
+  {id:"T12", name:"Bakhoor Cloud", category:"timteng", price:390000, desc:"Aroma bakhoor ringan untuk suasana hangat.", image:"images/42.jpg"},
+  {id:"T13", name:"Emirate Cedar", category:"timteng", price:640000, desc:"Cedar dan resin dengan feel mewah.", image:"images/43.jpg"},
+  {id:"T14", name:"Sultan Leather", category:"timteng", price:860000, desc:"Leather oriental yang tegas dan premium.", image:"images/44.jpg"},
+  {id:"T15", name:"Habibii Rose", category:"timteng", price:530000, desc:"Floral oriental yang elegan dan romantis.", image:"images/45.jpg"},
+
+  // Lokal (15)
+  {id:"L01", name:"Kopi Pagi", category:"lokal", price:175000, desc:"Aroma kopi manis dengan sentuhan creamy yang hangat.", image:"images/46.jpg"},
+  {id:"L02", name:"Laut Biru", category:"lokal", price:160000, desc:"Fresh aquatic yang ringan dan nyaman dipakai.", image:"images/47.jpg"},
+  {id:"L03", name:"Senja Kota", category:"lokal", price:190000, desc:"Woody fresh dengan vibe urban yang santai.", image:"images/48.jpg"},
+  {id:"L04", name:"Rimba Hijau", category:"lokal", price:145000, desc:"Green aromatic yang seger dan natural.", image:"images/49.jpg"},
+  {id:"L05", name:"Bunga Nusantara", category:"lokal", price:155000, desc:"Floral manis yang lembut dan friendly.", image:"images/50.jpg"},
+  {id:"L06", name:"Hujan Tropis", category:"lokal", price:165000, desc:"Aqua fresh dengan nuansa bersih dan ringan.", image:"images/51.jpg"},
+  {id:"L07", name:"Akar Wangi", category:"lokal", price:185000, desc:"Vetiver lokal dengan kesan earthy yang natural.", image:"images/52.jpg"},
+  {id:"L08", name:"Kelapa Muda", category:"lokal", price:130000, desc:"Fresh creamy yang cerah dan santai.", image:"images/53.jpg"},
+  {id:"L09", name:"Malam Minggu", category:"lokal", price:210000, desc:"Manis, hangat, dan cocok untuk night out.", image:"images/54.jpg"},
+  {id:"L10", name:"Rempah Laut", category:"lokal", price:225000, desc:"Spicy fresh yang unik dan mudah diingat.", image:"images/55.jpg"},
+  {id:"L11", name:"Seruni", category:"lokal", price:140000, desc:"Floral lembut dengan karakter kalem.", image:"images/56.jpg"},
+  {id:"L12", name:"Bambu Hijau", category:"lokal", price:150000, desc:"Clean green scent yang fresh dan simple.", image:"images/57.jpg"},
+  {id:"L13", name:"Nusa Cream", category:"lokal", price:170000, desc:"Creamy woody yang nyaman dan modern.", image:"images/58.jpg"},
+  {id:"L14", name:"Pandan Spice", category:"lokal", price:180000, desc:"Pandan manis dengan rempah halus.", image:"images/59.jpg"},
+  {id:"L15", name:"Angin Pantai", category:"lokal", price:135000, desc:"Sea breeze fresh yang ringan dan adem.", image:"images/60.jpg"},
+];
+
+const categoryName = {
+  niche: "Niche",
+  designer: "Designer",
+  timteng: "Timteng",
+  lokal: "Lokal"
+};
+
+const fmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits: 0 });
+
+const state = {
+  cat: 'all',
+  query: '',
+  sort: 'default',
+  priceFilter: 'all',
+  cart: JSON.parse(localStorage.getItem('parfum_cart') || '{}')
+};
+
+const grid = document.getElementById('productGrid');
+const cartList = document.getElementById('cartList');
+const cartBadge = document.getElementById('cartBadge');
+const cartCountText = document.getElementById('cartCountText');
+const subtotalEl = document.getElementById('subtotal');
+const totalEl = document.getElementById('total');
+
+function saveCart(){
+  localStorage.setItem('parfum_cart', JSON.stringify(state.cart));
+}
+
+function sanitizeImage(src){
+  return src;
+}
+
+function getCartCount(){
+  return Object.values(state.cart).reduce((a, b) => a + b.qty, 0);
+}
+
+function getCartSubtotal(){
+  return Object.values(state.cart).reduce((a, item) => a + item.qty * item.price, 0);
+}
+
+function applyFilters(list){
+  let out = [...list];
+
+  if(state.cat !== 'all'){
+    out = out.filter(p => p.category === state.cat);
+  }
+
+  if(state.query.trim()){
+    const q = state.query.toLowerCase();
+    out = out.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.desc.toLowerCase().includes(q) ||
+      categoryName[p.category].toLowerCase().includes(q)
+    );
+  }
+
+  if(state.priceFilter !== 'all'){
+    out = out.filter(p => {
+      if(state.priceFilter === 'under500') return p.price < 500000;
+      if(state.priceFilter === '500to1000') return p.price >= 500000 && p.price <= 1000000;
+      if(state.priceFilter === 'over1000') return p.price > 1000000;
+      return true;
+    });
+  }
+
+  if(state.sort === 'price-asc') out.sort((a,b)=>a.price-b.price);
+  if(state.sort === 'price-desc') out.sort((a,b)=>b.price-a.price);
+  if(state.sort === 'name-asc') out.sort((a,b)=>a.name.localeCompare(b.name,'id'));
+  return out;
+}
+
+function renderProducts(){
+  const list = applyFilters(products);
+
+  grid.innerHTML = list.map(p => `
+    <article class="product-card reveal">
+      <div class="thumb">
+        <img src="${sanitizeImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(placeholderSvg(p.name))}'">
+        <div class="filetag">${p.image}</div>
+      </div>
+      <div class="content">
+        <div class="meta">
+          <div>
+            <span class="badge ${p.category}">${categoryName[p.category]}</span>
+            <h3 class="title">${p.name}</h3>
+          </div>
+          <div class="price">${fmt.format(p.price)}</div>
+        </div>
+        <div class="desc">${p.desc}</div>
+        <div class="card-actions">
+          <button class="add" onclick="addToCart('${p.id}')">Tambah ke Keranjang</button>
+          <button class="ghost" onclick="quickView('${p.id}')">Info</button>
+        </div>
+      </div>
+    </article>
+  `).join('');
+
+  if(!list.length){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">Produk tidak ditemukan. Coba kata kunci lain.</div>`;
+  }
+
+  setTimeout(()=>document.querySelectorAll('.product-card').forEach((el,i)=>{el.style.animationDelay = `${i*12}ms`; el.classList.add('reveal')}), 0);
+}
+
+function placeholderSvg(text){
+  const initials = text.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase();
+  return `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#07101e"/>
+        <stop offset="100%" stop-color="#10294a"/>
+      </linearGradient>
+      <radialGradient id="r" cx="50%" cy="40%" r="70%">
+        <stop offset="0%" stop-color="#2a7cff" stop-opacity=".36"/>
+        <stop offset="100%" stop-color="#0b1020" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="800" height="600" fill="url(#g)"/>
+    <circle cx="235" cy="165" r="220" fill="url(#r)"/>
+    <circle cx="575" cy="400" r="180" fill="url(#r)"/>
+    <rect x="150" y="160" width="500" height="280" rx="34" fill="rgba(255,255,255,.03)" stroke="rgba(42,124,255,.3)" />
+    <text x="400" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="700" fill="#dbeeff">${initials}</text>
+    <text x="400" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#a7b8d6">${text}</text>
+  </svg>`;
+}
+
+function addToCart(id){
+  const product = products.find(p => p.id === id);
+  if(!state.cart[id]){
+    state.cart[id] = { ...product, qty: 1 };
+  } else {
+    state.cart[id].qty += 1;
+  }
+  saveCart();
+  renderCart();
+  const btn = event?.target;
+  if(btn){
+    btn.classList.remove('pulse');
+    void btn.offsetWidth;
+    btn.classList.add('pulse');
+  }
+}
+
+function changeQty(id, delta){
+  if(!state.cart[id]) return;
+  state.cart[id].qty += delta;
+  if(state.cart[id].qty <= 0) delete state.cart[id];
+  saveCart();
+  renderCart();
+}
+
+function removeItem(id){
+  delete state.cart[id];
+  saveCart();
+  renderCart();
+}
+
+function renderCart(){
+  const items = Object.values(state.cart);
+  const count = getCartCount();
+  const subtotal = getCartSubtotal();
+
+  cartBadge.textContent = count;
+  cartCountText.textContent = `${count} item`;
+  subtotalEl.textContent = fmt.format(subtotal);
+  totalEl.textContent = fmt.format(subtotal);
+
+  if(!items.length){
+    cartList.innerHTML = `<div class="empty">Keranjang masih kosong. Tambahkan parfum dari katalog.</div>`;
+    return;
+  }
+
+  cartList.innerHTML = items.map(item => `
+    <div class="cart-item">
+      <div class="cart-thumb">
+        <img src="${sanitizeImage(item.image)}" alt="${item.name}" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(placeholderSvg(item.name))}'">
+      </div>
+      <div class="cart-info">
+        <h4>${item.name}</h4>
+        <div class="small">${categoryName[item.category]} · ${fmt.format(item.price)}</div>
+        <div class="line">
+          <div class="qty">
+            <button onclick="changeQty('${item.id}', -1)">−</button>
+            <span>${item.qty}</span>
+            <button onclick="changeQty('${item.id}', 1)">+</button>
+          </div>
+          <button class="remove" onclick="removeItem('${item.id}')">Hapus</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function quickView(id){
+  const p = products.find(x => x.id === id);
+  alert(`${p.name}\nKategori: ${categoryName[p.category]}\nHarga: ${fmt.format(p.price)}\n\n${p.desc}\n\nGambar: ${p.image}`);
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  state.query = e.target.value;
+  renderProducts();
+});
+document.getElementById('sort').addEventListener('change', e => {
+  state.sort = e.target.value;
+  renderProducts();
+});
+document.getElementById('priceFilter').addEventListener('change', e => {
+  state.priceFilter = e.target.value;
+  renderProducts();
+});
+document.getElementById('chips').addEventListener('click', e => {
+  if(!e.target.classList.contains('chip')) return;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  e.target.classList.add('active');
+  state.cat = e.target.dataset.cat;
+  renderProducts();
+});
+
+document.getElementById('scrollProducts').addEventListener('click', () => {
+  document.getElementById('productGrid').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+document.getElementById('openCart').addEventListener('click', () => {
+  document.getElementById('cartPanel').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+document.getElementById('cartToggle').addEventListener('click', () => {
+  document.getElementById('cartPanel').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+document.getElementById('clearCart').addEventListener('click', () => {
+  if(confirm('Kosongkan semua isi keranjang?')){
+    state.cart = {};
+    saveCart();
+    renderCart();
+  }
+});
+
+document.getElementById('copyOrder').addEventListener('click', async () => {
+  const name = document.getElementById('customerName').value.trim() || '-';
+  const phone = document.getElementById('customerPhone').value.trim() || '-';
+  const note = document.getElementById('customerNote').value.trim() || '-';
+  const items = Object.values(state.cart);
+  if(!items.length){
+    alert('Keranjang masih kosong.');
+    return;
+  }
+  const lines = items.map(i => `- ${i.name} x${i.qty} (${fmt.format(i.price)})`).join('\n');
+  const text =
+`Nama: ${name}
+WA: ${phone}
+
+Pesanan:
+${lines}
+
+Total: ${fmt.format(getCartSubtotal())}
+
+Catatan:
+${note}`;
+  try{
+    await navigator.clipboard.writeText(text);
+    alert('Ringkasan pesanan sudah disalin.');
+  }catch(err){
+    prompt('Salin ringkasan ini:', text);
+  }
+});
+
+window.addToCart = addToCart;
+window.changeQty = changeQty;
+window.removeItem = removeItem;
+window.quickView = quickView;
+
+renderProducts();
+renderCart();
+</script>
+</body>
+</html>
