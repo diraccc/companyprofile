@@ -2775,18 +2775,74 @@ const products = [
     }
     function viewProduct(id){ openModal(id); }
 
-    // Order form -> open WA with message
-    function prepareWA(e){
+    // Order form -> send to Vercel API route, then Fonnte
+    async function prepareWA(e){
       e.preventDefault();
+
+      const submitBtn = document.getElementById('submitOrderBtn');
+      const helper = document.getElementById('order-helper');
+
       const name = document.getElementById('custName').value.trim();
       const phone = document.getElementById('custPhone').value.trim();
       const product = document.getElementById('custProduct').value.trim();
       const qty = document.getElementById('custQty').value.trim();
+      const size = document.getElementById('sizeSelect') ? document.getElementById('sizeSelect').value : '';
       const city = document.getElementById('custCity').value.trim();
       const note = document.getElementById('custNote').value.trim();
-      if(!name||!phone||!product||!qty||!city){ alert('Lengkapi field yang wajib.'); return; }
-      const msg = `Halo Dirac Parfum,%0ASaya ingin memesan:%0A- Nama: ${name}%0A- No WA: ${phone}%0A- Produk: ${product}%0A- Jumlah: ${qty}%0A- Kota: ${city}%0A- Catatan: ${note}%0A%0AMohon info total & metode pembayaran.`;
-      window.open('https://wa.me/6287892523968?text='+encodeURIComponent(msg),'_blank');
+
+      if(!name || !phone || !product || !qty || !city){
+        alert('Lengkapi field yang wajib.');
+        return;
+      }
+
+      const message =
+        `Halo Dirac Parfum,` +
+        `\nSaya ingin memesan:` +
+        `\n- Nama: ${name}` +
+        `\n- No WA: ${phone}` +
+        `\n- Produk: ${product}` +
+        `\n- Jumlah: ${qty}` +
+        (size ? `\n- Ukuran: ${size}` : '') +
+        `\n- Kota: ${city}` +
+        (note ? `\n- Catatan: ${note}` : '') +
+        `\n\nMohon info total & metode pembayaran.`;
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Mengirim...';
+        if (helper) helper.textContent = 'Sedang mengirim pesan, mohon tunggu sebentar...';
+
+        const response = await fetch('/api/send-wa', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            target: '6287892523968',
+            message
+          })
+        });
+
+        let resultText = '';
+        try {
+          resultText = await response.text();
+        } catch (_) {}
+
+        if (!response.ok) {
+          throw new Error(resultText || 'Gagal mengirim pesan');
+        }
+
+        if (helper) helper.textContent = 'Pesan berhasil dikirim. Kami akan segera menghubungi Anda.';
+        alert('Pesan berhasil dikirim.');
+        document.getElementById('orderForm').reset();
+      } catch (error) {
+        console.error('Gagal kirim ke endpoint:', error);
+        if (helper) helper.textContent = 'Pesan gagal dikirim. Silakan coba lagi atau hubungi WhatsApp secara manual.';
+        alert('Pesan gagal dikirim.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Kirim ke WhatsApp';
+      }
     }
 
     // subtle parallax
