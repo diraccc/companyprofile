@@ -1763,273 +1763,721 @@ const productDescriptions = {
      100% { transform: scale(1);     filter: brightness(1); }
    }
    </style>
-<!-- Sistem keranjang sederhana -->
+<!-- Sistem keranjang produk -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Inisialisasi array keranjang dari localStorage
-      let cart = [];
-      try {
-        cart = JSON.parse(localStorage.getItem('cartItems')) || [];
-      } catch (e) {
-        cart = [];
-      }
+  let cart = [];
+  let discount = 0;
+  let toastTimer = null;
 
-      // Buat tombol floating untuk keranjang
-      const cartBtn = document.createElement('div');
-      cartBtn.className = 'cart-float';
-      cartBtn.innerHTML = `
-        <!-- Heroicons outline shopping-cart icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-        </svg>
-        <span class="cart-count"></span>`;
-      document.body.appendChild(cartBtn);
+  // Load cart immediately so rendered product buttons can reflect saved state.
+  try {
+    const raw = localStorage.getItem('scentoria_cart') || localStorage.getItem('cartItems') || '[]';
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      cart = parsed;
+    }
+  } catch (e) {
+    cart = [];
+  }
 
-      // Buat modal keranjang
-      const modal = document.createElement('div');
-      modal.id = 'cart-modal';
-      document.body.appendChild(modal);
+  function formatCartRp(value) {
+    const n = Math.max(0, Math.round(Number(value) || 0));
+    return 'Rp ' + n.toLocaleString('id-ID');
+  }
 
-      function updateCartCount() {
-        const countEl = cartBtn.querySelector('.cart-count');
-        if (cart.length > 0) {
-          countEl.textContent = cart.length;
-          countEl.style.display = 'flex';
-        } else {
-          countEl.style.display = 'none';
+  function safeId(value) {
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  function getTitle(item) {
+    return String(item?.title || item?.name || item?.desc || '').trim();
+  }
+
+  function getProductById(id) {
+    if (typeof products === 'undefined' || !Array.isArray(products)) return null;
+    return products.find(p => Number(p.id) === Number(id)) || null;
+  }
+
+  function findMatchingProduct(item) {
+    const masterById = getProductById(item.id);
+    if (masterById) return masterById;
+
+    if (typeof products === 'undefined' || !Array.isArray(products)) return null;
+    const title = getTitle(item).toLowerCase();
+    if (!title) return null;
+
+    return (
+      products.find(p => String(p.title || '').toLowerCase() === title) ||
+      products.find(p => String(p.title || '').toLowerCase().includes(title)) ||
+      products.find(p => title.includes(String(p.title || '').toLowerCase()))
+    ) || null;
+  }
+
+  function normalizeCart() {
+    const normalized = [];
+    const seen = new Set();
+
+    cart.forEach(raw => {
+      const master = findMatchingProduct(raw);
+      const qty = Math.max(1, parseInt(raw.qty || raw.quantity || 1, 10));
+
+      if (master) {
+        const key = String(master.id);
+        const existing = normalized.find(i => String(i.id) === key);
+        if (existing) {
+          existing.qty += qty;
+          return;
         }
-      }
-
-      function toggleCartModal() {
-        if (modal.classList.contains('open')) {
-          modal.classList.remove('open');
-        } else {
-          modal.classList.add('open');
-        }
-      }
-
-      function renderCartItems() {
-        modal.innerHTML = '';
-        // Header
-        const header = document.createElement('div');
-        header.className = 'cart-header';
-        header.innerHTML = '<strong style="font-size:1rem;">Keranjang</strong><span class="close-modal" style="cursor:pointer;font-weight:bold;">&times;</span>';
-        modal.appendChild(header);
-        header.querySelector('.close-modal').addEventListener('click', toggleCartModal);
-        // Daftar item
-        const itemsContainer = document.createElement('div');
-        itemsContainer.className = 'cart-items';
-        cart.forEach(function(item, idx) {
-          const itemDiv = document.createElement('div');
-          itemDiv.className = 'cart-item';
-          // Pastikan nama file gambar tidak berubah
-          itemDiv.innerHTML = `
-            <img src="${item.img}" alt="${item.title}"/>
-            <div class="item-info">
-              <div style="font-weight:600;font-size:0.9rem;">${item.title}</div>
-              <div style="font-size:0.85rem;color:var(--muted)">${item.price}</div>
-            </div>
-            <span class="remove-btn" data-index="${idx}" aria-label="Hapus">&times;</span>`;
-          itemsContainer.appendChild(itemDiv);
+        normalized.push({
+          id: master.id,
+          title: master.title,
+          price: Number(master.price) || 0,
+          img: master.img || raw.img || '',
+          qty,
+          tag: master.tag || raw.tag || '',
+          desc: master.desc || raw.desc || ''
         });
-        modal.appendChild(itemsContainer);
-        // Tombol checkout
-        if (cart.length > 0) {
-          const checkout = document.createElement('a');
-          checkout.className = 'checkout-btn';
-          const pesan = cart.map(i => i.title + ' (' + i.price + ')').join(', ');
-          checkout.href = 'https://wa.me/6287892523968?text=' + encodeURIComponent('Halo, saya ingin memesan: ' + pesan);
-          checkout.target = '_blank';
-          checkout.textContent = 'Checkout via WhatsApp';
-          modal.appendChild(checkout);
-        } else {
-          const kosong = document.createElement('div');
-          kosong.style.padding = '16px';
-          kosong.style.textAlign = 'center';
-          kosong.textContent = 'Keranjang masih kosong.';
-          modal.appendChild(kosong);
-        }
-        // Event remove
-        modal.querySelectorAll('.remove-btn').forEach(btn => {
-          btn.addEventListener('click', function() {
-            const index = parseInt(this.getAttribute('data-index'));
-            cart.splice(index, 1);
-            localStorage.setItem('cartItems', JSON.stringify(cart));
-            updateCartCount();
-            renderCartItems();
-          });
-        });
+        seen.add(key);
+        return;
       }
 
-      // Tambah tombol ke setiap produk
-      document.querySelectorAll('.product-card').forEach(function(card) {
-        const titleEl = card.querySelector('.product-title');
-        const priceEl = card.querySelector('.product-price');
-        const imgEl = card.querySelector('img');
-        if (!titleEl || !priceEl || !imgEl) return;
-        const addBtn = document.createElement('button');
-        addBtn.className = 'btn btn-sm btn-outline-secondary add-to-cart-btn';
-        addBtn.style.marginTop = '4px';
-        addBtn.textContent = 'Tambah ke Keranjang';
-        // Catatan: handler klik untuk tombol ini ditangani melalui delegasi klik global di bawah
-        // Sisipkan tombol setelah elemen harga
-        priceEl.insertAdjacentElement('afterend', addBtn);
-      });
+      const fallbackId = raw.id != null ? raw.id : (raw.title || raw.name || Math.random().toString(36).slice(2));
+      const key = String(fallbackId);
+      if (seen.has(key)) return;
+      seen.add(key);
 
-      // Inisialisasi
-      updateCartCount();
-      renderCartItems();
-
-      // Event buka modal
-      cartBtn.addEventListener('click', function() {
-        toggleCartModal();
-      });
-
-      // Delegasi klik: jika tombol yang diklik adalah tombol tambah ke keranjang
-      document.addEventListener('click', function(event) {
-        const target = event.target;
-        if (target && target.classList && target.classList.contains('add-to-cart-btn')) {
-          event.preventDefault();
-          // Cari card terdekat
-          const card = target.closest('.product-card');
-          if (!card) return;
-          const tEl = card.querySelector('.product-title');
-          const pEl = card.querySelector('.product-price');
-          const iEl = card.querySelector('img');
-          if (!tEl || !pEl || !iEl) return;
-          const item = {
-            title: tEl.innerText.trim(),
-            price: pEl.innerText.trim(),
-            img: iEl.getAttribute('src')
-          };
-          cart.push(item);
-          localStorage.setItem('cartItems', JSON.stringify(cart));
-          updateCartCount();
-          renderCartItems();
-        }
+      normalized.push({
+        id: fallbackId,
+        title: getTitle(raw) || 'Produk',
+        price: Number(String(raw.price || 0).replace(/[^\d]/g, '')) || Number(raw.price) || 0,
+        img: raw.img || '',
+        qty,
+        tag: raw.tag || '',
+        desc: raw.desc || ''
       });
     });
-  </script>
+
+    cart = normalized;
+  }
+
+  function saveCart() {
+    localStorage.setItem('scentoria_cart', JSON.stringify(cart));
+    localStorage.setItem('cartItems', JSON.stringify(cart));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  function syncProductButtons() {
+    document.querySelectorAll('.add-to-cart-btn[data-pid]').forEach(btn => {
+      const pid = Number(btn.getAttribute('data-pid'));
+      const inCart = cart.some(item => Number(item.id) === pid);
+      btn.classList.toggle('added', inCart);
+      btn.textContent = inCart ? '✓ Added' : '+ Cart';
+    });
+  }
+
+  function updateCartUI() {
+    const totalQty = cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+    const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), 0);
+    const shippingValue = subtotal >= 299000 ? 0 : (cart.length ? 25000 : 0);
+    const total = Math.max(0, subtotal - discount + shippingValue);
+
+    const cartCount = document.getElementById('cart-count');
+    if (cartCount) cartCount.textContent = totalQty;
+
+    const headerCount = document.getElementById('cart-header-count');
+    if (headerCount) headerCount.textContent = `${totalQty} item`;
+
+    const subtotalEl = document.getElementById('cart-subtotal');
+    if (subtotalEl) subtotalEl.textContent = formatCartRp(subtotal);
+
+    const shippingEl = document.getElementById('cart-shipping');
+    if (shippingEl) shippingEl.textContent = cart.length && subtotal >= 299000 ? 'Gratis' : 'Rp 25.000';
+
+    const discountRow = document.getElementById('cart-discount-row');
+    const discountEl = document.getElementById('cart-discount');
+    if (discountRow && discountEl) {
+      if (discount > 0) {
+        discountRow.style.display = 'flex';
+        discountEl.textContent = `- ${formatCartRp(discount)}`;
+      } else {
+        discountRow.style.display = 'none';
+      }
+    }
+
+    const totalEl = document.getElementById('cart-total');
+    if (totalEl) totalEl.textContent = formatCartRp(total);
+
+    const checkoutBtn = document.getElementById('btn-checkout');
+    if (checkoutBtn) checkoutBtn.disabled = totalQty === 0;
+
+    syncProductButtons();
+  }
+
+  function getCartImage(item) {
+    const master = findMatchingProduct(item);
+    return item.img || item.image || item.picture || master?.img || '';
+  }
+
+  function renderCartItems() {
+    const container = document.getElementById('cart-items-container');
+    if (!container) return;
+
+    if (!cart.length) {
+      container.innerHTML = `
+        <div class="cart-empty">
+          <div class="empty-icon">🛍️</div>
+          <p>Keranjang Anda masih kosong.<br>Mulai pilih produk yang Anda suka.</p>
+        </div>`;
+      updateCartUI();
+      return;
+    }
+
+    container.innerHTML = cart.map(item => {
+      const cartImg = getCartImage(item);
+      const title = getTitle(item);
+      const displayPrice = formatCartRp((Number(item.price) || 0) * (Number(item.qty) || 0));
+      return `
+        <div class="cart-item" id="cart-item-${safeId(item.id)}">
+          <div class="cart-item-icon" style="overflow:hidden;">
+            ${cartImg ? `
+              <img src="${cartImg}" alt="${title}" loading="lazy"
+                   style="width:100%;height:100%;object-fit:contain;padding:6px;display:block;"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+              <span class="img-fallback" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.4rem;">✨</span>
+            ` : `<span class="img-fallback" style="display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.4rem;">✨</span>`}
+          </div>
+          <div class="cart-item-info">
+            <div class="cart-item-name">${title}</div>
+            <div class="cart-item-brand">${item.tag || 'Produk'}${item.desc ? ' · ' + item.desc : ''}</div>
+            <div class="cart-item-price">${displayPrice}</div>
+            <div class="cart-item-qty">
+              <button class="qty-btn" onclick="changeQty(${JSON.stringify(item.id)}, -1)" aria-label="Kurangi jumlah">−</button>
+              <span class="qty-val">${Number(item.qty) || 1}</span>
+              <button class="qty-btn" onclick="changeQty(${JSON.stringify(item.id)}, 1)" aria-label="Tambah jumlah">+</button>
+            </div>
+          </div>
+          <button class="cart-item-del" onclick="removeFromCart(${JSON.stringify(item.id)})" aria-label="Hapus ${title}">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    updateCartUI();
+  }
+
+  function closeCart() {
+    const sidebar = document.getElementById('cart-sidebar');
+    const overlay = document.getElementById('cart-overlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function openCart() {
+    renderCartItems();
+    const sidebar = document.getElementById('cart-sidebar');
+    const overlay = document.getElementById('cart-overlay');
+    if (sidebar) sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function addToCart(id) {
+    const product = getProductById(id);
+    if (!product) return;
+
+    const existing = cart.find(item => Number(item.id) === Number(id));
+    if (existing) {
+      existing.qty = (Number(existing.qty) || 0) + 1;
+    } else {
+      cart.push({
+        id: product.id,
+        title: product.title,
+        price: Number(product.price) || 0,
+        img: product.img || '',
+        qty: 1,
+        tag: product.tag || '',
+        desc: product.desc || ''
+      });
+    }
+
+    saveCart();
+    updateCartUI();
+    showToast(`✨ ${product.title} ditambahkan ke keranjang`);
+    openCart();
+  }
+
+  function removeFromCart(id) {
+    cart = cart.filter(item => String(item.id) !== String(id));
+    saveCart();
+    renderCartItems();
+    updateCartUI();
+
+    document.querySelectorAll('.add-to-cart-btn[data-pid]').forEach(btn => {
+      if (Number(btn.getAttribute('data-pid')) === Number(id)) {
+        btn.classList.remove('added');
+        btn.textContent = '+ Cart';
+      }
+    });
+  }
+
+  function changeQty(id, delta) {
+    const item = cart.find(entry => String(entry.id) === String(id));
+    if (!item) return;
+    item.qty = (Number(item.qty) || 0) + delta;
+    if (item.qty <= 0) {
+      removeFromCart(id);
+      return;
+    }
+    saveCart();
+    renderCartItems();
+    updateCartUI();
+  }
+
+  function applyPromo() {
+    const input = document.getElementById('promo-input');
+    const code = (input?.value || '').trim().toUpperCase();
+    const promos = {
+      DIRACFIRST: 150000,
+      HEMAT10: 100000,
+      DIRACGROUP: 75000
+    };
+
+    if (promos[code]) {
+      discount = promos[code];
+      updateCartUI();
+      showToast(`🎉 Kode promo berhasil! Hemat ${formatCartRp(discount)}`);
+      return;
+    }
+
+    showToast('❌ Kode promo tidak valid atau sudah kadaluarsa.');
+  }
+
+  function checkout() {
+    if (!cart.length) return;
+    const totalText = document.getElementById('cart-total')?.textContent || formatCartRp(0);
+    const orderCode = 'DRC-' + Date.now().toString().slice(-6);
+    showToast('🎊 Terima kasih! Pesanan Anda sedang diproses...');
+
+    setTimeout(() => {
+      alert(
+        'Terima kasih telah berbelanja di Dirac Parfum!\n\n' +
+        'Total: ' + totalText + '\n\n' +
+        'Silakan hubungi kami via WhatsApp: 0878-9252-3968 untuk konfirmasi pesanan Anda.\n\n' +
+        'Kode Pesanan: ' + orderCode
+      );
+    }, 650);
+  }
+
+  function buildCartUI() {
+    if (document.getElementById('cart-sidebar')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'cart-overlay';
+    overlay.addEventListener('click', closeCart);
+
+    const sidebar = document.createElement('aside');
+    sidebar.id = 'cart-sidebar';
+    sidebar.setAttribute('aria-label', 'Keranjang belanja');
+    sidebar.innerHTML = `
+      <div class="cart-header">
+        <div>
+          <div class="cart-header-title">Keranjang</div>
+          <div class="cart-header-count" id="cart-header-count">0 item</div>
+        </div>
+        <button class="cart-close" id="cart-close" type="button" aria-label="Tutup keranjang">×</button>
+      </div>
+
+      <div class="cart-items" id="cart-items-container"></div>
+
+      <div class="cart-footer">
+        <div class="cart-summary-row"><span>Subtotal</span><span id="cart-subtotal">Rp 0</span></div>
+        <div class="cart-summary-row"><span>Ongkir</span><span id="cart-shipping">Rp 25.000</span></div>
+        <div class="cart-summary-row" id="cart-discount-row" style="display:none;"><span>Diskon</span><span id="cart-discount">- Rp 0</span></div>
+        <div class="cart-summary-row total"><span>Total</span><span id="cart-total">Rp 0</span></div>
+
+        <div class="cart-promo">
+          <input type="text" id="promo-input" placeholder="Kode promo">
+          <button type="button" id="promo-apply-btn">Pakai</button>
+        </div>
+
+        <button class="btn-checkout" id="btn-checkout" type="button" disabled>Checkout</button>
+
+        <div class="cart-perks">
+          <div class="cart-perk"><span>🚚</span> Gratis ongkir min. Rp 299.000</div>
+          <div class="cart-perk"><span>🔒</span> Proses aman & rapi</div>
+        </div>
+      </div>
+    `;
+
+    const cartBtn = document.createElement('button');
+    cartBtn.id = 'cart-btn';
+    cartBtn.type = 'button';
+    cartBtn.setAttribute('aria-label', 'Buka keranjang belanja');
+    cartBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+      Keranjang
+      <span id="cart-count" aria-live="polite">0</span>
+    `;
+
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(sidebar);
+    document.body.appendChild(cartBtn);
+    document.body.appendChild(toast);
+
+    document.getElementById('cart-close').addEventListener('click', closeCart);
+    document.getElementById('promo-apply-btn').addEventListener('click', applyPromo);
+    document.getElementById('btn-checkout').addEventListener('click', checkout);
+    cartBtn.addEventListener('click', openCart);
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeCart();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    buildCartUI();
+    normalizeCart();
+    saveCart();
+    renderCartItems();
+    updateCartUI();
+    syncProductButtons();
+  });
+
+  window.addToCart = addToCart;
+  window.removeFromCart = removeFromCart;
+  window.changeQty = changeQty;
+  window.openCart = openCart;
+  window.closeCart = closeCart;
+  window.applyPromo = applyPromo;
+  window.checkout = checkout;
+  window.showToast = showToast;
+</script>
 <style>
-    /* Tombol floating keranjang */
-    .cart-float {
-      position: fixed;
-      right: 18px;
-      bottom: 100px;
-      z-index: 1000;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: linear-gradient(90deg,#b88649,var(--accent));
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 12px 30px rgba(203,156,91,0.14);
-      cursor: pointer;
-    }
-    .cart-float svg {
-      width: 24px;
-      height: 24px;
-    }
-    .cart-count {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #c62828;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      display: none;
-      align-items: center;
-      justify-content: center;
-    }
-    /* Modal keranjang */
-    #cart-modal {
-      position: fixed;
-      right: 18px;
-      bottom: 170px;
-      width: 320px;
-      max-height: 400px;
-      background: var(--dark);
-      color: #fff;
-      border-radius: 12px;
-      box-shadow: 0 12px 30px rgba(15,17,20,0.25);
-      overflow-y: auto;
-      display: none;
-      z-index: 1001;
-      font-size: 14px;
-    }
-    #cart-modal.open {
-      display: block;
-    }
-    #cart-modal .cart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      font-weight: 600;
-    }
-    #cart-modal .cart-items {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    #cart-modal .cart-item {
-      display: flex;
-      align-items: center;
-      padding: 10px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    #cart-modal .cart-item img {
-      width: 40px;
-      height: 40px;
-      object-fit: cover;
-      border-radius: 6px;
-      margin-right: 10px;
-    }
-    #cart-modal .cart-item .item-info {
-      flex: 1;
-    }
-    #cart-modal .cart-item .remove-btn {
-      cursor: pointer;
-      color: #ff5252;
-      font-size: 18px;
-      margin-left: 8px;
-    }
-    #cart-modal .checkout-btn {
-      display: block;
-      margin: 12px 16px;
-      padding: 10px;
-      background: linear-gradient(90deg,#b88649,var(--accent));
-      color: #fff;
-      text-align: center;
-      border-radius: 8px;
-      font-weight: 600;
-      text-decoration: none;
-    }
-    #cart-modal .checkout-btn:hover {
-      opacity: 0.9;
-    }
-    /* Tambah ke keranjang button override */
-    .add-to-cart-btn {
-      border: none !important;
-      background: linear-gradient(90deg,#b88649,var(--accent)) !important;
-      color: #fff !important;
-      font-weight: 600;
-      display: inline-block;
+  /* Cart UI */
+  #cart-btn {
+    position: fixed;
+    right: 18px;
+    bottom: 92px;
+    z-index: 12010;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(212,175,55,0.32);
+    background: linear-gradient(90deg,#b88649,var(--accent));
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 14px 34px rgba(203,156,91,0.22);
+  }
+  #cart-btn:hover { opacity: 0.96; transform: translateY(-1px); }
+  #cart-btn {
+    transition: opacity .22s ease, transform .22s ease, visibility .22s ease;
+  }
+  #cart-count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #c62828;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+  }
+  #cart-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.62);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    z-index: 12000;
+    backdrop-filter: blur(4px);
+  }
+  #cart-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #cart-sidebar {
+    position: fixed;
+    top: 0;
+    right: -480px;
+    width: min(460px, 100%);
+    height: 100vh;
+    z-index: 12001;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #0f1720 0%, #0b1220 100%);
+    border-left: 1px solid rgba(212,175,55,0.18);
+    box-shadow: -20px 0 60px rgba(0,0,0,0.5);
+    transition: right .32s cubic-bezier(.4,0,.2,1);
+  }
+  #cart-sidebar.open { right: 0; }
+  #cart-sidebar.open ~ #cart-btn {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(18px) scale(0.96);
+    visibility: hidden;
+  }
+  .cart-header {
+    padding: 22px 24px;
+    border-bottom: 1px solid rgba(212,175,55,0.14);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cart-header-title {
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+  }
+  .cart-header-count {
+    color: #cbd5e1;
+    font-size: .78rem;
+    margin-top: 2px;
+  }
+  .cart-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.16);
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+  }
+  .cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 24px;
+  }
+  .cart-empty {
+    text-align: center;
+    color: #cbd5e1;
+    padding: 64px 20px;
+  }
+  .cart-empty .empty-icon { font-size: 4rem; margin-bottom: 14px; opacity: .7; }
+  .cart-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(212,175,55,0.10);
+    align-items: flex-start;
+  }
+  .cart-item-icon {
+    width: 62px;
+    height: 62px;
+    flex: 0 0 62px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .cart-item-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .cart-item-info { flex: 1; min-width: 0; }
+  .cart-item-name {
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    line-height: 1.25;
+    margin-bottom: 4px;
+  }
+  .cart-item-brand {
+    color: #94a3b8;
+    font-size: .68rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .cart-item-price {
+    color: #ffd966;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+  }
+  .cart-item-qty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .qty-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid rgba(212,175,55,0.16);
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .qty-val {
+    min-width: 18px;
+    text-align: center;
+    color: #fff;
+    font-size: .9rem;
+  }
+  .cart-item-del {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 1rem;
+    cursor: pointer;
+    padding-top: 4px;
+  }
+  .cart-item-del:hover, .qty-btn:hover { color: #ffd966; border-color: #ffd966; }
+  .cart-footer {
+    padding: 18px 24px 24px;
+    border-top: 1px solid rgba(212,175,55,0.14);
+    background: rgba(0,0,0,0.14);
+  }
+  .cart-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #cbd5e1;
+    font-size: .84rem;
+    margin-bottom: 8px;
+  }
+  .cart-summary-row.total {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(212,175,55,0.14);
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+  }
+  .cart-summary-row.total span:last-child { color: #ffd966; }
+  .cart-promo {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0 12px;
+  }
+  .cart-promo input {
+    flex: 1;
+    border-radius: 10px;
+    border: 1px solid rgba(212,175,55,0.16);
+    background: rgba(255,255,255,0.04);
+    color: #fff;
+    padding: 10px 12px;
+    outline: none;
+  }
+  .cart-promo input::placeholder { color: #94a3b8; }
+  .cart-promo button {
+    border-radius: 10px;
+    border: 1px solid rgba(212,175,55,0.24);
+    background: rgba(212,175,55,0.08);
+    color: #ffd966;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-checkout {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: linear-gradient(90deg,#d4af37,#b88649);
+    color: #111;
+    cursor: pointer;
+  }
+  .btn-checkout:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+  .cart-perks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .cart-perk {
+    color: #94a3b8;
+    font-size: .68rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: 156px;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(15,23,32,0.96);
+    color: #fff;
+    border: 1px solid rgba(212,175,55,0.18);
+    border-radius: 999px;
+    padding: 12px 18px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 12012;
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .add-to-cart-btn {
+    border: 1px solid #d4af37 !important;
+    color: #d4af37 !important;
+    background: transparent !important;
+  }
+  .add-to-cart-btn:hover {
+    background: rgba(212,175,55,0.08) !important;
+    color: #fff !important;
+  }
+  .add-to-cart-btn.added,
+  .add-to-cart-btn.added:hover {
+    background: linear-gradient(90deg,#2ecc71,#27ae60) !important;
+    color: #fff !important;
+    border-color: #2ecc71 !important;
+  }
+  @media (max-width: 768px) {
+    #cart-sidebar {
       width: 100%;
-      border-radius: 999px;
+      max-width: none;
     }
-    .add-to-cart-btn:hover {
-      opacity: 0.9 !important;
+    #cart-btn {
+      right: 14px;
+      bottom: 84px;
+      padding: 11px 14px;
     }
-  </style>
-</body>
-</html>
+    #toast {
+      bottom: 146px;
+    }
+  }
+</style>
+
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -2097,6 +2545,7 @@ const products = [
     function renderCatalog(list){
       catalog.innerHTML = '';
       list.forEach(p=>{
+        const inCart = cart.some(item => Number(item.id) === Number(p.id));
         const card = document.createElement('article');
         card.className = 'product-card';
         card.innerHTML = `
@@ -2105,8 +2554,9 @@ const products = [
             <div class="product-title">${p.title}</div>
             <div class="product-price">${formatRupiah(p.price)}</div>
             <p class="muted small">${p.desc}</p>
-            <div class="d-flex justify-content-center gap-2 mt-2">
+            <div class="d-flex justify-content-center gap-2 mt-2 flex-wrap">
               <button class="btn btn-sm btn-outline-secondary" onclick="viewProduct(${p.id})">Lihat</button>
+              <button class="btn btn-sm btn-outline-secondary add-to-cart-btn ${inCart ? 'added' : ''}" data-pid="${p.id}" onclick="addToCart(${p.id})">${inCart ? '✓ Added' : '+ Cart'}</button>
               <a class="btn btn-sm btn-primary-grad" href="https://wa.me/6287892523968?text=${encodeURIComponent('Halo kak, saya ingin memesan '+p.title)}" target="_blank">Pesan</a>
             </div>
           </div>`;
@@ -2121,6 +2571,7 @@ const products = [
       galleryGrid.innerHTML='';
       if(list.length===0){ galleryGrid.innerHTML='<div class="text-center muted">Produk tidak ditemukan.</div>'; return; }
       list.forEach(p=>{
+        const inCart = cart.some(item => Number(item.id) === Number(p.id));
         const wrap = document.createElement('div'); wrap.className='card-wrap';
         wrap.innerHTML = `
           <div class="product-card">
@@ -2129,8 +2580,9 @@ const products = [
               <div class="product-title">${p.title}</div>
               <div class="product-price">${formatRupiah(p.price)}</div>
               <p class="muted small">${p.desc}</p>
-              <div class="d-flex justify-content-center gap-2 mt-2">
+              <div class="d-flex justify-content-center gap-2 mt-2 flex-wrap">
                 <button class="btn btn-sm btn-outline-secondary view-btn" data-id="${p.id}">Lihat</button>
+                <button class="btn btn-sm btn-outline-secondary add-to-cart-btn ${inCart ? 'added' : ''}" data-pid="${p.id}" onclick="addToCart(${p.id})">${inCart ? '✓ Added' : '+ Cart'}</button>
                 <a class="btn btn-sm btn-primary-grad" href="https://wa.me/6287892523968?text=${encodeURIComponent('Halo Dirac Parfum, saya ingin memesan '+p.title)}" target="_blank">Pesan</a>
               </div>
             </div>
@@ -2552,3 +3004,5 @@ function animateCountersOnce() {
   update(); setInterval(update,1000);
 })();
 </script>
+</body>
+</html>
