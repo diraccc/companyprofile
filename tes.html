@@ -2175,7 +2175,7 @@ const productDescriptions = {
         <div class="checkout-modal-title">Pesanan siap dikirim ke WhatsApp</div>
         <p class="checkout-modal-text">Kode pesanan: <strong id="checkout-order-code">-</strong></p>
         <p class="checkout-modal-text">Total: <strong id="checkout-order-total">-</strong></p>
-        <p class="checkout-modal-note">Klik tombol di bawah untuk otomatis membuka WhatsApp dengan teks yang sudah berisi kode pesanan.</p>
+        <p class="checkout-modal-note">Klik tombol di bawah untuk membuka WhatsApp dengan teks yang sudah berisi kode pesanan.</p>
         <div class="checkout-modal-actions">
           <a class="checkout-wa-btn" id="checkout-wa-btn" href="#" rel="noopener" target="_blank">Kirim ke WhatsApp</a>
           <button class="checkout-close-btn" id="checkout-close-btn" type="button">Tutup</button>
@@ -2281,7 +2281,7 @@ const productDescriptions = {
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 18px;
+    padding: 12px;
   }
   #checkout-modal.open {
     display: flex;
@@ -2289,56 +2289,59 @@ const productDescriptions = {
   .checkout-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.72);
     backdrop-filter: blur(4px);
   }
   .checkout-modal-card {
     position: relative;
-    width: min(520px, 100%);
+    width: min(380px, calc(100vw - 24px));
     background: linear-gradient(180deg, #111827 0%, #0b1220 100%);
     color: #fff;
     border: 1px solid rgba(212,175,55,0.22);
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    border-radius: 16px;
+    padding: 16px 16px 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.52);
     z-index: 1;
   }
   .checkout-modal-title {
     font-family: 'Playfair Display', serif;
-    font-size: 1.5rem;
+    font-size: 1.18rem;
+    line-height: 1.2;
     color: #ffd966;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
   .checkout-modal-text,
   .checkout-modal-note {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     color: #e5e7eb;
-    line-height: 1.55;
+    line-height: 1.45;
+    font-size: .95rem;
   }
   .checkout-modal-note {
     color: #cbd5e1;
-    font-size: .95rem;
-    margin-top: 8px;
+    font-size: .88rem;
+    margin-top: 6px;
   }
   .checkout-modal-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 18px;
+    gap: 8px;
+    margin-top: 14px;
     flex-wrap: wrap;
   }
   .checkout-wa-btn,
   .checkout-close-btn {
-    flex: 1 1 180px;
+    flex: 1 1 150px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 46px;
-    border-radius: 999px;
+    min-height: 40px;
+    border-radius: 14px;
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
     border: none;
-    padding: 0 18px;
+    padding: 0 14px;
+    font-size: .95rem;
   }
   .checkout-wa-btn {
     background: linear-gradient(90deg, #25D366, #12b76a);
@@ -2351,15 +2354,18 @@ const productDescriptions = {
   }
   @media (max-width: 560px) {
     .checkout-modal-card {
-      padding: 20px;
-      border-radius: 16px;
+      width: min(340px, calc(100vw - 20px));
+      padding: 14px;
+      border-radius: 14px;
     }
+    .checkout-modal-title { font-size: 1.08rem; }
     .checkout-modal-actions {
       flex-direction: column;
     }
     .checkout-wa-btn,
     .checkout-close-btn {
       width: 100%;
+      min-height: 38px;
     }
   }
   #cart-sidebar {
