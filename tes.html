@@ -2067,13 +2067,91 @@ const productDescriptions = {
     showToast('🎊 Terima kasih! Pesanan Anda sedang diproses...');
 
     setTimeout(() => {
-      alert(
-        'Terima kasih telah berbelanja di Dirac Parfum!\n\n' +
-        'Total: ' + totalText + '\n\n' +
-        'Silakan hubungi kami via WhatsApp: 0878-9252-3968 untuk konfirmasi pesanan Anda.\n\n' +
-        'Kode Pesanan: ' + orderCode
-      );
+      showCheckoutSuccessModal(totalText, orderCode);
     }, 650);
+  }
+
+  function showCheckoutSuccessModal(totalText, orderCode) {
+    const old = document.getElementById('checkout-success-overlay');
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'checkout-success-overlay';
+    overlay.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'z-index:99999',
+      'background:rgba(0,0,0,.68)',
+      'backdrop-filter:blur(8px)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:20px'
+    ].join(';');
+
+    const modal = document.createElement('div');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'checkout-success-title');
+    modal.style.cssText = [
+      'width:min(520px,100%)',
+      'background:#15161b',
+      'color:#fff',
+      'border:1px solid rgba(255,217,102,.22)',
+      'border-radius:18px',
+      'box-shadow:0 22px 60px rgba(0,0,0,.45)',
+      'padding:24px'
+    ].join(';');
+
+    const waText = encodeURIComponent(
+      'Halo Dirac Parfum, saya sudah checkout dan ingin konfirmasi pesanan saya.\n\n' +
+      'Kode Pesanan: ' + orderCode + '\n' +
+      'Total: ' + totalText + '\n' +
+      'Mohon bantu lanjutkan.'
+    );
+    const waUrl = 'https://wa.me/6287892523968?text=' + waText;
+
+    modal.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px;">
+        <div>
+          <div id="checkout-success-title" style="font-family:var(--ff-display);font-size:1.7rem;line-height:1.1;color:#fff;margin-bottom:6px;">Terima kasih telah berbelanja di Dirac Parfum!</div>
+          <div style="color:#b9beca;font-size:.92rem;">Silakan lanjutkan ke WhatsApp untuk konfirmasi pesanan.</div>
+        </div>
+        <button type="button" aria-label="Tutup" id="checkout-success-close" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:transparent;color:#fff;font-size:20px;line-height:1;">×</button>
+      </div>
+      <div style="padding:16px 0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:18px;">
+        <div style="font-size:.92rem;color:#b9beca;margin-bottom:8px;">Total</div>
+        <div style="font-family:var(--ff-display);font-size:1.5rem;color:#ffd966;margin-bottom:16px;">${totalText}</div>
+        <div style="font-size:.92rem;color:#b9beca;margin-bottom:6px;">Kode Pesanan</div>
+        <div style="font-weight:800;letter-spacing:.08em;color:#fff;">${orderCode}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:13px 18px;border-radius:14px;background:linear-gradient(90deg,#25D366,#128C7E);color:#fff;text-decoration:none;font-weight:800;flex:1 1 220px;">Kirim ke WhatsApp</a>
+        <button type="button" id="checkout-success-ok" style="padding:13px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#1d2028;color:#fff;font-weight:700;flex:1 1 120px;">Tutup</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    const close = () => {
+      overlay.remove();
+      document.body.style.overflow = '';
+    };
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    modal.querySelector('#checkout-success-close').addEventListener('click', close);
+    modal.querySelector('#checkout-success-ok').addEventListener('click', close);
+    window.addEventListener('keydown', function onEsc(e) {
+      if (e.key === 'Escape') {
+        close();
+        window.removeEventListener('keydown', onEsc);
+      }
+    });
   }
 
   function buildCartUI() {
