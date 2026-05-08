@@ -1298,6 +1298,10 @@ It's recommended to generate optimized WebP files and serve them with proper cac
 <button class="btn btn-secondary" onclick="resetForm()" type="button">Reset</button>
 <button class="btn btn-primary" id="submitOrderBtn" type="submit">Kirim ke WhatsApp</button>
 </div>
+<div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+  <button class="btn btn-secondary" onclick="testWA(event)" type="button">TEST WA</button>
+  <span style="color:#dcdcdc;font-size:0.92rem;align-self:center;">Tombol ini untuk cek endpoint /api/send-wa</span>
+</div>
 </form>
 <div id="order-helper" style="margin-top:12px;color:#dcdcdc;font-size:0.92rem">Silakan isi data lengkap. Kami akan menghubungi via WhatsApp untuk konfirmasi stok &amp; ongkir.</div>
 </div>
@@ -2950,6 +2954,50 @@ Terima kasih.`;
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Kirim ke WhatsApp';
+    }
+  }
+}
+
+async function testWA(e){
+  if(e) e.preventDefault();
+
+  const helper = document.getElementById('order-helper');
+  const btn = e && e.currentTarget ? e.currentTarget : null;
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Mengirim...';
+    }
+    if (helper) helper.textContent = 'Menguji endpoint /api/send-wa...';
+
+    const response = await fetch('/api/send-wa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target: '6287892523968',
+        message: 'TEST BERHASIL DARI WEBSITE'
+      })
+    });
+
+    const resultText = await response.text();
+
+    if (response.ok) {
+      if (helper) helper.textContent = 'Test berhasil terkirim ke WhatsApp.';
+      alert('Test berhasil terkirim ke WhatsApp.');
+    } else {
+      if (helper) helper.textContent = 'Test gagal. Lihat Console untuk detail.';
+      alert('Test gagal.');
+      console.log('API response:', resultText);
+    }
+  } catch (err) {
+    if (helper) helper.textContent = 'Terjadi error saat test.';
+    alert('Terjadi error saat test.');
+    console.error(err);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'TEST WA';
     }
   }
 }
