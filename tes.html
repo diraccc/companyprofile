@@ -137,10 +137,10 @@
       --charcoal:  #1a1713;
       --card:      #201d19;
       --card2:     #2a2520;
-      --border:    rgba(59,130,246,0.18);
-      --gold:      #3b82f6;
-      --gold2:     #60a5fa;
-      --gold-muted:#1d4ed8;
+      --border:    rgba(212,168,85,0.18);
+      --gold:      #d4a855;
+      --gold2:     #f0c96a;
+      --gold-muted:#a07a30;
       --cream:     #f5ede0;
       --white:     #fdf8f2;
       --muted:     #8a7a68;
@@ -151,7 +151,7 @@
       --ff-body:   "Montserrat", sans-serif;
       --radius:    6px;
       --shadow:    0 8px 40px rgba(0,0,0,0.6);
-      --glow:      0 0 30px rgba(59,130,246,0.15);
+      --glow:      0 0 30px rgba(212,168,85,0.15);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -204,7 +204,7 @@
       border-radius: 2px;
       margin-right: 4px;
     }
-    .tag-niche    { background: rgba(59,130,246,0.15); color: var(--gold); border: 1px solid rgba(59,130,246,0.3); }
+    .tag-niche    { background: rgba(212,168,85,0.15); color: var(--gold); border: 1px solid rgba(212,168,85,0.3); }
     .tag-designer { background: rgba(200,200,255,0.08); color: #aab4ff; border: 1px solid rgba(170,180,255,0.25); }
     .tag-timteng  { background: rgba(255,165,0,0.1); color: #ffb347; border: 1px solid rgba(255,179,71,0.25); }
     .tag-lokal    { background: rgba(46,204,113,0.1); color: #2ecc71; border: 1px solid rgba(46,204,113,0.25); }
@@ -247,7 +247,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(59,130,246,0.05));
+      background: linear-gradient(135deg, rgba(212,168,85,0.18), rgba(212,168,85,0.05));
       border: 1px solid var(--border);
       color: var(--gold);
       font-size: 0.75rem;
@@ -332,15 +332,15 @@
     .hero-bg {
       position: absolute; inset: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 70% 50%, rgba(59,130,246,0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 80% at 20% 80%, rgba(30,64,175,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 60% at 70% 50%, rgba(212,168,85,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 80% at 20% 80%, rgba(160,122,48,0.06) 0%, transparent 50%),
         linear-gradient(135deg, #080706 0%, #0e0c0a 50%, #1a1410 100%);
     }
     .hero-lines {
       position: absolute; inset: 0;
       background-image:
-        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+        linear-gradient(rgba(212,168,85,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212,168,85,0.04) 1px, transparent 1px);
       background-size: 60px 60px;
     }
     .hero-content {
@@ -393,7 +393,7 @@
       transition: all 0.2s;
       border: 1px solid var(--gold);
     }
-    .btn-primary:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+    .btn-primary:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,168,85,0.3); }
     .btn-outline {
       border: 1px solid var(--border);
       color: var(--cream);
@@ -503,7 +503,7 @@
       color: var(--black);
       border-color: var(--gold);
     }
-    .filter-btn.active-niche { background: rgba(59,130,246,0.15); color: var(--gold); border-color: var(--gold); }
+    .filter-btn.active-niche { background: rgba(212,168,85,0.15); color: var(--gold); border-color: var(--gold); }
     .filter-btn.active-designer { background: rgba(170,180,255,0.15); color: #aab4ff; border-color: #aab4ff; }
     .filter-btn.active-timteng { background: rgba(255,179,71,0.15); color: #ffb347; border-color: #ffb347; }
     .filter-btn.active-lokal { background: rgba(46,204,113,0.15); color: #2ecc71; border-color: #2ecc71; }
@@ -530,7 +530,7 @@
     .product-card:hover {
       transform: translateY(-6px);
       box-shadow: var(--shadow), var(--glow);
-      border-color: rgba(59,130,246,0.4);
+      border-color: rgba(212,168,85,0.4);
     }
 
     @keyframes fadeUp {
@@ -820,7 +820,7 @@
       letter-spacing: 0.08em;
       transition: all 0.2s;
     }
-    .cart-promo button:hover { border-color: var(--gold); background: rgba(59,130,246,0.1); }
+    .cart-promo button:hover { border-color: var(--gold); background: rgba(212,168,85,0.1); }
 
     .btn-checkout {
       width: 100%;
@@ -835,7 +835,7 @@
       transition: all 0.2s;
       margin-top: 4px;
     }
-    .btn-checkout:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.3); }
+    .btn-checkout:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,168,85,0.3); }
     .btn-checkout:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
     .cart-perks {
@@ -897,11 +897,11 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
-    .cat-card:hover { transform: translateY(-4px); border-color: rgba(59,130,246,0.4); }
+    .cat-card:hover { transform: translateY(-4px); border-color: rgba(212,168,85,0.4); }
     .cat-card:hover::before { opacity: 1; }
 
-    .cat-niche { background: linear-gradient(135deg, rgba(59,130,246,0.05) 0%, rgba(30,64,175,0.1) 100%); }
-    .cat-niche::before { background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.08), transparent 70%); }
+    .cat-niche { background: linear-gradient(135deg, rgba(212,168,85,0.05) 0%, rgba(160,122,48,0.1) 100%); }
+    .cat-niche::before { background: radial-gradient(ellipse at 50% 0%, rgba(212,168,85,0.08), transparent 70%); }
     .cat-designer { background: linear-gradient(135deg, rgba(170,180,255,0.05) 0%, rgba(120,130,220,0.08) 100%); }
     .cat-timteng { background: linear-gradient(135deg, rgba(255,179,71,0.05) 0%, rgba(200,120,30,0.08) 100%); }
     .cat-lokal { background: linear-gradient(135deg, rgba(46,204,113,0.05) 0%, rgba(30,150,80,0.08) 100%); }
@@ -1101,8 +1101,8 @@
        PROMO BANNER
     ══════════════════════════════════════════════════ */
     .promo-banner {
-      background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(30,64,175,0.08) 100%);
-      border: 1px solid rgba(59,130,246,0.25);
+      background: linear-gradient(135deg, rgba(212,168,85,0.12) 0%, rgba(160,122,48,0.08) 100%);
+      border: 1px solid rgba(212,168,85,0.25);
       border-radius: 16px;
       padding: 48px 56px;
       display: flex; align-items: center; justify-content: space-between;
@@ -1115,7 +1115,7 @@
       position: absolute; right: 160px; top: 50%;
       transform: translateY(-50%);
       font-size: 8rem;
-      color: rgba(59,130,246,0.05);
+      color: rgba(212,168,85,0.05);
       pointer-events: none;
     }
     .promo-text {}
@@ -1173,78 +1173,8 @@
     }
     .faq-item summary::-webkit-details-marker { display: none; }
     .faq-item[open] {
-      border-color: rgba(59,130,246,0.35);
+      border-color: rgba(212,168,85,0.35);
       box-shadow: var(--glow);
-    }
-
-
-
-    /* ══════════════════════════════════════════════════
-       TESTIMONIAL SLIDER
-    ══════════════════════════════════════════════════ */
-    .testi-slider {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .testi-viewport {
-      overflow: hidden;
-      width: 100%;
-    }
-    .testi-track {
-      display: flex;
-      transition: transform 0.45s ease;
-      will-change: transform;
-    }
-    .testi-slide {
-      min-width: 100%;
-      padding: 6px;
-      box-sizing: border-box;
-    }
-    .testi-card {
-      height: 100%;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px;
-    }
-    .testi-nav {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      color: var(--cream);
-      background: var(--deep);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: all 0.2s;
-      font-size: 1.2rem;
-    }
-    .testi-nav:hover {
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-    .testi-dots {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 22px;
-      flex-wrap: wrap;
-    }
-    .testi-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      background: transparent;
-      padding: 0;
-    }
-    .testi-dot.active {
-      background: var(--gold);
-      border-color: var(--gold);
     }
 
     /* ══════════════════════════════════════════════════
@@ -1363,11 +1293,11 @@
     </div>
     <div class="hero-stats">
       <div>
-        <span class="stat-num">500+</span>
+        <span class="stat-num">44+</span>
         <span class="stat-label">SKU Parfum</span>
       </div>
       <div>
-        <span class="stat-num">40+</span>
+        <span class="stat-num">14+</span>
         <span class="stat-label">Brand Premium</span>
       </div>
       <div>
@@ -1436,25 +1366,25 @@
       <div class="cat-card cat-niche" onclick="filterProducts('niche')" role="button" aria-label="Filter parfum niche" tabindex="0">
         <div class="cat-icon">🔮</div>
         <div class="cat-name">Niche</div>
-        <div class="cat-count">15 Produk pilihan</div>
+        <div class="cat-count">18 Produk pilihan</div>
         <div class="cat-desc">Ciptaan parfumer independen dengan bahan baku langka dan formula unik yang tidak ditemukan di mana-mana.</div>
       </div>
       <div class="cat-card cat-designer" onclick="filterProducts('designer')" role="button" aria-label="Filter parfum designer" tabindex="0">
         <div class="cat-icon">👑</div>
         <div class="cat-name">Designer</div>
-        <div class="cat-count">15 Produk pilihan</div>
+        <div class="cat-count">21 Produk pilihan</div>
         <div class="cat-desc">Maison fashion house ikonik dunia — Chanel, Dior, Tom Ford, Yves Saint Laurent, dan masih banyak lagi.</div>
       </div>
       <div class="cat-card cat-timteng" onclick="filterProducts('timteng')" role="button" aria-label="Filter parfum Timur Tengah" tabindex="0">
         <div class="cat-icon">🕌</div>
         <div class="cat-name">Timur Tengah</div>
-        <div class="cat-count">15 Produk pilihan</div>
+        <div class="cat-count">4 Produk pilihan</div>
         <div class="cat-desc">Oud Arabia murni, attar tradisional, dan campuran musk eksotis dari warisan parfumeri Arab selama berabad-abad.</div>
       </div>
       <div class="cat-card cat-lokal" onclick="filterProducts('lokal')" role="button" aria-label="Filter parfum lokal" tabindex="0">
         <div class="cat-icon">🌿</div>
         <div class="cat-name">Lokal</div>
-        <div class="cat-count">15 Produk pilihan</div>
+        <div class="cat-count">1 Produk pilihan</div>
         <div class="cat-desc">Kebanggaan industri parfum Indonesia — kualitas internasional, bahan lokal premium, harga lebih terjangkau.</div>
       </div>
     </div>
@@ -1562,7 +1492,7 @@
   <div class="container">
     <div class="section-head">
       <p class="section-eyebrow">Our Collection</p>
-      <h2 class="section-title" id="koleksi-title">60 Parfum <em>Pilihan Terbaik</em></h2>
+      <h2 class="section-title" id="koleksi-title">44 Parfum <em>Pilihan Terbaik</em></h2>
       <p class="section-subtitle">Dikurasi untuk menampilkan karakter aroma yang berbeda, sehingga pelanggan bisa langsung membandingkan kategori, notes, dan performa.</p>
     </div>
 
@@ -1608,93 +1538,47 @@
      TESTIMONIALS
 ═══════════════════════════════════════════════════════════ -->
 
-
 <section class="section" id="tentang" aria-labelledby="testi-title">
   <div class="container">
     <div class="section-head">
       <p class="section-eyebrow">Ulasan Pelanggan</p>
-      <h2 class="section-title" id="testi-title">10 Testimoni <em>Pelanggan</em></h2>
-      <p class="section-subtitle">Slider testimoni ini dibuat agar tampilan lebih rapi, modern, dan nyaman dibaca di desktop maupun perangkat mobile.</p>
+      <h2 class="section-title" id="testi-title">Apa Kata <em>Mereka</em></h2>
     </div>
-    <div class="testi-slider">
-      <button class="testi-nav" type="button" id="testi-prev" aria-label="Testimoni sebelumnya">‹</button>
-      <div class="testi-viewport">
-        <div class="testi-track" id="testi-track">
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Creed Aventus yang saya beli 100% ori, sudah cek batch code dan sangat cocok dengan sampel di counter resmi. Pengiriman juga super cepat, besok harinya sudah sampai!"</p>
-              <div class="testi-author"><div class="testi-avatar">👨</div><div><div class="testi-name">Ricky Hermawan</div><div class="testi-city">Jakarta Selatan</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Akhirnya nemu toko yang jual Lattafa Asad dengan harga masuk akal dan packaging mulus. Dirac Group jadi tempat langganan saya untuk koleksi oud Middle East."</p>
-              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Nadia Putri</div><div class="testi-city">Surabaya</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Parfum lokal Jiwa Rimba yang saya order ternyata kualitasnya luar biasa, bahkan lebih dari ekspektasi. Proyeksi kuat dan tahan lama. Bangga produk lokal!"</p>
-              <div class="testi-author"><div class="testi-avatar">🧑</div><div><div class="testi-name">Bimo Santoso</div><div class="testi-city">Bandung</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Tampilan websitenya rapi, pilihan produk jelas, dan proses checkout gampang dipahami. Saya paling suka karena kategori parfum dibagi dengan sangat terstruktur."</p>
-              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Salsa Maharani</div><div class="testi-city">Yogyakarta</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Saya beli Bleu de Chanel dan kualitas packing-nya sangat aman. Admin juga responsif saat saya tanya soal notes dan perbedaan konsentrasi parfum."</p>
-              <div class="testi-author"><div class="testi-avatar">👨</div><div><div class="testi-name">Dimas Pratama</div><div class="testi-city">Jakarta Timur</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Koleksi designer dan niche-nya lengkap, jadi saya bisa cari aroma untuk kerja, hangout, dan acara formal di satu tempat. Sangat membantu."</p>
-              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Aulia Rahma</div><div class="testi-city">Medan</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Khamrah yang saya pesan wanginya rich dan manisnya pas. Harganya juga masuk akal untuk parfum Timur Tengah dengan performa sekuat itu."</p>
-              <div class="testi-author"><div class="testi-avatar">🧔</div><div><div class="testi-name">Fahri Maulana</div><div class="testi-city">Makassar</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Saya suka karena penjelasan notes parfum sangat detail. Jadi lebih mudah pilih parfum sebelum beli tanpa harus tebak-tebakan."</p>
-              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Nabila Safira</div><div class="testi-city">Semarang</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Pelayanannya cepat, produknya jelas, dan tampilannya profesional. Website ini terasa seperti katalog parfum premium yang memang serius dibangun."</p>
-              <div class="testi-author"><div class="testi-avatar">👨</div><div><div class="testi-name">Rendra Wijaya</div><div class="testi-city">Bekasi</div></div></div>
-            </div>
-          </div>
-          <div class="testi-slide">
-            <div class="testi-card">
-              <div class="testi-stars">★★★★★</div>
-              <p class="testi-text">"Saya puas karena bisa menemukan parfum lokal, designer, dan niche sekaligus. Ini bikin saya lebih mudah bandingkan produk dan pilih sesuai budget."</p>
-              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Citra Lestari</div><div class="testi-city">Sidoarjo</div></div></div>
-            </div>
+    <div class="testimonial-grid">
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"Creed Aventus yang saya beli 100% ori, sudah cek batch code dan sangat cocok dengan sampel di counter resmi. Pengiriman juga super cepat, besok harinya sudah sampai!"</p>
+        <div class="testi-author">
+          <div class="testi-avatar">👨</div>
+          <div>
+            <div class="testi-name">Ricky Hermawan</div>
+            <div class="testi-city">Jakarta Selatan</div>
           </div>
         </div>
       </div>
-      <button class="testi-nav" type="button" id="testi-next" aria-label="Testimoni berikutnya">›</button>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"Akhirnya nemu toko yang jual Lattafa Asad dengan harga masuk akal dan packaging mulus. Scentoria now is my go-to untuk koleksi oud Middle East. Thank you!"</p>
+        <div class="testi-author">
+          <div class="testi-avatar">👩</div>
+          <div>
+            <div class="testi-name">Nadia Putri</div>
+            <div class="testi-city">Surabaya</div>
+          </div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"Parfum lokal Jiwa Rimba yang saya order ternyata kualitasnya luar biasa, bahkan lebih dari ekspektasi. Proyeksi kuat dan longevity sampai 12 jam. Bangga produk lokal!"</p>
+        <div class="testi-author">
+          <div class="testi-avatar">🧑</div>
+          <div>
+            <div class="testi-name">Bimo Santoso</div>
+            <div class="testi-city">Bandung</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="testi-dots" id="testi-dots" aria-label="Navigasi testimoni"></div>
   </div>
 </section>
 
@@ -1830,496 +1714,756 @@
 ═══════════════════════════════════════════════════════════ -->
 
 <script>
-/* ══════════════ DATA PRODUK (40 items) ══════════════ */
+/* ══════════════ DATA PRODUK (44 items) ══════════════ */
 const products = [
-  /* ── NICHE (12) ── */
   {
-    id: 1, cat: 'niche', emoji: '🔮',
-    name: 'Aventus', brand: 'Creed', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Bergamot, Blackcurrant · Heart: Birch, Moroccan Jasmine · Base: Musk, Oakmoss, Ambergris',
-    desc: 'Eau de Parfum niche paling ikonik di abad 21. Terinspirasi Napoleon Bonaparte, Aventus menggabungkan kesegaran buah dengan kehangatan kayu dalam harmoni sempurna.',
-    price: 3200000, original: 3800000, rating: 4.9, reviews: 328, badge: null, longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 1,
+    "cat": "timteng",
+    "name": "All Parfum Timteng",
+    "brand": "Dirac Group",
+    "vol": "Bundle",
+    "gender": "Unisex",
+    "notes": "“All Parfum Timteng",
+    "desc": "“All Parfum Timteng",
+    "price": 600000,
+    "img": "all_parfum_timteng.PNG",
+    "badge": "SOLD",
+    "rating": 4.7,
+    "reviews": 122,
+    "longevity": "12–16 jam",
+    "sillage": "Sangat Kuat"
   },
   {
-    id: 2, cat: 'niche', emoji: '🌸',
-    name: 'Baccarat Rouge 540', brand: 'Maison Francis Kurkdjian', vol: '70ml', gender: 'Unisex',
-    notes: 'Top: Saffron, Jasmine · Heart: Amberwood · Base: Fir Resin, Cedar',
-    desc: 'Fragrance fenomenal dengan campuran amber manis dan kayu yang hangat. Longevity luar biasa dan proyeksi yang dapat dirasakan sepanjang hari.',
-    price: 4500000, original: 5200000, rating: 4.8, reviews: 215, badge: 'HOT',
-    longevity: '12–16 jam', sillage: 'Sangat Kuat',
+    "id": 2,
+    "cat": "designer",
+    "name": "All Parfum Designer",
+    "brand": "Dirac Group",
+    "vol": "Bundle",
+    "gender": "Unisex",
+    "notes": "All Parfum Designer",
+    "desc": "All Parfum Designer",
+    "price": 1000000,
+    "img": "all_parfum_desaigner.PNG",
+    "badge": "AVAIBLE",
+    "rating": 4.8,
+    "reviews": 186,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 3, cat: 'niche', emoji: '🌊',
-    name: 'Silver Mountain Water', brand: 'Creed', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Bergamot, Mandarin · Heart: Green Tea, Blackcurrant · Base: Musk, Sandalwood',
-    desc: 'Terinspirasi kemurnian gletser Swiss. Segar, bersih, dan elegan — sempurna untuk iklim tropis Indonesia.',
-    price: 2900000, original: 3400000, rating: 4.7, reviews: 178, badge: null,
-    longevity: '8–12 jam', sillage: 'Sedang',
+    "id": 3,
+    "cat": "lokal",
+    "name": "All Parfum Lokal",
+    "brand": "Dirac Group",
+    "vol": "Bundle",
+    "gender": "Unisex",
+    "notes": "All Parfum Lokal",
+    "desc": "All Parfum Lokal",
+    "price": 250000,
+    "img": "all_parfum_lokal.PNG",
+    "badge": "DAILY",
+    "rating": 4.8,
+    "reviews": 96,
+    "longevity": "6–10 jam",
+    "sillage": "Sedang"
   },
   {
-    id: 4, cat: 'niche', emoji: '🌹',
-    name: 'Portrait of a Lady', brand: 'Frédéric Malle', vol: '50ml', gender: 'Wanita',
-    notes: 'Top: Blackcurrant, Raspberry · Heart: Turkish Rose, Patchouli · Base: Sandalwood, Musk',
-    desc: 'Karya masterpiece Dominique Ropion. Rose yang intens berpadu patchouli — sebuah potret wanita modern yang percaya diri dan berani.',
-    price: 3800000, original: 4200000, rating: 4.9, reviews: 142, badge: 'NEW',
-    longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 4,
+    "cat": "niche",
+    "name": "All Parfum Niche",
+    "brand": "Dirac Group",
+    "vol": "Bundle",
+    "gender": "Unisex",
+    "notes": "All Parfum Niche",
+    "desc": "All Parfum Niche",
+    "price": 1000000,
+    "img": "all_parfum_niche.PNG",
+    "badge": "DAILY",
+    "rating": 4.9,
+    "reviews": 256,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 5, cat: 'niche', emoji: '🌙',
-    name: 'Grand Soir', brand: 'Maison Francis Kurkdjian', vol: '70ml', gender: 'Unisex',
-    notes: 'Top: Bergamot · Heart: Amberwood · Base: Tonka Bean, Musk',
-    desc: 'Amber oriental yang hangat dan mewah. Grand Soir adalah pernyataan keanggunan malam — ideal untuk acara formal dan evening wear.',
-    price: 3600000, original: 4100000, rating: 4.7, reviews: 98, badge: null,
-    longevity: '12–18 jam', sillage: 'Kuat',
+    "id": 5,
+    "cat": "niche",
+    "name": "Botol Kosong Niche",
+    "brand": "Dirac Group",
+    "vol": "Display",
+    "gender": "Unisex",
+    "notes": "Botol Kosong Niche",
+    "desc": "Botol Kosong Niche",
+    "price": 1000000000000,
+    "img": "botol_kosong_niche.JPEG",
+    "badge": "DAILY",
+    "rating": 4.9,
+    "reviews": 260,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 6, cat: 'niche', emoji: '🍋',
-    name: "L'Eau d'Issey Pour Homme Intense", brand: 'Issey Miyake Niche Edition', vol: '125ml', gender: 'Pria',
-    notes: 'Top: Yuzu, Mandarin · Heart: Vetiver, Spices · Base: Leather, Tonka Bean',
-    desc: 'Versi intense dari klasik yang dikenal. Lebih dalam, lebih hangat, dan lebih kompleks — untuk pria yang mengerti parfum.',
-    price: 1850000, original: 2200000, rating: 4.6, reviews: 201, badge: null,
-    longevity: '8–10 jam', sillage: 'Sedang–Kuat',
+    "id": 6,
+    "cat": "niche",
+    "name": "Louis Voitton Imagination 100 ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Louis Voitton Imagination 100 ml",
+    "desc": "Louis Voitton Imagination 100 ml",
+    "price": 6200000,
+    "img": "produk6.PNG",
+    "badge": "DAILY",
+    "rating": 4.9,
+    "reviews": 264,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 7, cat: 'niche', emoji: '🔴',
-    name: 'Sanguine', brand: 'Memo Paris', vol: '75ml', gender: 'Unisex',
-    notes: 'Top: Blood Orange, Grapefruit · Heart: Rose, Neroli · Base: White Musk, Cedar',
-    desc: 'Keceriaan sitrus darah Mediterania yang berpadu floral putih bersih. Ringan namun meninggalkan kesan mendalam.',
-    price: 2750000, original: 3200000, rating: 4.5, reviews: 67, badge: null,
-    longevity: '6–8 jam', sillage: 'Sedang',
+    "id": 7,
+    "cat": "niche",
+    "name": "Xerjoff Torino 21 100 ml",
+    "brand": "Xerjoff",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Xerjoff Torino 21 100 ml",
+    "desc": "Xerjoff Torino 21 100 ml",
+    "price": 7500000,
+    "img": "produk7.PNG",
+    "badge": "SPECIAL",
+    "rating": 4.9,
+    "reviews": 268,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 8, cat: 'niche', emoji: '🌿',
-    name: 'Vetiver Extraordinaire', brand: 'Frédéric Malle', vol: '50ml', gender: 'Pria/Unisex',
-    notes: 'Top: Citrus · Heart: Vetiver, Smoke · Base: Leather, Oakmoss',
-    desc: 'Vetiver yang paling megah pernah dibotolkan. Smoky, earthy, maskulin — untuk jiwa yang bebas dan mandiri.',
-    price: 3200000, original: 3700000, rating: 4.6, reviews: 54, badge: null,
-    longevity: '10–12 jam', sillage: 'Kuat',
+    "id": 8,
+    "cat": "designer",
+    "name": "Yves Saint Laurend Myself 100 ml",
+    "brand": "Yves Saint Laurent",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Yves Saint Laurend Myself 100 ml",
+    "desc": "Yves Saint Laurend Myself 100 ml",
+    "price": 1650000,
+    "img": "produk8.PNG",
+    "badge": "DAILY",
+    "rating": 4.8,
+    "reviews": 204,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 9, cat: 'niche', emoji: '🍯',
-    name: 'Honey Oud', brand: 'Nishane', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Honey, Saffron · Heart: Oud, Rose · Base: Amber, Sandalwood',
-    desc: 'Perpaduan madu dan oud yang menggiurkan dari Istanbul. Manis, eksotis, dan tak terlupakan.',
-    price: 2900000, original: 3300000, rating: 4.7, reviews: 89, badge: null,
-    longevity: '12–16 jam', sillage: 'Kuat',
+    "id": 9,
+    "cat": "niche",
+    "name": "Xerjoff Erba Pura 100 ml",
+    "brand": "Xerjoff",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Xerjoff Erba Pura 100 ml",
+    "desc": "Xerjoff Erba Pura 100 ml",
+    "price": 4500000,
+    "img": "produk9.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 276,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 10, cat: 'niche', emoji: '⚡',
-    name: 'Ani', brand: 'Nishane', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Bergamot, Cardamom · Heart: Iris, Violet · Base: Vetiver, Cedar, Musk',
-    desc: 'Vetiver-iris yang modern dan avant-garde. Nama berarti "ibu" dalam bahasa Turki — melambangkan kekuatan lembut yang abadi.',
-    price: 2400000, original: 2800000, rating: 4.5, reviews: 45, badge: 'NEW',
-    longevity: '8–12 jam', sillage: 'Sedang',
+    "id": 10,
+    "cat": "designer",
+    "name": "Jean Paul Gaultier Le Male Elixir 125 ml",
+    "brand": "Jean Paul Gaultier",
+    "vol": "125 ml",
+    "gender": "Pria",
+    "notes": "Jean Paul Gaultier Le Male Elixir 125 ml",
+    "desc": "Jean Paul Gaultier Le Male Elixir 125 ml",
+    "price": 1600000,
+    "img": "produk10.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 210,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 11, cat: 'niche', emoji: '🌺',
-    name: 'Flower Bomb Midnight', brand: 'Viktor & Rolf Niche', vol: '90ml', gender: 'Wanita',
-    notes: 'Top: Bergamot, Green Tea · Heart: Peony, Orchid · Base: Musk, Patchouli',
-    desc: 'Versi malam yang lebih intens dan sensual dari Flowerbomb klasik. Floral oriental yang deep dan romantis.',
-    price: 2200000, original: 2600000, rating: 4.6, reviews: 134, badge: null,
-    longevity: '8–12 jam', sillage: 'Kuat',
+    "id": 11,
+    "cat": "designer",
+    "name": "Yves Saint Laurend Y Edp 100 ml",
+    "brand": "Yves Saint Laurent",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Yves Saint Laurend Y Edp 100 ml",
+    "desc": "Yves Saint Laurend Y Edp 100 ml",
+    "price": 1850000,
+    "img": "produk11.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 213,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 12, cat: 'niche', emoji: '🪵',
-    name: 'Oud Satin Mood', brand: 'Maison Francis Kurkdjian', vol: '70ml', gender: 'Unisex',
-    notes: 'Top: Rose · Heart: Oud, Violet · Base: Vanilla, Benzoin',
-    desc: 'Oud paling elegan dari MFK. Sensual, plush, dan mewah laksana beludru sutra — untuk momen spesial yang tak terlupakan.',
-    price: 4800000, original: 5500000, rating: 4.9, reviews: 76, badge: 'HOT',
-    longevity: '14–18 jam', sillage: 'Sangat Kuat',
-  },
-
-  /* ── DESIGNER (10) ── */
-  {
-    id: 13, cat: 'designer', emoji: '👑',
-    name: 'Black Orchid', brand: 'Tom Ford', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Truffle, Bergamot · Heart: Black Orchid, Spice · Base: Patchouli, Sandalwood, Vetiver',
-    desc: 'Ikonik dan provokatif. Black Orchid adalah maha-karya Tom Ford — gelap, sensual, dan menghipnotis.',
-    price: 2800000, original: 3300000, rating: 4.8, reviews: 412, badge: null,
-    longevity: '10–14 jam', sillage: 'Kuat',
-  },
-  {
-    id: 14, cat: 'designer', emoji: '💙',
-    name: 'Bleu de Chanel EDP', brand: 'Chanel', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Lemon, Grapefruit · Heart: Ginger, Nutmeg · Base: Cedar, Labdanum, Sandalwood',
-    desc: 'Simbol kemerdekaan maskulin. Bleu de Chanel EDP lebih kaya dan woody dibanding pendahulunya, cocok untuk semua kesempatan.',
-    price: 2500000, original: 3000000, rating: 4.8, reviews: 562, badge: null,
-    longevity: '8–12 jam', sillage: 'Sedang–Kuat',
+    "id": 12,
+    "cat": "niche",
+    "name": "Louis Voitton Symphony 100 ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Louis Voitton Symphony 100 ml",
+    "desc": "Louis Voitton Symphony 100 ml",
+    "price": 10200000,
+    "img": "produk12.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 288,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 15, cat: 'designer', emoji: '🌸',
-    name: 'Miss Dior Blooming Bouquet', brand: 'Dior', vol: '100ml', gender: 'Wanita',
-    notes: 'Top: Sicilian Mandarin · Heart: Peony, Rose · Base: White Musk',
-    desc: 'Segar, feminim, dan penuh kegembiraan. Miss Dior Blooming adalah simbol kecantikan Prancis yang timeless.',
-    price: 2200000, original: 2600000, rating: 4.7, reviews: 389, badge: null,
-    longevity: '6–8 jam', sillage: 'Sedang',
+    "id": 13,
+    "cat": "designer",
+    "name": "Jean Paul Gaultier Le Male Parfum 125 ml",
+    "brand": "Jean Paul Gaultier",
+    "vol": "125 ml",
+    "gender": "Pria",
+    "notes": "Jean Paul Gaultier Le Male Parfum 125 ml",
+    "desc": "Jean Paul Gaultier Le Male Parfum 125 ml",
+    "price": 1600000,
+    "img": "produk13.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 219,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 16, cat: 'designer', emoji: '🖤',
-    name: 'Ombre Leather', brand: 'Tom Ford', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Cardamom, Chili Pepper · Heart: Leather, Jasmine · Base: Patchouli, Amber, Vetiver',
-    desc: 'Kulit mentah yang dipertemukan dengan floral misterius. Ombre Leather adalah ekspresi kejantanan dan androgini.',
-    price: 2650000, original: 3100000, rating: 4.7, reviews: 234, badge: null,
-    longevity: '10–12 jam', sillage: 'Kuat',
+    "id": 14,
+    "cat": "niche",
+    "name": "Nishane Wulong Cha 100 ml",
+    "brand": "Nishane",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Nishane Wulong Cha 100 ml",
+    "desc": "Nishane Wulong Cha 100 ml",
+    "price": 3200000,
+    "img": "produk14.PNG",
+    "badge": "DAILY",
+    "rating": 4.9,
+    "reviews": 296,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 17, cat: 'designer', emoji: '🌊',
-    name: 'Sauvage EDP', brand: 'Dior', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Bergamot · Heart: Sichuan Pepper, Lavender · Base: Ambroxan, Vetiver, Patchouli',
-    desc: 'Parfum pria terlaris di dunia. Sauvage EDP lebih dalam dan hangat dengan ambroxan yang kuat dan tahan lama.',
-    price: 2300000, original: 2750000, rating: 4.9, reviews: 721, badge: 'HOT',
-    longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 15,
+    "cat": "designer",
+    "name": "Yves Saint Laurend Libre 90 ml",
+    "brand": "Yves Saint Laurent",
+    "vol": "90 ml",
+    "gender": "Wanita",
+    "notes": "Yves Saint Laurend Libre 90 ml",
+    "desc": "Yves Saint Laurend Libre 90 ml",
+    "price": 1800000,
+    "img": "produk15.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 225,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 18, cat: 'designer', emoji: '✨',
-    name: 'N°5 Eau de Parfum', brand: 'Chanel', vol: '50ml', gender: 'Wanita',
-    notes: 'Top: Aldehydes, Ylang-Ylang · Heart: Rose, Jasmine · Base: Sandalwood, Vetiver',
-    desc: 'Parfum paling terkenal di dunia sejak 1921. Chanel N°5 tetap relevan dan mewah melampaui zaman.',
-    price: 2800000, original: 3200000, rating: 4.9, reviews: 503, badge: null,
-    longevity: '8–12 jam', sillage: 'Kuat',
+    "id": 16,
+    "cat": "designer",
+    "name": "Dior Sauvage 100 ml",
+    "brand": "Dior",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Dior Sauvage 100 ml",
+    "desc": "Dior Sauvage 100 ml",
+    "price": 2800000,
+    "img": "produk16.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 228,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 19, cat: 'designer', emoji: '🏔️',
-    name: 'Y EDP', brand: 'Yves Saint Laurent', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Bergamot, Ginger · Heart: Sage, Juniper · Base: Cedar, Amberwood',
-    desc: 'Energi pemuda modern. Y EDP adalah manifesto generasi baru — segar, woody, dan ambisius.',
-    price: 1900000, original: 2300000, rating: 4.7, reviews: 318, badge: null,
-    longevity: '8–10 jam', sillage: 'Sedang–Kuat',
+    "id": 17,
+    "cat": "designer",
+    "name": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml",
+    "brand": "Jean Paul Gaultier",
+    "vol": "125 ml",
+    "gender": "Pria",
+    "notes": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml",
+    "desc": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml",
+    "price": 1600000,
+    "img": "produk1.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 231,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 20, cat: 'designer', emoji: '🌷',
-    name: 'La Vie Est Belle', brand: 'Lancôme', vol: '100ml', gender: 'Wanita',
-    notes: 'Top: Blackcurrant, Pear · Heart: Iris, Jasmine, Orange Blossom · Base: Patchouli, Vanilla, Sandalwood',
-    desc: 'Perayaan keindahan hidup. La Vie Est Belle adalah gourmand floral yang memanjakan dan optimistis.',
-    price: 1850000, original: 2200000, rating: 4.7, reviews: 445, badge: null,
-    longevity: '8–10 jam', sillage: 'Sedang',
+    "id": 18,
+    "cat": "designer",
+    "name": "Stronger With You Intensely 100 ml",
+    "brand": "Emporio Armani",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Stronger With You Intensely 100 ml",
+    "desc": "Stronger With You Intensely 100 ml",
+    "price": 1600000,
+    "img": "produk2.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 234,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 21, cat: 'designer', emoji: '🟡',
-    name: 'Guilty Pour Homme', brand: 'Gucci', vol: '90ml', gender: 'Pria',
-    notes: 'Top: Lemon, Pink Pepper · Heart: Orange Blossom, Lavender · Base: Cedar, Patchouli, Ambertree',
-    desc: 'Kemewahan Italia dalam sebotol. Guilty Pour Homme memancarkan kepercayaan diri maskulin dengan sentuhan modern.',
-    price: 1750000, original: 2100000, rating: 4.5, reviews: 178, badge: null,
-    longevity: '6–8 jam', sillage: 'Sedang',
+    "id": 19,
+    "cat": "designer",
+    "name": "Stronger With You Parfum 100 ml",
+    "brand": "Emporio Armani",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Stronger With You Parfum 100 ml",
+    "desc": "Stronger With You Parfum 100 ml",
+    "price": 2500000,
+    "img": "produk3.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 237,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 22, cat: 'designer', emoji: '💎',
-    name: 'Libre EDP', brand: 'Yves Saint Laurent', vol: '90ml', gender: 'Wanita',
-    notes: 'Top: Mandarin, Lavender · Heart: Orange Blossom, Jasmine · Base: Vanilla, Musk, Cedarwood',
-    desc: 'Kebebasan feminin yang berani. Libre EDP perpaduan lavender maskulin dengan vanilla feminin yang paradoks namun menawan.',
-    price: 2100000, original: 2500000, rating: 4.8, reviews: 267, badge: 'NEW',
-    longevity: '8–12 jam', sillage: 'Kuat',
-  },
-
-  /* ── TIMUR TENGAH (10) ── */
-  {
-    id: 23, cat: 'timteng', emoji: '🕌',
-    name: 'Asad', brand: 'Lattafa', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Bergamot, Cardamom · Heart: Oud, Cedarwood · Base: Musk, Amber',
-    desc: 'Singa dalam botol. Asad adalah klon mewah dari niche ternama dengan performa luar biasa di harga yang sangat terjangkau.',
-    price: 650000, original: 850000, rating: 4.8, reviews: 892, badge: 'HOT',
-    longevity: '12–16 jam', sillage: 'Sangat Kuat',
-  },
-  {
-    id: 24, cat: 'timteng', emoji: '🌹',
-    name: 'Perfume 24', brand: 'Ajmal', vol: '75ml', gender: 'Unisex',
-    notes: 'Top: Rose, Saffron · Heart: Oud, Amber · Base: Musk, Sandalwood',
-    desc: 'Warisan parfumeri Arab selama 70 tahun. Ajmal Perfume 24 menggabungkan rose Turki dan oud premium dalam satu komposisi elegan.',
-    price: 890000, original: 1100000, rating: 4.7, reviews: 356, badge: null,
-    longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 20,
+    "cat": "niche",
+    "name": "Louis Voitton City Of Stars 100ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Louis Voitton City Of Stars 100ml",
+    "desc": "Louis Voitton City Of Stars 100ml",
+    "price": 5500000,
+    "img": "produk4.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 320,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 25, cat: 'timteng', emoji: '💛',
-    name: 'Oud Wood Intense', brand: 'Arabian Oud', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Saffron, Rose · Heart: Oud, Amber · Base: Sandalwood, Musk, Vanilla',
-    desc: 'Arabian Oud adalah rumah parfum kerajaan Saudi Arabia. Oud Wood Intense membawa kedalaman oud Cambodia yang autentik.',
-    price: 1450000, original: 1800000, rating: 4.8, reviews: 189, badge: null,
-    longevity: '14–20 jam', sillage: 'Sangat Kuat',
+    "id": 21,
+    "cat": "niche",
+    "name": "Louis Voitton Meteore 100ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Louis Voitton Meteore 100ml",
+    "desc": "Louis Voitton Meteore 100ml",
+    "price": 6500000,
+    "img": "produk5.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 324,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 26, cat: 'timteng', emoji: '🟤',
-    name: 'Dehn El Oud Cambodi', brand: 'Rasasi', vol: '6ml Attar', gender: 'Unisex',
-    notes: 'Pure Oud Cambodia',
-    desc: 'Attar murni oud Cambodia Grade A. Satu tetes cukup untuk seharian penuh. Aroma kayu yang hangat, smoky, dan animalic.',
-    price: 750000, original: 950000, rating: 4.9, reviews: 234, badge: null,
-    longevity: '24+ jam', sillage: 'Sangat Kuat',
+    "id": 22,
+    "cat": "designer",
+    "name": "Jean Paul Gaultier Le Male Elixir Absolu 125ml",
+    "brand": "Jean Paul Gaultier",
+    "vol": "125 ml",
+    "gender": "Pria",
+    "notes": "Jean Paul Gaultier Le Male Elixir Absolu 125ml",
+    "desc": "Jean Paul Gaultier Le Male Elixir Absolu 125ml",
+    "price": 1800000,
+    "img": "produk18.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 246,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 27, cat: 'timteng', emoji: '🔶',
-    name: 'Hawas', brand: 'Rasasi', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Spearmint, Bergamot · Heart: Oakmoss, Driftwood · Base: Amber, White Musk',
-    desc: 'Klon premium dari niche terkenal dengan harga bersahabat. Hawas segar, maskulin, dan powerful — ideal untuk iklim panas.',
-    price: 580000, original: 720000, rating: 4.7, reviews: 541, badge: null,
-    longevity: '10–12 jam', sillage: 'Kuat',
+    "id": 23,
+    "cat": "niche",
+    "name": "Nishane Hacivat",
+    "brand": "Nishane",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Nishane Hacivat",
+    "desc": "Nishane Hacivat",
+    "price": 3100000,
+    "img": "produk19.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 332,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 28, cat: 'timteng', emoji: '🌙',
-    name: 'Ameer Al Oud', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Saffron · Heart: Oud, Rose · Base: Amber, Musk, Patchouli',
-    desc: 'Pangeran oud yang megah. Ameer Al Oud menggabungkan saffron berharga dengan oud berkualitas tinggi dalam komposisi oriental mewah.',
-    price: 720000, original: 900000, rating: 4.8, reviews: 378, badge: null,
-    longevity: '12–16 jam', sillage: 'Kuat',
+    "id": 24,
+    "cat": "designer",
+    "name": "Versace Eros Flame 200ml",
+    "brand": "Versace",
+    "vol": "200 ml",
+    "gender": "Pria",
+    "notes": "Versace Eros Flame 200ml",
+    "desc": "Versace Eros Flame 200ml",
+    "price": 2200000,
+    "img": "produk20.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 252,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 29, cat: 'timteng', emoji: '🌟',
-    name: 'Oud 24 Hours', brand: 'Oud Elite', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Bergamot, Saffron · Heart: Oud, Rose, Jasmine · Base: Amber, Sandalwood, Musk',
-    desc: 'Seperti namanya, longevity monster yang menemani Anda seharian penuh. Sillage besar dan kompleksitas yang berkembang indah di kulit.',
-    price: 980000, original: 1250000, rating: 4.9, reviews: 167, badge: 'NEW',
-    longevity: '20–24+ jam', sillage: 'Sangat Kuat',
+    "id": 25,
+    "cat": "niche",
+    "name": "Xerjoff Renaissance 100ml",
+    "brand": "Xerjoff",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Xerjoff Renaissance 100ml",
+    "desc": "Xerjoff Renaissance 100ml",
+    "price": 3200000,
+    "img": "produk21.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 340,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 30, cat: 'timteng', emoji: '🌺',
-    name: 'Rose Musk', brand: 'Ajmal', vol: '50ml', gender: 'Wanita',
-    notes: 'Top: Rose · Heart: Bulgarian Rose, White Musk · Base: Sandalwood',
-    desc: 'Keanggunan mawar dalam format musk yang bersih dan segar. Rose Musk Ajmal adalah wewangian harian yang lemah lembut namun tak terlupakan.',
-    price: 450000, original: 580000, rating: 4.6, reviews: 298, badge: null,
-    longevity: '6–10 jam', sillage: 'Sedang',
+    "id": 26,
+    "cat": "designer",
+    "name": "Valentino Uomo Born In Roma 100ml",
+    "brand": "Valentino",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Valentino Uomo Born In Roma 100ml",
+    "desc": "Valentino Uomo Born In Roma 100ml",
+    "price": 2200000,
+    "img": "produk22.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 258,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 31, cat: 'timteng', emoji: '⚗️',
-    name: 'Khamrah', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Saffron · Heart: Rose, Oud · Base: Vanilla, Amber, Musk',
-    desc: 'Gourmand oriental yang memabukkan. Khamrah adalah perpaduan saffron dan vanilla yang manis dengan oud yang sensual.',
-    price: 620000, original: 800000, rating: 4.8, reviews: 456, badge: 'HOT',
-    longevity: '12–18 jam', sillage: 'Sangat Kuat',
+    "id": 27,
+    "cat": "designer",
+    "name": "Acqua Di Gio 100ml",
+    "brand": "Giorgio Armani",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Acqua Di Gio 100ml",
+    "desc": "Acqua Di Gio 100ml",
+    "price": 1860000,
+    "img": "produk23.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 261,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 32, cat: 'timteng', emoji: '🏜️',
-    name: 'Desert Rose', brand: 'Swiss Arabian', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Violet, Lemon · Heart: Rose, Jasmine · Base: Musk, Sandalwood, Amber',
-    desc: 'Swiss Arabian — kolaborasi presisi Swiss dengan jiwa Arab. Desert Rose adalah ode untuk bunga di tengah padang pasir.',
-    price: 780000, original: 980000, rating: 4.6, reviews: 134, badge: null,
-    longevity: '8–12 jam', sillage: 'Kuat',
-  },
-
-  /* ── LOKAL (8) ── */
-  {
-    id: 33, cat: 'lokal', emoji: '🌿',
-    name: 'Jiwa Rimba', brand: 'Aromatica Indonesia', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Petrichor, Fern · Heart: Indonesian Oud, Vetiver · Base: Benzoin, Patchouli',
-    desc: 'Terinspirasi hutan hujan tropis Kalimantan. Jiwa Rimba menggunakan bahan lokal premium seperti oud Kalimantan dan vetiver Jawa.',
-    price: 480000, original: 580000, rating: 4.8, reviews: 312, badge: 'HOT',
-    longevity: '8–12 jam', sillage: 'Kuat',
-  },
-  {
-    id: 34, cat: 'lokal', emoji: '🌴',
-    name: 'Nusantara EDP', brand: 'Tanah Air Parfums', vol: '60ml', gender: 'Unisex',
-    notes: 'Top: Coconut, Ylang-Ylang · Heart: Jasmine Sambac, Tuberose · Base: Sandalwood, Patchouli',
-    desc: 'Keindahan kepulauan Indonesia dalam sebuah botol. Jasmine Sambac (melati) khas Indonesia berpadu sandalwood Timor yang hangat.',
-    price: 395000, original: 480000, rating: 4.7, reviews: 245, badge: null,
-    longevity: '6–10 jam', sillage: 'Sedang–Kuat',
+    "id": 28,
+    "cat": "niche",
+    "name": "Nishane Ani X",
+    "brand": "Nishane",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Nishane Ani X",
+    "desc": "Nishane Ani X",
+    "price": 3500000,
+    "img": "produk24.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 352,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 35, cat: 'lokal', emoji: '🌾',
-    name: 'Rempah Nusantara', brand: 'Spice Route Indonesia', vol: '75ml', gender: 'Unisex',
-    notes: 'Top: Clove, Nutmeg, Cinnamon · Heart: Indonesian Benzoin, Amber · Base: Sandalwood, Musk',
-    desc: 'Aroma jalur rempah legendaris Indonesia. Cengkeh Maluku, pala Banda, dan kayu manis Ceylon diharmonisasikan dengan elegan.',
-    price: 420000, original: 520000, rating: 4.8, reviews: 198, badge: null,
-    longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 29,
+    "cat": "designer",
+    "name": "Jean Paul Gaultier Le Beau 125ml",
+    "brand": "Jean Paul Gaultier",
+    "vol": "125 ml",
+    "gender": "Pria",
+    "notes": "Jean Paul Gaultier Le Beau 125ml",
+    "desc": "Jean Paul Gaultier Le Beau 125ml",
+    "price": 1500000,
+    "img": "produk25.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 267,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 36, cat: 'lokal', emoji: '🌸',
-    name: 'Melati Suci', brand: 'Puspa Nusantara', vol: '60ml', gender: 'Wanita',
-    notes: 'Top: Green Notes · Heart: Jasmine Sambac, Gardenia · Base: White Musk, Cedarwood',
-    desc: 'Bunga nasional Indonesia dalam wujud eau de parfum murni. Jasmine Sambac pilihan diformulasikan oleh master parfumer lokal.',
-    price: 350000, original: 430000, rating: 4.7, reviews: 289, badge: null,
-    longevity: '6–8 jam', sillage: 'Sedang',
+    "id": 30,
+    "cat": "designer",
+    "name": "Giorgio Armani Code Edp 75ml",
+    "brand": "Giorgio Armani",
+    "vol": "75 ml",
+    "gender": "Pria",
+    "notes": "Giorgio Armani Code Edp 75ml",
+    "desc": "Giorgio Armani Code Edp 75ml",
+    "price": 1500000,
+    "img": "produk26.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 270,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 37, cat: 'lokal', emoji: '🌊',
-    name: 'Samudra', brand: 'Nusa Fragrance', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Sea Breeze, Bergamot · Heart: Driftwood, Indonesian Vetiver · Base: Ambergris, Musk',
-    desc: 'Kesegaran laut Nusantara. Samudra terinspirasi angin laut Indonesia Timur — maskulin, segar, dan bebas.',
-    price: 460000, original: 560000, rating: 4.6, reviews: 176, badge: 'NEW',
-    longevity: '6–10 jam', sillage: 'Sedang',
+    "id": 31,
+    "cat": "designer",
+    "name": "Versace Eros Energy 100ml",
+    "brand": "Versace",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Versace Eros Energy 100ml",
+    "desc": "Versace Eros Energy 100ml",
+    "price": 1500000,
+    "img": "produk27.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 273,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 38, cat: 'lokal', emoji: '☕',
-    name: 'Kopi Luwak Accord', brand: 'Archipelago Scents', vol: '50ml', gender: 'Unisex',
-    notes: 'Top: Coffee, Cardamom · Heart: Dark Chocolate, Indonesian Tobacco · Base: Vanilla, Oud',
-    desc: 'Kopi luwak paling mahal di dunia bertransformasi menjadi parfum eksklusif. Gourmand Indonesia yang unik dan berani.',
-    price: 510000, original: 620000, rating: 4.9, reviews: 143, badge: null,
-    longevity: '8–12 jam', sillage: 'Kuat',
+    "id": 32,
+    "cat": "designer",
+    "name": "Versace Eros 100ml",
+    "brand": "Versace",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Versace Eros 100ml",
+    "desc": "Versace Eros 100ml",
+    "price": 1500000,
+    "img": "produk28.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 276,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 39, cat: 'lokal', emoji: '🌺',
-    name: 'Raja Wangi', brand: 'Keraton Parfums', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Bergamot, Spice · Heart: Indonesian Oud, Rose · Base: Amber, Sandalwood, Musk',
-    desc: 'Terinspirasi wewangian keraton Jawa yang agung. Bahan-bahan pilihan kualitas ekspor dalam formula premium.',
-    price: 550000, original: 680000, rating: 4.8, reviews: 221, badge: null,
-    longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 33,
+    "cat": "niche",
+    "name": "Xerjoff Naxos 100ml",
+    "brand": "Xerjoff",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Xerjoff Naxos 100ml",
+    "desc": "Xerjoff Naxos 100ml",
+    "price": 5350000,
+    "img": "produk29.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 372,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 40, cat: 'lokal', emoji: '💚',
-    name: 'Daun Sirih Gold', brand: 'Jamu Fragrance Co.', vol: '60ml', gender: 'Unisex',
-    notes: 'Top: Sirih Leaf, Green Tea · Heart: White Ginger, Pandan · Base: Sandalwood, Musk',
-    desc: 'Inovasi parfum berbasis tanaman herbal Indonesia. Sirih, jahe putih, dan pandan diformulasikan dengan teknik parfumeri modern Prancis.',
-    price: 390000, original: 480000, rating: 4.7, reviews: 167, badge: null,
-    longevity: '6–10 jam', sillage: 'Sedang',
-  },
-  /* ── EXTRA PRODUCTS (20) ── */
-  {
-    id: 41, cat: 'niche', emoji: '🌿',
-    name: 'Reflection Man', brand: 'Amouage', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Rosemary, Pink Pepper · Heart: Neroli, Jasmine · Base: Sandalwood, Cedarwood',
-    desc: 'Aroma bersih, elegan, dan berkelas dengan sentuhan floral woody yang halus. Cocok untuk tampilan profesional dan rapi.',
-    price: 4100000, original: 4700000, rating: 4.8, reviews: 121, badge: null,
-    longevity: '8–12 jam', sillage: 'Sedang–Kuat',
-  },
-  {
-    id: 42, cat: 'niche', emoji: '🕯️',
-    name: 'Interlude Man', brand: 'Amouage', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Oregano, Bergamot · Heart: Opoponax, Amber · Base: Leather, Oud, Sandalwood',
-    desc: 'Salah satu parfum paling berani dan megah dalam dunia niche. Smoky, resinous, dan sangat berkarakter.',
-    price: 4300000, original: 4950000, rating: 4.9, reviews: 104, badge: 'HOT',
-    longevity: '12–18 jam', sillage: 'Sangat Kuat',
+    "id": 34,
+    "cat": "timteng",
+    "name": "Rasasi Hawas Black 100ml",
+    "brand": "Rasasi",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Rasasi Hawas Black100ml",
+    "desc": "Rasasi Hawas Black100ml",
+    "price": 750000,
+    "img": "produk30.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.7,
+    "reviews": 188,
+    "longevity": "12–16 jam",
+    "sillage": "Sangat Kuat"
   },
   {
-    id: 43, cat: 'niche', emoji: '💎',
-    name: 'Oud for Greatness', brand: 'Initio Parfums', vol: '90ml', gender: 'Unisex',
-    notes: 'Top: Saffron, Nutmeg · Heart: Lavender, Oud · Base: Patchouli, Musk',
-    desc: 'Oud modern yang mewah, dalam, dan menonjol. Karakternya kuat, premium, dan mudah dikenali dari jauh.',
-    price: 5200000, original: 5900000, rating: 4.9, reviews: 156, badge: 'NEW',
-    longevity: '12–16 jam', sillage: 'Sangat Kuat',
+    "id": 35,
+    "cat": "designer",
+    "name": "Blue De Chanel Edp 100ml",
+    "brand": "Chanel",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Blue De Chanel Edp 100ml",
+    "desc": "Blue De Chanel Edp 100ml",
+    "price": 4000000,
+    "img": "produk31.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 285,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 44, cat: 'niche', emoji: '🌸',
-    name: 'Delina', brand: 'Parfums de Marly', vol: '75ml', gender: 'Wanita',
-    notes: 'Top: Rhubarb, Lychee · Heart: Turkish Rose, Peony · Base: Vanilla, Cashmeran',
-    desc: 'Floral fruity yang feminin, mewah, dan sangat populer. Manisnya seimbang dan punya signature yang kuat.',
-    price: 3950000, original: 4500000, rating: 4.8, reviews: 233, badge: null,
-    longevity: '8–12 jam', sillage: 'Kuat',
+    "id": 36,
+    "cat": "niche",
+    "name": "Louis Vuitton Pacific Chill 100ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Louis Vuitton Pacific Chill 100ml",
+    "desc": "Louis Vuitton Pacific Chill 100ml",
+    "price": 5800000,
+    "img": "produk32.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 384,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 45, cat: 'niche', emoji: '🐎',
-    name: 'Layton', brand: 'Parfums de Marly', vol: '125ml', gender: 'Unisex',
-    notes: 'Top: Apple, Lavender · Heart: Jasmine, Violet · Base: Vanilla, Cardamom, Woods',
-    desc: 'Aroma serbaguna yang mewah dan mudah disukai. Layton cocok untuk malam hari, acara formal, dan signature scent.',
-    price: 3850000, original: 4400000, rating: 4.8, reviews: 219, badge: null,
-    longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 37,
+    "cat": "niche",
+    "name": "Louis Vuitton Ombre Nomade 100ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Louis Vuitton Ombre Nomade 100ml",
+    "desc": "Louis Vuitton Ombre Nomade 100ml",
+    "price": 7500000,
+    "img": "produk33.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 388,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 46, cat: 'designer', emoji: '🌌',
-    name: 'Acqua di Giò Profondo', brand: 'Giorgio Armani', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Marine Notes, Bergamot · Heart: Cypress, Lavender · Base: Mineral Amber, Musk',
-    desc: 'Versi modern yang lebih dalam dan bersih dari lini Acqua di Giò. Sangat cocok untuk cuaca panas dan aktivitas harian.',
-    price: 1850000, original: 2200000, rating: 4.7, reviews: 288, badge: null,
-    longevity: '8–10 jam', sillage: 'Sedang',
+    "id": 38,
+    "cat": "niche",
+    "name": "Louis Vuitton Rhapsody 100ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Louis Vuitton Rhapsody 100ml",
+    "desc": "Louis Vuitton Rhapsody 100ml",
+    "price": 9700000,
+    "img": "produk34.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 392,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 47, cat: 'designer', emoji: '🔥',
-    name: 'Stronger With You Intensely', brand: 'Emporio Armani', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Pink Pepper, Juniper · Heart: Lavender, Cinnamon · Base: Vanilla, Amber, Suede',
-    desc: 'Manis, hangat, dan sangat cocok dipakai malam hari. Karakter gourmand woody-nya kuat dan mudah disukai.',
-    price: 1750000, original: 2100000, rating: 4.8, reviews: 312, badge: 'HOT',
-    longevity: '10–12 jam', sillage: 'Kuat',
+    "id": 39,
+    "cat": "niche",
+    "name": "Louis Vuitton Afternoon Swim 100ml",
+    "brand": "Louis Vuitton",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Louis Vuitton Afternoon Swim 100ml",
+    "desc": "Louis Vuitton Afternoon Swim 100ml",
+    "price": 6300000,
+    "img": "produk35.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 396,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 48, cat: 'designer', emoji: '🌙',
-    name: 'Luna Rossa Ocean', brand: 'Prada', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Bergamot, Pink Pepper · Heart: Lavender, Iris · Base: Vetiver, Musk',
-    desc: 'Bersih, modern, dan sangat fleksibel untuk pemakaian harian. Vibe fresh blue fragrance yang rapi dan mewah.',
-    price: 1600000, original: 1950000, rating: 4.6, reviews: 174, badge: null,
-    longevity: '7–10 jam', sillage: 'Sedang',
+    "id": 40,
+    "cat": "timteng",
+    "name": "Rasasi Hawa For Him 100ml",
+    "brand": "Rasasi",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Rasasi Hawa For Him 100ml",
+    "desc": "Rasasi Hawa For Him 100ml",
+    "price": 700000,
+    "img": "produk36.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.7,
+    "reviews": 200,
+    "longevity": "12–16 jam",
+    "sillage": "Sangat Kuat"
   },
   {
-    id: 49, cat: 'designer', emoji: '🪵',
-    name: 'Terre d’Hermès', brand: 'Hermès', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Orange, Grapefruit · Heart: Flint, Pepper · Base: Cedar, Vetiver, Benzoin',
-    desc: 'Woody citrus yang dewasa dan elegan. Sangat cocok untuk pemakai yang suka aroma rapi, earthy, dan berkelas.',
-    price: 2100000, original: 2450000, rating: 4.8, reviews: 201, badge: null,
-    longevity: '8–12 jam', sillage: 'Sedang–Kuat',
+    "id": 41,
+    "cat": "designer",
+    "name": "Tom Ford Tusan Leather 50ml",
+    "brand": "Tom Ford",
+    "vol": "50 ml",
+    "gender": "Unisex",
+    "notes": "Tom Ford Tusan Leather 50ml",
+    "desc": "Tom Ford Tusan Leather 50ml",
+    "price": 3750000,
+    "img": "produk37.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 303,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 50, cat: 'designer', emoji: '👑',
-    name: 'Goddess', brand: 'Burberry', vol: '100ml', gender: 'Wanita',
-    notes: 'Top: Vanilla, Lavender · Heart: Vanilla Caviar · Base: Vanilla Absolute, Cocoa',
-    desc: 'Vanilla modern yang creamy, tenang, dan mewah. Aroma lembut namun tetap punya karakter yang jelas.',
-    price: 1650000, original: 1980000, rating: 4.7, reviews: 149, badge: null,
-    longevity: '8–10 jam', sillage: 'Sedang',
+    "id": 42,
+    "cat": "designer",
+    "name": "Yves Saint Laurend Myself Le Parfum 100ml",
+    "brand": "Yves Saint Laurent",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Yves Saint Laurend Myself Le Parfum 100ml",
+    "desc": "Yves Saint Laurend Myself Le Parfum 100ml",
+    "price": 2430000,
+    "img": "produk38.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.8,
+    "reviews": 306,
+    "longevity": "8–12 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 51, cat: 'timteng', emoji: '🏺',
-    name: 'Ameer Al Oudh Intense Oud', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Woody Notes, Smoke · Heart: Oud, Sugar · Base: Vanilla, Amber, Sandalwood',
-    desc: 'Aroma oud manis yang hangat dan nyaman dipakai. Sangat populer karena performa kuat dengan harga bersahabat.',
-    price: 540000, original: 680000, rating: 4.7, reviews: 362, badge: null,
-    longevity: '10–14 jam', sillage: 'Kuat',
+    "id": 43,
+    "cat": "niche",
+    "name": "Xerjoff Erba Gold 100ml",
+    "brand": "Xerjoff",
+    "vol": "100 ml",
+    "gender": "Unisex",
+    "notes": "Xerjoff Erba Gold 100m",
+    "desc": "Xerjoff Erba Gold 100m",
+    "price": 6350000,
+    "img": "produk39.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.9,
+    "reviews": 412,
+    "longevity": "10–14 jam",
+    "sillage": "Kuat"
   },
   {
-    id: 52, cat: 'timteng', emoji: '💜',
-    name: 'Bade’e Al Oud Amethyst', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Pink Pepper, Bergamot · Heart: Turkish Rose, Bulgarian Rose · Base: Oud, Amber, Vanilla',
-    desc: 'Floral oud yang mewah dan memikat. Wangi mawar dan oud berpadu harmonis untuk kesan elegan dan bold.',
-    price: 620000, original: 760000, rating: 4.8, reviews: 284, badge: 'NEW',
-    longevity: '12–16 jam', sillage: 'Sangat Kuat',
-  },
-  {
-    id: 53, cat: 'timteng', emoji: '🌑',
-    name: 'Shaghaf Oud', brand: 'Swiss Arabian', vol: '75ml', gender: 'Unisex',
-    notes: 'Top: Saffron · Heart: Rose, Oud · Base: Praline, Vanilla, Amber',
-    desc: 'Manis, gourmand, dan khas Timur Tengah. Cocok untuk malam hari saat ingin aroma yang tegas dan elegan.',
-    price: 790000, original: 980000, rating: 4.7, reviews: 205, badge: null,
-    longevity: '10–14 jam', sillage: 'Kuat',
-  },
-  {
-    id: 54, cat: 'timteng', emoji: '🧿',
-    name: 'Ajwad', brand: 'Lattafa', vol: '60ml', gender: 'Unisex',
-    notes: 'Top: Fruits, Bergamot · Heart: Rose, Jasmine · Base: Musk, Vanilla, Amber',
-    desc: 'Lembut, manis, dan mudah disukai. Karakternya bersih namun tetap memiliki sentuhan oriental yang hangat.',
-    price: 480000, original: 620000, rating: 4.6, reviews: 176, badge: null,
-    longevity: '8–12 jam', sillage: 'Sedang–Kuat',
-  },
-  {
-    id: 55, cat: 'timteng', emoji: '🕌',
-    name: 'Raghba Wood Intense', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Agarwood, Sandalwood · Heart: Sugar, Amber · Base: Vanilla, Musk, Incense',
-    desc: 'Oud kayu dengan sentuhan manis yang intens. Karakter smoky-nya membuat parfum ini sangat memorable.',
-    price: 560000, original: 690000, rating: 4.7, reviews: 147, badge: null,
-    longevity: '12–16 jam', sillage: 'Kuat',
-  },
-  {
-    id: 56, cat: 'lokal', emoji: '🍃',
-    name: 'Senja Nusa', brand: 'Nusa Aroma Lab', vol: '100ml', gender: 'Unisex',
-    notes: 'Top: Bergamot, Green Tea · Heart: Jasmine, Neroli · Base: Cedarwood, Musk',
-    desc: 'Aroma bersih dan tenang yang cocok untuk penggunaan harian. Terinspirasi suasana sore tropis yang nyaman.',
-    price: 345000, original: 420000, rating: 4.7, reviews: 132, badge: null,
-    longevity: '6–9 jam', sillage: 'Sedang',
-  },
-  {
-    id: 57, cat: 'lokal', emoji: '🌺',
-    name: 'Pusaka Jawa', brand: 'Javania Parfums', vol: '75ml', gender: 'Unisex',
-    notes: 'Top: Clove, Ginger · Heart: Rose, Jasmine Sambac · Base: Sandalwood, Amber',
-    desc: 'Wewangian yang memadukan tradisi dan kemewahan modern. Cocok untuk yang suka aroma hangat dan berwibawa.',
-    price: 410000, original: 500000, rating: 4.8, reviews: 187, badge: 'HOT',
-    longevity: '8–12 jam', sillage: 'Kuat',
-  },
-  {
-    id: 58, cat: 'lokal', emoji: '🌊',
-    name: 'Biru Samudra', brand: 'Archipelago Scents', vol: '100ml', gender: 'Pria',
-    notes: 'Top: Sea Breeze, Lemon · Heart: Lavender, Marine Accord · Base: Driftwood, Musk',
-    desc: 'Fresh aquatics lokal dengan karakter bersih dan maskulin. Nyaman dipakai di iklim panas dan aktivitas padat.',
-    price: 365000, original: 450000, rating: 4.6, reviews: 119, badge: null,
-    longevity: '6–10 jam', sillage: 'Sedang',
-  },
-  {
-    id: 59, cat: 'lokal', emoji: '☕',
-    name: 'Kopi Pagi', brand: 'Kopi & Aroma', vol: '50ml', gender: 'Unisex',
-    notes: 'Top: Coffee, Cardamom · Heart: Cocoa, Tonka Bean · Base: Vanilla, Musk',
-    desc: 'Gourmand hangat dengan karakter kopi yang lembut. Memberikan nuansa cozy, manis, dan modern.',
-    price: 295000, original: 360000, rating: 4.5, reviews: 98, badge: null,
-    longevity: '6–8 jam', sillage: 'Sedang',
-  },
-  {
-    id: 60, cat: 'lokal', emoji: '💙',
-    name: 'Laut Biru', brand: 'Dirac Local Select', vol: '60ml', gender: 'Unisex',
-    notes: 'Top: Citrus, Ozonic Notes · Heart: Lavender, Aquatic Accord · Base: Cedarwood, White Musk',
-    desc: 'Aroma clean dan modern yang cocok untuk sehari-hari. Ringan, rapi, dan mudah diterima banyak orang.',
-    price: 325000, original: 400000, rating: 4.7, reviews: 141, badge: 'NEW',
-    longevity: '6–9 jam', sillage: 'Sedang',
-  },
-
+    "id": 44,
+    "cat": "timteng",
+    "name": "Rasasi Hawas Elixir 100ml",
+    "brand": "Rasasi",
+    "vol": "100 ml",
+    "gender": "Pria",
+    "notes": "Rasasi Hawas Elixir 100ml",
+    "desc": "Rasasi Hawas Elixir 100ml",
+    "price": 770000,
+    "img": "produk40.PNG",
+    "badge": "PREMIUM",
+    "rating": 4.7,
+    "reviews": 208,
+    "longevity": "12–16 jam",
+    "sillage": "Sangat Kuat"
+  }
 ];
 
 /* ══════════════ STATE ══════════════ */
@@ -2338,6 +2482,7 @@ function stars(r) {
   return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - half);
 }
 
+
 function renderProducts(filter = 'all') {
   const grid = document.getElementById('product-grid');
   grid.innerHTML = '';
@@ -2348,17 +2493,18 @@ function renderProducts(filter = 'all') {
     const tagLbl = { niche:'Niche', designer:'Designer', timteng:'Timur Tengah', lokal:'Lokal' };
     const badgeHTML = p.badge ? `<div class="badge ${p.badge==='NEW'?'badge-new':''}">${p.badge}</div>` : '';
     const gradMap = {
-      niche:  'linear-gradient(135deg, #1a1510 0%, #2a200f 100%)',
-      designer:'linear-gradient(135deg, #12121e 0%, #1a1a2e 100%)',
-      timteng: 'linear-gradient(135deg, #1a1208 0%, #2a1a05 100%)',
-      lokal:   'linear-gradient(135deg, #0d1a10 0%, #122018 100%)',
+      niche:   'linear-gradient(135deg, #0b1220 0%, #111827 100%)',
+      designer:'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+      timteng: 'linear-gradient(135deg, #07111d 0%, #10243a 100%)',
+      lokal:   'linear-gradient(135deg, #07181a 0%, #0f2a31 100%)',
     };
     const glowMap = {
-      niche:   'radial-gradient(ellipse at 50% 50%, rgba(59,130,246,0.12), transparent 70%)',
-      designer:'radial-gradient(ellipse at 50% 50%, rgba(170,180,255,0.1), transparent 70%)',
-      timteng: 'radial-gradient(ellipse at 50% 50%, rgba(255,179,71,0.1), transparent 70%)',
-      lokal:   'radial-gradient(ellipse at 50% 50%, rgba(46,204,113,0.1), transparent 70%)',
+      niche:   'radial-gradient(ellipse at 50% 50%, rgba(59,130,246,0.18), transparent 70%)',
+      designer:'radial-gradient(ellipse at 50% 50%, rgba(96,165,250,0.16), transparent 70%)',
+      timteng: 'radial-gradient(ellipse at 50% 50%, rgba(37,99,235,0.16), transparent 70%)',
+      lokal:   'radial-gradient(ellipse at 50% 50%, rgba(14,165,233,0.15), transparent 70%)',
     };
+    const catIcon = { niche:'🔮', designer:'👑', timteng:'🕌', lokal:'🌿' }[p.cat] || '✨';
 
     const card = document.createElement('article');
     card.className = 'product-card';
@@ -2368,9 +2514,14 @@ function renderProducts(filter = 'all') {
     card.setAttribute('itemtype', 'https://schema.org/Product');
     card.innerHTML = `
       ${badgeHTML}
-      <div class="product-img" style="background:${gradMap[p.cat]}">
+      <div class="product-img" style="background:${gradMap[p.cat]}; position:relative;">
         <div class="bottle-glow" style="background:${glowMap[p.cat]}"></div>
-        <span style="position:relative;z-index:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.5))">${p.emoji}</span>
+        ${p.img ? `
+          <img src="${p.img}" alt="${p.name}" loading="lazy"
+               style="width:100%;height:100%;object-fit:contain;position:relative;z-index:1;padding:18px;display:block;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+          <span class="img-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:3.5rem;z-index:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.45))">${catIcon}</span>
+        ` : `<span style="position:relative;z-index:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.5))">${catIcon}</span>`}
       </div>
       <div class="product-body">
         <div class="product-tags">
@@ -2424,6 +2575,7 @@ function filterProducts(cat) {
 }
 
 /* ══════════════ SEARCH ══════════════ */
+
 document.getElementById('search-input').addEventListener('input', function() {
   const q = this.value.toLowerCase();
   const grid = document.getElementById('product-grid');
@@ -2433,19 +2585,13 @@ document.getElementById('search-input').addEventListener('input', function() {
     p.name.toLowerCase().includes(q) ||
     p.brand.toLowerCase().includes(q) ||
     p.notes.toLowerCase().includes(q) ||
+    p.desc.toLowerCase().includes(q) ||
     p.cat.toLowerCase().includes(q)
   );
   if (!filtered.length) {
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)">Tidak ada produk yang cocok dengan pencarian Anda.</div>';
     return;
   }
-  filtered.forEach((p, i) => {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = ''; // reuse renderProducts logic
-    renderProducts('search');
-    return;
-  });
-  // simpler: filter on current DOM
   renderProducts(activeFilter);
   document.querySelectorAll('.product-card').forEach(card => {
     const name = card.querySelector('.product-name')?.textContent?.toLowerCase() || '';
@@ -2456,7 +2602,6 @@ document.getElementById('search-input').addEventListener('input', function() {
     }
   });
 });
-
 /* ══════════════ CART LOGIC ══════════════ */
 function saveCart() {
   localStorage.setItem('scentoria_cart', JSON.stringify(cart));
@@ -2520,6 +2665,7 @@ function updateCartUI() {
   document.getElementById('cart-total').textContent = formatRp(Math.max(0, total2));
 }
 
+
 function renderCartItems() {
   const container = document.getElementById('cart-items-container');
   if (!cart.length) {
@@ -2532,7 +2678,14 @@ function renderCartItems() {
   }
   container.innerHTML = cart.map(item => `
     <div class="cart-item" id="cart-item-${item.id}">
-      <div class="cart-item-icon">${item.emoji}</div>
+      <div class="cart-item-icon" style="overflow:hidden;">
+        ${item.img ? `
+          <img src="${item.img}" alt="${item.name}" loading="lazy"
+               style="width:100%;height:100%;object-fit:contain;padding:6px;display:block;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+          <span class="img-fallback" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.4rem;">✨</span>
+        ` : `${item.emoji || '✨'}`}
+      </div>
       <div class="cart-item-info">
         <div class="cart-item-name">${item.name}</div>
         <div class="cart-item-brand">${item.brand} · ${item.vol}</div>
@@ -2547,6 +2700,7 @@ function renderCartItems() {
     </div>
   `).join('');
 }
+
 
 function openCart() {
   renderCartItems();
@@ -2589,19 +2743,28 @@ function checkout() {
 }
 
 /* ══════════════ MODAL DETAIL ══════════════ */
+
 function openModal(id) {
   const p = products.find(pr => pr.id === id);
   if (!p) return;
   const tagMap = { niche:'tag-niche', designer:'tag-designer', timteng:'tag-timteng', lokal:'tag-lokal' };
   const tagLbl = { niche:'Niche', designer:'Designer', timteng:'Timur Tengah', lokal:'Lokal' };
   const inCart = cart.find(c => c.id === p.id);
+  const catIcon = { niche:'🔮', designer:'👑', timteng:'🕌', lokal:'🌿' }[p.cat] || '✨';
   document.getElementById('modal-content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
       <span class="tag ${tagMap[p.cat]}">${tagLbl[p.cat]}</span>
       <button class="modal-close-btn" onclick="closeModal()" aria-label="Tutup">✕</button>
     </div>
     <div class="modal-top">
-      <div class="modal-img-wrap">${p.emoji}</div>
+      <div class="modal-img-wrap" style="position:relative;overflow:hidden;">
+        ${p.img ? `
+          <img src="${p.img}" alt="${p.name}" loading="lazy"
+               style="width:100%;height:100%;object-fit:contain;position:relative;z-index:1;padding:18px;display:block;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+          <span class="img-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:5rem;z-index:1">${catIcon}</span>
+        ` : `<span style="font-size:5rem">${catIcon}</span>`}
+      </div>
       <div class="modal-info">
         <div class="modal-brand">${p.brand}</div>
         <h2 class="modal-name">${p.name}</h2>
@@ -2628,12 +2791,13 @@ function openModal(id) {
       <div class="modal-detail-item"><strong>Sillage</strong><span>${p.sillage}</span></div>
     </div>
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:8px;font-size:0.75rem;color:var(--muted);line-height:1.7;">
-      🔒 <strong style="color:var(--cream)">Garansi Original & Jelas</strong> · 🚚 Gratis Ongkir min. Rp 299.000 · ↩️ Retur 14 hari · 🎁 Free 2 sample decant
+      🔒 <strong style="color:var(--cream)">Garansi 100% Original</strong> · 🚚 Gratis Ongkir min. Rp 299.000 · ↩️ Retur 14 hari · 🎁 Free 2 sample decant
     </div>
   `;
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
 
 function closeModal(e) {
   if (e && e.target !== document.getElementById('modal-overlay')) return;
@@ -2669,57 +2833,6 @@ document.querySelectorAll('.cat-card').forEach(el => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
   });
 });
-
-
-
-/* ══════════════ TESTIMONIAL SLIDER ══════════════ */
-const testimonialSlides = Array.from(document.querySelectorAll('.testi-slide'));
-const testimonialTrack = document.getElementById('testi-track');
-const testimonialDots = document.getElementById('testi-dots');
-let testimonialIndex = 0;
-let testimonialTimer = null;
-
-function renderTestimonialDots() {
-  if (!testimonialDots) return;
-  testimonialDots.innerHTML = testimonialSlides.map((_, i) =>
-    `<button class="testi-dot ${i === 0 ? 'active' : ''}" aria-label="Lihat testimoni ${i + 1}" data-index="${i}"></button>`
-  ).join('');
-  testimonialDots.querySelectorAll('.testi-dot').forEach(btn => {
-    btn.addEventListener('click', () => {
-      goToTestimonial(Number(btn.dataset.index));
-      restartTestimonialAuto();
-    });
-  });
-}
-
-function updateTestimonialSlider() {
-  if (!testimonialTrack || !testimonialSlides.length) return;
-  testimonialTrack.style.transform = `translateX(-${testimonialIndex * 100}%)`;
-  testimonialDots?.querySelectorAll('.testi-dot').forEach((dot, i) => dot.classList.toggle('active', i === testimonialIndex));
-}
-
-function goToTestimonial(index) {
-  testimonialIndex = (index + testimonialSlides.length) % testimonialSlides.length;
-  updateTestimonialSlider();
-}
-
-function restartTestimonialAuto() {
-  clearInterval(testimonialTimer);
-  testimonialTimer = setInterval(() => goToTestimonial(testimonialIndex + 1), 5000);
-}
-
-document.getElementById('testi-prev')?.addEventListener('click', () => {
-  goToTestimonial(testimonialIndex - 1);
-  restartTestimonialAuto();
-});
-document.getElementById('testi-next')?.addEventListener('click', () => {
-  goToTestimonial(testimonialIndex + 1);
-  restartTestimonialAuto();
-});
-
-renderTestimonialDots();
-updateTestimonialSlider();
-restartTestimonialAuto();
 
 /* ══════════════ INIT ══════════════ */
 renderProducts('all');
