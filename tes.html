@@ -137,10 +137,10 @@
       --charcoal:  #1a1713;
       --card:      #201d19;
       --card2:     #2a2520;
-      --border:    rgba(212,168,85,0.18);
-      --gold:      #d4a855;
-      --gold2:     #f0c96a;
-      --gold-muted:#a07a30;
+      --border:    rgba(59,130,246,0.18);
+      --gold:      #3b82f6;
+      --gold2:     #60a5fa;
+      --gold-muted:#1d4ed8;
       --cream:     #f5ede0;
       --white:     #fdf8f2;
       --muted:     #8a7a68;
@@ -151,7 +151,7 @@
       --ff-body:   "Montserrat", sans-serif;
       --radius:    6px;
       --shadow:    0 8px 40px rgba(0,0,0,0.6);
-      --glow:      0 0 30px rgba(212,168,85,0.15);
+      --glow:      0 0 30px rgba(59,130,246,0.15);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -204,7 +204,7 @@
       border-radius: 2px;
       margin-right: 4px;
     }
-    .tag-niche    { background: rgba(212,168,85,0.15); color: var(--gold); border: 1px solid rgba(212,168,85,0.3); }
+    .tag-niche    { background: rgba(59,130,246,0.15); color: var(--gold); border: 1px solid rgba(59,130,246,0.3); }
     .tag-designer { background: rgba(200,200,255,0.08); color: #aab4ff; border: 1px solid rgba(170,180,255,0.25); }
     .tag-timteng  { background: rgba(255,165,0,0.1); color: #ffb347; border: 1px solid rgba(255,179,71,0.25); }
     .tag-lokal    { background: rgba(46,204,113,0.1); color: #2ecc71; border: 1px solid rgba(46,204,113,0.25); }
@@ -247,7 +247,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, rgba(212,168,85,0.18), rgba(212,168,85,0.05));
+      background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(59,130,246,0.05));
       border: 1px solid var(--border);
       color: var(--gold);
       font-size: 0.75rem;
@@ -332,15 +332,15 @@
     .hero-bg {
       position: absolute; inset: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 70% 50%, rgba(212,168,85,0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 80% at 20% 80%, rgba(160,122,48,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 60% at 70% 50%, rgba(59,130,246,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 80% at 20% 80%, rgba(30,64,175,0.06) 0%, transparent 50%),
         linear-gradient(135deg, #080706 0%, #0e0c0a 50%, #1a1410 100%);
     }
     .hero-lines {
       position: absolute; inset: 0;
       background-image:
-        linear-gradient(rgba(212,168,85,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(212,168,85,0.04) 1px, transparent 1px);
+        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
       background-size: 60px 60px;
     }
     .hero-content {
@@ -393,7 +393,7 @@
       transition: all 0.2s;
       border: 1px solid var(--gold);
     }
-    .btn-primary:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,168,85,0.3); }
+    .btn-primary:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
     .btn-outline {
       border: 1px solid var(--border);
       color: var(--cream);
@@ -503,7 +503,7 @@
       color: var(--black);
       border-color: var(--gold);
     }
-    .filter-btn.active-niche { background: rgba(212,168,85,0.15); color: var(--gold); border-color: var(--gold); }
+    .filter-btn.active-niche { background: rgba(59,130,246,0.15); color: var(--gold); border-color: var(--gold); }
     .filter-btn.active-designer { background: rgba(170,180,255,0.15); color: #aab4ff; border-color: #aab4ff; }
     .filter-btn.active-timteng { background: rgba(255,179,71,0.15); color: #ffb347; border-color: #ffb347; }
     .filter-btn.active-lokal { background: rgba(46,204,113,0.15); color: #2ecc71; border-color: #2ecc71; }
@@ -530,7 +530,7 @@
     .product-card:hover {
       transform: translateY(-6px);
       box-shadow: var(--shadow), var(--glow);
-      border-color: rgba(212,168,85,0.4);
+      border-color: rgba(59,130,246,0.4);
     }
 
     @keyframes fadeUp {
@@ -820,7 +820,7 @@
       letter-spacing: 0.08em;
       transition: all 0.2s;
     }
-    .cart-promo button:hover { border-color: var(--gold); background: rgba(212,168,85,0.1); }
+    .cart-promo button:hover { border-color: var(--gold); background: rgba(59,130,246,0.1); }
 
     .btn-checkout {
       width: 100%;
@@ -835,7 +835,7 @@
       transition: all 0.2s;
       margin-top: 4px;
     }
-    .btn-checkout:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,168,85,0.3); }
+    .btn-checkout:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.3); }
     .btn-checkout:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
     .cart-perks {
@@ -897,11 +897,11 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
-    .cat-card:hover { transform: translateY(-4px); border-color: rgba(212,168,85,0.4); }
+    .cat-card:hover { transform: translateY(-4px); border-color: rgba(59,130,246,0.4); }
     .cat-card:hover::before { opacity: 1; }
 
-    .cat-niche { background: linear-gradient(135deg, rgba(212,168,85,0.05) 0%, rgba(160,122,48,0.1) 100%); }
-    .cat-niche::before { background: radial-gradient(ellipse at 50% 0%, rgba(212,168,85,0.08), transparent 70%); }
+    .cat-niche { background: linear-gradient(135deg, rgba(59,130,246,0.05) 0%, rgba(30,64,175,0.1) 100%); }
+    .cat-niche::before { background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.08), transparent 70%); }
     .cat-designer { background: linear-gradient(135deg, rgba(170,180,255,0.05) 0%, rgba(120,130,220,0.08) 100%); }
     .cat-timteng { background: linear-gradient(135deg, rgba(255,179,71,0.05) 0%, rgba(200,120,30,0.08) 100%); }
     .cat-lokal { background: linear-gradient(135deg, rgba(46,204,113,0.05) 0%, rgba(30,150,80,0.08) 100%); }
@@ -1101,8 +1101,8 @@
        PROMO BANNER
     ══════════════════════════════════════════════════ */
     .promo-banner {
-      background: linear-gradient(135deg, rgba(212,168,85,0.12) 0%, rgba(160,122,48,0.08) 100%);
-      border: 1px solid rgba(212,168,85,0.25);
+      background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(30,64,175,0.08) 100%);
+      border: 1px solid rgba(59,130,246,0.25);
       border-radius: 16px;
       padding: 48px 56px;
       display: flex; align-items: center; justify-content: space-between;
@@ -1115,7 +1115,7 @@
       position: absolute; right: 160px; top: 50%;
       transform: translateY(-50%);
       font-size: 8rem;
-      color: rgba(212,168,85,0.05);
+      color: rgba(59,130,246,0.05);
       pointer-events: none;
     }
     .promo-text {}
@@ -1173,8 +1173,78 @@
     }
     .faq-item summary::-webkit-details-marker { display: none; }
     .faq-item[open] {
-      border-color: rgba(212,168,85,0.35);
+      border-color: rgba(59,130,246,0.35);
       box-shadow: var(--glow);
+    }
+
+
+
+    /* ══════════════════════════════════════════════════
+       TESTIMONIAL SLIDER
+    ══════════════════════════════════════════════════ */
+    .testi-slider {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .testi-viewport {
+      overflow: hidden;
+      width: 100%;
+    }
+    .testi-track {
+      display: flex;
+      transition: transform 0.45s ease;
+      will-change: transform;
+    }
+    .testi-slide {
+      min-width: 100%;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+    .testi-card {
+      height: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .testi-nav {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      color: var(--cream);
+      background: var(--deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      font-size: 1.2rem;
+    }
+    .testi-nav:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .testi-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 22px;
+      flex-wrap: wrap;
+    }
+    .testi-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: transparent;
+      padding: 0;
+    }
+    .testi-dot.active {
+      background: var(--gold);
+      border-color: var(--gold);
     }
 
     /* ══════════════════════════════════════════════════
@@ -1366,25 +1436,25 @@
       <div class="cat-card cat-niche" onclick="filterProducts('niche')" role="button" aria-label="Filter parfum niche" tabindex="0">
         <div class="cat-icon">🔮</div>
         <div class="cat-name">Niche</div>
-        <div class="cat-count">12 Produk pilihan</div>
+        <div class="cat-count">15 Produk pilihan</div>
         <div class="cat-desc">Ciptaan parfumer independen dengan bahan baku langka dan formula unik yang tidak ditemukan di mana-mana.</div>
       </div>
       <div class="cat-card cat-designer" onclick="filterProducts('designer')" role="button" aria-label="Filter parfum designer" tabindex="0">
         <div class="cat-icon">👑</div>
         <div class="cat-name">Designer</div>
-        <div class="cat-count">10 Produk pilihan</div>
+        <div class="cat-count">15 Produk pilihan</div>
         <div class="cat-desc">Maison fashion house ikonik dunia — Chanel, Dior, Tom Ford, Yves Saint Laurent, dan masih banyak lagi.</div>
       </div>
       <div class="cat-card cat-timteng" onclick="filterProducts('timteng')" role="button" aria-label="Filter parfum Timur Tengah" tabindex="0">
         <div class="cat-icon">🕌</div>
         <div class="cat-name">Timur Tengah</div>
-        <div class="cat-count">10 Produk pilihan</div>
+        <div class="cat-count">15 Produk pilihan</div>
         <div class="cat-desc">Oud Arabia murni, attar tradisional, dan campuran musk eksotis dari warisan parfumeri Arab selama berabad-abad.</div>
       </div>
       <div class="cat-card cat-lokal" onclick="filterProducts('lokal')" role="button" aria-label="Filter parfum lokal" tabindex="0">
         <div class="cat-icon">🌿</div>
         <div class="cat-name">Lokal</div>
-        <div class="cat-count">8 Produk pilihan</div>
+        <div class="cat-count">15 Produk pilihan</div>
         <div class="cat-desc">Kebanggaan industri parfum Indonesia — kualitas internasional, bahan lokal premium, harga lebih terjangkau.</div>
       </div>
     </div>
@@ -1492,7 +1562,7 @@
   <div class="container">
     <div class="section-head">
       <p class="section-eyebrow">Our Collection</p>
-      <h2 class="section-title" id="koleksi-title">40 Parfum <em>Pilihan Terbaik</em></h2>
+      <h2 class="section-title" id="koleksi-title">60 Parfum <em>Pilihan Terbaik</em></h2>
       <p class="section-subtitle">Dikurasi untuk menampilkan karakter aroma yang berbeda, sehingga pelanggan bisa langsung membandingkan kategori, notes, dan performa.</p>
     </div>
 
@@ -1538,47 +1608,93 @@
      TESTIMONIALS
 ═══════════════════════════════════════════════════════════ -->
 
+
 <section class="section" id="tentang" aria-labelledby="testi-title">
   <div class="container">
     <div class="section-head">
       <p class="section-eyebrow">Ulasan Pelanggan</p>
-      <h2 class="section-title" id="testi-title">Apa Kata <em>Mereka</em></h2>
+      <h2 class="section-title" id="testi-title">10 Testimoni <em>Pelanggan</em></h2>
+      <p class="section-subtitle">Slider testimoni ini dibuat agar tampilan lebih rapi, modern, dan nyaman dibaca di desktop maupun perangkat mobile.</p>
     </div>
-    <div class="testimonial-grid">
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"Creed Aventus yang saya beli 100% ori, sudah cek batch code dan sangat cocok dengan sampel di counter resmi. Pengiriman juga super cepat, besok harinya sudah sampai!"</p>
-        <div class="testi-author">
-          <div class="testi-avatar">👨</div>
-          <div>
-            <div class="testi-name">Ricky Hermawan</div>
-            <div class="testi-city">Jakarta Selatan</div>
+    <div class="testi-slider">
+      <button class="testi-nav" type="button" id="testi-prev" aria-label="Testimoni sebelumnya">‹</button>
+      <div class="testi-viewport">
+        <div class="testi-track" id="testi-track">
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Creed Aventus yang saya beli 100% ori, sudah cek batch code dan sangat cocok dengan sampel di counter resmi. Pengiriman juga super cepat, besok harinya sudah sampai!"</p>
+              <div class="testi-author"><div class="testi-avatar">👨</div><div><div class="testi-name">Ricky Hermawan</div><div class="testi-city">Jakarta Selatan</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Akhirnya nemu toko yang jual Lattafa Asad dengan harga masuk akal dan packaging mulus. Dirac Group jadi tempat langganan saya untuk koleksi oud Middle East."</p>
+              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Nadia Putri</div><div class="testi-city">Surabaya</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Parfum lokal Jiwa Rimba yang saya order ternyata kualitasnya luar biasa, bahkan lebih dari ekspektasi. Proyeksi kuat dan tahan lama. Bangga produk lokal!"</p>
+              <div class="testi-author"><div class="testi-avatar">🧑</div><div><div class="testi-name">Bimo Santoso</div><div class="testi-city">Bandung</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Tampilan websitenya rapi, pilihan produk jelas, dan proses checkout gampang dipahami. Saya paling suka karena kategori parfum dibagi dengan sangat terstruktur."</p>
+              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Salsa Maharani</div><div class="testi-city">Yogyakarta</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Saya beli Bleu de Chanel dan kualitas packing-nya sangat aman. Admin juga responsif saat saya tanya soal notes dan perbedaan konsentrasi parfum."</p>
+              <div class="testi-author"><div class="testi-avatar">👨</div><div><div class="testi-name">Dimas Pratama</div><div class="testi-city">Jakarta Timur</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Koleksi designer dan niche-nya lengkap, jadi saya bisa cari aroma untuk kerja, hangout, dan acara formal di satu tempat. Sangat membantu."</p>
+              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Aulia Rahma</div><div class="testi-city">Medan</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Khamrah yang saya pesan wanginya rich dan manisnya pas. Harganya juga masuk akal untuk parfum Timur Tengah dengan performa sekuat itu."</p>
+              <div class="testi-author"><div class="testi-avatar">🧔</div><div><div class="testi-name">Fahri Maulana</div><div class="testi-city">Makassar</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Saya suka karena penjelasan notes parfum sangat detail. Jadi lebih mudah pilih parfum sebelum beli tanpa harus tebak-tebakan."</p>
+              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Nabila Safira</div><div class="testi-city">Semarang</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Pelayanannya cepat, produknya jelas, dan tampilannya profesional. Website ini terasa seperti katalog parfum premium yang memang serius dibangun."</p>
+              <div class="testi-author"><div class="testi-avatar">👨</div><div><div class="testi-name">Rendra Wijaya</div><div class="testi-city">Bekasi</div></div></div>
+            </div>
+          </div>
+          <div class="testi-slide">
+            <div class="testi-card">
+              <div class="testi-stars">★★★★★</div>
+              <p class="testi-text">"Saya puas karena bisa menemukan parfum lokal, designer, dan niche sekaligus. Ini bikin saya lebih mudah bandingkan produk dan pilih sesuai budget."</p>
+              <div class="testi-author"><div class="testi-avatar">👩</div><div><div class="testi-name">Citra Lestari</div><div class="testi-city">Sidoarjo</div></div></div>
+            </div>
           </div>
         </div>
       </div>
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"Akhirnya nemu toko yang jual Lattafa Asad dengan harga masuk akal dan packaging mulus. Scentoria now is my go-to untuk koleksi oud Middle East. Thank you!"</p>
-        <div class="testi-author">
-          <div class="testi-avatar">👩</div>
-          <div>
-            <div class="testi-name">Nadia Putri</div>
-            <div class="testi-city">Surabaya</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"Parfum lokal Jiwa Rimba yang saya order ternyata kualitasnya luar biasa, bahkan lebih dari ekspektasi. Proyeksi kuat dan longevity sampai 12 jam. Bangga produk lokal!"</p>
-        <div class="testi-author">
-          <div class="testi-avatar">🧑</div>
-          <div>
-            <div class="testi-name">Bimo Santoso</div>
-            <div class="testi-city">Bandung</div>
-          </div>
-        </div>
-      </div>
+      <button class="testi-nav" type="button" id="testi-next" aria-label="Testimoni berikutnya">›</button>
     </div>
+    <div class="testi-dots" id="testi-dots" aria-label="Navigasi testimoni"></div>
   </div>
 </section>
 
@@ -2042,6 +2158,168 @@ const products = [
     price: 390000, original: 480000, rating: 4.7, reviews: 167, badge: null,
     longevity: '6–10 jam', sillage: 'Sedang',
   },
+  /* ── EXTRA PRODUCTS (20) ── */
+  {
+    id: 41, cat: 'niche', emoji: '🌿',
+    name: 'Reflection Man', brand: 'Amouage', vol: '100ml', gender: 'Pria',
+    notes: 'Top: Rosemary, Pink Pepper · Heart: Neroli, Jasmine · Base: Sandalwood, Cedarwood',
+    desc: 'Aroma bersih, elegan, dan berkelas dengan sentuhan floral woody yang halus. Cocok untuk tampilan profesional dan rapi.',
+    price: 4100000, original: 4700000, rating: 4.8, reviews: 121, badge: null,
+    longevity: '8–12 jam', sillage: 'Sedang–Kuat',
+  },
+  {
+    id: 42, cat: 'niche', emoji: '🕯️',
+    name: 'Interlude Man', brand: 'Amouage', vol: '100ml', gender: 'Pria',
+    notes: 'Top: Oregano, Bergamot · Heart: Opoponax, Amber · Base: Leather, Oud, Sandalwood',
+    desc: 'Salah satu parfum paling berani dan megah dalam dunia niche. Smoky, resinous, dan sangat berkarakter.',
+    price: 4300000, original: 4950000, rating: 4.9, reviews: 104, badge: 'HOT',
+    longevity: '12–18 jam', sillage: 'Sangat Kuat',
+  },
+  {
+    id: 43, cat: 'niche', emoji: '💎',
+    name: 'Oud for Greatness', brand: 'Initio Parfums', vol: '90ml', gender: 'Unisex',
+    notes: 'Top: Saffron, Nutmeg · Heart: Lavender, Oud · Base: Patchouli, Musk',
+    desc: 'Oud modern yang mewah, dalam, dan menonjol. Karakternya kuat, premium, dan mudah dikenali dari jauh.',
+    price: 5200000, original: 5900000, rating: 4.9, reviews: 156, badge: 'NEW',
+    longevity: '12–16 jam', sillage: 'Sangat Kuat',
+  },
+  {
+    id: 44, cat: 'niche', emoji: '🌸',
+    name: 'Delina', brand: 'Parfums de Marly', vol: '75ml', gender: 'Wanita',
+    notes: 'Top: Rhubarb, Lychee · Heart: Turkish Rose, Peony · Base: Vanilla, Cashmeran',
+    desc: 'Floral fruity yang feminin, mewah, dan sangat populer. Manisnya seimbang dan punya signature yang kuat.',
+    price: 3950000, original: 4500000, rating: 4.8, reviews: 233, badge: null,
+    longevity: '8–12 jam', sillage: 'Kuat',
+  },
+  {
+    id: 45, cat: 'niche', emoji: '🐎',
+    name: 'Layton', brand: 'Parfums de Marly', vol: '125ml', gender: 'Unisex',
+    notes: 'Top: Apple, Lavender · Heart: Jasmine, Violet · Base: Vanilla, Cardamom, Woods',
+    desc: 'Aroma serbaguna yang mewah dan mudah disukai. Layton cocok untuk malam hari, acara formal, dan signature scent.',
+    price: 3850000, original: 4400000, rating: 4.8, reviews: 219, badge: null,
+    longevity: '10–14 jam', sillage: 'Kuat',
+  },
+  {
+    id: 46, cat: 'designer', emoji: '🌌',
+    name: 'Acqua di Giò Profondo', brand: 'Giorgio Armani', vol: '100ml', gender: 'Pria',
+    notes: 'Top: Marine Notes, Bergamot · Heart: Cypress, Lavender · Base: Mineral Amber, Musk',
+    desc: 'Versi modern yang lebih dalam dan bersih dari lini Acqua di Giò. Sangat cocok untuk cuaca panas dan aktivitas harian.',
+    price: 1850000, original: 2200000, rating: 4.7, reviews: 288, badge: null,
+    longevity: '8–10 jam', sillage: 'Sedang',
+  },
+  {
+    id: 47, cat: 'designer', emoji: '🔥',
+    name: 'Stronger With You Intensely', brand: 'Emporio Armani', vol: '100ml', gender: 'Pria',
+    notes: 'Top: Pink Pepper, Juniper · Heart: Lavender, Cinnamon · Base: Vanilla, Amber, Suede',
+    desc: 'Manis, hangat, dan sangat cocok dipakai malam hari. Karakter gourmand woody-nya kuat dan mudah disukai.',
+    price: 1750000, original: 2100000, rating: 4.8, reviews: 312, badge: 'HOT',
+    longevity: '10–12 jam', sillage: 'Kuat',
+  },
+  {
+    id: 48, cat: 'designer', emoji: '🌙',
+    name: 'Luna Rossa Ocean', brand: 'Prada', vol: '100ml', gender: 'Pria',
+    notes: 'Top: Bergamot, Pink Pepper · Heart: Lavender, Iris · Base: Vetiver, Musk',
+    desc: 'Bersih, modern, dan sangat fleksibel untuk pemakaian harian. Vibe fresh blue fragrance yang rapi dan mewah.',
+    price: 1600000, original: 1950000, rating: 4.6, reviews: 174, badge: null,
+    longevity: '7–10 jam', sillage: 'Sedang',
+  },
+  {
+    id: 49, cat: 'designer', emoji: '🪵',
+    name: 'Terre d’Hermès', brand: 'Hermès', vol: '100ml', gender: 'Pria',
+    notes: 'Top: Orange, Grapefruit · Heart: Flint, Pepper · Base: Cedar, Vetiver, Benzoin',
+    desc: 'Woody citrus yang dewasa dan elegan. Sangat cocok untuk pemakai yang suka aroma rapi, earthy, dan berkelas.',
+    price: 2100000, original: 2450000, rating: 4.8, reviews: 201, badge: null,
+    longevity: '8–12 jam', sillage: 'Sedang–Kuat',
+  },
+  {
+    id: 50, cat: 'designer', emoji: '👑',
+    name: 'Goddess', brand: 'Burberry', vol: '100ml', gender: 'Wanita',
+    notes: 'Top: Vanilla, Lavender · Heart: Vanilla Caviar · Base: Vanilla Absolute, Cocoa',
+    desc: 'Vanilla modern yang creamy, tenang, dan mewah. Aroma lembut namun tetap punya karakter yang jelas.',
+    price: 1650000, original: 1980000, rating: 4.7, reviews: 149, badge: null,
+    longevity: '8–10 jam', sillage: 'Sedang',
+  },
+  {
+    id: 51, cat: 'timteng', emoji: '🏺',
+    name: 'Ameer Al Oudh Intense Oud', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
+    notes: 'Top: Woody Notes, Smoke · Heart: Oud, Sugar · Base: Vanilla, Amber, Sandalwood',
+    desc: 'Aroma oud manis yang hangat dan nyaman dipakai. Sangat populer karena performa kuat dengan harga bersahabat.',
+    price: 540000, original: 680000, rating: 4.7, reviews: 362, badge: null,
+    longevity: '10–14 jam', sillage: 'Kuat',
+  },
+  {
+    id: 52, cat: 'timteng', emoji: '💜',
+    name: 'Bade’e Al Oud Amethyst', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
+    notes: 'Top: Pink Pepper, Bergamot · Heart: Turkish Rose, Bulgarian Rose · Base: Oud, Amber, Vanilla',
+    desc: 'Floral oud yang mewah dan memikat. Wangi mawar dan oud berpadu harmonis untuk kesan elegan dan bold.',
+    price: 620000, original: 760000, rating: 4.8, reviews: 284, badge: 'NEW',
+    longevity: '12–16 jam', sillage: 'Sangat Kuat',
+  },
+  {
+    id: 53, cat: 'timteng', emoji: '🌑',
+    name: 'Shaghaf Oud', brand: 'Swiss Arabian', vol: '75ml', gender: 'Unisex',
+    notes: 'Top: Saffron · Heart: Rose, Oud · Base: Praline, Vanilla, Amber',
+    desc: 'Manis, gourmand, dan khas Timur Tengah. Cocok untuk malam hari saat ingin aroma yang tegas dan elegan.',
+    price: 790000, original: 980000, rating: 4.7, reviews: 205, badge: null,
+    longevity: '10–14 jam', sillage: 'Kuat',
+  },
+  {
+    id: 54, cat: 'timteng', emoji: '🧿',
+    name: 'Ajwad', brand: 'Lattafa', vol: '60ml', gender: 'Unisex',
+    notes: 'Top: Fruits, Bergamot · Heart: Rose, Jasmine · Base: Musk, Vanilla, Amber',
+    desc: 'Lembut, manis, dan mudah disukai. Karakternya bersih namun tetap memiliki sentuhan oriental yang hangat.',
+    price: 480000, original: 620000, rating: 4.6, reviews: 176, badge: null,
+    longevity: '8–12 jam', sillage: 'Sedang–Kuat',
+  },
+  {
+    id: 55, cat: 'timteng', emoji: '🕌',
+    name: 'Raghba Wood Intense', brand: 'Lattafa', vol: '100ml', gender: 'Unisex',
+    notes: 'Top: Agarwood, Sandalwood · Heart: Sugar, Amber · Base: Vanilla, Musk, Incense',
+    desc: 'Oud kayu dengan sentuhan manis yang intens. Karakter smoky-nya membuat parfum ini sangat memorable.',
+    price: 560000, original: 690000, rating: 4.7, reviews: 147, badge: null,
+    longevity: '12–16 jam', sillage: 'Kuat',
+  },
+  {
+    id: 56, cat: 'lokal', emoji: '🍃',
+    name: 'Senja Nusa', brand: 'Nusa Aroma Lab', vol: '100ml', gender: 'Unisex',
+    notes: 'Top: Bergamot, Green Tea · Heart: Jasmine, Neroli · Base: Cedarwood, Musk',
+    desc: 'Aroma bersih dan tenang yang cocok untuk penggunaan harian. Terinspirasi suasana sore tropis yang nyaman.',
+    price: 345000, original: 420000, rating: 4.7, reviews: 132, badge: null,
+    longevity: '6–9 jam', sillage: 'Sedang',
+  },
+  {
+    id: 57, cat: 'lokal', emoji: '🌺',
+    name: 'Pusaka Jawa', brand: 'Javania Parfums', vol: '75ml', gender: 'Unisex',
+    notes: 'Top: Clove, Ginger · Heart: Rose, Jasmine Sambac · Base: Sandalwood, Amber',
+    desc: 'Wewangian yang memadukan tradisi dan kemewahan modern. Cocok untuk yang suka aroma hangat dan berwibawa.',
+    price: 410000, original: 500000, rating: 4.8, reviews: 187, badge: 'HOT',
+    longevity: '8–12 jam', sillage: 'Kuat',
+  },
+  {
+    id: 58, cat: 'lokal', emoji: '🌊',
+    name: 'Biru Samudra', brand: 'Archipelago Scents', vol: '100ml', gender: 'Pria',
+    notes: 'Top: Sea Breeze, Lemon · Heart: Lavender, Marine Accord · Base: Driftwood, Musk',
+    desc: 'Fresh aquatics lokal dengan karakter bersih dan maskulin. Nyaman dipakai di iklim panas dan aktivitas padat.',
+    price: 365000, original: 450000, rating: 4.6, reviews: 119, badge: null,
+    longevity: '6–10 jam', sillage: 'Sedang',
+  },
+  {
+    id: 59, cat: 'lokal', emoji: '☕',
+    name: 'Kopi Pagi', brand: 'Kopi & Aroma', vol: '50ml', gender: 'Unisex',
+    notes: 'Top: Coffee, Cardamom · Heart: Cocoa, Tonka Bean · Base: Vanilla, Musk',
+    desc: 'Gourmand hangat dengan karakter kopi yang lembut. Memberikan nuansa cozy, manis, dan modern.',
+    price: 295000, original: 360000, rating: 4.5, reviews: 98, badge: null,
+    longevity: '6–8 jam', sillage: 'Sedang',
+  },
+  {
+    id: 60, cat: 'lokal', emoji: '💙',
+    name: 'Laut Biru', brand: 'Dirac Local Select', vol: '60ml', gender: 'Unisex',
+    notes: 'Top: Citrus, Ozonic Notes · Heart: Lavender, Aquatic Accord · Base: Cedarwood, White Musk',
+    desc: 'Aroma clean dan modern yang cocok untuk sehari-hari. Ringan, rapi, dan mudah diterima banyak orang.',
+    price: 325000, original: 400000, rating: 4.7, reviews: 141, badge: 'NEW',
+    longevity: '6–9 jam', sillage: 'Sedang',
+  },
+
 ];
 
 /* ══════════════ STATE ══════════════ */
@@ -2076,7 +2354,7 @@ function renderProducts(filter = 'all') {
       lokal:   'linear-gradient(135deg, #0d1a10 0%, #122018 100%)',
     };
     const glowMap = {
-      niche:   'radial-gradient(ellipse at 50% 50%, rgba(212,168,85,0.12), transparent 70%)',
+      niche:   'radial-gradient(ellipse at 50% 50%, rgba(59,130,246,0.12), transparent 70%)',
       designer:'radial-gradient(ellipse at 50% 50%, rgba(170,180,255,0.1), transparent 70%)',
       timteng: 'radial-gradient(ellipse at 50% 50%, rgba(255,179,71,0.1), transparent 70%)',
       lokal:   'radial-gradient(ellipse at 50% 50%, rgba(46,204,113,0.1), transparent 70%)',
@@ -2391,6 +2669,57 @@ document.querySelectorAll('.cat-card').forEach(el => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
   });
 });
+
+
+
+/* ══════════════ TESTIMONIAL SLIDER ══════════════ */
+const testimonialSlides = Array.from(document.querySelectorAll('.testi-slide'));
+const testimonialTrack = document.getElementById('testi-track');
+const testimonialDots = document.getElementById('testi-dots');
+let testimonialIndex = 0;
+let testimonialTimer = null;
+
+function renderTestimonialDots() {
+  if (!testimonialDots) return;
+  testimonialDots.innerHTML = testimonialSlides.map((_, i) =>
+    `<button class="testi-dot ${i === 0 ? 'active' : ''}" aria-label="Lihat testimoni ${i + 1}" data-index="${i}"></button>`
+  ).join('');
+  testimonialDots.querySelectorAll('.testi-dot').forEach(btn => {
+    btn.addEventListener('click', () => {
+      goToTestimonial(Number(btn.dataset.index));
+      restartTestimonialAuto();
+    });
+  });
+}
+
+function updateTestimonialSlider() {
+  if (!testimonialTrack || !testimonialSlides.length) return;
+  testimonialTrack.style.transform = `translateX(-${testimonialIndex * 100}%)`;
+  testimonialDots?.querySelectorAll('.testi-dot').forEach((dot, i) => dot.classList.toggle('active', i === testimonialIndex));
+}
+
+function goToTestimonial(index) {
+  testimonialIndex = (index + testimonialSlides.length) % testimonialSlides.length;
+  updateTestimonialSlider();
+}
+
+function restartTestimonialAuto() {
+  clearInterval(testimonialTimer);
+  testimonialTimer = setInterval(() => goToTestimonial(testimonialIndex + 1), 5000);
+}
+
+document.getElementById('testi-prev')?.addEventListener('click', () => {
+  goToTestimonial(testimonialIndex - 1);
+  restartTestimonialAuto();
+});
+document.getElementById('testi-next')?.addEventListener('click', () => {
+  goToTestimonial(testimonialIndex + 1);
+  restartTestimonialAuto();
+});
+
+renderTestimonialDots();
+updateTestimonialSlider();
+restartTestimonialAuto();
 
 /* ══════════════ INIT ══════════════ */
 renderProducts('all');
