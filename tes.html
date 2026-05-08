@@ -2100,12 +2100,76 @@ const productDescriptions = {
     document.body.style.overflow = '';
   }
 
-  function checkout() {
+  async function checkout() {
     if (!cart.length) return;
+
+    const targetNumber = '62882009257589';
     const totalText = document.getElementById('cart-total')?.textContent || formatCartRp(0);
     const orderCode = 'DRC-' + Date.now().toString().slice(-6);
-    showToast('🎊 Pesanan siap dikirim ke WhatsApp');
-    setTimeout(() => openCheckoutModal(orderCode, totalText), 300);
+
+    const itemsText = cart.map((item, index) => {
+      const qty = Number(item.qty) || 0;
+      const price = Number(item.price) || 0;
+      const itemTotal = price * qty;
+      return `${index + 1}. ${item.title} x${qty} = ${formatCartRp(itemTotal)}`;
+    }).join('\n');
+
+    const message = [
+      '🛒 ORDER BARU',
+      '',
+      `📌 Kode Pesanan: ${orderCode}`,
+      `💰 Total: ${totalText}`,
+      '',
+      'Rincian Pesanan:',
+      itemsText || '-',
+      '',
+      'Mohon diproses.'
+    ].join('\n');
+
+    const checkoutBtn = document.getElementById('btn-checkout');
+    const helper = document.getElementById('order-helper');
+
+    try {
+      if (checkoutBtn) {
+        checkoutBtn.disabled = true;
+      }
+      if (helper) {
+        helper.textContent = 'Mengirim pesanan checkout ke WhatsApp...';
+      }
+
+      const response = await fetch('/api/send-wa', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          target: targetNumber,
+          message
+        })
+      });
+
+      const resultText = await response.text();
+
+      if (!response.ok) {
+        throw new Error(resultText || 'Gagal mengirim checkout');
+      }
+
+      showToast('Pesanan berhasil dikirim ke WhatsApp');
+      if (helper) {
+        helper.textContent = `Pesanan berhasil dikirim. Kode order: ${orderCode}`;
+      }
+    } catch (err) {
+      console.error('Checkout send failed:', err);
+      showToast('Pesanan gagal dikirim');
+      if (helper) {
+        helper.textContent = 'Gagal mengirim checkout. Cek endpoint /api/send-wa dan token Fonnte.';
+      }
+      alert('Gagal mengirim checkout: ' + err.message);
+    } finally {
+      if (checkoutBtn) {
+        checkoutBtn.disabled = false;
+      }
+    }
   }
 
   function buildCartUI() {
@@ -2780,108 +2844,7 @@ const products = [
     function viewProduct(id){ openModal(id); }
 
     // Order form -> open WA with message
-    function prepareWA(e){
-      e.preventDefault();
-      const name = document.getElementById('custName').value.trim();
-      const phone = document.getElementById('custPhone').value.trim();
-      const product = document.getElementById('custProduct').value.trim();
-      const qty = document.getElementById('custQty').value.trim();
-      const city = document.getElementById('custCity').value.trim();
-      const note = document.getElementById('custNote').value.trim();
-      if(!name||!phone||!product||!qty||!city){ alert('Lengkapi field yang wajib.'); return; }
-      const msg = `Halo Dirac Parfum,%0ASaya ingin memesan:%0A- Nama: ${name}%0A- No WA: ${phone}%0A- Produk: ${product}%0A- Jumlah: ${qty}%0A- Kota: ${city}%0A- Catatan: ${note}%0A%0AMohon info total & metode pembayaran.`;
-      window.open('https://wa.me/62882009257589?text='+encodeURIComponent(msg),'_blank');
-    }
-
-    // subtle parallax
-    const heroBg = document.querySelector('.hero-bg');
-    document.addEventListener('mousemove',(e)=>{ const x=(e.clientX/window.innerWidth-0.5)*8; const y=(e.clientY/window.innerHeight-0.5)*6; if(heroBg) heroBg.style.transform=`translate(${x}px, ${y}px) scale(1.03)`; });
-
-    // Accessibility: focus outlines when navigating via keyboard
-    document.body.addEventListener('keyup', (e)=>{ if(e.key==='Tab') document.documentElement.style.scrollBehavior='smooth'; });
-  </script>
-<script>
-    // --- Enhanced interactions (added by assistant) ---
-
-    // Format rupiah (re-use if needed)
-    function formatRupiah(num){
-      return 'Rp' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
-
-    // Override openModal to show Bootstrap modal with details
-    function openModal(id){
-      const p = products.find(x=>x.id===id); if(!p) return;
-      document.getElementById('productModalTitle').textContent = p.title;
-      document.getElementById('productModalImg').src = p.img;
-      document.getElementById('productModalImg').alt = p.title;
-      document.getElementById('productModalDesc').textContent = p.desc;
-      document.getElementById('productModalPrice').textContent = formatRupiah(p.price);
-      document.getElementById('productModalNotes').innerHTML = '<small class="muted">Kategori: '+p.tag+'</small>';
-      const waLink = 'https://wa.me/62882009257589?text=' + encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan '+p.title+' (ID:'+p.id+'). Mohon info stok & total.');
-      document.getElementById('productModalWA').href = waLink;
-      // show bootstrap modal
-      const modalEl = document.getElementById('productModal');
-      const modal = new bootstrap.Modal(modalEl);
-      modal.show();
-    }
-
-    // Add badges to product cards (premium/baru)
-    function addBadges(){
-      products.forEach(p=>{
-        // premium if price >= 150k
-        const id = p.id;
-        const selector = '[data-id="'+id+'"]';
-        const imgs = document.querySelectorAll(selector);
-        imgs.forEach(img=>{
-          const card = img.closest('.product-card');
-          if(!card) return;
-          // avoid duplicate
-          if(card.querySelector('.badge-top')) return;
-          if(p.price >= 150000){
-            const span = document.createElement('span'); span.className='badge-top'; span.textContent='Premium';
-            card.appendChild(span);
-          } else if(p.id === products[products.length-1].id || p.id === products[products.length-2].id){
-            const span = document.createElement('span'); span.className='badge-top'; span.textContent='Baru';
-            card.appendChild(span);
-          }
-        });
-      });
-    }
-
-    // Run addBadges after initial render
-    document.addEventListener('DOMContentLoaded', ()=>{ addBadges(); });
-
-    // Newsletter simple handler (no backend)
-    document.addEventListener('DOMContentLoaded',()=>{
-      const form = document.getElementById('newsletterForm');
-      if(form){
-        form.addEventListener('submit', (e)=>{
-          e.preventDefault();
-          const email = document.getElementById('newsEmail').value.trim();
-          if(!email){ alert('Masukkan email valid.'); return; }
-          // For privacy: we won't store email here. In production, send to backend.
-          alert('Terima kasih! ' + email + ' telah terdaftar untuk menerima promo.');
-          form.reset();
-        });
-      }
-    });
-
-    // Reveal on scroll (IntersectionObserver)
-    (function(){
-      const obs = new IntersectionObserver((entries)=>{
-        entries.forEach(entry=>{
-          if(entry.isIntersecting){
-            entry.target.classList.add('reveal');
-            obs.unobserve(entry.target);
-          }
-        });
-      },{threshold:0.15});
-      document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
-    })();
-  </script>
-<script>
-// Overwrite prepareWA for improved form (safe & simple)
-async function prepareWA(e){
+    async function prepareWA(e){
   e.preventDefault();
 
   const name = document.getElementById('custName').value.trim();
@@ -2899,18 +2862,19 @@ async function prepareWA(e){
 
   const orderCode = 'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900);
 
-  const message =
-`🛒 ORDER BARU
-
-📌 Kode Order: ${orderCode}
-👤 Nama: ${name}
-📱 No. WhatsApp: ${phone}
-🧴 Produk: ${product}${size ? ` (${size})` : ''}
-🔢 Jumlah: ${qty}
-🏙️ Kota: ${city || '-'}
-📝 Catatan: ${note || '-'}
-
-Terima kasih.`;
+  const message = [
+    '🛒 ORDER BARU',
+    '',
+    `📌 Kode Order: ${orderCode}`,
+    `👤 Nama: ${name}`,
+    `📱 No. WhatsApp: ${phone}`,
+    `🧴 Produk: ${product}${size ? ` (${size})` : ''}`,
+    `🔢 Jumlah: ${qty || '1'}`,
+    `🏙️ Kota: ${city || '-'}`,
+    `📝 Catatan: ${note || '-'}`,
+    '',
+    'Terima kasih.'
+  ].join('\n');
 
   const submitBtn = document.getElementById('submitOrderBtn');
   const helper = document.getElementById('order-helper');
@@ -2931,24 +2895,18 @@ Terima kasih.`;
       })
     });
 
-    let resultText = '';
-    try {
-      resultText = await response.text();
-    } catch (_) {}
-
-    if (response.ok) {
-      if (helper) helper.textContent = `Pesanan terkirim. Kode order: ${orderCode}`;
-      alert(`Berhasil terkirim. Kode order: ${orderCode}`);
-      document.getElementById('orderForm').reset();
-      document.getElementById('custName').focus();
-    } else {
-      if (helper) helper.textContent = 'Gagal mengirim pesanan. Cek endpoint /api/send-wa atau token Fonnte.';
-      alert('Gagal mengirim pesanan.');
-      console.log('Fonnte response:', resultText);
+    const resultText = await response.text();
+    if (!response.ok) {
+      throw new Error(resultText || 'Gagal mengirim');
     }
+
+    if (helper) helper.textContent = `Pesanan terkirim. Kode order: ${orderCode}`;
+    alert(`Berhasil terkirim. Kode order: ${orderCode}`);
+    document.getElementById('orderForm').reset();
+    document.getElementById('custName').focus();
   } catch (err) {
     if (helper) helper.textContent = 'Terjadi error saat mengirim pesanan.';
-    alert('Terjadi error saat mengirim pesanan.');
+    alert('Terjadi error saat mengirim pesanan: ' + err.message);
     console.error(err);
   } finally {
     if (submitBtn) {
@@ -2959,6 +2917,7 @@ Terima kasih.`;
 }
 
 async function testWA(e){
+
   if(e) e.preventDefault();
 
   const helper = document.getElementById('order-helper');
