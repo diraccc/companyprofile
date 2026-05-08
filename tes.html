@@ -72,8 +72,8 @@ header{background:var(--dark);position:sticky;top:0;z-index:1050;box-shadow:0 6p
 .form-card{background:#fff;padding:20px;border-radius:12px;border:1px solid rgba(16,24,32,0.04)}
 footer{background:var(--dark);color:#fff;padding:36px 0;margin-top:30px}
 footer a{color:var(--accent);text-decoration:none}
-.wa-float{position:fixed;right:18px;bottom:18px;z-index:9999;width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,#06c263,#25D366);display:flex;align-items:center;justify-content:center;box-shadow:0 16px 48px rgba(6,194,99,0.16)}
-.wa-float svg{width:30px;height:30px}
+
+
 @media(max-width:576px){.hero{min-height:420px}
 .product-card img{height:200px}
 .hero h1{font-size:28px}
@@ -220,7 +220,7 @@ textarea{min-height:90px;resize:vertical}
 .btn{display:inline-block;padding:10px 18px;border-radius:999px;border:none;cursor:pointer;font-weight:700;}
 .btn-primary{background:linear-gradient(90deg,#d4af37,#b88649);color:#111}
 .btn-secondary{background:#eee;color:#111;border:1px solid #ddd}
-.wa-float{position:fixed;right:18px;bottom:18px;z-index:9999;width:60px;height:60px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px rgba(0,0,0,0.25)}
+
 #order.improved-order-section{padding:40px 0;}
 #order .order-card{max-width:720px;margin:0 auto;background:#111;border:1px solid #d4af37;border-radius:14px;padding:26px;box-shadow:0 10px 30px rgba(0,0,0,0.5);color:#fff;}
 #order .section-title{color:#d4af37;font-weight:700;margin-bottom:24px;}
@@ -1639,13 +1639,6 @@ It's recommended to generate optimized WebP files and serve them with proper cac
     </div>
   </div>
 </footer>
-<!-- Floating WhatsApp -->
-<a aria-label="Chat via WhatsApp" class="wa-float" href="https://wa.me/6287892523968" target="_blank">
-<svg aria-hidden="true" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<path d="M20.52 3.48A11.86 11.86 0 0 0 12 0C5.37 0 .07 5.3.07 11.93c0 2.1.55 4.15 1.6 5.95L0 24l6.39-1.67A11.88 11.88 0 0 0 12 23.85c6.63 0 11.93-5.3 11.93-11.92 0-3.19-1.24-6.18-3.41-8.45z" fill="#25D366"></path>
-<path d="M17.02 14.41c-.29-.15-1.71-.84-1.98-.94-.27-.1-.47-.15-.67.15-.2.29-.77.94-.95 1.13-.18.2-.37.22-.68.07-.31-.15-1.32-.49-2.51-1.55-.93-.83-1.56-1.85-1.74-2.16-.18-.31-.02-.48.14-.63.14-.14.31-.37.47-.55.16-.18.21-.3.31-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.19-.24-.58-.49-.5-.67-.51l-.58-.01c-.2 0-.52.07-.8.37-.28.3-1.08 1.05-1.08 2.57 0 1.52 1.11 2.99 1.27 3.2.16.2 2.2 3.37 5.33 4.73 3.13 1.36 3.13.91 3.69.85.57-.06 1.84-.75 2.1-1.48.27-.73.27-1.36.19-1.48-.07-.12-.28-.19-.57-.34z" fill="#fff"></path>
-</svg>
-</a>
 <!-- Product Detail Modal (added by assistant) -->
 <div aria-hidden="true" class="modal fade" id="productModal" tabindex="-1">
 <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1967,7 +1960,7 @@ const productDescriptions = {
           <button class="cart-item-del" onclick="removeFromCart(${JSON.stringify(item.id)})" aria-label="Hapus ${title}">✕</button>
         </div>
       `;
-    }).join('');
+    }).join('\n');
 
     updateCartUI();
   }
@@ -2060,20 +2053,55 @@ const productDescriptions = {
     showToast('❌ Kode promo tidak valid atau sudah kadaluarsa.');
   }
 
+  function buildWhatsAppOrderUrl(orderCode, totalText) {
+    const itemsText = cart.map((item, index) => {
+      const qty = Number(item.qty) || 0;
+      const price = Number(item.price) || 0;
+      return `${index + 1}. ${item.title} x${qty} = ${formatCartRp(price * qty)}`;
+    }).join('\\n');
+
+    const message = [
+      'Halo, saya ingin konfirmasi pesanan di Dirac Parfum.',
+      '',
+      `Kode Pesanan: ${orderCode}`,
+      `Total: ${totalText}`,
+      '',
+      'Rincian Pesanan:',
+      itemsText || '-',
+      '',
+      'Mohon bantu proses pesanan saya.'
+    ].join('\n');
+
+    return `https://wa.me/6287892523968?text=${encodeURIComponent(message)}`;
+  }
+
+  function openCheckoutModal(orderCode, totalText) {
+    const modal = document.getElementById('checkout-modal');
+    const codeEl = document.getElementById('checkout-order-code');
+    const totalEl = document.getElementById('checkout-order-total');
+    const waBtn = document.getElementById('checkout-wa-btn');
+
+    if (!modal || !codeEl || !totalEl || !waBtn) return;
+
+    codeEl.textContent = orderCode;
+    totalEl.textContent = totalText;
+    waBtn.href = buildWhatsAppOrderUrl(orderCode, totalText);
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCheckoutModal() {
+    const modal = document.getElementById('checkout-modal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
   function checkout() {
     if (!cart.length) return;
     const totalText = document.getElementById('cart-total')?.textContent || formatCartRp(0);
     const orderCode = 'DRC-' + Date.now().toString().slice(-6);
-    showToast('🎊 Terima kasih! Pesanan Anda sedang diproses...');
-
-    setTimeout(() => {
-      alert(
-        'Terima kasih telah berbelanja di Dirac Parfum!\n\n' +
-        'Total: ' + totalText + '\n\n' +
-        'Silakan hubungi kami via WhatsApp: 0878-9252-3968 untuk konfirmasi pesanan Anda.\n\n' +
-        'Kode Pesanan: ' + orderCode
-      );
-    }, 650);
+    showToast('🎊 Pesanan siap dikirim ke WhatsApp');
+    setTimeout(() => openCheckoutModal(orderCode, totalText), 300);
   }
 
   function buildCartUI() {
@@ -2136,18 +2164,45 @@ const productDescriptions = {
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
 
+    const checkoutModal = document.createElement('div');
+    checkoutModal.id = 'checkout-modal';
+    checkoutModal.setAttribute('role', 'dialog');
+    checkoutModal.setAttribute('aria-modal', 'true');
+    checkoutModal.setAttribute('aria-label', 'Konfirmasi pesanan');
+    checkoutModal.innerHTML = `
+      <div class="checkout-modal-backdrop" data-close-checkout></div>
+      <div class="checkout-modal-card">
+        <div class="checkout-modal-title">Pesanan siap dikirim ke WhatsApp</div>
+        <p class="checkout-modal-text">Kode pesanan: <strong id="checkout-order-code">-</strong></p>
+        <p class="checkout-modal-text">Total: <strong id="checkout-order-total">-</strong></p>
+        <p class="checkout-modal-note">Klik tombol di bawah untuk otomatis membuka WhatsApp dengan teks yang sudah berisi kode pesanan.</p>
+        <div class="checkout-modal-actions">
+          <a class="checkout-wa-btn" id="checkout-wa-btn" href="#" rel="noopener" target="_blank">Kirim ke WhatsApp</a>
+          <button class="checkout-close-btn" id="checkout-close-btn" type="button">Tutup</button>
+        </div>
+      </div>
+    `;
+
     document.body.appendChild(overlay);
     document.body.appendChild(sidebar);
     document.body.appendChild(cartBtn);
     document.body.appendChild(toast);
+    document.body.appendChild(checkoutModal);
 
     document.getElementById('cart-close').addEventListener('click', closeCart);
     document.getElementById('promo-apply-btn').addEventListener('click', applyPromo);
     document.getElementById('btn-checkout').addEventListener('click', checkout);
+    document.getElementById('checkout-close-btn').addEventListener('click', closeCheckoutModal);
+    checkoutModal.addEventListener('click', e => {
+      if (e.target && e.target.hasAttribute('data-close-checkout')) closeCheckoutModal();
+    });
     cartBtn.addEventListener('click', openCart);
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeCart();
+      if (e.key === 'Escape') {
+        closeCart();
+        closeCheckoutModal();
+      }
     });
   }
 
@@ -2167,6 +2222,7 @@ const productDescriptions = {
   window.closeCart = closeCart;
   window.applyPromo = applyPromo;
   window.checkout = checkout;
+  window.closeCheckoutModal = closeCheckoutModal;
   window.showToast = showToast;
 </script>
 <style>
@@ -2217,6 +2273,94 @@ const productDescriptions = {
   #cart-overlay.open {
     opacity: 1;
     pointer-events: auto;
+  }
+  #checkout-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 12020;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+  }
+  #checkout-modal.open {
+    display: flex;
+  }
+  .checkout-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+  }
+  .checkout-modal-card {
+    position: relative;
+    width: min(520px, 100%);
+    background: linear-gradient(180deg, #111827 0%, #0b1220 100%);
+    color: #fff;
+    border: 1px solid rgba(212,175,55,0.22);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    z-index: 1;
+  }
+  .checkout-modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: #ffd966;
+    margin-bottom: 14px;
+  }
+  .checkout-modal-text,
+  .checkout-modal-note {
+    margin: 0 0 10px;
+    color: #e5e7eb;
+    line-height: 1.55;
+  }
+  .checkout-modal-note {
+    color: #cbd5e1;
+    font-size: .95rem;
+    margin-top: 8px;
+  }
+  .checkout-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .checkout-wa-btn,
+  .checkout-close-btn {
+    flex: 1 1 180px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    padding: 0 18px;
+  }
+  .checkout-wa-btn {
+    background: linear-gradient(90deg, #25D366, #12b76a);
+    color: #fff;
+  }
+  .checkout-close-btn {
+    background: #1f2937;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  @media (max-width: 560px) {
+    .checkout-modal-card {
+      padding: 20px;
+      border-radius: 16px;
+    }
+    .checkout-modal-actions {
+      flex-direction: column;
+    }
+    .checkout-wa-btn,
+    .checkout-close-btn {
+      width: 100%;
+    }
   }
   #cart-sidebar {
     position: fixed;
