@@ -744,6 +744,8 @@
       font-size: 2rem;
       border: 1px solid var(--border);
     }
+    .cart-item-icon img { display:block; width:100%; height:100%; object-fit:contain; }
+    .cart-item-icon .img-fallback { display:flex; }
     .cart-item-info { flex: 1; min-width: 0; }
     .cart-item-name {
       font-family: var(--ff-display);
@@ -2784,6 +2786,13 @@ let cart = JSON.parse(localStorage.getItem('scentoria_cart') || '[]');
 let activeFilter = 'all';
 let discount = 0;
 
+/* Normalize cart items so older saved items still show images and full details */
+const productIndex = new Map(products.map(p => [p.id, p]));
+cart = cart.map(item => {
+  const master = productIndex.get(item.id);
+  return master ? { ...master, qty: item.qty || 1 } : item;
+});
+
 /* ══════════════ RENDER PRODUCTS ══════════════ */
 function formatRp(n) {
   return 'Rp ' + n.toLocaleString('id-ID');
@@ -2963,6 +2972,11 @@ function changeQty(id, delta) {
   renderCartItems();
 }
 
+function getCartImage(item) {
+  const master = products.find(p => p.id === item.id);
+  return item.img || item.image || item.picture || master?.img || master?.image || '';
+}
+
 function updateCartUI() {
   const total = cart.reduce((s, c) => s + c.qty, 0);
   document.getElementById('cart-count').textContent = total;
@@ -2989,15 +3003,18 @@ function renderCartItems() {
       </div>`;
     return;
   }
-  container.innerHTML = cart.map(item => `
+  container.innerHTML = cart.map(item => {
+    const cartImg = getCartImage(item);
+    const fallbackIcon = item.emoji || '✨';
+    return `
     <div class="cart-item" id="cart-item-${item.id}">
       <div class="cart-item-icon" style="overflow:hidden;">
-        ${item.img ? `
-          <img src="${item.img}" alt="${item.name}" loading="lazy"
+        ${cartImg ? `
+          <img src="${cartImg}" alt="${item.name}" loading="lazy"
                style="width:100%;height:100%;object-fit:contain;padding:6px;display:block;"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-          <span class="img-fallback" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.4rem;">✨</span>
-        ` : `${item.emoji || '✨'}`}
+          <span class="img-fallback" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.4rem;">${fallbackIcon}</span>
+        ` : `${fallbackIcon}`}
       </div>
       <div class="cart-item-info">
         <div class="cart-item-name">${item.name}</div>
@@ -3011,7 +3028,8 @@ function renderCartItems() {
       </div>
       <button class="cart-item-del" onclick="removeFromCart(${item.id})" aria-label="Hapus ${item.name}">✕</button>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 
