@@ -11,24 +11,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      /* Refined palette for a more understated, luxurious feel */
-      --bg:#070b12;       /* dark navy instead of near-black */
-      --bg-soft:#0e1520;  /* slightly lighter than bg */
-      --panel:#121c2a;    /* soft panel backdrop */
-      --panel-2:#1a2738;  /* second level panel */
-      /* soften the gold tones further so accents feel elegant */
-      --gold:#c8a26e;
-      --gold-2:#b08c5c;
-      --gold-3:#5f4824;
-      --text:#f5f7fa;
-      --muted:#a0acbf;
-      /* lighten the divider lines */
-      --line:rgba(200,165,90,.08);
-      --line-strong:rgba(200,165,90,.18);
+      --bg:#050608;
+      --bg-soft:#0b1018;
+      --panel:#101722;
+      --panel-2:#141d2a;
+      --gold:#f3cd70;
+      --gold-2:#d6a642;
+      --gold-3:#8e6425;
+      --text:#f9fafb;
+      --muted:#aeb7c6;
+      --line:rgba(243,205,112,.18);
+      --line-strong:rgba(243,205,112,.36);
       --success:#18b981;
       --danger:#ef4444;
       --radius:24px;
-      --shadow:0 22px 60px rgba(0,0,0,.40);
+      --shadow:0 24px 70px rgba(0,0,0,.45);
       --max:1180px;
     }
     *{box-sizing:border-box}
@@ -138,33 +135,14 @@
     .hero-card.one{left:40px;top:40px;width:46%;height:56%;transform:rotate(-5deg)}
     .hero-card.two{right:34px;top:78px;width:42%;height:50%;transform:rotate(5deg)}
     .hero-card.three{left:28%;bottom:34px;width:46%;height:42%;transform:rotate(1deg)}
-.hero-floating-note{position:absolute;left:24px;right:24px;bottom:22px;padding:14px 16px;border-radius:20px;background:rgba(10,15,22,.78);border:1px solid rgba(200,165,90,.20);backdrop-filter:blur(10px);display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .hero-floating-note{position:absolute;left:24px;right:24px;bottom:22px;padding:14px 16px;border-radius:20px;background:rgba(6,9,14,.76);border:1px solid rgba(243,205,112,.22);backdrop-filter:blur(12px);display:flex;justify-content:space-between;gap:12px;align-items:center}
     .hero-floating-note strong{color:var(--gold)}
 
     .stats-strip{padding:24px 0;border-block:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025)}
     .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-    .stat-card{
-      padding:22px;
-      border-radius:22px;
-      background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.06);
-      text-align:center;
-    }
-    .stat-card strong{
-      display:block;
-      font-family:"Playfair Display",serif;
-      font-size:clamp(1.8rem,4vw,2.6rem);
-      color:var(--gold);
-      line-height:1;
-      font-variant-numeric:tabular-nums;
-    }
-    .stat-card span{
-      font-size:.85rem;
-      color:var(--muted);
-      font-weight:600;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-    }
+    .stat-card{padding:22px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.08);text-align:center}
+    .stat-card strong{display:block;font-family:"Playfair Display",serif;font-size:clamp(1.8rem,4vw,2.8rem);color:#fff;line-height:1;font-variant-numeric:tabular-nums}
+    .stat-card span{font-size:.86rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 
     .promo-panel{padding:0 0 30px}
 
@@ -250,73 +228,17 @@
     select.field{color:#fff}.field option{background:#101722;color:#fff}
     .product-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
     .product-card{
-      border-radius:24px;
-      background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.06);
-      overflow:hidden;
-      box-shadow:0 16px 36px rgba(0,0,0,.18);
-      transition:transform .24s var(--motion-ease-soft),border-color .24s var(--motion-ease-soft),box-shadow .24s var(--motion-ease-soft);
-      position:relative;min-width:0
+      border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028));
+      border:1px solid rgba(255,255,255,.09);overflow:hidden;box-shadow:0 18px 42px rgba(0,0,0,.22);
+      transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;position:relative;min-width:0
     }
-.product-card:hover{transform:translateY(-6px) scale(1.008);border-color:rgba(200,165,90,.28);box-shadow:0 26px 56px rgba(0,0,0,.30),0 0 0 1px rgba(200,165,90,.08),0 0 30px rgba(170,130,70,.06)}
-.product-media{aspect-ratio:1/1;background:linear-gradient(135deg,#1a2330,#0f1520);position:relative;overflow:hidden;padding:10px}
-.product-media img{width:100%;height:100%;object-fit:contain;object-position:center center;transition:transform .25s ease;border-radius:18px;background:#121a28}.product-card:hover .product-media img{transform:scale(1.012)}
-.tag{
-      position:absolute;
-      left:12px;
-      top:12px;
-      border-radius:999px;
-      padding:5px 9px;
-      font-size:.68rem;
-      font-weight:700;
-      text-transform:uppercase;
-      letter-spacing:.04em;
-      background:rgba(12,18,27,.75);
-      backdrop-filter:blur(6px);
-      border:1px solid rgba(255,255,255,.12);
-      color:#e7e7e7;
-    }
+    .product-card:hover{transform:translateY(-6px);border-color:var(--line-strong);box-shadow:0 28px 60px rgba(0,0,0,.35)}
+    .product-media{aspect-ratio:16/9;background:linear-gradient(135deg,#141a23,#090d13);position:relative;overflow:hidden;padding:10px}
+    .product-media img{width:100%;height:100%;object-fit:contain;object-position:center center;transition:transform .25s ease;border-radius:18px;background:#0f141c}.product-card:hover .product-media img{transform:scale(1.01)}
+    .tag{position:absolute;left:12px;top:12px;border-radius:999px;padding:6px 10px;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;background:rgba(5,6,8,.70);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);color:#fff}
     .tag.sold{background:rgba(239,68,68,.92);border-color:rgba(239,68,68,.2)}
-
-    /* Rating row and badges */
-.rating-row{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      margin-bottom:10px;
-      font-size:.82rem;
-      line-height:1;
-    }
-    .rating-row .stars{
-      color:var(--gold-2);
-      font-size:.82rem;
-      letter-spacing:1px;
-    }
-    .rating-row .rating-num{
-      color:var(--gold);
-      font-weight:700;
-      font-size:.82rem;
-    }
-    .rating-row .sold-count{
-      color:var(--muted);
-      font-size:.74rem;
-    }
-.badge-best{
-      position:absolute;
-      right:12px;
-      top:12px;
-      background:linear-gradient(135deg,rgba(200,165,90,.20),rgba(255,255,255,.05));
-      color:#f5f7fa;
-      font-size:.7rem;
-      padding:4px 7px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      text-transform:uppercase;
-      font-weight:700;
-      backdrop-filter:blur(6px);
-      letter-spacing:.04em;
-    }
-    .product-body{padding:16px}.product-title{font-weight:800;line-height:1.25;margin:0 0 8px;color:#fff;font-size:.98rem}.product-desc{color:var(--muted);font-size:.82rem;min-height:2.75em;margin:0 0 12px}.price{font-family:"Playfair Display",serif;color:var(--gold);font-size:1.26rem;font-weight:800;margin-bottom:13px}.product-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.product-actions .btn-primary,.product-actions .btn-secondary{padding:10px 11px;font-size:.83rem}.product-actions .wide{grid-column:span 2}.btn-disabled{opacity:.45;pointer-events:none;filter:grayscale(.4)}
+    .tag.top-seller{left:auto;right:12px;background:linear-gradient(135deg,#f8e6a7,#c99a37);border-color:rgba(243,205,112,.42);color:#191103;box-shadow:0 10px 24px rgba(0,0,0,.24)}
+    .product-body{padding:16px}.product-title{font-weight:800;line-height:1.28;margin:0 0 8px;color:#fff;font-size:.98rem;min-height:2.56em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.product-proof{display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin:0 0 10px}.product-rating-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.star-row{display:inline-flex;align-items:center;gap:1px;color:var(--gold);font-size:1rem;letter-spacing:.04em;line-height:1}.star-row .empty{opacity:.32}.rating-copy{color:#e7ebf3;font-size:.84rem;font-weight:700;line-height:1.2}.product-sold-copy{color:#b8c1cf;font-size:.78rem;font-weight:600;line-height:1.2}.product-desc{color:var(--muted);font-size:.82rem;min-height:2.75em;margin:0 0 12px}.price{font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:#f6d989;font-size:1.28rem;font-weight:800;letter-spacing:-.01em;line-height:1.1;font-variant-numeric:tabular-nums;margin-bottom:13px}.product-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.product-actions .btn-primary,.product-actions .btn-secondary{padding:10px 11px;font-size:.83rem}.product-actions .wide{grid-column:span 2}.btn-disabled{opacity:.45;pointer-events:none;filter:grayscale(.4)}
     .empty-state{grid-column:1/-1;text-align:center;padding:40px;border:1px dashed var(--line);border-radius:24px;color:var(--muted)}
 
     .feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}.feature-card{padding:22px;border-radius:24px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.09)}.feature-icon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:rgba(243,205,112,.12);border:1px solid var(--line);font-size:1.35rem;margin-bottom:12px}.feature-card h3{margin:0 0 6px;color:#fff;font-size:1rem}.feature-card p{margin:0;color:var(--muted);font-size:.9rem}
@@ -334,7 +256,7 @@
     .cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,.64);backdrop-filter:blur(6px);z-index:10000;opacity:0;pointer-events:none;transition:.25s ease}.cart-overlay.open{opacity:1;pointer-events:auto}.cart-drawer{position:absolute;right:0;top:0;width:min(470px,100vw);height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#0d131d,#050608);border-left:1px solid var(--line);box-shadow:-30px 0 80px rgba(0,0,0,.5);transform:translateX(105%);transition:transform .32s cubic-bezier(.4,0,.2,1)}.cart-overlay.open .cart-drawer{transform:translateX(0)}
     .cart-head{padding:22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.cart-head h2{font-family:"Playfair Display",serif;margin:0;color:var(--gold);font-size:2rem;line-height:1}.cart-head p{margin:4px 0 0;color:var(--muted);font-size:.9rem}.icon-btn{width:40px;height:40px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#fff;font-weight:900}.cart-body{flex:1;overflow:auto;padding:18px 20px}.cart-empty{text-align:center;padding:56px 18px;color:var(--muted);border:1px dashed var(--line);border-radius:24px}.cart-empty div{font-size:3rem}.cart-item{display:grid;grid-template-columns:72px 1fr auto;gap:13px;align-items:start;padding:13px;border:1px solid rgba(255,255,255,.08);border-radius:20px;background:rgba(255,255,255,.04);margin-bottom:12px}.cart-thumb{width:72px;height:78px;border-radius:16px;background:#121a25;overflow:hidden}.cart-thumb img{width:100%;height:100%;object-fit:cover}.cart-item h3{font-size:.94rem;line-height:1.25;margin:0 0 5px;color:#fff}.cart-item .line{font-size:.82rem;color:var(--muted);margin-bottom:8px}.qty-control{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.12);border-radius:999px;overflow:hidden}.qty-control button{width:30px;height:30px;border:0;background:transparent;color:#fff;font-weight:900}.qty-control span{min-width:28px;text-align:center;font-weight:800}.remove-btn{border:0;background:transparent;color:#8894a6;font-size:1.2rem}.remove-btn:hover{color:var(--danger)}.cart-footer{border-top:1px solid rgba(255,255,255,.08);padding:18px 20px 22px;background:rgba(0,0,0,.22)}.free-ship{margin:0 0 14px}.free-ship small{display:block;color:var(--muted);margin-bottom:8px}.meter{height:9px;background:rgba(255,255,255,.09);border-radius:999px;overflow:hidden}.meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),#fff0b6);transition:width .25s ease}.cart-row{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#cbd5e1;margin:8px 0;font-size:.95rem}.cart-row.total{margin-top:13px;padding-top:13px;border-top:1px solid rgba(255,255,255,.10);font-size:1.25rem;font-family:"Playfair Display",serif;color:#fff}.cart-row.total strong{color:var(--gold)}.promo-row,.ship-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0}.promo-row input,.ship-row select{border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.06);color:#fff;padding:11px 12px;min-width:0}.ship-row{grid-template-columns:1fr}.promo-row input::placeholder{color:#8390a2}.cart-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}.cart-actions .btn-primary,.cart-actions .btn-secondary{padding:13px 14px}.cart-actions .full{grid-column:1/-1}.cart-actions button:disabled{opacity:.46;cursor:not-allowed;transform:none!important}
     .toast{position:fixed;left:50%;bottom:24px;z-index:12000;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:rgba(10,13,18,.92);color:#fff;border:1px solid var(--line);border-radius:999px;padding:12px 16px;box-shadow:0 18px 50px rgba(0,0,0,.40);transition:.25s ease;max-width:min(92vw,560px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.toast.show{opacity:1;transform:translate(-50%,0)}
-    .modal{position:fixed;inset:0;z-index:11000;display:none;place-items:center;background:rgba(0,0,0,.68);backdrop-filter:blur(6px);padding:18px}.modal.open{display:grid}.modal-card{width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:28px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid var(--line);box-shadow:var(--shadow)}.modal-head{padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:14px;align-items:center}.modal-head h2{font-family:"Playfair Display",serif;margin:0;color:var(--gold);font-size:1.8rem}.modal-body{padding:22px}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.checkout-grid .full{grid-column:1/-1}.modal .field{background:rgba(255,255,255,.05)}.modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.quick-grid{display:grid;grid-template-columns:260px 1fr;gap:18px}.quick-grid img{width:100%;aspect-ratio:16/9;height:auto;object-fit:contain;object-position:center center;border-radius:22px;background:#121a25;padding:10px}.quick-price{font-family:"Playfair Display",serif;color:var(--gold);font-size:1.7rem;font-weight:800;margin:8px 0}.quick-meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.quick-meta span{padding:6px 10px;border-radius:999px;background:rgba(243,205,112,.09);border:1px solid var(--line);color:#f7e8c5;font-size:.78rem;font-weight:800}
+    .modal{position:fixed;inset:0;z-index:11000;display:none;place-items:center;background:rgba(0,0,0,.68);backdrop-filter:blur(6px);padding:18px}.modal.open{display:grid}.modal-card{width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:28px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid var(--line);box-shadow:var(--shadow)}.modal-head{padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:14px;align-items:center}.modal-head h2{font-family:"Playfair Display",serif;margin:0;color:var(--gold);font-size:1.8rem}.modal-body{padding:22px}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.checkout-grid .full{grid-column:1/-1}.modal .field{background:rgba(255,255,255,.05)}.modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.quick-grid{display:grid;grid-template-columns:260px 1fr;gap:18px}.quick-grid img{width:100%;aspect-ratio:16/9;height:auto;object-fit:contain;object-position:center center;border-radius:22px;background:#121a25;padding:10px}.quick-price{font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:#f6d989;font-size:1.7rem;font-weight:800;letter-spacing:-.01em;line-height:1.1;font-variant-numeric:tabular-nums;margin:8px 0}.quick-proof{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:14px 0 10px}.quick-rating-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.quick-rating-row .star-row{font-size:1.08rem}.quick-rating-copy{color:#eef2f8;font-size:.96rem;font-weight:700}.quick-sold-copy{color:#c9d1dd;font-size:.84rem;font-weight:600}.quick-top-label{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,#f8e6a7,#c99a37);border:1px solid rgba(243,205,112,.42);color:#191103;font-size:.78rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase}.quick-meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.quick-meta span{padding:6px 10px;border-radius:999px;background:rgba(243,205,112,.09);border:1px solid var(--line);color:#f7e8c5;font-size:.78rem;font-weight:800}
 
     @media(max-width:1080px){.product-grid{grid-template-columns:repeat(3,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}.hero-grid{grid-template-columns:1fr}.hero-showcase{min-height:390px}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.cards-3,.blog-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:760px){.announcement .container{flex-direction:column;gap:3px;text-align:center}.nav{align-items:center}.nav-links{display:none}.brand-mark{width:56px;height:56px;border-radius:16px}.brand-name{font-size:1.08rem}.header-cart{padding:10px 12px}.header-cart .label{display:none}.hero{padding:58px 0 46px}.hero-showcase{display:none}.stats-grid{grid-template-columns:1fr}.promo-box{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.product-body{padding:12px}.product-title{font-size:.9rem}.product-desc{display:none}.price{font-size:1.05rem}.product-actions{grid-template-columns:1fr}.product-actions .wide{grid-column:auto}.floating-cart{display:none}.section{padding:58px 0}.lifestyle-card{grid-template-columns:1fr}.lifestyle-copy{padding:24px}.cards-3,.cards-2,.blog-grid,.faq-grid,.footer-grid,.feature-grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:1fr}.quick-grid img{width:100%;height:auto;aspect-ratio:16/9}.checkout-grid{grid-template-columns:1fr}.cart-drawer{width:100%}.cart-actions{grid-template-columns:1fr}.modal-actions .btn-primary,.modal-actions .btn-secondary{width:100%}}
@@ -422,11 +344,11 @@
 
     .product-media.is-loading:after{
       content:"";position:absolute;inset:10px;z-index:3;border-radius:18px;pointer-events:none;
-      background:linear-gradient(100deg,rgba(255,255,255,.02) 0%,rgba(255,255,255,.07) 45%,rgba(200,165,90,.10) 55%,rgba(255,255,255,.02) 100%);
+      background:linear-gradient(100deg,rgba(255,255,255,.02) 0%,rgba(255,255,255,.09) 45%,rgba(243,205,112,.13) 55%,rgba(255,255,255,.02) 100%);
       background-size:220% 100%;animation:skeletonShimmer 1.45s linear infinite;
     }
     .quick-grid img.is-loading-image{
-      background-image:linear-gradient(100deg,rgba(255,255,255,.03),rgba(255,255,255,.08),rgba(200,165,90,.10),rgba(255,255,255,.03));
+      background-image:linear-gradient(100deg,rgba(255,255,255,.03),rgba(255,255,255,.10),rgba(243,205,112,.13),rgba(255,255,255,.03));
       background-size:220% 100%;animation:skeletonShimmer 1.45s linear infinite;
     }
     @keyframes skeletonShimmer{to{background-position:-220% 0}}
@@ -596,6 +518,343 @@ img[loading="lazy"]{content-visibility:auto}
 .product-card{contain:content;content-visibility:auto;contain-intrinsic-size:420px}
 </style>
 
+
+
+<style id="dirac-luxury-motion-css">
+/* =========================================================
+   Dirac Luxury Motion Layer v4 - fail-safe premium animations
+   Prinsip aman: konten tetap terlihat walau JS/animasi gagal.
+   ========================================================= */
+:root{
+  --luxury-ease:cubic-bezier(.22,1,.36,1);
+  --luxury-soft:cubic-bezier(.16,1,.3,1);
+}
+
+/* Header premium on scroll */
+.site-header:after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:-1px;height:1px;
+  pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(243,205,112,.34),transparent);
+  opacity:.18;
+  transition:opacity .35s var(--luxury-ease);
+}
+.site-header.is-scrolled:after{opacity:.62}
+.site-header.is-scrolled{
+  box-shadow:0 18px 54px rgba(0,0,0,.38),0 1px 0 rgba(243,205,112,.08);
+}
+.site-header.is-scrolled .brand-mark{filter:drop-shadow(0 8px 18px rgba(214,166,66,.14))}
+
+/* Section transitions: always visible, only refined movement */
+.motion-ready .section[data-reveal] .eyebrow,
+.motion-ready .section[data-reveal] .section-title,
+.motion-ready .section[data-reveal] .section-lead{
+  opacity:.92;
+  transform:translateY(8px);
+  transition:opacity .7s var(--luxury-soft),transform .7s var(--luxury-soft);
+}
+.motion-ready .section[data-reveal].is-visible .eyebrow,
+.motion-ready .section[data-reveal].is-visible .section-title,
+.motion-ready .section[data-reveal].is-visible .section-lead{
+  opacity:1;
+  transform:none;
+}
+.motion-ready .section[data-reveal].is-visible .section-title{transition-delay:.06s}
+.motion-ready .section[data-reveal].is-visible .section-lead{transition-delay:.12s}
+
+/* Product card premium glow */
+.product-card{isolation:isolate}
+.product-card:before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(243,205,112,.16),transparent 46%),
+    linear-gradient(135deg,rgba(255,255,255,.035),transparent 55%);
+  opacity:.32;
+  transition:opacity .45s var(--luxury-ease),filter .45s var(--luxury-ease);
+}
+.product-card:hover:before,
+.product-card.luxury-tap-active:before{
+  opacity:.72;
+  filter:saturate(1.12);
+}
+.product-card .product-media,
+.product-card .product-body{position:relative;z-index:1}
+
+/* Smooth reveal for products - never blank */
+.motion-ready .product-card[data-luxury-card="true"]{
+  opacity:.86;
+  transform:translate3d(0,12px,0) scale(.995);
+  transition:opacity .72s var(--luxury-soft),transform .72s var(--luxury-soft),box-shadow .35s var(--luxury-ease),border-color .35s var(--luxury-ease);
+  transition-delay:var(--luxury-card-delay,0ms);
+}
+.motion-ready .product-card[data-luxury-card="true"].is-visible,
+.motion-ready .product-card[data-luxury-card="true"].luxury-visible{
+  opacity:1;
+  transform:translate3d(0,0,0) scale(1);
+}
+
+/* Product image luxury zoom: limited by JS to visible first batch */
+.product-card.luxury-motion-card .product-media img{
+  transform-origin:center center;
+  will-change:transform;
+}
+.product-card.luxury-motion-card.is-visible .product-media img,
+.product-card.luxury-motion-card.luxury-visible .product-media img{
+  animation:luxuryImageZoom 7.5s var(--luxury-soft) both;
+}
+.product-card:hover .product-media img{
+  transform:translateY(-4px) scale(1.035);
+}
+.product-card.luxury-tap-active .product-media img{
+  transform:translateY(-3px) scale(1.024)!important;
+}
+@keyframes luxuryImageZoom{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.026)}
+}
+
+/* Rating premium fade - visible by default, animated when card is visible */
+.star-row span{
+  display:inline-block;
+  transform:translateY(0);
+  will-change:transform,opacity;
+}
+.product-card.is-visible .star-row span,
+.product-card.luxury-visible .star-row span,
+.modal.open .star-row span{
+  animation:starLuxuryIn .38s var(--luxury-soft) both;
+}
+.star-row span:nth-child(1){animation-delay:.02s}
+.star-row span:nth-child(2){animation-delay:.07s}
+.star-row span:nth-child(3){animation-delay:.12s}
+.star-row span:nth-child(4){animation-delay:.17s}
+.star-row span:nth-child(5){animation-delay:.22s}
+.product-card.is-visible .rating-copy,
+.product-card.luxury-visible .rating-copy{
+  animation:ratingTextIn .48s var(--luxury-soft) both .24s;
+}
+.product-card.is-visible .product-sold-copy,
+.product-card.luxury-visible .product-sold-copy{
+  animation:ratingTextIn .5s var(--luxury-soft) both .32s;
+}
+@keyframes starLuxuryIn{
+  from{opacity:.36;transform:translateY(5px)}
+  to{opacity:1;transform:none}
+}
+@keyframes ratingTextIn{
+  from{opacity:.58;transform:translateY(6px)}
+  to{opacity:1;transform:none}
+}
+
+/* Top seller refined glow and shimmer */
+.tag.top-seller{
+  overflow:hidden;
+  isolation:isolate;
+  animation:topSellerSoftGlow 4.8s ease-in-out infinite;
+}
+.tag.top-seller:before{
+  content:"";
+  position:absolute;
+  inset:-35% -70%;
+  pointer-events:none;
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.42) 50%,transparent 65%);
+  transform:translateX(-75%) rotate(10deg);
+  animation:topSellerShimmer 5.8s ease-in-out infinite;
+}
+@keyframes topSellerSoftGlow{
+  0%,100%{box-shadow:0 10px 24px rgba(0,0,0,.24),0 0 0 rgba(243,205,112,0)}
+  50%{box-shadow:0 12px 28px rgba(0,0,0,.28),0 0 20px rgba(243,205,112,.18)}
+}
+@keyframes topSellerShimmer{
+  0%,58%{transform:translateX(-78%) rotate(10deg)}
+  82%,100%{transform:translateX(78%) rotate(10deg)}
+}
+.quick-top-label{animation:topSellerSoftGlow 4.8s ease-in-out infinite}
+
+/* Add to cart premium feedback */
+.btn-primary.luxury-added,
+button.luxury-added{
+  filter:brightness(1.08);
+  box-shadow:0 18px 44px rgba(214,166,66,.34),0 0 0 1px rgba(255,255,255,.08) inset;
+}
+.count-badge.luxury-cart-pulse{
+  animation:luxuryCartPulse .52s var(--luxury-soft) both;
+}
+@keyframes luxuryCartPulse{
+  0%{transform:translateY(0) scale(1)}
+  44%{transform:translateY(-3px) scale(1.14)}
+  100%{transform:translateY(0) scale(1)}
+}
+#checkoutBtn:not(:disabled){
+  box-shadow:0 16px 36px rgba(214,166,66,.24),0 0 0 1px rgba(255,255,255,.07) inset;
+}
+.cart-footer.cart-has-items #checkoutBtn:not(:disabled){
+  animation:checkoutReadyGlow 4.2s ease-in-out infinite;
+}
+@keyframes checkoutReadyGlow{
+  0%,100%{filter:brightness(1);box-shadow:0 16px 36px rgba(214,166,66,.24)}
+  50%{filter:brightness(1.04);box-shadow:0 18px 44px rgba(214,166,66,.34),0 0 20px rgba(243,205,112,.10)}
+}
+
+/* Modal detail cinematic stagger */
+.modal.open .modal-card{animation-duration:.44s}
+.modal.open .quick-grid img{animation:quickImageIn .58s var(--luxury-soft) both .05s}
+.modal.open .quick-grid > div{animation:quickCopyIn .58s var(--luxury-soft) both .10s}
+.modal.open .quick-price{animation:modalDetailItemIn .5s var(--luxury-soft) both .18s}
+.modal.open .quick-proof{animation:modalDetailItemIn .5s var(--luxury-soft) both .26s}
+.modal.open .quick-meta{animation:modalDetailItemIn .5s var(--luxury-soft) both .34s}
+.modal.open .modal-actions{animation:modalDetailItemIn .5s var(--luxury-soft) both .42s}
+@keyframes modalDetailItemIn{
+  from{opacity:.62;transform:translateY(8px)}
+  to{opacity:1;transform:none}
+}
+
+/* Branded lightweight loading skeleton */
+.product-media.is-loading:after{
+  background:linear-gradient(105deg,rgba(255,255,255,.025) 0%,rgba(255,255,255,.075) 42%,rgba(243,205,112,.16) 52%,rgba(255,255,255,.025) 100%)!important;
+  box-shadow:inset 0 0 0 1px rgba(243,205,112,.05);
+}
+.quick-grid img.is-loading-image{
+  background-image:linear-gradient(105deg,rgba(255,255,255,.025),rgba(255,255,255,.08),rgba(243,205,112,.14),rgba(255,255,255,.025))!important;
+}
+
+/* Checkout drawer smooth row feedback */
+.cart-row strong.luxury-money-pop,
+#totalText.luxury-money-pop{
+  animation:luxuryMoneyPop .46s var(--luxury-soft) both;
+}
+@keyframes luxuryMoneyPop{
+  0%{transform:translateY(0);filter:none}
+  48%{transform:translateY(-2px);filter:drop-shadow(0 0 10px rgba(243,205,112,.28))}
+  100%{transform:translateY(0);filter:none}
+}
+.cart-overlay.open .cart-item{
+  animation:cartItemIn .46s var(--luxury-soft) both;
+}
+
+/* Mobile safety: keep motion ultra-light, no blank state */
+@media(max-width:760px){
+  .motion-ready .product-card[data-luxury-card="true"]{
+    opacity:1!important;
+    transform:none!important;
+    transition:box-shadow .18s ease,border-color .18s ease!important;
+  }
+  .product-card.luxury-motion-card.is-visible .product-media img,
+  .product-card.luxury-motion-card.luxury-visible .product-media img{
+    animation:none!important;
+  }
+  .product-card:hover .product-media img{transform:none!important}
+  .product-card.luxury-tap-active .product-media img{transform:translateY(-2px) scale(1.018)!important}
+  .product-card:before{opacity:.28}
+  .product-card.luxury-tap-active:before{opacity:.56}
+  .tag.top-seller{animation:topSellerSoftGlow 6.5s ease-in-out infinite}
+  .tag.top-seller:before{animation:none!important;opacity:.28}
+  .modal.open .quick-price,
+  .modal.open .quick-proof,
+  .modal.open .quick-meta,
+  .modal.open .modal-actions{animation:none!important;opacity:1!important;transform:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .product-card.luxury-motion-card.is-visible .product-media img,
+  .product-card.luxury-motion-card.luxury-visible .product-media img,
+  .tag.top-seller,
+  .tag.top-seller:before,
+  .quick-top-label,
+  .cart-footer.cart-has-items #checkoutBtn:not(:disabled),
+  .star-row span,
+  .rating-copy,
+  .product-sold-copy,
+  .modal.open .quick-price,
+  .modal.open .quick-proof,
+  .modal.open .quick-meta,
+  .modal.open .modal-actions,
+  .count-badge.luxury-cart-pulse,
+  .cart-row strong.luxury-money-pop,
+  #totalText.luxury-money-pop{
+    animation:none!important;
+    transform:none!important;
+    opacity:1!important;
+  }
+}
+</style>
+
+
+
+<style id="dirac-checkout-validation-css">
+/* Required checkout fields - clear, safe, and mobile friendly */
+.checkout-required-note{
+  margin:10px 0 0;
+  color:#d8dfeb;
+  font-size:.86rem;
+  font-weight:600;
+}
+.checkout-required-note strong{color:var(--gold)}
+.checkout-error-message{
+  display:none;
+  margin:12px 0 0;
+  padding:11px 13px;
+  border-radius:16px;
+  background:rgba(239,68,68,.10);
+  border:1px solid rgba(239,68,68,.34);
+  color:#ffd5d5;
+  font-size:.88rem;
+  font-weight:700;
+}
+.checkout-error-message.show{display:block}
+.checkout-grid .field.is-invalid,
+.modal .field.is-invalid{
+  border-color:rgba(239,68,68,.86)!important;
+  box-shadow:0 0 0 4px rgba(239,68,68,.13)!important;
+  background:rgba(239,68,68,.055)!important;
+}
+.checkout-grid .field.is-valid,
+.modal .field.is-valid{
+  border-color:rgba(24,185,129,.42)!important;
+}
+#sendWhatsappBtn.is-locked{
+  filter:saturate(.88);
+}
+#sendWhatsappBtn.shake-required{
+  animation:checkoutRequiredShake .34s cubic-bezier(.22,1,.36,1);
+}
+@keyframes checkoutRequiredShake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-3px)}
+  50%{transform:translateX(3px)}
+  75%{transform:translateX(-2px)}
+}
+@media(max-width:760px){
+  .checkout-error-message{font-size:.84rem;padding:10px 12px}
+  .checkout-required-note{font-size:.82rem}
+}
+@media(prefers-reduced-motion:reduce){
+  #sendWhatsappBtn.shake-required{animation:none!important}
+}
+</style>
+
+
+  <style id="dirac-longdesc-css">
+    .quick-desc{
+      line-height:1.75;
+      color:#cbd3df;
+      font-size:.96rem;
+      max-width:56ch;
+      margin:14px 0 12px;
+    }
+    @media(max-width:640px){
+      .quick-desc{
+        font-size:.94rem;
+        line-height:1.68;
+        margin-top:12px;
+      }
+    }
+  </style>
+
 </head>
 <body>
   <div class="announcement">
@@ -619,6 +878,7 @@ img[loading="lazy"]{content-visibility:auto}
         <a href="#lifestyle">Gaya</a>
         <a href="#blog">Blog</a>
         <a href="#behind-the-scenes">Proses</a>
+        <a href="#kebijakan">Kebijakan</a>
         <a href="#faq">FAQ</a>
       </nav>
       <div class="header-actions">
@@ -633,17 +893,18 @@ img[loading="lazy"]{content-visibility:auto}
     <section class="hero" id="beranda">
       <div class="container hero-grid">
         <div>
-          <span class="eyebrow">Koleksi parfum kelas dunia</span>
-          <h1>Rasakan keharuman kelas dunia,<br><span>temukan parfum istimewa Anda</span></h1>
-          <p>Nikmati pengalaman belanja parfum berkelas internasional dengan katalog elegan, filter canggih, keranjang modern, promo otomatis, dan checkout cepat via WhatsApp.</p>
+          <span class="eyebrow">Premium reseller parfum</span>
+          <h1>Aroma premium, <span>belanja lebih nyaman.</span></h1>
+          <p>Website ini sudah dibuat lebih rapi dengan katalog responsif, filter produk, keranjang modern, kode promo, simulasi ongkir, dan checkout WhatsApp otomatis.</p>
           <div class="hero-actions">
             <a class="btn-primary" href="#produk">Belanja Produk</a>
             <button class="btn-secondary" type="button" data-open-cart>Lihat Keranjang</button>
           </div>
           <div class="trust-row" aria-label="Keunggulan toko">
-            <span>✅ 100% produk original</span>
-            <span>🚚 Pengiriman eksklusif</span>
-            <span>⭐ 7.192+ pelanggan setia</span>
+            <span>✅ Stok terkurasi</span>
+            <span>📦 Packing aman</span>
+            <span>💬 Fast response</span>
+            <span>🎁 Cocok untuk reseller</span>
           </div>
         </div>
         <div class="hero-showcase" aria-hidden="true">
@@ -809,6 +1070,58 @@ img[loading="lazy"]{content-visibility:auto}
       </div>
     </section>
 
+
+    <section class="section" id="kebijakan" aria-label="Kebijakan dan Informasi Toko">
+      <div class="container text-center">
+        <span class="eyebrow">Informasi toko</span>
+        <h2 class="section-title">Kebijakan & ketentuan belanja</h2>
+        <p class="section-lead">Baca informasi berikut sebelum checkout agar proses pesanan lebih jelas, aman, dan tidak menimbulkan salah paham.</p>
+        <div class="cards-2 text-left">
+          <div class="info-card">
+            <span class="mini-label">Pengiriman</span>
+            <h3>Kebijakan pengiriman</h3>
+            <p>Pesanan dikirim setelah pembayaran terkonfirmasi dan stok tersedia. Ongkir mengikuti pilihan pengiriman pada keranjang atau konfirmasi admin. Nomor resi akan diinformasikan melalui WhatsApp setelah paket diserahkan ke ekspedisi.</p>
+          </div>
+          <div class="info-card">
+            <span class="mini-label">Retur</span>
+            <h3>Kebijakan refund / retur</h3>
+            <p>Refund atau retur hanya dapat diproses jika produk yang diterima tidak sesuai pesanan, rusak saat diterima, atau terdapat kesalahan dari pihak toko. Wajib menyertakan video unboxing tanpa jeda dan menghubungi admin maksimal 1×24 jam setelah paket diterima.</p>
+          </div>
+          <div class="info-card">
+            <span class="mini-label">Privasi</span>
+            <h3>Kebijakan privasi</h3>
+            <p>Data pembeli seperti nama, nomor WhatsApp, alamat, dan catatan pesanan hanya digunakan untuk memproses pesanan, pengiriman, dan komunikasi layanan. Data tidak diperjualbelikan kepada pihak lain.</p>
+          </div>
+          <div class="info-card">
+            <span class="mini-label">S&K</span>
+            <h3>Syarat dan ketentuan</h3>
+            <p>Dengan melakukan checkout, pembeli dianggap telah membaca dan menyetujui informasi produk, harga, promo, pengiriman, serta kebijakan toko. Harga dan stok dapat berubah sewaktu-waktu sebelum pesanan dikonfirmasi admin.</p>
+          </div>
+          <div class="info-card">
+            <span class="mini-label">Disclaimer</span>
+            <h3>Original / inspired / reseller</h3>
+            <p>Keterangan produk akan dijelaskan sesuai kategori dan informasi yang tersedia. Produk original, inspired, reseller, atau produk lain akan diinformasikan secara transparan oleh admin. Nama merek digunakan sebagai referensi produk, dan hak merek tetap milik pemilik masing-masing.</p>
+          </div>
+          <div class="info-card">
+            <span class="mini-label">Packing</span>
+            <h3>Estimasi proses packing</h3>
+            <p>Pesanan umumnya diproses dan dipacking dalam 1–2 hari kerja setelah pembayaran terkonfirmasi. Pada periode promo, tanggal merah, atau antrean tinggi, proses dapat membutuhkan waktu lebih lama.</p>
+          </div>
+          <div class="info-card">
+            <span class="mini-label">Admin</span>
+            <h3>Jam operasional admin</h3>
+            <p>Admin melayani konsultasi aroma, konfirmasi stok, dan pesanan setiap hari pukul 09.00–21.00 WIB. Pesan di luar jam operasional akan dibalas pada jam kerja berikutnya.</p>
+          </div>
+          <div class="info-card">
+            <span class="mini-label">Catatan</span>
+            <h3>Konfirmasi sebelum pembayaran</h3>
+            <p>Untuk menghindari kesalahan stok, varian, atau harga, pembeli disarankan menunggu konfirmasi final dari admin melalui WhatsApp sebelum melakukan pembayaran.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
     <section class="section" id="faq" aria-label="Pertanyaan Umum">
       <div class="container text-center">
         <span class="eyebrow">FAQ</span>
@@ -827,7 +1140,7 @@ img[loading="lazy"]{content-visibility:auto}
     <div class="container">
       <div class="footer-grid">
         <div><h3>Dirac Parfum</h3><p>Reseller parfum premium dengan katalog rapi, sistem keranjang modern, dan checkout WhatsApp cepat.</p></div>
-        <div><h4>Navigasi</h4><ul><li><a href="#produk">Produk</a></li><li><a href="#lifestyle">Gaya & Suasana</a></li><li><a href="#blog">Blog</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+        <div><h4>Navigasi</h4><ul><li><a href="#produk">Produk</a></li><li><a href="#lifestyle">Gaya & Suasana</a></li><li><a href="#blog">Blog</a></li><li><a href="#kebijakan">Kebijakan Toko</a></li><li><a href="#faq">FAQ</a></li></ul></div>
         <div><h4>Kontak</h4><ul><li><a href="https://wa.me/6287892523968" target="_blank" rel="noopener">WhatsApp: +62 878-9252-3968</a></li><li><a href="mailto:companydirac@gmail.com">companydirac@gmail.com</a></li><li>Sidoarjo, Indonesia</li></ul></div>
       </div>
       <div class="copyright"><span>© 2026 Dirac Parfum. All rights reserved.</span><span>Desain premium - keranjang canggih - mobile friendly</span></div>
@@ -866,15 +1179,17 @@ img[loading="lazy"]{content-visibility:auto}
       <div class="modal-head"><h2 id="checkoutTitle">Data Checkout</h2><button class="icon-btn" type="button" data-close-modal aria-label="Tutup modal">×</button></div>
       <div class="modal-body">
         <p class="muted" style="margin-top:0">Isi data berikut agar pesan WhatsApp sudah lengkap dan siap dikirim.</p>
+        <p class="checkout-required-note"><strong>Wajib diisi:</strong> nama lengkap, nomor WhatsApp, dan alamat lengkap.</p>
         <div class="checkout-grid">
-          <input class="field" id="buyerName" placeholder="Nama lengkap" autocomplete="name">
-          <input class="field" id="buyerPhone" placeholder="Nomor WhatsApp" autocomplete="tel">
-          <textarea class="field full" id="buyerAddress" rows="3" placeholder="Alamat lengkap / kota tujuan"></textarea>
+          <input class="field" id="buyerName" placeholder="Nama lengkap *" autocomplete="name" required aria-required="true" aria-describedby="checkoutError">
+          <input class="field" id="buyerPhone" placeholder="Nomor WhatsApp *" autocomplete="tel" inputmode="tel" required aria-required="true" aria-describedby="checkoutError">
+          <textarea class="field full" id="buyerAddress" rows="3" placeholder="Alamat lengkap / kota tujuan *" required aria-required="true" aria-describedby="checkoutError"></textarea>
           <select class="field" id="paymentMethod"><option>Transfer Bank</option><option>COD / Bayar di tempat</option><option>E-wallet</option><option>Konfirmasi dulu via WA</option></select>
           <input class="field" id="buyerNote" placeholder="Catatan pesanan (opsional)">
         </div>
+        <div class="checkout-error-message" id="checkoutError" role="alert" aria-live="polite"></div>
         <div class="modal-actions">
-          <button class="btn-primary" type="button" id="sendWhatsappBtn">Kirim ke WhatsApp</button>
+          <button class="btn-primary is-locked" type="button" id="sendWhatsappBtn">Kirim ke WhatsApp</button>
           <button class="btn-secondary" type="button" data-close-modal>Tutup</button>
         </div>
       </div>
@@ -897,113 +1212,766 @@ img[loading="lazy"]{content-visibility:auto}
     const FREE_SHIP_TARGET = 299000;
 
     const products = [
-      {id:1,title:'All Parfum Timteng',category:'Timur Tengah',price:1000000,img:'all_parfum_timteng.webp',desc:'Koleksi aroma khas Timur Tengah dengan karakter oud, amber, dan rempah.',notes:'Oud - Amber - Spicy',status:'ready'},
-      {id:2,title:'All Parfum Designer',category:'Designer',price:1000000,img:'all_parfum_desaigner.webp',desc:'Pilihan parfum designer populer dengan kesan modern dan berkelas.',notes:'Fresh - Modern - Versatile',status:'ready'},
-      {id:3,title:'All Parfum Lokal',category:'Lokal',price:250000,img:'all_parfum_lokal.webp',desc:'Koleksi brand lokal dengan harga ramah dan aroma mudah dipakai harian.',notes:'Daily - Clean - Easy wear',status:'ready'},
-      {id:4,title:'All Parfum Niche',category:'Niche',price:1000000,img:'all_parfum_niche.webp',desc:'Aroma niche yang lebih unik, eksklusif, dan punya karakter kuat.',notes:'Unique - Premium - Long lasting',status:'ready'},
-      {id:5,title:'Botol Kosong Niche',category:'Aksesoris',price:700000,img:'botol_kosong_niche.webp',desc:'Botol kosong koleksi niche untuk display atau kebutuhan kolektor.',notes:'Collector - Display',status:'sold'},
-      {id:6,title:'Louis Vuitton Imagination 100 ml',category:'Niche',price:6200000,img:'produk6.webp',desc:'Aroma premium dengan karakter fresh, bersih, dan mewah.',notes:'Fresh - Citrus - Premium',status:'ready'},
-      {id:7,title:'Xerjoff Torino 21 100 ml',category:'Niche',price:7500000,img:'produk7.webp',desc:'Pilihan niche premium yang cocok untuk kesan elegan dan eksklusif.',notes:'Green - Fresh - Elegant',status:'ready'},
-      {id:8,title:'Yves Saint Laurent Myself 100 ml',category:'Designer',price:1650000,img:'produk8.webp',desc:'Aroma designer modern untuk penggunaan harian dan semi-formal.',notes:'Clean - Aromatic - Modern',status:'ready'},
-      {id:9,title:'Xerjoff Erba Pura 100 ml',category:'Niche',price:4500000,img:'produk9.webp',desc:'Aroma fruity musky yang mencolok dan mudah dikenali.',notes:'Fruity - Musk - Sweet',status:'ready'},
-      {id:10,title:'Jean Paul Gaultier Le Male Elixir 125 ml',category:'Designer',price:1600000,img:'produk10.webp',desc:'Aroma manis hangat dengan karakter malam yang kuat.',notes:'Sweet - Amber - Vanilla',status:'ready'},
-      {id:11,title:'Yves Saint Laurent Y EDP 100 ml',category:'Designer',price:1850000,img:'produk11.webp',desc:'Fresh aromatic yang aman untuk kantor, kampus, dan acara santai.',notes:'Fresh - Aromatic - Blue',status:'ready'},
-      {id:12,title:'Louis Vuitton Symphony 100 ml',category:'Niche',price:10200000,img:'produk12.webp',desc:'Pilihan ultra premium untuk pencinta aroma bright dan sophisticated.',notes:'Citrus - Luxe - Bright',status:'ready'},
-      {id:13,title:'Jean Paul Gaultier Le Male Parfum 125 ml',category:'Designer',price:1600000,img:'produk13.webp',desc:'Aroma hangat, maskulin, dan cocok untuk malam hari.',notes:'Amber - Spice - Sweet',status:'ready'},
-      {id:14,title:'Nishane Wulong Cha 100 ml',category:'Niche',price:3200000,img:'produk14.webp',desc:'Fresh tea-citrus yang bersih, unik, dan nyaman dipakai harian.',notes:'Tea - Citrus - Fresh',status:'ready'},
-      {id:15,title:'Yves Saint Laurent Libre 90 ml',category:'Designer',price:1800000,img:'produk15.webp',desc:'Aroma floral-lavender yang elegan dan mewah.',notes:'Floral - Lavender - Elegant',status:'sold'},
-      {id:16,title:'Dior Sauvage 100 ml',category:'Designer',price:2800000,img:'produk16.webp',desc:'Aroma fresh spicy populer dengan kesan maskulin dan aman dipakai.',notes:'Fresh - Spicy - Blue',status:'ready'},
-      {id:17,title:'Jean Paul Gaultier Le Beau Paradise Garden 125 ml',category:'Designer',price:1600000,img:'produk1.webp',desc:'Aroma tropis segar dengan nuansa manis yang playful.',notes:'Tropical - Sweet - Fresh',status:'ready'},
-      {id:18,title:'Stronger With You Intensely 100 ml',category:'Designer',price:1600000,img:'produk2.webp',desc:'Manis, hangat, dan cocok untuk malam atau cuaca dingin.',notes:'Sweet - Vanilla - Warm',status:'ready'},
-      {id:19,title:'Stronger With You Parfum 100 ml',category:'Designer',price:2500000,img:'produk3.webp',desc:'Aroma intens dengan karakter manis dan tahan lama.',notes:'Sweet - Amber - Intense',status:'ready'},
-      {id:20,title:'Louis Vuitton City Of Stars 100 ml',category:'Niche',price:5500000,img:'produk4.webp',desc:'Fresh citrus aromatic dengan aura liburan yang mewah.',notes:'Citrus - Beachy - Luxe',status:'ready'},
-      {id:21,title:'Louis Vuitton Meteore 100 ml',category:'Niche',price:6500000,img:'produk5.webp',desc:'Fresh spicy premium untuk kesan rapi dan berkelas.',notes:'Fresh - Spicy - Clean',status:'ready'},
-      {id:22,title:'Jean Paul Gaultier Le Male Elixir Absolu 125 ml',category:'Designer',price:1800000,img:'produk18.webp',desc:'Versi elixir yang lebih bold, manis, dan intens.',notes:'Elixir - Sweet - Bold',status:'ready'},
-      {id:23,title:'Nishane Hacivat',category:'Niche',price:3100000,img:'produk19.webp',desc:'Fresh woody dengan karakter nanas dan oakmoss yang elegan.',notes:'Pineapple - Woody - Mossy',status:'ready'},
-      {id:24,title:'Versace Eros Flame 200 ml',category:'Designer',price:2200000,img:'produk20.webp',desc:'Fresh spicy dengan sentuhan citrus dan vanilla hangat.',notes:'Citrus - Spice - Vanilla',status:'ready'},
-      {id:25,title:'Xerjoff Renaissance 100 ml',category:'Niche',price:3200000,img:'produk21.webp',desc:'Citrus mint yang cerah dan terasa sangat fresh.',notes:'Mint - Citrus - Fresh',status:'ready'},
-      {id:26,title:'Valentino Uomo Born In Roma 100 ml',category:'Designer',price:2200000,img:'produk22.webp',desc:'Aroma designer manis, modern, dan easy to wear.',notes:'Sweet - Modern - Amber',status:'ready'},
-      {id:27,title:'Acqua Di Gio 100 ml',category:'Designer',price:1860000,img:'produk23.webp',desc:'Aquatic fresh yang klasik dan cocok untuk iklim panas.',notes:'Aquatic - Fresh - Clean',status:'ready'},
-      {id:28,title:'Nishane Ani X',category:'Niche',price:3500000,img:'produk24.webp',desc:'Vanilla spicy premium dengan karakter hangat yang elegan.',notes:'Vanilla - Spice - Warm',status:'ready'},
-      {id:29,title:'Jean Paul Gaultier Le Beau 125 ml',category:'Designer',price:1500000,img:'produk25.webp',desc:'Aroma sweet tropical dengan karakter coconut dan tonka.',notes:'Coconut - Tonka - Sweet',status:'ready'},
-      {id:30,title:'Giorgio Armani Code EDP 75 ml',category:'Designer',price:1500000,img:'produk26.webp',desc:'Aroma formal yang halus, maskulin, dan rapi.',notes:'Elegant - Tonka - Formal',status:'ready'},
-      {id:31,title:'Versace Eros Energy 100 ml',category:'Designer',price:1500000,img:'produk27.webp',desc:'Versi fresh yang energetic dan cocok untuk aktivitas harian.',notes:'Fresh - Citrus - Energetic',status:'ready'},
-      {id:32,title:'Versace Eros 100 ml',category:'Designer',price:1500000,img:'produk28.webp',desc:'Aroma manis minty populer dengan karakter playful.',notes:'Mint - Vanilla - Sweet',status:'ready'},
-      {id:33,title:'Xerjoff Naxos 100 ml',category:'Niche',price:5350000,img:'produk29.webp',desc:'Honey tobacco vanilla yang mewah dan sangat berkarakter.',notes:'Honey - Tobacco - Vanilla',status:'ready'},
-      {id:34,title:'Rasasi Hawas Black 100 ml',category:'Timur Tengah',price:750000,img:'produk30.webp',desc:'Aroma Middle Eastern fresh dengan value menarik.',notes:'Fresh - Amber - Value',status:'ready'},
-      {id:35,title:'Bleu de Chanel EDP 100 ml',category:'Designer',price:4000000,img:'produk31.webp',desc:'Blue fragrance elegan yang aman untuk berbagai situasi.',notes:'Blue - Woody - Elegant',status:'ready'},
-      {id:36,title:'Louis Vuitton Pacific Chill 100 ml',category:'Niche',price:5800000,img:'produk32.webp',desc:'Fresh fruity green dengan kesan modern dan bersih.',notes:'Fruity - Green - Fresh',status:'ready'},
-      {id:37,title:'Louis Vuitton Ombre Nomade 100 ml',category:'Niche',price:7500000,img:'produk33.webp',desc:'Oud smoky rose yang intens, mewah, dan tahan lama.',notes:'Oud - Rose - Smoky',status:'ready'},
-      {id:38,title:'Louis Vuitton Rhapsody 100 ml',category:'Niche',price:9700000,img:'produk34.webp',desc:'Aroma premium dengan karakter kompleks dan eksklusif.',notes:'Complex - Luxe - Signature',status:'ready'},
-      {id:39,title:'Louis Vuitton Afternoon Swim 100 ml',category:'Niche',price:6300000,img:'produk35.webp',desc:'Citrus fresh yang cerah dan terasa sangat clean.',notes:'Orange - Citrus - Fresh',status:'ready'},
-      {id:40,title:'Rasasi Hawas For Him 100 ml',category:'Timur Tengah',price:700000,img:'produk36.webp',desc:'Fresh aquatic sweet yang populer dan cocok untuk harian.',notes:'Aquatic - Sweet - Fresh',status:'ready'},
-      {id:41,title:'Tom Ford Tuscan Leather 50 ml',category:'Niche',price:3750000,img:'produk37.webp',desc:'Leather scent yang bold, classy, dan berkesan mahal.',notes:'Leather - Raspberry - Bold',status:'ready'},
-      {id:42,title:'Yves Saint Laurent Myself Le Parfum 100 ml',category:'Designer',price:2430000,img:'produk38.webp',desc:'Versi lebih intens dengan karakter modern dan clean.',notes:'Clean - Intense - Aromatic',status:'ready'},
-      {id:43,title:'Xerjoff Erba Gold 100 ml',category:'Niche',price:6350000,img:'produk39.webp',desc:'Fruity amber musk yang mewah dan mudah menarik perhatian.',notes:'Fruity - Amber - Musk',status:'ready'},
-      {id:44,title:'Rasasi Hawas Elixir 100 ml',category:'Timur Tengah',price:770000,img:'produk40.webp',desc:'Fresh sweet Middle Eastern dengan performa kuat.',notes:'Fresh - Sweet - Strong',status:'ready'},
-      {"id":45,"title":"Afnan 9PM EDP 100 ml","category":"Timur Tengah","price":430000,"img":"baru1.webp","desc":"Aroma sweet amber vanilla yang populer untuk malam hari, mudah disukai, dan cocok untuk karakter maskulin modern.","notes":"Apple - Cinnamon - Amber Vanilla","status":"ready"},
-      {"id":46,"title":"Afnan 9PM Elixir EDP 100 ml","category":"Timur Tengah","price":500000,"img":"baru2.webp","desc":"Versi 9PM yang terasa lebih bold, manis, hangat, dan cocok untuk evening scent atau acara spesial.","notes":"Sweet Spicy - Amber - Tonka","status":"ready"},
-      {"id":47,"title":"Fragrance World Valentia Rome Intense EDP 100 ml","category":"Timur Tengah","price":270000,"img":"baru3.webp","desc":"Aroma intense yang elegan dengan nuansa aromatic, fresh spicy, dan maskulin untuk pemakaian harian sampai semi-formal.","notes":"Aromatic - Fresh Spicy - Woody","status":"ready"},
-      {"id":48,"title":"Montblanc Explorer EDP 100 ml","category":"Designer","price":1250000,"img":"baru4.webp","desc":"Parfum designer maskulin dengan karakter fresh bergamot, woody, dan clean yang aman untuk kerja, kampus, maupun daily.","notes":"Bergamot - Vetiver - Ambroxan","status":"ready"},
-      {"id":49,"title":"Diptyque Tam Dao EDP 75 ml","category":"Niche","price":2800000,"img":"baru5.webp","desc":"Sandalwood creamy yang tenang, elegan, dan minimalis; cocok untuk pencinta aroma woody bersih dan mewah.","notes":"Sandalwood - Cedar - Creamy Woods","status":"ready"},
-      {"id":50,"title":"Diptyque Philosykos EDP 75 ml","category":"Niche","price":2820000,"img":"baru6.webp","desc":"Aroma fig hijau yang natural, creamy, dan unik; memberi kesan fresh botanical yang sangat khas.","notes":"Fig Leaf - Fig - Woody Green","status":"ready"},
-      {"id":51,"title":"Afnan 9PM Rebel EDP 100 ml","category":"Timur Tengah","price":420000,"img":"baru7.webp","desc":"Varian 9PM dengan karakter manis, playful, dan standout. Produk ini diberi label sold sesuai permintaan.","notes":"Fruity Sweet - Amber - Modern","status":"sold"},
-      {"id":52,"title":"Afnan 9AM Dive EDP 100 ml","category":"Timur Tengah","price":500000,"img":"baru8.webp","desc":"Fresh aquatic yang clean dan energik, cocok untuk siang hari, aktivitas outdoor, dan cuaca panas.","notes":"Aquatic - Citrus - Fresh Spicy","status":"ready"},
-      {"id":53,"title":"MINISO Garden of Mirror EDP 50 ml","category":"Miniso","price":95000,"img":"baru9.webp","desc":"Parfum retail hits yang mudah dipakai harian, fresh, clean, dan ramah untuk pemula maupun gift.","notes":"Fresh - Clean - Easy Wear","status":"ready"},
-      {"id":54,"title":"Fordive Shelby EDP 100 ml","category":"Lokal","price":230000,"img":"baru10.webp","desc":"Aroma lokal dengan karakter maskulin, modern, dan versatile untuk daily use dengan harga yang bersahabat.","notes":"Fresh - Woody - Masculine","status":"ready"},
-      {"id":55,"title":"Heaven Scent God of Heaven / Santal 33 50 ml","category":"Lokal","price":170000,"img":"baru11.webp","desc":"Aroma bergaya sandalwood clean yang creamy, woody, dan minimalis; cocok untuk penyuka wangi kalem tapi berkelas.","notes":"Sandalwood - Woody - Clean","status":"ready"},
-      {"id":56,"title":"Heaven Scent SBY Goddess of Heaven 50 ml","category":"Lokal","price":130000,"img":"baru12.webp","desc":"Aroma lokal yang soft, manis, dan elegan; nyaman untuk harian, date, atau dipakai sebagai signature ringan.","notes":"Soft Sweet - Floral - Musky","status":"ready"},
-      {"id":57,"title":"Afnan Supremacy Silver for Men EDP 150 ml","category":"Timur Tengah","price":600000,"img":"baru13.webp","desc":"Fresh fruity woody dengan karakter maskulin dan performa kuat; cocok untuk penggemar aroma clean powerful.","notes":"Pineapple - Birch - Musk","status":"ready"},
-      {"id":58,"title":"Rayhaan Elixir for Men EDP 100 ml","category":"Timur Tengah","price":370000,"img":"baru14.webp","desc":"Aroma manis hangat yang modern dan seductive, cocok untuk malam hari atau suasana santai yang rapi.","notes":"Sweet Amber - Spice - Vanilla","status":"ready"},
-      {"id":59,"title":"Fragrance World John Gustav Homme Le Parfum Extrait 100 ml","category":"Timur Tengah","price":270000,"img":"baru15.webp","desc":"Parfum pria dengan kesan aromatic, fresh, dan lebih intens; cocok untuk karakter clean maskulin.","notes":"Aromatic - Fresh - Amber Woody","status":"ready"},
-      {"id":60,"title":"Rasasi Daarej Pour Homme EDP 100 ml","category":"Timur Tengah","price":285000,"img":"baru16.webp","desc":"Sweet spicy classic dari Timur Tengah dengan kesan hangat, maskulin, dan cocok untuk malam hari.","notes":"Spice - Vanilla - Amber","status":"ready"},
-      {"id":61,"title":"Fragrance World Proud of You Leather EDP 100 ml","category":"Timur Tengah","price":230000,"img":"baru17.webp","desc":"Aroma leather manis yang bold dan modern, cocok untuk pria yang suka wangi hangat dan berkarakter.","notes":"Leather - Sweet Amber - Warm Spice","status":"ready"},
-      {"id":62,"title":"Afnan Supremacy In Oud EDP 100 ml","category":"Timur Tengah","price":650000,"img":"baru18.webp","desc":"Oud modern yang mewah, smoky, dan kuat; cocok untuk acara malam, formal, atau pecinta aroma Middle Eastern.","notes":"Oud - Saffron - Amber","status":"ready"},
-      {"id":63,"title":"French Avenue Pinnace Oryn EDP 100 ml","category":"Timur Tengah","price":470000,"img":"baru19.webp","desc":"Aroma modern dari French Avenue dengan nuansa fresh, woody, dan rapi untuk daily premium.","notes":"Fresh Spicy - Woody - Amber","status":"ready"},
-      {"id":64,"title":"Khadlaj Karus Secret Musk EDP 100 ml","category":"Timur Tengah","price":375000,"img":"baru20.webp","desc":"Musk unisex yang clean, soft, dan elegan; cocok untuk pemakaian harian yang tidak terlalu menusuk.","notes":"Musk - Soft Floral - Clean","status":"ready"},
-      {"id":65,"title":"Tiziana Terenzi Kirke Extrait de Parfum 100 ml","category":"Niche","price":2600000,"img":"baru21.webp","desc":"Fruity musky niche yang powerful, manis, dan sangat mudah dikenali; cocok untuk pencinta wangi projection kuat.","notes":"Passion Fruit - Peach - Musk","status":"ready"},
-      {"id":66,"title":"Xerjoff Coffee Break Golden Green Parfum 50 ml","category":"Niche","price":3000000,"img":"baru22.webp","desc":"Aroma niche unik bernuansa coffee collection yang elegan, green, dan premium untuk kolektor parfum.","notes":"Green Coffee - Aromatic - Woody","status":"ready"},
-      {"id":67,"title":"Xerjoff Torino 23 EDP 50 ml","category":"Niche","price":3200000,"img":"baru23.webp","desc":"Fresh aromatic niche yang classy, clean, dan sporty-luxury; cocok untuk cuaca panas dan acara siang.","notes":"Citrus - Aromatic - Fresh Woods","status":"ready"},
-      {"id":68,"title":"Xerjoff Coffee Break Golden Moka Parfum 50 ml","category":"Niche","price":3200000,"img":"baru24.webp","desc":"Coffee gourmand premium dengan nuansa hangat, manis, dan mewah; cocok untuk malam hari dan kolektor niche.","notes":"Coffee - Amber - Gourmand","status":"ready"},
-      {"id":69,"title":"Nishane Fan Your Flames X Extrait de Parfum 100 ml","category":"Niche","price":3400000,"img":"baru25.webp","desc":"Aroma niche smoky gourmand yang intens, hangat, dan unik; cocok untuk pengguna yang ingin tampil beda.","notes":"Coconut - Rum - Tobacco","status":"ready"}
-    ];
-
-    // === Augment products with dynamic social proof and descriptions ===
-    // Precomputed sold counts and ratings for each product (index corresponds to products array)
-    const _diracSold = [316,360,230,373,144,373,373,360,373,360,360,373,360,374,360,360,360,360,360,374,374,360,374,360,374,360,360,374,360,360,360,360,360,374,316,360,374,374,374,374,316,374,360,374,316,316,316,316,360,374,374,316,316,201,230,230,230,316,316,316,316,316,316,316,316,374,374,374,374];
-    const _diracRating = [4.7,4.8,4.6,4.8,4.6,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.8,4.7,4.8,4.8,4.8,4.8,4.8,4.7,4.8,4.8,4.8,4.7,4.7,4.7,4.7,4.8,4.8,4.8,4.7,4.7,4.6,4.6,4.6,4.6,4.7,4.7,4.7,4.7,4.7,4.7,4.7,4.7,4.8,4.8,4.8,4.8];
-    const _diracTop = [13,19,20,22,24,27,33,36]; // 0-based indices of best selling products
-
-    // Category specific description templates for longDesc
-    const _diracCatDesc = {
-      'Niche':'menghadirkan wangi unik, premium, dan berkarakter eksklusif',
-      'Designer':'memadukan aroma modern yang elegan dan versatile',
-      'Timur Tengah':'penuh aura intens, hangat, dan menggoda khas Middle Eastern',
-      'Lokal':'hadir dengan harga bersahabat dan wangi yang mudah dipakai harian',
-      'Aksesoris':'dirancang untuk melengkapi koleksi parfum Anda sebagai display yang elegan',
-      'Miniso':'mudah dipakai harian, ringan, dan cocok untuk pemula'
-    };
-
-    function _diracBuildLongDesc(p){
-      const catPart = _diracCatDesc[p.category] || '';
-      const notes = (p.notes || '').toLowerCase();
-      let usage;
-      if(p.category === 'Niche') usage = 'kolektor dan pecinta parfum unik';
-      else if(p.category === 'Designer') usage = 'pengguna yang ingin tampil modern dan berkelas setiap saat';
-      else if(p.category === 'Timur Tengah') usage = 'suasana malam, acara spesial, atau Anda yang suka karakter kuat';
-      else if(p.category === 'Lokal') usage = 'penggunaan harian atau hadiah istimewa';
-      else if(p.category === 'Aksesoris') usage = 'menampilkan botol parfum favorit';
-      else usage = 'pengguna yang mencari parfum simple namun wangi';
-      return `${p.desc} ${catPart ? catPart + ' ' : ''}dengan notes ${notes}. Cocok untuk ${usage}.`;
-    }
-
-    // Apply the social proof values and long descriptions to product objects
-    products.forEach((p, idx) => {
-      p.sold = _diracSold[idx] || 0;
-      p.rating = _diracRating[idx] || 4.8;
-      p.longDesc = _diracBuildLongDesc(p);
-      if(_diracTop.includes(idx)) p.top = true;
-    });
+      {
+            "id": 1,
+            "title": "All Parfum Timteng",
+            "category": "Timur Tengah",
+            "price": 1000000,
+            "img": "all_parfum_timteng.webp",
+            "desc": "Koleksi aroma khas Timur Tengah dengan karakter oud, amber, dan rempah.",
+            "notes": "Oud - Amber - Spicy",
+            "status": "ready",
+            "longDesc": "All Parfum Timteng berisi pilihan aroma Timur Tengah yang menonjolkan oud, amber, dan rempah hangat dengan karakter lebih berani. Koleksi ini cocok untuk pelanggan yang suka wangi tebal, mewah, dan terasa hadir sejak awal semprotan. Pilihan paling pas untuk malam hari, acara formal, atau karakter pemakai yang ingin meninggalkan kesan kuat."
+      },
+      {
+            "id": 2,
+            "title": "All Parfum Designer",
+            "category": "Designer",
+            "price": 1000000,
+            "img": "all_parfum_desaigner.webp",
+            "desc": "Pilihan parfum designer populer dengan kesan modern dan berkelas.",
+            "notes": "Fresh - Modern - Versatile",
+            "status": "ready",
+            "longDesc": "All Parfum Designer mengumpulkan aroma fresh, modern, dan versatile dari lini designer yang mudah masuk ke banyak gaya. Karakternya aman untuk kerja, kampus, meeting santai, hingga hangout karena memberi kesan bersih dan rapi tanpa terlalu berat. Cocok untuk pembeli yang ingin parfum branded dengan aura profesional dan mudah disukai."
+      },
+      {
+            "id": 3,
+            "title": "All Parfum Lokal",
+            "category": "Lokal",
+            "price": 250000,
+            "img": "all_parfum_lokal.webp",
+            "desc": "Koleksi brand lokal dengan harga ramah dan aroma mudah dipakai harian.",
+            "notes": "Daily - Clean - Easy wear",
+            "status": "ready",
+            "longDesc": "All Parfum Lokal cocok untuk kamu yang ingin pilihan harian dengan aroma clean, ringan, dan tetap enak dipakai berulang. Koleksi ini lebih ramah di budget, sehingga pas untuk rotasi parfum, gift, atau stok daily scent. Karakternya dibuat mudah diterima, tidak berlebihan, dan nyaman untuk aktivitas pagi sampai sore."
+      },
+      {
+            "id": 4,
+            "title": "All Parfum Niche",
+            "category": "Niche",
+            "price": 1000000,
+            "img": "all_parfum_niche.webp",
+            "desc": "Aroma niche yang lebih unik, eksklusif, dan punya karakter kuat.",
+            "notes": "Unique - Premium - Long lasting",
+            "status": "ready",
+            "longDesc": "All Parfum Niche dibuat untuk pembeli yang ingin aroma lebih unik, premium, dan punya identitas kuat. Koleksi ini bukan sekadar wangi enak, tapi memberi kesan personal karena tiap scent biasanya punya karakter yang lebih artistic dan berbeda dari parfum umum. Cocok untuk kolektor, signature scent, atau acara ketika kamu ingin tampil lebih eksklusif."
+      },
+      {
+            "id": 5,
+            "title": "Botol Kosong Niche",
+            "category": "Aksesoris",
+            "price": 700000,
+            "img": "botol_kosong_niche.webp",
+            "desc": "Botol kosong koleksi niche untuk display atau kebutuhan kolektor.",
+            "notes": "Collector - Display",
+            "status": "sold",
+            "longDesc": "Botol Kosong Niche cocok untuk kolektor yang ingin display parfum terlihat lebih premium dan rapi. Bentuknya ideal untuk properti foto produk, pajangan meja rias, atau pelengkap koleksi agar katalog terlihat lebih profesional. Karena statusnya sold, item ini juga bisa menjadi referensi tampilan botol niche yang banyak dicari kolektor."
+      },
+      {
+            "id": 6,
+            "title": "Louis Vuitton Imagination 100 ml",
+            "category": "Niche",
+            "price": 6200000,
+            "img": "produk6.webp",
+            "desc": "Aroma premium dengan karakter fresh, bersih, dan mewah.",
+            "notes": "Fresh - Citrus - Premium",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Imagination 100 ml menonjolkan fresh citrus premium yang bersih, terang, dan terasa mahal tanpa perlu tampil terlalu keras. Aromanya memberi kesan orang yang rapi, modern, dan terawat, cocok untuk kantor, perjalanan siang, atau aktivitas outdoor. Pilihan ini kuat untuk pembeli yang ingin fresh scent kelas luxury dengan aura elegan dan tidak pasaran."
+      },
+      {
+            "id": 7,
+            "title": "Xerjoff Torino 21 100 ml",
+            "category": "Niche",
+            "price": 7500000,
+            "img": "produk7.webp",
+            "desc": "Pilihan niche premium yang cocok untuk kesan elegan dan eksklusif.",
+            "notes": "Green - Fresh - Elegant",
+            "status": "ready",
+            "longDesc": "Xerjoff Torino 21 100 ml punya karakter green, fresh, dan elegant yang terasa sporty-luxury namun tetap formal. Nuansa segarnya memberi kesan bersih, mahal, dan percaya diri, cocok untuk meeting, acara siang, atau pemakaian harian yang ingin terlihat eksklusif. Ini pilihan niche yang pas untuk kamu yang suka wangi fresh berkelas tanpa kesan manis berlebihan."
+      },
+      {
+            "id": 8,
+            "title": "Yves Saint Laurent Myself 100 ml",
+            "category": "Designer",
+            "price": 1650000,
+            "img": "produk8.webp",
+            "desc": "Aroma designer modern untuk penggunaan harian dan semi-formal.",
+            "notes": "Clean - Aromatic - Modern",
+            "status": "ready",
+            "longDesc": "Yves Saint Laurent Myself 100 ml menghadirkan clean aromatic modern dengan karakter pria rapi, simple, dan polished. Wanginya tidak terlalu agresif, sehingga aman untuk kantor, kampus, daily use, dan acara semi-formal. Cocok untuk pembeli yang ingin aroma designer maskulin yang mudah dipakai tapi tetap terasa premium."
+      },
+      {
+            "id": 9,
+            "title": "Xerjoff Erba Pura 100 ml",
+            "category": "Niche",
+            "price": 4500000,
+            "img": "produk9.webp",
+            "desc": "Aroma fruity musky yang mencolok dan mudah dikenali.",
+            "notes": "Fruity - Musk - Sweet",
+            "status": "ready",
+            "longDesc": "Xerjoff Erba Pura 100 ml punya karakter fruity, musk, dan sweet yang langsung terasa cerah, mewah, dan mudah dikenali. Aromanya cocok untuk kamu yang ingin tampil standout, percaya diri, dan meninggalkan kesan manis yang memorable. Pilihan ini lebih pas untuk acara santai, malam, atau momen ketika kamu ingin parfum yang terasa bold dan menarik perhatian."
+      },
+      {
+            "id": 10,
+            "title": "Jean Paul Gaultier Le Male Elixir 125 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk10.webp",
+            "desc": "Aroma manis hangat dengan karakter malam yang kuat.",
+            "notes": "Sweet - Amber - Vanilla",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Male Elixir 125 ml membawa sweet amber vanilla yang hangat, sensual, dan sangat cocok untuk suasana malam. Karakternya maskulin, manis, dan intens, sehingga terasa kuat saat dipakai untuk date night, dinner, atau cuaca dingin. Cocok untuk pembeli yang suka parfum designer dengan aura menggoda dan tidak terlalu formal."
+      },
+      {
+            "id": 11,
+            "title": "Yves Saint Laurent Y EDP 100 ml",
+            "category": "Designer",
+            "price": 1850000,
+            "img": "produk11.webp",
+            "desc": "Fresh aromatic yang aman untuk kantor, kampus, dan acara santai.",
+            "notes": "Fresh - Aromatic - Blue",
+            "status": "ready",
+            "longDesc": "Yves Saint Laurent Y EDP 100 ml adalah fresh aromatic blue fragrance yang rapi, maskulin, dan mudah masuk ke hampir semua situasi. Karakternya bersih dan percaya diri, cocok untuk kerja, kampus, acara keluarga, sampai hangout. Ini pilihan aman untuk kamu yang ingin satu parfum versatile dengan kesan modern dan tidak ribet."
+      },
+      {
+            "id": 12,
+            "title": "Louis Vuitton Symphony 100 ml",
+            "category": "Niche",
+            "price": 10200000,
+            "img": "produk12.webp",
+            "desc": "Pilihan ultra premium untuk pencinta aroma bright dan sophisticated.",
+            "notes": "Citrus - Luxe - Bright",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Symphony 100 ml membawa citrus, luxe, dan bright character yang terasa sangat bersih serta sophisticated. Aromanya cocok untuk pencinta fresh luxury yang ingin kesan mahal, terang, dan elegan tanpa aroma berat. Pilihan ini terasa paling pas untuk siang hari, acara rapi, atau kamu yang ingin signature fresh scent kelas atas."
+      },
+      {
+            "id": 13,
+            "title": "Jean Paul Gaultier Le Male Parfum 125 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk13.webp",
+            "desc": "Aroma hangat, maskulin, dan cocok untuk malam hari.",
+            "notes": "Amber - Spice - Sweet",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Male Parfum 125 ml punya amber, spice, dan sweet character yang lebih dewasa dibanding aroma manis biasa. Wanginya terasa hangat, maskulin, dan mature, cocok untuk malam, dinner, atau acara semi-formal. Pilihan ini pas untuk pembeli yang ingin designer scent dengan kesan classy, sensual, dan tidak terlalu playful."
+      },
+      {
+            "id": 14,
+            "title": "Nishane Wulong Cha 100 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "produk14.webp",
+            "desc": "Fresh tea-citrus yang bersih, unik, dan nyaman dipakai harian.",
+            "notes": "Tea - Citrus - Fresh",
+            "status": "ready",
+            "longDesc": "Nishane Wulong Cha 100 ml menghadirkan tea, citrus, dan fresh nuance yang bersih, tenang, dan unik. Aromanya terasa ringan tapi tetap premium, cocok untuk cuaca panas, aktivitas siang, atau orang yang suka wangi clean niche yang tidak menusuk. Ini pilihan tepat untuk kamu yang ingin tampil elegan dengan cara yang halus."
+      },
+      {
+            "id": 15,
+            "title": "Yves Saint Laurent Libre 90 ml",
+            "category": "Designer",
+            "price": 1800000,
+            "img": "produk15.webp",
+            "desc": "Aroma floral-lavender yang elegan dan mewah.",
+            "notes": "Floral - Lavender - Elegant",
+            "status": "sold",
+            "longDesc": "Yves Saint Laurent Libre 90 ml punya karakter floral, lavender, dan elegant yang memberi kesan feminin modern. Aromanya terasa confident, rapi, dan mewah tanpa harus terlalu manis, cocok untuk kerja, dinner, atau acara spesial. Karena statusnya sold, produk ini juga kuat sebagai referensi untuk pelanggan yang mencari wangi floral-lavender classy."
+      },
+      {
+            "id": 16,
+            "title": "Dior Sauvage 100 ml",
+            "category": "Designer",
+            "price": 2800000,
+            "img": "produk16.webp",
+            "desc": "Aroma fresh spicy populer dengan kesan maskulin dan aman dipakai.",
+            "notes": "Fresh - Spicy - Blue",
+            "status": "ready",
+            "longDesc": "Dior Sauvage 100 ml menampilkan fresh spicy blue character yang maskulin, bersih, dan sangat mudah dikenali. Aromanya cocok untuk pembeli yang ingin parfum aman dipakai di banyak kondisi, dari kerja sampai acara santai. Kesan utamanya adalah tegas, percaya diri, dan rapi, sehingga cocok untuk daily signature yang tidak banyak mikir."
+      },
+      {
+            "id": 17,
+            "title": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk1.webp",
+            "desc": "Aroma tropis segar dengan nuansa manis yang playful.",
+            "notes": "Tropical - Sweet - Fresh",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml membawa tropical, sweet, dan fresh nuance yang terasa santai tapi tetap menarik. Karakternya cocok untuk siang hari, liburan, outfit casual, atau suasana outdoor. Pilihan ini pas untuk kamu yang suka aroma designer playful dengan sentuhan tropis yang mudah disukai."
+      },
+      {
+            "id": 18,
+            "title": "Stronger With You Intensely 100 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk2.webp",
+            "desc": "Manis, hangat, dan cocok untuk malam atau cuaca dingin.",
+            "notes": "Sweet - Vanilla - Warm",
+            "status": "ready",
+            "longDesc": "Stronger With You Intensely 100 ml punya karakter sweet, vanilla, dan warm yang nyaman, manis, dan dekat di kulit. Aromanya paling hidup untuk malam hari, cuaca dingin, atau date night karena memberi kesan cozy dan memorable. Cocok untuk pembeli yang ingin parfum manis maskulin dengan aura romantis dan hangat."
+      },
+      {
+            "id": 19,
+            "title": "Stronger With You Parfum 100 ml",
+            "category": "Designer",
+            "price": 2500000,
+            "img": "produk3.webp",
+            "desc": "Aroma intens dengan karakter manis dan tahan lama.",
+            "notes": "Sweet - Amber - Intense",
+            "status": "ready",
+            "longDesc": "Stronger With You Parfum 100 ml menawarkan sweet amber intense yang terasa lebih tebal, modern, dan tahan karakter. Wanginya cocok untuk malam hari, acara spesial, atau pemakai yang suka aroma manis maskulin dengan kesan lebih dewasa. Pilihan ini pas untuk kamu yang ingin SWY dengan aura lebih bold dan premium."
+      },
+      {
+            "id": 20,
+            "title": "Louis Vuitton City Of Stars 100 ml",
+            "category": "Niche",
+            "price": 5500000,
+            "img": "produk4.webp",
+            "desc": "Fresh citrus aromatic dengan aura liburan yang mewah.",
+            "notes": "Citrus - Beachy - Luxe",
+            "status": "ready",
+            "longDesc": "Louis Vuitton City Of Stars 100 ml menghadirkan citrus, beachy, dan luxe nuance yang terasa seperti liburan mewah di cuaca panas. Aromanya santai tapi tetap mahal, cocok untuk siang hari, resort vibe, atau casual premium outfit. Ini pilihan fresh niche untuk kamu yang ingin wangi cerah, unik, dan tidak terlalu formal."
+      },
+      {
+            "id": 21,
+            "title": "Louis Vuitton Meteore 100 ml",
+            "category": "Niche",
+            "price": 6500000,
+            "img": "produk5.webp",
+            "desc": "Fresh spicy premium untuk kesan rapi dan berkelas.",
+            "notes": "Fresh - Spicy - Clean",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Meteore 100 ml punya karakter fresh, spicy, dan clean yang memberi kesan profesional, tegas, dan berkelas. Aromanya cocok untuk meeting, kantor, perjalanan bisnis, atau daily premium scent. Pilihan ini pas untuk pembeli yang ingin fresh masculine yang rapi tanpa nuansa manis berlebihan."
+      },
+      {
+            "id": 22,
+            "title": "Jean Paul Gaultier Le Male Elixir Absolu 125 ml",
+            "category": "Designer",
+            "price": 1800000,
+            "img": "produk18.webp",
+            "desc": "Versi elixir yang lebih bold, manis, dan intens.",
+            "notes": "Elixir - Sweet - Bold",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Male Elixir Absolu 125 ml hadir dengan karakter elixir, sweet, dan bold yang lebih tebal serta lebih statement. Aromanya cocok untuk malam hari, acara spesial, atau suasana ketika kamu ingin wangi yang kuat dan mudah diingat. Pilihan ini pas untuk pencinta Le Male yang ingin versi lebih pekat dan berani."
+      },
+      {
+            "id": 23,
+            "title": "Nishane Hacivat",
+            "category": "Niche",
+            "price": 3100000,
+            "img": "produk19.webp",
+            "desc": "Fresh woody dengan karakter nanas dan oakmoss yang elegan.",
+            "notes": "Pineapple - Woody - Mossy",
+            "status": "ready",
+            "longDesc": "Nishane Hacivat membawa pineapple, woody, dan mossy character yang clean, elegan, dan premium. Aromanya cocok untuk siang sampai sore karena terasa fresh namun tetap punya struktur woody yang rapi. Ini pilihan niche untuk kamu yang ingin wangi mahal, maskulin, dan tidak terlalu manis."
+      },
+      {
+            "id": 24,
+            "title": "Versace Eros Flame 200 ml",
+            "category": "Designer",
+            "price": 2200000,
+            "img": "produk20.webp",
+            "desc": "Fresh spicy dengan sentuhan citrus dan vanilla hangat.",
+            "notes": "Citrus - Spice - Vanilla",
+            "status": "ready",
+            "longDesc": "Versace Eros Flame 200 ml memadukan citrus, spice, dan vanilla sehingga terasa energik, hangat, dan penuh karakter. Aromanya cocok untuk malam santai, hangout, atau casual event ketika kamu ingin tampil lebih berani. Pilihan ini pas untuk pembeli yang suka fresh spicy designer dengan sentuhan manis yang playful."
+      },
+      {
+            "id": 25,
+            "title": "Xerjoff Renaissance 100 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "produk21.webp",
+            "desc": "Citrus mint yang cerah dan terasa sangat fresh.",
+            "notes": "Mint - Citrus - Fresh",
+            "status": "ready",
+            "longDesc": "Xerjoff Renaissance 100 ml menghadirkan mint, citrus, dan fresh sensation yang cerah, crisp, dan sangat bersih. Aromanya cocok untuk cuaca panas, aktivitas siang, atau pemakai yang ingin niche fresh yang terasa mahal sejak awal. Pilihan ini pas untuk kamu yang suka kesan energik, rapi, dan tetap elegan."
+      },
+      {
+            "id": 26,
+            "title": "Valentino Uomo Born In Roma 100 ml",
+            "category": "Designer",
+            "price": 2200000,
+            "img": "produk22.webp",
+            "desc": "Aroma designer manis, modern, dan easy to wear.",
+            "notes": "Sweet - Modern - Amber",
+            "status": "ready",
+            "longDesc": "Valentino Uomo Born In Roma 100 ml punya sweet, modern, dan amber character yang stylish serta mudah dipakai. Aromanya cocok untuk hangout, kampus, acara semi-formal, atau daily use ketika kamu ingin terasa fashionable. Pilihan ini pas untuk pembeli yang suka designer scent manis modern tapi tetap rapi."
+      },
+      {
+            "id": 27,
+            "title": "Acqua Di Gio 100 ml",
+            "category": "Designer",
+            "price": 1860000,
+            "img": "produk23.webp",
+            "desc": "Aquatic fresh yang klasik dan cocok untuk iklim panas.",
+            "notes": "Aquatic - Fresh - Clean",
+            "status": "ready",
+            "longDesc": "Acqua Di Gio 100 ml adalah aquatic, fresh, dan clean classic yang sangat cocok untuk iklim panas. Aromanya memberi kesan effortless, maskulin, dan bersih, pas untuk kantor, kampus, olahraga ringan, atau aktivitas harian. Ini pilihan aman untuk kamu yang ingin wangi segar tanpa terasa mengganggu orang sekitar."
+      },
+      {
+            "id": 28,
+            "title": "Nishane Ani X",
+            "category": "Niche",
+            "price": 3500000,
+            "img": "produk24.webp",
+            "desc": "Vanilla spicy premium dengan karakter hangat yang elegan.",
+            "notes": "Vanilla - Spice - Warm",
+            "status": "ready",
+            "longDesc": "Nishane Ani X membawa vanilla, spice, dan warm character yang terasa premium, lembut, dan elegan. Aromanya cocok untuk malam, dinner, atau suasana intimate karena manisnya terasa berkelas, bukan sekadar gourmand biasa. Pilihan ini pas untuk pencinta vanilla niche yang ingin aroma hangat dengan kedalaman yang lebih dewasa."
+      },
+      {
+            "id": 29,
+            "title": "Jean Paul Gaultier Le Beau 125 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk25.webp",
+            "desc": "Aroma sweet tropical dengan karakter coconut dan tonka.",
+            "notes": "Coconut - Tonka - Sweet",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Beau 125 ml menonjolkan coconut, tonka, dan sweet tropical character yang maskulin sekaligus playful. Aromanya cocok untuk casual outfit, liburan, dan acara santai yang ingin terasa menarik tanpa terlalu serius. Pilihan ini pas untuk pembeli yang suka wangi manis tropis yang mudah disukai."
+      },
+      {
+            "id": 30,
+            "title": "Giorgio Armani Code EDP 75 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk26.webp",
+            "desc": "Aroma formal yang halus, maskulin, dan rapi.",
+            "notes": "Elegant - Tonka - Formal",
+            "status": "ready",
+            "longDesc": "Giorgio Armani Code EDP 75 ml membawa kesan elegant, tonka, dan formal yang halus serta dewasa. Aromanya cocok untuk kantor, meeting, dinner, atau momen rapi ketika kamu ingin wangi maskulin yang tidak terlalu mencolok. Pilihan ini pas untuk pembeli yang mencari designer scent classy dengan aura profesional."
+      },
+      {
+            "id": 31,
+            "title": "Versace Eros Energy 100 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk27.webp",
+            "desc": "Versi fresh yang energetic dan cocok untuk aktivitas harian.",
+            "notes": "Fresh - Citrus - Energetic",
+            "status": "ready",
+            "longDesc": "Versace Eros Energy 100 ml adalah sisi fresh citrus yang lebih ringan, cerah, dan sporty dari karakter Eros. Aromanya cocok untuk siang hari, aktivitas harian, atau kamu yang ingin wangi energik namun tetap clean. Pilihan ini pas untuk pembeli yang suka kesan muda, aktif, dan percaya diri."
+      },
+      {
+            "id": 32,
+            "title": "Versace Eros 100 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk28.webp",
+            "desc": "Aroma manis minty populer dengan karakter playful.",
+            "notes": "Mint - Vanilla - Sweet",
+            "status": "ready",
+            "longDesc": "Versace Eros 100 ml punya mint, vanilla, dan sweet character yang playful, kuat, dan mudah dikenali. Aromanya cocok untuk hangout, malam santai, atau pemakai yang ingin tampil lebih ekspresif. Ini pilihan designer yang pas untuk kamu yang suka wangi manis segar dengan aura youthful dan confident."
+      },
+      {
+            "id": 33,
+            "title": "Xerjoff Naxos 100 ml",
+            "category": "Niche",
+            "price": 5350000,
+            "img": "produk29.webp",
+            "desc": "Honey tobacco vanilla yang mewah dan sangat berkarakter.",
+            "notes": "Honey - Tobacco - Vanilla",
+            "status": "ready",
+            "longDesc": "Xerjoff Naxos 100 ml menghadirkan honey, tobacco, dan vanilla yang rich, hangat, dan sangat classy. Aromanya cocok untuk dinner, acara malam, atau kolektor niche yang ingin scent manis dewasa dengan kedalaman elegan. Pilihan ini memberi kesan mahal, refined, dan sangat berkarakter."
+      },
+      {
+            "id": 34,
+            "title": "Rasasi Hawas Black 100 ml",
+            "category": "Timur Tengah",
+            "price": 750000,
+            "img": "produk30.webp",
+            "desc": "Aroma Middle Eastern fresh dengan value menarik.",
+            "notes": "Fresh - Amber - Value",
+            "status": "ready",
+            "longDesc": "Rasasi Hawas Black 100 ml membawa fresh amber value dengan kesan maskulin, clean, dan mudah dipakai. Aromanya cocok untuk harian, hangout, atau pemakai yang ingin parfum Timur Tengah yang performanya terasa menarik di harga lebih bersahabat. Pilihan ini pas untuk yang ingin fresh scent kuat tanpa masuk harga designer tinggi."
+      },
+      {
+            "id": 35,
+            "title": "Bleu de Chanel EDP 100 ml",
+            "category": "Designer",
+            "price": 4000000,
+            "img": "produk31.webp",
+            "desc": "Blue fragrance elegan yang aman untuk berbagai situasi.",
+            "notes": "Blue - Woody - Elegant",
+            "status": "ready",
+            "longDesc": "Bleu de Chanel EDP 100 ml adalah blue, woody, dan elegant fragrance yang memberi kesan rapi, matang, dan berkelas. Aromanya cocok untuk kerja, acara formal, dinner, sampai daily use karena sangat versatile. Ini pilihan tepat untuk pembeli yang ingin satu parfum designer premium yang aman di banyak situasi."
+      },
+      {
+            "id": 36,
+            "title": "Louis Vuitton Pacific Chill 100 ml",
+            "category": "Niche",
+            "price": 5800000,
+            "img": "produk32.webp",
+            "desc": "Fresh fruity green dengan kesan modern dan bersih.",
+            "notes": "Fruity - Green - Fresh",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Pacific Chill 100 ml menghadirkan fruity, green, dan fresh character yang cerah, bersih, dan modern. Aromanya terasa seperti fresh luxury yang ringan namun tetap mahal, cocok untuk cuaca panas atau aktivitas siang. Pilihan ini pas untuk kamu yang ingin wangi sehat, segar, dan effortless."
+      },
+      {
+            "id": 37,
+            "title": "Louis Vuitton Ombre Nomade 100 ml",
+            "category": "Niche",
+            "price": 7500000,
+            "img": "produk33.webp",
+            "desc": "Oud smoky rose yang intens, mewah, dan tahan lama.",
+            "notes": "Oud - Rose - Smoky",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Ombre Nomade 100 ml punya oud, rose, dan smoky character yang gelap, intens, dan sangat mewah. Aromanya cocok untuk malam hari, acara formal, atau pemakai yang ingin parfum statement dengan kesan kuat. Pilihan ini bukan untuk yang ingin wangi aman, tapi untuk yang ingin tampil bold dan berkelas."
+      },
+      {
+            "id": 38,
+            "title": "Louis Vuitton Rhapsody 100 ml",
+            "category": "Niche",
+            "price": 9700000,
+            "img": "produk34.webp",
+            "desc": "Aroma premium dengan karakter kompleks dan eksklusif.",
+            "notes": "Complex - Luxe - Signature",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Rhapsody 100 ml membawa karakter complex, luxe, dan signature yang terasa eksklusif serta matang. Aromanya cocok untuk kolektor niche atau pembeli yang mencari scent dengan identitas kuat, bukan sekadar fresh atau sweet biasa. Pilihan ini pas untuk acara berkelas ketika kamu ingin aroma yang terasa mahal dan berbeda."
+      },
+      {
+            "id": 39,
+            "title": "Louis Vuitton Afternoon Swim 100 ml",
+            "category": "Niche",
+            "price": 6300000,
+            "img": "produk35.webp",
+            "desc": "Citrus fresh yang cerah dan terasa sangat clean.",
+            "notes": "Orange - Citrus - Fresh",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Afternoon Swim 100 ml menghadirkan orange, citrus, dan fresh character yang juicy, cerah, dan sangat clean. Aromanya cocok untuk siang hari, cuaca panas, atau momen santai yang tetap ingin terasa premium. Ini pilihan fresh luxury yang simpel, menyenangkan, dan mudah membuat penampilan terasa lebih rapi."
+      },
+      {
+            "id": 40,
+            "title": "Rasasi Hawas For Him 100 ml",
+            "category": "Timur Tengah",
+            "price": 700000,
+            "img": "produk36.webp",
+            "desc": "Fresh aquatic sweet yang populer dan cocok untuk harian.",
+            "notes": "Aquatic - Sweet - Fresh",
+            "status": "ready",
+            "longDesc": "Rasasi Hawas For Him 100 ml punya aquatic, sweet, dan fresh character yang populer untuk daily masculine scent. Aromanya cocok untuk cuaca panas, aktivitas santai, atau pengguna yang ingin wangi segar dengan sentuhan manis. Pilihan ini pas untuk pembeli yang ingin parfum mudah disukai dengan value performa yang menarik."
+      },
+      {
+            "id": 41,
+            "title": "Tom Ford Tuscan Leather 50 ml",
+            "category": "Niche",
+            "price": 3750000,
+            "img": "produk37.webp",
+            "desc": "Leather scent yang bold, classy, dan berkesan mahal.",
+            "notes": "Leather - Raspberry - Bold",
+            "status": "ready",
+            "longDesc": "Tom Ford Tuscan Leather 50 ml membawa leather, raspberry, dan bold character yang classy, tegas, dan mahal. Aromanya cocok untuk malam, outfit formal, atau momen ketika kamu ingin tampil dewasa dan berwibawa. Pilihan ini pas untuk pembeli yang menyukai scent leather yang kuat, confident, dan tidak pasaran."
+      },
+      {
+            "id": 42,
+            "title": "Yves Saint Laurent Myself Le Parfum 100 ml",
+            "category": "Designer",
+            "price": 2430000,
+            "img": "produk38.webp",
+            "desc": "Versi lebih intens dengan karakter modern dan clean.",
+            "notes": "Clean - Intense - Aromatic",
+            "status": "ready",
+            "longDesc": "Yves Saint Laurent Myself Le Parfum 100 ml adalah versi clean, intense, dan aromatic yang terasa lebih dalam dibanding karakter daily biasa. Aromanya cocok untuk malam, semi-formal, atau kamu yang suka MYSLF tetapi ingin sentuhan lebih tegas dan premium. Pilihan ini memberi kesan rapi, modern, dan lebih matang."
+      },
+      {
+            "id": 43,
+            "title": "Xerjoff Erba Gold 100 ml",
+            "category": "Niche",
+            "price": 6350000,
+            "img": "produk39.webp",
+            "desc": "Fruity amber musk yang mewah dan mudah menarik perhatian.",
+            "notes": "Fruity - Amber - Musk",
+            "status": "ready",
+            "longDesc": "Xerjoff Erba Gold 100 ml menghadirkan fruity, amber, dan musk character yang mewah, bright, dan sangat menarik perhatian. Aromanya cocok untuk acara santai premium, malam, atau pemakai yang ingin fruity niche dengan aura lebih luxurious. Pilihan ini pas untuk kamu yang suka wangi manis bersih namun tetap standout."
+      },
+      {
+            "id": 44,
+            "title": "Rasasi Hawas Elixir 100 ml",
+            "category": "Timur Tengah",
+            "price": 770000,
+            "img": "produk40.webp",
+            "desc": "Fresh sweet Middle Eastern dengan performa kuat.",
+            "notes": "Fresh - Sweet - Strong",
+            "status": "ready",
+            "longDesc": "Rasasi Hawas Elixir 100 ml membawa fresh, sweet, dan strong character dengan nuansa Middle Eastern yang lebih terasa. Aromanya cocok untuk daily use, hangout, atau malam santai ketika kamu ingin wangi segar manis yang tahan karakter. Pilihan ini pas untuk pembeli yang suka Hawas style tetapi ingin kesan lebih bold."
+      },
+      {
+            "id": 45,
+            "title": "Afnan 9PM EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 430000,
+            "img": "baru1.webp",
+            "desc": "Aroma sweet amber vanilla yang populer untuk malam hari, mudah disukai, dan cocok untuk karakter maskulin modern.",
+            "notes": "Apple - Cinnamon - Amber Vanilla",
+            "status": "ready",
+            "longDesc": "Afnan 9PM EDP 100 ml menampilkan apple, cinnamon, dan amber vanilla yang manis, hangat, dan mudah disukai. Aromanya cocok untuk malam, date, atau suasana santai karena memberi kesan maskulin modern yang nyaman. Pilihan ini kuat untuk pembeli yang ingin parfum sweet Middle Eastern dengan value sangat menarik."
+      },
+      {
+            "id": 46,
+            "title": "Afnan 9PM Elixir EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 500000,
+            "img": "baru2.webp",
+            "desc": "Versi 9PM yang terasa lebih bold, manis, hangat, dan cocok untuk evening scent atau acara spesial.",
+            "notes": "Sweet Spicy - Amber - Tonka",
+            "status": "ready",
+            "longDesc": "Afnan 9PM Elixir EDP 100 ml membawa sweet spicy, amber, dan tonka yang lebih bold daripada 9PM reguler. Aromanya cocok untuk evening scent, acara spesial, atau pemakai yang ingin wangi manis hangat yang lebih tebal. Pilihan ini pas untuk kamu yang suka karakter 9PM tetapi ingin versi yang lebih kuat dan matang."
+      },
+      {
+            "id": 47,
+            "title": "Fragrance World Valentia Rome Intense EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 270000,
+            "img": "baru3.webp",
+            "desc": "Aroma intense yang elegan dengan nuansa aromatic, fresh spicy, dan maskulin untuk pemakaian harian sampai semi-formal.",
+            "notes": "Aromatic - Fresh Spicy - Woody",
+            "status": "ready",
+            "longDesc": "Fragrance World Valentia Rome Intense EDP 100 ml punya aromatic, fresh spicy, dan woody character yang elegan serta maskulin. Aromanya cocok untuk daily premium, kantor, atau acara semi-formal karena terasa rapi tanpa terlalu berat. Pilihan ini pas untuk pembeli yang ingin aroma modern dengan harga lebih ramah."
+      },
+      {
+            "id": 48,
+            "title": "Montblanc Explorer EDP 100 ml",
+            "category": "Designer",
+            "price": 1250000,
+            "img": "baru4.webp",
+            "desc": "Parfum designer maskulin dengan karakter fresh bergamot, woody, dan clean yang aman untuk kerja, kampus, maupun daily.",
+            "notes": "Bergamot - Vetiver - Ambroxan",
+            "status": "ready",
+            "longDesc": "Montblanc Explorer EDP 100 ml membawa bergamot, vetiver, dan ambroxan yang fresh woody clean dengan kesan profesional. Aromanya cocok untuk kerja, kampus, traveling, atau daily use karena mudah diterima dan terasa maskulin. Pilihan ini pas untuk pembeli yang ingin designer scent rapi dengan karakter petualang yang tetap elegan."
+      },
+      {
+            "id": 49,
+            "title": "Diptyque Tam Dao EDP 75 ml",
+            "category": "Niche",
+            "price": 2800000,
+            "img": "baru5.webp",
+            "desc": "Sandalwood creamy yang tenang, elegan, dan minimalis; cocok untuk pencinta aroma woody bersih dan mewah.",
+            "notes": "Sandalwood - Cedar - Creamy Woods",
+            "status": "ready",
+            "longDesc": "Diptyque Tam Dao EDP 75 ml menonjolkan sandalwood, cedar, dan creamy woods yang tenang, minimalis, dan sangat classy. Aromanya cocok untuk kantor, suasana santai, atau signature scent yang tidak perlu banyak bicara. Pilihan ini pas untuk pencinta woody clean yang ingin tampil kalem tapi mahal."
+      },
+      {
+            "id": 50,
+            "title": "Diptyque Philosykos EDP 75 ml",
+            "category": "Niche",
+            "price": 2820000,
+            "img": "baru6.webp",
+            "desc": "Aroma fig hijau yang natural, creamy, dan unik; memberi kesan fresh botanical yang sangat khas.",
+            "notes": "Fig Leaf - Fig - Woody Green",
+            "status": "ready",
+            "longDesc": "Diptyque Philosykos EDP 75 ml menghadirkan fig leaf, fig, dan woody green yang natural, creamy, dan artistic. Aromanya cocok untuk siang hari, suasana santai, atau pemakai yang ingin botanical scent yang berbeda dari parfum manis umum. Pilihan ini memberi kesan fresh, intelektual, dan sangat khas."
+      },
+      {
+            "id": 51,
+            "title": "Afnan 9PM Rebel EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 420000,
+            "img": "baru7.webp",
+            "desc": "Varian 9PM dengan karakter manis, playful, dan standout. Produk ini diberi label sold sesuai permintaan.",
+            "notes": "Fruity Sweet - Amber - Modern",
+            "status": "sold",
+            "longDesc": "Afnan 9PM Rebel EDP 100 ml punya fruity sweet, amber, dan modern character yang playful serta mudah menarik perhatian. Karena statusnya sold, produk ini cocok sebagai referensi untuk pelanggan yang mencari aroma muda, manis, dan standout. Pilihan ini pas untuk gaya casual malam atau pemakai yang suka wangi energik."
+      },
+      {
+            "id": 52,
+            "title": "Afnan 9AM Dive EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 500000,
+            "img": "baru8.webp",
+            "desc": "Fresh aquatic yang clean dan energik, cocok untuk siang hari, aktivitas outdoor, dan cuaca panas.",
+            "notes": "Aquatic - Citrus - Fresh Spicy",
+            "status": "ready",
+            "longDesc": "Afnan 9AM Dive EDP 100 ml membawa aquatic, citrus, dan fresh spicy character yang clean, energik, dan ringan. Aromanya cocok untuk siang hari, aktivitas outdoor, olahraga ringan, atau cuaca panas. Pilihan ini pas untuk pembeli yang ingin parfum segar harian dengan kesan maskulin yang tidak berat."
+      },
+      {
+            "id": 53,
+            "title": "MINISO Garden of Mirror EDP 50 ml",
+            "category": "Miniso",
+            "price": 95000,
+            "img": "baru9.webp",
+            "desc": "Parfum retail hits yang mudah dipakai harian, fresh, clean, dan ramah untuk pemula maupun gift.",
+            "notes": "Fresh - Clean - Easy Wear",
+            "status": "ready",
+            "longDesc": "MINISO Garden of Mirror EDP 50 ml punya karakter fresh, clean, dan easy wear yang ramah untuk pemula. Aromanya cocok untuk daily scent ringan, hadiah, sekolah, kampus, atau aktivitas santai. Pilihan ini pas untuk pembeli yang ingin wangi simple, nyaman, dan tidak terlalu mencolok."
+      },
+      {
+            "id": 54,
+            "title": "Fordive Shelby EDP 100 ml",
+            "category": "Lokal",
+            "price": 230000,
+            "img": "baru10.webp",
+            "desc": "Aroma lokal dengan karakter maskulin, modern, dan versatile untuk daily use dengan harga yang bersahabat.",
+            "notes": "Fresh - Woody - Masculine",
+            "status": "ready",
+            "longDesc": "Fordive Shelby EDP 100 ml membawa fresh, woody, dan masculine character yang modern namun tetap mudah dipakai. Aromanya cocok untuk daily use, kerja, kampus, atau aktivitas santai dengan budget yang lebih bersahabat. Pilihan ini pas untuk pembeli yang ingin parfum lokal rapi dengan kesan maskulin clean."
+      },
+      {
+            "id": 55,
+            "title": "Heaven Scent God of Heaven / Santal 33 50 ml",
+            "category": "Lokal",
+            "price": 170000,
+            "img": "baru11.webp",
+            "desc": "Aroma bergaya sandalwood clean yang creamy, woody, dan minimalis; cocok untuk penyuka wangi kalem tapi berkelas.",
+            "notes": "Sandalwood - Woody - Clean",
+            "status": "ready",
+            "longDesc": "Heaven Scent God of Heaven / Santal 33 50 ml menonjolkan sandalwood, woody, dan clean character yang creamy serta minimalis. Aromanya cocok untuk pemakai yang suka wangi kalem, soft, dan berkelas tanpa harus terlalu mencolok. Pilihan ini pas untuk daily signature yang terasa clean dan modern."
+      },
+      {
+            "id": 56,
+            "title": "Heaven Scent SBY Goddess of Heaven 50 ml",
+            "category": "Lokal",
+            "price": 130000,
+            "img": "baru12.webp",
+            "desc": "Aroma lokal yang soft, manis, dan elegan; nyaman untuk harian, date, atau dipakai sebagai signature ringan.",
+            "notes": "Soft Sweet - Floral - Musky",
+            "status": "ready",
+            "longDesc": "Heaven Scent SBY Goddess of Heaven 50 ml punya soft sweet, floral, dan musky character yang lembut, feminin, dan nyaman. Aromanya cocok untuk harian, date santai, atau momen ketika kamu ingin wangi manis yang tetap halus. Pilihan ini pas untuk pembeli yang mencari parfum lokal soft elegant dengan harga ramah."
+      },
+      {
+            "id": 57,
+            "title": "Afnan Supremacy Silver for Men EDP 150 ml",
+            "category": "Timur Tengah",
+            "price": 600000,
+            "img": "baru13.webp",
+            "desc": "Fresh fruity woody dengan karakter maskulin dan performa kuat; cocok untuk penggemar aroma clean powerful.",
+            "notes": "Pineapple - Birch - Musk",
+            "status": "ready",
+            "longDesc": "Afnan Supremacy Silver for Men EDP 150 ml menghadirkan pineapple, birch, dan musk dengan kesan fresh fruity woody yang powerful. Aromanya cocok untuk banyak kesempatan karena terasa clean, tegas, dan maskulin. Pilihan ini pas untuk pembeli yang ingin parfum Timur Tengah dengan volume besar, karakter rapi, dan performa yang terasa kuat."
+      },
+      {
+            "id": 58,
+            "title": "Rayhaan Elixir for Men EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 370000,
+            "img": "baru14.webp",
+            "desc": "Aroma manis hangat yang modern dan seductive, cocok untuk malam hari atau suasana santai yang rapi.",
+            "notes": "Sweet Amber - Spice - Vanilla",
+            "status": "ready",
+            "longDesc": "Rayhaan Elixir for Men EDP 100 ml membawa sweet amber, spice, dan vanilla yang hangat, modern, dan seductive. Aromanya cocok untuk malam hari, date, atau suasana santai rapi ketika kamu ingin wangi manis maskulin yang terasa dekat. Pilihan ini pas untuk pembeli yang suka aroma warm spicy dengan harga bersahabat."
+      },
+      {
+            "id": 59,
+            "title": "Fragrance World John Gustav Homme Le Parfum Extrait 100 ml",
+            "category": "Timur Tengah",
+            "price": 270000,
+            "img": "baru15.webp",
+            "desc": "Parfum pria dengan kesan aromatic, fresh, dan lebih intens; cocok untuk karakter clean maskulin.",
+            "notes": "Aromatic - Fresh - Amber Woody",
+            "status": "ready",
+            "longDesc": "Fragrance World John Gustav Homme Le Parfum Extrait 100 ml punya aromatic, fresh, dan amber woody character yang lebih intens. Aromanya cocok untuk pria yang ingin kesan clean maskulin, modern, dan rapi untuk daily use maupun semi-formal. Pilihan ini pas untuk pembeli yang mencari alternatif Middle Eastern dengan karakter designer-like."
+      },
+      {
+            "id": 60,
+            "title": "Rasasi Daarej Pour Homme EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 285000,
+            "img": "baru16.webp",
+            "desc": "Sweet spicy classic dari Timur Tengah dengan kesan hangat, maskulin, dan cocok untuk malam hari.",
+            "notes": "Spice - Vanilla - Amber",
+            "status": "ready",
+            "longDesc": "Rasasi Daarej Pour Homme EDP 100 ml menghadirkan spice, vanilla, dan amber yang sweet spicy classic. Aromanya terasa hangat, nyaman, dan maskulin, cocok untuk malam hari atau acara santai yang lebih rapi. Pilihan ini pas untuk pembeli yang suka parfum Timur Tengah dengan nuansa manis rempah yang familiar dan easy to wear."
+      },
+      {
+            "id": 61,
+            "title": "Fragrance World Proud of You Leather EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 230000,
+            "img": "baru17.webp",
+            "desc": "Aroma leather manis yang bold dan modern, cocok untuk pria yang suka wangi hangat dan berkarakter.",
+            "notes": "Leather - Sweet Amber - Warm Spice",
+            "status": "ready",
+            "longDesc": "Fragrance World Proud of You Leather EDP 100 ml menggabungkan leather, sweet amber, dan warm spice dengan karakter bold modern. Aromanya cocok untuk malam, outfit rapi, atau pemakai yang ingin wangi hangat dengan sisi edgy. Pilihan ini pas untuk pembeli yang suka leather scent manis yang tetap maskulin."
+      },
+      {
+            "id": 62,
+            "title": "Afnan Supremacy In Oud EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 650000,
+            "img": "baru18.webp",
+            "desc": "Oud modern yang mewah, smoky, dan kuat; cocok untuk acara malam, formal, atau pecinta aroma Middle Eastern.",
+            "notes": "Oud - Saffron - Amber",
+            "status": "ready",
+            "longDesc": "Afnan Supremacy In Oud EDP 100 ml membawa oud, saffron, dan amber yang smoky, mewah, dan berkarakter kuat. Aromanya cocok untuk acara formal, malam hari, atau pecinta Middle Eastern scent yang ingin tampil elegan. Pilihan ini pas untuk pembeli yang mencari oud modern yang terasa statement tanpa kehilangan sisi rapi."
+      },
+      {
+            "id": 63,
+            "title": "French Avenue Pinnace Oryn EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 470000,
+            "img": "baru19.webp",
+            "desc": "Aroma modern dari French Avenue dengan nuansa fresh, woody, dan rapi untuk daily premium.",
+            "notes": "Fresh Spicy - Woody - Amber",
+            "status": "ready",
+            "longDesc": "French Avenue Pinnace Oryn EDP 100 ml punya fresh spicy, woody, dan amber character yang modern serta bersih. Aromanya cocok untuk daily premium, kantor, atau acara semi-formal karena tidak terlalu berat namun tetap berkarakter. Pilihan ini pas untuk pembeli yang ingin parfum Timur Tengah rapi dengan nuansa fresh masculine."
+      },
+      {
+            "id": 64,
+            "title": "Khadlaj Karus Secret Musk EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 375000,
+            "img": "baru20.webp",
+            "desc": "Musk unisex yang clean, soft, dan elegan; cocok untuk pemakaian harian yang tidak terlalu menusuk.",
+            "notes": "Musk - Soft Floral - Clean",
+            "status": "ready",
+            "longDesc": "Khadlaj Karus Secret Musk EDP 100 ml menghadirkan musk, soft floral, dan clean character yang lembut serta elegan. Aromanya cocok untuk pemakaian harian, layering, atau pengguna yang suka wangi bersih dekat di kulit. Pilihan ini pas untuk kamu yang ingin scent unisex yang tidak menusuk namun tetap terasa rapi."
+      },
+      {
+            "id": 65,
+            "title": "Tiziana Terenzi Kirke Extrait de Parfum 100 ml",
+            "category": "Niche",
+            "price": 2600000,
+            "img": "baru21.webp",
+            "desc": "Fruity musky niche yang powerful, manis, dan sangat mudah dikenali; cocok untuk pencinta wangi projection kuat.",
+            "notes": "Passion Fruit - Peach - Musk",
+            "status": "ready",
+            "longDesc": "Tiziana Terenzi Kirke Extrait de Parfum 100 ml membawa passion fruit, peach, dan musk yang fruity, manis, dan powerful. Aromanya cocok untuk acara malam, momen spesial, atau pemakai yang ingin projection kuat dan mudah dikenali. Pilihan ini pas untuk pencinta niche yang suka tampil sangat standout."
+      },
+      {
+            "id": 66,
+            "title": "Xerjoff Coffee Break Golden Green Parfum 50 ml",
+            "category": "Niche",
+            "price": 3000000,
+            "img": "baru22.webp",
+            "desc": "Aroma niche unik bernuansa coffee collection yang elegan, green, dan premium untuk kolektor parfum.",
+            "notes": "Green Coffee - Aromatic - Woody",
+            "status": "ready",
+            "longDesc": "Xerjoff Coffee Break Golden Green Parfum 50 ml menghadirkan green coffee, aromatic, dan woody character yang unik serta premium. Aromanya cocok untuk kolektor niche yang ingin scent berbeda dari fresh citrus atau sweet gourmand biasa. Pilihan ini memberi kesan artistic, elegant, dan mature tanpa terasa pasaran."
+      },
+      {
+            "id": 67,
+            "title": "Xerjoff Torino 23 EDP 50 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "baru23.webp",
+            "desc": "Fresh aromatic niche yang classy, clean, dan sporty-luxury; cocok untuk cuaca panas dan acara siang.",
+            "notes": "Citrus - Aromatic - Fresh Woods",
+            "status": "ready",
+            "longDesc": "Xerjoff Torino 23 EDP 50 ml punya citrus, aromatic, dan fresh woods character yang clean, sporty-luxury, dan classy. Aromanya cocok untuk cuaca panas, acara siang, atau daily premium scent yang ingin terasa energik. Pilihan ini pas untuk pembeli yang suka fresh niche dengan aura mahal dan modern."
+      },
+      {
+            "id": 68,
+            "title": "Xerjoff Coffee Break Golden Moka Parfum 50 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "baru24.webp",
+            "desc": "Coffee gourmand premium dengan nuansa hangat, manis, dan mewah; cocok untuk malam hari dan kolektor niche.",
+            "notes": "Coffee - Amber - Gourmand",
+            "status": "ready",
+            "longDesc": "Xerjoff Coffee Break Golden Moka Parfum 50 ml menonjolkan coffee, amber, dan gourmand character yang hangat, manis, dan rich. Aromanya cocok untuk malam hari, cuaca dingin, atau kolektor niche yang suka wangi kopi mewah. Pilihan ini memberi kesan cozy, premium, dan berbeda dari gourmand biasa."
+      },
+      {
+            "id": 69,
+            "title": "Nishane Fan Your Flames X Extrait de Parfum 100 ml",
+            "category": "Niche",
+            "price": 3400000,
+            "img": "baru25.webp",
+            "desc": "Aroma niche smoky gourmand yang intens, hangat, dan unik; cocok untuk pengguna yang ingin tampil beda.",
+            "notes": "Coconut - Rum - Tobacco",
+            "status": "ready",
+            "longDesc": "Nishane Fan Your Flames X Extrait de Parfum 100 ml membawa coconut, rum, dan tobacco yang smoky gourmand, hangat, dan sangat berani. Aromanya cocok untuk malam hari, acara spesial, atau pemakai yang ingin signature scent yang unik dan sulit dilupakan. Pilihan ini pas untuk kamu yang suka aroma niche yang dalam, sensual, dan penuh karakter."
+      }
+];
 
     let cart = [];
     let activePromo = null;
@@ -1016,6 +1984,123 @@ img[loading="lazy"]{content-visibility:auto}
     const escapeHTML = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
     function imageFallback(img){ img.onerror = null; img.src = FALLBACK_IMG; }
     window.imageFallback = imageFallback;
+
+    const TOTAL_SOCIAL_PROOF_SOLD = 23528;
+    const TOP_SELLER_COUNT = 8;
+    const CATEGORY_SALES_WEIGHT = {
+      'Niche': 1.62,
+      'Designer': 1.48,
+      'Timur Tengah': 1.04,
+      'Lokal': 0.78,
+      'Miniso': 0.62,
+      'Aksesoris': 0.55
+    };
+    const CATEGORY_RATING_BAND = {
+      'Niche': [4.8, 5.0],
+      'Designer': [4.8, 5.0],
+      'Timur Tengah': [4.7, 4.9],
+      'Lokal': [4.6, 4.8],
+      'Miniso': [4.5, 4.7],
+      'Aksesoris': [4.6, 4.8]
+    };
+    const CATEGORY_REVIEW_RATIO = {
+      'Niche': [0.58, 0.76],
+      'Designer': [0.6, 0.8],
+      'Timur Tengah': [0.52, 0.7],
+      'Lokal': [0.46, 0.62],
+      'Miniso': [0.44, 0.58],
+      'Aksesoris': [0.4, 0.56]
+    };
+
+    function distributeSalesByWeight(list, total){
+      const weighted = list.map((product, index) => {
+        const categoryWeight = CATEGORY_SALES_WEIGHT[product.category] || 1;
+        const priceWeight = 1 + Math.min(.55, product.price / 12000000);
+        const statusWeight = product.status === 'sold' ? 1.08 : 1;
+        const positionWeight = 1 + ((list.length - index) / list.length) * .04;
+        const weight = categoryWeight * priceWeight * statusWeight * positionWeight;
+        return { product, weight };
+      });
+
+      const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+      const withShares = weighted.map(item => {
+        const raw = (item.weight / totalWeight) * total;
+        const floor = Math.floor(raw);
+        return { ...item, raw, floor, remainder: raw - floor };
+      });
+
+      let distributed = withShares.reduce((sum, item) => sum + item.floor, 0);
+      let remaining = total - distributed;
+
+      withShares
+        .sort((a, b) => b.remainder - a.remainder)
+        .forEach(item => {
+          if(remaining <= 0) return;
+          item.floor += 1;
+          remaining -= 1;
+        });
+
+      return new Map(withShares.map(item => [item.product.id, item.floor]));
+    }
+
+    function buildProductRating(product){
+      const [minRating, maxRating] = CATEGORY_RATING_BAND[product.category] || [4.6, 4.9];
+      const seed = ((product.id * 37) % 100) / 100;
+      let rating = minRating + ((maxRating - minRating) * (0.35 + (seed * 0.65)));
+      if(product.status === 'sold') rating += .03;
+      rating = Math.max(minRating, Math.min(maxRating, rating));
+      return Number(rating.toFixed(1));
+    }
+
+    function buildReviewCount(product){
+      const [minRatio, maxRatio] = CATEGORY_REVIEW_RATIO[product.category] || [0.48, 0.68];
+      const seed = ((product.id * 29) % 100) / 100;
+      const popularityFactor = Math.min(0.08, product.soldCount / 9000);
+      let ratio = minRatio + ((maxRatio - minRatio) * seed) + popularityFactor;
+      if(product.isTopSeller) ratio += 0.02;
+      if(product.status === 'sold') ratio += 0.015;
+      ratio = Math.max(minRatio, Math.min(maxRatio + 0.06, ratio));
+      return Math.min(product.soldCount, Math.max(15, Math.round(product.soldCount * ratio)));
+    }
+
+    function renderStarIcons(rating){
+      const fullStars = rating >= 4.8 ? 5 : 4;
+      return Array.from({length: 5}, (_, index) => index < fullStars ? '<span>★</span>' : '<span class="empty">★</span>').join('');
+    }
+
+    function formatReviewCount(value){
+      return new Intl.NumberFormat('id-ID').format(value);
+    }
+
+    function formatCompactSold(value){
+      if(value >= 1000){
+        const short = value >= 10000 ? (value / 1000).toFixed(0) : (value / 1000).toFixed(1);
+        return `${short.replace('.', ',')}rb+ terjual`;
+      }
+      return `${new Intl.NumberFormat('id-ID').format(value)}+ terjual`;
+    }
+
+    function formatFullSold(value){
+      return `${new Intl.NumberFormat('id-ID').format(value)}+ terjual`;
+    }
+
+    function getTopSellerIds(salesMap, topCount){
+      return new Set([...salesMap.entries()]
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0, topCount)
+        .map(([id]) => id));
+    }
+
+    (function enrichProductsWithSocialProof(){
+      const salesMap = distributeSalesByWeight(products, TOTAL_SOCIAL_PROOF_SOLD);
+      const topSellerIds = getTopSellerIds(salesMap, TOP_SELLER_COUNT);
+      products.forEach(product => {
+        product.soldCount = salesMap.get(product.id) || 0;
+        product.isTopSeller = topSellerIds.has(product.id);
+        product.rating = buildProductRating(product);
+        product.reviewCount = buildReviewCount(product);
+      });
+    })();
 
     function loadCart(){
       try { cart = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
@@ -1082,25 +2167,28 @@ img[loading="lazy"]{content-visibility:auto}
       if(!list.length){ grid.innerHTML = '<div class="empty-state">Produk tidak ditemukan. Coba kata kunci lain.</div>'; return; }
       grid.innerHTML = list.map(p => {
         const qty = getQty(p.id);
-        const sold = p.status === 'sold';
+        const soldOut = p.status === 'sold';
         return `
           <article class="product-card">
             <div class="product-media">
               <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)" decoding="async" fetchpriority="low">
-              <span class="tag ${sold ? 'sold' : ''}">${sold ? 'Sold' : escapeHTML(p.category)}</span>
-              ${p.top ? '<span class="badge-best">Best Seller</span>' : ''}
+              <span class="tag ${soldOut ? 'sold' : ''}">${soldOut ? 'Sold' : escapeHTML(p.category)}</span>
+              ${p.isTopSeller ? '<span class="tag top-seller">Top seller</span>' : ''}
             </div>
             <div class="product-body">
               <h3 class="product-title">${escapeHTML(p.title)}</h3>
-              <div class="rating-row">
-                <span class="stars">${Array.from({length:5},(_,i)=> i < Math.round(p.rating) ? '★' : '☆').join('')}</span>
-                <span class="rating-num">${p.rating.toFixed(1)}</span>
-                <span class="sold-count">${p.sold}+ terjual</span>
+              <div class="product-proof" aria-label="Rating dan jumlah pembelian ${escapeHTML(p.title)}">
+                <div class="product-rating-row">
+                  <span class="star-row" aria-hidden="true">${renderStarIcons(p.rating)}</span>
+                  <span class="rating-copy">${p.rating.toFixed(1)}</span>
+                </div>
+                <div class="product-sold-copy">${formatCompactSold(p.soldCount)}</div>
               </div>
+              <p class="product-desc">${escapeHTML(p.desc)}</p>
               <div class="price">${formatIDR(p.price)}</div>
               <div class="product-actions">
                 <button class="btn-secondary" type="button" data-quick="${p.id}">Detail</button>
-                <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" data-add="${p.id}" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''}>${sold ? 'Sold' : (qty ? 'Tambah ('+qty+')' : '+ Cart')}</button>
+                <button class="btn-primary ${soldOut ? 'btn-disabled' : ''}" type="button" data-add="${p.id}" ${soldOut ? 'disabled aria-disabled="true" title="Produk sold out"' : ''}>${soldOut ? 'Sold' : (qty ? 'Tambah ('+qty+')' : '+ Cart')}</button>
               </div>
             </div>
           </article>
@@ -1222,17 +2310,100 @@ img[loading="lazy"]{content-visibility:auto}
       $('#checkoutModal').classList.add('open');
       $('#checkoutModal').setAttribute('aria-hidden','false');
       document.body.classList.add('modal-open');
+      bindCheckoutValidation();
+      validateCheckoutForm({focusFirst:false, touchedOnly:true});
+      setTimeout(()=>$('#buyerName')?.focus(), 120);
     }
     function closeModal(){
       $$('.modal').forEach(m => {m.classList.remove('open');m.setAttribute('aria-hidden','true');});
       document.body.classList.remove('modal-open');
     }
 
+    const checkoutRequiredFields = [
+      { selector:'#buyerName', label:'Nama lengkap', min:2 },
+      { selector:'#buyerPhone', label:'Nomor WhatsApp', minDigits:9 },
+      { selector:'#buyerAddress', label:'Alamat lengkap / kota tujuan', min:8 }
+    ];
+
+    function getDigitsOnly(value){ return String(value || '').replace(/\D/g,''); }
+
+    function setCheckoutError(message){
+      const error = $('#checkoutError');
+      if(!error) return;
+      error.textContent = message || '';
+      error.classList.toggle('show', !!message);
+    }
+
+    function shakeCheckoutButton(){
+      const btn = $('#sendWhatsappBtn');
+      if(!btn) return;
+      btn.classList.remove('shake-required');
+      void btn.offsetWidth;
+      btn.classList.add('shake-required');
+      setTimeout(()=>btn.classList.remove('shake-required'), 420);
+    }
+
+    function validateCheckoutForm(options={}){
+      const focusFirst = options.focusFirst !== false;
+      const touchedOnly = options.touchedOnly === true;
+      const invalid = [];
+
+      checkoutRequiredFields.forEach(rule => {
+        const field = $(rule.selector);
+        if(!field) return;
+        const value = field.value.trim();
+        let valid = true;
+
+        if(rule.minDigits){
+          valid = getDigitsOnly(value).length >= rule.minDigits;
+        } else if(rule.min){
+          valid = value.length >= rule.min;
+        } else {
+          valid = !!value;
+        }
+
+        if(!valid) invalid.push({field, label: rule.label});
+
+        if(!touchedOnly || field.dataset.touched === 'true' || invalid.length){
+          field.classList.toggle('is-invalid', !valid && (field.dataset.touched === 'true' || !touchedOnly));
+          field.classList.toggle('is-valid', valid && value.length > 0);
+          field.setAttribute('aria-invalid', valid ? 'false' : 'true');
+        }
+      });
+
+      const btn = $('#sendWhatsappBtn');
+      if(btn) btn.classList.toggle('is-locked', invalid.length > 0);
+
+      if(invalid.length){
+        const message = `Lengkapi dulu: ${invalid.map(item => item.label).join(', ')}.`;
+        setCheckoutError(message);
+        if(focusFirst) invalid[0].field.focus();
+        return false;
+      }
+
+      setCheckoutError('');
+      return true;
+    }
+
+    function bindCheckoutValidation(){
+      checkoutRequiredFields.forEach(rule => {
+        const field = $(rule.selector);
+        if(!field || field.dataset.validationBound === 'true') return;
+        field.dataset.validationBound = 'true';
+        ['input','change','blur'].forEach(eventName => {
+          field.addEventListener(eventName, () => {
+            field.dataset.touched = 'true';
+            validateCheckoutForm({focusFirst:false, touchedOnly:true});
+          });
+        });
+      });
+    }
+
     function buildOrderText(){
       const t = totals();
-      const name = $('#buyerName').value.trim() || '-';
-      const phone = $('#buyerPhone').value.trim() || '-';
-      const address = $('#buyerAddress').value.trim() || '-';
+      const name = $('#buyerName').value.trim();
+      const phone = $('#buyerPhone').value.trim();
+      const address = $('#buyerAddress').value.trim();
       const payment = $('#paymentMethod').value;
       const note = $('#buyerNote').value.trim() || '-';
       const items = cart.map((item,index)=>{
@@ -1267,6 +2438,12 @@ img[loading="lazy"]{content-visibility:auto}
     }
     function sendWhatsapp(){
       if(!cart.length) return showToast('Keranjang kosong.');
+      bindCheckoutValidation();
+      if(!validateCheckoutForm({focusFirst:true})){
+        shakeCheckoutButton();
+        showToast('Lengkapi data wajib sebelum kirim ke WhatsApp.');
+        return;
+      }
       const text = buildOrderText();
       window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`,'_blank','noopener');
       showToast('WhatsApp checkout dibuka.');
@@ -1281,14 +2458,17 @@ img[loading="lazy"]{content-visibility:auto}
         <div class="quick-grid">
           <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low">
           <div>
-            <div class="eyebrow">${escapeHTML(p.category)}${p.top ? ' · Best Seller' : ''}</div>
+            <div class="eyebrow">${escapeHTML(p.category)}</div>
             <div class="quick-price">${formatIDR(p.price)}</div>
-            <div class="rating-row">
-              <span class="stars">${Array.from({length:5},(_,i)=> i < Math.round(p.rating) ? '★' : '☆').join('')}</span>
-              <span class="rating-num">${p.rating.toFixed(1)}</span>
-              <span class="sold-count">${p.sold}+ terjual</span>
+            <div class="quick-proof" aria-label="Rating dan jumlah pembelian ${escapeHTML(p.title)}">
+              <div class="quick-rating-row">
+                <span class="star-row" aria-hidden="true">${renderStarIcons(p.rating)}</span>
+                <span class="quick-rating-copy">${p.rating.toFixed(1)}</span>
+                ${p.isTopSeller ? '<span class="quick-top-label">Top seller</span>' : ''}
+              </div>
+              <div class="quick-sold-copy">${formatFullSold(p.soldCount)}</div>
             </div>
-            <p class="muted">${escapeHTML(p.longDesc)}</p>
+            <p class="muted quick-desc">${escapeHTML(p.longDesc || p.desc)}</p>
             <div class="quick-meta"><span>${escapeHTML(p.notes)}</span><span>${sold ? 'Sold out' : 'Ready stock'}</span></div>
             <div class="modal-actions">
               <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''} onclick="addToCart(${p.id}); closeModal(); openCart();">${sold ? 'Sold' : 'Tambah ke Keranjang'}</button>
@@ -1336,6 +2516,7 @@ img[loading="lazy"]{content-visibility:auto}
       if(confirm('Kosongkan semua isi keranjang?')) { cart = []; activePromo = null; saveCart(); renderProducts(); renderCart(); showToast('Keranjang dikosongkan.'); }
     });
     $('#checkoutBtn').addEventListener('click', openCheckout);
+    bindCheckoutValidation();
     $('#sendWhatsappBtn').addEventListener('click', sendWhatsapp);
 
     function animateCount(el){
@@ -1716,6 +2897,236 @@ img[loading="lazy"]{content-visibility:auto}
   }else{
     setTimeout(function(){ tuneImages(document); setupLoadMore(); }, 500);
   }
+})();
+</script>
+
+
+
+<script id="dirac-luxury-motion-js">
+(function(){
+  'use strict';
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var lastCartTotal = null;
+  var addResetTimer = null;
+
+  function raf(fn){
+    if(window.requestAnimationFrame) return window.requestAnimationFrame(fn);
+    return setTimeout(fn, 16);
+  }
+
+  function applyLuxuryMotionState(root){
+    var scope = root || document;
+    var cards = Array.prototype.slice.call(scope.querySelectorAll('.product-card'));
+    if(!cards.length) return;
+    var strongLimit = window.innerWidth <= 760 ? 8 : 12;
+    cards.forEach(function(card, index){
+      card.setAttribute('data-luxury-card','true');
+      card.style.setProperty('--luxury-card-delay', Math.min((index % strongLimit) * 42, 336) + 'ms');
+      if(index < strongLimit && !reduceMotion){
+        card.classList.add('luxury-motion-card');
+      }else{
+        card.classList.remove('luxury-motion-card');
+      }
+      // Safety: content remains visible even if IntersectionObserver misses it.
+      if(card.getBoundingClientRect){
+        var rect = card.getBoundingClientRect();
+        if(rect.top < (window.innerHeight || 900) * 1.05 && rect.bottom > -80){
+          card.classList.add('luxury-visible');
+        }
+      }
+    });
+  }
+
+  function pulseCartBadges(){
+    Array.prototype.slice.call(document.querySelectorAll('[data-cart-count]')).forEach(function(badge){
+      badge.classList.remove('luxury-cart-pulse');
+      void badge.offsetWidth;
+      badge.classList.add('luxury-cart-pulse');
+      setTimeout(function(){ badge.classList.remove('luxury-cart-pulse'); }, 620);
+    });
+  }
+
+  function showAddedState(id){
+    var btn = document.querySelector('[data-add="' + id + '"]');
+    if(!btn) return;
+    var originalText = btn.textContent;
+    btn.textContent = 'Ditambahkan';
+    btn.classList.add('luxury-added');
+    clearTimeout(addResetTimer);
+    addResetTimer = setTimeout(function(){
+      var currentBtn = document.querySelector('[data-add="' + id + '"]');
+      if(!currentBtn) return;
+      currentBtn.classList.remove('luxury-added');
+      if(typeof getQty === 'function'){
+        var qty = getQty(id);
+        currentBtn.textContent = qty ? 'Tambah (' + qty + ')' : originalText;
+      }else{
+        currentBtn.textContent = originalText;
+      }
+    }, 950);
+  }
+
+  function markCartFooter(){
+    var footer = document.querySelector('.cart-footer');
+    if(!footer) return;
+    var hasItems = false;
+    try{ hasItems = typeof cart !== 'undefined' && Array.isArray(cart) && cart.length > 0; }catch(e){ hasItems = false; }
+    footer.classList.toggle('cart-has-items', hasItems);
+  }
+
+  function animateMoney(el, fromValue, toValue, prefix, freeText){
+    if(!el || reduceMotion) return;
+    if(freeText){
+      el.textContent = freeText;
+      return;
+    }
+    if(typeof formatIDR !== 'function' || fromValue === toValue){
+      el.classList.remove('luxury-money-pop');
+      void el.offsetWidth;
+      el.classList.add('luxury-money-pop');
+      return;
+    }
+    var start = performance.now ? performance.now() : Date.now();
+    var duration = 380;
+    function step(now){
+      var current = now || Date.now();
+      var progress = Math.min(1, (current - start) / duration);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var value = Math.round(fromValue + ((toValue - fromValue) * eased));
+      el.textContent = (prefix || '') + formatIDR(value);
+      if(progress < 1){
+        raf(step);
+      }else{
+        el.textContent = (prefix || '') + formatIDR(toValue);
+        el.classList.remove('luxury-money-pop');
+        void el.offsetWidth;
+        el.classList.add('luxury-money-pop');
+      }
+    }
+    raf(step);
+  }
+
+  function enhanceCartNumbers(){
+    if(typeof totals !== 'function') return;
+    var now = totals();
+    if(!now) return;
+    markCartFooter();
+    if(lastCartTotal === null){
+      lastCartTotal = now.total;
+      return;
+    }
+    animateMoney(document.getElementById('totalText'), lastCartTotal, now.total, '', null);
+    var discountEl = document.getElementById('discountText');
+    if(discountEl){
+      discountEl.classList.remove('luxury-money-pop');
+      void discountEl.offsetWidth;
+      discountEl.classList.add('luxury-money-pop');
+    }
+    lastCartTotal = now.total;
+  }
+
+  function attachTapLuxury(root){
+    var scope = root || document;
+    Array.prototype.slice.call(scope.querySelectorAll('.product-card')).forEach(function(card){
+      if(card.dataset.luxuryTapBound === 'true') return;
+      card.dataset.luxuryTapBound = 'true';
+      card.addEventListener('pointerdown', function(){
+        card.classList.add('luxury-tap-active');
+        setTimeout(function(){ card.classList.remove('luxury-tap-active'); }, 340);
+      }, {passive:true});
+    });
+  }
+
+  function refreshLuxury(root){
+    raf(function(){
+      applyLuxuryMotionState(root || document);
+      attachTapLuxury(root || document);
+      markCartFooter();
+    });
+  }
+
+  if(typeof renderProducts === 'function'){
+    var baseRenderProducts = renderProducts;
+    renderProducts = function(){
+      var result = baseRenderProducts.apply(this, arguments);
+      refreshLuxury(document);
+      return result;
+    };
+  }
+
+  if(typeof renderCart === 'function'){
+    var baseRenderCart = renderCart;
+    renderCart = function(){
+      var previous = lastCartTotal;
+      if(typeof totals === 'function' && previous === null){
+        try{ lastCartTotal = totals().total; }catch(e){}
+      }
+      var result = baseRenderCart.apply(this, arguments);
+      if(previous !== null) enhanceCartNumbers();
+      else markCartFooter();
+      return result;
+    };
+  }
+
+  if(typeof addToCart === 'function'){
+    var baseAddToCart = addToCart;
+    addToCart = function(id){
+      var canAdd = true;
+      try{
+        var product = typeof getProduct === 'function' ? getProduct(id) : null;
+        canAdd = !!product && product.status !== 'sold';
+      }catch(e){ canAdd = true; }
+      var result = baseAddToCart.apply(this, arguments);
+      if(canAdd){
+        raf(function(){
+          showAddedState(id);
+          pulseCartBadges();
+          refreshLuxury(document);
+        });
+      }
+      return result;
+    };
+  }
+
+  if(typeof openQuick === 'function'){
+    var baseOpenQuick = openQuick;
+    openQuick = function(){
+      var result = baseOpenQuick.apply(this, arguments);
+      refreshLuxury(document);
+      return result;
+    };
+  }
+
+  document.addEventListener('click', function(event){
+    if(event.target && event.target.closest && event.target.closest('#loadMoreProductsBtn')){
+      setTimeout(function(){ refreshLuxury(document); }, 80);
+      setTimeout(function(){ refreshLuxury(document); }, 260);
+    }
+  }, true);
+
+  window.addEventListener('scroll', function(){
+    if(window.__diracLuxuryScrollTick) return;
+    window.__diracLuxuryScrollTick = true;
+    raf(function(){
+      window.__diracLuxuryScrollTick = false;
+      applyLuxuryMotionState(document);
+    });
+  }, {passive:true});
+
+  if('MutationObserver' in window){
+    var productGrid = document.getElementById('productGrid');
+    if(productGrid){
+      new MutationObserver(function(){ refreshLuxury(productGrid); }).observe(productGrid,{childList:true,subtree:true});
+    }
+    var cartItems = document.getElementById('cartItems');
+    if(cartItems){
+      new MutationObserver(function(){ markCartFooter(); }).observe(cartItems,{childList:true,subtree:true});
+    }
+  }
+
+  refreshLuxury(document);
+  setTimeout(function(){ refreshLuxury(document); }, 700);
+  setTimeout(function(){ refreshLuxury(document); }, 1700);
 })();
 </script>
 
