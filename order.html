@@ -911,7 +911,7 @@ button.luxury-added{
           <div class="hero-card one"><img src="produk14.webp" alt="" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low"></div>
           <div class="hero-card two"><img src="produk6.webp" alt="" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low"></div>
           <div class="hero-card three"><img src="produk16.webp" alt="" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low"></div>
-          <div class="hero-floating-note"><span>Promo hari ini</span><strong>DIRAC15</strong></div>
+          <div class="hero-floating-note"><span>Promo hari ini</span><strong>DIRAC3</strong></div>
         </div>
       </div>
     </section>
@@ -939,8 +939,8 @@ button.luxury-added{
       <div class="container">
         <div class="promo-box">
           <div>
-            <strong>Gunakan kode <span class="promo-code">DIRAC15</span> untuk diskon 15%</strong>
-            <span>Kode lain: HEMAT10, RESELLER, dan FREESHIP. Sistem akan menghitung otomatis di keranjang.</span>
+            <strong>Gunakan kode <span class="promo-code">DIRAC3</span> untuk diskon 3%</strong>
+            <span>Voucher diskon sekarang dibatasi 3% agar margin tetap aman. FREESHIP tetap khusus gratis ongkir.</span>
           </div>
           <a class="btn-primary" href="#produk">Pilih Produk</a>
         </div>
@@ -1129,7 +1129,7 @@ button.luxury-added{
         <div class="faq-grid text-left">
           <div class="faq-item"><button class="faq-q" type="button">Apakah keranjang tersimpan? <span>+</span></button><div class="faq-a">Ya. Produk disimpan di localStorage browser, jadi tidak hilang saat halaman direfresh.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Bagaimana checkout dilakukan? <span>+</span></button><div class="faq-a">Setelah isi data checkout, sistem membuat pesan WhatsApp otomatis berisi daftar produk, total, ongkir, promo, dan alamat.</div></div>
-          <div class="faq-item"><button class="faq-q" type="button">Apakah ada promo? <span>+</span></button><div class="faq-a">Coba kode DIRAC15, HEMAT10, RESELLER, atau FREESHIP di keranjang. Sistem akan menghitung total otomatis.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button">Apakah ada promo? <span>+</span></button><div class="faq-a">Coba kode DIRAC3 di keranjang untuk diskon 3%. Sistem akan menghitung total otomatis.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Apakah bisa untuk reseller? <span>+</span></button><div class="faq-a">Bisa. Gunakan checkout WhatsApp untuk konfirmasi stok dan harga reseller sebelum pembayaran.</div></div>
         </div>
       </div>
@@ -1160,7 +1160,7 @@ button.luxury-added{
       <div class="cart-body" id="cartItems"></div>
       <div class="cart-footer">
         <div class="free-ship"><small id="freeShipText">Tambah produk untuk gratis ongkir.</small><div class="meter"><span id="freeShipMeter"></span></div></div>
-        <div class="promo-row"><input id="promoInput" type="text" placeholder="Kode promo: DIRAC15"><button class="btn-secondary" type="button" id="applyPromoBtn">Pakai</button></div>
+        <div class="promo-row"><input id="promoInput" type="text" placeholder="Kode promo: DIRAC3"><button class="btn-secondary" type="button" id="applyPromoBtn">Pakai</button></div>
         <div class="ship-row"><select id="shippingSelect" aria-label="Pilih pengiriman"><option value="standard">Standard - Rp25.000</option><option value="express">Express - Rp45.000</option><option value="pickup">Ambil di tempat - Gratis</option></select></div>
         <div class="cart-row"><span>Subtotal</span><strong id="subtotalText">Rp0</strong></div>
         <div class="cart-row"><span>Diskon</span><strong id="discountText">Rp0</strong></div>
@@ -2114,9 +2114,7 @@ button.luxury-added{
     function subtotal(){ return cart.reduce((sum,item)=>sum+(getProduct(item.id)?.price||0)*item.qty,0); }
     function promoValue(sub){
       if(!activePromo) return 0;
-      if(activePromo.code === 'DIRAC15') return Math.min(Math.round(sub * .15), 300000);
-      if(activePromo.code === 'HEMAT10') return sub >= 500000 ? 100000 : 0;
-      if(activePromo.code === 'RESELLER') return sub >= 2000000 ? Math.round(sub * .07) : 0;
+      if(['DIRAC3','DIRAC15','HEMAT10','RESELLER'].includes(activePromo.code)) return Math.round(sub * .03);
       return 0;
     }
     function baseShipping(sub){
@@ -2278,9 +2276,10 @@ button.luxury-added{
     function applyPromo(){
       const code = $('#promoInput').value.trim().toUpperCase();
       const validCodes = {
-        DIRAC15:'Diskon 15% maksimal Rp300.000',
-        HEMAT10:'Potongan Rp100.000 minimal belanja Rp500.000',
-        RESELLER:'Diskon reseller 7% minimal Rp2.000.000',
+        DIRAC3:'Diskon 3%',
+        DIRAC15:'Diskon 3%',
+        HEMAT10:'Diskon 3%',
+        RESELLER:'Diskon 3%',
         FREESHIP:'Gratis ongkir'
       };
       if(!code){ activePromo = null; renderCart(); showToast('Promo dihapus.'); return; }
@@ -2288,8 +2287,7 @@ button.luxury-added{
       activePromo = {code,label:validCodes[code]};
       renderCart();
       const value = promoValue(subtotal());
-      if((code === 'HEMAT10' || code === 'RESELLER') && value === 0) showToast('Kode tersimpan, tapi minimal belanja belum terpenuhi.');
-      else showToast(`${validCodes[code]} berhasil dipakai.`);
+      showToast(`${validCodes[code]} berhasil dipakai.`);
     }
 
     function openCart(){
