@@ -518,6 +518,271 @@ img[loading="lazy"]{content-visibility:auto}
 .product-card{contain:content;content-visibility:auto;contain-intrinsic-size:420px}
 </style>
 
+
+
+<style id="dirac-luxury-motion-css">
+/* =========================================================
+   Dirac Luxury Motion Layer v4 - fail-safe premium animations
+   Prinsip aman: konten tetap terlihat walau JS/animasi gagal.
+   ========================================================= */
+:root{
+  --luxury-ease:cubic-bezier(.22,1,.36,1);
+  --luxury-soft:cubic-bezier(.16,1,.3,1);
+}
+
+/* Header premium on scroll */
+.site-header:after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:-1px;height:1px;
+  pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(243,205,112,.34),transparent);
+  opacity:.18;
+  transition:opacity .35s var(--luxury-ease);
+}
+.site-header.is-scrolled:after{opacity:.62}
+.site-header.is-scrolled{
+  box-shadow:0 18px 54px rgba(0,0,0,.38),0 1px 0 rgba(243,205,112,.08);
+}
+.site-header.is-scrolled .brand-mark{filter:drop-shadow(0 8px 18px rgba(214,166,66,.14))}
+
+/* Section transitions: always visible, only refined movement */
+.motion-ready .section[data-reveal] .eyebrow,
+.motion-ready .section[data-reveal] .section-title,
+.motion-ready .section[data-reveal] .section-lead{
+  opacity:.92;
+  transform:translateY(8px);
+  transition:opacity .7s var(--luxury-soft),transform .7s var(--luxury-soft);
+}
+.motion-ready .section[data-reveal].is-visible .eyebrow,
+.motion-ready .section[data-reveal].is-visible .section-title,
+.motion-ready .section[data-reveal].is-visible .section-lead{
+  opacity:1;
+  transform:none;
+}
+.motion-ready .section[data-reveal].is-visible .section-title{transition-delay:.06s}
+.motion-ready .section[data-reveal].is-visible .section-lead{transition-delay:.12s}
+
+/* Product card premium glow */
+.product-card{isolation:isolate}
+.product-card:before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(243,205,112,.16),transparent 46%),
+    linear-gradient(135deg,rgba(255,255,255,.035),transparent 55%);
+  opacity:.32;
+  transition:opacity .45s var(--luxury-ease),filter .45s var(--luxury-ease);
+}
+.product-card:hover:before,
+.product-card.luxury-tap-active:before{
+  opacity:.72;
+  filter:saturate(1.12);
+}
+.product-card .product-media,
+.product-card .product-body{position:relative;z-index:1}
+
+/* Smooth reveal for products - never blank */
+.motion-ready .product-card[data-luxury-card="true"]{
+  opacity:.86;
+  transform:translate3d(0,12px,0) scale(.995);
+  transition:opacity .72s var(--luxury-soft),transform .72s var(--luxury-soft),box-shadow .35s var(--luxury-ease),border-color .35s var(--luxury-ease);
+  transition-delay:var(--luxury-card-delay,0ms);
+}
+.motion-ready .product-card[data-luxury-card="true"].is-visible,
+.motion-ready .product-card[data-luxury-card="true"].luxury-visible{
+  opacity:1;
+  transform:translate3d(0,0,0) scale(1);
+}
+
+/* Product image luxury zoom: limited by JS to visible first batch */
+.product-card.luxury-motion-card .product-media img{
+  transform-origin:center center;
+  will-change:transform;
+}
+.product-card.luxury-motion-card.is-visible .product-media img,
+.product-card.luxury-motion-card.luxury-visible .product-media img{
+  animation:luxuryImageZoom 7.5s var(--luxury-soft) both;
+}
+.product-card:hover .product-media img{
+  transform:translateY(-4px) scale(1.035);
+}
+.product-card.luxury-tap-active .product-media img{
+  transform:translateY(-3px) scale(1.024)!important;
+}
+@keyframes luxuryImageZoom{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.026)}
+}
+
+/* Rating premium fade - visible by default, animated when card is visible */
+.star-row span{
+  display:inline-block;
+  transform:translateY(0);
+  will-change:transform,opacity;
+}
+.product-card.is-visible .star-row span,
+.product-card.luxury-visible .star-row span,
+.modal.open .star-row span{
+  animation:starLuxuryIn .38s var(--luxury-soft) both;
+}
+.star-row span:nth-child(1){animation-delay:.02s}
+.star-row span:nth-child(2){animation-delay:.07s}
+.star-row span:nth-child(3){animation-delay:.12s}
+.star-row span:nth-child(4){animation-delay:.17s}
+.star-row span:nth-child(5){animation-delay:.22s}
+.product-card.is-visible .rating-copy,
+.product-card.luxury-visible .rating-copy{
+  animation:ratingTextIn .48s var(--luxury-soft) both .24s;
+}
+.product-card.is-visible .product-sold-copy,
+.product-card.luxury-visible .product-sold-copy{
+  animation:ratingTextIn .5s var(--luxury-soft) both .32s;
+}
+@keyframes starLuxuryIn{
+  from{opacity:.36;transform:translateY(5px)}
+  to{opacity:1;transform:none}
+}
+@keyframes ratingTextIn{
+  from{opacity:.58;transform:translateY(6px)}
+  to{opacity:1;transform:none}
+}
+
+/* Top seller refined glow and shimmer */
+.tag.top-seller{
+  overflow:hidden;
+  isolation:isolate;
+  animation:topSellerSoftGlow 4.8s ease-in-out infinite;
+}
+.tag.top-seller:before{
+  content:"";
+  position:absolute;
+  inset:-35% -70%;
+  pointer-events:none;
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.42) 50%,transparent 65%);
+  transform:translateX(-75%) rotate(10deg);
+  animation:topSellerShimmer 5.8s ease-in-out infinite;
+}
+@keyframes topSellerSoftGlow{
+  0%,100%{box-shadow:0 10px 24px rgba(0,0,0,.24),0 0 0 rgba(243,205,112,0)}
+  50%{box-shadow:0 12px 28px rgba(0,0,0,.28),0 0 20px rgba(243,205,112,.18)}
+}
+@keyframes topSellerShimmer{
+  0%,58%{transform:translateX(-78%) rotate(10deg)}
+  82%,100%{transform:translateX(78%) rotate(10deg)}
+}
+.quick-top-label{animation:topSellerSoftGlow 4.8s ease-in-out infinite}
+
+/* Add to cart premium feedback */
+.btn-primary.luxury-added,
+button.luxury-added{
+  filter:brightness(1.08);
+  box-shadow:0 18px 44px rgba(214,166,66,.34),0 0 0 1px rgba(255,255,255,.08) inset;
+}
+.count-badge.luxury-cart-pulse{
+  animation:luxuryCartPulse .52s var(--luxury-soft) both;
+}
+@keyframes luxuryCartPulse{
+  0%{transform:translateY(0) scale(1)}
+  44%{transform:translateY(-3px) scale(1.14)}
+  100%{transform:translateY(0) scale(1)}
+}
+#checkoutBtn:not(:disabled){
+  box-shadow:0 16px 36px rgba(214,166,66,.24),0 0 0 1px rgba(255,255,255,.07) inset;
+}
+.cart-footer.cart-has-items #checkoutBtn:not(:disabled){
+  animation:checkoutReadyGlow 4.2s ease-in-out infinite;
+}
+@keyframes checkoutReadyGlow{
+  0%,100%{filter:brightness(1);box-shadow:0 16px 36px rgba(214,166,66,.24)}
+  50%{filter:brightness(1.04);box-shadow:0 18px 44px rgba(214,166,66,.34),0 0 20px rgba(243,205,112,.10)}
+}
+
+/* Modal detail cinematic stagger */
+.modal.open .modal-card{animation-duration:.44s}
+.modal.open .quick-grid img{animation:quickImageIn .58s var(--luxury-soft) both .05s}
+.modal.open .quick-grid > div{animation:quickCopyIn .58s var(--luxury-soft) both .10s}
+.modal.open .quick-price{animation:modalDetailItemIn .5s var(--luxury-soft) both .18s}
+.modal.open .quick-proof{animation:modalDetailItemIn .5s var(--luxury-soft) both .26s}
+.modal.open .quick-meta{animation:modalDetailItemIn .5s var(--luxury-soft) both .34s}
+.modal.open .modal-actions{animation:modalDetailItemIn .5s var(--luxury-soft) both .42s}
+@keyframes modalDetailItemIn{
+  from{opacity:.62;transform:translateY(8px)}
+  to{opacity:1;transform:none}
+}
+
+/* Branded lightweight loading skeleton */
+.product-media.is-loading:after{
+  background:linear-gradient(105deg,rgba(255,255,255,.025) 0%,rgba(255,255,255,.075) 42%,rgba(243,205,112,.16) 52%,rgba(255,255,255,.025) 100%)!important;
+  box-shadow:inset 0 0 0 1px rgba(243,205,112,.05);
+}
+.quick-grid img.is-loading-image{
+  background-image:linear-gradient(105deg,rgba(255,255,255,.025),rgba(255,255,255,.08),rgba(243,205,112,.14),rgba(255,255,255,.025))!important;
+}
+
+/* Checkout drawer smooth row feedback */
+.cart-row strong.luxury-money-pop,
+#totalText.luxury-money-pop{
+  animation:luxuryMoneyPop .46s var(--luxury-soft) both;
+}
+@keyframes luxuryMoneyPop{
+  0%{transform:translateY(0);filter:none}
+  48%{transform:translateY(-2px);filter:drop-shadow(0 0 10px rgba(243,205,112,.28))}
+  100%{transform:translateY(0);filter:none}
+}
+.cart-overlay.open .cart-item{
+  animation:cartItemIn .46s var(--luxury-soft) both;
+}
+
+/* Mobile safety: keep motion ultra-light, no blank state */
+@media(max-width:760px){
+  .motion-ready .product-card[data-luxury-card="true"]{
+    opacity:1!important;
+    transform:none!important;
+    transition:box-shadow .18s ease,border-color .18s ease!important;
+  }
+  .product-card.luxury-motion-card.is-visible .product-media img,
+  .product-card.luxury-motion-card.luxury-visible .product-media img{
+    animation:none!important;
+  }
+  .product-card:hover .product-media img{transform:none!important}
+  .product-card.luxury-tap-active .product-media img{transform:translateY(-2px) scale(1.018)!important}
+  .product-card:before{opacity:.28}
+  .product-card.luxury-tap-active:before{opacity:.56}
+  .tag.top-seller{animation:topSellerSoftGlow 6.5s ease-in-out infinite}
+  .tag.top-seller:before{animation:none!important;opacity:.28}
+  .modal.open .quick-price,
+  .modal.open .quick-proof,
+  .modal.open .quick-meta,
+  .modal.open .modal-actions{animation:none!important;opacity:1!important;transform:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .product-card.luxury-motion-card.is-visible .product-media img,
+  .product-card.luxury-motion-card.luxury-visible .product-media img,
+  .tag.top-seller,
+  .tag.top-seller:before,
+  .quick-top-label,
+  .cart-footer.cart-has-items #checkoutBtn:not(:disabled),
+  .star-row span,
+  .rating-copy,
+  .product-sold-copy,
+  .modal.open .quick-price,
+  .modal.open .quick-proof,
+  .modal.open .quick-meta,
+  .modal.open .modal-actions,
+  .count-badge.luxury-cart-pulse,
+  .cart-row strong.luxury-money-pop,
+  #totalText.luxury-money-pop{
+    animation:none!important;
+    transform:none!important;
+    opacity:1!important;
+  }
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -1151,7 +1416,7 @@ img[loading="lazy"]{content-visibility:auto}
               <div class="product-proof" aria-label="Rating dan jumlah pembelian ${escapeHTML(p.title)}">
                 <div class="product-rating-row">
                   <span class="star-row" aria-hidden="true">${renderStarIcons(p.rating)}</span>
-                  <span class="rating-copy">${p.rating.toFixed(1)} (${formatReviewCount(p.reviewCount)})</span>
+                  <span class="rating-copy">${p.rating.toFixed(1)}</span>
                 </div>
                 <div class="product-sold-copy">${formatCompactSold(p.soldCount)}</div>
               </div>
@@ -1345,7 +1610,7 @@ img[loading="lazy"]{content-visibility:auto}
             <div class="quick-proof" aria-label="Rating dan jumlah pembelian ${escapeHTML(p.title)}">
               <div class="quick-rating-row">
                 <span class="star-row" aria-hidden="true">${renderStarIcons(p.rating)}</span>
-                <span class="quick-rating-copy">${p.rating.toFixed(1)} (${formatReviewCount(p.reviewCount)} ulasan)</span>
+                <span class="quick-rating-copy">${p.rating.toFixed(1)}</span>
                 ${p.isTopSeller ? '<span class="quick-top-label">Top seller</span>' : ''}
               </div>
               <div class="quick-sold-copy">${formatFullSold(p.soldCount)}</div>
@@ -1778,6 +2043,236 @@ img[loading="lazy"]{content-visibility:auto}
   }else{
     setTimeout(function(){ tuneImages(document); setupLoadMore(); }, 500);
   }
+})();
+</script>
+
+
+
+<script id="dirac-luxury-motion-js">
+(function(){
+  'use strict';
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var lastCartTotal = null;
+  var addResetTimer = null;
+
+  function raf(fn){
+    if(window.requestAnimationFrame) return window.requestAnimationFrame(fn);
+    return setTimeout(fn, 16);
+  }
+
+  function applyLuxuryMotionState(root){
+    var scope = root || document;
+    var cards = Array.prototype.slice.call(scope.querySelectorAll('.product-card'));
+    if(!cards.length) return;
+    var strongLimit = window.innerWidth <= 760 ? 8 : 12;
+    cards.forEach(function(card, index){
+      card.setAttribute('data-luxury-card','true');
+      card.style.setProperty('--luxury-card-delay', Math.min((index % strongLimit) * 42, 336) + 'ms');
+      if(index < strongLimit && !reduceMotion){
+        card.classList.add('luxury-motion-card');
+      }else{
+        card.classList.remove('luxury-motion-card');
+      }
+      // Safety: content remains visible even if IntersectionObserver misses it.
+      if(card.getBoundingClientRect){
+        var rect = card.getBoundingClientRect();
+        if(rect.top < (window.innerHeight || 900) * 1.05 && rect.bottom > -80){
+          card.classList.add('luxury-visible');
+        }
+      }
+    });
+  }
+
+  function pulseCartBadges(){
+    Array.prototype.slice.call(document.querySelectorAll('[data-cart-count]')).forEach(function(badge){
+      badge.classList.remove('luxury-cart-pulse');
+      void badge.offsetWidth;
+      badge.classList.add('luxury-cart-pulse');
+      setTimeout(function(){ badge.classList.remove('luxury-cart-pulse'); }, 620);
+    });
+  }
+
+  function showAddedState(id){
+    var btn = document.querySelector('[data-add="' + id + '"]');
+    if(!btn) return;
+    var originalText = btn.textContent;
+    btn.textContent = 'Ditambahkan';
+    btn.classList.add('luxury-added');
+    clearTimeout(addResetTimer);
+    addResetTimer = setTimeout(function(){
+      var currentBtn = document.querySelector('[data-add="' + id + '"]');
+      if(!currentBtn) return;
+      currentBtn.classList.remove('luxury-added');
+      if(typeof getQty === 'function'){
+        var qty = getQty(id);
+        currentBtn.textContent = qty ? 'Tambah (' + qty + ')' : originalText;
+      }else{
+        currentBtn.textContent = originalText;
+      }
+    }, 950);
+  }
+
+  function markCartFooter(){
+    var footer = document.querySelector('.cart-footer');
+    if(!footer) return;
+    var hasItems = false;
+    try{ hasItems = typeof cart !== 'undefined' && Array.isArray(cart) && cart.length > 0; }catch(e){ hasItems = false; }
+    footer.classList.toggle('cart-has-items', hasItems);
+  }
+
+  function animateMoney(el, fromValue, toValue, prefix, freeText){
+    if(!el || reduceMotion) return;
+    if(freeText){
+      el.textContent = freeText;
+      return;
+    }
+    if(typeof formatIDR !== 'function' || fromValue === toValue){
+      el.classList.remove('luxury-money-pop');
+      void el.offsetWidth;
+      el.classList.add('luxury-money-pop');
+      return;
+    }
+    var start = performance.now ? performance.now() : Date.now();
+    var duration = 380;
+    function step(now){
+      var current = now || Date.now();
+      var progress = Math.min(1, (current - start) / duration);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var value = Math.round(fromValue + ((toValue - fromValue) * eased));
+      el.textContent = (prefix || '') + formatIDR(value);
+      if(progress < 1){
+        raf(step);
+      }else{
+        el.textContent = (prefix || '') + formatIDR(toValue);
+        el.classList.remove('luxury-money-pop');
+        void el.offsetWidth;
+        el.classList.add('luxury-money-pop');
+      }
+    }
+    raf(step);
+  }
+
+  function enhanceCartNumbers(){
+    if(typeof totals !== 'function') return;
+    var now = totals();
+    if(!now) return;
+    markCartFooter();
+    if(lastCartTotal === null){
+      lastCartTotal = now.total;
+      return;
+    }
+    animateMoney(document.getElementById('totalText'), lastCartTotal, now.total, '', null);
+    var discountEl = document.getElementById('discountText');
+    if(discountEl){
+      discountEl.classList.remove('luxury-money-pop');
+      void discountEl.offsetWidth;
+      discountEl.classList.add('luxury-money-pop');
+    }
+    lastCartTotal = now.total;
+  }
+
+  function attachTapLuxury(root){
+    var scope = root || document;
+    Array.prototype.slice.call(scope.querySelectorAll('.product-card')).forEach(function(card){
+      if(card.dataset.luxuryTapBound === 'true') return;
+      card.dataset.luxuryTapBound = 'true';
+      card.addEventListener('pointerdown', function(){
+        card.classList.add('luxury-tap-active');
+        setTimeout(function(){ card.classList.remove('luxury-tap-active'); }, 340);
+      }, {passive:true});
+    });
+  }
+
+  function refreshLuxury(root){
+    raf(function(){
+      applyLuxuryMotionState(root || document);
+      attachTapLuxury(root || document);
+      markCartFooter();
+    });
+  }
+
+  if(typeof renderProducts === 'function'){
+    var baseRenderProducts = renderProducts;
+    renderProducts = function(){
+      var result = baseRenderProducts.apply(this, arguments);
+      refreshLuxury(document);
+      return result;
+    };
+  }
+
+  if(typeof renderCart === 'function'){
+    var baseRenderCart = renderCart;
+    renderCart = function(){
+      var previous = lastCartTotal;
+      if(typeof totals === 'function' && previous === null){
+        try{ lastCartTotal = totals().total; }catch(e){}
+      }
+      var result = baseRenderCart.apply(this, arguments);
+      if(previous !== null) enhanceCartNumbers();
+      else markCartFooter();
+      return result;
+    };
+  }
+
+  if(typeof addToCart === 'function'){
+    var baseAddToCart = addToCart;
+    addToCart = function(id){
+      var canAdd = true;
+      try{
+        var product = typeof getProduct === 'function' ? getProduct(id) : null;
+        canAdd = !!product && product.status !== 'sold';
+      }catch(e){ canAdd = true; }
+      var result = baseAddToCart.apply(this, arguments);
+      if(canAdd){
+        raf(function(){
+          showAddedState(id);
+          pulseCartBadges();
+          refreshLuxury(document);
+        });
+      }
+      return result;
+    };
+  }
+
+  if(typeof openQuick === 'function'){
+    var baseOpenQuick = openQuick;
+    openQuick = function(){
+      var result = baseOpenQuick.apply(this, arguments);
+      refreshLuxury(document);
+      return result;
+    };
+  }
+
+  document.addEventListener('click', function(event){
+    if(event.target && event.target.closest && event.target.closest('#loadMoreProductsBtn')){
+      setTimeout(function(){ refreshLuxury(document); }, 80);
+      setTimeout(function(){ refreshLuxury(document); }, 260);
+    }
+  }, true);
+
+  window.addEventListener('scroll', function(){
+    if(window.__diracLuxuryScrollTick) return;
+    window.__diracLuxuryScrollTick = true;
+    raf(function(){
+      window.__diracLuxuryScrollTick = false;
+      applyLuxuryMotionState(document);
+    });
+  }, {passive:true});
+
+  if('MutationObserver' in window){
+    var productGrid = document.getElementById('productGrid');
+    if(productGrid){
+      new MutationObserver(function(){ refreshLuxury(productGrid); }).observe(productGrid,{childList:true,subtree:true});
+    }
+    var cartItems = document.getElementById('cartItems');
+    if(cartItems){
+      new MutationObserver(function(){ markCartFooter(); }).observe(cartItems,{childList:true,subtree:true});
+    }
+  }
+
+  refreshLuxury(document);
+  setTimeout(function(){ refreshLuxury(document); }, 700);
+  setTimeout(function(){ refreshLuxury(document); }, 1700);
 })();
 </script>
 
