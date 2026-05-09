@@ -837,6 +837,24 @@ button.luxury-added{
 }
 </style>
 
+
+  <style id="dirac-longdesc-css">
+    .quick-desc{
+      line-height:1.75;
+      color:#cbd3df;
+      font-size:.96rem;
+      max-width:56ch;
+      margin:14px 0 12px;
+    }
+    @media(max-width:640px){
+      .quick-desc{
+        font-size:.94rem;
+        line-height:1.68;
+        margin-top:12px;
+      }
+    }
+  </style>
+
 </head>
 <body>
   <div class="announcement">
@@ -1194,76 +1212,766 @@ button.luxury-added{
     const FREE_SHIP_TARGET = 299000;
 
     const products = [
-      {id:1,title:'All Parfum Timteng',category:'Timur Tengah',price:1000000,img:'all_parfum_timteng.webp',desc:'Koleksi aroma khas Timur Tengah dengan karakter oud, amber, dan rempah.',notes:'Oud - Amber - Spicy',status:'ready'},
-      {id:2,title:'All Parfum Designer',category:'Designer',price:1000000,img:'all_parfum_desaigner.webp',desc:'Pilihan parfum designer populer dengan kesan modern dan berkelas.',notes:'Fresh - Modern - Versatile',status:'ready'},
-      {id:3,title:'All Parfum Lokal',category:'Lokal',price:250000,img:'all_parfum_lokal.webp',desc:'Koleksi brand lokal dengan harga ramah dan aroma mudah dipakai harian.',notes:'Daily - Clean - Easy wear',status:'ready'},
-      {id:4,title:'All Parfum Niche',category:'Niche',price:1000000,img:'all_parfum_niche.webp',desc:'Aroma niche yang lebih unik, eksklusif, dan punya karakter kuat.',notes:'Unique - Premium - Long lasting',status:'ready'},
-      {id:5,title:'Botol Kosong Niche',category:'Aksesoris',price:700000,img:'botol_kosong_niche.webp',desc:'Botol kosong koleksi niche untuk display atau kebutuhan kolektor.',notes:'Collector - Display',status:'sold'},
-      {id:6,title:'Louis Vuitton Imagination 100 ml',category:'Niche',price:6200000,img:'produk6.webp',desc:'Aroma premium dengan karakter fresh, bersih, dan mewah.',notes:'Fresh - Citrus - Premium',status:'ready'},
-      {id:7,title:'Xerjoff Torino 21 100 ml',category:'Niche',price:7500000,img:'produk7.webp',desc:'Pilihan niche premium yang cocok untuk kesan elegan dan eksklusif.',notes:'Green - Fresh - Elegant',status:'ready'},
-      {id:8,title:'Yves Saint Laurent Myself 100 ml',category:'Designer',price:1650000,img:'produk8.webp',desc:'Aroma designer modern untuk penggunaan harian dan semi-formal.',notes:'Clean - Aromatic - Modern',status:'ready'},
-      {id:9,title:'Xerjoff Erba Pura 100 ml',category:'Niche',price:4500000,img:'produk9.webp',desc:'Aroma fruity musky yang mencolok dan mudah dikenali.',notes:'Fruity - Musk - Sweet',status:'ready'},
-      {id:10,title:'Jean Paul Gaultier Le Male Elixir 125 ml',category:'Designer',price:1600000,img:'produk10.webp',desc:'Aroma manis hangat dengan karakter malam yang kuat.',notes:'Sweet - Amber - Vanilla',status:'ready'},
-      {id:11,title:'Yves Saint Laurent Y EDP 100 ml',category:'Designer',price:1850000,img:'produk11.webp',desc:'Fresh aromatic yang aman untuk kantor, kampus, dan acara santai.',notes:'Fresh - Aromatic - Blue',status:'ready'},
-      {id:12,title:'Louis Vuitton Symphony 100 ml',category:'Niche',price:10200000,img:'produk12.webp',desc:'Pilihan ultra premium untuk pencinta aroma bright dan sophisticated.',notes:'Citrus - Luxe - Bright',status:'ready'},
-      {id:13,title:'Jean Paul Gaultier Le Male Parfum 125 ml',category:'Designer',price:1600000,img:'produk13.webp',desc:'Aroma hangat, maskulin, dan cocok untuk malam hari.',notes:'Amber - Spice - Sweet',status:'ready'},
-      {id:14,title:'Nishane Wulong Cha 100 ml',category:'Niche',price:3200000,img:'produk14.webp',desc:'Fresh tea-citrus yang bersih, unik, dan nyaman dipakai harian.',notes:'Tea - Citrus - Fresh',status:'ready'},
-      {id:15,title:'Yves Saint Laurent Libre 90 ml',category:'Designer',price:1800000,img:'produk15.webp',desc:'Aroma floral-lavender yang elegan dan mewah.',notes:'Floral - Lavender - Elegant',status:'sold'},
-      {id:16,title:'Dior Sauvage 100 ml',category:'Designer',price:2800000,img:'produk16.webp',desc:'Aroma fresh spicy populer dengan kesan maskulin dan aman dipakai.',notes:'Fresh - Spicy - Blue',status:'ready'},
-      {id:17,title:'Jean Paul Gaultier Le Beau Paradise Garden 125 ml',category:'Designer',price:1600000,img:'produk1.webp',desc:'Aroma tropis segar dengan nuansa manis yang playful.',notes:'Tropical - Sweet - Fresh',status:'ready'},
-      {id:18,title:'Stronger With You Intensely 100 ml',category:'Designer',price:1600000,img:'produk2.webp',desc:'Manis, hangat, dan cocok untuk malam atau cuaca dingin.',notes:'Sweet - Vanilla - Warm',status:'ready'},
-      {id:19,title:'Stronger With You Parfum 100 ml',category:'Designer',price:2500000,img:'produk3.webp',desc:'Aroma intens dengan karakter manis dan tahan lama.',notes:'Sweet - Amber - Intense',status:'ready'},
-      {id:20,title:'Louis Vuitton City Of Stars 100 ml',category:'Niche',price:5500000,img:'produk4.webp',desc:'Fresh citrus aromatic dengan aura liburan yang mewah.',notes:'Citrus - Beachy - Luxe',status:'ready'},
-      {id:21,title:'Louis Vuitton Meteore 100 ml',category:'Niche',price:6500000,img:'produk5.webp',desc:'Fresh spicy premium untuk kesan rapi dan berkelas.',notes:'Fresh - Spicy - Clean',status:'ready'},
-      {id:22,title:'Jean Paul Gaultier Le Male Elixir Absolu 125 ml',category:'Designer',price:1800000,img:'produk18.webp',desc:'Versi elixir yang lebih bold, manis, dan intens.',notes:'Elixir - Sweet - Bold',status:'ready'},
-      {id:23,title:'Nishane Hacivat',category:'Niche',price:3100000,img:'produk19.webp',desc:'Fresh woody dengan karakter nanas dan oakmoss yang elegan.',notes:'Pineapple - Woody - Mossy',status:'ready'},
-      {id:24,title:'Versace Eros Flame 200 ml',category:'Designer',price:2200000,img:'produk20.webp',desc:'Fresh spicy dengan sentuhan citrus dan vanilla hangat.',notes:'Citrus - Spice - Vanilla',status:'ready'},
-      {id:25,title:'Xerjoff Renaissance 100 ml',category:'Niche',price:3200000,img:'produk21.webp',desc:'Citrus mint yang cerah dan terasa sangat fresh.',notes:'Mint - Citrus - Fresh',status:'ready'},
-      {id:26,title:'Valentino Uomo Born In Roma 100 ml',category:'Designer',price:2200000,img:'produk22.webp',desc:'Aroma designer manis, modern, dan easy to wear.',notes:'Sweet - Modern - Amber',status:'ready'},
-      {id:27,title:'Acqua Di Gio 100 ml',category:'Designer',price:1860000,img:'produk23.webp',desc:'Aquatic fresh yang klasik dan cocok untuk iklim panas.',notes:'Aquatic - Fresh - Clean',status:'ready'},
-      {id:28,title:'Nishane Ani X',category:'Niche',price:3500000,img:'produk24.webp',desc:'Vanilla spicy premium dengan karakter hangat yang elegan.',notes:'Vanilla - Spice - Warm',status:'ready'},
-      {id:29,title:'Jean Paul Gaultier Le Beau 125 ml',category:'Designer',price:1500000,img:'produk25.webp',desc:'Aroma sweet tropical dengan karakter coconut dan tonka.',notes:'Coconut - Tonka - Sweet',status:'ready'},
-      {id:30,title:'Giorgio Armani Code EDP 75 ml',category:'Designer',price:1500000,img:'produk26.webp',desc:'Aroma formal yang halus, maskulin, dan rapi.',notes:'Elegant - Tonka - Formal',status:'ready'},
-      {id:31,title:'Versace Eros Energy 100 ml',category:'Designer',price:1500000,img:'produk27.webp',desc:'Versi fresh yang energetic dan cocok untuk aktivitas harian.',notes:'Fresh - Citrus - Energetic',status:'ready'},
-      {id:32,title:'Versace Eros 100 ml',category:'Designer',price:1500000,img:'produk28.webp',desc:'Aroma manis minty populer dengan karakter playful.',notes:'Mint - Vanilla - Sweet',status:'ready'},
-      {id:33,title:'Xerjoff Naxos 100 ml',category:'Niche',price:5350000,img:'produk29.webp',desc:'Honey tobacco vanilla yang mewah dan sangat berkarakter.',notes:'Honey - Tobacco - Vanilla',status:'ready'},
-      {id:34,title:'Rasasi Hawas Black 100 ml',category:'Timur Tengah',price:750000,img:'produk30.webp',desc:'Aroma Middle Eastern fresh dengan value menarik.',notes:'Fresh - Amber - Value',status:'ready'},
-      {id:35,title:'Bleu de Chanel EDP 100 ml',category:'Designer',price:4000000,img:'produk31.webp',desc:'Blue fragrance elegan yang aman untuk berbagai situasi.',notes:'Blue - Woody - Elegant',status:'ready'},
-      {id:36,title:'Louis Vuitton Pacific Chill 100 ml',category:'Niche',price:5800000,img:'produk32.webp',desc:'Fresh fruity green dengan kesan modern dan bersih.',notes:'Fruity - Green - Fresh',status:'ready'},
-      {id:37,title:'Louis Vuitton Ombre Nomade 100 ml',category:'Niche',price:7500000,img:'produk33.webp',desc:'Oud smoky rose yang intens, mewah, dan tahan lama.',notes:'Oud - Rose - Smoky',status:'ready'},
-      {id:38,title:'Louis Vuitton Rhapsody 100 ml',category:'Niche',price:9700000,img:'produk34.webp',desc:'Aroma premium dengan karakter kompleks dan eksklusif.',notes:'Complex - Luxe - Signature',status:'ready'},
-      {id:39,title:'Louis Vuitton Afternoon Swim 100 ml',category:'Niche',price:6300000,img:'produk35.webp',desc:'Citrus fresh yang cerah dan terasa sangat clean.',notes:'Orange - Citrus - Fresh',status:'ready'},
-      {id:40,title:'Rasasi Hawas For Him 100 ml',category:'Timur Tengah',price:700000,img:'produk36.webp',desc:'Fresh aquatic sweet yang populer dan cocok untuk harian.',notes:'Aquatic - Sweet - Fresh',status:'ready'},
-      {id:41,title:'Tom Ford Tuscan Leather 50 ml',category:'Niche',price:3750000,img:'produk37.webp',desc:'Leather scent yang bold, classy, dan berkesan mahal.',notes:'Leather - Raspberry - Bold',status:'ready'},
-      {id:42,title:'Yves Saint Laurent Myself Le Parfum 100 ml',category:'Designer',price:2430000,img:'produk38.webp',desc:'Versi lebih intens dengan karakter modern dan clean.',notes:'Clean - Intense - Aromatic',status:'ready'},
-      {id:43,title:'Xerjoff Erba Gold 100 ml',category:'Niche',price:6350000,img:'produk39.webp',desc:'Fruity amber musk yang mewah dan mudah menarik perhatian.',notes:'Fruity - Amber - Musk',status:'ready'},
-      {id:44,title:'Rasasi Hawas Elixir 100 ml',category:'Timur Tengah',price:770000,img:'produk40.webp',desc:'Fresh sweet Middle Eastern dengan performa kuat.',notes:'Fresh - Sweet - Strong',status:'ready'},
-      {"id":45,"title":"Afnan 9PM EDP 100 ml","category":"Timur Tengah","price":430000,"img":"baru1.webp","desc":"Aroma sweet amber vanilla yang populer untuk malam hari, mudah disukai, dan cocok untuk karakter maskulin modern.","notes":"Apple - Cinnamon - Amber Vanilla","status":"ready"},
-      {"id":46,"title":"Afnan 9PM Elixir EDP 100 ml","category":"Timur Tengah","price":500000,"img":"baru2.webp","desc":"Versi 9PM yang terasa lebih bold, manis, hangat, dan cocok untuk evening scent atau acara spesial.","notes":"Sweet Spicy - Amber - Tonka","status":"ready"},
-      {"id":47,"title":"Fragrance World Valentia Rome Intense EDP 100 ml","category":"Timur Tengah","price":270000,"img":"baru3.webp","desc":"Aroma intense yang elegan dengan nuansa aromatic, fresh spicy, dan maskulin untuk pemakaian harian sampai semi-formal.","notes":"Aromatic - Fresh Spicy - Woody","status":"ready"},
-      {"id":48,"title":"Montblanc Explorer EDP 100 ml","category":"Designer","price":1250000,"img":"baru4.webp","desc":"Parfum designer maskulin dengan karakter fresh bergamot, woody, dan clean yang aman untuk kerja, kampus, maupun daily.","notes":"Bergamot - Vetiver - Ambroxan","status":"ready"},
-      {"id":49,"title":"Diptyque Tam Dao EDP 75 ml","category":"Niche","price":2800000,"img":"baru5.webp","desc":"Sandalwood creamy yang tenang, elegan, dan minimalis; cocok untuk pencinta aroma woody bersih dan mewah.","notes":"Sandalwood - Cedar - Creamy Woods","status":"ready"},
-      {"id":50,"title":"Diptyque Philosykos EDP 75 ml","category":"Niche","price":2820000,"img":"baru6.webp","desc":"Aroma fig hijau yang natural, creamy, dan unik; memberi kesan fresh botanical yang sangat khas.","notes":"Fig Leaf - Fig - Woody Green","status":"ready"},
-      {"id":51,"title":"Afnan 9PM Rebel EDP 100 ml","category":"Timur Tengah","price":420000,"img":"baru7.webp","desc":"Varian 9PM dengan karakter manis, playful, dan standout. Produk ini diberi label sold sesuai permintaan.","notes":"Fruity Sweet - Amber - Modern","status":"sold"},
-      {"id":52,"title":"Afnan 9AM Dive EDP 100 ml","category":"Timur Tengah","price":500000,"img":"baru8.webp","desc":"Fresh aquatic yang clean dan energik, cocok untuk siang hari, aktivitas outdoor, dan cuaca panas.","notes":"Aquatic - Citrus - Fresh Spicy","status":"ready"},
-      {"id":53,"title":"MINISO Garden of Mirror EDP 50 ml","category":"Miniso","price":95000,"img":"baru9.webp","desc":"Parfum retail hits yang mudah dipakai harian, fresh, clean, dan ramah untuk pemula maupun gift.","notes":"Fresh - Clean - Easy Wear","status":"ready"},
-      {"id":54,"title":"Fordive Shelby EDP 100 ml","category":"Lokal","price":230000,"img":"baru10.webp","desc":"Aroma lokal dengan karakter maskulin, modern, dan versatile untuk daily use dengan harga yang bersahabat.","notes":"Fresh - Woody - Masculine","status":"ready"},
-      {"id":55,"title":"Heaven Scent God of Heaven / Santal 33 50 ml","category":"Lokal","price":170000,"img":"baru11.webp","desc":"Aroma bergaya sandalwood clean yang creamy, woody, dan minimalis; cocok untuk penyuka wangi kalem tapi berkelas.","notes":"Sandalwood - Woody - Clean","status":"ready"},
-      {"id":56,"title":"Heaven Scent SBY Goddess of Heaven 50 ml","category":"Lokal","price":130000,"img":"baru12.webp","desc":"Aroma lokal yang soft, manis, dan elegan; nyaman untuk harian, date, atau dipakai sebagai signature ringan.","notes":"Soft Sweet - Floral - Musky","status":"ready"},
-      {"id":57,"title":"Afnan Supremacy Silver for Men EDP 150 ml","category":"Timur Tengah","price":600000,"img":"baru13.webp","desc":"Fresh fruity woody dengan karakter maskulin dan performa kuat; cocok untuk penggemar aroma clean powerful.","notes":"Pineapple - Birch - Musk","status":"ready"},
-      {"id":58,"title":"Rayhaan Elixir for Men EDP 100 ml","category":"Timur Tengah","price":370000,"img":"baru14.webp","desc":"Aroma manis hangat yang modern dan seductive, cocok untuk malam hari atau suasana santai yang rapi.","notes":"Sweet Amber - Spice - Vanilla","status":"ready"},
-      {"id":59,"title":"Fragrance World John Gustav Homme Le Parfum Extrait 100 ml","category":"Timur Tengah","price":270000,"img":"baru15.webp","desc":"Parfum pria dengan kesan aromatic, fresh, dan lebih intens; cocok untuk karakter clean maskulin.","notes":"Aromatic - Fresh - Amber Woody","status":"ready"},
-      {"id":60,"title":"Rasasi Daarej Pour Homme EDP 100 ml","category":"Timur Tengah","price":285000,"img":"baru16.webp","desc":"Sweet spicy classic dari Timur Tengah dengan kesan hangat, maskulin, dan cocok untuk malam hari.","notes":"Spice - Vanilla - Amber","status":"ready"},
-      {"id":61,"title":"Fragrance World Proud of You Leather EDP 100 ml","category":"Timur Tengah","price":230000,"img":"baru17.webp","desc":"Aroma leather manis yang bold dan modern, cocok untuk pria yang suka wangi hangat dan berkarakter.","notes":"Leather - Sweet Amber - Warm Spice","status":"ready"},
-      {"id":62,"title":"Afnan Supremacy In Oud EDP 100 ml","category":"Timur Tengah","price":650000,"img":"baru18.webp","desc":"Oud modern yang mewah, smoky, dan kuat; cocok untuk acara malam, formal, atau pecinta aroma Middle Eastern.","notes":"Oud - Saffron - Amber","status":"ready"},
-      {"id":63,"title":"French Avenue Pinnace Oryn EDP 100 ml","category":"Timur Tengah","price":470000,"img":"baru19.webp","desc":"Aroma modern dari French Avenue dengan nuansa fresh, woody, dan rapi untuk daily premium.","notes":"Fresh Spicy - Woody - Amber","status":"ready"},
-      {"id":64,"title":"Khadlaj Karus Secret Musk EDP 100 ml","category":"Timur Tengah","price":375000,"img":"baru20.webp","desc":"Musk unisex yang clean, soft, dan elegan; cocok untuk pemakaian harian yang tidak terlalu menusuk.","notes":"Musk - Soft Floral - Clean","status":"ready"},
-      {"id":65,"title":"Tiziana Terenzi Kirke Extrait de Parfum 100 ml","category":"Niche","price":2600000,"img":"baru21.webp","desc":"Fruity musky niche yang powerful, manis, dan sangat mudah dikenali; cocok untuk pencinta wangi projection kuat.","notes":"Passion Fruit - Peach - Musk","status":"ready"},
-      {"id":66,"title":"Xerjoff Coffee Break Golden Green Parfum 50 ml","category":"Niche","price":3000000,"img":"baru22.webp","desc":"Aroma niche unik bernuansa coffee collection yang elegan, green, dan premium untuk kolektor parfum.","notes":"Green Coffee - Aromatic - Woody","status":"ready"},
-      {"id":67,"title":"Xerjoff Torino 23 EDP 50 ml","category":"Niche","price":3200000,"img":"baru23.webp","desc":"Fresh aromatic niche yang classy, clean, dan sporty-luxury; cocok untuk cuaca panas dan acara siang.","notes":"Citrus - Aromatic - Fresh Woods","status":"ready"},
-      {"id":68,"title":"Xerjoff Coffee Break Golden Moka Parfum 50 ml","category":"Niche","price":3200000,"img":"baru24.webp","desc":"Coffee gourmand premium dengan nuansa hangat, manis, dan mewah; cocok untuk malam hari dan kolektor niche.","notes":"Coffee - Amber - Gourmand","status":"ready"},
-      {"id":69,"title":"Nishane Fan Your Flames X Extrait de Parfum 100 ml","category":"Niche","price":3400000,"img":"baru25.webp","desc":"Aroma niche smoky gourmand yang intens, hangat, dan unik; cocok untuk pengguna yang ingin tampil beda.","notes":"Coconut - Rum - Tobacco","status":"ready"}
-    ];
+      {
+            "id": 1,
+            "title": "All Parfum Timteng",
+            "category": "Timur Tengah",
+            "price": 1000000,
+            "img": "all_parfum_timteng.webp",
+            "desc": "Koleksi aroma khas Timur Tengah dengan karakter oud, amber, dan rempah.",
+            "notes": "Oud - Amber - Spicy",
+            "status": "ready",
+            "longDesc": "Koleksi parfum Timur Tengah ini dibuat untuk kamu yang suka karakter oud, amber, dan rempah yang terasa hangat sejak awal. Pilihannya cocok untuk pemakaian malam, acara formal, atau kamu yang ingin aroma lebih berani dengan kesan mewah dan tahan lama."
+      },
+      {
+            "id": 2,
+            "title": "All Parfum Designer",
+            "category": "Designer",
+            "price": 1000000,
+            "img": "all_parfum_desaigner.webp",
+            "desc": "Pilihan parfum designer populer dengan kesan modern dan berkelas.",
+            "notes": "Fresh - Modern - Versatile",
+            "status": "ready",
+            "longDesc": "Koleksi parfum designer ini cocok untuk kamu yang mencari aroma modern, mudah dipakai, dan tetap terlihat berkelas. Karakternya lebih fleksibel untuk kantor, kampus, jalan santai, sampai acara semi-formal karena wanginya bersih, rapi, dan aman disukai banyak orang."
+      },
+      {
+            "id": 3,
+            "title": "All Parfum Lokal",
+            "category": "Lokal",
+            "price": 250000,
+            "img": "all_parfum_lokal.webp",
+            "desc": "Koleksi brand lokal dengan harga ramah dan aroma mudah dipakai harian.",
+            "notes": "Daily - Clean - Easy wear",
+            "status": "ready",
+            "longDesc": "Koleksi parfum lokal ini menjadi pilihan praktis untuk pemakaian harian dengan harga yang lebih ramah. Aromanya dibuat mudah diterima, ringan dipakai berulang, dan cocok untuk kamu yang ingin punya beberapa pilihan scent tanpa harus terasa berlebihan."
+      },
+      {
+            "id": 4,
+            "title": "All Parfum Niche",
+            "category": "Niche",
+            "price": 1000000,
+            "img": "all_parfum_niche.webp",
+            "desc": "Aroma niche yang lebih unik, eksklusif, dan punya karakter kuat.",
+            "notes": "Unique - Premium - Long lasting",
+            "status": "ready",
+            "longDesc": "Koleksi parfum niche ini cocok untuk pencinta aroma yang ingin tampil berbeda dari parfum umum. Karakternya lebih unik, premium, dan punya identitas kuat sehingga pas untuk koleksi pribadi, acara spesial, atau signature scent yang lebih eksklusif."
+      },
+      {
+            "id": 5,
+            "title": "Botol Kosong Niche",
+            "category": "Aksesoris",
+            "price": 700000,
+            "img": "botol_kosong_niche.webp",
+            "desc": "Botol kosong koleksi niche untuk display atau kebutuhan kolektor.",
+            "notes": "Collector - Display",
+            "status": "sold",
+            "longDesc": "Botol kosong niche ini cocok untuk kolektor, display meja rias, atau kebutuhan dekorasi katalog parfum. Tampilannya memberi kesan premium dan rapi, sehingga cocok dipakai sebagai pelengkap koleksi atau properti foto produk parfum."
+      },
+      {
+            "id": 6,
+            "title": "Louis Vuitton Imagination 100 ml",
+            "category": "Niche",
+            "price": 6200000,
+            "img": "produk6.webp",
+            "desc": "Aroma premium dengan karakter fresh, bersih, dan mewah.",
+            "notes": "Fresh - Citrus - Premium",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Imagination punya karakter fresh citrus yang bersih, terang, dan terasa sangat premium. Aromanya cocok untuk kamu yang ingin tampil rapi, modern, dan mahal tanpa wangi yang terlalu berat, terutama untuk siang hari, kantor, atau aktivitas outdoor."
+      },
+      {
+            "id": 7,
+            "title": "Xerjoff Torino 21 100 ml",
+            "category": "Niche",
+            "price": 7500000,
+            "img": "produk7.webp",
+            "desc": "Pilihan niche premium yang cocok untuk kesan elegan dan eksklusif.",
+            "notes": "Green - Fresh - Elegant",
+            "status": "ready",
+            "longDesc": "Xerjoff Torino 21 menghadirkan nuansa green, fresh, dan aromatic yang elegan sejak semprotan awal. Karakternya cocok untuk kamu yang ingin parfum niche berkelas, bersih, dan eksklusif untuk acara formal, meeting, maupun aktivitas harian yang membutuhkan kesan premium."
+      },
+      {
+            "id": 8,
+            "title": "Yves Saint Laurent Myself 100 ml",
+            "category": "Designer",
+            "price": 1650000,
+            "img": "produk8.webp",
+            "desc": "Aroma designer modern untuk penggunaan harian dan semi-formal.",
+            "notes": "Clean - Aromatic - Modern",
+            "status": "ready",
+            "longDesc": "Yves Saint Laurent Myself membawa aroma clean aromatic yang modern dan mudah dipakai. Wanginya cocok untuk pria yang suka tampilan rapi, fresh, dan tidak berlebihan, baik untuk daily use, kantor, kampus, ataupun acara santai yang tetap ingin terlihat polished."
+      },
+      {
+            "id": 9,
+            "title": "Xerjoff Erba Pura 100 ml",
+            "category": "Niche",
+            "price": 4500000,
+            "img": "produk9.webp",
+            "desc": "Aroma fruity musky yang mencolok dan mudah dikenali.",
+            "notes": "Fruity - Musk - Sweet",
+            "status": "ready",
+            "longDesc": "Xerjoff Erba Pura memiliki karakter fruity musk yang manis, cerah, dan mudah menarik perhatian. Aromanya cocok untuk kamu yang suka parfum dengan aura mewah, bold, dan memorable, terutama saat ingin tampil standout di acara santai maupun malam."
+      },
+      {
+            "id": 10,
+            "title": "Jean Paul Gaultier Le Male Elixir 125 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk10.webp",
+            "desc": "Aroma manis hangat dengan karakter malam yang kuat.",
+            "notes": "Sweet - Amber - Vanilla",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Male Elixir punya karakter manis, hangat, dan sensual dengan kesan amber vanilla yang kuat. Parfum ini cocok untuk malam hari, date night, atau suasana dingin ketika kamu ingin aroma yang lebih intens dan meninggalkan kesan maskulin."
+      },
+      {
+            "id": 11,
+            "title": "Yves Saint Laurent Y EDP 100 ml",
+            "category": "Designer",
+            "price": 1850000,
+            "img": "produk11.webp",
+            "desc": "Fresh aromatic yang aman untuk kantor, kampus, dan acara santai.",
+            "notes": "Fresh - Aromatic - Blue",
+            "status": "ready",
+            "longDesc": "Yves Saint Laurent Y EDP adalah pilihan fresh aromatic yang aman untuk banyak situasi. Karakternya bersih, maskulin, dan versatile sehingga cocok dipakai ke kantor, kampus, acara keluarga, atau kegiatan harian yang butuh wangi rapi dan percaya diri."
+      },
+      {
+            "id": 12,
+            "title": "Louis Vuitton Symphony 100 ml",
+            "category": "Niche",
+            "price": 10200000,
+            "img": "produk12.webp",
+            "desc": "Pilihan ultra premium untuk pencinta aroma bright dan sophisticated.",
+            "notes": "Citrus - Luxe - Bright",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Symphony menawarkan karakter citrus bright yang terasa ultra premium dan sophisticated. Aromanya cocok untuk pencinta parfum clean luxury yang ingin kesan segar, elegan, dan eksklusif tanpa terasa terlalu ramai di kulit."
+      },
+      {
+            "id": 13,
+            "title": "Jean Paul Gaultier Le Male Parfum 125 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk13.webp",
+            "desc": "Aroma hangat, maskulin, dan cocok untuk malam hari.",
+            "notes": "Amber - Spice - Sweet",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Male Parfum hadir dengan karakter amber, spice, dan sweet yang lebih dewasa. Aromanya cocok untuk malam hari, acara formal santai, atau kamu yang ingin parfum designer dengan kesan hangat, maskulin, dan lebih mature."
+      },
+      {
+            "id": 14,
+            "title": "Nishane Wulong Cha 100 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "produk14.webp",
+            "desc": "Fresh tea-citrus yang bersih, unik, dan nyaman dipakai harian.",
+            "notes": "Tea - Citrus - Fresh",
+            "status": "ready",
+            "longDesc": "Nishane Wulong Cha punya aroma tea citrus yang bersih, unik, dan menenangkan. Wanginya cocok untuk cuaca panas, daily use, atau kamu yang ingin parfum niche yang tidak menusuk tetapi tetap punya karakter segar dan berbeda."
+      },
+      {
+            "id": 15,
+            "title": "Yves Saint Laurent Libre 90 ml",
+            "category": "Designer",
+            "price": 1800000,
+            "img": "produk15.webp",
+            "desc": "Aroma floral-lavender yang elegan dan mewah.",
+            "notes": "Floral - Lavender - Elegant",
+            "status": "sold",
+            "longDesc": "Yves Saint Laurent Libre memberikan kesan floral lavender yang elegan, feminin, dan modern. Aromanya cocok untuk acara rapi, dinner, atau pemakaian harian yang ingin terasa mewah, confident, dan tetap soft di sekitar orang lain."
+      },
+      {
+            "id": 16,
+            "title": "Dior Sauvage 100 ml",
+            "category": "Designer",
+            "price": 2800000,
+            "img": "produk16.webp",
+            "desc": "Aroma fresh spicy populer dengan kesan maskulin dan aman dipakai.",
+            "notes": "Fresh - Spicy - Blue",
+            "status": "ready",
+            "longDesc": "Dior Sauvage adalah fresh spicy yang populer karena karakternya maskulin, bersih, dan mudah disukai. Parfum ini cocok untuk kamu yang ingin pilihan aman untuk kerja, hangout, acara formal, dan aktivitas harian dengan kesan percaya diri."
+      },
+      {
+            "id": 17,
+            "title": "Jean Paul Gaultier Le Beau Paradise Garden 125 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk1.webp",
+            "desc": "Aroma tropis segar dengan nuansa manis yang playful.",
+            "notes": "Tropical - Sweet - Fresh",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Beau Paradise Garden membawa nuansa tropis yang fresh, manis, dan playful. Aromanya cocok untuk siang hari, liburan, casual outfit, atau kamu yang ingin tampil santai tetapi tetap punya wangi yang menarik perhatian."
+      },
+      {
+            "id": 18,
+            "title": "Stronger With You Intensely 100 ml",
+            "category": "Designer",
+            "price": 1600000,
+            "img": "produk2.webp",
+            "desc": "Manis, hangat, dan cocok untuk malam atau cuaca dingin.",
+            "notes": "Sweet - Vanilla - Warm",
+            "status": "ready",
+            "longDesc": "Stronger With You Intensely memiliki karakter sweet vanilla warm yang cocok untuk malam dan cuaca dingin. Wanginya terasa cozy, manis, dan maskulin sehingga pas untuk date night, acara santai, atau momen ketika ingin tampil lebih dekat dan memorable."
+      },
+      {
+            "id": 19,
+            "title": "Stronger With You Parfum 100 ml",
+            "category": "Designer",
+            "price": 2500000,
+            "img": "produk3.webp",
+            "desc": "Aroma intens dengan karakter manis dan tahan lama.",
+            "notes": "Sweet - Amber - Intense",
+            "status": "ready",
+            "longDesc": "Stronger With You Parfum menawarkan aroma manis amber yang lebih intens dan tahan lama. Karakternya cocok untuk pengguna yang suka parfum hangat, bold, dan modern dengan kesan maskulin yang kuat untuk malam hari atau acara spesial."
+      },
+      {
+            "id": 20,
+            "title": "Louis Vuitton City Of Stars 100 ml",
+            "category": "Niche",
+            "price": 5500000,
+            "img": "produk4.webp",
+            "desc": "Fresh citrus aromatic dengan aura liburan yang mewah.",
+            "notes": "Citrus - Beachy - Luxe",
+            "status": "ready",
+            "longDesc": "Louis Vuitton City of Stars menghadirkan citrus aromatic dengan nuansa beachy yang mewah dan santai. Aromanya cocok untuk cuaca panas, liburan, atau pemakaian siang hari ketika kamu ingin wangi fresh yang tetap terasa mahal dan berbeda."
+      },
+      {
+            "id": 21,
+            "title": "Louis Vuitton Meteore 100 ml",
+            "category": "Niche",
+            "price": 6500000,
+            "img": "produk5.webp",
+            "desc": "Fresh spicy premium untuk kesan rapi dan berkelas.",
+            "notes": "Fresh - Spicy - Clean",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Meteore punya karakter fresh spicy clean yang memberi kesan rapi, tegas, dan berkelas. Parfum ini cocok untuk aktivitas profesional, meeting, dan daily premium karena wanginya maskulin namun tetap bersih dan tidak terlalu manis."
+      },
+      {
+            "id": 22,
+            "title": "Jean Paul Gaultier Le Male Elixir Absolu 125 ml",
+            "category": "Designer",
+            "price": 1800000,
+            "img": "produk18.webp",
+            "desc": "Versi elixir yang lebih bold, manis, dan intens.",
+            "notes": "Elixir - Sweet - Bold",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Male Elixir Absolu terasa lebih bold, manis, dan intens dibanding aroma Le Male yang ringan. Cocok untuk malam hari, acara spesial, atau kamu yang ingin parfum dengan karakter elixir yang lebih tebal dan berkesan."
+      },
+      {
+            "id": 23,
+            "title": "Nishane Hacivat",
+            "category": "Niche",
+            "price": 3100000,
+            "img": "produk19.webp",
+            "desc": "Fresh woody dengan karakter nanas dan oakmoss yang elegan.",
+            "notes": "Pineapple - Woody - Mossy",
+            "status": "ready",
+            "longDesc": "Nishane Hacivat membawa karakter pineapple, woody, dan mossy yang elegan dengan kesan clean premium. Aromanya cocok untuk kamu yang suka fresh woody berkelas, bisa dipakai siang maupun sore, dan ingin wangi yang terlihat mahal tanpa terlalu manis."
+      },
+      {
+            "id": 24,
+            "title": "Versace Eros Flame 200 ml",
+            "category": "Designer",
+            "price": 2200000,
+            "img": "produk20.webp",
+            "desc": "Fresh spicy dengan sentuhan citrus dan vanilla hangat.",
+            "notes": "Citrus - Spice - Vanilla",
+            "status": "ready",
+            "longDesc": "Versace Eros Flame memadukan citrus, spice, dan vanilla hangat dengan karakter energik. Parfum ini cocok untuk pria yang suka aroma fresh spicy yang tetap playful, bisa dipakai malam maupun casual event, dan memberi kesan berani."
+      },
+      {
+            "id": 25,
+            "title": "Xerjoff Renaissance 100 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "produk21.webp",
+            "desc": "Citrus mint yang cerah dan terasa sangat fresh.",
+            "notes": "Mint - Citrus - Fresh",
+            "status": "ready",
+            "longDesc": "Xerjoff Renaissance menghadirkan citrus mint yang cerah, bersih, dan sangat fresh. Aromanya cocok untuk cuaca panas, kegiatan siang, atau kamu yang ingin parfum niche yang terasa crisp, energik, dan tetap elegan di pemakaian harian."
+      },
+      {
+            "id": 26,
+            "title": "Valentino Uomo Born In Roma 100 ml",
+            "category": "Designer",
+            "price": 2200000,
+            "img": "produk22.webp",
+            "desc": "Aroma designer manis, modern, dan easy to wear.",
+            "notes": "Sweet - Modern - Amber",
+            "status": "ready",
+            "longDesc": "Valentino Uomo Born In Roma punya karakter sweet modern yang stylish dan easy to wear. Aromanya cocok untuk pemakaian harian, hangout, atau acara semi-formal karena terasa fashionable, manis secukupnya, dan tetap rapi."
+      },
+      {
+            "id": 27,
+            "title": "Acqua Di Gio 100 ml",
+            "category": "Designer",
+            "price": 1860000,
+            "img": "produk23.webp",
+            "desc": "Aquatic fresh yang klasik dan cocok untuk iklim panas.",
+            "notes": "Aquatic - Fresh - Clean",
+            "status": "ready",
+            "longDesc": "Acqua Di Gio adalah aquatic fresh klasik yang cocok untuk iklim panas dan aktivitas siang. Aromanya memberi kesan clean, maskulin, dan effortless sehingga cocok untuk kantor, kampus, olahraga ringan, atau daily scent yang tidak mengganggu."
+      },
+      {
+            "id": 28,
+            "title": "Nishane Ani X",
+            "category": "Niche",
+            "price": 3500000,
+            "img": "produk24.webp",
+            "desc": "Vanilla spicy premium dengan karakter hangat yang elegan.",
+            "notes": "Vanilla - Spice - Warm",
+            "status": "ready",
+            "longDesc": "Nishane Ani X memiliki karakter vanilla spicy warm yang terasa premium dan elegan. Parfum ini cocok untuk kamu yang suka aroma manis hangat namun tetap berkelas, terutama untuk malam, dinner, atau momen yang ingin lebih intimate."
+      },
+      {
+            "id": 29,
+            "title": "Jean Paul Gaultier Le Beau 125 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk25.webp",
+            "desc": "Aroma sweet tropical dengan karakter coconut dan tonka.",
+            "notes": "Coconut - Tonka - Sweet",
+            "status": "ready",
+            "longDesc": "Jean Paul Gaultier Le Beau punya aroma coconut, tonka, dan sweet tropical yang mudah disukai. Cocok untuk pemakaian santai, liburan, atau acara casual ketika kamu ingin wangi manis maskulin yang playful tapi tetap menarik."
+      },
+      {
+            "id": 30,
+            "title": "Giorgio Armani Code EDP 75 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk26.webp",
+            "desc": "Aroma formal yang halus, maskulin, dan rapi.",
+            "notes": "Elegant - Tonka - Formal",
+            "status": "ready",
+            "longDesc": "Giorgio Armani Code EDP membawa kesan formal, halus, dan maskulin dengan nuansa tonka yang elegan. Aromanya cocok untuk kerja, meeting, dinner, atau acara rapi karena terasa dewasa, bersih, dan tidak terlalu mencolok."
+      },
+      {
+            "id": 31,
+            "title": "Versace Eros Energy 100 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk27.webp",
+            "desc": "Versi fresh yang energetic dan cocok untuk aktivitas harian.",
+            "notes": "Fresh - Citrus - Energetic",
+            "status": "ready",
+            "longDesc": "Versace Eros Energy adalah versi yang lebih fresh dan energik dari karakter Eros. Aromanya cocok untuk aktivitas harian, siang hari, atau kamu yang ingin wangi citrus clean yang tetap punya aura sporty dan percaya diri."
+      },
+      {
+            "id": 32,
+            "title": "Versace Eros 100 ml",
+            "category": "Designer",
+            "price": 1500000,
+            "img": "produk28.webp",
+            "desc": "Aroma manis minty populer dengan karakter playful.",
+            "notes": "Mint - Vanilla - Sweet",
+            "status": "ready",
+            "longDesc": "Versace Eros memiliki karakter mint vanilla sweet yang populer dan playful. Parfum ini cocok untuk hangout, malam santai, atau pengguna yang suka aroma manis segar dengan kesan muda, percaya diri, dan mudah dikenali."
+      },
+      {
+            "id": 33,
+            "title": "Xerjoff Naxos 100 ml",
+            "category": "Niche",
+            "price": 5350000,
+            "img": "produk29.webp",
+            "desc": "Honey tobacco vanilla yang mewah dan sangat berkarakter.",
+            "notes": "Honey - Tobacco - Vanilla",
+            "status": "ready",
+            "longDesc": "Xerjoff Naxos menghadirkan honey, tobacco, dan vanilla yang mewah, hangat, dan sangat berkarakter. Aromanya cocok untuk acara malam, dinner, atau kolektor niche yang ingin scent elegan dengan kesan rich dan sophisticated."
+      },
+      {
+            "id": 34,
+            "title": "Rasasi Hawas Black 100 ml",
+            "category": "Timur Tengah",
+            "price": 750000,
+            "img": "produk30.webp",
+            "desc": "Aroma Middle Eastern fresh dengan value menarik.",
+            "notes": "Fresh - Amber - Value",
+            "status": "ready",
+            "longDesc": "Rasasi Hawas Black memberi aroma fresh amber khas Timur Tengah dengan value yang menarik. Cocok untuk harian, acara santai, atau kamu yang ingin parfum fresh maskulin dengan performa baik tanpa harus masuk ke harga designer tinggi."
+      },
+      {
+            "id": 35,
+            "title": "Bleu de Chanel EDP 100 ml",
+            "category": "Designer",
+            "price": 4000000,
+            "img": "produk31.webp",
+            "desc": "Blue fragrance elegan yang aman untuk berbagai situasi.",
+            "notes": "Blue - Woody - Elegant",
+            "status": "ready",
+            "longDesc": "Bleu de Chanel EDP adalah blue fragrance elegan dengan karakter woody, clean, dan versatile. Aromanya cocok untuk hampir semua situasi, mulai dari kerja, acara formal, hingga hangout, karena memberi kesan rapi, dewasa, dan berkelas."
+      },
+      {
+            "id": 36,
+            "title": "Louis Vuitton Pacific Chill 100 ml",
+            "category": "Niche",
+            "price": 5800000,
+            "img": "produk32.webp",
+            "desc": "Fresh fruity green dengan kesan modern dan bersih.",
+            "notes": "Fruity - Green - Fresh",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Pacific Chill membawa nuansa fruity green yang fresh, modern, dan bersih. Parfum ini cocok untuk cuaca panas, aktivitas siang, atau kamu yang ingin aroma premium yang terasa cerah, sehat, dan effortless."
+      },
+      {
+            "id": 37,
+            "title": "Louis Vuitton Ombre Nomade 100 ml",
+            "category": "Niche",
+            "price": 7500000,
+            "img": "produk33.webp",
+            "desc": "Oud smoky rose yang intens, mewah, dan tahan lama.",
+            "notes": "Oud - Rose - Smoky",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Ombre Nomade adalah oud smoky rose yang intens, gelap, dan sangat mewah. Aromanya cocok untuk malam hari, acara formal, atau pengguna yang suka parfum statement dengan karakter kuat, bold, dan tahan lama."
+      },
+      {
+            "id": 38,
+            "title": "Louis Vuitton Rhapsody 100 ml",
+            "category": "Niche",
+            "price": 9700000,
+            "img": "produk34.webp",
+            "desc": "Aroma premium dengan karakter kompleks dan eksklusif.",
+            "notes": "Complex - Luxe - Signature",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Rhapsody menawarkan karakter kompleks, luxe, dan signature yang cocok untuk pencinta aroma eksklusif. Parfum ini memberi kesan matang, premium, dan berbeda sehingga pas untuk koleksi niche atau acara yang ingin terlihat sangat berkelas."
+      },
+      {
+            "id": 39,
+            "title": "Louis Vuitton Afternoon Swim 100 ml",
+            "category": "Niche",
+            "price": 6300000,
+            "img": "produk35.webp",
+            "desc": "Citrus fresh yang cerah dan terasa sangat clean.",
+            "notes": "Orange - Citrus - Fresh",
+            "status": "ready",
+            "longDesc": "Louis Vuitton Afternoon Swim menghadirkan citrus orange yang cerah, juicy, dan clean. Aromanya cocok untuk siang hari, cuaca panas, atau kamu yang ingin parfum fresh mewah yang terasa simpel, rapi, dan menyenangkan."
+      },
+      {
+            "id": 40,
+            "title": "Rasasi Hawas For Him 100 ml",
+            "category": "Timur Tengah",
+            "price": 700000,
+            "img": "produk36.webp",
+            "desc": "Fresh aquatic sweet yang populer dan cocok untuk harian.",
+            "notes": "Aquatic - Sweet - Fresh",
+            "status": "ready",
+            "longDesc": "Rasasi Hawas For Him punya karakter aquatic sweet fresh yang populer untuk pemakaian harian. Wanginya cocok untuk cuaca panas, aktivitas santai, dan pengguna yang ingin aroma maskulin clean dengan sentuhan manis yang mudah disukai."
+      },
+      {
+            "id": 41,
+            "title": "Tom Ford Tuscan Leather 50 ml",
+            "category": "Niche",
+            "price": 3750000,
+            "img": "produk37.webp",
+            "desc": "Leather scent yang bold, classy, dan berkesan mahal.",
+            "notes": "Leather - Raspberry - Bold",
+            "status": "ready",
+            "longDesc": "Tom Ford Tuscan Leather membawa aroma leather bold dengan sentuhan raspberry yang classy dan mahal. Parfum ini cocok untuk malam, outfit formal, atau kamu yang ingin scent tegas, mature, dan penuh karakter."
+      },
+      {
+            "id": 42,
+            "title": "Yves Saint Laurent Myself Le Parfum 100 ml",
+            "category": "Designer",
+            "price": 2430000,
+            "img": "produk38.webp",
+            "desc": "Versi lebih intens dengan karakter modern dan clean.",
+            "notes": "Clean - Intense - Aromatic",
+            "status": "ready",
+            "longDesc": "Yves Saint Laurent Myself Le Parfum adalah versi yang lebih intens, clean, dan aromatic. Aromanya cocok untuk pengguna yang suka karakter modern YSL tetapi ingin kesan lebih dalam, rapi, dan lebih premium untuk malam maupun acara semi-formal."
+      },
+      {
+            "id": 43,
+            "title": "Xerjoff Erba Gold 100 ml",
+            "category": "Niche",
+            "price": 6350000,
+            "img": "produk39.webp",
+            "desc": "Fruity amber musk yang mewah dan mudah menarik perhatian.",
+            "notes": "Fruity - Amber - Musk",
+            "status": "ready",
+            "longDesc": "Xerjoff Erba Gold menghadirkan fruity amber musk yang mewah, manis, dan mudah menarik perhatian. Cocok untuk kamu yang ingin parfum niche yang lebih bright, luxurious, dan standout tanpa kehilangan kesan clean di drydown."
+      },
+      {
+            "id": 44,
+            "title": "Rasasi Hawas Elixir 100 ml",
+            "category": "Timur Tengah",
+            "price": 770000,
+            "img": "produk40.webp",
+            "desc": "Fresh sweet Middle Eastern dengan performa kuat.",
+            "notes": "Fresh - Sweet - Strong",
+            "status": "ready",
+            "longDesc": "Rasasi Hawas Elixir punya karakter fresh sweet Middle Eastern dengan performa yang kuat. Aromanya cocok untuk pengguna yang suka wangi segar manis, maskulin, dan tahan lama untuk daily use, hangout, atau acara malam santai."
+      },
+      {
+            "id": 45,
+            "title": "Afnan 9PM EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 430000,
+            "img": "baru1.webp",
+            "desc": "Aroma sweet amber vanilla yang populer untuk malam hari, mudah disukai, dan cocok untuk karakter maskulin modern.",
+            "notes": "Apple - Cinnamon - Amber Vanilla",
+            "status": "ready",
+            "longDesc": "Afnan 9PM EDP dikenal dengan karakter sweet amber vanilla yang populer dan mudah disukai. Parfum ini cocok untuk malam hari, date, atau suasana santai ketika kamu ingin aroma manis maskulin yang hangat, nyaman, dan cukup standout."
+      },
+      {
+            "id": 46,
+            "title": "Afnan 9PM Elixir EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 500000,
+            "img": "baru2.webp",
+            "desc": "Versi 9PM yang terasa lebih bold, manis, hangat, dan cocok untuk evening scent atau acara spesial.",
+            "notes": "Sweet Spicy - Amber - Tonka",
+            "status": "ready",
+            "longDesc": "Afnan 9PM Elixir memberi nuansa 9PM yang lebih bold, manis, dan hangat. Cocok untuk evening scent, acara spesial, atau kamu yang ingin aroma Middle Eastern modern dengan karakter lebih tebal dan lebih terasa di sekitar."
+      },
+      {
+            "id": 47,
+            "title": "Fragrance World Valentia Rome Intense EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 270000,
+            "img": "baru3.webp",
+            "desc": "Aroma intense yang elegan dengan nuansa aromatic, fresh spicy, dan maskulin untuk pemakaian harian sampai semi-formal.",
+            "notes": "Aromatic - Fresh Spicy - Woody",
+            "status": "ready",
+            "longDesc": "Fragrance World Valentia Rome Intense menawarkan aroma aromatic fresh spicy yang elegan dan maskulin. Parfum ini cocok untuk daily premium, semi-formal, atau pengguna yang ingin wangi rapi dengan kesan modern tanpa terasa pasaran."
+      },
+      {
+            "id": 48,
+            "title": "Montblanc Explorer EDP 100 ml",
+            "category": "Designer",
+            "price": 1250000,
+            "img": "baru4.webp",
+            "desc": "Parfum designer maskulin dengan karakter fresh bergamot, woody, dan clean yang aman untuk kerja, kampus, maupun daily.",
+            "notes": "Bergamot - Vetiver - Ambroxan",
+            "status": "ready",
+            "longDesc": "Montblanc Explorer EDP membawa karakter bergamot, vetiver, dan ambroxan yang fresh woody clean. Aromanya cocok untuk kerja, kampus, hingga aktivitas harian karena terasa maskulin, aman, dan profesional."
+      },
+      {
+            "id": 49,
+            "title": "Diptyque Tam Dao EDP 75 ml",
+            "category": "Niche",
+            "price": 2800000,
+            "img": "baru5.webp",
+            "desc": "Sandalwood creamy yang tenang, elegan, dan minimalis; cocok untuk pencinta aroma woody bersih dan mewah.",
+            "notes": "Sandalwood - Cedar - Creamy Woods",
+            "status": "ready",
+            "longDesc": "Diptyque Tam Dao EDP punya karakter sandalwood creamy yang tenang, woody, dan minimalis. Parfum ini cocok untuk kamu yang suka wangi kalem, clean, dan classy, terutama untuk suasana santai, kantor, atau signature scent yang elegan."
+      },
+      {
+            "id": 50,
+            "title": "Diptyque Philosykos EDP 75 ml",
+            "category": "Niche",
+            "price": 2820000,
+            "img": "baru6.webp",
+            "desc": "Aroma fig hijau yang natural, creamy, dan unik; memberi kesan fresh botanical yang sangat khas.",
+            "notes": "Fig Leaf - Fig - Woody Green",
+            "status": "ready",
+            "longDesc": "Diptyque Philosykos EDP menghadirkan aroma fig green yang natural, creamy, dan sangat khas. Cocok untuk pencinta parfum botanical yang ingin wangi fresh berbeda, artistic, dan tidak terlalu manis untuk pemakaian siang."
+      },
+      {
+            "id": 51,
+            "title": "Afnan 9PM Rebel EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 420000,
+            "img": "baru7.webp",
+            "desc": "Varian 9PM dengan karakter manis, playful, dan standout. Produk ini diberi label sold sesuai permintaan.",
+            "notes": "Fruity Sweet - Amber - Modern",
+            "status": "sold",
+            "longDesc": "Afnan 9PM Rebel EDP memiliki karakter fruity sweet amber yang playful dan standout. Walau statusnya sold, produk ini cocok untuk referensi pelanggan yang suka aroma manis modern dengan kesan muda, energik, dan mudah menarik perhatian."
+      },
+      {
+            "id": 52,
+            "title": "Afnan 9AM Dive EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 500000,
+            "img": "baru8.webp",
+            "desc": "Fresh aquatic yang clean dan energik, cocok untuk siang hari, aktivitas outdoor, dan cuaca panas.",
+            "notes": "Aquatic - Citrus - Fresh Spicy",
+            "status": "ready",
+            "longDesc": "Afnan 9AM Dive EDP membawa fresh aquatic citrus yang clean dan energik. Parfum ini cocok untuk siang hari, cuaca panas, aktivitas outdoor, atau pemakaian harian ketika kamu ingin aroma segar yang ringan namun tetap maskulin."
+      },
+      {
+            "id": 53,
+            "title": "MINISO Garden of Mirror EDP 50 ml",
+            "category": "Miniso",
+            "price": 95000,
+            "img": "baru9.webp",
+            "desc": "Parfum retail hits yang mudah dipakai harian, fresh, clean, dan ramah untuk pemula maupun gift.",
+            "notes": "Fresh - Clean - Easy Wear",
+            "status": "ready",
+            "longDesc": "MINISO Garden of Mirror EDP adalah pilihan retail yang fresh, clean, dan mudah dipakai. Cocok untuk pemula, hadiah, atau daily scent ringan karena karakternya aman, tidak terlalu berat, dan nyaman dipakai berulang."
+      },
+      {
+            "id": 54,
+            "title": "Fordive Shelby EDP 100 ml",
+            "category": "Lokal",
+            "price": 230000,
+            "img": "baru10.webp",
+            "desc": "Aroma lokal dengan karakter maskulin, modern, dan versatile untuk daily use dengan harga yang bersahabat.",
+            "notes": "Fresh - Woody - Masculine",
+            "status": "ready",
+            "longDesc": "Fordive Shelby EDP punya karakter fresh woody masculine yang versatile untuk harian. Aromanya cocok untuk pengguna yang ingin parfum lokal dengan kesan modern, rapi, dan mudah masuk ke berbagai aktivitas tanpa terasa mahal di budget."
+      },
+      {
+            "id": 55,
+            "title": "Heaven Scent God of Heaven / Santal 33 50 ml",
+            "category": "Lokal",
+            "price": 170000,
+            "img": "baru11.webp",
+            "desc": "Aroma bergaya sandalwood clean yang creamy, woody, dan minimalis; cocok untuk penyuka wangi kalem tapi berkelas.",
+            "notes": "Sandalwood - Woody - Clean",
+            "status": "ready",
+            "longDesc": "Heaven Scent God of Heaven Santal 33 membawa nuansa sandalwood clean yang creamy, woody, dan minimalis. Cocok untuk penyuka aroma kalem, soft, dan berkelas yang ingin tampil clean tanpa wangi terlalu mencolok."
+      },
+      {
+            "id": 56,
+            "title": "Heaven Scent SBY Goddess of Heaven 50 ml",
+            "category": "Lokal",
+            "price": 130000,
+            "img": "baru12.webp",
+            "desc": "Aroma lokal yang soft, manis, dan elegan; nyaman untuk harian, date, atau dipakai sebagai signature ringan.",
+            "notes": "Soft Sweet - Floral - Musky",
+            "status": "ready",
+            "longDesc": "Heaven Scent SBY Goddess of Heaven memiliki karakter soft sweet floral musky yang nyaman dan elegan. Aromanya cocok untuk daily use, date santai, atau dijadikan signature ringan karena terasa lembut, manis, dan mudah diterima."
+      },
+      {
+            "id": 57,
+            "title": "Afnan Supremacy Silver for Men EDP 150 ml",
+            "category": "Timur Tengah",
+            "price": 600000,
+            "img": "baru13.webp",
+            "desc": "Fresh fruity woody dengan karakter maskulin dan performa kuat; cocok untuk penggemar aroma clean powerful.",
+            "notes": "Pineapple - Birch - Musk",
+            "status": "ready",
+            "longDesc": "Afnan Supremacy Silver for Men menghadirkan fresh fruity woody dengan kesan maskulin yang powerful. Cocok untuk pengguna yang suka aroma clean tegas, bergaya modern, dan ingin parfum Timur Tengah yang terasa rapi untuk banyak kesempatan."
+      },
+      {
+            "id": 58,
+            "title": "Rayhaan Elixir for Men EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 370000,
+            "img": "baru14.webp",
+            "desc": "Aroma manis hangat yang modern dan seductive, cocok untuk malam hari atau suasana santai yang rapi.",
+            "notes": "Sweet Amber - Spice - Vanilla",
+            "status": "ready",
+            "longDesc": "Rayhaan Elixir for Men membawa aroma sweet amber, spice, dan vanilla yang hangat serta seductive. Parfum ini cocok untuk malam hari, suasana santai rapi, atau kamu yang ingin wangi manis maskulin dengan kesan lebih dekat."
+      },
+      {
+            "id": 59,
+            "title": "Fragrance World John Gustav Homme Le Parfum Extrait 100 ml",
+            "category": "Timur Tengah",
+            "price": 270000,
+            "img": "baru15.webp",
+            "desc": "Parfum pria dengan kesan aromatic, fresh, dan lebih intens; cocok untuk karakter clean maskulin.",
+            "notes": "Aromatic - Fresh - Amber Woody",
+            "status": "ready",
+            "longDesc": "Fragrance World John Gustav Homme Le Parfum Extrait menawarkan aroma aromatic fresh amber woody yang lebih intens. Cocok untuk pria yang ingin kesan clean maskulin, rapi, dan modern untuk daily use maupun acara semi-formal."
+      },
+      {
+            "id": 60,
+            "title": "Rasasi Daarej Pour Homme EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 285000,
+            "img": "baru16.webp",
+            "desc": "Sweet spicy classic dari Timur Tengah dengan kesan hangat, maskulin, dan cocok untuk malam hari.",
+            "notes": "Spice - Vanilla - Amber",
+            "status": "ready",
+            "longDesc": "Rasasi Daarej Pour Homme EDP punya karakter sweet spicy classic yang hangat dan maskulin. Aromanya cocok untuk malam hari, acara santai, atau kamu yang suka parfum Timur Tengah dengan nuansa vanilla amber yang nyaman."
+      },
+      {
+            "id": 61,
+            "title": "Fragrance World Proud of You Leather EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 230000,
+            "img": "baru17.webp",
+            "desc": "Aroma leather manis yang bold dan modern, cocok untuk pria yang suka wangi hangat dan berkarakter.",
+            "notes": "Leather - Sweet Amber - Warm Spice",
+            "status": "ready",
+            "longDesc": "Fragrance World Proud of You Leather menggabungkan leather, sweet amber, dan warm spice dengan karakter bold. Cocok untuk pengguna yang suka aroma hangat, maskulin, dan sedikit edgy untuk malam atau outfit yang lebih rapi."
+      },
+      {
+            "id": 62,
+            "title": "Afnan Supremacy In Oud EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 650000,
+            "img": "baru18.webp",
+            "desc": "Oud modern yang mewah, smoky, dan kuat; cocok untuk acara malam, formal, atau pecinta aroma Middle Eastern.",
+            "notes": "Oud - Saffron - Amber",
+            "status": "ready",
+            "longDesc": "Afnan Supremacy In Oud menghadirkan oud modern yang smoky, saffron-like, dan mewah. Parfum ini cocok untuk acara formal, malam hari, atau pecinta aroma Middle Eastern yang ingin wangi kuat, elegan, dan berkarakter."
+      },
+      {
+            "id": 63,
+            "title": "French Avenue Pinnace Oryn EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 470000,
+            "img": "baru19.webp",
+            "desc": "Aroma modern dari French Avenue dengan nuansa fresh, woody, dan rapi untuk daily premium.",
+            "notes": "Fresh Spicy - Woody - Amber",
+            "status": "ready",
+            "longDesc": "French Avenue Pinnace Oryn EDP membawa nuansa fresh spicy, woody, dan amber yang modern. Cocok untuk daily premium, aktivitas kantor, atau kamu yang ingin aroma Timur Tengah yang tetap bersih, rapi, dan tidak terlalu berat."
+      },
+      {
+            "id": 64,
+            "title": "Khadlaj Karus Secret Musk EDP 100 ml",
+            "category": "Timur Tengah",
+            "price": 375000,
+            "img": "baru20.webp",
+            "desc": "Musk unisex yang clean, soft, dan elegan; cocok untuk pemakaian harian yang tidak terlalu menusuk.",
+            "notes": "Musk - Soft Floral - Clean",
+            "status": "ready",
+            "longDesc": "Khadlaj Karus Secret Musk adalah musk unisex yang clean, soft, dan elegan. Aromanya cocok untuk pemakaian harian, layering, atau pengguna yang ingin wangi bersih yang dekat di kulit dan tidak terlalu menusuk."
+      },
+      {
+            "id": 65,
+            "title": "Tiziana Terenzi Kirke Extrait de Parfum 100 ml",
+            "category": "Niche",
+            "price": 2600000,
+            "img": "baru21.webp",
+            "desc": "Fruity musky niche yang powerful, manis, dan sangat mudah dikenali; cocok untuk pencinta wangi projection kuat.",
+            "notes": "Passion Fruit - Peach - Musk",
+            "status": "ready",
+            "longDesc": "Tiziana Terenzi Kirke Extrait de Parfum punya karakter fruity musky yang powerful, manis, dan mudah dikenali. Cocok untuk pencinta niche yang suka projection kuat, acara malam, atau momen ketika ingin tampil sangat standout."
+      },
+      {
+            "id": 66,
+            "title": "Xerjoff Coffee Break Golden Green Parfum 50 ml",
+            "category": "Niche",
+            "price": 3000000,
+            "img": "baru22.webp",
+            "desc": "Aroma niche unik bernuansa coffee collection yang elegan, green, dan premium untuk kolektor parfum.",
+            "notes": "Green Coffee - Aromatic - Woody",
+            "status": "ready",
+            "longDesc": "Xerjoff Coffee Break Golden Green membawa nuansa green coffee, aromatic, dan woody yang unik. Parfum ini cocok untuk kolektor niche yang mencari aroma berbeda, elegan, dan premium tanpa harus mengikuti karakter fresh biasa."
+      },
+      {
+            "id": 67,
+            "title": "Xerjoff Torino 23 EDP 50 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "baru23.webp",
+            "desc": "Fresh aromatic niche yang classy, clean, dan sporty-luxury; cocok untuk cuaca panas dan acara siang.",
+            "notes": "Citrus - Aromatic - Fresh Woods",
+            "status": "ready",
+            "longDesc": "Xerjoff Torino 23 EDP menghadirkan fresh aromatic citrus dengan kesan sporty luxury yang classy. Cocok untuk cuaca panas, acara siang, atau kamu yang ingin parfum niche clean yang tetap terasa mahal dan berenergi."
+      },
+      {
+            "id": 68,
+            "title": "Xerjoff Coffee Break Golden Moka Parfum 50 ml",
+            "category": "Niche",
+            "price": 3200000,
+            "img": "baru24.webp",
+            "desc": "Coffee gourmand premium dengan nuansa hangat, manis, dan mewah; cocok untuk malam hari dan kolektor niche.",
+            "notes": "Coffee - Amber - Gourmand",
+            "status": "ready",
+            "longDesc": "Xerjoff Coffee Break Golden Moka adalah coffee gourmand yang hangat, manis, dan mewah. Aromanya cocok untuk malam hari, cuaca dingin, atau kolektor niche yang suka karakter kopi premium dengan sentuhan amber yang rich."
+      },
+      {
+            "id": 69,
+            "title": "Nishane Fan Your Flames X Extrait de Parfum 100 ml",
+            "category": "Niche",
+            "price": 3400000,
+            "img": "baru25.webp",
+            "desc": "Aroma niche smoky gourmand yang intens, hangat, dan unik; cocok untuk pengguna yang ingin tampil beda.",
+            "notes": "Coconut - Rum - Tobacco",
+            "status": "ready",
+            "longDesc": "Nishane Fan Your Flames X menghadirkan smoky gourmand dengan nuansa coconut, rum, dan tobacco yang intens. Parfum ini cocok untuk pengguna yang ingin tampil beda, berani, dan punya signature scent hangat yang sangat berkarakter."
+      }
+];
 
     let cart = [];
     let activePromo = null;
@@ -1760,7 +2468,7 @@ button.luxury-added{
               </div>
               <div class="quick-sold-copy">${formatFullSold(p.soldCount)}</div>
             </div>
-            <p class="muted">${escapeHTML(p.desc)}</p>
+            <p class="muted quick-desc">${escapeHTML(p.longDesc || p.desc)}</p>
             <div class="quick-meta"><span>${escapeHTML(p.notes)}</span><span>${sold ? 'Sold out' : 'Ready stock'}</span></div>
             <div class="modal-actions">
               <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''} onclick="addToCart(${p.id}); closeModal(); openCart();">${sold ? 'Sold' : 'Tambah ke Keranjang'}</button>
