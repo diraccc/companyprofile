@@ -52,6 +52,7 @@
         top: 0;
         width: 100%;
         z-index: 10;
+        animation: slideDown 0.6s ease;
       }
 
       .header-inner {
@@ -81,8 +82,15 @@
       .category-filter {
         display: flex;
         gap: 8px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         justify-content: center;
+        overflow-x: auto;
+        padding-bottom: 10px;
+      }
+
+      /* Hide scrollbars for category list on WebKit browsers */
+      .category-filter::-webkit-scrollbar {
+        display: none;
       }
 
       .filter-btn {
@@ -156,6 +164,8 @@
         display: flex;
         flex-direction: column;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        /* Apply fade‑in and slide‑up animation on mount */
+        animation: fadeInUp 0.6s ease both;
       }
 
       .product-card:hover {
@@ -252,6 +262,47 @@
         }
         100% {
           transform: scale(1);
+        }
+      }
+
+      /* Slide down header animation */
+      @keyframes slideDown {
+        from {
+          transform: translateY(-50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* Fade in and slide up animation for product cards */
+      @keyframes fadeInUp {
+        0% {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Mobile responsive adjustments */
+      @media (max-width: 600px) {
+        .header-inner {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .site-title {
+          font-size: 1.2rem;
+        }
+        .category-filter {
+          justify-content: flex-start;
+        }
+        .product-container {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -479,9 +530,11 @@
       function renderProducts(category = 'all') {
         productContainer.innerHTML = '';
         const filtered = category === 'all' ? products : products.filter((p) => p.category === category);
-        filtered.forEach((product) => {
+        filtered.forEach((product, index) => {
           const card = document.createElement('div');
           card.className = 'product-card';
+          // Apply staggered animation delay for a lively appearance
+          card.style.animationDelay = (index * 50) + 'ms';
           card.innerHTML = `
             <img src="${product.image}" alt="${product.name}" class="product-image" />
             <div class="product-info">
@@ -639,6 +692,7 @@
           cartOverlay.classList.remove('open');
         });
       });
+
     </script>
   </body>
 </html>
