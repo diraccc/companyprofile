@@ -939,8 +939,8 @@ button.luxury-added{
       <div class="container">
         <div class="promo-box">
           <div>
-            <strong>Gunakan kode <span class="promo-code">DIRAC3</span> untuk diskon 3%</strong>
-            <span>Voucher diskon sekarang dibatasi 3% agar margin tetap aman. FREESHIP tetap khusus gratis ongkir.</span>
+            <strong>Gunakan kode <span class="promo-code">DIRAC3</span>: 3% produk biasa, 1% niche/mahal</strong>
+            <span>Produk kategori Niche atau harga Rp1.000.000 ke atas otomatis hanya diskon 1% agar margin tetap aman.</span>
           </div>
           <a class="btn-primary" href="#produk">Pilih Produk</a>
         </div>
@@ -1129,7 +1129,7 @@ button.luxury-added{
         <div class="faq-grid text-left">
           <div class="faq-item"><button class="faq-q" type="button">Apakah keranjang tersimpan? <span>+</span></button><div class="faq-a">Ya. Produk disimpan di localStorage browser, jadi tidak hilang saat halaman direfresh.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Bagaimana checkout dilakukan? <span>+</span></button><div class="faq-a">Setelah isi data checkout, sistem membuat pesan WhatsApp otomatis berisi daftar produk, total, ongkir, promo, dan alamat.</div></div>
-          <div class="faq-item"><button class="faq-q" type="button">Apakah ada promo? <span>+</span></button><div class="faq-a">Coba kode DIRAC3 di keranjang untuk diskon 3%. Sistem akan menghitung total otomatis.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button">Apakah ada promo? <span>+</span></button><div class="faq-a">Coba kode DIRAC3 di keranjang. Produk biasa diskon 3%, sedangkan produk Niche atau harga Rp1.000.000 ke atas hanya diskon 1%. Sistem menghitung otomatis per produk.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Apakah bisa untuk reseller? <span>+</span></button><div class="faq-a">Bisa. Gunakan checkout WhatsApp untuk konfirmasi stok dan harga reseller sebelum pembayaran.</div></div>
         </div>
       </div>
@@ -2112,14 +2112,23 @@ button.luxury-added{
     function getQty(id){ return cart.find(item => item.id === Number(id))?.qty || 0; }
     function totalQty(){ return cart.reduce((sum,item)=>sum+item.qty,0); }
     function subtotal(){ return cart.reduce((sum,item)=>sum+(getProduct(item.id)?.price||0)*item.qty,0); }
+    const EXPENSIVE_DISCOUNT_THRESHOLD = 1000000; // ubah angka ini kalau batas "mahal" mau dinaikkan/turunkan
+    function isPremiumDiscountItem(product){
+      return product?.category === 'Niche' || Number(product?.price || 0) >= EXPENSIVE_DISCOUNT_THRESHOLD;
+    }
     function promoValue(sub){
       if(!activePromo) return 0;
-      if(['DIRAC3','DIRAC15','HEMAT10','RESELLER'].includes(activePromo.code)) return Math.round(sub * .03);
-      return 0;
+      if(!['DIRAC3','DIRAC15','HEMAT10','RESELLER'].includes(activePromo.code)) return 0;
+      return cart.reduce((sum,item)=>{
+        const product = getProduct(item.id);
+        if(!product) return sum;
+        const lineTotal = Number(product.price || 0) * Number(item.qty || 0);
+        const rate = isPremiumDiscountItem(product) ? .01 : .03;
+        return sum + Math.round(lineTotal * rate);
+      },0);
     }
     function baseShipping(sub){
       if(shippingMode === 'pickup') return 0;
-      if(activePromo?.code === 'FREESHIP') return 0;
       if(shippingMode === 'standard' && sub >= FREE_SHIP_TARGET) return 0;
       return shippingMode === 'express' ? 45000 : 25000;
     }
@@ -2276,18 +2285,16 @@ button.luxury-added{
     function applyPromo(){
       const code = $('#promoInput').value.trim().toUpperCase();
       const validCodes = {
-        DIRAC3:'Diskon 3%',
-        DIRAC15:'Diskon 3%',
-        HEMAT10:'Diskon 3%',
-        RESELLER:'Diskon 3%',
-        FREESHIP:'Gratis ongkir'
+        DIRAC3:'Diskon 3% produk biasa / 1% niche atau mahal',
+        DIRAC15:'Diskon 3% produk biasa / 1% niche atau mahal',
+        HEMAT10:'Diskon 3% produk biasa / 1% niche atau mahal',
+        RESELLER:'Diskon 3% produk biasa / 1% niche atau mahal'
       };
       if(!code){ activePromo = null; renderCart(); showToast('Promo dihapus.'); return; }
       if(!validCodes[code]) return showToast('Kode promo tidak valid.');
       activePromo = {code,label:validCodes[code]};
       renderCart();
-      const value = promoValue(subtotal());
-      showToast(`${validCodes[code]} berhasil dipakai.`);
+      showToast('Voucher dipakai: produk biasa 3%, niche/mahal 1%.');
     }
 
     function openCart(){
@@ -2418,7 +2425,7 @@ button.luxury-added{
         items,
         '',
         `Subtotal: ${formatIDR(t.sub)}`,
-        `Promo: ${activePromo ? activePromo.code : '-'}`,
+        `Promo: ${activePromo ? activePromo.code + ' (produk biasa 3%, niche/mahal 1%)' : '-'}`,
         `Diskon: ${t.discount ? '- ' + formatIDR(t.discount) : formatIDR(0)}`,
         `Pengiriman: ${$('#shippingSelect').selectedOptions[0].text}`,
         `Ongkir: ${t.shipping ? formatIDR(t.shipping) : 'Gratis'}`,
