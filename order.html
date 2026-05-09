@@ -145,6 +145,80 @@
     .stat-card span{font-size:.86rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 
     .promo-panel{padding:0 0 30px}
+
+
+    /* Back to Home button - elegant, compact, dan mobile friendly */
+    .back-home-panel{
+      padding:22px 0 10px;
+      background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,0));
+      position:relative;
+      z-index:2;
+    }
+    .back-home-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .back-home-btn{
+      position:relative;
+      isolation:isolate;
+      overflow:hidden;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      min-height:44px;
+      padding:10px 20px;
+      border-radius:999px;
+      border:1px solid rgba(243,205,112,.34);
+      background:linear-gradient(135deg,rgba(255,255,255,.075),rgba(243,205,112,.13));
+      color:#f8ead1;
+      font-size:.92rem;
+      font-weight:850;
+      letter-spacing:.02em;
+      box-shadow:0 14px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+      transition:transform .32s var(--motion-ease,cubic-bezier(.22,1,.36,1)),border-color .32s var(--motion-ease,cubic-bezier(.22,1,.36,1)),box-shadow .32s var(--motion-ease,cubic-bezier(.22,1,.36,1)),background .32s var(--motion-ease,cubic-bezier(.22,1,.36,1));
+      animation:backHomeFloat 4.6s ease-in-out infinite;
+    }
+    .back-home-btn:before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      pointer-events:none;
+      background:linear-gradient(110deg,transparent 18%,rgba(255,255,255,.18),rgba(243,205,112,.22),transparent 78%);
+      transform:translateX(-130%);
+      animation:backHomeShine 5.8s ease-in-out infinite;
+    }
+    .back-home-btn:hover{
+      transform:translateY(-2px) scale(1.015);
+      border-color:rgba(243,205,112,.56);
+      box-shadow:0 18px 42px rgba(0,0,0,.34),0 0 28px rgba(214,166,66,.13),inset 0 1px 0 rgba(255,255,255,.11);
+      background:linear-gradient(135deg,rgba(255,255,255,.095),rgba(243,205,112,.18));
+    }
+    .back-home-icon{
+      width:24px;
+      height:24px;
+      border-radius:999px;
+      display:inline-grid;
+      place-items:center;
+      background:rgba(243,205,112,.14);
+      color:var(--gold);
+      line-height:1;
+      transition:transform .32s var(--motion-ease,cubic-bezier(.22,1,.36,1));
+    }
+    .back-home-btn:hover .back-home-icon{transform:translateX(-3px)}
+    @keyframes backHomeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+    @keyframes backHomeShine{0%,58%{transform:translateX(-130%)}82%,100%{transform:translateX(130%)}}
+    @media(max-width:760px){
+      .back-home-panel{padding:18px 0 10px}
+      .back-home-btn{min-height:42px;padding:9px 18px;font-size:.88rem}
+      .back-home-icon{width:22px;height:22px}
+    }
+    @media(prefers-reduced-motion:reduce){
+      .back-home-btn,.back-home-btn:before{animation:none!important}
+      .back-home-btn:hover,.back-home-btn:hover .back-home-icon{transform:none!important}
+    }
     .promo-box{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:20px 22px;border-radius:24px;background:linear-gradient(135deg,rgba(243,205,112,.17),rgba(255,255,255,.04));border:1px solid var(--line-strong);box-shadow:0 18px 50px rgba(0,0,0,.25)}
     .promo-box strong{color:#fff;font-size:1.08rem}.promo-box span{color:var(--muted);display:block;margin-top:2px}.promo-code{color:var(--gold);font-weight:900}
 
@@ -508,6 +582,17 @@ img[loading="lazy"]{content-visibility:auto}
         <div class="stat-card"><strong class="count-up" data-target="22000" data-suffix="+">0</strong><span>Items sold</span></div>
         <div class="stat-card"><strong class="count-up" data-target="7000" data-suffix="+">0</strong><span>Loyal customer</span></div>
         <div class="stat-card"><strong class="count-up" data-target="636" data-suffix="+">0</strong><span>Reseller</span></div>
+      </div>
+    </section>
+
+
+
+    <section class="back-home-panel" aria-label="Kembali ke halaman utama">
+      <div class="container back-home-wrap">
+        <a class="back-home-btn" href="https://diracgroup.store" aria-label="Back to home menuju website utama Dirac Group">
+          <span class="back-home-icon" aria-hidden="true">←</span>
+          <span>back to home</span>
+        </a>
       </div>
     </section>
 
