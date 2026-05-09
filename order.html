@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="utf-8">
+<meta name="theme-color" content="#07090d">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dirac Parfum - Katalog Premium dengan Keranjang Canggih</title>
   <meta name="description" content="Dirac Parfum - katalog parfum premium dengan sistem keranjang modern, promo, checkout WhatsApp, dan desain responsif.">
@@ -363,6 +364,85 @@
     }
 
   </style>
+
+<style id="github-pages-ultralight-css">
+/* GitHub Pages ultra-light performance layer */
+html{scroll-behavior:smooth}
+img{max-width:100%;height:auto}
+img[loading="lazy"]{content-visibility:auto}
+.product-media,.hero-card,.blog-card,.lifestyle-image,.cart-thumb{background:#101722}
+.product-media img,.hero-card img,.blog-card img,.quick-grid img{
+  image-rendering:auto;
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+/* Keep text readable even on slow image loading */
+.hero,.section,.product-card,.feature-card,.info-card,.blog-card,.faq-item,.cart-drawer,.modal-card{
+  text-rendering:optimizeLegibility;
+}
+.product-grid{contain:layout paint}
+.product-card{content-visibility:auto;contain-intrinsic-size:420px}
+.blog-card,.feature-card,.info-card,.faq-item{content-visibility:auto;contain-intrinsic-size:260px}
+</style>
+
+<link rel="preload" as="image" href="logo1.webp" fetchpriority="high">
+
+<style id="dirac-antilag-css">
+/* Anti-lag mode for GitHub Pages / mobile */
+:root{--dirac-visible-products:12}
+.product-grid.is-limited .product-card:nth-child(n+13){display:none!important}
+.load-more-wrap{display:flex;justify-content:center;margin:24px 0 0}
+.load-more-btn{
+  border:1px solid rgba(243,205,112,.35);
+  background:linear-gradient(135deg,#f3cd70,#d6a642);
+  color:#111;
+  padding:13px 20px;
+  border-radius:999px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 10px 26px rgba(0,0,0,.18);
+}
+.load-more-btn[hidden]{display:none!important}
+@media(max-width:760px){
+  /* Mobile dibuat jauh lebih ringan */
+  .hero:after,.promo-box:before,.product-media:before,.btn-primary:after,.header-cart:after{display:none!important}
+  .hero-card,.product-card,.feature-card,.info-card,.blog-card,.faq-item,.stat-card{
+    animation:none!important;
+    transition:opacity .18s ease!important;
+    filter:none!important;
+    backdrop-filter:none!important;
+    transform:none!important;
+    box-shadow:0 8px 22px rgba(0,0,0,.22)!important;
+  }
+  .product-card:hover,.blog-card:hover,.feature-card:hover{
+    transform:none!important;
+  }
+  .motion-ready [data-reveal],
+  .motion-ready .hero .eyebrow,
+  .motion-ready .hero h1,
+  .motion-ready .hero p,
+  .motion-ready .hero .hero-actions,
+  .motion-ready .hero .trust-row{
+    opacity:1!important;
+    transform:none!important;
+    filter:none!important;
+    animation:none!important;
+    transition:none!important;
+  }
+  .toast.show,.cart-bump,.btn-adding,.counter-complete{
+    animation:none!important;
+  }
+  .product-media{padding:6px!important}
+  .product-media img{
+    transform:none!important;
+    will-change:auto!important;
+  }
+}
+/* prevent expensive paint on huge lists */
+.product-card{contain:content;content-visibility:auto;contain-intrinsic-size:420px}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -377,7 +457,7 @@
       <a class="brand" href="#beranda" aria-label="Dirac Parfum Beranda">
         <span class="brand-mark" aria-hidden="true">
           <span class="brand-fallback-text">DP</span>
-          <img class="brand-logo-img" src="logo1.JPG" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'">
+          <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'" decoding="async" fetchpriority="high">
         </span>
         <span class="brand-name">Dirac Parfum</span>
       </a>
@@ -415,9 +495,9 @@
           </div>
         </div>
         <div class="hero-showcase" aria-hidden="true">
-          <div class="hero-card one"><img src="produk14.PNG" alt="" onerror="imageFallback(this)"></div>
-          <div class="hero-card two"><img src="produk6.PNG" alt="" onerror="imageFallback(this)"></div>
-          <div class="hero-card three"><img src="produk16.PNG" alt="" onerror="imageFallback(this)"></div>
+          <div class="hero-card one"><img src="produk14.webp" alt="" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low"></div>
+          <div class="hero-card two"><img src="produk6.webp" alt="" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low"></div>
+          <div class="hero-card three"><img src="produk16.webp" alt="" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low"></div>
           <div class="hero-floating-note"><span>Promo hari ini</span><strong>DIRAC15</strong></div>
         </div>
       </div>
@@ -485,7 +565,7 @@
         <h2 class="section-title">Parfum sebagai identitas</h2>
         <p class="section-lead">Bagian ini dibuat ulang agar tidak terlihat kosong, tidak terlalu besar, dan lebih premium saat dibuka di layar HP.</p>
         <div class="content-card lifestyle-card text-left">
-          <img src="https://images.weserv.nl/?url=images.pexels.com/photos/16722498/pexels-photo-16722498.jpeg&output=webp&w=900" alt="Botol parfum premium">
+          <img src="https://images.weserv.nl/?url=images.pexels.com/photos/16722498/pexels-photo-16722498.jpeg&output=webp&w=900" alt="Botol parfum premium" decoding="async" loading="lazy" fetchpriority="low">
           <div class="lifestyle-copy">
             <h3>Cara kamu bercerita tanpa kata-kata.</h3>
             <p>Pilih aroma yang sesuai dengan mood, acara, dan karakter. Aroma segar untuk aktivitas harian, woody-amber untuk kesan elegan, dan vanilla-floral untuk suasana hangat.</p>
@@ -551,15 +631,15 @@
         <h2 class="section-title">Konten edukasi yang lebih rapi</h2>
         <div class="blog-grid">
           <article class="blog-card text-left">
-            <img src="https://images.weserv.nl/?url=images.pexels.com/photos/33711971/pexels-photo-33711971.jpeg&output=webp&w=900" alt="Parfum sesuai kepribadian">
+            <img src="https://images.weserv.nl/?url=images.pexels.com/photos/33711971/pexels-photo-33711971.jpeg&output=webp&w=900" alt="Parfum sesuai kepribadian" decoding="async" loading="lazy" fetchpriority="low">
             <div class="blog-card-body"><h3>Memilih parfum sesuai kepribadian</h3><p>Kenali karakter aroma yang cocok untuk daily, kantor, date night, atau acara formal.</p><a class="read-link" href="#scent-notes">Baca selengkapnya →</a></div>
           </article>
           <article class="blog-card text-left">
-            <img src="https://images.weserv.nl/?url=images.pexels.com/photos/16722498/pexels-photo-16722498.jpeg&output=webp&w=900" alt="Menyimpan parfum agar awet">
+            <img src="https://images.weserv.nl/?url=images.pexels.com/photos/16722498/pexels-photo-16722498.jpeg&output=webp&w=900" alt="Menyimpan parfum agar awet" decoding="async" loading="lazy" fetchpriority="low">
             <div class="blog-card-body"><h3>Cara menyimpan parfum agar awet</h3><p>Hindari panas, cahaya langsung, dan ruangan lembap agar kualitas aroma tetap stabil.</p><a class="read-link" href="#faq">Baca selengkapnya →</a></div>
           </article>
           <article class="blog-card text-left">
-            <img src="https://images.weserv.nl/?url=images.pexels.com/photos/23230654/pexels-photo-23230654.jpeg&output=webp&w=900" alt="Original dan inspired perfume">
+            <img src="https://images.weserv.nl/?url=images.pexels.com/photos/23230654/pexels-photo-23230654.jpeg&output=webp&w=900" alt="Original dan inspired perfume" decoding="async" loading="lazy" fetchpriority="low">
             <div class="blog-card-body"><h3>Original vs inspired</h3><p>Penjelasan simpel agar pembeli memahami perbedaan produk dan tidak salah ekspektasi.</p><a class="read-link" href="#produk">Lihat produk →</a></div>
           </article>
         </div>
@@ -654,50 +734,50 @@
     const FREE_SHIP_TARGET = 299000;
 
     const products = [
-      {id:1,title:'All Parfum Timteng',category:'Timur Tengah',price:1000000,img:'all_parfum_timteng.PNG',desc:'Koleksi aroma khas Timur Tengah dengan karakter oud, amber, dan rempah.',notes:'Oud - Amber - Spicy',status:'ready'},
-      {id:2,title:'All Parfum Designer',category:'Designer',price:1000000,img:'all_parfum_desaigner.PNG',desc:'Pilihan parfum designer populer dengan kesan modern dan berkelas.',notes:'Fresh - Modern - Versatile',status:'ready'},
-      {id:3,title:'All Parfum Lokal',category:'Lokal',price:250000,img:'all_parfum_lokal.PNG',desc:'Koleksi brand lokal dengan harga ramah dan aroma mudah dipakai harian.',notes:'Daily - Clean - Easy wear',status:'ready'},
-      {id:4,title:'All Parfum Niche',category:'Niche',price:1000000,img:'all_parfum_niche.PNG',desc:'Aroma niche yang lebih unik, eksklusif, dan punya karakter kuat.',notes:'Unique - Premium - Long lasting',status:'ready'},
-      {id:5,title:'Botol Kosong Niche',category:'Aksesoris',price:700000,img:'botol_kosong_niche.JPEG',desc:'Botol kosong koleksi niche untuk display atau kebutuhan kolektor.',notes:'Collector - Display',status:'ready'},
-      {id:6,title:'Louis Vuitton Imagination 100 ml',category:'Niche',price:6200000,img:'produk6.PNG',desc:'Aroma premium dengan karakter fresh, bersih, dan mewah.',notes:'Fresh - Citrus - Premium',status:'ready'},
-      {id:7,title:'Xerjoff Torino 21 100 ml',category:'Niche',price:7500000,img:'produk7.PNG',desc:'Pilihan niche premium yang cocok untuk kesan elegan dan eksklusif.',notes:'Green - Fresh - Elegant',status:'ready'},
-      {id:8,title:'Yves Saint Laurent Myself 100 ml',category:'Designer',price:1650000,img:'produk8.PNG',desc:'Aroma designer modern untuk penggunaan harian dan semi-formal.',notes:'Clean - Aromatic - Modern',status:'ready'},
-      {id:9,title:'Xerjoff Erba Pura 100 ml',category:'Niche',price:4500000,img:'produk9.PNG',desc:'Aroma fruity musky yang mencolok dan mudah dikenali.',notes:'Fruity - Musk - Sweet',status:'ready'},
-      {id:10,title:'Jean Paul Gaultier Le Male Elixir 125 ml',category:'Designer',price:1600000,img:'produk10.PNG',desc:'Aroma manis hangat dengan karakter malam yang kuat.',notes:'Sweet - Amber - Vanilla',status:'ready'},
-      {id:11,title:'Yves Saint Laurent Y EDP 100 ml',category:'Designer',price:1850000,img:'produk11.PNG',desc:'Fresh aromatic yang aman untuk kantor, kampus, dan acara santai.',notes:'Fresh - Aromatic - Blue',status:'ready'},
-      {id:12,title:'Louis Vuitton Symphony 100 ml',category:'Niche',price:10200000,img:'produk12.PNG',desc:'Pilihan ultra premium untuk pencinta aroma bright dan sophisticated.',notes:'Citrus - Luxe - Bright',status:'ready'},
-      {id:13,title:'Jean Paul Gaultier Le Male Parfum 125 ml',category:'Designer',price:1600000,img:'produk13.PNG',desc:'Aroma hangat, maskulin, dan cocok untuk malam hari.',notes:'Amber - Spice - Sweet',status:'ready'},
-      {id:14,title:'Nishane Wulong Cha 100 ml',category:'Niche',price:3200000,img:'produk14.PNG',desc:'Fresh tea-citrus yang bersih, unik, dan nyaman dipakai harian.',notes:'Tea - Citrus - Fresh',status:'ready'},
-      {id:15,title:'Yves Saint Laurent Libre 90 ml',category:'Designer',price:1800000,img:'produk15.PNG',desc:'Aroma floral-lavender yang elegan dan mewah.',notes:'Floral - Lavender - Elegant',status:'sold'},
-      {id:16,title:'Dior Sauvage 100 ml',category:'Designer',price:2800000,img:'produk16.PNG',desc:'Aroma fresh spicy populer dengan kesan maskulin dan aman dipakai.',notes:'Fresh - Spicy - Blue',status:'ready'},
-      {id:17,title:'Jean Paul Gaultier Le Beau Paradise Garden 125 ml',category:'Designer',price:1600000,img:'produk1.PNG',desc:'Aroma tropis segar dengan nuansa manis yang playful.',notes:'Tropical - Sweet - Fresh',status:'ready'},
-      {id:18,title:'Stronger With You Intensely 100 ml',category:'Designer',price:1600000,img:'produk2.PNG',desc:'Manis, hangat, dan cocok untuk malam atau cuaca dingin.',notes:'Sweet - Vanilla - Warm',status:'ready'},
-      {id:19,title:'Stronger With You Parfum 100 ml',category:'Designer',price:2500000,img:'produk3.PNG',desc:'Aroma intens dengan karakter manis dan tahan lama.',notes:'Sweet - Amber - Intense',status:'ready'},
-      {id:20,title:'Louis Vuitton City Of Stars 100 ml',category:'Niche',price:5500000,img:'produk4.PNG',desc:'Fresh citrus aromatic dengan aura liburan yang mewah.',notes:'Citrus - Beachy - Luxe',status:'ready'},
-      {id:21,title:'Louis Vuitton Meteore 100 ml',category:'Niche',price:6500000,img:'produk5.PNG',desc:'Fresh spicy premium untuk kesan rapi dan berkelas.',notes:'Fresh - Spicy - Clean',status:'ready'},
-      {id:22,title:'Jean Paul Gaultier Le Male Elixir Absolu 125 ml',category:'Designer',price:1800000,img:'produk18.PNG',desc:'Versi elixir yang lebih bold, manis, dan intens.',notes:'Elixir - Sweet - Bold',status:'ready'},
-      {id:23,title:'Nishane Hacivat',category:'Niche',price:3100000,img:'produk19.PNG',desc:'Fresh woody dengan karakter nanas dan oakmoss yang elegan.',notes:'Pineapple - Woody - Mossy',status:'ready'},
-      {id:24,title:'Versace Eros Flame 200 ml',category:'Designer',price:2200000,img:'produk20.PNG',desc:'Fresh spicy dengan sentuhan citrus dan vanilla hangat.',notes:'Citrus - Spice - Vanilla',status:'ready'},
-      {id:25,title:'Xerjoff Renaissance 100 ml',category:'Niche',price:3200000,img:'produk21.PNG',desc:'Citrus mint yang cerah dan terasa sangat fresh.',notes:'Mint - Citrus - Fresh',status:'ready'},
-      {id:26,title:'Valentino Uomo Born In Roma 100 ml',category:'Designer',price:2200000,img:'produk22.PNG',desc:'Aroma designer manis, modern, dan easy to wear.',notes:'Sweet - Modern - Amber',status:'ready'},
-      {id:27,title:'Acqua Di Gio 100 ml',category:'Designer',price:1860000,img:'produk23.PNG',desc:'Aquatic fresh yang klasik dan cocok untuk iklim panas.',notes:'Aquatic - Fresh - Clean',status:'ready'},
-      {id:28,title:'Nishane Ani X',category:'Niche',price:3500000,img:'produk24.PNG',desc:'Vanilla spicy premium dengan karakter hangat yang elegan.',notes:'Vanilla - Spice - Warm',status:'ready'},
-      {id:29,title:'Jean Paul Gaultier Le Beau 125 ml',category:'Designer',price:1500000,img:'produk25.PNG',desc:'Aroma sweet tropical dengan karakter coconut dan tonka.',notes:'Coconut - Tonka - Sweet',status:'ready'},
-      {id:30,title:'Giorgio Armani Code EDP 75 ml',category:'Designer',price:1500000,img:'produk26.PNG',desc:'Aroma formal yang halus, maskulin, dan rapi.',notes:'Elegant - Tonka - Formal',status:'ready'},
-      {id:31,title:'Versace Eros Energy 100 ml',category:'Designer',price:1500000,img:'produk27.PNG',desc:'Versi fresh yang energetic dan cocok untuk aktivitas harian.',notes:'Fresh - Citrus - Energetic',status:'ready'},
-      {id:32,title:'Versace Eros 100 ml',category:'Designer',price:1500000,img:'produk28.PNG',desc:'Aroma manis minty populer dengan karakter playful.',notes:'Mint - Vanilla - Sweet',status:'ready'},
-      {id:33,title:'Xerjoff Naxos 100 ml',category:'Niche',price:5350000,img:'produk29.PNG',desc:'Honey tobacco vanilla yang mewah dan sangat berkarakter.',notes:'Honey - Tobacco - Vanilla',status:'ready'},
-      {id:34,title:'Rasasi Hawas Black 100 ml',category:'Timur Tengah',price:750000,img:'produk30.PNG',desc:'Aroma Middle Eastern fresh dengan value menarik.',notes:'Fresh - Amber - Value',status:'ready'},
-      {id:35,title:'Bleu de Chanel EDP 100 ml',category:'Designer',price:4000000,img:'produk31.PNG',desc:'Blue fragrance elegan yang aman untuk berbagai situasi.',notes:'Blue - Woody - Elegant',status:'ready'},
-      {id:36,title:'Louis Vuitton Pacific Chill 100 ml',category:'Niche',price:5800000,img:'produk32.PNG',desc:'Fresh fruity green dengan kesan modern dan bersih.',notes:'Fruity - Green - Fresh',status:'ready'},
-      {id:37,title:'Louis Vuitton Ombre Nomade 100 ml',category:'Niche',price:7500000,img:'produk33.PNG',desc:'Oud smoky rose yang intens, mewah, dan tahan lama.',notes:'Oud - Rose - Smoky',status:'ready'},
-      {id:38,title:'Louis Vuitton Rhapsody 100 ml',category:'Niche',price:9700000,img:'produk34.PNG',desc:'Aroma premium dengan karakter kompleks dan eksklusif.',notes:'Complex - Luxe - Signature',status:'ready'},
-      {id:39,title:'Louis Vuitton Afternoon Swim 100 ml',category:'Niche',price:6300000,img:'produk35.PNG',desc:'Citrus fresh yang cerah dan terasa sangat clean.',notes:'Orange - Citrus - Fresh',status:'ready'},
-      {id:40,title:'Rasasi Hawas For Him 100 ml',category:'Timur Tengah',price:700000,img:'produk36.PNG',desc:'Fresh aquatic sweet yang populer dan cocok untuk harian.',notes:'Aquatic - Sweet - Fresh',status:'ready'},
-      {id:41,title:'Tom Ford Tuscan Leather 50 ml',category:'Niche',price:3750000,img:'produk37.PNG',desc:'Leather scent yang bold, classy, dan berkesan mahal.',notes:'Leather - Raspberry - Bold',status:'ready'},
-      {id:42,title:'Yves Saint Laurent Myself Le Parfum 100 ml',category:'Designer',price:2430000,img:'produk38.PNG',desc:'Versi lebih intens dengan karakter modern dan clean.',notes:'Clean - Intense - Aromatic',status:'ready'},
-      {id:43,title:'Xerjoff Erba Gold 100 ml',category:'Niche',price:6350000,img:'produk39.PNG',desc:'Fruity amber musk yang mewah dan mudah menarik perhatian.',notes:'Fruity - Amber - Musk',status:'ready'},
-      {id:44,title:'Rasasi Hawas Elixir 100 ml',category:'Timur Tengah',price:770000,img:'produk40.PNG',desc:'Fresh sweet Middle Eastern dengan performa kuat.',notes:'Fresh - Sweet - Strong',status:'ready'}
+      {id:1,title:'All Parfum Timteng',category:'Timur Tengah',price:1000000,img:'all_parfum_timteng.webp',desc:'Koleksi aroma khas Timur Tengah dengan karakter oud, amber, dan rempah.',notes:'Oud - Amber - Spicy',status:'ready'},
+      {id:2,title:'All Parfum Designer',category:'Designer',price:1000000,img:'all_parfum_desaigner.webp',desc:'Pilihan parfum designer populer dengan kesan modern dan berkelas.',notes:'Fresh - Modern - Versatile',status:'ready'},
+      {id:3,title:'All Parfum Lokal',category:'Lokal',price:250000,img:'all_parfum_lokal.webp',desc:'Koleksi brand lokal dengan harga ramah dan aroma mudah dipakai harian.',notes:'Daily - Clean - Easy wear',status:'ready'},
+      {id:4,title:'All Parfum Niche',category:'Niche',price:1000000,img:'all_parfum_niche.webp',desc:'Aroma niche yang lebih unik, eksklusif, dan punya karakter kuat.',notes:'Unique - Premium - Long lasting',status:'ready'},
+      {id:5,title:'Botol Kosong Niche',category:'Aksesoris',price:700000,img:'botol_kosong_niche.webp',desc:'Botol kosong koleksi niche untuk display atau kebutuhan kolektor.',notes:'Collector - Display',status:'ready'},
+      {id:6,title:'Louis Vuitton Imagination 100 ml',category:'Niche',price:6200000,img:'produk6.webp',desc:'Aroma premium dengan karakter fresh, bersih, dan mewah.',notes:'Fresh - Citrus - Premium',status:'ready'},
+      {id:7,title:'Xerjoff Torino 21 100 ml',category:'Niche',price:7500000,img:'produk7.webp',desc:'Pilihan niche premium yang cocok untuk kesan elegan dan eksklusif.',notes:'Green - Fresh - Elegant',status:'ready'},
+      {id:8,title:'Yves Saint Laurent Myself 100 ml',category:'Designer',price:1650000,img:'produk8.webp',desc:'Aroma designer modern untuk penggunaan harian dan semi-formal.',notes:'Clean - Aromatic - Modern',status:'ready'},
+      {id:9,title:'Xerjoff Erba Pura 100 ml',category:'Niche',price:4500000,img:'produk9.webp',desc:'Aroma fruity musky yang mencolok dan mudah dikenali.',notes:'Fruity - Musk - Sweet',status:'ready'},
+      {id:10,title:'Jean Paul Gaultier Le Male Elixir 125 ml',category:'Designer',price:1600000,img:'produk10.webp',desc:'Aroma manis hangat dengan karakter malam yang kuat.',notes:'Sweet - Amber - Vanilla',status:'ready'},
+      {id:11,title:'Yves Saint Laurent Y EDP 100 ml',category:'Designer',price:1850000,img:'produk11.webp',desc:'Fresh aromatic yang aman untuk kantor, kampus, dan acara santai.',notes:'Fresh - Aromatic - Blue',status:'ready'},
+      {id:12,title:'Louis Vuitton Symphony 100 ml',category:'Niche',price:10200000,img:'produk12.webp',desc:'Pilihan ultra premium untuk pencinta aroma bright dan sophisticated.',notes:'Citrus - Luxe - Bright',status:'ready'},
+      {id:13,title:'Jean Paul Gaultier Le Male Parfum 125 ml',category:'Designer',price:1600000,img:'produk13.webp',desc:'Aroma hangat, maskulin, dan cocok untuk malam hari.',notes:'Amber - Spice - Sweet',status:'ready'},
+      {id:14,title:'Nishane Wulong Cha 100 ml',category:'Niche',price:3200000,img:'produk14.webp',desc:'Fresh tea-citrus yang bersih, unik, dan nyaman dipakai harian.',notes:'Tea - Citrus - Fresh',status:'ready'},
+      {id:15,title:'Yves Saint Laurent Libre 90 ml',category:'Designer',price:1800000,img:'produk15.webp',desc:'Aroma floral-lavender yang elegan dan mewah.',notes:'Floral - Lavender - Elegant',status:'sold'},
+      {id:16,title:'Dior Sauvage 100 ml',category:'Designer',price:2800000,img:'produk16.webp',desc:'Aroma fresh spicy populer dengan kesan maskulin dan aman dipakai.',notes:'Fresh - Spicy - Blue',status:'ready'},
+      {id:17,title:'Jean Paul Gaultier Le Beau Paradise Garden 125 ml',category:'Designer',price:1600000,img:'produk1.webp',desc:'Aroma tropis segar dengan nuansa manis yang playful.',notes:'Tropical - Sweet - Fresh',status:'ready'},
+      {id:18,title:'Stronger With You Intensely 100 ml',category:'Designer',price:1600000,img:'produk2.webp',desc:'Manis, hangat, dan cocok untuk malam atau cuaca dingin.',notes:'Sweet - Vanilla - Warm',status:'ready'},
+      {id:19,title:'Stronger With You Parfum 100 ml',category:'Designer',price:2500000,img:'produk3.webp',desc:'Aroma intens dengan karakter manis dan tahan lama.',notes:'Sweet - Amber - Intense',status:'ready'},
+      {id:20,title:'Louis Vuitton City Of Stars 100 ml',category:'Niche',price:5500000,img:'produk4.webp',desc:'Fresh citrus aromatic dengan aura liburan yang mewah.',notes:'Citrus - Beachy - Luxe',status:'ready'},
+      {id:21,title:'Louis Vuitton Meteore 100 ml',category:'Niche',price:6500000,img:'produk5.webp',desc:'Fresh spicy premium untuk kesan rapi dan berkelas.',notes:'Fresh - Spicy - Clean',status:'ready'},
+      {id:22,title:'Jean Paul Gaultier Le Male Elixir Absolu 125 ml',category:'Designer',price:1800000,img:'produk18.webp',desc:'Versi elixir yang lebih bold, manis, dan intens.',notes:'Elixir - Sweet - Bold',status:'ready'},
+      {id:23,title:'Nishane Hacivat',category:'Niche',price:3100000,img:'produk19.webp',desc:'Fresh woody dengan karakter nanas dan oakmoss yang elegan.',notes:'Pineapple - Woody - Mossy',status:'ready'},
+      {id:24,title:'Versace Eros Flame 200 ml',category:'Designer',price:2200000,img:'produk20.webp',desc:'Fresh spicy dengan sentuhan citrus dan vanilla hangat.',notes:'Citrus - Spice - Vanilla',status:'ready'},
+      {id:25,title:'Xerjoff Renaissance 100 ml',category:'Niche',price:3200000,img:'produk21.webp',desc:'Citrus mint yang cerah dan terasa sangat fresh.',notes:'Mint - Citrus - Fresh',status:'ready'},
+      {id:26,title:'Valentino Uomo Born In Roma 100 ml',category:'Designer',price:2200000,img:'produk22.webp',desc:'Aroma designer manis, modern, dan easy to wear.',notes:'Sweet - Modern - Amber',status:'ready'},
+      {id:27,title:'Acqua Di Gio 100 ml',category:'Designer',price:1860000,img:'produk23.webp',desc:'Aquatic fresh yang klasik dan cocok untuk iklim panas.',notes:'Aquatic - Fresh - Clean',status:'ready'},
+      {id:28,title:'Nishane Ani X',category:'Niche',price:3500000,img:'produk24.webp',desc:'Vanilla spicy premium dengan karakter hangat yang elegan.',notes:'Vanilla - Spice - Warm',status:'ready'},
+      {id:29,title:'Jean Paul Gaultier Le Beau 125 ml',category:'Designer',price:1500000,img:'produk25.webp',desc:'Aroma sweet tropical dengan karakter coconut dan tonka.',notes:'Coconut - Tonka - Sweet',status:'ready'},
+      {id:30,title:'Giorgio Armani Code EDP 75 ml',category:'Designer',price:1500000,img:'produk26.webp',desc:'Aroma formal yang halus, maskulin, dan rapi.',notes:'Elegant - Tonka - Formal',status:'ready'},
+      {id:31,title:'Versace Eros Energy 100 ml',category:'Designer',price:1500000,img:'produk27.webp',desc:'Versi fresh yang energetic dan cocok untuk aktivitas harian.',notes:'Fresh - Citrus - Energetic',status:'ready'},
+      {id:32,title:'Versace Eros 100 ml',category:'Designer',price:1500000,img:'produk28.webp',desc:'Aroma manis minty populer dengan karakter playful.',notes:'Mint - Vanilla - Sweet',status:'ready'},
+      {id:33,title:'Xerjoff Naxos 100 ml',category:'Niche',price:5350000,img:'produk29.webp',desc:'Honey tobacco vanilla yang mewah dan sangat berkarakter.',notes:'Honey - Tobacco - Vanilla',status:'ready'},
+      {id:34,title:'Rasasi Hawas Black 100 ml',category:'Timur Tengah',price:750000,img:'produk30.webp',desc:'Aroma Middle Eastern fresh dengan value menarik.',notes:'Fresh - Amber - Value',status:'ready'},
+      {id:35,title:'Bleu de Chanel EDP 100 ml',category:'Designer',price:4000000,img:'produk31.webp',desc:'Blue fragrance elegan yang aman untuk berbagai situasi.',notes:'Blue - Woody - Elegant',status:'ready'},
+      {id:36,title:'Louis Vuitton Pacific Chill 100 ml',category:'Niche',price:5800000,img:'produk32.webp',desc:'Fresh fruity green dengan kesan modern dan bersih.',notes:'Fruity - Green - Fresh',status:'ready'},
+      {id:37,title:'Louis Vuitton Ombre Nomade 100 ml',category:'Niche',price:7500000,img:'produk33.webp',desc:'Oud smoky rose yang intens, mewah, dan tahan lama.',notes:'Oud - Rose - Smoky',status:'ready'},
+      {id:38,title:'Louis Vuitton Rhapsody 100 ml',category:'Niche',price:9700000,img:'produk34.webp',desc:'Aroma premium dengan karakter kompleks dan eksklusif.',notes:'Complex - Luxe - Signature',status:'ready'},
+      {id:39,title:'Louis Vuitton Afternoon Swim 100 ml',category:'Niche',price:6300000,img:'produk35.webp',desc:'Citrus fresh yang cerah dan terasa sangat clean.',notes:'Orange - Citrus - Fresh',status:'ready'},
+      {id:40,title:'Rasasi Hawas For Him 100 ml',category:'Timur Tengah',price:700000,img:'produk36.webp',desc:'Fresh aquatic sweet yang populer dan cocok untuk harian.',notes:'Aquatic - Sweet - Fresh',status:'ready'},
+      {id:41,title:'Tom Ford Tuscan Leather 50 ml',category:'Niche',price:3750000,img:'produk37.webp',desc:'Leather scent yang bold, classy, dan berkesan mahal.',notes:'Leather - Raspberry - Bold',status:'ready'},
+      {id:42,title:'Yves Saint Laurent Myself Le Parfum 100 ml',category:'Designer',price:2430000,img:'produk38.webp',desc:'Versi lebih intens dengan karakter modern dan clean.',notes:'Clean - Intense - Aromatic',status:'ready'},
+      {id:43,title:'Xerjoff Erba Gold 100 ml',category:'Niche',price:6350000,img:'produk39.webp',desc:'Fruity amber musk yang mewah dan mudah menarik perhatian.',notes:'Fruity - Amber - Musk',status:'ready'},
+      {id:44,title:'Rasasi Hawas Elixir 100 ml',category:'Timur Tengah',price:770000,img:'produk40.webp',desc:'Fresh sweet Middle Eastern dengan performa kuat.',notes:'Fresh - Sweet - Strong',status:'ready'}
     ];
 
     let cart = [];
@@ -781,7 +861,7 @@
         return `
           <article class="product-card">
             <div class="product-media">
-              <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)">
+              <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)" decoding="async" fetchpriority="low">
               <span class="tag ${sold ? 'sold' : ''}">${sold ? 'Sold' : escapeHTML(p.category)}</span>
             </div>
             <div class="product-body">
@@ -847,7 +927,7 @@
           if(!p) return '';
           return `
             <div class="cart-item">
-              <div class="cart-thumb"><img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)"></div>
+              <div class="cart-thumb"><img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)" decoding="async" fetchpriority="low"></div>
               <div>
                 <h3>${escapeHTML(p.title)}</h3>
                 <div class="line">${formatIDR(p.price)} × ${item.qty} = <strong>${formatIDR(p.price * item.qty)}</strong></div>
@@ -969,7 +1049,7 @@
       $('#quickTitle').textContent = p.title;
       $('#quickContent').innerHTML = `
         <div class="quick-grid">
-          <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" onerror="imageFallback(this)">
+          <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low">
           <div>
             <div class="eyebrow">${escapeHTML(p.category)}</div>
             <div class="quick-price">${formatIDR(p.price)}</div>
@@ -1291,5 +1371,118 @@
     renderCart();
     initCountUps();
   </script>
+
+<script id="github-pages-ultralight-js">
+(function(){
+  document.documentElement.classList.add('gp-ready');
+  function tuneImages(root){
+    (root||document).querySelectorAll('img').forEach(function(img, i){
+      if(!img.hasAttribute('decoding')) img.setAttribute('decoding','async');
+      if(!img.hasAttribute('loading')) img.setAttribute('loading', i < 2 ? 'eager' : 'lazy');
+      if(!img.hasAttribute('fetchpriority')) img.setAttribute('fetchpriority', i < 2 ? 'high' : 'low');
+    });
+  }
+  tuneImages(document);
+  if('MutationObserver' in window){
+    new MutationObserver(function(muts){
+      muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n.nodeType===1) tuneImages(n); }); });
+    }).observe(document.documentElement,{childList:true,subtree:true});
+  }
+})();
+</script>
+
+
+<script id="dirac-antilag-js">
+(function(){
+  var INITIAL = window.innerWidth <= 760 ? 8 : 12;
+  var STEP = window.innerWidth <= 760 ? 8 : 12;
+
+  function setupLoadMore(){
+    var grid = document.getElementById('productGrid');
+    if(!grid) return;
+
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.product-card'));
+    if(!cards.length) return;
+
+    var current = Number(grid.dataset.visibleCount || INITIAL);
+    current = Math.max(INITIAL, current);
+    grid.dataset.visibleCount = current;
+
+    cards.forEach(function(card, i){
+      card.style.display = i < current ? '' : 'none';
+      var img = card.querySelector('img');
+      if(img){
+        img.loading = i < 2 ? 'eager' : 'lazy';
+        img.decoding = 'async';
+        img.fetchPriority = i < 2 ? 'high' : 'low';
+      }
+    });
+
+    var wrap = document.getElementById('loadMoreWrap');
+    if(!wrap){
+      wrap = document.createElement('div');
+      wrap.id = 'loadMoreWrap';
+      wrap.className = 'load-more-wrap';
+      var btn = document.createElement('button');
+      btn.id = 'loadMoreProductsBtn';
+      btn.className = 'load-more-btn';
+      btn.type = 'button';
+      btn.textContent = 'Tampilkan produk lainnya';
+      btn.addEventListener('click', function(){
+        grid.dataset.visibleCount = Number(grid.dataset.visibleCount || INITIAL) + STEP;
+        setupLoadMore();
+      });
+      wrap.appendChild(btn);
+      grid.insertAdjacentElement('afterend', wrap);
+    }
+
+    var btn = document.getElementById('loadMoreProductsBtn');
+    if(btn){
+      btn.hidden = current >= cards.length;
+      var remaining = Math.max(0, cards.length - current);
+      btn.textContent = remaining > 0 ? 'Tampilkan produk lainnya (' + remaining + ')' : 'Semua produk tampil';
+    }
+  }
+
+  function resetLimit(){
+    var grid = document.getElementById('productGrid');
+    if(grid) grid.dataset.visibleCount = INITIAL;
+    setTimeout(setupLoadMore, 60);
+    setTimeout(setupLoadMore, 220);
+  }
+
+  function tuneImages(root){
+    (root || document).querySelectorAll('img').forEach(function(img, i){
+      if(!img.hasAttribute('loading')) img.loading = i < 2 ? 'eager' : 'lazy';
+      img.decoding = 'async';
+      img.fetchPriority = i < 2 ? 'high' : 'low';
+    });
+  }
+
+  tuneImages(document);
+  setupLoadMore();
+
+  ['searchInput','categoryFilter','sortFilter'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('input', resetLimit);
+    if(el) el.addEventListener('change', resetLimit);
+  });
+
+  var grid = document.getElementById('productGrid');
+  if(grid && 'MutationObserver' in window){
+    new MutationObserver(function(){
+      setupLoadMore();
+      tuneImages(grid);
+    }).observe(grid,{childList:true,subtree:true});
+  }
+
+  if('requestIdleCallback' in window){
+    requestIdleCallback(function(){ tuneImages(document); setupLoadMore(); });
+  }else{
+    setTimeout(function(){ tuneImages(document); setupLoadMore(); }, 500);
+  }
+})();
+</script>
+
 </body>
 </html>
