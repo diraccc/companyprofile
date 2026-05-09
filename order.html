@@ -117,7 +117,7 @@
         radial-gradient(circle at 50% 95%,rgba(214,166,66,.13),transparent 24rem);
       filter:blur(.2px)
     }
-    .hero-grid{position:relative;z-index:2;isolation:isolate;display:grid;grid-template-columns:1.1fr .9fr;gap:42px;align-items:center}
+    .hero-grid{position:relative;display:grid;grid-template-columns:1.1fr .9fr;gap:42px;align-items:center}
     .hero h1{font-family:"Playfair Display",serif;font-size:clamp(3rem,7.5vw,6.6rem);line-height:.92;margin:16px 0;color:#fff;letter-spacing:-.04em;text-wrap:balance}
     .hero h1 span{color:var(--gold)}
     .hero p{color:#d6dde8;max-width:650px;font-size:clamp(1rem,2vw,1.15rem);margin:0 0 24px}
@@ -187,15 +187,14 @@
     @media(max-width:430px){.container{width:min(var(--max),calc(100% - 22px))}.product-grid{grid-template-columns:1fr}.cart-item{grid-template-columns:62px 1fr auto}.cart-thumb{width:62px;height:68px}.toast{bottom:14px;border-radius:18px;white-space:normal;text-align:center}.hero h1{font-size:2.72rem}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
-
     /* =========================================================
-       Elegant Motion System - Dirac Parfum
-       Tujuan: animasi premium, halus, tidak berlebihan.
+       SAFE Elegant Motion System v2 - Dirac Parfum
+       Penting: animasi TIDAK BOLEH membuat konten blank.
+       Semua elemen utama tetap terlihat walaupun JS/animasi gagal.
        ========================================================= */
     :root{
       --motion-ease:cubic-bezier(.22,1,.36,1);
       --motion-ease-soft:cubic-bezier(.16,1,.3,1);
-      --motion-fast:220ms;
       --motion-mid:560ms;
       --motion-slow:900ms;
     }
@@ -204,7 +203,7 @@
       transition:background-color .35s var(--motion-ease),box-shadow .35s var(--motion-ease),border-color .35s var(--motion-ease),padding .35s var(--motion-ease),transform .35s var(--motion-ease),width .35s var(--motion-ease),height .35s var(--motion-ease),filter .35s var(--motion-ease);
     }
     .site-header.is-scrolled{
-      background:rgba(5,6,8,.92);
+      background:rgba(5,6,8,.94);
       box-shadow:0 18px 55px rgba(0,0,0,.34);
       border-bottom-color:rgba(243,205,112,.16);
     }
@@ -213,30 +212,42 @@
     .site-header.is-scrolled .brand-name{filter:drop-shadow(0 0 8px rgba(243,205,112,.18))}
     .site-header.is-scrolled .header-cart{padding-block:9px;box-shadow:0 12px 30px rgba(214,166,66,.18)}
 
+    .hero{isolation:isolate}
+    .hero:before{z-index:0;pointer-events:none}
     .hero:after{
       content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
-      background:linear-gradient(115deg,transparent 0%,rgba(255,255,255,.035) 38%,rgba(243,205,112,.08) 47%,transparent 58%);
-      transform:translateX(-130%);animation:heroLuxuryShine 8s ease-in-out 1s infinite;
+      background:linear-gradient(115deg,transparent 0%,rgba(255,255,255,.025) 38%,rgba(243,205,112,.055) 47%,transparent 58%);
+      transform:translateX(-130%);
+      animation:heroLuxuryShine 8s ease-in-out 1s infinite;
     }
+    .hero-grid{position:relative;z-index:2;isolation:isolate}
+    .hero-grid > *{position:relative;z-index:2}
     @keyframes heroLuxuryShine{0%,62%{transform:translateX(-130%)}82%,100%{transform:translateX(130%)}}
-    .hero:before,.hero:after{z-index:0}
-    .hero > .container,.hero-grid > *{position:relative;z-index:2}
+
+    /* Safe hero animation: tidak pernah memakai opacity:0, jadi tidak bisa blank. */
     .motion-ready .hero .eyebrow,
     .motion-ready .hero h1,
     .motion-ready .hero p,
     .motion-ready .hero .hero-actions,
     .motion-ready .hero .trust-row{
-      opacity:0;transform:translateY(18px);animation:heroTextIn .86s var(--motion-ease-soft) forwards;
+      animation:heroSafeIn .76s var(--motion-ease-soft) both;
     }
-    .motion-ready .hero h1{animation-delay:.10s}.motion-ready .hero p{animation-delay:.22s}.motion-ready .hero .hero-actions{animation-delay:.34s}.motion-ready .hero .trust-row{animation-delay:.46s}
-    @keyframes heroTextIn{to{opacity:1;transform:none}}
+    .motion-ready .hero h1{animation-delay:.06s}
+    .motion-ready .hero p{animation-delay:.12s}
+    .motion-ready .hero .hero-actions{animation-delay:.18s}
+    .motion-ready .hero .trust-row{animation-delay:.24s}
+    @keyframes heroSafeIn{from{transform:translateY(14px)}to{transform:translateY(0)}}
 
+    /* Safe scroll reveal: konten tetap terlihat, hanya sedikit geser lalu rapi. */
     .motion-ready [data-reveal]{
-      opacity:0;transform:translate3d(0,24px,0) scale(.985);filter:blur(2px);
-      transition:opacity var(--motion-slow) var(--motion-ease-soft),transform var(--motion-slow) var(--motion-ease-soft),filter var(--motion-slow) var(--motion-ease-soft);
-      transition-delay:var(--reveal-delay,0ms);will-change:opacity,transform,filter;
+      opacity:1!important;
+      filter:none!important;
+      transform:translate3d(0,16px,0) scale(.995);
+      transition:transform var(--motion-slow) var(--motion-ease-soft),box-shadow .35s var(--motion-ease),border-color .35s var(--motion-ease),background-color .35s var(--motion-ease);
+      transition-delay:var(--reveal-delay,0ms);
+      will-change:transform;
     }
-    .motion-ready [data-reveal].is-visible{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}
+    .motion-ready [data-reveal].is-visible{transform:translate3d(0,0,0) scale(1)}
 
     .product-card{transform-style:preserve-3d;will-change:transform,box-shadow,border-color}
     .product-card:hover{
@@ -260,8 +271,10 @@
       background:linear-gradient(100deg,rgba(255,255,255,.02) 0%,rgba(255,255,255,.09) 45%,rgba(243,205,112,.13) 55%,rgba(255,255,255,.02) 100%);
       background-size:220% 100%;animation:skeletonShimmer 1.45s linear infinite;
     }
-    .product-media img{backface-visibility:hidden}
-    .quick-grid img.is-loading-image{background-image:linear-gradient(100deg,rgba(255,255,255,.03),rgba(255,255,255,.10),rgba(243,205,112,.13),rgba(255,255,255,.03));background-size:220% 100%;animation:skeletonShimmer 1.45s linear infinite}
+    .quick-grid img.is-loading-image{
+      background-image:linear-gradient(100deg,rgba(255,255,255,.03),rgba(255,255,255,.10),rgba(243,205,112,.13),rgba(255,255,255,.03));
+      background-size:220% 100%;animation:skeletonShimmer 1.45s linear infinite;
+    }
     @keyframes skeletonShimmer{to{background-position:-220% 0}}
 
     .btn-primary,.btn-secondary,.btn-ghost,.header-cart,.floating-cart{position:relative;overflow:hidden;isolation:isolate}
@@ -277,7 +290,8 @@
     @keyframes cartBump{0%{transform:scale(1)}35%{transform:scale(1.14)}70%{transform:scale(.96)}100%{transform:scale(1)}}
     .fly-to-cart{
       position:fixed;z-index:13000;width:82px;height:82px;border-radius:18px;object-fit:cover;pointer-events:none;
-      box-shadow:0 18px 42px rgba(0,0,0,.38),0 0 0 1px rgba(243,205,112,.28);will-change:transform,opacity;
+      box-shadow:0 18px 42px rgba(0,0,0,.38),0 0 0 1px rgba(243,205,112,.28);
+      will-change:transform,opacity;
     }
 
     .cart-overlay{transition:opacity .28s var(--motion-ease),backdrop-filter .28s var(--motion-ease)}
@@ -286,8 +300,8 @@
     .cart-overlay.open .cart-head{animation:drawerFadeUp .44s var(--motion-ease-soft) both .06s}
     .cart-overlay.open .cart-footer{animation:drawerFadeUp .44s var(--motion-ease-soft) both .12s}
     .cart-overlay.open .cart-item{animation:cartItemIn .42s var(--motion-ease-soft) both;animation-delay:calc(.08s + (var(--item-i,0) * 58ms))}
-    @keyframes drawerFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-    @keyframes cartItemIn{from{opacity:0;transform:translateX(22px) scale(.98)}to{opacity:1;transform:none}}
+    @keyframes drawerFadeUp{from{opacity:.75;transform:translateY(12px)}to{opacity:1;transform:none}}
+    @keyframes cartItemIn{from{opacity:.75;transform:translateX(22px) scale(.98)}to{opacity:1;transform:none}}
     .qty-control button{transition:background-color .2s var(--motion-ease),transform .2s var(--motion-ease)}
     .qty-control button:hover{background:rgba(243,205,112,.10);transform:scale(1.06)}
     .cart-row.total strong{transition:filter .25s var(--motion-ease),transform .25s var(--motion-ease)}
@@ -298,7 +312,6 @@
     .stat-card:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(243,205,112,.20),transparent 56%);opacity:0;transition:opacity .45s var(--motion-ease);pointer-events:none}
     .stat-card.counter-complete{animation:statComplete .85s var(--motion-ease-soft)}
     .stat-card.counter-complete:after{opacity:1;animation:statGlowFade 1.3s var(--motion-ease-soft) forwards}
-    .stat-card span{transition:opacity .38s var(--motion-ease),transform .38s var(--motion-ease)}
     @keyframes statComplete{0%{transform:translateY(0)}40%{transform:translateY(-3px)}100%{transform:translateY(0)}}
     @keyframes statGlowFade{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
 
@@ -317,9 +330,9 @@
     .modal.open .modal-card{animation:modalCardIn .38s var(--motion-ease-soft) both}
     .modal.open .quick-grid img{animation:quickImageIn .48s var(--motion-ease-soft) both .08s}
     .modal.open .quick-grid > div{animation:quickCopyIn .50s var(--motion-ease-soft) both .14s}
-    @keyframes modalCardIn{from{opacity:0;transform:translateY(16px) scale(.965)}to{opacity:1;transform:none}}
-    @keyframes quickImageIn{from{opacity:0;transform:translateX(-18px) scale(.985)}to{opacity:1;transform:none}}
-    @keyframes quickCopyIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+    @keyframes modalCardIn{from{opacity:.82;transform:translateY(16px) scale(.965)}to{opacity:1;transform:none}}
+    @keyframes quickImageIn{from{opacity:.88;transform:translateX(-18px) scale(.985)}to{opacity:1;transform:none}}
+    @keyframes quickCopyIn{from{opacity:.88;transform:translateX(18px)}to{opacity:1;transform:none}}
 
     .faq-a{display:block!important;max-height:0;opacity:0;overflow:hidden;padding-top:0!important;padding-bottom:0!important;transition:max-height .44s var(--motion-ease-soft),opacity .34s var(--motion-ease),padding .34s var(--motion-ease)}
     .faq-item.open .faq-a{max-height:340px;opacity:1;padding:0 18px 18px!important}
@@ -329,15 +342,23 @@
     .faq-item.open{border-color:rgba(243,205,112,.34);box-shadow:0 16px 38px rgba(0,0,0,.20)}
 
     .toast.show{animation:toastLuxuryIn .32s var(--motion-ease-soft) both}
-    @keyframes toastLuxuryIn{from{opacity:0;transform:translate(-50%,18px) scale(.98)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+    @keyframes toastLuxuryIn{from{opacity:.2;transform:translate(-50%,18px) scale(.98)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
 
     @media(max-width:760px){
       .site-header.is-scrolled .brand-mark{width:46px;height:46px;border-radius:14px}
-      .motion-ready [data-reveal]{transform:translate3d(0,18px,0) scale(.99)}
+      .motion-ready [data-reveal]{transform:translate3d(0,12px,0) scale(.998)}
+      .motion-ready [data-reveal].is-visible{transform:none}
     }
     @media(prefers-reduced-motion:reduce){
-      .motion-ready [data-reveal],.motion-ready .hero .eyebrow,.motion-ready .hero h1,.motion-ready .hero p,.motion-ready .hero .hero-actions,.motion-ready .hero .trust-row{opacity:1!important;transform:none!important;filter:none!important;transition:none!important;animation:none!important}
-      .hero:after,.promo-box:before,.promo-code,.promo-box .btn-primary,.product-card:hover .product-media:before,.product-media.is-loading:after,.quick-grid img.is-loading-image{animation:none!important}
+      *,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+      .motion-ready [data-reveal],
+      .motion-ready .hero .eyebrow,
+      .motion-ready .hero h1,
+      .motion-ready .hero p,
+      .motion-ready .hero .hero-actions,
+      .motion-ready .hero .trust-row{
+        opacity:1!important;transform:none!important;filter:none!important;
+      }
       .fly-to-cart{display:none!important}
     }
 
@@ -1035,9 +1056,9 @@
     }
 
 
-
     /* =========================================================
-       Elegant Motion System JS
+       SAFE Elegant Motion JS v2
+       Semua efek dibuat fail-safe: bila observer/animasi gagal, konten tetap tampil.
        ========================================================= */
     (function(){
       const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1065,7 +1086,7 @@
       window.addEventListener('scroll', rafThrottle(updateHeader), {passive:true});
 
       function ensureRevealObserver(){
-        if(reduceMotion) return null;
+        if(reduceMotion || !('IntersectionObserver' in window)) return null;
         if(revealObserver) return revealObserver;
         revealObserver = new IntersectionObserver((entries, obs) => {
           entries.forEach(entry => {
@@ -1073,22 +1094,37 @@
             entry.target.classList.add('is-visible');
             obs.unobserve(entry.target);
           });
-        }, {threshold:.12, rootMargin:'0px 0px -7% 0px'});
+        }, {threshold:.08, rootMargin:'0px 0px -5% 0px'});
         return revealObserver;
       }
 
       function refreshRevealTargets(root=document){
-        if(reduceMotion) return;
-        const obs = ensureRevealObserver();
         const els = Array.from(root.querySelectorAll(motionTargets));
+        const obs = ensureRevealObserver();
         els.forEach((el, index) => {
           if(el.dataset.revealBound === 'true') return;
-          el.dataset.reveal = '';
+          el.dataset.reveal = 'true';
           el.dataset.revealBound = 'true';
-          el.style.setProperty('--reveal-delay', `${Math.min((index % 8) * 55, 330)}ms`);
-          obs.observe(el);
+          el.style.setProperty('--reveal-delay', `${Math.min((index % 8) * 45, 270)}ms`);
+          if(reduceMotion || !obs){
+            el.classList.add('is-visible');
+            return;
+          }
+          const rect = el.getBoundingClientRect();
+          if(rect.top < window.innerHeight * .96 && rect.bottom > 0){
+            el.classList.add('is-visible');
+          } else {
+            obs.observe(el);
+          }
         });
       }
+
+      // Safety net: jangan pernah biarkan reveal menggantung.
+      function forceRevealAll(){
+        document.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-visible'));
+      }
+      window.addEventListener('pageshow', () => setTimeout(forceRevealAll, 900));
+      setTimeout(forceRevealAll, 1800);
 
       function prepareImageLoading(root=document){
         root.querySelectorAll('.product-media img').forEach(img => {
@@ -1115,8 +1151,7 @@
       }
 
       function bumpCart(){
-        const targets = document.querySelectorAll('[data-open-cart], [data-cart-count]');
-        targets.forEach(el => {
+        document.querySelectorAll('[data-open-cart], [data-cart-count]').forEach(el => {
           el.classList.remove('cart-bump');
           void el.offsetWidth;
           el.classList.add('cart-bump');
@@ -1127,12 +1162,12 @@
       function flyToCart(button){
         if(reduceMotion) return;
         const card = button.closest('.product-card');
-        const img = card?.querySelector('.product-media img');
+        const img = card && card.querySelector('.product-media img');
         const target = document.querySelector('[data-open-cart]');
         if(!img || !target) return;
         const from = img.getBoundingClientRect();
         const to = target.getBoundingClientRect();
-        if(!from.width || !to.width) return;
+        if(!from.width || !from.height || !to.width) return;
         const clone = img.cloneNode(true);
         clone.className = 'fly-to-cart';
         clone.removeAttribute('loading');
@@ -1179,66 +1214,76 @@
         }
       }
 
-      // Ganti counter lama dengan versi yang lebih halus dan memberi glow saat selesai.
-      animateCount = function(el){
-        const target = Number(el.dataset.target || 0);
-        const suffix = el.dataset.suffix || '';
-        const duration = Number(el.dataset.duration || 2100);
-        const formatter = new Intl.NumberFormat('id-ID');
-        const start = performance.now();
-        const card = el.closest('.stat-card');
-        function frame(now){
-          const raw = Math.min(1, (now - start) / duration);
-          const eased = 1 - Math.pow(1 - raw, 3.2);
-          const value = Math.round(target * eased);
-          el.textContent = formatter.format(value) + suffix;
-          if(raw < 1){
-            requestAnimationFrame(frame);
-          } else {
-            el.textContent = formatter.format(target) + suffix;
-            if(card){
-              card.classList.remove('counter-complete');
-              void card.offsetWidth;
-              card.classList.add('counter-complete');
+      if(typeof animateCount === 'function'){
+        animateCount = function(el){
+          const target = Number(el.dataset.target || 0);
+          const suffix = el.dataset.suffix || '';
+          const duration = Number(el.dataset.duration || 2100);
+          const formatter = new Intl.NumberFormat('id-ID');
+          const start = performance.now();
+          const card = el.closest('.stat-card');
+          function frame(now){
+            const raw = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - raw, 3.2);
+            const value = Math.round(target * eased);
+            el.textContent = formatter.format(value) + suffix;
+            if(raw < 1){
+              requestAnimationFrame(frame);
+            } else {
+              el.textContent = formatter.format(target) + suffix;
+              if(card){
+                card.classList.remove('counter-complete');
+                void card.offsetWidth;
+                card.classList.add('counter-complete');
+              }
             }
           }
-        }
-        requestAnimationFrame(frame);
-      };
+          requestAnimationFrame(frame);
+        };
+      }
 
-      const originalRenderProducts = renderProducts;
-      renderProducts = function(){
-        originalRenderProducts();
-        requestAnimationFrame(() => {
-          prepareImageLoading(document);
-          refreshRevealTargets(document);
-        });
-      };
+      if(typeof renderProducts === 'function'){
+        const originalRenderProducts = renderProducts;
+        renderProducts = function(){
+          originalRenderProducts();
+          requestAnimationFrame(() => {
+            prepareImageLoading(document);
+            refreshRevealTargets(document);
+          });
+        };
+      }
 
-      const originalRenderCart = renderCart;
-      renderCart = function(){
-        originalRenderCart();
-        requestAnimationFrame(indexCartItems);
-      };
+      if(typeof renderCart === 'function'){
+        const originalRenderCart = renderCart;
+        renderCart = function(){
+          originalRenderCart();
+          requestAnimationFrame(indexCartItems);
+        };
+      }
 
-      const originalOpenCart = openCart;
-      openCart = function(){
-        originalOpenCart();
-        requestAnimationFrame(indexCartItems);
-      };
+      if(typeof openCart === 'function'){
+        const originalOpenCart = openCart;
+        openCart = function(){
+          originalOpenCart();
+          requestAnimationFrame(indexCartItems);
+        };
+      }
 
-      const originalOpenQuick = openQuick;
-      openQuick = function(id){
-        originalOpenQuick(id);
-        requestAnimationFrame(() => {
-          prepareImageLoading(document);
-          refreshRevealTargets(document);
-        });
-      };
+      if(typeof openQuick === 'function'){
+        const originalOpenQuick = openQuick;
+        openQuick = function(id){
+          originalOpenQuick(id);
+          requestAnimationFrame(() => {
+            prepareImageLoading(document);
+            refreshRevealTargets(document);
+          });
+        };
+      }
 
       refreshRevealTargets(document);
       prepareImageLoading(document);
     })();
+
 
     loadCart();
     renderCategoryOptions();
