@@ -1,1470 +1,644 @@
 <!DOCTYPE html>
-
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DIRAC GROUP — Parfum</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --gold: #c9a84c;
-    --gold-light: #e8c97a;
-    --gold-dim: #8a6d2f;
-    --black: #0a0a0a;
-    --dark: #111111;
-    --dark2: #1a1a1a;
-    --dark3: #222222;
-    --cream: #f5f0e8;
-    --cream2: #ede7d9;
-    --text: #d4cfc6;
-    --text-dim: #7a7570;
-    --niche: #9b7fd4;
-    --designer: #4a9b8c;
-    --timteng: #c47a3a;
-    --lokal: #4a8a5a;
-  }
-
-- { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-background: var(–black);
-color: var(–text);
-font-family: ‘Jost’, sans-serif;
-font-weight: 300;
-min-height: 100vh;
-overflow-x: hidden;
-}
-
-/* GRAIN OVERLAY */
-body::before {
-content: ‘’;
-position: fixed;
-inset: 0;
-background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
-pointer-events: none;
-z-index: 9999;
-opacity: 0.4;
-}
-
-/* HEADER */
-header {
-position: sticky;
-top: 0;
-z-index: 100;
-background: rgba(10,10,10,0.92);
-backdrop-filter: blur(20px);
-border-bottom: 1px solid rgba(201,168,76,0.15);
-padding: 0 40px;
-display: flex;
-align-items: center;
-justify-content: space-between;
-height: 72px;
-}
-
-.logo {
-font-family: ‘Cormorant Garamond’, serif;
-font-weight: 300;
-font-size: 22px;
-letter-spacing: 8px;
-color: var(–gold);
-text-transform: uppercase;
-}
-
-.logo span {
-font-style: italic;
-color: var(–gold-light);
-}
-
-.header-right {
-display: flex;
-align-items: center;
-gap: 32px;
-}
-
-.cart-btn {
-background: none;
-border: 1px solid rgba(201,168,76,0.4);
-color: var(–gold);
-padding: 10px 24px;
-cursor: pointer;
-font-family: ‘Jost’, sans-serif;
-font-size: 11px;
-letter-spacing: 3px;
-text-transform: uppercase;
-transition: all 0.3s ease;
-display: flex;
-align-items: center;
-gap: 10px;
-position: relative;
-}
-
-.cart-btn:hover {
-background: rgba(201,168,76,0.1);
-border-color: var(–gold);
-}
-
-.cart-count {
-background: var(–gold);
-color: var(–black);
-border-radius: 50%;
-width: 20px;
-height: 20px;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 10px;
-font-weight: 500;
-transition: transform 0.3s ease;
-}
-
-.cart-count.bump {
-transform: scale(1.4);
-}
-
-/* HERO */
-.hero {
-padding: 100px 40px 60px;
-text-align: center;
-position: relative;
-}
-
-.hero::after {
-content: ‘’;
-position: absolute;
-top: 0; left: 50%;
-transform: translateX(-50%);
-width: 1px;
-height: 60px;
-background: linear-gradient(to bottom, transparent, var(–gold));
-}
-
-.hero-eyebrow {
-font-size: 10px;
-letter-spacing: 6px;
-text-transform: uppercase;
-color: var(–gold);
-margin-bottom: 20px;
-}
-
-.hero-title {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: clamp(48px, 8vw, 90px);
-font-weight: 300;
-line-height: 1;
-color: var(–cream);
-margin-bottom: 16px;
-}
-
-.hero-title em {
-font-style: italic;
-color: var(–gold);
-}
-
-.hero-sub {
-font-size: 12px;
-letter-spacing: 4px;
-color: var(–text-dim);
-text-transform: uppercase;
-}
-
-/* FILTER TABS */
-.filter-section {
-padding: 40px 40px 20px;
-display: flex;
-align-items: center;
-gap: 0;
-overflow-x: auto;
-scrollbar-width: none;
-}
-
-.filter-section::-webkit-scrollbar { display: none; }
-
-.filter-tab {
-background: none;
-border: none;
-border-bottom: 2px solid transparent;
-color: var(–text-dim);
-padding: 12px 28px;
-cursor: pointer;
-font-family: ‘Jost’, sans-serif;
-font-size: 11px;
-letter-spacing: 3px;
-text-transform: uppercase;
-transition: all 0.3s ease;
-white-space: nowrap;
-position: relative;
-}
-
-.filter-tab::before {
-content: ‘’;
-position: absolute;
-left: 0; top: 50%;
-transform: translateY(-50%);
-width: 6px;
-height: 6px;
-border-radius: 50%;
-opacity: 0;
-transition: opacity 0.3s;
-}
-
-.filter-tab.all::before { background: var(–gold); }
-.filter-tab.niche::before { background: var(–niche); }
-.filter-tab.designer::before { background: var(–designer); }
-.filter-tab.timteng::before { background: var(–timteng); }
-.filter-tab.lokal::before { background: var(–lokal); }
-
-.filter-tab.active::before { opacity: 1; left: 8px; }
-.filter-tab.active { padding-left: 24px; }
-
-.filter-tab.active, .filter-tab:hover { color: var(–cream); }
-.filter-tab.all.active { border-color: var(–gold); color: var(–gold); }
-.filter-tab.niche.active { border-color: var(–niche); color: var(–niche); }
-.filter-tab.designer.active { border-color: var(–designer); color: var(–designer); }
-.filter-tab.timteng.active { border-color: var(–timteng); color: var(–timteng); }
-.filter-tab.lokal.active { border-color: var(–lokal); color: var(–lokal); }
-
-.divider-line {
-height: 1px;
-background: linear-gradient(to right, transparent, rgba(201,168,76,0.2), transparent);
-margin: 0 40px 40px;
-}
-
-/* GRID */
-.products-grid {
-padding: 0 40px 60px;
-display: grid;
-grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-gap: 24px;
-}
-
-/* PRODUCT CARD */
-.product-card {
-background: var(–dark);
-border: 1px solid rgba(255,255,255,0.06);
-position: relative;
-overflow: hidden;
-cursor: pointer;
-transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-border-color 0.4s ease,
-box-shadow 0.4s ease;
-animation: fadeUp 0.6s ease both;
-}
-
-@keyframes fadeUp {
-from { opacity: 0; transform: translateY(30px); }
-to { opacity: 1; transform: translateY(0); }
-}
-
-.product-card:hover {
-transform: translateY(-6px);
-border-color: rgba(201,168,76,0.3);
-box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.1);
-}
-
-/* CATEGORY LABEL */
-.category-label {
-position: absolute;
-top: 16px;
-left: 16px;
-padding: 4px 12px;
-font-size: 9px;
-letter-spacing: 3px;
-text-transform: uppercase;
-font-weight: 500;
-z-index: 2;
-}
-
-.category-label.niche {
-background: rgba(155,127,212,0.15);
-color: var(–niche);
-border: 1px solid rgba(155,127,212,0.3);
-}
-
-.category-label.designer {
-background: rgba(74,155,140,0.15);
-color: var(–designer);
-border: 1px solid rgba(74,155,140,0.3);
-}
-
-.category-label.timteng {
-background: rgba(196,122,58,0.15);
-color: var(–timteng);
-border: 1px solid rgba(196,122,58,0.3);
-}
-
-.category-label.lokal {
-background: rgba(74,138,90,0.15);
-color: var(–lokal);
-border: 1px solid rgba(74,138,90,0.3);
-}
-
-/* IMAGE AREA */
-.card-image {
-width: 100%;
-aspect-ratio: 3/4;
-overflow: hidden;
-background: var(–dark2);
-position: relative;
-}
-
-.card-image img {
-width: 100%;
-height: 100%;
-object-fit: cover;
-transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-display: block;
-}
-
-.card-image .img-placeholder {
-width: 100%;
-height: 100%;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 12px;
-color: var(–text-dim);
-font-size: 11px;
-letter-spacing: 2px;
-text-transform: uppercase;
-}
-
-.img-placeholder svg {
-opacity: 0.2;
-}
-
-.product-card:hover .card-image img {
-transform: scale(1.06);
-}
-
-/* SHIMMER EFFECT */
-.card-image::after {
-content: ‘’;
-position: absolute;
-inset: 0;
-background: linear-gradient(135deg, transparent 40%, rgba(201,168,76,0.04) 50%, transparent 60%);
-transform: translateX(-100%);
-transition: transform 0.8s ease;
-}
-
-.product-card:hover .card-image::after {
-transform: translateX(100%);
-}
-
-/* CARD BODY */
-.card-body {
-padding: 20px 20px 16px;
-border-top: 1px solid rgba(255,255,255,0.05);
-}
-
-.card-brand {
-font-size: 9px;
-letter-spacing: 4px;
-color: var(–text-dim);
-text-transform: uppercase;
-margin-bottom: 6px;
-}
-
-.card-name {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 20px;
-font-weight: 400;
-color: var(–cream);
-line-height: 1.2;
-margin-bottom: 8px;
-}
-
-.card-desc {
-font-size: 11px;
-color: var(–text-dim);
-line-height: 1.6;
-margin-bottom: 16px;
-}
-
-/* CARD FOOTER */
-.card-footer {
-display: flex;
-align-items: center;
-justify-content: space-between;
-padding: 14px 20px;
-background: rgba(255,255,255,0.02);
-border-top: 1px solid rgba(255,255,255,0.05);
-}
-
-.card-price {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 22px;
-font-weight: 300;
-color: var(–gold);
-}
-
-.card-price .currency {
-font-size: 12px;
-font-family: ‘Jost’, sans-serif;
-font-weight: 300;
-letter-spacing: 1px;
-color: var(–gold-dim);
-vertical-align: super;
-margin-right: 2px;
-}
-
-.add-btn {
-background: none;
-border: 1px solid rgba(201,168,76,0.35);
-color: var(–gold);
-width: 38px;
-height: 38px;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-transition: all 0.3s ease;
-font-size: 20px;
-line-height: 1;
-}
-
-.add-btn:hover {
-background: var(–gold);
-color: var(–black);
-border-color: var(–gold);
-transform: rotate(90deg);
-}
-
-.add-btn.added {
-background: var(–gold);
-color: var(–black);
-border-color: var(–gold);
-transform: scale(0.9);
-}
-
-/* CART SIDEBAR */
-.cart-overlay {
-position: fixed;
-inset: 0;
-background: rgba(0,0,0,0.6);
-z-index: 998;
-opacity: 0;
-pointer-events: none;
-transition: opacity 0.4s ease;
-backdrop-filter: blur(4px);
-}
-
-.cart-overlay.open { opacity: 1; pointer-events: all; }
-
-.cart-sidebar {
-position: fixed;
-top: 0; right: 0;
-width: 420px;
-max-width: 100vw;
-height: 100vh;
-background: var(–dark);
-z-index: 999;
-transform: translateX(100%);
-transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-display: flex;
-flex-direction: column;
-border-left: 1px solid rgba(201,168,76,0.1);
-}
-
-.cart-sidebar.open { transform: translateX(0); }
-
-.cart-header {
-padding: 28px 28px 20px;
-border-bottom: 1px solid rgba(255,255,255,0.07);
-display: flex;
-align-items: center;
-justify-content: space-between;
-}
-
-.cart-title {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 24px;
-font-weight: 300;
-color: var(–cream);
-letter-spacing: 2px;
-}
-
-.cart-close {
-background: none;
-border: 1px solid rgba(255,255,255,0.1);
-color: var(–text-dim);
-width: 36px;
-height: 36px;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-transition: all 0.3s;
-font-size: 18px;
-}
-
-.cart-close:hover { border-color: var(–gold); color: var(–gold); }
-
-.cart-items {
-flex: 1;
-overflow-y: auto;
-padding: 20px 28px;
-scrollbar-width: thin;
-scrollbar-color: rgba(201,168,76,0.2) transparent;
-}
-
-.cart-empty {
-height: 100%;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 16px;
-color: var(–text-dim);
-}
-
-.cart-empty-icon {
-font-size: 48px;
-opacity: 0.2;
-}
-
-.cart-empty p {
-font-size: 12px;
-letter-spacing: 2px;
-text-transform: uppercase;
-}
-
-/* CART ITEM */
-.cart-item {
-display: flex;
-gap: 16px;
-padding: 16px 0;
-border-bottom: 1px solid rgba(255,255,255,0.05);
-animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-from { opacity: 0; transform: translateX(20px); }
-to { opacity: 1; transform: translateX(0); }
-}
-
-.cart-item-img {
-width: 64px;
-height: 80px;
-background: var(–dark2);
-overflow: hidden;
-flex-shrink: 0;
-border: 1px solid rgba(255,255,255,0.05);
-}
-
-.cart-item-img img {
-width: 100%;
-height: 100%;
-object-fit: cover;
-}
-
-.cart-item-img .no-img {
-width: 100%;
-height: 100%;
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 20px;
-color: var(–text-dim);
-opacity: 0.3;
-}
-
-.cart-item-info { flex: 1; }
-
-.cart-item-cat {
-font-size: 8px;
-letter-spacing: 3px;
-text-transform: uppercase;
-margin-bottom: 4px;
-}
-
-.cart-item-cat.niche { color: var(–niche); }
-.cart-item-cat.designer { color: var(–designer); }
-.cart-item-cat.timteng { color: var(–timteng); }
-.cart-item-cat.lokal { color: var(–lokal); }
-
-.cart-item-name {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 16px;
-color: var(–cream);
-margin-bottom: 2px;
-}
-
-.cart-item-brand {
-font-size: 10px;
-color: var(–text-dim);
-letter-spacing: 1px;
-margin-bottom: 10px;
-}
-
-.cart-item-bottom {
-display: flex;
-align-items: center;
-justify-content: space-between;
-}
-
-.qty-controls {
-display: flex;
-align-items: center;
-gap: 0;
-border: 1px solid rgba(255,255,255,0.1);
-}
-
-.qty-btn {
-background: none;
-border: none;
-color: var(–text-dim);
-width: 28px;
-height: 28px;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-transition: all 0.2s;
-font-size: 14px;
-}
-
-.qty-btn:hover { background: rgba(201,168,76,0.1); color: var(–gold); }
-
-.qty-num {
-width: 32px;
-text-align: center;
-font-size: 13px;
-color: var(–cream);
-border-left: 1px solid rgba(255,255,255,0.1);
-border-right: 1px solid rgba(255,255,255,0.1);
-line-height: 28px;
-}
-
-.cart-item-price {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 17px;
-color: var(–gold);
-}
-
-.cart-item-remove {
-background: none;
-border: none;
-color: var(–text-dim);
-cursor: pointer;
-font-size: 12px;
-letter-spacing: 1px;
-transition: color 0.2s;
-padding: 2px 0;
-text-transform: uppercase;
-}
-
-.cart-item-remove:hover { color: #ff6b6b; }
-
-/* CART FOOTER */
-.cart-footer {
-padding: 20px 28px 32px;
-border-top: 1px solid rgba(255,255,255,0.07);
-}
-
-.cart-subtotal {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 6px;
-}
-
-.subtotal-label {
-font-size: 10px;
-letter-spacing: 3px;
-text-transform: uppercase;
-color: var(–text-dim);
-}
-
-.subtotal-value {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 26px;
-color: var(–gold);
-}
-
-.cart-items-count {
-font-size: 10px;
-color: var(–text-dim);
-letter-spacing: 1px;
-margin-bottom: 20px;
-}
-
-.order-btn {
-width: 100%;
-background: var(–gold);
-border: none;
-color: var(–black);
-padding: 16px;
-font-family: ‘Jost’, sans-serif;
-font-size: 11px;
-letter-spacing: 4px;
-text-transform: uppercase;
-cursor: pointer;
-transition: all 0.3s ease;
-font-weight: 500;
-margin-bottom: 10px;
-}
-
-.order-btn:hover {
-background: var(–gold-light);
-transform: translateY(-1px);
-box-shadow: 0 8px 30px rgba(201,168,76,0.25);
-}
-
-.order-btn:active { transform: translateY(0); }
-
-.clear-btn {
-width: 100%;
-background: none;
-border: 1px solid rgba(255,255,255,0.1);
-color: var(–text-dim);
-padding: 12px;
-font-family: ‘Jost’, sans-serif;
-font-size: 10px;
-letter-spacing: 3px;
-text-transform: uppercase;
-cursor: pointer;
-transition: all 0.3s;
-}
-
-.clear-btn:hover { border-color: rgba(255,100,100,0.4); color: #ff6b6b; }
-
-/* HIDDEN */
-.product-card.hidden { display: none; }
-
-/* TOAST */
-.toast {
-position: fixed;
-bottom: 40px;
-left: 50%;
-transform: translateX(-50%) translateY(20px);
-background: var(–dark3);
-border: 1px solid rgba(201,168,76,0.3);
-color: var(–gold);
-padding: 12px 28px;
-font-size: 11px;
-letter-spacing: 3px;
-text-transform: uppercase;
-z-index: 9998;
-opacity: 0;
-transition: all 0.4s ease;
-pointer-events: none;
-}
-
-.toast.show {
-opacity: 1;
-transform: translateX(-50%) translateY(0);
-}
-
-/* FOOTER */
-footer {
-border-top: 1px solid rgba(255,255,255,0.05);
-padding: 40px;
-text-align: center;
-}
-
-.footer-logo {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 16px;
-letter-spacing: 8px;
-color: var(–gold-dim);
-text-transform: uppercase;
-margin-bottom: 8px;
-}
-
-.footer-sub {
-font-size: 9px;
-letter-spacing: 3px;
-color: var(–text-dim);
-text-transform: uppercase;
-}
-
-/* MODAL ORDER */
-.modal-overlay {
-position: fixed;
-inset: 0;
-background: rgba(0,0,0,0.85);
-z-index: 1000;
-opacity: 0;
-pointer-events: none;
-transition: opacity 0.4s;
-backdrop-filter: blur(8px);
-display: flex;
-align-items: center;
-justify-content: center;
-padding: 20px;
-}
-
-.modal-overlay.open { opacity: 1; pointer-events: all; }
-
-.modal {
-background: var(–dark);
-border: 1px solid rgba(201,168,76,0.2);
-width: 100%;
-max-width: 500px;
-padding: 40px;
-animation: modalIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-@keyframes modalIn {
-from { transform: scale(0.95) translateY(20px); opacity: 0; }
-to { transform: scale(1) translateY(0); opacity: 1; }
-}
-
-.modal-title {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 30px;
-color: var(–cream);
-margin-bottom: 6px;
-}
-
-.modal-sub {
-font-size: 10px;
-letter-spacing: 2px;
-color: var(–text-dim);
-text-transform: uppercase;
-margin-bottom: 28px;
-}
-
-.modal-divider {
-height: 1px;
-background: rgba(255,255,255,0.07);
-margin-bottom: 24px;
-}
-
-.order-summary {
-max-height: 200px;
-overflow-y: auto;
-margin-bottom: 24px;
-scrollbar-width: thin;
-scrollbar-color: rgba(201,168,76,0.2) transparent;
-}
-
-.order-summary-item {
-display: flex;
-justify-content: space-between;
-padding: 8px 0;
-border-bottom: 1px solid rgba(255,255,255,0.04);
-font-size: 13px;
-}
-
-.order-summary-item:last-child { border: none; }
-
-.order-item-name { color: var(–cream); }
-.order-item-qty { color: var(–text-dim); }
-.order-item-subtotal { color: var(–gold); font-family: ‘Cormorant Garamond’, serif; font-size: 16px; }
-
-.order-total-row {
-display: flex;
-justify-content: space-between;
-align-items: center;
-padding: 16px 0 0;
-border-top: 1px solid rgba(201,168,76,0.2);
-margin-bottom: 24px;
-}
-
-.order-total-label {
-font-size: 10px;
-letter-spacing: 3px;
-text-transform: uppercase;
-color: var(–text-dim);
-}
-
-.order-total-val {
-font-family: ‘Cormorant Garamond’, serif;
-font-size: 30px;
-color: var(–gold);
-}
-
-.modal-field {
-margin-bottom: 16px;
-}
-
-.modal-label {
-font-size: 9px;
-letter-spacing: 3px;
-text-transform: uppercase;
-color: var(–text-dim);
-display: block;
-margin-bottom: 8px;
-}
-
-.modal-input {
-width: 100%;
-background: var(–dark2);
-border: 1px solid rgba(255,255,255,0.08);
-color: var(–cream);
-padding: 12px 16px;
-font-family: ‘Jost’, sans-serif;
-font-size: 13px;
-outline: none;
-transition: border-color 0.3s;
-}
-
-.modal-input:focus { border-color: rgba(201,168,76,0.4); }
-.modal-input::placeholder { color: var(–text-dim); }
-
-.modal-textarea {
-resize: vertical;
-min-height: 80px;
-}
-
-.modal-actions {
-display: flex;
-gap: 12px;
-margin-top: 24px;
-}
-
-.modal-cancel {
-flex: 1;
-background: none;
-border: 1px solid rgba(255,255,255,0.1);
-color: var(–text-dim);
-padding: 14px;
-cursor: pointer;
-font-family: ‘Jost’, sans-serif;
-font-size: 11px;
-letter-spacing: 3px;
-text-transform: uppercase;
-transition: all 0.3s;
-}
-
-.modal-cancel:hover { border-color: rgba(255,255,255,0.3); color: var(–cream); }
-
-.modal-confirm {
-flex: 2;
-background: #25d366;
-border: none;
-color: #fff;
-padding: 14px;
-cursor: pointer;
-font-family: ‘Jost’, sans-serif;
-font-size: 11px;
-letter-spacing: 3px;
-text-transform: uppercase;
-transition: all 0.3s;
-display: flex;
-align-items: center;
-justify-content: center;
-gap: 8px;
-}
-
-.modal-confirm:hover {
-background: #20b858;
-transform: translateY(-1px);
-box-shadow: 0 8px 24px rgba(37,211,102,0.3);
-}
-
-/* CATEGORY LEGEND */
-.legend {
-display: flex;
-gap: 20px;
-padding: 0 40px 30px;
-flex-wrap: wrap;
-}
-
-.legend-item {
-display: flex;
-align-items: center;
-gap: 8px;
-font-size: 10px;
-letter-spacing: 2px;
-text-transform: uppercase;
-color: var(–text-dim);
-}
-
-.legend-dot {
-width: 8px; height: 8px;
-border-radius: 50%;
-}
-
-.legend-dot.niche { background: var(–niche); }
-.legend-dot.designer { background: var(–designer); }
-.legend-dot.timteng { background: var(–timteng); }
-.legend-dot.lokal { background: var(–lokal); }
-
-@media (max-width: 600px) {
-header { padding: 0 20px; }
-.hero { padding: 80px 20px 40px; }
-.filter-section { padding: 20px 20px 10px; }
-.legend { padding: 0 20px 20px; }
-.products-grid { padding: 0 20px 40px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-.cart-sidebar { width: 100vw; }
-.divider-line { margin: 0 20px 20px; }
-footer { padding: 30px 20px; }
-}
-</style>
-
-</head>
-<body>
-
-<!-- HEADER -->
-
-<header>
-  <div class="logo">Dirac <span>Group</span></div>
-  <div class="header-right">
-    <button class="cart-btn" onclick="openCart()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 01-8 0"/>
-      </svg>
-      Keranjang
-      <span class="cart-count" id="cartCount">0</span>
-    </button>
-  </div>
-</header>
-
-<!-- HERO -->
-
-<section class="hero">
-  <p class="hero-eyebrow">Koleksi Eksklusif</p>
-  <h1 class="hero-title">The Art of<br><em>Fragrance</em></h1>
-  <p class="hero-sub">Niche · Designer · Timur Tengah · Lokal</p>
-</section>
-
-<!-- LEGEND -->
-
-<div class="legend">
-  <div class="legend-item"><span class="legend-dot niche"></span> Niche</div>
-  <div class="legend-item"><span class="legend-dot designer"></span> Designer</div>
-  <div class="legend-item"><span class="legend-dot timteng"></span> Timur Tengah</div>
-  <div class="legend-item"><span class="legend-dot lokal"></span> Lokal</div>
-</div>
-
-<!-- FILTERS -->
-
-<div class="filter-section">
-  <button class="filter-tab all active" onclick="filterProducts('all', this)">Semua</button>
-  <button class="filter-tab niche" onclick="filterProducts('niche', this)">Niche</button>
-  <button class="filter-tab designer" onclick="filterProducts('designer', this)">Designer</button>
-  <button class="filter-tab timteng" onclick="filterProducts('timteng', this)">Timur Tengah</button>
-  <button class="filter-tab lokal" onclick="filterProducts('lokal', this)">Lokal</button>
-</div>
-
-<div class="divider-line"></div>
-
-<!-- PRODUCTS -->
-
-<div class="products-grid" id="productsGrid"></div>
-
-<!-- FOOTER -->
-
-<footer>
-  <div class="footer-logo">Dirac Group</div>
-  <div class="footer-sub">Premium Fragrance House</div>
-</footer>
-
-<!-- CART OVERLAY -->
-
-<div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
-
-<!-- CART SIDEBAR -->
-
-<div class="cart-sidebar" id="cartSidebar">
-  <div class="cart-header">
-    <div class="cart-title">Keranjang</div>
-    <button class="cart-close" onclick="closeCart()">✕</button>
-  </div>
-  <div class="cart-items" id="cartItems"></div>
-  <div class="cart-footer" id="cartFooter" style="display:none">
-    <div class="cart-subtotal">
-      <span class="subtotal-label">Total</span>
-      <span class="subtotal-value" id="cartTotal">Rp 0</span>
-    </div>
-    <div class="cart-items-count" id="cartItemsCount"></div>
-    <button class="order-btn" onclick="openOrder()">Pesan via WhatsApp</button>
-    <button class="clear-btn" onclick="clearCart()">Kosongkan Keranjang</button>
-  </div>
-</div>
-
-<!-- ORDER MODAL -->
-
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-title">Konfirmasi Pesanan</div>
-    <div class="modal-sub">Dirac Group · Premium Fragrance</div>
-    <div class="modal-divider"></div>
-    <div class="order-summary" id="orderSummary"></div>
-    <div class="order-total-row">
-      <span class="order-total-label">Total Pembayaran</span>
-      <span class="order-total-val" id="modalTotal"></span>
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Nama Lengkap</label>
-      <input class="modal-input" id="buyerName" type="text" placeholder="Masukkan nama kamu">
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Nomor WhatsApp</label>
-      <input class="modal-input" id="buyerPhone" type="tel" placeholder="08xxxxxxxxxx">
-    </div>
-    <div class="modal-field">
-      <label class="modal-label">Catatan (opsional)</label>
-      <textarea class="modal-input modal-textarea" id="buyerNote" placeholder="Alamat / catatan pengiriman..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeModal()">Batal</button>
-      <button class="modal-confirm" onclick="sendWhatsApp()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-        Kirim Pesanan
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
-
-<div class="toast" id="toast"></div>
-
-<script>
-// =============================================
-// KONFIGURASI PRODUK
-// Cara ganti gambar: simpan file gambar di folder yang sama,
-// lalu ubah nilai "image" menjadi nama file gambar kamu
-// Contoh: "image": "parfum-creed.jpg"
-// Jika tidak ada gambar, biarkan "image": ""
-// =============================================
-const products = [
-  // ---------- NICHE ----------
-  {
-    id: 1, category: "niche",
-    brand: "Creed",
-    name: "Aventus",
-    desc: "Buah nanas segar, blackcurrant, birch asap & musk. Ikon maskulinitas modern.",
-    price: 2800000,
-    image: "" // ganti: "creed-aventus.jpg"
-  },
-  {
-    id: 2, category: "niche",
-    brand: "Maison Margiela",
-    name: "Replica Jazz Club",
-    desc: "Rum, teh hitam, tobacco & vanilla. Suasana klub jazz malam hari.",
-    price: 1900000,
-    image: "" // ganti: "replica-jazz.jpg"
-  },
-  {
-    id: 3, category: "niche",
-    brand: "Le Labo",
-    name: "Santal 33",
-    desc: "Sandalwood, iris, cedarwood & violet. Androgini, hangat, dan adiktif.",
-    price: 2500000,
-    image: "" // ganti: "santal33.jpg"
-  },
-
-  // ---------- DESIGNER ----------
-  {
-    id: 4, category: "designer",
-    brand: "Dior",
-    name: "Sauvage EDP",
-    desc: "Bergamot Calabria, ambroxan & vanilla. Kuat, elegan, maskulin.",
-    price: 1500000,
-    image: "" // ganti: "dior-sauvage.jpg"
-  },
-  {
-    id: 5, category: "designer",
-    brand: "Chanel",
-    name: "Bleu de Chanel",
-    desc: "Citrus, ginger, cedar & sandalwood. Klasik tanpa batas waktu.",
-    price: 1650000,
-    image: "" // ganti: "bleu-chanel.jpg"
-  },
-  {
-    id: 6, category: "designer",
-    brand: "Tom Ford",
-    name: "Tobacco Vanille",
-    desc: "Tobacco leaf, vanilla, tonka bean & spices. Mewah dan sensual.",
-    price: 2200000,
-    image: "" // ganti: "tobacco-vanille.jpg"
-  },
-
-  // ---------- TIMUR TENGAH ----------
-  {
-    id: 7, category: "timteng",
-    brand: "Swiss Arabian",
-    name: "Shaghaf Oud",
-    desc: "Oud kayu mahal, rose damascena & musk oriental. Khas Timur Tengah.",
-    price: 980000,
-    image: "" // ganti: "shaghaf-oud.jpg"
-  },
-  {
-    id: 8, category: "timteng",
-    brand: "Lattafa",
-    name: "Raghba",
-    desc: "Karamel, tonka bean, patchouli & oud. Manis, hangat, dan tahan lama.",
-    price: 650000,
-    image: "" // ganti: "lattafa-raghba.jpg"
-  },
-  {
-    id: 9, category: "timteng",
-    brand: "Al Haramain",
-    name: "Amber Oud Gold",
-    desc: "Saffron, amber, oud & rose. Perpaduan sempurna tradisi dan kemewahan.",
-    price: 850000,
-    image: "" // ganti: "amber-oud-gold.jpg"
-  },
-
-  // ---------- LOKAL ----------
-  {
-    id: 10, category: "lokal",
-    brand: "Emanation",
-    name: "Senja Merah",
-    desc: "Kopi robusta, cengkeh, sandalwood lokal & patchouli. Karakter Indonesia.",
-    price: 350000,
-    image: "" // ganti: "senja-merah.jpg"
-  },
-  {
-    id: 11, category: "lokal",
-    brand: "Sensatia",
-    name: "Tropical Garden",
-    desc: "Ylang-ylang Maluku, melati Jawa & coconut milk. Segar tropis.",
-    price: 280000,
-    image: "" // ganti: "tropical-garden.jpg"
-  },
-  {
-    id: 12, category: "lokal",
-    brand: "Seventh Scent",
-    name: "Nusantara Oud",
-    desc: "Gaharu Kalimantan, pandan & rempah nusantara. Kebanggaan lokal.",
-    price: 420000,
-    image: "" // ganti: "nusantara-oud.jpg"
-  }
-];
-
-// =============================================
-// WHATSAPP NUMBER — GANTI DENGAN NOMOR ANDA
-const WA_NUMBER = "6281234567890";
-// =============================================
-
-let cart = {};
-
-function formatPrice(n) {
-  return "Rp " + n.toLocaleString("id-ID");
-}
-
-function getCategoryLabel(cat) {
-  const map = { niche: "Niche", designer: "Designer", timteng: "Timur Tengah", lokal: "Lokal" };
-  return map[cat] || cat;
-}
-
-function renderProducts(filter = "all") {
-  const grid = document.getElementById("productsGrid");
-  grid.innerHTML = "";
-  const filtered = filter === "all" ? products : products.filter(p => p.category === filter);
-
-  filtered.forEach((p, i) => {
-    const inCart = cart[p.id] ? cart[p.id].qty : 0;
-    const imgHTML = p.image
-      ? `<img src="${p.image}" alt="${p.name}" onerror="this.parentElement.innerHTML='<div class=\\'img-placeholder\\'><svg width=\\'32\\' height=\\'32\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\'></rect><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'></circle><polyline points=\\'21 15 16 10 5 21\\'></polyline></svg><span>No Image</span></div>'">`
-      : `<div class='img-placeholder'><svg width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1'><rect x='3' y='3' width='18' height='18'></rect><circle cx='8.5' cy='8.5' r='1.5'></circle><polyline points='21 15 16 10 5 21'></polyline></svg><span>Ganti nama file</span></div>`;
-
-    const card = document.createElement("div");
-    card.className = `product-card`;
-    card.style.animationDelay = `${i * 0.07}s`;
-    card.dataset.category = p.category;
-    card.innerHTML = `
-      <span class="category-label ${p.category}">${getCategoryLabel(p.category)}</span>
-      <div class="card-image">${imgHTML}</div>
-      <div class="card-body">
-        <div class="card-brand">${p.brand}</div>
-        <div class="card-name">${p.name}</div>
-        <div class="card-desc">${p.desc}</div>
-      </div>
-      <div class="card-footer">
-        <div class="card-price"><span class="currency">Rp</span>${p.price.toLocaleString("id-ID")}</div>
-        <button class="add-btn ${inCart > 0 ? 'added' : ''}" onclick="addToCart(${p.id})" title="Tambah ke keranjang">
-          ${inCart > 0 ? '✓' : '+'}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dirac Group Perfume Shop</title>
+    <!--
+      This single‑file implementation inlines all CSS and JavaScript so that it
+      can be deployed easily via GitHub Pages or similar static hosting.
+      The design uses a dark theme with blue accents and a modern shopping
+      cart. Product cards are generated dynamically and can be edited by
+      modifying the JavaScript data. Images, names and prices can be
+      changed without touching the layout.
+    -->
+    <style>
+      /*
+        Global variables define colours and spacing. Adjust these to tweak
+        the overall look and feel. The dark palette contrasts with blue
+        accents for a contemporary aesthetic.
+      */
+      :root {
+        --primary-bg: #121212;
+        --secondary-bg: #1f1f1f;
+        --text-color: #eaeaea;
+        --accent-color: #2980b9;
+        --accent-color-dark: #21618c;
+        --border-color: #333333;
+        --cart-bg: #0b2545;
+        /* category specific colours */
+        --niche-color: #7f57af;
+        --designer-color: #417fa3;
+        --timteng-color: #b6592a;
+        --lokal-color: #5b8d49;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--primary-bg);
+        color: var(--text-color);
+      }
+
+      header {
+        background-color: var(--secondary-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        position: sticky;
+        top: 0;
+        width: 100%;
+        z-index: 10;
+      }
+
+      .header-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        padding: 10px 20px;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .logo {
+        height: 60px;
+        width: auto;
+        border-radius: 8px;
+        object-fit: contain;
+      }
+
+      .site-title {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        flex-grow: 1;
+      }
+
+      .category-filter {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .filter-btn {
+        border: none;
+        background-color: var(--primary-bg);
+        color: var(--text-color);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.25s ease;
+      }
+
+      .filter-btn:hover {
+        background-color: var(--border-color);
+      }
+
+      .filter-btn.active {
+        background-color: var(--accent-color);
+        color: #ffffff;
+      }
+
+      .cart-btn {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background-color: var(--primary-bg);
+        color: var(--text-color);
+        font-size: 1.4rem;
+        padding: 6px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: background-color 0.25s ease;
+      }
+
+      .cart-btn:hover {
+        background-color: var(--border-color);
+      }
+
+      .cart-count {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background-color: var(--accent-color);
+        color: #ffffff;
+        padding: 2px 6px;
+        border-radius: 50%;
+        font-size: 0.65rem;
+        font-weight: 600;
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 0 20px;
+      }
+
+      .product-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
+      }
+
+      .product-card {
+        background-color: var(--secondary-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .product-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+      }
+
+      .product-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+      }
+
+      .product-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      .category-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border-radius: 4px;
+        padding: 3px 6px;
+        color: #ffffff;
+        margin-bottom: 8px;
+        align-self: flex-start;
+      }
+
+      .category-label.niche {
+        background-color: var(--niche-color);
+      }
+
+      .category-label.designer {
+        background-color: var(--designer-color);
+      }
+
+      .category-label.timteng {
+        background-color: var(--timteng-color);
+      }
+
+      .category-label.lokal {
+        background-color: var(--lokal-color);
+      }
+
+      .product-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+        flex-grow: 0;
+      }
+
+      .product-description {
+        font-size: 0.85rem;
+        flex-grow: 1;
+        margin: 0 0 8px 0;
+        color: #bbbbbb;
+      }
+
+      .price {
+        font-weight: 700;
+        color: var(--accent-color);
+        margin-bottom: 12px;
+      }
+
+      .add-to-cart-btn {
+        border: none;
+        background-color: var(--accent-color);
+        color: #ffffff;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.25s ease, transform 0.25s ease;
+      }
+
+      .add-to-cart-btn:hover {
+        background-color: var(--accent-color-dark);
+        transform: scale(1.05);
+      }
+
+      .add-to-cart-btn.pulse {
+        animation: pulse 0.4s ease;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      /* Cart overlay styles */
+      .cart-overlay {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 350px;
+        background-color: var(--cart-bg);
+        box-shadow: -4px 0 12px rgba(0, 0, 0, 0.7);
+        transform: translateX(100%);
+        transition: transform 0.35s ease;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .cart-overlay.open {
+        transform: translateX(0);
+      }
+
+      .cart-panel {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .cart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .cart-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .close-cart {
+        border: none;
+        background: none;
+        color: var(--text-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+        line-height: 1;
+      }
+
+      .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+      }
+
+      .cart-item {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .cart-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .cart-item-img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 6px;
+      }
+
+      .cart-item-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .cart-item-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .cart-item-price {
+        font-size: 0.85rem;
+        color: var(--accent-color);
+        margin: 0;
+      }
+
+      .cart-item-qty {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+      }
+
+      .qty-btn {
+        border: none;
+        background-color: var(--border-color);
+        padding: 2px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--text-color);
+      }
+
+      .qty-btn:hover {
+        background-color: var(--accent-color);
+        color: #ffffff;
+      }
+
+      .remove-item {
+        border: none;
+        background: none;
+        color: #e74c3c;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+
+      .cart-footer {
+        padding: 16px;
+        border-top: 1px solid var(--border-color);
+        font-size: 1rem;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <img src="images/logo.jpeg" alt="Dirac Group Logo" class="logo" />
+        <h1 class="site-title">Dirac Group Perfume Shop</h1>
+        <nav class="category-filter">
+          <button data-category="all" class="filter-btn active">All</button>
+          <button data-category="niche" class="filter-btn">Niche</button>
+          <button data-category="designer" class="filter-btn">Designer</button>
+          <button data-category="timteng" class="filter-btn">Timteng</button>
+          <button data-category="lokal" class="filter-btn">Lokal</button>
+        </nav>
+        <button id="cart-btn" class="cart-btn" title="View cart">
+          🛒
+          <span id="cart-count" class="cart-count">0</span>
         </button>
       </div>
-    `;
-    grid.appendChild(card);
-  });
-}
-
-function filterProducts(cat, el) {
-  document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
-  el.classList.add("active");
-  renderProducts(cat);
-}
-
-function addToCart(id) {
-  const product = products.find(p => p.id === id);
-  if (!product) return;
-
-  if (cart[id]) {
-    cart[id].qty++;
-  } else {
-    cart[id] = { ...product, qty: 1 };
-  }
-
-  updateCartCount();
-  showToast(`${product.name} ditambahkan`);
-  renderProducts(getCurrentFilter());
-  if (document.getElementById("cartSidebar").classList.contains("open")) {
-    renderCartItems();
-  }
-}
-
-function getCurrentFilter() {
-  const active = document.querySelector(".filter-tab.active");
-  return active ? active.classList[1] || "all" : "all";
-}
-
-function updateCartCount() {
-  const total = Object.values(cart).reduce((s, i) => s + i.qty, 0);
-  const el = document.getElementById("cartCount");
-  el.textContent = total;
-  el.classList.add("bump");
-  setTimeout(() => el.classList.remove("bump"), 300);
-}
-
-function renderCartItems() {
-  const container = document.getElementById("cartItems");
-  const footer = document.getElementById("cartFooter");
-  const items = Object.values(cart);
-
-  if (items.length === 0) {
-    container.innerHTML = `
-      <div class="cart-empty">
-        <div class="cart-empty-icon">🛒</div>
-        <p>Keranjang masih kosong</p>
-      </div>`;
-    footer.style.display = "none";
-    return;
-  }
-
-  footer.style.display = "block";
-  container.innerHTML = items.map(item => {
-    const imgHTML = item.image
-      ? `<img src="${item.image}" alt="${item.name}" onerror="this.src=''">`
-      : `<div class="no-img">◈</div>`;
-
-    return `
-    <div class="cart-item" id="cart-item-${item.id}">
-      <div class="cart-item-img">${imgHTML}</div>
-      <div class="cart-item-info">
-        <div class="cart-item-cat ${item.category}">${getCategoryLabel(item.category)}</div>
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-brand">${item.brand}</div>
-        <div class="cart-item-bottom">
-          <div class="qty-controls">
-            <button class="qty-btn" onclick="changeQty(${item.id}, -1)">−</button>
-            <span class="qty-num">${item.qty}</span>
-            <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
-          </div>
-          <div class="cart-item-price">${formatPrice(item.price * item.qty)}</div>
+    </header>
+    <main>
+      <div id="product-container" class="product-container"></div>
+    </main>
+    <div id="cart-overlay" class="cart-overlay">
+      <div class="cart-panel">
+        <div class="cart-header">
+          <h2>Your Cart</h2>
+          <button id="close-cart" class="close-cart" title="Close cart">×</button>
         </div>
-        <button class="cart-item-remove" onclick="removeFromCart(${item.id})">hapus</button>
+        <div id="cart-items" class="cart-items"></div>
+        <div class="cart-footer">
+          <div class="cart-total">
+            Total: <span id="cart-total">Rp0</span>
+          </div>
+        </div>
       </div>
-    </div>`;
-  }).join("");
-
-  updateCartTotals();
-}
-
-function changeQty(id, delta) {
-  if (!cart[id]) return;
-  cart[id].qty += delta;
-  if (cart[id].qty <= 0) {
-    delete cart[id];
-  }
-  updateCartCount();
-  renderCartItems();
-  renderProducts(getCurrentFilter());
-}
-
-function removeFromCart(id) {
-  delete cart[id];
-  updateCartCount();
-  renderCartItems();
-  renderProducts(getCurrentFilter());
-}
-
-function updateCartTotals() {
-  const items = Object.values(cart);
-  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const totalQty = items.reduce((s, i) => s + i.qty, 0);
-  document.getElementById("cartTotal").textContent = formatPrice(total);
-  document.getElementById("cartItemsCount").textContent = `${totalQty} item dipilih`;
-}
-
-function clearCart() {
-  if (Object.keys(cart).length === 0) return;
-  cart = {};
-  updateCartCount();
-  renderCartItems();
-  renderProducts(getCurrentFilter());
-}
-
-function openCart() {
-  document.getElementById("cartOverlay").classList.add("open");
-  document.getElementById("cartSidebar").classList.add("open");
-  renderCartItems();
-}
-
-function closeCart() {
-  document.getElementById("cartOverlay").classList.remove("open");
-  document.getElementById("cartSidebar").classList.remove("open");
-}
-
-function openOrder() {
-  if (Object.keys(cart).length === 0) return;
-  closeCart();
-
-  const items = Object.values(cart);
-  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
-
-  document.getElementById("orderSummary").innerHTML = items.map(item => `
-    <div class="order-summary-item">
-      <span class="order-item-name">${item.name} <span style="color:var(--text-dim);font-size:11px">(${item.brand})</span></span>
-      <span class="order-item-qty" style="color:var(--text-dim);margin:0 8px">×${item.qty}</span>
-      <span class="order-item-subtotal">${formatPrice(item.price * item.qty)}</span>
     </div>
-  `).join("");
+    <script>
+      // Product catalogue definition. Each product has a unique id, name,
+      // category, descriptive text, price in Indonesian Rupiah, and image path.
+      const products = [];
 
-  document.getElementById("modalTotal").textContent = formatPrice(total);
-  document.getElementById("modalOverlay").classList.add("open");
-}
+      // Helper to populate products for a given category
+      function generateProducts(category, count, baseName, price, image, description) {
+        for (let i = 1; i <= count; i++) {
+          products.push({
+            id: `${category}-${i}`,
+            name: `${baseName} ${i}`,
+            category: category,
+            description: description,
+            price: price,
+            image: image,
+          });
+        }
+      }
 
-function closeModal() {
-  document.getElementById("modalOverlay").classList.remove("open");
-}
+      // Generate 15 products for each category to total 60 products
+      generateProducts('niche', 15, 'Parfum Niche', 350000, 'images/niche.png',
+        'Elegant and exclusive fragrance for the discerning individual.');
+      generateProducts('designer', 15, 'Parfum Designer', 250000, 'images/designer.png',
+        'Stylish and modern scent for everyday wear.');
+      generateProducts('timteng', 15, 'Parfum Timteng', 300000, 'images/timteng.png',
+        'Exotic and rich aroma inspired by Middle Eastern perfumery.');
+      generateProducts('lokal', 15, 'Parfum Lokal', 200000, 'images/lokal.png',
+        'Fresh and authentic scent crafted locally.');
 
-function sendWhatsApp() {
-  const name = document.getElementById("buyerName").value.trim();
-  const phone = document.getElementById("buyerPhone").value.trim();
-  const note = document.getElementById("buyerNote").value.trim();
+      // DOM references
+      const productContainer = document.getElementById('product-container');
+      const cartBtn = document.getElementById('cart-btn');
+      const cartOverlay = document.getElementById('cart-overlay');
+      const cartCountEl = document.getElementById('cart-count');
+      const cartItemsContainer = document.getElementById('cart-items');
+      const cartTotalEl = document.getElementById('cart-total');
+      const closeCartBtn = document.getElementById('close-cart');
 
-  if (!name) { showToast("Masukkan nama kamu"); return; }
-  if (!phone) { showToast("Masukkan nomor WhatsApp"); return; }
+      // Cart object mapping product id to { product, qty }
+      let cart = {};
 
-  const items = Object.values(cart);
-  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+      /**
+       * Format a number into Indonesian Rupiah currency string.
+       * @param {number} price
+       * @returns {string}
+       */
+      function formatPrice(price) {
+        return price.toLocaleString('id-ID');
+      }
 
-  let msg = `Halo Dirac Group! 👋\n\nSaya ingin memesan:\n\n`;
-  items.forEach(item => {
-    msg += `▸ *${item.name}* (${item.brand}) — ${getCategoryLabel(item.category)}\n`;
-    msg += `  ${item.qty}x × ${formatPrice(item.price)} = *${formatPrice(item.price * item.qty)}*\n\n`;
-  });
-  msg += `*Total: ${formatPrice(total)}*\n\n`;
-  msg += `Nama: ${name}\nNo. HP: ${phone}`;
-  if (note) msg += `\nCatatan: ${note}`;
+      /**
+       * Render the product cards based on selected category.
+       * @param {string} category
+       */
+      function renderProducts(category = 'all') {
+        productContainer.innerHTML = '';
+        const filtered = category === 'all' ? products : products.filter((p) => p.category === category);
+        filtered.forEach((product) => {
+          const card = document.createElement('div');
+          card.className = 'product-card';
+          card.innerHTML = `
+            <img src="${product.image}" alt="${product.name}" class="product-image" />
+            <div class="product-info">
+              <span class="category-label ${product.category}">${product.category}</span>
+              <h3 class="product-title">${product.name}</h3>
+              <p class="product-description">${product.description}</p>
+              <div class="price">Rp${formatPrice(product.price)}</div>
+              <button class="add-to-cart-btn" data-id="${product.id}">Add to Cart</button>
+            </div>
+          `;
+          productContainer.appendChild(card);
+        });
+      }
 
-  const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
-  window.open(url, "_blank");
-  closeModal();
-  showToast("Pesanan dikirim!");
-}
+      /**
+       * Update the small badge showing total quantity of items in the cart.
+       */
+      function updateCartCount() {
+        let count = 0;
+        for (const id in cart) {
+          count += cart[id].qty;
+        }
+        cartCountEl.textContent = count;
+      }
 
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2500);
-}
+      /**
+       * Update the contents of the cart panel and total.
+       */
+      function updateCartUI() {
+        cartItemsContainer.innerHTML = '';
+        let total = 0;
+        Object.keys(cart).forEach((id) => {
+          const item = cart[id];
+          total += item.product.price * item.qty;
+          const div = document.createElement('div');
+          div.className = 'cart-item';
+          div.innerHTML = `
+            <img src="${item.product.image}" class="cart-item-img" alt="${item.product.name}" />
+            <div class="cart-item-info">
+              <p class="cart-item-title">${item.product.name}</p>
+              <p class="cart-item-price">Rp${formatPrice(item.product.price)}</p>
+              <div class="cart-item-qty">
+                <button class="qty-btn" data-action="decrease" data-id="${id}">-</button>
+                <span>${item.qty}</span>
+                <button class="qty-btn" data-action="increase" data-id="${id}">+</button>
+              </div>
+            </div>
+            <button class="remove-item" data-id="${id}">x</button>
+          `;
+          cartItemsContainer.appendChild(div);
+        });
+        cartTotalEl.textContent = 'Rp' + formatPrice(total);
+        updateCartCount();
+      }
 
-// INIT
-renderProducts();
-</script>
+      /**
+       * Add a product to the cart or increase its quantity.
+       * @param {string} id
+       */
+      function addToCart(id) {
+        const product = products.find((p) => p.id === id);
+        if (!product) return;
+        if (cart[id]) {
+          cart[id].qty++;
+        } else {
+          cart[id] = { product: product, qty: 1 };
+        }
+        updateCartUI();
+      }
 
-</body>
+      /**
+       * Remove a product entirely from the cart.
+       * @param {string} id
+       */
+      function removeFromCart(id) {
+        delete cart[id];
+        updateCartUI();
+      }
+
+      /**
+       * Change quantity of a cart item by a delta.
+       * @param {string} id
+       * @param {number} delta
+       */
+      function changeQty(id, delta) {
+        if (cart[id]) {
+          cart[id].qty += delta;
+          if (cart[id].qty <= 0) {
+            delete cart[id];
+          }
+          updateCartUI();
+        }
+      }
+
+      /**
+       * Event handler for clicks on Add To Cart buttons.
+       * Applies a quick pulse animation and updates cart.
+       * @param {Event} e
+       */
+      function handleAddToCartClick(e) {
+        if (e.target.matches('.add-to-cart-btn')) {
+          const btn = e.target;
+          const id = btn.dataset.id;
+          addToCart(id);
+          // trigger pulse animation
+          btn.classList.add('pulse');
+          setTimeout(() => btn.classList.remove('pulse'), 400);
+        }
+      }
+
+      /**
+       * Event handler for cart actions (increase, decrease, remove).
+       * @param {Event} e
+       */
+      function handleCartClick(e) {
+        const target = e.target;
+        const id = target.dataset.id;
+        if (target.matches('.remove-item')) {
+          removeFromCart(id);
+        } else if (target.matches('.qty-btn')) {
+          const action = target.dataset.action;
+          changeQty(id, action === 'increase' ? 1 : -1);
+        }
+      }
+
+      // Initialize when DOM is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        // Render all products on page load
+        renderProducts();
+
+        // Category filter buttons
+        document.querySelectorAll('.filter-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            // update active class
+            document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            const category = btn.dataset.category;
+            renderProducts(category);
+          });
+        });
+
+        // Delegate Add to Cart button clicks
+        productContainer.addEventListener('click', handleAddToCartClick);
+
+        // Delegate cart interactions
+        cartItemsContainer.addEventListener('click', handleCartClick);
+
+        // Open cart overlay
+        cartBtn.addEventListener('click', () => {
+          cartOverlay.classList.add('open');
+        });
+
+        // Close cart overlay
+        closeCartBtn.addEventListener('click', () => {
+          cartOverlay.classList.remove('open');
+        });
+      });
+    </script>
+  </body>
 </html>
