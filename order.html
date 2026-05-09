@@ -82,11 +82,11 @@
     .brand-mark{
       width:64px;height:64px;border-radius:18px;position:relative;overflow:hidden;flex:0 0 auto;
       display:grid;place-items:center;color:#111;font-weight:900;
-      background:linear-gradient(135deg,#fff2b6,var(--gold-2));box-shadow:0 10px 28px rgba(214,166,66,.22);
+      background:#ffffff;box-shadow:0 10px 28px rgba(214,166,66,.22);
       border:1px solid rgba(255,255,255,.18)
     }
-    .brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
-    .brand-fallback-text{font-weight:900;font-size:1.45rem;line-height:1;color:#111}
+    .brand-mark img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;background:#fff;display:block;z-index:2}
+    .brand-fallback-text{display:none;position:absolute;inset:0;z-index:1;align-items:center;justify-content:center;font-weight:900;font-size:1.45rem;line-height:1;color:#111;background:linear-gradient(135deg,#fff2b6,var(--gold-2))}
     .brand-name{font-family:"Playfair Display",serif;font-size:1.25rem;color:#fff}
     .nav-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
     .nav-links a{color:#d7deea;font-size:.92rem;padding:9px 12px;border-radius:999px}
@@ -140,7 +140,7 @@
     .stats-strip{padding:24px 0;border-block:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025)}
     .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
     .stat-card{padding:22px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.08);text-align:center}
-    .stat-card strong{display:block;font-family:"Playfair Display",serif;font-size:clamp(1.8rem,4vw,2.8rem);color:#fff;line-height:1}
+    .stat-card strong{display:block;font-family:"Playfair Display",serif;font-size:clamp(1.8rem,4vw,2.8rem);color:#fff;line-height:1;font-variant-numeric:tabular-nums}
     .stat-card span{font-size:.86rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 
     .promo-panel{padding:0 0 30px}
@@ -183,7 +183,7 @@
     .modal{position:fixed;inset:0;z-index:11000;display:none;place-items:center;background:rgba(0,0,0,.68);backdrop-filter:blur(6px);padding:18px}.modal.open{display:grid}.modal-card{width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:28px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid var(--line);box-shadow:var(--shadow)}.modal-head{padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:14px;align-items:center}.modal-head h2{font-family:"Playfair Display",serif;margin:0;color:var(--gold);font-size:1.8rem}.modal-body{padding:22px}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.checkout-grid .full{grid-column:1/-1}.modal .field{background:rgba(255,255,255,.05)}.modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.quick-grid{display:grid;grid-template-columns:260px 1fr;gap:18px}.quick-grid img{width:100%;aspect-ratio:16/9;height:auto;object-fit:contain;object-position:center center;border-radius:22px;background:#121a25;padding:10px}.quick-price{font-family:"Playfair Display",serif;color:var(--gold);font-size:1.7rem;font-weight:800;margin:8px 0}.quick-meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.quick-meta span{padding:6px 10px;border-radius:999px;background:rgba(243,205,112,.09);border:1px solid var(--line);color:#f7e8c5;font-size:.78rem;font-weight:800}
 
     @media(max-width:1080px){.product-grid{grid-template-columns:repeat(3,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}.hero-grid{grid-template-columns:1fr}.hero-showcase{min-height:390px}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.cards-3,.blog-grid{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:760px){.announcement .container{flex-direction:column;gap:3px;text-align:center}.nav{align-items:flex-start}.nav-links{display:none}.brand-mark{width:56px;height:56px;border-radius:16px}.brand-name{font-size:1.08rem}.header-cart{padding:10px 12px}.header-cart .label{display:none}.hero{padding:58px 0 46px}.hero-showcase{display:none}.stats-grid{grid-template-columns:1fr}.promo-box{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.product-body{padding:12px}.product-title{font-size:.9rem}.product-desc{display:none}.price{font-size:1.05rem}.product-actions{grid-template-columns:1fr}.product-actions .wide{grid-column:auto}.floating-cart{display:none}.section{padding:58px 0}.lifestyle-card{grid-template-columns:1fr}.lifestyle-copy{padding:24px}.cards-3,.cards-2,.blog-grid,.faq-grid,.footer-grid,.feature-grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:1fr}.quick-grid img{width:100%;height:auto;aspect-ratio:16/9}.checkout-grid{grid-template-columns:1fr}.cart-drawer{width:100%}.cart-actions{grid-template-columns:1fr}.modal-actions .btn-primary,.modal-actions .btn-secondary{width:100%}}
+    @media(max-width:760px){.announcement .container{flex-direction:column;gap:3px;text-align:center}.nav{align-items:center}.nav-links{display:none}.brand-mark{width:56px;height:56px;border-radius:16px}.brand-name{font-size:1.08rem}.header-cart{padding:10px 12px}.header-cart .label{display:none}.hero{padding:58px 0 46px}.hero-showcase{display:none}.stats-grid{grid-template-columns:1fr}.promo-box{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.product-body{padding:12px}.product-title{font-size:.9rem}.product-desc{display:none}.price{font-size:1.05rem}.product-actions{grid-template-columns:1fr}.product-actions .wide{grid-column:auto}.floating-cart{display:none}.section{padding:58px 0}.lifestyle-card{grid-template-columns:1fr}.lifestyle-copy{padding:24px}.cards-3,.cards-2,.blog-grid,.faq-grid,.footer-grid,.feature-grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:1fr}.quick-grid img{width:100%;height:auto;aspect-ratio:16/9}.checkout-grid{grid-template-columns:1fr}.cart-drawer{width:100%}.cart-actions{grid-template-columns:1fr}.modal-actions .btn-primary,.modal-actions .btn-secondary{width:100%}}
     @media(max-width:430px){.container{width:min(var(--max),calc(100% - 22px))}.product-grid{grid-template-columns:1fr}.cart-item{grid-template-columns:62px 1fr auto}.cart-thumb{width:62px;height:68px}.toast{bottom:14px;border-radius:18px;white-space:normal;text-align:center}.hero h1{font-size:2.72rem}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   </style>
@@ -201,7 +201,7 @@
       <a class="brand" href="#beranda" aria-label="Dirac Parfum Beranda">
         <span class="brand-mark" aria-hidden="true">
           <span class="brand-fallback-text">DP</span>
-          <img src="logo1.JPG" alt="" loading="eager" onerror="this.style.display='none'">
+          <img class="brand-logo-img" src="logo1.JPG" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'">
         </span>
         <span class="brand-name">Dirac Parfum</span>
       </a>
@@ -249,9 +249,9 @@
 
     <section class="stats-strip" aria-label="Statistik Dirac Parfum">
       <div class="container stats-grid">
-        <div class="stat-card"><strong>22K+</strong><span>Items sold</span></div>
-        <div class="stat-card"><strong>7K+</strong><span>Loyal customer</span></div>
-        <div class="stat-card"><strong>636+</strong><span>Reseller</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="22000" data-suffix="+">0</strong><span>Items sold</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="7000" data-suffix="+">0</strong><span>Loyal customer</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="636" data-suffix="+">0</strong><span>Reseller</span></div>
       </div>
     </section>
 
@@ -847,10 +847,43 @@
     $('#checkoutBtn').addEventListener('click', openCheckout);
     $('#sendWhatsappBtn').addEventListener('click', sendWhatsapp);
 
+    function animateCount(el){
+      const target = Number(el.dataset.target || 0);
+      const suffix = el.dataset.suffix || '';
+      const duration = Number(el.dataset.duration || 1800);
+      const formatter = new Intl.NumberFormat('id-ID');
+      const start = performance.now();
+      function frame(now){
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const value = Math.round(target * eased);
+        el.textContent = formatter.format(value) + suffix;
+        if(progress < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function initCountUps(){
+      const counters = $$('.count-up');
+      if(!counters.length) return;
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if(!entry.isIntersecting) return;
+          const el = entry.target;
+          if(el.dataset.animated === 'true') return;
+          el.dataset.animated = 'true';
+          animateCount(el);
+          obs.unobserve(el);
+        });
+      }, { threshold: 0.35 });
+      counters.forEach(el => observer.observe(el));
+    }
+
     loadCart();
     renderCategoryOptions();
     renderProducts();
     renderCart();
+    initCountUps();
   </script>
 </body>
 </html>
