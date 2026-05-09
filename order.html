@@ -237,6 +237,7 @@
     .product-media img{width:100%;height:100%;object-fit:contain;object-position:center center;transition:transform .25s ease;border-radius:18px;background:#0f141c}.product-card:hover .product-media img{transform:scale(1.01)}
     .tag{position:absolute;left:12px;top:12px;border-radius:999px;padding:6px 10px;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;background:rgba(5,6,8,.70);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);color:#fff}
     .tag.sold{background:rgba(239,68,68,.92);border-color:rgba(239,68,68,.2)}
+    .tag.top-seller{left:auto;right:12px;background:linear-gradient(135deg,#f8e6a7,#c99a37);border-color:rgba(243,205,112,.42);color:#191103;box-shadow:0 10px 24px rgba(0,0,0,.24)}
     .product-body{padding:16px}.product-title{font-weight:800;line-height:1.28;margin:0 0 8px;color:#fff;font-size:.98rem;min-height:2.56em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.product-proof{display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin:0 0 10px}.product-rating-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.star-row{display:inline-flex;align-items:center;gap:1px;color:var(--gold);font-size:1rem;letter-spacing:.04em;line-height:1}.star-row .empty{opacity:.32}.rating-copy{color:#e7ebf3;font-size:.84rem;font-weight:700;line-height:1.2}.product-sold-copy{color:#b8c1cf;font-size:.78rem;font-weight:600;line-height:1.2}.product-desc{color:var(--muted);font-size:.82rem;min-height:2.75em;margin:0 0 12px}.price{font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:#f6d989;font-size:1.28rem;font-weight:800;letter-spacing:-.01em;line-height:1.1;font-variant-numeric:tabular-nums;margin-bottom:13px}.product-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.product-actions .btn-primary,.product-actions .btn-secondary{padding:10px 11px;font-size:.83rem}.product-actions .wide{grid-column:span 2}.btn-disabled{opacity:.45;pointer-events:none;filter:grayscale(.4)}
     .empty-state{grid-column:1/-1;text-align:center;padding:40px;border:1px dashed var(--line);border-radius:24px;color:var(--muted)}
 
@@ -255,7 +256,7 @@
     .cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,.64);backdrop-filter:blur(6px);z-index:10000;opacity:0;pointer-events:none;transition:.25s ease}.cart-overlay.open{opacity:1;pointer-events:auto}.cart-drawer{position:absolute;right:0;top:0;width:min(470px,100vw);height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#0d131d,#050608);border-left:1px solid var(--line);box-shadow:-30px 0 80px rgba(0,0,0,.5);transform:translateX(105%);transition:transform .32s cubic-bezier(.4,0,.2,1)}.cart-overlay.open .cart-drawer{transform:translateX(0)}
     .cart-head{padding:22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.cart-head h2{font-family:"Playfair Display",serif;margin:0;color:var(--gold);font-size:2rem;line-height:1}.cart-head p{margin:4px 0 0;color:var(--muted);font-size:.9rem}.icon-btn{width:40px;height:40px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#fff;font-weight:900}.cart-body{flex:1;overflow:auto;padding:18px 20px}.cart-empty{text-align:center;padding:56px 18px;color:var(--muted);border:1px dashed var(--line);border-radius:24px}.cart-empty div{font-size:3rem}.cart-item{display:grid;grid-template-columns:72px 1fr auto;gap:13px;align-items:start;padding:13px;border:1px solid rgba(255,255,255,.08);border-radius:20px;background:rgba(255,255,255,.04);margin-bottom:12px}.cart-thumb{width:72px;height:78px;border-radius:16px;background:#121a25;overflow:hidden}.cart-thumb img{width:100%;height:100%;object-fit:cover}.cart-item h3{font-size:.94rem;line-height:1.25;margin:0 0 5px;color:#fff}.cart-item .line{font-size:.82rem;color:var(--muted);margin-bottom:8px}.qty-control{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.12);border-radius:999px;overflow:hidden}.qty-control button{width:30px;height:30px;border:0;background:transparent;color:#fff;font-weight:900}.qty-control span{min-width:28px;text-align:center;font-weight:800}.remove-btn{border:0;background:transparent;color:#8894a6;font-size:1.2rem}.remove-btn:hover{color:var(--danger)}.cart-footer{border-top:1px solid rgba(255,255,255,.08);padding:18px 20px 22px;background:rgba(0,0,0,.22)}.free-ship{margin:0 0 14px}.free-ship small{display:block;color:var(--muted);margin-bottom:8px}.meter{height:9px;background:rgba(255,255,255,.09);border-radius:999px;overflow:hidden}.meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),#fff0b6);transition:width .25s ease}.cart-row{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#cbd5e1;margin:8px 0;font-size:.95rem}.cart-row.total{margin-top:13px;padding-top:13px;border-top:1px solid rgba(255,255,255,.10);font-size:1.25rem;font-family:"Playfair Display",serif;color:#fff}.cart-row.total strong{color:var(--gold)}.promo-row,.ship-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0}.promo-row input,.ship-row select{border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.06);color:#fff;padding:11px 12px;min-width:0}.ship-row{grid-template-columns:1fr}.promo-row input::placeholder{color:#8390a2}.cart-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}.cart-actions .btn-primary,.cart-actions .btn-secondary{padding:13px 14px}.cart-actions .full{grid-column:1/-1}.cart-actions button:disabled{opacity:.46;cursor:not-allowed;transform:none!important}
     .toast{position:fixed;left:50%;bottom:24px;z-index:12000;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:rgba(10,13,18,.92);color:#fff;border:1px solid var(--line);border-radius:999px;padding:12px 16px;box-shadow:0 18px 50px rgba(0,0,0,.40);transition:.25s ease;max-width:min(92vw,560px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.toast.show{opacity:1;transform:translate(-50%,0)}
-    .modal{position:fixed;inset:0;z-index:11000;display:none;place-items:center;background:rgba(0,0,0,.68);backdrop-filter:blur(6px);padding:18px}.modal.open{display:grid}.modal-card{width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:28px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid var(--line);box-shadow:var(--shadow)}.modal-head{padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:14px;align-items:center}.modal-head h2{font-family:"Playfair Display",serif;margin:0;color:var(--gold);font-size:1.8rem}.modal-body{padding:22px}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.checkout-grid .full{grid-column:1/-1}.modal .field{background:rgba(255,255,255,.05)}.modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.quick-grid{display:grid;grid-template-columns:260px 1fr;gap:18px}.quick-grid img{width:100%;aspect-ratio:16/9;height:auto;object-fit:contain;object-position:center center;border-radius:22px;background:#121a25;padding:10px}.quick-price{font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:#f6d989;font-size:1.7rem;font-weight:800;letter-spacing:-.01em;line-height:1.1;font-variant-numeric:tabular-nums;margin:8px 0}.quick-proof{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:14px 0 10px}.quick-rating-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.quick-rating-row .star-row{font-size:1.08rem}.quick-rating-copy{color:#eef2f8;font-size:.96rem;font-weight:700}.quick-sold-copy{color:#c9d1dd;font-size:.84rem;font-weight:600}.quick-meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.quick-meta span{padding:6px 10px;border-radius:999px;background:rgba(243,205,112,.09);border:1px solid var(--line);color:#f7e8c5;font-size:.78rem;font-weight:800}
+    .modal{position:fixed;inset:0;z-index:11000;display:none;place-items:center;background:rgba(0,0,0,.68);backdrop-filter:blur(6px);padding:18px}.modal.open{display:grid}.modal-card{width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:28px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid var(--line);box-shadow:var(--shadow)}.modal-head{padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:14px;align-items:center}.modal-head h2{font-family:"Playfair Display",serif;margin:0;color:var(--gold);font-size:1.8rem}.modal-body{padding:22px}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.checkout-grid .full{grid-column:1/-1}.modal .field{background:rgba(255,255,255,.05)}.modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.quick-grid{display:grid;grid-template-columns:260px 1fr;gap:18px}.quick-grid img{width:100%;aspect-ratio:16/9;height:auto;object-fit:contain;object-position:center center;border-radius:22px;background:#121a25;padding:10px}.quick-price{font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:#f6d989;font-size:1.7rem;font-weight:800;letter-spacing:-.01em;line-height:1.1;font-variant-numeric:tabular-nums;margin:8px 0}.quick-proof{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:14px 0 10px}.quick-rating-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.quick-rating-row .star-row{font-size:1.08rem}.quick-rating-copy{color:#eef2f8;font-size:.96rem;font-weight:700}.quick-sold-copy{color:#c9d1dd;font-size:.84rem;font-weight:600}.quick-top-label{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,#f8e6a7,#c99a37);border:1px solid rgba(243,205,112,.42);color:#191103;font-size:.78rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase}.quick-meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.quick-meta span{padding:6px 10px;border-radius:999px;background:rgba(243,205,112,.09);border:1px solid var(--line);color:#f7e8c5;font-size:.78rem;font-weight:800}
 
     @media(max-width:1080px){.product-grid{grid-template-columns:repeat(3,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}.hero-grid{grid-template-columns:1fr}.hero-showcase{min-height:390px}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.cards-3,.blog-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:760px){.announcement .container{flex-direction:column;gap:3px;text-align:center}.nav{align-items:center}.nav-links{display:none}.brand-mark{width:56px;height:56px;border-radius:16px}.brand-name{font-size:1.08rem}.header-cart{padding:10px 12px}.header-cart .label{display:none}.hero{padding:58px 0 46px}.hero-showcase{display:none}.stats-grid{grid-template-columns:1fr}.promo-box{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.product-body{padding:12px}.product-title{font-size:.9rem}.product-desc{display:none}.price{font-size:1.05rem}.product-actions{grid-template-columns:1fr}.product-actions .wide{grid-column:auto}.floating-cart{display:none}.section{padding:58px 0}.lifestyle-card{grid-template-columns:1fr}.lifestyle-copy{padding:24px}.cards-3,.cards-2,.blog-grid,.faq-grid,.footer-grid,.feature-grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:1fr}.quick-grid img{width:100%;height:auto;aspect-ratio:16/9}.checkout-grid{grid-template-columns:1fr}.cart-drawer{width:100%}.cart-actions{grid-template-columns:1fr}.modal-actions .btn-primary,.modal-actions .btn-secondary{width:100%}}
@@ -580,9 +581,9 @@ img[loading="lazy"]{content-visibility:auto}
 
     <section class="stats-strip" aria-label="Statistik Dirac Parfum">
       <div class="container stats-grid">
-        <div class="stat-card"><strong class="count-up" data-target="22000" data-suffix="+">0</strong><span>Items sold</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="7000" data-suffix="+">0</strong><span>Loyal customer</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="636" data-suffix="+">0</strong><span>Reseller</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="23528" data-suffix="+">0</strong><span>Items sold</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="7192" data-suffix="+">0</strong><span>Loyal customer</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="659" data-suffix="+">0</strong><span>Reseller</span></div>
       </div>
     </section>
 
@@ -955,7 +956,8 @@ img[loading="lazy"]{content-visibility:auto}
     function imageFallback(img){ img.onerror = null; img.src = FALLBACK_IMG; }
     window.imageFallback = imageFallback;
 
-    const TOTAL_SOCIAL_PROOF_SOLD = 22000;
+    const TOTAL_SOCIAL_PROOF_SOLD = 23528;
+    const TOP_SELLER_COUNT = 8;
     const CATEGORY_SALES_WEIGHT = {
       'Niche': 1.62,
       'Designer': 1.48,
@@ -971,6 +973,14 @@ img[loading="lazy"]{content-visibility:auto}
       'Lokal': [4.6, 4.8],
       'Miniso': [4.5, 4.7],
       'Aksesoris': [4.6, 4.8]
+    };
+    const CATEGORY_REVIEW_RATIO = {
+      'Niche': [0.58, 0.76],
+      'Designer': [0.6, 0.8],
+      'Timur Tengah': [0.52, 0.7],
+      'Lokal': [0.46, 0.62],
+      'Miniso': [0.44, 0.58],
+      'Aksesoris': [0.4, 0.56]
     };
 
     function distributeSalesByWeight(list, total){
@@ -1014,10 +1024,14 @@ img[loading="lazy"]{content-visibility:auto}
     }
 
     function buildReviewCount(product){
-      const ratioSeed = ((product.id * 19) % 9) / 100;
-      const baseRatio = product.category === 'Niche' || product.category === 'Designer' ? 0.88 : 0.8;
-      const ratio = Math.min(0.96, baseRatio + ratioSeed);
-      return Math.max(18, Math.round(product.soldCount * ratio));
+      const [minRatio, maxRatio] = CATEGORY_REVIEW_RATIO[product.category] || [0.48, 0.68];
+      const seed = ((product.id * 29) % 100) / 100;
+      const popularityFactor = Math.min(0.08, product.soldCount / 9000);
+      let ratio = minRatio + ((maxRatio - minRatio) * seed) + popularityFactor;
+      if(product.isTopSeller) ratio += 0.02;
+      if(product.status === 'sold') ratio += 0.015;
+      ratio = Math.max(minRatio, Math.min(maxRatio + 0.06, ratio));
+      return Math.min(product.soldCount, Math.max(15, Math.round(product.soldCount * ratio)));
     }
 
     function renderStarIcons(rating){
@@ -1041,10 +1055,19 @@ img[loading="lazy"]{content-visibility:auto}
       return `${new Intl.NumberFormat('id-ID').format(value)}+ terjual`;
     }
 
+    function getTopSellerIds(salesMap, topCount){
+      return new Set([...salesMap.entries()]
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0, topCount)
+        .map(([id]) => id));
+    }
+
     (function enrichProductsWithSocialProof(){
       const salesMap = distributeSalesByWeight(products, TOTAL_SOCIAL_PROOF_SOLD);
+      const topSellerIds = getTopSellerIds(salesMap, TOP_SELLER_COUNT);
       products.forEach(product => {
         product.soldCount = salesMap.get(product.id) || 0;
+        product.isTopSeller = topSellerIds.has(product.id);
         product.rating = buildProductRating(product);
         product.reviewCount = buildReviewCount(product);
       });
@@ -1121,6 +1144,7 @@ img[loading="lazy"]{content-visibility:auto}
             <div class="product-media">
               <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)" decoding="async" fetchpriority="low">
               <span class="tag ${soldOut ? 'sold' : ''}">${soldOut ? 'Sold' : escapeHTML(p.category)}</span>
+              ${p.isTopSeller ? '<span class="tag top-seller">Top seller</span>' : ''}
             </div>
             <div class="product-body">
               <h3 class="product-title">${escapeHTML(p.title)}</h3>
@@ -1322,6 +1346,7 @@ img[loading="lazy"]{content-visibility:auto}
               <div class="quick-rating-row">
                 <span class="star-row" aria-hidden="true">${renderStarIcons(p.rating)}</span>
                 <span class="quick-rating-copy">${p.rating.toFixed(1)} (${formatReviewCount(p.reviewCount)} ulasan)</span>
+                ${p.isTopSeller ? '<span class="quick-top-label">Top seller</span>' : ''}
               </div>
               <div class="quick-sold-copy">${formatFullSold(p.soldCount)}</div>
             </div>
