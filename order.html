@@ -823,7 +823,7 @@ img[loading="lazy"]{content-visibility:auto}
       {id:2,title:'All Parfum Designer',category:'Designer',price:1000000,img:'all_parfum_desaigner.webp',desc:'Pilihan parfum designer populer dengan kesan modern dan berkelas.',notes:'Fresh - Modern - Versatile',status:'ready'},
       {id:3,title:'All Parfum Lokal',category:'Lokal',price:250000,img:'all_parfum_lokal.webp',desc:'Koleksi brand lokal dengan harga ramah dan aroma mudah dipakai harian.',notes:'Daily - Clean - Easy wear',status:'ready'},
       {id:4,title:'All Parfum Niche',category:'Niche',price:1000000,img:'all_parfum_niche.webp',desc:'Aroma niche yang lebih unik, eksklusif, dan punya karakter kuat.',notes:'Unique - Premium - Long lasting',status:'ready'},
-      {id:5,title:'Botol Kosong Niche',category:'Aksesoris',price:700000,img:'botol_kosong_niche.webp',desc:'Botol kosong koleksi niche untuk display atau kebutuhan kolektor.',notes:'Collector - Display',status:'ready'},
+      {id:5,title:'Botol Kosong Niche',category:'Aksesoris',price:700000,img:'botol_kosong_niche.webp',desc:'Botol kosong koleksi niche untuk display atau kebutuhan kolektor.',notes:'Collector - Display',status:'sold'},
       {id:6,title:'Louis Vuitton Imagination 100 ml',category:'Niche',price:6200000,img:'produk6.webp',desc:'Aroma premium dengan karakter fresh, bersih, dan mewah.',notes:'Fresh - Citrus - Premium',status:'ready'},
       {id:7,title:'Xerjoff Torino 21 100 ml',category:'Niche',price:7500000,img:'produk7.webp',desc:'Pilihan niche premium yang cocok untuk kesan elegan dan eksklusif.',notes:'Green - Fresh - Elegant',status:'ready'},
       {id:8,title:'Yves Saint Laurent Myself 100 ml',category:'Designer',price:1650000,img:'produk8.webp',desc:'Aroma designer modern untuk penggunaan harian dan semi-formal.',notes:'Clean - Aromatic - Modern',status:'ready'},
@@ -980,7 +980,7 @@ img[loading="lazy"]{content-visibility:auto}
               <div class="price">${formatIDR(p.price)}</div>
               <div class="product-actions">
                 <button class="btn-secondary" type="button" data-quick="${p.id}">Detail</button>
-                <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" data-add="${p.id}" ${sold ? 'disabled' : ''}>${qty ? 'Tambah ('+qty+')' : '+ Cart'}</button>
+                <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" data-add="${p.id}" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''}>${sold ? 'Sold' : (qty ? 'Tambah ('+qty+')' : '+ Cart')}</button>
               </div>
             </div>
           </article>
@@ -1166,7 +1166,7 @@ img[loading="lazy"]{content-visibility:auto}
             <p class="muted">${escapeHTML(p.desc)}</p>
             <div class="quick-meta"><span>${escapeHTML(p.notes)}</span><span>${sold ? 'Sold out' : 'Ready stock'}</span></div>
             <div class="modal-actions">
-              <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled' : ''} onclick="addToCart(${p.id}); closeModal(); openCart();">Tambah ke Keranjang</button>
+              <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''} onclick="addToCart(${p.id}); closeModal(); openCart();">${sold ? 'Sold' : 'Tambah ke Keranjang'}</button>
               <a class="btn-secondary" target="_blank" rel="noopener" href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan '+p.title+'. Apakah masih tersedia?')}">Tanya via WhatsApp</a>
             </div>
           </div>
