@@ -783,6 +783,60 @@ button.luxury-added{
 }
 </style>
 
+
+
+<style id="dirac-checkout-validation-css">
+/* Required checkout fields - clear, safe, and mobile friendly */
+.checkout-required-note{
+  margin:10px 0 0;
+  color:#d8dfeb;
+  font-size:.86rem;
+  font-weight:600;
+}
+.checkout-required-note strong{color:var(--gold)}
+.checkout-error-message{
+  display:none;
+  margin:12px 0 0;
+  padding:11px 13px;
+  border-radius:16px;
+  background:rgba(239,68,68,.10);
+  border:1px solid rgba(239,68,68,.34);
+  color:#ffd5d5;
+  font-size:.88rem;
+  font-weight:700;
+}
+.checkout-error-message.show{display:block}
+.checkout-grid .field.is-invalid,
+.modal .field.is-invalid{
+  border-color:rgba(239,68,68,.86)!important;
+  box-shadow:0 0 0 4px rgba(239,68,68,.13)!important;
+  background:rgba(239,68,68,.055)!important;
+}
+.checkout-grid .field.is-valid,
+.modal .field.is-valid{
+  border-color:rgba(24,185,129,.42)!important;
+}
+#sendWhatsappBtn.is-locked{
+  filter:saturate(.88);
+}
+#sendWhatsappBtn.shake-required{
+  animation:checkoutRequiredShake .34s cubic-bezier(.22,1,.36,1);
+}
+@keyframes checkoutRequiredShake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-3px)}
+  50%{transform:translateX(3px)}
+  75%{transform:translateX(-2px)}
+}
+@media(max-width:760px){
+  .checkout-error-message{font-size:.84rem;padding:10px 12px}
+  .checkout-required-note{font-size:.82rem}
+}
+@media(prefers-reduced-motion:reduce){
+  #sendWhatsappBtn.shake-required{animation:none!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -1107,15 +1161,17 @@ button.luxury-added{
       <div class="modal-head"><h2 id="checkoutTitle">Data Checkout</h2><button class="icon-btn" type="button" data-close-modal aria-label="Tutup modal">×</button></div>
       <div class="modal-body">
         <p class="muted" style="margin-top:0">Isi data berikut agar pesan WhatsApp sudah lengkap dan siap dikirim.</p>
+        <p class="checkout-required-note"><strong>Wajib diisi:</strong> nama lengkap, nomor WhatsApp, dan alamat lengkap.</p>
         <div class="checkout-grid">
-          <input class="field" id="buyerName" placeholder="Nama lengkap" autocomplete="name">
-          <input class="field" id="buyerPhone" placeholder="Nomor WhatsApp" autocomplete="tel">
-          <textarea class="field full" id="buyerAddress" rows="3" placeholder="Alamat lengkap / kota tujuan"></textarea>
+          <input class="field" id="buyerName" placeholder="Nama lengkap *" autocomplete="name" required aria-required="true" aria-describedby="checkoutError">
+          <input class="field" id="buyerPhone" placeholder="Nomor WhatsApp *" autocomplete="tel" inputmode="tel" required aria-required="true" aria-describedby="checkoutError">
+          <textarea class="field full" id="buyerAddress" rows="3" placeholder="Alamat lengkap / kota tujuan *" required aria-required="true" aria-describedby="checkoutError"></textarea>
           <select class="field" id="paymentMethod"><option>Transfer Bank</option><option>COD / Bayar di tempat</option><option>E-wallet</option><option>Konfirmasi dulu via WA</option></select>
           <input class="field" id="buyerNote" placeholder="Catatan pesanan (opsional)">
         </div>
+        <div class="checkout-error-message" id="checkoutError" role="alert" aria-live="polite"></div>
         <div class="modal-actions">
-          <button class="btn-primary" type="button" id="sendWhatsappBtn">Kirim ke WhatsApp</button>
+          <button class="btn-primary is-locked" type="button" id="sendWhatsappBtn">Kirim ke WhatsApp</button>
           <button class="btn-secondary" type="button" data-close-modal>Tutup</button>
         </div>
       </div>
@@ -1546,17 +1602,100 @@ button.luxury-added{
       $('#checkoutModal').classList.add('open');
       $('#checkoutModal').setAttribute('aria-hidden','false');
       document.body.classList.add('modal-open');
+      bindCheckoutValidation();
+      validateCheckoutForm({focusFirst:false, touchedOnly:true});
+      setTimeout(()=>$('#buyerName')?.focus(), 120);
     }
     function closeModal(){
       $$('.modal').forEach(m => {m.classList.remove('open');m.setAttribute('aria-hidden','true');});
       document.body.classList.remove('modal-open');
     }
 
+    const checkoutRequiredFields = [
+      { selector:'#buyerName', label:'Nama lengkap', min:2 },
+      { selector:'#buyerPhone', label:'Nomor WhatsApp', minDigits:9 },
+      { selector:'#buyerAddress', label:'Alamat lengkap / kota tujuan', min:8 }
+    ];
+
+    function getDigitsOnly(value){ return String(value || '').replace(/\D/g,''); }
+
+    function setCheckoutError(message){
+      const error = $('#checkoutError');
+      if(!error) return;
+      error.textContent = message || '';
+      error.classList.toggle('show', !!message);
+    }
+
+    function shakeCheckoutButton(){
+      const btn = $('#sendWhatsappBtn');
+      if(!btn) return;
+      btn.classList.remove('shake-required');
+      void btn.offsetWidth;
+      btn.classList.add('shake-required');
+      setTimeout(()=>btn.classList.remove('shake-required'), 420);
+    }
+
+    function validateCheckoutForm(options={}){
+      const focusFirst = options.focusFirst !== false;
+      const touchedOnly = options.touchedOnly === true;
+      const invalid = [];
+
+      checkoutRequiredFields.forEach(rule => {
+        const field = $(rule.selector);
+        if(!field) return;
+        const value = field.value.trim();
+        let valid = true;
+
+        if(rule.minDigits){
+          valid = getDigitsOnly(value).length >= rule.minDigits;
+        } else if(rule.min){
+          valid = value.length >= rule.min;
+        } else {
+          valid = !!value;
+        }
+
+        if(!valid) invalid.push({field, label: rule.label});
+
+        if(!touchedOnly || field.dataset.touched === 'true' || invalid.length){
+          field.classList.toggle('is-invalid', !valid && (field.dataset.touched === 'true' || !touchedOnly));
+          field.classList.toggle('is-valid', valid && value.length > 0);
+          field.setAttribute('aria-invalid', valid ? 'false' : 'true');
+        }
+      });
+
+      const btn = $('#sendWhatsappBtn');
+      if(btn) btn.classList.toggle('is-locked', invalid.length > 0);
+
+      if(invalid.length){
+        const message = `Lengkapi dulu: ${invalid.map(item => item.label).join(', ')}.`;
+        setCheckoutError(message);
+        if(focusFirst) invalid[0].field.focus();
+        return false;
+      }
+
+      setCheckoutError('');
+      return true;
+    }
+
+    function bindCheckoutValidation(){
+      checkoutRequiredFields.forEach(rule => {
+        const field = $(rule.selector);
+        if(!field || field.dataset.validationBound === 'true') return;
+        field.dataset.validationBound = 'true';
+        ['input','change','blur'].forEach(eventName => {
+          field.addEventListener(eventName, () => {
+            field.dataset.touched = 'true';
+            validateCheckoutForm({focusFirst:false, touchedOnly:true});
+          });
+        });
+      });
+    }
+
     function buildOrderText(){
       const t = totals();
-      const name = $('#buyerName').value.trim() || '-';
-      const phone = $('#buyerPhone').value.trim() || '-';
-      const address = $('#buyerAddress').value.trim() || '-';
+      const name = $('#buyerName').value.trim();
+      const phone = $('#buyerPhone').value.trim();
+      const address = $('#buyerAddress').value.trim();
       const payment = $('#paymentMethod').value;
       const note = $('#buyerNote').value.trim() || '-';
       const items = cart.map((item,index)=>{
@@ -1591,6 +1730,12 @@ button.luxury-added{
     }
     function sendWhatsapp(){
       if(!cart.length) return showToast('Keranjang kosong.');
+      bindCheckoutValidation();
+      if(!validateCheckoutForm({focusFirst:true})){
+        shakeCheckoutButton();
+        showToast('Lengkapi data wajib sebelum kirim ke WhatsApp.');
+        return;
+      }
       const text = buildOrderText();
       window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`,'_blank','noopener');
       showToast('WhatsApp checkout dibuka.');
@@ -1663,6 +1808,7 @@ button.luxury-added{
       if(confirm('Kosongkan semua isi keranjang?')) { cart = []; activePromo = null; saveCart(); renderProducts(); renderCart(); showToast('Keranjang dikosongkan.'); }
     });
     $('#checkoutBtn').addEventListener('click', openCheckout);
+    bindCheckoutValidation();
     $('#sendWhatsappBtn').addEventListener('click', sendWhatsapp);
 
     function animateCount(el){
