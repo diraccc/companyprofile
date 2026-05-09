@@ -939,8 +939,8 @@ button.luxury-added{
       <div class="container">
         <div class="promo-box">
           <div>
-            <strong>Gunakan kode <span class="promo-code">DIRAC3</span>: 3% produk biasa, 1% niche/mahal</strong>
-            <span>Produk kategori Niche atau harga Rp1.000.000 ke atas otomatis hanya diskon 1% agar margin tetap aman.</span>
+            <strong>Gunakan kode <span class="promo-code">DIRAC3</span> untuk promo khusus</strong>
+            <span>Diskon 3% berlaku untuk produk reguler. Untuk koleksi Niche dan produk dengan harga Rp1.000.000 ke atas, berlaku diskon 1%. Potongan dihitung otomatis saat checkout.</span>
           </div>
           <a class="btn-primary" href="#produk">Pilih Produk</a>
         </div>
@@ -1129,7 +1129,7 @@ button.luxury-added{
         <div class="faq-grid text-left">
           <div class="faq-item"><button class="faq-q" type="button">Apakah keranjang tersimpan? <span>+</span></button><div class="faq-a">Ya. Produk disimpan di localStorage browser, jadi tidak hilang saat halaman direfresh.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Bagaimana checkout dilakukan? <span>+</span></button><div class="faq-a">Setelah isi data checkout, sistem membuat pesan WhatsApp otomatis berisi daftar produk, total, ongkir, promo, dan alamat.</div></div>
-          <div class="faq-item"><button class="faq-q" type="button">Apakah ada promo? <span>+</span></button><div class="faq-a">Coba kode DIRAC3 di keranjang. Produk biasa diskon 3%, sedangkan produk Niche atau harga Rp1.000.000 ke atas hanya diskon 1%. Sistem menghitung otomatis per produk.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button">Apakah ada promo? <span>+</span></button><div class="faq-a">Gunakan kode DIRAC3 di keranjang. Diskon 3% berlaku untuk produk reguler, sedangkan koleksi Niche dan produk dengan harga Rp1.000.000 ke atas mendapatkan diskon 1%. Sistem menghitung potongan otomatis per produk.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Apakah bisa untuk reseller? <span>+</span></button><div class="faq-a">Bisa. Gunakan checkout WhatsApp untuk konfirmasi stok dan harga reseller sebelum pembayaran.</div></div>
         </div>
       </div>
@@ -2285,16 +2285,16 @@ button.luxury-added{
     function applyPromo(){
       const code = $('#promoInput').value.trim().toUpperCase();
       const validCodes = {
-        DIRAC3:'Diskon 3% produk biasa / 1% niche atau mahal',
-        DIRAC15:'Diskon 3% produk biasa / 1% niche atau mahal',
-        HEMAT10:'Diskon 3% produk biasa / 1% niche atau mahal',
-        RESELLER:'Diskon 3% produk biasa / 1% niche atau mahal'
+        DIRAC3:'Promo khusus: diskon 3% untuk produk reguler dan 1% untuk koleksi Niche atau produk dengan harga Rp1.000.000 ke atas',
+        DIRAC15:'Promo khusus: diskon 3% untuk produk reguler dan 1% untuk koleksi Niche atau produk dengan harga Rp1.000.000 ke atas',
+        HEMAT10:'Promo khusus: diskon 3% untuk produk reguler dan 1% untuk koleksi Niche atau produk dengan harga Rp1.000.000 ke atas',
+        RESELLER:'Promo khusus: diskon 3% untuk produk reguler dan 1% untuk koleksi Niche atau produk dengan harga Rp1.000.000 ke atas'
       };
       if(!code){ activePromo = null; renderCart(); showToast('Promo dihapus.'); return; }
       if(!validCodes[code]) return showToast('Kode promo tidak valid.');
       activePromo = {code,label:validCodes[code]};
       renderCart();
-      showToast('Voucher dipakai: produk biasa 3%, niche/mahal 1%.');
+      showToast('Voucher berhasil diterapkan. Diskon dihitung otomatis sesuai kategori produk.');
     }
 
     function openCart(){
@@ -2425,7 +2425,7 @@ button.luxury-added{
         items,
         '',
         `Subtotal: ${formatIDR(t.sub)}`,
-        `Promo: ${activePromo ? activePromo.code + ' (produk biasa 3%, niche/mahal 1%)' : '-'}`,
+        `Promo: ${activePromo ? activePromo.code + ' (3% produk reguler, 1% koleksi Niche / produk ≥ Rp1.000.000)' : '-'}`,
         `Diskon: ${t.discount ? '- ' + formatIDR(t.discount) : formatIDR(0)}`,
         `Pengiriman: ${$('#shippingSelect').selectedOptions[0].text}`,
         `Ongkir: ${t.shipping ? formatIDR(t.shipping) : 'Gratis'}`,
