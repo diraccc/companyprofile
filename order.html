@@ -464,57 +464,21 @@ img[loading="lazy"]{content-visibility:auto}
 <link rel="preload" as="image" href="logo1.webp" fetchpriority="high">
 
 <style id="dirac-antilag-css">
-/* Anti-lag mode for GitHub Pages / mobile */
+/* Lightweight product paging for GitHub Pages.
+   This keeps 12 products per load WITHOUT disabling animations. */
 :root{--dirac-visible-products:12}
-.product-grid.is-limited .product-card:nth-child(n+13){display:none!important}
 .load-more-wrap{display:flex;justify-content:center;margin:24px 0 0}
 .load-more-btn{
-  border:1px solid rgba(243,205,112,.35);
-  background:linear-gradient(135deg,#f3cd70,#d6a642);
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.35);
+  background:linear-gradient(135deg,var(--gold),var(--gold-2));
   color:#111;
   padding:13px 20px;
   border-radius:999px;
   font-weight:900;
   cursor:pointer;
-  box-shadow:0 10px 26px rgba(0,0,0,.18);
+  box-shadow:0 12px 30px rgba(0,0,0,.18),0 0 0 1px rgba(255,255,255,.10) inset;
 }
 .load-more-btn[hidden]{display:none!important}
-@media(max-width:760px){
-  /* Mobile dibuat jauh lebih ringan */
-  .hero:after,.promo-box:before,.product-media:before,.btn-primary:after,.header-cart:after{display:none!important}
-  .hero-card,.product-card,.feature-card,.info-card,.blog-card,.faq-item,.stat-card{
-    animation:none!important;
-    transition:opacity .18s ease!important;
-    filter:none!important;
-    backdrop-filter:none!important;
-    transform:none!important;
-    box-shadow:0 8px 22px rgba(0,0,0,.22)!important;
-  }
-  .product-card:hover,.blog-card:hover,.feature-card:hover{
-    transform:none!important;
-  }
-  .motion-ready [data-reveal],
-  .motion-ready .hero .eyebrow,
-  .motion-ready .hero h1,
-  .motion-ready .hero p,
-  .motion-ready .hero .hero-actions,
-  .motion-ready .hero .trust-row{
-    opacity:1!important;
-    transform:none!important;
-    filter:none!important;
-    animation:none!important;
-    transition:none!important;
-  }
-  .toast.show,.cart-bump,.btn-adding,.counter-complete{
-    animation:none!important;
-  }
-  .product-media{padding:6px!important}
-  .product-media img{
-    transform:none!important;
-    will-change:auto!important;
-  }
-}
-/* prevent expensive paint on huge lists */
 .product-card{contain:content;content-visibility:auto;contain-intrinsic-size:420px}
 </style>
 
@@ -1327,634 +1291,132 @@ html[data-effective-theme="light"] .cart-thumb{background:#f3f6fb!important}
 </style>
 
 
-<style id="dirac-premium-interaction-css">
+<style id="dirac-final-click-motion-css">
 /* =========================================================
-   Dirac Premium Interaction Layer v1
-   Tap/click feedback untuk semua area penting tanpa mengubah fungsi.
+   Final click/tap motion - simple, smooth, visible on mobile.
+   Dibuat di paling bawah agar tidak tertimpa CSS lama.
    ========================================================= */
 :root{
-  --dirac-tap-scale:.982;
-  --dirac-tap-rise:-2px;
-  --dirac-tap-shadow:0 18px 44px rgba(0,0,0,.30),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.24),0 0 28px rgba(var(--theme-rgb,243,205,112),.12);
+  --tap-ease:cubic-bezier(.2,.9,.22,1);
+  --tap-ease-out:cubic-bezier(.16,1,.3,1);
 }
-.dirac-press-target{
-  -webkit-tap-highlight-color:transparent;
-  touch-action:manipulation;
-  position:relative;
-  overflow:hidden;
-  isolation:isolate;
-  transform-origin:center center;
-  transition:
-    transform .34s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)),
-    filter .34s var(--motion-ease,cubic-bezier(.22,1,.36,1)),
-    box-shadow .34s var(--motion-ease,cubic-bezier(.22,1,.36,1)),
-    border-color .34s var(--motion-ease,cubic-bezier(.22,1,.36,1)),
-    background .34s var(--motion-ease,cubic-bezier(.22,1,.36,1));
-}
-.dirac-press-target:is(a,button),
-.dirac-press-target[role="button"]{cursor:pointer}
-.dirac-press-target.dirac-press-active{
-  transform:translate3d(0,var(--dirac-tap-rise),0) scale(var(--dirac-tap-scale))!important;
-  border-color:rgba(var(--theme-rgb,243,205,112),.58)!important;
-  box-shadow:var(--dirac-tap-shadow)!important;
-  filter:brightness(1.045) saturate(1.08);
-}
-.dirac-press-target.dirac-press-release{
-  animation:diracPremiumSettle .46s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) both;
-}
-.dirac-press-target.dirac-press-active .count-badge,
-.dirac-press-target.dirac-press-active .brand-mark,
-.dirac-press-target.dirac-press-active .feature-icon,
-.dirac-press-target.dirac-press-active .back-home-icon{
-  animation:diracIconPop .46s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) both;
-}
-.dirac-ripple{
-  position:absolute;
-  left:var(--ripple-x,50%);
-  top:var(--ripple-y,50%);
-  width:24px;
-  height:24px;
-  border-radius:999px;
-  pointer-events:none;
-  z-index:5;
-  opacity:0;
-  transform:translate(-50%,-50%) scale(0);
-  background:
-    radial-gradient(circle,rgba(255,255,255,.42) 0%,rgba(var(--theme-rgb,243,205,112),.34) 28%,rgba(var(--theme-rgb,243,205,112),.15) 50%,transparent 72%);
-  box-shadow:0 0 34px rgba(var(--theme-rgb,243,205,112),.28);
-  mix-blend-mode:screen;
-  animation:diracPremiumRipple .72s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) forwards;
-}
-.dirac-press-sheen{
-  position:absolute;
-  inset:-2px;
-  pointer-events:none;
-  z-index:4;
-  opacity:0;
-  background:linear-gradient(112deg,transparent 12%,rgba(255,255,255,.12) 36%,rgba(var(--theme-rgb,243,205,112),.22) 48%,transparent 70%);
-  transform:translateX(-115%);
-  animation:diracPremiumSheen .68s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) forwards;
-}
-/* Elemen informatif yang sering disentuh di mobile: beri respons halus, tanpa mengubah fungsinya. */
-.stat-card.dirac-press-active,
-.feature-card.dirac-press-active,
-.info-card.dirac-press-active,
-.blog-card.dirac-press-active,
-.faq-item.dirac-press-active,
-.trust-row span.dirac-press-active,
-.promo-box.dirac-press-active,
-.content-card.dirac-press-active,
-.lifestyle-card.dirac-press-active{
-  background:linear-gradient(145deg,rgba(var(--theme-rgb,243,205,112),.12),rgba(255,255,255,.045))!important;
-}
-.btn-primary.dirac-press-active,
-.header-cart.dirac-press-active,
-.theme-save.dirac-press-active{
-  filter:brightness(1.08) saturate(1.10)!important;
-}
-.btn-secondary.dirac-press-active,
-.btn-ghost.dirac-press-active,
-.theme-toggle.dirac-press-active{
-  background:rgba(var(--theme-rgb,243,205,112),.13)!important;
-}
-.stat-card.dirac-press-active strong,
-.count-up.dirac-press-active{
-  filter:drop-shadow(0 0 14px rgba(var(--theme-rgb,243,205,112),.28));
-}
-.product-card.dirac-press-active .product-media img,
-.blog-card.dirac-press-active img,
-.lifestyle-card.dirac-press-active img{
-  transform:translateY(-3px) scale(1.028)!important;
-}
-.theme-swatch.dirac-press-active,
-.theme-choice.dirac-press-active{
-  transform:translate3d(0,-2px,0) scale(.965)!important;
-}
-@keyframes diracPremiumRipple{
-  0%{opacity:.58;transform:translate(-50%,-50%) scale(0)}
-  58%{opacity:.28}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(var(--ripple-scale,18))}
-}
-@keyframes diracPremiumSheen{
-  0%{opacity:0;transform:translateX(-115%)}
-  18%{opacity:1}
-  100%{opacity:0;transform:translateX(115%)}
-}
-@keyframes diracPremiumSettle{
-  0%{transform:translate3d(0,-1px,0) scale(.992)}
-  46%{transform:translate3d(0,0,0) scale(1.008)}
-  100%{transform:translate3d(0,0,0) scale(1)}
-}
-@keyframes diracIconPop{
-  0%{transform:scale(1)}
-  46%{transform:scale(1.12) rotate(-2deg)}
-  100%{transform:scale(1) rotate(0)}
-}
-@media(max-width:760px){
-  .dirac-press-target.dirac-press-active{
-    transform:translate3d(0,-1px,0) scale(.988)!important;
-    box-shadow:0 12px 30px rgba(0,0,0,.26),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.22),0 0 20px rgba(var(--theme-rgb,243,205,112),.10)!important;
-  }
-  .product-card.dirac-press-active .product-media img,
-  .blog-card.dirac-press-active img,
-  .lifestyle-card.dirac-press-active img{
-    transform:translateY(-2px) scale(1.018)!important;
-  }
-}
-@media(prefers-reduced-motion:reduce){
-  .dirac-press-target,
-  .dirac-press-target.dirac-press-active,
-  .dirac-press-target.dirac-press-release{
-    animation:none!important;
-    transition:none!important;
-    transform:none!important;
-    filter:none!important;
-  }
-  .dirac-ripple,.dirac-press-sheen{display:none!important}
-}
-</style>
-
-
-<style id="dirac-light-mode-readability-fix-css">
-/* =========================================================
-   Dirac Light Mode Readability Fix v1
-   Tujuan: mode Light tetap premium, tapi semua teks dan panel terbaca.
-   Scope aman: hanya override warna/kontras mode light; fungsi produk, cart,
-   checkout, tema, dan load-more tidak diubah.
-   ========================================================= */
-html[data-effective-theme="light"]{
-  --light-text:#151923;
-  --light-heading:#101522;
-  --light-muted:#4f5f73;
-  --light-muted-2:#657386;
-  --light-card:#ffffff;
-  --light-card-soft:#f8fafc;
-  --light-line:rgba(15,23,42,.12);
-  --light-line-strong:rgba(15,23,42,.20);
-  --light-accent-text:var(--gold-2);
-  --light-accent-text:color-mix(in srgb,var(--gold-2) 72%,#111827 28%);
-  --light-accent-soft:rgba(var(--theme-rgb),.10);
-  --light-accent-mid:rgba(var(--theme-rgb),.18);
-}
-
-/* Base page and header */
-html[data-effective-theme="light"] body{
-  color:var(--light-text)!important;
-  background:
-    radial-gradient(circle at top left,rgba(var(--theme-rgb),.10),transparent 30rem),
-    radial-gradient(circle at 88% 10%,rgba(var(--theme-rgb),.08),transparent 28rem),
-    linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%)!important;
-}
-html[data-effective-theme="light"] .site-header{
-  background:rgba(255,255,255,.90)!important;
-  border-bottom-color:rgba(var(--theme-rgb),.20)!important;
-  box-shadow:0 14px 34px rgba(15,23,42,.08)!important;
-}
-html[data-effective-theme="light"] .announcement,
-html[data-effective-theme="light"] .footer{
-  background:linear-gradient(90deg,rgba(var(--theme-rgb),.08),#ffffff,rgba(var(--theme-rgb),.08))!important;
-  color:var(--light-text)!important;
-}
-
-/* High-priority text readability */
-html[data-effective-theme="light"] .brand-name,
-html[data-effective-theme="light"] .hero h1,
-html[data-effective-theme="light"] .product-title,
-html[data-effective-theme="light"] .feature-card h3,
-html[data-effective-theme="light"] .info-card h3,
-html[data-effective-theme="light"] .blog-card h3,
-html[data-effective-theme="light"] .faq-q,
-html[data-effective-theme="light"] .faq-q span,
-html[data-effective-theme="light"] .promo-box strong,
-html[data-effective-theme="light"] .stat-card strong,
-html[data-effective-theme="light"] .count-up,
-html[data-effective-theme="light"] .cart-head h2,
-html[data-effective-theme="light"] .cart-item h3,
-html[data-effective-theme="light"] .cart-row.total,
-html[data-effective-theme="light"] .modal-head h2,
-html[data-effective-theme="light"] .quick-rating-copy,
-html[data-effective-theme="light"] .rating-copy,
-html[data-effective-theme="light"] .theme-head h2,
-html[data-effective-theme="light"] .theme-section h3,
-html[data-effective-theme="light"] .footer h3,
-html[data-effective-theme="light"] .footer h4{
-  color:var(--light-heading)!important;
-}
-html[data-effective-theme="light"] .hero p,
-html[data-effective-theme="light"] .section-lead,
-html[data-effective-theme="light"] .muted,
-html[data-effective-theme="light"] .product-desc,
-html[data-effective-theme="light"] .product-sold-copy,
-html[data-effective-theme="light"] .info-card p,
-html[data-effective-theme="light"] .info-card li,
-html[data-effective-theme="light"] .feature-card p,
-html[data-effective-theme="light"] .blog-card p,
-html[data-effective-theme="light"] .faq-a,
-html[data-effective-theme="light"] .cart-head p,
-html[data-effective-theme="light"] .cart-row,
-html[data-effective-theme="light"] .cart-item .line,
-html[data-effective-theme="light"] .quick-desc,
-html[data-effective-theme="light"] .quick-sold-copy,
-html[data-effective-theme="light"] .theme-section p,
-html[data-effective-theme="light"] .footer p,
-html[data-effective-theme="light"] .footer a,
-html[data-effective-theme="light"] .footer li,
-html[data-effective-theme="light"] .copyright{
-  color:var(--light-muted)!important;
-}
-
-/* Accent text: darker in light mode so it never disappears */
-html[data-effective-theme="light"] .section-title,
-html[data-effective-theme="light"] .hero h1 span,
-html[data-effective-theme="light"] .eyebrow,
-html[data-effective-theme="light"] .price,
-html[data-effective-theme="light"] .quick-price,
-html[data-effective-theme="light"] .star-row,
-html[data-effective-theme="light"] .read-link,
-html[data-effective-theme="light"] .promo-code,
-html[data-effective-theme="light"] .back-home-icon,
-html[data-effective-theme="light"] .cart-row.total strong,
-html[data-effective-theme="light"] #totalText{
-  color:var(--light-accent-text)!important;
-}
-html[data-effective-theme="light"] .promo-code{
-  background:linear-gradient(90deg,var(--light-accent-text),var(--gold-2),var(--light-accent-text))!important;
-  -webkit-background-clip:text!important;
-  background-clip:text!important;
-  color:transparent!important;
-}
-
-/* Light cards: neutral surfaces, clear borders, no washed-out text */
-html[data-effective-theme="light"] .product-card,
-html[data-effective-theme="light"] .feature-card,
-html[data-effective-theme="light"] .info-card,
-html[data-effective-theme="light"] .blog-card,
-html[data-effective-theme="light"] .content-card,
-html[data-effective-theme="light"] .faq-item,
-html[data-effective-theme="light"] .stat-card,
-html[data-effective-theme="light"] .promo-box,
-html[data-effective-theme="light"] .cart-item,
-html[data-effective-theme="light"] .cart-empty,
-html[data-effective-theme="light"] .field,
-html[data-effective-theme="light"] .promo-row input,
-html[data-effective-theme="light"] .ship-row select,
-html[data-effective-theme="light"] .btn-secondary,
-html[data-effective-theme="light"] .theme-choice,
-html[data-effective-theme="light"] .theme-panel{
-  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,250,252,.94))!important;
-  color:var(--light-text)!important;
-  border-color:var(--light-line)!important;
-  box-shadow:0 18px 44px rgba(15,23,42,.10)!important;
-}
-html[data-effective-theme="light"] .promo-box,
-html[data-effective-theme="light"] .info-card{
-  background:linear-gradient(145deg,#ffffff,rgba(var(--theme-rgb),.055))!important;
-}
-html[data-effective-theme="light"] .info-card:before{background:rgba(var(--theme-rgb),.07)!important}
-html[data-effective-theme="light"] .feature-icon{
-  background:rgba(var(--theme-rgb),.09)!important;
-  border-color:rgba(var(--theme-rgb),.18)!important;
-  color:var(--light-heading)!important;
-}
-
-/* Buttons and badges */
-html[data-effective-theme="light"] .header-cart,
-html[data-effective-theme="light"] .btn-primary,
-html[data-effective-theme="light"] .load-more-btn,
-html[data-effective-theme="light"] .theme-save{
-  color:#101522!important;
-  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 74%,#fff 26%),var(--gold-2) 62%,var(--gold-3))!important;
-  box-shadow:0 14px 32px rgba(var(--theme-rgb),.22),0 10px 24px rgba(15,23,42,.10)!important;
-}
-html[data-effective-theme="light"] .btn-secondary,
-html[data-effective-theme="light"] .btn-ghost,
-html[data-effective-theme="light"] .theme-toggle,
-html[data-effective-theme="light"] .back-home-btn{
-  color:var(--light-heading)!important;
-  background:rgba(255,255,255,.82)!important;
-  border-color:rgba(var(--theme-rgb),.22)!important;
-}
-html[data-effective-theme="light"] .eyebrow,
-html[data-effective-theme="light"] .tag.top-seller,
-html[data-effective-theme="light"] .quick-top-label,
-html[data-effective-theme="light"] .info-card .mini-label{
-  color:#101522!important;
-  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 72%,#fff 28%),var(--gold-2))!important;
-  border-color:rgba(var(--theme-rgb),.24)!important;
-}
-html[data-effective-theme="light"] .tag:not(.top-seller){
-  background:rgba(255,255,255,.90)!important;
-  color:var(--light-heading)!important;
-  border-color:var(--light-line)!important;
-}
-html[data-effective-theme="light"] .trust-row span,
-html[data-effective-theme="light"] .quick-meta span{
-  color:var(--light-heading)!important;
-  background:rgba(255,255,255,.82)!important;
-  border-color:rgba(var(--theme-rgb),.18)!important;
-}
-
-/* Form, cart, modal, and FAQ states */
-html[data-effective-theme="light"] .field::placeholder,
-html[data-effective-theme="light"] .promo-row input::placeholder{color:#7a8697!important}
-html[data-effective-theme="light"] .field option{background:#ffffff!important;color:var(--light-heading)!important}
-html[data-effective-theme="light"] .faq-item.open{
-  background:#ffffff!important;
-  border-color:rgba(var(--theme-rgb),.30)!important;
-}
-html[data-effective-theme="light"] .modal-card,
-html[data-effective-theme="light"] .cart-drawer,
-html[data-effective-theme="light"] .theme-card{
-  background:linear-gradient(180deg,#ffffff,#f8fafc)!important;
-  color:var(--light-text)!important;
-  border-color:rgba(var(--theme-rgb),.22)!important;
-}
-html[data-effective-theme="light"] .modal-head,
-html[data-effective-theme="light"] .cart-head,
-html[data-effective-theme="light"] .cart-footer{
-  border-color:var(--light-line)!important;
-  background:rgba(255,255,255,.72)!important;
-}
-html[data-effective-theme="light"] .icon-btn,
-html[data-effective-theme="light"] .qty-control{
-  background:#ffffff!important;
-  color:var(--light-heading)!important;
-  border-color:var(--light-line)!important;
-}
-
-/* Theme modal swatches were being overwritten by the light-card rule; keep real colors. */
-html[data-effective-theme="light"] .theme-swatch{
-  background:var(--swatch)!important;
-  color:#fff!important;
-  border-color:rgba(255,255,255,.55)!important;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 10px 24px rgba(15,23,42,.16)!important;
-}
-html[data-effective-theme="light"] .theme-swatch.is-selected{
-  box-shadow:inset 0 0 0 4px rgba(255,255,255,.42),0 0 0 3px rgba(var(--theme-rgb),.30),0 14px 32px rgba(15,23,42,.18)!important;
-}
-html[data-effective-theme="light"] .theme-choice.is-selected{
-  color:var(--light-heading)!important;
-  background:rgba(var(--theme-rgb),.13)!important;
-  border-color:rgba(var(--theme-rgb),.42)!important;
-}
-
-/* Light mode interaction layer: elegant, but not dark/muddy. */
-html[data-effective-theme="light"] .dirac-press-target.dirac-press-active{
-  box-shadow:0 16px 38px rgba(15,23,42,.14),0 0 0 1px rgba(var(--theme-rgb),.24),0 0 26px rgba(var(--theme-rgb),.14)!important;
-  filter:brightness(1.01) saturate(1.04)!important;
-}
-html[data-effective-theme="light"] .dirac-press-sheen{
-  background:linear-gradient(112deg,transparent 12%,rgba(255,255,255,.55) 36%,rgba(var(--theme-rgb),.18) 48%,transparent 70%)!important;
-}
-</style>
-
-
-<style id="dirac-interaction-fix-v2-css">
-/* =========================================================
-   Dirac Premium Interaction Fix v2
-   Penyebab v1 kurang terlihat di HP: hanya mengandalkan pointerdown,
-   efek terlalu halus, dan beberapa CSS anti-lag/reduced-motion bisa
-   membuat animasi tidak tampak. v2 menambah fallback touch/mouse/click,
-   efek lebih jelas, serta tetap mengikuti warna tema customer.
-   ========================================================= */
-:root{
-  --dirac-touch-scale:.962;
-  --dirac-touch-lift:-4px;
-  --dirac-touch-glow:0 20px 54px rgba(0,0,0,.34),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.42),0 0 34px rgba(var(--theme-rgb,243,205,112),.24);
-}
-html.dirac-interactions-ready .dirac-press-target{
-  -webkit-tap-highlight-color:transparent!important;
-  touch-action:manipulation;
-  user-select:none;
-  position:relative!important;
-  isolation:isolate!important;
-  overflow:hidden!important;
-  transform-origin:center center!important;
-  will-change:transform,filter,box-shadow,border-color;
-  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1),background .22s cubic-bezier(.16,1,.3,1)!important;
-}
-html.dirac-interactions-ready .dirac-press-target:is(a,button,[role="button"]){cursor:pointer!important}
-html.dirac-interactions-ready .dirac-press-target.dirac-press-active,
-html.dirac-interactions-ready .dirac-press-target.dirac-v2-press{
-  transform:translate3d(0,var(--dirac-touch-lift),0) scale(var(--dirac-touch-scale))!important;
-  filter:brightness(1.095) saturate(1.18)!important;
-  box-shadow:var(--dirac-touch-glow)!important;
-  border-color:rgba(var(--theme-rgb,243,205,112),.70)!important;
-}
-html.dirac-interactions-ready .dirac-press-target.dirac-v2-release{
-  animation:diracV2Settle .54s cubic-bezier(.16,1,.3,1) both!important;
-}
-html.dirac-interactions-ready .dirac-press-target.dirac-v2-confirm{
-  animation:diracV2Confirm .66s cubic-bezier(.16,1,.3,1) both!important;
-}
-.dirac-v2-ripple,
-.dirac-v2-sheen,
-.dirac-v2-halo{
-  position:absolute!important;
-  pointer-events:none!important;
-  z-index:9!important;
-  display:block!important;
-}
-.dirac-v2-ripple{
-  left:var(--x,50%);top:var(--y,50%);
-  width:30px;height:30px;border-radius:999px;
-  opacity:0;transform:translate(-50%,-50%) scale(0);
-  background:radial-gradient(circle,rgba(255,255,255,.62) 0%,rgba(var(--theme-rgb,243,205,112),.46) 26%,rgba(var(--theme-rgb,243,205,112),.22) 51%,transparent 74%);
-  box-shadow:0 0 42px rgba(var(--theme-rgb,243,205,112),.35);
-  mix-blend-mode:screen;
-  animation:diracV2Ripple .82s cubic-bezier(.16,1,.3,1) forwards!important;
-}
-.dirac-v2-sheen{
-  inset:-3px;
-  opacity:0;transform:translateX(-118%) skewX(-8deg);
-  background:linear-gradient(110deg,transparent 8%,rgba(255,255,255,.18) 35%,rgba(var(--theme-rgb,243,205,112),.32) 48%,rgba(255,255,255,.12) 58%,transparent 78%);
-  animation:diracV2Sheen .78s cubic-bezier(.16,1,.3,1) forwards!important;
-}
-.dirac-v2-halo{
-  inset:0;border-radius:inherit;opacity:0;
-  box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb,243,205,112),.55),0 0 0 0 rgba(var(--theme-rgb,243,205,112),.42),0 0 34px rgba(var(--theme-rgb,243,205,112),.18);
-  animation:diracV2Halo .72s cubic-bezier(.16,1,.3,1) forwards!important;
-}
-/* Supaya bagian informatif yang disentuh terasa hidup, bukan hanya tombol. */
-html.dirac-interactions-ready .stat-card.dirac-v2-press,
-html.dirac-interactions-ready .feature-card.dirac-v2-press,
-html.dirac-interactions-ready .info-card.dirac-v2-press,
-html.dirac-interactions-ready .blog-card.dirac-v2-press,
-html.dirac-interactions-ready .faq-item.dirac-v2-press,
-html.dirac-interactions-ready .trust-row span.dirac-v2-press,
-html.dirac-interactions-ready .promo-box.dirac-v2-press,
-html.dirac-interactions-ready .content-card.dirac-v2-press,
-html.dirac-interactions-ready .theme-choice.dirac-v2-press{
-  background:linear-gradient(145deg,rgba(var(--theme-rgb,243,205,112),.20),rgba(255,255,255,.055))!important;
-}
-html[data-effective-theme="light"].dirac-interactions-ready .stat-card.dirac-v2-press,
-html[data-effective-theme="light"].dirac-interactions-ready .feature-card.dirac-v2-press,
-html[data-effective-theme="light"].dirac-interactions-ready .info-card.dirac-v2-press,
-html[data-effective-theme="light"].dirac-interactions-ready .blog-card.dirac-v2-press,
-html[data-effective-theme="light"].dirac-interactions-ready .faq-item.dirac-v2-press,
-html[data-effective-theme="light"].dirac-interactions-ready .promo-box.dirac-v2-press,
-html[data-effective-theme="light"].dirac-interactions-ready .content-card.dirac-v2-press{
-  background:linear-gradient(145deg,#fff,rgba(var(--theme-rgb,243,205,112),.14))!important;
-}
-html.dirac-interactions-ready .btn-primary.dirac-v2-press,
-html.dirac-interactions-ready .header-cart.dirac-v2-press,
-html.dirac-interactions-ready .load-more-btn.dirac-v2-press,
-html.dirac-interactions-ready .theme-save.dirac-v2-press{
-  filter:brightness(1.12) saturate(1.18)!important;
-}
-html.dirac-interactions-ready .btn-secondary.dirac-v2-press,
-html.dirac-interactions-ready .btn-ghost.dirac-v2-press,
-html.dirac-interactions-ready .theme-toggle.dirac-v2-press,
-html.dirac-interactions-ready .back-home-btn.dirac-v2-press{
-  background:rgba(var(--theme-rgb,243,205,112),.18)!important;
-}
-html.dirac-interactions-ready .product-card.dirac-v2-press .product-media img,
-html.dirac-interactions-ready .blog-card.dirac-v2-press img,
-html.dirac-interactions-ready .lifestyle-card.dirac-v2-press img,
-html.dirac-interactions-ready .quick-grid.dirac-v2-press img{
-  transform:translateY(-4px) scale(1.034)!important;
-}
-html.dirac-interactions-ready .dirac-v2-press .count-badge,
-html.dirac-interactions-ready .dirac-v2-press .feature-icon,
-html.dirac-interactions-ready .dirac-v2-press .back-home-icon,
-html.dirac-interactions-ready .dirac-v2-press .brand-mark{
-  animation:diracV2IconPop .48s cubic-bezier(.16,1,.3,1) both!important;
-}
-html.dirac-interactions-ready .stat-card.dirac-v2-press strong,
-html.dirac-interactions-ready .count-up.dirac-v2-press{
-  filter:drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.42))!important;
-}
-@keyframes diracV2Ripple{
-  0%{opacity:.78;transform:translate(-50%,-50%) scale(.08)}
-  45%{opacity:.42}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(var(--scale,22))}
-}
-@keyframes diracV2Sheen{
-  0%{opacity:0;transform:translateX(-118%) skewX(-8deg)}
-  18%{opacity:1}
-  100%{opacity:0;transform:translateX(118%) skewX(-8deg)}
-}
-@keyframes diracV2Halo{
-  0%{opacity:.80;box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb,243,205,112),.58),0 0 0 0 rgba(var(--theme-rgb,243,205,112),.34),0 0 28px rgba(var(--theme-rgb,243,205,112),.18)}
-  100%{opacity:0;box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb,243,205,112),.18),0 0 0 18px rgba(var(--theme-rgb,243,205,112),0),0 0 0 rgba(var(--theme-rgb,243,205,112),0)}
-}
-@keyframes diracV2Settle{
-  0%{transform:translate3d(0,-2px,0) scale(.985)}
-  45%{transform:translate3d(0,0,0) scale(1.014)}
-  100%{transform:translate3d(0,0,0) scale(1)}
-}
-@keyframes diracV2Confirm{
-  0%{filter:brightness(1) saturate(1);transform:scale(1)}
-  42%{filter:brightness(1.12) saturate(1.16);transform:scale(1.012)}
-  100%{filter:brightness(1) saturate(1);transform:scale(1)}
-}
-@keyframes diracV2IconPop{
-  0%{transform:scale(1) rotate(0)}
-  45%{transform:scale(1.16) rotate(-3deg)}
-  100%{transform:scale(1) rotate(0)}
-}
-@media(max-width:760px){
-  :root{--dirac-touch-scale:.975;--dirac-touch-lift:-3px}
-  html.dirac-interactions-ready .dirac-press-target.dirac-press-active,
-  html.dirac-interactions-ready .dirac-press-target.dirac-v2-press{
-    transform:translate3d(0,-3px,0) scale(.975)!important;
-    box-shadow:0 16px 40px rgba(0,0,0,.30),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.40),0 0 28px rgba(var(--theme-rgb,243,205,112),.20)!important;
-  }
-}
-/* Kalau perangkat user menyalakan Reduce Motion, v1 sebelumnya mematikan total.
-   v2 tetap memberi feedback singkat non-agresif agar tombol tidak terasa mati. */
-@media(prefers-reduced-motion:reduce){
-  html.dirac-interactions-force .dirac-press-target,
-  html.dirac-interactions-force .dirac-press-target.dirac-press-active,
-  html.dirac-interactions-force .dirac-press-target.dirac-v2-press,
-  html.dirac-interactions-force .dirac-press-target.dirac-v2-release{
-    transition:transform .12s ease,filter .12s ease,box-shadow .12s ease,border-color .12s ease!important;
-    animation:none!important;
-    filter:brightness(1.07) saturate(1.08)!important;
-  }
-  html.dirac-interactions-force .dirac-press-target.dirac-v2-press,
-  html.dirac-interactions-force .dirac-press-target.dirac-press-active{
-    transform:translate3d(0,-2px,0) scale(.984)!important;
-    box-shadow:0 12px 30px rgba(0,0,0,.26),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.40)!important;
-  }
-  html.dirac-interactions-force .dirac-v2-ripple,
-  html.dirac-interactions-force .dirac-v2-sheen,
-  html.dirac-interactions-force .dirac-v2-halo{
-    display:block!important;
-    animation-duration:.42s!important;
-  }
-}
-</style>
-
-
-
-<style id="dirac-simple-interactions-stats-css">
-/* Final interaction layer: simple, corporate, not noisy. */
-.stat-card strong,
-.count-up{
+.stat-card strong.count-up{
   font-family:Poppins,system-ui,-apple-system,"Segoe UI",sans-serif!important;
-  font-weight:800!important;
-  letter-spacing:-.045em!important;
-  font-size:clamp(2.05rem,7vw,3rem)!important;
-  line-height:.98!important;
-  font-variant-numeric:tabular-nums!important;
+  font-weight:850!important;
+  letter-spacing:-.035em!important;
+  color:var(--text)!important;
+  font-variant-numeric:tabular-nums lining-nums!important;
 }
 .stat-card span{
   font-family:Poppins,system-ui,-apple-system,"Segoe UI",sans-serif!important;
-  font-weight:800!important;
-  letter-spacing:.095em!important;
-  font-size:clamp(.72rem,2.5vw,.88rem)!important;
+  letter-spacing:.065em!important;
 }
-@media(max-width:430px){
-  .stat-card strong,.count-up{font-size:clamp(1.95rem,9vw,2.55rem)!important;letter-spacing:-.05em!important}
-  .stat-card span{font-size:.72rem!important;letter-spacing:.075em!important}
-}
-.dirac-simple-tap-target{
-  position:relative;
-  overflow:hidden;
+html[data-effective-theme="light"] .stat-card strong.count-up{color:#111827!important}
+
+.dirac-click-motion{
+  position:relative!important;
+  isolation:isolate!important;
+  -webkit-tap-highlight-color:transparent!important;
   touch-action:manipulation;
-  -webkit-tap-highlight-color:transparent;
-  transition:transform .16s cubic-bezier(.22,1,.36,1),filter .16s cubic-bezier(.22,1,.36,1),box-shadow .16s cubic-bezier(.22,1,.36,1),border-color .16s cubic-bezier(.22,1,.36,1)!important;
-  will-change:transform;
+  transform-origin:center center!important;
+  will-change:transform,filter,box-shadow!important;
+  transition:
+    transform .22s var(--tap-ease-out),
+    box-shadow .28s var(--tap-ease-out),
+    border-color .28s var(--tap-ease-out),
+    filter .28s var(--tap-ease-out),
+    background-color .28s var(--tap-ease-out)!important;
 }
-.dirac-simple-tap-target.is-simple-tapping{
-  transform:translateY(1px) scale(.985)!important;
-  filter:brightness(1.035)!important;
+.dirac-click-motion.dirac-pressing{
+  transform:translateY(2px) scale(.975)!important;
+  filter:brightness(1.035) saturate(1.06)!important;
+  box-shadow:
+    0 8px 22px rgba(0,0,0,.22),
+    0 0 0 2px rgba(var(--theme-rgb,243,205,112),.26),
+    0 0 24px rgba(var(--theme-rgb,243,205,112),.20)!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.55)!important;
 }
-.btn-primary.dirac-simple-tap-target.is-simple-tapping,
-.header-cart.dirac-simple-tap-target.is-simple-tapping,
-.load-more-btn.dirac-simple-tap-target.is-simple-tapping,
-.theme-save.dirac-simple-tap-target.is-simple-tapping{
-  box-shadow:0 10px 26px rgba(var(--theme-rgb),.22)!important;
+.dirac-click-motion.dirac-released{
+  animation:diracTapSettle .48s var(--tap-ease-out) both!important;
 }
-.btn-secondary.dirac-simple-tap-target.is-simple-tapping,
-.btn-ghost.dirac-simple-tap-target.is-simple-tapping,
-.theme-toggle.dirac-simple-tap-target.is-simple-tapping,
-.back-home-btn.dirac-simple-tap-target.is-simple-tapping,
-.faq-q.dirac-simple-tap-target.is-simple-tapping{
-  border-color:rgba(var(--theme-rgb),.34)!important;
-  box-shadow:0 8px 22px rgba(0,0,0,.14)!important;
+@keyframes diracTapSettle{
+  0%{transform:translateY(1px) scale(.982)}
+  42%{transform:translateY(-2px) scale(1.018)}
+  72%{transform:translateY(0) scale(.996)}
+  100%{transform:translateY(0) scale(1)}
 }
-.dirac-simple-glint{
+.dirac-tap-ripple{
+  position:absolute!important;
+  z-index:5!important;
+  pointer-events:none!important;
+  border-radius:999px!important;
+  width:18px;height:18px;
+  left:var(--tap-x,50%);top:var(--tap-y,50%);
+  margin-left:-9px;margin-top:-9px;
+  background:radial-gradient(circle,rgba(255,255,255,.55) 0%,rgba(var(--theme-rgb,243,205,112),.34) 42%,rgba(var(--theme-rgb,243,205,112),0) 72%);
+  transform:scale(.1);
+  opacity:.85;
+  mix-blend-mode:screen;
+  animation:diracRipple .58s var(--tap-ease-out) forwards!important;
+}
+@keyframes diracRipple{
+  0%{transform:scale(.1);opacity:.88}
+  78%{opacity:.28}
+  100%{transform:scale(12);opacity:0}
+}
+.dirac-click-motion:after{
+  content:"";
   position:absolute;
   inset:0;
+  z-index:4;
   pointer-events:none;
   border-radius:inherit;
-  background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.10) 46%,rgba(var(--theme-rgb),.13) 52%,transparent 70%);
-  transform:translateX(-110%);
-  opacity:.65;
-  animation:diracSimpleGlint .38s cubic-bezier(.22,1,.36,1) forwards;
-  z-index:4;
+  background:linear-gradient(110deg,transparent 22%,rgba(255,255,255,.22) 48%,transparent 74%);
+  transform:translateX(-140%);
+  opacity:0;
 }
-@keyframes diracSimpleGlint{to{transform:translateX(110%);opacity:0}}
-.theme-swatch.dirac-simple-tap-target.is-simple-tapping,
-.theme-choice.dirac-simple-tap-target.is-simple-tapping{
-  transform:translateY(1px) scale(.975)!important;
+.dirac-click-motion.dirac-shine:after{
+  animation:diracTapShine .52s var(--tap-ease-out) both!important;
+}
+@keyframes diracTapShine{
+  0%{transform:translateX(-140%);opacity:0}
+  24%{opacity:.72}
+  100%{transform:translateX(140%);opacity:0}
+}
+
+/* Sizes tuned per element so the motion is visible but not alay. */
+.product-card.dirac-click-motion.dirac-pressing{transform:translateY(2px) scale(.988)!important}
+.product-card.dirac-click-motion.dirac-released{animation:diracCardSettle .5s var(--tap-ease-out) both!important}
+@keyframes diracCardSettle{
+  0%{transform:translateY(1px) scale(.99)}
+  45%{transform:translateY(-4px) scale(1.01)}
+  100%{transform:translateY(0) scale(1)}
+}
+.theme-swatch.dirac-click-motion.dirac-pressing{transform:translateY(1px) scale(.90)!important}
+.theme-swatch.dirac-click-motion.dirac-released{animation:diracSwatchSettle .42s var(--tap-ease-out) both!important}
+@keyframes diracSwatchSettle{0%{transform:scale(.92)}55%{transform:scale(1.10)}100%{transform:scale(1)}}
+.faq-q.dirac-click-motion.dirac-pressing{transform:translateY(1px) scale(.992)!important}
+.nav-links a.dirac-click-motion.dirac-pressing,.read-link.dirac-click-motion.dirac-pressing{transform:translateY(1px) scale(.985)!important}
+.icon-btn.dirac-click-motion.dirac-pressing,.qty-control button.dirac-click-motion.dirac-pressing,.remove-btn.dirac-click-motion.dirac-pressing{transform:scale(.88)!important}
+
+@media(max-width:760px){
+  .dirac-click-motion{
+    transition:transform .18s var(--tap-ease-out),box-shadow .24s var(--tap-ease-out),filter .24s var(--tap-ease-out),border-color .24s var(--tap-ease-out)!important;
+  }
+  .dirac-click-motion.dirac-pressing{
+    transform:translateY(2px) scale(.968)!important;
+    box-shadow:0 7px 20px rgba(0,0,0,.22),0 0 0 2px rgba(var(--theme-rgb,243,205,112),.30),0 0 22px rgba(var(--theme-rgb,243,205,112),.18)!important;
+  }
+  .product-card.dirac-click-motion.dirac-pressing{transform:translateY(2px) scale(.988)!important}
+  .dirac-tap-ripple{animation-duration:.50s!important}
 }
 @media(prefers-reduced-motion:reduce){
-  .dirac-simple-tap-target{transition:filter .12s ease!important;will-change:auto!important}
-  .dirac-simple-tap-target.is-simple-tapping{transform:none!important;filter:brightness(1.06)!important}
-  .dirac-simple-glint{display:none!important}
+  .dirac-click-motion.dirac-pressing{
+    transform:scale(.985)!important;
+    filter:brightness(1.06)!important;
+  }
+  .dirac-click-motion.dirac-released,.dirac-click-motion.dirac-shine:after,.dirac-tap-ripple{animation:none!important}
+  .dirac-tap-ripple{display:none!important}
 }
 </style>
 
@@ -2024,9 +1486,9 @@ html.dirac-interactions-ready .count-up.dirac-v2-press{
 
     <section class="stats-strip" aria-label="Statistik Dirac Parfum">
       <div class="container stats-grid">
-        <div class="stat-card"><strong class="count-up" data-target="23528" data-suffix="+" data-duration="1700">0</strong><span>Pesanan Diproses</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="7192" data-suffix="+" data-duration="1700">0</strong><span>Pelanggan Terverifikasi</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="659" data-suffix="+" data-duration="1700">0</strong><span>Mitra Reseller</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="23528" data-suffix="+">0</strong><span>Pesanan Diproses</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="7192" data-suffix="+">0</strong><span>Pelanggan Terverifikasi</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="659" data-suffix="+">0</strong><span>Mitra Reseller</span></div>
       </div>
     </section>
 
@@ -3744,7 +3206,7 @@ html.dirac-interactions-ready .count-up.dirac-v2-press{
       catch { cart = []; }
       cart = cart.filter(item => products.some(p => p.id === item.id)).map(item => ({id:Number(item.id),qty:Math.max(1,Number(item.qty)||1)}));
     }
-    function saveCart(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); }
+    function saveCart(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); }catch(error){} }
     function getProduct(id){ return products.find(p => p.id === Number(id)); }
     function getQty(id){ return cart.find(item => item.id === Number(id))?.qty || 0; }
     function totalQty(){ return cart.reduce((sum,item)=>sum+item.qty,0); }
@@ -4984,97 +4446,165 @@ html.dirac-interactions-ready .count-up.dirac-v2-press{
 </script>
 
 
-<script id="dirac-simple-interactions-js">
-/* Simple tactile feedback for real clickable controls only. */
+<script id="dirac-final-click-motion-js">
 (function(){
+  'use strict';
+
   var selector = [
-    'a[href]',
     'button:not([disabled])',
-    '[role="button"]',
-    '.theme-choice',
+    'a[href]',
+    '.product-card',
+    '.faq-q',
     '.theme-swatch',
-    '.faq-q'
+    '.qty-control button',
+    '.remove-btn',
+    '[role="button"]'
   ].join(',');
-  var skip = 'input,select,textarea,option,label';
-  function toArray(list){ return Array.prototype.slice.call(list || []); }
-  function isDisabled(el){ return !el || el.matches('[disabled],button:disabled') || el.classList.contains('btn-disabled') || el.getAttribute('aria-disabled') === 'true'; }
-  function closestTarget(node){
-    if(!node || !node.closest) return null;
-    if(node.closest(skip)) return null;
-    var target = node.closest(selector);
-    if(!target || isDisabled(target)) return null;
-    return target;
+
+  function closestInteractive(target){
+    if(!target || !target.closest) return null;
+    var el = target.closest(selector);
+    if(!el || !document.documentElement.contains(el)) return null;
+    if(el.matches && el.matches('input, textarea, select, option')) return null;
+    if(el.disabled || el.getAttribute('aria-disabled') === 'true') return null;
+    return el;
   }
-  function mark(root){
-    toArray((root || document).querySelectorAll(selector)).forEach(function(el){
-      if(!isDisabled(el)) el.classList.add('dirac-simple-tap-target');
+
+  function addBaseClasses(root){
+    var scope = root || document;
+    Array.prototype.forEach.call(scope.querySelectorAll(selector), function(el){
+      if(el.matches && el.matches('input, textarea, select, option')) return;
+      if(el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+      el.classList.add('dirac-click-motion');
     });
   }
-  function glint(target){
-    if(!target) return;
-    var old = target.querySelector(':scope > .dirac-simple-glint');
-    if(old) old.remove();
-    var s = document.createElement('span');
-    s.className = 'dirac-simple-glint';
-    s.setAttribute('aria-hidden','true');
-    target.appendChild(s);
-    setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 460);
+
+  function eventPoint(event, el){
+    var point = event;
+    if(event.touches && event.touches[0]) point = event.touches[0];
+    if(event.changedTouches && event.changedTouches[0]) point = event.changedTouches[0];
+    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : {left:0,top:0,width:1,height:1};
+    var x = typeof point.clientX === 'number' ? point.clientX - rect.left : rect.width / 2;
+    var y = typeof point.clientY === 'number' ? point.clientY - rect.top : rect.height / 2;
+    x = Math.max(0, Math.min(rect.width || 1, x));
+    y = Math.max(0, Math.min(rect.height || 1, y));
+    return {x:x,y:y};
   }
-  function press(target){
-    if(!target) return;
-    target.classList.add('is-simple-tapping');
-    glint(target);
+
+  function makeRipple(el, event){
+    if(!el || !el.appendChild || el.closest('select,input,textarea')) return;
+    // Avoid huge ripples on very large wrappers; keep it crisp and premium.
+    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    if(rect && (rect.width > 520 || rect.height > 260) && !el.classList.contains('product-card')) return;
+    var pos = eventPoint(event, el);
+    var ripple = document.createElement('span');
+    ripple.className = 'dirac-tap-ripple';
+    ripple.style.setProperty('--tap-x', pos.x + 'px');
+    ripple.style.setProperty('--tap-y', pos.y + 'px');
+    el.appendChild(ripple);
+    setTimeout(function(){ if(ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 700);
   }
-  function release(target){
-    if(!target) return;
-    setTimeout(function(){ target.classList.remove('is-simple-tapping'); }, 120);
+
+  function nextTapToken(el){
+    var token = String(Date.now()) + '-' + String(Math.random()).slice(2);
+    el.dataset.diracTapToken = token;
+    return token;
   }
-  function onDown(event){
-    if(event.type === 'pointerdown' && event.pointerType === 'mouse' && event.button !== 0) return;
-    if(event.type === 'mousedown' && event.button !== 0) return;
-    var target = closestTarget(event.target);
-    if(!target) return;
-    press(target);
-    var done = false;
-    function finish(){
-      if(done) return;
-      done = true;
-      release(target);
-      window.removeEventListener('pointerup', finish, true);
-      window.removeEventListener('pointercancel', finish, true);
-      window.removeEventListener('mouseup', finish, true);
-      window.removeEventListener('touchend', finish, true);
-      window.removeEventListener('touchcancel', finish, true);
-      window.removeEventListener('blur', finish, true);
-    }
-    window.addEventListener('pointerup', finish, true);
-    window.addEventListener('pointercancel', finish, true);
-    window.addEventListener('mouseup', finish, true);
-    window.addEventListener('touchend', finish, true);
-    window.addEventListener('touchcancel', finish, true);
-    window.addEventListener('blur', finish, true);
-    setTimeout(finish, 360);
+
+  function press(el, event){
+    if(!el) return;
+    nextTapToken(el);
+    el.classList.add('dirac-click-motion');
+    el.classList.remove('dirac-released','dirac-shine');
+    // Force layout so animation restarts reliably on iOS/Android.
+    void el.offsetWidth;
+    el.classList.add('dirac-pressing','dirac-shine');
+    makeRipple(el, event || window.event || {});
   }
-  document.addEventListener('pointerdown', onDown, {capture:true, passive:true});
-  document.addEventListener('touchstart', onDown, {capture:true, passive:true});
-  document.addEventListener('mousedown', onDown, true);
-  document.addEventListener('keydown', function(event){
-    if(event.key !== 'Enter' && event.key !== ' ') return;
-    var target = closestTarget(document.activeElement);
-    if(!target) return;
-    press(target);
-    release(target);
+
+  function release(el){
+    if(!el) return;
+    var token = el.dataset.diracTapToken || nextTapToken(el);
+    el.classList.remove('dirac-pressing');
+    el.classList.remove('dirac-released');
+    void el.offsetWidth;
+    el.classList.add('dirac-released');
+    setTimeout(function(){
+      if(el.dataset.diracTapToken !== token) return;
+      el.classList.remove('dirac-released','dirac-shine');
+    }, 620);
+  }
+
+  var activeEl = null;
+  var lastTouchAt = 0;
+
+  document.addEventListener('touchstart', function(event){
+    var el = closestInteractive(event.target);
+    if(!el) return;
+    lastTouchAt = Date.now();
+    activeEl = el;
+    press(el, event);
+  }, {passive:true, capture:true});
+
+  document.addEventListener('touchend', function(){
+    if(activeEl){ release(activeEl); activeEl = null; }
+  }, {passive:true, capture:true});
+
+  document.addEventListener('touchcancel', function(){
+    if(activeEl){ release(activeEl); activeEl = null; }
+  }, {passive:true, capture:true});
+
+  document.addEventListener('pointerdown', function(event){
+    if(Date.now() - lastTouchAt < 450) return;
+    var el = closestInteractive(event.target);
+    if(!el) return;
+    activeEl = el;
+    press(el, event);
+  }, {passive:true, capture:true});
+
+  document.addEventListener('pointerup', function(){
+    if(activeEl){ release(activeEl); activeEl = null; }
+  }, {passive:true, capture:true});
+
+  document.addEventListener('pointercancel', function(){
+    if(activeEl){ release(activeEl); activeEl = null; }
+  }, {passive:true, capture:true});
+
+  document.addEventListener('mousedown', function(event){
+    if(Date.now() - lastTouchAt < 450) return;
+    var el = closestInteractive(event.target);
+    if(!el) return;
+    activeEl = el;
+    press(el, event);
   }, true);
-  mark(document);
-  document.addEventListener('DOMContentLoaded', function(){ mark(document); });
-  if(window.MutationObserver){
+
+  document.addEventListener('mouseup', function(){
+    if(activeEl){ release(activeEl); activeEl = null; }
+  }, true);
+
+  // Click fallback for browsers that do not deliver pointer/touch consistently.
+  document.addEventListener('click', function(event){
+    var el = closestInteractive(event.target);
+    if(!el) return;
+    if(el.classList.contains('dirac-pressing') || el.classList.contains('dirac-released')) return;
+    press(el, event);
+    setTimeout(function(){ release(el); }, 90);
+  }, true);
+
+  addBaseClasses(document);
+
+  if('MutationObserver' in window){
     new MutationObserver(function(records){
       records.forEach(function(record){
-        toArray(record.addedNodes).forEach(function(node){ if(node && node.nodeType === 1) mark(node); });
+        Array.prototype.forEach.call(record.addedNodes || [], function(node){
+          if(node.nodeType === 1) addBaseClasses(node);
+        });
       });
-    }).observe(document.documentElement, {childList:true, subtree:true});
+    }).observe(document.documentElement,{childList:true,subtree:true});
   }
-  window.diracSimpleInteractions = {refresh:function(){ mark(document); }, test:function(sel){ var t=document.querySelector(sel||'.btn-primary'); if(!t) return false; press(t); release(t); return true; }};
+
+  setTimeout(function(){ addBaseClasses(document); }, 300);
+  setTimeout(function(){ addBaseClasses(document); }, 1200);
 })();
 </script>
 
