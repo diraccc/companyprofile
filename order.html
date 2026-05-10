@@ -1886,6 +1886,78 @@ html.dirac-interactions-ready .count-up.dirac-v2-press{
 }
 </style>
 
+
+
+<style id="dirac-simple-interactions-stats-css">
+/* Final interaction layer: simple, corporate, not noisy. */
+.stat-card strong,
+.count-up{
+  font-family:Poppins,system-ui,-apple-system,"Segoe UI",sans-serif!important;
+  font-weight:800!important;
+  letter-spacing:-.045em!important;
+  font-size:clamp(2.05rem,7vw,3rem)!important;
+  line-height:.98!important;
+  font-variant-numeric:tabular-nums!important;
+}
+.stat-card span{
+  font-family:Poppins,system-ui,-apple-system,"Segoe UI",sans-serif!important;
+  font-weight:800!important;
+  letter-spacing:.095em!important;
+  font-size:clamp(.72rem,2.5vw,.88rem)!important;
+}
+@media(max-width:430px){
+  .stat-card strong,.count-up{font-size:clamp(1.95rem,9vw,2.55rem)!important;letter-spacing:-.05em!important}
+  .stat-card span{font-size:.72rem!important;letter-spacing:.075em!important}
+}
+.dirac-simple-tap-target{
+  position:relative;
+  overflow:hidden;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .16s cubic-bezier(.22,1,.36,1),filter .16s cubic-bezier(.22,1,.36,1),box-shadow .16s cubic-bezier(.22,1,.36,1),border-color .16s cubic-bezier(.22,1,.36,1)!important;
+  will-change:transform;
+}
+.dirac-simple-tap-target.is-simple-tapping{
+  transform:translateY(1px) scale(.985)!important;
+  filter:brightness(1.035)!important;
+}
+.btn-primary.dirac-simple-tap-target.is-simple-tapping,
+.header-cart.dirac-simple-tap-target.is-simple-tapping,
+.load-more-btn.dirac-simple-tap-target.is-simple-tapping,
+.theme-save.dirac-simple-tap-target.is-simple-tapping{
+  box-shadow:0 10px 26px rgba(var(--theme-rgb),.22)!important;
+}
+.btn-secondary.dirac-simple-tap-target.is-simple-tapping,
+.btn-ghost.dirac-simple-tap-target.is-simple-tapping,
+.theme-toggle.dirac-simple-tap-target.is-simple-tapping,
+.back-home-btn.dirac-simple-tap-target.is-simple-tapping,
+.faq-q.dirac-simple-tap-target.is-simple-tapping{
+  border-color:rgba(var(--theme-rgb),.34)!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.14)!important;
+}
+.dirac-simple-glint{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.10) 46%,rgba(var(--theme-rgb),.13) 52%,transparent 70%);
+  transform:translateX(-110%);
+  opacity:.65;
+  animation:diracSimpleGlint .38s cubic-bezier(.22,1,.36,1) forwards;
+  z-index:4;
+}
+@keyframes diracSimpleGlint{to{transform:translateX(110%);opacity:0}}
+.theme-swatch.dirac-simple-tap-target.is-simple-tapping,
+.theme-choice.dirac-simple-tap-target.is-simple-tapping{
+  transform:translateY(1px) scale(.975)!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .dirac-simple-tap-target{transition:filter .12s ease!important;will-change:auto!important}
+  .dirac-simple-tap-target.is-simple-tapping{transform:none!important;filter:brightness(1.06)!important}
+  .dirac-simple-glint{display:none!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -1952,9 +2024,9 @@ html.dirac-interactions-ready .count-up.dirac-v2-press{
 
     <section class="stats-strip" aria-label="Statistik Dirac Parfum">
       <div class="container stats-grid">
-        <div class="stat-card"><strong class="count-up" data-target="24" data-suffix="K+" data-duration="1700">0</strong><span>Pesanan Sukses</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="7" data-suffix="K+" data-duration="1700">0</strong><span>Pelanggan Terverifikasi</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="650" data-suffix="+" data-duration="1700">0</strong><span>Mitra Reseller</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="23528" data-suffix="+" data-duration="1700">0</strong><span>Pesanan Diproses</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="7192" data-suffix="+" data-duration="1700">0</strong><span>Pelanggan Terverifikasi</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="659" data-suffix="+" data-duration="1700">0</strong><span>Mitra Reseller</span></div>
       </div>
     </section>
 
@@ -4912,234 +4984,62 @@ html.dirac-interactions-ready .count-up.dirac-v2-press{
 </script>
 
 
-<script id="dirac-premium-interaction-js">
-/* Premium tap/click feedback. Tidak mengubah alur click asli. */
+<script id="dirac-simple-interactions-js">
+/* Simple tactile feedback for real clickable controls only. */
 (function(){
-  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var selector = [
-    'a','button',
-    '.product-card','.feature-card','.info-card','.blog-card','.faq-item','.stat-card',
-    '.trust-row span','.promo-box','.content-card','.lifestyle-card',
-    '.quick-meta span','.cart-item','.theme-choice','.theme-swatch'
+    'a[href]',
+    'button:not([disabled])',
+    '[role="button"]',
+    '.theme-choice',
+    '.theme-swatch',
+    '.faq-q'
   ].join(',');
-  var skipSelector = 'input,select,textarea,option,label';
-
-  function closestTarget(node){
-    if(!node || !node.closest) return null;
-    if(node.closest(skipSelector)) return null;
-    var target = node.closest(selector);
-    if(!target) return null;
-    if(target.matches('button:disabled,[disabled]')) return null;
-    if(target.classList.contains('btn-disabled')) return null;
-    if(target.getAttribute('aria-disabled') === 'true') return null;
-    return target;
-  }
-
-  function markTargets(root){
-    Array.prototype.slice.call((root || document).querySelectorAll(selector)).forEach(function(el){
-      if(el.matches('input,select,textarea,option')) return;
-      if(!el.classList.contains('dirac-press-target')) el.classList.add('dirac-press-target');
-    });
-  }
-
-  function addLayer(target, className){
-    var layer = document.createElement('span');
-    layer.className = className;
-    layer.setAttribute('aria-hidden','true');
-    target.appendChild(layer);
-    setTimeout(function(){ if(layer && layer.parentNode) layer.parentNode.removeChild(layer); }, 820);
-    return layer;
-  }
-
-  function playPress(target, event){
-    if(!target || reduceMotion) return;
-    var rect = target.getBoundingClientRect();
-    if(!rect.width || !rect.height) return;
-    target.classList.remove('dirac-press-release');
-    target.classList.add('dirac-press-active');
-    var ripple = addLayer(target, 'dirac-ripple');
-    var x = event && typeof event.clientX === 'number' ? event.clientX - rect.left : rect.width / 2;
-    var y = event && typeof event.clientY === 'number' ? event.clientY - rect.top : rect.height / 2;
-    ripple.style.setProperty('--ripple-x', x + 'px');
-    ripple.style.setProperty('--ripple-y', y + 'px');
-    ripple.style.setProperty('--ripple-scale', Math.max(rect.width, rect.height) / 10 + 2);
-    addLayer(target, 'dirac-press-sheen');
-  }
-
-  function releasePress(target){
-    if(!target || reduceMotion) return;
-    target.classList.remove('dirac-press-active');
-    target.classList.remove('dirac-press-release');
-    void target.offsetWidth;
-    target.classList.add('dirac-press-release');
-    setTimeout(function(){ target.classList.remove('dirac-press-release'); }, 520);
-  }
-
-  document.addEventListener('pointerdown', function(event){
-    if(event.pointerType === 'mouse' && event.button !== 0) return;
-    var target = closestTarget(event.target);
-    if(!target) return;
-    markTargets(target.parentNode || document);
-    playPress(target, event);
-    var done = false;
-    function finish(){
-      if(done) return;
-      done = true;
-      releasePress(target);
-      window.removeEventListener('pointerup', finish, true);
-      window.removeEventListener('pointercancel', finish, true);
-      window.removeEventListener('blur', finish, true);
-    }
-    window.addEventListener('pointerup', finish, true);
-    window.addEventListener('pointercancel', finish, true);
-    window.addEventListener('blur', finish, true);
-    setTimeout(finish, 680);
-  }, {passive:true});
-
-  document.addEventListener('keydown', function(event){
-    if(event.key !== 'Enter' && event.key !== ' ') return;
-    var target = closestTarget(document.activeElement);
-    if(!target) return;
-    playPress(target, null);
-    setTimeout(function(){ releasePress(target); }, 160);
-  });
-
-  document.addEventListener('DOMContentLoaded', function(){ markTargets(document); });
-  markTargets(document);
-
-  if(window.MutationObserver){
-    new MutationObserver(function(records){
-      records.forEach(function(record){
-        Array.prototype.slice.call(record.addedNodes || []).forEach(function(node){
-          if(node && node.nodeType === 1) markTargets(node);
-        });
-      });
-    }).observe(document.documentElement, {childList:true, subtree:true});
-  }
-
-  window.diracPremiumInteraction = {refresh:function(){ markTargets(document); }};
-})();
-</script>
-
-
-<script id="dirac-interaction-fix-v2-js">
-/* Robust premium interactions + corporate stats safety net. */
-(function(){
-  var root = document.documentElement;
-  root.classList.add('dirac-interactions-ready','dirac-interactions-force');
-
-  var statConfig = [
-    {target:'24', suffix:'K+', label:'Pesanan Sukses'},
-    {target:'7', suffix:'K+', label:'Pelanggan Terverifikasi'},
-    {target:'650', suffix:'+', label:'Mitra Reseller'}
-  ];
-  function enforceCorporateStats(){
-    var cards = document.querySelectorAll('.stats-grid .stat-card');
-    statConfig.forEach(function(item, index){
-      var card = cards[index];
-      if(!card) return;
-      var num = card.querySelector('.count-up');
-      var label = card.querySelector('span');
-      if(num){
-        num.dataset.target = item.target;
-        num.dataset.suffix = item.suffix;
-        num.dataset.duration = num.dataset.duration || '1700';
-        if(num.dataset.animated !== 'true') num.textContent = '0';
-      }
-      if(label) label.textContent = item.label;
-    });
-  }
-  enforceCorporateStats();
-  document.addEventListener('DOMContentLoaded', enforceCorporateStats);
-
-  var selector = [
-    'a','button','[role="button"]',
-    '.product-card','.feature-card','.info-card','.blog-card','.faq-item','.stat-card',
-    '.trust-row span','.promo-box','.content-card','.lifestyle-card',
-    '.quick-meta span','.cart-item','.theme-choice','.theme-swatch','.quick-grid'
-  ].join(',');
-  var skipSelector = 'input,select,textarea,option,label,.modal input,.modal textarea,.modal select';
-
+  var skip = 'input,select,textarea,option,label';
   function toArray(list){ return Array.prototype.slice.call(list || []); }
-  function isDisabled(el){
-    return !el || el.matches('button:disabled,[disabled]') || el.classList.contains('btn-disabled') || el.getAttribute('aria-disabled') === 'true';
-  }
+  function isDisabled(el){ return !el || el.matches('[disabled],button:disabled') || el.classList.contains('btn-disabled') || el.getAttribute('aria-disabled') === 'true'; }
   function closestTarget(node){
     if(!node || !node.closest) return null;
-    if(node.closest(skipSelector)) return null;
+    if(node.closest(skip)) return null;
     var target = node.closest(selector);
     if(!target || isDisabled(target)) return null;
     return target;
   }
-  function markTargets(rootNode){
-    toArray((rootNode || document).querySelectorAll(selector)).forEach(function(el){
-      if(isDisabled(el)) return;
-      if(el.matches('input,select,textarea,option')) return;
-      el.classList.add('dirac-press-target');
+  function mark(root){
+    toArray((root || document).querySelectorAll(selector)).forEach(function(el){
+      if(!isDisabled(el)) el.classList.add('dirac-simple-tap-target');
     });
   }
-  function clearLayers(target){
-    toArray(target.querySelectorAll(':scope > .dirac-v2-ripple,:scope > .dirac-v2-sheen,:scope > .dirac-v2-halo')).forEach(function(el){ el.remove(); });
-  }
-  function layer(target, className){
-    var el = document.createElement('span');
-    el.className = className;
-    el.setAttribute('aria-hidden','true');
-    target.appendChild(el);
-    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 950);
-    return el;
-  }
-  function pointFromEvent(event){
-    if(!event) return null;
-    if(event.touches && event.touches[0]) return event.touches[0];
-    if(event.changedTouches && event.changedTouches[0]) return event.changedTouches[0];
-    return event;
-  }
-  function play(target, event, force){
+  function glint(target){
     if(!target) return;
-    var now = Date.now();
-    if(!force && target.__diracLastTap && now - target.__diracLastTap < 120) return;
-    target.__diracLastTap = now;
-    markTargets(target.parentNode || document);
-    var rect = target.getBoundingClientRect();
-    if(!rect.width || !rect.height) return;
-    target.classList.remove('dirac-v2-release','dirac-v2-confirm','dirac-press-release');
-    target.classList.add('dirac-press-active','dirac-v2-press');
-    clearLayers(target);
-    var p = pointFromEvent(event);
-    var x = p && typeof p.clientX === 'number' ? p.clientX - rect.left : rect.width / 2;
-    var y = p && typeof p.clientY === 'number' ? p.clientY - rect.top : rect.height / 2;
-    var ripple = layer(target, 'dirac-v2-ripple');
-    ripple.style.setProperty('--x', Math.max(0, Math.min(rect.width, x)) + 'px');
-    ripple.style.setProperty('--y', Math.max(0, Math.min(rect.height, y)) + 'px');
-    ripple.style.setProperty('--scale', String(Math.max(14, Math.max(rect.width, rect.height) / 9)));
-    layer(target, 'dirac-v2-sheen');
-    layer(target, 'dirac-v2-halo');
+    var old = target.querySelector(':scope > .dirac-simple-glint');
+    if(old) old.remove();
+    var s = document.createElement('span');
+    s.className = 'dirac-simple-glint';
+    s.setAttribute('aria-hidden','true');
+    target.appendChild(s);
+    setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 460);
+  }
+  function press(target){
+    if(!target) return;
+    target.classList.add('is-simple-tapping');
+    glint(target);
   }
   function release(target){
     if(!target) return;
-    target.classList.remove('dirac-press-active','dirac-v2-press');
-    target.classList.remove('dirac-v2-release','dirac-press-release');
-    void target.offsetWidth;
-    target.classList.add('dirac-v2-release','dirac-press-release');
-    setTimeout(function(){ target.classList.remove('dirac-v2-release','dirac-press-release'); }, 620);
+    setTimeout(function(){ target.classList.remove('is-simple-tapping'); }, 120);
   }
-  function confirm(target){
-    if(!target) return;
-    target.classList.remove('dirac-v2-confirm');
-    void target.offsetWidth;
-    target.classList.add('dirac-v2-confirm');
-    setTimeout(function(){ target.classList.remove('dirac-v2-confirm'); }, 760);
-  }
-  function bindDown(event){
-    if(event.type === 'mousedown' && event.button !== 0) return;
+  function onDown(event){
     if(event.type === 'pointerdown' && event.pointerType === 'mouse' && event.button !== 0) return;
+    if(event.type === 'mousedown' && event.button !== 0) return;
     var target = closestTarget(event.target);
     if(!target) return;
-    play(target, event, false);
+    press(target);
     var done = false;
     function finish(){
-      if(done) return; done = true; release(target);
+      if(done) return;
+      done = true;
+      release(target);
       window.removeEventListener('pointerup', finish, true);
       window.removeEventListener('pointercancel', finish, true);
       window.removeEventListener('mouseup', finish, true);
@@ -5153,45 +5053,28 @@ html.dirac-interactions-ready .count-up.dirac-v2-press{
     window.addEventListener('touchend', finish, true);
     window.addEventListener('touchcancel', finish, true);
     window.addEventListener('blur', finish, true);
-    setTimeout(finish, 720);
+    setTimeout(finish, 360);
   }
-
-  document.addEventListener('pointerdown', bindDown, true);
-  document.addEventListener('touchstart', bindDown, {capture:true, passive:true});
-  document.addEventListener('mousedown', bindDown, true);
-  document.addEventListener('click', function(event){
-    var target = closestTarget(event.target);
-    if(!target) return;
-    var elapsed = Date.now() - (target.__diracLastTap || 0);
-    if(elapsed > 250){
-      play(target, event, true);
-      setTimeout(function(){ release(target); }, 180);
-    }
-    confirm(target);
-  }, true);
+  document.addEventListener('pointerdown', onDown, {capture:true, passive:true});
+  document.addEventListener('touchstart', onDown, {capture:true, passive:true});
+  document.addEventListener('mousedown', onDown, true);
   document.addEventListener('keydown', function(event){
     if(event.key !== 'Enter' && event.key !== ' ') return;
     var target = closestTarget(document.activeElement);
     if(!target) return;
-    play(target, null, true);
-    setTimeout(function(){ release(target); confirm(target); }, 170);
+    press(target);
+    release(target);
   }, true);
-
-  markTargets(document);
-  document.addEventListener('DOMContentLoaded', function(){ markTargets(document); enforceCorporateStats(); });
+  mark(document);
+  document.addEventListener('DOMContentLoaded', function(){ mark(document); });
   if(window.MutationObserver){
     new MutationObserver(function(records){
       records.forEach(function(record){
-        toArray(record.addedNodes).forEach(function(node){
-          if(node && node.nodeType === 1) markTargets(node);
-        });
+        toArray(record.addedNodes).forEach(function(node){ if(node && node.nodeType === 1) mark(node); });
       });
     }).observe(document.documentElement, {childList:true, subtree:true});
   }
-  window.diracPremiumInteractionV2 = {
-    refresh:function(){ markTargets(document); enforceCorporateStats(); },
-    test:function(selectorText){ var target = document.querySelector(selectorText || '.btn-primary'); if(target){ play(target,null,true); setTimeout(function(){ release(target); confirm(target); }, 220); return true; } return false; }
-  };
+  window.diracSimpleInteractions = {refresh:function(){ mark(document); }, test:function(sel){ var t=document.querySelector(sel||'.btn-primary'); if(!t) return false; press(t); release(t); return true; }};
 })();
 </script>
 
