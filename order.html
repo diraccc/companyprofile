@@ -1173,6 +1173,159 @@ html[data-effective-theme="light"] .theme-choice.is-selected{color:#171923;backg
 })();
 </script>
 
+
+
+<style id="dirac-theme-yellow-fix-css">
+/* =========================================================
+   Dirac Theme Yellow Fix v1
+   Tujuan: saat customer mengganti warna utama, sisa aksen gold/kuning
+   yang masih hardcoded ikut berubah ke warna pilihan customer.
+   Fail-safe: hanya override warna aksen; layout, produk, cart, checkout,
+   dan logic website tidak diubah.
+   ========================================================= */
+:root{
+  --theme-tint-soft:rgba(var(--theme-rgb),.08);
+  --theme-tint:rgba(var(--theme-rgb),.14);
+  --theme-tint-mid:rgba(var(--theme-rgb),.22);
+  --theme-tint-strong:rgba(var(--theme-rgb),.36);
+  --theme-tint-glow:rgba(var(--theme-rgb),.18);
+}
+
+/* Page-level glow and announcement bar */
+body{
+  background:
+    radial-gradient(circle at top left, rgba(var(--theme-rgb),.18), transparent 34rem),
+    radial-gradient(circle at 85% 12%, rgba(var(--theme-rgb),.16), transparent 26rem),
+    linear-gradient(180deg,#07080b 0%,#020304 100%)!important;
+}
+.announcement{
+  background:linear-gradient(90deg,rgba(var(--theme-rgb),.16),rgba(var(--theme-rgb),.08),rgba(var(--theme-rgb),.16))!important;
+  border-bottom-color:rgba(var(--theme-rgb),.20)!important;
+  color:#e9edf7!important;
+}
+.announcement a{color:var(--gold)!important}
+
+/* Header, logo fallback, and top controls */
+.site-header:after{background:linear-gradient(90deg,transparent,rgba(var(--theme-rgb),.36),transparent)!important}
+.site-header.is-scrolled{border-bottom-color:rgba(var(--theme-rgb),.16)!important;box-shadow:0 18px 54px rgba(0,0,0,.38),0 1px 0 rgba(var(--theme-rgb),.08)!important}
+.brand-mark{box-shadow:0 10px 28px rgba(var(--theme-rgb),.22)!important}
+.brand-fallback-text{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 38%,#fff 62%),var(--gold-2))!important}
+.site-header.is-scrolled .brand-mark{box-shadow:0 10px 26px rgba(var(--theme-rgb),.18)!important;filter:drop-shadow(0 8px 18px rgba(var(--theme-rgb),.14))!important}
+.site-header.is-scrolled .brand-name{filter:drop-shadow(0 0 8px rgba(var(--theme-rgb),.18))!important}
+.site-header.is-scrolled .header-cart{box-shadow:0 12px 30px rgba(var(--theme-rgb),.18)!important}
+.header-cart,.btn-primary,.load-more-btn{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 78%,#fff 22%),var(--gold-2) 56%,var(--gold-3))!important;
+  box-shadow:0 16px 36px rgba(var(--theme-rgb),.22)!important;
+}
+.btn-primary:hover,.header-cart:hover{box-shadow:0 18px 42px rgba(var(--theme-rgb),.26)!important}
+.btn-ghost{color:color-mix(in srgb,var(--gold) 60%,#fff 40%)!important;border-color:rgba(var(--theme-rgb),.22)!important}
+
+/* Hero glows and cards */
+.hero:before{
+  background:
+    radial-gradient(circle at 18% 20%,rgba(var(--theme-rgb),.20),transparent 22rem),
+    radial-gradient(circle at 80% 12%,rgba(255,255,255,.09),transparent 18rem),
+    radial-gradient(circle at 50% 95%,rgba(var(--theme-rgb),.13),transparent 24rem)!important;
+}
+.hero:after{background:linear-gradient(115deg,transparent 0%,rgba(255,255,255,.025) 38%,rgba(var(--theme-rgb),.055) 47%,transparent 58%)!important}
+.hero-showcase{background:linear-gradient(160deg,rgba(var(--theme-rgb),.16),rgba(255,255,255,.03) 44%,rgba(var(--theme-rgb),.16))!important}
+.hero-floating-note{border-color:rgba(var(--theme-rgb),.22)!important}
+.eyebrow{border-color:var(--line)!important;color:color-mix(in srgb,var(--gold) 58%,#fff 42%)!important;background:rgba(var(--theme-rgb),.08)!important}
+.trust-row span{border-color:rgba(var(--theme-rgb),.12)!important;background:rgba(var(--theme-rgb),.055)!important}
+
+/* Back to home */
+.back-home-btn{
+  border-color:rgba(var(--theme-rgb),.34)!important;
+  background:linear-gradient(135deg,rgba(255,255,255,.075),rgba(var(--theme-rgb),.13))!important;
+  color:color-mix(in srgb,var(--gold) 48%,#fff 52%)!important;
+}
+.back-home-btn:before{background:linear-gradient(110deg,transparent 18%,rgba(255,255,255,.18),rgba(var(--theme-rgb),.22),transparent 78%)!important}
+.back-home-btn:hover{
+  border-color:rgba(var(--theme-rgb),.56)!important;
+  box-shadow:0 18px 42px rgba(0,0,0,.34),0 0 28px rgba(var(--theme-rgb),.13),inset 0 1px 0 rgba(255,255,255,.11)!important;
+  background:linear-gradient(135deg,rgba(255,255,255,.095),rgba(var(--theme-rgb),.18))!important;
+}
+.back-home-icon{background:rgba(var(--theme-rgb),.14)!important;color:var(--gold)!important}
+
+/* Promo panel */
+.promo-box{
+  background:linear-gradient(135deg,rgba(var(--theme-rgb),.17),rgba(255,255,255,.04))!important;
+  border-color:var(--line-strong)!important;
+}
+.promo-box:before{background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.08) 35%,rgba(var(--theme-rgb),.17) 50%,transparent 68%)!important}
+.promo-code{background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 46%,#fff 54%),var(--gold-2),var(--gold))!important;background-size:260% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
+
+/* Product cards and badges */
+.product-card:hover{border-color:rgba(var(--theme-rgb),.44)!important;box-shadow:0 28px 70px rgba(0,0,0,.42),0 0 0 1px rgba(var(--theme-rgb),.08),0 0 34px rgba(var(--theme-rgb),.08)!important}
+.product-card:before{background:radial-gradient(circle at 50% 0%,rgba(var(--theme-rgb),.16),transparent 46%),linear-gradient(135deg,rgba(255,255,255,.035),transparent 55%)!important}
+.product-media:before{background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.11) 42%,rgba(var(--theme-rgb),.20) 50%,transparent 62%)!important}
+.product-media.is-loading:after{background:linear-gradient(105deg,rgba(255,255,255,.025) 0%,rgba(255,255,255,.075) 42%,rgba(var(--theme-rgb),.16) 52%,rgba(255,255,255,.025) 100%)!important;box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb),.05)!important}
+.quick-grid img.is-loading-image{background-image:linear-gradient(105deg,rgba(255,255,255,.025),rgba(255,255,255,.08),rgba(var(--theme-rgb),.14),rgba(255,255,255,.025))!important}
+.tag.top-seller,.quick-top-label,.info-card .mini-label{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 78%,#fff 22%),var(--gold-2))!important;border-color:rgba(var(--theme-rgb),.42)!important;color:#14110a!important}
+.feature-icon{background:rgba(var(--theme-rgb),.12)!important;border-color:var(--line)!important}
+.price,.quick-price{color:var(--gold)!important}
+.fly-to-cart{box-shadow:0 18px 42px rgba(0,0,0,.38),0 0 0 1px rgba(var(--theme-rgb),.28)!important}
+
+/* Info cards, scent-note cards, blog/details sections */
+.info-card{
+  background:linear-gradient(135deg,rgba(var(--theme-rgb),.14),rgba(255,255,255,.035))!important;
+  border-color:var(--line)!important;
+}
+.info-card:before{background:rgba(var(--theme-rgb),.11)!important}
+.content-card,.blog-card,.feature-card,.faq-item,.stat-card{border-color:rgba(var(--theme-rgb),.10)!important}
+.blog-card:hover{border-color:var(--line-strong)!important}
+.read-link{color:var(--gold)!important}
+
+/* Cart, checkout, and FAQ accent states */
+.field:focus,.promo-row input:focus,.ship-row select:focus{border-color:var(--gold)!important;box-shadow:0 0 0 4px rgba(var(--theme-rgb),.12)!important}
+.qty-control button:hover{background:rgba(var(--theme-rgb),.10)!important}
+.meter span{background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 55%,#fff 45%))!important}
+.cart-row.total strong,#totalText{color:var(--gold)!important}
+.faq-item.open{border-color:rgba(var(--theme-rgb),.34)!important}
+.stat-card:after{background:radial-gradient(circle at 50% 0%,rgba(var(--theme-rgb),.20),transparent 56%)!important}
+#checkoutBtn:not(:disabled){box-shadow:0 16px 36px rgba(var(--theme-rgb),.24),0 0 0 1px rgba(255,255,255,.07) inset!important}
+.btn-primary.luxury-added,button.luxury-added{box-shadow:0 18px 44px rgba(var(--theme-rgb),.34),0 0 0 1px rgba(255,255,255,.08) inset!important}
+
+/* Theme modal selected states */
+.theme-choice.is-selected{border-color:var(--gold)!important;background:rgba(var(--theme-rgb),.10)!important;box-shadow:0 0 0 3px rgba(var(--theme-rgb),.16),0 16px 34px rgba(0,0,0,.18)!important}
+.theme-save{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 50%,#fff 50%),var(--gold-2))!important}
+
+/* Light mode: remove old cream/yellow base; keep neutral light with selected accent glow. */
+html[data-effective-theme="light"]{
+  --bg:#f8fafc;
+  --bg-soft:#eef2f7;
+  --panel:#ffffff;
+  --panel-2:#f3f6fb;
+  --shadow:0 24px 70px rgba(15,23,42,.14);
+}
+html[data-effective-theme="light"] body{
+  background:
+    radial-gradient(circle at top left, rgba(var(--theme-rgb),.18), transparent 34rem),
+    radial-gradient(circle at 88% 10%, rgba(var(--theme-rgb),.13), transparent 28rem),
+    linear-gradient(180deg,#f8fafc 0%,#edf2f7 100%)!important;
+}
+html[data-effective-theme="light"] .announcement,
+html[data-effective-theme="light"] .footer{
+  background:linear-gradient(90deg,rgba(var(--theme-rgb),.10),#ffffff,rgba(var(--theme-rgb),.10))!important;
+  color:#171923!important;
+}
+html[data-effective-theme="light"] .site-header,
+html[data-effective-theme="light"] .cart-drawer,
+html[data-effective-theme="light"] .modal-card,
+html[data-effective-theme="light"] .theme-card{background:rgba(255,255,255,.88)!important;border-color:rgba(var(--theme-rgb),.28)!important}
+html[data-effective-theme="light"] .product-media,
+html[data-effective-theme="light"] .product-media img,
+html[data-effective-theme="light"] .quick-grid img,
+html[data-effective-theme="light"] .cart-thumb{background:#f3f6fb!important}
+
+/* Re-declare keyframes that formerly used fixed gold, now dynamic. */
+@keyframes softPulse{0%,100%{box-shadow:0 16px 36px rgba(var(--theme-rgb),.22)}50%{box-shadow:0 18px 45px rgba(var(--theme-rgb),.34)}}
+@keyframes topSellerSoftGlow{0%,100%{box-shadow:0 10px 24px rgba(0,0,0,.24),0 0 0 rgba(var(--theme-rgb),0)}50%{box-shadow:0 12px 28px rgba(0,0,0,.28),0 0 20px rgba(var(--theme-rgb),.18)}}
+@keyframes checkoutReadyGlow{0%,100%{filter:brightness(1);box-shadow:0 16px 36px rgba(var(--theme-rgb),.24)}50%{filter:brightness(1.04);box-shadow:0 18px 44px rgba(var(--theme-rgb),.34),0 0 20px rgba(var(--theme-rgb),.10)}}
+@keyframes totalPop{0%{transform:scale(1)}50%{transform:scale(1.045);filter:drop-shadow(0 0 12px rgba(var(--theme-rgb),.36))}100%{transform:scale(1);filter:none}}
+@keyframes luxuryMoneyPop{0%{transform:translateY(0);filter:none}48%{transform:translateY(-2px);filter:drop-shadow(0 0 10px rgba(var(--theme-rgb),.28))}100%{transform:translateY(0);filter:none}}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -3796,7 +3949,7 @@ html[data-effective-theme="light"] .theme-choice.is-selected{color:#171923;backg
     var scope = root || document;
     var cards = Array.prototype.slice.call(scope.querySelectorAll('.product-card'));
     if(!cards.length) return;
-    var strongLimit = window.innerWidth <= 760 ? 8 : 12;
+    var strongLimit = 12;
     cards.forEach(function(card, index){
       card.setAttribute('data-luxury-card','true');
       card.style.setProperty('--luxury-card-delay', Math.min((index % strongLimit) * 42, 336) + 'ms');
