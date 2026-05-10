@@ -2638,14 +2638,18 @@ button.luxury-added{
 
     function renderCategoryOptions(){
       const select = $('#categoryFilter');
-      const categories = [...new Set(products.map(p=>p.category).filter(Boolean))];
-      const categoryKeys = new Set(categories.map(normalizeFilterKey));
+      const allCategories = [...new Set(products.map(p=>p.category).filter(Boolean))];
       const productBrands = new Set(products.map(getProductBrand).filter(Boolean));
       const brands = BRAND_OPTIONS.filter(brand => productBrands.has(brand));
-      const visibleBrands = brands.filter(brand => !categoryKeys.has(normalizeFilterKey(brand)));
+      const brandKeys = new Set(brands.map(normalizeFilterKey));
+
+      // Miniso/MINISO adalah brand, bukan kategori parfum. Jika ada category yang namanya sama dengan brand,
+      // category tersebut disembunyikan dari grup Kategori dan tetap muncul di grup Brand agar dropdown tidak dobel.
+      const categories = allCategories.filter(cat => !brandKeys.has(normalizeFilterKey(cat)));
+
       const option = (value,label) => `<option value="${escapeHTML(value)}">${escapeHTML(label)}</option>`;
       const categoryOptions = categories.map(cat => option(CATEGORY_FILTER_PREFIX + cat, cat)).join('');
-      const brandOptions = visibleBrands.map(brand => option(BRAND_FILTER_PREFIX + brand, brand)).join('');
+      const brandOptions = brands.map(brand => option(BRAND_FILTER_PREFIX + brand, brand)).join('');
 
       select.innerHTML = [
         option(FILTER_ALL_VALUE, 'Semua'),
