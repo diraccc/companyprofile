@@ -855,6 +855,324 @@ button.luxury-added{
     }
   </style>
 
+
+
+<style id="dirac-theme-customizer-css">
+/* =========================================================
+   Dirac Theme Customizer - GitHub Pages safe
+   Customer dapat memilih mode, kontras, dan warna aksen.
+   Pilihan disimpan di localStorage per browser/per device.
+   ========================================================= */
+:root{
+  --theme-rgb:243,205,112;
+  --theme-surface:rgba(10,13,18,.92);
+  --theme-surface-2:rgba(255,255,255,.06);
+  --line:rgba(var(--theme-rgb),.18);
+  --line-strong:rgba(var(--theme-rgb),.36);
+}
+html[data-effective-theme="dark"] body{
+  background:
+    radial-gradient(circle at top left, rgba(var(--theme-rgb),.18), transparent 34rem),
+    radial-gradient(circle at 85% 12%, rgba(var(--theme-rgb),.16), transparent 26rem),
+    linear-gradient(180deg,#07080b 0%,#020304 100%);
+}
+html[data-effective-theme="light"]{
+  --bg:#fff8ed;
+  --bg-soft:#fff4e3;
+  --panel:#ffffff;
+  --panel-2:#fff1d8;
+  --text:#151923;
+  --muted:#526071;
+  --shadow:0 24px 70px rgba(80,55,18,.18);
+}
+html[data-effective-theme="light"] body{
+  background:
+    radial-gradient(circle at top left, rgba(var(--theme-rgb),.18), transparent 34rem),
+    radial-gradient(circle at 88% 10%, rgba(var(--theme-rgb),.13), transparent 28rem),
+    linear-gradient(180deg,#fffaf2 0%,#f2e8d6 100%);
+  color:var(--text);
+}
+html[data-effective-theme="light"] .site-header,
+html[data-effective-theme="light"] .cart-drawer,
+html[data-effective-theme="light"] .modal-card,
+html[data-effective-theme="light"] .theme-card{
+  background:rgba(255,250,241,.88);
+  color:var(--text);
+  border-color:rgba(var(--theme-rgb),.28);
+}
+html[data-effective-theme="light"] .announcement,
+html[data-effective-theme="light"] .footer{
+  background:linear-gradient(90deg,#fff1d6,#fff9ed,#fff1d6);
+  color:#2a241a;
+  border-color:rgba(var(--theme-rgb),.24);
+}
+html[data-effective-theme="light"] .footer h3,
+html[data-effective-theme="light"] .footer h4,
+html[data-effective-theme="light"] .brand-name,
+html[data-effective-theme="light"] .product-title,
+html[data-effective-theme="light"] .info-card h3,
+html[data-effective-theme="light"] .feature-card h3,
+html[data-effective-theme="light"] .blog-card h3,
+html[data-effective-theme="light"] .lifestyle-copy h3,
+html[data-effective-theme="light"] .cart-item h3,
+html[data-effective-theme="light"] .modal-head h2,
+html[data-effective-theme="light"] .theme-head h2,
+html[data-effective-theme="light"] .hero h1{
+  color:#171923;
+}
+html[data-effective-theme="light"] .nav-links a,
+html[data-effective-theme="light"] .hero p,
+html[data-effective-theme="light"] .section-lead,
+html[data-effective-theme="light"] .muted,
+html[data-effective-theme="light"] .footer p,
+html[data-effective-theme="light"] .footer a,
+html[data-effective-theme="light"] .footer li,
+html[data-effective-theme="light"] .product-desc,
+html[data-effective-theme="light"] .product-sold-copy,
+html[data-effective-theme="light"] .info-card p,
+html[data-effective-theme="light"] .info-card li,
+html[data-effective-theme="light"] .feature-card p,
+html[data-effective-theme="light"] .blog-card p,
+html[data-effective-theme="light"] .faq-a,
+html[data-effective-theme="light"] .cart-row,
+html[data-effective-theme="light"] .quick-desc{
+  color:#526071;
+}
+html[data-effective-theme="light"] .product-card,
+html[data-effective-theme="light"] .feature-card,
+html[data-effective-theme="light"] .info-card,
+html[data-effective-theme="light"] .blog-card,
+html[data-effective-theme="light"] .content-card,
+html[data-effective-theme="light"] .faq-item,
+html[data-effective-theme="light"] .stat-card,
+html[data-effective-theme="light"] .promo-box,
+html[data-effective-theme="light"] .cart-item,
+html[data-effective-theme="light"] .field,
+html[data-effective-theme="light"] .promo-row input,
+html[data-effective-theme="light"] .ship-row select,
+html[data-effective-theme="light"] .theme-panel,
+html[data-effective-theme="light"] .theme-choice,
+html[data-effective-theme="light"] .theme-swatch,
+html[data-effective-theme="light"] .btn-secondary{
+  background:rgba(255,255,255,.76);
+  color:#171923;
+  border-color:rgba(32,37,49,.12);
+}
+html[data-effective-theme="light"] .field::placeholder,
+html[data-effective-theme="light"] .promo-row input::placeholder{color:#7b8798}
+html[data-effective-theme="light"] .tag{background:rgba(255,255,255,.84);color:#171923;border-color:rgba(32,37,49,.12)}
+html[data-effective-theme="light"] .product-media,
+html[data-effective-theme="light"] .product-media img,
+html[data-effective-theme="light"] .quick-grid img,
+html[data-effective-theme="light"] .cart-thumb{background:#fff5e5}
+html[data-effective-theme="light"] .hero-showcase{background:linear-gradient(160deg,rgba(var(--theme-rgb),.18),rgba(255,255,255,.50) 44%,rgba(var(--theme-rgb),.14))}
+html[data-effective-theme="light"] .trust-row span,
+html[data-effective-theme="light"] .quick-meta span{background:rgba(255,255,255,.70);color:#273044;border-color:rgba(var(--theme-rgb),.20)}
+html[data-effective-theme="light"] .cart-row.total{color:#171923}
+
+html[data-theme-contrast="on"]{
+  --line:rgba(var(--theme-rgb),.34);
+  --line-strong:rgba(var(--theme-rgb),.62);
+}
+html[data-theme-contrast="on"] .product-card,
+html[data-theme-contrast="on"] .feature-card,
+html[data-theme-contrast="on"] .info-card,
+html[data-theme-contrast="on"] .blog-card,
+html[data-theme-contrast="on"] .faq-item,
+html[data-theme-contrast="on"] .content-card,
+html[data-theme-contrast="on"] .promo-box,
+html[data-theme-contrast="on"] .field,
+html[data-theme-contrast="on"] .theme-card{
+  border-color:rgba(var(--theme-rgb),.50)!important;
+}
+html[data-theme-contrast="on"] .section-title,
+html[data-theme-contrast="on"] .price,
+html[data-theme-contrast="on"] .quick-price,
+html[data-theme-contrast="on"] .cart-row.total strong{
+  filter:drop-shadow(0 0 14px rgba(var(--theme-rgb),.20));
+}
+
+.section-title,.eyebrow,.star-row,.price,.quick-price,.cart-row.total strong,.read-link,.promo-code,.back-home-icon{color:var(--gold)}
+.header-cart,.btn-primary,.load-more-btn{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 78%,#fff 22%),var(--gold-2) 56%,var(--gold-3));
+  color:#11120e;
+}
+.btn-primary:hover,.header-cart:hover{box-shadow:0 18px 42px rgba(var(--theme-rgb),.26)}
+.btn-secondary,.btn-ghost{border-color:rgba(var(--theme-rgb),.22)}
+.field:focus,.promo-row input:focus,.ship-row select:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(var(--theme-rgb),.12)}
+.tag.top-seller,.quick-top-label,.info-card .mini-label{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 78%,#fff 22%),var(--gold-2));
+  color:#14110a;
+}
+.meter span{background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 55%,#fff 45%))}
+.promo-code{background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 46%,#fff 54%),var(--gold-2),var(--gold));background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.theme-toggle{
+  border:1px solid var(--line-strong);
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+  color:#fff;
+  min-height:44px;
+  padding:10px 13px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-weight:900;
+  box-shadow:0 12px 30px rgba(0,0,0,.20);
+  transition:transform .22s ease,background .22s ease,border-color .22s ease,box-shadow .22s ease;
+}
+.theme-toggle:hover{transform:translateY(-2px);background:rgba(var(--theme-rgb),.12);border-color:rgba(var(--theme-rgb),.56)}
+html[data-effective-theme="light"] .theme-toggle{color:#171923;background:rgba(255,255,255,.78)}
+.theme-modal{
+  position:fixed;
+  inset:0;
+  z-index:11500;
+  display:none;
+  place-items:center;
+  padding:18px;
+  background:rgba(0,0,0,.68);
+  backdrop-filter:blur(8px);
+}
+.theme-modal.open{display:grid}
+.theme-card{
+  width:min(620px,100%);
+  max-height:92vh;
+  overflow:auto;
+  border-radius:30px;
+  background:linear-gradient(180deg,#121b27,#080b10);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+}
+.theme-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  padding:22px 24px 10px;
+}
+.theme-head h2{
+  margin:0;
+  font-family:"Playfair Display",serif;
+  font-size:1.85rem;
+  color:#fff;
+}
+.theme-body{padding:0 24px 24px}
+.theme-section{padding:22px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.theme-section:last-of-type{border-bottom:0}
+.theme-section h3{margin:0 0 3px;color:#fff;font-size:1.12rem;letter-spacing:.01em}
+.theme-section p{margin:0 0 18px;color:#8d98aa;font-size:.94rem}
+html[data-effective-theme="light"] .theme-section{border-color:rgba(32,37,49,.10)}
+html[data-effective-theme="light"] .theme-section h3{color:#171923}
+.theme-choice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.theme-contrast-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.theme-choice{
+  min-height:72px;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(6,10,16,.82);
+  color:#e8edf5;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-weight:850;
+  font-size:1rem;
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease,background .22s ease;
+}
+.theme-choice span:first-child{font-size:1.25rem;line-height:1}
+.theme-choice:hover{transform:translateY(-2px);border-color:rgba(var(--theme-rgb),.42)}
+.theme-choice.is-selected{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(var(--theme-rgb),.16),0 16px 34px rgba(0,0,0,.18);
+  background:rgba(var(--theme-rgb),.10);
+  color:#fff;
+}
+html[data-effective-theme="light"] .theme-choice.is-selected{color:#171923;background:rgba(var(--theme-rgb),.16)}
+.theme-swatches{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.theme-swatch{
+  width:42px;
+  height:70px;
+  border:0;
+  border-radius:10px;
+  background:var(--swatch);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 10px 24px rgba(0,0,0,.18);
+  position:relative;
+  transition:transform .22s ease,box-shadow .22s ease,width .22s ease;
+}
+.theme-swatch:hover{transform:translateY(-2px)}
+.theme-swatch.is-selected{
+  width:88px;
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.35),0 0 0 3px rgba(var(--theme-rgb),.34),0 14px 32px rgba(0,0,0,.24);
+}
+.theme-swatch.is-selected:after{
+  content:"✓";
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-size:2rem;
+  font-weight:900;
+  text-shadow:0 2px 8px rgba(0,0,0,.38);
+}
+.theme-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-top:12px}
+.theme-reset,.theme-save{
+  border:0;
+  border-radius:999px;
+  min-height:56px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  color:#fff;
+  font-weight:900;
+  font-size:1.05rem;
+  box-shadow:0 14px 32px rgba(0,0,0,.23);
+  transition:transform .22s ease,filter .22s ease;
+}
+.theme-reset{background:linear-gradient(135deg,#f05252,#dc2626)}
+.theme-save{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 50%,#fff 50%),var(--gold-2));color:#11120e}
+.theme-reset:hover,.theme-save:hover{transform:translateY(-2px);filter:brightness(1.04)}
+@media(max-width:760px){
+  .theme-toggle{min-width:44px;width:44px;height:44px;padding:0;border-radius:999px}
+  .theme-toggle .label{display:none}
+  .header-actions{gap:8px}
+  .theme-modal{align-items:end;padding:0;background:rgba(0,0,0,.58)}
+  .theme-card{width:100%;max-height:88vh;border-radius:28px 28px 0 0;border-inline:0;border-bottom:0}
+  .theme-head{padding:20px 20px 8px}.theme-body{padding:0 20px 22px}
+  .theme-head h2{font-size:1.65rem}.theme-choice-grid{grid-template-columns:1fr 1fr 1fr;gap:10px}.theme-choice{min-height:66px;font-size:.92rem}.theme-swatch{width:36px;height:62px}.theme-swatch.is-selected{width:76px}.theme-actions{gap:10px}.theme-reset,.theme-save{min-height:52px;font-size:.98rem}
+}
+@media(max-width:430px){
+  .theme-choice-grid{grid-template-columns:1fr}.theme-choice{min-height:58px}.theme-contrast-grid{grid-template-columns:1fr}.theme-swatches{gap:7px}.theme-swatch{width:33px;height:58px}.theme-swatch.is-selected{width:68px}.theme-actions{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  .theme-toggle,.theme-choice,.theme-swatch,.theme-reset,.theme-save{transition:none!important}.theme-toggle:hover,.theme-choice:hover,.theme-swatch:hover,.theme-reset:hover,.theme-save:hover{transform:none!important}
+}
+</style>
+
+<script id="dirac-theme-boot">
+(function(){
+  try{
+    var palettes={gold:['#f3cd70','#d6a642','#8e6425','243,205,112'],blue:['#4f83ff','#2563eb','#1e3a8a','79,131,255'],purple:['#7c3aed','#5b21b6','#35126d','124,58,237'],violet:['#8b5cf6','#6d28d9','#432076','139,92,246'],pink:['#ec4899','#be185d','#7f123d','236,72,153'],red:['#ef4444','#dc2626','#7f1d1d','239,68,68'],orange:['#f97316','#ea580c','#7c2d12','249,115,22'],amber:['#f59e0b','#d97706','#78350f','245,158,11'],green:['#34d399','#059669','#065f46','52,211,153'],teal:['#0f8b8d','#0f766e','#134e4a','15,139,141'],cyan:['#67dce5','#36c2cc','#176b73','103,220,229']};
+    var defaults={mode:'dark',contrast:'off',accent:'gold'};
+    var stored=JSON.parse(localStorage.getItem('dirac_theme_settings_v1')||'{}');
+    var s={mode:stored.mode||defaults.mode,contrast:stored.contrast||defaults.contrast,accent:stored.accent||defaults.accent};
+    if(!palettes[s.accent]) s.accent=defaults.accent;
+    if(['light','dark','auto'].indexOf(s.mode)<0) s.mode=defaults.mode;
+    if(['on','off'].indexOf(s.contrast)<0) s.contrast=defaults.contrast;
+    var isLight=s.mode==='light'||(s.mode==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);
+    var root=document.documentElement;
+    var p=palettes[s.accent];
+    root.setAttribute('data-theme-mode',s.mode);
+    root.setAttribute('data-effective-theme',isLight?'light':'dark');
+    root.setAttribute('data-theme-contrast',s.contrast);
+    root.setAttribute('data-theme-accent',s.accent);
+    root.style.setProperty('--gold',p[0]);root.style.setProperty('--gold-2',p[1]);root.style.setProperty('--gold-3',p[2]);root.style.setProperty('--theme-rgb',p[3]);
+  }catch(e){}
+})();
+</script>
+
 </head>
 <body>
   <div class="announcement">
@@ -882,6 +1200,9 @@ button.luxury-added{
         <a href="#faq">FAQ</a>
       </nav>
       <div class="header-actions">
+        <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">
+          <span aria-hidden="true">🎨</span><span class="label">Tema</span>
+        </button>
         <button class="header-cart" type="button" data-open-cart>
           <span>🛍️</span><span class="label">Keranjang</span><span class="count-badge" data-cart-count>0</span>
         </button>
@@ -1200,6 +1521,48 @@ button.luxury-added{
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="quickTitle">
       <div class="modal-head"><h2 id="quickTitle">Detail Produk</h2><button class="icon-btn" type="button" data-close-quick aria-label="Tutup detail">×</button></div>
       <div class="modal-body" id="quickContent"></div>
+    </div>
+  </div>
+
+
+
+  <div class="theme-modal" id="themeModal" aria-hidden="true">
+    <div class="theme-card" role="dialog" aria-modal="true" aria-labelledby="themeTitle">
+      <div class="theme-head">
+        <h2 id="themeTitle">Pengaturan Tema</h2>
+        <button class="icon-btn" type="button" data-close-theme aria-label="Tutup pengaturan tema">×</button>
+      </div>
+      <div class="theme-body">
+        <section class="theme-section" aria-label="Mode tema">
+          <h3>Mode Tema</h3>
+          <p>Pilih mode tema</p>
+          <div class="theme-choice-grid">
+            <button class="theme-choice" type="button" data-theme-mode-option="light" aria-pressed="false"><span aria-hidden="true">☼</span><span>Light</span></button>
+            <button class="theme-choice" type="button" data-theme-mode-option="dark" aria-pressed="false"><span aria-hidden="true">☾</span><span>Dark</span></button>
+            <button class="theme-choice" type="button" data-theme-mode-option="auto" aria-pressed="false"><span aria-hidden="true">⚙</span><span>Auto</span></button>
+          </div>
+        </section>
+
+        <section class="theme-section" aria-label="Kontras tema">
+          <h3>Kontras Tema</h3>
+          <p>Pilih kontras tema</p>
+          <div class="theme-contrast-grid">
+            <button class="theme-choice" type="button" data-theme-contrast-option="on" aria-pressed="false"><span aria-hidden="true">◐</span><span>On</span></button>
+            <button class="theme-choice" type="button" data-theme-contrast-option="off" aria-pressed="false"><span aria-hidden="true">◌</span><span>Off</span></button>
+          </div>
+        </section>
+
+        <section class="theme-section" aria-label="Kustom warna utama">
+          <h3>Kustom Tema</h3>
+          <p>Pilih warna utama Anda</p>
+          <div class="theme-swatches" id="themeSwatches" aria-label="Pilihan warna utama"></div>
+        </section>
+
+        <div class="theme-actions">
+          <button class="theme-reset" type="button" id="themeResetBtn"><span aria-hidden="true">↻</span><span>Reset</span></button>
+          <button class="theme-save" type="button" id="themeSaveBtn"><span aria-hidden="true">▣</span><span>Simpan</span></button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -3642,6 +4005,196 @@ button.luxury-added{
   refreshLuxury(document);
   setTimeout(function(){ refreshLuxury(document); }, 700);
   setTimeout(function(){ refreshLuxury(document); }, 1700);
+})();
+</script>
+
+
+
+<script id="dirac-theme-customizer-js">
+(function(){
+  'use strict';
+  var THEME_STORAGE_KEY = 'dirac_theme_settings_v1';
+  var DEFAULT_THEME = {mode:'dark', contrast:'off', accent:'gold'};
+  var THEME_PALETTES = {
+    gold:{label:'Gold', gold:'#f3cd70', gold2:'#d6a642', gold3:'#8e6425', rgb:'243,205,112'},
+    blue:{label:'Blue', gold:'#4f83ff', gold2:'#2563eb', gold3:'#1e3a8a', rgb:'79,131,255'},
+    purple:{label:'Purple', gold:'#7c3aed', gold2:'#5b21b6', gold3:'#35126d', rgb:'124,58,237'},
+    violet:{label:'Violet', gold:'#8b5cf6', gold2:'#6d28d9', gold3:'#432076', rgb:'139,92,246'},
+    pink:{label:'Pink', gold:'#ec4899', gold2:'#be185d', gold3:'#7f123d', rgb:'236,72,153'},
+    red:{label:'Red', gold:'#ef4444', gold2:'#dc2626', gold3:'#7f1d1d', rgb:'239,68,68'},
+    orange:{label:'Orange', gold:'#f97316', gold2:'#ea580c', gold3:'#7c2d12', rgb:'249,115,22'},
+    amber:{label:'Amber', gold:'#f59e0b', gold2:'#d97706', gold3:'#78350f', rgb:'245,158,11'},
+    green:{label:'Green', gold:'#34d399', gold2:'#059669', gold3:'#065f46', rgb:'52,211,153'},
+    teal:{label:'Teal', gold:'#0f8b8d', gold2:'#0f766e', gold3:'#134e4a', rgb:'15,139,141'},
+    cyan:{label:'Cyan', gold:'#67dce5', gold2:'#36c2cc', gold3:'#176b73', rgb:'103,220,229'}
+  };
+  var themeDraft = null;
+
+  function cloneSettings(settings){
+    return {mode:settings.mode, contrast:settings.contrast, accent:settings.accent};
+  }
+  function sanitizeSettings(raw){
+    var settings = Object.assign({}, DEFAULT_THEME, raw || {});
+    if(['light','dark','auto'].indexOf(settings.mode) === -1) settings.mode = DEFAULT_THEME.mode;
+    if(['on','off'].indexOf(settings.contrast) === -1) settings.contrast = DEFAULT_THEME.contrast;
+    if(!THEME_PALETTES[settings.accent]) settings.accent = DEFAULT_THEME.accent;
+    return settings;
+  }
+  function readThemeSettings(){
+    try{
+      return sanitizeSettings(JSON.parse(localStorage.getItem(THEME_STORAGE_KEY) || '{}'));
+    }catch(error){
+      return cloneSettings(DEFAULT_THEME);
+    }
+  }
+  function writeThemeSettings(settings){
+    try{ localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(sanitizeSettings(settings))); }
+    catch(error){}
+  }
+  function resolveEffectiveTheme(mode){
+    if(mode === 'light' || mode === 'dark') return mode;
+    if(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+    return 'dark';
+  }
+  function applyTheme(settings){
+    var safe = sanitizeSettings(settings);
+    var palette = THEME_PALETTES[safe.accent] || THEME_PALETTES.gold;
+    var root = document.documentElement;
+    root.setAttribute('data-theme-mode', safe.mode);
+    root.setAttribute('data-effective-theme', resolveEffectiveTheme(safe.mode));
+    root.setAttribute('data-theme-contrast', safe.contrast);
+    root.setAttribute('data-theme-accent', safe.accent);
+    root.style.setProperty('--gold', palette.gold);
+    root.style.setProperty('--gold-2', palette.gold2);
+    root.style.setProperty('--gold-3', palette.gold3);
+    root.style.setProperty('--theme-rgb', palette.rgb);
+    root.style.setProperty('--line', 'rgba(' + palette.rgb + ',.18)');
+    root.style.setProperty('--line-strong', 'rgba(' + palette.rgb + ',.36)');
+    if(safe.contrast === 'on'){
+      root.style.setProperty('--line', 'rgba(' + palette.rgb + ',.34)');
+      root.style.setProperty('--line-strong', 'rgba(' + palette.rgb + ',.62)');
+    }
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if(meta) meta.setAttribute('content', resolveEffectiveTheme(safe.mode) === 'light' ? '#fff8ed' : '#07090d');
+  }
+  function showThemeToast(message){
+    if(typeof showToast === 'function') showToast(message);
+  }
+  function buildSwatches(){
+    var wrap = document.getElementById('themeSwatches');
+    if(!wrap || wrap.dataset.ready === 'true') return;
+    wrap.dataset.ready = 'true';
+    wrap.innerHTML = Object.keys(THEME_PALETTES).map(function(key){
+      var palette = THEME_PALETTES[key];
+      return '<button class="theme-swatch" type="button" data-theme-accent-option="' + key + '" aria-label="Pilih warna ' + palette.label + '" aria-pressed="false" style="--swatch:' + palette.gold + '"></button>';
+    }).join('');
+  }
+  function updateThemeControls(settings){
+    var safe = sanitizeSettings(settings);
+    Array.prototype.slice.call(document.querySelectorAll('[data-theme-mode-option]')).forEach(function(btn){
+      var selected = btn.dataset.themeModeOption === safe.mode;
+      btn.classList.toggle('is-selected', selected);
+      btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    Array.prototype.slice.call(document.querySelectorAll('[data-theme-contrast-option]')).forEach(function(btn){
+      var selected = btn.dataset.themeContrastOption === safe.contrast;
+      btn.classList.toggle('is-selected', selected);
+      btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    Array.prototype.slice.call(document.querySelectorAll('[data-theme-accent-option]')).forEach(function(btn){
+      var selected = btn.dataset.themeAccentOption === safe.accent;
+      btn.classList.toggle('is-selected', selected);
+      btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  }
+  function openThemeModal(){
+    var modal = document.getElementById('themeModal');
+    if(!modal) return;
+    buildSwatches();
+    themeDraft = cloneSettings(readThemeSettings());
+    applyTheme(themeDraft);
+    updateThemeControls(themeDraft);
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+    var first = modal.querySelector('[data-theme-mode-option].is-selected') || modal.querySelector('button');
+    if(first) setTimeout(function(){ first.focus(); }, 30);
+  }
+  function closeThemeModal(revertPreview){
+    var modal = document.getElementById('themeModal');
+    if(!modal) return;
+    if(revertPreview) applyTheme(readThemeSettings());
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    if(!document.querySelector('.modal.open') && !document.querySelector('.cart-overlay.open')) document.body.classList.remove('modal-open');
+  }
+  function updateDraft(partial){
+    themeDraft = sanitizeSettings(Object.assign({}, themeDraft || readThemeSettings(), partial || {}));
+    applyTheme(themeDraft);
+    updateThemeControls(themeDraft);
+  }
+  function saveDraft(){
+    if(!themeDraft) themeDraft = readThemeSettings();
+    writeThemeSettings(themeDraft);
+    applyTheme(themeDraft);
+    closeThemeModal(false);
+    showThemeToast('Tema berhasil disimpan di browser ini.');
+  }
+  function resetTheme(){
+    themeDraft = cloneSettings(DEFAULT_THEME);
+    try{ localStorage.removeItem(THEME_STORAGE_KEY); }catch(error){}
+    applyTheme(themeDraft);
+    updateThemeControls(themeDraft);
+    showThemeToast('Tema kembali ke gold default.');
+  }
+
+  document.addEventListener('click', function(event){
+    if(event.target.closest('[data-open-theme]')){
+      event.preventDefault();
+      openThemeModal();
+      return;
+    }
+    if(event.target.closest('[data-close-theme]')){
+      event.preventDefault();
+      closeThemeModal(true);
+      return;
+    }
+    var modal = document.getElementById('themeModal');
+    if(modal && event.target === modal){ closeThemeModal(true); return; }
+    var modeBtn = event.target.closest('[data-theme-mode-option]');
+    if(modeBtn){ updateDraft({mode:modeBtn.dataset.themeModeOption}); return; }
+    var contrastBtn = event.target.closest('[data-theme-contrast-option]');
+    if(contrastBtn){ updateDraft({contrast:contrastBtn.dataset.themeContrastOption}); return; }
+    var accentBtn = event.target.closest('[data-theme-accent-option]');
+    if(accentBtn){ updateDraft({accent:accentBtn.dataset.themeAccentOption}); return; }
+  });
+  document.addEventListener('keydown', function(event){
+    if(event.key === 'Escape') closeThemeModal(true);
+  });
+  var saveBtn = document.getElementById('themeSaveBtn');
+  if(saveBtn) saveBtn.addEventListener('click', saveDraft);
+  var resetBtn = document.getElementById('themeResetBtn');
+  if(resetBtn) resetBtn.addEventListener('click', resetTheme);
+
+  var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+  if(media){
+    var onMediaChange = function(){
+      var saved = readThemeSettings();
+      if(saved.mode === 'auto') applyTheme(saved);
+    };
+    if(media.addEventListener) media.addEventListener('change', onMediaChange);
+    else if(media.addListener) media.addListener(onMediaChange);
+  }
+
+  buildSwatches();
+  applyTheme(readThemeSettings());
+  updateThemeControls(readThemeSettings());
+  window.diracThemeCustomizer = {
+    apply: applyTheme,
+    read: readThemeSettings,
+    reset: resetTheme,
+    palettes: Object.keys(THEME_PALETTES)
+  };
 })();
 </script>
 
