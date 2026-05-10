@@ -952,11 +952,11 @@ button.luxury-added{
         <div class="text-center">
           <span class="eyebrow">Katalog lengkap</span>
           <h2 class="section-title">Produk Unggulan</h2>
-          <p class="section-lead">Cari produk, filter kategori, urutkan harga, lalu masukkan ke keranjang tanpa mengganggu tampilan halaman.</p>
+          <p class="section-lead">Cari produk, filter kategori atau brand, urutkan harga, lalu masukkan ke keranjang tanpa mengganggu tampilan halaman.</p>
         </div>
         <div class="toolbar" role="search">
           <input class="field" id="searchInput" type="search" placeholder="Cari parfum, contoh: Dior, LV, Nishane, Rasasi..." autocomplete="off">
-          <select class="field" id="categoryFilter" aria-label="Filter kategori"></select>
+          <select class="field" id="categoryFilter" aria-label="Filter kategori atau brand"></select>
           <select class="field" id="sortFilter" aria-label="Urutkan produk">
             <option value="recommended">Rekomendasi</option>
             <option value="price-low">Harga terendah</option>
@@ -2381,6 +2381,99 @@ button.luxury-added{
     function imageFallback(img){ img.onerror = null; img.src = FALLBACK_IMG; }
     window.imageFallback = imageFallback;
 
+
+    const FILTER_ALL_VALUE = 'all';
+    const CATEGORY_FILTER_PREFIX = 'category::';
+    const BRAND_FILTER_PREFIX = 'brand::';
+
+    // Brand unik yang terbaca dari data produk katalog.
+    // Product line digabung ke brand induk konsumennya: Acqua Di Gio + Stronger With You => Giorgio Armani; Blue Seduction => Antonio Banderas.
+    // Produk bundle generic seperti "All Parfum" dan item aksesori tidak dimasukkan sebagai brand.
+    const BRAND_OPTIONS = Object.freeze([
+      'Afnan',
+      'Al Haramain',
+      'Antonio Banderas',
+      'Armaf',
+      'Carolina Herrera',
+      'Chanel',
+      'David Beckham',
+      'Dior',
+      'Diptyque',
+      'Fordive',
+      'Fragrance World',
+      'French Avenue',
+      'Giorgio Armani',
+      'Heaven Scent',
+      'Jean Paul Gaultier',
+      'Khadlaj',
+      'Louis Vuitton',
+      'MINISO',
+      'Montale Paris',
+      'Montblanc',
+      'Moschino',
+      'Nishane',
+      'Rasasi',
+      'Rayhaan',
+      'Rue Broca',
+      'Tiziana Terenzi',
+      'Tom Ford',
+      'Valentino',
+      'Versace',
+      'Xerjoff',
+      'Yves Saint Laurent',
+      'Zimaya'
+    ]);
+
+    const BRAND_PATTERNS = Object.freeze([
+      {brand:'Afnan', patterns:[/^Afnan\b/i]},
+      {brand:'Al Haramain', patterns:[/^Al Haramain\b/i]},
+      {brand:'Antonio Banderas', patterns:[/^Blue Seduction\b/i, /\bAntonio Banderas\b/i]},
+      {brand:'Armaf', patterns:[/^Armaf\b/i]},
+      {brand:'Carolina Herrera', patterns:[/^Carolina Herrera\b/i]},
+      {brand:'Chanel', patterns:[/^Bleu de Chanel\b/i, /\bChanel\b/i]},
+      {brand:'David Beckham', patterns:[/^Parfum Pria David Beckham\b/i, /\bDavid Beckham\b/i]},
+      {brand:'Dior', patterns:[/^Dior\b/i]},
+      {brand:'Diptyque', patterns:[/^Diptyque\b/i]},
+      {brand:'Fordive', patterns:[/^Fordive\b/i]},
+      {brand:'Fragrance World', patterns:[/^Fragrance World\b/i]},
+      {brand:'French Avenue', patterns:[/^French Avenue\b/i, /^Parfum French Avenue\b/i]},
+      {brand:'Giorgio Armani', patterns:[/^Giorgio Armani\b/i, /^Acqua Di Gio\b/i, /^Acqua di Gi[oò]\b/i, /^Stronger With You\b/i]},
+      {brand:'Heaven Scent', patterns:[/^Heaven Scent\b/i]},
+      {brand:'Jean Paul Gaultier', patterns:[/^Jean Paul Gaultier\b/i]},
+      {brand:'Khadlaj', patterns:[/^Khadlaj\b/i]},
+      {brand:'Louis Vuitton', patterns:[/^Louis Vuitton\b/i]},
+      {brand:'MINISO', patterns:[/^MINISO\b/i, /^Miniso\b/i]},
+      {brand:'Montale Paris', patterns:[/^Montale Paris\b/i]},
+      {brand:'Montblanc', patterns:[/^Montblanc\b/i]},
+      {brand:'Moschino', patterns:[/^M Toy Boy\b/i, /\bMoschino Toy Boy\b/i]},
+      {brand:'Nishane', patterns:[/^Nishane\b/i]},
+      {brand:'Rasasi', patterns:[/^Rasasi\b/i]},
+      {brand:'Rayhaan', patterns:[/^Rayhaan\b/i]},
+      {brand:'Rue Broca', patterns:[/^Rue Broca\b/i]},
+      {brand:'Tiziana Terenzi', patterns:[/^Tiziana Terenzi\b/i]},
+      {brand:'Tom Ford', patterns:[/^Tom\s+Ford\b/i]},
+      {brand:'Valentino', patterns:[/^Valentino\b/i]},
+      {brand:'Versace', patterns:[/^Versace\b/i]},
+      {brand:'Xerjoff', patterns:[/^Xerjoff\b/i]},
+      {brand:'Yves Saint Laurent', patterns:[/^Yves Saint Laurent\b/i]},
+      {brand:'Zimaya', patterns:[/^Zimaya\b/i]}
+    ]);
+
+    function normalizePlainText(value){
+      return String(value ?? '').replace(/\s+/g,' ').trim();
+    }
+
+    function normalizeFilterKey(value){
+      return normalizePlainText(value).toLowerCase();
+    }
+
+    function getProductBrand(product){
+      const title = normalizePlainText(product?.title || '');
+      const haystack = normalizePlainText(`${product?.title || ''} ${product?.longDesc || ''}`);
+      const match = BRAND_PATTERNS.find(item => item.patterns.some(pattern => pattern.test(title) || pattern.test(haystack)));
+      return match ? match.brand : '';
+    }
+
     const TOTAL_SOCIAL_PROOF_SOLD = 23528;
     const TOP_SELLER_COUNT = 8;
     const CATEGORY_SALES_WEIGHT = {
@@ -2545,18 +2638,34 @@ button.luxury-added{
 
     function renderCategoryOptions(){
       const select = $('#categoryFilter');
-      const cats = ['Semua', ...new Set(products.map(p=>p.category))];
-      select.innerHTML = cats.map(cat => `<option value="${escapeHTML(cat)}">${escapeHTML(cat)}</option>`).join('');
+      const categories = [...new Set(products.map(p=>p.category).filter(Boolean))];
+      const categoryKeys = new Set(categories.map(normalizeFilterKey));
+      const productBrands = new Set(products.map(getProductBrand).filter(Boolean));
+      const brands = BRAND_OPTIONS.filter(brand => productBrands.has(brand));
+      const visibleBrands = brands.filter(brand => !categoryKeys.has(normalizeFilterKey(brand)));
+      const option = (value,label) => `<option value="${escapeHTML(value)}">${escapeHTML(label)}</option>`;
+      const categoryOptions = categories.map(cat => option(CATEGORY_FILTER_PREFIX + cat, cat)).join('');
+      const brandOptions = visibleBrands.map(brand => option(BRAND_FILTER_PREFIX + brand, brand)).join('');
+
+      select.innerHTML = [
+        option(FILTER_ALL_VALUE, 'Semua'),
+        `<optgroup label="Kategori">${categoryOptions}</optgroup>`,
+        `<optgroup label="Brand">${brandOptions}</optgroup>`
+      ].join('');
     }
 
     function filteredProducts(){
       const q = $('#searchInput').value.trim().toLowerCase();
-      const cat = $('#categoryFilter').value;
+      const filterValue = $('#categoryFilter').value;
       const sort = $('#sortFilter').value;
       let list = products.filter(p => {
-        const matchQuery = !q || `${p.title} ${p.category} ${p.desc} ${p.notes}`.toLowerCase().includes(q);
-        const matchCat = cat === 'Semua' || p.category === cat;
-        return matchQuery && matchCat;
+        const brand = getProductBrand(p);
+        const searchableText = `${p.title} ${p.category} ${brand} ${p.desc} ${p.notes}`.toLowerCase();
+        const matchQuery = !q || searchableText.includes(q);
+        const matchFilter = filterValue === FILTER_ALL_VALUE
+          || (filterValue.startsWith(CATEGORY_FILTER_PREFIX) && p.category === filterValue.slice(CATEGORY_FILTER_PREFIX.length))
+          || (filterValue.startsWith(BRAND_FILTER_PREFIX) && brand === filterValue.slice(BRAND_FILTER_PREFIX.length));
+        return matchQuery && matchFilter;
       });
       if(sort === 'price-low') list.sort((a,b)=>a.price-b.price);
       if(sort === 'price-high') list.sort((a,b)=>b.price-a.price);
