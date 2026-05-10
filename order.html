@@ -1326,6 +1326,566 @@ html[data-effective-theme="light"] .cart-thumb{background:#f3f6fb!important}
 @keyframes luxuryMoneyPop{0%{transform:translateY(0);filter:none}48%{transform:translateY(-2px);filter:drop-shadow(0 0 10px rgba(var(--theme-rgb),.28))}100%{transform:translateY(0);filter:none}}
 </style>
 
+
+<style id="dirac-premium-interaction-css">
+/* =========================================================
+   Dirac Premium Interaction Layer v1
+   Tap/click feedback untuk semua area penting tanpa mengubah fungsi.
+   ========================================================= */
+:root{
+  --dirac-tap-scale:.982;
+  --dirac-tap-rise:-2px;
+  --dirac-tap-shadow:0 18px 44px rgba(0,0,0,.30),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.24),0 0 28px rgba(var(--theme-rgb,243,205,112),.12);
+}
+.dirac-press-target{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  transform-origin:center center;
+  transition:
+    transform .34s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)),
+    filter .34s var(--motion-ease,cubic-bezier(.22,1,.36,1)),
+    box-shadow .34s var(--motion-ease,cubic-bezier(.22,1,.36,1)),
+    border-color .34s var(--motion-ease,cubic-bezier(.22,1,.36,1)),
+    background .34s var(--motion-ease,cubic-bezier(.22,1,.36,1));
+}
+.dirac-press-target:is(a,button),
+.dirac-press-target[role="button"]{cursor:pointer}
+.dirac-press-target.dirac-press-active{
+  transform:translate3d(0,var(--dirac-tap-rise),0) scale(var(--dirac-tap-scale))!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.58)!important;
+  box-shadow:var(--dirac-tap-shadow)!important;
+  filter:brightness(1.045) saturate(1.08);
+}
+.dirac-press-target.dirac-press-release{
+  animation:diracPremiumSettle .46s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) both;
+}
+.dirac-press-target.dirac-press-active .count-badge,
+.dirac-press-target.dirac-press-active .brand-mark,
+.dirac-press-target.dirac-press-active .feature-icon,
+.dirac-press-target.dirac-press-active .back-home-icon{
+  animation:diracIconPop .46s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) both;
+}
+.dirac-ripple{
+  position:absolute;
+  left:var(--ripple-x,50%);
+  top:var(--ripple-y,50%);
+  width:24px;
+  height:24px;
+  border-radius:999px;
+  pointer-events:none;
+  z-index:5;
+  opacity:0;
+  transform:translate(-50%,-50%) scale(0);
+  background:
+    radial-gradient(circle,rgba(255,255,255,.42) 0%,rgba(var(--theme-rgb,243,205,112),.34) 28%,rgba(var(--theme-rgb,243,205,112),.15) 50%,transparent 72%);
+  box-shadow:0 0 34px rgba(var(--theme-rgb,243,205,112),.28);
+  mix-blend-mode:screen;
+  animation:diracPremiumRipple .72s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) forwards;
+}
+.dirac-press-sheen{
+  position:absolute;
+  inset:-2px;
+  pointer-events:none;
+  z-index:4;
+  opacity:0;
+  background:linear-gradient(112deg,transparent 12%,rgba(255,255,255,.12) 36%,rgba(var(--theme-rgb,243,205,112),.22) 48%,transparent 70%);
+  transform:translateX(-115%);
+  animation:diracPremiumSheen .68s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1)) forwards;
+}
+/* Elemen informatif yang sering disentuh di mobile: beri respons halus, tanpa mengubah fungsinya. */
+.stat-card.dirac-press-active,
+.feature-card.dirac-press-active,
+.info-card.dirac-press-active,
+.blog-card.dirac-press-active,
+.faq-item.dirac-press-active,
+.trust-row span.dirac-press-active,
+.promo-box.dirac-press-active,
+.content-card.dirac-press-active,
+.lifestyle-card.dirac-press-active{
+  background:linear-gradient(145deg,rgba(var(--theme-rgb,243,205,112),.12),rgba(255,255,255,.045))!important;
+}
+.btn-primary.dirac-press-active,
+.header-cart.dirac-press-active,
+.theme-save.dirac-press-active{
+  filter:brightness(1.08) saturate(1.10)!important;
+}
+.btn-secondary.dirac-press-active,
+.btn-ghost.dirac-press-active,
+.theme-toggle.dirac-press-active{
+  background:rgba(var(--theme-rgb,243,205,112),.13)!important;
+}
+.stat-card.dirac-press-active strong,
+.count-up.dirac-press-active{
+  filter:drop-shadow(0 0 14px rgba(var(--theme-rgb,243,205,112),.28));
+}
+.product-card.dirac-press-active .product-media img,
+.blog-card.dirac-press-active img,
+.lifestyle-card.dirac-press-active img{
+  transform:translateY(-3px) scale(1.028)!important;
+}
+.theme-swatch.dirac-press-active,
+.theme-choice.dirac-press-active{
+  transform:translate3d(0,-2px,0) scale(.965)!important;
+}
+@keyframes diracPremiumRipple{
+  0%{opacity:.58;transform:translate(-50%,-50%) scale(0)}
+  58%{opacity:.28}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(var(--ripple-scale,18))}
+}
+@keyframes diracPremiumSheen{
+  0%{opacity:0;transform:translateX(-115%)}
+  18%{opacity:1}
+  100%{opacity:0;transform:translateX(115%)}
+}
+@keyframes diracPremiumSettle{
+  0%{transform:translate3d(0,-1px,0) scale(.992)}
+  46%{transform:translate3d(0,0,0) scale(1.008)}
+  100%{transform:translate3d(0,0,0) scale(1)}
+}
+@keyframes diracIconPop{
+  0%{transform:scale(1)}
+  46%{transform:scale(1.12) rotate(-2deg)}
+  100%{transform:scale(1) rotate(0)}
+}
+@media(max-width:760px){
+  .dirac-press-target.dirac-press-active{
+    transform:translate3d(0,-1px,0) scale(.988)!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.26),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.22),0 0 20px rgba(var(--theme-rgb,243,205,112),.10)!important;
+  }
+  .product-card.dirac-press-active .product-media img,
+  .blog-card.dirac-press-active img,
+  .lifestyle-card.dirac-press-active img{
+    transform:translateY(-2px) scale(1.018)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .dirac-press-target,
+  .dirac-press-target.dirac-press-active,
+  .dirac-press-target.dirac-press-release{
+    animation:none!important;
+    transition:none!important;
+    transform:none!important;
+    filter:none!important;
+  }
+  .dirac-ripple,.dirac-press-sheen{display:none!important}
+}
+</style>
+
+
+<style id="dirac-light-mode-readability-fix-css">
+/* =========================================================
+   Dirac Light Mode Readability Fix v1
+   Tujuan: mode Light tetap premium, tapi semua teks dan panel terbaca.
+   Scope aman: hanya override warna/kontras mode light; fungsi produk, cart,
+   checkout, tema, dan load-more tidak diubah.
+   ========================================================= */
+html[data-effective-theme="light"]{
+  --light-text:#151923;
+  --light-heading:#101522;
+  --light-muted:#4f5f73;
+  --light-muted-2:#657386;
+  --light-card:#ffffff;
+  --light-card-soft:#f8fafc;
+  --light-line:rgba(15,23,42,.12);
+  --light-line-strong:rgba(15,23,42,.20);
+  --light-accent-text:var(--gold-2);
+  --light-accent-text:color-mix(in srgb,var(--gold-2) 72%,#111827 28%);
+  --light-accent-soft:rgba(var(--theme-rgb),.10);
+  --light-accent-mid:rgba(var(--theme-rgb),.18);
+}
+
+/* Base page and header */
+html[data-effective-theme="light"] body{
+  color:var(--light-text)!important;
+  background:
+    radial-gradient(circle at top left,rgba(var(--theme-rgb),.10),transparent 30rem),
+    radial-gradient(circle at 88% 10%,rgba(var(--theme-rgb),.08),transparent 28rem),
+    linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%)!important;
+}
+html[data-effective-theme="light"] .site-header{
+  background:rgba(255,255,255,.90)!important;
+  border-bottom-color:rgba(var(--theme-rgb),.20)!important;
+  box-shadow:0 14px 34px rgba(15,23,42,.08)!important;
+}
+html[data-effective-theme="light"] .announcement,
+html[data-effective-theme="light"] .footer{
+  background:linear-gradient(90deg,rgba(var(--theme-rgb),.08),#ffffff,rgba(var(--theme-rgb),.08))!important;
+  color:var(--light-text)!important;
+}
+
+/* High-priority text readability */
+html[data-effective-theme="light"] .brand-name,
+html[data-effective-theme="light"] .hero h1,
+html[data-effective-theme="light"] .product-title,
+html[data-effective-theme="light"] .feature-card h3,
+html[data-effective-theme="light"] .info-card h3,
+html[data-effective-theme="light"] .blog-card h3,
+html[data-effective-theme="light"] .faq-q,
+html[data-effective-theme="light"] .faq-q span,
+html[data-effective-theme="light"] .promo-box strong,
+html[data-effective-theme="light"] .stat-card strong,
+html[data-effective-theme="light"] .count-up,
+html[data-effective-theme="light"] .cart-head h2,
+html[data-effective-theme="light"] .cart-item h3,
+html[data-effective-theme="light"] .cart-row.total,
+html[data-effective-theme="light"] .modal-head h2,
+html[data-effective-theme="light"] .quick-rating-copy,
+html[data-effective-theme="light"] .rating-copy,
+html[data-effective-theme="light"] .theme-head h2,
+html[data-effective-theme="light"] .theme-section h3,
+html[data-effective-theme="light"] .footer h3,
+html[data-effective-theme="light"] .footer h4{
+  color:var(--light-heading)!important;
+}
+html[data-effective-theme="light"] .hero p,
+html[data-effective-theme="light"] .section-lead,
+html[data-effective-theme="light"] .muted,
+html[data-effective-theme="light"] .product-desc,
+html[data-effective-theme="light"] .product-sold-copy,
+html[data-effective-theme="light"] .info-card p,
+html[data-effective-theme="light"] .info-card li,
+html[data-effective-theme="light"] .feature-card p,
+html[data-effective-theme="light"] .blog-card p,
+html[data-effective-theme="light"] .faq-a,
+html[data-effective-theme="light"] .cart-head p,
+html[data-effective-theme="light"] .cart-row,
+html[data-effective-theme="light"] .cart-item .line,
+html[data-effective-theme="light"] .quick-desc,
+html[data-effective-theme="light"] .quick-sold-copy,
+html[data-effective-theme="light"] .theme-section p,
+html[data-effective-theme="light"] .footer p,
+html[data-effective-theme="light"] .footer a,
+html[data-effective-theme="light"] .footer li,
+html[data-effective-theme="light"] .copyright{
+  color:var(--light-muted)!important;
+}
+
+/* Accent text: darker in light mode so it never disappears */
+html[data-effective-theme="light"] .section-title,
+html[data-effective-theme="light"] .hero h1 span,
+html[data-effective-theme="light"] .eyebrow,
+html[data-effective-theme="light"] .price,
+html[data-effective-theme="light"] .quick-price,
+html[data-effective-theme="light"] .star-row,
+html[data-effective-theme="light"] .read-link,
+html[data-effective-theme="light"] .promo-code,
+html[data-effective-theme="light"] .back-home-icon,
+html[data-effective-theme="light"] .cart-row.total strong,
+html[data-effective-theme="light"] #totalText{
+  color:var(--light-accent-text)!important;
+}
+html[data-effective-theme="light"] .promo-code{
+  background:linear-gradient(90deg,var(--light-accent-text),var(--gold-2),var(--light-accent-text))!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  color:transparent!important;
+}
+
+/* Light cards: neutral surfaces, clear borders, no washed-out text */
+html[data-effective-theme="light"] .product-card,
+html[data-effective-theme="light"] .feature-card,
+html[data-effective-theme="light"] .info-card,
+html[data-effective-theme="light"] .blog-card,
+html[data-effective-theme="light"] .content-card,
+html[data-effective-theme="light"] .faq-item,
+html[data-effective-theme="light"] .stat-card,
+html[data-effective-theme="light"] .promo-box,
+html[data-effective-theme="light"] .cart-item,
+html[data-effective-theme="light"] .cart-empty,
+html[data-effective-theme="light"] .field,
+html[data-effective-theme="light"] .promo-row input,
+html[data-effective-theme="light"] .ship-row select,
+html[data-effective-theme="light"] .btn-secondary,
+html[data-effective-theme="light"] .theme-choice,
+html[data-effective-theme="light"] .theme-panel{
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(248,250,252,.94))!important;
+  color:var(--light-text)!important;
+  border-color:var(--light-line)!important;
+  box-shadow:0 18px 44px rgba(15,23,42,.10)!important;
+}
+html[data-effective-theme="light"] .promo-box,
+html[data-effective-theme="light"] .info-card{
+  background:linear-gradient(145deg,#ffffff,rgba(var(--theme-rgb),.055))!important;
+}
+html[data-effective-theme="light"] .info-card:before{background:rgba(var(--theme-rgb),.07)!important}
+html[data-effective-theme="light"] .feature-icon{
+  background:rgba(var(--theme-rgb),.09)!important;
+  border-color:rgba(var(--theme-rgb),.18)!important;
+  color:var(--light-heading)!important;
+}
+
+/* Buttons and badges */
+html[data-effective-theme="light"] .header-cart,
+html[data-effective-theme="light"] .btn-primary,
+html[data-effective-theme="light"] .load-more-btn,
+html[data-effective-theme="light"] .theme-save{
+  color:#101522!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 74%,#fff 26%),var(--gold-2) 62%,var(--gold-3))!important;
+  box-shadow:0 14px 32px rgba(var(--theme-rgb),.22),0 10px 24px rgba(15,23,42,.10)!important;
+}
+html[data-effective-theme="light"] .btn-secondary,
+html[data-effective-theme="light"] .btn-ghost,
+html[data-effective-theme="light"] .theme-toggle,
+html[data-effective-theme="light"] .back-home-btn{
+  color:var(--light-heading)!important;
+  background:rgba(255,255,255,.82)!important;
+  border-color:rgba(var(--theme-rgb),.22)!important;
+}
+html[data-effective-theme="light"] .eyebrow,
+html[data-effective-theme="light"] .tag.top-seller,
+html[data-effective-theme="light"] .quick-top-label,
+html[data-effective-theme="light"] .info-card .mini-label{
+  color:#101522!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 72%,#fff 28%),var(--gold-2))!important;
+  border-color:rgba(var(--theme-rgb),.24)!important;
+}
+html[data-effective-theme="light"] .tag:not(.top-seller){
+  background:rgba(255,255,255,.90)!important;
+  color:var(--light-heading)!important;
+  border-color:var(--light-line)!important;
+}
+html[data-effective-theme="light"] .trust-row span,
+html[data-effective-theme="light"] .quick-meta span{
+  color:var(--light-heading)!important;
+  background:rgba(255,255,255,.82)!important;
+  border-color:rgba(var(--theme-rgb),.18)!important;
+}
+
+/* Form, cart, modal, and FAQ states */
+html[data-effective-theme="light"] .field::placeholder,
+html[data-effective-theme="light"] .promo-row input::placeholder{color:#7a8697!important}
+html[data-effective-theme="light"] .field option{background:#ffffff!important;color:var(--light-heading)!important}
+html[data-effective-theme="light"] .faq-item.open{
+  background:#ffffff!important;
+  border-color:rgba(var(--theme-rgb),.30)!important;
+}
+html[data-effective-theme="light"] .modal-card,
+html[data-effective-theme="light"] .cart-drawer,
+html[data-effective-theme="light"] .theme-card{
+  background:linear-gradient(180deg,#ffffff,#f8fafc)!important;
+  color:var(--light-text)!important;
+  border-color:rgba(var(--theme-rgb),.22)!important;
+}
+html[data-effective-theme="light"] .modal-head,
+html[data-effective-theme="light"] .cart-head,
+html[data-effective-theme="light"] .cart-footer{
+  border-color:var(--light-line)!important;
+  background:rgba(255,255,255,.72)!important;
+}
+html[data-effective-theme="light"] .icon-btn,
+html[data-effective-theme="light"] .qty-control{
+  background:#ffffff!important;
+  color:var(--light-heading)!important;
+  border-color:var(--light-line)!important;
+}
+
+/* Theme modal swatches were being overwritten by the light-card rule; keep real colors. */
+html[data-effective-theme="light"] .theme-swatch{
+  background:var(--swatch)!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.55)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 10px 24px rgba(15,23,42,.16)!important;
+}
+html[data-effective-theme="light"] .theme-swatch.is-selected{
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.42),0 0 0 3px rgba(var(--theme-rgb),.30),0 14px 32px rgba(15,23,42,.18)!important;
+}
+html[data-effective-theme="light"] .theme-choice.is-selected{
+  color:var(--light-heading)!important;
+  background:rgba(var(--theme-rgb),.13)!important;
+  border-color:rgba(var(--theme-rgb),.42)!important;
+}
+
+/* Light mode interaction layer: elegant, but not dark/muddy. */
+html[data-effective-theme="light"] .dirac-press-target.dirac-press-active{
+  box-shadow:0 16px 38px rgba(15,23,42,.14),0 0 0 1px rgba(var(--theme-rgb),.24),0 0 26px rgba(var(--theme-rgb),.14)!important;
+  filter:brightness(1.01) saturate(1.04)!important;
+}
+html[data-effective-theme="light"] .dirac-press-sheen{
+  background:linear-gradient(112deg,transparent 12%,rgba(255,255,255,.55) 36%,rgba(var(--theme-rgb),.18) 48%,transparent 70%)!important;
+}
+</style>
+
+
+<style id="dirac-interaction-fix-v2-css">
+/* =========================================================
+   Dirac Premium Interaction Fix v2
+   Penyebab v1 kurang terlihat di HP: hanya mengandalkan pointerdown,
+   efek terlalu halus, dan beberapa CSS anti-lag/reduced-motion bisa
+   membuat animasi tidak tampak. v2 menambah fallback touch/mouse/click,
+   efek lebih jelas, serta tetap mengikuti warna tema customer.
+   ========================================================= */
+:root{
+  --dirac-touch-scale:.962;
+  --dirac-touch-lift:-4px;
+  --dirac-touch-glow:0 20px 54px rgba(0,0,0,.34),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.42),0 0 34px rgba(var(--theme-rgb,243,205,112),.24);
+}
+html.dirac-interactions-ready .dirac-press-target{
+  -webkit-tap-highlight-color:transparent!important;
+  touch-action:manipulation;
+  user-select:none;
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  transform-origin:center center!important;
+  will-change:transform,filter,box-shadow,border-color;
+  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1),background .22s cubic-bezier(.16,1,.3,1)!important;
+}
+html.dirac-interactions-ready .dirac-press-target:is(a,button,[role="button"]){cursor:pointer!important}
+html.dirac-interactions-ready .dirac-press-target.dirac-press-active,
+html.dirac-interactions-ready .dirac-press-target.dirac-v2-press{
+  transform:translate3d(0,var(--dirac-touch-lift),0) scale(var(--dirac-touch-scale))!important;
+  filter:brightness(1.095) saturate(1.18)!important;
+  box-shadow:var(--dirac-touch-glow)!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.70)!important;
+}
+html.dirac-interactions-ready .dirac-press-target.dirac-v2-release{
+  animation:diracV2Settle .54s cubic-bezier(.16,1,.3,1) both!important;
+}
+html.dirac-interactions-ready .dirac-press-target.dirac-v2-confirm{
+  animation:diracV2Confirm .66s cubic-bezier(.16,1,.3,1) both!important;
+}
+.dirac-v2-ripple,
+.dirac-v2-sheen,
+.dirac-v2-halo{
+  position:absolute!important;
+  pointer-events:none!important;
+  z-index:9!important;
+  display:block!important;
+}
+.dirac-v2-ripple{
+  left:var(--x,50%);top:var(--y,50%);
+  width:30px;height:30px;border-radius:999px;
+  opacity:0;transform:translate(-50%,-50%) scale(0);
+  background:radial-gradient(circle,rgba(255,255,255,.62) 0%,rgba(var(--theme-rgb,243,205,112),.46) 26%,rgba(var(--theme-rgb,243,205,112),.22) 51%,transparent 74%);
+  box-shadow:0 0 42px rgba(var(--theme-rgb,243,205,112),.35);
+  mix-blend-mode:screen;
+  animation:diracV2Ripple .82s cubic-bezier(.16,1,.3,1) forwards!important;
+}
+.dirac-v2-sheen{
+  inset:-3px;
+  opacity:0;transform:translateX(-118%) skewX(-8deg);
+  background:linear-gradient(110deg,transparent 8%,rgba(255,255,255,.18) 35%,rgba(var(--theme-rgb,243,205,112),.32) 48%,rgba(255,255,255,.12) 58%,transparent 78%);
+  animation:diracV2Sheen .78s cubic-bezier(.16,1,.3,1) forwards!important;
+}
+.dirac-v2-halo{
+  inset:0;border-radius:inherit;opacity:0;
+  box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb,243,205,112),.55),0 0 0 0 rgba(var(--theme-rgb,243,205,112),.42),0 0 34px rgba(var(--theme-rgb,243,205,112),.18);
+  animation:diracV2Halo .72s cubic-bezier(.16,1,.3,1) forwards!important;
+}
+/* Supaya bagian informatif yang disentuh terasa hidup, bukan hanya tombol. */
+html.dirac-interactions-ready .stat-card.dirac-v2-press,
+html.dirac-interactions-ready .feature-card.dirac-v2-press,
+html.dirac-interactions-ready .info-card.dirac-v2-press,
+html.dirac-interactions-ready .blog-card.dirac-v2-press,
+html.dirac-interactions-ready .faq-item.dirac-v2-press,
+html.dirac-interactions-ready .trust-row span.dirac-v2-press,
+html.dirac-interactions-ready .promo-box.dirac-v2-press,
+html.dirac-interactions-ready .content-card.dirac-v2-press,
+html.dirac-interactions-ready .theme-choice.dirac-v2-press{
+  background:linear-gradient(145deg,rgba(var(--theme-rgb,243,205,112),.20),rgba(255,255,255,.055))!important;
+}
+html[data-effective-theme="light"].dirac-interactions-ready .stat-card.dirac-v2-press,
+html[data-effective-theme="light"].dirac-interactions-ready .feature-card.dirac-v2-press,
+html[data-effective-theme="light"].dirac-interactions-ready .info-card.dirac-v2-press,
+html[data-effective-theme="light"].dirac-interactions-ready .blog-card.dirac-v2-press,
+html[data-effective-theme="light"].dirac-interactions-ready .faq-item.dirac-v2-press,
+html[data-effective-theme="light"].dirac-interactions-ready .promo-box.dirac-v2-press,
+html[data-effective-theme="light"].dirac-interactions-ready .content-card.dirac-v2-press{
+  background:linear-gradient(145deg,#fff,rgba(var(--theme-rgb,243,205,112),.14))!important;
+}
+html.dirac-interactions-ready .btn-primary.dirac-v2-press,
+html.dirac-interactions-ready .header-cart.dirac-v2-press,
+html.dirac-interactions-ready .load-more-btn.dirac-v2-press,
+html.dirac-interactions-ready .theme-save.dirac-v2-press{
+  filter:brightness(1.12) saturate(1.18)!important;
+}
+html.dirac-interactions-ready .btn-secondary.dirac-v2-press,
+html.dirac-interactions-ready .btn-ghost.dirac-v2-press,
+html.dirac-interactions-ready .theme-toggle.dirac-v2-press,
+html.dirac-interactions-ready .back-home-btn.dirac-v2-press{
+  background:rgba(var(--theme-rgb,243,205,112),.18)!important;
+}
+html.dirac-interactions-ready .product-card.dirac-v2-press .product-media img,
+html.dirac-interactions-ready .blog-card.dirac-v2-press img,
+html.dirac-interactions-ready .lifestyle-card.dirac-v2-press img,
+html.dirac-interactions-ready .quick-grid.dirac-v2-press img{
+  transform:translateY(-4px) scale(1.034)!important;
+}
+html.dirac-interactions-ready .dirac-v2-press .count-badge,
+html.dirac-interactions-ready .dirac-v2-press .feature-icon,
+html.dirac-interactions-ready .dirac-v2-press .back-home-icon,
+html.dirac-interactions-ready .dirac-v2-press .brand-mark{
+  animation:diracV2IconPop .48s cubic-bezier(.16,1,.3,1) both!important;
+}
+html.dirac-interactions-ready .stat-card.dirac-v2-press strong,
+html.dirac-interactions-ready .count-up.dirac-v2-press{
+  filter:drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.42))!important;
+}
+@keyframes diracV2Ripple{
+  0%{opacity:.78;transform:translate(-50%,-50%) scale(.08)}
+  45%{opacity:.42}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(var(--scale,22))}
+}
+@keyframes diracV2Sheen{
+  0%{opacity:0;transform:translateX(-118%) skewX(-8deg)}
+  18%{opacity:1}
+  100%{opacity:0;transform:translateX(118%) skewX(-8deg)}
+}
+@keyframes diracV2Halo{
+  0%{opacity:.80;box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb,243,205,112),.58),0 0 0 0 rgba(var(--theme-rgb,243,205,112),.34),0 0 28px rgba(var(--theme-rgb,243,205,112),.18)}
+  100%{opacity:0;box-shadow:inset 0 0 0 1px rgba(var(--theme-rgb,243,205,112),.18),0 0 0 18px rgba(var(--theme-rgb,243,205,112),0),0 0 0 rgba(var(--theme-rgb,243,205,112),0)}
+}
+@keyframes diracV2Settle{
+  0%{transform:translate3d(0,-2px,0) scale(.985)}
+  45%{transform:translate3d(0,0,0) scale(1.014)}
+  100%{transform:translate3d(0,0,0) scale(1)}
+}
+@keyframes diracV2Confirm{
+  0%{filter:brightness(1) saturate(1);transform:scale(1)}
+  42%{filter:brightness(1.12) saturate(1.16);transform:scale(1.012)}
+  100%{filter:brightness(1) saturate(1);transform:scale(1)}
+}
+@keyframes diracV2IconPop{
+  0%{transform:scale(1) rotate(0)}
+  45%{transform:scale(1.16) rotate(-3deg)}
+  100%{transform:scale(1) rotate(0)}
+}
+@media(max-width:760px){
+  :root{--dirac-touch-scale:.975;--dirac-touch-lift:-3px}
+  html.dirac-interactions-ready .dirac-press-target.dirac-press-active,
+  html.dirac-interactions-ready .dirac-press-target.dirac-v2-press{
+    transform:translate3d(0,-3px,0) scale(.975)!important;
+    box-shadow:0 16px 40px rgba(0,0,0,.30),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.40),0 0 28px rgba(var(--theme-rgb,243,205,112),.20)!important;
+  }
+}
+/* Kalau perangkat user menyalakan Reduce Motion, v1 sebelumnya mematikan total.
+   v2 tetap memberi feedback singkat non-agresif agar tombol tidak terasa mati. */
+@media(prefers-reduced-motion:reduce){
+  html.dirac-interactions-force .dirac-press-target,
+  html.dirac-interactions-force .dirac-press-target.dirac-press-active,
+  html.dirac-interactions-force .dirac-press-target.dirac-v2-press,
+  html.dirac-interactions-force .dirac-press-target.dirac-v2-release{
+    transition:transform .12s ease,filter .12s ease,box-shadow .12s ease,border-color .12s ease!important;
+    animation:none!important;
+    filter:brightness(1.07) saturate(1.08)!important;
+  }
+  html.dirac-interactions-force .dirac-press-target.dirac-v2-press,
+  html.dirac-interactions-force .dirac-press-target.dirac-press-active{
+    transform:translate3d(0,-2px,0) scale(.984)!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.26),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.40)!important;
+  }
+  html.dirac-interactions-force .dirac-v2-ripple,
+  html.dirac-interactions-force .dirac-v2-sheen,
+  html.dirac-interactions-force .dirac-v2-halo{
+    display:block!important;
+    animation-duration:.42s!important;
+  }
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -1392,9 +1952,9 @@ html[data-effective-theme="light"] .cart-thumb{background:#f3f6fb!important}
 
     <section class="stats-strip" aria-label="Statistik Dirac Parfum">
       <div class="container stats-grid">
-        <div class="stat-card"><strong class="count-up" data-target="23528" data-suffix="+">0</strong><span>Items sold</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="7192" data-suffix="+">0</strong><span>Loyal customer</span></div>
-        <div class="stat-card"><strong class="count-up" data-target="659" data-suffix="+">0</strong><span>Reseller</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="24" data-suffix="K+" data-duration="1700">0</strong><span>Pesanan Sukses</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="7" data-suffix="K+" data-duration="1700">0</strong><span>Pelanggan Terverifikasi</span></div>
+        <div class="stat-card"><strong class="count-up" data-target="650" data-suffix="+" data-duration="1700">0</strong><span>Mitra Reseller</span></div>
       </div>
     </section>
 
@@ -4347,6 +4907,290 @@ html[data-effective-theme="light"] .cart-thumb{background:#f3f6fb!important}
     read: readThemeSettings,
     reset: resetTheme,
     palettes: Object.keys(THEME_PALETTES)
+  };
+})();
+</script>
+
+
+<script id="dirac-premium-interaction-js">
+/* Premium tap/click feedback. Tidak mengubah alur click asli. */
+(function(){
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var selector = [
+    'a','button',
+    '.product-card','.feature-card','.info-card','.blog-card','.faq-item','.stat-card',
+    '.trust-row span','.promo-box','.content-card','.lifestyle-card',
+    '.quick-meta span','.cart-item','.theme-choice','.theme-swatch'
+  ].join(',');
+  var skipSelector = 'input,select,textarea,option,label';
+
+  function closestTarget(node){
+    if(!node || !node.closest) return null;
+    if(node.closest(skipSelector)) return null;
+    var target = node.closest(selector);
+    if(!target) return null;
+    if(target.matches('button:disabled,[disabled]')) return null;
+    if(target.classList.contains('btn-disabled')) return null;
+    if(target.getAttribute('aria-disabled') === 'true') return null;
+    return target;
+  }
+
+  function markTargets(root){
+    Array.prototype.slice.call((root || document).querySelectorAll(selector)).forEach(function(el){
+      if(el.matches('input,select,textarea,option')) return;
+      if(!el.classList.contains('dirac-press-target')) el.classList.add('dirac-press-target');
+    });
+  }
+
+  function addLayer(target, className){
+    var layer = document.createElement('span');
+    layer.className = className;
+    layer.setAttribute('aria-hidden','true');
+    target.appendChild(layer);
+    setTimeout(function(){ if(layer && layer.parentNode) layer.parentNode.removeChild(layer); }, 820);
+    return layer;
+  }
+
+  function playPress(target, event){
+    if(!target || reduceMotion) return;
+    var rect = target.getBoundingClientRect();
+    if(!rect.width || !rect.height) return;
+    target.classList.remove('dirac-press-release');
+    target.classList.add('dirac-press-active');
+    var ripple = addLayer(target, 'dirac-ripple');
+    var x = event && typeof event.clientX === 'number' ? event.clientX - rect.left : rect.width / 2;
+    var y = event && typeof event.clientY === 'number' ? event.clientY - rect.top : rect.height / 2;
+    ripple.style.setProperty('--ripple-x', x + 'px');
+    ripple.style.setProperty('--ripple-y', y + 'px');
+    ripple.style.setProperty('--ripple-scale', Math.max(rect.width, rect.height) / 10 + 2);
+    addLayer(target, 'dirac-press-sheen');
+  }
+
+  function releasePress(target){
+    if(!target || reduceMotion) return;
+    target.classList.remove('dirac-press-active');
+    target.classList.remove('dirac-press-release');
+    void target.offsetWidth;
+    target.classList.add('dirac-press-release');
+    setTimeout(function(){ target.classList.remove('dirac-press-release'); }, 520);
+  }
+
+  document.addEventListener('pointerdown', function(event){
+    if(event.pointerType === 'mouse' && event.button !== 0) return;
+    var target = closestTarget(event.target);
+    if(!target) return;
+    markTargets(target.parentNode || document);
+    playPress(target, event);
+    var done = false;
+    function finish(){
+      if(done) return;
+      done = true;
+      releasePress(target);
+      window.removeEventListener('pointerup', finish, true);
+      window.removeEventListener('pointercancel', finish, true);
+      window.removeEventListener('blur', finish, true);
+    }
+    window.addEventListener('pointerup', finish, true);
+    window.addEventListener('pointercancel', finish, true);
+    window.addEventListener('blur', finish, true);
+    setTimeout(finish, 680);
+  }, {passive:true});
+
+  document.addEventListener('keydown', function(event){
+    if(event.key !== 'Enter' && event.key !== ' ') return;
+    var target = closestTarget(document.activeElement);
+    if(!target) return;
+    playPress(target, null);
+    setTimeout(function(){ releasePress(target); }, 160);
+  });
+
+  document.addEventListener('DOMContentLoaded', function(){ markTargets(document); });
+  markTargets(document);
+
+  if(window.MutationObserver){
+    new MutationObserver(function(records){
+      records.forEach(function(record){
+        Array.prototype.slice.call(record.addedNodes || []).forEach(function(node){
+          if(node && node.nodeType === 1) markTargets(node);
+        });
+      });
+    }).observe(document.documentElement, {childList:true, subtree:true});
+  }
+
+  window.diracPremiumInteraction = {refresh:function(){ markTargets(document); }};
+})();
+</script>
+
+
+<script id="dirac-interaction-fix-v2-js">
+/* Robust premium interactions + corporate stats safety net. */
+(function(){
+  var root = document.documentElement;
+  root.classList.add('dirac-interactions-ready','dirac-interactions-force');
+
+  var statConfig = [
+    {target:'24', suffix:'K+', label:'Pesanan Sukses'},
+    {target:'7', suffix:'K+', label:'Pelanggan Terverifikasi'},
+    {target:'650', suffix:'+', label:'Mitra Reseller'}
+  ];
+  function enforceCorporateStats(){
+    var cards = document.querySelectorAll('.stats-grid .stat-card');
+    statConfig.forEach(function(item, index){
+      var card = cards[index];
+      if(!card) return;
+      var num = card.querySelector('.count-up');
+      var label = card.querySelector('span');
+      if(num){
+        num.dataset.target = item.target;
+        num.dataset.suffix = item.suffix;
+        num.dataset.duration = num.dataset.duration || '1700';
+        if(num.dataset.animated !== 'true') num.textContent = '0';
+      }
+      if(label) label.textContent = item.label;
+    });
+  }
+  enforceCorporateStats();
+  document.addEventListener('DOMContentLoaded', enforceCorporateStats);
+
+  var selector = [
+    'a','button','[role="button"]',
+    '.product-card','.feature-card','.info-card','.blog-card','.faq-item','.stat-card',
+    '.trust-row span','.promo-box','.content-card','.lifestyle-card',
+    '.quick-meta span','.cart-item','.theme-choice','.theme-swatch','.quick-grid'
+  ].join(',');
+  var skipSelector = 'input,select,textarea,option,label,.modal input,.modal textarea,.modal select';
+
+  function toArray(list){ return Array.prototype.slice.call(list || []); }
+  function isDisabled(el){
+    return !el || el.matches('button:disabled,[disabled]') || el.classList.contains('btn-disabled') || el.getAttribute('aria-disabled') === 'true';
+  }
+  function closestTarget(node){
+    if(!node || !node.closest) return null;
+    if(node.closest(skipSelector)) return null;
+    var target = node.closest(selector);
+    if(!target || isDisabled(target)) return null;
+    return target;
+  }
+  function markTargets(rootNode){
+    toArray((rootNode || document).querySelectorAll(selector)).forEach(function(el){
+      if(isDisabled(el)) return;
+      if(el.matches('input,select,textarea,option')) return;
+      el.classList.add('dirac-press-target');
+    });
+  }
+  function clearLayers(target){
+    toArray(target.querySelectorAll(':scope > .dirac-v2-ripple,:scope > .dirac-v2-sheen,:scope > .dirac-v2-halo')).forEach(function(el){ el.remove(); });
+  }
+  function layer(target, className){
+    var el = document.createElement('span');
+    el.className = className;
+    el.setAttribute('aria-hidden','true');
+    target.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 950);
+    return el;
+  }
+  function pointFromEvent(event){
+    if(!event) return null;
+    if(event.touches && event.touches[0]) return event.touches[0];
+    if(event.changedTouches && event.changedTouches[0]) return event.changedTouches[0];
+    return event;
+  }
+  function play(target, event, force){
+    if(!target) return;
+    var now = Date.now();
+    if(!force && target.__diracLastTap && now - target.__diracLastTap < 120) return;
+    target.__diracLastTap = now;
+    markTargets(target.parentNode || document);
+    var rect = target.getBoundingClientRect();
+    if(!rect.width || !rect.height) return;
+    target.classList.remove('dirac-v2-release','dirac-v2-confirm','dirac-press-release');
+    target.classList.add('dirac-press-active','dirac-v2-press');
+    clearLayers(target);
+    var p = pointFromEvent(event);
+    var x = p && typeof p.clientX === 'number' ? p.clientX - rect.left : rect.width / 2;
+    var y = p && typeof p.clientY === 'number' ? p.clientY - rect.top : rect.height / 2;
+    var ripple = layer(target, 'dirac-v2-ripple');
+    ripple.style.setProperty('--x', Math.max(0, Math.min(rect.width, x)) + 'px');
+    ripple.style.setProperty('--y', Math.max(0, Math.min(rect.height, y)) + 'px');
+    ripple.style.setProperty('--scale', String(Math.max(14, Math.max(rect.width, rect.height) / 9)));
+    layer(target, 'dirac-v2-sheen');
+    layer(target, 'dirac-v2-halo');
+  }
+  function release(target){
+    if(!target) return;
+    target.classList.remove('dirac-press-active','dirac-v2-press');
+    target.classList.remove('dirac-v2-release','dirac-press-release');
+    void target.offsetWidth;
+    target.classList.add('dirac-v2-release','dirac-press-release');
+    setTimeout(function(){ target.classList.remove('dirac-v2-release','dirac-press-release'); }, 620);
+  }
+  function confirm(target){
+    if(!target) return;
+    target.classList.remove('dirac-v2-confirm');
+    void target.offsetWidth;
+    target.classList.add('dirac-v2-confirm');
+    setTimeout(function(){ target.classList.remove('dirac-v2-confirm'); }, 760);
+  }
+  function bindDown(event){
+    if(event.type === 'mousedown' && event.button !== 0) return;
+    if(event.type === 'pointerdown' && event.pointerType === 'mouse' && event.button !== 0) return;
+    var target = closestTarget(event.target);
+    if(!target) return;
+    play(target, event, false);
+    var done = false;
+    function finish(){
+      if(done) return; done = true; release(target);
+      window.removeEventListener('pointerup', finish, true);
+      window.removeEventListener('pointercancel', finish, true);
+      window.removeEventListener('mouseup', finish, true);
+      window.removeEventListener('touchend', finish, true);
+      window.removeEventListener('touchcancel', finish, true);
+      window.removeEventListener('blur', finish, true);
+    }
+    window.addEventListener('pointerup', finish, true);
+    window.addEventListener('pointercancel', finish, true);
+    window.addEventListener('mouseup', finish, true);
+    window.addEventListener('touchend', finish, true);
+    window.addEventListener('touchcancel', finish, true);
+    window.addEventListener('blur', finish, true);
+    setTimeout(finish, 720);
+  }
+
+  document.addEventListener('pointerdown', bindDown, true);
+  document.addEventListener('touchstart', bindDown, {capture:true, passive:true});
+  document.addEventListener('mousedown', bindDown, true);
+  document.addEventListener('click', function(event){
+    var target = closestTarget(event.target);
+    if(!target) return;
+    var elapsed = Date.now() - (target.__diracLastTap || 0);
+    if(elapsed > 250){
+      play(target, event, true);
+      setTimeout(function(){ release(target); }, 180);
+    }
+    confirm(target);
+  }, true);
+  document.addEventListener('keydown', function(event){
+    if(event.key !== 'Enter' && event.key !== ' ') return;
+    var target = closestTarget(document.activeElement);
+    if(!target) return;
+    play(target, null, true);
+    setTimeout(function(){ release(target); confirm(target); }, 170);
+  }, true);
+
+  markTargets(document);
+  document.addEventListener('DOMContentLoaded', function(){ markTargets(document); enforceCorporateStats(); });
+  if(window.MutationObserver){
+    new MutationObserver(function(records){
+      records.forEach(function(record){
+        toArray(record.addedNodes).forEach(function(node){
+          if(node && node.nodeType === 1) markTargets(node);
+        });
+      });
+    }).observe(document.documentElement, {childList:true, subtree:true});
+  }
+  window.diracPremiumInteractionV2 = {
+    refresh:function(){ markTargets(document); enforceCorporateStats(); },
+    test:function(selectorText){ var target = document.querySelector(selectorText || '.btn-primary'); if(target){ play(target,null,true); setTimeout(function(){ release(target); confirm(target); }, 220); return true; } return false; }
   };
 })();
 </script>
