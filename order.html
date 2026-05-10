@@ -464,21 +464,57 @@ img[loading="lazy"]{content-visibility:auto}
 <link rel="preload" as="image" href="logo1.webp" fetchpriority="high">
 
 <style id="dirac-antilag-css">
-/* Lightweight product paging for GitHub Pages.
-   This keeps 12 products per load WITHOUT disabling animations. */
+/* Anti-lag mode for GitHub Pages / mobile */
 :root{--dirac-visible-products:12}
+.product-grid.is-limited .product-card:nth-child(n+13){display:none!important}
 .load-more-wrap{display:flex;justify-content:center;margin:24px 0 0}
 .load-more-btn{
-  border:1px solid rgba(var(--theme-rgb,243,205,112),.35);
-  background:linear-gradient(135deg,var(--gold),var(--gold-2));
+  border:1px solid rgba(243,205,112,.35);
+  background:linear-gradient(135deg,#f3cd70,#d6a642);
   color:#111;
   padding:13px 20px;
   border-radius:999px;
   font-weight:900;
   cursor:pointer;
-  box-shadow:0 12px 30px rgba(0,0,0,.18),0 0 0 1px rgba(255,255,255,.10) inset;
+  box-shadow:0 10px 26px rgba(0,0,0,.18);
 }
 .load-more-btn[hidden]{display:none!important}
+@media(max-width:760px){
+  /* Mobile dibuat jauh lebih ringan */
+  .hero:after,.promo-box:before,.product-media:before,.btn-primary:after,.header-cart:after{display:none!important}
+  .hero-card,.product-card,.feature-card,.info-card,.blog-card,.faq-item,.stat-card{
+    animation:none!important;
+    transition:opacity .18s ease!important;
+    filter:none!important;
+    backdrop-filter:none!important;
+    transform:none!important;
+    box-shadow:0 8px 22px rgba(0,0,0,.22)!important;
+  }
+  .product-card:hover,.blog-card:hover,.feature-card:hover{
+    transform:none!important;
+  }
+  .motion-ready [data-reveal],
+  .motion-ready .hero .eyebrow,
+  .motion-ready .hero h1,
+  .motion-ready .hero p,
+  .motion-ready .hero .hero-actions,
+  .motion-ready .hero .trust-row{
+    opacity:1!important;
+    transform:none!important;
+    filter:none!important;
+    animation:none!important;
+    transition:none!important;
+  }
+  .toast.show,.cart-bump,.btn-adding,.counter-complete{
+    animation:none!important;
+  }
+  .product-media{padding:6px!important}
+  .product-media img{
+    transform:none!important;
+    will-change:auto!important;
+  }
+}
+/* prevent expensive paint on huge lists */
 .product-card{contain:content;content-visibility:auto;contain-intrinsic-size:420px}
 </style>
 
@@ -1291,132 +1327,83 @@ html[data-effective-theme="light"] .cart-thumb{background:#f3f6fb!important}
 </style>
 
 
-<style id="dirac-final-click-motion-css">
+<style id="dirac-shine-only-css">
 /* =========================================================
-   Final click/tap motion - simple, smooth, visible on mobile.
-   Dibuat di paling bawah agar tidak tertimpa CSS lama.
+   Dirac Shine Only Interaction v1
+   Efek klik dibuat sengaja simple: hanya sapuan cahaya elegan.
+   Tidak ada gerak/bounce/ripple yang ramai, supaya tetap premium.
    ========================================================= */
-:root{
-  --tap-ease:cubic-bezier(.2,.9,.22,1);
-  --tap-ease-out:cubic-bezier(.16,1,.3,1);
+.dirac-shine-target{
+  position:relative!important;
+  overflow:hidden!important;
+  isolation:isolate;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
-.stat-card strong.count-up{
-  font-family:Poppins,system-ui,-apple-system,"Segoe UI",sans-serif!important;
-  font-weight:850!important;
-  letter-spacing:-.035em!important;
-  color:var(--text)!important;
-  font-variant-numeric:tabular-nums lining-nums!important;
+.dirac-shine-flash{
+  position:absolute;
+  inset:-45%;
+  z-index:60;
+  pointer-events:none;
+  opacity:0;
+  border-radius:inherit;
+  mix-blend-mode:screen;
+  background:
+    linear-gradient(115deg,
+      transparent 0%,
+      transparent 34%,
+      rgba(255,255,255,.08) 41%,
+      rgba(255,255,255,.58) 49%,
+      rgba(var(--theme-rgb,243,205,112),.30) 56%,
+      rgba(255,255,255,.12) 63%,
+      transparent 74%,
+      transparent 100%);
+  transform:translate3d(-78%,0,0) skewX(-12deg);
+  animation:diracShineOnlySweep .82s cubic-bezier(.16,1,.3,1) forwards!important;
+  will-change:transform,opacity;
+}
+html[data-effective-theme="light"] .dirac-shine-flash{
+  mix-blend-mode:normal;
+  background:
+    linear-gradient(115deg,
+      transparent 0%,
+      transparent 34%,
+      rgba(255,255,255,.10) 41%,
+      rgba(255,255,255,.78) 49%,
+      rgba(var(--theme-rgb,243,205,112),.24) 56%,
+      rgba(255,255,255,.22) 63%,
+      transparent 74%,
+      transparent 100%);
+}
+.dirac-shine-target.dirac-shine-active{
+  box-shadow:0 0 0 1px rgba(var(--theme-rgb,243,205,112),.18),0 12px 30px rgba(var(--theme-rgb,243,205,112),.10),var(--shadow,0 18px 42px rgba(0,0,0,.18));
+}
+/* Jangan ubah posisi kartu/tombol. Shine saja. */
+.dirac-shine-target.dirac-shine-active,
+.dirac-shine-target.dirac-shine-active *{
+  transform:none;
+}
+.stat-card strong,
+.stat-card .count-up{
+  font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
+  font-weight:800!important;
+  letter-spacing:-.025em;
+  font-variant-numeric:tabular-nums;
 }
 .stat-card span{
-  font-family:Poppins,system-ui,-apple-system,"Segoe UI",sans-serif!important;
-  letter-spacing:.065em!important;
+  letter-spacing:.095em;
 }
-html[data-effective-theme="light"] .stat-card strong.count-up{color:#111827!important}
-
-.dirac-click-motion{
-  position:relative!important;
-  isolation:isolate!important;
-  -webkit-tap-highlight-color:transparent!important;
-  touch-action:manipulation;
-  transform-origin:center center!important;
-  will-change:transform,filter,box-shadow!important;
-  transition:
-    transform .22s var(--tap-ease-out),
-    box-shadow .28s var(--tap-ease-out),
-    border-color .28s var(--tap-ease-out),
-    filter .28s var(--tap-ease-out),
-    background-color .28s var(--tap-ease-out)!important;
+@keyframes diracShineOnlySweep{
+  0%{opacity:0;transform:translate3d(-78%,0,0) skewX(-12deg)}
+  16%{opacity:.95}
+  100%{opacity:0;transform:translate3d(78%,0,0) skewX(-12deg)}
 }
-.dirac-click-motion.dirac-pressing{
-  transform:translateY(2px) scale(.975)!important;
-  filter:brightness(1.035) saturate(1.06)!important;
-  box-shadow:
-    0 8px 22px rgba(0,0,0,.22),
-    0 0 0 2px rgba(var(--theme-rgb,243,205,112),.26),
-    0 0 24px rgba(var(--theme-rgb,243,205,112),.20)!important;
-  border-color:rgba(var(--theme-rgb,243,205,112),.55)!important;
-}
-.dirac-click-motion.dirac-released{
-  animation:diracTapSettle .48s var(--tap-ease-out) both!important;
-}
-@keyframes diracTapSettle{
-  0%{transform:translateY(1px) scale(.982)}
-  42%{transform:translateY(-2px) scale(1.018)}
-  72%{transform:translateY(0) scale(.996)}
-  100%{transform:translateY(0) scale(1)}
-}
-.dirac-tap-ripple{
-  position:absolute!important;
-  z-index:5!important;
-  pointer-events:none!important;
-  border-radius:999px!important;
-  width:18px;height:18px;
-  left:var(--tap-x,50%);top:var(--tap-y,50%);
-  margin-left:-9px;margin-top:-9px;
-  background:radial-gradient(circle,rgba(255,255,255,.55) 0%,rgba(var(--theme-rgb,243,205,112),.34) 42%,rgba(var(--theme-rgb,243,205,112),0) 72%);
-  transform:scale(.1);
-  opacity:.85;
-  mix-blend-mode:screen;
-  animation:diracRipple .58s var(--tap-ease-out) forwards!important;
-}
-@keyframes diracRipple{
-  0%{transform:scale(.1);opacity:.88}
-  78%{opacity:.28}
-  100%{transform:scale(12);opacity:0}
-}
-.dirac-click-motion:after{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:4;
-  pointer-events:none;
-  border-radius:inherit;
-  background:linear-gradient(110deg,transparent 22%,rgba(255,255,255,.22) 48%,transparent 74%);
-  transform:translateX(-140%);
-  opacity:0;
-}
-.dirac-click-motion.dirac-shine:after{
-  animation:diracTapShine .52s var(--tap-ease-out) both!important;
-}
-@keyframes diracTapShine{
-  0%{transform:translateX(-140%);opacity:0}
-  24%{opacity:.72}
-  100%{transform:translateX(140%);opacity:0}
-}
-
-/* Sizes tuned per element so the motion is visible but not alay. */
-.product-card.dirac-click-motion.dirac-pressing{transform:translateY(2px) scale(.988)!important}
-.product-card.dirac-click-motion.dirac-released{animation:diracCardSettle .5s var(--tap-ease-out) both!important}
-@keyframes diracCardSettle{
-  0%{transform:translateY(1px) scale(.99)}
-  45%{transform:translateY(-4px) scale(1.01)}
-  100%{transform:translateY(0) scale(1)}
-}
-.theme-swatch.dirac-click-motion.dirac-pressing{transform:translateY(1px) scale(.90)!important}
-.theme-swatch.dirac-click-motion.dirac-released{animation:diracSwatchSettle .42s var(--tap-ease-out) both!important}
-@keyframes diracSwatchSettle{0%{transform:scale(.92)}55%{transform:scale(1.10)}100%{transform:scale(1)}}
-.faq-q.dirac-click-motion.dirac-pressing{transform:translateY(1px) scale(.992)!important}
-.nav-links a.dirac-click-motion.dirac-pressing,.read-link.dirac-click-motion.dirac-pressing{transform:translateY(1px) scale(.985)!important}
-.icon-btn.dirac-click-motion.dirac-pressing,.qty-control button.dirac-click-motion.dirac-pressing,.remove-btn.dirac-click-motion.dirac-pressing{transform:scale(.88)!important}
-
 @media(max-width:760px){
-  .dirac-click-motion{
-    transition:transform .18s var(--tap-ease-out),box-shadow .24s var(--tap-ease-out),filter .24s var(--tap-ease-out),border-color .24s var(--tap-ease-out)!important;
-  }
-  .dirac-click-motion.dirac-pressing{
-    transform:translateY(2px) scale(.968)!important;
-    box-shadow:0 7px 20px rgba(0,0,0,.22),0 0 0 2px rgba(var(--theme-rgb,243,205,112),.30),0 0 22px rgba(var(--theme-rgb,243,205,112),.18)!important;
-  }
-  .product-card.dirac-click-motion.dirac-pressing{transform:translateY(2px) scale(.988)!important}
-  .dirac-tap-ripple{animation-duration:.50s!important}
+  .dirac-shine-flash{animation-duration:.72s!important}
+  .dirac-shine-target.dirac-shine-active{box-shadow:0 0 0 1px rgba(var(--theme-rgb,243,205,112),.18),0 10px 24px rgba(var(--theme-rgb,243,205,112),.10),0 8px 22px rgba(0,0,0,.20)!important}
 }
 @media(prefers-reduced-motion:reduce){
-  .dirac-click-motion.dirac-pressing{
-    transform:scale(.985)!important;
-    filter:brightness(1.06)!important;
-  }
-  .dirac-click-motion.dirac-released,.dirac-click-motion.dirac-shine:after,.dirac-tap-ripple{animation:none!important}
-  .dirac-tap-ripple{display:none!important}
+  .dirac-shine-flash{animation:diracShineOnlySweep .58s ease-out forwards!important}
 }
 </style>
 
@@ -3206,7 +3193,7 @@ html[data-effective-theme="light"] .stat-card strong.count-up{color:#111827!impo
       catch { cart = []; }
       cart = cart.filter(item => products.some(p => p.id === item.id)).map(item => ({id:Number(item.id),qty:Math.max(1,Number(item.qty)||1)}));
     }
-    function saveCart(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); }catch(error){} }
+    function saveCart(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); }
     function getProduct(id){ return products.find(p => p.id === Number(id)); }
     function getQty(id){ return cart.find(item => item.id === Number(id))?.qty || 0; }
     function totalQty(){ return cart.reduce((sum,item)=>sum+item.qty,0); }
@@ -4446,165 +4433,65 @@ html[data-effective-theme="light"] .stat-card strong.count-up{color:#111827!impo
 </script>
 
 
-<script id="dirac-final-click-motion-js">
+<script id="dirac-shine-only-js">
 (function(){
   'use strict';
-
-  var selector = [
-    'button:not([disabled])',
+  var shineSelector = [
     'a[href]',
+    'button:not([disabled])',
     '.product-card',
-    '.faq-q',
+    '.feature-card',
+    '.info-card',
+    '.blog-card',
+    '.faq-item',
+    '.promo-box',
+    '.stat-card',
+    '.trust-row span',
+    '.theme-choice',
     '.theme-swatch',
-    '.qty-control button',
-    '.remove-btn',
-    '[role="button"]'
+    '.cart-item',
+    '.load-more-btn'
   ].join(',');
-
-  function closestInteractive(target){
-    if(!target || !target.closest) return null;
-    var el = target.closest(selector);
-    if(!el || !document.documentElement.contains(el)) return null;
-    if(el.matches && el.matches('input, textarea, select, option')) return null;
-    if(el.disabled || el.getAttribute('aria-disabled') === 'true') return null;
-    return el;
+  function allowedTarget(el){
+    if(!el || !el.closest) return null;
+    var target = el.closest(shineSelector);
+    if(!target) return null;
+    if(target.closest && target.closest('.modal') && target.classList && target.classList.contains('modal-card')) return null;
+    if(target.disabled || target.getAttribute('aria-disabled') === 'true') return null;
+    return target;
   }
-
-  function addBaseClasses(root){
-    var scope = root || document;
-    Array.prototype.forEach.call(scope.querySelectorAll(selector), function(el){
-      if(el.matches && el.matches('input, textarea, select, option')) return;
-      if(el.disabled || el.getAttribute('aria-disabled') === 'true') return;
-      el.classList.add('dirac-click-motion');
-    });
+  function showShine(target){
+    var now = Date.now();
+    if(target.__diracLastShine && now - target.__diracLastShine < 180) return;
+    target.__diracLastShine = now;
+    target.classList.add('dirac-shine-target','dirac-shine-active');
+    target.querySelectorAll(':scope > .dirac-shine-flash').forEach(function(old){ old.remove(); });
+    var shine = document.createElement('span');
+    shine.className = 'dirac-shine-flash';
+    shine.setAttribute('aria-hidden','true');
+    target.appendChild(shine);
+    var cleanup = function(){
+      shine.remove();
+      target.classList.remove('dirac-shine-active');
+    };
+    shine.addEventListener('animationend', cleanup, {once:true});
+    setTimeout(cleanup, 950);
   }
-
-  function eventPoint(event, el){
-    var point = event;
-    if(event.touches && event.touches[0]) point = event.touches[0];
-    if(event.changedTouches && event.changedTouches[0]) point = event.changedTouches[0];
-    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : {left:0,top:0,width:1,height:1};
-    var x = typeof point.clientX === 'number' ? point.clientX - rect.left : rect.width / 2;
-    var y = typeof point.clientY === 'number' ? point.clientY - rect.top : rect.height / 2;
-    x = Math.max(0, Math.min(rect.width || 1, x));
-    y = Math.max(0, Math.min(rect.height || 1, y));
-    return {x:x,y:y};
+  function onPress(ev){
+    var target = allowedTarget(ev.target);
+    if(target) showShine(target);
   }
-
-  function makeRipple(el, event){
-    if(!el || !el.appendChild || el.closest('select,input,textarea')) return;
-    // Avoid huge ripples on very large wrappers; keep it crisp and premium.
-    var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
-    if(rect && (rect.width > 520 || rect.height > 260) && !el.classList.contains('product-card')) return;
-    var pos = eventPoint(event, el);
-    var ripple = document.createElement('span');
-    ripple.className = 'dirac-tap-ripple';
-    ripple.style.setProperty('--tap-x', pos.x + 'px');
-    ripple.style.setProperty('--tap-y', pos.y + 'px');
-    el.appendChild(ripple);
-    setTimeout(function(){ if(ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 700);
+  if(window.PointerEvent){
+    document.addEventListener('pointerdown', onPress, {passive:true, capture:true});
+  }else{
+    document.addEventListener('touchstart', onPress, {passive:true, capture:true});
+    document.addEventListener('mousedown', onPress, true);
   }
-
-  function nextTapToken(el){
-    var token = String(Date.now()) + '-' + String(Math.random()).slice(2);
-    el.dataset.diracTapToken = token;
-    return token;
-  }
-
-  function press(el, event){
-    if(!el) return;
-    nextTapToken(el);
-    el.classList.add('dirac-click-motion');
-    el.classList.remove('dirac-released','dirac-shine');
-    // Force layout so animation restarts reliably on iOS/Android.
-    void el.offsetWidth;
-    el.classList.add('dirac-pressing','dirac-shine');
-    makeRipple(el, event || window.event || {});
-  }
-
-  function release(el){
-    if(!el) return;
-    var token = el.dataset.diracTapToken || nextTapToken(el);
-    el.classList.remove('dirac-pressing');
-    el.classList.remove('dirac-released');
-    void el.offsetWidth;
-    el.classList.add('dirac-released');
-    setTimeout(function(){
-      if(el.dataset.diracTapToken !== token) return;
-      el.classList.remove('dirac-released','dirac-shine');
-    }, 620);
-  }
-
-  var activeEl = null;
-  var lastTouchAt = 0;
-
-  document.addEventListener('touchstart', function(event){
-    var el = closestInteractive(event.target);
-    if(!el) return;
-    lastTouchAt = Date.now();
-    activeEl = el;
-    press(el, event);
-  }, {passive:true, capture:true});
-
-  document.addEventListener('touchend', function(){
-    if(activeEl){ release(activeEl); activeEl = null; }
-  }, {passive:true, capture:true});
-
-  document.addEventListener('touchcancel', function(){
-    if(activeEl){ release(activeEl); activeEl = null; }
-  }, {passive:true, capture:true});
-
-  document.addEventListener('pointerdown', function(event){
-    if(Date.now() - lastTouchAt < 450) return;
-    var el = closestInteractive(event.target);
-    if(!el) return;
-    activeEl = el;
-    press(el, event);
-  }, {passive:true, capture:true});
-
-  document.addEventListener('pointerup', function(){
-    if(activeEl){ release(activeEl); activeEl = null; }
-  }, {passive:true, capture:true});
-
-  document.addEventListener('pointercancel', function(){
-    if(activeEl){ release(activeEl); activeEl = null; }
-  }, {passive:true, capture:true});
-
-  document.addEventListener('mousedown', function(event){
-    if(Date.now() - lastTouchAt < 450) return;
-    var el = closestInteractive(event.target);
-    if(!el) return;
-    activeEl = el;
-    press(el, event);
+  document.addEventListener('click', function(ev){
+    var target = allowedTarget(ev.target);
+    if(target && (!target.__diracLastShine || Date.now() - target.__diracLastShine > 260)) showShine(target);
   }, true);
-
-  document.addEventListener('mouseup', function(){
-    if(activeEl){ release(activeEl); activeEl = null; }
-  }, true);
-
-  // Click fallback for browsers that do not deliver pointer/touch consistently.
-  document.addEventListener('click', function(event){
-    var el = closestInteractive(event.target);
-    if(!el) return;
-    if(el.classList.contains('dirac-pressing') || el.classList.contains('dirac-released')) return;
-    press(el, event);
-    setTimeout(function(){ release(el); }, 90);
-  }, true);
-
-  addBaseClasses(document);
-
-  if('MutationObserver' in window){
-    new MutationObserver(function(records){
-      records.forEach(function(record){
-        Array.prototype.forEach.call(record.addedNodes || [], function(node){
-          if(node.nodeType === 1) addBaseClasses(node);
-        });
-      });
-    }).observe(document.documentElement,{childList:true,subtree:true});
-  }
-
-  setTimeout(function(){ addBaseClasses(document); }, 300);
-  setTimeout(function(){ addBaseClasses(document); }, 1200);
+  document.documentElement.classList.add('dirac-shine-only-ready');
 })();
 </script>
 
