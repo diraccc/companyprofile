@@ -2051,6 +2051,162 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 @media(prefers-reduced-motion:reduce){.theme-lang-option{transition:none!important}}
 </style>
 
+
+
+<style id="dirac-company-press-polish-css">
+/* =========================================================
+   Dirac Company Press Polish v1
+   Animasi tekan premium untuk kartu informasi, blog, fitur,
+   panel promo, theme choice, dan floating action. Fail-safe:
+   hanya memakai transform/filter; tidak mengubah layout utama.
+   ========================================================= */
+.info-card.dirac-click-motion,
+.feature-card.dirac-click-motion,
+.blog-card.dirac-click-motion,
+.promo-box.dirac-click-motion,
+.lifestyle-card.dirac-click-motion,
+.content-card.dirac-click-motion,
+.theme-choice.dirac-click-motion{
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent!important;
+  transform:translate3d(0,0,0) scale(1);
+  will-change:transform,box-shadow,filter,border-color,background;
+}
+.info-card.dirac-click-motion:after,
+.feature-card.dirac-click-motion:after,
+.blog-card.dirac-click-motion:after,
+.promo-box.dirac-click-motion:after,
+.lifestyle-card.dirac-click-motion:after,
+.content-card.dirac-click-motion:after,
+.theme-choice.dirac-click-motion:after{
+  border-radius:inherit;
+}
+.info-card.dirac-click-motion:hover,
+.feature-card.dirac-click-motion:hover,
+.blog-card.dirac-click-motion:hover,
+.lifestyle-card.dirac-click-motion:hover{
+  transform:translate3d(0,-5px,0) scale(1.006)!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.42)!important;
+  box-shadow:0 24px 58px rgba(0,0,0,.28),0 0 26px rgba(var(--theme-rgb,243,205,112),.10)!important;
+  filter:brightness(1.025) saturate(1.02);
+}
+.info-card.dirac-click-motion.dirac-pressing,
+.feature-card.dirac-click-motion.dirac-pressing,
+.blog-card.dirac-click-motion.dirac-pressing,
+.lifestyle-card.dirac-click-motion.dirac-pressing,
+.content-card.dirac-click-motion.dirac-pressing{
+  transform:translate3d(0,2px,0) scale(.986)!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.58)!important;
+  filter:brightness(1.045) saturate(1.04)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.24),0 0 0 1px rgba(255,255,255,.07) inset,0 0 26px rgba(var(--theme-rgb,243,205,112),.16)!important;
+}
+.info-card.dirac-click-motion.dirac-released,
+.feature-card.dirac-click-motion.dirac-released,
+.blog-card.dirac-click-motion.dirac-released,
+.lifestyle-card.dirac-click-motion.dirac-released,
+.content-card.dirac-click-motion.dirac-released{
+  animation:diracCompanyCardSettle .54s cubic-bezier(.16,1,.3,1) both!important;
+}
+@keyframes diracCompanyCardSettle{
+  0%{transform:translate3d(0,2px,0) scale(.986)}
+  48%{transform:translate3d(0,-4px,0) scale(1.008)}
+  78%{transform:translate3d(0,0,0) scale(.998)}
+  100%{transform:translate3d(0,0,0) scale(1)}
+}
+.info-card.dirac-click-motion .mini-label,
+.feature-card.dirac-click-motion .feature-icon,
+.blog-card.dirac-click-motion img{
+  transition:transform .34s cubic-bezier(.16,1,.3,1),filter .34s cubic-bezier(.16,1,.3,1),box-shadow .34s cubic-bezier(.16,1,.3,1);
+}
+.info-card.dirac-click-motion.dirac-pressing .mini-label,
+.feature-card.dirac-click-motion.dirac-pressing .feature-icon{
+  transform:translateY(-2px) scale(1.035);
+  box-shadow:0 10px 22px rgba(var(--theme-rgb,243,205,112),.14);
+}
+.blog-card.dirac-click-motion.dirac-pressing img{
+  transform:scale(1.018);
+  filter:brightness(1.04) saturate(1.04);
+}
+.info-card .dirac-tap-ripple,
+.feature-card .dirac-tap-ripple,
+.blog-card .dirac-tap-ripple,
+.promo-box .dirac-tap-ripple,
+.lifestyle-card .dirac-tap-ripple,
+.content-card .dirac-tap-ripple,
+.theme-choice .dirac-tap-ripple{
+  width:16px;height:16px;margin-left:-8px;margin-top:-8px;
+  opacity:.46;
+  background:radial-gradient(circle,rgba(255,255,255,.42) 0%,rgba(var(--theme-rgb,243,205,112),.20) 48%,rgba(var(--theme-rgb,243,205,112),0) 78%);
+  animation:diracCompanyRipple .66s cubic-bezier(.16,1,.3,1) forwards!important;
+}
+@keyframes diracCompanyRipple{
+  0%{transform:scale(.1);opacity:.46}
+  66%{opacity:.20}
+  100%{transform:scale(18);opacity:0}
+}
+.back-home-btn.dirac-click-motion.dirac-pressing,
+.dirac-float-btn.dirac-click-motion.dirac-pressing,
+.theme-choice.dirac-click-motion.dirac-pressing{
+  transform:translate3d(0,2px,0) scale(.94)!important;
+  filter:brightness(1.07) saturate(1.06)!important;
+}
+.back-home-btn.dirac-click-motion.dirac-released,
+.dirac-float-btn.dirac-click-motion.dirac-released,
+.theme-choice.dirac-click-motion.dirac-released{
+  animation:diracCompactControlSettle .46s cubic-bezier(.16,1,.3,1) both!important;
+}
+@keyframes diracCompactControlSettle{
+  0%{transform:translate3d(0,2px,0) scale(.94)}
+  55%{transform:translate3d(0,-2px,0) scale(1.055)}
+  100%{transform:translate3d(0,0,0) scale(1)}
+}
+.promo-box.dirac-click-motion.dirac-pressing{
+  transform:translate3d(0,2px,0) scale(.992)!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.62)!important;
+  filter:brightness(1.035) saturate(1.03)!important;
+}
+.promo-box.dirac-click-motion.dirac-released{
+  animation:diracCompanyCardSettle .54s cubic-bezier(.16,1,.3,1) both!important;
+}
+@media(max-width:760px){
+  .info-card.dirac-click-motion:hover,
+  .feature-card.dirac-click-motion:hover,
+  .blog-card.dirac-click-motion:hover,
+  .lifestyle-card.dirac-click-motion:hover{transform:none!important;filter:none!important}
+  .info-card.dirac-click-motion.dirac-pressing,
+  .feature-card.dirac-click-motion.dirac-pressing,
+  .blog-card.dirac-click-motion.dirac-pressing,
+  .lifestyle-card.dirac-click-motion.dirac-pressing,
+  .content-card.dirac-click-motion.dirac-pressing{transform:translate3d(0,2px,0) scale(.982)!important}
+  .info-card .dirac-tap-ripple,
+  .feature-card .dirac-tap-ripple,
+  .blog-card .dirac-tap-ripple,
+  .promo-box .dirac-tap-ripple,
+  .lifestyle-card .dirac-tap-ripple,
+  .content-card .dirac-tap-ripple{animation-duration:.54s!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .info-card.dirac-click-motion.dirac-released,
+  .feature-card.dirac-click-motion.dirac-released,
+  .blog-card.dirac-click-motion.dirac-released,
+  .lifestyle-card.dirac-click-motion.dirac-released,
+  .content-card.dirac-click-motion.dirac-released,
+  .back-home-btn.dirac-click-motion.dirac-released,
+  .dirac-float-btn.dirac-click-motion.dirac-released,
+  .theme-choice.dirac-click-motion.dirac-released,
+  .promo-box.dirac-click-motion.dirac-released{animation:none!important}
+  .info-card .dirac-tap-ripple,
+  .feature-card .dirac-tap-ripple,
+  .blog-card .dirac-tap-ripple,
+  .promo-box .dirac-tap-ripple,
+  .lifestyle-card .dirac-tap-ripple,
+  .content-card .dirac-tap-ripple,
+  .theme-choice .dirac-tap-ripple{display:none!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -5335,6 +5491,15 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
     '.trust-row span',
     '.stat-card',
     '.product-card',
+    '.info-card',
+    '.feature-card',
+    '.blog-card',
+    '.promo-box',
+    '.lifestyle-card',
+    '.content-card',
+    '.back-home-btn',
+    '.dirac-float-btn',
+    '.theme-choice',
     '.faq-q',
     '.theme-swatch',
     '.qty-control button',
@@ -5376,7 +5541,8 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
     if(!el || !el.appendChild || el.closest('select,input,textarea')) return;
     // Avoid huge ripples on very large wrappers; keep it crisp and premium.
     var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
-    if(rect && (rect.width > 520 || rect.height > 260) && !el.classList.contains('product-card') && !el.classList.contains('stat-card') && !(el.matches && el.matches('.trust-row span'))) return;
+    var allowLargeRipple = el.classList.contains('product-card') || el.classList.contains('stat-card') || (el.matches && el.matches('.trust-row span, .info-card, .feature-card, .blog-card, .promo-box, .lifestyle-card, .content-card, .back-home-btn, .dirac-float-btn, .theme-choice'));
+    if(rect && (rect.width > 620 || rect.height > 420) && !allowLargeRipple) return;
     var pos = eventPoint(event, el);
     var ripple = document.createElement('span');
     ripple.className = 'dirac-tap-ripple';
@@ -5478,6 +5644,12 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
       el.setAttribute('data-dirac-apple-tap','true');
       if(!el.hasAttribute('aria-label')){
         el.setAttribute('aria-label', (el.textContent || '').replace(/\s+/g, ' ').trim());
+      }
+    });
+    Array.prototype.forEach.call(scope.querySelectorAll('.info-card, .feature-card, .blog-card, .promo-box, .lifestyle-card, .content-card, .theme-choice'), function(el){
+      el.setAttribute('data-dirac-premium-press','true');
+      if(el.classList && (el.classList.contains('info-card') || el.classList.contains('feature-card') || el.classList.contains('blog-card'))){
+        el.setAttribute('data-dirac-card-ready','true');
       }
     });
   }
