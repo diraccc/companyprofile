@@ -2367,6 +2367,105 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 }
 </style>
 
+
+<style id="dirac-final-precision-hero-v7">
+/* v7 ultra-precision: lebih mirip referensi, badge lebih kecil, foto terpas presisi */
+.hero .hero-showcase{
+  min-height:496px!important;
+  border-radius:36px!important;
+  background:
+    radial-gradient(circle at 18% 18%,rgba(64,180,255,.15),transparent 16rem),
+    radial-gradient(circle at 88% 8%,rgba(255,255,255,.09),transparent 12rem),
+    linear-gradient(145deg,rgba(9,22,38,.98),rgba(8,18,33,.97) 52%,rgba(12,31,50,.98))!important;
+}
+.hero .hero-showcase .hero-card{
+  border-radius:29px!important;
+  padding:10px!important;
+  background:linear-gradient(180deg,#f7f9fc,#edf2f6)!important;
+  border:1px solid rgba(226,236,248,.82)!important;
+  box-shadow:0 20px 46px rgba(0,0,0,.32), inset 0 0 0 1px rgba(255,255,255,.52)!important;
+}
+.hero .hero-showcase .hero-card img{
+  border-radius:20px!important;
+  object-fit:cover!important;
+  object-position:center center!important;
+  background:#eef2f6!important;
+}
+.hero .hero-showcase .hero-card.one{
+  left:30px!important;
+  top:68px!important;
+  width:286px!important;
+  height:150px!important;
+  transform:rotate(-4.2deg) translate3d(0,0,0)!important;
+  z-index:2!important;
+}
+.hero .hero-showcase .hero-card.two{
+  left:90px!important;
+  top:192px!important;
+  width:292px!important;
+  height:154px!important;
+  transform:rotate(4deg) translate3d(0,0,0)!important;
+  z-index:3!important;
+}
+.hero .hero-showcase .hero-showcase-badge{
+  left:44px!important;
+  top:356px!important;
+  max-width:none!important;
+  padding:9px 17px!important;
+  gap:8px!important;
+  font-size:.74rem!important;
+  line-height:1.05!important;
+  font-weight:850!important;
+  letter-spacing:-.01em!important;
+  border-radius:999px!important;
+  background:linear-gradient(135deg,#6bd1ff,#31acf7)!important;
+  box-shadow:0 10px 22px rgba(35,166,246,.18), inset 0 1px 0 rgba(255,255,255,.22)!important;
+  animation:none!important;
+  transform:none!important;
+  z-index:5!important;
+}
+.hero .hero-showcase .hero-showcase-badge span{font-size:.8rem!important}
+.hero .hero-showcase .hero-floating-note{
+  left:22px!important;
+  right:22px!important;
+  bottom:20px!important;
+  min-height:62px!important;
+  padding:15px 22px!important;
+  border-radius:22px!important;
+  z-index:4!important;
+}
+.hero .hero-showcase .hero-floating-note span,
+.hero .hero-showcase .hero-floating-note strong{font-size:1rem!important}
+.hero .hero-showcase .hero-card.one{
+  animation:diracImageFloatSideA 5.8s ease-in-out infinite!important;
+}
+.hero .hero-showcase .hero-card.two{
+  animation:diracImageFloatSideB 6.2s ease-in-out .18s infinite!important;
+}
+.hero .hero-showcase .hero-card.one img,
+.hero .hero-showcase .hero-card.two img{
+  animation:diracImageInnerDrift 6.6s ease-in-out infinite!important;
+  will-change:transform!important;
+}
+@media(max-width:430px){
+  .hero .hero-showcase{min-height:492px!important;border-radius:34px!important}
+  .hero .hero-showcase .hero-card.one{left:26px!important;top:66px!important;width:284px!important;height:148px!important}
+  .hero .hero-showcase .hero-card.two{left:82px!important;top:188px!important;width:290px!important;height:152px!important}
+  .hero .hero-showcase .hero-showcase-badge{left:38px!important;top:348px!important;padding:8px 15px!important;font-size:.72rem!important}
+  .hero .hero-showcase .hero-showcase-badge span{font-size:.78rem!important}
+  .hero .hero-showcase .hero-floating-note{left:18px!important;right:18px!important;bottom:18px!important;padding:14px 20px!important}
+}
+@media(max-width:390px){
+  .hero .hero-showcase{min-height:462px!important}
+  .hero .hero-showcase .hero-card{padding:9px!important;border-radius:27px!important}
+  .hero .hero-showcase .hero-card img{border-radius:18px!important}
+  .hero .hero-showcase .hero-card.one{left:20px!important;top:64px!important;width:270px!important;height:140px!important}
+  .hero .hero-showcase .hero-card.two{left:66px!important;top:180px!important;width:274px!important;height:144px!important}
+  .hero .hero-showcase .hero-showcase-badge{left:30px!important;top:330px!important;padding:8px 14px!important;font-size:.69rem!important}
+  .hero .hero-showcase .hero-floating-note{left:16px!important;right:16px!important;bottom:16px!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
