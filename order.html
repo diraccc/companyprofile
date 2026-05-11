@@ -6614,6 +6614,20 @@ html[data-effective-theme="light"] .dirac-checkout-sticky{background:linear-grad
 @media(min-width:761px){.dirac-checkout-sticky{display:none!important}}
 @media(max-width:760px){.dirac-professional-card{width:min(92vw,560px);border-radius:28px}.dirac-professional-head{padding:18px 18px 12px}.dirac-professional-body{padding:18px}.dirac-quiz-options{grid-template-columns:1fr}.dirac-quiz-results{grid-template-columns:1fr}.dirac-mini-cart-preview{right:12px;left:12px;bottom:calc(72px + env(safe-area-inset-bottom));width:auto;grid-template-columns:62px 1fr}.dirac-mini-cart-preview img{width:62px;height:62px}.dirac-mini-cart-preview button{grid-column:1/-1;width:100%}.dirac-smart-tools{justify-content:flex-start}.dirac-smart-btn{width:100%}}
 @media(prefers-reduced-motion:reduce){.dirac-professional-card,.dirac-quiz-result,.dirac-mini-cart-preview,.dirac-mini-cart-preview .dirac-mini-progress i,.dirac-empty-chip,.dirac-checkout-sticky,.dirac-smart-btn,.dirac-smart-btn:before{animation:none!important;transition:none!important;transform:none!important}.dirac-smart-btn:before{display:none!important}}
+
+
+/* Quiz smart results v2: tampilkan lebih banyak rekomendasi yang tetap relevan. */
+#diracQuizModal .dirac-professional-card{width:min(980px,calc(100vw - 36px))}
+.dirac-quiz-summary strong{color:var(--gold);font-weight:950}
+.dirac-quiz-results[data-result-count="1"],
+.dirac-quiz-results[data-result-count="2"]{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.dirac-quiz-result-body{display:flex;flex-direction:column;min-height:100%}
+.dirac-quiz-result p{min-height:3.9em}
+.dirac-quiz-reasons{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.dirac-quiz-reasons span{display:inline-flex;align-items:center;min-height:24px;padding:4px 7px;border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.10);border:1px solid rgba(var(--theme-rgb,243,205,112),.20);color:#f7ead2;font-size:.68rem;font-weight:850;line-height:1.15}
+html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;background:rgba(var(--theme-rgb,243,205,112),.13)}
+@media(max-width:900px){#diracQuizModal .dirac-professional-card{width:min(92vw,760px)}.dirac-quiz-results{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){#diracQuizModal .dirac-professional-card{width:min(92vw,560px)}.dirac-quiz-result p{min-height:0}.dirac-quiz-reasons span{font-size:.66rem}}
 </style>
 
 <script id="dirac-professional-motion-v7-js">
@@ -6696,30 +6710,121 @@ html[data-effective-theme="light"] .dirac-checkout-sticky{background:linear-grad
     ]}
   ];
 
-  function productScore(product){
-    var text = clean([product.title, product.category, product.desc, product.notes, product.longDesc].join(' ')).toLowerCase();
+  var QUIZ_RESULT_TARGET = 9;
+  var QUIZ_RESULT_MAX = 12;
+  var QUIZ_KEYWORDS = {
+    mood:{
+      fresh:['fresh','clean','citrus','green','aromatic','blue','aquatic','tea','mint','segar','bersih','ringan','siang','daily','office','kantor','rapi'],
+      sweet:['sweet','vanilla','amber','warm','fruity','gourmand','honey','tonka','manis','hangat','malam','date','dinner','seductive','memorable'],
+      woody:['woody','wood','oud','amber','spice','spicy','sandalwood','cedar','vetiver','leather','tobacco','elegant','formal','mature','dewasa','rapi','berkelas'],
+      unique:['niche','unique','premium','luxury','luxe','exclusive','signature','collector','complex','artistic','unik','eksklusif','kolektor','statement','tidak pasaran']
+    },
+    occasion:{
+      daily:['daily','harian','easy wear','easy','versatile','clean','fresh','ringan','sekolah','kampus','santai','praktis','nyaman'],
+      office:['office','kantor','meeting','formal','rapi','clean','modern','professional','profesional','polished','semi-formal','kerja'],
+      night:['night','malam','date','dinner','evening','special','spesial','warm','intense','sweet','amber','bold','tebal','memorable','acara'],
+      gift:['gift','hadiah','presentable','popular','populer','easy','versatile','designer','modern','fresh','aman','mudah disukai','pemula']
+    }
+  };
+  var QUIZ_LABELS = {
+    mood:{fresh:'Aroma fresh/clean', sweet:'Manis & hangat', woody:'Woody/elegan', unique:'Unik/eksklusif'},
+    occasion:{daily:'Enak untuk harian', office:'Rapi untuk kerja', night:'Kuat untuk malam', gift:'Aman untuk hadiah'},
+    budget:{friendly:'Masuk budget ringan', designer:'Masuk pilihan designer', premium:'Masuk kelas premium', any:'Cocok untuk pilihan bebas'}
+  };
+  function quizText(product){
+    return clean([product.title, product.category, product.desc, product.notes, product.longDesc].join(' ')).toLowerCase();
+  }
+  function quizHasAny(text, words){
+    return (words || []).some(function(word){ return text.indexOf(String(word).toLowerCase()) !== -1; });
+  }
+  function quizCategory(product){ return clean(product && product.category).toLowerCase(); }
+  function quizPrice(product){ return Number(product && product.price || 0); }
+  function quizIsUnavailable(product){
+    return !product || product.status === 'sold' || /aksesoris/i.test(String(product.category || ''));
+  }
+  function buildQuizMatch(product){
+    var text = quizText(product);
+    var category = quizCategory(product);
+    var price = quizPrice(product);
     var score = 0;
+    var reasons = [];
     var mood = quizState.answers.mood;
     var occasion = quizState.answers.occasion;
     var budget = quizState.answers.budget;
-    if(product.status === 'sold') score -= 100;
-    if(product.isTopSeller) score += 5;
-    if(mood === 'fresh' && /(fresh|clean|citrus|green|aromatic|blue|aquatic|daily)/i.test(text)) score += 22;
-    if(mood === 'sweet' && /(sweet|vanilla|amber|warm|fruity|gourmand|seductive)/i.test(text)) score += 22;
-    if(mood === 'woody' && /(woody|oud|amber|spice|sandalwood|elegant|formal|mature)/i.test(text)) score += 22;
-    if(mood === 'unique' && /(niche|unique|premium|luxury|exclusive|signature|collector|complex)/i.test(text)) score += 22;
-    if(occasion === 'daily' && /(daily|clean|fresh|easy|versatile|harian)/i.test(text)) score += 12;
-    if(occasion === 'office' && /(office|kantor|meeting|formal|clean|rapi|modern)/i.test(text)) score += 12;
-    if(occasion === 'night' && /(night|malam|date|dinner|warm|intense|sweet|amber)/i.test(text)) score += 12;
-    if(occasion === 'gift' && /(designer|versatile|popular|easy|gift|modern|fresh)/i.test(text)) score += 10;
-    if(budget === 'friendly' && Number(product.price) <= 1000000) score += 16;
-    if(budget === 'designer' && /designer/i.test(product.category)) score += 16;
-    if(budget === 'premium' && (/niche/i.test(product.category) || Number(product.price) >= 2500000)) score += 16;
-    if(budget === 'any') score += 5;
-    return score;
+
+    if(quizIsUnavailable(product)) return {product:product, score:-999, reasons:[]};
+    if(product.isTopSeller) score += 4;
+    score += 3; // stok ready dan bukan aksesori
+
+    if(mood && QUIZ_KEYWORDS.mood[mood]){
+      if(quizHasAny(text, QUIZ_KEYWORDS.mood[mood])){ score += 30; reasons.push(QUIZ_LABELS.mood[mood]); }
+      else score -= 6;
+    }
+    if(occasion && QUIZ_KEYWORDS.occasion[occasion]){
+      if(quizHasAny(text, QUIZ_KEYWORDS.occasion[occasion])){ score += 20; reasons.push(QUIZ_LABELS.occasion[occasion]); }
+      else score -= 4;
+    }
+
+    if(budget === 'friendly'){
+      if(price <= 350000){ score += 28; reasons.push(QUIZ_LABELS.budget.friendly); }
+      else if(price <= 1000000){ score += 22; reasons.push(QUIZ_LABELS.budget.friendly); }
+      else if(price <= 1600000){ score += 10; reasons.push('Masih cukup value'); }
+      else score -= 16;
+    } else if(budget === 'designer'){
+      if(category === 'designer'){ score += 28; reasons.push(QUIZ_LABELS.budget.designer); }
+      else if(/designer/i.test(text)){ score += 14; reasons.push(QUIZ_LABELS.budget.designer); }
+      else if(price >= 350000 && price <= 2500000 && category !== 'niche'){ score += 7; reasons.push('Value modern'); }
+      else score -= 7;
+    } else if(budget === 'premium'){
+      if(category === 'niche'){ score += 28; reasons.push(QUIZ_LABELS.budget.premium); }
+      else if(price >= 2500000){ score += 22; reasons.push(QUIZ_LABELS.budget.premium); }
+      else if(quizHasAny(text,['premium','luxury','luxe','exclusive','eksklusif','berkelas'])){ score += 12; reasons.push('Kesan premium'); }
+      else score -= 9;
+    } else if(budget === 'any'){
+      score += 8;
+      reasons.push(QUIZ_LABELS.budget.any);
+    }
+
+    // Bonus kecil agar urutan tetap terasa pintar, tanpa mengalahkan kecocokan quiz utama.
+    if(quizHasAny(text,['cocok','pilihan tepat','pas untuk','mudah dipakai'])) score += 2;
+    if(category === 'lokal' || category === 'miniso') score += budget === 'friendly' ? 4 : 0;
+    if(category === 'timur tengah') score += mood === 'woody' || occasion === 'night' ? 4 : 0;
+    if(category === 'niche') score += mood === 'unique' || budget === 'premium' ? 4 : 0;
+    if(category === 'designer') score += occasion === 'gift' || budget === 'designer' ? 4 : 0;
+
+    return {product:product, score:score, reasons:reasons.slice(0,3)};
+  }
+  function productScore(product){
+    return buildQuizMatch(product).score;
   }
   function getQuizResults(){
-    return safeProducts().slice().map(function(p){ return {product:p, score:productScore(p)}; }).sort(function(a,b){ return b.score - a.score || Number(b.product.soldCount || 0) - Number(a.product.soldCount || 0); }).slice(0,3);
+    var ranked = safeProducts().slice().map(buildQuizMatch).filter(function(item){
+      return item.product && item.score > 0 && item.reasons.length >= 2;
+    }).sort(function(a,b){
+      return b.score - a.score || Number(b.product.soldCount || 0) - Number(a.product.soldCount || 0) || Number(a.product.price || 0) - Number(b.product.price || 0);
+    });
+    if(!ranked.length) return [];
+
+    var bestScore = ranked[0].score;
+    var strictMinimum = Math.max(38, bestScore - 22);
+    var selected = ranked.filter(function(item){ return item.score >= strictMinimum; });
+
+    if(selected.length < QUIZ_RESULT_TARGET){
+      selected = ranked.filter(function(item){ return item.score >= Math.max(30, bestScore - 30); });
+    }
+    if(selected.length < Math.min(QUIZ_RESULT_TARGET, ranked.length)){
+      selected = ranked.filter(function(item){ return item.score >= 24; });
+    }
+
+    var closeCount = selected.filter(function(item){ return item.score >= bestScore - 10; }).length;
+    var limit = Math.min(QUIZ_RESULT_MAX, Math.max(QUIZ_RESULT_TARGET, closeCount));
+    return selected.slice(0, Math.min(limit, selected.length));
+  }
+  function quizPercent(score){
+    return Math.max(78, Math.min(98, Math.round(72 + (Number(score || 0) * .38))));
+  }
+  function quizEscape(value){
+    return String(value == null ? '' : value).replace(/[&<>'"]/g, function(char){ return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]; });
   }
   function ensureQuizModal(){
     var modal = $('#diracQuizModal');
@@ -6759,7 +6864,16 @@ html[data-effective-theme="light"] .dirac-checkout-sticky{background:linear-grad
     var body = $('#diracQuizBody');
     if(!body) return;
     var results = getQuizResults();
-    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">Rekomendasi paling cocok</h3><p class="muted">Hasil ini memakai notes, kategori, harga, status stok, dan karakter produk di katalog.</p><div class="dirac-quiz-results">'+results.map(function(item,index){ var p = item.product; return '<article class="dirac-quiz-result" style="--quiz-delay:'+(index*70)+'ms"><img src="'+String(p.img || '').replace(/"/g,'&quot;')+'" alt="'+String(p.title || '').replace(/"/g,'&quot;')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div class="dirac-quiz-result-body"><span class="dirac-quiz-match">Cocok '+Math.max(72,Math.min(98,72+item.score))+'%</span><h3>'+p.title+'</h3><p>'+clean(p.notes || p.desc).slice(0,90)+'</p><div class="price">'+safeFormatIDR(p.price)+'</div><div class="product-actions"><button class="btn-secondary" type="button" data-quiz-detail="'+p.id+'">Detail</button><button class="btn-primary '+(p.status === 'sold' ? 'btn-disabled' : '')+'" type="button" data-quiz-add="'+p.id+'" '+(p.status === 'sold' ? 'disabled aria-disabled="true"' : '')+'>'+(p.status === 'sold' ? 'Sold' : '+ Cart')+'</button></div></div></article>'; }).join('')+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>Ulangi Quiz</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+    if(!results.length){
+      body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">Rekomendasi belum ditemukan</h3><p class="muted">Coba ulangi quiz dengan pilihan yang sedikit lebih luas agar sistem bisa mencocokkan produk ready-stock.</p><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>Ulangi Quiz</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+      return;
+    }
+    var resultCards = results.map(function(item,index){
+      var p = item.product;
+      var reasonHtml = (item.reasons || []).map(function(reason){ return '<span>'+quizEscape(reason)+'</span>'; }).join('');
+      return '<article class="dirac-quiz-result" style="--quiz-delay:'+(index*55)+'ms"><img src="'+quizEscape(p.img || '')+'" alt="'+quizEscape(p.title || '')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div class="dirac-quiz-result-body"><span class="dirac-quiz-match">Cocok '+quizPercent(item.score)+'%</span><h3>'+quizEscape(p.title)+'</h3><p>'+quizEscape(clean(p.notes || p.desc).slice(0,105))+'</p><div class="dirac-quiz-reasons">'+reasonHtml+'</div><div class="price">'+safeFormatIDR(p.price)+'</div><div class="product-actions"><button class="btn-secondary" type="button" data-quiz-detail="'+p.id+'">Detail</button><button class="btn-primary" type="button" data-quiz-add="'+p.id+'">+ Cart</button></div></div></article>';
+    }).join('');
+    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">Rekomendasi paling cocok</h3><p class="muted dirac-quiz-summary">Sistem menampilkan <strong>'+results.length+' produk</strong> yang benar-benar nyambung dengan jawaban quiz: aroma, momen pakai, budget, kategori, harga, stok, dan karakter katalog.</p><div class="dirac-quiz-results" data-result-count="'+results.length+'">'+resultCards+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>Ulangi Quiz</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
   }
 
   var miniTimer = null;
