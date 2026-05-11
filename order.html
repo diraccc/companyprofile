@@ -2286,6 +2286,87 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 }
 </style>
 
+
+<style id="dirac-final-precision-hero-v6">
+/* v6 precision: layout mengikuti referensi, badge lebih kecil, kartu lebih pas */
+.hero .hero-showcase{
+  min-height:470px!important;
+}
+.hero .hero-showcase .hero-card{
+  border-radius:26px!important;
+  padding:8px!important;
+}
+.hero .hero-showcase .hero-card img{
+  border-radius:18px!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  background:#eef2f6!important;
+}
+.hero .hero-showcase .hero-card.one{
+  left:26px!important;
+  top:62px!important;
+  width:316px!important;
+  height:126px!important;
+  z-index:2!important;
+  animation:diracImageFloatSideA 5.8s ease-in-out infinite!important;
+}
+.hero .hero-showcase .hero-card.two{
+  left:74px!important;
+  top:188px!important;
+  width:314px!important;
+  height:130px!important;
+  z-index:3!important;
+  animation:diracImageFloatSideB 6.2s ease-in-out .18s infinite!important;
+}
+.hero .hero-showcase .hero-showcase-badge{
+  left:42px!important;
+  top:308px!important;
+  max-width:none!important;
+  padding:9px 18px!important;
+  gap:8px!important;
+  font-size:.78rem!important;
+  line-height:1.05!important;
+  font-weight:850!important;
+  letter-spacing:-.01em!important;
+  border-radius:999px!important;
+  box-shadow:0 12px 26px rgba(35,166,246,.18), inset 0 1px 0 rgba(255,255,255,.22)!important;
+  animation:none!important;
+  transform:none!important;
+  z-index:5!important;
+}
+.hero .hero-showcase .hero-showcase-badge span{
+  font-size:.84rem!important;
+}
+.hero .hero-showcase .hero-floating-note{
+  left:22px!important;
+  right:22px!important;
+  bottom:20px!important;
+  min-height:62px!important;
+  padding:15px 22px!important;
+  border-radius:22px!important;
+  z-index:4!important;
+}
+.hero .hero-showcase .hero-floating-note span,
+.hero .hero-showcase .hero-floating-note strong{
+  font-size:1rem!important;
+}
+@media(max-width:430px){
+  .hero .hero-showcase{min-height:458px!important;border-radius:34px!important}
+  .hero .hero-showcase .hero-card.one{left:24px!important;top:62px!important;width:302px!important;height:122px!important}
+  .hero .hero-showcase .hero-card.two{left:60px!important;top:184px!important;width:304px!important;height:126px!important}
+  .hero .hero-showcase .hero-showcase-badge{left:36px!important;top:296px!important;padding:8px 16px!important;font-size:.74rem!important}
+  .hero .hero-showcase .hero-showcase-badge span{font-size:.8rem!important}
+  .hero .hero-showcase .hero-floating-note{left:18px!important;right:18px!important;bottom:18px!important;padding:14px 20px!important}
+}
+@media(max-width:390px){
+  .hero .hero-showcase{min-height:432px!important}
+  .hero .hero-showcase .hero-card.one{left:20px!important;top:58px!important;width:284px!important;height:116px!important}
+  .hero .hero-showcase .hero-card.two{left:50px!important;top:174px!important;width:288px!important;height:120px!important}
+  .hero .hero-showcase .hero-showcase-badge{left:28px!important;top:278px!important;padding:8px 14px!important;font-size:.7rem!important}
+  .hero .hero-showcase .hero-floating-note{left:16px!important;right:16px!important;bottom:16px!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
