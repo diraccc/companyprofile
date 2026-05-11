@@ -2207,6 +2207,166 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 }
 </style>
 
+
+<style id="dirac-ultra-motion-upgrade-css">
+/* =========================================================
+   Dirac Ultra Motion Upgrade v5
+   Focus: state-change motion, mobile hero presence, checkout confidence,
+   cart feedback, and performance-safe animation pausing.
+   ========================================================= */
+:root{
+  --dirac-state-ease:cubic-bezier(.16,1,.3,1);
+  --dirac-state-fast:220ms;
+  --dirac-state-mid:520ms;
+  --dirac-state-slow:760ms;
+}
+
+/* Mobile premium hero: desktop showcase is hidden on small screens, so this keeps the brand feeling alive without heavy layout. */
+.dirac-mobile-hero-mini{display:none}
+@media(max-width:760px){
+  .dirac-mobile-hero-mini{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:20px 0 6px;
+    position:relative;
+    isolation:isolate;
+  }
+  .dirac-mobile-hero-mini:before{
+    content:"";
+    position:absolute;
+    inset:12% 8%;
+    z-index:-1;
+    border-radius:999px;
+    background:radial-gradient(circle,rgba(var(--theme-rgb,243,205,112),.24),transparent 68%);
+    filter:blur(18px);
+    opacity:.82;
+  }
+  .dirac-mobile-scent-card{
+    min-height:128px;
+    border-radius:24px;
+    border:1px solid rgba(var(--theme-rgb,243,205,112),.24);
+    background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025));
+    box-shadow:0 18px 42px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.04) inset;
+    overflow:hidden;
+    position:relative;
+    transform:translate3d(0,0,0);
+    animation:diracMobileFloat 5.6s ease-in-out infinite;
+  }
+  .dirac-mobile-scent-card:nth-child(2){animation-delay:-2.4s;transform:translateY(10px)}
+  .dirac-mobile-scent-card img{width:100%;height:100%;min-height:128px;object-fit:cover;background:#101722}
+  .dirac-mobile-scent-card span{
+    position:absolute;
+    left:10px;
+    right:10px;
+    bottom:10px;
+    padding:7px 9px;
+    border-radius:999px;
+    color:#fff;
+    font-size:.72rem;
+    font-weight:900;
+    text-align:center;
+    background:rgba(4,7,12,.68);
+    border:1px solid rgba(255,255,255,.12);
+    backdrop-filter:blur(10px);
+  }
+  @keyframes diracMobileFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-7px,0)}}
+}
+
+/* Results/status layer for search, filter, sort, and load-more. */
+.dirac-results-status{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:-8px 0 18px;
+  padding:11px 14px;
+  border-radius:18px;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.18);
+  background:linear-gradient(135deg,rgba(var(--theme-rgb,243,205,112),.08),rgba(255,255,255,.035));
+  color:#dbe3ef;
+  font-size:.88rem;
+  font-weight:700;
+}
+.dirac-results-status strong{color:var(--gold);font-weight:900}
+.dirac-results-status .dirac-status-dot{
+  width:9px;height:9px;border-radius:999px;flex:0 0 auto;
+  background:var(--gold);
+  box-shadow:0 0 0 6px rgba(var(--theme-rgb,243,205,112),.10);
+}
+.product-grid.dirac-grid-updating{position:relative}
+.product-grid.dirac-grid-updating .product-card,
+.product-grid.dirac-grid-updating .empty-state{animation:diracGridSoftExit var(--dirac-state-fast) ease both}
+.product-card.dirac-entering,
+.empty-state.dirac-entering{animation:diracProductEnter var(--dirac-state-mid) var(--dirac-state-ease) both;animation-delay:var(--dirac-enter-delay,0ms)}
+@keyframes diracGridSoftExit{to{opacity:.42;transform:translateY(6px) scale(.992);filter:blur(.4px)}}
+@keyframes diracProductEnter{from{opacity:.42;transform:translate3d(0,18px,0) scale(.986);filter:blur(.6px)}to{opacity:1;transform:none;filter:none}}
+
+/* Cart feedback: quantity, new rows, deleted rows, total changes. */
+.cart-item.dirac-cart-line-enter{animation:diracCartLineEnter .44s var(--dirac-state-ease) both;animation-delay:calc(var(--dirac-cart-delay,0) * 46ms)}
+.qty-control.dirac-qty-pulse{animation:diracQtyPulse .36s var(--dirac-state-ease) both}
+.cart-item.dirac-removing{animation:diracCartRemoving .22s ease both}
+.cart-empty.dirac-entering{animation:diracEmptyCartIn .42s var(--dirac-state-ease) both}
+@keyframes diracCartLineEnter{from{opacity:.46;transform:translateX(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes diracQtyPulse{0%{box-shadow:none;transform:scale(1)}45%{box-shadow:0 0 0 5px rgba(var(--theme-rgb,243,205,112),.13);transform:scale(1.035)}100%{box-shadow:none;transform:scale(1)}}
+@keyframes diracCartRemoving{to{opacity:.22;transform:translateX(28px) scale(.965);filter:blur(.4px)}}
+@keyframes diracEmptyCartIn{from{opacity:.52;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+
+/* Quick modal success bridge before opening cart. */
+.modal .btn-primary.dirac-quick-success{
+  color:#062318!important;
+  background:linear-gradient(135deg,#bbf7d0,#34d399)!important;
+  box-shadow:0 18px 44px rgba(16,185,129,.25),0 0 0 1px rgba(255,255,255,.18) inset!important;
+  pointer-events:none;
+}
+.quick-grid.dirac-quick-to-cart img{animation:diracQuickToCart .34s var(--dirac-state-ease) both}
+@keyframes diracQuickToCart{50%{transform:translateY(-4px) scale(1.025);filter:brightness(1.07)}100%{transform:none}}
+
+/* Checkout confidence progress. */
+.dirac-checkout-progress{
+  margin:16px 0 16px;
+  padding:14px;
+  border-radius:20px;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.20);
+  background:linear-gradient(145deg,rgba(var(--theme-rgb,243,205,112),.085),rgba(255,255,255,.035));
+}
+.dirac-progress-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;color:#e9eef7;font-size:.86rem;font-weight:850}
+.dirac-progress-top strong{color:var(--gold)}
+.dirac-progress-track{height:9px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.09)}
+.dirac-progress-fill{display:block;height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 48%,#fff 52%));transition:width .38s var(--dirac-state-ease),filter .38s var(--dirac-state-ease)}
+.dirac-progress-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.dirac-progress-step{display:flex;align-items:center;gap:6px;color:#95a1b2;font-size:.76rem;font-weight:800;min-width:0}
+.dirac-progress-step i{width:18px;height:18px;border-radius:999px;display:grid;place-items:center;font-style:normal;font-size:.66rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#cbd5e1;transition:.25s var(--dirac-state-ease)}
+.dirac-progress-step.is-done{color:#dff7eb}
+.dirac-progress-step.is-done i{background:rgba(24,185,129,.18);border-color:rgba(24,185,129,.42);color:#86efac;box-shadow:0 0 18px rgba(24,185,129,.10)}
+.dirac-checkout-progress.is-complete .dirac-progress-fill{filter:drop-shadow(0 0 12px rgba(var(--theme-rgb,243,205,112),.30))}
+#sendWhatsappBtn.dirac-ready-pulse:not(.is-locked){animation:diracWhatsappReady 2.8s ease-in-out infinite}
+@keyframes diracWhatsappReady{0%,100%{filter:brightness(1)}50%{filter:brightness(1.065);box-shadow:0 18px 46px rgba(var(--theme-rgb,243,205,112),.34)}}
+
+/* Scroll storytelling accents without hiding content. */
+.section.dirac-story-visible .content-card,
+.section.dirac-story-visible .info-card,
+.section.dirac-story-visible .feature-card,
+.section.dirac-story-visible .blog-card,
+.section.dirac-story-visible .lifestyle-card{animation:diracStoryLift .58s var(--dirac-state-ease) both;animation-delay:var(--dirac-story-delay,0ms)}
+@keyframes diracStoryLift{from{transform:translateY(14px);filter:saturate(.92)}to{transform:none;filter:none}}
+
+/* Pause non-essential infinite animation when element is outside viewport. */
+.dirac-paused-motion,
+.dirac-paused-motion:before,
+.dirac-paused-motion:after,
+.dirac-paused-motion *{animation-play-state:paused!important}
+
+@media(max-width:760px){
+  .dirac-results-status{font-size:.8rem;margin:-4px 0 14px;align-items:flex-start;flex-direction:column}
+  .dirac-progress-steps{grid-template-columns:1fr;gap:7px}
+  .dirac-checkout-progress{padding:12px;border-radius:18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .dirac-mobile-scent-card,.product-card.dirac-entering,.empty-state.dirac-entering,.cart-item.dirac-cart-line-enter,.qty-control.dirac-qty-pulse,.cart-item.dirac-removing,.cart-empty.dirac-entering,.quick-grid.dirac-quick-to-cart img,.section.dirac-story-visible .content-card,.section.dirac-story-visible .info-card,.section.dirac-story-visible .feature-card,.section.dirac-story-visible .blog-card,.section.dirac-story-visible .lifestyle-card,#sendWhatsappBtn.dirac-ready-pulse:not(.is-locked){animation:none!important;transform:none!important;filter:none!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -4494,7 +4654,7 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
             <p class="muted quick-desc">${escapeHTML(p.longDesc || p.desc)}</p>
             <div class="quick-meta"><span>${escapeHTML(p.notes)}</span><span>${sold ? 'Sold out' : 'Ready stock'}</span></div>
             <div class="modal-actions">
-              <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''} onclick="addToCart(${p.id}); closeModal(); openCart();">${sold ? 'Sold' : 'Tambah ke Keranjang'}</button>
+              <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''} onclick="diracAddQuickToCart(${p.id}, this);">${sold ? 'Sold' : 'Tambah ke Keranjang'}</button>
               <a class="btn-secondary" target="_blank" rel="noopener" href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan '+p.title+'. Apakah masih tersedia?')}">Tanya via WhatsApp</a>
             </div>
           </div>
@@ -5723,6 +5883,304 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 })();
 </script>
 
+
+
+<script id="dirac-ultra-motion-upgrade-js">
+(function(){
+  'use strict';
+  var reduceMotion = false;
+  try{ reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(error){}
+
+  function $(selector, root){ return (root || document).querySelector(selector); }
+  function $all(selector, root){ return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
+  function delay(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
+  function cleanText(value){ return String(value || '').replace(/\s+/g,' ').trim(); }
+
+  function initMobileHeroMini(){
+    if(document.querySelector('.dirac-mobile-hero-mini')) return;
+    var heroText = $('.hero-grid > div:first-child') || $('.hero .container') || $('.hero');
+    if(!heroText) return;
+    var imgs = $all('.hero-card img').map(function(img){ return {src:img.getAttribute('src'), alt:img.getAttribute('alt') || 'Dirac Parfum'}; }).filter(function(item){ return !!item.src; });
+    if(imgs.length < 2){
+      imgs = $all('.product-media img').slice(0,2).map(function(img){ return {src:img.getAttribute('src'), alt:img.getAttribute('alt') || 'Dirac Parfum'}; }).filter(function(item){ return !!item.src; });
+    }
+    if(!imgs.length) return;
+    while(imgs.length < 2) imgs.push(imgs[0]);
+    var wrap = document.createElement('div');
+    wrap.className = 'dirac-mobile-hero-mini';
+    wrap.setAttribute('aria-label','Showcase parfum premium mobile');
+    wrap.innerHTML = imgs.slice(0,2).map(function(item,index){
+      return '<div class="dirac-mobile-scent-card"><img src="'+item.src.replace(/"/g,'&quot;')+'" alt="'+item.alt.replace(/"/g,'&quot;')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><span>'+(index === 0 ? 'Best seller pilihan' : 'Ready untuk hadiah')+'</span></div>';
+    }).join('');
+    var anchor = $('.trust-row', heroText) || $('.hero-actions', heroText) || heroText.lastElementChild;
+    if(anchor && anchor.insertAdjacentElement) anchor.insertAdjacentElement('afterend', wrap);
+    else heroText.appendChild(wrap);
+  }
+
+  function ensureResultsStatus(){
+    var toolbar = $('.toolbar');
+    var grid = $('#productGrid');
+    if(!toolbar || !grid) return null;
+    var status = $('#diracResultsStatus');
+    if(!status){
+      status = document.createElement('div');
+      status.id = 'diracResultsStatus';
+      status.className = 'dirac-results-status';
+      status.setAttribute('role','status');
+      status.setAttribute('aria-live','polite');
+      status.innerHTML = '<span><span class="dirac-status-dot" aria-hidden="true"></span> <span data-dirac-results-copy>Menyiapkan katalog...</span></span><strong data-dirac-results-count></strong>';
+      toolbar.insertAdjacentElement('afterend', status);
+    }
+    return status;
+  }
+
+  var gridUpdateTimer = null;
+  function markGridUpdating(){
+    var grid = $('#productGrid');
+    if(!grid || reduceMotion) return;
+    grid.classList.add('dirac-grid-updating');
+    clearTimeout(gridUpdateTimer);
+    gridUpdateTimer = setTimeout(function(){ grid.classList.remove('dirac-grid-updating'); }, 360);
+  }
+
+  function refreshProductMotion(){
+    var grid = $('#productGrid');
+    if(!grid) return;
+    grid.classList.remove('dirac-grid-updating');
+    var status = ensureResultsStatus();
+    var visible = Number(grid.dataset.visibleCount || grid.querySelectorAll('.product-card').length || 0);
+    var total = Number(grid.dataset.totalCount || visible || 0);
+    var cards = $all('.product-card, .empty-state', grid);
+    cards.forEach(function(card,index){
+      card.style.setProperty('--dirac-enter-delay', Math.min(index, 11) * 34 + 'ms');
+      card.classList.remove('dirac-entering');
+      if(!reduceMotion){ void card.offsetWidth; card.classList.add('dirac-entering'); }
+    });
+    if(status){
+      var copy = $('[data-dirac-results-copy]', status);
+      var count = $('[data-dirac-results-count]', status);
+      var q = cleanText(($('#searchInput') || {}).value);
+      var filter = ($('#categoryFilter') || {}).selectedOptions;
+      var filterLabel = filter && filter[0] ? cleanText(filter[0].textContent) : 'Semua';
+      if(copy) copy.textContent = total ? (q ? 'Hasil pencarian untuk "'+q+'"' : 'Katalog siap dipilih') : 'Produk tidak ditemukan';
+      if(count) count.textContent = total ? visible + ' / ' + total + ' tampil - ' + filterLabel : '0 produk';
+    }
+  }
+
+  function initProductStateMotion(){
+    ensureResultsStatus();
+    ['#searchInput','#categoryFilter','#sortFilter'].forEach(function(selector){
+      var el = $(selector);
+      if(!el || el.dataset.diracStateBound === 'true') return;
+      el.dataset.diracStateBound = 'true';
+      ['input','change'].forEach(function(eventName){ el.addEventListener(eventName, markGridUpdating, {passive:true}); });
+    });
+    var loadMore = $('#loadMoreProductsBtn');
+    if(loadMore && loadMore.dataset.diracStateBound !== 'true'){
+      loadMore.dataset.diracStateBound = 'true';
+      loadMore.addEventListener('click', markGridUpdating, {passive:true});
+    }
+    var grid = $('#productGrid');
+    if(grid && !grid.dataset.diracObserverBound && 'MutationObserver' in window){
+      grid.dataset.diracObserverBound = 'true';
+      new MutationObserver(function(){ refreshProductMotion(); initProductStateMotion(); }).observe(grid,{childList:true,subtree:false});
+    }
+    refreshProductMotion();
+  }
+
+  function pulseMoney(){
+    ['#subtotalText','#discountText','#shippingText','#totalText'].forEach(function(selector){
+      var el = $(selector);
+      if(!el) return;
+      el.classList.remove('luxury-money-pop','cart-total-pop');
+      void el.offsetWidth;
+      el.classList.add('luxury-money-pop');
+    });
+  }
+
+  function refreshCartMotion(){
+    var cartItems = $('#cartItems');
+    if(!cartItems) return;
+    $all('.cart-item', cartItems).forEach(function(item,index){
+      item.style.setProperty('--dirac-cart-delay', String(index));
+      if(!item.dataset.diracSeen){
+        item.dataset.diracSeen = 'true';
+        if(!reduceMotion) item.classList.add('dirac-cart-line-enter');
+      }
+    });
+    var empty = $('.cart-empty', cartItems);
+    if(empty && !empty.dataset.diracSeen){
+      empty.dataset.diracSeen = 'true';
+      if(!reduceMotion) empty.classList.add('dirac-entering');
+    }
+    pulseMoney();
+  }
+
+  function wrapCartFunctions(){
+    if(window.__diracUltraCartWrapped) return;
+    window.__diracUltraCartWrapped = true;
+    if(typeof window.addToCart === 'function'){
+      var originalAdd = window.addToCart;
+      window.addToCart = function(id){
+        var result = originalAdd.apply(this, arguments);
+        $all('[data-cart-count]').forEach(function(el){
+          el.classList.remove('luxury-cart-pulse','cart-bump');
+          void el.offsetWidth;
+          el.classList.add('luxury-cart-pulse');
+        });
+        refreshCartMotion();
+        return result;
+      };
+    }
+    if(typeof window.setQty === 'function'){
+      var originalSetQty = window.setQty;
+      window.setQty = function(id, qty){
+        var ctrl = $('[data-inc="'+id+'"]') || $('[data-dec="'+id+'"]');
+        var wrap = ctrl ? ctrl.closest('.qty-control') : null;
+        if(wrap && !reduceMotion){
+          wrap.classList.remove('dirac-qty-pulse');
+          void wrap.offsetWidth;
+          wrap.classList.add('dirac-qty-pulse');
+        }
+        var result = originalSetQty.apply(this, arguments);
+        refreshCartMotion();
+        return result;
+      };
+    }
+    if(typeof window.removeItem === 'function'){
+      var originalRemove = window.removeItem;
+      window.removeItem = function(id){
+        var item = $('[data-remove="'+id+'"]');
+        var row = item ? item.closest('.cart-item') : null;
+        if(row && !reduceMotion){ row.classList.add('dirac-removing'); }
+        var args = arguments;
+        setTimeout(function(){ originalRemove.apply(window, args); refreshCartMotion(); }, reduceMotion ? 0 : 170);
+      };
+    }
+  }
+
+  function initCartStateMotion(){
+    wrapCartFunctions();
+    var cartItems = $('#cartItems');
+    if(cartItems && !cartItems.dataset.diracCartObserverBound && 'MutationObserver' in window){
+      cartItems.dataset.diracCartObserverBound = 'true';
+      new MutationObserver(function(){ refreshCartMotion(); }).observe(cartItems,{childList:true,subtree:true});
+    }
+    document.addEventListener('click', function(event){
+      var qtyBtn = event.target.closest('[data-inc],[data-dec]');
+      if(qtyBtn){
+        var ctrl = qtyBtn.closest('.qty-control');
+        if(ctrl && !reduceMotion){ ctrl.classList.remove('dirac-qty-pulse'); void ctrl.offsetWidth; ctrl.classList.add('dirac-qty-pulse'); }
+      }
+    }, true);
+    refreshCartMotion();
+  }
+
+  window.diracAddQuickToCart = function(id, button){
+    var btn = button || null;
+    var quickGrid = btn ? btn.closest('.quick-grid') : $('#quickModal .quick-grid');
+    if(btn){
+      btn.classList.add('dirac-quick-success');
+      btn.textContent = 'Ditambahkan ✓';
+    }
+    if(quickGrid && !reduceMotion){ quickGrid.classList.add('dirac-quick-to-cart'); }
+    setTimeout(function(){
+      try{ if(typeof window.addToCart === 'function') window.addToCart(id); }catch(error){}
+      try{ if(typeof window.closeModal === 'function') window.closeModal(); }catch(error){}
+      try{ if(typeof window.openCart === 'function') window.openCart(); }catch(error){}
+    }, reduceMotion ? 0 : 230);
+  };
+
+  function initCheckoutProgress(){
+    var modal = $('#checkoutModal');
+    var note = $('.checkout-required-note', modal);
+    if(!modal || !note) return;
+    var progress = $('#diracCheckoutProgress');
+    if(!progress){
+      progress = document.createElement('div');
+      progress.id = 'diracCheckoutProgress';
+      progress.className = 'dirac-checkout-progress';
+      progress.innerHTML = '<div class="dirac-progress-top"><span>Status checkout</span><strong data-dirac-checkout-percent>0%</strong></div><div class="dirac-progress-track"><span class="dirac-progress-fill" data-dirac-progress-fill></span></div><div class="dirac-progress-steps"><span class="dirac-progress-step" data-step="name"><i>1</i>Nama</span><span class="dirac-progress-step" data-step="phone"><i>2</i>WhatsApp</span><span class="dirac-progress-step" data-step="address"><i>3</i>Alamat</span></div>';
+      note.insertAdjacentElement('afterend', progress);
+    }
+    var rules = [
+      {selector:'#buyerName', step:'name', test:function(v){ return cleanText(v).length >= 2; }},
+      {selector:'#buyerPhone', step:'phone', test:function(v){ return String(v || '').replace(/\D/g,'').length >= 9; }},
+      {selector:'#buyerAddress', step:'address', test:function(v){ return cleanText(v).length >= 8; }}
+    ];
+    function update(){
+      var done = 0;
+      rules.forEach(function(rule){
+        var field = $(rule.selector);
+        var ok = !!(field && rule.test(field.value));
+        if(ok) done += 1;
+        var step = $('[data-step="'+rule.step+'"]', progress);
+        if(step){
+          step.classList.toggle('is-done', ok);
+          var icon = $('i', step);
+          if(icon) icon.textContent = ok ? '✓' : (rule.step === 'name' ? '1' : rule.step === 'phone' ? '2' : '3');
+        }
+      });
+      var pct = Math.round((done / rules.length) * 100);
+      var fill = $('[data-dirac-progress-fill]', progress);
+      var label = $('[data-dirac-checkout-percent]', progress);
+      if(fill) fill.style.width = pct + '%';
+      if(label) label.textContent = pct + '%';
+      progress.classList.toggle('is-complete', pct === 100);
+      var send = $('#sendWhatsappBtn');
+      if(send) send.classList.toggle('dirac-ready-pulse', pct === 100);
+    }
+    rules.forEach(function(rule){
+      var field = $(rule.selector);
+      if(field && field.dataset.diracProgressBound !== 'true'){
+        field.dataset.diracProgressBound = 'true';
+        ['input','change','blur'].forEach(function(eventName){ field.addEventListener(eventName, update, {passive:true}); });
+      }
+    });
+    update();
+  }
+
+  function initStoryScroll(){
+    var sections = $all('.section[data-reveal], .section');
+    if(!sections.length || !('IntersectionObserver' in window)) return;
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('dirac-story-visible');
+          $all('.content-card,.info-card,.feature-card,.blog-card,.lifestyle-card', entry.target).forEach(function(card,index){
+            card.style.setProperty('--dirac-story-delay', Math.min(index, 8) * 58 + 'ms');
+          });
+        }
+      });
+    },{threshold:.18});
+    sections.forEach(function(section){ if(!section.dataset.diracStoryBound){ section.dataset.diracStoryBound = 'true'; obs.observe(section); }});
+  }
+
+  function initMotionPausing(){
+    var targets = $all('.promo-box,.tag.top-seller,.quick-top-label,.back-home-btn,.dirac-float-wa,#checkoutBtn');
+    if(!targets.length || !('IntersectionObserver' in window)) return;
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){ entry.target.classList.toggle('dirac-paused-motion', !entry.isIntersecting); });
+    },{rootMargin:'140px 0px'});
+    targets.forEach(function(el){ if(!el.dataset.diracPauseBound){ el.dataset.diracPauseBound = 'true'; obs.observe(el); }});
+  }
+
+  function initAll(){
+    initMobileHeroMini();
+    initProductStateMotion();
+    initCartStateMotion();
+    initCheckoutProgress();
+    initStoryScroll();
+    initMotionPausing();
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAll, {once:true});
+  else initAll();
+  window.addEventListener('pageshow', initAll);
+  setTimeout(initAll, 350);
+  setTimeout(initAll, 1200);
+})();
+</script>
 
 </body>
 </html>
