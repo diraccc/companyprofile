@@ -6741,12 +6741,28 @@ html[data-effective-theme="light"] .dirac-interface-veil{
     var modal = $('#quickModal');
     if(!modal || modal.dataset.diracMobilePolishBound === 'true') return;
     modal.dataset.diracMobilePolishBound = 'true';
-    if(!('MutationObserver' in window)) return;
+    var polishTimer = null;
+    function polish(){
+      if(!modal.classList.contains('open') || reduceMotion) return;
+      var grid = modal.querySelector('.quick-grid');
+      if(!grid || grid.dataset.diracMobileSheetReady === 'true') return;
+      grid.dataset.diracMobileSheetReady = 'true';
+      grid.classList.add('dirac-mobile-sheet-ready');
+    }
+    if(!('MutationObserver' in window)){
+      setTimeout(polish, 40);
+      return;
+    }
     new MutationObserver(function(){
-      if(modal.classList.contains('open') && !reduceMotion){
-        var grid = modal.querySelector('.quick-grid');
-        if(grid){ grid.classList.remove('dirac-mobile-sheet-ready'); void grid.offsetWidth; grid.classList.add('dirac-mobile-sheet-ready'); }
+      if(!modal.classList.contains('open')){
+        Array.prototype.slice.call(modal.querySelectorAll('.quick-grid[data-dirac-mobile-sheet-ready="true"]')).forEach(function(grid){
+          grid.dataset.diracMobileSheetReady = 'false';
+          grid.classList.remove('dirac-mobile-sheet-ready');
+        });
+        return;
       }
+      clearTimeout(polishTimer);
+      polishTimer = setTimeout(polish, 30);
     }).observe(modal,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
   }
 
