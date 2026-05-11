@@ -1118,7 +1118,7 @@ html[data-effective-theme="light"] .theme-choice.is-selected{color:#171923;backg
 <script id="dirac-theme-boot">
 (function(){
   try{
-    var palettes={gold:['#f3cd70','#d6a642','#8e6425','243,205,112'],blue:['#4f83ff','#2563eb','#1e3a8a','79,131,255'],purple:['#7c3aed','#5b21b6','#35126d','124,58,237'],violet:['#8b5cf6','#6d28d9','#432076','139,92,246'],pink:['#ec4899','#be185d','#7f123d','236,72,153'],red:['#ef4444','#dc2626','#7f1d1d','239,68,68'],orange:['#f97316','#ea580c','#7c2d12','249,115,22'],amber:['#f59e0b','#d97706','#78350f','245,158,11'],green:['#34d399','#059669','#065f46','52,211,153'],teal:['#0f8b8d','#0f766e','#134e4a','15,139,141'],cyan:['#67dce5','#36c2cc','#176b73','103,220,229']};
+    var palettes={gold:['#f3cd70','#d6a642','#8e6425','243,205,112'],champagne:['#fde68a','#f59e0b','#92400e','253,230,138'],sand:['#d6b076','#b88943','#6b4a23','214,176,118'],blue:['#4f83ff','#2563eb','#1e3a8a','79,131,255'],sky:['#38bdf8','#0284c7','#075985','56,189,248'],indigo:['#6366f1','#4f46e5','#312e81','99,102,241'],purple:['#7c3aed','#5b21b6','#35126d','124,58,237'],violet:['#8b5cf6','#6d28d9','#432076','139,92,246'],lilac:['#a78bfa','#8b5cf6','#4c1d95','167,139,250'],fuchsia:['#d946ef','#c026d3','#701a75','217,70,239'],pink:['#ec4899','#be185d','#7f123d','236,72,153'],rose:['#fb7185','#e11d48','#881337','251,113,133'],red:['#ef4444','#dc2626','#7f1d1d','239,68,68'],coral:['#fb6a4a','#ea3d25','#8f1d16','251,106,74'],orange:['#f97316','#ea580c','#7c2d12','249,115,22'],peach:['#fdba74','#f97316','#9a3412','253,186,116'],amber:['#f59e0b','#d97706','#78350f','245,158,11'],lemon:['#facc15','#ca8a04','#713f12','250,204,21'],lime:['#84cc16','#65a30d','#365314','132,204,22'],green:['#34d399','#059669','#065f46','52,211,153'],emerald:['#10b981','#047857','#064e3b','16,185,129'],mint:['#2dd4bf','#0d9488','#134e4a','45,212,191'],teal:['#0f8b8d','#0f766e','#134e4a','15,139,141'],aqua:['#22d3ee','#0891b2','#164e63','34,211,238'],cyan:['#67dce5','#36c2cc','#176b73','103,220,229'],copper:['#c08457','#9a5f36','#5c341f','192,132,87']};
     var defaults={mode:'dark',contrast:'off',accent:'gold'};
     var stored=JSON.parse(localStorage.getItem('dirac_theme_settings_v1')||'{}');
     var s={mode:stored.mode||defaults.mode,contrast:stored.contrast||defaults.contrast,accent:stored.accent||defaults.accent};
@@ -1919,6 +1919,60 @@ html[data-effective-theme="light"] .theme-choice.is-selected{background:linear-g
 }
 @media(prefers-reduced-motion:reduce){
   .theme-save:before,.theme-reset:before{display:none!important}
+}
+</style>
+
+
+<style id="dirac-theme-extra-colors-css">
+/* =========================================================
+   Dirac Theme Extra Colors Polish
+   Menambah pilihan warna utama dan merapikan area swatch agar
+   tetap compact, modern, dan mudah dipilih di layar mobile.
+   ========================================================= */
+.theme-swatches{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:2px 0 0!important;
+}
+.theme-swatch{
+  width:35px!important;
+  height:58px!important;
+  border-radius:13px!important;
+  background:linear-gradient(150deg,rgba(255,255,255,.28),rgba(255,255,255,0) 44%),var(--swatch)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -14px 22px rgba(0,0,0,.09),0 10px 22px rgba(0,0,0,.17)!important;
+  transition:transform .2s ease,box-shadow .2s ease,width .2s ease,border-color .2s ease!important;
+}
+.theme-swatch:hover{transform:translateY(-2px)!important;border-color:rgba(255,255,255,.30)!important}
+.theme-swatch.is-selected{
+  width:68px!important;
+  border-color:rgba(255,255,255,.30)!important;
+  box-shadow:inset 0 0 0 6px rgba(255,255,255,.28),0 0 0 3px rgba(var(--theme-rgb),.38),0 16px 34px rgba(0,0,0,.25),0 0 24px rgba(var(--theme-rgb),.20)!important;
+}
+.theme-swatch.is-selected:after{
+  font-size:1.55rem!important;
+  text-shadow:0 2px 10px rgba(0,0,0,.42)!important;
+}
+@media(max-width:760px){
+  .theme-swatches{gap:7px!important}
+  .theme-swatch{width:28px!important;height:46px!important;border-radius:10px!important}
+  .theme-swatch.is-selected{width:52px!important}
+  .theme-swatch.is-selected:after{font-size:1.25rem!important}
+}
+@media(max-width:430px){
+  .theme-swatches{gap:7px!important}
+  .theme-swatch{width:27px!important;height:44px!important;border-radius:10px!important}
+  .theme-swatch.is-selected{width:51px!important}
+}
+@media(max-width:360px){
+  .theme-swatches{gap:6px!important}
+  .theme-swatch{width:25px!important;height:42px!important}
+  .theme-swatch.is-selected{width:48px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .theme-swatch,.theme-swatch:hover{transition:none!important;transform:none!important}
 }
 </style>
 
@@ -4772,16 +4826,31 @@ html[data-effective-theme="light"] .theme-choice.is-selected{background:linear-g
   var DEFAULT_THEME = {mode:'dark', contrast:'off', accent:'gold'};
   var THEME_PALETTES = {
     gold:{label:'Gold', gold:'#f3cd70', gold2:'#d6a642', gold3:'#8e6425', rgb:'243,205,112'},
+    champagne:{label:'Champagne', gold:'#fde68a', gold2:'#f59e0b', gold3:'#92400e', rgb:'253,230,138'},
+    sand:{label:'Sand', gold:'#d6b076', gold2:'#b88943', gold3:'#6b4a23', rgb:'214,176,118'},
     blue:{label:'Blue', gold:'#4f83ff', gold2:'#2563eb', gold3:'#1e3a8a', rgb:'79,131,255'},
+    sky:{label:'Sky', gold:'#38bdf8', gold2:'#0284c7', gold3:'#075985', rgb:'56,189,248'},
+    indigo:{label:'Indigo', gold:'#6366f1', gold2:'#4f46e5', gold3:'#312e81', rgb:'99,102,241'},
     purple:{label:'Purple', gold:'#7c3aed', gold2:'#5b21b6', gold3:'#35126d', rgb:'124,58,237'},
     violet:{label:'Violet', gold:'#8b5cf6', gold2:'#6d28d9', gold3:'#432076', rgb:'139,92,246'},
+    lilac:{label:'Lilac', gold:'#a78bfa', gold2:'#8b5cf6', gold3:'#4c1d95', rgb:'167,139,250'},
+    fuchsia:{label:'Fuchsia', gold:'#d946ef', gold2:'#c026d3', gold3:'#701a75', rgb:'217,70,239'},
     pink:{label:'Pink', gold:'#ec4899', gold2:'#be185d', gold3:'#7f123d', rgb:'236,72,153'},
+    rose:{label:'Rose', gold:'#fb7185', gold2:'#e11d48', gold3:'#881337', rgb:'251,113,133'},
     red:{label:'Red', gold:'#ef4444', gold2:'#dc2626', gold3:'#7f1d1d', rgb:'239,68,68'},
+    coral:{label:'Coral', gold:'#fb6a4a', gold2:'#ea3d25', gold3:'#8f1d16', rgb:'251,106,74'},
     orange:{label:'Orange', gold:'#f97316', gold2:'#ea580c', gold3:'#7c2d12', rgb:'249,115,22'},
+    peach:{label:'Peach', gold:'#fdba74', gold2:'#f97316', gold3:'#9a3412', rgb:'253,186,116'},
     amber:{label:'Amber', gold:'#f59e0b', gold2:'#d97706', gold3:'#78350f', rgb:'245,158,11'},
+    lemon:{label:'Lemon', gold:'#facc15', gold2:'#ca8a04', gold3:'#713f12', rgb:'250,204,21'},
+    lime:{label:'Lime', gold:'#84cc16', gold2:'#65a30d', gold3:'#365314', rgb:'132,204,22'},
     green:{label:'Green', gold:'#34d399', gold2:'#059669', gold3:'#065f46', rgb:'52,211,153'},
+    emerald:{label:'Emerald', gold:'#10b981', gold2:'#047857', gold3:'#064e3b', rgb:'16,185,129'},
+    mint:{label:'Mint', gold:'#2dd4bf', gold2:'#0d9488', gold3:'#134e4a', rgb:'45,212,191'},
     teal:{label:'Teal', gold:'#0f8b8d', gold2:'#0f766e', gold3:'#134e4a', rgb:'15,139,141'},
-    cyan:{label:'Cyan', gold:'#67dce5', gold2:'#36c2cc', gold3:'#176b73', rgb:'103,220,229'}
+    aqua:{label:'Aqua', gold:'#22d3ee', gold2:'#0891b2', gold3:'#164e63', rgb:'34,211,238'},
+    cyan:{label:'Cyan', gold:'#67dce5', gold2:'#36c2cc', gold3:'#176b73', rgb:'103,220,229'},
+    copper:{label:'Copper', gold:'#c08457', gold2:'#9a5f36', gold3:'#5c341f', rgb:'192,132,87'}
   };
   var themeDraft = null;
 
