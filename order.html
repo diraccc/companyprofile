@@ -6887,5 +6887,393 @@ html[data-effective-theme="light"] .dirac-checkout-sticky{background:linear-grad
 })();
 </script>
 
+
+<style id="dirac-professional-safety-v8-css">
+/* =========================================================
+   Dirac Professional Safety v8 - GitHub Pages safe
+   Fokus: quality guard, i18n QA debug, asset health, SEO data,
+   adaptive performance, dan RTL polish. Normal customer tidak
+   melihat panel debug. Tidak mengganti core cart/checkout/produk.
+   ========================================================= */
+html[data-dirac-quality="lite"] .hero:after,
+html[data-dirac-quality="lite"] .promo-box:before,
+html[data-dirac-quality="lite"] .tag.top-seller:before,
+html[data-dirac-quality="lite"] .dirac-float-btn:before,
+html[data-dirac-quality="lite"] .theme-save:before,
+html[data-dirac-quality="lite"] .theme-reset:before{
+  display:none!important;
+}
+html[data-dirac-quality="lite"] .product-card,
+html[data-dirac-quality="lite"] .blog-card,
+html[data-dirac-quality="lite"] .feature-card,
+html[data-dirac-quality="lite"] .info-card{
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important;
+}
+html[data-dirac-quality="lite"] .product-card:hover,
+html[data-dirac-quality="lite"] .blog-card:hover,
+html[data-dirac-quality="lite"] .feature-card:hover,
+html[data-dirac-quality="lite"] .info-card:hover{
+  transform:translateY(-2px)!important;
+  box-shadow:0 14px 34px rgba(0,0,0,.22)!important;
+}
+html[data-dirac-quality="lite"] .product-card.luxury-motion-card.is-visible .product-media img,
+html[data-dirac-quality="lite"] .product-card.luxury-motion-card.luxury-visible .product-media img,
+html[data-dirac-quality="lite"] .tag.top-seller,
+html[data-dirac-quality="lite"] .quick-top-label,
+html[data-dirac-quality="lite"] .cart-footer.cart-has-items #checkoutBtn:not(:disabled){
+  animation:none!important;
+}
+html[dir="rtl"] .product-actions,
+html[dir="rtl"] .cart-actions,
+html[dir="rtl"] .modal-actions,
+html[dir="rtl"] .hero-actions,
+html[dir="rtl"] .dirac-smart-tools,
+html[dir="rtl"] .trust-row{
+  direction:rtl;
+}
+html[dir="rtl"] .product-title,
+html[dir="rtl"] .product-desc,
+html[dir="rtl"] .cart-product-desc,
+html[dir="rtl"] .quick-desc,
+html[dir="rtl"] .blog-card-body,
+html[dir="rtl"] .lifestyle-copy,
+html[dir="rtl"] .info-card,
+html[dir="rtl"] .feature-card,
+html[dir="rtl"] .faq-q,
+html[dir="rtl"] .faq-a{
+  text-align:right;
+}
+html[dir="rtl"] .hero-floating-note,
+html[dir="rtl"] .promo-box,
+html[dir="rtl"] .cart-item,
+html[dir="rtl"] .quick-rating-row,
+html[dir="rtl"] .product-rating-row{
+  direction:rtl;
+}
+.dirac-qa-panel{
+  position:fixed;left:14px;bottom:14px;z-index:14000;
+  width:min(360px,calc(100vw - 28px));max-height:min(70vh,620px);overflow:auto;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.34);border-radius:22px;
+  background:linear-gradient(180deg,rgba(14,21,31,.98),rgba(5,7,11,.98));
+  color:#eef4ff;box-shadow:0 24px 70px rgba(0,0,0,.48),0 0 0 1px rgba(255,255,255,.05) inset;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:14px;font-size:12px;line-height:1.45;
+}
+.dirac-qa-panel[hidden]{display:none!important}.dirac-qa-panel *{box-sizing:border-box}.dirac-qa-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.dirac-qa-title{font-weight:900;color:var(--gold);font-size:13px}.dirac-qa-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-weight:900;background:rgba(24,185,129,.12);color:#bbf7d0;border:1px solid rgba(24,185,129,.28)}.dirac-qa-status.warn{background:rgba(245,158,11,.13);color:#fde68a;border-color:rgba(245,158,11,.32)}.dirac-qa-status.fail{background:rgba(239,68,68,.13);color:#fecaca;border-color:rgba(239,68,68,.34)}.dirac-qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.dirac-qa-metric{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.045);padding:9px}.dirac-qa-metric strong{display:block;color:#fff;font-size:15px;line-height:1}.dirac-qa-metric span{display:block;margin-top:4px;color:#aab5c5}.dirac-qa-list{margin:8px 0 0;padding-left:18px;color:#cbd5e1}.dirac-qa-list li{margin:4px 0}.dirac-qa-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.dirac-qa-actions button{border:1px solid rgba(var(--theme-rgb,243,205,112),.28);border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.10);color:#fff;padding:7px 10px;font-weight:850;font-size:12px}.dirac-qa-note{margin-top:8px;color:#98a4b6}.dirac-image-error{outline:2px solid rgba(239,68,68,.7)!important;outline-offset:-2px!important}
+html[data-effective-theme="light"] .dirac-qa-panel{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(246,248,252,.98));color:#172033;box-shadow:0 24px 60px rgba(15,23,42,.18)}html[data-effective-theme="light"] .dirac-qa-metric strong{color:#172033}html[data-effective-theme="light"] .dirac-qa-metric span,html[data-effective-theme="light"] .dirac-qa-list,html[data-effective-theme="light"] .dirac-qa-note{color:#536071}html[data-effective-theme="light"] .dirac-qa-actions button{color:#172033}
+@media(max-width:760px){.dirac-qa-panel{left:10px;right:10px;bottom:10px;width:auto;max-height:64vh;border-radius:20px}.dirac-qa-grid{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){.dirac-qa-panel,.dirac-qa-actions button{transition:none!important;animation:none!important}}
+</style>
+
+<script id="dirac-professional-safety-v8-js">
+(function(){
+  'use strict';
+  var VERSION = '8.0.0';
+  var errorLog = window.__diracRuntimeErrors = window.__diracRuntimeErrors || [];
+  var imageErrors = window.__diracImageErrors = window.__diracImageErrors || [];
+  var lastReport = null;
+
+  function $(selector, root){ return (root || document).querySelector(selector); }
+  function $all(selector, root){ return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
+  function clean(value){ return String(value == null ? '' : value).replace(/\s+/g,' ').trim(); }
+  function esc(value){ return clean(value).replace(/[&<>"']/g,function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; }); }
+  function hasStorageFlag(name){ try{ return localStorage.getItem(name) === '1' || localStorage.getItem(name) === 'on' || localStorage.getItem(name) === 'true'; }catch(error){ return false; } }
+  function debugEnabled(){
+    var s = String(location.search || '').toLowerCase();
+    var h = String(location.hash || '').toLowerCase();
+    return /(^|[?&])(debug|i18ndebug|qadebug)=?(1|true|on)?(&|$)/.test(s) || /(^|#)(debug|i18ndebug|qadebug)/.test(h) || hasStorageFlag('dirac_debug_v1') || hasStorageFlag('dirac_i18n_debug_v1');
+  }
+  function getProducts(){ try{ return (typeof products !== 'undefined' && Array.isArray(products)) ? products : []; }catch(error){ return []; } }
+  function getLanguage(){ try{ return window.diracLanguage && typeof window.diracLanguage.read === 'function' ? window.diracLanguage.read() : (document.documentElement.getAttribute('data-language') || document.documentElement.lang || 'id'); }catch(error){ return 'id'; } }
+  function getCartQty(){ try{ return typeof totalQty === 'function' ? totalQty() : 0; }catch(error){ return 0; } }
+  function getTotals(){ try{ return typeof totals === 'function' ? totals() : null; }catch(error){ return null; } }
+  function formatMoney(value){ try{ return typeof formatIDR === 'function' ? formatIDR(value) : 'Rp' + Number(value || 0).toLocaleString('id-ID'); }catch(error){ return 'Rp' + Number(value || 0).toLocaleString('id-ID'); } }
+  function schedule(fn, delay){ return setTimeout(fn, delay || 0); }
+
+  window.addEventListener('error', function(event){
+    if(event && event.target && event.target.tagName === 'IMG') return;
+    errorLog.push({type:'error', message:clean(event && event.message || 'Script error'), source:event && event.filename || '', time:Date.now()});
+    if(debugEnabled()) schedule(runDiagnostics, 80);
+  }, true);
+  window.addEventListener('unhandledrejection', function(event){
+    errorLog.push({type:'promise', message:clean(event && event.reason && (event.reason.message || event.reason) || 'Unhandled promise'), time:Date.now()});
+    if(debugEnabled()) schedule(runDiagnostics, 80);
+  });
+  document.addEventListener('error', function(event){
+    var img = event && event.target;
+    if(!img || img.tagName !== 'IMG') return;
+    var src = img.currentSrc || img.getAttribute('src') || '';
+    if(src && !imageErrors.some(function(item){ return item.src === src; })) imageErrors.push({src:src, alt:img.getAttribute('alt') || '', time:Date.now()});
+    img.classList.add('dirac-image-error');
+    img.setAttribute('data-dirac-image-health','error');
+    if(debugEnabled()) schedule(runDiagnostics, 80);
+  }, true);
+  document.addEventListener('load', function(event){
+    var img = event && event.target;
+    if(img && img.tagName === 'IMG'){
+      img.classList.remove('dirac-image-error');
+      img.setAttribute('data-dirac-image-health','ok');
+    }
+  }, true);
+
+  function applyAdaptiveQuality(){
+    var forced = '';
+    try{ forced = localStorage.getItem('dirac_quality_mode_v1') || ''; }catch(error){}
+    var lite = forced === 'lite';
+    try{
+      var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if(c && (c.saveData || /2g/.test(String(c.effectiveType || '')))) lite = true;
+    }catch(error){}
+    try{ if(navigator.deviceMemory && navigator.deviceMemory <= 2) lite = true; }catch(error){}
+    try{ if(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) lite = true; }catch(error){}
+    document.documentElement.setAttribute('data-dirac-quality', lite ? 'lite' : 'standard');
+    return lite ? 'lite' : 'standard';
+  }
+
+  function improveImageMetadata(root){
+    $all('img', root || document).forEach(function(img){
+      if(!img.hasAttribute('decoding')) img.setAttribute('decoding','async');
+      if(!img.hasAttribute('loading') && !img.closest('.hero-showcase,.brand-mark')) img.setAttribute('loading','lazy');
+      var alt = clean(img.getAttribute('alt'));
+      if(!alt){
+        var cardTitle = img.closest('.product-card,.cart-item,.quick-grid,.blog-card,.lifestyle-card');
+        var titleEl = cardTitle && cardTitle.querySelector('h1,h2,h3,.product-title,strong');
+        var title = clean(titleEl && titleEl.textContent) || clean(img.getAttribute('src')).split('/').pop().replace(/[-_]/g,' ').replace(/\.[a-z0-9]+$/i,'');
+        if(title) img.setAttribute('alt', title);
+      }
+    });
+  }
+
+  function productIssues(){
+    var list = getProducts();
+    var ids = Object.create(null);
+    var dup = [];
+    var missing = [];
+    list.forEach(function(p, index){
+      var id = String(p && p.id != null ? p.id : '');
+      if(!id) missing.push('Produk index '+index+' tanpa id');
+      else if(ids[id]) dup.push(id); else ids[id] = true;
+      if(!clean(p && p.title)) missing.push('Produk '+(id || index)+' tanpa judul');
+      if(!clean(p && p.img)) missing.push('Produk '+(id || index)+' tanpa gambar');
+      if(!(Number(p && p.price) >= 0)) missing.push('Produk '+(id || index)+' harga tidak valid');
+    });
+    return {duplicates:dup, missing:missing};
+  }
+
+  function visibleTextNodes(){
+    var out = [];
+    if(!document.body || !document.createTreeWalker) return out;
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode:function(node){
+        var parent = node.parentElement;
+        if(!parent) return NodeFilter.FILTER_REJECT;
+        if(parent.closest('[data-no-i18n],script,style,noscript,template,svg,.product-title,.product-desc,.cart-product-desc,.quick-desc,.dirac-quiz-result p')) return NodeFilter.FILTER_REJECT;
+        var text = clean(node.data);
+        if(text.length < 2) return NodeFilter.FILTER_REJECT;
+        var style = window.getComputedStyle ? window.getComputedStyle(parent) : null;
+        if(style && (style.display === 'none' || style.visibility === 'hidden')) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    while(walker.nextNode()) out.push(walker.currentNode);
+    return out;
+  }
+  function untranslatedRisks(lang){
+    if(!lang || lang === 'id') return [];
+    var pattern = /\b(Keranjang|Katalog|Produk|Tampilkan|Tambah|Detail|Hapus|Pilih|Checkout|Bahasa|Tema|Simpan|Batal|Tutup|Gratis|Pengiriman|Alamat|Nama|Nomor|Catatan|Pesan|Aroma|Pencarian|Semua|Kategori|Urutkan|Harga|Belanja|Hadiah|Terjual|siap|dikirim|kosong)\b/i;
+    return visibleTextNodes().map(function(node){ return clean(node.data); }).filter(function(text, index, arr){ return pattern.test(text) && arr.indexOf(text) === index; }).slice(0,30);
+  }
+  function attributeRisks(lang){
+    if(!lang || lang === 'id') return [];
+    var pattern = /\b(Tutup|Pilih|Tambah|Kurangi|Hapus|Keranjang|jumlah|tema|bahasa|pengiriman|produk)\b/i;
+    var risks = [];
+    $all('[aria-label],[placeholder],[title]').forEach(function(el){
+      ['aria-label','placeholder','title'].forEach(function(attr){
+        if(!el.hasAttribute(attr)) return;
+        var value = clean(el.getAttribute(attr));
+        if(value && pattern.test(value)) risks.push(attr+': '+value);
+      });
+    });
+    return risks.filter(function(text, index, arr){ return arr.indexOf(text) === index; }).slice(0,20);
+  }
+
+  function runDiagnostics(){
+    applyAdaptiveQuality();
+    improveImageMetadata(document);
+    var lang = getLanguage();
+    var prod = getProducts();
+    var pIssues = productIssues();
+    var imgs = $all('img');
+    var emptyAlt = imgs.filter(function(img){ return !clean(img.getAttribute('alt')); });
+    var report = {
+      version: VERSION,
+      language: lang,
+      htmlLang: document.documentElement.getAttribute('lang') || '',
+      direction: document.documentElement.getAttribute('dir') || 'ltr',
+      quality: document.documentElement.getAttribute('data-dirac-quality') || 'standard',
+      productCount: prod.length,
+      duplicateIds: pIssues.duplicates,
+      productDataIssues: pIssues.missing.slice(0,30),
+      imageCount: imgs.length,
+      emptyAltCount: emptyAlt.length,
+      imageErrors: imageErrors.slice(-30),
+      runtimeErrors: errorLog.slice(-20),
+      untranslatedTextRisks: untranslatedRisks(lang),
+      untranslatedAttributeRisks: attributeRisks(lang),
+      cartQty: getCartQty(),
+      totals: getTotals(),
+      theme: {
+        mode: document.documentElement.getAttribute('data-theme-mode') || '',
+        effective: document.documentElement.getAttribute('data-effective-theme') || '',
+        accent: document.documentElement.getAttribute('data-theme-accent') || ''
+      },
+      timestamp: new Date().toISOString()
+    };
+    report.score = 100;
+    if(report.duplicateIds.length) report.score -= 35;
+    if(report.productDataIssues.length) report.score -= 20;
+    if(report.runtimeErrors.length) report.score -= 18;
+    if(report.imageErrors.length) report.score -= Math.min(16, report.imageErrors.length * 2);
+    if(report.emptyAltCount) report.score -= Math.min(8, report.emptyAltCount);
+    if(report.untranslatedTextRisks.length || report.untranslatedAttributeRisks.length) report.score -= Math.min(12, report.untranslatedTextRisks.length + report.untranslatedAttributeRisks.length);
+    report.score = Math.max(0, report.score);
+    lastReport = report;
+    if(debugEnabled()) renderPanel(report);
+    return report;
+  }
+
+  function ensurePanel(){
+    var panel = $('#diracQAPanel');
+    if(panel) return panel;
+    panel = document.createElement('aside');
+    panel.id = 'diracQAPanel';
+    panel.className = 'dirac-qa-panel';
+    panel.setAttribute('data-no-i18n','true');
+    panel.setAttribute('role','status');
+    panel.setAttribute('aria-live','polite');
+    document.body.appendChild(panel);
+    return panel;
+  }
+  function renderPanel(report){
+    var panel = ensurePanel();
+    var statusClass = report.score >= 94 ? '' : (report.score >= 78 ? 'warn' : 'fail');
+    var statusText = report.score >= 94 ? 'OK' : (report.score >= 78 ? 'CHECK' : 'FIX');
+    var issues = [];
+    if(report.duplicateIds.length) issues.push('Duplicate product ID: '+report.duplicateIds.join(', '));
+    report.productDataIssues.slice(0,5).forEach(function(item){ issues.push(item); });
+    report.runtimeErrors.slice(-3).forEach(function(item){ issues.push('JS: '+item.message); });
+    report.imageErrors.slice(-3).forEach(function(item){ issues.push('Image: '+item.src); });
+    report.untranslatedTextRisks.slice(0,5).forEach(function(item){ issues.push('i18n text: '+item); });
+    report.untranslatedAttributeRisks.slice(0,3).forEach(function(item){ issues.push('i18n attr: '+item); });
+    panel.hidden = false;
+    panel.innerHTML = '<div class="dirac-qa-head"><div class="dirac-qa-title">Dirac QA Guard v'+esc(report.version)+'</div><span class="dirac-qa-status '+statusClass+'">'+statusText+' '+report.score+'</span></div>'+
+      '<div class="dirac-qa-grid"><div class="dirac-qa-metric"><strong>'+report.productCount+'</strong><span>produk</span></div><div class="dirac-qa-metric"><strong>'+report.imageCount+'</strong><span>gambar</span></div><div class="dirac-qa-metric"><strong>'+esc(report.language)+' / '+esc(report.direction)+'</strong><span>bahasa</span></div><div class="dirac-qa-metric"><strong>'+esc(report.quality)+'</strong><span>quality</span></div></div>'+
+      '<div class="dirac-qa-metric"><strong>'+formatMoney(report.totals && report.totals.total || 0)+'</strong><span>'+report.cartQty+' item di cart debug</span></div>'+
+      (issues.length ? '<ul class="dirac-qa-list">'+issues.map(function(item){ return '<li>'+esc(item)+'</li>'; }).join('')+'</ul>' : '<div class="dirac-qa-note">Tidak ada masalah kritikal terdeteksi pada mode debug ini.</div>')+
+      '<div class="dirac-qa-actions"><button type="button" data-dirac-qa-run>Scan ulang</button><button type="button" data-dirac-qa-copy>Copy report</button><button type="button" data-dirac-qa-close>Tutup</button></div>'+
+      '<div class="dirac-qa-note">Panel hanya muncul dengan ?debug=1 / ?i18nDebug=1 atau localStorage debug.</div>';
+  }
+
+  function safeAbsoluteUrl(value){
+    value = clean(value);
+    if(!value) return '';
+    try{ return new URL(value, location.href && location.href !== 'about:blank' ? location.href : document.baseURI || location.origin || 'https://diracparfum.local/').href; }
+    catch(error){ return value; }
+  }
+
+  function pageUrl(){
+    try{
+      var href = location && location.href && location.href !== 'about:blank' ? location.href : document.baseURI || '';
+      return href ? String(href).split('#')[0] : 'https://diracparfum.local/';
+    }catch(error){ return 'https://diracparfum.local/'; }
+  }
+
+  function injectStructuredData(){
+    if($('#diracStructuredDataV8')) return;
+    var list = getProducts().slice(0,24).map(function(p, index){
+      return {
+        '@type':'ListItem',
+        position:index + 1,
+        item:{
+          '@type':'Product',
+          name:clean(p.title),
+          image:p.img ? [safeAbsoluteUrl(p.img)] : undefined,
+          description:clean(p.desc || p.longDesc || 'Katalog parfum premium Dirac Parfum.'),
+          category:clean(p.category || 'Parfum'),
+          offers:{
+            '@type':'Offer',
+            priceCurrency:'IDR',
+            price:Number(p.price || 0),
+            availability:p.status === 'sold' ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+            url:pageUrl() + '#produk'
+          }
+        }
+      };
+    });
+    var data = {
+      '@context':'https://schema.org',
+      '@type':'Store',
+      name:'Dirac Parfum',
+      url:pageUrl(),
+      description:clean(($('meta[name="description"]') || {}).content || 'Katalog parfum premium dengan cart dan checkout WhatsApp.'),
+      sameAs:[],
+      potentialAction:{'@type':'SearchAction',target:pageUrl()+'?q={search_term_string}',queryInput:'required name=search_term_string'},
+      hasOfferCatalog:{'@type':'OfferCatalog',name:'Katalog Parfum Dirac',itemListElement:list}
+    };
+    var script = document.createElement('script');
+    script.id = 'diracStructuredDataV8';
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(data, function(key, value){ return value === undefined ? undefined : value; });
+    document.head.appendChild(script);
+  }
+
+  function bindPanelEvents(){
+    if(window.__diracQAPanelEventsBound) return;
+    window.__diracQAPanelEventsBound = true;
+    document.addEventListener('click', function(event){
+      if(event.target && event.target.closest('[data-dirac-qa-run]')){ runDiagnostics(); return; }
+      if(event.target && event.target.closest('[data-dirac-qa-close]')){ var p = $('#diracQAPanel'); if(p) p.hidden = true; return; }
+      if(event.target && event.target.closest('[data-dirac-qa-copy]')){
+        var payload = JSON.stringify(lastReport || runDiagnostics(), null, 2);
+        if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(payload).catch(function(){}); }
+        else { try{ console.log(payload); }catch(error){} }
+      }
+    }, true);
+  }
+
+  function observeImportantAreas(){
+    if(!('MutationObserver' in window)) return;
+    if(window.__diracSafetyObserver) return;
+    window.__diracSafetyObserver = true;
+    var timer = null;
+    var obs = new MutationObserver(function(){
+      clearTimeout(timer);
+      timer = setTimeout(function(){ improveImageMetadata(document); if(debugEnabled()) runDiagnostics(); }, 180);
+    });
+    obs.observe(document.body, {childList:true,subtree:true,attributes:true,attributeFilter:['src','alt','class','aria-label','placeholder','title']});
+  }
+
+  function boot(){
+    applyAdaptiveQuality();
+    improveImageMetadata(document);
+    injectStructuredData();
+    bindPanelEvents();
+    observeImportantAreas();
+    if(debugEnabled()) runDiagnostics();
+    else schedule(runDiagnostics, 900);
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
+  else boot();
+  window.addEventListener('pageshow', function(){ schedule(boot, 80); });
+  document.addEventListener('click', function(event){ if(event.target && event.target.closest && event.target.closest('[data-language-option]')) schedule(runDiagnostics, 340); }, true);
+  window.diracProfessionalSafety = {
+    version: VERSION,
+    run: runDiagnostics,
+    report: function(){ return runDiagnostics(); },
+    setDebug: function(enabled){ try{ localStorage.setItem('dirac_debug_v1', enabled ? 'on' : 'off'); }catch(error){} if(enabled) runDiagnostics(); }
+  };
+})();
+</script>
+
 </body>
 </html>
