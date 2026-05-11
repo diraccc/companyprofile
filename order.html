@@ -2243,194 +2243,44 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 </style>
 
 
-<style id="dirac-final-precision-hero-v4">
-/* FINAL precision hero fix: balanced 2-photo layout + live elegant motion */
-.hero .hero-showcase{
-  display:block!important;
-  position:relative!important;
-  box-sizing:border-box!important;
-  height:auto!important;
-  min-height:454px!important;
-  margin-top:24px!important;
-  padding:0!important;
-  overflow:hidden!important;
-  border-radius:36px!important;
-  border:1px solid rgba(85,174,255,.24)!important;
-  background:
-    radial-gradient(circle at 17% 18%,rgba(55,184,255,.15),transparent 17rem),
-    radial-gradient(circle at 88% 5%,rgba(255,255,255,.09),transparent 13rem),
-    linear-gradient(145deg,rgba(10,26,43,.98),rgba(8,16,29,.96) 54%,rgba(11,31,49,.96))!important;
-  box-shadow:0 28px 78px rgba(0,0,0,.36), inset 0 0 0 1px rgba(255,255,255,.045)!important;
-  isolation:isolate!important;
-}
-.hero .hero-showcase:before{
-  content:""!important;
-  position:absolute!important;
-  inset:-14% auto -10% 42%!important;
-  width:34%!important;
-  z-index:0!important;
-  pointer-events:none!important;
-  background:linear-gradient(180deg,rgba(255,255,255,.19),rgba(255,255,255,0))!important;
-  transform:rotate(19deg)!important;
-  filter:blur(2px)!important;
-  opacity:.38!important;
-  animation:diracHeroAmbient 7.2s ease-in-out infinite!important;
-}
-.hero .hero-showcase:after{
-  content:""!important;
-  position:absolute!important;
-  top:-45%!important;
-  bottom:-45%!important;
-  left:-70%!important;
-  width:48%!important;
-  z-index:1!important;
-  pointer-events:none!important;
-  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.16) 50%,transparent 100%)!important;
-  transform:rotate(18deg) translateX(-30%)!important;
-  opacity:.35!important;
-  animation:diracHeroSweep 8.8s ease-in-out infinite!important;
-}
-.hero .hero-showcase .hero-card{
-  position:absolute!important;
-  box-sizing:border-box!important;
-  overflow:hidden!important;
-  border-radius:27px!important;
-  padding:8px!important;
-  background:rgba(244,249,255,.97)!important;
-  border:1px solid rgba(177,216,255,.42)!important;
-  box-shadow:0 22px 52px rgba(0,0,0,.34),0 0 0 1px rgba(255,255,255,.12) inset!important;
-  transform-origin:center center!important;
-  will-change:transform!important;
-  z-index:2!important;
-  backface-visibility:hidden!important;
-}
-.hero .hero-showcase .hero-card img{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  object-fit:cover!important;
-  object-position:center center!important;
-  border-radius:19px!important;
-  background:#101722!important;
+<style id="dirac-final-precision-hero-v5">
+/* v5 fix: yang bergerak adalah GAMBAR/KARTU, badge dibuat diam */
+.hero .hero-showcase .hero-showcase-badge{
+  animation:none!important;
+  transform:none!important;
 }
 .hero .hero-showcase .hero-card.one{
-  left:42px!important;
-  top:66px!important;
-  width:318px!important;
-  height:132px!important;
-  transform:rotate(-3.4deg) translate3d(0,0,0)!important;
-  animation:diracPrecisionCardOne 6.2s ease-in-out infinite!important;
+  animation:diracImageFloatSideA 5.8s ease-in-out infinite!important;
 }
 .hero .hero-showcase .hero-card.two{
-  left:58px!important;
-  top:194px!important;
-  width:324px!important;
-  height:136px!important;
-  transform:rotate(3.2deg) translate3d(0,0,0)!important;
-  animation:diracPrecisionCardTwo 6.8s ease-in-out .22s infinite!important;
+  animation:diracImageFloatSideB 6.2s ease-in-out .18s infinite!important;
 }
-.hero .hero-showcase .hero-card.three{display:none!important}
-.hero .hero-showcase .hero-showcase-badge{
-  position:absolute!important;
-  left:28px!important;
-  top:286px!important;
-  z-index:5!important;
-  display:inline-flex!important;
-  align-items:center!important;
-  gap:10px!important;
-  max-width:calc(100% - 56px)!important;
-  padding:12px 20px!important;
-  border-radius:999px!important;
-  background:linear-gradient(135deg,#69d0ff,#23a6f6)!important;
-  color:#03111d!important;
-  font-size:.95rem!important;
-  font-weight:950!important;
-  letter-spacing:-.01em!important;
-  white-space:nowrap!important;
-  box-shadow:0 17px 36px rgba(35,166,246,.28), inset 0 1px 0 rgba(255,255,255,.30)!important;
-  animation:diracPrecisionBadge 4.8s ease-in-out infinite!important;
+.hero .hero-showcase .hero-card.one img,
+.hero .hero-showcase .hero-card.two img{
+  animation:diracImageInnerDrift 6.6s ease-in-out infinite!important;
   will-change:transform!important;
 }
-.hero .hero-showcase .hero-showcase-badge span{font-size:1rem!important;line-height:1!important}
-.hero .hero-showcase .hero-floating-note{
-  position:absolute!important;
-  left:24px!important;
-  right:24px!important;
-  bottom:22px!important;
-  z-index:4!important;
-  min-height:64px!important;
-  box-sizing:border-box!important;
-  padding:17px 24px!important;
-  border-radius:23px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:12px!important;
-  background:rgba(4,10,18,.92)!important;
-  border:1px solid rgba(78,183,255,.23)!important;
-  box-shadow:0 15px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.055)!important;
-  backdrop-filter:blur(14px)!important;
-  animation:diracPrecisionNote 5.2s ease-in-out infinite!important;
-}
-.hero .hero-showcase .hero-floating-note span{
-  color:#f6f8fc!important;
-  font-size:1.06rem!important;
-}
-.hero .hero-showcase .hero-floating-note strong{
-  color:#2dbbff!important;
-  font-size:1.06rem!important;
-  letter-spacing:.02em!important;
-}
-
-@media(max-width:760px){
-  .hero .hero-showcase{display:block!important;min-height:454px!important;margin-top:24px!important;border-radius:34px!important}
-}
-@media(max-width:430px){
-  .hero .hero-showcase{min-height:438px!important;border-radius:33px!important}
-  .hero .hero-showcase .hero-card{padding:7px!important;border-radius:25px!important}
-  .hero .hero-showcase .hero-card img{border-radius:18px!important}
-  .hero .hero-showcase .hero-card.one{left:38px!important;top:63px!important;width:312px!important;height:130px!important}
-  .hero .hero-showcase .hero-card.two{left:56px!important;top:188px!important;width:320px!important;height:134px!important}
-  .hero .hero-showcase .hero-showcase-badge{left:27px!important;top:276px!important;padding:11px 17px!important;font-size:.88rem!important}
-  .hero .hero-showcase .hero-floating-note{left:24px!important;right:24px!important;bottom:18px!important;min-height:62px!important;padding:15px 20px!important;border-radius:22px!important}
-  .hero .hero-showcase .hero-floating-note span,.hero .hero-showcase .hero-floating-note strong{font-size:1rem!important}
-}
-@media(max-width:390px){
-  .hero .hero-showcase{min-height:414px!important}
-  .hero .hero-showcase .hero-card.one{left:30px!important;top:58px!important;width:292px!important;height:122px!important}
-  .hero .hero-showcase .hero-card.two{left:44px!important;top:176px!important;width:302px!important;height:126px!important}
-  .hero .hero-showcase .hero-showcase-badge{left:20px!important;top:260px!important;font-size:.82rem!important;padding:10px 14px!important}
-  .hero .hero-showcase .hero-floating-note{left:18px!important;right:18px!important;bottom:16px!important}
-}
-@keyframes diracPrecisionCardOne{
+@keyframes diracImageFloatSideA{
   0%,100%{transform:rotate(-3.4deg) translate3d(0,0,0)}
-  50%{transform:rotate(-2.45deg) translate3d(7px,-8px,0)}
+  25%{transform:rotate(-2.8deg) translate3d(12px,-3px,0)}
+  50%{transform:rotate(-3.15deg) translate3d(5px,-7px,0)}
+  75%{transform:rotate(-3.9deg) translate3d(-12px,2px,0)}
 }
-@keyframes diracPrecisionCardTwo{
+@keyframes diracImageFloatSideB{
   0%,100%{transform:rotate(3.2deg) translate3d(0,0,0)}
-  50%{transform:rotate(2.2deg) translate3d(-7px,8px,0)}
+  25%{transform:rotate(2.6deg) translate3d(-12px,3px,0)}
+  50%{transform:rotate(3.35deg) translate3d(-4px,8px,0)}
+  75%{transform:rotate(2.7deg) translate3d(12px,-2px,0)}
 }
-@keyframes diracPrecisionBadge{
-  0%,100%{transform:translate3d(0,0,0)}
-  50%{transform:translate3d(6px,-5px,0)}
-}
-@keyframes diracPrecisionNote{
-  0%,100%{box-shadow:0 15px 36px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.055)}
-  50%{box-shadow:0 18px 42px rgba(0,0,0,.34),0 0 28px rgba(45,187,255,.13), inset 0 1px 0 rgba(255,255,255,.07)}
-}
-@keyframes diracHeroSweep{
-  0%,66%{transform:rotate(18deg) translateX(-150%);opacity:0}
-  78%{opacity:.35}
-  100%{transform:rotate(18deg) translateX(420%);opacity:0}
-}
-@keyframes diracHeroAmbient{
-  0%,100%{opacity:.27;transform:rotate(19deg) translate3d(0,0,0)}
-  50%{opacity:.46;transform:rotate(19deg) translate3d(-10px,8px,0)}
+@keyframes diracImageInnerDrift{
+  0%,100%{transform:scale(1.01) translate3d(0,0,0)}
+  50%{transform:scale(1.028) translate3d(4px,0,0)}
 }
 @media(prefers-reduced-motion:reduce){
-  .hero .hero-showcase:before,.hero .hero-showcase:after,
-  .hero .hero-showcase .hero-card.one,.hero .hero-showcase .hero-card.two,
-  .hero .hero-showcase .hero-showcase-badge,.hero .hero-showcase .hero-floating-note{
+  .hero .hero-showcase .hero-card.one,
+  .hero .hero-showcase .hero-card.two,
+  .hero .hero-showcase .hero-card.one img,
+  .hero .hero-showcase .hero-card.two img{
     animation:none!important;
   }
 }
