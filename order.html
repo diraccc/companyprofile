@@ -1565,6 +1565,144 @@ html[data-effective-theme="light"] .stat-card.dirac-click-motion:hover{
 #productGrid[data-render-mode="paged"] .product-card{content-visibility:auto;contain-intrinsic-size:420px}
 </style>
 
+
+
+<style id="dirac-floating-actions-css">
+/* Floating quick actions: compact, premium, dan tidak menutup area belanja. */
+.dirac-floating-actions{
+  position:fixed;
+  right:clamp(14px,2.8vw,22px);
+  bottom:calc(92px + env(safe-area-inset-bottom));
+  z-index:9200;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:10px;
+  pointer-events:none;
+  opacity:1;
+  transform:translate3d(0,0,0);
+  transition:opacity .28s var(--motion-ease,cubic-bezier(.22,1,.36,1)),transform .28s var(--motion-ease,cubic-bezier(.22,1,.36,1));
+}
+.dirac-float-btn{
+  pointer-events:auto;
+  width:48px;
+  height:48px;
+  border-radius:999px;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.34);
+  display:grid;
+  place-items:center;
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  color:#fff;
+  background:linear-gradient(145deg,rgba(11,16,24,.88),rgba(16,23,34,.78));
+  box-shadow:0 16px 36px rgba(0,0,0,.32),0 0 0 1px rgba(255,255,255,.05) inset;
+  backdrop-filter:blur(16px) saturate(1.14);
+  -webkit-backdrop-filter:blur(16px) saturate(1.14);
+  transform:translate3d(0,0,0) scale(1);
+  transition:transform .28s var(--motion-ease,cubic-bezier(.22,1,.36,1)),box-shadow .28s var(--motion-ease,cubic-bezier(.22,1,.36,1)),border-color .28s var(--motion-ease,cubic-bezier(.22,1,.36,1)),filter .28s var(--motion-ease,cubic-bezier(.22,1,.36,1)),opacity .28s var(--motion-ease,cubic-bezier(.22,1,.36,1));
+  -webkit-tap-highlight-color:transparent;
+}
+.dirac-float-btn:before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  z-index:-1;
+  border-radius:inherit;
+  background:linear-gradient(115deg,transparent 12%,rgba(255,255,255,.18) 36%,rgba(var(--theme-rgb,243,205,112),.20) 48%,transparent 70%);
+  transform:translateX(-145%) rotate(8deg);
+  opacity:.72;
+  transition:transform .72s var(--motion-ease,cubic-bezier(.22,1,.36,1));
+}
+.dirac-float-btn:after{
+  content:"";
+  position:absolute;
+  inset:5px;
+  z-index:-1;
+  border-radius:inherit;
+  border:1px solid rgba(255,255,255,.10);
+  opacity:.7;
+}
+.dirac-float-btn svg{
+  width:22px;
+  height:22px;
+  display:block;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.35;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.24));
+}
+.dirac-float-btn:hover,.dirac-float-btn:focus-visible{
+  transform:translate3d(0,-3px,0) scale(1.035);
+  border-color:rgba(var(--theme-rgb,243,205,112),.62);
+  box-shadow:0 20px 44px rgba(0,0,0,.38),0 0 26px rgba(var(--theme-rgb,243,205,112),.15),0 0 0 1px rgba(255,255,255,.08) inset;
+  filter:brightness(1.06);
+  outline:none;
+}
+.dirac-float-btn:hover:before,.dirac-float-btn:focus-visible:before{transform:translateX(145%) rotate(8deg)}
+.dirac-float-top{
+  color:#f9ead0;
+  opacity:0;
+  pointer-events:none;
+  transform:translate3d(0,10px,0) scale(.92);
+}
+.dirac-floating-actions.is-scroll-ready .dirac-float-top{
+  opacity:1;
+  pointer-events:auto;
+  transform:translate3d(0,0,0) scale(1);
+}
+.dirac-float-wa{
+  color:#fff;
+  border-color:rgba(255,255,255,.18);
+  background:linear-gradient(145deg,rgba(37,211,102,.98),rgba(18,140,126,.96));
+  box-shadow:0 16px 36px rgba(0,0,0,.34),0 10px 28px rgba(37,211,102,.16),0 0 0 1px rgba(255,255,255,.10) inset;
+  animation:diracWaQuietBreathe 4.2s ease-in-out infinite;
+}
+.dirac-float-wa:after{border-color:rgba(255,255,255,.18)}
+.dirac-float-wa:hover,.dirac-float-wa:focus-visible{
+  border-color:rgba(255,255,255,.34);
+  box-shadow:0 22px 46px rgba(0,0,0,.40),0 12px 34px rgba(37,211,102,.22),0 0 0 1px rgba(255,255,255,.12) inset;
+}
+.dirac-float-wa svg{stroke-width:0;fill:currentColor;filter:drop-shadow(0 4px 10px rgba(0,0,0,.20))}
+body.cart-open .dirac-floating-actions,
+body.modal-open .dirac-floating-actions{
+  opacity:0;
+  pointer-events:none;
+  transform:translate3d(0,8px,0) scale(.98);
+}
+@keyframes diracWaQuietBreathe{
+  0%,100%{box-shadow:0 16px 36px rgba(0,0,0,.34),0 10px 28px rgba(37,211,102,.14),0 0 0 1px rgba(255,255,255,.10) inset}
+  50%{box-shadow:0 18px 40px rgba(0,0,0,.36),0 12px 34px rgba(37,211,102,.22),0 0 0 1px rgba(255,255,255,.12) inset}
+}
+html[data-effective-theme="light"] .dirac-float-top{
+  color:#172033;
+  background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(248,250,252,.78));
+  box-shadow:0 14px 34px rgba(15,23,42,.14),0 0 0 1px rgba(var(--theme-rgb,243,205,112),.12) inset;
+}
+@media(max-width:760px){
+  .dirac-floating-actions{
+    right:14px;
+    bottom:calc(16px + env(safe-area-inset-bottom));
+    gap:9px;
+  }
+  .dirac-float-btn{width:46px;height:46px}
+  .dirac-float-btn svg{width:21px;height:21px}
+}
+@media(max-width:430px){
+  .dirac-floating-actions{right:12px;bottom:calc(14px + env(safe-area-inset-bottom))}
+  .dirac-float-btn{width:44px;height:44px}
+  .dirac-float-btn svg{width:20px;height:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  .dirac-float-wa{animation:none!important}
+  .dirac-float-btn,.dirac-floating-actions,.dirac-float-btn:before{transition:none!important}
+  .dirac-float-btn:hover,.dirac-float-btn:focus-visible,.dirac-floating-actions.is-scroll-ready .dirac-float-top{transform:none!important}
+  .dirac-float-btn:before{display:none!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -1863,6 +2001,21 @@ html[data-effective-theme="light"] .stat-card.dirac-click-motion:hover{
   <button class="floating-cart" type="button" data-open-cart aria-label="Buka keranjang">
     <span>🛍️</span><span class="label">Keranjang</span><span class="count-badge" data-cart-count>0</span>
   </button>
+
+
+  <div class="dirac-floating-actions" id="diracFloatingActions" aria-label="Aksi cepat Dirac Parfum">
+    <button class="dirac-float-btn dirac-float-top" type="button" id="diracScrollTopBtn" aria-label="Kembali ke atas" title="Kembali ke atas">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 19V5"></path>
+        <path d="M6 11l6-6 6 6"></path>
+      </svg>
+    </button>
+    <a class="dirac-float-btn dirac-float-wa" href="https://wa.me/6287892523968?text=Halo%20Dirac%20Parfum%2C%20saya%20ingin%20konsultasi%20aroma%20atau%20cek%20stok." target="_blank" rel="noopener" aria-label="Chat WhatsApp Dirac Parfum" title="Chat WhatsApp">
+      <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <path d="M16.04 3.2c-7.02 0-12.72 5.62-12.72 12.55 0 2.22.6 4.4 1.73 6.3L3.2 28.8l6.95-1.8a12.93 12.93 0 0 0 5.89 1.43c7.02 0 12.76-5.62 12.76-12.55S23.06 3.2 16.04 3.2Zm0 22.99c-1.9 0-3.76-.5-5.38-1.47l-.39-.23-4.13 1.07 1.1-3.95-.26-.41a10.17 10.17 0 0 1-1.57-5.45c0-5.68 4.78-10.31 10.63-10.31 5.87 0 10.64 4.63 10.64 10.31 0 5.7-4.77 10.44-10.64 10.44Zm5.84-7.82c-.32-.16-1.9-.92-2.2-1.03-.29-.1-.51-.16-.72.16-.21.31-.82 1.02-1 1.23-.18.2-.37.23-.69.08-.32-.16-1.36-.49-2.58-1.57-.95-.84-1.6-1.88-1.79-2.2-.18-.31-.02-.48.14-.64.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.1-.21.05-.39-.03-.55-.08-.16-.72-1.7-.98-2.33-.26-.62-.52-.53-.72-.54h-.62c-.21 0-.55.08-.84.39-.29.31-1.1 1.06-1.1 2.58s1.13 3 1.29 3.2c.16.21 2.23 3.36 5.4 4.71.75.32 1.34.51 1.8.65.76.24 1.45.2 1.99.12.61-.09 1.9-.76 2.17-1.49.27-.73.27-1.36.19-1.49-.08-.13-.29-.21-.61-.37Z"></path>
+      </svg>
+    </a>
+  </div>
 
   <div class="cart-overlay" id="cartOverlay" aria-hidden="true">
     <aside class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
@@ -4761,6 +4914,55 @@ html[data-effective-theme="light"] .stat-card.dirac-click-motion:hover{
   setTimeout(function(){ addBaseClasses(document); }, 1200);
 })();
 </script>
+
+
+<script id="dirac-floating-actions-js">
+(function(){
+  'use strict';
+  var actions = document.getElementById('diracFloatingActions');
+  var topBtn = document.getElementById('diracScrollTopBtn');
+  if(!actions || !topBtn) return;
+
+  var reduceMotion = false;
+  try{ reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(error){}
+
+  function currentScrollY(){
+    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+
+  function rafThrottle(fn){
+    var ticking = false;
+    return function(){
+      if(ticking) return;
+      ticking = true;
+      (window.requestAnimationFrame || function(cb){ return setTimeout(cb,16); })(function(){
+        ticking = false;
+        fn();
+      });
+    };
+  }
+
+  function updateScrollButton(){
+    actions.classList.toggle('is-scroll-ready', currentScrollY() > 420);
+  }
+
+  topBtn.addEventListener('click', function(){
+    var behavior = reduceMotion ? 'auto' : 'smooth';
+    try{
+      window.scrollTo({top:0,left:0,behavior:behavior});
+    }catch(error){
+      window.scrollTo(0,0);
+    }
+    topBtn.blur();
+  });
+
+  window.addEventListener('scroll', rafThrottle(updateScrollButton), {passive:true});
+  window.addEventListener('resize', rafThrottle(updateScrollButton), {passive:true});
+  window.addEventListener('pageshow', updateScrollButton);
+  updateScrollButton();
+})();
+</script>
+
 
 </body>
 </html>
