@@ -2367,6 +2367,166 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 }
 </style>
 
+
+<style id="dirac-conversion-motion-v6-css">
+/* =========================================================
+   Dirac Conversion Motion v6
+   Purpose: final high-value motion only: checkout success,
+   free-shipping milestone, sold-out clarity, theme/language
+   transition, and mobile product-modal gesture polish.
+   Fail-safe: never hides core content permanently.
+   ========================================================= */
+:root{
+  --dirac-convert-ease:cubic-bezier(.16,1,.3,1);
+  --dirac-convert-fast:240ms;
+  --dirac-convert-mid:520ms;
+}
+
+/* Interface transition for theme/language changes. */
+.dirac-interface-veil{
+  position:fixed;
+  inset:0;
+  z-index:16000;
+  pointer-events:none;
+  opacity:0;
+  background:
+    radial-gradient(circle at 50% 20%,rgba(var(--theme-rgb,243,205,112),.20),transparent 38%),
+    linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.015));
+  backdrop-filter:blur(0px) saturate(1);
+  -webkit-backdrop-filter:blur(0px) saturate(1);
+  transition:opacity .28s var(--dirac-convert-ease),backdrop-filter .28s var(--dirac-convert-ease),-webkit-backdrop-filter .28s var(--dirac-convert-ease);
+}
+.dirac-interface-veil.is-active{
+  opacity:1;
+  backdrop-filter:blur(7px) saturate(1.08);
+  -webkit-backdrop-filter:blur(7px) saturate(1.08);
+}
+html[data-effective-theme="light"] .dirac-interface-veil{
+  background:
+    radial-gradient(circle at 50% 18%,rgba(var(--theme-rgb,243,205,112),.18),transparent 40%),
+    linear-gradient(135deg,rgba(255,255,255,.42),rgba(255,255,255,.10));
+}
+
+/* Free shipping milestone: a clear but calm conversion cue. */
+.free-ship{position:relative;overflow:hidden;border-radius:16px;padding:2px 2px 0;transition:background-color .28s var(--dirac-convert-ease),box-shadow .28s var(--dirac-convert-ease)}
+.free-ship.dirac-free-active{
+  background:linear-gradient(135deg,rgba(24,185,129,.075),rgba(var(--theme-rgb,243,205,112),.07));
+  box-shadow:0 0 0 1px rgba(24,185,129,.16),0 16px 34px rgba(0,0,0,.12);
+}
+.free-ship.dirac-free-active small{color:#dff7eb!important;font-weight:850}
+.free-ship.dirac-free-active small:before{
+  content:"✓ ";
+  color:#86efac;
+  filter:drop-shadow(0 0 8px rgba(24,185,129,.28));
+}
+.free-ship.dirac-free-celebrate:after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.24) 42%,rgba(24,185,129,.18) 52%,transparent 72%);
+  transform:translateX(-120%);
+  animation:diracFreeShipSweep .82s var(--dirac-convert-ease) both;
+}
+.free-ship.dirac-free-active .meter span{
+  filter:drop-shadow(0 0 12px rgba(24,185,129,.34));
+  background:linear-gradient(90deg,#86efac,var(--gold))!important;
+}
+@keyframes diracFreeShipSweep{to{transform:translateX(120%)}}
+
+/* Checkout final confidence state. */
+#sendWhatsappBtn.dirac-checkout-success{
+  color:#052e1a!important;
+  background:linear-gradient(135deg,#dcfce7,#34d399 62%,#059669)!important;
+  border-color:rgba(134,239,172,.40)!important;
+  box-shadow:0 18px 50px rgba(16,185,129,.28),0 0 0 1px rgba(255,255,255,.18) inset!important;
+  animation:diracCheckoutSuccess .74s var(--dirac-convert-ease) both!important;
+}
+#sendWhatsappBtn.dirac-checkout-working{
+  pointer-events:none;
+  filter:brightness(1.07) saturate(1.08);
+}
+#sendWhatsappBtn.dirac-checkout-success:before{
+  content:"";
+  position:absolute;
+  inset:-20%;
+  pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.32),transparent 56%);
+  animation:diracCheckoutBurst .58s var(--dirac-convert-ease) both;
+}
+@keyframes diracCheckoutSuccess{0%{transform:scale(.985)}45%{transform:scale(1.025)}100%{transform:scale(1)}}
+@keyframes diracCheckoutBurst{from{opacity:1;transform:scale(.45)}to{opacity:0;transform:scale(1.35)}}
+
+/* Sold-out clarity: make unavailable products feel intentional, not broken. */
+.product-card.dirac-sold-card{
+  position:relative;
+  filter:saturate(.86);
+}
+.product-card.dirac-sold-card .product-media:after{
+  content:"";
+  position:absolute;
+  inset:10px;
+  z-index:3;
+  pointer-events:none;
+  border-radius:18px;
+  background:linear-gradient(135deg,transparent 0%,transparent 44%,rgba(239,68,68,.28) 45%,rgba(239,68,68,.28) 55%,transparent 56%,transparent 100%);
+  opacity:.46;
+}
+.product-card.dirac-sold-card .tag.sold{
+  animation:diracSoldBadgeIn .54s var(--dirac-convert-ease) both;
+  box-shadow:0 12px 28px rgba(239,68,68,.22),0 0 0 1px rgba(255,255,255,.10) inset;
+}
+.product-card.dirac-sold-card .btn-disabled{
+  position:relative;
+  overflow:hidden;
+  background:rgba(239,68,68,.10)!important;
+  border:1px solid rgba(239,68,68,.26)!important;
+  color:#ffd6d6!important;
+}
+.product-card.dirac-sold-card .btn-disabled:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(110deg,transparent 22%,rgba(255,255,255,.11) 50%,transparent 78%);
+  transform:translateX(-130%);
+}
+.product-card.dirac-sold-card:hover .btn-disabled:after{animation:diracSoldButtonSweep .72s var(--dirac-convert-ease)}
+@keyframes diracSoldBadgeIn{from{opacity:.55;transform:translateY(-4px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes diracSoldButtonSweep{to{transform:translateX(130%)}}
+
+/* Quick modal mobile: gesture-like open without changing layout. */
+@media(max-width:760px){
+  .modal.open .quick-grid{animation:diracMobileQuickSheet .42s var(--dirac-convert-ease) both}
+  .modal.open .quick-grid:before{
+    content:"";
+    width:42px;
+    height:4px;
+    border-radius:999px;
+    background:rgba(255,255,255,.22);
+    justify-self:center;
+    margin:-2px 0 2px;
+    display:block;
+  }
+  .modal.open .quick-grid img{animation:diracMobileQuickImage .56s var(--dirac-convert-ease) both .04s}
+}
+@keyframes diracMobileQuickSheet{from{opacity:.78;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes diracMobileQuickImage{from{transform:translateY(12px) scale(.985);filter:saturate(.92)}to{transform:none;filter:none}}
+
+/* Field success confirmation: complements existing validation without changing form rules. */
+.checkout-grid .field.dirac-field-complete,
+.modal .field.dirac-field-complete{
+  background-image:linear-gradient(90deg,rgba(24,185,129,.065),transparent)!important;
+  box-shadow:0 0 0 1px rgba(24,185,129,.18) inset!important;
+}
+
+@media(prefers-reduced-motion:reduce){
+  .dirac-interface-veil,.dirac-interface-veil.is-active{display:none!important;transition:none!important;opacity:0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  .free-ship.dirac-free-celebrate:after,#sendWhatsappBtn.dirac-checkout-success,#sendWhatsappBtn.dirac-checkout-success:before,.product-card.dirac-sold-card .tag.sold,.product-card.dirac-sold-card:hover .btn-disabled:after,.modal.open .quick-grid,.modal.open .quick-grid img{animation:none!important;transform:none!important;filter:none!important}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -6183,195 +6343,507 @@ html[dir="rtl"] select{direction:rtl;text-align:right}
 </script>
 
 
-<style id="dirac-final-language-theme-fix-css">
-/* Final language + warm-stone theme polish.
-   Goal: no Indonesian UI leak after language switch, and no bright white light mode. */
-:root{--dirac-warm-bg:#141210;--dirac-warm-bg-2:#1d1916;--dirac-warm-panel:#231f1b;--dirac-warm-panel-2:#2b251f;--dirac-warm-text:#fff7ee;--dirac-warm-muted:#cdbfb1;--dirac-warm-line:rgba(var(--theme-rgb,243,205,112),.28)}
-html[data-effective-theme="light"]{color-scheme:dark!important;--bg:#141210!important;--bg-soft:#1d1916!important;--panel:#231f1b!important;--panel-2:#2b251f!important;--text:#fff7ee!important;--muted:#cdbfb1!important;--shadow:0 24px 70px rgba(0,0,0,.38)!important;--theme-surface:rgba(29,25,22,.94)!important;--theme-surface-2:rgba(255,255,255,.055)!important}
-html[data-effective-theme="light"] body{background:radial-gradient(circle at top left,rgba(var(--theme-rgb,243,205,112),.16),transparent 34rem),radial-gradient(circle at 90% 8%,rgba(132,88,54,.20),transparent 28rem),linear-gradient(180deg,#191512 0%,#0b0a09 100%)!important;color:#fff7ee!important}
-html[data-effective-theme="light"] .site-header,html[data-effective-theme="light"] .cart-drawer,html[data-effective-theme="light"] .modal-card,html[data-effective-theme="light"] .theme-card{background:rgba(23,20,18,.92)!important;color:#fff7ee!important;border-color:rgba(var(--theme-rgb,243,205,112),.24)!important;box-shadow:0 22px 70px rgba(0,0,0,.44)!important}
-html[data-effective-theme="light"] .announcement,html[data-effective-theme="light"] .footer{background:linear-gradient(90deg,#171310,#211b16,#171310)!important;color:#f5eadf!important;border-color:rgba(var(--theme-rgb,243,205,112),.20)!important}
-html[data-effective-theme="light"] .product-card,html[data-effective-theme="light"] .feature-card,html[data-effective-theme="light"] .info-card,html[data-effective-theme="light"] .blog-card,html[data-effective-theme="light"] .content-card,html[data-effective-theme="light"] .faq-item,html[data-effective-theme="light"] .stat-card,html[data-effective-theme="light"] .promo-box,html[data-effective-theme="light"] .cart-item,html[data-effective-theme="light"] .field,html[data-effective-theme="light"] .promo-row input,html[data-effective-theme="light"] .ship-row select,html[data-effective-theme="light"] .theme-panel,html[data-effective-theme="light"] .theme-choice,html[data-effective-theme="light"] .btn-secondary,html[data-effective-theme="light"] .dirac-results-status{background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.028))!important;color:#fff7ee!important;border-color:rgba(var(--theme-rgb,243,205,112),.22)!important}
-html[data-effective-theme="light"] .product-media,html[data-effective-theme="light"] .product-media img,html[data-effective-theme="light"] .quick-grid img,html[data-effective-theme="light"] .cart-thumb{background:#2a241f!important}
-html[data-effective-theme="light"] .footer h3,html[data-effective-theme="light"] .footer h4,html[data-effective-theme="light"] .brand-name,html[data-effective-theme="light"] .product-title,html[data-effective-theme="light"] .info-card h3,html[data-effective-theme="light"] .feature-card h3,html[data-effective-theme="light"] .blog-card h3,html[data-effective-theme="light"] .lifestyle-copy h3,html[data-effective-theme="light"] .cart-item h3,html[data-effective-theme="light"] .modal-head h2,html[data-effective-theme="light"] .theme-head h2,html[data-effective-theme="light"] .theme-section h3,html[data-effective-theme="light"] .hero h1,html[data-effective-theme="light"] .faq-q{color:#fff8ef!important}
-html[data-effective-theme="light"] .nav-links a,html[data-effective-theme="light"] .hero p,html[data-effective-theme="light"] .section-lead,html[data-effective-theme="light"] .muted,html[data-effective-theme="light"] .footer p,html[data-effective-theme="light"] .footer a,html[data-effective-theme="light"] .footer li,html[data-effective-theme="light"] .product-desc,html[data-effective-theme="light"] .product-sold-copy,html[data-effective-theme="light"] .info-card p,html[data-effective-theme="light"] .info-card li,html[data-effective-theme="light"] .feature-card p,html[data-effective-theme="light"] .blog-card p,html[data-effective-theme="light"] .faq-a,html[data-effective-theme="light"] .cart-row,html[data-effective-theme="light"] .quick-desc,html[data-effective-theme="light"] .theme-section p{color:#d2c5b8!important}
-html[data-effective-theme="light"] .field::placeholder,html[data-effective-theme="light"] .promo-row input::placeholder{color:#b8aa9d!important}
-html[data-effective-theme="light"] .theme-choice.is-selected{background:linear-gradient(135deg,rgba(var(--theme-rgb,243,205,112),.24),rgba(255,255,255,.055))!important;color:#fff8ef!important;border-color:rgba(var(--theme-rgb,243,205,112),.66)!important}
-html[data-effective-theme="light"] .tag{background:rgba(26,22,19,.86)!important;color:#fff7ee!important;border-color:rgba(var(--theme-rgb,243,205,112),.24)!important}
-html[data-effective-theme="light"] .tag.top-seller,html[data-effective-theme="light"] .quick-top-label,html[data-effective-theme="light"] .info-card .mini-label{color:#17110b!important}
-html[data-effective-theme="light"] .trust-row span,html[data-effective-theme="light"] .quick-meta span{background:rgba(255,255,255,.055)!important;color:#f8efe6!important;border-color:rgba(var(--theme-rgb,243,205,112),.20)!important}
-html[data-effective-theme="light"] .cart-row.total{color:#fff8ef!important}
-html[data-effective-theme="light"] .theme-save{color:#17110b!important}
-html[data-effective-theme="light"] .theme-modal{background:rgba(5,4,3,.72)!important}
-html[data-effective-theme="light"] .theme-card{background:radial-gradient(circle at 18% 0%,rgba(var(--theme-rgb,243,205,112),.14),transparent 23rem),linear-gradient(180deg,rgba(35,31,27,.97),rgba(13,11,10,.98))!important}
-html[data-effective-theme="light"] .dirac-float-top{color:#fff7ee!important;background:linear-gradient(145deg,rgba(31,27,24,.94),rgba(20,17,15,.88))!important}
-html[data-effective-theme="light"] .theme-choice[data-theme-mode-option="light"]{box-shadow:0 0 0 3px rgba(132,88,54,.22),0 18px 38px rgba(0,0,0,.24)!important}
-</style>
-
-<script id="dirac-final-language-theme-fix-js">
+<script id="dirac-conversion-motion-v6-js">
 (function(){
   'use strict';
-  var KEY='dirac_language_v1';
-  var LANGS={id:1,en:1,zh:1,ar:1,ja:1,ko:1,es:1,fr:1};
-  var EXACT={
-    'Light':{id:'Abu Coklat',en:'Warm Stone'},
-    'Dark':{id:'Gelap',en:'Dark'},
-    'Auto':{id:'Otomatis',en:'Auto'},
-    'Pengaturan Tema':{id:'Pengaturan Tema',en:'Theme Settings'},
-    'Mode Tema':{id:'Mode Tema',en:'Theme Mode'},
-    'Pilih mode tema':{id:'Pilih mode tema',en:'Choose a theme mode'},
-    'Bahasa Tampilan':{id:'Bahasa Tampilan',en:'Display Language'},
-    'Pilih bahasa website':{id:'Pilih bahasa website',en:'Choose website language'},
-    'Kontras Tema':{id:'Kontras Tema',en:'Theme Contrast'},
-    'Pilih kontras tema':{id:'Pilih kontras tema',en:'Choose theme contrast'},
-    'Kustom Tema':{id:'Kustom Tema',en:'Custom Theme'},
-    'Pilih warna utama Anda':{id:'Pilih warna utama Anda',en:'Choose your main color'},
-    'Simpan':{id:'Simpan',en:'Save'},
-    'Reset':{id:'Reset',en:'Reset'},
-    'On':{id:'Aktif',en:'On'},
-    'Off':{id:'Nonaktif',en:'Off'},
-    'Tutup pengaturan tema':{id:'Tutup pengaturan tema',en:'Close theme settings'},
-    'Katalog siap dipilih':{id:'Katalog siap dipilih',en:'Catalog ready to browse'},
-    'Menyiapkan katalog...':{id:'Menyiapkan katalog...',en:'Preparing catalog...'},
-    'Produk tidak ditemukan':{id:'Produk tidak ditemukan',en:'No products found'},
-    '0 produk':{id:'0 produk',en:'0 products'},
-    'Semua':{id:'Semua',en:'All'},
-    'Best seller pilihan':{id:'Best seller pilihan',en:'Best seller pick'},
-    'Ready untuk hadiah':{id:'Ready untuk hadiah',en:'Ready for gifting'},
-    'Status checkout':{id:'Status checkout',en:'Checkout status'},
-    'Nama':{id:'Nama',en:'Name'},
-    'Alamat':{id:'Alamat',en:'Address'},
-    'Membuat pesan...':{id:'Membuat pesan...',en:'Creating message...'},
-    'Pesan siap ✓':{id:'Pesan siap ✓',en:'Message ready ✓'},
-    'Ditambahkan ✓':{id:'Ditambahkan ✓',en:'Added ✓'},
-    'Tema berhasil disimpan di browser ini.':{id:'Tema berhasil disimpan di browser ini.',en:'Theme saved in this browser.'},
-    'Theme saved in this browser.':{id:'Tema berhasil disimpan di browser ini.',en:'Theme saved in this browser.'},
-    'Tema kembali ke gold default.':{id:'Tema kembali ke gold default.',en:'Theme reset to default gold.'},
-    'Theme reset to default gold.':{id:'Tema kembali ke gold default.',en:'Theme reset to default gold.'},
-    'Bahasa berhasil diubah.':{id:'Bahasa berhasil diubah.',en:'Language changed.'},
-    'Gerak Website':{id:'Gerak Website',en:'Website Motion'},
-    'Pilih intensitas animasi agar tetap nyaman di perangkat Anda.':{id:'Pilih intensitas animasi agar tetap nyaman di perangkat Anda.',en:'Choose the animation intensity that feels comfortable on your device.'},
-    'Normal':{id:'Normal',en:'Normal'},
-    'Hemat':{id:'Hemat',en:'Calm'},
-    'Mode Hemat mengurangi animasi non-esensial tanpa mengubah isi katalog, cart, atau checkout.':{id:'Mode Hemat mengurangi animasi non-esensial tanpa mengubah isi katalog, cart, atau checkout.',en:'Calm mode reduces non-essential motion without changing the catalog, cart, or checkout.'},
-    'Bantu Pilih Aroma':{id:'Bantu Pilih Aroma',en:'Help Me Choose a Scent'},
-    'Reset Pencarian':{id:'Reset Pencarian',en:'Reset Search'},
-    'Pilih 3 jawaban singkat. Sistem akan menampilkan rekomendasi yang paling masuk akal dari katalog.':{id:'Pilih 3 jawaban singkat. Sistem akan menampilkan rekomendasi yang paling masuk akal dari katalog.',en:'Choose 3 quick answers. The system will show the most sensible recommendations from the catalog.'},
-    'Tutup quiz':{id:'Tutup quiz',en:'Close quiz'}
-  };
-  function lang(){
-    var v=(document.documentElement.getAttribute('data-language')||'').trim();
-    if(LANGS[v]) return v;
-    try{v=(localStorage.getItem(KEY)||'').trim();}catch(e){v='';}
-    return LANGS[v]?v:'id';
+  var reduceMotion = false;
+  try{ reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(error){}
+  function $(selector, root){ return (root || document).querySelector(selector); }
+  function $all(selector, root){ return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
+  function textOf(el){ return (el && el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function digits(value){ return String(value || '').replace(/\D/g,''); }
+
+  function ensureVeil(){
+    var veil = $('#diracInterfaceVeil');
+    if(!veil){
+      veil = document.createElement('div');
+      veil.id = 'diracInterfaceVeil';
+      veil.className = 'dirac-interface-veil';
+      veil.setAttribute('aria-hidden','true');
+      document.body.appendChild(veil);
+    }
+    return veil;
   }
-  function pick(obj,l){return l==='id'?(obj.id||obj.en||''):(obj[l]||obj.en||obj.id||'');}
-  function translatePattern(s,l){
-    var m;
-    if(l==='id') return null;
-    m=s.match(/^Hasil pencarian untuk "([^"]+)"$/); if(m) return 'Search results for "'+m[1]+'"';
-    m=s.match(/^(\d+)\s*\/\s*(\d+)\s+tampil\s*[\u2013\-]\s*(.+)$/i); if(m){var f=translateText(m[3],l); return m[1]+' / '+m[2]+' shown - '+f;}
-    m=s.match(/^(\d+)\s+produk$/i); if(m) return m[1]+' products';
-    return null;
+  var veilTimer = null;
+  function pulseInterfaceVeil(){
+    if(reduceMotion || !document.body) return;
+    var veil = ensureVeil();
+    clearTimeout(veilTimer);
+    veil.classList.add('is-active');
+    veilTimer = setTimeout(function(){ veil.classList.remove('is-active'); }, 300);
   }
-  function translateText(value,l){
-    var raw=String(value==null?'':value), trim=raw.trim();
-    if(!trim) return raw;
-    var hit=EXACT[trim];
-    var next=hit?pick(hit,l):translatePattern(trim,l);
-    if(!next) return raw;
-    return raw.replace(trim,next);
+
+  function bindThemeLanguageTransition(){
+    if(window.__diracConvertThemeLangBound) return;
+    window.__diracConvertThemeLangBound = true;
+    document.addEventListener('click', function(event){
+      var target = event.target && event.target.closest && event.target.closest('[data-theme-mode-option],[data-theme-contrast-option],[data-theme-accent-option],[data-language-option],#themeSaveBtn,#themeResetBtn');
+      if(target) pulseInterfaceVeil();
+    }, true);
   }
-  function skip(el){return !el||el.closest('[data-no-i18n]')||/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|SVG|PATH)$/i.test(el.tagName||'');}
-  function textOriginal(node){
-    if(typeof node.__diracFinalI18nOriginalText==='string') return node.__diracFinalI18nOriginalText;
-    var base=typeof node.__diracI18nOriginalText==='string'?node.__diracI18nOriginalText:node.data;
-    node.__diracFinalI18nOriginalText=base;
-    return base;
+
+  var freeWasActive = false;
+  function updateFreeShippingMilestone(){
+    var wrap = $('.free-ship');
+    var meter = $('#freeShipMeter');
+    var txt = $('#freeShipText');
+    if(!wrap || !meter || !txt) return;
+    var width = parseFloat(String(meter.style.width || '0').replace('%','')) || 0;
+    var active = width >= 99.5 && !/tambah produk/i.test(textOf(txt));
+    wrap.classList.toggle('dirac-free-active', active);
+    if(active && !freeWasActive && !reduceMotion){
+      wrap.classList.remove('dirac-free-celebrate');
+      void wrap.offsetWidth;
+      wrap.classList.add('dirac-free-celebrate');
+      setTimeout(function(){ wrap.classList.remove('dirac-free-celebrate'); }, 920);
+    }
+    freeWasActive = active;
   }
-  function translateNode(node,l){
-    if(!node||node.nodeType!==3||skip(node.parentElement)) return;
-    var original=textOriginal(node);
-    var next=translateText(original,l);
-    if(node.data!==next) node.data=next;
+
+  function bindFreeShippingMilestone(){
+    updateFreeShippingMilestone();
+    var meter = $('#freeShipMeter');
+    var txt = $('#freeShipText');
+    if(window.__diracFreeShipBound || !('MutationObserver' in window)) return;
+    window.__diracFreeShipBound = true;
+    var obs = new MutationObserver(updateFreeShippingMilestone);
+    if(meter) obs.observe(meter,{attributes:true,attributeFilter:['style','class']});
+    if(txt) obs.observe(txt,{childList:true,characterData:true,subtree:true});
+    var cartItems = $('#cartItems');
+    if(cartItems) obs.observe(cartItems,{childList:true,subtree:true});
   }
-  function translateAttrs(root,l){
-    var scope=(root&&root.nodeType===1)?root:document;
-    var arr=[];
-    if(scope.matches&&scope.matches('[placeholder],[aria-label],[title]')) arr.push(scope);
-    if(scope.querySelectorAll) arr=arr.concat(Array.prototype.slice.call(scope.querySelectorAll('[placeholder],[aria-label],[title]')));
-    arr.forEach(function(el){
-      if(skip(el)) return;
-      ['placeholder','aria-label','title'].forEach(function(a){
-        if(!el.hasAttribute(a)) return;
-        var key='__diracFinalI18nOriginal_'+a;
-        if(typeof el[key]!=='string') el[key]=el.getAttribute(a)||'';
-        var next=translateText(el[key],l);
-        if(el.getAttribute(a)!==next) el.setAttribute(a,next);
-      });
+
+  function markSoldCards(){
+    $all('.product-card').forEach(function(card){
+      var sold = !!card.querySelector('.tag.sold, .btn-disabled[disabled], button[title*="sold"], button[title*="Sold"]');
+      card.classList.toggle('dirac-sold-card', sold);
+      if(sold) card.setAttribute('data-dirac-stock-state','sold-out');
+      else card.removeAttribute('data-dirac-stock-state');
     });
   }
-  function translateTree(root){
-    var l=lang();
-    var scope=root||document.body;
-    if(!scope) return;
-    if(scope.nodeType===3){translateNode(scope,l);return;}
-    if(scope.nodeType!==1&&scope.nodeType!==9&&scope.nodeType!==11) return;
-    if(scope.nodeType===1&&skip(scope)) return;
-    var w=document.createTreeWalker(scope,NodeFilter.SHOW_TEXT,{acceptNode:function(n){return skip(n.parentElement)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});
-    var nodes=[]; while(w.nextNode()) nodes.push(w.currentNode);
-    nodes.forEach(function(n){translateNode(n,l);});
-    translateAttrs(scope,l);
+  function bindSoldState(){
+    markSoldCards();
+    var grid = $('#productGrid');
+    if(grid && !grid.dataset.diracSoldObserver && 'MutationObserver' in window){
+      grid.dataset.diracSoldObserver = 'true';
+      new MutationObserver(markSoldCards).observe(grid,{childList:true,subtree:true});
+    }
   }
-  function setText(el,text){if(el&&el.textContent!==text) el.textContent=text;}
-  function polishThemeLabels(){
-    var l=lang();
-    var light=document.querySelector('[data-theme-mode-option="light"] span:last-child');
-    var dark=document.querySelector('[data-theme-mode-option="dark"] span:last-child');
-    var auto=document.querySelector('[data-theme-mode-option="auto"] span:last-child');
-    setText(light,pick(EXACT.Light,l)); setText(dark,pick(EXACT.Dark,l)); setText(auto,pick(EXACT.Auto,l));
-    var lightIcon=document.querySelector('[data-theme-mode-option="light"] span:first-child');
-    if(lightIcon) lightIcon.textContent='◒';
-    var lightBtn=document.querySelector('[data-theme-mode-option="light"]');
-    if(lightBtn){var aria=pick(EXACT.Light,l); if(lightBtn.getAttribute('aria-label')!==aria) lightBtn.setAttribute('aria-label',aria);}
+
+  function isCheckoutValidEnough(){
+    var name = $('#buyerName');
+    var phone = $('#buyerPhone');
+    var address = $('#buyerAddress');
+    return !!(name && phone && address && String(name.value || '').replace(/\s+/g,' ').trim().length >= 2 && digits(phone.value).length >= 9 && String(address.value || '').replace(/\s+/g,' ').trim().length >= 8);
   }
-  function updateThemeColor(){
-    var meta=document.querySelector('meta[name="theme-color"]');
-    if(meta&&document.documentElement.getAttribute('data-effective-theme')==='light') meta.setAttribute('content','#171310');
+  function updateFieldCompleteStates(){
+    [['#buyerName',function(v){return textOf({textContent:v}).length >= 2;}],['#buyerPhone',function(v){return digits(v).length >= 9;}],['#buyerAddress',function(v){return textOf({textContent:v}).length >= 8;}]].forEach(function(pair){
+      var el = $(pair[0]);
+      if(el) el.classList.toggle('dirac-field-complete', pair[1](el.value));
+    });
   }
-  var timer=null;
-  function runNow(root){
-    var target=root||document.body;
-    translateTree(target);
-    polishThemeLabels();
-    updateThemeColor();
+  function bindCheckoutSuccess(){
+    if(window.__diracCheckoutSuccessBound) return;
+    window.__diracCheckoutSuccessBound = true;
+    document.addEventListener('input', function(event){
+      if(event.target && event.target.matches && event.target.matches('#buyerName,#buyerPhone,#buyerAddress')) updateFieldCompleteStates();
+    }, true);
+    document.addEventListener('change', function(event){
+      if(event.target && event.target.matches && event.target.matches('#buyerName,#buyerPhone,#buyerAddress')) updateFieldCompleteStates();
+    }, true);
+    document.addEventListener('click', function(event){
+      var btn = event.target && event.target.closest && event.target.closest('#sendWhatsappBtn');
+      if(!btn) return;
+      updateFieldCompleteStates();
+      if(btn.classList.contains('is-locked') || !isCheckoutValidEnough()) return;
+      var original = btn.dataset.diracOriginalText || btn.textContent;
+      btn.dataset.diracOriginalText = original;
+      btn.classList.add('dirac-checkout-working');
+      btn.textContent = 'Membuat pesan...';
+      setTimeout(function(){
+        btn.classList.remove('dirac-checkout-working');
+        btn.classList.add('dirac-checkout-success');
+        btn.textContent = 'Pesan siap ✓';
+      }, reduceMotion ? 0 : 140);
+      setTimeout(function(){
+        btn.classList.remove('dirac-checkout-success','dirac-checkout-working');
+        btn.textContent = btn.dataset.diracOriginalText || original;
+      }, reduceMotion ? 900 : 1900);
+    }, true);
   }
-  function run(root){
-    clearTimeout(timer);
-    var target=root||document.body;
-    timer=setTimeout(function(){runNow(target);},35);
-  }
-  function init(){
-    run(document.body);
-    [120,350,800,1600,3200,6400].forEach(function(ms){setTimeout(function(){run(document.body);},ms);});
-    document.addEventListener('click',function(e){
-      if(e.target.closest('[data-language-option],[data-open-theme],[data-theme-mode-option],[data-theme-contrast-option],[data-theme-accent-option],#themeSaveBtn,#themeResetBtn,#searchInput,#categoryFilter,#sortFilter,[data-open-cart],#checkoutBtn')){
-        setTimeout(function(){run(document.body);},60);
-        setTimeout(function(){run(document.body);},220);
-        setTimeout(function(){run(document.body);},620);
+
+  function bindQuickModalMobilePolish(){
+    var modal = $('#quickModal');
+    if(!modal || modal.dataset.diracMobilePolishBound === 'true') return;
+    modal.dataset.diracMobilePolishBound = 'true';
+    if(!('MutationObserver' in window)) return;
+    new MutationObserver(function(){
+      if(modal.classList.contains('open') && !reduceMotion){
+        var grid = modal.querySelector('.quick-grid');
+        if(grid){ grid.classList.remove('dirac-mobile-sheet-ready'); void grid.offsetWidth; grid.classList.add('dirac-mobile-sheet-ready'); }
       }
-    },true);
-    document.addEventListener('input',function(e){if(e.target&&e.target.matches&&e.target.matches('#searchInput,#buyerName,#buyerPhone,#buyerAddress')) run(document.body);},true);
-    document.addEventListener('change',function(e){if(e.target&&e.target.matches&&e.target.matches('#categoryFilter,#sortFilter,#buyerName,#buyerPhone,#buyerAddress')) run(document.body);},true);
-    if('MutationObserver' in window){new MutationObserver(function(m){
-      var root=null; for(var i=0;i<m.length;i++){if(m[i].addedNodes&&m[i].addedNodes.length){root=m[i].target;break;} if(m[i].type==='characterData'){root=m[i].target.parentElement;break;} if(m[i].type==='attributes'){root=m[i].target;break;}}
-      run(root||document.body);
-    }).observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style','placeholder','aria-label','title']});}
-    if('MutationObserver' in window){new MutationObserver(function(){setTimeout(function(){polishThemeLabels();updateThemeColor();},50);}).observe(document.documentElement,{attributes:true,attributeFilter:['data-language','data-effective-theme','data-theme-mode']});}
-    window.diracFinalLanguageFix={run:function(){runNow(document.body);},translate:function(v,l){return translateText(v,l||lang());}};
+    }).observe(modal,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
-  window.addEventListener('pageshow',function(){run(document.body);});
+
+  function refreshAll(){
+    bindThemeLanguageTransition();
+    bindFreeShippingMilestone();
+    bindSoldState();
+    bindCheckoutSuccess();
+    bindQuickModalMobilePolish();
+    updateFreeShippingMilestone();
+    updateFieldCompleteStates();
+    markSoldCards();
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refreshAll, {once:true});
+  else refreshAll();
+  window.addEventListener('pageshow', refreshAll);
+  setTimeout(refreshAll, 350);
+  setTimeout(refreshAll, 1300);
+})();
+</script>
+
+
+
+<style id="dirac-professional-motion-v7-css">
+/* =========================================================
+   Dirac Professional Motion v7
+   Professional additions only: scent quiz, mini cart preview,
+   empty-search guidance, mobile checkout summary, and manual
+   calm-motion mode. Safe layer: no core logic replacement.
+   ========================================================= */
+:root{
+  --dirac-pro-ease:cubic-bezier(.16,1,.3,1);
+  --dirac-pro-fast:220ms;
+  --dirac-pro-mid:520ms;
+  --dirac-pro-slow:760ms;
+}
+html[data-dirac-motion-mode="calm"] *,
+html[data-dirac-motion-mode="calm"] *:before,
+html[data-dirac-motion-mode="calm"] *:after{
+  animation-duration:.001ms!important;
+  animation-iteration-count:1!important;
+  transition-duration:.001ms!important;
+  scroll-behavior:auto!important;
+}
+html[data-dirac-motion-mode="calm"] .dirac-professional-modal.open .dirac-professional-card,
+html[data-dirac-motion-mode="calm"] .dirac-mini-cart-preview.is-visible,
+html[data-dirac-motion-mode="calm"] .dirac-empty-chip,
+html[data-dirac-motion-mode="calm"] .dirac-checkout-sticky{animation:none!important;transform:none!important;filter:none!important}
+
+.dirac-motion-panel-note{display:block;margin-top:8px;color:#8f9bad;font-size:.82rem;line-height:1.55}
+.dirac-motion-choice.is-selected{border-color:var(--gold)!important;background:rgba(var(--theme-rgb,243,205,112),.14)!important;box-shadow:0 0 0 3px rgba(var(--theme-rgb,243,205,112),.14),0 12px 28px rgba(0,0,0,.18)!important}
+
+.dirac-smart-tools{
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:18px auto 0;
+}
+.dirac-smart-btn{
+  position:relative;overflow:hidden;isolation:isolate;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.32);
+  background:linear-gradient(135deg,rgba(var(--theme-rgb,243,205,112),.16),rgba(255,255,255,.055));
+  color:#f7ead2;border-radius:999px;min-height:44px;padding:10px 16px;font-weight:900;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 16px 34px rgba(0,0,0,.20),0 0 0 1px rgba(255,255,255,.04) inset;
+  transition:transform .24s var(--dirac-pro-ease),border-color .24s var(--dirac-pro-ease),box-shadow .24s var(--dirac-pro-ease),background .24s var(--dirac-pro-ease);
+}
+.dirac-smart-btn:hover,.dirac-smart-btn:focus-visible{transform:translateY(-2px);border-color:rgba(var(--theme-rgb,243,205,112),.56);box-shadow:0 20px 44px rgba(0,0,0,.26),0 0 24px rgba(var(--theme-rgb,243,205,112),.12);outline:none}
+.dirac-smart-btn:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 18%,rgba(255,255,255,.14),transparent 74%);transform:translateX(-130%);transition:transform .65s var(--dirac-pro-ease)}
+.dirac-smart-btn:hover:before,.dirac-smart-btn:focus-visible:before{transform:translateX(130%)}
+html[data-effective-theme="light"] .dirac-smart-btn{color:#172033;background:linear-gradient(135deg,rgba(var(--theme-rgb,243,205,112),.16),rgba(255,255,255,.78))}
+
+.dirac-professional-modal{position:fixed;inset:0;z-index:11850;display:none;place-items:center;padding:18px;background:rgba(0,0,0,.66);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.dirac-professional-modal.open{display:grid}
+.dirac-professional-card{width:min(760px,100%);max-height:min(88vh,780px);max-height:min(88dvh,780px);overflow:auto;border-radius:30px;border:1px solid rgba(var(--theme-rgb,243,205,112),.24);background:radial-gradient(circle at 20% 0%,rgba(var(--theme-rgb,243,205,112),.14),transparent 24rem),linear-gradient(180deg,#111923,#07090d);box-shadow:0 28px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04) inset;animation:diracProModalIn .42s var(--dirac-pro-ease) both}
+.dirac-professional-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.08)}
+.dirac-professional-head h2{margin:0;color:var(--gold);font-family:"Playfair Display",serif;font-size:clamp(1.55rem,4vw,2.2rem);line-height:1.05}.dirac-professional-head p{margin:6px 0 0;color:#aeb7c6;font-size:.92rem}.dirac-professional-body{padding:22px 24px 24px}
+@keyframes diracProModalIn{from{opacity:.74;transform:translateY(18px) scale(.972)}to{opacity:1;transform:none}}
+.dirac-quiz-progress{display:flex;align-items:center;gap:8px;margin-bottom:18px}.dirac-quiz-dot{height:8px;flex:1;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}.dirac-quiz-dot span{display:block;height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 42%,#fff 58%));transition:width .32s var(--dirac-pro-ease)}
+.dirac-quiz-question{margin:0 0 14px;color:#fff;font-size:1.05rem;font-weight:900}.dirac-quiz-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}.dirac-quiz-option{min-height:62px;border-radius:20px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:#eef4ff;text-align:left;padding:12px 14px;font-weight:850;transition:transform .22s var(--dirac-pro-ease),border-color .22s var(--dirac-pro-ease),background .22s var(--dirac-pro-ease),box-shadow .22s var(--dirac-pro-ease)}.dirac-quiz-option:hover,.dirac-quiz-option:focus-visible{transform:translateY(-2px);border-color:rgba(var(--theme-rgb,243,205,112),.48);background:rgba(var(--theme-rgb,243,205,112),.10);outline:none}.dirac-quiz-option small{display:block;margin-top:3px;color:#9aa5b5;font-weight:700;line-height:1.35}.dirac-quiz-option.is-selected{border-color:var(--gold);background:rgba(var(--theme-rgb,243,205,112),.14);box-shadow:0 0 0 3px rgba(var(--theme-rgb,243,205,112),.13)}
+.dirac-quiz-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-top:10px}.dirac-quiz-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.dirac-quiz-result{border:1px solid rgba(var(--theme-rgb,243,205,112),.20);background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.026));border-radius:22px;overflow:hidden;animation:diracQuizResultIn .46s var(--dirac-pro-ease) both;animation-delay:var(--quiz-delay,0ms)}.dirac-quiz-result img{width:100%;aspect-ratio:16/10;object-fit:contain;background:#101722;padding:8px}.dirac-quiz-result-body{padding:13px}.dirac-quiz-result h3{margin:0 0 7px;color:#fff;font-size:.92rem;line-height:1.28}.dirac-quiz-result p{margin:0 0 10px;color:#aeb7c6;font-size:.78rem;line-height:1.45}.dirac-quiz-result .price{font-size:1rem;margin-bottom:10px}.dirac-quiz-match{display:inline-flex;margin-bottom:8px;padding:5px 8px;border-radius:999px;background:rgba(24,185,129,.12);border:1px solid rgba(24,185,129,.28);color:#bbf7d0;font-size:.72rem;font-weight:900}
+@keyframes diracQuizResultIn{from{opacity:.48;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+.dirac-mini-cart-preview{position:fixed;right:18px;bottom:calc(82px + env(safe-area-inset-bottom));z-index:12100;width:min(360px,calc(100vw - 28px));border:1px solid rgba(var(--theme-rgb,243,205,112),.28);border-radius:24px;background:linear-gradient(160deg,rgba(14,20,30,.96),rgba(5,7,11,.94));box-shadow:0 24px 70px rgba(0,0,0,.44),0 0 0 1px rgba(255,255,255,.05) inset;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:grid;grid-template-columns:74px 1fr auto;gap:12px;align-items:center;padding:12px;opacity:0;pointer-events:none;transform:translateY(18px) scale(.975);transition:opacity .28s var(--dirac-pro-ease),transform .28s var(--dirac-pro-ease)}.dirac-mini-cart-preview.is-visible{opacity:1;pointer-events:auto;transform:none}.dirac-mini-cart-preview img{width:74px;height:74px;object-fit:cover;border-radius:18px;background:#101722}.dirac-mini-cart-preview strong{display:block;color:#fff;font-size:.9rem;line-height:1.28;margin-bottom:2px}.dirac-mini-cart-preview span{display:block;color:#b5bfce;font-size:.78rem}.dirac-mini-cart-preview .dirac-mini-progress{position:absolute;left:14px;right:14px;bottom:7px;height:3px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.dirac-mini-cart-preview .dirac-mini-progress i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 42%,#fff 58%));transform-origin:left;animation:diracMiniCartLife 3.2s linear forwards}.dirac-mini-cart-preview button{white-space:nowrap;padding:9px 11px;font-size:.78rem}@keyframes diracMiniCartLife{to{transform:scaleX(0)}}
+html[data-effective-theme="light"] .dirac-mini-cart-preview{background:linear-gradient(160deg,rgba(255,255,255,.97),rgba(245,248,252,.94));box-shadow:0 24px 60px rgba(15,23,42,.18)}html[data-effective-theme="light"] .dirac-mini-cart-preview strong{color:#172033}html[data-effective-theme="light"] .dirac-mini-cart-preview span{color:#536071}
+
+.dirac-empty-suggestions{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.dirac-empty-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.28);background:rgba(var(--theme-rgb,243,205,112),.08);color:#f7ead2;border-radius:999px;padding:8px 11px;font-size:.82rem;font-weight:850;animation:diracEmptyChipIn .34s var(--dirac-pro-ease) both;animation-delay:var(--empty-delay,0ms)}.dirac-empty-chip:hover,.dirac-empty-chip:focus-visible{background:rgba(var(--theme-rgb,243,205,112),.16);border-color:rgba(var(--theme-rgb,243,205,112),.48);outline:none;transform:translateY(-1px)}@keyframes diracEmptyChipIn{from{opacity:.42;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.dirac-checkout-sticky{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:11650;display:none;align-items:center;justify-content:space-between;gap:12px;border:1px solid rgba(var(--theme-rgb,243,205,112),.28);border-radius:22px;background:linear-gradient(145deg,rgba(12,18,27,.96),rgba(5,7,11,.94));box-shadow:0 20px 56px rgba(0,0,0,.46),0 0 0 1px rgba(255,255,255,.05) inset;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:11px 12px;animation:diracStickyCheckoutIn .32s var(--dirac-pro-ease) both}.dirac-checkout-sticky strong{display:block;color:var(--gold);line-height:1.1}.dirac-checkout-sticky span{display:block;color:#c6cedb;font-size:.75rem;font-weight:800}.dirac-checkout-sticky button{padding:10px 12px;font-size:.8rem}.modal.open ~ .dirac-checkout-sticky,.dirac-checkout-sticky.is-visible{display:flex}@keyframes diracStickyCheckoutIn{from{opacity:.45;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+html[data-effective-theme="light"] .dirac-checkout-sticky{background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(245,248,252,.94));box-shadow:0 18px 46px rgba(15,23,42,.18)}html[data-effective-theme="light"] .dirac-checkout-sticky span{color:#536071}
+
+@media(min-width:761px){.dirac-checkout-sticky{display:none!important}}
+@media(max-width:760px){.dirac-professional-card{width:min(92vw,560px);border-radius:28px}.dirac-professional-head{padding:18px 18px 12px}.dirac-professional-body{padding:18px}.dirac-quiz-options{grid-template-columns:1fr}.dirac-quiz-results{grid-template-columns:1fr}.dirac-mini-cart-preview{right:12px;left:12px;bottom:calc(72px + env(safe-area-inset-bottom));width:auto;grid-template-columns:62px 1fr}.dirac-mini-cart-preview img{width:62px;height:62px}.dirac-mini-cart-preview button{grid-column:1/-1;width:100%}.dirac-smart-tools{justify-content:flex-start}.dirac-smart-btn{width:100%}}
+@media(prefers-reduced-motion:reduce){.dirac-professional-card,.dirac-quiz-result,.dirac-mini-cart-preview,.dirac-mini-cart-preview .dirac-mini-progress i,.dirac-empty-chip,.dirac-checkout-sticky,.dirac-smart-btn,.dirac-smart-btn:before{animation:none!important;transition:none!important;transform:none!important}.dirac-smart-btn:before{display:none!important}}
+</style>
+
+<script id="dirac-professional-motion-v7-js">
+(function(){
+  'use strict';
+  var reduceMotion = false;
+  try{ reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(error){}
+  var MOTION_KEY = 'dirac_motion_mode_v1';
+  function $(selector, root){ return (root || document).querySelector(selector); }
+  function $all(selector, root){ return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
+  function clean(value){ return String(value || '').replace(/\s+/g,' ').trim(); }
+  function safeProducts(){ try{ return (typeof products !== 'undefined' && Array.isArray(products)) ? products : []; }catch(error){ return []; } }
+  function safeFormatIDR(value){ try{ return typeof formatIDR === 'function' ? formatIDR(value) : 'Rp' + Number(value || 0).toLocaleString('id-ID'); }catch(error){ return 'Rp' + Number(value || 0).toLocaleString('id-ID'); } }
+  function getById(id){ var list = safeProducts(); id = Number(id); return list.find(function(p){ return Number(p.id) === id; }); }
+  function getTotalsSafe(){ try{ if(typeof totals === 'function') return totals(); }catch(error){} return {total:0,sub:0,discount:0,shipping:0}; }
+  function getQtySafe(){ try{ return typeof totalQty === 'function' ? totalQty() : 0; }catch(error){ return 0; } }
+
+  function applyMotionMode(mode){
+    mode = mode === 'calm' ? 'calm' : 'normal';
+    document.documentElement.setAttribute('data-dirac-motion-mode', mode);
+    try{ localStorage.setItem(MOTION_KEY, mode); }catch(error){}
+    $all('[data-dirac-motion-option]').forEach(function(btn){
+      var selected = btn.getAttribute('data-dirac-motion-option') === mode;
+      btn.classList.toggle('is-selected', selected);
+      btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  }
+  function initMotionModePanel(){
+    var saved = 'normal';
+    try{ saved = localStorage.getItem(MOTION_KEY) || 'normal'; }catch(error){}
+    applyMotionMode(saved);
+    var body = $('.theme-body');
+    if(body && !$('#diracMotionSection')){
+      var section = document.createElement('section');
+      section.className = 'theme-section';
+      section.id = 'diracMotionSection';
+      section.setAttribute('aria-label','Mode gerak website');
+      section.innerHTML = '<h3>Gerak Website</h3><p>Pilih intensitas animasi agar tetap nyaman di perangkat Anda.</p><div class="theme-contrast-grid"><button class="theme-choice dirac-motion-choice" type="button" data-dirac-motion-option="normal" aria-pressed="false"><span aria-hidden="true">~</span><span>Normal</span></button><button class="theme-choice dirac-motion-choice" type="button" data-dirac-motion-option="calm" aria-pressed="false"><span aria-hidden="true">-</span><span>Hemat</span></button></div><span class="dirac-motion-panel-note">Mode Hemat mengurangi animasi non-esensial tanpa mengubah isi katalog, cart, atau checkout.</span>';
+      var actions = $('.theme-actions', body);
+      if(actions) body.insertBefore(section, actions); else body.appendChild(section);
+    }
+    document.addEventListener('click', function(event){
+      var btn = event.target && event.target.closest && event.target.closest('[data-dirac-motion-option]');
+      if(!btn) return;
+      applyMotionMode(btn.getAttribute('data-dirac-motion-option'));
+    }, true);
+  }
+
+  function ensureSmartTools(){
+    if($('#diracSmartTools')) return;
+    var catalog = $('#produk .container') || $('#produk') || $('#catalog .container') || $('#catalog');
+    var toolbar = $('.toolbar', catalog || document);
+    if(!catalog || !toolbar) return;
+    var tools = document.createElement('div');
+    tools.id = 'diracSmartTools';
+    tools.className = 'dirac-smart-tools';
+    tools.innerHTML = '<button class="dirac-smart-btn" type="button" id="diracOpenQuiz"><span aria-hidden="true">*</span><span>Bantu Pilih Aroma</span></button><button class="dirac-smart-btn" type="button" id="diracResetSearch"><span aria-hidden="true">x</span><span>Reset Pencarian</span></button>';
+    toolbar.insertAdjacentElement('beforebegin', tools);
+  }
+
+  var quizState = {step:0, answers:{}};
+  var quizSteps = [
+    {key:'mood', title:'Aroma seperti apa yang Anda cari?', options:[
+      ['fresh','Fresh dan clean','Aman untuk daily, kantor, dan siang hari'],
+      ['sweet','Manis dan hangat','Cocok untuk malam, date, atau suasana santai rapi'],
+      ['woody','Woody dan elegan','Memberi kesan dewasa, formal, dan premium'],
+      ['unique','Unik dan eksklusif','Untuk signature scent atau kolektor']
+    ]},
+    {key:'occasion', title:'Akan paling sering dipakai kapan?', options:[
+      ['daily','Harian','Nyaman dipakai berulang'],
+      ['office','Kerja atau meeting','Rapi, bersih, tidak terlalu ramai'],
+      ['night','Malam atau acara spesial','Lebih tebal dan memorable'],
+      ['gift','Hadiah','Mudah disukai dan presentable']
+    ]},
+    {key:'budget', title:'Range pilihan yang paling cocok?', options:[
+      ['friendly','Ramah budget','Prioritaskan harga lebih ringan'],
+      ['designer','Designer','Modern, aman, dan populer'],
+      ['premium','Premium','Niche/luxury dengan karakter kuat'],
+      ['any','Bebas','Tampilkan yang paling cocok']
+    ]}
+  ];
+
+  function productScore(product){
+    var text = clean([product.title, product.category, product.desc, product.notes, product.longDesc].join(' ')).toLowerCase();
+    var score = 0;
+    var mood = quizState.answers.mood;
+    var occasion = quizState.answers.occasion;
+    var budget = quizState.answers.budget;
+    if(product.status === 'sold') score -= 100;
+    if(product.isTopSeller) score += 5;
+    if(mood === 'fresh' && /(fresh|clean|citrus|green|aromatic|blue|aquatic|daily)/i.test(text)) score += 22;
+    if(mood === 'sweet' && /(sweet|vanilla|amber|warm|fruity|gourmand|seductive)/i.test(text)) score += 22;
+    if(mood === 'woody' && /(woody|oud|amber|spice|sandalwood|elegant|formal|mature)/i.test(text)) score += 22;
+    if(mood === 'unique' && /(niche|unique|premium|luxury|exclusive|signature|collector|complex)/i.test(text)) score += 22;
+    if(occasion === 'daily' && /(daily|clean|fresh|easy|versatile|harian)/i.test(text)) score += 12;
+    if(occasion === 'office' && /(office|kantor|meeting|formal|clean|rapi|modern)/i.test(text)) score += 12;
+    if(occasion === 'night' && /(night|malam|date|dinner|warm|intense|sweet|amber)/i.test(text)) score += 12;
+    if(occasion === 'gift' && /(designer|versatile|popular|easy|gift|modern|fresh)/i.test(text)) score += 10;
+    if(budget === 'friendly' && Number(product.price) <= 1000000) score += 16;
+    if(budget === 'designer' && /designer/i.test(product.category)) score += 16;
+    if(budget === 'premium' && (/niche/i.test(product.category) || Number(product.price) >= 2500000)) score += 16;
+    if(budget === 'any') score += 5;
+    return score;
+  }
+  function getQuizResults(){
+    return safeProducts().slice().map(function(p){ return {product:p, score:productScore(p)}; }).sort(function(a,b){ return b.score - a.score || Number(b.product.soldCount || 0) - Number(a.product.soldCount || 0); }).slice(0,3);
+  }
+  function ensureQuizModal(){
+    var modal = $('#diracQuizModal');
+    if(modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'diracQuizModal';
+    modal.className = 'dirac-professional-modal';
+    modal.setAttribute('aria-hidden','true');
+    modal.innerHTML = '<div class="dirac-professional-card" role="dialog" aria-modal="true" aria-labelledby="diracQuizTitle"><div class="dirac-professional-head"><div><h2 id="diracQuizTitle">Bantu Pilih Aroma</h2><p>Pilih 3 jawaban singkat. Sistem akan menampilkan rekomendasi yang paling masuk akal dari katalog.</p></div><button class="icon-btn" type="button" data-dirac-close-quiz aria-label="Tutup quiz">x</button></div><div class="dirac-professional-body" id="diracQuizBody"></div></div>';
+    document.body.appendChild(modal);
+    return modal;
+  }
+  function openQuiz(){
+    quizState = {step:0, answers:{}};
+    var modal = ensureQuizModal();
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+    renderQuiz();
+  }
+  function closeQuiz(){
+    var modal = $('#diracQuizModal');
+    if(!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    if(!$('.modal.open') && !$('.theme-modal.open')) document.body.classList.remove('modal-open');
+  }
+  function renderQuiz(){
+    var body = $('#diracQuizBody');
+    if(!body) return;
+    var step = quizSteps[quizState.step];
+    if(!step){ renderQuizResults(); return; }
+    var progress = Math.round((quizState.step / quizSteps.length) * 100);
+    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:'+progress+'%"></span></div></div><h3 class="dirac-quiz-question">'+step.title+'</h3><div class="dirac-quiz-options">'+step.options.map(function(option){ return '<button type="button" class="dirac-quiz-option" data-quiz-answer="'+option[0]+'"><span>'+option[1]+'</span><small>'+option[2]+'</small></button>'; }).join('')+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-back '+(quizState.step ? '' : 'disabled')+'>Kembali</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+  }
+  function renderQuizResults(){
+    var body = $('#diracQuizBody');
+    if(!body) return;
+    var results = getQuizResults();
+    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">Rekomendasi paling cocok</h3><p class="muted">Hasil ini memakai notes, kategori, harga, status stok, dan karakter produk di katalog.</p><div class="dirac-quiz-results">'+results.map(function(item,index){ var p = item.product; return '<article class="dirac-quiz-result" style="--quiz-delay:'+(index*70)+'ms"><img src="'+String(p.img || '').replace(/"/g,'&quot;')+'" alt="'+String(p.title || '').replace(/"/g,'&quot;')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div class="dirac-quiz-result-body"><span class="dirac-quiz-match">Cocok '+Math.max(72,Math.min(98,72+item.score))+'%</span><h3>'+p.title+'</h3><p>'+clean(p.notes || p.desc).slice(0,90)+'</p><div class="price">'+safeFormatIDR(p.price)+'</div><div class="product-actions"><button class="btn-secondary" type="button" data-quiz-detail="'+p.id+'">Detail</button><button class="btn-primary '+(p.status === 'sold' ? 'btn-disabled' : '')+'" type="button" data-quiz-add="'+p.id+'" '+(p.status === 'sold' ? 'disabled aria-disabled="true"' : '')+'>'+(p.status === 'sold' ? 'Sold' : '+ Cart')+'</button></div></div></article>'; }).join('')+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>Ulangi Quiz</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+  }
+
+  var miniTimer = null;
+  function ensureMiniCart(){
+    var box = $('#diracMiniCartPreview');
+    if(box) return box;
+    box = document.createElement('div');
+    box.id = 'diracMiniCartPreview';
+    box.className = 'dirac-mini-cart-preview';
+    box.setAttribute('role','status');
+    box.setAttribute('aria-live','polite');
+    document.body.appendChild(box);
+    return box;
+  }
+  function showMiniCart(product){
+    if(!product || product.status === 'sold') return;
+    var box = ensureMiniCart();
+    box.innerHTML = '<img src="'+String(product.img || '').replace(/"/g,'&quot;')+'" alt="'+String(product.title || '').replace(/"/g,'&quot;')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div><strong>'+product.title+'</strong><span>'+safeFormatIDR(product.price)+' masuk keranjang</span></div><button class="btn-primary" type="button" data-open-cart>Lihat</button><div class="dirac-mini-progress" aria-hidden="true"><i></i></div>';
+    clearTimeout(miniTimer);
+    box.classList.remove('is-visible');
+    void box.offsetWidth;
+    box.classList.add('is-visible');
+    miniTimer = setTimeout(function(){ box.classList.remove('is-visible'); }, reduceMotion ? 1400 : 3200);
+  }
+
+  function enhanceEmptySearch(){
+    var grid = $('#productGrid');
+    if(!grid) return;
+    var empty = $('.empty-state', grid);
+    if(!empty || empty.querySelector('.dirac-empty-suggestions')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'dirac-empty-suggestions';
+    var chips = [
+      ['fresh','Fresh'],['vanilla','Vanilla'],['oud','Oud'],['musk','Musk'],['Niche','Niche'],['Designer','Designer']
+    ];
+    wrap.innerHTML = chips.map(function(chip,index){ return '<button class="dirac-empty-chip" type="button" data-empty-query="'+chip[0]+'" style="--empty-delay:'+(index*42)+'ms">'+chip[1]+'</button>'; }).join('') + '<button class="dirac-empty-chip" type="button" data-empty-reset style="--empty-delay:260ms">Reset</button>';
+    empty.appendChild(wrap);
+  }
+
+  function ensureStickyCheckout(){
+    var sticky = $('#diracCheckoutSticky');
+    if(sticky) return sticky;
+    sticky = document.createElement('div');
+    sticky.id = 'diracCheckoutSticky';
+    sticky.className = 'dirac-checkout-sticky';
+    sticky.setAttribute('aria-live','polite');
+    document.body.appendChild(sticky);
+    return sticky;
+  }
+  function updateStickyCheckout(){
+    var modal = $('#checkoutModal');
+    var sticky = ensureStickyCheckout();
+    var visible = !!(modal && modal.classList.contains('open'));
+    sticky.classList.toggle('is-visible', visible);
+    if(!visible) return;
+    var t = getTotalsSafe();
+    sticky.innerHTML = '<div><strong>'+safeFormatIDR(t.total || 0)+'</strong><span>'+getQtySafe()+' item siap checkout</span></div><button class="btn-primary" type="button" data-sticky-send-wa>Kirim WhatsApp</button>';
+  }
+
+  function bindProfessionalEvents(){
+    if(window.__diracProfessionalMotionBound) return;
+    window.__diracProfessionalMotionBound = true;
+    document.addEventListener('click', function(event){
+      var openQuizBtn = event.target && event.target.closest && event.target.closest('#diracOpenQuiz');
+      if(openQuizBtn){ event.preventDefault(); openQuiz(); return; }
+      var resetBtn = event.target && event.target.closest && event.target.closest('#diracResetSearch');
+      if(resetBtn){ event.preventDefault(); var search = $('#searchInput'); var category = $('#categoryFilter'); if(search) search.value = ''; if(category) category.value = 'all'; ['input','change'].forEach(function(name){ if(search) search.dispatchEvent(new Event(name,{bubbles:true})); if(category) category.dispatchEvent(new Event(name,{bubbles:true})); }); return; }
+      if(event.target && event.target.closest && event.target.closest('[data-dirac-close-quiz]')){ closeQuiz(); return; }
+      var answer = event.target && event.target.closest && event.target.closest('[data-quiz-answer]');
+      if(answer){ var step = quizSteps[quizState.step]; if(step){ quizState.answers[step.key] = answer.getAttribute('data-quiz-answer'); answer.classList.add('is-selected'); setTimeout(function(){ quizState.step += 1; renderQuiz(); }, reduceMotion ? 0 : 180); } return; }
+      if(event.target && event.target.closest && event.target.closest('[data-quiz-back]')){ quizState.step = Math.max(0, quizState.step - 1); renderQuiz(); return; }
+      if(event.target && event.target.closest && event.target.closest('[data-quiz-restart]')){ quizState = {step:0, answers:{}}; renderQuiz(); return; }
+      var quizAdd = event.target && event.target.closest && event.target.closest('[data-quiz-add]');
+      if(quizAdd){ var prodAdd = getById(quizAdd.getAttribute('data-quiz-add')); try{ if(typeof addToCart === 'function') addToCart(quizAdd.getAttribute('data-quiz-add')); }catch(error){} showMiniCart(prodAdd); return; }
+      var quizDetail = event.target && event.target.closest && event.target.closest('[data-quiz-detail]');
+      if(quizDetail){ closeQuiz(); setTimeout(function(){ try{ if(typeof openQuick === 'function') openQuick(quizDetail.getAttribute('data-quiz-detail')); }catch(error){} }, reduceMotion ? 0 : 120); return; }
+      var emptyChip = event.target && event.target.closest && event.target.closest('[data-empty-query]');
+      if(emptyChip){ var searchInput = $('#searchInput'); if(searchInput){ searchInput.value = emptyChip.getAttribute('data-empty-query'); searchInput.dispatchEvent(new Event('input',{bubbles:true})); searchInput.focus(); } return; }
+      if(event.target && event.target.closest && event.target.closest('[data-empty-reset]')){ var searchReset = $('#searchInput'); var catReset = $('#categoryFilter'); if(searchReset) searchReset.value = ''; if(catReset) catReset.value = 'all'; if(searchReset) searchReset.dispatchEvent(new Event('input',{bubbles:true})); if(catReset) catReset.dispatchEvent(new Event('change',{bubbles:true})); return; }
+      var directAdd = event.target && event.target.closest && event.target.closest('[data-add]');
+      if(directAdd){ var prod = getById(directAdd.getAttribute('data-add')); setTimeout(function(){ showMiniCart(prod); updateStickyCheckout(); }, 80); return; }
+      var stickySend = event.target && event.target.closest && event.target.closest('[data-sticky-send-wa]');
+      if(stickySend){ var send = $('#sendWhatsappBtn'); if(send) send.click(); return; }
+    }, true);
+    document.addEventListener('keydown', function(event){ if(event.key === 'Escape') closeQuiz(); }, true);
+  }
+
+  function observeDynamicAreas(){
+    if('MutationObserver' in window){
+      var grid = $('#productGrid');
+      if(grid && !grid.dataset.diracProfessionalObserver){
+        grid.dataset.diracProfessionalObserver = 'true';
+        new MutationObserver(function(){ enhanceEmptySearch(); }).observe(grid,{childList:true,subtree:true});
+      }
+      var cart = $('#cartItems');
+      if(cart && !cart.dataset.diracProfessionalObserver){
+        cart.dataset.diracProfessionalObserver = 'true';
+        new MutationObserver(updateStickyCheckout).observe(cart,{childList:true,subtree:true});
+      }
+      var modal = $('#checkoutModal');
+      if(modal && !modal.dataset.diracProfessionalObserver){
+        modal.dataset.diracProfessionalObserver = 'true';
+        new MutationObserver(updateStickyCheckout).observe(modal,{attributes:true,attributeFilter:['class']});
+      }
+    }
+    ['#shippingSelect','#promoInput','#buyerName','#buyerPhone','#buyerAddress'].forEach(function(sel){ var el = $(sel); if(el && !el.dataset.diracProfessionalBound){ el.dataset.diracProfessionalBound = 'true'; ['input','change'].forEach(function(name){ el.addEventListener(name, updateStickyCheckout, {passive:true}); }); } });
+  }
+
+  function boot(){
+    initMotionModePanel();
+    ensureSmartTools();
+    ensureQuizModal();
+    ensureMiniCart();
+    ensureStickyCheckout();
+    bindProfessionalEvents();
+    observeDynamicAreas();
+    enhanceEmptySearch();
+    updateStickyCheckout();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
+  else boot();
+  window.addEventListener('pageshow', boot);
+  setTimeout(boot, 500);
+  setTimeout(boot, 1500);
 })();
 </script>
 
