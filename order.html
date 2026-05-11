@@ -6504,5 +6504,348 @@ html[data-effective-theme="light"] .dirac-interface-veil{
 })();
 </script>
 
+
+
+<style id="dirac-professional-motion-v7-css">
+/* =========================================================
+   Dirac Professional Motion v7
+   Professional additions only: scent quiz, mini cart preview,
+   empty-search guidance, mobile checkout summary, and manual
+   calm-motion mode. Safe layer: no core logic replacement.
+   ========================================================= */
+:root{
+  --dirac-pro-ease:cubic-bezier(.16,1,.3,1);
+  --dirac-pro-fast:220ms;
+  --dirac-pro-mid:520ms;
+  --dirac-pro-slow:760ms;
+}
+html[data-dirac-motion-mode="calm"] *,
+html[data-dirac-motion-mode="calm"] *:before,
+html[data-dirac-motion-mode="calm"] *:after{
+  animation-duration:.001ms!important;
+  animation-iteration-count:1!important;
+  transition-duration:.001ms!important;
+  scroll-behavior:auto!important;
+}
+html[data-dirac-motion-mode="calm"] .dirac-professional-modal.open .dirac-professional-card,
+html[data-dirac-motion-mode="calm"] .dirac-mini-cart-preview.is-visible,
+html[data-dirac-motion-mode="calm"] .dirac-empty-chip,
+html[data-dirac-motion-mode="calm"] .dirac-checkout-sticky{animation:none!important;transform:none!important;filter:none!important}
+
+.dirac-motion-panel-note{display:block;margin-top:8px;color:#8f9bad;font-size:.82rem;line-height:1.55}
+.dirac-motion-choice.is-selected{border-color:var(--gold)!important;background:rgba(var(--theme-rgb,243,205,112),.14)!important;box-shadow:0 0 0 3px rgba(var(--theme-rgb,243,205,112),.14),0 12px 28px rgba(0,0,0,.18)!important}
+
+.dirac-smart-tools{
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:18px auto 0;
+}
+.dirac-smart-btn{
+  position:relative;overflow:hidden;isolation:isolate;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.32);
+  background:linear-gradient(135deg,rgba(var(--theme-rgb,243,205,112),.16),rgba(255,255,255,.055));
+  color:#f7ead2;border-radius:999px;min-height:44px;padding:10px 16px;font-weight:900;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 16px 34px rgba(0,0,0,.20),0 0 0 1px rgba(255,255,255,.04) inset;
+  transition:transform .24s var(--dirac-pro-ease),border-color .24s var(--dirac-pro-ease),box-shadow .24s var(--dirac-pro-ease),background .24s var(--dirac-pro-ease);
+}
+.dirac-smart-btn:hover,.dirac-smart-btn:focus-visible{transform:translateY(-2px);border-color:rgba(var(--theme-rgb,243,205,112),.56);box-shadow:0 20px 44px rgba(0,0,0,.26),0 0 24px rgba(var(--theme-rgb,243,205,112),.12);outline:none}
+.dirac-smart-btn:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 18%,rgba(255,255,255,.14),transparent 74%);transform:translateX(-130%);transition:transform .65s var(--dirac-pro-ease)}
+.dirac-smart-btn:hover:before,.dirac-smart-btn:focus-visible:before{transform:translateX(130%)}
+html[data-effective-theme="light"] .dirac-smart-btn{color:#172033;background:linear-gradient(135deg,rgba(var(--theme-rgb,243,205,112),.16),rgba(255,255,255,.78))}
+
+.dirac-professional-modal{position:fixed;inset:0;z-index:11850;display:none;place-items:center;padding:18px;background:rgba(0,0,0,.66);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.dirac-professional-modal.open{display:grid}
+.dirac-professional-card{width:min(760px,100%);max-height:min(88vh,780px);max-height:min(88dvh,780px);overflow:auto;border-radius:30px;border:1px solid rgba(var(--theme-rgb,243,205,112),.24);background:radial-gradient(circle at 20% 0%,rgba(var(--theme-rgb,243,205,112),.14),transparent 24rem),linear-gradient(180deg,#111923,#07090d);box-shadow:0 28px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04) inset;animation:diracProModalIn .42s var(--dirac-pro-ease) both}
+.dirac-professional-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.08)}
+.dirac-professional-head h2{margin:0;color:var(--gold);font-family:"Playfair Display",serif;font-size:clamp(1.55rem,4vw,2.2rem);line-height:1.05}.dirac-professional-head p{margin:6px 0 0;color:#aeb7c6;font-size:.92rem}.dirac-professional-body{padding:22px 24px 24px}
+@keyframes diracProModalIn{from{opacity:.74;transform:translateY(18px) scale(.972)}to{opacity:1;transform:none}}
+.dirac-quiz-progress{display:flex;align-items:center;gap:8px;margin-bottom:18px}.dirac-quiz-dot{height:8px;flex:1;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}.dirac-quiz-dot span{display:block;height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 42%,#fff 58%));transition:width .32s var(--dirac-pro-ease)}
+.dirac-quiz-question{margin:0 0 14px;color:#fff;font-size:1.05rem;font-weight:900}.dirac-quiz-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}.dirac-quiz-option{min-height:62px;border-radius:20px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:#eef4ff;text-align:left;padding:12px 14px;font-weight:850;transition:transform .22s var(--dirac-pro-ease),border-color .22s var(--dirac-pro-ease),background .22s var(--dirac-pro-ease),box-shadow .22s var(--dirac-pro-ease)}.dirac-quiz-option:hover,.dirac-quiz-option:focus-visible{transform:translateY(-2px);border-color:rgba(var(--theme-rgb,243,205,112),.48);background:rgba(var(--theme-rgb,243,205,112),.10);outline:none}.dirac-quiz-option small{display:block;margin-top:3px;color:#9aa5b5;font-weight:700;line-height:1.35}.dirac-quiz-option.is-selected{border-color:var(--gold);background:rgba(var(--theme-rgb,243,205,112),.14);box-shadow:0 0 0 3px rgba(var(--theme-rgb,243,205,112),.13)}
+.dirac-quiz-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-top:10px}.dirac-quiz-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.dirac-quiz-result{border:1px solid rgba(var(--theme-rgb,243,205,112),.20);background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.026));border-radius:22px;overflow:hidden;animation:diracQuizResultIn .46s var(--dirac-pro-ease) both;animation-delay:var(--quiz-delay,0ms)}.dirac-quiz-result img{width:100%;aspect-ratio:16/10;object-fit:contain;background:#101722;padding:8px}.dirac-quiz-result-body{padding:13px}.dirac-quiz-result h3{margin:0 0 7px;color:#fff;font-size:.92rem;line-height:1.28}.dirac-quiz-result p{margin:0 0 10px;color:#aeb7c6;font-size:.78rem;line-height:1.45}.dirac-quiz-result .price{font-size:1rem;margin-bottom:10px}.dirac-quiz-match{display:inline-flex;margin-bottom:8px;padding:5px 8px;border-radius:999px;background:rgba(24,185,129,.12);border:1px solid rgba(24,185,129,.28);color:#bbf7d0;font-size:.72rem;font-weight:900}
+@keyframes diracQuizResultIn{from{opacity:.48;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+.dirac-mini-cart-preview{position:fixed;right:18px;bottom:calc(82px + env(safe-area-inset-bottom));z-index:12100;width:min(360px,calc(100vw - 28px));border:1px solid rgba(var(--theme-rgb,243,205,112),.28);border-radius:24px;background:linear-gradient(160deg,rgba(14,20,30,.96),rgba(5,7,11,.94));box-shadow:0 24px 70px rgba(0,0,0,.44),0 0 0 1px rgba(255,255,255,.05) inset;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:grid;grid-template-columns:74px 1fr auto;gap:12px;align-items:center;padding:12px;opacity:0;pointer-events:none;transform:translateY(18px) scale(.975);transition:opacity .28s var(--dirac-pro-ease),transform .28s var(--dirac-pro-ease)}.dirac-mini-cart-preview.is-visible{opacity:1;pointer-events:auto;transform:none}.dirac-mini-cart-preview img{width:74px;height:74px;object-fit:cover;border-radius:18px;background:#101722}.dirac-mini-cart-preview strong{display:block;color:#fff;font-size:.9rem;line-height:1.28;margin-bottom:2px}.dirac-mini-cart-preview span{display:block;color:#b5bfce;font-size:.78rem}.dirac-mini-cart-preview .dirac-mini-progress{position:absolute;left:14px;right:14px;bottom:7px;height:3px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.dirac-mini-cart-preview .dirac-mini-progress i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--gold),color-mix(in srgb,var(--gold) 42%,#fff 58%));transform-origin:left;animation:diracMiniCartLife 3.2s linear forwards}.dirac-mini-cart-preview button{white-space:nowrap;padding:9px 11px;font-size:.78rem}@keyframes diracMiniCartLife{to{transform:scaleX(0)}}
+html[data-effective-theme="light"] .dirac-mini-cart-preview{background:linear-gradient(160deg,rgba(255,255,255,.97),rgba(245,248,252,.94));box-shadow:0 24px 60px rgba(15,23,42,.18)}html[data-effective-theme="light"] .dirac-mini-cart-preview strong{color:#172033}html[data-effective-theme="light"] .dirac-mini-cart-preview span{color:#536071}
+
+.dirac-empty-suggestions{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.dirac-empty-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.28);background:rgba(var(--theme-rgb,243,205,112),.08);color:#f7ead2;border-radius:999px;padding:8px 11px;font-size:.82rem;font-weight:850;animation:diracEmptyChipIn .34s var(--dirac-pro-ease) both;animation-delay:var(--empty-delay,0ms)}.dirac-empty-chip:hover,.dirac-empty-chip:focus-visible{background:rgba(var(--theme-rgb,243,205,112),.16);border-color:rgba(var(--theme-rgb,243,205,112),.48);outline:none;transform:translateY(-1px)}@keyframes diracEmptyChipIn{from{opacity:.42;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.dirac-checkout-sticky{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:11650;display:none;align-items:center;justify-content:space-between;gap:12px;border:1px solid rgba(var(--theme-rgb,243,205,112),.28);border-radius:22px;background:linear-gradient(145deg,rgba(12,18,27,.96),rgba(5,7,11,.94));box-shadow:0 20px 56px rgba(0,0,0,.46),0 0 0 1px rgba(255,255,255,.05) inset;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:11px 12px;animation:diracStickyCheckoutIn .32s var(--dirac-pro-ease) both}.dirac-checkout-sticky strong{display:block;color:var(--gold);line-height:1.1}.dirac-checkout-sticky span{display:block;color:#c6cedb;font-size:.75rem;font-weight:800}.dirac-checkout-sticky button{padding:10px 12px;font-size:.8rem}.modal.open ~ .dirac-checkout-sticky,.dirac-checkout-sticky.is-visible{display:flex}@keyframes diracStickyCheckoutIn{from{opacity:.45;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+html[data-effective-theme="light"] .dirac-checkout-sticky{background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(245,248,252,.94));box-shadow:0 18px 46px rgba(15,23,42,.18)}html[data-effective-theme="light"] .dirac-checkout-sticky span{color:#536071}
+
+@media(min-width:761px){.dirac-checkout-sticky{display:none!important}}
+@media(max-width:760px){.dirac-professional-card{width:min(92vw,560px);border-radius:28px}.dirac-professional-head{padding:18px 18px 12px}.dirac-professional-body{padding:18px}.dirac-quiz-options{grid-template-columns:1fr}.dirac-quiz-results{grid-template-columns:1fr}.dirac-mini-cart-preview{right:12px;left:12px;bottom:calc(72px + env(safe-area-inset-bottom));width:auto;grid-template-columns:62px 1fr}.dirac-mini-cart-preview img{width:62px;height:62px}.dirac-mini-cart-preview button{grid-column:1/-1;width:100%}.dirac-smart-tools{justify-content:flex-start}.dirac-smart-btn{width:100%}}
+@media(prefers-reduced-motion:reduce){.dirac-professional-card,.dirac-quiz-result,.dirac-mini-cart-preview,.dirac-mini-cart-preview .dirac-mini-progress i,.dirac-empty-chip,.dirac-checkout-sticky,.dirac-smart-btn,.dirac-smart-btn:before{animation:none!important;transition:none!important;transform:none!important}.dirac-smart-btn:before{display:none!important}}
+</style>
+
+<script id="dirac-professional-motion-v7-js">
+(function(){
+  'use strict';
+  var reduceMotion = false;
+  try{ reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(error){}
+  var MOTION_KEY = 'dirac_motion_mode_v1';
+  function $(selector, root){ return (root || document).querySelector(selector); }
+  function $all(selector, root){ return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
+  function clean(value){ return String(value || '').replace(/\s+/g,' ').trim(); }
+  function safeProducts(){ try{ return (typeof products !== 'undefined' && Array.isArray(products)) ? products : []; }catch(error){ return []; } }
+  function safeFormatIDR(value){ try{ return typeof formatIDR === 'function' ? formatIDR(value) : 'Rp' + Number(value || 0).toLocaleString('id-ID'); }catch(error){ return 'Rp' + Number(value || 0).toLocaleString('id-ID'); } }
+  function getById(id){ var list = safeProducts(); id = Number(id); return list.find(function(p){ return Number(p.id) === id; }); }
+  function getTotalsSafe(){ try{ if(typeof totals === 'function') return totals(); }catch(error){} return {total:0,sub:0,discount:0,shipping:0}; }
+  function getQtySafe(){ try{ return typeof totalQty === 'function' ? totalQty() : 0; }catch(error){ return 0; } }
+
+  function applyMotionMode(mode){
+    mode = mode === 'calm' ? 'calm' : 'normal';
+    document.documentElement.setAttribute('data-dirac-motion-mode', mode);
+    try{ localStorage.setItem(MOTION_KEY, mode); }catch(error){}
+    $all('[data-dirac-motion-option]').forEach(function(btn){
+      var selected = btn.getAttribute('data-dirac-motion-option') === mode;
+      btn.classList.toggle('is-selected', selected);
+      btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  }
+  function initMotionModePanel(){
+    var saved = 'normal';
+    try{ saved = localStorage.getItem(MOTION_KEY) || 'normal'; }catch(error){}
+    applyMotionMode(saved);
+    var body = $('.theme-body');
+    if(body && !$('#diracMotionSection')){
+      var section = document.createElement('section');
+      section.className = 'theme-section';
+      section.id = 'diracMotionSection';
+      section.setAttribute('aria-label','Mode gerak website');
+      section.innerHTML = '<h3>Gerak Website</h3><p>Pilih intensitas animasi agar tetap nyaman di perangkat Anda.</p><div class="theme-contrast-grid"><button class="theme-choice dirac-motion-choice" type="button" data-dirac-motion-option="normal" aria-pressed="false"><span aria-hidden="true">~</span><span>Normal</span></button><button class="theme-choice dirac-motion-choice" type="button" data-dirac-motion-option="calm" aria-pressed="false"><span aria-hidden="true">-</span><span>Hemat</span></button></div><span class="dirac-motion-panel-note">Mode Hemat mengurangi animasi non-esensial tanpa mengubah isi katalog, cart, atau checkout.</span>';
+      var actions = $('.theme-actions', body);
+      if(actions) body.insertBefore(section, actions); else body.appendChild(section);
+    }
+    document.addEventListener('click', function(event){
+      var btn = event.target && event.target.closest && event.target.closest('[data-dirac-motion-option]');
+      if(!btn) return;
+      applyMotionMode(btn.getAttribute('data-dirac-motion-option'));
+    }, true);
+  }
+
+  function ensureSmartTools(){
+    if($('#diracSmartTools')) return;
+    var catalog = $('#produk .container') || $('#produk') || $('#catalog .container') || $('#catalog');
+    var toolbar = $('.toolbar', catalog || document);
+    if(!catalog || !toolbar) return;
+    var tools = document.createElement('div');
+    tools.id = 'diracSmartTools';
+    tools.className = 'dirac-smart-tools';
+    tools.innerHTML = '<button class="dirac-smart-btn" type="button" id="diracOpenQuiz"><span aria-hidden="true">*</span><span>Bantu Pilih Aroma</span></button><button class="dirac-smart-btn" type="button" id="diracResetSearch"><span aria-hidden="true">x</span><span>Reset Pencarian</span></button>';
+    toolbar.insertAdjacentElement('beforebegin', tools);
+  }
+
+  var quizState = {step:0, answers:{}};
+  var quizSteps = [
+    {key:'mood', title:'Aroma seperti apa yang Anda cari?', options:[
+      ['fresh','Fresh dan clean','Aman untuk daily, kantor, dan siang hari'],
+      ['sweet','Manis dan hangat','Cocok untuk malam, date, atau suasana santai rapi'],
+      ['woody','Woody dan elegan','Memberi kesan dewasa, formal, dan premium'],
+      ['unique','Unik dan eksklusif','Untuk signature scent atau kolektor']
+    ]},
+    {key:'occasion', title:'Akan paling sering dipakai kapan?', options:[
+      ['daily','Harian','Nyaman dipakai berulang'],
+      ['office','Kerja atau meeting','Rapi, bersih, tidak terlalu ramai'],
+      ['night','Malam atau acara spesial','Lebih tebal dan memorable'],
+      ['gift','Hadiah','Mudah disukai dan presentable']
+    ]},
+    {key:'budget', title:'Range pilihan yang paling cocok?', options:[
+      ['friendly','Ramah budget','Prioritaskan harga lebih ringan'],
+      ['designer','Designer','Modern, aman, dan populer'],
+      ['premium','Premium','Niche/luxury dengan karakter kuat'],
+      ['any','Bebas','Tampilkan yang paling cocok']
+    ]}
+  ];
+
+  function productScore(product){
+    var text = clean([product.title, product.category, product.desc, product.notes, product.longDesc].join(' ')).toLowerCase();
+    var score = 0;
+    var mood = quizState.answers.mood;
+    var occasion = quizState.answers.occasion;
+    var budget = quizState.answers.budget;
+    if(product.status === 'sold') score -= 100;
+    if(product.isTopSeller) score += 5;
+    if(mood === 'fresh' && /(fresh|clean|citrus|green|aromatic|blue|aquatic|daily)/i.test(text)) score += 22;
+    if(mood === 'sweet' && /(sweet|vanilla|amber|warm|fruity|gourmand|seductive)/i.test(text)) score += 22;
+    if(mood === 'woody' && /(woody|oud|amber|spice|sandalwood|elegant|formal|mature)/i.test(text)) score += 22;
+    if(mood === 'unique' && /(niche|unique|premium|luxury|exclusive|signature|collector|complex)/i.test(text)) score += 22;
+    if(occasion === 'daily' && /(daily|clean|fresh|easy|versatile|harian)/i.test(text)) score += 12;
+    if(occasion === 'office' && /(office|kantor|meeting|formal|clean|rapi|modern)/i.test(text)) score += 12;
+    if(occasion === 'night' && /(night|malam|date|dinner|warm|intense|sweet|amber)/i.test(text)) score += 12;
+    if(occasion === 'gift' && /(designer|versatile|popular|easy|gift|modern|fresh)/i.test(text)) score += 10;
+    if(budget === 'friendly' && Number(product.price) <= 1000000) score += 16;
+    if(budget === 'designer' && /designer/i.test(product.category)) score += 16;
+    if(budget === 'premium' && (/niche/i.test(product.category) || Number(product.price) >= 2500000)) score += 16;
+    if(budget === 'any') score += 5;
+    return score;
+  }
+  function getQuizResults(){
+    return safeProducts().slice().map(function(p){ return {product:p, score:productScore(p)}; }).sort(function(a,b){ return b.score - a.score || Number(b.product.soldCount || 0) - Number(a.product.soldCount || 0); }).slice(0,3);
+  }
+  function ensureQuizModal(){
+    var modal = $('#diracQuizModal');
+    if(modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'diracQuizModal';
+    modal.className = 'dirac-professional-modal';
+    modal.setAttribute('aria-hidden','true');
+    modal.innerHTML = '<div class="dirac-professional-card" role="dialog" aria-modal="true" aria-labelledby="diracQuizTitle"><div class="dirac-professional-head"><div><h2 id="diracQuizTitle">Bantu Pilih Aroma</h2><p>Pilih 3 jawaban singkat. Sistem akan menampilkan rekomendasi yang paling masuk akal dari katalog.</p></div><button class="icon-btn" type="button" data-dirac-close-quiz aria-label="Tutup quiz">x</button></div><div class="dirac-professional-body" id="diracQuizBody"></div></div>';
+    document.body.appendChild(modal);
+    return modal;
+  }
+  function openQuiz(){
+    quizState = {step:0, answers:{}};
+    var modal = ensureQuizModal();
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+    renderQuiz();
+  }
+  function closeQuiz(){
+    var modal = $('#diracQuizModal');
+    if(!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    if(!$('.modal.open') && !$('.theme-modal.open')) document.body.classList.remove('modal-open');
+  }
+  function renderQuiz(){
+    var body = $('#diracQuizBody');
+    if(!body) return;
+    var step = quizSteps[quizState.step];
+    if(!step){ renderQuizResults(); return; }
+    var progress = Math.round((quizState.step / quizSteps.length) * 100);
+    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:'+progress+'%"></span></div></div><h3 class="dirac-quiz-question">'+step.title+'</h3><div class="dirac-quiz-options">'+step.options.map(function(option){ return '<button type="button" class="dirac-quiz-option" data-quiz-answer="'+option[0]+'"><span>'+option[1]+'</span><small>'+option[2]+'</small></button>'; }).join('')+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-back '+(quizState.step ? '' : 'disabled')+'>Kembali</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+  }
+  function renderQuizResults(){
+    var body = $('#diracQuizBody');
+    if(!body) return;
+    var results = getQuizResults();
+    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">Rekomendasi paling cocok</h3><p class="muted">Hasil ini memakai notes, kategori, harga, status stok, dan karakter produk di katalog.</p><div class="dirac-quiz-results">'+results.map(function(item,index){ var p = item.product; return '<article class="dirac-quiz-result" style="--quiz-delay:'+(index*70)+'ms"><img src="'+String(p.img || '').replace(/"/g,'&quot;')+'" alt="'+String(p.title || '').replace(/"/g,'&quot;')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div class="dirac-quiz-result-body"><span class="dirac-quiz-match">Cocok '+Math.max(72,Math.min(98,72+item.score))+'%</span><h3>'+p.title+'</h3><p>'+clean(p.notes || p.desc).slice(0,90)+'</p><div class="price">'+safeFormatIDR(p.price)+'</div><div class="product-actions"><button class="btn-secondary" type="button" data-quiz-detail="'+p.id+'">Detail</button><button class="btn-primary '+(p.status === 'sold' ? 'btn-disabled' : '')+'" type="button" data-quiz-add="'+p.id+'" '+(p.status === 'sold' ? 'disabled aria-disabled="true"' : '')+'>'+(p.status === 'sold' ? 'Sold' : '+ Cart')+'</button></div></div></article>'; }).join('')+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>Ulangi Quiz</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+  }
+
+  var miniTimer = null;
+  function ensureMiniCart(){
+    var box = $('#diracMiniCartPreview');
+    if(box) return box;
+    box = document.createElement('div');
+    box.id = 'diracMiniCartPreview';
+    box.className = 'dirac-mini-cart-preview';
+    box.setAttribute('role','status');
+    box.setAttribute('aria-live','polite');
+    document.body.appendChild(box);
+    return box;
+  }
+  function showMiniCart(product){
+    if(!product || product.status === 'sold') return;
+    var box = ensureMiniCart();
+    box.innerHTML = '<img src="'+String(product.img || '').replace(/"/g,'&quot;')+'" alt="'+String(product.title || '').replace(/"/g,'&quot;')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div><strong>'+product.title+'</strong><span>'+safeFormatIDR(product.price)+' masuk keranjang</span></div><button class="btn-primary" type="button" data-open-cart>Lihat</button><div class="dirac-mini-progress" aria-hidden="true"><i></i></div>';
+    clearTimeout(miniTimer);
+    box.classList.remove('is-visible');
+    void box.offsetWidth;
+    box.classList.add('is-visible');
+    miniTimer = setTimeout(function(){ box.classList.remove('is-visible'); }, reduceMotion ? 1400 : 3200);
+  }
+
+  function enhanceEmptySearch(){
+    var grid = $('#productGrid');
+    if(!grid) return;
+    var empty = $('.empty-state', grid);
+    if(!empty || empty.querySelector('.dirac-empty-suggestions')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'dirac-empty-suggestions';
+    var chips = [
+      ['fresh','Fresh'],['vanilla','Vanilla'],['oud','Oud'],['musk','Musk'],['Niche','Niche'],['Designer','Designer']
+    ];
+    wrap.innerHTML = chips.map(function(chip,index){ return '<button class="dirac-empty-chip" type="button" data-empty-query="'+chip[0]+'" style="--empty-delay:'+(index*42)+'ms">'+chip[1]+'</button>'; }).join('') + '<button class="dirac-empty-chip" type="button" data-empty-reset style="--empty-delay:260ms">Reset</button>';
+    empty.appendChild(wrap);
+  }
+
+  function ensureStickyCheckout(){
+    var sticky = $('#diracCheckoutSticky');
+    if(sticky) return sticky;
+    sticky = document.createElement('div');
+    sticky.id = 'diracCheckoutSticky';
+    sticky.className = 'dirac-checkout-sticky';
+    sticky.setAttribute('aria-live','polite');
+    document.body.appendChild(sticky);
+    return sticky;
+  }
+  function updateStickyCheckout(){
+    var modal = $('#checkoutModal');
+    var sticky = ensureStickyCheckout();
+    var visible = !!(modal && modal.classList.contains('open'));
+    sticky.classList.toggle('is-visible', visible);
+    if(!visible) return;
+    var t = getTotalsSafe();
+    sticky.innerHTML = '<div><strong>'+safeFormatIDR(t.total || 0)+'</strong><span>'+getQtySafe()+' item siap checkout</span></div><button class="btn-primary" type="button" data-sticky-send-wa>Kirim WhatsApp</button>';
+  }
+
+  function bindProfessionalEvents(){
+    if(window.__diracProfessionalMotionBound) return;
+    window.__diracProfessionalMotionBound = true;
+    document.addEventListener('click', function(event){
+      var openQuizBtn = event.target && event.target.closest && event.target.closest('#diracOpenQuiz');
+      if(openQuizBtn){ event.preventDefault(); openQuiz(); return; }
+      var resetBtn = event.target && event.target.closest && event.target.closest('#diracResetSearch');
+      if(resetBtn){ event.preventDefault(); var search = $('#searchInput'); var category = $('#categoryFilter'); if(search) search.value = ''; if(category) category.value = 'all'; ['input','change'].forEach(function(name){ if(search) search.dispatchEvent(new Event(name,{bubbles:true})); if(category) category.dispatchEvent(new Event(name,{bubbles:true})); }); return; }
+      if(event.target && event.target.closest && event.target.closest('[data-dirac-close-quiz]')){ closeQuiz(); return; }
+      var answer = event.target && event.target.closest && event.target.closest('[data-quiz-answer]');
+      if(answer){ var step = quizSteps[quizState.step]; if(step){ quizState.answers[step.key] = answer.getAttribute('data-quiz-answer'); answer.classList.add('is-selected'); setTimeout(function(){ quizState.step += 1; renderQuiz(); }, reduceMotion ? 0 : 180); } return; }
+      if(event.target && event.target.closest && event.target.closest('[data-quiz-back]')){ quizState.step = Math.max(0, quizState.step - 1); renderQuiz(); return; }
+      if(event.target && event.target.closest && event.target.closest('[data-quiz-restart]')){ quizState = {step:0, answers:{}}; renderQuiz(); return; }
+      var quizAdd = event.target && event.target.closest && event.target.closest('[data-quiz-add]');
+      if(quizAdd){ var prodAdd = getById(quizAdd.getAttribute('data-quiz-add')); try{ if(typeof addToCart === 'function') addToCart(quizAdd.getAttribute('data-quiz-add')); }catch(error){} showMiniCart(prodAdd); return; }
+      var quizDetail = event.target && event.target.closest && event.target.closest('[data-quiz-detail]');
+      if(quizDetail){ closeQuiz(); setTimeout(function(){ try{ if(typeof openQuick === 'function') openQuick(quizDetail.getAttribute('data-quiz-detail')); }catch(error){} }, reduceMotion ? 0 : 120); return; }
+      var emptyChip = event.target && event.target.closest && event.target.closest('[data-empty-query]');
+      if(emptyChip){ var searchInput = $('#searchInput'); if(searchInput){ searchInput.value = emptyChip.getAttribute('data-empty-query'); searchInput.dispatchEvent(new Event('input',{bubbles:true})); searchInput.focus(); } return; }
+      if(event.target && event.target.closest && event.target.closest('[data-empty-reset]')){ var searchReset = $('#searchInput'); var catReset = $('#categoryFilter'); if(searchReset) searchReset.value = ''; if(catReset) catReset.value = 'all'; if(searchReset) searchReset.dispatchEvent(new Event('input',{bubbles:true})); if(catReset) catReset.dispatchEvent(new Event('change',{bubbles:true})); return; }
+      var directAdd = event.target && event.target.closest && event.target.closest('[data-add]');
+      if(directAdd){ var prod = getById(directAdd.getAttribute('data-add')); setTimeout(function(){ showMiniCart(prod); updateStickyCheckout(); }, 80); return; }
+      var stickySend = event.target && event.target.closest && event.target.closest('[data-sticky-send-wa]');
+      if(stickySend){ var send = $('#sendWhatsappBtn'); if(send) send.click(); return; }
+    }, true);
+    document.addEventListener('keydown', function(event){ if(event.key === 'Escape') closeQuiz(); }, true);
+  }
+
+  function observeDynamicAreas(){
+    if('MutationObserver' in window){
+      var grid = $('#productGrid');
+      if(grid && !grid.dataset.diracProfessionalObserver){
+        grid.dataset.diracProfessionalObserver = 'true';
+        new MutationObserver(function(){ enhanceEmptySearch(); }).observe(grid,{childList:true,subtree:true});
+      }
+      var cart = $('#cartItems');
+      if(cart && !cart.dataset.diracProfessionalObserver){
+        cart.dataset.diracProfessionalObserver = 'true';
+        new MutationObserver(updateStickyCheckout).observe(cart,{childList:true,subtree:true});
+      }
+      var modal = $('#checkoutModal');
+      if(modal && !modal.dataset.diracProfessionalObserver){
+        modal.dataset.diracProfessionalObserver = 'true';
+        new MutationObserver(updateStickyCheckout).observe(modal,{attributes:true,attributeFilter:['class']});
+      }
+    }
+    ['#shippingSelect','#promoInput','#buyerName','#buyerPhone','#buyerAddress'].forEach(function(sel){ var el = $(sel); if(el && !el.dataset.diracProfessionalBound){ el.dataset.diracProfessionalBound = 'true'; ['input','change'].forEach(function(name){ el.addEventListener(name, updateStickyCheckout, {passive:true}); }); } });
+  }
+
+  function boot(){
+    initMotionModePanel();
+    ensureSmartTools();
+    ensureQuizModal();
+    ensureMiniCart();
+    ensureStickyCheckout();
+    bindProfessionalEvents();
+    observeDynamicAreas();
+    enhanceEmptySearch();
+    updateStickyCheckout();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
+  else boot();
+  window.addEventListener('pageshow', boot);
+  setTimeout(boot, 500);
+  setTimeout(boot, 1500);
+})();
+</script>
+
 </body>
 </html>
