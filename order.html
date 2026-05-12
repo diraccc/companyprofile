@@ -5586,6 +5586,153 @@ html[data-effective-theme="light"] .dirac-interface-veil{
     window.imageFallback = imageFallback;
 
 
+    /* =========================================================
+       Dirac Language Product Copy Fix
+       Produk dan pesan checkout dinamis mengikuti bahasa pilihan.
+       ========================================================= */
+    const DIRAC_LANGUAGE_STORAGE_KEY = 'dirac_language_v1';
+    const DIRAC_SUPPORTED_LANGUAGES = ['id','en','zh','ar','ja','ko','es','fr'];
+    const DIRAC_UI_COPY = Object.freeze({
+      'Nama lengkap': {en:'Full name', zh:'姓名', ar:'الاسم الكامل', ja:'氏名', ko:'성명', es:'Nombre completo', fr:'Nom complet'},
+      'Nomor WhatsApp': {en:'WhatsApp number', zh:'WhatsApp 号码', ar:'رقم واتساب', ja:'WhatsApp番号', ko:'WhatsApp 번호', es:'Número de WhatsApp', fr:'Numéro WhatsApp'},
+      'Alamat lengkap / kota tujuan': {en:'Full address / destination city', zh:'完整地址 / 目的城市', ar:'العنوان الكامل / مدينة الوجهة', ja:'詳しい住所 / 配送先の市区町村', ko:'전체 주소 / 도착 도시', es:'Dirección completa / ciudad de destino', fr:'Adresse complète / ville de destination'},
+      'Lengkapi dulu': {en:'Complete first', zh:'请先填写', ar:'أكمل أولاً', ja:'先に入力してください', ko:'먼저 입력하세요', es:'Completa primero', fr:'Complétez d’abord'},
+      'Produk tidak ditemukan. Coba kata kunci lain.': {en:'Product not found. Try another keyword.', zh:'未找到产品。请尝试其他关键词。', ar:'لم يتم العثور على المنتج. جرّب كلمة أخرى.', ja:'商品が見つかりません。別のキーワードをお試しください。', ko:'제품을 찾을 수 없습니다. 다른 키워드를 입력해 보세요.', es:'Producto no encontrado. Prueba otra palabra clave.', fr:'Produit introuvable. Essayez un autre mot-clé.'},
+      'Semua produk tampil': {en:'All products shown', zh:'已显示所有产品', ar:'تم عرض جميع المنتجات', ja:'すべての商品を表示済み', ko:'모든 제품이 표시됨', es:'Todos los productos visibles', fr:'Tous les produits sont affichés'},
+      'Tampilkan produk lainnya': {en:'Show more products', zh:'显示更多产品', ar:'عرض المزيد من المنتجات', ja:'さらに商品を表示', ko:'제품 더 보기', es:'Mostrar más productos', fr:'Afficher plus de produits'},
+      'Tambah': {en:'Add', zh:'添加', ar:'إضافة', ja:'追加', ko:'추가', es:'Agregar', fr:'Ajouter'},
+      '+ Cart': {en:'+ Cart', zh:'+ 购物车', ar:'+ السلة', ja:'+ カート', ko:'+ 장바구니', es:'+ Carrito', fr:'+ Panier'},
+      'Produk sold out': {en:'Product sold out', zh:'产品已售罄', ar:'المنتج نفد', ja:'商品は売り切れです', ko:'품절된 제품입니다', es:'Producto agotado', fr:'Produit en rupture'},
+      'Sold': {en:'Sold', zh:'售罄', ar:'نفد', ja:'売り切れ', ko:'품절', es:'Agotado', fr:'Épuisé'},
+      'Sold out': {en:'Sold out', zh:'售罄', ar:'نفد المخزون', ja:'売り切れ', ko:'품절', es:'Agotado', fr:'Rupture de stock'},
+      'Ready stock': {en:'Ready stock', zh:'现货', ar:'متوفر', ja:'在庫あり', ko:'재고 있음', es:'Stock disponible', fr:'En stock'},
+      'Top seller': {en:'Top seller', zh:'热卖', ar:'الأكثر مبيعاً', ja:'人気商品', ko:'인기 상품', es:'Más vendido', fr:'Meilleure vente'},
+      'Detail': {en:'Details', zh:'详情', ar:'التفاصيل', ja:'詳細', ko:'상세', es:'Detalle', fr:'Détails'},
+      'Tambah ke Keranjang': {en:'Add to Cart', zh:'加入购物车', ar:'أضف إلى السلة', ja:'カートに追加', ko:'장바구니에 추가', es:'Agregar al carrito', fr:'Ajouter au panier'},
+      'Tanya via WhatsApp': {en:'Ask via WhatsApp', zh:'通过 WhatsApp 咨询', ar:'اسأل عبر واتساب', ja:'WhatsAppで質問', ko:'WhatsApp 문의', es:'Preguntar por WhatsApp', fr:'Demander via WhatsApp'},
+      'Ditambahkan': {en:'Added', zh:'已添加', ar:'تمت الإضافة', ja:'追加済み', ko:'추가됨', es:'Agregado', fr:'Ajouté'},
+      'Gratis': {en:'Free', zh:'免费', ar:'مجاني', ja:'無料', ko:'무료', es:'Gratis', fr:'Gratuit'},
+      'Keranjang kosong': {en:'Empty cart', zh:'购物车为空', ar:'السلة فارغة', ja:'カートは空です', ko:'장바구니가 비어 있습니다', es:'Carrito vacío', fr:'Panier vide'},
+      'Mulai pilih parfum favorit dari katalog.': {en:'Start choosing your favorite perfume from the catalog.', zh:'请从目录中选择您喜欢的香水。', ar:'ابدأ باختيار عطرك المفضل من الكتالوج.', ja:'カタログからお気に入りの香水を選びましょう。', ko:'카탈로그에서 좋아하는 향수를 선택해 보세요.', es:'Empieza a elegir tu perfume favorito del catálogo.', fr:'Commencez par choisir votre parfum favori dans le catalogue.'},
+      'Tambah produk untuk gratis ongkir.': {en:'Add products for free shipping.', zh:'添加商品即可享受免运费。', ar:'أضف منتجات للحصول على شحن مجاني.', ja:'送料無料にするには商品を追加してください。', ko:'무료 배송을 위해 제품을 추가하세요.', es:'Agrega productos para envío gratis.', fr:'Ajoutez des produits pour la livraison gratuite.'},
+      'Selamat, pengiriman standard gratis.': {en:'Great, standard shipping is free.', zh:'恭喜，标准配送免费。', ar:'رائع، الشحن العادي مجاني.', ja:'おめでとうございます。標準配送が無料です。', ko:'축하합니다. 스탠다드 배송이 무료입니다.', es:'Listo, el envío estándar es gratis.', fr:'Parfait, la livraison standard est gratuite.'},
+      'Keranjang masih kosong': {en:'Cart is still empty', zh:'购物车仍为空', ar:'السلة لا تزال فارغة', ja:'カートはまだ空です', ko:'장바구니가 아직 비어 있습니다', es:'El carrito aún está vacío', fr:'Le panier est encore vide'},
+      'item tersimpan': {en:'items saved', zh:'件商品已保存', ar:'عنصر محفوظ', ja:'件保存済み', ko:'개 항목 저장됨', es:'artículos guardados', fr:'article(s) enregistré(s)'},
+      'Timur Tengah': {en:'Middle Eastern', zh:'中东', ar:'شرق أوسطي', ja:'中東系', ko:'중동 향수', es:'Medio Oriente', fr:'Moyen-Orient'},
+      'Designer': {en:'Designer', zh:'设计师品牌', ar:'مصمم', ja:'デザイナー', ko:'디자이너', es:'Designer', fr:'Designer'},
+      'Lokal': {en:'Local', zh:'本地', ar:'محلي', ja:'ローカル', ko:'로컬', es:'Local', fr:'Local'},
+      'Niche': {en:'Niche', zh:'沙龙香', ar:'نيش', ja:'ニッチ', ko:'니치', es:'Niche', fr:'Niche'},
+      'Aksesoris': {en:'Accessories', zh:'配件', ar:'إكسسوارات', ja:'アクセサリー', ko:'액세서리', es:'Accesorios', fr:'Accessoires'},
+      'Bundle': {en:'Bundle', zh:'套装', ar:'باقة', ja:'セット', ko:'번들', es:'Pack', fr:'Pack'},
+      'Miniso': {en:'Miniso', zh:'名创优品', ar:'مينيسو', ja:'ミニソー', ko:'미니소', es:'Miniso', fr:'Miniso'},
+      'Rating dan jumlah pembelian': {en:'Rating and purchase count', zh:'评分和购买数量', ar:'التقييم وعدد المشتريات', ja:'評価と購入数', ko:'평점 및 구매 수', es:'Valoración y compras', fr:'Note et nombre d’achats'},
+      'Atur jumlah': {en:'Adjust quantity', zh:'调整数量', ar:'تعديل الكمية', ja:'数量を調整', ko:'수량 조정', es:'Ajustar cantidad', fr:'Ajuster la quantité'},
+      'Kurangi jumlah': {en:'Decrease quantity', zh:'减少数量', ar:'تقليل الكمية', ja:'数量を減らす', ko:'수량 줄이기', es:'Reducir cantidad', fr:'Réduire la quantité'},
+      'Tambah jumlah': {en:'Increase quantity', zh:'增加数量', ar:'زيادة الكمية', ja:'数量を増やす', ko:'수량 늘리기', es:'Aumentar cantidad', fr:'Augmenter la quantité'},
+      'Hapus': {en:'Remove', zh:'删除', ar:'حذف', ja:'削除', ko:'삭제', es:'Eliminar', fr:'Supprimer'},
+      'Lengkapi data wajib sebelum kirim ke WhatsApp.': {en:'Complete required data before sending to WhatsApp.', zh:'发送到 WhatsApp 前请填写必填信息。', ar:'أكمل البيانات المطلوبة قبل الإرسال إلى واتساب.', ja:'WhatsAppへ送信する前に必須情報を入力してください。', ko:'WhatsApp으로 보내기 전 필수 정보를 입력하세요.', es:'Completa los datos obligatorios antes de enviar a WhatsApp.', fr:'Complétez les informations obligatoires avant WhatsApp.'},
+      'WhatsApp checkout dibuka.': {en:'WhatsApp checkout opened.', zh:'WhatsApp 结账已打开。', ar:'تم فتح طلب واتساب.', ja:'WhatsApp注文画面を開きました。', ko:'WhatsApp 결제가 열렸습니다.', es:'Checkout de WhatsApp abierto.', fr:'Commande WhatsApp ouverte.'},
+      'Keranjang kosong.': {en:'Cart is empty.', zh:'购物车为空。', ar:'السلة فارغة.', ja:'カートは空です。', ko:'장바구니가 비어 있습니다.', es:'El carrito está vacío.', fr:'Le panier est vide.'},
+      'Produk sedang sold out.': {en:'Product is sold out.', zh:'产品已售罄。', ar:'المنتج غير متوفر حالياً.', ja:'商品は売り切れです。', ko:'현재 품절된 제품입니다.', es:'El producto está agotado.', fr:'Le produit est en rupture.'},
+      'Detail Produk': {en:'Product Details', zh:'产品详情', ar:'تفاصيل المنتج', ja:'商品詳細', ko:'제품 상세', es:'Detalle del producto', fr:'Détails du produit'},
+      'Produk tidak ditemukan. Silakan muat ulang halaman atau hubungi admin.': {en:'Product not found. Please reload the page or contact admin.', zh:'未找到产品。请刷新页面或联系管理员。', ar:'لم يتم العثور على المنتج. يرجى إعادة تحميل الصفحة أو التواصل مع الإدارة.', ja:'商品が見つかりません。ページを再読み込みするか管理者へお問い合わせください。', ko:'제품을 찾을 수 없습니다. 페이지를 새로고침하거나 관리자에게 문의하세요.', es:'Producto no encontrado. Recarga la página o contacta al admin.', fr:'Produit introuvable. Rechargez la page ou contactez l’admin.'},
+      'Detail produk gagal dimuat. Silakan tutup dan coba lagi.': {en:'Product details failed to load. Please close and try again.', zh:'产品详情加载失败。请关闭后重试。', ar:'تعذر تحميل تفاصيل المنتج. يرجى الإغلاق والمحاولة مرة أخرى.', ja:'商品詳細を読み込めませんでした。閉じてもう一度お試しください。', ko:'제품 상세 정보를 불러오지 못했습니다. 닫은 후 다시 시도하세요.', es:'No se pudo cargar el detalle del producto. Cierra e inténtalo de nuevo.', fr:'Impossible de charger les détails du produit. Fermez puis réessayez.'},
+      'Detail produk belum tersedia. Silakan tanya admin untuk konfirmasi stok dan aroma.': {en:'Product details are not available yet. Please ask admin to confirm stock and scent.', zh:'产品详情暂不可用。请咨询管理员确认库存和香气。', ar:'تفاصيل المنتج غير متاحة حالياً. يرجى سؤال الإدارة لتأكيد المخزون والرائحة.', ja:'商品詳細はまだ利用できません。在庫と香りは管理者へご確認ください。', ko:'제품 상세 정보가 아직 없습니다. 재고와 향은 관리자에게 확인해 주세요.', es:'El detalle del producto aún no está disponible. Consulta al admin para confirmar stock y aroma.', fr:'Les détails du produit ne sont pas encore disponibles. Demandez à l’admin de confirmer le stock et le parfum.'}
+    });
+
+    function diracCurrentLanguage(){
+      try{
+        if(window.diracLanguage && typeof window.diracLanguage.read === 'function'){
+          const fromApi = window.diracLanguage.read();
+          if(DIRAC_SUPPORTED_LANGUAGES.includes(fromApi)) return fromApi;
+        }
+      }catch(error){}
+      try{
+        const stored = localStorage.getItem(DIRAC_LANGUAGE_STORAGE_KEY) || 'id';
+        return DIRAC_SUPPORTED_LANGUAGES.includes(stored) ? stored : 'id';
+      }catch(error){ return 'id'; }
+    }
+
+    function diracTranslateCopy(source, lang = diracCurrentLanguage()){
+      const text = String(source ?? '');
+      if(!text || lang === 'id') return text;
+      const local = DIRAC_UI_COPY[text];
+      if(local && (local[lang] || local.en)) return local[lang] || local.en;
+      try{
+        if(window.diracLanguage && typeof window.diracLanguage.translate === 'function'){
+          const translated = window.diracLanguage.translate(text, lang);
+          if(translated && translated !== text) return translated;
+        }
+      }catch(error){}
+      return text;
+    }
+
+    function diracSavedItemsText(qty){
+      const lang = diracCurrentLanguage();
+      if(lang === 'id') return qty ? `${qty} item tersimpan` : 'Keranjang masih kosong';
+      if(!qty) return diracTranslateCopy('Keranjang masih kosong', lang);
+      const map = {
+        en:`${qty} items saved`, zh:`已保存 ${qty} 件商品`, ar:`${qty} عنصر محفوظ`, ja:`${qty}件保存済み`, ko:`${qty}개 항목 저장됨`, es:`${qty} artículos guardados`, fr:`${qty} article(s) enregistré(s)`
+      };
+      return map[lang] || map.en;
+    }
+
+    function diracLoadMoreLabel(remaining){
+      const lang = diracCurrentLanguage();
+      if(remaining <= 0) return diracTranslateCopy('Semua produk tampil', lang);
+      if(lang === 'id') return `Tampilkan produk lainnya (${remaining})`;
+      const base = diracTranslateCopy('Tampilkan produk lainnya', lang);
+      if(lang === 'zh') return `${base}（${remaining}）`;
+      if(lang === 'ja') return `${base}（${remaining}）`;
+      return `${base} (${remaining})`;
+    }
+
+    function diracMissingFieldsMessage(invalid){
+      const lang = diracCurrentLanguage();
+      const labels = invalid.map(item => diracTranslateCopy(item.label, lang));
+      return `${diracTranslateCopy('Lengkapi dulu', lang)}: ${labels.join(', ')}.`;
+    }
+
+    function diracProductProfile(product){
+      return String((product && product.notes) || (product && product.category) || 'Premium perfume').replace(/\s+-\s+/g, ' / ');
+    }
+
+    function diracProductStockCopy(product, lang = diracCurrentLanguage()){
+      return product && product.status === 'sold' ? diracTranslateCopy('Sold out', lang) : diracTranslateCopy('Ready stock', lang);
+    }
+
+    function diracProductCopy(product, mode = 'short'){
+      if(!product) return '';
+      const lang = diracCurrentLanguage();
+      const original = mode === 'long' ? (product.longDesc || product.desc || '') : (product.desc || product.longDesc || '');
+      if(lang === 'id') return original;
+      const title = product.title;
+      const profile = diracProductProfile(product);
+      const category = diracTranslateCopy(product.category || 'Produk', lang);
+      const status = diracProductStockCopy(product, lang);
+      const soldNote = product.status === 'sold';
+      const shortTemplates = {
+        en:`${title} has a ${profile} scent profile. Suitable for daily wear, work, campus, casual plans, travel, gifts, or anyone who wants a comfortable premium scent.`,
+        zh:`${title} 具有 ${profile} 香调。适合日常、工作、校园、休闲活动、旅行、礼物，或想要舒适高级香气的顾客。`,
+        ar:`يتميز ${title} بطابع عطري ${profile}. مناسب للاستخدام اليومي والعمل والجامعة والمناسبات الخفيفة والسفر والهدايا أو لمن يريد عطراً مريحاً وفاخراً.`,
+        ja:`${title} は ${profile} の香りです。日常、仕事、学校、カジュアルな予定、旅行、ギフト、心地よい上質な香りを求める方におすすめです。`,
+        ko:`${title} 은/는 ${profile} 향 프로필입니다. 데일리, 업무, 캠퍼스, 캐주얼한 일정, 여행, 선물 또는 편안한 프리미엄 향을 원하는 분께 어울립니다.`,
+        es:`${title} tiene un perfil aromático ${profile}. Ideal para uso diario, trabajo, campus, planes casuales, viajes, regalos o para quien busca un perfume cómodo y premium.`,
+        fr:`${title} offre un profil olfactif ${profile}. Idéal pour le quotidien, le travail, le campus, les sorties décontractées, les voyages, les cadeaux ou pour celles et ceux qui veulent un parfum confortable et premium.`
+      };
+      const longTemplates = {
+        en:`${title} features a ${profile} scent profile with a ${category} character. It is suitable for daily use, work, campus, relaxed outings, travel, gifts, or customers who want a neat and comfortable perfume choice. ${soldNote ? 'This item is currently sold out, so please use it as a reference and ask admin for alternatives.' : 'Stock status: '+status+'. Please confirm final stock and total with admin before payment.'}`,
+        zh:`${title} 展现 ${profile} 香调，并带有 ${category} 风格。适合日常使用、工作、校园、休闲出行、旅行、礼物，或想要干净舒适香水选择的顾客。${soldNote ? '该商品目前已售罄，可作为参考并咨询管理员替代选择。' : '库存状态：'+status+'。付款前请通过管理员确认最终库存和总价。'}`,
+        ar:`يقدم ${title} طابعاً عطرية ${profile} مع إحساس ${category}. يناسب الاستخدام اليومي والعمل والجامعة والخروجات الهادئة والسفر والهدايا أو العملاء الذين يريدون خيار عطر مرتباً ومريحاً. ${soldNote ? 'هذا المنتج غير متوفر حالياً، يمكن استخدامه كمرجع وسؤال الإدارة عن البدائل.' : 'حالة المخزون: '+status+'. يرجى تأكيد المخزون النهائي والإجمالي مع الإدارة قبل الدفع.'}`,
+        ja:`${title} は ${profile} の香りと ${category} らしい雰囲気を持っています。日常使い、仕事、学校、リラックスした外出、旅行、ギフト、清潔感のある心地よい香水を探す方に向いています。${soldNote ? '現在は売り切れのため、参考商品としてご覧いただき、代替品は管理者へご相談ください。' : '在庫状況：'+status+'。お支払い前に最終在庫と合計金額を管理者へご確認ください。'}`,
+        ko:`${title} 은/는 ${profile} 향 프로필과 ${category} 무드를 갖춘 제품입니다. 데일리, 업무, 캠퍼스, 편안한 외출, 여행, 선물 또는 깔끔하고 편안한 향수를 원하는 고객에게 어울립니다. ${soldNote ? '현재 품절 상품이므로 참고용으로 확인하시고 대체 상품은 관리자에게 문의하세요.' : '재고 상태: '+status+'. 결제 전 최종 재고와 총액을 관리자에게 확인해 주세요.'}`,
+        es:`${title} destaca un perfil aromático ${profile} con carácter ${category}. Es adecuado para uso diario, trabajo, campus, salidas relajadas, viajes, regalos o clientes que buscan una opción de perfume cómoda y cuidada. ${soldNote ? 'Este artículo está agotado, úsalo como referencia y consulta alternativas con el admin.' : 'Estado de stock: '+status+'. Confirma el stock final y el total con el admin antes de pagar.'}`,
+        fr:`${title} présente un profil olfactif ${profile} avec un caractère ${category}. Il convient au quotidien, au travail, au campus, aux sorties détendues, aux voyages, aux cadeaux ou aux clients qui veulent un parfum soigné et confortable. ${soldNote ? 'Cet article est actuellement épuisé ; utilisez-le comme référence et demandez des alternatives à l’admin.' : 'Statut du stock : '+status+'. Confirmez le stock final et le total avec l’admin avant paiement.'}`
+      };
+      return (mode === 'long' ? longTemplates : shortTemplates)[lang] || (mode === 'long' ? longTemplates.en : shortTemplates.en);
+    }
+
+
     const FILTER_ALL_VALUE = 'all';
     const CATEGORY_FILTER_PREFIX = 'category::';
     const BRAND_FILTER_PREFIX = 'brand::';
@@ -5826,15 +5973,40 @@ html[data-effective-theme="light"] .dirac-interface-veil{
     }
 
     function formatCompactSold(value){
-      if(value >= 1000){
-        const short = value >= 10000 ? (value / 1000).toFixed(0) : (value / 1000).toFixed(1);
-        return `${short.replace('.', ',')}rb+ terjual`;
-      }
-      return `${new Intl.NumberFormat('id-ID').format(value)}+ terjual`;
+      const numberValue = Number(value || 0);
+      const lang = typeof diracCurrentLanguage === 'function' ? diracCurrentLanguage() : 'id';
+      const idNumber = new Intl.NumberFormat('id-ID').format(numberValue);
+      const compact = numberValue >= 1000
+        ? (numberValue >= 10000 ? (numberValue / 1000).toFixed(0) : (numberValue / 1000).toFixed(1)).replace('.', ',') + 'rb+'
+        : idNumber + '+';
+      if(lang === 'id') return compact + ' terjual';
+      const map = {
+        en: compact + ' sold',
+        zh: '已售 ' + compact,
+        ar: 'تم بيع ' + compact,
+        ja: compact + '販売済み',
+        ko: compact + ' 판매됨',
+        es: compact + ' vendidos',
+        fr: compact + ' vendus'
+      };
+      return map[lang] || map.en;
     }
 
     function formatFullSold(value){
-      return `${new Intl.NumberFormat('id-ID').format(value)}+ terjual`;
+      const numberValue = Number(value || 0);
+      const lang = typeof diracCurrentLanguage === 'function' ? diracCurrentLanguage() : 'id';
+      const full = new Intl.NumberFormat('id-ID').format(numberValue) + '+';
+      if(lang === 'id') return full + ' terjual';
+      const map = {
+        en: full + ' sold',
+        zh: '已售 ' + full,
+        ar: 'تم بيع ' + full,
+        ja: full + '販売済み',
+        ko: full + ' 판매됨',
+        es: full + ' vendidos',
+        fr: full + ' vendus'
+      };
+      return map[lang] || map.en;
     }
 
     function getTopSellerIds(salesMap, topCount){
@@ -5978,7 +6150,7 @@ html[data-effective-theme="light"] .dirac-interface-veil{
       const remaining = Math.max(0, totalCount - shownCount);
       btn.hidden = remaining <= 0;
       btn.disabled = remaining <= 0;
-      btn.textContent = remaining > 0 ? `Tampilkan produk lainnya (${remaining})` : 'Semua produk tampil';
+      btn.textContent = diracLoadMoreLabel(remaining);
 
       btn.onclick = event => {
         event.preventDefault();
@@ -6013,7 +6185,7 @@ html[data-effective-theme="light"] .dirac-interface-veil{
         grid.dataset.renderMode = 'paged';
         grid.dataset.visibleCount = '0';
         grid.dataset.totalCount = '0';
-        grid.innerHTML = '<div class="empty-state">Produk tidak ditemukan. Coba kata kunci lain.</div>';
+        grid.innerHTML = '<div class="empty-state">'+escapeHTML(diracTranslateCopy('Produk tidak ditemukan. Coba kata kunci lain.'))+'</div>';
         renderProductLoadMore(0, 0);
         return;
       }
@@ -6031,23 +6203,23 @@ html[data-effective-theme="light"] .dirac-interface-veil{
           <article class="product-card" data-product-id="${p.id}" data-product-index="${index}">
             <div class="product-media">
               <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)" decoding="async" fetchpriority="low">
-              <span class="tag ${soldOut ? 'sold' : ''}">${soldOut ? 'Sold' : escapeHTML(p.category)}</span>
-              ${p.isTopSeller ? '<span class="tag top-seller">Top seller</span>' : ''}
+              <span class="tag ${soldOut ? 'sold' : ''}">${soldOut ? escapeHTML(diracTranslateCopy('Sold')) : escapeHTML(diracTranslateCopy(p.category))}</span>
+              ${p.isTopSeller ? '<span class="tag top-seller">'+escapeHTML(diracTranslateCopy('Top seller'))+'</span>' : ''}
             </div>
             <div class="product-body">
               <h3 class="product-title">${escapeHTML(p.title)}</h3>
-              <div class="product-proof" aria-label="Rating dan jumlah pembelian ${escapeHTML(p.title)}">
+              <div class="product-proof" aria-label="${escapeHTML(diracTranslateCopy('Rating dan jumlah pembelian'))} ${escapeHTML(p.title)}">
                 <div class="product-rating-row">
                   <span class="star-row" aria-hidden="true">${renderStarIcons(p.rating)}</span>
                   <span class="rating-copy">${p.rating.toFixed(1)}</span>
                 </div>
                 <div class="product-sold-copy">${formatCompactSold(p.soldCount)}</div>
               </div>
-              <p class="product-desc">${escapeHTML(p.desc)}</p>
+              <p class="product-desc" data-dirac-product-copy="short" data-dirac-product-id="${p.id}">${escapeHTML(diracProductCopy(p, 'short'))}</p>
               <div class="price">${formatIDR(p.price)}</div>
               <div class="product-actions">
-                <button class="btn-secondary" type="button" data-quick="${p.id}">Detail</button>
-                <button class="btn-primary ${soldOut ? 'btn-disabled' : ''}" type="button" data-add="${p.id}" ${soldOut ? 'disabled aria-disabled="true" title="Produk sold out"' : ''}>${soldOut ? 'Sold' : (qty ? 'Tambah ('+qty+')' : '+ Cart')}</button>
+                <button class="btn-secondary" type="button" data-quick="${p.id}">${escapeHTML(diracTranslateCopy('Detail'))}</button>
+                <button class="btn-primary ${soldOut ? 'btn-disabled' : ''}" type="button" data-add="${p.id}" ${soldOut ? 'disabled aria-disabled="true" title="'+escapeHTML(diracTranslateCopy('Produk sold out'))+'"' : ''}>${soldOut ? escapeHTML(diracTranslateCopy('Sold')) : (qty ? escapeHTML(diracTranslateCopy('Tambah'))+' ('+qty+')' : escapeHTML(diracTranslateCopy('+ Cart')))}</button>
               </div>
             </div>
           </article>
@@ -6060,14 +6232,14 @@ html[data-effective-theme="light"] .dirac-interface-veil{
     function syncCartBadges(){
       const qty = totalQty();
       $$('[data-cart-count]').forEach(el => el.textContent = qty);
-      $('#cartSubtitle').textContent = qty ? `${qty} item tersimpan` : 'Keranjang masih kosong';
+      $('#cartSubtitle').textContent = diracSavedItemsText(qty);
       $('#checkoutBtn').disabled = !cart.length;
       $('#clearCartBtn').disabled = !cart.length;
     }
 
     function addToCart(id){
       const product = getProduct(id);
-      if(!product || product.status === 'sold') return showToast('Produk sedang sold out.');
+      if(!product || product.status === 'sold') return showToast(diracTranslateCopy('Produk sedang sold out.'));
       const existing = cart.find(item => item.id === Number(id));
       if(existing) existing.qty += 1;
       else cart.push({id:Number(id),qty:1});
@@ -6099,7 +6271,7 @@ html[data-effective-theme="light"] .dirac-interface-veil{
     function renderCart(){
       const itemsEl = $('#cartItems');
       if(!cart.length){
-        itemsEl.innerHTML = '<div class="cart-empty"><div>🛍️</div><strong>Keranjang kosong</strong><p>Mulai pilih parfum favorit dari katalog.</p></div>';
+        itemsEl.innerHTML = '<div class="cart-empty"><div>🛍️</div><strong>'+escapeHTML(diracTranslateCopy('Keranjang kosong'))+'</strong><p>'+escapeHTML(diracTranslateCopy('Mulai pilih parfum favorit dari katalog.'))+'</p></div>';
       } else {
         itemsEl.innerHTML = cart.map(item => {
           const p = getProduct(item.id);
@@ -6109,15 +6281,15 @@ html[data-effective-theme="light"] .dirac-interface-veil{
               <div class="cart-thumb"><img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" loading="lazy" onerror="imageFallback(this)" decoding="async" fetchpriority="low"></div>
               <div>
                 <h3>${escapeHTML(p.title)}</h3>
-                <p class="cart-product-desc">${escapeHTML(p.desc)}</p>
+                <p class="cart-product-desc" data-dirac-product-copy="short" data-dirac-product-id="${p.id}">${escapeHTML(diracProductCopy(p, 'short'))}</p>
                 <div class="line">${formatIDR(p.price)} × ${item.qty} = <strong>${formatIDR(p.price * item.qty)}</strong></div>
-                <div class="qty-control" aria-label="Atur jumlah ${escapeHTML(p.title)}">
-                  <button type="button" data-dec="${p.id}" aria-label="Kurangi jumlah">−</button>
+                <div class="qty-control" aria-label="${escapeHTML(diracTranslateCopy('Atur jumlah'))} ${escapeHTML(p.title)}">
+                  <button type="button" data-dec="${p.id}" aria-label="${escapeHTML(diracTranslateCopy('Kurangi jumlah'))}">−</button>
                   <span>${item.qty}</span>
-                  <button type="button" data-inc="${p.id}" aria-label="Tambah jumlah">+</button>
+                  <button type="button" data-inc="${p.id}" aria-label="${escapeHTML(diracTranslateCopy('Tambah jumlah'))}">+</button>
                 </div>
               </div>
-              <button class="remove-btn" type="button" data-remove="${p.id}" aria-label="Hapus ${escapeHTML(p.title)}">×</button>
+              <button class="remove-btn" type="button" data-remove="${p.id}" aria-label="${escapeHTML(diracTranslateCopy('Hapus'))} ${escapeHTML(p.title)}">×</button>
             </div>
           `;
         }).join('');
@@ -6126,13 +6298,13 @@ html[data-effective-theme="light"] .dirac-interface-veil{
       const t = totals();
       $('#subtotalText').textContent = formatIDR(t.sub);
       $('#discountText').textContent = t.discount ? `- ${formatIDR(t.discount)}` : formatIDR(0);
-      $('#shippingText').textContent = t.shipping ? formatIDR(t.shipping) : 'Gratis';
+      $('#shippingText').textContent = t.shipping ? formatIDR(t.shipping) : diracTranslateCopy('Gratis');
       $('#totalText').textContent = formatIDR(t.total);
 
       const remain = Math.max(0, FREE_SHIP_TARGET - t.sub);
       const progress = Math.min(100, (t.sub / FREE_SHIP_TARGET) * 100);
       $('#freeShipMeter').style.width = `${cart.length ? progress : 0}%`;
-      $('#freeShipText').textContent = !cart.length ? 'Tambah produk untuk gratis ongkir.' : remain > 0 ? `Tambah ${formatIDR(remain)} lagi untuk gratis ongkir standard.` : 'Selamat, pengiriman standard gratis.';
+      $('#freeShipText').textContent = !cart.length ? diracTranslateCopy('Tambah produk untuk gratis ongkir.') : remain > 0 ? (window.diracLanguage && window.diracLanguage.translate ? window.diracLanguage.translate(`Tambah ${formatIDR(remain)} lagi untuk gratis ongkir standard.`) : `Tambah ${formatIDR(remain)} lagi untuk gratis ongkir standard.`) : diracTranslateCopy('Selamat, pengiriman standard gratis.');
 
       syncCartBadges();
     }
@@ -6235,7 +6407,7 @@ html[data-effective-theme="light"] .dirac-interface-veil{
       if(btn) btn.classList.toggle('is-locked', invalid.length > 0);
 
       if(invalid.length){
-        const message = `Lengkapi dulu: ${invalid.map(item => item.label).join(', ')}.`;
+        const message = diracMissingFieldsMessage(invalid);
         setCheckoutError(message);
         if(focusFirst) invalid[0].field.focus();
         return false;
@@ -6297,16 +6469,16 @@ html[data-effective-theme="light"] .dirac-interface-veil{
       ].join('\n');
     }
     function sendWhatsapp(){
-      if(!cart.length) return showToast('Keranjang kosong.');
+      if(!cart.length) return showToast(diracTranslateCopy('Keranjang kosong.'));
       bindCheckoutValidation();
       if(!validateCheckoutForm({focusFirst:true})){
         shakeCheckoutButton();
-        showToast('Lengkapi data wajib sebelum kirim ke WhatsApp.');
+        showToast(diracTranslateCopy('Lengkapi data wajib sebelum kirim ke WhatsApp.'));
         return;
       }
       const text = buildOrderText();
       window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`,'_blank','noopener');
-      showToast('WhatsApp checkout dibuka.');
+      showToast(diracTranslateCopy('WhatsApp checkout dibuka.'));
     }
 
     function openQuick(id){
@@ -6314,25 +6486,26 @@ html[data-effective-theme="light"] .dirac-interface-veil{
       if(!p) return;
       const sold = p.status === 'sold';
       $('#quickTitle').textContent = p.title;
+      $('#quickModal').dataset.productId = String(p.id);
       $('#quickContent').innerHTML = `
         <div class="quick-grid">
           <img src="${escapeHTML(p.img)}" alt="${escapeHTML(p.title)}" onerror="imageFallback(this)" decoding="async" loading="lazy" fetchpriority="low">
           <div>
-            <div class="eyebrow">${escapeHTML(p.category)}</div>
+            <div class="eyebrow">${escapeHTML(diracTranslateCopy(p.category))}</div>
             <div class="quick-price">${formatIDR(p.price)}</div>
-            <div class="quick-proof" aria-label="Rating dan jumlah pembelian ${escapeHTML(p.title)}">
+            <div class="quick-proof" aria-label="${escapeHTML(diracTranslateCopy('Rating dan jumlah pembelian'))} ${escapeHTML(p.title)}">
               <div class="quick-rating-row">
                 <span class="star-row" aria-hidden="true">${renderStarIcons(p.rating)}</span>
                 <span class="quick-rating-copy">${p.rating.toFixed(1)}</span>
-                ${p.isTopSeller ? '<span class="quick-top-label">Top seller</span>' : ''}
+                ${p.isTopSeller ? '<span class="quick-top-label">'+escapeHTML(diracTranslateCopy('Top seller'))+'</span>' : ''}
               </div>
               <div class="quick-sold-copy">${formatFullSold(p.soldCount)}</div>
             </div>
-            <p class="muted quick-desc">${escapeHTML(p.longDesc || p.desc)}</p>
-            <div class="quick-meta"><span>${escapeHTML(p.notes)}</span><span>${sold ? 'Sold out' : 'Ready stock'}</span></div>
+            <p class="muted quick-desc" data-dirac-product-copy="long" data-dirac-product-id="${p.id}">${escapeHTML(diracProductCopy(p, 'long'))}</p>
+            <div class="quick-meta"><span>${escapeHTML(p.notes)}</span><span>${escapeHTML(diracProductStockCopy(p))}</span></div>
             <div class="modal-actions">
-              <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="Produk sold out"' : ''} onclick="diracAddQuickToCart(${p.id}, this);">${sold ? 'Sold' : 'Tambah ke Keranjang'}</button>
-              <a class="btn-secondary" target="_blank" rel="noopener" href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan '+p.title+'. Apakah masih tersedia?')}">Tanya via WhatsApp</a>
+              <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="'+escapeHTML(diracTranslateCopy('Produk sold out'))+'"' : ''} onclick="diracAddQuickToCart(${p.id}, this);">${sold ? escapeHTML(diracTranslateCopy('Sold')) : escapeHTML(diracTranslateCopy('Tambah ke Keranjang'))}</button>
+              <a class="btn-secondary" target="_blank" rel="noopener" href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan '+p.title+'. Apakah masih tersedia?')}">${escapeHTML(diracTranslateCopy('Tanya via WhatsApp'))}</a>
             </div>
           </div>
         </div>
@@ -7346,6 +7519,37 @@ html[data-effective-theme="light"] .dirac-interface-veil{
 })();
 </script>
 
+<script id="dirac-language-dynamic-rerender-js">
+(function(){
+  'use strict';
+  function refreshDynamicLanguage(){
+    try{ if(typeof renderProducts === 'function') renderProducts({keepFilterLimit:true}); }catch(error){}
+    try{ if(typeof renderCart === 'function') renderCart(); }catch(error){}
+    try{
+      var quick = document.getElementById('quickModal');
+      if(quick && quick.classList.contains('open') && quick.dataset.productId && typeof openQuick === 'function') openQuick(quick.dataset.productId);
+    }catch(error){}
+    try{ if(typeof updateStickyCheckout === 'function') updateStickyCheckout(); }catch(error){}
+    try{
+      var progress = document.getElementById('diracCheckoutProgress');
+      if(progress && window.diracLanguage && typeof window.diracLanguage.apply === 'function'){
+        var lang = window.diracLanguage.read ? window.diracLanguage.read() : 'id';
+        progress.querySelectorAll('[data-dirac-i18n-source]').forEach(function(el){
+          el.textContent = window.diracLanguage.translate(el.getAttribute('data-dirac-i18n-source') || el.textContent, lang);
+        });
+      }
+    }catch(error){}
+  }
+  document.addEventListener('click', function(event){
+    if(event.target && event.target.closest && event.target.closest('[data-language-option]')){
+      setTimeout(refreshDynamicLanguage, 40);
+      setTimeout(refreshDynamicLanguage, 220);
+    }
+  }, false);
+  window.addEventListener('pageshow', function(){ setTimeout(refreshDynamicLanguage, 160); });
+})();
+</script>
+
 
 
 <script id="dirac-final-click-motion-js">
@@ -7798,7 +8002,7 @@ html[data-effective-theme="light"] .dirac-interface-veil{
     var quickGrid = btn ? btn.closest('.quick-grid') : $('#quickModal .quick-grid');
     if(btn){
       btn.classList.add('dirac-quick-success');
-      btn.textContent = 'Ditambahkan ✓';
+      btn.textContent = t('Ditambahkan') + ' ✓';
     }
     if(quickGrid && !reduceMotion){ quickGrid.classList.add('dirac-quick-to-cart'); }
     setTimeout(function(){
@@ -7817,7 +8021,7 @@ html[data-effective-theme="light"] .dirac-interface-veil{
       progress = document.createElement('div');
       progress.id = 'diracCheckoutProgress';
       progress.className = 'dirac-checkout-progress';
-      progress.innerHTML = '<div class="dirac-progress-top"><span>'+t('Status checkout')+'</span><strong data-dirac-checkout-percent>0%</strong></div><div class="dirac-progress-track"><span class="dirac-progress-fill" data-dirac-progress-fill></span></div><div class="dirac-progress-steps"><span class="dirac-progress-step" data-step="name"><i>1</i>'+t('Nama')+'</span><span class="dirac-progress-step" data-step="phone"><i>2</i>'+t('WhatsApp')+'</span><span class="dirac-progress-step" data-step="address"><i>3</i>'+t('Alamat')+'</span></div>';
+      progress.innerHTML = '<div class="dirac-progress-top"><span data-dirac-i18n-source="Status checkout">'+t('Status checkout')+'</span><strong data-dirac-checkout-percent>0%</strong></div><div class="dirac-progress-track"><span class="dirac-progress-fill" data-dirac-progress-fill></span></div><div class="dirac-progress-steps"><span class="dirac-progress-step" data-step="name"><i>1</i><span data-dirac-i18n-source="Nama">'+t('Nama')+'</span></span><span class="dirac-progress-step" data-step="phone"><i>2</i><span data-dirac-i18n-source="WhatsApp">'+t('WhatsApp')+'</span></span><span class="dirac-progress-step" data-step="address"><i>3</i><span data-dirac-i18n-source="Alamat">'+t('Alamat')+'</span></span></div>';
       note.insertAdjacentElement('afterend', progress);
     }
     var rules = [
@@ -8177,6 +8381,11 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function getById(id){ var list = safeProducts(); id = Number(id); return list.find(function(p){ return Number(p.id) === id; }); }
   function getTotalsSafe(){ try{ if(typeof totals === 'function') return totals(); }catch(error){} return {total:0,sub:0,discount:0,shipping:0}; }
   function getQtySafe(){ try{ return typeof totalQty === 'function' ? totalQty() : 0; }catch(error){ return 0; } }
+  function translatePro(value){
+    try{ if(window.diracLanguage && typeof window.diracLanguage.translate === 'function') return window.diracLanguage.translate(String(value || '')); }catch(error){}
+    try{ if(typeof diracTranslateCopy === 'function') return diracTranslateCopy(String(value || '')); }catch(error){}
+    return String(value || '');
+  }
 
   function applyMotionMode(mode){
     mode = mode === 'calm' ? 'calm' : 'normal';
@@ -8462,8 +8671,8 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     var visible = !!(modal && modal.classList.contains('open'));
     sticky.classList.toggle('is-visible', visible);
     if(!visible) return;
-    var t = getTotalsSafe();
-    sticky.innerHTML = '<div><strong>'+safeFormatIDR(t.total || 0)+'</strong><span>'+getQtySafe()+' item siap checkout</span></div><button class="btn-primary" type="button" data-sticky-send-wa>Kirim WhatsApp</button>';
+    var checkoutTotals = getTotalsSafe();
+    sticky.innerHTML = '<div><strong>'+safeFormatIDR(checkoutTotals.total || 0)+'</strong><span>'+translatePro(getQtySafe()+' item siap checkout')+'</span></div><button class="btn-primary" type="button" data-sticky-send-wa>'+translatePro('Kirim WhatsApp')+'</button>';
   }
 
   function bindProfessionalEvents(){
@@ -8586,14 +8795,32 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     try{ if(typeof closeModal === 'function'){ closeModal(); return; } }catch(error){}
     setModalOpen(false);
   }
+  function translateCopy(value){
+    try{ if(typeof diracTranslateCopy === 'function') return diracTranslateCopy(value); }catch(error){}
+    return value;
+  }
+  function productLongCopy(product){
+    try{ if(typeof diracProductCopy === 'function') return diracProductCopy(product, 'long'); }catch(error){}
+    return product.longDesc || product.desc || translateCopy('Detail produk belum tersedia. Silakan tanya admin untuk konfirmasi stok dan aroma.');
+  }
+  function productStockCopy(product){
+    try{ if(typeof diracProductStockCopy === 'function') return diracProductStockCopy(product); }catch(error){}
+    return product.status === 'sold' ? translateCopy('Sold out') : translateCopy('Ready stock');
+  }
   function renderQuickProduct(product){
     var sold = product.status === 'sold';
-    var title = safeHTML(product.title || 'Detail Produk');
-    var category = safeHTML(product.category || 'Produk');
+    var title = safeHTML(product.title || translateCopy('Detail Produk'));
+    var category = safeHTML(translateCopy(product.category || 'Produk'));
     var notes = safeHTML(product.notes || '-');
-    var desc = safeHTML(product.longDesc || product.desc || 'Detail produk belum tersedia. Silakan tanya admin untuk konfirmasi stok dan aroma.');
+    var desc = safeHTML(productLongCopy(product));
     var img = safeHTML(product.img || '');
-    var status = sold ? 'Sold out' : 'Ready stock';
+    var status = safeHTML(productStockCopy(product));
+    var ratingLabel = safeHTML(translateCopy('Rating dan jumlah pembelian'));
+    var topSellerLabel = safeHTML(translateCopy('Top seller'));
+    var soldLabel = safeHTML(translateCopy('Sold'));
+    var addLabel = safeHTML(translateCopy('Tambah ke Keranjang'));
+    var askLabel = safeHTML(translateCopy('Tanya via WhatsApp'));
+    var soldTitle = safeHTML(translateCopy('Produk sold out'));
     var waText = encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan ' + (product.title || 'produk ini') + '. Apakah masih tersedia?');
     return '' +
       '<div class="quick-grid" data-safe-quick-detail="true">' +
@@ -8601,19 +8828,19 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
         '<div>' +
           '<div class="eyebrow">' + category + '</div>' +
           '<div class="quick-price">' + safePrice(product.price) + '</div>' +
-          '<div class="quick-proof" aria-label="Rating dan jumlah pembelian ' + title + '">' +
+          '<div class="quick-proof" aria-label="' + ratingLabel + ' ' + title + '">' +
             '<div class="quick-rating-row">' +
               '<span class="star-row" aria-hidden="true">' + safeStars(product.rating) + '</span>' +
               '<span class="quick-rating-copy">' + Number(product.rating || 0).toFixed(1) + '</span>' +
-              (product.isTopSeller ? '<span class="quick-top-label">Top seller</span>' : '') +
+              (product.isTopSeller ? '<span class="quick-top-label">' + topSellerLabel + '</span>' : '') +
             '</div>' +
             '<div class="quick-sold-copy">' + safeSold(product.soldCount) + '</div>' +
           '</div>' +
-          '<p class="muted quick-desc">' + desc + '</p>' +
+          '<p class="muted quick-desc" data-dirac-product-copy="long" data-dirac-product-id="' + Number(product.id) + '">' + desc + '</p>' +
           '<div class="quick-meta"><span>' + notes + '</span><span>' + status + '</span></div>' +
           '<div class="modal-actions">' +
-            '<button class="btn-primary ' + (sold ? 'btn-disabled' : '') + '" type="button" data-quick-add-direct="' + Number(product.id) + '" ' + (sold ? 'disabled aria-disabled="true" title="Produk sold out"' : '') + '>' + (sold ? 'Sold' : 'Tambah ke Keranjang') + '</button>' +
-            '<a class="btn-secondary" target="_blank" rel="noopener" href="https://wa.me/' + safeWhatsappNumber() + '?text=' + waText + '">Tanya via WhatsApp</a>' +
+            '<button class="btn-primary ' + (sold ? 'btn-disabled' : '') + '" type="button" data-quick-add-direct="' + Number(product.id) + '" ' + (sold ? 'disabled aria-disabled="true" title="' + soldTitle + '"' : '') + '>' + (sold ? soldLabel : addLabel) + '</button>' +
+            '<a class="btn-secondary" target="_blank" rel="noopener" href="https://wa.me/' + safeWhatsappNumber() + '?text=' + waText + '">' + askLabel + '</a>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -8621,16 +8848,17 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
 
   window.openQuick = function(id){
     var product = safeProduct(id);
-    quickTitle.textContent = product && product.title ? product.title : 'Detail Produk';
+    quickTitle.textContent = product && product.title ? product.title : translateCopy('Detail Produk');
     if(!product){
-      quickContent.innerHTML = '<div class="dirac-quick-error">Produk tidak ditemukan. Silakan muat ulang halaman atau hubungi admin.</div>';
+      quickContent.innerHTML = '<div class="dirac-quick-error">' + safeHTML(translateCopy('Produk tidak ditemukan. Silakan muat ulang halaman atau hubungi admin.')) + '</div>';
       setModalOpen(true);
       return;
     }
     try{
+      modal.dataset.productId = String(product.id);
       quickContent.innerHTML = renderQuickProduct(product);
     }catch(error){
-      quickContent.innerHTML = '<div class="dirac-quick-error">Detail produk gagal dimuat. Silakan tutup dan coba lagi.</div>';
+      quickContent.innerHTML = '<div class="dirac-quick-error">' + safeHTML(translateCopy('Detail produk gagal dimuat. Silakan tutup dan coba lagi.')) + '</div>';
     }
     setModalOpen(true);
     setTimeout(function(){
@@ -8647,7 +8875,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(!button || button.disabled) return;
     var id = button.getAttribute('data-quick-add-direct');
     button.disabled = true;
-    button.textContent = 'Ditambahkan ✓';
+    button.textContent = translateCopy('Ditambahkan') + ' ✓';
     try{ if(typeof addToCart === 'function') addToCart(id); }catch(error){}
     setTimeout(function(){
       safeCloseModal();
