@@ -5693,9 +5693,181 @@ html[data-effective-theme="light"] .dirac-interface-veil{
       return `${diracTranslateCopy('Lengkapi dulu', lang)}: ${labels.join(', ')}.`;
     }
 
-    function diracProductProfile(product){
-      return String((product && product.notes) || (product && product.category) || 'Premium perfume').replace(/\s+-\s+/g, ' / ');
+    const DIRAC_NOTE_COPY = Object.freeze({
+      'Oud': {en:'Oud', zh:'沉香', ar:'عود', ja:'ウード', ko:'우드', es:'Oud', fr:'Oud'},
+      'Aoud': {en:'Aoud', zh:'沉香', ar:'عود', ja:'アウド', ko:'아우드', es:'Aoud', fr:'Aoud'},
+      'Amber': {en:'Amber', zh:'琥珀', ar:'عنبر', ja:'アンバー', ko:'앰버', es:'Ámbar', fr:'Ambre'},
+      'Spicy': {en:'Spicy', zh:'辛香', ar:'حار', ja:'スパイシー', ko:'스파이시', es:'Especiado', fr:'Épicé'},
+      'Fresh': {en:'Fresh', zh:'清新', ar:'منعش', ja:'フレッシュ', ko:'프레시', es:'Fresco', fr:'Frais'},
+      'Modern': {en:'Modern', zh:'现代', ar:'عصري', ja:'モダン', ko:'모던', es:'Moderno', fr:'Moderne'},
+      'Versatile': {en:'Versatile', zh:'百搭', ar:'متعدد الاستخدام', ja:'万能', ko:'다용도', es:'Versátil', fr:'Polyvalent'},
+      'Daily': {en:'Daily', zh:'日常', ar:'يومي', ja:'デイリー', ko:'데일리', es:'Diario', fr:'Quotidien'},
+      'Clean': {en:'Clean', zh:'干净', ar:'نظيف', ja:'クリーン', ko:'클린', es:'Limpio', fr:'Propre'},
+      'Easy': {en:'Easy', zh:'轻松', ar:'سهل', ja:'使いやすい', ko:'편한', es:'Fácil', fr:'Facile'},
+      'Wear': {en:'Wear', zh:'穿戴感', ar:'الاستخدام', ja:'使い', ko:'착용감', es:'de usar', fr:'à porter'},
+      'Easy wear': {en:'Easy wear', zh:'易用', ar:'سهل الاستخدام', ja:'使いやすい', ko:'편하게 쓰기 좋은', es:'Fácil de usar', fr:'Facile à porter'},
+      'Easy Wear': {en:'Easy Wear', zh:'易用', ar:'سهل الاستخدام', ja:'使いやすい', ko:'편하게 쓰기 좋은', es:'Fácil de usar', fr:'Facile à porter'},
+      'Unique': {en:'Unique', zh:'独特', ar:'فريد', ja:'ユニーク', ko:'유니크', es:'Único', fr:'Unique'},
+      'Premium': {en:'Premium', zh:'高级', ar:'فاخر', ja:'プレミアム', ko:'프리미엄', es:'Premium', fr:'Premium'},
+      'Long lasting': {en:'Long lasting', zh:'持久', ar:'ثابت طويلاً', ja:'ロングラスティング', ko:'지속력 좋은', es:'Duradero', fr:'Longue tenue'},
+      'Collector': {en:'Collector', zh:'收藏级', ar:'للهواة', ja:'コレクター向け', ko:'컬렉터용', es:'Coleccionista', fr:'Collectionneur'},
+      'Display': {en:'Display', zh:'陈列', ar:'عرض', ja:'ディスプレイ', ko:'디스플레이', es:'Exhibición', fr:'Présentation'},
+      'Citrus': {en:'Citrus', zh:'柑橘', ar:'حمضيات', ja:'シトラス', ko:'시트러스', es:'Cítrico', fr:'Agrumes'},
+      'Green': {en:'Green', zh:'绿意', ar:'أخضر', ja:'グリーン', ko:'그린', es:'Verde', fr:'Vert'},
+      'Elegant': {en:'Elegant', zh:'优雅', ar:'أنيق', ja:'エレガント', ko:'우아한', es:'Elegante', fr:'Élégant'},
+      'Aromatic': {en:'Aromatic', zh:'芳香', ar:'عطري', ja:'アロマティック', ko:'아로마틱', es:'Aromático', fr:'Aromatique'},
+      'Fruity': {en:'Fruity', zh:'果香', ar:'فاكهي', ja:'フルーティー', ko:'프루티', es:'Frutal', fr:'Fruité'},
+      'Musk': {en:'Musk', zh:'麝香', ar:'مسك', ja:'ムスク', ko:'머스크', es:'Almizcle', fr:'Musc'},
+      'Musky': {en:'Musky', zh:'麝香感', ar:'مسكي', ja:'ムスキー', ko:'머스키', es:'Almizclado', fr:'Musqué'},
+      'Sweet': {en:'Sweet', zh:'甜香', ar:'حلو', ja:'スイート', ko:'스위트', es:'Dulce', fr:'Sucré'},
+      'Vanilla': {en:'Vanilla', zh:'香草', ar:'فانيليا', ja:'バニラ', ko:'바닐라', es:'Vainilla', fr:'Vanille'},
+      'Blue': {en:'Blue', zh:'蓝调', ar:'أزرق', ja:'ブルー', ko:'블루', es:'Azul', fr:'Bleu'},
+      'Luxe': {en:'Luxe', zh:'奢华', ar:'فاخر', ja:'ラグジュアリー', ko:'럭스', es:'Lujoso', fr:'Luxe'},
+      'Bright': {en:'Bright', zh:'明亮', ar:'مشرق', ja:'ブライト', ko:'밝은', es:'Luminoso', fr:'Lumineux'},
+      'Spice': {en:'Spice', zh:'香料', ar:'توابل', ja:'スパイス', ko:'스파이스', es:'Especia', fr:'Épices'},
+      'Tea': {en:'Tea', zh:'茶香', ar:'شاي', ja:'ティー', ko:'티', es:'Té', fr:'Thé'},
+      'Floral': {en:'Floral', zh:'花香', ar:'زهري', ja:'フローラル', ko:'플로럴', es:'Floral', fr:'Floral'},
+      'Lavender': {en:'Lavender', zh:'薰衣草', ar:'لافندر', ja:'ラベンダー', ko:'라벤더', es:'Lavanda', fr:'Lavande'},
+      'Tropical': {en:'Tropical', zh:'热带', ar:'استوائي', ja:'トロピカル', ko:'트로피컬', es:'Tropical', fr:'Tropical'},
+      'Warm': {en:'Warm', zh:'温暖', ar:'دافئ', ja:'ウォーム', ko:'따뜻한', es:'Cálido', fr:'Chaud'},
+      'Intense': {en:'Intense', zh:'浓郁', ar:'مكثف', ja:'インテンス', ko:'강렬한', es:'Intenso', fr:'Intense'},
+      'Beachy': {en:'Beachy', zh:'海滩感', ar:'شاطئي', ja:'ビーチ感', ko:'비치 무드', es:'Playero', fr:'Bord de mer'},
+      'Elixir': {en:'Elixir', zh:'灵药感', ar:'إكسير', ja:'エリクサー', ko:'엘릭서', es:'Elixir', fr:'Élixir'},
+      'Bold': {en:'Bold', zh:'大胆', ar:'جريء', ja:'ボールド', ko:'대담한', es:'Audaz', fr:'Audacieux'},
+      'Pineapple': {en:'Pineapple', zh:'菠萝', ar:'أناناس', ja:'パイナップル', ko:'파인애플', es:'Piña', fr:'Ananas'},
+      'Woody': {en:'Woody', zh:'木质', ar:'خشبي', ja:'ウッディ', ko:'우디', es:'Amaderado', fr:'Boisé'},
+      'Wood': {en:'Wood', zh:'木质', ar:'خشب', ja:'ウッド', ko:'우드', es:'Madera', fr:'Bois'},
+      'Woods': {en:'Woods', zh:'木质', ar:'أخشاب', ja:'ウッズ', ko:'우즈', es:'Maderas', fr:'Bois'},
+      'Mossy': {en:'Mossy', zh:'苔藓感', ar:'طحلبي', ja:'モッシー', ko:'모시', es:'Musgoso', fr:'Moussu'},
+      'Mint': {en:'Mint', zh:'薄荷', ar:'نعناع', ja:'ミント', ko:'민트', es:'Menta', fr:'Menthe'},
+      'Aquatic': {en:'Aquatic', zh:'水生', ar:'مائي', ja:'アクアティック', ko:'아쿠아틱', es:'Acuático', fr:'Aquatique'},
+      'Aqua': {en:'Aqua', zh:'水感', ar:'مائي', ja:'アクア', ko:'아쿠아', es:'Aqua', fr:'Aqua'},
+      'Coconut': {en:'Coconut', zh:'椰子', ar:'جوز الهند', ja:'ココナッツ', ko:'코코넛', es:'Coco', fr:'Noix de coco'},
+      'Tonka': {en:'Tonka', zh:'零陵香豆', ar:'تونكا', ja:'トンカ', ko:'통카', es:'Tonka', fr:'Tonka'},
+      'Formal': {en:'Formal', zh:'正式', ar:'رسمي', ja:'フォーマル', ko:'포멀', es:'Formal', fr:'Formel'},
+      'Energetic': {en:'Energetic', zh:'活力', ar:'نشط', ja:'エネルギッシュ', ko:'에너제틱', es:'Energético', fr:'Énergique'},
+      'Honey': {en:'Honey', zh:'蜂蜜', ar:'عسل', ja:'ハニー', ko:'허니', es:'Miel', fr:'Miel'},
+      'Tobacco': {en:'Tobacco', zh:'烟草', ar:'تبغ', ja:'タバコ', ko:'토바코', es:'Tabaco', fr:'Tabac'},
+      'Value': {en:'Value', zh:'高性价比', ar:'قيمة جيدة', ja:'バリュー', ko:'가성비', es:'Buen valor', fr:'Bon rapport'},
+      'Rose': {en:'Rose', zh:'玫瑰', ar:'ورد', ja:'ローズ', ko:'로즈', es:'Rosa', fr:'Rose'},
+      'Smoky': {en:'Smoky', zh:'烟熏', ar:'دخاني', ja:'スモーキー', ko:'스모키', es:'Ahumado', fr:'Fumé'},
+      'Complex': {en:'Complex', zh:'复杂', ar:'معقد', ja:'複雑', ko:'복합적인', es:'Complejo', fr:'Complexe'},
+      'Signature': {en:'Signature', zh:'标志性', ar:'توقيعي', ja:'シグネチャー', ko:'시그니처', es:'Signature', fr:'Signature'},
+      'Orange': {en:'Orange', zh:'橙花/橙子', ar:'برتقال', ja:'オレンジ', ko:'오렌지', es:'Naranja', fr:'Orange'},
+      'Leather': {en:'Leather', zh:'皮革', ar:'جلد', ja:'レザー', ko:'레더', es:'Cuero', fr:'Cuir'},
+      'Raspberry': {en:'Raspberry', zh:'覆盆子', ar:'توت العليق', ja:'ラズベリー', ko:'라즈베리', es:'Frambuesa', fr:'Framboise'},
+      'Strong': {en:'Strong', zh:'强烈', ar:'قوي', ja:'強め', ko:'강한', es:'Fuerte', fr:'Fort'},
+      'Apple': {en:'Apple', zh:'苹果', ar:'تفاح', ja:'アップル', ko:'애플', es:'Manzana', fr:'Pomme'},
+      'Cinnamon': {en:'Cinnamon', zh:'肉桂', ar:'قرفة', ja:'シナモン', ko:'시나몬', es:'Canela', fr:'Cannelle'},
+      'Bergamot': {en:'Bergamot', zh:'佛手柑', ar:'برغموت', ja:'ベルガモット', ko:'베르가못', es:'Bergamota', fr:'Bergamote'},
+      'Vetiver': {en:'Vetiver', zh:'香根草', ar:'فيتيفر', ja:'ベチバー', ko:'베티버', es:'Vetiver', fr:'Vétiver'},
+      'Ambroxan': {en:'Ambroxan', zh:'龙涎香调', ar:'أمبروكسان', ja:'アンブロキサン', ko:'암브록산', es:'Ambroxan', fr:'Ambroxan'},
+      'Sandalwood': {en:'Sandalwood', zh:'檀香', ar:'صندل', ja:'サンダルウッド', ko:'샌달우드', es:'Sándalo', fr:'Santal'},
+      'Cedar': {en:'Cedar', zh:'雪松', ar:'أرز', ja:'シダー', ko:'시더', es:'Cedro', fr:'Cèdre'},
+      'Creamy': {en:'Creamy', zh:'奶油感', ar:'كريمي', ja:'クリーミー', ko:'크리미', es:'Cremoso', fr:'Crémeux'},
+      'Fig': {en:'Fig', zh:'无花果', ar:'تين', ja:'イチジク', ko:'무화과', es:'Higo', fr:'Figue'},
+      'Leaf': {en:'Leaf', zh:'叶子', ar:'ورقة', ja:'リーフ', ko:'잎', es:'Hoja', fr:'Feuille'},
+      'Masculine': {en:'Masculine', zh:'男香感', ar:'رجولي', ja:'マスキュリン', ko:'남성적인', es:'Masculino', fr:'Masculin'},
+      'Soft': {en:'Soft', zh:'柔和', ar:'ناعم', ja:'ソフト', ko:'부드러운', es:'Suave', fr:'Doux'},
+      'Birch': {en:'Birch', zh:'桦木', ar:'بتولا', ja:'バーチ', ko:'자작나무', es:'Abedul', fr:'Bouleau'},
+      'Saffron': {en:'Saffron', zh:'藏红花', ar:'زعفران', ja:'サフラン', ko:'사프란', es:'Azafrán', fr:'Safran'},
+      'Passion': {en:'Passion', zh:'百香果', ar:'باشن', ja:'パッション', ko:'패션', es:'Pasión', fr:'Passion'},
+      'Fruit': {en:'Fruit', zh:'果香', ar:'فاكهة', ja:'フルーツ', ko:'과일', es:'Fruta', fr:'Fruit'},
+      'Peach': {en:'Peach', zh:'桃子', ar:'خوخ', ja:'ピーチ', ko:'복숭아', es:'Durazno', fr:'Pêche'},
+      'Coffee': {en:'Coffee', zh:'咖啡', ar:'قهوة', ja:'コーヒー', ko:'커피', es:'Café', fr:'Café'},
+      'Gourmand': {en:'Gourmand', zh:'美食调', ar:'غورماند', ja:'グルマン', ko:'구르망', es:'Gourmand', fr:'Gourmand'},
+      'Rum': {en:'Rum', zh:'朗姆酒', ar:'روم', ja:'ラム', ko:'럼', es:'Ron', fr:'Rhum'},
+      'White': {en:'White', zh:'白色', ar:'أبيض', ja:'ホワイト', ko:'화이트', es:'Blanco', fr:'Blanc'},
+      'Latte': {en:'Latte', zh:'拿铁', ar:'لاتيه', ja:'ラテ', ko:'라떼', es:'Latte', fr:'Latte'},
+      'Lemon': {en:'Lemon', zh:'柠檬', ar:'ليمون', ja:'レモン', ko:'레몬', es:'Limón', fr:'Citron'},
+      'Resin': {en:'Resin', zh:'树脂', ar:'راتنج', ja:'レジン', ko:'레진', es:'Resina', fr:'Résine'},
+      'Urban': {en:'Urban', zh:'都市感', ar:'حضري', ja:'アーバン', ko:'어반', es:'Urbano', fr:'Urbain'},
+      'Morning': {en:'Morning', zh:'清晨', ar:'صباحي', ja:'モーニング', ko:'모닝', es:'Mañana', fr:'Matin'},
+      'Misty': {en:'Misty', zh:'雾感', ar:'ضبابي', ja:'ミスティ', ko:'안개 같은', es:'Brumoso', fr:'Brumeux'},
+      'Evening': {en:'Evening', zh:'夜晚', ar:'مسائي', ja:'イブニング', ko:'이브닝', es:'Noche', fr:'Soir'},
+      'Dark': {en:'Dark', zh:'深沉', ar:'داكن', ja:'ダーク', ko:'다크', es:'Oscuro', fr:'Sombre'},
+      'Night': {en:'Night', zh:'夜晚', ar:'ليل', ja:'ナイト', ko:'나이트', es:'Noche', fr:'Nuit'},
+      'Unisex': {en:'Unisex', zh:'中性', ar:'للجنسين', ja:'ユニセックス', ko:'유니섹스', es:'Unisex', fr:'Unisexe'},
+      'Oriental': {en:'Oriental', zh:'东方调', ar:'شرقي', ja:'オリエンタル', ko:'오리엔탈', es:'Oriental', fr:'Oriental'},
+      'Moroccan': {en:'Moroccan', zh:'摩洛哥', ar:'مغربي', ja:'モロッカン', ko:'모로칸', es:'Marroquí', fr:'Marocain'},
+      'Skin': {en:'Skin', zh:'肌肤感', ar:'جلدي', ja:'スキン', ko:'스킨', es:'Piel', fr:'Peau'},
+      'Scent': {en:'Scent', zh:'香气', ar:'عطر', ja:'セント', ko:'센트', es:'Aroma', fr:'Parfum'},
+      'Powdery': {en:'Powdery', zh:'粉感', ar:'بودري', ja:'パウダリー', ko:'파우더리', es:'Empolvado', fr:'Poudré'},
+      'Candy': {en:'Candy', zh:'糖果', ar:'حلوى', ja:'キャンディ', ko:'캔디', es:'Caramelo', fr:'Bonbon'},
+      'Coral': {en:'Coral', zh:'珊瑚', ar:'مرجاني', ja:'コーラル', ko:'코랄', es:'Coral', fr:'Corail'},
+      'Feminine': {en:'Feminine', zh:'女性感', ar:'أنثوي', ja:'フェミニン', ko:'페미닌', es:'Femenino', fr:'Féminin'},
+      'Marine': {en:'Marine', zh:'海洋', ar:'بحري', ja:'マリン', ko:'마린', es:'Marino', fr:'Marin'},
+      'Office': {en:'Office', zh:'办公', ar:'مكتبي', ja:'オフィス', ko:'오피스', es:'Oficina', fr:'Bureau'},
+      'Travel': {en:'Travel', zh:'旅行', ar:'سفر', ja:'トラベル', ko:'여행', es:'Viaje', fr:'Voyage'},
+      'Size': {en:'Size', zh:'尺寸', ar:'حجم', ja:'サイズ', ko:'사이즈', es:'Tamaño', fr:'Format'},
+      'Powerful': {en:'Powerful', zh:'强劲', ar:'قوي', ja:'パワフル', ko:'파워풀', es:'Potente', fr:'Puissant'},
+      'Azure': {en:'Azure', zh:'蔚蓝', ar:'لازوردي', ja:'アズール', ko:'아주르', es:'Azul claro', fr:'Azur'},
+      'Royal': {en:'Royal', zh:'皇家感', ar:'ملكي', ja:'ロイヤル', ko:'로열', es:'Real', fr:'Royal'},
+      'Sky': {en:'Sky', zh:'天空', ar:'سماء', ja:'スカイ', ko:'스카이', es:'Cielo', fr:'Ciel'},
+      'Snowy': {en:'Snowy', zh:'雪感', ar:'ثلجي', ja:'スノー', ko:'스노위', es:'Nevado', fr:'Neigeux'},
+      'Blossom': {en:'Blossom', zh:'花朵', ar:'زهرة', ja:'ブロッサム', ko:'블러썸', es:'Flor', fr:'Fleur'},
+      'Solar': {en:'Solar', zh:'阳光感', ar:'شمسي', ja:'ソーラー', ko:'솔라', es:'Solar', fr:'Solaire'},
+      'Sparkling': {en:'Sparkling', zh:'闪耀', ar:'متلألئ', ja:'スパークリング', ko:'스파클링', es:'Brillante', fr:'Pétillant'},
+      'Cherry': {en:'Cherry', zh:'樱桃', ar:'كرز', ja:'チェリー', ko:'체리', es:'Cereza', fr:'Cerise'},
+      'Gift': {en:'Gift', zh:'礼物', ar:'هدية', ja:'ギフト', ko:'선물', es:'Regalo', fr:'Cadeau'},
+      'Set': {en:'Set', zh:'套装', ar:'طقم', ja:'セット', ko:'세트', es:'Set', fr:'Coffret'},
+      'Sage': {en:'Sage', zh:'鼠尾草', ar:'مريمية', ja:'セージ', ko:'세이지', es:'Salvia', fr:'Sauge'},
+      'Amberwood': {en:'Amberwood', zh:'琥珀木', ar:'خشب العنبر', ja:'アンバーウッド', ko:'앰버우드', es:'Madera ambarada', fr:'Bois ambré'},
+      'Sequoia': {en:'Sequoia', zh:'红杉', ar:'سيكويا', ja:'セコイア', ko:'세쿼이아', es:'Secuoya', fr:'Séquoia'},
+      'Bourbon': {en:'Bourbon', zh:'波旁', ar:'بوربون', ja:'バーボン', ko:'버번', es:'Bourbon', fr:'Bourbon'},
+      'Cardamom': {en:'Cardamom', zh:'豆蔻', ar:'هيل', ja:'カルダモン', ko:'카다멈', es:'Cardamomo', fr:'Cardamome'},
+      'Toffee': {en:'Toffee', zh:'太妃糖', ar:'توفي', ja:'トフィー', ko:'토피', es:'Toffee', fr:'Caramel anglais'},
+      'Juniper': {en:'Juniper', zh:'杜松', ar:'عرعر', ja:'ジュニパー', ko:'주니퍼', es:'Enebro', fr:'Genévrier'},
+      'Kiwi': {en:'Kiwi', zh:'奇异果', ar:'كيوي', ja:'キウイ', ko:'키위', es:'Kiwi', fr:'Kiwi'},
+      'Fougere': {en:'Fougere', zh:'馥奇调', ar:'فوجير', ja:'フゼア', ko:'푸제르', es:'Fougère', fr:'Fougère'},
+      'Tuberose': {en:'Tuberose', zh:'晚香玉', ar:'مسك الروم', ja:'チュベローズ', ko:'튜베로즈', es:'Tuberosa', fr:'Tubéreuse'},
+      'Jasmine': {en:'Jasmine', zh:'茉莉', ar:'ياسمين', ja:'ジャスミン', ko:'자스민', es:'Jazmín', fr:'Jasmin'},
+      'Gardenia': {en:'Gardenia', zh:'栀子花', ar:'غاردينيا', ja:'ガーデニア', ko:'가드니아', es:'Gardenia', fr:'Gardénia'},
+      'Salty': {en:'Salty', zh:'咸感', ar:'مالح', ja:'ソルティ', ko:'솔티', es:'Salado', fr:'Salé'},
+      'Meringue': {en:'Meringue', zh:'蛋白霜', ar:'ميرينغ', ja:'メレンゲ', ko:'머랭', es:'Merengue', fr:'Meringue'},
+      'Caramel': {en:'Caramel', zh:'焦糖', ar:'كراميل', ja:'キャラメル', ko:'카라멜', es:'Caramelo', fr:'Caramel'},
+      'Glam': {en:'Glam', zh:'华丽', ar:'لامع', ja:'グラム', ko:'글램', es:'Glamuroso', fr:'Glamour'},
+      'Iris': {en:'Iris', zh:'鸢尾', ar:'سوسن', ja:'アイリス', ko:'아이리스', es:'Iris', fr:'Iris'},
+      'Frangipani': {en:'Frangipani', zh:'鸡蛋花', ar:'فرانجيباني', ja:'フランジパニ', ko:'프랜지파니', es:'Frangipani', fr:'Frangipanier'},
+      'Beeswax': {en:'Beeswax', zh:'蜂蜡', ar:'شمع العسل', ja:'ビーズワックス', ko:'밀랍', es:'Cera de abeja', fr:'Cire d’abeille'},
+      'Benzoin': {en:'Benzoin', zh:'安息香', ar:'بنزوين', ja:'ベンゾイン', ko:'벤조인', es:'Benjuí', fr:'Benjoin'},
+      'Ginger': {en:'Ginger', zh:'姜', ar:'زنجبيل', ja:'ジンジャー', ko:'생강', es:'Jengibre', fr:'Gingembre'},
+      'Icy': {en:'Icy', zh:'冰感', ar:'بارد', ja:'アイシー', ko:'아이스', es:'Helado', fr:'Glacé'},
+      'Youthful': {en:'Youthful', zh:'年轻感', ar:'شبابي', ja:'若々しい', ko:'영한', es:'Juvenil', fr:'Jeune'},
+      'Classic': {en:'Classic', zh:'经典', ar:'كلاسيكي', ja:'クラシック', ko:'클래식', es:'Clásico', fr:'Classique'},
+      'Cheerful': {en:'Cheerful', zh:'明快', ar:'مرح', ja:'チアフル', ko:'경쾌한', es:'Alegre', fr:'Joyeux'},
+      'Bundle': {en:'Bundle', zh:'套装', ar:'باقة', ja:'セット', ko:'번들', es:'Pack', fr:'Pack'},
+      'Prestige': {en:'Prestige', zh:'尊贵', ar:'راقي', ja:'プレステージ', ko:'프레스티지', es:'Prestigio', fr:'Prestige'},
+      'Playful': {en:'Playful', zh:'俏皮', ar:'مرح', ja:'遊び心', ko:'플레이풀', es:'Juguetón', fr:'Joueur'},
+      'Majestic': {en:'Majestic', zh:'庄重', ar:'مهيب', ja:'マジェスティック', ko:'장엄한', es:'Majestuoso', fr:'Majestueux'}
+    });
+
+    function diracTranslateNoteToken(token, lang = diracCurrentLanguage()){
+      const text = String(token || '').trim();
+      if(!text || lang === 'id') return text;
+      const exact = DIRAC_NOTE_COPY[text];
+      if(exact && (exact[lang] || exact.en)) return exact[lang] || exact.en;
+      return text.replace(/[A-Za-z]+/g, function(word){
+        const entry = DIRAC_NOTE_COPY[word];
+        return entry && (entry[lang] || entry.en) ? (entry[lang] || entry.en) : word;
+      });
     }
+
+    function diracTranslateNotes(notes, lang = diracCurrentLanguage()){
+      const original = String(notes || '').trim();
+      if(!original) return '';
+      if(lang === 'id') return original;
+      return original.split(/\s+-\s+/).map(function(part){
+        return part.split(/\s+\/\s+/).map(function(piece){ return diracTranslateNoteToken(piece, lang); }).join(' / ');
+      }).join(' / ');
+    }
+
+    function diracProductProfile(product, lang = diracCurrentLanguage()){
+      return diracTranslateNotes((product && product.notes) || (product && product.category) || 'Premium perfume', lang).replace(/\s+-\s+/g, ' / ');
+    }
+
+    window.diracTranslateNotes = diracTranslateNotes;
+    window.diracProductProfile = diracProductProfile;
 
     function diracProductStockCopy(product, lang = diracCurrentLanguage()){
       return product && product.status === 'sold' ? diracTranslateCopy('Sold out', lang) : diracTranslateCopy('Ready stock', lang);
@@ -6559,7 +6731,7 @@ html[data-effective-theme="light"] .dirac-interface-veil{
               <div class="quick-sold-copy">${formatFullSold(p.soldCount)}</div>
             </div>
             <p class="muted quick-desc" data-dirac-product-copy="long" data-dirac-product-id="${p.id}">${escapeHTML(diracProductCopy(p, 'long'))}</p>
-            <div class="quick-meta"><span>${escapeHTML(p.notes)}</span><span>${escapeHTML(diracProductStockCopy(p))}</span></div>
+            <div class="quick-meta"><span>${escapeHTML(diracProductProfile(p))}</span><span>${escapeHTML(diracProductStockCopy(p))}</span></div>
             <div class="modal-actions">
               <button class="btn-primary ${sold ? 'btn-disabled' : ''}" type="button" ${sold ? 'disabled aria-disabled="true" title="'+escapeHTML(diracTranslateCopy('Produk sold out'))+'"' : ''} onclick="diracAddQuickToCart(${p.id}, this);">${sold ? escapeHTML(diracTranslateCopy('Sold')) : escapeHTML(diracTranslateCopy('Tambah ke Keranjang'))}</button>
               <a class="btn-secondary" target="_blank" rel="noopener" href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo Dirac Parfum, saya tertarik dengan '+p.title+'. Apakah masih tersedia?')}">${escapeHTML(diracTranslateCopy('Tanya via WhatsApp'))}</a>
@@ -8438,10 +8610,106 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function getById(id){ var list = safeProducts(); id = Number(id); return list.find(function(p){ return Number(p.id) === id; }); }
   function getTotalsSafe(){ try{ if(typeof totals === 'function') return totals(); }catch(error){} return {total:0,sub:0,discount:0,shipping:0}; }
   function getQtySafe(){ try{ return typeof totalQty === 'function' ? totalQty() : 0; }catch(error){ return 0; } }
+  var DIRAC_PRO_COPY = {
+    'Bantu Pilih Aroma': {en:'Help Me Choose a Scent', zh:'帮我选择香味', ar:'ساعدني في اختيار العطر', ja:'香り選びをサポート', ko:'향 선택 도와주기', es:'Ayúdame a elegir aroma', fr:'Aidez-moi à choisir un parfum'},
+    'Reset Pencarian': {en:'Reset Search', zh:'重置搜索', ar:'إعادة ضبط البحث', ja:'検索をリセット', ko:'검색 초기화', es:'Restablecer búsqueda', fr:'Réinitialiser la recherche'},
+    'Pilih 3 jawaban singkat. Sistem akan menampilkan rekomendasi yang paling masuk akal dari katalog.': {en:'Choose 3 short answers. The system will show the most sensible recommendations from the catalog.', zh:'选择 3 个简短答案，系统会从目录中显示最合适的推荐。', ar:'اختر 3 إجابات قصيرة. سيعرض النظام أنسب التوصيات من الكتالوج.', ja:'3つの短い回答を選ぶと、カタログから最適なおすすめを表示します。', ko:'짧은 답변 3개를 선택하면 카탈로그에서 가장 적합한 추천을 보여줍니다.', es:'Elige 3 respuestas breves. El sistema mostrará las recomendaciones más adecuadas del catálogo.', fr:'Choisissez 3 réponses courtes. Le système affichera les recommandations les plus pertinentes du catalogue.'},
+    'Tutup quiz': {en:'Close quiz', zh:'关闭测验', ar:'إغلاق الاختبار', ja:'クイズを閉じる', ko:'퀴즈 닫기', es:'Cerrar quiz', fr:'Fermer le quiz'},
+    'Aroma seperti apa yang Anda cari?': {en:'What kind of scent are you looking for?', zh:'您想找什么样的香味？', ar:'ما نوع الرائحة التي تبحث عنها؟', ja:'どんな香りをお探しですか？', ko:'어떤 향을 찾고 계신가요?', es:'¿Qué tipo de aroma buscas?', fr:'Quel type de parfum recherchez-vous ?'},
+    'Fresh dan clean': {en:'Fresh and clean', zh:'清新干净', ar:'منعش ونظيف', ja:'フレッシュでクリーン', ko:'프레시하고 클린', es:'Fresco y limpio', fr:'Frais et propre'},
+    'Aman untuk daily, kantor, dan siang hari': {en:'Safe for daily wear, office, and daytime', zh:'适合日常、办公室和白天使用', ar:'مناسب للاستخدام اليومي والمكتب والنهار', ja:'日常・オフィス・昼間に使いやすい', ko:'데일리, 사무실, 낮 시간에 무난', es:'Seguro para diario, oficina y día', fr:'Idéal au quotidien, au bureau et en journée'},
+    'Manis dan hangat': {en:'Sweet and warm', zh:'甜美温暖', ar:'حلو ودافئ', ja:'甘く温かい', ko:'달콤하고 따뜻한', es:'Dulce y cálido', fr:'Sucré et chaud'},
+    'Cocok untuk malam, date, atau suasana santai rapi': {en:'Suitable for evenings, dates, or neat relaxed moments', zh:'适合夜晚、约会或轻松精致的氛围', ar:'مناسب للمساء أو الموعد أو الأجواء الهادئة المرتبة', ja:'夜・デート・きれいめなリラックスシーンに', ko:'저녁, 데이트, 깔끔한 캐주얼 무드에 적합', es:'Ideal para noche, cita o ambiente relajado y cuidado', fr:'Adapté au soir, aux rendez-vous ou aux moments décontractés soignés'},
+    'Woody dan elegan': {en:'Woody and elegant', zh:'木质优雅', ar:'خشبي وأنيق', ja:'ウッディでエレガント', ko:'우디하고 우아한', es:'Amaderado y elegante', fr:'Boisé et élégant'},
+    'Memberi kesan dewasa, formal, dan premium': {en:'Gives a mature, formal, and premium impression', zh:'带来成熟、正式和高级的印象', ar:'يعطي انطباعاً ناضجاً ورسمياً وفاخراً', ja:'大人っぽくフォーマルで上質な印象', ko:'성숙하고 포멀하며 프리미엄한 인상', es:'Da una impresión madura, formal y premium', fr:'Donne une impression mature, formelle et premium'},
+    'Unik dan eksklusif': {en:'Unique and exclusive', zh:'独特且专属', ar:'فريد وحصري', ja:'ユニークで特別', ko:'유니크하고 독점적인', es:'Único y exclusivo', fr:'Unique et exclusif'},
+    'Untuk signature scent atau kolektor': {en:'For a signature scent or collectors', zh:'适合标志性香气或收藏者', ar:'للعطر التوقيعي أو الهواة', ja:'シグネチャーセントやコレクター向け', ko:'시그니처 향이나 컬렉터용', es:'Para aroma signature o coleccionistas', fr:'Pour une signature olfactive ou les collectionneurs'},
+    'Akan paling sering dipakai kapan?': {en:'When will you wear it most often?', zh:'您最常在什么时候使用？', ar:'متى ستستخدمه غالباً؟', ja:'一番よく使うのはいつですか？', ko:'언제 가장 자주 사용할 예정인가요?', es:'¿Cuándo lo usarás más seguido?', fr:'Quand le porterez-vous le plus souvent ?'},
+    'Harian': {en:'Daily', zh:'日常', ar:'يومي', ja:'デイリー', ko:'데일리', es:'Diario', fr:'Quotidien'},
+    'Nyaman dipakai berulang': {en:'Comfortable to wear repeatedly', zh:'适合反复日常使用', ar:'مريح للاستخدام المتكرر', ja:'繰り返し使いやすい', ko:'반복해서 쓰기 편안함', es:'Cómodo para usar repetidamente', fr:'Confortable à porter souvent'},
+    'Kerja atau meeting': {en:'Work or meetings', zh:'工作或会议', ar:'العمل أو الاجتماعات', ja:'仕事やミーティング', ko:'업무 또는 미팅', es:'Trabajo o reuniones', fr:'Travail ou réunions'},
+    'Rapi, bersih, tidak terlalu ramai': {en:'Neat, clean, not too loud', zh:'整洁干净，不会太张扬', ar:'مرتب ونظيف وغير صاخب', ja:'きちんと清潔で強すぎない', ko:'깔끔하고 깨끗하며 과하지 않음', es:'Cuidado, limpio y no demasiado intenso', fr:'Soigné, propre et pas trop marqué'},
+    'Malam atau acara spesial': {en:'Evening or special events', zh:'夜晚或特别场合', ar:'المساء أو المناسبات الخاصة', ja:'夜や特別なイベント', ko:'저녁이나 특별한 자리', es:'Noche o eventos especiales', fr:'Soirée ou événements spéciaux'},
+    'Lebih tebal dan memorable': {en:'Richer and more memorable', zh:'更浓郁、更有记忆点', ar:'أعمق وأكثر تميزاً', ja:'より濃く印象に残る', ko:'더 진하고 기억에 남음', es:'Más intenso y memorable', fr:'Plus dense et mémorable'},
+    'Hadiah': {en:'Gift', zh:'礼物', ar:'هدية', ja:'ギフト', ko:'선물', es:'Regalo', fr:'Cadeau'},
+    'Mudah disukai dan presentable': {en:'Easy to like and presentable', zh:'容易被喜欢，也很体面', ar:'سهل الإعجاب به ومناسب للإهداء', ja:'好まれやすく贈りやすい', ko:'호불호 적고 선물하기 좋음', es:'Fácil de gustar y presentable', fr:'Facile à aimer et présentable'},
+    'Range pilihan yang paling cocok?': {en:'Which selection range fits best?', zh:'哪种选择范围最适合？', ar:'ما نطاق الاختيار الأنسب؟', ja:'どの価格帯・タイプが合いますか？', ko:'어떤 선택 범위가 가장 맞나요?', es:'¿Qué rango de elección encaja mejor?', fr:'Quelle gamme de choix convient le mieux ?'},
+    'Ramah budget': {en:'Budget friendly', zh:'预算友好', ar:'مناسب للميزانية', ja:'予算にやさしい', ko:'가성비 중심', es:'Económico', fr:'Petit budget'},
+    'Prioritaskan harga lebih ringan': {en:'Prioritize lighter prices', zh:'优先选择更轻松的价格', ar:'أولوية للسعر الأخف', ja:'手頃な価格を優先', ko:'더 부담 없는 가격 우선', es:'Priorizar precio más ligero', fr:'Prioriser un prix plus léger'},
+    'Designer': {en:'Designer', zh:'设计师品牌', ar:'مصمم', ja:'デザイナー', ko:'디자이너', es:'Designer', fr:'Designer'},
+    'Modern, aman, dan populer': {en:'Modern, safe, and popular', zh:'现代、安全、受欢迎', ar:'عصري وآمن وشائع', ja:'モダンで使いやすく人気', ko:'모던하고 무난하며 인기 있음', es:'Moderno, seguro y popular', fr:'Moderne, sûr et populaire'},
+    'Premium': {en:'Premium', zh:'高级', ar:'فاخر', ja:'プレミアム', ko:'프리미엄', es:'Premium', fr:'Premium'},
+    'Niche/luxury dengan karakter kuat': {en:'Niche/luxury with strong character', zh:'个性强的沙龙/奢华香', ar:'نيش/فاخر بطابع قوي', ja:'個性の強いニッチ/ラグジュアリー', ko:'개성 강한 니치/럭셔리', es:'Niche/lujo con carácter fuerte', fr:'Niche/luxe au caractère fort'},
+    'Bebas': {en:'Any', zh:'不限', ar:'أي خيار', ja:'自由', ko:'자유 선택', es:'Libre', fr:'Libre'},
+    'Tampilkan yang paling cocok': {en:'Show the best match', zh:'显示最合适的选择', ar:'اعرض الأنسب', ja:'一番合うものを表示', ko:'가장 잘 맞는 제품 표시', es:'Mostrar lo más adecuado', fr:'Afficher le meilleur choix'},
+    'Kembali': {en:'Back', zh:'返回', ar:'رجوع', ja:'戻る', ko:'뒤로', es:'Atrás', fr:'Retour'},
+    'Tutup': {en:'Close', zh:'关闭', ar:'إغلاق', ja:'閉じる', ko:'닫기', es:'Cerrar', fr:'Fermer'},
+    'Rekomendasi belum ditemukan': {en:'No recommendations found yet', zh:'暂未找到推荐', ar:'لم يتم العثور على توصيات بعد', ja:'おすすめがまだ見つかりません', ko:'아직 추천을 찾지 못했습니다', es:'Aún no se encontraron recomendaciones', fr:'Aucune recommandation trouvée pour le moment'},
+    'Coba ulangi quiz dengan pilihan yang sedikit lebih luas agar sistem bisa mencocokkan produk ready-stock.': {en:'Try retaking the quiz with slightly broader choices so the system can match ready-stock products.', zh:'请用稍微更宽泛的选择重新测验，以便系统匹配现货产品。', ar:'حاول إعادة الاختبار بخيارات أوسع قليلاً حتى يطابق النظام المنتجات المتوفرة.', ja:'少し広めの選択でクイズをやり直すと、在庫商品の一致が見つかりやすくなります。', ko:'조금 더 넓은 선택으로 퀴즈를 다시 하면 재고 있는 제품을 더 잘 매칭할 수 있습니다.', es:'Repite el quiz con opciones un poco más amplias para que el sistema pueda combinar productos en stock.', fr:'Refaites le quiz avec des choix un peu plus larges pour que le système trouve des produits en stock.'},
+    'Ulangi Quiz': {en:'Retake Quiz', zh:'重新测验', ar:'إعادة الاختبار', ja:'クイズをやり直す', ko:'퀴즈 다시 하기', es:'Repetir quiz', fr:'Refaire le quiz'},
+    'Rekomendasi paling cocok': {en:'Best matching recommendations', zh:'最匹配的推荐', ar:'أفضل التوصيات المطابقة', ja:'最も合うおすすめ', ko:'가장 잘 맞는 추천', es:'Recomendaciones más adecuadas', fr:'Recommandations les plus adaptées'},
+    'Detail': {en:'Details', zh:'详情', ar:'التفاصيل', ja:'詳細', ko:'상세', es:'Detalle', fr:'Détails'},
+    '+ Cart': {en:'+ Cart', zh:'+ 购物车', ar:'+ السلة', ja:'+ カート', ko:'+ 장바구니', es:'+ Carrito', fr:'+ Panier'},
+    'Aroma fresh/clean': {en:'Fresh/clean scent', zh:'清新/干净香气', ar:'رائحة منعشة/نظيفة', ja:'フレッシュ/クリーンな香り', ko:'프레시/클린 향', es:'Aroma fresco/limpio', fr:'Parfum frais/propre'},
+    'Manis & hangat': {en:'Sweet & warm', zh:'甜美温暖', ar:'حلو ودافئ', ja:'甘く温かい', ko:'달콤하고 따뜻한', es:'Dulce y cálido', fr:'Sucré et chaud'},
+    'Woody/elegan': {en:'Woody/elegant', zh:'木质/优雅', ar:'خشبي/أنيق', ja:'ウッディ/エレガント', ko:'우디/우아한', es:'Amaderado/elegante', fr:'Boisé/élégant'},
+    'Unik/eksklusif': {en:'Unique/exclusive', zh:'独特/专属', ar:'فريد/حصري', ja:'ユニーク/特別', ko:'유니크/독점적인', es:'Único/exclusivo', fr:'Unique/exclusif'},
+    'Enak untuk harian': {en:'Good for daily wear', zh:'适合日常使用', ar:'مناسب للاستخدام اليومي', ja:'デイリーに使いやすい', ko:'데일리로 좋음', es:'Bueno para diario', fr:'Bien au quotidien'},
+    'Rapi untuk kerja': {en:'Neat for work', zh:'适合工作场合', ar:'مرتب للعمل', ja:'仕事向きできちんと', ko:'업무용으로 깔끔함', es:'Cuidado para trabajo', fr:'Soigné pour le travail'},
+    'Kuat untuk malam': {en:'Strong for evening', zh:'适合夜晚的强烈感', ar:'قوي للمساء', ja:'夜向けにしっかり', ko:'저녁에 어울리는 강도', es:'Potente para noche', fr:'Marqué pour le soir'},
+    'Aman untuk hadiah': {en:'Safe for gifts', zh:'适合送礼', ar:'آمن كهدية', ja:'ギフトにも安心', ko:'선물용으로 무난', es:'Seguro para regalo', fr:'Sûr pour offrir'},
+    'Masuk budget ringan': {en:'Fits a lighter budget', zh:'符合轻预算', ar:'يناسب ميزانية خفيفة', ja:'手頃な予算に合う', ko:'가벼운 예산에 맞음', es:'Entra en presupuesto ligero', fr:'Convient à un petit budget'},
+    'Masuk pilihan designer': {en:'Fits the designer choice', zh:'符合设计师品牌选择', ar:'يناسب خيار المصمم', ja:'デザイナー系に合う', ko:'디자이너 선택에 맞음', es:'Encaja con opción designer', fr:'Correspond au choix designer'},
+    'Masuk kelas premium': {en:'Fits the premium class', zh:'符合高级级别', ar:'يناسب الفئة الفاخرة', ja:'プレミアムクラスに合う', ko:'프리미엄 클래스에 맞음', es:'Encaja en clase premium', fr:'Correspond au niveau premium'},
+    'Cocok untuk pilihan bebas': {en:'Good for flexible choices', zh:'适合自由选择', ar:'مناسب للاختيار الحر', ja:'自由選択に合う', ko:'자유 선택에 적합', es:'Bueno para elección libre', fr:'Adapté au choix libre'},
+    'Masih cukup value': {en:'Still good value', zh:'依然有性价比', ar:'ما زال بقيمة جيدة', ja:'まだ十分バリューあり', ko:'여전히 가성비 좋음', es:'Aún tiene buen valor', fr:'Encore un bon rapport'},
+    'Value modern': {en:'Modern value', zh:'现代性价比', ar:'قيمة عصرية', ja:'モダンでバリューあり', ko:'모던한 가치', es:'Valor moderno', fr:'Valeur moderne'},
+    'Kesan premium': {en:'Premium impression', zh:'高级印象', ar:'انطباع فاخر', ja:'プレミアムな印象', ko:'프리미엄한 인상', es:'Impresión premium', fr:'Impression premium'}
+  };
+
+  function currentProLang(){
+    try{ if(window.diracLanguage && typeof window.diracLanguage.read === 'function') return window.diracLanguage.read() || 'id'; }catch(error){}
+    try{ return localStorage.getItem('dirac_language_v1') || 'id'; }catch(error){}
+    return 'id';
+  }
   function translatePro(value){
-    try{ if(window.diracLanguage && typeof window.diracLanguage.translate === 'function') return window.diracLanguage.translate(String(value || '')); }catch(error){}
-    try{ if(typeof diracTranslateCopy === 'function') return diracTranslateCopy(String(value || '')); }catch(error){}
-    return String(value || '');
+    var raw = String(value == null ? '' : value);
+    var lang = currentProLang();
+    if(!raw || lang === 'id') return raw;
+    var local = DIRAC_PRO_COPY[raw.trim()];
+    if(local && (local[lang] || local.en)) return local[lang] || local.en;
+    try{
+      if(window.diracLanguage && typeof window.diracLanguage.translate === 'function'){
+        var translated = window.diracLanguage.translate(raw, lang);
+        if(translated && translated !== raw) return translated;
+      }
+    }catch(error){}
+    try{
+      if(typeof diracTranslateCopy === 'function'){
+        var fallback = diracTranslateCopy(raw, lang);
+        if(fallback && fallback !== raw) return fallback;
+      }
+    }catch(error){}
+    return raw;
+  }
+  function productNotesPro(product){
+    try{ if(typeof diracProductProfile === 'function') return diracProductProfile(product); }catch(error){}
+    try{ if(typeof diracTranslateNotes === 'function') return diracTranslateNotes(product && product.notes ? product.notes : ''); }catch(error){}
+    return clean(product && (product.notes || product.desc) || '');
+  }
+  function quizSummaryText(count){
+    var lang = currentProLang();
+    if(lang === 'id') return 'Sistem menampilkan <strong>'+count+' produk</strong> yang benar-benar nyambung dengan jawaban quiz: aroma, momen pakai, budget, kategori, harga, stok, dan karakter katalog.';
+    var map = {
+      en:'The system shows <strong>'+count+' products</strong> that truly match your quiz answers: scent, usage moment, budget, category, price, stock, and catalog character.',
+      zh:'系统显示 <strong>'+count+' 件商品</strong>，这些商品与您的测验答案真正匹配：香气、使用场景、预算、类别、价格、库存和目录特征。',
+      ar:'يعرض النظام <strong>'+count+' منتجات</strong> تتطابق فعلاً مع إجابات الاختبار: الرائحة، وقت الاستخدام، الميزانية، الفئة، السعر، المخزون، وطابع الكتالوج.',
+      ja:'システムは、香り・使用シーン・予算・カテゴリ・価格・在庫・カタログ特性に合う <strong>'+count+' 商品</strong> を表示しています。',
+      ko:'시스템이 향, 사용 상황, 예산, 카테고리, 가격, 재고, 카탈로그 특성과 실제로 맞는 <strong>'+count+'개 제품</strong>을 보여줍니다.',
+      es:'El sistema muestra <strong>'+count+' productos</strong> que realmente encajan con tus respuestas del quiz: aroma, momento de uso, presupuesto, categoría, precio, stock y carácter del catálogo.',
+      fr:'Le système affiche <strong>'+count+' produits</strong> qui correspondent vraiment à vos réponses : parfum, moment d’usage, budget, catégorie, prix, stock et caractère du catalogue.'
+    };
+    return map[lang] || map.en;
   }
 
   function applyMotionMode(mode){
@@ -8632,13 +8900,25 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     modal.id = 'diracQuizModal';
     modal.className = 'dirac-professional-modal';
     modal.setAttribute('aria-hidden','true');
-    modal.innerHTML = '<div class="dirac-professional-card" role="dialog" aria-modal="true" aria-labelledby="diracQuizTitle"><div class="dirac-professional-head"><div><h2 id="diracQuizTitle">Bantu Pilih Aroma</h2><p>Pilih 3 jawaban singkat. Sistem akan menampilkan rekomendasi yang paling masuk akal dari katalog.</p></div><button class="icon-btn" type="button" data-dirac-close-quiz aria-label="Tutup quiz">x</button></div><div class="dirac-professional-body" id="diracQuizBody"></div></div>';
+    modal.innerHTML = '<div class="dirac-professional-card" role="dialog" aria-modal="true" aria-labelledby="diracQuizTitle"><div class="dirac-professional-head"><div><h2 id="diracQuizTitle"></h2><p id="diracQuizLead"></p></div><button class="icon-btn" type="button" data-dirac-close-quiz aria-label="">x</button></div><div class="dirac-professional-body" id="diracQuizBody"></div></div>';
     document.body.appendChild(modal);
+    refreshQuizChrome();
     return modal;
+  }
+  function refreshQuizChrome(){
+    var modal = $('#diracQuizModal');
+    if(!modal) return;
+    var title = $('#diracQuizTitle', modal);
+    var lead = $('#diracQuizLead', modal);
+    var close = $('[data-dirac-close-quiz]', modal);
+    if(title) title.textContent = translatePro('Bantu Pilih Aroma');
+    if(lead) lead.textContent = translatePro('Pilih 3 jawaban singkat. Sistem akan menampilkan rekomendasi yang paling masuk akal dari katalog.');
+    if(close) close.setAttribute('aria-label', translatePro('Tutup quiz'));
   }
   function openQuiz(){
     quizState = {step:0, answers:{}};
     var modal = ensureQuizModal();
+    refreshQuizChrome();
     modal.classList.add('open');
     modal.setAttribute('aria-hidden','false');
     document.body.classList.add('modal-open');
@@ -8657,22 +8937,23 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     var step = quizSteps[quizState.step];
     if(!step){ renderQuizResults(); return; }
     var progress = Math.round((quizState.step / quizSteps.length) * 100);
-    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:'+progress+'%"></span></div></div><h3 class="dirac-quiz-question">'+step.title+'</h3><div class="dirac-quiz-options">'+step.options.map(function(option){ return '<button type="button" class="dirac-quiz-option" data-quiz-answer="'+option[0]+'"><span>'+option[1]+'</span><small>'+option[2]+'</small></button>'; }).join('')+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-back '+(quizState.step ? '' : 'disabled')+'>Kembali</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:'+progress+'%"></span></div></div><h3 class="dirac-quiz-question">'+quizEscape(translatePro(step.title))+'</h3><div class="dirac-quiz-options">'+step.options.map(function(option){ return '<button type="button" class="dirac-quiz-option" data-quiz-answer="'+option[0]+'"><span>'+quizEscape(translatePro(option[1]))+'</span><small>'+quizEscape(translatePro(option[2]))+'</small></button>'; }).join('')+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-back '+(quizState.step ? '' : 'disabled')+'>'+quizEscape(translatePro('Kembali'))+'</button><button class="btn-ghost" type="button" data-dirac-close-quiz>'+quizEscape(translatePro('Tutup'))+'</button></div>';
   }
   function renderQuizResults(){
     var body = $('#diracQuizBody');
     if(!body) return;
     var results = getQuizResults();
     if(!results.length){
-      body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">Rekomendasi belum ditemukan</h3><p class="muted">Coba ulangi quiz dengan pilihan yang sedikit lebih luas agar sistem bisa mencocokkan produk ready-stock.</p><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>Ulangi Quiz</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+      body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">'+quizEscape(translatePro('Rekomendasi belum ditemukan'))+'</h3><p class="muted">'+quizEscape(translatePro('Coba ulangi quiz dengan pilihan yang sedikit lebih luas agar sistem bisa mencocokkan produk ready-stock.'))+'</p><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>'+quizEscape(translatePro('Ulangi Quiz'))+'</button><button class="btn-ghost" type="button" data-dirac-close-quiz>'+quizEscape(translatePro('Tutup'))+'</button></div>';
       return;
     }
     var resultCards = results.map(function(item,index){
       var p = item.product;
-      var reasonHtml = (item.reasons || []).map(function(reason){ return '<span>'+quizEscape(reason)+'</span>'; }).join('');
-      return '<article class="dirac-quiz-result" style="--quiz-delay:'+(index*55)+'ms"><img src="'+quizEscape(p.img || '')+'" alt="'+quizEscape(p.title || '')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div class="dirac-quiz-result-body"><span class="dirac-quiz-match">Cocok '+quizPercent(item.score)+'%</span><h3>'+quizEscape(p.title)+'</h3><p>'+quizEscape(clean(p.notes || p.desc).slice(0,105))+'</p><div class="dirac-quiz-reasons">'+reasonHtml+'</div><div class="price">'+safeFormatIDR(p.price)+'</div><div class="product-actions"><button class="btn-secondary" type="button" data-quiz-detail="'+p.id+'">Detail</button><button class="btn-primary" type="button" data-quiz-add="'+p.id+'">+ Cart</button></div></div></article>';
+      var reasonHtml = (item.reasons || []).map(function(reason){ return '<span>'+quizEscape(translatePro(reason))+'</span>'; }).join('');
+      var matchLabel = translatePro('Cocok '+quizPercent(item.score)+'%');
+      return '<article class="dirac-quiz-result" style="--quiz-delay:'+(index*55)+'ms"><img src="'+quizEscape(p.img || '')+'" alt="'+quizEscape(p.title || '')+'" loading="lazy" decoding="async" onerror="imageFallback(this)"><div class="dirac-quiz-result-body"><span class="dirac-quiz-match">'+quizEscape(matchLabel)+'</span><h3>'+quizEscape(p.title)+'</h3><p>'+quizEscape(clean(productNotesPro(p) || p.desc).slice(0,105))+'</p><div class="dirac-quiz-reasons">'+reasonHtml+'</div><div class="price">'+safeFormatIDR(p.price)+'</div><div class="product-actions"><button class="btn-secondary" type="button" data-quiz-detail="'+p.id+'">'+quizEscape(translatePro('Detail'))+'</button><button class="btn-primary" type="button" data-quiz-add="'+p.id+'">'+quizEscape(translatePro('+ Cart'))+'</button></div></div></article>';
     }).join('');
-    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">Rekomendasi paling cocok</h3><p class="muted dirac-quiz-summary">Sistem menampilkan <strong>'+results.length+' produk</strong> yang benar-benar nyambung dengan jawaban quiz: aroma, momen pakai, budget, kategori, harga, stok, dan karakter katalog.</p><div class="dirac-quiz-results" data-result-count="'+results.length+'">'+resultCards+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>Ulangi Quiz</button><button class="btn-ghost" type="button" data-dirac-close-quiz>Tutup</button></div>';
+    body.innerHTML = '<div class="dirac-quiz-progress" aria-hidden="true"><div class="dirac-quiz-dot"><span style="width:100%"></span></div></div><h3 class="dirac-quiz-question">'+quizEscape(translatePro('Rekomendasi paling cocok'))+'</h3><p class="muted dirac-quiz-summary">'+quizSummaryText(results.length)+'</p><div class="dirac-quiz-results" data-result-count="'+results.length+'">'+resultCards+'</div><div class="dirac-quiz-actions"><button class="btn-secondary" type="button" data-quiz-restart>'+quizEscape(translatePro('Ulangi Quiz'))+'</button><button class="btn-ghost" type="button" data-dirac-close-quiz>'+quizEscape(translatePro('Tutup'))+'</button></div>';
   }
 
   var miniTimer = null;
@@ -8736,6 +9017,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(window.__diracProfessionalMotionBound) return;
     window.__diracProfessionalMotionBound = true;
     document.addEventListener('click', function(event){
+      if(event.target && event.target.closest && event.target.closest('[data-language-option]')){
+        setTimeout(function(){ if($('#diracQuizModal.open')){ refreshQuizChrome(); renderQuiz(); } }, 80);
+        setTimeout(function(){ if($('#diracQuizModal.open')){ refreshQuizChrome(); renderQuiz(); } }, 240);
+      }
       var openQuizBtn = event.target && event.target.closest && event.target.closest('#diracOpenQuiz');
       if(openQuizBtn){ event.preventDefault(); openQuiz(); return; }
       var resetBtn = event.target && event.target.closest && event.target.closest('#diracResetSearch');
@@ -8868,7 +9153,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     var sold = product.status === 'sold';
     var title = safeHTML(product.title || translateCopy('Detail Produk'));
     var category = safeHTML(translateCopy(product.category || 'Produk'));
-    var notes = safeHTML(product.notes || '-');
+    var notes = safeHTML((function(){ try{ if(typeof diracProductProfile === 'function') return diracProductProfile(product); }catch(error){} try{ if(typeof diracTranslateNotes === 'function') return diracTranslateNotes(product.notes || '-'); }catch(error){} return product.notes || '-'; })());
     var desc = safeHTML(productLongCopy(product));
     var img = safeHTML(product.img || '');
     var status = safeHTML(productStockCopy(product));
