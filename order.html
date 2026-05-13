@@ -3098,6 +3098,46 @@ body:has(.modal.open) .dirac-floating-actions{
 }
 </style>
 
+
+<style id="dirac-brand-typewriter-css">
+/* Brand typewriter loop - safe, visual only, no catalog/cart logic touched. */
+.brand-typewriter{
+  display:inline-flex;
+  align-items:center;
+  min-width:9.6ch;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:clip;
+}
+.brand-typewriter-text{
+  display:inline-block;
+  min-width:0;
+  white-space:nowrap;
+}
+.brand-typewriter:after{
+  content:"";
+  flex:0 0 auto;
+  width:.08em;
+  height:.96em;
+  margin-left:.08em;
+  border-radius:999px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 70%,#fff 30%),var(--gold-2));
+  box-shadow:0 0 12px rgba(var(--theme-rgb,243,205,112),.34);
+  animation:diracBrandCaretBlink .76s steps(1,end) infinite;
+}
+@keyframes diracBrandCaretBlink{
+  0%,48%{opacity:1}
+  49%,100%{opacity:.18}
+}
+@media(max-width:760px){
+  .brand-typewriter{min-width:9.35ch}
+}
+@media(prefers-reduced-motion:reduce){
+  .brand-typewriter:after{animation:none;opacity:.75}
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
@@ -3114,7 +3154,7 @@ body:has(.modal.open) .dirac-floating-actions{
           <span class="brand-fallback-text">DP</span>
           <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'" decoding="async" fetchpriority="high">
         </span>
-        <span class="brand-name">Dirac Group</span>
+        <span class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n aria-label="Dirac Group"><span class="brand-typewriter-text" aria-hidden="true">Dirac Group</span></span>
       </a>
       <nav class="nav-links" aria-label="Navigasi utama">
         <a href="#produk">Produk</a>
@@ -9573,6 +9613,84 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   document.addEventListener('keydown', function(event){
     if(event.key === 'Escape' && modal.classList.contains('open')) safeCloseModal();
   });
+})();
+</script>
+
+
+<script id="dirac-brand-typewriter-js">
+(function(){
+  'use strict';
+  var FULL_TEXT = 'Dirac Group';
+  var selector = '[data-brand-typewriter] .brand-typewriter-text';
+  var target = document.querySelector(selector);
+  if(!target) return;
+  var wrapper = target.closest('[data-brand-typewriter]');
+  if(wrapper){
+    wrapper.setAttribute('aria-label', FULL_TEXT);
+    wrapper.setAttribute('data-no-i18n', '');
+  }
+  target.setAttribute('aria-hidden', 'true');
+  target.textContent = FULL_TEXT;
+
+  var reducedMotion = false;
+  try{
+    reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }catch(error){}
+  if(reducedMotion) return;
+
+  var index = FULL_TEXT.length;
+  var deleting = true;
+  var timer = null;
+  var pauseUntil = Date.now() + 1100;
+
+  function schedule(delay){
+    window.clearTimeout(timer);
+    timer = window.setTimeout(tick, delay);
+  }
+
+  function render(){
+    target.textContent = FULL_TEXT.slice(0, index);
+  }
+
+  function tick(){
+    if(document.hidden){
+      schedule(650);
+      return;
+    }
+    var now = Date.now();
+    if(now < pauseUntil){
+      schedule(pauseUntil - now);
+      return;
+    }
+
+    if(deleting){
+      index = Math.max(0, index - 1);
+      render();
+      if(index === 0){
+        deleting = false;
+        pauseUntil = Date.now() + 420;
+        schedule(420);
+      }else{
+        schedule(78);
+      }
+    }else{
+      index = Math.min(FULL_TEXT.length, index + 1);
+      render();
+      if(index === FULL_TEXT.length){
+        deleting = true;
+        pauseUntil = Date.now() + 1350;
+        schedule(1350);
+      }else{
+        schedule(index === 6 ? 155 : 105);
+      }
+    }
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && !timer) schedule(160);
+  });
+
+  schedule(650);
 })();
 </script>
 
