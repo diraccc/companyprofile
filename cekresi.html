@@ -4614,6 +4614,137 @@
       }
     }
 
+
+    /* ==========================================================
+       REQUEST PATCH V7 - 2026-05-13
+       Fokus:
+       1) hidupkan kembali animasi Motion Tracking System gambar 1,
+       2) hilangkan garis hijau samar akibat ripple hijau yang melebar,
+       3) tetap ikut sistem hemat performa: animasi pause saat offscreen.
+       ========================================================== */
+
+    /* Kunci pseudo-element hijau agar tidak pernah melebar menjadi garis/cincin besar di viewport. */
+    .secure-badge .pulse,
+    .command-badge i {
+      position: relative !important;
+      display: inline-block !important;
+      width: 9px !important;
+      height: 9px !important;
+      min-width: 9px !important;
+      min-height: 9px !important;
+      border-radius: 999px !important;
+      flex: 0 0 9px !important;
+      overflow: visible !important;
+      contain: paint !important;
+    }
+
+    .secure-badge .pulse::after,
+    .command-badge i::after {
+      left: -5px !important;
+      right: auto !important;
+      top: -5px !important;
+      bottom: auto !important;
+      width: 19px !important;
+      height: 19px !important;
+      max-width: 19px !important;
+      max-height: 19px !important;
+      box-sizing: border-box !important;
+      border-radius: 999px !important;
+    }
+
+    /* Pengaman tambahan: tidak ada pseudo/ripple hijau raksasa di kartu dashboard. */
+    .command-card::before,
+    .command-card::after,
+    .command-card .feature-icon::before,
+    .command-card .feature-icon::after {
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    /* Animasi pada section Motion Tracking System yang diminta kembali aktif. */
+    .motion-showcase.visible .motion-card,
+    .motion-showcase .motion-card {
+      animation: none !important;
+      filter: none !important;
+    }
+
+    .motion-card .motion-route::before {
+      animation: motionRouteDot 3.4s ease-in-out infinite !important;
+    }
+
+    .motion-card .motion-scan::after {
+      animation: motionScanLine 1.6s ease-in-out infinite !important;
+    }
+
+    .motion-card .motion-sync {
+      animation: syncSpin 8s linear infinite !important;
+    }
+
+    .motion-card .motion-sync::before {
+      animation: syncSpin 10s linear infinite reverse !important;
+    }
+
+    .motion-card .motion-sync::after {
+      animation: syncSpin 14s linear infinite !important;
+    }
+
+    .motion-card .motion-status span {
+      animation: statusBarFlow 1.7s ease-in-out infinite !important;
+    }
+
+    .motion-card .motion-status span:nth-child(2) {
+      animation-delay: -.4s !important;
+    }
+
+    .motion-card .motion-status span:nth-child(3) {
+      animation-delay: -.8s !important;
+    }
+
+    /* Viewport-aware: tetap hemat, animasi motion card pause otomatis saat keluar layar. */
+    .motion-card:not(.motion-in-view) .motion-route::before,
+    .motion-card:not(.motion-in-view) .motion-scan::after,
+    .motion-card:not(.motion-in-view) .motion-sync,
+    .motion-card:not(.motion-in-view) .motion-sync::before,
+    .motion-card:not(.motion-in-view) .motion-sync::after,
+    .motion-card:not(.motion-in-view) .motion-status span {
+      animation-play-state: paused !important;
+    }
+
+    .motion-card.motion-in-view .motion-route::before,
+    .motion-card.motion-in-view .motion-scan::after,
+    .motion-card.motion-in-view .motion-sync,
+    .motion-card.motion-in-view .motion-sync::before,
+    .motion-card.motion-in-view .motion-sync::after,
+    .motion-card.motion-in-view .motion-status span {
+      animation-play-state: running !important;
+    }
+
+    @media (max-width: 760px) {
+      .motion-card .motion-route::before {
+        animation: motionRouteDot 3.4s ease-in-out infinite !important;
+      }
+
+      .motion-card .motion-scan::after {
+        animation: motionScanLine 1.6s ease-in-out infinite !important;
+      }
+
+      .motion-card .motion-sync {
+        animation: syncSpin 8s linear infinite !important;
+      }
+
+      .motion-card .motion-sync::before {
+        animation: syncSpin 10s linear infinite reverse !important;
+      }
+
+      .motion-card .motion-sync::after {
+        animation: syncSpin 14s linear infinite !important;
+      }
+
+      .motion-card .motion-status span {
+        animation: statusBarFlow 1.7s ease-in-out infinite !important;
+      }
+    }
+
   </style>
 </head>
 <body>
