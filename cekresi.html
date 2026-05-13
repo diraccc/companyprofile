@@ -4093,8 +4093,7 @@
         animation: none !important;
       }
 
-      .route-dot,
-      .motion-sync {
+      .route-dot {
         transform: none !important;
       }
 
@@ -4430,6 +4429,52 @@
 
     .command-center .route-vehicle {
       animation: vehicleMove 4.8s ease-in-out infinite !important;
+    }
+
+    /* Animasi motion showcase yang dilingkari pada screenshot pengguna: dikembalikan secara selektif.
+       Tetap tidak menghidupkan ambient/particle/orb/blur berat. */
+    .motion-showcase .motion-route::before {
+      animation: motionRouteDot 3.4s ease-in-out infinite !important;
+    }
+
+    .motion-showcase .motion-scan::after {
+      animation: motionScanLine 1.6s ease-in-out infinite !important;
+    }
+
+    .motion-showcase .motion-sync {
+      animation: syncSpin 8s linear infinite !important;
+    }
+
+    .motion-showcase .motion-sync::before,
+    .motion-showcase .motion-sync::after {
+      animation: syncSpin 10s linear infinite reverse !important;
+    }
+
+    .motion-showcase .motion-sync::after {
+      animation-duration: 14s !important;
+    }
+
+    .motion-showcase .motion-status span {
+      animation: statusBarFlow 1.7s ease-in-out infinite !important;
+    }
+
+    .motion-showcase .motion-status span:nth-child(2) {
+      animation-delay: -0.4s !important;
+    }
+
+    .motion-showcase .motion-status span:nth-child(3) {
+      animation-delay: -0.8s !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .motion-showcase .motion-route::before,
+      .motion-showcase .motion-scan::after,
+      .motion-showcase .motion-sync,
+      .motion-showcase .motion-sync::before,
+      .motion-showcase .motion-sync::after,
+      .motion-showcase .motion-status span {
+        animation: none !important;
+      }
     }
 
   </style>
