@@ -1,18 +1,18 @@
 <!DOCTYPE html>
+
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dirac Group | Cek Resi Pengiriman</title>
-  <meta name="description" content="Dirac Group - Website cek resi profesional untuk memantau status pengiriman paket secara mudah, cepat, dan aman." />
-  <meta name="theme-color" content="#06101f" />
-  <meta name="color-scheme" content="dark light" />
-  <meta name="format-detection" content="telephone=no" />
-  <meta property="og:title" content="Dirac Group | Cek Resi Pengiriman" />
-  <meta property="og:description" content="Pantau status pengiriman paket dengan tampilan modern, cepat, aman, dan siap terhubung ke backend tracking." />
-  <meta property="og:type" content="website" />
-
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dirac Group | Cek Resi Pengiriman</title>
+<meta content="Dirac Group - Website cek resi profesional untuk memantau status pengiriman paket secara mudah, cepat, dan aman." name="description"/>
+<meta content="#06101f" name="theme-color"/>
+<meta content="dark light" name="color-scheme"/>
+<meta content="telephone=no" name="format-detection"/>
+<meta content="Dirac Group | Cek Resi Pengiriman" property="og:title"/>
+<meta content="Pantau status pengiriman paket dengan tampilan modern, cepat, aman, dan siap terhubung ke backend tracking." property="og:description"/>
+<meta content="website" property="og:type"/>
+<style>
     :root {
       --navy-950: #06101f;
       --navy-900: #0a1830;
@@ -4093,7 +4093,8 @@
         animation: none !important;
       }
 
-      .route-dot {
+      .route-dot,
+      .motion-sync {
         transform: none !important;
       }
 
@@ -4431,839 +4432,795 @@
       animation: vehicleMove 4.8s ease-in-out infinite !important;
     }
 
-    /* Animasi motion showcase yang dilingkari pada screenshot pengguna: dikembalikan secara selektif.
-       Tetap tidak menghidupkan ambient/particle/orb/blur berat. */
-    .motion-showcase .motion-route::before {
-      animation: motionRouteDot 3.4s ease-in-out infinite !important;
+  
+
+    /* ==========================================================
+       REQUEST PATCH V6 - 2026-05-13
+       Fokus:
+       1) animasi hijau RajaOngkir/API aktif kembali,
+       2) kartu dashboard bergerak saat disentuh/ditekan,
+       3) header dimodernisasi ringan tanpa mengubah logic cek resi.
+       ========================================================== */
+
+    .header {
+      height: 92px;
+      padding: 14px 0;
+      position: sticky;
+      top: 0;
+      z-index: 30;
     }
 
-    .motion-showcase .motion-scan::after {
-      animation: motionScanLine 1.6s ease-in-out infinite !important;
+    .header::before {
+      content: "";
+      position: absolute;
+      inset: 12px -2px;
+      z-index: -1;
+      border-radius: 32px;
+      opacity: 1 !important;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035)),
+        linear-gradient(135deg, rgba(8,25,52,0.94), rgba(10,44,78,0.82));
+      border: 1px solid rgba(191,219,254,0.16);
+      box-shadow: 0 18px 48px rgba(2,6,23,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      transition: none !important;
     }
 
-    .motion-showcase .motion-sync {
-      animation: syncSpin 8s linear infinite !important;
+    .brand {
+      padding-left: 4px;
+      gap: 14px;
     }
 
-    .motion-showcase .motion-sync::before,
-    .motion-showcase .motion-sync::after {
-      animation: syncSpin 10s linear infinite reverse !important;
+    .brand-logo {
+      background: linear-gradient(135deg, #ffffff, #dbeafe) !important;
+      border: 1px solid rgba(255,255,255,0.72);
+      box-shadow: 0 14px 34px rgba(15,23,42,0.22) !important;
+      object-fit: contain;
     }
 
-    .motion-showcase .motion-sync::after {
-      animation-duration: 14s !important;
+    .header-contact {
+      min-height: 56px;
+      padding: 0 22px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #60a5fa, #22d3ee) !important;
+      box-shadow: 0 16px 38px rgba(34,211,238,0.20) !important;
+      border: 1px solid rgba(255,255,255,0.22);
     }
 
-    .motion-showcase .motion-status span {
-      animation: statusBarFlow 1.7s ease-in-out infinite !important;
+    .secure-badge .pulse,
+    .command-badge i {
+      animation: pulseRing 1.8s ease-out infinite !important;
     }
 
-    .motion-showcase .motion-status span:nth-child(2) {
-      animation-delay: -0.4s !important;
+    .secure-badge .pulse {
+      position: relative;
+      box-shadow: 0 0 0 0 rgba(34,197,94,0.55), 0 0 20px rgba(34,197,94,0.50);
     }
 
-    .motion-showcase .motion-status span:nth-child(3) {
-      animation-delay: -0.8s !important;
+    .secure-badge .pulse::after,
+    .command-badge i::after {
+      content: "";
+      position: absolute;
+      inset: -5px;
+      border-radius: 999px;
+      border: 1px solid rgba(34,197,94,0.38);
+      animation: liveGreenRipple 1.8s ease-out infinite !important;
+      pointer-events: none;
+    }
+
+    @keyframes liveGreenRipple {
+      0% { transform: scale(0.72); opacity: 0.86; }
+      72% { transform: scale(1.85); opacity: 0; }
+      100% { transform: scale(1.85); opacity: 0; }
+    }
+
+    .secure-badge:not(.motion-in-view) .pulse,
+    .secure-badge:not(.motion-in-view) .pulse::after,
+    .command-badge:not(.motion-in-view) i,
+    .command-badge:not(.motion-in-view) i::after {
+      animation-play-state: paused !important;
+    }
+
+    .command-card {
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transform-origin: center;
+      transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease !important;
+    }
+
+    .command-card:active,
+    .command-card.is-tapped {
+      animation: commandCardTap 0.52s cubic-bezier(.2,1.45,.22,1) both !important;
+      border-color: rgba(96,165,250,0.44) !important;
+      background: linear-gradient(180deg, rgba(37,99,235,0.14), rgba(6,16,31,0.92)) !important;
+      box-shadow: 0 18px 54px rgba(2,6,23,0.24), 0 0 0 1px rgba(34,211,238,0.08) !important;
+    }
+
+    .command-card.is-tapped .feature-icon,
+    .command-card:active .feature-icon {
+      animation: commandIconTap 0.52s cubic-bezier(.2,1.45,.22,1) both !important;
+    }
+
+    @keyframes commandCardTap {
+      0% { transform: translateY(0) scale(1); }
+      34% { transform: translateY(-7px) scale(1.018); }
+      68% { transform: translateY(2px) scale(0.992); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    @keyframes commandIconTap {
+      0% { transform: scale(1) rotate(0deg); }
+      42% { transform: scale(1.13) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    @media (max-width: 760px) {
+      .header {
+        height: 92px;
+        padding: 12px 0;
+      }
+
+      .header::before {
+        inset: 8px 0;
+        border-radius: 30px;
+        background:
+          radial-gradient(circle at 12% 0%, rgba(96,165,250,0.16), transparent 36%),
+          linear-gradient(135deg, rgba(9,31,63,0.96), rgba(6,36,65,0.90));
+      }
+
+      .brand {
+        font-size: 24px;
+        letter-spacing: -0.055em;
+      }
+
+      .brand-logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 20px;
+      }
+
+      .header-contact {
+        min-height: 56px;
+        padding: 0 20px;
+        border-radius: 22px;
+        font-size: 16px;
+      }
+
+      .command-card:active,
+      .command-card.is-tapped {
+        animation: commandCardTapMobile 0.46s cubic-bezier(.2,1.35,.22,1) both !important;
+      }
+
+      @keyframes commandCardTapMobile {
+        0% { transform: translateY(0) scale(1); }
+        42% { transform: translateY(-5px) scale(1.012); }
+        72% { transform: translateY(1px) scale(0.995); }
+        100% { transform: translateY(0) scale(1); }
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .motion-showcase .motion-route::before,
-      .motion-showcase .motion-scan::after,
-      .motion-showcase .motion-sync,
-      .motion-showcase .motion-sync::before,
-      .motion-showcase .motion-sync::after,
-      .motion-showcase .motion-status span {
+      .secure-badge .pulse,
+      .secure-badge .pulse::after,
+      .command-badge i,
+      .command-badge i::after,
+      .command-card:active,
+      .command-card.is-tapped,
+      .command-card.is-tapped .feature-icon,
+      .command-card:active .feature-icon {
         animation: none !important;
       }
     }
 
-
-    /* ==========================================================
-       VIEWPORT MOTION CONTROLLER V4 - 2026-05-13
-       Sistem ini membuat animasi yang tersisa hanya berjalan saat
-       area animasinya terlihat di layar. Saat keluar viewport atau
-       tab tidak aktif, animasi otomatis pause untuk menurunkan beban HP.
-       Tidak mengubah endpoint, validasi, fetch, normalisasi, render hasil,
-       atau struktur form cek resi.
-       ========================================================== */
-
-    .hero-visual:not(.motion-in-view) .orbit-wrap,
-    .hero-visual:not(.motion-in-view) .globe,
-    .hero-visual:not(.motion-in-view) .flight-path,
-    .hero-visual:not(.motion-in-view) .plane,
-    .hero-visual:not(.motion-in-view) .truck-card,
-    .hero-visual:not(.motion-in-view) .road::after,
-    .hero-visual:not(.motion-in-view) .truck,
-    .hero-visual:not(.motion-in-view) .wheel,
-    .hero-visual:not(.motion-in-view) .scan-card,
-    .hero-visual:not(.motion-in-view) .scan-line,
-    .command-center:not(.motion-in-view) .signal-bars i,
-    .command-center:not(.motion-in-view) .route-vehicle,
-    .motion-showcase .motion-card:not(.motion-in-view) .motion-route::before,
-    .motion-showcase .motion-card:not(.motion-in-view) .motion-scan::after,
-    .motion-showcase .motion-card:not(.motion-in-view) .motion-sync,
-    .motion-showcase .motion-card:not(.motion-in-view) .motion-sync::before,
-    .motion-showcase .motion-card:not(.motion-in-view) .motion-sync::after,
-    .motion-showcase .motion-card:not(.motion-in-view) .motion-status span,
-    .tracking-panel:not(.motion-in-view) .track-button.is-loading::after {
-      animation-play-state: paused !important;
-    }
-
-    .hero-visual.motion-in-view .orbit-wrap,
-    .hero-visual.motion-in-view .globe,
-    .hero-visual.motion-in-view .flight-path,
-    .hero-visual.motion-in-view .plane,
-    .hero-visual.motion-in-view .truck-card,
-    .hero-visual.motion-in-view .road::after,
-    .hero-visual.motion-in-view .truck,
-    .hero-visual.motion-in-view .wheel,
-    .hero-visual.motion-in-view .scan-card,
-    .hero-visual.motion-in-view .scan-line,
-    .command-center.motion-in-view .signal-bars i,
-    .command-center.motion-in-view .route-vehicle,
-    .motion-showcase .motion-card.motion-in-view .motion-route::before,
-    .motion-showcase .motion-card.motion-in-view .motion-scan::after,
-    .motion-showcase .motion-card.motion-in-view .motion-sync,
-    .motion-showcase .motion-card.motion-in-view .motion-sync::before,
-    .motion-showcase .motion-card.motion-in-view .motion-sync::after,
-    .motion-showcase .motion-card.motion-in-view .motion-status span,
-    .tracking-panel.motion-in-view .track-button.is-loading::after {
-      animation-play-state: running !important;
-    }
-
-    body.motion-page-hidden .hero-visual .orbit-wrap,
-    body.motion-page-hidden .hero-visual .globe,
-    body.motion-page-hidden .hero-visual .flight-path,
-    body.motion-page-hidden .hero-visual .plane,
-    body.motion-page-hidden .hero-visual .truck-card,
-    body.motion-page-hidden .hero-visual .road::after,
-    body.motion-page-hidden .hero-visual .truck,
-    body.motion-page-hidden .hero-visual .wheel,
-    body.motion-page-hidden .hero-visual .scan-card,
-    body.motion-page-hidden .hero-visual .scan-line,
-    body.motion-page-hidden .command-center .signal-bars i,
-    body.motion-page-hidden .command-center .route-vehicle,
-    body.motion-page-hidden .motion-showcase .motion-route::before,
-    body.motion-page-hidden .motion-showcase .motion-scan::after,
-    body.motion-page-hidden .motion-showcase .motion-sync,
-    body.motion-page-hidden .motion-showcase .motion-sync::before,
-    body.motion-page-hidden .motion-showcase .motion-sync::after,
-    body.motion-page-hidden .motion-showcase .motion-status span,
-    body.motion-page-hidden .track-button.is-loading::after {
-      animation-play-state: paused !important;
-    }
-
-
-
-    /* Pulse hijau yang diminta pengguna: aktif saat terlihat, pause saat keluar layar. */
-    .hero-label .pulse,
-    .secure-badge .pulse {
-      animation: pulseRing 1.8s ease-out infinite !important;
-    }
-
-    .hero-label:not(.motion-in-view) .pulse,
-    .secure-badge:not(.motion-in-view) .pulse {
-      animation-play-state: paused !important;
-    }
-
-    .hero-label.motion-in-view .pulse,
-    .secure-badge.motion-in-view .pulse {
-      animation-play-state: running !important;
-    }
-
-    body.motion-page-hidden .hero-label .pulse,
-    body.motion-page-hidden .secure-badge .pulse {
-      animation-play-state: paused !important;
-    }
-
   </style>
 </head>
-
 <body>
-  <a class="skip-link" href="#cek-resi">Langsung ke form cek resi</a>
-  <div class="page">
-    <div class="bg-grid"></div>
-    <div class="ambient-lines" aria-hidden="true"></div>
-    <div class="premium-ambient-stack" aria-hidden="true">
-      <span class="beam-one"></span>
-      <span class="beam-two"></span>
-      <span class="beam-three"></span>
-      <span class="soft-noise"></span>
-    </div>
-    <div class="motion-particles" aria-hidden="true">
-      <span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span>
-    </div>
-    <div class="orb one"></div>
-    <div class="orb two"></div>
-    <div class="orb three"></div>
-
-    <section class="hero-shell" id="beranda">
-      <header class="container header">
-        <a class="brand" href="#beranda" aria-label="Dirac Group">
-          <img src="logo%203.webp" alt="Dirac Group" class="brand-logo" />
+<a class="skip-link" href="#cek-resi">Langsung ke form cek resi</a>
+<div class="page">
+<div class="bg-grid"></div>
+<div aria-hidden="true" class="ambient-lines"></div>
+<div aria-hidden="true" class="premium-ambient-stack">
+<span class="beam-one"></span>
+<span class="beam-two"></span>
+<span class="beam-three"></span>
+<span class="soft-noise"></span>
+</div>
+<div aria-hidden="true" class="motion-particles">
+<span></span><span></span><span></span><span></span>
+<span></span><span></span><span></span><span></span>
+</div>
+<div class="orb one"></div>
+<div class="orb two"></div>
+<div class="orb three"></div>
+<section class="hero-shell" id="beranda">
+<header class="container header">
+<a aria-label="Dirac Group" class="brand" href="#beranda">
+<img alt="Dirac Group" class="brand-logo" src="logo%203.webp"/>
           Dirac Group
         </a>
-
-        <nav class="nav" aria-label="Menu utama">
-          <a href="#beranda" class="active">Beranda</a>
-          <a href="#cek-resi">Cek Resi</a>
-          <a href="#bantuan">Bantuan</a>
-          <a href="#kontak">Kontak</a>
-        </nav>
-
-        <a class="header-contact" href="#kontak">
+<nav aria-label="Menu utama" class="nav">
+<a class="active" href="#beranda">Beranda</a>
+<a href="#cek-resi">Cek Resi</a>
+<a href="#bantuan">Bantuan</a>
+<a href="#kontak">Kontak</a>
+</nav>
+<a class="header-contact" href="#kontak">
           Kontak
           <span aria-hidden="true">↗</span>
-        </a>
-      </header>
-
-      <div class="container hero">
-        <div class="hero-content">
-          <div class="hero-label">
-            <span class="pulse"></span>
+</a>
+</header>
+<div class="container hero">
+<div class="hero-content">
+<div class="hero-label">
+<span class="pulse"></span>
             Smart Tracking Service
           </div>
-
-          <h1>Cek Resi <span>Pengiriman Anda</span></h1>
-
-          <p class="hero-subtitle">
+<h1>Cek Resi <span>Pengiriman Anda</span></h1>
+<p class="hero-subtitle">
             Pantau status pengiriman paket Anda secara mudah, cepat, dan aman bersama Dirac Group.
           </p>
-
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="#cek-resi">Cek Resi Sekarang <span aria-hidden="true">→</span></a>
-            <a class="btn btn-secondary" href="#cara">Lihat Cara Kerja</a>
-          </div>
-
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <div class="icon-box">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
-              </div>
-              <strong>Aman</strong>
-              <span>Tidak meminta data pribadi sensitif selain nomor resi.</span>
-            </div>
-
-            <div class="hero-stat">
-              <div class="icon-box">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg>
-              </div>
-              <strong>Cepat</strong>
-              <span>Interface ringan dan siap dihubungkan ke backend legal.</span>
-            </div>
-
-            <div class="hero-stat">
-              <div class="icon-box">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>
-              </div>
-              <strong>Banyak Ekspedisi</strong>
-              <span>Mendukung JNE, J&T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="hero-visual" aria-hidden="true">
-          <div class="orbit-wrap"></div>
-          <div class="globe">
-            <span class="land one"></span>
-            <span class="land two"></span>
-            <span class="land three"></span>
-          </div>
-          <div class="flight-path"></div>
-          <svg class="plane" viewBox="0 0 120 80">
-            <path fill="currentColor" d="M110 34 10 8l24 27-24 27 100-28Z"></path>
-            <path fill="currentColor" opacity=".35" d="m34 35 24 7 6 24 15-22 31-10-31-9-15-22-6 24-24 8Z"></path>
-          </svg>
-
-          <div class="truck-card">
-            <div class="truck-scene">
-              <div class="road"></div>
-              <div class="truck">
-                <div class="cargo"></div>
-                <div class="cabin"></div>
-                <div class="wheel one"></div>
-                <div class="wheel two"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="scan-card">
-            <div class="scan-box">
-              <div class="barcode"></div>
-              <div class="scan-line"></div>
-            </div>
-          </div>
-          <div class="scanner-rings"></div>
-          <div class="route-orbit"></div>
-          <div class="floating-status-card one">
-            <strong>API Live</strong>
-            <span>RajaOngkir Connected</span>
-          </div>
-          <div class="floating-status-card two">
-            <strong>Tracking</strong>
-            <span>In Transit</span>
-          </div>
-          <div class="floating-status-card three">
-            <strong>Delivery</strong>
-            <span>Out for Delivery</span>
-          </div>
-        </div>
-      </div>
-      <div class="kinetic-divider" aria-hidden="true"></div>
-    </section>
-
-    <main>
-      <section class="container tracking-section" id="cek-resi">
-        <div class="tracking-panel">
-          <div class="tracking-panel-inner">
-            <div class="form-card">
-              <div class="form-head">
-                <div>
-                  <h2>Cek Status Pengiriman</h2>
-                  <p>Masukkan nomor resi dan pilih ekspedisi. Website ini mengambil data langsung dari backend Vercel yang terhubung ke RajaOngkir API.</p>
-                </div>
-
-                <div class="secure-badge">
-                  <span class="pulse"></span>
+<div class="hero-actions">
+<a class="btn btn-primary" href="#cek-resi">Cek Resi Sekarang <span aria-hidden="true">→</span></a>
+<a class="btn btn-secondary" href="#cara">Lihat Cara Kerja</a>
+</div>
+<div class="hero-stats">
+<div class="hero-stat">
+<div class="icon-box">
+<svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+</div>
+<strong>Aman</strong>
+<span>Tidak meminta data pribadi sensitif selain nomor resi.</span>
+</div>
+<div class="hero-stat">
+<div class="icon-box">
+<svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg>
+</div>
+<strong>Cepat</strong>
+<span>Interface ringan dan siap dihubungkan ke backend legal.</span>
+</div>
+<div class="hero-stat">
+<div class="icon-box">
+<svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>
+</div>
+<strong>Banyak Ekspedisi</strong>
+<span>Mendukung JNE, J&amp;T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</span>
+</div>
+</div>
+</div>
+<div aria-hidden="true" class="hero-visual">
+<div class="orbit-wrap"></div>
+<div class="globe">
+<span class="land one"></span>
+<span class="land two"></span>
+<span class="land three"></span>
+</div>
+<div class="flight-path"></div>
+<svg class="plane" viewbox="0 0 120 80">
+<path d="M110 34 10 8l24 27-24 27 100-28Z" fill="currentColor"></path>
+<path d="m34 35 24 7 6 24 15-22 31-10-31-9-15-22-6 24-24 8Z" fill="currentColor" opacity=".35"></path>
+</svg>
+<div class="truck-card">
+<div class="truck-scene">
+<div class="road"></div>
+<div class="truck">
+<div class="cargo"></div>
+<div class="cabin"></div>
+<div class="wheel one"></div>
+<div class="wheel two"></div>
+</div>
+</div>
+</div>
+<div class="scan-card">
+<div class="scan-box">
+<div class="barcode"></div>
+<div class="scan-line"></div>
+</div>
+</div>
+<div class="scanner-rings"></div>
+<div class="route-orbit"></div>
+<div class="floating-status-card one">
+<strong>API Live</strong>
+<span>RajaOngkir Connected</span>
+</div>
+<div class="floating-status-card two">
+<strong>Tracking</strong>
+<span>In Transit</span>
+</div>
+<div class="floating-status-card three">
+<strong>Delivery</strong>
+<span>Out for Delivery</span>
+</div>
+</div>
+</div>
+<div aria-hidden="true" class="kinetic-divider"></div>
+</section>
+<main>
+<section class="container tracking-section" id="cek-resi">
+<div class="tracking-panel">
+<div class="tracking-panel-inner">
+<div class="form-card">
+<div class="form-head">
+<div>
+<h2>Cek Status Pengiriman</h2>
+<p>Masukkan nomor resi dan pilih ekspedisi. Website ini mengambil data langsung dari backend Vercel yang terhubung ke RajaOngkir API.</p>
+</div>
+<div class="secure-badge">
+<span class="pulse"></span>
                   RajaOngkir API
                 </div>
-              </div>
+</div>
+<form class="tracking-form" id="trackingForm" novalidate="">
+<div class="field">
+<label for="resi">Nomor Resi</label>
+<input autocomplete="off" id="resi" name="resi" placeholder="Masukkan nomor resi" type="text"/>
+</div>
+<div class="field">
+<label for="expedition">Pilih Ekspedisi</label>
+<select id="expedition" name="expedition">
+<option value="">Pilih ekspedisi</option>
+<option value="jne">JNE</option>
+<option value="jnt">J&amp;T Express</option>
+<option value="sicepat">SiCepat</option>
+<option value="anteraja">Anteraja</option>
+<option value="pos">Pos Indonesia</option>
+<option value="tiki">TIKI</option>
+<option value="wahana">Wahana</option>
+<option value="ninja">Ninja Xpress</option>
+<option value="lion">Lion Parcel</option>
+<option value="ide">ID Express</option>
+<option value="sap">SAP Express</option>
+<option value="first">First Logistics</option>
+</select>
+</div>
+<div class="field">
+<label for="phoneLast">4 Digit HP Terakhir</label>
+<input id="phoneLast" inputmode="numeric" maxlength="4" name="phoneLast" placeholder="Opsional" type="text"/>
+</div>
+<button class="track-button" id="trackButton" type="submit">Cek Resi</button>
+</form>
+<div aria-hidden="true" class="tracking-loading-stage">
+<div>
+<strong>Menghubungkan ke sistem pelacakan...</strong>
+<span>Memvalidasi resi, membaca ekspedisi, dan menyiapkan hasil tracking.</span>
+</div>
+</div>
+<div class="error-message" id="errorMessage"></div>
+<div aria-label="Ekspedisi populer" class="courier-row">
+<span class="courier-pill">JNE</span>
+<span class="courier-pill">J&amp;T</span>
+<span class="courier-pill">SiCepat</span>
+<span class="courier-pill">Anteraja</span>
+<span class="courier-pill">POS</span>
+<span class="courier-pill">TIKI</span>
+<span class="courier-pill">Wahana</span>
+<span class="courier-pill">Ninja</span>
+<span class="courier-pill">Lion</span>
+<span class="courier-pill">First</span>
+</div>
+<div class="tracking-note">
+<svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+<span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
+</div>
+</div>
+<aside aria-label="Ilustrasi rute pengiriman" class="map-card">
+<div class="mini-map">
+<div class="route-line"></div>
+<div class="route-dot"></div>
+<div class="map-pin start"></div>
+<div class="map-pin end"></div>
+</div>
+<div class="map-meta">
+<div class="map-row"><span>Status</span><strong>Monitoring</strong></div>
+<div class="map-row"><span>Rute</span><strong>Asal → Tujuan</strong></div>
+<div class="map-row"><span>Sistem</span><strong>RajaOngkir API</strong></div>
+</div>
+</aside>
+</div>
+<div aria-live="polite" class="result-area" id="resultArea">
+<div class="result-card">
+<div class="result-header">
+<div>
+<div class="result-kicker">Hasil Pelacakan</div>
+<h3 id="resultTitle">-</h3>
+</div>
+<div class="status-badge" id="statusBadge">
+<svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg>
+<span id="statusBadgeText">-</span>
+</div>
+</div>
+<div class="result-grid">
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>Nomor Resi</span>
+<strong id="resultResi">-</strong>
+</div>
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M10 17h4V5H2v12h3"></path><path d="M14 17h1"></path><path d="M15 17h4v-6l-3-4h-2"></path><path d="M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path><path d="M15 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path></svg>Ekspedisi</span>
+<strong id="resultExpedition">-</strong>
+</div>
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M3 10h18"></path><path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path></svg>Tanggal Pengiriman</span>
+<strong id="resultDate">-</strong>
+</div>
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M12 6v6l4 2"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path></svg>Estimasi Tiba</span>
+<strong id="resultEta">-</strong>
+</div>
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M20 21a8 8 0 1 0-16 0"></path><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path></svg>Nama Penerima</span>
+<strong id="resultReceiver">-</strong>
+</div>
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>Kota Asal</span>
+<strong id="resultOrigin">-</strong>
+</div>
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>Kota Tujuan</span>
+<strong id="resultDestination">-</strong>
+</div>
+<div class="info-card">
+<span><svg class="icon" viewbox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"></path></svg>Status Pengiriman</span>
+<strong id="resultStatus">-</strong>
+</div>
+</div>
+<div class="progress" id="progressSteps"></div>
+<div class="timeline-layout">
+<section class="timeline-card">
+<div class="timeline-title">
+<h4>Riwayat Perjalanan Paket</h4>
+<span id="timelineCount">0 aktivitas</span>
+</div>
+<div class="timeline-list" id="timelineList"></div>
+</section>
+<aside class="support-card" id="bantuan">
+<h4>Butuh Bantuan?</h4>
+<p>Pastikan nomor resi benar dan ekspedisi sesuai. Jika status belum muncul, coba lagi beberapa saat kemudian.</p>
+<a class="contact-button" href="mailto:support@diracgroup.id">Email Support</a>
+<p>Dirac Group tidak meminta PIN, password, kode OTP, atau data pembayaran pelanggan.</p>
+</aside>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section aria-label="Dashboard pengalaman cek resi Dirac Group" class="container command-center reveal" id="dashboard">
+<div class="command-head">
+<div>
+<div class="command-badge"><i></i> Premium tracking interface</div>
+<h2>Dashboard cek resi yang lebih matang, informatif, dan elegan</h2>
+<p>Lapisan visual baru ini membantu pelanggan memahami alur pelacakan sebelum dan sesudah menekan tombol cek resi. Semua elemen di sini bersifat presentasi dan tidak mengubah cara kerja form utama.</p>
+</div>
+<div aria-label="Visual indikator sistem" class="command-live">
+<span>System signal</span>
+<div aria-hidden="true" class="signal-bars"><i></i><i></i><i></i><i></i><i></i></div>
+</div>
+</div>
+<div class="command-grid">
+<article class="route-board">
+<div class="route-board-top">
+<div>
+<strong>Visual rute paket</strong>
+<span>Ilustrasi perjalanan dari titik asal menuju tujuan.</span>
+</div>
+<div class="command-badge"><i></i> Monitoring</div>
+</div>
+<div aria-hidden="true" class="route-map-premium">
+<div class="route-curve"></div>
+<div class="route-vehicle"></div>
+<div class="route-pin-premium start"></div>
+<div class="route-pin-premium end"></div>
+</div>
+</article>
+<div class="command-stack">
+<article class="command-card">
+<div class="feature-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
+<strong>Data lebih mudah dibaca</strong>
+<span>Hasil API tetap dirapikan menjadi status, detail, progress, dan timeline.</span>
+</article>
+<article class="command-card">
+<div class="feature-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+<strong>Pesan aman</strong>
+<span>Pengunjung mendapat pengingat bahwa website tidak meminta data sensitif.</span>
+</article>
+<article class="command-card">
+<div class="feature-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg></div>
+<strong>Interface ringan</strong>
+<span>Tetap memakai HTML, CSS, dan JavaScript vanilla tanpa dependensi tambahan.</span>
+</article>
+<article class="command-card">
+<div class="feature-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
+<strong>Multi ekspedisi</strong>
+<span>Daftar kurir tetap mengikuti pilihan yang sudah tersedia di form asli.</span>
+</article>
+<div aria-label="Ringkasan operasional" class="mini-insight">
+<div><strong>1 Form</strong><span>Alur utama tetap sama</span></div>
+<div><strong>12 Kurir</strong><span>Opsi ekspedisi populer</span></div>
+<div><strong>0 Login</strong><span>Tidak meminta akun pelanggan</span></div>
+</div>
+</div>
+</div>
+</section>
+<section aria-label="Animasi sistem pelacakan Dirac Group" class="container section reveal motion-showcase">
+<div class="section-title">
+<div class="section-label">Motion Tracking System</div>
+<h2>Animasi pelacakan dibuat lebih hidup</h2>
+<p>Lapisan visual ini memperkuat pengalaman cek resi tanpa mengubah endpoint, validasi, request API, maupun cara hasil tracking ditampilkan.</p>
+</div>
+<div class="motion-grid">
+<article class="motion-card">
+<h3>Rute paket bergerak</h3>
+<p>Dot pengiriman berjalan mengikuti jalur asal ke tujuan agar tema logistik terasa aktif.</p>
+<div aria-hidden="true" class="motion-route"></div>
+</article>
+<article class="motion-card">
+<h3>Scanner resi halus</h3>
+<p>Barcode visual dan scan line memberi kesan sistem sedang membaca data resi.</p>
+<div aria-hidden="true" class="motion-scan"></div>
+</article>
+<article class="motion-card">
+<h3>Sinkronisasi API</h3>
+<p>Orbit sinkronisasi memperkuat rasa koneksi ke backend pelacakan.</p>
+<div aria-hidden="true" class="motion-sync">API</div>
+</article>
+<article class="motion-card">
+<h3>Status bertahap</h3>
+<p>Progress dan timeline kini terasa lebih dinamis saat hasil tracking tampil.</p>
+<div aria-hidden="true" class="motion-status">
+<span></span><span></span><span></span>
+</div>
+</article>
+</div>
+</section>
+<section aria-label="Ringkasan kualitas layanan Dirac Group" class="container trust-strip reveal">
+<article class="trust-card">
+<strong>Validasi Input</strong>
+<span>Nomor resi dan ekspedisi tetap diperiksa sebelum permintaan dikirim ke backend.</span>
+</article>
+<article class="trust-card">
+<strong>Responsif</strong>
+<span>Tampilan tetap nyaman di desktop, tablet, dan ponsel tanpa mengubah alur cek resi.</span>
+</article>
+<article class="trust-card">
+<strong>API Ready</strong>
+<span>Struktur halaman tetap siap memakai endpoint Vercel dan RajaOngkir yang sudah ada.</span>
+</article>
+<article class="trust-card">
+<strong>Privasi Aman</strong>
+<span>Halaman tidak menambahkan permintaan PIN, password, OTP, atau data pembayaran.</span>
+</article>
+</section>
+<section class="container section reveal" id="cakupan">
+<div class="section-title">
+<div class="section-label">Cakupan Layanan</div>
+<h2>Lebih informatif tanpa mengubah cara kerja cek resi</h2>
+<p>Pengembangan ini menambahkan lapisan informasi, visual layanan, dan panduan pengguna agar website terlihat lebih lengkap, namun proses pengecekan tetap memakai form dan backend yang sama.</p>
+</div>
+<div class="service-layout">
+<article class="service-panel">
+<div>
+<h3>Pengalaman tracking yang lebih rapi untuk pelanggan</h3>
+<p>Pengguna tetap memasukkan nomor resi, memilih ekspedisi, lalu menekan tombol cek resi. Elemen tambahan di halaman ini hanya memperkuat konteks, kepercayaan, dan penjelasan layanan.</p>
+</div>
+<div class="service-checks">
+<div class="service-check"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg> Form utama dipertahankan</div>
+<div class="service-check"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg> Endpoint tetap sama</div>
+<div class="service-check"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg> ID elemen tidak diganti</div>
+<div class="service-check"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg> JavaScript inti tetap utuh</div>
+</div>
+</article>
+<aside class="insight-panel">
+<h3>Ringkasan sistem</h3>
+<p>Dirac Group menampilkan hasil tracking dari backend yang tersedia, lalu merapikan status, detail pengiriman, progress, dan timeline agar mudah dibaca.</p>
+<div aria-label="Ringkasan cakupan website" class="coverage-matrix">
+<div class="coverage-item"><span>Ekspedisi</span><strong>12+</strong></div>
+<div class="coverage-item"><span>Progress</span><strong>6 Tahap</strong></div>
+<div class="coverage-item"><span>Data</span><strong>API</strong></div>
+</div>
+<div class="insight-list">
+<div class="insight-item">
+<div class="insight-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
+<div class="insight-copy"><strong>Data disusun otomatis</strong><span>Respons API dinormalisasi menjadi ringkasan, kartu informasi, dan timeline.</span></div>
+</div>
+<div class="insight-item">
+<div class="insight-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+<div class="insight-copy"><strong>Pesan keamanan jelas</strong><span>Pengguna diberi pengingat bahwa website tidak meminta data sensitif.</span></div>
+</div>
+</div>
+</aside>
+</div>
+</section>
 
-              <form class="tracking-form" id="trackingForm" novalidate>
-                <div class="field">
-                  <label for="resi">Nomor Resi</label>
-                  <input id="resi" name="resi" type="text" placeholder="Masukkan nomor resi" autocomplete="off" />
-                </div>
+<section class="container section reveal" id="keamanan">
+<div class="section-title">
+<div class="section-label">Keamanan &amp; Kejelasan</div>
+<h2>Didesain agar pengguna merasa yakin saat melacak paket</h2>
+<p>Halaman dibuat lebih lengkap dengan informasi yang membantu pelanggan memahami batasan layanan, keamanan data, dan langkah pengecekan.</p>
+</div>
+<div class="assurance-grid">
+<article class="assurance-card">
+<div class="feature-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+<h3>Tidak meminta data sensitif</h3>
+<p>Alur cek resi hanya memakai nomor resi, pilihan ekspedisi, dan opsional empat digit HP terakhir bila dibutuhkan API.</p>
+</article>
+<article class="assurance-card">
+<div class="feature-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M12 6v6l4 2"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path></svg></div>
+<h3>Status mudah dipahami</h3>
+<p>Status mentah dari API diringkas menjadi tahapan yang lebih ramah dibaca, seperti dalam perjalanan atau sudah diterima.</p>
+</article>
+<article class="assurance-card">
+<div class="feature-icon"><svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
+<h3>Detail pengiriman tersusun</h3>
+<p>Kota asal, tujuan, penerima, estimasi, dan riwayat perjalanan ditampilkan dalam komponen visual yang konsisten.</p>
+</article>
+</div>
 
-                <div class="field">
-                  <label for="expedition">Pilih Ekspedisi</label>
-                  <select id="expedition" name="expedition">
-                    <option value="">Pilih ekspedisi</option>
-                    <option value="jne">JNE</option>
-                    <option value="jnt">J&T Express</option>
-                    <option value="sicepat">SiCepat</option>
-                    <option value="anteraja">Anteraja</option>
-                    <option value="pos">Pos Indonesia</option>
-                    <option value="tiki">TIKI</option>
-                    <option value="wahana">Wahana</option>
-                    <option value="ninja">Ninja Xpress</option>
-                    <option value="lion">Lion Parcel</option>
-                    <option value="ide">ID Express</option>
-                    <option value="sap">SAP Express</option>
-                    <option value="first">First Logistics</option>
-                  </select>
-                </div>
-
-                <div class="field">
-                  <label for="phoneLast">4 Digit HP Terakhir</label>
-                  <input id="phoneLast" name="phoneLast" type="text" inputmode="numeric" maxlength="4" placeholder="Opsional" />
-                </div>
-
-                <button class="track-button" id="trackButton" type="submit">Cek Resi</button>
-              </form>
-
-              <div class="tracking-loading-stage" aria-hidden="true">
-                <div>
-                  <strong>Menghubungkan ke sistem pelacakan...</strong>
-                  <span>Memvalidasi resi, membaca ekspedisi, dan menyiapkan hasil tracking.</span>
-                </div>
-              </div>
-
-              <div class="error-message" id="errorMessage"></div>
-
-              <div class="courier-row" aria-label="Ekspedisi populer">
-                <span class="courier-pill">JNE</span>
-                <span class="courier-pill">J&T</span>
-                <span class="courier-pill">SiCepat</span>
-                <span class="courier-pill">Anteraja</span>
-                <span class="courier-pill">POS</span>
-                <span class="courier-pill">TIKI</span>
-                <span class="courier-pill">Wahana</span>
-                <span class="courier-pill">Ninja</span>
-                <span class="courier-pill">Lion</span>
-                <span class="courier-pill">First</span>
-              </div>
-
-              <div class="tracking-note">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
-                <span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
-              </div>
-            </div>
-
-            <aside class="map-card" aria-label="Ilustrasi rute pengiriman">
-              <div class="mini-map">
-                <div class="route-line"></div>
-                <div class="route-dot"></div>
-                <div class="map-pin start"></div>
-                <div class="map-pin end"></div>
-              </div>
-              <div class="map-meta">
-                <div class="map-row"><span>Status</span><strong>Monitoring</strong></div>
-                <div class="map-row"><span>Rute</span><strong>Asal → Tujuan</strong></div>
-                <div class="map-row"><span>Sistem</span><strong>RajaOngkir API</strong></div>
-              </div>
-            </aside>
-          </div>
-
-          <div class="result-area" id="resultArea" aria-live="polite">
-            <div class="result-card">
-              <div class="result-header">
-                <div>
-                  <div class="result-kicker">Hasil Pelacakan</div>
-                  <h3 id="resultTitle">-</h3>
-                </div>
-                <div class="status-badge" id="statusBadge">
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>
-                  <span id="statusBadgeText">-</span>
-                </div>
-              </div>
-
-              <div class="result-grid">
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>Nomor Resi</span>
-                  <strong id="resultResi">-</strong>
-                </div>
-
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M10 17h4V5H2v12h3"></path><path d="M14 17h1"></path><path d="M15 17h4v-6l-3-4h-2"></path><path d="M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path><path d="M15 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path></svg>Ekspedisi</span>
-                  <strong id="resultExpedition">-</strong>
-                </div>
-
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M3 10h18"></path><path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path></svg>Tanggal Pengiriman</span>
-                  <strong id="resultDate">-</strong>
-                </div>
-
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M12 6v6l4 2"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path></svg>Estimasi Tiba</span>
-                  <strong id="resultEta">-</strong>
-                </div>
-
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 1 0-16 0"></path><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path></svg>Nama Penerima</span>
-                  <strong id="resultReceiver">-</strong>
-                </div>
-
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>Kota Asal</span>
-                  <strong id="resultOrigin">-</strong>
-                </div>
-
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>Kota Tujuan</span>
-                  <strong id="resultDestination">-</strong>
-                </div>
-
-                <div class="info-card">
-                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"></path></svg>Status Pengiriman</span>
-                  <strong id="resultStatus">-</strong>
-                </div>
-              </div>
-
-              <div class="progress" id="progressSteps"></div>
-
-              <div class="timeline-layout">
-                <section class="timeline-card">
-                  <div class="timeline-title">
-                    <h4>Riwayat Perjalanan Paket</h4>
-                    <span id="timelineCount">0 aktivitas</span>
-                  </div>
-                  <div class="timeline-list" id="timelineList"></div>
-                </section>
-
-                <aside class="support-card" id="bantuan">
-                  <h4>Butuh Bantuan?</h4>
-                  <p>Pastikan nomor resi benar dan ekspedisi sesuai. Jika status belum muncul, coba lagi beberapa saat kemudian.</p>
-                  <a class="contact-button" href="mailto:support@diracgroup.id">Email Support</a>
-                  <p>Dirac Group tidak meminta PIN, password, kode OTP, atau data pembayaran pelanggan.</p>
-                </aside>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-
-      <section class="container command-center reveal" id="dashboard" aria-label="Dashboard pengalaman cek resi Dirac Group">
-        <div class="command-head">
-          <div>
-            <div class="command-badge"><i></i> Premium tracking interface</div>
-            <h2>Dashboard cek resi yang lebih matang, informatif, dan elegan</h2>
-            <p>Lapisan visual baru ini membantu pelanggan memahami alur pelacakan sebelum dan sesudah menekan tombol cek resi. Semua elemen di sini bersifat presentasi dan tidak mengubah cara kerja form utama.</p>
-          </div>
-          <div class="command-live" aria-label="Visual indikator sistem">
-            <span>System signal</span>
-            <div class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-          </div>
-        </div>
-
-        <div class="command-grid">
-          <article class="route-board">
-            <div class="route-board-top">
-              <div>
-                <strong>Visual rute paket</strong>
-                <span>Ilustrasi perjalanan dari titik asal menuju tujuan.</span>
-              </div>
-              <div class="command-badge"><i></i> Monitoring</div>
-            </div>
-            <div class="route-map-premium" aria-hidden="true">
-              <div class="route-curve"></div>
-              <div class="route-vehicle"></div>
-              <div class="route-pin-premium start"></div>
-              <div class="route-pin-premium end"></div>
-            </div>
-          </article>
-
-          <div class="command-stack">
-            <article class="command-card">
-              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
-              <strong>Data lebih mudah dibaca</strong>
-              <span>Hasil API tetap dirapikan menjadi status, detail, progress, dan timeline.</span>
-            </article>
-            <article class="command-card">
-              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
-              <strong>Pesan aman</strong>
-              <span>Pengunjung mendapat pengingat bahwa website tidak meminta data sensitif.</span>
-            </article>
-            <article class="command-card">
-              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg></div>
-              <strong>Interface ringan</strong>
-              <span>Tetap memakai HTML, CSS, dan JavaScript vanilla tanpa dependensi tambahan.</span>
-            </article>
-            <article class="command-card">
-              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
-              <strong>Multi ekspedisi</strong>
-              <span>Daftar kurir tetap mengikuti pilihan yang sudah tersedia di form asli.</span>
-            </article>
-            <div class="mini-insight" aria-label="Ringkasan operasional">
-              <div><strong>1 Form</strong><span>Alur utama tetap sama</span></div>
-              <div><strong>12 Kurir</strong><span>Opsi ekspedisi populer</span></div>
-              <div><strong>0 Login</strong><span>Tidak meminta akun pelanggan</span></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-
-
-      <section class="container section reveal motion-showcase" aria-label="Animasi sistem pelacakan Dirac Group">
-        <div class="section-title">
-          <div class="section-label">Motion Tracking System</div>
-          <h2>Animasi pelacakan dibuat lebih hidup</h2>
-          <p>Lapisan visual ini memperkuat pengalaman cek resi tanpa mengubah endpoint, validasi, request API, maupun cara hasil tracking ditampilkan.</p>
-        </div>
-
-        <div class="motion-grid">
-          <article class="motion-card">
-            <h3>Rute paket bergerak</h3>
-            <p>Dot pengiriman berjalan mengikuti jalur asal ke tujuan agar tema logistik terasa aktif.</p>
-            <div class="motion-route" aria-hidden="true"></div>
-          </article>
-
-          <article class="motion-card">
-            <h3>Scanner resi halus</h3>
-            <p>Barcode visual dan scan line memberi kesan sistem sedang membaca data resi.</p>
-            <div class="motion-scan" aria-hidden="true"></div>
-          </article>
-
-          <article class="motion-card">
-            <h3>Sinkronisasi API</h3>
-            <p>Orbit sinkronisasi memperkuat rasa koneksi ke backend pelacakan.</p>
-            <div class="motion-sync" aria-hidden="true">API</div>
-          </article>
-
-          <article class="motion-card">
-            <h3>Status bertahap</h3>
-            <p>Progress dan timeline kini terasa lebih dinamis saat hasil tracking tampil.</p>
-            <div class="motion-status" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="container trust-strip reveal" aria-label="Ringkasan kualitas layanan Dirac Group">
-        <article class="trust-card">
-          <strong>Validasi Input</strong>
-          <span>Nomor resi dan ekspedisi tetap diperiksa sebelum permintaan dikirim ke backend.</span>
-        </article>
-        <article class="trust-card">
-          <strong>Responsif</strong>
-          <span>Tampilan tetap nyaman di desktop, tablet, dan ponsel tanpa mengubah alur cek resi.</span>
-        </article>
-        <article class="trust-card">
-          <strong>API Ready</strong>
-          <span>Struktur halaman tetap siap memakai endpoint Vercel dan RajaOngkir yang sudah ada.</span>
-        </article>
-        <article class="trust-card">
-          <strong>Privasi Aman</strong>
-          <span>Halaman tidak menambahkan permintaan PIN, password, OTP, atau data pembayaran.</span>
-        </article>
-      </section>
-
-      <section class="container section reveal" id="cakupan">
-        <div class="section-title">
-          <div class="section-label">Cakupan Layanan</div>
-          <h2>Lebih informatif tanpa mengubah cara kerja cek resi</h2>
-          <p>Pengembangan ini menambahkan lapisan informasi, visual layanan, dan panduan pengguna agar website terlihat lebih lengkap, namun proses pengecekan tetap memakai form dan backend yang sama.</p>
-        </div>
-
-        <div class="service-layout">
-          <article class="service-panel">
-            <div>
-              <h3>Pengalaman tracking yang lebih rapi untuk pelanggan</h3>
-              <p>Pengguna tetap memasukkan nomor resi, memilih ekspedisi, lalu menekan tombol cek resi. Elemen tambahan di halaman ini hanya memperkuat konteks, kepercayaan, dan penjelasan layanan.</p>
-            </div>
-            <div class="service-checks">
-              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> Form utama dipertahankan</div>
-              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> Endpoint tetap sama</div>
-              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> ID elemen tidak diganti</div>
-              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> JavaScript inti tetap utuh</div>
-            </div>
-          </article>
-
-          <aside class="insight-panel">
-            <h3>Ringkasan sistem</h3>
-            <p>Dirac Group menampilkan hasil tracking dari backend yang tersedia, lalu merapikan status, detail pengiriman, progress, dan timeline agar mudah dibaca.</p>
-            <div class="coverage-matrix" aria-label="Ringkasan cakupan website">
-              <div class="coverage-item"><span>Ekspedisi</span><strong>12+</strong></div>
-              <div class="coverage-item"><span>Progress</span><strong>6 Tahap</strong></div>
-              <div class="coverage-item"><span>Data</span><strong>API</strong></div>
-            </div>
-            <div class="insight-list">
-              <div class="insight-item">
-                <div class="insight-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
-                <div class="insight-copy"><strong>Data disusun otomatis</strong><span>Respons API dinormalisasi menjadi ringkasan, kartu informasi, dan timeline.</span></div>
-              </div>
-              <div class="insight-item">
-                <div class="insight-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
-                <div class="insight-copy"><strong>Pesan keamanan jelas</strong><span>Pengguna diberi pengingat bahwa website tidak meminta data sensitif.</span></div>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section class="container section reveal" id="keamanan">
-        <div class="section-title">
-          <div class="section-label">Keamanan & Kejelasan</div>
-          <h2>Didesain agar pengguna merasa yakin saat melacak paket</h2>
-          <p>Halaman dibuat lebih lengkap dengan informasi yang membantu pelanggan memahami batasan layanan, keamanan data, dan langkah pengecekan.</p>
-        </div>
-
-        <div class="assurance-grid">
-          <article class="assurance-card">
-            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
-            <h3>Tidak meminta data sensitif</h3>
-            <p>Alur cek resi hanya memakai nomor resi, pilihan ekspedisi, dan opsional empat digit HP terakhir bila dibutuhkan API.</p>
-          </article>
-          <article class="assurance-card">
-            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v6l4 2"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path></svg></div>
-            <h3>Status mudah dipahami</h3>
-            <p>Status mentah dari API diringkas menjadi tahapan yang lebih ramah dibaca, seperti dalam perjalanan atau sudah diterima.</p>
-          </article>
-          <article class="assurance-card">
-            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
-            <h3>Detail pengiriman tersusun</h3>
-            <p>Kota asal, tujuan, penerima, estimasi, dan riwayat perjalanan ditampilkan dalam komponen visual yang konsisten.</p>
-          </article>
-        </div>
-
-      </section>
-
-      <section class="container section reveal" id="keunggulan">
-        <div class="section-title">
-          <div class="section-label">Keunggulan</div>
-          <h2>Kenapa memilih Dirac Group?</h2>
-          <p>Dirac Group dirancang sebagai halaman pelacakan yang profesional, mudah digunakan, dan siap dikembangkan untuk integrasi resmi.</p>
-        </div>
-
-        <div class="features-grid">
-          <article class="feature-card">
-            <div class="feature-icon">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg>
-            </div>
-            <h3>Cepat</h3>
-            <p>Halaman dibuat ringan dengan HTML, CSS, dan JavaScript vanilla agar cepat dibuka di berbagai perangkat.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
-            </div>
-            <h3>Aman</h3>
-            <p>Tidak ada login palsu, tidak meminta data sensitif, dan siap diproses melalui backend yang legal.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h.01"></path><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"></path></svg>
-            </div>
-            <h3>Mudah Digunakan</h3>
-            <p>Form sederhana, hasil jelas, status ringkas, dan riwayat pengiriman tampil dalam timeline.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path></svg>
-            </div>
-            <h3>Banyak Ekspedisi</h3>
-            <p>Mendukung ekspedisi populer RajaOngkir seperti JNE, J&T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="container section reveal" id="cara">
-        <div class="section-title">
-          <div class="section-label">Cara Cek Resi</div>
-          <h2>Empat langkah sederhana</h2>
-          <p>Pelanggan dapat melihat status paket dengan cepat tanpa proses yang membingungkan.</p>
-        </div>
-
-        <div class="steps-grid">
-          <article class="how-step">
-            <strong>Masukkan nomor resi</strong>
-            <p>Ketik nomor resi yang Anda terima dari toko atau ekspedisi.</p>
-          </article>
-
-          <article class="how-step">
-            <strong>Pilih ekspedisi</strong>
-            <p>Pilih jasa pengiriman yang digunakan agar sistem bisa membaca data dengan benar.</p>
-          </article>
-
-          <article class="how-step">
-            <strong>Klik tombol cek resi</strong>
-            <p>Tekan tombol “Cek Resi” dan tunggu proses pengecekan selesai.</p>
-          </article>
-
-          <article class="how-step">
-            <strong>Lihat status paket</strong>
-            <p>Status, kota asal, kota tujuan, estimasi tiba, dan timeline akan ditampilkan dari respons API.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="container section reveal" id="standar">
-        <div class="section-title">
-          <div class="section-label">Standar Kualitas</div>
-          <h2>Dikembangkan dengan fokus pada tampilan, kepercayaan, dan stabilitas</h2>
-          <p>Pengembangan tambahan diarahkan pada aspek visual, struktur informasi, responsivitas, dan kejelasan pesan tanpa menyentuh logika utama cek resi.</p>
-        </div>
-
-        <div class="quality-grid">
-          <article class="quality-panel">
-            <h3>Checklist pengembangan</h3>
-            <p>Setiap penambahan dibuat sebagai lapisan presentasi, sehingga fungsi backend dan JavaScript tracking tetap tidak berubah.</p>
-            <div class="quality-checklist">
-              <div class="quality-check"><b>01</b><div><strong>UI lebih premium</strong><span>Dark glass, glow halus, visual rute, dan kartu informasi baru.</span></div></div>
-              <div class="quality-check"><b>02</b><div><strong>Konten lebih lengkap</strong><span>Penjelasan cakupan, keamanan, ekspedisi, dan standar layanan diperjelas.</span></div></div>
-              <div class="quality-check"><b>03</b><div><strong>Responsif</strong><span>Layout tambahan ikut disesuaikan untuk desktop, tablet, dan mobile.</span></div></div>
-            </div>
-          </article>
-
-          <aside class="protocol-card">
-            <h3>Protokol fungsi tidak diubah</h3>
-            <p>Bagian penting seperti endpoint, ID form, validasi, fetch, normalisasi respons, render hasil, progress, dan timeline tetap dipertahankan.</p>
-            <div class="protocol-list">
-              <div><i></i> Endpoint API tetap sama</div>
-              <div><i></i> Form tracking tetap memakai ID asli</div>
-              <div><i></i> Submit handler tetap utuh</div>
-              <div><i></i> Timeline dan progress tetap memakai script lama</div>
-              <div><i></i> Tidak ada library eksternal baru</div>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-
-      <section class="container section reveal">
-        <div class="section-title">
-          <div class="section-label">FAQ</div>
-          <h2>Pertanyaan yang sering diajukan</h2>
-          <p>Informasi dasar untuk membantu pelanggan memahami proses pelacakan.</p>
-        </div>
-
-        <div class="faq-layout">
-          <details>
-            <summary>Apa itu nomor resi?</summary>
-            <p>Nomor resi adalah kode unik pengiriman yang diberikan oleh ekspedisi untuk melacak perjalanan paket dari pengirim ke penerima.</p>
-          </details>
-
-          <details>
-            <summary>Kenapa resi tidak ditemukan?</summary>
-            <p>Resi bisa belum aktif, salah memilih ekspedisi, nomor resi salah, atau data dari sistem ekspedisi belum diperbarui. Coba periksa kembali lalu ulangi beberapa saat kemudian.</p>
-          </details>
-
-          <details>
-            <summary>Apakah data pengiriman aman?</summary>
-            <p>Website ini hanya meminta nomor resi dan pilihan ekspedisi. Dirac Group tidak meminta PIN, password, OTP, atau data pembayaran.</p>
-          </details>
-
-          <details>
-            <summary>Ekspedisi apa saja yang didukung?</summary>
-            <p>Contoh pilihan yang tersedia mencakup JNE, J&T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Lion Parcel, ID Express, SAP Express, First Logistics, dan lainnya sesuai dukungan RajaOngkir.</p>
-          </details>
-
-          <details>
-            <summary>Apakah tampilan baru mengubah proses cek resi?</summary>
-            <p>Tidak. Pengembangan ini hanya menambah tampilan, informasi, dan elemen visual. Proses submit, endpoint backend, dan cara menampilkan hasil tetap sama.</p>
-          </details>
-
-          <details>
-            <summary>Apa yang harus dilakukan jika hasil belum muncul?</summary>
-            <p>Pastikan nomor resi benar, ekspedisi sesuai, dan coba ulangi beberapa saat kemudian karena data pengiriman dapat membutuhkan waktu untuk diperbarui oleh sistem ekspedisi.</p>
-          </details>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer" id="kontak">
-      <div class="container">
-        <div class="footer-grid">
-          <div>
-            <a class="brand" href="#beranda">
-              <img src="logo%203.webp" alt="Dirac Group" class="brand-logo" />
+</section>
+<section class="container section reveal" id="keunggulan">
+<div class="section-title">
+<div class="section-label">Keunggulan</div>
+<h2>Kenapa memilih Dirac Group?</h2>
+<p>Dirac Group dirancang sebagai halaman pelacakan yang profesional, mudah digunakan, dan siap dikembangkan untuk integrasi resmi.</p>
+</div>
+<div class="features-grid">
+<article class="feature-card">
+<div class="feature-icon">
+<svg class="icon" viewbox="0 0 24 24"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg>
+</div>
+<h3>Cepat</h3>
+<p>Halaman dibuat ringan dengan HTML, CSS, dan JavaScript vanilla agar cepat dibuka di berbagai perangkat.</p>
+</article>
+<article class="feature-card">
+<div class="feature-icon">
+<svg class="icon" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+</div>
+<h3>Aman</h3>
+<p>Tidak ada login palsu, tidak meminta data sensitif, dan siap diproses melalui backend yang legal.</p>
+</article>
+<article class="feature-card">
+<div class="feature-icon">
+<svg class="icon" viewbox="0 0 24 24"><path d="M12 20h.01"></path><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"></path></svg>
+</div>
+<h3>Mudah Digunakan</h3>
+<p>Form sederhana, hasil jelas, status ringkas, dan riwayat pengiriman tampil dalam timeline.</p>
+</article>
+<article class="feature-card">
+<div class="feature-icon">
+<svg class="icon" viewbox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path></svg>
+</div>
+<h3>Banyak Ekspedisi</h3>
+<p>Mendukung ekspedisi populer RajaOngkir seperti JNE, J&amp;T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</p>
+</article>
+</div>
+</section>
+<section class="container section reveal" id="cara">
+<div class="section-title">
+<div class="section-label">Cara Cek Resi</div>
+<h2>Empat langkah sederhana</h2>
+<p>Pelanggan dapat melihat status paket dengan cepat tanpa proses yang membingungkan.</p>
+</div>
+<div class="steps-grid">
+<article class="how-step">
+<strong>Masukkan nomor resi</strong>
+<p>Ketik nomor resi yang Anda terima dari toko atau ekspedisi.</p>
+</article>
+<article class="how-step">
+<strong>Pilih ekspedisi</strong>
+<p>Pilih jasa pengiriman yang digunakan agar sistem bisa membaca data dengan benar.</p>
+</article>
+<article class="how-step">
+<strong>Klik tombol cek resi</strong>
+<p>Tekan tombol “Cek Resi” dan tunggu proses pengecekan selesai.</p>
+</article>
+<article class="how-step">
+<strong>Lihat status paket</strong>
+<p>Status, kota asal, kota tujuan, estimasi tiba, dan timeline akan ditampilkan dari respons API.</p>
+</article>
+</div>
+</section>
+<section class="container section reveal" id="standar">
+<div class="section-title">
+<div class="section-label">Standar Kualitas</div>
+<h2>Dikembangkan dengan fokus pada tampilan, kepercayaan, dan stabilitas</h2>
+<p>Pengembangan tambahan diarahkan pada aspek visual, struktur informasi, responsivitas, dan kejelasan pesan tanpa menyentuh logika utama cek resi.</p>
+</div>
+<div class="quality-grid">
+<article class="quality-panel">
+<h3>Checklist pengembangan</h3>
+<p>Setiap penambahan dibuat sebagai lapisan presentasi, sehingga fungsi backend dan JavaScript tracking tetap tidak berubah.</p>
+<div class="quality-checklist">
+<div class="quality-check"><b>01</b><div><strong>UI lebih premium</strong><span>Dark glass, glow halus, visual rute, dan kartu informasi baru.</span></div></div>
+<div class="quality-check"><b>02</b><div><strong>Konten lebih lengkap</strong><span>Penjelasan cakupan, keamanan, ekspedisi, dan standar layanan diperjelas.</span></div></div>
+<div class="quality-check"><b>03</b><div><strong>Responsif</strong><span>Layout tambahan ikut disesuaikan untuk desktop, tablet, dan mobile.</span></div></div>
+</div>
+</article>
+<aside class="protocol-card">
+<h3>Protokol fungsi tidak diubah</h3>
+<p>Bagian penting seperti endpoint, ID form, validasi, fetch, normalisasi respons, render hasil, progress, dan timeline tetap dipertahankan.</p>
+<div class="protocol-list">
+<div><i></i> Endpoint API tetap sama</div>
+<div><i></i> Form tracking tetap memakai ID asli</div>
+<div><i></i> Submit handler tetap utuh</div>
+<div><i></i> Timeline dan progress tetap memakai script lama</div>
+<div><i></i> Tidak ada library eksternal baru</div>
+</div>
+</aside>
+</div>
+</section>
+<section class="container section reveal">
+<div class="section-title">
+<div class="section-label">FAQ</div>
+<h2>Pertanyaan yang sering diajukan</h2>
+<p>Informasi dasar untuk membantu pelanggan memahami proses pelacakan.</p>
+</div>
+<div class="faq-layout">
+<details>
+<summary>Apa itu nomor resi?</summary>
+<p>Nomor resi adalah kode unik pengiriman yang diberikan oleh ekspedisi untuk melacak perjalanan paket dari pengirim ke penerima.</p>
+</details>
+<details>
+<summary>Kenapa resi tidak ditemukan?</summary>
+<p>Resi bisa belum aktif, salah memilih ekspedisi, nomor resi salah, atau data dari sistem ekspedisi belum diperbarui. Coba periksa kembali lalu ulangi beberapa saat kemudian.</p>
+</details>
+<details>
+<summary>Apakah data pengiriman aman?</summary>
+<p>Website ini hanya meminta nomor resi dan pilihan ekspedisi. Dirac Group tidak meminta PIN, password, OTP, atau data pembayaran.</p>
+</details>
+<details>
+<summary>Ekspedisi apa saja yang didukung?</summary>
+<p>Contoh pilihan yang tersedia mencakup JNE, J&amp;T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Lion Parcel, ID Express, SAP Express, First Logistics, dan lainnya sesuai dukungan RajaOngkir.</p>
+</details>
+<details>
+<summary>Apakah tampilan baru mengubah proses cek resi?</summary>
+<p>Tidak. Pengembangan ini hanya menambah tampilan, informasi, dan elemen visual. Proses submit, endpoint backend, dan cara menampilkan hasil tetap sama.</p>
+</details>
+<details>
+<summary>Apa yang harus dilakukan jika hasil belum muncul?</summary>
+<p>Pastikan nomor resi benar, ekspedisi sesuai, dan coba ulangi beberapa saat kemudian karena data pengiriman dapat membutuhkan waktu untuk diperbarui oleh sistem ekspedisi.</p>
+</details>
+</div>
+</section>
+</main>
+<footer class="footer" id="kontak">
+<div class="container">
+<div class="footer-grid">
+<div>
+<a class="brand" href="#beranda">
+<img alt="Dirac Group" class="brand-logo" src="logo%203.webp"/>
               Dirac Group
             </a>
-            <p>Dirac Group menyediakan halaman cek resi modern untuk membantu pelanggan memantau status pengiriman secara mudah, cepat, dan aman.</p>
-          </div>
+<p>Dirac Group menyediakan halaman cek resi modern untuk membantu pelanggan memantau status pengiriman secara mudah, cepat, dan aman.</p>
+</div>
+<div>
+<h4>Menu</h4>
+<a href="#beranda">Beranda</a>
+<a href="#cek-resi">Cek Resi</a>
+<a href="#dashboard">Dashboard</a>
+<a href="#cara">Cara Cek Resi</a>
+<a href="#bantuan">Bantuan</a>
+</div>
+<div>
+<h4>Informasi</h4>
+<a href="#keunggulan">Kenapa Dirac Group</a>
 
-          <div>
-            <h4>Menu</h4>
-            <a href="#beranda">Beranda</a>
-            <a href="#cek-resi">Cek Resi</a>
-            <a href="#dashboard">Dashboard</a>
-            <a href="#cara">Cara Cek Resi</a>
-            <a href="#bantuan">Bantuan</a>
-          </div>
-
-          <div>
-            <h4>Informasi</h4>
-            <a href="#keunggulan">Kenapa Dirac Group</a>
-            <a href="#keamanan">Keamanan</a>
-            <a href="#standar">Standar Kualitas</a>
-          </div>
-
-          <div>
-            <h4>Kontak</h4>
-            <a href="mailto:support@diracgroup.id">support@diracgroup.id</a>
-            <a href="mailto:cs@diracgroup.id">cs@diracgroup.id</a>
-            <a href="#">Jakarta, Indonesia</a>
-          </div>
-        </div>
-
-        <div class="copyright">
-          <span>© 2026 Dirac Group. Semua hak dilindungi.</span>
-          <span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
-        </div>
-      </div>
-    </footer>
-  </div>
-
-  <script>
+<a href="#keamanan">Keamanan</a>
+<a href="#standar">Standar Kualitas</a>
+</div>
+<div>
+<h4>Kontak</h4>
+<a href="mailto:support@diracgroup.id">support@diracgroup.id</a>
+<a href="mailto:cs@diracgroup.id">cs@diracgroup.id</a>
+<a href="#">Jakarta, Indonesia</a>
+</div>
+</div>
+<div class="copyright">
+<span>© 2026 Dirac Group. Semua hak dilindungi.</span>
+<span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
+</div>
+</div>
+</footer>
+</div>
+<script>
     // Endpoint backend Vercel. File api/track.js di Vercel harus memakai RajaOngkir API.
     const API_ENDPOINT = "https://companyprofilee-ochre.vercel.app/api/track";
 
@@ -5788,76 +5745,57 @@
     );
 
     revealItems.forEach((item) => observer.observe(item));
+  
 
+    /* Request patch V6: interaction animation + viewport-aware pause for restored green motion.
+       Tidak mengubah form submit, endpoint, validasi, fetch, normalisasi, render hasil, progress, atau timeline. */
+    (function initRequestPatchV6() {
+      const tappableCards = document.querySelectorAll(".command-card");
+      tappableCards.forEach((card) => {
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
 
-    /* Viewport-aware motion controller: animasi berjalan hanya saat area terlihat. */
-    (() => {
-      const motionTargets = Array.from(document.querySelectorAll([
-        ".hero-label",
-        ".secure-badge",
-        ".hero-visual",
-        ".command-center",
-        ".motion-showcase .motion-card",
-        ".tracking-panel"
-      ].join(",")));
+        const playTapMotion = () => {
+          card.classList.remove("is-tapped");
+          void card.offsetWidth;
+          card.classList.add("is-tapped");
+          window.clearTimeout(card.__tapTimer);
+          card.__tapTimer = window.setTimeout(() => card.classList.remove("is-tapped"), 620);
+        };
 
-      if (!motionTargets.length) {
-        return;
-      }
-
-      const isActuallyInViewport = (element) => {
-        const rect = element.getBoundingClientRect();
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-
-        return (
-          rect.bottom > 0 &&
-          rect.right > 0 &&
-          rect.top < viewportHeight &&
-          rect.left < viewportWidth
-        );
-      };
-
-      const setMotionState = (element, shouldRun) => {
-        element.classList.toggle("motion-in-view", shouldRun && !document.hidden);
-      };
-
-      const refreshMotionState = () => {
-        document.body.classList.toggle("motion-page-hidden", document.hidden);
-        motionTargets.forEach((element) => {
-          setMotionState(element, isActuallyInViewport(element));
+        card.addEventListener("pointerdown", playTapMotion, { passive: true });
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            playTapMotion();
+          }
         });
-      };
-
-      if (!("IntersectionObserver" in window)) {
-        motionTargets.forEach((element) => setMotionState(element, true));
-        document.addEventListener("visibilitychange", refreshMotionState, { passive: true });
-        return;
-      }
-
-      const motionObserver = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            setMotionState(entry.target, entry.isIntersecting);
-          });
-        },
-        {
-          root: null,
-          rootMargin: "0px",
-          threshold: 0.01
-        }
-      );
-
-      motionTargets.forEach((element) => {
-        element.classList.add("motion-viewport-managed");
-        motionObserver.observe(element);
       });
 
-      refreshMotionState();
-      document.addEventListener("visibilitychange", refreshMotionState, { passive: true });
-      window.addEventListener("pageshow", refreshMotionState, { passive: true });
-      window.addEventListener("resize", refreshMotionState, { passive: true });
+      const motionTargets = document.querySelectorAll(".secure-badge, .command-badge, .hero-visual, .command-center, .motion-card, .tracking-panel");
+      const setMotionState = (target, isRunning) => {
+        target.classList.toggle("motion-in-view", isRunning && !document.hidden);
+      };
+
+      if ("IntersectionObserver" in window) {
+        const motionObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => setMotionState(entry.target, entry.isIntersecting));
+        }, { threshold: 0.08, rootMargin: "120px 0px 120px 0px" });
+
+        motionTargets.forEach((target) => motionObserver.observe(target));
+      } else {
+        motionTargets.forEach((target) => setMotionState(target, true));
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          motionTargets.forEach((target) => target.classList.remove("motion-in-view"));
+        } else if (!("IntersectionObserver" in window)) {
+          motionTargets.forEach((target) => target.classList.add("motion-in-view"));
+        }
+      });
     })();
+
   </script>
 </body>
 </html>
