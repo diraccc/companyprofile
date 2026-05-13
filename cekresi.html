@@ -4477,6 +4477,83 @@
       }
     }
 
+
+    /* ==========================================================
+       VIEWPORT MOTION CONTROLLER V4 - 2026-05-13
+       Sistem ini membuat animasi yang tersisa hanya berjalan saat
+       area animasinya terlihat di layar. Saat keluar viewport atau
+       tab tidak aktif, animasi otomatis pause untuk menurunkan beban HP.
+       Tidak mengubah endpoint, validasi, fetch, normalisasi, render hasil,
+       atau struktur form cek resi.
+       ========================================================== */
+
+    .hero-visual:not(.motion-in-view) .orbit-wrap,
+    .hero-visual:not(.motion-in-view) .globe,
+    .hero-visual:not(.motion-in-view) .flight-path,
+    .hero-visual:not(.motion-in-view) .plane,
+    .hero-visual:not(.motion-in-view) .truck-card,
+    .hero-visual:not(.motion-in-view) .road::after,
+    .hero-visual:not(.motion-in-view) .truck,
+    .hero-visual:not(.motion-in-view) .wheel,
+    .hero-visual:not(.motion-in-view) .scan-card,
+    .hero-visual:not(.motion-in-view) .scan-line,
+    .command-center:not(.motion-in-view) .signal-bars i,
+    .command-center:not(.motion-in-view) .route-vehicle,
+    .motion-showcase .motion-card:not(.motion-in-view) .motion-route::before,
+    .motion-showcase .motion-card:not(.motion-in-view) .motion-scan::after,
+    .motion-showcase .motion-card:not(.motion-in-view) .motion-sync,
+    .motion-showcase .motion-card:not(.motion-in-view) .motion-sync::before,
+    .motion-showcase .motion-card:not(.motion-in-view) .motion-sync::after,
+    .motion-showcase .motion-card:not(.motion-in-view) .motion-status span,
+    .tracking-panel:not(.motion-in-view) .track-button.is-loading::after {
+      animation-play-state: paused !important;
+    }
+
+    .hero-visual.motion-in-view .orbit-wrap,
+    .hero-visual.motion-in-view .globe,
+    .hero-visual.motion-in-view .flight-path,
+    .hero-visual.motion-in-view .plane,
+    .hero-visual.motion-in-view .truck-card,
+    .hero-visual.motion-in-view .road::after,
+    .hero-visual.motion-in-view .truck,
+    .hero-visual.motion-in-view .wheel,
+    .hero-visual.motion-in-view .scan-card,
+    .hero-visual.motion-in-view .scan-line,
+    .command-center.motion-in-view .signal-bars i,
+    .command-center.motion-in-view .route-vehicle,
+    .motion-showcase .motion-card.motion-in-view .motion-route::before,
+    .motion-showcase .motion-card.motion-in-view .motion-scan::after,
+    .motion-showcase .motion-card.motion-in-view .motion-sync,
+    .motion-showcase .motion-card.motion-in-view .motion-sync::before,
+    .motion-showcase .motion-card.motion-in-view .motion-sync::after,
+    .motion-showcase .motion-card.motion-in-view .motion-status span,
+    .tracking-panel.motion-in-view .track-button.is-loading::after {
+      animation-play-state: running !important;
+    }
+
+    body.motion-page-hidden .hero-visual .orbit-wrap,
+    body.motion-page-hidden .hero-visual .globe,
+    body.motion-page-hidden .hero-visual .flight-path,
+    body.motion-page-hidden .hero-visual .plane,
+    body.motion-page-hidden .hero-visual .truck-card,
+    body.motion-page-hidden .hero-visual .road::after,
+    body.motion-page-hidden .hero-visual .truck,
+    body.motion-page-hidden .hero-visual .wheel,
+    body.motion-page-hidden .hero-visual .scan-card,
+    body.motion-page-hidden .hero-visual .scan-line,
+    body.motion-page-hidden .command-center .signal-bars i,
+    body.motion-page-hidden .command-center .route-vehicle,
+    body.motion-page-hidden .motion-showcase .motion-route::before,
+    body.motion-page-hidden .motion-showcase .motion-scan::after,
+    body.motion-page-hidden .motion-showcase .motion-sync,
+    body.motion-page-hidden .motion-showcase .motion-sync::before,
+    body.motion-page-hidden .motion-showcase .motion-sync::after,
+    body.motion-page-hidden .motion-showcase .motion-status span,
+    body.motion-page-hidden .track-button.is-loading::after {
+      animation-play-state: paused !important;
+    }
+
+
   </style>
 </head>
 
@@ -5735,6 +5812,74 @@
     );
 
     revealItems.forEach((item) => observer.observe(item));
+
+
+    /* Viewport-aware motion controller: animasi berjalan hanya saat area terlihat. */
+    (() => {
+      const motionTargets = Array.from(document.querySelectorAll([
+        ".hero-visual",
+        ".command-center",
+        ".motion-showcase .motion-card",
+        ".tracking-panel"
+      ].join(",")));
+
+      if (!motionTargets.length) {
+        return;
+      }
+
+      const isActuallyInViewport = (element) => {
+        const rect = element.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+
+        return (
+          rect.bottom > 0 &&
+          rect.right > 0 &&
+          rect.top < viewportHeight &&
+          rect.left < viewportWidth
+        );
+      };
+
+      const setMotionState = (element, shouldRun) => {
+        element.classList.toggle("motion-in-view", shouldRun && !document.hidden);
+      };
+
+      const refreshMotionState = () => {
+        document.body.classList.toggle("motion-page-hidden", document.hidden);
+        motionTargets.forEach((element) => {
+          setMotionState(element, isActuallyInViewport(element));
+        });
+      };
+
+      if (!("IntersectionObserver" in window)) {
+        motionTargets.forEach((element) => setMotionState(element, true));
+        document.addEventListener("visibilitychange", refreshMotionState, { passive: true });
+        return;
+      }
+
+      const motionObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            setMotionState(entry.target, entry.isIntersecting);
+          });
+        },
+        {
+          root: null,
+          rootMargin: "0px",
+          threshold: 0.01
+        }
+      );
+
+      motionTargets.forEach((element) => {
+        element.classList.add("motion-viewport-managed");
+        motionObserver.observe(element);
+      });
+
+      refreshMotionState();
+      document.addEventListener("visibilitychange", refreshMotionState, { passive: true });
+      window.addEventListener("pageshow", refreshMotionState, { passive: true });
+      window.addEventListener("resize", refreshMotionState, { passive: true });
+    })();
   </script>
 </body>
 </html>
