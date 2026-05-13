@@ -1,32 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Dirac Group is a global digital innovation company building future-ready websites, cloud platforms, AI automation, mobile-first systems, and secure business technology." />
-  <meta name="theme-color" content="#050816" />
-  <title>Dirac Group | Future-Ready Digital Experiences</title>
+  <title>Dirac Group | Cek Resi Pengiriman</title>
+  <meta name="description" content="Dirac Group - Website cek resi profesional untuk memantau status pengiriman paket secara mudah, cepat, dan aman." />
+  <meta name="theme-color" content="#06101f" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta property="og:title" content="Dirac Group | Cek Resi Pengiriman" />
+  <meta property="og:description" content="Pantau status pengiriman paket dengan tampilan modern, cepat, aman, dan siap terhubung ke backend tracking." />
+  <meta property="og:type" content="website" />
+
   <style>
     :root {
-      --bg: #050816;
-      --bg-soft: #0a1024;
-      --panel: rgba(255, 255, 255, 0.075);
-      --panel-strong: rgba(255, 255, 255, 0.12);
-      --line: rgba(255, 255, 255, 0.14);
-      --text: #f7fbff;
-      --muted: #aeb8d4;
-      --muted-2: #7f8dad;
-      --blue: #18d8ff;
-      --blue-soft: rgba(24, 216, 255, 0.18);
-      --purple: #8f5cff;
-      --purple-soft: rgba(143, 92, 255, 0.18);
-      --white-soft: rgba(255, 255, 255, 0.72);
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+      --navy-950: #06101f;
+      --navy-900: #0a1830;
+      --navy-800: #10284d;
+      --navy-700: #173d72;
+      --blue-600: #2563eb;
+      --blue-500: #3b82f6;
+      --blue-400: #60a5fa;
+      --cyan-400: #22d3ee;
+      --green-500: #22c55e;
+      --amber-500: #f59e0b;
+      --red-500: #ef4444;
+      --slate-950: #020617;
+      --slate-900: #0f172a;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --white: #ffffff;
+      --shadow-soft: 0 20px 60px rgba(15, 23, 42, 0.10);
+      --shadow-strong: 0 30px 90px rgba(2, 6, 23, 0.26);
       --radius-xl: 30px;
       --radius-lg: 22px;
       --radius-md: 16px;
-      --container: 1180px;
-      --ease: cubic-bezier(.2, .7, .2, 1);
+      --max-width: 1180px;
     }
 
     * {
@@ -37,24 +52,18 @@
 
     html {
       scroll-behavior: smooth;
-      scroll-padding-top: 92px;
     }
 
     body {
       min-height: 100vh;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
+      font-family: Inter, Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: var(--slate-100);
       background:
-        radial-gradient(circle at 16% 8%, rgba(24, 216, 255, 0.18), transparent 28rem),
-        radial-gradient(circle at 86% 10%, rgba(143, 92, 255, 0.2), transparent 30rem),
-        linear-gradient(180deg, #040716 0%, #060a18 45%, #050816 100%);
+        radial-gradient(circle at 12% 18%, rgba(59,130,246,0.22), transparent 24%),
+        radial-gradient(circle at 84% 28%, rgba(34,211,238,0.14), transparent 20%),
+        radial-gradient(circle at 72% 78%, rgba(14,165,233,0.10), transparent 20%),
+        linear-gradient(180deg, #07111f 0%, #0a1730 42%, #0d1c3d 72%, #091425 100%);
       overflow-x: hidden;
-      line-height: 1.6;
-    }
-
-    body.menu-open,
-    body.loading {
-      overflow: hidden;
     }
 
     a {
@@ -64,1143 +73,1563 @@
 
     button,
     input,
-    textarea {
+    select {
       font: inherit;
     }
 
     button {
       cursor: pointer;
-      border: 0;
     }
 
-    img,
-    svg {
-      max-width: 100%;
-      display: block;
-    }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
+    .page {
+      position: relative;
       overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
+      isolation: isolate;
     }
 
-    .loader {
+    .page::before,
+    .page::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(90px);
+      opacity: 0.48;
+      will-change: transform, opacity;
+    }
+
+    .page::before {
+      width: 520px;
+      height: 520px;
+      left: -120px;
+      top: 34%;
+      background: radial-gradient(circle, rgba(37,99,235,0.34) 0%, rgba(37,99,235,0.12) 38%, transparent 72%);
+      animation: auroraFloat 18s ease-in-out infinite alternate;
+    }
+
+    .page::after {
+      width: 460px;
+      height: 460px;
+      right: -140px;
+      top: 56%;
+      background: radial-gradient(circle, rgba(34,211,238,0.22) 0%, rgba(59,130,246,0.10) 42%, transparent 72%);
+      animation: auroraFloatReverse 22s ease-in-out infinite alternate;
+    }
+
+    .bg-grid {
+      pointer-events: none;
       position: fixed;
       inset: 0;
-      z-index: 9999;
-      display: grid;
-      place-items: center;
-      background: #040716;
-      transition: opacity .35s ease, visibility .35s ease;
+      z-index: 0;
+      opacity: 0.12;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.08) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, black, transparent 62%);
     }
 
-    .loader.hide {
-      opacity: 0;
-      visibility: hidden;
-    }
-
-    .loader-card {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 18px 22px;
-      border: 1px solid var(--line);
+    .orb {
+      pointer-events: none;
+      position: fixed;
+      z-index: 0;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(16px);
+      filter: blur(38px);
+      opacity: 0.24;
+      animation: orbFloat 10s ease-in-out infinite alternate;
     }
 
-    .loader-mark {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: conic-gradient(from 90deg, var(--blue), var(--purple), transparent 70%);
-      animation: spin .8s linear infinite;
-      position: relative;
+    .orb.one {
+      width: 340px;
+      height: 340px;
+      left: -130px;
+      top: 160px;
+      background: var(--blue-500);
     }
 
-    .loader-mark::after {
-      content: "";
-      position: absolute;
-      inset: 5px;
-      border-radius: inherit;
-      background: #050816;
+    .orb.two {
+      width: 300px;
+      height: 300px;
+      right: -110px;
+      top: 330px;
+      background: var(--cyan-400);
+      animation-delay: -3s;
     }
 
-    @keyframes spin {
-      to { transform: rotate(1turn); }
+    .orb.three {
+      width: 230px;
+      height: 230px;
+      right: 24%;
+      top: 80px;
+      background: var(--green-500);
+      opacity: 0.10;
+      animation-delay: -6s;
+    }
+
+    @keyframes orbFloat {
+      from {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      to {
+        transform: translate3d(30px, -28px, 0) scale(1.08);
+      }
+    }
+
+    @keyframes auroraFloat {
+      0% {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 0.42;
+      }
+      50% {
+        transform: translate3d(60px, -36px, 0) scale(1.08);
+        opacity: 0.58;
+      }
+      100% {
+        transform: translate3d(20px, 42px, 0) scale(0.96);
+        opacity: 0.38;
+      }
+    }
+
+    @keyframes auroraFloatReverse {
+      0% {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 0.34;
+      }
+      50% {
+        transform: translate3d(-42px, 36px, 0) scale(1.06);
+        opacity: 0.50;
+      }
+      100% {
+        transform: translate3d(-18px, -26px, 0) scale(0.94);
+        opacity: 0.30;
+      }
     }
 
     .container {
-      width: min(100% - 32px, var(--container));
-      margin-inline: auto;
-    }
-
-    .section {
-      padding: 92px 0;
+      width: min(var(--max-width), calc(100% - 34px));
+      margin: 0 auto;
       position: relative;
+      z-index: 1;
     }
 
-    .section.compact {
-      padding-top: 64px;
+    .hero-shell {
+      color: var(--white);
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(59, 130, 246, 0.38), transparent 34%),
+        radial-gradient(circle at 84% 16%, rgba(34, 211, 238, 0.23), transparent 30%),
+        linear-gradient(135deg, var(--navy-950), var(--navy-900) 48%, var(--navy-800));
     }
 
-    .section-head {
-      max-width: 760px;
-      margin-bottom: 42px;
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 14px;
-      padding: 7px 12px;
-      border: 1px solid rgba(24, 216, 255, 0.25);
-      border-radius: 999px;
-      color: #c9f8ff;
-      background: rgba(24, 216, 255, 0.07);
-      font-size: .78rem;
-      font-weight: 700;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-
-    .eyebrow::before {
+    .hero-shell::before {
       content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--blue);
-      box-shadow: 0 0 16px var(--blue);
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.06), transparent 18%),
+        linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.06) 45%, transparent 55%);
+      transform: translateX(-80%);
+      animation: backgroundSweep 8s ease-in-out infinite;
     }
 
-    h1,
-    h2,
-    h3 {
-      letter-spacing: -0.04em;
-      line-height: 1.08;
+    @keyframes backgroundSweep {
+      0%, 40% {
+        transform: translateX(-80%);
+        opacity: 0;
+      }
+      55% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(80%);
+        opacity: 0;
+      }
     }
 
-    h1 {
-      font-size: clamp(2.8rem, 8vw, 6.85rem);
-      max-width: 980px;
-    }
-
-    h2 {
-      font-size: clamp(2rem, 4.8vw, 4rem);
-      max-width: 850px;
-    }
-
-    h3 {
-      font-size: 1.2rem;
-    }
-
-    p {
-      color: var(--muted);
-    }
-
-    .gradient-text {
-      background: linear-gradient(120deg, #ffffff 15%, var(--blue) 52%, #b794ff 88%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      align-items: center;
-    }
-
-    .btn {
-      position: relative;
-      isolation: isolate;
-      display: inline-flex;
-      min-height: 48px;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 13px 20px;
-      border-radius: 999px;
-      font-weight: 800;
-      transition: transform .22s var(--ease), border-color .22s var(--ease), background .22s var(--ease), box-shadow .22s var(--ease);
-      user-select: none;
-      touch-action: manipulation;
-    }
-
-    .btn:hover,
-    .btn:focus-visible {
-      transform: translateY(-2px);
-      outline: none;
-    }
-
-    .btn-primary {
-      color: #020614;
-      background: linear-gradient(135deg, var(--blue), #8ef2ff 44%, #b794ff);
-      box-shadow: 0 16px 44px rgba(24, 216, 255, .18);
-    }
-
-    .btn-primary:hover,
-    .btn-primary:focus-visible {
-      box-shadow: 0 22px 56px rgba(24, 216, 255, .28);
-    }
-
-    .btn-ghost {
-      border: 1px solid rgba(255, 255, 255, .18);
-      color: var(--text);
-      background: rgba(255, 255, 255, .07);
-      backdrop-filter: blur(14px);
-    }
-
-    .btn-ghost:hover,
-    .btn-ghost:focus-visible {
-      border-color: rgba(24, 216, 255, .38);
-      background: rgba(24, 216, 255, .08);
-    }
-
-    .nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 1000;
-      transition: background .25s ease, border-color .25s ease, box-shadow .25s ease, padding .25s ease;
-      border-bottom: 1px solid transparent;
-    }
-
-    .nav.scrolled {
-      background: rgba(5, 8, 22, .72);
-      border-color: rgba(255, 255, 255, .12);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, .24);
-      backdrop-filter: blur(18px);
-    }
-
-    .nav-wrap {
-      min-height: 78px;
+    .header {
+      height: 86px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 18px;
+      animation: slideDown 0.65s ease both;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .brand {
       display: inline-flex;
       align-items: center;
       gap: 12px;
+      font-size: 22px;
       font-weight: 950;
-      letter-spacing: -0.03em;
-      z-index: 1002;
+      letter-spacing: -0.04em;
     }
 
     .brand-mark {
-      width: 38px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      border-radius: 13px;
-      background:
-        linear-gradient(135deg, rgba(24, 216, 255, .95), rgba(143, 92, 255, .95)),
-        #111;
-      color: #030613;
-      font-size: .92rem;
-      box-shadow: 0 12px 38px rgba(24, 216, 255, .22);
-    }
-
-    .brand-text {
-      font-size: 1.06rem;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      list-style: none;
-    }
-
-    .nav-link {
-      display: inline-flex;
-      align-items: center;
-      min-height: 40px;
-      padding: 9px 12px;
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: .92rem;
-      font-weight: 700;
-      transition: color .2s ease, background .2s ease;
-    }
-
-    .nav-link:hover,
-    .nav-link:focus-visible,
-    .nav-link.active {
-      color: var(--text);
-      background: rgba(255, 255, 255, .08);
-      outline: none;
-    }
-
-    .hamburger {
-      display: none;
-      z-index: 1002;
       width: 46px;
       height: 46px;
+      display: grid;
+      place-items: center;
       border-radius: 16px;
-      color: var(--text);
-      background: rgba(255, 255, 255, .08);
-      border: 1px solid rgba(255, 255, 255, .12);
+      color: var(--white);
+      font-size: 15px;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.06)),
+        linear-gradient(135deg, var(--blue-600), var(--cyan-400));
+      box-shadow: 0 18px 45px rgba(37, 99, 235, 0.30);
     }
 
-    .hamburger span {
-      display: block;
-      width: 20px;
-      height: 2px;
-      margin: 5px auto;
-      border-radius: 4px;
-      background: currentColor;
-      transition: transform .25s ease, opacity .2s ease;
+    .brand-logo {
+      width: 46px;
+      height: 46px;
+      display: inline-block;
+      border-radius: 16px;
+      object-fit: cover;
+      background: linear-gradient(135deg, var(--blue-600), var(--cyan-400));
+      box-shadow: 0 18px 45px rgba(37, 99, 235, 0.30);
+      flex: 0 0 auto;
     }
 
-    .hamburger[aria-expanded="true"] span:nth-child(1) {
-      transform: translateY(7px) rotate(45deg);
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 80px;
+      left: -34px;
+      top: -16px;
+      background: rgba(255,255,255,0.42);
+      transform: rotate(28deg);
+      animation: logoShine 4.5s ease-in-out infinite;
     }
 
-    .hamburger[aria-expanded="true"] span:nth-child(2) {
-      opacity: 0;
+    @keyframes logoShine {
+      0%, 58% {
+        left: -34px;
+        opacity: 0;
+      }
+      72% {
+        opacity: 1;
+      }
+      100% {
+        left: 72px;
+        opacity: 0;
+      }
     }
 
-    .hamburger[aria-expanded="true"] span:nth-child(3) {
-      transform: translateY(-7px) rotate(-45deg);
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.13);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 18px 55px rgba(0,0,0,0.12);
+    }
+
+    .nav a {
+      padding: 10px 15px;
+      border-radius: 999px;
+      color: #dbeafe;
+      font-size: 13px;
+      font-weight: 780;
+      transition: 0.22s ease;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      color: var(--white);
+      background: rgba(255,255,255,0.13);
+    }
+
+    .header-contact {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 16px;
+      border-radius: 999px;
+      color: var(--white);
+      font-size: 13px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--blue-600), var(--cyan-400));
+      box-shadow: 0 18px 45px rgba(37, 99, 235, 0.26);
+      transition: 0.22s ease;
+    }
+
+    .header-contact:hover {
+      transform: translateY(-2px);
     }
 
     .hero {
-      min-height: 100svh;
-      padding: 132px 0 76px;
       display: grid;
+      grid-template-columns: minmax(0, 1.04fr) minmax(340px, 0.96fr);
+      gap: 36px;
       align-items: center;
-      overflow: hidden;
+      padding: 46px 0 92px;
     }
 
-    .hero-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.08fr) minmax(280px, .78fr);
-      gap: 46px;
+    .hero-content {
+      animation: fadeUp 0.85s ease both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-label {
+      width: fit-content;
+      display: inline-flex;
       align-items: center;
+      gap: 9px;
+      padding: 9px 13px;
+      border-radius: 999px;
+      color: #bfdbfe;
+      background: rgba(37, 99, 235, 0.14);
+      border: 1px solid rgba(147, 197, 253, 0.18);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
     }
 
-    .hero-copy {
-      position: relative;
-      z-index: 2;
+    .pulse {
+      width: 9px;
+      height: 9px;
+      border-radius: 99px;
+      background: var(--green-500);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+      animation: pulseRing 1.8s ease-out infinite;
     }
 
-    .hero-copy p {
-      max-width: 720px;
-      margin: 24px 0 30px;
-      font-size: clamp(1rem, 2.5vw, 1.22rem);
-      color: #c1cbe4;
+    @keyframes pulseRing {
+      0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+      }
+      70% {
+        box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      }
     }
 
-    .hero-meta {
+    .hero h1 {
+      max-width: 760px;
+      margin-top: 22px;
+      font-size: clamp(40px, 6vw, 74px);
+      line-height: 0.98;
+      letter-spacing: -0.075em;
+      font-weight: 950;
+    }
+
+    .hero h1 span {
+      color: #93c5fd;
+    }
+
+    .hero-subtitle {
+      max-width: 640px;
+      margin-top: 22px;
+      color: #cbd5e1;
+      font-size: 17px;
+      line-height: 1.78;
+    }
+
+    .hero-actions {
       display: flex;
+      gap: 14px;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 28px;
-      color: var(--muted-2);
-      font-size: .92rem;
+      margin-top: 30px;
     }
 
-    .meta-pill {
+    .btn {
+      min-height: 52px;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 9px 12px;
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 999px;
-      background: rgba(255,255,255,.055);
-    }
-
-    .meta-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--blue);
-      box-shadow: 0 0 15px var(--blue);
-    }
-
-    .hero-visual {
-      position: relative;
-      min-height: 460px;
-      border: 1px solid rgba(255, 255, 255, .14);
-      border-radius: 36px;
-      background:
-        linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.045)),
-        radial-gradient(circle at top right, rgba(24,216,255,.18), transparent 52%),
-        radial-gradient(circle at bottom left, rgba(143,92,255,.2), transparent 50%);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
-      overflow: hidden;
-    }
-
-    .hero-visual::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
-      background-size: 42px 42px;
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,.85), transparent 86%);
-    }
-
-    .orbit {
-      position: absolute;
-      inset: 44px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,.16);
-      animation: floaty 7s ease-in-out infinite;
-    }
-
-    .orbit:nth-child(2) {
-      inset: 92px;
-      animation-delay: -2s;
-      border-color: rgba(24,216,255,.16);
-    }
-
-    .orb {
-      position: absolute;
-      width: 130px;
-      height: 130px;
-      border-radius: 42px;
-      background: linear-gradient(145deg, rgba(24,216,255,.32), rgba(143,92,255,.26));
-      box-shadow: 0 18px 60px rgba(24,216,255,.18);
-      transform: rotate(16deg);
-    }
-
-    .orb.one {
-      top: 58px;
-      right: 52px;
-    }
-
-    .orb.two {
-      width: 86px;
-      height: 86px;
-      left: 48px;
-      bottom: 70px;
-      border-radius: 30px;
-      animation: pulseSoft 3.4s ease-in-out infinite;
-    }
-
-    .dashboard-card {
-      position: absolute;
-      left: 34px;
-      right: 34px;
-      bottom: 34px;
-      padding: 22px;
-      border: 1px solid rgba(255,255,255,.16);
-      border-radius: 26px;
-      background: rgba(4, 7, 19, .64);
-      backdrop-filter: blur(18px);
-    }
-
-    .dash-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .dash-title {
-      font-weight: 900;
-      letter-spacing: -.03em;
-    }
-
-    .dash-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      color: #bff9d0;
-      font-size: .8rem;
-      font-weight: 800;
-    }
-
-    .dash-status::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #57ff8f;
-      box-shadow: 0 0 14px #57ff8f;
-    }
-
-    .dash-bars {
-      display: grid;
+      justify-content: center;
       gap: 10px;
+      border: 0;
+      border-radius: 16px;
+      padding: 0 20px;
+      font-weight: 950;
+      transition: 0.22s ease;
     }
 
-    .dash-bar {
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.1);
-      overflow: hidden;
+    .btn-primary {
+      color: #03101f;
+      background: linear-gradient(135deg, #e0f2fe, #60a5fa 48%, #22d3ee);
+      box-shadow: 0 22px 60px rgba(59, 130, 246, 0.28);
     }
 
-    .dash-bar span {
-      display: block;
-      height: 100%;
-      width: var(--w);
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--blue), var(--purple));
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 28px 70px rgba(59, 130, 246, 0.36);
     }
 
-    .floating-card {
-      position: absolute;
-      top: 34px;
-      left: 32px;
-      width: min(230px, calc(100% - 64px));
-      padding: 18px;
-      border: 1px solid rgba(255,255,255,.16);
-      border-radius: 24px;
-      background: rgba(255,255,255,.08);
-      backdrop-filter: blur(16px);
+    .btn-secondary {
+      color: var(--white);
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(18px);
     }
 
-    .floating-card strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 1.55rem;
-      letter-spacing: -.05em;
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.14);
+      transform: translateY(-2px);
     }
 
-    @keyframes floaty {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      50% { transform: translateY(-10px) rotate(2deg); }
-    }
-
-    @keyframes pulseSoft {
-      0%, 100% { transform: rotate(16deg) scale(1); }
-      50% { transform: rotate(16deg) scale(1.055); }
-    }
-
-    .grid {
+    .hero-stats {
       display: grid;
-      gap: 22px;
-    }
-
-    .grid-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .grid-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 34px;
+      max-width: 660px;
     }
 
-    .grid-4 {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .card {
+    .hero-stat {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.075);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(18px);
       position: relative;
       overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
-      box-shadow: 0 18px 55px rgba(0,0,0,.2);
-      backdrop-filter: blur(16px);
-      transition: transform .24s var(--ease), border-color .24s var(--ease), background .24s var(--ease), box-shadow .24s var(--ease);
+      transition: 0.25s ease;
     }
 
-    .card::before {
+    .hero-stat:hover {
+      transform: translateY(-6px);
+      background: rgba(255,255,255,0.11);
+    }
+
+    .hero-stat::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at top right, rgba(24,216,255,.16), transparent 42%);
       opacity: 0;
-      transition: opacity .24s ease;
-      pointer-events: none;
+      background: radial-gradient(circle at 20% 0%, rgba(255,255,255,0.14), transparent 38%);
+      transition: 0.25s ease;
     }
 
-    .card:hover,
-    .card:focus-within {
-      transform: translateY(-6px);
-      border-color: rgba(24,216,255,.32);
-      box-shadow: 0 24px 72px rgba(0,0,0,.28);
-    }
-
-    .card:hover::before,
-    .card:focus-within::before {
+    .hero-stat:hover::before {
       opacity: 1;
     }
 
-    .card-body {
-      position: relative;
-      padding: 25px;
-      z-index: 1;
-    }
-
-    .about-layout {
-      display: grid;
-      grid-template-columns: minmax(0, .92fr) minmax(300px, 1.08fr);
-      gap: 24px;
-      align-items: stretch;
-    }
-
-    .mission-card {
-      min-height: 100%;
-    }
-
-    .mission-card .card-body {
-      padding: 34px;
-    }
-
-    .mission-list {
-      margin-top: 24px;
-      display: grid;
-      gap: 14px;
-    }
-
-    .mission-item {
-      display: grid;
-      grid-template-columns: 38px 1fr;
-      gap: 13px;
-      align-items: start;
-      padding: 15px;
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 18px;
-      background: rgba(255,255,255,.045);
-    }
-
-    .icon-bubble {
+    .icon-box,
+    .feature-icon {
       width: 40px;
       height: 40px;
       display: grid;
       place-items: center;
+      color: #bfdbfe;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 14px;
-      background: linear-gradient(135deg, var(--blue-soft), var(--purple-soft));
-      color: #dffaff;
-      font-size: 1.2rem;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
     }
 
-    .stats-grid {
+    .icon {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-stat span {
+      display: block;
+      margin-top: 5px;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.48;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-visual {
+      min-height: 540px;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      place-items: center;
+      position: relative;
+      animation: fadeUp 0.95s ease 0.08s both;
+    }
+
+    .orbit-wrap {
+      width: min(490px, 100%);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      position: relative;
+      background:
+        radial-gradient(circle at center, rgba(59,130,246,0.12), transparent 52%),
+        conic-gradient(from 180deg, transparent, rgba(59,130,246,0.42), rgba(34,211,238,0.32), transparent);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: inset 0 0 80px rgba(34,211,238,0.10), 0 30px 90px rgba(0,0,0,0.24);
+      animation: slowRotate 16s linear infinite;
+    }
+
+    @keyframes slowRotate {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .orbit-wrap::before,
+    .orbit-wrap::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      border: 1px dashed rgba(255,255,255,0.18);
+    }
+
+    .orbit-wrap::before {
+      inset: 13%;
+    }
+
+    .orbit-wrap::after {
+      inset: 27%;
+      border-style: solid;
+      border-color: rgba(96,165,250,0.18);
+    }
+
+    .globe {
+      position: absolute;
+      width: 310px;
+      height: 310px;
+      border-radius: 50%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 35% 28%, rgba(255,255,255,0.28), transparent 16%),
+        radial-gradient(circle at 62% 73%, rgba(34,211,238,0.24), transparent 20%),
+        linear-gradient(135deg, #2563eb, #0b1730 72%);
+      box-shadow:
+        inset -38px -50px 80px rgba(0,0,0,0.36),
+        inset 25px 18px 35px rgba(255,255,255,0.10),
+        0 30px 90px rgba(37,99,235,0.25);
+      animation: globeFloat 5.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes globeFloat {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-16px);
+      }
+    }
+
+    .land {
+      position: absolute;
+      border-radius: 54% 46% 60% 40%;
+      background: linear-gradient(135deg, rgba(226,242,254,0.88), rgba(34,211,238,0.58));
+      opacity: 0.88;
+    }
+
+    .land.one {
+      width: 92px;
+      height: 66px;
+      left: 65px;
+      top: 72px;
+      transform: rotate(-24deg);
+    }
+
+    .land.two {
+      width: 112px;
+      height: 73px;
+      right: 44px;
+      top: 128px;
+      transform: rotate(18deg);
+    }
+
+    .land.three {
+      width: 72px;
+      height: 55px;
+      left: 126px;
+      bottom: 60px;
+      transform: rotate(34deg);
+    }
+
+    .flight-path {
+      position: absolute;
+      width: 450px;
+      height: 168px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.22);
+      transform: rotate(-17deg);
+      animation: pathMove 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes pathMove {
+      from {
+        transform: rotate(-17deg) scale(1);
+      }
+      to {
+        transform: rotate(-10deg) scale(1.04);
+      }
+    }
+
+    .plane {
+      position: absolute;
+      left: 34px;
+      top: 84px;
+      width: 90px;
+      height: 56px;
+      transform: rotate(17deg);
+      color: var(--white);
+      filter: drop-shadow(0 16px 24px rgba(0,0,0,0.30));
+      animation: planeMove 4.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes planeMove {
+      from {
+        transform: translate(-8px, 8px) rotate(18deg);
+      }
+      to {
+        transform: translate(22px, -12px) rotate(8deg);
+      }
+    }
+
+    .truck-card {
+      position: absolute;
+      right: 0;
+      bottom: 55px;
+      width: 320px;
+      padding: 18px;
+      border-radius: 25px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.16);
+      backdrop-filter: blur(24px);
+      box-shadow: var(--shadow-strong);
+      animation: cardFloat 4.7s ease-in-out infinite alternate;
+    }
+
+    .truck-scene {
+      height: 122px;
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
+        radial-gradient(circle at 30% 22%, rgba(96,165,250,0.16), transparent 30%);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .road {
+      position: absolute;
+      left: -40px;
+      right: -40px;
+      bottom: 22px;
+      height: 4px;
+      background: rgba(255,255,255,0.22);
+    }
+
+    .road::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -10px;
+      height: 3px;
+      background-image: linear-gradient(90deg, rgba(255,255,255,0.78) 0 38px, transparent 38px 72px);
+      background-size: 72px 3px;
+      animation: roadMove 0.85s linear infinite;
+    }
+
+    @keyframes roadMove {
+      to {
+        transform: translateX(72px);
+      }
+    }
+
+    .truck {
+      position: absolute;
+      left: 48px;
+      bottom: 25px;
+      width: 190px;
+      height: 62px;
+      animation: truckBounce 0.55s ease-in-out infinite alternate;
+    }
+
+    @keyframes truckBounce {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-3px);
+      }
+    }
+
+    .cargo {
+      position: absolute;
+      left: 54px;
+      top: 7px;
+      width: 108px;
+      height: 42px;
+      border-radius: 10px 12px 8px 8px;
+      background: linear-gradient(135deg, #e0f2fe, #60a5fa);
+      box-shadow: inset 0 -10px 22px rgba(0,0,0,0.13);
+    }
+
+    .cabin {
+      position: absolute;
+      right: 13px;
+      top: 19px;
+      width: 50px;
+      height: 30px;
+      border-radius: 10px 15px 7px 7px;
+      background: linear-gradient(135deg, #ffffff, #a7dfff);
+    }
+
+    .wheel {
+      position: absolute;
+      bottom: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #091326;
+      border: 5px solid #516480;
+      animation: wheelSpin 0.75s linear infinite;
+    }
+
+    @keyframes wheelSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .wheel.one {
+      left: 68px;
+    }
+
+    .wheel.two {
+      right: 26px;
+    }
+
+    .scan-card {
+      position: absolute;
+      left: 16px;
+      bottom: 28px;
+      width: 226px;
+      padding: 15px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.16);
+      backdrop-filter: blur(24px);
+      box-shadow: var(--shadow-strong);
+      animation: cardFloat 4.9s ease-in-out infinite alternate-reverse;
+    }
+
+    @keyframes cardFloat {
+      from {
+        transform: translateY(0) rotate(0.4deg);
+      }
+      to {
+        transform: translateY(-14px) rotate(-0.8deg);
+      }
+    }
+
+    .scan-box {
+      height: 78px;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
+        linear-gradient(90deg, rgba(59,130,246,0.12), rgba(34,211,238,0.10));
+      border: 1px solid rgba(255,255,255,0.13);
+    }
+
+    .barcode {
+      position: absolute;
+      inset: 18px;
+      background-image: linear-gradient(90deg,
+        rgba(255,255,255,0.90) 0 3px, transparent 3px 7px,
+        rgba(255,255,255,0.62) 7px 10px, transparent 10px 14px,
+        rgba(255,255,255,0.86) 14px 19px, transparent 19px 26px,
+        rgba(255,255,255,0.55) 26px 29px, transparent 29px 34px);
+      background-size: 34px 100%;
+      opacity: 0.78;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #93c5fd, transparent);
+      box-shadow: 0 0 25px rgba(147,197,253,0.90);
+      animation: scanMove 1.4s ease-in-out infinite;
+    }
+
+    @keyframes scanMove {
+      0%, 100% {
+        transform: translateY(8px);
+        opacity: 0.25;
+      }
+      50% {
+        transform: translateY(64px);
+        opacity: 1;
+      }
+    }
+
+    .tracking-section {
+      margin-top: -36px;
+      position: relative;
+      z-index: 4;
+    }
+
+    .tracking-panel {
+      padding: 20px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.09));
+      border: 1px solid rgba(255,255,255,0.20);
+      box-shadow: var(--shadow-strong);
+      backdrop-filter: blur(26px);
+      overflow: hidden;
+    }
+
+    .tracking-panel-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
       gap: 18px;
     }
 
-    .stat-card .card-body {
-      padding: 24px;
-    }
-
-    .stat-number {
-      display: flex;
-      align-items: baseline;
-      gap: 2px;
-      margin-bottom: 7px;
-      font-size: clamp(2rem, 6vw, 3.2rem);
-      font-weight: 950;
-      letter-spacing: -.06em;
-    }
-
-    .stat-label {
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .service-card {
-      min-height: 245px;
-    }
-
-    .service-icon {
-      width: 54px;
-      height: 54px;
-      display: grid;
-      place-items: center;
-      margin-bottom: 22px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(24,216,255,.18), rgba(143,92,255,.16));
-      font-size: 1.6rem;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
-    }
-
-    .service-card h3,
-    .feature-card h3,
-    .project-card h3,
-    .team-card h3 {
-      margin-bottom: 10px;
-    }
-
-    .feature-card {
-      padding: 0;
-    }
-
-    .feature-number {
-      display: inline-flex;
-      margin-bottom: 18px;
-      color: var(--blue);
-      font-weight: 950;
-      letter-spacing: .1em;
-    }
-
-    .projects-wrap {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(270px, 1fr));
-      gap: 20px;
-      overflow-x: auto;
-      padding: 2px 2px 14px;
-      scroll-snap-type: x proximity;
-      scrollbar-width: thin;
-    }
-
-    .project-card {
-      min-height: 360px;
-      scroll-snap-align: start;
-    }
-
-    .project-visual {
-      height: 126px;
-      border-radius: 20px;
-      margin-bottom: 20px;
+    .form-card {
+      padding: 26px;
+      border-radius: 24px;
+      color: var(--white);
       background:
-        linear-gradient(135deg, rgba(24,216,255,.35), rgba(143,92,255,.3)),
-        radial-gradient(circle at 80% 20%, rgba(255,255,255,.3), transparent 24%),
-        #09112a;
-      position: relative;
-      overflow: hidden;
+        radial-gradient(circle at 0% 0%, rgba(59,130,246,0.18), transparent 28%),
+        linear-gradient(135deg, rgba(6,16,33,0.93), rgba(11,23,48,0.92));
+      border: 1px solid rgba(255,255,255,0.11);
     }
 
-    .project-visual::after {
-      content: "";
-      position: absolute;
-      inset: 18px;
-      border: 1px solid rgba(255,255,255,.2);
-      border-radius: 16px;
-      background-image: linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
-      background-size: 28px 28px;
-    }
-
-    .tags {
+    .form-head {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 18px 0 22px;
-    }
-
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      padding: 6px 10px;
-      border-radius: 999px;
-      color: #dce8ff;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.1);
-      font-size: .78rem;
-      font-weight: 800;
-    }
-
-    .text-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: #c9f8ff;
-      font-weight: 900;
-      transition: gap .2s ease, color .2s ease;
-    }
-
-    .text-link:hover,
-    .text-link:focus-visible {
-      gap: 12px;
-      color: #fff;
-      outline: none;
-    }
-
-    .tech-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .tech-badge {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 74px;
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 20px;
-      background: rgba(255,255,255,.055);
-      color: #dbe6ff;
-      font-weight: 900;
-      transition: transform .2s var(--ease), border-color .2s ease, background .2s ease;
-    }
-
-    .tech-badge:hover {
-      transform: translateY(-4px);
-      border-color: rgba(24,216,255,.28);
-      background: rgba(24,216,255,.075);
-    }
-
-    .team-avatar {
-      width: 74px;
-      height: 74px;
-      display: grid;
-      place-items: center;
-      margin-bottom: 18px;
-      border-radius: 26px;
-      background: linear-gradient(135deg, var(--blue), var(--purple));
-      color: #020614;
-      font-size: 1.25rem;
-      font-weight: 950;
-      box-shadow: 0 16px 48px rgba(24,216,255,.16);
-    }
-
-    .team-role {
-      display: inline-flex;
-      margin-bottom: 14px;
-      color: var(--blue);
-      font-weight: 850;
-      font-size: .88rem;
-    }
-
-    .testimonial-shell {
-      position: relative;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-xl);
-      background: linear-gradient(145deg, rgba(255,255,255,.1), rgba(255,255,255,.045));
-      box-shadow: var(--shadow);
-    }
-
-    .testimonial-track {
-      display: flex;
-      transition: transform .36s var(--ease);
-    }
-
-    .testimonial-slide {
-      min-width: 100%;
-      padding: clamp(26px, 5vw, 48px);
-    }
-
-    .quote {
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
       margin-bottom: 24px;
-      color: #e8efff;
-      font-size: clamp(1.16rem, 3vw, 1.75rem);
-      line-height: 1.45;
-      letter-spacing: -.03em;
     }
 
-    .client {
-      display: flex;
+    .form-head h2 {
+      font-size: 25px;
+      letter-spacing: -0.045em;
+    }
+
+    .form-head p {
+      max-width: 640px;
+      color: #9fb0d1;
+      margin-top: 7px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .secure-badge {
+      display: inline-flex;
       align-items: center;
-      gap: 14px;
-    }
-
-    .client-avatar {
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      flex: none;
-      border-radius: 16px;
-      background: rgba(24,216,255,.16);
-      color: #dffaff;
-      font-weight: 950;
-    }
-
-    .testimonial-controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 0 clamp(26px, 5vw, 48px) clamp(24px, 4vw, 38px);
-    }
-
-    .slider-dots {
-      display: flex;
       gap: 8px;
-    }
-
-    .dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: rgba(255,255,255,.28);
-      transition: width .2s ease, background .2s ease;
-    }
-
-    .dot.active {
-      width: 26px;
+      padding: 9px 12px;
       border-radius: 999px;
-      background: linear-gradient(90deg, var(--blue), var(--purple));
+      color: #bfdbfe;
+      font-size: 12px;
+      font-weight: 950;
+      background: rgba(37,99,235,0.12);
+      border: 1px solid rgba(147,197,253,0.18);
+      white-space: nowrap;
     }
 
-    .slider-buttons {
-      display: flex;
-      gap: 10px;
-    }
-
-    .circle-btn {
-      width: 43px;
-      height: 43px;
-      border-radius: 50%;
+    .tracking-form {
       display: grid;
-      place-items: center;
-      color: var(--text);
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.14);
-      transition: transform .2s ease, background .2s ease;
-    }
-
-    .circle-btn:hover,
-    .circle-btn:focus-visible {
-      transform: translateY(-2px);
-      background: rgba(24,216,255,.12);
-      outline: none;
-    }
-
-    .faq-list {
-      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 0.65fr) minmax(120px, 0.42fr) auto;
       gap: 14px;
-    }
-
-    .faq-item {
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 20px;
-      background: rgba(255,255,255,.055);
-      overflow: hidden;
-    }
-
-    .faq-question {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 20px 22px;
-      color: var(--text);
-      background: transparent;
-      text-align: left;
-      font-weight: 900;
-    }
-
-    .faq-icon {
-      width: 30px;
-      height: 30px;
-      display: grid;
-      place-items: center;
-      flex: none;
-      border-radius: 50%;
-      background: rgba(24,216,255,.1);
-      color: var(--blue);
-      transition: transform .25s ease;
-    }
-
-    .faq-item.open .faq-icon {
-      transform: rotate(45deg);
-    }
-
-    .faq-answer {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height .28s ease;
-    }
-
-    .faq-answer p {
-      padding: 0 22px 22px;
-    }
-
-    .contact-layout {
-      display: grid;
-      grid-template-columns: minmax(0, .9fr) minmax(300px, 1.1fr);
-      gap: 24px;
-      align-items: start;
-    }
-
-    .contact-info {
-      display: grid;
-      gap: 16px;
-      margin-top: 24px;
-    }
-
-    .contact-info-item {
-      display: grid;
-      grid-template-columns: 42px 1fr;
-      gap: 14px;
-      align-items: center;
-      padding: 16px;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,.11);
-      background: rgba(255,255,255,.055);
-    }
-
-    .form {
-      display: grid;
-      gap: 16px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      align-items: end;
     }
 
     .field {
       display: grid;
-      gap: 8px;
+      gap: 9px;
     }
 
-    .field label {
-      color: #e7edff;
-      font-size: .9rem;
-      font-weight: 850;
+    label {
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 950;
     }
 
-    .field input,
-    .field textarea {
+    input,
+    select {
       width: 100%;
-      min-height: 50px;
-      padding: 13px 14px;
-      border: 1px solid rgba(255,255,255,.14);
-      border-radius: 16px;
-      color: var(--text);
-      background: rgba(255,255,255,.065);
+      height: 56px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 17px;
+      padding: 0 15px;
       outline: none;
-      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+      color: var(--white);
+      background: rgba(255,255,255,0.08);
+      transition: 0.22s ease;
     }
 
-    .field textarea {
-      min-height: 136px;
-      resize: vertical;
+    select option {
+      color: var(--slate-900);
     }
 
-    .field input:focus,
-    .field textarea:focus {
-      border-color: rgba(24,216,255,.48);
-      box-shadow: 0 0 0 4px rgba(24,216,255,.1);
-      background: rgba(255,255,255,.085);
+    input::placeholder {
+      color: #7586a8;
     }
 
-    .field small {
-      min-height: 18px;
-      color: #ffb3c7;
-      font-size: .78rem;
+    input:focus,
+    select:focus {
+      border-color: rgba(96,165,250,0.70);
+      box-shadow: 0 0 0 5px rgba(59,130,246,0.11);
+      background: rgba(255,255,255,0.11);
     }
 
-    .form-alert {
+    .input-error {
+      border-color: rgba(239,68,68,0.75) !important;
+      box-shadow: 0 0 0 5px rgba(239,68,68,0.12) !important;
+      animation: shake 0.32s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .track-button {
+      min-width: 150px;
+      height: 56px;
+      border: 0;
+      border-radius: 17px;
+      color: #03101f;
+      font-weight: 950;
+      background: linear-gradient(135deg, #e0f2fe, #60a5fa 52%, #22d3ee);
+      box-shadow: 0 20px 55px rgba(59,130,246,0.24);
+      position: relative;
+      overflow: hidden;
+      transition: 0.22s ease;
+    }
+
+    .track-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+      transform: translateX(-120%);
+      transition: 0.45s ease;
+    }
+
+    .track-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 28px 66px rgba(59,130,246,0.30);
+    }
+
+    .track-button:hover::before {
+      transform: translateX(120%);
+    }
+
+    .track-button.is-loading {
+      color: transparent;
+      pointer-events: none;
+    }
+
+    .track-button.is-loading::after {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: calc(50% - 11px);
+      top: calc(50% - 11px);
+      border-radius: 50%;
+      border: 3px solid rgba(6,16,33,0.22);
+      border-top-color: var(--navy-950);
+      animation: spin 0.85s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
       display: none;
-      padding: 14px 16px;
-      border: 1px solid rgba(87,255,143,.3);
-      border-radius: 16px;
-      color: #d8ffe4;
-      background: rgba(87,255,143,.08);
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 15px;
+      color: #fecaca;
+      background: rgba(239,68,68,0.10);
+      border: 1px solid rgba(239,68,68,0.20);
+      font-size: 13px;
+      font-weight: 780;
+      line-height: 1.45;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: reveal 0.32s ease both;
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tracking-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 17px;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .tracking-note svg {
+      flex: 0 0 auto;
+      color: #93c5fd;
+    }
+
+    .courier-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    .courier-pill {
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: #dbeafe;
+      font-size: 12px;
+      font-weight: 950;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: 0.22s ease;
+    }
+
+    .courier-pill:hover {
+      transform: translateY(-3px);
+      background: rgba(255,255,255,0.12);
+    }
+
+    .map-card {
+      padding: 22px;
+      border-radius: 24px;
+      color: var(--white);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .mini-map {
+      height: 194px;
+      border-radius: 22px;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 28% 42%, rgba(147,197,253,0.28), transparent 17%),
+        radial-gradient(circle at 72% 58%, rgba(34,211,238,0.17), transparent 20%),
+        linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.13);
+    }
+
+    .mini-map::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    .route-line {
+      position: absolute;
+      left: 30px;
+      right: 32px;
+      top: 82px;
+      height: 62px;
+      border: 2px dashed rgba(147,197,253,0.66);
+      border-left: 0;
+      border-bottom: 0;
+      border-radius: 0 60px 0 0;
+    }
+
+    .route-dot {
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #93c5fd;
+      box-shadow: 0 0 20px rgba(147,197,253,0.90);
+      left: 36px;
+      top: 87px;
+      animation: routeMove 4.4s ease-in-out infinite;
+    }
+
+    @keyframes routeMove {
+      0% { left: 36px; top: 87px; }
+      45% { left: 162px; top: 87px; }
+      100% { left: 222px; top: 128px; }
+    }
+
+    .map-pin {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: linear-gradient(135deg, #93c5fd, #22d3ee);
+      box-shadow: 0 12px 26px rgba(34,211,238,0.25);
+    }
+
+    .map-pin::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      left: 9px;
+      top: 9px;
+      border-radius: 50%;
+      background: var(--navy-900);
+    }
+
+    .map-pin.start { left: 24px; top: 74px; }
+    .map-pin.end {
+      right: 25px;
+      top: 120px;
+      background: linear-gradient(135deg, #fbbf24, #60a5fa);
+    }
+
+    .map-meta {
+      display: grid;
+      gap: 13px;
+      margin-top: 17px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .map-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: #dbeafe;
+    }
+
+    .map-row span {
+      color: #9fb0d1;
+    }
+
+    .result-area {
+      display: none;
+      color: var(--slate-100);
+      margin-top: 22px;
+    }
+
+    .result-area.show {
+      display: block;
+      animation: reveal 0.48s ease both;
+    }
+
+    .result-card {
+      padding: 30px;
+      border-radius: 30px;
+      background:
+        radial-gradient(circle at 92% 0%, rgba(59,130,246,0.16), transparent 24%),
+        linear-gradient(180deg, rgba(10,24,48,0.92), rgba(5,14,28,0.97));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 24px 80px rgba(2,6,23,0.28);
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .result-kicker {
+      color: #93a4c4;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11px;
+      font-weight: 950;
+      margin-bottom: 8px;
+    }
+
+    .result-header h3 {
+      color: var(--white);
+      font-size: 34px;
+      letter-spacing: -0.055em;
+      line-height: 1.06;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 14px;
+      border-radius: 999px;
+      color: #166534;
+      font-size: 13px;
+      font-weight: 950;
+      background: rgba(34,197,94,0.14);
+      border: 1px solid rgba(34,197,94,0.22);
+      white-space: nowrap;
+      animation: badgePop 0.55s cubic-bezier(.2,1.8,.2,1) both;
+    }
+
+    .status-badge.pending {
+      color: #92400e;
+      background: rgba(245,158,11,0.15);
+      border-color: rgba(245,158,11,0.25);
+    }
+
+    .status-badge.error {
+      color: #991b1b;
+      background: rgba(239,68,68,0.12);
+      border-color: rgba(239,68,68,0.20);
+    }
+
+    @keyframes badgePop {
+      from { opacity: 0; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 13px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .info-card {
+      min-height: 96px;
+      padding: 17px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(148,163,184,0.08));
+      border: 1px solid rgba(148,163,184,0.12);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+      animation: cardIn 0.45s ease both;
+    }
+
+    .info-card:nth-child(2) { animation-delay: 0.04s; }
+    .info-card:nth-child(3) { animation-delay: 0.08s; }
+    .info-card:nth-child(4) { animation-delay: 0.12s; }
+    .info-card:nth-child(5) { animation-delay: 0.16s; }
+    .info-card:nth-child(6) { animation-delay: 0.20s; }
+    .info-card:nth-child(7) { animation-delay: 0.24s; }
+    .info-card:nth-child(8) { animation-delay: 0.28s; }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .info-card span {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #93a4c4;
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 8px;
+    }
+
+    .info-card strong {
+      display: block;
+      color: var(--white);
+      font-size: 15px;
+      word-break: break-word;
+    }
+
+    .progress {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin: 26px 0 28px;
+      padding: 20px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(148,163,184,0.06));
+      border: 1px solid rgba(148,163,184,0.12);
+      overflow: hidden;
+    }
+
+    .progress-step {
+      position: relative;
+      text-align: center;
+      color: #93a4c4;
+      font-size: 12px;
+      font-weight: 900;
+      z-index: 1;
+    }
+
+    .progress-step::before {
+      content: "";
+      position: absolute;
+      top: 18px;
+      left: -50%;
+      width: 100%;
+      height: 3px;
+      background: rgba(148,163,184,0.20);
+      z-index: 0;
+    }
+
+    .progress-step:first-child::before {
+      display: none;
+    }
+
+    .progress-step.active {
+      color: var(--white);
+    }
+
+    .progress-step.active::before {
+      background: linear-gradient(90deg, var(--blue-600), var(--green-500));
+    }
+
+    .progress-dot {
+      width: 38px;
+      height: 38px;
+      margin: 0 auto 9px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #93a4c4;
+      background: rgba(255,255,255,0.08);
+      border: 4px solid rgba(5,14,28,0.96);
+      position: relative;
+      z-index: 2;
+      transition: 0.25s ease;
+    }
+
+    .progress-step.active .progress-dot {
+      color: var(--white);
+      background: linear-gradient(135deg, var(--blue-600), var(--cyan-400));
+      box-shadow: 0 12px 28px rgba(37,99,235,0.20);
+      animation: dotPop 0.42s cubic-bezier(.2,1.8,.2,1) both;
+    }
+
+    @keyframes dotPop {
+      from { transform: scale(0.75); }
+      to { transform: scale(1); }
+    }
+
+    .timeline-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 315px;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .timeline-card,
+    .support-card {
+      padding: 22px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.90), rgba(5,14,28,0.96));
+      border: 1px solid rgba(148,163,184,0.14);
+      box-shadow: 0 14px 44px rgba(2,6,23,0.22);
+    }
+
+    .timeline-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .timeline-title h4,
+    .support-card h4 {
+      color: var(--white);
+      font-size: 18px;
+      letter-spacing: -0.04em;
+    }
+
+    .timeline-title span {
+      color: #93a4c4;
+      font-size: 12px;
       font-weight: 800;
     }
 
-    .form-alert.show {
-      display: block;
-    }
-
-    .footer {
-      padding: 54px 0 26px;
-      border-top: 1px solid rgba(255,255,255,.1);
-      background: rgba(0,0,0,.18);
-    }
-
-    .footer-grid {
+    .timeline-list {
+      position: relative;
       display: grid;
-      grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(160px, .5fr));
-      gap: 32px;
-      align-items: start;
+      gap: 0;
     }
 
-    .footer p {
-      max-width: 520px;
-      margin-top: 16px;
-    }
-
-    .footer h3 {
-      margin-bottom: 14px;
-      font-size: 1rem;
-    }
-
-    .footer-links,
-    .social-links {
+    .timeline-item {
       display: grid;
-      gap: 10px;
-      list-style: none;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 0 0 22px;
+      position: relative;
+      animation: timelineIn 0.45s ease both;
     }
 
-    .footer-links a,
-    .social-links a {
-      color: var(--muted);
-      transition: color .2s ease;
+    .timeline-item:nth-child(2) { animation-delay: 0.06s; }
+    .timeline-item:nth-child(3) { animation-delay: 0.12s; }
+    .timeline-item:nth-child(4) { animation-delay: 0.18s; }
+    .timeline-item:nth-child(5) { animation-delay: 0.24s; }
+    .timeline-item:nth-child(6) { animation-delay: 0.30s; }
+
+    @keyframes timelineIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
     }
 
-    .footer-links a:hover,
-    .social-links a:hover {
-      color: var(--text);
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: 11px;
+      top: 28px;
+      bottom: 0;
+      width: 2px;
+      background: rgba(148,163,184,0.22);
     }
 
-    .footer-bottom {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      margin-top: 42px;
-      padding-top: 22px;
-      border-top: 1px solid rgba(255,255,255,.1);
-      color: var(--muted-2);
-      font-size: .92rem;
+    .timeline-item:last-child {
+      padding-bottom: 0;
     }
 
-    .back-to-top {
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      z-index: 999;
-      width: 48px;
-      height: 48px;
+    .timeline-item:last-child::before {
+      display: none;
+    }
+
+    .timeline-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
       display: grid;
       place-items: center;
-      border-radius: 50%;
-      color: #020614;
-      background: linear-gradient(135deg, var(--blue), #b794ff);
-      box-shadow: 0 14px 44px rgba(24,216,255,.24);
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(12px);
-      transition: opacity .2s ease, visibility .2s ease, transform .2s ease;
+      background: rgba(255,255,255,0.08);
+      color: #93a4c4;
+      margin-top: 1px;
+      position: relative;
+      z-index: 1;
     }
 
-    .back-to-top.show {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
+    .timeline-item:first-child .timeline-dot {
+      color: var(--white);
+      background: linear-gradient(135deg, var(--green-500), var(--cyan-400));
+      box-shadow: 0 12px 24px rgba(34,197,94,0.22);
+      animation: pulseDot 1.8s ease-in-out infinite;
     }
 
-    .decor-blur {
-      position: absolute;
-      width: 240px;
-      height: 240px;
-      border-radius: 50%;
-      filter: blur(50px);
-      opacity: .15;
-      pointer-events: none;
-      background: var(--blue);
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); box-shadow: 0 12px 24px rgba(34,197,94,0.22); }
+      50% { transform: scale(1.08); box-shadow: 0 14px 34px rgba(34,197,94,0.32); }
     }
 
-    .decor-blur.purple {
-      background: var(--purple);
+    .timeline-copy strong {
+      display: block;
+      color: var(--white);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .timeline-copy p {
+      color: #b7c5de;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .timeline-date {
+      text-align: right;
+      color: #93a4c4;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      padding-top: 2px;
+    }
+
+    .support-card {
+      display: grid;
+      gap: 14px;
+      height: fit-content;
+    }
+
+    .support-card p {
+      color: #b7c5de;
+      font-size: 13px;
+      line-height: 1.62;
+    }
+
+    .contact-button {
+      min-height: 48px;
+      border-radius: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      color: var(--white);
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--navy-950), var(--navy-800));
+      transition: 0.22s ease;
+    }
+
+    .contact-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .section {
+      padding: 72px 0;
     }
 
     .reveal {
       opacity: 0;
-      transform: translateY(22px);
-      transition: opacity .55s ease, transform .55s var(--ease);
+      transform: translateY(24px);
+      transition: 0.72s ease;
     }
 
     .reveal.visible {
@@ -1208,905 +1637,2968 @@
       transform: translateY(0);
     }
 
-    @media (max-width: 1060px) {
-      .nav-links {
-        position: fixed;
-        inset: 0 0 auto 0;
-        min-height: 100svh;
-        display: grid;
-        align-content: center;
-        justify-items: stretch;
-        gap: 8px;
-        padding: 94px 24px 34px;
-        background: rgba(5, 8, 22, .94);
-        backdrop-filter: blur(20px);
-        transform: translateY(-100%);
-        transition: transform .28s var(--ease);
-      }
+    .section-title {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 32px;
+    }
 
-      .nav-links.open {
-        transform: translateY(0);
-      }
+    .section-label {
+      color: #7dd3fc;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      font-size: 12px;
+      font-weight: 950;
+      margin-bottom: 10px;
+    }
 
-      .nav-link {
-        justify-content: center;
-        min-height: 52px;
-        border: 1px solid rgba(255,255,255,.1);
-        background: rgba(255,255,255,.045);
-        font-size: 1rem;
-      }
+    .section-title h2 {
+      color: var(--white);
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.1;
+      letter-spacing: -0.06em;
+      font-weight: 950;
+    }
 
-      .hamburger {
-        display: block;
-      }
+    .section-title p {
+      margin-top: 14px;
+      color: #b7c5de;
+      line-height: 1.72;
+    }
 
-      .hero-grid,
-      .about-layout,
-      .contact-layout {
+    .features-grid,
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card,
+    .how-step {
+      padding: 24px;
+      border-radius: 25px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.78), rgba(6,16,31,0.90));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 24px 70px rgba(2,6,23,0.24);
+      backdrop-filter: blur(14px);
+      transition: 0.22s ease;
+    }
+
+    .feature-card:hover,
+    .how-step:hover {
+      transform: translateY(-7px);
+      box-shadow: 0 26px 70px rgba(15,23,42,0.12);
+    }
+
+    .feature-card .feature-icon {
+      color: var(--white);
+      background: linear-gradient(135deg, var(--blue-600), var(--cyan-400));
+      border: 0;
+      margin-bottom: 17px;
+    }
+
+    .feature-card h3,
+    .how-step strong {
+      color: var(--white);
+      font-size: 17px;
+      letter-spacing: -0.035em;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .feature-card p,
+    .how-step p {
+      color: #b7c5de;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .steps-grid {
+      counter-reset: step;
+    }
+
+    .how-step {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .how-step::before {
+      counter-increment: step;
+      content: "0" counter(step);
+      position: absolute;
+      right: 18px;
+      top: 14px;
+      color: rgba(125,211,252,0.12);
+      font-size: 56px;
+      font-weight: 950;
+      letter-spacing: -0.08em;
+    }
+
+    .how-step strong,
+    .how-step p {
+      position: relative;
+      z-index: 1;
+    }
+
+    .faq-layout {
+      max-width: 880px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    details {
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.78), rgba(6,16,31,0.90));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 12px 32px rgba(15,23,42,0.12);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+      transition: 0.22s ease;
+    }
+
+    details:hover {
+      transform: translateY(-2px);
+    }
+
+    summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 20px 22px;
+      color: var(--white);
+      font-weight: 900;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: "+";
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(147,197,253,0.14);
+      color: #93c5fd;
+      flex: 0 0 auto;
+      transition: 0.22s ease;
+    }
+
+    details[open] summary::after {
+      content: "−";
+      transform: rotate(180deg);
+    }
+
+    details p {
+      padding: 0 22px 20px;
+      color: #b7c5de;
+      line-height: 1.72;
+      font-size: 14px;
+      animation: faqIn 0.25s ease both;
+    }
+
+    @keyframes faqIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .footer {
+      margin-top: 30px;
+      padding: 58px 0 34px;
+      color: #dbeafe;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(37,99,235,0.18), transparent 30%),
+        linear-gradient(180deg, var(--navy-900), var(--navy-950));
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.25fr repeat(3, 0.8fr);
+      gap: 34px;
+    }
+
+    .footer p {
+      max-width: 330px;
+      margin-top: 14px;
+      color: #9fb0d1;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .footer h4 {
+      color: var(--white);
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .footer a {
+      display: block;
+      color: #9fb0d1;
+      font-size: 13px;
+      margin: 9px 0;
+      transition: 0.22s ease;
+    }
+
+    .footer a:hover {
+      color: var(--white);
+    }
+
+    .copyright {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-top: 30px;
+      margin-top: 34px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: #7f8eb0;
+      font-size: 12px;
+    }
+
+
+
+    .trust-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .trust-card {
+      min-height: 122px;
+      padding: 20px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.76), rgba(6,16,31,0.88));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 22px 64px rgba(2,6,23,0.22);
+      backdrop-filter: blur(14px);
+      position: relative;
+      overflow: hidden;
+      transition: 0.22s ease;
+    }
+
+    .trust-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.72;
+      background: radial-gradient(circle at 0% 0%, rgba(59,130,246,0.16), transparent 36%);
+      pointer-events: none;
+    }
+
+    .trust-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 26px 70px rgba(15,23,42,0.12);
+    }
+
+    .trust-card strong,
+    .trust-card span {
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+
+    .trust-card strong {
+      color: var(--white);
+      font-size: 17px;
+      letter-spacing: -0.035em;
+      margin-bottom: 8px;
+    }
+
+    .trust-card span {
+      color: #b7c5de;
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .service-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .service-panel,
+    .insight-panel,
+    .assurance-card,
+    .stack-card {
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.78), rgba(6,16,31,0.90));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 24px 70px rgba(2,6,23,0.24);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .service-panel {
+      padding: 30px;
+      display: grid;
+      align-content: space-between;
+      gap: 28px;
+      background:
+        radial-gradient(circle at 94% 0%, rgba(34,211,238,0.14), transparent 30%),
+        linear-gradient(180deg, rgba(11,24,47,0.88), rgba(5,14,28,0.96));
+    }
+
+    .service-panel h3,
+    .insight-panel h3,
+    .stack-card h3 {
+      color: var(--white);
+      font-size: 24px;
+      line-height: 1.14;
+      letter-spacing: -0.05em;
+      margin-bottom: 10px;
+    }
+
+    .service-panel p,
+    .insight-panel p,
+    .stack-card p {
+      color: #b7c5de;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .service-checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .service-check {
+      padding: 15px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(148,163,184,0.12);
+      color: var(--white);
+      font-size: 13px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .service-check svg {
+      color: var(--green-500);
+      flex: 0 0 auto;
+    }
+
+    .insight-panel {
+      padding: 24px;
+      color: var(--white);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(96,165,250,0.22), transparent 34%),
+        linear-gradient(135deg, var(--navy-950), var(--navy-800));
+      border-color: rgba(255,255,255,0.12);
+      box-shadow: var(--shadow-strong);
+    }
+
+    .insight-panel h3,
+    .insight-panel p {
+      color: var(--white);
+    }
+
+    .insight-panel p {
+      color: #cbd5e1;
+    }
+
+    .insight-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .insight-item {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 13px;
+      align-items: start;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .insight-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      color: #bfdbfe;
+      background: rgba(255,255,255,0.10);
+    }
+
+    .insight-copy strong {
+      display: block;
+      color: var(--white);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .insight-copy span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .coverage-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 13px;
+      margin-top: 18px;
+    }
+
+    .coverage-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .coverage-item span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .coverage-item strong {
+      color: var(--white);
+      font-size: 18px;
+      letter-spacing: -0.035em;
+    }
+
+    .assurance-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .assurance-card {
+      padding: 24px;
+      position: relative;
+      transition: 0.22s ease;
+    }
+
+    .assurance-card:hover {
+      transform: translateY(-7px);
+      box-shadow: 0 26px 70px rgba(15,23,42,0.12);
+    }
+
+    .assurance-card .feature-icon {
+      color: var(--white);
+      background: linear-gradient(135deg, var(--navy-950), var(--blue-600));
+      border: 0;
+      margin-bottom: 17px;
+    }
+
+    .assurance-card h3 {
+      color: var(--white);
+      font-size: 17px;
+      letter-spacing: -0.035em;
+      margin-bottom: 8px;
+    }
+
+    .assurance-card p {
+      color: #b7c5de;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .stack-card {
+      margin-top: 16px;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: 18px;
+      align-items: center;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(59,130,246,0.14), transparent 30%),
+        linear-gradient(180deg, rgba(11,24,47,0.88), rgba(5,14,28,0.96));
+    }
+
+    .stack-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stack-node {
+      min-height: 86px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 12px;
+      border-radius: 17px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(148,163,184,0.12);
+      color: var(--white);
+      font-size: 12px;
+      font-weight: 950;
+      line-height: 1.35;
+      position: relative;
+    }
+
+    .stack-node:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--blue-600);
+      font-weight: 950;
+      z-index: 2;
+    }
+
+
+
+    .skip-link {
+      position: fixed;
+      left: 18px;
+      top: 18px;
+      z-index: 20;
+      padding: 12px 16px;
+      border-radius: 999px;
+      color: var(--navy-950);
+      background: #e0f2fe;
+      font-weight: 950;
+      box-shadow: 0 18px 50px rgba(2,6,23,0.35);
+      transform: translateY(-140%);
+      transition: 0.22s ease;
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+      outline: 3px solid rgba(34,211,238,0.55);
+      outline-offset: 3px;
+    }
+
+    .ambient-lines {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.16;
+      background:
+        linear-gradient(120deg, transparent 0 18%, rgba(96,165,250,0.28) 18.4%, transparent 18.8% 46%, rgba(34,211,238,0.20) 46.5%, transparent 47% 100%),
+        linear-gradient(60deg, transparent 0 28%, rgba(255,255,255,0.08) 28.3%, transparent 28.7% 100%);
+      background-size: 880px 880px, 620px 620px;
+      animation: ambientSlide 26s linear infinite;
+    }
+
+    @keyframes ambientSlide {
+      to {
+        background-position: 880px -880px, -620px 620px;
+      }
+    }
+
+    .hero-mini-proof {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 22px;
+      max-width: 660px;
+    }
+
+    .proof-chip {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 42px;
+      padding: 10px 12px;
+      border-radius: 15px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.075);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(16px);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .proof-chip span {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #22d3ee;
+      box-shadow: 0 0 18px rgba(34,211,238,0.80);
+      flex: 0 0 auto;
+    }
+
+    .command-center {
+      margin-top: 28px;
+      padding: 22px;
+      border-radius: 34px;
+      color: var(--white);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(59,130,246,0.22), transparent 30%),
+        radial-gradient(circle at 90% 14%, rgba(34,211,238,0.14), transparent 28%),
+        linear-gradient(135deg, rgba(6,16,31,0.94), rgba(10,24,48,0.90));
+      border: 1px solid rgba(148,163,184,0.17);
+      box-shadow: 0 28px 90px rgba(2,6,23,0.28);
+      backdrop-filter: blur(18px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .command-center::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.055) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(circle at 50% 0%, black, transparent 70%);
+    }
+
+    .command-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 18px;
+    }
+
+    .command-head h2 {
+      font-size: clamp(27px, 4vw, 44px);
+      line-height: 1.05;
+      letter-spacing: -0.06em;
+      margin-top: 8px;
+    }
+
+    .command-head p {
+      max-width: 720px;
+      color: #b7c5de;
+      line-height: 1.7;
+      margin-top: 12px;
+    }
+
+    .command-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 13px;
+      border-radius: 999px;
+      color: #bae6fd;
+      background: rgba(14,165,233,0.12);
+      border: 1px solid rgba(125,211,252,0.18);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .command-badge i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green-500);
+      box-shadow: 0 0 18px rgba(34,197,94,0.75);
+    }
+
+    .command-live {
+      min-width: 190px;
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.13);
+    }
+
+    .command-live span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      margin-bottom: 8px;
+    }
+
+    .signal-bars {
+      display: flex;
+      align-items: end;
+      gap: 6px;
+      height: 42px;
+    }
+
+    .signal-bars i {
+      width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #67e8f9, #2563eb);
+      animation: signalPulse 1.8s ease-in-out infinite alternate;
+    }
+
+    .signal-bars i:nth-child(1) { height: 34%; }
+    .signal-bars i:nth-child(2) { height: 58%; animation-delay: -0.25s; }
+    .signal-bars i:nth-child(3) { height: 76%; animation-delay: -0.50s; }
+    .signal-bars i:nth-child(4) { height: 48%; animation-delay: -0.75s; }
+    .signal-bars i:nth-child(5) { height: 92%; animation-delay: -1s; }
+
+    @keyframes signalPulse {
+      from { transform: scaleY(0.74); opacity: 0.62; }
+      to { transform: scaleY(1); opacity: 1; }
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .command-card,
+    .route-board,
+    .mini-insight {
+      border-radius: 24px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 18px 60px rgba(2,6,23,0.18);
+      backdrop-filter: blur(14px);
+    }
+
+    .route-board {
+      padding: 20px;
+      min-height: 100%;
+    }
+
+    .route-board-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .route-board-top strong,
+    .mini-insight strong,
+    .command-card strong {
+      color: var(--white);
+      letter-spacing: -0.035em;
+    }
+
+    .route-board-top span,
+    .mini-insight span,
+    .command-card span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .route-map-premium {
+      height: 196px;
+      border-radius: 22px;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 26% 40%, rgba(96,165,250,0.24), transparent 18%),
+        radial-gradient(circle at 72% 58%, rgba(34,211,238,0.16), transparent 20%),
+        linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035));
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .route-map-premium::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 25px 25px;
+    }
+
+    .route-curve {
+      position: absolute;
+      left: 38px;
+      right: 42px;
+      top: 72px;
+      height: 76px;
+      border: 2px dashed rgba(125,211,252,0.68);
+      border-left: 0;
+      border-bottom: 0;
+      border-radius: 0 80px 0 0;
+    }
+
+    .route-vehicle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #7dd3fc;
+      left: 34px;
+      top: 77px;
+      box-shadow: 0 0 24px rgba(125,211,252,0.92);
+      animation: vehicleMove 4.8s ease-in-out infinite;
+    }
+
+    @keyframes vehicleMove {
+      0% { left: 34px; top: 77px; }
+      48% { left: 52%; top: 77px; }
+      100% { left: calc(100% - 62px); top: 132px; }
+    }
+
+    .route-pin-premium {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: linear-gradient(135deg, #60a5fa, #22d3ee);
+      box-shadow: 0 14px 30px rgba(34,211,238,0.22);
+    }
+
+    .route-pin-premium::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      left: 10px;
+      top: 10px;
+      border-radius: 50%;
+      background: #06101f;
+    }
+
+    .route-pin-premium.start { left: 26px; top: 64px; }
+    .route-pin-premium.end { right: 31px; top: 121px; background: linear-gradient(135deg, #fbbf24, #60a5fa); }
+
+    .command-stack {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .command-card {
+      min-height: 132px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .command-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      background: radial-gradient(circle at 0% 0%, rgba(96,165,250,0.20), transparent 42%);
+      transition: 0.22s ease;
+    }
+
+    .command-card:hover::before { opacity: 1; }
+    .command-card:hover { transform: translateY(-4px); }
+
+    .command-card .feature-icon {
+      color: #dbeafe;
+      background: rgba(255,255,255,0.10);
+      margin-bottom: 14px;
+    }
+
+    .mini-insight {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+    }
+
+    .mini-insight div {
+      padding: 16px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .mini-insight strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .courier-showcase {
+      display: grid;
+      grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .courier-copy,
+    .courier-cloud,
+    .quality-panel,
+    .protocol-card {
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.78), rgba(6,16,31,0.90));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 24px 70px rgba(2,6,23,0.24);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .courier-copy {
+      padding: 28px;
+      display: grid;
+      align-content: center;
+      gap: 18px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(37,99,235,0.20), transparent 35%),
+        linear-gradient(180deg, rgba(10,24,48,0.82), rgba(6,16,31,0.93));
+    }
+
+    .courier-copy h3,
+    .quality-panel h3,
+    .protocol-card h3 {
+      color: var(--white);
+      font-size: 25px;
+      line-height: 1.12;
+      letter-spacing: -0.052em;
+    }
+
+    .courier-copy p,
+    .quality-panel p,
+    .protocol-card p {
+      color: #b7c5de;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .courier-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .courier-tags span {
+      padding: 9px 11px;
+      border-radius: 999px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.075);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .courier-cloud {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .courier-tile {
+      min-height: 96px;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--white);
+      font-weight: 950;
+      background:
+        radial-gradient(circle at 30% 0%, rgba(96,165,250,0.18), transparent 38%),
+        rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.11);
+      transition: 0.22s ease;
+    }
+
+    .courier-tile:hover {
+      transform: translateY(-5px);
+      background: rgba(255,255,255,0.09);
+    }
+
+    .quality-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .quality-panel,
+    .protocol-card {
+      padding: 28px;
+    }
+
+    .quality-checklist {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .quality-check {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.11);
+    }
+
+    .quality-check b {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: #06101f;
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+      font-size: 13px;
+    }
+
+    .quality-check strong {
+      color: var(--white);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .quality-check span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .protocol-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .protocol-list div {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #dbeafe;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .protocol-list i {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: #22c55e;
+      box-shadow: 0 0 18px rgba(34,197,94,0.75);
+      flex: 0 0 auto;
+    }
+
+    @media (max-width: 1080px) {
+      .hero {
         grid-template-columns: 1fr;
       }
 
       .hero-visual {
-        min-height: 390px;
+        min-height: 500px;
       }
 
-      .grid-4 {
+      .tracking-panel-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .map-card {
+        display: none;
+      }
+
+      .tracking-form {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .track-button {
+        width: 100%;
+      }
+
+      .timeline-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .features-grid,
+      .steps-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .grid-3 {
+      .footer-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .tech-grid {
+      .trust-strip,
+      .assurance-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .service-layout,
+      .stack-card,
+      .command-grid,
+      .courier-showcase,
+      .quality-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .command-head {
+        grid-template-columns: 1fr;
+      }
+
+      .courier-cloud {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
-    @media (max-width: 720px) {
+    @media (max-width: 760px) {
       .container {
-        width: min(100% - 24px, var(--container));
+        width: min(var(--max-width), calc(100% - 22px));
       }
 
-      .section {
-        padding: 70px 0;
+      .header {
+        height: 76px;
       }
 
-      .nav-wrap {
-        min-height: 70px;
-      }
-
-      .brand-mark {
-        width: 35px;
-        height: 35px;
-        border-radius: 12px;
-      }
-
-      .hero {
-        min-height: auto;
-        padding: 112px 0 54px;
-      }
-
-      .hero-copy p {
-        margin: 20px 0 25px;
-      }
-
-      .btn-row,
-      .hero-meta {
-        width: 100%;
-      }
-
-      .btn {
-        width: 100%;
-      }
-
-      .meta-pill {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .hero-visual {
-        min-height: 330px;
-        border-radius: 28px;
-      }
-
-      .floating-card {
-        top: 22px;
-        left: 22px;
-        width: calc(100% - 44px);
-      }
-
-      .dashboard-card {
-        left: 20px;
-        right: 20px;
-        bottom: 20px;
-        padding: 18px;
-      }
-
-      .orb.one {
-        top: 96px;
-        right: 24px;
-        width: 92px;
-        height: 92px;
-        border-radius: 30px;
-      }
-
-      .orb.two,
-      .orbit {
+      .nav {
         display: none;
       }
 
-      .grid-2,
-      .grid-3,
-      .grid-4,
-      .stats-grid,
-      .tech-grid,
-      .form-grid,
-      .footer-grid {
+      .header-contact {
+        min-height: 40px;
+        padding: 0 13px;
+        font-size: 12px;
+      }
+
+      .brand {
+        font-size: 19px;
+      }
+
+      .brand-mark {
+        width: 40px;
+        height: 40px;
+      }
+
+      .brand-logo {
+        width: 40px;
+        height: 40px;
+      }
+
+      .hero {
+        padding: 22px 0 62px;
+      }
+
+      .hero h1 {
+        font-size: clamp(40px, 12vw, 58px);
+      }
+
+      .hero-subtitle {
+        font-size: 15px;
+      }
+
+      .hero-stats {
         grid-template-columns: 1fr;
       }
 
-      .card-body,
-      .mission-card .card-body {
-        padding: 22px;
+      .hero-visual {
+        min-height: 500px;
       }
 
-      .projects-wrap {
-        grid-template-columns: 1fr;
-        overflow-x: visible;
-        padding-bottom: 0;
+      .orbit-wrap {
+        width: 340px;
       }
 
-      .project-card {
-        min-height: auto;
+      .globe {
+        width: 226px;
+        height: 226px;
       }
 
-      .testimonial-controls,
-      .footer-bottom {
-        align-items: flex-start;
+      .flight-path {
+        width: 332px;
+        height: 130px;
+      }
+
+      .plane {
+        width: 68px;
+        left: 15px;
+        top: 90px;
+      }
+
+      .truck-card {
+        width: 250px;
+        right: 0;
+        bottom: 34px;
+      }
+
+      .scan-card {
+        width: 200px;
+        left: 0;
+        bottom: 10px;
+      }
+
+      .tracking-section {
+        margin-top: -26px;
+      }
+
+      .tracking-panel {
+        padding: 12px;
+        border-radius: 24px;
+      }
+
+      .form-card {
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .form-head {
         flex-direction: column;
       }
 
-      .contact-info-item {
-        grid-template-columns: 38px 1fr;
-      }
-    }
-
-    @media (max-width: 420px) {
-      h1 {
-        font-size: 2.55rem;
+      .tracking-form {
+        grid-template-columns: 1fr;
       }
 
-      h2 {
-        font-size: 2rem;
+      .courier-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .section-head {
-        margin-bottom: 30px;
+      .result-card {
+        padding: 20px;
+        border-radius: 24px;
       }
 
-      .service-card {
-        min-height: auto;
+      .result-header {
+        grid-template-columns: 1fr;
+      }
+
+      .result-header h3 {
+        font-size: 27px;
+      }
+
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .progress {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+      }
+
+      .progress-step::before {
+        width: 3px;
+        height: 100%;
+        left: 19px;
+        top: -50%;
+      }
+
+      .progress-step:first-child::before {
+        display: none;
+      }
+
+      .progress-dot {
+        margin: 0;
+        flex: 0 0 auto;
+      }
+
+      .timeline-item {
+        grid-template-columns: 28px 1fr;
+      }
+
+      .timeline-date {
+        grid-column: 2;
+        text-align: left;
+        padding-top: 0;
+      }
+
+      .features-grid,
+      .steps-grid,
+      .footer-grid,
+      .trust-strip,
+      .assurance-grid,
+      .service-checks,
+      .coverage-matrix,
+      .stack-flow,
+      .hero-mini-proof,
+      .command-stack,
+      .mini-insight,
+      .courier-cloud,
+      .quality-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .command-center {
+        padding: 14px;
+        border-radius: 26px;
+      }
+
+      .command-live {
+        min-width: 0;
+      }
+
+      .courier-copy,
+      .quality-panel,
+      .protocol-card {
+        padding: 22px;
+      }
+
+      .trust-card,
+      .service-panel,
+      .insight-panel,
+      .assurance-card,
+      .stack-card {
+        border-radius: 22px;
+      }
+
+      .service-panel,
+      .insight-panel,
+      .stack-card {
+        padding: 20px;
+      }
+
+      .stack-node:not(:last-child)::after {
+        content: "↓";
+        right: auto;
+        left: 50%;
+        top: auto;
+        bottom: -15px;
+        transform: translateX(-50%);
+      }
+
+      .section {
+        padding: 56px 0;
+      }
+
+      .copyright {
+        display: block;
+      }
+
+      .copyright span + span {
+        display: block;
+        margin-top: 8px;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  
+
+    /* ==========================================================
+       PERFORMANCE STABILITY PATCH - 2026-05-13
+       Tujuan: membuat halaman jauh lebih ringan tanpa mengubah fungsi cek resi.
+       Dipertahankan: struktur form, ID penting, endpoint API, validasi, fetch,
+       normalisasi respons, render hasil, progress, timeline, dan anchor navigasi.
+       ========================================================== */
+
+    html {
+      scroll-behavior: auto;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 12% 18%, rgba(59,130,246,0.14), transparent 24%),
+        radial-gradient(circle at 84% 28%, rgba(34,211,238,0.08), transparent 20%),
+        linear-gradient(180deg, #07111f 0%, #0a1730 50%, #091425 100%);
+      background-size: auto;
+      animation: none !important;
+    }
+
+    .page::before,
+    .page::after,
+    .orb,
+    .ambient-lines,
+    .premium-ambient-stack,
+    .motion-particles,
+    .section-light-beam,
+    .kinetic-divider,
+    .scanner-rings,
+    .route-orbit,
+    .floating-status-card,
+    .hero-shell::before,
+    .hero-visual::before,
+    .hero-visual::after,
+    .map-card::before,
+    .hero-stat::after,
+    .feature-card::after,
+    .how-step::after,
+    .trust-card::after,
+    .assurance-card::after,
+    .service-panel::after,
+    .stack-card::after,
+    details::after,
+    .btn::after,
+    .header-contact::after,
+    .contact-button::after,
+    .status-badge::after,
+    .progress-step.active .progress-dot::after,
+    .timeline-item:first-child .timeline-dot::after {
+      display: none !important;
+      animation: none !important;
+      filter: none !important;
+    }
+
+    .bg-grid {
+      position: absolute;
+      opacity: 0.055;
+      animation: none !important;
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+
+    .orbit-wrap,
+    .globe,
+    .flight-path,
+    .plane,
+    .truck-card,
+    .scan-card,
+    .road::after,
+    .truck,
+    .wheel,
+    .scan-line,
+    .route-dot,
+    .route-vehicle,
+    .signal-bars i,
+    .brand-logo,
+    .brand-mark::after,
+    .hero-label,
+    .hero h1,
+    .hero h1 span,
+    .hero-subtitle,
+    .hero-actions,
+    .hero-stats,
+    .pulse,
+    .timeline-item,
+    .progress-step.active .progress-dot,
+    .status-badge.pending,
+    .courier-pill,
+    .map-card,
+    .mini-map,
+    .route-map-premium {
+      animation: none !important;
+    }
+
+    .orbit-wrap,
+    .globe,
+    .flight-path,
+    .plane,
+    .truck-card,
+    .scan-card,
+    .truck,
+    .wheel,
+    .route-dot,
+    .route-vehicle {
+      transform: none !important;
+    }
+
+    .tracking-panel,
+    .form-card,
+    .map-card,
+    .result-card,
+    .timeline-card,
+    .support-card,
+    .feature-card,
+    .how-step,
+    .trust-card,
+    .service-panel,
+    .insight-panel,
+    .assurance-card,
+    .stack-card,
+    .command-center,
+    .command-card,
+    .route-board,
+    .mini-insight,
+    .courier-copy,
+    .courier-cloud,
+    .quality-panel,
+    .protocol-card,
+    details,
+    .nav,
+    .header::before,
+    .proof-chip,
+    .btn-secondary,
+    .hero-stat {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+      box-shadow: 0 12px 34px rgba(2, 6, 23, 0.18) !important;
+    }
+
+    .hero-stat:hover,
+    .feature-card:hover,
+    .how-step:hover,
+    .trust-card:hover,
+    .assurance-card:hover,
+    .service-panel:hover,
+    .stack-card:hover,
+    details:hover,
+    .btn:hover,
+    .header-contact:hover,
+    .contact-button:hover,
+    .courier-pill:hover,
+    .courier-tile:hover,
+    .command-card:hover {
+      transform: none !important;
+      filter: none !important;
+    }
+
+    .hero-visual {
+      contain: layout paint;
+    }
+
+    .truck-card,
+    .scan-card {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .track-button {
+      background-size: auto;
+      animation: none !important;
+    }
+
+    .track-button.is-loading::after {
+      animation: spin 0.85s linear infinite !important;
+    }
+
+    input:focus,
+    select:focus {
+      animation: none !important;
+    }
+
+    /* ==========================================================
+       MOBILE PERFORMANCE HOTFIX - 2026-05-13
+       Tujuan: menurunkan panas/CPU/GPU di HP tanpa mengubah fungsi cek resi.
+       Yang dipertahankan: struktur HTML, ID form, endpoint API, validasi, fetch,
+       normalisasi respons, render hasil, progress, timeline, dan navigasi anchor.
+       ========================================================== */
+
+    @media (max-width: 860px), (hover: none) and (pointer: coarse) {
       html {
         scroll-behavior: auto;
       }
 
-      *,
-      *::before,
-      *::after {
-        animation-duration: .001ms !important;
-        animation-iteration-count: 1 !important;
-        scroll-behavior: auto !important;
-        transition-duration: .001ms !important;
+      body {
+        background:
+          radial-gradient(circle at 20% 8%, rgba(37,99,235,0.14), transparent 24%),
+          linear-gradient(180deg, #07111f 0%, #0a1730 52%, #091425 100%);
+        background-attachment: scroll;
+        background-size: auto;
+        animation: none !important;
       }
 
-      .reveal {
-        opacity: 1;
-        transform: none;
+      .page::before,
+      .page::after,
+      .orb,
+      .ambient-lines,
+      .premium-ambient-stack,
+      .motion-particles,
+      .scanner-rings,
+      .route-orbit,
+      .floating-status-card,
+      .section-light-beam {
+        display: none !important;
+        animation: none !important;
+        filter: none !important;
+      }
+
+      .bg-grid {
+        position: absolute;
+        opacity: 0.045;
+        animation: none !important;
+        mask-image: none;
+        -webkit-mask-image: none;
+      }
+
+      .hero-shell::before,
+      .hero-visual::before,
+      .hero-visual::after,
+      .map-card::before,
+      .hero-stat::after,
+      .feature-card::after,
+      .how-step::after,
+      .trust-card::after,
+      .assurance-card::after,
+      .service-panel::after,
+      .stack-card::after,
+      details::after,
+      .btn::after,
+      .header-contact::after,
+      .contact-button::after,
+      .status-badge::after,
+      .progress-step.active .progress-dot::after,
+      .timeline-item:first-child .timeline-dot::after {
+        display: none !important;
+        animation: none !important;
+      }
+
+      .orbit-wrap,
+      .globe,
+      .flight-path,
+      .plane,
+      .truck-card,
+      .scan-card,
+      .road::after,
+      .truck,
+      .wheel,
+      .scan-line,
+      .route-dot,
+      .route-vehicle,
+      .signal-bars i,
+      .motion-route::before,
+      .motion-scan::after,
+      .motion-sync,
+      .motion-status span,
+      .brand-logo,
+      .brand-mark::after,
+      .hero-label,
+      .hero h1,
+      .hero h1 span,
+      .hero-subtitle,
+      .hero-actions,
+      .hero-stats,
+      .pulse,
+      .result-area.show .result-card,
+      .result-area.show .result-header,
+      .result-area.show .progress,
+      .result-area.show .timeline-layout,
+      .result-area.show .info-card,
+      .timeline-item,
+      .progress-step.active .progress-dot,
+      .status-badge.pending,
+      .courier-pill,
+      .map-card,
+      .mini-map,
+      .route-map-premium {
+        animation: none !important;
+      }
+
+      .orbit-wrap,
+      .globe,
+      .flight-path,
+      .plane,
+      .truck-card,
+      .scan-card,
+      .truck,
+      .wheel,
+      .route-dot,
+      .route-vehicle,
+      .motion-sync {
+        transform: none !important;
+      }
+
+      .tracking-panel,
+      .form-card,
+      .map-card,
+      .result-card,
+      .timeline-card,
+      .support-card,
+      .feature-card,
+      .how-step,
+      .trust-card,
+      .service-panel,
+      .insight-panel,
+      .assurance-card,
+      .stack-card,
+      .command-center,
+      .command-card,
+      .route-board,
+      .mini-insight,
+      .courier-copy,
+      .courier-cloud,
+      .quality-panel,
+      .protocol-card,
+      details,
+      .nav,
+      .header::before,
+      .proof-chip {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        box-shadow: 0 12px 34px rgba(2, 6, 23, 0.20) !important;
+      }
+
+      .hero-stat:hover,
+      .feature-card:hover,
+      .how-step:hover,
+      .trust-card:hover,
+      .assurance-card:hover,
+      .service-panel:hover,
+      .stack-card:hover,
+      details:hover,
+      .btn:hover,
+      .header-contact:hover,
+      .contact-button:hover,
+      .courier-pill:hover,
+      .courier-tile:hover,
+      .command-card:hover {
+        transform: none !important;
+        filter: none !important;
+      }
+
+      .hero-visual {
+        min-height: 360px;
+        contain: layout paint;
+      }
+
+      .orbit-wrap {
+        width: min(310px, 92vw);
+        background:
+          radial-gradient(circle at center, rgba(59,130,246,0.10), transparent 56%),
+          conic-gradient(from 180deg, transparent, rgba(59,130,246,0.22), rgba(34,211,238,0.18), transparent);
+      }
+
+      .globe {
+        width: 205px;
+        height: 205px;
+      }
+
+      .flight-path {
+        width: 300px;
+        height: 112px;
+      }
+
+      .plane {
+        width: 60px;
+        left: 18px;
+      }
+
+      .truck-card,
+      .scan-card {
+        background: rgba(255,255,255,0.08);
+      }
+
+
+      .track-button {
+        background-size: auto;
+        animation: none !important;
+      }
+
+      .track-button.is-loading::after {
+        animation: spin 0.85s linear infinite !important;
+      }
+
+      input:focus,
+      select:focus {
+        animation: none !important;
       }
     }
+
+    @media (max-width: 480px) {
+      .hero-visual {
+        min-height: 320px;
+      }
+
+      .truck-card {
+        width: 220px;
+        bottom: 24px;
+      }
+
+      .scan-card {
+        width: 176px;
+        bottom: 4px;
+      }
+    }
+
   </style>
 </head>
-<body class="loading">
-  <div class="loader" id="loader" aria-label="Loading Dirac Group website">
-    <div class="loader-card" role="status" aria-live="polite">
-      <span class="loader-mark" aria-hidden="true"></span>
-      <strong>Dirac Group</strong>
-    </div>
+
+<body>
+  <a class="skip-link" href="#cek-resi">Langsung ke form cek resi</a>
+  <div class="page">
+    <div class="bg-grid"></div>
+
+    <section class="hero-shell" id="beranda">
+      <header class="container header">
+        <a class="brand" href="#beranda" aria-label="Dirac Group">
+          <img src="logo%203.webp" alt="Dirac Group" class="brand-logo" />
+          Dirac Group
+        </a>
+
+        <nav class="nav" aria-label="Menu utama">
+          <a href="#beranda" class="active">Beranda</a>
+          <a href="#cek-resi">Cek Resi</a>
+          <a href="#bantuan">Bantuan</a>
+          <a href="#kontak">Kontak</a>
+        </nav>
+
+        <a class="header-contact" href="#kontak">
+          Kontak
+          <span aria-hidden="true">↗</span>
+        </a>
+      </header>
+
+      <div class="container hero">
+        <div class="hero-content">
+          <div class="hero-label">
+            <span class="pulse"></span>
+            Smart Tracking Service
+          </div>
+
+          <h1>Cek Resi <span>Pengiriman Anda</span></h1>
+
+          <p class="hero-subtitle">
+            Pantau status pengiriman paket Anda secara mudah, cepat, dan aman bersama Dirac Group.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#cek-resi">Cek Resi Sekarang <span aria-hidden="true">→</span></a>
+            <a class="btn btn-secondary" href="#cara">Lihat Cara Kerja</a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="icon-box">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+              </div>
+              <strong>Aman</strong>
+              <span>Tidak meminta data pribadi sensitif selain nomor resi.</span>
+            </div>
+
+            <div class="hero-stat">
+              <div class="icon-box">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg>
+              </div>
+              <strong>Cepat</strong>
+              <span>Interface lebih stabil dan siap dihubungkan ke backend legal.</span>
+            </div>
+
+            <div class="hero-stat">
+              <div class="icon-box">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>
+              </div>
+              <strong>Banyak Ekspedisi</strong>
+              <span>Mendukung JNE, J&T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="orbit-wrap"></div>
+          <div class="globe">
+            <span class="land one"></span>
+            <span class="land two"></span>
+            <span class="land three"></span>
+          </div>
+          <div class="flight-path"></div>
+          <svg class="plane" viewBox="0 0 120 80">
+            <path fill="currentColor" d="M110 34 10 8l24 27-24 27 100-28Z"></path>
+            <path fill="currentColor" opacity=".35" d="m34 35 24 7 6 24 15-22 31-10-31-9-15-22-6 24-24 8Z"></path>
+          </svg>
+
+          <div class="truck-card">
+            <div class="truck-scene">
+              <div class="road"></div>
+              <div class="truck">
+                <div class="cargo"></div>
+                <div class="cabin"></div>
+                <div class="wheel one"></div>
+                <div class="wheel two"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scan-card">
+            <div class="scan-box">
+              <div class="barcode"></div>
+              <div class="scan-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main>
+      <section class="container tracking-section" id="cek-resi">
+        <div class="tracking-panel">
+          <div class="tracking-panel-inner">
+            <div class="form-card">
+              <div class="form-head">
+                <div>
+                  <h2>Cek Status Pengiriman</h2>
+                  <p>Masukkan nomor resi dan pilih ekspedisi. Website ini mengambil data langsung dari backend Vercel yang terhubung ke RajaOngkir API.</p>
+                </div>
+
+                <div class="secure-badge">
+                  <span class="pulse"></span>
+                  RajaOngkir API
+                </div>
+              </div>
+
+              <form class="tracking-form" id="trackingForm" novalidate>
+                <div class="field">
+                  <label for="resi">Nomor Resi</label>
+                  <input id="resi" name="resi" type="text" placeholder="Masukkan nomor resi" autocomplete="off" />
+                </div>
+
+                <div class="field">
+                  <label for="expedition">Pilih Ekspedisi</label>
+                  <select id="expedition" name="expedition">
+                    <option value="">Pilih ekspedisi</option>
+                    <option value="jne">JNE</option>
+                    <option value="jnt">J&T Express</option>
+                    <option value="sicepat">SiCepat</option>
+                    <option value="anteraja">Anteraja</option>
+                    <option value="pos">Pos Indonesia</option>
+                    <option value="tiki">TIKI</option>
+                    <option value="wahana">Wahana</option>
+                    <option value="ninja">Ninja Xpress</option>
+                    <option value="lion">Lion Parcel</option>
+                    <option value="ide">ID Express</option>
+                    <option value="sap">SAP Express</option>
+                    <option value="first">First Logistics</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="phoneLast">4 Digit HP Terakhir</label>
+                  <input id="phoneLast" name="phoneLast" type="text" inputmode="numeric" maxlength="4" placeholder="Opsional" />
+                </div>
+
+                <button class="track-button" id="trackButton" type="submit">Cek Resi</button>
+              </form>
+
+              <div class="tracking-loading-stage" aria-hidden="true">
+                <div>
+                  <strong>Menghubungkan ke sistem pelacakan...</strong>
+                  <span>Memvalidasi resi, membaca ekspedisi, dan menyiapkan hasil tracking.</span>
+                </div>
+              </div>
+
+              <div class="error-message" id="errorMessage"></div>
+
+              <div class="courier-row" aria-label="Ekspedisi populer">
+                <span class="courier-pill">JNE</span>
+                <span class="courier-pill">J&T</span>
+                <span class="courier-pill">SiCepat</span>
+                <span class="courier-pill">Anteraja</span>
+                <span class="courier-pill">POS</span>
+                <span class="courier-pill">TIKI</span>
+                <span class="courier-pill">Wahana</span>
+                <span class="courier-pill">Ninja</span>
+                <span class="courier-pill">Lion</span>
+                <span class="courier-pill">First</span>
+              </div>
+
+              <div class="tracking-note">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+                <span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
+              </div>
+            </div>
+
+            <aside class="map-card" aria-label="Ilustrasi rute pengiriman">
+              <div class="mini-map">
+                <div class="route-line"></div>
+                <div class="route-dot"></div>
+                <div class="map-pin start"></div>
+                <div class="map-pin end"></div>
+              </div>
+              <div class="map-meta">
+                <div class="map-row"><span>Status</span><strong>Monitoring</strong></div>
+                <div class="map-row"><span>Rute</span><strong>Asal → Tujuan</strong></div>
+                <div class="map-row"><span>Sistem</span><strong>RajaOngkir API</strong></div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="result-area" id="resultArea" aria-live="polite">
+            <div class="result-card">
+              <div class="result-header">
+                <div>
+                  <div class="result-kicker">Hasil Pelacakan</div>
+                  <h3 id="resultTitle">-</h3>
+                </div>
+                <div class="status-badge" id="statusBadge">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>
+                  <span id="statusBadgeText">-</span>
+                </div>
+              </div>
+
+              <div class="result-grid">
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>Nomor Resi</span>
+                  <strong id="resultResi">-</strong>
+                </div>
+
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M10 17h4V5H2v12h3"></path><path d="M14 17h1"></path><path d="M15 17h4v-6l-3-4h-2"></path><path d="M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path><path d="M15 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"></path></svg>Ekspedisi</span>
+                  <strong id="resultExpedition">-</strong>
+                </div>
+
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M3 10h18"></path><path d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path></svg>Tanggal Pengiriman</span>
+                  <strong id="resultDate">-</strong>
+                </div>
+
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M12 6v6l4 2"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path></svg>Estimasi Tiba</span>
+                  <strong id="resultEta">-</strong>
+                </div>
+
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 1 0-16 0"></path><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path></svg>Nama Penerima</span>
+                  <strong id="resultReceiver">-</strong>
+                </div>
+
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>Kota Asal</span>
+                  <strong id="resultOrigin">-</strong>
+                </div>
+
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>Kota Tujuan</span>
+                  <strong id="resultDestination">-</strong>
+                </div>
+
+                <div class="info-card">
+                  <span><svg class="icon" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"></path></svg>Status Pengiriman</span>
+                  <strong id="resultStatus">-</strong>
+                </div>
+              </div>
+
+              <div class="progress" id="progressSteps"></div>
+
+              <div class="timeline-layout">
+                <section class="timeline-card">
+                  <div class="timeline-title">
+                    <h4>Riwayat Perjalanan Paket</h4>
+                    <span id="timelineCount">0 aktivitas</span>
+                  </div>
+                  <div class="timeline-list" id="timelineList"></div>
+                </section>
+
+                <aside class="support-card" id="bantuan">
+                  <h4>Butuh Bantuan?</h4>
+                  <p>Pastikan nomor resi benar dan ekspedisi sesuai. Jika status belum muncul, coba lagi beberapa saat kemudian.</p>
+                  <a class="contact-button" href="mailto:support@diracgroup.id">Email Support</a>
+                  <p>Dirac Group tidak meminta PIN, password, kode OTP, atau data pembayaran pelanggan.</p>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+      <section class="container command-center reveal" id="dashboard" aria-label="Dashboard pengalaman cek resi Dirac Group">
+        <div class="command-head">
+          <div>
+            <div class="command-badge"><i></i> Premium tracking interface</div>
+            <h2>Dashboard cek resi yang lebih matang, informatif, dan elegan</h2>
+            <p>Lapisan visual baru ini membantu pelanggan memahami alur pelacakan sebelum dan sesudah menekan tombol cek resi. Semua elemen di sini bersifat presentasi dan tidak mengubah cara kerja form utama.</p>
+          </div>
+          <div class="command-live" aria-label="Visual indikator sistem">
+            <span>System signal</span>
+            <div class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+
+        <div class="command-grid">
+          <article class="route-board">
+            <div class="route-board-top">
+              <div>
+                <strong>Visual rute paket</strong>
+                <span>Ilustrasi perjalanan dari titik asal menuju tujuan.</span>
+              </div>
+              <div class="command-badge"><i></i> Monitoring</div>
+            </div>
+            <div class="route-map-premium" aria-hidden="true">
+              <div class="route-curve"></div>
+              <div class="route-vehicle"></div>
+              <div class="route-pin-premium start"></div>
+              <div class="route-pin-premium end"></div>
+            </div>
+          </article>
+
+          <div class="command-stack">
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
+              <strong>Data lebih mudah dibaca</strong>
+              <span>Hasil API tetap dirapikan menjadi status, detail, progress, dan timeline.</span>
+            </article>
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+              <strong>Pesan aman</strong>
+              <span>Pengunjung mendapat pengingat bahwa website tidak meminta data sensitif.</span>
+            </article>
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg></div>
+              <strong>Interface stabil</strong>
+              <span>Tetap memakai HTML, CSS, dan JavaScript vanilla tanpa dependensi tambahan.</span>
+            </article>
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
+              <strong>Multi ekspedisi</strong>
+              <span>Daftar kurir tetap mengikuti pilihan yang sudah tersedia di form asli.</span>
+            </article>
+            <div class="mini-insight" aria-label="Ringkasan operasional">
+              <div><strong>1 Form</strong><span>Alur utama tetap sama</span></div>
+              <div><strong>12 Kurir</strong><span>Opsi ekspedisi populer</span></div>
+              <div><strong>0 Login</strong><span>Tidak meminta akun pelanggan</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="container trust-strip reveal" aria-label="Ringkasan kualitas layanan Dirac Group">
+        <article class="trust-card">
+          <strong>Validasi Input</strong>
+          <span>Nomor resi dan ekspedisi tetap diperiksa sebelum permintaan dikirim ke backend.</span>
+        </article>
+        <article class="trust-card">
+          <strong>Responsif</strong>
+          <span>Tampilan tetap nyaman di desktop, tablet, dan ponsel tanpa mengubah alur cek resi.</span>
+        </article>
+        <article class="trust-card">
+          <strong>API Ready</strong>
+          <span>Struktur halaman tetap siap memakai endpoint Vercel dan RajaOngkir yang sudah ada.</span>
+        </article>
+        <article class="trust-card">
+          <strong>Privasi Aman</strong>
+          <span>Halaman tidak menambahkan permintaan PIN, password, OTP, atau data pembayaran.</span>
+        </article>
+      </section>
+
+      <section class="container section reveal" id="cakupan">
+        <div class="section-title">
+          <div class="section-label">Cakupan Layanan</div>
+          <h2>Lebih informatif tanpa mengubah cara kerja cek resi</h2>
+          <p>Pengembangan ini menambahkan lapisan informasi, visual layanan, dan panduan pengguna agar website terlihat lebih lengkap, namun proses pengecekan tetap memakai form dan backend yang sama.</p>
+        </div>
+
+        <div class="service-layout">
+          <article class="service-panel">
+            <div>
+              <h3>Pengalaman tracking yang lebih rapi untuk pelanggan</h3>
+              <p>Pengguna tetap memasukkan nomor resi, memilih ekspedisi, lalu menekan tombol cek resi. Elemen tambahan di halaman ini hanya memperkuat konteks, kepercayaan, dan penjelasan layanan.</p>
+            </div>
+            <div class="service-checks">
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> Form utama dipertahankan</div>
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> Endpoint tetap sama</div>
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> ID elemen tidak diganti</div>
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> JavaScript inti tetap utuh</div>
+            </div>
+          </article>
+
+          <aside class="insight-panel">
+            <h3>Ringkasan sistem</h3>
+            <p>Dirac Group menampilkan hasil tracking dari backend yang tersedia, lalu merapikan status, detail pengiriman, progress, dan timeline agar mudah dibaca.</p>
+            <div class="coverage-matrix" aria-label="Ringkasan cakupan website">
+              <div class="coverage-item"><span>Ekspedisi</span><strong>12+</strong></div>
+              <div class="coverage-item"><span>Progress</span><strong>6 Tahap</strong></div>
+              <div class="coverage-item"><span>Data</span><strong>API</strong></div>
+            </div>
+            <div class="insight-list">
+              <div class="insight-item">
+                <div class="insight-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
+                <div class="insight-copy"><strong>Data disusun otomatis</strong><span>Respons API dinormalisasi menjadi ringkasan, kartu informasi, dan timeline.</span></div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+                <div class="insight-copy"><strong>Pesan keamanan jelas</strong><span>Pengguna diberi pengingat bahwa website tidak meminta data sensitif.</span></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="container section reveal" id="ekspedisi">
+        <div class="section-title">
+          <div class="section-label">Ekspedisi Populer</div>
+          <h2>Tampilan daftar kurir dibuat lebih meyakinkan</h2>
+          <p>Pengguna dapat melihat cakupan ekspedisi yang tersedia sebelum memilih kurir pada form utama. Bagian ini hanya visual pendukung dan tidak mengirim data apa pun.</p>
+        </div>
+
+        <div class="courier-showcase">
+          <article class="courier-copy">
+            <h3>Cakupan kurir dibuat jelas sejak awal</h3>
+            <p>Daftar ini membantu pelanggan mengenali bahwa website mendukung ekspedisi populer yang sudah ada pada pilihan form. Tidak ada endpoint baru, tidak ada request tambahan, dan tidak ada perubahan proses submit.</p>
+            <div class="courier-tags" aria-label="Catatan dukungan kurir">
+              <span>JNE</span><span>J&T</span><span>SiCepat</span><span>Anteraja</span><span>POS</span><span>TIKI</span>
+            </div>
+          </article>
+          <div class="courier-cloud" aria-label="Daftar visual ekspedisi">
+            <div class="courier-tile">JNE</div>
+            <div class="courier-tile">J&T</div>
+            <div class="courier-tile">SiCepat</div>
+            <div class="courier-tile">Anteraja</div>
+            <div class="courier-tile">POS</div>
+            <div class="courier-tile">TIKI</div>
+            <div class="courier-tile">Wahana</div>
+            <div class="courier-tile">Ninja</div>
+            <div class="courier-tile">Lion</div>
+            <div class="courier-tile">SAP</div>
+            <div class="courier-tile">ID Express</div>
+            <div class="courier-tile">First</div>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="container section reveal" id="keamanan">
+        <div class="section-title">
+          <div class="section-label">Keamanan & Kejelasan</div>
+          <h2>Didesain agar pengguna merasa yakin saat melacak paket</h2>
+          <p>Halaman dibuat lebih lengkap dengan informasi yang membantu pelanggan memahami batasan layanan, keamanan data, dan langkah pengecekan.</p>
+        </div>
+
+        <div class="assurance-grid">
+          <article class="assurance-card">
+            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+            <h3>Tidak meminta data sensitif</h3>
+            <p>Alur cek resi hanya memakai nomor resi, pilihan ekspedisi, dan opsional empat digit HP terakhir bila dibutuhkan API.</p>
+          </article>
+          <article class="assurance-card">
+            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v6l4 2"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path></svg></div>
+            <h3>Status mudah dipahami</h3>
+            <p>Status mentah dari API diringkas menjadi tahapan yang lebih ramah dibaca, seperti dalam perjalanan atau sudah diterima.</p>
+          </article>
+          <article class="assurance-card">
+            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
+            <h3>Detail pengiriman tersusun</h3>
+            <p>Kota asal, tujuan, penerima, estimasi, dan riwayat perjalanan ditampilkan dalam komponen visual yang konsisten.</p>
+          </article>
+        </div>
+
+        <div class="stack-card" aria-label="Alur data cek resi">
+          <div>
+            <h3>Alur data tetap sama</h3>
+            <p>Pengembangan ini tidak menambahkan jalur pengiriman data baru. Form tetap mengirim permintaan ke backend yang sama, lalu hasilnya ditampilkan di area hasil.</p>
+          </div>
+          <div class="stack-flow">
+            <div class="stack-node">Input Resi</div>
+            <div class="stack-node">Backend Vercel</div>
+            <div class="stack-node">RajaOngkir API</div>
+            <div class="stack-node">Hasil Tracking</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="container section reveal" id="keunggulan">
+        <div class="section-title">
+          <div class="section-label">Keunggulan</div>
+          <h2>Kenapa memilih Dirac Group?</h2>
+          <p>Dirac Group dirancang sebagai halaman pelacakan yang profesional, mudah digunakan, dan siap dikembangkan untuk integrasi resmi.</p>
+        </div>
+
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg>
+            </div>
+            <h3>Cepat</h3>
+            <p>Halaman dibuat ringan dengan HTML, CSS, dan JavaScript vanilla agar cepat dibuka di berbagai perangkat.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+            </div>
+            <h3>Aman</h3>
+            <p>Tidak ada login palsu, tidak meminta data sensitif, dan siap diproses melalui backend yang legal.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h.01"></path><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"></path></svg>
+            </div>
+            <h3>Mudah Digunakan</h3>
+            <p>Form sederhana, hasil jelas, status ringkas, dan riwayat pengiriman tampil dalam timeline.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path></svg>
+            </div>
+            <h3>Banyak Ekspedisi</h3>
+            <p>Mendukung ekspedisi populer RajaOngkir seperti JNE, J&T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="container section reveal" id="cara">
+        <div class="section-title">
+          <div class="section-label">Cara Cek Resi</div>
+          <h2>Empat langkah sederhana</h2>
+          <p>Pelanggan dapat melihat status paket dengan cepat tanpa proses yang membingungkan.</p>
+        </div>
+
+        <div class="steps-grid">
+          <article class="how-step">
+            <strong>Masukkan nomor resi</strong>
+            <p>Ketik nomor resi yang Anda terima dari toko atau ekspedisi.</p>
+          </article>
+
+          <article class="how-step">
+            <strong>Pilih ekspedisi</strong>
+            <p>Pilih jasa pengiriman yang digunakan agar sistem bisa membaca data dengan benar.</p>
+          </article>
+
+          <article class="how-step">
+            <strong>Klik tombol cek resi</strong>
+            <p>Tekan tombol “Cek Resi” dan tunggu proses pengecekan selesai.</p>
+          </article>
+
+          <article class="how-step">
+            <strong>Lihat status paket</strong>
+            <p>Status, kota asal, kota tujuan, estimasi tiba, dan timeline akan ditampilkan dari respons API.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="container section reveal" id="standar">
+        <div class="section-title">
+          <div class="section-label">Standar Kualitas</div>
+          <h2>Dikembangkan dengan fokus pada tampilan, kepercayaan, dan stabilitas</h2>
+          <p>Pengembangan tambahan diarahkan pada aspek visual, struktur informasi, responsivitas, dan kejelasan pesan tanpa menyentuh logika utama cek resi.</p>
+        </div>
+
+        <div class="quality-grid">
+          <article class="quality-panel">
+            <h3>Checklist pengembangan</h3>
+            <p>Setiap penambahan dibuat sebagai lapisan presentasi, sehingga fungsi backend dan JavaScript tracking tetap tidak berubah.</p>
+            <div class="quality-checklist">
+              <div class="quality-check"><b>01</b><div><strong>UI lebih premium</strong><span>Dark glass, glow halus, visual rute, dan kartu informasi baru.</span></div></div>
+              <div class="quality-check"><b>02</b><div><strong>Konten lebih lengkap</strong><span>Penjelasan cakupan, keamanan, ekspedisi, dan standar layanan diperjelas.</span></div></div>
+              <div class="quality-check"><b>03</b><div><strong>Responsif</strong><span>Layout tambahan ikut disesuaikan untuk desktop, tablet, dan mobile.</span></div></div>
+            </div>
+          </article>
+
+          <aside class="protocol-card">
+            <h3>Protokol fungsi tidak diubah</h3>
+            <p>Bagian penting seperti endpoint, ID form, validasi, fetch, normalisasi respons, render hasil, progress, dan timeline tetap dipertahankan.</p>
+            <div class="protocol-list">
+              <div><i></i> Endpoint API tetap sama</div>
+              <div><i></i> Form tracking tetap memakai ID asli</div>
+              <div><i></i> Submit handler tetap utuh</div>
+              <div><i></i> Timeline dan progress tetap memakai script lama</div>
+              <div><i></i> Tidak ada library eksternal baru</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+
+      <section class="container section reveal">
+        <div class="section-title">
+          <div class="section-label">FAQ</div>
+          <h2>Pertanyaan yang sering diajukan</h2>
+          <p>Informasi dasar untuk membantu pelanggan memahami proses pelacakan.</p>
+        </div>
+
+        <div class="faq-layout">
+          <details>
+            <summary>Apa itu nomor resi?</summary>
+            <p>Nomor resi adalah kode unik pengiriman yang diberikan oleh ekspedisi untuk melacak perjalanan paket dari pengirim ke penerima.</p>
+          </details>
+
+          <details>
+            <summary>Kenapa resi tidak ditemukan?</summary>
+            <p>Resi bisa belum aktif, salah memilih ekspedisi, nomor resi salah, atau data dari sistem ekspedisi belum diperbarui. Coba periksa kembali lalu ulangi beberapa saat kemudian.</p>
+          </details>
+
+          <details>
+            <summary>Apakah data pengiriman aman?</summary>
+            <p>Website ini hanya meminta nomor resi dan pilihan ekspedisi. Dirac Group tidak meminta PIN, password, OTP, atau data pembayaran.</p>
+          </details>
+
+          <details>
+            <summary>Ekspedisi apa saja yang didukung?</summary>
+            <p>Contoh pilihan yang tersedia mencakup JNE, J&T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Lion Parcel, ID Express, SAP Express, First Logistics, dan lainnya sesuai dukungan RajaOngkir.</p>
+          </details>
+
+          <details>
+            <summary>Apakah tampilan baru mengubah proses cek resi?</summary>
+            <p>Tidak. Pengembangan ini hanya menambah tampilan, informasi, dan elemen visual. Proses submit, endpoint backend, dan cara menampilkan hasil tetap sama.</p>
+          </details>
+
+          <details>
+            <summary>Apa yang harus dilakukan jika hasil belum muncul?</summary>
+            <p>Pastikan nomor resi benar, ekspedisi sesuai, dan coba ulangi beberapa saat kemudian karena data pengiriman dapat membutuhkan waktu untuk diperbarui oleh sistem ekspedisi.</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer" id="kontak">
+      <div class="container">
+        <div class="footer-grid">
+          <div>
+            <a class="brand" href="#beranda">
+              <img src="logo%203.webp" alt="Dirac Group" class="brand-logo" />
+              Dirac Group
+            </a>
+            <p>Dirac Group menyediakan halaman cek resi modern untuk membantu pelanggan memantau status pengiriman secara mudah, cepat, dan aman.</p>
+          </div>
+
+          <div>
+            <h4>Menu</h4>
+            <a href="#beranda">Beranda</a>
+            <a href="#cek-resi">Cek Resi</a>
+            <a href="#dashboard">Dashboard</a>
+            <a href="#cara">Cara Cek Resi</a>
+            <a href="#bantuan">Bantuan</a>
+          </div>
+
+          <div>
+            <h4>Informasi</h4>
+            <a href="#keunggulan">Kenapa Dirac Group</a>
+            <a href="#ekspedisi">Ekspedisi</a>
+            <a href="#keamanan">Keamanan</a>
+            <a href="#standar">Standar Kualitas</a>
+          </div>
+
+          <div>
+            <h4>Kontak</h4>
+            <a href="mailto:support@diracgroup.id">support@diracgroup.id</a>
+            <a href="mailto:cs@diracgroup.id">cs@diracgroup.id</a>
+            <a href="#">Jakarta, Indonesia</a>
+          </div>
+        </div>
+
+        <div class="copyright">
+          <span>© 2026 Dirac Group. Semua hak dilindungi.</span>
+          <span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
+        </div>
+      </div>
+    </footer>
   </div>
 
-  <header class="nav" id="navbar">
-    <div class="container nav-wrap">
-      <a class="brand" href="#home" aria-label="Dirac Group Home">
-        <span class="brand-mark">DG</span>
-        <span class="brand-text">Dirac Group</span>
-      </a>
-
-      <nav aria-label="Primary navigation">
-        <button class="hamburger" id="menuBtn" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navLinks">
-          <span></span><span></span><span></span>
-        </button>
-        <ul class="nav-links" id="navLinks">
-          <li><a class="nav-link active" href="#home">Home</a></li>
-          <li><a class="nav-link" href="#about">About</a></li>
-          <li><a class="nav-link" href="#services">Services</a></li>
-          <li><a class="nav-link" href="#projects">Projects</a></li>
-          <li><a class="nav-link" href="#technology">Technology</a></li>
-          <li><a class="nav-link" href="#team">Team</a></li>
-          <li><a class="nav-link" href="#testimonials">Testimonials</a></li>
-          <li><a class="nav-link" href="#faq">FAQ</a></li>
-          <li><a class="nav-link" href="#contact">Contact</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero" id="home" aria-labelledby="hero-title">
-      <div class="decor-blur" style="top: 8%; left: 4%;"></div>
-      <div class="decor-blur purple" style="right: 0; bottom: 10%;"></div>
-      <div class="container hero-grid">
-        <div class="hero-copy reveal">
-          <span class="eyebrow">Global Digital Innovation</span>
-          <h1 id="hero-title">Building <span class="gradient-text">Future-Ready</span> Digital Experiences</h1>
-          <p>Dirac Group empowers ambitious companies with premium digital platforms, intelligent automation, secure infrastructure, and mobile-first systems designed for global growth.</p>
-          <div class="btn-row">
-            <a class="btn btn-primary" href="#contact" aria-label="Get started with Dirac Group">Get Started</a>
-            <a class="btn btn-ghost" href="#services" aria-label="Explore Dirac Group services">Explore Services</a>
-          </div>
-          <div class="hero-meta" aria-label="Company highlights">
-            <span class="meta-pill"><span class="meta-dot"></span> Enterprise-grade delivery</span>
-            <span class="meta-pill"><span class="meta-dot"></span> Mobile-first performance</span>
-            <span class="meta-pill"><span class="meta-dot"></span> Secure by design</span>
-          </div>
-        </div>
-
-        <div class="hero-visual reveal" aria-hidden="true">
-          <span class="orbit"></span>
-          <span class="orbit"></span>
-          <span class="orb one"></span>
-          <span class="orb two"></span>
-          <div class="floating-card">
-            <strong>99.9%</strong>
-            <p>Operational reliability for modern business ecosystems.</p>
-          </div>
-          <div class="dashboard-card">
-            <div class="dash-top">
-              <span class="dash-title">Global Growth Engine</span>
-              <span class="dash-status">Live</span>
-            </div>
-            <div class="dash-bars">
-              <span class="dash-bar"><span style="--w: 86%"></span></span>
-              <span class="dash-bar"><span style="--w: 72%"></span></span>
-              <span class="dash-bar"><span style="--w: 94%"></span></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="about" aria-labelledby="about-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">About Dirac Group</span>
-          <h2 id="about-title">A premium technology partner for companies moving beyond ordinary.</h2>
-        </div>
-
-        <div class="about-layout">
-          <article class="card mission-card reveal">
-            <div class="card-body">
-              <h3>We build digital foundations for the next decade of business.</h3>
-              <p style="margin-top: 14px;">Dirac Group combines strategic thinking, engineering discipline, and refined design to help brands transform ideas into reliable, scalable, and elegant digital products.</p>
-              <div class="mission-list">
-                <div class="mission-item">
-                  <span class="icon-bubble">◎</span>
-                  <div>
-                    <h3>Mission</h3>
-                    <p>Deliver fast, secure, and meaningful digital experiences that unlock measurable growth.</p>
-                  </div>
-                </div>
-                <div class="mission-item">
-                  <span class="icon-bubble">◇</span>
-                  <div>
-                    <h3>Vision</h3>
-                    <p>Shape a global business ecosystem where technology feels intelligent, trusted, and effortless.</p>
-                  </div>
-                </div>
-                <div class="mission-item">
-                  <span class="icon-bubble">✦</span>
-                  <div>
-                    <h3>Values</h3>
-                    <p>Clarity, innovation, integrity, performance, and long-term partnership.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <div class="stats-grid reveal" id="statsGrid">
-            <article class="card stat-card">
-              <div class="card-body">
-                <div class="stat-number"><span data-count="10">0</span><span>+</span></div>
-                <p class="stat-label">Years Innovation</p>
-              </div>
-            </article>
-            <article class="card stat-card">
-              <div class="card-body">
-                <div class="stat-number"><span data-count="50">0</span><span>+</span></div>
-                <p class="stat-label">Projects Delivered</p>
-              </div>
-            </article>
-            <article class="card stat-card">
-              <div class="card-body">
-                <div class="stat-number"><span data-count="20">0</span><span>+</span></div>
-                <p class="stat-label">Global Partners</p>
-              </div>
-            </article>
-            <article class="card stat-card">
-              <div class="card-body">
-                <div class="stat-number"><span data-count="99">0</span><span>%</span></div>
-                <p class="stat-label">Client Satisfaction</p>
-              </div>
-            </article>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section compact" id="services" aria-labelledby="services-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">Services</span>
-          <h2 id="services-title">Strategic digital services built for scale, beauty, and speed.</h2>
-        </div>
-
-        <div class="grid grid-3">
-          <article class="card service-card reveal">
-            <div class="card-body">
-              <div class="service-icon" aria-hidden="true">◈</div>
-              <h3>Digital Transformation</h3>
-              <p>Modernize workflows, customer journeys, and business systems with a structured transformation roadmap.</p>
-            </div>
-          </article>
-          <article class="card service-card reveal">
-            <div class="card-body">
-              <div class="service-icon" aria-hidden="true">▣</div>
-              <h3>Web Development</h3>
-              <p>Premium corporate websites, product platforms, and high-performance experiences crafted for credibility.</p>
-            </div>
-          </article>
-          <article class="card service-card reveal">
-            <div class="card-body">
-              <div class="service-icon" aria-hidden="true">◌</div>
-              <h3>Mobile Optimization</h3>
-              <p>Fast, responsive, touch-friendly interfaces that keep mobile users engaged without heavy resources.</p>
-            </div>
-          </article>
-          <article class="card service-card reveal">
-            <div class="card-body">
-              <div class="service-icon" aria-hidden="true">☁</div>
-              <h3>Cloud Solutions</h3>
-              <p>Reliable cloud architecture, deployment planning, and scalable infrastructure for global business needs.</p>
-            </div>
-          </article>
-          <article class="card service-card reveal">
-            <div class="card-body">
-              <div class="service-icon" aria-hidden="true">✶</div>
-              <h3>AI &amp; Automation</h3>
-              <p>Intelligent workflow systems that reduce repetitive tasks and improve operational decision-making.</p>
-            </div>
-          </article>
-          <article class="card service-card reveal">
-            <div class="card-body">
-              <div class="service-icon" aria-hidden="true">△</div>
-              <h3>Business Strategy</h3>
-              <p>Data-informed digital strategy, product positioning, and growth planning for ambitious organizations.</p>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="features" aria-labelledby="features-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">Advanced Features</span>
-          <h2 id="features-title">Smart capabilities designed for advanced business ecosystems.</h2>
-        </div>
-
-        <div class="grid grid-3">
-          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">01</span><h3>Smart Dashboard Concept</h3><p>Clean executive views for metrics, operations, and performance signals across departments.</p></div></article>
-          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">02</span><h3>AI-Powered Workflow</h3><p>Automation logic that helps teams move faster while maintaining accuracy and visibility.</p></div></article>
-          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">03</span><h3>Real-Time Business Insight</h3><p>Decision-ready data concepts presented with clarity for leaders, managers, and operators.</p></div></article>
-          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">04</span><h3>Secure Digital Infrastructure</h3><p>Security-conscious architecture patterns with careful attention to access, reliability, and trust.</p></div></article>
-          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">05</span><h3>Scalable System Architecture</h3><p>Product foundations that can evolve from early traction to enterprise-grade scale.</p></div></article>
-          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">06</span><h3>Mobile-First Optimization</h3><p>Fast layouts, lean scripts, and efficient interfaces built for real mobile conditions.</p></div></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section compact" id="projects" aria-labelledby="projects-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">Projects</span>
-          <h2 id="projects-title">Selected concepts for global brands and modern operators.</h2>
-        </div>
-
-        <div class="projects-wrap" aria-label="Dirac Group portfolio examples">
-          <article class="card project-card reveal">
-            <div class="card-body">
-              <div class="project-visual" aria-hidden="true"></div>
-              <h3>Enterprise Website</h3>
-              <p>A corporate platform designed for investor trust, global storytelling, and high-speed mobile access.</p>
-              <div class="tags"><span class="tag">HTML5</span><span class="tag">SEO</span><span class="tag">Performance</span></div>
-              <a class="text-link" href="#contact" aria-label="View Enterprise Website details">View Details →</a>
-            </div>
-          </article>
-          <article class="card project-card reveal">
-            <div class="card-body">
-              <div class="project-visual" aria-hidden="true"></div>
-              <h3>Logistics Platform</h3>
-              <p>A streamlined operational interface for shipment visibility, order tracking, and partner coordination.</p>
-              <div class="tags"><span class="tag">Cloud</span><span class="tag">API</span><span class="tag">Security</span></div>
-              <a class="text-link" href="#contact" aria-label="View Logistics Platform details">View Details →</a>
-            </div>
-          </article>
-          <article class="card project-card reveal">
-            <div class="card-body">
-              <div class="project-visual" aria-hidden="true"></div>
-              <h3>AI Business Tool</h3>
-              <p>An intelligent assistant concept for task routing, insight generation, and workflow acceleration.</p>
-              <div class="tags"><span class="tag">AI</span><span class="tag">Automation</span><span class="tag">UX</span></div>
-              <a class="text-link" href="#contact" aria-label="View AI Business Tool details">View Details →</a>
-            </div>
-          </article>
-          <article class="card project-card reveal">
-            <div class="card-body">
-              <div class="project-visual" aria-hidden="true"></div>
-              <h3>Corporate Dashboard</h3>
-              <p>A premium analytics dashboard concept for leadership teams managing growth and risk.</p>
-              <div class="tags"><span class="tag">Data</span><span class="tag">Dashboard</span><span class="tag">Insight</span></div>
-              <a class="text-link" href="#contact" aria-label="View Corporate Dashboard details">View Details →</a>
-            </div>
-          </article>
-          <article class="card project-card reveal">
-            <div class="card-body">
-              <div class="project-visual" aria-hidden="true"></div>
-              <h3>Mobile Commerce</h3>
-              <p>A lightweight commerce experience optimized for conversion, speed, and seamless browsing.</p>
-              <div class="tags"><span class="tag">Mobile</span><span class="tag">Commerce</span><span class="tag">Speed</span></div>
-              <a class="text-link" href="#contact" aria-label="View Mobile Commerce details">View Details →</a>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="technology" aria-labelledby="technology-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">Technology</span>
-          <h2 id="technology-title">A lean, reliable technology stack for premium digital performance.</h2>
-        </div>
-        <div class="tech-grid reveal" aria-label="Technology capabilities">
-          <span class="tech-badge">HTML5</span>
-          <span class="tech-badge">CSS3</span>
-          <span class="tech-badge">JavaScript</span>
-          <span class="tech-badge">Cloud</span>
-          <span class="tech-badge">AI</span>
-          <span class="tech-badge">Security</span>
-          <span class="tech-badge">API Integration</span>
-          <span class="tech-badge">Mobile Optimization</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="section compact" id="team" aria-labelledby="team-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">Leadership Team</span>
-          <h2 id="team-title">A focused team combining strategy, technology, design, and growth.</h2>
-        </div>
-        <div class="grid grid-4">
-          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">AR</div><span class="team-role">CEO / Founder</span><h3>Adrian Ravel</h3><p>Leads Dirac Group's global vision, partnerships, and strategic innovation programs.</p></div></article>
-          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">MS</div><span class="team-role">CTO</span><h3>Maya Sterling</h3><p>Architects secure, scalable systems that balance performance, reliability, and future growth.</p></div></article>
-          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">LK</div><span class="team-role">Product Designer</span><h3>Leon Kade</h3><p>Crafts premium user experiences with clarity, accessibility, and brand-level polish.</p></div></article>
-          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">SN</div><span class="team-role">Business Strategist</span><h3>Sofia Nadir</h3><p>Turns market goals into executable digital roadmaps and measurable transformation outcomes.</p></div></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="testimonials" aria-labelledby="testimonials-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">Testimonials</span>
-          <h2 id="testimonials-title">Trusted by ambitious teams building their next digital chapter.</h2>
-        </div>
-
-        <div class="testimonial-shell reveal">
-          <div class="testimonial-track" id="testimonialTrack">
-            <article class="testimonial-slide">
-              <p class="quote">“Dirac Group delivered a digital presence that felt world-class from day one. The experience is fast, refined, and strategically aligned with our growth.”</p>
-              <div class="client"><span class="client-avatar">EV</span><div><strong>Elena Voss</strong><p>Managing Director, Aurelia Ventures</p></div></div>
-            </article>
-            <article class="testimonial-slide">
-              <p class="quote">“Their team translated complex operational needs into a clean platform concept. Every detail showed discipline, taste, and technical maturity.”</p>
-              <div class="client"><span class="client-avatar">KM</span><div><strong>Kai Morgan</strong><p>Operations Lead, Northline Systems</p></div></div>
-            </article>
-            <article class="testimonial-slide">
-              <p class="quote">“We needed something premium but lightweight. Dirac Group created a modern experience that performs beautifully across desktop and mobile.”</p>
-              <div class="client"><span class="client-avatar">RP</span><div><strong>Rania Pierce</strong><p>Founder, Nova Market Labs</p></div></div>
-            </article>
-          </div>
-          <div class="testimonial-controls">
-            <div class="slider-dots" id="sliderDots" aria-label="Testimonial pagination"></div>
-            <div class="slider-buttons">
-              <button class="circle-btn" id="prevTestimonial" type="button" aria-label="Previous testimonial">‹</button>
-              <button class="circle-btn" id="nextTestimonial" type="button" aria-label="Next testimonial">›</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section compact" id="faq" aria-labelledby="faq-title">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">FAQ</span>
-          <h2 id="faq-title">Answers for teams ready to build with confidence.</h2>
-        </div>
-
-        <div class="faq-list reveal">
-          <article class="faq-item open">
-            <button class="faq-question" type="button" aria-expanded="true">What does Dirac Group specialize in?<span class="faq-icon" aria-hidden="true">+</span></button>
-            <div class="faq-answer"><p>Dirac Group specializes in premium digital experiences, corporate websites, mobile optimization, cloud concepts, AI automation, and business transformation strategy.</p></div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">Is the website approach mobile-first?<span class="faq-icon" aria-hidden="true">+</span></button>
-            <div class="faq-answer"><p>Yes. Dirac Group prioritizes fast loading, readable layouts, touch-friendly controls, and lightweight animation for comfortable mobile browsing.</p></div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">Can Dirac Group support enterprise-level projects?<span class="faq-icon" aria-hidden="true">+</span></button>
-            <div class="faq-answer"><p>Yes. The company is positioned for scalable systems, secure infrastructure concepts, executive dashboards, and digital platforms for growing organizations.</p></div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">Do you use heavy frameworks?<span class="faq-icon" aria-hidden="true">+</span></button>
-            <div class="faq-answer"><p>This website is built with pure HTML, CSS, and JavaScript to remain lightweight, flexible, and fast without large framework dependencies.</p></div>
-          </article>
-          <article class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">How can a company start a project?<span class="faq-icon" aria-hidden="true">+</span></button>
-            <div class="faq-answer"><p>Companies can start by submitting the contact form with their business goals, timeline, and project needs. The team can then propose the right digital roadmap.</p></div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="contact" aria-labelledby="contact-title">
-      <div class="container contact-layout">
-        <div class="reveal">
-          <span class="eyebrow">Contact</span>
-          <h2 id="contact-title">Start building a sharper digital future.</h2>
-          <p style="margin-top: 18px;">Tell us about your vision. Dirac Group will help shape it into a premium, scalable, and future-ready digital experience.</p>
-
-          <div class="contact-info" aria-label="Contact information">
-            <div class="contact-info-item"><span class="icon-bubble">@</span><div><strong>Email</strong><p>contact@diracgroup.com</p></div></div>
-            <div class="contact-info-item"><span class="icon-bubble">⌖</span><div><strong>Location</strong><p>Global Digital Office</p></div></div>
-            <div class="contact-info-item"><span class="icon-bubble">◷</span><div><strong>Working Hours</strong><p>Monday - Friday</p></div></div>
-          </div>
-        </div>
-
-        <article class="card reveal">
-          <div class="card-body">
-            <form class="form" id="contactForm" novalidate>
-              <div class="form-alert" id="formAlert" role="status">Thank you. Your message has been prepared successfully.</div>
-              <div class="form-grid">
-                <div class="field">
-                  <label for="name">Name</label>
-                  <input id="name" name="name" type="text" autocomplete="name" placeholder="Your full name" required />
-                  <small></small>
-                </div>
-                <div class="field">
-                  <label for="email">Email</label>
-                  <input id="email" name="email" type="email" autocomplete="email" placeholder="you@company.com" required />
-                  <small></small>
-                </div>
-              </div>
-              <div class="field">
-                <label for="company">Company</label>
-                <input id="company" name="company" type="text" autocomplete="organization" placeholder="Company name" required />
-                <small></small>
-              </div>
-              <div class="field">
-                <label for="message">Message</label>
-                <textarea id="message" name="message" placeholder="Tell us about your project" required></textarea>
-                <small></small>
-              </div>
-              <div class="btn-row">
-                <button class="btn btn-primary" type="submit" aria-label="Submit contact form">Send Message</button>
-                <a class="btn btn-ghost" href="https://wa.me/000000000000" aria-label="Open dummy WhatsApp contact">WhatsApp</a>
-              </div>
-            </form>
-          </div>
-        </article>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div>
-          <a class="brand" href="#home" aria-label="Dirac Group Home">
-            <span class="brand-mark">DG</span>
-            <span class="brand-text">Dirac Group</span>
-          </a>
-          <p>Dirac Group is a global digital innovation company designing elegant, secure, and scalable digital experiences for modern organizations.</p>
-        </div>
-        <div>
-          <h3>Navigation</h3>
-          <ul class="footer-links">
-            <li><a href="#about">About</a></li>
-            <li><a href="#services">Services</a></li>
-            <li><a href="#projects">Projects</a></li>
-            <li><a href="#contact">Contact</a></li>
-          </ul>
-        </div>
-        <div>
-          <h3>Social</h3>
-          <ul class="social-links">
-            <li><a href="#" aria-label="Dirac Group LinkedIn">LinkedIn</a></li>
-            <li><a href="#" aria-label="Dirac Group X profile">X / Twitter</a></li>
-            <li><a href="#" aria-label="Dirac Group Instagram">Instagram</a></li>
-            <li><a href="#" aria-label="Dirac Group Dribbble">Dribbble</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <span>© 2026 Dirac Group. All Rights Reserved.</span>
-        <span>Premium digital systems for global growth.</span>
-      </div>
-    </div>
-  </footer>
-
-  <button class="back-to-top" id="backToTop" type="button" aria-label="Back to top">↑</button>
-
   <script>
-    (function () {
-      'use strict';
+    // Endpoint backend Vercel. File api/track.js di Vercel harus memakai RajaOngkir API.
+    const API_ENDPOINT = "https://companyprofilee-ochre.vercel.app/api/track";
 
-      var body = document.body;
-      var loader = document.getElementById('loader');
-      var navbar = document.getElementById('navbar');
-      var menuBtn = document.getElementById('menuBtn');
-      var navLinks = document.getElementById('navLinks');
-      var navItems = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
-      var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
-      var backToTop = document.getElementById('backToTop');
+    const trackingForm = document.getElementById("trackingForm");
+    const resiInput = document.getElementById("resi");
+    const expeditionSelect = document.getElementById("expedition");
+    const phoneLastInput = document.getElementById("phoneLast");
+    const trackButton = document.getElementById("trackButton");
+    const errorMessage = document.getElementById("errorMessage");
+    const resultArea = document.getElementById("resultArea");
 
-      window.addEventListener('load', function () {
-        setTimeout(function () {
-          loader.classList.add('hide');
-          body.classList.remove('loading');
-        }, 650);
+    const resultTitle = document.getElementById("resultTitle");
+    const statusBadge = document.getElementById("statusBadge");
+    const statusBadgeText = document.getElementById("statusBadgeText");
+    const resultResi = document.getElementById("resultResi");
+    const resultExpedition = document.getElementById("resultExpedition");
+    const resultDate = document.getElementById("resultDate");
+    const resultEta = document.getElementById("resultEta");
+    const resultReceiver = document.getElementById("resultReceiver");
+    const resultOrigin = document.getElementById("resultOrigin");
+    const resultDestination = document.getElementById("resultDestination");
+    const resultStatus = document.getElementById("resultStatus");
+    const progressSteps = document.getElementById("progressSteps");
+    const timelineList = document.getElementById("timelineList");
+    const timelineCount = document.getElementById("timelineCount");
+
+    const progressLabels = [
+      "Paket dibuat",
+      "Diterima ekspedisi",
+      "Dalam perjalanan",
+      "Tiba di kota tujuan",
+      "Dikirim kurir",
+      "Telah diterima"
+    ];
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add("show");
+    }
+
+    function clearError() {
+      errorMessage.textContent = "";
+      errorMessage.classList.remove("show");
+      resiInput.classList.remove("input-error");
+      expeditionSelect.classList.remove("input-error");
+      phoneLastInput.classList.remove("input-error");
+    }
+
+    function setLoading(isLoading) {
+      trackButton.classList.toggle("is-loading", isLoading);
+      trackButton.disabled = isLoading;
+    }
+
+    function validateForm() {
+      clearError();
+
+      const resi = resiInput.value.trim();
+      const expedition = expeditionSelect.value.trim();
+      const phoneLast = phoneLastInput.value.trim();
+
+      if (!resi) {
+        resiInput.classList.add("input-error");
+        showError("Nomor resi tidak boleh kosong.");
+        resiInput.focus();
+        return false;
+      }
+
+      if (!expedition) {
+        expeditionSelect.classList.add("input-error");
+        showError("Silakan pilih ekspedisi terlebih dahulu.");
+        expeditionSelect.focus();
+        return false;
+      }
+
+      if (phoneLast && !/^[0-9]{4}$/.test(phoneLast)) {
+        phoneLastInput.classList.add("input-error");
+        showError("4 digit HP terakhir harus berupa 4 angka. Kosongkan jika tidak diperlukan.");
+        phoneLastInput.focus();
+        return false;
+      }
+
+      return true;
+    }
+
+    function safeText(value, fallback = "Tidak tersedia dari API") {
+      if (value === null || value === undefined) return fallback;
+
+      if (typeof value === "object") {
+        if (value.message) return safeText(value.message, fallback);
+        if (value.status) return safeText(value.status, fallback);
+        if (value.text) return safeText(value.text, fallback);
+        if (value.name) return safeText(value.name, fallback);
+        if (value.value) return safeText(value.value, fallback);
+        if (value.label) return safeText(value.label, fallback);
+        return fallback;
+      }
+
+      const text = String(value).trim();
+      return text ? text : fallback;
+    }
+
+    function lowerText(value) {
+      return safeText(value, "").toLowerCase();
+    }
+
+    function findFirst(...values) {
+      for (const value of values) {
+        if (value !== null && value !== undefined && String(value).trim() !== "") return value;
+      }
+      return "";
+    }
+
+    function getByPath(object, path) {
+      return path.split(".").reduce((current, key) => {
+        if (current && Object.prototype.hasOwnProperty.call(current, key)) return current[key];
+        return undefined;
+      }, object);
+    }
+
+    function getFirstByPaths(object, paths) {
+      for (const path of paths) {
+        const value = getByPath(object, path);
+        if (value !== null && value !== undefined && String(value).trim() !== "") return value;
+      }
+      return "";
+    }
+
+    function flattenCandidateRoots(raw) {
+      const roots = [];
+      const candidates = [
+        raw,
+        raw?.data,
+        raw?.data?.data,
+        raw?.result,
+        raw?.results,
+        raw?.rajaongkir,
+        raw?.rajaongkir?.result,
+        raw?.rajaongkir?.results,
+        raw?.response,
+        raw?.response?.data,
+        raw?.raw_rajaongkir,
+        raw?.raw_rajaongkir?.data
+      ];
+
+      candidates.forEach((item) => {
+        if (item && typeof item === "object" && !Array.isArray(item) && !roots.includes(item)) roots.push(item);
       });
 
-      function closeMenu() {
-        navLinks.classList.remove('open');
-        menuBtn.setAttribute('aria-expanded', 'false');
-        menuBtn.setAttribute('aria-label', 'Open navigation menu');
-        body.classList.remove('menu-open');
-      }
+      return roots;
+    }
 
-      menuBtn.addEventListener('click', function () {
-        var isOpen = navLinks.classList.toggle('open');
-        menuBtn.setAttribute('aria-expanded', String(isOpen));
-        menuBtn.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
-        body.classList.toggle('menu-open', isOpen);
-      });
-
-      navItems.forEach(function (link) {
-        link.addEventListener('click', closeMenu);
-      });
-
-      function handleScroll() {
-        var y = window.scrollY || document.documentElement.scrollTop;
-        navbar.classList.toggle('scrolled', y > 12);
-        backToTop.classList.toggle('show', y > 520);
-      }
-
-      handleScroll();
-      window.addEventListener('scroll', handleScroll, { passive: true });
-
-      backToTop.addEventListener('click', function () {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-
-      var revealElements = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
-      if ('IntersectionObserver' in window) {
-        var revealObserver = new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('visible');
-              revealObserver.unobserve(entry.target);
-            }
-          });
-        }, { threshold: 0.12 });
-        revealElements.forEach(function (el) { revealObserver.observe(el); });
-      } else {
-        revealElements.forEach(function (el) { el.classList.add('visible'); });
-      }
-
-      if ('IntersectionObserver' in window) {
-        var activeObserver = new IntersectionObserver(function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              var id = entry.target.getAttribute('id');
-              navItems.forEach(function (link) {
-                link.classList.toggle('active', link.getAttribute('href') === '#' + id);
-              });
-            }
-          });
-        }, { rootMargin: '-42% 0px -52% 0px', threshold: 0 });
-        sections.forEach(function (section) { activeObserver.observe(section); });
-      }
-
-      var countersStarted = false;
-      var statsGrid = document.getElementById('statsGrid');
-      var counters = Array.prototype.slice.call(document.querySelectorAll('[data-count]'));
-
-      function animateCounters() {
-        if (countersStarted) return;
-        countersStarted = true;
-        counters.forEach(function (counter) {
-          var target = Number(counter.getAttribute('data-count')) || 0;
-          var duration = 950;
-          var startTime = null;
-          function tick(timestamp) {
-            if (!startTime) startTime = timestamp;
-            var progress = Math.min((timestamp - startTime) / duration, 1);
-            var eased = 1 - Math.pow(1 - progress, 3);
-            counter.textContent = String(Math.round(target * eased));
-            if (progress < 1) requestAnimationFrame(tick);
-          }
-          requestAnimationFrame(tick);
-        });
-      }
-
-      if (statsGrid && 'IntersectionObserver' in window) {
-        var counterObserver = new IntersectionObserver(function (entries) {
-          if (entries.some(function (entry) { return entry.isIntersecting; })) {
-            animateCounters();
-            counterObserver.disconnect();
-          }
-        }, { threshold: 0.35 });
-        counterObserver.observe(statsGrid);
-      } else {
-        animateCounters();
-      }
-
-      var faqItems = Array.prototype.slice.call(document.querySelectorAll('.faq-item'));
-      function setFaqHeight(item) {
-        var answer = item.querySelector('.faq-answer');
-        if (!answer) return;
-        if (item.classList.contains('open')) {
-          answer.style.maxHeight = answer.scrollHeight + 'px';
-        } else {
-          answer.style.maxHeight = '0px';
+    function pickObject(roots, keys) {
+      for (const root of roots) {
+        for (const key of keys) {
+          const value = getByPath(root, key);
+          if (value && typeof value === "object" && !Array.isArray(value)) return value;
         }
       }
+      return {};
+    }
 
-      faqItems.forEach(function (item) {
-        var button = item.querySelector('.faq-question');
-        setFaqHeight(item);
-        button.addEventListener('click', function () {
-          var willOpen = !item.classList.contains('open');
-          faqItems.forEach(function (other) {
-            other.classList.remove('open');
-            other.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
-            setFaqHeight(other);
-          });
-          item.classList.toggle('open', willOpen);
-          button.setAttribute('aria-expanded', String(willOpen));
-          setFaqHeight(item);
-        });
-      });
-
-      window.addEventListener('resize', function () {
-        faqItems.forEach(setFaqHeight);
-      });
-
-      var track = document.getElementById('testimonialTrack');
-      var slides = Array.prototype.slice.call(document.querySelectorAll('.testimonial-slide'));
-      var dotsWrap = document.getElementById('sliderDots');
-      var prevBtn = document.getElementById('prevTestimonial');
-      var nextBtn = document.getElementById('nextTestimonial');
-      var currentSlide = 0;
-      var autoSlide;
-
-      function renderDots() {
-        slides.forEach(function (_, index) {
-          var dot = document.createElement('button');
-          dot.className = 'dot';
-          dot.type = 'button';
-          dot.setAttribute('aria-label', 'Show testimonial ' + (index + 1));
-          dot.addEventListener('click', function () { goToSlide(index); restartAutoSlide(); });
-          dotsWrap.appendChild(dot);
-        });
-      }
-
-      function updateSlider() {
-        track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
-        Array.prototype.slice.call(dotsWrap.children).forEach(function (dot, index) {
-          dot.classList.toggle('active', index === currentSlide);
-        });
-      }
-
-      function goToSlide(index) {
-        currentSlide = (index + slides.length) % slides.length;
-        updateSlider();
-      }
-
-      function restartAutoSlide() {
-        clearInterval(autoSlide);
-        autoSlide = setInterval(function () { goToSlide(currentSlide + 1); }, 6200);
-      }
-
-      if (track && slides.length) {
-        renderDots();
-        updateSlider();
-        prevBtn.addEventListener('click', function () { goToSlide(currentSlide - 1); restartAutoSlide(); });
-        nextBtn.addEventListener('click', function () { goToSlide(currentSlide + 1); restartAutoSlide(); });
-        restartAutoSlide();
-      }
-
-      var form = document.getElementById('contactForm');
-      var alertBox = document.getElementById('formAlert');
-      var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      function setError(field, message) {
-        var small = field.parentElement.querySelector('small');
-        small.textContent = message || '';
-        field.setAttribute('aria-invalid', message ? 'true' : 'false');
-      }
-
-      function validateField(field) {
-        var value = field.value.trim();
-        var message = '';
-        if (!value) {
-          message = 'This field is required.';
-        } else if (field.type === 'email' && !emailPattern.test(value)) {
-          message = 'Please enter a valid email address.';
-        } else if (field.name === 'message' && value.length < 10) {
-          message = 'Please enter at least 10 characters.';
+    function pickArray(roots, keys) {
+      for (const root of roots) {
+        for (const key of keys) {
+          const value = getByPath(root, key);
+          if (Array.isArray(value)) return value;
         }
-        setError(field, message);
-        return !message;
+      }
+      return [];
+    }
+
+    function normalizeHistoryItem(item) {
+      const description = findFirst(
+        item.manifest_description,
+        item.description,
+        item.desc,
+        item.status,
+        item.message,
+        item.activity,
+        item.remark,
+        item.note
+      );
+
+      const location = findFirst(
+        item.city_name,
+        item.city,
+        item.location,
+        item.manifest_city,
+        item.office,
+        item.branch,
+        item.position
+      );
+
+      const date = findFirst(
+        item.manifest_date,
+        item.date,
+        item.created_at,
+        item.updated_at,
+        item.datetime,
+        item.time
+      );
+
+      const time = findFirst(item.manifest_time, item.hour);
+
+      return {
+        title: safeText(description, "Aktivitas pengiriman"),
+        description: safeText(location, "Lokasi tidak tersedia"),
+        time: safeText([date, time].filter(Boolean).join(" "), "Waktu tidak tersedia"),
+        rawText: [description, location, date, time].filter(Boolean).join(" ")
+      };
+    }
+
+    function getAllStatusText({ raw, root, summary, details, delivery, history }) {
+      const values = [
+        getFirstByPaths(raw, ["message", "meta.message", "rajaongkir.status.description", "raw_rajaongkir.meta.message"]),
+        getFirstByPaths(root, ["status", "status_text", "delivery_status", "shipment_status"]),
+        summary.status,
+        summary.status_text,
+        summary.delivery_status,
+        summary.status_name,
+        delivery.status,
+        delivery.pod_receiver,
+        details.status,
+        ...history.map((item) => item.rawText)
+      ].filter(Boolean).map((item) => safeText(item, "")).filter(Boolean);
+
+      return [...new Set(values)].join(" | ");
+    }
+
+    function detectDelivered(statusText, root) {
+      const text = lowerText(statusText);
+
+      return (
+        root?.delivered === true ||
+        root?.is_delivered === true ||
+        root?.delivered === 1 ||
+        root?.is_delivered === 1 ||
+        /delivered|terkirim|telah diterima|sudah diterima|diterima oleh|received by|pod|proof of delivery|paket telah diterima|shipment delivered/.test(text)
+      );
+    }
+
+    function mapDisplayStatus(statusText, delivered) {
+      const text = lowerText(statusText);
+
+      if (delivered) return "Paket telah diterima";
+      if (/out for delivery|with courier|kurir|diantar|antar ke alamat|sedang dikirim/.test(text)) return "Paket sedang dikirim kurir";
+      if (/arrived|destination|kota tujuan|tujuan|hub tujuan|tiba/.test(text)) return "Paket tiba di kota tujuan";
+      if (/transit|on process|on transit|perjalanan|dikirim|departed|forwarded|manifest|shipped/.test(text)) return "Paket dalam perjalanan";
+      if (/received|diterima ekspedisi|pickup|picked up|accepted|received at/.test(text)) return "Paket diterima ekspedisi";
+      if (/created|dibuat|entry|booking/.test(text)) return "Paket dibuat";
+      return safeText(statusText, "Status tidak tersedia dari API");
+    }
+
+    function getActiveStep(displayStatus, delivered, statusText) {
+      const text = lowerText(`${displayStatus} ${statusText}`);
+
+      if (delivered) return 6;
+      if (/sedang dikirim kurir|out for delivery|with courier|kurir|diantar|antar ke alamat/.test(text)) return 5;
+      if (/tiba di kota tujuan|destination|kota tujuan|hub tujuan|arrived/.test(text)) return 4;
+      if (/dalam perjalanan|transit|on process|on transit|dikirim|departed|forwarded|manifest|shipped/.test(text)) return 3;
+      if (/diterima ekspedisi|received|pickup|picked up|accepted/.test(text)) return 2;
+      return 1;
+    }
+
+    function normalizeTrackingResponse(raw, input) {
+      const roots = flattenCandidateRoots(raw);
+      const root = roots[0] || raw || {};
+      const summary = pickObject(roots, ["summary", "data.summary", "result.summary", "waybill.summary"]);
+      const details = pickObject(roots, ["details", "detail", "data.details", "data.detail", "result.details"]);
+      const delivery = pickObject(roots, ["delivery_status", "delivery", "pod", "data.delivery_status", "result.delivery_status"]);
+      const rawHistory = pickArray(roots, ["manifest", "history", "histories", "tracking", "tracks", "data.manifest", "data.history", "result.manifest", "result.history"]);
+      const normalizedHistory = rawHistory.map(normalizeHistoryItem).filter((item) => item.title !== "Aktivitas pengiriman" || item.description !== "Lokasi tidak tersedia");
+
+      const statusText = getAllStatusText({ raw, root, summary, details, delivery, history: normalizedHistory });
+      const delivered = detectDelivered(statusText, root);
+      const displayStatus = mapDisplayStatus(statusText, delivered);
+      const activeStep = getActiveStep(displayStatus, delivered, statusText);
+
+      const waybillNumber = findFirst(
+        summary.awb,
+        summary.waybill_number,
+        summary.waybill,
+        details.awb,
+        details.waybill_number,
+        getFirstByPaths(root, ["awb", "waybill_number", "waybill"]),
+        input.resi
+      );
+
+      const courierName = findFirst(
+        summary.courier,
+        summary.courier_name,
+        summary.courier_code,
+        details.courier,
+        getFirstByPaths(root, ["courier", "courier_name", "courier_code"]),
+        input.expeditionName
+      );
+
+      const shippingDate = findFirst(
+        summary.waybill_date,
+        summary.shipping_date,
+        summary.shipment_date,
+        summary.date,
+        details.waybill_date,
+        details.shipping_date,
+        delivery.pod_date,
+        normalizedHistory[normalizedHistory.length - 1]?.time
+      );
+
+      const eta = findFirst(
+        summary.estimate,
+        summary.estimation,
+        summary.estimation_date,
+        summary.eta,
+        details.estimate,
+        details.estimation,
+        getFirstByPaths(root, ["eta", "estimate", "estimation"])
+      );
+
+      const receiver = findFirst(
+        delivery.pod_receiver,
+        summary.receiver_name,
+        details.receiver_name,
+        details.receiver,
+        getFirstByPaths(root, ["receiver_name", "receiver", "recipient", "recipient_name"])
+      );
+
+      const origin = findFirst(
+        summary.origin,
+        summary.shipper_city,
+        summary.origin_city,
+        details.origin,
+        details.origin_city,
+        details.shipper_city,
+        getFirstByPaths(root, ["origin", "origin_city", "shipper_city"])
+      );
+
+      const destination = findFirst(
+        summary.destination,
+        summary.receiver_city,
+        summary.destination_city,
+        details.destination,
+        details.destination_city,
+        details.receiver_city,
+        getFirstByPaths(root, ["destination", "destination_city", "receiver_city"])
+      );
+
+      return {
+        resi: safeText(waybillNumber, input.resi),
+        expedition: safeText(courierName, input.expeditionName),
+        status: displayStatus,
+        rawStatus: statusText,
+        delivered,
+        activeStep,
+        shippingDate: safeText(shippingDate),
+        eta: safeText(eta),
+        receiver: safeText(receiver),
+        origin: safeText(origin),
+        destination: safeText(destination),
+        history: normalizedHistory
+      };
+    }
+
+    function renderProgress(activeStep) {
+      progressSteps.innerHTML = "";
+
+      progressLabels.forEach((label, index) => {
+        const step = document.createElement("div");
+        step.className = "progress-step" + (index < activeStep ? " active" : "");
+        step.innerHTML = `
+          <div class="progress-dot">${index + 1}</div>
+          ${label}
+        `;
+        progressSteps.appendChild(step);
+      });
+    }
+
+    function renderTimeline(history) {
+      timelineList.innerHTML = "";
+      timelineCount.textContent = `${history.length} aktivitas`;
+
+      if (!history.length) {
+        const emptyItem = document.createElement("div");
+        emptyItem.className = "timeline-item";
+        emptyItem.innerHTML = `
+          <div class="timeline-dot">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4"></path><path d="M12 16h.01"></path><path d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0Z"></path></svg>
+          </div>
+          <div class="timeline-copy">
+            <strong>Riwayat belum tersedia</strong>
+            <p>API tidak mengirimkan daftar perjalanan paket untuk resi ini.</p>
+          </div>
+          <div class="timeline-date">-</div>
+        `;
+        timelineList.appendChild(emptyItem);
+        timelineCount.textContent = "0 aktivitas";
+        return;
       }
 
-      if (form) {
-        var fields = Array.prototype.slice.call(form.querySelectorAll('input, textarea'));
-        fields.forEach(function (field) {
-          field.addEventListener('input', function () {
-            if (field.getAttribute('aria-invalid') === 'true') validateField(field);
-          });
-        });
+      history.forEach((item) => {
+        const timelineItem = document.createElement("div");
+        timelineItem.className = "timeline-item";
+        timelineItem.innerHTML = `
+          <div class="timeline-dot">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12 4 4L19 6"></path>
+            </svg>
+          </div>
+          <div class="timeline-copy">
+            <strong>${item.title}</strong>
+            <p>${item.description}</p>
+          </div>
+          <div class="timeline-date">${item.time}</div>
+        `;
+        timelineList.appendChild(timelineItem);
+      });
+    }
 
-        form.addEventListener('submit', function (event) {
-          event.preventDefault();
-          alertBox.classList.remove('show');
-          var isValid = fields.map(validateField).every(Boolean);
-          if (!isValid) return;
-          alertBox.classList.add('show');
-          form.reset();
-          fields.forEach(function (field) { setError(field, ''); });
-          setTimeout(function () { alertBox.classList.remove('show'); }, 4200);
-        });
+    function renderTrackingResult(data) {
+      resultTitle.textContent = data.status;
+      statusBadgeText.textContent = data.status;
+      statusBadge.className = "status-badge" + (!data.delivered && data.activeStep < 6 ? " pending" : "");
+
+      resultResi.textContent = data.resi;
+      resultExpedition.textContent = data.expedition;
+      resultDate.textContent = data.shippingDate;
+      resultEta.textContent = data.eta;
+      resultReceiver.textContent = data.receiver;
+      resultOrigin.textContent = data.origin;
+      resultDestination.textContent = data.destination;
+      resultStatus.textContent = data.status;
+
+      renderProgress(data.activeStep);
+      renderTimeline(data.history);
+
+      resultArea.classList.add("show");
+      resultArea.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function fetchTrackingData(resi, courier, expeditionName, phoneLast) {
+      const body = { awb: resi, courier };
+      if (phoneLast) body.last_phone_number = phoneLast;
+
+      const response = await fetch(API_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      let payload;
+      try {
+        payload = await response.json();
+      } catch (error) {
+        throw new Error("Backend tidak mengirim respons JSON yang valid.");
       }
-    })();
+
+      const backendError = payload?.error || payload?.message || payload?.meta?.message || payload?.raw_rajaongkir?.meta?.message || payload?.rajaongkir?.status?.description;
+
+      if (!response.ok) {
+        throw new Error(backendError || `Request gagal dengan status ${response.status}.`);
+      }
+
+      const statusText = String(payload?.status || payload?.meta?.status || payload?.rajaongkir?.status?.description || "").toLowerCase();
+      const failedStatus =
+        payload?.status === false ||
+        payload?.success === false ||
+        statusText === "error" ||
+        statusText === "failed" ||
+        payload?.meta?.code >= 400 ||
+        payload?.raw_rajaongkir?.meta?.code >= 400 ||
+        payload?.rajaongkir?.status?.code >= 400;
+
+      if (failedStatus) {
+        throw new Error(backendError || "Resi tidak ditemukan atau ekspedisi tidak sesuai.");
+      }
+
+      return normalizeTrackingResponse(payload, { resi, courier, expeditionName });
+    }
+
+    trackingForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!validateForm()) {
+        return;
+      }
+
+      const resi = resiInput.value.trim();
+      const courier = expeditionSelect.value.trim();
+      const expeditionName = expeditionSelect.options[expeditionSelect.selectedIndex].text;
+      const phoneLast = phoneLastInput.value.trim();
+
+      setLoading(true);
+      resultArea.classList.remove("show");
+      statusBadge.classList.remove("error");
+
+      try {
+        const trackingData = await fetchTrackingData(resi, courier, expeditionName, phoneLast);
+        renderTrackingResult(trackingData);
+      } catch (error) {
+        showError(error.message || "Terjadi kesalahan saat mengambil data tracking.");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    resiInput.addEventListener("input", clearError);
+    expeditionSelect.addEventListener("change", clearError);
+    phoneLastInput.addEventListener("input", clearError);
+
+    const revealItems = document.querySelectorAll(".reveal");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px 80px 0px" }
+    );
+
+    revealItems.forEach((item) => observer.observe(item));
   </script>
 </body>
 </html>
