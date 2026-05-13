@@ -3997,6 +3997,240 @@
       }
     }
 
+
+    /* ==========================================================
+       MOBILE PERFORMANCE HOTFIX - 2026-05-13
+       Tujuan: menurunkan panas/CPU/GPU di HP tanpa mengubah fungsi cek resi.
+       Yang dipertahankan: struktur HTML, ID form, endpoint API, validasi, fetch,
+       normalisasi respons, render hasil, progress, timeline, dan navigasi anchor.
+       ========================================================== */
+
+    @media (max-width: 860px), (hover: none) and (pointer: coarse) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 20% 8%, rgba(37,99,235,0.14), transparent 24%),
+          linear-gradient(180deg, #07111f 0%, #0a1730 52%, #091425 100%);
+        background-attachment: scroll;
+        background-size: auto;
+        animation: none !important;
+      }
+
+      .page::before,
+      .page::after,
+      .orb,
+      .ambient-lines,
+      .premium-ambient-stack,
+      .motion-particles,
+      .scanner-rings,
+      .route-orbit,
+      .floating-status-card,
+      .section-light-beam {
+        display: none !important;
+        animation: none !important;
+        filter: none !important;
+      }
+
+      .bg-grid {
+        position: absolute;
+        opacity: 0.045;
+        animation: none !important;
+        mask-image: none;
+        -webkit-mask-image: none;
+      }
+
+      .hero-shell::before,
+      .hero-visual::before,
+      .hero-visual::after,
+      .map-card::before,
+      .hero-stat::after,
+      .feature-card::after,
+      .how-step::after,
+      .trust-card::after,
+      .assurance-card::after,
+      .service-panel::after,
+      .stack-card::after,
+      details::after,
+      .btn::after,
+      .header-contact::after,
+      .contact-button::after,
+      .status-badge::after,
+      .progress-step.active .progress-dot::after,
+      .timeline-item:first-child .timeline-dot::after {
+        display: none !important;
+        animation: none !important;
+      }
+
+      .orbit-wrap,
+      .globe,
+      .flight-path,
+      .plane,
+      .truck-card,
+      .scan-card,
+      .road::after,
+      .truck,
+      .wheel,
+      .scan-line,
+      .route-dot,
+      .route-vehicle,
+      .signal-bars i,
+      .motion-route::before,
+      .motion-scan::after,
+      .motion-sync,
+      .motion-status span,
+      .brand-logo,
+      .brand-mark::after,
+      .hero-label,
+      .hero h1,
+      .hero h1 span,
+      .hero-subtitle,
+      .hero-actions,
+      .hero-stats,
+      .pulse,
+      .result-area.show .result-card,
+      .result-area.show .result-header,
+      .result-area.show .progress,
+      .result-area.show .timeline-layout,
+      .result-area.show .info-card,
+      .timeline-item,
+      .progress-step.active .progress-dot,
+      .status-badge.pending,
+      .courier-pill,
+      .map-card,
+      .mini-map,
+      .route-map-premium {
+        animation: none !important;
+      }
+
+      .orbit-wrap,
+      .globe,
+      .flight-path,
+      .plane,
+      .truck-card,
+      .scan-card,
+      .truck,
+      .wheel,
+      .route-dot,
+      .route-vehicle,
+      .motion-sync {
+        transform: none !important;
+      }
+
+      .tracking-panel,
+      .form-card,
+      .map-card,
+      .result-card,
+      .timeline-card,
+      .support-card,
+      .feature-card,
+      .how-step,
+      .trust-card,
+      .service-panel,
+      .insight-panel,
+      .assurance-card,
+      .stack-card,
+      .command-center,
+      .command-card,
+      .route-board,
+      .mini-insight,
+      .courier-copy,
+      .courier-cloud,
+      .quality-panel,
+      .protocol-card,
+      details,
+      .nav,
+      .header::before,
+      .proof-chip {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        box-shadow: 0 12px 34px rgba(2, 6, 23, 0.20) !important;
+      }
+
+      .hero-stat:hover,
+      .feature-card:hover,
+      .how-step:hover,
+      .trust-card:hover,
+      .assurance-card:hover,
+      .service-panel:hover,
+      .stack-card:hover,
+      details:hover,
+      .btn:hover,
+      .header-contact:hover,
+      .contact-button:hover,
+      .courier-pill:hover,
+      .courier-tile:hover,
+      .command-card:hover {
+        transform: none !important;
+        filter: none !important;
+      }
+
+      .hero-visual {
+        min-height: 360px;
+        contain: layout paint;
+      }
+
+      .orbit-wrap {
+        width: min(310px, 92vw);
+        background:
+          radial-gradient(circle at center, rgba(59,130,246,0.10), transparent 56%),
+          conic-gradient(from 180deg, transparent, rgba(59,130,246,0.22), rgba(34,211,238,0.18), transparent);
+      }
+
+      .globe {
+        width: 205px;
+        height: 205px;
+      }
+
+      .flight-path {
+        width: 300px;
+        height: 112px;
+      }
+
+      .plane {
+        width: 60px;
+        left: 18px;
+      }
+
+      .truck-card,
+      .scan-card {
+        background: rgba(255,255,255,0.08);
+      }
+
+
+      .track-button {
+        background-size: auto;
+        animation: none !important;
+      }
+
+      .track-button.is-loading::after {
+        animation: spin 0.85s linear infinite !important;
+      }
+
+      input:focus,
+      select:focus {
+        animation: none !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-visual {
+        min-height: 320px;
+      }
+
+      .truck-card {
+        width: 220px;
+        bottom: 24px;
+      }
+
+      .scan-card {
+        width: 176px;
+        bottom: 4px;
+      }
+    }
+
   </style>
 </head>
 
@@ -5245,10 +5479,13 @@
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add("visible");
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
         });
       },
-      { threshold: 0.16 }
+      { threshold: 0.12, rootMargin: "0px 0px 80px 0px" }
     );
 
     revealItems.forEach((item) => observer.observe(item));
