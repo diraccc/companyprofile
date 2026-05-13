@@ -1,12 +1,5 @@
 const AFTERSHIP_BASE_URL = "https://api.aftership.com/tracking/2026-01";
 
-const FORCE_SLUG_MAP = {
-  spx: "spx",
-  shopee: "spx",
-  "shopee-express": "spx",
-  "shopee express": "spx"
-};
-
 function readBody(req) {
   if (typeof req.body === "string") {
     try {
@@ -25,32 +18,62 @@ function cleanText(value, fallback = "") {
   return text || fallback;
 }
 
-function normalizeCourierSlug(courier) {
+function getSlug(courier) {
   const key = cleanText(courier).toLowerCase();
-  return FORCE_SLUG_MAP[key] || "";
+
+  if (key === "spx") return "spx";
+  if (key === "shopee") return "spx";
+  if (key === "shopee-express") return "spx";
+  if (key === "shopee express") return "spx";
+
+  // Untuk kurir selain SPX, biarkan AfterShip auto-detect.
+  return "";
 }
 
-function getAfterShipTracking(payload) {
-  return (
-    payload?.data?.tracking ||
-    payload?.tracking ||
-    payload?.data ||
-    payload ||
-    {}
-  );
+async function afterShipRequest(path, options) {
+  const response = await fetch(`${AFTERSHIP_BASE_URL}${path}`, options);
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      payload?.message ||
+      payload?.error ||
+      payload?.meta?.message ||
+      payload?.errors?.[0]?.message ||
+      `AfterShip error ${response.status}`;
+
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload;
 }
 
-function mapStatus(tag, subtag, message) {
-  const raw = `${tag || ""} ${subtag || ""} ${message || ""}`.toLowerCase();
+function extractTracking(payload) {
+  if (payload?.data?.tracking) return payload.data.tracking;
+  if (payload?.tracking) return payload.tracking;
+  if (payload?.data?.trackings?.[0]) return payload.data.trackings[0];
+  if (payload?.trackings?.[0]) return payload.trackings[0];
+  if (Array.isArray(payload?.data) && payload.data[0]) return payload.data[0];
+  return payload?.data || payload || {};
+}
 
-  if (raw.includes("delivered")) return "Paket telah diterima";
-  if (raw.includes("outfordelivery") || raw.includes("out for delivery")) return "Paket sedang dikirim kurir";
-  if (raw.includes("intransit") || raw.includes("transit")) return "Paket dalam perjalanan";
-  if (raw.includes("availableforpickup")) return "Paket siap diambil";
-  if (raw.includes("exception") || raw.includes("failed")) return "Pengiriman terkendala";
-  if (raw.includes("pending") || raw.includes("info")) return "Paket sedang diproses";
+function mapStatus(tag, subtag, subtagMessage) {
+  const text = `${tag || ""} ${subtag || ""} ${subtagMessage || ""}`.toLowerCase();
 
-  return cleanText(message || tag || subtag, "Status tidak tersedia");
+  if (text.includes("delivered")) return "Paket telah diterima";
+  if (text.includes("outfordelivery") || text.includes("out for delivery")) return "Paket sedang dikirim kurir";
+  if (text.includes("intransit") || text.includes("transit")) return "Paket dalam perjalanan";
+  if (text.includes("inforeceived")) return "Data pengiriman diterima";
+  if (text.includes("pending")) return "Paket sedang diproses";
+  if (text.includes("availableforpickup")) return "Paket siap diambil";
+  if (text.includes("attemptfail")) return "Percobaan pengiriman gagal";
+  if (text.includes("exception")) return "Pengiriman terkendala";
+  if (text.includes("expired")) return "Tracking kedaluwarsa";
+
+  return cleanText(subtagMessage || tag || subtag, "Status tidak tersedia");
 }
 
 function mapCheckpoint(checkpoint) {
@@ -80,12 +103,13 @@ function mapCheckpoint(checkpoint) {
   };
 }
 
-function normalizeAfterShipResponse(tracking, input) {
+function normalizeAfterShip(tracking, input) {
   const checkpoints = Array.isArray(tracking.checkpoints)
     ? tracking.checkpoints
     : [];
 
   const latestCheckpoint = checkpoints[checkpoints.length - 1] || {};
+
   const statusText = mapStatus(
     tracking.tag,
     tracking.subtag,
@@ -106,10 +130,10 @@ function normalizeAfterShipResponse(tracking, input) {
         latestCheckpoint.checkpoint_time ||
         "",
       estimate:
+        tracking.courier_estimated_delivery_date?.estimated_delivery_date ||
         tracking.estimated_delivery_date ||
         tracking.expected_delivery ||
         tracking.aftership_estimated_delivery_date ||
-        tracking.courier_estimated_delivery_date?.estimated_delivery_date ||
         ""
     },
 
@@ -143,37 +167,16 @@ function normalizeAfterShipResponse(tracking, input) {
   };
 }
 
-async function afterShipRequest(path, options) {
-  const response = await fetch(`${AFTERSHIP_BASE_URL}${path}`, options);
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const message =
-      payload?.message ||
-      payload?.error ||
-      payload?.meta?.message ||
-      payload?.errors?.[0]?.message ||
-      `AfterShip error ${response.status}`;
-
-    const error = new Error(message);
-    error.status = response.status;
-    error.payload = payload;
-    throw error;
-  }
-
-  return payload;
-}
-
 async function createTracking({ apiKey, awb, courier }) {
-  const slug = normalizeCourierSlug(courier);
+  const slug = getSlug(courier);
 
   const body = {
     tracking_number: awb,
     title: awb
   };
 
-  // Untuk SPX/Shopee Express, slug dipaksa "spx".
-  // Untuk kurir lain, slug dikosongkan agar AfterShip auto-detect.
+  // SPX wajib pakai slug spx.
+  // Selain SPX dikosongkan agar AfterShip auto-detect.
   if (slug) {
     body.slug = slug;
   }
@@ -187,14 +190,20 @@ async function createTracking({ apiKey, awb, courier }) {
     body: JSON.stringify(body)
   });
 
-  return getAfterShipTracking(payload);
+  return extractTracking(payload);
 }
 
-async function getTracking({ apiKey, slug, awb }) {
-  const safeSlug = encodeURIComponent(slug);
-  const safeAwb = encodeURIComponent(awb);
+async function findExistingTracking({ apiKey, awb, courier }) {
+  const slug = getSlug(courier);
 
-  const payload = await afterShipRequest(`/trackings/${safeSlug}/${safeAwb}`, {
+  const params = new URLSearchParams();
+  params.set("tracking_numbers", awb);
+
+  if (slug) {
+    params.set("slug", slug);
+  }
+
+  const payload = await afterShipRequest(`/trackings?${params.toString()}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -202,7 +211,13 @@ async function getTracking({ apiKey, slug, awb }) {
     }
   });
 
-  return getAfterShipTracking(payload);
+  const tracking = extractTracking(payload);
+
+  if (!tracking || !tracking.tracking_number) {
+    throw new Error("Tracking sudah pernah dibuat, tetapi data existing tidak ditemukan.");
+  }
+
+  return tracking;
 }
 
 export default async function handler(req, res) {
@@ -232,8 +247,17 @@ export default async function handler(req, res) {
     }
 
     const body = readBody(req);
-    const awb = cleanText(body.awb || body.resi || body.tracking_number);
-    const courier = cleanText(body.courier || body.slug);
+
+    const awb = cleanText(
+      body.awb ||
+      body.resi ||
+      body.tracking_number
+    );
+
+    const courier = cleanText(
+      body.courier ||
+      body.slug
+    );
 
     if (!awb) {
       return res.status(400).json({
@@ -245,31 +269,31 @@ export default async function handler(req, res) {
     let tracking;
 
     try {
-      tracking = await createTracking({ apiKey, awb, courier });
+      tracking = await createTracking({
+        apiKey,
+        awb,
+        courier
+      });
     } catch (error) {
-      const message = cleanText(error.message).toLowerCase();
+      const errorText = cleanText(error.message).toLowerCase();
 
-      // Kalau tracking sudah pernah dibuat di AfterShip, ambil data existing.
       if (
-        error.status === 400 &&
-        (message.includes("already exists") ||
-          message.includes("duplicate") ||
-          message.includes("tracking already exists"))
+        errorText.includes("already") ||
+        errorText.includes("duplicate") ||
+        errorText.includes("exist")
       ) {
-        const slug = normalizeCourierSlug(courier);
-
-        if (!slug) {
-          throw new Error("Tracking sudah ada, tetapi slug kurir tidak tersedia untuk mengambil ulang data.");
-        }
-
-        tracking = await getTracking({ apiKey, slug, awb });
+        tracking = await findExistingTracking({
+          apiKey,
+          awb,
+          courier
+        });
       } else {
         throw error;
       }
     }
 
     return res.status(200).json(
-      normalizeAfterShipResponse(tracking, {
+      normalizeAfterShip(tracking, {
         awb,
         courier
       })
