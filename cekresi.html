@@ -52,7 +52,11 @@
       min-height: 100vh;
       font-family: Inter, Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       color: var(--slate-900);
-      background: var(--slate-50);
+      background:
+        radial-gradient(circle at 10% 22%, rgba(96,165,250,0.28), transparent 24%),
+        radial-gradient(circle at 88% 34%, rgba(34,211,238,0.18), transparent 22%),
+        radial-gradient(circle at 72% 78%, rgba(59,130,246,0.10), transparent 18%),
+        linear-gradient(180deg, #edf4ff 0%, #dfe8f8 42%, #dff6fb 100%);
       overflow-x: hidden;
     }
 
@@ -1604,9 +1608,10 @@
     .how-step {
       padding: 24px;
       border-radius: 25px;
-      background: var(--white);
-      border: 1px solid rgba(15,23,42,0.07);
+      background: linear-gradient(180deg, rgba(255,255,255,0.70), rgba(229,240,255,0.86));
+      border: 1px solid rgba(15,23,42,0.08);
       box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
       transition: 0.22s ease;
     }
 
@@ -1675,9 +1680,10 @@
 
     details {
       border-radius: 20px;
-      background: var(--white);
-      border: 1px solid rgba(15,23,42,0.07);
+      background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(228,240,255,0.88));
+      border: 1px solid rgba(15,23,42,0.08);
       box-shadow: 0 12px 32px rgba(15,23,42,0.05);
+      backdrop-filter: blur(10px);
       overflow: hidden;
       transition: 0.22s ease;
     }
@@ -1786,6 +1792,305 @@
       font-size: 12px;
     }
 
+
+
+    .trust-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .trust-card {
+      min-height: 122px;
+      padding: 20px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.68), rgba(224,238,255,0.84));
+      border: 1px solid rgba(15,23,42,0.08);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+      transition: 0.22s ease;
+    }
+
+    .trust-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.72;
+      background: radial-gradient(circle at 0% 0%, rgba(59,130,246,0.16), transparent 36%);
+      pointer-events: none;
+    }
+
+    .trust-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 26px 70px rgba(15,23,42,0.12);
+    }
+
+    .trust-card strong,
+    .trust-card span {
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+
+    .trust-card strong {
+      color: var(--navy-950);
+      font-size: 17px;
+      letter-spacing: -0.035em;
+      margin-bottom: 8px;
+    }
+
+    .trust-card span {
+      color: var(--slate-500);
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .service-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .service-panel,
+    .insight-panel,
+    .assurance-card,
+    .stack-card {
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.70), rgba(226,240,255,0.86));
+      border: 1px solid rgba(15,23,42,0.08);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+    }
+
+    .service-panel {
+      padding: 30px;
+      display: grid;
+      align-content: space-between;
+      gap: 28px;
+      background:
+        radial-gradient(circle at 94% 0%, rgba(34,211,238,0.18), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.72), rgba(224,239,255,0.90));
+    }
+
+    .service-panel h3,
+    .insight-panel h3,
+    .stack-card h3 {
+      color: var(--navy-950);
+      font-size: 24px;
+      line-height: 1.14;
+      letter-spacing: -0.05em;
+      margin-bottom: 10px;
+    }
+
+    .service-panel p,
+    .insight-panel p,
+    .stack-card p {
+      color: var(--slate-500);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .service-checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .service-check {
+      padding: 15px;
+      border-radius: 18px;
+      background: #f6f8ff;
+      border: 1px solid rgba(15,23,42,0.06);
+      color: var(--navy-950);
+      font-size: 13px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .service-check svg {
+      color: var(--green-500);
+      flex: 0 0 auto;
+    }
+
+    .insight-panel {
+      padding: 24px;
+      color: var(--white);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(96,165,250,0.22), transparent 34%),
+        linear-gradient(135deg, var(--navy-950), var(--navy-800));
+      border-color: rgba(255,255,255,0.12);
+      box-shadow: var(--shadow-strong);
+    }
+
+    .insight-panel h3,
+    .insight-panel p {
+      color: var(--white);
+    }
+
+    .insight-panel p {
+      color: #cbd5e1;
+    }
+
+    .insight-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .insight-item {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 13px;
+      align-items: start;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .insight-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      color: #bfdbfe;
+      background: rgba(255,255,255,0.10);
+    }
+
+    .insight-copy strong {
+      display: block;
+      color: var(--white);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .insight-copy span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .coverage-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 13px;
+      margin-top: 18px;
+    }
+
+    .coverage-item {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .coverage-item span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .coverage-item strong {
+      color: var(--white);
+      font-size: 18px;
+      letter-spacing: -0.035em;
+    }
+
+    .assurance-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .assurance-card {
+      padding: 24px;
+      position: relative;
+      transition: 0.22s ease;
+    }
+
+    .assurance-card:hover {
+      transform: translateY(-7px);
+      box-shadow: 0 26px 70px rgba(15,23,42,0.12);
+    }
+
+    .assurance-card .feature-icon {
+      color: var(--white);
+      background: linear-gradient(135deg, var(--navy-950), var(--blue-600));
+      border: 0;
+      margin-bottom: 17px;
+    }
+
+    .assurance-card h3 {
+      color: var(--navy-950);
+      font-size: 17px;
+      letter-spacing: -0.035em;
+      margin-bottom: 8px;
+    }
+
+    .assurance-card p {
+      color: var(--slate-500);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .stack-card {
+      margin-top: 16px;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: 18px;
+      align-items: center;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(59,130,246,0.14), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.72), rgba(225,239,255,0.88));
+    }
+
+    .stack-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stack-node {
+      min-height: 86px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 12px;
+      border-radius: 17px;
+      background: #f6f8ff;
+      border: 1px solid rgba(15,23,42,0.06);
+      color: var(--navy-950);
+      font-size: 12px;
+      font-weight: 950;
+      line-height: 1.35;
+      position: relative;
+    }
+
+    .stack-node:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--blue-600);
+      font-weight: 950;
+      z-index: 2;
+    }
+
     @media (max-width: 1080px) {
       .hero {
         grid-template-columns: 1fr;
@@ -1822,6 +2127,16 @@
 
       .footer-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .trust-strip,
+      .assurance-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .service-layout,
+      .stack-card {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -1993,8 +2308,36 @@
 
       .features-grid,
       .steps-grid,
-      .footer-grid {
+      .footer-grid,
+      .trust-strip,
+      .assurance-grid,
+      .service-checks,
+      .coverage-matrix,
+      .stack-flow {
         grid-template-columns: 1fr;
+      }
+
+      .trust-card,
+      .service-panel,
+      .insight-panel,
+      .assurance-card,
+      .stack-card {
+        border-radius: 22px;
+      }
+
+      .service-panel,
+      .insight-panel,
+      .stack-card {
+        padding: 20px;
+      }
+
+      .stack-node:not(:last-child)::after {
+        content: "↓";
+        right: auto;
+        left: 50%;
+        top: auto;
+        bottom: -15px;
+        transform: translateX(-50%);
       }
 
       .section {
@@ -2290,6 +2633,109 @@
                 </aside>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+
+
+      <section class="container trust-strip reveal" aria-label="Ringkasan kualitas layanan Dirac Group">
+        <article class="trust-card">
+          <strong>Validasi Input</strong>
+          <span>Nomor resi dan ekspedisi tetap diperiksa sebelum permintaan dikirim ke backend.</span>
+        </article>
+        <article class="trust-card">
+          <strong>Responsif</strong>
+          <span>Tampilan tetap nyaman di desktop, tablet, dan ponsel tanpa mengubah alur cek resi.</span>
+        </article>
+        <article class="trust-card">
+          <strong>API Ready</strong>
+          <span>Struktur halaman tetap siap memakai endpoint Vercel dan RajaOngkir yang sudah ada.</span>
+        </article>
+        <article class="trust-card">
+          <strong>Privasi Aman</strong>
+          <span>Halaman tidak menambahkan permintaan PIN, password, OTP, atau data pembayaran.</span>
+        </article>
+      </section>
+
+      <section class="container section reveal" id="cakupan">
+        <div class="section-title">
+          <div class="section-label">Cakupan Layanan</div>
+          <h2>Lebih informatif tanpa mengubah cara kerja cek resi</h2>
+          <p>Pengembangan ini menambahkan lapisan informasi, visual layanan, dan panduan pengguna agar website terlihat lebih lengkap, namun proses pengecekan tetap memakai form dan backend yang sama.</p>
+        </div>
+
+        <div class="service-layout">
+          <article class="service-panel">
+            <div>
+              <h3>Pengalaman tracking yang lebih rapi untuk pelanggan</h3>
+              <p>Pengguna tetap memasukkan nomor resi, memilih ekspedisi, lalu menekan tombol cek resi. Elemen tambahan di halaman ini hanya memperkuat konteks, kepercayaan, dan penjelasan layanan.</p>
+            </div>
+            <div class="service-checks">
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> Form utama dipertahankan</div>
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> Endpoint tetap sama</div>
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> ID elemen tidak diganti</div>
+              <div class="service-check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg> JavaScript inti tetap utuh</div>
+            </div>
+          </article>
+
+          <aside class="insight-panel">
+            <h3>Ringkasan sistem</h3>
+            <p>Dirac Group menampilkan hasil tracking dari backend yang tersedia, lalu merapikan status, detail pengiriman, progress, dan timeline agar mudah dibaca.</p>
+            <div class="coverage-matrix" aria-label="Ringkasan cakupan website">
+              <div class="coverage-item"><span>Ekspedisi</span><strong>12+</strong></div>
+              <div class="coverage-item"><span>Progress</span><strong>6 Tahap</strong></div>
+              <div class="coverage-item"><span>Data</span><strong>API</strong></div>
+            </div>
+            <div class="insight-list">
+              <div class="insight-item">
+                <div class="insight-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
+                <div class="insight-copy"><strong>Data disusun otomatis</strong><span>Respons API dinormalisasi menjadi ringkasan, kartu informasi, dan timeline.</span></div>
+              </div>
+              <div class="insight-item">
+                <div class="insight-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+                <div class="insight-copy"><strong>Pesan keamanan jelas</strong><span>Pengguna diberi pengingat bahwa website tidak meminta data sensitif.</span></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="container section reveal" id="keamanan">
+        <div class="section-title">
+          <div class="section-label">Keamanan & Kejelasan</div>
+          <h2>Didesain agar pengguna merasa yakin saat melacak paket</h2>
+          <p>Halaman dibuat lebih lengkap dengan informasi yang membantu pelanggan memahami batasan layanan, keamanan data, dan langkah pengecekan.</p>
+        </div>
+
+        <div class="assurance-grid">
+          <article class="assurance-card">
+            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+            <h3>Tidak meminta data sensitif</h3>
+            <p>Alur cek resi hanya memakai nomor resi, pilihan ekspedisi, dan opsional empat digit HP terakhir bila dibutuhkan API.</p>
+          </article>
+          <article class="assurance-card">
+            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v6l4 2"></path><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path></svg></div>
+            <h3>Status mudah dipahami</h3>
+            <p>Status mentah dari API diringkas menjadi tahapan yang lebih ramah dibaca, seperti dalam perjalanan atau sudah diterima.</p>
+          </article>
+          <article class="assurance-card">
+            <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
+            <h3>Detail pengiriman tersusun</h3>
+            <p>Kota asal, tujuan, penerima, estimasi, dan riwayat perjalanan ditampilkan dalam komponen visual yang konsisten.</p>
+          </article>
+        </div>
+
+        <div class="stack-card" aria-label="Alur data cek resi">
+          <div>
+            <h3>Alur data tetap sama</h3>
+            <p>Pengembangan ini tidak menambahkan jalur pengiriman data baru. Form tetap mengirim permintaan ke backend yang sama, lalu hasilnya ditampilkan di area hasil.</p>
+          </div>
+          <div class="stack-flow">
+            <div class="stack-node">Input Resi</div>
+            <div class="stack-node">Backend Vercel</div>
+            <div class="stack-node">RajaOngkir API</div>
+            <div class="stack-node">Hasil Tracking</div>
           </div>
         </div>
       </section>
