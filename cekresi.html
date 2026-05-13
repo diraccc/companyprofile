@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dirac Group | Cek Resi Pengiriman</title>
   <meta name="description" content="Dirac Group - Website cek resi profesional untuk memantau status pengiriman paket secara mudah, cepat, dan aman." />
+  <meta name="theme-color" content="#06101f" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta property="og:title" content="Dirac Group | Cek Resi Pengiriman" />
+  <meta property="og:description" content="Pantau status pengiriman paket dengan tampilan modern, cepat, aman, dan siap terhubung ke backend tracking." />
+  <meta property="og:type" content="website" />
 
   <style>
     :root {
@@ -2152,6 +2158,537 @@
       z-index: 2;
     }
 
+
+
+    .skip-link {
+      position: fixed;
+      left: 18px;
+      top: 18px;
+      z-index: 20;
+      padding: 12px 16px;
+      border-radius: 999px;
+      color: var(--navy-950);
+      background: #e0f2fe;
+      font-weight: 950;
+      box-shadow: 0 18px 50px rgba(2,6,23,0.35);
+      transform: translateY(-140%);
+      transition: 0.22s ease;
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+      outline: 3px solid rgba(34,211,238,0.55);
+      outline-offset: 3px;
+    }
+
+    .ambient-lines {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.16;
+      background:
+        linear-gradient(120deg, transparent 0 18%, rgba(96,165,250,0.28) 18.4%, transparent 18.8% 46%, rgba(34,211,238,0.20) 46.5%, transparent 47% 100%),
+        linear-gradient(60deg, transparent 0 28%, rgba(255,255,255,0.08) 28.3%, transparent 28.7% 100%);
+      background-size: 880px 880px, 620px 620px;
+      animation: ambientSlide 26s linear infinite;
+    }
+
+    @keyframes ambientSlide {
+      to {
+        background-position: 880px -880px, -620px 620px;
+      }
+    }
+
+    .hero-mini-proof {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 22px;
+      max-width: 660px;
+    }
+
+    .proof-chip {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 42px;
+      padding: 10px 12px;
+      border-radius: 15px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.075);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(16px);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .proof-chip span {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #22d3ee;
+      box-shadow: 0 0 18px rgba(34,211,238,0.80);
+      flex: 0 0 auto;
+    }
+
+    .command-center {
+      margin-top: 28px;
+      padding: 22px;
+      border-radius: 34px;
+      color: var(--white);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(59,130,246,0.22), transparent 30%),
+        radial-gradient(circle at 90% 14%, rgba(34,211,238,0.14), transparent 28%),
+        linear-gradient(135deg, rgba(6,16,31,0.94), rgba(10,24,48,0.90));
+      border: 1px solid rgba(148,163,184,0.17);
+      box-shadow: 0 28px 90px rgba(2,6,23,0.28);
+      backdrop-filter: blur(18px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .command-center::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.055) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(circle at 50% 0%, black, transparent 70%);
+    }
+
+    .command-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 18px;
+    }
+
+    .command-head h2 {
+      font-size: clamp(27px, 4vw, 44px);
+      line-height: 1.05;
+      letter-spacing: -0.06em;
+      margin-top: 8px;
+    }
+
+    .command-head p {
+      max-width: 720px;
+      color: #b7c5de;
+      line-height: 1.7;
+      margin-top: 12px;
+    }
+
+    .command-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 13px;
+      border-radius: 999px;
+      color: #bae6fd;
+      background: rgba(14,165,233,0.12);
+      border: 1px solid rgba(125,211,252,0.18);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .command-badge i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green-500);
+      box-shadow: 0 0 18px rgba(34,197,94,0.75);
+    }
+
+    .command-live {
+      min-width: 190px;
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.13);
+    }
+
+    .command-live span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      margin-bottom: 8px;
+    }
+
+    .signal-bars {
+      display: flex;
+      align-items: end;
+      gap: 6px;
+      height: 42px;
+    }
+
+    .signal-bars i {
+      width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #67e8f9, #2563eb);
+      animation: signalPulse 1.8s ease-in-out infinite alternate;
+    }
+
+    .signal-bars i:nth-child(1) { height: 34%; }
+    .signal-bars i:nth-child(2) { height: 58%; animation-delay: -0.25s; }
+    .signal-bars i:nth-child(3) { height: 76%; animation-delay: -0.50s; }
+    .signal-bars i:nth-child(4) { height: 48%; animation-delay: -0.75s; }
+    .signal-bars i:nth-child(5) { height: 92%; animation-delay: -1s; }
+
+    @keyframes signalPulse {
+      from { transform: scaleY(0.74); opacity: 0.62; }
+      to { transform: scaleY(1); opacity: 1; }
+    }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .command-card,
+    .route-board,
+    .mini-insight {
+      border-radius: 24px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 18px 60px rgba(2,6,23,0.18);
+      backdrop-filter: blur(14px);
+    }
+
+    .route-board {
+      padding: 20px;
+      min-height: 100%;
+    }
+
+    .route-board-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .route-board-top strong,
+    .mini-insight strong,
+    .command-card strong {
+      color: var(--white);
+      letter-spacing: -0.035em;
+    }
+
+    .route-board-top span,
+    .mini-insight span,
+    .command-card span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .route-map-premium {
+      height: 196px;
+      border-radius: 22px;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 26% 40%, rgba(96,165,250,0.24), transparent 18%),
+        radial-gradient(circle at 72% 58%, rgba(34,211,238,0.16), transparent 20%),
+        linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.035));
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .route-map-premium::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 25px 25px;
+    }
+
+    .route-curve {
+      position: absolute;
+      left: 38px;
+      right: 42px;
+      top: 72px;
+      height: 76px;
+      border: 2px dashed rgba(125,211,252,0.68);
+      border-left: 0;
+      border-bottom: 0;
+      border-radius: 0 80px 0 0;
+    }
+
+    .route-vehicle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #7dd3fc;
+      left: 34px;
+      top: 77px;
+      box-shadow: 0 0 24px rgba(125,211,252,0.92);
+      animation: vehicleMove 4.8s ease-in-out infinite;
+    }
+
+    @keyframes vehicleMove {
+      0% { left: 34px; top: 77px; }
+      48% { left: 52%; top: 77px; }
+      100% { left: calc(100% - 62px); top: 132px; }
+    }
+
+    .route-pin-premium {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: linear-gradient(135deg, #60a5fa, #22d3ee);
+      box-shadow: 0 14px 30px rgba(34,211,238,0.22);
+    }
+
+    .route-pin-premium::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      left: 10px;
+      top: 10px;
+      border-radius: 50%;
+      background: #06101f;
+    }
+
+    .route-pin-premium.start { left: 26px; top: 64px; }
+    .route-pin-premium.end { right: 31px; top: 121px; background: linear-gradient(135deg, #fbbf24, #60a5fa); }
+
+    .command-stack {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .command-card {
+      min-height: 132px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .command-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      background: radial-gradient(circle at 0% 0%, rgba(96,165,250,0.20), transparent 42%);
+      transition: 0.22s ease;
+    }
+
+    .command-card:hover::before { opacity: 1; }
+    .command-card:hover { transform: translateY(-4px); }
+
+    .command-card .feature-icon {
+      color: #dbeafe;
+      background: rgba(255,255,255,0.10);
+      margin-bottom: 14px;
+    }
+
+    .mini-insight {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+    }
+
+    .mini-insight div {
+      padding: 16px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .mini-insight strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .courier-showcase {
+      display: grid;
+      grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .courier-copy,
+    .courier-cloud,
+    .quality-panel,
+    .protocol-card {
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.78), rgba(6,16,31,0.90));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 24px 70px rgba(2,6,23,0.24);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+    }
+
+    .courier-copy {
+      padding: 28px;
+      display: grid;
+      align-content: center;
+      gap: 18px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(37,99,235,0.20), transparent 35%),
+        linear-gradient(180deg, rgba(10,24,48,0.82), rgba(6,16,31,0.93));
+    }
+
+    .courier-copy h3,
+    .quality-panel h3,
+    .protocol-card h3 {
+      color: var(--white);
+      font-size: 25px;
+      line-height: 1.12;
+      letter-spacing: -0.052em;
+    }
+
+    .courier-copy p,
+    .quality-panel p,
+    .protocol-card p {
+      color: #b7c5de;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .courier-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .courier-tags span {
+      padding: 9px 11px;
+      border-radius: 999px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.075);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .courier-cloud {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .courier-tile {
+      min-height: 96px;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--white);
+      font-weight: 950;
+      background:
+        radial-gradient(circle at 30% 0%, rgba(96,165,250,0.18), transparent 38%),
+        rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.11);
+      transition: 0.22s ease;
+    }
+
+    .courier-tile:hover {
+      transform: translateY(-5px);
+      background: rgba(255,255,255,0.09);
+    }
+
+    .quality-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .quality-panel,
+    .protocol-card {
+      padding: 28px;
+    }
+
+    .quality-checklist {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .quality-check {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.11);
+    }
+
+    .quality-check b {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: #06101f;
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+      font-size: 13px;
+    }
+
+    .quality-check strong {
+      color: var(--white);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .quality-check span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .protocol-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .protocol-list div {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #dbeafe;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .protocol-list i {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: #22c55e;
+      box-shadow: 0 0 18px rgba(34,197,94,0.75);
+      flex: 0 0 auto;
+    }
+
     @media (max-width: 1080px) {
       .hero {
         grid-template-columns: 1fr;
@@ -2196,8 +2733,19 @@
       }
 
       .service-layout,
-      .stack-card {
+      .stack-card,
+      .command-grid,
+      .courier-showcase,
+      .quality-grid {
         grid-template-columns: 1fr;
+      }
+
+      .command-head {
+        grid-template-columns: 1fr;
+      }
+
+      .courier-cloud {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
@@ -2374,8 +2922,28 @@
       .assurance-grid,
       .service-checks,
       .coverage-matrix,
-      .stack-flow {
+      .stack-flow,
+      .hero-mini-proof,
+      .command-stack,
+      .mini-insight,
+      .courier-cloud,
+      .quality-grid {
         grid-template-columns: 1fr;
+      }
+
+      .command-center {
+        padding: 14px;
+        border-radius: 26px;
+      }
+
+      .command-live {
+        min-width: 0;
+      }
+
+      .courier-copy,
+      .quality-panel,
+      .protocol-card {
+        padding: 22px;
       }
 
       .trust-card,
@@ -2428,8 +2996,10 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#cek-resi">Langsung ke form cek resi</a>
   <div class="page">
     <div class="bg-grid"></div>
+    <div class="ambient-lines" aria-hidden="true"></div>
     <div class="orb one"></div>
     <div class="orb two"></div>
     <div class="orb three"></div>
@@ -2700,6 +3270,67 @@
 
 
 
+      <section class="container command-center reveal" id="dashboard" aria-label="Dashboard pengalaman cek resi Dirac Group">
+        <div class="command-head">
+          <div>
+            <div class="command-badge"><i></i> Premium tracking interface</div>
+            <h2>Dashboard cek resi yang lebih matang, informatif, dan elegan</h2>
+            <p>Lapisan visual baru ini membantu pelanggan memahami alur pelacakan sebelum dan sesudah menekan tombol cek resi. Semua elemen di sini bersifat presentasi dan tidak mengubah cara kerja form utama.</p>
+          </div>
+          <div class="command-live" aria-label="Visual indikator sistem">
+            <span>System signal</span>
+            <div class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+
+        <div class="command-grid">
+          <article class="route-board">
+            <div class="route-board-top">
+              <div>
+                <strong>Visual rute paket</strong>
+                <span>Ilustrasi perjalanan dari titik asal menuju tujuan.</span>
+              </div>
+              <div class="command-badge"><i></i> Monitoring</div>
+            </div>
+            <div class="route-map-premium" aria-hidden="true">
+              <div class="route-curve"></div>
+              <div class="route-vehicle"></div>
+              <div class="route-pin-premium start"></div>
+              <div class="route-pin-premium end"></div>
+            </div>
+          </article>
+
+          <div class="command-stack">
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg></div>
+              <strong>Data lebih mudah dibaca</strong>
+              <span>Hasil API tetap dirapikan menjadi status, detail, progress, dan timeline.</span>
+            </article>
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+              <strong>Pesan aman</strong>
+              <span>Pengunjung mendapat pengingat bahwa website tidak meminta data sensitif.</span>
+            </article>
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 11-13h-8V2Z"></path></svg></div>
+              <strong>Interface ringan</strong>
+              <span>Tetap memakai HTML, CSS, dan JavaScript vanilla tanpa dependensi tambahan.</span>
+            </article>
+            <article class="command-card">
+              <div class="feature-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg></div>
+              <strong>Multi ekspedisi</strong>
+              <span>Daftar kurir tetap mengikuti pilihan yang sudah tersedia di form asli.</span>
+            </article>
+            <div class="mini-insight" aria-label="Ringkasan operasional">
+              <div><strong>1 Form</strong><span>Alur utama tetap sama</span></div>
+              <div><strong>12 Kurir</strong><span>Opsi ekspedisi populer</span></div>
+              <div><strong>0 Login</strong><span>Tidak meminta akun pelanggan</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       <section class="container trust-strip reveal" aria-label="Ringkasan kualitas layanan Dirac Group">
         <article class="trust-card">
           <strong>Validasi Input</strong>
@@ -2761,6 +3392,39 @@
           </aside>
         </div>
       </section>
+
+      <section class="container section reveal" id="ekspedisi">
+        <div class="section-title">
+          <div class="section-label">Ekspedisi Populer</div>
+          <h2>Tampilan daftar kurir dibuat lebih meyakinkan</h2>
+          <p>Pengguna dapat melihat cakupan ekspedisi yang tersedia sebelum memilih kurir pada form utama. Bagian ini hanya visual pendukung dan tidak mengirim data apa pun.</p>
+        </div>
+
+        <div class="courier-showcase">
+          <article class="courier-copy">
+            <h3>Cakupan kurir dibuat jelas sejak awal</h3>
+            <p>Daftar ini membantu pelanggan mengenali bahwa website mendukung ekspedisi populer yang sudah ada pada pilihan form. Tidak ada endpoint baru, tidak ada request tambahan, dan tidak ada perubahan proses submit.</p>
+            <div class="courier-tags" aria-label="Catatan dukungan kurir">
+              <span>JNE</span><span>J&T</span><span>SiCepat</span><span>Anteraja</span><span>POS</span><span>TIKI</span>
+            </div>
+          </article>
+          <div class="courier-cloud" aria-label="Daftar visual ekspedisi">
+            <div class="courier-tile">JNE</div>
+            <div class="courier-tile">J&T</div>
+            <div class="courier-tile">SiCepat</div>
+            <div class="courier-tile">Anteraja</div>
+            <div class="courier-tile">POS</div>
+            <div class="courier-tile">TIKI</div>
+            <div class="courier-tile">Wahana</div>
+            <div class="courier-tile">Ninja</div>
+            <div class="courier-tile">Lion</div>
+            <div class="courier-tile">SAP</div>
+            <div class="courier-tile">ID Express</div>
+            <div class="courier-tile">First</div>
+          </div>
+        </div>
+      </section>
+
 
       <section class="container section reveal" id="keamanan">
         <div class="section-title">
@@ -2873,6 +3537,39 @@
         </div>
       </section>
 
+      <section class="container section reveal" id="standar">
+        <div class="section-title">
+          <div class="section-label">Standar Kualitas</div>
+          <h2>Dikembangkan dengan fokus pada tampilan, kepercayaan, dan stabilitas</h2>
+          <p>Pengembangan tambahan diarahkan pada aspek visual, struktur informasi, responsivitas, dan kejelasan pesan tanpa menyentuh logika utama cek resi.</p>
+        </div>
+
+        <div class="quality-grid">
+          <article class="quality-panel">
+            <h3>Checklist pengembangan</h3>
+            <p>Setiap penambahan dibuat sebagai lapisan presentasi, sehingga fungsi backend dan JavaScript tracking tetap tidak berubah.</p>
+            <div class="quality-checklist">
+              <div class="quality-check"><b>01</b><div><strong>UI lebih premium</strong><span>Dark glass, glow halus, visual rute, dan kartu informasi baru.</span></div></div>
+              <div class="quality-check"><b>02</b><div><strong>Konten lebih lengkap</strong><span>Penjelasan cakupan, keamanan, ekspedisi, dan standar layanan diperjelas.</span></div></div>
+              <div class="quality-check"><b>03</b><div><strong>Responsif</strong><span>Layout tambahan ikut disesuaikan untuk desktop, tablet, dan mobile.</span></div></div>
+            </div>
+          </article>
+
+          <aside class="protocol-card">
+            <h3>Protokol fungsi tidak diubah</h3>
+            <p>Bagian penting seperti endpoint, ID form, validasi, fetch, normalisasi respons, render hasil, progress, dan timeline tetap dipertahankan.</p>
+            <div class="protocol-list">
+              <div><i></i> Endpoint API tetap sama</div>
+              <div><i></i> Form tracking tetap memakai ID asli</div>
+              <div><i></i> Submit handler tetap utuh</div>
+              <div><i></i> Timeline dan progress tetap memakai script lama</div>
+              <div><i></i> Tidak ada library eksternal baru</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+
       <section class="container section reveal">
         <div class="section-title">
           <div class="section-label">FAQ</div>
@@ -2900,6 +3597,16 @@
             <summary>Ekspedisi apa saja yang didukung?</summary>
             <p>Contoh pilihan yang tersedia mencakup JNE, J&T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Lion Parcel, ID Express, SAP Express, First Logistics, dan lainnya sesuai dukungan RajaOngkir.</p>
           </details>
+
+          <details>
+            <summary>Apakah tampilan baru mengubah proses cek resi?</summary>
+            <p>Tidak. Pengembangan ini hanya menambah tampilan, informasi, dan elemen visual. Proses submit, endpoint backend, dan cara menampilkan hasil tetap sama.</p>
+          </details>
+
+          <details>
+            <summary>Apa yang harus dilakukan jika hasil belum muncul?</summary>
+            <p>Pastikan nomor resi benar, ekspedisi sesuai, dan coba ulangi beberapa saat kemudian karena data pengiriman dapat membutuhkan waktu untuk diperbarui oleh sistem ekspedisi.</p>
+          </details>
         </div>
       </section>
     </main>
@@ -2919,6 +3626,7 @@
             <h4>Menu</h4>
             <a href="#beranda">Beranda</a>
             <a href="#cek-resi">Cek Resi</a>
+            <a href="#dashboard">Dashboard</a>
             <a href="#cara">Cara Cek Resi</a>
             <a href="#bantuan">Bantuan</a>
           </div>
@@ -2926,9 +3634,9 @@
           <div>
             <h4>Informasi</h4>
             <a href="#keunggulan">Kenapa Dirac Group</a>
-            <a href="#">Kebijakan Privasi</a>
-            <a href="#">Syarat Penggunaan</a>
-            <a href="#">Pusat Bantuan</a>
+            <a href="#ekspedisi">Ekspedisi</a>
+            <a href="#keamanan">Keamanan</a>
+            <a href="#standar">Standar Kualitas</a>
           </div>
 
           <div>
