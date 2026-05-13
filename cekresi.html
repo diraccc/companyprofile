@@ -4745,6 +4745,188 @@
       }
     }
 
+
+    /* ==========================================================
+       ULTRA LIGHT MOTION PATCH V8 - 2026-05-13
+       Fokus: animasi mikro yang terasa premium, tetapi tetap ringan di HP.
+       Tidak mengubah endpoint, validasi, fetch, normalisasi, render utama,
+       progress, timeline, atau struktur ID penting website.
+       ========================================================== */
+
+    body.is-scrolled .header::before {
+      background:
+        radial-gradient(circle at 12% 0%, rgba(96,165,250,0.18), transparent 36%),
+        linear-gradient(135deg, rgba(6,18,38,0.98), rgba(8,39,70,0.94)) !important;
+      border-color: rgba(191,219,254,0.22) !important;
+      box-shadow: 0 16px 44px rgba(2,6,23,0.34), inset 0 1px 0 rgba(255,255,255,0.09) !important;
+    }
+
+    body.is-scrolled .header {
+      transform: translateZ(0);
+    }
+
+    .btn,
+    .track-button,
+    .courier-pill,
+    .feature-card,
+    .how-step,
+    .trust-card,
+    .assurance-card,
+    summary,
+    .contact-button,
+    .header-contact {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .is-lite-tapped {
+      animation: liteTapFeedback 0.24s ease both !important;
+    }
+
+    @keyframes liteTapFeedback {
+      0% { transform: scale(1); opacity: 1; }
+      48% { transform: scale(0.985); opacity: 0.92; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .courier-pill {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .courier-pill.is-active {
+      color: #06101f !important;
+      background: linear-gradient(135deg, #e0f2fe, #22d3ee) !important;
+      border-color: rgba(125,211,252,0.74) !important;
+      box-shadow: 0 12px 28px rgba(34,211,238,0.14) !important;
+      animation: activeCourierPop 0.22s ease both !important;
+    }
+
+    @keyframes activeCourierPop {
+      from { transform: scale(0.965); }
+      to { transform: scale(1); }
+    }
+
+    #trackingForm:has(#trackButton.is-loading) + .tracking-loading-stage {
+      animation: loadingStageSoftIn 0.22s ease both !important;
+    }
+
+    @keyframes loadingStageSoftIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-area.show.motion-result-in .result-card {
+      animation: resultSoftIn 0.34s ease both !important;
+    }
+
+    .result-area.show.motion-result-in .status-badge {
+      animation: badgeSoftPop 0.28s ease both !important;
+    }
+
+    .result-area.show.motion-result-in .progress-step.active::before {
+      transform-origin: left center;
+      animation: progressFillSoft 0.38s ease both !important;
+    }
+
+    .result-area.show.motion-result-in .timeline-item {
+      animation: timelineSoftIn 0.28s ease both !important;
+    }
+
+    .result-area.show.motion-result-in .timeline-item:nth-child(2) { animation-delay: 0.04s !important; }
+    .result-area.show.motion-result-in .timeline-item:nth-child(3) { animation-delay: 0.08s !important; }
+    .result-area.show.motion-result-in .timeline-item:nth-child(4) { animation-delay: 0.12s !important; }
+
+    @keyframes resultSoftIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes badgeSoftPop {
+      from { opacity: 0; transform: scale(0.94); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes progressFillSoft {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    @keyframes timelineSoftIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    summary::after {
+      transition: transform 0.2s ease, background 0.2s ease !important;
+    }
+
+    details[open] summary::after {
+      transform: rotate(180deg) !important;
+    }
+
+    .hero-visual:not(.motion-in-view) .orbit-wrap,
+    .hero-visual:not(.motion-in-view) .globe,
+    .hero-visual:not(.motion-in-view) .flight-path,
+    .hero-visual:not(.motion-in-view) .plane,
+    .hero-visual:not(.motion-in-view) .truck-card,
+    .hero-visual:not(.motion-in-view) .road::after,
+    .hero-visual:not(.motion-in-view) .truck,
+    .hero-visual:not(.motion-in-view) .wheel,
+    .hero-visual:not(.motion-in-view) .scan-card,
+    .hero-visual:not(.motion-in-view) .scan-line,
+    .command-center:not(.motion-in-view) .signal-bars i,
+    .command-center:not(.motion-in-view) .route-vehicle {
+      animation-play-state: paused !important;
+    }
+
+    .hero-visual.motion-in-view .orbit-wrap,
+    .hero-visual.motion-in-view .globe,
+    .hero-visual.motion-in-view .flight-path,
+    .hero-visual.motion-in-view .plane,
+    .hero-visual.motion-in-view .truck-card,
+    .hero-visual.motion-in-view .road::after,
+    .hero-visual.motion-in-view .truck,
+    .hero-visual.motion-in-view .wheel,
+    .hero-visual.motion-in-view .scan-card,
+    .hero-visual.motion-in-view .scan-line,
+    .command-center.motion-in-view .signal-bars i,
+    .command-center.motion-in-view .route-vehicle {
+      animation-play-state: running !important;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      .btn:active,
+      .track-button:active,
+      .courier-pill:active,
+      .feature-card:active,
+      .how-step:active,
+      .trust-card:active,
+      .assurance-card:active,
+      summary:active,
+      .contact-button:active,
+      .header-contact:active {
+        transform: scale(0.985) !important;
+        opacity: 0.94;
+      }
+
+      .result-area.show.motion-result-in .timeline-item:nth-child(n+5) {
+        animation-delay: 0s !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .is-lite-tapped,
+      .courier-pill.is-active,
+      #trackingForm:has(#trackButton.is-loading) + .tracking-loading-stage,
+      .result-area.show.motion-result-in .result-card,
+      .result-area.show.motion-result-in .status-badge,
+      .result-area.show.motion-result-in .progress-step.active::before,
+      .result-area.show.motion-result-in .timeline-item {
+        animation: none !important;
+      }
+    }
+
+
   </style>
 </head>
 <body>
@@ -5926,6 +6108,117 @@
         }
       });
     })();
+
+
+    /* Ultra Light Motion Patch V8: mikro-interaksi ringan, tanpa mengubah logic inti cek resi. */
+    (function initUltraLightMotionPatchV8() {
+      const prefersReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const setScrolledHeader = () => {
+        document.body.classList.toggle("is-scrolled", window.scrollY > 12);
+      };
+
+      setScrolledHeader();
+      window.addEventListener("scroll", setScrolledHeader, { passive: true });
+
+      const tapTargets = document.querySelectorAll(
+        ".btn, .track-button, .courier-pill, .feature-card, .how-step, .trust-card, .assurance-card, summary, .contact-button, .header-contact"
+      );
+
+      const playLiteTap = (element) => {
+        if (prefersReducedMotion || !element) return;
+        element.classList.remove("is-lite-tapped");
+        void element.offsetWidth;
+        element.classList.add("is-lite-tapped");
+        window.clearTimeout(element.__liteTapTimer);
+        element.__liteTapTimer = window.setTimeout(() => element.classList.remove("is-lite-tapped"), 260);
+      };
+
+      tapTargets.forEach((element) => {
+        element.addEventListener("pointerdown", () => playLiteTap(element), { passive: true });
+      });
+
+      const courierValueByLabel = {
+        "JNE": "jne",
+        "J&T": "jnt",
+        "SICEPAT": "sicepat",
+        "ANTERAJA": "anteraja",
+        "POS": "pos",
+        "TIKI": "tiki",
+        "WAHANA": "wahana",
+        "NINJA": "ninja",
+        "LION": "lion",
+        "FIRST": "first"
+      };
+
+      const courierPills = document.querySelectorAll(".courier-pill");
+
+      const normalizeCourierLabel = (value) => String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
+
+      const updateCourierPills = () => {
+        const selectedValue = expeditionSelect.value;
+        courierPills.forEach((pill) => {
+          const label = normalizeCourierLabel(pill.textContent);
+          const isActive = courierValueByLabel[label] === selectedValue;
+          pill.classList.toggle("is-active", isActive);
+          pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+      };
+
+      courierPills.forEach((pill) => {
+        pill.setAttribute("role", "button");
+        pill.setAttribute("tabindex", "0");
+        pill.setAttribute("aria-pressed", "false");
+
+        const chooseCourier = () => {
+          const label = normalizeCourierLabel(pill.textContent);
+          const value = courierValueByLabel[label];
+          if (!value) return;
+          expeditionSelect.value = value;
+          expeditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          updateCourierPills();
+        };
+
+        pill.addEventListener("click", chooseCourier);
+        pill.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            chooseCourier();
+          }
+        });
+      });
+
+      expeditionSelect.addEventListener("change", updateCourierPills);
+      updateCourierPills();
+
+      if ("MutationObserver" in window && resultArea) {
+        const replayResultMotion = () => {
+          const isShown = resultArea.classList.contains("show");
+
+          if (!isShown) {
+            if (resultArea.classList.contains("motion-result-in")) {
+              resultArea.classList.remove("motion-result-in");
+            }
+            resultArea.removeAttribute("data-motion-replaying");
+            return;
+          }
+
+          if (prefersReducedMotion || resultArea.getAttribute("data-motion-replaying") === "true") return;
+          resultArea.setAttribute("data-motion-replaying", "true");
+          resultArea.classList.remove("motion-result-in");
+
+          window.requestAnimationFrame(() => {
+            void resultArea.offsetWidth;
+            resultArea.classList.add("motion-result-in");
+            window.setTimeout(() => resultArea.removeAttribute("data-motion-replaying"), 420);
+          });
+        };
+
+        const resultObserver = new MutationObserver(replayResultMotion);
+        resultObserver.observe(resultArea, { attributes: true, attributeFilter: ["class"] });
+      }
+    })();
+
 
   </script>
 </body>
