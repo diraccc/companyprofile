@@ -4927,9 +4927,301 @@
     }
 
 
+    /* ==========================================================
+       DIRAC V10 FEATURE PATCH - ACTUAL - 2026-05-13
+       Fitur ringan: recent history, toast, offline banner, result actions,
+       timeout-aware request, source note, dan micro motion.
+       Tidak mengubah ID/form utama, endpoint, payload, normalisasi, progress,
+       atau render timeline asli. Patch ini bersifat additive/wrapper.
+       ========================================================== */
+
+    .dg-offline-banner {
+      position: fixed;
+      left: 50%;
+      top: max(14px, env(safe-area-inset-top));
+      z-index: 80;
+      width: min(520px, calc(100% - 28px));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 12px 14px;
+      border-radius: 999px;
+      color: #fee2e2;
+      background: rgba(127, 29, 29, 0.94);
+      border: 1px solid rgba(254, 202, 202, 0.25);
+      box-shadow: 0 18px 48px rgba(2, 6, 23, 0.32);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.35;
+      transform: translate(-50%, -130%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .dg-offline-banner.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+      pointer-events: auto;
+    }
+
+    .dg-offline-banner i {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #fecaca;
+      box-shadow: 0 0 18px rgba(254, 202, 202, 0.72);
+      flex: 0 0 auto;
+    }
+
+    .dg-toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(18px, env(safe-area-inset-bottom));
+      z-index: 85;
+      max-width: min(420px, calc(100% - 28px));
+      padding: 12px 15px;
+      border-radius: 16px;
+      color: #eaf4ff;
+      background: rgba(6, 16, 31, 0.94);
+      border: 1px solid rgba(147, 197, 253, 0.20);
+      box-shadow: 0 18px 52px rgba(2, 6, 23, 0.34);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.42;
+      transform: translate(-50%, 16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .dg-toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .recent-track-panel {
+      display: none;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(147,197,253,0.14);
+    }
+
+    .recent-track-panel.show {
+      display: block;
+      animation: dgRecentIn 0.24s ease both;
+    }
+
+    .recent-track-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .recent-track-head strong {
+      color: var(--white);
+      font-size: 13px;
+      letter-spacing: -0.02em;
+    }
+
+    .recent-clear {
+      border: 0;
+      padding: 7px 9px;
+      border-radius: 999px;
+      color: #bfdbfe;
+      background: rgba(147,197,253,0.10);
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .recent-track-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .recent-track-item {
+      width: 100%;
+      min-height: 44px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      border: 1px solid rgba(148,163,184,0.13);
+      border-radius: 14px;
+      padding: 9px 11px;
+      color: #eaf4ff;
+      background: rgba(255,255,255,0.055);
+      transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+    }
+
+    .recent-track-item:active {
+      transform: scale(0.985);
+    }
+
+    .recent-track-main b,
+    .recent-track-main span {
+      display: block;
+    }
+
+    .recent-track-main b {
+      color: var(--white);
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .recent-track-main span {
+      margin-top: 2px;
+      color: #9fb0d1;
+      font-size: 11px;
+    }
+
+    .recent-track-chip {
+      padding: 7px 9px;
+      border-radius: 999px;
+      color: #06101f;
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+      font-size: 11px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    @keyframes dgRecentIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .result-action-button {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid rgba(147,197,253,0.16);
+      border-radius: 14px;
+      padding: 0 13px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.065);
+      font-size: 12px;
+      font-weight: 950;
+      transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+    }
+
+    .result-action-button.primary {
+      color: #06101f;
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+      border-color: rgba(125,211,252,0.42);
+    }
+
+    .result-action-button:active {
+      transform: scale(0.985);
+    }
+
+    .source-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 13px;
+      padding: 11px 13px;
+      border-radius: 15px;
+      color: #9fb0d1;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(148,163,184,0.11);
+      font-size: 12px;
+      line-height: 1.5;
+      position: relative;
+      z-index: 1;
+    }
+
+    .source-note i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 16px rgba(34,197,94,0.55);
+      flex: 0 0 auto;
+    }
+
+    .result-area.show.dg-result-motion .result-card {
+      animation: dgResultIn 0.34s ease both !important;
+    }
+
+    .result-area.show.dg-result-motion .result-action-button,
+    .result-area.show.dg-result-motion .source-note {
+      animation: dgResultChildIn 0.28s ease both;
+    }
+
+    .result-area.show.dg-result-motion .source-note { animation-delay: 0.05s; }
+    .result-area.show.dg-result-motion .result-action-button:nth-child(2) { animation-delay: 0.04s; }
+    .result-area.show.dg-result-motion .result-action-button:nth-child(3) { animation-delay: 0.08s; }
+
+    @keyframes dgResultIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes dgResultChildIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    body.is-scrolled .header::before {
+      box-shadow: 0 14px 38px rgba(2,6,23,0.35), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    }
+
+    @media (max-width: 760px) {
+      .recent-track-panel {
+        padding: 12px;
+      }
+
+      .result-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .result-action-button {
+        width: 100%;
+      }
+
+      .dg-toast {
+        bottom: calc(18px + env(safe-area-inset-bottom));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .recent-track-panel.show,
+      .result-area.show.dg-result-motion .result-card,
+      .result-area.show.dg-result-motion .result-action-button,
+      .result-area.show.dg-result-motion .source-note {
+        animation: none !important;
+      }
+
+      .dg-offline-banner,
+      .dg-toast {
+        transition: none !important;
+      }
+    }
+
+
   </style>
 </head>
 <body>
+<div class="dg-offline-banner" id="offlineBanner" role="status" aria-live="polite"><i></i><span>Koneksi internet terputus. Cek jaringan lalu coba lagi.</span></div>
+<div class="dg-toast" id="dgToast" role="status" aria-live="polite"></div>
 <a class="skip-link" href="#cek-resi">Langsung ke form cek resi</a>
 <div class="page">
 <div class="bg-grid"></div>
@@ -5116,6 +5408,13 @@
 <svg aria-hidden="true" class="icon" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
 <span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
 </div>
+<div class="recent-track-panel" id="recentTrackPanel" aria-label="Riwayat cek resi terakhir">
+  <div class="recent-track-head">
+    <strong>Riwayat cek terakhir</strong>
+    <button class="recent-clear" id="recentClearButton" type="button">Bersihkan</button>
+  </div>
+  <div class="recent-track-list" id="recentTrackList"></div>
+</div>
 </div>
 <aside aria-label="Ilustrasi rute pengiriman" class="map-card">
 <div class="mini-map">
@@ -5177,6 +5476,12 @@
 <strong id="resultStatus">-</strong>
 </div>
 </div>
+<div class="result-actions" id="resultActions" aria-label="Aksi hasil tracking">
+  <button class="result-action-button primary" id="copyResiButton" type="button">Salin Resi</button>
+  <button class="result-action-button" id="shareResultButton" type="button">Bagikan Hasil</button>
+  <button class="result-action-button" id="newTrackButton" type="button">Cek Resi Lain</button>
+</div>
+<div class="source-note" id="resultSourceNote"><i></i><span>Data hasil tracking ditampilkan dari backend Dirac Group yang terhubung ke sistem pelacakan ekspedisi.</span></div>
 <div class="progress" id="progressSteps"></div>
 <div class="timeline-layout">
 <section class="timeline-card">
@@ -6217,6 +6522,303 @@
         const resultObserver = new MutationObserver(replayResultMotion);
         resultObserver.observe(resultArea, { attributes: true, attributeFilter: ["class"] });
       }
+    })();
+
+
+    /* DIRAC V10 FEATURE PATCH - ACTUAL
+       Layer tambahan yang aman: tidak mengganti endpoint/API payload/normalisasi utama.
+       Menggunakan wrapper pada fungsi asli agar fungsi cek resi tetap berjalan. */
+    (function initDiracFeaturePatchV10() {
+      const STORAGE_KEY = "dirac_recent_tracking_v10";
+      const REQUEST_TIMEOUT_MS = 15000;
+
+      const offlineBanner = document.getElementById("offlineBanner");
+      const toast = document.getElementById("dgToast");
+      const recentPanel = document.getElementById("recentTrackPanel");
+      const recentList = document.getElementById("recentTrackList");
+      const recentClearButton = document.getElementById("recentClearButton");
+      const copyResiButton = document.getElementById("copyResiButton");
+      const shareResultButton = document.getElementById("shareResultButton");
+      const newTrackButton = document.getElementById("newTrackButton");
+      const resultSourceNote = document.getElementById("resultSourceNote");
+
+      let latestTrackingData = null;
+      let toastTimer = null;
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2400);
+      }
+
+      function updateOfflineBanner() {
+        if (!offlineBanner) return;
+        offlineBanner.classList.toggle("show", navigator.onLine === false);
+      }
+
+      window.addEventListener("online", () => {
+        updateOfflineBanner();
+        showToast("Koneksi tersambung kembali.");
+      });
+
+      window.addEventListener("offline", () => {
+        updateOfflineBanner();
+        showToast("Koneksi terputus. Cek jaringan kamu.");
+      });
+
+      updateOfflineBanner();
+
+      function readRecentItems() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          return Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function writeRecentItems(items) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, 5)));
+        } catch (error) {
+          // localStorage bisa diblokir browser; fitur lain tetap berjalan.
+        }
+      }
+
+      function formatRecentTime(value) {
+        try {
+          return new Intl.DateTimeFormat("id-ID", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit"
+          }).format(new Date(value));
+        } catch (error) {
+          return "Baru saja";
+        }
+      }
+
+      function renderRecentItems() {
+        if (!recentPanel || !recentList) return;
+        const items = readRecentItems();
+        recentPanel.classList.toggle("show", items.length > 0);
+        recentList.innerHTML = "";
+
+        items.forEach((item) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "recent-track-item";
+          button.innerHTML = `
+            <span class="recent-track-main">
+              <b>${item.resi || "Nomor resi"}</b>
+              <span>${item.expeditionName || item.courier || "Ekspedisi"} • ${formatRecentTime(item.checkedAt)}</span>
+            </span>
+            <span class="recent-track-chip">Cek lagi</span>
+          `;
+          button.addEventListener("click", () => {
+            resiInput.value = item.resi || "";
+            expeditionSelect.value = item.courier || "";
+            expeditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            clearError();
+            trackingForm.scrollIntoView({ behavior: "smooth", block: "center" });
+            window.setTimeout(() => resiInput.focus(), 260);
+            showToast("Riwayat resi dimasukkan ke form.");
+          });
+          recentList.appendChild(button);
+        });
+      }
+
+      function saveRecentItem(data, courier) {
+        if (!data || !data.resi) return;
+        const expeditionName = expeditionSelect.options[expeditionSelect.selectedIndex]?.text || data.expedition || courier;
+        const nextItem = {
+          resi: data.resi,
+          courier: courier || expeditionSelect.value,
+          expeditionName,
+          status: data.status || "Status tidak tersedia",
+          checkedAt: Date.now()
+        };
+        const items = readRecentItems().filter((item) => String(item.resi).toLowerCase() !== String(nextItem.resi).toLowerCase());
+        writeRecentItems([nextItem, ...items]);
+        renderRecentItems();
+      }
+
+      function fallbackCopy(text) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand("copy");
+          return Promise.resolve();
+        } catch (error) {
+          return Promise.reject(error);
+        } finally {
+          textarea.remove();
+        }
+      }
+
+      async function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          return navigator.clipboard.writeText(text);
+        }
+        return fallbackCopy(text);
+      }
+
+      function buildShareText() {
+        const data = latestTrackingData || {};
+        const lines = [
+          `Cek Resi Dirac Group`,
+          `Resi: ${data.resi || resultResi.textContent || "-"}`,
+          `Ekspedisi: ${data.expedition || resultExpedition.textContent || "-"}`,
+          `Status: ${data.status || resultStatus.textContent || "-"}`
+        ];
+        return lines.join("\n");
+      }
+
+      if (copyResiButton) {
+        copyResiButton.addEventListener("click", async () => {
+          const value = (latestTrackingData?.resi || resultResi.textContent || "").trim();
+          if (!value || value === "-") {
+            showToast("Belum ada nomor resi untuk disalin.");
+            return;
+          }
+          try {
+            await copyText(value);
+            showToast("Nomor resi berhasil disalin.");
+          } catch (error) {
+            showToast("Gagal menyalin resi di browser ini.");
+          }
+        });
+      }
+
+      if (shareResultButton) {
+        shareResultButton.addEventListener("click", async () => {
+          const text = buildShareText();
+          try {
+            if (navigator.share) {
+              await navigator.share({ title: "Hasil Cek Resi", text });
+              showToast("Hasil tracking siap dibagikan.");
+            } else {
+              await copyText(text);
+              showToast("Browser belum mendukung share. Hasil disalin.");
+            }
+          } catch (error) {
+            if (error && error.name === "AbortError") return;
+            showToast("Gagal membagikan hasil tracking.");
+          }
+        });
+      }
+
+      if (newTrackButton) {
+        newTrackButton.addEventListener("click", () => {
+          trackingForm.scrollIntoView({ behavior: "smooth", block: "center" });
+          window.setTimeout(() => {
+            resiInput.focus();
+            resiInput.select();
+          }, 260);
+          showToast("Silakan masukkan resi berikutnya.");
+        });
+      }
+
+      if (recentClearButton) {
+        recentClearButton.addEventListener("click", () => {
+          writeRecentItems([]);
+          renderRecentItems();
+          showToast("Riwayat cek resi dibersihkan.");
+        });
+      }
+
+      const originalShowErrorV10 = showError;
+      showError = function patchedShowErrorV10(message) {
+        originalShowErrorV10(message);
+        showToast(message || "Terjadi kesalahan.");
+      };
+
+      const originalFetchTrackingDataV10 = fetchTrackingData;
+      fetchTrackingData = async function patchedFetchTrackingDataV10(resi, courier, expeditionName, phoneLast) {
+        if (navigator.onLine === false) {
+          throw new Error("Koneksi internet terputus. Sambungkan internet lalu coba lagi.");
+        }
+
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        const originalFetch = window.fetch;
+        let patchedFetch = null;
+        let timer = null;
+
+        if (controller) {
+          timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+          patchedFetch = function(resource, options) {
+            const nextOptions = Object.assign({}, options || {});
+            if (String(resource) === API_ENDPOINT && !nextOptions.signal) {
+              nextOptions.signal = controller.signal;
+            }
+            return originalFetch.call(this, resource, nextOptions);
+          };
+          window.fetch = patchedFetch;
+        }
+
+        try {
+          return await originalFetchTrackingDataV10(resi, courier, expeditionName, phoneLast);
+        } catch (error) {
+          if (error && error.name === "AbortError") {
+            throw new Error("Request tracking terlalu lama. Coba lagi beberapa saat.");
+          }
+          throw error;
+        } finally {
+          if (timer) window.clearTimeout(timer);
+          if (patchedFetch && window.fetch === patchedFetch) {
+            window.fetch = originalFetch;
+          }
+        }
+      };
+
+      const originalRenderTimelineV10 = renderTimeline;
+      renderTimeline = function patchedRenderTimelineV10(history) {
+        originalRenderTimelineV10(history);
+        if (!history || !history.length) {
+          const emptyText = timelineList.querySelector(".timeline-copy p");
+          if (emptyText) {
+            emptyText.textContent = "Paket ditemukan, tetapi ekspedisi belum mengirim detail perjalanan terbaru ke API.";
+          }
+        }
+      };
+
+      const originalRenderTrackingResultV10 = renderTrackingResult;
+      renderTrackingResult = function patchedRenderTrackingResultV10(data) {
+        latestTrackingData = data;
+        originalRenderTrackingResultV10(data);
+        saveRecentItem(data, expeditionSelect.value);
+
+        if (resultSourceNote) {
+          resultSourceNote.querySelector("span").textContent = "Sumber data: backend Dirac Group yang terhubung ke sistem tracking ekspedisi. Waktu dan detail mengikuti respons API.";
+        }
+
+        resultArea.classList.remove("dg-result-motion");
+        window.requestAnimationFrame(() => {
+          void resultArea.offsetWidth;
+          resultArea.classList.add("dg-result-motion");
+        });
+      };
+
+      expeditionSelect.addEventListener("change", () => {
+        const selected = expeditionSelect.options[expeditionSelect.selectedIndex]?.text || "";
+        if (selected) showToast(`Ekspedisi dipilih: ${selected}`);
+      });
+
+      renderRecentItems();
+
+      window.DiracFeaturePatchV10 = {
+        version: "v10-actual",
+        renderRecentItems,
+        showToast,
+        readRecentItems
+      };
     })();
 
 
