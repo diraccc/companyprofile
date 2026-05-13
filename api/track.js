@@ -58,12 +58,13 @@ function getApiKeys() {
     process.env.RAJAONGKIR_API_KEY_4,
     process.env.RAJAONGKIR_API_KEY_5,
 
-    // fallback lama, supaya kalau environment lama masih dipakai website tetap jalan
+    // API lama kamu. Karena isinya beda, ini akan jadi cadangan ke-6.
     process.env.RAJAONGKIR_API_KEY
   ]
     .map((key) => cleanText(key))
     .filter(Boolean);
 
+  // Menghapus duplikat kalau ada API key yang sama.
   return [...new Set(keys)];
 }
 
@@ -116,7 +117,7 @@ function isDefinitiveClientError(statusCode, payload) {
     text.includes("waybill not found") ||
     text.includes("not found") ||
     text.includes("ekspedisi tidak sesuai") ||
-    text.includes("courier") && text.includes("invalid")
+    (text.includes("courier") && text.includes("invalid"))
   );
 }
 
