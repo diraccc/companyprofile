@@ -1,1223 +1,2112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dirac Group – Building Future‑Ready Digital Experiences</title>
-    <meta name="description" content="Dirac Group is a global technology and innovation company crafting future‑ready digital experiences. Discover our services in digital transformation, web development, AI and automation, cloud solutions and more.">
-    <!-- Google Fonts (lightweight import) -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /*
-         * Core variables
-         * Define colour palette and basic spacing for reuse.
-         */
-        :root {
-            --dark-bg: #0a0e23; /* deep navy background */
-            --dark-card: rgba(255, 255, 255, 0.05); /* subtle card background */
-            --primary-color: #5e60ce; /* premium purple */
-            --secondary-color: #3f37c9; /* deeper purple */
-            --accent-color: #4895ef; /* neon blue */
-            --highlight-color: #4361ee; /* in-between accent */
-            --text-light: #f5f5f5;
-            --text-muted: #b0b3ca;
-            --glass-blur: blur(10px);
-            --transition-fast: 0.3s ease;
-            --transition-slow: 0.6s ease;
-            --section-padding: 4rem 1rem;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Dirac Group is a global digital innovation company building future-ready websites, cloud platforms, AI automation, mobile-first systems, and secure business technology." />
+  <meta name="theme-color" content="#050816" />
+  <title>Dirac Group | Future-Ready Digital Experiences</title>
+  <style>
+    :root {
+      --bg: #050816;
+      --bg-soft: #0a1024;
+      --panel: rgba(255, 255, 255, 0.075);
+      --panel-strong: rgba(255, 255, 255, 0.12);
+      --line: rgba(255, 255, 255, 0.14);
+      --text: #f7fbff;
+      --muted: #aeb8d4;
+      --muted-2: #7f8dad;
+      --blue: #18d8ff;
+      --blue-soft: rgba(24, 216, 255, 0.18);
+      --purple: #8f5cff;
+      --purple-soft: rgba(143, 92, 255, 0.18);
+      --white-soft: rgba(255, 255, 255, 0.72);
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --container: 1180px;
+      --ease: cubic-bezier(.2, .7, .2, 1);
+    }
 
-        /* Global reset and typography */
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        html {
-            scroll-behavior: smooth;
-        }
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: var(--dark-bg);
-            color: var(--text-light);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-        h1, h2, h3, h4 {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        p {
-            margin-bottom: 1rem;
-            color: var(--text-muted);
-        }
-        a {
-            color: var(--accent-color);
-            text-decoration: none;
-            transition: color var(--transition-fast);
-        }
-        a:hover {
-            color: var(--primary-color);
-        }
-        /* Loader */
-        #loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--dark-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.4s ease;
-        }
-        #loading.fade-out {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 5px solid var(--dark-card);
-            border-top: 5px solid var(--accent-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        /* Navbar */
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 2rem;
-            backdrop-filter: var(--glass-blur);
-            background: rgba(10, 14, 35, 0.6);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            z-index: 1000;
-            transition: background 0.3s ease;
-        }
-        .navbar.scrolled {
-            background: rgba(10, 14, 35, 0.9);
-        }
-        .navbar .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-light);
-        }
-        .nav-links {
-            display: flex;
-            gap: 1.5rem;
-        }
-        .nav-links a {
-            font-size: 0.9rem;
-            position: relative;
-            padding: 0.5rem 0;
-        }
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0%;
-            height: 2px;
-            background: var(--accent-color);
-            transition: width var(--transition-fast);
-        }
-        .nav-links a:hover::after,
-        .nav-links a.active::after {
-            width: 100%;
-        }
-        /* Hamburger */
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 5px;
-            cursor: pointer;
-        }
-        .hamburger span {
-            width: 25px;
-            height: 3px;
-            background: var(--text-light);
-            border-radius: 2px;
-            transition: transform var(--transition-fast);
-        }
-        /* Mobile nav overlay */
-        .mobile-nav {
-            position: fixed;
-            top: 0;
-            right: -100%;
-            width: 60%;
-            height: 100vh;
-            background: rgba(10,14,35,0.95);
-            backdrop-filter: var(--glass-blur);
-            display: flex;
-            flex-direction: column;
-            padding: 5rem 2rem;
-            gap: 1.5rem;
-            transition: right 0.4s ease;
-            z-index: 999;
-        }
-        .mobile-nav a {
-            font-size: 1.1rem;
-        }
-        .mobile-nav.show {
-            right: 0;
-        }
-        /* Sections */
-        section {
-            padding: var(--section-padding);
-            min-height: 60vh;
-        }
-.hero {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            height: 100vh;
-            position: relative;
-            overflow: hidden; /* contain background shapes so they don’t bleed into next sections */
-        }
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: -20%;
-            left: -30%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 30%, var(--primary-color), transparent 60%),
-                        radial-gradient(circle at 70% 70%, var(--accent-color), transparent 60%);
-            opacity: 0.15;
-            z-index: -1;
-            transform: rotate(25deg);
-        }
-        .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-        .hero p {
-            max-width: 600px;
-            margin: 0 auto 2rem;
-        }
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 25px;
-            border: 2px solid var(--accent-color);
-            background: transparent;
-            color: var(--accent-color);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background var(--transition-fast), color var(--transition-fast);
-        }
-        .btn:hover {
-            background: var(--accent-color);
-            color: var(--dark-bg);
-        }
-        .btn.primary {
-            background: var(--accent-color);
-            color: var(--dark-bg);
-        }
-        .btn.primary:hover {
-            background: var(--primary-color);
-        }
-        /* About Section */
-        .about {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2rem;
-        }
-        .about-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            width: 100%;
-        }
-        .card {
-            background: var(--dark-card);
-            padding: 2rem;
-            border-radius: 15px;
-            backdrop-filter: var(--glass-blur);
-            box-shadow: 0 4px 30px rgba(0,0,0,0.2);
-            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 40px rgba(0,0,0,0.3);
-        }
-        .card h3 {
-            margin-bottom: 0.5rem;
-            font-size: 1.2rem;
-            color: var(--accent-color);
-        }
-        .card.stat {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        .stat .number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--accent-color);
-        }
-        /* Services Section */
-        .services {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-            width: 100%;
-        }
-        .service-card {
-            background: var(--dark-card);
-            padding: 1.5rem;
-            border-radius: 15px;
-            text-align: center;
-            transition: transform var(--transition-fast), background var(--transition-fast);
-            position: relative;
-        }
-        .service-card .icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--accent-color);
-        }
-        .service-card h4 {
-            margin-bottom: 0.5rem;
-            color: var(--primary-color);
-        }
-        .service-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255,255,255,0.05);
-        }
-        /* Advanced features */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-            width: 100%;
-        }
-        .feature-item {
-            background: var(--dark-card);
-            padding: 1.5rem;
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            transition: background var(--transition-fast), transform var(--transition-fast);
-        }
-        .feature-item:hover {
-            background: rgba(255,255,255,0.05);
-            transform: translateY(-5px);
-        }
-        .feature-item .title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--primary-color);
-        }
-        .feature-item .desc {
-            color: var(--text-muted);
-        }
-        /* Projects Section */
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-            width: 100%;
-        }
-        .project-card {
-            background: var(--dark-card);
-            padding: 1.5rem;
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: transform var(--transition-fast), background var(--transition-fast);
-        }
-        .project-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255,255,255,0.05);
-        }
-        .project-card .tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.3rem;
-            margin: 0.5rem 0;
-        }
-        .tag {
-            background: var(--accent-color);
-            color: var(--dark-bg);
-            padding: 0.2rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .project-card button {
-            margin-top: 1rem;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 20px;
-            background: var(--primary-color);
-            color: var(--dark-bg);
-            cursor: pointer;
-            font-weight: 600;
-            transition: background var(--transition-fast);
-        }
-        .project-card button:hover {
-            background: var(--accent-color);
-        }
-        /* Technology Section */
-        .tech-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2rem;
-        }
-        .tech-badges .badge {
-            background: var(--dark-card);
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--accent-color);
-            box-shadow: inset 0 0 0 1px var(--accent-color);
-            transition: background var(--transition-fast), color var(--transition-fast);
-        }
-        .tech-badges .badge:hover {
-            background: var(--accent-color);
-            color: var(--dark-bg);
-        }
-        /* Team Section */
-        .team-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-            width: 100%;
-        }
-        .team-card {
-            background: var(--dark-card);
-            padding: 2rem 1.5rem;
-            border-radius: 15px;
-            text-align: center;
-            transition: transform var(--transition-fast), background var(--transition-fast);
-        }
-        .team-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255,255,255,0.05);
-        }
-        .team-avatar {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 1rem;
-            border-radius: 50%;
-            background: var(--primary-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--dark-bg);
-            font-weight: 700;
-            font-size: 1.5rem;
-        }
-        .team-card h4 {
-            margin-bottom: 0.25rem;
-            color: var(--primary-color);
-        }
-        .team-card span {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-        /* Testimonial Section */
-        .testimonial-container {
-            position: relative;
-            max-width: 700px;
-            margin: 2rem auto 0;
-            overflow: hidden;
-        }
-        .testimonial {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 2rem;
-            background: var(--dark-card);
-            border-radius: 15px;
-            box-shadow: 0 4px 30px rgba(0,0,0,0.2);
-        }
-        .testimonial.active {
-            display: flex;
-        }
-        .testimonial p {
-            font-style: italic;
-            margin-bottom: 1rem;
-            color: var(--text-light);
-        }
-        .testimonial .client {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-        .testimonial-nav {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .testimonial-nav button {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: none;
-            background: var(--dark-card);
-            box-shadow: 0 0 0 1px var(--accent-color);
-            cursor: pointer;
-        }
-        .testimonial-nav button.active {
-            background: var(--accent-color);
-        }
-        /* FAQ Section */
-        .faq-item {
-            background: var(--dark-card);
-            margin-bottom: 1rem;
-            border-radius: 10px;
-            overflow: hidden;
-            transition: background var(--transition-fast);
-        }
-        .faq-question {
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
-        .faq-question h4 {
-            font-size: 1rem;
-            color: var(--primary-color);
-        }
-        .faq-answer {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height var(--transition-slow);
-            padding: 0 1.5rem;
-        }
-        .faq-answer.open {
-            padding: 1rem 1.5rem;
-        }
-        /* Contact Section */
-        .contact-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-        .contact-info {
-            background: var(--dark-card);
-            padding: 2rem;
-            border-radius: 15px;
-            backdrop-filter: var(--glass-blur);
-        }
-        .contact-info h4 {
-            margin-bottom: 0.5rem;
-            color: var(--primary-color);
-        }
-        .contact-info p {
-            margin-bottom: 0.75rem;
-        }
-        .contact-form {
-            background: var(--dark-card);
-            padding: 2rem;
-            border-radius: 15px;
-            backdrop-filter: var(--glass-blur);
-        }
-        .contact-form form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .contact-form label {
-            font-size: 0.85rem;
-            margin-bottom: 0.25rem;
-            color: var(--text-muted);
-        }
-        .contact-form input,
-        .contact-form textarea {
-            padding: 0.75rem;
-            border-radius: 8px;
-            border: none;
-            outline: none;
-            background: rgba(255,255,255,0.08);
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
-        .contact-form textarea {
-            resize: vertical;
-            height: 120px;
-        }
-        .contact-form button {
-            padding: 0.75rem;
-            border: none;
-            border-radius: 8px;
-            background: var(--primary-color);
-            color: var(--dark-bg);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background var(--transition-fast);
-        }
-        .contact-form button:hover {
-            background: var(--accent-color);
-        }
-        .form-message {
-            display: none;
-            margin-top: 1rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            background: var(--accent-color);
-            color: var(--dark-bg);
-        }
-        /* Footer */
-        footer {
-            background: rgba(10,14,35,0.95);
-            backdrop-filter: var(--glass-blur);
-            padding: 3rem 1rem;
-            text-align: center;
-        }
-        footer .footer-top {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        footer .footer-links {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        footer .footer-links a {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-        footer .footer-links a:hover {
-            color: var(--accent-color);
-        }
-        footer .social {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-        footer .social a {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255,255,255,0.08);
-            color: var(--accent-color);
-            font-size: 1.2rem;
-            transition: background var(--transition-fast);
-        }
-        footer .social a:hover {
-            background: var(--accent-color);
-            color: var(--dark-bg);
-        }
-        footer p {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-        /* Back to top button */
-        #backToTop {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary-color);
-            color: var(--dark-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            cursor: pointer;
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity var(--transition-fast), visibility var(--transition-fast);
-        }
-        #backToTop.show {
-            visibility: visible;
-            opacity: 1;
-        }
-        /* Media queries */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-            .hamburger {
-                display: flex;
-            }
-            section {
-                padding: 3rem 1rem;
-            }
-            .hero h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 92px;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 8%, rgba(24, 216, 255, 0.18), transparent 28rem),
+        radial-gradient(circle at 86% 10%, rgba(143, 92, 255, 0.2), transparent 30rem),
+        linear-gradient(180deg, #040716 0%, #060a18 45%, #050816 100%);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    body.menu-open,
+    body.loading {
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    img,
+    svg {
+      max-width: 100%;
+      display: block;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background: #040716;
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+
+    .loader.hide {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .loader-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .loader-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: conic-gradient(from 90deg, var(--blue), var(--purple), transparent 70%);
+      animation: spin .8s linear infinite;
+      position: relative;
+    }
+
+    .loader-mark::after {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: inherit;
+      background: #050816;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(1turn); }
+    }
+
+    .container {
+      width: min(100% - 32px, var(--container));
+      margin-inline: auto;
+    }
+
+    .section {
+      padding: 92px 0;
+      position: relative;
+    }
+
+    .section.compact {
+      padding-top: 64px;
+    }
+
+    .section-head {
+      max-width: 760px;
+      margin-bottom: 42px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 7px 12px;
+      border: 1px solid rgba(24, 216, 255, 0.25);
+      border-radius: 999px;
+      color: #c9f8ff;
+      background: rgba(24, 216, 255, 0.07);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 16px var(--blue);
+    }
+
+    h1,
+    h2,
+    h3 {
+      letter-spacing: -0.04em;
+      line-height: 1.08;
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 8vw, 6.85rem);
+      max-width: 980px;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4.8vw, 4rem);
+      max-width: 850px;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+    }
+
+    p {
+      color: var(--muted);
+    }
+
+    .gradient-text {
+      background: linear-gradient(120deg, #ffffff 15%, var(--blue) 52%, #b794ff 88%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .btn {
+      position: relative;
+      isolation: isolate;
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 13px 20px;
+      border-radius: 999px;
+      font-weight: 800;
+      transition: transform .22s var(--ease), border-color .22s var(--ease), background .22s var(--ease), box-shadow .22s var(--ease);
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .btn:hover,
+    .btn:focus-visible {
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .btn-primary {
+      color: #020614;
+      background: linear-gradient(135deg, var(--blue), #8ef2ff 44%, #b794ff);
+      box-shadow: 0 16px 44px rgba(24, 216, 255, .18);
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus-visible {
+      box-shadow: 0 22px 56px rgba(24, 216, 255, .28);
+    }
+
+    .btn-ghost {
+      border: 1px solid rgba(255, 255, 255, .18);
+      color: var(--text);
+      background: rgba(255, 255, 255, .07);
+      backdrop-filter: blur(14px);
+    }
+
+    .btn-ghost:hover,
+    .btn-ghost:focus-visible {
+      border-color: rgba(24, 216, 255, .38);
+      background: rgba(24, 216, 255, .08);
+    }
+
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      transition: background .25s ease, border-color .25s ease, box-shadow .25s ease, padding .25s ease;
+      border-bottom: 1px solid transparent;
+    }
+
+    .nav.scrolled {
+      background: rgba(5, 8, 22, .72);
+      border-color: rgba(255, 255, 255, .12);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .24);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-wrap {
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      z-index: 1002;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      background:
+        linear-gradient(135deg, rgba(24, 216, 255, .95), rgba(143, 92, 255, .95)),
+        #111;
+      color: #030613;
+      font-size: .92rem;
+      box-shadow: 0 12px 38px rgba(24, 216, 255, .22);
+    }
+
+    .brand-text {
+      font-size: 1.06rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      list-style: none;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: .92rem;
+      font-weight: 700;
+      transition: color .2s ease, background .2s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link:focus-visible,
+    .nav-link.active {
+      color: var(--text);
+      background: rgba(255, 255, 255, .08);
+      outline: none;
+    }
+
+    .hamburger {
+      display: none;
+      z-index: 1002;
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      color: var(--text);
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    .hamburger span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      margin: 5px auto;
+      border-radius: 4px;
+      background: currentColor;
+      transition: transform .25s ease, opacity .2s ease;
+    }
+
+    .hamburger[aria-expanded="true"] span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .hamburger[aria-expanded="true"] span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .hamburger[aria-expanded="true"] span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .hero {
+      min-height: 100svh;
+      padding: 132px 0 76px;
+      display: grid;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(280px, .78fr);
+      gap: 46px;
+      align-items: center;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-copy p {
+      max-width: 720px;
+      margin: 24px 0 30px;
+      font-size: clamp(1rem, 2.5vw, 1.22rem);
+      color: #c1cbe4;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+      color: var(--muted-2);
+      font-size: .92rem;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      background: rgba(255,255,255,.055);
+    }
+
+    .meta-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 15px var(--blue);
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 460px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 36px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.045)),
+        radial-gradient(circle at top right, rgba(24,216,255,.18), transparent 52%),
+        radial-gradient(circle at bottom left, rgba(143,92,255,.2), transparent 50%);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .hero-visual::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.85), transparent 86%);
+    }
+
+    .orbit {
+      position: absolute;
+      inset: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.16);
+      animation: floaty 7s ease-in-out infinite;
+    }
+
+    .orbit:nth-child(2) {
+      inset: 92px;
+      animation-delay: -2s;
+      border-color: rgba(24,216,255,.16);
+    }
+
+    .orb {
+      position: absolute;
+      width: 130px;
+      height: 130px;
+      border-radius: 42px;
+      background: linear-gradient(145deg, rgba(24,216,255,.32), rgba(143,92,255,.26));
+      box-shadow: 0 18px 60px rgba(24,216,255,.18);
+      transform: rotate(16deg);
+    }
+
+    .orb.one {
+      top: 58px;
+      right: 52px;
+    }
+
+    .orb.two {
+      width: 86px;
+      height: 86px;
+      left: 48px;
+      bottom: 70px;
+      border-radius: 30px;
+      animation: pulseSoft 3.4s ease-in-out infinite;
+    }
+
+    .dashboard-card {
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      bottom: 34px;
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 26px;
+      background: rgba(4, 7, 19, .64);
+      backdrop-filter: blur(18px);
+    }
+
+    .dash-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .dash-title {
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+
+    .dash-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #bff9d0;
+      font-size: .8rem;
+      font-weight: 800;
+    }
+
+    .dash-status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #57ff8f;
+      box-shadow: 0 0 14px #57ff8f;
+    }
+
+    .dash-bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .dash-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.1);
+      overflow: hidden;
+    }
+
+    .dash-bar span {
+      display: block;
+      height: 100%;
+      width: var(--w);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+    }
+
+    .floating-card {
+      position: absolute;
+      top: 34px;
+      left: 32px;
+      width: min(230px, calc(100% - 64px));
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 24px;
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(16px);
+    }
+
+    .floating-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 1.55rem;
+      letter-spacing: -.05em;
+    }
+
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    @keyframes pulseSoft {
+      0%, 100% { transform: rotate(16deg) scale(1); }
+      50% { transform: rotate(16deg) scale(1.055); }
+    }
+
+    .grid {
+      display: grid;
+      gap: 22px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.045));
+      box-shadow: 0 18px 55px rgba(0,0,0,.2);
+      backdrop-filter: blur(16px);
+      transition: transform .24s var(--ease), border-color .24s var(--ease), background .24s var(--ease), box-shadow .24s var(--ease);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(24,216,255,.16), transparent 42%);
+      opacity: 0;
+      transition: opacity .24s ease;
+      pointer-events: none;
+    }
+
+    .card:hover,
+    .card:focus-within {
+      transform: translateY(-6px);
+      border-color: rgba(24,216,255,.32);
+      box-shadow: 0 24px 72px rgba(0,0,0,.28);
+    }
+
+    .card:hover::before,
+    .card:focus-within::before {
+      opacity: 1;
+    }
+
+    .card-body {
+      position: relative;
+      padding: 25px;
+      z-index: 1;
+    }
+
+    .about-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(300px, 1.08fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .mission-card {
+      min-height: 100%;
+    }
+
+    .mission-card .card-body {
+      padding: 34px;
+    }
+
+    .mission-list {
+      margin-top: 24px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .mission-item {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 13px;
+      align-items: start;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 18px;
+      background: rgba(255,255,255,.045);
+    }
+
+    .icon-bubble {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--blue-soft), var(--purple-soft));
+      color: #dffaff;
+      font-size: 1.2rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .stat-card .card-body {
+      padding: 24px;
+    }
+
+    .stat-number {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+      margin-bottom: 7px;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 950;
+      letter-spacing: -.06em;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .service-card {
+      min-height: 245px;
+    }
+
+    .service-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 22px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(24,216,255,.18), rgba(143,92,255,.16));
+      font-size: 1.6rem;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
+    }
+
+    .service-card h3,
+    .feature-card h3,
+    .project-card h3,
+    .team-card h3 {
+      margin-bottom: 10px;
+    }
+
+    .feature-card {
+      padding: 0;
+    }
+
+    .feature-number {
+      display: inline-flex;
+      margin-bottom: 18px;
+      color: var(--blue);
+      font-weight: 950;
+      letter-spacing: .1em;
+    }
+
+    .projects-wrap {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(270px, 1fr));
+      gap: 20px;
+      overflow-x: auto;
+      padding: 2px 2px 14px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: thin;
+    }
+
+    .project-card {
+      min-height: 360px;
+      scroll-snap-align: start;
+    }
+
+    .project-visual {
+      height: 126px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      background:
+        linear-gradient(135deg, rgba(24,216,255,.35), rgba(143,92,255,.3)),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,.3), transparent 24%),
+        #09112a;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .project-visual::after {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 16px;
+      background-image: linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 22px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: #dce8ff;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .text-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #c9f8ff;
+      font-weight: 900;
+      transition: gap .2s ease, color .2s ease;
+    }
+
+    .text-link:hover,
+    .text-link:focus-visible {
+      gap: 12px;
+      color: #fff;
+      outline: none;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .tech-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 74px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      background: rgba(255,255,255,.055);
+      color: #dbe6ff;
+      font-weight: 900;
+      transition: transform .2s var(--ease), border-color .2s ease, background .2s ease;
+    }
+
+    .tech-badge:hover {
+      transform: translateY(-4px);
+      border-color: rgba(24,216,255,.28);
+      background: rgba(24,216,255,.075);
+    }
+
+    .team-avatar {
+      width: 74px;
+      height: 74px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #020614;
+      font-size: 1.25rem;
+      font-weight: 950;
+      box-shadow: 0 16px 48px rgba(24,216,255,.16);
+    }
+
+    .team-role {
+      display: inline-flex;
+      margin-bottom: 14px;
+      color: var(--blue);
+      font-weight: 850;
+      font-size: .88rem;
+    }
+
+    .testimonial-shell {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(145deg, rgba(255,255,255,.1), rgba(255,255,255,.045));
+      box-shadow: var(--shadow);
+    }
+
+    .testimonial-track {
+      display: flex;
+      transition: transform .36s var(--ease);
+    }
+
+    .testimonial-slide {
+      min-width: 100%;
+      padding: clamp(26px, 5vw, 48px);
+    }
+
+    .quote {
+      margin-bottom: 24px;
+      color: #e8efff;
+      font-size: clamp(1.16rem, 3vw, 1.75rem);
+      line-height: 1.45;
+      letter-spacing: -.03em;
+    }
+
+    .client {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .client-avatar {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      flex: none;
+      border-radius: 16px;
+      background: rgba(24,216,255,.16);
+      color: #dffaff;
+      font-weight: 950;
+    }
+
+    .testimonial-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 clamp(26px, 5vw, 48px) clamp(24px, 4vw, 38px);
+    }
+
+    .slider-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.28);
+      transition: width .2s ease, background .2s ease;
+    }
+
+    .dot.active {
+      width: 26px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+    }
+
+    .slider-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .circle-btn {
+      width: 43px;
+      height: 43px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .circle-btn:hover,
+    .circle-btn:focus-visible {
+      transform: translateY(-2px);
+      background: rgba(24,216,255,.12);
+      outline: none;
+    }
+
+    .faq-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .faq-item {
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      background: rgba(255,255,255,.055);
+      overflow: hidden;
+    }
+
+    .faq-question {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 22px;
+      color: var(--text);
+      background: transparent;
+      text-align: left;
+      font-weight: 900;
+    }
+
+    .faq-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      flex: none;
+      border-radius: 50%;
+      background: rgba(24,216,255,.1);
+      color: var(--blue);
+      transition: transform .25s ease;
+    }
+
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .28s ease;
+    }
+
+    .faq-answer p {
+      padding: 0 22px 22px;
+    }
+
+    .contact-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(300px, 1.1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .contact-info {
+      display: grid;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .contact-info-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.11);
+      background: rgba(255,255,255,.055);
+    }
+
+    .form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      color: #e7edff;
+      font-size: .9rem;
+      font-weight: 850;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      min-height: 50px;
+      padding: 13px 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 16px;
+      color: var(--text);
+      background: rgba(255,255,255,.065);
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .field textarea {
+      min-height: 136px;
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: rgba(24,216,255,.48);
+      box-shadow: 0 0 0 4px rgba(24,216,255,.1);
+      background: rgba(255,255,255,.085);
+    }
+
+    .field small {
+      min-height: 18px;
+      color: #ffb3c7;
+      font-size: .78rem;
+    }
+
+    .form-alert {
+      display: none;
+      padding: 14px 16px;
+      border: 1px solid rgba(87,255,143,.3);
+      border-radius: 16px;
+      color: #d8ffe4;
+      background: rgba(87,255,143,.08);
+      font-weight: 800;
+    }
+
+    .form-alert.show {
+      display: block;
+    }
+
+    .footer {
+      padding: 54px 0 26px;
+      border-top: 1px solid rgba(255,255,255,.1);
+      background: rgba(0,0,0,.18);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(160px, .5fr));
+      gap: 32px;
+      align-items: start;
+    }
+
+    .footer p {
+      max-width: 520px;
+      margin-top: 16px;
+    }
+
+    .footer h3 {
+      margin-bottom: 14px;
+      font-size: 1rem;
+    }
+
+    .footer-links,
+    .social-links {
+      display: grid;
+      gap: 10px;
+      list-style: none;
+    }
+
+    .footer-links a,
+    .social-links a {
+      color: var(--muted);
+      transition: color .2s ease;
+    }
+
+    .footer-links a:hover,
+    .social-links a:hover {
+      color: var(--text);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 42px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(255,255,255,.1);
+      color: var(--muted-2);
+      font-size: .92rem;
+    }
+
+    .back-to-top {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 999;
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #020614;
+      background: linear-gradient(135deg, var(--blue), #b794ff);
+      box-shadow: 0 14px 44px rgba(24,216,255,.24);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+      transition: opacity .2s ease, visibility .2s ease, transform .2s ease;
+    }
+
+    .back-to-top.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .decor-blur {
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      filter: blur(50px);
+      opacity: .15;
+      pointer-events: none;
+      background: var(--blue);
+    }
+
+    .decor-blur.purple {
+      background: var(--purple);
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity .55s ease, transform .55s var(--ease);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1060px) {
+      .nav-links {
+        position: fixed;
+        inset: 0 0 auto 0;
+        min-height: 100svh;
+        display: grid;
+        align-content: center;
+        justify-items: stretch;
+        gap: 8px;
+        padding: 94px 24px 34px;
+        background: rgba(5, 8, 22, .94);
+        backdrop-filter: blur(20px);
+        transform: translateY(-100%);
+        transition: transform .28s var(--ease);
+      }
+
+      .nav-links.open {
+        transform: translateY(0);
+      }
+
+      .nav-link {
+        justify-content: center;
+        min-height: 52px;
+        border: 1px solid rgba(255,255,255,.1);
+        background: rgba(255,255,255,.045);
+        font-size: 1rem;
+      }
+
+      .hamburger {
+        display: block;
+      }
+
+      .hero-grid,
+      .about-layout,
+      .contact-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual {
+        min-height: 390px;
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .tech-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .container {
+        width: min(100% - 24px, var(--container));
+      }
+
+      .section {
+        padding: 70px 0;
+      }
+
+      .nav-wrap {
+        min-height: 70px;
+      }
+
+      .brand-mark {
+        width: 35px;
+        height: 35px;
+        border-radius: 12px;
+      }
+
+      .hero {
+        min-height: auto;
+        padding: 112px 0 54px;
+      }
+
+      .hero-copy p {
+        margin: 20px 0 25px;
+      }
+
+      .btn-row,
+      .hero-meta {
+        width: 100%;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .meta-pill {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .hero-visual {
+        min-height: 330px;
+        border-radius: 28px;
+      }
+
+      .floating-card {
+        top: 22px;
+        left: 22px;
+        width: calc(100% - 44px);
+      }
+
+      .dashboard-card {
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        padding: 18px;
+      }
+
+      .orb.one {
+        top: 96px;
+        right: 24px;
+        width: 92px;
+        height: 92px;
+        border-radius: 30px;
+      }
+
+      .orb.two,
+      .orbit {
+        display: none;
+      }
+
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .stats-grid,
+      .tech-grid,
+      .form-grid,
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card-body,
+      .mission-card .card-body {
+        padding: 22px;
+      }
+
+      .projects-wrap {
+        grid-template-columns: 1fr;
+        overflow-x: visible;
+        padding-bottom: 0;
+      }
+
+      .project-card {
+        min-height: auto;
+      }
+
+      .testimonial-controls,
+      .footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .contact-info-item {
+        grid-template-columns: 38px 1fr;
+      }
+    }
+
+    @media (max-width: 420px) {
+      h1 {
+        font-size: 2.55rem;
+      }
+
+      h2 {
+        font-size: 2rem;
+      }
+
+      .section-head {
+        margin-bottom: 30px;
+      }
+
+      .service-card {
+        min-height: auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  </style>
 </head>
-<body>
-    <!-- Loading screen -->
-    <div id="loading">
-        <div class="spinner" aria-label="Loading"></div>
+<body class="loading">
+  <div class="loader" id="loader" aria-label="Loading Dirac Group website">
+    <div class="loader-card" role="status" aria-live="polite">
+      <span class="loader-mark" aria-hidden="true"></span>
+      <strong>Dirac Group</strong>
     </div>
-    <!-- Navigation -->
-    <header class="navbar" id="navbar">
-        <div class="logo">Dirac Group</div>
-        <nav class="nav-links" aria-label="Primary navigation">
-            <a href="#home" class="active">Home</a>
-            <a href="#about">About</a>
-            <a href="#services">Services</a>
-            <a href="#projects">Projects</a>
-            <a href="#technology">Technology</a>
-            <a href="#team">Team</a>
-            <a href="#testimonials">Testimonials</a>
-            <a href="#faq">FAQ</a>
-            <a href="#contact">Contact</a>
-        </nav>
-        <div class="hamburger" id="hamburger" aria-label="Toggle navigation" role="button" tabindex="0">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
-        <div class="mobile-nav" id="mobileNav" aria-label="Mobile navigation">
-            <a href="#home">Home</a>
-            <a href="#about">About</a>
-            <a href="#services">Services</a>
-            <a href="#projects">Projects</a>
-            <a href="#technology">Technology</a>
-            <a href="#team">Team</a>
-            <a href="#testimonials">Testimonials</a>
-            <a href="#faq">FAQ</a>
-            <a href="#contact">Contact</a>
-        </div>
-    </header>
-    <!-- Main content -->
-    <main>
-        <!-- Hero Section -->
-        <section id="home" class="hero section">
-            <h1>Building Future‑Ready Digital Experiences</h1>
-            <p>We are Dirac Group – a global leader in technology and innovation. We partner with visionary brands and ambitious startups to craft digital products that define the future.</p>
-            <div class="cta-buttons">
-                <a href="#contact" class="btn primary" aria-label="Get started with Dirac Group">Get Started</a>
-                <a href="#services" class="btn" aria-label="Explore our services">Explore Services</a>
-            </div>
-        </section>
-        <!-- About Section -->
-        <section id="about" class="about">
-            <h2>About Dirac Group</h2>
-            <p>Dirac Group pioneers innovation across industries. Our mission is to empower businesses with cutting‑edge technology while our vision is to shape a connected future through digital excellence. We uphold values of integrity, curiosity and relentless pursuit of quality.</p>
-            <div class="about-cards">
-                <div class="card stat" data-target="10">
-                    <div class="number">0</div>
-                    <h3>Years of Innovation</h3>
-                    <p>Delivering breakthrough solutions for over a decade.</p>
-                </div>
-                <div class="card stat" data-target="50">
-                    <div class="number">0</div>
-                    <h3>Projects Delivered</h3>
-                    <p>Success stories across diverse industries.</p>
-                </div>
-                <div class="card stat" data-target="20">
-                    <div class="number">0</div>
-                    <h3>Global Partners</h3>
-                    <p>Collaborations that transcend borders.</p>
-                </div>
-                <div class="card stat" data-target="99">
-                    <div class="number">0</div>
-                    <h3>Client Satisfaction</h3>
-                    <p>Our clients trust and recommend us.</p>
-                </div>
-            </div>
-        </section>
-        <!-- Services Section -->
-        <section id="services" class="services">
-            <h2>Our Services</h2>
-            <p>We offer a suite of services designed to transform your business and accelerate growth.</p>
-            <div class="services-grid">
-                <div class="service-card">
-                    <div class="icon" aria-hidden="true">⚙️</div>
-                    <h4>Digital Transformation</h4>
-                    <p>Future‑proof your operations with our holistic digital strategies.</p>
-                </div>
-                <div class="service-card">
-                    <div class="icon" aria-hidden="true">💻</div>
-                    <h4>Web Development</h4>
-                    <p>Crafting powerful websites that blend design, performance and scalability.</p>
-                </div>
-                <div class="service-card">
-                    <div class="icon" aria-hidden="true">📱</div>
-                    <h4>Mobile Optimization</h4>
-                    <p>Ensuring delightful experiences on every device with responsive mobile‑first solutions.</p>
-                </div>
-                <div class="service-card">
-                    <div class="icon" aria-hidden="true">☁️</div>
-                    <h4>Cloud Solutions</h4>
-                    <p>Scalable and secure cloud architectures tailored to your business needs.</p>
-                </div>
-                <div class="service-card">
-                    <div class="icon" aria-hidden="true">🤖</div>
-                    <h4>AI & Automation</h4>
-                    <p>Unlock insights and efficiency through intelligent automation and machine learning.</p>
-                </div>
-                <div class="service-card">
-                    <div class="icon" aria-hidden="true">📈</div>
-                    <h4>Business Strategy</h4>
-                    <p>Strategic guidance to help you navigate the digital landscape with confidence.</p>
-                </div>
-            </div>
-        </section>
-        <!-- Advanced Features Section -->
-        <section id="features" class="features">
-            <h2>Advanced Capabilities</h2>
-            <p>We leverage advanced technologies to elevate your organisation to new heights.</p>
-            <div class="features-grid">
-                <div class="feature-item">
-                    <span class="title">Smart Dashboard</span>
-                    <span class="desc">Real‑time insights to drive informed decisions.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="title">AI‑Powered Workflow</span>
-                    <span class="desc">Automate tasks and optimise productivity.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="title">Business Insights</span>
-                    <span class="desc">Monitor performance and uncover growth opportunities.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="title">Secure Infrastructure</span>
-                    <span class="desc">Protect your data with enterprise‑grade security.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="title">Scalable Architecture</span>
-                    <span class="desc">Grow without limits with our modular solutions.</span>
-                </div>
-                <div class="feature-item">
-                    <span class="title">Mobile‑First Optimization</span>
-                    <span class="desc">Optimised experiences across smartphones and tablets.</span>
-                </div>
-            </div>
-        </section>
-        <!-- Projects Section -->
-        <section id="projects" class="projects">
-            <h2>Our Projects</h2>
-            <p>Explore some of our recent successes in building enterprise solutions.</p>
-            <div class="projects-grid">
-                <div class="project-card">
-                    <h4>Enterprise Website</h4>
-                    <p>A robust corporate portal with seamless user experience.</p>
-                    <div class="tags">
-                        <span class="tag">HTML5</span>
-                        <span class="tag">CSS3</span>
-                        <span class="tag">JavaScript</span>
-                    </div>
-                    <button aria-label="View details about Enterprise Website">View Details</button>
-                </div>
-                <div class="project-card">
-                    <h4>Logistics Platform</h4>
-                    <p>Streamlined supply chain management with real‑time tracking.</p>
-                    <div class="tags">
-                        <span class="tag">Cloud</span>
-                        <span class="tag">API</span>
-                        <span class="tag">Security</span>
-                    </div>
-                    <button aria-label="View details about Logistics Platform">View Details</button>
-                </div>
-                <div class="project-card">
-                    <h4>AI Business Tool</h4>
-                    <p>An intelligent analytics suite that learns from your data.</p>
-                    <div class="tags">
-                        <span class="tag">AI</span>
-                        <span class="tag">Machine Learning</span>
-                        <span class="tag">Automation</span>
-                    </div>
-                    <button aria-label="View details about AI Business Tool">View Details</button>
-                </div>
-                <div class="project-card">
-                    <h4>Corporate Dashboard</h4>
-                    <p>Holistic view of key metrics across your organisation.</p>
-                    <div class="tags">
-                        <span class="tag">Dashboard</span>
-                        <span class="tag">Analytics</span>
-                        <span class="tag">UX</span>
-                    </div>
-                    <button aria-label="View details about Corporate Dashboard">View Details</button>
-                </div>
-                <div class="project-card">
-                    <h4>Mobile Commerce</h4>
-                    <p>Custom mobile commerce platform designed for engagement.</p>
-                    <div class="tags">
-                        <span class="tag">eCommerce</span>
-                        <span class="tag">Mobile</span>
-                        <span class="tag">Performance</span>
-                    </div>
-                    <button aria-label="View details about Mobile Commerce">View Details</button>
-                </div>
-            </div>
-        </section>
-        <!-- Technology Section -->
-        <section id="technology" class="technology">
-            <h2>Technology Stack</h2>
-            <p>We work with cutting‑edge tools to deliver secure, efficient and modern solutions.</p>
-            <div class="tech-badges">
-                <span class="badge">HTML5</span>
-                <span class="badge">CSS3</span>
-                <span class="badge">JavaScript</span>
-                <span class="badge">Cloud</span>
-                <span class="badge">AI</span>
-                <span class="badge">Security</span>
-                <span class="badge">API Integration</span>
-                <span class="badge">Mobile Optimization</span>
-            </div>
-        </section>
-        <!-- Team Section -->
-        <section id="team" class="team">
-            <h2>Meet Our Team</h2>
-            <p>Our multi‑disciplinary team brings passion, expertise and vision to every project.</p>
-            <div class="team-grid">
-                <div class="team-card">
-                    <div class="team-avatar" aria-hidden="true">AD</div>
-                    <h4>Arthur Dirac</h4>
-                    <span>CEO / Founder</span>
-                    <p>Arthur leads Dirac Group with a vision for innovation and excellence.</p>
-                </div>
-                <div class="team-card">
-                    <div class="team-avatar" aria-hidden="true">JR</div>
-                    <h4>Jane Rowe</h4>
-                    <span>Chief Technology Officer</span>
-                    <p>Jane drives our technology strategy and engineering excellence.</p>
-                </div>
-                <div class="team-card">
-                    <div class="team-avatar" aria-hidden="true">LV</div>
-                    <h4>Leo Vance</h4>
-                    <span>Product Designer</span>
-                    <p>Leo crafts intuitive experiences that delight users worldwide.</p>
-                </div>
-                <div class="team-card">
-                    <div class="team-avatar" aria-hidden="true">MK</div>
-                    <h4>Maya Kim</h4>
-                    <span>Business Strategist</span>
-                    <p>Maya helps clients navigate digital transformation with strategic insight.</p>
-                </div>
-            </div>
-        </section>
-        <!-- Testimonials Section -->
-        <section id="testimonials" class="testimonials">
-            <h2>What Our Clients Say</h2>
-            <p>Hear from our partners about how Dirac Group has transformed their businesses.</p>
-            <div class="testimonial-container">
-                <div class="testimonial active">
-                    <p>“Dirac Group delivered far beyond our expectations. Their team transformed our legacy systems into a modern digital platform that performs beautifully.”</p>
-                    <span class="client">— Global Enterprise, CEO</span>
-                </div>
-                <div class="testimonial">
-                    <p>“We chose Dirac for their expertise in AI and automation. The solutions have revolutionised our operations and improved our efficiency dramatically.”</p>
-                    <span class="client">— Logistics Company, Operations Director</span>
-                </div>
-                <div class="testimonial">
-                    <p>“Working with Dirac Group was a pleasure. They listen, they understand and they deliver exceptional results.”</p>
-                    <span class="client">— Tech Startup, Founder</span>
-                </div>
-            </div>
-            <div class="testimonial-nav">
-                <button class="active" aria-label="Testimonial 1"></button>
-                <button aria-label="Testimonial 2"></button>
-                <button aria-label="Testimonial 3"></button>
-            </div>
-        </section>
-        <!-- FAQ Section -->
-        <section id="faq" class="faq">
-            <h2>Frequently Asked Questions</h2>
-            <p>Find answers to common questions about our services and process.</p>
-            <div class="faq-item">
-                <div class="faq-question" tabindex="0" aria-expanded="false">
-                    <h4>What industries do you serve?</h4>
-                    <span>+</span>
-                </div>
-                <div class="faq-answer">
-                    <p>We partner with organisations across numerous industries including finance, healthcare, logistics, retail, education, and technology. Our adaptable solutions meet diverse needs.</p>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question" tabindex="0" aria-expanded="false">
-                    <h4>How long does a typical project take?</h4>
-                    <span>+</span>
-                </div>
-                <div class="faq-answer">
-                    <p>Project timelines vary based on scope and complexity. We work collaboratively to define clear milestones and deliver results efficiently without sacrificing quality.</p>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question" tabindex="0" aria-expanded="false">
-                    <h4>Do you provide ongoing support?</h4>
-                    <span>+</span>
-                </div>
-                <div class="faq-answer">
-                    <p>Yes. We offer post‑launch maintenance, performance monitoring and iterative enhancements to ensure your solution continues to perform and evolve.</p>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question" tabindex="0" aria-expanded="false">
-                    <h4>Can you integrate with existing systems?</h4>
-                    <span>+</span>
-                </div>
-                <div class="faq-answer">
-                    <p>Our team specialises in seamless integration of new features into existing infrastructures. We assess your environment and design connectors to unify data and workflows.</p>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question" tabindex="0" aria-expanded="false">
-                    <h4>How do we get started?</h4>
-                    <span>+</span>
-                </div>
-                <div class="faq-answer">
-                    <p>Begin by reaching out through our contact form. We'll schedule a discovery call to understand your goals and propose a tailored approach.</p>
-                </div>
-            </div>
-        </section>
-        <!-- Contact Section -->
-        <section id="contact" class="contact">
-            <h2>Contact Us</h2>
-            <p>We'd love to hear from you. Send us a message and let's discuss how we can help your business grow.</p>
-            <div class="contact-container">
-                <div class="contact-info">
-                    <h4>Get in Touch</h4>
-                    <p><strong>Email:</strong> contact@diracgroup.com</p>
-                    <p><strong>Location:</strong> Global Digital Office</p>
-                    <p><strong>Working Hours:</strong> Monday – Friday, 9:00 – 18:00</p>
-                    <a href="#" class="btn" aria-label="Chat on WhatsApp">Chat on WhatsApp</a>
-                </div>
-                <div class="contact-form">
-                    <form id="contactForm" novalidate>
-                        <div>
-                            <label for="name">Name</label>
-                            <input type="text" id="name" name="name" required aria-required="true">
-                        </div>
-                        <div>
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email" required aria-required="true">
-                        </div>
-                        <div>
-                            <label for="company">Company</label>
-                            <input type="text" id="company" name="company">
-                        </div>
-                        <div>
-                            <label for="message">Message</label>
-                            <textarea id="message" name="message" required aria-required="true"></textarea>
-                        </div>
-                        <button type="submit" aria-label="Send message">Send Message</button>
-                        <div class="form-message" id="formMessage" aria-live="polite">Thank you! Your message has been sent.</div>
-                    </form>
-                </div>
-            </div>
-        </section>
-    </main>
-    <!-- Back to top button -->
-    <div id="backToTop" aria-label="Back to top" role="button">↑</div>
-    <!-- Footer -->
-    <footer>
-        <div class="footer-top">
-            <h3>Dirac Group</h3>
-            <p>Crafting future‑ready digital experiences for organisations worldwide.</p>
-        </div>
-        <div class="footer-links">
-            <a href="#home">Home</a>
-            <a href="#about">About</a>
-            <a href="#services">Services</a>
-            <a href="#projects">Projects</a>
-            <a href="#contact">Contact</a>
-        </div>
-        <div class="social">
-            <a href="#" aria-label="Visit LinkedIn"><span aria-hidden="true">in</span></a>
-            <a href="#" aria-label="Visit Twitter"><span aria-hidden="true">t</span></a>
-            <a href="#" aria-label="Visit Facebook"><span aria-hidden="true">f</span></a>
-        </div>
-        <p>© 2026 Dirac Group. All Rights Reserved.</p>
-    </footer>
-    <script>
-        // Wait for document ready
-        document.addEventListener('DOMContentLoaded', function() {
-            /* Loading screen fade-out */
-            setTimeout(() => {
-                document.getElementById('loading').classList.add('fade-out');
-            }, 800);
+  </div>
 
-            /* Mobile menu toggle */
-            const hamburger = document.getElementById('hamburger');
-            const mobileNav = document.getElementById('mobileNav');
-            const navLinks = document.querySelectorAll('.mobile-nav a');
-            hamburger.addEventListener('click', () => {
-                mobileNav.classList.toggle('show');
-                hamburger.classList.toggle('open');
-            });
-            // close mobile nav when clicking link
-            navLinks.forEach(link => {
-                link.addEventListener('click', () => {
-                    mobileNav.classList.remove('show');
-                    hamburger.classList.remove('open');
-                });
-            });
+  <header class="nav" id="navbar">
+    <div class="container nav-wrap">
+      <a class="brand" href="#home" aria-label="Dirac Group Home">
+        <span class="brand-mark">DG</span>
+        <span class="brand-text">Dirac Group</span>
+      </a>
 
-            /* Active nav highlighting */
-            const sections = document.querySelectorAll('section');
-            const navAnchors = document.querySelectorAll('.nav-links a');
-            function activateNav() {
-                let index = sections.length;
-                while(--index && window.scrollY + 80 < sections[index].offsetTop) {}
-                navAnchors.forEach((link) => link.classList.remove('active'));
-                navAnchors[index].classList.add('active');
+      <nav aria-label="Primary navigation">
+        <button class="hamburger" id="menuBtn" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navLinks">
+          <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+          <li><a class="nav-link active" href="#home">Home</a></li>
+          <li><a class="nav-link" href="#about">About</a></li>
+          <li><a class="nav-link" href="#services">Services</a></li>
+          <li><a class="nav-link" href="#projects">Projects</a></li>
+          <li><a class="nav-link" href="#technology">Technology</a></li>
+          <li><a class="nav-link" href="#team">Team</a></li>
+          <li><a class="nav-link" href="#testimonials">Testimonials</a></li>
+          <li><a class="nav-link" href="#faq">FAQ</a></li>
+          <li><a class="nav-link" href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="home" aria-labelledby="hero-title">
+      <div class="decor-blur" style="top: 8%; left: 4%;"></div>
+      <div class="decor-blur purple" style="right: 0; bottom: 10%;"></div>
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <span class="eyebrow">Global Digital Innovation</span>
+          <h1 id="hero-title">Building <span class="gradient-text">Future-Ready</span> Digital Experiences</h1>
+          <p>Dirac Group empowers ambitious companies with premium digital platforms, intelligent automation, secure infrastructure, and mobile-first systems designed for global growth.</p>
+          <div class="btn-row">
+            <a class="btn btn-primary" href="#contact" aria-label="Get started with Dirac Group">Get Started</a>
+            <a class="btn btn-ghost" href="#services" aria-label="Explore Dirac Group services">Explore Services</a>
+          </div>
+          <div class="hero-meta" aria-label="Company highlights">
+            <span class="meta-pill"><span class="meta-dot"></span> Enterprise-grade delivery</span>
+            <span class="meta-pill"><span class="meta-dot"></span> Mobile-first performance</span>
+            <span class="meta-pill"><span class="meta-dot"></span> Secure by design</span>
+          </div>
+        </div>
+
+        <div class="hero-visual reveal" aria-hidden="true">
+          <span class="orbit"></span>
+          <span class="orbit"></span>
+          <span class="orb one"></span>
+          <span class="orb two"></span>
+          <div class="floating-card">
+            <strong>99.9%</strong>
+            <p>Operational reliability for modern business ecosystems.</p>
+          </div>
+          <div class="dashboard-card">
+            <div class="dash-top">
+              <span class="dash-title">Global Growth Engine</span>
+              <span class="dash-status">Live</span>
+            </div>
+            <div class="dash-bars">
+              <span class="dash-bar"><span style="--w: 86%"></span></span>
+              <span class="dash-bar"><span style="--w: 72%"></span></span>
+              <span class="dash-bar"><span style="--w: 94%"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="about" aria-labelledby="about-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">About Dirac Group</span>
+          <h2 id="about-title">A premium technology partner for companies moving beyond ordinary.</h2>
+        </div>
+
+        <div class="about-layout">
+          <article class="card mission-card reveal">
+            <div class="card-body">
+              <h3>We build digital foundations for the next decade of business.</h3>
+              <p style="margin-top: 14px;">Dirac Group combines strategic thinking, engineering discipline, and refined design to help brands transform ideas into reliable, scalable, and elegant digital products.</p>
+              <div class="mission-list">
+                <div class="mission-item">
+                  <span class="icon-bubble">◎</span>
+                  <div>
+                    <h3>Mission</h3>
+                    <p>Deliver fast, secure, and meaningful digital experiences that unlock measurable growth.</p>
+                  </div>
+                </div>
+                <div class="mission-item">
+                  <span class="icon-bubble">◇</span>
+                  <div>
+                    <h3>Vision</h3>
+                    <p>Shape a global business ecosystem where technology feels intelligent, trusted, and effortless.</p>
+                  </div>
+                </div>
+                <div class="mission-item">
+                  <span class="icon-bubble">✦</span>
+                  <div>
+                    <h3>Values</h3>
+                    <p>Clarity, innovation, integrity, performance, and long-term partnership.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div class="stats-grid reveal" id="statsGrid">
+            <article class="card stat-card">
+              <div class="card-body">
+                <div class="stat-number"><span data-count="10">0</span><span>+</span></div>
+                <p class="stat-label">Years Innovation</p>
+              </div>
+            </article>
+            <article class="card stat-card">
+              <div class="card-body">
+                <div class="stat-number"><span data-count="50">0</span><span>+</span></div>
+                <p class="stat-label">Projects Delivered</p>
+              </div>
+            </article>
+            <article class="card stat-card">
+              <div class="card-body">
+                <div class="stat-number"><span data-count="20">0</span><span>+</span></div>
+                <p class="stat-label">Global Partners</p>
+              </div>
+            </article>
+            <article class="card stat-card">
+              <div class="card-body">
+                <div class="stat-number"><span data-count="99">0</span><span>%</span></div>
+                <p class="stat-label">Client Satisfaction</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" id="services" aria-labelledby="services-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Services</span>
+          <h2 id="services-title">Strategic digital services built for scale, beauty, and speed.</h2>
+        </div>
+
+        <div class="grid grid-3">
+          <article class="card service-card reveal">
+            <div class="card-body">
+              <div class="service-icon" aria-hidden="true">◈</div>
+              <h3>Digital Transformation</h3>
+              <p>Modernize workflows, customer journeys, and business systems with a structured transformation roadmap.</p>
+            </div>
+          </article>
+          <article class="card service-card reveal">
+            <div class="card-body">
+              <div class="service-icon" aria-hidden="true">▣</div>
+              <h3>Web Development</h3>
+              <p>Premium corporate websites, product platforms, and high-performance experiences crafted for credibility.</p>
+            </div>
+          </article>
+          <article class="card service-card reveal">
+            <div class="card-body">
+              <div class="service-icon" aria-hidden="true">◌</div>
+              <h3>Mobile Optimization</h3>
+              <p>Fast, responsive, touch-friendly interfaces that keep mobile users engaged without heavy resources.</p>
+            </div>
+          </article>
+          <article class="card service-card reveal">
+            <div class="card-body">
+              <div class="service-icon" aria-hidden="true">☁</div>
+              <h3>Cloud Solutions</h3>
+              <p>Reliable cloud architecture, deployment planning, and scalable infrastructure for global business needs.</p>
+            </div>
+          </article>
+          <article class="card service-card reveal">
+            <div class="card-body">
+              <div class="service-icon" aria-hidden="true">✶</div>
+              <h3>AI &amp; Automation</h3>
+              <p>Intelligent workflow systems that reduce repetitive tasks and improve operational decision-making.</p>
+            </div>
+          </article>
+          <article class="card service-card reveal">
+            <div class="card-body">
+              <div class="service-icon" aria-hidden="true">△</div>
+              <h3>Business Strategy</h3>
+              <p>Data-informed digital strategy, product positioning, and growth planning for ambitious organizations.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Advanced Features</span>
+          <h2 id="features-title">Smart capabilities designed for advanced business ecosystems.</h2>
+        </div>
+
+        <div class="grid grid-3">
+          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">01</span><h3>Smart Dashboard Concept</h3><p>Clean executive views for metrics, operations, and performance signals across departments.</p></div></article>
+          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">02</span><h3>AI-Powered Workflow</h3><p>Automation logic that helps teams move faster while maintaining accuracy and visibility.</p></div></article>
+          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">03</span><h3>Real-Time Business Insight</h3><p>Decision-ready data concepts presented with clarity for leaders, managers, and operators.</p></div></article>
+          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">04</span><h3>Secure Digital Infrastructure</h3><p>Security-conscious architecture patterns with careful attention to access, reliability, and trust.</p></div></article>
+          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">05</span><h3>Scalable System Architecture</h3><p>Product foundations that can evolve from early traction to enterprise-grade scale.</p></div></article>
+          <article class="card feature-card reveal"><div class="card-body"><span class="feature-number">06</span><h3>Mobile-First Optimization</h3><p>Fast layouts, lean scripts, and efficient interfaces built for real mobile conditions.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" id="projects" aria-labelledby="projects-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Projects</span>
+          <h2 id="projects-title">Selected concepts for global brands and modern operators.</h2>
+        </div>
+
+        <div class="projects-wrap" aria-label="Dirac Group portfolio examples">
+          <article class="card project-card reveal">
+            <div class="card-body">
+              <div class="project-visual" aria-hidden="true"></div>
+              <h3>Enterprise Website</h3>
+              <p>A corporate platform designed for investor trust, global storytelling, and high-speed mobile access.</p>
+              <div class="tags"><span class="tag">HTML5</span><span class="tag">SEO</span><span class="tag">Performance</span></div>
+              <a class="text-link" href="#contact" aria-label="View Enterprise Website details">View Details →</a>
+            </div>
+          </article>
+          <article class="card project-card reveal">
+            <div class="card-body">
+              <div class="project-visual" aria-hidden="true"></div>
+              <h3>Logistics Platform</h3>
+              <p>A streamlined operational interface for shipment visibility, order tracking, and partner coordination.</p>
+              <div class="tags"><span class="tag">Cloud</span><span class="tag">API</span><span class="tag">Security</span></div>
+              <a class="text-link" href="#contact" aria-label="View Logistics Platform details">View Details →</a>
+            </div>
+          </article>
+          <article class="card project-card reveal">
+            <div class="card-body">
+              <div class="project-visual" aria-hidden="true"></div>
+              <h3>AI Business Tool</h3>
+              <p>An intelligent assistant concept for task routing, insight generation, and workflow acceleration.</p>
+              <div class="tags"><span class="tag">AI</span><span class="tag">Automation</span><span class="tag">UX</span></div>
+              <a class="text-link" href="#contact" aria-label="View AI Business Tool details">View Details →</a>
+            </div>
+          </article>
+          <article class="card project-card reveal">
+            <div class="card-body">
+              <div class="project-visual" aria-hidden="true"></div>
+              <h3>Corporate Dashboard</h3>
+              <p>A premium analytics dashboard concept for leadership teams managing growth and risk.</p>
+              <div class="tags"><span class="tag">Data</span><span class="tag">Dashboard</span><span class="tag">Insight</span></div>
+              <a class="text-link" href="#contact" aria-label="View Corporate Dashboard details">View Details →</a>
+            </div>
+          </article>
+          <article class="card project-card reveal">
+            <div class="card-body">
+              <div class="project-visual" aria-hidden="true"></div>
+              <h3>Mobile Commerce</h3>
+              <p>A lightweight commerce experience optimized for conversion, speed, and seamless browsing.</p>
+              <div class="tags"><span class="tag">Mobile</span><span class="tag">Commerce</span><span class="tag">Speed</span></div>
+              <a class="text-link" href="#contact" aria-label="View Mobile Commerce details">View Details →</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="technology" aria-labelledby="technology-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Technology</span>
+          <h2 id="technology-title">A lean, reliable technology stack for premium digital performance.</h2>
+        </div>
+        <div class="tech-grid reveal" aria-label="Technology capabilities">
+          <span class="tech-badge">HTML5</span>
+          <span class="tech-badge">CSS3</span>
+          <span class="tech-badge">JavaScript</span>
+          <span class="tech-badge">Cloud</span>
+          <span class="tech-badge">AI</span>
+          <span class="tech-badge">Security</span>
+          <span class="tech-badge">API Integration</span>
+          <span class="tech-badge">Mobile Optimization</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" id="team" aria-labelledby="team-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Leadership Team</span>
+          <h2 id="team-title">A focused team combining strategy, technology, design, and growth.</h2>
+        </div>
+        <div class="grid grid-4">
+          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">AR</div><span class="team-role">CEO / Founder</span><h3>Adrian Ravel</h3><p>Leads Dirac Group's global vision, partnerships, and strategic innovation programs.</p></div></article>
+          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">MS</div><span class="team-role">CTO</span><h3>Maya Sterling</h3><p>Architects secure, scalable systems that balance performance, reliability, and future growth.</p></div></article>
+          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">LK</div><span class="team-role">Product Designer</span><h3>Leon Kade</h3><p>Crafts premium user experiences with clarity, accessibility, and brand-level polish.</p></div></article>
+          <article class="card team-card reveal"><div class="card-body"><div class="team-avatar">SN</div><span class="team-role">Business Strategist</span><h3>Sofia Nadir</h3><p>Turns market goals into executable digital roadmaps and measurable transformation outcomes.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="testimonials" aria-labelledby="testimonials-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">Testimonials</span>
+          <h2 id="testimonials-title">Trusted by ambitious teams building their next digital chapter.</h2>
+        </div>
+
+        <div class="testimonial-shell reveal">
+          <div class="testimonial-track" id="testimonialTrack">
+            <article class="testimonial-slide">
+              <p class="quote">“Dirac Group delivered a digital presence that felt world-class from day one. The experience is fast, refined, and strategically aligned with our growth.”</p>
+              <div class="client"><span class="client-avatar">EV</span><div><strong>Elena Voss</strong><p>Managing Director, Aurelia Ventures</p></div></div>
+            </article>
+            <article class="testimonial-slide">
+              <p class="quote">“Their team translated complex operational needs into a clean platform concept. Every detail showed discipline, taste, and technical maturity.”</p>
+              <div class="client"><span class="client-avatar">KM</span><div><strong>Kai Morgan</strong><p>Operations Lead, Northline Systems</p></div></div>
+            </article>
+            <article class="testimonial-slide">
+              <p class="quote">“We needed something premium but lightweight. Dirac Group created a modern experience that performs beautifully across desktop and mobile.”</p>
+              <div class="client"><span class="client-avatar">RP</span><div><strong>Rania Pierce</strong><p>Founder, Nova Market Labs</p></div></div>
+            </article>
+          </div>
+          <div class="testimonial-controls">
+            <div class="slider-dots" id="sliderDots" aria-label="Testimonial pagination"></div>
+            <div class="slider-buttons">
+              <button class="circle-btn" id="prevTestimonial" type="button" aria-label="Previous testimonial">‹</button>
+              <button class="circle-btn" id="nextTestimonial" type="button" aria-label="Next testimonial">›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" id="faq" aria-labelledby="faq-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">FAQ</span>
+          <h2 id="faq-title">Answers for teams ready to build with confidence.</h2>
+        </div>
+
+        <div class="faq-list reveal">
+          <article class="faq-item open">
+            <button class="faq-question" type="button" aria-expanded="true">What does Dirac Group specialize in?<span class="faq-icon" aria-hidden="true">+</span></button>
+            <div class="faq-answer"><p>Dirac Group specializes in premium digital experiences, corporate websites, mobile optimization, cloud concepts, AI automation, and business transformation strategy.</p></div>
+          </article>
+          <article class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">Is the website approach mobile-first?<span class="faq-icon" aria-hidden="true">+</span></button>
+            <div class="faq-answer"><p>Yes. Dirac Group prioritizes fast loading, readable layouts, touch-friendly controls, and lightweight animation for comfortable mobile browsing.</p></div>
+          </article>
+          <article class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">Can Dirac Group support enterprise-level projects?<span class="faq-icon" aria-hidden="true">+</span></button>
+            <div class="faq-answer"><p>Yes. The company is positioned for scalable systems, secure infrastructure concepts, executive dashboards, and digital platforms for growing organizations.</p></div>
+          </article>
+          <article class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">Do you use heavy frameworks?<span class="faq-icon" aria-hidden="true">+</span></button>
+            <div class="faq-answer"><p>This website is built with pure HTML, CSS, and JavaScript to remain lightweight, flexible, and fast without large framework dependencies.</p></div>
+          </article>
+          <article class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">How can a company start a project?<span class="faq-icon" aria-hidden="true">+</span></button>
+            <div class="faq-answer"><p>Companies can start by submitting the contact form with their business goals, timeline, and project needs. The team can then propose the right digital roadmap.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="contact" aria-labelledby="contact-title">
+      <div class="container contact-layout">
+        <div class="reveal">
+          <span class="eyebrow">Contact</span>
+          <h2 id="contact-title">Start building a sharper digital future.</h2>
+          <p style="margin-top: 18px;">Tell us about your vision. Dirac Group will help shape it into a premium, scalable, and future-ready digital experience.</p>
+
+          <div class="contact-info" aria-label="Contact information">
+            <div class="contact-info-item"><span class="icon-bubble">@</span><div><strong>Email</strong><p>contact@diracgroup.com</p></div></div>
+            <div class="contact-info-item"><span class="icon-bubble">⌖</span><div><strong>Location</strong><p>Global Digital Office</p></div></div>
+            <div class="contact-info-item"><span class="icon-bubble">◷</span><div><strong>Working Hours</strong><p>Monday - Friday</p></div></div>
+          </div>
+        </div>
+
+        <article class="card reveal">
+          <div class="card-body">
+            <form class="form" id="contactForm" novalidate>
+              <div class="form-alert" id="formAlert" role="status">Thank you. Your message has been prepared successfully.</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="name">Name</label>
+                  <input id="name" name="name" type="text" autocomplete="name" placeholder="Your full name" required />
+                  <small></small>
+                </div>
+                <div class="field">
+                  <label for="email">Email</label>
+                  <input id="email" name="email" type="email" autocomplete="email" placeholder="you@company.com" required />
+                  <small></small>
+                </div>
+              </div>
+              <div class="field">
+                <label for="company">Company</label>
+                <input id="company" name="company" type="text" autocomplete="organization" placeholder="Company name" required />
+                <small></small>
+              </div>
+              <div class="field">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" placeholder="Tell us about your project" required></textarea>
+                <small></small>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-primary" type="submit" aria-label="Submit contact form">Send Message</button>
+                <a class="btn btn-ghost" href="https://wa.me/000000000000" aria-label="Open dummy WhatsApp contact">WhatsApp</a>
+              </div>
+            </form>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="#home" aria-label="Dirac Group Home">
+            <span class="brand-mark">DG</span>
+            <span class="brand-text">Dirac Group</span>
+          </a>
+          <p>Dirac Group is a global digital innovation company designing elegant, secure, and scalable digital experiences for modern organizations.</p>
+        </div>
+        <div>
+          <h3>Navigation</h3>
+          <ul class="footer-links">
+            <li><a href="#about">About</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#projects">Projects</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Social</h3>
+          <ul class="social-links">
+            <li><a href="#" aria-label="Dirac Group LinkedIn">LinkedIn</a></li>
+            <li><a href="#" aria-label="Dirac Group X profile">X / Twitter</a></li>
+            <li><a href="#" aria-label="Dirac Group Instagram">Instagram</a></li>
+            <li><a href="#" aria-label="Dirac Group Dribbble">Dribbble</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Dirac Group. All Rights Reserved.</span>
+        <span>Premium digital systems for global growth.</span>
+      </div>
+    </div>
+  </footer>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="Back to top">↑</button>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var body = document.body;
+      var loader = document.getElementById('loader');
+      var navbar = document.getElementById('navbar');
+      var menuBtn = document.getElementById('menuBtn');
+      var navLinks = document.getElementById('navLinks');
+      var navItems = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+      var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+      var backToTop = document.getElementById('backToTop');
+
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          loader.classList.add('hide');
+          body.classList.remove('loading');
+        }, 650);
+      });
+
+      function closeMenu() {
+        navLinks.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+        menuBtn.setAttribute('aria-label', 'Open navigation menu');
+        body.classList.remove('menu-open');
+      }
+
+      menuBtn.addEventListener('click', function () {
+        var isOpen = navLinks.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', String(isOpen));
+        menuBtn.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
+        body.classList.toggle('menu-open', isOpen);
+      });
+
+      navItems.forEach(function (link) {
+        link.addEventListener('click', closeMenu);
+      });
+
+      function handleScroll() {
+        var y = window.scrollY || document.documentElement.scrollTop;
+        navbar.classList.toggle('scrolled', y > 12);
+        backToTop.classList.toggle('show', y > 520);
+      }
+
+      handleScroll();
+      window.addEventListener('scroll', handleScroll, { passive: true });
+
+      backToTop.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      var revealElements = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+      if ('IntersectionObserver' in window) {
+        var revealObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              revealObserver.unobserve(entry.target);
             }
-            activateNav();
-            window.addEventListener('scroll', activateNav);
+          });
+        }, { threshold: 0.12 });
+        revealElements.forEach(function (el) { revealObserver.observe(el); });
+      } else {
+        revealElements.forEach(function (el) { el.classList.add('visible'); });
+      }
 
-            /* Sticky navbar background change */
-            window.addEventListener('scroll', () => {
-                const navbar = document.getElementById('navbar');
-                if (window.scrollY > 50) {
-                    navbar.classList.add('scrolled');
-                } else {
-                    navbar.classList.remove('scrolled');
-                }
-            });
+      if ('IntersectionObserver' in window) {
+        var activeObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              var id = entry.target.getAttribute('id');
+              navItems.forEach(function (link) {
+                link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+              });
+            }
+          });
+        }, { rootMargin: '-42% 0px -52% 0px', threshold: 0 });
+        sections.forEach(function (section) { activeObserver.observe(section); });
+      }
 
-            /* Back to top button */
-            const backToTop = document.getElementById('backToTop');
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 600) {
-                    backToTop.classList.add('show');
-                } else {
-                    backToTop.classList.remove('show');
-                }
-            });
-            backToTop.addEventListener('click', () => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
+      var countersStarted = false;
+      var statsGrid = document.getElementById('statsGrid');
+      var counters = Array.prototype.slice.call(document.querySelectorAll('[data-count]'));
 
-            /* Intersection Observer for animations */
-            const animateOptions = { threshold: 0.2 };
-            const animateOnScroll = (entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            };
-            const animateObserver = new IntersectionObserver(animateOnScroll, animateOptions);
-            document.querySelectorAll('.card, .service-card, .feature-item, .project-card, .team-card').forEach(item => {
-                animateObserver.observe(item);
-            });
-
-            /* Counter animation */
-            const counters = document.querySelectorAll('.card.stat');
-            const counterObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const numberEl = entry.target.querySelector('.number');
-                        const target = +entry.target.dataset.target;
-                        let count = 0;
-                        const speed = target / 50;
-                        const updateCount = () => {
-                            count += speed;
-                            if (count < target) {
-                                numberEl.textContent = Math.floor(count);
-                                requestAnimationFrame(updateCount);
-                            } else {
-                                numberEl.textContent = target + (target === 99 ? '%' : '+');
-                            }
-                        };
-                        updateCount();
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.3 });
-            counters.forEach(counter => counterObserver.observe(counter));
-
-            /* Testimonials slider */
-            const testimonials = document.querySelectorAll('.testimonial');
-            const testimonialButtons = document.querySelectorAll('.testimonial-nav button');
-            testimonialButtons.forEach((btn, index) => {
-                btn.addEventListener('click', () => {
-                    testimonials.forEach(t => t.classList.remove('active'));
-                    testimonialButtons.forEach(b => b.classList.remove('active'));
-                    testimonials[index].classList.add('active');
-                    btn.classList.add('active');
-                });
-            });
-
-            /* FAQ accordion */
-            document.querySelectorAll('.faq-question').forEach(question => {
-                question.addEventListener('click', () => {
-                    const answer = question.nextElementSibling;
-                    const expanded = question.getAttribute('aria-expanded') === 'true';
-                    document.querySelectorAll('.faq-answer').forEach(ans => {
-                        ans.style.maxHeight = null;
-                        ans.classList.remove('open');
-                    });
-                    document.querySelectorAll('.faq-question').forEach(q => q.setAttribute('aria-expanded','false'));
-                    if (!expanded) {
-                        answer.classList.add('open');
-                        answer.style.maxHeight = answer.scrollHeight + 'px';
-                        question.setAttribute('aria-expanded','true');
-                    }
-                });
-            });
-
-            /* Form validation */
-            const form = document.getElementById('contactForm');
-            const formMessage = document.getElementById('formMessage');
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                let valid = true;
-                form.querySelectorAll('[required]').forEach(input => {
-                    if (!input.value.trim()) {
-                        valid = false;
-                        input.style.border = '1px solid #e63946';
-                    } else {
-                        input.style.border = 'none';
-                    }
-                });
-                if (valid) {
-                    formMessage.style.display = 'block';
-                    form.reset();
-                    setTimeout(() => {
-                        formMessage.style.display = 'none';
-                    }, 4000);
-                }
-            });
+      function animateCounters() {
+        if (countersStarted) return;
+        countersStarted = true;
+        counters.forEach(function (counter) {
+          var target = Number(counter.getAttribute('data-count')) || 0;
+          var duration = 950;
+          var startTime = null;
+          function tick(timestamp) {
+            if (!startTime) startTime = timestamp;
+            var progress = Math.min((timestamp - startTime) / duration, 1);
+            var eased = 1 - Math.pow(1 - progress, 3);
+            counter.textContent = String(Math.round(target * eased));
+            if (progress < 1) requestAnimationFrame(tick);
+          }
+          requestAnimationFrame(tick);
         });
-    </script>
+      }
+
+      if (statsGrid && 'IntersectionObserver' in window) {
+        var counterObserver = new IntersectionObserver(function (entries) {
+          if (entries.some(function (entry) { return entry.isIntersecting; })) {
+            animateCounters();
+            counterObserver.disconnect();
+          }
+        }, { threshold: 0.35 });
+        counterObserver.observe(statsGrid);
+      } else {
+        animateCounters();
+      }
+
+      var faqItems = Array.prototype.slice.call(document.querySelectorAll('.faq-item'));
+      function setFaqHeight(item) {
+        var answer = item.querySelector('.faq-answer');
+        if (!answer) return;
+        if (item.classList.contains('open')) {
+          answer.style.maxHeight = answer.scrollHeight + 'px';
+        } else {
+          answer.style.maxHeight = '0px';
+        }
+      }
+
+      faqItems.forEach(function (item) {
+        var button = item.querySelector('.faq-question');
+        setFaqHeight(item);
+        button.addEventListener('click', function () {
+          var willOpen = !item.classList.contains('open');
+          faqItems.forEach(function (other) {
+            other.classList.remove('open');
+            other.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+            setFaqHeight(other);
+          });
+          item.classList.toggle('open', willOpen);
+          button.setAttribute('aria-expanded', String(willOpen));
+          setFaqHeight(item);
+        });
+      });
+
+      window.addEventListener('resize', function () {
+        faqItems.forEach(setFaqHeight);
+      });
+
+      var track = document.getElementById('testimonialTrack');
+      var slides = Array.prototype.slice.call(document.querySelectorAll('.testimonial-slide'));
+      var dotsWrap = document.getElementById('sliderDots');
+      var prevBtn = document.getElementById('prevTestimonial');
+      var nextBtn = document.getElementById('nextTestimonial');
+      var currentSlide = 0;
+      var autoSlide;
+
+      function renderDots() {
+        slides.forEach(function (_, index) {
+          var dot = document.createElement('button');
+          dot.className = 'dot';
+          dot.type = 'button';
+          dot.setAttribute('aria-label', 'Show testimonial ' + (index + 1));
+          dot.addEventListener('click', function () { goToSlide(index); restartAutoSlide(); });
+          dotsWrap.appendChild(dot);
+        });
+      }
+
+      function updateSlider() {
+        track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
+        Array.prototype.slice.call(dotsWrap.children).forEach(function (dot, index) {
+          dot.classList.toggle('active', index === currentSlide);
+        });
+      }
+
+      function goToSlide(index) {
+        currentSlide = (index + slides.length) % slides.length;
+        updateSlider();
+      }
+
+      function restartAutoSlide() {
+        clearInterval(autoSlide);
+        autoSlide = setInterval(function () { goToSlide(currentSlide + 1); }, 6200);
+      }
+
+      if (track && slides.length) {
+        renderDots();
+        updateSlider();
+        prevBtn.addEventListener('click', function () { goToSlide(currentSlide - 1); restartAutoSlide(); });
+        nextBtn.addEventListener('click', function () { goToSlide(currentSlide + 1); restartAutoSlide(); });
+        restartAutoSlide();
+      }
+
+      var form = document.getElementById('contactForm');
+      var alertBox = document.getElementById('formAlert');
+      var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      function setError(field, message) {
+        var small = field.parentElement.querySelector('small');
+        small.textContent = message || '';
+        field.setAttribute('aria-invalid', message ? 'true' : 'false');
+      }
+
+      function validateField(field) {
+        var value = field.value.trim();
+        var message = '';
+        if (!value) {
+          message = 'This field is required.';
+        } else if (field.type === 'email' && !emailPattern.test(value)) {
+          message = 'Please enter a valid email address.';
+        } else if (field.name === 'message' && value.length < 10) {
+          message = 'Please enter at least 10 characters.';
+        }
+        setError(field, message);
+        return !message;
+      }
+
+      if (form) {
+        var fields = Array.prototype.slice.call(form.querySelectorAll('input, textarea'));
+        fields.forEach(function (field) {
+          field.addEventListener('input', function () {
+            if (field.getAttribute('aria-invalid') === 'true') validateField(field);
+          });
+        });
+
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          alertBox.classList.remove('show');
+          var isValid = fields.map(validateField).every(Boolean);
+          if (!isValid) return;
+          alertBox.classList.add('show');
+          form.reset();
+          fields.forEach(function (field) { setError(field, ''); });
+          setTimeout(function () { alertBox.classList.remove('show'); }, 4200);
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
