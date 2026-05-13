@@ -4554,6 +4554,28 @@
     }
 
 
+
+    /* Pulse hijau yang diminta pengguna: aktif saat terlihat, pause saat keluar layar. */
+    .hero-label .pulse,
+    .secure-badge .pulse {
+      animation: pulseRing 1.8s ease-out infinite !important;
+    }
+
+    .hero-label:not(.motion-in-view) .pulse,
+    .secure-badge:not(.motion-in-view) .pulse {
+      animation-play-state: paused !important;
+    }
+
+    .hero-label.motion-in-view .pulse,
+    .secure-badge.motion-in-view .pulse {
+      animation-play-state: running !important;
+    }
+
+    body.motion-page-hidden .hero-label .pulse,
+    body.motion-page-hidden .secure-badge .pulse {
+      animation-play-state: paused !important;
+    }
+
   </style>
 </head>
 
@@ -5025,39 +5047,6 @@
         </div>
       </section>
 
-      <section class="container section reveal" id="ekspedisi">
-        <div class="section-title">
-          <div class="section-label">Ekspedisi Populer</div>
-          <h2>Tampilan daftar kurir dibuat lebih meyakinkan</h2>
-          <p>Pengguna dapat melihat cakupan ekspedisi yang tersedia sebelum memilih kurir pada form utama. Bagian ini hanya visual pendukung dan tidak mengirim data apa pun.</p>
-        </div>
-
-        <div class="courier-showcase">
-          <article class="courier-copy">
-            <h3>Cakupan kurir dibuat jelas sejak awal</h3>
-            <p>Daftar ini membantu pelanggan mengenali bahwa website mendukung ekspedisi populer yang sudah ada pada pilihan form. Tidak ada endpoint baru, tidak ada request tambahan, dan tidak ada perubahan proses submit.</p>
-            <div class="courier-tags" aria-label="Catatan dukungan kurir">
-              <span>JNE</span><span>J&T</span><span>SiCepat</span><span>Anteraja</span><span>POS</span><span>TIKI</span>
-            </div>
-          </article>
-          <div class="courier-cloud" aria-label="Daftar visual ekspedisi">
-            <div class="courier-tile">JNE</div>
-            <div class="courier-tile">J&T</div>
-            <div class="courier-tile">SiCepat</div>
-            <div class="courier-tile">Anteraja</div>
-            <div class="courier-tile">POS</div>
-            <div class="courier-tile">TIKI</div>
-            <div class="courier-tile">Wahana</div>
-            <div class="courier-tile">Ninja</div>
-            <div class="courier-tile">Lion</div>
-            <div class="courier-tile">SAP</div>
-            <div class="courier-tile">ID Express</div>
-            <div class="courier-tile">First</div>
-          </div>
-        </div>
-      </section>
-
-
       <section class="container section reveal" id="keamanan">
         <div class="section-title">
           <div class="section-label">Keamanan & Kejelasan</div>
@@ -5083,18 +5072,6 @@
           </article>
         </div>
 
-        <div class="stack-card" aria-label="Alur data cek resi">
-          <div>
-            <h3>Alur data tetap sama</h3>
-            <p>Pengembangan ini tidak menambahkan jalur pengiriman data baru. Form tetap mengirim permintaan ke backend yang sama, lalu hasilnya ditampilkan di area hasil.</p>
-          </div>
-          <div class="stack-flow">
-            <div class="stack-node">Input Resi</div>
-            <div class="stack-node">Backend Vercel</div>
-            <div class="stack-node">RajaOngkir API</div>
-            <div class="stack-node">Hasil Tracking</div>
-          </div>
-        </div>
       </section>
 
       <section class="container section reveal" id="keunggulan">
@@ -5266,7 +5243,6 @@
           <div>
             <h4>Informasi</h4>
             <a href="#keunggulan">Kenapa Dirac Group</a>
-            <a href="#ekspedisi">Ekspedisi</a>
             <a href="#keamanan">Keamanan</a>
             <a href="#standar">Standar Kualitas</a>
           </div>
@@ -5817,6 +5793,8 @@
     /* Viewport-aware motion controller: animasi berjalan hanya saat area terlihat. */
     (() => {
       const motionTargets = Array.from(document.querySelectorAll([
+        ".hero-label",
+        ".secure-badge",
         ".hero-visual",
         ".command-center",
         ".motion-showcase .motion-card",
