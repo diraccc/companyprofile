@@ -5217,7 +5217,259 @@
     }
 
 
+  
+
+    /* ==========================================================
+       DIRAC V11 UX PERFORMANCE PATCH - additive, lightweight
+       Fitur: PWA hooks, content-visibility, refresh status, error helper,
+       courier suggestion, loading text, a11y focus, debug panel.
+       Animasi hanya transform/opacity dan tidak menyentuh fungsi inti.
+       ========================================================== */
+
+    @supports (content-visibility: auto) {
+      .section,
+      .footer,
+      .command-center,
+      .service-layout,
+      .courier-showcase,
+      .quality-grid,
+      .motion-showcase {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 720px;
+      }
+    }
+
+    .dg-error-helper,
+    .dg-courier-suggestion {
+      display: none;
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(147,197,253,0.15);
+      color: #dbeafe;
+      line-height: 1.55;
+    }
+
+    .dg-error-helper.show,
+    .dg-courier-suggestion.show {
+      display: block;
+      animation: dgV11SoftIn 0.24s ease both;
+    }
+
+    .dg-error-helper strong,
+    .dg-courier-suggestion strong {
+      display: block;
+      color: var(--white);
+      font-size: 13px;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .dg-error-helper p,
+    .dg-courier-suggestion p {
+      margin: 0;
+      color: #b7c5de;
+      font-size: 12px;
+    }
+
+    .dg-error-helper ul {
+      margin: 10px 0 0 18px;
+      color: #b7c5de;
+      font-size: 12px;
+    }
+
+    .dg-error-helper li + li {
+      margin-top: 4px;
+    }
+
+    .dg-helper-actions,
+    .dg-suggestion-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 11px;
+    }
+
+    .dg-helper-action,
+    .dg-suggestion-action,
+    .dg-debug-close {
+      min-height: 34px;
+      border: 1px solid rgba(147,197,253,0.16);
+      border-radius: 999px;
+      padding: 0 11px;
+      color: #dbeafe;
+      background: rgba(147,197,253,0.10);
+      font-size: 12px;
+      font-weight: 950;
+      transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+    }
+
+    .dg-helper-action.primary,
+    .dg-suggestion-action.primary {
+      color: #06101f;
+      border-color: rgba(125,211,252,0.58);
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+    }
+
+    .dg-helper-action:active,
+    .dg-suggestion-action:active,
+    .result-action-button:active,
+    .dg-debug-close:active {
+      transform: scale(0.985);
+    }
+
+    .result-action-button.refreshing {
+      opacity: 0.76;
+      pointer-events: none;
+    }
+
+    .result-area.show.dg-v11-refresh-pulse .result-card {
+      animation: dgV11RefreshPulse 0.34s ease both;
+    }
+
+    .timeline-item.is-new-update {
+      animation: dgV11NewUpdate 1.2s ease both;
+      border-radius: 16px;
+    }
+
+    .tracking-loading-stage .dg-loading-step {
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .tracking-loading-stage .dg-loading-step.is-switching {
+      opacity: 0.35;
+      transform: translateY(3px);
+    }
+
+    .dg-debug-panel {
+      position: fixed;
+      right: 14px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      z-index: 90;
+      width: min(340px, calc(100% - 28px));
+      padding: 14px;
+      border-radius: 18px;
+      color: #dbeafe;
+      background: rgba(6,16,31,0.96);
+      border: 1px solid rgba(147,197,253,0.18);
+      box-shadow: 0 20px 60px rgba(2,6,23,0.35);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .dg-debug-panel h3 {
+      margin: 0 0 8px;
+      color: var(--white);
+      font-size: 13px;
+      letter-spacing: -0.02em;
+    }
+
+    .dg-debug-panel code {
+      color: #93c5fd;
+      word-break: break-word;
+    }
+
+    .dg-debug-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 4px 0;
+      border-top: 1px solid rgba(148,163,184,0.10);
+    }
+
+    .dg-debug-row:first-of-type {
+      border-top: 0;
+    }
+
+    .dg-debug-close {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .result-card:focus-within,
+    .tracking-form:focus-within {
+      outline: 1px solid rgba(125,211,252,0.16);
+      outline-offset: 4px;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    summary:focus-visible,
+    .courier-pill:focus-visible {
+      outline: 3px solid rgba(125,211,252,0.55);
+      outline-offset: 3px;
+    }
+
+    #resultTitle:focus {
+      outline: none;
+    }
+
+    .result-area[aria-busy="true"] {
+      cursor: progress;
+    }
+
+    @keyframes dgV11SoftIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes dgV11RefreshPulse {
+      from { opacity: 0.94; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes dgV11NewUpdate {
+      0% { background: rgba(34,211,238,0.12); box-shadow: 0 0 0 rgba(34,211,238,0); }
+      38% { background: rgba(34,211,238,0.16); box-shadow: 0 0 30px rgba(34,211,238,0.18); }
+      100% { background: transparent; box-shadow: 0 0 0 rgba(34,211,238,0); }
+    }
+
+    @media (max-width: 760px) {
+      .dg-error-helper,
+      .dg-courier-suggestion {
+        padding: 12px;
+      }
+
+      .dg-helper-actions,
+      .dg-suggestion-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .dg-helper-action,
+      .dg-suggestion-action {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dg-error-helper.show,
+      .dg-courier-suggestion.show,
+      .result-area.show.dg-v11-refresh-pulse .result-card,
+      .timeline-item.is-new-update {
+        animation: none !important;
+      }
+
+      .tracking-loading-stage .dg-loading-step,
+      .dg-helper-action,
+      .dg-suggestion-action,
+      .result-action-button,
+      .dg-debug-close {
+        transition: none !important;
+      }
+    }
+
   </style>
+
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="dirac-icon-192.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Dirac Cek Resi"/>
+<meta name="application-name" content="Dirac Cek Resi"/>
 </head>
 <body>
 <div class="dg-offline-banner" id="offlineBanner" role="status" aria-live="polite"><i></i><span>Koneksi internet terputus. Cek jaringan lalu coba lagi.</span></div>
@@ -6822,6 +7074,542 @@
     })();
 
 
-  </script>
+  
+
+    /* DIRAC V11 UX PERFORMANCE PATCH
+       Additive wrappers only. Tidak mengganti endpoint, payload utama, atau render inti. */
+    (function initDiracFeaturePatchV11() {
+      const V11_VERSION = "v11-ux-performance";
+      const REFRESH_COOLDOWN_MS = 45000;
+      const API_ENDPOINT_V11 = "https://companyprofilee-ochre.vercel.app/api/track";
+
+      const patch10 = window.DiracFeaturePatchV10 || {};
+      const resultActions = document.getElementById("resultActions");
+      const loadingStage = document.querySelector(".tracking-loading-stage");
+      const loadingTitle = loadingStage ? loadingStage.querySelector("strong") : null;
+      const loadingCopy = loadingStage ? loadingStage.querySelector("span") : null;
+      const supportCard = document.querySelector(".support-card");
+      const debugEnabled = new URLSearchParams(window.location.search).has("debug");
+
+      const debugState = {
+        version: V11_VERSION,
+        apiMs: "-",
+        online: String(navigator.onLine !== false),
+        timeline: "0",
+        recent: "0",
+        lastAction: "boot"
+      };
+
+      let refreshButton = null;
+      let errorHelper = null;
+      let courierSuggestion = null;
+      let debugPanel = null;
+      let refreshCooldownUntil = 0;
+      let refreshCooldownTimer = null;
+      let loadingTimer = null;
+      let loadingIndex = 0;
+      let manualRefreshPending = false;
+      let lastTimelineSignature = "";
+      let lastSuggestKey = "";
+      let suggestionDismissedFor = "";
+
+      const loadingSteps = [
+        ["Memvalidasi nomor resi...", "Membersihkan format input dan memastikan ekspedisi sudah dipilih."],
+        ["Menghubungkan ke ekspedisi...", "Mengirim request ke backend Dirac Group tanpa mengubah payload utama."],
+        ["Merapikan timeline paket...", "Menyiapkan status, progress, dan riwayat perjalanan paket."]
+      ];
+
+      const courierMeta = {
+        jne: "JNE",
+        jnt: "J&T Express",
+        sicepat: "SiCepat",
+        anteraja: "Anteraja",
+        pos: "Pos Indonesia",
+        tiki: "TIKI",
+        wahana: "Wahana",
+        ninja: "Ninja Xpress",
+        lion: "Lion Parcel",
+        ide: "ID Express",
+        sap: "SAP Express",
+        first: "First Logistics"
+      };
+
+      function toast(message) {
+        if (patch10 && typeof patch10.showToast === "function") {
+          patch10.showToast(message);
+          return;
+        }
+        const node = document.getElementById("dgToast");
+        if (!node) return;
+        node.textContent = message;
+        node.classList.add("show");
+        window.clearTimeout(node._dgTimer);
+        node._dgTimer = window.setTimeout(() => node.classList.remove("show"), 2400);
+      }
+
+      function safeTextV11(value) {
+        return String(value || "").trim();
+      }
+
+      function updateDebug(partial) {
+        Object.assign(debugState, partial || {}, {
+          online: String(navigator.onLine !== false),
+          timeline: String(timelineList ? timelineList.querySelectorAll(".timeline-item").length : 0),
+          recent: String((patch10.readRecentItems && patch10.readRecentItems() || []).length || 0)
+        });
+
+        if (!debugPanel) return;
+        const rows = debugPanel.querySelector(".dg-debug-rows");
+        if (!rows) return;
+        rows.innerHTML = Object.entries(debugState).map(([key, value]) => (
+          `<div class="dg-debug-row"><span>${key}</span><code>${value}</code></div>`
+        )).join("");
+      }
+
+      function createDebugPanel() {
+        if (!debugEnabled || document.getElementById("dgDebugPanel")) return;
+        debugPanel = document.createElement("div");
+        debugPanel.id = "dgDebugPanel";
+        debugPanel.className = "dg-debug-panel";
+        debugPanel.innerHTML = `
+          <h3>Dirac Debug</h3>
+          <div class="dg-debug-rows"></div>
+          <button class="dg-debug-close" type="button">Tutup debug</button>
+        `;
+        debugPanel.querySelector("button").addEventListener("click", () => debugPanel.remove());
+        document.body.appendChild(debugPanel);
+        updateDebug({ lastAction: "debug panel" });
+      }
+
+      function createRefreshButton() {
+        if (!resultActions || document.getElementById("refreshStatusButton")) return;
+        refreshButton = document.createElement("button");
+        refreshButton.type = "button";
+        refreshButton.id = "refreshStatusButton";
+        refreshButton.className = "result-action-button";
+        refreshButton.textContent = "Refresh Status";
+        const newTrack = document.getElementById("newTrackButton");
+        resultActions.insertBefore(refreshButton, newTrack || null);
+        refreshButton.addEventListener("click", handleRefreshStatus);
+      }
+
+      function createErrorHelper() {
+        if (document.getElementById("dgErrorHelper")) {
+          errorHelper = document.getElementById("dgErrorHelper");
+          return;
+        }
+        errorHelper = document.createElement("div");
+        errorHelper.id = "dgErrorHelper";
+        errorHelper.className = "dg-error-helper";
+        errorHelper.setAttribute("role", "status");
+        errorHelper.setAttribute("aria-live", "polite");
+        errorHelper.innerHTML = `
+          <strong>Tips agar tracking berhasil</strong>
+          <p>Jika data belum muncul, biasanya karena resi belum aktif, ekspedisi belum sesuai, atau ada spasi saat menyalin nomor resi.</p>
+          <ul>
+            <li>Pastikan nomor resi sudah benar dan tidak ada spasi tersembunyi.</li>
+            <li>Coba ekspedisi lain jika marketplace memakai kurir berbeda.</li>
+            <li>Resi baru kadang aktif dalam 1-24 jam setelah paket diproses.</li>
+          </ul>
+          <div class="dg-helper-actions" aria-label="Aksi cepat bantuan error">
+            <button class="dg-helper-action primary" data-focus-resi type="button">Periksa Resi</button>
+            <button class="dg-helper-action" data-courier="jne" type="button">Pilih JNE</button>
+            <button class="dg-helper-action" data-courier="jnt" type="button">Pilih J&T</button>
+            <button class="dg-helper-action" data-courier="sicepat" type="button">Pilih SiCepat</button>
+          </div>
+        `;
+        errorMessage.insertAdjacentElement("afterend", errorHelper);
+
+        errorHelper.addEventListener("click", (event) => {
+          const button = event.target.closest("button");
+          if (!button) return;
+          if (button.dataset.focusResi !== undefined) {
+            resiInput.focus();
+            resiInput.select();
+            toast("Silakan cek ulang nomor resi.");
+            return;
+          }
+          const courier = button.dataset.courier;
+          if (courier && expeditionSelect.querySelector(`option[value="${courier}"]`)) {
+            expeditionSelect.value = courier;
+            expeditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            expeditionSelect.focus();
+            toast(`Ekspedisi diset ke ${courierMeta[courier] || courier}.`);
+          }
+        });
+      }
+
+      function createCourierSuggestion() {
+        if (document.getElementById("dgCourierSuggestion")) {
+          courierSuggestion = document.getElementById("dgCourierSuggestion");
+          return;
+        }
+        courierSuggestion = document.createElement("div");
+        courierSuggestion.id = "dgCourierSuggestion";
+        courierSuggestion.className = "dg-courier-suggestion";
+        courierSuggestion.setAttribute("role", "status");
+        courierSuggestion.setAttribute("aria-live", "polite");
+        courierSuggestion.innerHTML = `
+          <strong>Saran ekspedisi</strong>
+          <p id="dgCourierSuggestionText">Pilih ekspedisi yang sesuai sebelum cek resi.</p>
+          <div class="dg-suggestion-actions">
+            <button class="dg-suggestion-action primary" id="dgUseCourierSuggestion" type="button">Pakai Saran</button>
+            <button class="dg-suggestion-action" id="dgDismissCourierSuggestion" type="button">Tutup</button>
+          </div>
+        `;
+        errorHelper.insertAdjacentElement("afterend", courierSuggestion);
+
+        courierSuggestion.querySelector("#dgUseCourierSuggestion").addEventListener("click", () => {
+          const courier = courierSuggestion.dataset.courier;
+          if (!courier) return;
+          expeditionSelect.value = courier;
+          expeditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          hideCourierSuggestion();
+          toast(`Saran ekspedisi dipakai: ${courierMeta[courier] || courier}.`);
+        });
+
+        courierSuggestion.querySelector("#dgDismissCourierSuggestion").addEventListener("click", () => {
+          suggestionDismissedFor = lastSuggestKey;
+          hideCourierSuggestion();
+        });
+      }
+
+      function showErrorHelper(message) {
+        if (!errorHelper) return;
+        const lower = safeTextV11(message).toLowerCase();
+        const title = errorHelper.querySelector("strong");
+        const copy = errorHelper.querySelector("p");
+        if (/timeout|terlalu lama|network|internet|koneksi|failed|fetch/.test(lower)) {
+          title.textContent = "Koneksi atau server sedang lambat";
+          copy.textContent = "Coba ulang beberapa saat lagi. Request otomatis dibatasi agar tombol tidak loading terlalu lama.";
+        } else if (/tidak ditemukan|not found|invalid|resi|waybill/.test(lower)) {
+          title.textContent = "Resi belum ditemukan";
+          copy.textContent = "Pastikan ekspedisi sesuai dan nomor resi tidak salah. Resi baru juga bisa butuh waktu sebelum aktif di sistem ekspedisi.";
+        } else {
+          title.textContent = "Tips agar tracking berhasil";
+          copy.textContent = "Periksa nomor resi, pilih ekspedisi yang sesuai, lalu coba cek ulang.";
+        }
+        errorHelper.classList.add("show");
+      }
+
+      function hideErrorHelper() {
+        if (errorHelper) errorHelper.classList.remove("show");
+      }
+
+      function sanitizeAwb(value) {
+        return safeTextV11(value).replace(/[\s\r\n\t]+/g, "").toUpperCase();
+      }
+
+      function cleanResiInput(reason) {
+        const before = resiInput.value;
+        const after = sanitizeAwb(before);
+        if (before !== after) {
+          resiInput.value = after;
+          if (reason === "paste") toast("Format resi dirapikan otomatis.");
+        }
+      }
+
+      function cleanPhoneInput() {
+        const digits = phoneLastInput.value.replace(/\D+/g, "").slice(0, 4);
+        if (phoneLastInput.value !== digits) phoneLastInput.value = digits;
+      }
+
+      function getRecentPreferredCourier() {
+        if (!patch10.readRecentItems) return "";
+        const items = patch10.readRecentItems() || [];
+        const counts = {};
+        items.forEach((item) => {
+          if (item && item.courier) counts[item.courier] = (counts[item.courier] || 0) + 1;
+        });
+        return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+      }
+
+      function suggestCourierByPattern(resi) {
+        const value = sanitizeAwb(resi);
+        if (value.length < 5) return "";
+        if (/^(JNE|CM|CGK|BDO)/.test(value)) return "jne";
+        if (/^(JT|JP|JX)/.test(value)) return "jnt";
+        if (/^(SICEPAT|SC|SI|00[0-9]{8,})/.test(value)) return "sicepat";
+        if (/^(ANT|AT|1000)/.test(value)) return "anteraja";
+        if (/^(POS|PE|CP)/.test(value)) return "pos";
+        if (/^(TIKI|TK)/.test(value)) return "tiki";
+        if (/^(WH|W[0-9])/.test(value)) return "wahana";
+        if (/^(NINJA|NL|NJV)/.test(value)) return "ninja";
+        if (/^(LP|LION)/.test(value)) return "lion";
+        if (/^(ID|IDE)/.test(value)) return "ide";
+        if (/^(SAP)/.test(value)) return "sap";
+        if (/^(FL|FIRST)/.test(value)) return "first";
+        return "";
+      }
+
+      function showCourierSuggestion(courier, reason) {
+        if (!courierSuggestion || !courier || !courierMeta[courier]) return;
+        lastSuggestKey = `${courier}:${sanitizeAwb(resiInput.value).slice(0, 10)}`;
+        if (suggestionDismissedFor === lastSuggestKey) return;
+        courierSuggestion.dataset.courier = courier;
+        const text = courierSuggestion.querySelector("#dgCourierSuggestionText");
+        text.textContent = `${reason} Saran: ${courierMeta[courier]}. Sistem tidak memilih otomatis supaya tetap aman.`;
+        courierSuggestion.classList.add("show");
+      }
+
+      function hideCourierSuggestion() {
+        if (courierSuggestion) courierSuggestion.classList.remove("show");
+      }
+
+      function updateCourierSuggestion() {
+        if (!courierSuggestion) return;
+        if (expeditionSelect.value) {
+          hideCourierSuggestion();
+          return;
+        }
+        const value = sanitizeAwb(resiInput.value);
+        if (value.length < 5) {
+          hideCourierSuggestion();
+          return;
+        }
+        const patternCourier = suggestCourierByPattern(value);
+        if (patternCourier) {
+          showCourierSuggestion(patternCourier, "Format resi terlihat mirip salah satu ekspedisi.");
+          return;
+        }
+        const recentCourier = getRecentPreferredCourier();
+        if (recentCourier) {
+          showCourierSuggestion(recentCourier, "Berdasarkan ekspedisi yang sering kamu cek sebelumnya.");
+        }
+      }
+
+      function timelineSignatureFromData(data) {
+        const history = Array.isArray(data && data.history) ? data.history : [];
+        return history.map((item) => [item.title, item.description, item.time].map(safeTextV11).join("|")).join("||");
+      }
+
+      function currentResultResi() {
+        const fromResult = safeTextV11(resultResi ? resultResi.textContent : "");
+        if (fromResult && fromResult !== "-" && !/tidak tersedia/i.test(fromResult)) return fromResult;
+        return safeTextV11(resiInput.value);
+      }
+
+      function setRefreshButtonState() {
+        if (!refreshButton) return;
+        const remaining = Math.max(0, refreshCooldownUntil - Date.now());
+        if (remaining > 0) {
+          refreshButton.disabled = true;
+          refreshButton.classList.add("refreshing");
+          refreshButton.textContent = `Refresh Status (${Math.ceil(remaining / 1000)}s)`;
+        } else {
+          refreshButton.disabled = false;
+          refreshButton.classList.remove("refreshing");
+          refreshButton.textContent = "Refresh Status";
+          window.clearInterval(refreshCooldownTimer);
+          refreshCooldownTimer = null;
+        }
+      }
+
+      function startRefreshCooldown() {
+        refreshCooldownUntil = Date.now() + REFRESH_COOLDOWN_MS;
+        setRefreshButtonState();
+        if (!refreshCooldownTimer) {
+          refreshCooldownTimer = window.setInterval(setRefreshButtonState, 1000);
+        }
+      }
+
+      function handleRefreshStatus() {
+        const remaining = refreshCooldownUntil - Date.now();
+        if (remaining > 0) {
+          toast(`Tunggu ${Math.ceil(remaining / 1000)} detik sebelum refresh lagi.`);
+          return;
+        }
+
+        const resi = currentResultResi();
+        if (!resi) {
+          toast("Belum ada hasil tracking untuk di-refresh.");
+          return;
+        }
+
+        resiInput.value = sanitizeAwb(resi);
+        if (!expeditionSelect.value) {
+          toast("Pilih ekspedisi dulu sebelum refresh status.");
+          expeditionSelect.focus();
+          return;
+        }
+
+        manualRefreshPending = true;
+        startRefreshCooldown();
+        updateDebug({ lastAction: "manual refresh" });
+        if (typeof trackingForm.requestSubmit === "function") {
+          trackingForm.requestSubmit();
+        } else {
+          trackingForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+        }
+      }
+
+      function startLoadingSteps() {
+        if (!loadingTitle || !loadingCopy) return;
+        window.clearInterval(loadingTimer);
+        loadingIndex = 0;
+        const apply = () => {
+          const [title, copy] = loadingSteps[loadingIndex % loadingSteps.length];
+          loadingStage.classList.add("dg-loading-step", "is-switching");
+          window.setTimeout(() => {
+            loadingTitle.textContent = title;
+            loadingCopy.textContent = copy;
+            loadingStage.classList.remove("is-switching");
+          }, 110);
+          loadingIndex += 1;
+        };
+        apply();
+        loadingTimer = window.setInterval(apply, 1050);
+      }
+
+      function stopLoadingSteps() {
+        window.clearInterval(loadingTimer);
+        loadingTimer = null;
+        if (loadingTitle && loadingCopy) {
+          loadingTitle.textContent = "Menghubungkan ke sistem pelacakan...";
+          loadingCopy.textContent = "Memvalidasi resi, membaca ekspedisi, dan menyiapkan hasil tracking.";
+        }
+        if (loadingStage) loadingStage.classList.remove("is-switching");
+      }
+
+      function pulseResultCard() {
+        if (!resultArea) return;
+        resultArea.classList.remove("dg-v11-refresh-pulse");
+        window.requestAnimationFrame(() => {
+          void resultArea.offsetWidth;
+          resultArea.classList.add("dg-v11-refresh-pulse");
+        });
+      }
+
+      function focusResultTitle() {
+        if (!resultTitle || !resultArea || !resultArea.classList.contains("show")) return;
+        resultTitle.setAttribute("tabindex", "-1");
+        window.setTimeout(() => resultTitle.focus({ preventScroll: true }), 80);
+      }
+
+      function highlightNewestTimeline() {
+        if (!timelineList) return;
+        const first = timelineList.querySelector(".timeline-item");
+        if (!first) return;
+        first.classList.remove("is-new-update");
+        window.requestAnimationFrame(() => {
+          void first.offsetWidth;
+          first.classList.add("is-new-update");
+        });
+      }
+
+      createRefreshButton();
+      createErrorHelper();
+      createCourierSuggestion();
+      createDebugPanel();
+
+      resiInput.setAttribute("autocapitalize", "characters");
+      resiInput.setAttribute("spellcheck", "false");
+      resultArea.setAttribute("aria-live", "polite");
+      resultArea.setAttribute("aria-busy", "false");
+      if (supportCard) {
+        const p = supportCard.querySelector("p");
+        if (p) p.textContent = "Pastikan nomor resi benar dan ekspedisi sesuai. Jika status belum muncul, gunakan bantuan error atau refresh setelah beberapa saat.";
+      }
+
+      resiInput.addEventListener("paste", () => window.setTimeout(() => {
+        cleanResiInput("paste");
+        updateCourierSuggestion();
+      }, 0));
+      resiInput.addEventListener("blur", () => {
+        cleanResiInput("blur");
+        updateCourierSuggestion();
+      });
+      resiInput.addEventListener("input", () => window.setTimeout(updateCourierSuggestion, 80));
+      phoneLastInput.addEventListener("input", cleanPhoneInput);
+      expeditionSelect.addEventListener("change", updateCourierSuggestion);
+      window.addEventListener("online", () => updateDebug({ lastAction: "online" }));
+      window.addEventListener("offline", () => updateDebug({ lastAction: "offline" }));
+
+      const originalClearErrorV11 = clearError;
+      clearError = function patchedClearErrorV11() {
+        originalClearErrorV11();
+        hideErrorHelper();
+      };
+
+      const originalShowErrorV11 = showError;
+      showError = function patchedShowErrorV11(message) {
+        originalShowErrorV11(message);
+        showErrorHelper(message);
+        updateDebug({ lastAction: "error" });
+      };
+
+      const originalValidateFormV11 = validateForm;
+      validateForm = function patchedValidateFormV11() {
+        cleanResiInput("validate");
+        cleanPhoneInput();
+        return originalValidateFormV11();
+      };
+
+      const originalSetLoadingV11 = setLoading;
+      setLoading = function patchedSetLoadingV11(isLoading) {
+        originalSetLoadingV11(isLoading);
+        resultArea.setAttribute("aria-busy", isLoading ? "true" : "false");
+        if (isLoading) startLoadingSteps();
+        else stopLoadingSteps();
+        updateDebug({ lastAction: isLoading ? "loading" : "idle" });
+      };
+
+      const originalFetchTrackingDataV11 = fetchTrackingData;
+      fetchTrackingData = async function patchedFetchTrackingDataV11(resi, courier, expeditionName, phoneLast) {
+        const started = performance.now();
+        try {
+          return await originalFetchTrackingDataV11(resi, courier, expeditionName, phoneLast);
+        } finally {
+          const apiMs = Math.round(performance.now() - started);
+          updateDebug({ apiMs: `${apiMs}ms`, lastAction: "fetch complete" });
+        }
+      };
+
+      const originalRenderTrackingResultV11 = renderTrackingResult;
+      renderTrackingResult = function patchedRenderTrackingResultV11(data) {
+        const previousSignature = lastTimelineSignature;
+        const nextSignature = timelineSignatureFromData(data);
+        originalRenderTrackingResultV11(data);
+        resultArea.setAttribute("aria-label", `Hasil pelacakan untuk resi ${safeTextV11(data && data.resi) || "terbaru"}`);
+        pulseResultCard();
+        focusResultTitle();
+
+        if (manualRefreshPending) {
+          if (nextSignature && nextSignature !== previousSignature) {
+            highlightNewestTimeline();
+            toast("Status berhasil diperbarui. Ada pembaruan timeline.");
+          } else {
+            toast("Status berhasil di-refresh. Belum ada update baru.");
+          }
+        }
+
+        lastTimelineSignature = nextSignature;
+        manualRefreshPending = false;
+        updateDebug({ lastAction: "render result" });
+      };
+
+      if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").then(() => {
+            updateDebug({ lastAction: "service worker ready" });
+          }).catch(() => {
+            updateDebug({ lastAction: "service worker skipped" });
+          });
+        });
+      }
+
+      window.DiracFeaturePatchV11 = {
+        version: V11_VERSION,
+        cleanResiInput,
+        updateCourierSuggestion,
+        handleRefreshStatus,
+        debugState
+      };
+
+      updateCourierSuggestion();
+      updateDebug({ lastAction: "v11 ready" });
+    })();
+
+</script>
 </body>
 </html>
