@@ -3053,6 +3053,51 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
 }
 </style>
 
+
+<style id="dirac-hide-header-during-overlays-css">
+/* =========================================================
+   Dirac Overlay Header Safety v1
+   Saat Theme Settings, cart drawer, atau modal lain terbuka,
+   header capsule disembunyikan supaya tidak menutup konten.
+   Hanya visual; trigger, modal, cart, dan semua fungsi tetap sama.
+   ========================================================= */
+body.cart-open > .site-header,
+body.modal-open > .site-header,
+body:has(#cartOverlay.open) > .site-header,
+body:has(#themeModal.open) > .site-header,
+body:has(.modal.open) > .site-header{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:translate3d(0,-28px,0) scale(.985)!important;
+  filter:blur(2px)!important;
+}
+body.cart-open .dirac-floating-actions,
+body.modal-open .dirac-floating-actions,
+body:has(#cartOverlay.open) .dirac-floating-actions,
+body:has(#themeModal.open) .dirac-floating-actions,
+body:has(.modal.open) .dirac-floating-actions{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+.theme-modal.open,
+.cart-overlay.open,
+.modal.open{
+  isolation:isolate;
+}
+@media(prefers-reduced-motion:reduce){
+  body.cart-open > .site-header,
+  body.modal-open > .site-header,
+  body:has(#cartOverlay.open) > .site-header,
+  body:has(#themeModal.open) > .site-header,
+  body:has(.modal.open) > .site-header{
+    transform:none!important;
+    filter:none!important;
+  }
+}
+</style>
+
 </head>
 <body>
   <div class="announcement">
