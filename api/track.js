@@ -1,4 +1,5 @@
 const RAJAONGKIR_BASE_URL = "https://rajaongkir.komerce.id/api/v1";
+const REQUEST_TIMEOUT_MS = 10000;
 
 function readBody(req) {
   if (typeof req.body === "string") {
@@ -47,6 +48,90 @@ function normalizeCourier(courier) {
   };
 
   return map[key] || key;
+}
+
+function getApiKeys() {
+  const keys = [
+    process.env.RAJAONGKIR_API_KEY_1,
+    process.env.RAJAONGKIR_API_KEY_2,
+    process.env.RAJAONGKIR_API_KEY_3,
+    process.env.RAJAONGKIR_API_KEY_4,
+    process.env.RAJAONGKIR_API_KEY_5,
+
+    // fallback lama, supaya kalau environment lama masih dipakai website tetap jalan
+    process.env.RAJAONGKIR_API_KEY
+  ]
+    .map((key) => cleanText(key))
+    .filter(Boolean);
+
+  return [...new Set(keys)];
+}
+
+function isLimitError(statusCode, payload) {
+  const text = JSON.stringify(payload || {}).toLowerCase();
+
+  return (
+    statusCode === 429 ||
+    text.includes("limit") ||
+    text.includes("quota") ||
+    text.includes("rate limit") ||
+    text.includes("too many requests") ||
+    text.includes("exceeded") ||
+    text.includes("maksimum") ||
+    text.includes("kuota") ||
+    text.includes("habis")
+  );
+}
+
+function isTemporaryError(statusCode, payload) {
+  const text = JSON.stringify(payload || {}).toLowerCase();
+
+  return (
+    statusCode === 408 ||
+    statusCode === 425 ||
+    statusCode === 429 ||
+    statusCode === 500 ||
+    statusCode === 502 ||
+    statusCode === 503 ||
+    statusCode === 504 ||
+    text.includes("timeout") ||
+    text.includes("temporarily") ||
+    text.includes("temporary") ||
+    text.includes("service unavailable") ||
+    text.includes("bad gateway") ||
+    text.includes("gateway timeout")
+  );
+}
+
+function isDefinitiveClientError(statusCode, payload) {
+  const text = JSON.stringify(payload || {}).toLowerCase();
+
+  if (isLimitError(statusCode, payload)) return false;
+  if (isTemporaryError(statusCode, payload)) return false;
+
+  return (
+    statusCode === 400 ||
+    statusCode === 404 ||
+    text.includes("resi tidak ditemukan") ||
+    text.includes("waybill not found") ||
+    text.includes("not found") ||
+    text.includes("ekspedisi tidak sesuai") ||
+    text.includes("courier") && text.includes("invalid")
+  );
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function mapStatus(payload) {
@@ -185,6 +270,34 @@ function normalizeRajaOngkir(payload, input) {
   };
 }
 
+async function callRajaOngkir({ apiKey, awb, courier, lastPhoneNumber }) {
+  const params = new URLSearchParams();
+  params.set("awb", awb);
+  params.set("courier", courier);
+
+  if (lastPhoneNumber) {
+    params.set("last_phone_number", lastPhoneNumber);
+  }
+
+  const response = await fetchWithTimeout(
+    `${RAJAONGKIR_BASE_URL}/track/waybill?${params.toString()}`,
+    {
+      method: "POST",
+      headers: {
+        key: apiKey,
+        Accept: "application/json"
+      }
+    }
+  );
+
+  const payload = await response.json().catch(() => null);
+
+  return {
+    response,
+    payload
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -202,12 +315,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiKey = process.env.RAJAONGKIR_API_KEY;
+    const apiKeys = getApiKeys();
 
-    if (!apiKey) {
+    if (!apiKeys.length) {
       return res.status(500).json({
         success: false,
-        message: "RAJAONGKIR_API_KEY belum diset di Vercel Environment Variables."
+        message:
+          "Belum ada API key RajaOngkir yang diset. Gunakan RAJAONGKIR_API_KEY_1 sampai RAJAONGKIR_API_KEY_5 di Vercel Environment Variables."
       });
     }
 
@@ -244,54 +358,104 @@ export default async function handler(req, res) {
       });
     }
 
-    const params = new URLSearchParams();
-    params.set("awb", awb);
-    params.set("courier", courier);
+    const attempts = [];
 
-    if (lastPhoneNumber) {
-      params.set("last_phone_number", lastPhoneNumber);
-    }
+    for (let index = 0; index < apiKeys.length; index++) {
+      const apiNumber = index + 1;
+      const apiKey = apiKeys[index];
 
-    const response = await fetch(
-      `${RAJAONGKIR_BASE_URL}/track/waybill?${params.toString()}`,
-      {
-        method: "POST",
-        headers: {
-          key: apiKey,
-          Accept: "application/json"
+      try {
+        const { response, payload } = await callRajaOngkir({
+          apiKey,
+          awb,
+          courier,
+          lastPhoneNumber
+        });
+
+        if (!payload) {
+          attempts.push({
+            api: apiNumber,
+            status: response.status,
+            result: "invalid_json"
+          });
+
+          continue;
         }
+
+        const metaCode = Number(payload?.meta?.code || response.status);
+        const metaStatus = cleanText(payload?.meta?.status).toLowerCase();
+        const metaMessage = cleanText(payload?.meta?.message);
+
+        const statusCode = metaCode || response.status;
+
+        attempts.push({
+          api: apiNumber,
+          status: statusCode,
+          meta_status: metaStatus || null,
+          message: metaMessage || null
+        });
+
+        const hasError =
+          !response.ok ||
+          statusCode >= 400 ||
+          metaStatus === "error" ||
+          payload?.data === null;
+
+        if (!hasError) {
+          const normalized = normalizeRajaOngkir(payload, {
+            awb,
+            courier
+          });
+
+          return res.status(200).json({
+            ...normalized,
+            fallback_info: {
+              used_api: apiNumber,
+              total_attempts: attempts.length
+            }
+          });
+        }
+
+        if (isLimitError(statusCode, payload) || isTemporaryError(statusCode, payload)) {
+          continue;
+        }
+
+        if (isDefinitiveClientError(statusCode, payload)) {
+          return res.status(statusCode >= 400 ? statusCode : 400).json({
+            success: false,
+            message:
+              metaMessage ||
+              "Resi tidak ditemukan atau ekspedisi tidak sesuai.",
+            raw_rajaongkir: payload,
+            fallback_info: {
+              stopped_at_api: apiNumber,
+              reason: "definitive_client_error",
+              attempts
+            }
+          });
+        }
+
+        continue;
+      } catch (error) {
+        attempts.push({
+          api: apiNumber,
+          status: "error",
+          message: error.name === "AbortError" ? "Request timeout" : error.message
+        });
+
+        continue;
       }
-    );
-
-    const payload = await response.json().catch(() => null);
-
-    if (!payload) {
-      return res.status(502).json({
-        success: false,
-        message: "RajaOngkir tidak mengirim response JSON yang valid."
-      });
     }
 
-    const metaCode = Number(payload?.meta?.code || response.status);
-    const metaStatus = cleanText(payload?.meta?.status).toLowerCase();
-    const metaMessage = cleanText(payload?.meta?.message);
-
-    if (!response.ok || metaCode >= 400 || metaStatus === "error" || payload?.data === null) {
-      return res.status(metaCode >= 400 ? metaCode : 400).json({
-        success: false,
-        message:
-          metaMessage ||
-          "Resi tidak ditemukan atau ekspedisi tidak sesuai.",
-        raw_rajaongkir: payload
-      });
-    }
-
-    return res.status(200).json(
-      normalizeRajaOngkir(payload, {
-        awb,
-        courier
-      })
-    );
+    return res.status(503).json({
+      success: false,
+      message:
+        "Semua API RajaOngkir sedang limit, timeout, atau tidak tersedia. Coba lagi beberapa saat.",
+      fallback_info: {
+        total_attempts: attempts.length,
+        attempts
+      }
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
