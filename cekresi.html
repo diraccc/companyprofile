@@ -2090,7 +2090,7 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>
               </div>
               <strong>Banyak Ekspedisi</strong>
-              <span>Mendukung JNE, J&T, SiCepat, Anteraja, POS, dan lainnya.</span>
+              <span>Mendukung JNE, J&T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</span>
             </div>
           </div>
         </div>
@@ -2138,19 +2138,19 @@
               <div class="form-head">
                 <div>
                   <h2>Cek Status Pengiriman</h2>
-                  <p>Masukkan nomor resi dan pilih ekspedisi. Website ini mengambil data langsung dari backend Vercel yang terhubung ke sistem tracking ekspedisi.</p>
+                  <p>Masukkan nomor resi dan pilih ekspedisi. Website ini mengambil data langsung dari backend Vercel yang terhubung ke RajaOngkir API.</p>
                 </div>
 
                 <div class="secure-badge">
                   <span class="pulse"></span>
-                  Real API
+                  RajaOngkir API
                 </div>
               </div>
 
               <form class="tracking-form" id="trackingForm" novalidate>
                 <div class="field">
                   <label for="resi">Nomor Resi</label>
-                  <input id="resi" name="resi" type="text" placeholder="Contoh: JP1234567890" autocomplete="off" />
+                  <input id="resi" name="resi" type="text" placeholder="Masukkan nomor resi" autocomplete="off" />
                 </div>
 
                 <div class="field">
@@ -2165,15 +2165,15 @@
                     <option value="tiki">TIKI</option>
                     <option value="wahana">Wahana</option>
                     <option value="ninja">Ninja Xpress</option>
-                    <option value="spx">Shopee Express</option>
                     <option value="lion">Lion Parcel</option>
                     <option value="ide">ID Express</option>
                     <option value="sap">SAP Express</option>
+                    <option value="first">First Logistics</option>
                   </select>
                 </div>
 
                 <div class="field">
-                  <label for="phoneLast">4 Digit HP</label>
+                  <label for="phoneLast">4 Digit HP Terakhir</label>
                   <input id="phoneLast" name="phoneLast" type="text" inputmode="numeric" maxlength="4" placeholder="Opsional" />
                 </div>
 
@@ -2191,13 +2191,13 @@
                 <span class="courier-pill">TIKI</span>
                 <span class="courier-pill">Wahana</span>
                 <span class="courier-pill">Ninja</span>
-                <span class="courier-pill">Shopee</span>
-                <span class="courier-pill">Lainnya</span>
+                <span class="courier-pill">Lion</span>
+                <span class="courier-pill">First</span>
               </div>
 
               <div class="tracking-note">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
-                <span>Data pelacakan ditampilkan berdasarkan integrasi sistem pengiriman yang tersedia.</span>
+                <span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
               </div>
             </div>
 
@@ -2211,7 +2211,7 @@
               <div class="map-meta">
                 <div class="map-row"><span>Status</span><strong>Monitoring</strong></div>
                 <div class="map-row"><span>Rute</span><strong>Asal → Tujuan</strong></div>
-                <div class="map-row"><span>Sistem</span><strong>Vercel API</strong></div>
+                <div class="map-row"><span>Sistem</span><strong>RajaOngkir API</strong></div>
               </div>
             </aside>
           </div>
@@ -2331,7 +2331,7 @@
               <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path></svg>
             </div>
             <h3>Banyak Ekspedisi</h3>
-            <p>Mendukung pilihan ekspedisi populer seperti JNE, J&T, SiCepat, Anteraja, POS, TIKI, dan lainnya.</p>
+            <p>Mendukung ekspedisi populer RajaOngkir seperti JNE, J&T, SiCepat, Anteraja, POS, TIKI, Wahana, Ninja, Lion, SAP, ID Express, dan First Logistics.</p>
           </article>
         </div>
       </section>
@@ -2391,7 +2391,7 @@
 
           <details>
             <summary>Ekspedisi apa saja yang didukung?</summary>
-            <p>Contoh pilihan yang tersedia mencakup JNE, J&T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Shopee Express, Lion Parcel, ID Express, SAP Express, dan lainnya.</p>
+            <p>Contoh pilihan yang tersedia mencakup JNE, J&T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Lion Parcel, ID Express, SAP Express, First Logistics, dan lainnya sesuai dukungan RajaOngkir.</p>
           </details>
         </div>
       </section>
@@ -2434,13 +2434,14 @@
 
         <div class="copyright">
           <span>© 2026 Dirac Group. Semua hak dilindungi.</span>
-          <span>Data pelacakan ditampilkan berdasarkan integrasi sistem pengiriman yang tersedia.</span>
+          <span>Data pelacakan ditampilkan berdasarkan integrasi RajaOngkir API yang tersedia.</span>
         </div>
       </div>
     </footer>
   </div>
 
   <script>
+    // Endpoint backend Vercel. File api/track.js di Vercel harus memakai RajaOngkir API.
     const API_ENDPOINT = "https://companyprofilee-six.vercel.app/api/track";
 
     const trackingForm = document.getElementById("trackingForm");
@@ -2526,6 +2527,17 @@
 
     function safeText(value, fallback = "Tidak tersedia dari API") {
       if (value === null || value === undefined) return fallback;
+
+      if (typeof value === "object") {
+        if (value.message) return safeText(value.message, fallback);
+        if (value.status) return safeText(value.status, fallback);
+        if (value.text) return safeText(value.text, fallback);
+        if (value.name) return safeText(value.name, fallback);
+        if (value.value) return safeText(value.value, fallback);
+        if (value.label) return safeText(value.label, fallback);
+        return fallback;
+      }
+
       const text = String(value).trim();
       return text ? text : fallback;
     }
@@ -2568,7 +2580,9 @@
         raw?.rajaongkir?.result,
         raw?.rajaongkir?.results,
         raw?.response,
-        raw?.response?.data
+        raw?.response?.data,
+        raw?.raw_rajaongkir,
+        raw?.raw_rajaongkir?.data
       ];
 
       candidates.forEach((item) => {
@@ -2640,8 +2654,8 @@
     }
 
     function getAllStatusText({ raw, root, summary, details, delivery, history }) {
-      return [
-        getFirstByPaths(raw, ["message", "meta.message", "rajaongkir.status.description"]),
+      const values = [
+        getFirstByPaths(raw, ["message", "meta.message", "rajaongkir.status.description", "raw_rajaongkir.meta.message"]),
         getFirstByPaths(root, ["status", "status_text", "delivery_status", "shipment_status"]),
         summary.status,
         summary.status_text,
@@ -2651,7 +2665,9 @@
         delivery.pod_receiver,
         details.status,
         ...history.map((item) => item.rawText)
-      ].filter(Boolean).join(" | ");
+      ].filter(Boolean).map((item) => safeText(item, "")).filter(Boolean);
+
+      return [...new Set(values)].join(" | ");
     }
 
     function detectDelivered(statusText, root) {
@@ -2882,7 +2898,7 @@
         throw new Error("Backend tidak mengirim respons JSON yang valid.");
       }
 
-      const backendError = payload?.error || payload?.message || payload?.meta?.message || payload?.rajaongkir?.status?.description;
+      const backendError = payload?.error || payload?.message || payload?.meta?.message || payload?.raw_rajaongkir?.meta?.message || payload?.rajaongkir?.status?.description;
 
       if (!response.ok) {
         throw new Error(backendError || `Request gagal dengan status ${response.status}.`);
@@ -2895,6 +2911,7 @@
         statusText === "error" ||
         statusText === "failed" ||
         payload?.meta?.code >= 400 ||
+        payload?.raw_rajaongkir?.meta?.code >= 400 ||
         payload?.rajaongkir?.status?.code >= 400;
 
       if (failedStatus) {
