@@ -2038,7 +2038,7 @@
         <div class="hero-content">
           <div class="hero-label">
             <span class="pulse"></span>
-            AfterShip Tracking Ready
+            Smart Tracking Service
           </div>
 
           <h1>Cek Resi <span>Pengiriman Anda</span></h1>
@@ -2074,7 +2074,7 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>
               </div>
               <strong>Banyak Ekspedisi</strong>
-              <span>Mendukung SPX/Shopee Express dan ekspedisi lain melalui backend AfterShip.</span>
+              <span>Mendukung JNE, J&T, SiCepat, Anteraja, POS, dan lainnya.</span>
             </div>
           </div>
         </div>
@@ -2122,7 +2122,7 @@
               <div class="form-head">
                 <div>
                   <h2>Cek Status Pengiriman</h2>
-                  <p>Masukkan nomor resi dan pilih ekspedisi. Website ini mengambil data dari backend Vercel <strong>/api/track</strong> yang terhubung ke AfterShip Tracking API.</p>
+                  <p>Masukkan nomor resi dan pilih ekspedisi. Website ini mengambil data langsung dari backend Vercel yang terhubung ke sistem tracking ekspedisi.</p>
                 </div>
 
                 <div class="secure-badge">
@@ -2134,15 +2134,13 @@
               <form class="tracking-form" id="trackingForm" novalidate>
                 <div class="field">
                   <label for="resi">Nomor Resi</label>
-                  <input id="resi" name="resi" type="text" placeholder="Contoh: SPXID1234567890" autocomplete="off" />
+                  <input id="resi" name="resi" type="text" placeholder="Contoh: JP1234567890" autocomplete="off" />
                 </div>
 
                 <div class="field">
                   <label for="expedition">Pilih Ekspedisi</label>
                   <select id="expedition" name="expedition">
                     <option value="">Pilih ekspedisi</option>
-                    <option value="spx">Shopee Express / SPX</option>
-                    <option value="auto">Auto Detect AfterShip</option>
                     <option value="jne">JNE</option>
                     <option value="jnt">J&T Express</option>
                     <option value="sicepat">SiCepat</option>
@@ -2151,6 +2149,7 @@
                     <option value="tiki">TIKI</option>
                     <option value="wahana">Wahana</option>
                     <option value="ninja">Ninja Xpress</option>
+                    <option value="spx">Shopee Express</option>
                     <option value="lion">Lion Parcel</option>
                     <option value="ide">ID Express</option>
                     <option value="sap">SAP Express</option>
@@ -2182,7 +2181,7 @@
 
               <div class="tracking-note">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
-                <span>Data pelacakan ditampilkan berdasarkan respons backend. Untuk SPX, pilih <strong>Shopee Express / SPX</strong>.</span>
+                <span>Data pelacakan ditampilkan berdasarkan integrasi sistem pengiriman yang tersedia.</span>
               </div>
             </div>
 
@@ -2196,7 +2195,7 @@
               <div class="map-meta">
                 <div class="map-row"><span>Status</span><strong>Monitoring</strong></div>
                 <div class="map-row"><span>Rute</span><strong>Asal → Tujuan</strong></div>
-                <div class="map-row"><span>Sistem</span><strong>AfterShip API</strong></div>
+                <div class="map-row"><span>Sistem</span><strong>Vercel API</strong></div>
               </div>
             </aside>
           </div>
@@ -2316,7 +2315,7 @@
               <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path></svg>
             </div>
             <h3>Banyak Ekspedisi</h3>
-            <p>Mendukung pilihan ekspedisi populer seperti Shopee Express/SPX, JNE, J&T, SiCepat, Anteraja, POS, TIKI, dan lainnya.</p>
+            <p>Mendukung pilihan ekspedisi populer seperti JNE, J&T, SiCepat, Anteraja, POS, TIKI, dan lainnya.</p>
           </article>
         </div>
       </section>
@@ -2376,7 +2375,7 @@
 
           <details>
             <summary>Ekspedisi apa saja yang didukung?</summary>
-            <p>Contoh pilihan yang tersedia mencakup Shopee Express/SPX, Auto Detect AfterShip, JNE, J&T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Lion Parcel, ID Express, SAP Express, dan lainnya.</p>
+            <p>Contoh pilihan yang tersedia mencakup JNE, J&T Express, SiCepat, Anteraja, Pos Indonesia, TIKI, Wahana, Ninja Xpress, Shopee Express, Lion Parcel, ID Express, SAP Express, dan lainnya.</p>
           </details>
         </div>
       </section>
@@ -2419,14 +2418,14 @@
 
         <div class="copyright">
           <span>© 2026 Dirac Group. Semua hak dilindungi.</span>
-          <span>Data pelacakan ditampilkan berdasarkan respons backend. Untuk SPX, pilih <strong>Shopee Express / SPX</strong>.</span>
+          <span>Data pelacakan ditampilkan berdasarkan integrasi sistem pengiriman yang tersedia.</span>
         </div>
       </div>
     </footer>
   </div>
 
   <script>
-    const API_ENDPOINT = "/api/track";
+    const API_ENDPOINT = "https://companyprofilee-six.vercel.app/api/track";
 
     const trackingForm = document.getElementById("trackingForm");
     const resiInput = document.getElementById("resi");
@@ -2849,7 +2848,7 @@
     }
 
     async function fetchTrackingData(resi, courier, expeditionName, phoneLast) {
-      const body = { awb: resi, courier: courier === "auto" ? "" : courier };
+      const body = { awb: resi, courier };
       if (phoneLast) body.last_phone_number = phoneLast;
 
       const response = await fetch(API_ENDPOINT, {
