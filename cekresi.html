@@ -8207,5 +8207,688 @@
     })();
 </script>
 
+
+<!-- DIRAC V16 ROUTE VISUAL PATCH - lightweight Shopee-style route illustration -->
+<style id="dirac-v16-route-visual-style">
+  /* ==========================================================
+     DIRAC V16 ROUTE VISUAL PATCH
+     Tujuan: visual rute paket seperti marketplace, ringan, tanpa library,
+     tanpa peta eksternal, dan tidak mengubah fungsi API / fetch utama.
+     ========================================================== */
+  .dg-v16-route-card {
+    margin: 0 0 22px;
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(147, 197, 253, 0.18);
+    background:
+      radial-gradient(circle at 12% 0%, rgba(125, 211, 252, 0.18), transparent 30%),
+      linear-gradient(180deg, rgba(9, 24, 48, 0.96), rgba(4, 13, 28, 0.98));
+    box-shadow: 0 24px 72px rgba(2, 6, 23, 0.28);
+    position: relative;
+    isolation: isolate;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .28s ease, transform .28s ease;
+  }
+
+  .result-area.show .dg-v16-route-card {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .dg-v16-route-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-height: 58px;
+    padding: 16px 18px 13px;
+    color: var(--white);
+    position: relative;
+    z-index: 2;
+  }
+
+  .dg-v16-route-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+  }
+
+  .dg-v16-route-title i {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #07111f;
+    background: linear-gradient(135deg, #e0f2fe, #67e8f9, #60a5fa);
+    box-shadow: 0 12px 28px rgba(34, 211, 238, .23);
+    flex: 0 0 auto;
+  }
+
+  .dg-v16-route-title strong {
+    display: block;
+    color: var(--white);
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+  }
+
+  .dg-v16-route-title span {
+    display: block;
+    margin-top: 3px;
+    color: #a8bddc;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .dg-v16-route-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: #bbf7d0;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.24);
+    font-size: 12px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  .dg-v16-route-chip::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 16px rgba(34, 197, 94, .72);
+  }
+
+  .dg-v16-map-shell {
+    margin: 0 18px 16px;
+    min-height: 244px;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 30%, rgba(16, 185, 129, .25), transparent 18%),
+      radial-gradient(circle at 76% 46%, rgba(59, 130, 246, .18), transparent 22%),
+      linear-gradient(135deg, #9ce2ef 0%, #c6f1ed 45%, #effffd 100%);
+    border: 1px solid rgba(226, 242, 254, 0.48);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.36), 0 18px 42px rgba(2, 6, 23, .26);
+  }
+
+  .dg-v16-map-shell::before,
+  .dg-v16-map-shell::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    opacity: .74;
+    background: rgba(34, 197, 94, .28);
+    filter: blur(.2px);
+  }
+
+  .dg-v16-map-shell::before {
+    width: 52%;
+    height: 42%;
+    left: -5%;
+    top: 42%;
+    border-radius: 43% 57% 50% 50% / 42% 44% 56% 58%;
+    transform: rotate(-8deg);
+  }
+
+  .dg-v16-map-shell::after {
+    width: 50%;
+    height: 38%;
+    right: -4%;
+    top: 24%;
+    border-radius: 56% 44% 54% 46% / 52% 55% 45% 48%;
+    transform: rotate(9deg);
+  }
+
+  .dg-v16-map-grid {
+    position: absolute;
+    inset: 0;
+    opacity: .22;
+    background-image:
+      linear-gradient(rgba(6, 16, 31, .13) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(6, 16, 31, .13) 1px, transparent 1px);
+    background-size: 34px 34px;
+    z-index: 1;
+  }
+
+  .dg-v16-route-svg {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .dg-v16-route-line-shadow {
+    fill: none;
+    stroke: rgba(2, 6, 23, .16);
+    stroke-width: 11;
+    stroke-linecap: round;
+  }
+
+  .dg-v16-route-line {
+    fill: none;
+    stroke: #ef6b57;
+    stroke-width: 5.5;
+    stroke-linecap: round;
+    stroke-dasharray: 9 12;
+    filter: drop-shadow(0 5px 8px rgba(239, 107, 87, .18));
+    animation: dgV16RouteFlow 7.8s linear infinite;
+  }
+
+  .dg-v16-route-line-soft {
+    fill: none;
+    stroke: rgba(255,255,255,.72);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 8 13;
+    animation: dgV16RouteFlow 7.8s linear infinite reverse;
+  }
+
+  @keyframes dgV16RouteFlow {
+    to { stroke-dashoffset: -84; }
+  }
+
+  .dg-v16-map-pin {
+    position: absolute;
+    z-index: 5;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, .17), 0 10px 20px rgba(2, 6, 23, .16);
+  }
+
+  .dg-v16-map-pin.start {
+    left: 13%;
+    bottom: 27%;
+  }
+
+  .dg-v16-map-pin.end {
+    right: 15%;
+    top: 28%;
+    width: 26px;
+    height: 26px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+  }
+
+  .dg-v16-map-pin.end::after {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    left: 9px;
+    top: 9px;
+    background: #fff;
+  }
+
+  .dg-v16-map-pin.end span {
+    display: none;
+  }
+
+  .dg-v16-location-label {
+    position: absolute;
+    z-index: 6;
+    max-width: 42%;
+    padding: 8px 10px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.82);
+    color: #0f172a;
+    border: 1px solid rgba(15,23,42,.08);
+    box-shadow: 0 12px 28px rgba(2, 6, 23, .14);
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 950;
+    backdrop-filter: blur(8px);
+  }
+
+  .dg-v16-location-label small {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .dg-v16-location-label.start {
+    left: 8%;
+    bottom: 9%;
+  }
+
+  .dg-v16-location-label.end {
+    right: 8%;
+    top: 8%;
+    text-align: right;
+  }
+
+  .dg-v16-moving-dot {
+    position: absolute;
+    z-index: 7;
+    left: 13%;
+    bottom: 27%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #14b8a6;
+    box-shadow: 0 0 0 7px rgba(20, 184, 166, .19), 0 0 24px rgba(20, 184, 166, .68);
+    transform: translate(-50%, 50%);
+    animation: dgV16PackageTravel 5.8s ease-in-out infinite;
+  }
+
+  .dg-v16-route-card.is-delivered .dg-v16-moving-dot {
+    left: calc(85% - 3px);
+    bottom: calc(72% - 3px);
+    animation: dgV16DeliveredPulse 1.9s ease-in-out infinite;
+    background: #22c55e;
+    box-shadow: 0 0 0 7px rgba(34,197,94,.20), 0 0 24px rgba(34,197,94,.70);
+  }
+
+  @keyframes dgV16PackageTravel {
+    0% { left: 13%; bottom: 27%; opacity: .86; }
+    46% { left: 51%; bottom: 51%; opacity: 1; }
+    100% { left: 84%; bottom: 70%; opacity: .88; }
+  }
+
+  @keyframes dgV16DeliveredPulse {
+    0%, 100% { transform: translate(-50%, 50%) scale(1); }
+    50% { transform: translate(-50%, 50%) scale(1.13); }
+  }
+
+  .dg-v16-map-status {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 8;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 13px;
+    border-radius: 18px;
+    color: #0f172a;
+    background: rgba(255,255,255,.88);
+    border: 1px solid rgba(15,23,42,.08);
+    box-shadow: 0 14px 34px rgba(2, 6, 23, .16);
+    backdrop-filter: blur(10px);
+  }
+
+  .dg-v16-map-status strong {
+    display: block;
+    font-size: 15px;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  .dg-v16-map-status span {
+    display: block;
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .dg-v16-map-status b {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(135deg, #14b8a6, #22c55e);
+    box-shadow: 0 10px 24px rgba(20, 184, 166, .22);
+  }
+
+  .dg-v16-route-progress {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 18px 18px;
+  }
+
+  .dg-v16-route-step {
+    min-height: 72px;
+    padding: 11px 10px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.055);
+    border: 1px solid rgba(148,163,184,.13);
+    color: #8fa2c3;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dg-v16-route-step::before {
+    content: "";
+    display: block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(148,163,184,.48);
+    box-shadow: 0 0 0 4px rgba(148,163,184,.08);
+    margin-bottom: 9px;
+  }
+
+  .dg-v16-route-step.is-active {
+    color: var(--white);
+    border-color: rgba(45, 212, 191, .24);
+    background: linear-gradient(180deg, rgba(20,184,166,.13), rgba(255,255,255,.055));
+  }
+
+  .dg-v16-route-step.is-active::before {
+    background: #14b8a6;
+    box-shadow: 0 0 0 4px rgba(20,184,166,.14), 0 0 18px rgba(20,184,166,.44);
+  }
+
+  .dg-v16-route-step strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 950;
+    line-height: 1.22;
+  }
+
+  .dg-v16-route-step span {
+    display: block;
+    margin-top: 4px;
+    font-size: 10px;
+    line-height: 1.35;
+    font-weight: 800;
+    color: #8fa2c3;
+  }
+
+  .dg-v16-route-step.is-active span {
+    color: #b7c5de;
+  }
+
+  .dg-v16-route-note {
+    margin: -4px 18px 18px;
+    padding: 10px 12px;
+    border-radius: 15px;
+    color: #9fb0d1;
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(148,163,184,.10);
+    font-size: 11px;
+    line-height: 1.45;
+    font-weight: 780;
+  }
+
+  @media (max-width: 760px) {
+    .dg-v16-route-card {
+      margin-bottom: 18px;
+      border-radius: 24px;
+    }
+
+    .dg-v16-route-topbar {
+      padding: 14px 14px 11px;
+      align-items: flex-start;
+    }
+
+    .dg-v16-route-title strong {
+      font-size: 17px;
+    }
+
+    .dg-v16-route-title span {
+      font-size: 11px;
+    }
+
+    .dg-v16-route-chip {
+      min-height: 31px;
+      padding: 0 10px;
+      font-size: 10px;
+    }
+
+    .dg-v16-map-shell {
+      margin: 0 14px 13px;
+      min-height: 238px;
+      border-radius: 21px;
+    }
+
+    .dg-v16-location-label {
+      max-width: 48%;
+      padding: 7px 9px;
+      font-size: 11px;
+    }
+
+    .dg-v16-location-label.start {
+      left: 7%;
+      bottom: 10%;
+    }
+
+    .dg-v16-location-label.end {
+      right: 7%;
+      top: 7%;
+    }
+
+    .dg-v16-map-status {
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      padding: 11px 12px;
+    }
+
+    .dg-v16-map-status strong {
+      font-size: 14px;
+    }
+
+    .dg-v16-route-progress {
+      padding: 0 14px 14px;
+      gap: 7px;
+    }
+
+    .dg-v16-route-step {
+      min-height: 68px;
+      padding: 10px 8px;
+      border-radius: 16px;
+    }
+
+    .dg-v16-route-step strong {
+      font-size: 11px;
+    }
+
+    .dg-v16-route-step span {
+      font-size: 9px;
+    }
+
+    .dg-v16-route-note {
+      margin: -2px 14px 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dg-v16-route-line,
+    .dg-v16-route-line-soft,
+    .dg-v16-moving-dot,
+    .result-area.show .dg-v16-route-card {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+<script id="dirac-v16-route-visual-script">
+  (function initDiracRouteVisualV16() {
+    "use strict";
+    const VERSION = "v16-route-visual";
+    const resultArea = document.getElementById("resultArea");
+    const resultCard = document.querySelector(".result-card");
+    const resultHeader = document.querySelector(".result-header");
+    const resultGrid = document.querySelector(".result-grid");
+    const progressSteps = document.getElementById("progressSteps");
+    const timelineList = document.getElementById("timelineList");
+
+    if (!resultArea || !resultCard || !resultGrid) return;
+
+    let routeCard = null;
+    let updateTimer = 0;
+    let lastSignature = "";
+
+    function byId(id) { return document.getElementById(id); }
+    function text(id) {
+      const el = byId(id);
+      return el ? String(el.textContent || "").trim() : "";
+    }
+    function cleanText(value, fallback) {
+      const raw = String(value || "").replace(/\s+/g, " ").trim();
+      if (!raw || raw === "-" || /tidak tersedia/i.test(raw)) return fallback || "-";
+      return raw;
+    }
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+    function getTimelineLatest() {
+      const first = timelineList ? timelineList.querySelector(".timeline-item") : null;
+      if (!first) return "Update perjalanan belum tersedia.";
+      const title = first.querySelector(".timeline-copy strong")?.textContent || "";
+      const desc = first.querySelector(".timeline-copy p")?.textContent || "";
+      const time = first.querySelector(".timeline-date")?.textContent || "";
+      return cleanText([title, desc, time].filter(Boolean).join(" • "), "Update perjalanan belum tersedia.");
+    }
+    function activeStepCount() {
+      return progressSteps ? progressSteps.querySelectorAll(".progress-step.active").length : 0;
+    }
+    function routeState(status) {
+      const statusText = String(status || "").toLowerCase();
+      const active = activeStepCount();
+      const delivered = /diterima|delivered|terkirim|pesanan tiba|paket telah diterima|pod|received|selesai/.test(statusText) || active >= 6;
+      if (delivered) return 3;
+      if (/kurir|alamat|antar|delivery|out for delivery|menuju|tujuan|destination|arrived/.test(statusText) || active >= 4) return 2;
+      return 1;
+    }
+    function getData() {
+      const status = cleanText(text("resultStatus") || text("statusBadgeText") || text("resultTitle"), "Status belum tersedia");
+      const state = routeState(status);
+      const origin = cleanText(text("resultOrigin"), "Kota asal");
+      const destination = cleanText(text("resultDestination"), "Kota tujuan");
+      const resi = cleanText(text("resultResi"), "-");
+      const expedition = cleanText(text("resultExpedition"), "-");
+      const receiver = cleanText(text("resultReceiver"), "-");
+      const eta = cleanText(text("resultEta"), "-");
+      const latest = getTimelineLatest();
+      const title = state === 3 ? "Pesanan Tiba" : state === 2 ? "Menuju Alamatmu" : "Sedang Dikirim";
+      const subtitle = state === 3
+        ? `Paket ${resi !== "-" ? resi : "ini"} sudah diterima${receiver !== "-" ? " oleh " + receiver : ""}.`
+        : `Rute ${origin} menuju ${destination} berdasarkan data API tracking.`;
+      const statusLine = state === 3
+        ? `Paket tiba di ${destination}`
+        : state === 2
+          ? `Paket bergerak menuju ${destination}`
+          : `Paket diproses dari ${origin}`;
+      return { status, state, origin, destination, resi, expedition, receiver, eta, latest, title, subtitle, statusLine };
+    }
+    function createRouteCard() {
+      if (routeCard) return routeCard;
+      routeCard = document.createElement("section");
+      routeCard.id = "dgRouteVisualV16";
+      routeCard.className = "dg-v16-route-card";
+      routeCard.setAttribute("aria-label", "Visual rute paket");
+      if (resultHeader && resultHeader.parentElement === resultCard) {
+        resultHeader.insertAdjacentElement("afterend", routeCard);
+      } else {
+        resultGrid.insertAdjacentElement("beforebegin", routeCard);
+      }
+      return routeCard;
+    }
+    function render() {
+      if (!resultArea.classList.contains("show")) return;
+      const data = getData();
+      if (!data.resi || data.resi === "-") return;
+      const signature = JSON.stringify(data);
+      if (signature === lastSignature && routeCard) return;
+      lastSignature = signature;
+      const card = createRouteCard();
+      card.className = "dg-v16-route-card" + (data.state === 3 ? " is-delivered" : data.state === 2 ? " is-onway" : " is-processing");
+      card.innerHTML = `
+        <div class="dg-v16-route-topbar">
+          <div class="dg-v16-route-title">
+            <i aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"></path><path d="M12 10h.01"></path></svg>
+            </i>
+            <div>
+              <strong>${escapeHtml(data.title)}</strong>
+              <span>${escapeHtml(data.subtitle)}</span>
+            </div>
+          </div>
+          <div class="dg-v16-route-chip">Live Route</div>
+        </div>
+        <div class="dg-v16-map-shell" aria-label="Rute dari ${escapeHtml(data.origin)} menuju ${escapeHtml(data.destination)}">
+          <div class="dg-v16-map-grid" aria-hidden="true"></div>
+          <svg class="dg-v16-route-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="dg-v16-route-line-shadow" d="M13 73 C 29 64, 39 58, 51 52 S 72 36, 85 28"></path>
+            <path class="dg-v16-route-line" d="M13 73 C 29 64, 39 58, 51 52 S 72 36, 85 28"></path>
+            <path class="dg-v16-route-line-soft" d="M13 73 C 29 64, 39 58, 51 52 S 72 36, 85 28"></path>
+          </svg>
+          <div class="dg-v16-map-pin start" aria-hidden="true"></div>
+          <div class="dg-v16-map-pin end" aria-hidden="true"><span></span></div>
+          <div class="dg-v16-moving-dot" aria-hidden="true"></div>
+          <div class="dg-v16-location-label start"><small>Asal</small>${escapeHtml(data.origin)}</div>
+          <div class="dg-v16-location-label end"><small>Tujuan</small>${escapeHtml(data.destination)}</div>
+          <div class="dg-v16-map-status">
+            <div>
+              <strong>${escapeHtml(data.statusLine)}</strong>
+              <span>${escapeHtml(data.latest)}</span>
+            </div>
+            <b aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg>
+            </b>
+          </div>
+        </div>
+        <div class="dg-v16-route-progress" aria-label="Progress rute paket">
+          <div class="dg-v16-route-step ${data.state >= 1 ? "is-active" : ""}"><strong>Sedang Dikirim</strong><span>${escapeHtml(data.expedition)}</span></div>
+          <div class="dg-v16-route-step ${data.state >= 2 ? "is-active" : ""}"><strong>Menuju Alamatmu</strong><span>${escapeHtml(data.destination)}</span></div>
+          <div class="dg-v16-route-step ${data.state >= 3 ? "is-active" : ""}"><strong>Pesanan Tiba</strong><span>${data.state >= 3 ? "Selesai diterima" : escapeHtml(data.eta)}</span></div>
+        </div>
+        <div class="dg-v16-route-note">Visual rute ini bersifat ilustrasi berdasarkan kota asal, kota tujuan, status, dan timeline API. Ini bukan GPS real-time dan tidak memakai peta eksternal, sehingga tetap ringan di HP.</div>
+      `;
+    }
+    function scheduleRender() {
+      window.clearTimeout(updateTimer);
+      updateTimer = window.setTimeout(render, 80);
+    }
+
+    const observer = new MutationObserver(scheduleRender);
+    ["resultTitle", "statusBadgeText", "resultResi", "resultExpedition", "resultOrigin", "resultDestination", "resultReceiver", "resultEta", "resultStatus"].forEach((id) => {
+      const el = byId(id);
+      if (el) observer.observe(el, { childList: true, characterData: true, subtree: true });
+    });
+    if (timelineList) observer.observe(timelineList, { childList: true, subtree: true });
+    observer.observe(resultArea, { attributes: true, attributeFilter: ["class"] });
+    document.addEventListener("submit", () => {
+      window.setTimeout(scheduleRender, 420);
+      window.setTimeout(scheduleRender, 1000);
+      window.setTimeout(scheduleRender, 1800);
+    }, true);
+    window.addEventListener("hashchange", scheduleRender, { passive: true });
+    window.addEventListener("load", scheduleRender, { passive: true });
+    scheduleRender();
+
+    window.DiracFeaturePatchV16 = {
+      version: VERSION,
+      updateRouteVisual: render,
+      getRouteVisualData: getData
+    };
+  })();
+</script>
+<!-- /DIRAC V16 ROUTE VISUAL PATCH -->
+
 </body>
 </html>
