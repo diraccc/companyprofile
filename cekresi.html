@@ -11608,5 +11608,242 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
 </script>
 <!-- /DIRAC V19 PRODUCTION FEATURE SCRIPT -->
 
+
+<!-- DIRAC V20 MOBILE COMPACT ACTIONS PATCH START -->
+<style id="dirac-v20-compact-actions-style">
+  /* ==========================================================
+     DIRAC V20 - Mobile compact action groups
+     Additive-only patch: keeps old tracking functions and motion intact.
+     Goals:
+     1) Result buttons are collapsed behind an arrow toggle on mobile.
+     2) Package control buttons are collapsed behind an arrow toggle on mobile.
+     3) V19 confidence panel is visually hidden as requested, while logic remains available.
+     ========================================================== */
+
+  #confidencePanelV19 {
+    display: none !important;
+  }
+
+  .dg-v20-action-toggle,
+  .dg-v20-feature-toggle {
+    display: none;
+  }
+
+  .dg-v20-toggle-arrow {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    margin-left: 8px;
+    font-size: 14px;
+    line-height: 1;
+    transition: transform 0.22s ease;
+  }
+
+  .dg-v20-expanded .dg-v20-toggle-arrow,
+  .dg-v20-feature-expanded .dg-v20-toggle-arrow {
+    transform: rotate(180deg);
+  }
+
+  @media (max-width: 860px), (hover: none) and (pointer: coarse) {
+    .result-actions.dg-v20-collapse-ready,
+    .dg-v19-actions.dg-v20-feature-collapse-ready {
+      align-items: stretch;
+    }
+
+    .result-actions.dg-v20-collapse-ready .dg-v20-action-toggle,
+    .dg-v19-actions.dg-v20-feature-collapse-ready .dg-v20-feature-toggle {
+      display: inline-flex;
+      width: 100%;
+      min-height: 52px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 17px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.075);
+      border: 1px solid rgba(147,197,253,0.18);
+      font-weight: 950;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .result-actions.dg-v20-collapsed .dg-v20-secondary-action,
+    .dg-v19-actions.dg-v20-feature-collapsed .dg-v20-extra-feature {
+      display: none !important;
+    }
+
+    .result-actions.dg-v20-expanded .dg-v20-secondary-action,
+    .dg-v19-actions.dg-v20-feature-expanded .dg-v20-extra-feature {
+      display: inline-flex !important;
+    }
+
+    .dg-v19-panel-head > div > strong {
+      display: block;
+      margin-bottom: 6px;
+      line-height: 1.18;
+    }
+
+    .dg-v19-panel-head > div > span {
+      display: block;
+      line-height: 1.58;
+    }
+
+    #featureHubV19 .dg-v19-form-grid,
+    #featureHubV19 .dg-v19-actions {
+      gap: 10px;
+    }
+
+    #featureHubV19 .dg-v19-muted {
+      margin-top: 8px !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dg-v20-toggle-arrow {
+      transition: none !important;
+    }
+  }
+</style>
+<script id="dirac-v20-compact-actions-script">
+(function () {
+  "use strict";
+
+  const MOBILE_QUERY = "(max-width: 860px), (hover: none) and (pointer: coarse)";
+  const mq = window.matchMedia ? window.matchMedia(MOBILE_QUERY) : { matches: true, addEventListener: null, addListener: null };
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function createButton(id, className, label) {
+    const button = document.createElement("button");
+    button.id = id;
+    button.type = "button";
+    button.className = className;
+    button.setAttribute("aria-expanded", "false");
+    button.innerHTML = '<span class="dg-v20-toggle-label">' + label + '</span><span class="dg-v20-toggle-arrow" aria-hidden="true">v</span>';
+    return button;
+  }
+
+  function setToggle(button, expanded, openText, closeText) {
+    if (!button) return;
+    button.setAttribute("aria-expanded", expanded ? "true" : "false");
+    const label = button.querySelector(".dg-v20-toggle-label");
+    if (label) label.textContent = expanded ? closeText : openText;
+  }
+
+  function ensureConfidencePanelHidden() {
+    const panel = byId("confidencePanelV19");
+    if (!panel) return;
+    panel.setAttribute("aria-hidden", "true");
+  }
+
+  function ensureResultActionsCompact() {
+    const actions = byId("resultActions");
+    if (!actions) return;
+
+    let toggle = byId("resultActionsToggleV20");
+    if (!toggle) {
+      toggle = createButton("resultActionsToggleV20", "result-action-button dg-v20-action-toggle", "Tampilkan semua aksi");
+      toggle.addEventListener("click", function () {
+        const expanded = actions.classList.toggle("dg-v20-expanded");
+        actions.classList.toggle("dg-v20-collapsed", !expanded);
+        setToggle(toggle, expanded, "Tampilkan semua aksi", "Sembunyikan aksi");
+      });
+      actions.appendChild(toggle);
+    }
+
+    const realButtons = Array.prototype.slice.call(actions.querySelectorAll(".result-action-button"))
+      .filter(function (button) { return button.id !== "resultActionsToggleV20"; });
+
+    realButtons.forEach(function (button, index) {
+      if (index === 0) {
+        button.classList.remove("dg-v20-secondary-action");
+      } else {
+        button.classList.add("dg-v20-secondary-action");
+      }
+    });
+
+    actions.classList.add("dg-v20-collapse-ready");
+    if (!actions.classList.contains("dg-v20-expanded")) {
+      actions.classList.add("dg-v20-collapsed");
+      setToggle(toggle, false, "Tampilkan semua aksi", "Sembunyikan aksi");
+    }
+  }
+
+  function ensureFeatureHubCompact() {
+    const hub = byId("featureHubV19");
+    if (!hub) return;
+    const actions = hub.querySelector(".dg-v19-actions");
+    if (!actions) return;
+
+    let toggle = byId("featureActionsToggleV20");
+    const buttons = Array.prototype.slice.call(actions.querySelectorAll("button"))
+      .filter(function (button) { return button.id !== "featureActionsToggleV20"; });
+
+    if (!toggle) {
+      toggle = createButton("featureActionsToggleV20", "dg-v19-button dg-v20-feature-toggle", "Tampilkan fitur lainnya");
+      toggle.addEventListener("click", function () {
+        const expanded = actions.classList.toggle("dg-v20-feature-expanded");
+        actions.classList.toggle("dg-v20-feature-collapsed", !expanded);
+        setToggle(toggle, expanded, "Tampilkan fitur lainnya", "Sembunyikan fitur");
+      });
+      const insertBefore = buttons[1] || null;
+      actions.insertBefore(toggle, insertBefore);
+    }
+
+    const refreshedButtons = Array.prototype.slice.call(actions.querySelectorAll("button"))
+      .filter(function (button) { return button.id !== "featureActionsToggleV20"; });
+
+    refreshedButtons.forEach(function (button, index) {
+      if (index >= 1) {
+        button.classList.add("dg-v20-extra-feature");
+      } else {
+        button.classList.remove("dg-v20-extra-feature");
+      }
+    });
+
+    actions.classList.add("dg-v20-feature-collapse-ready");
+    if (!actions.classList.contains("dg-v20-feature-expanded")) {
+      actions.classList.add("dg-v20-feature-collapsed");
+      setToggle(toggle, false, "Tampilkan fitur lainnya", "Sembunyikan fitur");
+    }
+  }
+
+  function applyV20CompactLayer() {
+    ensureConfidencePanelHidden();
+    ensureResultActionsCompact();
+    ensureFeatureHubCompact();
+  }
+
+  function startObserver() {
+    if (!window.MutationObserver) return;
+    const observer = new MutationObserver(function () {
+      window.requestAnimationFrame(applyV20CompactLayer);
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  function boot() {
+    applyV20CompactLayer();
+    startObserver();
+    if (mq.addEventListener) {
+      mq.addEventListener("change", applyV20CompactLayer);
+    } else if (mq.addListener) {
+      mq.addListener(applyV20CompactLayer);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- DIRAC V20 MOBILE COMPACT ACTIONS PATCH END -->
+
 </body>
 </html>
