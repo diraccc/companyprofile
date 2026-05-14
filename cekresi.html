@@ -6558,6 +6558,199 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
 }
 </style>
 
+
+<style id="dirac-request-polish-2026-05-14">
+/* ==========================================================
+   REQUEST POLISH - 2026-05-14
+   Tujuan: merapikan header mobile, mengecilkan judul hero agar tidak mepet,
+   dan menambahkan tombol Back To Order tanpa menyentuh logic cek resi/JS.
+   ========================================================== */
+.header {
+  min-height: 82px !important;
+  height: auto !important;
+  padding: 10px 0 !important;
+  gap: 14px !important;
+}
+
+.header::before {
+  inset: 9px 0 !important;
+  border-radius: 28px !important;
+}
+
+.brand {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  gap: 12px !important;
+  padding-left: 10px !important;
+  font-size: clamp(20px, 2.35vw, 24px) !important;
+  line-height: 1.05 !important;
+  white-space: nowrap !important;
+}
+
+.brand-logo {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 18px !important;
+}
+
+.header-contact {
+  flex: 0 0 auto !important;
+  min-height: 50px !important;
+  padding: 0 19px !important;
+  margin-right: 10px !important;
+  border-radius: 20px !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+.hero h1 {
+  max-width: 680px !important;
+  font-size: clamp(36px, 5vw, 64px) !important;
+  line-height: 1.06 !important;
+  letter-spacing: -0.055em !important;
+  text-wrap: balance;
+}
+
+.hero h1 span {
+  display: block !important;
+}
+
+.hero-actions {
+  align-items: flex-start !important;
+}
+
+.btn-order {
+  flex-basis: 100% !important;
+  width: fit-content !important;
+  margin-top: -3px !important;
+  color: #dbeafe !important;
+  background: rgba(15, 23, 42, 0.34) !important;
+  border: 1px solid rgba(147, 197, 253, 0.20) !important;
+  box-shadow: 0 16px 42px rgba(2, 6, 23, 0.16) !important;
+}
+
+.btn-order:hover,
+.btn-order:focus-visible {
+  background: rgba(255,255,255,0.14) !important;
+  border-color: rgba(125,211,252,0.34) !important;
+}
+
+@media (max-width: 760px) {
+  .container {
+    width: min(var(--max-width), calc(100% - 34px)) !important;
+  }
+
+  .header {
+    min-height: 82px !important;
+    padding: 10px 0 !important;
+    gap: 10px !important;
+  }
+
+  .header::before {
+    inset: 7px 0 !important;
+    border-radius: 26px !important;
+  }
+
+  .brand {
+    gap: 10px !important;
+    padding-left: 8px !important;
+    font-size: 21px !important;
+    letter-spacing: -0.045em !important;
+  }
+
+  .brand-logo {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 17px !important;
+  }
+
+  .header-contact {
+    min-height: 48px !important;
+    padding: 0 16px !important;
+    margin-right: 8px !important;
+    border-radius: 18px !important;
+    font-size: 14px !important;
+  }
+
+  .hero {
+    padding: 24px 0 64px !important;
+  }
+
+  .hero h1 {
+    max-width: min(100%, 430px) !important;
+    margin-top: 18px !important;
+    font-size: clamp(31px, 8.7vw, 40px) !important;
+    line-height: 1.10 !important;
+    letter-spacing: -0.04em !important;
+  }
+
+  .hero-subtitle {
+    max-width: 95% !important;
+    margin-top: 18px !important;
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+  }
+
+  .hero-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    max-width: 390px !important;
+    margin-top: 26px !important;
+  }
+
+  .hero-actions .btn {
+    width: fit-content !important;
+    max-width: 100% !important;
+    min-height: 52px !important;
+    padding: 0 20px !important;
+  }
+
+  .hero-actions .btn-primary {
+    min-width: min(100%, 246px) !important;
+  }
+
+  .hero-actions .btn-secondary,
+  .hero-actions .btn-order {
+    min-width: min(100%, 206px) !important;
+  }
+
+  .btn-order {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .container {
+    width: min(var(--max-width), calc(100% - 28px)) !important;
+  }
+
+  .brand {
+    font-size: 19px !important;
+    gap: 8px !important;
+    padding-left: 7px !important;
+  }
+
+  .brand-logo {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 16px !important;
+  }
+
+  .header-contact {
+    min-height: 44px !important;
+    padding: 0 13px !important;
+    margin-right: 7px !important;
+    border-radius: 16px !important;
+    font-size: 13px !important;
+  }
+
+  .hero h1 {
+    font-size: clamp(30px, 8.5vw, 36px) !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="dg-offline-banner" id="offlineBanner" role="status" aria-live="polite"><i></i><span>Koneksi internet terputus. Cek jaringan lalu coba lagi.</span></div>
@@ -6609,6 +6802,7 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
 <div class="hero-actions">
 <a class="btn btn-primary" href="#cek-resi">Cek Resi Sekarang <span aria-hidden="true">→</span></a>
 <a class="btn btn-secondary" href="#cara">Lihat Cara Kerja</a>
+<a class="btn btn-secondary btn-order" href="https://diracgroup.store/order.html">Back To Order</a>
 </div>
 <div class="hero-stats">
 <div class="hero-stat">
