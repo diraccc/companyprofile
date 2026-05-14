@@ -9451,5 +9451,722 @@
 </script>
 <!-- /DIRAC V17 PREMIUM ROUTE VISUAL PATCH -->
 
+
+<!-- DIRAC V18 ULTRA PREMIUM ROUTE VISUAL PATCH - visual polish only, no tracking logic changes -->
+<style id="dirac-v18-ultra-route-style">
+  /* ==========================================================
+     DIRAC V18 ULTRA PREMIUM ROUTE VISUAL
+     Tujuan: mengganti tampilan Visual Rute Paket menjadi lebih rapi,
+     premium, compact, dan presisi. Patch visual saja; tidak mengubah
+     fetch, endpoint, payload, normalisasi, form, atau timeline utama.
+     ========================================================== */
+  #dgRouteVisualV16.dg-v18-route-card {
+    margin: 4px 0 22px !important;
+    padding: 0 !important;
+    border-radius: 30px !important;
+    overflow: hidden !important;
+    color: #f8fafc !important;
+    background:
+      radial-gradient(circle at 86% 0%, rgba(34,211,238,.13), transparent 34%),
+      radial-gradient(circle at 6% 16%, rgba(96,165,250,.13), transparent 36%),
+      linear-gradient(180deg, rgba(8,23,46,.96), rgba(4,12,25,.98)) !important;
+    border: 1px solid rgba(148,163,184,.18) !important;
+    box-shadow: 0 22px 58px rgba(2,6,23,.32) !important;
+    isolation: isolate !important;
+  }
+
+  #dgRouteVisualV16.dg-v18-route-card::before,
+  #dgRouteVisualV16.dg-v18-route-card::after {
+    display: none !important;
+  }
+
+  .dg-v18-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: start;
+    padding: 20px 20px 14px;
+  }
+
+  .dg-v18-kicker {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 25px;
+    padding: 0 10px;
+    border-radius: 999px;
+    color: #a7f3d0;
+    background: rgba(34,197,94,.10);
+    border: 1px solid rgba(34,197,94,.18);
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: .075em;
+    text-transform: uppercase;
+  }
+
+  .dg-v18-kicker::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #22c55e;
+    box-shadow: 0 0 0 5px rgba(34,197,94,.10), 0 0 16px rgba(34,197,94,.62);
+  }
+
+  .dg-v18-head h4 {
+    margin: 11px 0 0;
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1.04;
+    letter-spacing: -.055em;
+    font-weight: 950;
+  }
+
+  .dg-v18-head p {
+    max-width: 410px;
+    margin: 7px 0 0;
+    color: #aebfda;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-weight: 800;
+  }
+
+  .dg-v18-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 13px;
+    border-radius: 999px;
+    white-space: nowrap;
+    color: #dff7ff;
+    background: rgba(15,23,42,.72);
+    border: 1px solid rgba(125,211,252,.22);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 12px 28px rgba(2,6,23,.20);
+    font-size: 11px;
+    font-weight: 950;
+  }
+
+  .dg-v18-map {
+    margin: 0 20px;
+    min-height: 224px;
+    border-radius: 25px;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 16% 68%, rgba(34,197,94,.20), transparent 24%),
+      radial-gradient(circle at 82% 22%, rgba(34,211,238,.18), transparent 27%),
+      linear-gradient(135deg, rgba(16,42,77,.78), rgba(7,17,34,.94));
+    border: 1px solid rgba(148,163,184,.16);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.025), inset 0 22px 80px rgba(34,211,238,.035);
+  }
+
+  .dg-v18-map::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .18;
+    background-image:
+      linear-gradient(rgba(226,232,240,.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(226,232,240,.14) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: linear-gradient(180deg, black, rgba(0,0,0,.76));
+  }
+
+  .dg-v18-map::after {
+    content: "";
+    position: absolute;
+    inset: auto -18% -42% -18%;
+    height: 58%;
+    background: radial-gradient(ellipse at center, rgba(125,211,252,.09), transparent 68%);
+    pointer-events: none;
+  }
+
+  .dg-v18-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  .dg-v18-route-shadow {
+    fill: none;
+    stroke: rgba(2,6,23,.42);
+    stroke-width: 13;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dg-v18-route-base {
+    fill: none;
+    stroke: rgba(148,163,184,.40);
+    stroke-width: 7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dg-v18-route-live {
+    fill: none;
+    stroke: url(#dg-v18-route-gradient);
+    stroke-width: 7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 7 13;
+    animation: dgV18RouteDash 2.8s linear infinite;
+  }
+
+  @keyframes dgV18RouteDash {
+    to { stroke-dashoffset: -40; }
+  }
+
+  .dg-v18-node {
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    z-index: 2;
+    color: #06101f;
+    background: linear-gradient(135deg, #e0f2fe, #60a5fa 52%, #22d3ee);
+    box-shadow: 0 16px 34px rgba(2,6,23,.28), 0 0 0 7px rgba(96,165,250,.12);
+  }
+
+  .dg-v18-node svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dg-v18-node.start {
+    left: 10.5%;
+    bottom: 19%;
+  }
+
+  .dg-v18-node.end {
+    right: 10.5%;
+    top: 17%;
+    background: linear-gradient(135deg, #dcfce7, #22c55e);
+    box-shadow: 0 16px 34px rgba(2,6,23,.28), 0 0 0 7px rgba(34,197,94,.13);
+  }
+
+  .dg-v18-plane {
+    position: absolute;
+    left: calc(var(--dg-v18-dot-x, 82%) - 16px);
+    top: calc(var(--dg-v18-dot-y, 28%) - 16px);
+    width: 32px;
+    height: 32px;
+    z-index: 3;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #06101f;
+    background: linear-gradient(135deg, #f8fafc, #7dd3fc);
+    box-shadow: 0 14px 30px rgba(2,6,23,.30), 0 0 0 7px rgba(34,211,238,.12);
+    animation: dgV18PlaneFloat 2.6s ease-in-out infinite alternate;
+  }
+
+  .dg-v18-plane svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @keyframes dgV18PlaneFloat {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(0, -5px, 0) scale(1.03); }
+  }
+
+  .dg-v18-city {
+    position: absolute;
+    z-index: 4;
+    max-width: 46%;
+    padding: 8px 10px;
+    border-radius: 16px;
+    color: #f8fafc;
+    background: rgba(5,14,28,.72);
+    border: 1px solid rgba(147,197,253,.18);
+    box-shadow: 0 14px 34px rgba(2,6,23,.26);
+    backdrop-filter: blur(12px);
+    font-size: 12px;
+    line-height: 1.18;
+    font-weight: 950;
+    overflow-wrap: anywhere;
+  }
+
+  .dg-v18-city small {
+    display: block;
+    margin-bottom: 3px;
+    color: #7dd3fc;
+    font-size: 8.5px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    font-weight: 950;
+  }
+
+  .dg-v18-city.start {
+    left: 8%;
+    bottom: 8%;
+  }
+
+  .dg-v18-city.end {
+    right: 8%;
+    top: 6.5%;
+    text-align: right;
+  }
+
+  .dg-v18-status-card {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 13px 14px;
+    border-radius: 20px;
+    color: #eaf4ff;
+    background: rgba(248,250,252,.94);
+    border: 1px solid rgba(255,255,255,.65);
+    box-shadow: 0 18px 38px rgba(2,6,23,.22);
+  }
+
+  .dg-v18-status-card strong {
+    display: block;
+    color: #0f172a;
+    font-size: 14.5px;
+    line-height: 1.2;
+    letter-spacing: -.025em;
+    font-weight: 950;
+  }
+
+  .dg-v18-status-card span {
+    display: -webkit-box;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 10.5px;
+    line-height: 1.35;
+    font-weight: 850;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .dg-v18-status-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, #22c55e, #14b8a6);
+    box-shadow: 0 14px 28px rgba(20,184,166,.24);
+  }
+
+  .dg-v18-status-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dg-v18-timeline {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px 20px 16px;
+  }
+
+  .dg-v18-step {
+    position: relative;
+    min-height: 72px;
+    padding: 13px 12px 12px;
+    border-radius: 19px;
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(148,163,184,.13);
+    overflow: hidden;
+  }
+
+  .dg-v18-step::before {
+    content: "";
+    width: 11px;
+    height: 11px;
+    display: block;
+    margin-bottom: 10px;
+    border-radius: 999px;
+    background: #64748b;
+    box-shadow: 0 0 0 4px rgba(148,163,184,.08);
+  }
+
+  .dg-v18-step.is-active {
+    border-color: rgba(34,211,238,.27);
+    background: linear-gradient(180deg, rgba(34,211,238,.085), rgba(255,255,255,.04));
+  }
+
+  .dg-v18-step.is-active::before {
+    background: #22d3ee;
+    box-shadow: 0 0 0 4px rgba(34,211,238,.12), 0 0 18px rgba(34,211,238,.35);
+  }
+
+  #dgRouteVisualV16.is-delivered .dg-v18-step:nth-child(3)::before,
+  .dg-v18-step.is-done::before {
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34,197,94,.13), 0 0 18px rgba(34,197,94,.36);
+  }
+
+  .dg-v18-step strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 12.5px;
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    font-weight: 950;
+  }
+
+  .dg-v18-step span {
+    display: block;
+    margin-top: 6px;
+    color: #9fb0d1;
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 850;
+    overflow-wrap: anywhere;
+  }
+
+  .dg-v18-footnote {
+    margin: 0 20px 18px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    color: #8ea1c2;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(148,163,184,.10);
+    font-size: 10.5px;
+    line-height: 1.42;
+    text-align: center;
+    font-weight: 800;
+  }
+
+  @media (max-width: 760px) {
+    #dgRouteVisualV16.dg-v18-route-card {
+      border-radius: 26px !important;
+      margin: 0 0 18px !important;
+    }
+
+    .dg-v18-head {
+      padding: 16px 15px 11px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 9px;
+    }
+
+    .dg-v18-kicker {
+      min-height: 23px;
+      padding: 0 8px;
+      font-size: 8.8px;
+    }
+
+    .dg-v18-head h4 {
+      margin-top: 9px;
+      font-size: 19px;
+      letter-spacing: -.05em;
+    }
+
+    .dg-v18-head p {
+      max-width: 220px;
+      font-size: 10.5px;
+      line-height: 1.36;
+    }
+
+    .dg-v18-pill {
+      min-height: 30px;
+      padding: 0 9px;
+      font-size: 9px;
+    }
+
+    .dg-v18-map {
+      margin: 0 14px;
+      min-height: 198px;
+      border-radius: 22px;
+    }
+
+    .dg-v18-node {
+      width: 35px;
+      height: 35px;
+      border-radius: 14px;
+    }
+
+    .dg-v18-node svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .dg-v18-plane {
+      width: 28px;
+      height: 28px;
+      left: calc(var(--dg-v18-dot-x, 82%) - 14px);
+      top: calc(var(--dg-v18-dot-y, 28%) - 14px);
+    }
+
+    .dg-v18-plane svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .dg-v18-city {
+      padding: 6px 8px;
+      border-radius: 13px;
+      font-size: 9.5px;
+    }
+
+    .dg-v18-city small {
+      font-size: 7.5px;
+      margin-bottom: 2px;
+    }
+
+    .dg-v18-status-card {
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      padding: 10px 11px;
+      border-radius: 17px;
+      gap: 9px;
+    }
+
+    .dg-v18-status-card strong {
+      font-size: 12.3px;
+    }
+
+    .dg-v18-status-card span {
+      font-size: 9.4px;
+    }
+
+    .dg-v18-status-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+    }
+
+    .dg-v18-status-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .dg-v18-timeline {
+      padding: 12px 14px 13px;
+      gap: 7px;
+    }
+
+    .dg-v18-step {
+      min-height: 66px;
+      padding: 10px 8px 9px;
+      border-radius: 16px;
+    }
+
+    .dg-v18-step::before {
+      width: 9px;
+      height: 9px;
+      margin-bottom: 8px;
+    }
+
+    .dg-v18-step strong {
+      font-size: 10.2px;
+      line-height: 1.12;
+    }
+
+    .dg-v18-step span {
+      margin-top: 5px;
+      font-size: 8.7px;
+    }
+
+    .dg-v18-footnote {
+      margin: 0 14px 14px;
+      padding: 8px 9px;
+      border-radius: 14px;
+      font-size: 9px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .dg-v18-head p { max-width: 190px; }
+    .dg-v18-pill { display: none; }
+    .dg-v18-timeline { grid-template-columns: 1fr; }
+    .dg-v18-step { min-height: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dg-v18-route-live,
+    .dg-v18-plane {
+      animation: none !important;
+    }
+  }
+</style>
+<script id="dirac-v18-ultra-route-script">
+  (function initDiracUltraPremiumRouteV18() {
+    "use strict";
+    const VERSION = "v18-ultra-premium-route";
+    const resultArea = document.getElementById("resultArea");
+    const progressSteps = document.getElementById("progressSteps");
+    const timelineList = document.getElementById("timelineList");
+    let timer = 0;
+
+    function byId(id) { return document.getElementById(id); }
+    function rawText(id) {
+      const el = byId(id);
+      return el ? String(el.textContent || "").replace(/\s+/g, " ").trim() : "";
+    }
+    function clean(value, fallback) {
+      const text = String(value || "").replace(/\s+/g, " ").trim();
+      if (!text || text === "-" || /tidak tersedia/i.test(text)) return fallback || "-";
+      return text;
+    }
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+    function activeStepCount() {
+      return progressSteps ? progressSteps.querySelectorAll(".progress-step.active").length : 0;
+    }
+    function latestTimeline() {
+      const first = timelineList ? timelineList.querySelector(".timeline-item") : null;
+      if (!first) return "Update perjalanan belum tersedia.";
+      const title = first.querySelector(".timeline-copy strong")?.textContent || "";
+      const desc = first.querySelector(".timeline-copy p")?.textContent || "";
+      const date = first.querySelector(".timeline-date")?.textContent || "";
+      return clean([title, desc, date].filter(Boolean).join(" • "), "Update perjalanan belum tersedia.");
+    }
+    function stateFromStatus(status) {
+      const s = String(status || "").toLowerCase();
+      const active = activeStepCount();
+      if (/diterima|delivered|terkirim|pesanan tiba|paket telah diterima|pod|received|selesai/.test(s) || active >= 6) return 3;
+      if (/kurir|alamat|antar|delivery|out for delivery|menuju|tujuan|destination|arrived/.test(s) || active >= 4) return 2;
+      return 1;
+    }
+    function data() {
+      const status = clean(rawText("statusBadgeText") || rawText("resultStatus") || rawText("resultTitle"), "Status belum tersedia");
+      const state = stateFromStatus(status);
+      const resi = clean(rawText("resultResi"), "-");
+      const expedition = clean(rawText("resultExpedition"), "Ekspedisi");
+      const origin = clean(rawText("resultOrigin"), "Kota asal");
+      const destination = clean(rawText("resultDestination"), "Kota tujuan");
+      const receiver = clean(rawText("resultReceiver"), "-");
+      const eta = clean(rawText("resultEta"), "Estimasi belum tersedia");
+      const latest = latestTimeline();
+      const title = state === 3 ? "Pesanan Tiba" : state === 2 ? "Menuju Alamatmu" : "Sedang Dikirim";
+      const pill = state === 3 ? "Selesai" : state === 2 ? "On Route" : "Tracking";
+      const headline = state === 3
+        ? `Paket tiba di ${destination}`
+        : state === 2
+          ? `Paket menuju ${destination}`
+          : `Paket diproses dari ${origin}`;
+      const subtitle = `${expedition}${resi !== "-" ? " • " + resi : ""}`;
+      const desc = state === 3
+        ? (receiver !== "-" ? `Diterima oleh ${receiver}` : "Paket telah diterima")
+        : `${origin} → ${destination}`;
+      return { status, state, resi, expedition, origin, destination, receiver, eta, latest, title, pill, headline, subtitle, desc };
+    }
+    function ensureCard() {
+      const card = document.getElementById("dgRouteVisualV16");
+      if (!card || !resultArea || !resultArea.classList.contains("show")) return null;
+      return card;
+    }
+    function render() {
+      const card = ensureCard();
+      if (!card) return;
+      const d = data();
+      if (!d.resi || d.resi === "-") return;
+      const signature = JSON.stringify(d);
+      const alreadyPremium = !!card.querySelector(".dg-v18-head");
+      if (card.dataset.dgV18Signature === signature && alreadyPremium) return;
+      card.dataset.dgV18Signature = signature;
+      card.className = `dg-v16-route-card dg-v18-route-card ${d.state === 3 ? "is-delivered" : d.state === 2 ? "is-onway" : "is-processing"}`;
+      const dotStyle = d.state === 3 ? "--dg-v18-dot-x:82%;--dg-v18-dot-y:25%;" : d.state === 2 ? "--dg-v18-dot-x:58%;--dg-v18-dot-y:47%;" : "--dg-v18-dot-x:22%;--dg-v18-dot-y:68%;";
+      card.innerHTML = `
+        <div class="dg-v18-head">
+          <div>
+            <div class="dg-v18-kicker">Visual Rute</div>
+            <h4>${escapeHtml(d.title)}</h4>
+            <p>${escapeHtml(d.subtitle)}<br>${escapeHtml(d.desc)}</p>
+          </div>
+          <div class="dg-v18-pill">${escapeHtml(d.pill)}</div>
+        </div>
+        <div class="dg-v18-map" aria-label="Ilustrasi rute ${escapeHtml(d.origin)} menuju ${escapeHtml(d.destination)}">
+          <svg class="dg-v18-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="dg-v18-route-gradient" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stop-color="#38bdf8"></stop>
+                <stop offset="48%" stop-color="#22d3ee"></stop>
+                <stop offset="100%" stop-color="#22c55e"></stop>
+              </linearGradient>
+            </defs>
+            <path class="dg-v18-route-shadow" d="M15 73 C 31 67, 42 58, 53 51 S 72 35, 85 26"></path>
+            <path class="dg-v18-route-base" d="M15 73 C 31 67, 42 58, 53 51 S 72 35, 85 26"></path>
+            <path class="dg-v18-route-live" d="M15 73 C 31 67, 42 58, 53 51 S 72 35, 85 26"></path>
+          </svg>
+          <div class="dg-v18-node start" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></div>
+          <div class="dg-v18-node end" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"></path><path d="M12 10h.01"></path></svg></div>
+          <div class="dg-v18-plane" style="${dotStyle}" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.5 4.5 12 3l9 9-9 9-1.5-1.5 4.5-6H3v-3h12l-4.5-6Z"></path></svg></div>
+          <div class="dg-v18-city start"><small>Asal</small>${escapeHtml(d.origin)}</div>
+          <div class="dg-v18-city end"><small>Tujuan</small>${escapeHtml(d.destination)}</div>
+          <div class="dg-v18-status-card">
+            <div><strong>${escapeHtml(d.headline)}</strong><span>${escapeHtml(d.latest)}</span></div>
+            <div class="dg-v18-status-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></div>
+          </div>
+        </div>
+        <div class="dg-v18-timeline" aria-label="Tahapan rute paket">
+          <div class="dg-v18-step ${d.state >= 1 ? "is-active" : ""}"><strong>Sedang Dikirim</strong><span>${escapeHtml(d.expedition)}</span></div>
+          <div class="dg-v18-step ${d.state >= 2 ? "is-active" : ""}"><strong>Menuju Alamatmu</strong><span>${escapeHtml(d.destination)}</span></div>
+          <div class="dg-v18-step ${d.state >= 3 ? "is-active is-done" : ""}"><strong>Pesanan Tiba</strong><span>${d.state >= 3 ? "Selesai diterima" : escapeHtml(d.eta)}</span></div>
+        </div>
+        <div class="dg-v18-footnote">Ilustrasi rute berdasarkan data tracking API. Bukan GPS real-time.</div>
+      `;
+    }
+    function schedule() {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(render, 120);
+    }
+
+    const observer = new MutationObserver(schedule);
+    if (resultArea) observer.observe(resultArea, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    ["resultTitle", "statusBadgeText", "resultResi", "resultExpedition", "resultOrigin", "resultDestination", "resultReceiver", "resultEta", "resultStatus", "progressSteps", "timelineList"].forEach((id) => {
+      const el = byId(id);
+      if (el) observer.observe(el, { childList: true, characterData: true, subtree: true, attributes: id === "progressSteps" ? true : false });
+    });
+    document.addEventListener("submit", () => {
+      window.setTimeout(schedule, 450);
+      window.setTimeout(schedule, 1100);
+      window.setTimeout(schedule, 1900);
+    }, true);
+    window.addEventListener("load", schedule, { passive: true });
+    schedule();
+
+    window.DiracFeaturePatchV18 = {
+      version: VERSION,
+      renderUltraRouteVisual: render,
+      getUltraRouteData: data
+    };
+  })();
+</script>
+<!-- /DIRAC V18 ULTRA PREMIUM ROUTE VISUAL PATCH -->
+
 </body>
 </html>
