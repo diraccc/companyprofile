@@ -156,8 +156,10 @@
     }
     .back-home-wrap{
       display:flex;
+      flex-direction:column;
       align-items:center;
       justify-content:center;
+      gap:10px;
     }
     .back-home-btn{
       position:relative;
@@ -3217,6 +3219,9 @@ body:has(.modal.open) .dirac-floating-actions{
         <a class="back-home-btn" href="https://diracgroup.store" aria-label="Back to home menuju website utama Dirac Group">
           <span class="back-home-icon" aria-hidden="true">←</span>
           <span>back to home</span>
+        </a>
+        <a class="back-home-btn cek-resi-btn" href="https://diracgroup.store/cekresi.html" aria-label="Cek Resi menuju halaman pelacakan pesanan Dirac Group">
+          <span>Cek Resi</span>
         </a>
       </div>
     </section>
