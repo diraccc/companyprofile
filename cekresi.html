@@ -12006,5 +12006,201 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
 </script>
 <!-- DIRAC V21 MOBILE STABILITY + COMPACT ACTIONS BUGFIX END -->
 
+
+<!-- DIRAC V22 STEP TRACKER PLACEMENT FIX START -->
+<style id="dirac-v22-stepper-placement-style">
+/* ==========================================================
+   DIRAC V22 STEP TRACKER PLACEMENT FIX
+   Tujuan: memindahkan panel "Proses tracking" tepat di bawah tombol Cek Resi
+   tanpa memutus selector loading stage dan tanpa mengubah endpoint/fungsi tracking.
+   ========================================================== */
+body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button {
+  margin: 12px 0 12px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.dg-v22-stepper-placed #featureHubV19.dg-v22-after-stepper {
+  margin-top: 12px !important;
+}
+
+body.dg-v22-stepper-placed .tracking-loading-stage.dg-v22-kept-after-form {
+  margin-top: 16px !important;
+}
+
+@media (max-width: 760px) {
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button {
+    border-radius: 20px !important;
+    padding: 13px !important;
+    margin: 12px 0 12px !important;
+    box-shadow: 0 12px 34px rgba(2,6,23,0.18) !important;
+  }
+
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-panel-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr) !important;
+    align-items: start !important;
+    gap: 10px !important;
+    margin-bottom: 11px !important;
+  }
+
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-panel-head strong {
+    font-size: 14px !important;
+    line-height: 1.14 !important;
+  }
+
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-panel-head span {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    text-align: left !important;
+  }
+
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-stepper-track {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-step {
+    min-height: 76px !important;
+    border-radius: 16px !important;
+    padding: 10px 10px 11px !important;
+  }
+
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-step b {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 5px !important;
+  }
+
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-step span {
+    font-size: 10.5px !important;
+    line-height: 1.36 !important;
+  }
+
+  body.dg-v22-stepper-placed #featureHubV19.dg-v22-after-stepper {
+    margin-top: 12px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-panel-head,
+  body.dg-v22-stepper-placed #trackingStepsV19.dg-v22-under-track-button .dg-v19-stepper-track {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
+<script id="dirac-v22-stepper-placement-script">
+(function initDiracV22StepperPlacement() {
+  "use strict";
+  if (window.DiracV22 && window.DiracV22.ready) return;
+
+  const VERSION = "v22-stepper-under-track-button-2026-05-14";
+  let observer = null;
+  let applying = false;
+  let retryTimer = 0;
+
+  function byId(id) { return document.getElementById(id); }
+
+  function directChild(parent, selector) {
+    if (!parent) return null;
+    const children = Array.prototype.slice.call(parent.children || []);
+    return children.find(function (node) { return node.matches && node.matches(selector); }) || null;
+  }
+
+  function placeStepper() {
+    if (applying) return false;
+    const form = byId("trackingForm");
+    const stepper = byId("trackingStepsV19");
+    const featureHub = byId("featureHubV19");
+    if (!form || !stepper || !form.parentElement) return false;
+
+    applying = true;
+    try {
+      const parent = form.parentElement;
+      let loadingStage = directChild(parent, ".tracking-loading-stage") || document.querySelector(".tracking-loading-stage");
+
+      // Penting: .tracking-loading-stage harus tetap menjadi sibling langsung setelah form,
+      // karena CSS lama memakai selector #trackingForm:has(#trackButton.is-loading) + .tracking-loading-stage.
+      if (loadingStage && loadingStage.parentElement === parent && loadingStage.previousElementSibling !== form) {
+        form.insertAdjacentElement("afterend", loadingStage);
+      }
+      if (loadingStage) loadingStage.classList.add("dg-v22-kept-after-form");
+
+      const anchor = (loadingStage && loadingStage.parentElement === parent) ? loadingStage : form;
+      if (stepper.parentElement !== parent || stepper.previousElementSibling !== anchor) {
+        anchor.insertAdjacentElement("afterend", stepper);
+      }
+      stepper.classList.add("dg-v22-under-track-button");
+      stepper.removeAttribute("data-v22-moved-from-result");
+
+      if (featureHub && featureHub.parentElement === parent && featureHub.previousElementSibling !== stepper) {
+        stepper.insertAdjacentElement("afterend", featureHub);
+      }
+      if (featureHub) featureHub.classList.add("dg-v22-after-stepper");
+
+      document.body.classList.add("dg-v22-stepper-placed");
+      return true;
+    } finally {
+      applying = false;
+    }
+  }
+
+  function schedulePlacement(delay) {
+    window.clearTimeout(retryTimer);
+    retryTimer = window.setTimeout(function () {
+      placeStepper();
+    }, delay == null ? 50 : delay);
+  }
+
+  function bindObserver() {
+    if (!window.MutationObserver || observer) return;
+    const form = byId("trackingForm");
+    const parent = form && form.parentElement;
+    if (!parent) return;
+    observer = new MutationObserver(function () {
+      if (!applying) schedulePlacement(20);
+    });
+    observer.observe(parent, { childList: true, subtree: false });
+  }
+
+  function boot() {
+    placeStepper();
+    bindObserver();
+    [80, 250, 700, 1400].forEach(schedulePlacement);
+    document.addEventListener("submit", function () {
+      [60, 280, 900, 1800].forEach(schedulePlacement);
+    }, true);
+    window.addEventListener("resize", function () { schedulePlacement(80); }, { passive: true });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+
+  window.DiracV22 = {
+    ready: true,
+    version: VERSION,
+    apply: placeStepper,
+    verify: function () {
+      const form = byId("trackingForm");
+      const stepper = byId("trackingStepsV19");
+      const featureHub = byId("featureHubV19");
+      const loadingStage = form && form.parentElement ? directChild(form.parentElement, ".tracking-loading-stage") : null;
+      return Boolean(
+        form && stepper && featureHub &&
+        (!loadingStage || loadingStage.previousElementSibling === form) &&
+        stepper.classList.contains("dg-v22-under-track-button") &&
+        stepper.previousElementSibling === (loadingStage || form) &&
+        featureHub.previousElementSibling === stepper
+      );
+    }
+  };
+})();
+</script>
+<!-- DIRAC V22 STEP TRACKER PLACEMENT FIX END -->
+
 </body>
 </html>
