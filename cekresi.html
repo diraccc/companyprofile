@@ -12202,5 +12202,411 @@ body.dg-v22-stepper-placed .tracking-loading-stage.dg-v22-kept-after-form {
 </script>
 <!-- DIRAC V22 STEP TRACKER PLACEMENT FIX END -->
 
+
+
+<!-- DIRAC V23 MOBILE MOTION + IMAGE SCAN FALLBACK START -->
+<style id="dirac-v23-mobile-motion-and-image-scan-style">
+  /* ==========================================================
+     DIRAC V23 - Mobile polish + upload image scan fallback
+     Additive only. Does not remove previous animations, endpoint, or tracking logic.
+     ========================================================== */
+
+  .dg-v18-motion-reduced-toggle {
+    transition: width .18s ease, min-width .18s ease, padding .18s ease, opacity .18s ease, transform .18s ease, box-shadow .18s ease !important;
+  }
+
+  .dg-v18-motion-reduced-toggle:hover,
+  .dg-v18-motion-reduced-toggle:focus-visible {
+    transform: translateY(-1px) !important;
+  }
+
+  .dg-v23-scan-fallback {
+    display: grid;
+    gap: 9px;
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 17px;
+    border: 1px solid rgba(147,197,253,0.16);
+    background: rgba(255,255,255,0.055);
+  }
+
+  .dg-v23-scan-fallback-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .dg-v23-scan-fallback-head strong {
+    display: block;
+    color: var(--white, #fff);
+    font-size: 13px;
+    letter-spacing: -0.02em;
+  }
+
+  .dg-v23-scan-fallback-head span,
+  .dg-v23-scan-hint {
+    display: block;
+    color: #9fb0d1;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .dg-v23-upload-label {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 14px;
+    padding: 0 13px;
+    color: #06101f;
+    background: linear-gradient(135deg, #dbeafe, #60a5fa 52%, #22d3ee);
+    font-size: 12px;
+    font-weight: 950;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 12px 28px rgba(37,99,235,0.14);
+    transition: transform .18s ease, filter .18s ease;
+  }
+
+  .dg-v23-upload-label:hover,
+  .dg-v23-upload-label:focus-within {
+    transform: translateY(-1px);
+    filter: saturate(1.08);
+  }
+
+  .dg-v23-upload-input {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .dg-v23-scan-preview {
+    display: none;
+    max-height: 180px;
+    width: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+    border: 1px solid rgba(147,197,253,0.14);
+    background: rgba(2,6,23,0.45);
+  }
+
+  .dg-v23-scan-preview.show {
+    display: block;
+  }
+
+  .dg-v23-scan-hint b {
+    color: #bfdbfe;
+  }
+
+  @media (max-width: 860px), (hover: none) and (pointer: coarse) {
+    .dg-v18-motion-reduced-toggle {
+      right: calc(10px + env(safe-area-inset-right, 0px)) !important;
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+      width: 44px !important;
+      min-width: 44px !important;
+      max-width: 44px !important;
+      height: 44px !important;
+      min-height: 44px !important;
+      padding: 0 !important;
+      border-radius: 999px !important;
+      font-size: 0 !important;
+      line-height: 1 !important;
+      opacity: .86 !important;
+      z-index: 42 !important;
+      display: inline-grid !important;
+      place-items: center !important;
+      overflow: hidden !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+
+    .dg-v18-motion-reduced-toggle::before {
+      content: "◐";
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+      color: #06101f;
+      font-size: 18px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .dg-v18-motion-reduced-toggle[aria-pressed="true"]::before {
+      content: "▶";
+      font-size: 16px;
+      transform: translateX(1px);
+    }
+
+    .dg-v18-motion-reduced-toggle:active {
+      opacity: 1 !important;
+      transform: scale(.96) !important;
+    }
+
+    .dg-v18-motion-reduced-toggle:focus-visible {
+      width: auto !important;
+      min-width: 134px !important;
+      max-width: min(178px, calc(100vw - 24px)) !important;
+      padding: 0 13px !important;
+      font-size: 12px !important;
+      display: inline-flex !important;
+      gap: 7px !important;
+      justify-content: center !important;
+    }
+
+    .dg-v18-motion-reduced-toggle:focus-visible::before {
+      width: auto;
+      height: auto;
+      font-size: 15px;
+      flex: 0 0 auto;
+    }
+
+    .dg-v19-scan-overlay {
+      align-items: end !important;
+      padding: 10px !important;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .dg-v19-scan-overlay-card {
+      width: 100% !important;
+      max-height: calc(100vh - 24px - env(safe-area-inset-bottom, 0px)) !important;
+      overflow: auto !important;
+      border-radius: 22px !important;
+    }
+
+    .dg-v19-scan-video {
+      max-height: 46vh !important;
+    }
+
+    .dg-v23-scan-fallback-head {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .dg-v23-upload-label {
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dg-v18-motion-reduced-toggle,
+    .dg-v23-upload-label {
+      transition: none !important;
+    }
+  }
+</style>
+<script id="dirac-v23-mobile-motion-and-image-scan-script">
+(function () {
+  "use strict";
+
+  const VERSION = "v23-mobile-motion-image-scan";
+  const ZXING_CDN = "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js";
+  let zxingLoadPromise = null;
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function ready(fn) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, { once: true });
+    else fn();
+  }
+
+  function cleanAwb(value) {
+    return String(value || "").trim().replace(/[^A-Za-z0-9\-]/g, "").toUpperCase().slice(0, 80);
+  }
+
+  function setStatus(message) {
+    const status = byId("scanStatusV19");
+    if (status) status.textContent = message;
+  }
+
+  function putResultIntoForm(value) {
+    const resiInput = byId("resi");
+    const cleaned = cleanAwb(value);
+    if (!resiInput || !cleaned) return false;
+    resiInput.value = cleaned;
+    resiInput.dispatchEvent(new Event("input", { bubbles: true }));
+    resiInput.dispatchEvent(new Event("change", { bubbles: true }));
+    const closeButton = byId("closeScanV19");
+    if (closeButton) closeButton.click();
+    setTimeout(function () {
+      try { resiInput.focus({ preventScroll: false }); } catch (error) { resiInput.focus(); }
+    }, 80);
+    return true;
+  }
+
+  function readFileAsImage(file) {
+    return new Promise(function (resolve, reject) {
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = function () { resolve({ image: image, url: url }); };
+      image.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error("Gambar tidak dapat dibaca."));
+      };
+      image.src = url;
+    });
+  }
+
+  async function detectWithNative(image) {
+    if (!("BarcodeDetector" in window)) return "";
+    try {
+      const detector = new BarcodeDetector({ formats: ["qr_code", "code_128", "code_39", "ean_13", "ean_8", "itf", "codabar", "upc_a", "upc_e"] });
+      const codes = await detector.detect(image);
+      if (codes && codes.length) return cleanAwb(codes[0].rawValue || "");
+    } catch (error) {}
+    return "";
+  }
+
+  function ensureZxing() {
+    if (window.ZXingBrowser && window.ZXingBrowser.BrowserMultiFormatReader) return Promise.resolve(window.ZXingBrowser);
+    if (zxingLoadPromise) return zxingLoadPromise;
+    zxingLoadPromise = new Promise(function (resolve, reject) {
+      const existing = document.querySelector('script[data-dirac-v23-zxing="true"]');
+      if (existing) {
+        existing.addEventListener("load", function () { resolve(window.ZXingBrowser); }, { once: true });
+        existing.addEventListener("error", reject, { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = ZXING_CDN;
+      script.async = true;
+      script.defer = true;
+      script.dataset.diracV23Zxing = "true";
+      script.onload = function () { resolve(window.ZXingBrowser); };
+      script.onerror = function () { reject(new Error("Library fallback ZXing tidak dapat dimuat.")); };
+      document.head.appendChild(script);
+    });
+    return zxingLoadPromise;
+  }
+
+  async function detectWithZxing(url) {
+    try {
+      const ZXing = await ensureZxing();
+      if (!ZXing || !ZXing.BrowserMultiFormatReader) return "";
+      const reader = new ZXing.BrowserMultiFormatReader();
+      const result = await reader.decodeFromImageUrl(url);
+      const text = result && (typeof result.getText === "function" ? result.getText() : result.text);
+      return cleanAwb(text || "");
+    } catch (error) {
+      return "";
+    }
+  }
+
+  async function handleUpload(event) {
+    const input = event.target;
+    const file = input && input.files && input.files[0];
+    const preview = byId("scanPreviewV23");
+    if (!file) return;
+    if (!/^image\//i.test(file.type || "")) {
+      setStatus("File harus berupa gambar barcode atau QR.");
+      input.value = "";
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setStatus("Ukuran gambar terlalu besar. Gunakan gambar maksimal 8 MB agar tetap ringan di mobile.");
+      input.value = "";
+      return;
+    }
+
+    setStatus("Membaca barcode/QR dari gambar...");
+    let payload = null;
+    try {
+      payload = await readFileAsImage(file);
+      if (preview) {
+        preview.src = payload.url;
+        preview.classList.add("show");
+      }
+      let value = await detectWithNative(payload.image);
+      if (!value) {
+        setStatus("Native scanner belum membaca gambar. Mencoba fallback scanner...");
+        value = await detectWithZxing(payload.url);
+      }
+      if (value && putResultIntoForm(value)) {
+        setStatus("Nomor resi berhasil dibaca dari gambar.");
+      } else {
+        setStatus("Barcode/QR belum terbaca. Coba foto yang lebih terang, crop bagian barcode, atau isi nomor resi manual.");
+      }
+    } catch (error) {
+      setStatus((error && error.message) || "Gambar tidak dapat diproses. Coba upload gambar lain atau isi manual.");
+    } finally {
+      setTimeout(function () {
+        if (payload && payload.url && !(preview && preview.src === payload.url)) URL.revokeObjectURL(payload.url);
+      }, 1200);
+      input.value = "";
+    }
+  }
+
+  function enhanceScanOverlay() {
+    const overlay = byId("scanOverlayV19");
+    if (!overlay || byId("scanUploadV23")) return false;
+    const card = overlay.querySelector(".dg-v19-scan-overlay-card");
+    const videoWrap = overlay.querySelector(".dg-v19-scan-video-wrap");
+    if (!card || !videoWrap) return false;
+
+    const fallback = document.createElement("div");
+    fallback.className = "dg-v23-scan-fallback";
+    fallback.innerHTML =
+      '<div class="dg-v23-scan-fallback-head">' +
+        '<div><strong>Fallback upload gambar</strong><span>Jika kamera sulit dibuka, upload foto barcode/QR dari galeri.</span></div>' +
+        '<label class="dg-v23-upload-label" for="scanUploadV23">Upload gambar</label>' +
+      '</div>' +
+      '<input class="dg-v23-upload-input" id="scanUploadV23" type="file" accept="image/*" capture="environment">' +
+      '<img class="dg-v23-scan-preview" id="scanPreviewV23" alt="Preview gambar barcode atau QR yang diupload">' +
+      '<div class="dg-v23-scan-hint"><b>Tips:</b> pakai foto terang, barcode tidak blur, dan usahakan barcode memenuhi area gambar.</div>';
+    videoWrap.insertAdjacentElement("afterend", fallback);
+    byId("scanUploadV23").addEventListener("change", handleUpload);
+    return true;
+  }
+
+  function polishMotionButton() {
+    const button = document.querySelector(".dg-v18-motion-reduced-toggle");
+    if (!button) return false;
+    function syncLabel() {
+      const pressed = button.getAttribute("aria-pressed") === "true";
+      const label = pressed ? "Aktifkan animasi" : "Kurangi animasi";
+      button.setAttribute("aria-label", label);
+      button.setAttribute("title", label);
+      button.dataset.v23Label = label;
+    }
+    syncLabel();
+    if (!button.dataset.v23Observed) {
+      button.dataset.v23Observed = "true";
+      const observer = new MutationObserver(syncLabel);
+      observer.observe(button, { attributes: true, attributeFilter: ["aria-pressed"], childList: true, subtree: true });
+      button.addEventListener("click", function () { setTimeout(syncLabel, 0); });
+    }
+    return true;
+  }
+
+  function boot() {
+    polishMotionButton();
+    enhanceScanOverlay();
+    let attempts = 0;
+    const timer = window.setInterval(function () {
+      attempts += 1;
+      const okMotion = polishMotionButton();
+      const okScan = enhanceScanOverlay();
+      if ((okMotion && okScan) || attempts >= 40) window.clearInterval(timer);
+    }, 150);
+  }
+
+  ready(boot);
+
+  window.DiracApp = Object.assign(window.DiracApp || {}, {
+    v23: {
+      version: VERSION,
+      hasUploadFallback: function () { return Boolean(byId("scanUploadV23")); },
+      hasCompactMotionButton: function () { return Boolean(document.querySelector(".dg-v18-motion-reduced-toggle")); }
+    }
+  });
+})();
+</script>
+<!-- DIRAC V23 MOBILE MOTION + IMAGE SCAN FALLBACK END -->
+
 </body>
 </html>
