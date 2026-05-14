@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="id">
+<html lang="id" data-dirac-architecture="v18-compatible">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -5770,6 +5770,357 @@
       }
     }
 
+
+
+    /* ==========================================================
+       DIRAC V18 PRODUCT HARDENING LAYER
+       Additive only: state-driven UX, a11y, auto-check panel, trust policy.
+       Previous visual animation blocks are kept intact.
+       ========================================================== */
+    .sr-only,
+    .dg-v18-sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .tracking-panel[data-tracking-state],
+    .form-card[data-tracking-state] {
+      --dg-state-color: rgba(96,165,250,0.72);
+    }
+
+    .tracking-panel[data-tracking-state="detecting"],
+    .form-card[data-tracking-state="detecting"] { --dg-state-color: rgba(34,211,238,0.82); }
+    .tracking-panel[data-tracking-state="checking"],
+    .form-card[data-tracking-state="checking"] { --dg-state-color: rgba(59,130,246,0.86); }
+    .tracking-panel[data-tracking-state="success"],
+    .form-card[data-tracking-state="success"] { --dg-state-color: rgba(34,197,94,0.82); }
+    .tracking-panel[data-tracking-state="error"],
+    .form-card[data-tracking-state="error"] { --dg-state-color: rgba(239,68,68,0.78); }
+
+    .dg-v18-state-panel {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 18px;
+      color: #dbeafe;
+      background: linear-gradient(180deg, rgba(255,255,255,0.065), rgba(148,163,184,0.055));
+      border: 1px solid rgba(147,197,253,0.15);
+      box-shadow: 0 14px 40px rgba(2,6,23,0.16);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dg-v18-state-panel.show {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .dg-v18-state-panel::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--dg-state-color), transparent);
+      transform: translateX(-100%);
+      opacity: .78;
+      animation: dgV18StateFlow 1.8s ease-in-out infinite;
+    }
+
+    .dg-v18-state-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      color: #06101f;
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+      box-shadow: 0 12px 28px rgba(34,211,238,0.14);
+    }
+
+    .dg-v18-state-copy strong,
+    .dg-v18-state-copy span {
+      display: block;
+    }
+
+    .dg-v18-state-copy strong {
+      color: var(--white);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .dg-v18-state-copy span {
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @keyframes dgV18StateFlow {
+      0%, 100% { transform: translateX(-100%); opacity: .25; }
+      50% { transform: translateX(100%); opacity: .95; }
+    }
+
+    .dg-v18-autocheck-panel {
+      display: none;
+      margin-top: 14px;
+      padding: 15px;
+      border-radius: 20px;
+      color: #eaf4ff;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(34,211,238,0.12), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+      border: 1px solid rgba(125,211,252,0.16);
+      box-shadow: 0 16px 48px rgba(2,6,23,0.18);
+    }
+
+    .dg-v18-autocheck-panel.show {
+      display: block;
+      animation: dgV18PanelIn .24s ease both;
+    }
+
+    @keyframes dgV18PanelIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dg-v18-autocheck-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 11px;
+    }
+
+    .dg-v18-autocheck-head strong {
+      color: var(--white);
+      font-size: 13px;
+      letter-spacing: -0.02em;
+    }
+
+    .dg-v18-autocheck-head span {
+      color: #9fb0d1;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .dg-v18-autocheck-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .dg-v18-courier-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 11px;
+      border-radius: 15px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .dg-v18-courier-row b,
+    .dg-v18-courier-row span {
+      display: block;
+    }
+
+    .dg-v18-courier-row b {
+      color: #e0f2fe;
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .dg-v18-courier-row span {
+      color: #9fb0d1;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .dg-v18-courier-row.is-checking {
+      border-color: rgba(34,211,238,0.26);
+    }
+
+    .dg-v18-courier-row.is-success {
+      border-color: rgba(34,197,94,0.30);
+      background: rgba(34,197,94,0.075);
+    }
+
+    .dg-v18-courier-row.is-failed {
+      opacity: .72;
+    }
+
+    .dg-v18-courier-status {
+      min-width: 88px;
+      text-align: center;
+      padding: 6px 8px;
+      border-radius: 999px;
+      color: #bae6fd;
+      background: rgba(34,211,238,0.08);
+      border: 1px solid rgba(125,211,252,0.12);
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .dg-v18-courier-row.is-success .dg-v18-courier-status {
+      color: #bbf7d0;
+      background: rgba(34,197,94,0.10);
+      border-color: rgba(34,197,94,0.18);
+    }
+
+    .dg-v18-courier-row.is-failed .dg-v18-courier-status {
+      color: #fecaca;
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.14);
+    }
+
+    .dg-v18-error-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .dg-v18-small-action {
+      border: 0;
+      min-height: 34px;
+      border-radius: 999px;
+      padding: 0 12px;
+      color: #dbeafe;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dg-v18-small-action.primary {
+      color: #06101f;
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+      border: 0;
+    }
+
+    .dg-v18-trust-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .dg-v18-policy-card,
+    .dg-v18-trust-card {
+      padding: 26px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(10,24,48,0.78), rgba(6,16,31,0.90));
+      border: 1px solid rgba(148,163,184,0.16);
+      box-shadow: 0 24px 70px rgba(2,6,23,0.24);
+      backdrop-filter: blur(14px);
+    }
+
+    .dg-v18-policy-card h3,
+    .dg-v18-trust-card h3 {
+      color: var(--white);
+      font-size: 23px;
+      letter-spacing: -0.05em;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+
+    .dg-v18-policy-card p,
+    .dg-v18-trust-card p,
+    .dg-v18-policy-card li {
+      color: #b7c5de;
+      font-size: 14px;
+      line-height: 1.72;
+    }
+
+    .dg-v18-policy-card ul {
+      display: grid;
+      gap: 9px;
+      margin: 14px 0 0 18px;
+    }
+
+    .dg-v18-trust-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .dg-v18-trust-proof {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.11);
+    }
+
+    .dg-v18-trust-proof strong {
+      display: block;
+      color: var(--white);
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .dg-v18-trust-proof span {
+      display: block;
+      color: #9fb0d1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .dg-v18-motion-reduced-toggle {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 45;
+      min-height: 40px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 14px;
+      color: #06101f;
+      background: linear-gradient(135deg, #dbeafe, #22d3ee);
+      box-shadow: 0 18px 50px rgba(2,6,23,0.32);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    body.dg-v18-reduce-motion *,
+    body.dg-v18-reduce-motion *::before,
+    body.dg-v18-reduce-motion *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
+
+    @media (max-width: 860px) {
+      .dg-v18-state-panel.show { grid-template-columns: 1fr; }
+      .dg-v18-autocheck-head { align-items: flex-start; flex-direction: column; }
+      .dg-v18-courier-row { grid-template-columns: 1fr; }
+      .dg-v18-trust-layout,
+      .dg-v18-trust-grid { grid-template-columns: 1fr; }
+      .dg-v18-policy-card,
+      .dg-v18-trust-card { padding: 20px; border-radius: 22px; backdrop-filter: none; }
+      .dg-v18-motion-reduced-toggle { right: 12px; bottom: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dg-v18-state-panel::after,
+      .dg-v18-autocheck-panel.show {
+        animation: none !important;
+      }
+    }
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest"/>
@@ -5778,6 +6129,87 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Dirac Cek Resi"/>
 <meta name="application-name" content="Dirac Cek Resi"/>
+
+<!-- DIRAC V18 SEO, PWA, TRUST METADATA - additive, does not alter previous animation/function layers -->
+<meta name="robots" content="index, follow, max-image-preview:large"/>
+<meta name="keywords" content="cek resi, tracking paket, cek resi JNE, cek resi J&T, cek resi SiCepat, cek resi Anteraja, Dirac Group"/>
+<meta name="author" content="Dirac Group"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<link rel="canonical" href="https://diracgroup.id/cekresi.html"/>
+<meta property="og:site_name" content="Dirac Group"/>
+<meta property="og:locale" content="id_ID"/>
+<meta property="og:image" content="logo%203.webp"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Dirac Group | Cek Resi Pengiriman"/>
+<meta name="twitter:description" content="Pantau status pengiriman paket dengan tampilan modern, cepat, aman, dan siap terhubung ke backend tracking."/>
+<meta name="twitter:image" content="logo%203.webp"/>
+<meta name="msapplication-TileColor" content="#06101f"/>
+<script type="application/ld+json" id="dirac-schema-organization">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Dirac Group",
+  "url": "https://diracgroup.id/cekresi.html",
+  "logo": "https://diracgroup.id/logo%203.webp",
+  "contactPoint": [{
+    "@type": "ContactPoint",
+    "email": "support@diracgroup.id",
+    "contactType": "customer support",
+    "areaServed": "ID",
+    "availableLanguage": ["id"]
+  }]
+}
+</script>
+<script type="application/ld+json" id="dirac-schema-webapp">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Dirac Group Cek Resi",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "All",
+  "url": "https://diracgroup.id/cekresi.html",
+  "description": "Website cek resi untuk memantau status pengiriman paket melalui backend tracking Dirac Group.",
+  "featureList": [
+    "Cek resi satu paket",
+    "Auto-check ekspedisi ketika kurir belum dipilih",
+    "Riwayat cek resi lokal di perangkat",
+    "Progress tracking bertahap",
+    "Timeline pengiriman",
+    "Dukungan PWA"
+  ],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "IDR" }
+}
+</script>
+<script type="application/ld+json" id="dirac-schema-faq">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Apa itu nomor resi?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Nomor resi adalah kode unik pengiriman yang diberikan oleh ekspedisi untuk melacak perjalanan paket dari pengirim ke penerima."}
+    },
+    {
+      "@type": "Question",
+      "name": "Kenapa resi tidak ditemukan?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Resi bisa belum aktif, salah memilih ekspedisi, nomor resi salah, atau data dari sistem ekspedisi belum diperbarui."}
+    },
+    {
+      "@type": "Question",
+      "name": "Apakah data pengiriman aman?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Website ini hanya meminta nomor resi, pilihan ekspedisi, dan opsional empat digit HP terakhir bila dibutuhkan API. Dirac Group tidak meminta PIN, password, OTP, atau data pembayaran."}
+    },
+    {
+      "@type": "Question",
+      "name": "Apa yang terjadi jika ekspedisi belum dipilih?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Sistem dapat mencoba auto-check beberapa ekspedisi populer secara berurutan dan memilih hasil pertama yang valid."}
+    }
+  ]
+}
+</script>
+<!-- /DIRAC V18 SEO, PWA, TRUST METADATA -->
+
 </head>
 <body>
 <div class="dg-offline-banner" id="offlineBanner" role="status" aria-live="polite"><i></i><span>Koneksi internet terputus. Cek jaringan lalu coba lagi.</span></div>
@@ -5919,11 +6351,12 @@
 <form class="tracking-form" id="trackingForm" novalidate="">
 <div class="field">
 <label for="resi">Nomor Resi</label>
-<input autocomplete="off" id="resi" name="resi" placeholder="Masukkan nomor resi" type="text"/>
+<input autocomplete="off" autocapitalize="characters" spellcheck="false" id="resi" name="resi" placeholder="Masukkan nomor resi" type="text" aria-describedby="resiHelp errorMessage autoCheckPanelV18" aria-invalid="false"/>
+<small class="sr-only" id="resiHelp">Masukkan nomor resi tanpa spasi. Jika ekspedisi tidak dipilih, sistem dapat mencoba beberapa ekspedisi populer secara otomatis.</small>
 </div>
 <div class="field">
 <label for="expedition">Pilih Ekspedisi</label>
-<select id="expedition" name="expedition">
+<select id="expedition" name="expedition" aria-describedby="expeditionHelp errorMessage autoCheckPanelV18" aria-invalid="false">
 <option value="">Pilih ekspedisi</option>
 <option value="jne">JNE</option>
 <option value="jnt">J&amp;T Express</option>
@@ -5938,20 +6371,30 @@
 <option value="sap">SAP Express</option>
 <option value="first">First Logistics</option>
 </select>
+<small class="sr-only" id="expeditionHelp">Pilih ekspedisi jika tahu. Jika belum tahu, kosongkan agar sistem mencoba auto-check ekspedisi populer.</small>
 </div>
 <div class="field">
 <label for="phoneLast">4 Digit HP Terakhir</label>
-<input id="phoneLast" inputmode="numeric" maxlength="4" name="phoneLast" placeholder="Opsional" type="text"/>
+<input id="phoneLast" inputmode="numeric" maxlength="4" name="phoneLast" placeholder="Opsional" type="text" autocomplete="off" aria-describedby="phoneHelp errorMessage" aria-invalid="false"/>
+<small class="sr-only" id="phoneHelp">Isi empat digit terakhir nomor HP hanya jika API ekspedisi membutuhkannya. Kolom ini opsional.</small>
 </div>
 <button class="track-button" id="trackButton" type="submit">Cek Resi</button>
 </form>
-<div aria-hidden="true" class="tracking-loading-stage">
+<div class="tracking-loading-stage" aria-live="polite">
 <div>
 <strong>Menghubungkan ke sistem pelacakan...</strong>
 <span>Memvalidasi resi, membaca ekspedisi, dan menyiapkan hasil tracking.</span>
 </div>
 </div>
-<div class="error-message" id="errorMessage"></div>
+<div class="dg-v18-state-panel" id="trackingStatePanelV18" role="status" aria-live="polite">
+  <div class="dg-v18-state-icon" aria-hidden="true">↻</div>
+  <div class="dg-v18-state-copy"><strong id="trackingStateTitleV18">Siap mengecek resi</strong><span id="trackingStateCopyV18">Masukkan nomor resi, lalu pilih ekspedisi atau kosongkan untuk auto-check.</span></div>
+</div>
+<div class="dg-v18-autocheck-panel" id="autoCheckPanelV18" role="status" aria-live="polite" aria-label="Status auto-check ekspedisi">
+  <div class="dg-v18-autocheck-head"><strong>Auto-check ekspedisi</strong><span id="autoCheckCountV18">0/0 dicek</span></div>
+  <div class="dg-v18-autocheck-list" id="autoCheckListV18"></div>
+</div>
+<div class="error-message" id="errorMessage" role="alert" aria-live="assertive" tabindex="-1"></div>
 <div aria-label="Ekspedisi populer" class="courier-row">
 <span class="courier-pill">JNE</span>
 <span class="courier-pill">J&amp;T</span>
@@ -6358,6 +6801,64 @@
 </details>
 </div>
 </section>
+
+<section class="container section reveal" id="trust-proof">
+  <div class="section-title">
+    <div class="section-label">Trust Proof</div>
+    <h2>Bukti kepercayaan dan batasan layanan dibuat lebih jelas</h2>
+    <p>Bagian ini ditambahkan langsung di halaman agar pengguna tahu apa yang diminta, apa yang tidak diminta, dan bagaimana data tracking diproses.</p>
+  </div>
+  <div class="dg-v18-trust-layout">
+    <article class="dg-v18-trust-card">
+      <h3>Jaminan pengalaman cek resi</h3>
+      <p>Dirac Group menampilkan data tracking dari backend yang tersedia, lalu merapikannya menjadi status, detail, progress, dan timeline yang lebih mudah dipahami.</p>
+      <div class="dg-v18-trust-grid">
+        <div class="dg-v18-trust-proof"><strong>Tidak meminta OTP</strong><span>Pengguna tidak diminta PIN, password, OTP, atau data pembayaran.</span></div>
+        <div class="dg-v18-trust-proof"><strong>Data seperlunya</strong><span>Form hanya memakai nomor resi, ekspedisi, dan opsional empat digit HP terakhir bila API memerlukan.</span></div>
+        <div class="dg-v18-trust-proof"><strong>Riwayat lokal</strong><span>Riwayat cek terakhir disimpan di browser pengguna, bukan sebagai akun pelanggan.</span></div>
+        <div class="dg-v18-trust-proof"><strong>Batasan transparan</strong><span>Status paket mengikuti pembaruan data dari sistem ekspedisi atau penyedia API tracking.</span></div>
+      </div>
+    </article>
+    <article class="dg-v18-policy-card" id="privasi">
+      <h3>Kebijakan privasi ringkas</h3>
+      <p>Website ini dibuat untuk membantu pengguna mengecek status pengiriman. Data yang dimasukkan digunakan untuk mengirim permintaan tracking ke backend Dirac Group dan menampilkan hasil di halaman ini.</p>
+      <ul>
+        <li>Nomor resi dipakai untuk mencari status pengiriman.</li>
+        <li>Pilihan ekspedisi dipakai untuk menentukan kurir yang akan dicek.</li>
+        <li>Empat digit HP terakhir bersifat opsional dan hanya dikirim bila pengguna mengisinya.</li>
+        <li>Riwayat cek terakhir disimpan secara lokal di perangkat pengguna melalui browser storage.</li>
+        <li>Dirac Group tidak meminta PIN, password, OTP, kode verifikasi, atau data pembayaran.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+<section class="container section reveal" id="syarat">
+  <div class="section-title">
+    <div class="section-label">Syarat Penggunaan</div>
+    <h2>Ketentuan penggunaan cek resi</h2>
+    <p>Gunakan fitur ini hanya untuk melacak paket yang memang terkait dengan Anda. Hasil tracking dapat berubah mengikuti pembaruan dari sistem ekspedisi.</p>
+  </div>
+  <div class="dg-v18-trust-layout">
+    <article class="dg-v18-policy-card">
+      <h3>Batasan layanan</h3>
+      <ul>
+        <li>Data tracking mengikuti ketersediaan dan keakuratan sumber API.</li>
+        <li>Resi baru dapat membutuhkan waktu sebelum aktif di sistem ekspedisi.</li>
+        <li>Jika ekspedisi belum dipilih, auto-check akan mencoba beberapa ekspedisi populer secara berurutan dan berhenti pada hasil valid pertama.</li>
+        <li>Jika hasil tidak muncul, pengguna disarankan memeriksa ulang nomor resi, ekspedisi, dan koneksi internet.</li>
+      </ul>
+    </article>
+    <article class="dg-v18-trust-card">
+      <h3>Kontak dan koreksi data</h3>
+      <p>Jika status terlihat tidak sesuai, hubungi support dengan menyertakan nomor resi, ekspedisi, waktu pengecekan, dan tangkapan layar hasil. Jangan mengirim PIN, OTP, password, atau data pembayaran.</p>
+      <div class="dg-v18-error-actions">
+        <a class="dg-v18-small-action primary" href="mailto:support@diracgroup.id">Email Support</a>
+        <a class="dg-v18-small-action" href="#cek-resi">Kembali ke Form</a>
+      </div>
+    </article>
+  </div>
+</section>
+
 </main>
 <footer class="footer" id="kontak">
 <div class="container">
@@ -6383,6 +6884,9 @@
 
 <a href="#keamanan">Keamanan</a>
 <a href="#standar">Standar Kualitas</a>
+<a href="#trust-proof">Trust Proof</a>
+<a href="#privasi">Kebijakan Privasi</a>
+<a href="#syarat">Syarat Penggunaan</a>
 </div>
 <div>
 <h4>Kontak</h4>
@@ -9450,6 +9954,459 @@
   })();
 </script>
 <!-- /DIRAC V17 PREMIUM ROUTE VISUAL PATCH -->
+
+
+<!-- DIRAC V18 PRODUCT HARDENING SCRIPT - additive compatibility layer -->
+<script id="dirac-v18-product-hardening-script">
+(function initDiracV18ProductHardening() {
+  "use strict";
+
+  const VERSION = "v18-product-hardening-2026-05-14";
+  const API_URL = "https://companyprofilee-ochre.vercel.app/api/track";
+  const form = document.getElementById("trackingForm");
+  const resiInput = document.getElementById("resi");
+  const expeditionSelect = document.getElementById("expedition");
+  const phoneInput = document.getElementById("phoneLast");
+  const trackButton = document.getElementById("trackButton");
+  const errorMessage = document.getElementById("errorMessage");
+  const resultArea = document.getElementById("resultArea");
+  const trackingPanel = document.querySelector(".tracking-panel");
+  const formCard = document.querySelector(".form-card");
+  const statePanel = document.getElementById("trackingStatePanelV18");
+  const stateTitle = document.getElementById("trackingStateTitleV18");
+  const stateCopy = document.getElementById("trackingStateCopyV18");
+  const autoPanel = document.getElementById("autoCheckPanelV18");
+  const autoList = document.getElementById("autoCheckListV18");
+  const autoCount = document.getElementById("autoCheckCountV18");
+  const toastApi = window.DiracFeaturePatchV10 && typeof window.DiracFeaturePatchV10.showToast === "function"
+    ? window.DiracFeaturePatchV10.showToast
+    : null;
+
+  if (!form || !resiInput || !expeditionSelect || !trackButton) return;
+
+  const stateText = {
+    idle: ["Siap mengecek resi", "Masukkan nomor resi, lalu pilih ekspedisi atau kosongkan untuk auto-check."],
+    validating: ["Memvalidasi input", "Sistem memeriksa format nomor resi dan data opsional sebelum request dikirim."],
+    detecting: ["Mendeteksi ekspedisi", "Ekspedisi belum dipilih. Sistem mencoba kurir populer secara berurutan."],
+    checking: ["Menghubungkan ke sistem tracking", "Request sedang dikirim ke backend Dirac Group dan sumber data ekspedisi."],
+    success: ["Tracking berhasil ditemukan", "Hasil sudah ditampilkan dalam status, kartu detail, progress, dan timeline."],
+    error: ["Tracking belum berhasil", "Periksa resi, ekspedisi, koneksi, atau coba auto-check ekspedisi lain."],
+    cancelled: ["Pengecekan dihentikan", "Proses auto-check berhenti sebelum semua ekspedisi selesai dicek."]
+  };
+
+  let autoCheckRunning = false;
+  let autoAbortController = null;
+  let lastAutoErrors = [];
+
+  function toast(message) {
+    if (toastApi) {
+      toastApi(message);
+      return;
+    }
+    const node = document.getElementById("dgToast");
+    if (!node) return;
+    node.textContent = message;
+    node.classList.add("show");
+    window.clearTimeout(node.__dgV18Timer);
+    node.__dgV18Timer = window.setTimeout(() => node.classList.remove("show"), 2600);
+  }
+
+  function cleanAwb(value) {
+    return String(value || "").replace(/[\s\r\n\t]+/g, "").trim().toUpperCase();
+  }
+
+  function cleanPhone(value) {
+    return String(value || "").replace(/\D+/g, "").slice(0, 4);
+  }
+
+  function courierOptions() {
+    return Array.from(expeditionSelect.options)
+      .filter((option) => option.value)
+      .map((option) => ({ value: option.value, label: option.textContent.trim() }));
+  }
+
+  function scoreCourier(resi, courier) {
+    const value = cleanAwb(resi);
+    const rules = [
+      ["jne", /^(JNE|CM|CGK|BDO|[0-9]{12,16}$)/],
+      ["jnt", /^(JT|JP|JX|JD|[0-9]{10,15}$)/],
+      ["sicepat", /^(SICEPAT|SC|SI|00[0-9]{8,})/],
+      ["anteraja", /^(ANT|AT|1000|10[0-9]{9,})/],
+      ["pos", /^(POS|PE|CP|EE|RR|[A-Z]{2}[0-9]{9}ID$)/],
+      ["tiki", /^(TIKI|TK)/],
+      ["wahana", /^(WH|W[0-9])/],
+      ["ninja", /^(NINJA|NL|NJV|SHP)/],
+      ["lion", /^(LP|LION)/],
+      ["ide", /^(ID|IDE)/],
+      ["sap", /^(SAP)/],
+      ["first", /^(FL|FIRST)/]
+    ];
+    const match = rules.find(([code, pattern]) => code === courier && pattern.test(value));
+    return match ? 100 : 40;
+  }
+
+  function orderedCouriers(resi) {
+    return courierOptions().sort((a, b) => scoreCourier(resi, b.value) - scoreCourier(resi, a.value));
+  }
+
+  function setState(state, customTitle, customCopy) {
+    const pair = stateText[state] || stateText.idle;
+    document.body.dataset.trackingState = state;
+    if (trackingPanel) trackingPanel.dataset.trackingState = state;
+    if (formCard) formCard.dataset.trackingState = state;
+    if (stateTitle) stateTitle.textContent = customTitle || pair[0];
+    if (stateCopy) stateCopy.textContent = customCopy || pair[1];
+    if (statePanel) statePanel.classList.toggle("show", state !== "idle");
+  }
+
+  function setInvalid(input, invalid) {
+    if (!input) return;
+    input.setAttribute("aria-invalid", invalid ? "true" : "false");
+    input.classList.toggle("input-error", Boolean(invalid));
+  }
+
+  function enhanceError(message) {
+    if (!errorMessage) return;
+    const raw = String(message || errorMessage.textContent || "Tracking belum berhasil.").trim();
+    const canAuto = Boolean(cleanAwb(resiInput.value));
+    const actions = document.createElement("div");
+    actions.className = "dg-v18-error-actions";
+    actions.innerHTML = `
+      ${canAuto ? '<button class="dg-v18-small-action primary" type="button" data-v18-action="auto-check">Auto-check ekspedisi</button>' : ''}
+      <button class="dg-v18-small-action" type="button" data-v18-action="focus-resi">Cek ulang resi</button>
+      <button class="dg-v18-small-action" type="button" data-v18-action="copy-error">Salin error</button>
+    `;
+    if (!errorMessage.querySelector(".dg-v18-error-actions")) {
+      errorMessage.appendChild(actions);
+    }
+    errorMessage.dataset.lastMessage = raw;
+    const lower = raw.toLowerCase();
+    if (/nomor resi|resi/.test(lower)) setInvalid(resiInput, true);
+    if (/ekspedisi|kurir/.test(lower)) setInvalid(expeditionSelect, true);
+    if (/hp|telepon|phone/.test(lower)) setInvalid(phoneInput, true);
+    errorMessage.setAttribute("aria-live", "assertive");
+    errorMessage.setAttribute("role", "alert");
+    errorMessage.tabIndex = -1;
+    window.setTimeout(() => {
+      if (errorMessage.classList.contains("show")) errorMessage.focus({ preventScroll: true });
+    }, 80);
+    setState("error", "Tracking belum berhasil", raw || stateText.error[1]);
+  }
+
+  function showAccessibleError(message, target) {
+    if (typeof window.showError === "function") {
+      window.showError(message);
+    } else if (errorMessage) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add("show");
+    }
+    setInvalid(target || resiInput, true);
+    enhanceError(message);
+  }
+
+  function clearAccessibleError() {
+    [resiInput, expeditionSelect, phoneInput].forEach((el) => setInvalid(el, false));
+    if (errorMessage) {
+      errorMessage.dataset.lastMessage = "";
+      const actions = errorMessage.querySelector(".dg-v18-error-actions");
+      if (actions) actions.remove();
+    }
+  }
+
+  function setLoadingCompat(isLoading) {
+    if (typeof window.setLoading === "function") {
+      window.setLoading(isLoading);
+    } else {
+      trackButton.disabled = isLoading;
+      trackButton.classList.toggle("is-loading", isLoading);
+    }
+  }
+
+  function clearAutoPanel() {
+    if (autoList) autoList.innerHTML = "";
+    if (autoCount) autoCount.textContent = "0/0 dicek";
+    if (autoPanel) autoPanel.classList.remove("show");
+  }
+
+  function prepareAutoPanel(couriers) {
+    if (!autoPanel || !autoList) return;
+    autoPanel.classList.add("show");
+    autoList.innerHTML = "";
+    couriers.forEach((courier) => {
+      const row = document.createElement("div");
+      row.className = "dg-v18-courier-row";
+      row.dataset.courier = courier.value;
+      row.innerHTML = `<div><b>${courier.label}</b><span>Menunggu giliran pengecekan.</span></div><div class="dg-v18-courier-status">Menunggu</div>`;
+      autoList.appendChild(row);
+    });
+    if (autoCount) autoCount.textContent = `0/${couriers.length} dicek`;
+  }
+
+  function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(value);
+    return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+  }
+
+  function updateAutoRow(courier, className, title, copy, status) {
+    if (!autoList) return;
+    const row = autoList.querySelector(`[data-courier="${cssEscape(courier)}"]`);
+    if (!row) return;
+    row.classList.remove("is-checking", "is-success", "is-failed");
+    if (className) row.classList.add(className);
+    const label = row.querySelector("span");
+    const statusNode = row.querySelector(".dg-v18-courier-status");
+    if (label) label.textContent = copy || title || "";
+    if (statusNode) statusNode.textContent = status || title || "";
+  }
+
+  function updateAutoCount(done, total) {
+    if (autoCount) autoCount.textContent = `${done}/${total} dicek`;
+  }
+
+  async function fetchWithTimeout(courier, payload, timeoutMs) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), timeoutMs || 12000);
+    if (autoAbortController) {
+      autoAbortController.signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      let body;
+      try {
+        body = await response.json();
+      } catch (error) {
+        throw new Error("Respons backend bukan JSON valid.");
+      }
+      const backendError = body?.error || body?.message || body?.meta?.message || body?.raw_rajaongkir?.meta?.message || body?.rajaongkir?.status?.description;
+      const statusText = String(body?.status || body?.meta?.status || body?.rajaongkir?.status?.description || "").toLowerCase();
+      const failedStatus = body?.status === false || body?.success === false || statusText === "error" || statusText === "failed" || body?.meta?.code >= 400 || body?.raw_rajaongkir?.meta?.code >= 400 || body?.rajaongkir?.status?.code >= 400;
+      if (!response.ok || failedStatus) {
+        throw new Error(backendError || `Tidak ada data valid untuk ${courier}.`);
+      }
+      return body;
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  function normalizeCompat(payload, ctx) {
+    if (typeof window.normalizeTrackingResponse === "function") {
+      return window.normalizeTrackingResponse(payload, ctx);
+    }
+    return {
+      resi: ctx.resi,
+      expedition: ctx.expeditionName,
+      status: payload?.summary?.status || payload?.status || "Data ditemukan",
+      shippingDate: "-",
+      eta: "-",
+      receiver: "-",
+      origin: "-",
+      destination: "-",
+      delivered: false,
+      activeStep: 3,
+      history: []
+    };
+  }
+
+  function renderCompat(data) {
+    if (typeof window.renderTrackingResult === "function") {
+      window.renderTrackingResult(data);
+      return;
+    }
+    const resultTitle = document.getElementById("resultTitle");
+    if (resultTitle) resultTitle.textContent = data.status || "Data ditemukan";
+    if (resultArea) resultArea.classList.add("show");
+  }
+
+  async function runAutoCheck() {
+    const resi = cleanAwb(resiInput.value);
+    const phone = cleanPhone(phoneInput ? phoneInput.value : "");
+    const couriers = orderedCouriers(resi);
+    lastAutoErrors = [];
+
+    clearAccessibleError();
+
+    if (!resi) {
+      showAccessibleError("Nomor resi tidak boleh kosong.", resiInput);
+      resiInput.focus();
+      return;
+    }
+
+    if (phoneInput && phoneInput.value !== phone) phoneInput.value = phone;
+    if (couriers.length === 0) {
+      showAccessibleError("Daftar ekspedisi belum tersedia di form.", expeditionSelect);
+      return;
+    }
+
+    autoCheckRunning = true;
+    autoAbortController = new AbortController();
+    prepareAutoPanel(couriers);
+    setState("detecting", "Auto-check ekspedisi dimulai", `Mencoba ${couriers.length} ekspedisi populer sampai data valid ditemukan.`);
+    setLoadingCompat(true);
+    if (resultArea) resultArea.classList.remove("show");
+
+    let done = 0;
+    try {
+      for (const courier of couriers) {
+        if (autoAbortController.signal.aborted) throw new Error("Auto-check dihentikan.");
+        setState("checking", `Mengecek ${courier.label}`, "Sistem sedang menghubungi backend untuk ekspedisi ini.");
+        updateAutoRow(courier.value, "is-checking", "Dicek", "Sedang menghubungi backend tracking.", "Dicek");
+        try {
+          const payload = { awb: resi, courier: courier.value };
+          if (phone) payload.last_phone_number = phone;
+          const raw = await fetchWithTimeout(courier.value, payload, 12000);
+          const data = normalizeCompat(raw, { resi, courier: courier.value, expeditionName: courier.label });
+          expeditionSelect.value = courier.value;
+          expeditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          updateAutoRow(courier.value, "is-success", "Ditemukan", "Data valid ditemukan. Ekspedisi otomatis dipilih.", "Ditemukan");
+          updateAutoCount(done + 1, couriers.length);
+          renderCompat(data);
+          setState("success", `Data ditemukan di ${courier.label}`, "Ekspedisi sudah otomatis dipilih dan hasil tracking ditampilkan.");
+          toast(`Data ditemukan di ${courier.label}.`);
+          return;
+        } catch (error) {
+          const msg = error && error.name === "AbortError" ? "Request dihentikan atau timeout." : (error && error.message) || "Tidak ada data valid.";
+          lastAutoErrors.push(`${courier.label}: ${msg}`);
+          updateAutoRow(courier.value, "is-failed", "Gagal", msg.slice(0, 96), "Gagal");
+        } finally {
+          done += 1;
+          updateAutoCount(done, couriers.length);
+        }
+      }
+      showAccessibleError("Auto-check selesai, tetapi data resi belum ditemukan di ekspedisi yang tersedia. Periksa nomor resi atau coba lagi nanti.", resiInput);
+    } finally {
+      autoCheckRunning = false;
+      autoAbortController = null;
+      setLoadingCompat(false);
+    }
+  }
+
+  // Capture submit only when courier is empty. Selected courier still uses the original handler untouched.
+  form.addEventListener("submit", function onV18SubmitCapture(event) {
+    const courier = String(expeditionSelect.value || "").trim();
+    const resi = cleanAwb(resiInput.value);
+    if (phoneInput) phoneInput.value = cleanPhone(phoneInput.value);
+    clearAccessibleError();
+    if (courier) {
+      setState("checking");
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (autoCheckRunning) return;
+    if (resiInput.value !== resi) resiInput.value = resi;
+    runAutoCheck();
+  }, true);
+
+  resiInput.addEventListener("input", function () {
+    resiInput.value = cleanAwb(resiInput.value);
+    clearAccessibleError();
+    if (!autoCheckRunning && cleanAwb(resiInput.value).length >= 5 && !expeditionSelect.value) {
+      setState("validating", "Resi siap dicek", "Pilih ekspedisi atau langsung tekan Cek Resi untuk auto-check semua ekspedisi populer.");
+    } else if (!autoCheckRunning && !resiInput.value) {
+      setState("idle");
+    }
+  });
+
+  if (phoneInput) {
+    phoneInput.addEventListener("input", function () {
+      phoneInput.value = cleanPhone(phoneInput.value);
+      clearAccessibleError();
+    });
+  }
+
+  expeditionSelect.addEventListener("change", function () {
+    clearAccessibleError();
+    if (expeditionSelect.value) {
+      setState("validating", "Ekspedisi dipilih", "Tekan Cek Resi untuk menghubungi backend tracking.");
+    } else if (cleanAwb(resiInput.value)) {
+      setState("detecting", "Mode auto-check siap", "Ekspedisi kosong. Saat submit, sistem akan mencoba semua ekspedisi populer.");
+    } else {
+      setState("idle");
+    }
+  });
+
+  if (errorMessage) {
+    errorMessage.addEventListener("click", function (event) {
+      const action = event.target && event.target.dataset ? event.target.dataset.v18Action : "";
+      if (!action) return;
+      if (action === "auto-check") runAutoCheck();
+      if (action === "focus-resi") {
+        resiInput.focus();
+        resiInput.select();
+      }
+      if (action === "copy-error") {
+        const text = errorMessage.dataset.lastMessage || errorMessage.textContent || "Tracking error";
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => toast("Detail error disalin."), () => toast("Gagal menyalin error."));
+        } else {
+          toast("Clipboard tidak tersedia di browser ini.");
+        }
+      }
+    });
+  }
+
+  if (resultArea && "MutationObserver" in window) {
+    const observer = new MutationObserver(function () {
+      if (resultArea.classList.contains("show")) {
+        const statusText = (document.getElementById("statusBadgeText") || {}).textContent || "";
+        const delivered = /diterima|delivered|terkirim|selesai|pod|received/i.test(statusText);
+        setState("success", delivered ? "Paket sudah diterima" : "Data tracking berhasil", delivered ? "Timeline menunjukkan paket sudah selesai diterima." : "Paket berhasil dilacak dan status terbaru sudah ditampilkan.");
+      }
+      if (errorMessage && errorMessage.classList.contains("show")) enhanceError(errorMessage.textContent);
+    });
+    observer.observe(resultArea, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true });
+    if (errorMessage) observer.observe(errorMessage, { attributes: true, attributeFilter: ["class"], childList: true, subtree: true });
+  }
+
+  const reduceKey = "dirac_v18_reduce_motion";
+  const reduceButton = document.createElement("button");
+  reduceButton.className = "dg-v18-motion-reduced-toggle";
+  reduceButton.type = "button";
+  reduceButton.setAttribute("aria-pressed", "false");
+  reduceButton.textContent = "Kurangi animasi";
+  function applyReduceMotion(value) {
+    document.body.classList.toggle("dg-v18-reduce-motion", Boolean(value));
+    reduceButton.setAttribute("aria-pressed", value ? "true" : "false");
+    reduceButton.textContent = value ? "Aktifkan animasi" : "Kurangi animasi";
+  }
+  try { applyReduceMotion(localStorage.getItem(reduceKey) === "1"); } catch (error) { applyReduceMotion(false); }
+  reduceButton.addEventListener("click", function () {
+    const next = !document.body.classList.contains("dg-v18-reduce-motion");
+    applyReduceMotion(next);
+    try { localStorage.setItem(reduceKey, next ? "1" : "0"); } catch (error) {}
+  });
+  document.body.appendChild(reduceButton);
+
+  if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+    navigator.serviceWorker.register("./sw.js").catch(function () {
+      // Existing registration may already handle this; failure should never block tracking.
+    });
+  }
+
+  window.DiracApp = Object.assign(window.DiracApp || {}, {
+    version: VERSION,
+    config: { apiEndpoint: API_URL, couriers: courierOptions().map((item) => item.value) },
+    a11y: { setInvalid, clearAccessibleError },
+    motion: { setState },
+    autoCheck: { run: runAutoCheck, isRunning: function () { return autoCheckRunning; }, lastErrors: function () { return lastAutoErrors.slice(); } },
+    verify: {
+      requiredIds: ["trackingForm", "resi", "expedition", "phoneLast", "trackButton", "resultArea", "errorMessage", "autoCheckPanelV18", "trackingStatePanelV18"],
+      check: function () {
+        return this.requiredIds.every(function (id) { return Boolean(document.getElementById(id)); });
+      }
+    }
+  });
+
+  setState("idle");
+})();
+</script>
+<!-- /DIRAC V18 PRODUCT HARDENING SCRIPT -->
 
 </body>
 </html>
