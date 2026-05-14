@@ -61,6 +61,7 @@ function getApiKeys() {
     process.env.RAJAONGKIR_API_KEY_7,
     process.env.RAJAONGKIR_API_KEY_8,
     process.env.RAJAONGKIR_API_KEY_9,
+    process.env.RAJAONGKIR_API_KEY_10,
 
     // API lama kamu. Karena isinya beda, ini akan jadi cadangan ke-6.
     process.env.RAJAONGKIR_API_KEY
