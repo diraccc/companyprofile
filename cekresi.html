@@ -5674,6 +5674,102 @@
       }
     }
 
+
+
+    /* ==========================================================
+       DIRAC V14 PASTE BUTTON PRECISION PATCH
+       Tujuan: memperbaiki posisi tombol Tempel supaya presisi di dalam field
+       nomor resi, tanpa mengubah fungsi clipboard, validasi, endpoint, fetch,
+       normalisasi, render hasil, progress, timeline, atau auto detect ekspedisi.
+       ========================================================== */
+    .dg-v12-field-has-paste {
+      position: relative !important;
+    }
+
+    .dg-v12-field-has-paste input#resiInput,
+    .dg-v12-field-has-paste input[name="resi"],
+    .dg-v12-field-has-paste input[type="text"] {
+      padding-right: 126px !important;
+    }
+
+    #pasteResiButton.dg-v12-paste-button {
+      position: absolute !important;
+      top: auto !important;
+      right: 9px !important;
+      bottom: 9px !important;
+      width: 106px !important;
+      height: 38px !important;
+      min-width: 106px !important;
+      max-width: 106px !important;
+      min-height: 38px !important;
+      max-height: 38px !important;
+      display: inline-grid !important;
+      place-items: center !important;
+      align-self: auto !important;
+      justify-self: auto !important;
+      margin: 0 !important;
+      padding: 0 14px !important;
+      border: 0 !important;
+      border-radius: 14px !important;
+      line-height: 1 !important;
+      text-align: center !important;
+      white-space: nowrap !important;
+      transform: none !important;
+      z-index: 6 !important;
+      box-shadow: 0 10px 24px rgba(34,211,238,0.18), inset 0 1px 0 rgba(255,255,255,0.46) !important;
+    }
+
+    #pasteResiButton.dg-v12-paste-button:active {
+      transform: scale(0.975) !important;
+    }
+
+    #pasteResiButton.dg-v12-paste-button::after {
+      border-radius: inherit !important;
+    }
+
+    @media (max-width: 760px) {
+      .dg-v12-field-has-paste input#resiInput,
+      .dg-v12-field-has-paste input[name="resi"],
+      .dg-v12-field-has-paste input[type="text"] {
+        padding-right: 118px !important;
+      }
+
+      #pasteResiButton.dg-v12-paste-button {
+        right: 8px !important;
+        bottom: 8px !important;
+        width: 102px !important;
+        min-width: 102px !important;
+        max-width: 102px !important;
+        height: 40px !important;
+        min-height: 40px !important;
+        max-height: 40px !important;
+        border-radius: 14px !important;
+        font-size: 12px !important;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .dg-v12-field-has-paste input#resiInput,
+      .dg-v12-field-has-paste input[name="resi"],
+      .dg-v12-field-has-paste input[type="text"] {
+        padding-right: 110px !important;
+      }
+
+      #pasteResiButton.dg-v12-paste-button {
+        width: 96px !important;
+        min-width: 96px !important;
+        max-width: 96px !important;
+        right: 7px !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #pasteResiButton.dg-v12-paste-button,
+      #pasteResiButton.dg-v12-paste-button::after {
+        animation: none !important;
+      }
+    }
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest"/>
