@@ -8019,6 +8019,7 @@
       const rules = [
         rule("tiki", 99, "format numerik TIKI yang umum diawali 6600", (v) => /^6600\d{8,}$/.test(v)),
         rule("tiki", 96, "prefix TIKI/TK terdeteksi", (v) => /^(TIKI|TKI?|TRK)[A-Z0-9]{6,}$/.test(v)),
+        rule("jnt", 99, "format numerik J&T 10 digit terdeteksi", (v) => /^(?!1000)1\d{9}$/.test(v)),
         rule("jnt", 98, "prefix J&T/JT/JP terdeteksi", (v) => /^(JP|JT|JNT|JX)\d{8,}$/.test(v) || /^JNT[A-Z0-9]{7,}$/.test(v)),
         rule("sicepat", 98, "prefix SiCepat terdeteksi", (v) => /^(SICEPAT|SCP|SC|SPX)[A-Z0-9]{7,}$/.test(v)),
         rule("sicepat", 94, "format angka SiCepat yang umum diawali 00", (v) => /^00\d{8,14}$/.test(v)),
@@ -8192,10 +8193,16 @@
 
       scheduleDetect("initial");
       window.DiracFeaturePatchV13 = {
-        version: VERSION,
+        version: VERSION + "-v15-jnt-numeric-fix",
         detectCourier,
         evaluateAutoDetect,
         cleanResi: clean
+      };
+      window.DiracFeaturePatchV15 = {
+        version: "v15-jnt-numeric-precision-2026-05-14",
+        note: "Fix auto detect: resi numerik 10 digit awalan 1 seperti 1354099952 diprioritaskan ke J&T, bukan TIKI.",
+        sample: "1354099952",
+        expectedCourier: "jnt"
       };
     })();
 </script>
