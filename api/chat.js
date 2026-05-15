@@ -67,6 +67,9 @@ module.exports = async function handler(req, res) {
     const isSmallTalkOnly =
       /^(apa kabar|gimana kabarnya|kamu apa kabar|lagi apa|sedang apa|hai apa kabar|halo apa kabar|hlo apa kabar)$/.test(normalizedMessage);
 
+    const hasInsultOnly =
+      /^(goblok+|goblog+|tolol+|bodoh+|bego+|anjing+|bangsat+|kampret+|kontol+|memek+|goblokx+|tololx+|bodohx+|begox+)$/i.test(normalizedMessage);
+
     const hasWebsiteIntent =
       /\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|company|diracgroup store|dirac group store|alamat web|alamat website)\b/.test(normalizedMessage);
 
@@ -93,6 +96,12 @@ module.exports = async function handler(req, res) {
 
     const budgetWords =
       /\b(\d+\s*(rb|ribu|jt|juta)|rp|harga|budget|maksimal|max|dibawah|di bawah|sekitar|murah|mahal)\b/.test(normalizedMessage);
+
+    const asksIndonesiaPresident =
+      /\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(normalizedMessage);
+
+    const asksCurrent =
+      /\b(sekarang|saat ini|current|terbaru|hari ini|2024|2025|2026)\b/.test(normalizedMessage);
 
     const hasProductIntent = productWords || recommendationWords;
 
@@ -121,6 +130,13 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (hasInsultOnly) {
+      return json(200, {
+        mode: 'conversation',
+        reply: 'Saya paham Anda lagi kesal. Saya akan bantu jawab lebih tepat. Coba tulis pertanyaannya lagi dengan jelas, nanti saya jawab langsung.'
+      });
+    }
+
     if (isIdentityQuestion) {
       return json(200, {
         mode: 'conversation',
@@ -132,6 +148,13 @@ module.exports = async function handler(req, res) {
       return json(200, {
         mode: 'conversation',
         reply: 'Kabar saya baik. Anda sendiri bagaimana? Kita bisa ngobrol dulu, tidak harus langsung bahas produk.'
+      });
+    }
+
+    if (asksIndonesiaPresident) {
+      return json(200, {
+        mode: 'conversation',
+        reply: 'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.'
       });
     }
 
@@ -220,6 +243,13 @@ module.exports = async function handler(req, res) {
       hasProductIntent &&
       recommendationSignalCount >= 3;
 
+    const shouldUseGoogleSearch =
+      isGeneralConversation &&
+      (
+        asksCurrent ||
+        /\b(siapa|apa|kapan|dimana|berapa|berita|terbaru|sekarang|saat ini)\b/.test(normalizedMessage)
+      );
+
     const productText = products.map((p, index) => {
       return [
         `${index + 1}. ${p.title || p.name || 'Produk Dirac'}`,
@@ -250,8 +280,8 @@ Jangan menawarkan produk.
 Jangan merekomendasikan parfum.
 Jangan menampilkan daftar produk.
 Jangan mengarahkan checkout kecuali user memintanya.
-Jika user bertanya informasi umum, jawab seperti AI biasa.
-Jika informasi bisa berubah, jawab dengan hati-hati.
+Jika user bertanya informasi yang bisa berubah seperti pejabat, presiden, harga, jadwal, atau berita terbaru, gunakan informasi terbaru jika tersedia dan jangan memakai data lama.
+Untuk pertanyaan presiden Indonesia, jawaban yang benar adalah Prabowo Subianto, bukan Joko Widodo.
 Gunakan bahasa Indonesia yang jelas, santai, dan tidak terlalu panjang.
 `.trim();
     } else if (hasCartIntent && !hasProductIntent) {
@@ -308,15 +338,15 @@ Jawab singkat, ramah, dan natural.
     let reply = '';
 
     for (const model of modelCandidates) {
-      const geminiUrl =
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const attempts = shouldUseGoogleSearch && !model.includes('1.5')
+        ? [{ useSearch: true }, { useSearch: false }]
+        : [{ useSearch: false }];
 
-      const geminiResponse = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      for (const attempt of attempts) {
+        const geminiUrl =
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+        const requestBody = {
           contents: [
             {
               role: 'user',
@@ -328,28 +358,46 @@ Jawab singkat, ramah, dan natural.
             }
           ],
           generationConfig: {
-            temperature: isGeneralConversation ? 0.65 : 0.38,
+            temperature: isGeneralConversation ? 0.55 : 0.38,
             topP: 0.9,
             maxOutputTokens: isGeneralConversation ? 700 : 900
           }
-        })
-      });
+        };
 
-      const data = await geminiResponse.json().catch(() => ({}));
+        if (attempt.useSearch) {
+          requestBody.tools = [
+            {
+              google_search: {}
+            }
+          ];
+        }
 
-      if (!geminiResponse.ok) {
-        lastError = data?.error?.message || `Gemini API error ${geminiResponse.status}`;
-        continue;
+        const geminiResponse = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        const data = await geminiResponse.json().catch(() => ({}));
+
+        if (!geminiResponse.ok) {
+          lastError = data?.error?.message || `Gemini API error ${geminiResponse.status}`;
+          continue;
+        }
+
+        reply = data?.candidates?.[0]?.content?.parts
+          ?.map((part) => part.text || '')
+          .join('')
+          .trim();
+
+        if (reply) break;
+
+        lastError = 'Gemini response empty';
       }
 
-      reply = data?.candidates?.[0]?.content?.parts
-        ?.map((part) => part.text || '')
-        .join('')
-        .trim();
-
       if (reply) break;
-
-      lastError = 'Gemini response empty';
     }
 
     if (!reply) {
@@ -364,7 +412,6 @@ Jawab singkat, ramah, dan natural.
       mode: shouldUseProductData ? 'commerce' : 'conversation',
       reply
     });
-
   } catch (error) {
     return res.status(500).json({
       mode: 'error',
