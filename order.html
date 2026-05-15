@@ -10239,7 +10239,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   let userAbortRequested = false;
   let lastUserPrompt = '';
   let sessionId = getSessionId();
-  const AI_BUILD = 'ai-intelligence-2026-05-15-v9-max-router-general-product-math';
+  const AI_BUILD = 'ai-intelligence-2026-05-15-v10-ultra-general-knowledge';
   try{
     if(localStorage.getItem('dirac_ai_build') !== AI_BUILD){
       ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1'].forEach(function(key){ localStorage.removeItem(key); });
@@ -11246,6 +11246,108 @@ function staticGeneralAnswerLocal(text) {
     const general = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|sebutkan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kecamatan|kota|dunia|benua|sungai|gunung|samudra|laut|planet|bulan|matahari|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
     return general && !explicitProduct;
   }
+
+
+  /* === DIRAC AI ULTRA GENERAL KNOWLEDGE FRONTEND OVERRIDES v2026-05-15-UGK === */
+  function diracAllCountriesAnswerLocal(){
+    return 'Daftar 195 negara berdaulat yang umum diakui (193 anggota PBB + Takhta Suci/Vatikan dan Palestina), dikelompokkan ringkas:\n\n' +
+    'Asia: Afghanistan, Arab Saudi, Armenia, Azerbaijan, Bahrain, Bangladesh, Bhutan, Brunei, Filipina, Georgia, India, Indonesia, Irak, Iran, Israel, Jepang, Kamboja, Kazakhstan, Kirgizstan, Korea Selatan, Korea Utara, Kuwait, Laos, Lebanon, Malaysia, Maladewa, Mongolia, Myanmar, Nepal, Oman, Pakistan, Palestina, Qatar, Singapura, Siprus, Sri Lanka, Suriah, Tajikistan, Thailand, Timor Leste, Tiongkok, Turki, Turkmenistan, Uni Emirat Arab, Uzbekistan, Vietnam, Yaman.\n\n' +
+    'Eropa: Albania, Andorra, Austria, Belanda, Belarus, Belgia, Bosnia dan Herzegovina, Bulgaria, Ceko, Denmark, Estonia, Finlandia, Hungaria, Islandia, Irlandia, Italia, Jerman, Kroasia, Latvia, Liechtenstein, Lituania, Luksemburg, Malta, Moldova, Monako, Montenegro, Norwegia, Polandia, Portugal, Prancis, Rumania, Rusia, San Marino, Serbia, Slovakia, Slovenia, Spanyol, Swedia, Swiss, Ukraina, Vatikan, Yunani, Makedonia Utara, Britania Raya.\n\n' +
+    'Afrika: Afrika Selatan, Aljazair, Angola, Benin, Botswana, Burkina Faso, Burundi, Chad, Djibouti, Eritrea, Eswatini, Ethiopia, Gabon, Gambia, Ghana, Guinea, Guinea-Bissau, Guinea Khatulistiwa, Kamerun, Kenya, Komoro, Kongo, Republik Demokratik Kongo, Lesotho, Liberia, Libya, Madagaskar, Malawi, Mali, Maroko, Mauritania, Mauritius, Mesir, Mozambik, Namibia, Niger, Nigeria, Pantai Gading, Rwanda, Sao Tome dan Principe, Senegal, Seychelles, Sierra Leone, Somalia, Sudan, Sudan Selatan, Tanzania, Togo, Tunisia, Uganda, Zambia, Zimbabwe, Tanjung Verde, Republik Afrika Tengah.\n\n' +
+    'Amerika: Antigua dan Barbuda, Argentina, Bahama, Barbados, Belize, Bolivia, Brasil, Chili, Dominika, Ekuador, El Salvador, Grenada, Guatemala, Guyana, Haiti, Honduras, Jamaika, Kanada, Kolombia, Kosta Rika, Kuba, Meksiko, Nikaragua, Panama, Paraguay, Peru, Republik Dominika, Saint Kitts dan Nevis, Saint Lucia, Saint Vincent dan Grenadines, Suriname, Trinidad dan Tobago, Amerika Serikat, Uruguay, Venezuela.\n\n' +
+    'Oseania: Australia, Fiji, Kiribati, Kepulauan Marshall, Kepulauan Solomon, Mikronesia, Nauru, Palau, Papua Nugini, Samoa, Selandia Baru, Tonga, Tuvalu, Vanuatu.\n\n' +
+    'Catatan: jumlah/daftar dapat berbeda tergantung kriteria pengakuan negara. Standar paling umum adalah 195 negara.';
+  }
+  function diracProvinceKecamatanAnswerLocal(text){
+    const n = normalize(text);
+    const rows = [
+      ['aceh','Aceh',290], ['sumatera utara|sumut','Sumatera Utara',455], ['sumatera barat|sumbar','Sumatera Barat',179], ['riau','Riau',172], ['jambi','Jambi',144], ['sumatera selatan|sumsel','Sumatera Selatan',241], ['bengkulu','Bengkulu',129], ['lampung','Lampung',228], ['bangka belitung|babel','Kepulauan Bangka Belitung',47], ['kepulauan riau|kepri','Kepulauan Riau',78],
+      ['dki jakarta|jakarta','DKI Jakarta',44], ['banten','Banten',155], ['jawa barat|jabar','Jawa Barat',627], ['jawa tengah|jateng','Jawa Tengah',576], ['di yogyakarta|diy|yogyakarta|jogja','DI Yogyakarta',78], ['jawa timur|jatim','Jawa Timur',666],
+      ['bali','Bali',57], ['nusa tenggara barat|ntb','Nusa Tenggara Barat',117], ['nusa tenggara timur|ntt','Nusa Tenggara Timur',315], ['kalimantan barat|kalbar','Kalimantan Barat',174], ['kalimantan tengah|kalteng','Kalimantan Tengah',136], ['kalimantan selatan|kalsel','Kalimantan Selatan',153], ['kalimantan timur|kaltim','Kalimantan Timur',105], ['kalimantan utara|kalut','Kalimantan Utara',55],
+      ['sulawesi utara|sulut','Sulawesi Utara',171], ['sulawesi tengah|sulteng','Sulawesi Tengah',175], ['sulawesi selatan|sulsel','Sulawesi Selatan',313], ['sulawesi tenggara|sultra','Sulawesi Tenggara',222], ['gorontalo','Gorontalo',77], ['sulawesi barat|sulbar','Sulawesi Barat',69],
+      ['maluku utara|malut','Maluku Utara',118], ['maluku','Maluku',118], ['papua barat daya','Papua Barat Daya',132], ['papua barat','Papua Barat',86], ['papua tengah','Papua Tengah',131], ['papua pegunungan','Papua Pegunungan',252], ['papua selatan','Papua Selatan',78], ['papua','Papua',105]
+    ];
+    if(!/\bkecamatan\b/.test(n)) return null;
+    if(/\bindonesia\b/.test(n)) return 'Indonesia memiliki sekitar 7.200+ kecamatan. Angka detail bisa berubah karena pemekaran; untuk angka resmi terbaru gunakan data Kemendagri/BPS.';
+    if(/\b(pulau jawa|jawa)\b/.test(n)) return 'Pulau Jawa memiliki sekitar 2.146 kecamatan jika dijumlah dari Banten, DKI Jakarta, Jawa Barat, Jawa Tengah, DI Yogyakarta, dan Jawa Timur. Angka bisa berubah mengikuti pemekaran.';
+    if(/\bsumatera\b/.test(n)) return 'Pulau Sumatera memiliki sekitar 1.873 kecamatan dari provinsi-provinsi di Sumatera. Angka bisa berubah mengikuti pemekaran.';
+    if(/\bkalimantan\b/.test(n)) return 'Kalimantan di Indonesia memiliki sekitar 623 kecamatan dari Kalimantan Barat, Tengah, Selatan, Timur, dan Utara. Angka bisa berubah mengikuti pemekaran.';
+    if(/\bsulawesi\b/.test(n)) return 'Sulawesi memiliki sekitar 1.027 kecamatan dari Sulawesi Utara, Tengah, Selatan, Tenggara, Gorontalo, dan Sulawesi Barat. Angka bisa berubah mengikuti pemekaran.';
+    for(var i=0;i<rows.length;i++){ var row=rows[i]; var re = new RegExp('\\b(' + row[0] + ')\\b'); if(re.test(n)) return row[1] + ' memiliki sekitar ' + Number(row[2]).toLocaleString('id-ID') + ' kecamatan. Jumlah administratif bisa berubah jika ada pemekaran; untuk angka resmi terbaru cek Kemendagri/BPS.'; }
+    return null;
+  }
+  function diracWorldGeneralAnswerLocal(text){
+    const n = normalize(text);
+    if(/\b(sebutkan|daftar|list|semua)\b.*\b(negara)\b.*\b(dunia|bumi|seluruh dunia)\b|\b(negara)\b.*\b(dunia|bumi|seluruh dunia)\b.*\b(sebutkan|daftar|list|semua)\b/.test(n)) return diracAllCountriesAnswerLocal();
+    if(/\b(ada berapa|berapa jumlah|jumlah|total|berapa banyak)\b.*\bnegara\b.*\b(dunia|bumi|seluruh dunia)\b|\b(negara di dunia|negara dunia)\b.*\b(berapa|jumlah|total)\b/.test(n)) return 'Jumlah negara berdaulat yang umum diakui adalah 195: 193 negara anggota PBB ditambah Takhta Suci/Vatikan dan Palestina. Angka bisa berbeda tergantung kriteria pengakuan negara.';
+    if(/\b(asean)\b.*\b(negara|anggota|sebutkan|daftar|berapa)\b|\b(negara|anggota|sebutkan|daftar|berapa)\b.*\basean\b/.test(n)) return 'ASEAN memiliki 10 negara anggota: Indonesia, Malaysia, Singapura, Thailand, Filipina, Brunei Darussalam, Vietnam, Laos, Myanmar, dan Kamboja. Timor Leste masih dalam proses menuju keanggotaan penuh.';
+    if(/\b(benua)\b.*\b(ada berapa|berapa|sebutkan|daftar)\b|\b(ada berapa|berapa|sebutkan|daftar)\b.*\bbenua\b/.test(n)) return 'Secara umum ada 7 benua: Asia, Afrika, Amerika Utara, Amerika Selatan, Antarktika, Eropa, dan Australia/Oseania. Beberapa model pendidikan menggabungkan Amerika menjadi satu benua, sehingga jumlahnya bisa 6.';
+    if(/\b(samudra)\b.*\b(ada berapa|berapa|sebutkan|daftar)\b|\b(ada berapa|berapa|sebutkan|daftar)\b.*\bsamudra\b/.test(n)) return 'Ada 5 samudra utama: Pasifik, Atlantik, Hindia, Selatan/Antarktika, dan Arktik.';
+    if(/\b(planet)\b.*\b(ada berapa|berapa|sebutkan|daftar)\b|\b(ada berapa|berapa|sebutkan|daftar)\b.*\bplanet\b/.test(n)) return 'Tata Surya memiliki 8 planet: Merkurius, Venus, Bumi, Mars, Jupiter, Saturnus, Uranus, dan Neptunus. Pluto kini diklasifikasikan sebagai planet katai.';
+    if(/\b(ibu kota|ibukota)\b.*\bindonesia\b/.test(n)) return 'Ibu kota Indonesia secara pemerintahan historis adalah Jakarta. Indonesia juga sedang membangun Ibu Kota Nusantara (IKN) sebagai ibu kota baru sesuai agenda perpindahan bertahap.';
+    return null;
+  }
+  function staticGeneralAnswerLocal(text){
+    const n = normalize(text);
+    if(!n) return null;
+    const kec = diracProvinceKecamatanAnswerLocal(n); if(kec) return kec;
+    const geo = expandedProvinceAdminAnswerLocal(n); if(geo) return geo;
+    const world = diracWorldGeneralAnswerLocal(n); if(world) return world;
+    if(/\b(presiden|raja|pemimpin).*(arab saudi|saudi arabia|saudi)\b|\b(arab saudi|saudi arabia|saudi).*(presiden|raja|pemimpin)\b/.test(n)) return /\bpresiden\b/.test(n) ? 'Arab Saudi tidak memiliki presiden karena bentuk negaranya monarki absolut. Kepala negaranya adalah raja. Raja Arab Saudi sejak berdiri: Abdulaziz bin Saud, Saud bin Abdulaziz, Faisal bin Abdulaziz, Khalid bin Abdulaziz, Fahd bin Abdulaziz, Abdullah bin Abdulaziz, dan Salman bin Abdulaziz.' : 'Raja Arab Saudi sejak berdiri: Abdulaziz bin Saud, Saud bin Abdulaziz, Faisal bin Abdulaziz, Khalid bin Abdulaziz, Fahd bin Abdulaziz, Abdullah bin Abdulaziz, dan Salman bin Abdulaziz.';
+    if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan|semua|sebutkan)\b/.test(n)) return 'Indonesia sudah memiliki 8 presiden: Soekarno, Soeharto, B.J. Habibie, Abdurrahman Wahid, Megawati Soekarnoputri, Susilo Bambang Yudhoyono, Joko Widodo, dan Prabowo Subianto.';
+    if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) return 'Presiden Indonesia saat ini adalah Prabowo Subianto, dengan Wakil Presiden Gibran Rakabuming Raka untuk periode 2024-2029.';
+    if(/\b(negara terbesar di dunia)\b/.test(n)) return 'Negara terbesar di dunia berdasarkan luas wilayah adalah Rusia.';
+    if(/\b(negara terkecil di dunia)\b/.test(n)) return 'Negara terkecil di dunia berdasarkan luas wilayah adalah Vatikan.';
+    if(/\b(sungai terpanjang di dunia|sungai nil)\b/.test(n)) return 'Sungai Nil sering disebut sebagai sungai terpanjang di dunia, walaupun beberapa sumber membandingkannya dengan Sungai Amazon tergantung metode pengukuran.';
+    if(/\b(gunung tertinggi di dunia|everest)\b/.test(n)) return 'Gunung tertinggi di dunia dari permukaan laut adalah Gunung Everest, sekitar 8.849 meter.';
+    if(/\b(siapa penemu lampu|penemu bola lampu)\b/.test(n)) return 'Penemuan lampu pijar melibatkan banyak penemu. Thomas Alva Edison terkenal karena mengembangkan lampu pijar praktis dan sistem distribusi listrik, sementara penemu lain seperti Joseph Swan juga berperan penting.';
+    if(/\b(apa itu demokrasi|demokrasi adalah)\b/.test(n)) return 'Demokrasi adalah sistem pemerintahan di mana rakyat memiliki peran dalam pengambilan keputusan politik, biasanya melalui pemilihan umum, perwakilan, kebebasan berpendapat, dan supremasi hukum.';
+    if(/\b(apa itu fotosintesis|fotosintesis adalah)\b/.test(n)) return 'Fotosintesis adalah proses tumbuhan hijau, alga, dan beberapa bakteri mengubah cahaya matahari, air, dan karbon dioksida menjadi glukosa/energi serta oksigen. Proses ini terutama terjadi di kloroplas.';
+    if(/\b(apa itu ai|apa itu artificial intelligence|kecerdasan buatan)\b/.test(n)) return 'AI atau kecerdasan buatan adalah teknologi yang membuat komputer mampu melakukan tugas yang biasanya membutuhkan kecerdasan manusia, seperti memahami bahasa, mengenali pola, membuat prediksi, dan memberi rekomendasi.';
+    if(isStoreProductPriceQuestionLocal(n)) return buildProductPriceReplyLocal(n).reply;
+    if(isRealTimeMarketQuestionLocal(n)) return realTimeMarketReplyLocal(n);
+    if(/\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|top notes|middle notes|base notes|layering parfum)\b/.test(n)) return 'Tips memilih parfum:\n1. Tentukan tujuan pemakaian: harian, kantor, formal, malam, atau hadiah.\n2. Pilih karakter aroma: fresh untuk aman harian, sweet untuk kesan hangat, woody untuk elegan, floral untuk lembut.\n3. Cocokkan dengan budget.\n4. Cek status ready, ukuran botol, dan catatan aroma sebelum checkout.\n5. Untuk blind buy, mulai dari aroma mudah dipakai seperti fresh, clean, citrus, aquatic, atau soft woody.';
+    if(/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return '2 + 2 = 4.';
+    if(/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return vehiclePriceReplyLocal(n);
+    if(/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n) && !/\b(parfum|produk dirac|katalog|website ini|di website|di katalog)\b/.test(n)) return 'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.';
+    return null;
+  }
+  function localKnowledgeAnswerLocal(n){ return staticGeneralAnswerLocal(n); }
+  function localGeneralFallbackLocal(n){
+    const direct = staticGeneralAnswerLocal(n);
+    if(direct) return direct;
+    return 'Ini pertanyaan umum di luar katalog Dirac. Saya tidak akan mengubahnya menjadi rekomendasi parfum. Untuk topik yang sangat luas, terbaru, atau butuh data real-time, aktifkan API AI utama atau cek sumber resmi. Saya tetap bisa menjawab matematika, geografi Indonesia dasar, daftar negara/benua/samudra, info parfum, checkout, cek resi, dan harga produk katalog.';
+  }
+  function isGeneralKnowledgeLocal(text){
+    const n = normalize(text);
+    if(!n) return false;
+    if(/\b(selain itu|yang lain|lainnya|alternatif|rekomendasi lain|pilihan lain|selain tadi|tadi|sebelumnya|lanjut|lanjutkan)\b/.test(n) && /\b(produk|parfum|perfume|fragrance|pilihan|opsi)\b/.test(n)) return false;
+    if(isMathQuestionLocal(n)) return true;
+    if(isStoreProductPriceQuestionLocal(n)) return false;
+    if(staticGeneralAnswerLocal(n)) return true;
+    if(isRealTimeMarketQuestionLocal(n)) return true;
+    if(isGeographyCountQuestionLocal(n)) return true;
+    if(isNonStoreGeneralQueryLocal(n)) return true;
+    if(isPerfumeEducationQueryLocal(n)) return true;
+    const commerce = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
+    if(commerce) return false;
+    const explicitProduct = /\b(parfum|perfume|fragrance|produk dirac|katalog dirac|website ini|toko ini|di katalog|di website ini)\b/.test(n);
+    const general = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|sebutkan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kecamatan|kota|dunia|benua|sungai|gunung|samudra|laut|planet|bulan|matahari|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css|asean|pbb|g20|presiden|raja)\b/.test(n);
+    return general && !explicitProduct;
+  }
+
+
+
+  /* === DIRAC AI ULTRA GENERAL MICROFIX FRONTEND v2026-05-15-UGK2 === */
+  (function(){
+    var _world = diracWorldGeneralAnswerLocal;
+    diracWorldGeneralAnswerLocal = function(text){
+      var n = normalize(text);
+      if(/\bberapa\b.*\bnegara\b.*\b(dunia|bumi|seluruh dunia)\b|\bnegara\b.*\b(dunia|bumi|seluruh dunia)\b.*\bberapa\b/.test(n)) return 'Jumlah negara berdaulat yang umum diakui adalah 195: 193 negara anggota PBB ditambah Takhta Suci/Vatikan dan Palestina. Angka bisa berbeda tergantung kriteria pengakuan negara.';
+      return _world(text);
+    };
+  })();
+
   function abortActiveRequest(){
     userAbortRequested = true;
     try{ if(activeController) activeController.abort(); }catch(error){}
