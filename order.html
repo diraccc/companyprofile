@@ -10403,7 +10403,13 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     return wrap;
   }
   function updateRecommendationState(message){
-    const text = normalize(message + ' ' + history.map(function(item){return item.content || '';}).join(' '));
+    const current = normalize(message);
+    if(isGeneralKnowledgeLocal(current)) return;
+    const relevantHistory = history.filter(function(item){
+      const text = normalize(item && item.content ? item.content : '');
+      return /\b(parfum|rekomendasi|aroma|wangi|fresh|manis|woody|harian|kantor|formal|hadiah|budget|pria|wanita|unisex)\b/.test(text);
+    }).map(function(item){ return item.content || ''; }).join(' ');
+    const text = normalize(message + ' ' + relevantHistory + ' ' + JSON.stringify(state));
     const next = Object.assign({}, state);
     next.usage = next.usage || matchGroup(text, {harian:['harian','sehari hari','daily','kuliah','sekolah'],kantor:['kantor','kerja','meeting'],formal:['formal','acara','pesta','malam','date','kencan'],hadiah:['hadiah','kado','gift']});
     next.scent = next.scent || matchGroup(text, {fresh:['fresh','segar','citrus','aquatic','clean'],sweet:['manis','sweet','vanilla','fruity'],woody:['woody','oud','amber','musk'],floral:['floral','rose'],strong:['strong','kuat','tahan lama','awet'],soft:['soft','lembut','kalem']});
@@ -10422,13 +10428,21 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     return null;
   }
   function escapeRegExp(value){ return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function isGeneralKnowledgeLocal(n){
+    const productTerms = /\b(parfum|perfume|produk|wangi|aroma|botol|ml|stok|ready|harga|budget|rekomendasi|checkout|keranjang|resi|paket|kurir)\b/.test(n);
+    const generalTerms = /\b(presiden|amerika|indonesia|negara|dunia|sejarah|geografi|politik|bulan|matahari|langit|planet|hewan|siapa|apa itu|kenapa|mengapa|bagaimana|berapa)\b/.test(n);
+    return generalTerms && !productTerms;
+  }
   function detectLocalIntent(message){
     const n = normalize(message);
+    const brand = /\b(apa itu dirac|apa itu dirac group|dirac group itu apa|tentang dirac group|profil dirac group|siapa dirac group|dirac group siapa|dirac itu apa|dirac siapa|apa itu toko dirac|apa itu website dirac)\b/.test(n);
+    if(brand) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:true};
+    if(isGeneralKnowledgeLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:true, brand:false};
     const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|parfum|perfume|wangi|aroma)\b/.test(n);
     const tracking = /\b(resi|cek resi|tracking|lacak|pengiriman|paket)\b/.test(n);
     const website = /\b(website|web|situs|company profile|profil perusahaan|link)\b/.test(n);
     const cartIntent = /\b(keranjang|cart|checkout|beli|order|pesan|bayar|whatsapp|wa)\b/.test(n);
-    return {recommendation:recommendation, tracking:tracking, website:website, cart:cartIntent};
+    return {recommendation:recommendation, tracking:tracking, website:website, cart:cartIntent, general:false};
   }
   function localProductSearch(query){
     const source = getProductList();
@@ -10449,7 +10463,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function localFallbackReply(message){
     const n = normalize(message);
     const intent = detectLocalIntent(message);
+    if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(n)) return {text:'Indonesia sudah memiliki 8 presiden: Soekarno, Soeharto, B.J. Habibie, Abdurrahman Wahid, Megawati Soekarnoputri, Susilo Bambang Yudhoyono, Joko Widodo, dan Prabowo Subianto.', links:[], products:[]};
     if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) return {text:'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.', links:[], products:[]};
+    if(/\b(presiden amerika|presiden amerika serikat|presiden as|presiden usa|presiden us)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(n)) return {text:'Amerika Serikat memiliki 47 nomor presiden. Karena Grover Cleveland dan Donald Trump dihitung dua kali untuk masa jabatan yang tidak berurutan, jumlah orang yang pernah menjadi presiden AS adalah 45 orang.', links:[], products:[]};
+    if(intent.brand) return {text:'Dirac Group adalah website/toko parfum online di https://diracgroup.store. Di sini customer bisa melihat katalog parfum, mencari produk, meminta rekomendasi aroma, menambahkan produk ke keranjang, checkout lewat WhatsApp, dan cek resi pengiriman. Saya Dirac AI Assistant yang membantu customer ngobrol, memilih parfum, checkout, dan cek resi.', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
     if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
     if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
     if(intent.cart) return {text:'Cara beli: pilih produk, klik Tambah, buka keranjang, isi data, lalu Checkout WhatsApp. Kalau ingin dibantu admin, klik tombol WhatsApp di halaman.', links:[{label:'Chat Admin WhatsApp', url:'https://wa.me/6287892523968'}], products:[]};
