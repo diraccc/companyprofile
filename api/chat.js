@@ -83,7 +83,7 @@ module.exports = async function handler(req, res) {
       }));
     }
 
-    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search';
+    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search' || intent.name === 'compare_products';
     const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 8) : [];
     const topProducts = scoredProducts.slice(0, 3).map((item) => item.product);
 
@@ -445,8 +445,18 @@ function publicProducts(list) {
     category: product.category || '',
     status: product.status || 'ready',
     notes: product.notes || '',
-    desc: product.desc || product.description || ''
+    desc: product.desc || product.description || '',
+    reason: productReason(product)
   }));
+}
+
+function productReason(product) {
+  const parts = [];
+  if (product.category) parts.push(`kategori ${product.category}`);
+  if (product.notes) parts.push(`notes ${String(product.notes).split(',').slice(0, 2).join(', ')}`);
+  if (product.status) parts.push(`status ${product.status}`);
+  if (product.price) parts.push(`harga Rp${Number(product.price || 0).toLocaleString('id-ID')}`);
+  return parts.length ? `Cocok karena ${parts.slice(0, 3).join(', ')}.` : '';
 }
 
 function buildProductReply(list) {
