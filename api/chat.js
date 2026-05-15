@@ -84,7 +84,7 @@ module.exports = async function handler(req, res) {
       }));
     }
 
-    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search';
+    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search' || intent.name === 'product_compare' || intent.name === 'product_compare';
     const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 8) : [];
     const topProducts = scoredProducts.slice(0, 3).map((item) => item.product);
 
@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
         traceId,
         provider: 'local-product-matcher',
         showProducts: true,
-        products: publicProducts(topProducts),
+        products: publicProducts(topProducts, context),
         analytics: { intent: intent.name, source: 'local-product-matcher', ms: Date.now() - startedAt }
       }));
     }
@@ -121,7 +121,7 @@ module.exports = async function handler(req, res) {
       traceId,
       provider: ai.provider,
       showProducts: useProducts && topProducts.length > 0,
-      products: useProducts ? publicProducts(topProducts) : [],
+      products: useProducts ? publicProducts(topProducts, context) : [],
       analytics: {
         intent: intent.name,
         source: ai.provider,
@@ -348,6 +348,8 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/\b(komplain|keluhan|belum sampai|belum dikirim|rusak|salah barang|refund|retur|return|admin|cs|customer service|bantuan admin)\b/.test(text)) return { name: 'support', mode: 'support' };
   if (/\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|cara beli|mau beli)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'checkout', mode: 'checkout' };
 
+  if (/\b(bandingkan|compare|komparasi|versus|vs|mana yang lebih|lebih bagus mana|pilih yang mana)\b/.test(text) && /\b(parfum|produk|wangi|aroma|harga|notes)\b/.test(text)) return { name: 'product_compare', mode: 'commerce' };
+
   const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend|mau parfum|pengen parfum|butuh parfum)\b/.test(text) || /\b(rekomendasi|parfum buat apa|aroma apa|budget berapa)\b/.test(history);
   const categoryProduct = !!context.category || /\b(niche|nishe|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
   const product = /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|mahal|murah)\b/.test(text) || categoryProduct;
@@ -471,7 +473,7 @@ function categoryMatchesProduct(product, category) {
   return true;
 }
 
-function publicProducts(list) {
+function publicProducts(list, context = {}) {
   return list.slice(0, 4).map((product) => ({
     id: product.id,
     title: product.title || product.name || 'Produk Dirac',
@@ -481,8 +483,25 @@ function publicProducts(list) {
     category: product.category || '',
     status: product.status || 'ready',
     notes: product.notes || '',
-    desc: product.desc || product.description || ''
+    desc: product.desc || product.description || '',
+    reason: buildProductReason(product, context)
   }));
+}
+
+function buildProductReason(product, context = {}) {
+  const text = normalize([product.category, product.notes, product.desc, product.description, product.longDesc, product.title, product.name].join(' '));
+  const reasons = [];
+  if (context.category && categoryMatchesProduct(product, context.category)) reasons.push(`sesuai kategori ${product.category || context.category}`);
+  if (context.usage && text.includes(normalize(context.usage))) reasons.push(`cocok untuk ${context.usage}`);
+  if (context.scent && text.includes(normalize(context.scent))) reasons.push(`karakter ${context.scent}`);
+  if (context.gender && text.includes(normalize(context.gender))) reasons.push(`untuk ${context.gender}`);
+  if (context.budget) {
+    const max = budgetToNumber(context.budget);
+    if (max && Number(product.price || 0) <= max) reasons.push('masuk budget');
+  }
+  if (!reasons.length && product.notes) reasons.push(`notes ${String(product.notes).split(/[,.|/]/).slice(0,2).join(', ')}`);
+  if (!reasons.length && product.category) reasons.push(`kategori ${product.category}`);
+  return reasons.length ? `Alasan: ${reasons.slice(0,3).join(', ')}.` : 'Alasan: paling mendekati kebutuhan dari katalog.';
 }
 
 function buildProductReply(list) {
@@ -511,7 +530,7 @@ function buildPrompt({ message, history, cart, intent, context, products }) {
   let system = 'Kamu adalah Dirac AI Assistant. Jawab bahasa Indonesia yang natural, ramah, jelas, dan akurat.';
   if (intent.name === 'general') {
     system += ` Kamu bisa diajak ngobrol seperti AI biasa. Jangan menawarkan produk atau checkout kecuali diminta. Tanggal sistem: ${date}. Untuk Presiden Indonesia saat ini: Prabowo Subianto.`;
-  } else if (intent.name === 'recommendation_ready' || intent.name === 'product_search') {
+  } else if (intent.name === 'recommendation_ready' || intent.name === 'product_search' || intent.name === 'product_compare') {
     system += ' Kamu adalah konsultan parfum. Gunakan hanya data produk yang diberikan, hindari sold/kosong/not ready, rekomendasikan maksimal 3 produk, jangan mengarang harga/stok. Jika user meminta kategori tertentu seperti Niche, Designer, Timur Tengah, Lokal, atau Miniso, jangan keluar dari kategori tersebut.';
   } else {
     system += ' Gali kebutuhan user pelan-pelan dan jangan langsung jualan jika belum jelas.';
