@@ -244,6 +244,7 @@ function relevantRecommendationHistory(history) {
 function extractContext(raw) {
   const text = normalize(raw);
   return {
+    category: extractCategory(text),
     usage: pick(text, [
       ['harian', /\b(harian|sehari hari|daily)\b/],
       ['kantor', /\b(kantor|kerja|office)\b/],
@@ -286,6 +287,15 @@ function extractBudget(text) {
   return null;
 }
 
+function extractCategory(text) {
+  if (/\b(niche|nishe|niche fragrance|parfum niche|koleksi niche|luxury niche)\b/.test(text)) return 'niche';
+  if (/\b(designer|desainer|parfum designer|brand designer)\b/.test(text)) return 'designer';
+  if (/\b(timur tengah|timteng|middle eastern|arab|oud arab)\b/.test(text)) return 'timur_tengah';
+  if (/\b(lokal|local|brand lokal)\b/.test(text)) return 'lokal';
+  if (/\b(miniso)\b/.test(text)) return 'miniso';
+  return null;
+}
+
 function detectIntent(text, history, context, forcedGeneral) {
   if (/^(halo|hallo|helo|hello|hai|hi|hii|hiii|hlo|hllo|lo|yo|yoi|p|pp|test|tes|permisi|salam|assalamualaikum|assalamu alaikum|pagi|siang|sore|malam|selamat pagi|selamat siang|selamat sore|selamat malam)$/.test(text)) return { name: 'greeting', mode: 'conversation' };
   if (/^(makasih|terima kasih|terimakasih|thanks|thank you|thx|sip|oke|ok|okay|baik|mantap|siap|noted|gas|nice|keren)$/.test(text)) return { name: 'thanks', mode: 'conversation' };
@@ -307,9 +317,14 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|cara beli|mau beli)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'checkout', mode: 'checkout' };
 
   const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend|mau parfum|pengen parfum|butuh parfum)\b/.test(text) || /\b(rekomendasi|parfum buat apa|aroma apa|budget berapa)\b/.test(history);
-  const product = /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|mahal|murah)\b/.test(text);
+  const categoryProduct = !!context.category || /\b(niche|nishe|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
+  const product = /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|mahal|murah)\b/.test(text) || categoryProduct;
   const infoCount = [context.usage, context.scent, context.gender, context.budget].filter(Boolean).length;
 
+  // Jika user minta kategori jelas seperti “parfum niche”, langsung masuk mode produk
+  // dan jangan dicampur dengan kategori lain seperti Timur Tengah/Designer.
+  if (recommendation && context.category) return { name: 'recommendation_ready', mode: 'commerce' };
+  if (!recommendation && context.category && product) return { name: 'product_search', mode: 'commerce' };
   if (!recommendation && infoCount > 0 && infoCount < 3) return { name: 'recommendation_needs_info', mode: 'recommendation' };
   if (recommendation && infoCount < 3) return { name: 'recommendation_needs_info', mode: 'recommendation' };
   if (recommendation && infoCount >= 3) return { name: 'recommendation_ready', mode: 'commerce' };
@@ -347,6 +362,7 @@ function buildInfoReply(context, questions) {
   const known = [];
   if (context.usage) known.push(`pemakaian: ${context.usage}`);
   if (context.scent) known.push(`aroma: ${context.scent}`);
+  if (context.category) known.push(`kategori: ${context.category === 'timur_tengah' ? 'Timur Tengah' : context.category}`);
   if (context.gender) known.push(`untuk: ${context.gender}`);
   if (context.budget) known.push(`budget: ${context.budget}`);
   return `${known.length ? `Oke, saya catat ${known.join(', ')}. ` : 'Boleh. '}Supaya rekomendasinya tidak asal, jawab dulu ini ya: ${questions.join(' ')}`;
@@ -354,7 +370,8 @@ function buildInfoReply(context, questions) {
 
 function scoreProducts(products, context, text) {
   const terms = normalize(text).split(' ').filter((term) => term.length > 2);
-  const boosts = [context.usage, context.scent, context.gender].filter(Boolean);
+  const requestedCategory = context.category || extractCategory(normalize(text));
+  const boosts = [context.category, context.usage, context.scent, context.gender].filter(Boolean);
   const related = {
     harian: ['fresh', 'clean', 'soft', 'citrus', 'daily', 'segar'],
     kantor: ['fresh', 'clean', 'woody', 'soft', 'office', 'elegan'],
@@ -366,16 +383,30 @@ function scoreProducts(products, context, text) {
     floral: ['floral', 'rose'],
     pria: ['pria', 'men', 'masculine', 'maskulin', 'woody', 'fresh'],
     wanita: ['wanita', 'women', 'feminim', 'floral', 'sweet'],
-    unisex: ['unisex', 'fresh', 'clean', 'musk']
+    unisex: ['unisex', 'fresh', 'clean', 'musk'],
+    niche: ['niche', 'premium', 'unique', 'exclusive', 'luxury', 'artistik'],
+    designer: ['designer', 'modern', 'versatile', 'branded'],
+    timur_tengah: ['timur tengah', 'timteng', 'oud', 'amber', 'spicy'],
+    lokal: ['lokal', 'daily', 'clean', 'terjangkau'],
+    miniso: ['miniso']
   };
   for (const boost of [...boosts]) if (related[boost]) boosts.push(...related[boost]);
 
   return products.map((product) => {
     const haystack = normalize([product.id, product.title, product.name, product.category, product.desc, product.description, product.longDesc, product.notes, product.status].join(' '));
     let score = 0;
+
+    if (requestedCategory) {
+      if (!categoryMatchesProduct(product, requestedCategory)) {
+        return { product, score: -999 };
+      }
+      score += 120;
+    }
+
     for (const term of terms) {
       if (haystack.includes(term)) score += 4;
       if (normalize(product.title || product.name).includes(term)) score += 6;
+      if (normalize(product.category).includes(term)) score += 18;
     }
     for (const boost of boosts) if (haystack.includes(normalize(boost))) score += 7;
     if (product.isTopSeller) score += 8;
@@ -386,6 +417,19 @@ function scoreProducts(products, context, text) {
 
 function isSold(product) {
   return /\b(sold|sold out|kosong|habis|not ready|tidak menjual)\b/.test(normalize(product && product.status));
+}
+
+function categoryMatchesProduct(product, category) {
+  const cat = normalize(product && product.category);
+  const title = normalize(product && (product.title || product.name));
+  const hay = normalize([product && product.category, product && product.title, product && product.name, product && product.desc, product && product.longDesc].join(' '));
+
+  if (category === 'niche') return cat === 'niche';
+  if (category === 'designer') return cat === 'designer';
+  if (category === 'timur_tengah') return cat === 'timur tengah' || hay.includes('timur tengah') || hay.includes('timteng');
+  if (category === 'lokal') return cat === 'lokal';
+  if (category === 'miniso') return cat === 'miniso' || title.includes('miniso');
+  return true;
 }
 
 function publicProducts(list) {
@@ -428,7 +472,7 @@ function buildPrompt({ message, history, cart, intent, context, products }) {
   if (intent.name === 'general') {
     system += ` Kamu bisa diajak ngobrol seperti AI biasa. Jangan menawarkan produk atau checkout kecuali diminta. Tanggal sistem: ${date}. Untuk Presiden Indonesia saat ini: Prabowo Subianto.`;
   } else if (intent.name === 'recommendation_ready' || intent.name === 'product_search') {
-    system += ' Kamu adalah konsultan parfum. Gunakan hanya data produk yang diberikan, hindari sold/kosong/not ready, rekomendasikan maksimal 3 produk, jangan mengarang harga/stok.';
+    system += ' Kamu adalah konsultan parfum. Gunakan hanya data produk yang diberikan, hindari sold/kosong/not ready, rekomendasikan maksimal 3 produk, jangan mengarang harga/stok. Jika user meminta kategori tertentu seperti Niche, Designer, Timur Tengah, Lokal, atau Miniso, jangan keluar dari kategori tersebut.';
   } else {
     system += ' Gali kebutuhan user pelan-pelan dan jangan langsung jualan jika belum jelas.';
   }
