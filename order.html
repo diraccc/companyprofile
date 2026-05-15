@@ -10229,7 +10229,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   injectUpgradeCss();
 
   let history = loadJson('dirac_ai_history_v2', []);
-  let state = loadJson('dirac_ai_state_v2', {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null});
+  let state = sanitizeLoadedAiState(loadJson('dirac_ai_state_v2', {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null}));
   let isBusy = false;
   let greeted = false;
   let restoredHistory = false;
@@ -10256,6 +10256,25 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
   function saveJson(key, value){
     try{ localStorage.setItem(key, JSON.stringify(value)); }catch(error){}
+  }
+  function sanitizeLoadedAiState(value){
+    const fallback = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null};
+    const raw = value && typeof value === 'object' ? value : fallback;
+    const allowedCategory = ['niche','designer','timur_tengah','lokal','miniso'];
+    const allowedUsage = ['harian','kantor','formal','pesta','malam','hadiah','sekolah'];
+    const allowedScent = ['fresh','sweet','woody','floral','soft','strong','spicy'];
+    const allowedGender = ['pria','wanita','unisex'];
+    const budgetMax = Number(raw.budgetMax || 0) >= 50000 ? Number(raw.budgetMax || 0) : null;
+    return {
+      category: allowedCategory.indexOf(raw.category) >= 0 ? raw.category : null,
+      categories: Array.isArray(raw.categories) ? raw.categories.filter(function(x){ return allowedCategory.indexOf(x) >= 0; }).slice(0,4) : [],
+      usage: allowedUsage.indexOf(raw.usage) >= 0 ? raw.usage : null,
+      scent: allowedScent.indexOf(raw.scent) >= 0 ? raw.scent : null,
+      gender: allowedGender.indexOf(raw.gender) >= 0 ? raw.gender : null,
+      budget: budgetMax ? raw.budget || null : null,
+      budgetMax: budgetMax,
+      intent: raw.intent || null
+    };
   }
   function getSessionId(forceNew){
     let id = '';
@@ -10518,22 +10537,27 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function updateRecommendationState(message){
     const current = normalize(message);
     if(isGeneralKnowledgeLocal(current)) return;
-    const relevantHistory = history.filter(function(item){
+    const keepState = shouldUseStateForMessageLocal(message);
+    const relevantHistory = keepState ? history.filter(function(item){
       const text = normalize(item && item.content ? item.content : '');
-      return /\b(parfum|rekomendasi|aroma|wangi|fresh|manis|woody|harian|kantor|formal|hadiah|budget|pria|wanita|unisex|niche|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
-    }).map(function(item){ return item.content || ''; }).join(' ');
-    const text = normalize(message + ' ' + relevantHistory + ' ' + JSON.stringify(state));
-    const next = Object.assign({}, state);
+      return item && item.role === 'user' && !isGeneralKnowledgeLocal(text) && /\b(parfum|rekomendasi|aroma|wangi|fresh|manis|woody|harian|kantor|formal|hadiah|budget|dana|pria|wanita|unisex|niche|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
+    }).slice(-4).map(function(item){ return item.content || ''; }).join(' ') : '';
+    const text = normalize(message + ' ' + relevantHistory);
+    const emptyState = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null};
+    const next = keepState ? Object.assign({}, state) : Object.assign({}, emptyState);
     const foundCategories = matchCategoriesLocal(text);
     if(foundCategories.length){
-      next.categories = Array.from(new Set([].concat(foundCategories, next.categories || []))).slice(0,4);
+      next.categories = Array.from(new Set([].concat(foundCategories, keepState ? (next.categories || []) : []))).slice(0,4);
       next.category = foundCategories[0];
-    }else if(!next.category){ next.category = matchCategoryLocal(text); }
-    next.usage = next.usage || matchGroup(text, {harian:['harian','sehari hari','daily','kuliah','sekolah'],kantor:['kantor','kerja','meeting'],formal:['formal','acara','pesta','malam','date','kencan'],hadiah:['hadiah','kado','gift']});
-    next.scent = next.scent || matchGroup(text, {fresh:['fresh','segar','citrus','aquatic','clean'],sweet:['manis','sweet','vanilla','fruity'],woody:['woody','oud','amber','musk'],floral:['floral','rose'],strong:['strong','kuat','tahan lama','awet'],soft:['soft','lembut','kalem']});
-    next.gender = next.gender || matchGroup(text, {pria:['pria','laki','lelaki','cowok','cowo','maskulin'],wanita:['wanita','perempuan','cewek','cewe','feminim'],unisex:['unisex','netral']});
+    }else if(keepState && !next.category){ next.category = matchCategoryLocal(text); }
+    const usage = matchGroup(text, {harian:['harian','sehari hari','daily','kuliah','sekolah'],kantor:['kantor','kerja','meeting'],formal:['formal','acara','pesta','malam','date','kencan'],hadiah:['hadiah','kado','gift']});
+    const scent = matchGroup(text, {fresh:['fresh','segar','citrus','aquatic','clean'],sweet:['manis','sweet','vanilla','fruity'],woody:['woody','oud','amber','musk'],floral:['floral','rose'],strong:['strong','kuat','tahan lama','awet'],soft:['soft','lembut','kalem']});
+    const gender = matchGroup(text, {pria:['pria','laki','lelaki','cowok','cowo','maskulin'],wanita:['wanita','perempuan','cewek','cewe','feminim'],unisex:['unisex','netral']});
+    if(usage) next.usage = usage;
+    if(scent) next.scent = scent;
+    if(gender) next.gender = gender;
     const budget = parseBudgetLocal(text);
-    if(budget.label){ next.budget = budget.label; next.budgetMax = budget.max; }
+    if(budget.label && (!budget.max || budget.max >= 50000)){ next.budget = budget.label; next.budgetMax = budget.max; }
     state = next;
     saveJson('dirac_ai_state_v2', state);
   }
@@ -10579,10 +10603,29 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
 
   function escapeRegExp(value){ return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function shouldUseStateForMessageLocal(message){
+    const n = normalize(message);
+    if(!n || isGeneralKnowledgeLocal(n)) return false;
+    if(/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum)\b/.test(n) && /\b(parfum|niche|designer|timur tengah|timteng|lokal|miniso)\b/.test(n)) return false;
+    if(/\b(yang|itu|tadi|sebelumnya|lanjut|lebih|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(n)) return true;
+    if(/^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(n)) return true;
+    if(/^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(n)) return true;
+    return n.split(/\s+/).length <= 4 && /\b(parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah|fresh|manis|woody)\b/.test(n);
+  }
+  function stateContextTextLocal(){
+    const bits = [];
+    if(state.category) bits.push(state.category);
+    if(state.categories && state.categories.length) bits.push(state.categories.join(' '));
+    if(state.usage) bits.push(state.usage);
+    if(state.scent) bits.push(state.scent);
+    if(state.gender) bits.push(state.gender);
+    if(state.budget && Number(state.budgetMax || 0) >= 50000) bits.push('budget ' + state.budget);
+    return bits.join(' ');
+  }
   function isGeneralKnowledgeLocal(n){
-    const productTerms = /\b(parfum|perfume|produk parfum|wangi parfum|aroma parfum|botol parfum|ml parfum|stok|ready|rekomendasi parfum|checkout|keranjang|resi|paket|kurir)\b/.test(n);
-    const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|hitung|rumus|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
-    return generalTerms && !productTerms;
+    const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css|edp|edt|eau de parfum|eau de toilette)\b/.test(n);
+    const shoppingTerms = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|carikan|cari|cocok|produk|stok|ready|harga|budget|dana|murah|mahal|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
+    return generalTerms && !shoppingTerms;
   }
   function detectLocalIntent(message){
     const n = normalize(message);
@@ -10597,12 +10640,15 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
   function localProductSearch(query){
     const source = getProductList();
-    const n = normalize(query + ' ' + JSON.stringify(state));
+    const useState = shouldUseStateForMessageLocal(query);
+    const n = normalize(query + ' ' + (useState ? stateContextTextLocal() : ''));
     const terms = n.split(' ').filter(function(term){ return term.length > 2; });
     const boosts = [];
-    const requestedCategories = matchCategoriesLocal(n).length ? matchCategoriesLocal(n) : ((state.categories && state.categories.length) ? state.categories : (state.category ? [state.category] : []));
-    const budget = parseBudgetLocal(n);
-    const budgetMax = budget.max || state.budgetMax || 0;
+    const queryCategories = matchCategoriesLocal(normalize(query));
+    const requestedCategories = queryCategories.length ? queryCategories : (useState ? ((state.categories && state.categories.length) ? state.categories : (state.category ? [state.category] : [])) : []);
+    const budget = parseBudgetLocal(normalize(query));
+    const savedBudgetMax = Number(state.budgetMax || 0) >= 50000 ? Number(state.budgetMax || 0) : 0;
+    const budgetMax = budget.max || (useState ? savedBudgetMax : 0) || 0;
     ['fresh','segar','manis','sweet','vanilla','woody','oud','amber','musk','floral','harian','kantor','formal','hadiah','pria','wanita','unisex','niche','designer','desainer','timteng','timur tengah','lokal','miniso'].forEach(function(term){ if(n.includes(term)) boosts.push(term); });
     const scored = source.map(function(p){
       const hay = normalize([p.title,p.name,p.category,p.desc,p.longDesc,p.notes,p.status].join(' '));
@@ -10625,8 +10671,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       if(/sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || ''))) score -= 1000;
       return {p:p, score:score, budgetOk:budgetOk};
     }).filter(function(entry){ return entry.score > 0; }).sort(function(a,b){ return b.score - a.score; });
-    const within = budgetMax ? scored.filter(function(entry){ return entry.budgetOk; }) : scored;
-    return (within.length ? within : scored).slice(0,4).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
+    const specific = scored.filter(function(entry){ return !/^all parfum\b/i.test(String(entry.p && (entry.p.title || entry.p.name) || '')); });
+    const ranked = specific.length ? specific : scored;
+    const within = budgetMax ? ranked.filter(function(entry){ return entry.budgetOk; }) : ranked;
+    return (within.length ? within : ranked).slice(0,4).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
   }
   function localFallbackReply(message){
     const n = normalize(message);
