@@ -10154,7 +10154,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
 </script>
 
 
-<div class="dirac-ai-widget" id="diracAiWidget">
+<div class="dirac-ai-widget" id="diracAiWidget" translate="no">
   <button class="dirac-ai-toggle" id="diracAiToggle" type="button" aria-label="Buka AI Assistant Dirac Group" aria-controls="diracAiPanel" aria-expanded="false">
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3.5l1.72 4.78L18.5 10l-4.78 1.72L12 16.5l-1.72-4.78L5.5 10l4.78-1.72L12 3.5z"></path>
@@ -10164,7 +10164,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     <span class="dirac-ai-toggle-badge">AI</span>
   </button>
 
-  <section class="dirac-ai-panel" id="diracAiPanel" role="dialog" aria-modal="false" aria-label="AI Assistant Dirac Group" aria-hidden="true">
+  <section class="dirac-ai-panel" id="diracAiPanel" role="dialog" aria-modal="false" aria-label="AI Assistant Dirac Group" aria-hidden="true" translate="no">
     <div class="dirac-ai-head">
       <div class="dirac-ai-title">
         <div class="dirac-ai-avatar" aria-hidden="true">AI</div>
@@ -10205,7 +10205,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   if(window.__DIRAC_AI_ASSISTANT_INSTALLED__) return;
   window.__DIRAC_AI_ASSISTANT_INSTALLED__ = true;
 
-  const AI_ENDPOINT = window.DIRAC_AI_ENDPOINT || 'https://companyprofilee-ochre.vercel.app/api/chat';
+  const AI_ENDPOINT = window.DIRAC_AI_ENDPOINT || '/api/chat';
+  const AI_ENDPOINT_FALLBACK = window.DIRAC_AI_ENDPOINT_FALLBACK || '';
+  const AI_ENDPOINTS = Array.from(new Set([AI_ENDPOINT, AI_ENDPOINT_FALLBACK].filter(Boolean)));
+  const AI_STORAGE_VERSION = '2026-05-15-context-followup-fix-v4';
   const ANALYTICS_ENDPOINT = window.DIRAC_AI_ANALYTICS_URL || '';
   const FEEDBACK_ENDPOINT = window.DIRAC_AI_FEEDBACK_URL || '';
   const MAX_HISTORY = 16;
@@ -10227,9 +10230,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   if(!widget || !toggle || !panel || !messagesEl || !form || !input || !sendBtn) return;
 
   injectUpgradeCss();
+  migrateAiStorageIfNeeded();
 
   let history = loadJson('dirac_ai_history_v2', []);
-  let state = sanitizeLoadedAiState(loadJson('dirac_ai_state_v2', {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null}));
+  let state = sanitizeLoadedAiState(loadJson('dirac_ai_state_v2', emptyAiState()));
   let isBusy = false;
   let greeted = false;
   let restoredHistory = false;
@@ -10257,8 +10261,20 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function saveJson(key, value){
     try{ localStorage.setItem(key, JSON.stringify(value)); }catch(error){}
   }
+  function emptyAiState(){
+    return {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null,lastProductIds:[],shownProductIds:[],lastContext:null,lastUserMessage:null,updatedAt:null};
+  }
+  function sanitizeIdListLocal(value){
+    if(!Array.isArray(value)) return [];
+    const out = [];
+    value.forEach(function(item){
+      const id = String(item == null ? '' : item).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);
+      if(id && out.indexOf(id) < 0) out.push(id);
+    });
+    return out.slice(0,30);
+  }
   function sanitizeLoadedAiState(value){
-    const fallback = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null};
+    const fallback = emptyAiState();
     const raw = value && typeof value === 'object' ? value : fallback;
     const allowedCategory = ['niche','designer','timur_tengah','lokal','miniso'];
     const allowedUsage = ['harian','kantor','formal','pesta','malam','hadiah','sekolah'];
@@ -10273,8 +10289,22 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       gender: allowedGender.indexOf(raw.gender) >= 0 ? raw.gender : null,
       budget: budgetMax ? raw.budget || null : null,
       budgetMax: budgetMax,
-      intent: raw.intent || null
+      intent: raw.intent || null,
+      lastProductIds: sanitizeIdListLocal(raw.lastProductIds || raw.recentProductIds || []),
+      shownProductIds: sanitizeIdListLocal(raw.shownProductIds || raw.seenProductIds || []),
+      lastContext: raw.lastContext && typeof raw.lastContext === 'object' ? raw.lastContext : null,
+      lastUserMessage: String(raw.lastUserMessage || '').slice(0,240) || null,
+      updatedAt: raw.updatedAt || null
     };
+  }
+  function migrateAiStorageIfNeeded(){
+    try{
+      const oldVersion = localStorage.getItem('dirac_ai_storage_version');
+      if(oldVersion !== AI_STORAGE_VERSION){
+        ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_feedback_v1','dirac_ai_events_v1','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1','dirac_ai_session_id'].forEach(function(key){ localStorage.removeItem(key); });
+        localStorage.setItem('dirac_ai_storage_version', AI_STORAGE_VERSION);
+      }
+    }catch(error){}
   }
   function getSessionId(forceNew){
     let id = '';
@@ -10542,15 +10572,14 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       const text = normalize(item && item.content ? item.content : '');
       return item && item.role === 'user' && !isGeneralKnowledgeLocal(text) && /\b(parfum|rekomendasi|aroma|wangi|fresh|manis|woody|harian|kantor|formal|hadiah|budget|dana|pria|wanita|unisex|niche|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
     }).slice(-4).map(function(item){ return item.content || ''; }).join(' ') : '';
-    const text = normalize(message + ' ' + relevantHistory);
-    const emptyState = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null};
-    const next = keepState ? Object.assign({}, state) : Object.assign({}, emptyState);
+    const text = normalize((keepState ? relevantHistory + ' ' : '') + message);
+    const next = keepState ? Object.assign(emptyAiState(), state) : emptyAiState();
     const foundCategories = matchCategoriesLocal(text);
     if(foundCategories.length){
       next.categories = Array.from(new Set([].concat(foundCategories, keepState ? (next.categories || []) : []))).slice(0,4);
       next.category = foundCategories[0];
     }else if(keepState && !next.category){ next.category = matchCategoryLocal(text); }
-    const usage = matchGroup(text, {harian:['harian','sehari hari','daily','kuliah','sekolah'],kantor:['kantor','kerja','meeting'],formal:['formal','acara','pesta','malam','date','kencan'],hadiah:['hadiah','kado','gift']});
+    const usage = matchGroup(text, {harian:['harian','sehari hari','daily','kuliah','sekolah'],kantor:['kantor','kerja','meeting'],formal:['formal','acara','rapi'],pesta:['pesta','party','event'],malam:['malam','date','kencan'],hadiah:['hadiah','kado','gift']});
     const scent = matchGroup(text, {fresh:['fresh','segar','citrus','aquatic','clean'],sweet:['manis','sweet','vanilla','fruity'],woody:['woody','oud','amber','musk'],floral:['floral','rose'],strong:['strong','kuat','tahan lama','awet'],soft:['soft','lembut','kalem']});
     const gender = matchGroup(text, {pria:['pria','laki','lelaki','cowok','cowo','maskulin'],wanita:['wanita','perempuan','cewek','cewe','feminim'],unisex:['unisex','netral']});
     if(usage) next.usage = usage;
@@ -10558,7 +10587,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(gender) next.gender = gender;
     const budget = parseBudgetLocal(text);
     if(budget.label && (!budget.max || budget.max >= 50000)){ next.budget = budget.label; next.budgetMax = budget.max; }
-    state = next;
+    if(!keepState){ next.lastProductIds = []; next.shownProductIds = []; }
+    next.lastUserMessage = message.slice(0,240);
+    next.updatedAt = new Date().toISOString();
+    state = sanitizeLoadedAiState(next);
     saveJson('dirac_ai_state_v2', state);
   }
   function matchGroup(text, groups){
@@ -10582,35 +10614,37 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
   function parseBudgetLocal(text){
     const juta = text.match(/(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar|rp)?\s*(\d+(?:[.,]\d+)?)\s*(jt|juta)\b/i);
-    if(juta){ return {label:juta[1] + ' juta', max:Math.round(Number(juta[1].replace(',','.')) * 1000000)}; }
+    if(juta){ const max = Math.round(Number(juta[1].replace(',','.')) * 1000000); return max >= 50000 ? {label:juta[1] + ' juta', max:max} : {label:null, max:null}; }
     const ribu = text.match(/(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar|rp)?\s*(\d{2,4})\s*(rb|ribu|k)\b/i);
-    if(ribu){ return {label:ribu[1] + ' ribu', max:Number(ribu[1]) * 1000}; }
+    if(ribu){ const max = Number(ribu[1]) * 1000; return max >= 50000 ? {label:ribu[1] + ' ribu', max:max} : {label:null, max:null}; }
     const bare = text.match(/\b(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar)\s*(?:rp\s*)?(\d{2,4})\b/i);
-    if(bare){ const value = Number(bare[1]); return {label:value + ' ribu', max:value >= 10000 ? value : value * 1000}; }
+    if(bare){ const value = Number(bare[1]); const max = value >= 10000 ? value : value * 1000; return max >= 50000 ? {label:value + ' ribu', max:max} : {label:null, max:null}; }
     if(/\b(murah|terjangkau|budget rendah)\b/.test(text)) return {label:'murah', max:300000};
     return {label:null, max:null};
   }
-  function categoryMatchesLocal(p, category){
-    const cat = normalize(p && p.category);
-    const title = normalize(p && (p.title || p.name));
-    const hay = normalize([p && p.category,p && p.title,p && p.name,p && p.desc,p && p.longDesc].join(' '));
-    if(category === 'niche') return cat === 'niche';
-    if(category === 'designer') return cat === 'designer';
-    if(category === 'timur_tengah') return cat === 'timur tengah' || hay.includes('timur tengah') || hay.includes('timteng');
-    if(category === 'lokal') return cat === 'lokal';
-    if(category === 'miniso') return cat === 'miniso' || title.includes('miniso');
-    return true;
+  function explicitCompareLocal(text){ return /\b(bandingkan|perbandingan|compare|komparasi|versus|vs|beda|bedanya|lebih bagus mana|pilih mana|mending mana)\b/.test(text); }
+  function explicitRecommendationLocal(text){ return /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau rekomendasi|mau parfum|pengen parfum|butuh parfum|recommend|suggest)\b/.test(text); }
+  function continuationSignalLocal(text){
+    return /\b(selain itu|selain yang tadi|selain tadi|yang lain|lainnya|produk lain|parfum lain|rekomendasi lain|opsi lain|alternatif|lanjut|lanjutkan|itu|tadi|sebelumnya|di atas|nomor|no\s*\d+|lebih murah|lebih mahal|yang fresh|yang manis|yang soft|yang strong|yang cocok|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(text) ||
+      /^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(text) ||
+      /^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(text);
   }
-
-  function escapeRegExp(value){ return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function excludePreviousSignalLocal(text){ return /\b(selain itu|selain yang tadi|selain tadi|yang lain|lainnya|produk lain|parfum lain|rekomendasi lain|opsi lain|alternatif|jangan yang tadi|bukan yang tadi)\b/.test(text); }
+  function requestedProductCountLocal(text){
+    const n = normalize(text);
+    const digit = n.match(/\b(?:tampilkan|kasih|beri|mau|ingin|cari|rekomendasikan|rekomendasi)?\s*(2|3|4|5)\s*(?:parfum|produk|pilihan|opsi)\b/);
+    if(digit) return Number(digit[1]);
+    const words = {dua:2,tiga:3,empat:4,lima:5};
+    for(const word in words){ if(new RegExp('\\b' + word + '\\s+(?:parfum|produk|pilihan|opsi)\\b').test(n)) return words[word]; }
+    return 0;
+  }
   function shouldUseStateForMessageLocal(message){
     const n = normalize(message);
     if(!n || isGeneralKnowledgeLocal(n)) return false;
-    if(/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum)\b/.test(n) && /\b(parfum|niche|designer|timur tengah|timteng|lokal|miniso)\b/.test(n)) return false;
-    if(/\b(yang|itu|tadi|sebelumnya|lanjut|lebih|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(n)) return true;
-    if(/^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(n)) return true;
-    if(/^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(n)) return true;
-    return n.split(/\s+/).length <= 4 && /\b(parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah|fresh|manis|woody)\b/.test(n);
+    const fresh = (explicitRecommendationLocal(n) || explicitCompareLocal(n)) && !continuationSignalLocal(n);
+    if(fresh) return false;
+    if(continuationSignalLocal(n)) return true;
+    return n.split(/\s+/).length <= 5 && /\b(parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah|fresh|manis|woody)\b/.test(n);
   }
   function stateContextTextLocal(){
     const bits = [];
@@ -10649,8 +10683,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const budget = parseBudgetLocal(normalize(query));
     const savedBudgetMax = Number(state.budgetMax || 0) >= 50000 ? Number(state.budgetMax || 0) : 0;
     const budgetMax = budget.max || (useState ? savedBudgetMax : 0) || 0;
+    const excludeIds = new Set(useState && excludePreviousSignalLocal(normalize(query)) ? sanitizeIdListLocal([].concat(state.lastProductIds || [], state.shownProductIds || [])) : []);
     ['fresh','segar','manis','sweet','vanilla','woody','oud','amber','musk','floral','harian','kantor','formal','hadiah','pria','wanita','unisex','niche','designer','desainer','timteng','timur tengah','lokal','miniso'].forEach(function(term){ if(n.includes(term)) boosts.push(term); });
     const scored = source.map(function(p){
+      if(excludeIds.has(String(p.id))) return {p:p, score:-999, budgetOk:false};
       const hay = normalize([p.title,p.name,p.category,p.desc,p.longDesc,p.notes,p.status].join(' '));
       let score = 0;
       if(requestedCategories.length){
@@ -10674,7 +10710,8 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const specific = scored.filter(function(entry){ return !/^all parfum\b/i.test(String(entry.p && (entry.p.title || entry.p.name) || '')); });
     const ranked = specific.length ? specific : scored;
     const within = budgetMax ? ranked.filter(function(entry){ return entry.budgetOk; }) : ranked;
-    return (within.length ? within : ranked).slice(0,4).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
+    const count = Math.max(3, Math.min(5, requestedProductCountLocal(query) || 4));
+    return (within.length ? within : ranked).slice(0,count).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
   }
   function localFallbackReply(message){
     const n = normalize(message);
@@ -10692,7 +10729,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
     if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
     if(intent.cart) return {text:'Cara beli: pilih produk, klik Tambah, buka keranjang, isi data, lalu Checkout WhatsApp. Kalau ingin dibantu admin, klik tombol WhatsApp di halaman.', links:[{label:'Chat Admin WhatsApp', url:'https://wa.me/6287892523968'}], products:[]};
-    if(/\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n)){
+    if(explicitCompareLocal(n)){
       updateRecommendationState(message);
       const picks = localProductSearch(message);
       if(picks.length) return {text:'Perbandingan singkat: pilih Lokal kalau ingin harga lebih aman untuk harian; pilih Niche kalau ingin karakter lebih unik/premium. Saya tampilkan kandidat paling mendekati dari katalog ready di bawah ini.', products:picks};
@@ -10714,29 +10751,36 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     try{ if(activeController) activeController.abort(); }catch(error){}
   }
   async function callRemoteAi(message){
-    const controller = new AbortController();
-    activeController = controller;
-    const timer = setTimeout(function(){ controller.abort(); }, 30000);
-    try{
-      const response = await fetch(AI_ENDPOINT, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-Dirac-Session':sessionId},
-        body:JSON.stringify({
-          message:message,
-          sessionId:sessionId,
-          state:state,
-          page:{title:document.title,url:location.href,language:document.documentElement.lang || 'id'},
-          products:compactProductsForApi(),
-          cart:currentCartSummary(),
-          history:history.slice(-MAX_HISTORY)
-        }),
-        signal:controller.signal
-      });
-      const data = await response.json().catch(function(){ return {}; });
-      if(!response.ok) throw new Error(data && data.reply ? data.reply : 'AI endpoint error ' + response.status);
-      if(!data || !data.reply) throw new Error('AI response empty');
-      return data;
-    }finally{ clearTimeout(timer); }
+    let lastError = null;
+    for(const endpoint of AI_ENDPOINTS){
+      const controller = new AbortController();
+      activeController = controller;
+      const timer = setTimeout(function(){ controller.abort(); }, 30000);
+      try{
+        const response = await fetch(endpoint, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','X-Dirac-Session':sessionId},
+          body:JSON.stringify({
+            message:message,
+            sessionId:sessionId,
+            state:state,
+            page:{title:document.title,url:location.href,language:document.documentElement.lang || 'id'},
+            products:compactProductsForApi(),
+            cart:currentCartSummary(),
+            history:history.slice(-MAX_HISTORY)
+          }),
+          signal:controller.signal
+        });
+        const data = await response.json().catch(function(){ return {}; });
+        if(!response.ok) throw new Error(data && data.reply ? data.reply : 'AI endpoint error ' + response.status);
+        if(!data || !data.reply) throw new Error('AI response empty');
+        return data;
+      }catch(error){
+        lastError = error;
+        if(error && error.name === 'AbortError') throw error;
+      }finally{ clearTimeout(timer); }
+    }
+    throw lastError || new Error('AI endpoint unavailable');
   }
   function checkClientRateLimit(){
     const now = Date.now();
@@ -10757,6 +10801,28 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(ANALYTICS_ENDPOINT){
       try{ fetch(ANALYTICS_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}); }catch(error){}
     }
+  }
+  function applyAiResponseState(data, userMessage){
+    const next = sanitizeLoadedAiState(state);
+    if(data && data.recommendationContext){
+      const ctx = data.recommendationContext;
+      if(ctx.category) next.category = ctx.category;
+      if(Array.isArray(ctx.categories)) next.categories = ctx.categories.slice(0,4);
+      if(ctx.usage) next.usage = ctx.usage;
+      if(ctx.scent) next.scent = ctx.scent;
+      if(ctx.gender) next.gender = ctx.gender;
+      if(ctx.budget && Number(ctx.budgetMax || 0) >= 50000){ next.budget = ctx.budget; next.budgetMax = Number(ctx.budgetMax || 0); }
+    }
+    const ids = sanitizeIdListLocal((data && data.products || []).map(function(p){ return p && p.id; }));
+    if(ids.length){
+      next.lastProductIds = ids;
+      next.shownProductIds = sanitizeIdListLocal([].concat(next.shownProductIds || [], ids));
+    }
+    if(data && data.intent) next.intent = data.intent;
+    next.lastUserMessage = String(userMessage || '').slice(0,240) || next.lastUserMessage;
+    next.updatedAt = new Date().toISOString();
+    state = sanitizeLoadedAiState(next);
+    saveJson('dirac_ai_state_v2', state);
   }
   async function handleSend(raw){
     if(isBusy){ abortActiveRequest(); return; }
@@ -10792,6 +10858,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       }
       typing.remove();
       const productsToShow = data.showProducts ? (data.products || []) : [];
+      applyAiResponseState(data, message);
       addBotMessage(data.reply, {links:data.links || [], questions:data.questions || [], products:productsToShow, provider:data.provider, traceId:data.traceId});
       history.push({role:'assistant', content:data.reply});
       history = history.slice(-MAX_HISTORY * 2);
@@ -10825,7 +10892,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function resetChat(){
     abortActiveRequest();
     history = [];
-    state = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null};
+    state = emptyAiState();
     ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_feedback_v1','dirac_ai_events_v1','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1','dirac_ai_session_id'].forEach(function(key){ try{ localStorage.removeItem(key); }catch(error){} });
     sessionId = getSessionId(true);
     messagesEl.innerHTML = '';
