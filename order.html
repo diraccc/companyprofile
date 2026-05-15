@@ -11091,6 +11091,161 @@ function staticGeneralAnswerLocal(text) {
     if(/^AI utama sedang tidak tersambung/i.test(local.text) && !(local.products && local.products.length)) return null;
     return local;
   }
+
+
+  /* === DIRAC AI MAX INTELLIGENCE OVERRIDES v2026-05-15 === */
+  function extractMathExpressionLocal(text){
+    const n = String(text || '').toLowerCase().replace(/×/g,'x').replace(/÷/g,':');
+    const before = n.split(/\b(?:berapa|hasilnya|hasil|sama dengan|=)\b/)[0] || n;
+    const source = before.trim() ? before : n;
+    const matches = source.match(/[0-9][0-9\s+\-*/:x().,%]{0,260}[0-9%)]/gi) || [];
+    let best = '';
+    matches.forEach(function(m){ var cleaned = m.trim(); if(cleaned.length > best.length && /[+\-*/:x%]/i.test(cleaned)) best = cleaned; });
+    return best.slice(0,260);
+  }
+  function isMathQuestionLocal(n){
+    const raw = String(n || '').toLowerCase().replace(/×/g,'x').replace(/÷/g,':');
+    const clean = normalize(n);
+    if(!raw.trim() || !/\d/.test(raw)) return false;
+    if(/\b(diskon|persen|percent|%|hitung|berapa hasil|hasil dari|matematika|mtk|kalkulator)\b/.test(clean) && /\d/.test(raw)) return true;
+    const expr = extractMathExpressionLocal(raw);
+    if(!expr) return false;
+    const clear = /\d\s*(?:[+\-*/:x]|%)\s*\d/i.test(expr) || /\d+\s*%/.test(expr);
+    if(!clear) return false;
+    if(/\b(harga|produk|parfum|stok|resi|checkout|kabupaten|provinsi|kecamatan|kota|mobil|motor|emas|saham)\b/.test(clean)){
+      return /\b(hitung|berapa hasil|hasil dari|matematika|mtk|kalkulator|diskon|persen|%)\b/.test(clean) || /^\s*[0-9\s+\-*/:x().,%]+\s*(?:berapa|hasil|hasilnya)?\s*$/i.test(raw);
+    }
+    return true;
+  }
+  function solveMathQuestionLocal(text){
+    const original = String(text || '').trim();
+    const n = normalize(original);
+    const pct = n.match(/(?:diskon\s*)?(\d+(?:[.,]\d+)?)\s*%\s*(?:dari|x|\*)\s*(?:rp\s*)?([0-9.]+(?:,[0-9]+)?|\d+(?:[.,]\d+)?)\s*(ribu|rb|k|juta|jt)?/i);
+    if(pct){
+      const p = Number(pct[1].replace(',','.'));
+      let base = Number(String(pct[2]).replace(/\./g,'').replace(',','.'));
+      const unit = pct[3] || '';
+      if(/^(ribu|rb|k)$/i.test(unit)) base *= 1000;
+      if(/^(juta|jt)$/i.test(unit)) base *= 1000000;
+      const val = base * p / 100;
+      const money = function(x){ return 'Rp' + Math.round(x).toLocaleString('id-ID'); };
+      if(Number.isFinite(val)) return /\bdiskon\b/.test(n) ? ('Diskon ' + p + '% dari ' + money(base) + ' adalah ' + money(val) + ', jadi total setelah diskon ' + money(base - val) + '.') : (p + '% dari ' + money(base) + ' = ' + money(val) + '.');
+    }
+    const raw = extractMathExpressionLocal(original);
+    if(!raw) return 'Tulis soal matematika dengan angka dan operator yang jelas, misalnya: 100 x 200 berapa.';
+    let expr = raw.replace(/,/g,'.').replace(/×/g,'*').replace(/x/gi,'*').replace(/÷/g,'/').replace(/:/g,'/').replace(/%/g,'/100').replace(/\s+/g,'');
+    if(!/^[0-9+\-*/().]+$/.test(expr) || expr.length > 260) return 'Saya hanya bisa menghitung ekspresi matematika angka dengan operator +, -, x, :, /, %, dan tanda kurung.';
+    try{ const value = Function('"use strict"; return (' + expr + ');')(); if(!Number.isFinite(value)) return 'Hasilnya tidak terdefinisi karena ada pembagian dengan nol atau operasi tidak valid.'; const rounded = Math.abs(value) >= 1 ? Number(value.toFixed(8)) : Number(value.toPrecision(10)); return raw.trim() + ' = ' + rounded.toLocaleString('id-ID',{maximumFractionDigits:10}); }
+    catch(error){ return 'Saya belum bisa menghitung ekspresi itu. Coba tulis ulang dengan format seperti: 12 x 1999 : 61781.'; }
+  }
+  function expandedProvinceAdminAnswerLocal(n){
+    n = normalize(n);
+    const rows = [
+      ['aceh','Aceh',18,5], ['sumatera utara|sumut','Sumatera Utara',25,8], ['sumatera barat|sumbar','Sumatera Barat',12,7], ['riau','Riau',10,2], ['jambi','Jambi',9,2], ['sumatera selatan|sumsel','Sumatera Selatan',13,4], ['bengkulu','Bengkulu',9,1], ['lampung','Lampung',13,2], ['bangka belitung|babel','Kepulauan Bangka Belitung',6,1], ['kepulauan riau|kepri','Kepulauan Riau',5,2], ['dki jakarta|jakarta','DKI Jakarta',1,5,'administratif'], ['banten','Banten',4,4], ['jawa barat|jabar','Jawa Barat',18,9], ['jawa tengah|jateng','Jawa Tengah',29,6], ['di yogyakarta|diy|yogyakarta|jogja','DI Yogyakarta',4,1], ['jawa timur|jatim','Jawa Timur',29,9], ['bali','Bali',8,1], ['nusa tenggara barat|ntb','Nusa Tenggara Barat',8,2], ['nusa tenggara timur|ntt','Nusa Tenggara Timur',21,1], ['kalimantan barat|kalbar','Kalimantan Barat',12,2], ['kalimantan tengah|kalteng','Kalimantan Tengah',13,1], ['kalimantan selatan|kalsel','Kalimantan Selatan',11,2], ['kalimantan timur|kaltim','Kalimantan Timur',7,3], ['kalimantan utara|kalut','Kalimantan Utara',4,1], ['sulawesi utara|sulut','Sulawesi Utara',11,4], ['sulawesi tengah|sulteng','Sulawesi Tengah',12,1], ['sulawesi selatan|sulsel','Sulawesi Selatan',21,3], ['sulawesi tenggara|sultra','Sulawesi Tenggara',15,2], ['gorontalo','Gorontalo',5,1], ['sulawesi barat|sulbar','Sulawesi Barat',6,0], ['maluku utara|malut','Maluku Utara',8,2], ['maluku','Maluku',9,2], ['papua barat daya','Papua Barat Daya',5,1], ['papua barat','Papua Barat',7,0], ['papua tengah','Papua Tengah',8,0], ['papua pegunungan','Papua Pegunungan',8,0], ['papua selatan','Papua Selatan',4,0], ['papua','Papua',8,1]
+    ];
+    const asksKab = /\bkabupaten\b/.test(n), asksKota = /\bkota\b/.test(n) && !/\bkota apa\b/.test(n), asksProv = /\bprovinsi\b/.test(n);
+    if(asksProv && /\bindonesia\b/.test(n) && /\b(ada berapa|berapa|jumlah|total)\b/.test(n)) return 'Indonesia saat ini memiliki 38 provinsi. Jumlah ini bisa berubah jika ada pemekaran wilayah baru.';
+    if(asksKab && /\bindonesia\b/.test(n)) return 'Indonesia memiliki sekitar 416 kabupaten dan 98 kota. Angka ini bisa berubah jika ada pemekaran wilayah, jadi untuk data resmi terbaru cek Kemendagri/BPS.';
+    if(asksKab && /\b(pulau jawa|jawa)\b/.test(n)) return 'Pulau Jawa memiliki sekitar 85 kabupaten: Banten 4, DKI Jakarta 1 kabupaten administratif, Jawa Barat 18, Jawa Tengah 29, DI Yogyakarta 4, dan Jawa Timur 29. Kota dihitung terpisah.';
+    if(asksKab && /\bsumatera\b/.test(n)) return 'Pulau Sumatera memiliki sekitar 120 kabupaten dari provinsi Aceh, Sumatera Utara, Sumatera Barat, Riau, Jambi, Sumatera Selatan, Bengkulu, Lampung, Kepulauan Bangka Belitung, dan Kepulauan Riau. Kota dihitung terpisah.';
+    if(asksKab && /\bkalimantan\b/.test(n)) return 'Kalimantan di Indonesia memiliki sekitar 47 kabupaten: Kalimantan Barat 12, Kalimantan Tengah 13, Kalimantan Selatan 11, Kalimantan Timur 7, dan Kalimantan Utara 4. Kota dihitung terpisah.';
+    if(asksKab && /\bsulawesi\b/.test(n)) return 'Sulawesi memiliki sekitar 70 kabupaten: Sulawesi Utara 11, Sulawesi Tengah 12, Sulawesi Selatan 21, Sulawesi Tenggara 15, Gorontalo 5, dan Sulawesi Barat 6. Kota dihitung terpisah.';
+    for(var i=0;i<rows.length;i++){ var row = rows[i]; var re = new RegExp('\\b(' + row[0] + ')\\b'); if(!re.test(n)) continue; var name=row[1], kab=row[2], kota=row[3], admin=row[4]; if(asksKab) return name + ' memiliki ' + kab + ' ' + (admin ? 'kabupaten administratif' : 'kabupaten') + (kota ? ' dan ' + kota + ' kota' + (admin ? ' administrasi' : '') : '') + '. Angka administratif bisa berubah jika ada pemekaran wilayah.'; if(asksKota) return name + ' memiliki ' + kota + ' kota' + (admin ? ' administrasi' : '') + ' dan ' + kab + ' ' + (admin ? 'kabupaten administratif' : 'kabupaten') + '.'; }
+    return null;
+  }
+  function staticGeneralAnswerLocal(text){
+    const n = normalize(text);
+    const geo = expandedProvinceAdminAnswerLocal(n) || provinceAdminAnswerLocal(n);
+    if(geo) return geo;
+    if(/\b(presiden|raja|pemimpin).*(arab saudi|saudi arabia|saudi)\b|\b(arab saudi|saudi arabia|saudi).*(presiden|raja|pemimpin)\b/.test(n)) return /\bpresiden\b/.test(n) ? 'Arab Saudi tidak memiliki presiden karena bentuk negaranya monarki absolut. Kepala negaranya adalah raja. Raja Arab Saudi sejak berdiri: Abdulaziz bin Saud, Saud bin Abdulaziz, Faisal bin Abdulaziz, Khalid bin Abdulaziz, Fahd bin Abdulaziz, Abdullah bin Abdulaziz, dan Salman bin Abdulaziz.' : 'Raja Arab Saudi sejak berdiri: Abdulaziz bin Saud, Saud bin Abdulaziz, Faisal bin Abdulaziz, Khalid bin Abdulaziz, Fahd bin Abdulaziz, Abdullah bin Abdulaziz, dan Salman bin Abdulaziz.';
+    if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan|semua)\b/.test(n)) return 'Indonesia sudah memiliki 8 presiden: Soekarno, Soeharto, B.J. Habibie, Abdurrahman Wahid, Megawati Soekarnoputri, Susilo Bambang Yudhoyono, Joko Widodo, dan Prabowo Subianto.';
+    if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) return 'Presiden Indonesia saat ini adalah Prabowo Subianto, dengan Wakil Presiden Gibran Rakabuming Raka untuk periode 2024-2029.';
+    if(/\b(negara terbesar di dunia)\b/.test(n)) return 'Negara terbesar di dunia berdasarkan luas wilayah adalah Rusia.';
+    if(/\b(negara terkecil di dunia)\b/.test(n)) return 'Negara terkecil di dunia berdasarkan luas wilayah adalah Vatikan.';
+    if(/\b(sungai amazon|amazon river)\b/.test(n)) return 'Sungai Amazon berada di Amerika Selatan. Sungai ini mengalir terutama melalui Peru, Kolombia, dan Brasil, lalu bermuara ke Samudra Atlantik.';
+    if(/\b(sungai terpanjang di dunia)\b/.test(n)) return 'Sungai terpanjang di dunia sering disebut Sungai Nil, tetapi ada perdebatan dengan Sungai Amazon tergantung metode pengukuran.';
+    if(/\b(planet terbesar|planet paling besar)\b/.test(n)) return 'Planet terbesar di Tata Surya adalah Jupiter.';
+    if(/\b(ibukota|ibu kota)\s+indonesia\b/.test(n)) return 'Ibu kota Indonesia secara administratif masih Jakarta, sementara IKN Nusantara sedang dikembangkan sebagai ibu kota baru.';
+    return null;
+  }
+  function localKnowledgeAnswerLocal(n){ return staticGeneralAnswerLocal(n); }
+  function isGeneralKnowledgeLocal(text){
+    const n = normalize(text);
+    if(!n) return false;
+    if(isMathQuestionLocal(n)) return true;
+    if(isStoreProductPriceQuestionLocal(n)) return false;
+    if(staticGeneralAnswerLocal(n)) return true;
+    if(isRealTimeMarketQuestionLocal(n)) return true;
+    if(isGeographyCountQuestionLocal(n)) return true;
+    if(isNonStoreGeneralQueryLocal(n)) return true;
+    if(isPerfumeEducationQueryLocal(n)) return true;
+    const commerce = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
+    if(commerce) return false;
+    const explicitProduct = /\b(parfum|perfume|fragrance|produk dirac|katalog dirac|website ini|toko ini|di katalog|di website ini)\b/.test(n);
+    const general = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|sebutkan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kecamatan|kota|dunia|benua|sungai|gunung|samudra|laut|planet|bulan|matahari|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
+    return general && !explicitProduct;
+  }
+  function localFirstReply(message){
+    const n = normalize(message);
+    if(isMathQuestionLocal(message)) return {text:solveMathQuestionLocal(message), links:[], products:[]};
+    const staticAnswer = staticGeneralAnswerLocal(n);
+    if(staticAnswer) return {text:staticAnswer, links:[], products:[]};
+    const intent = detectLocalIntent(message);
+    if(intent.productPrice) return productPriceReplyLocal(message);
+    if(intent.productCount) return {text:productCountReplyLocal(), links:[], products:[]};
+    if(intent.priceFormat) return {text:'Harga produk Dirac di kartu katalog sudah memakai Rupiah Indonesia (IDR). Untuk keputusan checkout, pakai harga yang tertulis di kartu produk hari ini dan tetap konfirmasi stok/harga final ke admin sebelum pembayaran.', links:[], products:[]};
+    if(isRealTimeMarketQuestionLocal(n)) return {text:realTimeMarketReplyLocal(n), links:[], products:[]};
+    const commerceIntent = intent.website || intent.tracking || intent.cart || intent.brand || intent.recommendation || /\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n);
+    if(!commerceIntent) return null;
+    const local = localFallbackReply(message);
+    if(!local || !local.text) return null;
+    if(/^AI utama sedang tidak tersambung/i.test(local.text) && !(local.products && local.products.length)) return null;
+    return local;
+  }
+
+
+  /* === DIRAC AI MAX MATH PERCENT FIX v2 === */
+  function solveMathQuestionLocal(text){
+    const original = String(text || '').trim();
+    const lower = original.toLowerCase().replace(/×/g,'x').replace(/÷/g,':');
+    const pct = lower.match(/(?:diskon\s*)?(\d+(?:[.,]\d+)?)\s*%\s*(?:dari|x|\*)\s*(?:rp\s*)?([0-9.]+(?:,[0-9]+)?|\d+(?:[.,]\d+)?)\s*(ribu|rb|k|juta|jt)?/i);
+    if(pct){
+      const pp = Number(pct[1].replace(',','.'));
+      let base = Number(String(pct[2]).replace(/\./g,'').replace(',','.'));
+      const unit = pct[3] || '';
+      if(/^(ribu|rb|k)$/i.test(unit)) base *= 1000;
+      if(/^(juta|jt)$/i.test(unit)) base *= 1000000;
+      const val = base * pp / 100;
+      const money = function(x){ return 'Rp' + Math.round(x).toLocaleString('id-ID'); };
+      if(Number.isFinite(val)) return /\bdiskon\b/.test(lower) ? ('Diskon ' + pp + '% dari ' + money(base) + ' adalah ' + money(val) + ', jadi total setelah diskon ' + money(base - val) + '.') : (pp + '% dari ' + money(base) + ' = ' + money(val) + '.');
+    }
+    const raw = extractMathExpressionLocal(original);
+    if(!raw) return 'Tulis soal matematika dengan angka dan operator yang jelas, misalnya: 100 x 200 berapa.';
+    let expr = raw.replace(/,/g,'.').replace(/×/g,'*').replace(/x/gi,'*').replace(/÷/g,'/').replace(/:/g,'/').replace(/%/g,'/100').replace(/\s+/g,'');
+    if(!/^[0-9+\-*/().]+$/.test(expr) || expr.length > 260) return 'Saya hanya bisa menghitung ekspresi matematika angka dengan operator +, -, x, :, /, %, dan tanda kurung.';
+    try{ const value = Function('"use strict"; return (' + expr + ');')(); if(!Number.isFinite(value)) return 'Hasilnya tidak terdefinisi karena ada pembagian dengan nol atau operasi tidak valid.'; const rounded = Math.abs(value) >= 1 ? Number(value.toFixed(8)) : Number(value.toPrecision(10)); return raw.trim() + ' = ' + rounded.toLocaleString('id-ID',{maximumFractionDigits:10}); }
+    catch(error){ return 'Saya belum bisa menghitung ekspresi itu. Coba tulis ulang dengan format seperti: 12 x 1999 : 61781.'; }
+  }
+
+
+  /* === DIRAC AI MAX FOLLOWUP ROUTER FIX v3 === */
+  function isGeneralKnowledgeLocal(text){
+    const n = normalize(text);
+    if(!n) return false;
+    if(/\b(selain itu|yang lain|lainnya|alternatif|rekomendasi lain|pilihan lain|selain tadi|tadi|sebelumnya|lanjut|lanjutkan)\b/.test(n) && /\b(produk|parfum|perfume|fragrance|pilihan|opsi)\b/.test(n)) return false;
+    if(isMathQuestionLocal(n)) return true;
+    if(isStoreProductPriceQuestionLocal(n)) return false;
+    if(staticGeneralAnswerLocal(n)) return true;
+    if(isRealTimeMarketQuestionLocal(n)) return true;
+    if(isGeographyCountQuestionLocal(n)) return true;
+    if(isNonStoreGeneralQueryLocal(n)) return true;
+    if(isPerfumeEducationQueryLocal(n)) return true;
+    const commerce = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
+    if(commerce) return false;
+    const explicitProduct = /\b(parfum|perfume|fragrance|produk dirac|katalog dirac|website ini|toko ini|di katalog|di website ini)\b/.test(n);
+    const general = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|sebutkan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kecamatan|kota|dunia|benua|sungai|gunung|samudra|laut|planet|bulan|matahari|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
+    return general && !explicitProduct;
+  }
   function abortActiveRequest(){
     userAbortRequested = true;
     try{ if(activeController) activeController.abort(); }catch(error){}
