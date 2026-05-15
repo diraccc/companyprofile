@@ -484,7 +484,7 @@ function buildPrompt({ message, history, cart, intent, context, products }) {
 
   let system = 'Kamu adalah Dirac AI Assistant. Jawab bahasa Indonesia yang natural, ramah, jelas, dan akurat.';
   if (intent.name === 'general') {
-    system += ` Kamu adalah AI umum sekaligus tutor belajar, bukan hanya AI penjualan. Wajib jawab pertanyaan umum dan tugas kompleks bila aman: sejarah dunia, geografi, IPS, IPA, matematika dasar/lanjut, fisika, kimia, biologi, bahasa Inggris, bahasa Indonesia, coding, logika, ringkasan, terjemahan, dan penjelasan konsep. Jangan menolak hanya karena topik tidak terkait parfum. Jangan menawarkan produk, jangan menampilkan rekomendasi parfum, dan jangan mengarahkan checkout kecuali user memintanya. Jika soal hitungan, berikan langkah ringkas. Jika informasi bisa berubah, jawab hati-hati. Tanggal sistem: ${date}. Untuk Presiden Indonesia saat ini: Prabowo Subianto.`;
+    system += ` Kamu adalah AI umum sekaligus tutor belajar, bukan hanya AI penjualan. Wajib jawab pertanyaan umum dan tugas kompleks bila aman: sejarah dunia, geografi, IPS, IPA, matematika dasar/lanjut, fisika, kimia, biologi, bahasa Inggris, bahasa Indonesia, coding, logika, ringkasan, terjemahan, dan penjelasan konsep. Jangan menolak hanya karena topik tidak terkait parfum. Jangan menawarkan produk, jangan menampilkan rekomendasi parfum, dan jangan mengarahkan checkout kecuali user memintanya. Jika soal hitungan, berikan langkah ringkas. Jika informasi bisa berubah, jawab hati-hati. Tanggal sistem: ${date}. Untuk Presiden Indonesia saat ini: Prabowo Subianto. Jawaban harus selesai utuh, tidak boleh berhenti di tengah kalimat. Untuk jawaban pelajaran panjang, buat penjelasan ringkas tapi lengkap dengan poin bernomor. Pastikan setiap poin penting selesai, dan akhiri dengan kesimpulan singkat agar user tahu jawaban sudah selesai.`;
   } else if (intent.name === 'recommendation_ready' || intent.name === 'product_search') {
     system += ' Kamu adalah konsultan parfum. Gunakan hanya data produk yang diberikan, hindari sold/kosong/not ready, rekomendasikan maksimal 3 produk, jangan mengarang harga/stok. Jika user meminta kategori tertentu seperti Niche, Designer, Timur Tengah, Lokal, atau Miniso, jangan keluar dari kategori tersebut.';
   } else {
@@ -573,7 +573,7 @@ function shouldFailover(status) {
 async function callGemini(key, model, prompt, general, useSearch) {
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { temperature: general ? 0.55 : 0.35, topP: 0.9, maxOutputTokens: general ? 850 : 950 }
+    generationConfig: { temperature: general ? 0.55 : 0.35, topP: 0.9, maxOutputTokens: general ? 3200 : 1400 }
   };
   if (useSearch) body.tools = [{ google_search: {} }];
   const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
@@ -607,7 +607,7 @@ async function callGroq(key, model, prompt, general) {
         { role: 'user', content: prompt }
       ],
       temperature: general ? 0.55 : 0.35,
-      max_tokens: general ? 850 : 950
+      max_tokens: general ? 3200 : 1400
     })
   });
   const data = await safeJson(response);
@@ -636,7 +636,7 @@ async function callOpenAI(key, model, prompt, general) {
         { role: 'user', content: prompt }
       ],
       temperature: general ? 0.55 : 0.35,
-      max_tokens: general ? 850 : 950
+      max_tokens: general ? 3200 : 1400
     })
   });
   const data = await safeJson(response);
