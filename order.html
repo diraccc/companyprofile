@@ -3586,6 +3586,13 @@ html[data-effective-theme="light"] .dirac-ai-chip{color:#273044;background:rgba(
   .dirac-ai-toggle:hover,.dirac-ai-toggle:focus-visible{transform:none!important}
 }
 </style>
+<style id="dirac-ai-long-answer-fix-css">
+.dirac-ai-expand{border:1px solid rgba(var(--theme-rgb,243,205,112),.32);border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.13);color:#fff;font-weight:850;padding:7px 11px;font-size:.72rem;margin-top:-2px;cursor:pointer;align-self:flex-start}
+.dirac-ai-expand[aria-expanded="true"]{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16)}
+.dirac-ai-bubble.is-expanded{max-height:none!important;overflow:visible!important}
+.dirac-ai-body{padding-bottom:22px!important;overscroll-behavior:contain}
+.dirac-ai-msg-bot .dirac-ai-bubble{white-space:normal}
+</style>
 
 </head>
 <body>
@@ -10333,27 +10340,51 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function addBotMessage(text, options){
     options = options || {};
     const rawText = String(text || '');
-    const isLong = rawText.length > 620 && !options.disableCollapse;
-    const displayText = isLong ? rawText.slice(0, 520).trim() + '...' : rawText;
-    const item = addMessage('bot', linkifySafeText(displayText), {provider:options.provider});
+    const isLong = rawText.length > 520 && !options.disableCollapse;
+    const previewLength = 560;
+    const previewText = isLong ? rawText.slice(0, previewLength).trim().replace(/[\s.,;:!?-]+$/,'') + '...' : rawText;
+    const initialText = isLong ? rawText : rawText;
+    const item = addMessage('bot', linkifySafeText(initialText), {provider:options.provider});
     if(isLong){
       const bubble = item.querySelector('.dirac-ai-bubble');
       const btn = document.createElement('button');
+      let expanded = true;
       btn.className = 'dirac-ai-expand';
       btn.type = 'button';
-      btn.textContent = 'Lihat selengkapnya';
+      btn.setAttribute('aria-expanded','true');
+      btn.textContent = 'Ringkas';
+      if(bubble) bubble.classList.add('is-expanded');
+      function renderLongAnswer(){
+        if(!bubble) return;
+        if(expanded){
+          bubble.innerHTML = linkifySafeText(rawText);
+          bubble.classList.add('is-expanded');
+          btn.textContent = 'Ringkas';
+          btn.setAttribute('aria-expanded','true');
+        }else{
+          bubble.innerHTML = linkifySafeText(previewText);
+          bubble.classList.remove('is-expanded');
+          btn.textContent = 'Lihat selengkapnya';
+          btn.setAttribute('aria-expanded','false');
+        }
+      }
       btn.addEventListener('click', function(){
-        if(bubble) bubble.innerHTML = linkifySafeText(rawText);
-        btn.remove();
-        scrollMessages();
+        expanded = !expanded;
+        renderLongAnswer();
+        if(expanded){
+          setTimeout(function(){ try{ item.scrollIntoView({behavior:'smooth', block:'start'}); }catch(error){ scrollMessages(); } }, 30);
+        }else{
+          setTimeout(function(){ try{ item.scrollIntoView({behavior:'smooth', block:'nearest'}); }catch(error){ scrollMessages(); } }, 30);
+        }
       });
       item.appendChild(btn);
+      setTimeout(function(){ try{ item.scrollIntoView({behavior:'smooth', block:'start'}); }catch(error){} }, 60);
     }
     if(options.links && options.links.length) item.appendChild(renderLinks(options.links));
     if(options.questions && options.questions.length) item.appendChild(renderQuestionChips(options.questions));
     if(options.products && options.products.length) item.appendChild(renderProductCards(options.products));
     if(!options.noFeedback) item.appendChild(renderFeedback(options.traceId || 'local'));
-    scrollMessages();
+    if(!isLong) scrollMessages();
     return item;
   }
   function addTyping(){
@@ -10636,7 +10667,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     history.slice(-MAX_HISTORY).forEach(function(item){
       if(!item || !item.content) return;
       if(item.role === 'user') addUserMessage(item.content);
-      else addBotMessage(item.content, {noFeedback:true, disableCollapse:true});
+      else addBotMessage(item.content, {noFeedback:true});
     });
   }
   function resetChat(){
@@ -10667,7 +10698,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(document.getElementById('dirac-ai-upgrade-css')) return;
     const style = document.createElement('style');
     style.id = 'dirac-ai-upgrade-css';
-    style.textContent = '.dirac-ai-inline-link{color:var(--gold);font-weight:900;text-decoration:underline}.dirac-ai-links,.dirac-ai-question-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0}.dirac-ai-link,.dirac-ai-question-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.34);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:850}.dirac-ai-question-chip{cursor:pointer}.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-feedback button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.70rem;font-weight:800}.dirac-ai-provider{font-size:.68rem;color:#8190a4;margin-top:3px;padding-left:4px}.dirac-ai-head-actions{display:flex;gap:7px;align-items:center}.dirac-ai-reset{height:34px;border-radius:999px;border:1px solid rgba(var(--theme-rgb,243,205,112),.28);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;font-weight:900;padding:0 12px}.dirac-ai-thinking{display:flex;align-items:center;gap:8px}.dirac-ai-thinking span:first-child{font-size:.78rem;color:#cbd5e1}.dirac-ai-skeleton{display:grid;gap:7px;margin-top:10px}.dirac-ai-skeleton b{height:10px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.16),rgba(255,255,255,.06));background-size:220% 100%;animation:diracAiSkeleton 1.35s linear infinite}.dirac-ai-skeleton b:nth-child(2){width:78%}.dirac-ai-skeleton b:nth-child(3){width:54%}@keyframes diracAiSkeleton{to{background-position:-220% 0}}.dirac-ai-expand{border:1px solid rgba(var(--theme-rgb,243,205,112),.26);border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.11);color:#fff;font-weight:850;padding:7px 10px;font-size:.72rem}.dirac-ai-product-card{animation:diracAiCardIn .22s ease both}.dirac-ai-product-card:nth-child(2){animation-delay:.06s}.dirac-ai-product-card:nth-child(3){animation-delay:.12s}.dirac-ai-product-meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.dirac-ai-product-meta span{margin:0;color:#dbe4f0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 7px;font-size:.66rem;font-weight:800}.dirac-ai-card-reason{grid-column:1/-1;color:#aeb9c8;font-size:.72rem;line-height:1.35}.dirac-ai-mini-btn.is-added{filter:brightness(1.08);transform:scale(.98)}@keyframes diracAiCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}html[data-effective-theme="light"] .dirac-ai-link,html[data-effective-theme="light"] .dirac-ai-question-chip{color:#171923;background:rgba(var(--theme-rgb,243,205,112),.16)}html[data-effective-theme="light"] .dirac-ai-feedback button{color:#526071;background:rgba(255,255,255,.68)}@media(max-width:760px){.dirac-ai-links,.dirac-ai-question-list{gap:6px}.dirac-ai-link,.dirac-ai-question-chip{font-size:.74rem;padding:7px 9px}.dirac-ai-feedback button{font-size:.68rem}.dirac-ai-reset{height:32px;padding:0 10px;font-size:.76rem}}';
+    style.textContent = '.dirac-ai-inline-link{color:var(--gold);font-weight:900;text-decoration:underline}.dirac-ai-links,.dirac-ai-question-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0}.dirac-ai-link,.dirac-ai-question-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.34);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:850}.dirac-ai-question-chip{cursor:pointer}.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-feedback button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.70rem;font-weight:800}.dirac-ai-provider{font-size:.68rem;color:#8190a4;margin-top:3px;padding-left:4px}.dirac-ai-head-actions{display:flex;gap:7px;align-items:center}.dirac-ai-reset{height:34px;border-radius:999px;border:1px solid rgba(var(--theme-rgb,243,205,112),.28);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;font-weight:900;padding:0 12px}.dirac-ai-thinking{display:flex;align-items:center;gap:8px}.dirac-ai-thinking span:first-child{font-size:.78rem;color:#cbd5e1}.dirac-ai-skeleton{display:grid;gap:7px;margin-top:10px}.dirac-ai-skeleton b{height:10px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.16),rgba(255,255,255,.06));background-size:220% 100%;animation:diracAiSkeleton 1.35s linear infinite}.dirac-ai-skeleton b:nth-child(2){width:78%}.dirac-ai-skeleton b:nth-child(3){width:54%}@keyframes diracAiSkeleton{to{background-position:-220% 0}}.dirac-ai-expand{border:1px solid rgba(var(--theme-rgb,243,205,112),.32);border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.13);color:#fff;font-weight:850;padding:7px 11px;font-size:.72rem;align-self:flex-start;cursor:pointer}.dirac-ai-expand[aria-expanded="true"]{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16)}.dirac-ai-bubble.is-expanded{max-height:none!important}.dirac-ai-body{padding-bottom:20px!important}.dirac-ai-product-card{animation:diracAiCardIn .22s ease both}.dirac-ai-product-card:nth-child(2){animation-delay:.06s}.dirac-ai-product-card:nth-child(3){animation-delay:.12s}.dirac-ai-product-meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.dirac-ai-product-meta span{margin:0;color:#dbe4f0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 7px;font-size:.66rem;font-weight:800}.dirac-ai-card-reason{grid-column:1/-1;color:#aeb9c8;font-size:.72rem;line-height:1.35}.dirac-ai-mini-btn.is-added{filter:brightness(1.08);transform:scale(.98)}@keyframes diracAiCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}html[data-effective-theme="light"] .dirac-ai-link,html[data-effective-theme="light"] .dirac-ai-question-chip{color:#171923;background:rgba(var(--theme-rgb,243,205,112),.16)}html[data-effective-theme="light"] .dirac-ai-feedback button{color:#526071;background:rgba(255,255,255,.68)}@media(max-width:760px){.dirac-ai-links,.dirac-ai-question-list{gap:6px}.dirac-ai-link,.dirac-ai-question-chip{font-size:.74rem;padding:7px 9px}.dirac-ai-feedback button{font-size:.68rem}.dirac-ai-reset{height:32px;padding:0 10px;font-size:.76rem}}';
     document.head.appendChild(style);
   }
   toggle.addEventListener('click', function(){ setOpen(!widget.classList.contains('is-open')); });
