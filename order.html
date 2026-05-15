@@ -10239,7 +10239,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   let userAbortRequested = false;
   let lastUserPrompt = '';
   let sessionId = getSessionId();
-  const AI_BUILD = 'ai-intelligence-2026-05-15-v8-ultra-general-math-product-router';
+  const AI_BUILD = 'ai-intelligence-2026-05-15-v9-max-router-general-product-math';
   try{
     if(localStorage.getItem('dirac_ai_build') !== AI_BUILD){
       ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1'].forEach(function(key){ localStorage.removeItem(key); });
@@ -10566,6 +10566,18 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(p.notes) bits.push('notes ' + String(p.notes).split(',').slice(0,2).join(', '));
     if(p.status) bits.push('status ' + p.status);
     return bits.length ? 'Cocok karena ' + bits.join(', ') + '.' : '';
+  }
+  function buildLocalProductReplyText(picks, intro){
+    picks = Array.isArray(picks) ? picks : [];
+    if(!picks.length) return 'Saya belum menemukan produk ready yang cocok dari katalog Dirac. Coba longgarkan kategori, budget, atau aroma.';
+    const lines = [intro || 'Dari katalog Dirac, saya pilihkan produk paling relevan:'];
+    picks.slice(0,10).forEach(function(p, index){
+      lines.push((index + 1) + '. ' + (p.title || p.name || 'Produk Dirac') + ' - ' + formatMoney(p.price || 0));
+      const reason = buildLocalReason(p).replace(/^Cocok karena\s*/i,'').replace(/\.$/,'');
+      if(reason) lines.push('   Alasan: ' + reason + '.');
+    });
+    lines.push('Saya tampilkan kartu produknya di bawah. Jika ingin alternatif, ketik: selain itu, yang lebih murah, atau sebutkan jumlah produk yang diinginkan.');
+    return lines.join('\n');
   }
 
   function updateRecommendationState(message){
@@ -10945,6 +10957,7 @@ function staticGeneralAnswerLocal(text) {
     if(isProductCountQuestionLocal(n)) return false;
     if(isMathQuestionLocal(n)) return true;
     if(isStoreProductPriceQuestionLocal(n)) return false;
+    if(staticGeneralAnswerLocal(n)) return true;
     if(isNonStoreGeneralQueryLocal(n) || isPerfumeEducationQueryLocal(n)) return true;
     const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kota|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
     const commerceTerms = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|produk|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
@@ -11042,7 +11055,7 @@ function staticGeneralAnswerLocal(text) {
       if(/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return {text:vehiclePriceReplyLocal(n), links:[], products:[]};
       if(isRealTimeMarketQuestionLocal(n)) return {text:realTimeMarketReplyLocal(n), links:[], products:[]};
       if(/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return {text:'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.', links:[], products:[]};
-      return {text:'Pertanyaan ini termasuk pertanyaan umum, bukan produk Dirac. Untuk topik umum yang tidak punya data lokal/rumus sederhana, AI utama perlu API aktif agar bisa menjawab lengkap. Saya tetap tidak akan mengubahnya menjadi rekomendasi parfum. Coba tulis pertanyaan lebih spesifik, atau tanyakan produk Dirac jika ingin cek harga katalog.', links:[], products:[]};
+      return {text:'Ini pertanyaan umum, bukan produk Dirac. Saya tidak akan mengubahnya menjadi rekomendasi parfum. Jika AI utama sedang tidak aktif, saya tetap bisa menjawab matematika, beberapa geografi Indonesia, info dasar parfum, dan harga produk katalog. Untuk topik umum yang sangat luas atau terbaru, aktifkan API AI utama agar jawabannya lengkap dan akurat.', links:[], products:[]};
     }
     if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
     if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
@@ -11056,17 +11069,20 @@ function staticGeneralAnswerLocal(text) {
       updateRecommendationState(message);
       if(state.category || matchCategoryLocal(n)){
         const picks = localProductSearch(message);
-        if(picks.length) return {text:'Dari katalog Dirac, saya pilihkan produk yang sesuai kategori dan budget yang Anda minta. Silakan cek kartu produk di bawah ini sebelum checkout.', products:picks};
+        if(picks.length) return {text:buildLocalProductReplyText(picks, 'Dari katalog Dirac, saya pilihkan produk yang sesuai kategori dan budget yang Anda minta:'), products:picks};
       }
       const known = [state.usage,state.scent,state.gender,state.budget].filter(Boolean).length;
       if(known < 3) return {text:'Boleh. Supaya rekomendasinya pas, jawab dulu: parfum untuk apa, suka aroma apa, untuk pria/wanita/unisex, dan budget berapa?', products:[]};
       const picks = localProductSearch(message);
-      if(picks.length) return {text:'Saya pilihkan beberapa produk Dirac yang paling mendekati kebutuhan Anda. Kalau ingin alternatif, ketik: selain itu atau yang lain.', products:picks};
+      if(picks.length) return {text:buildLocalProductReplyText(picks, 'Saya pilihkan beberapa produk Dirac yang paling mendekati kebutuhan Anda:'), products:picks};
     }
     return {text:'AI utama sedang tidak tersambung. Saya tetap bisa bantu matematika sederhana, info katalog Dirac, checkout, cek resi, dan beberapa pengetahuan umum lokal. Untuk pertanyaan umum yang lebih luas, aktifkan API AI utama di backend.', links:[], products:[]};
   }
   function localFirstReply(message){
     const n = normalize(message);
+    if(isMathQuestionLocal(message)) return {text:solveMathQuestionLocal(message), links:[], products:[]};
+    const staticAnswer = staticGeneralAnswerLocal(n);
+    if(staticAnswer) return {text:staticAnswer, links:[], products:[]};
     const intent = detectLocalIntent(message);
     const canLocalCommerce = intent.productCount || intent.productPrice || intent.math || intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || intent.recommendation || /\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n) || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|ferrari|ferari|mobil|kabupaten|kota|provinsi|jakarta|jawa|kalimantan|aceh|sumatera|sulawesi|papua|bali|banten|indonesia|presiden|raja|arab saudi|saudi|hitung|matematika|mtk|emas|saham|bbca|kurs|dolar|dollar)\b/.test(n));
     if(!canLocalCommerce) return null;
