@@ -24,6 +24,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({
       mode: 'error',
+      provider: null,
       showProducts: false,
       products: [],
       links: [],
@@ -34,11 +35,148 @@ module.exports = async function handler(req, res) {
   const json = (status, payload) => {
     return res.status(status).json({
       mode: 'conversation',
+      provider: null,
       showProducts: false,
       products: [],
       links: [],
       ...payload
     });
+  };
+
+  const normalize = (value) => String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const safeJson = async (response) => {
+    try {
+      return await response.json();
+    } catch (_) {
+      return {};
+    }
+  };
+
+  const fetchWithTimeout = async (url, options, timeoutMs = 18000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  const shouldFailover = (status) => {
+    return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+  };
+
+  const callGemini = async ({ apiKey, model, userPrompt, isGeneralConversation, shouldUseSearch }) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const body = {
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: userPrompt }]
+        }
+      ],
+      generationConfig: {
+        temperature: isGeneralConversation ? 0.55 : 0.38,
+        topP: 0.9,
+        maxOutputTokens: isGeneralConversation ? 800 : 950
+      }
+    };
+
+    if (shouldUseSearch && !model.includes('1.5')) {
+      body.tools = [{ google_search: {} }];
+    }
+
+    const response = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await safeJson(response);
+
+    if (!response.ok) {
+      const error = new Error(data?.error?.message || `Gemini API error ${response.status}`);
+      error.status = response.status;
+      error.provider = 'gemini';
+      throw error;
+    }
+
+    const reply = data?.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text || '')
+      .join('')
+      .trim();
+
+    if (!reply) {
+      const error = new Error('Gemini response empty');
+      error.status = 502;
+      error.provider = 'gemini';
+      throw error;
+    }
+
+    return {
+      provider: `gemini:${model}`,
+      reply
+    };
+  };
+
+  const callGroq = async ({ apiKey, model, userPrompt, isGeneralConversation }) => {
+    const response = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: 'Kamu adalah Dirac AI Assistant. Jawab dalam bahasa Indonesia yang natural, ramah, akurat, dan jangan menawarkan produk kecuali user memang membahas produk/parfum.'
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+        temperature: isGeneralConversation ? 0.55 : 0.35,
+        max_tokens: isGeneralConversation ? 800 : 950
+      })
+    });
+
+    const data = await safeJson(response);
+
+    if (!response.ok) {
+      const error = new Error(data?.error?.message || `Groq API error ${response.status}`);
+      error.status = response.status;
+      error.provider = 'groq';
+      throw error;
+    }
+
+    const reply = data?.choices?.[0]?.message?.content?.trim();
+
+    if (!reply) {
+      const error = new Error('Groq response empty');
+      error.status = 502;
+      error.provider = 'groq';
+      throw error;
+    }
+
+    return {
+      provider: `groq:${model}`,
+      reply
+    };
   };
 
   try {
@@ -54,14 +192,6 @@ module.exports = async function handler(req, res) {
         reply: 'Pertanyaan masih kosong.'
       });
     }
-
-    const normalize = (value) => String(value || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
 
     const normalizedMessage = normalize(message);
     const normalizedHistory = normalize(history.map((item) => item && item.content ? item.content : '').join(' '));
@@ -164,18 +294,10 @@ module.exports = async function handler(req, res) {
       if (!scentWords) missing.push('suka aroma apa');
       if (!genderWords) missing.push('untuk pria, wanita, atau unisex');
       if (!budgetWords) missing.push('budget berapa');
+
       return json(200, {
         mode: 'conversation',
         reply: `Oke, saya catat. Supaya rekomendasinya tidak asal, boleh tambah info ${missing.slice(0, 3).join(', ')}? Setelah itu baru saya pilihkan yang paling cocok.`
-      });
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      return json(200, {
-        mode: 'conversation',
-        reply: 'AI utama belum aktif karena GEMINI_API_KEY belum disetel di Vercel Environment Variables. Saya masih bisa bantu link website, cek resi, dan tanya-jawab dasar.'
       });
     }
 
@@ -256,63 +378,85 @@ Jawab singkat, ramah, dan natural.
     ].filter(Boolean);
 
     const userPrompt = promptParts.join('\n').trim();
-    const preferredModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const modelCandidates = Array.from(new Set([preferredModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']));
 
-    let lastError = null;
-    let reply = '';
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const groqApiKey = process.env.GROQ_API_KEY;
 
-    for (const model of modelCandidates) {
-      const attempts = shouldUseSearch && !model.includes('1.5') ? [{ useSearch: true }, { useSearch: false }] : [{ useSearch: false }];
-      for (const attempt of attempts) {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-        const requestBody = {
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-          generationConfig: {
-            temperature: isGeneralConversation ? 0.55 : 0.38,
-            topP: 0.9,
-            maxOutputTokens: isGeneralConversation ? 800 : 950
+    const geminiModels = Array.from(new Set([
+      process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash'
+    ]));
+
+    const groqModel = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+
+    const errors = [];
+
+    if (geminiApiKey) {
+      for (const model of geminiModels) {
+        const attempts = shouldUseSearch && !model.includes('1.5')
+          ? [{ useSearch: true }, { useSearch: false }]
+          : [{ useSearch: false }];
+
+        for (const attempt of attempts) {
+          try {
+            const result = await callGemini({
+              apiKey: geminiApiKey,
+              model,
+              userPrompt,
+              isGeneralConversation,
+              shouldUseSearch: attempt.useSearch
+            });
+
+            return json(200, {
+              mode: shouldUseProductData ? 'commerce' : 'conversation',
+              provider: result.provider,
+              reply: result.reply
+            });
+          } catch (error) {
+            errors.push(`${error.provider || 'gemini'}: ${error.message}`);
+            if (!shouldFailover(error.status || 500)) {
+              break;
+            }
           }
-        };
-        if (attempt.useSearch) requestBody.tools = [{ google_search: {} }];
+        }
+      }
+    } else {
+      errors.push('gemini: GEMINI_API_KEY belum disetel');
+    }
 
-        const geminiResponse = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+    if (groqApiKey) {
+      try {
+        const result = await callGroq({
+          apiKey: groqApiKey,
+          model: groqModel,
+          userPrompt,
+          isGeneralConversation
         });
 
-        const data = await geminiResponse.json().catch(() => ({}));
-        if (!geminiResponse.ok) {
-          lastError = data && data.error && data.error.message ? data.error.message : `Gemini API error ${geminiResponse.status}`;
-          continue;
-        }
-
-        reply = data && data.candidates && data.candidates[0] && data.candidates[0].content && Array.isArray(data.candidates[0].content.parts)
-          ? data.candidates[0].content.parts.map((part) => part.text || '').join('').trim()
-          : '';
-
-        if (reply) break;
-        lastError = 'Gemini response empty';
+        return json(200, {
+          mode: shouldUseProductData ? 'commerce' : 'conversation',
+          provider: result.provider,
+          reply: result.reply
+        });
+      } catch (error) {
+        errors.push(`${error.provider || 'groq'}: ${error.message}`);
       }
-      if (reply) break;
+    } else {
+      errors.push('groq: GROQ_API_KEY belum disetel');
     }
 
-    if (!reply) {
-      return json(502, {
-        mode: 'error',
-        reply: 'AI sedang gagal dipanggil dari server. Periksa GEMINI_API_KEY, GEMINI_MODEL, dan log Vercel.',
-        detail: lastError || 'Unknown Gemini API error'
-      });
-    }
-
-    return json(200, {
-      mode: shouldUseProductData ? 'commerce' : 'conversation',
-      reply
+    return json(502, {
+      mode: 'error',
+      provider: null,
+      reply: 'AI utama dan backup sedang tidak tersedia. Coba lagi beberapa saat.',
+      detail: errors.slice(-5).join(' | ')
     });
   } catch (error) {
     return res.status(500).json({
       mode: 'error',
+      provider: null,
       showProducts: false,
       products: [],
       links: [],
