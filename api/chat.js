@@ -4,6 +4,7 @@ module.exports = async function handler(req, res) {
       mode: 'error',
       showProducts: false,
       products: [],
+      links: [],
       reply: 'Method tidak diizinkan.'
     });
   }
@@ -11,15 +12,16 @@ module.exports = async function handler(req, res) {
   try {
     const body = req.body || {};
     const message = String(body.message || '').trim();
-    const products = Array.isArray(body.products) ? body.products.slice(0, 80) : [];
+    const products = Array.isArray(body.products) ? body.products.slice(0, 100) : [];
     const cart = Array.isArray(body.cart) ? body.cart.slice(0, 30) : [];
-    const history = Array.isArray(body.history) ? body.history.slice(-10) : [];
+    const history = Array.isArray(body.history) ? body.history.slice(-12) : [];
 
     if (!message) {
       return res.status(400).json({
         mode: 'error',
         showProducts: false,
         products: [],
+        links: [],
         reply: 'Pertanyaan masih kosong.'
       });
     }
@@ -37,43 +39,65 @@ module.exports = async function handler(req, res) {
 
     const json = (status, payload) => {
       return res.status(status).json({
+        mode: 'conversation',
         showProducts: false,
         products: [],
+        links: [],
         ...payload
       });
     };
 
-    const isGreetingOnly = /^(halo|hallo|helo|hello|hai|hi|hii|hiii|hlo|hllo|lo|yo|yoi|p|pp|test|tes|permisi|salam|assalamualaikum|assalamu alaikum|pagi|siang|sore|malam|selamat pagi|selamat siang|selamat sore|selamat malam)$/.test(normalizedMessage);
+    const isGreetingOnly =
+      /^(halo|hallo|helo|hello|hai|hi|hii|hiii|hlo|hllo|lo|yo|yoi|p|pp|test|tes|permisi|salam|assalamualaikum|assalamu alaikum|pagi|siang|sore|malam|selamat pagi|selamat siang|selamat sore|selamat malam)$/.test(normalizedMessage);
 
-    const isThanksOnly = /^(makasih|terima kasih|thanks|thank you|thx|sip|oke|ok|okay|baik|mantap|siap|noted|gas|nice|wah keren)$/.test(normalizedMessage);
+    const isThanksOnly =
+      /^(makasih|terima kasih|terimakasih|thanks|thank you|thx|sip|oke|ok|okay|baik|mantap|siap|noted|gas|nice|wah keren|keren)$/.test(normalizedMessage);
 
-    const isIdentityQuestion = /^(siapa kamu|kamu siapa|ini siapa|ini ai apa|kamu bot|kamu robot|kamu bisa apa|bisa apa|fitur kamu apa|jelaskan dirimu|tolong jelaskan dirimu)$/.test(normalizedMessage);
+    const isIdentityQuestion =
+      /^(siapa kamu|kamu siapa|ini siapa|ini ai apa|kamu bot|kamu robot|kamu bisa apa|bisa apa|fitur kamu apa|jelaskan dirimu|tolong jelaskan dirimu)$/.test(normalizedMessage);
 
-    const isSmallTalkOnly = /^(apa kabar|gimana kabarnya|kamu apa kabar|lagi apa|sedang apa|hai apa kabar|halo apa kabar|hlo apa kabar)$/.test(normalizedMessage);
+    const isSmallTalkOnly =
+      /^(apa kabar|gimana kabarnya|kamu apa kabar|lagi apa|sedang apa|hai apa kabar|halo apa kabar|hlo apa kabar)$/.test(normalizedMessage);
 
-    const hasWebsiteIntent = /\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|company|diracgroup store|dirac group store|alamat web)\b/.test(normalizedMessage);
+    const hasWebsiteIntent =
+      /\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|company|diracgroup store|dirac group store|alamat web|alamat website)\b/.test(normalizedMessage);
 
-    const hasTrackingIntent = /\b(resi|cek resi|lacak|tracking|paket|pengiriman|kurir|jne|jnt|j t|sicepat|anteraja|pos|ninja|lion|sap|id express|tiki)\b/.test(normalizedMessage);
+    const hasTrackingIntent =
+      /\b(resi|cek resi|lacak|tracking|paket|pengiriman|kurir|jne|jnt|j t|sicepat|anteraja|pos|ninja|lion|sap|id express|tiki)\b/.test(normalizedMessage);
 
-    const hasCartIntent = /\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|tambah ke keranjang|cara beli|mau beli)\b/.test(normalizedMessage);
+    const hasCartIntent =
+      /\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|tambah ke keranjang|cara beli|mau beli)\b/.test(normalizedMessage);
 
-    const recommendationWords = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend)\b/.test(normalizedMessage);
+    const recommendationWords =
+      /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend)\b/.test(normalizedMessage);
 
-    const productWords = /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|mahal|murah)\b/.test(normalizedMessage);
+    const productWords =
+      /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|mahal|murah)\b/.test(normalizedMessage);
 
-    const useWords = /\b(harian|sehari hari|daily|kantor|kerja|formal|acara|pesta|date|kencan|malam|siang|outdoor|indoor|kuliah|sekolah|hadiah|kado)\b/.test(normalizedMessage);
+    const useWords =
+      /\b(harian|sehari hari|daily|kantor|kerja|formal|acara|pesta|date|kencan|malam|siang|outdoor|indoor|kuliah|sekolah|hadiah|kado)\b/.test(normalizedMessage);
 
-    const scentWords = /\b(fresh|segar|manis|sweet|soft|lembut|strong|kuat|tahan lama|maskulin|feminim|elegan|sporty|dingin|citrus|woody|vanilla|amber|musk|oud|rose|floral|buah|fruity|aquatic|spicy)\b/.test(normalizedMessage);
+    const scentWords =
+      /\b(fresh|segar|manis|sweet|soft|lembut|strong|kuat|tahan lama|maskulin|feminim|elegan|sporty|dingin|citrus|woody|vanilla|amber|musk|oud|rose|floral|buah|fruity|aquatic|spicy)\b/.test(normalizedMessage);
 
-    const genderWords = /\b(pria|laki|lelaki|cowok|cowo|wanita|perempuan|cewek|cewe|unisex|suami|istri|pacar|teman)\b/.test(normalizedMessage);
+    const genderWords =
+      /\b(pria|laki|lelaki|cowok|cowo|wanita|perempuan|cewek|cewe|unisex|suami|istri|pacar|teman)\b/.test(normalizedMessage);
 
-    const budgetWords = /\b(\d+\s*(rb|ribu|jt|juta)|rp|harga|budget|maksimal|max|dibawah|di bawah|sekitar|murah|mahal)\b/.test(normalizedMessage);
+    const budgetWords =
+      /\b(\d+\s*(rb|ribu|jt|juta)|rp|harga|budget|maksimal|max|dibawah|di bawah|sekitar|murah|mahal)\b/.test(normalizedMessage);
 
     const hasProductIntent = productWords || recommendationWords;
 
     const hasRecommendationContext =
       recommendationWords ||
-      /\b(rekomendasi|rekomendasikan|saran|sarankan|parfum buat apa|aroma apa|budget berapa|mau dipakai buat apa)\b/.test(normalizedHistory);
+      /\b(rekomendasi|rekomendasikan|saran|sarankan|parfum buat apa|aroma apa|budget berapa|mau dipakai buat apa|dipakai buat apa)\b/.test(normalizedHistory);
+
+    const recommendationSignalCount = [
+      useWords,
+      scentWords,
+      genderWords,
+      budgetWords
+    ].filter(Boolean).length;
 
     if (isGreetingOnly) {
       return json(200, {
@@ -92,7 +116,7 @@ module.exports = async function handler(req, res) {
     if (isIdentityQuestion) {
       return json(200, {
         mode: 'conversation',
-        reply: 'Saya Dirac AI Assistant. Saya bisa diajak ngobrol seperti AI biasa, bantu jelaskan produk, bantu pilih parfum pelan-pelan, arahkan checkout, beri link website, dan arahkan cek resi.'
+        reply: 'Saya Dirac AI Assistant. Saya bisa diajak ngobrol seperti AI biasa, bantu jawab pertanyaan umum, bantu pilih parfum pelan-pelan, arahkan checkout, beri link website, dan arahkan cek resi.'
       });
     }
 
@@ -106,35 +130,39 @@ module.exports = async function handler(req, res) {
     if (hasWebsiteIntent && !hasProductIntent && !hasTrackingIntent && !hasCartIntent) {
       return json(200, {
         mode: 'link',
-        reply: 'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store',
         links: [
           {
             label: 'Buka website Dirac Group',
             url: 'https://diracgroup.store'
           }
-        ]
+        ],
+        reply: 'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store'
       });
     }
 
     if (hasTrackingIntent) {
       return json(200, {
         mode: 'link',
-        reply: 'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html',
         links: [
           {
             label: 'Buka Cek Resi',
             url: 'https://diracgroup.store/cekresi.html'
           }
-        ]
+        ],
+        reply: 'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html'
       });
     }
 
-    const recommendationSignalCount = [
-      useWords,
-      scentWords,
-      genderWords,
-      budgetWords
-    ].filter(Boolean).length;
+    if (
+      recommendationWords &&
+      /\b(parfum|perfume|wangi|aroma)\b/.test(normalizedMessage) &&
+      recommendationSignalCount === 0
+    ) {
+      return json(200, {
+        mode: 'conversation',
+        reply: 'Boleh. Parfumnya mau buat apa dulu? Misalnya untuk harian, kerja/kantor, acara formal, hadiah, atau dipakai malam. Anda juga bisa sebut suka aroma fresh, manis, soft, strong, pria/wanita/unisex, dan budgetnya.'
+      });
+    }
 
     const isAskingRecommendation =
       hasRecommendationContext &&
@@ -148,20 +176,9 @@ module.exports = async function handler(req, res) {
       );
 
     if (
-      recommendationWords &&
-      /\b(parfum|perfume|wangi|aroma)\b/.test(normalizedMessage) &&
-      recommendationSignalCount === 0
-    ) {
-      return json(200, {
-        mode: 'conversation',
-        reply: 'Boleh. Parfumnya mau buat apa dulu? Misalnya untuk harian, kerja/kantor, acara formal, hadiah, atau dipakai malam. Anda juga bisa sebut suka aroma fresh, manis, soft, strong, pria/wanita/unisex, dan budgetnya.'
-      });
-    }
-
-    if (
       isAskingRecommendation &&
       recommendationSignalCount > 0 &&
-      recommendationSignalCount < 2
+      recommendationSignalCount < 3
     ) {
       const missing = [];
 
@@ -185,6 +202,16 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    const isGeneralConversation =
+      !hasProductIntent &&
+      !hasTrackingIntent &&
+      !hasCartIntent &&
+      !hasWebsiteIntent;
+
+    const shouldUseProductData =
+      hasProductIntent &&
+      recommendationSignalCount >= 3;
+
     const productText = products.map((p, index) => {
       return [
         `${index + 1}. ${p.title || p.name || 'Produk Dirac'}`,
@@ -205,25 +232,19 @@ module.exports = async function handler(req, res) {
       return `${role}: ${String(item.content || '').slice(0, 500)}`;
     }).join('\n');
 
-    const isGeneralConversation =
-      !hasProductIntent &&
-      !hasTrackingIntent &&
-      !hasCartIntent &&
-      !hasWebsiteIntent;
-
-    const shouldUseProductData =
-      hasProductIntent &&
-      recommendationSignalCount >= 2;
-
     let systemPrompt = '';
 
     if (isGeneralConversation) {
       systemPrompt = `
 Kamu adalah Dirac AI Assistant, tetapi kamu juga harus bisa diajak ngobrol seperti AI biasa.
 Jawab pertanyaan umum user secara langsung, natural, dan ramah.
-Jangan menawarkan produk, jangan menampilkan rekomendasi parfum, dan jangan mengarahkan checkout kecuali user memintanya.
-Kalau pertanyaan user butuh informasi terkini dan kamu tidak yakin, jawab dengan hati-hati dan katakan bahwa informasi bisa berubah.
-Gunakan bahasa Indonesia yang jelas dan tidak terlalu panjang.
+Jangan menawarkan produk.
+Jangan merekomendasikan parfum.
+Jangan menampilkan daftar produk.
+Jangan mengarahkan checkout kecuali user memintanya.
+Jika user bertanya informasi umum, jawab seperti AI biasa.
+Jika informasi bisa berubah, jawab dengan hati-hati.
+Gunakan bahasa Indonesia yang jelas, santai, dan tidak terlalu panjang.
 `.trim();
     } else if (hasCartIntent && !hasProductIntent) {
       systemPrompt = `
@@ -236,8 +257,9 @@ Jawab singkat, jelas, dan ramah.
     } else if (shouldUseProductData) {
       systemPrompt = `
 Kamu adalah Dirac AI Assistant untuk katalog parfum Dirac Group.
-User sudah memberi sebagian kebutuhan parfum, jadi boleh bantu memilih berdasarkan data produk.
-Gunakan hanya data produk yang diberikan. Jangan mengarang stok, harga, atau produk di luar data.
+User sudah memberi kebutuhan parfum cukup jelas, jadi boleh bantu memilih berdasarkan data produk.
+Gunakan hanya data produk yang diberikan.
+Jangan mengarang stok, harga, atau produk di luar data.
 Rekomendasikan maksimal 3 produk yang paling relevan.
 Sebutkan alasan singkat, aroma/kegunaan yang cocok, dan harga jika tersedia.
 Jangan pakai markdown tabel panjang.
@@ -302,6 +324,7 @@ Jawab singkat, ramah, dan natural.
         mode: 'error',
         showProducts: false,
         products: [],
+        links: [],
         reply: 'AI sedang gagal dipanggil dari server. Periksa GEMINI_API_KEY, GEMINI_MODEL, dan log Vercel.',
         detail: data?.error?.message || 'Unknown Gemini API error'
       });
@@ -322,6 +345,7 @@ Jawab singkat, ramah, dan natural.
       mode: 'error',
       showProducts: false,
       products: [],
+      links: [],
       reply: 'Terjadi kendala pada server AI. Silakan coba lagi.',
       detail: error?.message || String(error)
     });
