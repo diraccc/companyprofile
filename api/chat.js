@@ -707,21 +707,96 @@ function buildProductPriceReply(products, text) {
   };
 }
 
-function localKnowledgeAnswer(text) {
-  const n = normalize(text);
-  if (/\b(kabupaten|kota administratif|kota administrasi).*(jakarta|dki)|\b(jakarta|dki).*(kabupaten|kota administratif|kota administrasi)\b/.test(n)) {
-    return 'DKI Jakarta memiliki 1 kabupaten administratif, yaitu Kabupaten Administratif Kepulauan Seribu. Selain itu ada 5 kota administrasi: Jakarta Pusat, Jakarta Utara, Jakarta Barat, Jakarta Selatan, dan Jakarta Timur.';
-  }
-  if (/\b(kabupaten).*(pulau jawa|jawa)|\b(pulau jawa|jawa).*(kabupaten)\b/.test(n)) {
-    return 'Pulau Jawa bukan satu provinsi, tetapi terdiri dari beberapa provinsi. Jika dihitung per provinsi utama di Pulau Jawa, totalnya sekitar 85 kabupaten: Banten 4, DKI Jakarta 1 kabupaten administratif, Jawa Barat 18, Jawa Tengah 29, DI Yogyakarta 4, dan Jawa Timur 29. Angka administratif bisa berubah jika ada pemekaran wilayah.';
-  }
-  if (/\b(kabupaten).*(kalimantan)|\b(kalimantan).*(kabupaten)\b/.test(n)) {
-    return 'Kalimantan di Indonesia terdiri dari 5 provinsi. Total kabupatennya sekitar 47 kabupaten: Kalimantan Barat 12, Kalimantan Tengah 13, Kalimantan Selatan 11, Kalimantan Timur 7, dan Kalimantan Utara 4. Angka ini belum termasuk kota, dan bisa berubah jika ada pemekaran wilayah.';
-  }
-  if (/\b(provinsi).*(indonesia)|\b(indonesia).*(provinsi)\b/.test(n) && /\b(ada berapa|berapa|jumlah)\b/.test(n)) {
+
+function provinceAdminAnswer(n) {
+  n = normalize(n);
+  const map = [
+    { keys: ['aceh'], name: 'Aceh', kab: 18, kota: 5 },
+    { keys: ['sumatera utara','sumut'], name: 'Sumatera Utara', kab: 25, kota: 8 },
+    { keys: ['sumatera barat','sumbar'], name: 'Sumatera Barat', kab: 12, kota: 7 },
+    { keys: ['riau'], name: 'Riau', kab: 10, kota: 2 },
+    { keys: ['jambi'], name: 'Jambi', kab: 9, kota: 2 },
+    { keys: ['sumatera selatan','sumsel'], name: 'Sumatera Selatan', kab: 13, kota: 4 },
+    { keys: ['bengkulu'], name: 'Bengkulu', kab: 9, kota: 1 },
+    { keys: ['lampung'], name: 'Lampung', kab: 13, kota: 2 },
+    { keys: ['bangka belitung','babel'], name: 'Kepulauan Bangka Belitung', kab: 6, kota: 1 },
+    { keys: ['kepulauan riau','kepri'], name: 'Kepulauan Riau', kab: 5, kota: 2 },
+    { keys: ['dki jakarta','jakarta'], name: 'DKI Jakarta', kab: 1, kota: 5, admin: true },
+    { keys: ['jawa barat','jabar'], name: 'Jawa Barat', kab: 18, kota: 9 },
+    { keys: ['jawa tengah','jateng'], name: 'Jawa Tengah', kab: 29, kota: 6 },
+    { keys: ['di yogyakarta','diy','yogyakarta','jogja'], name: 'DI Yogyakarta', kab: 4, kota: 1 },
+    { keys: ['jawa timur','jatim'], name: 'Jawa Timur', kab: 29, kota: 9 },
+    { keys: ['banten'], name: 'Banten', kab: 4, kota: 4 },
+    { keys: ['bali'], name: 'Bali', kab: 8, kota: 1 },
+    { keys: ['nusa tenggara barat','ntb'], name: 'Nusa Tenggara Barat', kab: 8, kota: 2 },
+    { keys: ['nusa tenggara timur','ntt'], name: 'Nusa Tenggara Timur', kab: 21, kota: 1 },
+    { keys: ['kalimantan barat','kalbar'], name: 'Kalimantan Barat', kab: 12, kota: 2 },
+    { keys: ['kalimantan tengah','kalteng'], name: 'Kalimantan Tengah', kab: 13, kota: 1 },
+    { keys: ['kalimantan selatan','kalsel'], name: 'Kalimantan Selatan', kab: 11, kota: 2 },
+    { keys: ['kalimantan timur','kaltim'], name: 'Kalimantan Timur', kab: 7, kota: 3 },
+    { keys: ['kalimantan utara','kalut'], name: 'Kalimantan Utara', kab: 4, kota: 1 },
+    { keys: ['sulawesi utara','sulut'], name: 'Sulawesi Utara', kab: 11, kota: 4 },
+    { keys: ['sulawesi tengah','sulteng'], name: 'Sulawesi Tengah', kab: 12, kota: 1 },
+    { keys: ['sulawesi selatan','sulsel'], name: 'Sulawesi Selatan', kab: 21, kota: 3 },
+    { keys: ['sulawesi tenggara','sultra'], name: 'Sulawesi Tenggara', kab: 15, kota: 2 },
+    { keys: ['gorontalo'], name: 'Gorontalo', kab: 5, kota: 1 },
+    { keys: ['sulawesi barat','sulbar'], name: 'Sulawesi Barat', kab: 6, kota: 0 },
+    { keys: ['maluku utara','malut'], name: 'Maluku Utara', kab: 8, kota: 2 },
+    { keys: ['maluku'], name: 'Maluku', kab: 9, kota: 2 },
+    { keys: ['papua barat daya'], name: 'Papua Barat Daya', kab: 5, kota: 1 },
+    { keys: ['papua barat'], name: 'Papua Barat', kab: 7, kota: 0 },
+    { keys: ['papua tengah'], name: 'Papua Tengah', kab: 8, kota: 0 },
+    { keys: ['papua pegunungan'], name: 'Papua Pegunungan', kab: 8, kota: 0 },
+    { keys: ['papua selatan'], name: 'Papua Selatan', kab: 4, kota: 0 },
+    { keys: ['papua'], name: 'Papua', kab: 8, kota: 1 }
+  ];
+  const asksKab = /\b(kabupaten)\b/.test(n);
+  const asksKota = /\b(kota)\b/.test(n) && !/\bkota apa\b/.test(n);
+  const asksProv = /\b(provinsi)\b/.test(n);
+  if (asksProv && /\bindonesia\b/.test(n) && /\b(ada berapa|berapa|jumlah|total)\b/.test(n)) {
     return 'Indonesia saat ini memiliki 38 provinsi. Jumlah ini bisa berubah jika ada pemekaran wilayah baru.';
   }
+  if (/\b(kabupaten).*(pulau jawa|jawa)\b|\b(pulau jawa|jawa).*(kabupaten)\b/.test(n)) {
+    return 'Pulau Jawa terdiri dari beberapa provinsi. Total kabupaten di Pulau Jawa sekitar 85: Banten 4, DKI Jakarta 1 kabupaten administratif, Jawa Barat 18, Jawa Tengah 29, DI Yogyakarta 4, dan Jawa Timur 29. Di luar itu ada kota administrasi/kota otonom yang dihitung terpisah.';
+  }
+  if (/\b(kabupaten).*(kalimantan)\b|\b(kalimantan).*(kabupaten)\b/.test(n)) {
+    return 'Wilayah Kalimantan di Indonesia terdiri dari 5 provinsi dengan total sekitar 47 kabupaten: Kalimantan Barat 12, Kalimantan Tengah 13, Kalimantan Selatan 11, Kalimantan Timur 7, dan Kalimantan Utara 4. Kota dihitung terpisah.';
+  }
+  for (const item of map) {
+    if (!item.keys.some((key) => n.includes(key))) continue;
+    if (asksKab) {
+      return `${item.name} memiliki ${item.kab} ${item.admin ? 'kabupaten administratif' : 'kabupaten'}${item.kota ? ` dan ${item.kota} kota${item.admin ? ' administrasi' : ''}` : ''}. Angka administratif bisa berubah jika ada pemekaran wilayah.`;
+    }
+    if (asksKota) {
+      return `${item.name} memiliki ${item.kota} kota${item.admin ? ' administrasi' : ''} dan ${item.kab} ${item.admin ? 'kabupaten administratif' : 'kabupaten'}.`;
+    }
+  }
   return null;
+}
+
+function staticGeneralAnswer(text) {
+  const n = normalize(text);
+  const geo = provinceAdminAnswer(n);
+  if (geo) return geo;
+  if (/\b(presiden|raja|pemimpin).*(arab saudi|saudi arabia|saudi)\b|\b(arab saudi|saudi arabia|saudi).*(presiden|raja|pemimpin)\b/.test(n)) {
+    if (/\b(presiden)\b/.test(n)) {
+      return 'Arab Saudi tidak memakai sistem presiden; bentuk negaranya monarki. Kepala negaranya adalah raja. Urutan raja Arab Saudi sejak berdiri: Abdulaziz bin Saud, Saud bin Abdulaziz, Faisal bin Abdulaziz, Khalid bin Abdulaziz, Fahd bin Abdulaziz, Abdullah bin Abdulaziz, dan Salman bin Abdulaziz.';
+    }
+    return 'Raja Arab Saudi sejak berdiri: Abdulaziz bin Saud, Saud bin Abdulaziz, Faisal bin Abdulaziz, Khalid bin Abdulaziz, Fahd bin Abdulaziz, Abdullah bin Abdulaziz, dan Salman bin Abdulaziz.';
+  }
+  if (/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan|semua)\b/.test(n)) {
+    return 'Indonesia sudah memiliki 8 presiden: Soekarno, Soeharto, B.J. Habibie, Abdurrahman Wahid, Megawati Soekarnoputri, Susilo Bambang Yudhoyono, Joko Widodo, dan Prabowo Subianto.';
+  }
+  if (/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) {
+    return 'Presiden Indonesia saat ini adalah Prabowo Subianto, dengan Wakil Presiden Gibran Rakabuming Raka untuk periode 2024-2029.';
+  }
+  if (/\b(sungai amazon|amazon river)\b/.test(n)) return 'Sungai Amazon berada di Amerika Selatan. Sungai ini mengalir terutama melalui Peru, Kolombia, dan Brasil, lalu bermuara ke Samudra Atlantik.';
+  if (/\b(planet terbesar|planet paling besar)\b/.test(n)) return 'Planet terbesar di Tata Surya adalah Jupiter.';
+  return null;
+}
+
+function localKnowledgeAnswer(text) {
+  return staticGeneralAnswer(text);
 }
 
 function hasProductHistoryText(text) {
@@ -1154,36 +1229,38 @@ function categoryMatchesProduct(product, category) {
 }
 
 function publicProducts(list, context = {}) {
-  const max = Math.max(1, Math.min(10, Number(context.requestedCount || 5)));
-  return list.slice(0, max).map((product) => ({
+  const requested = Math.max(1, Math.min(10, Number((context && context.requestedCount) || (Array.isArray(list) ? list.length : 3) || 3)));
+  return (Array.isArray(list) ? list : []).slice(0, requested).map((product) => ({
     id: product.id,
     title: product.title || product.name || 'Produk Dirac',
     name: product.name || product.title || 'Produk Dirac',
+    category: product.category || '',
     price: Number(product.price || 0),
     img: product.img || product.image || '',
-    category: product.category || '',
-    status: product.status || 'ready',
-    notes: product.notes || '',
     desc: product.desc || product.description || '',
-    budgetOk: context.budgetMax ? Number(product.price || 0) <= Math.round(Number(context.budgetMax) * 1.1) : true,
-    reason: productReason(product, context)
+    notes: product.notes || '',
+    status: product.status || 'ready',
+    budgetOk: product.budgetOk !== false
   }));
-}
-
-function productReason(product, context = {}) {
-  const parts = [];
-  if (product.category) parts.push(`kategori ${product.category}`);
-  if (product.notes) parts.push(`notes ${String(product.notes).split(',').slice(0, 2).join(', ')}`);
-  if (context.budgetMax && Number(product.price || 0) <= context.budgetMax) parts.push('masuk budget');
-  else if (context.budgetMax && Number(product.price || 0) <= Math.round(context.budgetMax * 1.1)) parts.push('sedikit di atas budget');
-  if (product.status) parts.push(`status ${product.status}`);
-  if (product.price) parts.push(`harga Rp${Number(product.price || 0).toLocaleString('id-ID')}`);
-  return parts.length ? `Cocok karena ${parts.slice(0, 4).join(', ')}.` : '';
 }
 
 function budgetMatched(list, context) {
   if (!context || !context.budgetMax) return null;
   return list.every((product) => Number(product.price || 0) <= Math.round(Number(context.budgetMax) * 1.1));
+}
+
+
+function productReason(product, context = {}) {
+  const parts = [];
+  const cat = product && product.category ? String(product.category) : '';
+  const notes = product && product.notes ? String(product.notes) : '';
+  const desc = product && (product.desc || product.description) ? String(product.desc || product.description) : '';
+  if (cat) parts.push(`kategori ${cat}`);
+  if (notes) parts.push(`notes ${notes}`);
+  if (context && context.budgetMax && Number(product.price || 0) <= Math.round(Number(context.budgetMax) * 1.1)) parts.push('masih masuk kisaran budget');
+  if (context && context.scent && normalize([notes, desc].join(' ')).includes(normalize(context.scent))) parts.push(`cocok dengan aroma ${context.scent}`);
+  if (!isSold(product)) parts.push('status ready');
+  return parts.length ? 'Cocok karena ' + parts.slice(0, 4).join(', ') + '.' : 'Cocok sebagai opsi dari katalog Dirac.';
 }
 
 function buildProductReply(list, context = {}) {
@@ -1302,7 +1379,7 @@ function localGeneralFallback(text) {
   if (/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return '2 + 2 = 4.';
   if (/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return vehiclePriceReply(n);
   if (/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return 'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.';
-  return 'Pertanyaan ini masuk kategori umum, bukan produk Dirac. AI utama belum aktif untuk menjawab topik umum yang sangat luas secara lengkap, tetapi saya tidak akan mengubahnya menjadi rekomendasi parfum. Coba tulis lebih spesifik, misalnya soal matematika, geografi, sejarah, atau sebutkan produk Dirac jika ingin cek harga katalog.';
+  return 'Pertanyaan ini termasuk pertanyaan umum, bukan produk Dirac. Untuk topik umum yang tidak punya data lokal/rumus sederhana, AI utama perlu API aktif agar bisa menjawab lengkap. Saya tetap tidak akan mengubahnya menjadi rekomendasi parfum. Coba tulis pertanyaan lebih spesifik, atau tanyakan produk Dirac jika ingin cek harga katalog.';
 }
 
 function shouldUseSearch(text, intent) {
