@@ -10166,15 +10166,36 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
           <span>Ngobrol umum, pelajaran, rekomendasi parfum, checkout, dan cek resi.</span>
         </div>
       </div>
-      <button class="dirac-ai-close" id="diracAiClose" type="button" aria-label="Tutup AI Assistant">×</button>
+      <div class="dirac-ai-head-actions">
+        <button class="dirac-ai-reset" id="diracAiReset" type="button" aria-label="Reset chat AI">Reset</button>
+        <button class="dirac-ai-close" id="diracAiClose" type="button" aria-label="Tutup AI Assistant">×</button>
+      </div>
     </div>
 
     <div class="dirac-ai-body" id="diracAiMessages" aria-live="polite" aria-atomic="false"></div>
+
+    <div class="dirac-ai-wizard" id="diracAiWizard" aria-label="Pilih cepat rekomendasi parfum">
+      <div class="dirac-ai-wizard-title">Pilih cepat parfum</div>
+      <div class="dirac-ai-wizard-row">
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="rekomendasi parfum lokal">Lokal</button>
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="rekomendasi parfum niche">Niche</button>
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="rekomendasi parfum timteng">Timteng</button>
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="rekomendasi parfum designer">Designer</button>
+      </div>
+      <div class="dirac-ai-wizard-row">
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="parfum harian fresh pria budget 300 ribu">Harian fresh</button>
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="parfum formal woody pria budget 1 juta">Formal woody</button>
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="parfum manis untuk malam budget 500 ribu">Malam manis</button>
+        <button class="dirac-ai-wizard-chip" type="button" data-dirac-ai-prompt="parfum notes vanilla">Notes vanilla</button>
+      </div>
+    </div>
 
     <div class="dirac-ai-suggestions" aria-label="Contoh pertanyaan AI">
       <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Apa kabar?">Ngobrol</button>
       <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Saya mau rekomendasi parfum">Rekomendasi</button>
       <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Parfum harian fresh untuk pria budget 300 ribu">Contoh detail</button>
+      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="rekomendasi parfum lokal dana 200">Lokal 200</button>
+      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="bandingkan parfum lokal dan niche yang cocok untuk harian">Compare</button>
       <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Saya mau cek resi pesanan Dirac Group">Cek resi</button>
       <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Website resmi Dirac Group mana?">Website</button>
     </div>
@@ -10205,6 +10226,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   const toggle = document.getElementById('diracAiToggle');
   const panel = document.getElementById('diracAiPanel');
   const closeBtn = document.getElementById('diracAiClose');
+  const resetBtn = document.getElementById('diracAiReset');
   const messagesEl = document.getElementById('diracAiMessages');
   const form = document.getElementById('diracAiForm');
   const input = document.getElementById('diracAiInput');
@@ -10218,6 +10240,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   let state = loadJson('dirac_ai_state_v2', {category:null,usage:null,scent:null,gender:null,budget:null,intent:null});
   let isBusy = false;
   let greeted = false;
+  let restoredHistory = false;
   const sessionId = getSessionId();
 
   function qs(selector, root=document){ return root.querySelector(selector); }
@@ -10325,7 +10348,23 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function addUserMessage(text){ addMessage('user', safeText(text)); }
   function addBotMessage(text, options){
     options = options || {};
-    const item = addMessage('bot', linkifySafeText(text || ''), {provider:options.provider});
+    const rawText = String(text || '');
+    const isLong = rawText.length > 620 && !options.disableCollapse;
+    const displayText = isLong ? rawText.slice(0, 520).trim() + '...' : rawText;
+    const item = addMessage('bot', linkifySafeText(displayText), {provider:options.provider});
+    if(isLong){
+      const bubble = item.querySelector('.dirac-ai-bubble');
+      const btn = document.createElement('button');
+      btn.className = 'dirac-ai-expand';
+      btn.type = 'button';
+      btn.textContent = 'Lihat selengkapnya';
+      btn.addEventListener('click', function(){
+        if(bubble) bubble.innerHTML = linkifySafeText(rawText);
+        btn.remove();
+        scrollMessages();
+      });
+      item.appendChild(btn);
+    }
     if(options.links && options.links.length) item.appendChild(renderLinks(options.links));
     if(options.questions && options.questions.length) item.appendChild(renderQuestionChips(options.questions));
     if(options.products && options.products.length) item.appendChild(renderProductCards(options.products));
@@ -10334,7 +10373,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     return item;
   }
   function addTyping(){
-    return addMessage('bot','<span class="dirac-ai-typing" aria-label="AI sedang mengetik"><i></i><i></i><i></i></span>');
+    return addMessage('bot','<div class="dirac-ai-thinking"><span>Dirac AI sedang memproses</span><span class="dirac-ai-typing" aria-label="AI sedang mengetik"><i></i><i></i><i></i></span></div><div class="dirac-ai-skeleton" aria-hidden="true"><b></b><b></b><b></b></div>');
   }
   function renderLinks(links){
     const wrap = document.createElement('div');
@@ -10402,6 +10441,14 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     });
     return wrap;
   }
+  function buildLocalReason(p){
+    const bits = [];
+    if(p.category) bits.push('kategori ' + p.category);
+    if(p.notes) bits.push('notes ' + String(p.notes).split(',').slice(0,2).join(', '));
+    if(p.status) bits.push('status ' + p.status);
+    return bits.length ? 'Cocok karena ' + bits.join(', ') + '.' : '';
+  }
+
   function updateRecommendationState(message){
     const current = normalize(message);
     if(isGeneralKnowledgeLocal(current)) return;
@@ -10597,12 +10644,34 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       if(shouldAutoFocusAi()) input.focus({preventScroll:true});
     }
   }
+  function renderSavedHistory(){
+    if(restoredHistory) return;
+    restoredHistory = true;
+    if(!history.length) return;
+    messagesEl.innerHTML = '';
+    history.slice(-MAX_HISTORY).forEach(function(item){
+      if(!item || !item.content) return;
+      if(item.role === 'user') addUserMessage(item.content);
+      else addBotMessage(item.content, {noFeedback:true, disableCollapse:true});
+    });
+  }
+  function resetChat(){
+    history = [];
+    state = {category:null,usage:null,scent:null,gender:null,budget:null,intent:null};
+    saveJson('dirac_ai_history_v2', history);
+    saveJson('dirac_ai_state_v2', state);
+    messagesEl.innerHTML = '';
+    greeted = true;
+    restoredHistory = true;
+    addBotMessage('Chat sudah direset. Mau ngobrol umum, belajar, atau pilih parfum dari awal?', {noFeedback:true});
+  }
   function setOpen(open){
     widget.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', String(open));
     panel.setAttribute('aria-hidden', String(!open));
     if(open){
-      if(!greeted){
+      if(!restoredHistory) renderSavedHistory();
+      if(!greeted && !history.length){
         greeted = true;
         addBotMessage('Halo! Saya Dirac AI Assistant. Saya bisa diajak ngobrol seperti AI biasa, menjawab pertanyaan umum/pelajaran, bantu pilih parfum pelan-pelan, cek resi, website, dan checkout. Catatan: jangan kirim password, OTP, atau data sensitif di chat ini.', {noFeedback:true});
       }
@@ -10614,11 +10683,12 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(document.getElementById('dirac-ai-upgrade-css')) return;
     const style = document.createElement('style');
     style.id = 'dirac-ai-upgrade-css';
-    style.textContent = '.dirac-ai-inline-link{color:var(--gold);font-weight:900;text-decoration:underline}.dirac-ai-links,.dirac-ai-question-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0}.dirac-ai-link,.dirac-ai-question-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.34);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:850}.dirac-ai-question-chip{cursor:pointer}.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-feedback button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.70rem;font-weight:800}.dirac-ai-provider{font-size:.68rem;color:#8190a4;margin-top:3px;padding-left:4px}html[data-effective-theme="light"] .dirac-ai-link,html[data-effective-theme="light"] .dirac-ai-question-chip{color:#171923;background:rgba(var(--theme-rgb,243,205,112),.16)}html[data-effective-theme="light"] .dirac-ai-feedback button{color:#526071;background:rgba(255,255,255,.68)}@media(max-width:760px){.dirac-ai-links,.dirac-ai-question-list{gap:6px}.dirac-ai-link,.dirac-ai-question-chip{font-size:.74rem;padding:7px 9px}.dirac-ai-feedback button{font-size:.68rem}}';
+    style.textContent = '.dirac-ai-inline-link{color:var(--gold);font-weight:900;text-decoration:underline}.dirac-ai-links,.dirac-ai-question-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0}.dirac-ai-link,.dirac-ai-question-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.34);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:850}.dirac-ai-question-chip{cursor:pointer}.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-feedback button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.70rem;font-weight:800}.dirac-ai-provider{font-size:.68rem;color:#8190a4;margin-top:3px;padding-left:4px}.dirac-ai-head-actions{display:flex;gap:7px;align-items:center}.dirac-ai-reset{height:34px;border-radius:999px;border:1px solid rgba(var(--theme-rgb,243,205,112),.28);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;font-weight:900;padding:0 12px}.dirac-ai-wizard{padding:10px 15px 8px;border-top:1px solid rgba(255,255,255,.06)}.dirac-ai-wizard-title{font-size:.72rem;color:#9aa7ba;font-weight:850;margin:0 0 7px}.dirac-ai-wizard-row{display:flex;gap:7px;overflow:auto;scroll-snap-type:x proximity;padding-bottom:4px}.dirac-ai-wizard-row::-webkit-scrollbar{display:none}.dirac-ai-wizard-chip{flex:0 0 auto;scroll-snap-align:start;border:1px solid rgba(var(--theme-rgb,243,205,112),.26);background:rgba(255,255,255,.045);color:#f7edcf;border-radius:999px;padding:7px 10px;font-size:.72rem;font-weight:850}.dirac-ai-thinking{display:flex;align-items:center;gap:8px}.dirac-ai-thinking span:first-child{font-size:.78rem;color:#cbd5e1}.dirac-ai-skeleton{display:grid;gap:7px;margin-top:10px}.dirac-ai-skeleton b{height:10px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.16),rgba(255,255,255,.06));background-size:220% 100%;animation:diracAiSkeleton 1.35s linear infinite}.dirac-ai-skeleton b:nth-child(2){width:78%}.dirac-ai-skeleton b:nth-child(3){width:54%}@keyframes diracAiSkeleton{to{background-position:-220% 0}}.dirac-ai-expand{border:1px solid rgba(var(--theme-rgb,243,205,112),.26);border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.11);color:#fff;font-weight:850;padding:7px 10px;font-size:.72rem}.dirac-ai-product-card{animation:diracAiCardIn .22s ease both}.dirac-ai-product-card:nth-child(2){animation-delay:.06s}.dirac-ai-product-card:nth-child(3){animation-delay:.12s}.dirac-ai-product-meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.dirac-ai-product-meta span{margin:0;color:#dbe4f0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 7px;font-size:.66rem;font-weight:800}.dirac-ai-card-reason{grid-column:1/-1;color:#aeb9c8;font-size:.72rem;line-height:1.35}.dirac-ai-mini-btn.is-added{filter:brightness(1.08);transform:scale(.98)}@keyframes diracAiCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}html[data-effective-theme="light"] .dirac-ai-link,html[data-effective-theme="light"] .dirac-ai-question-chip{color:#171923;background:rgba(var(--theme-rgb,243,205,112),.16)}html[data-effective-theme="light"] .dirac-ai-feedback button{color:#526071;background:rgba(255,255,255,.68)}@media(max-width:760px){.dirac-ai-links,.dirac-ai-question-list{gap:6px}.dirac-ai-link,.dirac-ai-question-chip{font-size:.74rem;padding:7px 9px}.dirac-ai-feedback button{font-size:.68rem}.dirac-ai-wizard{padding:9px 11px 7px}.dirac-ai-reset{height:32px;padding:0 10px;font-size:.76rem}}';
     document.head.appendChild(style);
   }
   toggle.addEventListener('click', function(){ setOpen(!widget.classList.contains('is-open')); });
   if(closeBtn) closeBtn.addEventListener('click', function(){ setOpen(false); });
+  if(resetBtn) resetBtn.addEventListener('click', resetChat);
   document.addEventListener('keydown', function(event){ if(event.key === 'Escape' && widget.classList.contains('is-open')) setOpen(false); });
   form.addEventListener('submit', function(event){ event.preventDefault(); handleSend(input.value); });
   input.addEventListener('keydown', function(event){ if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); handleSend(input.value); } });
@@ -10641,7 +10711,14 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     }
     if(addBtn){
       const id = addBtn.getAttribute('data-dirac-ai-add');
-      try{ if(typeof addToCart === 'function') addToCart(id); else throw new Error('addToCart not found'); }
+      try{
+        if(typeof addToCart === 'function') addToCart(id); else throw new Error('addToCart not found');
+        const oldText = addBtn.textContent;
+        addBtn.textContent = 'Masuk ✓';
+        addBtn.classList.add('is-added');
+        document.querySelectorAll('.cart-count,.cart-badge,.header-cart-count').forEach(function(el){ el.classList.add('cart-bump'); setTimeout(function(){ el.classList.remove('cart-bump'); }, 650); });
+        setTimeout(function(){ addBtn.textContent = oldText; addBtn.classList.remove('is-added'); }, 1200);
+      }
       catch(error){ addBotMessage('Maaf, tombol tambah keranjang belum siap. Silakan gunakan tombol Tambah pada kartu produk.', {noFeedback:true}); }
     }
   });
