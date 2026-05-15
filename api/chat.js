@@ -66,9 +66,8 @@ module.exports = async function handler(req, res) {
 
     const forcedGeneral = isGeneralKnowledge(normalizedMessage);
     const recommendationHistory = relevantRecommendationHistory(history);
-    const historyContext = extractContext(recommendationHistory);
-    const messageContext = extractContext(message);
-    const context = forcedGeneral ? messageContext : mergeContext(historyContext, messageContext);
+    const contextSource = forcedGeneral ? message : `${recommendationHistory} ${message}`;
+    const context = extractContext(contextSource);
     const intent = detectIntent(normalizedMessage, normalizedHistory, context, forcedGeneral);
 
     const direct = directAnswer(intent, cart, traceId);
@@ -84,22 +83,25 @@ module.exports = async function handler(req, res) {
       }));
     }
 
-    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search' || intent.name === 'product_compare';
+    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search';
     const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 8) : [];
     const topProducts = scoredProducts.slice(0, 3).map((item) => item.product);
 
     if (useProducts && topProducts.length && !hasProvider()) {
-      return res.status(200).json(makeReply(intent.name === 'product_compare' ? 'compare' : 'commerce', intent.name === 'product_compare' ? buildCompareReply(topProducts) : buildProductReply(topProducts), {
+      return res.status(200).json(makeReply('commerce', buildProductReply(topProducts), {
         traceId,
         provider: 'local-product-matcher',
         showProducts: true,
-        products: publicProducts(topProducts, context),
+        products: publicProducts(topProducts),
         analytics: { intent: intent.name, source: 'local-product-matcher', ms: Date.now() - startedAt }
       }));
     }
 
     if (!hasProvider()) {
-      return res.status(200).json(makeReply('fallback', 'AI utama belum aktif karena API key belum disetel di Vercel. Saya masih bisa bantu link website, cek resi, cara checkout, dan rekomendasi dasar.', { traceId }));
+      const fallbackText = intent.name === 'general'
+        ? 'AI utama belum aktif karena API key belum disetel di Vercel. Untuk menjawab pertanyaan umum, pelajaran, matematika, IPA, IPS, bahasa Inggris, coding, atau tugas kompleks, aktifkan API key lalu coba lagi.'
+        : 'AI utama belum aktif karena API key belum disetel di Vercel. Saya masih bisa bantu link website, cek resi, cara checkout, dan rekomendasi dasar.';
+      return res.status(200).json(makeReply('fallback', fallbackText, { traceId }));
     }
 
     const prompt = buildPrompt({
@@ -117,11 +119,11 @@ module.exports = async function handler(req, res) {
       search: shouldUseSearch(normalizedMessage, intent)
     });
 
-    return res.status(200).json(makeReply(intent.name === 'product_compare' ? 'compare' : (useProducts ? 'commerce' : intent.mode), ai.text, {
+    return res.status(200).json(makeReply(useProducts ? 'commerce' : intent.mode, ai.text, {
       traceId,
       provider: ai.provider,
       showProducts: useProducts && topProducts.length > 0,
-      products: useProducts ? publicProducts(topProducts, context) : [],
+      products: useProducts ? publicProducts(topProducts) : [],
       analytics: {
         intent: intent.name,
         source: ai.provider,
@@ -227,8 +229,8 @@ function isPromptInjection(text) {
 }
 
 function isGeneralKnowledge(text) {
-  const productTerms = /\b(parfum|perfume|produk|wangi|aroma|botol|ml|stok|ready|harga|budget|rekomendasi|checkout|keranjang|resi|paket|kurir)\b/.test(text);
-  const generalTerms = /\b(presiden|amerika|indonesia|negara|dunia|sejarah|geografi|politik|bulan|matahari|langit|planet|hewan|siapa|apa itu|kenapa|mengapa|bagaimana|berapa)\b/.test(text);
+  const productTerms = /\b(parfum|perfume|produk parfum|wangi parfum|aroma parfum|botol parfum|ml parfum|stok|ready|rekomendasi parfum|checkout|keranjang|resi|paket|kurir)\b/.test(text);
+  const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|hitung|rumus|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(text);
   return generalTerms && !productTerms;
 }
 
@@ -279,14 +281,6 @@ function pick(text, map) {
 }
 
 function extractBudget(text) {
-  const word = text.match(/\b(?:dana|budget|modal|maksimal|max|harga|range|sekitar|dibawah|di bawah|under)\s*(?:rp\s*)?(\d+(?:[.,]\d+)?)(?:\s*(rb|ribu|k|jt|juta))?\b/);
-  if (word) {
-    const value = word[1].replace(',', '.');
-    const unit = word[2] || '';
-    if (/jt|juta/.test(unit)) return `${value} juta`;
-    if (/rb|ribu|k/.test(unit)) return `${value} ribu`;
-    return Number(value) <= 20 ? `${value} juta` : `${value} ribu`;
-  }
   const rupiah = text.match(/(?:rp\s*)?(\d{2,4})\s*(rb|ribu|k)\b/);
   if (rupiah) return `${rupiah[1]} ribu`;
   const juta = text.match(/(?:rp\s*)?(\d+(?:\.\d+)?)\s*(jt|juta)\b/);
@@ -296,18 +290,6 @@ function extractBudget(text) {
   return null;
 }
 
-
-function budgetToNumber(label) {
-  const text = normalize(label || '');
-  const match = text.match(/(\d+(?:[.,]\d+)?)/);
-  if (!match) return 0;
-  const value = Number(match[1].replace(',', '.'));
-  if (!Number.isFinite(value)) return 0;
-  if (/jt|juta/.test(text)) return Math.round(value * 1000000);
-  if (/rb|ribu|k/.test(text)) return Math.round(value * 1000);
-  return value >= 10000 ? Math.round(value) : Math.round(value * 1000);
-}
-
 function extractCategory(text) {
   if (/\b(niche|nishe|niche fragrance|parfum niche|koleksi niche|luxury niche)\b/.test(text)) return 'niche';
   if (/\b(designer|desainer|parfum designer|brand designer)\b/.test(text)) return 'designer';
@@ -315,17 +297,6 @@ function extractCategory(text) {
   if (/\b(lokal|local|brand lokal)\b/.test(text)) return 'lokal';
   if (/\b(miniso)\b/.test(text)) return 'miniso';
   return null;
-}
-
-
-function mergeContext(historyContext, messageContext) {
-  return {
-    category: messageContext.category || historyContext.category || null,
-    usage: messageContext.usage || historyContext.usage || null,
-    scent: messageContext.scent || historyContext.scent || null,
-    gender: messageContext.gender || historyContext.gender || null,
-    budget: messageContext.budget || historyContext.budget || null
-  };
 }
 
 function detectIntent(text, history, context, forcedGeneral) {
@@ -346,14 +317,7 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|alamat web|alamat website)\b/.test(text) && !/\b(parfum|produk|resi|checkout|beli)\b/.test(text)) return { name: 'website', mode: 'link' };
   if (/\b(resi|cek resi|lacak|tracking|paket|pengiriman|kurir|jne|jnt|j t|sicepat|anteraja|pos|ninja|lion|sap|id express|tiki)\b/.test(text)) return { name: 'tracking', mode: 'link' };
   if (/\b(komplain|keluhan|belum sampai|belum dikirim|rusak|salah barang|refund|retur|return|admin|cs|customer service|bantuan admin)\b/.test(text)) return { name: 'support', mode: 'support' };
-  if (/\b(original|ori|asli|palsu|kw|authentic)\b/.test(text)) return { name: 'faq_original', mode: 'support' };
-  if (/\b(pembayaran|bayar|transfer|metode bayar|payment)\b/.test(text)) return { name: 'faq_payment', mode: 'checkout' };
-  if (/\b(retur|refund|return|pengembalian)\b/.test(text)) return { name: 'faq_return', mode: 'support' };
-  if (/\b(jam operasional|jam buka|buka jam|admin online|jam admin)\b/.test(text)) return { name: 'faq_hours', mode: 'support' };
-  if (/\b(promo|diskon|potongan|voucher)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'faq_promo', mode: 'checkout' };
   if (/\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|cara beli|mau beli)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'checkout', mode: 'checkout' };
-
-  if (/\b(bandingkan|compare|komparasi|versus|vs|mana yang lebih|lebih bagus mana|pilih yang mana)\b/.test(text) && /\b(parfum|produk|wangi|aroma|harga|notes)\b/.test(text)) return { name: 'product_compare', mode: 'commerce' };
 
   const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend|mau parfum|pengen parfum|butuh parfum)\b/.test(text) || /\b(rekomendasi|parfum buat apa|aroma apa|budget berapa)\b/.test(history);
   const categoryProduct = !!context.category || /\b(niche|nishe|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
@@ -362,11 +326,11 @@ function detectIntent(text, history, context, forcedGeneral) {
 
   // Jika user minta kategori jelas seperti “parfum niche”, langsung masuk mode produk
   // dan jangan dicampur dengan kategori lain seperti Timur Tengah/Designer.
-  if (recommendation && (context.category || infoCount > 0)) return { name: 'recommendation_ready', mode: 'commerce' };
+  if (recommendation && context.category) return { name: 'recommendation_ready', mode: 'commerce' };
   if (!recommendation && context.category && product) return { name: 'product_search', mode: 'commerce' };
-  if (!recommendation && infoCount > 0 && infoCount < 2) return { name: 'recommendation_needs_info', mode: 'recommendation' };
-  if (recommendation && infoCount < 1) return { name: 'recommendation_needs_info', mode: 'recommendation' };
-  if (recommendation && infoCount >= 1) return { name: 'recommendation_ready', mode: 'commerce' };
+  if (!recommendation && infoCount > 0 && infoCount < 3) return { name: 'recommendation_needs_info', mode: 'recommendation' };
+  if (recommendation && infoCount < 3) return { name: 'recommendation_needs_info', mode: 'recommendation' };
+  if (recommendation && infoCount >= 3) return { name: 'recommendation_ready', mode: 'commerce' };
   if (product) return { name: 'product_search', mode: 'commerce' };
   return { name: 'general', mode: 'conversation' };
 }
@@ -385,11 +349,6 @@ function directAnswer(intent, cart, traceId) {
   if (intent.name === 'tracking') return makeReply('link', `Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\n${CHECK_RESI_URL}`, { traceId, links: [{ label: 'Buka Cek Resi', url: CHECK_RESI_URL }] });
   if (intent.name === 'checkout') return makeReply('checkout', 'Untuk membeli, tambahkan produk ke keranjang dulu, lalu buka keranjang dan klik checkout WhatsApp. Kalau ingin dibantu admin langsung, klik tombol WhatsApp.', { traceId, links: [{ label: 'Chat Admin WhatsApp', url: WHATSAPP_URL }], cartCount: Array.isArray(cart) ? cart.length : 0 });
   if (intent.name === 'support') return makeReply('support', 'Maaf atas kendalanya. Supaya admin bisa bantu lebih cepat, siapkan nomor order atau nomor resi Anda lalu hubungi admin WhatsApp.', { traceId, links: [{ label: 'Hubungi Admin WhatsApp', url: WHATSAPP_URL }] });
-  if (intent.name === 'faq_original') return makeReply('support', 'Dirac Group berfokus pada parfum berkualitas. Untuk memastikan detail originalitas, batch, dan kondisi produk tertentu, cek detail produk atau hubungi admin sebelum checkout.', { traceId, links: [{ label: 'Chat Admin WhatsApp', url: WHATSAPP_URL }] });
-  if (intent.name === 'faq_payment') return makeReply('checkout', 'Untuk pembayaran, lanjutkan checkout lewat WhatsApp agar admin memberi instruksi pembayaran yang sesuai dan aman.', { traceId, links: [{ label: 'Checkout via WhatsApp', url: WHATSAPP_URL }] });
-  if (intent.name === 'faq_return') return makeReply('support', 'Untuk retur/refund, hubungi admin WhatsApp dengan nomor order, foto produk, dan kronologi kendala agar bisa dicek lebih cepat.', { traceId, links: [{ label: 'Hubungi Admin WhatsApp', url: WHATSAPP_URL }] });
-  if (intent.name === 'faq_hours') return makeReply('support', 'Untuk jam operasional/admin online, silakan hubungi WhatsApp Dirac Group agar mendapat info terbaru dan respons paling akurat.', { traceId, links: [{ label: 'Chat Admin WhatsApp', url: WHATSAPP_URL }] });
-  if (intent.name === 'faq_promo') return makeReply('checkout', 'Promo atau diskon bisa berubah. Jika ada promo aktif, admin akan membantu konfirmasi saat checkout WhatsApp.', { traceId, links: [{ label: 'Tanya Promo ke Admin', url: WHATSAPP_URL }] });
   return null;
 }
 
@@ -416,7 +375,6 @@ function scoreProducts(products, context, text) {
   const terms = normalize(text).split(' ').filter((term) => term.length > 2);
   const requestedCategory = context.category || extractCategory(normalize(text));
   const boosts = [context.category, context.usage, context.scent, context.gender].filter(Boolean);
-  const budgetValue = budgetToNumber(context.budget);
   const related = {
     harian: ['fresh', 'clean', 'soft', 'citrus', 'daily', 'segar'],
     kantor: ['fresh', 'clean', 'woody', 'soft', 'office', 'elegan'],
@@ -454,14 +412,8 @@ function scoreProducts(products, context, text) {
       if (normalize(product.category).includes(term)) score += 18;
     }
     for (const boost of boosts) if (haystack.includes(normalize(boost))) score += 7;
-    if (budgetValue) {
-      const price = Number(product.price || 0);
-      if (price > 0 && price <= budgetValue) score += 35;
-      else if (price > 0 && price <= budgetValue * 1.15) score += 12;
-      else if (price > budgetValue) score -= Math.min(50, Math.ceil((price - budgetValue) / 50000));
-    }
     if (product.isTopSeller) score += 8;
-    if (isSold(product)) score -= 1000;
+    if (isSold(product)) score -= 100;
     return { product, score };
   }).filter((item) => item.score > 0 && !isSold(item.product)).sort((a, b) => b.score - a.score);
 }
@@ -483,7 +435,7 @@ function categoryMatchesProduct(product, category) {
   return true;
 }
 
-function publicProducts(list, context = {}) {
+function publicProducts(list) {
   return list.slice(0, 4).map((product) => ({
     id: product.id,
     title: product.title || product.name || 'Produk Dirac',
@@ -493,36 +445,13 @@ function publicProducts(list, context = {}) {
     category: product.category || '',
     status: product.status || 'ready',
     notes: product.notes || '',
-    desc: product.desc || product.description || '',
-    reason: buildProductReason(product, context)
+    desc: product.desc || product.description || ''
   }));
-}
-
-function buildProductReason(product, context = {}) {
-  const text = normalize([product.category, product.notes, product.desc, product.description, product.longDesc, product.title, product.name].join(' '));
-  const reasons = [];
-  if (context.category && categoryMatchesProduct(product, context.category)) reasons.push(`sesuai kategori ${product.category || context.category}`);
-  if (context.usage && text.includes(normalize(context.usage))) reasons.push(`cocok untuk ${context.usage}`);
-  if (context.scent && text.includes(normalize(context.scent))) reasons.push(`karakter ${context.scent}`);
-  if (context.gender && text.includes(normalize(context.gender))) reasons.push(`untuk ${context.gender}`);
-  if (context.budget) {
-    const max = budgetToNumber(context.budget);
-    if (max && Number(product.price || 0) <= max) reasons.push('masuk budget');
-  }
-  if (!reasons.length && product.notes) reasons.push(`notes ${String(product.notes).split(/[,.|/]/).slice(0,2).join(', ')}`);
-  if (!reasons.length && product.category) reasons.push(`kategori ${product.category}`);
-  return reasons.length ? `Alasan: ${reasons.slice(0,3).join(', ')}.` : 'Alasan: paling mendekati kebutuhan dari katalog.';
 }
 
 function buildProductReply(list) {
   const names = list.slice(0, 3).map((product) => product.title || product.name || 'Produk Dirac').join(', ');
-  const category = list[0] && list[0].category ? ` kategori ${list[0].category}` : '';
-  return names ? `Saya pilihkan parfum${category} yang paling nyambung dengan permintaan Anda: ${names}. Silakan lihat kartu produk di bawah ini dan cek detail sebelum checkout.` : 'Saya belum menemukan produk yang cocok. Coba sebutkan kategori, aroma, penggunaan, gender, dan budget lebih detail.';
-}
-
-function buildCompareReply(list) {
-  const names = list.slice(0, 3).map((product) => product.title || product.name || 'Produk Dirac').join(', ');
-  return names ? `Saya bandingkan opsi yang paling dekat dari katalog: ${names}. Lihat ringkasan per produk di bawah ini; pilih yang paling cocok dengan aroma, budget, dan kebutuhan Anda.` : 'Saya belum menemukan produk yang cukup untuk dibandingkan. Coba sebutkan kategori, aroma, dan budget.';
+  return names ? `Saya pilihkan ${names}. Silakan lihat kartu produk di bawah ini dan cek detail sebelum checkout.` : 'Saya belum menemukan produk yang cocok. Coba sebutkan aroma, penggunaan, gender, dan budget lebih detail.';
 }
 
 function shouldUseSearch(text, intent) {
@@ -531,7 +460,8 @@ function shouldUseSearch(text, intent) {
 
 function buildPrompt({ message, history, cart, intent, context, products }) {
   const date = new Date().toISOString().slice(0, 10);
-  const historyText = history.map((item) => `${item && item.role === 'assistant' ? 'AI' : 'User'}: ${String((item && item.content) || '').slice(0, 500)}`).join('\n') || '-';
+  const effectiveHistory = intent.name === 'general' ? [] : history;
+  const historyText = effectiveHistory.map((item) => `${item && item.role === 'assistant' ? 'AI' : 'User'}: ${String((item && item.content) || '').slice(0, 500)}`).join('\n') || '-';
   const productText = products.length ? products.map((product, index) => [
     `${index + 1}. ${product.title || product.name || 'Produk Dirac'}`,
     `Kategori: ${product.category || '-'}`,
@@ -544,8 +474,8 @@ function buildPrompt({ message, history, cart, intent, context, products }) {
 
   let system = 'Kamu adalah Dirac AI Assistant. Jawab bahasa Indonesia yang natural, ramah, jelas, dan akurat.';
   if (intent.name === 'general') {
-    system += ` Kamu bisa diajak ngobrol seperti AI biasa. Jangan menawarkan produk atau checkout kecuali diminta. Tanggal sistem: ${date}. Untuk Presiden Indonesia saat ini: Prabowo Subianto.`;
-  } else if (intent.name === 'recommendation_ready' || intent.name === 'product_search' || intent.name === 'product_compare') {
+    system += ` Kamu adalah AI umum sekaligus tutor belajar, bukan hanya AI penjualan. Wajib jawab pertanyaan umum dan tugas kompleks bila aman: sejarah dunia, geografi, IPS, IPA, matematika dasar/lanjut, fisika, kimia, biologi, bahasa Inggris, bahasa Indonesia, coding, logika, ringkasan, terjemahan, dan penjelasan konsep. Jangan menolak hanya karena topik tidak terkait parfum. Jangan menawarkan produk, jangan menampilkan rekomendasi parfum, dan jangan mengarahkan checkout kecuali user memintanya. Jika soal hitungan, berikan langkah ringkas. Jika informasi bisa berubah, jawab hati-hati. Tanggal sistem: ${date}. Untuk Presiden Indonesia saat ini: Prabowo Subianto.`;
+  } else if (intent.name === 'recommendation_ready' || intent.name === 'product_search') {
     system += ' Kamu adalah konsultan parfum. Gunakan hanya data produk yang diberikan, hindari sold/kosong/not ready, rekomendasikan maksimal 3 produk, jangan mengarang harga/stok. Jika user meminta kategori tertentu seperti Niche, Designer, Timur Tengah, Lokal, atau Miniso, jangan keluar dari kategori tersebut.';
   } else {
     system += ' Gali kebutuhan user pelan-pelan dan jangan langsung jualan jika belum jelas.';
@@ -663,7 +593,7 @@ async function callGroq(key, model, prompt, general) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: 'Kamu adalah Dirac AI Assistant. Jawab bahasa Indonesia natural dan jangan menawarkan produk kecuali user membahas produk/parfum.' },
+        { role: 'system', content: 'Kamu adalah Dirac AI Assistant. Untuk pertanyaan umum, jawab seperti AI umum dan tutor belajar multi-mata-pelajaran: sejarah, geografi, IPA, IPS, matematika, fisika, kimia, biologi, bahasa Inggris, coding, dan tugas kompleks. Jangan menolak hanya karena bukan topik parfum. Jangan menawarkan produk kecuali user membahas produk/parfum.' },
         { role: 'user', content: prompt }
       ],
       temperature: general ? 0.55 : 0.35,
@@ -692,7 +622,7 @@ async function callOpenAI(key, model, prompt, general) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: 'Kamu adalah Dirac AI Assistant. Jawab bahasa Indonesia natural dan jangan menawarkan produk kecuali user membahas produk/parfum.' },
+        { role: 'system', content: 'Kamu adalah Dirac AI Assistant. Untuk pertanyaan umum, jawab seperti AI umum dan tutor belajar multi-mata-pelajaran: sejarah, geografi, IPA, IPS, matematika, fisika, kimia, biologi, bahasa Inggris, coding, dan tugas kompleks. Jangan menolak hanya karena bukan topik parfum. Jangan menawarkan produk kecuali user membahas produk/parfum.' },
         { role: 'user', content: prompt }
       ],
       temperature: general ? 0.55 : 0.35,
