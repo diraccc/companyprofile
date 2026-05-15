@@ -7550,6 +7550,51 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       return safeText(value, "").toLowerCase();
     }
 
+    function finalDeliveryTextMatches(value, receiverText) {
+      const text = lowerText(value);
+      if (!text) return false;
+      if (/\b(delivered|terkirim|shipment delivered|successfully delivered|package delivered)\b/.test(text)) return true;
+      if (/\b(proof of delivery|pod)\b/.test(text) && !/\b(belum|not|no|tanpa)\b/.test(text)) return true;
+      if (/(?:paket\s+)?(?:telah|sudah)\s+diterima\s+(?:oleh\s+)?(?:penerima|recipient|consignee|customer|yang bersangkutan)/.test(text)) return true;
+      if (/diterima\s+oleh\s+(?:penerima|recipient|consignee|customer|yang bersangkutan)/.test(text)) return true;
+      if (/(?:selesai\s+(?:diterima|dikirim)|pengiriman\s+selesai)/.test(text) && !/\b(belum|pending|proses|perjalanan|transit|manifest|gateway|hub)\b/.test(text)) return true;
+
+      const receiver = lowerText(receiverText || "");
+      if (receiver && receiver !== "-" && receiver.length >= 3) {
+        const escapedReceiver = receiver.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const byReceiver = new RegExp("(?:telah|sudah)?\\s*diterima\\s+oleh\\s+" + escapedReceiver);
+        if (byReceiver.test(text)) return true;
+      }
+
+      return false;
+    }
+
+    function parseHistoryTimestamp(value) {
+      const raw = safeText(value, "").replace(/\./g, ":");
+      if (!raw) return null;
+      const direct = Date.parse(raw);
+      if (!Number.isNaN(direct)) return direct;
+      const match = raw.match(/(20\d{2})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (match) {
+        return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)).getTime();
+      }
+      return null;
+    }
+
+    function latestHistoryText(history) {
+      if (!Array.isArray(history) || !history.length) return "";
+      let latest = history[history.length - 1];
+      let latestTime = parseHistoryTimestamp(latest && latest.time);
+      history.forEach((item) => {
+        const itemTime = parseHistoryTimestamp(item && item.time);
+        if (itemTime !== null && (latestTime === null || itemTime >= latestTime)) {
+          latest = item;
+          latestTime = itemTime;
+        }
+      });
+      return safeText((latest && latest.rawText) || [latest && latest.title, latest && latest.description, latest && latest.time].filter(Boolean).join(" "), "");
+    }
+
     function findFirst(...values) {
       for (const value of values) {
         if (value !== null && value !== undefined && String(value).trim() !== "") return value;
@@ -7668,21 +7713,19 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
         delivery.status,
         delivery.pod_receiver,
         details.status,
-        ...history.map((item) => item.rawText)
+        latestHistoryText(history)
       ].filter(Boolean).map((item) => safeText(item, "")).filter(Boolean);
 
       return [...new Set(values)].join(" | ");
     }
 
-    function detectDelivered(statusText, root) {
-      const text = lowerText(statusText);
-
-      return (
+    function detectDelivered(statusText, root, receiverText) {
+      return Boolean(
         root?.delivered === true ||
         root?.is_delivered === true ||
         root?.delivered === 1 ||
         root?.is_delivered === 1 ||
-        /delivered|terkirim|telah diterima|sudah diterima|diterima oleh|received by|pod|proof of delivery|paket telah diterima|shipment delivered/.test(text)
+        finalDeliveryTextMatches(statusText, receiverText)
       );
     }
 
@@ -7719,7 +7762,14 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       const normalizedHistory = rawHistory.map(normalizeHistoryItem).filter((item) => item.title !== "Aktivitas pengiriman" || item.description !== "Lokasi tidak tersedia");
 
       const statusText = getAllStatusText({ raw, root, summary, details, delivery, history: normalizedHistory });
-      const delivered = detectDelivered(statusText, root);
+      const receiverCandidate = findFirst(
+        delivery.pod_receiver,
+        summary.receiver_name,
+        details.receiver_name,
+        details.receiver,
+        getFirstByPaths(root, ["receiver_name", "receiver", "recipient", "recipient_name"])
+      );
+      const delivered = detectDelivered(statusText, root, receiverCandidate);
       const displayStatus = mapDisplayStatus(statusText, delivered);
       const activeStep = getActiveStep(displayStatus, delivered, statusText);
 
@@ -7763,13 +7813,7 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
         getFirstByPaths(root, ["eta", "estimate", "estimation"])
       );
 
-      const receiver = findFirst(
-        delivery.pod_receiver,
-        summary.receiver_name,
-        details.receiver_name,
-        details.receiver,
-        getFirstByPaths(root, ["receiver_name", "receiver", "recipient", "recipient_name"])
-      );
+      const receiver = receiverCandidate;
 
       const origin = findFirst(
         summary.origin,
@@ -8984,7 +9028,7 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       function formatTime(v){try{return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(v))}catch(e){return"Baru saja"}}
       function readRecent(){try{const p=JSON.parse(localStorage.getItem(RECENT_KEY)||"[]");return Array.isArray(p)?p.slice(0,5):[]}catch(e){return[]}}
       function currentData(){return latest||{resi:textOf(rr.resi)||clean(resi.value),expedition:textOf(rr.expedition)||courierName(expedition.value),status:textOf(rr.status),shippingDate:textOf(rr.date),eta:textOf(rr.eta),receiver:textOf(rr.receiver),origin:textOf(rr.origin),destination:textOf(rr.destination),delivered:false}}
-      function isDelivered(d){const t=[d&&d.status,d&&d.rawStatus,textOf(rr.status),textOf(rr.badge)].join(" ").toLowerCase();return !!(d&&d.delivered)||/delivered|terkirim|telah diterima|diterima|pod|received|selesai/.test(t)}
+      function isDelivered(d){const t=[d&&d.status,d&&d.rawStatus,textOf(rr.status),textOf(rr.badge)].join(" ").toLowerCase();return !!(d&&d.delivered)||/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(t)}
       function trackingUrl(d){const x=d||currentData(),u=new URL(window.location.href);u.searchParams.set("resi",safe(x.resi||clean(resi.value)));u.searchParams.set("courier",safe(expedition.value));if(phone&&safe(phone.value))u.searchParams.set("phone",safe(phone.value).replace(/\D/g,"").slice(0,4));else u.searchParams.delete("phone");u.searchParams.delete("auto");return u.toString()}
       function summary(d){const x=d||currentData(),latestTl=timelineList?timelineList.querySelector(".timeline-item .timeline-copy strong"):null;return["Hasil Cek Resi Dirac Group",`Resi: ${safe(x.resi)||"-"}`,`Ekspedisi: ${safe(x.expedition)||courierName(expedition.value)||"-"}`,`Status: ${safe(x.status)||"-"}`,`Asal: ${safe(x.origin)||"-"}`,`Tujuan: ${safe(x.destination)||"-"}`,`Penerima: ${safe(x.receiver)||"-"}`,`Estimasi: ${safe(x.eta)||"-"}`,`Update terakhir: ${latestTl?safe(latestTl.textContent):"-"}`,`Dicek: ${formatTime(Date.now())}`,`Link: ${trackingUrl(x)}`].join("\n")}
       function copyFallback(t){const a=document.createElement("textarea");a.value=t;a.setAttribute("readonly","");a.style.position="fixed";a.style.left="-9999px";document.body.appendChild(a);a.select();try{document.execCommand("copy");return Promise.resolve()}catch(e){return Promise.reject(e)}finally{a.remove()}}
@@ -8998,7 +9042,7 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       function analyzeError(m){const t=safe(m).toLowerCase();if(/offline|internet|koneksi terputus/.test(t))return["Koneksi perangkat terputus","Sambungkan internet, lalu tekan Cek Resi lagi."];if(/terlalu lama|timeout|abort|lambat/.test(t))return["Server tracking lambat","Coba refresh status beberapa saat lagi. Request sudah dibatasi agar tombol tidak loading terlalu lama."];if(/tidak ditemukan|not found|belum tersedia|resi/.test(t))return["Resi belum ditemukan","Pastikan ekspedisi sesuai, nomor resi tidak salah, dan resi sudah aktif di sistem ekspedisi."];if(/json|format|parse|respons/.test(t))return["Format respons belum sesuai","Backend/API mengirim data yang belum bisa dibaca penuh. Coba ulang atau hubungi support jika berulang."];return["Cek data pelacakan","Periksa nomor resi, pilih ekspedisi yang benar, lalu coba cek ulang."]}
       function showSmartError(m){createSmartError();if(!smartErrorPanel)return;const a=analyzeError(m),h=smartErrorPanel.querySelector("strong"),p=smartErrorPanel.querySelector("p");if(h)h.textContent=a[0];if(p)p.textContent=a[1];smartErrorPanel.classList.add("show")}
       function hideSmartError(){if(smartErrorPanel)smartErrorPanel.classList.remove("show")}
-      function enhanceRecent(){if(!recentList)return;const items=readRecent(),btns=recentList.querySelectorAll(".recent-track-item");btns.forEach((b,i)=>{if(b.querySelector(".dg-v12-recent-status"))return;const item=items[i];if(!item)return;const delivered=/delivered|terkirim|diterima|pod|selesai/i.test(item.status||""),badge=document.createElement("span");badge.className="dg-v12-recent-status"+(delivered?" delivered":"");badge.textContent=delivered?"Diterima":safe(item.status||"Terakhir dicek").slice(0,28);const main=b.querySelector(".recent-track-main");if(main)main.appendChild(badge)})}
+      function enhanceRecent(){if(!recentList)return;const items=readRecent(),btns=recentList.querySelectorAll(".recent-track-item");btns.forEach((b,i)=>{if(b.querySelector(".dg-v12-recent-status"))return;const item=items[i];if(!item)return;const delivered=/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/i.test(item.status||""),badge=document.createElement("span");badge.className="dg-v12-recent-status"+(delivered?" delivered":"");badge.textContent=delivered?"Diterima":safe(item.status||"Terakhir dicek").slice(0,28);const main=b.querySelector(".recent-track-main");if(main)main.appendChild(badge)})}
       function applyUrl(){const params=new URLSearchParams(window.location.search),r=clean(params.get("resi")||params.get("awb")||""),c=safe(params.get("courier")||params.get("expedition")||"").toLowerCase(),ph=safe(params.get("phone")||"").replace(/\D/g,"").slice(0,4);if(r){resi.value=r;flash(resi)}if(c&&Array.from(expedition.options).some(o=>o.value===c)){expedition.value=c;expedition.dispatchEvent(new Event("change",{bubbles:true}))}if(ph&&phone)phone.value=ph;if(r||c)toast("Link tracking dimuat ke form.");if(r&&c&&params.get("auto")==="1")setTimeout(()=>{if(typeof form.requestSubmit==="function")form.requestSubmit();else form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}))},350)}
       function applyLastCourier(){const params=new URLSearchParams(window.location.search);if(params.get("courier")||expedition.value)return;try{const last=localStorage.getItem(LAST_COURIER_KEY)||"";if(last&&Array.from(expedition.options).some(o=>o.value===last)){expedition.value=last;expedition.dispatchEvent(new Event("change",{bubbles:true}))}}catch(e){}}
       function saveLastCourier(){try{if(expedition.value)localStorage.setItem(LAST_COURIER_KEY,expedition.value)}catch(e){}}
@@ -9815,7 +9859,7 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
     function routeState(status) {
       const statusText = String(status || "").toLowerCase();
       const active = activeStepCount();
-      const delivered = /diterima|delivered|terkirim|pesanan tiba|paket telah diterima|pod|received|selesai/.test(statusText) || active >= 6;
+      const delivered = /(delivered|terkirim|shipment delivered|paket telah diterima|pesanan tiba|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(statusText) || active >= 6;
       if (delivered) return 3;
       if (/kurir|alamat|antar|delivery|out for delivery|menuju|tujuan|destination|arrived/.test(statusText) || active >= 4) return 2;
       return 1;
@@ -10441,7 +10485,7 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
     }
 
     function isDelivered(status) {
-      return /diterima|delivered|terkirim|pesanan tiba|paket telah diterima|pod|received|selesai/i.test(status || "");
+      return /(delivered|terkirim|shipment delivered|paket telah diterima|pesanan tiba|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/i.test(status || "");
     }
 
     function polishRoute() {
@@ -10897,7 +10941,7 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
     const observer = new MutationObserver(function () {
       if (resultArea.classList.contains("show")) {
         const statusText = (document.getElementById("statusBadgeText") || {}).textContent || "";
-        const delivered = /diterima|delivered|terkirim|selesai|pod|received/i.test(statusText);
+        const delivered = /(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/i.test(statusText);
         setState("success", delivered ? "Paket sudah diterima" : "Data tracking berhasil", delivered ? "Timeline menunjukkan paket sudah selesai diterima." : "Paket berhasil dilacak dan status terbaru sudah ditampilkan.");
       }
       if (errorMessage && errorMessage.classList.contains("show")) enhanceError(errorMessage.textContent);
@@ -11221,9 +11265,9 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
   function classifyStatus(statusText, data) {
     const text = [statusText, data && data.status, textOf("resultTitle"), textOf("resultStatus"), textOf("statusBadgeText"), timelineList ? timelineList.textContent : ""].join(" ").toLowerCase();
     if (/gagal|failed|failure|retur|return|undelivered|alamat tidak|penerima tidak|tidak di tempat|tertahan|hold|exception|problem|hilang|lost|cancel|dibatalkan/.test(text)) return "problem";
-    if (/diterima|delivered|terkirim|selesai|received|pod/.test(text)) return "delivered";
-    if (/pending|menunggu|manifest|created|belum/.test(text)) return "pending";
+    if (/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(text)) return "delivered";
     if (/transit|proses|perjalanan|dikirim|out for delivery|kurir|sortir|hub|gateway|on process/.test(text)) return "transit";
+    if (/pending|menunggu|manifest|created|belum/.test(text)) return "pending";
     return "transit";
   }
 
@@ -12789,7 +12833,7 @@ body.dg-v22-stepper-placed .tracking-loading-stage.dg-v22-kept-after-form {
   }
   function activeStepFromStatus(text) {
     const value = String(text || "").toLowerCase();
-    if (/diterima|delivered|terkirim|pod|received by/.test(value)) return 6;
+    if (/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(value)) return 6;
     if (/out for delivery|with courier|kurir|diantar|antar ke alamat/.test(value)) return 5;
     if (/destination|kota tujuan|hub tujuan|tiba/.test(value)) return 4;
     if (/transit|perjalanan|dikirim|departed|forwarded|manifest|shipped|sortir|gateway|hub/.test(value)) return 3;
@@ -12799,7 +12843,7 @@ body.dg-v22-stepper-placed .tracking-loading-stage.dg-v22-kept-after-form {
   function classifyStatus(text, activeStep) {
     const value = String(text || "").toLowerCase();
     if (/gagal|failed|failure|retur|return|returned|rts|undelivered|alamat tidak|penerima tidak|tidak di tempat|tertahan|hold|exception|problem|hilang|lost|cancel|dibatalkan/.test(value)) return "problem";
-    if (/diterima|delivered|terkirim|selesai|received by|pod/.test(value) || activeStep >= 6) return "delivered";
+    if (/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(value) || activeStep >= 6) return "delivered";
     if (/pending|menunggu|created|booking|belum aktif|belum/.test(value)) return "pending";
     if (/out for delivery|kurir|diantar/.test(value)) return "delivery";
     return "transit";
