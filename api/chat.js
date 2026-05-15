@@ -66,8 +66,9 @@ module.exports = async function handler(req, res) {
 
     const forcedGeneral = isGeneralKnowledge(normalizedMessage);
     const recommendationHistory = relevantRecommendationHistory(history);
-    const contextSource = forcedGeneral ? message : `${recommendationHistory} ${message}`;
-    const context = extractContext(contextSource);
+    const historyContext = extractContext(recommendationHistory);
+    const messageContext = extractContext(message);
+    const context = forcedGeneral ? messageContext : mergeContext(historyContext, messageContext);
     const intent = detectIntent(normalizedMessage, normalizedHistory, context, forcedGeneral);
 
     const direct = directAnswer(intent, cart, traceId);
@@ -278,6 +279,14 @@ function pick(text, map) {
 }
 
 function extractBudget(text) {
+  const word = text.match(/\b(?:dana|budget|modal|maksimal|max|harga|range|sekitar|dibawah|di bawah|under)\s*(?:rp\s*)?(\d+(?:[.,]\d+)?)(?:\s*(rb|ribu|k|jt|juta))?\b/);
+  if (word) {
+    const value = word[1].replace(',', '.');
+    const unit = word[2] || '';
+    if (/jt|juta/.test(unit)) return `${value} juta`;
+    if (/rb|ribu|k/.test(unit)) return `${value} ribu`;
+    return Number(value) <= 20 ? `${value} juta` : `${value} ribu`;
+  }
   const rupiah = text.match(/(?:rp\s*)?(\d{2,4})\s*(rb|ribu|k)\b/);
   if (rupiah) return `${rupiah[1]} ribu`;
   const juta = text.match(/(?:rp\s*)?(\d+(?:\.\d+)?)\s*(jt|juta)\b/);
@@ -287,6 +296,18 @@ function extractBudget(text) {
   return null;
 }
 
+
+function budgetToNumber(label) {
+  const text = normalize(label || '');
+  const match = text.match(/(\d+(?:[.,]\d+)?)/);
+  if (!match) return 0;
+  const value = Number(match[1].replace(',', '.'));
+  if (!Number.isFinite(value)) return 0;
+  if (/jt|juta/.test(text)) return Math.round(value * 1000000);
+  if (/rb|ribu|k/.test(text)) return Math.round(value * 1000);
+  return value >= 10000 ? Math.round(value) : Math.round(value * 1000);
+}
+
 function extractCategory(text) {
   if (/\b(niche|nishe|niche fragrance|parfum niche|koleksi niche|luxury niche)\b/.test(text)) return 'niche';
   if (/\b(designer|desainer|parfum designer|brand designer)\b/.test(text)) return 'designer';
@@ -294,6 +315,17 @@ function extractCategory(text) {
   if (/\b(lokal|local|brand lokal)\b/.test(text)) return 'lokal';
   if (/\b(miniso)\b/.test(text)) return 'miniso';
   return null;
+}
+
+
+function mergeContext(historyContext, messageContext) {
+  return {
+    category: messageContext.category || historyContext.category || null,
+    usage: messageContext.usage || historyContext.usage || null,
+    scent: messageContext.scent || historyContext.scent || null,
+    gender: messageContext.gender || historyContext.gender || null,
+    budget: messageContext.budget || historyContext.budget || null
+  };
 }
 
 function detectIntent(text, history, context, forcedGeneral) {
@@ -323,11 +355,11 @@ function detectIntent(text, history, context, forcedGeneral) {
 
   // Jika user minta kategori jelas seperti “parfum niche”, langsung masuk mode produk
   // dan jangan dicampur dengan kategori lain seperti Timur Tengah/Designer.
-  if (recommendation && context.category) return { name: 'recommendation_ready', mode: 'commerce' };
+  if (recommendation && (context.category || infoCount > 0)) return { name: 'recommendation_ready', mode: 'commerce' };
   if (!recommendation && context.category && product) return { name: 'product_search', mode: 'commerce' };
-  if (!recommendation && infoCount > 0 && infoCount < 3) return { name: 'recommendation_needs_info', mode: 'recommendation' };
-  if (recommendation && infoCount < 3) return { name: 'recommendation_needs_info', mode: 'recommendation' };
-  if (recommendation && infoCount >= 3) return { name: 'recommendation_ready', mode: 'commerce' };
+  if (!recommendation && infoCount > 0 && infoCount < 2) return { name: 'recommendation_needs_info', mode: 'recommendation' };
+  if (recommendation && infoCount < 1) return { name: 'recommendation_needs_info', mode: 'recommendation' };
+  if (recommendation && infoCount >= 1) return { name: 'recommendation_ready', mode: 'commerce' };
   if (product) return { name: 'product_search', mode: 'commerce' };
   return { name: 'general', mode: 'conversation' };
 }
@@ -372,6 +404,7 @@ function scoreProducts(products, context, text) {
   const terms = normalize(text).split(' ').filter((term) => term.length > 2);
   const requestedCategory = context.category || extractCategory(normalize(text));
   const boosts = [context.category, context.usage, context.scent, context.gender].filter(Boolean);
+  const budgetValue = budgetToNumber(context.budget);
   const related = {
     harian: ['fresh', 'clean', 'soft', 'citrus', 'daily', 'segar'],
     kantor: ['fresh', 'clean', 'woody', 'soft', 'office', 'elegan'],
@@ -409,8 +442,14 @@ function scoreProducts(products, context, text) {
       if (normalize(product.category).includes(term)) score += 18;
     }
     for (const boost of boosts) if (haystack.includes(normalize(boost))) score += 7;
+    if (budgetValue) {
+      const price = Number(product.price || 0);
+      if (price > 0 && price <= budgetValue) score += 35;
+      else if (price > 0 && price <= budgetValue * 1.15) score += 12;
+      else if (price > budgetValue) score -= Math.min(50, Math.ceil((price - budgetValue) / 50000));
+    }
     if (product.isTopSeller) score += 8;
-    if (isSold(product)) score -= 100;
+    if (isSold(product)) score -= 1000;
     return { product, score };
   }).filter((item) => item.score > 0 && !isSold(item.product)).sort((a, b) => b.score - a.score);
 }
@@ -448,7 +487,8 @@ function publicProducts(list) {
 
 function buildProductReply(list) {
   const names = list.slice(0, 3).map((product) => product.title || product.name || 'Produk Dirac').join(', ');
-  return names ? `Saya pilihkan ${names}. Silakan lihat kartu produk di bawah ini dan cek detail sebelum checkout.` : 'Saya belum menemukan produk yang cocok. Coba sebutkan aroma, penggunaan, gender, dan budget lebih detail.';
+  const category = list[0] && list[0].category ? ` kategori ${list[0].category}` : '';
+  return names ? `Saya pilihkan parfum${category} yang paling nyambung dengan permintaan Anda: ${names}. Silakan lihat kartu produk di bawah ini dan cek detail sebelum checkout.` : 'Saya belum menemukan produk yang cocok. Coba sebutkan kategori, aroma, penggunaan, gender, dan budget lebih detail.';
 }
 
 function shouldUseSearch(text, intent) {
