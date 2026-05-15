@@ -10205,7 +10205,9 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   if(window.__DIRAC_AI_ASSISTANT_INSTALLED__) return;
   window.__DIRAC_AI_ASSISTANT_INSTALLED__ = true;
 
-  const AI_ENDPOINT = window.DIRAC_AI_ENDPOINT || '/api/chat';
+  const DEFAULT_AI_ENDPOINT = 'https://companyprofilee-ochre.vercel.app/api/chat';
+  const AI_ENDPOINTS = Array.from(new Set([window.DIRAC_AI_ENDPOINT || DEFAULT_AI_ENDPOINT, DEFAULT_AI_ENDPOINT, '/api/chat'].filter(Boolean)));
+  const AI_ENDPOINT = AI_ENDPOINTS[0];
   const ANALYTICS_ENDPOINT = window.DIRAC_AI_ANALYTICS_URL || '';
   const FEEDBACK_ENDPOINT = window.DIRAC_AI_FEEDBACK_URL || '';
   const MAX_HISTORY = 16;
@@ -10234,9 +10236,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   let greeted = false;
   let restoredHistory = false;
   let activeController = null;
+  let userAbortRequested = false;
   let lastUserPrompt = '';
   let sessionId = getSessionId();
-  const AI_BUILD = 'ai-fix-2026-05-15-v4-root';
+  const AI_BUILD = 'ai-fix-2026-05-15-v5-root-endpoint-state';
   try{
     if(localStorage.getItem('dirac_ai_build') !== AI_BUILD){
       ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1'].forEach(function(key){ localStorage.removeItem(key); });
@@ -10614,10 +10617,27 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
 
   function escapeRegExp(value){ return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function isExplicitNewProductRequestLocal(message){
+    const n = normalize(message);
+    if(!n || isGeneralKnowledgeLocal(n)) return false;
+    const compare = /\b(bandingkan|perbandingan|compare|komparasi|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n);
+    const recommend = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum)\b/.test(n);
+    const category = matchCategoriesLocal(n).length > 0;
+    const budget = !!parseBudgetLocal(n).label;
+    const productWord = /\b(parfum|perfume|produk|wangi|aroma)\b/.test(n);
+    const usage = /\b(harian|sehari hari|daily|kantor|kerja|formal|pesta|malam|date|kado|hadiah|gift|sekolah|kampus)\b/.test(n);
+    const scent = /\b(fresh|segar|citrus|aquatic|clean|manis|sweet|vanilla|woody|oud|amber|musk|floral|soft|strong|tahan lama|awet|spicy)\b/.test(n);
+    const gender = /\b(pria|laki|lelaki|cowok|cowo|wanita|perempuan|cewek|cewe|unisex)\b/.test(n);
+    const detailCount = [category,budget,usage,scent,gender].filter(Boolean).length;
+    if(compare && (category || productWord)) return true;
+    if(recommend && (productWord || category || detailCount > 0)) return true;
+    if(productWord && detailCount >= 2 && !/\b(selain itu|yang lain|lainnya|alternatif|tadi|sebelumnya|lanjut|lebih murah|lebih mahal|jangan yang itu|bukan itu)\b/.test(n)) return true;
+    return false;
+  }
   function shouldUseStateForMessageLocal(message){
     const n = normalize(message);
     if(!n || isGeneralKnowledgeLocal(n)) return false;
-    if(/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum)\b/.test(n) && /\b(parfum|niche|designer|timur tengah|timteng|lokal|miniso)\b/.test(n)) return false;
+    if(isExplicitNewProductRequestLocal(n)) return false;
     if(/\b(selain itu|yang lain|lainnya|alternatif|tadi|sebelumnya|lanjut|lebih|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(n)) return true;
     if(/^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(n)) return true;
     if(/^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(n)) return true;
@@ -10643,7 +10663,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const brand = /\b(apa itu dirac|apa itu dirac group|dirac group itu apa|tentang dirac group|profil dirac group|siapa dirac group|dirac group siapa|dirac itu apa|dirac siapa|apa itu toko dirac|apa itu website dirac)\b/.test(n);
     if(brand) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:true};
     if(isGeneralKnowledgeLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:true, brand:false};
-    const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|parfum|perfume|wangi|aroma|niche|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(n);
+    const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|parfum|perfume|wangi|aroma|niche|designer|desainer|timteng|timur tengah|lokal|miniso|selain itu|yang lain|lainnya|alternatif|rekomendasi lain|pilihan lain)\b/.test(n) || (shouldUseStateForMessageLocal(n) && !!(state.category || state.usage || state.scent || state.gender || state.budget || (state.lastProductIds && state.lastProductIds.length)));
     const tracking = /\b(resi|cek resi|tracking|lacak|pengiriman|paket)\b/.test(n);
     const website = /\b(website|web|situs|company profile|profil perusahaan|link)\b/.test(n);
     const cartIntent = /\b(keranjang|cart|checkout|beli|order|pesan|bayar|whatsapp|wa)\b/.test(n);
@@ -10725,16 +10745,40 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     }
     return {text:'AI utama sedang tidak tersambung, jadi saya belum bisa menjawab pertanyaan umum secara akurat. Saya masih bisa bantu link website, cek resi, cara checkout, atau rekomendasi dasar dari katalog.', links:[], products:[]};
   }
+  function localFirstReply(message){
+    const n = normalize(message);
+    const intent = detectLocalIntent(message);
+    const canLocalCommerce = intent.recommendation || intent.website || intent.tracking || intent.cart || intent.brand || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(n));
+    if(!canLocalCommerce) return null;
+    const local = localFallbackReply(message);
+    if(!local || !local.text) return null;
+    if(/^AI utama sedang tidak tersambung/i.test(local.text) && !(local.products && local.products.length)) return null;
+    return local;
+  }
   function abortActiveRequest(){
+    userAbortRequested = true;
     try{ if(activeController) activeController.abort(); }catch(error){}
   }
   async function callRemoteAi(message){
+    let lastError = null;
+    for(const endpoint of AI_ENDPOINTS){
+      try{
+        return await callRemoteAiEndpoint(endpoint, message);
+      }catch(error){
+        lastError = error;
+        if(error && error.name === 'AbortError') break;
+      }
+    }
+    throw lastError || new Error('AI endpoint unavailable');
+  }
+  async function callRemoteAiEndpoint(endpoint, message){
     const controller = new AbortController();
     activeController = controller;
-    const timer = setTimeout(function(){ controller.abort(); }, 9000);
+    const timer = setTimeout(function(){ controller.abort(); }, 5500);
     try{
-      const response = await fetch(AI_ENDPOINT, {
+      const response = await fetch(endpoint, {
         method:'POST',
+        mode:'cors',
         headers:{'Content-Type':'application/json','X-Dirac-Session':sessionId},
         body:JSON.stringify({
           message:message,
@@ -10797,6 +10841,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       return;
     }
     isBusy = true;
+    userAbortRequested = false;
     sendBtn.disabled = false;
     sendBtn.textContent = '×';
     sendBtn.setAttribute('aria-label','Hentikan jawaban AI');
@@ -10809,11 +10854,18 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const started = Date.now();
     try{
       let data = null;
-      try{
-        data = await callRemoteAi(message);
-      }catch(remoteError){
-        const local = localFallbackReply(message);
-        data = {reply:local.text, links:local.links || [], products:local.products || [], showProducts:(local.products || []).length > 0, provider:'local-fallback', mode:'fallback'};
+      const fastLocal = localFirstReply(message);
+      if(fastLocal){
+        await new Promise(function(resolve){ setTimeout(resolve, 120); });
+        data = {reply:fastLocal.text, links:fastLocal.links || [], questions:fastLocal.questions || [], products:fastLocal.products || [], showProducts:(fastLocal.products || []).length > 0, provider:'Dirac AI', mode:'local-fast'};
+      }else{
+        try{
+          data = await callRemoteAi(message);
+        }catch(remoteError){
+          if(userAbortRequested) throw remoteError;
+          const local = localFallbackReply(message);
+          data = {reply:local.text, links:local.links || [], questions:local.questions || [], products:local.products || [], showProducts:(local.products || []).length > 0, provider:'local-fallback', mode:'fallback'};
+        }
       }
       typing.remove();
       const productsToShow = data.showProducts ? (data.products || []) : [];
