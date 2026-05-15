@@ -10212,6 +10212,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   const MAX_PRODUCTS_FOR_API = 80;
   const MAX_LOCAL_EVENTS = 120;
   const MESSAGE_LIMIT = 1200;
+  const MAX_DAILY_CLIENT_REQUESTS = 120;
 
   const widget = document.getElementById('diracAiWidget');
   const toggle = document.getElementById('diracAiToggle');
@@ -10228,11 +10229,13 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   injectUpgradeCss();
 
   let history = loadJson('dirac_ai_history_v2', []);
-  let state = loadJson('dirac_ai_state_v2', {category:null,usage:null,scent:null,gender:null,budget:null,intent:null});
+  let state = loadJson('dirac_ai_state_v2', {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null});
   let isBusy = false;
   let greeted = false;
   let restoredHistory = false;
-  const sessionId = getSessionId();
+  let activeController = null;
+  let lastUserPrompt = '';
+  let sessionId = getSessionId();
 
   function qs(selector, root=document){ return root.querySelector(selector); }
   function qsa(selector, root=document){ return Array.from(root.querySelectorAll(selector)); }
@@ -10254,14 +10257,23 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function saveJson(key, value){
     try{ localStorage.setItem(key, JSON.stringify(value)); }catch(error){}
   }
-  function getSessionId(){
+  function getSessionId(forceNew){
     let id = '';
-    try{ id = localStorage.getItem('dirac_ai_session_id') || ''; }catch(error){}
+    try{ if(!forceNew) id = localStorage.getItem('dirac_ai_session_id') || ''; }catch(error){}
     if(!id){
       id = 'ds_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10);
       try{ localStorage.setItem('dirac_ai_session_id', id); }catch(error){}
     }
     return id;
+  }
+  function hasSensitiveInput(value){
+    return /\b(otp|kode otp|password|kata sandi|pin|api key|secret key|token)\b\s*[:=]?\s*[A-Za-z0-9._-]{4,}/i.test(String(value || ''));
+  }
+  function maskSensitiveText(value){
+    return String(value || '')
+      .replace(/\b(?:otp|kode otp|password|kata sandi|pin|api key|secret key|token)\b\s*[:=]?\s*[A-Za-z0-9._-]{4,}/gi, '[data sensitif disembunyikan]')
+      .replace(/\b\d{12,19}\b/g, '[nomor panjang disembunyikan]')
+      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email disembunyikan]');
   }
   function formatMoney(value){
     try{ if(typeof formatIDR === 'function') return formatIDR(value); }catch(error){}
@@ -10311,13 +10323,28 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function shouldAutoFocusAi(){
     try{ return !window.matchMedia('(max-width: 760px)').matches; }catch(error){ return true; }
   }
-  function linkifySafeText(text){
-    const escaped = safeText(text).replace(/\n/g,'<br>');
-    return escaped.replace(/(https?:\/\/[^\s<]+)/g, function(match){
+  function linkifyEscapedHtml(html){
+    return String(html || '').replace(/(https?:\/\/[^\s<]+)/g, function(match){
       const clean = match.replace(/[).,;!?]+$/,'');
       const tail = match.slice(clean.length);
       return '<a class="dirac-ai-inline-link" href="' + safeText(clean) + '" target="_blank" rel="noopener noreferrer">' + safeText(clean) + '</a>' + safeText(tail);
     });
+  }
+  function renderAiTextSafe(text){
+    const raw = String(text || '');
+    const parts = raw.split(/```/);
+    return parts.map(function(part, index){
+      if(index % 2 === 1){
+        const code = part.replace(/^\w+\n/, '');
+        return '<pre class="dirac-ai-code"><code>' + safeText(code) + '</code></pre>';
+      }
+      let html = safeText(part);
+      html = html.replace(/`([^`]{1,160})`/g, '<code>$1</code>');
+      html = html.replace(/\*\*([^*]{1,160})\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/(^|\n)(\d+\.|[-•])\s+/g, '$1<span class="dirac-ai-list-mark">$2</span> ');
+      html = linkifyEscapedHtml(html).replace(/\n/g,'<br>');
+      return html;
+    }).join('');
   }
   function addMessage(role, html, meta){
     const item = document.createElement('div');
@@ -10344,7 +10371,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const previewLength = 560;
     const previewText = isLong ? rawText.slice(0, previewLength).trim().replace(/[\s.,;:!?-]+$/,'') + '...' : rawText;
     const initialText = isLong ? rawText : rawText;
-    const item = addMessage('bot', linkifySafeText(initialText), {provider:options.provider});
+    const item = addMessage('bot', renderAiTextSafe(initialText), {provider:options.provider});
     if(isLong){
       const bubble = item.querySelector('.dirac-ai-bubble');
       const btn = document.createElement('button');
@@ -10357,12 +10384,12 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       function renderLongAnswer(){
         if(!bubble) return;
         if(expanded){
-          bubble.innerHTML = linkifySafeText(rawText);
+          bubble.innerHTML = renderAiTextSafe(rawText);
           bubble.classList.add('is-expanded');
           btn.textContent = 'Ringkas';
           btn.setAttribute('aria-expanded','true');
         }else{
-          bubble.innerHTML = linkifySafeText(previewText);
+          bubble.innerHTML = renderAiTextSafe(previewText);
           bubble.classList.remove('is-expanded');
           btn.textContent = 'Lihat selengkapnya';
           btn.setAttribute('aria-expanded','false');
@@ -10383,6 +10410,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(options.links && options.links.length) item.appendChild(renderLinks(options.links));
     if(options.questions && options.questions.length) item.appendChild(renderQuestionChips(options.questions));
     if(options.products && options.products.length) item.appendChild(renderProductCards(options.products));
+    if(!options.noActions) item.appendChild(renderMessageActions(rawText));
     if(!options.noFeedback) item.appendChild(renderFeedback(options.traceId || 'local'));
     if(!isLong) scrollMessages();
     return item;
@@ -10418,6 +10446,24 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     });
     return wrap;
   }
+  function renderMessageActions(text){
+    const wrap = document.createElement('div');
+    wrap.className = 'dirac-ai-actions';
+    const copy = document.createElement('button');
+    const retry = document.createElement('button');
+    copy.type = retry.type = 'button';
+    copy.textContent = 'Copy';
+    retry.textContent = 'Retry';
+    copy.setAttribute('aria-label','Salin jawaban AI');
+    retry.setAttribute('aria-label','Ulangi pertanyaan terakhir');
+    copy.addEventListener('click', function(){
+      try{ navigator.clipboard.writeText(String(text || '')); copy.textContent = 'Copied ✓'; setTimeout(function(){ copy.textContent = 'Copy'; }, 1200); }
+      catch(error){ copy.textContent = 'Gagal copy'; setTimeout(function(){ copy.textContent = 'Copy'; }, 1200); }
+    });
+    retry.addEventListener('click', function(){ if(lastUserPrompt && !isBusy) handleSend(lastUserPrompt); });
+    wrap.appendChild(copy); wrap.appendChild(retry);
+    return wrap;
+  }
   function renderFeedback(traceId){
     const wrap = document.createElement('div');
     wrap.className = 'dirac-ai-feedback';
@@ -10432,7 +10478,12 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     return wrap;
   }
   function saveFeedback(traceId, value, wrap){
-    const item = {traceId:traceId, value:value, time:new Date().toISOString(), lastUser:history.filter(function(x){return x.role==='user';}).slice(-1)[0] || null};
+    const last = history.filter(function(x){return x.role==='user';}).slice(-1)[0] || null;
+    let reason = '';
+    if(value === 'down'){
+      try{ reason = String(window.prompt('Bagian mana yang kurang dari jawaban AI? (opsional)', '') || '').slice(0,240); }catch(error){}
+    }
+    const item = {traceId:traceId, value:value, reason:maskSensitiveText(reason), time:new Date().toISOString(), lastUser:last ? {role:last.role, content:maskSensitiveText(last.content).slice(0,240)} : null};
     const list = loadJson('dirac_ai_feedback_v1', []);
     list.push(item);
     saveJson('dirac_ai_feedback_v1', list.slice(-MAX_LOCAL_EVENTS));
@@ -10473,14 +10524,16 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     }).map(function(item){ return item.content || ''; }).join(' ');
     const text = normalize(message + ' ' + relevantHistory + ' ' + JSON.stringify(state));
     const next = Object.assign({}, state);
-    next.category = next.category || matchCategoryLocal(text);
+    const foundCategories = matchCategoriesLocal(text);
+    if(foundCategories.length){
+      next.categories = Array.from(new Set([].concat(foundCategories, next.categories || []))).slice(0,4);
+      next.category = foundCategories[0];
+    }else if(!next.category){ next.category = matchCategoryLocal(text); }
     next.usage = next.usage || matchGroup(text, {harian:['harian','sehari hari','daily','kuliah','sekolah'],kantor:['kantor','kerja','meeting'],formal:['formal','acara','pesta','malam','date','kencan'],hadiah:['hadiah','kado','gift']});
     next.scent = next.scent || matchGroup(text, {fresh:['fresh','segar','citrus','aquatic','clean'],sweet:['manis','sweet','vanilla','fruity'],woody:['woody','oud','amber','musk'],floral:['floral','rose'],strong:['strong','kuat','tahan lama','awet'],soft:['soft','lembut','kalem']});
     next.gender = next.gender || matchGroup(text, {pria:['pria','laki','lelaki','cowok','cowo','maskulin'],wanita:['wanita','perempuan','cewek','cewe','feminim'],unisex:['unisex','netral']});
-    if(!next.budget){
-      const budget = text.match(/(?:rp\s*)?(\d{2,4})\s*(rb|ribu|k|jt|juta)?/i);
-      if(budget) next.budget = budget[0];
-    }
+    const budget = parseBudgetLocal(text);
+    if(budget.label){ next.budget = budget.label; next.budgetMax = budget.max; }
     state = next;
     saveJson('dirac_ai_state_v2', state);
   }
@@ -10492,12 +10545,26 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
 
   function matchCategoryLocal(text){
-    if(/\b(niche|nishe|parfum niche|koleksi niche|luxury niche)\b/.test(text)) return 'niche';
-    if(/\b(designer|desainer|parfum designer|brand designer)\b/.test(text)) return 'designer';
-    if(/\b(timur tengah|timteng|middle eastern|arab|oud arab)\b/.test(text)) return 'timur_tengah';
-    if(/\b(lokal|local|brand lokal)\b/.test(text)) return 'lokal';
-    if(/\b(miniso)\b/.test(text)) return 'miniso';
-    return null;
+    return matchCategoriesLocal(text)[0] || null;
+  }
+  function matchCategoriesLocal(text){
+    const out = [];
+    if(/\b(niche|nishe|parfum niche|koleksi niche|luxury niche)\b/.test(text)) out.push('niche');
+    if(/\b(designer|desainer|parfum designer|brand designer)\b/.test(text)) out.push('designer');
+    if(/\b(timur tengah|timteng|middle eastern|arab|oud arab)\b/.test(text)) out.push('timur_tengah');
+    if(/\b(lokal|local|brand lokal)\b/.test(text)) out.push('lokal');
+    if(/\b(miniso)\b/.test(text)) out.push('miniso');
+    return Array.from(new Set(out));
+  }
+  function parseBudgetLocal(text){
+    const juta = text.match(/(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar|rp)?\s*(\d+(?:[.,]\d+)?)\s*(jt|juta)\b/i);
+    if(juta){ return {label:juta[1] + ' juta', max:Math.round(Number(juta[1].replace(',','.')) * 1000000)}; }
+    const ribu = text.match(/(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar|rp)?\s*(\d{2,4})\s*(rb|ribu|k)\b/i);
+    if(ribu){ return {label:ribu[1] + ' ribu', max:Number(ribu[1]) * 1000}; }
+    const bare = text.match(/\b(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar)\s*(?:rp\s*)?(\d{2,4})\b/i);
+    if(bare){ const value = Number(bare[1]); return {label:value + ' ribu', max:value >= 10000 ? value : value * 1000}; }
+    if(/\b(murah|terjangkau|budget rendah)\b/.test(text)) return {label:'murah', max:300000};
+    return {label:null, max:null};
   }
   function categoryMatchesLocal(p, category){
     const cat = normalize(p && p.category);
@@ -10533,21 +10600,33 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const n = normalize(query + ' ' + JSON.stringify(state));
     const terms = n.split(' ').filter(function(term){ return term.length > 2; });
     const boosts = [];
-    const requestedCategory = matchCategoryLocal(n) || state.category;
+    const requestedCategories = matchCategoriesLocal(n).length ? matchCategoriesLocal(n) : ((state.categories && state.categories.length) ? state.categories : (state.category ? [state.category] : []));
+    const budget = parseBudgetLocal(n);
+    const budgetMax = budget.max || state.budgetMax || 0;
     ['fresh','segar','manis','sweet','vanilla','woody','oud','amber','musk','floral','harian','kantor','formal','hadiah','pria','wanita','unisex','niche','designer','desainer','timteng','timur tengah','lokal','miniso'].forEach(function(term){ if(n.includes(term)) boosts.push(term); });
-    return source.map(function(p){
+    const scored = source.map(function(p){
       const hay = normalize([p.title,p.name,p.category,p.desc,p.longDesc,p.notes,p.status].join(' '));
       let score = 0;
-      if(requestedCategory){
-        if(!categoryMatchesLocal(p, requestedCategory)) return {p:p, score:-999};
+      if(requestedCategories.length){
+        if(!requestedCategories.some(function(cat){ return categoryMatchesLocal(p, cat); })) return {p:p, score:-999, budgetOk:false};
         score += 120;
       }
       terms.forEach(function(term){ if(hay.includes(term)) score += 3; if(normalize(p.title || p.name).includes(term)) score += 5; if(normalize(p.category).includes(term)) score += 18; });
       boosts.forEach(function(term){ if(hay.includes(term)) score += 7; });
       if(p.isTopSeller) score += 5;
-      if(/sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || ''))) score -= 100;
-      return {p:p, score:score};
-    }).filter(function(entry){ return entry.score > 0; }).sort(function(a,b){ return b.score - a.score; }).slice(0,4).map(function(entry){ return entry.p; });
+      if(/^all parfum\b/i.test(String(p.title || p.name || ''))) score -= requestedCategories.length ? 5 : 22;
+      let budgetOk = true;
+      if(budgetMax && p.price){
+        budgetOk = Number(p.price) <= Math.round(Number(budgetMax) * 1.1);
+        if(Number(p.price) <= Number(budgetMax)) score += 42;
+        else if(budgetOk) score -= 45;
+        else score -= 450;
+      }
+      if(/sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || ''))) score -= 1000;
+      return {p:p, score:score, budgetOk:budgetOk};
+    }).filter(function(entry){ return entry.score > 0; }).sort(function(a,b){ return b.score - a.score; });
+    const within = budgetMax ? scored.filter(function(entry){ return entry.budgetOk; }) : scored;
+    return (within.length ? within : scored).slice(0,4).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
   }
   function localFallbackReply(message){
     const n = normalize(message);
@@ -10565,6 +10644,11 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
     if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
     if(intent.cart) return {text:'Cara beli: pilih produk, klik Tambah, buka keranjang, isi data, lalu Checkout WhatsApp. Kalau ingin dibantu admin, klik tombol WhatsApp di halaman.', links:[{label:'Chat Admin WhatsApp', url:'https://wa.me/6287892523968'}], products:[]};
+    if(/\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n)){
+      updateRecommendationState(message);
+      const picks = localProductSearch(message);
+      if(picks.length) return {text:'Perbandingan singkat: pilih Lokal kalau ingin harga lebih aman untuk harian; pilih Niche kalau ingin karakter lebih unik/premium. Saya tampilkan kandidat paling mendekati dari katalog ready di bawah ini.', products:picks};
+    }
     if(intent.recommendation){
       updateRecommendationState(message);
       if(state.category || matchCategoryLocal(n)){
@@ -10578,8 +10662,12 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     }
     return {text:'AI utama sedang tidak tersambung, jadi saya belum bisa menjawab pertanyaan umum secara akurat. Saya masih bisa bantu link website, cek resi, cara checkout, atau rekomendasi dasar dari katalog.', links:[], products:[]};
   }
+  function abortActiveRequest(){
+    try{ if(activeController) activeController.abort(); }catch(error){}
+  }
   async function callRemoteAi(message){
     const controller = new AbortController();
+    activeController = controller;
     const timer = setTimeout(function(){ controller.abort(); }, 30000);
     try{
       const response = await fetch(AI_ENDPOINT, {
@@ -10605,13 +10693,16 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function checkClientRateLimit(){
     const now = Date.now();
     const list = loadJson('dirac_ai_client_rate_v1', []).filter(function(ts){ return now - ts < 60000; });
-    if(list.length >= 12) return false;
-    list.push(now);
+    const daily = loadJson('dirac_ai_client_rate_day_v1', []).filter(function(ts){ return now - ts < 86400000; });
+    if(list.length >= 12 || daily.length >= MAX_DAILY_CLIENT_REQUESTS) return false;
+    list.push(now); daily.push(now);
     saveJson('dirac_ai_client_rate_v1', list);
+    saveJson('dirac_ai_client_rate_day_v1', daily);
     return true;
   }
   function trackAiEvent(event){
     const payload = Object.assign({time:new Date().toISOString(), sessionId:sessionId}, event || {});
+    if(payload.error) payload.error = maskSensitiveText(payload.error).slice(0,240);
     const list = loadJson('dirac_ai_events_v1', []);
     list.push(payload);
     saveJson('dirac_ai_events_v1', list.slice(-MAX_LOCAL_EVENTS));
@@ -10620,15 +10711,23 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     }
   }
   async function handleSend(raw){
+    if(isBusy){ abortActiveRequest(); return; }
     const message = String(raw || '').trim().slice(0, MESSAGE_LIMIT);
-    if(!message || isBusy) return;
+    if(!message) return;
+    if(hasSensitiveInput(message)){
+      addBotMessage('Demi keamanan, jangan kirim OTP, password, PIN, API key, token, atau data rahasia di chat. Hapus data sensitifnya lalu kirim ulang.', {noFeedback:true,noActions:true});
+      return;
+    }
     if(!checkClientRateLimit()){
       addBotMessage('AI sedang ramai dipakai di browser ini. Coba lagi sebentar ya.', {noFeedback:true});
       return;
     }
     isBusy = true;
-    sendBtn.disabled = true;
+    sendBtn.disabled = false;
+    sendBtn.textContent = '×';
+    sendBtn.setAttribute('aria-label','Hentikan jawaban AI');
     input.value = '';
+    lastUserPrompt = message;
     addUserMessage(message);
     history.push({role:'user', content:message});
     updateRecommendationState(message);
@@ -10639,6 +10738,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       try{
         data = await callRemoteAi(message);
       }catch(remoteError){
+        if(remoteError && remoteError.name === 'AbortError') throw remoteError;
         const local = localFallbackReply(message);
         data = {reply:local.text, links:local.links || [], products:local.products || [], showProducts:(local.products || []).length > 0, provider:'local-fallback', mode:'fallback'};
       }
@@ -10651,11 +10751,15 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       trackAiEvent({type:'chat', mode:data.mode, provider:data.provider, ms:Date.now()-started, ok:true});
     }catch(error){
       typing.remove();
-      addBotMessage('Maaf, AI sedang tidak bisa merespons. Silakan coba lagi, atau gunakan pencarian produk dan tombol WhatsApp yang sudah tersedia.', {noFeedback:true});
+      if(error && error.name === 'AbortError') addBotMessage('Jawaban AI dihentikan. Anda bisa kirim ulang atau ubah pertanyaan.', {noFeedback:true});
+      else addBotMessage('Maaf, AI sedang tidak bisa merespons. Silakan coba lagi, atau gunakan pencarian produk dan tombol WhatsApp yang sudah tersedia.', {noFeedback:true});
       trackAiEvent({type:'chat_error', error:String(error && error.message || error), ms:Date.now()-started, ok:false});
     }finally{
       isBusy = false;
+      activeController = null;
       sendBtn.disabled = false;
+      sendBtn.textContent = '➜';
+      sendBtn.setAttribute('aria-label','Kirim pertanyaan AI');
       if(shouldAutoFocusAi()) input.focus({preventScroll:true});
     }
   }
@@ -10671,16 +10775,19 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     });
   }
   function resetChat(){
+    abortActiveRequest();
     history = [];
-    state = {category:null,usage:null,scent:null,gender:null,budget:null,intent:null};
-    saveJson('dirac_ai_history_v2', history);
-    saveJson('dirac_ai_state_v2', state);
+    state = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null};
+    ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_feedback_v1','dirac_ai_events_v1','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1','dirac_ai_session_id'].forEach(function(key){ try{ localStorage.removeItem(key); }catch(error){} });
+    sessionId = getSessionId(true);
     messagesEl.innerHTML = '';
     greeted = true;
     restoredHistory = true;
-    addBotMessage('Chat sudah direset. Mau ngobrol umum, belajar, atau pilih parfum dari awal?', {noFeedback:true});
+    addBotMessage('Chat dan data lokal AI sudah direset. Mau ngobrol umum, belajar, atau pilih parfum dari awal?', {noFeedback:true,noActions:true});
   }
+  let lastFocusedBeforeAi = null;
   function setOpen(open){
+    if(open) lastFocusedBeforeAi = document.activeElement;
     widget.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', String(open));
     panel.setAttribute('aria-hidden', String(!open));
@@ -10692,19 +10799,31 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       }
       setTimeout(scrollMessages, 60);
       if(shouldAutoFocusAi()) setTimeout(function(){ input.focus({preventScroll:true}); }, 120);
+    }else if(lastFocusedBeforeAi && lastFocusedBeforeAi.focus){
+      try{ lastFocusedBeforeAi.focus({preventScroll:true}); }catch(error){}
     }
   }
   function injectUpgradeCss(){
     if(document.getElementById('dirac-ai-upgrade-css')) return;
     const style = document.createElement('style');
     style.id = 'dirac-ai-upgrade-css';
-    style.textContent = '.dirac-ai-inline-link{color:var(--gold);font-weight:900;text-decoration:underline}.dirac-ai-links,.dirac-ai-question-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0}.dirac-ai-link,.dirac-ai-question-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.34);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:850}.dirac-ai-question-chip{cursor:pointer}.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-feedback button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.70rem;font-weight:800}.dirac-ai-provider{font-size:.68rem;color:#8190a4;margin-top:3px;padding-left:4px}.dirac-ai-head-actions{display:flex;gap:7px;align-items:center}.dirac-ai-reset{height:34px;border-radius:999px;border:1px solid rgba(var(--theme-rgb,243,205,112),.28);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;font-weight:900;padding:0 12px}.dirac-ai-thinking{display:flex;align-items:center;gap:8px}.dirac-ai-thinking span:first-child{font-size:.78rem;color:#cbd5e1}.dirac-ai-skeleton{display:grid;gap:7px;margin-top:10px}.dirac-ai-skeleton b{height:10px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.16),rgba(255,255,255,.06));background-size:220% 100%;animation:diracAiSkeleton 1.35s linear infinite}.dirac-ai-skeleton b:nth-child(2){width:78%}.dirac-ai-skeleton b:nth-child(3){width:54%}@keyframes diracAiSkeleton{to{background-position:-220% 0}}.dirac-ai-expand{border:1px solid rgba(var(--theme-rgb,243,205,112),.32);border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.13);color:#fff;font-weight:850;padding:7px 11px;font-size:.72rem;align-self:flex-start;cursor:pointer}.dirac-ai-expand[aria-expanded="true"]{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16)}.dirac-ai-bubble.is-expanded{max-height:none!important}.dirac-ai-body{padding-bottom:20px!important}.dirac-ai-product-card{animation:diracAiCardIn .22s ease both}.dirac-ai-product-card:nth-child(2){animation-delay:.06s}.dirac-ai-product-card:nth-child(3){animation-delay:.12s}.dirac-ai-product-meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.dirac-ai-product-meta span{margin:0;color:#dbe4f0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 7px;font-size:.66rem;font-weight:800}.dirac-ai-card-reason{grid-column:1/-1;color:#aeb9c8;font-size:.72rem;line-height:1.35}.dirac-ai-mini-btn.is-added{filter:brightness(1.08);transform:scale(.98)}@keyframes diracAiCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}html[data-effective-theme="light"] .dirac-ai-link,html[data-effective-theme="light"] .dirac-ai-question-chip{color:#171923;background:rgba(var(--theme-rgb,243,205,112),.16)}html[data-effective-theme="light"] .dirac-ai-feedback button{color:#526071;background:rgba(255,255,255,.68)}@media(max-width:760px){.dirac-ai-links,.dirac-ai-question-list{gap:6px}.dirac-ai-link,.dirac-ai-question-chip{font-size:.74rem;padding:7px 9px}.dirac-ai-feedback button{font-size:.68rem}.dirac-ai-reset{height:32px;padding:0 10px;font-size:.76rem}}';
+    style.textContent = '.dirac-ai-inline-link{color:var(--gold);font-weight:900;text-decoration:underline}.dirac-ai-links,.dirac-ai-question-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0}.dirac-ai-link,.dirac-ai-question-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.34);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:850}.dirac-ai-question-chip{cursor:pointer}.dirac-ai-actions,.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-actions button,.dirac-ai-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.dirac-ai-actions button{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.68rem;font-weight:800}.dirac-ai-code{white-space:pre-wrap;overflow:auto;border:1px solid rgba(255,255,255,.11);background:rgba(2,6,23,.45);border-radius:12px;padding:10px;margin:8px 0}.dirac-ai-list-mark{font-weight:900;color:var(--gold)}.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-feedback button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.70rem;font-weight:800}.dirac-ai-provider{font-size:.68rem;color:#8190a4;margin-top:3px;padding-left:4px}.dirac-ai-head-actions{display:flex;gap:7px;align-items:center}.dirac-ai-reset{height:34px;border-radius:999px;border:1px solid rgba(var(--theme-rgb,243,205,112),.28);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;font-weight:900;padding:0 12px}.dirac-ai-thinking{display:flex;align-items:center;gap:8px}.dirac-ai-thinking span:first-child{font-size:.78rem;color:#cbd5e1}.dirac-ai-skeleton{display:grid;gap:7px;margin-top:10px}.dirac-ai-skeleton b{height:10px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.16),rgba(255,255,255,.06));background-size:220% 100%;animation:diracAiSkeleton 1.35s linear infinite}.dirac-ai-skeleton b:nth-child(2){width:78%}.dirac-ai-skeleton b:nth-child(3){width:54%}@keyframes diracAiSkeleton{to{background-position:-220% 0}}.dirac-ai-expand{border:1px solid rgba(var(--theme-rgb,243,205,112),.32);border-radius:999px;background:rgba(var(--theme-rgb,243,205,112),.13);color:#fff;font-weight:850;padding:7px 11px;font-size:.72rem;align-self:flex-start;cursor:pointer}.dirac-ai-expand[aria-expanded="true"]{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16)}.dirac-ai-bubble.is-expanded{max-height:none!important}.dirac-ai-body{padding-bottom:20px!important}.dirac-ai-product-card{animation:diracAiCardIn .22s ease both}.dirac-ai-product-card:nth-child(2){animation-delay:.06s}.dirac-ai-product-card:nth-child(3){animation-delay:.12s}.dirac-ai-product-meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.dirac-ai-product-meta span{margin:0;color:#dbe4f0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 7px;font-size:.66rem;font-weight:800}.dirac-ai-card-reason{grid-column:1/-1;color:#aeb9c8;font-size:.72rem;line-height:1.35}.dirac-ai-mini-btn.is-added{filter:brightness(1.08);transform:scale(.98)}@keyframes diracAiCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}html[data-effective-theme="light"] .dirac-ai-link,html[data-effective-theme="light"] .dirac-ai-question-chip{color:#171923;background:rgba(var(--theme-rgb,243,205,112),.16)}html[data-effective-theme="light"] .dirac-ai-feedback button{color:#526071;background:rgba(255,255,255,.68)}@media(max-width:760px){.dirac-ai-links,.dirac-ai-question-list{gap:6px}.dirac-ai-link,.dirac-ai-question-chip{font-size:.74rem;padding:7px 9px}.dirac-ai-feedback button{font-size:.68rem}.dirac-ai-reset{height:32px;padding:0 10px;font-size:.76rem}}';
     document.head.appendChild(style);
   }
   toggle.addEventListener('click', function(){ setOpen(!widget.classList.contains('is-open')); });
   if(closeBtn) closeBtn.addEventListener('click', function(){ setOpen(false); });
   if(resetBtn) resetBtn.addEventListener('click', resetChat);
-  document.addEventListener('keydown', function(event){ if(event.key === 'Escape' && widget.classList.contains('is-open')) setOpen(false); });
+  document.addEventListener('keydown', function(event){
+    if(event.key === 'Escape' && widget.classList.contains('is-open')) setOpen(false);
+    if(event.key === 'Tab' && widget.classList.contains('is-open')){
+      const focusables = qsa('button, textarea, a[href], [tabindex]:not([tabindex="-1"])', panel).filter(function(el){ return !el.disabled && el.offsetParent !== null; });
+      if(focusables.length){
+        const first = focusables[0], last = focusables[focusables.length - 1];
+        if(event.shiftKey && document.activeElement === first){ event.preventDefault(); last.focus(); }
+        else if(!event.shiftKey && document.activeElement === last){ event.preventDefault(); first.focus(); }
+      }
+    }
+  });
   form.addEventListener('submit', function(event){ event.preventDefault(); handleSend(input.value); });
   input.addEventListener('keydown', function(event){ if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); handleSend(input.value); } });
   input.addEventListener('input', function(){ input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
