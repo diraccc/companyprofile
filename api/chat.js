@@ -95,8 +95,10 @@ module.exports = async function handler(req, res) {
 
     const historyRaw = history.filter((item) => item && item.role === 'user').map((item) => item.content || '').join(' ');
     const normalizedHistory = normalize(historyRaw);
-    const forcedGeneral = isGeneralKnowledge(normalizedMessage);
-    const useClientState = !forcedGeneral && shouldUseConversationContext(normalizedMessage, history);
+    const productPriceQuery = isStoreProductPriceQuestion(normalizedMessage);
+    const mathQuery = isMathQuestion(message);
+    const forcedGeneral = mathQuery || (!productPriceQuery && isGeneralKnowledge(normalizedMessage));
+    const useClientState = !forcedGeneral && !productPriceQuery && shouldUseConversationContext(normalizedMessage, history);
     const recommendationHistory = forcedGeneral ? '' : relevantRecommendationHistory(history, normalizedMessage);
     const contextSource = forcedGeneral ? message : `${recommendationHistory} ${message}`;
     const detectedContext = extractContext(contextSource);
@@ -107,6 +109,23 @@ module.exports = async function handler(req, res) {
     context.shownProductIds = Array.isArray(clientState.shownProductIds) ? clientState.shownProductIds : [];
     context.requestedCount = requestedProductCount(normalizedMessage);
     const intent = detectIntent(normalizedMessage, normalizedHistory, context, forcedGeneral);
+
+    if (intent.name === 'math') {
+      return res.status(200).json(makeReply('conversation', solveMathQuestion(message), { traceId, intent: intent.name, confidence: 0.98 }));
+    }
+
+    if (intent.name === 'product_price') {
+      const found = buildProductPriceReply(products, normalizedMessage);
+      return res.status(200).json(makeReply('commerce', found.reply, {
+        traceId,
+        provider: 'local-catalog-price',
+        showProducts: found.products.length > 0,
+        products: publicProducts(found.products, { requestedCount: Math.min(10, Math.max(1, found.products.length || 1)) }),
+        intent: intent.name,
+        confidence: found.products.length ? 0.92 : 0.55,
+        analytics: { intent: intent.name, source: 'local-catalog-price', ms: Date.now() - startedAt }
+      }));
+    }
 
     const direct = directAnswer(intent, cart, traceId, hasProvider());
     if (direct) return res.status(200).json(direct);
@@ -146,7 +165,7 @@ module.exports = async function handler(req, res) {
     }
 
     const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 12) : [];
-    const displayCount = Math.max(1, Math.min(6, Number(context.requestedCount || 3)));
+    const displayCount = Math.max(1, Math.min(10, Number(context.requestedCount || 3)));
     const topProducts = scoredProducts.slice(0, displayCount).map((item) => item.product);
 
     if (useProducts && !topProducts.length) {
@@ -494,9 +513,11 @@ function clampNumber(value, min, max) { const number = Number(value) || 0; retur
 function isGeneralKnowledge(text) {
   const n = normalize(text);
   if (!n) return false;
+  if (isMathQuestion(n)) return true;
+  if (isStoreProductPriceQuestion(n)) return false;
   if (isNonStoreGeneralQuery(n)) return true;
   if (isPerfumeEducationQuery(n)) return true;
-  const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
+  const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kota|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
   const commerceTerms = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|produk|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
   const perfumeDomain = isPerfumeProductQuery(n, {});
   return generalTerms && !commerceTerms && !perfumeDomain;
@@ -520,7 +541,7 @@ function isNonStoreGeneralQuery(text) {
 
 function isPriceFormatClarification(text) {
   const n = normalize(text);
-  return /\b(harga rupiah|pakai rupiah|dalam rupiah|idr|harga hari ini|rupiah hari ini|harga katalog|harga produk)\b/.test(n) && !isNonStoreGeneralQuery(n);
+  return /\b(harga rupiah|pakai rupiah|dalam rupiah|idr|rupiah hari ini|format harga)\b/.test(n) && !isNonStoreGeneralQuery(n) && !isStoreProductPriceQuestion(n);
 }
 
 function isProductCountQuestion(text) {
@@ -559,6 +580,110 @@ function buildProductCountReply(products) {
   const collection = list.filter((p) => /^all parfum\b/i.test(String(p.title || p.name || ''))).length;
   const specific = Math.max(0, total - collection);
   return `Di katalog website ini ada ${total} kartu produk/item. Dari data yang terbaca AI: ${ready} ready dan ${sold} sold/tidak ready. Jika dihitung tanpa kartu koleksi seperti “All Parfum”, ada sekitar ${specific} produk spesifik. Untuk angka final terbaru, tetap ikuti katalog yang tampil di halaman karena stok bisa berubah.`;
+}
+
+
+function isMathQuestion(text) {
+  const raw = String(text || '').toLowerCase().replace(/×/g, 'x').replace(/÷/g, ':');
+  const clean = normalize(text);
+  if (!raw.trim()) return false;
+  if (/\b(hitung|berapa hasil|hasil dari|matematika|mtk|kalkulator)\b/.test(clean) && /\d/.test(raw)) return true;
+  const expression = extractMathExpression(raw);
+  return !!expression && /[+\-*/:x()]/i.test(expression) && /\d/.test(expression) && !/\b(rp|harga|produk|parfum|ml|mobil|motor|kabupaten|kota|provinsi|stok|resi)\b/.test(clean);
+}
+
+function extractMathExpression(text) {
+  const n = String(text || '').toLowerCase().replace(/×/g, 'x').replace(/÷/g, ':');
+  const beforeKeyword = n.split(/\b(?:berapa|hasilnya|hasil|sama dengan|=)\b/)[0] || n;
+  const matches = beforeKeyword.match(/[0-9][0-9\s+\-*/:x().,]{1,220}[0-9)]/gi) || n.match(/[0-9][0-9\s+\-*/:x().,]{1,220}[0-9)]/gi) || [];
+  let best = '';
+  for (const m of matches) {
+    const cleaned = m.trim();
+    if (cleaned.length > best.length && /[+\-*/:x]/i.test(cleaned)) best = cleaned;
+  }
+  return best.slice(0, 220);
+}
+
+function solveMathQuestion(text) {
+  const raw = extractMathExpression(text);
+  if (!raw) return 'Tulis soal matematika dengan angka dan operator yang jelas, misalnya: 100 x 200 berapa.';
+  let expr = raw.replace(/,/g, '.').replace(/×/g, '*').replace(/x/gi, '*').replace(/÷/g, '/').replace(/:/g, '/').replace(/\s+/g, '');
+  if (!/^[0-9+\-*/().]+$/.test(expr) || expr.length > 220) return 'Saya hanya bisa menghitung ekspresi matematika angka dengan operator +, -, x, :, /, dan tanda kurung.';
+  try {
+    // eslint-disable-next-line no-new-func
+    const value = Function('"use strict"; return (' + expr + ');')();
+    if (!Number.isFinite(value)) return 'Hasilnya tidak terdefinisi karena ada pembagian dengan nol atau operasi tidak valid.';
+    const rounded = Math.abs(value) >= 1 ? Number(value.toFixed(6)) : Number(value.toPrecision(8));
+    return raw.trim() + ' = ' + rounded.toLocaleString('id-ID', { maximumFractionDigits: 8 });
+  } catch (_) {
+    return 'Saya belum bisa menghitung ekspresi itu. Coba tulis ulang dengan format seperti: 12 x 1999 : 61781.';
+  }
+}
+
+function isStoreProductPriceQuestion(text) {
+  const n = normalize(text);
+  if (!n) return false;
+  const asksPrice = /\b(harga|berapa harga|harganya|price|berapa)\b/.test(n);
+  if (!asksPrice) return false;
+  if (isNonStoreGeneralQuery(n)) return false;
+  const storeScope = /\b(website ini|web ini|situs ini|katalog|dirac|toko ini|di website|di web|di sini|disini|produk ini|parfum ini)\b/.test(n);
+  const perfumeHint = /\b(parfum|perfume|fragrance|edp|edt|ml|lv|louis vuitton|xerjoff|ysl|yves saint laurent|jean paul|gaultier|miniso|mykonos|jayrosse|fordive|rasasi|fragrance world|nishane|erba pura|imagination|symphony|meteore|torino|hacivat|le male)\b/.test(n);
+  return storeScope || perfumeHint;
+}
+
+function productQueryKeywords(text) {
+  const n = normalize(text).replace(/\blv\b/g, 'louis vuitton').replace(/\bysl\b/g, 'yves saint laurent');
+  return n.split(/\s+/).filter((word) => word.length > 1 && !/^(berapa|harga|harganya|price|di|website|web|situs|ini|dirac|toko|katalog|produk|parfum|perfume|fragrance|yang|ada|untuk|rp|rupiah|hari|ini|cek|tolong|mau|dong|ml)$/.test(word));
+}
+
+function findProductMatches(products, text, limit = 5) {
+  const keywords = productQueryKeywords(text);
+  if (!keywords.length) return [];
+  const nonBrandKeywords = keywords.filter((k) => !/^(louis|vuitton|yves|saint|laurent|jean|paul|gaultier)$/.test(k));
+  const expanded = normalize(text).replace(/\blv\b/g, 'louis vuitton').replace(/\bysl\b/g, 'yves saint laurent');
+  let ranked = (Array.isArray(products) ? products : []).map((p) => {
+    const title = normalize([p.title, p.name].join(' ')).replace(/\blv\b/g, 'louis vuitton').replace(/\bysl\b/g, 'yves saint laurent');
+    const hay = normalize([p.title, p.name, p.category, p.notes, p.desc, p.description, p.longDesc].join(' ')).replace(/\blv\b/g, 'louis vuitton').replace(/\bysl\b/g, 'yves saint laurent');
+    let score = 0;
+    for (const k of keywords) {
+      if (title.includes(k)) score += 16;
+      else if (hay.includes(k)) score += 5;
+    }
+    if (expanded.includes(title) || title.includes(expanded)) score += 50;
+    if (/\bimagination\b/.test(expanded) && title.includes('imagination')) score += 35;
+    if (/\blouis vuitton\b/.test(expanded) && title.includes('louis vuitton')) score += 25;
+    if (isCollectionProduct(p)) score -= 30;
+    if (isSold(p)) score -= 40;
+    return { product: p, score };
+  }).filter((x) => x.score > 0).sort((a,b) => b.score - a.score);
+  if (nonBrandKeywords.length) {
+    const exact = ranked.filter((x) => {
+      const title = normalize([x.product.title, x.product.name].join(' ')).replace(/\blv\b/g, 'louis vuitton').replace(/\bysl\b/g, 'yves saint laurent');
+      return nonBrandKeywords.every((k) => title.includes(k));
+    });
+    if (exact.length) ranked = exact;
+  }
+  return ranked.slice(0, limit).map((x) => x.product);
+}
+
+function buildProductPriceReply(products, text) {
+  const matches = findProductMatches(products, text, 4);
+  if (!matches.length) {
+    return { reply: 'Saya belum menemukan produk yang Anda maksud di katalog Dirac. Coba tulis nama produk lebih lengkap, misalnya “Louis Vuitton Imagination” atau klik kartu produk yang tampil di website.', products: [] };
+  }
+  const lines = matches.map((p, i) => `${i + 1}. ${p.title || p.name} - Rp${Number(p.price || 0).toLocaleString('id-ID')}${isSold(p) ? ' (sold/tidak ready)' : ''}`);
+  return {
+    reply: `Harga yang terbaca dari katalog website Dirac:\n${lines.join('\n')}\n\nHarga/stok bisa berubah sebelum checkout, jadi tetap konfirmasi final ke admin saat bayar.`,
+    products: matches
+  };
+}
+
+function localKnowledgeAnswer(text) {
+  const n = normalize(text);
+  if (/\b(kabupaten|kota administratif|kota administrasi).*(jakarta|dki)|\b(jakarta|dki).*(kabupaten|kota administratif|kota administrasi)\b/.test(n)) {
+    return 'DKI Jakarta memiliki 1 kabupaten administratif, yaitu Kabupaten Administratif Kepulauan Seribu. Selain itu ada 5 kota administrasi: Jakarta Pusat, Jakarta Utara, Jakarta Barat, Jakarta Selatan, dan Jakarta Timur.';
+  }
+  return null;
 }
 
 function hasProductHistoryText(text) {
@@ -733,6 +858,8 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/^(apa kabar|gimana kabarnya|kamu apa kabar|lagi apa|sedang apa|hai apa kabar|halo apa kabar)$/.test(n)) return { name: 'smalltalk', mode: 'conversation', confidence: 0.94 };
   if (/\b(apa itu dirac|apa itu dirac group|dirac group itu apa|tentang dirac group|profil dirac group|siapa dirac group|dirac group siapa|dirac itu apa|dirac siapa|apa itu toko dirac|apa itu website dirac)\b/.test(n)) return { name: 'brand_info', mode: 'conversation', confidence: 0.96 };
   if (isProductCountQuestion(n)) return { name: 'product_count', mode: 'conversation', confidence: 0.95 };
+  if (isMathQuestion(n)) return { name: 'math', mode: 'conversation', confidence: 0.98 };
+  if (isStoreProductPriceQuestion(n)) return { name: 'product_price', mode: 'commerce', confidence: 0.92 };
 
   if (isPriceFormatClarification(n)) return { name: 'price_format', mode: 'conversation', confidence: 0.94 };
   if (forcedGeneral || isGeneralKnowledge(n)) return { name: 'general', mode: 'conversation', confidence: 0.9 };
@@ -966,7 +1093,7 @@ function categoryMatchesProduct(product, category) {
 }
 
 function publicProducts(list, context = {}) {
-  const max = Math.max(1, Math.min(6, Number(context.requestedCount || 5)));
+  const max = Math.max(1, Math.min(10, Number(context.requestedCount || 5)));
   return list.slice(0, max).map((product) => ({
     id: product.id,
     title: product.title || product.name || 'Produk Dirac',
@@ -1001,7 +1128,7 @@ function budgetMatched(list, context) {
 function buildProductReply(list, context = {}) {
   if (!list || !list.length) return 'Saya belum menemukan produk yang cocok. Coba sebutkan aroma, penggunaan, gender, dan budget lebih detail.';
   const lines = ['Saya pilihkan yang paling mendekati kebutuhan Anda:'];
-  list.slice(0, Math.max(1, Math.min(6, Number(context.requestedCount || 5)))).forEach((product, index) => {
+  list.slice(0, Math.max(1, Math.min(10, Number(context.requestedCount || 5)))).forEach((product, index) => {
     const price = Number(product.price || 0).toLocaleString('id-ID');
     const notes = product.notes || product.desc || product.description || 'lihat detail produk';
     const reason = productReason(product, context).replace(/^Cocok karena\s*/i, '').replace(/\.$/, '');
@@ -1068,10 +1195,16 @@ function previousProductIds(state, history = []) {
 }
 
 function requestedProductCount(text) {
-  if (/\b(6|enam)\b/.test(text)) return 6;
-  if (/\b(5|lima)\b/.test(text)) return 5;
-  if (/\b(4|empat)\b/.test(text)) return 4;
-  if (/\b(2|dua)\b/.test(text)) return 2;
+  const n = normalize(text);
+  if (/\b(10|sepuluh)\b/.test(n)) return 10;
+  if (/\b(9|sembilan)\b/.test(n)) return 9;
+  if (/\b(8|delapan)\b/.test(n)) return 8;
+  if (/\b(7|tujuh)\b/.test(n)) return 7;
+  if (/\b(6|enam)\b/.test(n)) return 6;
+  if (/\b(5|lima)\b/.test(n)) return 5;
+  if (/\b(4|empat)\b/.test(n)) return 4;
+  if (/\b(3|tiga)\b/.test(n)) return 3;
+  if (/\b(2|dua)\b/.test(n)) return 2;
   return 3;
 }
 
@@ -1096,12 +1229,17 @@ function publicContext(context) {
 
 
 function localGeneralFallback(text) {
-  if (/\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(text)) {
+  const n = normalize(text);
+  if (isMathQuestion(n)) return solveMathQuestion(n);
+  const knowledge = localKnowledgeAnswer(n);
+  if (knowledge) return knowledge;
+  if (isStoreProductPriceQuestion(n)) return buildProductPriceReply(SERVER_PRODUCTS, n).reply;
+  if (/\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(n)) {
     return 'Tips memilih parfum:\n1. Tentukan tujuan pemakaian: harian, kantor, formal, malam, atau hadiah.\n2. Pilih karakter aroma: fresh untuk aman harian, sweet untuk kesan hangat, woody untuk elegan, floral untuk lembut.\n3. Cocokkan dengan budget, jangan memaksakan produk terlalu jauh di atas dana.\n4. Cek status ready, ukuran botol, dan catatan aroma sebelum checkout.\n5. Untuk blind buy, mulai dari aroma yang mudah dipakai seperti fresh, clean, citrus, aquatic, atau soft woody.';
   }
-  if (/\b(2\s*\+\s*2|dua tambah dua)\b/.test(text)) return '2 + 2 = 4.';
-  if (/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(text)) return vehiclePriceReply(text);
-  if (/\b(harga|berapa|kurs|hari ini|terbaru|sekarang|saat ini)\b/.test(text)) return 'Saya tidak akan mengarang harga real-time. Untuk data harga di luar katalog Dirac, cek sumber resmi terbaru. Untuk produk Dirac, gunakan harga yang tampil di kartu produk dan konfirmasi final ke admin sebelum bayar.';
+  if (/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return '2 + 2 = 4.';
+  if (/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return vehiclePriceReply(n);
+  if (/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return 'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.';
   return 'AI utama belum aktif untuk pertanyaan umum kompleks. Saya tidak akan mengubah pertanyaan umum menjadi rekomendasi parfum kecuali Anda memang meminta parfum/produk Dirac.';
 }
 
