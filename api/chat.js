@@ -4,14 +4,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({
-        reply: 'AI belum aktif karena GEMINI_API_KEY belum disetel di Vercel Environment Variables.'
-      });
-    }
-
     const body = req.body || {};
     const message = String(body.message || '').trim();
     const products = Array.isArray(body.products) ? body.products.slice(0, 80) : [];
@@ -19,8 +11,30 @@ module.exports = async function handler(req, res) {
     const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
 
     if (!message) {
-      return res.status(400).json({
-        reply: 'Pertanyaan masih kosong.'
+      return res.status(400).json({ reply: 'Pertanyaan masih kosong.' });
+    }
+
+    const normalize = (value) => String(value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const normalizedMessage = normalize(message);
+    const isGreetingOnly = /^(halo|hallo|hai|hi|hello|helo|pagi|selamat pagi|siang|selamat siang|sore|selamat sore|malam|selamat malam|permisi|assalamualaikum|test|tes)$/.test(normalizedMessage);
+
+    if (isGreetingOnly) {
+      return res.status(200).json({
+        reply: 'Halo! Ada yang bisa saya bantu? Saya bisa bantu cari parfum, rekomendasi aroma, cek isi keranjang, atau arahkan cek resi.'
+      });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        reply: 'AI belum aktif karena GEMINI_API_KEY belum disetel di Vercel Environment Variables.'
       });
     }
 
@@ -47,6 +61,7 @@ module.exports = async function handler(req, res) {
     const systemPrompt = `
 Kamu adalah Dirac AI Assistant untuk website katalog parfum Dirac Group.
 Jawab dalam bahasa Indonesia yang ramah, singkat, jelas, dan membantu penjualan.
+Jika user hanya menyapa seperti halo/hai/hello, balas sapaan singkat dan tawarkan bantuan. Jangan langsung rekomendasikan produk untuk sapaan saja.
 Gunakan data produk yang diberikan. Jangan mengarang stok, harga, atau produk di luar data.
 Jika user ingin cek resi, arahkan ke halaman https://diracgroup.store/cekresi.html.
 Jika user ingin checkout, arahkan untuk memakai keranjang dan tombol checkout WhatsApp di website.
@@ -71,24 +86,16 @@ ${message}
 `.trim();
 
     const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-
-    const geminiUrl =
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [
           {
             role: 'user',
-            parts: [
-              {
-                text: userPrompt
-              }
-            ]
+            parts: [{ text: userPrompt }]
           }
         ],
         generationConfig: {
@@ -116,7 +123,6 @@ ${message}
     return res.status(200).json({
       reply: reply || 'Maaf, AI belum menghasilkan jawaban. Silakan coba pertanyaan lain.'
     });
-
   } catch (error) {
     return res.status(500).json({
       reply: 'Terjadi kendala pada server AI. Silakan coba lagi.',
