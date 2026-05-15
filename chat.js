@@ -296,6 +296,9 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(text) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(text)) return { name: 'president_id_count', mode: 'conversation' };
   if (/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(text)) return { name: 'president_id_current', mode: 'conversation' };
   if (/\b(presiden amerika|presiden amerika serikat|presiden as|presiden usa|presiden us)\b/.test(text) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(text)) return { name: 'president_us_count', mode: 'conversation' };
+
+  if (/\b(apa itu dirac|apa itu dirac group|dirac group itu apa|tentang dirac group|profil dirac group|siapa dirac group|dirac group siapa|dirac itu apa|dirac siapa|apa itu toko dirac|apa itu website dirac)\b/.test(text)) return { name: 'brand_info', mode: 'conversation' };
+
   if (forcedGeneral) return { name: 'general', mode: 'conversation' };
 
   if (/\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|alamat web|alamat website)\b/.test(text) && !/\b(parfum|produk|resi|checkout|beli)\b/.test(text)) return { name: 'website', mode: 'link' };
@@ -323,6 +326,7 @@ function directAnswer(intent, cart, traceId) {
   if (intent.name === 'president_id_current') return makeReply('conversation', 'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.', { traceId });
   if (intent.name === 'president_id_count') return makeReply('conversation', 'Indonesia sudah memiliki 8 presiden: Soekarno, Soeharto, B.J. Habibie, Abdurrahman Wahid, Megawati Soekarnoputri, Susilo Bambang Yudhoyono, Joko Widodo, dan Prabowo Subianto.', { traceId });
   if (intent.name === 'president_us_count') return makeReply('conversation', 'Amerika Serikat memiliki 47 nomor presiden. Karena Grover Cleveland dan Donald Trump dihitung dua kali untuk masa jabatan yang tidak berurutan, jumlah orang yang pernah menjadi presiden AS adalah 45 orang.', { traceId });
+  if (intent.name === 'brand_info') return makeReply('conversation', 'Dirac Group adalah website/toko parfum online di https://diracgroup.store. Di sini customer bisa melihat katalog parfum, mencari produk, meminta rekomendasi aroma, menambahkan produk ke keranjang, checkout lewat WhatsApp, dan cek resi pengiriman. Saya Dirac AI Assistant yang membantu customer ngobrol, memilih parfum, checkout, dan cek resi.', { traceId, links: [{ label: 'Buka website Dirac Group', url: SITE_URL }] });
   if (intent.name === 'website') return makeReply('link', `Website resmi Dirac Group ada di sini:\n${SITE_URL}`, { traceId, links: [{ label: 'Buka website Dirac Group', url: SITE_URL }] });
   if (intent.name === 'tracking') return makeReply('link', `Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\n${CHECK_RESI_URL}`, { traceId, links: [{ label: 'Buka Cek Resi', url: CHECK_RESI_URL }] });
   if (intent.name === 'checkout') return makeReply('checkout', 'Untuk membeli, tambahkan produk ke keranjang dulu, lalu buka keranjang dan klik checkout WhatsApp. Kalau ingin dibantu admin langsung, klik tombol WhatsApp.', { traceId, links: [{ label: 'Chat Admin WhatsApp', url: WHATSAPP_URL }], cartCount: Array.isArray(cart) ? cart.length : 0 });
