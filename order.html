@@ -10225,6 +10225,18 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       .replace(/\s+/g,' ')
       .trim();
   }
+  function escapeRegExp(value){
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  }
+  function hasTerm(text, term){
+    const cleanText = normalize(text);
+    const cleanTerm = normalize(term);
+    if(!cleanText || !cleanTerm) return false;
+    return new RegExp('(^|\\s)' + escapeRegExp(cleanTerm) + '(?=\\s|$)').test(cleanText);
+  }
+  function hasAnyTerm(text, terms){
+    return terms.some(term => hasTerm(text, term));
+  }
   function formatMoney(value){
     try{
       if(typeof formatIDR === 'function') return formatIDR(value);
@@ -10296,13 +10308,34 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(!normalized) return false;
     const commerceWords = [
       'parfum','perfume','produk','product','aroma','wangi','wanginya','bau','scent','fragrance',
-      'fresh','segar','manis','sweet','vanilla','oud','woody','citrus','formal','kantor','daily',
+      'fresh','segar','manis','sweet','vanilla','oud','woody','citrus','aquatic','floral','amber','spicy','formal','kantor','kerja','meeting','daily','harian','kuliah','sekolah',
       'pria','cowok','laki','men','wanita','cewek','perempuan','women','unisex',
-      'hadiah','kado','gift','rekomendasi','rekomendasikan','recommend','cari','carikan','pilih','cocok',
-      'harga','budget','murah','mahal','best seller','bestseller','top seller','tahan lama','awet',
+      'hadiah','gift','kado','pacar','suami','istri','teman','ayah','ibu','rekomendasi','rekomendasikan','recommend','saran','sarankan','cari','carikan','pilih','pilihkan','cocok',
+      'harga','budget','murah','mahal','ribu','jutaan','rp','best seller','bestseller','terlaris','top seller','tahan lama','awet','soft','strong','kalem','bold','elegan','premium',
       'beli','buy','checkout','keranjang','cart','pesanan','resi','tracking','lacak','pengiriman'
     ];
-    return commerceWords.some(word => normalized.includes(word));
+    return hasAnyTerm(normalized, commerceWords);
+  }
+  function hasProductSpecificPreference(message){
+    const normalized = normalize(message);
+    if(!normalized) return false;
+    const preferenceWords = [
+      'fresh','segar','manis','sweet','vanilla','oud','woody','citrus','aquatic','floral','amber','spicy','powdery',
+      'formal','kasual','casual','kantor','kerja','meeting','daily','harian','kuliah','sekolah','pesta','party','malam','siang','date','ngedate','gym','olahraga',
+      'pria','cowok','laki','maskulin','men','wanita','cewek','perempuan','feminim','women','unisex',
+      'hadiah','gift','kado','pacar','suami','istri','teman','ayah','ibu',
+      'harga','budget','murah','mahal','ribu','jutaan','rp','best seller','bestseller','terlaris','top seller','premium','elegan','mewah','soft','strong','kalem','bold','tahan lama','awet','stok','ready','ml','botol'
+    ];
+    return hasAnyTerm(normalized, preferenceWords);
+  }
+  function isBroadProductRequest(message){
+    const normalized = normalize(message);
+    if(!normalized) return false;
+    const words = normalized.split(' ').filter(Boolean);
+    const recommendationWords = ['rekomendasi','rekomendasikan','recommend','saran','sarankan','cari','carikan','pilih','pilihkan','mau parfum','pengen parfum','butuh parfum'];
+    const hasBroadAsk = recommendationWords.some(word => normalized.includes(word)) || /(parfum|perfume|produk)/.test(normalized);
+    const hasCheckoutOrTracking = /(resi|tracking|lacak|pengiriman|checkout|keranjang|cart|beli|order|pesan|bayar)/.test(normalized);
+    return hasBroadAsk && !hasProductSpecificPreference(normalized) && !hasCheckoutOrTracking && words.length <= 9;
   }
   function getConversationReply(message){
     const normalized = normalize(message);
@@ -10333,6 +10366,9 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(/\b(makasih|terima kasih|thanks|thank you|oke|ok|sip|mantap|baik|siap)\b/.test(normalized) && normalized.split(' ').length <= 4){
       return {text:'Siap, sama-sama. Mau lanjut ngobrol atau ada yang ingin saya bantu?', products:[]};
     }
+    if(isBroadProductRequest(message)){
+      return {text:'Boleh. Parfumnya mau buat apa dulu? Misalnya untuk harian, kerja/kantor, acara formal, hadiah, atau dipakai malam. Anda juga bisa sebut mau aroma fresh, manis, soft, strong, pria/wanita, dan budgetnya.', products:[]};
+    }
     if(normalized.length <= 4 && !hasProductIntent(normalized)){
       return {text:'Saya di sini. Bisa jelaskan sedikit lagi mau ngobrol tentang apa?', products:[]};
     }
@@ -10350,7 +10386,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       if(!greeted){
         greeted = true;
         addBotMessage(
-          'Halo, saya Dirac AI Assistant. Saya bisa bantu cari produk parfum, rekomendasi aroma, cek isi keranjang, dan mengarahkan cek resi.',
+          'Halo, saya Dirac AI Assistant. Saya bisa diajak ngobrol seperti AI biasa. Kalau Anda mau belanja, saya juga bisa bantu pilih parfum, checkout, dan cek resi.',
           {suggestProducts:false}
         );
       }
@@ -10470,7 +10506,14 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
 
     if(!hasProductIntent(message)){
       return {
-        text:'Boleh, kita ngobrol dulu. Ceritakan saja kebutuhan Anda. Kalau nanti mau rekomendasi parfum, sebutkan aroma, acara, atau budget yang diinginkan.',
+        text:'Boleh, kita ngobrol dulu. Kalau jawaban umum belum muncul, kemungkinan koneksi AI sedang lambat. Coba tanyakan lagi dengan lebih spesifik, saya tetap tidak akan menawarkan produk kecuali Anda memintanya.',
+        products:[]
+      };
+    }
+
+    if(isBroadProductRequest(message)){
+      return {
+        text:'Boleh. Parfumnya mau buat apa dulu? Untuk harian, kerja/kantor, formal, hadiah, atau malam? Suka aroma fresh, manis, soft, strong, pria/wanita, dan budget berapa?',
         products:[]
       };
     }
