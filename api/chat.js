@@ -1,7 +1,21 @@
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = new Set([
+    'https://diracgroup.store',
+    'https://www.diracgroup.store',
+    'https://companyprofilee-ochre.vercel.app'
+  ]);
+
+  const requestOrigin = req.headers && req.headers.origin;
+  if (requestOrigin && allowedOrigins.has(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -17,19 +31,26 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  const json = (status, payload) => {
+    return res.status(status).json({
+      mode: 'conversation',
+      showProducts: false,
+      products: [],
+      links: [],
+      ...payload
+    });
+  };
+
   try {
     const body = req.body || {};
-    const message = String(body.message || '').trim();
-    const products = Array.isArray(body.products) ? body.products.slice(0, 100) : [];
+    const message = String(body.message || '').trim().slice(0, 1200);
+    const products = Array.isArray(body.products) ? body.products.slice(0, 80) : [];
     const cart = Array.isArray(body.cart) ? body.cart.slice(0, 30) : [];
     const history = Array.isArray(body.history) ? body.history.slice(-12) : [];
 
     if (!message) {
-      return res.status(400).json({
+      return json(400, {
         mode: 'error',
-        showProducts: false,
-        products: [],
-        links: [],
         reply: 'Pertanyaan masih kosong.'
       });
     }
@@ -43,78 +64,32 @@ module.exports = async function handler(req, res) {
       .trim();
 
     const normalizedMessage = normalize(message);
-    const normalizedHistory = normalize(history.map((item) => item.content || '').join(' '));
+    const normalizedHistory = normalize(history.map((item) => item && item.content ? item.content : '').join(' '));
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const currentDate = now.toISOString().slice(0, 10);
 
-    const json = (status, payload) => {
-      return res.status(status).json({
-        mode: 'conversation',
-        showProducts: false,
-        products: [],
-        links: [],
-        ...payload
-      });
-    };
+    const isGreetingOnly = /^(halo|hallo|helo|hello|hai|hi|hii|hiii|hlo|hllo|lo|yo|yoi|p|pp|test|tes|permisi|salam|assalamualaikum|assalamu alaikum|pagi|siang|sore|malam|selamat pagi|selamat siang|selamat sore|selamat malam)$/.test(normalizedMessage);
+    const isThanksOnly = /^(makasih|terima kasih|terimakasih|thanks|thank you|thx|sip|oke|ok|okay|baik|mantap|siap|noted|gas|nice|wah keren|keren)$/.test(normalizedMessage);
+    const isIdentityQuestion = /^(siapa kamu|kamu siapa|ini siapa|ini ai apa|kamu bot|kamu robot|kamu bisa apa|bisa apa|fitur kamu apa|jelaskan dirimu|tolong jelaskan dirimu)$/.test(normalizedMessage);
+    const isSmallTalkOnly = /^(apa kabar|gimana kabarnya|kamu apa kabar|lagi apa|sedang apa|hai apa kabar|halo apa kabar|hlo apa kabar)$/.test(normalizedMessage);
+    const isInsultOnly = /^(goblok+|goblog+|tolol+|bodoh+|bego+|anjing+|bangsat+|kampret+|goblokx+|tololx+|bodohx+|begox+)$/i.test(normalizedMessage);
 
-    const isGreetingOnly =
-      /^(halo|hallo|helo|hello|hai|hi|hii|hiii|hlo|hllo|lo|yo|yoi|p|pp|test|tes|permisi|salam|assalamualaikum|assalamu alaikum|pagi|siang|sore|malam|selamat pagi|selamat siang|selamat sore|selamat malam)$/.test(normalizedMessage);
+    const hasWebsiteIntent = /\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|company|diracgroup store|dirac group store|alamat web|alamat website)\b/.test(normalizedMessage);
+    const hasTrackingIntent = /\b(resi|cek resi|lacak|tracking|paket|pengiriman|kurir|jne|jnt|j t|sicepat|anteraja|pos|ninja|lion|sap|id express|tiki)\b/.test(normalizedMessage);
+    const hasCartIntent = /\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|tambah ke keranjang|cara beli|mau beli)\b/.test(normalizedMessage);
 
-    const isThanksOnly =
-      /^(makasih|terima kasih|terimakasih|thanks|thank you|thx|sip|oke|ok|okay|baik|mantap|siap|noted|gas|nice|wah keren|keren)$/.test(normalizedMessage);
+    const recommendationWords = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend)\b/.test(normalizedMessage);
+    const productWords = /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|mahal|murah)\b/.test(normalizedMessage);
+    const useWords = /\b(harian|sehari hari|daily|kantor|kerja|formal|acara|pesta|date|kencan|malam|siang|outdoor|indoor|kuliah|sekolah|hadiah|kado)\b/.test(normalizedMessage);
+    const scentWords = /\b(fresh|segar|manis|sweet|soft|lembut|strong|kuat|tahan lama|maskulin|feminim|elegan|sporty|dingin|citrus|woody|vanilla|amber|musk|oud|rose|floral|buah|fruity|aquatic|spicy)\b/.test(normalizedMessage);
+    const genderWords = /\b(pria|laki|lelaki|cowok|cowo|wanita|perempuan|cewek|cewe|unisex|suami|istri|pacar|teman)\b/.test(normalizedMessage);
+    const budgetWords = /\b(\d+\s*(rb|ribu|jt|juta)|rp|harga|budget|maksimal|max|dibawah|di bawah|sekitar|murah|mahal)\b/.test(normalizedMessage);
 
-    const isIdentityQuestion =
-      /^(siapa kamu|kamu siapa|ini siapa|ini ai apa|kamu bot|kamu robot|kamu bisa apa|bisa apa|fitur kamu apa|jelaskan dirimu|tolong jelaskan dirimu)$/.test(normalizedMessage);
-
-    const isSmallTalkOnly =
-      /^(apa kabar|gimana kabarnya|kamu apa kabar|lagi apa|sedang apa|hai apa kabar|halo apa kabar|hlo apa kabar)$/.test(normalizedMessage);
-
-    const hasInsultOnly =
-      /^(goblok+|goblog+|tolol+|bodoh+|bego+|anjing+|bangsat+|kampret+|kontol+|memek+|goblokx+|tololx+|bodohx+|begox+)$/i.test(normalizedMessage);
-
-    const hasWebsiteIntent =
-      /\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|company|diracgroup store|dirac group store|alamat web|alamat website)\b/.test(normalizedMessage);
-
-    const hasTrackingIntent =
-      /\b(resi|cek resi|lacak|tracking|paket|pengiriman|kurir|jne|jnt|j t|sicepat|anteraja|pos|ninja|lion|sap|id express|tiki)\b/.test(normalizedMessage);
-
-    const hasCartIntent =
-      /\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|tambah ke keranjang|cara beli|mau beli)\b/.test(normalizedMessage);
-
-    const recommendationWords =
-      /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend)\b/.test(normalizedMessage);
-
-    const productWords =
-      /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|mahal|murah)\b/.test(normalizedMessage);
-
-    const useWords =
-      /\b(harian|sehari hari|daily|kantor|kerja|formal|acara|pesta|date|kencan|malam|siang|outdoor|indoor|kuliah|sekolah|hadiah|kado)\b/.test(normalizedMessage);
-
-    const scentWords =
-      /\b(fresh|segar|manis|sweet|soft|lembut|strong|kuat|tahan lama|maskulin|feminim|elegan|sporty|dingin|citrus|woody|vanilla|amber|musk|oud|rose|floral|buah|fruity|aquatic|spicy)\b/.test(normalizedMessage);
-
-    const genderWords =
-      /\b(pria|laki|lelaki|cowok|cowo|wanita|perempuan|cewek|cewe|unisex|suami|istri|pacar|teman)\b/.test(normalizedMessage);
-
-    const budgetWords =
-      /\b(\d+\s*(rb|ribu|jt|juta)|rp|harga|budget|maksimal|max|dibawah|di bawah|sekitar|murah|mahal)\b/.test(normalizedMessage);
-
-    const asksIndonesiaPresident =
-      /\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(normalizedMessage);
-
-    const asksCurrent =
-      /\b(sekarang|saat ini|current|terbaru|hari ini|2024|2025|2026)\b/.test(normalizedMessage);
-
+    const asksIndonesiaPresident = /\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(normalizedMessage);
     const hasProductIntent = productWords || recommendationWords;
-
-    const hasRecommendationContext =
-      recommendationWords ||
-      /\b(rekomendasi|rekomendasikan|saran|sarankan|parfum buat apa|parfumnya mau buat apa|aroma apa|budget berapa|mau dipakai buat apa|dipakai buat apa)\b/.test(normalizedHistory);
-
-    const recommendationSignalCount = [
-      useWords,
-      scentWords,
-      genderWords,
-      budgetWords
-    ].filter(Boolean).length;
+    const recommendationSignalCount = [useWords, scentWords, genderWords, budgetWords].filter(Boolean).length;
+    const hasRecommendationContext = recommendationWords || /\b(rekomendasi|rekomendasikan|saran|sarankan|parfum buat apa|parfumnya mau buat apa|aroma apa|budget berapa|mau dipakai buat apa|dipakai buat apa)\b/.test(normalizedHistory);
 
     if (isGreetingOnly) {
       return json(200, {
@@ -130,10 +105,10 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    if (hasInsultOnly) {
+    if (isInsultOnly) {
       return json(200, {
         mode: 'conversation',
-        reply: 'Saya paham Anda lagi kesal. Saya akan bantu jawab lebih tepat. Coba tulis pertanyaannya lagi dengan jelas, nanti saya jawab langsung.'
+        reply: 'Saya paham Anda kesal. Saya akan bantu perbaiki jawabannya. Tulis pertanyaannya dengan jelas, nanti saya jawab langsung tanpa menawarkan produk kalau memang bukan soal belanja.'
       });
     }
 
@@ -161,12 +136,7 @@ module.exports = async function handler(req, res) {
     if (hasWebsiteIntent && !hasProductIntent && !hasTrackingIntent && !hasCartIntent) {
       return json(200, {
         mode: 'link',
-        links: [
-          {
-            label: 'Buka website Dirac Group',
-            url: 'https://diracgroup.store'
-          }
-        ],
+        links: [{ label: 'Buka website Dirac Group', url: 'https://diracgroup.store' }],
         reply: 'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store'
       });
     }
@@ -174,50 +144,26 @@ module.exports = async function handler(req, res) {
     if (hasTrackingIntent) {
       return json(200, {
         mode: 'link',
-        links: [
-          {
-            label: 'Buka Cek Resi',
-            url: 'https://diracgroup.store/cekresi.html'
-          }
-        ],
+        links: [{ label: 'Buka Cek Resi', url: 'https://diracgroup.store/cekresi.html' }],
         reply: 'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html'
       });
     }
 
-    if (
-      recommendationWords &&
-      /\b(parfum|perfume|wangi|aroma)\b/.test(normalizedMessage) &&
-      recommendationSignalCount === 0
-    ) {
+    if (recommendationWords && /\b(parfum|perfume|wangi|aroma)\b/.test(normalizedMessage) && recommendationSignalCount === 0) {
       return json(200, {
         mode: 'conversation',
         reply: 'Boleh. Parfumnya mau buat apa dulu? Misalnya untuk harian, kerja/kantor, acara formal, hadiah, atau dipakai malam. Anda juga bisa sebut suka aroma fresh, manis, soft, strong, pria/wanita/unisex, dan budgetnya.'
       });
     }
 
-    const isAskingRecommendation =
-      hasRecommendationContext &&
-      (
-        recommendationWords ||
-        productWords ||
-        useWords ||
-        scentWords ||
-        genderWords ||
-        budgetWords
-      );
+    const isAskingRecommendation = hasRecommendationContext && (recommendationWords || productWords || useWords || scentWords || genderWords || budgetWords);
 
-    if (
-      isAskingRecommendation &&
-      recommendationSignalCount > 0 &&
-      recommendationSignalCount < 3
-    ) {
+    if (isAskingRecommendation && recommendationSignalCount > 0 && recommendationSignalCount < 3) {
       const missing = [];
-
       if (!useWords) missing.push('dipakai buat apa');
       if (!scentWords) missing.push('suka aroma apa');
       if (!genderWords) missing.push('untuk pria, wanita, atau unisex');
       if (!budgetWords) missing.push('budget berapa');
-
       return json(200, {
         mode: 'conversation',
         reply: `Oke, saya catat. Supaya rekomendasinya tidak asal, boleh tambah info ${missing.slice(0, 3).join(', ')}? Setelah itu baru saya pilihkan yang paling cocok.`
@@ -229,26 +175,13 @@ module.exports = async function handler(req, res) {
     if (!apiKey) {
       return json(200, {
         mode: 'conversation',
-        reply: 'Saya bisa bantu ngobrol dasar, tetapi jawaban AI pintar belum aktif karena GEMINI_API_KEY belum disetel di Vercel Environment Variables.'
+        reply: 'AI utama belum aktif karena GEMINI_API_KEY belum disetel di Vercel Environment Variables. Saya masih bisa bantu link website, cek resi, dan tanya-jawab dasar.'
       });
     }
 
-    const isGeneralConversation =
-      !hasProductIntent &&
-      !hasTrackingIntent &&
-      !hasCartIntent &&
-      !hasWebsiteIntent;
-
-    const shouldUseProductData =
-      hasProductIntent &&
-      recommendationSignalCount >= 3;
-
-    const shouldUseGoogleSearch =
-      isGeneralConversation &&
-      (
-        asksCurrent ||
-        /\b(siapa|apa|kapan|dimana|berapa|berita|terbaru|sekarang|saat ini)\b/.test(normalizedMessage)
-      );
+    const isGeneralConversation = !hasProductIntent && !hasTrackingIntent && !hasCartIntent && !hasWebsiteIntent;
+    const shouldUseProductData = hasProductIntent && recommendationSignalCount >= 3;
+    const shouldUseSearch = isGeneralConversation && /\b(siapa|apa|kapan|dimana|berapa|berita|terbaru|sekarang|saat ini|hari ini|current|presiden|menteri|ceo|harga|jadwal)\b/.test(normalizedMessage);
 
     const productText = products.map((p, index) => {
       return [
@@ -266,8 +199,8 @@ module.exports = async function handler(req, res) {
       : 'Keranjang kosong atau tidak dikirim.';
 
     const historyText = history.map((item) => {
-      const role = item.role === 'assistant' ? 'AI' : 'User';
-      return `${role}: ${String(item.content || '').slice(0, 500)}`;
+      const role = item && item.role === 'assistant' ? 'AI' : 'User';
+      return `${role}: ${String((item && item.content) || '').slice(0, 500)}`;
     }).join('\n');
 
     let systemPrompt = '';
@@ -275,13 +208,11 @@ module.exports = async function handler(req, res) {
     if (isGeneralConversation) {
       systemPrompt = `
 Kamu adalah Dirac AI Assistant, tetapi kamu juga harus bisa diajak ngobrol seperti AI biasa.
+Tanggal sistem saat ini: ${currentDate}. Tahun saat ini: ${currentYear}.
 Jawab pertanyaan umum user secara langsung, natural, dan ramah.
-Jangan menawarkan produk.
-Jangan merekomendasikan parfum.
-Jangan menampilkan daftar produk.
-Jangan mengarahkan checkout kecuali user memintanya.
-Jika user bertanya informasi yang bisa berubah seperti pejabat, presiden, harga, jadwal, atau berita terbaru, gunakan informasi terbaru jika tersedia dan jangan memakai data lama.
-Untuk pertanyaan presiden Indonesia, jawaban yang benar adalah Prabowo Subianto, bukan Joko Widodo.
+Jangan menawarkan produk, jangan merekomendasikan parfum, dan jangan mengarahkan checkout kecuali user memintanya.
+Jika user bertanya informasi yang bisa berubah seperti pejabat, presiden, harga, jadwal, atau berita terbaru, gunakan informasi terbaru bila tersedia. Jangan memakai data lama.
+Untuk pertanyaan Presiden Indonesia saat ini, jawaban yang benar adalah Prabowo Subianto.
 Gunakan bahasa Indonesia yang jelas, santai, dan tidak terlalu panjang.
 `.trim();
     } else if (hasCartIntent && !hasProductIntent) {
@@ -296,8 +227,8 @@ Jawab singkat, jelas, dan ramah.
       systemPrompt = `
 Kamu adalah Dirac AI Assistant untuk katalog parfum Dirac Group.
 User sudah memberi kebutuhan parfum cukup jelas, jadi boleh bantu memilih berdasarkan data produk.
-Gunakan hanya data produk yang diberikan.
-Jangan mengarang stok, harga, atau produk di luar data.
+Gunakan hanya data produk yang diberikan. Jangan mengarang stok, harga, atau produk di luar data.
+Hindari produk dengan status sold, kosong, tidak menjual, atau not ready.
 Rekomendasikan maksimal 3 produk yang paling relevan.
 Sebutkan alasan singkat, aroma/kegunaan yang cocok, dan harga jika tersedia.
 Jangan pakai markdown tabel panjang.
@@ -325,78 +256,45 @@ Jawab singkat, ramah, dan natural.
     ].filter(Boolean);
 
     const userPrompt = promptParts.join('\n').trim();
-
     const preferredModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const modelCandidates = Array.from(new Set([
-      preferredModel,
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash'
-    ]));
+    const modelCandidates = Array.from(new Set([preferredModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']));
 
     let lastError = null;
     let reply = '';
 
     for (const model of modelCandidates) {
-      const attempts = shouldUseGoogleSearch && !model.includes('1.5')
-        ? [{ useSearch: true }, { useSearch: false }]
-        : [{ useSearch: false }];
-
+      const attempts = shouldUseSearch && !model.includes('1.5') ? [{ useSearch: true }, { useSearch: false }] : [{ useSearch: false }];
       for (const attempt of attempts) {
-        const geminiUrl =
-          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
         const requestBody = {
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  text: userPrompt
-                }
-              ]
-            }
-          ],
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
           generationConfig: {
             temperature: isGeneralConversation ? 0.55 : 0.38,
             topP: 0.9,
-            maxOutputTokens: isGeneralConversation ? 700 : 900
+            maxOutputTokens: isGeneralConversation ? 800 : 950
           }
         };
-
-        if (attempt.useSearch) {
-          requestBody.tools = [
-            {
-              google_search: {}
-            }
-          ];
-        }
+        if (attempt.useSearch) requestBody.tools = [{ google_search: {} }];
 
         const geminiResponse = await fetch(geminiUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)
         });
 
         const data = await geminiResponse.json().catch(() => ({}));
-
         if (!geminiResponse.ok) {
-          lastError = data?.error?.message || `Gemini API error ${geminiResponse.status}`;
+          lastError = data && data.error && data.error.message ? data.error.message : `Gemini API error ${geminiResponse.status}`;
           continue;
         }
 
-        reply = data?.candidates?.[0]?.content?.parts
-          ?.map((part) => part.text || '')
-          .join('')
-          .trim();
+        reply = data && data.candidates && data.candidates[0] && data.candidates[0].content && Array.isArray(data.candidates[0].content.parts)
+          ? data.candidates[0].content.parts.map((part) => part.text || '').join('').trim()
+          : '';
 
         if (reply) break;
-
         lastError = 'Gemini response empty';
       }
-
       if (reply) break;
     }
 
@@ -419,7 +317,7 @@ Jawab singkat, ramah, dan natural.
       products: [],
       links: [],
       reply: 'Terjadi kendala pada server AI. Silakan coba lagi.',
-      detail: error?.message || String(error)
+      detail: error && error.message ? error.message : String(error)
     });
   }
 };
