@@ -10617,6 +10617,42 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
 
   function escapeRegExp(value){ return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function isNonStoreGeneralQueryLocal(n){
+    n = normalize(n);
+    return /\b(mobil|motor|fortuner|pajero|avanza|xenia|brio|civic|innova|alphard|toyota|honda|yamaha|suzuki|kawasaki|iphone|samsung|xiaomi|oppo|vivo|laptop|macbook|komputer|rumah|tanah|apartemen|emas|dollar|dolar|saham|bitcoin|crypto|kripto|tiket|pesawat|hotel)\b/.test(n);
+  }
+  function isPerfumeEducationQueryLocal(n){
+    n = normalize(n);
+    const perfumeInfo = /\b(parfum|perfume|fragrance|aroma|wangi|edp|edt|eau de parfum|eau de toilette|notes|top notes|base notes|layering)\b/.test(n);
+    const education = /\b(tips|cara|panduan|tutorial|jelaskan|apa itu|bedanya|perbedaan|beda|daftar|list|contoh|arti|maksud|fungsi|kenapa|bagaimana)\b/.test(n);
+    const buying = /\b(rekomendasi|rekomendasikan|sarankan|saran|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|budget|dana|stok|ready|beli|checkout|order)\b/.test(n);
+    return perfumeInfo && education && !buying;
+  }
+  function isPriceFormatClarificationLocal(n){
+    n = normalize(n);
+    return /\b(harga rupiah|pakai rupiah|dalam rupiah|idr|harga hari ini|rupiah hari ini|harga katalog|harga produk)\b/.test(n) && !isNonStoreGeneralQueryLocal(n);
+  }
+  function hasProductHistoryLocal(){
+    const text = (history || []).filter(function(item){ return item && item.role === 'user'; }).map(function(item){ return item.content || ''; }).join(' ');
+    return /\b(rekomendasi|rekomendasikan|parfum|perfume|produk|aroma|wangi|budget|dana|niche|designer|desainer|lokal|miniso|timur tengah|timteng|fresh|manis|woody|floral|stok|ready)\b/.test(normalize(text));
+  }
+  function isProductFollowUpTextLocal(n){
+    n = normalize(n);
+    if(!n || isGeneralKnowledgeLocal(n) || isNonStoreGeneralQueryLocal(n)) return false;
+    if(/\b(selain itu|yang lain|lainnya|alternatif|rekomendasi lain|pilihan lain|jangan yang itu|bukan itu|selain tadi|lanjutkan|lanjut|tadi|sebelumnya)\b/.test(n)) return true;
+    if(/\b(yang lebih murah|yang murah|lebih murah|lebih mahal|yang premium|lebih fresh|yang fresh|lebih manis|yang manis|lebih soft|yang soft|lebih strong|yang strong|lebih tahan lama|yang tahan lama)\b/.test(n)) return true;
+    if(/^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(n)) return true;
+    if(/^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(n)) return true;
+    return false;
+  }
+  function isPerfumeProductQueryLocal(n){
+    n = normalize(n);
+    if(!n || isNonStoreGeneralQueryLocal(n) || isPerfumeEducationQueryLocal(n)) return false;
+    if(/\b(parfum|perfume|fragrance|wangi|aroma|scent|edp|edt|eau de parfum|eau de toilette|botol|ml)\b/.test(n)) return true;
+    if(/\b(niche|nishe|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(n)) return true;
+    if(/\b(fresh|segar|citrus|aquatic|clean|manis|sweet|vanilla|woody|oud|amber|musk|floral|soft|strong|tahan lama|awet)\b/.test(n) && /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cocok|budget|dana|harian|kantor|formal|hadiah|pria|wanita|unisex)\b/.test(n)) return true;
+    return false;
+  }
   function isExplicitNewProductRequestLocal(message){
     const n = normalize(message);
     if(!n || isGeneralKnowledgeLocal(n)) return false;
@@ -10624,24 +10660,22 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const recommend = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum)\b/.test(n);
     const category = matchCategoriesLocal(n).length > 0;
     const budget = !!parseBudgetLocal(n).label;
-    const productWord = /\b(parfum|perfume|produk|wangi|aroma)\b/.test(n);
+    const productWord = isPerfumeProductQueryLocal(n);
     const usage = /\b(harian|sehari hari|daily|kantor|kerja|formal|pesta|malam|date|kado|hadiah|gift|sekolah|kampus)\b/.test(n);
     const scent = /\b(fresh|segar|citrus|aquatic|clean|manis|sweet|vanilla|woody|oud|amber|musk|floral|soft|strong|tahan lama|awet|spicy)\b/.test(n);
     const gender = /\b(pria|laki|lelaki|cowok|cowo|wanita|perempuan|cewek|cewe|unisex)\b/.test(n);
     const detailCount = [category,budget,usage,scent,gender].filter(Boolean).length;
     if(compare && (category || productWord)) return true;
     if(recommend && (productWord || category || detailCount > 0)) return true;
-    if(productWord && detailCount >= 2 && !/\b(selain itu|yang lain|lainnya|alternatif|tadi|sebelumnya|lanjut|lebih murah|lebih mahal|jangan yang itu|bukan itu)\b/.test(n)) return true;
+    if(productWord && detailCount >= 2 && !isProductFollowUpTextLocal(n)) return true;
     return false;
   }
   function shouldUseStateForMessageLocal(message){
     const n = normalize(message);
-    if(!n || isGeneralKnowledgeLocal(n)) return false;
+    if(!n || isGeneralKnowledgeLocal(n) || isNonStoreGeneralQueryLocal(n) || isPriceFormatClarificationLocal(n)) return false;
     if(isExplicitNewProductRequestLocal(n)) return false;
-    if(/\b(selain itu|yang lain|lainnya|alternatif|tadi|sebelumnya|lanjut|lebih|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(n)) return true;
-    if(/^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(n)) return true;
-    if(/^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(n)) return true;
-    return n.split(/\s+/).length <= 4 && /\b(parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah|fresh|manis|woody)\b/.test(n);
+    if(isProductFollowUpTextLocal(n)) return hasProductHistoryLocal();
+    return hasProductHistoryLocal() && n.split(/\s+/).length <= 4 && /\b(parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah|fresh|manis|woody)\b/.test(n);
   }
   function stateContextTextLocal(){
     const bits = [];
@@ -10654,20 +10688,24 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     return bits.join(' ');
   }
   function isGeneralKnowledgeLocal(n){
-    const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css|edp|edt|eau de parfum|eau de toilette)\b/.test(n);
-    const shoppingTerms = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|carikan|cari|cocok|produk|stok|ready|harga|budget|dana|murah|mahal|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
-    return generalTerms && !shoppingTerms;
+    n = normalize(n);
+    if(isNonStoreGeneralQueryLocal(n) || isPerfumeEducationQueryLocal(n)) return true;
+    const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
+    const commerceTerms = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|produk|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
+    return generalTerms && !commerceTerms && !isPerfumeProductQueryLocal(n);
   }
   function detectLocalIntent(message){
     const n = normalize(message);
     const brand = /\b(apa itu dirac|apa itu dirac group|dirac group itu apa|tentang dirac group|profil dirac group|siapa dirac group|dirac group siapa|dirac itu apa|dirac siapa|apa itu toko dirac|apa itu website dirac)\b/.test(n);
-    if(brand) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:true};
-    if(isGeneralKnowledgeLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:true, brand:false};
-    const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|parfum|perfume|wangi|aroma|niche|designer|desainer|timteng|timur tengah|lokal|miniso|selain itu|yang lain|lainnya|alternatif|rekomendasi lain|pilihan lain)\b/.test(n) || (shouldUseStateForMessageLocal(n) && !!(state.category || state.usage || state.scent || state.gender || state.budget || (state.lastProductIds && state.lastProductIds.length)));
+    if(brand) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:true, priceFormat:false};
+    if(isPriceFormatClarificationLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:false, priceFormat:true};
+    if(isGeneralKnowledgeLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:true, brand:false, priceFormat:false};
+    const product = isPerfumeProductQueryLocal(n) || (isProductFollowUpTextLocal(n) && hasProductHistoryLocal());
+    const recommendation = product && (/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|carikan|mau parfum|pengen parfum|butuh parfum)\b/.test(n) || isProductFollowUpTextLocal(n));
     const tracking = /\b(resi|cek resi|tracking|lacak|pengiriman|paket)\b/.test(n);
     const website = /\b(website|web|situs|company profile|profil perusahaan|link)\b/.test(n);
     const cartIntent = /\b(keranjang|cart|checkout|beli|order|pesan|bayar|whatsapp|wa)\b/.test(n);
-    return {recommendation:recommendation, tracking:tracking, website:website, cart:cartIntent, general:false};
+    return {recommendation:recommendation, tracking:tracking, website:website, cart:cartIntent, general:false, brand:false, priceFormat:false};
   }
   function localProductSearch(query){
     const source = getProductList();
@@ -10717,12 +10755,15 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) return {text:'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.', links:[], products:[]};
     if(/\b(presiden amerika|presiden amerika serikat|presiden as|presiden usa|presiden us)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(n)) return {text:'Amerika Serikat memiliki 47 nomor presiden. Karena Grover Cleveland dan Donald Trump dihitung dua kali untuk masa jabatan yang tidak berurutan, jumlah orang yang pernah menjadi presiden AS adalah 45 orang.', links:[], products:[]};
     if(intent.brand) return {text:'Dirac Group adalah perusahaan yang bergerak di bidang reseller parfum serta pengembangan dan pembuatan website, dengan fokus pada penyediaan produk parfum berkualitas dan layanan digital profesional yang mendukung kebutuhan individu maupun bisnis; melalui komitmen pada kualitas, inovasi, dan pelayanan yang terpercaya, Dirac Group hadir sebagai mitra strategis dalam memenuhi kebutuhan gaya hidup sekaligus memperkuat kehadiran bisnis pelanggan di era digital.\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
+    if(intent.priceFormat) return {text:'Harga produk Dirac di kartu katalog sudah memakai Rupiah Indonesia (IDR). Untuk keputusan checkout, pakai harga yang tertulis di kartu produk hari ini dan tetap konfirmasi stok/harga final ke admin sebelum pembayaran.', links:[], products:[]};
     if(intent.general){
       if(/\b(sungai amazon|amazon river)\b/.test(n)) return {text:'Sungai Amazon berada di Amerika Selatan. Sungai ini mengalir terutama melalui Peru, Kolombia, dan Brasil, lalu bermuara ke Samudra Atlantik.', links:[], products:[]};
       if(/\b(planet terbesar|planet paling besar)\b/.test(n)) return {text:'Planet terbesar di Tata Surya adalah Jupiter.', links:[], products:[]};
       if(/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return {text:'2 + 2 = 4.', links:[], products:[]};
       if(/\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(n)) return {text:'Tips memilih parfum:\n1. Tentukan tujuan pemakaian: harian, kantor, formal, malam, atau hadiah.\n2. Pilih karakter aroma: fresh untuk aman harian, sweet untuk kesan hangat, woody untuk elegan, floral untuk lembut.\n3. Cocokkan dengan budget, jangan memaksakan produk terlalu jauh di atas dana.\n4. Cek status ready dan ukuran botol sebelum checkout.\n5. Untuk blind buy, mulai dari aroma yang mudah dipakai seperti fresh, clean, citrus, aquatic, atau soft woody.', links:[], products:[]};
-      return {text:'AI utama sedang tidak tersambung. Untuk pertanyaan umum yang kompleks, coba kirim ulang sebentar lagi. Saya tetap tidak akan mengubah pertanyaan umum menjadi rekomendasi parfum kecuali Anda memintanya.', links:[], products:[]};
+      if(/\b(harga|berapa).*(mobil|fortuner|toyota)\b|\b(mobil|fortuner|toyota).*\b(harga|berapa)\b/.test(n)) return {text:'Saya tidak punya akses harga mobil real-time dari dealer. Harga Toyota Fortuner bisa berbeda tergantung tipe, tahun, kondisi, pajak daerah, promo dealer, dan lokasi. Untuk harga hari ini, cek website/dealer Toyota resmi atau marketplace otomotif, lalu bandingkan OTR sesuai kota Anda.', links:[], products:[]};
+      if(/\b(harga|berapa|kurs|hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return {text:'Saya tidak akan mengarang harga real-time. Untuk data harga di luar katalog Dirac, cek sumber resmi terbaru. Untuk produk Dirac, gunakan harga yang tampil di kartu produk dan konfirmasi final ke admin sebelum bayar.', links:[], products:[]};
+      return {text:'AI utama belum aktif untuk pertanyaan umum kompleks. Saya tidak akan mengubah pertanyaan umum menjadi rekomendasi parfum kecuali Anda memang meminta parfum/produk Dirac.', links:[], products:[]};
     }
     if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
     if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
@@ -10736,19 +10777,19 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       updateRecommendationState(message);
       if(state.category || matchCategoryLocal(n)){
         const picks = localProductSearch(message);
-        if(picks.length) return {text:'AI utama sedang tidak tersambung, tapi dari katalog lokal saya pilihkan beberapa produk sesuai kategori yang Anda minta.', products:picks};
+        if(picks.length) return {text:'Dari katalog Dirac, saya pilihkan produk yang sesuai kategori dan budget yang Anda minta. Silakan cek kartu produk di bawah ini sebelum checkout.', products:picks};
       }
       const known = [state.usage,state.scent,state.gender,state.budget].filter(Boolean).length;
       if(known < 3) return {text:'Boleh. Supaya rekomendasinya pas, jawab dulu: parfum untuk apa, suka aroma apa, untuk pria/wanita/unisex, dan budget berapa?', products:[]};
       const picks = localProductSearch(message);
-      if(picks.length) return {text:'AI utama sedang tidak tersambung, tapi dari katalog lokal saya pilihkan beberapa produk yang paling mendekati kebutuhan Anda.', products:picks};
+      if(picks.length) return {text:'Saya pilihkan beberapa produk Dirac yang paling mendekati kebutuhan Anda. Kalau ingin alternatif, ketik: selain itu atau yang lain.', products:picks};
     }
     return {text:'AI utama sedang tidak tersambung, jadi saya belum bisa menjawab pertanyaan umum secara akurat. Saya masih bisa bantu link website, cek resi, cara checkout, atau rekomendasi dasar dari katalog.', links:[], products:[]};
   }
   function localFirstReply(message){
     const n = normalize(message);
     const intent = detectLocalIntent(message);
-    const canLocalCommerce = intent.recommendation || intent.website || intent.tracking || intent.cart || intent.brand || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(n));
+    const canLocalCommerce = intent.recommendation || intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|mobil)\b/.test(n));
     if(!canLocalCommerce) return null;
     const local = localFallbackReply(message);
     if(!local || !local.text) return null;
