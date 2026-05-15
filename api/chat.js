@@ -92,13 +92,14 @@ module.exports = async function handler(req, res) {
     const history = sanitizeHistory(Array.isArray(body.history) ? body.history.slice(-12) : []);
     const clientState = sanitizeState(body.state || {});
 
-    const historyRaw = history.map((item) => item && item.content ? item.content : '').join(' ');
+    const historyRaw = history.filter((item) => item && item.role === 'user').map((item) => item.content || '').join(' ');
     const normalizedHistory = normalize(historyRaw);
     const forcedGeneral = isGeneralKnowledge(normalizedMessage);
-    const recommendationHistory = relevantRecommendationHistory(history);
+    const useClientState = !forcedGeneral && shouldUseConversationContext(normalizedMessage, history);
+    const recommendationHistory = forcedGeneral ? '' : relevantRecommendationHistory(history, normalizedMessage);
     const contextSource = forcedGeneral ? message : `${recommendationHistory} ${message}`;
     const detectedContext = extractContext(contextSource);
-    const context = mergeContext(clientState, detectedContext);
+    const context = mergeContext(useClientState ? clientState : {}, detectedContext);
     const intent = detectIntent(normalizedMessage, normalizedHistory, context, forcedGeneral);
 
     const direct = directAnswer(intent, cart, traceId, hasProvider());
@@ -419,18 +420,35 @@ function sanitizeHistory(list) {
 }
 
 function sanitizeState(state) {
-  const text = normalize(JSON.stringify(state || {}));
-  const context = extractContext(text);
+  if (!isPlainObject(state)) return {};
+  const categories = Array.isArray(state.categories)
+    ? unique(state.categories.map((item) => safeEnum(normalize(item), ['niche','designer','timur_tengah','lokal','miniso'])).filter(Boolean)).slice(0, 4)
+    : [];
+  const category = safeEnum(normalize(state.category), ['niche','designer','timur_tengah','lokal','miniso']) || categories[0] || null;
+  const usage = safeEnum(normalize(state.usage), ['harian','kantor','formal','pesta','malam','hadiah','sekolah']);
+  const scent = safeEnum(normalize(state.scent), ['fresh','sweet','woody','floral','soft','strong','spicy']);
+  const gender = safeEnum(normalize(state.gender), ['pria','wanita','unisex']);
+  const budgetMax = clampNumber(state.budgetMax, 0, 200000000);
+  const budget = cleanBudgetLabel(state.budget, budgetMax);
   return {
-    category: safeEnum(context.category, ['niche','designer','timur_tengah','lokal','miniso']),
-    categories: Array.isArray(context.categories) ? context.categories : [],
-    usage: safeEnum(context.usage, ['harian','kantor','formal','pesta','malam','hadiah','sekolah']),
-    scent: safeEnum(context.scent, ['fresh','sweet','woody','floral','soft','strong','spicy']),
-    gender: safeEnum(context.gender, ['pria','wanita','unisex']),
-    budget: context.budget,
-    budgetMax: context.budgetMax,
-    budgetTier: context.budgetTier
+    category,
+    categories: unique([category, ...categories].filter(Boolean)).slice(0, 4),
+    usage,
+    scent,
+    gender,
+    budget,
+    budgetMax: budget && budgetMax >= 50000 ? budgetMax : null,
+    budgetTier: safeEnum(normalize(state.budgetTier), ['murah','premium'])
   };
+}
+
+function cleanBudgetLabel(value, budgetMax) {
+  const text = cleanText(value, 40);
+  if (!text) return null;
+  if (/premium|murah/.test(normalize(text))) return text;
+  if (Number(budgetMax || 0) < 50000) return null;
+  if (/^\d+(?:[.,]\d+)?\s*(ribu|rb|k|juta|jt)$/i.test(text)) return text;
+  return null;
 }
 
 function safeEnum(value, allowed) { return allowed.includes(value) ? value : null; }
@@ -445,19 +463,35 @@ function cleanText(value, max) { return String(value || '').replace(/[<>]/g, '')
 function clampNumber(value, min, max) { const number = Number(value) || 0; return Math.max(min, Math.min(max, number)); }
 
 function isGeneralKnowledge(text) {
-  const productTerms = /\b(parfum|perfume|produk parfum|wangi parfum|aroma parfum|botol parfum|ml parfum|stok|ready|rekomendasi parfum|checkout|keranjang|resi|paket|kurir)\b/.test(text);
-  const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|hitung|rumus|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(text);
-  return generalTerms && !productTerms;
+  const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css|edp|edt|eau de parfum|eau de toilette)\b/.test(text);
+  const shoppingTerms = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|carikan|cari|cocok|produk|stok|ready|harga|budget|dana|murah|mahal|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(text);
+  return generalTerms && !shoppingTerms;
 }
 
-function relevantRecommendationHistory(history) {
+function relevantRecommendationHistory(history, currentText = '') {
+  if (!shouldUseConversationContext(currentText, history)) return '';
   return history
+    .filter((item) => item && item.role === 'user')
+    .slice(-5)
     .filter((item) => {
       const text = normalize(item && item.content ? item.content : '');
-      return /\b(parfum|rekomendasi|aroma|wangi|fresh|manis|woody|harian|kantor|formal|hadiah|budget|pria|wanita|unisex|niche|designer|timur tengah|lokal|miniso)\b/.test(text);
+      if (isGeneralKnowledge(text)) return false;
+      return /\b(parfum|rekomendasi|aroma|wangi|fresh|manis|woody|harian|kantor|formal|hadiah|budget|dana|pria|wanita|unisex|niche|designer|timur tengah|lokal|miniso)\b/.test(text);
     })
     .map((item) => item.content || '')
     .join(' ');
+}
+
+function shouldUseConversationContext(text, history = []) {
+  const n = normalize(text);
+  if (!n || isGeneralKnowledge(n)) return false;
+  if (/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum)\b/.test(n) && /\b(parfum|niche|designer|timur tengah|lokal|miniso)\b/.test(n)) return false;
+  if (/\b(yang|itu|tadi|sebelumnya|lanjut|lebih|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(n)) return true;
+  if (/^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(n)) return true;
+  if (/^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(n)) return true;
+  const lastUser = history.filter((item) => item && item.role === 'user').slice(-1)[0];
+  const lastText = normalize(lastUser && lastUser.content);
+  return !!lastText && /\b(rekomendasi|parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah)\b/.test(lastText) && n.split(/\s+/).length <= 5;
 }
 
 function extractContext(raw) {
@@ -567,7 +601,8 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|cara beli|mau beli)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'checkout', mode: 'checkout' };
 
   const wantsCompare = /\b(bandingkan|perbandingan|compare|komparasi|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(text) || (context.categories || []).length >= 2;
-  const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|suggest|recommend|mau parfum|pengen parfum|butuh parfum)\b/.test(text) || /\b(rekomendasi|parfum buat apa|aroma apa|budget berapa)\b/.test(history);
+  const followUp = shouldUseConversationContext(text, []);
+  const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|carikan|cari parfum|cocok|suggest|recommend|mau parfum|pengen parfum|butuh parfum)\b/.test(text) || (followUp && /\b(rekomendasi|parfum buat apa|aroma apa|budget berapa)\b/.test(history));
   const categoryProduct = !!context.category || /\b(niche|nishe|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
   const product = /\b(produk|parfum|perfume|wangi|aroma|botol|ml|stok|ready|harga|budget|dana|mahal|murah)\b/.test(text) || categoryProduct;
   const infoCount = [context.usage, context.scent, context.gender, context.budget].filter(Boolean).length;
@@ -678,9 +713,15 @@ function scoreProducts(products, context, text) {
     return { product, score, budgetOk };
   }).filter((item) => item.score > 0 && !isSold(item.product)).sort((a, b) => b.score - a.score);
 
-  if (!budgetMax) return scored;
-  const withinBudget = scored.filter((item) => item.budgetOk);
-  return withinBudget.length ? withinBudget : scored.slice(0, 4);
+  const specificProducts = scored.filter((item) => !isCollectionProduct(item.product));
+  const ranked = specificProducts.length ? specificProducts : scored;
+  if (!budgetMax) return ranked;
+  const withinBudget = ranked.filter((item) => item.budgetOk);
+  return withinBudget.length ? withinBudget : ranked.slice(0, 4);
+}
+
+function isCollectionProduct(product) {
+  return /^all parfum\b/.test(normalize(product && (product.title || product.name)));
 }
 
 function isSold(product) {
