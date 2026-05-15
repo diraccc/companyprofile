@@ -97,7 +97,7 @@ module.exports = async function handler(req, res) {
     const normalizedHistory = normalize(historyRaw);
     const productPriceQuery = isStoreProductPriceQuestion(normalizedMessage);
     const mathQuery = isMathQuestion(message);
-    const forcedGeneral = mathQuery || (!productPriceQuery && isGeneralKnowledge(normalizedMessage));
+    const forcedGeneral = mathQuery || (!productPriceQuery && (isGeneralKnowledge(normalizedMessage) || isGeographyCountQuestion(normalizedMessage) || isRealTimeMarketQuestion(normalizedMessage)));
     const useClientState = !forcedGeneral && !productPriceQuery && shouldUseConversationContext(normalizedMessage, history);
     const recommendationHistory = forcedGeneral ? '' : relevantRecommendationHistory(history, normalizedMessage);
     const contextSource = forcedGeneral ? message : `${recommendationHistory} ${message}`;
@@ -164,9 +164,12 @@ module.exports = async function handler(req, res) {
       }));
     }
 
-    const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 12) : [];
+    const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 24) : [];
     const displayCount = Math.max(1, Math.min(10, Number(context.requestedCount || 3)));
-    const topProducts = scoredProducts.slice(0, displayCount).map((item) => item.product);
+    let topProducts = scoredProducts.slice(0, displayCount).map((item) => item.product);
+    if (useProducts && topProducts.length < displayCount) {
+      topProducts = fillProductList(products, topProducts, displayCount, context, normalizedMessage);
+    }
 
     if (useProducts && !topProducts.length) {
       return res.status(200).json(makeReply('commerce', buildNoProductReply(context), {
@@ -515,6 +518,8 @@ function isGeneralKnowledge(text) {
   if (!n) return false;
   if (isMathQuestion(n)) return true;
   if (isStoreProductPriceQuestion(n)) return false;
+  if (isRealTimeMarketQuestion(n)) return true;
+  if (isGeographyCountQuestion(n)) return true;
   if (isNonStoreGeneralQuery(n)) return true;
   if (isPerfumeEducationQuery(n)) return true;
   const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kota|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
@@ -537,6 +542,30 @@ function isNonStoreGeneralQuery(text) {
   if (/\b(mobil|motor|ferrari|ferari|fortuner|pajero|avanza|xenia|brio|civic|innova|alphard|toyota|honda|yamaha|suzuki|kawasaki|mobil listrik|sepeda motor)\b/.test(n)) return true;
   if (/\b(iphone|samsung|xiaomi|oppo|vivo|laptop|macbook|komputer|pc gaming|kamera|televisi|tv|rumah|tanah|apartemen|emas|dollar|dolar|saham|bitcoin|crypto|kripto|tiket|pesawat|hotel)\b/.test(n)) return true;
   return false;
+}
+
+function isRealTimeMarketQuestion(text) {
+  const n = normalize(text);
+  return /\b(harga|kurs|rate|nilai|price).*(hari ini|sekarang|saat ini|terbaru|real time|realtime)\b/.test(n) &&
+    /\b(emas|saham|bbca|bbri|tlkm|goto|ihsg|dollar|dolar|usd|bitcoin|btc|crypto|kripto|mobil|motor|rumah|tanah|tiket|pesawat|hotel)\b/.test(n);
+}
+
+function realTimeMarketReply(text) {
+  const n = normalize(text);
+  let subject = 'topik itu';
+  if (/\bemas\b/.test(n)) subject = 'harga emas';
+  else if (/\b(saham|bbca|bbri|tlkm|goto|ihsg)\b/.test(n)) subject = 'harga saham';
+  else if (/\b(dollar|dolar|usd|kurs)\b/.test(n)) subject = 'kurs mata uang';
+  else if (/\b(bitcoin|btc|crypto|kripto)\b/.test(n)) subject = 'harga kripto';
+  else if (/\b(mobil|motor|ferrari|ferari|fortuner|pajero|avanza|honda|toyota)\b/.test(n)) return vehiclePriceReply(n);
+  return `Saya tidak punya akses data real-time untuk ${subject}. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.`;
+}
+
+function isGeographyCountQuestion(text) {
+  const n = normalize(text);
+  return /\b(ada berapa|berapa banyak|berapa jumlah|jumlah|total)\b/.test(n) &&
+    /\b(kabupaten|kota|provinsi|negara|pulau|kecamatan)\b/.test(n) &&
+    !isStoreProductPriceQuestion(n);
 }
 
 function isPriceFormatClarification(text) {
@@ -682,6 +711,15 @@ function localKnowledgeAnswer(text) {
   const n = normalize(text);
   if (/\b(kabupaten|kota administratif|kota administrasi).*(jakarta|dki)|\b(jakarta|dki).*(kabupaten|kota administratif|kota administrasi)\b/.test(n)) {
     return 'DKI Jakarta memiliki 1 kabupaten administratif, yaitu Kabupaten Administratif Kepulauan Seribu. Selain itu ada 5 kota administrasi: Jakarta Pusat, Jakarta Utara, Jakarta Barat, Jakarta Selatan, dan Jakarta Timur.';
+  }
+  if (/\b(kabupaten).*(pulau jawa|jawa)|\b(pulau jawa|jawa).*(kabupaten)\b/.test(n)) {
+    return 'Pulau Jawa bukan satu provinsi, tetapi terdiri dari beberapa provinsi. Jika dihitung per provinsi utama di Pulau Jawa, totalnya sekitar 85 kabupaten: Banten 4, DKI Jakarta 1 kabupaten administratif, Jawa Barat 18, Jawa Tengah 29, DI Yogyakarta 4, dan Jawa Timur 29. Angka administratif bisa berubah jika ada pemekaran wilayah.';
+  }
+  if (/\b(kabupaten).*(kalimantan)|\b(kalimantan).*(kabupaten)\b/.test(n)) {
+    return 'Kalimantan di Indonesia terdiri dari 5 provinsi. Total kabupatennya sekitar 47 kabupaten: Kalimantan Barat 12, Kalimantan Tengah 13, Kalimantan Selatan 11, Kalimantan Timur 7, dan Kalimantan Utara 4. Angka ini belum termasuk kota, dan bisa berubah jika ada pemekaran wilayah.';
+  }
+  if (/\b(provinsi).*(indonesia)|\b(indonesia).*(provinsi)\b/.test(n) && /\b(ada berapa|berapa|jumlah)\b/.test(n)) {
+    return 'Indonesia saat ini memiliki 38 provinsi. Jumlah ini bisa berubah jika ada pemekaran wilayah baru.';
   }
   return null;
 }
@@ -1072,6 +1110,29 @@ function diversifyProducts(items) {
   return result;
 }
 
+function fillProductList(products, current, desiredCount, context = {}, text = '') {
+  const result = Array.isArray(current) ? current.slice(0, desiredCount) : [];
+  const seen = new Set(result.map((p) => String(p && p.id)));
+  const requestedCategories = (context.categories && context.categories.length ? context.categories : [context.category]).filter(Boolean);
+  const budgetMax = Number(context.budgetMax || 0);
+  const ready = (Array.isArray(products) ? products : []).filter((p) => p && !isSold(p) && !isCollectionProduct(p) && !seen.has(String(p.id)));
+  const addFrom = (list) => {
+    for (const p of list) {
+      if (result.length >= desiredCount) break;
+      if (!p || seen.has(String(p.id))) continue;
+      result.push(p);
+      seen.add(String(p.id));
+    }
+  };
+  const byPrice = (list) => list.slice().sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+  const byCategory = requestedCategories.length ? ready.filter((p) => requestedCategories.some((c) => categoryMatchesProduct(p, c))) : ready;
+  if (budgetMax) addFrom(byPrice(byCategory.filter((p) => Number(p.price || 0) <= Math.round(budgetMax * 1.1))));
+  addFrom(byPrice(byCategory));
+  if (budgetMax) addFrom(byPrice(ready.filter((p) => Number(p.price || 0) <= Math.round(budgetMax * 1.1))));
+  addFrom(byPrice(ready));
+  return result.slice(0, desiredCount);
+}
+
 function isCollectionProduct(product) {
   return /^all parfum\b/.test(normalize(product && (product.title || product.name)));
 }
@@ -1230,17 +1291,18 @@ function publicContext(context) {
 
 function localGeneralFallback(text) {
   const n = normalize(text);
-  if (isMathQuestion(n)) return solveMathQuestion(n);
+  if (isMathQuestion(text)) return solveMathQuestion(text);
   const knowledge = localKnowledgeAnswer(n);
   if (knowledge) return knowledge;
   if (isStoreProductPriceQuestion(n)) return buildProductPriceReply(SERVER_PRODUCTS, n).reply;
+  if (isRealTimeMarketQuestion(n)) return realTimeMarketReply(n);
   if (/\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(n)) {
     return 'Tips memilih parfum:\n1. Tentukan tujuan pemakaian: harian, kantor, formal, malam, atau hadiah.\n2. Pilih karakter aroma: fresh untuk aman harian, sweet untuk kesan hangat, woody untuk elegan, floral untuk lembut.\n3. Cocokkan dengan budget, jangan memaksakan produk terlalu jauh di atas dana.\n4. Cek status ready, ukuran botol, dan catatan aroma sebelum checkout.\n5. Untuk blind buy, mulai dari aroma yang mudah dipakai seperti fresh, clean, citrus, aquatic, atau soft woody.';
   }
   if (/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return '2 + 2 = 4.';
   if (/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return vehiclePriceReply(n);
   if (/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return 'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.';
-  return 'AI utama belum aktif untuk pertanyaan umum kompleks. Saya tidak akan mengubah pertanyaan umum menjadi rekomendasi parfum kecuali Anda memang meminta parfum/produk Dirac.';
+  return 'Pertanyaan ini masuk kategori umum, bukan produk Dirac. AI utama belum aktif untuk menjawab topik umum yang sangat luas secara lengkap, tetapi saya tidak akan mengubahnya menjadi rekomendasi parfum. Coba tulis lebih spesifik, misalnya soal matematika, geografi, sejarah, atau sebutkan produk Dirac jika ingin cek harga katalog.';
 }
 
 function shouldUseSearch(text, intent) {
