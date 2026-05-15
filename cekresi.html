@@ -7550,20 +7550,52 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       return safeText(value, "").toLowerCase();
     }
 
-    function finalDeliveryTextMatches(value, receiverText) {
-      const text = lowerText(value);
-      if (!text) return false;
-      if (/\b(delivered|terkirim|shipment delivered|successfully delivered|package delivered)\b/.test(text)) return true;
-      if (/\b(proof of delivery|pod)\b/.test(text) && !/\b(belum|not|no|tanpa)\b/.test(text)) return true;
-      if (/(?:paket\s+)?(?:telah|sudah)\s+diterima\s+(?:oleh\s+)?(?:penerima|recipient|consignee|customer|yang bersangkutan)/.test(text)) return true;
-      if (/diterima\s+oleh\s+(?:penerima|recipient|consignee|customer|yang bersangkutan)/.test(text)) return true;
-      if (/(?:selesai\s+(?:diterima|dikirim)|pengiriman\s+selesai)/.test(text) && !/\b(belum|pending|proses|perjalanan|transit|manifest|gateway|hub)\b/.test(text)) return true;
+    function statusTextClean(value) {
+      return lowerText(value).replace(/[\s\u00a0]+/g, " ").trim();
+    }
 
-      const receiver = lowerText(receiverText || "");
-      if (receiver && receiver !== "-" && receiver.length >= 3) {
+    function textContainsProblem(value) {
+      const text = statusTextClean(value);
+      return /\b(gagal|failed|failure|retur|return|returned|rts|undelivered|alamat tidak|penerima tidak|tidak di tempat|tertahan|hold|exception|problem|hilang|lost|cancel|dibatalkan)\b/.test(text);
+    }
+
+    function textContainsTransit(value) {
+      const text = statusTextClean(value);
+      return /\b(transit|on process|on transit|perjalanan|dikirim|akan dikirimkan|departed|forwarded|manifest|shipped|sortir|gateway|hub|drop point|drop-point|dc|warehouse|gudang|cabang|agen|kantor|office|counter|gerai|menuju|tiba di|sampai di|arrived at|received at)\b/.test(text);
+    }
+
+    function textLooksLikeFacilityReceipt(value) {
+      const text = statusTextClean(value);
+      if (!/diterima\s+oleh/.test(text)) return false;
+      if (/diterima\s+oleh\s+(?:penerima|recipient|consignee|customer|yang bersangkutan)/.test(text)) return false;
+      if (/\b(gateway|hub|sortir|drop point|drop-point|dc|warehouse|gudang|cabang|agen|kantor|office|counter|gerai|manifest|kurir|courier|ekspedisi|shipper|sender|origin|destination|tujuan|asal)\b/.test(text)) return true;
+      const after = text.match(/diterima\s+oleh\s+([^|•,.;\n]+)/);
+      if (after) {
+        const token = after[1].trim();
+        if (/^[a-z]{2,}(?:[ _-][a-z0-9]{2,}){0,3}$/.test(token) && !/[*.]/.test(token)) {
+          if (/\b(sidareja|sidoarjo|cilacap|kebumen|jakarta|bandung|surabaya|semarang|bekasi|depok|tangerang|bogor|malang|denpasar|medan|palembang|makassar|yogyakarta|solo|sub|clp|gateway|hub|tcc|tcc lp|tcclp)\b/.test(token)) return true;
+        }
+      }
+      return false;
+    }
+
+    function finalDeliveryTextMatches(value, receiverText) {
+      const text = statusTextClean(value);
+      if (!text) return false;
+      if (textContainsProblem(text)) return false;
+      if (/\b(belum|not|no|tanpa|pending|proses|process|perjalanan|transit|manifest|gateway|hub|sortir)\b.*\b(delivered|terkirim|diterima|pod)\b/.test(text)) return false;
+      if (textLooksLikeFacilityReceipt(text)) return false;
+      if (/\b(delivered|shipment delivered|successfully delivered|package delivered|terkirim)\b/.test(text)) return true;
+      if (/\b(proof of delivery|pod)\b/.test(text) && !/\b(belum|not|no|tanpa|pending)\b/.test(text)) return true;
+      if (/diterima\s+oleh\s+(?:penerima|recipient|consignee|customer|yang bersangkutan)/.test(text)) return true;
+      if (/(?:paket\s+)?(?:telah|sudah)\s+diterima\s*(?:oleh\s+)?(?:penerima|recipient|consignee|customer|yang bersangkutan)?/.test(text) && !textContainsTransit(text)) return true;
+      if (/(?:selesai\s+(?:diterima|dikirim)|pengiriman\s+selesai)/.test(text) && !textContainsTransit(text)) return true;
+
+      const receiver = statusTextClean(receiverText || "");
+      if (receiver && receiver !== "-" && receiver.length >= 3 && !/^(tidak tersedia|lokasi tidak tersedia|penerima|recipient)$/.test(receiver)) {
         const escapedReceiver = receiver.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const byReceiver = new RegExp("(?:telah|sudah)?\\s*diterima\\s+oleh\\s+" + escapedReceiver);
-        if (byReceiver.test(text)) return true;
+        const byReceiver = new RegExp("(?:telah|sudah)?\\s*diterima\\s+oleh\\s+" + escapedReceiver + "(?:\\b|$)");
+        if (byReceiver.test(text) && !textLooksLikeFacilityReceipt(text)) return true;
       }
 
       return false;
@@ -7574,24 +7606,34 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       if (!raw) return null;
       const direct = Date.parse(raw);
       if (!Number.isNaN(direct)) return direct;
-      const match = raw.match(/(20\d{2})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-      if (match) {
-        return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)).getTime();
+      const iso = raw.match(/(20\d{2})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (iso) {
+        return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]), Number(iso[4] || 0), Number(iso[5] || 0), Number(iso[6] || 0)).getTime();
+      }
+      const dmy = raw.match(/(\d{1,2})[-/](\d{1,2})[-/](20\d{2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (dmy) {
+        return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]), Number(dmy[4] || 0), Number(dmy[5] || 0), Number(dmy[6] || 0)).getTime();
       }
       return null;
     }
 
-    function latestHistoryText(history) {
-      if (!Array.isArray(history) || !history.length) return "";
-      let latest = history[history.length - 1];
+    function latestHistoryItem(history) {
+      if (!Array.isArray(history) || !history.length) return null;
+      let latest = history[0];
       let latestTime = parseHistoryTimestamp(latest && latest.time);
-      history.forEach((item) => {
+      history.forEach((item, index) => {
         const itemTime = parseHistoryTimestamp(item && item.time);
-        if (itemTime !== null && (latestTime === null || itemTime >= latestTime)) {
+        if (itemTime !== null && (latestTime === null || itemTime > latestTime || (itemTime === latestTime && index < history.indexOf(latest)))) {
           latest = item;
           latestTime = itemTime;
         }
       });
+      return latest;
+    }
+
+    function latestHistoryText(history) {
+      const latest = latestHistoryItem(history);
+      if (!latest) return "";
       return safeText((latest && latest.rawText) || [latest && latest.title, latest && latest.description, latest && latest.time].filter(Boolean).join(" "), "");
     }
 
@@ -7711,7 +7753,6 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
         summary.delivery_status,
         summary.status_name,
         delivery.status,
-        delivery.pod_receiver,
         details.status,
         latestHistoryText(history)
       ].filter(Boolean).map((item) => safeText(item, "")).filter(Boolean);
@@ -7719,14 +7760,16 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       return [...new Set(values)].join(" | ");
     }
 
-    function detectDelivered(statusText, root, receiverText) {
-      return Boolean(
-        root?.delivered === true ||
-        root?.is_delivered === true ||
-        root?.delivered === 1 ||
-        root?.is_delivered === 1 ||
-        finalDeliveryTextMatches(statusText, receiverText)
-      );
+    function detectDelivered(statusText, root, receiverText, delivery = {}, latestText = "") {
+      const rootDelivered = root?.delivered === true || root?.is_delivered === true || root?.delivered === 1 || root?.is_delivered === 1;
+      const deliveryStatus = [delivery.status, delivery.delivery_status, delivery.status_text, delivery.pod_status, delivery.pod_date, delivery.pod_time, delivery.pod_datetime].filter(Boolean).join(" ");
+      const hasPodEvidence = Boolean(findFirst(delivery.pod_date, delivery.pod_time, delivery.pod_datetime, delivery.date, delivery.received_date));
+      const podReceiver = findFirst(delivery.pod_receiver, delivery.receiver, delivery.recipient, delivery.recipient_name);
+      const latestFinal = finalDeliveryTextMatches(latestText || statusText, receiverText);
+      const deliveryFinal = finalDeliveryTextMatches(deliveryStatus, podReceiver || receiverText) || (hasPodEvidence && finalDeliveryTextMatches([statusText, deliveryStatus].join(" "), podReceiver || receiverText));
+      if (latestText && textContainsProblem(latestText)) return false;
+      if (latestText && textContainsTransit(latestText) && !finalDeliveryTextMatches(latestText, receiverText)) return false;
+      return Boolean(rootDelivered || deliveryFinal || latestFinal);
     }
 
     function mapDisplayStatus(statusText, delivered) {
@@ -7759,19 +7802,35 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
       const details = pickObject(roots, ["details", "detail", "data.details", "data.detail", "result.details"]);
       const delivery = pickObject(roots, ["delivery_status", "delivery", "pod", "data.delivery_status", "result.delivery_status"]);
       const rawHistory = pickArray(roots, ["manifest", "history", "histories", "tracking", "tracks", "data.manifest", "data.history", "result.manifest", "result.history"]);
-      const normalizedHistory = rawHistory.map(normalizeHistoryItem).filter((item) => item.title !== "Aktivitas pengiriman" || item.description !== "Lokasi tidak tersedia");
+      const normalizedHistory = rawHistory
+        .map(normalizeHistoryItem)
+        .filter((item) => item.title !== "Aktivitas pengiriman" || item.description !== "Lokasi tidak tersedia")
+        .sort((a, b) => {
+          const ta = parseHistoryTimestamp(a && a.time);
+          const tb = parseHistoryTimestamp(b && b.time);
+          if (ta === null && tb === null) return 0;
+          if (ta === null) return 1;
+          if (tb === null) return -1;
+          return tb - ta;
+        });
 
-      const statusText = getAllStatusText({ raw, root, summary, details, delivery, history: normalizedHistory });
-      const receiverCandidate = findFirst(
-        delivery.pod_receiver,
+      const latestText = latestHistoryText(normalizedHistory);
+      const explicitReceiver = findFirst(
         summary.receiver_name,
+        summary.receiver,
+        summary.recipient,
+        summary.recipient_name,
         details.receiver_name,
         details.receiver,
+        details.recipient,
+        details.recipient_name,
         getFirstByPaths(root, ["receiver_name", "receiver", "recipient", "recipient_name"])
       );
-      const delivered = detectDelivered(statusText, root, receiverCandidate);
+      const statusText = getAllStatusText({ raw, root, summary, details, delivery, history: normalizedHistory });
+      const delivered = detectDelivered(statusText, root, explicitReceiver, delivery, latestText);
       const displayStatus = mapDisplayStatus(statusText, delivered);
-      const activeStep = getActiveStep(displayStatus, delivered, statusText);
+      const activeStep = Math.min(getActiveStep(displayStatus, delivered, statusText), delivered ? 6 : 5);
+      const receiverCandidate = delivered ? findFirst(delivery.pod_receiver, explicitReceiver) : explicitReceiver;
 
       const waybillNumber = findFirst(
         summary.awb,
@@ -11263,10 +11322,13 @@ body.dg-v18-reduce-motion .dg-v19-button.dg-v19-clicked {
   }
 
   function classifyStatus(statusText, data) {
-    const text = [statusText, data && data.status, textOf("resultTitle"), textOf("resultStatus"), textOf("statusBadgeText"), timelineList ? timelineList.textContent : ""].join(" ").toLowerCase();
+    const latestNode = timelineList ? timelineList.querySelector(".timeline-item:first-child") : null;
+    const latestText = latestNode ? latestNode.textContent : "";
+    const text = [statusText, data && data.status, data && data.rawStatus, textOf("resultTitle"), textOf("resultStatus"), textOf("statusBadgeText"), latestText].join(" ").toLowerCase();
+    const facilityReceipt = /diterima\s+oleh/.test(text) && !/diterima\s+oleh\s+(penerima|recipient|consignee|customer|yang bersangkutan)/.test(text) && /(gateway|hub|sortir|cabang|agen|kantor|office|dc|warehouse|gudang|manifest|sidareja|sidoarjo|cilacap|kebumen|sub_gateway|clp_gateway|tcclp)/.test(text);
     if (/gagal|failed|failure|retur|return|undelivered|alamat tidak|penerima tidak|tidak di tempat|tertahan|hold|exception|problem|hilang|lost|cancel|dibatalkan/.test(text)) return "problem";
-    if (/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(text)) return "delivered";
-    if (/transit|proses|perjalanan|dikirim|out for delivery|kurir|sortir|hub|gateway|on process/.test(text)) return "transit";
+    if (!facilityReceipt && (data && data.delivered === true || /(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(text))) return "delivered";
+    if (/transit|proses|perjalanan|dikirim|out for delivery|kurir|sortir|hub|gateway|on process|diterima oleh/.test(text)) return "transit";
     if (/pending|menunggu|manifest|created|belum/.test(text)) return "pending";
     return "transit";
   }
@@ -12833,17 +12895,19 @@ body.dg-v22-stepper-placed .tracking-loading-stage.dg-v22-kept-after-form {
   }
   function activeStepFromStatus(text) {
     const value = String(text || "").toLowerCase();
-    if (/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(value)) return 6;
+    const facilityReceipt = /diterima\s+oleh/.test(value) && !/diterima\s+oleh\s+(penerima|recipient|consignee|customer|yang bersangkutan)/.test(value) && /(gateway|hub|sortir|cabang|agen|kantor|office|dc|warehouse|gudang|manifest|sidareja|sidoarjo|cilacap|kebumen|sub_gateway|clp_gateway|tcclp)/.test(value);
+    if (!facilityReceipt && /(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(value)) return 6;
     if (/out for delivery|with courier|kurir|diantar|antar ke alamat/.test(value)) return 5;
     if (/destination|kota tujuan|hub tujuan|tiba/.test(value)) return 4;
-    if (/transit|perjalanan|dikirim|departed|forwarded|manifest|shipped|sortir|gateway|hub/.test(value)) return 3;
+    if (/transit|perjalanan|dikirim|akan dikirimkan|departed|forwarded|manifest|shipped|sortir|gateway|hub|diterima oleh/.test(value)) return 3;
     if (/pickup|picked up|accepted|diterima ekspedisi|received at/.test(value)) return 2;
     return 1;
   }
   function classifyStatus(text, activeStep) {
     const value = String(text || "").toLowerCase();
+    const facilityReceipt = /diterima\s+oleh/.test(value) && !/diterima\s+oleh\s+(penerima|recipient|consignee|customer|yang bersangkutan)/.test(value) && /(gateway|hub|sortir|cabang|agen|kantor|office|dc|warehouse|gudang|manifest|sidareja|sidoarjo|cilacap|kebumen|sub_gateway|clp_gateway|tcclp)/.test(value);
     if (/gagal|failed|failure|retur|return|returned|rts|undelivered|alamat tidak|penerima tidak|tidak di tempat|tertahan|hold|exception|problem|hilang|lost|cancel|dibatalkan/.test(value)) return "problem";
-    if (/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(value) || activeStep >= 6) return "delivered";
+    if (!facilityReceipt && (/(delivered|terkirim|shipment delivered|proof of delivery|pod|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/.test(value) || activeStep >= 6)) return "delivered";
     if (/pending|menunggu|created|booking|belum aktif|belum/.test(value)) return "pending";
     if (/out for delivery|kurir|diantar/.test(value)) return "delivery";
     return "transit";
@@ -13749,5 +13813,111 @@ body.dg-v22-stepper-placed .tracking-loading-stage.dg-v22-kept-after-form {
 </script>
 <!-- DIRAC V23 ULTRA ACTIONABLE TRACKING + BACKGROUND NOTIFICATION + SELLER PRO END -->
 
+
+<script>
+/* DIRAC V24 STATUS HARDENING - lintas ekspedisi, additive safety layer */
+(function initDiracV24StatusHardening() {
+  "use strict";
+  const VERSION = "v24-cross-courier-status-hardening";
+  const FACILITY_RE = /(gateway|hub|sortir|cabang|agen|kantor|office|dc|warehouse|gudang|manifest|drop point|drop-point|counter|gerai|sidareja|sidoarjo|cilacap|kebumen|sub_gateway|clp_gateway|tcclp)/i;
+  const FINAL_RE = /(delivered|terkirim|shipment delivered|successfully delivered|package delivered|proof of delivery|\bpod\b|diterima oleh (penerima|recipient|consignee|customer|yang bersangkutan)|selesai (diterima|dikirim)|pengiriman selesai)/i;
+  const TRANSIT_RE = /(transit|perjalanan|dikirim|akan dikirimkan|departed|forwarded|manifest|shipped|sortir|gateway|hub|tiba di|sampai di|arrived at|received at|diterima oleh)/i;
+  const PROBLEM_RE = /(gagal|failed|failure|retur|return|returned|rts|undelivered|alamat tidak|penerima tidak|tidak di tempat|tertahan|hold|exception|problem|hilang|lost|cancel|dibatalkan)/i;
+
+  function byId(id) { return document.getElementById(id); }
+  function text(nodeOrId) {
+    const node = typeof nodeOrId === "string" ? byId(nodeOrId) : nodeOrId;
+    return String(node && node.textContent || "").replace(/\s+/g, " ").trim();
+  }
+  function clean(value) { return String(value || "").replace(/\s+/g, " ").trim(); }
+  function latestTimelineText() {
+    const item = document.querySelector("#timelineList .timeline-item:first-child");
+    return text(item);
+  }
+  function isFacilityReceipt(value) {
+    const s = clean(value).toLowerCase();
+    return /diterima\s+oleh/.test(s) && !/diterima\s+oleh\s+(penerima|recipient|consignee|customer|yang bersangkutan)/.test(s) && FACILITY_RE.test(s);
+  }
+  function isFinalDeliveredText(value, deliveredFlag) {
+    const s = clean(value);
+    if (!s || PROBLEM_RE.test(s)) return false;
+    if (isFacilityReceipt(s)) return false;
+    if (deliveredFlag === true && !TRANSIT_RE.test(s)) return true;
+    return FINAL_RE.test(s) && !isFacilityReceipt(s);
+  }
+  function sanitizeData(data) {
+    if (!data || typeof data !== "object") return data;
+    const next = Object.assign({}, data);
+    const newest = Array.isArray(next.history) && next.history.length ? [next.history[0].title, next.history[0].description, next.history[0].time].join(" ") : "";
+    const statusText = [next.status, next.rawStatus, newest].join(" ");
+    const final = isFinalDeliveredText(statusText, next.delivered);
+    if (!final) {
+      next.delivered = false;
+      next.activeStep = Math.min(Number(next.activeStep) || 3, 5);
+      if (/paket telah diterima|pesanan tiba/i.test(next.status || "") || isFacilityReceipt(statusText)) {
+        if (/out for delivery|kurir|diantar|antar ke alamat/i.test(statusText)) next.status = "Paket sedang dikirim kurir";
+        else if (/tiba|destination|tujuan/i.test(statusText)) next.status = "Paket tiba di kota tujuan";
+        else next.status = "Paket dalam perjalanan";
+      }
+    } else {
+      next.delivered = true;
+      next.activeStep = 6;
+    }
+    return next;
+  }
+  function correctDom(data) {
+    const safe = sanitizeData(data || { status: text("resultStatus") || text("statusBadgeText"), rawStatus: latestTimelineText(), delivered: false, activeStep: document.querySelectorAll("#progressSteps .progress-step.active").length });
+    const latest = latestTimelineText();
+    const final = safe.delivered === true && isFinalDeliveredText([safe.status, safe.rawStatus, latest].join(" "), true);
+    document.body.dataset.diracV24Delivered = final ? "true" : "false";
+    if (!final) {
+      const status = safe.status || "Paket dalam perjalanan";
+      ["resultTitle", "statusBadgeText", "resultStatus"].forEach(function (id) { const node = byId(id); if (node && /paket telah diterima|pesanan tiba/i.test(text(node))) node.textContent = status; });
+      const badge = byId("statusBadge");
+      if (badge) badge.classList.add("pending");
+      const deliveredCard = byId("deliveredCardV12");
+      if (deliveredCard) deliveredCard.classList.remove("show");
+      document.body.classList.remove("dg-v19-status-delivered", "dg-v23-status-delivered");
+      if (!document.body.classList.contains("dg-v19-status-problem")) document.body.classList.add("dg-v19-status-transit");
+      const route = byId("dgRouteVisualV16");
+      if (route) {
+        route.classList.remove("is-delivered");
+        route.classList.add("is-onway");
+        const chip = route.querySelector(".dg-v16-route-chip");
+        if (chip && /selesai/i.test(chip.textContent || "")) chip.textContent = "Rute Paket";
+        const title = route.querySelector(".dg-v16-route-title strong");
+        if (title && /pesanan tiba/i.test(title.textContent || "")) title.textContent = "Menuju Alamatmu";
+      }
+    }
+  }
+
+  const originalRender = window.renderTrackingResult;
+  if (typeof originalRender === "function" && !originalRender.__diracV24Patched) {
+    const patched = function diracV24RenderTrackingResult(data) {
+      const safe = sanitizeData(data);
+      const result = originalRender.call(this, safe);
+      window.setTimeout(function () { correctDom(safe); }, 0);
+      window.requestAnimationFrame(function () { correctDom(safe); });
+      return result;
+    };
+    patched.__diracV24Patched = true;
+    window.renderTrackingResult = patched;
+    try { renderTrackingResult = patched; } catch (error) {}
+  }
+
+  if (window.MutationObserver) {
+    const area = byId("resultArea");
+    if (area) {
+      let timer = 0;
+      new MutationObserver(function () {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(function () { correctDom(null); }, 20);
+      }).observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "data-v23-status"] });
+    }
+  }
+
+  window.DiracV24 = { version: VERSION, sanitizeData: sanitizeData, correctDom: correctDom, isFinalDeliveredText: isFinalDeliveredText, verify: function () { correctDom(null); return Boolean(byId("trackingForm") && byId("resultArea") && byId("expedition")); } };
+})();
+</script>
 </body>
 </html>
