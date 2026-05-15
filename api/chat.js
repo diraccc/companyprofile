@@ -130,6 +130,28 @@ module.exports = async function handler(req, res) {
     const direct = directAnswer(intent, cart, traceId, hasProvider());
     if (direct) return res.status(200).json(direct);
 
+    if (intent.name === 'general') {
+      const staticAnswer = localKnowledgeAnswer(normalizedMessage);
+      if (staticAnswer) {
+        return res.status(200).json(makeReply('conversation', staticAnswer, {
+          traceId,
+          intent: intent.name,
+          provider: 'local-knowledge',
+          confidence: 0.94,
+          analytics: { intent: intent.name, source: 'local-knowledge', ms: Date.now() - startedAt }
+        }));
+      }
+      if (isRealTimeMarketQuestion(normalizedMessage)) {
+        return res.status(200).json(makeReply('conversation', realTimeMarketReply(normalizedMessage), {
+          traceId,
+          intent: intent.name,
+          provider: 'local-realtime-boundary',
+          confidence: 0.9,
+          analytics: { intent: intent.name, source: 'local-realtime-boundary', ms: Date.now() - startedAt }
+        }));
+      }
+    }
+
     if (intent.name === 'product_reference' || intent.name === 'product_action') {
       return res.status(200).json(buildProductReferenceReply(products, clientState, normalizedMessage, intent, traceId));
     }
@@ -518,6 +540,7 @@ function isGeneralKnowledge(text) {
   if (!n) return false;
   if (isMathQuestion(n)) return true;
   if (isStoreProductPriceQuestion(n)) return false;
+  if (staticGeneralAnswer(n)) return true;
   if (isRealTimeMarketQuestion(n)) return true;
   if (isGeographyCountQuestion(n)) return true;
   if (isNonStoreGeneralQuery(n)) return true;
@@ -1379,7 +1402,7 @@ function localGeneralFallback(text) {
   if (/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return '2 + 2 = 4.';
   if (/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return vehiclePriceReply(n);
   if (/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return 'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.';
-  return 'Pertanyaan ini termasuk pertanyaan umum, bukan produk Dirac. Untuk topik umum yang tidak punya data lokal/rumus sederhana, AI utama perlu API aktif agar bisa menjawab lengkap. Saya tetap tidak akan mengubahnya menjadi rekomendasi parfum. Coba tulis pertanyaan lebih spesifik, atau tanyakan produk Dirac jika ingin cek harga katalog.';
+  return 'Ini pertanyaan umum, bukan produk Dirac. Saya tidak akan mengubahnya menjadi rekomendasi parfum. Jika AI utama sedang tidak aktif, saya tetap bisa menjawab matematika, beberapa geografi Indonesia, info dasar parfum, dan harga produk katalog. Untuk topik umum yang sangat luas atau terbaru, aktifkan API AI utama agar jawabannya lengkap dan akurat.';
 }
 
 function shouldUseSearch(text, intent) {
