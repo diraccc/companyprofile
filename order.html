@@ -10239,7 +10239,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   let userAbortRequested = false;
   let lastUserPrompt = '';
   let sessionId = getSessionId();
-  const AI_BUILD = 'ai-fix-2026-05-15-v5-root-endpoint-state';
+  const AI_BUILD = 'ai-intelligence-2026-05-15-v6-router-memory-verifier';
   try{
     if(localStorage.getItem('dirac_ai_build') !== AI_BUILD){
       ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1'].forEach(function(key){ localStorage.removeItem(key); });
@@ -10789,7 +10789,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function localFirstReply(message){
     const n = normalize(message);
     const intent = detectLocalIntent(message);
-    const canLocalCommerce = intent.recommendation || intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|mobil)\b/.test(n));
+    const canLocalCommerce = intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|mobil)\b/.test(n));
     if(!canLocalCommerce) return null;
     const local = localFallbackReply(message);
     if(!local || !local.text) return null;
@@ -10869,6 +10869,29 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     }catch(error){}
   }
 
+  function applyServerAiContext(data){
+    try{
+      if(!data || !data.intent) return;
+      const intent = String(data.intent || '');
+      if(intent === 'general' || intent === 'price_format' || intent === 'website' || intent === 'tracking' || intent === 'checkout' || intent === 'support'){
+        state.intent = intent;
+        saveJson('dirac_ai_state_v2', state);
+        return;
+      }
+      const ctx = data.recommendationContext && typeof data.recommendationContext === 'object' ? data.recommendationContext : null;
+      if(ctx){
+        state.category = ctx.category || state.category || null;
+        state.categories = Array.isArray(ctx.categories) ? ctx.categories.slice(0,4) : (state.categories || []);
+        state.usage = ctx.usage || state.usage || null;
+        state.scent = ctx.scent || state.scent || null;
+        state.gender = ctx.gender || state.gender || null;
+        if(Number(ctx.budgetMax || 0) >= 50000){ state.budget = ctx.budget || state.budget || null; state.budgetMax = Number(ctx.budgetMax); }
+      }
+      state.intent = intent;
+      saveJson('dirac_ai_state_v2', state);
+    }catch(error){}
+  }
+
   async function handleSend(raw){
     if(isBusy){ abortActiveRequest(); return; }
     const message = String(raw || '').trim().slice(0, MESSAGE_LIMIT);
@@ -10909,6 +10932,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
         }
       }
       typing.remove();
+      applyServerAiContext(data);
       const productsToShow = data.showProducts ? (data.products || []) : [];
       rememberShownProducts(productsToShow);
       addBotMessage(data.reply, {links:data.links || [], questions:data.questions || [], products:productsToShow, provider:data.provider, traceId:data.traceId});
