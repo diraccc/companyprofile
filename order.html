@@ -10291,16 +10291,57 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       return true;
     }
   }
-  function getGreetingReply(message){
+  function hasProductIntent(message){
     const normalized = normalize(message);
-    if(/^(halo|hallo|hai|hi|hello|helo|pagi|selamat pagi|siang|selamat siang|sore|selamat sore|malam|selamat malam|permisi|assalamualaikum|test|tes)$/.test(normalized)){
+    if(!normalized) return false;
+    const commerceWords = [
+      'parfum','perfume','produk','product','aroma','wangi','wanginya','bau','scent','fragrance',
+      'fresh','segar','manis','sweet','vanilla','oud','woody','citrus','formal','kantor','daily',
+      'pria','cowok','laki','men','wanita','cewek','perempuan','women','unisex',
+      'hadiah','kado','gift','rekomendasi','rekomendasikan','recommend','cari','carikan','pilih','cocok',
+      'harga','budget','murah','mahal','best seller','bestseller','top seller','tahan lama','awet',
+      'beli','buy','checkout','keranjang','cart','pesanan','resi','tracking','lacak','pengiriman'
+    ];
+    return commerceWords.some(word => normalized.includes(word));
+  }
+  function getConversationReply(message){
+    const normalized = normalize(message);
+    const compact = normalized.replace(/\s+/g,'');
+    const greetingWords = [
+      'halo','hallo','hlo','hloo','hlow','hllo','helo','hello','hai','hay','hi','hy','pagi','siang','sore','malam',
+      'selamatpagi','selamatsiang','selamatsore','selamatmalam','permisi','assalamualaikum','assalamuallaikum','tes','test'
+    ];
+    const politeSuffix = /\b(kak|ka|gan|min|admin|bos|bro|sis|om|pak|bu)\b/g;
+    const withoutPolite = normalized.replace(politeSuffix,'').replace(/\s+/g,' ').trim();
+    const compactWithoutPolite = withoutPolite.replace(/\s+/g,'');
+
+    if(greetingWords.includes(compact) || greetingWords.includes(compactWithoutPolite)){
       return {
-        text:'Halo! Ada yang bisa saya bantu? Saya bisa bantu cari parfum, rekomendasi aroma, cek isi keranjang, atau arahkan cek resi.',
+        text:'Halo! Saya di sini. Mau ngobrol dulu juga boleh. Kalau nanti butuh, saya bisa bantu cari parfum, rekomendasi aroma, cek keranjang, atau arahkan cek resi.',
         products:[]
       };
     }
+    if(/\b(apa kabar|gimana kabar|kabarmu|kabar kamu|lagi apa|hai ai|halo ai|hlo ai)\b/.test(normalized)){
+      return {text:'Saya baik dan siap bantu. Anda mau ngobrol dulu, tanya tentang produk, atau minta rekomendasi parfum?', products:[]};
+    }
+    if(/\b(siapa kamu|kamu siapa|ini siapa|ai apa|asisten apa)\b/.test(normalized)){
+      return {text:'Saya Dirac AI Assistant. Saya bisa diajak ngobrol, bantu jelaskan katalog, cari parfum sesuai selera, bantu cek keranjang, dan arahkan cek resi.', products:[]};
+    }
+    if(/\b(bisa apa|bantu apa|fitur apa|cara pakai|help|tolong apa)\b/.test(normalized)){
+      return {text:'Saya bisa bantu ngobrol dulu, lalu kalau Anda mau saya bisa carikan parfum berdasarkan aroma, acara, budget, atau kebutuhan hadiah. Saya juga bisa bantu arahkan checkout dan cek resi.', products:[]};
+    }
+    if(/\b(makasih|terima kasih|thanks|thank you|oke|ok|sip|mantap|baik|siap)\b/.test(normalized) && normalized.split(' ').length <= 4){
+      return {text:'Siap, sama-sama. Mau lanjut ngobrol atau ada yang ingin saya bantu?', products:[]};
+    }
+    if(normalized.length <= 4 && !hasProductIntent(normalized)){
+      return {text:'Saya di sini. Bisa jelaskan sedikit lagi mau ngobrol tentang apa?', products:[]};
+    }
     return null;
   }
+  function getGreetingReply(message){
+    return getConversationReply(message);
+  }
+
   function setOpen(open){
     widget.classList.toggle('is-open', open);
     toggle.setAttribute('aria-expanded', String(open));
@@ -10366,9 +10407,10 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     return wrap;
   }
   function localProductSearch(query){
+    if(!hasProductIntent(query)) return [];
     const source = getProductList();
     const normalizedQuery = normalize(query);
-    const terms = normalizedQuery.split(' ').filter(term => term.length > 1);
+    const terms = normalizedQuery.split(' ').filter(term => term.length > 2);
     const intentMap = [
       {keys:['pria','cowok','maskulin','men'], boost:['masculine','woody','fresh','spicy','aromatic','pria']},
       {keys:['wanita','cewek','feminim','women'], boost:['floral','sweet','vanilla','fruity','wanita']},
@@ -10381,6 +10423,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     intentMap.forEach(group => {
       if(group.keys.some(key => normalizedQuery.includes(key))) boosts.push(...group.boost);
     });
+    if(!terms.length && !boosts.length) return [];
 
     return source.map(p => {
       const haystack = normalize([p.title,p.category,p.desc,p.longDesc,p.notes,p.price].join(' '));
@@ -10395,14 +10438,18 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       });
       if(p.isTopSeller) score += 2;
       if(String(p.status || '').toLowerCase() === 'sold') score -= 12;
-      if(!terms.length && p.isTopSeller) score += 6;
+      if(!terms.length && p.isTopSeller && boosts.length) score += 6;
       return {p,score};
     }).filter(entry => entry.score > 0)
       .sort((a,b) => b.score - a.score || (b.p.rating || 0) - (a.p.rating || 0))
       .slice(0,4)
       .map(entry => entry.p);
   }
+
   function localFallbackReply(message){
+    const conversation = getConversationReply(message);
+    if(conversation) return conversation;
+
     const normalizedMessage = normalize(message);
     const cartSummary = currentCartSummary();
 
@@ -10421,19 +10468,27 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       };
     }
 
+    if(!hasProductIntent(message)){
+      return {
+        text:'Boleh, kita ngobrol dulu. Ceritakan saja kebutuhan Anda. Kalau nanti mau rekomendasi parfum, sebutkan aroma, acara, atau budget yang diinginkan.',
+        products:[]
+      };
+    }
+
     const picks = localProductSearch(message);
     if(picks.length){
       return {
-        text:'Saya menemukan beberapa produk yang paling cocok berdasarkan katalog di halaman ini. Anda bisa lihat detail atau langsung tambah ke keranjang.',
+        text:'Saya menemukan beberapa produk yang sesuai dengan kebutuhan Anda. Anda bisa lihat detail atau langsung tambah ke keranjang.',
         products:picks
       };
     }
 
     return {
-      text:'Saya siap bantu cari parfum Dirac Group. Coba sebutkan karakter aroma yang Anda mau, misalnya fresh, manis, formal, pria, wanita, hadiah, atau budget tertentu.',
+      text:'Saya siap bantu. Untuk rekomendasi yang lebih pas, sebutkan aroma yang Anda mau, misalnya fresh, manis, formal, pria, wanita, hadiah, atau budget tertentu.',
       products:[]
     };
   }
+
   async function callRemoteAi(message){
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(), 28000);
