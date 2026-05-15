@@ -3326,38 +3326,6 @@ body:has(.modal.open) .dirac-floating-actions{
   color:#e9edf5;
   border-bottom-left-radius:7px;
 }
-
-.dirac-ai-link{
-  color:var(--gold,#f3cd70);
-  font-weight:900;
-  text-decoration:underline;
-  text-underline-offset:3px;
-  word-break:break-word;
-}
-.dirac-ai-link:hover{filter:brightness(1.08)}
-.dirac-ai-link-list{
-  width:100%;
-  display:flex;
-  flex-wrap:wrap;
-  gap:7px;
-  margin-top:-2px;
-}
-.dirac-ai-link-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-height:34px;
-  padding:8px 12px;
-  border-radius:999px;
-  background:linear-gradient(135deg,color-mix(in srgb,var(--gold,#f3cd70) 72%,#fff 28%),var(--gold-2,#d6a642));
-  color:#11120e;
-  font-size:.76rem;
-  font-weight:900;
-  text-decoration:none;
-  box-shadow:0 10px 24px rgba(var(--theme-rgb,243,205,112),.14);
-}
-.dirac-ai-link-btn:hover{filter:brightness(1.06)}
-
 .dirac-ai-product-list{
   display:grid;
   gap:8px;
@@ -3579,8 +3547,7 @@ html[data-effective-theme="light"] .dirac-ai-chip{color:#273044;background:rgba(
   .dirac-ai-body{padding:11px;scroll-behavior:auto}
   .dirac-ai-msg{max-width:95%;margin-bottom:9px}
   .dirac-ai-bubble{font-size:.83rem;line-height:1.45;padding:9px 11px;border-radius:17px}
-  
-.dirac-ai-product-list{gap:7px}
+  .dirac-ai-product-list{gap:7px}
   .dirac-ai-product-card{
     grid-template-columns:46px 1fr;
     gap:8px;
@@ -10196,7 +10163,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
         <div class="dirac-ai-avatar" aria-hidden="true">AI</div>
         <div>
           <strong>Dirac AI Assistant</strong>
-          <span>Cari produk, rekomendasi parfum, bantu checkout, dan arahkan cek resi.</span>
+          <span>Ngobrol umum, rekomendasi parfum bertahap, checkout, dan cek resi.</span>
         </div>
       </div>
       <button class="dirac-ai-close" id="diracAiClose" type="button" aria-label="Tutup AI Assistant">×</button>
@@ -10205,14 +10172,15 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     <div class="dirac-ai-body" id="diracAiMessages" aria-live="polite" aria-atomic="false"></div>
 
     <div class="dirac-ai-suggestions" aria-label="Contoh pertanyaan AI">
-      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Rekomendasikan parfum pria yang fresh dan tahan lama">Parfum pria fresh</button>
-      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Cari produk yang wanginya manis dan cocok untuk hadiah">Wangi manis</button>
-      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Produk apa yang cocok untuk acara formal malam hari?">Acara formal</button>
+      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Apa kabar?">Ngobrol</button>
+      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Saya mau rekomendasi parfum">Rekomendasi</button>
+      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Parfum harian fresh untuk pria budget 300 ribu">Contoh detail</button>
       <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Saya mau cek resi pesanan Dirac Group">Cek resi</button>
+      <button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="Website resmi Dirac Group mana?">Website</button>
     </div>
 
     <form class="dirac-ai-form" id="diracAiForm">
-      <textarea class="dirac-ai-input" id="diracAiInput" rows="1" maxlength="500" placeholder="Tanya AI: cari parfum, rekomendasi, atau cek resi..."></textarea>
+      <textarea class="dirac-ai-input" id="diracAiInput" rows="1" maxlength="1200" placeholder="Tanya AI bebas: ngobrol, parfum, checkout, atau cek resi..."></textarea>
       <button class="dirac-ai-send" id="diracAiSend" type="submit" aria-label="Kirim pertanyaan AI">➜</button>
     </form>
   </section>
@@ -10226,8 +10194,12 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   window.__DIRAC_AI_ASSISTANT_INSTALLED__ = true;
 
   const AI_ENDPOINT = window.DIRAC_AI_ENDPOINT || 'https://companyprofilee-ochre.vercel.app/api/chat';
-  const MAX_HISTORY = 10;
+  const ANALYTICS_ENDPOINT = window.DIRAC_AI_ANALYTICS_URL || '';
+  const FEEDBACK_ENDPOINT = window.DIRAC_AI_FEEDBACK_URL || '';
+  const MAX_HISTORY = 16;
   const MAX_PRODUCTS_FOR_API = 80;
+  const MAX_LOCAL_EVENTS = 120;
+  const MESSAGE_LIMIT = 1200;
 
   const widget = document.getElementById('diracAiWidget');
   const toggle = document.getElementById('diracAiToggle');
@@ -10240,17 +10212,21 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
 
   if(!widget || !toggle || !panel || !messagesEl || !form || !input || !sendBtn) return;
 
-  let history = [];
+  injectUpgradeCss();
+
+  let history = loadJson('dirac_ai_history_v2', []);
+  let state = loadJson('dirac_ai_state_v2', {usage:null,scent:null,gender:null,budget:null,intent:null});
   let isBusy = false;
   let greeted = false;
+  const sessionId = getSessionId();
 
   function qs(selector, root=document){ return root.querySelector(selector); }
   function qsa(selector, root=document){ return Array.from(root.querySelectorAll(selector)); }
   function safeText(value){
-    return String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+    return String(value == null ? '' : value).replace(/[&<>'"]/g, function(char){ return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]; });
   }
   function normalize(value){
-    return String(value ?? '')
+    return String(value == null ? '' : value)
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g,'')
@@ -10258,257 +10234,313 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       .replace(/\s+/g,' ')
       .trim();
   }
-  function escapeRegExp(value){
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  function loadJson(key, fallback){
+    try{ const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; }catch(error){ return fallback; }
   }
-  function hasTerm(text, term){
-    const cleanText = normalize(text);
-    const cleanTerm = normalize(term);
-    if(!cleanText || !cleanTerm) return false;
-    return new RegExp('(^|\\s)' + escapeRegExp(cleanTerm) + '(?=\\s|$)').test(cleanText);
+  function saveJson(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(error){}
   }
-  function hasAnyTerm(text, terms){ return terms.some(term => hasTerm(text, term)); }
+  function getSessionId(){
+    let id = '';
+    try{ id = localStorage.getItem('dirac_ai_session_id') || ''; }catch(error){}
+    if(!id){
+      id = 'ds_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10);
+      try{ localStorage.setItem('dirac_ai_session_id', id); }catch(error){}
+    }
+    return id;
+  }
   function formatMoney(value){
     try{ if(typeof formatIDR === 'function') return formatIDR(value); }catch(error){}
     return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(value)||0).replace(',00','');
   }
   function getProductList(){
     try{ if(typeof products !== 'undefined' && Array.isArray(products)) return products; }catch(error){}
-    return qsa('.product-card').map(card => {
-      const title = card.querySelector('.product-title')?.textContent?.trim() || '';
-      const priceText = card.querySelector('.price')?.textContent?.trim() || '';
-      return {id:card.dataset.id || title, title, priceText, category:'', desc:'', notes:'', status:'ready', img:card.querySelector('img')?.getAttribute('src') || ''};
-    }).filter(item => item.title);
+    return qsa('.product-card').map(function(card){
+      const title = card.querySelector('.product-title') && card.querySelector('.product-title').textContent.trim() || '';
+      const priceText = card.querySelector('.price') && card.querySelector('.price').textContent.trim() || '';
+      return {id:card.dataset.id || title, title:title, priceText:priceText, category:'', desc:'', notes:'', status:'ready', img:card.querySelector('img') && card.querySelector('img').getAttribute('src') || ''};
+    }).filter(function(item){ return item.title; });
   }
   function getProductById(id){
     const numeric = Number(id);
-    return getProductList().find(item => Number(item.id) === numeric || String(item.id) === String(id));
+    return getProductList().find(function(item){ return Number(item.id) === numeric || String(item.id) === String(id); });
   }
   function currentCartSummary(){
     try{
       if(typeof cart !== 'undefined' && Array.isArray(cart)){
-        return cart.map(item => {
+        return cart.map(function(item){
           const p = getProductById(item.id);
-          return {id:item.id, qty:item.qty, title:p?.title || 'Produk', price:p?.price || 0};
+          return {id:item.id, qty:item.qty, title:p && p.title || 'Produk', price:p && p.price || 0};
         });
       }
     }catch(error){}
     return [];
   }
   function compactProductsForApi(){
-    return getProductList().slice(0, MAX_PRODUCTS_FOR_API).map(p => ({
+    return getProductList().slice(0, MAX_PRODUCTS_FOR_API).map(function(p){ return {
       id:p.id,
       title:p.title,
+      name:p.name || p.title,
       category:p.category || '',
       price:p.price || 0,
       desc:p.desc || '',
+      description:p.description || p.desc || '',
       notes:p.notes || '',
       status:p.status || 'ready',
+      img:p.img || p.image || '',
       rating:p.rating || null,
       soldCount:p.soldCount || null,
       isTopSeller:!!p.isTopSeller
-    }));
+    }; });
   }
   function scrollMessages(){ messagesEl.scrollTop = messagesEl.scrollHeight; }
   function shouldAutoFocusAi(){
     try{ return !window.matchMedia('(max-width: 760px)').matches; }catch(error){ return true; }
   }
-  function linkifyText(value){
-    const escaped = safeText(value).replace(/\n/g,'<br>');
+  function linkifySafeText(text){
+    const escaped = safeText(text).replace(/\n/g,'<br>');
     return escaped.replace(/(https?:\/\/[^\s<]+)/g, function(match){
-      let clean = match;
-      let trailing = '';
-      while(/[.,)]$/.test(clean)){
-        trailing = clean.slice(-1) + trailing;
-        clean = clean.slice(0, -1);
-      }
-      return '<a class="dirac-ai-link" href="' + clean + '" target="_blank" rel="noopener noreferrer">' + clean + '</a>' + trailing;
+      const clean = match.replace(/[).,;!?]+$/,'');
+      const tail = match.slice(clean.length);
+      return '<a class="dirac-ai-inline-link" href="' + safeText(clean) + '" target="_blank" rel="noopener noreferrer">' + safeText(clean) + '</a>' + safeText(tail);
     });
   }
-  function validLinks(links){
-    if(!Array.isArray(links)) return [];
-    return links.filter(link => link && /^https?:\/\//i.test(String(link.url || ''))).slice(0,3).map(link => ({
-      label:String(link.label || link.url).slice(0,80),
-      url:String(link.url)
-    }));
+  function addMessage(role, html, meta){
+    const item = document.createElement('div');
+    item.className = 'dirac-ai-msg dirac-ai-msg-' + role;
+    const bubble = document.createElement('div');
+    bubble.className = 'dirac-ai-bubble';
+    bubble.innerHTML = html;
+    item.appendChild(bubble);
+    if(meta && meta.provider){
+      const provider = document.createElement('div');
+      provider.className = 'dirac-ai-provider';
+      provider.textContent = meta.provider.indexOf('router') === 0 ? 'Dirac AI' : 'AI aktif';
+      item.appendChild(provider);
+    }
+    messagesEl.appendChild(item);
+    scrollMessages();
+    return item;
+  }
+  function addUserMessage(text){ addMessage('user', safeText(text)); }
+  function addBotMessage(text, options){
+    options = options || {};
+    const item = addMessage('bot', linkifySafeText(text || ''), {provider:options.provider});
+    if(options.links && options.links.length) item.appendChild(renderLinks(options.links));
+    if(options.questions && options.questions.length) item.appendChild(renderQuestionChips(options.questions));
+    if(options.products && options.products.length) item.appendChild(renderProductCards(options.products));
+    if(!options.noFeedback) item.appendChild(renderFeedback(options.traceId || 'local'));
+    scrollMessages();
+    return item;
+  }
+  function addTyping(){
+    return addMessage('bot','<span class="dirac-ai-typing" aria-label="AI sedang mengetik"><i></i><i></i><i></i></span>');
   }
   function renderLinks(links){
-    const clean = validLinks(links);
-    if(!clean.length) return null;
     const wrap = document.createElement('div');
-    wrap.className = 'dirac-ai-link-list';
-    clean.forEach(link => {
+    wrap.className = 'dirac-ai-links';
+    links.slice(0,4).forEach(function(link){
+      if(!link || !/^https?:\/\//.test(String(link.url || ''))) return;
       const a = document.createElement('a');
-      a.className = 'dirac-ai-link-btn';
+      a.className = 'dirac-ai-link';
       a.href = link.url;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.textContent = link.label;
+      a.textContent = link.label || link.url;
       wrap.appendChild(a);
     });
     return wrap;
   }
-  function hasProductIntent(message){
-    const normalized = normalize(message);
-    if(!normalized) return false;
-    const commerceWords = [
-      'parfum','perfume','produk','product','aroma','wangi','wanginya','bau','scent','fragrance',
-      'fresh','segar','manis','sweet','vanilla','oud','woody','citrus','aquatic','floral','amber','spicy','formal','kantor','kerja','meeting','daily','harian','kuliah','sekolah',
-      'pria','cowok','laki','men','wanita','cewek','perempuan','women','unisex',
-      'hadiah','gift','kado','pacar','suami','istri','teman','ayah','ibu','rekomendasi','rekomendasikan','recommend','saran','sarankan','cari','carikan','pilih','pilihkan','cocok',
-      'harga','budget','murah','mahal','ribu','jutaan','rp','best seller','bestseller','terlaris','top seller','tahan lama','awet','soft','strong','kalem','bold','elegan','premium',
-      'beli','buy','checkout','keranjang','cart','pesanan','resi','tracking','lacak','pengiriman'
-    ];
-    return hasAnyTerm(normalized, commerceWords);
+  function renderQuestionChips(questions){
+    const wrap = document.createElement('div');
+    wrap.className = 'dirac-ai-question-list';
+    questions.slice(0,4).forEach(function(question){
+      const btn = document.createElement('button');
+      btn.className = 'dirac-ai-question-chip';
+      btn.type = 'button';
+      btn.textContent = question;
+      btn.addEventListener('click', function(){ input.value = question; input.focus({preventScroll:true}); });
+      wrap.appendChild(btn);
+    });
+    return wrap;
   }
-  function hasProductSpecificPreference(message){
-    const normalized = normalize(message);
-    if(!normalized) return false;
-    const preferenceWords = [
-      'fresh','segar','manis','sweet','vanilla','oud','woody','citrus','aquatic','floral','amber','spicy','powdery',
-      'formal','kasual','casual','kantor','kerja','meeting','daily','harian','kuliah','sekolah','pesta','party','malam','siang','date','ngedate','gym','olahraga',
-      'pria','cowok','laki','maskulin','men','wanita','cewek','perempuan','feminim','women','unisex',
-      'hadiah','gift','kado','pacar','suami','istri','teman','ayah','ibu',
-      'harga','budget','murah','mahal','ribu','jutaan','rp','best seller','bestseller','terlaris','top seller','premium','elegan','mewah','soft','strong','kalem','bold','tahan lama','awet','stok','ready','ml','botol'
-    ];
-    return hasAnyTerm(normalized, preferenceWords);
+  function renderFeedback(traceId){
+    const wrap = document.createElement('div');
+    wrap.className = 'dirac-ai-feedback';
+    const up = document.createElement('button');
+    const down = document.createElement('button');
+    up.type = down.type = 'button';
+    up.textContent = 'Membantu';
+    down.textContent = 'Kurang';
+    up.addEventListener('click', function(){ saveFeedback(traceId, 'up', wrap); });
+    down.addEventListener('click', function(){ saveFeedback(traceId, 'down', wrap); });
+    wrap.appendChild(up); wrap.appendChild(down);
+    return wrap;
   }
-  function isBroadProductRequest(message){
-    const normalized = normalize(message);
-    if(!normalized) return false;
-    const words = normalized.split(' ').filter(Boolean);
-    const hasBroadAsk = /(rekomendasi|rekomendasikan|recommend|saran|sarankan|cari|carikan|pilih|pilihkan|mau parfum|pengen parfum|butuh parfum)/.test(normalized) || /\b(parfum|perfume|produk)\b/.test(normalized);
-    const hasCheckoutOrTracking = /\b(resi|tracking|lacak|pengiriman|checkout|keranjang|cart|beli|order|pesan|bayar)\b/.test(normalized);
-    return hasBroadAsk && !hasProductSpecificPreference(normalized) && !hasCheckoutOrTracking && words.length <= 9;
+  function saveFeedback(traceId, value, wrap){
+    const item = {traceId:traceId, value:value, time:new Date().toISOString(), lastUser:history.filter(function(x){return x.role==='user';}).slice(-1)[0] || null};
+    const list = loadJson('dirac_ai_feedback_v1', []);
+    list.push(item);
+    saveJson('dirac_ai_feedback_v1', list.slice(-MAX_LOCAL_EVENTS));
+    if(wrap){ wrap.textContent = value === 'up' ? 'Terima kasih atas feedbacknya.' : 'Terima kasih. Feedback ini akan dipakai untuk perbaikan.'; }
+    if(FEEDBACK_ENDPOINT){
+      try{ fetch(FEEDBACK_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item),keepalive:true}); }catch(error){}
+    }
   }
-  function getInstantLocalReply(message){
-    const normalized = normalize(message);
-    const compact = normalized.replace(/\s+/g,'');
-    const withoutPolite = normalized.replace(/\b(kak|ka|gan|min|admin|bos|bro|sis|om|pak|bu)\b/g,'').replace(/\s+/g,' ').trim();
-    const compactWithoutPolite = withoutPolite.replace(/\s+/g,'');
-    const greetingWords = ['halo','hallo','hlo','hloo','hlow','hllo','helo','hello','hai','hay','hi','hy','pagi','siang','sore','malam','selamatpagi','selamatsiang','selamatsore','selamatmalam','permisi','assalamualaikum','assalamuallaikum','tes','test'];
-
-    if(greetingWords.includes(compact) || greetingWords.includes(compactWithoutPolite)){
-      return {text:'Halo! Saya Dirac AI Assistant. Mau ngobrol dulu atau butuh bantuan seputar parfum, checkout, website, dan cek resi?', products:[], links:[]};
+  function renderProductCards(list){
+    const wrap = document.createElement('div');
+    wrap.className = 'dirac-ai-product-list';
+    list.slice(0,4).forEach(function(raw){
+      const local = raw && raw.id ? getProductById(raw.id) : null;
+      const p = Object.assign({}, raw || {}, local || {});
+      const card = document.createElement('div');
+      card.className = 'dirac-ai-product-card';
+      const sold = /sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || ''));
+      const image = p.img || p.image || '';
+      card.innerHTML = '\n        <img src="' + safeText(image) + '" alt="' + safeText(p.title || p.name || 'Produk Dirac') + '" onerror="imageFallback(this)" loading="lazy" decoding="async">\n        <div>\n          <strong>' + safeText(p.title || p.name || 'Produk Dirac') + '</strong>\n          <span>' + safeText(formatMoney(p.price || 0)) + (sold ? ' - Sold out' : '') + '</span>\n        </div>\n        <div class="dirac-ai-product-actions">\n          <button class="dirac-ai-mini-btn secondary" type="button" data-dirac-ai-detail="' + safeText(p.id) + '">Lihat Detail</button>\n          <button class="dirac-ai-mini-btn" type="button" data-dirac-ai-add="' + safeText(p.id) + '" ' + (sold ? 'disabled' : '') + '>Tambah</button>\n        </div>\n      ';
+      wrap.appendChild(card);
+    });
+    return wrap;
+  }
+  function updateRecommendationState(message){
+    const text = normalize(message + ' ' + history.map(function(item){return item.content || '';}).join(' '));
+    const next = Object.assign({}, state);
+    next.usage = next.usage || matchGroup(text, {harian:['harian','sehari hari','daily','kuliah','sekolah'],kantor:['kantor','kerja','meeting'],formal:['formal','acara','pesta','malam','date','kencan'],hadiah:['hadiah','kado','gift']});
+    next.scent = next.scent || matchGroup(text, {fresh:['fresh','segar','citrus','aquatic','clean'],sweet:['manis','sweet','vanilla','fruity'],woody:['woody','oud','amber','musk'],floral:['floral','rose'],strong:['strong','kuat','tahan lama','awet'],soft:['soft','lembut','kalem']});
+    next.gender = next.gender || matchGroup(text, {pria:['pria','laki','lelaki','cowok','cowo','maskulin'],wanita:['wanita','perempuan','cewek','cewe','feminim'],unisex:['unisex','netral']});
+    if(!next.budget){
+      const budget = text.match(/(?:rp\s*)?(\d{2,4})\s*(rb|ribu|k|jt|juta)?/i);
+      if(budget) next.budget = budget[0];
     }
-    if(/^(apa kabar|gimana kabarnya|kamu apa kabar|lagi apa|sedang apa)$/.test(normalized)){
-      return {text:'Kabar saya baik. Anda sendiri bagaimana? Kita bisa ngobrol dulu, tidak harus langsung bahas produk.', products:[], links:[]};
-    }
-    if(/^(siapa kamu|kamu siapa|kamu bisa apa|bisa apa|fitur kamu apa)$/.test(normalized)){
-      return {text:'Saya Dirac AI Assistant. Saya bisa diajak ngobrol seperti AI biasa, bantu jawab pertanyaan umum, bantu pilih parfum pelan-pelan, arahkan checkout, beri link website, dan arahkan cek resi.', products:[], links:[]};
-    }
-    if(/^(goblok+|goblog+|tolol+|bodoh+|bego+|goblokx+|tololx+|bodohx+|begox+)$/i.test(normalized)){
-      return {text:'Saya paham Anda kesal. Tulis pertanyaannya dengan jelas, nanti saya jawab langsung tanpa menawarkan produk kalau memang bukan soal belanja.', products:[], links:[]};
-    }
-    if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(normalized)){
-      return {text:'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.', products:[], links:[]};
-    }
-    if(/\b(website|web|situs|company profile|profil perusahaan|alamat website|alamat web)\b/.test(normalized) && !hasProductIntent(normalized)){
-      return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', products:[], links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}]};
-    }
-    if(/\b(resi|cek resi|tracking|lacak|pengiriman)\b/.test(normalized)){
-      return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', products:[], links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}]};
-    }
-    if(isBroadProductRequest(message)){
-      return {text:'Boleh. Parfumnya mau buat apa dulu? Untuk harian, kerja/kantor, formal, hadiah, atau malam? Suka aroma fresh, manis, soft, strong, pria/wanita, dan budget berapa?', products:[], links:[]};
+    state = next;
+    saveJson('dirac_ai_state_v2', state);
+  }
+  function matchGroup(text, groups){
+    for(const label in groups){
+      if(groups[label].some(function(term){ return new RegExp('(^|\\s)' + escapeRegExp(normalize(term)) + '(?=\\s|$)').test(text); })) return label;
     }
     return null;
   }
+  function escapeRegExp(value){ return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function detectLocalIntent(message){
+    const n = normalize(message);
+    const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|parfum|perfume|wangi|aroma)\b/.test(n);
+    const tracking = /\b(resi|cek resi|tracking|lacak|pengiriman|paket)\b/.test(n);
+    const website = /\b(website|web|situs|company profile|profil perusahaan|link)\b/.test(n);
+    const cartIntent = /\b(keranjang|cart|checkout|beli|order|pesan|bayar|whatsapp|wa)\b/.test(n);
+    return {recommendation:recommendation, tracking:tracking, website:website, cart:cartIntent};
+  }
   function localProductSearch(query){
-    if(!hasProductIntent(query)) return [];
     const source = getProductList();
-    const normalizedQuery = normalize(query);
-    const terms = normalizedQuery.split(' ').filter(term => term.length > 2);
-    const intentMap = [
-      {keys:['pria','cowok','maskulin','men'], boost:['masculine','woody','fresh','spicy','aromatic','pria']},
-      {keys:['wanita','cewek','feminim','women'], boost:['floral','sweet','vanilla','fruity','wanita']},
-      {keys:['manis','sweet','vanilla','caramel'], boost:['sweet','vanilla','gourmand','fruity','manis']},
-      {keys:['fresh','segar','kantor','daily','harian'], boost:['fresh','citrus','aquatic','office','daily','clean']},
-      {keys:['formal','malam','elegan','mewah'], boost:['oud','amber','woody','spicy','elegant','formal','niche']},
-      {keys:['hadiah','gift','kado'], boost:['best seller','top seller','unisex','fresh','sweet']}
-    ];
+    const n = normalize(query + ' ' + JSON.stringify(state));
+    const terms = n.split(' ').filter(function(term){ return term.length > 2; });
     const boosts = [];
-    intentMap.forEach(group => { if(group.keys.some(key => normalizedQuery.includes(key))) boosts.push(...group.boost); });
-    if(!terms.length && !boosts.length) return [];
-
-    return source.map(p => {
-      const haystack = normalize([p.title,p.category,p.desc,p.longDesc,p.notes,p.price,p.status].join(' '));
+    ['fresh','segar','manis','sweet','vanilla','woody','oud','amber','musk','floral','harian','kantor','formal','hadiah','pria','wanita','unisex'].forEach(function(term){ if(n.includes(term)) boosts.push(term); });
+    return source.map(function(p){
+      const hay = normalize([p.title,p.name,p.category,p.desc,p.longDesc,p.notes,p.status].join(' '));
       let score = 0;
-      terms.forEach(term => {
-        if(haystack.includes(term)) score += term.length > 3 ? 8 : 4;
-        if(normalize(p.title).includes(term)) score += 6;
-        if(normalize(p.category).includes(term)) score += 4;
-      });
-      boosts.forEach(term => { if(haystack.includes(normalize(term))) score += 5; });
-      if(p.isTopSeller) score += 2;
-      if(/sold|kosong|tidak menjual|not ready/i.test(String(p.status || '') + ' ' + String(p.title || '') + ' ' + String(p.desc || ''))) score -= 30;
-      if(!terms.length && p.isTopSeller && boosts.length) score += 6;
-      return {p,score};
-    }).filter(entry => entry.score > 0)
-      .sort((a,b) => b.score - a.score || (b.p.rating || 0) - (a.p.rating || 0))
-      .slice(0,4)
-      .map(entry => entry.p);
+      terms.forEach(function(term){ if(hay.includes(term)) score += 3; if(normalize(p.title || p.name).includes(term)) score += 5; });
+      boosts.forEach(function(term){ if(hay.includes(term)) score += 7; });
+      if(p.isTopSeller) score += 5;
+      if(/sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || ''))) score -= 100;
+      return {p:p, score:score};
+    }).filter(function(entry){ return entry.score > 0; }).sort(function(a,b){ return b.score - a.score; }).slice(0,4).map(function(entry){ return entry.p; });
   }
   function localFallbackReply(message){
-    const instant = getInstantLocalReply(message);
-    if(instant) return instant;
-
-    const normalizedMessage = normalize(message);
-    const cartSummary = currentCartSummary();
-
-    if(/\b(keranjang|cart|checkout|pesanan)\b/.test(normalizedMessage) && cartSummary.length){
-      const total = cartSummary.reduce((sum,item)=>sum + (Number(item.price)||0) * (Number(item.qty)||0),0);
-      return {
-        text:'Isi keranjang Anda saat ini:\n' + cartSummary.map(item => '- ' + item.title + ' x' + item.qty + ' = ' + formatMoney((Number(item.price)||0) * (Number(item.qty)||0))).join('\n') + '\n\nEstimasi subtotal: ' + formatMoney(total) + '. Silakan lanjut checkout WhatsApp dari tombol keranjang.',
-        products:[],
-        links:[]
-      };
+    const n = normalize(message);
+    const intent = detectLocalIntent(message);
+    if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) return {text:'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.', links:[], products:[]};
+    if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
+    if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
+    if(intent.cart) return {text:'Cara beli: pilih produk, klik Tambah, buka keranjang, isi data, lalu Checkout WhatsApp. Kalau ingin dibantu admin, klik tombol WhatsApp di halaman.', links:[{label:'Chat Admin WhatsApp', url:'https://wa.me/6287892523968'}], products:[]};
+    if(intent.recommendation){
+      updateRecommendationState(message);
+      const known = [state.usage,state.scent,state.gender,state.budget].filter(Boolean).length;
+      if(known < 3) return {text:'Boleh. Supaya rekomendasinya pas, jawab dulu: parfum untuk apa, suka aroma apa, untuk pria/wanita/unisex, dan budget berapa?', products:[]};
+      const picks = localProductSearch(message);
+      if(picks.length) return {text:'AI utama sedang tidak tersambung, tapi dari katalog lokal saya pilihkan beberapa produk yang paling mendekati kebutuhan Anda.', products:picks};
     }
-
-    if(!hasProductIntent(message)){
-      return {text:'AI utama sedang tidak tersambung, jadi saya belum bisa menjawab pertanyaan umum dengan akurat. Coba kirim ulang beberapa detik lagi.', products:[], links:[]};
-    }
-
-    if(isBroadProductRequest(message)){
-      return {text:'Boleh. Parfumnya mau buat apa dulu? Untuk harian, kerja/kantor, formal, hadiah, atau malam? Suka aroma fresh, manis, soft, strong, pria/wanita, dan budget berapa?', products:[], links:[]};
-    }
-
-    const enoughDetail = hasProductSpecificPreference(message) && normalize(message).split(' ').length >= 3;
-    const picks = enoughDetail ? localProductSearch(message) : [];
-    if(picks.length){
-      return {text:'Saya menemukan beberapa produk yang sesuai dengan kebutuhan Anda. Anda bisa lihat detail atau langsung tambah ke keranjang.', products:picks, links:[]};
-    }
-
-    return {text:'Saya siap bantu pilih parfum. Sebutkan dulu untuk siapa, dipakai buat apa, aroma yang disukai, dan budgetnya supaya rekomendasi tidak asal.', products:[], links:[]};
+    return {text:'AI utama sedang tidak tersambung, jadi saya belum bisa menjawab pertanyaan umum secara akurat. Saya masih bisa bantu link website, cek resi, cara checkout, atau rekomendasi dasar dari katalog.', links:[], products:[]};
   }
   async function callRemoteAi(message){
     const controller = new AbortController();
-    const timer = setTimeout(()=>controller.abort(), 30000);
+    const timer = setTimeout(function(){ controller.abort(); }, 30000);
     try{
       const response = await fetch(AI_ENDPOINT, {
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json','X-Dirac-Session':sessionId},
         body:JSON.stringify({
-          message,
-          page:{title:document.title, url:location.href, language:document.documentElement.lang || 'id'},
+          message:message,
+          sessionId:sessionId,
+          state:state,
+          page:{title:document.title,url:location.href,language:document.documentElement.lang || 'id'},
           products:compactProductsForApi(),
           cart:currentCartSummary(),
           history:history.slice(-MAX_HISTORY)
         }),
         signal:controller.signal
       });
-      if(!response.ok) throw new Error('AI endpoint error ' + response.status);
-      const data = await response.json();
-      const reply = data.reply || data.output || data.message || '';
-      if(!reply) throw new Error('AI response empty');
-      return {
-        text:String(reply),
-        products:Array.isArray(data.products) && data.showProducts === true ? data.products : [],
-        links:validLinks(data.links),
-        mode:data.mode || 'conversation'
-      };
+      const data = await response.json().catch(function(){ return {}; });
+      if(!response.ok) throw new Error(data && data.reply ? data.reply : 'AI endpoint error ' + response.status);
+      if(!data || !data.reply) throw new Error('AI response empty');
+      return data;
+    }finally{ clearTimeout(timer); }
+  }
+  function checkClientRateLimit(){
+    const now = Date.now();
+    const list = loadJson('dirac_ai_client_rate_v1', []).filter(function(ts){ return now - ts < 60000; });
+    if(list.length >= 12) return false;
+    list.push(now);
+    saveJson('dirac_ai_client_rate_v1', list);
+    return true;
+  }
+  function trackAiEvent(event){
+    const payload = Object.assign({time:new Date().toISOString(), sessionId:sessionId}, event || {});
+    const list = loadJson('dirac_ai_events_v1', []);
+    list.push(payload);
+    saveJson('dirac_ai_events_v1', list.slice(-MAX_LOCAL_EVENTS));
+    if(ANALYTICS_ENDPOINT){
+      try{ fetch(ANALYTICS_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}); }catch(error){}
+    }
+  }
+  async function handleSend(raw){
+    const message = String(raw || '').trim().slice(0, MESSAGE_LIMIT);
+    if(!message || isBusy) return;
+    if(!checkClientRateLimit()){
+      addBotMessage('AI sedang ramai dipakai di browser ini. Coba lagi sebentar ya.', {noFeedback:true});
+      return;
+    }
+    isBusy = true;
+    sendBtn.disabled = true;
+    input.value = '';
+    addUserMessage(message);
+    history.push({role:'user', content:message});
+    updateRecommendationState(message);
+    const typing = addTyping();
+    const started = Date.now();
+    try{
+      let data = null;
+      try{
+        data = await callRemoteAi(message);
+      }catch(remoteError){
+        const local = localFallbackReply(message);
+        data = {reply:local.text, links:local.links || [], products:local.products || [], showProducts:(local.products || []).length > 0, provider:'local-fallback', mode:'fallback'};
+      }
+      typing.remove();
+      const productsToShow = data.showProducts ? (data.products || []) : [];
+      addBotMessage(data.reply, {links:data.links || [], questions:data.questions || [], products:productsToShow, provider:data.provider, traceId:data.traceId});
+      history.push({role:'assistant', content:data.reply});
+      history = history.slice(-MAX_HISTORY * 2);
+      saveJson('dirac_ai_history_v2', history);
+      trackAiEvent({type:'chat', mode:data.mode, provider:data.provider, ms:Date.now()-started, ok:true});
+    }catch(error){
+      typing.remove();
+      addBotMessage('Maaf, AI sedang tidak bisa merespons. Silakan coba lagi, atau gunakan pencarian produk dan tombol WhatsApp yang sudah tersedia.', {noFeedback:true});
+      trackAiEvent({type:'chat_error', error:String(error && error.message || error), ms:Date.now()-started, ok:false});
     }finally{
-      clearTimeout(timer);
+      isBusy = false;
+      sendBtn.disabled = false;
+      if(shouldAutoFocusAi()) input.focus({preventScroll:true});
     }
   }
   function setOpen(open){
@@ -10518,105 +10550,27 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(open){
       if(!greeted){
         greeted = true;
-        addBotMessage('Halo, saya Dirac AI Assistant. Saya bisa diajak ngobrol seperti AI biasa. Kalau Anda mau belanja, saya juga bisa bantu pilih parfum, checkout, website, dan cek resi.', {products:[], links:[]});
+        addBotMessage('Halo! Saya Dirac AI Assistant. Saya bisa diajak ngobrol seperti AI biasa, bantu pilih parfum pelan-pelan, cek resi, website, dan checkout. Catatan: jangan kirim password, OTP, atau data sensitif di chat ini.', {noFeedback:true});
       }
-      if(shouldAutoFocusAi()) setTimeout(()=>input.focus({preventScroll:true}), 90);
+      setTimeout(scrollMessages, 60);
+      if(shouldAutoFocusAi()) setTimeout(function(){ input.focus({preventScroll:true}); }, 120);
     }
   }
-  function addMessage(role, html){
-    const item = document.createElement('div');
-    item.className = 'dirac-ai-msg ' + (role === 'user' ? 'dirac-ai-msg-user' : 'dirac-ai-msg-bot');
-    const bubble = document.createElement('div');
-    bubble.className = 'dirac-ai-bubble';
-    bubble.innerHTML = html;
-    item.appendChild(bubble);
-    messagesEl.appendChild(item);
-    scrollMessages();
-    return item;
+  function injectUpgradeCss(){
+    if(document.getElementById('dirac-ai-upgrade-css')) return;
+    const style = document.createElement('style');
+    style.id = 'dirac-ai-upgrade-css';
+    style.textContent = '.dirac-ai-inline-link{color:var(--gold);font-weight:900;text-decoration:underline}.dirac-ai-links,.dirac-ai-question-list{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0}.dirac-ai-link,.dirac-ai-question-chip{border:1px solid rgba(var(--theme-rgb,243,205,112),.34);background:rgba(var(--theme-rgb,243,205,112),.12);color:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem;font-weight:850}.dirac-ai-question-chip{cursor:pointer}.dirac-ai-feedback{display:flex;gap:6px;margin-top:7px;opacity:.82}.dirac-ai-feedback button{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:999px;padding:5px 8px;font-size:.70rem;font-weight:800}.dirac-ai-provider{font-size:.68rem;color:#8190a4;margin-top:3px;padding-left:4px}html[data-effective-theme="light"] .dirac-ai-link,html[data-effective-theme="light"] .dirac-ai-question-chip{color:#171923;background:rgba(var(--theme-rgb,243,205,112),.16)}html[data-effective-theme="light"] .dirac-ai-feedback button{color:#526071;background:rgba(255,255,255,.68)}@media(max-width:760px){.dirac-ai-links,.dirac-ai-question-list{gap:6px}.dirac-ai-link,.dirac-ai-question-chip{font-size:.74rem;padding:7px 9px}.dirac-ai-feedback button{font-size:.68rem}}';
+    document.head.appendChild(style);
   }
-  function addUserMessage(text){ addMessage('user', safeText(text)); }
-  function addBotMessage(text, options={}){
-    const item = addMessage('bot', linkifyText(text));
-    const linkWrap = renderLinks(options.links || []);
-    if(linkWrap) item.appendChild(linkWrap);
-    const picks = Array.isArray(options.products) ? options.products : [];
-    if(picks.length) item.appendChild(renderProductCards(picks));
-    scrollMessages();
-    return item;
-  }
-  function addTyping(){ return addMessage('bot','<span class="dirac-ai-typing" aria-label="AI sedang mengetik"><i></i><i></i><i></i></span>'); }
-  function renderProductCards(list){
-    const wrap = document.createElement('div');
-    wrap.className = 'dirac-ai-product-list';
-    list.slice(0,4).forEach(p => {
-      const id = p.id;
-      const localProduct = getProductById(id) || p;
-      const sold = /sold|kosong|tidak menjual|not ready/i.test(String(localProduct.status || '') + ' ' + String(localProduct.title || ''));
-      const card = document.createElement('div');
-      card.className = 'dirac-ai-product-card';
-      card.innerHTML = `
-        <img src="${safeText(localProduct.img || p.img || '')}" alt="${safeText(localProduct.title || p.title || 'Produk Dirac')}" onerror="imageFallback(this)" loading="lazy" decoding="async">
-        <div>
-          <strong>${safeText(localProduct.title || p.title || 'Produk Dirac')}</strong>
-          <span>${safeText(formatMoney(localProduct.price || p.price || 0))}${sold ? ' • Sold out' : ''}</span>
-        </div>
-        <div class="dirac-ai-product-actions">
-          <button class="dirac-ai-mini-btn secondary" type="button" data-dirac-ai-detail="${safeText(id)}">Lihat Detail</button>
-          <button class="dirac-ai-mini-btn" type="button" data-dirac-ai-add="${safeText(id)}" ${sold ? 'disabled' : ''}>Tambah</button>
-        </div>
-      `;
-      wrap.appendChild(card);
-    });
-    return wrap;
-  }
-  async function handleSend(raw){
-    const message = String(raw || '').trim();
-    if(!message || isBusy) return;
-    isBusy = true;
-    sendBtn.disabled = true;
-    input.value = '';
-    addUserMessage(message);
-    history.push({role:'user', content:message});
-    const typing = addTyping();
-
-    try{
-      let result = null;
-      const instantLocal = getInstantLocalReply(message);
-      if(instantLocal){
-        result = instantLocal;
-      }else{
-        try{ result = await callRemoteAi(message); }
-        catch(remoteError){ result = localFallbackReply(message); }
-      }
-      typing.remove();
-      addBotMessage(result.text || result.reply || '', {products:result.products || [], links:result.links || []});
-      history.push({role:'assistant', content:result.text || result.reply || ''});
-      history = history.slice(-MAX_HISTORY * 2);
-    }catch(error){
-      typing.remove();
-      addBotMessage('Maaf, AI sedang tidak bisa merespons. Silakan coba lagi beberapa detik lagi.', {products:[], links:[]});
-    }finally{
-      isBusy = false;
-      sendBtn.disabled = false;
-      if(shouldAutoFocusAi()) input.focus({preventScroll:true});
-    }
-  }
-
-  toggle.addEventListener('click', () => setOpen(!widget.classList.contains('is-open')));
-  closeBtn?.addEventListener('click', () => setOpen(false));
-  document.addEventListener('keydown', event => { if(event.key === 'Escape' && widget.classList.contains('is-open')) setOpen(false); });
-  form.addEventListener('submit', event => { event.preventDefault(); handleSend(input.value); });
-  input.addEventListener('keydown', event => {
-    if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); handleSend(input.value); }
-  });
-  qsa('[data-dirac-ai-prompt]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const prompt = btn.getAttribute('data-dirac-ai-prompt') || '';
-      setOpen(true);
-      handleSend(prompt);
-    });
-  });
-  messagesEl.addEventListener('click', event => {
+  toggle.addEventListener('click', function(){ setOpen(!widget.classList.contains('is-open')); });
+  if(closeBtn) closeBtn.addEventListener('click', function(){ setOpen(false); });
+  document.addEventListener('keydown', function(event){ if(event.key === 'Escape' && widget.classList.contains('is-open')) setOpen(false); });
+  form.addEventListener('submit', function(event){ event.preventDefault(); handleSend(input.value); });
+  input.addEventListener('keydown', function(event){ if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); handleSend(input.value); } });
+  input.addEventListener('input', function(){ input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
+  qsa('[data-dirac-ai-prompt]').forEach(function(btn){ btn.addEventListener('click', function(){ setOpen(true); handleSend(btn.getAttribute('data-dirac-ai-prompt') || ''); }); });
+  messagesEl.addEventListener('click', function(event){
     const detailBtn = event.target.closest('[data-dirac-ai-detail]');
     const addBtn = event.target.closest('[data-dirac-ai-add]');
     if(detailBtn){
@@ -10626,22 +10580,18 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
         else{
           const search = qs('#searchInput');
           const product = getProductById(id);
-          if(search && product){
-            search.value = product.title;
-            search.dispatchEvent(new Event('input',{bubbles:true}));
-          }
-          qs('#produk')?.scrollIntoView({behavior:'smooth', block:'start'});
+          if(search && product){ search.value = product.title; search.dispatchEvent(new Event('input',{bubbles:true})); }
+          if(qs('#produk')) qs('#produk').scrollIntoView({behavior:'smooth', block:'start'});
         }
       }catch(error){}
     }
     if(addBtn){
       const id = addBtn.getAttribute('data-dirac-ai-add');
       try{ if(typeof addToCart === 'function') addToCart(id); else throw new Error('addToCart not found'); }
-      catch(error){ addBotMessage('Maaf, tombol tambah keranjang belum siap. Silakan gunakan tombol Tambah pada kartu produk.'); }
+      catch(error){ addBotMessage('Maaf, tombol tambah keranjang belum siap. Silakan gunakan tombol Tambah pada kartu produk.', {noFeedback:true}); }
     }
   });
 })();
-
 </script>
 </body>
 </html>
