@@ -10239,7 +10239,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   let userAbortRequested = false;
   let lastUserPrompt = '';
   let sessionId = getSessionId();
-  const AI_BUILD = 'ai-intelligence-2026-05-15-v6-router-memory-verifier';
+  const AI_BUILD = 'ai-intelligence-2026-05-15-v7-intent-memory-count-vehicle';
   try{
     if(localStorage.getItem('dirac_ai_build') !== AI_BUILD){
       ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1'].forEach(function(key){ localStorage.removeItem(key); });
@@ -10270,7 +10270,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     try{ localStorage.setItem(key, JSON.stringify(value)); }catch(error){}
   }
   function sanitizeLoadedAiState(value){
-    const fallback = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null,lastProductIds:[],shownProductIds:[]};
+    const fallback = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null,lastProductIds:[],shownProductIds:[],lastProductContext:{}};
     const raw = value && typeof value === 'object' ? value : fallback;
     const allowedCategory = ['niche','designer','timur_tengah','lokal','miniso'];
     const allowedUsage = ['harian','kantor','formal','pesta','malam','hadiah','sekolah'];
@@ -10287,7 +10287,27 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       budgetMax: budgetMax,
       intent: raw.intent || null,
       lastProductIds: Array.isArray(raw.lastProductIds) ? raw.lastProductIds.map(function(x){ return String(x).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80); }).filter(Boolean).slice(-20) : [],
-      shownProductIds: Array.isArray(raw.shownProductIds) ? raw.shownProductIds.map(function(x){ return String(x).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80); }).filter(Boolean).slice(-60) : []
+      shownProductIds: Array.isArray(raw.shownProductIds) ? raw.shownProductIds.map(function(x){ return String(x).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80); }).filter(Boolean).slice(-60) : [],
+      lastProductContext: sanitizeLastProductContextLocal(raw.lastProductContext || {})
+    };
+  }
+  function sanitizeLastProductContextLocal(raw){
+    raw = raw && typeof raw === 'object' ? raw : {};
+    const allowedCategory = ['niche','designer','timur_tengah','lokal','miniso'];
+    const allowedUsage = ['harian','kantor','formal','pesta','malam','hadiah','sekolah'];
+    const allowedScent = ['fresh','sweet','woody','floral','soft','strong','spicy'];
+    const allowedGender = ['pria','wanita','unisex'];
+    const budgetMax = Number(raw.budgetMax || 0) >= 50000 ? Number(raw.budgetMax || 0) : null;
+    const category = allowedCategory.indexOf(raw.category) >= 0 ? raw.category : null;
+    const categories = Array.isArray(raw.categories) ? raw.categories.filter(function(x){ return allowedCategory.indexOf(x) >= 0; }).slice(0,4) : (category ? [category] : []);
+    return {
+      category: category || categories[0] || null,
+      categories: categories,
+      usage: allowedUsage.indexOf(raw.usage) >= 0 ? raw.usage : null,
+      scent: allowedScent.indexOf(raw.scent) >= 0 ? raw.scent : null,
+      gender: allowedGender.indexOf(raw.gender) >= 0 ? raw.gender : null,
+      budget: budgetMax ? raw.budget || null : null,
+      budgetMax: budgetMax
     };
   }
   function getSessionId(forceNew){
@@ -10528,7 +10548,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function renderProductCards(list){
     const wrap = document.createElement('div');
     wrap.className = 'dirac-ai-product-list';
-    list.slice(0,5).forEach(function(raw){
+    list.slice(0,6).forEach(function(raw){
       const local = raw && raw.id ? getProductById(raw.id) : null;
       const p = Object.assign({}, raw || {}, local || {});
       const card = document.createElement('div');
@@ -10550,7 +10570,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
 
   function updateRecommendationState(message){
     const current = normalize(message);
-    if(isGeneralKnowledgeLocal(current)) return;
+    if(isProductCountQuestionLocal(current) || isGeneralKnowledgeLocal(current)) return;
     const keepState = shouldUseStateForMessageLocal(message);
     const relevantHistory = keepState ? history.filter(function(item){
       const text = normalize(item && item.content ? item.content : '');
@@ -10573,6 +10593,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const budget = parseBudgetLocal(text);
     if(budget.label && (!budget.max || budget.max >= 50000)){ next.budget = budget.label; next.budgetMax = budget.max; }
     state = next;
+    state.lastProductContext = sanitizeLastProductContextLocal(next);
     saveJson('dirac_ai_state_v2', state);
   }
   function matchGroup(text, groups){
@@ -10619,7 +10640,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function escapeRegExp(value){ return String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
   function isNonStoreGeneralQueryLocal(n){
     n = normalize(n);
-    return /\b(mobil|motor|fortuner|pajero|avanza|xenia|brio|civic|innova|alphard|toyota|honda|yamaha|suzuki|kawasaki|iphone|samsung|xiaomi|oppo|vivo|laptop|macbook|komputer|rumah|tanah|apartemen|emas|dollar|dolar|saham|bitcoin|crypto|kripto|tiket|pesawat|hotel)\b/.test(n);
+    return /\b(mobil|motor|ferrari|ferari|fortuner|pajero|avanza|xenia|brio|civic|innova|alphard|toyota|honda|yamaha|suzuki|kawasaki|iphone|samsung|xiaomi|oppo|vivo|laptop|macbook|komputer|rumah|tanah|apartemen|emas|dollar|dolar|saham|bitcoin|crypto|kripto|tiket|pesawat|hotel)\b/.test(n);
   }
   function isPerfumeEducationQueryLocal(n){
     n = normalize(n);
@@ -10631,6 +10652,47 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function isPriceFormatClarificationLocal(n){
     n = normalize(n);
     return /\b(harga rupiah|pakai rupiah|dalam rupiah|idr|harga hari ini|rupiah hari ini|harga katalog|harga produk)\b/.test(n) && !isNonStoreGeneralQueryLocal(n);
+  }
+  function isProductCountQuestionLocal(n){
+    n = normalize(n);
+    const asksCount = /\b(ada berapa|berapa banyak|berapa jumlah|jumlah produk|total produk|berapa produk|berapa item|total item)\b/.test(n);
+    const storeScope = /\b(produk|item|barang|katalog|website ini|web ini|situs ini|dirac|toko ini)\b/.test(n);
+    return asksCount && storeScope && !isNonStoreGeneralQueryLocal(n);
+  }
+  function productCountReplyLocal(){
+    const list = getProductList();
+    const total = list.length;
+    const sold = list.filter(function(p){ return /sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || '')); }).length;
+    const ready = total - sold;
+    const collection = list.filter(function(p){ return /^all parfum\b/i.test(String(p.title || p.name || '')); }).length;
+    const specific = Math.max(0, total - collection);
+    return 'Di katalog website ini ada ' + total + ' kartu produk/item. Dari data yang terbaca AI: ' + ready + ' ready dan ' + sold + ' sold/tidak ready. Jika dihitung tanpa kartu koleksi seperti “All Parfum”, ada sekitar ' + specific + ' produk spesifik. Untuk angka final terbaru, ikuti katalog yang tampil di halaman karena stok bisa berubah.';
+  }
+  function vehicleLabelFromTextLocal(n){
+    n = normalize(n);
+    if(/\b(ferrari|ferari)\b/.test(n)) return 'Ferrari';
+    if(/\b(fortuner)\b/.test(n)) return 'Toyota Fortuner';
+    if(/\b(pajero)\b/.test(n)) return 'Mitsubishi Pajero';
+    if(/\b(avanza)\b/.test(n)) return 'Toyota Avanza';
+    if(/\b(innova)\b/.test(n)) return 'Toyota Innova';
+    if(/\b(alphard)\b/.test(n)) return 'Toyota Alphard';
+    if(/\b(brio)\b/.test(n)) return 'Honda Brio';
+    if(/\b(civic)\b/.test(n)) return 'Honda Civic';
+    if(/\b(toyota)\b/.test(n)) return 'mobil Toyota';
+    if(/\b(honda)\b/.test(n)) return 'mobil Honda';
+    return 'mobil tersebut';
+  }
+  function vehiclePriceReplyLocal(n){
+    const label = vehicleLabelFromTextLocal(n);
+    return 'Saya tidak punya akses harga real-time dari dealer untuk ' + label + '. Harga bisa berbeda tergantung tipe/varian, tahun, kondisi, pajak daerah, promo dealer, dan lokasi. Untuk harga hari ini, cek website/dealer resmi atau marketplace otomotif tepercaya, lalu bandingkan OTR sesuai kota Anda.';
+  }
+  function requestedProductCountLocal(n){
+    n = normalize(n);
+    if(/\b(6|enam)\b/.test(n)) return 6;
+    if(/\b(5|lima)\b/.test(n)) return 5;
+    if(/\b(4|empat)\b/.test(n)) return 4;
+    if(/\b(2|dua)\b/.test(n)) return 2;
+    return 3;
   }
   function hasProductHistoryLocal(){
     const text = (history || []).filter(function(item){ return item && item.role === 'user'; }).map(function(item){ return item.content || ''; }).join(' ');
@@ -10679,16 +10741,21 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   }
   function stateContextTextLocal(){
     const bits = [];
+    const ctx = state.lastProductContext && typeof state.lastProductContext === 'object' ? state.lastProductContext : {};
     if(state.category) bits.push(state.category);
+    else if(ctx.category) bits.push(ctx.category);
     if(state.categories && state.categories.length) bits.push(state.categories.join(' '));
-    if(state.usage) bits.push(state.usage);
-    if(state.scent) bits.push(state.scent);
-    if(state.gender) bits.push(state.gender);
+    else if(ctx.categories && ctx.categories.length) bits.push(ctx.categories.join(' '));
+    if(state.usage) bits.push(state.usage); else if(ctx.usage) bits.push(ctx.usage);
+    if(state.scent) bits.push(state.scent); else if(ctx.scent) bits.push(ctx.scent);
+    if(state.gender) bits.push(state.gender); else if(ctx.gender) bits.push(ctx.gender);
     if(state.budget && Number(state.budgetMax || 0) >= 50000) bits.push('budget ' + state.budget);
+    else if(ctx.budget && Number(ctx.budgetMax || 0) >= 50000) bits.push('budget ' + ctx.budget);
     return bits.join(' ');
   }
   function isGeneralKnowledgeLocal(n){
     n = normalize(n);
+    if(isProductCountQuestionLocal(n)) return false;
     if(isNonStoreGeneralQueryLocal(n) || isPerfumeEducationQueryLocal(n)) return true;
     const generalTerms = /\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|dunia|benua|sungai|amazon|nil|mekong|gunung|samudra|laut|planet|bulan|matahari|langit|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css)\b/.test(n);
     const commerceTerms = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|produk|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n);
@@ -10697,15 +10764,16 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function detectLocalIntent(message){
     const n = normalize(message);
     const brand = /\b(apa itu dirac|apa itu dirac group|dirac group itu apa|tentang dirac group|profil dirac group|siapa dirac group|dirac group siapa|dirac itu apa|dirac siapa|apa itu toko dirac|apa itu website dirac)\b/.test(n);
-    if(brand) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:true, priceFormat:false};
-    if(isPriceFormatClarificationLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:false, priceFormat:true};
-    if(isGeneralKnowledgeLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:true, brand:false, priceFormat:false};
+    if(brand) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:true, priceFormat:false, productCount:false};
+    if(isProductCountQuestionLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:false, priceFormat:false, productCount:true};
+    if(isPriceFormatClarificationLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:false, brand:false, priceFormat:true, productCount:false};
+    if(isGeneralKnowledgeLocal(n)) return {recommendation:false, tracking:false, website:false, cart:false, general:true, brand:false, priceFormat:false, productCount:false};
     const product = isPerfumeProductQueryLocal(n) || (isProductFollowUpTextLocal(n) && hasProductHistoryLocal());
     const recommendation = product && (/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|carikan|mau parfum|pengen parfum|butuh parfum)\b/.test(n) || isProductFollowUpTextLocal(n));
     const tracking = /\b(resi|cek resi|tracking|lacak|pengiriman|paket)\b/.test(n);
-    const website = /\b(website|web|situs|company profile|profil perusahaan|link)\b/.test(n);
+    const website = /\b(website|web|situs|company profile|profil perusahaan|link)\b/.test(n) && !isProductCountQuestionLocal(n);
     const cartIntent = /\b(keranjang|cart|checkout|beli|order|pesan|bayar|whatsapp|wa)\b/.test(n);
-    return {recommendation:recommendation, tracking:tracking, website:website, cart:cartIntent, general:false, brand:false, priceFormat:false};
+    return {recommendation:recommendation, tracking:tracking, website:website, cart:cartIntent, general:false, brand:false, priceFormat:false, productCount:false};
   }
   function localProductSearch(query){
     const source = getProductList();
@@ -10746,7 +10814,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const specific = scored.filter(function(entry){ return !/^all parfum\b/i.test(String(entry.p && (entry.p.title || entry.p.name) || '')); });
     const ranked = specific.length ? specific : scored;
     const within = budgetMax ? ranked.filter(function(entry){ return entry.budgetOk; }) : ranked;
-    return (within.length ? within : ranked).slice(0,5).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
+    return (within.length ? within : ranked).slice(0, requestedProductCountLocal(query)).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
   }
   function localFallbackReply(message){
     const n = normalize(message);
@@ -10755,13 +10823,14 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     if(/\b(presiden indonesia|presiden ri|presiden republik indonesia)\b/.test(n)) return {text:'Presiden Indonesia saat ini adalah Prabowo Subianto. Wakil presidennya adalah Gibran Rakabuming Raka. Mereka menjabat untuk periode 2024-2029.', links:[], products:[]};
     if(/\b(presiden amerika|presiden amerika serikat|presiden as|presiden usa|presiden us)\b/.test(n) && /\b(ada berapa|berapa jumlah|berapa orang|daftar|urutan)\b/.test(n)) return {text:'Amerika Serikat memiliki 47 nomor presiden. Karena Grover Cleveland dan Donald Trump dihitung dua kali untuk masa jabatan yang tidak berurutan, jumlah orang yang pernah menjadi presiden AS adalah 45 orang.', links:[], products:[]};
     if(intent.brand) return {text:'Dirac Group adalah perusahaan yang bergerak di bidang reseller parfum serta pengembangan dan pembuatan website, dengan fokus pada penyediaan produk parfum berkualitas dan layanan digital profesional yang mendukung kebutuhan individu maupun bisnis; melalui komitmen pada kualitas, inovasi, dan pelayanan yang terpercaya, Dirac Group hadir sebagai mitra strategis dalam memenuhi kebutuhan gaya hidup sekaligus memperkuat kehadiran bisnis pelanggan di era digital.\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
+    if(intent.productCount) return {text:productCountReplyLocal(), links:[], products:[]};
     if(intent.priceFormat) return {text:'Harga produk Dirac di kartu katalog sudah memakai Rupiah Indonesia (IDR). Untuk keputusan checkout, pakai harga yang tertulis di kartu produk hari ini dan tetap konfirmasi stok/harga final ke admin sebelum pembayaran.', links:[], products:[]};
     if(intent.general){
       if(/\b(sungai amazon|amazon river)\b/.test(n)) return {text:'Sungai Amazon berada di Amerika Selatan. Sungai ini mengalir terutama melalui Peru, Kolombia, dan Brasil, lalu bermuara ke Samudra Atlantik.', links:[], products:[]};
       if(/\b(planet terbesar|planet paling besar)\b/.test(n)) return {text:'Planet terbesar di Tata Surya adalah Jupiter.', links:[], products:[]};
       if(/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return {text:'2 + 2 = 4.', links:[], products:[]};
       if(/\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(n)) return {text:'Tips memilih parfum:\n1. Tentukan tujuan pemakaian: harian, kantor, formal, malam, atau hadiah.\n2. Pilih karakter aroma: fresh untuk aman harian, sweet untuk kesan hangat, woody untuk elegan, floral untuk lembut.\n3. Cocokkan dengan budget, jangan memaksakan produk terlalu jauh di atas dana.\n4. Cek status ready dan ukuran botol sebelum checkout.\n5. Untuk blind buy, mulai dari aroma yang mudah dipakai seperti fresh, clean, citrus, aquatic, atau soft woody.', links:[], products:[]};
-      if(/\b(harga|berapa).*(mobil|fortuner|toyota)\b|\b(mobil|fortuner|toyota).*\b(harga|berapa)\b/.test(n)) return {text:'Saya tidak punya akses harga mobil real-time dari dealer. Harga Toyota Fortuner bisa berbeda tergantung tipe, tahun, kondisi, pajak daerah, promo dealer, dan lokasi. Untuk harga hari ini, cek website/dealer Toyota resmi atau marketplace otomotif, lalu bandingkan OTR sesuai kota Anda.', links:[], products:[]};
+      if(/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return {text:vehiclePriceReplyLocal(n), links:[], products:[]};
       if(/\b(harga|berapa|kurs|hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return {text:'Saya tidak akan mengarang harga real-time. Untuk data harga di luar katalog Dirac, cek sumber resmi terbaru. Untuk produk Dirac, gunakan harga yang tampil di kartu produk dan konfirmasi final ke admin sebelum bayar.', links:[], products:[]};
       return {text:'AI utama belum aktif untuk pertanyaan umum kompleks. Saya tidak akan mengubah pertanyaan umum menjadi rekomendasi parfum kecuali Anda memang meminta parfum/produk Dirac.', links:[], products:[]};
     }
@@ -10789,7 +10858,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function localFirstReply(message){
     const n = normalize(message);
     const intent = detectLocalIntent(message);
-    const canLocalCommerce = intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|mobil)\b/.test(n));
+    const canLocalCommerce = intent.productCount || intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || intent.recommendation || /\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n) || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|ferrari|ferari|mobil)\b/.test(n));
     if(!canLocalCommerce) return null;
     const local = localFallbackReply(message);
     if(!local || !local.text) return null;
@@ -10880,12 +10949,16 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       }
       const ctx = data.recommendationContext && typeof data.recommendationContext === 'object' ? data.recommendationContext : null;
       if(ctx){
+        const productIntent = /recommendation|product|compare|commerce/.test(intent);
         state.category = ctx.category || state.category || null;
         state.categories = Array.isArray(ctx.categories) ? ctx.categories.slice(0,4) : (state.categories || []);
         state.usage = ctx.usage || state.usage || null;
         state.scent = ctx.scent || state.scent || null;
         state.gender = ctx.gender || state.gender || null;
         if(Number(ctx.budgetMax || 0) >= 50000){ state.budget = ctx.budget || state.budget || null; state.budgetMax = Number(ctx.budgetMax); }
+        if(productIntent){
+          state.lastProductContext = sanitizeLastProductContextLocal({category:state.category,categories:state.categories,usage:state.usage,scent:state.scent,gender:state.gender,budget:state.budget,budgetMax:state.budgetMax});
+        }
       }
       state.intent = intent;
       saveJson('dirac_ai_state_v2', state);
@@ -10968,7 +11041,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function resetChat(){
     abortActiveRequest();
     history = [];
-    state = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null,lastProductIds:[],shownProductIds:[]};
+    state = {category:null,categories:[],usage:null,scent:null,gender:null,budget:null,budgetMax:null,intent:null,lastProductIds:[],shownProductIds:[],lastProductContext:{}};
     ['dirac_ai_history_v2','dirac_ai_state_v2','dirac_ai_feedback_v1','dirac_ai_events_v1','dirac_ai_client_rate_v1','dirac_ai_client_rate_day_v1','dirac_ai_session_id'].forEach(function(key){ try{ localStorage.removeItem(key); }catch(error){} });
     sessionId = getSessionId(true);
     messagesEl.innerHTML = '';
