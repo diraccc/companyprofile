@@ -1932,3 +1932,150 @@ function isGeneralKnowledge(text) {
     return _world(text);
   };
 })();
+
+/* === DIRAC AI ULTRA MAX GENERAL INTELLIGENCE PATCH v2026-05-15-UMAX ===
+   Purpose: expand local general knowledge fallback while keeping catalog/realtime/product boundaries strict. */
+const DIRAC_MAX_PROVINCES = [
+  ['aceh','Aceh',18,5,290], ['sumatera utara|sumut','Sumatera Utara',25,8,455], ['sumatera barat|sumbar','Sumatera Barat',12,7,179], ['riau','Riau',10,2,172], ['jambi','Jambi',9,2,144], ['sumatera selatan|sumsel','Sumatera Selatan',13,4,241], ['bengkulu','Bengkulu',9,1,129], ['lampung','Lampung',13,2,228], ['bangka belitung|babel','Kepulauan Bangka Belitung',6,1,47], ['kepulauan riau|kepri','Kepulauan Riau',5,2,78],
+  ['dki jakarta|jakarta','DKI Jakarta',1,5,44,'administratif'], ['banten','Banten',4,4,155], ['jawa barat|jabar','Jawa Barat',18,9,627], ['jawa tengah|jateng','Jawa Tengah',29,6,576], ['di yogyakarta|diy|yogyakarta|jogja','DI Yogyakarta',4,1,78], ['jawa timur|jatim','Jawa Timur',29,9,666],
+  ['bali','Bali',8,1,57], ['nusa tenggara barat|ntb','Nusa Tenggara Barat',8,2,117], ['nusa tenggara timur|ntt','Nusa Tenggara Timur',21,1,315], ['kalimantan barat|kalbar','Kalimantan Barat',12,2,174], ['kalimantan tengah|kalteng','Kalimantan Tengah',13,1,136], ['kalimantan selatan|kalsel','Kalimantan Selatan',11,2,153], ['kalimantan timur|kaltim','Kalimantan Timur',7,3,105], ['kalimantan utara|kalut','Kalimantan Utara',4,1,55],
+  ['sulawesi utara|sulut','Sulawesi Utara',11,4,171], ['sulawesi tengah|sulteng','Sulawesi Tengah',12,1,175], ['sulawesi selatan|sulsel','Sulawesi Selatan',21,3,313], ['sulawesi tenggara|sultra','Sulawesi Tenggara',15,2,222], ['gorontalo','Gorontalo',5,1,77], ['sulawesi barat|sulbar','Sulawesi Barat',6,0,69],
+  ['maluku utara|malut','Maluku Utara',8,2,118], ['maluku','Maluku',9,2,118], ['papua barat daya','Papua Barat Daya',5,1,132], ['papua barat','Papua Barat',7,0,86], ['papua tengah','Papua Tengah',8,0,131], ['papua pegunungan','Papua Pegunungan',8,0,252], ['papua selatan','Papua Selatan',4,0,78], ['papua','Papua',8,1,105]
+];
+
+function diracMaxProvinceRow(n) {
+  n = normalize(n);
+  for (const row of DIRAC_MAX_PROVINCES) if (new RegExp('\\b(' + row[0] + ')\\b').test(n)) return row;
+  return null;
+}
+
+function diracMaxRegionalAnswer(text) {
+  const n = normalize(text);
+  const asksKab = /\bkabupaten\b/.test(n);
+  const asksKota = /\bkota\b/.test(n) && !/\bkota apa\b/.test(n);
+  const asksKec = /\bkecamatan\b/.test(n);
+  const asksProv = /\bprovinsi\b/.test(n);
+  const countAsk = /\b(ada berapa|berapa|jumlah|total|berapa banyak)\b/.test(n);
+  if (!countAsk && !/\b(sebutkan|daftar|list)\b/.test(n)) return null;
+  if (asksProv && /\bindonesia\b/.test(n)) return 'Indonesia memiliki 38 provinsi. Jumlah ini dapat berubah jika ada pemekaran wilayah baru.';
+  if ((asksKab || asksKota || asksKec) && /\bindonesia\b/.test(n)) {
+    if (asksKec) return 'Indonesia memiliki sekitar 7.288 kecamatan/distrik/kapanewon/kemantren. Angka administratif dapat berubah mengikuti pemekaran wilayah; untuk angka resmi terbaru cek Kemendagri/BPS.';
+    if (asksKota && !asksKab) return 'Indonesia memiliki sekitar 98 kota. Angka administratif bisa berubah jika ada pemekaran wilayah.';
+    return 'Indonesia memiliki sekitar 416 kabupaten dan 98 kota. Angka administratif bisa berubah jika ada pemekaran wilayah.';
+  }
+  const islands = [
+    ['jawa|pulau jawa','Pulau Jawa',85,34,2146,'Banten, DKI Jakarta, Jawa Barat, Jawa Tengah, DI Yogyakarta, dan Jawa Timur'],
+    ['sumatera|pulau sumatera','Pulau Sumatera',120,34,1873,'Aceh sampai Lampung, termasuk Bangka Belitung dan Kepulauan Riau'],
+    ['kalimantan|pulau kalimantan','Kalimantan Indonesia',47,9,623,'Kalimantan Barat, Tengah, Selatan, Timur, dan Utara'],
+    ['sulawesi|pulau sulawesi','Sulawesi',70,11,1027,'Sulawesi Utara, Tengah, Selatan, Tenggara, Gorontalo, dan Sulawesi Barat'],
+    ['papua','wilayah Papua Indonesia',40,3,784,'Papua, Papua Barat, Papua Barat Daya, Papua Tengah, Papua Pegunungan, dan Papua Selatan']
+  ];
+  for (const row of islands) {
+    if (new RegExp('\\b(' + row[0] + ')\\b').test(n)) {
+      if (asksKec) return row[1] + ' memiliki sekitar ' + row[4].toLocaleString('id-ID') + ' kecamatan/distrik. Cakupan: ' + row[5] + '. Angka bisa berubah mengikuti pemekaran.';
+      if (asksKota && !asksKab) return row[1] + ' memiliki sekitar ' + row[3] + ' kota. Cakupan: ' + row[5] + '. Angka bisa berubah mengikuti pemekaran.';
+      if (asksKab) return row[1] + ' memiliki sekitar ' + row[2] + ' kabupaten. Kota dihitung terpisah; cakupan: ' + row[5] + '. Angka bisa berubah mengikuti pemekaran.';
+    }
+  }
+  const p = diracMaxProvinceRow(n);
+  if (p) {
+    const type = p[5] === 'administratif' ? ' administratif' : '';
+    if (asksKec) return p[1] + ' memiliki sekitar ' + Number(p[4]).toLocaleString('id-ID') + ' kecamatan. Jumlah administratif bisa berubah jika ada pemekaran; untuk angka resmi terbaru cek Kemendagri/BPS.';
+    if (asksKota && !asksKab) return p[1] + ' memiliki ' + p[3] + ' kota' + type + '. Kabupaten dihitung terpisah.';
+    if (asksKab) return p[1] + ' memiliki ' + p[2] + ' kabupaten' + type + ' dan ' + p[3] + ' kota' + type + '. Angka administratif bisa berubah jika ada pemekaran wilayah.';
+  }
+  return null;
+}
+
+function diracMaxScienceAnswer(n) {
+  n = normalize(n);
+  if (/\b(apa itu|jelaskan).*(gravitasi|gravity)\b|\b(gravitasi|gravity).*(adalah|apa)\b/.test(n)) return 'Gravitasi adalah gaya tarik-menarik antara benda yang memiliki massa. Di Bumi, gravitasi membuat benda jatuh ke bawah dan membuat manusia tetap berada di permukaan Bumi.';
+  if (/\b(apa itu|jelaskan).*(atom)\b|\batom\b.*\badalah\b/.test(n)) return 'Atom adalah unit dasar penyusun materi. Atom terdiri dari inti yang berisi proton dan neutron, serta elektron yang bergerak di sekitar inti.';
+  if (/\b(apa itu|jelaskan).*(molekul)\b|\bmolekul\b.*\badalah\b/.test(n)) return 'Molekul adalah gabungan dua atau lebih atom yang terikat secara kimia. Contohnya H2O, yaitu molekul air yang tersusun dari dua atom hidrogen dan satu atom oksigen.';
+  if (/\b(apa itu|jelaskan).*(sel)\b|\bsel\b.*\badalah\b/.test(n)) return 'Sel adalah unit terkecil penyusun makhluk hidup. Ada organisme bersel satu seperti bakteri, dan organisme multiseluler seperti manusia, hewan, serta tumbuhan.';
+  if (/\b(fotosintesis)\b/.test(n)) return 'Fotosintesis adalah proses tumbuhan hijau mengubah cahaya matahari, air, dan karbon dioksida menjadi glukosa/energi dan oksigen. Proses ini terutama terjadi di kloroplas.';
+  if (/\b(rantai makanan|food chain)\b/.test(n)) return 'Rantai makanan adalah urutan perpindahan energi dari satu makhluk hidup ke makhluk hidup lain, misalnya rumput dimakan belalang, belalang dimakan katak, lalu katak dimakan ular.';
+  if (/\b(siklus air|daur air)\b/.test(n)) return 'Siklus air adalah perputaran air di Bumi melalui penguapan, kondensasi, pembentukan awan, presipitasi/hujan, aliran permukaan, dan infiltrasi ke tanah.';
+  if (/\b(pemanasan global|global warming)\b/.test(n)) return 'Pemanasan global adalah kenaikan suhu rata-rata Bumi dalam jangka panjang, terutama karena peningkatan gas rumah kaca seperti karbon dioksida dan metana dari aktivitas manusia.';
+  if (/\b(hukum newton|newton)\b/.test(n)) return 'Ringkasnya, Hukum Newton: 1) benda mempertahankan keadaan geraknya jika tidak ada gaya resultan; 2) gaya sama dengan massa dikali percepatan (F = m × a); 3) setiap aksi menimbulkan reaksi yang sama besar dan berlawanan arah.';
+  return null;
+}
+
+function diracMaxSocialAnswer(n) {
+  n = normalize(n);
+  if (/\b(apa itu|jelaskan).*(demokrasi)\b|\bdemokrasi\b.*\badalah\b/.test(n)) return 'Demokrasi adalah sistem pemerintahan yang memberi rakyat peran dalam pengambilan keputusan, biasanya melalui pemilu, perwakilan, kebebasan berpendapat, dan supremasi hukum.';
+  if (/\b(apa itu|jelaskan).*(inflasi)\b|\binflasi\b.*\badalah\b/.test(n)) return 'Inflasi adalah kenaikan harga barang dan jasa secara umum dalam periode tertentu. Jika inflasi naik, daya beli uang menurun karena barang yang sama menjadi lebih mahal.';
+  if (/\b(apa itu|jelaskan).*(ekonomi)\b/.test(n)) return 'Ekonomi adalah ilmu yang mempelajari cara manusia, perusahaan, dan negara mengelola sumber daya terbatas untuk memenuhi kebutuhan dan keinginan.';
+  if (/\b(permintaan dan penawaran|supply demand)\b/.test(n)) return 'Permintaan adalah jumlah barang/jasa yang ingin dibeli konsumen pada harga tertentu. Penawaran adalah jumlah barang/jasa yang ingin dijual produsen. Harga pasar terbentuk dari pertemuan permintaan dan penawaran.';
+  if (/\b(apa itu|jelaskan).*(pbb|perserikatan bangsa bangsa|united nations)\b|\bpbb\b.*\badalah\b/.test(n)) return 'PBB atau Perserikatan Bangsa-Bangsa adalah organisasi internasional yang bertujuan menjaga perdamaian, kerja sama antarnegara, hak asasi manusia, dan pembangunan dunia.';
+  if (/\b(apa itu|jelaskan).*(asean)\b|\basean\b.*\badalah\b/.test(n)) return 'ASEAN adalah organisasi kerja sama negara-negara Asia Tenggara. Anggotanya: Indonesia, Malaysia, Singapura, Thailand, Filipina, Brunei, Vietnam, Laos, Myanmar, dan Kamboja.';
+  if (/\b(proklamasi|kemerdekaan indonesia|17 agustus 1945)\b/.test(n)) return 'Proklamasi Kemerdekaan Indonesia dibacakan pada 17 Agustus 1945 oleh Soekarno didampingi Mohammad Hatta di Jakarta. Peristiwa ini menandai berdirinya Indonesia sebagai negara merdeka.';
+  if (/\b(perang dunia 2|perang dunia ii|ww2|world war 2)\b/.test(n)) return 'Perang Dunia II berlangsung pada 1939-1945 dan melibatkan banyak negara. Blok utama adalah Sekutu melawan Poros. Perang berakhir di Eropa pada Mei 1945 dan di Asia setelah Jepang menyerah pada Agustus 1945.';
+  return null;
+}
+
+function diracMaxLanguageAnswer(text) {
+  const raw = String(text || '').trim();
+  const n = normalize(raw);
+  const en = raw.match(/(?:bahasa inggrisnya|translate ke bahasa inggris|terjemahkan ke bahasa inggris)\s+(.+)/i);
+  if (en && en[1]) return 'Terjemahan bahasa Inggris: "' + en[1].trim().replace(/^['"]|['"]$/g, '') + '". Jika mau, kirim kalimat lengkapnya dan saya bisa rapikan grammar-nya.';
+  if (/\b(apa itu sinonim|sinonim adalah)\b/.test(n)) return 'Sinonim adalah kata yang memiliki makna sama atau mirip. Contoh: indah = cantik, cepat = lekas, besar = agung.';
+  if (/\b(apa itu antonim|antonim adalah)\b/.test(n)) return 'Antonim adalah kata yang memiliki makna berlawanan. Contoh: besar vs kecil, panjang vs pendek, terang vs gelap.';
+  if (/\b(buatkan|buat|tulis).*(caption|promosi)\b/.test(n)) return 'Contoh caption promosi: "Tampil lebih percaya diri dengan aroma yang elegan dan tahan lama. Pilih parfum favoritmu hari ini dan rasakan kesan mewah di setiap momen."';
+  return null;
+}
+
+function diracMaxCodingAnswer(n) {
+  n = normalize(n);
+  if (/\b(apa itu|jelaskan).*(html)\b|\bhtml\b.*\badalah\b/.test(n)) return 'HTML adalah bahasa markup untuk menyusun struktur halaman web, seperti judul, paragraf, gambar, link, form, dan tombol.';
+  if (/\b(apa itu|jelaskan).*(css)\b|\bcss\b.*\badalah\b/.test(n)) return 'CSS adalah bahasa untuk mengatur tampilan halaman web, seperti warna, layout, ukuran font, jarak, animasi, dan responsif mobile.';
+  if (/\b(apa itu|jelaskan).*(javascript|js)\b|\bjavascript\b.*\badalah\b/.test(n)) return 'JavaScript adalah bahasa pemrograman yang membuat website interaktif, misalnya tombol, validasi form, animasi, keranjang belanja, dan komunikasi ke API.';
+  if (/\b(contoh|buat).*(html).*(tombol|button)\b|\b(tombol|button).*(html)\b/.test(n)) return 'Contoh tombol HTML sederhana:\n```html\n<button type="button">Beli Sekarang</button>\n```';
+  return null;
+}
+
+function diracMaxGeneralAnswer(text) {
+  const n = normalize(text);
+  if (!n) return null;
+  const regional = diracMaxRegionalAnswer(n); if (regional) return regional;
+  const world = diracWorldGeneralAnswer(n); if (world) return world;
+  const sci = diracMaxScienceAnswer(n); if (sci) return sci;
+  const social = diracMaxSocialAnswer(n); if (social) return social;
+  const lang = diracMaxLanguageAnswer(text); if (lang) return lang;
+  const code = diracMaxCodingAnswer(n); if (code) return code;
+  if (/\b(daftar|sebutkan|list).*(provinsi).*(indonesia)\b|\b(provinsi).*(indonesia).*(daftar|sebutkan|list)\b/.test(n)) return '38 provinsi Indonesia: Aceh, Sumatera Utara, Sumatera Barat, Riau, Kepulauan Riau, Jambi, Bengkulu, Sumatera Selatan, Kepulauan Bangka Belitung, Lampung, Banten, DKI Jakarta, Jawa Barat, Jawa Tengah, DI Yogyakarta, Jawa Timur, Bali, Nusa Tenggara Barat, Nusa Tenggara Timur, Kalimantan Barat, Kalimantan Tengah, Kalimantan Selatan, Kalimantan Timur, Kalimantan Utara, Sulawesi Utara, Gorontalo, Sulawesi Tengah, Sulawesi Barat, Sulawesi Selatan, Sulawesi Tenggara, Maluku, Maluku Utara, Papua, Papua Barat, Papua Barat Daya, Papua Tengah, Papua Pegunungan, dan Papua Selatan.';
+  if (/\b(apa itu|jelaskan).*(ai|kecerdasan buatan|artificial intelligence)\b|\b(kecerdasan buatan)\b/.test(n)) return 'AI atau kecerdasan buatan adalah teknologi yang membuat komputer mampu melakukan tugas yang biasanya memerlukan kecerdasan manusia, seperti memahami bahasa, mengenali pola, memberi rekomendasi, dan membantu pengambilan keputusan.';
+  if (/\b(tips belajar|cara belajar|belajar efektif)\b/.test(n)) return 'Tips belajar efektif: 1) tentukan target kecil, 2) gunakan metode aktif seperti latihan soal, 3) ulangi materi dengan jeda, 4) buat rangkuman singkat, 5) kerjakan contoh, 6) evaluasi bagian yang masih salah.';
+  return null;
+}
+
+const diracPrevStaticGeneralAnswer = staticGeneralAnswer;
+staticGeneralAnswer = function(text) {
+  const n = normalize(text);
+  if (isStoreProductPriceQuestion(n)) return diracPrevStaticGeneralAnswer(text);
+  if (isMathQuestion(text)) return solveMathQuestion(text);
+  const max = diracMaxGeneralAnswer(text); if (max) return max;
+  return diracPrevStaticGeneralAnswer(text);
+};
+
+localGeneralFallback = function(text) {
+  const n = normalize(text);
+  const direct = staticGeneralAnswer(text);
+  if (direct) return direct;
+  if (isRealTimeMarketQuestion(n)) return realTimeMarketReply(n);
+  if (/\b(harga|kurs|cuaca|berita|terbaru|hari ini|saat ini|sekarang)\b/.test(n) && !/\b(parfum|produk dirac|katalog|website ini|di website|di katalog)\b/.test(n)) return 'Itu termasuk data real-time di luar katalog Dirac. Saya tidak akan mengarang angka. Cek sumber resmi terbaru agar akurat. Untuk produk Dirac, sebutkan nama produknya agar saya baca harga dari katalog.';
+  if (/\b(apa|siapa|kenapa|mengapa|bagaimana|jelaskan|sebutkan|daftar|berapa)\b/.test(n)) return 'Ini pertanyaan umum di luar katalog Dirac. Saya belum punya basis data lengkap untuk semua topik, tetapi saya tidak akan mengubahnya menjadi rekomendasi parfum. Coba tulis lebih spesifik, misalnya topik geografi Indonesia, matematika, sains dasar, sejarah dasar, bahasa, coding, atau sebutkan produk Dirac jika ingin cek harga katalog.';
+  return 'Saya bisa bantu pertanyaan umum, matematika, info parfum, rekomendasi produk Dirac, checkout, cek resi, dan harga katalog. Tulis pertanyaannya dengan lebih spesifik ya.';
+};
+
+const diracPrevIsGeneralKnowledge = isGeneralKnowledge;
+isGeneralKnowledge = function(text) {
+  const n = normalize(text);
+  if (!n) return false;
+  if (isStoreProductPriceQuestion(n)) return false;
+  if (isMathQuestion(text) || staticGeneralAnswer(text)) return true;
+  if (/\b(selain itu|yang lain|lainnya|alternatif|rekomendasi lain|pilihan lain|selain tadi|tadi|sebelumnya|lanjut|lanjutkan)\b/.test(n) && /\b(produk|parfum|perfume|fragrance|pilihan|opsi)\b/.test(n)) return false;
+  if (/\b(rekomendasi|rekomendasikan|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum|stok|ready|budget|dana|checkout|keranjang|beli|order|pesan|resi|paket|kurir)\b/.test(n)) return false;
+  if (/\b(siapa|apa|apa itu|kenapa|mengapa|bagaimana|berapa|dimana|di mana|kapan|jelaskan|sebutkan|buatkan|buat|tulis|list|daftar|tips|panduan|tutorial|contoh|ringkas|terjemah|translate|bahasa inggris|english|grammar|essay|tugas|pr|soal|hitung|rumus|matematika|mtk|aljabar|kalkulus|statistika|geometri|trigonometri|fisika|kimia|biologi|ipa|ips|sejarah|geografi|ekonomi|sosiologi|politik|negara|provinsi|kabupaten|kecamatan|kota|dunia|benua|sungai|gunung|samudra|laut|planet|bulan|matahari|hewan|tumbuhan|sel|atom|molekul|energi|listrik|coding|programming|javascript|python|html|css|asean|pbb|g20|presiden|raja|inflasi|demokrasi|fotosintesis|gravitasi)\b/.test(n) && !/\b(parfum|perfume|fragrance|produk dirac|katalog dirac|website ini|toko ini|di katalog|di website ini)\b/.test(n)) return true;
+  return diracPrevIsGeneralKnowledge(text);
+};
