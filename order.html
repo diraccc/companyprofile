@@ -10642,6 +10642,24 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     n = normalize(n);
     return /\b(mobil|motor|ferrari|ferari|fortuner|pajero|avanza|xenia|brio|civic|innova|alphard|toyota|honda|yamaha|suzuki|kawasaki|iphone|samsung|xiaomi|oppo|vivo|laptop|macbook|komputer|rumah|tanah|apartemen|emas|dollar|dolar|saham|bitcoin|crypto|kripto|tiket|pesawat|hotel)\b/.test(n);
   }
+  function isRealTimeMarketQuestionLocal(n){
+    n = normalize(n);
+    return /\b(harga|kurs|rate|nilai|price).*(hari ini|sekarang|saat ini|terbaru|real time|realtime)\b/.test(n) && /\b(emas|saham|bbca|bbri|tlkm|goto|ihsg|dollar|dolar|usd|bitcoin|btc|crypto|kripto|mobil|motor|rumah|tanah|tiket|pesawat|hotel)\b/.test(n);
+  }
+  function realTimeMarketReplyLocal(n){
+    n = normalize(n);
+    var subject = 'topik itu';
+    if(/\bemas\b/.test(n)) subject = 'harga emas';
+    else if(/\b(saham|bbca|bbri|tlkm|goto|ihsg)\b/.test(n)) subject = 'harga saham';
+    else if(/\b(dollar|dolar|usd|kurs)\b/.test(n)) subject = 'kurs mata uang';
+    else if(/\b(bitcoin|btc|crypto|kripto)\b/.test(n)) subject = 'harga kripto';
+    else if(/\b(mobil|motor|ferrari|ferari|fortuner|pajero|avanza|honda|toyota)\b/.test(n)) return vehiclePriceReplyLocal(n);
+    return 'Saya tidak punya akses data real-time untuk ' + subject + '. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.';
+  }
+  function isGeographyCountQuestionLocal(n){
+    n = normalize(n);
+    return /\b(ada berapa|berapa banyak|berapa jumlah|jumlah|total)\b/.test(n) && /\b(kabupaten|kota|provinsi|negara|pulau|kecamatan)\b/.test(n) && !isStoreProductPriceQuestionLocal(n);
+  }
   function isPerfumeEducationQueryLocal(n){
     n = normalize(n);
     const perfumeInfo = /\b(parfum|perfume|fragrance|aroma|wangi|edp|edt|eau de parfum|eau de toilette|notes|top notes|base notes|layering)\b/.test(n);
@@ -10743,6 +10761,9 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function localKnowledgeAnswerLocal(n){
     n = normalize(n);
     if(/\b(kabupaten|kota administratif|kota administrasi).*(jakarta|dki)|\b(jakarta|dki).*(kabupaten|kota administratif|kota administrasi)\b/.test(n)) return 'DKI Jakarta memiliki 1 kabupaten administratif, yaitu Kabupaten Administratif Kepulauan Seribu. Selain itu ada 5 kota administrasi: Jakarta Pusat, Jakarta Utara, Jakarta Barat, Jakarta Selatan, dan Jakarta Timur.';
+    if(/\b(kabupaten).*(pulau jawa|jawa)|\b(pulau jawa|jawa).*(kabupaten)\b/.test(n)) return 'Pulau Jawa bukan satu provinsi, tetapi terdiri dari beberapa provinsi. Jika dihitung per provinsi utama di Pulau Jawa, totalnya sekitar 85 kabupaten: Banten 4, DKI Jakarta 1 kabupaten administratif, Jawa Barat 18, Jawa Tengah 29, DI Yogyakarta 4, dan Jawa Timur 29. Angka administratif bisa berubah jika ada pemekaran wilayah.';
+    if(/\b(kabupaten).*(kalimantan)|\b(kalimantan).*(kabupaten)\b/.test(n)) return 'Kalimantan di Indonesia terdiri dari 5 provinsi. Total kabupatennya sekitar 47 kabupaten: Kalimantan Barat 12, Kalimantan Tengah 13, Kalimantan Selatan 11, Kalimantan Timur 7, dan Kalimantan Utara 4. Angka ini belum termasuk kota, dan bisa berubah jika ada pemekaran wilayah.';
+    if(/\b(provinsi).*(indonesia)|\b(indonesia).*(provinsi)\b/.test(n) && /\b(ada berapa|berapa|jumlah)\b/.test(n)) return 'Indonesia saat ini memiliki 38 provinsi. Jumlah ini bisa berubah jika ada pemekaran wilayah baru.';
     return null;
   }
   function vehicleLabelFromTextLocal(n){
@@ -10900,8 +10921,21 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     }).filter(function(entry){ return entry.score > 0; }).sort(function(a,b){ return b.score - a.score; });
     const specific = scored.filter(function(entry){ return !/^all parfum\b/i.test(String(entry.p && (entry.p.title || entry.p.name) || '')); });
     const ranked = specific.length ? specific : scored;
+    const requested = requestedProductCountLocal(query);
     const within = budgetMax ? ranked.filter(function(entry){ return entry.budgetOk; }) : ranked;
-    return (within.length ? within : ranked).slice(0, requestedProductCountLocal(query)).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
+    let selected = (within.length ? within : ranked).slice(0, requested);
+    if(selected.length < requested){
+      const seen = new Set(selected.map(function(entry){ return String(entry.p && entry.p.id); }));
+      const readyAll = getProductList().filter(function(p){ return p && !/sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || '')) && !/^all parfum\b/i.test(String(p.title || p.name || '')) && !seen.has(String(p.id)); });
+      let fill = readyAll;
+      if(budgetMax){
+        const withinFill = readyAll.filter(function(p){ return Number(p.price || 0) <= Math.round(Number(budgetMax) * 1.1); });
+        if(withinFill.length) fill = withinFill;
+      }
+      fill.sort(function(a,b){ return Number(a.price || 0) - Number(b.price || 0); });
+      fill.forEach(function(p){ if(selected.length < requested){ selected.push({p:p, score:1, budgetOk:!budgetMax || Number(p.price || 0) <= Math.round(Number(budgetMax) * 1.1)}); } });
+    }
+    return selected.slice(0, requested).map(function(entry){ return Object.assign({}, entry.p, {budgetOk:entry.budgetOk}); });
   }
   function localFallbackReply(message){
     const n = normalize(message);
@@ -10923,8 +10957,9 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
       if(/\b(2\s*\+\s*2|dua tambah dua)\b/.test(n)) return {text:'2 + 2 = 4.', links:[], products:[]};
       if(/\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt)\b/.test(n)) return {text:'Tips memilih parfum:\n1. Tentukan tujuan pemakaian: harian, kantor, formal, malam, atau hadiah.\n2. Pilih karakter aroma: fresh untuk aman harian, sweet untuk kesan hangat, woody untuk elegan, floral untuk lembut.\n3. Cocokkan dengan budget, jangan memaksakan produk terlalu jauh di atas dana.\n4. Cek status ready dan ukuran botol sebelum checkout.\n5. Untuk blind buy, mulai dari aroma yang mudah dipakai seperti fresh, clean, citrus, aquatic, atau soft woody.', links:[], products:[]};
       if(/\b(harga|berapa).*(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic)\b|\b(mobil|ferrari|ferari|fortuner|toyota|honda|pajero|avanza|innova|alphard|brio|civic).*\b(harga|berapa)\b/.test(n)) return {text:vehiclePriceReplyLocal(n), links:[], products:[]};
+      if(isRealTimeMarketQuestionLocal(n)) return {text:realTimeMarketReplyLocal(n), links:[], products:[]};
       if(/\b(harga|kurs|harga hari ini|terbaru|sekarang|saat ini)\b/.test(n)) return {text:'Saya tidak punya akses data real-time untuk topik itu. Cek sumber resmi terbaru agar hasilnya akurat. Untuk produk Dirac, saya bisa membaca harga dari kartu katalog jika Anda sebutkan nama produknya.', links:[], products:[]};
-      return {text:'AI utama belum aktif untuk pertanyaan umum kompleks. Saya tidak akan mengubah pertanyaan umum menjadi rekomendasi parfum kecuali Anda memang meminta parfum/produk Dirac.', links:[], products:[]};
+      return {text:'Pertanyaan ini masuk kategori umum, bukan produk Dirac. AI utama belum aktif untuk menjawab topik umum yang sangat luas secara lengkap, tetapi saya tidak akan mengubahnya menjadi rekomendasi parfum. Coba tulis lebih spesifik, misalnya soal matematika, geografi, sejarah, atau sebutkan produk Dirac jika ingin cek harga katalog.', links:[], products:[]};
     }
     if(intent.website) return {text:'Website resmi Dirac Group ada di sini:\nhttps://diracgroup.store', links:[{label:'Buka website Dirac Group', url:'https://diracgroup.store'}], products:[]};
     if(intent.tracking) return {text:'Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\nhttps://diracgroup.store/cekresi.html', links:[{label:'Buka Cek Resi', url:'https://diracgroup.store/cekresi.html'}], products:[]};
@@ -10950,7 +10985,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   function localFirstReply(message){
     const n = normalize(message);
     const intent = detectLocalIntent(message);
-    const canLocalCommerce = intent.productCount || intent.productPrice || intent.math || intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || intent.recommendation || /\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n) || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|ferrari|ferari|mobil|kabupaten|jakarta|hitung|matematika|mtk)\b/.test(n));
+    const canLocalCommerce = intent.productCount || intent.productPrice || intent.math || intent.website || intent.tracking || intent.cart || intent.brand || intent.priceFormat || intent.recommendation || /\b(bandingkan|perbandingan|compare|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(n) || (intent.general && /\b(tips|memilih parfum|pilih parfum|cara memilih parfum|eau de parfum|eau de toilette|edp|edt|harga|berapa|fortuner|ferrari|ferari|mobil|kabupaten|kota|provinsi|jakarta|jawa|kalimantan|indonesia|hitung|matematika|mtk|emas|saham|bbca|kurs|dolar|dollar)\b/.test(n));
     if(!canLocalCommerce) return null;
     const local = localFallbackReply(message);
     if(!local || !local.text) return null;
