@@ -1,4 +1,12 @@
 module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       mode: 'error',
@@ -90,7 +98,7 @@ module.exports = async function handler(req, res) {
 
     const hasRecommendationContext =
       recommendationWords ||
-      /\b(rekomendasi|rekomendasikan|saran|sarankan|parfum buat apa|aroma apa|budget berapa|mau dipakai buat apa|dipakai buat apa)\b/.test(normalizedHistory);
+      /\b(rekomendasi|rekomendasikan|saran|sarankan|parfum buat apa|parfumnya mau buat apa|aroma apa|budget berapa|mau dipakai buat apa|dipakai buat apa)\b/.test(normalizedHistory);
 
     const recommendationSignalCount = [
       useWords,
@@ -288,56 +296,73 @@ Jawab singkat, ramah, dan natural.
 
     const userPrompt = promptParts.join('\n').trim();
 
-    const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    const preferredModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const modelCandidates = Array.from(new Set([
+      preferredModel,
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash'
+    ]));
 
-    const geminiUrl =
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    let lastError = null;
+    let reply = '';
 
-    const geminiResponse = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: userPrompt
-              }
-            ]
+    for (const model of modelCandidates) {
+      const geminiUrl =
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      const geminiResponse = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: userPrompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: isGeneralConversation ? 0.65 : 0.38,
+            topP: 0.9,
+            maxOutputTokens: isGeneralConversation ? 700 : 900
           }
-        ],
-        generationConfig: {
-          temperature: isGeneralConversation ? 0.65 : 0.38,
-          topP: 0.9,
-          maxOutputTokens: isGeneralConversation ? 700 : 900
-        }
-      })
-    });
+        })
+      });
 
-    const data = await geminiResponse.json();
+      const data = await geminiResponse.json().catch(() => ({}));
 
-    if (!geminiResponse.ok) {
-      return res.status(geminiResponse.status).json({
+      if (!geminiResponse.ok) {
+        lastError = data?.error?.message || `Gemini API error ${geminiResponse.status}`;
+        continue;
+      }
+
+      reply = data?.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || '')
+        .join('')
+        .trim();
+
+      if (reply) break;
+
+      lastError = 'Gemini response empty';
+    }
+
+    if (!reply) {
+      return json(502, {
         mode: 'error',
-        showProducts: false,
-        products: [],
-        links: [],
         reply: 'AI sedang gagal dipanggil dari server. Periksa GEMINI_API_KEY, GEMINI_MODEL, dan log Vercel.',
-        detail: data?.error?.message || 'Unknown Gemini API error'
+        detail: lastError || 'Unknown Gemini API error'
       });
     }
 
-    const reply = data?.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || '')
-      .join('')
-      .trim();
-
     return json(200, {
       mode: shouldUseProductData ? 'commerce' : 'conversation',
-      reply: reply || 'Maaf, AI belum menghasilkan jawaban. Silakan coba pertanyaan lain.'
+      reply
     });
 
   } catch (error) {
