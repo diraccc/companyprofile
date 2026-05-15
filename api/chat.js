@@ -84,12 +84,12 @@ module.exports = async function handler(req, res) {
       }));
     }
 
-    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search' || intent.name === 'product_compare' || intent.name === 'product_compare';
+    const useProducts = intent.name === 'recommendation_ready' || intent.name === 'product_search' || intent.name === 'product_compare';
     const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 8) : [];
     const topProducts = scoredProducts.slice(0, 3).map((item) => item.product);
 
     if (useProducts && topProducts.length && !hasProvider()) {
-      return res.status(200).json(makeReply('commerce', buildProductReply(topProducts), {
+      return res.status(200).json(makeReply(intent.name === 'product_compare' ? 'compare' : 'commerce', intent.name === 'product_compare' ? buildCompareReply(topProducts) : buildProductReply(topProducts), {
         traceId,
         provider: 'local-product-matcher',
         showProducts: true,
@@ -117,7 +117,7 @@ module.exports = async function handler(req, res) {
       search: shouldUseSearch(normalizedMessage, intent)
     });
 
-    return res.status(200).json(makeReply(useProducts ? 'commerce' : intent.mode, ai.text, {
+    return res.status(200).json(makeReply(intent.name === 'product_compare' ? 'compare' : (useProducts ? 'commerce' : intent.mode), ai.text, {
       traceId,
       provider: ai.provider,
       showProducts: useProducts && topProducts.length > 0,
@@ -346,6 +346,11 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/\b(website|web|situs|link|company profile|profil perusahaan|profile perusahaan|alamat web|alamat website)\b/.test(text) && !/\b(parfum|produk|resi|checkout|beli)\b/.test(text)) return { name: 'website', mode: 'link' };
   if (/\b(resi|cek resi|lacak|tracking|paket|pengiriman|kurir|jne|jnt|j t|sicepat|anteraja|pos|ninja|lion|sap|id express|tiki)\b/.test(text)) return { name: 'tracking', mode: 'link' };
   if (/\b(komplain|keluhan|belum sampai|belum dikirim|rusak|salah barang|refund|retur|return|admin|cs|customer service|bantuan admin)\b/.test(text)) return { name: 'support', mode: 'support' };
+  if (/\b(original|ori|asli|palsu|kw|authentic)\b/.test(text)) return { name: 'faq_original', mode: 'support' };
+  if (/\b(pembayaran|bayar|transfer|metode bayar|payment)\b/.test(text)) return { name: 'faq_payment', mode: 'checkout' };
+  if (/\b(retur|refund|return|pengembalian)\b/.test(text)) return { name: 'faq_return', mode: 'support' };
+  if (/\b(jam operasional|jam buka|buka jam|admin online|jam admin)\b/.test(text)) return { name: 'faq_hours', mode: 'support' };
+  if (/\b(promo|diskon|potongan|voucher)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'faq_promo', mode: 'checkout' };
   if (/\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|cara beli|mau beli)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'checkout', mode: 'checkout' };
 
   if (/\b(bandingkan|compare|komparasi|versus|vs|mana yang lebih|lebih bagus mana|pilih yang mana)\b/.test(text) && /\b(parfum|produk|wangi|aroma|harga|notes)\b/.test(text)) return { name: 'product_compare', mode: 'commerce' };
@@ -380,6 +385,11 @@ function directAnswer(intent, cart, traceId) {
   if (intent.name === 'tracking') return makeReply('link', `Untuk cek resi, buka halaman Cek Resi Dirac Group lalu masukkan nomor resi dan pilih kurir:\n${CHECK_RESI_URL}`, { traceId, links: [{ label: 'Buka Cek Resi', url: CHECK_RESI_URL }] });
   if (intent.name === 'checkout') return makeReply('checkout', 'Untuk membeli, tambahkan produk ke keranjang dulu, lalu buka keranjang dan klik checkout WhatsApp. Kalau ingin dibantu admin langsung, klik tombol WhatsApp.', { traceId, links: [{ label: 'Chat Admin WhatsApp', url: WHATSAPP_URL }], cartCount: Array.isArray(cart) ? cart.length : 0 });
   if (intent.name === 'support') return makeReply('support', 'Maaf atas kendalanya. Supaya admin bisa bantu lebih cepat, siapkan nomor order atau nomor resi Anda lalu hubungi admin WhatsApp.', { traceId, links: [{ label: 'Hubungi Admin WhatsApp', url: WHATSAPP_URL }] });
+  if (intent.name === 'faq_original') return makeReply('support', 'Dirac Group berfokus pada parfum berkualitas. Untuk memastikan detail originalitas, batch, dan kondisi produk tertentu, cek detail produk atau hubungi admin sebelum checkout.', { traceId, links: [{ label: 'Chat Admin WhatsApp', url: WHATSAPP_URL }] });
+  if (intent.name === 'faq_payment') return makeReply('checkout', 'Untuk pembayaran, lanjutkan checkout lewat WhatsApp agar admin memberi instruksi pembayaran yang sesuai dan aman.', { traceId, links: [{ label: 'Checkout via WhatsApp', url: WHATSAPP_URL }] });
+  if (intent.name === 'faq_return') return makeReply('support', 'Untuk retur/refund, hubungi admin WhatsApp dengan nomor order, foto produk, dan kronologi kendala agar bisa dicek lebih cepat.', { traceId, links: [{ label: 'Hubungi Admin WhatsApp', url: WHATSAPP_URL }] });
+  if (intent.name === 'faq_hours') return makeReply('support', 'Untuk jam operasional/admin online, silakan hubungi WhatsApp Dirac Group agar mendapat info terbaru dan respons paling akurat.', { traceId, links: [{ label: 'Chat Admin WhatsApp', url: WHATSAPP_URL }] });
+  if (intent.name === 'faq_promo') return makeReply('checkout', 'Promo atau diskon bisa berubah. Jika ada promo aktif, admin akan membantu konfirmasi saat checkout WhatsApp.', { traceId, links: [{ label: 'Tanya Promo ke Admin', url: WHATSAPP_URL }] });
   return null;
 }
 
@@ -508,6 +518,11 @@ function buildProductReply(list) {
   const names = list.slice(0, 3).map((product) => product.title || product.name || 'Produk Dirac').join(', ');
   const category = list[0] && list[0].category ? ` kategori ${list[0].category}` : '';
   return names ? `Saya pilihkan parfum${category} yang paling nyambung dengan permintaan Anda: ${names}. Silakan lihat kartu produk di bawah ini dan cek detail sebelum checkout.` : 'Saya belum menemukan produk yang cocok. Coba sebutkan kategori, aroma, penggunaan, gender, dan budget lebih detail.';
+}
+
+function buildCompareReply(list) {
+  const names = list.slice(0, 3).map((product) => product.title || product.name || 'Produk Dirac').join(', ');
+  return names ? `Saya bandingkan opsi yang paling dekat dari katalog: ${names}. Lihat ringkasan per produk di bawah ini; pilih yang paling cocok dengan aroma, budget, dan kebutuhan Anda.` : 'Saya belum menemukan produk yang cukup untuk dibandingkan. Coba sebutkan kategori, aroma, dan budget.';
 }
 
 function shouldUseSearch(text, intent) {
