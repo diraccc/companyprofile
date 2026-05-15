@@ -95,11 +95,12 @@ module.exports = async function handler(req, res) {
     const historyRaw = history.filter((item) => item && item.role === 'user').map((item) => item.content || '').join(' ');
     const normalizedHistory = normalize(historyRaw);
     const forcedGeneral = isGeneralKnowledge(normalizedMessage);
-    const useClientState = !forcedGeneral && shouldUseConversationContext(normalizedMessage, history);
-    const recommendationHistory = forcedGeneral ? '' : relevantRecommendationHistory(history, normalizedMessage);
+    const profile = conversationProfile(normalizedMessage, history);
+    const useClientState = !forcedGeneral && profile.useState;
+    const recommendationHistory = !forcedGeneral && profile.useHistory ? relevantRecommendationHistory(history, normalizedMessage) : '';
     const contextSource = forcedGeneral ? message : `${recommendationHistory} ${message}`;
     const detectedContext = extractContext(contextSource);
-    const context = mergeContext(useClientState ? clientState : {}, detectedContext);
+    const context = refineContextForMessage(mergeContext(useClientState ? clientState : {}, detectedContext), normalizedMessage, profile);
     const intent = detectIntent(normalizedMessage, normalizedHistory, context, forcedGeneral);
 
     const direct = directAnswer(intent, cart, traceId, hasProvider());
@@ -135,8 +136,9 @@ module.exports = async function handler(req, res) {
       }));
     }
 
-    const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, 10) : [];
-    const topProducts = scoredProducts.slice(0, 3).map((item) => item.product);
+    const topCount = useProducts ? Math.max(3, Math.min(5, requestedProductCount(normalizedMessage) || context.requestedCount || 3)) : 3;
+    const scoredProducts = useProducts ? scoreProducts(products, context, normalizedMessage).slice(0, Math.max(10, topCount + 5)) : [];
+    const topProducts = scoredProducts.slice(0, topCount).map((item) => item.product);
 
     if (useProducts && !topProducts.length) {
       return res.status(200).json(makeReply('commerce', buildNoProductReply(context), {
@@ -430,6 +432,8 @@ function sanitizeState(state) {
   const gender = safeEnum(normalize(state.gender), ['pria','wanita','unisex']);
   const budgetMax = clampNumber(state.budgetMax, 0, 200000000);
   const budget = cleanBudgetLabel(state.budget, budgetMax);
+  const lastProductIds = sanitizeIdList(state.lastProductIds || state.recentProductIds || []);
+  const shownProductIds = sanitizeIdList(state.shownProductIds || state.seenProductIds || []);
   return {
     category,
     categories: unique([category, ...categories].filter(Boolean)).slice(0, 4),
@@ -438,8 +442,17 @@ function sanitizeState(state) {
     gender,
     budget,
     budgetMax: budget && budgetMax >= 50000 ? budgetMax : null,
-    budgetTier: safeEnum(normalize(state.budgetTier), ['murah','premium'])
+    budgetTier: safeEnum(normalize(state.budgetTier), ['murah','premium']),
+    lastProductIds,
+    shownProductIds,
+    lastIntent: cleanText(state.lastIntent, 50),
+    updatedAt: cleanText(state.updatedAt, 40)
   };
+}
+
+function sanitizeIdList(value) {
+  if (!Array.isArray(value)) return [];
+  return unique(value.map(cleanProductId).filter(Boolean)).slice(0, 30);
 }
 
 function cleanBudgetLabel(value, budgetMax) {
@@ -469,7 +482,7 @@ function isGeneralKnowledge(text) {
 }
 
 function relevantRecommendationHistory(history, currentText = '') {
-  if (!shouldUseConversationContext(currentText, history)) return '';
+  if (!conversationProfile(normalize(currentText), history).useHistory) return '';
   return history
     .filter((item) => item && item.role === 'user')
     .slice(-5)
@@ -483,15 +496,56 @@ function relevantRecommendationHistory(history, currentText = '') {
 }
 
 function shouldUseConversationContext(text, history = []) {
+  return conversationProfile(normalize(text), history).useState;
+}
+
+function explicitCompare(text) {
+  return /\b(bandingkan|perbandingan|compare|komparasi|versus|vs|beda|bedanya|lebih bagus mana|pilih mana|mending mana)\b/.test(text);
+}
+
+function explicitRecommendation(text) {
+  return /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau rekomendasi|mau parfum|pengen parfum|butuh parfum|recommend|suggest)\b/.test(text);
+}
+
+function continuationSignal(text) {
+  return /\b(selain itu|selain yang tadi|selain tadi|yang lain|lainnya|produk lain|parfum lain|rekomendasi lain|opsi lain|alternatif|lanjut|lanjutkan|itu|tadi|sebelumnya|di atas|nomor|no\s*\d+|lebih murah|lebih mahal|yang fresh|yang manis|yang soft|yang strong|yang cocok|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(text) ||
+    /^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(text) ||
+    /^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(text);
+}
+
+function excludePreviousSignal(text) {
+  return /\b(selain itu|selain yang tadi|selain tadi|yang lain|lainnya|produk lain|parfum lain|rekomendasi lain|opsi lain|alternatif|jangan yang tadi|bukan yang tadi)\b/.test(text);
+}
+
+function conversationProfile(text, history = []) {
   const n = normalize(text);
-  if (!n || isGeneralKnowledge(n)) return false;
-  if (/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari parfum|mau parfum|pengen parfum|butuh parfum)\b/.test(n) && /\b(parfum|niche|designer|timur tengah|lokal|miniso)\b/.test(n)) return false;
-  if (/\b(yang|itu|tadi|sebelumnya|lanjut|lebih|aja|saja|budget saya|dana saya|untuk saya|kalau)\b/.test(n)) return true;
-  if (/^(fresh|segar|manis|sweet|woody|floral|soft|strong|pria|wanita|unisex|niche|designer|lokal|miniso|timur tengah|harian|kantor|formal|hadiah|malam)(\s+aja|\s+saja)?$/.test(n)) return true;
-  if (/^(budget|dana|max|maksimal|di bawah|dibawah|under)\s*(rp\s*)?\d/.test(n)) return true;
+  if (!n || isGeneralKnowledge(n)) return { useState: false, useHistory: false, isContinuation: false, isFresh: false, isCompare: false, excludePrevious: false };
+  const isCompare = explicitCompare(n);
+  const isContinuation = continuationSignal(n);
+  const isFresh = (explicitRecommendation(n) || isCompare) && !isContinuation;
   const lastUser = history.filter((item) => item && item.role === 'user').slice(-1)[0];
   const lastText = normalize(lastUser && lastUser.content);
-  return !!lastText && /\b(rekomendasi|parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah)\b/.test(lastText) && n.split(/\s+/).length <= 5;
+  const shortFollowUp = !!lastText && /\b(rekomendasi|parfum|aroma|budget|dana|pria|wanita|niche|designer|lokal|timur tengah)\b/.test(lastText) && n.split(/\s+/).length <= 5;
+  const useState = !isFresh && (isContinuation || shortFollowUp);
+  return {
+    useState,
+    useHistory: useState,
+    isContinuation: useState,
+    isFresh,
+    isCompare,
+    excludePrevious: useState && excludePreviousSignal(n)
+  };
+}
+
+function requestedProductCount(text) {
+  const n = normalize(text);
+  const digit = n.match(/\b(?:tampilkan|kasih|beri|mau|ingin|cari|rekomendasikan|rekomendasi)?\s*(2|3|4|5)\s*(?:parfum|produk|pilihan|opsi)\b/);
+  if (digit) return Number(digit[1]);
+  const words = { dua: 2, tiga: 3, empat: 4, lima: 5 };
+  for (const [word, count] of Object.entries(words)) {
+    if (new RegExp('\\b' + word + '\\s+(?:parfum|produk|pilihan|opsi)\\b').test(n)) return count;
+  }
+  return 0;
 }
 
 function extractContext(raw) {
@@ -540,8 +594,30 @@ function mergeContext(state, detected) {
     gender: detected.gender || state.gender || null,
     budget: detected.budget || state.budget || null,
     budgetMax: detected.budgetMax || state.budgetMax || null,
-    budgetTier: detected.budgetTier || state.budgetTier || null
+    budgetTier: detected.budgetTier || state.budgetTier || null,
+    lastProductIds: sanitizeIdList(state.lastProductIds || []),
+    shownProductIds: sanitizeIdList(state.shownProductIds || []),
+    excludeProductIds: [],
+    requestedCount: 0
   };
+}
+
+function refineContextForMessage(context, text, profile) {
+  const clean = { ...context };
+  if (Number(clean.budgetMax || 0) > 0 && Number(clean.budgetMax || 0) < 50000) {
+    clean.budget = null;
+    clean.budgetMax = null;
+  }
+  clean.requestedCount = requestedProductCount(text) || 0;
+  if (profile && profile.excludePrevious) {
+    clean.excludeProductIds = sanitizeIdList([...(clean.lastProductIds || []), ...(clean.shownProductIds || [])]);
+  }
+  if (!profile || !profile.useState) {
+    clean.lastProductIds = [];
+    clean.shownProductIds = [];
+    clean.excludeProductIds = [];
+  }
+  return clean;
 }
 
 function unique(list) { return Array.from(new Set(list)); }
@@ -554,6 +630,7 @@ function extractBudget(text) {
     const value = Number(juta[1].replace(',', '.'));
     result.max = Math.round(value * 1000000);
     result.label = `${juta[1]} juta`;
+    if (result.max < 50000) return { label: null, max: null, tier: null };
     return result;
   }
   const ribu = text.match(/(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar|rp)?\s*(\d{2,4})\s*(rb|ribu|k)\b/);
@@ -561,6 +638,7 @@ function extractBudget(text) {
     const value = Number(ribu[1]);
     result.max = value * 1000;
     result.label = `${ribu[1]} ribu`;
+    if (result.max < 50000) return { label: null, max: null, tier: null };
     return result;
   }
   const bare = text.match(/\b(?:budget|dana|maks(?:imal)?|max|di bawah|dibawah|under|sekitar)\s*(?:rp\s*)?(\d{2,4})\b/);
@@ -568,6 +646,7 @@ function extractBudget(text) {
     const value = Number(bare[1]);
     result.max = value >= 10000 ? value : value * 1000;
     result.label = `${value} ribu`;
+    if (result.max < 50000) return { label: null, max: null, tier: null };
     return result;
   }
   if (/\b(murah|budget rendah|terjangkau|low budget)\b/.test(text)) { result.label = 'murah'; result.max = 300000; result.tier = 'murah'; return result; }
@@ -600,7 +679,7 @@ function detectIntent(text, history, context, forcedGeneral) {
   if (/\b(komplain|keluhan|belum sampai|belum dikirim|rusak|salah barang|refund|retur|return|admin|cs|customer service|bantuan admin)\b/.test(text)) return { name: 'support', mode: 'support' };
   if (/\b(keranjang|cart|checkout|check out|beli|order|pesan|bayar|whatsapp|wa|cara beli|mau beli)\b/.test(text) && !/\b(parfum|produk|rekomendasi|aroma|wangi)\b/.test(text)) return { name: 'checkout', mode: 'checkout' };
 
-  const wantsCompare = /\b(bandingkan|perbandingan|compare|komparasi|versus|vs|beda|bedanya|lebih bagus mana|pilih mana)\b/.test(text) || (context.categories || []).length >= 2;
+  const wantsCompare = explicitCompare(text);
   const followUp = shouldUseConversationContext(text, []);
   const recommendation = /\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|carikan|cari parfum|cocok|suggest|recommend|mau parfum|pengen parfum|butuh parfum)\b/.test(text) || (followUp && /\b(rekomendasi|parfum buat apa|aroma apa|budget berapa)\b/.test(history));
   const categoryProduct = !!context.category || /\b(niche|nishe|designer|desainer|timteng|timur tengah|lokal|miniso)\b/.test(text);
@@ -652,6 +731,7 @@ function buildInfoReply(context, questions) {
 
 function scoreProducts(products, context, text) {
   const terms = normalize(text).split(' ').filter((term) => term.length > 2);
+  const excludeIds = new Set(sanitizeIdList(context.excludeProductIds || []).map(String));
   const requestedCategories = (context.categories && context.categories.length ? context.categories : [context.category || extractCategories(normalize(text))[0]]).filter(Boolean);
   const boosts = [context.category, context.usage, context.scent, context.gender].filter(Boolean);
   const budgetMax = Number(context.budgetMax || 0);
@@ -680,6 +760,7 @@ function scoreProducts(products, context, text) {
   for (const boost of [...boosts]) if (related[boost]) boosts.push(...related[boost]);
 
   const scored = products.map((product) => {
+    if (excludeIds.has(String(cleanProductId(product && product.id)))) return { product, score: -999, budgetOk: false };
     const haystack = normalize([product.id, product.title, product.name, product.category, product.desc, product.description, product.longDesc, product.notes, product.status].join(' '));
     const title = normalize(product.title || product.name);
     const price = Number(product.price || 0);
@@ -741,7 +822,7 @@ function categoryMatchesProduct(product, category) {
 }
 
 function publicProducts(list, context = {}) {
-  return list.slice(0, 4).map((product) => ({
+  return list.slice(0, 5).map((product) => ({
     id: product.id,
     title: product.title || product.name || 'Produk Dirac',
     name: product.name || product.title || 'Produk Dirac',
@@ -773,10 +854,11 @@ function budgetMatched(list, context) {
 }
 
 function buildProductReply(list, context = {}) {
-  const names = list.slice(0, 3).map((product) => product.title || product.name || 'Produk Dirac').join(', ');
+  const names = list.slice(0, 5).map((product) => product.title || product.name || 'Produk Dirac').join(', ');
   if (!names) return 'Saya belum menemukan produk yang cocok. Coba sebutkan aroma, penggunaan, gender, dan budget lebih detail.';
   const budgetLine = context.budget ? ` Saya sudah prioritaskan budget ${context.budget} dan status ready.` : ' Saya sudah prioritaskan produk ready dan paling relevan.';
-  return `Saya pilihkan ${names}.${budgetLine} Silakan lihat kartu produk di bawah ini dan cek detail sebelum checkout.`;
+  const excludeLine = context.excludeProductIds && context.excludeProductIds.length ? ' Saya juga sudah menghindari pilihan yang sebelumnya ditampilkan.' : '';
+  return `Saya pilihkan ${names}.${budgetLine}${excludeLine} Silakan lihat kartu produk di bawah ini dan cek detail sebelum checkout.`;
 }
 
 function buildNoProductReply(context = {}) {
@@ -837,7 +919,7 @@ function buildPrompt({ message, history, cart, intent, context, products }) {
   const date = new Date().toISOString().slice(0, 10);
   const effectiveHistory = intent.name === 'general' ? [] : history;
   const historyText = effectiveHistory.map((item) => `${item && item.role === 'assistant' ? 'AI' : 'User'}: ${String((item && item.content) || '').slice(0, 500)}`).join('\n') || '-';
-  const productText = products.length ? products.map((product, index) => [
+  const productText = products.length ? products.slice(0, 12).map((product, index) => [
     `${index + 1}. ${product.title || product.name || 'Produk Dirac'}`,
     `ID: ${product.id || '-'}`,
     `Kategori: ${product.category || '-'}`,
