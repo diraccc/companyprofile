@@ -12,7 +12,7 @@ const DEBUG_ERRORS = process.env.AI_DEBUG_ERRORS === 'true';
 const TRUST_CLIENT_PRODUCTS = process.env.AI_TRUST_CLIENT_PRODUCTS === 'true';
 const EXTERNAL_QA_FILE = process.env.EXTERNAL_QA_FILE || process.env.QA_FILE || 'data/qa.json';
 const EXTERNAL_QA_MAX_BYTES = Math.max(1024, Number(process.env.EXTERNAL_QA_MAX_BYTES || 50 * 1024 * 1024));
-const EXTERNAL_QA_MAX_ENTRIES = Math.max(1, Number(process.env.EXTERNAL_QA_MAX_ENTRIES || 200000));
+const EXTERNAL_QA_MAX_ENTRIES = Math.max(1, Number(process.env.EXTERNAL_QA_MAX_ENTRIES || 500000));
 const EXTERNAL_QA_MIN_SCORE = Math.max(0.5, Math.min(0.98, Number(process.env.EXTERNAL_QA_MIN_SCORE || 0.68)));
 let EXTERNAL_QA_CACHE = { signature: '', entries: [], indexes: { exact: new Map(), tokenIndex: new Map() }, error: null, loadedAt: 0, source: '' };
 const STORE = globalThis.__DIRAC_AI_STORE__ || (globalThis.__DIRAC_AI_STORE__ = { rate: new Map(), fingerprint: new Map(), sessions: new Map() });
@@ -117,6 +117,11 @@ module.exports = async function handler(req, res) {
     context.shownProductIds = Array.isArray(clientState.shownProductIds) ? clientState.shownProductIds : [];
     context.requestedCount = requestedProductCount(normalizedMessage);
     const intent = detectIntent(normalizedMessage, normalizedHistory, context, forcedGeneral);
+
+    // Prioritas utama: cari jawaban dari /data/qa.json terlebih dahulu.
+    // Jika tidak ada kecocokan yang cukup kuat, lanjutkan ke router/AI utama tanpa mengubah fitur lain.
+    const primaryExternalQa = externalQaFallbackReply(message, traceId, intent.name, startedAt, 'primary-qa-first');
+    if (primaryExternalQa) return res.status(200).json(primaryExternalQa);
 
     if (mathQuery) {
       return res.status(200).json(makeReply('conversation', solveMathQuestion(message), { traceId, intent: 'math', confidence: 0.98 }));
