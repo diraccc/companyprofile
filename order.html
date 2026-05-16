@@ -11448,6 +11448,175 @@ function staticGeneralAnswerLocal(text) {
     }catch(error){}
   }
 
+
+  /* === DIRAC QA SPLIT FRONTEND BRIDGE v2026-05-16 ===
+     Root fix: order.html sebelumnya selalu memanggil endpoint AI remote terlebih dahulu.
+     Jika endpoint remote menjawab 200, /api/chat baru dan data/qa-25.json tidak pernah dicek.
+     Bridge ini mengecek data/qa-1.json ... data/qa-50.json dari sisi website sebelum remote AI.
+     Non-destruktif: katalog produk, cart, checkout, tema, dan URL checkout tidak diubah. */
+  const DIRAC_QA_SPLIT_FRONTEND_VERSION = 'DIRAC_QA_SPLIT_FRONTEND_V1';
+  const DIRAC_QA_SPLIT_MAX_FILE = 50;
+  const DIRAC_QA_SPLIT_CACHE = Object.create(null);
+
+  function diracQaSplitUrl(fileNo){
+    return new URL('data/qa-' + fileNo + '.json', location.href).href;
+  }
+  function diracQaSafeAnswer(value){
+    if(value == null) return '';
+    if(typeof value === 'string') return value;
+    if(typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if(typeof value === 'object'){
+      return String(value.jawaban || value.answer || value.text || value.reply || value.value || '').trim();
+    }
+    return '';
+  }
+  function diracQaLookupData(data, normalizedQuestion, rawQuestion){
+    if(!data) return null;
+    const raw = String(rawQuestion || '').trim();
+    const n = String(normalizedQuestion || '').trim();
+
+    if(Array.isArray(data)){
+      for(let i = 0; i < data.length; i++){
+        const item = data[i];
+        if(!item) continue;
+        const q = normalize(item.pertanyaan || item.question || item.q || item.key || '');
+        if(q && q === n){
+          const ans = diracQaSafeAnswer(item.jawaban || item.answer || item.a || item.text || item.reply);
+          if(ans) return ans;
+        }
+      }
+      return null;
+    }
+
+    if(typeof data === 'object'){
+      let direct = null;
+      if(Object.prototype.hasOwnProperty.call(data, raw)) direct = data[raw];
+      else if(Object.prototype.hasOwnProperty.call(data, n)) direct = data[n];
+      if(direct != null){
+        const ans = diracQaSafeAnswer(direct);
+        if(ans) return ans;
+      }
+
+      /* Fallback ringan: hanya untuk file sosial berukuran sedang, bukan untuk semua file besar.
+         Ini membantu jika key punya spasi/tanda baca sedikit berbeda. */
+      const keys = Object.keys(data);
+      if(keys.length <= 90000){
+        for(let i = 0; i < keys.length; i++){
+          const key = keys[i];
+          if(normalize(key) === n){
+            const ans = diracQaSafeAnswer(data[key]);
+            if(ans) return ans;
+          }
+        }
+      }
+    }
+    return null;
+  }
+  async function diracQaLoadFile(fileNo){
+    if(DIRAC_QA_SPLIT_CACHE[fileNo]) return DIRAC_QA_SPLIT_CACHE[fileNo];
+    const url = diracQaSplitUrl(fileNo);
+    const promise = fetch(url, { method:'GET', cache:'default' }).then(function(response){
+      if(!response.ok) throw new Error('qa-' + fileNo + '.json HTTP ' + response.status);
+      return response.json();
+    });
+    DIRAC_QA_SPLIT_CACHE[fileNo] = promise;
+    return promise;
+  }
+  function diracQaAddCandidate(list, fileNo){
+    fileNo = Number(fileNo || 0);
+    if(fileNo >= 1 && fileNo <= DIRAC_QA_SPLIT_MAX_FILE && list.indexOf(fileNo) < 0) list.push(fileNo);
+  }
+  function diracQaSplitCandidateFiles(normalizedText){
+    const n = String(normalizedText || '');
+    const files = [];
+
+    if(/\b(pangkat tiga|kubik)\b/.test(n)) diracQaAddCandidate(files, 4);
+    if(/\b(pangkat empat)\b/.test(n)) diracQaAddCandidate(files, 5);
+    if(/\b(bilangan prima|angka prima)\b/.test(n)) diracQaAddCandidate(files, 6);
+    if(/\b(akar kuadrat)\b/.test(n)) diracQaAddCandidate(files, 7);
+    if(/\b(mod 7|modulo 7)\b/.test(n)){ diracQaAddCandidate(files, 8); diracQaAddCandidate(files, 11); }
+    if(/\b(jumlah dari)\b/.test(n)) diracQaAddCandidate(files, 9);
+    if(/\b(pangkat lima)\b/.test(n)) diracQaAddCandidate(files, 10);
+    if(/\b(kuadrat dari)\b/.test(n)){ diracQaAddCandidate(files, 1); diracQaAddCandidate(files, 2); diracQaAddCandidate(files, 3); }
+
+    const socialMap = [
+      [25, /\b(metode survei|wawancara mendalam|observasi partisipan|etnografi|analisis wacana|validitas penelitian|reliabilitas data|sampling sosial|etika penelitian|triangulasi data|mixed methods|analisis kebijakan)\b/],
+      [24, /\b(perdamaian sosial|mediasi konflik|resolusi konflik|rekonsiliasi|toleransi|moderasi sosial|dialog antaragama|kohesi sosial|radikalisasi|polarisasi sosial|kepercayaan sosial|trauma kolektif)\b/],
+      [23, /\b(organisasi sosial|budaya organisasi|kepemimpinan|birokrasi|solidaritas kerja|konflik organisasi|etos kerja|komunikasi organisasi|kerja jarak jauh|serikat pekerja|manajemen perubahan|kesejahteraan pekerja)\b/],
+      [22, /\b(kesehatan masyarakat|determinan sosial kesehatan|akses layanan kesehatan|stigma kesehatan mental|perilaku hidup sehat|ketahanan pangan|vaksinasi publik|sanitasi|epidemi sosial|kesehatan reproduksi|dukungan komunitas|asuransi kesehatan)\b/],
+      [21, /\b(urbanisasi|demografi|bonus demografi|piramida penduduk|migrasi internal|kepadatan penduduk|penuaan penduduk|permukiman kumuh|transportasi publik|perencanaan kota|gentrifikasi|sprawl perkotaan)\b/],
+      [20, /\b(lingkungan sosial|keadilan lingkungan|perubahan iklim|ketahanan komunitas|bencana sosial|adaptasi masyarakat|sampah perkotaan|air bersih|urban green space|ekologi politik|konflik sumber daya|konsumsi berkelanjutan)\b/],
+      [19, /\b(deviasi sosial|labeling theory|anomie|kejahatan kerah putih|kontrol sosial formal|kontrol sosial informal|sistem peradilan|kriminalitas remaja|rehabilitasi sosial|restorative justice|stigma sosial|penyimpangan kolektif)\b/],
+      [18, /\b(media massa|literasi media|hoaks|filter bubble|komunikasi digital|jurnalisme warga|algoritma media sosial|privasi data|cyberbullying|budaya viral|influencer|partisipasi digital)\b/],
+      [17, /\b(keluarga nuklir|keluarga luas|peran gender|pernikahan adat|pengasuhan anak|single parent|relasi keluarga|sosialisasi primer|domestic labor|kesetaraan gender|generasi muda|lansia dalam keluarga)\b/],
+      [16, /\b(pendidikan inklusif|kurikulum tersembunyi|mobilitas pendidikan|literasi digital|pendidikan karakter|akses sekolah|kesenjangan pendidikan|pembelajaran jarak jauh|budaya sekolah|pendidikan kewargaan|pendidikan keluarga|pelatihan kerja)\b/],
+      [15, /\b(ekonomi pasar|ekonomi campuran|kapitalisme|sosialisme|welfare state|tenaga kerja|ekonomi informal|kewirausahaan sosial|ekonomi berbagi|kemiskinan perkotaan|upah layak|ketahanan ekonomi keluarga)\b/],
+      [14, /\b(demokrasi|partisipasi politik|kewarganegaraan|legitimasi kekuasaan|gerakan sosial|opini publik|kebijakan publik|hak asasi manusia|civil society|desentralisasi|representasi politik|akuntabilitas)\b/],
+      [13, /\b(globalisasi|glokalisasi|homogenisasi budaya|hibridisasi budaya|migrasi internasional|diaspora|identitas budaya|akulturasi|asimilasi|pluralisme budaya|imperialisme budaya|komodifikasi budaya)\b/],
+      [12, /\b(ketidaksetaraan sosial|kemiskinan struktural|kelas sosial|diskriminasi|interseksionalitas|kapital sosial|eksklusi sosial|keadilan sosial|redistribusi|akses pendidikan|kesenjangan digital|privilege sosial)\b/],
+      [11, /\b(integrasi sosial|stratifikasi sosial|mobilitas sosial|sosialisasi|norma sosial|nilai sosial|institusi sosial|konflik sosial|perubahan sosial|solidaritas sosial|kontrol sosial|identitas sosial)\b/]
+    ];
+    for(let i = 0; i < socialMap.length; i++){
+      if(socialMap[i][1].test(n)) diracQaAddCandidate(files, socialMap[i][0]);
+    }
+
+    /* Jika pertanyaan memakai format dataset sosial: "tingkat easy/normal/hard/ultra hard/extrem",
+       cek 11-25 berurutan setelah kandidat spesifik. */
+    if(/\btingkat\s+(easy|normal|hard|ultra hard|extrem)\b/.test(n)){
+      for(let i = 11; i <= 25; i++) diracQaAddCandidate(files, i);
+    }
+
+    /* Katalog produk lama biasanya ada di qa-1. */
+    if(/\b(harga|stok|ready|notes|aroma|kategori|deskripsi|jelaskan)\b/.test(n) && /\b(parfum|louis|xerjoff|ysl|dior|nishane|rasasi|afnan|all parfum|timteng|designer|lokal|niche)\b/.test(n)){
+      diracQaAddCandidate(files, 1);
+    }
+
+    return files;
+  }
+  async function diracQaSplitDiagnosticReply(){
+    const found = [];
+    const missing = [];
+    for(let i = 1; i <= 25; i++){
+      try{
+        const res = await fetch(diracQaSplitUrl(i) + '?diag=' + Date.now(), { method:'HEAD', cache:'no-store' });
+        if(res.ok) found.push(i); else missing.push(i);
+      }catch(error){
+        missing.push(i);
+      }
+    }
+    return DIRAC_QA_SPLIT_FRONTEND_VERSION + ' aktif di order.html. File QA split yang ditemukan: ' + found.length + '/25. ' +
+      'Ditemukan: ' + (found.length ? found.join(', ') : '-') + '. ' +
+      'Tidak ditemukan: ' + (missing.length ? missing.join(', ') : '-') + '.';
+  }
+  async function diracQaSplitLocalReply(message){
+    const n = normalize(message);
+    if(!n) return null;
+    if(/\bcek\s+qa\s+split\b|\bdiagnostic\s+qa\b|\bdiagnosa\s+qa\b/.test(n)){
+      return { text: await diracQaSplitDiagnosticReply(), provider:'qa-split-frontend-diagnostic', mode:'qa-split-diagnostic' };
+    }
+
+    const candidates = diracQaSplitCandidateFiles(n);
+    if(!candidates.length) return null;
+
+    for(let i = 0; i < candidates.length; i++){
+      const fileNo = candidates[i];
+      try{
+        const data = await diracQaLoadFile(fileNo);
+        const answer = diracQaLookupData(data, n, String(message || '').trim());
+        if(answer){
+          return {
+            text: answer,
+            provider:'qa-split-frontend',
+            mode:'qa-split',
+            file:'qa-' + fileNo + '.json'
+          };
+        }
+      }catch(error){}
+    }
+    return null;
+  }
+
+
   async function handleSend(raw){
     if(isBusy){ abortActiveRequest(); return; }
     const message = String(raw || '').trim().slice(0, MESSAGE_LIMIT);
@@ -11474,17 +11643,23 @@ function staticGeneralAnswerLocal(text) {
     const started = Date.now();
     try{
       let data = null;
-      const fastLocal = localFirstReply(message);
-      if(fastLocal){
-        await new Promise(function(resolve){ setTimeout(resolve, 120); });
-        data = {reply:fastLocal.text, links:fastLocal.links || [], questions:fastLocal.questions || [], products:fastLocal.products || [], showProducts:(fastLocal.products || []).length > 0, provider:'Dirac AI', mode:'local-fast'};
+      const qaSplitLocal = await diracQaSplitLocalReply(message);
+      if(qaSplitLocal){
+        await new Promise(function(resolve){ setTimeout(resolve, 90); });
+        data = {reply:qaSplitLocal.text, links:[], questions:[], products:[], showProducts:false, provider:qaSplitLocal.provider || 'qa-split-frontend', mode:qaSplitLocal.mode || 'qa-split'};
       }else{
-        try{
-          data = await callRemoteAi(message);
-        }catch(remoteError){
-          if(userAbortRequested) throw remoteError;
-          const local = localFallbackReply(message);
-          data = {reply:local.text, links:local.links || [], questions:local.questions || [], products:local.products || [], showProducts:(local.products || []).length > 0, provider:'local-fallback', mode:'fallback'};
+        const fastLocal = localFirstReply(message);
+        if(fastLocal){
+          await new Promise(function(resolve){ setTimeout(resolve, 120); });
+          data = {reply:fastLocal.text, links:fastLocal.links || [], questions:fastLocal.questions || [], products:fastLocal.products || [], showProducts:(fastLocal.products || []).length > 0, provider:'Dirac AI', mode:'local-fast'};
+        }else{
+          try{
+            data = await callRemoteAi(message);
+          }catch(remoteError){
+            if(userAbortRequested) throw remoteError;
+            const local = localFallbackReply(message);
+            data = {reply:local.text, links:local.links || [], questions:local.questions || [], products:local.products || [], showProducts:(local.products || []).length > 0, provider:'local-fallback', mode:'fallback'};
+          }
         }
       }
       typing.remove();
