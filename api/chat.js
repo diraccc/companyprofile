@@ -127,6 +127,21 @@ module.exports = async function handler(req, res) {
       }));
     }
 
+
+    const perfume50kKnowledge = diracPerfume50kAnswer(products, normalizedMessage, message);
+    if (perfume50kKnowledge) {
+      return res.status(200).json(makeReply('commerce', perfume50kKnowledge.reply, {
+        traceId,
+        provider: 'local-perfume-product-50k-knowledge',
+        showProducts: perfume50kKnowledge.products.length > 0,
+        products: publicProducts(perfume50kKnowledge.products, { requestedCount: Math.min(10, Math.max(1, perfume50kKnowledge.products.length || 1)) }),
+        intent: 'product_knowledge_50k',
+        confidence: perfume50kKnowledge.confidence || 0.9,
+        knowledgeBank: perfume50kKnowledge.meta || undefined,
+        analytics: { intent: 'product_knowledge_50k', source: 'local-perfume-product-50k-knowledge', ms: Date.now() - startedAt }
+      }));
+    }
+
     const direct = directAnswer(intent, cart, traceId, hasProvider());
     if (direct) return res.status(200).json(direct);
 
@@ -2168,4 +2183,286 @@ isStoreProductPriceQuestion = function(text) {
   const n = normalize(text);
   if (/\b(pertanyaan|qa|qna|knowledge|pengetahuan|ilmu)\b/.test(n) && /\b(ai|dirac|bank|basis data)\b/.test(n)) return false;
   return diracUltra10kPrevIsStoreProductPriceQuestion(text);
+};
+
+
+/* Dirac Perfume Product Knowledge 50K Patch v2026-05-16
+   Non-destruktif: tidak mengubah SERVER_PRODUCTS, tidak menimpa pengetahuan umum/parfum lama.
+   Lapisan ini menambah 50.000 pasangan pertanyaan-jawaban yang semuanya diturunkan dari katalog produk server. */
+const DIRAC_PERFUME_50K_PREFIXES = Object.freeze([
+  'Apa detail {ask}?',
+  'Jelaskan {ask}.',
+  'Tolong jelaskan {ask}.',
+  'Bisa jelaskan {ask}?',
+  'Saya mau tahu {ask}.'
+]);
+
+const DIRAC_PERFUME_50K_ASPECTS = Object.freeze([
+  { type: 'overview', ask: 'produk {product}' },
+  { type: 'overview', ask: 'ringkasan {product}' },
+  { type: 'overview', ask: 'deskripsi {product}' },
+  { type: 'overview', ask: 'informasi utama {product}' },
+  { type: 'overview', ask: 'gambaran {product}' },
+  { type: 'aroma', ask: 'aroma {product}' },
+  { type: 'aroma', ask: 'karakter wangi {product}' },
+  { type: 'aroma', ask: 'nuansa wangi {product}' },
+  { type: 'aroma', ask: 'kesan pertama {product}' },
+  { type: 'aroma', ask: 'profil aroma {product}' },
+  { type: 'notes', ask: 'notes {product}' },
+  { type: 'notes', ask: 'catatan aroma {product}' },
+  { type: 'notes', ask: 'top middle base notes {product}' },
+  { type: 'notes', ask: 'komposisi aroma {product}' },
+  { type: 'notes', ask: 'bahan aroma yang tertulis untuk {product}' },
+  { type: 'category', ask: 'kategori {product}' },
+  { type: 'category', ask: 'jenis parfum {product}' },
+  { type: 'category', ask: 'kelas produk {product}' },
+  { type: 'category', ask: 'segmen {product}' },
+  { type: 'category', ask: 'posisi {product} di katalog' },
+  { type: 'price', ask: 'harga {product}' },
+  { type: 'price', ask: 'budget untuk membeli {product}' },
+  { type: 'price', ask: 'kisaran biaya {product}' },
+  { type: 'price', ask: 'nominal {product}' },
+  { type: 'price', ask: 'harga katalog {product}' },
+  { type: 'stock', ask: 'stok {product}' },
+  { type: 'stock', ask: 'status ready {product}' },
+  { type: 'stock', ask: 'ketersediaan {product}' },
+  { type: 'stock', ask: 'apakah {product} masih tersedia' },
+  { type: 'stock', ask: 'status produk {product}' },
+  { type: 'daily', ask: 'kecocokan harian {product}' },
+  { type: 'daily', ask: 'pemakaian daily {product}' },
+  { type: 'office', ask: 'kecocokan kantor {product}' },
+  { type: 'formal', ask: 'kecocokan formal {product}' },
+  { type: 'night', ask: 'kecocokan malam {product}' },
+  { type: 'gift', ask: 'kecocokan hadiah {product}' },
+  { type: 'weather', ask: 'cuaca yang cocok untuk {product}' },
+  { type: 'strength', ask: 'kesan strong atau soft {product}' },
+  { type: 'gender', ask: 'apakah {product} cocok untuk pria wanita atau unisex' },
+  { type: 'audience', ask: 'siapa yang cocok memakai {product}' },
+  { type: 'style', ask: 'gaya pemakai {product}' },
+  { type: 'occasion', ask: 'acara yang cocok untuk {product}' },
+  { type: 'blind_buy', ask: 'apakah {product} aman untuk blind buy' },
+  { type: 'collector', ask: 'nilai koleksi {product}' },
+  { type: 'checkout', ask: 'cara membeli {product}' },
+  { type: 'admin', ask: 'apa yang perlu dikonfirmasi ke admin tentang {product}' }
+]);
+
+const DIRAC_PERFUME_50K_BONUS_ASPECTS = Object.freeze([
+  { type: 'overview', ask: 'tolong buat jawaban lengkap tentang {product} dari katalog Dirac' },
+  { type: 'aroma', ask: 'jelaskan karakter aroma {product} supaya pembeli tidak salah pilih' },
+  { type: 'price', ask: 'berapa harga {product} dan apa catatan penting sebelum checkout' },
+  { type: 'usage', ask: 'kapan waktu terbaik memakai {product}' },
+  { type: 'stock', ask: 'apakah {product} ready atau sold menurut katalog' },
+  { type: 'notes', ask: 'notes apa saja yang tercatat pada {product}' },
+  { type: 'gift', ask: 'apakah {product} pantas dijadikan hadiah' },
+  { type: 'office', ask: 'apakah {product} cocok untuk kerja atau meeting' },
+  { type: 'night', ask: 'apakah {product} cocok untuk malam atau date' },
+  { type: 'blind_buy', ask: 'apakah {product} cocok dibeli tanpa coba dulu' }
+]);
+
+function diracPerfume50kQuestionTemplates() {
+  const templates = [];
+  for (const aspect of DIRAC_PERFUME_50K_ASPECTS) {
+    for (const prefix of DIRAC_PERFUME_50K_PREFIXES) {
+      templates.push(Object.freeze({ type: aspect.type, template: prefix.replace('{ask}', aspect.ask) }));
+    }
+  }
+  return Object.freeze(templates.slice(0, 230));
+}
+
+const DIRAC_PERFUME_50K_TEMPLATES = diracPerfume50kQuestionTemplates();
+
+function buildDiracPerfume50kQA(products) {
+  const qa = [];
+  const exact = new Map();
+  const safeProducts = Array.isArray(products) ? products.filter(Boolean) : [];
+  const addItem = (product, template, bonusIndex) => {
+    const title = String(product.title || product.name || 'Produk Dirac').trim();
+    const question = String(template.template || '').replace(/\{product\}/g, title).replace(/\s+/g, ' ').trim();
+    const key = normalize(question);
+    if (!key || exact.has(key)) return;
+    const item = Object.freeze({ question, type: template.type || 'overview', productId: product.id, bonus: Number.isFinite(bonusIndex) ? bonusIndex : null });
+    qa.push(item);
+    exact.set(key, item);
+  };
+  for (const product of safeProducts) {
+    for (const template of DIRAC_PERFUME_50K_TEMPLATES) addItem(product, template);
+  }
+  const bonusNeeded = Math.max(0, 50000 - qa.length);
+  for (let i = 0; i < bonusNeeded && i < safeProducts.length * DIRAC_PERFUME_50K_BONUS_ASPECTS.length; i++) {
+    const product = safeProducts[i % safeProducts.length];
+    const aspect = DIRAC_PERFUME_50K_BONUS_ASPECTS[i % DIRAC_PERFUME_50K_BONUS_ASPECTS.length];
+    addItem(product, { type: aspect.type, template: aspect.ask }, i + 1);
+  }
+  return Object.freeze({ qa: Object.freeze(qa), exact, productCount: safeProducts.length, baseTemplateCount: DIRAC_PERFUME_50K_TEMPLATES.length, bonusCount: Math.max(0, qa.length - (safeProducts.length * DIRAC_PERFUME_50K_TEMPLATES.length)) });
+}
+
+const DIRAC_PERFUME_50K_BANK = buildDiracPerfume50kQA(SERVER_PRODUCTS);
+const DIRAC_PERFUME_50K_META = Object.freeze({
+  products: DIRAC_PERFUME_50K_BANK.productCount,
+  baseTemplates: DIRAC_PERFUME_50K_BANK.baseTemplateCount,
+  bonusQuestions: DIRAC_PERFUME_50K_BANK.bonusCount,
+  qa: DIRAC_PERFUME_50K_BANK.qa.length,
+  scope: 'produk parfum/aksesoris pada katalog server Dirac Group',
+  preservation: 'SERVER_PRODUCTS tidak diubah; lapisan 50K hanya membaca data katalog yang sudah ada'
+});
+
+function diracPerfume50kAnswer(products, normalizedText, rawText) {
+  const n = normalize(normalizedText || rawText);
+  if (!n) return null;
+  if (/\b(berapa|jumlah|total).*(pertanyaan|qa|qna|knowledge|pengetahuan|ilmu).*(parfum|perfume|produk).*(ai|dirac|katalog|website)\b/.test(n) || /\b(parfum|perfume|produk).*(pertanyaan|qa|qna|knowledge|pengetahuan|ilmu).*(berapa|jumlah|total)\b/.test(n)) {
+    return {
+      reply: `Bank pengetahuan produk parfum lokal memuat ${DIRAC_PERFUME_50K_META.qa.toLocaleString('id-ID')} pasangan pertanyaan-jawaban yang semuanya diturunkan dari ${DIRAC_PERFUME_50K_META.products} produk di katalog server Dirac. Lapisan ini hanya menambah pengetahuan; data produk lama tidak dikurangi atau diubah.`,
+      products: [],
+      confidence: 0.98,
+      meta: DIRAC_PERFUME_50K_META
+    };
+  }
+  if (diracPerfume50kLooksGeneralNonProduct(n)) return null;
+  const exact = DIRAC_PERFUME_50K_BANK.exact.get(n);
+  if (exact) {
+    const product = (Array.isArray(products) ? products : SERVER_PRODUCTS).find((p) => String(p.id) === String(exact.productId));
+    if (!product) return null;
+    return { reply: diracPerfume50kBuildAnswer(product, exact.type, n), products: [product], confidence: 0.97, meta: DIRAC_PERFUME_50K_META };
+  }
+  if (!diracPerfume50kHasProductIntent(n)) return null;
+  const matches = findProductMatches(Array.isArray(products) ? products : SERVER_PRODUCTS, n, 3);
+  const product = matches && matches[0];
+  if (!product) return null;
+  if (!diracPerfume50kStrongProductMention(product, n)) return null;
+  const type = diracPerfume50kClassifyQuestion(n);
+  return { reply: diracPerfume50kBuildAnswer(product, type, n), products: [product], confidence: 0.9, meta: DIRAC_PERFUME_50K_META };
+}
+
+function diracPerfume50kLooksGeneralNonProduct(n) {
+  if (/\b(negara|presiden|kabupaten|kecamatan|provinsi|matematika|hitung|rumus|fisika|kimia|biologi|sejarah|geografi|coding|javascript|python|html|css)\b/.test(n) && !/\b(parfum|perfume|produk|aroma|wangi|dirac|katalog)\b/.test(n)) return true;
+  return false;
+}
+
+function diracPerfume50kHasProductIntent(n) {
+  return /\b(parfum|perfume|fragrance|produk|item|barang|aroma|wangi|notes|note|harga|stok|ready|sold|kategori|katalog|cocok|pakai|gunakan|harian|kantor|formal|malam|hadiah|blind buy|checkout|admin|botol|ml)\b/.test(n);
+}
+
+
+function diracPerfume50kStrongProductMention(product, n) {
+  const title = normalize(product && (product.title || product.name));
+  if (!title) return false;
+  const aliases = unique([
+    title,
+    title.replace(/\blouis\s+vuitton\b/g, 'lv'),
+    title.replace(/\byves\s+saint\s+laurent\b/g, 'ysl'),
+    title.replace(/\bjean\s+paul\s+gaultier\b/g, 'jpg')
+  ].filter(Boolean));
+  for (const alias of aliases) {
+    if (alias.length >= 7 && n.includes(alias)) return true;
+  }
+  const generic = new Set(['parfum','perfume','fragrance','eau','de','edp','edt','extrait','ml','for','unisex','men','man','women','woman','fresh','sweet','woody','aromatic','citrus','premium','clean','green','blue','soft','strong','vanilla','amber','oud','musk','floral','spicy','series','edition','produk']);
+  const tokens = title.split(/\s+/).map((w) => w.replace(/[^a-z0-9]/g, '')).filter((w) => w.length > 2 && !generic.has(w));
+  const hits = tokens.filter((w) => n.includes(w));
+  if (hits.length >= 2) return true;
+  return hits.some((w) => w.length >= 7) && /\b(produk|parfum|perfume|aroma|wangi|notes|harga|stok|ready|kategori|cocok|pakai|checkout|katalog|website)\b/.test(n);
+}
+
+function diracPerfume50kClassifyQuestion(n) {
+  if (/\b(harga|berapa|budget|biaya|nominal|rupiah|rp)\b/.test(n)) return 'price';
+  if (/\b(stok|ready|sold|tersedia|ketersediaan|habis)\b/.test(n)) return 'stock';
+  if (/\b(notes|note|catatan aroma|komposisi|top|middle|base|bahan)\b/.test(n)) return 'notes';
+  if (/\b(kategori|jenis|kelas|segmen|niche|designer|lokal|timur tengah|aksesoris)\b/.test(n)) return 'category';
+  if (/\b(harian|daily|sehari hari)\b/.test(n)) return 'daily';
+  if (/\b(kantor|kerja|meeting|kampus)\b/.test(n)) return 'office';
+  if (/\b(formal|rapi|acara resmi)\b/.test(n)) return 'formal';
+  if (/\b(malam|date|dinner|pesta)\b/.test(n)) return 'night';
+  if (/\b(hadiah|kado|gift)\b/.test(n)) return 'gift';
+  if (/\b(cuaca|panas|dingin|siang|outdoor|indoor)\b/.test(n)) return 'weather';
+  if (/\b(strong|soft|lembut|kuat|awet|tahan lama|projection|semriwing)\b/.test(n)) return 'strength';
+  if (/\b(pria|wanita|cowok|cewek|unisex|gender)\b/.test(n)) return 'gender';
+  if (/\b(siapa|pemakai|target|cocok untuk)\b/.test(n)) return 'audience';
+  if (/\b(gaya|style|karakter orang|image|kesan)\b/.test(n)) return 'style';
+  if (/\b(acara|occasion|momen|dipakai kapan|kapan pakai)\b/.test(n)) return 'occasion';
+  if (/\b(blind buy|tanpa coba|aman dibeli)\b/.test(n)) return 'blind_buy';
+  if (/\b(koleksi|collector|display|pajangan|botol kosong)\b/.test(n)) return 'collector';
+  if (/\b(checkout|beli|pesan|order|keranjang|whatsapp|wa)\b/.test(n)) return 'checkout';
+  if (/\b(admin|konfirmasi|tanya admin|pastikan)\b/.test(n)) return 'admin';
+  if (/\b(aroma|wangi|bau|smell|scent|karakter)\b/.test(n)) return 'aroma';
+  return 'overview';
+}
+
+function diracPerfume50kBuildAnswer(product, type, questionText) {
+  const title = product.title || product.name || 'Produk Dirac';
+  const price = Number(product.price || 0).toLocaleString('id-ID');
+  const category = product.category || 'kategori belum tertulis';
+  const notes = product.notes || product.desc || product.description || 'catatan aroma belum tertulis detail';
+  const desc = product.longDesc || product.desc || product.description || '';
+  const ready = !isSold(product);
+  const status = ready ? 'ready menurut katalog' : 'sold/tidak ready menurut katalog';
+  const accessory = /\b(botol kosong|aksesoris|display|collector|pajangan)\b/.test(normalize([title, category, notes, desc].join(' ')));
+  const base = `${title} ada di kategori ${category}, harga katalog Rp${price}, status ${status}.`;
+  const confirm = 'Tetap konfirmasi stok dan harga final ke admin sebelum checkout karena katalog bisa berubah.';
+  const scentLine = accessory
+    ? `${title} lebih tepat dipahami sebagai item aksesoris/display koleksi, bukan parfum untuk disemprot.`
+    : `Karakter yang tertulis di katalog: ${notes}. ${desc ? desc : ''}`.trim();
+  switch (type) {
+    case 'price':
+      return `${base} Untuk budget, siapkan sekitar Rp${price} di luar ongkir/biaya lain jika ada. ${confirm}`;
+    case 'stock':
+      return `${base} Jika statusnya ready, produk bisa dipertimbangkan untuk checkout; jika sold/tidak ready, jadikan referensi dulu dan tanyakan restock ke admin.`;
+    case 'notes':
+      return `${base} Notes/catatan aroma yang tersedia di katalog: ${notes}. Data top-middle-base tidak selalu dirinci, jadi saya tidak menambah komposisi di luar data katalog. ${confirm}`;
+    case 'category':
+      return `${base} Kategori ini membantu membedakan karakter: niche biasanya lebih unik/premium, designer lebih versatile/modern, lokal lebih ramah budget, Timur Tengah cenderung oud/amber/rempah, dan aksesoris bukan parfum semprot.`;
+    case 'daily':
+      return accessory ? `${base} Karena ini item aksesoris/display, bukan pilihan daily scent.` : `${base} Untuk pemakaian harian, nilai kecocokannya dilihat dari karakter katalog: ${notes}. Jika karakternya fresh, clean, citrus, soft, aquatic, atau easy wear, biasanya lebih aman untuk daily; jika sweet/oud/amber/strong, lebih baik dipakai secukupnya.`;
+    case 'office':
+      return accessory ? `${base} Ini bukan parfum untuk kantor karena produk berupa aksesoris/display.` : `${base} Untuk kantor/meeting, ${title} cocok bila dipakai tipis dan karakternya tidak terlalu menusuk. Dari katalog: ${notes}. Aroma fresh, clean, aromatic, green, citrus, atau soft woody biasanya paling aman untuk ruang kerja.`;
+    case 'formal':
+      return accessory ? `${base} Sebagai aksesoris/display, produk ini tidak dinilai sebagai parfum formal.` : `${base} Untuk acara formal, ${title} bisa dipertimbangkan bila Anda ingin kesan rapi sesuai karakter: ${notes}. Woody, amber, musk, oud, aromatic, atau premium fresh biasanya memberi kesan lebih elegan.`;
+    case 'night':
+      return accessory ? `${base} Produk ini bukan parfum malam karena fungsinya aksesoris/display.` : `${base} Untuk malam/date/dinner, ${title} paling cocok bila Anda suka karakter ${notes}. Aroma sweet, amber, vanilla, spicy, oud, musk, atau bold biasanya terasa lebih pas untuk suasana malam.`;
+    case 'gift':
+      return `${base} Untuk hadiah, ${title} bisa dipilih kalau penerima cocok dengan karakter ${notes}. Jika belum tahu selera penerima, opsi fresh/clean/soft biasanya lebih aman; aroma yang bold, oud, atau sangat sweet lebih baik dipilih jika penerima memang suka karakter kuat.`;
+    case 'weather':
+      return accessory ? `${base} Cuaca tidak terlalu relevan karena ini bukan parfum semprot.` : `${base} Dari karakter ${notes}, gunakan tipis saat cuaca panas jika aromanya kuat/sweet/oud. Untuk siang atau outdoor, karakter fresh, citrus, green, aquatic, tea, atau clean biasanya lebih nyaman.`;
+    case 'strength':
+      return accessory ? `${base} Kekuatan aroma tidak relevan karena item ini bukan parfum semprot.` : `${base} Katalog mencatat karakter: ${notes}. Saya tidak menebak performa jam tahan lama di luar data. Jika tertulis strong, bold, oud, amber, sweet, atau extrait, pakai lebih hemat; jika fresh/clean/soft, biasanya terasa lebih aman untuk jarak dekat.`;
+    case 'gender':
+      return accessory ? `${base} Produk aksesoris/display ini tidak dibatasi gender.` : `${base} Katalog tidak selalu memberi label gender resmi. Berdasarkan karakter ${notes}, fresh/clean/musk sering fleksibel unisex, woody/aromatic sering terasa maskulin, sedangkan floral/sweet bisa terasa lebih feminin atau unisex tergantung selera pemakai.`;
+    case 'audience':
+      return accessory ? `${base} Cocok untuk kolektor, kebutuhan display, properti foto produk, atau pelengkap koleksi.` : `${base} Cocok untuk pembeli yang mencari karakter ${notes}. ${desc || 'Pilih produk ini bila deskripsi katalog sesuai dengan selera dan kebutuhan pemakaian Anda.'}`;
+    case 'style':
+      return accessory ? `${base} Gaya yang dibawa produk ini lebih ke collector/display premium.` : `${base} Gaya yang muncul dari ${title}: ${notes}. ${desc || ''} Pilih ini jika Anda ingin image yang selaras dengan karakter tersebut.`.trim();
+    case 'occasion':
+      return accessory ? `${base} Occasion yang cocok adalah display, koleksi, atau properti foto, bukan pemakaian aroma.` : `${base} Occasion yang cocok mengikuti karakter ${notes}. Fresh/clean cocok untuk siang dan kantor; sweet/amber/oud/spicy lebih cocok malam; premium/niche cocok untuk momen yang ingin terasa lebih eksklusif.`;
+    case 'blind_buy':
+      return accessory ? `${base} Untuk aksesoris/display, cek kondisi fisik dan foto produk sebelum beli.` : `${base} Untuk blind buy, ${title} lebih aman jika Anda memang suka karakter ${notes}. Jika masih ragu, tanyakan admin atau mulai dari aroma fresh/clean/soft; jangan pilih aroma bold/oud/sweet kuat kalau belum terbiasa.`;
+    case 'collector':
+      return `${base} Dari sisi koleksi, perhatikan nama produk, kategori, status, ukuran, dan kondisi. ${accessory ? 'Item ini memang relevan untuk display/kolektor.' : 'Untuk parfum, nilai koleksi biasanya lebih kuat pada brand niche/luxury, botol menarik, atau aroma yang punya karakter unik.'}`;
+    case 'checkout':
+      return `${base} Cara beli: buka kartu ${title}, tambahkan ke keranjang, lalu lanjut checkout WhatsApp dari keranjang. ${confirm}`;
+    case 'admin':
+      return `${base} Hal yang sebaiknya dikonfirmasi ke admin: stok real, harga final, ongkir, estimasi kirim, kondisi produk, dan apakah foto/varian yang dipilih sudah sesuai.`;
+    case 'aroma':
+      return `${base} ${scentLine} Saya hanya memakai informasi katalog, jadi tidak menambah klaim aroma di luar notes/deskripsi yang sudah ada.`;
+    case 'usage':
+      return accessory ? `${base} Produk ini digunakan untuk koleksi/display, bukan disemprot sebagai parfum.` : `${base} Waktu pemakaian terbaik mengikuti karakter ${notes}. Untuk fresh/clean/citrus gunakan siang-harian; untuk sweet/amber/oud/spicy gunakan malam/acara; untuk soft gunakan aktivitas dekat orang.`;
+    case 'overview':
+    default:
+      return `${base} ${scentLine} ${confirm}`;
+  }
+}
+
+/* Override lembut: jika pertanyaan produk masuk jalur reference/action, jawab dari lapisan 50K bila memungkinkan. */
+const diracPerfume50kPrevBuildProductReferenceReply = buildProductReferenceReply;
+buildProductReferenceReply = function(products, state, text, intent, traceId) {
+  const knowledge = diracPerfume50kAnswer(products, normalize(text), text);
+  if (knowledge) {
+    return makeReply('commerce', knowledge.reply, {
+      traceId,
+      provider: 'local-perfume-product-50k-knowledge',
+      showProducts: knowledge.products.length > 0,
+      products: publicProducts(knowledge.products, { requestedCount: Math.min(10, Math.max(1, knowledge.products.length || 1)) }),
+      intent: 'product_knowledge_50k',
+      confidence: knowledge.confidence || 0.9,
+      knowledgeBank: knowledge.meta || undefined
+    });
+  }
+  return diracPerfume50kPrevBuildProductReferenceReply(products, state, text, intent, traceId);
 };
