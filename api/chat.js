@@ -9,9 +9,10 @@ const WHATSAPP_URL = process.env.WHATSAPP_URL || 'https://wa.me/6287892523968';
 const TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 8000);
 const PUBLIC_HEALTH_DETAILS = process.env.AI_PUBLIC_HEALTH_DETAILS === 'true';
 const DEBUG_ERRORS = process.env.AI_DEBUG_ERRORS === 'true';
+const DIRAC_CHAT_QA_SPLIT_BACKEND_VERSION = 'DIRAC_CHAT_QA_SPLIT_BACKEND_V3_QA_1_1000_TYPO_1_5';
 const TRUST_CLIENT_PRODUCTS = process.env.AI_TRUST_CLIENT_PRODUCTS === 'true';
 const EXTERNAL_QA_FILE = process.env.EXTERNAL_QA_FILE || process.env.QA_FILE || 'data/qa.json';
-const EXTERNAL_QA_SPLIT_COUNT = Math.max(1, Math.min(50, Number(process.env.EXTERNAL_QA_SPLIT_COUNT || 50)));
+const EXTERNAL_QA_SPLIT_COUNT = Math.max(1, Math.min(1000, Number(process.env.EXTERNAL_QA_SPLIT_COUNT || 1000)));
 const EXTERNAL_QA_SPLIT_PREFIX = process.env.EXTERNAL_QA_SPLIT_PREFIX || 'qa';
 const EXTERNAL_QA_MAX_BYTES = Math.max(1024, Number(process.env.EXTERNAL_QA_MAX_BYTES || 50 * 1024 * 1024));
 const EXTERNAL_QA_SPLIT_MAX_BYTES = Math.max(1024, Number(process.env.EXTERNAL_QA_SPLIT_MAX_BYTES || 30 * 1024 * 1024));
@@ -49,7 +50,7 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'GET') {
     const admin = isAdminRequest(req);
-    const payload = { ok: true, service: 'dirac-ai-chat', time: new Date().toISOString() };
+    const payload = { ok: true, service: 'dirac-ai-chat', version: DIRAC_CHAT_QA_SPLIT_BACKEND_VERSION, time: new Date().toISOString() };
     if (admin || PUBLIC_HEALTH_DETAILS) payload.providers = providerStatus();
     return res.status(200).json(payload);
   }
@@ -397,7 +398,7 @@ function makeReply(mode, text, extra = {}) {
 
 
 function buildExternalQaNoAnswerMessage() {
-  return 'Maaf, saya belum punya jawaban untuk pertanyaan itu. Admin bisa menambahkan pertanyaan dan jawaban ke file /data/qa-1.json sampai /data/qa-50.json agar ke depan saya bisa menjawab otomatis.';
+  return 'Maaf, saya belum punya jawaban untuk pertanyaan itu. Admin bisa menambahkan pertanyaan dan jawaban ke file /data/qa-1.json sampai /data/qa-1000.json agar ke depan saya bisa menjawab otomatis.';
 }
 
 function externalQaFallbackReply(message, traceId, intentName, startedAt, reason) {
@@ -524,13 +525,14 @@ function findExternalQaSplitAnswer(message) {
   for (const file of ordered) {
     const parsed = readExternalQaSplitJson(file);
     if (!parsed || parsed.error || !parsed.data) continue;
-    const hit = findExactInExternalQaParsed(parsed.data, userNorm);
+    const allowTypo = preferredSet.has(file.number) || preferredNumbers.length > 0;
+    const hit = findExactInExternalQaParsed(parsed.data, userNorm, allowTypo);
     if (hit) {
       return {
         answer: String(hit.answer || '').trim().slice(0, 6000),
         question: String(hit.question || '').trim().slice(0, 300),
-        confidence: 1,
-        matchType: 'split-exact',
+        confidence: hit.typo ? 0.94 : 1,
+        matchType: hit.typo ? 'split-typo-1-5' : 'split-exact',
         source: file.publicPath
       };
     }
@@ -541,6 +543,19 @@ function findExternalQaSplitAnswer(message) {
 
 function preferredExternalQaFileNumbers(userNorm) {
   const numbers = [];
+
+  // Router eksplisit untuk QA 1-1000. Contoh: "qa 250", "qa-250", "file qa 250".
+  const explicitQaFileMatch = String(userNorm || '').match(/\b(?:qa|file\s+qa|file)\s*-?\s*(\d{1,4})\b/);
+  if (explicitQaFileMatch) numbers.push(Number(explicitQaFileMatch[1]));
+
+  // Router cepat untuk paket pengetahuan generik qa-26 sampai seterusnya.
+  // Format contoh: "apa makna konsep sosial generik 5000?"
+  // Paket generik sebelumnya memakai 4200 entri per file mulai qa-26.
+  const genericConceptMatch = String(userNorm || '').match(/\bkonsep\s+sosial\s+generik\s+(\d{1,7})\b/) || String(userNorm || '').match(/\bsosial\s+generik\s+(\d{1,7})\b/);
+  if (genericConceptMatch) {
+    const conceptNo = Number(genericConceptMatch[1] || 0);
+    if (conceptNo > 0) numbers.push(26 + Math.floor((conceptNo - 1) / 4200));
+  }
 
   // Router cepat untuk file QA matematika besar.
   if (/\bpangkat tiga\b/.test(userNorm)) numbers.push(4);
@@ -625,31 +640,67 @@ function readExternalQaSplitJson(file) {
   }
 }
 
-function findExactInExternalQaParsed(parsed, userNorm) {
+function findExactInExternalQaParsed(parsed, userNorm, allowTypo = false) {
   if (!parsed) return null;
+  const n = String(userNorm || '').trim();
+  if (!n) return null;
 
   if (Array.isArray(parsed)) {
+    const typoCandidates = allowTypo && parsed.length <= 120000;
+    let bestTypo = null;
+    let bestDistance = 999;
+
     for (const row of parsed) {
-      const hit = exactExternalQaRowHit(row, userNorm);
+      const hit = exactExternalQaRowHit(row, n, false);
       if (hit) return hit;
+
+      if (typoCandidates) {
+        const typoHit = exactExternalQaRowHit(row, n, true);
+        if (typoHit && Number(typoHit.distance) < bestDistance) {
+          bestDistance = Number(typoHit.distance);
+          bestTypo = typoHit;
+          if (bestDistance === 1) break;
+        }
+      }
     }
-    return null;
+    return bestTypo;
   }
 
   if (typeof parsed === 'object') {
-    if (Object.prototype.hasOwnProperty.call(parsed, userNorm)) {
-      return { question: userNorm, answer: parsed[userNorm] };
+    if (Object.prototype.hasOwnProperty.call(parsed, n)) {
+      return { question: n, answer: parsed[n] };
     }
-    for (const [question, answer] of Object.entries(parsed)) {
-      if (normalize(question) === userNorm) return { question, answer };
+
+    const entries = Object.entries(parsed);
+    let bestTypo = null;
+    let bestDistance = 999;
+    const typoCandidates = allowTypo && entries.length <= 90000;
+
+    for (const [question, answer] of entries) {
+      const q = normalize(question);
+      if (q === n) return { question, answer };
+      if (typoCandidates && q.length >= 8 && (n.includes(q) || q.includes(n))) return { question, answer, typo: true, distance: 0 };
+      if (typoCandidates) {
+        const limit = externalQaTypoLimit(n, q);
+        if (Math.abs(n.length - q.length) <= limit) {
+          const distance = externalQaEditDistanceWithin(n, q, limit);
+          if (distance <= limit && distance < bestDistance) {
+            bestDistance = distance;
+            bestTypo = { question, answer, typo: true, distance };
+            if (bestDistance === 1) break;
+          }
+        }
+      }
     }
+    return bestTypo;
   }
 
   return null;
 }
 
-function exactExternalQaRowHit(row, userNorm) {
+function exactExternalQaRowHit(row, userNorm, allowTypo = false) {
   if (!row || typeof row !== 'object') return null;
+  const n = String(userNorm || '').trim();
   const answerSource = row.jawaban ?? row.answer ?? row.a ?? row.respon ?? row.response ?? row.value;
   const answer = Array.isArray(answerSource) ? answerSource.join('\n') : String(answerSource || '').trim();
   if (!answer) return null;
@@ -664,10 +715,24 @@ function exactExternalQaRowHit(row, userNorm) {
     else if (value) questionList.push(value);
   }
 
+  let bestTypo = null;
+  let bestDistance = 999;
   for (const question of questionList) {
-    if (normalize(question) === userNorm) return { question, answer };
+    const q = normalize(question);
+    if (q === n) return { question, answer };
+    if (allowTypo && q.length >= 8 && (n.includes(q) || q.includes(n))) return { question, answer, typo: true, distance: 0 };
+    if (allowTypo) {
+      const limit = externalQaTypoLimit(n, q);
+      if (Math.abs(n.length - q.length) <= limit) {
+        const distance = externalQaEditDistanceWithin(n, q, limit);
+        if (distance <= limit && distance < bestDistance) {
+          bestDistance = distance;
+          bestTypo = { question, answer, typo: true, distance };
+        }
+      }
+    }
   }
-  return null;
+  return bestTypo;
 }
 
 function scoreExternalQaQuestion(userNorm, questionNorm) {
@@ -702,6 +767,54 @@ function externalQaTokens(text) {
   const stop = new Set(['apa','itu','adalah','yang','dan','atau','di','ke','dari','untuk','dengan','dalam','pada','sebagai','tentang','tolong','mohon','bantu','bisa','bisakah','coba','jelaskan','terangkan','definisikan','pengertian','arti','maksud','saya','aku','kamu','nya','dong','ya','min','admin','secara','ringkas','singkat','detail','lengkap']);
   return normalize(text).split(/\s+/).map((w) => w.trim()).filter((w) => w.length > 1 && !stop.has(w)).slice(0, 80);
 }
+
+function externalQaTypoLimit(a, b) {
+  const longest = Math.max(String(a || '').length, String(b || '').length);
+  if (longest < 8) return 1;
+  if (longest < 16) return 2;
+  if (longest < 32) return 3;
+  return 5;
+}
+
+function externalQaEditDistanceWithin(a, b, maxDistance) {
+  a = String(a || '');
+  b = String(b || '');
+  if (a === b) return 0;
+  const m = a.length;
+  const n = b.length;
+  maxDistance = Math.max(0, Number(maxDistance || 0));
+  if (Math.abs(m - n) > maxDistance) return maxDistance + 1;
+  if (!m) return n <= maxDistance ? n : maxDistance + 1;
+  if (!n) return m <= maxDistance ? m : maxDistance + 1;
+
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for (let j = 0; j <= n; j += 1) prev[j] = j;
+
+  for (let i = 1; i <= m; i += 1) {
+    curr[0] = i;
+    let rowMin = curr[0];
+    const start = Math.max(1, i - maxDistance);
+    const end = Math.min(n, i + maxDistance);
+    for (let j = 1; j < start; j += 1) curr[j] = maxDistance + 1;
+    for (let j = start; j <= end; j += 1) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      const del = prev[j] + 1;
+      const ins = curr[j - 1] + 1;
+      const sub = prev[j - 1] + cost;
+      const val = Math.min(del, ins, sub);
+      curr[j] = val;
+      if (val < rowMin) rowMin = val;
+    }
+    for (let j = end + 1; j <= n; j += 1) curr[j] = maxDistance + 1;
+    if (rowMin > maxDistance) return maxDistance + 1;
+    const swap = prev;
+    prev = curr;
+    curr = swap;
+  }
+  return prev[n] <= maxDistance ? prev[n] : maxDistance + 1;
+}
+
 
 function candidateExternalQaIndexes(userNorm, loaded) {
   const allFallbackLimit = Math.min(loaded.entries.length, 2500);
