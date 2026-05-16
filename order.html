@@ -11452,10 +11452,10 @@ function staticGeneralAnswerLocal(text) {
   /* === DIRAC QA SPLIT FRONTEND BRIDGE v2026-05-16 ===
      Root fix: order.html sebelumnya selalu memanggil endpoint AI remote terlebih dahulu.
      Jika endpoint remote menjawab 200, /api/chat baru dan data/qa-25.json tidak pernah dicek.
-     Bridge ini mengecek data/qa-1.json ... data/qa-50.json dari sisi website sebelum remote AI.
+     Bridge ini mengecek data/qa-1.json ... data/qa-1000.json dari sisi website sebelum remote AI.
      Non-destruktif: katalog produk, cart, checkout, tema, dan URL checkout tidak diubah. */
-  const DIRAC_QA_SPLIT_FRONTEND_VERSION = 'DIRAC_QA_SPLIT_FRONTEND_V1';
-  const DIRAC_QA_SPLIT_MAX_FILE = 50;
+  const DIRAC_QA_SPLIT_FRONTEND_VERSION = 'DIRAC_QA_SPLIT_FRONTEND_V3_QA_1_1000_TYPO_1_5';
+  const DIRAC_QA_SPLIT_MAX_FILE = 1000;
   const DIRAC_QA_SPLIT_CACHE = Object.create(null);
 
   function diracQaSplitUrl(fileNo){
@@ -11470,22 +11470,101 @@ function staticGeneralAnswerLocal(text) {
     }
     return '';
   }
+  function diracQaTypoLimit(a, b){
+    const longest = Math.max(String(a || '').length, String(b || '').length);
+    if(longest < 8) return 1;
+    if(longest < 16) return 2;
+    if(longest < 32) return 3;
+    return 5;
+  }
+  function diracQaEditDistanceWithin(a, b, maxDistance){
+    a = String(a || '');
+    b = String(b || '');
+    if(a === b) return 0;
+    const m = a.length;
+    const n = b.length;
+    maxDistance = Math.max(0, Number(maxDistance || 0));
+    if(Math.abs(m - n) > maxDistance) return maxDistance + 1;
+    if(!m) return n <= maxDistance ? n : maxDistance + 1;
+    if(!n) return m <= maxDistance ? m : maxDistance + 1;
+
+    let prev = new Array(n + 1);
+    let curr = new Array(n + 1);
+    for(let j = 0; j <= n; j++) prev[j] = j;
+
+    for(let i = 1; i <= m; i++){
+      curr[0] = i;
+      let rowMin = curr[0];
+      const start = Math.max(1, i - maxDistance);
+      const end = Math.min(n, i + maxDistance);
+
+      for(let j = 1; j < start; j++) curr[j] = maxDistance + 1;
+      for(let j = start; j <= end; j++){
+        const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+        const del = prev[j] + 1;
+        const ins = curr[j - 1] + 1;
+        const sub = prev[j - 1] + cost;
+        const val = Math.min(del, ins, sub);
+        curr[j] = val;
+        if(val < rowMin) rowMin = val;
+      }
+      for(let j = end + 1; j <= n; j++) curr[j] = maxDistance + 1;
+      if(rowMin > maxDistance) return maxDistance + 1;
+
+      const swap = prev;
+      prev = curr;
+      curr = swap;
+    }
+    return prev[n] <= maxDistance ? prev[n] : maxDistance + 1;
+  }
+  function diracQaIsTypoMatch(normalizedUserQuestion, normalizedSavedQuestion){
+    const user = String(normalizedUserQuestion || '').trim();
+    const saved = String(normalizedSavedQuestion || '').trim();
+    if(!user || !saved) return false;
+    if(user === saved) return true;
+
+    /* Wajib tetap satu maksud: fitur ini hanya menoleransi salah ketik 1-5 huruf,
+       bukan mencocokkan pertanyaan yang kalimatnya benar-benar berbeda. */
+    const limit = diracQaTypoLimit(user, saved);
+    if(Math.abs(user.length - saved.length) > limit) return false;
+    return diracQaEditDistanceWithin(user, saved, limit) <= limit;
+  }
   function diracQaLookupData(data, normalizedQuestion, rawQuestion){
     if(!data) return null;
     const raw = String(rawQuestion || '').trim();
     const n = String(normalizedQuestion || '').trim();
+    let bestTypo = null;
+    let bestDistance = 999;
+
+    function considerTypo(savedQuestion, answerValue){
+      const q = normalize(savedQuestion || '');
+      if(!q) return;
+      const limit = diracQaTypoLimit(n, q);
+      if(Math.abs(n.length - q.length) > limit) return;
+      const distance = diracQaEditDistanceWithin(n, q, limit);
+      if(distance <= limit && distance < bestDistance){
+        const ans = diracQaSafeAnswer(answerValue);
+        if(ans){
+          bestDistance = distance;
+          bestTypo = ans;
+        }
+      }
+    }
 
     if(Array.isArray(data)){
       for(let i = 0; i < data.length; i++){
         const item = data[i];
         if(!item) continue;
-        const q = normalize(item.pertanyaan || item.question || item.q || item.key || '');
+        const question = item.pertanyaan || item.question || item.q || item.key || '';
+        const q = normalize(question);
+        const answerValue = item.jawaban || item.answer || item.a || item.text || item.reply;
         if(q && q === n){
-          const ans = diracQaSafeAnswer(item.jawaban || item.answer || item.a || item.text || item.reply);
+          const ans = diracQaSafeAnswer(answerValue);
           if(ans) return ans;
         }
+        considerTypo(question, answerValue);
       }
-      return null;
+      return bestTypo;
     }
 
     if(typeof data === 'object'){
@@ -11497,20 +11576,22 @@ function staticGeneralAnswerLocal(text) {
         if(ans) return ans;
       }
 
-      /* Fallback ringan: hanya untuk file sosial berukuran sedang, bukan untuk semua file besar.
-         Ini membantu jika key punya spasi/tanda baca sedikit berbeda. */
+      /* Fallback ringan: normalisasi + typo tolerance hanya dijalankan pada file kandidat.
+         Untuk object besar dibatasi supaya website tidak berat di HP/Vercel/static hosting. */
       const keys = Object.keys(data);
       if(keys.length <= 90000){
         for(let i = 0; i < keys.length; i++){
           const key = keys[i];
-          if(normalize(key) === n){
+          const nk = normalize(key);
+          if(nk === n){
             const ans = diracQaSafeAnswer(data[key]);
             if(ans) return ans;
           }
+          considerTypo(key, data[key]);
         }
       }
     }
-    return null;
+    return bestTypo;
   }
   async function diracQaLoadFile(fileNo){
     if(DIRAC_QA_SPLIT_CACHE[fileNo]) return DIRAC_QA_SPLIT_CACHE[fileNo];
@@ -11526,9 +11607,91 @@ function staticGeneralAnswerLocal(text) {
     fileNo = Number(fileNo || 0);
     if(fileNo >= 1 && fileNo <= DIRAC_QA_SPLIT_MAX_FILE && list.indexOf(fileNo) < 0) list.push(fileNo);
   }
+  function diracQaAddCandidateRange(list, startNo, endNo){
+    startNo = Math.max(1, Number(startNo || 1));
+    endNo = Math.min(DIRAC_QA_SPLIT_MAX_FILE, Number(endNo || DIRAC_QA_SPLIT_MAX_FILE));
+    for(let fileNo = startNo; fileNo <= endNo; fileNo++) diracQaAddCandidate(list, fileNo);
+  }
+  function diracQaFormatNumberList(numbers, limit){
+    numbers = Array.isArray(numbers) ? numbers : [];
+    limit = Math.max(1, Number(limit || 80));
+    if(numbers.length <= limit) return numbers.length ? numbers.join(', ') : '-';
+    return numbers.slice(0, limit).join(', ') + ' ... +' + (numbers.length - limit) + ' lagi';
+  }
+  function diracQaPhraseLooksNear(normalizedText, phrase){
+    const text = String(normalizedText || '').trim();
+    const target = normalize(phrase || '');
+    if(!text || !target) return false;
+    if(text.indexOf(target) >= 0) return true;
+
+    const targetWords = target.split(/\s+/).filter(Boolean);
+    const words = text.split(/\s+/).filter(Boolean);
+    if(!targetWords.length || words.length < targetWords.length) return false;
+
+    const minWindow = Math.max(1, targetWords.length - 1);
+    const maxWindow = Math.min(words.length, targetWords.length + 1);
+    const maxDistance = Math.min(5, Math.max(1, Math.ceil(target.length * 0.18)));
+
+    for(let size = minWindow; size <= maxWindow; size++){
+      for(let i = 0; i <= words.length - size; i++){
+        const part = words.slice(i, i + size).join(' ');
+        if(Math.abs(part.length - target.length) > maxDistance) continue;
+        if(diracQaEditDistanceWithin(part, target, maxDistance) <= maxDistance) return true;
+      }
+    }
+    return false;
+  }
+  function diracQaAddFuzzySocialCandidates(list, normalizedText){
+    const fuzzyMap = [
+      [25, ['metode survei','wawancara mendalam','observasi partisipan','etnografi','analisis wacana','validitas penelitian','reliabilitas data','sampling sosial','etika penelitian','triangulasi data','mixed methods','analisis kebijakan']],
+      [24, ['perdamaian sosial','mediasi konflik','resolusi konflik','rekonsiliasi','toleransi','moderasi sosial','dialog antaragama','kohesi sosial','radikalisasi','polarisasi sosial','kepercayaan sosial','trauma kolektif']],
+      [23, ['organisasi sosial','budaya organisasi','kepemimpinan','birokrasi','solidaritas kerja','konflik organisasi','etos kerja','komunikasi organisasi','kerja jarak jauh','serikat pekerja','manajemen perubahan','kesejahteraan pekerja']],
+      [22, ['kesehatan masyarakat','determinan sosial kesehatan','akses layanan kesehatan','stigma kesehatan mental','perilaku hidup sehat','ketahanan pangan','vaksinasi publik','sanitasi','epidemi sosial','kesehatan reproduksi','dukungan komunitas','asuransi kesehatan']],
+      [21, ['urbanisasi','demografi','bonus demografi','piramida penduduk','migrasi internal','kepadatan penduduk','penuaan penduduk','permukiman kumuh','transportasi publik','perencanaan kota','gentrifikasi','sprawl perkotaan']],
+      [20, ['lingkungan sosial','keadilan lingkungan','perubahan iklim','ketahanan komunitas','bencana sosial','adaptasi masyarakat','sampah perkotaan','air bersih','urban green space','ekologi politik','konflik sumber daya','konsumsi berkelanjutan']],
+      [19, ['deviasi sosial','labeling theory','anomie','kejahatan kerah putih','kontrol sosial formal','kontrol sosial informal','sistem peradilan','kriminalitas remaja','rehabilitasi sosial','restorative justice','stigma sosial','penyimpangan kolektif']],
+      [18, ['media massa','literasi media','hoaks','filter bubble','komunikasi digital','jurnalisme warga','algoritma media sosial','privasi data','cyberbullying','budaya viral','influencer','partisipasi digital']],
+      [17, ['keluarga nuklir','keluarga luas','peran gender','pernikahan adat','pengasuhan anak','single parent','relasi keluarga','sosialisasi primer','domestic labor','kesetaraan gender','generasi muda','lansia dalam keluarga']],
+      [16, ['pendidikan inklusif','kurikulum tersembunyi','mobilitas pendidikan','literasi digital','pendidikan karakter','akses sekolah','kesenjangan pendidikan','pembelajaran jarak jauh','budaya sekolah','pendidikan kewargaan','pendidikan keluarga','pelatihan kerja']],
+      [15, ['ekonomi pasar','ekonomi campuran','kapitalisme','sosialisme','welfare state','tenaga kerja','ekonomi informal','kewirausahaan sosial','ekonomi berbagi','kemiskinan perkotaan','upah layak','ketahanan ekonomi keluarga']],
+      [14, ['demokrasi','partisipasi politik','kewarganegaraan','legitimasi kekuasaan','gerakan sosial','opini publik','kebijakan publik','hak asasi manusia','civil society','desentralisasi','representasi politik','akuntabilitas']],
+      [13, ['globalisasi','glokalisasi','homogenisasi budaya','hibridisasi budaya','migrasi internasional','diaspora','identitas budaya','akulturasi','asimilasi','pluralisme budaya','imperialisme budaya','komodifikasi budaya']],
+      [12, ['ketidaksetaraan sosial','kemiskinan struktural','kelas sosial','diskriminasi','interseksionalitas','kapital sosial','eksklusi sosial','keadilan sosial','redistribusi','akses pendidikan','kesenjangan digital','privilege sosial']],
+      [11, ['integrasi sosial','stratifikasi sosial','mobilitas sosial','sosialisasi','norma sosial','nilai sosial','institusi sosial','konflik sosial','perubahan sosial','solidaritas sosial','kontrol sosial','identitas sosial']]
+    ];
+
+    for(let i = 0; i < fuzzyMap.length; i++){
+      const fileNo = fuzzyMap[i][0];
+      const phrases = fuzzyMap[i][1];
+      for(let j = 0; j < phrases.length; j++){
+        if(diracQaPhraseLooksNear(normalizedText, phrases[j])){
+          diracQaAddCandidate(list, fileNo);
+          break;
+        }
+      }
+    }
+  }
   function diracQaSplitCandidateFiles(normalizedText){
     const n = String(normalizedText || '');
     const files = [];
+
+    /* Support QA sampai 1000 tanpa memaksa website membaca 1000 file besar setiap chat.
+       Jika user / dataset menyebut file QA tertentu, langsung arahkan ke file itu.
+       Contoh: "qa 250", "qa-250", "file qa 250". */
+    const explicitQaFileMatch = n.match(/\b(?:qa|file\s+qa|file)\s*-?\s*(\d{1,4})\b/);
+    if(explicitQaFileMatch) diracQaAddCandidate(files, Number(explicitQaFileMatch[1]));
+
+    /* Dukungan paket pengetahuan generik qa-26..qa-50:
+       "apa makna konsep sosial generik 5000" langsung diarahkan ke file yang tepat.
+       Rumus ini aman: 4200 entri per file pada paket QA generik sebelumnya. */
+    const genericConceptMatch = n.match(/\bkonsep\s+sosial\s+generik\s+(\d{1,7})\b/);
+    if(genericConceptMatch){
+      const conceptNo = Number(genericConceptMatch[1] || 0);
+      if(conceptNo > 0){
+        const estimatedFile = 26 + Math.floor((conceptNo - 1) / 4200);
+        diracQaAddCandidate(files, estimatedFile);
+      }
+    }
 
     if(/\b(pangkat tiga|kubik)\b/.test(n)) diracQaAddCandidate(files, 4);
     if(/\b(pangkat empat)\b/.test(n)) diracQaAddCandidate(files, 5);
@@ -11560,10 +11723,14 @@ function staticGeneralAnswerLocal(text) {
       if(socialMap[i][1].test(n)) diracQaAddCandidate(files, socialMap[i][0]);
     }
 
-    /* Jika pertanyaan memakai format dataset sosial: "tingkat easy/normal/hard/ultra hard/extrem",
-       cek 11-25 berurutan setelah kandidat spesifik. */
+    /* Jika user typo 1-5 huruf pada kata kunci topik sosial, tetap arahkan ke file QA yang benar.
+       Contoh: "analissis wacna" tetap diarahkan ke qa-25. */
+    diracQaAddFuzzySocialCandidates(files, n);
+
+    /* Jika masih ada dataset lama yang memakai format "tingkat easy/normal/hard/ultra hard/extrem",
+       support sampai qa-1000. Ini hanya dijalankan jika pola itu benar-benar diketik. */
     if(/\btingkat\s+(easy|normal|hard|ultra hard|extrem)\b/.test(n)){
-      for(let i = 11; i <= 25; i++) diracQaAddCandidate(files, i);
+      diracQaAddCandidateRange(files, 11, DIRAC_QA_SPLIT_MAX_FILE);
     }
 
     /* Katalog produk lama biasanya ada di qa-1. */
@@ -11576,7 +11743,7 @@ function staticGeneralAnswerLocal(text) {
   async function diracQaSplitDiagnosticReply(){
     const found = [];
     const missing = [];
-    for(let i = 1; i <= 25; i++){
+    for(let i = 1; i <= DIRAC_QA_SPLIT_MAX_FILE; i++){
       try{
         const res = await fetch(diracQaSplitUrl(i) + '?diag=' + Date.now(), { method:'HEAD', cache:'no-store' });
         if(res.ok) found.push(i); else missing.push(i);
@@ -11584,9 +11751,10 @@ function staticGeneralAnswerLocal(text) {
         missing.push(i);
       }
     }
-    return DIRAC_QA_SPLIT_FRONTEND_VERSION + ' aktif di order.html. File QA split yang ditemukan: ' + found.length + '/25. ' +
-      'Ditemukan: ' + (found.length ? found.join(', ') : '-') + '. ' +
-      'Tidak ditemukan: ' + (missing.length ? missing.join(', ') : '-') + '.';
+    return DIRAC_QA_SPLIT_FRONTEND_VERSION + ' aktif di order.html. File QA split yang ditemukan: ' + found.length + '/' + DIRAC_QA_SPLIT_MAX_FILE + '. ' +
+      'Ditemukan: ' + diracQaFormatNumberList(found, 80) + '. ' +
+      'Tidak ditemukan: ' + diracQaFormatNumberList(missing, 80) + '. ' +
+      'Typo tolerance aktif: maksimal 1-5 huruf selama inti pertanyaan sama.';
   }
   async function diracQaSplitLocalReply(message){
     const n = normalize(message);
