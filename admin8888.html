@@ -238,6 +238,32 @@
     @media(max-width:700px){.nav-menu,.quick-grid,.settings-grid{grid-template-columns:1fr!important}.nav-btn.sub{padding-left:40px}.sidebar-title{position:relative;top:auto}.quick-card{min-height:auto}.admin-layout{padding-bottom:90px}}
     @media(max-width:440px){.nav-menu{grid-template-columns:1fr!important}.nav-section{padding:9px}.nav-heading{display:block}.nav-heading span{display:block;margin-top:2px}}
 
+
+    .mobile-admin-bar{display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,rgba(17,26,46,.92),rgba(8,12,23,.92));box-shadow:var(--shadow);padding:12px 14px}
+    .mobile-admin-meta strong{display:block;font-size:.96rem}.mobile-admin-meta span{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
+    .mobile-menu-btn,.sidebar-close{appearance:none;border:1px solid rgba(96,165,250,.22);background:rgba(255,255,255,.06);color:#fff;border-radius:16px;min-width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 14px;font-weight:900;cursor:pointer;transition:.18s ease}
+    .mobile-menu-btn:hover,.sidebar-close:hover{background:rgba(96,165,250,.16);border-color:var(--line2)}
+    .mobile-menu-icon{display:grid;gap:4px;justify-items:center;flex:0 0 auto}
+    .mobile-menu-icon span{display:block;width:16px;height:2px;border-radius:999px;background:currentColor}
+    .mobile-menu-label{font-size:.82rem;letter-spacing:.02em}
+    .sidebar-backdrop{display:none}
+    .sidebar-close{display:none}
+    @media(max-width:1040px){
+      .mobile-admin-bar{display:flex}
+      .admin-layout{position:relative;grid-template-columns:1fr;padding-bottom:72px}
+      .sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(2,6,23,.64);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:88}
+      .sidebar{position:fixed;top:0;left:0;bottom:0;width:min(88vw,340px);max-width:340px;height:100vh;max-height:none;border-radius:0 26px 26px 0;padding:16px 14px 18px;transform:translateX(calc(-100% - 18px));transition:transform .24s ease;z-index:89;box-shadow:0 24px 80px rgba(0,0,0,.5);overscroll-behavior:contain}
+      .sidebar-title{position:sticky;top:0;padding-top:4px;display:flex;align-items:flex-start}
+      .sidebar-close{display:inline-flex}
+      .nav-menu{grid-template-columns:1fr!important}
+      body.sidebar-open{overflow:hidden}
+      body.sidebar-open .sidebar{transform:translateX(0)}
+      body.sidebar-open .sidebar-backdrop{opacity:1;pointer-events:auto}
+      body.sidebar-open .mobile-menu-btn{background:rgba(96,165,250,.16);border-color:var(--line2)}
+    }
+    @media(max-width:700px){.mobile-admin-bar{padding:11px 12px;border-radius:20px}.mobile-menu-btn,.sidebar-close{height:46px;min-width:46px;padding:0 12px}.mobile-menu-label{font-size:.78rem}}
+    @media(min-width:1041px){.mobile-admin-bar,.sidebar-backdrop{display:none!important}.sidebar-close{display:none!important}}
+
   </style>
 </head>
 <body>
@@ -317,8 +343,16 @@
     </section>
 
     <section class="wrap admin-layout hidden" id="adminSection">
-      <aside class="sidebar" aria-label="Menu admin">
-        <div class="sidebar-title"><div><strong>Dirac Admin</strong><span>Struktur menu lengkap</span></div><span class="status-pill good">Live</span></div>
+      <div class="mobile-admin-bar" aria-label="Akses menu admin mobile">
+        <div class="mobile-admin-meta"><strong>Dirac Admin</strong><span>Menu admin ringkas</span></div>
+        <button class="mobile-menu-btn" id="sidebarToggleBtn" type="button" aria-expanded="false" aria-controls="adminSidebar" aria-label="Buka menu admin">
+          <span class="mobile-menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="mobile-menu-label">Menu</span>
+        </button>
+      </div>
+      <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+      <aside class="sidebar" id="adminSidebar" aria-label="Menu admin">
+        <div class="sidebar-title"><div><strong>Dirac Admin</strong><span>Struktur menu lengkap</span></div><div style="display:flex;align-items:center;gap:8px"><span class="status-pill good">Live</span><button class="sidebar-close" id="sidebarCloseBtn" type="button" aria-label="Tutup menu admin">✕</button></div></div>
         <nav class="nav-menu" aria-label="Struktur menu admin">
           <section class="nav-section" aria-labelledby="navDashboardTitle">
             <div class="nav-heading"><strong id="navDashboardTitle">Dashboard</strong><span>Ringkasan</span></div>
@@ -756,7 +790,8 @@
       dashSalesToday:$('dashSalesToday'), dashSalesTodayInfo:$('dashSalesTodayInfo'), dashSalesMonth:$('dashSalesMonth'), dashSalesMonthInfo:$('dashSalesMonthInfo'), dashActiveOrders:$('dashActiveOrders'), dashCustomers:$('dashCustomers'), dashCustomersInfo:$('dashCustomersInfo'), dashLowStock:$('dashLowStock'), dashSoldItems:$('dashSoldItems'), dashProfit:$('dashProfit'), dashTopCategory:$('dashTopCategory'), chartSalesWeekly:$('chartSalesWeekly'), chartCategoryProducts:$('chartCategoryProducts'), recentOrderList:$('recentOrderList'), lowStockList:$('lowStockList'), topProductList:$('topProductList'),
       orderForm:$('orderForm'), orderFormTitle:$('orderFormTitle'), orderDocId:$('orderDocId'), orderId:$('orderId'), orderCustomer:$('orderCustomer'), orderProduct:$('orderProduct'), orderQty:$('orderQty'), orderTotal:$('orderTotal'), orderPaymentMethod:$('orderPaymentMethod'), orderPaymentStatus:$('orderPaymentStatus'), orderStatus:$('orderStatus'), orderCourier:$('orderCourier'), orderTracking:$('orderTracking'), orderNote:$('orderNote'), autoOrderIdBtn:$('autoOrderIdBtn'), saveOrderBtn:$('saveOrderBtn'), resetOrderBtn:$('resetOrderBtn'), orderMessage:$('orderMessage'), orderSyncStatus:$('orderSyncStatus'), orderRows:$('orderRows'), orderProductOptions:$('orderProductOptions'), customerOptions:$('customerOptions'),
       customerForm:$('customerForm'), customerFormTitle:$('customerFormTitle'), customerDocId:$('customerDocId'), customerName:$('customerName'), customerPhone:$('customerPhone'), customerEmail:$('customerEmail'), customerAddress:$('customerAddress'), customerSegment:$('customerSegment'), customerTotalSpent:$('customerTotalSpent'), customerNote:$('customerNote'), saveCustomerBtn:$('saveCustomerBtn'), resetCustomerBtn:$('resetCustomerBtn'), customerMessage:$('customerMessage'), customerSyncStatus:$('customerSyncStatus'), customerRows:$('customerRows'),
-      reportDaily:$('reportDaily'), reportWeekly:$('reportWeekly'), reportMonthly:$('reportMonthly'), reportGrossProfit:$('reportGrossProfit'), categoryReportRows:$('categoryReportRows'), stockReportRows:$('stockReportRows')
+      reportDaily:$('reportDaily'), reportWeekly:$('reportWeekly'), reportMonthly:$('reportMonthly'), reportGrossProfit:$('reportGrossProfit'), categoryReportRows:$('categoryReportRows'), stockReportRows:$('stockReportRows'),
+      sidebarToggleBtn:$('sidebarToggleBtn'), sidebarCloseBtn:$('sidebarCloseBtn'), sidebarBackdrop:$('sidebarBackdrop'), adminSidebar:$('adminSidebar')
     };
 
     let products = [];
@@ -901,6 +936,7 @@
         twoFactorVerified = true;
         els.twoFactorSection.classList.add('hidden');
         els.adminSection.classList.remove('hidden');
+        closeSidebarMenu();
         els.logoutBtn.classList.remove('hidden');
         if(currentAdmin.roleSource === 'firestore'){
           setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. A2F 3 tahap berhasil.', 'good');
@@ -2019,6 +2055,29 @@
       if(action === 'focus-order-form'){
         setTimeout(() => { if(els.orderCustomer) els.orderCustomer.focus(); }, 180);
       }
+      if(isMobileAdminLayout()) closeSidebarMenu();
+    }
+    function isMobileAdminLayout(){
+      return window.matchMedia('(max-width: 1040px)').matches;
+    }
+    function syncSidebarUi(open){
+      document.body.classList.toggle('sidebar-open', !!open);
+      if(els.sidebarToggleBtn) els.sidebarToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if(els.sidebarBackdrop){
+        if(open) els.sidebarBackdrop.removeAttribute('hidden');
+        else els.sidebarBackdrop.setAttribute('hidden', 'hidden');
+      }
+    }
+    function openSidebarMenu(){
+      if(!isMobileAdminLayout()) return;
+      syncSidebarUi(true);
+    }
+    function closeSidebarMenu(){
+      syncSidebarUi(false);
+    }
+    function toggleSidebarMenu(){
+      if(!isMobileAdminLayout()) return;
+      syncSidebarUi(!document.body.classList.contains('sidebar-open'));
     }
     function downloadFile(filename, content, type){
       const blob = new Blob([content], { type });
@@ -2280,6 +2339,10 @@
     });
 
     document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => handleAdminNavigation(btn)));
+    if(els.sidebarToggleBtn) els.sidebarToggleBtn.addEventListener('click', toggleSidebarMenu);
+    if(els.sidebarCloseBtn) els.sidebarCloseBtn.addEventListener('click', closeSidebarMenu);
+    if(els.sidebarBackdrop) els.sidebarBackdrop.addEventListener('click', closeSidebarMenu);
+    window.addEventListener('resize', () => { if(!isMobileAdminLayout()) closeSidebarMenu(); });
     const reportExportJsonBtn = $('reportExportJsonBtn');
     const reportExportCsvBtn = $('reportExportCsvBtn');
     if(reportExportJsonBtn) reportExportJsonBtn.addEventListener('click', exportJson);
@@ -2318,7 +2381,8 @@
         if(!els.adminSection.classList.contains('hidden')) els.form.requestSubmit();
       }
       if(event.key === 'Escape'){
-        if(!els.modal.classList.contains('hidden')) closeModal();
+        if(document.body.classList.contains('sidebar-open')) closeSidebarMenu();
+        else if(!els.modal.classList.contains('hidden')) closeModal();
         else if(document.activeElement === els.search || els.search.value) clearFilters();
       }
     });
@@ -2346,6 +2410,7 @@
         els.loginSection.classList.remove('hidden');
         els.twoFactorSection.classList.add('hidden');
         els.adminSection.classList.add('hidden');
+        closeSidebarMenu();
         els.logoutBtn.classList.add('hidden');
         products = [];
         orders = [];
