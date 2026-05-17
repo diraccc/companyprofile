@@ -306,8 +306,19 @@
           <button class="nav-btn active" type="button" data-view-target="dashboard"><b>01</b> Dashboard</button>
           <button class="nav-btn" type="button" data-view-target="produk"><b>02</b> Produk</button>
           <button class="nav-btn" type="button" data-view-target="pesanan"><b>03</b> Pesanan</button>
-          <button class="nav-btn" type="button" data-view-target="pelanggan"><b>04</b> Pelanggan</button>
-          <button class="nav-btn" type="button" data-view-target="laporan"><b>05</b> Laporan</button>
+          <button class="nav-btn" type="button" data-view-target="pembayaran"><b>04</b> Pembayaran</button>
+          <button class="nav-btn" type="button" data-view-target="pengiriman"><b>05</b> Pengiriman</button>
+          <button class="nav-btn" type="button" data-view-target="pelanggan"><b>06</b> Pelanggan</button>
+          <button class="nav-btn" type="button" data-view-target="promo"><b>07</b> Promo</button>
+          <button class="nav-btn" type="button" data-view-target="review"><b>08</b> Review</button>
+          <button class="nav-btn" type="button" data-view-target="supplier"><b>09</b> Supplier</button>
+          <button class="nav-btn" type="button" data-view-target="retur"><b>10</b> Retur</button>
+          <button class="nav-btn" type="button" data-view-target="stok"><b>11</b> Riwayat Stok</button>
+          <button class="nav-btn" type="button" data-view-target="activity"><b>12</b> Activity Log</button>
+          <button class="nav-btn" type="button" data-view-target="roles"><b>13</b> Admin & Role</button>
+          <button class="nav-btn" type="button" data-view-target="settings"><b>14</b> Pengaturan</button>
+          <button class="nav-btn" type="button" data-view-target="laporan"><b>15</b> Laporan</button>
+          <button class="nav-btn" type="button" data-view-target="rules"><b>16</b> Firestore Rules</button>
         </nav>
         <div class="notice" style="margin-bottom:0">Menu baru tidak mengubah sistem login, hash A2F, atau konfigurasi Firebase.</div>
       </aside>
@@ -453,14 +464,25 @@
                 <div class="form-grid">
                   <div class="field"><label for="orderId">ID Pesanan</label><input class="input" id="orderId" type="text" required maxlength="40" placeholder="ORD-001"></div>
                   <div class="field"><label for="orderCustomer">Nama Pelanggan</label><input class="input" id="orderCustomer" type="text" list="customerOptions" required maxlength="100" placeholder="Nama customer"><datalist id="customerOptions"></datalist></div>
-                  <div class="field full"><label for="orderProduct">Produk</label><input class="input" id="orderProduct" type="text" list="orderProductOptions" required maxlength="160" placeholder="Nama produk parfum"><datalist id="orderProductOptions"></datalist></div>
-                  <div class="field"><label for="orderQty">Jumlah</label><input class="input" id="orderQty" type="number" inputmode="numeric" min="1" value="1" required></div>
+                  <div class="field full"><label for="orderProduct">Produk untuk Item</label><input class="input" id="orderProduct" type="text" list="orderProductOptions" maxlength="160" placeholder="Pilih / ketik nama produk parfum"><datalist id="orderProductOptions"></datalist></div>
+                  <div class="field"><label for="orderQty">Jumlah Item</label><input class="input" id="orderQty" type="number" inputmode="numeric" min="1" value="1"></div>
+                  <div class="field"><label>&nbsp;</label><button class="btn good" id="addOrderItemBtn" type="button">Tambah Item</button></div>
+                  <div class="field full"><label>Relasi Produk dalam Pesanan</label><div class="compact-list" id="orderItemsList"><div class="empty">Belum ada item. Tambahkan minimal satu produk, atau isi produk tunggal lalu simpan.</div></div><p class="photo-help">Setiap item menyimpan productDocId, productId, nama produk, harga, modal, qty, dan subtotal supaya laporan produk terlaris lebih akurat.</p></div>
                   <div class="field"><label for="orderTotal">Total Harga</label><input class="input" id="orderTotal" type="number" inputmode="numeric" min="0" required></div>
+                  <div class="field"><label><input id="orderApplyStock" type="checkbox"> Kurangi stok otomatis jika lunas</label><p class="photo-help">Aman dari dobel potong: stok hanya diterapkan sekali memakai field stockApplied.</p></div>
                   <div class="field"><label for="orderPaymentMethod">Metode Pembayaran</label><select id="orderPaymentMethod"><option value="Transfer Bank">Transfer Bank</option><option value="QRIS">QRIS</option><option value="E-wallet">E-wallet</option><option value="COD">COD</option></select></div>
-                  <div class="field"><label for="orderPaymentStatus">Status Pembayaran</label><select id="orderPaymentStatus"><option value="Belum Bayar">Belum Bayar</option><option value="Lunas">Lunas</option><option value="Refund">Refund</option></select></div>
+                  <div class="field"><label for="orderPaymentStatus">Status Pembayaran</label><select id="orderPaymentStatus"><option value="Belum Bayar">Belum Bayar</option><option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option><option value="Lunas">Lunas</option><option value="Gagal">Gagal</option><option value="Refund">Refund</option></select></div>
+                  <div class="field"><label for="orderInvoiceNumber">Nomor Invoice</label><input class="input" id="orderInvoiceNumber" type="text" maxlength="80" placeholder="INV-001"></div>
+                  <div class="field"><label for="orderPaidAt">Tanggal Bayar</label><input class="input" id="orderPaidAt" type="date"></div>
+                  <div class="field full"><label for="orderPaymentProof">Bukti Pembayaran / Link</label><input class="input" id="orderPaymentProof" type="text" maxlength="600" placeholder="Link bukti transfer / QRIS"></div>
                   <div class="field"><label for="orderStatus">Status Pesanan</label><select id="orderStatus"><option value="Menunggu Pembayaran">Menunggu Pembayaran</option><option value="Diproses">Diproses</option><option value="Dikemas">Dikemas</option><option value="Dikirim">Dikirim</option><option value="Selesai">Selesai</option><option value="Dibatalkan">Dibatalkan</option><option value="Retur">Retur</option></select></div>
                   <div class="field"><label for="orderCourier">Ekspedisi</label><select id="orderCourier"><option value="">Belum dipilih</option><option value="JNE">JNE</option><option value="J&T">J&T</option><option value="SiCepat">SiCepat</option><option value="Anteraja">Anteraja</option><option value="GoSend">GoSend</option><option value="GrabExpress">GrabExpress</option></select></div>
+                  <div class="field"><label for="orderShippingStatus">Status Pengiriman</label><select id="orderShippingStatus"><option value="Belum Dikirim">Belum Dikirim</option><option value="Dikemas">Dikemas</option><option value="Dikirim">Dikirim</option><option value="Dalam Perjalanan">Dalam Perjalanan</option><option value="Sampai">Sampai</option><option value="Gagal Kirim">Gagal Kirim</option></select></div>
+                  <div class="field"><label for="orderShippingCost">Ongkir</label><input class="input" id="orderShippingCost" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+                  <div class="field"><label for="orderShippedAt">Tanggal Kirim</label><input class="input" id="orderShippedAt" type="date"></div>
+                  <div class="field"><label for="orderReceivedAt">Tanggal Sampai</label><input class="input" id="orderReceivedAt" type="date"></div>
                   <div class="field full"><label for="orderTracking">Nomor Resi</label><input class="input" id="orderTracking" type="text" maxlength="80" placeholder="Nomor resi"></div>
+                  <div class="field full"><label for="orderAddress">Alamat Pengiriman</label><textarea id="orderAddress" maxlength="360" placeholder="Alamat lengkap pengiriman"></textarea></div>
                   <div class="field full"><label for="orderNote">Catatan</label><textarea id="orderNote" maxlength="260" placeholder="Catatan pesanan"></textarea></div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
@@ -510,11 +532,162 @@
           </div>
         </section>
 
+
+        <section class="admin-view" id="viewPayments" data-view="pembayaran">
+          <div class="view-grid">
+            <div class="panel"><div class="section-title"><div><h3>Manajemen Pembayaran</h3><p>Konfirmasi pembayaran dari data pesanan. Data tetap tersimpan di collection <b>orders</b>.</p></div><button class="btn small" type="button" data-view-target="pesanan">Buka pesanan</button></div>
+              <div class="dashboard-grid">
+                <div class="dashboard-card"><span>Lunas</span><strong id="payPaidCount">0</strong><small id="payPaidTotal">Rp 0</small></div>
+                <div class="dashboard-card"><span>Belum bayar</span><strong id="payUnpaidCount">0</strong><small>Perlu follow up</small></div>
+                <div class="dashboard-card"><span>Menunggu konfirmasi</span><strong id="payPendingCount">0</strong><small>Cek bukti pembayaran</small></div>
+                <div class="dashboard-card"><span>Refund/Gagal</span><strong id="payRefundCount">0</strong><small>Butuh catatan admin</small></div>
+              </div>
+            </div>
+            <div class="panel"><h3>Daftar Pembayaran</h3><p class="help">Tombol cepat hanya mengubah status pembayaran, invoice, bukti, dan tanggal bayar.</p><div class="table-wrap"><table class="admin-table"><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Metode</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="paymentRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewShipping" data-view="pengiriman">
+          <div class="view-grid">
+            <div class="panel"><div class="section-title"><div><h3>Manajemen Pengiriman</h3><p>Kelola ekspedisi, ongkir, nomor resi, status kirim, dan alamat customer.</p></div><button class="btn small" type="button" data-view-target="pesanan">Edit detail order</button></div>
+              <div class="dashboard-grid">
+                <div class="dashboard-card"><span>Belum dikirim</span><strong id="shipPendingCount">0</strong><small>Perlu diproses</small></div>
+                <div class="dashboard-card"><span>Dikirim</span><strong id="shipSentCount">0</strong><small>Termasuk perjalanan</small></div>
+                <div class="dashboard-card"><span>Sampai</span><strong id="shipDoneCount">0</strong><small>Selesai diterima</small></div>
+                <div class="dashboard-card"><span>Tanpa resi</span><strong id="shipNoTrackingCount">0</strong><small>Order kirim tanpa tracking</small></div>
+              </div>
+            </div>
+            <div class="panel"><h3>Daftar Pengiriman</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Order</th><th>Customer</th><th>Ekspedisi</th><th>Resi</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="shippingRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewPromos" data-view="promo">
+          <div class="module-grid">
+            <div class="panel"><h3 id="promoFormTitle">Tambah Promo / Voucher</h3><p class="help">Data disimpan di collection <b>promotions</b>.</p><form id="promoForm" novalidate><input type="hidden" id="promoDocId"><div class="form-grid">
+              <div class="field"><label for="promoCode">Kode Voucher</label><input class="input" id="promoCode" type="text" maxlength="40" required placeholder="PARFUM10"></div>
+              <div class="field"><label for="promoStatus">Status</label><select id="promoStatus"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select></div>
+              <div class="field"><label for="promoDiscountType">Jenis Diskon</label><select id="promoDiscountType"><option value="Persen">Persen</option><option value="Nominal">Nominal</option></select></div>
+              <div class="field"><label for="promoDiscountValue">Nilai Diskon</label><input class="input" id="promoDiscountValue" type="number" min="0" inputmode="numeric" required placeholder="10"></div>
+              <div class="field"><label for="promoMinimumPurchase">Minimal Belanja</label><input class="input" id="promoMinimumPurchase" type="number" min="0" inputmode="numeric" placeholder="300000"></div>
+              <div class="field"><label for="promoUsageLimit">Kuota</label><input class="input" id="promoUsageLimit" type="number" min="0" inputmode="numeric" placeholder="100"></div>
+              <div class="field"><label for="promoUsedCount">Terpakai</label><input class="input" id="promoUsedCount" type="number" min="0" inputmode="numeric" placeholder="0"></div>
+              <div class="field"><label for="promoStartDate">Mulai</label><input class="input" id="promoStartDate" type="date"></div>
+              <div class="field"><label for="promoEndDate">Berakhir</label><input class="input" id="promoEndDate" type="date"></div>
+              <div class="field full"><label for="promoNote">Catatan</label><input class="input" id="promoNote" type="text" maxlength="220" placeholder="Promo launching parfum lokal"></div>
+            </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><button class="btn primary" id="savePromoBtn" type="submit">Simpan Promo</button><button class="btn" id="resetPromoBtn" type="button">Reset Promo</button></div></form><div class="notice hidden" id="promoMessage" role="status"></div></div>
+            <div class="panel"><h3>Daftar Promo</h3><div class="notice" id="promoSyncStatus">Menunggu login...</div><div class="table-wrap"><table class="admin-table"><thead><tr><th>Kode</th><th>Diskon</th><th>Minimal</th><th>Periode</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="promoRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewReviews" data-view="review">
+          <div class="module-grid">
+            <div class="panel"><h3 id="reviewFormTitle">Tambah Review</h3><p class="help">Kelola rating, komentar, dan status tampil review produk.</p><form id="reviewForm" novalidate><input type="hidden" id="reviewDocId"><div class="form-grid">
+              <div class="field full"><label for="reviewProduct">Produk</label><input class="input" id="reviewProduct" type="text" list="orderProductOptions" required maxlength="160" placeholder="Nama produk"></div>
+              <div class="field"><label for="reviewCustomer">Customer</label><input class="input" id="reviewCustomer" type="text" list="customerOptions" maxlength="100" placeholder="Nama customer"></div>
+              <div class="field"><label for="reviewRating">Rating</label><select id="reviewRating"><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></div>
+              <div class="field"><label for="reviewStatus">Status</label><select id="reviewStatus"><option value="Tampil">Tampil</option><option value="Disembunyikan">Disembunyikan</option><option value="Spam">Spam</option></select></div>
+              <div class="field full"><label for="reviewComment">Komentar</label><textarea id="reviewComment" maxlength="500" placeholder="Wanginya tahan lama, cocok malam hari..."></textarea></div>
+            </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><button class="btn primary" id="saveReviewBtn" type="submit">Simpan Review</button><button class="btn" id="resetReviewBtn" type="button">Reset Review</button></div></form><div class="notice hidden" id="reviewMessage" role="status"></div></div>
+            <div class="panel"><h3>Daftar Review</h3><div class="notice" id="reviewSyncStatus">Menunggu login...</div><div class="table-wrap"><table class="admin-table"><thead><tr><th>Produk</th><th>Customer</th><th>Rating</th><th>Komentar</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="reviewRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewSuppliers" data-view="supplier">
+          <div class="module-grid">
+            <div class="panel"><h3 id="supplierFormTitle">Tambah Supplier</h3><p class="help">Data pemasok parfum niche, designer, Timur Tengah, dan lokal.</p><form id="supplierForm" novalidate><input type="hidden" id="supplierDocId"><div class="form-grid">
+              <div class="field"><label for="supplierName">Nama Supplier</label><input class="input" id="supplierName" type="text" maxlength="120" required placeholder="Distributor Timur Tengah"></div>
+              <div class="field"><label for="supplierStatus">Status</label><select id="supplierStatus"><option value="Aktif">Aktif</option><option value="Nonaktif">Nonaktif</option></select></div>
+              <div class="field"><label for="supplierBrand">Brand</label><input class="input" id="supplierBrand" type="text" maxlength="160" placeholder="Lattafa, Afnan"></div>
+              <div class="field"><label for="supplierCategory">Kategori</label><input class="input" id="supplierCategory" type="text" maxlength="80" placeholder="Timur Tengah"></div>
+              <div class="field"><label for="supplierContact">Kontak</label><input class="input" id="supplierContact" type="text" maxlength="100" placeholder="0812xxxx"></div>
+              <div class="field"><label for="supplierLocation">Lokasi</label><input class="input" id="supplierLocation" type="text" maxlength="120" placeholder="Jakarta"></div>
+              <div class="field full"><label for="supplierNote">Catatan</label><textarea id="supplierNote" maxlength="420" placeholder="Catatan harga modal, MOQ, kualitas, tempo pembayaran"></textarea></div>
+            </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><button class="btn primary" id="saveSupplierBtn" type="submit">Simpan Supplier</button><button class="btn" id="resetSupplierBtn" type="button">Reset Supplier</button></div></form><div class="notice hidden" id="supplierMessage" role="status"></div></div>
+            <div class="panel"><h3>Daftar Supplier</h3><div class="notice" id="supplierSyncStatus">Menunggu login...</div><div class="table-wrap"><table class="admin-table"><thead><tr><th>Supplier</th><th>Brand</th><th>Kategori</th><th>Kontak</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="supplierRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewReturns" data-view="retur">
+          <div class="module-grid">
+            <div class="panel"><div class="panel-head"><div><h3 id="returnFormTitle">Tambah Retur / Komplain</h3><p class="help">Catat retur, refund, tukar barang, atau komplain customer.</p></div><button class="btn small good" id="autoReturnIdBtn" type="button">ID Retur</button></div><form id="returnForm" novalidate><input type="hidden" id="returnDocId"><div class="form-grid">
+              <div class="field"><label for="returnId">ID Retur</label><input class="input" id="returnId" type="text" maxlength="40" required placeholder="RET-001"></div>
+              <div class="field"><label for="returnStatus">Status</label><select id="returnStatus"><option value="Menunggu Review">Menunggu Review</option><option value="Diproses">Diproses</option><option value="Disetujui">Disetujui</option><option value="Ditolak">Ditolak</option><option value="Selesai">Selesai</option></select></div>
+              <div class="field"><label for="returnOrderId">ID Pesanan</label><input class="input" id="returnOrderId" type="text" maxlength="80" placeholder="ORD-001"></div>
+              <div class="field"><label for="returnCustomer">Customer</label><input class="input" id="returnCustomer" type="text" list="customerOptions" maxlength="100" placeholder="Nama customer"></div>
+              <div class="field full"><label for="returnProduct">Produk</label><input class="input" id="returnProduct" type="text" list="orderProductOptions" maxlength="160" placeholder="Produk terkait"></div>
+              <div class="field full"><label for="returnReason">Alasan</label><textarea id="returnReason" maxlength="420" placeholder="Barang bocor / salah kirim / aroma tidak sesuai"></textarea></div>
+              <div class="field full"><label for="returnResolution">Solusi</label><input class="input" id="returnResolution" type="text" maxlength="180" placeholder="Refund / tukar barang / voucher"></div>
+            </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><button class="btn primary" id="saveReturnBtn" type="submit">Simpan Retur</button><button class="btn" id="resetReturnBtn" type="button">Reset Retur</button></div></form><div class="notice hidden" id="returnMessage" role="status"></div></div>
+            <div class="panel"><h3>Daftar Retur</h3><div class="notice" id="returnSyncStatus">Menunggu login...</div><div class="table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>Order</th><th>Customer</th><th>Produk</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="returnRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewStock" data-view="stok">
+          <div class="module-grid">
+            <div class="panel"><h3>Tambah Riwayat Stok</h3><p class="help">Catat stok masuk, keluar, atau penyesuaian. Bisa otomatis mengubah stok produk.</p><form id="stockMoveForm" novalidate><input type="hidden" id="stockMoveDocId"><div class="form-grid">
+              <div class="field full"><label for="stockMoveProduct">Produk</label><input class="input" id="stockMoveProduct" type="text" list="orderProductOptions" required maxlength="160" placeholder="Nama produk"></div>
+              <div class="field"><label for="stockMoveType">Tipe</label><select id="stockMoveType"><option value="in">Stok Masuk</option><option value="out">Stok Keluar</option><option value="adjustment">Set Stok ke Jumlah Ini</option></select></div>
+              <div class="field"><label for="stockMoveQty">Jumlah</label><input class="input" id="stockMoveQty" type="number" min="0" inputmode="numeric" required placeholder="10"></div>
+              <div class="field full"><label><input id="stockMoveApply" type="checkbox" checked> Terapkan perubahan ke stok produk</label></div>
+              <div class="field full"><label for="stockMoveNote">Catatan</label><input class="input" id="stockMoveNote" type="text" maxlength="220" placeholder="Restock supplier / koreksi opname"></div>
+            </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><button class="btn primary" id="saveStockMoveBtn" type="submit">Simpan Riwayat</button><button class="btn" id="resetStockMoveBtn" type="button">Reset Stok</button></div></form><div class="notice hidden" id="stockMoveMessage" role="status"></div></div>
+            <div class="panel"><h3>Riwayat Stok</h3><div class="notice" id="stockMoveSyncStatus">Menunggu login...</div><div class="table-wrap"><table class="admin-table"><thead><tr><th>Tanggal</th><th>Produk</th><th>Tipe</th><th>Jumlah</th><th>Catatan</th><th>Admin</th></tr></thead><tbody id="stockMoveRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewActivity" data-view="activity">
+          <div class="panel"><div class="section-title"><div><h3>Activity Log Admin</h3><p>Riwayat aksi penting admin. Data disimpan di collection <b>activityLogs</b>.</p></div><button class="btn small" type="button" id="refreshActivityBtn">Refresh Tampilan</button></div><div class="notice" id="activitySyncStatus">Menunggu login...</div><div class="table-wrap"><table class="admin-table"><thead><tr><th>Waktu</th><th>Admin</th><th>Aksi</th><th>Target</th><th>Detail</th></tr></thead><tbody id="activityRows"><tr><td colspan="5">Belum ada data.</td></tr></tbody></table></div></div>
+        </section>
+
+        <section class="admin-view" id="viewRoles" data-view="roles">
+          <div class="module-grid">
+            <div class="panel"><h3 id="roleFormTitle">Kelola Admin & Role</h3><p class="help">Mengatur dokumen di collection <b>users</b>. Ini tidak membuat akun Firebase Auth baru; akun harus dibuat di Firebase Authentication.</p><form id="roleForm" novalidate><input type="hidden" id="roleDocId"><div class="form-grid">
+              <div class="field full"><label for="roleUid">UID Firebase Auth</label><input class="input" id="roleUid" type="text" maxlength="160" required placeholder="UID user dari Firebase Authentication"></div>
+              <div class="field"><label for="roleEmail">Email</label><input class="input" id="roleEmail" type="email" maxlength="160" placeholder="admin@email.com"></div>
+              <div class="field"><label for="roleName">Nama</label><input class="input" id="roleName" type="text" maxlength="120" placeholder="Admin Produk"></div>
+              <div class="field"><label for="roleSelect">Role</label><select id="roleSelect"><option value="owner">owner</option><option value="admin">admin</option><option value="editor">editor</option><option value="viewer">viewer</option></select></div>
+              <div class="field"><label for="roleActive">Status</label><select id="roleActive"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+              <div class="field full"><label for="roleNote">Catatan</label><input class="input" id="roleNote" type="text" maxlength="220" placeholder="Hak akses staff"></div>
+            </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><button class="btn primary" id="saveRoleBtn" type="submit">Simpan Role</button><button class="btn" id="resetRoleBtn" type="button">Reset Role</button></div></form><div class="notice hidden" id="roleMessage" role="status"></div></div>
+            <div class="panel"><h3>Daftar Admin</h3><div class="notice" id="roleSyncStatus">Menunggu login...</div><div class="table-wrap"><table class="admin-table"><thead><tr><th>UID</th><th>Email</th><th>Nama</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="roleRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div></div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewSettings" data-view="settings">
+          <div class="panel"><div class="section-title"><div><h3>Pengaturan Toko</h3><p>Identitas toko, kontak, rekening, QRIS, kebijakan retur, dan jam operasional. Disimpan di <b>settings/store</b>.</p></div><span class="status-pill" id="settingSyncStatus">Menunggu login</span></div><form id="settingsForm" novalidate><div class="form-grid">
+            <div class="field"><label for="settingShopName">Nama Toko</label><input class="input" id="settingShopName" type="text" maxlength="120" placeholder="Dirac Parfum"></div>
+            <div class="field"><label for="settingLogoUrl">Logo URL</label><input class="input" id="settingLogoUrl" type="text" maxlength="600" placeholder="logo1.webp / https://..."></div>
+            <div class="field"><label for="settingWhatsapp">WhatsApp</label><input class="input" id="settingWhatsapp" type="text" maxlength="80" placeholder="0812xxxx"></div>
+            <div class="field"><label for="settingEmail">Email Toko</label><input class="input" id="settingEmail" type="email" maxlength="160" placeholder="toko@email.com"></div>
+            <div class="field full"><label for="settingAddress">Alamat Toko</label><textarea id="settingAddress" maxlength="360" placeholder="Alamat toko / gudang"></textarea></div>
+            <div class="field"><label for="settingInstagram">Instagram</label><input class="input" id="settingInstagram" type="text" maxlength="160" placeholder="@diracparfum"></div>
+            <div class="field"><label for="settingTiktok">TikTok</label><input class="input" id="settingTiktok" type="text" maxlength="160" placeholder="@diracparfum"></div>
+            <div class="field"><label for="settingBankAccount">Rekening</label><input class="input" id="settingBankAccount" type="text" maxlength="220" placeholder="BCA 123xxx a.n. Dirac"></div>
+            <div class="field"><label for="settingQris">QRIS URL</label><input class="input" id="settingQris" type="text" maxlength="600" placeholder="Link gambar QRIS"></div>
+            <div class="field"><label for="settingDefaultShippingCost">Ongkir Default</label><input class="input" id="settingDefaultShippingCost" type="number" min="0" inputmode="numeric" placeholder="15000"></div>
+            <div class="field"><label for="settingHours">Jam Operasional</label><input class="input" id="settingHours" type="text" maxlength="160" placeholder="Senin-Sabtu 09.00-18.00"></div>
+            <div class="field full"><label for="settingReturnPolicy">Kebijakan Retur</label><textarea id="settingReturnPolicy" maxlength="1000" placeholder="Retur maksimal 2x24 jam jika barang rusak..."></textarea></div>
+            <div class="field full"><label for="settingAbout">Tentang Toko</label><textarea id="settingAbout" maxlength="1000" placeholder="Toko parfum niche, designer, Timur Tengah, dan lokal..."></textarea></div>
+          </div><button class="btn primary" id="saveSettingsBtn" type="submit" style="width:100%;margin-top:10px">Simpan Pengaturan</button></form><div class="notice hidden" id="settingsMessage" role="status"></div></div>
+        </section>
+
+        <section class="admin-view" id="viewRules" data-view="rules">
+          <div class="panel"><div class="section-title"><div><h3>Firestore Rules Matang</h3><p>Salin rules ini ke Firebase Console &gt; Firestore Database &gt; Rules. UI hanya menyiapkan template; pemasangan rules harus dilakukan di Firebase Console.</p></div><button class="btn small good" id="copyRulesBtn" type="button">Copy Rules</button></div><div class="notice warn">Rules ini memakai collection <b>users/{uid}</b> dengan field role: owner/admin/editor/viewer dan active: true. Owner/admin boleh hapus dan kelola role; editor boleh tambah/edit data bisnis; viewer hanya baca.</div><pre id="rulesPre" style="white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:14px;max-height:68vh;overflow:auto;color:#dbeafe"></pre></div>
+        </section>
+
         <section class="admin-view" id="viewReports" data-view="laporan">
           <div class="view-grid">
             <div class="panel">
               <div class="section-title"><div><h3>Laporan Penjualan</h3><p>Rekap omzet, laba, kategori, stok, dan produk terlaris dari data produk + pesanan.</p></div><button class="btn small" type="button" data-view-target="dashboard">Kembali ke dashboard</button></div>
+              <div class="advanced-toolbar">
+                <input class="input" id="reportStartDate" type="date" aria-label="Tanggal mulai laporan">
+                <input class="input" id="reportEndDate" type="date" aria-label="Tanggal akhir laporan">
+                <button class="btn" id="clearReportFilterBtn" type="button">Reset tanggal</button>
+              </div>
+              <div class="notice" id="reportFilterInfo">Filter tanggal belum dipilih. Ringkasan periode memakai semua pesanan lunas.</div>
               <div class="dashboard-grid">
+                <div class="dashboard-card"><span>Omzet periode</span><strong id="reportFilteredRevenue">Rp 0</strong><small id="reportFilteredOrders">0 pesanan di periode</small></div>
+                <div class="dashboard-card"><span>Laba periode</span><strong id="reportFilteredProfit">Rp 0</strong><small id="reportFilteredMargin">Margin 0%</small></div>
                 <div class="dashboard-card"><span>Harian</span><strong id="reportDaily">Rp 0</strong><small>Pesanan lunas hari ini</small></div>
                 <div class="dashboard-card"><span>Mingguan</span><strong id="reportWeekly">Rp 0</strong><small>7 hari terakhir</small></div>
                 <div class="dashboard-card"><span>Bulanan</span><strong id="reportMonthly">Rp 0</strong><small>Bulan berjalan</small></div>
@@ -592,6 +765,13 @@
     const productsRef = collection(db, 'products');
     const ordersRef = collection(db, 'orders');
     const customersRef = collection(db, 'customers');
+    const promotionsRef = collection(db, 'promotions');
+    const reviewsRef = collection(db, 'reviews');
+    const suppliersRef = collection(db, 'suppliers');
+    const returnsRef = collection(db, 'returns');
+    const stockMovementsRef = collection(db, 'stockMovements');
+    const activityLogsRef = collection(db, 'activityLogs');
+    const usersRef = collection(db, SECURITY_CONFIG.ADMIN_USERS_COLLECTION);
     const DRAFT_KEY = 'dirac-admin-product-draft-v2';
     const FILTER_KEY = 'dirac-admin-filters-v2';
     const EMAIL_KEY = 'dirac-admin-email-v1';
@@ -619,9 +799,26 @@
     let products = [];
     let orders = [];
     let customers = [];
+    let promotions = [];
+    let reviews = [];
+    let suppliers = [];
+    let returnsList = [];
+    let stockMovements = [];
+    let activityLogs = [];
+    let adminUsers = [];
+    let storeSettings = {};
+    let orderDraftItems = [];
     let unsubscribeProducts = null;
     let unsubscribeOrders = null;
     let unsubscribeCustomers = null;
+    let unsubscribePromotions = null;
+    let unsubscribeReviews = null;
+    let unsubscribeSuppliers = null;
+    let unsubscribeReturns = null;
+    let unsubscribeStockMovements = null;
+    let unsubscribeActivityLogs = null;
+    let unsubscribeAdminUsers = null;
+    let unsubscribeStoreSettings = null;
     let busy = false;
     let dirty = false;
     let suppressDraft = false;
@@ -820,18 +1017,55 @@
     }
     function normalizeOrder(docSnap){
       const data = docSnap.data() || {};
+      const normalizedItems = Array.isArray(data.items) ? data.items.map(item => ({
+        productDocId: String(item.productDocId || '').trim(),
+        productId: Number(item.productId || 0),
+        productName: String(item.productName || item.title || '').trim(),
+        brand: String(item.brand || '').trim(),
+        category: String(item.category || '').trim(),
+        price: Number(item.price || 0),
+        costPrice: Number(item.costPrice || 0),
+        qty: Number(item.qty || 1),
+        subtotal: Number(item.subtotal || (Number(item.price || 0) * Number(item.qty || 1)))
+      })).filter(item => item.productName) : [];
+      const fallbackProductName = String(data.productName || '').trim();
+      const fallbackQty = Number(data.qty || 1);
+      const fallbackTotal = Number(data.total || 0);
+      if(!normalizedItems.length && fallbackProductName){
+        const product = findProductByName(fallbackProductName);
+        normalizedItems.push({
+          productDocId: product ? product.docId : '', productId: product ? Number(product.id || 0) : 0,
+          productName: fallbackProductName, brand: product ? product.brand : '', category: product ? product.category : '',
+          price: fallbackQty ? Math.round(fallbackTotal / Math.max(fallbackQty,1)) : Number(product && product.price || 0),
+          costPrice: Number(product && product.costPrice || 0), qty: fallbackQty, subtotal: fallbackTotal
+        });
+      }
+      const summaryName = normalizedItems.length ? normalizedItems.map(item => item.productName + ' x' + item.qty).join(', ') : fallbackProductName;
+      const totalQty = normalizedItems.length ? normalizedItems.reduce((sum,item)=>sum + Number(item.qty || 0), 0) : fallbackQty;
+      const totalItems = normalizedItems.reduce((sum,item)=>sum + Number(item.subtotal || 0), 0);
       return {
         docId: docSnap.id,
         orderId: String(data.orderId || docSnap.id || '').trim(),
         customerName: String(data.customerName || '').trim(),
-        productName: String(data.productName || '').trim(),
-        qty: Number(data.qty || 1),
-        total: Number(data.total || 0),
+        productName: summaryName,
+        items: normalizedItems,
+        qty: totalQty,
+        total: Number(data.total || totalItems || 0),
         paymentMethod: String(data.paymentMethod || 'Transfer Bank').trim(),
         paymentStatus: String(data.paymentStatus || 'Belum Bayar').trim(),
+        invoiceNumber: String(data.invoiceNumber || '').trim(),
+        paymentProof: String(data.paymentProof || '').trim(),
+        paidAt: String(data.paidAt || '').trim(),
         orderStatus: String(data.orderStatus || 'Menunggu Pembayaran').trim(),
         courier: String(data.courier || '').trim(),
+        shippingStatus: String(data.shippingStatus || 'Belum Dikirim').trim(),
+        shippingCost: Number(data.shippingCost || 0),
         trackingNumber: String(data.trackingNumber || '').trim(),
+        shippingAddress: String(data.shippingAddress || '').trim(),
+        shippedAt: String(data.shippedAt || '').trim(),
+        receivedAt: String(data.receivedAt || '').trim(),
+        stockApplied: data.stockApplied === true,
+        stockAppliedAt: data.stockAppliedAt || null,
         note: String(data.note || '').trim(),
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
@@ -855,6 +1089,38 @@
         createdAtMs: toMillis(data.createdAt),
         updatedAtMs: toMillis(data.updatedAt)
       };
+    }
+
+    function normalizePromotion(docSnap){
+      const data = docSnap.data() || {};
+      return { docId:docSnap.id, code:String(data.code || '').trim(), discountType:String(data.discountType || 'Persen').trim(), discountValue:Number(data.discountValue || 0), minimumPurchase:Number(data.minimumPurchase || 0), usageLimit:Number(data.usageLimit || 0), usedCount:Number(data.usedCount || 0), startDate:String(data.startDate || '').trim(), endDate:String(data.endDate || '').trim(), status:String(data.status || 'Aktif').trim(), note:String(data.note || '').trim(), createdAt:data.createdAt || null, updatedAt:data.updatedAt || null, createdAtMs:toMillis(data.createdAt), updatedAtMs:toMillis(data.updatedAt) };
+    }
+    function normalizeReview(docSnap){
+      const data = docSnap.data() || {};
+      return { docId:docSnap.id, productName:String(data.productName || '').trim(), customerName:String(data.customerName || '').trim(), rating:Number(data.rating || 5), status:String(data.status || 'Tampil').trim(), comment:String(data.comment || '').trim(), createdAt:data.createdAt || null, updatedAt:data.updatedAt || null, createdAtMs:toMillis(data.createdAt), updatedAtMs:toMillis(data.updatedAt) };
+    }
+    function normalizeSupplier(docSnap){
+      const data = docSnap.data() || {};
+      return { docId:docSnap.id, name:String(data.name || '').trim(), brand:String(data.brand || '').trim(), category:String(data.category || '').trim(), contact:String(data.contact || '').trim(), location:String(data.location || '').trim(), status:String(data.status || 'Aktif').trim(), note:String(data.note || '').trim(), createdAt:data.createdAt || null, updatedAt:data.updatedAt || null, createdAtMs:toMillis(data.createdAt), updatedAtMs:toMillis(data.updatedAt) };
+    }
+    function normalizeReturn(docSnap){
+      const data = docSnap.data() || {};
+      return { docId:docSnap.id, returnId:String(data.returnId || docSnap.id || '').trim(), orderId:String(data.orderId || '').trim(), customerName:String(data.customerName || '').trim(), productName:String(data.productName || '').trim(), reason:String(data.reason || '').trim(), resolution:String(data.resolution || '').trim(), status:String(data.status || 'Menunggu Review').trim(), createdAt:data.createdAt || null, updatedAt:data.updatedAt || null, createdAtMs:toMillis(data.createdAt), updatedAtMs:toMillis(data.updatedAt) };
+    }
+    function normalizeStockMovement(docSnap){
+      const data = docSnap.data() || {};
+      return { docId:docSnap.id, productDocId:String(data.productDocId || '').trim(), productId:Number(data.productId || 0), productName:String(data.productName || '').trim(), type:String(data.type || 'in').trim(), quantity:Number(data.quantity || 0), stockBefore:Number(data.stockBefore || 0), stockAfter:Number(data.stockAfter || 0), note:String(data.note || '').trim(), source:String(data.source || 'manual').trim(), adminEmail:String(data.adminEmail || '').trim(), createdAt:data.createdAt || null, createdAtMs:toMillis(data.createdAt) };
+    }
+    function normalizeActivityLog(docSnap){
+      const data = docSnap.data() || {};
+      return { docId:docSnap.id, adminEmail:String(data.adminEmail || '').trim(), action:String(data.action || '').trim(), targetType:String(data.targetType || '').trim(), targetId:String(data.targetId || '').trim(), detail:String(data.detail || '').trim(), createdAt:data.createdAt || null, createdAtMs:toMillis(data.createdAt) || Date.now() };
+    }
+    function normalizeAdminUser(docSnap){
+      const data = docSnap.data() || {};
+      return { docId:docSnap.id, uid:String(data.uid || docSnap.id || '').trim(), email:String(data.email || '').trim(), name:String(data.name || data.displayName || '').trim(), role:String(data.role || '').trim(), active:data.active !== false && data.disabled !== true, note:String(data.note || '').trim(), createdAt:data.createdAt || null, updatedAt:data.updatedAt || null, createdAtMs:toMillis(data.createdAt), updatedAtMs:toMillis(data.updatedAt) };
+    }
+    function normalizeSettings(data){
+      return { shopName:String(data.shopName || '').trim(), logoUrl:String(data.logoUrl || '').trim(), whatsapp:String(data.whatsapp || '').trim(), email:String(data.email || '').trim(), address:String(data.address || '').trim(), instagram:String(data.instagram || '').trim(), tiktok:String(data.tiktok || '').trim(), bankAccount:String(data.bankAccount || '').trim(), qris:String(data.qris || '').trim(), defaultShippingCost:Number(data.defaultShippingCost || 0), returnPolicy:String(data.returnPolicy || '').trim(), about:String(data.about || '').trim(), hours:String(data.hours || '').trim() };
     }
     function firebaseMessage(error){
       const code = String(error && error.code || '');
@@ -1437,6 +1703,7 @@
         const targetDocId = currentDocId || padDocId(data.id);
         if(!currentDocId) data.createdAt = serverTimestamp();
         await setDoc(doc(db, 'products', targetDocId), data, { merge:true });
+        await writeActivityLog(currentDocId ? 'update' : 'create', 'products', data.title, 'Menyimpan produk');
         setNotice(els.formMessage, 'Produk berhasil disimpan: ' + data.title, 'good');
         showToast('Produk tersimpan');
         clearDraft();
@@ -1455,6 +1722,7 @@
       try{
         await requireSensitiveReauth('menghapus produk #' + product.id);
         await deleteDoc(doc(db, 'products', product.docId));
+        await writeActivityLog('delete', 'products', product.title, 'Menghapus produk');
         if(els.docId.value === product.docId) resetForm();
         showToast('Produk dihapus');
       }catch(error){ alert('Gagal hapus: ' + firebaseMessage(error)); }
@@ -1506,6 +1774,7 @@
           updatedAt: serverTimestamp()
         };
         await setDoc(doc(db, 'products', padDocId(next)), data, { merge:false });
+        await writeActivityLog('create', 'products', data.title, 'Duplikat produk');
         showToast('Produk diduplikat ke ID ' + next);
       }catch(error){
         alert('Gagal duplikat: ' + firebaseMessage(error));
@@ -1547,6 +1816,14 @@
       });
       startOrdersListening();
       startCustomersListening();
+      startPromotionsListening();
+      startReviewsListening();
+      startSuppliersListening();
+      startReturnsListening();
+      startStockMovementsListening();
+      startActivityLogsListening();
+      startAdminUsersListening();
+      startStoreSettingsListening();
     }
 
     function sanitizeDocId(value, fallback='doc'){
@@ -1679,23 +1956,96 @@
         setNotice(els.customerSyncStatus, 'Gagal membaca pelanggan: ' + firebaseMessage(error), 'danger');
       });
     }
+
     function autoOrderId(){
       const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
       const countToday = orders.filter(o => String(o.orderId || '').includes(today)).length + 1;
       els.orderId.value = 'ORD-' + today + '-' + String(countToday).padStart(3,'0');
     }
+    function productToOrderItem(product, qty){
+      return {
+        productDocId: product ? product.docId : '', productId: product ? Number(product.id || 0) : 0,
+        productName: product ? product.title : els.orderProduct.value.trim(), brand: product ? product.brand : '', category: product ? product.category : '',
+        price: Number(product && product.price || 0), costPrice: Number(product && product.costPrice || 0), qty: Number(qty || 1), subtotal: Number(product && product.price || 0) * Number(qty || 1)
+      };
+    }
+    function renderOrderDraftItems(){
+      const box = $('orderItemsList');
+      if(!box) return;
+      if(!orderDraftItems.length){ box.innerHTML = '<div class="empty">Belum ada item. Tambahkan minimal satu produk, atau isi produk tunggal lalu simpan.</div>'; return; }
+      box.innerHTML = orderDraftItems.map((item,idx) => `<div class="compact-item"><strong>${escapeHtml(item.productName)} x${escapeHtml(item.qty)} • ${rupiah(item.subtotal)}</strong><span>${escapeHtml(item.brand || '-')} • productId ${escapeHtml(item.productId || '-')} • modal ${rupiah(item.costPrice)}</span><div class="row-actions" style="margin-top:8px"><button class="btn small danger" type="button" data-remove-order-item="${idx}">Hapus item</button></div></div>`).join('');
+    }
+    function syncOrderTotalFromItems(){
+      if(!orderDraftItems.length) return;
+      els.orderTotal.value = orderDraftItems.reduce((sum,item)=>sum + Number(item.subtotal || 0), 0);
+    }
+    function addOrderItem(){
+      const name = els.orderProduct.value.trim();
+      const qty = Number(els.orderQty.value || 1);
+      if(!name){ showToast('Pilih atau ketik produk dulu'); return; }
+      if(!Number.isInteger(qty) || qty < 1){ showToast('Jumlah item minimal 1'); return; }
+      const product = findProductByName(name);
+      const item = productToOrderItem(product, qty);
+      if(!product){
+        item.price = 0;
+        item.subtotal = 0;
+      }
+      orderDraftItems.push(item);
+      els.orderProduct.value = '';
+      els.orderQty.value = 1;
+      renderOrderDraftItems();
+      syncOrderTotalFromItems();
+    }
+    function removeOrderItem(index){
+      orderDraftItems.splice(index, 1);
+      renderOrderDraftItems();
+      syncOrderTotalFromItems();
+    }
+    function collectOrderItems(){
+      if(orderDraftItems.length){
+        return orderDraftItems.map(item => ({...item, qty:Number(item.qty || 1), price:Number(item.price || 0), costPrice:Number(item.costPrice || 0), subtotal:Number(item.subtotal || 0)}));
+      }
+      const productName = els.orderProduct.value.trim();
+      if(!productName) return [];
+      const qty = Number(els.orderQty.value || 1);
+      const total = Number(els.orderTotal.value || 0);
+      const product = findProductByName(productName);
+      const item = productToOrderItem(product, qty);
+      if(!product){ item.price = qty ? Math.round(total / Math.max(qty,1)) : total; item.subtotal = total; }
+      else if(!item.subtotal && total){ item.subtotal = total; }
+      return [item];
+    }
     function collectOrder(){
       const orderId = els.orderId.value.trim();
       const customerName = els.orderCustomer.value.trim();
-      const productName = els.orderProduct.value.trim();
-      const qty = Number(els.orderQty.value || 1);
-      const total = Number(els.orderTotal.value || 0);
+      const items = collectOrderItems();
+      const qty = items.reduce((sum,item)=>sum + Number(item.qty || 0), 0);
+      const itemTotal = items.reduce((sum,item)=>sum + Number(item.subtotal || 0), 0);
+      const total = Number(els.orderTotal.value || itemTotal || 0);
+      const shippingCost = Number($('orderShippingCost').value || 0);
       if(!orderId) throw new Error('ID pesanan wajib diisi.');
       if(!customerName) throw new Error('Nama pelanggan wajib diisi.');
-      if(!productName) throw new Error('Produk wajib diisi.');
-      if(!Number.isInteger(qty) || qty < 1) throw new Error('Jumlah harus angka bulat minimal 1.');
+      if(!items.length) throw new Error('Minimal satu produk/item wajib diisi.');
+      if(!Number.isInteger(qty) || qty < 1) throw new Error('Total jumlah item minimal 1.');
       if(!Number.isFinite(total) || total < 0 || !Number.isInteger(total)) throw new Error('Total harga harus angka bulat dan tidak boleh minus.');
-      return { orderId, customerName, productName, qty, total, paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), updatedAt: serverTimestamp() };
+      if(!Number.isFinite(shippingCost) || shippingCost < 0 || !Number.isInteger(shippingCost)) throw new Error('Ongkir harus angka bulat dan tidak boleh minus.');
+      const currentDocId = els.orderDocId.value.trim();
+      const existing = currentDocId ? orders.find(o => o.docId === currentDocId) : null;
+      return { orderId, customerName, items, productName: items.map(item => item.productName + ' x' + item.qty).join(', '), qty, total, paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, invoiceNumber: $('orderInvoiceNumber').value.trim(), paymentProof: $('orderPaymentProof').value.trim(), paidAt: $('orderPaidAt').value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, shippingStatus: $('orderShippingStatus').value, shippingCost, trackingNumber: els.orderTracking.value.trim(), shippingAddress: $('orderAddress').value.trim(), shippedAt: $('orderShippedAt').value, receivedAt: $('orderReceivedAt').value, stockApplied: Boolean(existing && existing.stockApplied), note: els.orderNote.value.trim(), updatedAt: serverTimestamp() };
+    }
+    async function applyStockForOrder(order, orderDocId){
+      let applied = 0;
+      for(const item of (order.items || [])){
+        const product = item.productDocId ? findProduct(item.productDocId) : findProductByName(item.productName);
+        if(!product) continue;
+        const qty = Number(item.qty || 0);
+        const before = Number(product.stock || 0);
+        const after = Math.max(0, before - qty);
+        await updateDoc(doc(db, 'products', product.docId), { stock: after, soldCount: Number(product.soldCount || 0) + qty, updatedAt: serverTimestamp() });
+        await createStockMovementRecord({ product, type:'out', quantity:qty, stockBefore:before, stockAfter:after, note:'Stok keluar otomatis dari ' + order.orderId, source:'order:' + orderDocId });
+        applied += 1;
+      }
+      return applied;
     }
     async function saveOrder(event){
       event.preventDefault();
@@ -1708,6 +2058,11 @@
         const targetDocId = currentDocId || sanitizeDocId(data.orderId, 'order-' + Date.now());
         if(!currentDocId) data.createdAt = serverTimestamp();
         await setDoc(doc(db, 'orders', targetDocId), data, { merge:true });
+        if($('orderApplyStock').checked && isPaid(data) && !data.stockApplied){
+          const applied = await applyStockForOrder(data, targetDocId);
+          if(applied){ await updateDoc(doc(db, 'orders', targetDocId), { stockApplied:true, stockAppliedAt: serverTimestamp(), updatedAt: serverTimestamp() }); }
+        }
+        await writeActivityLog(currentDocId ? 'update' : 'create', 'orders', data.orderId, 'Menyimpan pesanan dengan ' + data.items.length + ' item');
         setNotice(els.orderMessage, 'Pesanan berhasil disimpan: ' + data.orderId, 'good');
         resetOrderForm();
         showToast('Pesanan tersimpan');
@@ -1718,6 +2073,10 @@
       els.orderForm.reset();
       els.orderDocId.value = '';
       els.orderQty.value = 1;
+      $('orderShippingStatus').value = 'Belum Dikirim';
+      $('orderApplyStock').checked = false;
+      orderDraftItems = [];
+      renderOrderDraftItems();
       els.orderFormTitle.textContent = 'Tambah Pesanan';
       hideNotice(els.orderMessage);
     }
@@ -1726,15 +2085,26 @@
       els.orderDocId.value = order.docId;
       els.orderId.value = order.orderId;
       els.orderCustomer.value = order.customerName;
-      els.orderProduct.value = order.productName;
-      els.orderQty.value = order.qty;
+      orderDraftItems = (order.items || []).map(item => ({...item}));
+      els.orderProduct.value = '';
+      els.orderQty.value = 1;
       els.orderTotal.value = order.total;
       els.orderPaymentMethod.value = order.paymentMethod || 'Transfer Bank';
       els.orderPaymentStatus.value = order.paymentStatus || 'Belum Bayar';
+      $('orderInvoiceNumber').value = order.invoiceNumber || '';
+      $('orderPaidAt').value = order.paidAt || '';
+      $('orderPaymentProof').value = order.paymentProof || '';
       els.orderStatus.value = order.orderStatus || 'Menunggu Pembayaran';
       els.orderCourier.value = order.courier || '';
+      $('orderShippingStatus').value = order.shippingStatus || 'Belum Dikirim';
+      $('orderShippingCost').value = order.shippingCost || 0;
+      $('orderShippedAt').value = order.shippedAt || '';
+      $('orderReceivedAt').value = order.receivedAt || '';
       els.orderTracking.value = order.trackingNumber || '';
+      $('orderAddress').value = order.shippingAddress || '';
+      $('orderApplyStock').checked = false;
       els.orderNote.value = order.note || '';
+      renderOrderDraftItems();
       els.orderFormTitle.textContent = 'Edit Pesanan';
       switchView('pesanan');
       window.scrollTo({ top: 0, behavior:'smooth' });
@@ -1745,14 +2115,16 @@
       catch(error){ alert(error.message); return; }
       if(!confirm('Hapus pesanan ' + order.orderId + '?')) return;
       setBusy(true);
-      try{ await requireSensitiveReauth('menghapus pesanan ' + order.orderId); await deleteDoc(doc(db, 'orders', order.docId)); showToast('Pesanan dihapus'); }
+      try{ await requireSensitiveReauth('menghapus pesanan ' + order.orderId); await deleteDoc(doc(db, 'orders', order.docId)); await writeActivityLog('delete','orders',order.orderId,'Menghapus pesanan'); showToast('Pesanan dihapus'); }
       catch(error){ alert('Gagal hapus pesanan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     function renderOrders(){
       if(!els.orderRows) return;
+      renderPayments();
+      renderShipping();
       if(!orders.length){ els.orderRows.innerHTML = '<tr><td colspan="6">Belum ada pesanan.</td></tr>'; return; }
-      els.orderRows.innerHTML = orders.slice(0,80).map(o => `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${new Date(o.createdAtMs).toLocaleDateString('id-ID')}</span></td><td>${escapeHtml(o.customerName)}</td><td>${escapeHtml(o.productName)}<br><span class="muted">Qty ${escapeHtml(o.qty)}</span></td><td>${rupiah(o.total)}<br><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span></td><td><span class="status-pill ${statusClass(o.orderStatus)}">${escapeHtml(o.orderStatus)}</span><br><span class="muted">${escapeHtml([o.courier,o.trackingNumber].filter(Boolean).join(' • ') || '-')}</span></td><td><div class="row-actions"><button class="btn small primary" type="button" data-order-action="edit" data-doc="${escapeHtml(o.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" type="button" data-order-action="delete" data-doc="${escapeHtml(o.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('');
+      els.orderRows.innerHTML = orders.slice(0,80).map(o => `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${new Date(o.createdAtMs).toLocaleDateString('id-ID')}</span>${o.stockApplied ? '<br><span class="status-pill good">stok applied</span>' : ''}</td><td>${escapeHtml(o.customerName)}</td><td>${escapeHtml(o.productName)}<br><span class="muted">Total item ${escapeHtml(o.qty)}</span></td><td>${rupiah(o.total)}<br><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span></td><td><span class="status-pill ${statusClass(o.orderStatus)}">${escapeHtml(o.orderStatus)}</span><br><span class="muted">${escapeHtml([o.courier,o.trackingNumber].filter(Boolean).join(' • ') || '-')}</span></td><td><div class="row-actions"><button class="btn small primary" type="button" data-order-action="edit" data-doc="${escapeHtml(o.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" type="button" data-order-action="delete" data-doc="${escapeHtml(o.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('');
     }
     function collectCustomer(){
       const name = els.customerName.value.trim();
@@ -1772,6 +2144,7 @@
         const targetDocId = currentDocId || sanitizeDocId(data.name + '-' + (data.phone || data.email || Date.now()), 'customer-' + Date.now());
         if(!currentDocId) data.createdAt = serverTimestamp();
         await setDoc(doc(db, 'customers', targetDocId), data, { merge:true });
+        await writeActivityLog(currentDocId ? 'update' : 'create', 'customers', data.name, 'Menyimpan pelanggan');
         setNotice(els.customerMessage, 'Pelanggan berhasil disimpan: ' + data.name, 'good');
         resetCustomerForm();
         showToast('Pelanggan tersimpan');
@@ -1805,7 +2178,7 @@
       catch(error){ alert(error.message); return; }
       if(!confirm('Hapus pelanggan ' + customer.name + '?')) return;
       setBusy(true);
-      try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await deleteDoc(doc(db, 'customers', customer.docId)); showToast('Pelanggan dihapus'); }
+      try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await deleteDoc(doc(db, 'customers', customer.docId)); await writeActivityLog('delete','customers',customer.name,'Menghapus pelanggan'); showToast('Pelanggan dihapus'); }
       catch(error){ alert('Gagal hapus pelanggan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
@@ -1821,6 +2194,15 @@
     }
     function renderReports(){
       const revenueOrders = paidRevenueOrders();
+      const filteredRevenueOrders = revenueOrders.filter(inReportRange);
+      updateReportFilterInfo();
+      const filteredRevenue = filteredRevenueOrders.reduce((sum,o)=>sum + Number(o.total || 0), 0);
+      const filteredProfit = filteredRevenueOrders.reduce((sum,o)=>sum + Number(o.total || 0) - estimateOrderCost(o), 0);
+      const margin = filteredRevenue ? Math.round((filteredProfit / filteredRevenue) * 100) : 0;
+      if($('reportFilteredRevenue')) $('reportFilteredRevenue').textContent = rupiah(filteredRevenue);
+      if($('reportFilteredOrders')) $('reportFilteredOrders').textContent = filteredRevenueOrders.length + ' pesanan di periode';
+      if($('reportFilteredProfit')) $('reportFilteredProfit').textContent = rupiah(filteredProfit);
+      if($('reportFilteredMargin')) $('reportFilteredMargin').textContent = 'Margin ' + margin + '%';
       const now = new Date();
       const daily = revenueOrders.filter(o => sameLocalDay(o.createdAtMs, now)).reduce((sum,o)=>sum + Number(o.total || 0), 0);
       const weeklyStart = Date.now() - 6 * 24 * 60 * 60 * 1000;
@@ -1848,6 +2230,285 @@
         els.stockReportRows.innerHTML = rows.length ? rows.map(p => `<tr><td>${escapeHtml(p.title)}<br><span class="muted">${escapeHtml(p.brand || '-')} • ${escapeHtml(p.category || '-')}</span></td><td>${escapeHtml(p.stock || 0)}</td><td>${escapeHtml(p.minStock || 0)}</td><td><span class="status-pill ${Number(p.stock || 0) <= 0 ? 'danger' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'good'}">${Number(p.stock || 0) <= 0 ? 'Habis' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'Menipis' : 'Aman'}</span></td></tr>`).join('') : '<tr><td colspan="4">Belum ada data stok.</td></tr>';
       }
     }
+
+    function orderDateMs(order){
+      if(order.paidAt){ const ms = Date.parse(order.paidAt + 'T00:00:00'); if(Number.isFinite(ms)) return ms; }
+      return Number(order.createdAtMs || 0);
+    }
+    function reportRange(){
+      const start = $('reportStartDate') ? $('reportStartDate').value : '';
+      const end = $('reportEndDate') ? $('reportEndDate').value : '';
+      const startMs = start ? Date.parse(start + 'T00:00:00') : 0;
+      const endMs = end ? Date.parse(end + 'T23:59:59') : Infinity;
+      return { start, end, startMs:Number.isFinite(startMs) ? startMs : 0, endMs:Number.isFinite(endMs) ? endMs : Infinity };
+    }
+    function inReportRange(order){
+      const range = reportRange();
+      const ms = orderDateMs(order);
+      return ms >= range.startMs && ms <= range.endMs;
+    }
+    function updateReportFilterInfo(){
+      const node = $('reportFilterInfo');
+      if(!node) return;
+      const range = reportRange();
+      if(!range.start && !range.end){ setNotice(node, 'Filter tanggal belum dipilih. Ringkasan periode memakai semua pesanan lunas.'); return; }
+      setNotice(node, 'Filter aktif: ' + (range.start || 'awal') + ' sampai ' + (range.end || 'akhir') + '.', 'good');
+    }
+    function itemCost(item){
+      if(Number(item.costPrice || 0)) return Number(item.costPrice || 0) * Number(item.qty || 0);
+      const product = item.productDocId ? findProduct(item.productDocId) : findProductByName(item.productName);
+      return Number(product && product.costPrice || 0) * Number(item.qty || 0);
+    }
+    function estimateOrderCost(order){
+      if(order && Array.isArray(order.items) && order.items.length){
+        return order.items.reduce((sum,item)=>sum + itemCost(item), 0);
+      }
+      const product = findProductByName(order.productName);
+      const unitCost = Number(product && product.costPrice || 0);
+      return unitCost * Number(order.qty || 0);
+    }
+    function isCancelled(order){
+      const status = String(order.orderStatus || '').toLowerCase();
+      const payment = String(order.paymentStatus || '').toLowerCase();
+      return ['dibatalkan','retur','refund','gagal'].some(x => status.includes(x) || payment.includes(x));
+    }
+    async function writeActivityLog(action, targetType, targetId, detail=''){
+      try{
+        const id = Date.now() + '-' + sanitizeDocId(targetType + '-' + targetId + '-' + action, 'activity');
+        await setDoc(doc(db, 'activityLogs', id), { adminEmail: currentAdmin.email || '', adminUid: currentAdmin.uid || '', action, targetType, targetId:String(targetId || ''), detail:String(detail || ''), createdAt: serverTimestamp() }, { merge:false });
+      }catch(error){ console.warn('Activity log gagal:', error); }
+    }
+    async function createStockMovementRecord({ product, type, quantity, stockBefore, stockAfter, note, source }){
+      const id = Date.now() + '-' + sanitizeDocId((product && product.title) || 'stock', 'stock');
+      await setDoc(doc(db, 'stockMovements', id), { productDocId: product ? product.docId : '', productId: product ? Number(product.id || 0) : 0, productName: product ? product.title : '', type, quantity:Number(quantity || 0), stockBefore:Number(stockBefore || 0), stockAfter:Number(stockAfter || 0), note:String(note || ''), source:String(source || 'manual'), adminEmail: currentAdmin.email || '', createdAt: serverTimestamp() }, { merge:false });
+    }
+    function renderPayments(){
+      const rowsEl = $('paymentRows');
+      if(!rowsEl) return;
+      const paid = orders.filter(o => String(o.paymentStatus).toLowerCase() === 'lunas');
+      const unpaid = orders.filter(o => String(o.paymentStatus).toLowerCase() === 'belum bayar');
+      const pending = orders.filter(o => String(o.paymentStatus).toLowerCase().includes('konfirmasi'));
+      const refund = orders.filter(o => ['refund','gagal'].some(x => String(o.paymentStatus).toLowerCase().includes(x)));
+      if($('payPaidCount')) $('payPaidCount').textContent = paid.length;
+      if($('payPaidTotal')) $('payPaidTotal').textContent = rupiah(paid.reduce((s,o)=>s+Number(o.total||0),0));
+      if($('payUnpaidCount')) $('payUnpaidCount').textContent = unpaid.length;
+      if($('payPendingCount')) $('payPendingCount').textContent = pending.length;
+      if($('payRefundCount')) $('payRefundCount').textContent = refund.length;
+      if(!orders.length){ rowsEl.innerHTML = '<tr><td colspan="6">Belum ada pembayaran.</td></tr>'; return; }
+      rowsEl.innerHTML = orders.slice(0,100).map(o => `<tr><td><strong>${escapeHtml(o.invoiceNumber || o.orderId)}</strong><br><span class="muted">${escapeHtml(o.paidAt || '-')}</span></td><td>${escapeHtml(o.customerName)}</td><td>${rupiah(o.total)}<br><span class="muted">${escapeHtml(o.paymentProof ? 'Bukti ada' : 'Belum ada bukti')}</span></td><td>${escapeHtml(o.paymentMethod)}</td><td><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span></td><td><div class="row-actions"><button class="btn small good" data-payment-action="paid" data-doc="${escapeHtml(o.docId)}" type="button">Lunas</button><button class="btn small warn" data-payment-action="pending" data-doc="${escapeHtml(o.docId)}" type="button">Konfirmasi</button><button class="btn small danger" data-payment-action="refund" data-doc="${escapeHtml(o.docId)}" type="button">Refund</button><button class="btn small" data-order-action="edit" data-doc="${escapeHtml(o.docId)}" type="button">Edit</button></div></td></tr>`).join('');
+    }
+    async function updatePaymentQuick(order, status){
+      if(!order) return;
+      try{ requirePermission('canEdit', 'mengubah pembayaran'); }catch(error){ alert(error.message); return; }
+      const patch = { paymentStatus: status, updatedAt: serverTimestamp() };
+      if(status === 'Lunas' && !order.paidAt) patch.paidAt = new Date().toISOString().slice(0,10);
+      if(status === 'Lunas' && !order.invoiceNumber) patch.invoiceNumber = 'INV-' + order.orderId;
+      await updateDoc(doc(db, 'orders', order.docId), patch);
+      await writeActivityLog('update','payments',order.orderId,'Status pembayaran menjadi ' + status);
+      showToast('Pembayaran: ' + status);
+    }
+    function renderShipping(){
+      const rowsEl = $('shippingRows');
+      if(!rowsEl) return;
+      const pending = orders.filter(o => ['Belum Dikirim','Dikemas',''].includes(o.shippingStatus));
+      const sent = orders.filter(o => ['Dikirim','Dalam Perjalanan'].includes(o.shippingStatus));
+      const done = orders.filter(o => o.shippingStatus === 'Sampai');
+      const noTracking = orders.filter(o => ['Dikirim','Dalam Perjalanan'].includes(o.shippingStatus) && !o.trackingNumber);
+      if($('shipPendingCount')) $('shipPendingCount').textContent = pending.length;
+      if($('shipSentCount')) $('shipSentCount').textContent = sent.length;
+      if($('shipDoneCount')) $('shipDoneCount').textContent = done.length;
+      if($('shipNoTrackingCount')) $('shipNoTrackingCount').textContent = noTracking.length;
+      if(!orders.length){ rowsEl.innerHTML = '<tr><td colspan="6">Belum ada pengiriman.</td></tr>'; return; }
+      rowsEl.innerHTML = orders.slice(0,100).map(o => `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${escapeHtml(o.productName)}</span></td><td>${escapeHtml(o.customerName)}<br><span class="muted">${escapeHtml(o.shippingAddress || '-')}</span></td><td>${escapeHtml(o.courier || '-')}<br><span class="muted">Ongkir ${rupiah(o.shippingCost)}</span></td><td>${escapeHtml(o.trackingNumber || '-')}</td><td><span class="status-pill ${statusClass(o.shippingStatus)}">${escapeHtml(o.shippingStatus || 'Belum Dikirim')}</span></td><td><div class="row-actions"><button class="btn small warn" data-shipping-action="packed" data-doc="${escapeHtml(o.docId)}" type="button">Dikemas</button><button class="btn small good" data-shipping-action="sent" data-doc="${escapeHtml(o.docId)}" type="button">Dikirim</button><button class="btn small primary" data-shipping-action="done" data-doc="${escapeHtml(o.docId)}" type="button">Sampai</button><button class="btn small" data-order-action="edit" data-doc="${escapeHtml(o.docId)}" type="button">Edit</button></div></td></tr>`).join('');
+    }
+    async function updateShippingQuick(order, status){
+      if(!order) return;
+      try{ requirePermission('canEdit', 'mengubah pengiriman'); }catch(error){ alert(error.message); return; }
+      const patch = { shippingStatus: status, updatedAt: serverTimestamp() };
+      if(status === 'Dikirim'){
+        const resi = order.trackingNumber || window.prompt('Nomor resi / tracking:', '') || '';
+        patch.trackingNumber = resi.trim(); patch.orderStatus = 'Dikirim'; patch.shippedAt = order.shippedAt || new Date().toISOString().slice(0,10);
+      }
+      if(status === 'Sampai'){ patch.orderStatus = 'Selesai'; patch.receivedAt = order.receivedAt || new Date().toISOString().slice(0,10); }
+      if(status === 'Dikemas'){ patch.orderStatus = 'Dikemas'; }
+      await updateDoc(doc(db, 'orders', order.docId), patch);
+      await writeActivityLog('update','shipping',order.orderId,'Status pengiriman menjadi ' + status);
+      showToast('Pengiriman: ' + status);
+    }
+    function startPromotionsListening(){
+      if(unsubscribePromotions) return; const status = $('promoSyncStatus'); if(status) setNotice(status, 'Membaca promo dari Firebase...');
+      unsubscribePromotions = onSnapshot(query(promotionsRef, orderBy('createdAt')), snap => { promotions = snap.docs.map(normalizePromotion).sort((a,b)=>b.createdAtMs-a.createdAtMs); if(status) setNotice(status, 'Sinkron aktif. Promo: ' + promotions.length + ' • ' + nowLabel(), 'good'); renderPromotions(); }, err => { if(status) setNotice(status, 'Gagal membaca promo: ' + firebaseMessage(err), 'danger'); });
+    }
+    function startReviewsListening(){
+      if(unsubscribeReviews) return; const status = $('reviewSyncStatus'); if(status) setNotice(status, 'Membaca review dari Firebase...');
+      unsubscribeReviews = onSnapshot(query(reviewsRef, orderBy('createdAt')), snap => { reviews = snap.docs.map(normalizeReview).sort((a,b)=>b.createdAtMs-a.createdAtMs); if(status) setNotice(status, 'Sinkron aktif. Review: ' + reviews.length + ' • ' + nowLabel(), 'good'); renderReviews(); }, err => { if(status) setNotice(status, 'Gagal membaca review: ' + firebaseMessage(err), 'danger'); });
+    }
+    function startSuppliersListening(){
+      if(unsubscribeSuppliers) return; const status = $('supplierSyncStatus'); if(status) setNotice(status, 'Membaca supplier dari Firebase...');
+      unsubscribeSuppliers = onSnapshot(query(suppliersRef, orderBy('createdAt')), snap => { suppliers = snap.docs.map(normalizeSupplier).sort((a,b)=>a.name.localeCompare(b.name)); if(status) setNotice(status, 'Sinkron aktif. Supplier: ' + suppliers.length + ' • ' + nowLabel(), 'good'); renderSuppliers(); }, err => { if(status) setNotice(status, 'Gagal membaca supplier: ' + firebaseMessage(err), 'danger'); });
+    }
+    function startReturnsListening(){
+      if(unsubscribeReturns) return; const status = $('returnSyncStatus'); if(status) setNotice(status, 'Membaca retur dari Firebase...');
+      unsubscribeReturns = onSnapshot(query(returnsRef, orderBy('createdAt')), snap => { returnsList = snap.docs.map(normalizeReturn).sort((a,b)=>b.createdAtMs-a.createdAtMs); if(status) setNotice(status, 'Sinkron aktif. Retur: ' + returnsList.length + ' • ' + nowLabel(), 'good'); renderReturns(); }, err => { if(status) setNotice(status, 'Gagal membaca retur: ' + firebaseMessage(err), 'danger'); });
+    }
+    function startStockMovementsListening(){
+      if(unsubscribeStockMovements) return; const status = $('stockMoveSyncStatus'); if(status) setNotice(status, 'Membaca riwayat stok dari Firebase...');
+      unsubscribeStockMovements = onSnapshot(query(stockMovementsRef, orderBy('createdAt')), snap => { stockMovements = snap.docs.map(normalizeStockMovement).sort((a,b)=>b.createdAtMs-a.createdAtMs); if(status) setNotice(status, 'Sinkron aktif. Riwayat stok: ' + stockMovements.length + ' • ' + nowLabel(), 'good'); renderStockMovements(); }, err => { if(status) setNotice(status, 'Gagal membaca riwayat stok: ' + firebaseMessage(err), 'danger'); });
+    }
+    function startActivityLogsListening(){
+      if(unsubscribeActivityLogs) return; const status = $('activitySyncStatus'); if(status) setNotice(status, 'Membaca activity log dari Firebase...');
+      unsubscribeActivityLogs = onSnapshot(query(activityLogsRef, orderBy('createdAt')), snap => { activityLogs = snap.docs.map(normalizeActivityLog).sort((a,b)=>b.createdAtMs-a.createdAtMs); if(status) setNotice(status, 'Sinkron aktif. Log: ' + activityLogs.length + ' • ' + nowLabel(), 'good'); renderActivityLogs(); }, err => { if(status) setNotice(status, 'Gagal membaca activity log: ' + firebaseMessage(err), 'danger'); });
+    }
+    function startAdminUsersListening(){
+      if(unsubscribeAdminUsers) return; const status = $('roleSyncStatus'); if(status) setNotice(status, 'Membaca admin dari Firebase...');
+      unsubscribeAdminUsers = onSnapshot(query(usersRef, orderBy('role')), snap => { adminUsers = snap.docs.map(normalizeAdminUser); if(status) setNotice(status, 'Sinkron aktif. Admin: ' + adminUsers.length + ' • ' + nowLabel(), 'good'); renderAdminUsers(); }, err => { if(status) setNotice(status, 'Gagal membaca admin: ' + firebaseMessage(err), 'danger'); });
+    }
+    function startStoreSettingsListening(){
+      if(unsubscribeStoreSettings) return;
+      unsubscribeStoreSettings = onSnapshot(doc(db, 'settings', 'store'), snap => { storeSettings = normalizeSettings(snap.exists() ? snap.data() : {}); fillSettingsForm(storeSettings); const status = $('settingSyncStatus'); if(status) status.textContent = snap.exists() ? 'Sinkron aktif' : 'Belum ada data'; }, err => { const status = $('settingSyncStatus'); if(status) status.textContent = 'Gagal sync'; console.warn(err); });
+    }
+    function renderPromotions(){
+      const rows = $('promoRows'); if(!rows) return;
+      rows.innerHTML = promotions.length ? promotions.map(p => `<tr><td><strong>${escapeHtml(p.code)}</strong><br><span class="muted">Terpakai ${escapeHtml(p.usedCount)}/${escapeHtml(p.usageLimit || '∞')}</span></td><td>${escapeHtml(p.discountType)} ${p.discountType === 'Persen' ? escapeHtml(p.discountValue) + '%' : rupiah(p.discountValue)}</td><td>${rupiah(p.minimumPurchase)}</td><td>${escapeHtml(p.startDate || '-')}<br>${escapeHtml(p.endDate || '-')}</td><td><span class="status-pill ${p.status === 'Aktif' ? 'good' : 'warn'}">${escapeHtml(p.status)}</span></td><td><div class="row-actions"><button class="btn small primary" data-promo-action="edit" data-doc="${escapeHtml(p.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" data-promo-action="delete" data-doc="${escapeHtml(p.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('') : '<tr><td colspan="6">Belum ada promo.</td></tr>';
+    }
+    function collectPromotion(){
+      const code = $('promoCode').value.trim().toUpperCase(); if(!code) throw new Error('Kode voucher wajib diisi.');
+      const discountValue = Number($('promoDiscountValue').value || 0); const minimumPurchase = Number($('promoMinimumPurchase').value || 0); const usageLimit = Number($('promoUsageLimit').value || 0); const usedCount = Number($('promoUsedCount').value || 0);
+      [discountValue, minimumPurchase, usageLimit, usedCount].forEach(n => { if(!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) throw new Error('Angka promo harus bulat dan tidak boleh minus.'); });
+      return { code, discountType:$('promoDiscountType').value, discountValue, minimumPurchase, usageLimit, usedCount, startDate:$('promoStartDate').value, endDate:$('promoEndDate').value, status:$('promoStatus').value, note:$('promoNote').value.trim(), updatedAt: serverTimestamp() };
+    }
+    async function savePromotion(event){ event.preventDefault(); try{ requirePermission('canEdit','menyimpan promo'); }catch(error){ setNotice($('promoMessage'), error.message, 'danger'); return; } setBusy(true); try{ const data = collectPromotion(); const current = $('promoDocId').value.trim(); const id = current || sanitizeDocId(data.code, 'promo-' + Date.now()); if(!current) data.createdAt = serverTimestamp(); await setDoc(doc(db,'promotions',id),data,{merge:true}); await writeActivityLog(current?'update':'create','promotions',data.code,'Menyimpan promo'); setNotice($('promoMessage'),'Promo tersimpan: '+data.code,'good'); resetPromotionForm(); showToast('Promo tersimpan'); }catch(error){ setNotice($('promoMessage'), firebaseMessage(error), 'danger'); }finally{ setBusy(false); } }
+    function resetPromotionForm(){ $('promoForm').reset(); $('promoDocId').value=''; $('promoStatus').value='Aktif'; $('promoDiscountType').value='Persen'; $('promoFormTitle').textContent='Tambah Promo / Voucher'; hideNotice($('promoMessage')); }
+    function fillPromotionForm(p){ if(!p) return; $('promoDocId').value=p.docId; $('promoCode').value=p.code; $('promoDiscountType').value=p.discountType; $('promoDiscountValue').value=p.discountValue; $('promoMinimumPurchase').value=p.minimumPurchase; $('promoUsageLimit').value=p.usageLimit; $('promoUsedCount').value=p.usedCount; $('promoStartDate').value=p.startDate; $('promoEndDate').value=p.endDate; $('promoStatus').value=p.status; $('promoNote').value=p.note; $('promoFormTitle').textContent='Edit Promo'; switchView('promo'); }
+    async function deletePromotion(p){ if(!p) return; try{ requirePermission('canDelete','menghapus promo'); }catch(error){ alert(error.message); return; } if(!confirm('Hapus promo '+p.code+'?')) return; await requireSensitiveReauth('menghapus promo '+p.code); await deleteDoc(doc(db,'promotions',p.docId)); await writeActivityLog('delete','promotions',p.code,'Menghapus promo'); showToast('Promo dihapus'); }
+    function renderReviews(){ const rows=$('reviewRows'); if(!rows) return; rows.innerHTML = reviews.length ? reviews.map(r=>`<tr><td>${escapeHtml(r.productName)}</td><td>${escapeHtml(r.customerName || '-')}</td><td>${'★'.repeat(Math.max(1, Math.min(5, r.rating)))}</td><td>${escapeHtml(r.comment || '-')}</td><td><span class="status-pill ${r.status==='Tampil'?'good':r.status==='Spam'?'danger':'warn'}">${escapeHtml(r.status)}</span></td><td><div class="row-actions"><button class="btn small primary" data-review-action="edit" data-doc="${escapeHtml(r.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" data-review-action="delete" data-doc="${escapeHtml(r.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('') : '<tr><td colspan="6">Belum ada review.</td></tr>'; }
+    function collectReview(){ const productName=$('reviewProduct').value.trim(); if(!productName) throw new Error('Produk review wajib diisi.'); return { productName, customerName:$('reviewCustomer').value.trim(), rating:Number($('reviewRating').value || 5), status:$('reviewStatus').value, comment:$('reviewComment').value.trim(), updatedAt: serverTimestamp() }; }
+    async function saveReview(event){ event.preventDefault(); try{ requirePermission('canEdit','menyimpan review'); }catch(error){ setNotice($('reviewMessage'), error.message, 'danger'); return; } setBusy(true); try{ const data=collectReview(); const current=$('reviewDocId').value.trim(); const id=current || sanitizeDocId(data.productName+'-'+data.customerName+'-'+Date.now(),'review'); if(!current) data.createdAt=serverTimestamp(); await setDoc(doc(db,'reviews',id),data,{merge:true}); await writeActivityLog(current?'update':'create','reviews',data.productName,'Menyimpan review'); setNotice($('reviewMessage'),'Review tersimpan','good'); resetReviewForm(); showToast('Review tersimpan'); }catch(error){ setNotice($('reviewMessage'), firebaseMessage(error), 'danger'); }finally{ setBusy(false); } }
+    function resetReviewForm(){ $('reviewForm').reset(); $('reviewDocId').value=''; $('reviewRating').value='5'; $('reviewStatus').value='Tampil'; $('reviewFormTitle').textContent='Tambah Review'; hideNotice($('reviewMessage')); }
+    function fillReviewForm(r){ if(!r) return; $('reviewDocId').value=r.docId; $('reviewProduct').value=r.productName; $('reviewCustomer').value=r.customerName; $('reviewRating').value=String(r.rating || 5); $('reviewStatus').value=r.status; $('reviewComment').value=r.comment; $('reviewFormTitle').textContent='Edit Review'; switchView('review'); }
+    async function deleteReview(r){ if(!r) return; try{ requirePermission('canDelete','menghapus review'); }catch(error){ alert(error.message); return; } if(!confirm('Hapus review produk '+r.productName+'?')) return; await requireSensitiveReauth('menghapus review'); await deleteDoc(doc(db,'reviews',r.docId)); await writeActivityLog('delete','reviews',r.productName,'Menghapus review'); showToast('Review dihapus'); }
+    function renderSuppliers(){ const rows=$('supplierRows'); if(!rows) return; rows.innerHTML = suppliers.length ? suppliers.map(s=>`<tr><td><strong>${escapeHtml(s.name)}</strong><br><span class="muted">${escapeHtml(s.location || '-')}</span></td><td>${escapeHtml(s.brand || '-')}</td><td>${escapeHtml(s.category || '-')}</td><td>${escapeHtml(s.contact || '-')}</td><td><span class="status-pill ${s.status==='Aktif'?'good':'warn'}">${escapeHtml(s.status)}</span></td><td><div class="row-actions"><button class="btn small primary" data-supplier-action="edit" data-doc="${escapeHtml(s.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" data-supplier-action="delete" data-doc="${escapeHtml(s.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('') : '<tr><td colspan="6">Belum ada supplier.</td></tr>'; }
+    function collectSupplier(){ const name=$('supplierName').value.trim(); if(!name) throw new Error('Nama supplier wajib diisi.'); return { name, brand:$('supplierBrand').value.trim(), category:$('supplierCategory').value.trim(), contact:$('supplierContact').value.trim(), location:$('supplierLocation').value.trim(), status:$('supplierStatus').value, note:$('supplierNote').value.trim(), updatedAt: serverTimestamp() }; }
+    async function saveSupplier(event){ event.preventDefault(); try{ requirePermission('canEdit','menyimpan supplier'); }catch(error){ setNotice($('supplierMessage'), error.message, 'danger'); return; } setBusy(true); try{ const data=collectSupplier(); const current=$('supplierDocId').value.trim(); const id=current || sanitizeDocId(data.name+'-'+Date.now(),'supplier'); if(!current) data.createdAt=serverTimestamp(); await setDoc(doc(db,'suppliers',id),data,{merge:true}); await writeActivityLog(current?'update':'create','suppliers',data.name,'Menyimpan supplier'); setNotice($('supplierMessage'),'Supplier tersimpan: '+data.name,'good'); resetSupplierForm(); showToast('Supplier tersimpan'); }catch(error){ setNotice($('supplierMessage'), firebaseMessage(error), 'danger'); }finally{ setBusy(false); } }
+    function resetSupplierForm(){ $('supplierForm').reset(); $('supplierDocId').value=''; $('supplierStatus').value='Aktif'; $('supplierFormTitle').textContent='Tambah Supplier'; hideNotice($('supplierMessage')); }
+    function fillSupplierForm(s){ if(!s) return; $('supplierDocId').value=s.docId; $('supplierName').value=s.name; $('supplierBrand').value=s.brand; $('supplierCategory').value=s.category; $('supplierContact').value=s.contact; $('supplierLocation').value=s.location; $('supplierStatus').value=s.status; $('supplierNote').value=s.note; $('supplierFormTitle').textContent='Edit Supplier'; switchView('supplier'); }
+    async function deleteSupplier(s){ if(!s) return; try{ requirePermission('canDelete','menghapus supplier'); }catch(error){ alert(error.message); return; } if(!confirm('Hapus supplier '+s.name+'?')) return; await requireSensitiveReauth('menghapus supplier'); await deleteDoc(doc(db,'suppliers',s.docId)); await writeActivityLog('delete','suppliers',s.name,'Menghapus supplier'); showToast('Supplier dihapus'); }
+    function autoReturnId(){ const today = new Date().toISOString().slice(0,10).replace(/-/g,''); $('returnId').value = 'RET-' + today + '-' + String(returnsList.filter(r => String(r.returnId).includes(today)).length + 1).padStart(3,'0'); }
+    function renderReturns(){ const rows=$('returnRows'); if(!rows) return; rows.innerHTML = returnsList.length ? returnsList.map(r=>`<tr><td><strong>${escapeHtml(r.returnId)}</strong></td><td>${escapeHtml(r.orderId || '-')}</td><td>${escapeHtml(r.customerName || '-')}</td><td>${escapeHtml(r.productName || '-')}</td><td><span class="status-pill ${statusClass(r.status)}">${escapeHtml(r.status)}</span></td><td><div class="row-actions"><button class="btn small primary" data-return-action="edit" data-doc="${escapeHtml(r.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" data-return-action="delete" data-doc="${escapeHtml(r.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('') : '<tr><td colspan="6">Belum ada retur.</td></tr>'; }
+    function collectReturn(){ const returnId=$('returnId').value.trim(); if(!returnId) throw new Error('ID retur wajib diisi.'); return { returnId, orderId:$('returnOrderId').value.trim(), customerName:$('returnCustomer').value.trim(), productName:$('returnProduct').value.trim(), reason:$('returnReason').value.trim(), resolution:$('returnResolution').value.trim(), status:$('returnStatus').value, updatedAt: serverTimestamp() }; }
+    async function saveReturn(event){ event.preventDefault(); try{ requirePermission('canEdit','menyimpan retur'); }catch(error){ setNotice($('returnMessage'), error.message, 'danger'); return; } setBusy(true); try{ const data=collectReturn(); const current=$('returnDocId').value.trim(); const id=current || sanitizeDocId(data.returnId,'return-'+Date.now()); if(!current) data.createdAt=serverTimestamp(); await setDoc(doc(db,'returns',id),data,{merge:true}); await writeActivityLog(current?'update':'create','returns',data.returnId,'Menyimpan retur'); setNotice($('returnMessage'),'Retur tersimpan: '+data.returnId,'good'); resetReturnForm(); showToast('Retur tersimpan'); }catch(error){ setNotice($('returnMessage'), firebaseMessage(error), 'danger'); }finally{ setBusy(false); } }
+    function resetReturnForm(){ $('returnForm').reset(); $('returnDocId').value=''; $('returnStatus').value='Menunggu Review'; $('returnFormTitle').textContent='Tambah Retur / Komplain'; hideNotice($('returnMessage')); }
+    function fillReturnForm(r){ if(!r) return; $('returnDocId').value=r.docId; $('returnId').value=r.returnId; $('returnOrderId').value=r.orderId; $('returnCustomer').value=r.customerName; $('returnProduct').value=r.productName; $('returnReason').value=r.reason; $('returnResolution').value=r.resolution; $('returnStatus').value=r.status; $('returnFormTitle').textContent='Edit Retur / Komplain'; switchView('retur'); }
+    async function deleteReturn(r){ if(!r) return; try{ requirePermission('canDelete','menghapus retur'); }catch(error){ alert(error.message); return; } if(!confirm('Hapus retur '+r.returnId+'?')) return; await requireSensitiveReauth('menghapus retur'); await deleteDoc(doc(db,'returns',r.docId)); await writeActivityLog('delete','returns',r.returnId,'Menghapus retur'); showToast('Retur dihapus'); }
+    function renderStockMovements(){ const rows=$('stockMoveRows'); if(!rows) return; rows.innerHTML = stockMovements.length ? stockMovements.slice(0,120).map(m=>`<tr><td>${new Date(m.createdAtMs || Date.now()).toLocaleString('id-ID')}</td><td>${escapeHtml(m.productName || '-')}<br><span class="muted">${escapeHtml(m.source)}</span></td><td><span class="status-pill ${m.type==='in'?'good':m.type==='out'?'danger':'warn'}">${escapeHtml(m.type)}</span></td><td>${escapeHtml(m.quantity)}<br><span class="muted">${escapeHtml(m.stockBefore)} → ${escapeHtml(m.stockAfter)}</span></td><td>${escapeHtml(m.note || '-')}</td><td>${escapeHtml(m.adminEmail || '-')}</td></tr>`).join('') : '<tr><td colspan="6">Belum ada riwayat stok.</td></tr>'; }
+    function collectStockMove(){ const name=$('stockMoveProduct').value.trim(); const product=findProductByName(name); if(!product) throw new Error('Produk stok harus dipilih dari daftar produk yang ada.'); const quantity=Number($('stockMoveQty').value || 0); if(!Number.isInteger(quantity) || quantity < 0) throw new Error('Jumlah stok harus angka bulat dan tidak boleh minus.'); const type=$('stockMoveType').value; const before=Number(product.stock || 0); const after= type==='in' ? before + quantity : type==='out' ? Math.max(0, before - quantity) : quantity; return { product, type, quantity, before, after, note:$('stockMoveNote').value.trim() }; }
+    async function saveStockMove(event){ event.preventDefault(); try{ requirePermission('canEdit','menyimpan riwayat stok'); }catch(error){ setNotice($('stockMoveMessage'), error.message, 'danger'); return; } setBusy(true); try{ const data=collectStockMove(); await createStockMovementRecord({ product:data.product, type:data.type, quantity:data.quantity, stockBefore:data.before, stockAfter:data.after, note:data.note, source:'manual' }); if($('stockMoveApply').checked){ const patch={ stock:data.after, updatedAt:serverTimestamp() }; if(data.type==='out') patch.soldCount = Number(data.product.soldCount || 0) + data.quantity; await updateDoc(doc(db,'products',data.product.docId), patch); } await writeActivityLog('create','stockMovements',data.product.title,'Mencatat riwayat stok ' + data.type); setNotice($('stockMoveMessage'),'Riwayat stok tersimpan','good'); resetStockMoveForm(); showToast('Riwayat stok tersimpan'); }catch(error){ setNotice($('stockMoveMessage'), firebaseMessage(error), 'danger'); }finally{ setBusy(false); } }
+    function resetStockMoveForm(){ $('stockMoveForm').reset(); $('stockMoveType').value='in'; $('stockMoveApply').checked=true; hideNotice($('stockMoveMessage')); }
+    function renderActivityLogs(){ const rows=$('activityRows'); if(!rows) return; rows.innerHTML = activityLogs.length ? activityLogs.slice(0,150).map(log=>`<tr><td>${new Date(log.createdAtMs || Date.now()).toLocaleString('id-ID')}</td><td>${escapeHtml(log.adminEmail || '-')}</td><td>${escapeHtml(log.action)}</td><td>${escapeHtml(log.targetType)}<br><span class="muted">${escapeHtml(log.targetId)}</span></td><td>${escapeHtml(log.detail || '-')}</td></tr>`).join('') : '<tr><td colspan="5">Belum ada activity log.</td></tr>'; }
+    function renderAdminUsers(){ const rows=$('roleRows'); if(!rows) return; rows.innerHTML = adminUsers.length ? adminUsers.map(u=>`<tr><td><code>${escapeHtml(u.uid)}</code></td><td>${escapeHtml(u.email || '-')}</td><td>${escapeHtml(u.name || '-')}</td><td><span class="status-pill ${['owner','admin'].includes(u.role)?'good':u.role==='editor'?'warn':''}">${escapeHtml(u.role || '-')}</span></td><td><span class="status-pill ${u.active?'good':'danger'}">${u.active?'Aktif':'Nonaktif'}</span></td><td><div class="row-actions"><button class="btn small primary" data-role-action="edit" data-doc="${escapeHtml(u.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" data-role-action="delete" data-doc="${escapeHtml(u.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('') : '<tr><td colspan="6">Belum ada admin.</td></tr>'; }
+    function collectRole(){ const uid=$('roleUid').value.trim(); if(!uid) throw new Error('UID wajib diisi.'); return { uid, email:$('roleEmail').value.trim(), name:$('roleName').value.trim(), role:$('roleSelect').value, active:$('roleActive').value === 'true', note:$('roleNote').value.trim(), updatedAt: serverTimestamp() }; }
+    async function saveRole(event){ event.preventDefault(); try{ requirePermission('canDelete','mengelola role admin'); }catch(error){ setNotice($('roleMessage'), error.message, 'danger'); return; } setBusy(true); try{ const data=collectRole(); await requireSensitiveReauth('mengelola role admin'); const current=$('roleDocId').value.trim(); const id=current || data.uid; if(!current) data.createdAt=serverTimestamp(); await setDoc(doc(db, SECURITY_CONFIG.ADMIN_USERS_COLLECTION, id), data, {merge:true}); await writeActivityLog(current?'update':'create','users',data.uid,'Mengelola role ' + data.role); setNotice($('roleMessage'),'Role admin tersimpan','good'); resetRoleForm(); showToast('Role tersimpan'); }catch(error){ setNotice($('roleMessage'), firebaseMessage(error), 'danger'); }finally{ setBusy(false); } }
+    function resetRoleForm(){ $('roleForm').reset(); $('roleDocId').value=''; $('roleSelect').value='viewer'; $('roleActive').value='true'; $('roleFormTitle').textContent='Kelola Admin & Role'; hideNotice($('roleMessage')); }
+    function fillRoleForm(u){ if(!u) return; $('roleDocId').value=u.docId; $('roleUid').value=u.uid; $('roleEmail').value=u.email; $('roleName').value=u.name; $('roleSelect').value=u.role || 'viewer'; $('roleActive').value=String(u.active); $('roleNote').value=u.note; $('roleFormTitle').textContent='Edit Admin & Role'; switchView('roles'); }
+    async function deleteRole(u){ if(!u) return; try{ requirePermission('canDelete','menghapus role admin'); }catch(error){ alert(error.message); return; } if(u.uid === currentAdmin.uid && !confirm('Ini role akun yang sedang login. Tetap hapus?')) return; if(!confirm('Hapus role admin '+(u.email || u.uid)+'?')) return; await requireSensitiveReauth('menghapus role admin'); await deleteDoc(doc(db, SECURITY_CONFIG.ADMIN_USERS_COLLECTION, u.docId)); await writeActivityLog('delete','users',u.uid,'Menghapus role admin'); showToast('Role dihapus'); }
+    function fillSettingsForm(settings){ if(!$('settingsForm')) return; $('settingShopName').value=settings.shopName || ''; $('settingLogoUrl').value=settings.logoUrl || ''; $('settingWhatsapp').value=settings.whatsapp || ''; $('settingEmail').value=settings.email || ''; $('settingAddress').value=settings.address || ''; $('settingInstagram').value=settings.instagram || ''; $('settingTiktok').value=settings.tiktok || ''; $('settingBankAccount').value=settings.bankAccount || ''; $('settingQris').value=settings.qris || ''; $('settingDefaultShippingCost').value=settings.defaultShippingCost || 0; $('settingReturnPolicy').value=settings.returnPolicy || ''; $('settingAbout').value=settings.about || ''; $('settingHours').value=settings.hours || ''; }
+    function collectSettings(){ const cost=Number($('settingDefaultShippingCost').value || 0); if(!Number.isFinite(cost) || cost < 0 || !Number.isInteger(cost)) throw new Error('Ongkir default harus angka bulat dan tidak boleh minus.'); return { shopName:$('settingShopName').value.trim(), logoUrl:$('settingLogoUrl').value.trim(), whatsapp:$('settingWhatsapp').value.trim(), email:$('settingEmail').value.trim(), address:$('settingAddress').value.trim(), instagram:$('settingInstagram').value.trim(), tiktok:$('settingTiktok').value.trim(), bankAccount:$('settingBankAccount').value.trim(), qris:$('settingQris').value.trim(), defaultShippingCost:cost, returnPolicy:$('settingReturnPolicy').value.trim(), about:$('settingAbout').value.trim(), hours:$('settingHours').value.trim(), updatedAt:serverTimestamp() }; }
+    async function saveSettings(event){ event.preventDefault(); try{ requirePermission('canEdit','menyimpan pengaturan toko'); }catch(error){ setNotice($('settingsMessage'), error.message, 'danger'); return; } setBusy(true); try{ const data=collectSettings(); await setDoc(doc(db,'settings','store'),data,{merge:true}); await writeActivityLog('update','settings','store','Menyimpan pengaturan toko'); setNotice($('settingsMessage'),'Pengaturan toko tersimpan','good'); showToast('Pengaturan tersimpan'); }catch(error){ setNotice($('settingsMessage'), firebaseMessage(error), 'danger'); }finally{ setBusy(false); } }
+    const FIRESTORE_RULES_TEMPLATE = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function adminPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+    function adminData() {
+      return get(adminPath()).data;
+    }
+    function activeAdmin() {
+      return signedIn()
+        && exists(adminPath())
+        && adminData().active != false
+        && adminData().disabled != true
+        && adminData().role in ['owner', 'admin', 'editor', 'viewer'];
+    }
+    function isOwner() {
+      return activeAdmin() && adminData().role in ['owner', 'admin'];
+    }
+    function isEditor() {
+      return activeAdmin() && adminData().role in ['owner', 'admin', 'editor'];
+    }
+    function isViewer() {
+      return activeAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isViewer();
+      allow create, update, delete: if isOwner();
+    }
+
+    match /products/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+    match /orders/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+    match /customers/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+    match /promotions/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+    match /reviews/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+    match /suppliers/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+    match /returns/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+    match /stockMovements/{docId} {
+      allow read: if isViewer();
+      allow create: if isEditor();
+      allow update: if false;
+      allow delete: if isOwner();
+    }
+    match /activityLogs/{docId} {
+      allow read: if isViewer();
+      allow create: if isEditor();
+      allow update: if false;
+      allow delete: if isOwner();
+    }
+    match /settings/{docId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isOwner();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}`;
+    function renderRulesTemplate(){ const node=$('rulesPre'); if(node) node.textContent = FIRESTORE_RULES_TEMPLATE; }
+    async function copyRules(){ try{ await navigator.clipboard.writeText(FIRESTORE_RULES_TEMPLATE); showToast('Firestore rules dicopy'); }catch(error){ showToast('Clipboard tidak tersedia'); } }
+
     function switchView(view){
       const target = view || 'dashboard';
       document.querySelectorAll('.admin-view').forEach(node => node.classList.toggle('active', node.dataset.view === target));
@@ -2139,6 +2800,22 @@
       if(btn.dataset.customerAction === 'edit') fillCustomerForm(customer);
       if(btn.dataset.customerAction === 'delete') deleteCustomer(customer);
     });
+
+    $('addOrderItemBtn').addEventListener('click', addOrderItem);
+    $('orderItemsList').addEventListener('click', (event) => { const btn = event.target.closest('button[data-remove-order-item]'); if(btn) removeOrderItem(Number(btn.dataset.removeOrderItem)); });
+    $('paymentRows').addEventListener('click', async (event) => { const payBtn = event.target.closest('button[data-payment-action]'); const editBtn = event.target.closest('button[data-order-action="edit"]'); if(payBtn){ const order = orders.find(o => o.docId === payBtn.dataset.doc); const map = { paid:'Lunas', pending:'Menunggu Konfirmasi', refund:'Refund' }; await updatePaymentQuick(order, map[payBtn.dataset.paymentAction] || 'Belum Bayar'); } else if(editBtn){ fillOrderForm(orders.find(o => o.docId === editBtn.dataset.doc)); } });
+    $('shippingRows').addEventListener('click', async (event) => { const shipBtn = event.target.closest('button[data-shipping-action]'); const editBtn = event.target.closest('button[data-order-action="edit"]'); if(shipBtn){ const order = orders.find(o => o.docId === shipBtn.dataset.doc); const map = { packed:'Dikemas', sent:'Dikirim', done:'Sampai' }; await updateShippingQuick(order, map[shipBtn.dataset.shippingAction] || 'Belum Dikirim'); } else if(editBtn){ fillOrderForm(orders.find(o => o.docId === editBtn.dataset.doc)); } });
+    $('promoForm').addEventListener('submit', savePromotion); $('resetPromoBtn').addEventListener('click', resetPromotionForm); $('promoRows').addEventListener('click', (event)=>{ const btn=event.target.closest('button[data-promo-action]'); if(!btn) return; const p=promotions.find(x=>x.docId===btn.dataset.doc); if(btn.dataset.promoAction==='edit') fillPromotionForm(p); if(btn.dataset.promoAction==='delete') deletePromotion(p); });
+    $('reviewForm').addEventListener('submit', saveReview); $('resetReviewBtn').addEventListener('click', resetReviewForm); $('reviewRows').addEventListener('click', (event)=>{ const btn=event.target.closest('button[data-review-action]'); if(!btn) return; const r=reviews.find(x=>x.docId===btn.dataset.doc); if(btn.dataset.reviewAction==='edit') fillReviewForm(r); if(btn.dataset.reviewAction==='delete') deleteReview(r); });
+    $('supplierForm').addEventListener('submit', saveSupplier); $('resetSupplierBtn').addEventListener('click', resetSupplierForm); $('supplierRows').addEventListener('click', (event)=>{ const btn=event.target.closest('button[data-supplier-action]'); if(!btn) return; const s=suppliers.find(x=>x.docId===btn.dataset.doc); if(btn.dataset.supplierAction==='edit') fillSupplierForm(s); if(btn.dataset.supplierAction==='delete') deleteSupplier(s); });
+    $('returnForm').addEventListener('submit', saveReturn); $('resetReturnBtn').addEventListener('click', resetReturnForm); $('autoReturnIdBtn').addEventListener('click', autoReturnId); $('returnRows').addEventListener('click', (event)=>{ const btn=event.target.closest('button[data-return-action]'); if(!btn) return; const r=returnsList.find(x=>x.docId===btn.dataset.doc); if(btn.dataset.returnAction==='edit') fillReturnForm(r); if(btn.dataset.returnAction==='delete') deleteReturn(r); });
+    $('stockMoveForm').addEventListener('submit', saveStockMove); $('resetStockMoveBtn').addEventListener('click', resetStockMoveForm);
+    $('refreshActivityBtn').addEventListener('click', renderActivityLogs);
+    $('roleForm').addEventListener('submit', saveRole); $('resetRoleBtn').addEventListener('click', resetRoleForm); $('roleRows').addEventListener('click', (event)=>{ const btn=event.target.closest('button[data-role-action]'); if(!btn) return; const u=adminUsers.find(x=>x.docId===btn.dataset.doc); if(btn.dataset.roleAction==='edit') fillRoleForm(u); if(btn.dataset.roleAction==='delete') deleteRole(u); });
+    $('settingsForm').addEventListener('submit', saveSettings);
+    $('clearReportFilterBtn').addEventListener('click', () => { $('reportStartDate').value=''; $('reportEndDate').value=''; renderReports(); });
+    $('reportStartDate').addEventListener('input', renderReports); $('reportEndDate').addEventListener('input', renderReports);
+    $('copyRulesBtn').addEventListener('click', copyRules);
     els.modalCloseBtn.addEventListener('click', closeModal);
     els.modal.addEventListener('click', event => { if(event.target === els.modal) closeModal(); });
     document.addEventListener('keydown', (event) => {
@@ -2179,13 +2856,35 @@
         products = [];
         orders = [];
         customers = [];
+        promotions = [];
+        reviews = [];
+        suppliers = [];
+        returnsList = [];
+        stockMovements = [];
+        activityLogs = [];
+        adminUsers = [];
+        storeSettings = {};
+        orderDraftItems = [];
         renderProducts();
         renderOrders();
         renderCustomers();
+        renderPromotions();
+        renderReviews();
+        renderSuppliers();
+        renderReturns();
+        renderStockMovements();
+        renderActivityLogs();
+        renderAdminUsers();
         renderBusinessDashboard();
         resetForm();
         resetOrderForm();
         resetCustomerForm();
+        resetPromotionForm();
+        resetReviewForm();
+        resetSupplierForm();
+        resetReturnForm();
+        resetStockMoveForm();
+        resetRoleForm();
         setNotice(els.syncStatus, 'Menunggu login...');
         els.miniSyncStatus.textContent = 'Belum login';
         els.lastSync.textContent = 'Login untuk sinkronisasi';
@@ -2195,6 +2894,14 @@
         if(unsubscribeProducts){ unsubscribeProducts(); unsubscribeProducts = null; }
         if(unsubscribeOrders){ unsubscribeOrders(); unsubscribeOrders = null; }
         if(unsubscribeCustomers){ unsubscribeCustomers(); unsubscribeCustomers = null; }
+        if(unsubscribePromotions){ unsubscribePromotions(); unsubscribePromotions = null; }
+        if(unsubscribeReviews){ unsubscribeReviews(); unsubscribeReviews = null; }
+        if(unsubscribeSuppliers){ unsubscribeSuppliers(); unsubscribeSuppliers = null; }
+        if(unsubscribeReturns){ unsubscribeReturns(); unsubscribeReturns = null; }
+        if(unsubscribeStockMovements){ unsubscribeStockMovements(); unsubscribeStockMovements = null; }
+        if(unsubscribeActivityLogs){ unsubscribeActivityLogs(); unsubscribeActivityLogs = null; }
+        if(unsubscribeAdminUsers){ unsubscribeAdminUsers(); unsubscribeAdminUsers = null; }
+        if(unsubscribeStoreSettings){ unsubscribeStoreSettings(); unsubscribeStoreSettings = null; }
         clearTimeout(idleTimer);
         clearLocalAdminData();
       }
@@ -2209,6 +2916,8 @@
     updatePreview();
     renderProductOptions();
     renderBusinessDashboard();
+    renderRulesTemplate();
+    renderOrderDraftItems();
   </script>
 </body>
 </html>
