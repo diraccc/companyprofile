@@ -221,6 +221,23 @@
     @media(max-width:440px){
       .stat-grid,.dashboard-grid,.nav-menu{grid-template-columns:1fr}.card-actions .btn,.row-actions .btn{flex:1 1 auto}.file-row{grid-template-columns:1fr}.top-actions{gap:6px}.brand{gap:9px}
     }
+
+
+    /* === Admin IA Refresh: sidebar tree + quick action workspaces === */
+    .admin-layout{grid-template-columns:330px minmax(0,1fr)}
+    .sidebar{padding:16px;max-height:calc(100vh - 104px);overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
+    .sidebar-title{position:sticky;top:-16px;z-index:2;background:linear-gradient(180deg,rgba(17,26,46,.98),rgba(17,26,46,.88));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:6px 4px 12px;margin:0 0 12px;border-bottom:1px solid rgba(96,165,250,.14)}
+    .nav-menu{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+    .nav-section{border:1px solid rgba(96,165,250,.18);background:rgba(255,255,255,.035);border-radius:22px;padding:10px;overflow:hidden}
+    .nav-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;padding:0 2px;color:#f8fbff}
+    .nav-heading strong{font-size:.88rem;letter-spacing:.02em}.nav-heading span{color:var(--muted);font-size:.74rem;font-weight:900}
+    .nav-sub{display:grid;gap:6px}.nav-btn{position:relative}.nav-btn.main{background:rgba(96,165,250,.10);border-color:rgba(96,165,250,.18);color:#fff}.nav-btn.sub{min-height:36px;padding:8px 10px 8px 42px;border-radius:14px;font-size:.83rem;font-weight:850}.nav-btn.sub::before{content:"";position:absolute;left:23px;top:0;bottom:0;border-left:1px solid rgba(96,165,250,.20)}.nav-btn.sub::after{content:"";position:absolute;left:23px;top:50%;width:10px;border-top:1px solid rgba(96,165,250,.24)}.nav-btn.sub b{position:absolute;left:9px;width:23px;height:23px;border-radius:9px;font-size:.7rem}.nav-btn.active{color:#fff;background:rgba(96,165,250,.16);border-color:var(--line2)}
+    .view-kicker{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;border:1px solid var(--line);background:rgba(96,165,250,.08);color:#bfdbfe;border-radius:999px;padding:6px 10px;font-size:.74rem;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
+    .quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}.quick-card{border:1px solid rgba(96,165,250,.18);background:rgba(255,255,255,.04);border-radius:20px;padding:13px;text-align:left;display:flex;gap:10px;align-items:flex-start;min-height:82px;transition:.18s ease}.quick-card:hover{transform:translateY(-1px);border-color:var(--line2);background:rgba(96,165,250,.08)}.quick-card b{width:32px;height:32px;border-radius:12px;display:grid;place-items:center;background:rgba(96,165,250,.13);color:#dbeafe;flex:0 0 auto}.quick-card strong{display:block;line-height:1.15}.quick-card span{display:block;color:var(--muted);font-size:.8rem;margin-top:4px}.settings-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.settings-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:16px;min-height:136px}.settings-card h4{margin:0 0 8px}.settings-card p{margin:0;color:var(--muted);font-size:.9rem}.settings-card .status-pill{margin-top:12px}.anchor-panel{scroll-margin-top:96px}
+    @media(max-width:1040px){.admin-layout{grid-template-columns:1fr}.sidebar{position:relative;top:0;max-height:none}.nav-menu{grid-template-columns:repeat(2,1fr)!important}.quick-grid,.settings-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:700px){.nav-menu,.quick-grid,.settings-grid{grid-template-columns:1fr!important}.nav-btn.sub{padding-left:40px}.sidebar-title{position:relative;top:auto}.quick-card{min-height:auto}.admin-layout{padding-bottom:90px}}
+    @media(max-width:440px){.nav-menu{grid-template-columns:1fr!important}.nav-section{padding:9px}.nav-heading{display:block}.nav-heading span{display:block;margin-top:2px}}
+
   </style>
 </head>
 <body>
@@ -301,21 +318,91 @@
 
     <section class="wrap admin-layout hidden" id="adminSection">
       <aside class="sidebar" aria-label="Menu admin">
-        <div class="sidebar-title"><div><strong>Dirac Admin</strong><span>Menu dashboard</span></div><span class="status-pill good">Live</span></div>
-        <nav class="nav-menu">
-          <button class="nav-btn active" type="button" data-view-target="dashboard"><b>01</b> Dashboard</button>
-          <button class="nav-btn" type="button" data-view-target="produk"><b>02</b> Produk</button>
-          <button class="nav-btn" type="button" data-view-target="pesanan"><b>03</b> Pesanan</button>
-          <button class="nav-btn" type="button" data-view-target="pelanggan"><b>04</b> Pelanggan</button>
-          <button class="nav-btn" type="button" data-view-target="laporan"><b>05</b> Laporan</button>
+        <div class="sidebar-title"><div><strong>Dirac Admin</strong><span>Struktur menu lengkap</span></div><span class="status-pill good">Live</span></div>
+        <nav class="nav-menu" aria-label="Struktur menu admin">
+          <section class="nav-section" aria-labelledby="navDashboardTitle">
+            <div class="nav-heading"><strong id="navDashboardTitle">Dashboard</strong><span>Ringkasan</span></div>
+            <div class="nav-sub">
+              <button class="nav-btn main active" type="button" data-view-target="dashboard" data-nav-key="dashboard-summary" data-scroll-target="dashboardSummaryPanel"><b>01</b> Ringkasan Hari Ini</button>
+              <button class="nav-btn sub" type="button" data-view-target="dashboard" data-nav-key="dashboard-orders" data-scroll-target="dashboardActiveOrdersPanel"><b>02</b> Pesanan Aktif</button>
+              <button class="nav-btn sub" type="button" data-view-target="dashboard" data-nav-key="dashboard-low-stock" data-scroll-target="dashboardLowStockPanel"><b>03</b> Stok Menipis</button>
+              <button class="nav-btn sub" type="button" data-view-target="dashboard" data-nav-key="dashboard-top-products" data-scroll-target="dashboardTopProductsPanel"><b>04</b> Produk Terlaris</button>
+              <button class="nav-btn sub" type="button" data-view-target="dashboard" data-nav-key="dashboard-sales-chart" data-scroll-target="dashboardSalesChartPanel"><b>05</b> Grafik Penjualan</button>
+            </div>
+          </section>
+
+          <section class="nav-section" aria-labelledby="navProdukTitle">
+            <div class="nav-heading"><strong id="navProdukTitle">Produk</strong><span>Katalog</span></div>
+            <div class="nav-sub">
+              <button class="nav-btn main" type="button" data-view-target="produk" data-nav-key="produk-list" data-scroll-target="productListPanel"><b>01</b> Semua Produk</button>
+              <button class="nav-btn sub" type="button" data-view-target="produk" data-nav-key="produk-add" data-scroll-target="productFormPanel" data-quick-action="focus-product-form"><b>02</b> Tambah Produk</button>
+              <button class="nav-btn sub" type="button" data-view-target="produk" data-nav-key="produk-category" data-scroll-target="productListPanel"><b>03</b> Kategori</button>
+              <button class="nav-btn sub" type="button" data-view-target="produk" data-nav-key="produk-brand" data-scroll-target="productListPanel"><b>04</b> Brand</button>
+              <button class="nav-btn sub" type="button" data-view-target="produk" data-nav-key="produk-variant" data-scroll-target="productFormPanel"><b>05</b> Varian</button>
+              <button class="nav-btn sub" type="button" data-view-target="produk" data-nav-key="produk-stock" data-scroll-target="productListPanel" data-quick-action="filter-low-stock"><b>06</b> Stok</button>
+              <button class="nav-btn sub" type="button" data-view-target="produk" data-nav-key="produk-import-export" data-scroll-target="productListPanel"><b>07</b> Import / Export</button>
+            </div>
+          </section>
+
+          <section class="nav-section" aria-labelledby="navPesananTitle">
+            <div class="nav-heading"><strong id="navPesananTitle">Pesanan</strong><span>Order</span></div>
+            <div class="nav-sub">
+              <button class="nav-btn main" type="button" data-view-target="pesanan" data-nav-key="pesanan-list" data-scroll-target="ordersTablePanel"><b>01</b> Semua Pesanan</button>
+              <button class="nav-btn sub" type="button" data-view-target="pesanan" data-nav-key="pesanan-new" data-scroll-target="orderFormPanel" data-quick-action="focus-order-form"><b>02</b> Pesanan Baru</button>
+              <button class="nav-btn sub" type="button" data-view-target="pesanan" data-nav-key="pesanan-unpaid" data-scroll-target="ordersTablePanel"><b>03</b> Belum Bayar</button>
+              <button class="nav-btn sub" type="button" data-view-target="pesanan" data-nav-key="pesanan-process" data-scroll-target="ordersTablePanel"><b>04</b> Diproses</button>
+              <button class="nav-btn sub" type="button" data-view-target="pesanan" data-nav-key="pesanan-shipped" data-scroll-target="ordersTablePanel"><b>05</b> Dikirim</button>
+              <button class="nav-btn sub" type="button" data-view-target="pesanan" data-nav-key="pesanan-done" data-scroll-target="ordersTablePanel"><b>06</b> Selesai</button>
+              <button class="nav-btn sub" type="button" data-view-target="pesanan" data-nav-key="pesanan-return" data-scroll-target="ordersTablePanel"><b>07</b> Retur / Refund</button>
+              <button class="nav-btn sub" type="button" data-view-target="pesanan" data-nav-key="pesanan-invoice" data-scroll-target="ordersTablePanel"><b>08</b> Invoice</button>
+            </div>
+          </section>
+
+          <section class="nav-section" aria-labelledby="navPelangganTitle">
+            <div class="nav-heading"><strong id="navPelangganTitle">Pelanggan</strong><span>CRM</span></div>
+            <div class="nav-sub">
+              <button class="nav-btn main" type="button" data-view-target="pelanggan" data-nav-key="pelanggan-all" data-scroll-target="customersTablePanel"><b>01</b> Semua Pelanggan</button>
+              <button class="nav-btn sub" type="button" data-view-target="pelanggan" data-nav-key="pelanggan-vip" data-scroll-target="customersTablePanel"><b>02</b> VIP</button>
+              <button class="nav-btn sub" type="button" data-view-target="pelanggan" data-nav-key="pelanggan-new" data-scroll-target="customersTablePanel"><b>03</b> Baru</button>
+              <button class="nav-btn sub" type="button" data-view-target="pelanggan" data-nav-key="pelanggan-inactive" data-scroll-target="customersTablePanel"><b>04</b> Tidak Aktif</button>
+              <button class="nav-btn sub" type="button" data-view-target="pelanggan" data-nav-key="pelanggan-history" data-scroll-target="customersTablePanel"><b>05</b> Riwayat Belanja</button>
+              <button class="nav-btn sub" type="button" data-view-target="pelanggan" data-nav-key="pelanggan-followup" data-scroll-target="customersTablePanel"><b>06</b> Follow-up</button>
+            </div>
+          </section>
+
+          <section class="nav-section" aria-labelledby="navLaporanTitle">
+            <div class="nav-heading"><strong id="navLaporanTitle">Laporan</strong><span>Analitik</span></div>
+            <div class="nav-sub">
+              <button class="nav-btn main" type="button" data-view-target="laporan" data-nav-key="laporan-sales" data-scroll-target="reportSalesPanel"><b>01</b> Penjualan</button>
+              <button class="nav-btn sub" type="button" data-view-target="laporan" data-nav-key="laporan-profit" data-scroll-target="reportSalesPanel"><b>02</b> Laba</button>
+              <button class="nav-btn sub" type="button" data-view-target="laporan" data-nav-key="laporan-product" data-scroll-target="reportCategoryPanel"><b>03</b> Produk</button>
+              <button class="nav-btn sub" type="button" data-view-target="laporan" data-nav-key="laporan-stock" data-scroll-target="reportStockPanel"><b>04</b> Stok</button>
+              <button class="nav-btn sub" type="button" data-view-target="laporan" data-nav-key="laporan-customer" data-scroll-target="reportCustomerPanel"><b>05</b> Customer</button>
+              <button class="nav-btn sub" type="button" data-view-target="laporan" data-nav-key="laporan-export" data-scroll-target="reportExportPanel"><b>06</b> Export</button>
+            </div>
+          </section>
+
+          <section class="nav-section" aria-labelledby="navPengaturanTitle">
+            <div class="nav-heading"><strong id="navPengaturanTitle">Pengaturan</strong><span>Sistem</span></div>
+            <div class="nav-sub">
+              <button class="nav-btn main" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-role" data-scroll-target="settingsRolePanel"><b>01</b> Admin &amp; Role</button>
+              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-store" data-scroll-target="settingsStorePanel"><b>02</b> Toko</button>
+              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-payment" data-scroll-target="settingsPaymentPanel"><b>03</b> Payment</button>
+              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-courier" data-scroll-target="settingsCourierPanel"><b>04</b> Kurir</button>
+              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-whatsapp" data-scroll-target="settingsWhatsAppPanel"><b>05</b> Template WhatsApp</button>
+              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-backup" data-scroll-target="settingsBackupPanel"><b>06</b> Backup / Restore</button>
+              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-security" data-scroll-target="settingsSecurityPanel"><b>07</b> Security Log</button>
+            </div>
+          </section>
         </nav>
         <div class="notice" style="margin-bottom:0">Menu baru tidak mengubah sistem login, hash A2F, atau konfigurasi Firebase.</div>
       </aside>
       <div class="admin-content">
         <section class="admin-view active" id="viewDashboard" data-view="dashboard">
           <div class="view-grid">
-            <div class="panel">
-              <div class="section-title"><div><h3>Dashboard Utama</h3><p>Ringkasan bisnis parfum: omzet, order, pelanggan, stok, dan performa kategori.</p></div><button class="btn small" type="button" data-view-target="laporan">Lihat laporan</button></div>
+            <div class="panel anchor-panel" id="dashboardSummaryPanel">
+              <span class="view-kicker">Dashboard / Ringkasan Hari Ini</span>
+              <div class="section-title"><div><h3>Ringkasan Hari Ini</h3><p>Ringkasan bisnis parfum: omzet, order, pelanggan, stok, dan performa kategori.</p></div><button class="btn small" type="button" data-view-target="laporan">Lihat laporan</button></div>
               <div class="dashboard-grid">
                 <div class="dashboard-card"><span>Penjualan hari ini</span><strong id="dashSalesToday">Rp 0</strong><small id="dashSalesTodayInfo">0 pesanan lunas</small></div>
                 <div class="dashboard-card"><span>Omzet bulan ini</span><strong id="dashSalesMonth">Rp 0</strong><small id="dashSalesMonthInfo">0 transaksi</small></div>
@@ -328,22 +415,33 @@
               </div>
             </div>
             <div class="wide-grid">
-              <div class="panel"><h3>Grafik Penjualan Sederhana</h3><p class="help">Omzet 7 hari terakhir dari data pesanan lunas.</p><div class="chart-box" id="chartSalesWeekly"></div></div>
-              <div class="panel"><h3>Grafik Kategori Produk</h3><p class="help">Perbandingan jumlah produk per kategori parfum.</p><div class="chart-box" id="chartCategoryProducts"></div></div>
+              <div class="panel anchor-panel" id="dashboardSalesChartPanel"><span class="view-kicker">Dashboard / Grafik Penjualan</span><h3>Grafik Penjualan</h3><p class="help">Omzet 7 hari terakhir dari data pesanan lunas.</p><div class="chart-box" id="chartSalesWeekly"></div></div>
+              <div class="panel anchor-panel"><span class="view-kicker">Dashboard / Produk</span><h3>Grafik Kategori Produk</h3><p class="help">Perbandingan jumlah produk per kategori parfum.</p><div class="chart-box" id="chartCategoryProducts"></div></div>
             </div>
             <div class="triple-grid">
-              <div class="panel"><h3>Pesanan Terbaru</h3><div class="compact-list" id="recentOrderList"><div class="empty">Belum ada pesanan.</div></div></div>
-              <div class="panel"><h3>Stok Menipis</h3><div class="compact-list" id="lowStockList"><div class="empty">Belum ada stok menipis.</div></div></div>
-              <div class="panel"><h3>Produk Terlaris</h3><div class="compact-list" id="topProductList"><div class="empty">Belum ada data terjual.</div></div></div>
+              <div class="panel anchor-panel" id="dashboardActiveOrdersPanel"><span class="view-kicker">Dashboard / Pesanan Aktif</span><h3>Pesanan Aktif</h3><div class="compact-list" id="recentOrderList"><div class="empty">Belum ada pesanan.</div></div></div>
+              <div class="panel anchor-panel" id="dashboardLowStockPanel"><span class="view-kicker">Dashboard / Stok Menipis</span><h3>Stok Menipis</h3><div class="compact-list" id="lowStockList"><div class="empty">Belum ada stok menipis.</div></div></div>
+              <div class="panel anchor-panel" id="dashboardTopProductsPanel"><span class="view-kicker">Dashboard / Produk Terlaris</span><h3>Produk Terlaris</h3><div class="compact-list" id="topProductList"><div class="empty">Belum ada data terjual.</div></div></div>
             </div>
           </div>
         </section>
 
         <section class="admin-view" id="viewProducts" data-view="produk">
+          <div class="panel anchor-panel" id="productWorkspacePanel">
+            <span class="view-kicker">Produk / Workspace</span>
+            <div class="section-title"><div><h3>Produk</h3><p>Semua area katalog: produk, tambah produk, kategori, brand, varian, stok, dan import/export.</p></div></div>
+            <div class="quick-grid" aria-label="Shortcut produk">
+              <button class="quick-card" type="button" data-view-target="produk" data-scroll-target="productListPanel"><b>01</b><span><strong>Semua Produk</strong><span>Daftar, cari, filter, edit</span></span></button>
+              <button class="quick-card" type="button" data-view-target="produk" data-scroll-target="productFormPanel" data-quick-action="focus-product-form"><b>02</b><span><strong>Tambah Produk</strong><span>Input produk baru</span></span></button>
+              <button class="quick-card" type="button" data-view-target="produk" data-scroll-target="productListPanel"><b>03</b><span><strong>Kategori &amp; Brand</strong><span>Dibaca dari data produk</span></span></button>
+              <button class="quick-card" type="button" data-view-target="produk" data-scroll-target="productListPanel" data-quick-action="filter-low-stock"><b>04</b><span><strong>Stok</strong><span>Cek stok menipis</span></span></button>
+            </div>
+          </div>
           <div class="grid product-admin-grid">
-      <div class="panel">
+      <div class="panel anchor-panel" id="productFormPanel">
         <div class="panel-head">
           <div>
+            <span class="view-kicker">Produk / Tambah Produk</span>
             <h3 id="formTitle">Tambah Produk</h3>
             <p class="help">Data akan disimpan ke Firestore. Untuk foto, kamu bisa upload langsung dari HP atau isi nama file/link gambar.</p>
           </div>
@@ -406,9 +504,10 @@
         <div class="notice hidden" id="formMessage" role="status"></div>
       </div>
 
-      <div class="panel">
+      <div class="panel anchor-panel" id="productListPanel">
         <div class="panel-head">
           <div>
+            <span class="view-kicker">Produk / Semua Produk</span>
             <h3>Daftar Produk</h3>
             <p class="help">Cari cepat, filter, sort, backup, audit kualitas, dan edit produk tanpa reload halaman.</p>
           </div>
@@ -445,9 +544,19 @@
         </section>
 
         <section class="admin-view" id="viewOrders" data-view="pesanan">
+          <div class="panel anchor-panel" id="ordersWorkspacePanel">
+            <span class="view-kicker">Pesanan / Workspace</span>
+            <div class="section-title"><div><h3>Pesanan</h3><p>Semua area order: semua pesanan, pesanan baru, belum bayar, diproses, dikirim, selesai, retur/refund, dan invoice.</p></div></div>
+            <div class="quick-grid" aria-label="Shortcut pesanan">
+              <button class="quick-card" type="button" data-view-target="pesanan" data-scroll-target="ordersTablePanel"><b>01</b><span><strong>Semua Pesanan</strong><span>Daftar order terbaru</span></span></button>
+              <button class="quick-card" type="button" data-view-target="pesanan" data-scroll-target="orderFormPanel" data-quick-action="focus-order-form"><b>02</b><span><strong>Pesanan Baru</strong><span>Input order customer</span></span></button>
+              <button class="quick-card" type="button" data-view-target="pesanan" data-scroll-target="ordersTablePanel"><b>03</b><span><strong>Belum Bayar</strong><span>Cek status pembayaran</span></span></button>
+              <button class="quick-card" type="button" data-view-target="pesanan" data-scroll-target="ordersTablePanel"><b>04</b><span><strong>Invoice</strong><span>Akses dari daftar pesanan</span></span></button>
+            </div>
+          </div>
           <div class="module-grid">
-            <div class="panel">
-              <div class="panel-head"><div><h3 id="orderFormTitle">Tambah Pesanan</h3><p class="help">Kelola order customer, status pembayaran, pengiriman, dan resi.</p></div><button class="btn small good" id="autoOrderIdBtn" type="button">ID Order</button></div>
+            <div class="panel anchor-panel" id="orderFormPanel">
+              <div class="panel-head"><div><span class="view-kicker">Pesanan / Pesanan Baru</span><h3 id="orderFormTitle">Tambah Pesanan</h3><p class="help">Kelola order customer, status pembayaran, pengiriman, dan resi.</p></div><button class="btn small good" id="autoOrderIdBtn" type="button">ID Order</button></div>
               <form id="orderForm" novalidate>
                 <input type="hidden" id="orderDocId">
                 <div class="form-grid">
@@ -470,8 +579,8 @@
               </form>
               <div class="notice hidden" id="orderMessage" role="status"></div>
             </div>
-            <div class="panel">
-              <div class="panel-head"><div><h3>Daftar Pesanan</h3><p class="help">Pesanan dibaca dari Firestore collection <b>orders</b>.</p></div></div>
+            <div class="panel anchor-panel" id="ordersTablePanel">
+              <div class="panel-head"><div><span class="view-kicker">Pesanan / Semua Pesanan</span><h3>Daftar Pesanan</h3><p class="help">Pesanan dibaca dari Firestore collection <b>orders</b>.</p></div></div>
               <div class="notice" id="orderSyncStatus">Menunggu login...</div>
               <div class="table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>Pelanggan</th><th>Produk</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="orderRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div>
             </div>
@@ -479,8 +588,19 @@
         </section>
 
         <section class="admin-view" id="viewCustomers" data-view="pelanggan">
+          <div class="panel anchor-panel" id="customersWorkspacePanel">
+            <span class="view-kicker">Pelanggan / Workspace</span>
+            <div class="section-title"><div><h3>Pelanggan</h3><p>Semua area customer: semua pelanggan, VIP, baru, tidak aktif, riwayat belanja, dan follow-up.</p></div></div>
+            <div class="quick-grid" aria-label="Shortcut pelanggan">
+              <button class="quick-card" type="button" data-view-target="pelanggan" data-scroll-target="customersTablePanel"><b>01</b><span><strong>Semua Pelanggan</strong><span>Data customer</span></span></button>
+              <button class="quick-card" type="button" data-view-target="pelanggan" data-scroll-target="customersTablePanel"><b>02</b><span><strong>VIP</strong><span>Segment pelanggan</span></span></button>
+              <button class="quick-card" type="button" data-view-target="pelanggan" data-scroll-target="customerFormPanel"><b>03</b><span><strong>Baru</strong><span>Tambah customer baru</span></span></button>
+              <button class="quick-card" type="button" data-view-target="pelanggan" data-scroll-target="customersTablePanel"><b>04</b><span><strong>Follow-up</strong><span>Lihat kontak pelanggan</span></span></button>
+            </div>
+          </div>
           <div class="module-grid">
-            <div class="panel">
+            <div class="panel anchor-panel" id="customerFormPanel">
+              <span class="view-kicker">Pelanggan / Baru</span>
               <h3 id="customerFormTitle">Tambah Pelanggan</h3>
               <p class="help">Simpan data customer, kontak, alamat, dan segmentasi pelanggan.</p>
               <form id="customerForm" novalidate>
@@ -501,7 +621,8 @@
               </form>
               <div class="notice hidden" id="customerMessage" role="status"></div>
             </div>
-            <div class="panel">
+            <div class="panel anchor-panel" id="customersTablePanel">
+              <span class="view-kicker">Pelanggan / Semua Pelanggan</span>
               <h3>Data Pelanggan</h3>
               <p class="help">Pelanggan dibaca dari Firestore collection <b>customers</b>.</p>
               <div class="notice" id="customerSyncStatus">Menunggu login...</div>
@@ -512,7 +633,7 @@
 
         <section class="admin-view" id="viewReports" data-view="laporan">
           <div class="view-grid">
-            <div class="panel">
+            <div class="panel anchor-panel" id="reportSalesPanel">
               <div class="section-title"><div><h3>Laporan Penjualan</h3><p>Rekap omzet, laba, kategori, stok, dan produk terlaris dari data produk + pesanan.</p></div><button class="btn small" type="button" data-view-target="dashboard">Kembali ke dashboard</button></div>
               <div class="dashboard-grid">
                 <div class="dashboard-card"><span>Harian</span><strong id="reportDaily">Rp 0</strong><small>Pesanan lunas hari ini</small></div>
@@ -522,14 +643,36 @@
               </div>
             </div>
             <div class="wide-grid">
-              <div class="panel"><h3>Laporan per Kategori</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Kategori</th><th>Jumlah Produk</th><th>Nilai Stok</th><th>Terjual</th></tr></thead><tbody id="categoryReportRows"><tr><td colspan="4">Belum ada data.</td></tr></tbody></table></div></div>
-              <div class="panel"><h3>Laporan Stok</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Produk</th><th>Stok</th><th>Minimum</th><th>Status</th></tr></thead><tbody id="stockReportRows"><tr><td colspan="4">Belum ada data.</td></tr></tbody></table></div></div>
+              <div class="panel anchor-panel" id="reportCategoryPanel"><span class="view-kicker">Laporan / Produk</span><h3>Laporan per Kategori</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Kategori</th><th>Jumlah Produk</th><th>Nilai Stok</th><th>Terjual</th></tr></thead><tbody id="categoryReportRows"><tr><td colspan="4">Belum ada data.</td></tr></tbody></table></div></div>
+              <div class="panel anchor-panel" id="reportStockPanel"><span class="view-kicker">Laporan / Stok</span><h3>Laporan Stok</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Produk</th><th>Stok</th><th>Minimum</th><th>Status</th></tr></thead><tbody id="stockReportRows"><tr><td colspan="4">Belum ada data.</td></tr></tbody></table></div></div>
+            </div>
+            <div class="wide-grid">
+              <div class="panel anchor-panel" id="reportCustomerPanel"><span class="view-kicker">Laporan / Customer</span><h3>Laporan Customer</h3><p class="help">Ringkasan pelanggan tetap memakai data pelanggan dan total belanja yang sudah ada di dashboard.</p><div class="compact-list"><div class="compact-item"><strong>Customer aktif</strong><span id="reportCustomerHint">Data pelanggan otomatis diperbarui dari collection customers.</span></div></div></div>
+              <div class="panel anchor-panel" id="reportExportPanel"><span class="view-kicker">Laporan / Export</span><h3>Export Laporan &amp; Data</h3><p class="help">Gunakan tombol export yang sudah ada untuk backup data produk. Fitur ini tidak mengubah login, A2F, atau rules Firebase.</p><div class="row-actions"><button class="btn small good requires-export" id="reportExportJsonBtn" type="button">Backup JSON Produk</button><button class="btn small requires-export" id="reportExportCsvBtn" type="button">Export CSV Produk</button></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewSettings" data-view="pengaturan">
+          <div class="view-grid">
+            <div class="panel anchor-panel" id="settingsRolePanel">
+              <span class="view-kicker">Pengaturan / Admin &amp; Role</span>
+              <div class="section-title"><div><h3>Pengaturan</h3><p>Pusat pengaturan admin, toko, payment, kurir, template WhatsApp, backup/restore, dan security log. Panel ini hanya mengubah tampilan navigasi; sistem login, hash A2F, dan konfigurasi Firebase tetap dipertahankan.</p></div></div>
+              <div class="settings-grid">
+                <div class="settings-card"><h4>Admin &amp; Role</h4><p>Role owner, editor, dan viewer tetap mengikuti logic yang sudah ada di script.</p><span class="status-pill good">Terhubung role lama</span></div>
+                <div class="settings-card anchor-panel" id="settingsStorePanel"><h4>Toko</h4><p>Area pengaturan identitas toko, nama toko, link katalog, dan preferensi tampilan.</p><span class="status-pill">Tampilan siap</span></div>
+                <div class="settings-card anchor-panel" id="settingsPaymentPanel"><h4>Payment</h4><p>Area pembayaran untuk bank, QRIS, e-wallet, COD, dan instruksi bayar.</p><span class="status-pill">Tampilan siap</span></div>
+                <div class="settings-card anchor-panel" id="settingsCourierPanel"><h4>Kurir</h4><p>Area kurir untuk JNE, J&amp;T, SiCepat, Anteraja, GoSend, dan GrabExpress.</p><span class="status-pill">Tampilan siap</span></div>
+                <div class="settings-card anchor-panel" id="settingsWhatsAppPanel"><h4>Template WhatsApp</h4><p>Area template pesan follow-up, invoice, pembayaran, pengiriman, dan retur.</p><span class="status-pill">Tampilan siap</span></div>
+                <div class="settings-card anchor-panel" id="settingsBackupPanel"><h4>Backup / Restore</h4><p>Backup JSON dan CSV tetap memakai tombol export yang sudah ada di halaman produk/laporan.</p><span class="status-pill good">Export aktif</span></div>
+                <div class="settings-card anchor-panel" id="settingsSecurityPanel"><h4>Security Log</h4><p>Ringkasan keamanan untuk audit login, A2F, role, export, hapus, dan aksi sensitif.</p><span class="status-pill warn">Log UI disiapkan</span></div>
+              </div>
             </div>
           </div>
         </section>
       </div>
     </section>
-    <div class="wrap footer-note">Setelah dashboard sudah jalan, simpan link ini hanya untuk admin: <b>/admin.html</b>. Shortcut: <span class="kbd">Ctrl</span> + <span class="kbd">S</span> untuk simpan, <span class="kbd">Esc</span> untuk reset pencarian/modal.</div>
+    <div class="wrap footer-note">Setelah dashboard sudah jalan, simpan link ini hanya untuk admin. Shortcut: <span class="kbd">Ctrl</span> + <span class="kbd">S</span> untuk simpan, <span class="kbd">Esc</span> untuk reset pencarian/modal.</div>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1848,10 +1991,34 @@
         els.stockReportRows.innerHTML = rows.length ? rows.map(p => `<tr><td>${escapeHtml(p.title)}<br><span class="muted">${escapeHtml(p.brand || '-')} • ${escapeHtml(p.category || '-')}</span></td><td>${escapeHtml(p.stock || 0)}</td><td>${escapeHtml(p.minStock || 0)}</td><td><span class="status-pill ${Number(p.stock || 0) <= 0 ? 'danger' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'good'}">${Number(p.stock || 0) <= 0 ? 'Habis' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'Menipis' : 'Aman'}</span></td></tr>`).join('') : '<tr><td colspan="4">Belum ada data stok.</td></tr>';
       }
     }
-    function switchView(view){
+    function switchView(view, navKey=''){
       const target = view || 'dashboard';
       document.querySelectorAll('.admin-view').forEach(node => node.classList.toggle('active', node.dataset.view === target));
-      document.querySelectorAll('[data-view-target]').forEach(btn => btn.classList.toggle('active', btn.dataset.viewTarget === target));
+      const fallback = target === 'pengaturan' ? 'pengaturan-role' : target === 'produk' ? 'produk-list' : target === 'pesanan' ? 'pesanan-list' : target === 'pelanggan' ? 'pelanggan-all' : target === 'laporan' ? 'laporan-sales' : 'dashboard-summary';
+      const activeKey = navKey || fallback;
+      document.querySelectorAll('.nav-btn[data-view-target]').forEach(btn => btn.classList.toggle('active', (btn.dataset.navKey || '') === activeKey));
+    }
+    function handleAdminNavigation(btn){
+      if(!btn) return;
+      switchView(btn.dataset.viewTarget, btn.dataset.navKey || '');
+      const scrollTarget = btn.dataset.scrollTarget;
+      if(scrollTarget){
+        setTimeout(() => {
+          const target = document.getElementById(scrollTarget);
+          if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+        }, 70);
+      }
+      const action = btn.dataset.quickAction || '';
+      if(action === 'focus-product-form'){
+        setTimeout(() => { if(els.title) els.title.focus(); }, 180);
+      }
+      if(action === 'filter-low-stock'){
+        if(els.filterQuality){ els.filterQuality.value = 'warning'; renderProducts(); }
+        setTimeout(() => { if(els.productList) els.productList.scrollIntoView({ behavior:'smooth', block:'start' }); }, 120);
+      }
+      if(action === 'focus-order-form'){
+        setTimeout(() => { if(els.orderCustomer) els.orderCustomer.focus(); }, 180);
+      }
     }
     function downloadFile(filename, content, type){
       const blob = new Blob([content], { type });
@@ -2112,7 +2279,11 @@
       if(btn.dataset.action === 'detail') showDetail(product);
     });
 
-    document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.viewTarget)));
+    document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => handleAdminNavigation(btn)));
+    const reportExportJsonBtn = $('reportExportJsonBtn');
+    const reportExportCsvBtn = $('reportExportCsvBtn');
+    if(reportExportJsonBtn) reportExportJsonBtn.addEventListener('click', exportJson);
+    if(reportExportCsvBtn) reportExportCsvBtn.addEventListener('click', exportCsv);
     els.orderForm.addEventListener('submit', saveOrder);
     els.resetOrderBtn.addEventListener('click', resetOrderForm);
     els.autoOrderIdBtn.addEventListener('click', autoOrderId);
