@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#071021">
   <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Admin Produk - Dirac Group</title>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <style>
@@ -382,6 +383,7 @@
     const FILTER_KEY = 'dirac-admin-filters-v2';
     const EMAIL_KEY = 'dirac-admin-email-v1';
     const MAX_IMAGE_SIZE = 7 * 1024 * 1024;
+    const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
     const $ = (id) => document.getElementById(id);
     const els = {
@@ -407,11 +409,27 @@
       return 'Rp ' + (Number.isFinite(value) ? value : 0).toLocaleString('id-ID');
     }
     function padDocId(id){ return String(Number(id || 0)).padStart(3, '0'); }
-    function imageSrc(value){
+    function isSafeRelativeImagePath(src){
+      return /^\.?\/?[a-z0-9._\/-]+\.(webp|png|jpg|jpeg|gif|avif)$/i.test(src) && !src.includes('..');
+    }
+    function sanitizeStoredImageUrl(value){
       const src = String(value || '').trim();
       if(!src) return '';
-      if(/^https?:\/\//i.test(src) || src.startsWith('data:') || src.startsWith('blob:') || src.startsWith('/') || src.startsWith('./')) return src;
-      return src;
+      if(src.length > 1000) return '';
+      if(isSafeRelativeImagePath(src)) return src;
+      try{
+        const url = new URL(src);
+        if(url.protocol !== 'https:') return '';
+        return url.toString();
+      }catch(_error){
+        return '';
+      }
+    }
+    function imageSrc(value, options={}){
+      const src = String(value || '').trim();
+      if(!src) return '';
+      if(options.previewOnly && (src.startsWith('blob:') || src.startsWith('data:image/'))) return src;
+      return sanitizeStoredImageUrl(src);
     }
     function nowLabel(){
       return new Date().toLocaleString('id-ID', { dateStyle:'medium', timeStyle:'short' });
@@ -466,8 +484,8 @@
       const raw = String(error && error.message || error || '');
       const map = {
         'auth/invalid-email':'Format email tidak valid.',
-        'auth/user-not-found':'User admin tidak ditemukan.',
-        'auth/wrong-password':'Password salah.',
+        'auth/user-not-found':'Email atau password salah.',
+        'auth/wrong-password':'Email atau password salah.',
         'auth/invalid-credential':'Email atau password salah.',
         'auth/too-many-requests':'Terlalu banyak percobaan. Coba lagi nanti.',
         'permission-denied':'Akses ditolak oleh rules Firebase.',
@@ -500,12 +518,12 @@
       const data = currentFormData();
       const hasContent = Object.entries(data).some(([key, value]) => key !== 'status' && String(value || '').trim());
       if(hasContent){
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), data }));
         els.restoreDraftBtn.disabled = false;
       }
     }
     function restoreDraft(){
-      const raw = localStorage.getItem(DRAFT_KEY);
+      const raw = sessionStorage.getItem(DRAFT_KEY);
       if(!raw){ showToast('Tidak ada draft tersimpan'); return; }
       try{
         const draft = JSON.parse(raw);
@@ -524,12 +542,12 @@
         markDirty(true);
         showToast('Draft dipulihkan');
       }catch(error){
-        localStorage.removeItem(DRAFT_KEY);
+        sessionStorage.removeItem(DRAFT_KEY);
         showToast('Draft rusak dan sudah dibersihkan');
       }
     }
     function clearDraft(){
-      localStorage.removeItem(DRAFT_KEY);
+      sessionStorage.removeItem(DRAFT_KEY);
       els.restoreDraftBtn.disabled = true;
     }
     function collectForm(){
@@ -547,11 +565,14 @@
       if(category.length > 60) throw new Error('Kategori terlalu panjang. Maksimal 60 karakter.');
       if(!Number.isFinite(price) || price < 0) throw new Error('Harga tidak boleh minus atau kosong.');
       if(!['ready','sold'].includes(status)) throw new Error('Status hanya boleh ready atau sold.');
+      const rawImg = els.img.value.trim();
+      const cleanImg = sanitizeStoredImageUrl(rawImg);
+      if(rawImg && !cleanImg) throw new Error('Link foto tidak valid. Gunakan file lokal .webp/.jpg/.png/.gif/.avif atau URL https.');
       const duplicate = products.find(p => Number(p.id) === id && p.docId !== currentDocId);
       if(duplicate) throw new Error('ID ' + id + ' sudah dipakai oleh produk "' + duplicate.title + '". Pakai ID lain agar data tidak bentrok.');
       return {
         id, title, category, price,
-        img: els.img.value.trim(),
+        img: cleanImg,
         desc: els.desc.value.trim(),
         notes: els.notes.value.trim(),
         status,
@@ -601,7 +622,7 @@
       const title = els.title.value.trim() || 'Preview produk';
       const category = els.category.value.trim() || 'Kategori';
       const price = Number(els.price.value || 0);
-      const img = imageSrc(els.img.value);
+      const img = imageSrc(els.img.value, { previewOnly:true });
       els.previewTitle.textContent = title;
       els.previewMeta.textContent = category + ' • ' + rupiah(price) + ' • ' + (els.status.value || 'ready');
       if(img){
@@ -797,7 +818,7 @@
     function setBusy(state){
       busy = state;
       [els.loginBtn, els.saveBtn, els.resetBtn, els.autoIdBtn, els.deleteEditingBtn, els.choosePhotoBtn, els.exportJsonBtn, els.exportCsvBtn, els.qualityBtn].forEach(btn => btn.disabled = state);
-      els.restoreDraftBtn.disabled = state || !localStorage.getItem(DRAFT_KEY);
+      els.restoreDraftBtn.disabled = state || !sessionStorage.getItem(DRAFT_KEY);
       els.uploadPhotoBtn.disabled = state || !(els.photoFile.files && els.photoFile.files[0]);
     }
     async function saveProduct(event){
@@ -988,15 +1009,16 @@
         desc: product.desc,
         longDesc: product.longDesc
       };
+      const safeImg = imageSrc(product.img);
       els.modalTitle.textContent = '#' + product.id + ' - ' + product.title;
       els.modalBody.innerHTML = `
         <div class="preview-box">
-          <div class="thumb">${product.img ? `<img src="${escapeHtml(imageSrc(product.img))}" alt="${escapeHtml(product.title)}">` : 'No image'}</div>
+          <div class="thumb">${safeImg ? `<img src="${escapeHtml(safeImg)}" alt="${escapeHtml(product.title)}">` : 'No image'}</div>
           <div><strong>${escapeHtml(product.title)}</strong><span>${escapeHtml(product.category)} • ${rupiah(product.price)} • ${escapeHtml(product.status)}</span></div>
         </div>
         <pre>${escapeHtml(JSON.stringify(payload, null, 2))}</pre>
         <div class="card-actions">
-          ${product.img ? `<a class="btn small" href="${escapeHtml(product.img)}" target="_blank" rel="noopener">Buka foto</a>` : ''}
+          ${safeImg ? `<a class="btn small" href="${escapeHtml(safeImg)}" target="_blank" rel="noopener noreferrer">Buka foto</a>` : ''}
           <button class="btn small primary" type="button" id="detailEditBtn">Edit produk ini</button>
           <button class="btn small good" type="button" id="detailCopyBtn">Copy JSON</button>
         </div>`;
@@ -1019,6 +1041,28 @@
       els.modal.classList.add('hidden');
       document.body.classList.remove('modal-open');
     }
+    let idleTimer = null;
+    function clearLocalAdminData(){
+      sessionStorage.removeItem(DRAFT_KEY);
+      els.restoreDraftBtn.disabled = true;
+      els.loginPassword.value = '';
+      markDirty(false);
+    }
+    async function logoutAdmin(){
+      clearLocalAdminData();
+      await signOut(auth);
+    }
+    function resetIdleTimer(){
+      clearTimeout(idleTimer);
+      if(els.adminSection.classList.contains('hidden')) return;
+      idleTimer = setTimeout(() => {
+        logoutAdmin().then(() => showToast('Sesi admin habis karena tidak aktif.')).catch(() => {});
+      }, IDLE_TIMEOUT_MS);
+    }
+    ['click','keydown','mousemove','touchstart'].forEach(eventName => {
+      window.addEventListener(eventName, resetIdleTimer, { passive:true });
+    });
+
     function clearFilters(){
       els.search.value = '';
       els.filterCategory.value = '';
@@ -1043,7 +1087,7 @@
       }finally{ setBusy(false); }
     });
     els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.loginBtn.click(); });
-    els.logoutBtn.addEventListener('click', () => signOut(auth));
+    els.logoutBtn.addEventListener('click', logoutAdmin);
     els.form.addEventListener('submit', saveProduct);
     els.resetBtn.addEventListener('click', () => {
       if(dirty && !confirm('Form punya perubahan yang belum disimpan. Reset sekarang?')) return;
@@ -1124,6 +1168,7 @@
         els.adminSection.classList.remove('hidden');
         els.logoutBtn.classList.remove('hidden');
         startListening();
+        resetIdleTimer();
       } else {
         els.userPill.textContent = 'Belum login';
         els.loginSection.classList.remove('hidden');
@@ -1137,12 +1182,14 @@
         els.lastSync.textContent = 'Login untuk sinkronisasi';
         els.syncDot.className = 'mini-dot warn';
         if(unsubscribeProducts) unsubscribeProducts();
+        clearTimeout(idleTimer);
+        clearLocalAdminData();
       }
     });
 
     const savedEmail = localStorage.getItem(EMAIL_KEY);
     if(savedEmail) els.loginEmail.value = savedEmail;
-    els.restoreDraftBtn.disabled = !localStorage.getItem(DRAFT_KEY);
+    els.restoreDraftBtn.disabled = !sessionStorage.getItem(DRAFT_KEY);
     loadFilters();
     updateConnectionStatus();
     startClock();
