@@ -145,6 +145,13 @@
     .toast{position:fixed;left:50%;bottom:20px;z-index:100;transform:translate(-50%,16px);opacity:0;pointer-events:none;border:1px solid var(--line2);background:rgba(8,12,23,.95);color:#fff;border-radius:999px;padding:12px 16px;box-shadow:var(--shadow);transition:.22s ease;max-width:92vw;text-align:center}
     .toast.show{opacity:1;transform:translate(-50%,0)}
     .desktop-help{display:block}
+    .photo-tools{border:1px solid rgba(96,165,250,.22);background:rgba(96,165,250,.07);border-radius:18px;padding:12px;display:grid;gap:10px}
+    .file-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+    .file-input{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+    .file-name{color:var(--muted);font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .progress{height:9px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}
+    .progress span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#bfdbfe,var(--blue));transition:width .2s ease}
+    .photo-help{font-size:.84rem;color:var(--muted);margin:0}
     @media(max-width:900px){
       .hero-card,.grid{grid-template-columns:1fr}.product-list{max-height:none}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.desktop-help{display:none}
     }
@@ -199,7 +206,7 @@
     <section class="wrap grid hidden" id="adminSection">
       <div class="panel">
         <h3 id="formTitle">Tambah Produk</h3>
-        <p class="help">Data akan disimpan ke Firestore. Untuk foto, isi nama file seperti <b>produk6.webp</b> atau URL gambar lengkap.</p>
+        <p class="help">Data akan disimpan ke Firestore. Untuk foto, kamu bisa upload langsung dari HP atau isi nama file/link gambar.</p>
         <div class="preview-box">
           <div class="thumb"><img id="previewImg" alt="Preview" src="" onerror="this.style.display='none';this.parentNode.textContent='Preview foto'"></div>
           <div><strong id="previewTitle">Preview produk</strong><span id="previewMeta">Belum ada data</span></div>
@@ -213,6 +220,19 @@
             <div class="field"><label for="category">Kategori</label><input class="input" id="category" type="text" list="categoryList" required placeholder="Niche / Designer / Lokal"><datalist id="categoryList"></datalist></div>
             <div class="field"><label for="price">Harga</label><input class="input" id="price" type="number" inputmode="numeric" min="0" required placeholder="1500000"></div>
             <div class="field full"><label for="img">Foto / Link gambar</label><input class="input" id="img" type="text" placeholder="produk6.webp atau https://...jpg"></div>
+            <div class="field full">
+              <label>Upload foto dari HP</label>
+              <div class="photo-tools">
+                <input class="file-input" id="photoFile" type="file" accept="image/*">
+                <div class="file-row">
+                  <button class="btn" id="choosePhotoBtn" type="button">Pilih Foto</button>
+                  <button class="btn primary" id="uploadPhotoBtn" type="button" disabled>Upload Foto</button>
+                </div>
+                <div class="file-name" id="photoFileName">Belum ada foto dipilih.</div>
+                <div class="progress" aria-hidden="true"><span id="uploadProgress"></span></div>
+                <p class="photo-help">Setelah upload berhasil, link foto otomatis masuk ke kolom <b>Foto / Link gambar</b> dan preview muncul.</p>
+              </div>
+            </div>
             <div class="field full"><label for="notes">Notes</label><input class="input" id="notes" type="text" placeholder="Fresh - Citrus - Premium"></div>
             <div class="field full"><label for="desc">Deskripsi pendek</label><textarea id="desc" placeholder="Deskripsi pendek untuk kartu produk"></textarea></div>
             <div class="field full"><label for="longDesc">Deskripsi panjang</label><textarea id="longDesc" placeholder="Deskripsi panjang untuk modal detail produk"></textarea></div>
@@ -246,6 +266,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCKZnjZMCENr2LhFpS6wfIjJ3-lTW0ABwU",
@@ -260,6 +281,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const storage = getStorage(app);
     const productsRef = collection(db, 'products');
 
     const $ = (id) => document.getElementById(id);
@@ -269,7 +291,7 @@
       statTotal:$('statTotal'), statReady:$('statReady'), statSold:$('statSold'), form:$('productForm'), formTitle:$('formTitle'), formMessage:$('formMessage'),
       search:$('search'), filterCategory:$('filterCategory'), filterStatus:$('filterStatus'), categoryList:$('categoryList'),
       previewImg:$('previewImg'), previewTitle:$('previewTitle'), previewMeta:$('previewMeta'), saveBtn:$('saveBtn'), resetBtn:$('resetBtn'), autoIdBtn:$('autoIdBtn'), deleteEditingBtn:$('deleteEditingBtn'),
-      docId:$('docId'), id:$('id'), title:$('title'), category:$('category'), price:$('price'), img:$('img'), status:$('status'), notes:$('notes'), desc:$('desc'), longDesc:$('longDesc'), toast:$('toast')
+      docId:$('docId'), id:$('id'), title:$('title'), category:$('category'), price:$('price'), img:$('img'), status:$('status'), notes:$('notes'), desc:$('desc'), longDesc:$('longDesc'), photoFile:$('photoFile'), choosePhotoBtn:$('choosePhotoBtn'), uploadPhotoBtn:$('uploadPhotoBtn'), photoFileName:$('photoFileName'), uploadProgress:$('uploadProgress'), toast:$('toast')
     };
 
     let products = [];
@@ -381,6 +403,45 @@
       showToast('ID otomatis: ' + (max + 1));
       updatePreview();
     }
+
+    function safeFileName(name){
+      const base = String(name || 'produk').toLowerCase()
+        .replace(/\.[a-z0-9]+$/i, '')
+        .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'produk';
+      return base.slice(0, 70);
+    }
+    function fileExt(file){
+      const type = String(file && file.type || '').toLowerCase();
+      if(type.includes('png')) return 'png';
+      if(type.includes('webp')) return 'webp';
+      if(type.includes('gif')) return 'gif';
+      return 'jpg';
+    }
+    async function uploadSelectedPhoto(){
+      const file = els.photoFile.files && els.photoFile.files[0];
+      if(!file){ showToast('Pilih foto dulu'); return; }
+      const id = String(els.id.value || '').trim() || String(Date.now());
+      const title = els.title.value.trim() || file.name || ('produk-' + id);
+      const path = 'product-images/' + String(id).padStart(3,'0') + '-' + safeFileName(title) + '-' + Date.now() + '.' + fileExt(file);
+      setBusy(true);
+      els.uploadProgress.style.width = '20%';
+      try{
+        const target = storageRef(storage, path);
+        await uploadBytes(target, file, { contentType: file.type || 'image/jpeg' });
+        els.uploadProgress.style.width = '75%';
+        const url = await getDownloadURL(target);
+        els.img.value = url;
+        els.uploadProgress.style.width = '100%';
+        updatePreview();
+        showToast('Foto berhasil diupload');
+        setTimeout(()=>{ els.uploadProgress.style.width = '0%'; }, 900);
+      }catch(error){
+        els.uploadProgress.style.width = '0%';
+        setNotice(els.formMessage, 'Upload foto gagal: ' + (error.message || error), 'danger');
+      }finally{ setBusy(false); }
+    }
     function renderFilters(){
       const categories = [...new Set(products.map(p => p.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
       const currentCat = els.filterCategory.value;
@@ -435,7 +496,8 @@
     }
     function setBusy(state){
       busy = state;
-      [els.loginBtn, els.saveBtn, els.resetBtn, els.autoIdBtn, els.deleteEditingBtn].forEach(btn => btn.disabled = state);
+      [els.loginBtn, els.saveBtn, els.resetBtn, els.autoIdBtn, els.deleteEditingBtn, els.choosePhotoBtn].forEach(btn => btn.disabled = state);
+      els.uploadPhotoBtn.disabled = state || !(els.photoFile.files && els.photoFile.files[0]);
     }
     async function saveProduct(event){
       event.preventDefault();
@@ -503,6 +565,20 @@
     els.resetBtn.addEventListener('click', resetForm);
     els.autoIdBtn.addEventListener('click', autoId);
     els.deleteEditingBtn.addEventListener('click', () => removeProduct(findProduct(els.docId.value)));
+    els.choosePhotoBtn.addEventListener('click', () => els.photoFile.click());
+    els.photoFile.addEventListener('change', () => {
+      const file = els.photoFile.files && els.photoFile.files[0];
+      els.photoFileName.textContent = file ? (file.name + ' • ' + Math.round(file.size / 1024) + ' KB') : 'Belum ada foto dipilih.';
+      els.uploadPhotoBtn.disabled = !file || busy;
+      if(file){
+        const localUrl = URL.createObjectURL(file);
+        els.previewImg.style.display='block';
+        els.previewImg.src = localUrl;
+        els.previewImg.parentNode.textContent = '';
+        els.previewImg.parentNode.appendChild(els.previewImg);
+      }
+    });
+    els.uploadPhotoBtn.addEventListener('click', uploadSelectedPhoto);
     ['id','title','category','price','img','status','notes','desc','longDesc'].forEach(id => $(id).addEventListener('input', updatePreview));
     [els.search, els.filterCategory, els.filterStatus].forEach(el => el.addEventListener('input', renderProducts));
     els.productList.addEventListener('click', (event) => {
