@@ -223,6 +223,24 @@
     }
 
 
+    /* === Transaction, filters, settings, restore, invoice additions === */
+    .filter-grid{display:grid;grid-template-columns:1.2fr repeat(3,minmax(130px,.7fr));gap:10px;margin:12px 0 14px}
+    .filter-grid.report{grid-template-columns:1.2fr repeat(4,minmax(130px,.7fr))}
+    .mini-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .item-builder{border:1px solid rgba(96,165,250,.22);background:rgba(96,165,250,.07);border-radius:20px;padding:12px;margin:4px 0 12px;display:grid;gap:10px}
+    .item-builder-row{display:grid;grid-template-columns:1.35fr .45fr .7fr auto;gap:10px;align-items:end}
+    .order-items{display:grid;gap:8px;margin:8px 0 12px}
+    .order-item{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);border-radius:16px;padding:10px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+    .order-item strong{display:block}.order-item span{display:block;color:var(--muted);font-size:.84rem;margin-top:3px}
+    .totals-box{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:18px;padding:12px;display:grid;gap:7px;margin:8px 0 12px}
+    .total-line{display:flex;justify-content:space-between;gap:10px;color:var(--muted)}
+    .total-line strong{color:#fff}.total-line.grand{font-size:1.08rem;color:#fff;border-top:1px solid rgba(255,255,255,.10);padding-top:8px;margin-top:2px}
+    .settings-panel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.settings-panel-grid .panel{box-shadow:none}
+    .settings-panel-grid .full{grid-column:1/-1}.settings-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.security-log-list{display:grid;gap:8px;max-height:360px;overflow:auto;padding-right:3px}.security-log-item{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:16px;padding:10px}.security-log-item strong{display:block}.security-log-item span{display:block;color:var(--muted);font-size:.82rem;margin-top:3px}.restore-box{border:1px dashed var(--line2);background:rgba(96,165,250,.07);border-radius:18px;padding:12px;display:grid;gap:10px}.invoice-box{color:#0f172a;background:#fff;border-radius:18px;padding:18px}.invoice-box h2,.invoice-box h3{color:#0f172a}.invoice-box table{width:100%;border-collapse:collapse;color:#0f172a}.invoice-box th,.invoice-box td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left}.invoice-box .right{text-align:right}.proof-link{word-break:break-word;color:#bfdbfe;text-decoration:underline}.requires-edit-visible.viewer-hidden{display:inherit}
+    @media(max-width:1040px){.filter-grid,.filter-grid.report,.item-builder-row,.settings-panel-grid{grid-template-columns:1fr 1fr}.item-builder-row button{grid-column:1/-1}}
+    @media(max-width:700px){.filter-grid,.filter-grid.report,.item-builder-row,.settings-panel-grid,.mini-form-grid{grid-template-columns:1fr}.order-item{grid-template-columns:1fr}.totals-box{font-size:.93rem}}
+
+
     /* === Admin IA Refresh: sidebar tree + quick action workspaces === */
     .admin-layout{grid-template-columns:330px minmax(0,1fr)}
     .sidebar{padding:16px;max-height:calc(100vh - 104px);overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
@@ -562,15 +580,43 @@
                 <div class="form-grid">
                   <div class="field"><label for="orderId">ID Pesanan</label><input class="input" id="orderId" type="text" required maxlength="40" placeholder="ORD-001"></div>
                   <div class="field"><label for="orderCustomer">Nama Pelanggan</label><input class="input" id="orderCustomer" type="text" list="customerOptions" required maxlength="100" placeholder="Nama customer"><datalist id="customerOptions"></datalist></div>
-                  <div class="field full"><label for="orderProduct">Produk</label><input class="input" id="orderProduct" type="text" list="orderProductOptions" required maxlength="160" placeholder="Nama produk parfum"><datalist id="orderProductOptions"></datalist></div>
-                  <div class="field"><label for="orderQty">Jumlah</label><input class="input" id="orderQty" type="number" inputmode="numeric" min="1" value="1" required></div>
-                  <div class="field"><label for="orderTotal">Total Harga</label><input class="input" id="orderTotal" type="number" inputmode="numeric" min="0" required></div>
+                  <div class="field full">
+                    <label>Item Pesanan Multi-produk</label>
+                    <div class="item-builder">
+                      <div class="item-builder-row">
+                        <div class="field" style="margin:0"><label for="orderProduct">Produk</label><input class="input" id="orderProduct" type="text" list="orderProductOptions" maxlength="160" placeholder="Pilih / ketik nama produk"><datalist id="orderProductOptions"></datalist></div>
+                        <div class="field" style="margin:0"><label for="orderQty">Qty</label><input class="input" id="orderQty" type="number" inputmode="numeric" min="1" value="1"></div>
+                        <div class="field" style="margin:0"><label for="orderItemPrice">Harga</label><input class="input" id="orderItemPrice" type="number" inputmode="numeric" min="0" placeholder="Auto"></div>
+                        <button class="btn primary" id="addOrderItemBtn" type="button">Tambah Item</button>
+                      </div>
+                      <div class="order-items" id="orderItemsList"><div class="empty">Belum ada item pesanan.</div></div>
+                      <p class="photo-help">Stok otomatis berubah saat status pembayaran <b>Lunas</b> dan order tidak dibatalkan/retur. Edit order akan menyesuaikan selisih stok.</p>
+                    </div>
+                  </div>
+                  <div class="field"><label for="orderSubtotal">Subtotal Item</label><input class="input" id="orderSubtotal" type="number" inputmode="numeric" min="0" readonly></div>
+                  <div class="field"><label for="orderShippingCost">Ongkir</label><input class="input" id="orderShippingCost" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+                  <div class="field"><label for="orderDiscount">Diskon</label><input class="input" id="orderDiscount" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+                  <div class="field"><label for="orderTotal">Total Akhir</label><input class="input" id="orderTotal" type="number" inputmode="numeric" min="0" required></div>
                   <div class="field"><label for="orderPaymentMethod">Metode Pembayaran</label><select id="orderPaymentMethod"><option value="Transfer Bank">Transfer Bank</option><option value="QRIS">QRIS</option><option value="E-wallet">E-wallet</option><option value="COD">COD</option></select></div>
                   <div class="field"><label for="orderPaymentStatus">Status Pembayaran</label><select id="orderPaymentStatus"><option value="Belum Bayar">Belum Bayar</option><option value="Lunas">Lunas</option><option value="Refund">Refund</option></select></div>
                   <div class="field"><label for="orderStatus">Status Pesanan</label><select id="orderStatus"><option value="Menunggu Pembayaran">Menunggu Pembayaran</option><option value="Diproses">Diproses</option><option value="Dikemas">Dikemas</option><option value="Dikirim">Dikirim</option><option value="Selesai">Selesai</option><option value="Dibatalkan">Dibatalkan</option><option value="Retur">Retur</option></select></div>
                   <div class="field"><label for="orderCourier">Ekspedisi</label><select id="orderCourier"><option value="">Belum dipilih</option><option value="JNE">JNE</option><option value="J&T">J&T</option><option value="SiCepat">SiCepat</option><option value="Anteraja">Anteraja</option><option value="GoSend">GoSend</option><option value="GrabExpress">GrabExpress</option></select></div>
                   <div class="field full"><label for="orderTracking">Nomor Resi</label><input class="input" id="orderTracking" type="text" maxlength="80" placeholder="Nomor resi"></div>
-                  <div class="field full"><label for="orderNote">Catatan</label><textarea id="orderNote" maxlength="260" placeholder="Catatan pesanan"></textarea></div>
+                  <div class="field full"><label for="orderAddress">Alamat Pengiriman</label><textarea id="orderAddress" maxlength="520" placeholder="Alamat lengkap customer untuk pengiriman"></textarea></div>
+                  <div class="field full"><label for="orderPaymentProof">Bukti Pembayaran / Link File</label><input class="input" id="orderPaymentProof" type="text" maxlength="1000" placeholder="URL bukti transfer / QRIS / file"></div>
+                  <div class="field full">
+                    <label>Upload bukti bayar</label>
+                    <div class="photo-tools">
+                      <input class="file-input" id="paymentProofFile" type="file" accept="image/*,.pdf">
+                      <div class="file-row">
+                        <button class="btn" id="chooseProofBtn" type="button">Pilih Bukti Bayar</button>
+                        <button class="btn primary" id="uploadProofBtn" type="button" disabled>Upload Bukti</button>
+                      </div>
+                      <div class="file-name" id="proofFileName">Belum ada bukti bayar dipilih.</div>
+                      <div class="progress" aria-hidden="true"><span id="proofProgress"></span></div>
+                    </div>
+                  </div>
+                  <div class="field full"><label for="orderNote">Catatan</label><textarea id="orderNote" maxlength="360" placeholder="Catatan pesanan"></textarea></div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
                   <button class="btn primary" id="saveOrderBtn" type="submit">Simpan Pesanan</button>
@@ -581,8 +627,14 @@
             </div>
             <div class="panel anchor-panel" id="ordersTablePanel">
               <div class="panel-head"><div><span class="view-kicker">Pesanan / Semua Pesanan</span><h3>Daftar Pesanan</h3><p class="help">Pesanan dibaca dari Firestore collection <b>orders</b>.</p></div></div>
+              <div class="filter-grid" aria-label="Filter pesanan">
+                <input class="input" id="orderSearch" type="search" placeholder="Cari ID, pelanggan, produk, resi, alamat...">
+                <select id="orderFilterPayment"><option value="">Semua payment</option><option value="Belum Bayar">Belum Bayar</option><option value="Lunas">Lunas</option><option value="Refund">Refund</option></select>
+                <select id="orderFilterStatus"><option value="">Semua status</option><option value="Menunggu Pembayaran">Menunggu Pembayaran</option><option value="Diproses">Diproses</option><option value="Dikemas">Dikemas</option><option value="Dikirim">Dikirim</option><option value="Selesai">Selesai</option><option value="Dibatalkan">Dibatalkan</option><option value="Retur">Retur</option></select>
+                <button class="btn" id="clearOrderFilterBtn" type="button">Reset Filter</button>
+              </div>
               <div class="notice" id="orderSyncStatus">Menunggu login...</div>
-              <div class="table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>Pelanggan</th><th>Produk</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="orderRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div>
+              <div class="table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>Pelanggan</th><th>Item</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="orderRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div>
             </div>
           </div>
         </section>
@@ -625,6 +677,12 @@
               <span class="view-kicker">Pelanggan / Semua Pelanggan</span>
               <h3>Data Pelanggan</h3>
               <p class="help">Pelanggan dibaca dari Firestore collection <b>customers</b>.</p>
+              <div class="filter-grid" aria-label="Filter pelanggan">
+                <input class="input" id="customerSearch" type="search" placeholder="Cari nama, HP, email, alamat, catatan...">
+                <select id="customerFilterSegment"><option value="">Semua segment</option><option value="Reguler">Reguler</option><option value="VIP">VIP</option><option value="Baru">Baru</option><option value="Tidak Aktif">Tidak Aktif</option></select>
+                <button class="btn" id="clearCustomerFilterBtn" type="button">Reset Filter</button>
+                <button class="btn good requires-export" id="exportCustomersCsvBtn" type="button">Export Customer CSV</button>
+              </div>
               <div class="notice" id="customerSyncStatus">Menunggu login...</div>
               <div class="table-wrap"><table class="admin-table"><thead><tr><th>Nama</th><th>Kontak</th><th>Segment</th><th>Total Belanja</th><th>Aksi</th></tr></thead><tbody id="customerRows"><tr><td colspan="5">Belum ada data.</td></tr></tbody></table></div>
             </div>
@@ -635,6 +693,13 @@
           <div class="view-grid">
             <div class="panel anchor-panel" id="reportSalesPanel">
               <div class="section-title"><div><h3>Laporan Penjualan</h3><p>Rekap omzet, laba, kategori, stok, dan produk terlaris dari data produk + pesanan.</p></div><button class="btn small" type="button" data-view-target="dashboard">Kembali ke dashboard</button></div>
+              <div class="filter-grid report" aria-label="Filter laporan">
+                <input class="input" id="reportSearch" type="search" placeholder="Cari laporan berdasarkan pelanggan/produk/kategori...">
+                <select id="reportFilterPayment"><option value="Lunas">Lunas saja</option><option value="">Semua payment</option><option value="Belum Bayar">Belum Bayar</option><option value="Refund">Refund</option></select>
+                <input class="input" id="reportDateFrom" type="date" aria-label="Tanggal mulai laporan">
+                <input class="input" id="reportDateTo" type="date" aria-label="Tanggal akhir laporan">
+                <button class="btn" id="clearReportFilterBtn" type="button">Reset Laporan</button>
+              </div>
               <div class="dashboard-grid">
                 <div class="dashboard-card"><span>Harian</span><strong id="reportDaily">Rp 0</strong><small>Pesanan lunas hari ini</small></div>
                 <div class="dashboard-card"><span>Mingguan</span><strong id="reportWeekly">Rp 0</strong><small>7 hari terakhir</small></div>
@@ -648,7 +713,7 @@
             </div>
             <div class="wide-grid">
               <div class="panel anchor-panel" id="reportCustomerPanel"><span class="view-kicker">Laporan / Customer</span><h3>Laporan Customer</h3><p class="help">Ringkasan pelanggan tetap memakai data pelanggan dan total belanja yang sudah ada di dashboard.</p><div class="compact-list"><div class="compact-item"><strong>Customer aktif</strong><span id="reportCustomerHint">Data pelanggan otomatis diperbarui dari collection customers.</span></div></div></div>
-              <div class="panel anchor-panel" id="reportExportPanel"><span class="view-kicker">Laporan / Export</span><h3>Export Laporan &amp; Data</h3><p class="help">Gunakan tombol export yang sudah ada untuk backup data produk. Fitur ini tidak mengubah login, A2F, atau rules Firebase.</p><div class="row-actions"><button class="btn small good requires-export" id="reportExportJsonBtn" type="button">Backup JSON Produk</button><button class="btn small requires-export" id="reportExportCsvBtn" type="button">Export CSV Produk</button></div></div>
+              <div class="panel anchor-panel" id="reportExportPanel"><span class="view-kicker">Laporan / Export</span><h3>Export Laporan &amp; Data</h3><p class="help">Gunakan tombol export yang sudah ada untuk backup data produk. Fitur ini tidak mengubah login, A2F, atau rules Firebase.</p><div class="row-actions"><button class="btn small good requires-export" id="reportExportJsonBtn" type="button">Backup Semua JSON</button><button class="btn small requires-export" id="reportExportCsvBtn" type="button">Export CSV Produk</button></div></div>
             </div>
           </div>
         </section>
@@ -659,13 +724,39 @@
               <span class="view-kicker">Pengaturan / Admin &amp; Role</span>
               <div class="section-title"><div><h3>Pengaturan</h3><p>Pusat pengaturan admin, toko, payment, kurir, template WhatsApp, backup/restore, dan security log. Panel ini hanya mengubah tampilan navigasi; sistem login, hash A2F, dan konfigurasi Firebase tetap dipertahankan.</p></div></div>
               <div class="settings-grid">
-                <div class="settings-card"><h4>Admin &amp; Role</h4><p>Role owner, editor, dan viewer tetap mengikuti logic yang sudah ada di script.</p><span class="status-pill good">Terhubung role lama</span></div>
-                <div class="settings-card anchor-panel" id="settingsStorePanel"><h4>Toko</h4><p>Area pengaturan identitas toko, nama toko, link katalog, dan preferensi tampilan.</p><span class="status-pill">Tampilan siap</span></div>
-                <div class="settings-card anchor-panel" id="settingsPaymentPanel"><h4>Payment</h4><p>Area pembayaran untuk bank, QRIS, e-wallet, COD, dan instruksi bayar.</p><span class="status-pill">Tampilan siap</span></div>
-                <div class="settings-card anchor-panel" id="settingsCourierPanel"><h4>Kurir</h4><p>Area kurir untuk JNE, J&amp;T, SiCepat, Anteraja, GoSend, dan GrabExpress.</p><span class="status-pill">Tampilan siap</span></div>
-                <div class="settings-card anchor-panel" id="settingsWhatsAppPanel"><h4>Template WhatsApp</h4><p>Area template pesan follow-up, invoice, pembayaran, pengiriman, dan retur.</p><span class="status-pill">Tampilan siap</span></div>
-                <div class="settings-card anchor-panel" id="settingsBackupPanel"><h4>Backup / Restore</h4><p>Backup JSON dan CSV tetap memakai tombol export yang sudah ada di halaman produk/laporan.</p><span class="status-pill good">Export aktif</span></div>
-                <div class="settings-card anchor-panel" id="settingsSecurityPanel"><h4>Security Log</h4><p>Ringkasan keamanan untuk audit login, A2F, role, export, hapus, dan aksi sensitif.</p><span class="status-pill warn">Log UI disiapkan</span></div>
+                <div class="settings-card"><h4>Admin &amp; Role</h4><p>Role owner, editor, dan viewer tetap mengikuti logic lama. Viewer hanya melihat data, tombol simpan/edit/hapus disembunyikan.</p><span class="status-pill good">Role UI aktif</span></div>
+                <div class="settings-card"><h4>Transaksi</h4><p>Order baru mendukung multi-item, alamat, ongkir, diskon, bukti bayar, invoice, dan stok otomatis.</p><span class="status-pill good">Aktif</span></div>
+                <div class="settings-card"><h4>Backup Semua Data</h4><p>Export/restore mencakup products, orders, customers, settings, dan security log lokal.</p><span class="status-pill good">Aktif</span></div>
+              </div>
+              <div class="settings-panel-grid">
+                <div class="panel anchor-panel" id="settingsStorePanel">
+                  <span class="view-kicker">Pengaturan / Toko</span><h3>Identitas Toko</h3><p class="help">Disimpan ke Firestore <b>settings/store</b>.</p>
+                  <div class="mini-form-grid"><div class="field"><label for="storeName">Nama Toko</label><input class="input" id="storeName" type="text" maxlength="120" placeholder="Dirac Group"></div><div class="field"><label for="storeWhatsApp">WhatsApp Toko</label><input class="input" id="storeWhatsApp" type="text" maxlength="60" placeholder="62812..."></div><div class="field full"><label for="storeCatalogUrl">Link Katalog</label><input class="input" id="storeCatalogUrl" type="text" maxlength="500" placeholder="https://..."></div><div class="field full"><label for="storeAddress">Alamat Toko</label><textarea id="storeAddress" maxlength="520" placeholder="Alamat / kota toko"></textarea></div></div>
+                  <div class="settings-actions"><button class="btn primary requires-edit" id="saveStoreSettingsBtn" type="button">Simpan Toko</button></div><div class="notice hidden" id="storeSettingsMessage"></div>
+                </div>
+                <div class="panel anchor-panel" id="settingsPaymentPanel">
+                  <span class="view-kicker">Pengaturan / Payment</span><h3>Payment</h3><p class="help">Bank, QRIS, e-wallet, COD, dan instruksi bayar.</p>
+                  <div class="mini-form-grid"><div class="field"><label for="paymentBankName">Bank</label><input class="input" id="paymentBankName" type="text" maxlength="80" placeholder="BCA / Mandiri"></div><div class="field"><label for="paymentAccountName">Nama Rekening</label><input class="input" id="paymentAccountName" type="text" maxlength="120"></div><div class="field"><label for="paymentAccountNumber">No. Rekening</label><input class="input" id="paymentAccountNumber" type="text" maxlength="80"></div><div class="field"><label for="paymentEwallet">E-wallet</label><input class="input" id="paymentEwallet" type="text" maxlength="160" placeholder="DANA/OVO/Gopay"></div><div class="field full"><label for="paymentQrisUrl">Link QRIS</label><input class="input" id="paymentQrisUrl" type="text" maxlength="500"></div><div class="field full"><label for="paymentInstruction">Instruksi Pembayaran</label><textarea id="paymentInstruction" maxlength="900"></textarea></div></div>
+                  <div class="settings-actions"><button class="btn primary requires-edit" id="savePaymentSettingsBtn" type="button">Simpan Payment</button></div><div class="notice hidden" id="paymentSettingsMessage"></div>
+                </div>
+                <div class="panel anchor-panel" id="settingsCourierPanel">
+                  <span class="view-kicker">Pengaturan / Kurir</span><h3>Kurir &amp; Ongkir</h3><p class="help">Daftar kurir dan default ongkir untuk form order.</p>
+                  <div class="mini-form-grid"><div class="field full"><label for="courierListText">Daftar Kurir</label><textarea id="courierListText" maxlength="500" placeholder="JNE, J&amp;T, SiCepat, Anteraja, GoSend, GrabExpress"></textarea></div><div class="field"><label for="defaultShippingCost">Default Ongkir</label><input class="input" id="defaultShippingCost" type="number" inputmode="numeric" min="0" placeholder="0"></div><div class="field"><label for="freeShippingMin">Gratis Ongkir Min.</label><input class="input" id="freeShippingMin" type="number" inputmode="numeric" min="0" placeholder="0"></div></div>
+                  <div class="settings-actions"><button class="btn primary requires-edit" id="saveCourierSettingsBtn" type="button">Simpan Kurir</button></div><div class="notice hidden" id="courierSettingsMessage"></div>
+                </div>
+                <div class="panel anchor-panel" id="settingsWhatsAppPanel">
+                  <span class="view-kicker">Pengaturan / Template WhatsApp</span><h3>Template WhatsApp</h3><p class="help">Placeholder: {customer}, {orderId}, {total}, {tracking}, {store}, {payment}.</p>
+                  <div class="field"><label for="waInvoiceTemplate">Invoice</label><textarea id="waInvoiceTemplate" maxlength="900"></textarea></div><div class="field"><label for="waPaymentTemplate">Reminder Pembayaran</label><textarea id="waPaymentTemplate" maxlength="900"></textarea></div><div class="field"><label for="waShippingTemplate">Pengiriman</label><textarea id="waShippingTemplate" maxlength="900"></textarea></div><div class="field"><label for="waFollowupTemplate">Follow-up</label><textarea id="waFollowupTemplate" maxlength="900"></textarea></div><div class="field"><label for="waReturnTemplate">Retur / Refund</label><textarea id="waReturnTemplate" maxlength="900"></textarea></div>
+                  <div class="settings-actions"><button class="btn primary requires-edit" id="saveWhatsAppSettingsBtn" type="button">Simpan Template WA</button></div><div class="notice hidden" id="whatsAppSettingsMessage"></div>
+                </div>
+                <div class="panel anchor-panel full" id="settingsBackupPanel">
+                  <span class="view-kicker">Pengaturan / Backup &amp; Restore</span><h3>Backup / Restore Semua Data</h3><p class="help">JSON berisi products, orders, customers, settings. Restore memerlukan role owner/export dan reauth.</p>
+                  <div class="restore-box"><div class="settings-actions"><button class="btn good requires-export" id="exportAllDataBtn" type="button">Backup Semua Data JSON</button><button class="btn requires-export" id="chooseRestoreFileBtn" type="button">Pilih File Restore</button><button class="btn primary requires-export" id="restoreAllDataBtn" type="button" disabled>Restore Data</button></div><input class="file-input" id="restoreFile" type="file" accept="application/json,.json"><label style="display:flex;gap:8px;align-items:center"><input id="replaceExistingData" type="checkbox"> Hapus data lama products/orders/customers sebelum restore</label><div class="notice" id="restorePreview">Belum ada file restore dipilih.</div></div>
+                </div>
+                <div class="panel anchor-panel full" id="settingsSecurityPanel">
+                  <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, restore, upload bukti, dan pengaturan.</p>
+                  <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div><div class="security-log-list" id="securityLogList"><div class="empty">Belum ada log.</div></div>
+                </div>
               </div>
             </div>
           </div>
@@ -690,7 +781,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const firebaseConfig = {
@@ -735,6 +826,8 @@
     const productsRef = collection(db, 'products');
     const ordersRef = collection(db, 'orders');
     const customersRef = collection(db, 'customers');
+    const settingsRefs = { store: doc(db, 'settings', 'store'), payment: doc(db, 'settings', 'payment'), courier: doc(db, 'settings', 'courier'), whatsapp: doc(db, 'settings', 'whatsapp') };
+    const securityLogsRef = collection(db, 'securityLogs');
     const DRAFT_KEY = 'dirac-admin-product-draft-v2';
     const FILTER_KEY = 'dirac-admin-filters-v2';
     const EMAIL_KEY = 'dirac-admin-email-v1';
@@ -758,13 +851,30 @@
       customerForm:$('customerForm'), customerFormTitle:$('customerFormTitle'), customerDocId:$('customerDocId'), customerName:$('customerName'), customerPhone:$('customerPhone'), customerEmail:$('customerEmail'), customerAddress:$('customerAddress'), customerSegment:$('customerSegment'), customerTotalSpent:$('customerTotalSpent'), customerNote:$('customerNote'), saveCustomerBtn:$('saveCustomerBtn'), resetCustomerBtn:$('resetCustomerBtn'), customerMessage:$('customerMessage'), customerSyncStatus:$('customerSyncStatus'), customerRows:$('customerRows'),
       reportDaily:$('reportDaily'), reportWeekly:$('reportWeekly'), reportMonthly:$('reportMonthly'), reportGrossProfit:$('reportGrossProfit'), categoryReportRows:$('categoryReportRows'), stockReportRows:$('stockReportRows')
     };
+    Object.assign(els, {
+      addOrderItemBtn:$('addOrderItemBtn'), orderItemsList:$('orderItemsList'), orderItemPrice:$('orderItemPrice'), orderSubtotal:$('orderSubtotal'), orderShippingCost:$('orderShippingCost'), orderDiscount:$('orderDiscount'), orderAddress:$('orderAddress'), orderPaymentProof:$('orderPaymentProof'), paymentProofFile:$('paymentProofFile'), chooseProofBtn:$('chooseProofBtn'), uploadProofBtn:$('uploadProofBtn'), proofFileName:$('proofFileName'), proofProgress:$('proofProgress'),
+      orderSearch:$('orderSearch'), orderFilterPayment:$('orderFilterPayment'), orderFilterStatus:$('orderFilterStatus'), clearOrderFilterBtn:$('clearOrderFilterBtn'),
+      customerSearch:$('customerSearch'), customerFilterSegment:$('customerFilterSegment'), clearCustomerFilterBtn:$('clearCustomerFilterBtn'), exportCustomersCsvBtn:$('exportCustomersCsvBtn'),
+      reportSearch:$('reportSearch'), reportFilterPayment:$('reportFilterPayment'), reportDateFrom:$('reportDateFrom'), reportDateTo:$('reportDateTo'), clearReportFilterBtn:$('clearReportFilterBtn'),
+      storeName:$('storeName'), storeWhatsApp:$('storeWhatsApp'), storeCatalogUrl:$('storeCatalogUrl'), storeAddress:$('storeAddress'), saveStoreSettingsBtn:$('saveStoreSettingsBtn'), storeSettingsMessage:$('storeSettingsMessage'),
+      paymentBankName:$('paymentBankName'), paymentAccountName:$('paymentAccountName'), paymentAccountNumber:$('paymentAccountNumber'), paymentEwallet:$('paymentEwallet'), paymentQrisUrl:$('paymentQrisUrl'), paymentInstruction:$('paymentInstruction'), savePaymentSettingsBtn:$('savePaymentSettingsBtn'), paymentSettingsMessage:$('paymentSettingsMessage'),
+      courierListText:$('courierListText'), defaultShippingCost:$('defaultShippingCost'), freeShippingMin:$('freeShippingMin'), saveCourierSettingsBtn:$('saveCourierSettingsBtn'), courierSettingsMessage:$('courierSettingsMessage'),
+      waInvoiceTemplate:$('waInvoiceTemplate'), waPaymentTemplate:$('waPaymentTemplate'), waShippingTemplate:$('waShippingTemplate'), waFollowupTemplate:$('waFollowupTemplate'), waReturnTemplate:$('waReturnTemplate'), saveWhatsAppSettingsBtn:$('saveWhatsAppSettingsBtn'), whatsAppSettingsMessage:$('whatsAppSettingsMessage'),
+      exportAllDataBtn:$('exportAllDataBtn'), chooseRestoreFileBtn:$('chooseRestoreFileBtn'), restoreFile:$('restoreFile'), restoreAllDataBtn:$('restoreAllDataBtn'), restorePreview:$('restorePreview'), replaceExistingData:$('replaceExistingData'), exportSecurityLogBtn:$('exportSecurityLogBtn'), clearLocalSecurityLogBtn:$('clearLocalSecurityLogBtn'), securityLogList:$('securityLogList')
+    });
 
     let products = [];
     let orders = [];
     let customers = [];
+    let orderItems = [];
+    let appSettings = defaultSettings();
+    let securityLogs = [];
+    let pendingRestorePayload = null;
     let unsubscribeProducts = null;
     let unsubscribeOrders = null;
     let unsubscribeCustomers = null;
+    let unsubscribeSettings = [];
+    let unsubscribeSecurityLogs = null;
     let busy = false;
     let dirty = false;
     let suppressDraft = false;
@@ -907,6 +1017,7 @@
         }
         startListening();
         resetIdleTimer();
+        logSecurity('auth.2fa_success', 'Dashboard dibuka').catch(() => {});
         showToast('A2F selesai. Dashboard dibuka.');
       }catch(error){
         setNotice(els.twoFactorError, error.message || 'Verifikasi A2F gagal.', 'danger');
@@ -921,6 +1032,34 @@
       const text = String(value ?? '').trim();
       return text || fallback;
     }
+    function safeNumber(value, fallback=0){
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    function itemSubtotal(item){ return Math.max(0, safeNumber(item.qty, 0)) * Math.max(0, safeNumber(item.price, 0)); }
+    function defaultSettings(){
+      return {
+        store:{ storeName:'Dirac Group', storeWhatsApp:'', storeCatalogUrl:'order.html', storeAddress:'' },
+        payment:{ bankName:'', accountName:'', accountNumber:'', ewallet:'', qrisUrl:'', instruction:'Silakan lakukan pembayaran lalu kirim bukti transfer.' },
+        courier:{ courierList:'JNE, J&T, SiCepat, Anteraja, GoSend, GrabExpress', defaultShippingCost:0, freeShippingMin:0 },
+        whatsapp:{ invoice:'Halo {customer}, invoice {orderId} total {total} dari {store}.', payment:'Halo {customer}, pesanan {orderId} menunggu pembayaran {total}. {payment}', shipping:'Halo {customer}, pesanan {orderId} sudah dikirim. Resi: {tracking}.', followup:'Halo {customer}, apakah masih tertarik dengan pesanan {orderId}?', return:'Halo {customer}, update retur/refund untuk pesanan {orderId} akan kami proses.' }
+      };
+    }
+    function serializePlain(value){
+      if(value === null || value === undefined) return value;
+      if(typeof value !== 'object') return value;
+      if(typeof value.toMillis === 'function') return { seconds: Math.floor(value.toMillis()/1000), millis: value.toMillis() };
+      if(Array.isArray(value)) return value.map(serializePlain);
+      const out = {};
+      Object.keys(value).forEach(key => out[key] = serializePlain(value[key]));
+      return out;
+    }
+    function mergeSettings(kind, data){
+      appSettings[kind] = Object.assign({}, defaultSettings()[kind], appSettings[kind] || {}, data || {});
+      renderSettingsForms();
+      renderOrders();
+    }
+
     function toMillis(value){
       if(!value) return 0;
       if(typeof value.toMillis === 'function') return value.toMillis();
@@ -961,15 +1100,41 @@
         updatedAtMs: toMillis(data.updatedAt)
       };
     }
+    function normalizeOrderItem(raw){
+      const item = raw || {};
+      const qty = Math.max(1, Math.trunc(safeNumber(item.qty, 1)));
+      const price = Math.max(0, Math.trunc(safeNumber(item.price, 0)));
+      const costPrice = Math.max(0, Math.trunc(safeNumber(item.costPrice, 0)));
+      const productDocId = String(item.productDocId || '').trim();
+      const productId = Number(item.productId || 0);
+      const productName = String(item.productName || item.title || '').trim();
+      return { productDocId, productId, productName, qty, price, costPrice, subtotal: qty * price };
+    }
+    function orderItemsFromLegacy(data){
+      const productName = String(data.productName || '').trim();
+      const qty = Math.max(1, Math.trunc(safeNumber(data.qty, 1)));
+      const total = Math.max(0, Math.trunc(safeNumber(data.total, 0)));
+      if(!productName) return [];
+      const unit = qty ? Math.round(total / qty) : total;
+      const product = findProductByName(productName) || {};
+      return [normalizeOrderItem({ productDocId:product.docId || '', productId:product.id || 0, productName, qty, price:unit, costPrice:product.costPrice || 0 })];
+    }
     function normalizeOrder(docSnap){
       const data = docSnap.data() || {};
+      const items = (Array.isArray(data.items) && data.items.length ? data.items : orderItemsFromLegacy(data)).map(normalizeOrderItem).filter(item => item.productName && item.qty > 0);
+      const subtotal = Math.max(0, Math.trunc(safeNumber(data.subtotal, items.reduce((sum,item)=>sum + itemSubtotal(item), 0))));
+      const shippingCost = Math.max(0, Math.trunc(safeNumber(data.shippingCost, 0)));
+      const discount = Math.max(0, Math.trunc(safeNumber(data.discount, 0)));
+      const total = Math.max(0, Math.trunc(safeNumber(data.total, subtotal + shippingCost - discount)));
       return {
         docId: docSnap.id,
         orderId: String(data.orderId || docSnap.id || '').trim(),
         customerName: String(data.customerName || '').trim(),
-        productName: String(data.productName || '').trim(),
-        qty: Number(data.qty || 1),
-        total: Number(data.total || 0),
+        productName: String(data.productName || items.map(i=>i.productName).join(', ') || '').trim(),
+        qty: Number(data.qty || items.reduce((sum,item)=>sum + Number(item.qty || 0), 0) || 1),
+        items, subtotal, shippingCost, discount, total,
+        address: String(data.address || '').trim(),
+        paymentProof: String(data.paymentProof || '').trim(),
         paymentMethod: String(data.paymentMethod || 'Transfer Bank').trim(),
         paymentStatus: String(data.paymentStatus || 'Belum Bayar').trim(),
         orderStatus: String(data.orderStatus || 'Menunggu Pembayaran').trim(),
@@ -978,8 +1143,8 @@
         note: String(data.note || '').trim(),
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
-        createdAtMs: toMillis(data.createdAt) || Date.now(),
-        updatedAtMs: toMillis(data.updatedAt)
+        createdAtMs: toMillis(data.createdAt) || Number(data.createdAtMs || 0) || Date.now(),
+        updatedAtMs: toMillis(data.updatedAt) || Number(data.updatedAtMs || 0)
       };
     }
     function normalizeCustomer(docSnap){
@@ -1130,6 +1295,12 @@
       if(els.exportJsonBtn){ els.exportJsonBtn.disabled = busy || !currentAdmin.canExport; els.exportJsonBtn.classList.toggle('hidden', !currentAdmin.canExport); }
       if(els.exportCsvBtn){ els.exportCsvBtn.disabled = busy || !currentAdmin.canExport; els.exportCsvBtn.classList.toggle('hidden', !currentAdmin.canExport); }
       if(els.deleteEditingBtn){ els.deleteEditingBtn.disabled = busy || !currentAdmin.canDelete; if(!currentAdmin.canDelete) els.deleteEditingBtn.classList.add('hidden'); }
+      [els.saveOrderBtn, els.resetOrderBtn, els.autoOrderIdBtn, els.addOrderItemBtn, els.saveCustomerBtn, els.resetCustomerBtn, els.saveStoreSettingsBtn, els.savePaymentSettingsBtn, els.saveCourierSettingsBtn, els.saveWhatsAppSettingsBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canEdit; btn.classList.toggle('hidden', !currentAdmin.canEdit); }});
+      [els.chooseProofBtn, els.uploadProofBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canUpload || (btn === els.uploadProofBtn && !(els.paymentProofFile && els.paymentProofFile.files && els.paymentProofFile.files[0])); btn.classList.toggle('hidden', !currentAdmin.canUpload); }});
+      [els.exportAllDataBtn, els.restoreAllDataBtn, els.chooseRestoreFileBtn, els.exportCustomersCsvBtn, els.exportSecurityLogBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canExport || (btn === els.restoreAllDataBtn && !pendingRestorePayload); btn.classList.toggle('hidden', !currentAdmin.canExport); }});
+      if(els.clearLocalSecurityLogBtn){ els.clearLocalSecurityLogBtn.disabled = busy || !currentAdmin.canDelete; els.clearLocalSecurityLogBtn.classList.toggle('hidden', !currentAdmin.canDelete); }
+      if(els.orderForm) els.orderForm.classList.toggle('hidden', !currentAdmin.canEdit && currentAdmin.canRead);
+      if(els.customerForm) els.customerForm.classList.toggle('hidden', !currentAdmin.canEdit && currentAdmin.canRead);
     }
     function requirePermission(permission, actionLabel){
       if(!currentAdmin[permission]){
@@ -1690,6 +1861,8 @@
       });
       startOrdersListening();
       startCustomersListening();
+      startSettingsListening();
+      startSecurityLogsListening();
     }
 
     function sanitizeDocId(value, fallback='doc'){
@@ -1710,6 +1883,8 @@
     function estimateOrderCost(order){
       const product = findProductByName(order.productName);
       const unitCost = Number(product && product.costPrice || 0);
+      const items = getOrderItems(order);
+      if(items.length) return items.reduce((sum,item)=>sum + Number(item.costPrice || 0) * Number(item.qty || 0), 0);
       return unitCost * Number(order.qty || 0);
     }
     function findProductByName(name){
@@ -1750,7 +1925,7 @@
       const monthRevenue = monthOrders.reduce((sum,o)=>sum + Number(o.total || 0), 0);
       const activeOrders = orders.filter(o => !['Selesai','Dibatalkan','Retur'].includes(o.orderStatus)).length;
       const lowStock = products.filter(p => Number(p.stock || 0) <= Number(p.minStock || 0));
-      const soldItems = products.reduce((sum,p)=>sum + Number(p.soldCount || 0), 0) + revenueOrders.reduce((sum,o)=>sum + Number(o.qty || 0), 0);
+      const soldItems = products.reduce((sum,p)=>sum + Number(p.soldCount || 0), 0) + revenueOrders.reduce((sum,o)=>sum + orderQtyTotal(o), 0);
       const grossProfit = revenueOrders.reduce((sum,o)=>sum + Number(o.total || 0) - estimateOrderCost(o), 0);
       const categoryCounts = new Map();
       products.forEach(p => categoryCounts.set(p.category || 'Tanpa kategori', (categoryCounts.get(p.category || 'Tanpa kategori') || 0) + 1));
@@ -1827,18 +2002,84 @@
       const countToday = orders.filter(o => String(o.orderId || '').includes(today)).length + 1;
       els.orderId.value = 'ORD-' + today + '-' + String(countToday).padStart(3,'0');
     }
+    function getOrderItems(order){
+      if(order && Array.isArray(order.items) && order.items.length) return order.items.map(normalizeOrderItem);
+      if(order) return orderItemsFromLegacy(order);
+      return [];
+    }
+    function orderQtyTotal(order){ return getOrderItems(order).reduce((sum,item)=>sum + Number(item.qty || 0), 0); }
+    function orderItemsSummary(order){
+      const items = getOrderItems(order);
+      return items.map(item => item.productName + ' x' + item.qty).join(', ') || order.productName || '-';
+    }
+    function isStockAffectingOrder(order){
+      if(!order) return false;
+      return isPaid(order) && !isCancelled(order);
+    }
+    function sameProductKey(item){ return item.productDocId || (item.productId ? 'id:' + item.productId : 'name:' + String(item.productName || '').toLowerCase()); }
+    function findProductForItem(item){
+      if(item.productDocId) return products.find(p => p.docId === item.productDocId) || null;
+      if(item.productId) return products.find(p => Number(p.id) === Number(item.productId)) || null;
+      return findProductByName(item.productName);
+    }
+    function applyStockDeltaMap(map, items, sign){
+      items.forEach(raw => {
+        const item = normalizeOrderItem(raw);
+        const product = findProductForItem(item);
+        if(!product) return;
+        const key = product.docId;
+        const row = map.get(key) || { product, qtyDelta:0, soldDelta:0 };
+        row.qtyDelta += sign * Number(item.qty || 0);
+        row.soldDelta += -sign * Number(item.qty || 0);
+        map.set(key, row);
+      });
+    }
+    function updateOrderTotals(){
+      const subtotal = orderItems.reduce((sum,item)=>sum + itemSubtotal(item), 0);
+      const shipping = Math.max(0, Math.trunc(safeNumber(els.orderShippingCost && els.orderShippingCost.value, 0)));
+      const discount = Math.max(0, Math.trunc(safeNumber(els.orderDiscount && els.orderDiscount.value, 0)));
+      if(els.orderSubtotal) els.orderSubtotal.value = subtotal;
+      if(els.orderTotal) els.orderTotal.value = Math.max(0, subtotal + shipping - discount);
+    }
+    function renderOrderItems(){
+      if(!els.orderItemsList) return;
+      if(!orderItems.length){ els.orderItemsList.innerHTML = '<div class="empty">Belum ada item pesanan.</div>'; updateOrderTotals(); return; }
+      els.orderItemsList.innerHTML = orderItems.map((item,idx) => `<div class="order-item"><div><strong>${escapeHtml(item.productName)}</strong><span>Qty ${escapeHtml(item.qty)} • ${rupiah(item.price)} / item • Subtotal ${rupiah(itemSubtotal(item))}</span></div><button class="btn small danger requires-edit" type="button" data-remove-order-item="${idx}">Hapus</button></div>`).join('');
+      updateOrderTotals();
+      applyRoleUi();
+    }
+    function addOrderItem(){
+      try{ requirePermission('canEdit', 'menambah item pesanan'); }
+      catch(error){ setNotice(els.orderMessage, error.message, 'danger'); return; }
+      const productName = els.orderProduct.value.trim();
+      const product = findProductByName(productName);
+      const qty = Math.max(1, Math.trunc(safeNumber(els.orderQty.value, 1)));
+      const price = Math.max(0, Math.trunc(safeNumber(els.orderItemPrice.value, product ? product.price : 0)));
+      if(!productName) { setNotice(els.orderMessage, 'Produk wajib diisi sebelum tambah item.', 'danger'); return; }
+      if(!price) { setNotice(els.orderMessage, 'Harga item wajib lebih dari 0.', 'danger'); return; }
+      const newItem = normalizeOrderItem({ productDocId: product ? product.docId : '', productId: product ? product.id : 0, productName: product ? product.title : productName, qty, price, costPrice: product ? product.costPrice : 0 });
+      const existing = orderItems.find(item => sameProductKey(item) === sameProductKey(newItem));
+      if(existing){ existing.qty += newItem.qty; existing.subtotal = existing.qty * existing.price; }
+      else orderItems.push(newItem);
+      els.orderProduct.value = '';
+      els.orderQty.value = 1;
+      els.orderItemPrice.value = '';
+      hideNotice(els.orderMessage);
+      renderOrderItems();
+    }
     function collectOrder(){
       const orderId = els.orderId.value.trim();
       const customerName = els.orderCustomer.value.trim();
-      const productName = els.orderProduct.value.trim();
-      const qty = Number(els.orderQty.value || 1);
-      const total = Number(els.orderTotal.value || 0);
       if(!orderId) throw new Error('ID pesanan wajib diisi.');
       if(!customerName) throw new Error('Nama pelanggan wajib diisi.');
-      if(!productName) throw new Error('Produk wajib diisi.');
-      if(!Number.isInteger(qty) || qty < 1) throw new Error('Jumlah harus angka bulat minimal 1.');
-      if(!Number.isFinite(total) || total < 0 || !Number.isInteger(total)) throw new Error('Total harga harus angka bulat dan tidak boleh minus.');
-      return { orderId, customerName, productName, qty, total, paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), updatedAt: serverTimestamp() };
+      if(!orderItems.length) throw new Error('Minimal tambahkan 1 item produk ke pesanan.');
+      const subtotal = orderItems.reduce((sum,item)=>sum + itemSubtotal(item), 0);
+      const shippingCost = Math.max(0, Math.trunc(safeNumber(els.orderShippingCost.value, 0)));
+      const discount = Math.max(0, Math.trunc(safeNumber(els.orderDiscount.value, 0)));
+      const total = Math.max(0, Math.trunc(safeNumber(els.orderTotal.value, subtotal + shippingCost - discount)));
+      if(!Number.isInteger(total)) throw new Error('Total harga harus angka bulat Rupiah.');
+      const itemSnapshot = orderItems.map(normalizeOrderItem);
+      return { orderId, customerName, items:itemSnapshot, productName:itemSnapshot.map(item=>item.productName).join(', '), qty:itemSnapshot.reduce((sum,item)=>sum + Number(item.qty || 0), 0), subtotal, shippingCost, discount, total, address: els.orderAddress.value.trim(), paymentProof: els.orderPaymentProof.value.trim(), paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), updatedAt: serverTimestamp(), updatedAtMs: Date.now() };
     }
     async function saveOrder(event){
       event.preventDefault();
@@ -1849,11 +2090,22 @@
         const data = collectOrder();
         const currentDocId = els.orderDocId.value.trim();
         const targetDocId = currentDocId || sanitizeDocId(data.orderId, 'order-' + Date.now());
-        if(!currentDocId) data.createdAt = serverTimestamp();
-        await setDoc(doc(db, 'orders', targetDocId), data, { merge:true });
+        const previous = currentDocId ? orders.find(o => o.docId === currentDocId) : null;
+        if(!currentDocId){ data.createdAt = serverTimestamp(); data.createdAtMs = Date.now(); }
+        const batch = writeBatch(db);
+        const stockDeltas = new Map();
+        if(previous && isStockAffectingOrder(previous)) applyStockDeltaMap(stockDeltas, getOrderItems(previous), 1);
+        if(isStockAffectingOrder(data)) applyStockDeltaMap(stockDeltas, data.items, -1);
+        stockDeltas.forEach(row => {
+          if(!row.product || (!row.qtyDelta && !row.soldDelta)) return;
+          batch.update(doc(db, 'products', row.product.docId), { stock: increment(row.qtyDelta), soldCount: increment(row.soldDelta), updatedAt: serverTimestamp() });
+        });
+        batch.set(doc(db, 'orders', targetDocId), data, { merge:true });
+        await batch.commit();
+        await logSecurity('order.save', data.orderId + ' • ' + data.customerName + ' • ' + rupiah(data.total));
         setNotice(els.orderMessage, 'Pesanan berhasil disimpan: ' + data.orderId, 'good');
         resetOrderForm();
-        showToast('Pesanan tersimpan');
+        showToast('Pesanan tersimpan dan stok disinkronkan');
       }catch(error){ setNotice(els.orderMessage, firebaseMessage(error), 'danger'); }
       finally{ setBusy(false); }
     }
@@ -1861,6 +2113,16 @@
       els.orderForm.reset();
       els.orderDocId.value = '';
       els.orderQty.value = 1;
+      if(els.orderShippingCost) els.orderShippingCost.value = Number(appSettings.courier.defaultShippingCost || 0) || '';
+      if(els.orderDiscount) els.orderDiscount.value = '';
+      if(els.orderSubtotal) els.orderSubtotal.value = '';
+      if(els.orderTotal) els.orderTotal.value = '';
+      if(els.orderPaymentProof) els.orderPaymentProof.value = '';
+      if(els.paymentProofFile) els.paymentProofFile.value = '';
+      if(els.proofFileName) els.proofFileName.textContent = 'Belum ada bukti bayar dipilih.';
+      if(els.proofProgress) els.proofProgress.style.width = '0%';
+      orderItems = [];
+      renderOrderItems();
       els.orderFormTitle.textContent = 'Tambah Pesanan';
       hideNotice(els.orderMessage);
     }
@@ -1869,40 +2131,71 @@
       els.orderDocId.value = order.docId;
       els.orderId.value = order.orderId;
       els.orderCustomer.value = order.customerName;
-      els.orderProduct.value = order.productName;
-      els.orderQty.value = order.qty;
+      orderItems = getOrderItems(order);
+      els.orderProduct.value = '';
+      els.orderQty.value = 1;
+      els.orderItemPrice.value = '';
+      els.orderSubtotal.value = order.subtotal || orderItems.reduce((sum,item)=>sum + itemSubtotal(item), 0);
+      els.orderShippingCost.value = order.shippingCost || 0;
+      els.orderDiscount.value = order.discount || 0;
       els.orderTotal.value = order.total;
       els.orderPaymentMethod.value = order.paymentMethod || 'Transfer Bank';
       els.orderPaymentStatus.value = order.paymentStatus || 'Belum Bayar';
       els.orderStatus.value = order.orderStatus || 'Menunggu Pembayaran';
       els.orderCourier.value = order.courier || '';
       els.orderTracking.value = order.trackingNumber || '';
+      els.orderAddress.value = order.address || '';
+      els.orderPaymentProof.value = order.paymentProof || '';
       els.orderNote.value = order.note || '';
       els.orderFormTitle.textContent = 'Edit Pesanan';
+      renderOrderItems();
       switchView('pesanan');
-      window.scrollTo({ top: 0, behavior:'smooth' });
+      setTimeout(() => { const target = document.getElementById('orderFormPanel'); if(target) target.scrollIntoView({ behavior:'smooth', block:'start' }); }, 80);
     }
     async function deleteOrder(order){
       if(!order) return;
       try{ requirePermission('canDelete', 'menghapus pesanan'); }
       catch(error){ alert(error.message); return; }
-      if(!confirm('Hapus pesanan ' + order.orderId + '?')) return;
+      if(!confirm('Hapus pesanan ' + order.orderId + '?\n\nJika pesanan sudah Lunas, stok produk akan dikembalikan otomatis.')) return;
       setBusy(true);
-      try{ await requireSensitiveReauth('menghapus pesanan ' + order.orderId); await deleteDoc(doc(db, 'orders', order.docId)); showToast('Pesanan dihapus'); }
+      try{
+        await requireSensitiveReauth('menghapus pesanan ' + order.orderId);
+        const batch = writeBatch(db);
+        const stockDeltas = new Map();
+        if(isStockAffectingOrder(order)) applyStockDeltaMap(stockDeltas, getOrderItems(order), 1);
+        stockDeltas.forEach(row => batch.update(doc(db, 'products', row.product.docId), { stock: increment(row.qtyDelta), soldCount: increment(row.soldDelta), updatedAt: serverTimestamp() }));
+        batch.delete(doc(db, 'orders', order.docId));
+        await batch.commit();
+        await logSecurity('order.delete', order.orderId);
+        showToast('Pesanan dihapus dan stok dikembalikan');
+      }
       catch(error){ alert('Gagal hapus pesanan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
+    function filteredOrders(){
+      const q = String(els.orderSearch && els.orderSearch.value || '').trim().toLowerCase();
+      const payment = els.orderFilterPayment && els.orderFilterPayment.value;
+      const status = els.orderFilterStatus && els.orderFilterStatus.value;
+      return orders.filter(o => {
+        const text = [o.orderId,o.customerName,orderItemsSummary(o),o.paymentMethod,o.paymentStatus,o.orderStatus,o.courier,o.trackingNumber,o.address,o.paymentProof,o.note,o.total].join(' ').toLowerCase();
+        return (!q || text.includes(q)) && (!payment || o.paymentStatus === payment) && (!status || o.orderStatus === status);
+      });
+    }
     function renderOrders(){
       if(!els.orderRows) return;
-      if(!orders.length){ els.orderRows.innerHTML = '<tr><td colspan="6">Belum ada pesanan.</td></tr>'; return; }
-      els.orderRows.innerHTML = orders.slice(0,80).map(o => `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${new Date(o.createdAtMs).toLocaleDateString('id-ID')}</span></td><td>${escapeHtml(o.customerName)}</td><td>${escapeHtml(o.productName)}<br><span class="muted">Qty ${escapeHtml(o.qty)}</span></td><td>${rupiah(o.total)}<br><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span></td><td><span class="status-pill ${statusClass(o.orderStatus)}">${escapeHtml(o.orderStatus)}</span><br><span class="muted">${escapeHtml([o.courier,o.trackingNumber].filter(Boolean).join(' • ') || '-')}</span></td><td><div class="row-actions"><button class="btn small primary" type="button" data-order-action="edit" data-doc="${escapeHtml(o.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" type="button" data-order-action="delete" data-doc="${escapeHtml(o.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('');
+      const rows = filteredOrders();
+      if(!rows.length){ els.orderRows.innerHTML = '<tr><td colspan="6">Belum ada pesanan sesuai filter.</td></tr>'; return; }
+      els.orderRows.innerHTML = rows.slice(0,120).map(o => {
+        const proof = o.paymentProof ? `<br><a class="proof-link" href="${escapeHtml(o.paymentProof)}" target="_blank" rel="noopener">Bukti bayar</a>` : '';
+        return `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${new Date(o.createdAtMs).toLocaleDateString('id-ID')}</span></td><td>${escapeHtml(o.customerName)}<br><span class="muted">${escapeHtml(o.address || '-')}</span></td><td>${escapeHtml(orderItemsSummary(o))}<br><span class="muted">Total item ${escapeHtml(orderQtyTotal(o))}</span></td><td>${rupiah(o.total)}<br><span class="muted">Subtotal ${rupiah(o.subtotal)} • Ongkir ${rupiah(o.shippingCost)} • Diskon ${rupiah(o.discount)}</span>${proof}</td><td><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span><br><span class="status-pill ${statusClass(o.orderStatus)}">${escapeHtml(o.orderStatus)}</span><br><span class="muted">${escapeHtml([o.courier,o.trackingNumber].filter(Boolean).join(' • ') || '-')}</span></td><td><div class="row-actions">${currentAdmin.canEdit ? `<button class="btn small primary requires-edit" type="button" data-order-action="edit" data-doc="${escapeHtml(o.docId)}">Edit</button>` : ''}<button class="btn small" type="button" data-order-action="invoice" data-doc="${escapeHtml(o.docId)}">Invoice</button>${currentAdmin.canDelete ? `<button class="btn small danger requires-delete" type="button" data-order-action="delete" data-doc="${escapeHtml(o.docId)}">Hapus</button>` : ''}</div></td></tr>`;
+      }).join('');
     }
     function collectCustomer(){
       const name = els.customerName.value.trim();
       if(!name) throw new Error('Nama pelanggan wajib diisi.');
       const totalSpent = Number(els.customerTotalSpent.value || 0);
       if(!Number.isFinite(totalSpent) || totalSpent < 0 || !Number.isInteger(totalSpent)) throw new Error('Total belanja manual harus angka bulat dan tidak boleh minus.');
-      return { name, phone: els.customerPhone.value.trim(), email: els.customerEmail.value.trim(), address: els.customerAddress.value.trim(), segment: els.customerSegment.value || 'Reguler', totalSpent, note: els.customerNote.value.trim(), updatedAt: serverTimestamp() };
+      return { name, phone: els.customerPhone.value.trim(), email: els.customerEmail.value.trim(), address: els.customerAddress.value.trim(), segment: els.customerSegment.value || 'Reguler', totalSpent, note: els.customerNote.value.trim(), updatedAt: serverTimestamp(), updatedAtMs: Date.now() };
     }
     async function saveCustomer(event){
       event.preventDefault();
@@ -1913,8 +2206,9 @@
         const data = collectCustomer();
         const currentDocId = els.customerDocId.value.trim();
         const targetDocId = currentDocId || sanitizeDocId(data.name + '-' + (data.phone || data.email || Date.now()), 'customer-' + Date.now());
-        if(!currentDocId) data.createdAt = serverTimestamp();
+        if(!currentDocId){ data.createdAt = serverTimestamp(); data.createdAtMs = Date.now(); }
         await setDoc(doc(db, 'customers', targetDocId), data, { merge:true });
+        await logSecurity('customer.save', data.name);
         setNotice(els.customerMessage, 'Pelanggan berhasil disimpan: ' + data.name, 'good');
         resetCustomerForm();
         showToast('Pelanggan tersimpan');
@@ -1940,7 +2234,7 @@
       els.customerNote.value = customer.note || '';
       els.customerFormTitle.textContent = 'Edit Pelanggan';
       switchView('pelanggan');
-      window.scrollTo({ top: 0, behavior:'smooth' });
+      setTimeout(() => { const target = document.getElementById('customerFormPanel'); if(target) target.scrollIntoView({ behavior:'smooth', block:'start' }); }, 80);
     }
     async function deleteCustomer(customer){
       if(!customer) return;
@@ -1948,22 +2242,41 @@
       catch(error){ alert(error.message); return; }
       if(!confirm('Hapus pelanggan ' + customer.name + '?')) return;
       setBusy(true);
-      try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await deleteDoc(doc(db, 'customers', customer.docId)); showToast('Pelanggan dihapus'); }
+      try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await deleteDoc(doc(db, 'customers', customer.docId)); await logSecurity('customer.delete', customer.name); showToast('Pelanggan dihapus'); }
       catch(error){ alert('Gagal hapus pelanggan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
+    function filteredCustomers(){
+      const q = String(els.customerSearch && els.customerSearch.value || '').trim().toLowerCase();
+      const segment = els.customerFilterSegment && els.customerFilterSegment.value;
+      return customers.filter(c => {
+        const text = [c.name,c.phone,c.email,c.address,c.segment,c.note,c.totalSpent].join(' ').toLowerCase();
+        return (!q || text.includes(q)) && (!segment || c.segment === segment);
+      });
+    }
     function renderCustomers(){
       if(!els.customerRows) return;
-      if(!customers.length){ els.customerRows.innerHTML = '<tr><td colspan="5">Belum ada pelanggan.</td></tr>'; return; }
+      const list = filteredCustomers();
+      if(!list.length){ els.customerRows.innerHTML = '<tr><td colspan="5">Belum ada pelanggan sesuai filter.</td></tr>'; return; }
       const customerTotals = new Map();
       paidRevenueOrders().forEach(o => customerTotals.set(o.customerName, (customerTotals.get(o.customerName) || 0) + Number(o.total || 0)));
-      els.customerRows.innerHTML = customers.slice(0,80).map(c => {
+      els.customerRows.innerHTML = list.slice(0,120).map(c => {
         const total = Number(c.totalSpent || 0) + Number(customerTotals.get(c.name) || 0);
-        return `<tr><td><strong>${escapeHtml(c.name)}</strong><br><span class="muted">${escapeHtml(c.address || '-')}</span></td><td>${escapeHtml(c.phone || '-')}<br><span class="muted">${escapeHtml(c.email || '-')}</span></td><td><span class="status-pill ${c.segment === 'VIP' ? 'good' : ''}">${escapeHtml(c.segment)}</span></td><td>${rupiah(total)}</td><td><div class="row-actions"><button class="btn small primary" type="button" data-customer-action="edit" data-doc="${escapeHtml(c.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" type="button" data-customer-action="delete" data-doc="${escapeHtml(c.docId)}">Hapus</button>` : ''}</div></td></tr>`;
+        return `<tr><td><strong>${escapeHtml(c.name)}</strong><br><span class="muted">${escapeHtml(c.address || '-')}</span></td><td>${escapeHtml(c.phone || '-')}<br><span class="muted">${escapeHtml(c.email || '-')}</span></td><td><span class="status-pill ${c.segment === 'VIP' ? 'good' : ''}">${escapeHtml(c.segment)}</span></td><td>${rupiah(total)}</td><td><div class="row-actions">${currentAdmin.canEdit ? `<button class="btn small primary requires-edit" type="button" data-customer-action="edit" data-doc="${escapeHtml(c.docId)}">Edit</button>` : ''}${currentAdmin.canDelete ? `<button class="btn small danger requires-delete" type="button" data-customer-action="delete" data-doc="${escapeHtml(c.docId)}">Hapus</button>` : ''}</div></td></tr>`;
       }).join('');
     }
+    function reportOrders(){
+      const q = String(els.reportSearch && els.reportSearch.value || '').trim().toLowerCase();
+      const payment = els.reportFilterPayment ? els.reportFilterPayment.value : 'Lunas';
+      const from = els.reportDateFrom && els.reportDateFrom.value ? new Date(els.reportDateFrom.value + 'T00:00:00').getTime() : 0;
+      const to = els.reportDateTo && els.reportDateTo.value ? new Date(els.reportDateTo.value + 'T23:59:59').getTime() : Infinity;
+      return orders.filter(o => {
+        const text = [o.orderId,o.customerName,orderItemsSummary(o),o.paymentStatus,o.orderStatus,o.courier,o.trackingNumber].join(' ').toLowerCase();
+        return (!payment || o.paymentStatus === payment) && !isCancelled(o) && (!q || text.includes(q)) && o.createdAtMs >= from && o.createdAtMs <= to;
+      });
+    }
     function renderReports(){
-      const revenueOrders = paidRevenueOrders();
+      const revenueOrders = reportOrders();
       const now = new Date();
       const daily = revenueOrders.filter(o => sameLocalDay(o.createdAtMs, now)).reduce((sum,o)=>sum + Number(o.total || 0), 0);
       const weeklyStart = Date.now() - 6 * 24 * 60 * 60 * 1000;
@@ -1984,12 +2297,17 @@
           row.sold += Number(p.soldCount || 0);
           groups.set(key,row);
         });
-        els.categoryReportRows.innerHTML = groups.size ? [...groups.values()].sort((a,b)=>b.value-a.value).map(row => `<tr><td>${escapeHtml(row.category)}</td><td>${escapeHtml(row.count)}</td><td>${rupiah(row.value)}</td><td>${escapeHtml(row.sold)}</td></tr>`).join('') : '<tr><td colspan="4">Belum ada data kategori.</td></tr>';
+        const q = String(els.reportSearch && els.reportSearch.value || '').trim().toLowerCase();
+        const categoryRows = [...groups.values()].filter(row => !q || row.category.toLowerCase().includes(q));
+        els.categoryReportRows.innerHTML = categoryRows.length ? categoryRows.sort((a,b)=>b.value-a.value).map(row => `<tr><td>${escapeHtml(row.category)}</td><td>${escapeHtml(row.count)}</td><td>${rupiah(row.value)}</td><td>${escapeHtml(row.sold)}</td></tr>`).join('') : '<tr><td colspan="4">Belum ada data kategori sesuai filter.</td></tr>';
       }
       if(els.stockReportRows){
-        const rows = [...products].sort((a,b)=>Number(a.stock)-Number(b.stock)).slice(0,80);
-        els.stockReportRows.innerHTML = rows.length ? rows.map(p => `<tr><td>${escapeHtml(p.title)}<br><span class="muted">${escapeHtml(p.brand || '-')} • ${escapeHtml(p.category || '-')}</span></td><td>${escapeHtml(p.stock || 0)}</td><td>${escapeHtml(p.minStock || 0)}</td><td><span class="status-pill ${Number(p.stock || 0) <= 0 ? 'danger' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'good'}">${Number(p.stock || 0) <= 0 ? 'Habis' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'Menipis' : 'Aman'}</span></td></tr>`).join('') : '<tr><td colspan="4">Belum ada data stok.</td></tr>';
+        const q = String(els.reportSearch && els.reportSearch.value || '').trim().toLowerCase();
+        const rows = [...products].filter(p => !q || [p.title,p.brand,p.category,p.status].join(' ').toLowerCase().includes(q)).sort((a,b)=>Number(a.stock)-Number(b.stock)).slice(0,120);
+        els.stockReportRows.innerHTML = rows.length ? rows.map(p => `<tr><td>${escapeHtml(p.title)}<br><span class="muted">${escapeHtml(p.brand || '-')} • ${escapeHtml(p.category || '-')}</span></td><td>${escapeHtml(p.stock || 0)}</td><td>${escapeHtml(p.minStock || 0)}</td><td><span class="status-pill ${Number(p.stock || 0) <= 0 ? 'danger' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'good'}">${Number(p.stock || 0) <= 0 ? 'Habis' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'Menipis' : 'Aman'}</span></td></tr>`).join('') : '<tr><td colspan="4">Belum ada data stok sesuai filter.</td></tr>';
       }
+      const hint = $('reportCustomerHint');
+      if(hint) hint.textContent = 'Filter aktif membaca ' + revenueOrders.length + ' pesanan dan ' + customers.length + ' pelanggan.';
     }
     function switchView(view, navKey=''){
       const target = view || 'dashboard';
@@ -2033,23 +2351,29 @@
     }
     function backupPayload(){
       return {
+        schemaVersion: 3,
         exportedAt: new Date().toISOString(),
         app: 'Dirac Admin',
-        collection: 'products',
-        count: products.length,
+        collection: 'all',
+        counts: { products:products.length, orders:orders.length, customers:customers.length, securityLogs:securityLogs.length },
+        settings: serializePlain(appSettings),
+        securityLogs: serializePlain(securityLogs),
         products: products.map(p => ({
           docId:p.docId, id:p.id, title:p.title, brand:p.brand, category:p.category, price:p.price, costPrice:p.costPrice, stock:p.stock, minStock:p.minStock, soldCount:p.soldCount, size:p.size, fragranceType:p.fragranceType, gender:p.gender, scentFamily:p.scentFamily, longevity:p.longevity, projection:p.projection, topNotes:p.topNotes, middleNotes:p.middleNotes, baseNotes:p.baseNotes, img:p.img,
-          desc:p.desc, notes:p.notes, status:p.status, longDesc:p.longDesc
-        }))
+          desc:p.desc, notes:p.notes, status:p.status, longDesc:p.longDesc, createdAtMs:p.createdAtMs || 0, updatedAtMs:p.updatedAtMs || 0
+        })),
+        orders: orders.map(o => ({ docId:o.docId, orderId:o.orderId, customerName:o.customerName, items:getOrderItems(o), productName:o.productName, qty:o.qty, subtotal:o.subtotal, shippingCost:o.shippingCost, discount:o.discount, total:o.total, address:o.address, paymentProof:o.paymentProof, paymentMethod:o.paymentMethod, paymentStatus:o.paymentStatus, orderStatus:o.orderStatus, courier:o.courier, trackingNumber:o.trackingNumber, note:o.note, createdAtMs:o.createdAtMs || 0, updatedAtMs:o.updatedAtMs || 0 })),
+        customers: customers.map(c => ({ docId:c.docId, name:c.name, phone:c.phone, email:c.email, address:c.address, segment:c.segment, totalSpent:c.totalSpent, note:c.note, createdAtMs:c.createdAtMs || 0, updatedAtMs:c.updatedAtMs || 0 }))
       };
     }
     async function exportJson(){
       try{
-        requirePermission('canExport', 'membuat backup JSON');
-        await requireSensitiveReauth('membuat backup JSON');
+        requirePermission('canExport', 'membuat backup semua data JSON');
+        await requireSensitiveReauth('membuat backup semua data JSON');
         const payload = backupPayload();
-        downloadFile('dirac-products-backup-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
-        showToast('Backup JSON dibuat');
+        downloadFile('dirac-all-data-backup-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
+        await logSecurity('backup.export', 'Export semua data JSON');
+        showToast('Backup semua data dibuat');
       }catch(error){
         showToast(firebaseMessage(error));
       }
@@ -2065,10 +2389,20 @@
         const header = ['docId','id','title','brand','category','price','costPrice','stock','minStock','soldCount','size','fragranceType','gender','scentFamily','longevity','projection','topNotes','middleNotes','baseNotes','status','img','notes','desc','longDesc'];
         const rows = products.map(p => header.map(k => csvCell(p[k])).join(','));
         downloadFile('dirac-products-' + new Date().toISOString().slice(0,10) + '.csv', [header.join(','), ...rows].join('\n'), 'text/csv;charset=utf-8');
-        showToast('CSV dibuat');
-      }catch(error){
-        showToast(firebaseMessage(error));
-      }
+        await logSecurity('products.export_csv', 'Export CSV produk');
+        showToast('CSV produk dibuat');
+      }catch(error){ showToast(firebaseMessage(error)); }
+    }
+    async function exportCustomersCsv(){
+      try{
+        requirePermission('canExport', 'export customer CSV');
+        await requireSensitiveReauth('export customer CSV');
+        const header = ['docId','name','phone','email','address','segment','totalSpent','note'];
+        const rows = filteredCustomers().map(c => header.map(k => csvCell(c[k])).join(','));
+        downloadFile('dirac-customers-' + new Date().toISOString().slice(0,10) + '.csv', [header.join(','), ...rows].join('\n'), 'text/csv;charset=utf-8');
+        await logSecurity('customers.export_csv', 'Export CSV customer');
+        showToast('CSV customer dibuat');
+      }catch(error){ showToast(firebaseMessage(error)); }
     }
     function runQualityAudit(showPanel=true){
       const issues = [];
@@ -2210,6 +2544,230 @@
       showToast('Filter direset');
     }
 
+
+    function renderSettingsForms(){
+      const store = appSettings.store || defaultSettings().store;
+      const payment = appSettings.payment || defaultSettings().payment;
+      const courier = appSettings.courier || defaultSettings().courier;
+      const wa = appSettings.whatsapp || defaultSettings().whatsapp;
+      if(els.storeName) els.storeName.value = store.storeName || '';
+      if(els.storeWhatsApp) els.storeWhatsApp.value = store.storeWhatsApp || '';
+      if(els.storeCatalogUrl) els.storeCatalogUrl.value = store.storeCatalogUrl || '';
+      if(els.storeAddress) els.storeAddress.value = store.storeAddress || '';
+      if(els.paymentBankName) els.paymentBankName.value = payment.bankName || '';
+      if(els.paymentAccountName) els.paymentAccountName.value = payment.accountName || '';
+      if(els.paymentAccountNumber) els.paymentAccountNumber.value = payment.accountNumber || '';
+      if(els.paymentEwallet) els.paymentEwallet.value = payment.ewallet || '';
+      if(els.paymentQrisUrl) els.paymentQrisUrl.value = payment.qrisUrl || '';
+      if(els.paymentInstruction) els.paymentInstruction.value = payment.instruction || '';
+      if(els.courierListText) els.courierListText.value = courier.courierList || '';
+      if(els.defaultShippingCost) els.defaultShippingCost.value = courier.defaultShippingCost || '';
+      if(els.freeShippingMin) els.freeShippingMin.value = courier.freeShippingMin || '';
+      if(els.waInvoiceTemplate) els.waInvoiceTemplate.value = wa.invoice || '';
+      if(els.waPaymentTemplate) els.waPaymentTemplate.value = wa.payment || '';
+      if(els.waShippingTemplate) els.waShippingTemplate.value = wa.shipping || '';
+      if(els.waFollowupTemplate) els.waFollowupTemplate.value = wa.followup || '';
+      if(els.waReturnTemplate) els.waReturnTemplate.value = wa.return || '';
+      updateCourierOptions();
+    }
+    function updateCourierOptions(){
+      if(!els.orderCourier) return;
+      const current = els.orderCourier.value;
+      const list = String((appSettings.courier && appSettings.courier.courierList) || '').split(',').map(x => x.trim()).filter(Boolean);
+      const options = ['<option value="">Belum dipilih</option>'].concat(list.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`));
+      els.orderCourier.innerHTML = options.join('');
+      if(list.includes(current)) els.orderCourier.value = current;
+    }
+    async function saveSettings(kind){
+      try{ requirePermission('canEdit', 'menyimpan pengaturan'); }
+      catch(error){ showToast(error.message); return; }
+      const messageEl = kind === 'store' ? els.storeSettingsMessage : kind === 'payment' ? els.paymentSettingsMessage : kind === 'courier' ? els.courierSettingsMessage : els.whatsAppSettingsMessage;
+      setBusy(true);
+      try{
+        let data = {};
+        if(kind === 'store') data = { storeName:els.storeName.value.trim(), storeWhatsApp:els.storeWhatsApp.value.trim(), storeCatalogUrl:els.storeCatalogUrl.value.trim(), storeAddress:els.storeAddress.value.trim() };
+        if(kind === 'payment') data = { bankName:els.paymentBankName.value.trim(), accountName:els.paymentAccountName.value.trim(), accountNumber:els.paymentAccountNumber.value.trim(), ewallet:els.paymentEwallet.value.trim(), qrisUrl:els.paymentQrisUrl.value.trim(), instruction:els.paymentInstruction.value.trim() };
+        if(kind === 'courier') data = { courierList:els.courierListText.value.trim(), defaultShippingCost:Math.max(0, Math.trunc(safeNumber(els.defaultShippingCost.value, 0))), freeShippingMin:Math.max(0, Math.trunc(safeNumber(els.freeShippingMin.value, 0))) };
+        if(kind === 'whatsapp') data = { invoice:els.waInvoiceTemplate.value.trim(), payment:els.waPaymentTemplate.value.trim(), shipping:els.waShippingTemplate.value.trim(), followup:els.waFollowupTemplate.value.trim(), return:els.waReturnTemplate.value.trim() };
+        await setDoc(settingsRefs[kind], Object.assign({}, data, { updatedAt: serverTimestamp(), updatedBy: currentAdmin.email || '' }), { merge:true });
+        mergeSettings(kind, data);
+        await logSecurity('settings.save', kind);
+        setNotice(messageEl, 'Pengaturan ' + kind + ' berhasil disimpan.', 'good');
+        showToast('Pengaturan tersimpan');
+      }catch(error){ setNotice(messageEl, firebaseMessage(error), 'danger'); }
+      finally{ setBusy(false); }
+    }
+    function startSettingsListening(){
+      unsubscribeSettings.forEach(fn => { try{ fn(); }catch(_e){} });
+      unsubscribeSettings = [];
+      Object.keys(settingsRefs).forEach(kind => {
+        const unsub = onSnapshot(settingsRefs[kind], snap => {
+          if(snap.exists()) mergeSettings(kind, snap.data() || {});
+          else mergeSettings(kind, defaultSettings()[kind]);
+        }, error => console.warn('Gagal membaca settings/' + kind, error));
+        unsubscribeSettings.push(unsub);
+      });
+    }
+    function localSecurityLogs(){
+      try{ return JSON.parse(localStorage.getItem('dirac-admin-security-log-v1') || '[]'); }catch(_e){ return []; }
+    }
+    function saveLocalSecurityLog(entry){
+      const rows = localSecurityLogs();
+      rows.unshift(entry);
+      localStorage.setItem('dirac-admin-security-log-v1', JSON.stringify(rows.slice(0,120)));
+      securityLogs = rows.slice(0,120);
+      renderSecurityLogs();
+    }
+    async function logSecurity(action, detail='', level='info'){
+      const entry = { action:String(action || ''), detail:String(detail || ''), level, adminEmail:currentAdmin.email || '', role:currentAdmin.role || '', createdAtMs:Date.now(), createdAtText:nowLabel() };
+      try{
+        if(auth.currentUser && currentAdmin.canRead){
+          await setDoc(doc(securityLogsRef, String(Date.now()) + '-' + sanitizeDocId(action, 'log')), Object.assign({}, entry, { createdAt: serverTimestamp() }), { merge:false });
+        }
+      }catch(_error){
+        saveLocalSecurityLog(entry);
+      }
+    }
+    function startSecurityLogsListening(){
+      if(unsubscribeSecurityLogs) unsubscribeSecurityLogs();
+      unsubscribeSecurityLogs = onSnapshot(query(securityLogsRef, orderBy('createdAtMs')), snapshot => {
+        const remote = snapshot.docs.map(d => Object.assign({ docId:d.id }, d.data() || {})).sort((a,b)=>Number(b.createdAtMs || 0)-Number(a.createdAtMs || 0)).slice(0,120);
+        const local = localSecurityLogs();
+        securityLogs = remote.length ? remote : local;
+        renderSecurityLogs();
+      }, _error => { securityLogs = localSecurityLogs(); renderSecurityLogs(); });
+    }
+    function renderSecurityLogs(){
+      if(!els.securityLogList) return;
+      const rows = (securityLogs && securityLogs.length ? securityLogs : localSecurityLogs()).slice(0,120);
+      if(!rows.length){ els.securityLogList.innerHTML = '<div class="empty">Belum ada log.</div>'; return; }
+      els.securityLogList.innerHTML = rows.map(row => `<div class="security-log-item"><strong>${escapeHtml(row.action || '-')} <span class="status-pill ${row.level === 'danger' ? 'danger' : row.level === 'warn' ? 'warn' : 'good'}">${escapeHtml(row.level || 'info')}</span></strong><span>${escapeHtml(row.detail || '-')}</span><span>${escapeHtml(row.adminEmail || '-')} • ${escapeHtml(row.role || '-')} • ${escapeHtml(row.createdAtText || (row.createdAtMs ? new Date(row.createdAtMs).toLocaleString('id-ID') : '-'))}</span></div>`).join('');
+    }
+    function proofExt(file){
+      const name = String(file && file.name || '').toLowerCase();
+      if(name.endsWith('.pdf')) return 'pdf';
+      return fileExt(file);
+    }
+    async function uploadPaymentProof(){
+      try{ requirePermission('canUpload', 'upload bukti pembayaran'); }
+      catch(error){ setNotice(els.orderMessage, error.message, 'danger'); return; }
+      const file = els.paymentProofFile.files && els.paymentProofFile.files[0];
+      if(!file){ showToast('Pilih bukti bayar dulu'); return; }
+      const okType = String(file.type || '').startsWith('image/') || String(file.type || '').includes('pdf') || String(file.name || '').toLowerCase().endsWith('.pdf');
+      if(!okType){ setNotice(els.orderMessage, 'Bukti bayar harus gambar atau PDF.', 'danger'); return; }
+      if(file.size > MAX_IMAGE_SIZE){ setNotice(els.orderMessage, 'Ukuran bukti bayar terlalu besar. Maksimal 7 MB.', 'danger'); return; }
+      const orderId = els.orderId.value.trim() || ('order-' + Date.now());
+      const path = 'payment-proofs/' + sanitizeDocId(orderId, 'order') + '-' + Date.now() + '.' + proofExt(file);
+      setBusy(true);
+      try{
+        const target = storageRef(storage, path);
+        const task = uploadBytesResumable(target, file, { contentType: file.type || 'application/octet-stream' });
+        const snapshot = await new Promise((resolve, reject) => {
+          task.on('state_changed', snap => {
+            const percent = Math.round((snap.bytesTransferred / Math.max(snap.totalBytes, 1)) * 100);
+            if(els.proofProgress) els.proofProgress.style.width = percent + '%';
+          }, reject, () => resolve(task.snapshot));
+        });
+        const url = await getDownloadURL(snapshot.ref);
+        els.orderPaymentProof.value = url;
+        await logSecurity('payment_proof.upload', orderId);
+        showToast('Bukti bayar berhasil diupload');
+      }catch(error){ setNotice(els.orderMessage, 'Upload bukti bayar gagal: ' + firebaseMessage(error), 'danger'); }
+      finally{ setBusy(false); }
+    }
+    function renderInvoiceHtml(order){
+      const store = appSettings.store || defaultSettings().store;
+      const payment = appSettings.payment || defaultSettings().payment;
+      const items = getOrderItems(order);
+      return `<div class="invoice-box"><h2>${escapeHtml(store.storeName || 'Dirac Group')}</h2><p>${escapeHtml(store.storeAddress || '')}<br>${escapeHtml(store.storeWhatsApp || '')}</p><hr><h3>Invoice ${escapeHtml(order.orderId)}</h3><p><b>Pelanggan:</b> ${escapeHtml(order.customerName)}<br><b>Alamat:</b> ${escapeHtml(order.address || '-')}<br><b>Tanggal:</b> ${escapeHtml(new Date(order.createdAtMs).toLocaleString('id-ID'))}<br><b>Status:</b> ${escapeHtml(order.paymentStatus)} / ${escapeHtml(order.orderStatus)}</p><table><thead><tr><th>Produk</th><th class="right">Qty</th><th class="right">Harga</th><th class="right">Subtotal</th></tr></thead><tbody>${items.map(item => `<tr><td>${escapeHtml(item.productName)}</td><td class="right">${escapeHtml(item.qty)}</td><td class="right">${rupiah(item.price)}</td><td class="right">${rupiah(itemSubtotal(item))}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="3" class="right">Subtotal</td><td class="right">${rupiah(order.subtotal)}</td></tr><tr><td colspan="3" class="right">Ongkir</td><td class="right">${rupiah(order.shippingCost)}</td></tr><tr><td colspan="3" class="right">Diskon</td><td class="right">${rupiah(order.discount)}</td></tr><tr><th colspan="3" class="right">Total</th><th class="right">${rupiah(order.total)}</th></tr></tfoot></table><p><b>Pembayaran:</b> ${escapeHtml(order.paymentMethod)}<br>${escapeHtml([payment.bankName,payment.accountNumber,payment.accountName].filter(Boolean).join(' • ') || payment.instruction || '')}</p><p><b>Pengiriman:</b> ${escapeHtml([order.courier,order.trackingNumber].filter(Boolean).join(' • ') || '-')}</p></div>`;
+    }
+    function showInvoice(order){
+      if(!order) return;
+      els.modalTitle.textContent = 'Invoice ' + order.orderId;
+      els.modalBody.innerHTML = `<div class="row-actions" style="margin-bottom:10px"><button class="btn primary" id="printInvoiceBtn" type="button">Cetak Invoice</button><button class="btn good" id="copyWaInvoiceBtn" type="button">Copy WA Invoice</button></div>${renderInvoiceHtml(order)}`;
+      els.modal.classList.remove('hidden');
+      document.body.classList.add('modal-open');
+      const printBtn = $('printInvoiceBtn');
+      const copyBtn = $('copyWaInvoiceBtn');
+      if(printBtn) printBtn.onclick = () => printInvoice(order);
+      if(copyBtn) copyBtn.onclick = () => copyWhatsAppTemplate('invoice', order);
+    }
+    function printInvoice(order){
+      const win = window.open('', '_blank', 'noopener');
+      if(!win){ showToast('Popup diblokir browser'); return; }
+      win.document.write('<!doctype html><html><head><title>Invoice '+escapeHtml(order.orderId)+'</title><style>body{font-family:Arial,sans-serif;background:#fff;margin:20px}.invoice-box{color:#0f172a;background:#fff}.right{text-align:right}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style></head><body>' + renderInvoiceHtml(order) + '<script>window.print();<\/script></body></html>');
+      win.document.close();
+    }
+    function fillTemplate(tpl, order){
+      const store = appSettings.store || defaultSettings().store;
+      const payment = appSettings.payment || defaultSettings().payment;
+      return String(tpl || '').replaceAll('{customer}', order.customerName || '').replaceAll('{orderId}', order.orderId || '').replaceAll('{total}', rupiah(order.total)).replaceAll('{tracking}', order.trackingNumber || '-').replaceAll('{store}', store.storeName || 'Dirac Group').replaceAll('{payment}', payment.instruction || '');
+    }
+    async function copyWhatsAppTemplate(kind, order){
+      const wa = appSettings.whatsapp || defaultSettings().whatsapp;
+      const text = fillTemplate(wa[kind] || wa.invoice, order);
+      try{ await navigator.clipboard.writeText(text); showToast('Template WhatsApp disalin'); }catch(_e){ showToast(text); }
+    }
+    function normalizeRestorePayload(payload){
+      if(!payload || typeof payload !== 'object') throw new Error('Format JSON restore tidak valid.');
+      return {
+        products: Array.isArray(payload.products) ? payload.products : [],
+        orders: Array.isArray(payload.orders) ? payload.orders : [],
+        customers: Array.isArray(payload.customers) ? payload.customers : [],
+        settings: payload.settings && typeof payload.settings === 'object' ? payload.settings : null
+      };
+    }
+    function handleRestoreFile(){
+      const file = els.restoreFile.files && els.restoreFile.files[0];
+      pendingRestorePayload = null;
+      if(!file){ els.restorePreview.textContent = 'Belum ada file restore dipilih.'; applyRoleUi(); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          pendingRestorePayload = normalizeRestorePayload(parsed);
+          setNotice(els.restorePreview, 'File siap restore: ' + pendingRestorePayload.products.length + ' produk, ' + pendingRestorePayload.orders.length + ' pesanan, ' + pendingRestorePayload.customers.length + ' pelanggan, settings ' + (pendingRestorePayload.settings ? 'ada' : 'tidak ada') + '.', 'good');
+        }catch(error){ pendingRestorePayload = null; setNotice(els.restorePreview, error.message, 'danger'); }
+        applyRoleUi();
+      };
+      reader.readAsText(file);
+    }
+    async function commitOpsInBatches(ops){
+      for(let i=0;i<ops.length;i+=430){
+        const batch = writeBatch(db);
+        ops.slice(i,i+430).forEach(op => {
+          if(op.type === 'delete') batch.delete(op.ref);
+          else batch.set(op.ref, op.data, { merge:false });
+        });
+        await batch.commit();
+      }
+    }
+    async function restoreAllData(){
+      try{
+        requirePermission('canExport', 'restore semua data');
+        if(!pendingRestorePayload) throw new Error('Pilih file restore JSON dulu.');
+        await requireSensitiveReauth('restore semua data');
+        if(!confirm('Restore data sekarang? Pastikan file benar.')) return;
+        const replace = Boolean(els.replaceExistingData && els.replaceExistingData.checked);
+        const ops = [];
+        if(replace){
+          products.forEach(p => ops.push({ type:'delete', ref:doc(db,'products',p.docId) }));
+          orders.forEach(o => ops.push({ type:'delete', ref:doc(db,'orders',o.docId) }));
+          customers.forEach(c => ops.push({ type:'delete', ref:doc(db,'customers',c.docId) }));
+        }
+        pendingRestorePayload.products.forEach(p => { const data = Object.assign({}, p); const id = data.docId || padDocId(data.id); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'products',id), data }); });
+        pendingRestorePayload.orders.forEach(o => { const data = Object.assign({}, o); const id = data.docId || sanitizeDocId(data.orderId, 'order-' + Date.now()); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'orders',id), data }); });
+        pendingRestorePayload.customers.forEach(c => { const data = Object.assign({}, c); const id = data.docId || sanitizeDocId(data.name + '-' + (data.phone || data.email || Date.now()), 'customer-' + Date.now()); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'customers',id), data }); });
+        if(pendingRestorePayload.settings){ Object.keys(settingsRefs).forEach(kind => { if(pendingRestorePayload.settings[kind]) ops.push({ type:'set', ref:settingsRefs[kind], data:Object.assign({}, pendingRestorePayload.settings[kind], { restoredAt:serverTimestamp() }) }); }); }
+        setBusy(true);
+        await commitOpsInBatches(ops);
+        await logSecurity('backup.restore', 'Restore data: ' + ops.length + ' operasi');
+        showToast('Restore selesai');
+        setNotice(els.restorePreview, 'Restore selesai: ' + ops.length + ' operasi Firestore.', 'good');
+      }catch(error){ setNotice(els.restorePreview, firebaseMessage(error), 'danger'); }
+      finally{ setBusy(false); }
+    }
+
     els.loginBtn.addEventListener('click', async () => {
       hideNotice(els.loginError);
       setBusy(true);
@@ -2264,6 +2822,12 @@
       saveDraft();
     }));
     [els.search, els.filterCategory, els.filterStatus, els.filterImage, els.filterQuality, els.sortBy].forEach(el => el.addEventListener('input', renderProducts));
+    [els.orderSearch, els.orderFilterPayment, els.orderFilterStatus].forEach(el => { if(el) el.addEventListener('input', renderOrders); });
+    if(els.clearOrderFilterBtn) els.clearOrderFilterBtn.addEventListener('click', () => { els.orderSearch.value=''; els.orderFilterPayment.value=''; els.orderFilterStatus.value=''; renderOrders(); });
+    [els.customerSearch, els.customerFilterSegment].forEach(el => { if(el) el.addEventListener('input', renderCustomers); });
+    if(els.clearCustomerFilterBtn) els.clearCustomerFilterBtn.addEventListener('click', () => { els.customerSearch.value=''; els.customerFilterSegment.value=''; renderCustomers(); });
+    [els.reportSearch, els.reportFilterPayment, els.reportDateFrom, els.reportDateTo].forEach(el => { if(el) el.addEventListener('input', renderReports); });
+    if(els.clearReportFilterBtn) els.clearReportFilterBtn.addEventListener('click', () => { els.reportSearch.value=''; els.reportFilterPayment.value='Lunas'; els.reportDateFrom.value=''; els.reportDateTo.value=''; renderReports(); });
     els.clearFilterBtn.addEventListener('click', clearFilters);
     els.exportJsonBtn.addEventListener('click', exportJson);
     els.exportCsvBtn.addEventListener('click', exportCsv);
@@ -2284,13 +2848,31 @@
     const reportExportCsvBtn = $('reportExportCsvBtn');
     if(reportExportJsonBtn) reportExportJsonBtn.addEventListener('click', exportJson);
     if(reportExportCsvBtn) reportExportCsvBtn.addEventListener('click', exportCsv);
+    if(els.exportAllDataBtn) els.exportAllDataBtn.addEventListener('click', exportJson);
+    if(els.exportCustomersCsvBtn) els.exportCustomersCsvBtn.addEventListener('click', exportCustomersCsv);
+    if(els.chooseRestoreFileBtn) els.chooseRestoreFileBtn.addEventListener('click', () => els.restoreFile.click());
+    if(els.restoreFile) els.restoreFile.addEventListener('change', handleRestoreFile);
+    if(els.restoreAllDataBtn) els.restoreAllDataBtn.addEventListener('click', restoreAllData);
+    if(els.exportSecurityLogBtn) els.exportSecurityLogBtn.addEventListener('click', () => downloadFile('dirac-security-log-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(securityLogs.length ? securityLogs : localSecurityLogs(), null, 2), 'application/json;charset=utf-8'));
+    if(els.clearLocalSecurityLogBtn) els.clearLocalSecurityLogBtn.addEventListener('click', () => { localStorage.removeItem('dirac-admin-security-log-v1'); securityLogs = []; renderSecurityLogs(); showToast('Log lokal dibersihkan'); });
+    if(els.saveStoreSettingsBtn) els.saveStoreSettingsBtn.addEventListener('click', () => saveSettings('store'));
+    if(els.savePaymentSettingsBtn) els.savePaymentSettingsBtn.addEventListener('click', () => saveSettings('payment'));
+    if(els.saveCourierSettingsBtn) els.saveCourierSettingsBtn.addEventListener('click', () => saveSettings('courier'));
+    if(els.saveWhatsAppSettingsBtn) els.saveWhatsAppSettingsBtn.addEventListener('click', () => saveSettings('whatsapp'));
     els.orderForm.addEventListener('submit', saveOrder);
     els.resetOrderBtn.addEventListener('click', resetOrderForm);
     els.autoOrderIdBtn.addEventListener('click', autoOrderId);
+    if(els.addOrderItemBtn) els.addOrderItemBtn.addEventListener('click', addOrderItem);
+    if(els.orderItemsList) els.orderItemsList.addEventListener('click', event => { const btn = event.target.closest('button[data-remove-order-item]'); if(!btn) return; orderItems.splice(Number(btn.dataset.removeOrderItem), 1); renderOrderItems(); });
+    [els.orderShippingCost, els.orderDiscount].forEach(el => { if(el) el.addEventListener('input', updateOrderTotals); });
+    if(els.chooseProofBtn) els.chooseProofBtn.addEventListener('click', () => els.paymentProofFile.click());
+    if(els.paymentProofFile) els.paymentProofFile.addEventListener('change', () => { const file = els.paymentProofFile.files && els.paymentProofFile.files[0]; els.proofFileName.textContent = file ? file.name + ' • ' + Math.round(file.size / 1024) + ' KB' : 'Belum ada bukti bayar dipilih.'; applyRoleUi(); });
+    if(els.uploadProofBtn) els.uploadProofBtn.addEventListener('click', uploadPaymentProof);
     function updateOrderTotalFromProduct(){
       const product = findProductByName(els.orderProduct.value);
       const qty = Number(els.orderQty.value || 1);
-      if(product && !els.orderDocId.value){ els.orderTotal.value = Math.max(qty, 1) * Number(product.price || 0); }
+      if(product){ els.orderItemPrice.value = Number(product.price || 0); }
+      if(product && !els.orderDocId.value && !orderItems.length){ els.orderSubtotal.value = Math.max(qty, 1) * Number(product.price || 0); updateOrderTotals(); }
     }
     els.orderProduct.addEventListener('input', updateOrderTotalFromProduct);
     els.orderQty.addEventListener('input', updateOrderTotalFromProduct);
@@ -2299,6 +2881,7 @@
       if(!btn) return;
       const order = orders.find(o => o.docId === btn.dataset.doc);
       if(btn.dataset.orderAction === 'edit') fillOrderForm(order);
+      if(btn.dataset.orderAction === 'invoice') showInvoice(order);
       if(btn.dataset.orderAction === 'delete') deleteOrder(order);
     });
     els.customerForm.addEventListener('submit', saveCustomer);
@@ -2315,7 +2898,13 @@
     document.addEventListener('keydown', (event) => {
       if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
         event.preventDefault();
-        if(!els.adminSection.classList.contains('hidden')) els.form.requestSubmit();
+        if(!els.adminSection.classList.contains('hidden')){
+          const active = document.querySelector('.admin-view.active');
+          const view = active && active.dataset.view;
+          if(view === 'pesanan' && currentAdmin.canEdit) els.orderForm.requestSubmit();
+          else if(view === 'pelanggan' && currentAdmin.canEdit) els.customerForm.requestSubmit();
+          else if(view === 'produk' && currentAdmin.canEdit) els.form.requestSubmit();
+        }
       }
       if(event.key === 'Escape'){
         if(!els.modal.classList.contains('hidden')) closeModal();
@@ -2367,6 +2956,12 @@
         if(unsubscribeOrders){ unsubscribeOrders(); unsubscribeOrders = null; }
         if(unsubscribeCustomers){ unsubscribeCustomers(); unsubscribeCustomers = null; }
         clearTimeout(idleTimer);
+        if(unsubscribeSettings.length){ unsubscribeSettings.forEach(fn => { try{ fn(); }catch(_e){} }); unsubscribeSettings = []; }
+        if(unsubscribeSecurityLogs){ unsubscribeSecurityLogs(); unsubscribeSecurityLogs = null; }
+        appSettings = defaultSettings();
+        securityLogs = localSecurityLogs();
+        renderSettingsForms();
+        renderSecurityLogs();
         clearLocalAdminData();
       }
     });
@@ -2379,6 +2974,9 @@
     startClock();
     updatePreview();
     renderProductOptions();
+    renderSettingsForms();
+    renderSecurityLogs();
+    renderOrderItems();
     renderBusinessDashboard();
   </script>
 </body>
