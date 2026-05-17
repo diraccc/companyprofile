@@ -197,18 +197,29 @@
     .dirty-badge{display:inline-flex;align-items:center;gap:7px;color:#fef08a;background:rgba(250,204,21,.10);border:1px solid rgba(250,204,21,.36);border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:900}
     .kbd{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);border-radius:8px;padding:1px 6px;font-size:.74rem;color:#dbeafe}
 
+
+    .admin-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;align-items:start;padding:8px 0 34px}
+    .sidebar{position:sticky;top:86px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(180deg,rgba(17,26,46,.94),rgba(8,12,23,.94));box-shadow:var(--shadow);padding:14px;overflow:hidden}
+    .sidebar-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 6px 12px}
+    .sidebar-title strong{font-size:.96rem}.sidebar-title span{display:block;color:var(--muted);font-size:.76rem}
+    .nav-menu{display:grid;gap:8px}.nav-btn{width:100%;border:1px solid transparent;background:transparent;color:var(--muted);border-radius:16px;padding:11px 12px;text-align:left;font-weight:900;display:flex;align-items:center;gap:10px;transition:.18s ease}
+    .nav-btn:hover,.nav-btn.active{color:#fff;background:rgba(96,165,250,.12);border-color:var(--line)}
+    .nav-btn b{width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.07);font-size:.85rem;color:#dbeafe;flex:0 0 auto}
+    .admin-content{min-width:0;display:grid;gap:18px}.admin-view{display:none}.admin-view.active{display:block}.view-grid{display:grid;gap:18px}.dashboard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.dashboard-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:16px;min-height:108px}.dashboard-card span{display:block;color:var(--muted);font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.07em}.dashboard-card strong{display:block;font-size:1.45rem;line-height:1.05;margin-top:9px;font-variant-numeric:tabular-nums}.dashboard-card small{color:#bfdbfe;display:block;margin-top:7px}
+    .wide-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start}.triple-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:start}.module-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:18px;align-items:start}.chart-box{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);border-radius:22px;padding:14px;min-height:240px}.bar-row{display:grid;grid-template-columns:minmax(88px,150px) 1fr auto;gap:10px;align-items:center;margin:11px 0}.bar-label{color:#dbeafe;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar-track{height:13px;background:rgba(255,255,255,.09);border-radius:999px;overflow:hidden}.bar-fill{display:block;height:100%;min-width:3px;border-radius:999px;background:linear-gradient(90deg,#bfdbfe,var(--blue))}.bar-value{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.86rem;text-align:right}.table-wrap{overflow:auto;border:1px solid rgba(255,255,255,.09);border-radius:22px;background:rgba(255,255,255,.035)}.admin-table{width:100%;border-collapse:collapse;min-width:760px}.admin-table th,.admin-table td{padding:12px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}.admin-table th{color:#dbeafe;background:rgba(96,165,250,.09);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}.admin-table td{color:#edf6ff}.admin-table tr:last-child td{border-bottom:none}.row-actions{display:flex;gap:7px;flex-wrap:wrap}.status-pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:.75rem;font-weight:900;color:#dbeafe;background:rgba(96,165,250,.09)}.status-pill.good{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.12);color:#bbf7d0}.status-pill.warn{border-color:rgba(250,204,21,.36);background:rgba(250,204,21,.10);color:#fef08a}.status-pill.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#fecaca}.compact-list{display:grid;gap:10px}.compact-item{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);border-radius:18px;padding:12px}.compact-item strong{display:block}.compact-item span{display:block;color:var(--muted);font-size:.86rem;margin-top:3px}.section-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.section-title h3{margin:0}.section-title p{margin:5px 0 0;color:var(--muted)}.product-admin-grid{padding:0}.report-total{font-size:1.35rem;font-weight:950;color:#bfdbfe}.muted{color:var(--muted)}
+
     .twofactor-steps{display:flex;gap:8px;margin:12px 0 14px}
     .twofactor-step{flex:1;border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:999px;padding:8px 10px;text-align:center;color:var(--muted);font-weight:900;font-size:.78rem}
     .twofactor-step.active{border-color:var(--line2);background:rgba(96,165,250,.14);color:#dbeafe}
     .twofactor-step.done{border-color:rgba(34,197,94,.36);background:rgba(34,197,94,.12);color:#bbf7d0}
     @media(max-width:1040px){
-      .hero-card,.grid{grid-template-columns:1fr}.product-list{max-height:none}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.advanced-toolbar{grid-template-columns:1fr 1fr}.advanced-toolbar button{grid-column:1/-1}.desktop-help{display:none}.status-strip{grid-template-columns:repeat(2,1fr)}
+      .hero-card,.grid{grid-template-columns:1fr}.admin-layout,.module-grid,.wide-grid,.triple-grid{grid-template-columns:1fr}.sidebar{position:relative;top:0}.dashboard-grid{grid-template-columns:repeat(2,1fr)}.product-list{max-height:none}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.advanced-toolbar{grid-template-columns:1fr 1fr}.advanced-toolbar button{grid-column:1/-1}.desktop-help{display:none}.status-strip{grid-template-columns:repeat(2,1fr)}
     }
     @media(max-width:700px){
-      .wrap{width:min(var(--max),calc(100% - 20px))}.topbar-inner{align-items:flex-start}.logo{width:44px;height:44px}.brand h1{font-size:.98rem}.brand span{font-size:.73rem}.top-actions .pill{display:none}.btn{padding:9px 12px}.hero{padding-top:22px}.hero-card{padding:20px;border-radius:26px}.stat-grid{grid-template-columns:1fr 1fr}.status-strip{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.product-card{grid-template-columns:78px 1fr}.thumb{width:78px;height:78px}.toolbar,.advanced-toolbar{grid-template-columns:1fr}.panel{padding:16px}.preview-box{grid-template-columns:1fr}.preview-box .thumb{width:100%;height:160px}.panel-head{display:block}.panel-head-actions{justify-content:flex-start;margin-top:10px}
+      .wrap{width:min(var(--max),calc(100% - 20px))}.topbar-inner{align-items:flex-start}.logo{width:44px;height:44px}.brand h1{font-size:.98rem}.brand span{font-size:.73rem}.top-actions .pill{display:none}.btn{padding:9px 12px}.hero{padding-top:22px}.hero-card{padding:20px;border-radius:26px}.stat-grid,.dashboard-grid{grid-template-columns:1fr 1fr}.status-strip{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.product-card{grid-template-columns:78px 1fr}.thumb{width:78px;height:78px}.toolbar,.advanced-toolbar{grid-template-columns:1fr}.panel{padding:16px}.preview-box{grid-template-columns:1fr}.preview-box .thumb{width:100%;height:160px}.panel-head,.section-title{display:block}.panel-head-actions{justify-content:flex-start;margin-top:10px}.nav-menu{grid-template-columns:1fr 1fr}.admin-table{min-width:680px}
     }
     @media(max-width:440px){
-      .stat-grid{grid-template-columns:1fr}.card-actions .btn{flex:1 1 auto}.file-row{grid-template-columns:1fr}.top-actions{gap:6px}.brand{gap:9px}
+      .stat-grid,.dashboard-grid,.nav-menu{grid-template-columns:1fr}.card-actions .btn,.row-actions .btn{flex:1 1 auto}.file-row{grid-template-columns:1fr}.top-actions{gap:6px}.brand{gap:9px}
     }
   </style>
 </head>
@@ -288,7 +299,48 @@
       </div>
     </section>
 
-    <section class="wrap grid hidden" id="adminSection">
+    <section class="wrap admin-layout hidden" id="adminSection">
+      <aside class="sidebar" aria-label="Menu admin">
+        <div class="sidebar-title"><div><strong>Dirac Admin</strong><span>Menu dashboard</span></div><span class="status-pill good">Live</span></div>
+        <nav class="nav-menu">
+          <button class="nav-btn active" type="button" data-view-target="dashboard"><b>01</b> Dashboard</button>
+          <button class="nav-btn" type="button" data-view-target="produk"><b>02</b> Produk</button>
+          <button class="nav-btn" type="button" data-view-target="pesanan"><b>03</b> Pesanan</button>
+          <button class="nav-btn" type="button" data-view-target="pelanggan"><b>04</b> Pelanggan</button>
+          <button class="nav-btn" type="button" data-view-target="laporan"><b>05</b> Laporan</button>
+        </nav>
+        <div class="notice" style="margin-bottom:0">Menu baru tidak mengubah sistem login, hash A2F, atau konfigurasi Firebase.</div>
+      </aside>
+      <div class="admin-content">
+        <section class="admin-view active" id="viewDashboard" data-view="dashboard">
+          <div class="view-grid">
+            <div class="panel">
+              <div class="section-title"><div><h3>Dashboard Utama</h3><p>Ringkasan bisnis parfum: omzet, order, pelanggan, stok, dan performa kategori.</p></div><button class="btn small" type="button" data-view-target="laporan">Lihat laporan</button></div>
+              <div class="dashboard-grid">
+                <div class="dashboard-card"><span>Penjualan hari ini</span><strong id="dashSalesToday">Rp 0</strong><small id="dashSalesTodayInfo">0 pesanan lunas</small></div>
+                <div class="dashboard-card"><span>Omzet bulan ini</span><strong id="dashSalesMonth">Rp 0</strong><small id="dashSalesMonthInfo">0 transaksi</small></div>
+                <div class="dashboard-card"><span>Pesanan aktif</span><strong id="dashActiveOrders">0</strong><small>Belum selesai/dibatalkan</small></div>
+                <div class="dashboard-card"><span>Pelanggan</span><strong id="dashCustomers">0</strong><small id="dashCustomersInfo">Data customer</small></div>
+                <div class="dashboard-card"><span>Stok menipis</span><strong id="dashLowStock">0</strong><small>Stok <= minimum</small></div>
+                <div class="dashboard-card"><span>Produk terjual</span><strong id="dashSoldItems">0</strong><small>Akumulasi qty</small></div>
+                <div class="dashboard-card"><span>Estimasi laba</span><strong id="dashProfit">Rp 0</strong><small>Omzet - modal produk</small></div>
+                <div class="dashboard-card"><span>Kategori unggul</span><strong id="dashTopCategory">-</strong><small>Berdasarkan jumlah produk</small></div>
+              </div>
+            </div>
+            <div class="wide-grid">
+              <div class="panel"><h3>Grafik Penjualan Sederhana</h3><p class="help">Omzet 7 hari terakhir dari data pesanan lunas.</p><div class="chart-box" id="chartSalesWeekly"></div></div>
+              <div class="panel"><h3>Grafik Kategori Produk</h3><p class="help">Perbandingan jumlah produk per kategori parfum.</p><div class="chart-box" id="chartCategoryProducts"></div></div>
+            </div>
+            <div class="triple-grid">
+              <div class="panel"><h3>Pesanan Terbaru</h3><div class="compact-list" id="recentOrderList"><div class="empty">Belum ada pesanan.</div></div></div>
+              <div class="panel"><h3>Stok Menipis</h3><div class="compact-list" id="lowStockList"><div class="empty">Belum ada stok menipis.</div></div></div>
+              <div class="panel"><h3>Produk Terlaris</h3><div class="compact-list" id="topProductList"><div class="empty">Belum ada data terjual.</div></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewProducts" data-view="produk">
+          <div class="grid product-admin-grid">
       <div class="panel">
         <div class="panel-head">
           <div>
@@ -310,8 +362,22 @@
             <div class="field"><label for="id">ID Produk</label><input class="input" id="id" type="number" inputmode="numeric" min="1" required></div>
             <div class="field"><label for="status">Status</label><select id="status" required><option value="ready">ready</option><option value="sold">sold</option></select></div>
             <div class="field full"><label for="title">Nama Produk</label><input class="input" id="title" type="text" required maxlength="120" placeholder="Nama produk"></div>
-            <div class="field"><label for="category">Kategori</label><input class="input" id="category" type="text" list="categoryList" required maxlength="60" placeholder="Niche / Designer / Lokal"><datalist id="categoryList"></datalist></div>
-            <div class="field"><label for="price">Harga</label><input class="input" id="price" type="number" inputmode="numeric" min="0" required placeholder="1500000"></div>
+            <div class="field"><label for="category">Kategori</label><input class="input" id="category" type="text" list="categoryList" required maxlength="60" placeholder="Niche / Designer / Timur Tengah / Lokal"><datalist id="categoryList"></datalist></div>
+            <div class="field"><label for="brand">Brand</label><input class="input" id="brand" type="text" maxlength="80" placeholder="Lattafa / Dior / HMNS"></div>
+            <div class="field"><label for="price">Harga Jual</label><input class="input" id="price" type="number" inputmode="numeric" min="0" required placeholder="1500000"></div>
+            <div class="field"><label for="costPrice">Harga Modal</label><input class="input" id="costPrice" type="number" inputmode="numeric" min="0" placeholder="1000000"></div>
+            <div class="field"><label for="stock">Stok Jumlah</label><input class="input" id="stock" type="number" inputmode="numeric" min="0" placeholder="12"></div>
+            <div class="field"><label for="minStock">Stok Minimum</label><input class="input" id="minStock" type="number" inputmode="numeric" min="0" placeholder="3"></div>
+            <div class="field"><label for="soldCount">Terjual</label><input class="input" id="soldCount" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+            <div class="field"><label for="size">Ukuran</label><input class="input" id="size" type="text" maxlength="40" placeholder="50ml / 100ml"></div>
+            <div class="field"><label for="fragranceType">Jenis Parfum</label><select id="fragranceType"><option value="">Pilih jenis</option><option value="EDP">EDP</option><option value="EDT">EDT</option><option value="Extrait">Extrait</option><option value="Parfum Oil">Parfum Oil</option><option value="Body Mist">Body Mist</option></select></div>
+            <div class="field"><label for="gender">Target</label><select id="gender"><option value="">Pilih target</option><option value="Unisex">Unisex</option><option value="Pria">Pria</option><option value="Wanita">Wanita</option></select></div>
+            <div class="field"><label for="scentFamily">Aroma Utama</label><input class="input" id="scentFamily" type="text" maxlength="120" placeholder="Sweet, Woody, Fresh"></div>
+            <div class="field"><label for="longevity">Ketahanan</label><input class="input" id="longevity" type="text" maxlength="60" placeholder="6-8 jam"></div>
+            <div class="field"><label for="projection">Projection</label><input class="input" id="projection" type="text" maxlength="60" placeholder="Soft / Moderate / Strong"></div>
+            <div class="field full"><label for="topNotes">Top Notes</label><input class="input" id="topNotes" type="text" maxlength="180" placeholder="Bergamot, citrus, cinnamon"></div>
+            <div class="field full"><label for="middleNotes">Middle Notes</label><input class="input" id="middleNotes" type="text" maxlength="180" placeholder="Rose, jasmine, praline"></div>
+            <div class="field full"><label for="baseNotes">Base Notes</label><input class="input" id="baseNotes" type="text" maxlength="180" placeholder="Vanilla, amber, musk"></div>
             <div class="field full"><label for="img">Foto / Link gambar</label><input class="input" id="img" type="text" placeholder="produk6.webp atau https://...jpg"></div>
             <div class="field full">
               <label>Upload foto dari HP</label>
@@ -353,7 +419,7 @@
           </div>
         </div>
         <div class="toolbar">
-          <input class="input" id="search" type="search" placeholder="Cari produk, ID, kategori, notes...">
+          <input class="input" id="search" type="search" placeholder="Cari produk, ID, brand, kategori, notes...">
           <select id="filterCategory"><option value="">Semua kategori</option></select>
           <select id="filterStatus"><option value="">Semua status</option><option value="ready">Ready</option><option value="sold">Sold</option></select>
           <select id="sortBy">
@@ -373,6 +439,94 @@
         <div class="notice" id="syncStatus">Menunggu login...</div>
         <div class="product-list" id="productList"></div>
         <div class="quality-list hidden" id="qualityList"></div>
+      </div>
+
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewOrders" data-view="pesanan">
+          <div class="module-grid">
+            <div class="panel">
+              <div class="panel-head"><div><h3 id="orderFormTitle">Tambah Pesanan</h3><p class="help">Kelola order customer, status pembayaran, pengiriman, dan resi.</p></div><button class="btn small good" id="autoOrderIdBtn" type="button">ID Order</button></div>
+              <form id="orderForm" novalidate>
+                <input type="hidden" id="orderDocId">
+                <div class="form-grid">
+                  <div class="field"><label for="orderId">ID Pesanan</label><input class="input" id="orderId" type="text" required maxlength="40" placeholder="ORD-001"></div>
+                  <div class="field"><label for="orderCustomer">Nama Pelanggan</label><input class="input" id="orderCustomer" type="text" list="customerOptions" required maxlength="100" placeholder="Nama customer"><datalist id="customerOptions"></datalist></div>
+                  <div class="field full"><label for="orderProduct">Produk</label><input class="input" id="orderProduct" type="text" list="orderProductOptions" required maxlength="160" placeholder="Nama produk parfum"><datalist id="orderProductOptions"></datalist></div>
+                  <div class="field"><label for="orderQty">Jumlah</label><input class="input" id="orderQty" type="number" inputmode="numeric" min="1" value="1" required></div>
+                  <div class="field"><label for="orderTotal">Total Harga</label><input class="input" id="orderTotal" type="number" inputmode="numeric" min="0" required></div>
+                  <div class="field"><label for="orderPaymentMethod">Metode Pembayaran</label><select id="orderPaymentMethod"><option value="Transfer Bank">Transfer Bank</option><option value="QRIS">QRIS</option><option value="E-wallet">E-wallet</option><option value="COD">COD</option></select></div>
+                  <div class="field"><label for="orderPaymentStatus">Status Pembayaran</label><select id="orderPaymentStatus"><option value="Belum Bayar">Belum Bayar</option><option value="Lunas">Lunas</option><option value="Refund">Refund</option></select></div>
+                  <div class="field"><label for="orderStatus">Status Pesanan</label><select id="orderStatus"><option value="Menunggu Pembayaran">Menunggu Pembayaran</option><option value="Diproses">Diproses</option><option value="Dikemas">Dikemas</option><option value="Dikirim">Dikirim</option><option value="Selesai">Selesai</option><option value="Dibatalkan">Dibatalkan</option><option value="Retur">Retur</option></select></div>
+                  <div class="field"><label for="orderCourier">Ekspedisi</label><select id="orderCourier"><option value="">Belum dipilih</option><option value="JNE">JNE</option><option value="J&T">J&T</option><option value="SiCepat">SiCepat</option><option value="Anteraja">Anteraja</option><option value="GoSend">GoSend</option><option value="GrabExpress">GrabExpress</option></select></div>
+                  <div class="field full"><label for="orderTracking">Nomor Resi</label><input class="input" id="orderTracking" type="text" maxlength="80" placeholder="Nomor resi"></div>
+                  <div class="field full"><label for="orderNote">Catatan</label><textarea id="orderNote" maxlength="260" placeholder="Catatan pesanan"></textarea></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                  <button class="btn primary" id="saveOrderBtn" type="submit">Simpan Pesanan</button>
+                  <button class="btn" id="resetOrderBtn" type="button">Reset Pesanan</button>
+                </div>
+              </form>
+              <div class="notice hidden" id="orderMessage" role="status"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h3>Daftar Pesanan</h3><p class="help">Pesanan dibaca dari Firestore collection <b>orders</b>.</p></div></div>
+              <div class="notice" id="orderSyncStatus">Menunggu login...</div>
+              <div class="table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>Pelanggan</th><th>Produk</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="orderRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewCustomers" data-view="pelanggan">
+          <div class="module-grid">
+            <div class="panel">
+              <h3 id="customerFormTitle">Tambah Pelanggan</h3>
+              <p class="help">Simpan data customer, kontak, alamat, dan segmentasi pelanggan.</p>
+              <form id="customerForm" novalidate>
+                <input type="hidden" id="customerDocId">
+                <div class="form-grid">
+                  <div class="field"><label for="customerName">Nama</label><input class="input" id="customerName" type="text" required maxlength="100" placeholder="Nama customer"></div>
+                  <div class="field"><label for="customerPhone">No. HP</label><input class="input" id="customerPhone" type="text" maxlength="40" placeholder="0812xxxx"></div>
+                  <div class="field full"><label for="customerEmail">Email</label><input class="input" id="customerEmail" type="email" maxlength="120" placeholder="customer@email.com"></div>
+                  <div class="field full"><label for="customerAddress">Alamat</label><textarea id="customerAddress" maxlength="360" placeholder="Alamat pengiriman"></textarea></div>
+                  <div class="field"><label for="customerSegment">Segmentasi</label><select id="customerSegment"><option value="Reguler">Reguler</option><option value="VIP">VIP</option><option value="Baru">Baru</option><option value="Tidak Aktif">Tidak Aktif</option></select></div>
+                  <div class="field"><label for="customerTotalSpent">Total Belanja Manual</label><input class="input" id="customerTotalSpent" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+                  <div class="field full"><label for="customerNote">Catatan</label><input class="input" id="customerNote" type="text" maxlength="200" placeholder="Preferensi aroma customer"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                  <button class="btn primary" id="saveCustomerBtn" type="submit">Simpan Pelanggan</button>
+                  <button class="btn" id="resetCustomerBtn" type="button">Reset Pelanggan</button>
+                </div>
+              </form>
+              <div class="notice hidden" id="customerMessage" role="status"></div>
+            </div>
+            <div class="panel">
+              <h3>Data Pelanggan</h3>
+              <p class="help">Pelanggan dibaca dari Firestore collection <b>customers</b>.</p>
+              <div class="notice" id="customerSyncStatus">Menunggu login...</div>
+              <div class="table-wrap"><table class="admin-table"><thead><tr><th>Nama</th><th>Kontak</th><th>Segment</th><th>Total Belanja</th><th>Aksi</th></tr></thead><tbody id="customerRows"><tr><td colspan="5">Belum ada data.</td></tr></tbody></table></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="viewReports" data-view="laporan">
+          <div class="view-grid">
+            <div class="panel">
+              <div class="section-title"><div><h3>Laporan Penjualan</h3><p>Rekap omzet, laba, kategori, stok, dan produk terlaris dari data produk + pesanan.</p></div><button class="btn small" type="button" data-view-target="dashboard">Kembali ke dashboard</button></div>
+              <div class="dashboard-grid">
+                <div class="dashboard-card"><span>Harian</span><strong id="reportDaily">Rp 0</strong><small>Pesanan lunas hari ini</small></div>
+                <div class="dashboard-card"><span>Mingguan</span><strong id="reportWeekly">Rp 0</strong><small>7 hari terakhir</small></div>
+                <div class="dashboard-card"><span>Bulanan</span><strong id="reportMonthly">Rp 0</strong><small>Bulan berjalan</small></div>
+                <div class="dashboard-card"><span>Laba kotor</span><strong id="reportGrossProfit">Rp 0</strong><small>Omzet - estimasi modal</small></div>
+              </div>
+            </div>
+            <div class="wide-grid">
+              <div class="panel"><h3>Laporan per Kategori</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Kategori</th><th>Jumlah Produk</th><th>Nilai Stok</th><th>Terjual</th></tr></thead><tbody id="categoryReportRows"><tr><td colspan="4">Belum ada data.</td></tr></tbody></table></div></div>
+              <div class="panel"><h3>Laporan Stok</h3><div class="table-wrap"><table class="admin-table"><thead><tr><th>Produk</th><th>Stok</th><th>Minimum</th><th>Status</th></tr></thead><tbody id="stockReportRows"><tr><td colspan="4">Belum ada data.</td></tr></tbody></table></div></div>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
     <div class="wrap footer-note">Setelah dashboard sudah jalan, simpan link ini hanya untuk admin: <b>/admin.html</b>. Shortcut: <span class="kbd">Ctrl</span> + <span class="kbd">S</span> untuk simpan, <span class="kbd">Esc</span> untuk reset pencarian/modal.</div>
@@ -436,6 +590,8 @@
     const db = getFirestore(app);
     const storage = getStorage(app);
     const productsRef = collection(db, 'products');
+    const ordersRef = collection(db, 'orders');
+    const customersRef = collection(db, 'customers');
     const DRAFT_KEY = 'dirac-admin-product-draft-v2';
     const FILTER_KEY = 'dirac-admin-filters-v2';
     const EMAIL_KEY = 'dirac-admin-email-v1';
@@ -452,11 +608,20 @@
       search:$('search'), filterCategory:$('filterCategory'), filterStatus:$('filterStatus'), filterImage:$('filterImage'), filterQuality:$('filterQuality'), sortBy:$('sortBy'), clearFilterBtn:$('clearFilterBtn'), categoryList:$('categoryList'),
       previewImg:$('previewImg'), previewTitle:$('previewTitle'), previewMeta:$('previewMeta'), saveBtn:$('saveBtn'), resetBtn:$('resetBtn'), autoIdBtn:$('autoIdBtn'), deleteEditingBtn:$('deleteEditingBtn'),
       docId:$('docId'), id:$('id'), title:$('title'), category:$('category'), price:$('price'), img:$('img'), status:$('status'), notes:$('notes'), desc:$('desc'), longDesc:$('longDesc'), photoFile:$('photoFile'), choosePhotoBtn:$('choosePhotoBtn'), uploadPhotoBtn:$('uploadPhotoBtn'), photoFileName:$('photoFileName'), uploadProgress:$('uploadProgress'), toast:$('toast'),
-      exportJsonBtn:$('exportJsonBtn'), exportCsvBtn:$('exportCsvBtn'), qualityBtn:$('qualityBtn'), qualityList:$('qualityList'), modal:$('modal'), modalTitle:$('modalTitle'), modalBody:$('modalBody'), modalCloseBtn:$('modalCloseBtn')
+      exportJsonBtn:$('exportJsonBtn'), exportCsvBtn:$('exportCsvBtn'), qualityBtn:$('qualityBtn'), qualityList:$('qualityList'), modal:$('modal'), modalTitle:$('modalTitle'), modalBody:$('modalBody'), modalCloseBtn:$('modalCloseBtn'),
+      brand:$('brand'), costPrice:$('costPrice'), stock:$('stock'), minStock:$('minStock'), soldCount:$('soldCount'), size:$('size'), fragranceType:$('fragranceType'), gender:$('gender'), scentFamily:$('scentFamily'), longevity:$('longevity'), projection:$('projection'), topNotes:$('topNotes'), middleNotes:$('middleNotes'), baseNotes:$('baseNotes'),
+      dashSalesToday:$('dashSalesToday'), dashSalesTodayInfo:$('dashSalesTodayInfo'), dashSalesMonth:$('dashSalesMonth'), dashSalesMonthInfo:$('dashSalesMonthInfo'), dashActiveOrders:$('dashActiveOrders'), dashCustomers:$('dashCustomers'), dashCustomersInfo:$('dashCustomersInfo'), dashLowStock:$('dashLowStock'), dashSoldItems:$('dashSoldItems'), dashProfit:$('dashProfit'), dashTopCategory:$('dashTopCategory'), chartSalesWeekly:$('chartSalesWeekly'), chartCategoryProducts:$('chartCategoryProducts'), recentOrderList:$('recentOrderList'), lowStockList:$('lowStockList'), topProductList:$('topProductList'),
+      orderForm:$('orderForm'), orderFormTitle:$('orderFormTitle'), orderDocId:$('orderDocId'), orderId:$('orderId'), orderCustomer:$('orderCustomer'), orderProduct:$('orderProduct'), orderQty:$('orderQty'), orderTotal:$('orderTotal'), orderPaymentMethod:$('orderPaymentMethod'), orderPaymentStatus:$('orderPaymentStatus'), orderStatus:$('orderStatus'), orderCourier:$('orderCourier'), orderTracking:$('orderTracking'), orderNote:$('orderNote'), autoOrderIdBtn:$('autoOrderIdBtn'), saveOrderBtn:$('saveOrderBtn'), resetOrderBtn:$('resetOrderBtn'), orderMessage:$('orderMessage'), orderSyncStatus:$('orderSyncStatus'), orderRows:$('orderRows'), orderProductOptions:$('orderProductOptions'), customerOptions:$('customerOptions'),
+      customerForm:$('customerForm'), customerFormTitle:$('customerFormTitle'), customerDocId:$('customerDocId'), customerName:$('customerName'), customerPhone:$('customerPhone'), customerEmail:$('customerEmail'), customerAddress:$('customerAddress'), customerSegment:$('customerSegment'), customerTotalSpent:$('customerTotalSpent'), customerNote:$('customerNote'), saveCustomerBtn:$('saveCustomerBtn'), resetCustomerBtn:$('resetCustomerBtn'), customerMessage:$('customerMessage'), customerSyncStatus:$('customerSyncStatus'), customerRows:$('customerRows'),
+      reportDaily:$('reportDaily'), reportWeekly:$('reportWeekly'), reportMonthly:$('reportMonthly'), reportGrossProfit:$('reportGrossProfit'), categoryReportRows:$('categoryReportRows'), stockReportRows:$('stockReportRows')
     };
 
     let products = [];
+    let orders = [];
+    let customers = [];
     let unsubscribeProducts = null;
+    let unsubscribeOrders = null;
+    let unsubscribeCustomers = null;
     let busy = false;
     let dirty = false;
     let suppressDraft = false;
@@ -626,13 +791,65 @@
         docId: docSnap.id,
         id: Number(data.id || 0),
         title: String(data.title || '').trim(),
+        brand: String(data.brand || '').trim(),
         category: String(data.category || '').trim(),
         price: Number(data.price || 0),
+        costPrice: Number(data.costPrice || 0),
+        stock: Number(data.stock ?? (data.status === 'sold' ? 0 : 1)),
+        minStock: Number(data.minStock || 0),
+        soldCount: Number(data.soldCount || 0),
+        size: String(data.size || '').trim(),
+        fragranceType: String(data.fragranceType || '').trim(),
+        gender: String(data.gender || '').trim(),
+        scentFamily: String(data.scentFamily || '').trim(),
+        longevity: String(data.longevity || '').trim(),
+        projection: String(data.projection || '').trim(),
+        topNotes: String(data.topNotes || '').trim(),
+        middleNotes: String(data.middleNotes || '').trim(),
+        baseNotes: String(data.baseNotes || '').trim(),
         img: String(data.img || '').trim(),
         desc: String(data.desc || '').trim(),
         notes: String(data.notes || '').trim(),
         status: String(data.status || 'ready').trim() || 'ready',
         longDesc: String(data.longDesc || '').trim(),
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null,
+        createdAtMs: toMillis(data.createdAt),
+        updatedAtMs: toMillis(data.updatedAt)
+      };
+    }
+    function normalizeOrder(docSnap){
+      const data = docSnap.data() || {};
+      return {
+        docId: docSnap.id,
+        orderId: String(data.orderId || docSnap.id || '').trim(),
+        customerName: String(data.customerName || '').trim(),
+        productName: String(data.productName || '').trim(),
+        qty: Number(data.qty || 1),
+        total: Number(data.total || 0),
+        paymentMethod: String(data.paymentMethod || 'Transfer Bank').trim(),
+        paymentStatus: String(data.paymentStatus || 'Belum Bayar').trim(),
+        orderStatus: String(data.orderStatus || 'Menunggu Pembayaran').trim(),
+        courier: String(data.courier || '').trim(),
+        trackingNumber: String(data.trackingNumber || '').trim(),
+        note: String(data.note || '').trim(),
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null,
+        createdAtMs: toMillis(data.createdAt) || Date.now(),
+        updatedAtMs: toMillis(data.updatedAt)
+      };
+    }
+    function normalizeCustomer(docSnap){
+      const data = docSnap.data() || {};
+      return {
+        docId: docSnap.id,
+        name: String(data.name || '').trim(),
+        phone: String(data.phone || '').trim(),
+        email: String(data.email || '').trim(),
+        address: String(data.address || '').trim(),
+        segment: String(data.segment || 'Reguler').trim(),
+        totalSpent: Number(data.totalSpent || 0),
+        note: String(data.note || '').trim(),
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
         createdAtMs: toMillis(data.createdAt),
@@ -792,7 +1009,21 @@
         id: els.id.value.trim(),
         title: els.title.value.trim(),
         category: els.category.value.trim(),
+        brand: els.brand.value.trim(),
         price: els.price.value.trim(),
+        costPrice: els.costPrice.value.trim(),
+        stock: els.stock.value.trim(),
+        minStock: els.minStock.value.trim(),
+        soldCount: els.soldCount.value.trim(),
+        size: els.size.value.trim(),
+        fragranceType: els.fragranceType.value || '',
+        gender: els.gender.value || '',
+        scentFamily: els.scentFamily.value.trim(),
+        longevity: els.longevity.value.trim(),
+        projection: els.projection.value.trim(),
+        topNotes: els.topNotes.value.trim(),
+        middleNotes: els.middleNotes.value.trim(),
+        baseNotes: els.baseNotes.value.trim(),
         img: els.img.value.trim(),
         status: els.status.value || 'ready',
         notes: els.notes.value.trim(),
@@ -823,7 +1054,21 @@
           id: Number(draft.data.id || 0),
           title: draft.data.title || '',
           category: draft.data.category || '',
+          brand: draft.data.brand || '',
           price: Number(draft.data.price || 0),
+          costPrice: Number(draft.data.costPrice || 0),
+          stock: Number(draft.data.stock || 0),
+          minStock: Number(draft.data.minStock || 0),
+          soldCount: Number(draft.data.soldCount || 0),
+          size: draft.data.size || '',
+          fragranceType: draft.data.fragranceType || '',
+          gender: draft.data.gender || '',
+          scentFamily: draft.data.scentFamily || '',
+          longevity: draft.data.longevity || '',
+          projection: draft.data.projection || '',
+          topNotes: draft.data.topNotes || '',
+          middleNotes: draft.data.middleNotes || '',
+          baseNotes: draft.data.baseNotes || '',
           img: draft.data.img || '',
           status: draft.data.status || 'ready',
           notes: draft.data.notes || '',
@@ -845,7 +1090,12 @@
       const id = Number(els.id.value || 0);
       const title = els.title.value.trim();
       const category = els.category.value.trim();
+      const brand = els.brand.value.trim();
       const price = Number(els.price.value || 0);
+      const costPrice = Number(els.costPrice.value || 0);
+      const stock = Number(els.stock.value || 0);
+      const minStock = Number(els.minStock.value || 0);
+      const soldCount = Number(els.soldCount.value || 0);
       const status = els.status.value || 'ready';
       const currentDocId = els.docId.value.trim();
       if(!id || id < 1) throw new Error('ID produk wajib angka lebih dari 0.');
@@ -854,9 +1104,14 @@
       if(title.length > 120) throw new Error('Nama produk terlalu panjang. Maksimal 120 karakter.');
       if(!category) throw new Error('Kategori wajib diisi.');
       if(category.length > 60) throw new Error('Kategori terlalu panjang. Maksimal 60 karakter.');
-      if(!Number.isFinite(price) || price < 0) throw new Error('Harga tidak boleh minus atau kosong.');
-      if(!Number.isInteger(price)) throw new Error('Harga harus angka bulat Rupiah.');
-      if(price > 999999999) throw new Error('Harga terlalu besar. Maksimal 999.999.999.');
+      if(brand.length > 80) throw new Error('Brand terlalu panjang. Maksimal 80 karakter.');
+      if(!Number.isFinite(price) || price < 0) throw new Error('Harga jual tidak boleh minus atau kosong.');
+      if(!Number.isInteger(price)) throw new Error('Harga jual harus angka bulat Rupiah.');
+      if(price > 999999999) throw new Error('Harga jual terlalu besar. Maksimal 999.999.999.');
+      if(!Number.isFinite(costPrice) || costPrice < 0 || !Number.isInteger(costPrice)) throw new Error('Harga modal harus angka bulat dan tidak boleh minus.');
+      if(!Number.isFinite(stock) || stock < 0 || !Number.isInteger(stock)) throw new Error('Stok harus angka bulat dan tidak boleh minus.');
+      if(!Number.isFinite(minStock) || minStock < 0 || !Number.isInteger(minStock)) throw new Error('Stok minimum harus angka bulat dan tidak boleh minus.');
+      if(!Number.isFinite(soldCount) || soldCount < 0 || !Number.isInteger(soldCount)) throw new Error('Jumlah terjual harus angka bulat dan tidak boleh minus.');
       if(els.notes.value.trim().length > 160) throw new Error('Notes terlalu panjang. Maksimal 160 karakter.');
       if(els.desc.value.trim().length > 260) throw new Error('Deskripsi pendek terlalu panjang. Maksimal 260 karakter.');
       if(els.longDesc.value.trim().length > 1200) throw new Error('Deskripsi panjang terlalu panjang. Maksimal 1200 karakter.');
@@ -867,7 +1122,16 @@
       const duplicate = products.find(p => Number(p.id) === id && p.docId !== currentDocId);
       if(duplicate) throw new Error('ID ' + id + ' sudah dipakai oleh produk "' + duplicate.title + '". Pakai ID lain agar data tidak bentrok.');
       return {
-        id, title, category, price,
+        id, title, brand, category, price, costPrice, stock, minStock, soldCount,
+        size: els.size.value.trim(),
+        fragranceType: els.fragranceType.value || '',
+        gender: els.gender.value || '',
+        scentFamily: els.scentFamily.value.trim(),
+        longevity: els.longevity.value.trim(),
+        projection: els.projection.value.trim(),
+        topNotes: els.topNotes.value.trim(),
+        middleNotes: els.middleNotes.value.trim(),
+        baseNotes: els.baseNotes.value.trim(),
         img: cleanImg,
         desc: els.desc.value.trim(),
         notes: els.notes.value.trim(),
@@ -883,7 +1147,21 @@
       els.id.value = product.id || '';
       els.title.value = product.title || '';
       els.category.value = product.category || '';
+      els.brand.value = product.brand || '';
       els.price.value = product.price || 0;
+      els.costPrice.value = product.costPrice || 0;
+      els.stock.value = product.stock || 0;
+      els.minStock.value = product.minStock || 0;
+      els.soldCount.value = product.soldCount || 0;
+      els.size.value = product.size || '';
+      els.fragranceType.value = product.fragranceType || '';
+      els.gender.value = product.gender || '';
+      els.scentFamily.value = product.scentFamily || '';
+      els.longevity.value = product.longevity || '';
+      els.projection.value = product.projection || '';
+      els.topNotes.value = product.topNotes || '';
+      els.middleNotes.value = product.middleNotes || '';
+      els.baseNotes.value = product.baseNotes || '';
       els.img.value = product.img || '';
       els.status.value = product.status || 'ready';
       els.notes.value = product.notes || '';
@@ -904,6 +1182,9 @@
       els.form.reset();
       els.docId.value = '';
       els.status.value = 'ready';
+      els.stock.value = '';
+      els.minStock.value = '';
+      els.soldCount.value = '';
       els.formTitle.textContent = 'Tambah Produk';
       els.saveBtn.textContent = 'Simpan Produk';
       els.deleteEditingBtn.classList.add('hidden');
@@ -937,10 +1218,13 @@
     function updatePreview(){
       const title = els.title.value.trim() || 'Preview produk';
       const category = els.category.value.trim() || 'Kategori';
+      const brand = els.brand.value.trim() || 'Brand';
+      const size = els.size.value.trim() || 'Ukuran';
+      const stock = Number(els.stock.value || 0);
       const price = Number(els.price.value || 0);
       const img = imageSrc(els.img.value, { previewOnly:true });
       els.previewTitle.textContent = title;
-      els.previewMeta.textContent = category + ' • ' + rupiah(price) + ' • ' + (els.status.value || 'ready');
+      els.previewMeta.textContent = brand + ' • ' + category + ' • ' + size + ' • Stok ' + stock + ' • ' + rupiah(price) + ' • ' + (els.status.value || 'ready');
       if(img){
         const src = (img.startsWith('data:') || img.startsWith('blob:')) ? img : img + (img.includes('?') ? '&' : '?') + 'preview=' + Date.now();
         setPreviewImage(src);
@@ -1031,7 +1315,7 @@
       els.categoryList.innerHTML = categories.map(c=>`<option value="${escapeHtml(c)}"></option>`).join('');
     }
     function productHasWarnings(product){
-      return !product.img || !product.desc || !product.longDesc || !product.category || !product.title || !Number.isFinite(product.price) || product.price < 0 || !['ready','sold'].includes(product.status);
+      return !product.img || !product.desc || !product.longDesc || !product.category || !product.title || !product.brand || !Number.isFinite(product.price) || product.price < 0 || !Number.isFinite(product.stock) || product.stock < 0 || Number(product.stock || 0) <= Number(product.minStock || 0) || !['ready','sold'].includes(product.status);
     }
     function filteredProducts(){
       const q = els.search.value.trim().toLowerCase();
@@ -1040,7 +1324,7 @@
       const image = els.filterImage.value;
       const quality = els.filterQuality.value;
       const sorted = products.filter(p => {
-        const text = [p.id,p.title,p.category,p.desc,p.notes,p.status,p.longDesc,p.price].join(' ').toLowerCase();
+        const text = [p.id,p.title,p.brand,p.category,p.size,p.fragranceType,p.gender,p.scentFamily,p.topNotes,p.middleNotes,p.baseNotes,p.desc,p.notes,p.status,p.longDesc,p.price,p.stock].join(' ').toLowerCase();
         const hasImg = Boolean(p.img);
         const warning = productHasWarnings(p);
         return (!q || text.includes(q)) &&
@@ -1066,7 +1350,7 @@
       const ready = readyProducts.length;
       const sold = products.filter(p=>p.status === 'sold').length;
       const categories = new Set(products.map(p => p.category).filter(Boolean)).size;
-      const totalValue = readyProducts.reduce((sum,p)=>sum + Number(p.price || 0), 0);
+      const totalValue = readyProducts.reduce((sum,p)=>sum + (Number(p.price || 0) * Math.max(Number(p.stock || 0), 1)), 0);
       const average = total ? products.reduce((sum,p)=>sum + Number(p.price || 0), 0) / total : 0;
       els.statTotal.textContent = total;
       els.statReady.textContent = ready;
@@ -1079,6 +1363,8 @@
       const list = filteredProducts();
       if(!list.length){
         els.productList.innerHTML = '<div class="empty">Produk tidak ditemukan. Coba reset filter atau tambah produk baru.</div>';
+        renderProductOptions();
+        renderBusinessDashboard();
         return;
       }
       els.productList.innerHTML = list.map(p => {
@@ -1091,8 +1377,8 @@
             <div class="thumb">${img ? `<img loading="lazy" src="${escapeHtml(img)}" alt="${escapeHtml(p.title)}" onerror="this.style.display='none';this.parentNode.textContent='Foto tidak ada'">` : 'No image'}</div>
             <div class="product-main">
               <p class="product-title">#${escapeHtml(p.id)} - ${escapeHtml(p.title)}</p>
-              <div class="meta"><span class="tag">${escapeHtml(p.category || 'Tanpa kategori')}</span><span class="tag ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span>${warning ? '<span class="tag warn">perlu cek</span>' : ''}<span class="price">${rupiah(p.price)}</span></div>
-              <p class="desc">${escapeHtml(p.desc || p.notes || p.longDesc || '-')}</p>
+              <div class="meta"><span class="tag">${escapeHtml(p.brand || 'Tanpa brand')}</span><span class="tag">${escapeHtml(p.category || 'Tanpa kategori')}</span><span class="tag ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span><span class="tag ${Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'ready'}">Stok ${escapeHtml(p.stock || 0)}</span>${warning ? '<span class="tag warn">perlu cek</span>' : ''}<span class="price">${rupiah(p.price)}</span></div>
+              <p class="desc">${escapeHtml([p.size, p.fragranceType, p.gender, p.scentFamily].filter(Boolean).join(' • ') || p.desc || p.notes || p.longDesc || '-')}</p>
               <div class="card-actions">
                 ${currentAdmin.canEdit ? `<button class="btn small primary requires-edit" type="button" data-action="edit" data-doc="${escapeHtml(p.docId)}">Edit</button>` : ''}
                 ${currentAdmin.canEdit ? `<button class="btn small requires-edit" type="button" data-action="toggle" data-status="${escapeHtml(nextStatus)}" data-doc="${escapeHtml(p.docId)}">${statusLabel}</button>` : ''}
@@ -1103,6 +1389,8 @@
             </div>
           </article>`;
       }).join('');
+      renderProductOptions();
+      renderBusinessDashboard();
     }
     function saveFilters(){
       const data = {
@@ -1193,8 +1481,22 @@
         const data = {
           id: next,
           title: product.title + ' (Copy)',
+          brand: product.brand,
           category: product.category,
           price: product.price,
+          costPrice: product.costPrice,
+          stock: product.stock,
+          minStock: product.minStock,
+          soldCount: product.soldCount,
+          size: product.size,
+          fragranceType: product.fragranceType,
+          gender: product.gender,
+          scentFamily: product.scentFamily,
+          longevity: product.longevity,
+          projection: product.projection,
+          topNotes: product.topNotes,
+          middleNotes: product.middleNotes,
+          baseNotes: product.baseNotes,
           img: product.img,
           desc: product.desc,
           notes: product.notes,
@@ -1235,6 +1537,7 @@
         els.syncDot.className = 'mini-dot good';
         renderProducts();
         runQualityAudit(false);
+        renderReports();
         if(!els.id.value && !dirty) autoId({ silent:true });
       }, (error) => {
         setNotice(els.syncStatus, 'Gagal membaca produk: ' + firebaseMessage(error), 'danger');
@@ -1242,6 +1545,313 @@
         els.lastSync.textContent = firebaseMessage(error);
         els.syncDot.className = 'mini-dot danger';
       });
+      startOrdersListening();
+      startCustomersListening();
+    }
+
+    function sanitizeDocId(value, fallback='doc'){
+      const text = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+      return (text || fallback).slice(0, 120);
+    }
+    function isPaid(order){ return String(order.paymentStatus || '').toLowerCase() === 'lunas'; }
+    function isCancelled(order){ return ['dibatalkan','retur','refund'].includes(String(order.orderStatus || '').toLowerCase()); }
+    function sameLocalDay(ms, date=new Date()){
+      const d = new Date(ms || 0);
+      return d.getFullYear() === date.getFullYear() && d.getMonth() === date.getMonth() && d.getDate() === date.getDate();
+    }
+    function sameLocalMonth(ms, date=new Date()){
+      const d = new Date(ms || 0);
+      return d.getFullYear() === date.getFullYear() && d.getMonth() === date.getMonth();
+    }
+    function paidRevenueOrders(){ return orders.filter(o => isPaid(o) && !isCancelled(o)); }
+    function estimateOrderCost(order){
+      const product = findProductByName(order.productName);
+      const unitCost = Number(product && product.costPrice || 0);
+      return unitCost * Number(order.qty || 0);
+    }
+    function findProductByName(name){
+      const q = String(name || '').trim().toLowerCase();
+      if(!q) return null;
+      return products.find(p => String(p.title || '').toLowerCase() === q || ('#' + p.id + ' - ' + p.title).toLowerCase() === q) || null;
+    }
+    function statusClass(value){
+      const text = String(value || '').toLowerCase();
+      if(['lunas','selesai','dikirim'].some(x => text.includes(x))) return 'good';
+      if(['batal','retur','refund','habis'].some(x => text.includes(x))) return 'danger';
+      return 'warn';
+    }
+    function renderBars(container, rows, formatter=(n)=>String(n)){
+      if(!container) return;
+      const data = rows.filter(row => Number(row.value || 0) > 0);
+      if(!data.length){ container.innerHTML = '<div class="empty">Belum ada data grafik.</div>'; return; }
+      const max = Math.max(...data.map(row => Number(row.value || 0)), 1);
+      container.innerHTML = data.map(row => {
+        const width = Math.max(4, Math.round((Number(row.value || 0) / max) * 100));
+        return `<div class="bar-row"><div class="bar-label">${escapeHtml(row.label)}</div><div class="bar-track"><span class="bar-fill" style="width:${width}%"></span></div><div class="bar-value">${escapeHtml(formatter(row.value))}</div></div>`;
+      }).join('');
+    }
+    function renderProductOptions(){
+      if(els.orderProductOptions){
+        els.orderProductOptions.innerHTML = products.map(p => `<option value="${escapeHtml(p.title)}">${escapeHtml('#' + p.id + ' • ' + (p.brand || '-') + ' • ' + rupiah(p.price))}</option>`).join('');
+      }
+      if(els.customerOptions){
+        els.customerOptions.innerHTML = customers.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml([c.phone,c.email].filter(Boolean).join(' • '))}</option>`).join('');
+      }
+    }
+    function renderBusinessDashboard(){
+      const revenueOrders = paidRevenueOrders();
+      const now = new Date();
+      const todayOrders = revenueOrders.filter(o => sameLocalDay(o.createdAtMs, now));
+      const monthOrders = revenueOrders.filter(o => sameLocalMonth(o.createdAtMs, now));
+      const todayRevenue = todayOrders.reduce((sum,o)=>sum + Number(o.total || 0), 0);
+      const monthRevenue = monthOrders.reduce((sum,o)=>sum + Number(o.total || 0), 0);
+      const activeOrders = orders.filter(o => !['Selesai','Dibatalkan','Retur'].includes(o.orderStatus)).length;
+      const lowStock = products.filter(p => Number(p.stock || 0) <= Number(p.minStock || 0));
+      const soldItems = products.reduce((sum,p)=>sum + Number(p.soldCount || 0), 0) + revenueOrders.reduce((sum,o)=>sum + Number(o.qty || 0), 0);
+      const grossProfit = revenueOrders.reduce((sum,o)=>sum + Number(o.total || 0) - estimateOrderCost(o), 0);
+      const categoryCounts = new Map();
+      products.forEach(p => categoryCounts.set(p.category || 'Tanpa kategori', (categoryCounts.get(p.category || 'Tanpa kategori') || 0) + 1));
+      const topCategory = [...categoryCounts.entries()].sort((a,b)=>b[1]-a[1])[0];
+      if(els.dashSalesToday) els.dashSalesToday.textContent = rupiah(todayRevenue);
+      if(els.dashSalesTodayInfo) els.dashSalesTodayInfo.textContent = todayOrders.length + ' pesanan lunas';
+      if(els.dashSalesMonth) els.dashSalesMonth.textContent = rupiah(monthRevenue);
+      if(els.dashSalesMonthInfo) els.dashSalesMonthInfo.textContent = monthOrders.length + ' transaksi';
+      if(els.dashActiveOrders) els.dashActiveOrders.textContent = activeOrders;
+      if(els.dashCustomers) els.dashCustomers.textContent = customers.length;
+      if(els.dashCustomersInfo) els.dashCustomersInfo.textContent = customers.filter(c => c.segment === 'VIP').length + ' pelanggan VIP';
+      if(els.dashLowStock) els.dashLowStock.textContent = lowStock.length;
+      if(els.dashSoldItems) els.dashSoldItems.textContent = soldItems;
+      if(els.dashProfit) els.dashProfit.textContent = rupiah(grossProfit);
+      if(els.dashTopCategory) els.dashTopCategory.textContent = topCategory ? topCategory[0] : '-';
+      const days = Array.from({length:7}, (_,idx) => {
+        const d = new Date(); d.setDate(d.getDate() - (6 - idx));
+        const label = d.toLocaleDateString('id-ID', { weekday:'short' });
+        const value = revenueOrders.filter(o => sameLocalDay(o.createdAtMs, d)).reduce((sum,o)=>sum + Number(o.total || 0), 0);
+        return { label, value };
+      });
+      renderBars(els.chartSalesWeekly, days, rupiah);
+      renderBars(els.chartCategoryProducts, [...categoryCounts.entries()].map(([label,value]) => ({label,value})), (n)=> n + ' produk');
+      renderCompactLists(lowStock, revenueOrders);
+      renderReports();
+    }
+    function renderCompactLists(lowStock, revenueOrders){
+      if(els.recentOrderList){
+        const recent = [...orders].sort((a,b)=>b.createdAtMs-a.createdAtMs).slice(0,5);
+        els.recentOrderList.innerHTML = recent.length ? recent.map(o => `<div class="compact-item"><strong>${escapeHtml(o.orderId)} • ${rupiah(o.total)}</strong><span>${escapeHtml(o.customerName)} membeli ${escapeHtml(o.productName)} (${escapeHtml(o.orderStatus)})</span></div>`).join('') : '<div class="empty">Belum ada pesanan.</div>';
+      }
+      if(els.lowStockList){
+        const rows = [...lowStock].sort((a,b)=>Number(a.stock)-Number(b.stock)).slice(0,6);
+        els.lowStockList.innerHTML = rows.length ? rows.map(p => `<div class="compact-item"><strong>${escapeHtml(p.title)}</strong><span>Stok ${escapeHtml(p.stock || 0)} • minimum ${escapeHtml(p.minStock || 0)} • ${escapeHtml(p.category || '-')}</span></div>`).join('') : '<div class="empty">Belum ada stok menipis.</div>';
+      }
+      if(els.topProductList){
+        const orderQty = new Map();
+        revenueOrders.forEach(o => orderQty.set(o.productName, (orderQty.get(o.productName) || 0) + Number(o.qty || 0)));
+        const rows = products.map(p => ({...p, totalSold:Number(p.soldCount || 0) + (orderQty.get(p.title) || 0)})).filter(p => p.totalSold > 0).sort((a,b)=>b.totalSold-a.totalSold).slice(0,6);
+        els.topProductList.innerHTML = rows.length ? rows.map(p => `<div class="compact-item"><strong>${escapeHtml(p.title)}</strong><span>${escapeHtml(p.brand || '-')} • Terjual ${escapeHtml(p.totalSold)} • ${rupiah(p.price)}</span></div>`).join('') : '<div class="empty">Belum ada data terjual.</div>';
+      }
+    }
+    function startOrdersListening(){
+      if(unsubscribeOrders) return;
+      if(!els.orderSyncStatus) return;
+      setNotice(els.orderSyncStatus, 'Membaca pesanan dari Firebase...');
+      const q = query(ordersRef, orderBy('createdAt'));
+      unsubscribeOrders = onSnapshot(q, (snapshot) => {
+        orders = snapshot.docs.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
+        setNotice(els.orderSyncStatus, 'Sinkron aktif. Pesanan terbaca: ' + orders.length + ' • ' + nowLabel(), 'good');
+        renderOrders();
+        renderBusinessDashboard();
+      }, (error) => {
+        setNotice(els.orderSyncStatus, 'Gagal membaca pesanan: ' + firebaseMessage(error), 'danger');
+      });
+    }
+    function startCustomersListening(){
+      if(unsubscribeCustomers) return;
+      if(!els.customerSyncStatus) return;
+      setNotice(els.customerSyncStatus, 'Membaca pelanggan dari Firebase...');
+      const q = query(customersRef, orderBy('name'));
+      unsubscribeCustomers = onSnapshot(q, (snapshot) => {
+        customers = snapshot.docs.map(normalizeCustomer).sort((a,b)=>a.name.localeCompare(b.name));
+        setNotice(els.customerSyncStatus, 'Sinkron aktif. Pelanggan terbaca: ' + customers.length + ' • ' + nowLabel(), 'good');
+        renderCustomers();
+        renderProductOptions();
+        renderBusinessDashboard();
+      }, (error) => {
+        setNotice(els.customerSyncStatus, 'Gagal membaca pelanggan: ' + firebaseMessage(error), 'danger');
+      });
+    }
+    function autoOrderId(){
+      const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+      const countToday = orders.filter(o => String(o.orderId || '').includes(today)).length + 1;
+      els.orderId.value = 'ORD-' + today + '-' + String(countToday).padStart(3,'0');
+    }
+    function collectOrder(){
+      const orderId = els.orderId.value.trim();
+      const customerName = els.orderCustomer.value.trim();
+      const productName = els.orderProduct.value.trim();
+      const qty = Number(els.orderQty.value || 1);
+      const total = Number(els.orderTotal.value || 0);
+      if(!orderId) throw new Error('ID pesanan wajib diisi.');
+      if(!customerName) throw new Error('Nama pelanggan wajib diisi.');
+      if(!productName) throw new Error('Produk wajib diisi.');
+      if(!Number.isInteger(qty) || qty < 1) throw new Error('Jumlah harus angka bulat minimal 1.');
+      if(!Number.isFinite(total) || total < 0 || !Number.isInteger(total)) throw new Error('Total harga harus angka bulat dan tidak boleh minus.');
+      return { orderId, customerName, productName, qty, total, paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), updatedAt: serverTimestamp() };
+    }
+    async function saveOrder(event){
+      event.preventDefault();
+      try{ requirePermission('canEdit', 'menyimpan pesanan'); }
+      catch(error){ setNotice(els.orderMessage, error.message, 'danger'); return; }
+      setBusy(true);
+      try{
+        const data = collectOrder();
+        const currentDocId = els.orderDocId.value.trim();
+        const targetDocId = currentDocId || sanitizeDocId(data.orderId, 'order-' + Date.now());
+        if(!currentDocId) data.createdAt = serverTimestamp();
+        await setDoc(doc(db, 'orders', targetDocId), data, { merge:true });
+        setNotice(els.orderMessage, 'Pesanan berhasil disimpan: ' + data.orderId, 'good');
+        resetOrderForm();
+        showToast('Pesanan tersimpan');
+      }catch(error){ setNotice(els.orderMessage, firebaseMessage(error), 'danger'); }
+      finally{ setBusy(false); }
+    }
+    function resetOrderForm(){
+      els.orderForm.reset();
+      els.orderDocId.value = '';
+      els.orderQty.value = 1;
+      els.orderFormTitle.textContent = 'Tambah Pesanan';
+      hideNotice(els.orderMessage);
+    }
+    function fillOrderForm(order){
+      if(!order) return;
+      els.orderDocId.value = order.docId;
+      els.orderId.value = order.orderId;
+      els.orderCustomer.value = order.customerName;
+      els.orderProduct.value = order.productName;
+      els.orderQty.value = order.qty;
+      els.orderTotal.value = order.total;
+      els.orderPaymentMethod.value = order.paymentMethod || 'Transfer Bank';
+      els.orderPaymentStatus.value = order.paymentStatus || 'Belum Bayar';
+      els.orderStatus.value = order.orderStatus || 'Menunggu Pembayaran';
+      els.orderCourier.value = order.courier || '';
+      els.orderTracking.value = order.trackingNumber || '';
+      els.orderNote.value = order.note || '';
+      els.orderFormTitle.textContent = 'Edit Pesanan';
+      switchView('pesanan');
+      window.scrollTo({ top: 0, behavior:'smooth' });
+    }
+    async function deleteOrder(order){
+      if(!order) return;
+      try{ requirePermission('canDelete', 'menghapus pesanan'); }
+      catch(error){ alert(error.message); return; }
+      if(!confirm('Hapus pesanan ' + order.orderId + '?')) return;
+      setBusy(true);
+      try{ await requireSensitiveReauth('menghapus pesanan ' + order.orderId); await deleteDoc(doc(db, 'orders', order.docId)); showToast('Pesanan dihapus'); }
+      catch(error){ alert('Gagal hapus pesanan: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    function renderOrders(){
+      if(!els.orderRows) return;
+      if(!orders.length){ els.orderRows.innerHTML = '<tr><td colspan="6">Belum ada pesanan.</td></tr>'; return; }
+      els.orderRows.innerHTML = orders.slice(0,80).map(o => `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${new Date(o.createdAtMs).toLocaleDateString('id-ID')}</span></td><td>${escapeHtml(o.customerName)}</td><td>${escapeHtml(o.productName)}<br><span class="muted">Qty ${escapeHtml(o.qty)}</span></td><td>${rupiah(o.total)}<br><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span></td><td><span class="status-pill ${statusClass(o.orderStatus)}">${escapeHtml(o.orderStatus)}</span><br><span class="muted">${escapeHtml([o.courier,o.trackingNumber].filter(Boolean).join(' • ') || '-')}</span></td><td><div class="row-actions"><button class="btn small primary" type="button" data-order-action="edit" data-doc="${escapeHtml(o.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" type="button" data-order-action="delete" data-doc="${escapeHtml(o.docId)}">Hapus</button>` : ''}</div></td></tr>`).join('');
+    }
+    function collectCustomer(){
+      const name = els.customerName.value.trim();
+      if(!name) throw new Error('Nama pelanggan wajib diisi.');
+      const totalSpent = Number(els.customerTotalSpent.value || 0);
+      if(!Number.isFinite(totalSpent) || totalSpent < 0 || !Number.isInteger(totalSpent)) throw new Error('Total belanja manual harus angka bulat dan tidak boleh minus.');
+      return { name, phone: els.customerPhone.value.trim(), email: els.customerEmail.value.trim(), address: els.customerAddress.value.trim(), segment: els.customerSegment.value || 'Reguler', totalSpent, note: els.customerNote.value.trim(), updatedAt: serverTimestamp() };
+    }
+    async function saveCustomer(event){
+      event.preventDefault();
+      try{ requirePermission('canEdit', 'menyimpan pelanggan'); }
+      catch(error){ setNotice(els.customerMessage, error.message, 'danger'); return; }
+      setBusy(true);
+      try{
+        const data = collectCustomer();
+        const currentDocId = els.customerDocId.value.trim();
+        const targetDocId = currentDocId || sanitizeDocId(data.name + '-' + (data.phone || data.email || Date.now()), 'customer-' + Date.now());
+        if(!currentDocId) data.createdAt = serverTimestamp();
+        await setDoc(doc(db, 'customers', targetDocId), data, { merge:true });
+        setNotice(els.customerMessage, 'Pelanggan berhasil disimpan: ' + data.name, 'good');
+        resetCustomerForm();
+        showToast('Pelanggan tersimpan');
+      }catch(error){ setNotice(els.customerMessage, firebaseMessage(error), 'danger'); }
+      finally{ setBusy(false); }
+    }
+    function resetCustomerForm(){
+      els.customerForm.reset();
+      els.customerDocId.value = '';
+      els.customerSegment.value = 'Reguler';
+      els.customerFormTitle.textContent = 'Tambah Pelanggan';
+      hideNotice(els.customerMessage);
+    }
+    function fillCustomerForm(customer){
+      if(!customer) return;
+      els.customerDocId.value = customer.docId;
+      els.customerName.value = customer.name;
+      els.customerPhone.value = customer.phone;
+      els.customerEmail.value = customer.email;
+      els.customerAddress.value = customer.address;
+      els.customerSegment.value = customer.segment || 'Reguler';
+      els.customerTotalSpent.value = customer.totalSpent || 0;
+      els.customerNote.value = customer.note || '';
+      els.customerFormTitle.textContent = 'Edit Pelanggan';
+      switchView('pelanggan');
+      window.scrollTo({ top: 0, behavior:'smooth' });
+    }
+    async function deleteCustomer(customer){
+      if(!customer) return;
+      try{ requirePermission('canDelete', 'menghapus pelanggan'); }
+      catch(error){ alert(error.message); return; }
+      if(!confirm('Hapus pelanggan ' + customer.name + '?')) return;
+      setBusy(true);
+      try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await deleteDoc(doc(db, 'customers', customer.docId)); showToast('Pelanggan dihapus'); }
+      catch(error){ alert('Gagal hapus pelanggan: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    function renderCustomers(){
+      if(!els.customerRows) return;
+      if(!customers.length){ els.customerRows.innerHTML = '<tr><td colspan="5">Belum ada pelanggan.</td></tr>'; return; }
+      const customerTotals = new Map();
+      paidRevenueOrders().forEach(o => customerTotals.set(o.customerName, (customerTotals.get(o.customerName) || 0) + Number(o.total || 0)));
+      els.customerRows.innerHTML = customers.slice(0,80).map(c => {
+        const total = Number(c.totalSpent || 0) + Number(customerTotals.get(c.name) || 0);
+        return `<tr><td><strong>${escapeHtml(c.name)}</strong><br><span class="muted">${escapeHtml(c.address || '-')}</span></td><td>${escapeHtml(c.phone || '-')}<br><span class="muted">${escapeHtml(c.email || '-')}</span></td><td><span class="status-pill ${c.segment === 'VIP' ? 'good' : ''}">${escapeHtml(c.segment)}</span></td><td>${rupiah(total)}</td><td><div class="row-actions"><button class="btn small primary" type="button" data-customer-action="edit" data-doc="${escapeHtml(c.docId)}">Edit</button>${currentAdmin.canDelete ? `<button class="btn small danger" type="button" data-customer-action="delete" data-doc="${escapeHtml(c.docId)}">Hapus</button>` : ''}</div></td></tr>`;
+      }).join('');
+    }
+    function renderReports(){
+      const revenueOrders = paidRevenueOrders();
+      const now = new Date();
+      const daily = revenueOrders.filter(o => sameLocalDay(o.createdAtMs, now)).reduce((sum,o)=>sum + Number(o.total || 0), 0);
+      const weeklyStart = Date.now() - 6 * 24 * 60 * 60 * 1000;
+      const weekly = revenueOrders.filter(o => o.createdAtMs >= weeklyStart).reduce((sum,o)=>sum + Number(o.total || 0), 0);
+      const monthly = revenueOrders.filter(o => sameLocalMonth(o.createdAtMs, now)).reduce((sum,o)=>sum + Number(o.total || 0), 0);
+      const profit = revenueOrders.reduce((sum,o)=>sum + Number(o.total || 0) - estimateOrderCost(o), 0);
+      if(els.reportDaily) els.reportDaily.textContent = rupiah(daily);
+      if(els.reportWeekly) els.reportWeekly.textContent = rupiah(weekly);
+      if(els.reportMonthly) els.reportMonthly.textContent = rupiah(monthly);
+      if(els.reportGrossProfit) els.reportGrossProfit.textContent = rupiah(profit);
+      if(els.categoryReportRows){
+        const groups = new Map();
+        products.forEach(p => {
+          const key = p.category || 'Tanpa kategori';
+          const row = groups.get(key) || { category:key, count:0, value:0, sold:0 };
+          row.count += 1;
+          row.value += Number(p.price || 0) * Number(p.stock || 0);
+          row.sold += Number(p.soldCount || 0);
+          groups.set(key,row);
+        });
+        els.categoryReportRows.innerHTML = groups.size ? [...groups.values()].sort((a,b)=>b.value-a.value).map(row => `<tr><td>${escapeHtml(row.category)}</td><td>${escapeHtml(row.count)}</td><td>${rupiah(row.value)}</td><td>${escapeHtml(row.sold)}</td></tr>`).join('') : '<tr><td colspan="4">Belum ada data kategori.</td></tr>';
+      }
+      if(els.stockReportRows){
+        const rows = [...products].sort((a,b)=>Number(a.stock)-Number(b.stock)).slice(0,80);
+        els.stockReportRows.innerHTML = rows.length ? rows.map(p => `<tr><td>${escapeHtml(p.title)}<br><span class="muted">${escapeHtml(p.brand || '-')} • ${escapeHtml(p.category || '-')}</span></td><td>${escapeHtml(p.stock || 0)}</td><td>${escapeHtml(p.minStock || 0)}</td><td><span class="status-pill ${Number(p.stock || 0) <= 0 ? 'danger' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'good'}">${Number(p.stock || 0) <= 0 ? 'Habis' : Number(p.stock || 0) <= Number(p.minStock || 0) ? 'Menipis' : 'Aman'}</span></td></tr>`).join('') : '<tr><td colspan="4">Belum ada data stok.</td></tr>';
+      }
+    }
+    function switchView(view){
+      const target = view || 'dashboard';
+      document.querySelectorAll('.admin-view').forEach(node => node.classList.toggle('active', node.dataset.view === target));
+      document.querySelectorAll('[data-view-target]').forEach(btn => btn.classList.toggle('active', btn.dataset.viewTarget === target));
     }
     function downloadFile(filename, content, type){
       const blob = new Blob([content], { type });
@@ -1261,7 +1871,7 @@
         collection: 'products',
         count: products.length,
         products: products.map(p => ({
-          docId:p.docId, id:p.id, title:p.title, category:p.category, price:p.price, img:p.img,
+          docId:p.docId, id:p.id, title:p.title, brand:p.brand, category:p.category, price:p.price, costPrice:p.costPrice, stock:p.stock, minStock:p.minStock, soldCount:p.soldCount, size:p.size, fragranceType:p.fragranceType, gender:p.gender, scentFamily:p.scentFamily, longevity:p.longevity, projection:p.projection, topNotes:p.topNotes, middleNotes:p.middleNotes, baseNotes:p.baseNotes, img:p.img,
           desc:p.desc, notes:p.notes, status:p.status, longDesc:p.longDesc
         }))
       };
@@ -1285,7 +1895,7 @@
       try{
         requirePermission('canExport', 'export CSV');
         await requireSensitiveReauth('export CSV');
-        const header = ['docId','id','title','category','price','status','img','notes','desc','longDesc'];
+        const header = ['docId','id','title','brand','category','price','costPrice','stock','minStock','soldCount','size','fragranceType','gender','scentFamily','longevity','projection','topNotes','middleNotes','baseNotes','status','img','notes','desc','longDesc'];
         const rows = products.map(p => header.map(k => csvCell(p[k])).join(','));
         downloadFile('dirac-products-' + new Date().toISOString().slice(0,10) + '.csv', [header.join(','), ...rows].join('\n'), 'text/csv;charset=utf-8');
         showToast('CSV dibuat');
@@ -1344,8 +1954,22 @@
         docId: product.docId,
         id: product.id,
         title: product.title,
+        brand: product.brand,
         category: product.category,
         price: product.price,
+        costPrice: product.costPrice,
+        stock: product.stock,
+        minStock: product.minStock,
+        soldCount: product.soldCount,
+        size: product.size,
+        fragranceType: product.fragranceType,
+        gender: product.gender,
+        scentFamily: product.scentFamily,
+        longevity: product.longevity,
+        projection: product.projection,
+        topNotes: product.topNotes,
+        middleNotes: product.middleNotes,
+        baseNotes: product.baseNotes,
         status: product.status,
         img: product.img,
         notes: product.notes,
@@ -1357,7 +1981,7 @@
       els.modalBody.innerHTML = `
         <div class="preview-box">
           <div class="thumb">${safeImg ? `<img src="${escapeHtml(safeImg)}" alt="${escapeHtml(product.title)}">` : 'No image'}</div>
-          <div><strong>${escapeHtml(product.title)}</strong><span>${escapeHtml(product.category)} • ${rupiah(product.price)} • ${escapeHtml(product.status)}</span></div>
+          <div><strong>${escapeHtml(product.title)}</strong><span>${escapeHtml(product.brand || '-')} • ${escapeHtml(product.category)} • ${escapeHtml(product.size || '-')} • Stok ${escapeHtml(product.stock || 0)} • ${rupiah(product.price)} • ${escapeHtml(product.status)}</span></div>
         </div>
         <pre>${escapeHtml(JSON.stringify(payload, null, 2))}</pre>
         <div class="card-actions">
@@ -1467,7 +2091,7 @@
       setPreviewImage(localPreviewUrl);
     });
     els.uploadPhotoBtn.addEventListener('click', uploadSelectedPhoto);
-    ['id','title','category','price','img','status','notes','desc','longDesc'].forEach(id => $(id).addEventListener('input', () => {
+    ['id','title','category','brand','price','costPrice','stock','minStock','soldCount','size','fragranceType','gender','scentFamily','longevity','projection','topNotes','middleNotes','baseNotes','img','status','notes','desc','longDesc'].forEach(id => $(id).addEventListener('input', () => {
       updatePreview();
       markDirty(true);
       saveDraft();
@@ -1486,6 +2110,34 @@
       if(btn.dataset.action === 'toggle') toggleStatus(product, btn.dataset.status);
       if(btn.dataset.action === 'duplicate') duplicateProduct(product);
       if(btn.dataset.action === 'detail') showDetail(product);
+    });
+
+    document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.viewTarget)));
+    els.orderForm.addEventListener('submit', saveOrder);
+    els.resetOrderBtn.addEventListener('click', resetOrderForm);
+    els.autoOrderIdBtn.addEventListener('click', autoOrderId);
+    function updateOrderTotalFromProduct(){
+      const product = findProductByName(els.orderProduct.value);
+      const qty = Number(els.orderQty.value || 1);
+      if(product && !els.orderDocId.value){ els.orderTotal.value = Math.max(qty, 1) * Number(product.price || 0); }
+    }
+    els.orderProduct.addEventListener('input', updateOrderTotalFromProduct);
+    els.orderQty.addEventListener('input', updateOrderTotalFromProduct);
+    els.orderRows.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-order-action]');
+      if(!btn) return;
+      const order = orders.find(o => o.docId === btn.dataset.doc);
+      if(btn.dataset.orderAction === 'edit') fillOrderForm(order);
+      if(btn.dataset.orderAction === 'delete') deleteOrder(order);
+    });
+    els.customerForm.addEventListener('submit', saveCustomer);
+    els.resetCustomerBtn.addEventListener('click', resetCustomerForm);
+    els.customerRows.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-customer-action]');
+      if(!btn) return;
+      const customer = customers.find(c => c.docId === btn.dataset.doc);
+      if(btn.dataset.customerAction === 'edit') fillCustomerForm(customer);
+      if(btn.dataset.customerAction === 'delete') deleteCustomer(customer);
     });
     els.modalCloseBtn.addEventListener('click', closeModal);
     els.modal.addEventListener('click', event => { if(event.target === els.modal) closeModal(); });
@@ -1525,13 +2177,24 @@
         els.adminSection.classList.add('hidden');
         els.logoutBtn.classList.add('hidden');
         products = [];
+        orders = [];
+        customers = [];
         renderProducts();
+        renderOrders();
+        renderCustomers();
+        renderBusinessDashboard();
         resetForm();
+        resetOrderForm();
+        resetCustomerForm();
         setNotice(els.syncStatus, 'Menunggu login...');
         els.miniSyncStatus.textContent = 'Belum login';
         els.lastSync.textContent = 'Login untuk sinkronisasi';
         els.syncDot.className = 'mini-dot warn';
-        if(unsubscribeProducts) unsubscribeProducts();
+        if(els.orderSyncStatus) setNotice(els.orderSyncStatus, 'Menunggu login...');
+        if(els.customerSyncStatus) setNotice(els.customerSyncStatus, 'Menunggu login...');
+        if(unsubscribeProducts){ unsubscribeProducts(); unsubscribeProducts = null; }
+        if(unsubscribeOrders){ unsubscribeOrders(); unsubscribeOrders = null; }
+        if(unsubscribeCustomers){ unsubscribeCustomers(); unsubscribeCustomers = null; }
         clearTimeout(idleTimer);
         clearLocalAdminData();
       }
@@ -1544,6 +2207,8 @@
     updateConnectionStatus();
     startClock();
     updatePreview();
+    renderProductOptions();
+    renderBusinessDashboard();
   </script>
 </body>
 </html>
