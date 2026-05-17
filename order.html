@@ -4028,7 +4028,7 @@ html[data-effective-theme="light"] .dirac-ai-chip{color:#273044;background:rgba(
     const STORAGE_KEY = 'dirac_parfum_cart_v2';
     const FREE_SHIP_TARGET = 299000;
 
-    const products = [
+    let products = [
       {
             "id": 1,
             "title": "All Parfum Timteng",
@@ -7889,12 +7889,95 @@ html[data-effective-theme="light"] .dirac-ai-chip{color:#273044;background:rgba(
     })();
 
 
+
     loadCart();
     renderCategoryOptions();
     renderProducts();
     renderCart();
     initCountUps();
   </script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script id="dirac-firestore-products-js">
+(function(){
+  'use strict';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCKZnjZMCENr2LhFpS6wfIjJ3-lTW0ABwU",
+    authDomain: "dirac-katalog.firebaseapp.com",
+    projectId: "dirac-katalog",
+    storageBucket: "dirac-katalog.firebasestorage.app",
+    messagingSenderId: "715761458312",
+    appId: "1:715761458312:web:45aac8a12661e9cdba133d",
+    measurementId: "G-NLY7GGXZLQ"
+  };
+
+  function normalizeProduct(data, index){
+    data = data || {};
+    return {
+      id: Number(data.id || index + 1),
+      title: String(data.title || data.nama || data.name || 'Produk Tanpa Nama'),
+      category: String(data.category || data.kategori || 'Lokal'),
+      price: Number(data.price || data.harga || 0),
+      img: String(data.img || data.foto || data.image || ''),
+      desc: String(data.desc || data.deskripsi || data.description || ''),
+      notes: String(data.notes || data.catatan || ''),
+      status: String(data.status || 'ready'),
+      longDesc: String(data.longDesc || data.longdesc || data.deskripsiPanjang || data.desc || data.deskripsi || '')
+    };
+  }
+
+  function enrichFirestoreProducts(){
+    try{
+      const salesMap = distributeSalesWithBucketRatio(products, TOTAL_SOCIAL_PROOF_SOLD);
+      const topSellerIds = getTopSellerIds(salesMap, TOP_SELLER_COUNT);
+      products.forEach(function(product){
+        product.soldCount = salesMap.get(product.id) || 0;
+        product.isTopSeller = topSellerIds.has(product.id);
+        product.rating = buildProductRating(product);
+        product.reviewCount = buildReviewCount(product);
+      });
+    }catch(error){
+      products.forEach(function(product){
+        if(!product.soldCount) product.soldCount = 0;
+        if(!product.rating) product.rating = 4.8;
+        if(!product.reviewCount) product.reviewCount = 0;
+        if(typeof product.isTopSeller === 'undefined') product.isTopSeller = false;
+      });
+    }
+  }
+
+  function refreshCatalogAfterFirestore(){
+    try{ if(typeof loadCart === 'function') loadCart(); }catch(error){}
+    try{ if(typeof renderCategoryOptions === 'function') renderCategoryOptions(); }catch(error){}
+    try{ if(typeof renderProducts === 'function') renderProducts({keepFilterLimit:true}); }catch(error){}
+    try{ if(typeof renderCart === 'function') renderCart(); }catch(error){}
+    try{ if(typeof showToast === 'function') showToast('Katalog Firebase berhasil dimuat.'); }catch(error){}
+  }
+
+  async function loadProductsFromFirestore(){
+    if(!window.firebase || !firebase.apps) return;
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const snapshot = await db.collection('products').orderBy('id').get();
+    const nextProducts = [];
+    snapshot.forEach(function(doc){
+      const item = normalizeProduct(Object.assign({docId:doc.id}, doc.data()), nextProducts.length);
+      if(item.status !== 'hidden' && item.status !== 'nonaktif') nextProducts.push(item);
+    });
+    if(!nextProducts.length) return;
+    products = nextProducts;
+    enrichFirestoreProducts();
+    refreshCatalogAfterFirestore();
+  }
+
+  loadProductsFromFirestore().catch(function(error){
+    console.warn('Gagal memuat produk dari Firebase:', error);
+    try{ if(typeof showToast === 'function') showToast('Firebase belum terbaca, katalog lokal tetap dipakai.'); }catch(e){}
+  });
+})();
+</script>
 
 <script id="github-pages-ultralight-js">
 (function(){
