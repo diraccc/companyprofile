@@ -273,7 +273,7 @@
           </div>
         </div>
         <div class="preview-box">
-          <div class="thumb"><img id="previewImg" alt="Preview" src="" onerror="this.style.display='none';this.parentNode.textContent='Preview foto'"></div>
+          <div class="thumb" id="previewThumb">Preview foto<img id="previewImg" alt="Preview" src="" style="display:none"></div>
           <div><strong id="previewTitle">Preview produk</strong><span id="previewMeta">Belum ada data</span></div>
         </div>
         <form id="productForm" novalidate>
@@ -365,7 +365,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const firebaseConfig = {
@@ -381,8 +381,9 @@
     const app = initializeApp(firebaseConfig);
     const SECURITY_CONFIG = Object.freeze({
       APP_CHECK_SITE_KEY: '',
+      ADMIN_USERS_COLLECTION: 'users',
+      REQUIRE_FIRESTORE_ADMIN_ROLE: true,
       REQUIRE_ADMIN_CLAIM: false,
-      DEFAULT_ROLE_WHEN_CLAIMS_MISSING: 'owner',
       REAUTH_TTL_MS: 5 * 60 * 1000,
       STRICT_IMAGE_HOSTS: false,
       ALLOWED_IMAGE_HOSTS: ['firebasestorage.googleapis.com', 'storage.googleapis.com']
@@ -426,7 +427,7 @@
     let dirty = false;
     let suppressDraft = false;
     let currentAdmin = {
-      uid: '', email: '', role: 'guest', hasAdminClaim: false, claimChecked: false,
+      uid: '', email: '', role: 'guest', roleLabel: 'Guest', roleSource: 'none', hasAdminClaim: false, hasAdminDoc: false, claimChecked: false,
       canRead: false, canEdit: false, canDelete: false, canExport: false, canUpload: false
     };
     let lastSensitiveReauthAt = 0;
@@ -527,23 +528,72 @@
       };
       return map[code] || map[raw] || raw || 'Terjadi error tidak diketahui.';
     }
-    function resolveAdminRole(claims){
-      const rawRole = String(claims.role || '').toLowerCase();
-      if(['owner','editor','viewer'].includes(rawRole)) return rawRole;
-      if(claims.owner === true) return 'owner';
-      if(claims.editor === true) return 'editor';
-      if(claims.viewer === true) return 'viewer';
-      return SECURITY_CONFIG.DEFAULT_ROLE_WHEN_CLAIMS_MISSING;
+    function normalizeAdminRole(value){
+      const role = String(value || '').trim().toLowerCase();
+      if(role === 'admin' || role === 'owner') return 'owner';
+      if(role === 'editor' || role === 'staff') return 'editor';
+      if(role === 'viewer' || role === 'read' || role === 'readonly') return 'viewer';
+      return '';
     }
-    function buildAdminProfile(user, claims){
-      const hasAdminClaim = claims.admin === true;
-      const role = hasAdminClaim ? resolveAdminRole(claims) : SECURITY_CONFIG.DEFAULT_ROLE_WHEN_CLAIMS_MISSING;
-      const canRead = hasAdminClaim || !SECURITY_CONFIG.REQUIRE_ADMIN_CLAIM;
+    function displayRoleLabel(role, rawRole=''){
+      const raw = String(rawRole || '').trim().toLowerCase();
+      if(raw === 'admin') return 'Admin';
+      if(role === 'owner') return 'Owner';
+      if(role === 'editor') return 'Editor';
+      if(role === 'viewer') return 'Viewer';
+      return 'Guest';
+    }
+    function resolveClaimRole(claims){
+      const rawRole = String(claims.role || '').trim().toLowerCase();
+      const normalized = normalizeAdminRole(rawRole);
+      if(normalized) return { role: normalized, rawRole };
+      if(claims.admin === true || claims.owner === true) return { role: 'owner', rawRole: rawRole || 'owner' };
+      if(claims.editor === true) return { role: 'editor', rawRole: rawRole || 'editor' };
+      if(claims.viewer === true) return { role: 'viewer', rawRole: rawRole || 'viewer' };
+      return { role: '', rawRole: rawRole || '' };
+    }
+    async function loadFirestoreAdminRole(user){
+      const userRef = doc(db, SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid);
+      const snap = await getDoc(userRef);
+      if(!snap.exists()){
+        return { exists: false, active: false, role: '', rawRole: '' };
+      }
+      const data = snap.data() || {};
+      const rawRole = String(data.role || '').trim().toLowerCase();
+      return {
+        exists: true,
+        active: data.active !== false && data.disabled !== true,
+        role: normalizeAdminRole(rawRole),
+        rawRole
+      };
+    }
+    function buildAdminProfile(user, claims, roleDoc){
+      const claimRole = resolveClaimRole(claims);
+      const hasAdminClaim = claims.admin === true || Boolean(claimRole.role);
+      const hasAdminDoc = Boolean(roleDoc && roleDoc.exists);
+      let role = '';
+      let rawRole = '';
+      let roleSource = 'none';
+
+      if(roleDoc && roleDoc.role){
+        role = roleDoc.role;
+        rawRole = roleDoc.rawRole;
+        roleSource = 'firestore';
+      } else if(claimRole.role && !SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE){
+        role = claimRole.role;
+        rawRole = claimRole.rawRole;
+        roleSource = 'custom-claim';
+      }
+
+      const canRead = Boolean(role);
       return {
         uid: user.uid,
         email: user.email || '',
-        role,
+        role: role || 'guest',
+        roleLabel: displayRoleLabel(role, rawRole),
+        roleSource,
         hasAdminClaim,
+        hasAdminDoc,
         claimChecked: true,
         canRead,
         canEdit: canRead && (role === 'owner' || role === 'editor'),
@@ -558,15 +608,29 @@
       if(SECURITY_CONFIG.REQUIRE_ADMIN_CLAIM && claims.admin !== true){
         throw new Error('Akses ditolak. Akun ini belum memiliki custom claim admin.');
       }
-      currentAdmin = buildAdminProfile(user, claims);
+      const roleDoc = await loadFirestoreAdminRole(user);
+      if(SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE){
+        if(!roleDoc.exists){
+          throw new Error('Akses ditolak. Buat dulu dokumen users/' + user.uid + ' dengan field role: "admin".');
+        }
+        if(!roleDoc.active){
+          throw new Error('Akses ditolak. Role admin akun ini sedang nonaktif.');
+        }
+        if(!roleDoc.role){
+          throw new Error('Akses ditolak. Field role harus bernilai admin, owner, editor, atau viewer. Nilai sekarang: ' + (roleDoc.rawRole || '-'));
+        }
+      }
+      currentAdmin = buildAdminProfile(user, claims, roleDoc);
+      if(!currentAdmin.canRead){
+        throw new Error('Akses ditolak. Akun ini belum memiliki role admin yang valid.');
+      }
       applyRoleUi();
       return currentAdmin;
     }
     function applyRoleUi(){
       document.body.dataset.adminRole = currentAdmin.role || 'guest';
-      const roleLabel = currentAdmin.role === 'owner' ? 'Owner' : currentAdmin.role === 'editor' ? 'Editor' : currentAdmin.role === 'viewer' ? 'Viewer' : 'Guest';
       if(currentAdmin.email){
-        els.userPill.textContent = currentAdmin.email + ' • ' + roleLabel;
+        els.userPill.textContent = currentAdmin.email + ' • ' + (currentAdmin.roleLabel || 'Guest');
       }
       if(els.saveBtn) els.saveBtn.disabled = busy || !currentAdmin.canEdit;
       if(els.autoIdBtn) els.autoIdBtn.disabled = busy || !currentAdmin.canEdit;
@@ -722,6 +786,24 @@
       suppressDraft = false;
       markDirty(false);
     }
+    function previewHolder(){
+      return (els.previewImg && els.previewImg.parentElement) || document.getElementById('previewThumb') || document.querySelector('.preview-box .thumb');
+    }
+    function setPreviewPlaceholder(){
+      const holder = previewHolder();
+      if(!holder) return;
+      holder.textContent = 'Preview foto';
+      holder.appendChild(els.previewImg);
+      els.previewImg.style.display = 'none';
+    }
+    function setPreviewImage(src){
+      const holder = previewHolder();
+      if(!holder) return;
+      holder.textContent = '';
+      holder.appendChild(els.previewImg);
+      els.previewImg.style.display = 'block';
+      els.previewImg.src = src;
+    }
     function updatePreview(){
       const title = els.title.value.trim() || 'Preview produk';
       const category = els.category.value.trim() || 'Kategori';
@@ -730,14 +812,11 @@
       els.previewTitle.textContent = title;
       els.previewMeta.textContent = category + ' • ' + rupiah(price) + ' • ' + (els.status.value || 'ready');
       if(img){
-        els.previewImg.style.display='block';
-        els.previewImg.src = (img.startsWith('data:') || img.startsWith('blob:')) ? img : img + (img.includes('?') ? '&' : '?') + 'preview=' + Date.now();
-        els.previewImg.parentNode.textContent = '';
-        els.previewImg.parentNode.appendChild(els.previewImg);
+        const src = (img.startsWith('data:') || img.startsWith('blob:')) ? img : img + (img.includes('?') ? '&' : '?') + 'preview=' + Date.now();
+        setPreviewImage(src);
       } else {
         els.previewImg.removeAttribute('src');
-        els.previewImg.style.display='none';
-        els.previewImg.parentNode.textContent='Preview foto';
+        setPreviewPlaceholder();
       }
     }
     function autoId(options={}){
@@ -1185,7 +1264,7 @@
     async function logoutAdmin(){
       clearLocalAdminData();
       lastSensitiveReauthAt = 0;
-      currentAdmin = { uid:'', email:'', role:'guest', hasAdminClaim:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
+      currentAdmin = { uid:'', email:'', role:'guest', roleLabel:'Guest', roleSource:'none', hasAdminClaim:false, hasAdminDoc:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
       await signOut(auth);
     }
     function resetIdleTimer(){
@@ -1252,10 +1331,7 @@
       }
       if(localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
       localPreviewUrl = URL.createObjectURL(file);
-      els.previewImg.style.display='block';
-      els.previewImg.src = localPreviewUrl;
-      els.previewImg.parentNode.textContent = '';
-      els.previewImg.parentNode.appendChild(els.previewImg);
+      setPreviewImage(localPreviewUrl);
     });
     els.uploadPhotoBtn.addEventListener('click', uploadSelectedPhoto);
     ['id','title','category','price','img','status','notes','desc','longDesc'].forEach(id => $(id).addEventListener('input', () => {
@@ -1305,8 +1381,8 @@
           els.loginSection.classList.add('hidden');
           els.adminSection.classList.remove('hidden');
           els.logoutBtn.classList.remove('hidden');
-          if(!currentAdmin.hasAdminClaim && !SECURITY_CONFIG.REQUIRE_ADMIN_CLAIM){
-            setNotice(els.syncStatus, 'Mode kompatibilitas aktif: custom claim admin belum terdeteksi. Pasang custom claims lalu ubah REQUIRE_ADMIN_CLAIM menjadi true untuk mode ketat.', 'danger');
+          if(currentAdmin.roleSource === 'firestore'){
+            setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '.', 'good');
           }
           startListening();
           resetIdleTimer();
@@ -1315,7 +1391,7 @@
           await logoutAdmin();
         }
       } else {
-        currentAdmin = { uid:'', email:'', role:'guest', hasAdminClaim:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
+        currentAdmin = { uid:'', email:'', role:'guest', roleLabel:'Guest', roleSource:'none', hasAdminClaim:false, hasAdminDoc:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
         applyRoleUi();
         els.userPill.textContent = 'Belum login';
         els.loginSection.classList.remove('hidden');
