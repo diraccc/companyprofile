@@ -414,7 +414,13 @@
       REQUIRE_ADMIN_CLAIM: false,
       REAUTH_TTL_MS: 5 * 60 * 1000,
       STRICT_IMAGE_HOSTS: false,
-      ALLOWED_IMAGE_HOSTS: ['firebasestorage.googleapis.com', 'storage.googleapis.com']
+      ALLOWED_IMAGE_HOSTS: ['firebasestorage.googleapis.com', 'storage.googleapis.com'],
+      TWO_FACTOR_MAX_ATTEMPTS: 5,
+      TWO_FACTOR_HASHES: [
+        '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429',
+        '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429',
+        '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429'
+      ]
     });
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
       try{
