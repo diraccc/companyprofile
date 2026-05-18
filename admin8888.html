@@ -523,6 +523,24 @@
     @media(max-width:700px){.ux-checklist,.ux-workflow-grid{grid-template-columns:1fr}.ux-setup-head{display:block}.ux-setup-head .btn{margin-top:10px}.ux-command-hint{display:none}}
   </style>
 
+
+
+  <style id="dirac-remove-bottom-sticky-action">
+    /* Removed the bottom fixed quick-action bar only; login, hash, Firebase config, and normal form buttons stay unchanged. */
+    #ultraStickyAction,
+    .ultra-sticky-action,
+    body[data-admin-ready="true"] .ultra-sticky-action{
+      display:none!important;
+      visibility:hidden!important;
+      opacity:0!important;
+      pointer-events:none!important;
+    }
+    @media(max-width:700px){
+      body[data-admin-ready="true"] .ultra-sticky-action{display:none!important;}
+      .admin-layout{padding-bottom:34px!important;}
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -3670,44 +3688,13 @@
     }
 
     function ultraEnsureStickyBar(){
-      if(document.getElementById('ultraStickyAction')) return;
-      const bar = document.createElement('div');
-      bar.id = 'ultraStickyAction';
-      bar.className = 'ultra-sticky-action';
-      bar.innerHTML = `<div><strong id="ultraStickyTitle">Aksi cepat admin</strong><span id="ultraStickyHint">Simpan cepat tanpa scroll ke bawah</span></div><div class="ultra-sticky-buttons"><button class="btn small" id="ultraStickyPreview" type="button">Preview</button><button class="btn small" id="ultraStickyReset" type="button">Reset</button><button class="btn small primary" id="ultraStickySave" type="button">Simpan</button></div>`;
-      document.body.appendChild(bar);
-      $('ultraStickySave').addEventListener('click', () => {
-        const active = document.querySelector('.admin-view.active');
-        const view = active && active.dataset.view;
-        if(view === 'pesanan') els.orderForm.requestSubmit();
-        else if(view === 'pelanggan') els.customerForm.requestSubmit();
-        else if(view === 'produk') els.form.requestSubmit();
-      });
-      $('ultraStickyReset').addEventListener('click', () => {
-        const active = document.querySelector('.admin-view.active');
-        const view = active && active.dataset.view;
-        if(view === 'pesanan') resetOrderForm();
-        else if(view === 'pelanggan') resetCustomerForm();
-        else if(view === 'produk') resetForm();
-      });
-      $('ultraStickyPreview').addEventListener('click', () => {
-        const active = document.querySelector('.admin-view.active');
-        const view = active && active.dataset.view;
-        if(view === 'produk') ultraPreviewProductFromForm();
-        else if(view === 'pesanan') ultraPreviewCurrentOrderInvoice();
-        else showToast('Preview tersedia di Produk dan Pesanan');
-      });
+      const bar = document.getElementById('ultraStickyAction');
+      if(bar) bar.remove();
     }
     function ultraUpdateStickyBar(){
       ultraSyncAdminReady();
-      const title = $('ultraStickyTitle');
-      const hint = $('ultraStickyHint');
-      if(!title || !hint) return;
-      const active = document.querySelector('.admin-view.active');
-      const view = active && active.dataset.view;
-      const map = { produk:['Produk','Simpan / preview katalog tanpa scroll'], pesanan:['Pesanan','Simpan order atau preview invoice'], pelanggan:['Pelanggan','Simpan data pelanggan'], dashboard:['Dashboard','Aksi cepat muncul saat mengelola data'], laporan:['Laporan','Gunakan filter dan export laporan'], pengaturan:['Pengaturan','Simpan perubahan setting'] };
-      const row = map[view] || map.dashboard;
-      title.textContent = row[0]; hint.textContent = row[1];
+      const bar = document.getElementById('ultraStickyAction');
+      if(bar) bar.remove();
     }
 
     function ultraEnhanceTables(root=document){
