@@ -223,7 +223,7 @@
     }
 
 
-    /* === Transaction, filters, settings, restore, invoice additions === */
+    /* === Transaction, filters, settings, backup, invoice additions === */
     .filter-grid{display:grid;grid-template-columns:1.2fr repeat(3,minmax(130px,.7fr));gap:10px;margin:12px 0 14px}
     .filter-grid.report{grid-template-columns:1.2fr repeat(4,minmax(130px,.7fr))}
     .mini-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
@@ -398,7 +398,7 @@
 
 
   <style id="ultra-admin-suite-css">
-    /* === Ultra Admin Suite: UI/UX, mobile, tabs, bulk, archive, reports === */
+    /* === Ultra Admin Suite: UI/UX, mobile, tabs, bulk, hard delete, reports === */
     .ultra-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px;border:1px solid rgba(96,165,250,.18);background:rgba(255,255,255,.035);border-radius:20px;padding:8px}
     .ultra-tab{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:14px;padding:9px 12px;font-weight:950;transition:.18s ease}
     .ultra-tab:hover,.ultra-tab.active{background:rgba(96,165,250,.14);border-color:var(--line);color:#fff}
@@ -413,6 +413,114 @@
       .ultra-grid,.ultra-report-grid{grid-template-columns:1fr}.ultra-sticky-action{display:none!important}.ultra-tabs{position:sticky;top:108px;z-index:8;background:rgba(7,13,28,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
       .table-wrap{border:none;background:transparent;overflow:visible}.admin-table{min-width:0}.admin-table thead{display:none}.admin-table,.admin-table tbody,.admin-table tr,.admin-table td{display:block;width:100%}.admin-table tr{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:20px;padding:10px;margin-bottom:10px}.admin-table td{border-bottom:1px solid rgba(255,255,255,.08);padding:9px 4px}.admin-table td:last-child{border-bottom:none}.admin-table td::before{content:attr(data-label);display:block;color:#bfdbfe;font-size:.72rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}.row-actions .btn{flex:1 1 auto}
     }
+  </style>
+
+
+  <style id="ux-pro2-style">
+    /* === UX Pro 2: mobile-first workflow, smarter forms, CRM detail, onboarding, accessibility === */
+    :root{
+      --ux-card-highlight:rgba(96,165,250,.16);
+      --ux-danger-soft:rgba(239,68,68,.12);
+      --ux-warn-soft:rgba(250,204,21,.12);
+      --ux-good-soft:rgba(34,197,94,.12);
+    }
+    .skip-link{
+      position:fixed;left:12px;top:8px;z-index:9999;transform:translateY(-160%);
+      background:#bfdbfe;color:#07101e;border-radius:999px;padding:10px 14px;font-weight:950;
+      box-shadow:0 16px 42px rgba(0,0,0,.35);transition:.18s ease;
+    }
+    .skip-link:focus{transform:translateY(0);outline:3px solid rgba(255,255,255,.8)}
+    body[data-admin-ready="true"] .hero{padding-top:18px}
+    body[data-admin-ready="true"] .hero-card{
+      grid-template-columns:1fr auto;
+      padding:18px 20px;
+      border-radius:26px;
+    }
+    body[data-admin-ready="true"] .hero h2{font-size:clamp(1.55rem,3.2vw,2.4rem)}
+    body[data-admin-ready="true"] .hero p{font-size:.92rem;max-width:82ch}
+    body[data-admin-ready="true"] .stat-grid{grid-template-columns:repeat(6,minmax(92px,1fr))}
+    body[data-admin-ready="true"] .stat{min-height:78px;padding:12px}
+    body[data-admin-ready="true"] .stat strong{font-size:1.12rem}
+
+    .ux-setup-panel{border:1px solid var(--line2);background:linear-gradient(135deg,rgba(96,165,250,.13),rgba(34,197,94,.07));border-radius:24px;padding:16px;margin-bottom:16px}
+    .ux-setup-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .ux-setup-head h3{margin:0}.ux-setup-head p{margin:4px 0 0;color:var(--muted)}
+    .ux-checklist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+    .ux-check-item{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);border-radius:18px;padding:12px;min-height:104px}
+    .ux-check-item b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:10px;background:var(--ux-warn-soft);color:#fef08a;margin-bottom:8px}
+    .ux-check-item.done b{background:var(--ux-good-soft);color:#bbf7d0}
+    .ux-check-item strong{display:block;line-height:1.2}.ux-check-item span{display:block;color:var(--muted);font-size:.82rem;margin-top:4px}
+    .ux-nav-toggle{min-height:32px;padding:6px 10px;font-size:.78rem}
+    .sidebar.ux-nav-compact .nav-section:not(.active-section) .nav-btn.sub{display:none!important}
+    .sidebar.ux-nav-compact .nav-section:not(.active-section){padding-bottom:8px}
+    .sidebar.ux-nav-compact .nav-section:not(.active-section) .nav-heading{margin-bottom:0}
+    .sidebar.ux-nav-compact .nav-section:not(.active-section) .nav-heading span{display:none}
+    .sidebar.ux-nav-compact .notice{display:none}
+    .sidebar.ux-nav-compact .nav-menu{gap:8px!important}
+
+    .field{position:relative}
+    .field-error,.field-warning{display:none;margin-top:5px;font-size:.79rem;font-weight:850;line-height:1.35}
+    .field-error{color:#fecaca}.field-warning{color:#fef08a}
+    .field.has-error .field-error,.field.has-warning .field-warning{display:block}
+    .field.has-error .input,.field.has-error input,.field.has-error textarea,.field.has-error select{
+      border-color:rgba(239,68,68,.75)!important;box-shadow:0 0 0 4px rgba(239,68,68,.12)!important
+    }
+    .field.has-warning .input,.field.has-warning input,.field.has-warning textarea,.field.has-warning select{
+      border-color:rgba(250,204,21,.65)!important;box-shadow:0 0 0 4px rgba(250,204,21,.10)!important
+    }
+    .ux-tab-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:999px;margin-left:6px;padding:0 5px;font-size:.68rem;font-weight:950;background:var(--ux-danger-soft);color:#fecaca;border:1px solid rgba(239,68,68,.35)}
+    .ultra-tab.ux-tab-warning .ux-tab-badge{background:var(--ux-warn-soft);color:#fef08a;border-color:rgba(250,204,21,.36)}
+    .ultra-tab.ux-tab-error{border-color:rgba(239,68,68,.45)!important;background:rgba(239,68,68,.11)!important}
+    .ultra-tab.ux-tab-warning{border-color:rgba(250,204,21,.45)!important;background:rgba(250,204,21,.10)!important}
+    .ux-form-summary{display:none;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#fecaca;border-radius:18px;padding:11px 13px;margin:10px 0;font-size:.9rem}
+    .ux-form-summary.show{display:block}
+    .char-counter{color:var(--muted);font-size:.76rem;margin-top:4px;text-align:right}
+    .ux-field-helper{display:block;color:var(--muted);font-size:.78rem;margin-top:4px}
+
+    .ultra-sticky-action{transition:transform .18s ease,opacity .18s ease,background .18s ease}
+    .ultra-sticky-action .btn.primary{min-width:112px}
+    @media(max-width:700px){
+      body[data-admin-ready="true"] .hero-card{display:block;padding:15px;border-radius:22px}
+      body[data-admin-ready="true"] .hero h2{font-size:1.45rem;margin:8px 0}
+      body[data-admin-ready="true"] .hero p{display:none}
+      body[data-admin-ready="true"] .stat-grid{display:none}
+      body[data-admin-ready="true"] .ultra-sticky-action{
+        display:flex!important;left:0;right:0;bottom:0;transform:none;width:100%;border-radius:20px 20px 0 0;
+        padding:10px max(10px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-right));
+        border-left:0;border-right:0;border-bottom:0;z-index:90;gap:8px;
+      }
+      .ultra-sticky-action strong{font-size:.9rem}.ultra-sticky-action span{font-size:.74rem}
+      .ultra-sticky-buttons{flex-wrap:nowrap}.ultra-sticky-buttons .btn{padding:8px 10px;min-height:38px}
+      .ultra-sticky-buttons .btn:not(.primary){min-width:72px}
+      .admin-layout{padding-bottom:118px!important}
+      .product-card{grid-template-columns:88px 1fr;border-radius:22px;padding:11px;box-shadow:0 12px 34px rgba(0,0,0,.16)}
+      .product-title{font-size:1rem}.card-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.card-actions .btn{width:100%}
+      .admin-table tr{box-shadow:0 12px 34px rgba(0,0,0,.16)}
+      .admin-table td:first-child strong{font-size:1.05rem}
+      .admin-table td[data-label="Total"]{background:rgba(96,165,250,.06);border-radius:14px;padding:10px;margin:4px 0}
+      .admin-table td[data-label="Aksi"] .row-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+      .admin-table td[data-label="Aksi"] .row-actions .btn{width:100%}
+    }
+
+    .ux-empty-state{border:1px dashed var(--line2);background:rgba(96,165,250,.07);border-radius:22px;padding:22px;text-align:center;color:#dbeafe}
+    .ux-empty-state b{display:grid;place-items:center;width:42px;height:42px;border-radius:16px;background:rgba(96,165,250,.16);margin:0 auto 10px}
+    .ux-empty-state strong{display:block;font-size:1.02rem}.ux-empty-state span{display:block;color:var(--muted);margin:5px 0 12px}
+    .ux-workflow-panel{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:14px;margin:12px 0}
+    .ux-workflow-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .ux-workflow-card{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);border-radius:18px;padding:12px;min-height:112px}
+    .ux-workflow-card strong{display:block}.ux-workflow-card span{display:block;color:var(--muted);font-size:.82rem;margin:5px 0 10px}
+    .ux-crm-profile{display:grid;grid-template-columns:1fr 1.2fr;gap:14px;align-items:start}
+    .ux-crm-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:15px}
+    .ux-crm-hero{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    .ux-avatar{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(135deg,#bfdbfe,#60a5fa);color:#07101e;font-weight:950;font-size:1.2rem}
+    .ux-tag-row{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}.ux-tag{border:1px solid var(--line);background:rgba(96,165,250,.09);border-radius:999px;padding:4px 8px;font-size:.76rem;font-weight:850;color:#dbeafe}
+    .ux-modal-help{color:var(--muted);font-size:.88rem;margin:0 0 12px}
+    .ux-command-hint{border:1px solid var(--line);background:rgba(96,165,250,.08);border-radius:16px;padding:9px 11px;color:#dbeafe;font-size:.83rem;margin-top:10px}
+    .status-pill.danger,.tag.sold{box-shadow:0 0 0 3px rgba(239,68,68,.08)}
+    .status-pill.warn,.tag.warn{box-shadow:0 0 0 3px rgba(250,204,21,.08)}
+    .status-pill.good,.tag.ready{box-shadow:0 0 0 3px rgba(34,197,94,.08)}
+    @media(max-width:1040px){.ux-checklist,.ux-workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ux-crm-profile{grid-template-columns:1fr}}
+    @media(max-width:700px){.ux-checklist,.ux-workflow-grid{grid-template-columns:1fr}.ux-setup-head{display:block}.ux-setup-head .btn{margin-top:10px}.ux-command-hint{display:none}}
   </style>
 
 </head>
@@ -572,7 +680,7 @@
               <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-payment" data-scroll-target="settingsPaymentPanel"><b>03</b> Payment</button>
               <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-courier" data-scroll-target="settingsCourierPanel"><b>04</b> Kurir</button>
               <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-whatsapp" data-scroll-target="settingsWhatsAppPanel"><b>05</b> Template WhatsApp</button>
-              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-backup" data-scroll-target="settingsBackupPanel"><b>06</b> Backup / Restore</button>
+              <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-backup" data-scroll-target="settingsBackupPanel"><b>06</b> Backup Data</button>
               <button class="nav-btn sub" type="button" data-view-target="pengaturan" data-nav-key="pengaturan-security" data-scroll-target="settingsSecurityPanel"><b>07</b> Security Log</button>
             </div>
           </section>
@@ -629,7 +737,7 @@
           </div>
           <div class="panel-head-actions">
             <span class="dirty-badge hidden" id="dirtyBadge">Ada perubahan</span>
-            <button class="btn small" id="restoreDraftBtn" type="button">Pulihkan draft</button>
+            <button class="btn small" id="restoreDraftBtn" type="button">Muat draft</button>
           </div>
         </div>
         <div class="preview-box">
@@ -919,7 +1027,7 @@
           <div class="view-grid">
             <div class="panel anchor-panel" id="settingsRolePanel">
               <span class="view-kicker">Pengaturan / Admin &amp; Role</span>
-              <div class="section-title"><div><h3>Pengaturan</h3><p>Pusat pengaturan admin, toko, payment, kurir, template WhatsApp, backup/restore, dan security log. Panel ini hanya mengubah tampilan navigasi; sistem login, hash A2F, dan konfigurasi Firebase tetap dipertahankan.</p></div></div>
+              <div class="section-title"><div><h3>Pengaturan</h3><p>Pusat pengaturan admin, toko, payment, kurir, template WhatsApp, backup data, dan security log. Panel ini hanya mengubah tampilan navigasi; sistem login, hash A2F, dan konfigurasi Firebase tetap dipertahankan.</p></div></div>
               <div class="settings-grid">
                 <div class="settings-card"><h4>Admin &amp; Role</h4><p>Role owner, editor, dan viewer tetap mengikuti logic lama. Viewer hanya melihat data, tombol simpan/edit/hapus disembunyikan.</p><span class="status-pill good">Role UI aktif</span></div>
                 <div class="settings-card"><h4>Transaksi</h4><p>Order baru mendukung multi-item, alamat, ongkir, diskon, bukti bayar, invoice, dan stok otomatis.</p><span class="status-pill good">Aktif</span></div>
@@ -947,11 +1055,11 @@
                   <div class="settings-actions"><button class="btn primary requires-edit" id="saveWhatsAppSettingsBtn" type="button">Simpan Template WA</button></div><div class="notice hidden" id="whatsAppSettingsMessage"></div>
                 </div>
                 <div class="panel anchor-panel full" id="settingsBackupPanel">
-                  <span class="view-kicker">Pengaturan / Backup</span><h3>Backup Semua Data</h3><p class="help">JSON berisi products, orders, customers, settings, dan security log lokal. Import/restore produk &amp; pesanan sekarang dipindahkan ke halaman <b>Pesanan</b> dengan mode append-only agar data lama tidak terhapus atau tertimpa.</p>
-                  <div class="restore-box"><div class="settings-actions"><button class="btn good requires-export" id="exportAllDataBtn" type="button">Backup Semua Data JSON</button><button class="btn" type="button" data-view-target="pesanan" data-scroll-target="appendImportPanel">Buka Import Produk &amp; Pesanan</button></div><div class="notice good" id="restorePreview">Mode restore destruktif dimatikan. Import produk/pesanan hanya menambahkan data baru dari halaman Pesanan.</div></div>
+                  <span class="view-kicker">Pengaturan / Backup</span><h3>Backup Semua Data</h3><p class="help">JSON berisi products, orders, customers, settings, dan security log lokal. Import data produk &amp; pesanan ada di halaman <b>Pesanan</b> dengan mode append-only agar data lama tidak terhapus atau tertimpa.</p>
+                  <div class="restore-box"><div class="settings-actions"><button class="btn good requires-export" id="exportAllDataBtn" type="button">Backup Semua Data JSON</button><button class="btn" type="button" data-view-target="pesanan" data-scroll-target="appendImportPanel">Buka Import Produk &amp; Pesanan</button></div><div class="notice good" id="restorePreview">Mode timpa data dimatikan. Import produk/pesanan hanya menambahkan data baru dari halaman Pesanan.</div></div>
                 </div>
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
-                  <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, restore, upload bukti, dan pengaturan.</p>
+                  <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, upload bukti, dan pengaturan.</p>
                   <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div><div class="security-log-list" id="securityLogList"><div class="empty">Belum ada log.</div></div>
                 </div>
               </div>
@@ -1844,7 +1952,7 @@
       const status = els.filterStatus.value;
       const image = els.filterImage.value;
       const quality = els.filterQuality.value;
-      const sorted = products.filter(p => {
+      const sorted = products.filter(p => !(p && (p.archived || p.deletedAt))).filter(p => {
         const text = [p.id,p.title,p.brand,p.category,p.size,p.fragranceType,p.gender,p.scentFamily,p.topNotes,p.middleNotes,p.baseNotes,p.desc,p.notes,p.status,p.longDesc,p.price,p.stock].join(' ').toLowerCase();
         const hasImg = Boolean(p.img);
         const warning = productHasWarnings(p);
@@ -1866,13 +1974,14 @@
       return sorted;
     }
     function renderProducts(){
-      const total = products.length;
-      const readyProducts = products.filter(p=>p.status === 'ready');
+      const visibleProducts = products.filter(p => !(p && (p.archived || p.deletedAt)));
+      const total = visibleProducts.length;
+      const readyProducts = visibleProducts.filter(p=>p.status === 'ready');
       const ready = readyProducts.length;
-      const sold = products.filter(p=>p.status === 'sold').length;
-      const categories = new Set(products.map(p => p.category).filter(Boolean)).size;
+      const sold = visibleProducts.filter(p=>p.status === 'sold').length;
+      const categories = new Set(visibleProducts.map(p => p.category).filter(Boolean)).size;
       const totalValue = readyProducts.reduce((sum,p)=>sum + (Number(p.price || 0) * Math.max(Number(p.stock || 0), 1)), 0);
-      const average = total ? products.reduce((sum,p)=>sum + Number(p.price || 0), 0) / total : 0;
+      const average = total ? visibleProducts.reduce((sum,p)=>sum + Number(p.price || 0), 0) / total : 0;
       els.statTotal.textContent = total;
       els.statReady.textContent = ready;
       els.statSold.textContent = sold;
@@ -1977,7 +2086,7 @@
         await requireSensitiveReauth('menghapus produk #' + product.id);
         await deleteDoc(doc(db, 'products', product.docId));
         if(els.docId.value === product.docId) resetForm();
-        showToast('Produk dihapus');
+        showToast('Produk dihapus permanen dari database');
       }catch(error){ alert('Gagal hapus: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
@@ -2056,6 +2165,7 @@
         els.miniSyncStatus.textContent = 'Sinkron aktif';
         els.lastSync.textContent = 'Terakhir: ' + nowLabel();
         els.syncDot.className = 'mini-dot good';
+        ultraAutoDeleteOldArchivedDocs();
         renderProducts();
         runQualityAudit(false);
         renderReports();
@@ -2183,6 +2293,7 @@
       unsubscribeOrders = onSnapshot(q, (snapshot) => {
         orders = snapshot.docs.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
         setNotice(els.orderSyncStatus, 'Sinkron aktif. Pesanan terbaca: ' + orders.length + ' • ' + nowLabel(), 'good');
+        ultraAutoDeleteOldArchivedDocs();
         renderOrders();
         renderBusinessDashboard();
       }, (error) => {
@@ -2385,7 +2496,7 @@
       const q = String(els.orderSearch && els.orderSearch.value || '').trim().toLowerCase();
       const payment = els.orderFilterPayment && els.orderFilterPayment.value;
       const status = els.orderFilterStatus && els.orderFilterStatus.value;
-      return orders.filter(o => {
+      return orders.filter(o => !(o && (o.archived || o.deletedAt))).filter(o => {
         const text = [o.orderId,o.customerName,orderItemsSummary(o),o.paymentMethod,o.paymentStatus,o.orderStatus,o.courier,o.trackingNumber,o.address,o.paymentProof,o.note,o.total].join(' ').toLowerCase();
         return (!q || text.includes(q)) && (!payment || o.paymentStatus === payment) && (!status || o.orderStatus === status);
       });
@@ -3425,7 +3536,9 @@
       brands: [],
       variants: [],
       unsubscribeCatalog: [],
-      invoiceTemplateKey: 'dirac-admin-invoice-template-v1'
+      invoiceTemplateKey: 'dirac-admin-invoice-template-v1',
+      archivedPurgeStarted: false,
+      archivedPurgeDone: false
     };
     const categoriesRef = collection(db, 'categories');
     const brandsRef = collection(db, 'brands');
@@ -3434,10 +3547,45 @@
     function ultraSlug(value, fallback='item'){
       return sanitizeDocId(String(value || fallback), fallback);
     }
-    function ultraActiveProducts(){ return products.filter(p => !p.archived); }
-    function ultraActiveOrders(){ return orders.filter(o => !o.archived); }
+    function ultraActiveProducts(){ return products.filter(p => !p.archived && !p.deletedAt); }
+    function ultraActiveOrders(){ return orders.filter(o => !o.archived && !o.deletedAt); }
     function ultraVisibleAdmin(){ return els.adminSection && !els.adminSection.classList.contains('hidden'); }
     function ultraSyncAdminReady(){ document.body.dataset.adminReady = ultraVisibleAdmin() ? 'true' : 'false'; }
+
+    async function ultraAutoDeleteOldArchivedDocs(){
+      if(ultraState.archivedPurgeStarted || ultraState.archivedPurgeDone) return;
+      if(!currentAdmin || !currentAdmin.canDelete) return;
+      const productRows = products.filter(row => row && (row.archived === true || row.deletedAt));
+      const orderRows = orders.filter(row => row && (row.archived === true || row.deletedAt));
+      const idsProducts = productRows.map(row => row.docId).filter(Boolean);
+      const idsOrders = orderRows.map(row => row.docId).filter(Boolean);
+      if(!idsProducts.length && !idsOrders.length){
+        ultraState.archivedPurgeDone = true;
+        return;
+      }
+      ultraState.archivedPurgeStarted = true;
+      try{
+        for(let i = 0; i < idsProducts.length; i += 450){
+          const batch = writeBatch(db);
+          idsProducts.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'products', id)));
+          await batch.commit();
+        }
+        for(let i = 0; i < idsOrders.length; i += 450){
+          const batch = writeBatch(db);
+          idsOrders.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'orders', id)));
+          await batch.commit();
+        }
+        if(idsProducts.length || idsOrders.length){
+          await logSecurity('legacy_archive.auto_hard_delete', idsProducts.length + ' produk, ' + idsOrders.length + ' pesanan');
+          showToast('Data lama yang pernah tersimpan di arsip sudah dihapus permanen');
+        }
+        ultraState.archivedPurgeDone = true;
+      }catch(error){
+        ultraState.archivedPurgeStarted = false;
+        console.error('Gagal hapus data lama permanen:', error);
+        showToast('Gagal menghapus data lama: ' + firebaseMessage(error));
+      }
+    }
 
     const ultraBaseNormalize = normalize;
     normalize = function(docSnap){
@@ -3466,11 +3614,12 @@
     };
 
     function ultraEnsureOptions(){
-      if(els.filterStatus && !Array.from(els.filterStatus.options).some(o => o.value === 'archived')){
-        els.filterStatus.insertAdjacentHTML('beforeend','<option value="archived">Arsip</option>');
+      // Hapus opsi Arsip dari filter. Mulai versi ini tidak ada soft-delete/restore produk.
+      if(els.filterStatus){
+        Array.from(els.filterStatus.options).filter(o => o.value === 'archived').forEach(o => o.remove());
       }
-      if(els.orderFilterStatus && !Array.from(els.orderFilterStatus.options).some(o => o.value === 'Archived')){
-        els.orderFilterStatus.insertAdjacentHTML('beforeend','<option value="Archived">Arsip</option>');
+      if(els.orderFilterStatus){
+        Array.from(els.orderFilterStatus.options).filter(o => o.value === 'Archived').forEach(o => o.remove());
       }
       if(els.brand && !els.brand.getAttribute('list')){
         els.brand.setAttribute('list','brandList');
@@ -3572,19 +3721,19 @@
 
     function ultraEnsureBulkBars(){
       if(!document.getElementById('ultraProductBulkbar') && document.getElementById('productListPanel')){
-        const html = `<div class="ultra-bulkbar" id="ultraProductBulkbar"><div><strong>Bulk Produk</strong><span class="muted" id="ultraProductBulkCount">0 produk dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraProductSelectAll" type="button">Pilih halaman ini</button><button class="btn small good" id="ultraBulkReady" type="button">Ready</button><button class="btn small warn" id="ultraBulkSold" type="button">Sold</button><button class="btn small danger" id="ultraBulkArchiveProducts" type="button">Arsipkan</button><button class="btn small" id="ultraBulkExportProducts" type="button">Export pilihan</button></div></div>`;
+        const html = `<div class="ultra-bulkbar" id="ultraProductBulkbar"><div><strong>Bulk Produk</strong><span class="muted" id="ultraProductBulkCount">0 produk dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraProductSelectAll" type="button">Pilih halaman ini</button><button class="btn small good" id="ultraBulkReady" type="button">Ready</button><button class="btn small warn" id="ultraBulkSold" type="button">Sold</button><button class="btn small danger" id="ultraBulkArchiveProducts" type="button">Hapus permanen</button><button class="btn small" id="ultraBulkExportProducts" type="button">Export pilihan</button></div></div>`;
         document.getElementById('productListPanel').querySelector('.advanced-toolbar').insertAdjacentHTML('afterend', html);
         $('ultraProductSelectAll').onclick = () => { document.querySelectorAll('.bulk-product-checkbox').forEach(cb => { cb.checked = true; ultraState.selectedProducts.add(cb.value); }); ultraUpdateBulkCounts(); };
         $('ultraBulkReady').onclick = () => ultraBulkUpdateProducts({ status:'ready', archived:false });
         $('ultraBulkSold').onclick = () => ultraBulkUpdateProducts({ status:'sold', archived:false });
-        $('ultraBulkArchiveProducts').onclick = () => ultraBulkArchiveProducts();
+        $('ultraBulkArchiveProducts').onclick = () => ultraBulkDeleteProductsPermanent();
         $('ultraBulkExportProducts').onclick = () => ultraExportSelectedProducts();
       }
       if(!document.getElementById('ultraOrderBulkbar') && document.getElementById('ordersTablePanel')){
-        const html = `<div class="ultra-bulkbar" id="ultraOrderBulkbar"><div><strong>Bulk Pesanan</strong><span class="muted" id="ultraOrderBulkCount">0 pesanan dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraOrderSelectAll" type="button">Pilih halaman ini</button><button class="btn small danger" id="ultraBulkArchiveOrders" type="button">Arsipkan</button><button class="btn small" id="ultraBulkExportOrders" type="button">Export pilihan</button></div></div>`;
+        const html = `<div class="ultra-bulkbar" id="ultraOrderBulkbar"><div><strong>Bulk Pesanan</strong><span class="muted" id="ultraOrderBulkCount">0 pesanan dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraOrderSelectAll" type="button">Pilih halaman ini</button><button class="btn small danger" id="ultraBulkArchiveOrders" type="button">Hapus permanen</button><button class="btn small" id="ultraBulkExportOrders" type="button">Export pilihan</button></div></div>`;
         document.getElementById('ordersTablePanel').querySelector('.filter-grid').insertAdjacentHTML('afterend', html);
         $('ultraOrderSelectAll').onclick = () => { document.querySelectorAll('.bulk-order-checkbox').forEach(cb => { cb.checked = true; ultraState.selectedOrders.add(cb.value); }); ultraUpdateBulkCounts(); };
-        $('ultraBulkArchiveOrders').onclick = () => ultraBulkArchiveOrders();
+        $('ultraBulkArchiveOrders').onclick = () => ultraBulkDeleteOrdersPermanent();
         $('ultraBulkExportOrders').onclick = () => ultraExportSelectedOrders();
       }
     }
@@ -3641,20 +3790,38 @@
       }catch(error){ alert('Bulk produk gagal: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
-    function ultraBulkArchiveProducts(){ ultraBulkUpdateProducts({ archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), previousStatus:'bulk' }); }
-    async function ultraBulkArchiveOrders(){
-      try{ requirePermission('canDelete','bulk arsip pesanan'); }catch(e){ alert(e.message); return; }
-      const ids = [...ultraState.selectedOrders];
-      if(!ids.length){ showToast('Pilih pesanan dulu'); return; }
-      if(!confirm('Arsipkan ' + ids.length + ' pesanan?')) return;
+    async function ultraBulkDeleteProductsPermanent(){
+      try{ requirePermission('canDelete','menghapus banyak produk'); }catch(e){ alert(e.message); return; }
+      const ids = [...ultraState.selectedProducts];
+      if(!ids.length){ showToast('Pilih produk dulu'); return; }
+      if(!confirm('Hapus permanen ' + ids.length + ' produk?\n\nProduk akan benar-benar hilang dari Firestore dan tidak muncul lagi di website toko. Tindakan ini tidak bisa dipulihkan.')) return;
       setBusy(true);
       try{
+        await requireSensitiveReauth('menghapus permanen ' + ids.length + ' produk');
         const batch = writeBatch(db);
-        ids.forEach(id => batch.update(doc(db,'orders',id), { archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), updatedAt:serverTimestamp() }));
+        ids.forEach(id => batch.delete(doc(db,'products',id)));
+        await batch.commit();
+        ultraState.selectedProducts.clear();
+        await logSecurity('product.bulk_delete_permanent', ids.length + ' produk');
+        showToast('Bulk hapus produk selesai');
+      }catch(error){ alert('Bulk hapus produk gagal: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    async function ultraBulkDeleteOrdersPermanent(){
+      try{ requirePermission('canDelete','menghapus banyak pesanan'); }catch(e){ alert(e.message); return; }
+      const ids = [...ultraState.selectedOrders];
+      if(!ids.length){ showToast('Pilih pesanan dulu'); return; }
+      if(!confirm('Hapus permanen ' + ids.length + ' pesanan?\n\nDokumen pesanan akan benar-benar dihapus dari Firestore. Tindakan ini tidak bisa dipulihkan.')) return;
+      setBusy(true);
+      try{
+        await requireSensitiveReauth('menghapus permanen ' + ids.length + ' pesanan');
+        const batch = writeBatch(db);
+        ids.forEach(id => batch.delete(doc(db,'orders',id)));
         await batch.commit();
         ultraState.selectedOrders.clear();
-        showToast('Bulk pesanan selesai');
-      }catch(error){ alert('Bulk pesanan gagal: ' + firebaseMessage(error)); }
+        await logSecurity('order.bulk_delete_permanent', ids.length + ' pesanan');
+        showToast('Bulk hapus pesanan selesai');
+      }catch(error){ alert('Bulk hapus pesanan gagal: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     function ultraExportSelectedProducts(){
@@ -3668,74 +3835,87 @@
       downloadFile('dirac-selected-orders-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(selected, null, 2), 'application/json;charset=utf-8');
     }
 
-    async function ultraArchiveProduct(product){
+    async function ultraDeleteProductPermanent(product){
       if(!product) return;
-      try{ requirePermission('canDelete','mengarsipkan produk'); }catch(error){ alert(error.message); return; }
-      if(!confirm('Arsipkan produk ini?\n\n#' + product.id + ' - ' + product.title + '\n\nData tidak dihapus permanen dan bisa dipulihkan.')) return;
+      try{ requirePermission('canDelete','menghapus produk'); }catch(error){ alert(error.message); return; }
+      const ok = confirm('Hapus produk PERMANEN?\n\n#' + product.id + ' - ' + product.title + '\n\nProduk akan benar-benar dihapus dari Firestore collection products, sehingga tidak muncul lagi di website toko. Tindakan ini tidak bisa dipulihkan.');
+      if(!ok) return;
       setBusy(true);
       try{
-        await requireSensitiveReauth('mengarsipkan produk #' + product.id);
-        await updateDoc(doc(db,'products',product.docId), { archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), previousStatus:product.status || 'ready', status:'archived', updatedAt:serverTimestamp() });
+        await requireSensitiveReauth('menghapus produk permanen #' + product.id);
+        await deleteDoc(doc(db,'products',product.docId));
+        ultraState.selectedProducts.delete(product.docId);
         if(els.docId.value === product.docId) resetForm();
-        await logSecurity('product.archive', product.title);
-        showToast('Produk diarsipkan');
-      }catch(error){ alert('Gagal arsip produk: ' + firebaseMessage(error)); }
+        await logSecurity('product.delete_permanent', product.title);
+        showToast('Produk dihapus permanen dari database permanen dari database');
+      }catch(error){ alert('Gagal hapus produk: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
-    removeProduct = ultraArchiveProduct;
-    async function ultraRestoreProduct(docId){
+    removeProduct = ultraDeleteProductPermanent;
+    async function ultraHardDeleteLegacyProduct(docId){
       const p = products.find(row => row.docId === docId);
       if(!p) return;
-      try{ requirePermission('canEdit','memulihkan produk'); }catch(error){ alert(error.message); return; }
+      try{ requirePermission('canDelete','menghapus permanen produk arsip lama'); }catch(error){ alert(error.message); return; }
+      const ok = confirm('Hapus permanen produk arsip lama?\n\n#' + (p.id || '-') + ' - ' + (p.title || p.docId) + '\n\nDokumen akan dihapus dari Firestore collection products dan tidak bisa dipulihkan.');
+      if(!ok) return;
       setBusy(true);
       try{
-        await updateDoc(doc(db,'products',docId), { archived:false, deletedAt:null, deletedAtMs:0, status:p.previousStatus && p.previousStatus !== 'archived' ? p.previousStatus : 'ready', updatedAt:serverTimestamp() });
-        showToast('Produk dipulihkan');
-      }catch(error){ alert('Gagal pulihkan produk: ' + firebaseMessage(error)); }
+        await requireSensitiveReauth('menghapus permanen produk arsip lama #' + (p.id || p.docId));
+        await deleteDoc(doc(db,'products',docId));
+        ultraState.selectedProducts.delete(docId);
+        await logSecurity('product.legacy_archive_hard_delete', p.title || docId);
+        showToast('Produk arsip lama dihapus permanen');
+      }catch(error){ alert('Gagal hapus permanen produk arsip lama: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
-    async function ultraArchiveOrder(order){
-      if(!order) return;
-      try{ requirePermission('canDelete','mengarsipkan pesanan'); }catch(error){ alert(error.message); return; }
-      if(!confirm('Arsipkan pesanan ' + order.orderId + '?\n\nData tidak dihapus permanen dan bisa dipulihkan.')) return;
+    async function ultraHardDeleteAllLegacyProducts(){
+      const rows = products.filter(row => row.archived).map(row => row.docId).filter(Boolean);
+      try{ requirePermission('canDelete','menghapus semua produk arsip lama'); }catch(error){ alert(error.message); return; }
+      if(!rows.length){ showToast('Tidak ada produk arsip lama'); return; }
+      const ok = confirm('Hapus permanen semua produk arsip lama?\n\nJumlah: ' + rows.length + ' produk.\n\nSemua dokumen akan benar-benar dihapus dari Firestore collection products dan tidak bisa dipulihkan.');
+      if(!ok) return;
       setBusy(true);
       try{
-        await requireSensitiveReauth('mengarsipkan pesanan ' + order.orderId);
-        await updateDoc(doc(db,'orders',order.docId), { archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), previousOrderStatus:order.orderStatus || '', updatedAt:serverTimestamp(), timeline:[...buildOrderTimeline(order), { label:'Diarsipkan', detail:currentAdmin.email || 'Admin', at:Date.now() }] });
-        await logSecurity('order.archive', order.orderId);
-        showToast('Pesanan diarsipkan');
-      }catch(error){ alert('Gagal arsip pesanan: ' + firebaseMessage(error)); }
+        await requireSensitiveReauth('menghapus semua produk arsip lama');
+        let deleted = 0;
+        for(let i = 0; i < rows.length; i += 450){
+          const batch = writeBatch(db);
+          rows.slice(i, i + 450).forEach(id => batch.delete(doc(db,'products',id)));
+          await batch.commit();
+          deleted += rows.slice(i, i + 450).length;
+        }
+        await logSecurity('product.legacy_archive_bulk_hard_delete', deleted + ' produk');
+        showToast(deleted + ' produk arsip lama dihapus permanen');
+      }catch(error){ alert('Gagal hapus semua produk arsip lama: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
-    deleteOrder = ultraArchiveOrder;
-    async function ultraRestoreOrder(docId){
+    async function ultraHardDeleteLegacyOrder(docId){
       const o = orders.find(row => row.docId === docId);
       if(!o) return;
-      try{ requirePermission('canEdit','memulihkan pesanan'); }catch(error){ alert(error.message); return; }
+      try{ requirePermission('canDelete','menghapus permanen pesanan arsip lama'); }catch(error){ alert(error.message); return; }
+      const ok = confirm('Hapus permanen pesanan arsip lama?\n\n' + (o.orderId || docId) + '\n\nDokumen akan dihapus dari Firestore collection orders dan tidak bisa dipulihkan.');
+      if(!ok) return;
       setBusy(true);
       try{
-        await updateDoc(doc(db,'orders',docId), { archived:false, deletedAt:null, deletedAtMs:0, orderStatus:o.previousOrderStatus || o.orderStatus || 'Diproses', updatedAt:serverTimestamp(), timeline:[...buildOrderTimeline(o), { label:'Dipulihkan', detail:currentAdmin.email || 'Admin', at:Date.now() }] });
-        showToast('Pesanan dipulihkan');
-      }catch(error){ alert('Gagal pulihkan pesanan: ' + firebaseMessage(error)); }
+        await requireSensitiveReauth('menghapus permanen pesanan arsip lama ' + (o.orderId || docId));
+        await deleteDoc(doc(db,'orders',docId));
+        ultraState.selectedOrders.delete(docId);
+        await logSecurity('order.legacy_archive_hard_delete', o.orderId || docId);
+        showToast('Pesanan arsip lama dihapus permanen');
+      }catch(error){ alert('Gagal hapus permanen pesanan arsip lama: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
 
     function ultraEnsureArchivePanel(){
-      if(document.getElementById('ultraArchivePanel') || !document.getElementById('productListPanel')) return;
-      document.getElementById('productListPanel').insertAdjacentHTML('beforeend', `<div class="ultra-archive-panel" id="ultraArchivePanel"><h3>Arsip & Restore</h3><p class="help">Produk dan pesanan yang diarsipkan tetap aman dan bisa dipulihkan.</p><div class="ultra-grid"><div><h4>Produk Arsip</h4><div class="ultra-list" id="ultraArchivedProducts"><div class="empty">Belum ada arsip produk.</div></div></div><div><h4>Pesanan Arsip</h4><div class="ultra-list" id="ultraArchivedOrders"><div class="empty">Belum ada arsip pesanan.</div></div></div><div><h4>Catatan</h4><div class="notice good">Delete lama diganti menjadi arsip/soft delete supaya data bisa dikembalikan.</div></div></div></div>`);
+      // Archive/restore UI removed. Delete actions are permanent hard deletes only.
+      const oldPanel = document.getElementById('ultraArchivePanel');
+      if(oldPanel) oldPanel.remove();
     }
     function ultraRenderArchivePanel(){
-      ultraEnsureArchivePanel();
-      const pbox = $('ultraArchivedProducts');
-      const obox = $('ultraArchivedOrders');
-      if(pbox){
-        const rows = products.filter(p => p.archived).slice(0,50);
-        pbox.innerHTML = rows.length ? rows.map(p => `<div class="ultra-list-item"><strong>${escapeHtml(p.title)}</strong><span>#${escapeHtml(p.id)} • ${escapeHtml(p.brand || '-')} • ${rupiah(p.price)}</span><button class="btn small good" type="button" data-ultra-restore-product="${escapeHtml(p.docId)}">Pulihkan</button></div>`).join('') : '<div class="empty">Belum ada arsip produk.</div>';
-      }
-      if(obox){
-        const rows = orders.filter(o => o.archived).slice(0,50);
-        obox.innerHTML = rows.length ? rows.map(o => `<div class="ultra-list-item"><strong>${escapeHtml(o.orderId)}</strong><span>${escapeHtml(o.customerName)} • ${rupiah(o.total)} • ${escapeHtml(o.paymentStatus)}</span><button class="btn small good" type="button" data-ultra-restore-order="${escapeHtml(o.docId)}">Pulihkan</button></div>`).join('') : '<div class="empty">Belum ada arsip pesanan.</div>';
-      }
+      // No archive/restore rendering. Legacy archived documents are auto-deleted permanently.
+      const oldPanel = document.getElementById('ultraArchivePanel');
+      if(oldPanel) oldPanel.remove();
+      ultraAutoDeleteOldArchivedDocs();
     }
 
     function ultraEnsureCatalogManager(){
@@ -3803,16 +3983,14 @@
 
     const ultraBaseFilteredProducts = filteredProducts;
     filteredProducts = function(){
-      const status = els.filterStatus && els.filterStatus.value;
-      const all = ultraBaseFilteredProducts().filter(p => status === 'archived' ? p.archived : !p.archived);
+      const all = ultraBaseFilteredProducts().filter(p => !p.archived);
       ultraState.productTotalRows = all.length;
       const start = (ultraState.productPage - 1) * ultraState.pageSize;
       return all.slice(start, start + ultraState.pageSize);
     };
     const ultraBaseFilteredOrders = filteredOrders;
     filteredOrders = function(){
-      const status = els.orderFilterStatus && els.orderFilterStatus.value;
-      const all = ultraBaseFilteredOrders().filter(o => status === 'Archived' ? o.archived : !o.archived);
+      const all = ultraBaseFilteredOrders().filter(o => !o.archived);
       ultraState.orderTotalRows = all.length;
       const start = (ultraState.orderPage - 1) * ultraState.pageSize;
       return all.slice(start, start + ultraState.pageSize);
@@ -4080,10 +4258,10 @@
       ultraUpdateStickyBar();
     }
     document.addEventListener('click', event => {
-      const productBtn = event.target.closest('[data-ultra-restore-product]');
-      if(productBtn) ultraRestoreProduct(productBtn.dataset.ultraRestoreProduct);
-      const orderBtn = event.target.closest('[data-ultra-restore-order]');
-      if(orderBtn) ultraRestoreOrder(orderBtn.dataset.ultraRestoreOrder);
+      const hardDeleteProductBtn = event.target.closest('[data-ultra-hard-delete-product]');
+      if(hardDeleteProductBtn){ ultraHardDeleteLegacyProduct(hardDeleteProductBtn.dataset.ultraHardDeleteProduct); return; }
+      const hardDeleteOrderBtn = event.target.closest('[data-ultra-hard-delete-order]');
+      if(hardDeleteOrderBtn){ ultraHardDeleteLegacyOrder(hardDeleteOrderBtn.dataset.ultraHardDeleteOrder); return; }
     });
     document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => setTimeout(ultraUpdateStickyBar, 80)));
     if(els.adminSection && 'MutationObserver' in window){ new MutationObserver(ultraUpdateStickyBar).observe(els.adminSection, { attributes:true, attributeFilter:['class'] }); }
@@ -4150,6 +4328,654 @@
     renderSecurityLogs();
     renderOrderItems();
     renderBusinessDashboard();
-  </script>
+  
+
+    /* === UX Pro 2 Patch - additive only, login/hash untouched === */
+    if(!window.__diracUxPro2Installed){
+      window.__diracUxPro2Installed = true;
+      const ux2State = {
+        setupKey:'dirac-admin-setup-checklist-dismissed-v1',
+        navKey:'dirac-admin-compact-nav-v1'
+      };
+
+      const ux2BaseShowToast = showToast;
+      showToast = function(message){
+        ux2BaseShowToast(message);
+        if(els.toast){
+          els.toast.setAttribute('aria-live','polite');
+          clearTimeout(showToast.t);
+          showToast.t = setTimeout(() => els.toast.classList.remove('show'), 5200);
+        }
+      };
+
+      function ux2InsertSkipLink(){
+        if(document.getElementById('skipToAdminContent')) return;
+        document.body.insertAdjacentHTML('afterbegin','<a class="skip-link" id="skipToAdminContent" href="#adminSection">Lewati ke konten admin</a>');
+      }
+
+      function ux2SetText(id, text){
+        const el = $(id);
+        if(el) el.textContent = text;
+      }
+      function ux2SetPlaceholder(id, text){
+        const el = $(id);
+        if(el) el.setAttribute('placeholder', text);
+      }
+      function ux2ImproveMicrocopy(){
+        const brandSub = document.querySelector('.brand span');
+        if(brandSub) brandSub.textContent = 'Panel toko & operasional';
+        const heroEyebrow = document.querySelector('.eyebrow');
+        if(heroEyebrow) heroEyebrow.textContent = 'Panel toko';
+        const openStore = document.querySelector('.top-actions a.btn');
+        if(openStore) openStore.textContent = 'Lihat toko';
+        ux2SetText('exportJsonBtn','Download backup');
+        ux2SetText('exportCsvBtn','Unduh CSV');
+        ux2SetText('qualityBtn','Cek kelengkapan');
+        ux2SetText('resetBtn','Bersihkan form');
+        ux2SetText('deleteEditingBtn','Hapus produk ini');
+        ux2SetText('saveBtn','Simpan produk');
+        ux2SetText('saveOrderBtn','Simpan pesanan');
+        ux2SetText('resetOrderBtn','Bersihkan pesanan');
+        ux2SetText('exportCustomersCsvBtn','Unduh data pelanggan');
+        ux2SetPlaceholder('search','Cari nama produk, ID, brand, kategori, atau catatan...');
+        ux2SetPlaceholder('orderSearch','Cari ID pesanan, pelanggan, item, resi, atau alamat...');
+        ux2SetPlaceholder('customerSearch','Cari nama, nomor HP, email, alamat, atau catatan...');
+        ux2SetPlaceholder('notes','Catatan aroma singkat, misalnya Fresh - Citrus - Premium');
+        const statusOptions = els.status ? Array.from(els.status.options) : [];
+        statusOptions.forEach(opt => {
+          if(opt.value === 'ready') opt.textContent = 'Tersedia';
+          if(opt.value === 'sold') opt.textContent = 'Terjual';
+        });
+        const filterStatusOptions = els.filterStatus ? Array.from(els.filterStatus.options) : [];
+        filterStatusOptions.forEach(opt => {
+          if(opt.value === 'ready') opt.textContent = 'Tersedia';
+          if(opt.value === 'sold') opt.textContent = 'Terjual';
+        });
+        if(els.projection){
+          const label = document.querySelector('label[for="projection"]');
+          if(label) label.textContent = 'Sebaran aroma';
+          els.projection.placeholder = 'Dekat / Sedang / Kuat';
+        }
+      }
+
+      function ux2EnsureCompactNav(){
+        const sidebar = els.adminSidebar;
+        if(!sidebar || document.getElementById('uxNavToggle')) return;
+        const title = sidebar.querySelector('.sidebar-title');
+        const stored = localStorage.getItem(ux2State.navKey);
+        if(stored !== 'detail') sidebar.classList.add('ux-nav-compact');
+        if(title){
+          title.insertAdjacentHTML('beforeend','<button class="btn small ux-nav-toggle" id="uxNavToggle" type="button" aria-pressed="true">Menu ringkas</button>');
+          const btn = $('uxNavToggle');
+          btn.addEventListener('click', () => {
+            const compact = !sidebar.classList.contains('ux-nav-compact');
+            sidebar.classList.toggle('ux-nav-compact', compact);
+            localStorage.setItem(ux2State.navKey, compact ? 'compact' : 'detail');
+            btn.textContent = compact ? 'Menu ringkas' : 'Menu detail';
+            btn.setAttribute('aria-pressed', String(compact));
+            ux2SyncActiveNavSection();
+          });
+          btn.textContent = sidebar.classList.contains('ux-nav-compact') ? 'Menu ringkas' : 'Menu detail';
+          btn.setAttribute('aria-pressed', String(sidebar.classList.contains('ux-nav-compact')));
+        }
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => setTimeout(ux2SyncActiveNavSection, 50)));
+        ux2SyncActiveNavSection();
+      }
+      function ux2SyncActiveNavSection(){
+        const sidebar = els.adminSidebar;
+        if(!sidebar) return;
+        sidebar.querySelectorAll('.nav-section').forEach(section => section.classList.remove('active-section'));
+        const active = sidebar.querySelector('.nav-btn.active');
+        const section = active && active.closest('.nav-section');
+        if(section) section.classList.add('active-section');
+      }
+
+      function ux2Field(input){
+        return input && input.closest ? input.closest('.field') : null;
+      }
+      function ux2EnsureFeedbackNode(input, className){
+        const field = ux2Field(input);
+        if(!field) return null;
+        let node = field.querySelector('.' + className);
+        if(!node){
+          node = document.createElement('div');
+          node.className = className;
+          node.id = (input.id || ('field-' + Math.random().toString(16).slice(2))) + '-' + className;
+          field.appendChild(node);
+        }
+        return node;
+      }
+      function ux2ClearField(input){
+        const field = ux2Field(input);
+        if(!field) return;
+        field.classList.remove('has-error','has-warning');
+        input.removeAttribute('aria-invalid');
+        const err = field.querySelector('.field-error');
+        const warn = field.querySelector('.field-warning');
+        if(err) err.textContent = '';
+        if(warn) warn.textContent = '';
+      }
+      function ux2SetField(input, type, message){
+        const field = ux2Field(input);
+        if(!field) return;
+        const node = ux2EnsureFeedbackNode(input, type === 'error' ? 'field-error' : 'field-warning');
+        if(node) node.textContent = message;
+        field.classList.toggle('has-error', type === 'error');
+        field.classList.toggle('has-warning', type === 'warning');
+        if(type === 'error'){
+          input.setAttribute('aria-invalid','true');
+          if(node) input.setAttribute('aria-describedby', node.id);
+        }
+      }
+      function ux2ClearSmartValidation(form){
+        if(!form) return;
+        form.querySelectorAll('input,select,textarea').forEach(ux2ClearField);
+        const summary = form.parentElement && form.parentElement.querySelector('.ux-form-summary');
+        if(summary) summary.classList.remove('show');
+      }
+      function ux2EnsureFormSummary(panel){
+        if(!panel || panel.querySelector('.ux-form-summary')) return;
+        const form = panel.querySelector('form');
+        if(form) form.insertAdjacentHTML('beforebegin','<div class="ux-form-summary" role="alert"></div>');
+      }
+      function ux2SetFormSummary(panel, messages){
+        const summary = panel && panel.querySelector('.ux-form-summary');
+        if(!summary) return;
+        if(messages && messages.length){
+          summary.innerHTML = '<strong>Periksa bagian berikut:</strong><br>' + messages.map(escapeHtml).join('<br>');
+          summary.classList.add('show');
+        } else {
+          summary.classList.remove('show');
+        }
+      }
+      function ux2AttachCharCounter(el, max){
+        if(!el || el.dataset.uxCounter === '1') return;
+        el.dataset.uxCounter = '1';
+        const node = document.createElement('div');
+        node.className = 'char-counter';
+        const update = () => node.textContent = String((el.value || '').length) + ' / ' + max;
+        el.insertAdjacentElement('afterend', node);
+        el.addEventListener('input', update);
+        update();
+      }
+      function ux2InputValue(el){ return String(el && el.value || '').trim(); }
+
+      function ux2ValidateProductForm(show=false){
+        const panel = $('productFormPanel');
+        const messages = [];
+        ux2ClearSmartValidation(els.form);
+        const required = [
+          [els.id, 'ID produk wajib diisi.'],
+          [els.title, 'Nama produk wajib diisi.'],
+          [els.category, 'Kategori wajib diisi.'],
+          [els.price, 'Harga jual wajib diisi.']
+        ];
+        required.forEach(([input,msg]) => {
+          if(input && !ux2InputValue(input)){
+            messages.push(msg);
+            ux2SetField(input,'error',msg);
+          }
+        });
+        const price = Number(els.price && els.price.value || 0);
+        const cost = Number(els.costPrice && els.costPrice.value || 0);
+        const stock = Number(els.stock && els.stock.value || 0);
+        const minStock = Number(els.minStock && els.minStock.value || 0);
+        if(els.price && ux2InputValue(els.price) && (!Number.isFinite(price) || price < 0)){
+          messages.push('Harga jual harus angka Rupiah yang valid.');
+          ux2SetField(els.price,'error','Masukkan angka Rupiah yang valid.');
+        }
+        if(els.costPrice && cost > 0 && price > 0 && cost > price){
+          ux2SetField(els.costPrice,'warning','Modal lebih tinggi dari harga jual. Cek lagi agar laba tidak minus.');
+        }
+        if(els.minStock && minStock > stock && stock >= 0){
+          ux2SetField(els.minStock,'warning','Stok minimum lebih besar dari stok saat ini. Produk akan ditandai stok menipis.');
+        }
+        if(els.img && !ux2InputValue(els.img)){
+          ux2SetField(els.img,'warning','Produk tanpa foto biasanya terlihat kurang menarik di toko.');
+        }
+        if(show) ux2SetFormSummary(panel, messages);
+        ux2ApplyTabBadges(panel);
+        return messages;
+      }
+      function ux2ValidateOrderForm(show=false){
+        const panel = $('orderFormPanel');
+        const messages = [];
+        ux2ClearSmartValidation(els.orderForm);
+        const required = [
+          [els.orderId, 'ID pesanan wajib diisi.'],
+          [els.orderCustomer, 'Nama pelanggan wajib diisi.'],
+          [els.orderTotal, 'Total akhir wajib diisi.']
+        ];
+        required.forEach(([input,msg]) => {
+          if(input && !ux2InputValue(input)){
+            messages.push(msg);
+            ux2SetField(input,'error',msg);
+          }
+        });
+        if(!orderItems.length){
+          messages.push('Minimal tambahkan satu item produk ke pesanan.');
+          if(els.orderProduct) ux2SetField(els.orderProduct,'error','Tambahkan produk ke daftar item terlebih dahulu.');
+        }
+        const total = Number(els.orderTotal && els.orderTotal.value || 0);
+        if(els.orderTotal && ux2InputValue(els.orderTotal) && (!Number.isFinite(total) || total < 0)){
+          messages.push('Total akhir harus angka Rupiah yang valid.');
+          ux2SetField(els.orderTotal,'error','Masukkan total akhir yang valid.');
+        }
+        if(els.orderPaymentStatus && els.orderPaymentStatus.value === 'Lunas' && !ux2InputValue(els.orderPaymentProof)){
+          ux2SetField(els.orderPaymentProof,'warning','Sebaiknya simpan link/foto bukti bayar untuk audit.');
+        }
+        if(els.orderStatus && els.orderStatus.value === 'Dikirim' && !ux2InputValue(els.orderTracking)){
+          ux2SetField(els.orderTracking,'warning','Order dikirim sebaiknya punya nomor resi.');
+        }
+        if(show) ux2SetFormSummary(panel, messages);
+        ux2ApplyTabBadges(panel);
+        return messages;
+      }
+      function ux2ValidateCustomerForm(show=false){
+        const panel = $('customerFormPanel');
+        const messages = [];
+        ux2ClearSmartValidation(els.customerForm);
+        if(els.customerName && !ux2InputValue(els.customerName)){
+          messages.push('Nama pelanggan wajib diisi.');
+          ux2SetField(els.customerName,'error','Nama pelanggan wajib diisi.');
+        }
+        if(els.customerEmail && ux2InputValue(els.customerEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(els.customerEmail.value.trim())){
+          messages.push('Format email pelanggan belum valid.');
+          ux2SetField(els.customerEmail,'error','Format email belum valid.');
+        }
+        if(els.customerPhone && !ux2InputValue(els.customerPhone)){
+          ux2SetField(els.customerPhone,'warning','Nomor HP membantu follow-up WhatsApp.');
+        }
+        if(show) ux2SetFormSummary(panel, messages);
+        return messages;
+      }
+      function ux2ApplyTabBadges(panel){
+        if(!panel) return;
+        panel.querySelectorAll('.ultra-tab').forEach(btn => {
+          btn.classList.remove('ux-tab-error','ux-tab-warning');
+          const old = btn.querySelector('.ux-tab-badge');
+          if(old) old.remove();
+        });
+        panel.querySelectorAll('.ultra-tab').forEach(btn => {
+          const idx = btn.dataset.ultraTabTarget;
+          const fields = Array.from(panel.querySelectorAll('[data-ultra-tab-group="' + idx + '"]'));
+          const errors = fields.filter(node => node.querySelector && node.querySelector('.has-error')).length;
+          const warnings = fields.filter(node => node.querySelector && node.querySelector('.has-warning')).length;
+          if(errors || warnings){
+            btn.classList.add(errors ? 'ux-tab-error' : 'ux-tab-warning');
+            btn.insertAdjacentHTML('beforeend','<span class="ux-tab-badge">' + (errors || warnings) + '</span>');
+          }
+          btn.setAttribute('aria-selected', String(btn.classList.contains('active')));
+          btn.setAttribute('tabindex', btn.classList.contains('active') ? '0' : '-1');
+        });
+      }
+      function ux2OpenFirstError(panel, storageKey){
+        if(!panel) return;
+        const first = panel.querySelector('.has-error input,.has-error select,.has-error textarea');
+        if(!first) return;
+        const groupNode = first.closest('[data-ultra-tab-group]');
+        if(groupNode && typeof ultraShowFormTab === 'function'){
+          ultraShowFormTab(panel, Number(groupNode.dataset.ultraTabGroup || 0), storageKey);
+        }
+        setTimeout(() => first.focus(), 80);
+      }
+      function ux2InstallSmartForms(){
+        ux2EnsureFormSummary($('productFormPanel'));
+        ux2EnsureFormSummary($('orderFormPanel'));
+        ux2EnsureFormSummary($('customerFormPanel'));
+        ux2AttachCharCounter(els.desc, 260);
+        ux2AttachCharCounter(els.longDesc, 1200);
+        ux2AttachCharCounter(els.orderNote, 360);
+        ux2AttachCharCounter(els.customerNote, 200);
+        const productInputs = [els.id,els.title,els.category,els.brand,els.price,els.costPrice,els.stock,els.minStock,els.img,els.desc,els.longDesc];
+        productInputs.forEach(el => { if(el) el.addEventListener('input', () => ux2ValidateProductForm(false)); });
+        const orderInputs = [els.orderId,els.orderCustomer,els.orderTotal,els.orderPaymentStatus,els.orderStatus,els.orderTracking,els.orderPaymentProof];
+        orderInputs.forEach(el => { if(el) el.addEventListener('input', () => ux2ValidateOrderForm(false)); });
+        const customerInputs = [els.customerName,els.customerPhone,els.customerEmail,els.customerNote];
+        customerInputs.forEach(el => { if(el) el.addEventListener('input', () => ux2ValidateCustomerForm(false)); });
+        if(els.form && els.form.dataset.uxSmartSubmit !== '1'){
+          els.form.dataset.uxSmartSubmit = '1';
+          els.form.addEventListener('submit', event => {
+            const messages = ux2ValidateProductForm(true);
+            if(messages.length){
+              event.preventDefault(); event.stopImmediatePropagation();
+              ux2OpenFirstError($('productFormPanel'), 'ultra-product-tab');
+              showToast('Lengkapi data produk yang wajib diisi.');
+            }
+          }, true);
+        }
+        if(els.orderForm && els.orderForm.dataset.uxSmartSubmit !== '1'){
+          els.orderForm.dataset.uxSmartSubmit = '1';
+          els.orderForm.addEventListener('submit', event => {
+            const messages = ux2ValidateOrderForm(true);
+            if(messages.length){
+              event.preventDefault(); event.stopImmediatePropagation();
+              ux2OpenFirstError($('orderFormPanel'), 'ultra-order-tab');
+              showToast('Lengkapi data pesanan yang wajib diisi.');
+            }
+          }, true);
+        }
+        if(els.customerForm && els.customerForm.dataset.uxSmartSubmit !== '1'){
+          els.customerForm.dataset.uxSmartSubmit = '1';
+          els.customerForm.addEventListener('submit', event => {
+            const messages = ux2ValidateCustomerForm(true);
+            if(messages.length){
+              event.preventDefault(); event.stopImmediatePropagation();
+              const first = $('customerFormPanel') && $('customerFormPanel').querySelector('.has-error input,.has-error select,.has-error textarea');
+              if(first) first.focus();
+              showToast('Lengkapi data pelanggan yang wajib diisi.');
+            }
+          }, true);
+        }
+        ux2ValidateProductForm(false);
+        ux2ValidateOrderForm(false);
+        ux2ValidateCustomerForm(false);
+      }
+
+      function ux2SetupDone(){
+        const store = appSettings.store || {};
+        const payment = appSettings.payment || {};
+        return {
+          store: Boolean(store.storeName && (store.storeWhatsApp || store.storeAddress || store.storeCatalogUrl)),
+          payment: Boolean(payment.bankName || payment.accountNumber || payment.qrisUrl || payment.ewallet),
+          product: ultraActiveProducts().length > 0,
+          order: ultraActiveOrders().length > 0,
+          backup: securityLogs.length > 0 || localStorage.getItem(ux2State.setupKey) === 'yes'
+        };
+      }
+      function ux2EnsureSetupChecklist(){
+        const panel = $('dashboardSummaryPanel');
+        if(!panel || $('uxSetupPanel')) return;
+        panel.insertAdjacentHTML('afterbegin', `<div class="ux-setup-panel" id="uxSetupPanel"><div class="ux-setup-head"><div><span class="view-kicker">Onboarding admin</span><h3>Checklist setup toko</h3><p>Ringkasan singkat agar admin baru tahu langkah penting sebelum berjualan.</p></div><button class="btn small" id="uxSetupDismiss" type="button">Sembunyikan</button></div><div class="ux-checklist" id="uxChecklist"></div></div>`);
+        $('uxSetupDismiss').addEventListener('click', () => {
+          localStorage.setItem(ux2State.setupKey, 'yes');
+          $('uxSetupPanel').classList.add('hidden');
+        });
+      }
+      function ux2RenderSetupChecklist(){
+        ux2EnsureSetupChecklist();
+        const panel = $('uxSetupPanel');
+        const box = $('uxChecklist');
+        if(!panel || !box) return;
+        if(localStorage.getItem(ux2State.setupKey) === 'yes') panel.classList.add('hidden');
+        const done = ux2SetupDone();
+        const items = [
+          ['store','Identitas toko','Lengkapi nama, WA, alamat toko.'],
+          ['payment','Pembayaran','Isi bank/QRIS/e-wallet.'],
+          ['product','Produk pertama','Tambah minimal satu produk.'],
+          ['order','Pesanan pertama','Buat atau impor order awal.'],
+          ['backup','Backup data','Unduh backup secara berkala.']
+        ];
+        box.innerHTML = items.map(([key,title,desc]) => `<div class="ux-check-item ${done[key] ? 'done' : ''}"><b>${done[key] ? '✓' : '!'}</b><strong>${escapeHtml(title)}</strong><span>${escapeHtml(desc)}</span></div>`).join('');
+      }
+
+      function ux2EmptyState(title, desc, actionLabel='', target=''){
+        return `<div class="ux-empty-state"><b>i</b><strong>${escapeHtml(title)}</strong><span>${escapeHtml(desc)}</span>${actionLabel ? `<button class="btn small primary" type="button" ${target ? `data-view-target="${escapeHtml(target)}"` : ''}>${escapeHtml(actionLabel)}</button>` : ''}</div>`;
+      }
+      function ux2EnhanceEmptyStates(root=document){
+        root.querySelectorAll('.empty').forEach(el => {
+          if(el.dataset.uxEmpty === '1') return;
+          const text = (el.textContent || '').trim().toLowerCase();
+          if(!text.includes('belum ada')) return;
+          el.dataset.uxEmpty = '1';
+          if(text.includes('produk')) el.outerHTML = ux2EmptyState('Belum ada produk', 'Tambahkan produk pertama agar katalog toko mulai terisi.', 'Tambah produk', 'produk');
+          else if(text.includes('pesanan') || text.includes('order')) el.outerHTML = ux2EmptyState('Belum ada pesanan', 'Pesanan baru, invoice, dan status pengiriman akan tampil di sini.', 'Tambah pesanan', 'pesanan');
+          else if(text.includes('pelanggan') || text.includes('customer')) el.outerHTML = ux2EmptyState('Belum ada pelanggan', 'Data pelanggan akan membantu follow-up dan segmentasi.', 'Tambah pelanggan', 'pelanggan');
+          else el.outerHTML = ux2EmptyState('Belum ada data', 'Data akan muncul setelah tersinkron dari database.', '', '');
+        });
+      }
+
+      function ux2EnsureOrderWorkflowPanel(){
+        const panel = $('ordersWorkspacePanel');
+        if(!panel || $('uxOrderWorkflowPanel')) return;
+        panel.insertAdjacentHTML('beforeend', `<div class="ux-workflow-panel" id="uxOrderWorkflowPanel"><div class="section-title"><div><span class="view-kicker">Pesanan / Workflow</span><h3>Alur kerja pesanan</h3><p>Fokuskan admin pada pembayaran, invoice, resi, dan follow-up WhatsApp.</p></div></div><div class="ux-workflow-grid" id="uxOrderWorkflowGrid"></div></div>`);
+      }
+      function ux2RenderOrderWorkflow(){
+        ux2EnsureOrderWorkflowPanel();
+        const box = $('uxOrderWorkflowGrid');
+        if(!box) return;
+        const active = ultraActiveOrders();
+        const unpaid = active.filter(o => o.paymentStatus === 'Belum Bayar');
+        const paidNeedProcess = active.filter(o => o.paymentStatus === 'Lunas' && !['Dikirim','Selesai','Dibatalkan','Retur'].includes(o.orderStatus));
+        const needResi = active.filter(o => o.paymentStatus === 'Lunas' && ['Diproses','Dikemas','Dikirim'].includes(o.orderStatus) && !o.trackingNumber);
+        const refund = active.filter(o => o.paymentStatus === 'Refund' || o.orderStatus === 'Retur');
+        const cards = [
+          ['Belum bayar', unpaid.length, 'Kirim reminder pembayaran.', 'filter-unpaid'],
+          ['Perlu diproses', paidNeedProcess.length, 'Lunas dan belum selesai.', 'filter-process'],
+          ['Butuh resi', needResi.length, 'Order dikirim perlu nomor resi.', 'filter-resi'],
+          ['Retur / refund', refund.length, 'Cek order bermasalah.', 'filter-refund']
+        ];
+        box.innerHTML = cards.map(([title,count,desc,action]) => `<div class="ux-workflow-card"><strong>${escapeHtml(title)}: ${count}</strong><span>${escapeHtml(desc)}</span><button class="btn small" type="button" data-ux-workflow="${escapeHtml(action)}">Lihat</button></div>`).join('');
+      }
+      function ux2DecorateOrderActions(){
+        if(!els.orderRows) return;
+        els.orderRows.querySelectorAll('tr').forEach(row => {
+          const invoice = row.querySelector('[data-order-action="invoice"]');
+          if(!invoice) return;
+          const actions = invoice.closest('.row-actions');
+          const docId = invoice.dataset.doc;
+          if(actions && !actions.querySelector('[data-ux-order-action="workflow"]')){
+            actions.insertAdjacentHTML('afterbegin', `<button class="btn small good" type="button" data-ux-order-action="workflow" data-doc="${escapeHtml(docId)}">Workflow</button>`);
+          }
+          if(actions && !actions.querySelector('[data-ux-order-action="wa"]')){
+            actions.insertAdjacentHTML('beforeend', `<button class="btn small" type="button" data-ux-order-action="wa" data-doc="${escapeHtml(docId)}">WA</button>`);
+          }
+        });
+      }
+      function ux2CustomerForOrder(order){
+        return customers.find(c => c.name === order.customerName) || {};
+      }
+      function ux2Phone(value){
+        const raw = String(value || '').replace(/[^\d+]/g,'');
+        if(!raw) return '';
+        if(raw.startsWith('+')) return raw.slice(1);
+        if(raw.startsWith('0')) return '62' + raw.slice(1);
+        return raw;
+      }
+      function ux2WhatsAppText(kind, order){
+        const wa = appSettings.whatsapp || defaultSettings().whatsapp;
+        return fillTemplate(wa[kind] || wa.invoice, order);
+      }
+      function ux2OpenWhatsApp(order, kind='invoice'){
+        const customer = ux2CustomerForOrder(order);
+        const phone = ux2Phone(customer.phone);
+        const text = ux2WhatsAppText(kind, order);
+        if(phone){
+          window.open('https://wa.me/' + encodeURIComponent(phone) + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
+        } else {
+          copyWhatsAppTemplate(kind, order);
+          showToast('Nomor HP pelanggan belum ada. Template WA disalin.');
+        }
+      }
+      function ux2ShowOrderWorkflow(order){
+        if(!order) return;
+        const html = `<p class="ux-modal-help">Gunakan tombol berikut sesuai status order. Untuk verifikasi pembayaran, form akan diisi otomatis lalu klik Simpan agar stok tetap tersinkron.</p>
+          <div class="dashboard-grid">
+            <div class="dashboard-card"><span>Total</span><strong>${rupiah(order.total)}</strong><small>${escapeHtml(order.paymentStatus)}</small></div>
+            <div class="dashboard-card"><span>Status</span><strong>${escapeHtml(order.orderStatus)}</strong><small>${escapeHtml(order.courier || '-')}</small></div>
+            <div class="dashboard-card"><span>Resi</span><strong>${escapeHtml(order.trackingNumber || '-')}</strong><small>Pengiriman</small></div>
+            <div class="dashboard-card"><span>Customer</span><strong>${escapeHtml(order.customerName)}</strong><small>${escapeHtml((ux2CustomerForOrder(order).phone || '-'))}</small></div>
+          </div>
+          <div class="row-actions" style="margin:12px 0">
+            <button class="btn primary" type="button" data-ux-modal-order="verify" data-doc="${escapeHtml(order.docId)}">Verifikasi pembayaran</button>
+            <button class="btn good" type="button" data-ux-modal-order="invoice" data-doc="${escapeHtml(order.docId)}">Invoice</button>
+            <button class="btn" type="button" data-ux-modal-order="wa-payment" data-doc="${escapeHtml(order.docId)}">WA Reminder</button>
+            <button class="btn" type="button" data-ux-modal-order="wa-shipping" data-doc="${escapeHtml(order.docId)}">WA Resi</button>
+          </div>
+          <h3>Timeline</h3>${renderOrderTimeline(order)}`;
+        openModal('Workflow Pesanan ' + order.orderId, html);
+      }
+      function ux2HandleWorkflowFilter(action){
+        if(action === 'filter-unpaid'){ els.orderFilterPayment.value = 'Belum Bayar'; els.orderFilterStatus.value = ''; }
+        if(action === 'filter-process'){ els.orderFilterPayment.value = 'Lunas'; els.orderFilterStatus.value = 'Diproses'; }
+        if(action === 'filter-resi'){ els.orderFilterPayment.value = 'Lunas'; els.orderFilterStatus.value = ''; }
+        if(action === 'filter-refund'){ els.orderFilterPayment.value = 'Refund'; els.orderFilterStatus.value = 'Retur'; }
+        renderOrders();
+        const target = $('ordersTablePanel');
+        if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+      function ux2InstallWorkflowHandlers(){
+        document.addEventListener('click', event => {
+          const workflow = event.target.closest('[data-ux-workflow]');
+          if(workflow) ux2HandleWorkflowFilter(workflow.dataset.uxWorkflow);
+          const rowAction = event.target.closest('[data-ux-order-action]');
+          if(rowAction){
+            const order = orders.find(o => o.docId === rowAction.dataset.doc);
+            if(rowAction.dataset.uxOrderAction === 'workflow') ux2ShowOrderWorkflow(order);
+            if(rowAction.dataset.uxOrderAction === 'wa') ux2OpenWhatsApp(order, order && order.paymentStatus === 'Belum Bayar' ? 'payment' : 'invoice');
+          }
+          const modalAction = event.target.closest('[data-ux-modal-order]');
+          if(modalAction){
+            const order = orders.find(o => o.docId === modalAction.dataset.doc);
+            if(!order) return;
+            const action = modalAction.dataset.uxModalOrder;
+            if(action === 'verify'){
+              closeModal();
+              fillOrderForm(order);
+              els.orderPaymentStatus.value = 'Lunas';
+              els.orderStatus.value = 'Diproses';
+              showToast('Order disiapkan sebagai Lunas. Klik Simpan agar stok tersinkron.');
+              $('orderFormPanel').scrollIntoView({ behavior:'smooth', block:'start' });
+            }
+            if(action === 'invoice') showInvoice(order);
+            if(action === 'wa-payment') ux2OpenWhatsApp(order, 'payment');
+            if(action === 'wa-shipping') ux2OpenWhatsApp(order, 'shipping');
+          }
+        });
+      }
+
+      function ux2CustomerInitials(customer){
+        return String(customer && customer.name || '?').trim().split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase() || '?';
+      }
+      const ux2BaseUltraCustomerDetail = typeof ultraShowCustomerDetail === 'function' ? ultraShowCustomerDetail : null;
+      ultraShowCustomerDetail = function(customer){
+        if(!customer) return;
+        const customerOrders = orders.filter(o => !o.archived && o.customerName === customer.name).sort((a,b)=>b.createdAtMs-a.createdAtMs);
+        const paidOrders = customerOrders.filter(o => isPaid(o) && !isCancelled(o));
+        const total = paidOrders.reduce((sum,o)=>sum + Number(o.total || 0), Number(customer.totalSpent || 0));
+        const avg = paidOrders.length ? Math.round(total / paidOrders.length) : 0;
+        const last = customerOrders[0];
+        const favorite = (() => {
+          const map = new Map();
+          customerOrders.forEach(o => getOrderItems(o).forEach(item => map.set(item.productName, (map.get(item.productName)||0)+Number(item.qty||0))));
+          return [...map.entries()].sort((a,b)=>b[1]-a[1])[0];
+        })();
+        const phone = ux2Phone(customer.phone);
+        const waHref = phone ? 'https://wa.me/' + encodeURIComponent(phone) : '';
+        const html = `<div class="ux-crm-profile">
+          <div class="ux-crm-card">
+            <div class="ux-crm-hero"><div class="ux-avatar">${escapeHtml(ux2CustomerInitials(customer))}</div><div><h3 style="margin:0">${escapeHtml(customer.name)}</h3><span class="muted">${escapeHtml(customer.segment || 'Reguler')}</span></div></div>
+            <div class="ux-tag-row"><span class="ux-tag">${escapeHtml(customer.phone || 'HP belum ada')}</span><span class="ux-tag">${escapeHtml(customer.email || 'Email belum ada')}</span><span class="ux-tag">${customerOrders.length > 1 ? 'Repeat customer' : 'Customer baru'}</span></div>
+            <p><b>Alamat:</b><br>${escapeHtml(customer.address || '-')}</p>
+            <p><b>Catatan admin:</b><br>${escapeHtml(customer.note || '-')}</p>
+            <div class="row-actions">${waHref ? `<a class="btn good" href="${waHref}" target="_blank" rel="noopener">Buka WhatsApp</a>` : '<button class="btn good" type="button" disabled>Nomor HP belum ada</button>'}<button class="btn" type="button" data-customer-action="edit" data-doc="${escapeHtml(customer.docId)}">Edit data</button></div>
+          </div>
+          <div class="ux-crm-card">
+            <div class="dashboard-grid">
+              <div class="dashboard-card"><span>Total belanja</span><strong>${rupiah(total)}</strong><small>${paidOrders.length} order lunas</small></div>
+              <div class="dashboard-card"><span>Rata-rata order</span><strong>${rupiah(avg)}</strong><small>AOV customer</small></div>
+              <div class="dashboard-card"><span>Order terakhir</span><strong>${escapeHtml(last ? last.orderId : '-')}</strong><small>${last ? escapeHtml(last.paymentStatus + ' / ' + last.orderStatus) : 'Belum ada'}</small></div>
+              <div class="dashboard-card"><span>Produk favorit</span><strong>${escapeHtml(favorite ? favorite[0] : '-')}</strong><small>${favorite ? favorite[1] + ' item' : 'Belum ada'}</small></div>
+            </div>
+            <h3>Riwayat belanja</h3>
+            <div class="compact-list">${customerOrders.length ? customerOrders.slice(0,20).map(o => `<div class="compact-item"><strong>${escapeHtml(o.orderId)} • ${rupiah(o.total)}</strong><span>${escapeHtml(orderItemsSummary(o))} • ${escapeHtml(o.paymentStatus)} / ${escapeHtml(o.orderStatus)}</span><div class="row-actions" style="margin-top:8px"><button class="btn small" type="button" data-ux-modal-order="invoice" data-doc="${escapeHtml(o.docId)}">Invoice</button><button class="btn small" type="button" data-ux-modal-order="wa-payment" data-doc="${escapeHtml(o.docId)}">WA</button></div></div>`).join('') : ux2EmptyState('Belum ada riwayat belanja', 'Order pelanggan akan tampil di sini setelah dibuat.', '', '')}</div>
+          </div>
+        </div>`;
+        openModal('CRM Pelanggan', html);
+      };
+
+      function ux2InstallAccessibility(){
+        if(els.modal){
+          els.modal.setAttribute('aria-describedby','modalBody');
+          els.modal.setAttribute('tabindex','-1');
+        }
+        const ux2BaseCloseModal = closeModal;
+        closeModal = function(){
+          ux2BaseCloseModal();
+          const active = document.querySelector('.nav-btn.active, .btn:focus, input:focus, select:focus, textarea:focus');
+          if(active && active.focus) setTimeout(() => active.focus(), 0);
+        };
+        document.addEventListener('keydown', event => {
+          if(event.key !== 'Tab' || !els.modal || els.modal.classList.contains('hidden')) return;
+          const focusables = Array.from(els.modal.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(el => el.offsetParent !== null);
+          if(!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if(event.shiftKey && document.activeElement === first){ event.preventDefault(); last.focus(); }
+          else if(!event.shiftKey && document.activeElement === last){ event.preventDefault(); first.focus(); }
+        });
+        const ux2BaseOpenModal = openModal;
+        openModal = function(title, body){
+          ux2BaseOpenModal(title, body);
+          setTimeout(() => {
+            const first = els.modal && els.modal.querySelector('button,a[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+            if(first) first.focus();
+          }, 50);
+        };
+        if(typeof ultraShowFormTab === 'function'){
+          const ux2BaseUltraShowFormTab = ultraShowFormTab;
+          ultraShowFormTab = function(panel, index, storageKey){
+            ux2BaseUltraShowFormTab(panel, index, storageKey);
+            ux2ApplyTabBadges(panel);
+          };
+        }
+      }
+
+      function ux2RunAfterRenders(){
+        ux2SyncActiveNavSection();
+        ux2DecorateOrderActions();
+        ux2EnhanceEmptyStates();
+        ux2RenderOrderWorkflow();
+        ux2RenderSetupChecklist();
+        ux2ValidateProductForm(false);
+        ux2ValidateOrderForm(false);
+        ux2ValidateCustomerForm(false);
+      }
+
+      const ux2BaseRenderProducts = renderProducts;
+      renderProducts = function(){
+        ux2BaseRenderProducts();
+        ux2EnhanceEmptyStates($('productListPanel') || document);
+        ux2RunAfterRenders();
+      };
+      const ux2BaseRenderOrders = renderOrders;
+      renderOrders = function(){
+        ux2BaseRenderOrders();
+        ux2DecorateOrderActions();
+        ux2RenderOrderWorkflow();
+        ux2EnhanceEmptyStates($('ordersTablePanel') || document);
+        ultraEnhanceTables($('ordersTablePanel') || document);
+      };
+      const ux2BaseRenderCustomers = renderCustomers;
+      renderCustomers = function(){
+        ux2BaseRenderCustomers();
+        ux2EnhanceEmptyStates($('customersTablePanel') || document);
+      };
+      const ux2BaseRenderBusinessDashboard = renderBusinessDashboard;
+      renderBusinessDashboard = function(){
+        ux2BaseRenderBusinessDashboard();
+        ux2RenderSetupChecklist();
+      };
+
+      function ux2Install(){
+        ux2InsertSkipLink();
+        ux2ImproveMicrocopy();
+        ux2EnsureCompactNav();
+        ux2InstallSmartForms();
+        ux2EnsureSetupChecklist();
+        ux2EnsureOrderWorkflowPanel();
+        ux2InstallWorkflowHandlers();
+        ux2InstallAccessibility();
+        ux2RunAfterRenders();
+        document.body.classList.add('ux-pro2-ready');
+        document.addEventListener('click', event => {
+          const actionButton = event.target.closest('[data-view-target]');
+          if(actionButton) setTimeout(() => { ux2SyncActiveNavSection(); ux2RunAfterRenders(); }, 100);
+        });
+      }
+      setTimeout(ux2Install, 0);
+    }
+
+</script>
 </body>
 </html>
