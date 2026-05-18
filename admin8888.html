@@ -3075,11 +3075,7 @@
     function printInvoice(order){
       const win = window.open('', '_blank', 'noopener');
       if(!win){ showToast('Popup diblokir browser'); return; }
-      win.document.write('<!doctype html><html><head><title>Invoice '+escapeHtml(order.orderId)+'</title><style>body{font-family:Arial,sans-serif;background:#fff;margin:20px}.invoice-box{color:#0f172a;background:#fff}.right{text-align:right}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style>
-
-
-
-</head><body>' + renderInvoiceHtml(order) + '<script>window.print();<\/script></body></html>');
+      win.document.write('<!doctype html><html><head><title>Invoice '+escapeHtml(order.orderId)+'</title><style>body{font-family:Arial,sans-serif;background:#fff;margin:20px}.invoice-box{color:#0f172a;background:#fff}.right{text-align:right}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style></head><body>' + renderInvoiceHtml(order) + '<script>window.print();<\/script></body></html>');
       win.document.close();
     }
     function fillTemplate(tpl, order){
