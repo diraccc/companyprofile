@@ -1114,6 +1114,7 @@
       TWO_FACTOR_MAX_ATTEMPTS: 5,
       TWO_FACTOR_WA_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-wa',
       TWO_FACTOR_WA_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-wa',
+      TWO_FACTOR_TOTP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-totp',
       TWO_FACTOR_STEP_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-step',
       TWO_FACTOR_STEP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-step',
       TWO_FACTOR_HASHES: []
@@ -1259,7 +1260,7 @@
       });
     }
     function twoFactorMethodName(step){
-      if(step === 1) return 'WhatsApp';
+      if(step === 1) return 'Authenticator App';
       if(step === 2) return 'Backend tahap 2';
       if(step === 3) return 'Backend tahap 3';
       return 'A2F';
@@ -1273,13 +1274,13 @@
       const method = twoFactorMethodName(twoFactorStep);
       if(els.twoFactorHelp){
         if(twoFactorStep === 1){
-          els.twoFactorHelp.textContent = 'Kode A2F tahap 1 diminta ke backend WhatsApp. Masukkan kode untuk lanjut ke tahap 2.';
+          els.twoFactorHelp.textContent = 'Buka Authenticator App, lalu masukkan kode 6 digit untuk lanjut ke tahap 2.';
         } else {
           els.twoFactorHelp.textContent = 'Kode A2F tahap ' + twoFactorStep + ' diminta ke backend. Masukkan kode untuk lanjut.';
         }
       }
       if(els.twoFactorLabel) els.twoFactorLabel.textContent = 'Kode ' + method;
-      if(els.twoFactorBtn) els.twoFactorBtn.textContent = twoFactorStep === 1 ? 'Verifikasi kode WhatsApp' : 'Verifikasi kode backend';
+      if(els.twoFactorBtn) els.twoFactorBtn.textContent = twoFactorStep === 1 ? 'Verifikasi Authenticator' : 'Verifikasi kode backend';
       if(els.twoFactorCode){
         els.twoFactorCode.value = '';
         setTimeout(() => els.twoFactorCode.focus(), 60);
@@ -1300,11 +1301,29 @@
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
       els.twoFactorUser.textContent = 'Role ' + (currentAdmin.roleLabel || 'Admin') + ' sudah terverifikasi dari ' + (currentAdmin.roleSource || 'Firebase') + '. Dashboard masih terkunci sampai A2F selesai.';
       updateTwoFactorProgress();
-      await requestWhatsAppTwoFactor();
+      setNotice(els.twoFactorUser, 'Buka Authenticator App, ambil kode 6 digit Dirac Admin, lalu masukkan di sini.', 'good');
     }
     async function readApiJson(response){
       try{ return await response.json(); }
       catch(_error){ return {}; }
+    }
+    async function verifyAuthenticatorTwoFactor(code){
+      if(!SECURITY_CONFIG.TWO_FACTOR_TOTP_VERIFY_ENDPOINT){
+        throw new Error('Endpoint Authenticator belum diisi.');
+      }
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_TOTP_VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, code: String(code || '').trim() })
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        const error = new Error(data.error || data.message || 'Kode Authenticator salah.');
+        error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 429;
+        throw error;
+      }
+      return data;
     }
     async function requestWhatsAppTwoFactor(){
       if(!auth.currentUser) throw new Error('Sesi Firebase tidak ditemukan. Login ulang.');
@@ -1450,7 +1469,7 @@
       els.twoFactorBtn.disabled = true;
       try{
         if(twoFactorStep === 1){
-          await verifyWhatsAppTwoFactor(code);
+          await verifyAuthenticatorTwoFactor(code);
         } else {
           await verifyBackendStepTwoFactor(code, twoFactorStep);
         }
