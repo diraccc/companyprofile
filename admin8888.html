@@ -347,6 +347,55 @@
     }
 
   </style>
+  <!-- Custom enhancements for improved UI/UX, accessibility and readability -->
+  <style>
+    /* Increase base font size for better readability */
+    body{
+      font-size:15px;
+      line-height:1.6;
+    }
+    /* Lighten panel backgrounds for improved contrast */
+    :root{
+      --panel:#0d1d38;
+      --panel2:#13254a;
+      --card:#142a57;
+    }
+    /* Section divider styles for grouping form fields */
+    .section-divider{
+      grid-column:1/-1;
+      margin:10px 0;
+      padding:8px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .section-divider h4{
+      margin:0;
+      font-size:16px;
+      color:var(--text);
+    }
+    /* Improve toast and notice readability */
+    .notice,
+    .toast{
+      font-size:14px;
+      padding:12px 14px;
+    }
+    /* Focus styles for keyboard navigation */
+    .nav-btn:focus,
+    .quick-card:focus,
+    button:focus{
+      outline:2px solid var(--line2);
+      outline-offset:2px;
+    }
+    /* Hover transitions for destructive buttons */
+    .btn.danger:hover,
+    .btn.warn:hover{
+      filter:brightness(1.1);
+    }
+    /* Ensure file name and progress are legible */
+    .file-name{
+      font-size:14px;
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -571,6 +620,7 @@
         <form id="productForm" novalidate>
           <input type="hidden" id="docId">
           <div class="form-grid">
+<div class=\"section-divider full\"><h4>Informasi Dasar</h4></div>
             <div class="field"><label for="id">ID Produk</label><input class="input" id="id" type="number" inputmode="numeric" min="1" required></div>
             <div class="field"><label for="status">Status</label><select id="status" required><option value="ready">ready</option><option value="sold">sold</option></select></div>
             <div class="field full"><label for="title">Nama Produk</label><input class="input" id="title" type="text" required maxlength="120" placeholder="Nama produk"></div>
@@ -587,10 +637,12 @@
             <div class="field"><label for="scentFamily">Aroma Utama</label><input class="input" id="scentFamily" type="text" maxlength="120" placeholder="Sweet, Woody, Fresh"></div>
             <div class="field"><label for="longevity">Ketahanan</label><input class="input" id="longevity" type="text" maxlength="60" placeholder="6-8 jam"></div>
             <div class="field"><label for="projection">Projection</label><input class="input" id="projection" type="text" maxlength="60" placeholder="Soft / Moderate / Strong"></div>
+<div class="section-divider full"><h4>Komposisi Aroma</h4></div>
             <div class="field full"><label for="topNotes">Top Notes</label><input class="input" id="topNotes" type="text" maxlength="180" placeholder="Bergamot, citrus, cinnamon"></div>
             <div class="field full"><label for="middleNotes">Middle Notes</label><input class="input" id="middleNotes" type="text" maxlength="180" placeholder="Rose, jasmine, praline"></div>
             <div class="field full"><label for="baseNotes">Base Notes</label><input class="input" id="baseNotes" type="text" maxlength="180" placeholder="Vanilla, amber, musk"></div>
-            <div class="field full"><label for="img">Foto / Link gambar</label><input class="input" id="img" type="text" placeholder="produk6.webp atau https://...jpg"></div>
+            <div class="section-divider full"><h4>Foto & Upload</h4></div>
+<div class="field full"><label for="img">Foto / Link gambar</label><input class="input" id="img" type="text" placeholder="produk6.webp atau https://...jpg"></div>
             <div class="field full">
               <label>Upload foto dari HP</label>
               <div class="photo-tools">
@@ -605,14 +657,15 @@
               </div>
             </div>
             <div class="field full"><label for="notes">Notes</label><input class="input" id="notes" type="text" maxlength="160" placeholder="Fresh - Citrus - Premium"></div>
-            <div class="field full"><label for="desc">Deskripsi pendek</label><textarea id="desc" maxlength="260" placeholder="Deskripsi pendek untuk kartu produk"></textarea></div>
+            <div class="section-divider full"><h4>Deskripsi Produk</h4></div>
+<div class="field full"><label for="desc">Deskripsi pendek</label><textarea id="desc" maxlength="260" placeholder="Deskripsi pendek untuk kartu produk"></textarea></div>
             <div class="field full"><label for="longDesc">Deskripsi panjang</label><textarea id="longDesc" maxlength="1200" placeholder="Deskripsi panjang untuk modal detail produk"></textarea></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
             <button class="btn primary" id="saveBtn" type="submit">Simpan Produk</button>
             <button class="btn" id="resetBtn" type="button">Reset Form</button>
             <button class="btn good" id="autoIdBtn" type="button">ID Otomatis</button>
-            <button class="btn danger hidden" id="deleteEditingBtn" type="button">Hapus Produk Ini</button>
+            <button class="btn danger hidden" id="deleteEditingBtn" type="button" onclick="return confirm('Apakah Anda yakin ingin menghapus produk ini?');">Hapus Produk Ini</button>
           </div>
         </form>
         <div class="notice hidden" id="formMessage" role="status"></div>
@@ -699,6 +752,7 @@
               <form id="orderForm" novalidate>
                 <input type="hidden" id="orderDocId">
                 <div class="form-grid">
+<div class=\"section-divider full\"><h4>Informasi Pesanan</h4></div>
                   <div class="field"><label for="orderId">ID Pesanan</label><input class="input" id="orderId" type="text" required maxlength="40" placeholder="ORD-001"></div>
                   <div class="field"><label for="orderCustomer">Nama Pelanggan</label><input class="input" id="orderCustomer" type="text" list="customerOptions" required maxlength="100" placeholder="Nama customer"><datalist id="customerOptions"></datalist></div>
                   <div class="field full">
@@ -714,7 +768,8 @@
                       <p class="photo-help">Stok otomatis berubah saat status pembayaran <b>Lunas</b> dan order tidak dibatalkan/retur. Edit order akan menyesuaikan selisih stok.</p>
                     </div>
                   </div>
-                  <div class="field"><label for="orderSubtotal">Subtotal Item</label><input class="input" id="orderSubtotal" type="number" inputmode="numeric" min="0" readonly></div>
+                  <div class="section-divider full"><h4>Biaya & Pembayaran</h4></div>
+<div class="field"><label for="orderSubtotal">Subtotal Item</label><input class="input" id="orderSubtotal" type="number" inputmode="numeric" min="0" readonly></div>
                   <div class="field"><label for="orderShippingCost">Ongkir</label><input class="input" id="orderShippingCost" type="number" inputmode="numeric" min="0" placeholder="0"></div>
                   <div class="field"><label for="orderDiscount">Diskon</label><input class="input" id="orderDiscount" type="number" inputmode="numeric" min="0" placeholder="0"></div>
                   <div class="field"><label for="orderTotal">Total Akhir</label><input class="input" id="orderTotal" type="number" inputmode="numeric" min="0" required></div>
@@ -722,7 +777,8 @@
                   <div class="field"><label for="orderPaymentStatus">Status Pembayaran</label><select id="orderPaymentStatus"><option value="Belum Bayar">Belum Bayar</option><option value="Lunas">Lunas</option><option value="Refund">Refund</option></select></div>
                   <div class="field"><label for="orderStatus">Status Pesanan</label><select id="orderStatus"><option value="Menunggu Pembayaran">Menunggu Pembayaran</option><option value="Diproses">Diproses</option><option value="Dikemas">Dikemas</option><option value="Dikirim">Dikirim</option><option value="Selesai">Selesai</option><option value="Dibatalkan">Dibatalkan</option><option value="Retur">Retur</option></select></div>
                   <div class="field"><label for="orderCourier">Ekspedisi</label><select id="orderCourier"><option value="">Belum dipilih</option><option value="JNE">JNE</option><option value="J&T">J&T</option><option value="SiCepat">SiCepat</option><option value="Anteraja">Anteraja</option><option value="GoSend">GoSend</option><option value="GrabExpress">GrabExpress</option></select></div>
-                  <div class="field full"><label for="orderTracking">Nomor Resi</label><input class="input" id="orderTracking" type="text" maxlength="80" placeholder="Nomor resi"></div>
+                  <div class="section-divider full"><h4>Pengiriman</h4></div>
+<div class="field full"><label for="orderTracking">Nomor Resi</label><input class="input" id="orderTracking" type="text" maxlength="80" placeholder="Nomor resi"></div>
                   <div class="field full"><label for="orderAddress">Alamat Pengiriman</label><textarea id="orderAddress" maxlength="520" placeholder="Alamat lengkap customer untuk pengiriman"></textarea></div>
                   <div class="field full"><label for="orderPaymentProof">Bukti Pembayaran / Link File</label><input class="input" id="orderPaymentProof" type="text" maxlength="1000" placeholder="URL bukti transfer / QRIS / file"></div>
                   <div class="field full">
@@ -737,7 +793,8 @@
                       <div class="progress" aria-hidden="true"><span id="proofProgress"></span></div>
                     </div>
                   </div>
-                  <div class="field full"><label for="orderNote">Catatan</label><textarea id="orderNote" maxlength="360" placeholder="Catatan pesanan"></textarea></div>
+                  <div class="section-divider full"><h4>Catatan Tambahan</h4></div>
+<div class="field full"><label for="orderNote">Catatan</label><textarea id="orderNote" maxlength="360" placeholder="Catatan pesanan"></textarea></div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
                   <button class="btn primary" id="saveOrderBtn" type="submit">Simpan Pesanan</button>
