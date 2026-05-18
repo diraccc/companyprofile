@@ -3692,10 +3692,11 @@
         $('ultraBulkExportProducts').onclick = () => ultraExportSelectedProducts();
       }
       if(!document.getElementById('ultraOrderBulkbar') && document.getElementById('ordersTablePanel')){
-        const html = `<div class="ultra-bulkbar" id="ultraOrderBulkbar"><div><strong>Bulk Pesanan</strong><span class="muted" id="ultraOrderBulkCount">0 pesanan dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraOrderSelectAll" type="button">Pilih halaman ini</button><button class="btn small danger" id="ultraBulkArchiveOrders" type="button">Hapus permanen</button><button class="btn small" id="ultraBulkExportOrders" type="button">Export pilihan</button></div></div>`;
+        const html = `<div class="ultra-bulkbar" id="ultraOrderBulkbar"><div><strong>Bulk Pesanan</strong><span class="muted" id="ultraOrderBulkCount">0 pesanan dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraOrderSelectAll" type="button">Pilih halaman ini</button><button class="btn small danger" id="ultraBulkArchiveOrders" type="button">Hapus permanen</button><button class="btn small danger" id="ultraDeleteAllOrders" type="button">Hapus semua</button><button class="btn small" id="ultraBulkExportOrders" type="button">Export pilihan</button></div></div>`;
         document.getElementById('ordersTablePanel').querySelector('.filter-grid').insertAdjacentHTML('afterend', html);
         $('ultraOrderSelectAll').onclick = () => { document.querySelectorAll('.bulk-order-checkbox').forEach(cb => { cb.checked = true; ultraState.selectedOrders.add(cb.value); }); ultraUpdateBulkCounts(); };
         $('ultraBulkArchiveOrders').onclick = () => ultraBulkDeleteOrdersPermanent();
+        $('ultraDeleteAllOrders').onclick = () => ultraDeleteAllOrdersPermanent();
         $('ultraBulkExportOrders').onclick = () => ultraExportSelectedOrders();
       }
     }
@@ -3784,6 +3785,32 @@
         await logSecurity('order.bulk_delete_permanent', ids.length + ' pesanan');
         showToast('Bulk hapus pesanan selesai');
       }catch(error){ showAlertModal('Bulk hapus pesanan gagal: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    async function ultraDeleteAllOrdersPermanent(){
+      try{ requirePermission('canDelete','menghapus semua pesanan'); }catch(e){ showAlertModal(e.message); return; }
+      const ids = orders.map(order => order.docId).filter(Boolean);
+      if(!ids.length){ showToast('Belum ada pesanan untuk dihapus'); return; }
+      const ok = await confirmAction('HAPUS SEMUA PESANAN PERMANEN?\n\nJumlah pesanan yang akan dihapus: ' + ids.length + '\n\nYang dihapus hanya collection orders / data pesanan. Produk tidak akan dihapus. Tindakan ini tidak bisa dipulihkan.');
+      if(!ok) return;
+      const okFinal = await confirmAction('Konfirmasi terakhir: semua pesanan akan dihapus permanen dari Firestore.\n\nProduk tetap aman. Lanjutkan hapus semua pesanan?');
+      if(!okFinal) return;
+      setBusy(true);
+      try{
+        await requireSensitiveReauth('menghapus semua pesanan permanen');
+        let deleted = 0;
+        const chunkSize = 450;
+        for(let i = 0; i < ids.length; i += chunkSize){
+          const batch = writeBatch(db);
+          ids.slice(i, i + chunkSize).forEach(id => batch.delete(doc(db, 'orders', id)));
+          await batch.commit();
+          deleted += Math.min(chunkSize, ids.length - i);
+          showToast('Menghapus pesanan... ' + deleted + '/' + ids.length);
+        }
+        ultraState.selectedOrders.clear();
+        await logSecurity('order.delete_all_permanent', deleted + ' pesanan');
+        showToast('Semua pesanan berhasil dihapus permanen');
+      }catch(error){ showAlertModal('Hapus semua pesanan gagal: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     function ultraExportSelectedProducts(){
