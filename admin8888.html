@@ -403,14 +403,11 @@
     .ultra-tab{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:14px;padding:9px 12px;font-weight:950;transition:.18s ease}
     .ultra-tab:hover,.ultra-tab.active{background:rgba(96,165,250,.14);border-color:var(--line);color:#fff}
     .ultra-tab-panel-hidden{display:none!important}
-    .ultra-sticky-action{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));z-index:65;transform:translateX(-50%);width:min(980px,calc(100% - 24px));border:1px solid var(--line2);background:rgba(7,13,28,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 18px 55px rgba(0,0,0,.42);border-radius:22px;padding:10px;display:none;gap:8px;align-items:center;justify-content:space-between}
-    body[data-admin-ready="true"] .ultra-sticky-action{display:flex}
-    .ultra-sticky-action strong{display:block}.ultra-sticky-action span{display:block;color:var(--muted);font-size:.82rem}.ultra-sticky-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.ultra-sticky-buttons .btn{min-height:38px;padding:8px 12px}
     .ultra-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ultra-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:14px}.ultra-card h4{margin:0 0 8px}.ultra-card p{margin:0 0 10px;color:var(--muted);font-size:.9rem}.ultra-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ultra-list{display:grid;gap:8px;max-height:240px;overflow:auto;padding-right:2px}.ultra-list-item{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:16px;padding:9px}.ultra-list-item strong{display:block}.ultra-list-item span{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
     .ultra-bulkbar{border:1px solid rgba(96,165,250,.24);background:rgba(96,165,250,.07);border-radius:18px;padding:10px;margin:10px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}.ultra-bulkbar .muted{font-size:.86rem}.bulk-product-select{display:inline-flex;gap:7px;align-items:center;margin-bottom:8px;color:#dbeafe;font-size:.84rem;font-weight:900}.bulk-product-select input,.bulk-order-select{accent-color:#60a5fa}
     .ultra-pager{display:flex;gap:8px;align-items:center;justify-content:center;margin:12px 0 2px;flex-wrap:wrap}.ultra-pager span{color:var(--muted);font-weight:850}.ultra-archive-panel{border:1px dashed var(--line2);background:rgba(96,165,250,.06);border-radius:20px;padding:12px;margin-top:12px}.ultra-preview-card{border:1px solid rgba(15,23,42,.12);background:#fff;color:#0f172a;border-radius:22px;max-width:380px;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,.16)}.ultra-preview-card .photo{height:240px;background:#e5e7eb;display:grid;place-items:center;color:#64748b}.ultra-preview-card img{width:100%;height:100%;object-fit:cover}.ultra-preview-card .body{padding:16px}.ultra-preview-card h3{margin:0 0 8px;color:#0f172a}.ultra-preview-card .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.ultra-preview-card .chip{border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:4px 8px;font-size:.76rem;font-weight:800}.ultra-preview-card .price{color:#1d4ed8;font-weight:950;font-size:1.2rem}.ultra-timeline{display:grid;gap:8px;margin:12px 0}.ultra-timeline-item{border-left:3px solid #60a5fa;padding:8px 10px;background:rgba(96,165,250,.08);border-radius:0 14px 14px 0}.ultra-timeline-item strong{display:block}.ultra-timeline-item span{display:block;color:var(--muted);font-size:.83rem}.invoice-qris{max-width:160px;border:1px solid #e5e7eb;border-radius:12px;padding:6px;background:#fff}.rules-box{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px;color:#dbeafe;max-height:360px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem}.ultra-report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.ultra-report-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:20px;padding:13px}.ultra-report-card span{display:block;color:var(--muted);font-size:.74rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.ultra-report-card strong{display:block;font-size:1.18rem;margin-top:6px}.ultra-selftest{border:1px solid rgba(34,197,94,.32);background:rgba(34,197,94,.08);border-radius:18px;padding:10px;margin-top:10px;color:#bbf7d0;font-size:.88rem}
     @media(max-width:700px){
-      .ultra-grid,.ultra-report-grid{grid-template-columns:1fr}.ultra-sticky-action{display:none!important}.ultra-tabs{position:sticky;top:108px;z-index:8;background:rgba(7,13,28,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+      .ultra-grid,.ultra-report-grid{grid-template-columns:1fr}.ultra-tabs{position:sticky;top:108px;z-index:8;background:rgba(7,13,28,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
       .table-wrap{border:none;background:transparent;overflow:visible}.admin-table{min-width:0}.admin-table thead{display:none}.admin-table,.admin-table tbody,.admin-table tr,.admin-table td{display:block;width:100%}.admin-table tr{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:20px;padding:10px;margin-bottom:10px}.admin-table td{border-bottom:1px solid rgba(255,255,255,.08);padding:9px 4px}.admin-table td:last-child{border-bottom:none}.admin-table td::before{content:attr(data-label);display:block;color:#bfdbfe;font-size:.72rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}.row-actions .btn{flex:1 1 auto}
     }
   </style>
@@ -476,22 +473,11 @@
     .ux-form-summary.show{display:block}
     .char-counter{color:var(--muted);font-size:.76rem;margin-top:4px;text-align:right}
     .ux-field-helper{display:block;color:var(--muted);font-size:.78rem;margin-top:4px}
-
-    .ultra-sticky-action{transition:transform .18s ease,opacity .18s ease,background .18s ease}
-    .ultra-sticky-action .btn.primary{min-width:112px}
     @media(max-width:700px){
       body[data-admin-ready="true"] .hero-card{display:block;padding:15px;border-radius:22px}
       body[data-admin-ready="true"] .hero h2{font-size:1.45rem;margin:8px 0}
       body[data-admin-ready="true"] .hero p{display:none}
       body[data-admin-ready="true"] .stat-grid{display:none}
-      body[data-admin-ready="true"] .ultra-sticky-action{
-        display:flex!important;left:0;right:0;bottom:0;transform:none;width:100%;border-radius:20px 20px 0 0;
-        padding:10px max(10px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-right));
-        border-left:0;border-right:0;border-bottom:0;z-index:90;gap:8px;
-      }
-      .ultra-sticky-action strong{font-size:.9rem}.ultra-sticky-action span{font-size:.74rem}
-      .ultra-sticky-buttons{flex-wrap:nowrap}.ultra-sticky-buttons .btn{padding:8px 10px;min-height:38px}
-      .ultra-sticky-buttons .btn:not(.primary){min-width:72px}
       .admin-layout{padding-bottom:118px!important}
       .product-card{grid-template-columns:88px 1fr;border-radius:22px;padding:11px;box-shadow:0 12px 34px rgba(0,0,0,.16)}
       .product-title{font-size:1rem}.card-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.card-actions .btn{width:100%}
@@ -524,21 +510,20 @@
   </style>
 
 
-
-  <style id="dirac-remove-bottom-sticky-action">
-    /* Removed the bottom fixed quick-action bar only; login, hash, Firebase config, and normal form buttons stay unchanged. */
-    #ultraStickyAction,
-    .ultra-sticky-action,
-    body[data-admin-ready="true"] .ultra-sticky-action{
-      display:none!important;
-      visibility:hidden!important;
-      opacity:0!important;
-      pointer-events:none!important;
-    }
-    @media(max-width:700px){
-      body[data-admin-ready="true"] .ultra-sticky-action{display:none!important;}
-      .admin-layout{padding-bottom:34px!important;}
-    }
+  <style id="dirac-pro3-polish">
+    /* === Dirac Pro 3: premium UI, skeletons, modal dialogs, animations, reduced motion === */
+    :root{--gold:#f8d27a;--gold-soft:rgba(248,210,122,.14);--glass:rgba(255,255,255,.055);--glass-strong:rgba(255,255,255,.095)}
+    .admin-view.active{animation:diracViewIn .28s ease both}
+    @keyframes diracViewIn{from{opacity:0;transform:translateY(10px);filter:blur(2px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+    .dashboard-card{position:relative;overflow:hidden;border-color:rgba(248,210,122,.18)!important;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025)),radial-gradient(circle at 20% 0%,rgba(248,210,122,.12),transparent 32%),rgba(8,13,27,.84)!important;box-shadow:0 18px 48px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.06);isolation:isolate}
+    .dashboard-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),#60a5fa,transparent);opacity:.7}.dashboard-card::after{content:attr(data-card-icon);position:absolute;right:14px;top:12px;font-size:1.5rem;opacity:.28;filter:drop-shadow(0 10px 22px rgba(96,165,250,.28))}.dashboard-card strong{letter-spacing:-.035em;color:#fff;text-shadow:0 8px 26px rgba(96,165,250,.18)}.dashboard-card small{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;border:1px solid rgba(96,165,250,.18);background:rgba(96,165,250,.08);border-radius:999px;padding:4px 8px;margin-top:10px;color:#dbeafe!important}
+    .stat{position:relative;overflow:hidden;background:linear-gradient(145deg,rgba(255,255,255,.085),rgba(255,255,255,.03))!important;border-color:rgba(248,210,122,.18)!important}.stat::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(180deg,var(--gold),#60a5fa);opacity:.75}
+    .skeleton{position:relative;overflow:hidden;background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.08)!important;color:transparent!important}.skeleton::after,.skeleton-card::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);animation:diracShimmer 1.25s infinite}.skeleton-card{min-height:92px;border:1px solid rgba(96,165,250,.18);border-radius:20px;background:rgba(255,255,255,.045);position:relative;overflow:hidden}@keyframes diracShimmer{to{transform:translateX(100%)}}
+    .pro-wizard-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 12px;border:1px solid rgba(248,210,122,.18);background:linear-gradient(135deg,rgba(248,210,122,.10),rgba(96,165,250,.07));border-radius:18px;padding:10px 12px}.pro-wizard-head strong{display:block}.pro-wizard-head span{display:block;color:var(--muted);font-size:.82rem}.pro-wizard-progress{height:9px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;min-width:148px;flex:0 0 34%}.pro-wizard-progress i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--gold),#60a5fa);transition:width .22s ease}.pro-wizard-actions{display:flex;gap:8px;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.08);margin-top:12px;padding-top:12px}.ultra-tabs{scroll-margin-top:120px}.ultra-tab{position:relative}.ultra-tab.active{box-shadow:0 12px 30px rgba(96,165,250,.14), inset 0 1px 0 rgba(255,255,255,.08)}
+    .modal-card{animation:diracModalIn .2s ease both}.modal-title-row{display:flex;align-items:flex-start;gap:10px}.modal-title-row b{width:32px;height:32px;border-radius:12px;display:grid;place-items:center;background:var(--gold-soft);color:#fef3c7;flex:0 0 auto}@keyframes diracModalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}.confirm-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.confirm-actions .btn{min-width:110px}
+    .pro-order-timeline{display:grid;gap:10px;margin:12px 0}.pro-order-step{position:relative;border:1px solid rgba(96,165,250,.18);background:rgba(255,255,255,.045);border-radius:18px;padding:12px 12px 12px 42px}.pro-order-step::before{content:"";position:absolute;left:15px;top:15px;width:14px;height:14px;border-radius:999px;background:#60a5fa;box-shadow:0 0 0 5px rgba(96,165,250,.13)}.pro-order-step.good::before{background:#22c55e}.pro-order-step.warn::before{background:#facc15}.pro-order-step.danger::before{background:#ef4444}.pro-order-step strong{display:block}.pro-order-step span{display:block;color:var(--muted);font-size:.86rem;margin-top:3px}
+    .pro-profit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}.pro-profit-card{border:1px solid rgba(248,210,122,.18);background:linear-gradient(145deg,rgba(248,210,122,.08),rgba(96,165,250,.045));border-radius:20px;padding:13px}.pro-profit-card span{display:block;color:var(--muted);font-size:.74rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.pro-profit-card strong{display:block;font-size:1.18rem;margin-top:6px}.pro-profit-card small{color:#bfdbfe;display:block;margin-top:6px}.customer-history-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.customer-history-row .row-actions{justify-content:flex-end}.btn[aria-busy="true"]{position:relative;pointer-events:none;opacity:.74}.btn[aria-busy="true"]::after{content:"";width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:diracSpin .7s linear infinite}@keyframes diracSpin{to{transform:rotate(360deg)}}
+    @media(max-width:1040px){.pro-profit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pro-wizard-head{display:block}.pro-wizard-progress{width:100%;margin-top:10px}}@media(max-width:700px){.pro-profit-grid{grid-template-columns:1fr}.pro-wizard-actions{position:sticky;bottom:0;z-index:12;background:rgba(7,13,28,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(96,165,250,.18);border-radius:16px;padding:8px;margin-inline:-2px}.customer-history-row{grid-template-columns:1fr}.modal{padding:10px}.modal-card{border-radius:22px;padding:16px}.admin-layout{padding-bottom:34px!important}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}.admin-view.active{animation:none}.skeleton::after,.skeleton-card::after{display:none}}
   </style>
 
 </head>
@@ -2096,8 +2081,8 @@
     async function removeProduct(product){
       if(!product) return;
       try{ requirePermission('canDelete', 'menghapus produk'); }
-      catch(error){ alert(error.message); return; }
-      const ok = confirm('Hapus produk ini?\n\n#' + product.id + ' - ' + product.title + '\n\nTindakan ini menghapus dokumen dari Firestore.');
+      catch(error){ showAlertModal(error.message); return; }
+      const ok = await confirmAction('Hapus produk ini?\n\n#' + product.id + ' - ' + product.title + '\n\nTindakan ini menghapus dokumen dari Firestore.');
       if(!ok) return;
       setBusy(true);
       try{
@@ -2105,22 +2090,22 @@
         await deleteDoc(doc(db, 'products', product.docId));
         if(els.docId.value === product.docId) resetForm();
         showToast('Produk dihapus permanen dari database');
-      }catch(error){ alert('Gagal hapus: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Gagal hapus: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     async function toggleStatus(product, status){
       if(!product) return;
       try{ requirePermission('canEdit', 'mengubah status produk'); }
-      catch(error){ alert(error.message); return; }
+      catch(error){ showAlertModal(error.message); return; }
       try{
         await updateDoc(doc(db, 'products', product.docId), { status, updatedAt: serverTimestamp() });
         showToast('Status diubah ke ' + status);
-      }catch(error){ alert('Gagal ubah status: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Gagal ubah status: ' + firebaseMessage(error)); }
     }
     async function duplicateProduct(product){
       if(!product) return;
       try{ requirePermission('canEdit', 'menduplikat produk'); }
-      catch(error){ alert(error.message); return; }
+      catch(error){ showAlertModal(error.message); return; }
       setBusy(true);
       try{
         const used = new Set(products.map(p => Number(p.id || 0)));
@@ -2156,7 +2141,7 @@
         await setDoc(doc(db, 'products', padDocId(next)), data, { merge:false });
         showToast('Produk diduplikat ke ID ' + next);
       }catch(error){
-        alert('Gagal duplikat: ' + firebaseMessage(error));
+        showAlertModal('Gagal duplikat: ' + firebaseMessage(error));
       }finally{ setBusy(false); }
     }
     function findProduct(docId){ return products.find(p => p.docId === docId); }
@@ -2493,8 +2478,8 @@
     async function deleteOrder(order){
       if(!order) return;
       try{ requirePermission('canDelete', 'menghapus pesanan'); }
-      catch(error){ alert(error.message); return; }
-      if(!confirm('Hapus pesanan ' + order.orderId + '?\n\nJika pesanan sudah Lunas, stok produk akan dikembalikan otomatis.')) return;
+      catch(error){ showAlertModal(error.message); return; }
+      if(!(await confirmAction('Hapus pesanan ' + order.orderId + '?\n\nJika pesanan sudah Lunas, stok produk akan dikembalikan otomatis.'))) return;
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus pesanan ' + order.orderId);
@@ -2507,7 +2492,7 @@
         await logSecurity('order.delete', order.orderId);
         showToast('Pesanan dihapus dan stok dikembalikan');
       }
-      catch(error){ alert('Gagal hapus pesanan: ' + firebaseMessage(error)); }
+      catch(error){ showAlertModal('Gagal hapus pesanan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     function filteredOrders(){
@@ -2577,11 +2562,11 @@
     async function deleteCustomer(customer){
       if(!customer) return;
       try{ requirePermission('canDelete', 'menghapus pelanggan'); }
-      catch(error){ alert(error.message); return; }
-      if(!confirm('Hapus pelanggan ' + customer.name + '?')) return;
+      catch(error){ showAlertModal(error.message); return; }
+      if(!(await confirmAction('Hapus pelanggan ' + customer.name + '?'))) return;
       setBusy(true);
       try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await deleteDoc(doc(db, 'customers', customer.docId)); await logSecurity('customer.delete', customer.name); showToast('Pelanggan dihapus'); }
-      catch(error){ alert('Gagal hapus pelanggan: ' + firebaseMessage(error)); }
+      catch(error){ showAlertModal('Gagal hapus pelanggan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     function filteredCustomers(){
@@ -3300,7 +3285,7 @@
           });
         }
         if(!ops.length) throw new Error('Tidak ada data yang dipilih untuk diimport.');
-        if(!confirm('Import tambahan sekarang? Data lama TIDAK akan dihapus, ditimpa, atau di-merge. Jika ada ID bentrok, sistem memakai ID baru.')) return;
+        if(!(await confirmAction('Import tambahan sekarang? Data lama TIDAK akan dihapus, ditimpa, atau di-merge. Jika ada ID bentrok, sistem memakai ID baru.'))) return;
         setBusy(true);
         await commitOpsInBatches(ops);
         await logSecurity('append-import.products-orders', 'Append-only import: ' + ops.length + ' dokumen');
@@ -3354,7 +3339,7 @@
         requirePermission('canExport', 'restore semua data');
         if(!pendingRestorePayload) throw new Error('Pilih file restore JSON dulu.');
         await requireSensitiveReauth('restore semua data');
-        if(!confirm('Restore append-only sekarang? Data lama tidak akan dihapus atau ditimpa.')) return;
+        if(!(await confirmAction('Restore append-only sekarang? Data lama tidak akan dihapus atau ditimpa.'))) return;
         const ops = [];
         const usedProductIds = new Set(products.map(p => Number(p.id || 0)).filter(Boolean));
         const usedProductDocs = new Set(products.map(p => String(p.docId || '')));
@@ -3392,8 +3377,8 @@
     els.twoFactorCancelBtn.addEventListener('click', logoutAdmin);
     els.logoutBtn.addEventListener('click', logoutAdmin);
     els.form.addEventListener('submit', saveProduct);
-    els.resetBtn.addEventListener('click', () => {
-      if(dirty && !confirm('Form punya perubahan yang belum disimpan. Reset sekarang?')) return;
+    els.resetBtn.addEventListener('click', async () => {
+      if(dirty && !(await confirmAction('Form punya perubahan yang belum disimpan. Reset sekarang?'))) return;
       resetForm();
     });
     els.autoIdBtn.addEventListener('click', autoId);
@@ -3687,16 +3672,6 @@
       sessionStorage.setItem(storageKey, String(safeIndex));
     }
 
-    function ultraEnsureStickyBar(){
-      const bar = document.getElementById('ultraStickyAction');
-      if(bar) bar.remove();
-    }
-    function ultraUpdateStickyBar(){
-      ultraSyncAdminReady();
-      const bar = document.getElementById('ultraStickyAction');
-      if(bar) bar.remove();
-    }
-
     function ultraEnhanceTables(root=document){
       root.querySelectorAll('.admin-table').forEach(table => {
         const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
@@ -3763,10 +3738,10 @@
       const o = $('ultraOrderBulkCount'); if(o) o.textContent = ultraState.selectedOrders.size + ' pesanan dipilih';
     }
     async function ultraBulkUpdateProducts(data){
-      try{ requirePermission('canEdit','bulk update produk'); }catch(e){ alert(e.message); return; }
+      try{ requirePermission('canEdit','bulk update produk'); }catch(e){ showAlertModal(e.message); return; }
       const ids = [...ultraState.selectedProducts];
       if(!ids.length){ showToast('Pilih produk dulu'); return; }
-      if(!confirm('Update ' + ids.length + ' produk?')) return;
+      if(!(await confirmAction('Update ' + ids.length + ' produk?'))) return;
       setBusy(true);
       try{
         const batch = writeBatch(db);
@@ -3774,14 +3749,14 @@
         await batch.commit();
         ultraState.selectedProducts.clear();
         showToast('Bulk produk selesai');
-      }catch(error){ alert('Bulk produk gagal: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Bulk produk gagal: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     async function ultraBulkDeleteProductsPermanent(){
-      try{ requirePermission('canDelete','menghapus banyak produk'); }catch(e){ alert(e.message); return; }
+      try{ requirePermission('canDelete','menghapus banyak produk'); }catch(e){ showAlertModal(e.message); return; }
       const ids = [...ultraState.selectedProducts];
       if(!ids.length){ showToast('Pilih produk dulu'); return; }
-      if(!confirm('Hapus permanen ' + ids.length + ' produk?\n\nProduk akan benar-benar hilang dari Firestore dan tidak muncul lagi di website toko. Tindakan ini tidak bisa dipulihkan.')) return;
+      if(!(await confirmAction('Hapus permanen ' + ids.length + ' produk?\n\nProduk akan benar-benar hilang dari Firestore dan tidak muncul lagi di website toko. Tindakan ini tidak bisa dipulihkan.'))) return;
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus permanen ' + ids.length + ' produk');
@@ -3791,14 +3766,14 @@
         ultraState.selectedProducts.clear();
         await logSecurity('product.bulk_delete_permanent', ids.length + ' produk');
         showToast('Bulk hapus produk selesai');
-      }catch(error){ alert('Bulk hapus produk gagal: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Bulk hapus produk gagal: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     async function ultraBulkDeleteOrdersPermanent(){
-      try{ requirePermission('canDelete','menghapus banyak pesanan'); }catch(e){ alert(e.message); return; }
+      try{ requirePermission('canDelete','menghapus banyak pesanan'); }catch(e){ showAlertModal(e.message); return; }
       const ids = [...ultraState.selectedOrders];
       if(!ids.length){ showToast('Pilih pesanan dulu'); return; }
-      if(!confirm('Hapus permanen ' + ids.length + ' pesanan?\n\nDokumen pesanan akan benar-benar dihapus dari Firestore. Tindakan ini tidak bisa dipulihkan.')) return;
+      if(!(await confirmAction('Hapus permanen ' + ids.length + ' pesanan?\n\nDokumen pesanan akan benar-benar dihapus dari Firestore. Tindakan ini tidak bisa dipulihkan.'))) return;
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus permanen ' + ids.length + ' pesanan');
@@ -3808,7 +3783,7 @@
         ultraState.selectedOrders.clear();
         await logSecurity('order.bulk_delete_permanent', ids.length + ' pesanan');
         showToast('Bulk hapus pesanan selesai');
-      }catch(error){ alert('Bulk hapus pesanan gagal: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Bulk hapus pesanan gagal: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     function ultraExportSelectedProducts(){
@@ -3824,8 +3799,8 @@
 
     async function ultraDeleteProductPermanent(product){
       if(!product) return;
-      try{ requirePermission('canDelete','menghapus produk'); }catch(error){ alert(error.message); return; }
-      const ok = confirm('Hapus produk PERMANEN?\n\n#' + product.id + ' - ' + product.title + '\n\nProduk akan benar-benar dihapus dari Firestore collection products, sehingga tidak muncul lagi di website toko. Tindakan ini tidak bisa dipulihkan.');
+      try{ requirePermission('canDelete','menghapus produk'); }catch(error){ showAlertModal(error.message); return; }
+      const ok = await confirmAction('Hapus produk PERMANEN?\n\n#' + product.id + ' - ' + product.title + '\n\nProduk akan benar-benar dihapus dari Firestore collection products, sehingga tidak muncul lagi di website toko. Tindakan ini tidak bisa dipulihkan.');
       if(!ok) return;
       setBusy(true);
       try{
@@ -3835,15 +3810,15 @@
         if(els.docId.value === product.docId) resetForm();
         await logSecurity('product.delete_permanent', product.title);
         showToast('Produk dihapus permanen dari database permanen dari database');
-      }catch(error){ alert('Gagal hapus produk: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Gagal hapus produk: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     removeProduct = ultraDeleteProductPermanent;
     async function ultraHardDeleteLegacyProduct(docId){
       const p = products.find(row => row.docId === docId);
       if(!p) return;
-      try{ requirePermission('canDelete','menghapus permanen produk arsip lama'); }catch(error){ alert(error.message); return; }
-      const ok = confirm('Hapus permanen produk arsip lama?\n\n#' + (p.id || '-') + ' - ' + (p.title || p.docId) + '\n\nDokumen akan dihapus dari Firestore collection products dan tidak bisa dipulihkan.');
+      try{ requirePermission('canDelete','menghapus permanen produk arsip lama'); }catch(error){ showAlertModal(error.message); return; }
+      const ok = await confirmAction('Hapus permanen produk arsip lama?\n\n#' + (p.id || '-') + ' - ' + (p.title || p.docId) + '\n\nDokumen akan dihapus dari Firestore collection products dan tidak bisa dipulihkan.');
       if(!ok) return;
       setBusy(true);
       try{
@@ -3852,14 +3827,14 @@
         ultraState.selectedProducts.delete(docId);
         await logSecurity('product.legacy_archive_hard_delete', p.title || docId);
         showToast('Produk arsip lama dihapus permanen');
-      }catch(error){ alert('Gagal hapus permanen produk arsip lama: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Gagal hapus permanen produk arsip lama: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     async function ultraHardDeleteAllLegacyProducts(){
       const rows = products.filter(row => row.archived).map(row => row.docId).filter(Boolean);
-      try{ requirePermission('canDelete','menghapus semua produk arsip lama'); }catch(error){ alert(error.message); return; }
+      try{ requirePermission('canDelete','menghapus semua produk arsip lama'); }catch(error){ showAlertModal(error.message); return; }
       if(!rows.length){ showToast('Tidak ada produk arsip lama'); return; }
-      const ok = confirm('Hapus permanen semua produk arsip lama?\n\nJumlah: ' + rows.length + ' produk.\n\nSemua dokumen akan benar-benar dihapus dari Firestore collection products dan tidak bisa dipulihkan.');
+      const ok = await confirmAction('Hapus permanen semua produk arsip lama?\n\nJumlah: ' + rows.length + ' produk.\n\nSemua dokumen akan benar-benar dihapus dari Firestore collection products dan tidak bisa dipulihkan.');
       if(!ok) return;
       setBusy(true);
       try{
@@ -3873,14 +3848,14 @@
         }
         await logSecurity('product.legacy_archive_bulk_hard_delete', deleted + ' produk');
         showToast(deleted + ' produk arsip lama dihapus permanen');
-      }catch(error){ alert('Gagal hapus semua produk arsip lama: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Gagal hapus semua produk arsip lama: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     async function ultraHardDeleteLegacyOrder(docId){
       const o = orders.find(row => row.docId === docId);
       if(!o) return;
-      try{ requirePermission('canDelete','menghapus permanen pesanan arsip lama'); }catch(error){ alert(error.message); return; }
-      const ok = confirm('Hapus permanen pesanan arsip lama?\n\n' + (o.orderId || docId) + '\n\nDokumen akan dihapus dari Firestore collection orders dan tidak bisa dipulihkan.');
+      try{ requirePermission('canDelete','menghapus permanen pesanan arsip lama'); }catch(error){ showAlertModal(error.message); return; }
+      const ok = await confirmAction('Hapus permanen pesanan arsip lama?\n\n' + (o.orderId || docId) + '\n\nDokumen akan dihapus dari Firestore collection orders dan tidak bisa dipulihkan.');
       if(!ok) return;
       setBusy(true);
       try{
@@ -3889,7 +3864,7 @@
         ultraState.selectedOrders.delete(docId);
         await logSecurity('order.legacy_archive_hard_delete', o.orderId || docId);
         showToast('Pesanan arsip lama dihapus permanen');
-      }catch(error){ alert('Gagal hapus permanen pesanan arsip lama: ' + firebaseMessage(error)); }
+      }catch(error){ showAlertModal('Gagal hapus permanen pesanan arsip lama: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
 
@@ -3919,7 +3894,7 @@
       });
     }
     async function ultraSaveMaster(kind){
-      try{ requirePermission('canEdit','menyimpan master data'); }catch(error){ alert(error.message); return; }
+      try{ requirePermission('canEdit','menyimpan master data'); }catch(error){ showAlertModal(error.message); return; }
       const conf = { category:['ultraCategoryName', categoriesRef], brand:['ultraBrandName', brandsRef], variant:['ultraVariantName', variantsRef] }[kind];
       const nameEl = $(conf[0]);
       const name = String(nameEl && nameEl.value || '').trim();
@@ -3928,16 +3903,16 @@
       if(kind === 'variant') data.note = String($('ultraVariantNote').value || '').trim();
       setBusy(true);
       try{ await setDoc(doc(conf[1], ultraSlug(name, kind)), data, { merge:true }); nameEl.value=''; if(kind === 'variant') $('ultraVariantNote').value=''; showToast('Master data tersimpan'); }
-      catch(error){ alert('Gagal simpan master data: ' + firebaseMessage(error)); }
+      catch(error){ showAlertModal('Gagal simpan master data: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     async function ultraDeleteMaster(kind, id){
-      try{ requirePermission('canDelete','hapus master data'); }catch(error){ alert(error.message); return; }
-      if(!confirm('Hapus master data ini?')) return;
+      try{ requirePermission('canDelete','hapus master data'); }catch(error){ showAlertModal(error.message); return; }
+      if(!(await confirmAction('Hapus master data ini?'))) return;
       const refMap = { category:categoriesRef, brand:brandsRef, variant:variantsRef };
       setBusy(true);
       try{ await deleteDoc(doc(refMap[kind], id)); showToast('Master data dihapus'); }
-      catch(error){ alert('Gagal hapus master data: ' + firebaseMessage(error)); }
+      catch(error){ showAlertModal('Gagal hapus master data: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
     function ultraRenderMasterLists(){
@@ -4233,7 +4208,6 @@
       ultraEnsureOptions();
       ultraBuildFormTabs('productFormPanel', 'ultra-product-tab');
       ultraBuildFormTabs('orderFormPanel', 'ultra-order-tab');
-      ultraEnsureStickyBar();
       ultraEnsureBulkBars();
       ultraEnsureArchivePanel();
       ultraEnsureCatalogManager();
@@ -4242,7 +4216,7 @@
       ultraEnsureSecurityPanel();
       ultraEnhanceTables();
       ultraRenderMasterLists();
-      ultraUpdateStickyBar();
+      ultraSyncAdminReady();
     }
     document.addEventListener('click', event => {
       const hardDeleteProductBtn = event.target.closest('[data-ultra-hard-delete-product]');
@@ -4250,8 +4224,6 @@
       const hardDeleteOrderBtn = event.target.closest('[data-ultra-hard-delete-order]');
       if(hardDeleteOrderBtn){ ultraHardDeleteLegacyOrder(hardDeleteOrderBtn.dataset.ultraHardDeleteOrder); return; }
     });
-    document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => setTimeout(ultraUpdateStickyBar, 80)));
-    if(els.adminSection && 'MutationObserver' in window){ new MutationObserver(ultraUpdateStickyBar).observe(els.adminSection, { attributes:true, attributeFilter:['class'] }); }
     setTimeout(ultraApplyEnhancements, 0);
 
     onAuthStateChanged(auth, async (user) => {
@@ -4962,6 +4934,79 @@
       }
       setTimeout(ux2Install, 0);
     }
+
+
+    /* === Dirac Pro 3 Patch - requested polish; login/hash/Firebase untouched === */
+    if(!window.__diracPro3Installed){
+      window.__diracPro3Installed = true;
+      const pro3 = { reducedMotion: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches };
+      function pro3SetAdminReady(){ if(typeof ultraSyncAdminReady === 'function') ultraSyncAdminReady(); }
+      if(els.adminSection && 'MutationObserver' in window){ new MutationObserver(pro3SetAdminReady).observe(els.adminSection, { attributes:true, attributeFilter:['class'] }); }
+      document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => setTimeout(pro3SetAdminReady, 80)));
+      pro3SetAdminReady();
+      const pro3BaseOpenModal = openModal;
+      openModal = function(title, body){
+        if(typeof title === 'string' && body !== undefined){ els.modalTitle.textContent = title; els.modalBody.innerHTML = String(body || ''); }
+        pro3BaseOpenModal();
+        if(els.modal){ els.modal.setAttribute('aria-labelledby','modalTitle'); els.modal.setAttribute('aria-describedby','modalBody'); setTimeout(() => { const f = els.modal.querySelector('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'); if(f) f.focus(); }, 30); }
+      };
+      function showAlertModal(message, title='Perhatian'){
+        openModal(title, `<div class="modal-title-row"><b>!</b><div><p class="ux-modal-help">${escapeHtml(String(message || ''))}</p></div></div><div class="confirm-actions"><button class="btn primary" id="pro3AlertOk" type="button">Mengerti</button></div>`);
+        const ok = $('pro3AlertOk'); if(ok) ok.onclick = closeModal;
+      }
+      window.showAlertModal = showAlertModal;
+      function confirmAction(message, options={}){
+        return new Promise(resolve => {
+          const title = options.title || 'Konfirmasi tindakan';
+          const okText = options.okText || 'Lanjutkan';
+          const cancelText = options.cancelText || 'Batal';
+          const tone = options.tone || (/hapus|permanen|delete|restore|import/i.test(String(message)) ? 'danger' : 'primary');
+          openModal(title, `<div class="modal-title-row"><b>?</b><div><p class="ux-modal-help">${escapeHtml(String(message || '')).replace(/\n/g,'<br>')}</p></div></div><div class="confirm-actions"><button class="btn" id="pro3ConfirmCancel" type="button">${escapeHtml(cancelText)}</button><button class="btn ${tone === 'danger' ? 'danger' : 'primary'}" id="pro3ConfirmOk" type="button">${escapeHtml(okText)}</button></div>`);
+          const done = (value) => { closeModal(); resolve(value); };
+          const cancel = $('pro3ConfirmCancel'); const ok = $('pro3ConfirmOk');
+          if(cancel) cancel.onclick = () => done(false); if(ok) ok.onclick = () => done(true);
+        });
+      }
+      window.confirmAction = confirmAction;
+      function pro3NumberFromText(text){ const n = Number(String(text || '').replace(/[^0-9-]/g,'')); return Number.isFinite(n) ? n : 0; }
+      function pro3AnimateNumber(el, targetText){
+        if(!el) return; const text = String(targetText ?? el.textContent ?? ''); const isRp = /^Rp\s*/.test(text); const target = pro3NumberFromText(text); const previous = Number(el.dataset.pro3Value || pro3NumberFromText(el.textContent)); el.dataset.pro3Value = String(target);
+        if(pro3.reducedMotion || Math.abs(target - previous) < 2){ el.textContent = text; return; }
+        const start = performance.now(), duration = 540; const step = (now) => { const t = Math.min(1, (now-start)/duration); const eased = 1 - Math.pow(1-t,3); const value = Math.round(previous + (target-previous)*eased); el.textContent = isRp ? rupiah(value) : value.toLocaleString('id-ID'); if(t<1) requestAnimationFrame(step); else el.textContent = text; }; requestAnimationFrame(step);
+      }
+      function pro3AnimateMetrics(){ ['statTotal','statReady','statSold','statValue','statCategory','statAverage','dashSalesToday','dashSalesMonth','dashActiveOrders','dashCustomers','dashLowStock','dashSoldItems','dashProfit','reportDaily','reportWeekly','reportMonthly','reportGrossProfit','ultraReportAov','pro3Revenue','pro3Cost','pro3Profit','pro3Margin','pro3BestMargin'].forEach(id => { const el = $(id); if(el) pro3AnimateNumber(el, el.textContent); }); }
+      function pro3DecorateDashboardCards(){ const icons = ['💰','📈','📦','👥','⚠️','🧴','✨','🏷️','💳','📊','♻️','🚚','⏱️','📉']; document.querySelectorAll('.dashboard-card').forEach((card,index)=>{ if(!card.dataset.cardIcon) card.dataset.cardIcon = icons[index % icons.length]; card.setAttribute('tabindex','0'); }); }
+      function pro3SkeletonCard(count=4){ return Array.from({length:count}, () => '<div class="skeleton-card" aria-hidden="true"></div>').join(''); }
+      function pro3ShowSkeletons(){ if(!ultraVisibleAdmin || !ultraVisibleAdmin()) return; if(!products.length && els.productList && /menunggu|membaca/i.test(els.syncStatus.textContent || '')) els.productList.innerHTML = pro3SkeletonCard(4); if(!orders.length && els.orderRows && /menunggu|membaca/i.test(els.orderSyncStatus.textContent || '')) els.orderRows.innerHTML = '<tr><td colspan="6">' + pro3SkeletonCard(3) + '</td></tr>'; if(!customers.length && els.customerRows && /menunggu|membaca/i.test(els.customerSyncStatus.textContent || '')) els.customerRows.innerHTML = '<tr><td colspan="5">' + pro3SkeletonCard(3) + '</td></tr>'; [els.chartSalesWeekly, els.chartCategoryProducts].forEach(box => { if(box && !box.children.length) box.innerHTML = pro3SkeletonCard(3); }); }
+      function pro3WizardEnhance(panelId, storageKey){
+        const panel = $(panelId); if(!panel || panel.dataset.pro3Wizard === '1') return; const tabs = panel.querySelector('.ultra-tabs'); const form = panel.querySelector('form'); if(!tabs || !form) return; panel.dataset.pro3Wizard = '1';
+        tabs.insertAdjacentHTML('beforebegin', `<div class="pro-wizard-head"><div><strong>Mode langkah terpandu</strong><span id="${panelId}-wizard-label">Langkah 1 dari ${tabs.children.length}</span></div><div class="pro-wizard-progress" aria-hidden="true"><i id="${panelId}-wizard-bar"></i></div></div>`);
+        form.insertAdjacentHTML('beforeend', `<div class="pro-wizard-actions"><button class="btn" type="button" id="${panelId}-wizard-prev">Sebelumnya</button><button class="btn primary" type="button" id="${panelId}-wizard-next">Berikutnya</button></div>`);
+        const update = () => { const allTabs = Array.from(panel.querySelectorAll('.ultra-tab')); const activeIndex = Math.max(0, allTabs.findIndex(btn => btn.classList.contains('active'))); const count = Math.max(1, allTabs.length); const label = $(panelId + '-wizard-label'); const bar = $(panelId + '-wizard-bar'); const prev = $(panelId + '-wizard-prev'); const next = $(panelId + '-wizard-next'); if(label) label.textContent = 'Langkah ' + (activeIndex + 1) + ' dari ' + count + ' • ' + (allTabs[activeIndex] ? allTabs[activeIndex].textContent.replace(/\d+$/, '').trim() : ''); if(bar) bar.style.width = Math.round(((activeIndex + 1) / count) * 100) + '%'; if(prev) prev.disabled = activeIndex <= 0; if(next) next.textContent = activeIndex >= count - 1 ? 'Cek & simpan' : 'Berikutnya'; };
+        const move = (delta) => { const allTabs = Array.from(panel.querySelectorAll('.ultra-tab')); const activeIndex = Math.max(0, allTabs.findIndex(btn => btn.classList.contains('active'))); const target = Math.max(0, Math.min(activeIndex + delta, allTabs.length - 1)); if(delta > 0 && target === activeIndex && form.requestSubmit){ form.requestSubmit(); return; } if(typeof ultraShowFormTab === 'function') ultraShowFormTab(panel, target, storageKey); update(); };
+        panel.querySelectorAll('.ultra-tab').forEach(btn => btn.addEventListener('click', () => setTimeout(update, 20))); const prev = $(panelId + '-wizard-prev'); const next = $(panelId + '-wizard-next'); if(prev) prev.onclick = () => move(-1); if(next) next.onclick = () => move(1); update();
+      }
+      function pro3CustomerForOrder(order){ return customers.find(c => String(c.name || '').toLowerCase() === String(order && order.customerName || '').toLowerCase()) || {}; }
+      function pro3Phone(value){ let phone = String(value || '').replace(/[^0-9]/g,''); if(phone.startsWith('0')) phone = '62' + phone.slice(1); return phone; }
+      function pro3WaText(kind, order){ const wa = appSettings.whatsapp || defaultSettings().whatsapp; const key = kind === 'reminder' ? 'payment' : kind === 'resi' ? 'shipping' : 'invoice'; return fillTemplate(wa[key] || wa.invoice, order); }
+      async function pro3OpenWhatsApp(order, kind='invoice'){ if(!order) return; const customer = pro3CustomerForOrder(order); const text = pro3WaText(kind, order); const phone = pro3Phone(customer.phone || ''); if(phone){ window.open('https://wa.me/' + encodeURIComponent(phone) + '?text=' + encodeURIComponent(text), '_blank', 'noopener'); } else { try{ await navigator.clipboard.writeText(text); showToast('Nomor HP belum ada. Teks WhatsApp disalin.'); }catch(_e){ showAlertModal(text, 'Teks WhatsApp'); } } }
+      function pro3TimelineHtml(order){ const rawTimeline = Array.isArray(order.timeline) ? order.timeline : []; const steps = [{ cls:'good', title:'Pesanan dibuat', text:new Date(order.createdAtMs || Date.now()).toLocaleString('id-ID') },{ cls:statusClass(order.paymentStatus), title:'Pembayaran: ' + (order.paymentStatus || '-'), text:order.paymentProof ? 'Bukti bayar tersimpan' : 'Belum ada bukti bayar' },{ cls:statusClass(order.orderStatus), title:'Status order: ' + (order.orderStatus || '-'), text:orderItemsSummary(order) },{ cls:order.trackingNumber ? 'good' : 'warn', title:'Pengiriman', text:[order.courier, order.trackingNumber].filter(Boolean).join(' • ') || 'Kurir/resi belum lengkap' }]; rawTimeline.slice(0,8).forEach(row => steps.push({ cls:'good', title:row.title || row.status || 'Timeline', text:row.text || row.note || row.createdAtText || '-' })); return '<div class="pro-order-timeline">' + steps.map(s => `<div class="pro-order-step ${s.cls}"><strong>${escapeHtml(s.title)}</strong><span>${escapeHtml(s.text)}</span></div>`).join('') + '</div>'; }
+      function pro3ShowOrderTimeline(order){ if(!order) return; openModal('Timeline Pesanan ' + order.orderId, `<div class="dashboard-grid"><div class="dashboard-card"><span>Total</span><strong>${rupiah(order.total)}</strong><small>${escapeHtml(order.paymentStatus)}</small></div><div class="dashboard-card"><span>Status</span><strong>${escapeHtml(order.orderStatus)}</strong><small>${escapeHtml(order.courier || '-')}</small></div><div class="dashboard-card"><span>Resi</span><strong>${escapeHtml(order.trackingNumber || '-')}</strong><small>Pengiriman</small></div><div class="dashboard-card"><span>Customer</span><strong>${escapeHtml(order.customerName)}</strong><small>${escapeHtml(pro3CustomerForOrder(order).phone || '-')}</small></div></div><div class="row-actions" style="margin:12px 0"><button class="btn good" type="button" data-pro3-wa="invoice" data-doc="${escapeHtml(order.docId)}">WA Invoice</button><button class="btn" type="button" data-pro3-wa="reminder" data-doc="${escapeHtml(order.docId)}">WA Reminder</button><button class="btn" type="button" data-pro3-wa="resi" data-doc="${escapeHtml(order.docId)}">WA Resi</button></div>${pro3TimelineHtml(order)}`); }
+      function pro3DecorateOrderActions(){ if(!els.orderRows) return; els.orderRows.querySelectorAll('tr').forEach(row => { const actions = row.querySelector('.row-actions'); const ref = actions && actions.querySelector('[data-order-action][data-doc]'); if(!actions || !ref || actions.querySelector('[data-pro3-order="timeline"]')) return; const docId = ref.dataset.doc; actions.insertAdjacentHTML('afterbegin', `<button class="btn small" type="button" data-pro3-order="timeline" data-doc="${escapeHtml(docId)}">Timeline</button><button class="btn small good" type="button" data-pro3-wa="invoice" data-doc="${escapeHtml(docId)}">WA Invoice</button><button class="btn small" type="button" data-pro3-wa="reminder" data-doc="${escapeHtml(docId)}">WA Reminder</button><button class="btn small" type="button" data-pro3-wa="resi" data-doc="${escapeHtml(docId)}">WA Resi</button>`); }); }
+      document.addEventListener('click', event => { const timeline = event.target.closest('[data-pro3-order="timeline"]'); if(timeline){ event.preventDefault(); event.stopPropagation(); pro3ShowOrderTimeline(orders.find(o => o.docId === timeline.dataset.doc)); return; } const wa = event.target.closest('[data-pro3-wa]'); if(wa){ event.preventDefault(); event.stopPropagation(); pro3OpenWhatsApp(orders.find(o => o.docId === wa.dataset.doc), wa.dataset.pro3Wa); } }, true);
+      function pro3EnhanceCustomerDetail(){ ultraShowCustomerDetail = function(customer){ if(!customer) return; const customerOrders = orders.filter(o => !o.archived && String(o.customerName || '').toLowerCase() === String(customer.name || '').toLowerCase()).sort((a,b)=>b.createdAtMs-a.createdAtMs); const paidOrders = customerOrders.filter(o => isPaid(o) && !isCancelled(o)); const total = paidOrders.reduce((sum,o)=>sum + Number(o.total || 0), Number(customer.totalSpent || 0)); const cost = paidOrders.reduce((sum,o)=>sum + estimateOrderCost(o), 0); const profit = total - cost; const phone = pro3Phone(customer.phone); const history = customerOrders.length ? customerOrders.slice(0,30).map(o => `<div class="compact-item customer-history-row"><div><strong>${escapeHtml(o.orderId)} • ${rupiah(o.total)}</strong><span>${escapeHtml(orderItemsSummary(o))} • ${escapeHtml(o.paymentStatus)} / ${escapeHtml(o.orderStatus)} • ${new Date(o.createdAtMs || Date.now()).toLocaleDateString('id-ID')}</span></div><div class="row-actions"><button class="btn small" type="button" data-ux-modal-order="invoice" data-doc="${escapeHtml(o.docId)}">Invoice</button><button class="btn small good" type="button" data-pro3-wa="invoice" data-doc="${escapeHtml(o.docId)}">WA</button></div></div>`).join('') : ux2EmptyState('Belum ada riwayat belanja', 'Order pelanggan akan tampil otomatis setelah dibuat.', '', ''); openModal('Detail Pelanggan & Riwayat Belanja', `<div class="ux-crm-profile"><div class="ux-crm-card"><div class="ux-crm-hero"><div class="ux-avatar">${escapeHtml(typeof ux2CustomerInitials === 'function' ? ux2CustomerInitials(customer) : '?')}</div><div><h3 style="margin:0">${escapeHtml(customer.name)}</h3><span class="muted">${escapeHtml(customer.segment || 'Reguler')}</span></div></div><div class="ux-tag-row"><span class="ux-tag">${escapeHtml(customer.phone || 'HP belum ada')}</span><span class="ux-tag">${escapeHtml(customer.email || 'Email belum ada')}</span><span class="ux-tag">${paidOrders.length > 1 ? 'Repeat buyer' : 'Customer baru'}</span></div><p><b>Alamat:</b><br>${escapeHtml(customer.address || '-')}</p><p><b>Catatan:</b><br>${escapeHtml(customer.note || '-')}</p><div class="row-actions">${phone ? `<a class="btn good" href="https://wa.me/${encodeURIComponent(phone)}" target="_blank" rel="noopener">Buka WhatsApp</a>` : '<button class="btn good" disabled>Nomor HP belum ada</button>'}<button class="btn" type="button" data-customer-action="edit" data-doc="${escapeHtml(customer.docId)}">Edit data</button></div></div><div class="ux-crm-card"><div class="dashboard-grid"><div class="dashboard-card"><span>Total belanja</span><strong>${rupiah(total)}</strong><small>${paidOrders.length} order lunas</small></div><div class="dashboard-card"><span>Estimasi laba</span><strong>${rupiah(profit)}</strong><small>Modal ${rupiah(cost)}</small></div><div class="dashboard-card"><span>Rata-rata order</span><strong>${rupiah(paidOrders.length ? Math.round(total/paidOrders.length) : 0)}</strong><small>AOV customer</small></div><div class="dashboard-card"><span>Order terakhir</span><strong>${escapeHtml(customerOrders[0] ? customerOrders[0].orderId : '-')}</strong><small>${escapeHtml(customerOrders[0] ? customerOrders[0].orderStatus : 'Belum ada')}</small></div></div><h3>Riwayat belanja</h3><div class="compact-list">${history}</div></div></div>`); }; }
+      function pro3EnsureProfitReports(){ const panel = $('reportSalesPanel'); if(!panel || $('pro3ProfitGrid')) return; panel.insertAdjacentHTML('beforeend', `<div class="pro-profit-grid" id="pro3ProfitGrid"><div class="pro-profit-card"><span>Omzet filter</span><strong id="pro3Revenue">Rp 0</strong><small>Order sesuai filter</small></div><div class="pro-profit-card"><span>Estimasi modal</span><strong id="pro3Cost">Rp 0</strong><small>Dari harga modal produk</small></div><div class="pro-profit-card"><span>Profit bersih kasar</span><strong id="pro3Profit">Rp 0</strong><small>Omzet - modal</small></div><div class="pro-profit-card"><span>Margin</span><strong id="pro3Margin">0%</strong><small>Profit / omzet</small></div><div class="pro-profit-card"><span>Produk profit terbaik</span><strong id="pro3BestMargin">-</strong><small id="pro3BestMarginInfo">Berdasarkan order lunas</small></div><div class="pro-profit-card"><span>Produk rugi/minus</span><strong id="pro3LossCount">0</strong><small>Modal lebih tinggi dari jual</small></div><div class="pro-profit-card"><span>Stok bernilai</span><strong id="pro3StockCapital">Rp 0</strong><small>Modal x stok</small></div><div class="pro-profit-card"><span>Potensi omzet stok</span><strong id="pro3StockRevenue">Rp 0</strong><small>Harga jual x stok</small></div></div>`); }
+      function pro3RenderProfitReports(){ pro3EnsureProfitReports(); const rows = reportOrders(); const revenue = rows.reduce((sum,o)=>sum + Number(o.total || 0), 0); const cost = rows.reduce((sum,o)=>sum + estimateOrderCost(o), 0); const profit = revenue - cost; const margin = revenue ? Math.round((profit / revenue) * 1000) / 10 : 0; const productProfit = new Map(); rows.forEach(o => getOrderItems(o).forEach(item => { const key = item.productName || '-'; const row = productProfit.get(key) || { name:key, revenue:0, cost:0, qty:0 }; row.revenue += itemSubtotal(item); row.cost += Number(item.costPrice || 0) * Number(item.qty || 0); row.qty += Number(item.qty || 0); productProfit.set(key,row); })); const best = [...productProfit.values()].sort((a,b)=>(b.revenue-b.cost)-(a.revenue-a.cost))[0]; const lossCount = products.filter(p => Number(p.costPrice || 0) > Number(p.price || 0) && Number(p.price || 0) > 0).length; const stockCapital = products.reduce((sum,p)=>sum + Number(p.costPrice || 0) * Number(p.stock || 0), 0); const stockRevenue = products.reduce((sum,p)=>sum + Number(p.price || 0) * Number(p.stock || 0), 0); if($('pro3Revenue')) $('pro3Revenue').textContent = rupiah(revenue); if($('pro3Cost')) $('pro3Cost').textContent = rupiah(cost); if($('pro3Profit')) $('pro3Profit').textContent = rupiah(profit); if($('pro3Margin')) $('pro3Margin').textContent = margin + '%'; if($('pro3BestMargin')) $('pro3BestMargin').textContent = best ? best.name : '-'; if($('pro3BestMarginInfo')) $('pro3BestMarginInfo').textContent = best ? rupiah(best.revenue - best.cost) + ' • ' + best.qty + ' item' : 'Belum ada data'; if($('pro3LossCount')) $('pro3LossCount').textContent = lossCount; if($('pro3StockCapital')) $('pro3StockCapital').textContent = rupiah(stockCapital); if($('pro3StockRevenue')) $('pro3StockRevenue').textContent = rupiah(stockRevenue); }
+      const pro3BaseSwitchView = switchView; switchView = function(view, navKey=''){ pro3BaseSwitchView(view, navKey); document.body.dataset.activeView = view || 'dashboard'; setTimeout(() => { pro3DecorateDashboardCards(); pro3AnimateMetrics(); }, 35); };
+      const pro3BaseRenderBusinessDashboard = renderBusinessDashboard; renderBusinessDashboard = function(){ pro3BaseRenderBusinessDashboard(); pro3DecorateDashboardCards(); pro3AnimateMetrics(); pro3ShowSkeletons(); };
+      const pro3BaseRenderReports = renderReports; renderReports = function(){ pro3BaseRenderReports(); pro3RenderProfitReports(); pro3AnimateMetrics(); };
+      const pro3BaseRenderOrders = renderOrders; renderOrders = function(){ pro3BaseRenderOrders(); pro3DecorateOrderActions(); pro3ShowSkeletons(); };
+      const pro3BaseRenderCustomers = renderCustomers; renderCustomers = function(){ pro3BaseRenderCustomers(); pro3ShowSkeletons(); };
+      const pro3BaseRenderProducts = renderProducts; renderProducts = function(){ pro3BaseRenderProducts(); pro3ShowSkeletons(); };
+      function pro3Install(){ pro3SetAdminReady(); pro3WizardEnhance('productFormPanel','ultra-product-tab'); pro3WizardEnhance('orderFormPanel','ultra-order-tab'); pro3EnhanceCustomerDetail(); pro3EnsureProfitReports(); pro3DecorateDashboardCards(); pro3DecorateOrderActions(); pro3ShowSkeletons(); pro3AnimateMetrics(); document.body.classList.add('dirac-pro3-ready'); if(els.modalCloseBtn) els.modalCloseBtn.setAttribute('aria-label','Tutup dialog'); }
+      setTimeout(pro3Install, 20);
+    }
+
 
 </script>
 </body>
