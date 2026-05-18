@@ -527,160 +527,17 @@
   </style>
 
 
-  <style id="dirac-twofactor-compact-polish-v1">
-    /* === Dirac A2F compact polish: CSS-only, no login/A2F script changes === */
-    #twoFactorSection{
-      padding-top:clamp(8px,2.5vw,18px);
-      padding-bottom:28px;
-    }
-    #twoFactorSection .login-card{
-      width:min(100%,470px);
-      margin:18px auto 28px;
-      padding:20px;
-      border-radius:24px;
-      background:
-        linear-gradient(180deg,rgba(16,28,52,.96),rgba(7,12,25,.96)),
-        radial-gradient(circle at 12% 0%,rgba(96,165,250,.14),transparent 38%);
-      box-shadow:0 18px 52px rgba(0,0,0,.30);
-    }
-    #twoFactorSection .login-card h2{
-      font-size:clamp(1.35rem,4.8vw,1.85rem);
-      letter-spacing:-.035em;
-      margin-bottom:8px;
-    }
-    #twoFactorSection .login-card p{
-      font-size:.94rem;
-      line-height:1.5;
-      margin-bottom:12px;
-    }
-    #twoFactorSection .twofactor-steps{
-      gap:8px;
-      margin:12px 0 12px;
-    }
-    #twoFactorSection .twofactor-step{
-      min-height:36px;
-      display:grid;
-      place-items:center;
-      padding:7px 8px;
-      border-radius:999px;
-      font-size:.82rem;
-      letter-spacing:.02em;
-    }
-    #twoFactorSection .notice{
-      margin:10px 0;
-      padding:10px 12px;
-      border-radius:16px;
-      font-size:.88rem;
-      line-height:1.5;
-    }
-    #twoFactorSection .field{
-      gap:6px;
-      margin-bottom:10px;
-    }
-    #twoFactorSection .field label{
-      font-size:.88rem;
-      letter-spacing:.01em;
-    }
-    #twoFactorSection #twoFactorCode{
-      min-height:44px;
-      border-radius:16px;
-      padding:11px 13px;
-      font-size:16px;
-      letter-spacing:.01em;
-    }
-    #twoFactorSection .login-card > div[style*="grid-template-columns"]{
-      grid-template-columns:repeat(2,minmax(0,1fr))!important;
-      gap:8px!important;
-      align-items:stretch;
-      margin-top:2px;
-    }
-    #twoFactorSection #twoFactorBtn,
-    #twoFactorSection #twoFactorCancelBtn{
-      min-height:44px;
-      padding:9px 12px;
-      border-radius:18px;
-      font-size:.88rem;
-      font-weight:900;
-      line-height:1.22;
-      box-shadow:none;
-      text-align:center;
-      white-space:normal;
-    }
-    #twoFactorSection #twoFactorBtn{
-      box-shadow:0 12px 28px rgba(37,99,235,.22);
-    }
-    #twoFactorSection #twoFactorCancelBtn{
-      background:rgba(239,68,68,.10);
-    }
-
-    @media(max-width:700px){
-      .topbar .top-actions{
-        gap:8px;
-        padding-top:7px;
-      }
-      .topbar .top-actions .btn{
-        min-height:34px;
-        padding:7px 10px;
-        border-radius:14px;
-        font-size:.82rem;
-        line-height:1.15;
-      }
-      .topbar .brand h1{
-        font-size:.96rem;
-      }
-      .topbar .brand span{
-        font-size:.71rem;
-      }
-      #twoFactorSection{
-        width:min(var(--max),calc(100% - 22px));
-        padding-top:8px;
-      }
-      #twoFactorSection .login-card{
-        margin:12px auto 24px;
-        padding:16px;
-        border-radius:22px;
-      }
-      #twoFactorSection .login-card h2{
-        margin-bottom:6px;
-      }
-      #twoFactorSection .twofactor-steps{
-        margin:10px 0;
-      }
-      #twoFactorSection .twofactor-step{
-        min-height:34px;
-        padding:6px 8px;
-      }
-      #twoFactorSection .notice{
-        padding:9px 10px;
-        border-radius:15px;
-        font-size:.86rem;
-      }
-      #twoFactorSection #twoFactorBtn,
-      #twoFactorSection #twoFactorCancelBtn{
-        min-height:42px;
-        padding:8px 10px;
-        border-radius:17px;
-        font-size:.84rem;
-      }
-    }
-
-    @media(max-width:380px){
-      #twoFactorSection .login-card{
-        padding:14px;
-      }
-      #twoFactorSection .login-card > div[style*="grid-template-columns"]{
-        gap:7px!important;
-      }
-      #twoFactorSection #twoFactorBtn,
-      #twoFactorSection #twoFactorCancelBtn{
-        min-height:40px;
-        padding:7px 8px;
-        border-radius:15px;
-        font-size:.79rem;
-      }
-      #twoFactorSection .notice{
-        font-size:.83rem;
-      }
+  <style id="dirac-a2f4-risk-polish">
+    #twoFactorSection .login-card{max-width:460px}
+    #twoFactorSection .twofactor-steps{gap:6px}
+    #twoFactorSection .twofactor-step{min-width:0;padding:7px 6px;font-size:.74rem}
+    #twoFactorSection .field{margin-bottom:10px}
+    #twoFactorSection .notice{margin:10px 0}
+    #twoFactorSection .btn{min-height:40px;padding:9px 12px;font-size:.9rem}
+    @media(max-width:440px){
+      #twoFactorSection .login-card{padding:17px;border-radius:22px;margin:14px auto}
+      #twoFactorSection .twofactor-step{padding:6px 5px;font-size:.72rem}
+      #twoFactorSection .btn{min-height:38px;padding:8px 10px;font-size:.86rem}
     }
   </style>
 
@@ -747,11 +604,12 @@
     <section class="wrap hidden" id="twoFactorSection">
       <div class="login-card">
         <h2>Verifikasi A2F</h2>
-        <p id="twoFactorHelp">Login Firebase berhasil. Masukkan kode A2F tahap 1 dari 3 untuk membuka dashboard.</p>
+        <p id="twoFactorHelp">Login Firebase berhasil. Masukkan kode A2F tahap 1 dari 4 untuk membuka dashboard.</p>
         <div class="twofactor-steps" aria-label="Progres verifikasi A2F">
           <span class="twofactor-step active" id="twoFactorStep1">1</span>
           <span class="twofactor-step" id="twoFactorStep2">2</span>
           <span class="twofactor-step" id="twoFactorStep3">3</span>
+          <span class="twofactor-step" id="twoFactorStep4">4</span>
         </div>
         <div class="notice good" id="twoFactorUser">Role admin sudah dicek. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="field">
@@ -763,7 +621,7 @@
           <button class="btn danger" id="twoFactorCancelBtn" type="button">Batal / Logout</button>
         </div>
         <div class="notice danger hidden" id="twoFactorError" role="alert"></div>
-        <div class="notice">A2F tahap 1 pakai Authenticator App. Tahap 2 pakai kode rahasia. Tahap 3 masih backend mode test sementara.</div>
+        <div class="notice">A2F tahap 1 pakai Authenticator App. Tahap 2 pakai kode rahasia. Tahap 3 pakai Email OTP. Tahap 4 pakai Device Lock + Time Lock.</div>
       </div>
     </section>
 
@@ -1274,6 +1132,7 @@
       TWO_FACTOR_PIN_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-pin',
       TWO_FACTOR_STEP_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-step',
       TWO_FACTOR_STEP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-step',
+      TWO_FACTOR_RISK_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-risk',
       TWO_FACTOR_HASHES: []
     });
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
@@ -1411,7 +1270,7 @@
       twoFactorStepSessionId = '';
       if(els.twoFactorCode) els.twoFactorCode.value = '';
       if(els.twoFactorError) hideNotice(els.twoFactorError);
-      [1,2,3].forEach(step => {
+      [1,2,3,4].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(node) node.className = 'twofactor-step';
       });
@@ -1419,11 +1278,12 @@
     function twoFactorMethodName(step){
       if(step === 1) return 'Authenticator App';
       if(step === 2) return 'Kode rahasia';
-      if(step === 3) return 'Backend Test tahap 3';
+      if(step === 3) return 'Email OTP';
+      if(step === 4) return 'Device Lock + Time Lock';
       return 'A2F';
     }
     function updateTwoFactorProgress(){
-      [1,2,3].forEach(step => {
+      [1,2,3,4].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(!node) return;
         node.className = 'twofactor-step' + (step < twoFactorStep ? ' done' : step === twoFactorStep ? ' active' : '');
@@ -1435,9 +1295,11 @@
         } else if(twoFactorStep === 2){
           els.twoFactorHelp.textContent = 'Masukkan kode rahasia/passcode yang kamu simpan di Vercel A2F_PIN.';
         } else if(twoFactorStep === 3){
-          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap 3 dari backend mode test.';
+          els.twoFactorHelp.textContent = 'Masukkan kode OTP tahap 3 yang dikirim ke email admin.';
+        } else if(twoFactorStep === 4){
+          els.twoFactorHelp.textContent = 'Masukkan Device Token admin. Backend juga mengecek jam login WIB.';
         } else {
-          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap ' + twoFactorStep + ' dari 3 untuk membuka dashboard.';
+          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap ' + twoFactorStep + ' dari 4 untuk membuka dashboard.';
         }
       }
       if(els.twoFactorLabel) els.twoFactorLabel.textContent = method;
@@ -1555,6 +1417,24 @@
       }
       return data;
     }
+    async function verifyRiskTwoFactor(deviceToken){
+      if(!SECURITY_CONFIG.TWO_FACTOR_RISK_VERIFY_ENDPOINT){
+        throw new Error('Endpoint Device Lock belum diisi.');
+      }
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_RISK_VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, deviceToken: String(deviceToken || '').trim() })
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        const error = new Error(data.error || data.message || 'Device Lock / Time Lock gagal.');
+        error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 429;
+        throw error;
+      }
+      return data;
+    }
     function markTwoFactorWrong(message){
       twoFactorAttempts += 1;
       els.twoFactorCode.value = '';
@@ -1570,7 +1450,7 @@
     async function verifyTwoFactorCode(){
       if(busy || !auth.currentUser) return;
       hideNotice(els.twoFactorError);
-      if(twoFactorStep < 1 || twoFactorStep > 3) twoFactorStep = 1;
+      if(twoFactorStep < 1 || twoFactorStep > 4) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
       if(!String(code || '').trim()){
         setNotice(els.twoFactorError, 'Kode A2F wajib diisi.', 'danger');
@@ -1584,14 +1464,18 @@
           await verifyPinTwoFactor(code);
         } else if(twoFactorStep === 3){
           await verifyBackendStepTwoFactor(code, 3);
+        } else if(twoFactorStep === 4){
+          await verifyRiskTwoFactor(code);
         }
         twoFactorAttempts = 0;
-        if(twoFactorStep < 3){
+        if(twoFactorStep < 4){
           twoFactorStep += 1;
           showToast('A2F tahap ' + (twoFactorStep - 1) + ' benar');
           updateTwoFactorProgress();
           if(twoFactorStep === 3){
             await requestBackendStepTwoFactor(3);
+          } else if(twoFactorStep === 4){
+            setNotice(els.twoFactorUser, 'Tahap 4: masukkan Device Token admin. Waktu login dicek otomatis oleh backend.', 'good');
           }
           return;
         }
@@ -1600,12 +1484,12 @@
         els.adminSection.classList.remove('hidden');
         els.logoutBtn.classList.remove('hidden');
         if(currentAdmin.roleSource === 'firestore'){
-          setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. A2F 3 tahap berhasil.', 'good');
+          setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. A2F 4 tahap berhasil.', 'good');
         }
         startListening();
         resetIdleTimer();
         logSecurity('auth.2fa_success', 'Dashboard dibuka').catch(() => {});
-        showToast('A2F selesai. Dashboard dibuka.');
+        showToast('A2F 4 selesai. Dashboard dibuka.');
       }catch(error){
         if(error && error.countAttempt){
           markTwoFactorWrong(error.message || 'Kode A2F salah.');
