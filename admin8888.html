@@ -396,6 +396,25 @@
     }
   </style>
 
+
+  <style id="ultra-admin-suite-css">
+    /* === Ultra Admin Suite: UI/UX, mobile, tabs, bulk, archive, reports === */
+    .ultra-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 14px;border:1px solid rgba(96,165,250,.18);background:rgba(255,255,255,.035);border-radius:20px;padding:8px}
+    .ultra-tab{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:14px;padding:9px 12px;font-weight:950;transition:.18s ease}
+    .ultra-tab:hover,.ultra-tab.active{background:rgba(96,165,250,.14);border-color:var(--line);color:#fff}
+    .ultra-tab-panel-hidden{display:none!important}
+    .ultra-sticky-action{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));z-index:65;transform:translateX(-50%);width:min(980px,calc(100% - 24px));border:1px solid var(--line2);background:rgba(7,13,28,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 18px 55px rgba(0,0,0,.42);border-radius:22px;padding:10px;display:none;gap:8px;align-items:center;justify-content:space-between}
+    body[data-admin-ready="true"] .ultra-sticky-action{display:flex}
+    .ultra-sticky-action strong{display:block}.ultra-sticky-action span{display:block;color:var(--muted);font-size:.82rem}.ultra-sticky-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.ultra-sticky-buttons .btn{min-height:38px;padding:8px 12px}
+    .ultra-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ultra-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:14px}.ultra-card h4{margin:0 0 8px}.ultra-card p{margin:0 0 10px;color:var(--muted);font-size:.9rem}.ultra-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ultra-list{display:grid;gap:8px;max-height:240px;overflow:auto;padding-right:2px}.ultra-list-item{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:16px;padding:9px}.ultra-list-item strong{display:block}.ultra-list-item span{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
+    .ultra-bulkbar{border:1px solid rgba(96,165,250,.24);background:rgba(96,165,250,.07);border-radius:18px;padding:10px;margin:10px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}.ultra-bulkbar .muted{font-size:.86rem}.bulk-product-select{display:inline-flex;gap:7px;align-items:center;margin-bottom:8px;color:#dbeafe;font-size:.84rem;font-weight:900}.bulk-product-select input,.bulk-order-select{accent-color:#60a5fa}
+    .ultra-pager{display:flex;gap:8px;align-items:center;justify-content:center;margin:12px 0 2px;flex-wrap:wrap}.ultra-pager span{color:var(--muted);font-weight:850}.ultra-archive-panel{border:1px dashed var(--line2);background:rgba(96,165,250,.06);border-radius:20px;padding:12px;margin-top:12px}.ultra-preview-card{border:1px solid rgba(15,23,42,.12);background:#fff;color:#0f172a;border-radius:22px;max-width:380px;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,.16)}.ultra-preview-card .photo{height:240px;background:#e5e7eb;display:grid;place-items:center;color:#64748b}.ultra-preview-card img{width:100%;height:100%;object-fit:cover}.ultra-preview-card .body{padding:16px}.ultra-preview-card h3{margin:0 0 8px;color:#0f172a}.ultra-preview-card .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.ultra-preview-card .chip{border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:4px 8px;font-size:.76rem;font-weight:800}.ultra-preview-card .price{color:#1d4ed8;font-weight:950;font-size:1.2rem}.ultra-timeline{display:grid;gap:8px;margin:12px 0}.ultra-timeline-item{border-left:3px solid #60a5fa;padding:8px 10px;background:rgba(96,165,250,.08);border-radius:0 14px 14px 0}.ultra-timeline-item strong{display:block}.ultra-timeline-item span{display:block;color:var(--muted);font-size:.83rem}.invoice-qris{max-width:160px;border:1px solid #e5e7eb;border-radius:12px;padding:6px;background:#fff}.rules-box{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px;color:#dbeafe;max-height:360px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem}.ultra-report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.ultra-report-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:20px;padding:13px}.ultra-report-card span{display:block;color:var(--muted);font-size:.74rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.ultra-report-card strong{display:block;font-size:1.18rem;margin-top:6px}.ultra-selftest{border:1px solid rgba(34,197,94,.32);background:rgba(34,197,94,.08);border-radius:18px;padding:10px;margin-top:10px;color:#bbf7d0;font-size:.88rem}
+    @media(max-width:700px){
+      .ultra-grid,.ultra-report-grid{grid-template-columns:1fr}.ultra-sticky-action{display:none!important}.ultra-tabs{position:sticky;top:108px;z-index:8;background:rgba(7,13,28,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+      .table-wrap{border:none;background:transparent;overflow:visible}.admin-table{min-width:0}.admin-table thead{display:none}.admin-table,.admin-table tbody,.admin-table tr,.admin-table td{display:block;width:100%}.admin-table tr{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:20px;padding:10px;margin-bottom:10px}.admin-table td{border-bottom:1px solid rgba(255,255,255,.08);padding:9px 4px}.admin-table td:last-child{border-bottom:none}.admin-table td::before{content:attr(data-label);display:block;color:#bfdbfe;font-size:.72rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}.row-actions .btn{flex:1 1 auto}
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -620,7 +639,7 @@
         <form id="productForm" novalidate>
           <input type="hidden" id="docId">
           <div class="form-grid">
-<div class=\"section-divider full\"><h4>Informasi Dasar</h4></div>
+<div class="section-divider full"><h4>Informasi Dasar</h4></div>
             <div class="field"><label for="id">ID Produk</label><input class="input" id="id" type="number" inputmode="numeric" min="1" required></div>
             <div class="field"><label for="status">Status</label><select id="status" required><option value="ready">ready</option><option value="sold">sold</option></select></div>
             <div class="field full"><label for="title">Nama Produk</label><input class="input" id="title" type="text" required maxlength="120" placeholder="Nama produk"></div>
@@ -665,7 +684,7 @@
             <button class="btn primary" id="saveBtn" type="submit">Simpan Produk</button>
             <button class="btn" id="resetBtn" type="button">Reset Form</button>
             <button class="btn good" id="autoIdBtn" type="button">ID Otomatis</button>
-            <button class="btn danger hidden" id="deleteEditingBtn" type="button" onclick="return confirm('Apakah Anda yakin ingin menghapus produk ini?');">Hapus Produk Ini</button>
+            <button class="btn danger hidden" id="deleteEditingBtn" type="button">Hapus Produk Ini</button>
           </div>
         </form>
         <div class="notice hidden" id="formMessage" role="status"></div>
@@ -752,7 +771,7 @@
               <form id="orderForm" novalidate>
                 <input type="hidden" id="orderDocId">
                 <div class="form-grid">
-<div class=\"section-divider full\"><h4>Informasi Pesanan</h4></div>
+<div class="section-divider full"><h4>Informasi Pesanan</h4></div>
                   <div class="field"><label for="orderId">ID Pesanan</label><input class="input" id="orderId" type="text" required maxlength="40" placeholder="ORD-001"></div>
                   <div class="field"><label for="orderCustomer">Nama Pelanggan</label><input class="input" id="orderCustomer" type="text" list="customerOptions" required maxlength="100" placeholder="Nama customer"><datalist id="customerOptions"></datalist></div>
                   <div class="field full">
@@ -3392,6 +3411,683 @@
       event.preventDefault();
       event.returnValue = '';
     });
+
+
+
+    /* === Ultra Admin Suite Patch - additive, login/hash safe === */
+    const ultraState = {
+      productPage: 1,
+      orderPage: 1,
+      pageSize: 20,
+      selectedProducts: new Set(),
+      selectedOrders: new Set(),
+      categories: [],
+      brands: [],
+      variants: [],
+      unsubscribeCatalog: [],
+      invoiceTemplateKey: 'dirac-admin-invoice-template-v1'
+    };
+    const categoriesRef = collection(db, 'categories');
+    const brandsRef = collection(db, 'brands');
+    const variantsRef = collection(db, 'variants');
+
+    function ultraSlug(value, fallback='item'){
+      return sanitizeDocId(String(value || fallback), fallback);
+    }
+    function ultraActiveProducts(){ return products.filter(p => !p.archived); }
+    function ultraActiveOrders(){ return orders.filter(o => !o.archived); }
+    function ultraVisibleAdmin(){ return els.adminSection && !els.adminSection.classList.contains('hidden'); }
+    function ultraSyncAdminReady(){ document.body.dataset.adminReady = ultraVisibleAdmin() ? 'true' : 'false'; }
+
+    const ultraBaseNormalize = normalize;
+    normalize = function(docSnap){
+      const p = ultraBaseNormalize(docSnap);
+      const data = docSnap.data() || {};
+      p.archived = data.archived === true || Boolean(data.deletedAt);
+      p.deletedAt = data.deletedAt || null;
+      p.deletedAtMs = toMillis(data.deletedAt) || Number(data.deletedAtMs || 0);
+      p.previousStatus = data.previousStatus || '';
+      p.sku = String(data.sku || '').trim();
+      p.barcode = String(data.barcode || '').trim();
+      p.publishStatus = String(data.publishStatus || (p.archived ? 'archived' : 'published')).trim();
+      return p;
+    };
+    const ultraBaseNormalizeOrder = normalizeOrder;
+    normalizeOrder = function(docSnap){
+      const o = ultraBaseNormalizeOrder(docSnap);
+      const data = docSnap.data() || {};
+      o.archived = data.archived === true || Boolean(data.deletedAt);
+      o.deletedAt = data.deletedAt || null;
+      o.deletedAtMs = toMillis(data.deletedAt) || Number(data.deletedAtMs || 0);
+      o.previousOrderStatus = data.previousOrderStatus || '';
+      o.timeline = Array.isArray(data.timeline) ? data.timeline : [];
+      o.invoiceNumber = String(data.invoiceNumber || ('INV-' + (o.orderId || o.docId || ''))).trim();
+      return o;
+    };
+
+    function ultraEnsureOptions(){
+      if(els.filterStatus && !Array.from(els.filterStatus.options).some(o => o.value === 'archived')){
+        els.filterStatus.insertAdjacentHTML('beforeend','<option value="archived">Arsip</option>');
+      }
+      if(els.orderFilterStatus && !Array.from(els.orderFilterStatus.options).some(o => o.value === 'Archived')){
+        els.orderFilterStatus.insertAdjacentHTML('beforeend','<option value="Archived">Arsip</option>');
+      }
+      if(els.brand && !els.brand.getAttribute('list')){
+        els.brand.setAttribute('list','brandList');
+        els.brand.insertAdjacentHTML('afterend','<datalist id="brandList"></datalist>');
+      }
+    }
+
+    function ultraBuildFormTabs(panelId, storageKey){
+      const panel = document.getElementById(panelId);
+      if(!panel || panel.dataset.ultraTabsReady === '1') return;
+      const grid = panel.querySelector('.form-grid');
+      const dividers = grid ? Array.from(grid.querySelectorAll('.section-divider')) : [];
+      if(!grid || !dividers.length) return;
+      const tabs = document.createElement('div');
+      tabs.className = 'ultra-tabs';
+      tabs.setAttribute('role','tablist');
+      panel.querySelector('form').insertAdjacentElement('beforebegin', tabs);
+      let groupIndex = -1;
+      Array.from(grid.children).forEach(child => {
+        if(child.classList && child.classList.contains('section-divider')){
+          groupIndex += 1;
+          child.dataset.ultraTabGroup = String(groupIndex);
+          return;
+        }
+        if(groupIndex >= 0) child.dataset.ultraTabGroup = String(groupIndex);
+      });
+      dividers.forEach((divider, index) => {
+        const label = (divider.textContent || ('Bagian ' + (index+1))).trim();
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ultra-tab' + (index === 0 ? ' active' : '');
+        btn.setAttribute('role','tab');
+        btn.textContent = label;
+        btn.dataset.ultraTabTarget = String(index);
+        btn.addEventListener('click', () => ultraShowFormTab(panel, index, storageKey));
+        tabs.appendChild(btn);
+      });
+      panel.dataset.ultraTabsReady = '1';
+      ultraShowFormTab(panel, Number(sessionStorage.getItem(storageKey) || 0), storageKey);
+    }
+    function ultraShowFormTab(panel, index, storageKey){
+      const groups = Array.from(panel.querySelectorAll('[data-ultra-tab-group]'));
+      const max = Math.max(0, ...groups.map(el => Number(el.dataset.ultraTabGroup || 0)));
+      const safeIndex = Math.max(0, Math.min(Number(index) || 0, max));
+      groups.forEach(el => el.classList.toggle('ultra-tab-panel-hidden', Number(el.dataset.ultraTabGroup) !== safeIndex));
+      panel.querySelectorAll('.ultra-tab').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.ultraTabTarget) === safeIndex));
+      sessionStorage.setItem(storageKey, String(safeIndex));
+    }
+
+    function ultraEnsureStickyBar(){
+      if(document.getElementById('ultraStickyAction')) return;
+      const bar = document.createElement('div');
+      bar.id = 'ultraStickyAction';
+      bar.className = 'ultra-sticky-action';
+      bar.innerHTML = `<div><strong id="ultraStickyTitle">Aksi cepat admin</strong><span id="ultraStickyHint">Simpan cepat tanpa scroll ke bawah</span></div><div class="ultra-sticky-buttons"><button class="btn small" id="ultraStickyPreview" type="button">Preview</button><button class="btn small" id="ultraStickyReset" type="button">Reset</button><button class="btn small primary" id="ultraStickySave" type="button">Simpan</button></div>`;
+      document.body.appendChild(bar);
+      $('ultraStickySave').addEventListener('click', () => {
+        const active = document.querySelector('.admin-view.active');
+        const view = active && active.dataset.view;
+        if(view === 'pesanan') els.orderForm.requestSubmit();
+        else if(view === 'pelanggan') els.customerForm.requestSubmit();
+        else if(view === 'produk') els.form.requestSubmit();
+      });
+      $('ultraStickyReset').addEventListener('click', () => {
+        const active = document.querySelector('.admin-view.active');
+        const view = active && active.dataset.view;
+        if(view === 'pesanan') resetOrderForm();
+        else if(view === 'pelanggan') resetCustomerForm();
+        else if(view === 'produk') resetForm();
+      });
+      $('ultraStickyPreview').addEventListener('click', () => {
+        const active = document.querySelector('.admin-view.active');
+        const view = active && active.dataset.view;
+        if(view === 'produk') ultraPreviewProductFromForm();
+        else if(view === 'pesanan') ultraPreviewCurrentOrderInvoice();
+        else showToast('Preview tersedia di Produk dan Pesanan');
+      });
+    }
+    function ultraUpdateStickyBar(){
+      ultraSyncAdminReady();
+      const title = $('ultraStickyTitle');
+      const hint = $('ultraStickyHint');
+      if(!title || !hint) return;
+      const active = document.querySelector('.admin-view.active');
+      const view = active && active.dataset.view;
+      const map = { produk:['Produk','Simpan / preview katalog tanpa scroll'], pesanan:['Pesanan','Simpan order atau preview invoice'], pelanggan:['Pelanggan','Simpan data pelanggan'], dashboard:['Dashboard','Aksi cepat muncul saat mengelola data'], laporan:['Laporan','Gunakan filter dan export laporan'], pengaturan:['Pengaturan','Simpan perubahan setting'] };
+      const row = map[view] || map.dashboard;
+      title.textContent = row[0]; hint.textContent = row[1];
+    }
+
+    function ultraEnhanceTables(root=document){
+      root.querySelectorAll('.admin-table').forEach(table => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+        table.querySelectorAll('tbody tr').forEach(row => {
+          Array.from(row.children).forEach((cell, index) => { if(headers[index]) cell.dataset.label = headers[index]; });
+        });
+      });
+    }
+
+    function ultraEnsureBulkBars(){
+      if(!document.getElementById('ultraProductBulkbar') && document.getElementById('productListPanel')){
+        const html = `<div class="ultra-bulkbar" id="ultraProductBulkbar"><div><strong>Bulk Produk</strong><span class="muted" id="ultraProductBulkCount">0 produk dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraProductSelectAll" type="button">Pilih halaman ini</button><button class="btn small good" id="ultraBulkReady" type="button">Ready</button><button class="btn small warn" id="ultraBulkSold" type="button">Sold</button><button class="btn small danger" id="ultraBulkArchiveProducts" type="button">Arsipkan</button><button class="btn small" id="ultraBulkExportProducts" type="button">Export pilihan</button></div></div>`;
+        document.getElementById('productListPanel').querySelector('.advanced-toolbar').insertAdjacentHTML('afterend', html);
+        $('ultraProductSelectAll').onclick = () => { document.querySelectorAll('.bulk-product-checkbox').forEach(cb => { cb.checked = true; ultraState.selectedProducts.add(cb.value); }); ultraUpdateBulkCounts(); };
+        $('ultraBulkReady').onclick = () => ultraBulkUpdateProducts({ status:'ready', archived:false });
+        $('ultraBulkSold').onclick = () => ultraBulkUpdateProducts({ status:'sold', archived:false });
+        $('ultraBulkArchiveProducts').onclick = () => ultraBulkArchiveProducts();
+        $('ultraBulkExportProducts').onclick = () => ultraExportSelectedProducts();
+      }
+      if(!document.getElementById('ultraOrderBulkbar') && document.getElementById('ordersTablePanel')){
+        const html = `<div class="ultra-bulkbar" id="ultraOrderBulkbar"><div><strong>Bulk Pesanan</strong><span class="muted" id="ultraOrderBulkCount">0 pesanan dipilih</span></div><div class="ultra-row"><button class="btn small" id="ultraOrderSelectAll" type="button">Pilih halaman ini</button><button class="btn small danger" id="ultraBulkArchiveOrders" type="button">Arsipkan</button><button class="btn small" id="ultraBulkExportOrders" type="button">Export pilihan</button></div></div>`;
+        document.getElementById('ordersTablePanel').querySelector('.filter-grid').insertAdjacentHTML('afterend', html);
+        $('ultraOrderSelectAll').onclick = () => { document.querySelectorAll('.bulk-order-checkbox').forEach(cb => { cb.checked = true; ultraState.selectedOrders.add(cb.value); }); ultraUpdateBulkCounts(); };
+        $('ultraBulkArchiveOrders').onclick = () => ultraBulkArchiveOrders();
+        $('ultraBulkExportOrders').onclick = () => ultraExportSelectedOrders();
+      }
+    }
+    function ultraDecorateProductCards(){
+      document.querySelectorAll('.product-card[data-doc]').forEach(card => {
+        const docId = card.dataset.doc;
+        if(!docId || card.querySelector('.bulk-product-checkbox')) return;
+        const label = document.createElement('label');
+        label.className = 'bulk-product-select';
+        label.innerHTML = `<input class="bulk-product-checkbox" type="checkbox" value="${escapeHtml(docId)}"> Pilih produk`;
+        const main = card.querySelector('.product-main');
+        if(main) main.insertAdjacentElement('afterbegin', label);
+        label.querySelector('input').checked = ultraState.selectedProducts.has(docId);
+        label.querySelector('input').addEventListener('change', event => {
+          if(event.target.checked) ultraState.selectedProducts.add(docId); else ultraState.selectedProducts.delete(docId);
+          ultraUpdateBulkCounts();
+        });
+      });
+    }
+    function ultraDecorateOrderRows(){
+      if(!els.orderRows) return;
+      els.orderRows.querySelectorAll('tr').forEach(row => {
+        if(row.querySelector('.bulk-order-checkbox')) return;
+        const actionBtn = row.querySelector('[data-order-action][data-doc]');
+        if(!actionBtn) return;
+        const docId = actionBtn.dataset.doc;
+        const firstCell = row.children[0];
+        if(!firstCell) return;
+        firstCell.insertAdjacentHTML('afterbegin', `<label class="bulk-product-select"><input class="bulk-order-checkbox" type="checkbox" value="${escapeHtml(docId)}"> Pilih</label>`);
+        const cb = firstCell.querySelector('.bulk-order-checkbox');
+        cb.checked = ultraState.selectedOrders.has(docId);
+        cb.addEventListener('change', event => {
+          if(event.target.checked) ultraState.selectedOrders.add(docId); else ultraState.selectedOrders.delete(docId);
+          ultraUpdateBulkCounts();
+        });
+      });
+    }
+    function ultraUpdateBulkCounts(){
+      const p = $('ultraProductBulkCount'); if(p) p.textContent = ultraState.selectedProducts.size + ' produk dipilih';
+      const o = $('ultraOrderBulkCount'); if(o) o.textContent = ultraState.selectedOrders.size + ' pesanan dipilih';
+    }
+    async function ultraBulkUpdateProducts(data){
+      try{ requirePermission('canEdit','bulk update produk'); }catch(e){ alert(e.message); return; }
+      const ids = [...ultraState.selectedProducts];
+      if(!ids.length){ showToast('Pilih produk dulu'); return; }
+      if(!confirm('Update ' + ids.length + ' produk?')) return;
+      setBusy(true);
+      try{
+        const batch = writeBatch(db);
+        ids.forEach(id => batch.update(doc(db,'products',id), Object.assign({}, data, { updatedAt:serverTimestamp() })));
+        await batch.commit();
+        ultraState.selectedProducts.clear();
+        showToast('Bulk produk selesai');
+      }catch(error){ alert('Bulk produk gagal: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    function ultraBulkArchiveProducts(){ ultraBulkUpdateProducts({ archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), previousStatus:'bulk' }); }
+    async function ultraBulkArchiveOrders(){
+      try{ requirePermission('canDelete','bulk arsip pesanan'); }catch(e){ alert(e.message); return; }
+      const ids = [...ultraState.selectedOrders];
+      if(!ids.length){ showToast('Pilih pesanan dulu'); return; }
+      if(!confirm('Arsipkan ' + ids.length + ' pesanan?')) return;
+      setBusy(true);
+      try{
+        const batch = writeBatch(db);
+        ids.forEach(id => batch.update(doc(db,'orders',id), { archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), updatedAt:serverTimestamp() }));
+        await batch.commit();
+        ultraState.selectedOrders.clear();
+        showToast('Bulk pesanan selesai');
+      }catch(error){ alert('Bulk pesanan gagal: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    function ultraExportSelectedProducts(){
+      const selected = products.filter(p => ultraState.selectedProducts.has(p.docId)).map(serializePlain);
+      if(!selected.length){ showToast('Pilih produk dulu'); return; }
+      downloadFile('dirac-selected-products-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(selected, null, 2), 'application/json;charset=utf-8');
+    }
+    function ultraExportSelectedOrders(){
+      const selected = orders.filter(o => ultraState.selectedOrders.has(o.docId)).map(serializePlain);
+      if(!selected.length){ showToast('Pilih pesanan dulu'); return; }
+      downloadFile('dirac-selected-orders-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(selected, null, 2), 'application/json;charset=utf-8');
+    }
+
+    async function ultraArchiveProduct(product){
+      if(!product) return;
+      try{ requirePermission('canDelete','mengarsipkan produk'); }catch(error){ alert(error.message); return; }
+      if(!confirm('Arsipkan produk ini?\n\n#' + product.id + ' - ' + product.title + '\n\nData tidak dihapus permanen dan bisa dipulihkan.')) return;
+      setBusy(true);
+      try{
+        await requireSensitiveReauth('mengarsipkan produk #' + product.id);
+        await updateDoc(doc(db,'products',product.docId), { archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), previousStatus:product.status || 'ready', status:'archived', updatedAt:serverTimestamp() });
+        if(els.docId.value === product.docId) resetForm();
+        await logSecurity('product.archive', product.title);
+        showToast('Produk diarsipkan');
+      }catch(error){ alert('Gagal arsip produk: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    removeProduct = ultraArchiveProduct;
+    async function ultraRestoreProduct(docId){
+      const p = products.find(row => row.docId === docId);
+      if(!p) return;
+      try{ requirePermission('canEdit','memulihkan produk'); }catch(error){ alert(error.message); return; }
+      setBusy(true);
+      try{
+        await updateDoc(doc(db,'products',docId), { archived:false, deletedAt:null, deletedAtMs:0, status:p.previousStatus && p.previousStatus !== 'archived' ? p.previousStatus : 'ready', updatedAt:serverTimestamp() });
+        showToast('Produk dipulihkan');
+      }catch(error){ alert('Gagal pulihkan produk: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    async function ultraArchiveOrder(order){
+      if(!order) return;
+      try{ requirePermission('canDelete','mengarsipkan pesanan'); }catch(error){ alert(error.message); return; }
+      if(!confirm('Arsipkan pesanan ' + order.orderId + '?\n\nData tidak dihapus permanen dan bisa dipulihkan.')) return;
+      setBusy(true);
+      try{
+        await requireSensitiveReauth('mengarsipkan pesanan ' + order.orderId);
+        await updateDoc(doc(db,'orders',order.docId), { archived:true, deletedAt:serverTimestamp(), deletedAtMs:Date.now(), previousOrderStatus:order.orderStatus || '', updatedAt:serverTimestamp(), timeline:[...buildOrderTimeline(order), { label:'Diarsipkan', detail:currentAdmin.email || 'Admin', at:Date.now() }] });
+        await logSecurity('order.archive', order.orderId);
+        showToast('Pesanan diarsipkan');
+      }catch(error){ alert('Gagal arsip pesanan: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    deleteOrder = ultraArchiveOrder;
+    async function ultraRestoreOrder(docId){
+      const o = orders.find(row => row.docId === docId);
+      if(!o) return;
+      try{ requirePermission('canEdit','memulihkan pesanan'); }catch(error){ alert(error.message); return; }
+      setBusy(true);
+      try{
+        await updateDoc(doc(db,'orders',docId), { archived:false, deletedAt:null, deletedAtMs:0, orderStatus:o.previousOrderStatus || o.orderStatus || 'Diproses', updatedAt:serverTimestamp(), timeline:[...buildOrderTimeline(o), { label:'Dipulihkan', detail:currentAdmin.email || 'Admin', at:Date.now() }] });
+        showToast('Pesanan dipulihkan');
+      }catch(error){ alert('Gagal pulihkan pesanan: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+
+    function ultraEnsureArchivePanel(){
+      if(document.getElementById('ultraArchivePanel') || !document.getElementById('productListPanel')) return;
+      document.getElementById('productListPanel').insertAdjacentHTML('beforeend', `<div class="ultra-archive-panel" id="ultraArchivePanel"><h3>Arsip & Restore</h3><p class="help">Produk dan pesanan yang diarsipkan tetap aman dan bisa dipulihkan.</p><div class="ultra-grid"><div><h4>Produk Arsip</h4><div class="ultra-list" id="ultraArchivedProducts"><div class="empty">Belum ada arsip produk.</div></div></div><div><h4>Pesanan Arsip</h4><div class="ultra-list" id="ultraArchivedOrders"><div class="empty">Belum ada arsip pesanan.</div></div></div><div><h4>Catatan</h4><div class="notice good">Delete lama diganti menjadi arsip/soft delete supaya data bisa dikembalikan.</div></div></div></div>`);
+    }
+    function ultraRenderArchivePanel(){
+      ultraEnsureArchivePanel();
+      const pbox = $('ultraArchivedProducts');
+      const obox = $('ultraArchivedOrders');
+      if(pbox){
+        const rows = products.filter(p => p.archived).slice(0,50);
+        pbox.innerHTML = rows.length ? rows.map(p => `<div class="ultra-list-item"><strong>${escapeHtml(p.title)}</strong><span>#${escapeHtml(p.id)} • ${escapeHtml(p.brand || '-')} • ${rupiah(p.price)}</span><button class="btn small good" type="button" data-ultra-restore-product="${escapeHtml(p.docId)}">Pulihkan</button></div>`).join('') : '<div class="empty">Belum ada arsip produk.</div>';
+      }
+      if(obox){
+        const rows = orders.filter(o => o.archived).slice(0,50);
+        obox.innerHTML = rows.length ? rows.map(o => `<div class="ultra-list-item"><strong>${escapeHtml(o.orderId)}</strong><span>${escapeHtml(o.customerName)} • ${rupiah(o.total)} • ${escapeHtml(o.paymentStatus)}</span><button class="btn small good" type="button" data-ultra-restore-order="${escapeHtml(o.docId)}">Pulihkan</button></div>`).join('') : '<div class="empty">Belum ada arsip pesanan.</div>';
+      }
+    }
+
+    function ultraEnsureCatalogManager(){
+      const workspace = document.getElementById('productWorkspacePanel');
+      if(!workspace || document.getElementById('catalogManagerPanel')) return;
+      workspace.insertAdjacentHTML('beforeend', `<div class="panel anchor-panel" id="catalogManagerPanel" style="box-shadow:none;margin-top:14px"><span class="view-kicker">Produk / Master Data</span><div class="section-title"><div><h3>CRUD Kategori, Brand & Varian</h3><p>Master data tambahan. Jika rules Firebase belum mengizinkan collections baru, panel akan menampilkan status error tanpa merusak data lama.</p></div></div><div class="ultra-grid"><div class="ultra-card"><h4>Kategori</h4><p>Kelola nama kategori produk.</p><div class="field"><label for="ultraCategoryName">Nama kategori</label><input class="input" id="ultraCategoryName" type="text" maxlength="80" placeholder="Niche / Designer"></div><div class="ultra-row"><button class="btn small primary" id="ultraSaveCategory" type="button">Simpan</button></div><div class="ultra-list" id="ultraCategoryList"></div></div><div class="ultra-card"><h4>Brand</h4><p>Kelola daftar brand parfum.</p><div class="field"><label for="ultraBrandName">Nama brand</label><input class="input" id="ultraBrandName" type="text" maxlength="90" placeholder="Lattafa / Dior"></div><div class="ultra-row"><button class="btn small primary" id="ultraSaveBrand" type="button">Simpan</button></div><div class="ultra-list" id="ultraBrandList"></div></div><div class="ultra-card"><h4>Varian</h4><p>Kelola template varian ukuran/tipe.</p><div class="field"><label for="ultraVariantName">Nama varian</label><input class="input" id="ultraVariantName" type="text" maxlength="90" placeholder="50ml / 100ml"></div><div class="field"><label for="ultraVariantNote">Catatan</label><input class="input" id="ultraVariantNote" type="text" maxlength="140" placeholder="Harga/stok per varian"></div><div class="ultra-row"><button class="btn small primary" id="ultraSaveVariant" type="button">Simpan</button></div><div class="ultra-list" id="ultraVariantList"></div></div></div></div>`);
+      $('ultraSaveCategory').onclick = () => ultraSaveMaster('category');
+      $('ultraSaveBrand').onclick = () => ultraSaveMaster('brand');
+      $('ultraSaveVariant').onclick = () => ultraSaveMaster('variant');
+      workspace.addEventListener('click', event => {
+        const btn = event.target.closest('[data-ultra-delete-master]');
+        if(!btn) return;
+        ultraDeleteMaster(btn.dataset.ultraDeleteMaster, btn.dataset.doc);
+      });
+    }
+    async function ultraSaveMaster(kind){
+      try{ requirePermission('canEdit','menyimpan master data'); }catch(error){ alert(error.message); return; }
+      const conf = { category:['ultraCategoryName', categoriesRef], brand:['ultraBrandName', brandsRef], variant:['ultraVariantName', variantsRef] }[kind];
+      const nameEl = $(conf[0]);
+      const name = String(nameEl && nameEl.value || '').trim();
+      if(!name){ showToast('Nama wajib diisi'); return; }
+      const data = { name, active:true, updatedAt:serverTimestamp(), updatedAtMs:Date.now() };
+      if(kind === 'variant') data.note = String($('ultraVariantNote').value || '').trim();
+      setBusy(true);
+      try{ await setDoc(doc(conf[1], ultraSlug(name, kind)), data, { merge:true }); nameEl.value=''; if(kind === 'variant') $('ultraVariantNote').value=''; showToast('Master data tersimpan'); }
+      catch(error){ alert('Gagal simpan master data: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    async function ultraDeleteMaster(kind, id){
+      try{ requirePermission('canDelete','hapus master data'); }catch(error){ alert(error.message); return; }
+      if(!confirm('Hapus master data ini?')) return;
+      const refMap = { category:categoriesRef, brand:brandsRef, variant:variantsRef };
+      setBusy(true);
+      try{ await deleteDoc(doc(refMap[kind], id)); showToast('Master data dihapus'); }
+      catch(error){ alert('Gagal hapus master data: ' + firebaseMessage(error)); }
+      finally{ setBusy(false); }
+    }
+    function ultraRenderMasterLists(){
+      const render = (id, rows, kind) => { const box = $(id); if(!box) return; box.innerHTML = rows.length ? rows.map(row => `<div class="ultra-list-item"><strong>${escapeHtml(row.name)}</strong><span>${escapeHtml(row.note || row.docId || '-')}</span><button class="btn small danger" type="button" data-ultra-delete-master="${kind}" data-doc="${escapeHtml(row.docId)}">Hapus</button></div>`).join('') : '<div class="empty">Belum ada data.</div>'; };
+      render('ultraCategoryList', ultraState.categories, 'category');
+      render('ultraBrandList', ultraState.brands, 'brand');
+      render('ultraVariantList', ultraState.variants, 'variant');
+      const managedCats = ultraState.categories.map(c=>c.name).filter(Boolean);
+      const productCats = products.map(p=>p.category).filter(Boolean);
+      const cats = [...new Set([...managedCats, ...productCats])].sort((a,b)=>a.localeCompare(b));
+      if(els.categoryList) els.categoryList.innerHTML = cats.map(c=>`<option value="${escapeHtml(c)}"></option>`).join('');
+      const brandList = $('brandList');
+      if(brandList){ const brands = [...new Set([...ultraState.brands.map(b=>b.name), ...products.map(p=>p.brand)].filter(Boolean))].sort((a,b)=>a.localeCompare(b)); brandList.innerHTML = brands.map(b=>`<option value="${escapeHtml(b)}"></option>`).join(''); }
+    }
+    function ultraStartCatalogListening(){
+      if(ultraState.unsubscribeCatalog.length) return;
+      const bind = (ref, key, orderField='name') => {
+        try{
+          const unsub = onSnapshot(query(ref, orderBy(orderField)), snap => { ultraState[key] = snap.docs.map(d => Object.assign({ docId:d.id }, d.data() || {})); ultraRenderMasterLists(); }, error => { console.warn('Master data gagal:', key, error); });
+          ultraState.unsubscribeCatalog.push(unsub);
+        }catch(error){ console.warn('Master data listener gagal:', key, error); }
+      };
+      bind(categoriesRef, 'categories'); bind(brandsRef, 'brands'); bind(variantsRef, 'variants');
+    }
+    const ultraBaseStartListening = startListening;
+    startListening = function(){ ultraBaseStartListening(); ultraStartCatalogListening(); };
+
+    const ultraBaseRenderFilters = renderFilters;
+    renderFilters = function(){ ultraBaseRenderFilters(); ultraRenderMasterLists(); ultraEnsureOptions(); };
+
+    const ultraBaseFilteredProducts = filteredProducts;
+    filteredProducts = function(){
+      const status = els.filterStatus && els.filterStatus.value;
+      const all = ultraBaseFilteredProducts().filter(p => status === 'archived' ? p.archived : !p.archived);
+      ultraState.productTotalRows = all.length;
+      const start = (ultraState.productPage - 1) * ultraState.pageSize;
+      return all.slice(start, start + ultraState.pageSize);
+    };
+    const ultraBaseFilteredOrders = filteredOrders;
+    filteredOrders = function(){
+      const status = els.orderFilterStatus && els.orderFilterStatus.value;
+      const all = ultraBaseFilteredOrders().filter(o => status === 'Archived' ? o.archived : !o.archived);
+      ultraState.orderTotalRows = all.length;
+      const start = (ultraState.orderPage - 1) * ultraState.pageSize;
+      return all.slice(start, start + ultraState.pageSize);
+    };
+    function ultraEnsurePager(kind, anchorId){
+      const id = kind === 'product' ? 'ultraProductPager' : 'ultraOrderPager';
+      if(document.getElementById(id)) return;
+      const anchor = document.getElementById(anchorId);
+      if(!anchor) return;
+      anchor.insertAdjacentHTML('afterend', `<div class="ultra-pager" id="${id}"><button class="btn small" type="button" data-ultra-page="prev">Sebelumnya</button><span></span><button class="btn small" type="button" data-ultra-page="next">Berikutnya</button></div>`);
+      $(id).addEventListener('click', event => {
+        const btn = event.target.closest('[data-ultra-page]'); if(!btn) return;
+        const total = kind === 'product' ? ultraState.productTotalRows || 0 : ultraState.orderTotalRows || 0;
+        const max = Math.max(1, Math.ceil(total / ultraState.pageSize));
+        const prop = kind === 'product' ? 'productPage' : 'orderPage';
+        ultraState[prop] += btn.dataset.ultraPage === 'next' ? 1 : -1;
+        ultraState[prop] = Math.max(1, Math.min(ultraState[prop], max));
+        if(kind === 'product') renderProducts(); else renderOrders();
+      });
+    }
+    function ultraUpdatePager(kind){
+      ultraEnsurePager(kind, kind === 'product' ? 'productList' : 'ordersTablePanel');
+      const id = kind === 'product' ? 'ultraProductPager' : 'ultraOrderPager';
+      const pager = $(id); if(!pager) return;
+      const total = kind === 'product' ? ultraState.productTotalRows || 0 : ultraState.orderTotalRows || 0;
+      const page = kind === 'product' ? ultraState.productPage : ultraState.orderPage;
+      const max = Math.max(1, Math.ceil(total / ultraState.pageSize));
+      pager.querySelector('span').textContent = `Halaman ${page} / ${max} • ${total} data`;
+      pager.querySelector('[data-ultra-page="prev"]').disabled = page <= 1;
+      pager.querySelector('[data-ultra-page="next"]').disabled = page >= max;
+    }
+    [els.search, els.filterCategory, els.filterStatus, els.filterImage, els.filterQuality, els.sortBy].forEach(el => { if(el) el.addEventListener('input', () => { ultraState.productPage = 1; }); });
+    [els.orderSearch, els.orderFilterPayment, els.orderFilterStatus].forEach(el => { if(el) el.addEventListener('input', () => { ultraState.orderPage = 1; }); });
+
+    function ultraPreviewProductHtml(data){
+      const img = imageSrc(data.img, { previewOnly:true });
+      return `<div class="ultra-preview-card"><div class="photo">${img ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(data.title || 'Produk')}">` : 'No image'}</div><div class="body"><div class="chips"><span class="chip">${escapeHtml(data.brand || 'Brand')}</span><span class="chip">${escapeHtml(data.category || 'Kategori')}</span><span class="chip">${escapeHtml(data.status || 'ready')}</span></div><h3>${escapeHtml(data.title || 'Nama Produk')}</h3><div class="price">${rupiah(data.price || 0)}</div><p>${escapeHtml(data.desc || data.notes || data.longDesc || 'Deskripsi produk akan tampil di sini.')}</p><p><b>Aroma:</b> ${escapeHtml([data.scentFamily,data.topNotes,data.middleNotes,data.baseNotes].filter(Boolean).join(' • ') || '-')}</p></div></div>`;
+    }
+    function ultraPreviewProductFromForm(){
+      const data = {
+        title:els.title.value, brand:els.brand.value, category:els.category.value, status:els.status.value, price:Number(els.price.value || 0), img:els.previewImg && els.previewImg.getAttribute('src') || els.img.value, desc:els.desc.value, notes:els.notes.value, longDesc:els.longDesc.value, scentFamily:els.scentFamily.value, topNotes:els.topNotes.value, middleNotes:els.middleNotes.value, baseNotes:els.baseNotes.value
+      };
+      openModal('Preview Toko', ultraPreviewProductHtml(data));
+    }
+    function ultraPreviewCurrentOrderInvoice(){
+      try{ const data = collectOrder(); showInvoice(Object.assign({ docId:els.orderDocId.value || 'preview', createdAtMs:Date.now(), timeline:[] }, data)); }catch(error){ setNotice(els.orderMessage, error.message, 'danger'); }
+    }
+    function ultraEnhanceProductDetail(product){
+      if(!product) return '';
+      return `<hr><h4>Preview Tampilan Toko</h4>${ultraPreviewProductHtml(product)}`;
+    }
+    const ultraBaseShowDetail = showDetail;
+    showDetail = function(product){
+      if(!product) return;
+      ultraBaseShowDetail(product);
+      if(els.modalBody) els.modalBody.insertAdjacentHTML('beforeend', ultraEnhanceProductDetail(product));
+    };
+
+    function buildOrderTimeline(order){
+      const raw = Array.isArray(order && order.timeline) ? order.timeline : [];
+      const base = raw.length ? raw : [
+        { label:'Pesanan dibuat', detail:order && order.customerName || '-', at:order && order.createdAtMs || Date.now() },
+        { label:'Pembayaran: ' + (order && order.paymentStatus || '-'), detail:order && order.paymentMethod || '-', at:order && order.updatedAtMs || order && order.createdAtMs || Date.now() },
+        { label:'Status: ' + (order && order.orderStatus || '-'), detail:[order && order.courier, order && order.trackingNumber].filter(Boolean).join(' • ') || '-', at:order && order.updatedAtMs || order && order.createdAtMs || Date.now() }
+      ];
+      return base.map(item => ({ label:String(item.label || item.status || 'Update'), detail:String(item.detail || item.note || ''), at: Number(item.at || item.createdAtMs || toMillis(item.createdAt) || Date.now()) }));
+    }
+    function renderOrderTimeline(order){
+      return `<div class="ultra-timeline">${buildOrderTimeline(order).map(item => `<div class="ultra-timeline-item"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail || '-')} • ${escapeHtml(new Date(item.at).toLocaleString('id-ID'))}</span></div>`).join('')}</div>`;
+    }
+    const ultraBaseCollectOrder = collectOrder;
+    collectOrder = function(){
+      const data = ultraBaseCollectOrder();
+      const currentDocId = els.orderDocId.value.trim();
+      const previous = currentDocId ? orders.find(o => o.docId === currentDocId) : null;
+      const timeline = previous ? buildOrderTimeline(previous) : [];
+      const last = timeline[timeline.length - 1];
+      const label = 'Status: ' + data.paymentStatus + ' / ' + data.orderStatus;
+      if(!last || last.label !== label){ timeline.push({ label, detail:currentAdmin.email || 'Admin', at:Date.now() }); }
+      data.timeline = timeline;
+      data.invoiceNumber = 'INV-' + data.orderId;
+      return data;
+    };
+
+    function getInvoiceTemplate(){ return localStorage.getItem(ultraState.invoiceTemplateKey) || 'Terima kasih sudah berbelanja di {store}. Mohon simpan invoice ini sebagai bukti transaksi.'; }
+    function fillInvoiceTemplate(order){
+      const store = appSettings.store || defaultSettings().store;
+      return getInvoiceTemplate().replaceAll('{store}', store.storeName || 'Dirac Group').replaceAll('{customer}', order.customerName || '').replaceAll('{orderId}', order.orderId || '').replaceAll('{total}', rupiah(order.total || 0)).replaceAll('{tracking}', order.trackingNumber || '-');
+    }
+    const ultraBaseRenderInvoiceHtml = renderInvoiceHtml;
+    renderInvoiceHtml = function(order){
+      const payment = appSettings.payment || defaultSettings().payment;
+      const qris = payment.qrisUrl ? `<p><b>QRIS:</b><br><img class="invoice-qris" src="${escapeHtml(payment.qrisUrl)}" alt="QRIS pembayaran"></p>` : '';
+      return ultraBaseRenderInvoiceHtml(order).replace('</div>', `${qris}<p><b>Catatan Invoice:</b> ${escapeHtml(fillInvoiceTemplate(order))}</p><h3>Timeline Pesanan</h3>${renderOrderTimeline(order)}</div>`);
+    };
+    const ultraBaseShowInvoice = showInvoice;
+    showInvoice = function(order){
+      ultraBaseShowInvoice(order);
+      const actions = els.modalBody && els.modalBody.querySelector('.row-actions');
+      if(actions && !actions.querySelector('#downloadInvoicePdfBtn')){
+        actions.insertAdjacentHTML('beforeend','<button class="btn good" id="downloadInvoicePdfBtn" type="button">Download PDF</button>');
+        $('downloadInvoicePdfBtn').onclick = () => downloadInvoicePdf(order);
+      }
+    };
+    function pdfEscape(value){ return String(value ?? '').replace(/[\\()]/g, '\\$&').replace(/[\r\n]+/g, ' '); }
+    function buildSimplePdf(lines){
+      let y = 800;
+      const content = ['BT','/F1 12 Tf'];
+      lines.forEach((line, idx) => { content.push(`50 ${y} Td (${pdfEscape(line)}) Tj`); y -= 18; if(idx < lines.length - 1) content.push(`50 ${-y} Td`); });
+      // simpler absolute positioning stream
+      const stream = 'BT\n/F1 12 Tf\n' + lines.map((line, i) => `50 ${800 - i*18} Td (${pdfEscape(line)}) Tj`).join('\n') + '\nET';
+      const objects = [];
+      objects.push('1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj');
+      objects.push('2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj');
+      objects.push('3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj');
+      objects.push('4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj');
+      objects.push(`5 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`);
+      let pdf = '%PDF-1.4\n'; const offsets = [0];
+      objects.forEach(obj => { offsets.push(pdf.length); pdf += obj + '\n'; });
+      const xref = pdf.length;
+      pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` + offsets.slice(1).map(o => String(o).padStart(10,'0') + ' 00000 n ').join('\n') + '\n';
+      pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+      return pdf;
+    }
+    function downloadInvoicePdf(order){
+      const lines = [
+        (appSettings.store && appSettings.store.storeName) || 'Dirac Group',
+        'Invoice: ' + (order.invoiceNumber || ('INV-' + order.orderId)),
+        'Order: ' + order.orderId,
+        'Pelanggan: ' + order.customerName,
+        'Tanggal: ' + new Date(order.createdAtMs || Date.now()).toLocaleString('id-ID'),
+        'Status: ' + order.paymentStatus + ' / ' + order.orderStatus,
+        'Total: ' + rupiah(order.total),
+        'Pengiriman: ' + ([order.courier, order.trackingNumber].filter(Boolean).join(' / ') || '-'),
+        'Catatan: ' + fillInvoiceTemplate(order),
+        '',
+        'Item:'
+      ];
+      getOrderItems(order).forEach(item => lines.push('- ' + item.productName + ' x' + item.qty + ' @ ' + rupiah(item.price) + ' = ' + rupiah(itemSubtotal(item))));
+      const pdf = buildSimplePdf(lines.slice(0,40));
+      downloadFile((order.invoiceNumber || ('invoice-' + order.orderId)) + '.pdf', pdf, 'application/pdf');
+    }
+    function ultraEnsureInvoiceTemplatePanel(){
+      const panel = document.getElementById('settingsPaymentPanel');
+      if(!panel || document.getElementById('invoiceTemplateText')) return;
+      const actions = panel.querySelector('.settings-actions');
+      if(!actions) return;
+      actions.insertAdjacentHTML('beforebegin', `<div class="field full"><label for="invoiceTemplateText">Template Catatan Invoice PDF</label><textarea id="invoiceTemplateText" maxlength="900" placeholder="Gunakan {store}, {customer}, {orderId}, {total}, {tracking}">${escapeHtml(getInvoiceTemplate())}</textarea></div>`);
+      $('invoiceTemplateText').addEventListener('input', () => localStorage.setItem(ultraState.invoiceTemplateKey, $('invoiceTemplateText').value));
+    }
+
+    function ultraShowCustomerDetail(customer){
+      if(!customer) return;
+      const customerOrders = orders.filter(o => !o.archived && o.customerName === customer.name).sort((a,b)=>b.createdAtMs-a.createdAtMs);
+      const total = customerOrders.filter(o=>isPaid(o) && !isCancelled(o)).reduce((sum,o)=>sum + Number(o.total || 0), Number(customer.totalSpent || 0));
+      const favorite = (() => { const map = new Map(); customerOrders.forEach(o => getOrderItems(o).forEach(item => map.set(item.productName, (map.get(item.productName)||0)+Number(item.qty||0)))); return [...map.entries()].sort((a,b)=>b[1]-a[1])[0]; })();
+      const html = `<div class="dashboard-grid"><div class="dashboard-card"><span>Total belanja</span><strong>${rupiah(total)}</strong><small>${customerOrders.length} pesanan</small></div><div class="dashboard-card"><span>Repeat order</span><strong>${customerOrders.length}</strong><small>Semua status</small></div><div class="dashboard-card"><span>Produk favorit</span><strong>${escapeHtml(favorite ? favorite[0] : '-')}</strong><small>${favorite ? favorite[1] + ' item' : 'Belum ada'}</small></div><div class="dashboard-card"><span>Segment</span><strong>${escapeHtml(customer.segment || 'Reguler')}</strong><small>${escapeHtml(customer.phone || customer.email || '-')}</small></div></div><h3>Profil</h3><p><b>Nama:</b> ${escapeHtml(customer.name)}<br><b>HP:</b> ${escapeHtml(customer.phone || '-')}<br><b>Email:</b> ${escapeHtml(customer.email || '-')}<br><b>Alamat:</b> ${escapeHtml(customer.address || '-')}<br><b>Catatan:</b> ${escapeHtml(customer.note || '-')}</p><h3>Riwayat Belanja</h3><div class="compact-list">${customerOrders.length ? customerOrders.slice(0,20).map(o => `<div class="compact-item"><strong>${escapeHtml(o.orderId)} • ${rupiah(o.total)}</strong><span>${escapeHtml(orderItemsSummary(o))} • ${escapeHtml(o.paymentStatus)} / ${escapeHtml(o.orderStatus)}</span></div>`).join('') : '<div class="empty">Belum ada riwayat belanja.</div>'}</div>`;
+      openModal('Detail Pelanggan', html);
+    }
+    const ultraBaseRenderCustomers = renderCustomers;
+    renderCustomers = function(){
+      ultraBaseRenderCustomers();
+      if(!els.customerRows) return;
+      els.customerRows.querySelectorAll('tr').forEach(row => {
+        const edit = row.querySelector('[data-customer-action="edit"],[data-customer-action="delete"]');
+        if(!edit || row.querySelector('[data-customer-action="detail"]')) return;
+        edit.closest('.row-actions').insertAdjacentHTML('afterbegin', `<button class="btn small" type="button" data-customer-action="detail" data-doc="${escapeHtml(edit.dataset.doc)}">Detail</button>`);
+      });
+      ultraEnhanceTables(els.customerRows.closest('table'));
+    };
+    if(els.customerRows){
+      els.customerRows.addEventListener('click', event => {
+        const btn = event.target.closest('[data-customer-action="detail"]'); if(!btn) return;
+        ultraShowCustomerDetail(customers.find(c => c.docId === btn.dataset.doc));
+      }, true);
+    }
+
+    function ultraEnsureReports(){
+      const panel = document.getElementById('reportSalesPanel');
+      if(!panel || document.getElementById('ultraReportGrid')) return;
+      panel.insertAdjacentHTML('beforeend', `<div class="ultra-report-grid" id="ultraReportGrid"><div class="ultra-report-card"><span>Belum Bayar</span><strong id="ultraReportUnpaid">0</strong></div><div class="ultra-report-card"><span>Average Order</span><strong id="ultraReportAov">Rp 0</strong></div><div class="ultra-report-card"><span>Repeat Customer</span><strong id="ultraReportRepeat">0</strong></div><div class="ultra-report-card"><span>Retur / Refund</span><strong id="ultraReportRefund">0</strong></div><div class="ultra-report-card"><span>Dead Stock</span><strong id="ultraReportDeadStock">0</strong></div><div class="ultra-report-card"><span>Stok Habis</span><strong id="ultraReportOutStock">0</strong></div><div class="ultra-report-card"><span>Payment Teratas</span><strong id="ultraReportTopPayment">-</strong></div><div class="ultra-report-card"><span>Produk Lambat</span><strong id="ultraReportSlowProduct">-</strong></div></div>`);
+    }
+    const ultraBaseReportOrders = reportOrders;
+    reportOrders = function(){ return ultraBaseReportOrders().filter(o => !o.archived); };
+    const ultraBaseRenderReports = renderReports;
+    renderReports = function(){
+      ultraBaseRenderReports();
+      ultraEnsureReports();
+      const activeOrders = ultraActiveOrders();
+      const revenueOrders = activeOrders.filter(o => isPaid(o) && !isCancelled(o));
+      const unpaid = activeOrders.filter(o => o.paymentStatus === 'Belum Bayar').length;
+      const aov = revenueOrders.length ? Math.round(revenueOrders.reduce((sum,o)=>sum+Number(o.total||0),0)/revenueOrders.length) : 0;
+      const customerCounts = new Map(); revenueOrders.forEach(o => customerCounts.set(o.customerName, (customerCounts.get(o.customerName)||0)+1));
+      const repeat = [...customerCounts.values()].filter(n=>n>1).length;
+      const refunds = activeOrders.filter(o => String(o.paymentStatus).toLowerCase() === 'refund' || String(o.orderStatus).toLowerCase() === 'retur').length;
+      const deadStock = ultraActiveProducts().filter(p => Number(p.stock||0)>0 && Number(p.soldCount||0) === 0).length;
+      const outStock = ultraActiveProducts().filter(p => Number(p.stock||0)<=0).length;
+      const paymentCounts = new Map(); activeOrders.forEach(o => paymentCounts.set(o.paymentMethod, (paymentCounts.get(o.paymentMethod)||0)+1));
+      const topPayment = [...paymentCounts.entries()].sort((a,b)=>b[1]-a[1])[0];
+      const slowProduct = ultraActiveProducts().filter(p=>Number(p.stock||0)>0).sort((a,b)=>Number(a.soldCount||0)-Number(b.soldCount||0))[0];
+      if($('ultraReportUnpaid')) $('ultraReportUnpaid').textContent = unpaid;
+      if($('ultraReportAov')) $('ultraReportAov').textContent = rupiah(aov);
+      if($('ultraReportRepeat')) $('ultraReportRepeat').textContent = repeat;
+      if($('ultraReportRefund')) $('ultraReportRefund').textContent = refunds;
+      if($('ultraReportDeadStock')) $('ultraReportDeadStock').textContent = deadStock;
+      if($('ultraReportOutStock')) $('ultraReportOutStock').textContent = outStock;
+      if($('ultraReportTopPayment')) $('ultraReportTopPayment').textContent = topPayment ? topPayment[0] : '-';
+      if($('ultraReportSlowProduct')) $('ultraReportSlowProduct').textContent = slowProduct ? slowProduct.title : '-';
+      ultraEnhanceTables(document.getElementById('viewReports'));
+    };
+
+    function ultraEnsureSecurityPanel(){
+      const panel = document.getElementById('settingsSecurityPanel');
+      if(!panel || document.getElementById('ultraRulesPanel')) return;
+      const appCheckActive = Boolean(SECURITY_CONFIG.APP_CHECK_SITE_KEY);
+      panel.insertAdjacentHTML('beforeend', `<div class="ultra-card" id="ultraRulesPanel"><h4>App Check & Firebase Rules Hardening</h4><p>Status App Check: <span class="status-pill ${appCheckActive ? 'good' : 'warn'}">${appCheckActive ? 'Site key terpasang' : 'Menunggu site key'}</span></p><p class="help">HTML ini sudah siap memakai App Check bila <b>SECURITY_CONFIG.APP_CHECK_SITE_KEY</b> diisi dengan ReCaptcha Enterprise site key asli dari Firebase. Rules harus ditempel/deploy dari Firebase Console/CLI.</p><pre class="rules-box">${escapeHtml(ultraRulesTemplate())}</pre><div class="ultra-row"><button class="btn small" id="ultraCopyRules" type="button">Copy Rules Template</button></div></div>`);
+      $('ultraCopyRules').onclick = () => navigator.clipboard.writeText(ultraRulesTemplate()).then(()=>showToast('Rules template disalin')).catch(()=>showToast('Clipboard tidak tersedia'));
+    }
+    function ultraRulesTemplate(){
+      return `// Firestore rules template - sesuaikan UID/claim admin sebelum deploy\nrules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    function signedIn() { return request.auth != null; }\n    function userDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }\n    function isActiveAdmin() { return signedIn() && userDoc().data.active != false && userDoc().data.role in ['admin','owner','editor','viewer']; }\n    function canEdit() { return signedIn() && userDoc().data.role in ['admin','owner','editor']; }\n    function canDelete() { return signedIn() && userDoc().data.role in ['admin','owner']; }\n    match /products/{id} { allow read: if isActiveAdmin(); allow create, update: if canEdit(); allow delete: if canDelete(); }\n    match /orders/{id} { allow read: if isActiveAdmin(); allow create, update: if canEdit(); allow delete: if canDelete(); }\n    match /customers/{id} { allow read: if isActiveAdmin(); allow create, update: if canEdit(); allow delete: if canDelete(); }\n    match /categories/{id} { allow read: if isActiveAdmin(); allow create, update: if canEdit(); allow delete: if canDelete(); }\n    match /brands/{id} { allow read: if isActiveAdmin(); allow create, update: if canEdit(); allow delete: if canDelete(); }\n    match /variants/{id} { allow read: if isActiveAdmin(); allow create, update: if canEdit(); allow delete: if canDelete(); }\n    match /settings/{id} { allow read: if isActiveAdmin(); allow write: if canEdit(); }\n    match /securityLogs/{id} { allow read: if isActiveAdmin(); allow create: if isActiveAdmin(); allow update, delete: if false; }\n    match /users/{uid} { allow read: if signedIn() && (request.auth.uid == uid || isActiveAdmin()); allow write: if canDelete(); }\n  }\n}`;
+    }
+
+    const ultraBaseRenderProducts = renderProducts;
+    renderProducts = function(){
+      ultraBaseRenderProducts();
+      ultraEnsureBulkBars();
+      ultraDecorateProductCards();
+      ultraUpdatePager('product');
+      ultraRenderArchivePanel();
+      ultraUpdateBulkCounts();
+    };
+    const ultraBaseRenderOrders = renderOrders;
+    renderOrders = function(){
+      ultraBaseRenderOrders();
+      ultraEnsureBulkBars();
+      ultraDecorateOrderRows();
+      ultraUpdatePager('order');
+      ultraRenderArchivePanel();
+      ultraUpdateBulkCounts();
+      ultraEnhanceTables(document.getElementById('ordersTablePanel'));
+    };
+    const ultraBaseRenderBusinessDashboard = renderBusinessDashboard;
+    renderBusinessDashboard = function(){
+      const oldOrders = orders;
+      const oldProducts = products;
+      orders = ultraActiveOrders();
+      products = ultraActiveProducts();
+      try{ ultraBaseRenderBusinessDashboard(); }
+      finally{ orders = oldOrders; products = oldProducts; }
+    };
+
+    function ultraApplyEnhancements(){
+      ultraEnsureOptions();
+      ultraBuildFormTabs('productFormPanel', 'ultra-product-tab');
+      ultraBuildFormTabs('orderFormPanel', 'ultra-order-tab');
+      ultraEnsureStickyBar();
+      ultraEnsureBulkBars();
+      ultraEnsureArchivePanel();
+      ultraEnsureCatalogManager();
+      ultraEnsureInvoiceTemplatePanel();
+      ultraEnsureReports();
+      ultraEnsureSecurityPanel();
+      ultraEnhanceTables();
+      ultraRenderMasterLists();
+      ultraUpdateStickyBar();
+    }
+    document.addEventListener('click', event => {
+      const productBtn = event.target.closest('[data-ultra-restore-product]');
+      if(productBtn) ultraRestoreProduct(productBtn.dataset.ultraRestoreProduct);
+      const orderBtn = event.target.closest('[data-ultra-restore-order]');
+      if(orderBtn) ultraRestoreOrder(orderBtn.dataset.ultraRestoreOrder);
+    });
+    document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => setTimeout(ultraUpdateStickyBar, 80)));
+    if(els.adminSection && 'MutationObserver' in window){ new MutationObserver(ultraUpdateStickyBar).observe(els.adminSection, { attributes:true, attributeFilter:['class'] }); }
+    setTimeout(ultraApplyEnhancements, 0);
 
     onAuthStateChanged(auth, async (user) => {
       if(user){
