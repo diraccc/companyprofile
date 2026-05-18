@@ -256,11 +256,106 @@
     @media(max-width:700px){.nav-menu,.quick-grid,.settings-grid{grid-template-columns:1fr!important}.nav-btn.sub{padding-left:40px}.sidebar-title{position:relative;top:auto}.quick-card{min-height:auto}.admin-layout{padding-bottom:90px}}
     @media(max-width:440px){.nav-menu{grid-template-columns:1fr!important}.nav-section{padding:9px}.nav-heading{display:block}.nav-heading span{display:block;margin-top:2px}}
 
+
+    /* === Header cleanup + 3-line admin menu button === */
+    .topbar-inner{
+      display:grid;
+      grid-template-columns:auto minmax(0,1fr) auto;
+      align-items:center;
+      gap:10px;
+      padding:12px 0;
+    }
+    .menu-toggle{
+      width:46px;
+      height:46px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.065);
+      color:var(--text);
+      display:grid;
+      place-items:center;
+      gap:0;
+      padding:0;
+      box-shadow:0 12px 28px rgba(0,0,0,.18);
+      transition:.18s ease;
+      flex:0 0 auto;
+    }
+    .menu-toggle:hover{transform:translateY(-1px);border-color:var(--line2);background:rgba(96,165,250,.12)}
+    .menu-toggle:focus-visible{outline:none;box-shadow:var(--focus)}
+    .menu-toggle span{
+      width:22px;
+      height:2px;
+      border-radius:999px;
+      background:#f8fbff;
+      display:block;
+      margin:2.5px 0;
+      transition:.2s ease;
+    }
+    body.sidebar-open .menu-toggle span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+    body.sidebar-open .menu-toggle span:nth-child(2){opacity:0;transform:scaleX(.5)}
+    body.sidebar-open .menu-toggle span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+    .topbar .brand{min-width:0;max-width:100%}
+    .topbar .brand h1,.topbar .brand span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .topbar .top-actions{justify-self:end;min-width:0;flex-wrap:nowrap}
+    .topbar .top-actions .btn{white-space:nowrap}
+    .sidebar-backdrop{display:none}
+    @media(max-width:1040px){
+      .admin-layout{display:block}
+      .admin-layout .sidebar{
+        position:fixed;
+        z-index:70;
+        top:72px;
+        left:max(10px,env(safe-area-inset-left));
+        width:min(360px,calc(100vw - 20px));
+        max-height:calc(100vh - 88px - env(safe-area-inset-bottom));
+        transform:translateX(calc(-100% - 24px));
+        opacity:0;
+        pointer-events:none;
+        transition:transform .24s ease, opacity .24s ease;
+      }
+      body.sidebar-open .admin-layout .sidebar{
+        transform:translateX(0);
+        opacity:1;
+        pointer-events:auto;
+      }
+      body.sidebar-open{overflow:hidden}
+      .sidebar-backdrop:not(.hidden){
+        display:block;
+        position:fixed;
+        inset:0;
+        z-index:60;
+        background:rgba(2,6,23,.58);
+        backdrop-filter:blur(7px);
+        -webkit-backdrop-filter:blur(7px);
+      }
+      .admin-content{min-width:0}
+    }
+    @media(max-width:700px){
+      .topbar-inner{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:9px}
+      .topbar .top-actions{grid-column:1/-1;width:100%;justify-content:flex-end;border-top:1px solid rgba(96,165,250,.12);padding-top:9px}
+      .topbar .top-actions .btn{min-height:38px;padding:8px 12px}
+      .menu-toggle{width:44px;height:44px;border-radius:15px}
+      .topbar .logo{width:42px;height:42px;border-radius:14px}
+      .topbar .brand{gap:10px}
+      .topbar .brand h1{font-size:1rem}
+      .topbar .brand span{font-size:.74rem}
+      .admin-layout .sidebar{top:104px;max-height:calc(100vh - 118px - env(safe-area-inset-bottom))}
+    }
+    @media(max-width:440px){
+      .topbar .top-actions .btn{flex:1 1 auto}
+      .menu-toggle{width:42px;height:42px}
+    }
+
   </style>
 </head>
 <body>
   <header class="topbar">
     <div class="wrap topbar-inner">
+      <button class="menu-toggle hidden" id="menuToggleBtn" type="button" aria-label="Buka menu admin" aria-controls="adminSidebar" aria-expanded="false">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
       <a class="brand" href="order.html" target="_blank" rel="noopener">
         <div class="logo"><img src="logo1.webp" alt="DG" onerror="this.style.display='none';this.parentNode.textContent='DG'"></div>
         <div><h1>Dirac Admin</h1><span>Dashboard produk Firebase</span></div>
@@ -272,6 +367,7 @@
       </div>
     </div>
   </header>
+  <div class="sidebar-backdrop hidden" id="sidebarBackdrop" aria-hidden="true"></div>
 
   <main>
     <section class="hero wrap">
@@ -335,7 +431,7 @@
     </section>
 
     <section class="wrap admin-layout hidden" id="adminSection">
-      <aside class="sidebar" aria-label="Menu admin">
+      <aside class="sidebar" id="adminSidebar" aria-label="Menu admin" tabindex="-1">
         <div class="sidebar-title"><div><strong>Dirac Admin</strong><span>Struktur menu lengkap</span></div><span class="status-pill good">Live</span></div>
         <nav class="nav-menu" aria-label="Struktur menu admin">
           <section class="nav-section" aria-labelledby="navDashboardTitle">
@@ -865,6 +961,7 @@
       loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
       statTotal:$('statTotal'), statReady:$('statReady'), statSold:$('statSold'), statValue:$('statValue'), statCategory:$('statCategory'), statAverage:$('statAverage'),
       miniSyncStatus:$('miniSyncStatus'), lastSync:$('lastSync'), syncDot:$('syncDot'), netStatus:$('netStatus'), netDot:$('netDot'), qualityStatus:$('qualityStatus'), qualitySummary:$('qualitySummary'), qualityDot:$('qualityDot'), clockText:$('clockText'),
+      menuToggleBtn:$('menuToggleBtn'), sidebarBackdrop:$('sidebarBackdrop'), adminSidebar:$('adminSidebar'),
       form:$('productForm'), formTitle:$('formTitle'), formMessage:$('formMessage'), dirtyBadge:$('dirtyBadge'), restoreDraftBtn:$('restoreDraftBtn'),
       search:$('search'), filterCategory:$('filterCategory'), filterStatus:$('filterStatus'), filterImage:$('filterImage'), filterQuality:$('filterQuality'), sortBy:$('sortBy'), clearFilterBtn:$('clearFilterBtn'), categoryList:$('categoryList'),
       previewImg:$('previewImg'), previewTitle:$('previewTitle'), previewMeta:$('previewMeta'), saveBtn:$('saveBtn'), resetBtn:$('resetBtn'), autoIdBtn:$('autoIdBtn'), deleteEditingBtn:$('deleteEditingBtn'),
@@ -993,6 +1090,7 @@
       els.adminSection.classList.add('hidden');
       els.twoFactorSection.classList.remove('hidden');
       els.logoutBtn.classList.remove('hidden');
+      updateMenuButtonVisibility();
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
       els.twoFactorUser.textContent = 'Role ' + (currentAdmin.roleLabel || 'Admin') + ' sudah terverifikasi dari ' + (currentAdmin.roleSource || 'Firebase') + '. Dashboard masih terkunci sampai A2F selesai.';
       updateTwoFactorProgress();
@@ -2351,6 +2449,24 @@
       const activeKey = navKey || fallback;
       document.querySelectorAll('.nav-btn[data-view-target]').forEach(btn => btn.classList.toggle('active', (btn.dataset.navKey || '') === activeKey));
     }
+    function setSidebarOpen(open){
+      const shouldOpen = Boolean(open) && currentAdmin.canRead && twoFactorVerified && !els.adminSection.classList.contains('hidden');
+      document.body.classList.toggle('sidebar-open', shouldOpen);
+      if(els.sidebarBackdrop) els.sidebarBackdrop.classList.toggle('hidden', !shouldOpen);
+      if(els.menuToggleBtn){
+        els.menuToggleBtn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        els.menuToggleBtn.setAttribute('aria-label', shouldOpen ? 'Tutup menu admin' : 'Buka menu admin');
+      }
+      if(shouldOpen && els.adminSidebar && window.matchMedia && window.matchMedia('(max-width: 1040px)').matches){
+        setTimeout(() => { try{ els.adminSidebar.focus({ preventScroll:true }); }catch(_error){ els.adminSidebar.focus(); } }, 30);
+      }
+    }
+    function updateMenuButtonVisibility(){
+      const visible = currentAdmin.canRead && twoFactorVerified && !els.adminSection.classList.contains('hidden');
+      if(els.menuToggleBtn) els.menuToggleBtn.classList.toggle('hidden', !visible);
+      if(!visible) setSidebarOpen(false);
+    }
+    function toggleSidebar(){ setSidebarOpen(!document.body.classList.contains('sidebar-open')); }
     function handleAdminNavigation(btn){
       if(!btn) return;
       switchView(btn.dataset.viewTarget, btn.dataset.navKey || '');
@@ -2371,6 +2487,9 @@
       }
       if(action === 'focus-order-form'){
         setTimeout(() => { if(els.orderCustomer) els.orderCustomer.focus(); }, 180);
+      }
+      if(window.matchMedia && window.matchMedia('(max-width: 1040px)').matches){
+        setSidebarOpen(false);
       }
     }
     function downloadFile(filename, content, type){
@@ -3125,6 +3244,14 @@
       if(btn.dataset.action === 'detail') showDetail(product);
     });
 
+    if(els.menuToggleBtn) els.menuToggleBtn.addEventListener('click', toggleSidebar);
+    if(els.sidebarBackdrop) els.sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
+    if(els.adminSection && 'MutationObserver' in window){
+      new MutationObserver(updateMenuButtonVisibility).observe(els.adminSection, { attributes:true, attributeFilter:['class'] });
+    }
+    window.addEventListener('resize', () => {
+      if(window.matchMedia && window.matchMedia('(min-width: 1041px)').matches) setSidebarOpen(false);
+    });
     document.querySelectorAll('[data-view-target]').forEach(btn => btn.addEventListener('click', () => handleAdminNavigation(btn)));
     const reportExportJsonBtn = $('reportExportJsonBtn');
     const reportExportCsvBtn = $('reportExportCsvBtn');
@@ -3196,7 +3323,8 @@
         }
       }
       if(event.key === 'Escape'){
-        if(!els.modal.classList.contains('hidden')) closeModal();
+        if(document.body.classList.contains('sidebar-open')) setSidebarOpen(false);
+        else if(!els.modal.classList.contains('hidden')) closeModal();
         else if(document.activeElement === els.search || els.search.value) clearFilters();
       }
     });
@@ -3216,6 +3344,7 @@
         }catch(error){
           setNotice(els.loginError, firebaseMessage(error), 'danger');
           await logoutAdmin();
+          updateMenuButtonVisibility();
         }
       } else {
         currentAdmin = { uid:'', email:'', role:'guest', roleLabel:'Guest', roleSource:'none', hasAdminClaim:false, hasAdminDoc:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
@@ -3225,6 +3354,7 @@
         els.twoFactorSection.classList.add('hidden');
         els.adminSection.classList.add('hidden');
         els.logoutBtn.classList.add('hidden');
+        updateMenuButtonVisibility();
         products = [];
         orders = [];
         customers = [];
