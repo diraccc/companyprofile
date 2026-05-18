@@ -139,7 +139,7 @@
     .grid{display:grid;grid-template-columns:.88fr 1.12fr;gap:18px;align-items:start;padding:8px 0 34px}
     .panel{padding:20px;overflow:hidden}
     .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
-    .panel-head-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .panel-head-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.product-import-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 12px}.product-import-hint{font-size:.84rem;flex:1 1 220px}
     .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
     .form-grid .full{grid-column:1/-1}
     .toolbar{display:grid;grid-template-columns:1fr 150px 140px 160px;gap:10px;margin:12px 0 12px}
@@ -216,7 +216,7 @@
       .hero-card,.grid{grid-template-columns:1fr}.admin-layout,.module-grid,.wide-grid,.triple-grid{grid-template-columns:1fr}.sidebar{position:relative;top:0}.dashboard-grid{grid-template-columns:repeat(2,1fr)}.product-list{max-height:none}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.advanced-toolbar{grid-template-columns:1fr 1fr}.advanced-toolbar button{grid-column:1/-1}.desktop-help{display:none}.status-strip{grid-template-columns:repeat(2,1fr)}
     }
     @media(max-width:700px){
-      .wrap{width:min(var(--max),calc(100% - 20px))}.topbar-inner{align-items:flex-start}.logo{width:44px;height:44px}.brand h1{font-size:.98rem}.brand span{font-size:.73rem}.top-actions .pill{display:none}.btn{padding:9px 12px}.hero{padding-top:22px}.hero-card{padding:20px;border-radius:26px}.stat-grid,.dashboard-grid{grid-template-columns:1fr 1fr}.status-strip{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.product-card{grid-template-columns:78px 1fr}.thumb{width:78px;height:78px}.toolbar,.advanced-toolbar{grid-template-columns:1fr}.panel{padding:16px}.preview-box{grid-template-columns:1fr}.preview-box .thumb{width:100%;height:160px}.panel-head,.section-title{display:block}.panel-head-actions{justify-content:flex-start;margin-top:10px}.nav-menu{grid-template-columns:1fr 1fr}.admin-table{min-width:680px}
+      .wrap{width:min(var(--max),calc(100% - 20px))}.topbar-inner{align-items:flex-start}.logo{width:44px;height:44px}.brand h1{font-size:.98rem}.brand span{font-size:.73rem}.top-actions .pill{display:none}.btn{padding:9px 12px}.hero{padding-top:22px}.hero-card{padding:20px;border-radius:26px}.stat-grid,.dashboard-grid{grid-template-columns:1fr 1fr}.status-strip{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.product-card{grid-template-columns:78px 1fr}.thumb{width:78px;height:78px}.toolbar,.advanced-toolbar{grid-template-columns:1fr}.panel{padding:16px}.preview-box{grid-template-columns:1fr}.preview-box .thumb{width:100%;height:160px}.panel-head,.section-title{display:block}.panel-head-actions{justify-content:flex-start;margin-top:10px}.product-import-row{margin-top:10px}.product-import-row .btn{flex:1 1 auto}.product-import-hint{flex-basis:100%}.nav-menu{grid-template-columns:1fr 1fr}.admin-table{min-width:680px}
     }
     @media(max-width:440px){
       .stat-grid,.dashboard-grid,.nav-menu{grid-template-columns:1fr}.card-actions .btn,.row-actions .btn{flex:1 1 auto}.file-row{grid-template-columns:1fr}.top-actions{gap:6px}.brand{gap:9px}
@@ -535,6 +535,13 @@
             <button class="btn small warn" id="qualityBtn" type="button">Cek kualitas</button>
           </div>
         </div>
+        <div class="product-import-row requires-edit" id="productAppendImportRow" aria-label="Import JSON tambahan produk dan pesanan">
+          <button class="btn small primary" id="chooseAppendImportFileProductBtn" type="button">Import JSON</button>
+          <button class="btn small good" id="appendImportProductBtn" type="button" disabled>Import Tambahan</button>
+          <input class="file-input" id="appendImportFileProduct" type="file" accept="application/json,.json">
+          <span class="muted product-import-hint">Append-only: data lama aman, tidak dihapus, tidak ditimpa.</span>
+        </div>
+        <div class="notice hidden requires-edit" id="appendImportPreviewProduct" role="status">Belum ada file JSON dipilih. Mode append-only: produk/pesanan lama tidak dihapus, tidak ditimpa, dan tidak di-merge.</div>
         <div class="toolbar">
           <input class="input" id="search" type="search" placeholder="Cari produk, ID, brand, kategori, notes...">
           <select id="filterCategory"><option value="">Semua kategori</option></select>
@@ -570,6 +577,24 @@
               <button class="quick-card" type="button" data-view-target="pesanan" data-scroll-target="orderFormPanel" data-quick-action="focus-order-form"><b>02</b><span><strong>Pesanan Baru</strong><span>Input order customer</span></span></button>
               <button class="quick-card" type="button" data-view-target="pesanan" data-scroll-target="ordersTablePanel"><b>03</b><span><strong>Belum Bayar</strong><span>Cek status pembayaran</span></span></button>
               <button class="quick-card" type="button" data-view-target="pesanan" data-scroll-target="ordersTablePanel"><b>04</b><span><strong>Invoice</strong><span>Akses dari daftar pesanan</span></span></button>
+            </div>
+            <div class="restore-box requires-edit" id="appendImportPanel" style="margin-top:14px">
+              <div class="section-title" style="margin-bottom:0">
+                <div>
+                  <h3>Import JSON Produk &amp; Pesanan</h3>
+                  <p>Mode <b>append-only</b>: data lama tidak dihapus, tidak ditimpa, dan tidak di-merge. Jika ID bentrok, sistem otomatis membuat ID baru untuk data import.</p>
+                </div>
+              </div>
+              <div class="settings-actions">
+                <button class="btn" id="chooseAppendImportFileBtn" type="button">Pilih JSON Import</button>
+                <button class="btn primary" id="appendImportBtn" type="button" disabled>Import Tambahan</button>
+                <input class="file-input" id="appendImportFile" type="file" accept="application/json,.json">
+              </div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                <label style="display:flex;gap:8px;align-items:center"><input id="appendImportProducts" type="checkbox" checked> Import produk</label>
+                <label style="display:flex;gap:8px;align-items:center"><input id="appendImportOrders" type="checkbox" checked> Import pesanan</label>
+              </div>
+              <div class="notice" id="appendImportPreview">Belum ada file JSON dipilih. Format bisa berupa backup lengkap, objek <b>{products, orders}</b>, atau array produk/pesanan.</div>
             </div>
           </div>
           <div class="module-grid">
@@ -726,7 +751,7 @@
               <div class="settings-grid">
                 <div class="settings-card"><h4>Admin &amp; Role</h4><p>Role owner, editor, dan viewer tetap mengikuti logic lama. Viewer hanya melihat data, tombol simpan/edit/hapus disembunyikan.</p><span class="status-pill good">Role UI aktif</span></div>
                 <div class="settings-card"><h4>Transaksi</h4><p>Order baru mendukung multi-item, alamat, ongkir, diskon, bukti bayar, invoice, dan stok otomatis.</p><span class="status-pill good">Aktif</span></div>
-                <div class="settings-card"><h4>Backup Semua Data</h4><p>Export/restore mencakup products, orders, customers, settings, dan security log lokal.</p><span class="status-pill good">Aktif</span></div>
+                <div class="settings-card"><h4>Backup Semua Data</h4><p>Backup mencakup products, orders, customers, settings, dan security log lokal. Import produk/pesanan append-only ada di halaman Pesanan.</p><span class="status-pill good">Aktif</span></div>
               </div>
               <div class="settings-panel-grid">
                 <div class="panel anchor-panel" id="settingsStorePanel">
@@ -750,8 +775,8 @@
                   <div class="settings-actions"><button class="btn primary requires-edit" id="saveWhatsAppSettingsBtn" type="button">Simpan Template WA</button></div><div class="notice hidden" id="whatsAppSettingsMessage"></div>
                 </div>
                 <div class="panel anchor-panel full" id="settingsBackupPanel">
-                  <span class="view-kicker">Pengaturan / Backup &amp; Restore</span><h3>Backup / Restore Semua Data</h3><p class="help">JSON berisi products, orders, customers, settings. Restore memerlukan role owner/export dan reauth.</p>
-                  <div class="restore-box"><div class="settings-actions"><button class="btn good requires-export" id="exportAllDataBtn" type="button">Backup Semua Data JSON</button><button class="btn requires-export" id="chooseRestoreFileBtn" type="button">Pilih File Restore</button><button class="btn primary requires-export" id="restoreAllDataBtn" type="button" disabled>Restore Data</button></div><input class="file-input" id="restoreFile" type="file" accept="application/json,.json"><label style="display:flex;gap:8px;align-items:center"><input id="replaceExistingData" type="checkbox"> Hapus data lama products/orders/customers sebelum restore</label><div class="notice" id="restorePreview">Belum ada file restore dipilih.</div></div>
+                  <span class="view-kicker">Pengaturan / Backup</span><h3>Backup Semua Data</h3><p class="help">JSON berisi products, orders, customers, settings, dan security log lokal. Import/restore produk &amp; pesanan sekarang dipindahkan ke halaman <b>Pesanan</b> dengan mode append-only agar data lama tidak terhapus atau tertimpa.</p>
+                  <div class="restore-box"><div class="settings-actions"><button class="btn good requires-export" id="exportAllDataBtn" type="button">Backup Semua Data JSON</button><button class="btn" type="button" data-view-target="pesanan" data-scroll-target="appendImportPanel">Buka Import Produk &amp; Pesanan</button></div><div class="notice good" id="restorePreview">Mode restore destruktif dimatikan. Import produk/pesanan hanya menambahkan data baru dari halaman Pesanan.</div></div>
                 </div>
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
                   <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, restore, upload bukti, dan pengaturan.</p>
@@ -860,7 +885,9 @@
       paymentBankName:$('paymentBankName'), paymentAccountName:$('paymentAccountName'), paymentAccountNumber:$('paymentAccountNumber'), paymentEwallet:$('paymentEwallet'), paymentQrisUrl:$('paymentQrisUrl'), paymentInstruction:$('paymentInstruction'), savePaymentSettingsBtn:$('savePaymentSettingsBtn'), paymentSettingsMessage:$('paymentSettingsMessage'),
       courierListText:$('courierListText'), defaultShippingCost:$('defaultShippingCost'), freeShippingMin:$('freeShippingMin'), saveCourierSettingsBtn:$('saveCourierSettingsBtn'), courierSettingsMessage:$('courierSettingsMessage'),
       waInvoiceTemplate:$('waInvoiceTemplate'), waPaymentTemplate:$('waPaymentTemplate'), waShippingTemplate:$('waShippingTemplate'), waFollowupTemplate:$('waFollowupTemplate'), waReturnTemplate:$('waReturnTemplate'), saveWhatsAppSettingsBtn:$('saveWhatsAppSettingsBtn'), whatsAppSettingsMessage:$('whatsAppSettingsMessage'),
-      exportAllDataBtn:$('exportAllDataBtn'), chooseRestoreFileBtn:$('chooseRestoreFileBtn'), restoreFile:$('restoreFile'), restoreAllDataBtn:$('restoreAllDataBtn'), restorePreview:$('restorePreview'), replaceExistingData:$('replaceExistingData'), exportSecurityLogBtn:$('exportSecurityLogBtn'), clearLocalSecurityLogBtn:$('clearLocalSecurityLogBtn'), securityLogList:$('securityLogList')
+      exportAllDataBtn:$('exportAllDataBtn'), chooseRestoreFileBtn:$('chooseRestoreFileBtn'), restoreFile:$('restoreFile'), restoreAllDataBtn:$('restoreAllDataBtn'), restorePreview:$('restorePreview'), replaceExistingData:$('replaceExistingData'), exportSecurityLogBtn:$('exportSecurityLogBtn'), clearLocalSecurityLogBtn:$('clearLocalSecurityLogBtn'), securityLogList:$('securityLogList'),
+      appendImportPanel:$('appendImportPanel'), chooseAppendImportFileBtn:$('chooseAppendImportFileBtn'), appendImportFile:$('appendImportFile'), appendImportBtn:$('appendImportBtn'), appendImportPreview:$('appendImportPreview'), appendImportProducts:$('appendImportProducts'), appendImportOrders:$('appendImportOrders'),
+      productAppendImportRow:$('productAppendImportRow'), chooseAppendImportFileProductBtn:$('chooseAppendImportFileProductBtn'), appendImportFileProduct:$('appendImportFileProduct'), appendImportProductBtn:$('appendImportProductBtn'), appendImportPreviewProduct:$('appendImportPreviewProduct')
     });
 
     let products = [];
@@ -870,6 +897,7 @@
     let appSettings = defaultSettings();
     let securityLogs = [];
     let pendingRestorePayload = null;
+    let pendingAppendImportPayload = null;
     let unsubscribeProducts = null;
     let unsubscribeOrders = null;
     let unsubscribeCustomers = null;
@@ -1135,6 +1163,8 @@
         items, subtotal, shippingCost, discount, total,
         address: String(data.address || '').trim(),
         paymentProof: String(data.paymentProof || '').trim(),
+        stockSynced: data.stockSynced !== false,
+        importedAppendOnly: data.importedAppendOnly === true,
         paymentMethod: String(data.paymentMethod || 'Transfer Bank').trim(),
         paymentStatus: String(data.paymentStatus || 'Belum Bayar').trim(),
         orderStatus: String(data.orderStatus || 'Menunggu Pembayaran').trim(),
@@ -1295,7 +1325,10 @@
       if(els.exportJsonBtn){ els.exportJsonBtn.disabled = busy || !currentAdmin.canExport; els.exportJsonBtn.classList.toggle('hidden', !currentAdmin.canExport); }
       if(els.exportCsvBtn){ els.exportCsvBtn.disabled = busy || !currentAdmin.canExport; els.exportCsvBtn.classList.toggle('hidden', !currentAdmin.canExport); }
       if(els.deleteEditingBtn){ els.deleteEditingBtn.disabled = busy || !currentAdmin.canDelete; if(!currentAdmin.canDelete) els.deleteEditingBtn.classList.add('hidden'); }
-      [els.saveOrderBtn, els.resetOrderBtn, els.autoOrderIdBtn, els.addOrderItemBtn, els.saveCustomerBtn, els.resetCustomerBtn, els.saveStoreSettingsBtn, els.savePaymentSettingsBtn, els.saveCourierSettingsBtn, els.saveWhatsAppSettingsBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canEdit; btn.classList.toggle('hidden', !currentAdmin.canEdit); }});
+      [els.saveOrderBtn, els.resetOrderBtn, els.autoOrderIdBtn, els.addOrderItemBtn, els.saveCustomerBtn, els.resetCustomerBtn, els.saveStoreSettingsBtn, els.savePaymentSettingsBtn, els.saveCourierSettingsBtn, els.saveWhatsAppSettingsBtn, els.chooseAppendImportFileBtn, els.appendImportBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canEdit || (btn === els.appendImportBtn && !pendingAppendImportPayload); btn.classList.toggle('hidden', !currentAdmin.canEdit); }});
+      if(els.productAppendImportRow) els.productAppendImportRow.classList.toggle('hidden', !currentAdmin.canEdit);
+      if(els.chooseAppendImportFileProductBtn){ els.chooseAppendImportFileProductBtn.disabled = busy || !currentAdmin.canEdit; els.chooseAppendImportFileProductBtn.classList.remove('hidden'); }
+      if(els.appendImportProductBtn){ els.appendImportProductBtn.disabled = busy || !currentAdmin.canEdit || !pendingAppendImportPayload; els.appendImportProductBtn.classList.remove('hidden'); }
       [els.chooseProofBtn, els.uploadProofBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canUpload || (btn === els.uploadProofBtn && !(els.paymentProofFile && els.paymentProofFile.files && els.paymentProofFile.files[0])); btn.classList.toggle('hidden', !currentAdmin.canUpload); }});
       [els.exportAllDataBtn, els.restoreAllDataBtn, els.chooseRestoreFileBtn, els.exportCustomersCsvBtn, els.exportSecurityLogBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canExport || (btn === els.restoreAllDataBtn && !pendingRestorePayload); btn.classList.toggle('hidden', !currentAdmin.canExport); }});
       if(els.clearLocalSecurityLogBtn){ els.clearLocalSecurityLogBtn.disabled = busy || !currentAdmin.canDelete; els.clearLocalSecurityLogBtn.classList.toggle('hidden', !currentAdmin.canDelete); }
@@ -1734,7 +1767,7 @@
     }
     function setBusy(state){
       busy = state;
-      [els.loginBtn, els.saveBtn, els.resetBtn, els.autoIdBtn, els.deleteEditingBtn, els.choosePhotoBtn, els.exportJsonBtn, els.exportCsvBtn, els.qualityBtn].forEach(btn => btn.disabled = state);
+      [els.loginBtn, els.saveBtn, els.resetBtn, els.autoIdBtn, els.deleteEditingBtn, els.choosePhotoBtn, els.exportJsonBtn, els.exportCsvBtn, els.qualityBtn, els.chooseAppendImportFileBtn, els.appendImportBtn, els.chooseAppendImportFileProductBtn, els.appendImportProductBtn].forEach(btn => { if(btn) btn.disabled = state; });
       els.restoreDraftBtn.disabled = state || !sessionStorage.getItem(DRAFT_KEY);
       els.uploadPhotoBtn.disabled = state || !(els.photoFile.files && els.photoFile.files[0]);
       if(!state) applyRoleUi();
@@ -2014,7 +2047,7 @@
     }
     function isStockAffectingOrder(order){
       if(!order) return false;
-      return isPaid(order) && !isCancelled(order);
+      return order.stockSynced !== false && isPaid(order) && !isCancelled(order);
     }
     function sameProductKey(item){ return item.productDocId || (item.productId ? 'id:' + item.productId : 'name:' + String(item.productName || '').toLowerCase()); }
     function findProductForItem(item){
@@ -2079,7 +2112,9 @@
       const total = Math.max(0, Math.trunc(safeNumber(els.orderTotal.value, subtotal + shippingCost - discount)));
       if(!Number.isInteger(total)) throw new Error('Total harga harus angka bulat Rupiah.');
       const itemSnapshot = orderItems.map(normalizeOrderItem);
-      return { orderId, customerName, items:itemSnapshot, productName:itemSnapshot.map(item=>item.productName).join(', '), qty:itemSnapshot.reduce((sum,item)=>sum + Number(item.qty || 0), 0), subtotal, shippingCost, discount, total, address: els.orderAddress.value.trim(), paymentProof: els.orderPaymentProof.value.trim(), paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), updatedAt: serverTimestamp(), updatedAtMs: Date.now() };
+      const data = { orderId, customerName, items:itemSnapshot, productName:itemSnapshot.map(item=>item.productName).join(', '), qty:itemSnapshot.reduce((sum,item)=>sum + Number(item.qty || 0), 0), subtotal, shippingCost, discount, total, address: els.orderAddress.value.trim(), paymentProof: els.orderPaymentProof.value.trim(), paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), updatedAt: serverTimestamp(), updatedAtMs: Date.now() };
+      data.stockSynced = isPaid(data) && !isCancelled(data);
+      return data;
     }
     async function saveOrder(event){
       event.preventDefault();
@@ -2708,6 +2743,254 @@
       const text = fillTemplate(wa[kind] || wa.invoice, order);
       try{ await navigator.clipboard.writeText(text); showToast('Template WhatsApp disalin'); }catch(_e){ showToast(text); }
     }
+    function normalizeAppendImportPayload(payload){
+      if(!payload || typeof payload !== 'object') throw new Error('Format JSON import tidak valid.');
+      const source = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+      let productsPayload = Array.isArray(source.products) ? source.products : [];
+      let ordersPayload = Array.isArray(source.orders) ? source.orders : [];
+      if(Array.isArray(payload)){
+        const productLike = payload.filter(row => row && typeof row === 'object' && (row.title || row.category || row.price || row.img) && !row.orderId);
+        const orderLike = payload.filter(row => row && typeof row === 'object' && (row.orderId || row.customerName || row.items || row.paymentStatus));
+        productsPayload = productLike.length ? productLike : [];
+        ordersPayload = orderLike.length ? orderLike : [];
+      }
+      productsPayload = productsPayload.filter(row => row && typeof row === 'object');
+      ordersPayload = ordersPayload.filter(row => row && typeof row === 'object');
+      if(!productsPayload.length && !ordersPayload.length) throw new Error('JSON tidak berisi products atau orders yang bisa diimport.');
+      return { products: productsPayload, orders: ordersPayload };
+    }
+    function setAppendImportNotice(message, type=''){
+      [els.appendImportPreview, els.appendImportPreviewProduct].forEach(el => {
+        if(!el) return;
+        if(type) setNotice(el, message, type);
+        else { el.textContent = message; el.classList.remove('hidden'); }
+      });
+    }
+    function resetAppendImportInputs(){
+      if(els.appendImportFile) els.appendImportFile.value = '';
+      if(els.appendImportFileProduct) els.appendImportFileProduct.value = '';
+    }
+    function handleAppendImportFile(event){
+      const sourceInput = event && event.target ? event.target : els.appendImportFile;
+      const file = (sourceInput && sourceInput.files && sourceInput.files[0]) ||
+        (els.appendImportFile && els.appendImportFile.files && els.appendImportFile.files[0]) ||
+        (els.appendImportFileProduct && els.appendImportFileProduct.files && els.appendImportFileProduct.files[0]);
+      pendingAppendImportPayload = null;
+      if(!file){
+        setAppendImportNotice('Belum ada file JSON dipilih.', '');
+        applyRoleUi();
+        return;
+      }
+      if(!String(file.name || '').toLowerCase().endsWith('.json') && !String(file.type || '').includes('json')){
+        setAppendImportNotice('File harus berformat JSON (.json).', 'danger');
+        resetAppendImportInputs();
+        applyRoleUi();
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const parsed = JSON.parse(String(reader.result || '{}'));
+          pendingAppendImportPayload = normalizeAppendImportPayload(parsed);
+          const productIds = new Set(products.map(p => Number(p.id || 0)).filter(Boolean));
+          const productDocs = new Set(products.map(p => String(p.docId || '')));
+          const orderIds = new Set(orders.map(o => String(o.orderId || '').toLowerCase()).filter(Boolean));
+          const orderDocs = new Set(orders.map(o => String(o.docId || '')));
+          const productConflicts = pendingAppendImportPayload.products.filter(p => productIds.has(Number(p.id || 0)) || productDocs.has(String(p.docId || padDocId(p.id || 0)))).length;
+          const orderConflicts = pendingAppendImportPayload.orders.filter(o => orderIds.has(String(o.orderId || '').toLowerCase()) || orderDocs.has(String(o.docId || sanitizeDocId(o.orderId || '')))).length;
+          const msg = 'File siap import append-only: ' + pendingAppendImportPayload.products.length + ' produk, ' + pendingAppendImportPayload.orders.length + ' pesanan. Bentrok ID terdeteksi: ' + productConflicts + ' produk, ' + orderConflicts + ' pesanan. Semua bentrok akan dibuatkan ID baru, data lama tidak disentuh. Klik Import Tambahan untuk menjalankan.';
+          setAppendImportNotice(msg, 'good');
+        }catch(error){
+          pendingAppendImportPayload = null;
+          setAppendImportNotice(error.message, 'danger');
+        }
+        applyRoleUi();
+      };
+      reader.onerror = () => {
+        pendingAppendImportPayload = null;
+        setAppendImportNotice('File JSON gagal dibaca. Coba pilih ulang file.', 'danger');
+        applyRoleUi();
+      };
+      reader.readAsText(file);
+    }
+    function nextFreePositiveId(usedIds, preferred){
+      let candidate = Number(preferred || 0);
+      if(!Number.isInteger(candidate) || candidate < 1 || usedIds.has(candidate)){
+        candidate = 1;
+        while(usedIds.has(candidate)) candidate += 1;
+      }
+      usedIds.add(candidate);
+      return candidate;
+    }
+    function uniqueSlug(base, used, fallback){
+      const clean = sanitizeDocId(base, fallback || ('import-' + Date.now()));
+      let candidate = clean;
+      let idx = 1;
+      while(used.has(candidate)){
+        candidate = clean + '-' + String(idx).padStart(3, '0');
+        idx += 1;
+      }
+      used.add(candidate);
+      return candidate;
+    }
+    function cleanImportedProduct(raw, usedProductIds, usedProductDocs, importIndex){
+      const preferred = Number(raw.id || 0);
+      let id = preferred;
+      let docId = id ? padDocId(id) : '';
+      if(!Number.isInteger(id) || id < 1 || usedProductIds.has(id) || usedProductDocs.has(docId)){
+        id = nextFreePositiveId(usedProductIds, 0);
+        docId = padDocId(id);
+      } else {
+        usedProductIds.add(id);
+      }
+      while(usedProductDocs.has(docId)){
+        id = nextFreePositiveId(usedProductIds, 0);
+        docId = padDocId(id);
+      }
+      usedProductDocs.add(docId);
+      const img = sanitizeStoredImageUrl(raw.img || raw.image || raw.photo || raw.foto || '');
+      const status = ['ready','sold'].includes(String(raw.status || '').trim()) ? String(raw.status).trim() : 'ready';
+      const title = String(raw.title || raw.name || raw.nama || ('Produk Import ' + String(importIndex + 1).padStart(3,'0'))).trim().slice(0,120);
+      const data = {
+        id,
+        title,
+        brand: String(raw.brand || '').trim().slice(0,80),
+        category: String(raw.category || raw.kategori || 'Import').trim().slice(0,60) || 'Import',
+        price: Math.max(0, Math.trunc(safeNumber(raw.price ?? raw.harga, 0))),
+        costPrice: Math.max(0, Math.trunc(safeNumber(raw.costPrice ?? raw.modal, 0))),
+        stock: Math.max(0, Math.trunc(safeNumber(raw.stock ?? raw.stok, status === 'sold' ? 0 : 1))),
+        minStock: Math.max(0, Math.trunc(safeNumber(raw.minStock ?? raw.stokMinimum, 0))),
+        soldCount: Math.max(0, Math.trunc(safeNumber(raw.soldCount ?? raw.terjual, 0))),
+        size: String(raw.size || raw.ukuran || '').trim().slice(0,40),
+        fragranceType: String(raw.fragranceType || raw.jenisParfum || '').trim(),
+        gender: String(raw.gender || raw.target || '').trim(),
+        scentFamily: String(raw.scentFamily || raw.aromaUtama || '').trim().slice(0,120),
+        longevity: String(raw.longevity || raw.ketahanan || '').trim().slice(0,60),
+        projection: String(raw.projection || '').trim().slice(0,60),
+        topNotes: String(raw.topNotes || '').trim().slice(0,180),
+        middleNotes: String(raw.middleNotes || '').trim().slice(0,180),
+        baseNotes: String(raw.baseNotes || '').trim().slice(0,180),
+        img,
+        desc: String(raw.desc || raw.description || raw.deskripsi || '').trim().slice(0,260),
+        notes: String(raw.notes || raw.note || '').trim().slice(0,160),
+        status,
+        longDesc: String(raw.longDesc || raw.longDescription || '').trim().slice(0,1200),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        importedAt: serverTimestamp(),
+        importedAppendOnly: true,
+        importedFrom: 'orders-page-json'
+      };
+      const oldKeys = [String(raw.docId || ''), raw.id ? 'id:' + Number(raw.id) : '', title ? 'title:' + title.toLowerCase() : ''].filter(Boolean);
+      return { docId, data, oldKeys };
+    }
+    function cleanImportedOrder(raw, usedOrderIds, usedOrderDocs, productImportMap, importIndex){
+      const preferredId = String(raw.orderId || raw.id || '').trim() || ('IMP-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(importIndex + 1).padStart(3,'0'));
+      let orderId = preferredId;
+      let checkKey = orderId.toLowerCase();
+      let suffix = 1;
+      while(usedOrderIds.has(checkKey)){
+        orderId = preferredId + '-IMP' + String(suffix).padStart(3,'0');
+        checkKey = orderId.toLowerCase();
+        suffix += 1;
+      }
+      usedOrderIds.add(checkKey);
+      const docId = uniqueSlug(orderId, usedOrderDocs, 'order-import-' + Date.now());
+      const rawItems = (Array.isArray(raw.items) && raw.items.length) ? raw.items : orderItemsFromLegacy(raw);
+      let items = rawItems.map(item => {
+        const normalized = normalizeOrderItem(item);
+        const keys = [String(normalized.productDocId || ''), normalized.productId ? 'id:' + Number(normalized.productId) : '', normalized.productName ? 'title:' + normalized.productName.toLowerCase() : ''].filter(Boolean);
+        const mapped = keys.map(key => productImportMap.get(key)).find(Boolean);
+        if(mapped){
+          return normalizeOrderItem({ productDocId:mapped.docId, productId:mapped.data.id, productName:mapped.data.title, qty:normalized.qty, price:normalized.price || mapped.data.price, costPrice:mapped.data.costPrice });
+        }
+        const existingProduct = findProductForItem(normalized);
+        if(existingProduct){
+          return normalizeOrderItem({ productDocId:existingProduct.docId, productId:existingProduct.id, productName:existingProduct.title, qty:normalized.qty, price:normalized.price || existingProduct.price, costPrice:existingProduct.costPrice });
+        }
+        return normalizeOrderItem(Object.assign({}, normalized, { productDocId:'', productId:0 }));
+      }).filter(item => item.productName && item.qty > 0);
+      if(!items.length){
+        const fallbackName = String(raw.productName || raw.product || 'Produk Import').trim();
+        items = [normalizeOrderItem({ productName:fallbackName, qty:Math.max(1, Math.trunc(safeNumber(raw.qty, 1))), price:Math.max(0, Math.trunc(safeNumber(raw.total, 0))) })];
+      }
+      const subtotal = Math.max(0, Math.trunc(safeNumber(raw.subtotal, items.reduce((sum,item)=>sum + itemSubtotal(item), 0))));
+      const shippingCost = Math.max(0, Math.trunc(safeNumber(raw.shippingCost ?? raw.ongkir, 0)));
+      const discount = Math.max(0, Math.trunc(safeNumber(raw.discount ?? raw.diskon, 0)));
+      const total = Math.max(0, Math.trunc(safeNumber(raw.total, subtotal + shippingCost - discount)));
+      const paymentStatus = String(raw.paymentStatus || raw.statusPembayaran || 'Belum Bayar').trim();
+      const orderStatus = String(raw.orderStatus || raw.statusPesanan || 'Menunggu Pembayaran').trim();
+      const data = {
+        orderId,
+        customerName: String(raw.customerName || raw.customer || raw.namaPelanggan || '').trim().slice(0,100) || 'Customer Import',
+        items,
+        productName: items.map(item => item.productName).join(', '),
+        qty: items.reduce((sum,item)=>sum + Number(item.qty || 0), 0),
+        subtotal,
+        shippingCost,
+        discount,
+        total,
+        address: String(raw.address || raw.alamat || '').trim().slice(0,520),
+        paymentProof: sanitizeStoredImageUrl(raw.paymentProof || raw.buktiBayar || raw.proof || '') || String(raw.paymentProof || raw.buktiBayar || raw.proof || '').trim().slice(0,1000),
+        paymentMethod: String(raw.paymentMethod || raw.metodePembayaran || 'Transfer Bank').trim(),
+        paymentStatus,
+        orderStatus,
+        courier: String(raw.courier || raw.ekspedisi || '').trim(),
+        trackingNumber: String(raw.trackingNumber || raw.resi || '').trim().slice(0,80),
+        note: String(raw.note || raw.catatan || '').trim().slice(0,360),
+        stockSynced: false,
+        importedAppendOnly: true,
+        importedFrom: 'orders-page-json',
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+        updatedAt: serverTimestamp(),
+        updatedAtMs: Date.now(),
+        importedAt: serverTimestamp()
+      };
+      return { docId, data };
+    }
+    async function importAppendOnlyProductsOrders(){
+      try{
+        requirePermission('canEdit', 'import JSON produk/pesanan');
+        if(!pendingAppendImportPayload) throw new Error('Pilih file JSON import dulu.');
+        const includeProducts = !els.appendImportProducts || els.appendImportProducts.checked;
+        const includeOrders = !els.appendImportOrders || els.appendImportOrders.checked;
+        if(!includeProducts && !includeOrders) throw new Error('Centang minimal Import produk atau Import pesanan.');
+        const usedProductIds = new Set(products.map(p => Number(p.id || 0)).filter(Boolean));
+        const usedProductDocs = new Set(products.map(p => String(p.docId || '')));
+        const usedOrderIds = new Set(orders.map(o => String(o.orderId || '').toLowerCase()).filter(Boolean));
+        const usedOrderDocs = new Set(orders.map(o => String(o.docId || '')));
+        const ops = [];
+        const productImportMap = new Map();
+        if(includeProducts){
+          pendingAppendImportPayload.products.forEach((raw, index) => {
+            const imported = cleanImportedProduct(raw, usedProductIds, usedProductDocs, index);
+            ops.push({ type:'set', ref:doc(db, 'products', imported.docId), data:imported.data });
+            imported.oldKeys.forEach(key => productImportMap.set(key, imported));
+          });
+        }
+        if(includeOrders){
+          pendingAppendImportPayload.orders.forEach((raw, index) => {
+            const imported = cleanImportedOrder(raw, usedOrderIds, usedOrderDocs, productImportMap, index);
+            ops.push({ type:'set', ref:doc(db, 'orders', imported.docId), data:imported.data });
+          });
+        }
+        if(!ops.length) throw new Error('Tidak ada data yang dipilih untuk diimport.');
+        if(!confirm('Import tambahan sekarang? Data lama TIDAK akan dihapus, ditimpa, atau di-merge. Jika ada ID bentrok, sistem memakai ID baru.')) return;
+        setBusy(true);
+        await commitOpsInBatches(ops);
+        await logSecurity('append-import.products-orders', 'Append-only import: ' + ops.length + ' dokumen');
+        pendingAppendImportPayload = null;
+        resetAppendImportInputs();
+        setAppendImportNotice('Import selesai: ' + ops.length + ' dokumen baru ditambahkan. Data lama tidak dihapus/ditimpa.', 'good');
+        showToast('Import append-only selesai');
+      }catch(error){
+        setAppendImportNotice(firebaseMessage(error), 'danger');
+      }finally{
+        setBusy(false);
+        applyRoleUi();
+      }
+    }
     function normalizeRestorePayload(payload){
       if(!payload || typeof payload !== 'object') throw new Error('Format JSON restore tidak valid.');
       return {
@@ -2747,23 +3030,22 @@
         requirePermission('canExport', 'restore semua data');
         if(!pendingRestorePayload) throw new Error('Pilih file restore JSON dulu.');
         await requireSensitiveReauth('restore semua data');
-        if(!confirm('Restore data sekarang? Pastikan file benar.')) return;
-        const replace = Boolean(els.replaceExistingData && els.replaceExistingData.checked);
+        if(!confirm('Restore append-only sekarang? Data lama tidak akan dihapus atau ditimpa.')) return;
         const ops = [];
-        if(replace){
-          products.forEach(p => ops.push({ type:'delete', ref:doc(db,'products',p.docId) }));
-          orders.forEach(o => ops.push({ type:'delete', ref:doc(db,'orders',o.docId) }));
-          customers.forEach(c => ops.push({ type:'delete', ref:doc(db,'customers',c.docId) }));
-        }
-        pendingRestorePayload.products.forEach(p => { const data = Object.assign({}, p); const id = data.docId || padDocId(data.id); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'products',id), data }); });
-        pendingRestorePayload.orders.forEach(o => { const data = Object.assign({}, o); const id = data.docId || sanitizeDocId(data.orderId, 'order-' + Date.now()); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'orders',id), data }); });
-        pendingRestorePayload.customers.forEach(c => { const data = Object.assign({}, c); const id = data.docId || sanitizeDocId(data.name + '-' + (data.phone || data.email || Date.now()), 'customer-' + Date.now()); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'customers',id), data }); });
+        const usedProductIds = new Set(products.map(p => Number(p.id || 0)).filter(Boolean));
+        const usedProductDocs = new Set(products.map(p => String(p.docId || '')));
+        const usedOrderIds = new Set(orders.map(o => String(o.orderId || '').toLowerCase()).filter(Boolean));
+        const usedOrderDocs = new Set(orders.map(o => String(o.docId || '')));
+        const productImportMap = new Map();
+        pendingRestorePayload.products.forEach((p, index) => { const imported = cleanImportedProduct(p, usedProductIds, usedProductDocs, index); ops.push({ type:'set', ref:doc(db,'products',imported.docId), data:Object.assign({}, imported.data, { restoredAt:serverTimestamp() }) }); imported.oldKeys.forEach(key => productImportMap.set(key, imported)); });
+        pendingRestorePayload.orders.forEach((o, index) => { const imported = cleanImportedOrder(o, usedOrderIds, usedOrderDocs, productImportMap, index); ops.push({ type:'set', ref:doc(db,'orders',imported.docId), data:Object.assign({}, imported.data, { restoredAt:serverTimestamp() }) }); });
+        pendingRestorePayload.customers.forEach(c => { const data = Object.assign({}, c); const id = uniqueSlug(data.docId || (data.name + '-' + (data.phone || data.email || Date.now())), new Set(customers.map(row => row.docId)), 'customer-' + Date.now()); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'customers',id), data }); });
         if(pendingRestorePayload.settings){ Object.keys(settingsRefs).forEach(kind => { if(pendingRestorePayload.settings[kind]) ops.push({ type:'set', ref:settingsRefs[kind], data:Object.assign({}, pendingRestorePayload.settings[kind], { restoredAt:serverTimestamp() }) }); }); }
         setBusy(true);
         await commitOpsInBatches(ops);
-        await logSecurity('backup.restore', 'Restore data: ' + ops.length + ' operasi');
-        showToast('Restore selesai');
-        setNotice(els.restorePreview, 'Restore selesai: ' + ops.length + ' operasi Firestore.', 'good');
+        await logSecurity('backup.restore-append-only', 'Restore append-only: ' + ops.length + ' operasi');
+        showToast('Restore append-only selesai');
+        setNotice(els.restorePreview, 'Restore append-only selesai: ' + ops.length + ' dokumen baru ditambahkan tanpa menghapus/menimpa data lama.', 'good');
       }catch(error){ setNotice(els.restorePreview, firebaseMessage(error), 'danger'); }
       finally{ setBusy(false); }
     }
@@ -2850,9 +3132,16 @@
     if(reportExportCsvBtn) reportExportCsvBtn.addEventListener('click', exportCsv);
     if(els.exportAllDataBtn) els.exportAllDataBtn.addEventListener('click', exportJson);
     if(els.exportCustomersCsvBtn) els.exportCustomersCsvBtn.addEventListener('click', exportCustomersCsv);
-    if(els.chooseRestoreFileBtn) els.chooseRestoreFileBtn.addEventListener('click', () => els.restoreFile.click());
+    if(els.chooseRestoreFileBtn && els.restoreFile) els.chooseRestoreFileBtn.addEventListener('click', () => els.restoreFile.click());
     if(els.restoreFile) els.restoreFile.addEventListener('change', handleRestoreFile);
     if(els.restoreAllDataBtn) els.restoreAllDataBtn.addEventListener('click', restoreAllData);
+    if(els.chooseAppendImportFileBtn && els.appendImportFile) els.chooseAppendImportFileBtn.addEventListener('click', () => els.appendImportFile.click());
+    if(els.appendImportFile) els.appendImportFile.addEventListener('change', handleAppendImportFile);
+    if(els.appendImportBtn) els.appendImportBtn.addEventListener('click', importAppendOnlyProductsOrders);
+    if(els.chooseAppendImportFileProductBtn && els.appendImportFileProduct) els.chooseAppendImportFileProductBtn.addEventListener('click', () => els.appendImportFileProduct.click());
+    if(els.appendImportFileProduct) els.appendImportFileProduct.addEventListener('change', handleAppendImportFile);
+    if(els.appendImportProductBtn) els.appendImportProductBtn.addEventListener('click', importAppendOnlyProductsOrders);
+    [els.appendImportProducts, els.appendImportOrders].forEach(box => { if(box) box.addEventListener('change', applyRoleUi); });
     if(els.exportSecurityLogBtn) els.exportSecurityLogBtn.addEventListener('click', () => downloadFile('dirac-security-log-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(securityLogs.length ? securityLogs : localSecurityLogs(), null, 2), 'application/json;charset=utf-8'));
     if(els.clearLocalSecurityLogBtn) els.clearLocalSecurityLogBtn.addEventListener('click', () => { localStorage.removeItem('dirac-admin-security-log-v1'); securityLogs = []; renderSecurityLogs(); showToast('Log lokal dibersihkan'); });
     if(els.saveStoreSettingsBtn) els.saveStoreSettingsBtn.addEventListener('click', () => saveSettings('store'));
