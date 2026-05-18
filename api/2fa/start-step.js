@@ -14,29 +14,53 @@ function hashCode(code, secret) {
   return crypto.createHmac("sha256", secret).update(String(code)).digest("hex");
 }
 
-async function sendWhatsApp(code) {
-  const token = process.env.FONNTE_TOKEN;
-  const target = process.env.WA_ADMIN_NUMBER;
+async function sendEmailOtp(code) {
+  const apiKey = process.env.BREVO_API_KEY;
+  const adminEmail = process.env.A2F_ADMIN_EMAIL;
+  const senderEmail = process.env.A2F_SENDER_EMAIL;
 
-  if (!token) throw new Error("FONNTE_TOKEN belum diset");
-  if (!target) throw new Error("WA_ADMIN_NUMBER belum diset");
+  if (!apiKey) throw new Error("BREVO_API_KEY belum diset");
+  if (!adminEmail) throw new Error("A2F_ADMIN_EMAIL belum diset");
+  if (!senderEmail) throw new Error("A2F_SENDER_EMAIL belum diset");
 
-  const body = new URLSearchParams();
-  body.append("target", target);
-  body.append("message", `Kode A2F tahap 3 kamu adalah: ${code}\n\nKode berlaku 5 menit.`);
-
-  const response = await fetch("https://api.fonnte.com/send", {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
-      Authorization: token
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
     },
-    body
+    body: JSON.stringify({
+      sender: {
+        name: "Dirac Admin",
+        email: senderEmail
+      },
+      to: [
+        {
+          email: adminEmail,
+          name: "Admin"
+        }
+      ],
+      subject: "Kode A2F Tahap 3 Dirac Admin",
+      htmlContent: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6">
+          <h2>Kode A2F Tahap 3</h2>
+          <p>Kode verifikasi kamu:</p>
+          <div style="font-size:28px;font-weight:700;letter-spacing:4px">
+            ${code}
+          </div>
+          <p>Kode berlaku 5 menit.</p>
+          <p>Jika kamu tidak login, abaikan email ini.</p>
+        </div>
+      `,
+      textContent: `Kode A2F tahap 3 kamu adalah: ${code}. Kode berlaku 5 menit.`
+    })
   });
 
   const result = await response.text();
 
   if (!response.ok) {
-    throw new Error(result || "Gagal kirim WhatsApp");
+    throw new Error(result || "Gagal kirim email OTP");
   }
 
   return result;
@@ -80,18 +104,18 @@ module.exports = async function handler(req, res) {
 
   if (stepNumber === 3) {
     try {
-      await sendWhatsApp(code);
+      await sendEmailOtp(code);
 
       return res.status(200).json({
         success: true,
         sessionId,
         step: 3,
-        message: "Kode A2F tahap 3 sudah dikirim ke WhatsApp admin"
+        message: "Kode A2F tahap 3 sudah dikirim ke email admin"
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error.message || "Gagal kirim WhatsApp"
+        error: error.message || "Gagal kirim email OTP"
       });
     }
   }
