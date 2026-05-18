@@ -605,7 +605,7 @@
           <button class="btn danger" id="twoFactorCancelBtn" type="button">Batal / Logout</button>
         </div>
         <div class="notice danger hidden" id="twoFactorError" role="alert"></div>
-        <div class="notice">A2F tahap 1 sekarang dikirim lewat WhatsApp oleh backend. Tahap 2 dan 3 masih memakai SHA-256 hash lokal sementara.</div>
+        <div class="notice">A2F tahap 1, 2, dan 3 sekarang diverifikasi lewat backend. Mode test masih menampilkan kode di halaman.</div>
       </div>
     </section>
 
@@ -1114,11 +1114,9 @@
       TWO_FACTOR_MAX_ATTEMPTS: 5,
       TWO_FACTOR_WA_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-wa',
       TWO_FACTOR_WA_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-wa',
-      TWO_FACTOR_HASHES: [
-        'TAHAP_1_PAKAI_BACKEND_WHATSAPP_TIDAK_DIPAKAI_DI_HTML',
-        '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429',
-        '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429'
-      ]
+      TWO_FACTOR_STEP_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-step',
+      TWO_FACTOR_STEP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-step',
+      TWO_FACTOR_HASHES: []
     });
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
       try{
@@ -1202,6 +1200,7 @@
     let twoFactorAttempts = 0;
     let twoFactorVerified = false;
     let twoFactorWaSessionId = '';
+    let twoFactorStepSessionId = '';
 
     function rupiah(n){
       const value = Number(n);
@@ -1251,6 +1250,7 @@
       twoFactorAttempts = 0;
       twoFactorVerified = false;
       twoFactorWaSessionId = '';
+      twoFactorStepSessionId = '';
       if(els.twoFactorCode) els.twoFactorCode.value = '';
       if(els.twoFactorError) hideNotice(els.twoFactorError);
       [1,2,3].forEach(step => {
@@ -1260,8 +1260,8 @@
     }
     function twoFactorMethodName(step){
       if(step === 1) return 'WhatsApp';
-      if(step === 2) return 'Hash lokal tahap 2';
-      if(step === 3) return 'Hash lokal tahap 3';
+      if(step === 2) return 'Backend tahap 2';
+      if(step === 3) return 'Backend tahap 3';
       return 'A2F';
     }
     function updateTwoFactorProgress(){
@@ -1273,13 +1273,13 @@
       const method = twoFactorMethodName(twoFactorStep);
       if(els.twoFactorHelp){
         if(twoFactorStep === 1){
-          els.twoFactorHelp.textContent = 'Kode A2F tahap 1 sudah diminta ke backend dan dikirim ke WhatsApp admin. Masukkan kode WhatsApp untuk lanjut ke tahap 2.';
+          els.twoFactorHelp.textContent = 'Kode A2F tahap 1 diminta ke backend WhatsApp. Masukkan kode untuk lanjut ke tahap 2.';
         } else {
-          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap ' + twoFactorStep + ' dari 3 untuk membuka dashboard.';
+          els.twoFactorHelp.textContent = 'Kode A2F tahap ' + twoFactorStep + ' diminta ke backend. Masukkan kode untuk lanjut.';
         }
       }
       if(els.twoFactorLabel) els.twoFactorLabel.textContent = 'Kode ' + method;
-      if(els.twoFactorBtn) els.twoFactorBtn.textContent = twoFactorStep === 1 ? 'Verifikasi kode WhatsApp' : 'Verifikasi kode';
+      if(els.twoFactorBtn) els.twoFactorBtn.textContent = twoFactorStep === 1 ? 'Verifikasi kode WhatsApp' : 'Verifikasi kode backend';
       if(els.twoFactorCode){
         els.twoFactorCode.value = '';
         setTimeout(() => els.twoFactorCode.focus(), 60);
@@ -1362,6 +1362,57 @@
       }
       return data;
     }
+    async function requestBackendStepTwoFactor(stepNumber){
+      if(!SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT){
+        throw new Error('Endpoint backend step belum diisi.');
+      }
+      twoFactorStepSessionId = '';
+      els.twoFactorBtn.disabled = true;
+      try{
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken, step: stepNumber })
+        });
+        const data = await readApiJson(response);
+        if(!response.ok || data.success === false){
+          throw new Error(data.error || data.message || 'Backend gagal membuat kode tahap ' + stepNumber + '.');
+        }
+        twoFactorStepSessionId = String(data.sessionId || '').trim();
+        if(!twoFactorStepSessionId){
+          throw new Error('Backend harus mengirim sessionId untuk tahap ' + stepNumber + '.');
+        }
+        if(data.debugCode){
+          setNotice(els.twoFactorUser, 'MODE TEST: kode A2F tahap ' + stepNumber + ' adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut.', 'warn');
+        }else{
+          setNotice(els.twoFactorUser, 'Kode A2F tahap ' + stepNumber + ' sudah dibuat backend. Masukkan kodenya di sini.', 'good');
+        }
+      }finally{
+        els.twoFactorBtn.disabled = false;
+      }
+    }
+    async function verifyBackendStepTwoFactor(code, stepNumber){
+      if(!SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT){
+        throw new Error('Endpoint verifikasi backend step belum diisi.');
+      }
+      if(!twoFactorStepSessionId){
+        throw new Error('Session A2F tahap ' + stepNumber + ' belum ada. Logout lalu login ulang.');
+      }
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, sessionId: twoFactorStepSessionId, code: String(code || '').trim(), step: stepNumber })
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        const error = new Error(data.error || data.message || 'Kode A2F tahap ' + stepNumber + ' salah atau expired.');
+        error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 429;
+        throw error;
+      }
+      return data;
+    }
     async function sha256Hex(value){
       if(!globalThis.crypto || !crypto.subtle){
         throw new Error('A2F membutuhkan browser modern dan koneksi HTTPS.');
@@ -1401,17 +1452,16 @@
         if(twoFactorStep === 1){
           await verifyWhatsAppTwoFactor(code);
         } else {
-          const validLocalCode = await verifyLocalHashStep(code);
-          if(!validLocalCode){
-            markTwoFactorWrong('Kode A2F salah.');
-            return;
-          }
+          await verifyBackendStepTwoFactor(code, twoFactorStep);
         }
         twoFactorAttempts = 0;
         if(twoFactorStep < 3){
           twoFactorStep += 1;
           showToast('A2F tahap ' + (twoFactorStep - 1) + ' benar');
           updateTwoFactorProgress();
+          if(twoFactorStep === 2 || twoFactorStep === 3){
+            await requestBackendStepTwoFactor(twoFactorStep);
+          }
           return;
         }
         twoFactorVerified = true;
