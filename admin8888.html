@@ -605,7 +605,7 @@
           <button class="btn danger" id="twoFactorCancelBtn" type="button">Batal / Logout</button>
         </div>
         <div class="notice danger hidden" id="twoFactorError" role="alert"></div>
-        <div class="notice">A2F ini memakai SHA-256 hash di dalam file. Untuk mengganti kode, ubah nilai <b>TWO_FACTOR_HASHES</b> di script.</div>
+        <div class="notice">A2F tahap 1 sekarang dikirim lewat WhatsApp oleh backend. Tahap 2 dan 3 masih memakai SHA-256 hash lokal sementara.</div>
       </div>
     </section>
 
@@ -1112,8 +1112,10 @@
       STRICT_IMAGE_HOSTS: false,
       ALLOWED_IMAGE_HOSTS: ['firebasestorage.googleapis.com', 'storage.googleapis.com'],
       TWO_FACTOR_MAX_ATTEMPTS: 5,
+      TWO_FACTOR_WA_START_ENDPOINT: '/api/2fa/start-wa',
+      TWO_FACTOR_WA_VERIFY_ENDPOINT: '/api/2fa/verify-wa',
       TWO_FACTOR_HASHES: [
-        '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429',
+        'TAHAP_1_PAKAI_BACKEND_WHATSAPP_TIDAK_DIPAKAI_DI_HTML',
         '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429',
         '9770c19e5e36e5d7077374ccac1b840b34542b382a3ce17514b4d27c18cff429'
       ]
@@ -1199,6 +1201,7 @@
     let twoFactorStep = 0;
     let twoFactorAttempts = 0;
     let twoFactorVerified = false;
+    let twoFactorWaSessionId = '';
 
     function rupiah(n){
       const value = Number(n);
@@ -1247,6 +1250,7 @@
       twoFactorStep = 0;
       twoFactorAttempts = 0;
       twoFactorVerified = false;
+      twoFactorWaSessionId = '';
       if(els.twoFactorCode) els.twoFactorCode.value = '';
       if(els.twoFactorError) hideNotice(els.twoFactorError);
       [1,2,3].forEach(step => {
@@ -1254,23 +1258,38 @@
         if(node) node.className = 'twofactor-step';
       });
     }
+    function twoFactorMethodName(step){
+      if(step === 1) return 'WhatsApp';
+      if(step === 2) return 'Hash lokal tahap 2';
+      if(step === 3) return 'Hash lokal tahap 3';
+      return 'A2F';
+    }
     function updateTwoFactorProgress(){
       [1,2,3].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(!node) return;
         node.className = 'twofactor-step' + (step < twoFactorStep ? ' done' : step === twoFactorStep ? ' active' : '');
       });
-      if(els.twoFactorHelp) els.twoFactorHelp.textContent = 'Login Firebase berhasil. Masukkan kode A2F tahap ' + twoFactorStep + ' dari 3 untuk membuka dashboard.';
-      if(els.twoFactorLabel) els.twoFactorLabel.textContent = 'Kode A2F tahap ' + twoFactorStep;
+      const method = twoFactorMethodName(twoFactorStep);
+      if(els.twoFactorHelp){
+        if(twoFactorStep === 1){
+          els.twoFactorHelp.textContent = 'Kode A2F tahap 1 sudah diminta ke backend dan dikirim ke WhatsApp admin. Masukkan kode WhatsApp untuk lanjut ke tahap 2.';
+        } else {
+          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap ' + twoFactorStep + ' dari 3 untuk membuka dashboard.';
+        }
+      }
+      if(els.twoFactorLabel) els.twoFactorLabel.textContent = 'Kode ' + method;
+      if(els.twoFactorBtn) els.twoFactorBtn.textContent = twoFactorStep === 1 ? 'Verifikasi kode WhatsApp' : 'Verifikasi kode';
       if(els.twoFactorCode){
         els.twoFactorCode.value = '';
         setTimeout(() => els.twoFactorCode.focus(), 60);
       }
     }
-    function startTwoFactorGate(){
+    async function startTwoFactorGate(){
       twoFactorVerified = false;
       twoFactorStep = 1;
       twoFactorAttempts = 0;
+      twoFactorWaSessionId = '';
       hideNotice(els.loginError);
       hideNotice(els.twoFactorError);
       els.loginSection.classList.add('hidden');
@@ -1281,6 +1300,62 @@
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
       els.twoFactorUser.textContent = 'Role ' + (currentAdmin.roleLabel || 'Admin') + ' sudah terverifikasi dari ' + (currentAdmin.roleSource || 'Firebase') + '. Dashboard masih terkunci sampai A2F selesai.';
       updateTwoFactorProgress();
+      await requestWhatsAppTwoFactor();
+    }
+    async function readApiJson(response){
+      try{ return await response.json(); }
+      catch(_error){ return {}; }
+    }
+    async function requestWhatsAppTwoFactor(){
+      if(!auth.currentUser) throw new Error('Sesi Firebase tidak ditemukan. Login ulang.');
+      if(!SECURITY_CONFIG.TWO_FACTOR_WA_START_ENDPOINT){
+        throw new Error('Endpoint backend WhatsApp belum diisi di TWO_FACTOR_WA_START_ENDPOINT.');
+      }
+      els.twoFactorBtn.disabled = true;
+      try{
+        const idToken = await auth.currentUser.getIdToken(true);
+        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_WA_START_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+        const data = await readApiJson(response);
+        if(!response.ok || data.success === false){
+          throw new Error(data.error || data.message || 'Backend gagal mengirim kode WhatsApp.');
+        }
+        twoFactorWaSessionId = String(data.sessionId || data.challengeId || '').trim();
+        if(!twoFactorWaSessionId){
+          throw new Error('Backend harus mengirim sessionId atau challengeId untuk verifikasi WhatsApp.');
+        }
+        setNotice(els.twoFactorUser, 'Kode A2F tahap 1 sudah dikirim ke WhatsApp admin. Cek WhatsApp lalu masukkan kodenya di sini.', 'good');
+        showToast('Kode WhatsApp A2F dikirim');
+      }catch(error){
+        setNotice(els.twoFactorError, error.message || 'Gagal mengirim kode WhatsApp.', 'danger');
+        showToast('A2F WhatsApp gagal dimulai');
+      }finally{
+        els.twoFactorBtn.disabled = false;
+      }
+    }
+    async function verifyWhatsAppTwoFactor(code){
+      if(!SECURITY_CONFIG.TWO_FACTOR_WA_VERIFY_ENDPOINT){
+        throw new Error('Endpoint backend WhatsApp belum diisi di TWO_FACTOR_WA_VERIFY_ENDPOINT.');
+      }
+      if(!twoFactorWaSessionId){
+        throw new Error('Session WhatsApp belum ada. Logout lalu login ulang.');
+      }
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_WA_VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, sessionId: twoFactorWaSessionId, code: String(code || '').trim() })
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        const error = new Error(data.error || data.message || 'Kode WhatsApp salah atau expired.');
+        error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 429;
+        throw error;
+      }
+      return data;
     }
     async function sha256Hex(value){
       if(!globalThis.crypto || !crypto.subtle){
@@ -1289,6 +1364,23 @@
       const bytes = new TextEncoder().encode(String(value || '').trim());
       const digest = await crypto.subtle.digest('SHA-256', bytes);
       return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    function markTwoFactorWrong(message){
+      twoFactorAttempts += 1;
+      els.twoFactorCode.value = '';
+      if(twoFactorAttempts >= SECURITY_CONFIG.TWO_FACTOR_MAX_ATTEMPTS){
+        setNotice(els.twoFactorError, 'Kode A2F terlalu sering salah. Sesi akan logout.', 'danger');
+        showToast('A2F gagal. Logout otomatis.');
+        setTimeout(() => logoutAdmin().catch(() => {}), 700);
+        return true;
+      }
+      setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan ' + twoFactorAttempts + ' dari ' + SECURITY_CONFIG.TWO_FACTOR_MAX_ATTEMPTS + '.', 'danger');
+      return false;
+    }
+    async function verifyLocalHashStep(code){
+      const inputHash = await sha256Hex(code);
+      const expectedHash = SECURITY_CONFIG.TWO_FACTOR_HASHES[twoFactorStep - 1];
+      return inputHash === expectedHash;
     }
     async function verifyTwoFactorCode(){
       if(busy || !auth.currentUser) return;
@@ -1301,20 +1393,16 @@
       }
       els.twoFactorBtn.disabled = true;
       try{
-        const inputHash = await sha256Hex(code);
-        const expectedHash = SECURITY_CONFIG.TWO_FACTOR_HASHES[twoFactorStep - 1];
-        if(inputHash !== expectedHash){
-          twoFactorAttempts += 1;
-          els.twoFactorCode.value = '';
-          if(twoFactorAttempts >= SECURITY_CONFIG.TWO_FACTOR_MAX_ATTEMPTS){
-            setNotice(els.twoFactorError, 'Kode A2F terlalu sering salah. Sesi akan logout.', 'danger');
-            showToast('A2F gagal. Logout otomatis.');
-            setTimeout(() => logoutAdmin().catch(() => {}), 700);
+        if(twoFactorStep === 1){
+          await verifyWhatsAppTwoFactor(code);
+        } else {
+          const validLocalCode = await verifyLocalHashStep(code);
+          if(!validLocalCode){
+            markTwoFactorWrong('Kode A2F salah.');
             return;
           }
-          setNotice(els.twoFactorError, 'Kode A2F salah. Percobaan ' + twoFactorAttempts + ' dari ' + SECURITY_CONFIG.TWO_FACTOR_MAX_ATTEMPTS + '.', 'danger');
-          return;
         }
+        twoFactorAttempts = 0;
         if(twoFactorStep < 3){
           twoFactorStep += 1;
           showToast('A2F tahap ' + (twoFactorStep - 1) + ' benar');
@@ -1333,7 +1421,11 @@
         logSecurity('auth.2fa_success', 'Dashboard dibuka').catch(() => {});
         showToast('A2F selesai. Dashboard dibuka.');
       }catch(error){
-        setNotice(els.twoFactorError, error.message || 'Verifikasi A2F gagal.', 'danger');
+        if(error && error.countAttempt){
+          markTwoFactorWrong(error.message || 'Kode WhatsApp salah.');
+        } else {
+          setNotice(els.twoFactorError, error.message || 'Verifikasi A2F gagal.', 'danger');
+        }
       }finally{
         els.twoFactorBtn.disabled = false;
       }
@@ -4257,7 +4349,7 @@
       if(user){
         try{
           await loadAdminProfile(user);
-          startTwoFactorGate();
+          await startTwoFactorGate();
         }catch(error){
           setNotice(els.loginError, firebaseMessage(error), 'danger');
           await logoutAdmin();
