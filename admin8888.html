@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#071021">
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.recaptcha.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://companyprofilee-expk.vercel.app https://www.google.com https://www.recaptcha.net; frame-src https://www.google.com https://www.recaptcha.net; child-src https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob:; manifest-src 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.recaptcha.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://companyprofilee-expk.vercel.app https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://www.recaptcha.net; frame-src https://www.google.com https://www.recaptcha.net; child-src https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob:; manifest-src 'self'; form-action 'self'">
   <title>Admin Produk - Dirac Group</title>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <style>
@@ -605,7 +605,7 @@
           <button class="btn danger" id="twoFactorCancelBtn" type="button">Batal / Logout</button>
         </div>
         <div class="notice danger hidden" id="twoFactorError" role="alert"></div>
-        <div class="notice">A2F tahap 1, 2, dan 3 sekarang diverifikasi lewat backend. Mode test masih menampilkan kode di halaman.</div>
+        <div class="notice">A2F tahap 1 pakai Authenticator App. Tahap 2 pakai kode rahasia. Tahap 3 masih backend mode test sementara.</div>
       </div>
     </section>
 
@@ -1112,9 +1112,8 @@
       STRICT_IMAGE_HOSTS: false,
       ALLOWED_IMAGE_HOSTS: ['firebasestorage.googleapis.com', 'storage.googleapis.com'],
       TWO_FACTOR_MAX_ATTEMPTS: 5,
-      TWO_FACTOR_WA_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-wa',
-      TWO_FACTOR_WA_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-wa',
       TWO_FACTOR_TOTP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-totp',
+      TWO_FACTOR_PIN_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-pin',
       TWO_FACTOR_STEP_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-step',
       TWO_FACTOR_STEP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-step',
       TWO_FACTOR_HASHES: []
@@ -1261,8 +1260,8 @@
     }
     function twoFactorMethodName(step){
       if(step === 1) return 'Authenticator App';
-      if(step === 2) return 'Backend tahap 2';
-      if(step === 3) return 'Backend tahap 3';
+      if(step === 2) return 'Kode rahasia';
+      if(step === 3) return 'Backend Test tahap 3';
       return 'A2F';
     }
     function updateTwoFactorProgress(){
@@ -1275,12 +1274,16 @@
       if(els.twoFactorHelp){
         if(twoFactorStep === 1){
           els.twoFactorHelp.textContent = 'Buka Authenticator App, lalu masukkan kode 6 digit untuk lanjut ke tahap 2.';
+        } else if(twoFactorStep === 2){
+          els.twoFactorHelp.textContent = 'Masukkan kode rahasia/passcode yang kamu simpan di Vercel A2F_PIN.';
+        } else if(twoFactorStep === 3){
+          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap 3 dari backend mode test.';
         } else {
-          els.twoFactorHelp.textContent = 'Kode A2F tahap ' + twoFactorStep + ' diminta ke backend. Masukkan kode untuk lanjut.';
+          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap ' + twoFactorStep + ' dari 3 untuk membuka dashboard.';
         }
       }
-      if(els.twoFactorLabel) els.twoFactorLabel.textContent = 'Kode ' + method;
-      if(els.twoFactorBtn) els.twoFactorBtn.textContent = twoFactorStep === 1 ? 'Verifikasi Authenticator' : 'Verifikasi kode backend';
+      if(els.twoFactorLabel) els.twoFactorLabel.textContent = method;
+      if(els.twoFactorBtn) els.twoFactorBtn.textContent = 'Verifikasi ' + method;
       if(els.twoFactorCode){
         els.twoFactorCode.value = '';
         setTimeout(() => els.twoFactorCode.focus(), 60);
@@ -1291,6 +1294,7 @@
       twoFactorStep = 1;
       twoFactorAttempts = 0;
       twoFactorWaSessionId = '';
+      twoFactorStepSessionId = '';
       hideNotice(els.loginError);
       hideNotice(els.twoFactorError);
       els.loginSection.classList.add('hidden');
@@ -1299,15 +1303,14 @@
       els.logoutBtn.classList.remove('hidden');
       updateMenuButtonVisibility();
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
-      els.twoFactorUser.textContent = 'Role ' + (currentAdmin.roleLabel || 'Admin') + ' sudah terverifikasi dari ' + (currentAdmin.roleSource || 'Firebase') + '. Dashboard masih terkunci sampai A2F selesai.';
+      els.twoFactorUser.textContent = 'Tahap 1: buka Authenticator App, lalu masukkan kode 6 digit yang muncul.';
       updateTwoFactorProgress();
-      setNotice(els.twoFactorUser, 'Buka Authenticator App, ambil kode 6 digit Dirac Admin, lalu masukkan di sini.', 'good');
     }
     async function readApiJson(response){
       try{ return await response.json(); }
       catch(_error){ return {}; }
     }
-    async function verifyAuthenticatorTwoFactor(code){
+    async function verifyTotpTwoFactor(code){
       if(!SECURITY_CONFIG.TWO_FACTOR_TOTP_VERIFY_ENDPOINT){
         throw new Error('Endpoint Authenticator belum diisi.');
       }
@@ -1325,57 +1328,19 @@
       }
       return data;
     }
-    async function requestWhatsAppTwoFactor(){
-      if(!auth.currentUser) throw new Error('Sesi Firebase tidak ditemukan. Login ulang.');
-      if(!SECURITY_CONFIG.TWO_FACTOR_WA_START_ENDPOINT){
-        throw new Error('Endpoint backend WhatsApp belum diisi di TWO_FACTOR_WA_START_ENDPOINT.');
+    async function verifyPinTwoFactor(code){
+      if(!SECURITY_CONFIG.TWO_FACTOR_PIN_VERIFY_ENDPOINT){
+        throw new Error('Endpoint kode rahasia belum diisi.');
       }
-      els.twoFactorBtn.disabled = true;
-      try{
-        const idToken = await auth.currentUser.getIdToken(true);
-        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_WA_START_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken })
-        });
-        const data = await readApiJson(response);
-        if(!response.ok || data.success === false){
-          throw new Error(data.error || data.message || 'Backend gagal mengirim kode WhatsApp.');
-        }
-        twoFactorWaSessionId = String(data.sessionId || data.challengeId || '').trim();
-        if(!twoFactorWaSessionId){
-          throw new Error('Backend harus mengirim sessionId atau challengeId untuk verifikasi WhatsApp.');
-        }
-        if(data.debugCode){
-          setNotice(els.twoFactorUser, 'MODE TEST: kode A2F tahap 1 adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut. Nanti kalau WhatsApp asli sudah tersambung, kode tidak perlu ditampilkan di sini.', 'warn');
-          showToast('Kode test A2F dibuat');
-        }else{
-          setNotice(els.twoFactorUser, 'Kode A2F tahap 1 sudah dikirim ke WhatsApp admin. Cek WhatsApp lalu masukkan kodenya di sini.', 'good');
-          showToast('Kode WhatsApp A2F dikirim');
-        }
-      }catch(error){
-        setNotice(els.twoFactorError, error.message || 'Gagal mengirim kode WhatsApp.', 'danger');
-        showToast('A2F WhatsApp gagal dimulai');
-      }finally{
-        els.twoFactorBtn.disabled = false;
-      }
-    }
-    async function verifyWhatsAppTwoFactor(code){
-      if(!SECURITY_CONFIG.TWO_FACTOR_WA_VERIFY_ENDPOINT){
-        throw new Error('Endpoint backend WhatsApp belum diisi di TWO_FACTOR_WA_VERIFY_ENDPOINT.');
-      }
-      if(!twoFactorWaSessionId){
-        throw new Error('Session WhatsApp belum ada. Logout lalu login ulang.');
-      }
-      const idToken = await auth.currentUser.getIdToken();
-      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_WA_VERIFY_ENDPOINT, {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_PIN_VERIFY_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, sessionId: twoFactorWaSessionId, code: String(code || '').trim() })
+        body: JSON.stringify({ idToken, code: String(code || '').trim() })
       });
       const data = await readApiJson(response);
       if(!response.ok || data.success === false){
-        const error = new Error(data.error || data.message || 'Kode WhatsApp salah atau expired.');
+        const error = new Error(data.error || data.message || 'Kode rahasia salah.');
         error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 429;
         throw error;
       }
@@ -1432,14 +1397,6 @@
       }
       return data;
     }
-    async function sha256Hex(value){
-      if(!globalThis.crypto || !crypto.subtle){
-        throw new Error('A2F membutuhkan browser modern dan koneksi HTTPS.');
-      }
-      const bytes = new TextEncoder().encode(String(value || '').trim());
-      const digest = await crypto.subtle.digest('SHA-256', bytes);
-      return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
-    }
     function markTwoFactorWrong(message){
       twoFactorAttempts += 1;
       els.twoFactorCode.value = '';
@@ -1451,11 +1408,6 @@
       }
       setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan ' + twoFactorAttempts + ' dari ' + SECURITY_CONFIG.TWO_FACTOR_MAX_ATTEMPTS + '.', 'danger');
       return false;
-    }
-    async function verifyLocalHashStep(code){
-      const inputHash = await sha256Hex(code);
-      const expectedHash = SECURITY_CONFIG.TWO_FACTOR_HASHES[twoFactorStep - 1];
-      return inputHash === expectedHash;
     }
     async function verifyTwoFactorCode(){
       if(busy || !auth.currentUser) return;
@@ -1469,17 +1421,19 @@
       els.twoFactorBtn.disabled = true;
       try{
         if(twoFactorStep === 1){
-          await verifyAuthenticatorTwoFactor(code);
-        } else {
-          await verifyBackendStepTwoFactor(code, twoFactorStep);
+          await verifyTotpTwoFactor(code);
+        } else if(twoFactorStep === 2){
+          await verifyPinTwoFactor(code);
+        } else if(twoFactorStep === 3){
+          await verifyBackendStepTwoFactor(code, 3);
         }
         twoFactorAttempts = 0;
         if(twoFactorStep < 3){
           twoFactorStep += 1;
           showToast('A2F tahap ' + (twoFactorStep - 1) + ' benar');
           updateTwoFactorProgress();
-          if(twoFactorStep === 2 || twoFactorStep === 3){
-            await requestBackendStepTwoFactor(twoFactorStep);
+          if(twoFactorStep === 3){
+            await requestBackendStepTwoFactor(3);
           }
           return;
         }
@@ -1496,7 +1450,7 @@
         showToast('A2F selesai. Dashboard dibuka.');
       }catch(error){
         if(error && error.countAttempt){
-          markTwoFactorWrong(error.message || 'Kode WhatsApp salah.');
+          markTwoFactorWrong(error.message || 'Kode A2F salah.');
         } else {
           setNotice(els.twoFactorError, error.message || 'Verifikasi A2F gagal.', 'danger');
         }
