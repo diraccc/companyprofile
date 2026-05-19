@@ -176,7 +176,7 @@ module.exports = async function handler(req, res) {
     const { sessionId, code, step } = req.body || {};
     const stepNumber = Number(step);
 
-    if (!sessionId || !code || ![2, 3].includes(stepNumber)) {
+    if (!sessionId || !code || ![2, 3, 6, 7, 8].includes(stepNumber)) {
       return res.status(400).json({
         success: false,
         error: "Session, kode, dan step wajib benar"
@@ -255,7 +255,8 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: `Kode A2F tahap ${stepNumber} benar`,
+      message: stepNumber >= 6 ? `Kode Recovery Face ID tahap ${stepNumber - 5} benar` : `Kode A2F tahap ${stepNumber} benar`,
+      recoveryStep: stepNumber >= 6 ? stepNumber - 5 : undefined,
       nextStep: stepNumber + 1
     });
   } catch (error) {
