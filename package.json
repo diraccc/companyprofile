@@ -1,5 +1,8 @@
 {
   "name": "dirac-admin",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@simplewebauthn/server": "^13.1.2"
+  }
 }
