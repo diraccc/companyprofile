@@ -1249,6 +1249,7 @@
     let twoFactorVerified = false;
     let twoFactorWaSessionId = '';
     let twoFactorStepSessionId = '';
+    let twoFactorStepSessions = {};
     let twoFactorBackendLocked = false;
     let twoFactorPermanentLocked = false;
     let twoFactorLockTimer = null;
@@ -1306,6 +1307,7 @@
       twoFactorVerified = false;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
+      twoFactorStepSessions = {};
       twoFactorBackendLocked = false;
       twoFactorPermanentLocked = false;
       faceRecoveryMode = false;
@@ -1428,6 +1430,7 @@
       twoFactorAttempts = 0;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
+      twoFactorStepSessions = {};
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
       hideNotice(els.loginError);
@@ -1613,7 +1616,13 @@
       if(!SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT){
         throw new Error('Endpoint verifikasi belum diisi.');
       }
-      twoFactorStepSessionId = '';
+
+      const stepKey = String(stepNumber);
+      twoFactorStepSessions[stepKey] = '';
+      if(stepNumber < 6){
+        twoFactorStepSessionId = '';
+      }
+
       els.twoFactorBtn.disabled = true;
       try{
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
@@ -1626,10 +1635,15 @@
         if(!response.ok || data.success === false){
           throw new Error(data.error || data.message || 'Backend gagal membuat kode tahap ' + stepNumber + '.');
         }
-        twoFactorStepSessionId = String(data.sessionId || '').trim();
-        if(!twoFactorStepSessionId){
+
+        const sessionId = String(data.sessionId || '').trim();
+        if(!sessionId){
           throw new Error('Backend harus mengirim sessionId untuk tahap ' + stepNumber + '.');
         }
+
+        twoFactorStepSessions[stepKey] = sessionId;
+        twoFactorStepSessionId = sessionId;
+
         const recoveryStepNumber = stepNumber >= 6 ? stepNumber - 5 : 0;
         if(data.debugCode){
           if(recoveryStepNumber){
@@ -1653,6 +1667,7 @@
         }else{
           setNotice(els.twoFactorUser, 'Kode A2F tahap ' + stepNumber + ' sudah dibuat backend. Masukkan kodenya di sini.', 'good');
         }
+        return data;
       }finally{
         if(!twoFactorBackendLocked && !twoFactorPermanentLocked) els.twoFactorBtn.disabled = false;
       }
@@ -1661,14 +1676,29 @@
       if(!SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT){
         throw new Error('Endpoint verifikasi backend step belum diisi.');
       }
-      if(!twoFactorStepSessionId){
-        throw new Error('Session A2F tahap ' + stepNumber + ' belum ada. Logout lalu login ulang.');
+
+      const stepKey = String(stepNumber);
+      let sessionId = String(twoFactorStepSessions[stepKey] || '').trim();
+
+      if(!sessionId && stepNumber < 6){
+        sessionId = String(twoFactorStepSessionId || '').trim();
       }
+
+      if(!sessionId && faceRecoveryMode && stepNumber >= 6){
+        setNotice(els.twoFactorUser, 'Menyiapkan ulang session Recovery Face ID tahap ' + (stepNumber - 5) + '...', 'warn');
+        await requestBackendStepTwoFactor(stepNumber);
+        sessionId = String(twoFactorStepSessions[stepKey] || twoFactorStepSessionId || '').trim();
+      }
+
+      if(!sessionId){
+        throw new Error('Session A2F tahap ' + stepNumber + ' belum ada. Tekan Verifikasi sekali lagi atau login ulang.');
+      }
+
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, sessionId: twoFactorStepSessionId, code: String(code || '').trim(), step: stepNumber })
+        body: JSON.stringify({ idToken, sessionId, code: String(code || '').trim(), step: stepNumber })
       });
       const data = await readApiJson(response);
       if(!response.ok || data.success === false){
@@ -1876,6 +1906,7 @@
           await requestBackendStepTwoFactor(getFaceRecoveryBackendStep());
         }catch(error){
           setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
+          return;
         }
 
         return;
