@@ -567,6 +567,236 @@
     }
   </style>
 
+
+  <style id="dirac-ultra-motion-design-v5">
+    /* === Dirac Ultra Motion Design v5: safe visual-only polish === */
+    :root{
+      --ultra-ease:cubic-bezier(.2,.8,.2,1);
+      --ultra-fast:160ms;
+      --ultra-normal:260ms;
+      --ultra-slow:520ms;
+      --ultra-ring:0 0 0 1px rgba(248,210,122,.18),0 22px 55px rgba(0,0,0,.30);
+    }
+
+    body.ultra-motion-ready .panel,
+    body.ultra-motion-ready .dashboard-card,
+    body.ultra-motion-ready .product-card,
+    body.ultra-motion-ready .quick-card,
+    body.ultra-motion-ready .settings-card,
+    body.ultra-motion-ready .mini-card,
+    body.ultra-motion-ready .stat,
+    body.ultra-motion-ready .compact-item,
+    body.ultra-motion-ready .quality-item,
+    body.ultra-motion-ready .ultra-card{
+      transition:
+        opacity var(--ultra-slow) var(--ultra-ease),
+        transform var(--ultra-slow) var(--ultra-ease),
+        filter var(--ultra-slow) var(--ultra-ease),
+        border-color var(--ultra-normal) ease,
+        background var(--ultra-normal) ease,
+        box-shadow var(--ultra-normal) ease;
+      transition-delay:var(--ultra-delay,0ms);
+    }
+    body.ultra-motion-ready .ultra-reveal{
+      opacity:0;
+      transform:translateY(14px) scale(.992);
+      filter:blur(3px);
+    }
+    body.ultra-motion-ready .ultra-reveal.ultra-visible{
+      opacity:1;
+      transform:none;
+      filter:none;
+    }
+
+    .hero-card,
+    .panel,
+    .product-card,
+    .quick-card,
+    .dashboard-card,
+    .settings-card,
+    .mini-card,
+    .stat{
+      transform-origin:center;
+      backface-visibility:hidden;
+    }
+
+    .panel:hover{
+      border-color:rgba(96,165,250,.34);
+      box-shadow:0 24px 70px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .quick-card:hover,
+    .product-card:hover,
+    .settings-card:hover,
+    .dashboard-card:hover{
+      transform:translateY(-3px);
+      box-shadow:var(--ultra-ring);
+    }
+    .product-card:hover{
+      background:linear-gradient(135deg,rgba(96,165,250,.10),rgba(248,210,122,.045));
+      border-color:rgba(248,210,122,.26);
+    }
+    .thumb img{
+      transition:transform var(--ultra-slow) var(--ultra-ease),filter var(--ultra-normal) ease;
+      will-change:transform;
+    }
+    .product-card:hover .thumb img,
+    .preview-box:hover .thumb img{
+      transform:scale(1.045);
+      filter:saturate(1.06) contrast(1.03);
+    }
+
+    .btn:not(:disabled){
+      position:relative;
+      overflow:hidden;
+    }
+    .btn:not(:disabled)::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.18) 42%,transparent 70%);
+      transform:translateX(-140%);
+      transition:transform .62s var(--ultra-ease);
+      pointer-events:none;
+    }
+    .btn:not(:disabled):hover::before{transform:translateX(140%)}
+    .btn:not(:disabled):active{transform:translateY(0) scale(.985)}
+
+    .nav-btn{
+      isolation:isolate;
+    }
+    .nav-btn.active{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 28px rgba(37,99,235,.12);
+    }
+    .nav-btn.active b{
+      background:linear-gradient(135deg,rgba(248,210,122,.22),rgba(96,165,250,.18));
+      color:#fff7d6;
+    }
+
+    .mini-dot{
+      position:relative;
+    }
+    .mini-dot.good::after,
+    .mini-dot.warn::after,
+    .mini-dot.danger::after{
+      content:"";
+      position:absolute;
+      inset:-6px;
+      border-radius:999px;
+      border:1px solid currentColor;
+      opacity:.26;
+      animation:ultraPulse 1.85s ease-out infinite;
+    }
+    @keyframes ultraPulse{
+      0%{transform:scale(.55);opacity:.34}
+      80%,100%{transform:scale(1.55);opacity:0}
+    }
+
+    .empty{
+      position:relative;
+      background:
+        radial-gradient(circle at 50% 0%,rgba(96,165,250,.13),transparent 52%),
+        rgba(255,255,255,.035);
+      color:#dbeafe;
+    }
+    .empty::before{
+      content:"✦";
+      display:grid;
+      place-items:center;
+      width:38px;
+      height:38px;
+      margin:0 auto 10px;
+      border-radius:15px;
+      background:linear-gradient(135deg,rgba(248,210,122,.16),rgba(96,165,250,.14));
+      border:1px solid rgba(248,210,122,.18);
+      color:#fef3c7;
+      box-shadow:0 14px 30px rgba(0,0,0,.18);
+    }
+
+    .admin-table tbody tr{
+      transition:transform var(--ultra-normal) var(--ultra-ease),background var(--ultra-normal) ease,box-shadow var(--ultra-normal) ease;
+    }
+    .admin-table tbody tr:hover{
+      background:rgba(96,165,250,.065);
+    }
+    @media(min-width:701px){
+      .admin-table tbody tr:hover{
+        transform:translateX(3px);
+      }
+    }
+
+    .status-pill,
+    .tag,
+    .view-kicker,
+    .eyebrow{
+      transition:transform var(--ultra-fast) ease,border-color var(--ultra-normal) ease,background var(--ultra-normal) ease;
+    }
+    .status-pill:hover,
+    .tag:hover{
+      transform:translateY(-1px);
+      border-color:rgba(248,210,122,.32);
+    }
+
+    .preview-box{
+      transition:border-color var(--ultra-normal) ease,box-shadow var(--ultra-normal) ease,transform var(--ultra-normal) var(--ultra-ease);
+    }
+    .preview-box:hover{
+      border-color:rgba(248,210,122,.24);
+      box-shadow:0 18px 46px rgba(0,0,0,.22);
+      transform:translateY(-2px);
+    }
+
+    .ultra-mobile-actions{
+      transition:box-shadow var(--ultra-normal) ease,border-color var(--ultra-normal) ease,background var(--ultra-normal) ease;
+    }
+    @media(max-width:700px){
+      .ultra-mobile-actions{
+        position:sticky;
+        bottom:max(10px,env(safe-area-inset-bottom));
+        z-index:24;
+        background:rgba(7,13,28,.94);
+        border:1px solid rgba(96,165,250,.22);
+        border-radius:20px;
+        padding:9px;
+        box-shadow:0 18px 50px rgba(0,0,0,.36);
+        backdrop-filter:blur(16px);
+        -webkit-backdrop-filter:blur(16px);
+      }
+      .ultra-mobile-actions .btn{
+        min-height:42px;
+      }
+      .product-list{
+        padding-bottom:6px;
+      }
+    }
+
+    .ultra-count-pop{
+      animation:ultraCountPop .28s var(--ultra-ease) both;
+    }
+    @keyframes ultraCountPop{
+      0%{transform:translateY(4px);opacity:.72}
+      100%{transform:none;opacity:1}
+    }
+
+    @media(prefers-reduced-motion:reduce){
+      body.ultra-motion-ready .ultra-reveal,
+      body.ultra-motion-ready .ultra-reveal.ultra-visible{
+        opacity:1!important;
+        transform:none!important;
+        filter:none!important;
+      }
+      .mini-dot.good::after,
+      .mini-dot.warn::after,
+      .mini-dot.danger::after,
+      .ultra-count-pop{
+        animation:none!important;
+      }
+      .btn:not(:disabled)::before{display:none!important}
+      .product-card:hover .thumb img,
+      .preview-box:hover .thumb img{transform:none!important}
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -3500,7 +3730,190 @@
         '</head><body>',
         renderInvoiceHtml(order),
         '<script>window.print();</' + 'script>',
-        '</body></html>'
+        '
+  <script id="dirac-ultra-motion-design-v5-js">
+    (() => {
+      'use strict';
+
+      const ready = (fn) => {
+        if(document.readyState === 'loading'){
+          document.addEventListener('DOMContentLoaded', fn, { once:true });
+        }else{
+          fn();
+        }
+      };
+
+      ready(() => {
+        const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        document.body.classList.add('ultra-motion-ready');
+
+        const revealSelector = [
+          '.panel',
+          '.dashboard-card',
+          '.product-card',
+          '.quick-card',
+          '.settings-card',
+          '.mini-card',
+          '.stat',
+          '.compact-item',
+          '.quality-item',
+          '.ultra-card'
+        ].join(',');
+
+        const decorateReveal = (root) => {
+          const found = [];
+          if(root && root.nodeType === 1 && root.matches && root.matches(revealSelector)){
+            found.push(root);
+          }
+          if(root && root.querySelectorAll){
+            found.push(...root.querySelectorAll(revealSelector));
+          }
+          found.forEach((el, index) => {
+            if(el.dataset.ultraRevealReady === '1') return;
+            el.dataset.ultraRevealReady = '1';
+            el.classList.add('ultra-reveal');
+            el.style.setProperty('--ultra-delay', `${Math.min((index % 10) * 28, 252)}ms`);
+            if(reduceMotion){
+              el.classList.add('ultra-visible');
+            }
+          });
+          return found;
+        };
+
+        const revealNow = (nodes) => {
+          nodes.forEach((el) => requestAnimationFrame(() => el.classList.add('ultra-visible')));
+        };
+
+        const initialNodes = decorateReveal(document);
+        if('IntersectionObserver' in window && !reduceMotion){
+          const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              if(entry.isIntersecting){
+                entry.target.classList.add('ultra-visible');
+                revealObserver.unobserve(entry.target);
+              }
+            });
+          }, { root:null, rootMargin:'0px 0px -8% 0px', threshold:.08 });
+          initialNodes.forEach((el) => revealObserver.observe(el));
+
+          const dynamicObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              mutation.addedNodes.forEach((node) => {
+                const added = decorateReveal(node);
+                added.forEach((el) => revealObserver.observe(el));
+              });
+            });
+          });
+          dynamicObserver.observe(document.body, { childList:true, subtree:true });
+        }else{
+          revealNow(initialNodes);
+        }
+
+        const actionRows = [
+          '#productForm > div:last-of-type',
+          '#orderForm > div:last-of-type',
+          '#customerForm > div:last-of-type'
+        ];
+        actionRows.forEach((selector) => {
+          const el = document.querySelector(selector);
+          if(el) el.classList.add('ultra-mobile-actions');
+        });
+
+        const numberIds = [
+          'statTotal','statReady','statSold','statValue','statCategory','statAverage',
+          'dashSalesToday','dashSalesMonth','dashActiveOrders','dashCustomers','dashLowStock',
+          'dashSoldItems','dashProfit','reportDaily','reportWeekly','reportMonthly','reportGrossProfit'
+        ];
+
+        const parseNumericText = (text) => {
+          const raw = String(text || '').trim();
+          const digits = raw.replace(/[^\d-]/g, '');
+          if(!digits || digits === '-') return null;
+          const value = Number(digits);
+          if(!Number.isFinite(value)) return null;
+          return {
+            raw,
+            value,
+            isCurrency:/^Rp\s?/i.test(raw)
+          };
+        };
+
+        const formatLikeOriginal = (value, template) => {
+          const rounded = Math.round(value);
+          const formatted = new Intl.NumberFormat('id-ID').format(rounded);
+          return template.isCurrency ? `Rp ${formatted}` : formatted;
+        };
+
+        const animateNumber = (el, nextText) => {
+          if(reduceMotion){
+            el.textContent = nextText;
+            return;
+          }
+          const next = parseNumericText(nextText);
+          if(!next) return;
+          const previous = parseNumericText(el.dataset.ultraStableText || el.textContent) || { value:0, isCurrency:next.isCurrency };
+          if(previous.value === next.value){
+            el.textContent = nextText;
+            el.dataset.ultraStableText = nextText;
+            return;
+          }
+          const start = previous.value;
+          const distance = next.value - start;
+          const duration = Math.min(900, Math.max(320, Math.abs(distance).toString().length * 95));
+          const startTime = performance.now();
+          el.dataset.ultraAnimating = '1';
+          el.classList.remove('ultra-count-pop');
+
+          const tick = (now) => {
+            const t = Math.min(1, (now - startTime) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            el.textContent = formatLikeOriginal(start + distance * eased, next);
+            if(t < 1){
+              requestAnimationFrame(tick);
+            }else{
+              el.textContent = nextText;
+              el.dataset.ultraStableText = nextText;
+              el.dataset.ultraAnimating = '0';
+              el.classList.add('ultra-count-pop');
+              window.setTimeout(() => el.classList.remove('ultra-count-pop'), 360);
+            }
+          };
+          requestAnimationFrame(tick);
+        };
+
+        numberIds.forEach((id) => {
+          const el = document.getElementById(id);
+          if(!el) return;
+          el.dataset.ultraStableText = el.textContent.trim();
+          const observer = new MutationObserver(() => {
+            if(el.dataset.ultraAnimating === '1') return;
+            const incoming = el.textContent.trim();
+            if(!incoming || incoming === el.dataset.ultraStableText) return;
+            window.requestAnimationFrame(() => animateNumber(el, incoming));
+          });
+          observer.observe(el, { childList:true, characterData:true, subtree:true });
+        });
+
+        const markTableCells = () => {
+          document.querySelectorAll('.admin-table').forEach((table) => {
+            const headers = [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+            table.querySelectorAll('tbody tr').forEach((tr) => {
+              [...tr.children].forEach((cell, index) => {
+                if(headers[index] && !cell.hasAttribute('data-label')){
+                  cell.setAttribute('data-label', headers[index]);
+                }
+              });
+            });
+          });
+        };
+        markTableCells();
+        const tableObserver = new MutationObserver(markTableCells);
+        tableObserver.observe(document.body, { childList:true, subtree:true });
+      });
+    })();
+  </script>
+
+</body></html>'
       ].join('');
       win.document.write(invoiceDocument);
       win.document.close();
