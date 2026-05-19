@@ -14,6 +14,12 @@ function hashCode(code, secret) {
   return crypto.createHmac("sha256", secret).update(String(code)).digest("hex");
 }
 
+function makeSession(payload, secret) {
+  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = sign(payloadBase64, secret);
+  return `${payloadBase64}.${signature}`;
+}
+
 async function sendEmailOtp(code) {
   const apiKey = process.env.BREVO_API_KEY;
   const adminEmail = process.env.A2F_ADMIN_EMAIL;
@@ -119,6 +125,51 @@ async function sendRecoveryEmailOtp(code, stepNumber) {
   return result;
 }
 
+function getRecoveryTotpSecret() {
+  const envName = "A2F_RECOVERY_TOTP_SECRET_2";
+  const secret = String(process.env[envName] || "").replace(/\s+/g, "").trim();
+
+  if (!secret) {
+    throw new Error(`${envName} belum diset di Vercel`);
+  }
+
+  if (secret.length < 16) {
+    throw new Error(`${envName} terlalu pendek. Gunakan secret Base32 dari Authenticator.`);
+  }
+
+  return { envName };
+}
+
+function getRecoveryLocalCode(stepNumber) {
+  const config = {
+    8: {
+      envName: "A2F_RECOVERY_STEP3_CODE",
+      label: "Recovery Face ID tahap 3"
+    },
+    9: {
+      envName: "A2F_RECOVERY_STEP4_CODE",
+      label: "Recovery Face ID tahap 4"
+    }
+  };
+
+  const item = config[stepNumber];
+  if (!item) {
+    throw new Error("Step recovery lokal tidak valid");
+  }
+
+  const code = String(process.env[item.envName] || "").trim();
+
+  if (!code) {
+    throw new Error(`${item.envName} belum diset di Vercel`);
+  }
+
+  if (code.length < 12 || code.length > 96) {
+    throw new Error(`${item.envName} harus 12 sampai 96 karakter`);
+  }
+
+  return { code, label: item.label, envName: item.envName };
+}
+
 module.exports = async function handler(req, res) {
   setCors(res);
 
@@ -133,12 +184,12 @@ module.exports = async function handler(req, res) {
 
   const { step } = req.body || {};
   const stepNumber = Number(step);
-  const allowedSteps = [2, 3, 6, 7, 8];
+  const allowedSteps = [2, 3, 6, 7, 8, 9];
 
   if (!allowedSteps.includes(stepNumber)) {
     return res.status(400).json({
       success: false,
-      error: "Step harus 2, 3, 6, 7, atau 8"
+      error: "Step harus 2, 3, 6, 7, 8, atau 9"
     });
   }
 
@@ -153,11 +204,9 @@ module.exports = async function handler(req, res) {
     nonce: crypto.randomBytes(16).toString("hex")
   };
 
-  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const signature = sign(payloadBase64, secret);
-  const sessionId = `${payloadBase64}.${signature}`;
-
   if (stepNumber === 3) {
+    const sessionId = makeSession(payload, secret);
+
     try {
       await sendEmailOtp(code);
 
@@ -175,7 +224,9 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  if (stepNumber >= 6) {
+  if (stepNumber === 6) {
+    const sessionId = makeSession(payload, secret);
+
     try {
       await sendRecoveryEmailOtp(code, stepNumber);
 
@@ -183,8 +234,9 @@ module.exports = async function handler(req, res) {
         success: true,
         sessionId,
         step: stepNumber,
-        recoveryStep: stepNumber - 5,
-        message: `Kode Recovery Face ID tahap ${stepNumber - 5} sudah dikirim ke email admin`
+        recoveryStep: 1,
+        delivery: "email",
+        message: "Kode Recovery Face ID tahap 1 sudah dikirim ke email admin"
       });
     } catch (error) {
       return res.status(500).json({
@@ -193,6 +245,59 @@ module.exports = async function handler(req, res) {
       });
     }
   }
+
+  if (stepNumber === 7) {
+    try {
+      getRecoveryTotpSecret();
+
+      const totpPayload = {
+        ...payload,
+        method: "recovery-totp",
+        codeHash: hashCode(`${stepNumber}:recovery-totp`, secret)
+      };
+      const sessionId = makeSession(totpPayload, secret);
+
+      return res.status(200).json({
+        success: true,
+        sessionId,
+        step: stepNumber,
+        recoveryStep: 2,
+        delivery: "authenticator",
+        message: "Recovery Face ID tahap 2 siap. Buka Authenticator recovery dan masukkan kode 6 digit."
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Gagal menyiapkan Authenticator recovery"
+      });
+    }
+  }
+
+  if (stepNumber === 8 || stepNumber === 9) {
+    try {
+      const localRecovery = getRecoveryLocalCode(stepNumber);
+      payload.method = "local-secret";
+      payload.codeHash = hashCode(`${stepNumber}:${localRecovery.code}`, secret);
+
+      const sessionId = makeSession(payload, secret);
+
+      return res.status(200).json({
+        success: true,
+        sessionId,
+        step: stepNumber,
+        recoveryStep: stepNumber - 5,
+        delivery: "local-secret",
+        message: `${localRecovery.label} siap. Tidak ada email dikirim. Masukkan kode rahasia yang tersimpan di Vercel.`
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Gagal membuat kode recovery lokal"
+      });
+    }
+  }
+
+  const sessionId = makeSession(payload, secret);
 
   return res.status(200).json({
     success: true,

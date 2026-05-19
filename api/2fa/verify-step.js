@@ -22,6 +22,63 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(A, B);
 }
 
+function base32Decode(base32) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  let bytes = [];
+
+  base32 = String(base32).replace(/=+$/, "").replace(/\s+/g, "").toUpperCase();
+
+  for (const char of base32) {
+    const val = alphabet.indexOf(char);
+    if (val === -1) throw new Error("Secret TOTP recovery tidak valid");
+    bits += val.toString(2).padStart(5, "0");
+  }
+
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  }
+
+  return Buffer.from(bytes);
+}
+
+function generateTotp(secret, offset = 0) {
+  const key = base32Decode(secret);
+  const timeStep = Math.floor(Date.now() / 1000 / 30) + offset;
+
+  const buffer = Buffer.alloc(8);
+  buffer.writeUInt32BE(0, 0);
+  buffer.writeUInt32BE(timeStep, 4);
+
+  const hmac = crypto.createHmac("sha1", key).update(buffer).digest();
+  const hOffset = hmac[hmac.length - 1] & 0xf;
+
+  const code =
+    ((hmac[hOffset] & 0x7f) << 24) |
+    ((hmac[hOffset + 1] & 0xff) << 16) |
+    ((hmac[hOffset + 2] & 0xff) << 8) |
+    (hmac[hOffset + 3] & 0xff);
+
+  return String(code % 1000000).padStart(6, "0");
+}
+
+function verifyRecoveryTotp(code) {
+  const secret = process.env.A2F_RECOVERY_TOTP_SECRET_2;
+
+  if (!secret) {
+    throw new Error("A2F_RECOVERY_TOTP_SECRET_2 belum diset di Vercel");
+  }
+
+  const inputCode = String(code || "").replace(/\s+/g, "");
+  const validCodes = [
+    generateTotp(secret, -1),
+    generateTotp(secret, 0),
+    generateTotp(secret, 1)
+  ];
+
+  return validCodes.some((validCode) => safeEqual(inputCode, validCode));
+}
+
 function getFirebaseDb() {
   if (!admin.apps.length) {
     const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -158,6 +215,26 @@ async function resetA2fFailure() {
   }, { merge: true });
 }
 
+async function sendWrongCodeResponse(res) {
+  const lockData = await recordA2fFailure();
+
+  if (lockData.permanentBan === true) {
+    return res.status(403).json({
+      success: false,
+      error: "Kode salah. A2F diblokir permanen karena salah kode 3x.",
+      failedCount: lockData.failedCount,
+      permanentBan: true
+    });
+  }
+
+  return res.status(401).json({
+    success: false,
+    error: getLockMessage(lockData.lockUntilMs),
+    failedCount: lockData.failedCount,
+    lockUntilMs: lockData.lockUntilMs
+  });
+}
+
 module.exports = async function handler(req, res) {
   setCors(res);
 
@@ -176,7 +253,7 @@ module.exports = async function handler(req, res) {
     const { sessionId, code, step } = req.body || {};
     const stepNumber = Number(step);
 
-    if (!sessionId || !code || ![2, 3, 6, 7, 8].includes(stepNumber)) {
+    if (!sessionId || !code || ![2, 3, 6, 7, 8, 9].includes(stepNumber)) {
       return res.status(400).json({
         success: false,
         error: "Session, kode, dan step wajib benar"
@@ -229,26 +306,32 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const inputHash = hashCode(`${stepNumber}:${code}`, secret);
-
-    if (!safeEqual(inputHash, payload.codeHash)) {
-      const lockData = await recordA2fFailure();
-
-      if (lockData.permanentBan === true) {
-        return res.status(403).json({
+    if (stepNumber === 7) {
+      if (payload.flow !== "face-recovery" || payload.method !== "recovery-totp") {
+        return res.status(400).json({
           success: false,
-          error: "Kode salah. A2F diblokir permanen karena salah kode 3x.",
-          failedCount: lockData.failedCount,
-          permanentBan: true
+          error: "Session recovery Authenticator tidak valid"
         });
       }
 
-      return res.status(401).json({
-        success: false,
-        error: getLockMessage(lockData.lockUntilMs),
-        failedCount: lockData.failedCount,
-        lockUntilMs: lockData.lockUntilMs
+      if (!verifyRecoveryTotp(code)) {
+        return sendWrongCodeResponse(res);
+      }
+
+      await resetA2fFailure();
+
+      return res.status(200).json({
+        success: true,
+        message: "Kode Recovery Face ID tahap 2 dari Authenticator benar",
+        recoveryStep: 2,
+        nextStep: 8
       });
+    }
+
+    const inputHash = hashCode(`${stepNumber}:${code}`, secret);
+
+    if (!safeEqual(inputHash, payload.codeHash)) {
+      return sendWrongCodeResponse(res);
     }
 
     await resetA2fFailure();
