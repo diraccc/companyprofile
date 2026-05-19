@@ -604,12 +604,13 @@
     <section class="wrap hidden" id="twoFactorSection">
       <div class="login-card">
         <h2>Verifikasi A2F</h2>
-        <p id="twoFactorHelp">Login Firebase berhasil. Masukkan kode A2F tahap 1 dari 4 untuk membuka dashboard.</p>
+        <p id="twoFactorHelp">Login Firebase berhasil. Masukkan kode A2F tahap 1 dari 5 untuk membuka dashboard.</p>
         <div class="twofactor-steps" aria-label="Progres verifikasi A2F">
           <span class="twofactor-step active" id="twoFactorStep1">1</span>
           <span class="twofactor-step" id="twoFactorStep2">2</span>
           <span class="twofactor-step" id="twoFactorStep3">3</span>
           <span class="twofactor-step" id="twoFactorStep4">4</span>
+          <span class="twofactor-step" id="twoFactorStep5">5</span>
         </div>
         <div class="notice good" id="twoFactorUser">Role admin sudah dicek. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="field">
@@ -621,7 +622,7 @@
           <button class="btn danger" id="twoFactorCancelBtn" type="button">Batal / Logout</button>
         </div>
         <div class="notice danger hidden" id="twoFactorError" role="alert"></div>
-        <div class="notice">A2F tahap 1 pakai Authenticator App. Tahap 2 pakai kode rahasia. Tahap 3 pakai Email OTP. Tahap 4 pakai Device Lock + Time Lock.</div>
+        <div class="notice">A2F tahap 1 pakai Authenticator App. Tahap 2 pakai kode rahasia. Tahap 3 pakai Email OTP. Tahap 4 pakai Device Lock + Time Lock. Tahap 5 pakai Passkey / Security Key.</div>
       </div>
     </section>
 
@@ -1133,6 +1134,8 @@
       TWO_FACTOR_STEP_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/start-step',
       TWO_FACTOR_STEP_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-step',
       TWO_FACTOR_RISK_VERIFY_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/verify-risk',
+      TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-start',
+      TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish',
       TWO_FACTOR_HASHES: []
     });
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
@@ -1280,10 +1283,11 @@
       if(step === 2) return 'Kode rahasia';
       if(step === 3) return 'Email OTP';
       if(step === 4) return 'Device Lock + Time Lock';
+      if(step === 5) return 'Passkey / Security Key';
       return 'A2F';
     }
     function updateTwoFactorProgress(){
-      [1,2,3,4].forEach(step => {
+      [1,2,3,4,5].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(!node) return;
         node.className = 'twofactor-step' + (step < twoFactorStep ? ' done' : step === twoFactorStep ? ' active' : '');
@@ -1298,15 +1302,26 @@
           els.twoFactorHelp.textContent = 'Masukkan kode OTP tahap 3 yang dikirim ke email admin.';
         } else if(twoFactorStep === 4){
           els.twoFactorHelp.textContent = 'Masukkan Device Token admin. Backend juga mengecek jam login WIB.';
+        } else if(twoFactorStep === 5){
+          els.twoFactorHelp.textContent = 'Klik tombol verifikasi, lalu selesaikan fingerprint / Face ID / PIN perangkat untuk membuka dashboard.';
         } else {
-          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap ' + twoFactorStep + ' dari 4 untuk membuka dashboard.';
+          els.twoFactorHelp.textContent = 'Masukkan kode A2F tahap ' + twoFactorStep + ' dari 5 untuk membuka dashboard.';
         }
       }
       if(els.twoFactorLabel) els.twoFactorLabel.textContent = method;
       if(els.twoFactorBtn) els.twoFactorBtn.textContent = 'Verifikasi ' + method;
       if(els.twoFactorCode){
         els.twoFactorCode.value = '';
-        setTimeout(() => els.twoFactorCode.focus(), 60);
+        if(twoFactorStep === 5){
+          els.twoFactorCode.disabled = true;
+          els.twoFactorCode.type = 'text';
+          els.twoFactorCode.placeholder = 'Tidak perlu mengetik. Klik tombol verifikasi passkey.';
+        } else {
+          els.twoFactorCode.disabled = false;
+          els.twoFactorCode.type = 'password';
+          els.twoFactorCode.placeholder = 'Masukkan kode A2F';
+          setTimeout(() => els.twoFactorCode.focus(), 60);
+        }
       }
     }
     async function startTwoFactorGate(){
@@ -1435,6 +1450,89 @@
       }
       return data;
     }
+    function webauthnB64urlToBuffer(value){
+      value = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+      const pad = value.length % 4;
+      if(pad) value += '='.repeat(4 - pad);
+      const str = atob(value);
+      const bytes = new Uint8Array(str.length);
+      for(let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+      return bytes.buffer;
+    }
+    function webauthnBufferToB64url(buffer){
+      const bytes = new Uint8Array(buffer);
+      let str = '';
+      for(const b of bytes) str += String.fromCharCode(b);
+      return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+    function preparePasskeyAuthOptions(options){
+      const publicKey = structuredClone(options || {});
+      publicKey.challenge = webauthnB64urlToBuffer(publicKey.challenge);
+      if(publicKey.allowCredentials){
+        publicKey.allowCredentials = publicKey.allowCredentials.map(item => ({
+          ...item,
+          id: webauthnB64urlToBuffer(item.id)
+        }));
+      }
+      return publicKey;
+    }
+    async function verifyPasskeyTwoFactor(){
+      if(!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.get){
+        throw new Error('Browser/perangkat ini belum mendukung Passkey / Security Key.');
+      }
+      if(!SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT || !SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT){
+        throw new Error('Endpoint passkey belum lengkap.');
+      }
+      setNotice(els.twoFactorUser, 'Meminta challenge passkey dari backend...', 'good');
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const startResponse = await fetch(SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      const startData = await readApiJson(startResponse);
+      if(!startResponse.ok || startData.success === false){
+        const error = new Error(startData.error || startData.message || 'Gagal memulai verifikasi passkey.');
+        error.countAttempt = startResponse.status === 400 || startResponse.status === 401 || startResponse.status === 403 || startResponse.status === 429;
+        throw error;
+      }
+      if(!startData.options || !startData.session){
+        throw new Error('Backend passkey tidak mengirim options/session.');
+      }
+      setNotice(els.twoFactorUser, 'Ikuti popup fingerprint / Face ID / PIN perangkat.', 'good');
+      const credential = await navigator.credentials.get({
+        publicKey: preparePasskeyAuthOptions(startData.options)
+      });
+      if(!credential){
+        const error = new Error('Verifikasi passkey dibatalkan.');
+        error.countAttempt = true;
+        throw error;
+      }
+      const response = {
+        id: credential.id,
+        rawId: webauthnBufferToB64url(credential.rawId),
+        type: credential.type,
+        response: {
+          authenticatorData: webauthnBufferToB64url(credential.response.authenticatorData),
+          clientDataJSON: webauthnBufferToB64url(credential.response.clientDataJSON),
+          signature: webauthnBufferToB64url(credential.response.signature),
+          userHandle: credential.response.userHandle ? webauthnBufferToB64url(credential.response.userHandle) : null
+        },
+        clientExtensionResults: credential.getClientExtensionResults()
+      };
+      const finishResponse = await fetch(SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, response, session: startData.session })
+      });
+      const finishData = await readApiJson(finishResponse);
+      if(!finishResponse.ok || finishData.success === false){
+        const error = new Error(finishData.error || finishData.message || 'Passkey salah atau ditolak.');
+        error.countAttempt = finishResponse.status === 400 || finishResponse.status === 401 || finishResponse.status === 403 || finishResponse.status === 429;
+        throw error;
+      }
+      return finishData;
+    }
     function markTwoFactorWrong(message){
       twoFactorAttempts += 1;
       els.twoFactorCode.value = '';
@@ -1450,9 +1548,9 @@
     async function verifyTwoFactorCode(){
       if(busy || !auth.currentUser) return;
       hideNotice(els.twoFactorError);
-      if(twoFactorStep < 1 || twoFactorStep > 4) twoFactorStep = 1;
+      if(twoFactorStep < 1 || twoFactorStep > 5) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
-      if(!String(code || '').trim()){
+      if(twoFactorStep !== 5 && !String(code || '').trim()){
         setNotice(els.twoFactorError, 'Kode A2F wajib diisi.', 'danger');
         return;
       }
@@ -1466,9 +1564,11 @@
           await verifyBackendStepTwoFactor(code, 3);
         } else if(twoFactorStep === 4){
           await verifyRiskTwoFactor(code);
+        } else if(twoFactorStep === 5){
+          await verifyPasskeyTwoFactor();
         }
         twoFactorAttempts = 0;
-        if(twoFactorStep < 4){
+        if(twoFactorStep < 5){
           twoFactorStep += 1;
           showToast('A2F tahap ' + (twoFactorStep - 1) + ' benar');
           updateTwoFactorProgress();
@@ -1476,6 +1576,8 @@
             await requestBackendStepTwoFactor(3);
           } else if(twoFactorStep === 4){
             setNotice(els.twoFactorUser, 'Tahap 4: masukkan Device Token admin. Waktu login dicek otomatis oleh backend.', 'good');
+          } else if(twoFactorStep === 5){
+            setNotice(els.twoFactorUser, 'Tahap 5: klik tombol verifikasi passkey, lalu gunakan fingerprint / Face ID / PIN perangkat.', 'good');
           }
           return;
         }
@@ -1484,12 +1586,12 @@
         els.adminSection.classList.remove('hidden');
         els.logoutBtn.classList.remove('hidden');
         if(currentAdmin.roleSource === 'firestore'){
-          setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. A2F 4 tahap berhasil.', 'good');
+          setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. A2F 5 tahap berhasil.', 'good');
         }
         startListening();
         resetIdleTimer();
         logSecurity('auth.2fa_success', 'Dashboard dibuka').catch(() => {});
-        showToast('A2F 4 selesai. Dashboard dibuka.');
+        showToast('A2F 5 selesai. Dashboard dibuka.');
       }catch(error){
         if(error && error.countAttempt){
           markTwoFactorWrong(error.message || 'Kode A2F salah.');
