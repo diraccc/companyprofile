@@ -1255,6 +1255,7 @@
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
     const FACE_RECOVERY_TOTAL_STEPS = 3;
+    const FACE_RECOVERY_BACKEND_STEPS = [6, 7, 8];
 
     function rupiah(n){
       const value = Number(n);
@@ -1344,10 +1345,10 @@
         });
 
         if(els.twoFactorHelp){
-          els.twoFactorHelp.textContent = 'Recovery Face ID aktif. Selesaikan A2F tambahan tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + '.';
+          els.twoFactorHelp.textContent = 'Recovery Face ID aktif. Masukkan kode recovery khusus tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + '. Kode ini berbeda dari A2F awal.';
         }
         if(els.twoFactorLabel){
-          els.twoFactorLabel.textContent = 'Recovery A2F ' + faceRecoveryStep + '/' + FACE_RECOVERY_TOTAL_STEPS;
+          els.twoFactorLabel.textContent = 'Recovery Face ID ' + faceRecoveryStep + '/' + FACE_RECOVERY_TOTAL_STEPS;
         }
         if(els.twoFactorBtn){
           els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : 'Verifikasi Recovery';
@@ -1362,7 +1363,7 @@
           } else {
             els.twoFactorCode.disabled = false;
             els.twoFactorCode.type = 'password';
-            els.twoFactorCode.placeholder = 'Masukkan kode recovery A2F';
+            els.twoFactorCode.placeholder = 'Masukkan kode recovery Face ID';
             setTimeout(() => els.twoFactorCode.focus(), 60);
           }
         }
@@ -1616,8 +1617,15 @@
         if(!twoFactorStepSessionId){
           throw new Error('Backend harus mengirim sessionId untuk tahap ' + stepNumber + '.');
         }
+        const recoveryStepNumber = stepNumber >= 6 ? stepNumber - 5 : 0;
         if(data.debugCode){
-          setNotice(els.twoFactorUser, 'MODE TEST: kode A2F tahap ' + stepNumber + ' adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut.', 'warn');
+          if(recoveryStepNumber){
+            setNotice(els.twoFactorUser, 'MODE TEST: kode Recovery Face ID tahap ' + recoveryStepNumber + ' adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut.', 'warn');
+          }else{
+            setNotice(els.twoFactorUser, 'MODE TEST: kode A2F tahap ' + stepNumber + ' adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut.', 'warn');
+          }
+        }else if(recoveryStepNumber){
+          setNotice(els.twoFactorUser, 'Kode Recovery Face ID tahap ' + recoveryStepNumber + ' sudah dikirim/dibuat backend. Masukkan kodenya di sini.', 'good');
         }else{
           setNotice(els.twoFactorUser, 'Kode A2F tahap ' + stepNumber + ' sudah dibuat backend. Masukkan kodenya di sini.', 'good');
         }
@@ -1640,7 +1648,7 @@
       });
       const data = await readApiJson(response);
       if(!response.ok || data.success === false){
-        const error = new Error(data.error || data.message || 'Kode A2F tahap ' + stepNumber + ' salah atau expired.');
+        const error = new Error(data.error || data.message || (stepNumber >= 6 ? 'Kode Recovery Face ID tahap ' + (stepNumber - 5) + ' salah atau expired.' : 'Kode A2F tahap ' + stepNumber + ' salah atau expired.'));
         error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 423 || response.status === 429;
         if(hasA2fBackendLockState(data)) error.a2fLockState = data;
         throw error;
@@ -1756,7 +1764,11 @@
       return handleA2fFailureWithBackend(message, lockState);
     }
 
-    function enterFaceRecovery(message){
+    function getFaceRecoveryBackendStep(){
+      return FACE_RECOVERY_BACKEND_STEPS[faceRecoveryStep - 1];
+    }
+
+    async function enterFaceRecovery(message){
       faceRecoveryMode = true;
       faceRecoveryStep = 1;
       twoFactorStep = 5;
@@ -1770,17 +1782,23 @@
 
       setNotice(
         els.twoFactorError,
-        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Masukkan kode A2F tambahan tahap 1 dari 3.',
+        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Kode recovery khusus tahap 1 dari 3 akan dikirim lewat backend.',
         'warn'
       );
 
       setNotice(
         els.twoFactorUser,
-        'Mode recovery aktif. Face ID diganti dengan 3 verifikasi A2F tambahan.',
+        'Mode recovery aktif. Face ID diganti dengan 3 kode recovery khusus yang berbeda dari A2F awal.',
         'warn'
       );
 
       showToast('Recovery Face ID aktif');
+
+      try{
+        await requestBackendStepTwoFactor(getFaceRecoveryBackendStep());
+      }catch(error){
+        setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
+      }
     }
 
     async function finishFaceRecoverySuccess(){
@@ -1808,16 +1826,13 @@
     }
 
     async function verifyFaceRecoveryStep(code){
-      if(faceRecoveryStep === 1){
-        await verifyTotpTwoFactor(code);
-      } else if(faceRecoveryStep === 2){
-        await verifyPinTwoFactor(code);
-      } else if(faceRecoveryStep === 3){
-        await verifyBackendStepTwoFactor(code, 3);
-      } else {
+      const backendStepNumber = getFaceRecoveryBackendStep();
+
+      if(!backendStepNumber){
         throw new Error('Tahap recovery tidak valid.');
       }
 
+      await verifyBackendStepTwoFactor(code, backendStepNumber);
       twoFactorAttempts = 0;
 
       try{
@@ -1833,14 +1848,10 @@
         showToast('Recovery tahap berhasil');
         updateTwoFactorProgress();
 
-        if(faceRecoveryStep === 3){
-          await requestBackendStepTwoFactor(3);
-        } else {
-          setNotice(
-            els.twoFactorUser,
-            'Recovery aktif. Masukkan kode A2F tambahan tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + '.',
-            'good'
-          );
+        try{
+          await requestBackendStepTwoFactor(getFaceRecoveryBackendStep());
+        }catch(error){
+          setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
         }
 
         return;
@@ -1917,7 +1928,7 @@
         showToast('Verifikasi selesai. Dashboard dibuka.');
       }catch(error){
         if(!faceRecoveryMode && twoFactorStep === 5){
-          enterFaceRecovery(error.message || 'Face ID/passkey gagal.');
+          await enterFaceRecovery(error.message || 'Face ID/passkey gagal.');
           return;
         }
 
