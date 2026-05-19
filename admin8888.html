@@ -1247,6 +1247,13 @@
     let twoFactorVerified = false;
     let twoFactorWaSessionId = '';
     let twoFactorStepSessionId = '';
+    let twoFactorLockTimer = null;
+    const TWO_FACTOR_LOCK_STORAGE_PREFIX = 'dirac-admin-a2f-lock-v1:';
+    const TWO_FACTOR_LOCK_POLICY = Object.freeze([
+      { failedCount: 1, durationMs: 60 * 1000, label: '1 menit' },
+      { failedCount: 2, durationMs: 30 * 60 * 1000, label: '30 menit' },
+      { failedCount: 3, permanent: true, label: 'permanen' }
+    ]);
 
     function rupiah(n){
       const value = Number(n);
@@ -1291,15 +1298,117 @@
       el.classList.remove('hidden');
     }
     function hideNotice(el){ el.classList.add('hidden'); }
+    function twoFactorLockSubject(){
+      const fromAdmin = currentAdmin && (currentAdmin.uid || currentAdmin.email);
+      const fromAuth = auth.currentUser && (auth.currentUser.uid || auth.currentUser.email);
+      const fromForm = els.loginEmail ? els.loginEmail.value : '';
+      return String(fromAdmin || fromAuth || fromForm || 'unknown').trim().toLowerCase().replace(/[^a-z0-9@._-]/g, '_');
+    }
+    function twoFactorLockKey(){
+      return TWO_FACTOR_LOCK_STORAGE_PREFIX + twoFactorLockSubject();
+    }
+    function readTwoFactorLock(){
+      try{
+        const data = JSON.parse(localStorage.getItem(twoFactorLockKey()) || '{}');
+        return {
+          failedCount: Math.max(0, Number(data.failedCount || 0)),
+          lockUntil: Math.max(0, Number(data.lockUntil || 0)),
+          permanent: data.permanent === true,
+          updatedAt: Math.max(0, Number(data.updatedAt || 0))
+        };
+      }catch(_error){
+        return { failedCount:0, lockUntil:0, permanent:false, updatedAt:0 };
+      }
+    }
+    function saveTwoFactorLock(data){
+      localStorage.setItem(twoFactorLockKey(), JSON.stringify(Object.assign({}, data, { updatedAt: Date.now() })));
+    }
+    function clearTwoFactorLock(){
+      localStorage.removeItem(twoFactorLockKey());
+      clearTimeout(twoFactorLockTimer);
+      twoFactorLockTimer = null;
+    }
+    function formatTwoFactorLockDuration(ms){
+      const totalSeconds = Math.max(1, Math.ceil(Number(ms || 0) / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      if(minutes >= 1){
+        return minutes + ' menit' + (seconds ? ' ' + seconds + ' detik' : '');
+      }
+      return seconds + ' detik';
+    }
+    function currentTwoFactorLock(){
+      const lock = readTwoFactorLock();
+      if(lock.permanent){
+        return Object.assign({}, lock, { remainingMs: Infinity, message: 'A2F diblokir permanen karena kode salah 3x. Hubungi owner untuk reset manual.' });
+      }
+      if(lock.lockUntil && lock.lockUntil > Date.now()){
+        const remainingMs = lock.lockUntil - Date.now();
+        return Object.assign({}, lock, { remainingMs, message: 'A2F terkunci sementara. Coba lagi dalam ' + formatTwoFactorLockDuration(remainingMs) + '.' });
+      }
+      if(lock.lockUntil && lock.lockUntil <= Date.now()){
+        lock.lockUntil = 0;
+        saveTwoFactorLock(lock);
+      }
+      return null;
+    }
+    function scheduleTwoFactorLockRefresh(lock){
+      clearTimeout(twoFactorLockTimer);
+      twoFactorLockTimer = null;
+      if(!lock || !Number.isFinite(lock.remainingMs)) return;
+      twoFactorLockTimer = setTimeout(() => {
+        if(!twoFactorVerified && twoFactorStep >= 1){
+          hideNotice(els.twoFactorError);
+          setNotice(els.twoFactorUser, 'Lock A2F selesai. Masukkan kode verifikasi untuk melanjutkan.', 'good');
+          updateTwoFactorProgress();
+        }
+      }, Math.min(Math.max(250, lock.remainingMs + 250), 2147483647));
+    }
+    function enforceTwoFactorLock(){
+      const lock = currentTwoFactorLock();
+      if(!lock) return false;
+      if(els.twoFactorCode){
+        els.twoFactorCode.value = '';
+        els.twoFactorCode.disabled = true;
+        els.twoFactorCode.placeholder = lock.permanent ? 'A2F diblokir permanen' : 'A2F terkunci sementara';
+      }
+      if(els.twoFactorBtn){
+        els.twoFactorBtn.disabled = true;
+        els.twoFactorBtn.textContent = lock.permanent ? 'A2F diblokir' : 'Terkunci';
+      }
+      setNotice(els.twoFactorError, lock.message, 'danger');
+      setNotice(els.twoFactorUser, 'Percobaan gagal A2F: ' + lock.failedCount + 'x.', lock.permanent ? 'danger' : 'warn');
+      scheduleTwoFactorLockRefresh(lock);
+      return true;
+    }
+    function registerTwoFactorFailure(message){
+      const current = readTwoFactorLock();
+      const failedCount = Math.max(Number(current.failedCount || 0), twoFactorAttempts - 1, 0) + 1;
+      const policy = TWO_FACTOR_LOCK_POLICY.find(item => failedCount <= item.failedCount) || TWO_FACTOR_LOCK_POLICY[TWO_FACTOR_LOCK_POLICY.length - 1];
+      const nextLock = {
+        failedCount,
+        lockUntil: policy.permanent ? 0 : Date.now() + policy.durationMs,
+        permanent: policy.permanent === true
+      };
+      saveTwoFactorLock(nextLock);
+      const detail = nextLock.permanent ? 'A2F permanent lock after ' + failedCount + ' failed attempts' : 'A2F lock ' + policy.label + ' after ' + failedCount + ' failed attempts';
+      logSecurity(nextLock.permanent ? 'auth.2fa_permanent_lock' : 'auth.2fa_lockout', detail, 'warn').catch(() => {});
+      const suffix = nextLock.permanent ? 'Akun/browser ini diblokir permanen untuk A2F.' : 'A2F dikunci ' + policy.label + '.';
+      setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' ' + suffix, 'danger');
+      enforceTwoFactorLock();
+      return true;
+    }
     function resetTwoFactorState(){
       twoFactorStep = 0;
       twoFactorAttempts = 0;
       twoFactorVerified = false;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
+      clearTimeout(twoFactorLockTimer);
+      twoFactorLockTimer = null;
       if(els.twoFactorCode) els.twoFactorCode.value = '';
       if(els.twoFactorError) hideNotice(els.twoFactorError);
-      [1,2,3,4].forEach(step => {
+      [1,2,3,4,5].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(node) node.className = 'twofactor-step';
       });
@@ -1363,6 +1472,7 @@
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
       els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan.';
       updateTwoFactorProgress();
+      enforceTwoFactorLock();
     }
     async function readApiJson(response){
       try{ return await response.json(); }
@@ -1431,7 +1541,9 @@
           setNotice(els.twoFactorUser, 'Kode A2F tahap ' + stepNumber + ' sudah dibuat backend. Masukkan kodenya di sini.', 'good');
         }
       }finally{
-        els.twoFactorBtn.disabled = false;
+        if(!enforceTwoFactorLock()){
+          els.twoFactorBtn.disabled = false;
+        }
       }
     }
     async function verifyBackendStepTwoFactor(code, stepNumber){
@@ -1558,18 +1670,12 @@
     }
     function markTwoFactorWrong(message){
       twoFactorAttempts += 1;
-      els.twoFactorCode.value = '';
-      if(twoFactorAttempts >= SECURITY_CONFIG.TWO_FACTOR_MAX_ATTEMPTS){
-        setNotice(els.twoFactorError, 'Kode A2F terlalu sering salah. Sesi akan logout.', 'danger');
-        showToast('A2F gagal. Logout otomatis.');
-        setTimeout(() => logoutAdmin().catch(() => {}), 700);
-        return true;
-      }
-      setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan ' + twoFactorAttempts + ' dari ' + SECURITY_CONFIG.TWO_FACTOR_MAX_ATTEMPTS + '.', 'danger');
-      return false;
+      if(els.twoFactorCode) els.twoFactorCode.value = '';
+      return registerTwoFactorFailure(message);
     }
     async function verifyTwoFactorCode(){
       if(busy || !auth.currentUser) return;
+      if(enforceTwoFactorLock()) return;
       hideNotice(els.twoFactorError);
       if(twoFactorStep < 1 || twoFactorStep > 5) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
@@ -1605,6 +1711,7 @@
           return;
         }
         twoFactorVerified = true;
+        clearTwoFactorLock();
         els.twoFactorSection.classList.add('hidden');
         els.adminSection.classList.remove('hidden');
         els.logoutBtn.classList.remove('hidden');
