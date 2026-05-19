@@ -3326,33 +3326,20 @@
     function printInvoice(order){
       const win = window.open('', '_blank', 'noopener');
       if(!win){ showToast('Popup diblokir browser'); return; }
-      win.document.write('<!doctype html><html><head><title>Invoice '+escapeHtml(order.orderId)+'</title><style>body{font-family:Arial,sans-serif;background:#fff;margin:20px}.invoice-box{color:#0f172a;background:#fff}.right{text-align:right}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style>
-  <style id="a2f-private-polish">
-    /* A2F privacy polish: only visual/text cleanup, no login or verification logic changes */
-    #twoFactorSection .login-card{padding:18px;}
-    #twoFactorSection #twoFactorHelp,
-    #twoFactorSection .notice{font-size:.92rem;line-height:1.45;}
-    #twoFactorSection .twofactor-steps{gap:8px;margin:10px 0 12px;}
-    #twoFactorSection .twofactor-step{
-      padding:7px 8px;min-height:34px;display:flex;align-items:center;justify-content:center;
-    }
-    #twoFactorSection #twoFactorBtn,
-    #twoFactorSection #twoFactorCancelBtn{
-      min-height:44px;padding:9px 14px;font-size:.92rem;border-radius:999px;line-height:1.2;
-    }
-    #twoFactorSection .field{margin-bottom:10px;}
-    #twoFactorSection .input{min-height:48px;border-radius:16px;padding:11px 13px;}
-    @media(max-width:700px){
-      #twoFactorSection .login-card{padding:16px;border-radius:22px;}
-      #twoFactorSection h2{font-size:1.55rem;margin-bottom:8px;}
-      #twoFactorSection #twoFactorHelp{font-size:.9rem;}
-      #twoFactorSection #twoFactorBtn,
-      #twoFactorSection #twoFactorCancelBtn{min-height:42px;padding:8px 12px;font-size:.88rem;}
-      #twoFactorSection .notice{font-size:.88rem;padding:10px 12px;}
-    }
-  </style>
-
-</head><body>' + renderInvoiceHtml(order) + '<script>window.print();<\/script></body></html>');
+      const invoiceCss = 'body{font-family:Arial,sans-serif;background:#fff;margin:20px}.invoice-box{color:#0f172a;background:#fff}.right{text-align:right}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}';
+      const invoiceDocument = [
+        '<!doctype html>',
+        '<html><head>',
+        '<meta charset="utf-8">',
+        '<meta name="viewport" content="width=device-width, initial-scale=1">',
+        '<title>Invoice ' + escapeHtml(order.orderId) + '</title>',
+        '<style>' + invoiceCss + '</style>',
+        '</head><body>',
+        renderInvoiceHtml(order),
+        '<script>window.print();</' + 'script>',
+        '</body></html>'
+      ].join('');
+      win.document.write(invoiceDocument);
       win.document.close();
     }
     function fillTemplate(tpl, order){
