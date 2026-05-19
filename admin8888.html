@@ -1247,6 +1247,9 @@
     let twoFactorVerified = false;
     let twoFactorWaSessionId = '';
     let twoFactorStepSessionId = '';
+    let twoFactorBackendLockUntilMs = 0;
+    let twoFactorBackendPermanentBan = false;
+    let twoFactorBackendLockTimer = 0;
 
     function rupiah(n){
       const value = Number(n);
@@ -1291,15 +1294,92 @@
       el.classList.remove('hidden');
     }
     function hideNotice(el){ el.classList.add('hidden'); }
+    function getBackendA2fRemainingMs(lockUntilMs){
+      return Math.max(0, Number(lockUntilMs || 0) - Date.now());
+    }
+    function formatBackendA2fRemaining(lockUntilMs){
+      const remainingSeconds = Math.ceil(getBackendA2fRemainingMs(lockUntilMs) / 1000);
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = remainingSeconds % 60;
+      if(minutes > 0) return minutes + ' menit ' + seconds + ' detik';
+      return seconds + ' detik';
+    }
+    function stopBackendA2fLockCountdown(){
+      if(twoFactorBackendLockTimer){
+        clearTimeout(twoFactorBackendLockTimer);
+        twoFactorBackendLockTimer = 0;
+      }
+    }
+    function isBackendA2fLocked(){
+      return twoFactorBackendPermanentBan || getBackendA2fRemainingMs(twoFactorBackendLockUntilMs) > 0;
+    }
+    function syncBackendA2fLockUi(){
+      stopBackendA2fLockCountdown();
+
+      if(twoFactorBackendPermanentBan){
+        if(els.twoFactorCode) els.twoFactorCode.disabled = true;
+        if(els.twoFactorBtn){
+          els.twoFactorBtn.disabled = true;
+          els.twoFactorBtn.textContent = 'Diblokir';
+        }
+        setNotice(els.twoFactorError, 'A2F diblokir permanen oleh backend karena salah kode 3x. Reset lewat endpoint/backend untuk membuka lagi.', 'danger');
+        return true;
+      }
+
+      if(getBackendA2fRemainingMs(twoFactorBackendLockUntilMs) > 0){
+        const message = 'A2F terkunci oleh backend. Coba lagi dalam ' + formatBackendA2fRemaining(twoFactorBackendLockUntilMs) + '.';
+        if(els.twoFactorCode) els.twoFactorCode.disabled = true;
+        if(els.twoFactorBtn){
+          els.twoFactorBtn.disabled = true;
+          els.twoFactorBtn.textContent = 'Terkunci';
+        }
+        setNotice(els.twoFactorError, message, 'danger');
+        twoFactorBackendLockTimer = setTimeout(syncBackendA2fLockUi, 1000);
+        return true;
+      }
+
+      twoFactorBackendLockUntilMs = 0;
+      if(els.twoFactorBtn){
+        els.twoFactorBtn.disabled = Boolean(busy);
+        els.twoFactorBtn.textContent = 'Verifikasi';
+      }
+      if(els.twoFactorCode && twoFactorStep !== 5){
+        els.twoFactorCode.disabled = false;
+      }
+      return false;
+    }
+    function applyBackendA2fLock(error){
+      const message = String(error && error.message || '');
+      const lockUntilMs = Number(error && error.lockUntilMs || 0);
+      const permanentBan = Boolean(error && error.permanentBan);
+
+      if(permanentBan || /permanen|permanent/i.test(message)){
+        twoFactorBackendPermanentBan = true;
+        twoFactorBackendLockUntilMs = 0;
+      } else if(lockUntilMs > Date.now()){
+        twoFactorBackendLockUntilMs = lockUntilMs;
+      }
+
+      if(!isBackendA2fLocked()){
+        setNotice(els.twoFactorError, message || 'Verifikasi A2F ditolak backend.', 'danger');
+        return;
+      }
+
+      syncBackendA2fLockUi();
+      showToast(twoFactorBackendPermanentBan ? 'A2F diblokir permanen.' : 'A2F terkunci sementara.');
+    }
     function resetTwoFactorState(){
       twoFactorStep = 0;
       twoFactorAttempts = 0;
       twoFactorVerified = false;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
+      stopBackendA2fLockCountdown();
+      twoFactorBackendLockUntilMs = 0;
+      twoFactorBackendPermanentBan = false;
       if(els.twoFactorCode) els.twoFactorCode.value = '';
       if(els.twoFactorError) hideNotice(els.twoFactorError);
-      [1,2,3,4].forEach(step => {
+      [1,2,3,4,5].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(node) node.className = 'twofactor-step';
       });
@@ -1346,6 +1426,7 @@
           setTimeout(() => els.twoFactorCode.focus(), 60);
         }
       }
+      syncBackendA2fLockUi();
     }
     async function startTwoFactorGate(){
       twoFactorVerified = false;
@@ -1353,6 +1434,9 @@
       twoFactorAttempts = 0;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
+      stopBackendA2fLockCountdown();
+      twoFactorBackendLockUntilMs = 0;
+      twoFactorBackendPermanentBan = false;
       hideNotice(els.loginError);
       hideNotice(els.twoFactorError);
       els.loginSection.classList.add('hidden');
@@ -1450,7 +1534,11 @@
       const data = await readApiJson(response);
       if(!response.ok || data.success === false){
         const error = new Error(data.error || data.message || 'Kode A2F tahap ' + stepNumber + ' salah atau expired.');
-        error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 429;
+        error.lockUntilMs = Number(data.lockUntilMs || 0);
+        error.failedCount = Number(data.failedCount || 0);
+        error.permanentBan = Boolean(data.permanentBan);
+        error.backendA2fLock = error.permanentBan || error.lockUntilMs > Date.now() || response.status === 423 || /terkunci|blokir|diblokir|permanen|permanent/i.test(error.message);
+        error.countAttempt = !error.backendA2fLock && (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 429);
         throw error;
       }
       return data;
@@ -1570,6 +1658,7 @@
     }
     async function verifyTwoFactorCode(){
       if(busy || !auth.currentUser) return;
+      if(syncBackendA2fLockUi()) return;
       hideNotice(els.twoFactorError);
       if(twoFactorStep < 1 || twoFactorStep > 5) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
@@ -1604,6 +1693,9 @@
           }
           return;
         }
+        stopBackendA2fLockCountdown();
+        twoFactorBackendLockUntilMs = 0;
+        twoFactorBackendPermanentBan = false;
         twoFactorVerified = true;
         els.twoFactorSection.classList.add('hidden');
         els.adminSection.classList.remove('hidden');
@@ -1616,13 +1708,16 @@
         logSecurity('auth.2fa_success', 'Dashboard dibuka').catch(() => {});
         showToast('Verifikasi selesai. Dashboard dibuka.');
       }catch(error){
-        if(error && error.countAttempt){
+        if(error && error.backendA2fLock){
+          applyBackendA2fLock(error);
+        } else if(error && error.countAttempt){
           markTwoFactorWrong(error.message || 'Kode A2F salah.');
         } else {
           setNotice(els.twoFactorError, error.message || 'Verifikasi A2F gagal.', 'danger');
         }
       }finally{
         els.twoFactorBtn.disabled = false;
+        syncBackendA2fLockUi();
       }
     }
     function escapeHtml(value){
