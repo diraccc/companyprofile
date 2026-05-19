@@ -1252,6 +1252,9 @@
     let twoFactorBackendLocked = false;
     let twoFactorPermanentLocked = false;
     let twoFactorLockTimer = null;
+    let faceRecoveryMode = false;
+    let faceRecoveryStep = 0;
+    const FACE_RECOVERY_TOTAL_STEPS = 3;
 
     function rupiah(n){
       const value = Number(n);
@@ -1304,6 +1307,8 @@
       twoFactorStepSessionId = '';
       twoFactorBackendLocked = false;
       twoFactorPermanentLocked = false;
+      faceRecoveryMode = false;
+      faceRecoveryStep = 0;
       clearTwoFactorLockTimer();
       if(els.twoFactorCode){
         els.twoFactorCode.value = '';
@@ -1330,6 +1335,40 @@
         if(!node) return;
         node.className = 'twofactor-step' + (step < twoFactorStep ? ' done' : step === twoFactorStep ? ' active' : '');
       });
+
+      if(faceRecoveryMode){
+        [1,2,3,4,5].forEach(step => {
+          const node = $('twoFactorStep' + step);
+          if(!node) return;
+          node.className = 'twofactor-step' + (step < 5 ? ' done' : ' active');
+        });
+
+        if(els.twoFactorHelp){
+          els.twoFactorHelp.textContent = 'Recovery Face ID aktif. Selesaikan A2F tambahan tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + '.';
+        }
+        if(els.twoFactorLabel){
+          els.twoFactorLabel.textContent = 'Recovery A2F ' + faceRecoveryStep + '/' + FACE_RECOVERY_TOTAL_STEPS;
+        }
+        if(els.twoFactorBtn){
+          els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : 'Verifikasi Recovery';
+          els.twoFactorBtn.disabled = twoFactorBackendLocked || twoFactorPermanentLocked;
+        }
+        if(els.twoFactorCode){
+          els.twoFactorCode.value = '';
+          if(twoFactorBackendLocked || twoFactorPermanentLocked){
+            els.twoFactorCode.disabled = true;
+            els.twoFactorCode.type = 'text';
+            els.twoFactorCode.placeholder = twoFactorPermanentLocked ? 'A2F diblokir permanen.' : 'A2F terkunci sementara.';
+          } else {
+            els.twoFactorCode.disabled = false;
+            els.twoFactorCode.type = 'password';
+            els.twoFactorCode.placeholder = 'Masukkan kode recovery A2F';
+            setTimeout(() => els.twoFactorCode.focus(), 60);
+          }
+        }
+        return;
+      }
+
       const method = twoFactorMethodName(twoFactorStep);
       if(els.twoFactorHelp){
         if(twoFactorStep === 1){
@@ -1375,6 +1414,8 @@
       twoFactorAttempts = 0;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
+      faceRecoveryMode = false;
+      faceRecoveryStep = 0;
       hideNotice(els.loginError);
       hideNotice(els.twoFactorError);
       els.loginSection.classList.add('hidden');
@@ -1410,7 +1451,7 @@
         if(buttonText) els.twoFactorBtn.textContent = buttonText;
       }
       if(els.twoFactorCode){
-        els.twoFactorCode.disabled = Boolean(locked) || twoFactorStep === 5;
+        els.twoFactorCode.disabled = Boolean(locked) || (twoFactorStep === 5 && !faceRecoveryMode);
         if(locked){
           els.twoFactorCode.type = 'text';
           els.twoFactorCode.placeholder = twoFactorPermanentLocked ? 'A2F diblokir permanen.' : 'A2F terkunci sementara.';
@@ -1470,7 +1511,7 @@
             twoFactorBackendLocked = false;
             setTwoFactorInputLocked(false, 'Verifikasi');
             setNotice(els.twoFactorError, 'Lock sementara selesai. Masukkan kode A2F lagi.', 'warn');
-            if(els.twoFactorCode && twoFactorStep !== 5){
+            if(els.twoFactorCode && (twoFactorStep !== 5 || faceRecoveryMode)){
               els.twoFactorCode.disabled = false;
               els.twoFactorCode.type = 'password';
               els.twoFactorCode.placeholder = 'Masukkan kode A2F';
@@ -1714,6 +1755,99 @@
       if(els.twoFactorCode) els.twoFactorCode.value = '';
       return handleA2fFailureWithBackend(message, lockState);
     }
+
+    function enterFaceRecovery(message){
+      faceRecoveryMode = true;
+      faceRecoveryStep = 1;
+      twoFactorStep = 5;
+      twoFactorAttempts = 0;
+
+      if(els.twoFactorCode){
+        els.twoFactorCode.value = '';
+      }
+
+      updateTwoFactorProgress();
+
+      setNotice(
+        els.twoFactorError,
+        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Masukkan kode A2F tambahan tahap 1 dari 3.',
+        'warn'
+      );
+
+      setNotice(
+        els.twoFactorUser,
+        'Mode recovery aktif. Face ID diganti dengan 3 verifikasi A2F tambahan.',
+        'warn'
+      );
+
+      showToast('Recovery Face ID aktif');
+    }
+
+    async function finishFaceRecoverySuccess(){
+      twoFactorVerified = true;
+      faceRecoveryMode = false;
+      faceRecoveryStep = 0;
+
+      els.twoFactorSection.classList.add('hidden');
+      els.adminSection.classList.remove('hidden');
+      els.logoutBtn.classList.remove('hidden');
+
+      if(currentAdmin.roleSource === 'firestore'){
+        setNotice(
+          els.syncStatus,
+          'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Recovery A2F berhasil.',
+          'good'
+        );
+      }
+
+      startListening();
+      resetIdleTimer();
+
+      logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat Recovery Face ID').catch(() => {});
+      showToast('Recovery selesai. Dashboard dibuka.');
+    }
+
+    async function verifyFaceRecoveryStep(code){
+      if(faceRecoveryStep === 1){
+        await verifyTotpTwoFactor(code);
+      } else if(faceRecoveryStep === 2){
+        await verifyPinTwoFactor(code);
+      } else if(faceRecoveryStep === 3){
+        await verifyBackendStepTwoFactor(code, 3);
+      } else {
+        throw new Error('Tahap recovery tidak valid.');
+      }
+
+      twoFactorAttempts = 0;
+
+      try{
+        const state = await checkA2fBackendLock();
+        if(applyA2fBackendLockState(state)) return;
+      }catch(error){
+        setNotice(els.twoFactorError, error.message || 'Gagal cek lock backend A2F.', 'danger');
+        return;
+      }
+
+      if(faceRecoveryStep < FACE_RECOVERY_TOTAL_STEPS){
+        faceRecoveryStep += 1;
+        showToast('Recovery tahap berhasil');
+        updateTwoFactorProgress();
+
+        if(faceRecoveryStep === 3){
+          await requestBackendStepTwoFactor(3);
+        } else {
+          setNotice(
+            els.twoFactorUser,
+            'Recovery aktif. Masukkan kode A2F tambahan tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + '.',
+            'good'
+          );
+        }
+
+        return;
+      }
+
+      await finishFaceRecoverySuccess();
+    }
     async function verifyTwoFactorCode(){
       if(busy || !auth.currentUser) return;
       if(twoFactorBackendLocked || twoFactorPermanentLocked){
@@ -1727,12 +1861,17 @@
       hideNotice(els.twoFactorError);
       if(twoFactorStep < 1 || twoFactorStep > 5) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
-      if(twoFactorStep !== 5 && !String(code || '').trim()){
+      if((faceRecoveryMode || twoFactorStep !== 5) && !String(code || '').trim()){
         setNotice(els.twoFactorError, 'Kode A2F wajib diisi.', 'danger');
         return;
       }
       els.twoFactorBtn.disabled = true;
       try{
+        if(faceRecoveryMode){
+          await verifyFaceRecoveryStep(code);
+          return;
+        }
+
         if(twoFactorStep === 1){
           await verifyTotpTwoFactor(code);
         } else if(twoFactorStep === 2){
@@ -1777,6 +1916,11 @@
         logSecurity('auth.2fa_success', 'Dashboard dibuka').catch(() => {});
         showToast('Verifikasi selesai. Dashboard dibuka.');
       }catch(error){
+        if(!faceRecoveryMode && twoFactorStep === 5){
+          enterFaceRecovery(error.message || 'Face ID/passkey gagal.');
+          return;
+        }
+
         if(error && error.countAttempt){
           await markTwoFactorWrong(error.message || 'Kode A2F salah.', error.a2fLockState);
         } else {
