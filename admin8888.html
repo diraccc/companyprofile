@@ -1397,7 +1397,125 @@
     async function readApiJson(response){
       try{ return await response.json(); }
       catch(_error){ return {}; }
-    }\n    function clearTwoFactorLockTimer(){\n      if(twoFactorLockTimer){\n        clearInterval(twoFactorLockTimer);\n        twoFactorLockTimer = null;\n      }\n    }\n    function setTwoFactorInputLocked(locked, buttonText){\n      if(els.twoFactorBtn){\n        els.twoFactorBtn.disabled = Boolean(locked);\n        if(buttonText) els.twoFactorBtn.textContent = buttonText;\n      }\n      if(els.twoFactorCode){\n        els.twoFactorCode.disabled = Boolean(locked) || twoFactorStep === 5;\n        if(locked){\n          els.twoFactorCode.type = 'text';\n          els.twoFactorCode.placeholder = twoFactorPermanentLocked ? 'A2F diblokir permanen.' : 'A2F terkunci sementara.';\n        }\n      }\n    }\n    function formatLockRemaining(ms){\n      const totalSeconds = Math.max(0, Math.ceil(Number(ms || 0) / 1000));\n      const minutes = Math.floor(totalSeconds / 60);\n      const seconds = totalSeconds % 60;\n      if(minutes > 0) return minutes + ' menit ' + seconds + ' detik';\n      return seconds + ' detik';\n    }\n    function hasA2fBackendLockState(data){\n      if(!data || typeof data !== 'object') return false;\n      return data.locked === true || data.permanentBan === true || Number(data.lockUntilMs || 0) > 0 || Number(data.failedCount || 0) > 0;\n    }\n    async function callA2fBackendLock(action){\n      const response = await fetch(A2F_LOCK_ENDPOINT, {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ action })\n      });\n      const data = await readApiJson(response);\n      data.httpStatus = response.status;\n      if(response.status >= 500){\n        throw new Error(data.error || 'Backend lock A2F error.');\n      }\n      return data;\n    }\n    async function checkA2fBackendLock(){\n      return callA2fBackendLock('check');\n    }\n    async function recordA2fBackendFailure(){\n      return callA2fBackendLock('fail');\n    }\n    function applyA2fBackendLockState(state){\n      if(!state || typeof state !== 'object') return false;\n      clearTwoFactorLockTimer();\n      const failedCount = Math.min(Number(state.failedCount || 0), A2F_BACKEND_MAX_FAILURES);\n      if(state.permanentBan === true || failedCount >= A2F_BACKEND_MAX_FAILURES){\n        twoFactorBackendLocked = true;\n        twoFactorPermanentLocked = true;\n        setTwoFactorInputLocked(true, 'Diblokir');\n        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat backend/Firebase.', 'danger');\n        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban backend.', 'danger');\n        return true;\n      }\n      const lockUntilMs = Number(state.lockUntilMs || 0);\n      if(state.locked === true && lockUntilMs > Date.now()){\n        twoFactorBackendLocked = true;\n        twoFactorPermanentLocked = false;\n        const updateCountdown = () => {\n          const remainingMs = lockUntilMs - Date.now();\n          if(remainingMs <= 0){\n            clearTwoFactorLockTimer();\n            twoFactorBackendLocked = false;\n            setTwoFactorInputLocked(false, 'Verifikasi');\n            setNotice(els.twoFactorError, 'Lock sementara selesai. Masukkan kode A2F lagi.', 'warn');\n            if(els.twoFactorCode && twoFactorStep !== 5){\n              els.twoFactorCode.disabled = false;\n              els.twoFactorCode.type = 'password';\n              els.twoFactorCode.placeholder = 'Masukkan kode A2F';\n              setTimeout(() => els.twoFactorCode.focus(), 60);\n            }\n            checkA2fBackendLock().then(nextState => {\n              if(nextState && nextState.locked) applyA2fBackendLockState(nextState);\n            }).catch(() => {});\n            return;\n          }\n          setTwoFactorInputLocked(true, 'Terkunci');\n          setNotice(els.twoFactorError, (state.error || 'A2F terkunci sementara.') + ' Coba lagi dalam ' + formatLockRemaining(remainingMs) + '. Percobaan ' + failedCount + ' dari ' + A2F_BACKEND_MAX_FAILURES + '.', 'danger');\n        };\n        updateCountdown();\n        twoFactorLockTimer = setInterval(updateCountdown, 1000);\n        return true;\n      }\n      twoFactorBackendLocked = false;\n      twoFactorPermanentLocked = false;\n      setTwoFactorInputLocked(false, 'Verifikasi');\n      return false;\n    }\n    async function handleA2fFailureWithBackend(message, lockState){\n      if(lockState && hasA2fBackendLockState(lockState)){\n        applyA2fBackendLockState(lockState);\n        return true;\n      }\n      try{\n        const state = await recordA2fBackendFailure();\n        if(applyA2fBackendLockState(state)) return true;\n        setNotice(els.twoFactorError, (message || state.error || 'Kode A2F salah.') + ' Percobaan ' + Math.min(Number(state.failedCount || 1), A2F_BACKEND_MAX_FAILURES) + ' dari ' + A2F_BACKEND_MAX_FAILURES + '.', 'danger');\n        return true;\n      }catch(error){\n        twoFactorAttempts += 1;\n        if(twoFactorAttempts >= A2F_BACKEND_MAX_FAILURES){\n          twoFactorBackendLocked = true;\n          twoFactorPermanentLocked = true;\n          setTwoFactorInputLocked(true, 'Diblokir');\n          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa /api/2fa/lock.', 'danger');\n          return true;\n        }\n        setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');\n        return true;\n      }\n    }
+    }
+    function clearTwoFactorLockTimer(){
+      if(twoFactorLockTimer){
+        clearInterval(twoFactorLockTimer);
+        twoFactorLockTimer = null;
+      }
+    }
+    function setTwoFactorInputLocked(locked, buttonText){
+      if(els.twoFactorBtn){
+        els.twoFactorBtn.disabled = Boolean(locked);
+        if(buttonText) els.twoFactorBtn.textContent = buttonText;
+      }
+      if(els.twoFactorCode){
+        els.twoFactorCode.disabled = Boolean(locked) || twoFactorStep === 5;
+        if(locked){
+          els.twoFactorCode.type = 'text';
+          els.twoFactorCode.placeholder = twoFactorPermanentLocked ? 'A2F diblokir permanen.' : 'A2F terkunci sementara.';
+        }
+      }
+    }
+    function formatLockRemaining(ms){
+      const totalSeconds = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      if(minutes > 0) return minutes + ' menit ' + seconds + ' detik';
+      return seconds + ' detik';
+    }
+    function hasA2fBackendLockState(data){
+      if(!data || typeof data !== 'object') return false;
+      return data.locked === true || data.permanentBan === true || Number(data.lockUntilMs || 0) > 0 || Number(data.failedCount || 0) > 0;
+    }
+    async function callA2fBackendLock(action){
+      const response = await fetch(A2F_LOCK_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      const data = await readApiJson(response);
+      data.httpStatus = response.status;
+      if(response.status >= 500){
+        throw new Error(data.error || 'Backend lock A2F error.');
+      }
+      return data;
+    }
+    async function checkA2fBackendLock(){
+      return callA2fBackendLock('check');
+    }
+    async function recordA2fBackendFailure(){
+      return callA2fBackendLock('fail');
+    }
+    function applyA2fBackendLockState(state){
+      if(!state || typeof state !== 'object') return false;
+      clearTwoFactorLockTimer();
+      const failedCount = Math.min(Number(state.failedCount || 0), A2F_BACKEND_MAX_FAILURES);
+      if(state.permanentBan === true || failedCount >= A2F_BACKEND_MAX_FAILURES){
+        twoFactorBackendLocked = true;
+        twoFactorPermanentLocked = true;
+        setTwoFactorInputLocked(true, 'Diblokir');
+        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat backend/Firebase.', 'danger');
+        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban backend.', 'danger');
+        return true;
+      }
+      const lockUntilMs = Number(state.lockUntilMs || 0);
+      if(state.locked === true && lockUntilMs > Date.now()){
+        twoFactorBackendLocked = true;
+        twoFactorPermanentLocked = false;
+        const updateCountdown = () => {
+          const remainingMs = lockUntilMs - Date.now();
+          if(remainingMs <= 0){
+            clearTwoFactorLockTimer();
+            twoFactorBackendLocked = false;
+            setTwoFactorInputLocked(false, 'Verifikasi');
+            setNotice(els.twoFactorError, 'Lock sementara selesai. Masukkan kode A2F lagi.', 'warn');
+            if(els.twoFactorCode && twoFactorStep !== 5){
+              els.twoFactorCode.disabled = false;
+              els.twoFactorCode.type = 'password';
+              els.twoFactorCode.placeholder = 'Masukkan kode A2F';
+              setTimeout(() => els.twoFactorCode.focus(), 60);
+            }
+            checkA2fBackendLock().then(nextState => {
+              if(nextState && nextState.locked) applyA2fBackendLockState(nextState);
+            }).catch(() => {});
+            return;
+          }
+          setTwoFactorInputLocked(true, 'Terkunci');
+          setNotice(els.twoFactorError, (state.error || 'A2F terkunci sementara.') + ' Coba lagi dalam ' + formatLockRemaining(remainingMs) + '. Percobaan ' + failedCount + ' dari ' + A2F_BACKEND_MAX_FAILURES + '.', 'danger');
+        };
+        updateCountdown();
+        twoFactorLockTimer = setInterval(updateCountdown, 1000);
+        return true;
+      }
+      twoFactorBackendLocked = false;
+      twoFactorPermanentLocked = false;
+      setTwoFactorInputLocked(false, 'Verifikasi');
+      return false;
+    }
+    async function handleA2fFailureWithBackend(message, lockState){
+      if(lockState && hasA2fBackendLockState(lockState)){
+        applyA2fBackendLockState(lockState);
+        return true;
+      }
+      try{
+        const state = await recordA2fBackendFailure();
+        if(applyA2fBackendLockState(state)) return true;
+        setNotice(els.twoFactorError, (message || state.error || 'Kode A2F salah.') + ' Percobaan ' + Math.min(Number(state.failedCount || 1), A2F_BACKEND_MAX_FAILURES) + ' dari ' + A2F_BACKEND_MAX_FAILURES + '.', 'danger');
+        return true;
+      }catch(error){
+        twoFactorAttempts += 1;
+        if(twoFactorAttempts >= A2F_BACKEND_MAX_FAILURES){
+          twoFactorBackendLocked = true;
+          twoFactorPermanentLocked = true;
+          setTwoFactorInputLocked(true, 'Diblokir');
+          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa /api/2fa/lock.', 'danger');
+          return true;
+        }
+        setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
+        return true;
+      }
+    }
     async function verifyTotpTwoFactor(code){
       if(!SECURITY_CONFIG.TWO_FACTOR_TOTP_VERIFY_ENDPOINT){
         throw new Error('Endpoint verifikasi belum diisi.');
@@ -5378,7 +5496,6 @@
       function pro3Install(){ pro3SetAdminReady(); pro3WizardEnhance('productFormPanel','ultra-product-tab'); pro3WizardEnhance('orderFormPanel','ultra-order-tab'); pro3EnhanceCustomerDetail(); pro3EnsureProfitReports(); pro3DecorateDashboardCards(); pro3DecorateOrderActions(); pro3ShowSkeletons(); pro3AnimateMetrics(); document.body.classList.add('dirac-pro3-ready'); if(els.modalCloseBtn) els.modalCloseBtn.setAttribute('aria-label','Tutup dialog'); }
       setTimeout(pro3Install, 20);
     }
-
 
 </script>
 </body>
