@@ -1,5 +1,8 @@
 const crypto = require("crypto");
-const { verifyAuthenticationResponse } = require("@simplewebauthn/server");
+const {
+  verifyAuthenticationResponse,
+  verifyRegistrationResponse
+} = require("@simplewebauthn/server");
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -9,6 +12,10 @@ function setCors(res) {
 
 function base64urlToBuffer(value) {
   return Buffer.from(String(value), "base64url");
+}
+
+function bufferToBase64url(value) {
+  return Buffer.from(value).toString("base64url");
 }
 
 function parseSession(session) {
@@ -31,6 +38,62 @@ function parseSession(session) {
   return JSON.parse(base64urlToBuffer(payloadBase64).toString("utf8"));
 }
 
+function readSavedCredentials() {
+  const manyCredentialsJson = process.env.PASSKEY_CREDENTIALS_JSON;
+  const singleCredentialJson = process.env.PASSKEY_CREDENTIAL_JSON;
+
+  if (manyCredentialsJson) {
+    const parsed = JSON.parse(manyCredentialsJson);
+    if (!Array.isArray(parsed)) {
+      throw new Error("PASSKEY_CREDENTIALS_JSON harus berbentuk array");
+    }
+    return parsed;
+  }
+
+  if (singleCredentialJson) {
+    return [JSON.parse(singleCredentialJson)];
+  }
+
+  return [];
+}
+
+function findCredentialByResponseId(credentials, response) {
+  const responseId = response && response.id ? String(response.id) : "";
+  return credentials.find((credential) => String(credential.id) === responseId);
+}
+
+function buildCredentialFromRegistrationInfo(registrationInfo, response, deviceName) {
+  const credential = registrationInfo.credential || {};
+
+  const credentialId =
+    credential.id ||
+    (registrationInfo.credentialID
+      ? bufferToBase64url(registrationInfo.credentialID)
+      : response.id);
+
+  const publicKey =
+    credential.publicKey ||
+    registrationInfo.credentialPublicKey;
+
+  if (!credentialId || !publicKey) {
+    throw new Error("Data passkey baru tidak lengkap");
+  }
+
+  return {
+    name: deviceName || "Passkey cadangan",
+    id: credentialId,
+    publicKey: bufferToBase64url(publicKey),
+    counter: credential.counter || registrationInfo.counter || 0,
+    transports:
+      response &&
+      response.response &&
+      Array.isArray(response.response.transports)
+        ? response.response.transports
+        : [],
+    createdAt: new Date().toISOString()
+  };
+}
+
 module.exports = async function handler(req, res) {
   setCors(res);
 
@@ -44,21 +107,64 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { response, session } = req.body || {};
+    const { response, session, deviceName } = req.body || {};
     const data = parseSession(session);
 
     const rpID = process.env.PASSKEY_RP_ID || "diracgroup.store";
     const origin = process.env.PASSKEY_ORIGIN || "https://diracgroup.store";
-    const credentialJson = process.env.PASSKEY_CREDENTIAL_JSON;
+    const savedCredentials = readSavedCredentials();
 
-    if (!credentialJson) {
-      return res.status(500).json({
-        success: false,
-        error: "PASSKEY_CREDENTIAL_JSON belum diset di Vercel"
+    if (data.mode === "register") {
+      const verification = await verifyRegistrationResponse({
+        response,
+        expectedChallenge: data.challenge,
+        expectedOrigin: origin,
+        expectedRPID: rpID,
+        requireUserVerification: false
+      });
+
+      if (!verification.verified) {
+        return res.status(401).json({
+          success: false,
+          error: "Pendaftaran passkey ditolak"
+        });
+      }
+
+      const newCredential = buildCredentialFromRegistrationInfo(
+        verification.registrationInfo,
+        response,
+        deviceName
+      );
+
+      const updatedCredentials = [
+        ...savedCredentials.filter((credential) => credential.id !== newCredential.id),
+        newCredential
+      ];
+
+      return res.status(200).json({
+        success: true,
+        mode: "register",
+        message: "Passkey cadangan berhasil dibuat",
+        credential: newCredential,
+        credentialsJson: JSON.stringify(updatedCredentials, null, 2)
       });
     }
 
-    const saved = JSON.parse(credentialJson);
+    if (!savedCredentials.length) {
+      return res.status(500).json({
+        success: false,
+        error: "Belum ada passkey. Set PASSKEY_CREDENTIAL_JSON atau PASSKEY_CREDENTIALS_JSON di Vercel"
+      });
+    }
+
+    const saved = findCredentialByResponseId(savedCredentials, response);
+
+    if (!saved) {
+      return res.status(401).json({
+        success: false,
+        error: "Passkey ini belum terdaftar"
+      });
+    }
 
     const verification = await verifyAuthenticationResponse({
       response,
@@ -82,6 +188,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      mode: "auth",
       message: "Passkey benar"
     });
   } catch (error) {
