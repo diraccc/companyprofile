@@ -1254,8 +1254,8 @@
     let twoFactorLockTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
-    const FACE_RECOVERY_TOTAL_STEPS = 3;
-    const FACE_RECOVERY_BACKEND_STEPS = [6, 7, 8];
+    const FACE_RECOVERY_TOTAL_STEPS = 4;
+    const FACE_RECOVERY_BACKEND_STEPS = [6, 7, 8, 9];
 
     function rupiah(n){
       const value = Number(n);
@@ -1344,8 +1344,15 @@
           node.className = 'twofactor-step' + (step < 5 ? ' done' : ' active');
         });
 
+        const recoveryHint = faceRecoveryStep === 1
+          ? 'Tahap 1 dikirim ke email recovery.'
+          : faceRecoveryStep === 2
+            ? 'Tahap 2 memakai kode Authenticator recovery, tanpa kirim email.'
+            : faceRecoveryStep === 3
+              ? 'Tahap 3 memakai kode rahasia recovery 1 di Vercel, tanpa kirim email.'
+              : 'Tahap 4 memakai kode rahasia recovery 2 di Vercel, tanpa kirim email.';
         if(els.twoFactorHelp){
-          els.twoFactorHelp.textContent = 'Recovery Face ID aktif. Masukkan kode recovery khusus tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + '. Kode ini berbeda dari A2F awal.';
+          els.twoFactorHelp.textContent = 'Recovery Face ID aktif. ' + recoveryHint + ' Kode ini berbeda dari A2F awal.';
         }
         if(els.twoFactorLabel){
           els.twoFactorLabel.textContent = 'Recovery Face ID ' + faceRecoveryStep + '/' + FACE_RECOVERY_TOTAL_STEPS;
@@ -1363,7 +1370,13 @@
           } else {
             els.twoFactorCode.disabled = false;
             els.twoFactorCode.type = 'password';
-            els.twoFactorCode.placeholder = 'Masukkan kode recovery Face ID';
+            els.twoFactorCode.placeholder = faceRecoveryStep === 1
+              ? 'Masukkan kode recovery dari email'
+              : faceRecoveryStep === 2
+                ? 'Masukkan kode Authenticator recovery'
+                : faceRecoveryStep === 3
+                  ? 'Masukkan kode rahasia recovery tahap 3'
+                  : 'Masukkan kode rahasia recovery tahap 4';
             setTimeout(() => els.twoFactorCode.focus(), 60);
           }
         }
@@ -1625,7 +1638,18 @@
             setNotice(els.twoFactorUser, 'MODE TEST: kode A2F tahap ' + stepNumber + ' adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut.', 'warn');
           }
         }else if(recoveryStepNumber){
-          setNotice(els.twoFactorUser, 'Kode Recovery Face ID tahap ' + recoveryStepNumber + ' sudah dikirim/dibuat backend. Masukkan kodenya di sini.', 'good');
+          const recoveryDelivery = String(data.delivery || '');
+          if(recoveryStepNumber === 1 || recoveryDelivery === 'email'){
+            setNotice(els.twoFactorUser, 'Kode Recovery Face ID tahap 1 sudah dikirim ke email recovery. Masukkan kode dari email.', 'good');
+          }else if(recoveryStepNumber === 2 || recoveryDelivery === 'authenticator'){
+            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 2 memakai Authenticator recovery. Buka aplikasi Authenticator lalu masukkan kode 6 digit.', 'good');
+          }else if(recoveryStepNumber === 3){
+            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 3 tidak mengirim email. Masukkan kode rahasia recovery 1 yang kamu simpan di Vercel.', 'good');
+          }else if(recoveryStepNumber === 4){
+            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 4 tidak mengirim email. Masukkan kode rahasia recovery 2 yang kamu simpan di Vercel.', 'good');
+          }else{
+            setNotice(els.twoFactorUser, 'Recovery Face ID siap. Masukkan kode recovery yang sesuai.', 'good');
+          }
         }else{
           setNotice(els.twoFactorUser, 'Kode A2F tahap ' + stepNumber + ' sudah dibuat backend. Masukkan kodenya di sini.', 'good');
         }
@@ -1782,13 +1806,13 @@
 
       setNotice(
         els.twoFactorError,
-        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Kode recovery khusus tahap 1 dari 3 akan dikirim lewat backend.',
+        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Tahap 1 lewat email, tahap 2 lewat Authenticator recovery, tahap 3 pakai kode rahasia recovery 1, tahap 4 pakai kode rahasia recovery 2.',
         'warn'
       );
 
       setNotice(
         els.twoFactorUser,
-        'Mode recovery aktif. Face ID diganti dengan 3 kode recovery khusus yang berbeda dari A2F awal.',
+        'Mode recovery aktif. Tahap 1 pakai email recovery; tahap 2 pakai Authenticator recovery; tahap 3 dan 4 pakai kode rahasia Vercel. Semua berbeda dari A2F awal.',
         'warn'
       );
 
