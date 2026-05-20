@@ -184,7 +184,7 @@ async function recordTimeoutBlock(payload = {}) {
   const db = getFirebaseDb();
   const uid = getAdminUid();
   const now = Date.now();
-  const reason = "A2F lebih dari 45 detik";
+  const reason = "A2F lebih dari 25 detik";
 
   const lockData = {
     uid,
@@ -195,7 +195,7 @@ async function recordTimeoutBlock(payload = {}) {
     timeoutBlocked: true,
     reason,
     step: Number(payload.step || 0),
-    maxSeconds: Number(payload.maxSeconds || 45),
+    maxSeconds: Number(payload.maxSeconds || 25),
     deadlineMs: Number(payload.deadlineMs || 0),
     timedOutAtMs: Number(payload.timedOutAtMs || now),
     lastFailedAtMs: now,
