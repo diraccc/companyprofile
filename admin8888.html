@@ -567,7 +567,7 @@
     }
   </style>
 
-  <style id="a2f-45s-timeout-style">
+  <style id="a2f-25s-timeout-style">
     .a2f-timer-box{
       border:1px solid rgba(250,204,21,.42);
       background:rgba(250,204,21,.10);
@@ -685,7 +685,7 @@
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
-            <span id="a2fTimerText">45 detik</span>
+            <span id="a2fTimerText">25 detik</span>
           </div>
           <div class="a2f-timer-track" aria-hidden="true"><span id="a2fTimerBar"></span></div>
         </div>
@@ -1221,7 +1221,7 @@
     });
     const A2F_LOCK_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/lock';
     const A2F_BACKEND_MAX_FAILURES = 3;
-    const A2F_MAX_SECONDS = 45;
+    const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
       try{
@@ -1511,7 +1511,7 @@
       els.logoutBtn.classList.remove('hidden');
       updateMenuButtonVisibility();
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
-      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 45 detik.';
+      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 25 detik.';
       updateTwoFactorProgress();
       startTwoFactorTimeoutTimer();
       try{
@@ -1633,7 +1633,7 @@
     }
     async function recordA2fTimeoutBlock(){
       const payload = {
-        reason: 'a2f_timeout_45_seconds',
+        reason: 'a2f_timeout_25_seconds',
         deadlineMs: twoFactorDeadlineMs || 0,
         timedOutAtMs: Date.now(),
         maxSeconds: A2F_MAX_SECONDS
@@ -1653,7 +1653,7 @@
       await setDoc(doc(db, 'a2fTimeoutBlocks', uid), {
         uid,
         email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
-        reason: 'A2F lebih dari 45 detik',
+        reason: 'A2F lebih dari 25 detik',
         maxSeconds: A2F_MAX_SECONDS,
         deadlineMs: twoFactorDeadlineMs || 0,
         blockedAt: serverTimestamp(),
@@ -1668,7 +1668,7 @@
       twoFactorBackendLocked = true;
       twoFactorPermanentLocked = true;
       setTwoFactorInputLocked(true, 'Diblokir');
-      setNotice(els.twoFactorUser, 'Waktu A2F 45 detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
+      setNotice(els.twoFactorUser, 'Waktu A2F 25 detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
       setNotice(els.twoFactorError, 'Waktu A2F habis. Dashboard tetap terkunci dan sesi akan logout.', 'danger');
 
       try{
@@ -1679,11 +1679,11 @@
       }
 
       try{ await saveA2fTimeoutBlockMarker(); }catch(_error){}
-      try{ await logSecurity('auth.2fa_timeout_block', 'A2F lebih dari 45 detik, akun diblokir'); }catch(_error){}
+      try{ await logSecurity('auth.2fa_timeout_block', 'A2F lebih dari 25 detik, akun diblokir'); }catch(_error){}
 
       setTimeout(() => {
         logoutAdmin().then(() => {
-          setNotice(els.loginError, 'Akun diblokir karena A2F melewati 45 detik. Hubungi owner/admin untuk reset.', 'danger');
+          setNotice(els.loginError, 'Akun diblokir karena A2F melewati 25 detik. Hubungi owner/admin untuk reset.', 'danger');
         }).catch(() => {});
       }, 1200);
     }
