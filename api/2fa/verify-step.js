@@ -41,7 +41,7 @@ function base32Decode(base32) {
 
   for (const char of base32) {
     const val = alphabet.indexOf(char);
-    if (val === -1) throw new Error("Konfigurasi verifikasi tidak valid");
+    if (val === -1) throw new Error("Kode verifikasi belum siap");
     bits += val.toString(2).padStart(5, "0");
   }
 
@@ -76,7 +76,7 @@ function verifyRecoveryTotp(code) {
   const secret = process.env.A2F_RECOVERY_TOTP_SECRET_2;
 
   if (!secret) {
-    throw new Error("Konfigurasi verifikasi belum lengkap");
+    throw new Error("Kode verifikasi belum siap");
   }
 
   const inputCode = String(code || "").replace(/\s+/g, "");
@@ -432,10 +432,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (stepNumber === 7) {
-      if (payload.flow !== "face-recovery" || payload.method !== "recovery-totp") {
+      if (payload.flow !== "face-recovery") {
         return res.status(400).json({
           success: false,
-          error: "Session verifikasi tidak valid"
+          error: "Session recovery tidak valid"
         });
       }
 
@@ -454,10 +454,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (stepNumber === 10) {
-      if (payload.flow !== "face-recovery" || payload.method !== "one-time-recovery-code") {
+      if (payload.flow !== "face-recovery") {
         return res.status(400).json({
           success: false,
-          error: "Session verifikasi tidak valid"
+          error: "Session recovery tidak valid"
         });
       }
 
@@ -471,7 +471,7 @@ module.exports = async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        message: "Kode verifikasi benar",
+        message: "Kode verifikasi benar.",
         recoveryStep: 5,
         nextStep: 11
       });

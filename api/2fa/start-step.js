@@ -26,23 +26,16 @@ function hashCode(code, secret) {
   return crypto.createHmac("sha256", secret).update(String(code)).digest("hex");
 }
 
-function safeEqual(a, b) {
-  const A = Buffer.from(String(a || ""));
-  const B = Buffer.from(String(b || ""));
-  if (A.length !== B.length) return false;
-  return crypto.timingSafeEqual(A, B);
-}
-
 function base32Decode(base32) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
   let bits = "";
   const bytes = [];
 
-  base32 = String(base32 || "").replace(/=+$/, "").replace(/\s+/g, "").toUpperCase();
+  base32 = String(base32).replace(/=+$/, "").replace(/\s+/g, "").toUpperCase();
 
   for (const char of base32) {
     const val = alphabet.indexOf(char);
-    if (val === -1) throw new Error("Konfigurasi verifikasi tidak valid");
+    if (val === -1) throw new Error("Secret A2F utama tidak valid");
     bits += val.toString(2).padStart(5, "0");
   }
 
@@ -57,6 +50,7 @@ function generateTotp(secret, offset = 0) {
   const key = base32Decode(secret);
   const timeStep = Math.floor(Date.now() / 1000 / 30) + offset;
   const buffer = Buffer.alloc(8);
+
   buffer.writeUInt32BE(0, 0);
   buffer.writeUInt32BE(timeStep, 4);
 
@@ -71,20 +65,46 @@ function generateTotp(secret, offset = 0) {
   return String(code % 1000000).padStart(6, "0");
 }
 
-function verifyMainTotp(code) {
-  const secret = process.env.TOTP_SECRET;
+function safeEqual(a, b) {
+  const A = Buffer.from(String(a || ""));
+  const B = Buffer.from(String(b || ""));
 
-  if (!secret) {
-    throw new Error("Konfigurasi verifikasi tambahan belum lengkap");
-  }
+  if (A.length !== B.length) return false;
 
-  const inputCode = String(code || "").replace(/\s+/g, "").trim();
-  if (!inputCode) return false;
-
-  const validCodes = [generateTotp(secret, -1), generateTotp(secret, 0), generateTotp(secret, 1)];
-  return validCodes.some((validCode) => safeEqual(inputCode, validCode));
+  return crypto.timingSafeEqual(A, B);
 }
 
+function verifySensitiveTotpCode(code) {
+  const secret = process.env.TOTP_SECRET;
+  const inputCode = String(code || "").replace(/\s+/g, "");
+
+  if (!secret) {
+    throw new Error("A2F utama belum siap");
+  }
+
+  if (!inputCode) {
+    throw new Error("Kode A2F utama wajib diisi");
+  }
+
+  const validCodes = [
+    generateTotp(secret, -1),
+    generateTotp(secret, 0),
+    generateTotp(secret, 1)
+  ];
+
+  if (!validCodes.some((validCode) => safeEqual(inputCode, validCode))) {
+    throw new Error("Kode A2F utama salah");
+  }
+}
+
+function verifyRecentAdminAuth(decoded) {
+  const maxAgeMs = Number(process.env.A2F_SENSITIVE_REAUTH_MAX_MS || 5 * 60 * 1000);
+  const authTimeMs = Number(decoded && decoded.auth_time || 0) * 1000;
+
+  if (!authTimeMs || Date.now() - authTimeMs > maxAgeMs) {
+    throw new Error("Verifikasi password admin sudah kedaluwarsa. Login/verifikasi ulang dulu.");
+  }
+}
 
 function makeSession(payload, secret) {
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -179,11 +199,8 @@ function generateOneTimeRecoveryCode() {
 async function generateOneTimeRecoveryCodes(reqBody) {
   const secret = process.env.A2F_SECRET || "rahasia-test";
   const decoded = await verifyAdminIdToken(reqBody && reqBody.idToken);
-
-  if (!verifyMainTotp(reqBody && reqBody.totpCode)) {
-    throw new Error("Kode verifikasi tambahan salah atau expired");
-  }
-
+  verifyRecentAdminAuth(decoded);
+  verifySensitiveTotpCode(reqBody && reqBody.sensitiveTotpCode);
   const countRaw = Number(reqBody && reqBody.count);
   const count = Number.isFinite(countRaw) ? Math.min(20, Math.max(1, Math.floor(countRaw))) : 10;
   const db = getFirebaseDb();
@@ -340,11 +357,11 @@ function getRecoveryTotpSecret() {
   const secret = String(process.env[envName] || "").replace(/\s+/g, "").trim();
 
   if (!secret) {
-    throw new Error(`${envName} belum diset di Vercel`);
+    throw new Error("Kode verifikasi belum siap");
   }
 
   if (secret.length < 16) {
-    throw new Error(`${envName} tidak valid.`);
+    throw new Error("Kode verifikasi belum siap");
   }
 
   return { envName };
@@ -370,11 +387,11 @@ function getRecoveryLocalCode(stepNumber) {
   const code = String(process.env[item.envName] || "").trim();
 
   if (!code) {
-    throw new Error(`${item.envName} belum diset di Vercel`);
+    throw new Error("Kode verifikasi belum siap");
   }
 
   if (code.length < 12 || code.length > 96) {
-    throw new Error(`${item.envName} harus 12 sampai 96 karakter`);
+    throw new Error("Kode verifikasi belum siap");
   }
 
   return { code, label: item.label, envName: item.envName };
@@ -403,12 +420,12 @@ module.exports = async function handler(req, res) {
         action,
         codes,
         count: codes.length,
-        message: "Kode pemulihan berhasil dibuat. Simpan sekarang karena kode asli tidak disimpan di server."
+        message: "Recovery code sekali pakai berhasil dibuat. Simpan sekarang karena kode asli tidak disimpan di server."
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error.message || "Gagal membuat kode pemulihan"
+        error: error.message || "Gagal membuat recovery code sekali pakai"
       });
     }
   }
@@ -449,7 +466,7 @@ module.exports = async function handler(req, res) {
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: "Gagal menyiapkan kode verifikasi"
+        error: error.message || "Gagal menyiapkan kode verifikasi"
       });
     }
   }
@@ -470,7 +487,7 @@ module.exports = async function handler(req, res) {
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: "Gagal menyiapkan kode verifikasi"
+        error: error.message || "Gagal menyiapkan kode verifikasi"
       });
     }
   }
@@ -481,7 +498,6 @@ module.exports = async function handler(req, res) {
 
       const totpPayload = {
         ...payload,
-        method: "recovery-totp",
         codeHash: hashCode(`${stepNumber}:recovery-totp`, secret)
       };
       const sessionId = makeSession(totpPayload, secret);
@@ -496,7 +512,7 @@ module.exports = async function handler(req, res) {
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: "Gagal menyiapkan kode verifikasi"
+        error: error.message || "Gagal menyiapkan kode verifikasi"
       });
     }
   }
@@ -504,7 +520,6 @@ module.exports = async function handler(req, res) {
   if (stepNumber === 8 || stepNumber === 9) {
     try {
       const localRecovery = getRecoveryLocalCode(stepNumber);
-      payload.method = "local-secret";
       payload.codeHash = hashCode(`${stepNumber}:${localRecovery.code}`, secret);
 
       const sessionId = makeSession(payload, secret);
@@ -519,14 +534,13 @@ module.exports = async function handler(req, res) {
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: "Gagal menyiapkan kode verifikasi"
+        error: error.message || "Gagal menyiapkan kode verifikasi"
       });
     }
   }
 
   if (stepNumber === 10) {
-    payload.method = "one-time-recovery-code";
-    payload.codeHash = hashCode(`${stepNumber}:one-time-recovery-code`, secret);
+    payload.codeHash = hashCode(`${stepNumber}:prepared`, secret);
 
     const sessionId = makeSession(payload, secret);
 
