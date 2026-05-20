@@ -1241,28 +1241,18 @@
       lalu backend yang menulis ke Firestore/Storage memakai Firebase Admin SDK.
 
       Kontrak endpoint yang dipakai file ini:
-      - POST https://companyprofilee-expk.vercel.app/api/admin/firestore
-        Body JSON:
-        {
-          "action": "setDoc" | "updateDoc" | "deleteDoc" | "batch",
-          "idToken": "...",
-          "collection": "products",
-          "docId": "001",
-          "data": {...},
-          "merge": true,
-          "operations": [
-            {"type":"set"|"update"|"delete","path":"products/001","data":{...},"merge":true}
-          ]
-        }
+      - Semua aksi admin menumpang ke endpoint A2F lama:
+        POST https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish
 
-      - POST https://companyprofilee-expk.vercel.app/api/admin/upload
-        Body multipart/form-data:
-        file, idToken, purpose, path, uid, email, role
-        Response JSON wajib berisi salah satu: { url }, { downloadURL }, atau { publicUrl }.
+      Endpoint ini harus membedakan request passkey biasa dan request admin lewat field action:
+        "setDoc", "updateDoc", "deleteDoc", "batch", atau "createUploadUrl".
+
+      Browser tidak lagi menulis langsung ke Firestore/Storage. Backend wajib memverifikasi
+      Firebase ID token, role admin, dan sesi A2F server-side sebelum menulis data.
     */
     const ADMIN_API_BASE_URL = 'https://companyprofilee-expk.vercel.app';
-    const ADMIN_FIRESTORE_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/firestore';
-    const ADMIN_UPLOAD_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/upload';
+    const ADMIN_FIRESTORE_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
+    const ADMIN_UPLOAD_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
 
     function serverTimestamp(){
       return { __diracFirestoreOp: 'serverTimestamp' };
@@ -1323,12 +1313,12 @@
       }, sanitizeAdminPayload(payload || {}));
       const response = await fetch(endpoint, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + idToken
         },
+        credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify(body)
       });
       const data = await readApiJson(response);
@@ -1374,23 +1364,26 @@
       if(!auth.currentUser) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
       if(!twoFactorVerified) throw new Error('A2F belum selesai. Selesaikan verifikasi dulu sebelum upload.');
       const idToken = await auth.currentUser.getIdToken(true);
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('idToken', idToken);
-      formData.append('purpose', String(purpose || 'admin-upload'));
-      formData.append('path', String(path || ''));
-      const response = await fetch(ADMIN_UPLOAD_ENDPOINT, {
-        method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { 'Authorization': 'Bearer ' + idToken },
-        body: formData
+      const uploadInfo = await adminApiJson(ADMIN_UPLOAD_ENDPOINT, {
+        action: 'createUploadUrl',
+        purpose: String(purpose || 'admin-upload'),
+        path: String(path || ''),
+        contentType: String(file && file.type || 'application/octet-stream'),
+        size: Number(file && file.size || 0)
       });
-      const data = await readApiJson(response);
-      if(!response.ok || data.success === false){
-        throw new Error(data.error || data.message || ('Upload backend ditolak (' + response.status + ').'));
+      if(!uploadInfo.uploadUrl){
+        throw new Error('Backend tidak mengembalikan upload URL.');
       }
-      const url = data.url || data.downloadURL || data.publicUrl;
+      const uploadHeaders = uploadInfo.uploadHeaders || { 'Content-Type': String(file && file.type || 'application/octet-stream') };
+      const putResponse = await fetch(uploadInfo.uploadUrl, {
+        method: 'PUT',
+        headers: uploadHeaders,
+        body: file
+      });
+      if(!putResponse.ok){
+        throw new Error('Upload ke Storage ditolak (' + putResponse.status + ').');
+      }
+      const url = uploadInfo.url || uploadInfo.downloadURL || uploadInfo.publicUrl;
       if(!url) throw new Error('Backend upload tidak mengembalikan URL file.');
       return url;
     }
@@ -1706,8 +1699,6 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(A2F_LOCK_ENDPOINT, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(Object.assign({
           action,
@@ -1928,8 +1919,6 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_TOTP_VERIFY_ENDPOINT, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, code: String(code || '').trim() })
       });
@@ -1949,8 +1938,6 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_PIN_VERIFY_ENDPOINT, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, code: String(code || '').trim() })
       });
@@ -2013,8 +2000,6 @@
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
           method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken, step: stepNumber })
         });
@@ -2045,8 +2030,6 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, sessionId, code: String(code || '').trim(), step: stepNumber })
       });
@@ -2067,8 +2050,6 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_RISK_VERIFY_ENDPOINT, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, deviceToken: String(deviceToken || '').trim() })
       });
@@ -2118,8 +2099,6 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const startResponse = await fetch(SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken })
       });
@@ -2156,8 +2135,6 @@
       };
       const finishResponse = await fetch(SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT, {
         method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, response, session: startData.session })
       });
@@ -3520,7 +3497,7 @@
       if(!order) return;
       try{ requirePermission('canDelete', 'menghapus pesanan'); }
       catch(error){ showAlertModal(error.message); return; }
-      if(!(await confirmAction('Hapus pesanan ' + order.orderId + '?\\n\\nJika pesanan sudah Lunas, stok produk akan dikembalikan otomatis.'))) return;
+      if(!(await confirmAction('Hapus pesanan ' + order.orderId + '?\n\nJika pesanan sudah Lunas, stok produk akan dikembalikan otomatis.'))) return;
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus pesanan ' + order.orderId);
@@ -4538,8 +4515,6 @@
         const idToken = await auth.currentUser.getIdToken(true);
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
           method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode })
         });
