@@ -1313,6 +1313,7 @@
     let twoFactorTimeoutTimer = null;
     let twoFactorDeadlineMs = 0;
     let twoFactorTimeoutTriggered = false;
+    let twoFactorVerificationInFlight = false;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
     const FACE_RECOVERY_TOTAL_STEPS = 5;
@@ -1372,6 +1373,7 @@
       twoFactorPermanentLocked = false;
       twoFactorDeadlineMs = 0;
       twoFactorTimeoutTriggered = false;
+      twoFactorVerificationInFlight = false;
       clearTwoFactorTimeoutTimer();
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
@@ -1595,16 +1597,29 @@
       if(els.a2fDeadlineNotice) els.a2fDeadlineNotice.classList.toggle('danger', seconds <= 10);
     }
     function isTwoFactorPastDeadline(){
-      return Boolean(twoFactorDeadlineMs && Date.now() > twoFactorDeadlineMs && !twoFactorVerified);
+      return Boolean(
+        twoFactorDeadlineMs &&
+        Date.now() > twoFactorDeadlineMs &&
+        !twoFactorVerified &&
+        !twoFactorVerificationInFlight &&
+        !twoFactorBackendLocked &&
+        !twoFactorPermanentLocked
+      );
     }
     function startTwoFactorTimeoutTimer(){
       clearTwoFactorTimeoutTimer();
+      if(twoFactorVerified || twoFactorBackendLocked || twoFactorPermanentLocked || els.twoFactorSection.classList.contains('hidden')){
+        return;
+      }
       twoFactorTimeoutTriggered = false;
       twoFactorDeadlineMs = Date.now() + A2F_MAX_MS;
       updateA2fTimeoutNotice(A2F_MAX_MS);
       twoFactorTimeoutTimer = setInterval(() => {
         if(twoFactorVerified || els.twoFactorSection.classList.contains('hidden')){
           clearTwoFactorTimeoutTimer();
+          return;
+        }
+        if(twoFactorVerificationInFlight || twoFactorBackendLocked || twoFactorPermanentLocked){
           return;
         }
         const remainingMs = twoFactorDeadlineMs - Date.now();
@@ -1677,6 +1692,8 @@
       clearTwoFactorLockTimer();
       const failedCount = Math.min(Number(state.failedCount || 0), A2F_BACKEND_MAX_FAILURES);
       if(state.permanentBan === true || failedCount >= A2F_BACKEND_MAX_FAILURES){
+        clearTwoFactorTimeoutTimer();
+        updateA2fTimeoutNotice(0);
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = true;
         setTwoFactorInputLocked(true, 'Diblokir');
@@ -1686,6 +1703,8 @@
       }
       const lockUntilMs = Number(state.lockUntilMs || 0);
       if(state.locked === true && lockUntilMs > Date.now()){
+        clearTwoFactorTimeoutTimer();
+        updateA2fTimeoutNotice(A2F_MAX_MS);
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = false;
         const updateCountdown = () => {
@@ -1701,6 +1720,7 @@
               els.twoFactorCode.placeholder = 'Masukkan kode A2F';
               setTimeout(() => els.twoFactorCode.focus(), 60);
             }
+            startTwoFactorTimeoutTimer();
             checkA2fBackendLock().then(nextState => {
               if(nextState && nextState.locked) applyA2fBackendLockState(nextState);
             }).catch(() => {});
@@ -2034,6 +2054,8 @@
         await ensureBackendStepSession(getFaceRecoveryBackendStep());
       }catch(error){
         setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
+      }finally{
+        startTwoFactorTimeoutTimer();
       }
     }
 
@@ -2089,6 +2111,8 @@
           await ensureBackendStepSession(getFaceRecoveryBackendStep());
         }catch(error){
           setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
+        }finally{
+          startTwoFactorTimeoutTimer();
         }
 
         return;
@@ -2117,6 +2141,7 @@
         setNotice(els.twoFactorError, 'Kode A2F wajib diisi.', 'danger');
         return;
       }
+      twoFactorVerificationInFlight = true;
       els.twoFactorBtn.disabled = true;
       try{
         if(faceRecoveryMode){
@@ -2147,12 +2172,16 @@
           twoFactorStep += 1;
           showToast('Verifikasi berhasil');
           updateTwoFactorProgress();
-          if(twoFactorStep === 3){
-            await requestBackendStepTwoFactor(3);
-          } else if(twoFactorStep === 4){
-            setNotice(els.twoFactorUser, 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan.', 'good');
-          } else if(twoFactorStep === 5){
-            setNotice(els.twoFactorUser, 'Tahap akhir: selesaikan pemeriksaan keamanan.', 'good');
+          try{
+            if(twoFactorStep === 3){
+              await requestBackendStepTwoFactor(3);
+            } else if(twoFactorStep === 4){
+              setNotice(els.twoFactorUser, 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan.', 'good');
+            } else if(twoFactorStep === 5){
+              setNotice(els.twoFactorUser, 'Tahap akhir: selesaikan pemeriksaan keamanan.', 'good');
+            }
+          }finally{
+            startTwoFactorTimeoutTimer();
           }
           return;
         }
@@ -2180,6 +2209,7 @@
           setNotice(els.twoFactorError, error.message || 'Verifikasi A2F gagal.', 'danger');
         }
       }finally{
+        twoFactorVerificationInFlight = false;
         if(!twoFactorBackendLocked && !twoFactorPermanentLocked){
           els.twoFactorBtn.disabled = false;
         }
