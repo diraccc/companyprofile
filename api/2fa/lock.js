@@ -6,7 +6,7 @@ const LOCK_2_MS = 30 * 60 * 1000;
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-reset-secret");
 }
 
@@ -109,6 +109,7 @@ async function ensureLockDoc(db, uid) {
     lockUntilMs: 0,
     permanentBan: false,
     timeoutBlocked: false,
+    reason: "",
     lastFailedAtMs: 0,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
@@ -193,6 +194,7 @@ async function recordTimeoutBlock(payload = {}) {
     permanentBan: true,
     timeoutBlocked: true,
     reason,
+    step: Number(payload.step || 0),
     maxSeconds: Number(payload.maxSeconds || 45),
     deadlineMs: Number(payload.deadlineMs || 0),
     timedOutAtMs: Number(payload.timedOutAtMs || now),
@@ -206,6 +208,7 @@ async function recordTimeoutBlock(payload = {}) {
     uid,
     email: process.env.A2F_ADMIN_EMAIL || "",
     reason,
+    step: lockData.step,
     maxSeconds: lockData.maxSeconds,
     deadlineMs: lockData.deadlineMs,
     timedOutAtMs: lockData.timedOutAtMs,
@@ -218,6 +221,7 @@ async function recordTimeoutBlock(payload = {}) {
     email: process.env.A2F_ADMIN_EMAIL || "",
     reason,
     source: "a2f_timeout",
+    step: lockData.step,
     blockedAtMs: now,
     blockedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
@@ -257,6 +261,8 @@ async function resetLock() {
     disabled: false
   });
 
+  await admin.auth().revokeRefreshTokens(uid);
+
   return {
     success: true,
     locked: false,
@@ -264,8 +270,28 @@ async function resetLock() {
     failedCount: 0,
     lockUntilMs: 0,
     remainingMs: 0,
-    message: "Ban A2F berhasil direset dan akun Firebase diaktifkan lagi"
+    message: "A2F berhasil direset dan akun Firebase sudah aktif lagi"
   };
+}
+
+function getRequestData(req) {
+  const query = req.query || {};
+  const body = req.body || {};
+
+  if (req.method === "GET") {
+    return query;
+  }
+
+  return body;
+}
+
+function getResetSecretInput(req, data) {
+  return String(
+    req.headers["x-reset-secret"] ||
+    data.secret ||
+    req.query?.secret ||
+    ""
+  );
 }
 
 module.exports = async function handler(req, res) {
@@ -275,7 +301,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== "POST") {
+  if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({
       success: false,
       error: "Method tidak diizinkan"
@@ -283,7 +309,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { action } = req.body || {};
+    const data = getRequestData(req);
+    const { action } = data || {};
     const normalizedAction = String(action || "check").trim().toLowerCase();
 
     if (normalizedAction === "check") {
@@ -319,14 +346,14 @@ module.exports = async function handler(req, res) {
       normalizedAction === "timeout-lock" ||
       normalizedAction === "timeout_lock"
     ) {
-      const state = await recordTimeoutBlock(req.body || {});
+      const state = await recordTimeoutBlock(data || {});
 
       return res.status(403).json(state);
     }
 
     if (normalizedAction === "reset") {
       const resetSecret = String(process.env.RESET_A2F_SECRET || "");
-      const inputSecret = String(req.headers["x-reset-secret"] || "");
+      const inputSecret = getResetSecretInput(req, data);
 
       if (!resetSecret || !safeEqual(inputSecret, resetSecret)) {
         return res.status(403).json({
