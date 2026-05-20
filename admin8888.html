@@ -1157,7 +1157,7 @@
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
                   <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, upload bukti, dan pengaturan.</p>
                   <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div>
-                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Format baru memakai 50 karakter acak dan disimpan aman sebagai hash Argon2id. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
+                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Format baru memakai 50 karakter acak dan disimpan sebagai Argon2id di backend. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
                   <div class="settings-actions requires-delete"><button class="btn warn" id="generateRecoveryCodesBtn" type="button">Buat 10 Recovery Code Sekali Pakai</button></div>
                   <div class="notice hidden" id="recoveryCodesNotice" role="status"></div>
                   <pre class="rules-box hidden" id="recoveryCodesOutput" aria-label="Recovery code sekali pakai"></pre>
@@ -1314,6 +1314,7 @@
     let twoFactorDeadlineMs = 0;
     let twoFactorTimeoutTriggered = false;
     let twoFactorVerificationInFlight = false;
+    let twoFactorRestartTimerAfterFlight = false;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
     const FACE_RECOVERY_TOTAL_STEPS = 5;
@@ -1374,6 +1375,7 @@
       twoFactorDeadlineMs = 0;
       twoFactorTimeoutTriggered = false;
       twoFactorVerificationInFlight = false;
+      twoFactorRestartTimerAfterFlight = false;
       clearTwoFactorTimeoutTimer();
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
@@ -1412,11 +1414,12 @@
           node.className = 'twofactor-step' + (step < 5 ? ' done' : ' active');
         });
 
+        const recoveryHint = 'Tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + ' aktif.';
         if(els.twoFactorHelp){
-          els.twoFactorHelp.textContent = 'Verifikasi pemulihan aktif. Masukkan kode verifikasi tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + ' untuk melanjutkan.';
+          els.twoFactorHelp.textContent = 'Recovery Face ID aktif. ' + recoveryHint + ' Masukkan kode verifikasi untuk melanjutkan.';
         }
         if(els.twoFactorLabel){
-          els.twoFactorLabel.textContent = 'Kode verifikasi';
+          els.twoFactorLabel.textContent = 'Recovery Face ID ' + faceRecoveryStep + '/' + FACE_RECOVERY_TOTAL_STEPS;
         }
         if(els.twoFactorBtn){
           els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : 'Verifikasi Recovery';
@@ -1502,8 +1505,8 @@
         applyA2fBackendLockState(state);
       }catch(error){
         twoFactorBackendLocked = true;
-        setTwoFactorInputLocked(true, 'Terkunci');
-        setNotice(els.twoFactorError, error.message || 'Sistem verifikasi belum siap. Coba deploy ulang konfigurasi.', 'danger');
+        setTwoFactorInputLocked(true, 'Lock backend error');
+        setNotice(els.twoFactorError, error.message || 'Backend lock A2F belum siap. Coba deploy ulang backend.', 'danger');
       }
     }
     async function readApiJson(response){
@@ -1555,7 +1558,7 @@
       const data = await readApiJson(response);
       data.httpStatus = response.status;
       if(response.status >= 500){
-        throw new Error(data.error || 'Sistem lock verifikasi error.');
+        throw new Error(data.error || 'Backend lock A2F error.');
       }
       return data;
     }
@@ -1614,6 +1617,16 @@
         }
       }, 250);
     }
+    function restartTwoFactorTimeoutTimerForNextStep(){
+      if(twoFactorVerified || twoFactorBackendLocked || twoFactorPermanentLocked || els.twoFactorSection.classList.contains('hidden')){
+        return;
+      }
+      twoFactorTimeoutTriggered = false;
+      twoFactorDeadlineMs = Date.now() + A2F_MAX_MS;
+      updateA2fTimeoutNotice(A2F_MAX_MS);
+      twoFactorRestartTimerAfterFlight = true;
+      startTwoFactorTimeoutTimer();
+    }
     async function recordA2fTimeoutBlock(){
       const payload = {
         reason: 'a2f_timeout_25_seconds',
@@ -1651,14 +1664,14 @@
       twoFactorBackendLocked = true;
       twoFactorPermanentLocked = true;
       setTwoFactorInputLocked(true, 'Diblokir');
-      setNotice(els.twoFactorUser, 'Waktu A2F 25 detik habis. Akun sedang diblokir.', 'danger');
+      setNotice(els.twoFactorUser, 'Waktu A2F 25 detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
       setNotice(els.twoFactorError, 'Waktu A2F habis. Dashboard tetap terkunci dan sesi akan logout.', 'danger');
 
       try{
         const state = await recordA2fTimeoutBlock();
         applyA2fBackendLockState(Object.assign({ permanentBan: true, failedCount: A2F_BACKEND_MAX_FAILURES }, state || {}));
       }catch(error){
-        setNotice(els.twoFactorError, 'Waktu A2F habis. Sistem lock gagal mencatat status: ' + (error.message || 'unknown') + '.', 'danger');
+        setNotice(els.twoFactorError, 'Waktu A2F habis. Backend lock gagal dicatat: ' + (error.message || 'unknown') + '.', 'danger');
       }
 
       try{ await saveA2fTimeoutBlockMarker(); }catch(_error){}
@@ -1680,8 +1693,8 @@
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = true;
         setTwoFactorInputLocked(true, 'Diblokir');
-        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Hubungi owner/admin untuk reset.', 'danger');
-        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data browser tidak akan membuka blokir.', 'danger');
+        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat backend/Firebase.', 'danger');
+        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban backend.', 'danger');
         return true;
       }
       const lockUntilMs = Number(state.lockUntilMs || 0);
@@ -1737,10 +1750,10 @@
           twoFactorBackendLocked = true;
           twoFactorPermanentLocked = true;
           setTwoFactorInputLocked(true, 'Diblokir');
-          setNotice(els.twoFactorError, 'A2F diblokir permanen. Sistem lock tidak bisa mencatat status.', 'danger');
+          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa /api/2fa/lock.', 'danger');
           return true;
         }
-        setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Sistem lock gagal: ' + (error.message || 'unknown'), 'danger');
+        setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
         return true;
       }
     }
@@ -1837,21 +1850,26 @@
         });
         const data = await readApiJson(response);
         if(!response.ok || data.success === false){
-          throw new Error(data.error || data.message || 'Gagal menyiapkan verifikasi tahap ' + stepNumber + '.');
+          throw new Error(data.error || data.message || 'Backend gagal membuat kode tahap ' + stepNumber + '.');
         }
         const newSessionId = String(data.sessionId || '').trim();
         if(!newSessionId){
-          throw new Error('Session verifikasi tahap ' + stepNumber + ' belum siap.');
+          throw new Error('Backend harus mengirim sessionId untuk tahap ' + stepNumber + '.');
         }
         setBackendStepSession(stepNumber, newSessionId);
-        setNotice(els.twoFactorUser, 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan.', 'good');
+        const recoveryStepNumber = stepNumber >= 6 ? stepNumber - 5 : 0;
+        if(recoveryStepNumber){
+          setNotice(els.twoFactorUser, 'Recovery Face ID tahap ' + recoveryStepNumber + ' siap. Masukkan kode verifikasi untuk melanjutkan.', 'good');
+        }else{
+          setNotice(els.twoFactorUser, 'A2F tahap ' + stepNumber + ' siap. Masukkan kode verifikasi untuk melanjutkan.', 'good');
+        }
       }finally{
         if(!twoFactorBackendLocked && !twoFactorPermanentLocked) els.twoFactorBtn.disabled = false;
       }
     }
     async function verifyBackendStepTwoFactor(code, stepNumber){
       if(!SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT){
-        throw new Error('Endpoint verifikasi belum diisi.');
+        throw new Error('Endpoint verifikasi backend step belum diisi.');
       }
       const sessionId = await ensureBackendStepSession(stepNumber);
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
@@ -1862,7 +1880,7 @@
       });
       const data = await readApiJson(response);
       if(!response.ok || data.success === false){
-        const error = new Error(data.error || data.message || 'Kode verifikasi salah atau expired.');
+        const error = new Error(data.error || data.message || (stepNumber >= 6 ? 'Kode Recovery Face ID tahap ' + (stepNumber - 5) + ' salah atau expired.' : 'Kode A2F tahap ' + stepNumber + ' salah atau expired.'));
         error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 423 || response.status === 429;
         if(hasA2fBackendLockState(data)) error.a2fLockState = data;
         throw error;
@@ -1937,7 +1955,7 @@
         throw error;
       }
       if(!startData.options || !startData.session){
-        throw new Error('Verifikasi belum siap.');
+        throw new Error('Backend verifikasi tidak siap.');
       }
       setNotice(els.twoFactorUser, 'Ikuti instruksi keamanan perangkat.', 'good');
       const credential = await navigator.credentials.get({
@@ -1967,7 +1985,7 @@
       });
       const finishData = await readApiJson(finishResponse);
       if(!finishResponse.ok || finishData.success === false){
-        const error = new Error(finishData.error || finishData.message || 'Verifikasi salah atau ditolak.');
+        const error = new Error(finishData.error || finishData.message || 'Passkey salah atau ditolak.');
         error.countAttempt = finishResponse.status === 400 || finishResponse.status === 401 || finishResponse.status === 403 || finishResponse.status === 423 || finishResponse.status === 429;
         if(hasA2fBackendLockState(finishData)) error.a2fLockState = finishData;
         throw error;
@@ -1994,27 +2012,28 @@
       }
 
       updateTwoFactorProgress();
+      restartTwoFactorTimeoutTimerForNextStep();
 
       setNotice(
         els.twoFactorError,
-        (message || 'Pemeriksaan keamanan belum berhasil.') + ' Verifikasi pemulihan aktif. Ikuti tahap yang tampil untuk melanjutkan.',
+        (message || 'Pemeriksaan keamanan tidak berhasil.') + ' Recovery Face ID aktif. Ikuti tahap verifikasi yang tampil untuk melanjutkan.',
         'warn'
       );
 
       setNotice(
         els.twoFactorUser,
-        'Verifikasi pemulihan aktif. Masukkan kode verifikasi sesuai tahap yang tampil.',
+        'Mode recovery aktif. Masukkan kode verifikasi sesuai tahap yang aktif untuk melanjutkan.',
         'warn'
       );
 
-      showToast('Verifikasi pemulihan aktif');
+      showToast('Recovery Face ID aktif');
 
       try{
         await ensureBackendStepSession(getFaceRecoveryBackendStep());
       }catch(error){
-        setNotice(els.twoFactorError, error.message || 'Gagal menyiapkan verifikasi pemulihan.', 'danger');
+        setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
       }finally{
-        startTwoFactorTimeoutTimer();
+        restartTwoFactorTimeoutTimerForNextStep();
       }
     }
 
@@ -2031,7 +2050,7 @@
       if(currentAdmin.roleSource === 'firestore'){
         setNotice(
           els.syncStatus,
-          'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Verifikasi keamanan berhasil.',
+          'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Recovery A2F berhasil.',
           'good'
         );
       }
@@ -2039,8 +2058,8 @@
       startListening();
       resetIdleTimer();
 
-      logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat verifikasi pemulihan').catch(() => {});
-      showToast('Verifikasi selesai. Dashboard dibuka.');
+      logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat Recovery Face ID').catch(() => {});
+      showToast('Recovery selesai. Dashboard dibuka.');
     }
 
     async function verifyFaceRecoveryStep(code){
@@ -2063,15 +2082,16 @@
 
       if(faceRecoveryStep < FACE_RECOVERY_TOTAL_STEPS){
         faceRecoveryStep += 1;
-        showToast('Verifikasi tahap berhasil');
+        showToast('Recovery tahap berhasil');
         updateTwoFactorProgress();
+        restartTwoFactorTimeoutTimerForNextStep();
 
         try{
           await ensureBackendStepSession(getFaceRecoveryBackendStep());
         }catch(error){
-          setNotice(els.twoFactorError, error.message || 'Gagal menyiapkan verifikasi pemulihan.', 'danger');
+          setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
         }finally{
-          startTwoFactorTimeoutTimer();
+          restartTwoFactorTimeoutTimerForNextStep();
         }
 
         return;
@@ -2131,6 +2151,7 @@
           twoFactorStep += 1;
           showToast('Verifikasi berhasil');
           updateTwoFactorProgress();
+          restartTwoFactorTimeoutTimerForNextStep();
           try{
             if(twoFactorStep === 3){
               await requestBackendStepTwoFactor(3);
@@ -2140,7 +2161,7 @@
               setNotice(els.twoFactorUser, 'Tahap akhir: selesaikan pemeriksaan keamanan.', 'good');
             }
           }finally{
-            startTwoFactorTimeoutTimer();
+            restartTwoFactorTimeoutTimerForNextStep();
           }
           return;
         }
@@ -2169,6 +2190,10 @@
         }
       }finally{
         twoFactorVerificationInFlight = false;
+        if(twoFactorRestartTimerAfterFlight){
+          twoFactorRestartTimerAfterFlight = false;
+          startTwoFactorTimeoutTimer();
+        }
         if(!twoFactorBackendLocked && !twoFactorPermanentLocked){
           els.twoFactorBtn.disabled = false;
         }
@@ -2465,26 +2490,18 @@
     async function requireSensitiveReauth(actionLabel){
       const user = auth.currentUser;
       if(!user || !user.email) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
+      if(Date.now() - lastSensitiveReauthAt < SECURITY_CONFIG.REAUTH_TTL_MS) return { sensitiveTotpCode: '' };
+      const password = window.prompt('Verifikasi ulang untuk ' + actionLabel + '.
 
-      const password = window.prompt('Verifikasi ulang untuk ' + actionLabel + '.\n\nMasukkan password akun admin:');
+Masukkan password akun admin:');
       if(!password) throw new Error('Aksi dibatalkan karena password tidak diisi.');
-
-      const totpCode = window.prompt('Verifikasi A2F untuk ' + actionLabel + '.\n\nMasukkan kode verifikasi utama:');
-      const normalizedTotpCode = String(totpCode || '').replace(/\s+/g, '').trim();
-      if(!normalizedTotpCode) throw new Error('Aksi dibatalkan karena kode A2F tidak diisi.');
-
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
-
-      try{
-        await verifyTotpTwoFactor(normalizedTotpCode);
-      }catch(_error){
-        throw new Error('Kode A2F utama salah atau expired. Aksi dibatalkan.');
-      }
-
+      const sensitiveTotpCode = String(window.prompt('Masukkan kode A2F utama dari Authenticator:') || '').trim();
+      if(!sensitiveTotpCode) throw new Error('Aksi dibatalkan karena kode A2F utama tidak diisi.');
+      await verifyTotpTwoFactor(sensitiveTotpCode);
       lastSensitiveReauthAt = Date.now();
-      logSecurity('auth.sensitive_reauth', 'Verifikasi ulang berhasil untuk ' + actionLabel).catch(() => {});
-      return { totpCode: normalizedTotpCode };
+      return { sensitiveTotpCode };
     }
     function currentFormData(){
       return {
@@ -4339,13 +4356,6 @@
       }
       const ok = window.confirm('Buat 10 recovery code sekali pakai baru?\n\nFormat baru: 50 karakter acak, disimpan sebagai Argon2id. Kode asli hanya muncul sekali. Simpan sekarang juga. Kode yang sudah dipakai tidak bisa digunakan lagi.');
       if(!ok) return;
-      let sensitiveCheck;
-      try{
-        sensitiveCheck = await requireSensitiveReauth('membuat recovery code sekali pakai');
-      }catch(error){
-        setNotice(els.recoveryCodesNotice, error.message || 'Verifikasi ulang gagal.', 'danger');
-        return;
-      }
       busy = true;
       if(els.generateRecoveryCodesBtn) els.generateRecoveryCodesBtn.disabled = true;
       if(els.recoveryCodesOutput){
@@ -4358,7 +4368,7 @@
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, totpCode: sensitiveCheck && sensitiveCheck.totpCode })
+          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode: sensitiveProof && sensitiveProof.sensitiveTotpCode || '' })
         });
         const data = await readApiJson(response);
         if(!response.ok || data.success === false){
@@ -4370,7 +4380,7 @@
         }
         const text = [
           'SIMPAN SEKARANG - kode ini hanya ditampilkan sekali.',
-          'Dipakai sebagai kode pemulihan darurat. Setiap kode berisi 50 karakter acak dan hanya bisa dipakai 1 kali.',
+          'Dipakai untuk Recovery Face ID tahap 5. Setiap kode berisi 50 karakter acak dan hanya bisa dipakai 1 kali.',
           '',
           ...codes.map((code, index) => String(index + 1).padStart(2, '0') + '. ' + code)
         ].join('\n');
@@ -4488,38 +4498,11 @@
     function ultraSyncAdminReady(){ document.body.dataset.adminReady = ultraVisibleAdmin() ? 'true' : 'false'; }
 
     async function ultraAutoDeleteOldArchivedDocs(){
-      if(ultraState.archivedPurgeStarted || ultraState.archivedPurgeDone) return;
-      if(!currentAdmin || !currentAdmin.canDelete) return;
-      const productRows = products.filter(row => row && (row.archived === true || row.deletedAt));
-      const orderRows = orders.filter(row => row && (row.archived === true || row.deletedAt));
-      const idsProducts = productRows.map(row => row.docId).filter(Boolean);
-      const idsOrders = orderRows.map(row => row.docId).filter(Boolean);
-      if(!idsProducts.length && !idsOrders.length){
-        ultraState.archivedPurgeDone = true;
-        return;
-      }
-      ultraState.archivedPurgeStarted = true;
-      try{
-        for(let i = 0; i < idsProducts.length; i += 450){
-          const batch = writeBatch(db);
-          idsProducts.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'products', id)));
-          await batch.commit();
-        }
-        for(let i = 0; i < idsOrders.length; i += 450){
-          const batch = writeBatch(db);
-          idsOrders.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'orders', id)));
-          await batch.commit();
-        }
-        if(idsProducts.length || idsOrders.length){
-          await logSecurity('legacy_archive.auto_hard_delete', idsProducts.length + ' produk, ' + idsOrders.length + ' pesanan');
-          showToast('Data lama yang pernah tersimpan di arsip sudah dihapus permanen');
-        }
-        ultraState.archivedPurgeDone = true;
-      }catch(error){
-        ultraState.archivedPurgeStarted = false;
-        console.error('Gagal hapus data lama permanen:', error);
-        showToast('Gagal menghapus data lama: ' + firebaseMessage(error));
-      }
+      // Auto hard-delete dimatikan agar penghapusan produk/pesanan selalu lewat aksi manual.
+      // Aksi manual tetap memakai requireSensitiveReauth(): password admin + A2F utama.
+      ultraState.archivedPurgeDone = true;
+      ultraState.archivedPurgeStarted = false;
+      return;
     }
 
     const ultraBaseNormalize = normalize;
