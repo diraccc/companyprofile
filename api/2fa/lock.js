@@ -65,7 +65,7 @@ function getPublicLockState(data) {
       failedCount,
       lockUntilMs: 0,
       remainingMs: 0,
-      error: "A2F diblokir permanen karena salah 3x"
+      error: data.reason || "A2F diblokir permanen"
     };
   }
 
@@ -108,6 +108,7 @@ async function ensureLockDoc(db, uid) {
     failedCount: 0,
     lockUntilMs: 0,
     permanentBan: false,
+    timeoutBlocked: false,
     lastFailedAtMs: 0,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
@@ -153,6 +154,7 @@ async function recordFailure() {
       uid,
       email: process.env.A2F_ADMIN_EMAIL || current.email || "",
       failedCount,
+      timeoutBlocked: false,
       lastFailedAtMs: now,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -160,18 +162,73 @@ async function recordFailure() {
     if (failedCount >= 3) {
       nextData.permanentBan = true;
       nextData.lockUntilMs = 0;
+      nextData.reason = "A2F diblokir permanen karena salah 3x";
     } else if (failedCount === 2) {
       nextData.permanentBan = false;
       nextData.lockUntilMs = now + LOCK_2_MS;
+      nextData.reason = "A2F salah 2x, terkunci sementara";
     } else {
       nextData.permanentBan = false;
       nextData.lockUntilMs = now + LOCK_1_MS;
+      nextData.reason = "A2F salah 1x, terkunci sementara";
     }
 
     tx.set(ref, nextData, { merge: true });
 
     return getPublicLockState(nextData);
   });
+}
+
+async function recordTimeoutBlock(payload = {}) {
+  const db = getFirebaseDb();
+  const uid = getAdminUid();
+  const now = Date.now();
+  const reason = "A2F lebih dari 45 detik";
+
+  const lockData = {
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || "",
+    failedCount: 3,
+    lockUntilMs: 0,
+    permanentBan: true,
+    timeoutBlocked: true,
+    reason,
+    maxSeconds: Number(payload.maxSeconds || 45),
+    deadlineMs: Number(payload.deadlineMs || 0),
+    timedOutAtMs: Number(payload.timedOutAtMs || now),
+    lastFailedAtMs: now,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  await db.collection("a2fLockouts").doc(uid).set(lockData, { merge: true });
+
+  await db.collection("a2fTimeoutBlocks").doc(uid).set({
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || "",
+    reason,
+    maxSeconds: lockData.maxSeconds,
+    deadlineMs: lockData.deadlineMs,
+    timedOutAtMs: lockData.timedOutAtMs,
+    blockedAtMs: now,
+    blockedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  await db.collection("blocked_users").doc(uid).set({
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || "",
+    reason,
+    source: "a2f_timeout",
+    blockedAtMs: now,
+    blockedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  await admin.auth().updateUser(uid, {
+    disabled: true
+  });
+
+  await admin.auth().revokeRefreshTokens(uid);
+
+  return getPublicLockState(lockData);
 }
 
 async function resetLock() {
@@ -185,11 +242,20 @@ async function resetLock() {
     failedCount: 0,
     lockUntilMs: 0,
     permanentBan: false,
+    timeoutBlocked: false,
+    reason: "",
     lastFailedAtMs: 0,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
 
   await ref.set(resetData, { merge: true });
+
+  await db.collection("a2fTimeoutBlocks").doc(uid).delete().catch(() => {});
+  await db.collection("blocked_users").doc(uid).delete().catch(() => {});
+
+  await admin.auth().updateUser(uid, {
+    disabled: false
+  });
 
   return {
     success: true,
@@ -198,7 +264,7 @@ async function resetLock() {
     failedCount: 0,
     lockUntilMs: 0,
     remainingMs: 0,
-    message: "Ban A2F berhasil direset"
+    message: "Ban A2F berhasil direset dan akun Firebase diaktifkan lagi"
   };
 }
 
@@ -248,6 +314,16 @@ module.exports = async function handler(req, res) {
       return res.status(401).json(state);
     }
 
+    if (
+      normalizedAction === "timeout" ||
+      normalizedAction === "timeout-lock" ||
+      normalizedAction === "timeout_lock"
+    ) {
+      const state = await recordTimeoutBlock(req.body || {});
+
+      return res.status(403).json(state);
+    }
+
     if (normalizedAction === "reset") {
       const resetSecret = String(process.env.RESET_A2F_SECRET || "");
       const inputSecret = String(req.headers["x-reset-secret"] || "");
@@ -266,7 +342,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(400).json({
       success: false,
-      error: "Action tidak valid. Pakai check, fail, atau reset."
+      error: "Action tidak valid. Pakai check, fail, timeout, timeout-lock, atau reset."
     });
   } catch (error) {
     return res.status(500).json({
