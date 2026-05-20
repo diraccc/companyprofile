@@ -1187,8 +1187,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
   apiKey: "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY",
@@ -1235,7 +1234,167 @@
     }
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const storage = getStorage(app);
+
+    /*
+      Semua operasi tulis admin di bawah ini sengaja dialihkan ke backend Vercel.
+      Backend yang wajib memverifikasi Firebase ID token, role admin, dan sesi A2F,
+      lalu backend yang menulis ke Firestore/Storage memakai Firebase Admin SDK.
+
+      Kontrak endpoint yang dipakai file ini:
+      - POST https://companyprofilee-expk.vercel.app/api/admin/firestore
+        Body JSON:
+        {
+          "action": "setDoc" | "updateDoc" | "deleteDoc" | "batch",
+          "idToken": "...",
+          "collection": "products",
+          "docId": "001",
+          "data": {...},
+          "merge": true,
+          "operations": [
+            {"type":"set"|"update"|"delete","path":"products/001","data":{...},"merge":true}
+          ]
+        }
+
+      - POST https://companyprofilee-expk.vercel.app/api/admin/upload
+        Body multipart/form-data:
+        file, idToken, purpose, path, uid, email, role
+        Response JSON wajib berisi salah satu: { url }, { downloadURL }, atau { publicUrl }.
+    */
+    const ADMIN_API_BASE_URL = 'https://companyprofilee-expk.vercel.app';
+    const ADMIN_FIRESTORE_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/firestore';
+    const ADMIN_UPLOAD_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/upload';
+
+    function serverTimestamp(){
+      return { __diracFirestoreOp: 'serverTimestamp' };
+    }
+    function increment(value){
+      return { __diracFirestoreOp: 'increment', value: Number(value || 0) };
+    }
+    function sanitizeAdminPayload(value){
+      if(value === undefined) return null;
+      if(value === null) return null;
+      if(value instanceof Date) return value.toISOString();
+      if(Array.isArray(value)) return value.map(sanitizeAdminPayload);
+      if(typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') return value;
+      if(typeof value === 'object'){
+        const out = {};
+        Object.keys(value).forEach(key => {
+          if(value[key] !== undefined) out[key] = sanitizeAdminPayload(value[key]);
+        });
+        return out;
+      }
+      return String(value);
+    }
+    function cleanAdminDocId(value, fallback='doc'){
+      const id = String(value || '').trim();
+      if(!id) throw new Error('ID dokumen tidak valid untuk operasi admin.');
+      if(id.includes('/')) throw new Error('ID dokumen tidak boleh berisi garis miring.');
+      return id || fallback;
+    }
+    function normalizeAdminPath(value){
+      const path = String(value || '').replace(/^\/+|\/+$/g, '');
+      const parts = path.split('/').filter(Boolean);
+      if(parts.length < 2 || parts.length % 2 !== 0){
+        throw new Error('Path dokumen admin tidak valid: ' + path);
+      }
+      return parts.join('/');
+    }
+    function documentPathFromRef(ref){
+      if(!ref || !ref.path) throw new Error('Referensi dokumen admin tidak valid.');
+      return normalizeAdminPath(ref.path);
+    }
+    function normalizeAdminOperation(op){
+      const type = String(op && op.type || 'set').toLowerCase();
+      const path = op.path ? normalizeAdminPath(op.path) : documentPathFromRef(op.ref);
+      return {
+        type: type === 'delete' ? 'delete' : type === 'update' ? 'update' : 'set',
+        path,
+        data: type === 'delete' ? null : sanitizeAdminPayload(op.data || {}),
+        merge: op.merge !== false
+      };
+    }
+    async function adminApiJson(endpoint, payload){
+      if(!auth.currentUser) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
+      if(!twoFactorVerified) throw new Error('A2F belum selesai. Selesaikan verifikasi dulu sebelum menjalankan aksi admin.');
+      const idToken = await auth.currentUser.getIdToken(true);
+      const body = Object.assign({
+        idToken,
+        clientTimeMs: Date.now()
+      }, sanitizeAdminPayload(payload || {}));
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + idToken
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        throw new Error(data.error || data.message || ('Backend admin menolak request (' + response.status + ').'));
+      }
+      return data;
+    }
+    async function adminSetDoc(collectionName, docId, data, options={}){
+      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+        action: 'setDoc',
+        collection: String(collectionName || '').trim(),
+        docId: cleanAdminDocId(docId),
+        data: sanitizeAdminPayload(data || {}),
+        merge: options.merge !== false
+      });
+    }
+    async function adminUpdateDoc(collectionName, docId, data){
+      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+        action: 'updateDoc',
+        collection: String(collectionName || '').trim(),
+        docId: cleanAdminDocId(docId),
+        data: sanitizeAdminPayload(data || {})
+      });
+    }
+    async function adminDeleteDoc(collectionName, docId){
+      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+        action: 'deleteDoc',
+        collection: String(collectionName || '').trim(),
+        docId: cleanAdminDocId(docId)
+      });
+    }
+    async function adminBatch(ops, actionLabel='batch'){
+      const operations = (ops || []).map(normalizeAdminOperation);
+      if(!operations.length) return { success:true, count:0 };
+      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+        action: 'batch',
+        actionLabel,
+        operations
+      });
+    }
+    async function adminUploadFile(file, purpose, path){
+      if(!auth.currentUser) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
+      if(!twoFactorVerified) throw new Error('A2F belum selesai. Selesaikan verifikasi dulu sebelum upload.');
+      const idToken = await auth.currentUser.getIdToken(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('idToken', idToken);
+      formData.append('purpose', String(purpose || 'admin-upload'));
+      formData.append('path', String(path || ''));
+      const response = await fetch(ADMIN_UPLOAD_ENDPOINT, {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Authorization': 'Bearer ' + idToken },
+        body: formData
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        throw new Error(data.error || data.message || ('Upload backend ditolak (' + response.status + ').'));
+      }
+      const url = data.url || data.downloadURL || data.publicUrl;
+      if(!url) throw new Error('Backend upload tidak mengembalikan URL file.');
+      return url;
+    }
+
     const productsRef = collection(db, 'products');
     const ordersRef = collection(db, 'orders');
     const customersRef = collection(db, 'customers');
@@ -1547,6 +1706,8 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(A2F_LOCK_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(Object.assign({
           action,
@@ -1646,15 +1807,18 @@
     async function saveA2fTimeoutBlockMarker(){
       const uid = currentAdmin.uid || (auth.currentUser && auth.currentUser.uid) || '';
       if(!uid) return;
-      await setDoc(doc(db, 'a2fTimeoutBlocks', uid), {
-        uid,
-        email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
-        reason: 'A2F lebih dari 25 detik',
-        maxSeconds: A2F_MAX_SECONDS,
-        deadlineMs: twoFactorDeadlineMs || 0,
-        blockedAt: serverTimestamp(),
-        blockedAtMs: Date.now()
-      }, { merge: true });
+      try{
+        await callA2fBackendLock('timeout-marker', {
+          uid,
+          email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
+          reason: 'A2F lebih dari 25 detik',
+          maxSeconds: A2F_MAX_SECONDS,
+          deadlineMs: twoFactorDeadlineMs || 0,
+          blockedAtMs: Date.now()
+        });
+      }catch(_error){
+        // Tidak melakukan write Firestore langsung dari browser. Backend A2F tetap menjadi sumber kebenaran.
+      }
     }
     async function handleTwoFactorTimeout(){
       if(twoFactorVerified || twoFactorTimeoutTriggered) return;
@@ -1764,6 +1928,8 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_TOTP_VERIFY_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, code: String(code || '').trim() })
       });
@@ -1783,6 +1949,8 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_PIN_VERIFY_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, code: String(code || '').trim() })
       });
@@ -1845,6 +2013,8 @@
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
           method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken, step: stepNumber })
         });
@@ -1875,6 +2045,8 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, sessionId, code: String(code || '').trim(), step: stepNumber })
       });
@@ -1895,6 +2067,8 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_RISK_VERIFY_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, deviceToken: String(deviceToken || '').trim() })
       });
@@ -1944,6 +2118,8 @@
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const startResponse = await fetch(SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken })
       });
@@ -1980,6 +2156,8 @@
       };
       const finishResponse = await fetch(SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, response, session: startData.session })
       });
@@ -2781,15 +2959,8 @@
       hideNotice(els.formMessage);
       els.uploadProgress.style.width = '0%';
       try{
-        const target = storageRef(storage, path);
-        const task = uploadBytesResumable(target, file, { contentType: file.type || 'image/jpeg' });
-        const snapshot = await new Promise((resolve, reject) => {
-          task.on('state_changed', (snap) => {
-            const percent = Math.round((snap.bytesTransferred / Math.max(snap.totalBytes, 1)) * 100);
-            els.uploadProgress.style.width = percent + '%';
-          }, reject, () => resolve(task.snapshot));
-        });
-        const url = await getDownloadURL(snapshot.ref);
+        els.uploadProgress.style.width = '35%';
+        const url = await adminUploadFile(file, 'product-image', path);
         els.img.value = url;
         els.uploadProgress.style.width = '100%';
         markDirty(true);
@@ -2935,7 +3106,7 @@
         const currentDocId = els.docId.value.trim();
         const targetDocId = currentDocId || padDocId(data.id);
         if(!currentDocId) data.createdAt = serverTimestamp();
-        await setDoc(doc(db, 'products', targetDocId), data, { merge:true });
+        await adminSetDoc('products', targetDocId, data, { merge:true });
         setNotice(els.formMessage, 'Produk berhasil disimpan: ' + data.title, 'good');
         showToast('Produk tersimpan');
         clearDraft();
@@ -2953,7 +3124,7 @@
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus produk #' + product.id);
-        await deleteDoc(doc(db, 'products', product.docId));
+        await adminDeleteDoc('products', product.docId);
         if(els.docId.value === product.docId) resetForm();
         showToast('Produk dihapus permanen dari database');
       }catch(error){ showAlertModal('Gagal hapus: ' + firebaseMessage(error)); }
@@ -2964,7 +3135,7 @@
       try{ requirePermission('canEdit', 'mengubah status produk'); }
       catch(error){ showAlertModal(error.message); return; }
       try{
-        await updateDoc(doc(db, 'products', product.docId), { status, updatedAt: serverTimestamp() });
+        await adminUpdateDoc('products', product.docId, { status, updatedAt: serverTimestamp() });
         showToast('Status diubah ke ' + status);
       }catch(error){ showAlertModal('Gagal ubah status: ' + firebaseMessage(error)); }
     }
@@ -3004,7 +3175,7 @@
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
-        await setDoc(doc(db, 'products', padDocId(next)), data, { merge:false });
+        await adminSetDoc('products', padDocId(next), data, { merge:false });
         showToast('Produk diduplikat ke ID ' + next);
       }catch(error){
         showAlertModal('Gagal duplikat: ' + firebaseMessage(error));
@@ -3281,20 +3452,24 @@
         const targetDocId = currentDocId || sanitizeDocId(data.orderId, 'order-' + Date.now());
         const previous = currentDocId ? orders.find(o => o.docId === currentDocId) : null;
         if(!currentDocId){ data.createdAt = serverTimestamp(); data.createdAtMs = Date.now(); }
-        const batch = writeBatch(db);
+        const ops = [];
         const stockDeltas = new Map();
         if(previous && isStockAffectingOrder(previous)) applyStockDeltaMap(stockDeltas, getOrderItems(previous), 1);
         if(isStockAffectingOrder(data)) applyStockDeltaMap(stockDeltas, data.items, -1);
         stockDeltas.forEach(row => {
           if(!row.product || (!row.qtyDelta && !row.soldDelta)) return;
-          batch.update(doc(db, 'products', row.product.docId), { stock: increment(row.qtyDelta), soldCount: increment(row.soldDelta), updatedAt: serverTimestamp() });
+          ops.push({
+            type: 'update',
+            path: 'products/' + row.product.docId,
+            data: { stock: increment(row.qtyDelta), soldCount: increment(row.soldDelta), updatedAt: serverTimestamp() }
+          });
         });
-        batch.set(doc(db, 'orders', targetDocId), data, { merge:true });
-        await batch.commit();
+        ops.push({ type:'set', path:'orders/' + targetDocId, data, merge:true });
+        await adminBatch(ops, 'order.save');
         await logSecurity('order.save', data.orderId + ' • ' + data.customerName + ' • ' + rupiah(data.total));
         setNotice(els.orderMessage, 'Pesanan berhasil disimpan: ' + data.orderId, 'good');
         resetOrderForm();
-        showToast('Pesanan tersimpan dan stok disinkronkan');
+        showToast('Pesanan tersimpan dan stok disinkronkan via backend');
       }catch(error){ setNotice(els.orderMessage, firebaseMessage(error), 'danger'); }
       finally{ setBusy(false); }
     }
@@ -3345,18 +3520,22 @@
       if(!order) return;
       try{ requirePermission('canDelete', 'menghapus pesanan'); }
       catch(error){ showAlertModal(error.message); return; }
-      if(!(await confirmAction('Hapus pesanan ' + order.orderId + '?\n\nJika pesanan sudah Lunas, stok produk akan dikembalikan otomatis.'))) return;
+      if(!(await confirmAction('Hapus pesanan ' + order.orderId + '?\\n\\nJika pesanan sudah Lunas, stok produk akan dikembalikan otomatis.'))) return;
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus pesanan ' + order.orderId);
-        const batch = writeBatch(db);
+        const ops = [];
         const stockDeltas = new Map();
         if(isStockAffectingOrder(order)) applyStockDeltaMap(stockDeltas, getOrderItems(order), 1);
-        stockDeltas.forEach(row => batch.update(doc(db, 'products', row.product.docId), { stock: increment(row.qtyDelta), soldCount: increment(row.soldDelta), updatedAt: serverTimestamp() }));
-        batch.delete(doc(db, 'orders', order.docId));
-        await batch.commit();
+        stockDeltas.forEach(row => ops.push({
+          type:'update',
+          path:'products/' + row.product.docId,
+          data:{ stock: increment(row.qtyDelta), soldCount: increment(row.soldDelta), updatedAt: serverTimestamp() }
+        }));
+        ops.push({ type:'delete', path:'orders/' + order.docId });
+        await adminBatch(ops, 'order.delete');
         await logSecurity('order.delete', order.orderId);
-        showToast('Pesanan dihapus dan stok dikembalikan');
+        showToast('Pesanan dihapus dan stok dikembalikan via backend');
       }
       catch(error){ showAlertModal('Gagal hapus pesanan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
@@ -3396,7 +3575,7 @@
         const currentDocId = els.customerDocId.value.trim();
         const targetDocId = currentDocId || sanitizeDocId(data.name + '-' + (data.phone || data.email || Date.now()), 'customer-' + Date.now());
         if(!currentDocId){ data.createdAt = serverTimestamp(); data.createdAtMs = Date.now(); }
-        await setDoc(doc(db, 'customers', targetDocId), data, { merge:true });
+        await adminSetDoc('customers', targetDocId, data, { merge:true });
         await logSecurity('customer.save', data.name);
         setNotice(els.customerMessage, 'Pelanggan berhasil disimpan: ' + data.name, 'good');
         resetCustomerForm();
@@ -3431,7 +3610,7 @@
       catch(error){ showAlertModal(error.message); return; }
       if(!(await confirmAction('Hapus pelanggan ' + customer.name + '?'))) return;
       setBusy(true);
-      try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await deleteDoc(doc(db, 'customers', customer.docId)); await logSecurity('customer.delete', customer.name); showToast('Pelanggan dihapus'); }
+      try{ await requireSensitiveReauth('menghapus pelanggan ' + customer.name); await adminDeleteDoc('customers', customer.docId); await logSecurity('customer.delete', customer.name); showToast('Pelanggan dihapus'); }
       catch(error){ showAlertModal('Gagal hapus pelanggan: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
@@ -3800,7 +3979,7 @@
         if(kind === 'payment') data = { bankName:els.paymentBankName.value.trim(), accountName:els.paymentAccountName.value.trim(), accountNumber:els.paymentAccountNumber.value.trim(), ewallet:els.paymentEwallet.value.trim(), qrisUrl:els.paymentQrisUrl.value.trim(), instruction:els.paymentInstruction.value.trim() };
         if(kind === 'courier') data = { courierList:els.courierListText.value.trim(), defaultShippingCost:Math.max(0, Math.trunc(safeNumber(els.defaultShippingCost.value, 0))), freeShippingMin:Math.max(0, Math.trunc(safeNumber(els.freeShippingMin.value, 0))) };
         if(kind === 'whatsapp') data = { invoice:els.waInvoiceTemplate.value.trim(), payment:els.waPaymentTemplate.value.trim(), shipping:els.waShippingTemplate.value.trim(), followup:els.waFollowupTemplate.value.trim(), return:els.waReturnTemplate.value.trim() };
-        await setDoc(settingsRefs[kind], Object.assign({}, data, { updatedAt: serverTimestamp(), updatedBy: currentAdmin.email || '' }), { merge:true });
+        await adminSetDoc('settings', kind, Object.assign({}, data, { updatedAt: serverTimestamp(), updatedBy: currentAdmin.email || '' }), { merge:true });
         mergeSettings(kind, data);
         await logSecurity('settings.save', kind);
         setNotice(messageEl, 'Pengaturan ' + kind + ' berhasil disimpan.', 'good');
@@ -3833,7 +4012,7 @@
       const entry = { action:String(action || ''), detail:String(detail || ''), level, adminEmail:currentAdmin.email || '', role:currentAdmin.role || '', createdAtMs:Date.now(), createdAtText:nowLabel() };
       try{
         if(auth.currentUser && currentAdmin.canRead){
-          await setDoc(doc(securityLogsRef, String(Date.now()) + '-' + sanitizeDocId(action, 'log')), Object.assign({}, entry, { createdAt: serverTimestamp() }), { merge:false });
+          await adminSetDoc('securityLogs', String(Date.now()) + '-' + sanitizeDocId(action, 'log'), Object.assign({}, entry, { createdAt: serverTimestamp() }), { merge:false });
         }
       }catch(_error){
         saveLocalSecurityLog(entry);
@@ -3871,15 +4050,8 @@
       const path = 'payment-proofs/' + sanitizeDocId(orderId, 'order') + '-' + Date.now() + '.' + proofExt(file);
       setBusy(true);
       try{
-        const target = storageRef(storage, path);
-        const task = uploadBytesResumable(target, file, { contentType: file.type || 'application/octet-stream' });
-        const snapshot = await new Promise((resolve, reject) => {
-          task.on('state_changed', snap => {
-            const percent = Math.round((snap.bytesTransferred / Math.max(snap.totalBytes, 1)) * 100);
-            if(els.proofProgress) els.proofProgress.style.width = percent + '%';
-          }, reject, () => resolve(task.snapshot));
-        });
-        const url = await getDownloadURL(snapshot.ref);
+        if(els.proofProgress) els.proofProgress.style.width = '35%';
+        const url = await adminUploadFile(file, 'payment-proof', path);
         els.orderPaymentProof.value = url;
         await logSecurity('payment_proof.upload', orderId);
         showToast('Bukti bayar berhasil diupload');
@@ -4154,14 +4326,14 @@
         if(includeProducts){
           pendingAppendImportPayload.products.forEach((raw, index) => {
             const imported = cleanImportedProduct(raw, usedProductIds, usedProductDocs, index);
-            ops.push({ type:'set', ref:doc(db, 'products', imported.docId), data:imported.data });
+            ops.push({ type:'set', path:'products/' + imported.docId, data:imported.data, merge:false });
             imported.oldKeys.forEach(key => productImportMap.set(key, imported));
           });
         }
         if(includeOrders){
           pendingAppendImportPayload.orders.forEach((raw, index) => {
             const imported = cleanImportedOrder(raw, usedOrderIds, usedOrderDocs, productImportMap, index);
-            ops.push({ type:'set', ref:doc(db, 'orders', imported.docId), data:imported.data });
+            ops.push({ type:'set', path:'orders/' + imported.docId, data:imported.data, merge:false });
           });
         }
         if(!ops.length) throw new Error('Tidak ada data yang dipilih untuk diimport.');
@@ -4206,12 +4378,7 @@
     }
     async function commitOpsInBatches(ops){
       for(let i=0;i<ops.length;i+=430){
-        const batch = writeBatch(db);
-        ops.slice(i,i+430).forEach(op => {
-          if(op.type === 'delete') batch.delete(op.ref);
-          else batch.set(op.ref, op.data, { merge:false });
-        });
-        await batch.commit();
+        await adminBatch(ops.slice(i,i+430), 'import.restore.batch');
       }
     }
     async function restoreAllData(){
@@ -4226,10 +4393,10 @@
         const usedOrderIds = new Set(orders.map(o => String(o.orderId || '').toLowerCase()).filter(Boolean));
         const usedOrderDocs = new Set(orders.map(o => String(o.docId || '')));
         const productImportMap = new Map();
-        pendingRestorePayload.products.forEach((p, index) => { const imported = cleanImportedProduct(p, usedProductIds, usedProductDocs, index); ops.push({ type:'set', ref:doc(db,'products',imported.docId), data:Object.assign({}, imported.data, { restoredAt:serverTimestamp() }) }); imported.oldKeys.forEach(key => productImportMap.set(key, imported)); });
-        pendingRestorePayload.orders.forEach((o, index) => { const imported = cleanImportedOrder(o, usedOrderIds, usedOrderDocs, productImportMap, index); ops.push({ type:'set', ref:doc(db,'orders',imported.docId), data:Object.assign({}, imported.data, { restoredAt:serverTimestamp() }) }); });
-        pendingRestorePayload.customers.forEach(c => { const data = Object.assign({}, c); const id = uniqueSlug(data.docId || (data.name + '-' + (data.phone || data.email || Date.now())), new Set(customers.map(row => row.docId)), 'customer-' + Date.now()); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', ref:doc(db,'customers',id), data }); });
-        if(pendingRestorePayload.settings){ Object.keys(settingsRefs).forEach(kind => { if(pendingRestorePayload.settings[kind]) ops.push({ type:'set', ref:settingsRefs[kind], data:Object.assign({}, pendingRestorePayload.settings[kind], { restoredAt:serverTimestamp() }) }); }); }
+        pendingRestorePayload.products.forEach((p, index) => { const imported = cleanImportedProduct(p, usedProductIds, usedProductDocs, index); ops.push({ type:'set', path:'products/' + imported.docId, data:Object.assign({}, imported.data, { restoredAt:serverTimestamp() }), merge:false }); imported.oldKeys.forEach(key => productImportMap.set(key, imported)); });
+        pendingRestorePayload.orders.forEach((o, index) => { const imported = cleanImportedOrder(o, usedOrderIds, usedOrderDocs, productImportMap, index); ops.push({ type:'set', path:'orders/' + imported.docId, data:Object.assign({}, imported.data, { restoredAt:serverTimestamp() }), merge:false }); });
+        pendingRestorePayload.customers.forEach(c => { const data = Object.assign({}, c); const id = uniqueSlug(data.docId || (data.name + '-' + (data.phone || data.email || Date.now())), new Set(customers.map(row => row.docId)), 'customer-' + Date.now()); delete data.docId; data.restoredAt = serverTimestamp(); ops.push({ type:'set', path:'customers/' + id, data, merge:false }); });
+        if(pendingRestorePayload.settings){ Object.keys(settingsRefs).forEach(kind => { if(pendingRestorePayload.settings[kind]) ops.push({ type:'set', path:'settings/' + kind, data:Object.assign({}, pendingRestorePayload.settings[kind], { restoredAt:serverTimestamp() }), merge:false }); }); }
         setBusy(true);
         await commitOpsInBatches(ops);
         await logSecurity('backup.restore-append-only', 'Restore append-only: ' + ops.length + ' operasi');
@@ -4371,6 +4538,8 @@
         const idToken = await auth.currentUser.getIdToken(true);
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
           method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode })
         });
@@ -4664,9 +4833,11 @@
       if(!(await confirmAction('Update ' + ids.length + ' produk?'))) return;
       setBusy(true);
       try{
-        const batch = writeBatch(db);
-        ids.forEach(id => batch.update(doc(db,'products',id), Object.assign({}, data, { updatedAt:serverTimestamp() })));
-        await batch.commit();
+        await adminBatch(ids.map(id => ({
+          type:'update',
+          path:'products/' + id,
+          data:Object.assign({}, data, { updatedAt:serverTimestamp() })
+        })), 'product.bulk_update');
         ultraState.selectedProducts.clear();
         showToast('Bulk produk selesai');
       }catch(error){ showAlertModal('Bulk produk gagal: ' + firebaseMessage(error)); }
@@ -4680,9 +4851,7 @@
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus permanen ' + ids.length + ' produk');
-        const batch = writeBatch(db);
-        ids.forEach(id => batch.delete(doc(db,'products',id)));
-        await batch.commit();
+        await adminBatch(ids.map(id => ({ type:'delete', path:'products/' + id })), 'product.bulk_delete');
         ultraState.selectedProducts.clear();
         await logSecurity('product.bulk_delete_permanent', ids.length + ' produk');
         showToast('Bulk hapus produk selesai');
@@ -4697,9 +4866,7 @@
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus permanen ' + ids.length + ' pesanan');
-        const batch = writeBatch(db);
-        ids.forEach(id => batch.delete(doc(db,'orders',id)));
-        await batch.commit();
+        await adminBatch(ids.map(id => ({ type:'delete', path:'orders/' + id })), 'order.bulk_delete');
         ultraState.selectedOrders.clear();
         await logSecurity('order.bulk_delete_permanent', ids.length + ' pesanan');
         showToast('Bulk hapus pesanan selesai');
@@ -4720,9 +4887,7 @@
         let deleted = 0;
         const chunkSize = 450;
         for(let i = 0; i < ids.length; i += chunkSize){
-          const batch = writeBatch(db);
-          ids.slice(i, i + chunkSize).forEach(id => batch.delete(doc(db, 'orders', id)));
-          await batch.commit();
+          await adminBatch(ids.slice(i, i + chunkSize).map(id => ({ type:'delete', path:'orders/' + id })), 'order.delete_all');
           deleted += Math.min(chunkSize, ids.length - i);
           showToast('Menghapus pesanan... ' + deleted + '/' + ids.length);
         }
@@ -4751,7 +4916,7 @@
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus produk permanen #' + product.id);
-        await deleteDoc(doc(db,'products',product.docId));
+        await adminDeleteDoc('products', product.docId);
         ultraState.selectedProducts.delete(product.docId);
         if(els.docId.value === product.docId) resetForm();
         await logSecurity('product.delete_permanent', product.title);
@@ -4769,7 +4934,7 @@
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus permanen produk arsip lama #' + (p.id || p.docId));
-        await deleteDoc(doc(db,'products',docId));
+        await adminDeleteDoc('products', docId);
         ultraState.selectedProducts.delete(docId);
         await logSecurity('product.legacy_archive_hard_delete', p.title || docId);
         showToast('Produk arsip lama dihapus permanen');
@@ -4787,9 +4952,7 @@
         await requireSensitiveReauth('menghapus semua produk arsip lama');
         let deleted = 0;
         for(let i = 0; i < rows.length; i += 450){
-          const batch = writeBatch(db);
-          rows.slice(i, i + 450).forEach(id => batch.delete(doc(db,'products',id)));
-          await batch.commit();
+          await adminBatch(rows.slice(i, i + 450).map(id => ({ type:'delete', path:'products/' + id })), 'product.legacy_archive_bulk_hard_delete');
           deleted += rows.slice(i, i + 450).length;
         }
         await logSecurity('product.legacy_archive_bulk_hard_delete', deleted + ' produk');
@@ -4806,7 +4969,7 @@
       setBusy(true);
       try{
         await requireSensitiveReauth('menghapus permanen pesanan arsip lama ' + (o.orderId || docId));
-        await deleteDoc(doc(db,'orders',docId));
+        await adminDeleteDoc('orders', docId);
         ultraState.selectedOrders.delete(docId);
         await logSecurity('order.legacy_archive_hard_delete', o.orderId || docId);
         showToast('Pesanan arsip lama dihapus permanen');
@@ -4848,7 +5011,7 @@
       const data = { name, active:true, updatedAt:serverTimestamp(), updatedAtMs:Date.now() };
       if(kind === 'variant') data.note = String($('ultraVariantNote').value || '').trim();
       setBusy(true);
-      try{ await setDoc(doc(conf[1], ultraSlug(name, kind)), data, { merge:true }); nameEl.value=''; if(kind === 'variant') $('ultraVariantNote').value=''; showToast('Master data tersimpan'); }
+      try{ await adminSetDoc(kind === 'category' ? 'categories' : kind === 'brand' ? 'brands' : 'variants', ultraSlug(name, kind), data, { merge:true }); nameEl.value=''; if(kind === 'variant') $('ultraVariantNote').value=''; showToast('Master data tersimpan'); }
       catch(error){ showAlertModal('Gagal simpan master data: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
@@ -4857,7 +5020,7 @@
       if(!(await confirmAction('Hapus master data ini?'))) return;
       const refMap = { category:categoriesRef, brand:brandsRef, variant:variantsRef };
       setBusy(true);
-      try{ await deleteDoc(doc(refMap[kind], id)); showToast('Master data dihapus'); }
+      try{ await adminDeleteDoc(kind === 'category' ? 'categories' : kind === 'brand' ? 'brands' : 'variants', id); showToast('Master data dihapus'); }
       catch(error){ showAlertModal('Gagal hapus master data: ' + firebaseMessage(error)); }
       finally{ setBusy(false); }
     }
