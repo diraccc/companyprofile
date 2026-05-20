@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@simplewebauthn/server": "^13.1.2",
-    "firebase-admin": "^13.0.0"
+    "firebase-admin": "^13.0.0",
+    "argon2": "^0.41.1"
   }
 }
