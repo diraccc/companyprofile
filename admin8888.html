@@ -1157,7 +1157,7 @@
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
                   <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, upload bukti, dan pengaturan.</p>
                   <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div>
-                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Format baru memakai 50 karakter acak dan disimpan sebagai Argon2id di backend. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
+                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Format baru memakai 50 karakter acak dan disimpan aman sebagai hash Argon2id. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
                   <div class="settings-actions requires-delete"><button class="btn warn" id="generateRecoveryCodesBtn" type="button">Buat 10 Recovery Code Sekali Pakai</button></div>
                   <div class="notice hidden" id="recoveryCodesNotice" role="status"></div>
                   <pre class="rules-box hidden" id="recoveryCodesOutput" aria-label="Recovery code sekali pakai"></pre>
@@ -1412,20 +1412,11 @@
           node.className = 'twofactor-step' + (step < 5 ? ' done' : ' active');
         });
 
-        const recoveryHint = faceRecoveryStep === 1
-          ? 'Tahap 1 dikirim ke email recovery.'
-          : faceRecoveryStep === 2
-            ? 'Tahap 2 memakai kode Authenticator recovery, tanpa kirim email.'
-            : faceRecoveryStep === 3
-              ? 'Tahap 3 memakai kode rahasia recovery 1 di Vercel, tanpa kirim email.'
-              : faceRecoveryStep === 4
-                ? 'Tahap 4 memakai kode rahasia recovery 2 di Vercel, tanpa kirim email.'
-                : 'Tahap 5 memakai recovery code sekali pakai. Setelah benar, kode langsung hangus.';
         if(els.twoFactorHelp){
-          els.twoFactorHelp.textContent = 'Recovery Face ID aktif. ' + recoveryHint + ' Kode ini berbeda dari A2F awal.';
+          els.twoFactorHelp.textContent = 'Verifikasi pemulihan aktif. Masukkan kode verifikasi tahap ' + faceRecoveryStep + ' dari ' + FACE_RECOVERY_TOTAL_STEPS + ' untuk melanjutkan.';
         }
         if(els.twoFactorLabel){
-          els.twoFactorLabel.textContent = 'Recovery Face ID ' + faceRecoveryStep + '/' + FACE_RECOVERY_TOTAL_STEPS;
+          els.twoFactorLabel.textContent = 'Kode verifikasi';
         }
         if(els.twoFactorBtn){
           els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : 'Verifikasi Recovery';
@@ -1440,15 +1431,7 @@
           } else {
             els.twoFactorCode.disabled = false;
             els.twoFactorCode.type = 'password';
-            els.twoFactorCode.placeholder = faceRecoveryStep === 1
-              ? 'Masukkan kode recovery dari email'
-              : faceRecoveryStep === 2
-                ? 'Masukkan kode Authenticator recovery'
-                : faceRecoveryStep === 3
-                  ? 'Masukkan kode rahasia recovery tahap 3'
-                  : faceRecoveryStep === 4
-                    ? 'Masukkan kode rahasia recovery tahap 4'
-                    : 'Masukkan recovery code sekali pakai';
+            els.twoFactorCode.placeholder = 'Masukkan kode verifikasi';
             setTimeout(() => els.twoFactorCode.focus(), 60);
           }
         }
@@ -1519,8 +1502,8 @@
         applyA2fBackendLockState(state);
       }catch(error){
         twoFactorBackendLocked = true;
-        setTwoFactorInputLocked(true, 'Lock backend error');
-        setNotice(els.twoFactorError, error.message || 'Backend lock A2F belum siap. Coba deploy ulang backend.', 'danger');
+        setTwoFactorInputLocked(true, 'Terkunci');
+        setNotice(els.twoFactorError, error.message || 'Sistem verifikasi belum siap. Coba deploy ulang konfigurasi.', 'danger');
       }
     }
     async function readApiJson(response){
@@ -1572,7 +1555,7 @@
       const data = await readApiJson(response);
       data.httpStatus = response.status;
       if(response.status >= 500){
-        throw new Error(data.error || 'Backend lock A2F error.');
+        throw new Error(data.error || 'Sistem lock verifikasi error.');
       }
       return data;
     }
@@ -1668,14 +1651,14 @@
       twoFactorBackendLocked = true;
       twoFactorPermanentLocked = true;
       setTwoFactorInputLocked(true, 'Diblokir');
-      setNotice(els.twoFactorUser, 'Waktu A2F 25 detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
+      setNotice(els.twoFactorUser, 'Waktu A2F 25 detik habis. Akun sedang diblokir.', 'danger');
       setNotice(els.twoFactorError, 'Waktu A2F habis. Dashboard tetap terkunci dan sesi akan logout.', 'danger');
 
       try{
         const state = await recordA2fTimeoutBlock();
         applyA2fBackendLockState(Object.assign({ permanentBan: true, failedCount: A2F_BACKEND_MAX_FAILURES }, state || {}));
       }catch(error){
-        setNotice(els.twoFactorError, 'Waktu A2F habis. Backend lock gagal dicatat: ' + (error.message || 'unknown') + '.', 'danger');
+        setNotice(els.twoFactorError, 'Waktu A2F habis. Sistem lock gagal mencatat status: ' + (error.message || 'unknown') + '.', 'danger');
       }
 
       try{ await saveA2fTimeoutBlockMarker(); }catch(_error){}
@@ -1697,8 +1680,8 @@
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = true;
         setTwoFactorInputLocked(true, 'Diblokir');
-        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat backend/Firebase.', 'danger');
-        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban backend.', 'danger');
+        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Hubungi owner/admin untuk reset.', 'danger');
+        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data browser tidak akan membuka blokir.', 'danger');
         return true;
       }
       const lockUntilMs = Number(state.lockUntilMs || 0);
@@ -1754,10 +1737,10 @@
           twoFactorBackendLocked = true;
           twoFactorPermanentLocked = true;
           setTwoFactorInputLocked(true, 'Diblokir');
-          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa /api/2fa/lock.', 'danger');
+          setNotice(els.twoFactorError, 'A2F diblokir permanen. Sistem lock tidak bisa mencatat status.', 'danger');
           return true;
         }
-        setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
+        setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Sistem lock gagal: ' + (error.message || 'unknown'), 'danger');
         return true;
       }
     }
@@ -1854,45 +1837,21 @@
         });
         const data = await readApiJson(response);
         if(!response.ok || data.success === false){
-          throw new Error(data.error || data.message || 'Backend gagal membuat kode tahap ' + stepNumber + '.');
+          throw new Error(data.error || data.message || 'Gagal menyiapkan verifikasi tahap ' + stepNumber + '.');
         }
         const newSessionId = String(data.sessionId || '').trim();
         if(!newSessionId){
-          throw new Error('Backend harus mengirim sessionId untuk tahap ' + stepNumber + '.');
+          throw new Error('Session verifikasi tahap ' + stepNumber + ' belum siap.');
         }
         setBackendStepSession(stepNumber, newSessionId);
-        const recoveryStepNumber = stepNumber >= 6 ? stepNumber - 5 : 0;
-        if(data.debugCode){
-          if(recoveryStepNumber){
-            setNotice(els.twoFactorUser, 'MODE TEST: kode Recovery Face ID tahap ' + recoveryStepNumber + ' adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut.', 'warn');
-          }else{
-            setNotice(els.twoFactorUser, 'MODE TEST: kode A2F tahap ' + stepNumber + ' adalah ' + data.debugCode + '. Masukkan kode ini untuk lanjut.', 'warn');
-          }
-        }else if(recoveryStepNumber){
-          const recoveryDelivery = String(data.delivery || '');
-          if(recoveryStepNumber === 1 || recoveryDelivery === 'email'){
-            setNotice(els.twoFactorUser, 'Kode Recovery Face ID tahap 1 sudah dikirim ke email recovery. Masukkan kode dari email.', 'good');
-          }else if(recoveryStepNumber === 2 || recoveryDelivery === 'authenticator'){
-            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 2 memakai Authenticator recovery. Buka aplikasi Authenticator lalu masukkan kode 6 digit.', 'good');
-          }else if(recoveryStepNumber === 3){
-            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 3 tidak mengirim email. Masukkan kode rahasia recovery 1 yang kamu simpan di Vercel.', 'good');
-          }else if(recoveryStepNumber === 4){
-            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 4 tidak mengirim email. Masukkan kode rahasia recovery 2 yang kamu simpan di Vercel.', 'good');
-          }else if(recoveryStepNumber === 5 || recoveryDelivery === 'one-time-code'){
-            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 5 memakai recovery code sekali pakai. Setelah benar, kode ini langsung hangus.', 'good');
-          }else{
-            setNotice(els.twoFactorUser, 'Recovery Face ID siap. Masukkan kode recovery yang sesuai.', 'good');
-          }
-        }else{
-          setNotice(els.twoFactorUser, 'Kode A2F tahap ' + stepNumber + ' sudah dibuat backend. Masukkan kodenya di sini.', 'good');
-        }
+        setNotice(els.twoFactorUser, 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan.', 'good');
       }finally{
         if(!twoFactorBackendLocked && !twoFactorPermanentLocked) els.twoFactorBtn.disabled = false;
       }
     }
     async function verifyBackendStepTwoFactor(code, stepNumber){
       if(!SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT){
-        throw new Error('Endpoint verifikasi backend step belum diisi.');
+        throw new Error('Endpoint verifikasi belum diisi.');
       }
       const sessionId = await ensureBackendStepSession(stepNumber);
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
@@ -1903,7 +1862,7 @@
       });
       const data = await readApiJson(response);
       if(!response.ok || data.success === false){
-        const error = new Error(data.error || data.message || (stepNumber >= 6 ? 'Kode Recovery Face ID tahap ' + (stepNumber - 5) + ' salah atau expired.' : 'Kode A2F tahap ' + stepNumber + ' salah atau expired.'));
+        const error = new Error(data.error || data.message || 'Kode verifikasi salah atau expired.');
         error.countAttempt = response.status === 400 || response.status === 401 || response.status === 403 || response.status === 423 || response.status === 429;
         if(hasA2fBackendLockState(data)) error.a2fLockState = data;
         throw error;
@@ -1963,7 +1922,7 @@
       if(!SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT || !SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT){
         throw new Error('Endpoint verifikasi belum lengkap.');
       }
-      setNotice(els.twoFactorUser, 'Meminta challenge passkey dari backend...', 'good');
+      setNotice(els.twoFactorUser, 'Menyiapkan pemeriksaan keamanan...', 'good');
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const startResponse = await fetch(SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_START_ENDPOINT, {
         method: 'POST',
@@ -1978,7 +1937,7 @@
         throw error;
       }
       if(!startData.options || !startData.session){
-        throw new Error('Backend verifikasi tidak siap.');
+        throw new Error('Verifikasi belum siap.');
       }
       setNotice(els.twoFactorUser, 'Ikuti instruksi keamanan perangkat.', 'good');
       const credential = await navigator.credentials.get({
@@ -2008,7 +1967,7 @@
       });
       const finishData = await readApiJson(finishResponse);
       if(!finishResponse.ok || finishData.success === false){
-        const error = new Error(finishData.error || finishData.message || 'Passkey salah atau ditolak.');
+        const error = new Error(finishData.error || finishData.message || 'Verifikasi salah atau ditolak.');
         error.countAttempt = finishResponse.status === 400 || finishResponse.status === 401 || finishResponse.status === 403 || finishResponse.status === 423 || finishResponse.status === 429;
         if(hasA2fBackendLockState(finishData)) error.a2fLockState = finishData;
         throw error;
@@ -2038,22 +1997,22 @@
 
       setNotice(
         els.twoFactorError,
-        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Tahap 1 lewat email, tahap 2 lewat Authenticator recovery, tahap 3 dan 4 pakai kode rahasia, tahap 5 pakai recovery code sekali pakai.',
+        (message || 'Pemeriksaan keamanan belum berhasil.') + ' Verifikasi pemulihan aktif. Ikuti tahap yang tampil untuk melanjutkan.',
         'warn'
       );
 
       setNotice(
         els.twoFactorUser,
-        'Mode recovery aktif. Tahap 1 pakai email recovery; tahap 2 pakai Authenticator recovery; tahap 3 dan 4 pakai kode rahasia Vercel; tahap 5 pakai recovery code sekali pakai.',
+        'Verifikasi pemulihan aktif. Masukkan kode verifikasi sesuai tahap yang tampil.',
         'warn'
       );
 
-      showToast('Recovery Face ID aktif');
+      showToast('Verifikasi pemulihan aktif');
 
       try{
         await ensureBackendStepSession(getFaceRecoveryBackendStep());
       }catch(error){
-        setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
+        setNotice(els.twoFactorError, error.message || 'Gagal menyiapkan verifikasi pemulihan.', 'danger');
       }finally{
         startTwoFactorTimeoutTimer();
       }
@@ -2072,7 +2031,7 @@
       if(currentAdmin.roleSource === 'firestore'){
         setNotice(
           els.syncStatus,
-          'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Recovery A2F berhasil.',
+          'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Verifikasi keamanan berhasil.',
           'good'
         );
       }
@@ -2080,8 +2039,8 @@
       startListening();
       resetIdleTimer();
 
-      logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat Recovery Face ID').catch(() => {});
-      showToast('Recovery selesai. Dashboard dibuka.');
+      logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat verifikasi pemulihan').catch(() => {});
+      showToast('Verifikasi selesai. Dashboard dibuka.');
     }
 
     async function verifyFaceRecoveryStep(code){
@@ -2104,13 +2063,13 @@
 
       if(faceRecoveryStep < FACE_RECOVERY_TOTAL_STEPS){
         faceRecoveryStep += 1;
-        showToast('Recovery tahap berhasil');
+        showToast('Verifikasi tahap berhasil');
         updateTwoFactorProgress();
 
         try{
           await ensureBackendStepSession(getFaceRecoveryBackendStep());
         }catch(error){
-          setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
+          setNotice(els.twoFactorError, error.message || 'Gagal menyiapkan verifikasi pemulihan.', 'danger');
         }finally{
           startTwoFactorTimeoutTimer();
         }
@@ -2506,12 +2465,26 @@
     async function requireSensitiveReauth(actionLabel){
       const user = auth.currentUser;
       if(!user || !user.email) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
-      if(Date.now() - lastSensitiveReauthAt < SECURITY_CONFIG.REAUTH_TTL_MS) return;
+
       const password = window.prompt('Verifikasi ulang untuk ' + actionLabel + '.\n\nMasukkan password akun admin:');
       if(!password) throw new Error('Aksi dibatalkan karena password tidak diisi.');
+
+      const totpCode = window.prompt('Verifikasi A2F untuk ' + actionLabel + '.\n\nMasukkan kode verifikasi utama:');
+      const normalizedTotpCode = String(totpCode || '').replace(/\s+/g, '').trim();
+      if(!normalizedTotpCode) throw new Error('Aksi dibatalkan karena kode A2F tidak diisi.');
+
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
+
+      try{
+        await verifyTotpTwoFactor(normalizedTotpCode);
+      }catch(_error){
+        throw new Error('Kode A2F utama salah atau expired. Aksi dibatalkan.');
+      }
+
       lastSensitiveReauthAt = Date.now();
+      logSecurity('auth.sensitive_reauth', 'Verifikasi ulang berhasil untuk ' + actionLabel).catch(() => {});
+      return { totpCode: normalizedTotpCode };
     }
     function currentFormData(){
       return {
@@ -4366,6 +4339,13 @@
       }
       const ok = window.confirm('Buat 10 recovery code sekali pakai baru?\n\nFormat baru: 50 karakter acak, disimpan sebagai Argon2id. Kode asli hanya muncul sekali. Simpan sekarang juga. Kode yang sudah dipakai tidak bisa digunakan lagi.');
       if(!ok) return;
+      let sensitiveCheck;
+      try{
+        sensitiveCheck = await requireSensitiveReauth('membuat recovery code sekali pakai');
+      }catch(error){
+        setNotice(els.recoveryCodesNotice, error.message || 'Verifikasi ulang gagal.', 'danger');
+        return;
+      }
       busy = true;
       if(els.generateRecoveryCodesBtn) els.generateRecoveryCodesBtn.disabled = true;
       if(els.recoveryCodesOutput){
@@ -4378,7 +4358,7 @@
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10 })
+          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, totpCode: sensitiveCheck && sensitiveCheck.totpCode })
         });
         const data = await readApiJson(response);
         if(!response.ok || data.success === false){
@@ -4390,7 +4370,7 @@
         }
         const text = [
           'SIMPAN SEKARANG - kode ini hanya ditampilkan sekali.',
-          'Dipakai untuk Recovery Face ID tahap 5. Setiap kode berisi 50 karakter acak dan hanya bisa dipakai 1 kali.',
+          'Dipakai sebagai kode pemulihan darurat. Setiap kode berisi 50 karakter acak dan hanya bisa dipakai 1 kali.',
           '',
           ...codes.map((code, index) => String(index + 1).padStart(2, '0') + '. ' + code)
         ].join('\n');
