@@ -1,5 +1,16 @@
 const crypto = require("crypto");
 const admin = require("firebase-admin");
+const argon2 = require("argon2");
+
+const ONE_TIME_RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const ONE_TIME_RECOVERY_RANDOM_LENGTH = 50;
+const ARGON2ID_OPTIONS = Object.freeze({
+  type: argon2.argon2id,
+  memoryCost: 19456,
+  timeCost: 2,
+  parallelism: 1,
+  hashLength: 32
+});
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -75,21 +86,34 @@ function normalizeOneTimeRecoveryCode(code) {
   return String(code || "").trim().toUpperCase().replace(/[\s-]+/g, "");
 }
 
-function hashOneTimeRecoveryCode(code, secret) {
+function getOneTimeRecoveryLookupHash(code, secret) {
   const normalized = normalizeOneTimeRecoveryCode(code);
-  return crypto.createHmac("sha256", secret).update(`one-time-recovery:${normalized}`).digest("hex");
+  return crypto.createHmac("sha256", secret).update(`one-time-recovery-lookup:${normalized}`).digest("hex");
 }
 
-function generateOneTimeRecoveryCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.randomBytes(16);
+async function hashOneTimeRecoveryCodeArgon2id(code) {
+  const normalized = normalizeOneTimeRecoveryCode(code);
+  return argon2.hash(normalized, ARGON2ID_OPTIONS);
+}
+
+function generateRandomRecoveryBody(length = ONE_TIME_RECOVERY_RANDOM_LENGTH) {
+  const bytes = crypto.randomBytes(length);
   let body = "";
 
   for (const byte of bytes) {
-    body += alphabet[byte % alphabet.length];
+    body += ONE_TIME_RECOVERY_ALPHABET[byte & 31];
   }
 
-  return `DG-RCV-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}-${body.slice(12, 16)}`;
+  return body;
+}
+
+function formatOneTimeRecoveryCode(body) {
+  const groups = String(body).match(/.{1,5}/g) || [];
+  return `DG-RCV-${groups.join("-")}`;
+}
+
+function generateOneTimeRecoveryCode() {
+  return formatOneTimeRecoveryCode(generateRandomRecoveryBody());
 }
 
 async function generateOneTimeRecoveryCodes(reqBody) {
@@ -104,23 +128,35 @@ async function generateOneTimeRecoveryCodes(reqBody) {
 
   while (codes.length < count) {
     const code = generateOneTimeRecoveryCode();
-    const hash = hashOneTimeRecoveryCode(code, secret);
-    const ref = db.collection("a2fRecoveryCodes").doc(hash);
+    const lookupHash = getOneTimeRecoveryLookupHash(code, secret);
+    const argon2Hash = await hashOneTimeRecoveryCodeArgon2id(code);
+    const ref = db.collection("a2fRecoveryCodes").doc(lookupHash);
 
     codes.push(code);
     batch.set(ref, {
-      hash,
+      lookupHash,
+      argon2Hash,
+      hashType: "argon2id",
+      hashParams: {
+        memoryCost: ARGON2ID_OPTIONS.memoryCost,
+        timeCost: ARGON2ID_OPTIONS.timeCost,
+        parallelism: ARGON2ID_OPTIONS.parallelism,
+        hashLength: ARGON2ID_OPTIONS.hashLength
+      },
+      codeFormat: "DG-RCV-10x5",
+      randomLength: ONE_TIME_RECOVERY_RANDOM_LENGTH,
       used: false,
       revoked: false,
       label: `Recovery code ${codes.length}`,
-      codePreview: code.slice(-4),
+      codePreview: code.slice(-5),
       createdByUid: decoded.uid,
       createdByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
       createdAtMs: now,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       usedAtMs: null,
       usedAt: null,
-      usedByUid: null
+      usedByUid: null,
+      usedByEmail: null
     }, { merge: false });
   }
 

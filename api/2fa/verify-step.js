@@ -1,5 +1,15 @@
 const crypto = require("crypto");
 const admin = require("firebase-admin");
+const argon2 = require("argon2");
+
+const ONE_TIME_RECOVERY_RANDOM_LENGTH = 50;
+const ARGON2ID_OPTIONS = Object.freeze({
+  type: argon2.argon2id,
+  memoryCost: 19456,
+  timeCost: 2,
+  parallelism: 1,
+  hashLength: 32
+});
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -134,34 +144,68 @@ function normalizeOneTimeRecoveryCode(code) {
   return String(code || "").trim().toUpperCase().replace(/[\s-]+/g, "");
 }
 
-function hashOneTimeRecoveryCode(code, secret) {
+function getOneTimeRecoveryLookupHash(code, secret) {
   const normalized = normalizeOneTimeRecoveryCode(code);
-  return crypto.createHmac("sha256", secret).update(`one-time-recovery:${normalized}`).digest("hex");
+  return crypto.createHmac("sha256", secret).update(`one-time-recovery-lookup:${normalized}`).digest("hex");
+}
+
+async function verifyOneTimeRecoveryArgon2id(inputCode, storedHash) {
+  const normalized = normalizeOneTimeRecoveryCode(inputCode);
+
+  if (!storedHash || typeof storedHash !== "string") {
+    return false;
+  }
+
+  try {
+    return await argon2.verify(storedHash, normalized);
+  } catch (_error) {
+    return false;
+  }
 }
 
 async function consumeOneTimeRecoveryCode(code, secret, idToken) {
   const normalized = normalizeOneTimeRecoveryCode(code);
 
-  if (!/^DGRCV[A-Z2-9]{16}$/.test(normalized)) {
+  if (!new RegExp(`^DGRCV[A-Z2-9]{${ONE_TIME_RECOVERY_RANDOM_LENGTH}}$`).test(normalized)) {
     return { ok: false, reason: "format" };
   }
 
   const decoded = await verifyAdminIdToken(idToken);
   const db = getFirebaseDb();
-  const hash = hashOneTimeRecoveryCode(normalized, secret);
-  const ref = db.collection("a2fRecoveryCodes").doc(hash);
+  const lookupHash = getOneTimeRecoveryLookupHash(normalized, secret);
+  const ref = db.collection("a2fRecoveryCodes").doc(lookupHash);
   const now = Date.now();
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    return { ok: false, reason: "not-found" };
+  }
+
+  const firstRead = snap.data() || {};
+
+  if (firstRead.revoked === true) {
+    return { ok: false, reason: "revoked" };
+  }
+
+  if (firstRead.used === true) {
+    return { ok: false, reason: "used" };
+  }
+
+  if (firstRead.hashType !== "argon2id" || !(await verifyOneTimeRecoveryArgon2id(normalized, firstRead.argon2Hash))) {
+    return { ok: false, reason: "not-found" };
+  }
+
   let result = { ok: false, reason: "not-found" };
 
   await db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
+    const txSnap = await tx.get(ref);
 
-    if (!snap.exists) {
+    if (!txSnap.exists) {
       result = { ok: false, reason: "not-found" };
       return;
     }
 
-    const data = snap.data() || {};
+    const data = txSnap.data() || {};
 
     if (data.revoked === true) {
       result = { ok: false, reason: "revoked" };
@@ -170,6 +214,11 @@ async function consumeOneTimeRecoveryCode(code, secret, idToken) {
 
     if (data.used === true) {
       result = { ok: false, reason: "used" };
+      return;
+    }
+
+    if (data.hashType !== "argon2id" || data.argon2Hash !== firstRead.argon2Hash) {
+      result = { ok: false, reason: "not-found" };
       return;
     }
 
