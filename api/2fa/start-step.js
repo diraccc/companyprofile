@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const admin = require("firebase-admin");
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -18,6 +19,114 @@ function makeSession(payload, secret) {
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = sign(payloadBase64, secret);
   return `${payloadBase64}.${signature}`;
+}
+
+function getFirebaseDb() {
+  if (!admin.apps.length) {
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = String(process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+
+    if (!projectId || !clientEmail || !privateKey) {
+      throw new Error("ENV Firebase Admin belum lengkap");
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey
+      })
+    });
+  }
+
+  return admin.firestore();
+}
+
+function getAdminUid() {
+  const uid = String(process.env.A2F_ADMIN_UID || "").trim();
+
+  if (!uid) {
+    throw new Error("A2F_ADMIN_UID belum diset");
+  }
+
+  return uid;
+}
+
+async function verifyAdminIdToken(idToken) {
+  const token = String(idToken || "").trim();
+
+  if (!token) {
+    throw new Error("ID token admin wajib dikirim");
+  }
+
+  getFirebaseDb();
+  const decoded = await admin.auth().verifyIdToken(token);
+  const expectedUid = getAdminUid();
+
+  if (decoded.uid !== expectedUid) {
+    throw new Error("Akun ini tidak diizinkan membuat recovery code");
+  }
+
+  return decoded;
+}
+
+function normalizeOneTimeRecoveryCode(code) {
+  return String(code || "").trim().toUpperCase().replace(/[\s-]+/g, "");
+}
+
+function hashOneTimeRecoveryCode(code, secret) {
+  const normalized = normalizeOneTimeRecoveryCode(code);
+  return crypto.createHmac("sha256", secret).update(`one-time-recovery:${normalized}`).digest("hex");
+}
+
+function generateOneTimeRecoveryCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.randomBytes(16);
+  let body = "";
+
+  for (const byte of bytes) {
+    body += alphabet[byte % alphabet.length];
+  }
+
+  return `DG-RCV-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}-${body.slice(12, 16)}`;
+}
+
+async function generateOneTimeRecoveryCodes(reqBody) {
+  const secret = process.env.A2F_SECRET || "rahasia-test";
+  const decoded = await verifyAdminIdToken(reqBody && reqBody.idToken);
+  const countRaw = Number(reqBody && reqBody.count);
+  const count = Number.isFinite(countRaw) ? Math.min(20, Math.max(1, Math.floor(countRaw))) : 10;
+  const db = getFirebaseDb();
+  const batch = db.batch();
+  const codes = [];
+  const now = Date.now();
+
+  while (codes.length < count) {
+    const code = generateOneTimeRecoveryCode();
+    const hash = hashOneTimeRecoveryCode(code, secret);
+    const ref = db.collection("a2fRecoveryCodes").doc(hash);
+
+    codes.push(code);
+    batch.set(ref, {
+      hash,
+      used: false,
+      revoked: false,
+      label: `Recovery code ${codes.length}`,
+      codePreview: code.slice(-4),
+      createdByUid: decoded.uid,
+      createdByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
+      createdAtMs: now,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      usedAtMs: null,
+      usedAt: null,
+      usedByUid: null
+    }, { merge: false });
+  }
+
+  await batch.commit();
+
+  return codes;
 }
 
 async function sendEmailOtp(code) {
@@ -182,14 +291,34 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const { step } = req.body || {};
+  const { step, action } = req.body || {};
+
+  if (action === "generate-recovery-codes") {
+    try {
+      const codes = await generateOneTimeRecoveryCodes(req.body || {});
+
+      return res.status(200).json({
+        success: true,
+        action,
+        codes,
+        count: codes.length,
+        message: "Recovery code sekali pakai berhasil dibuat. Simpan sekarang karena kode asli tidak disimpan di server."
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Gagal membuat recovery code sekali pakai"
+      });
+    }
+  }
+
   const stepNumber = Number(step);
-  const allowedSteps = [2, 3, 6, 7, 8, 9];
+  const allowedSteps = [2, 3, 6, 7, 8, 9, 10];
 
   if (!allowedSteps.includes(stepNumber)) {
     return res.status(400).json({
       success: false,
-      error: "Step harus 2, 3, 6, 7, 8, atau 9"
+      error: "Step harus 2, 3, 6, 7, 8, 9, atau 10"
     });
   }
 
@@ -295,6 +424,22 @@ module.exports = async function handler(req, res) {
         error: error.message || "Gagal membuat kode recovery lokal"
       });
     }
+  }
+
+  if (stepNumber === 10) {
+    payload.method = "one-time-recovery-code";
+    payload.codeHash = hashCode(`${stepNumber}:one-time-recovery-code`, secret);
+
+    const sessionId = makeSession(payload, secret);
+
+    return res.status(200).json({
+      success: true,
+      sessionId,
+      step: stepNumber,
+      recoveryStep: 5,
+      delivery: "one-time-code",
+      message: "Recovery Face ID tahap 5 siap. Masukkan recovery code sekali pakai. Setelah benar, kode langsung hangus."
+    });
   }
 
   const sessionId = makeSession(payload, secret);

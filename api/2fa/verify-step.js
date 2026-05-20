@@ -111,6 +111,82 @@ function getAdminUid() {
   return uid;
 }
 
+
+async function verifyAdminIdToken(idToken) {
+  const token = String(idToken || "").trim();
+
+  if (!token) {
+    throw new Error("ID token admin wajib dikirim");
+  }
+
+  getFirebaseDb();
+  const decoded = await admin.auth().verifyIdToken(token);
+  const expectedUid = getAdminUid();
+
+  if (decoded.uid !== expectedUid) {
+    throw new Error("Akun ini tidak diizinkan memakai recovery code");
+  }
+
+  return decoded;
+}
+
+function normalizeOneTimeRecoveryCode(code) {
+  return String(code || "").trim().toUpperCase().replace(/[\s-]+/g, "");
+}
+
+function hashOneTimeRecoveryCode(code, secret) {
+  const normalized = normalizeOneTimeRecoveryCode(code);
+  return crypto.createHmac("sha256", secret).update(`one-time-recovery:${normalized}`).digest("hex");
+}
+
+async function consumeOneTimeRecoveryCode(code, secret, idToken) {
+  const normalized = normalizeOneTimeRecoveryCode(code);
+
+  if (!/^DGRCV[A-Z2-9]{16}$/.test(normalized)) {
+    return { ok: false, reason: "format" };
+  }
+
+  const decoded = await verifyAdminIdToken(idToken);
+  const db = getFirebaseDb();
+  const hash = hashOneTimeRecoveryCode(normalized, secret);
+  const ref = db.collection("a2fRecoveryCodes").doc(hash);
+  const now = Date.now();
+  let result = { ok: false, reason: "not-found" };
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+
+    if (!snap.exists) {
+      result = { ok: false, reason: "not-found" };
+      return;
+    }
+
+    const data = snap.data() || {};
+
+    if (data.revoked === true) {
+      result = { ok: false, reason: "revoked" };
+      return;
+    }
+
+    if (data.used === true) {
+      result = { ok: false, reason: "used" };
+      return;
+    }
+
+    tx.set(ref, {
+      used: true,
+      usedAtMs: now,
+      usedAt: admin.firestore.FieldValue.serverTimestamp(),
+      usedByUid: decoded.uid,
+      usedByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || ""
+    }, { merge: true });
+
+    result = { ok: true };
+  });
+
+  return result;
+}
+
 function getLockMessage(lockUntilMs) {
   const remainingMs = Math.max(0, Number(lockUntilMs || 0) - Date.now());
   const remainingSeconds = Math.ceil(remainingMs / 1000);
@@ -250,10 +326,10 @@ module.exports = async function handler(req, res) {
   try {
     await checkA2fLock();
 
-    const { sessionId, code, step } = req.body || {};
+    const { sessionId, code, step, idToken } = req.body || {};
     const stepNumber = Number(step);
 
-    if (!sessionId || !code || ![2, 3, 6, 7, 8, 9].includes(stepNumber)) {
+    if (!sessionId || !code || ![2, 3, 6, 7, 8, 9, 10].includes(stepNumber)) {
       return res.status(400).json({
         success: false,
         error: "Session, kode, dan step wajib benar"
@@ -325,6 +401,30 @@ module.exports = async function handler(req, res) {
         message: "Kode Recovery Face ID tahap 2 dari Authenticator benar",
         recoveryStep: 2,
         nextStep: 8
+      });
+    }
+
+    if (stepNumber === 10) {
+      if (payload.flow !== "face-recovery" || payload.method !== "one-time-recovery-code") {
+        return res.status(400).json({
+          success: false,
+          error: "Session recovery code sekali pakai tidak valid"
+        });
+      }
+
+      const oneTimeResult = await consumeOneTimeRecoveryCode(code, secret, idToken);
+
+      if (!oneTimeResult.ok) {
+        return sendWrongCodeResponse(res);
+      }
+
+      await resetA2fFailure();
+
+      return res.status(200).json({
+        success: true,
+        message: "Recovery code sekali pakai benar. Kode ini sudah hangus dan tidak bisa dipakai lagi.",
+        recoveryStep: 5,
+        nextStep: 11
       });
     }
 
