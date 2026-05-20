@@ -1107,7 +1107,7 @@
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
                   <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, upload bukti, dan pengaturan.</p>
                   <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div>
-                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
+                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Format baru memakai 50 karakter acak dan disimpan sebagai Argon2id di backend. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
                   <div class="settings-actions requires-delete"><button class="btn warn" id="generateRecoveryCodesBtn" type="button">Buat 10 Recovery Code Sekali Pakai</button></div>
                   <div class="notice hidden" id="recoveryCodesNotice" role="status"></div>
                   <pre class="rules-box hidden" id="recoveryCodesOutput" aria-label="Recovery code sekali pakai"></pre>
@@ -4168,7 +4168,7 @@
         setNotice(els.recoveryCodesNotice, error.message || 'Akses ditolak.', 'danger');
         return;
       }
-      const ok = window.confirm('Buat 10 recovery code sekali pakai baru?\n\nKode asli hanya muncul sekali. Simpan sekarang juga. Kode yang sudah dipakai tidak bisa digunakan lagi.');
+      const ok = window.confirm('Buat 10 recovery code sekali pakai baru?\n\nFormat baru: 50 karakter acak, disimpan sebagai Argon2id. Kode asli hanya muncul sekali. Simpan sekarang juga. Kode yang sudah dipakai tidak bisa digunakan lagi.');
       if(!ok) return;
       busy = true;
       if(els.generateRecoveryCodesBtn) els.generateRecoveryCodesBtn.disabled = true;
@@ -4194,7 +4194,7 @@
         }
         const text = [
           'SIMPAN SEKARANG - kode ini hanya ditampilkan sekali.',
-          'Dipakai untuk Recovery Face ID tahap 5. Setiap kode hanya bisa dipakai 1 kali.',
+          'Dipakai untuk Recovery Face ID tahap 5. Setiap kode berisi 50 karakter acak dan hanya bisa dipakai 1 kali.',
           '',
           ...codes.map((code, index) => String(index + 1).padStart(2, '0') + '. ' + code)
         ].join('\n');
