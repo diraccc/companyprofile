@@ -2491,9 +2491,7 @@
       const user = auth.currentUser;
       if(!user || !user.email) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
       if(Date.now() - lastSensitiveReauthAt < SECURITY_CONFIG.REAUTH_TTL_MS) return { sensitiveTotpCode: '' };
-      const password = window.prompt('Verifikasi ulang untuk ' + actionLabel + '.
-
-Masukkan password akun admin:');
+      const password = window.prompt('Verifikasi ulang untuk ' + actionLabel + '.\n\nMasukkan password akun admin:');
       if(!password) throw new Error('Aksi dibatalkan karena password tidak diisi.');
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
