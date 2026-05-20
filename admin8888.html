@@ -4362,11 +4362,17 @@
       }
       setNotice(els.recoveryCodesNotice, 'Membuat recovery code sekali pakai...', 'warn');
       try{
+        const sensitiveProof = await requireSensitiveReauth('membuat recovery code sekali pakai');
+        let sensitiveTotpCode = String((sensitiveProof && sensitiveProof.sensitiveTotpCode) || '').trim();
+        if(!sensitiveTotpCode){
+          sensitiveTotpCode = String(window.prompt('Masukkan kode A2F utama dari Authenticator untuk membuat recovery code:') || '').trim();
+          if(!sensitiveTotpCode) throw new Error('Aksi dibatalkan karena kode A2F utama tidak diisi.');
+        }
         const idToken = await auth.currentUser.getIdToken(true);
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode: sensitiveProof && sensitiveProof.sensitiveTotpCode || '' })
+          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode })
         });
         const data = await readApiJson(response);
         if(!response.ok || data.success === false){
