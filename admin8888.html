@@ -1106,7 +1106,12 @@
                 </div>
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
                   <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, upload bukti, dan pengaturan.</p>
-                  <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div><div class="security-log-list" id="securityLogList"><div class="empty">Belum ada log.</div></div>
+                  <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div>
+                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
+                  <div class="settings-actions requires-delete"><button class="btn warn" id="generateRecoveryCodesBtn" type="button">Buat 10 Recovery Code Sekali Pakai</button></div>
+                  <div class="notice hidden" id="recoveryCodesNotice" role="status"></div>
+                  <pre class="rules-box hidden" id="recoveryCodesOutput" aria-label="Recovery code sekali pakai"></pre>
+                  <div class="security-log-list" id="securityLogList"><div class="empty">Belum ada log.</div></div>
                 </div>
               </div>
             </div>
@@ -1217,7 +1222,7 @@
       paymentBankName:$('paymentBankName'), paymentAccountName:$('paymentAccountName'), paymentAccountNumber:$('paymentAccountNumber'), paymentEwallet:$('paymentEwallet'), paymentQrisUrl:$('paymentQrisUrl'), paymentInstruction:$('paymentInstruction'), savePaymentSettingsBtn:$('savePaymentSettingsBtn'), paymentSettingsMessage:$('paymentSettingsMessage'),
       courierListText:$('courierListText'), defaultShippingCost:$('defaultShippingCost'), freeShippingMin:$('freeShippingMin'), saveCourierSettingsBtn:$('saveCourierSettingsBtn'), courierSettingsMessage:$('courierSettingsMessage'),
       waInvoiceTemplate:$('waInvoiceTemplate'), waPaymentTemplate:$('waPaymentTemplate'), waShippingTemplate:$('waShippingTemplate'), waFollowupTemplate:$('waFollowupTemplate'), waReturnTemplate:$('waReturnTemplate'), saveWhatsAppSettingsBtn:$('saveWhatsAppSettingsBtn'), whatsAppSettingsMessage:$('whatsAppSettingsMessage'),
-      exportAllDataBtn:$('exportAllDataBtn'), chooseRestoreFileBtn:$('chooseRestoreFileBtn'), restoreFile:$('restoreFile'), restoreAllDataBtn:$('restoreAllDataBtn'), restorePreview:$('restorePreview'), replaceExistingData:$('replaceExistingData'), exportSecurityLogBtn:$('exportSecurityLogBtn'), clearLocalSecurityLogBtn:$('clearLocalSecurityLogBtn'), securityLogList:$('securityLogList'),
+      exportAllDataBtn:$('exportAllDataBtn'), chooseRestoreFileBtn:$('chooseRestoreFileBtn'), restoreFile:$('restoreFile'), restoreAllDataBtn:$('restoreAllDataBtn'), restorePreview:$('restorePreview'), replaceExistingData:$('replaceExistingData'), exportSecurityLogBtn:$('exportSecurityLogBtn'), clearLocalSecurityLogBtn:$('clearLocalSecurityLogBtn'), generateRecoveryCodesBtn:$('generateRecoveryCodesBtn'), recoveryCodesNotice:$('recoveryCodesNotice'), recoveryCodesOutput:$('recoveryCodesOutput'), securityLogList:$('securityLogList'),
       appendImportPanel:$('appendImportPanel'), chooseAppendImportFileBtn:$('chooseAppendImportFileBtn'), appendImportFile:$('appendImportFile'), appendImportBtn:$('appendImportBtn'), appendImportPreview:$('appendImportPreview'), appendImportProducts:$('appendImportProducts'), appendImportOrders:$('appendImportOrders'),
       productAppendImportRow:$('productAppendImportRow'), chooseAppendImportFileProductBtn:$('chooseAppendImportFileProductBtn'), appendImportFileProduct:$('appendImportFileProduct'), appendImportProductBtn:$('appendImportProductBtn'), appendImportPreviewProduct:$('appendImportPreviewProduct')
     });
@@ -1255,8 +1260,8 @@
     let twoFactorLockTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
-    const FACE_RECOVERY_TOTAL_STEPS = 4;
-    const FACE_RECOVERY_BACKEND_STEPS = [6, 7, 8, 9];
+    const FACE_RECOVERY_TOTAL_STEPS = 5;
+    const FACE_RECOVERY_BACKEND_STEPS = [6, 7, 8, 9, 10];
 
     function rupiah(n){
       const value = Number(n);
@@ -1307,7 +1312,6 @@
       twoFactorVerified = false;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
-      twoFactorStepSessions = {};
       twoFactorBackendLocked = false;
       twoFactorPermanentLocked = false;
       faceRecoveryMode = false;
@@ -1352,7 +1356,9 @@
             ? 'Tahap 2 memakai kode Authenticator recovery, tanpa kirim email.'
             : faceRecoveryStep === 3
               ? 'Tahap 3 memakai kode rahasia recovery 1 di Vercel, tanpa kirim email.'
-              : 'Tahap 4 memakai kode rahasia recovery 2 di Vercel, tanpa kirim email.';
+              : faceRecoveryStep === 4
+                ? 'Tahap 4 memakai kode rahasia recovery 2 di Vercel, tanpa kirim email.'
+                : 'Tahap 5 memakai recovery code sekali pakai. Setelah benar, kode langsung hangus.';
         if(els.twoFactorHelp){
           els.twoFactorHelp.textContent = 'Recovery Face ID aktif. ' + recoveryHint + ' Kode ini berbeda dari A2F awal.';
         }
@@ -1378,7 +1384,9 @@
                 ? 'Masukkan kode Authenticator recovery'
                 : faceRecoveryStep === 3
                   ? 'Masukkan kode rahasia recovery tahap 3'
-                  : 'Masukkan kode rahasia recovery tahap 4';
+                  : faceRecoveryStep === 4
+                    ? 'Masukkan kode rahasia recovery tahap 4'
+                    : 'Masukkan recovery code sekali pakai';
             setTimeout(() => els.twoFactorCode.focus(), 60);
           }
         }
@@ -1612,17 +1620,51 @@
       }
       return data;
     }
+    function getBackendStepSession(stepNumber){
+      const key = String(Number(stepNumber));
+      return String((twoFactorStepSessions && twoFactorStepSessions[key]) || '').trim();
+    }
+
+    function setBackendStepSession(stepNumber, sessionId){
+      const key = String(Number(stepNumber));
+      if(!twoFactorStepSessions || typeof twoFactorStepSessions !== 'object'){
+        twoFactorStepSessions = {};
+      }
+      twoFactorStepSessions[key] = String(sessionId || '').trim();
+      if(Number(stepNumber) < 6){
+        twoFactorStepSessionId = twoFactorStepSessions[key];
+      }
+    }
+
+    function clearBackendStepSession(stepNumber){
+      const key = String(Number(stepNumber));
+      if(twoFactorStepSessions && Object.prototype.hasOwnProperty.call(twoFactorStepSessions, key)){
+        delete twoFactorStepSessions[key];
+      }
+      if(Number(stepNumber) < 6){
+        twoFactorStepSessionId = '';
+      }
+    }
+
+    async function ensureBackendStepSession(stepNumber){
+      let sessionId = getBackendStepSession(stepNumber);
+      if(sessionId) return sessionId;
+
+      await requestBackendStepTwoFactor(stepNumber);
+      sessionId = getBackendStepSession(stepNumber);
+
+      if(!sessionId){
+        throw new Error('Session A2F tahap ' + stepNumber + ' belum siap. Coba klik Verifikasi sekali lagi.');
+      }
+
+      return sessionId;
+    }
+
     async function requestBackendStepTwoFactor(stepNumber){
       if(!SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT){
         throw new Error('Endpoint verifikasi belum diisi.');
       }
-
-      const stepKey = String(stepNumber);
-      twoFactorStepSessions[stepKey] = '';
-      if(stepNumber < 6){
-        twoFactorStepSessionId = '';
-      }
-
+      clearBackendStepSession(stepNumber);
       els.twoFactorBtn.disabled = true;
       try{
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
@@ -1635,15 +1677,11 @@
         if(!response.ok || data.success === false){
           throw new Error(data.error || data.message || 'Backend gagal membuat kode tahap ' + stepNumber + '.');
         }
-
-        const sessionId = String(data.sessionId || '').trim();
-        if(!sessionId){
+        const newSessionId = String(data.sessionId || '').trim();
+        if(!newSessionId){
           throw new Error('Backend harus mengirim sessionId untuk tahap ' + stepNumber + '.');
         }
-
-        twoFactorStepSessions[stepKey] = sessionId;
-        twoFactorStepSessionId = sessionId;
-
+        setBackendStepSession(stepNumber, newSessionId);
         const recoveryStepNumber = stepNumber >= 6 ? stepNumber - 5 : 0;
         if(data.debugCode){
           if(recoveryStepNumber){
@@ -1661,13 +1699,14 @@
             setNotice(els.twoFactorUser, 'Recovery Face ID tahap 3 tidak mengirim email. Masukkan kode rahasia recovery 1 yang kamu simpan di Vercel.', 'good');
           }else if(recoveryStepNumber === 4){
             setNotice(els.twoFactorUser, 'Recovery Face ID tahap 4 tidak mengirim email. Masukkan kode rahasia recovery 2 yang kamu simpan di Vercel.', 'good');
+          }else if(recoveryStepNumber === 5 || recoveryDelivery === 'one-time-code'){
+            setNotice(els.twoFactorUser, 'Recovery Face ID tahap 5 memakai recovery code sekali pakai. Setelah benar, kode ini langsung hangus.', 'good');
           }else{
             setNotice(els.twoFactorUser, 'Recovery Face ID siap. Masukkan kode recovery yang sesuai.', 'good');
           }
         }else{
           setNotice(els.twoFactorUser, 'Kode A2F tahap ' + stepNumber + ' sudah dibuat backend. Masukkan kodenya di sini.', 'good');
         }
-        return data;
       }finally{
         if(!twoFactorBackendLocked && !twoFactorPermanentLocked) els.twoFactorBtn.disabled = false;
       }
@@ -1676,24 +1715,7 @@
       if(!SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT){
         throw new Error('Endpoint verifikasi backend step belum diisi.');
       }
-
-      const stepKey = String(stepNumber);
-      let sessionId = String(twoFactorStepSessions[stepKey] || '').trim();
-
-      if(!sessionId && stepNumber < 6){
-        sessionId = String(twoFactorStepSessionId || '').trim();
-      }
-
-      if(!sessionId && faceRecoveryMode && stepNumber >= 6){
-        setNotice(els.twoFactorUser, 'Menyiapkan ulang session Recovery Face ID tahap ' + (stepNumber - 5) + '...', 'warn');
-        await requestBackendStepTwoFactor(stepNumber);
-        sessionId = String(twoFactorStepSessions[stepKey] || twoFactorStepSessionId || '').trim();
-      }
-
-      if(!sessionId){
-        throw new Error('Session A2F tahap ' + stepNumber + ' belum ada. Tekan Verifikasi sekali lagi atau login ulang.');
-      }
-
+      const sessionId = await ensureBackendStepSession(stepNumber);
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
         method: 'POST',
@@ -1707,6 +1729,7 @@
         if(hasA2fBackendLockState(data)) error.a2fLockState = data;
         throw error;
       }
+      clearBackendStepSession(stepNumber);
       return data;
     }
     async function verifyRiskTwoFactor(deviceToken){
@@ -1836,20 +1859,20 @@
 
       setNotice(
         els.twoFactorError,
-        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Tahap 1 lewat email, tahap 2 lewat Authenticator recovery, tahap 3 pakai kode rahasia recovery 1, tahap 4 pakai kode rahasia recovery 2.',
+        (message || 'Face ID/passkey tidak berhasil.') + ' Recovery Face ID aktif. Tahap 1 lewat email, tahap 2 lewat Authenticator recovery, tahap 3 dan 4 pakai kode rahasia, tahap 5 pakai recovery code sekali pakai.',
         'warn'
       );
 
       setNotice(
         els.twoFactorUser,
-        'Mode recovery aktif. Tahap 1 pakai email recovery; tahap 2 pakai Authenticator recovery; tahap 3 dan 4 pakai kode rahasia Vercel. Semua berbeda dari A2F awal.',
+        'Mode recovery aktif. Tahap 1 pakai email recovery; tahap 2 pakai Authenticator recovery; tahap 3 dan 4 pakai kode rahasia Vercel; tahap 5 pakai recovery code sekali pakai.',
         'warn'
       );
 
       showToast('Recovery Face ID aktif');
 
       try{
-        await requestBackendStepTwoFactor(getFaceRecoveryBackendStep());
+        await ensureBackendStepSession(getFaceRecoveryBackendStep());
       }catch(error){
         setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
       }
@@ -1903,10 +1926,9 @@
         updateTwoFactorProgress();
 
         try{
-          await requestBackendStepTwoFactor(getFaceRecoveryBackendStep());
+          await ensureBackendStepSession(getFaceRecoveryBackendStep());
         }catch(error){
           setNotice(els.twoFactorError, error.message || 'Gagal membuat kode recovery Face ID.', 'danger');
-          return;
         }
 
         return;
@@ -2277,6 +2299,7 @@
       [els.chooseProofBtn, els.uploadProofBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canUpload || (btn === els.uploadProofBtn && !(els.paymentProofFile && els.paymentProofFile.files && els.paymentProofFile.files[0])); btn.classList.toggle('hidden', !currentAdmin.canUpload); }});
       [els.exportAllDataBtn, els.restoreAllDataBtn, els.chooseRestoreFileBtn, els.exportCustomersCsvBtn, els.exportSecurityLogBtn].forEach(btn => { if(btn){ btn.disabled = busy || !currentAdmin.canExport || (btn === els.restoreAllDataBtn && !pendingRestorePayload); btn.classList.toggle('hidden', !currentAdmin.canExport); }});
       if(els.clearLocalSecurityLogBtn){ els.clearLocalSecurityLogBtn.disabled = busy || !currentAdmin.canDelete; els.clearLocalSecurityLogBtn.classList.toggle('hidden', !currentAdmin.canDelete); }
+      if(els.generateRecoveryCodesBtn){ els.generateRecoveryCodesBtn.disabled = busy || !currentAdmin.canDelete; els.generateRecoveryCodesBtn.classList.toggle('hidden', !currentAdmin.canDelete); }
       if(els.orderForm) els.orderForm.classList.toggle('hidden', !currentAdmin.canEdit && currentAdmin.canRead);
       if(els.customerForm) els.customerForm.classList.toggle('hidden', !currentAdmin.canEdit && currentAdmin.canRead);
     }
@@ -4132,8 +4155,68 @@
     if(els.appendImportFileProduct) els.appendImportFileProduct.addEventListener('change', handleAppendImportFile);
     if(els.appendImportProductBtn) els.appendImportProductBtn.addEventListener('click', importAppendOnlyProductsOrders);
     [els.appendImportProducts, els.appendImportOrders].forEach(box => { if(box) box.addEventListener('change', applyRoleUi); });
+
+    async function generateOneTimeRecoveryCodes(){
+      if(busy) return;
+      if(!auth.currentUser){
+        setNotice(els.recoveryCodesNotice, 'Login dulu sebelum membuat recovery code.', 'danger');
+        return;
+      }
+      try{
+        requirePermission('canDelete', 'membuat recovery code sekali pakai');
+      }catch(error){
+        setNotice(els.recoveryCodesNotice, error.message || 'Akses ditolak.', 'danger');
+        return;
+      }
+      const ok = window.confirm('Buat 10 recovery code sekali pakai baru?\n\nKode asli hanya muncul sekali. Simpan sekarang juga. Kode yang sudah dipakai tidak bisa digunakan lagi.');
+      if(!ok) return;
+      busy = true;
+      if(els.generateRecoveryCodesBtn) els.generateRecoveryCodesBtn.disabled = true;
+      if(els.recoveryCodesOutput){
+        els.recoveryCodesOutput.textContent = '';
+        els.recoveryCodesOutput.classList.add('hidden');
+      }
+      setNotice(els.recoveryCodesNotice, 'Membuat recovery code sekali pakai...', 'warn');
+      try{
+        const idToken = await auth.currentUser.getIdToken(true);
+        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10 })
+        });
+        const data = await readApiJson(response);
+        if(!response.ok || data.success === false){
+          throw new Error(data.error || data.message || 'Gagal membuat recovery code sekali pakai.');
+        }
+        const codes = Array.isArray(data.codes) ? data.codes : [];
+        if(!codes.length){
+          throw new Error('Backend tidak mengirim daftar recovery code.');
+        }
+        const text = [
+          'SIMPAN SEKARANG - kode ini hanya ditampilkan sekali.',
+          'Dipakai untuk Recovery Face ID tahap 5. Setiap kode hanya bisa dipakai 1 kali.',
+          '',
+          ...codes.map((code, index) => String(index + 1).padStart(2, '0') + '. ' + code)
+        ].join('\n');
+        if(els.recoveryCodesOutput){
+          els.recoveryCodesOutput.textContent = text;
+          els.recoveryCodesOutput.classList.remove('hidden');
+        }
+        setNotice(els.recoveryCodesNotice, 'Recovery code berhasil dibuat. Salin/simpan semua kode sekarang.', 'good');
+        downloadFile('dirac-recovery-codes-' + new Date().toISOString().slice(0,10) + '.txt', text, 'text/plain;charset=utf-8');
+        logSecurity('auth.recovery_codes_generated', 'Recovery code sekali pakai dibuat').catch(() => {});
+        showToast('Recovery code dibuat');
+      }catch(error){
+        setNotice(els.recoveryCodesNotice, error.message || 'Gagal membuat recovery code.', 'danger');
+      }finally{
+        busy = false;
+        applyRoleUi();
+      }
+    }
+
     if(els.exportSecurityLogBtn) els.exportSecurityLogBtn.addEventListener('click', () => downloadFile('dirac-security-log-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(securityLogs.length ? securityLogs : localSecurityLogs(), null, 2), 'application/json;charset=utf-8'));
     if(els.clearLocalSecurityLogBtn) els.clearLocalSecurityLogBtn.addEventListener('click', () => { localStorage.removeItem('dirac-admin-security-log-v1'); securityLogs = []; renderSecurityLogs(); showToast('Log lokal dibersihkan'); });
+    if(els.generateRecoveryCodesBtn) els.generateRecoveryCodesBtn.addEventListener('click', generateOneTimeRecoveryCodes);
     if(els.saveStoreSettingsBtn) els.saveStoreSettingsBtn.addEventListener('click', () => saveSettings('store'));
     if(els.savePaymentSettingsBtn) els.savePaymentSettingsBtn.addEventListener('click', () => saveSettings('payment'));
     if(els.saveCourierSettingsBtn) els.saveCourierSettingsBtn.addEventListener('click', () => saveSettings('courier'));
