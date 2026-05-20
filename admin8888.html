@@ -567,6 +567,49 @@
     }
   </style>
 
+  <style id="a2f-45s-timeout-style">
+    .a2f-timer-box{
+      border:1px solid rgba(250,204,21,.42);
+      background:rgba(250,204,21,.10);
+      border-radius:18px;
+      padding:12px 13px;
+      margin:10px 0;
+      color:#fef08a;
+      display:grid;
+      gap:9px;
+    }
+    .a2f-timer-box div:first-child{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight:950;
+    }
+    .a2f-timer-box span{
+      font-variant-numeric:tabular-nums;
+      white-space:nowrap;
+    }
+    .a2f-timer-track{
+      height:9px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      overflow:hidden;
+    }
+    .a2f-timer-track span{
+      display:block;
+      height:100%;
+      width:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg,#fef08a,#fb923c,#ef4444);
+      transition:width .25s ease;
+    }
+    .a2f-timer-box.danger{
+      border-color:rgba(239,68,68,.55);
+      background:rgba(239,68,68,.13);
+      color:#fecaca;
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -639,6 +682,13 @@
           <span class="twofactor-step" id="twoFactorStep5">5</span>
         </div>
         <div class="notice good" id="twoFactorUser">Role admin sudah dicek. Dashboard masih terkunci sampai A2F selesai.</div>
+        <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
+          <div>
+            <strong>Batas waktu A2F</strong>
+            <span id="a2fTimerText">45 detik</span>
+          </div>
+          <div class="a2f-timer-track" aria-hidden="true"><span id="a2fTimerBar"></span></div>
+        </div>
         <div class="field">
           <label id="twoFactorLabel" for="twoFactorCode">Kode verifikasi</label>
           <input class="input" id="twoFactorCode" type="password" inputmode="text" autocomplete="one-time-code" placeholder="Masukkan kode A2F">
@@ -1171,6 +1221,8 @@
     });
     const A2F_LOCK_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/lock';
     const A2F_BACKEND_MAX_FAILURES = 3;
+    const A2F_MAX_SECONDS = 45;
+    const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
       try{
         initializeAppCheck(app, {
@@ -1198,7 +1250,7 @@
     const $ = (id) => document.getElementById(id);
     const els = {
       loginSection:$('loginSection'), twoFactorSection:$('twoFactorSection'), adminSection:$('adminSection'), loginBtn:$('loginBtn'), loginEmail:$('loginEmail'), loginPassword:$('loginPassword'),
-      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
+      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
       statTotal:$('statTotal'), statReady:$('statReady'), statSold:$('statSold'), statValue:$('statValue'), statCategory:$('statCategory'), statAverage:$('statAverage'),
       miniSyncStatus:$('miniSyncStatus'), lastSync:$('lastSync'), syncDot:$('syncDot'), netStatus:$('netStatus'), netDot:$('netDot'), qualityStatus:$('qualityStatus'), qualitySummary:$('qualitySummary'), qualityDot:$('qualityDot'), clockText:$('clockText'),
       menuToggleBtn:$('menuToggleBtn'), sidebarBackdrop:$('sidebarBackdrop'), adminSidebar:$('adminSidebar'),
@@ -1258,6 +1310,9 @@
     let twoFactorBackendLocked = false;
     let twoFactorPermanentLocked = false;
     let twoFactorLockTimer = null;
+    let twoFactorTimeoutTimer = null;
+    let twoFactorDeadlineMs = 0;
+    let twoFactorTimeoutTriggered = false;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
     const FACE_RECOVERY_TOTAL_STEPS = 5;
@@ -1312,11 +1367,16 @@
       twoFactorVerified = false;
       twoFactorWaSessionId = '';
       twoFactorStepSessionId = '';
+      twoFactorStepSessions = {};
       twoFactorBackendLocked = false;
       twoFactorPermanentLocked = false;
+      twoFactorDeadlineMs = 0;
+      twoFactorTimeoutTriggered = false;
+      clearTwoFactorTimeoutTimer();
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
       clearTwoFactorLockTimer();
+      updateA2fTimeoutNotice(A2F_MAX_MS);
       if(els.twoFactorCode){
         els.twoFactorCode.value = '';
         els.twoFactorCode.disabled = false;
@@ -1449,8 +1509,9 @@
       els.logoutBtn.classList.remove('hidden');
       updateMenuButtonVisibility();
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
-      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan.';
+      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 45 detik.';
       updateTwoFactorProgress();
+      startTwoFactorTimeoutTimer();
       try{
         const state = await checkA2fBackendLock();
         applyA2fBackendLockState(state);
@@ -1494,11 +1555,17 @@
       if(!data || typeof data !== 'object') return false;
       return data.locked === true || data.permanentBan === true || Number(data.lockUntilMs || 0) > 0 || Number(data.failedCount || 0) > 0;
     }
-    async function callA2fBackendLock(action){
+    async function callA2fBackendLock(action, payload = {}){
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch(A2F_LOCK_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
+        body: JSON.stringify(Object.assign({
+          action,
+          idToken,
+          uid: currentAdmin.uid || (auth.currentUser && auth.currentUser.uid) || '',
+          email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || ''
+        }, payload || {}))
       });
       const data = await readApiJson(response);
       data.httpStatus = response.status;
@@ -1512,6 +1579,98 @@
     }
     async function recordA2fBackendFailure(){
       return callA2fBackendLock('fail');
+    }
+    function clearTwoFactorTimeoutTimer(){
+      if(twoFactorTimeoutTimer){
+        clearInterval(twoFactorTimeoutTimer);
+        twoFactorTimeoutTimer = null;
+      }
+    }
+    function updateA2fTimeoutNotice(remainingMs){
+      const totalMs = Math.max(0, Number(remainingMs || 0));
+      const seconds = Math.max(0, Math.ceil(totalMs / 1000));
+      const percent = Math.max(0, Math.min(100, (totalMs / A2F_MAX_MS) * 100));
+      if(els.a2fTimerText) els.a2fTimerText.textContent = seconds + ' detik';
+      if(els.a2fTimerBar) els.a2fTimerBar.style.width = percent + '%';
+      if(els.a2fDeadlineNotice) els.a2fDeadlineNotice.classList.toggle('danger', seconds <= 10);
+    }
+    function isTwoFactorPastDeadline(){
+      return Boolean(twoFactorDeadlineMs && Date.now() > twoFactorDeadlineMs && !twoFactorVerified);
+    }
+    function startTwoFactorTimeoutTimer(){
+      clearTwoFactorTimeoutTimer();
+      twoFactorTimeoutTriggered = false;
+      twoFactorDeadlineMs = Date.now() + A2F_MAX_MS;
+      updateA2fTimeoutNotice(A2F_MAX_MS);
+      twoFactorTimeoutTimer = setInterval(() => {
+        if(twoFactorVerified || els.twoFactorSection.classList.contains('hidden')){
+          clearTwoFactorTimeoutTimer();
+          return;
+        }
+        const remainingMs = twoFactorDeadlineMs - Date.now();
+        updateA2fTimeoutNotice(remainingMs);
+        if(remainingMs <= 0){
+          handleTwoFactorTimeout().catch(error => {
+            setNotice(els.twoFactorError, error.message || 'A2F timeout gagal diproses.', 'danger');
+          });
+        }
+      }, 250);
+    }
+    async function recordA2fTimeoutBlock(){
+      const payload = {
+        reason: 'a2f_timeout_45_seconds',
+        deadlineMs: twoFactorDeadlineMs || 0,
+        timedOutAtMs: Date.now(),
+        maxSeconds: A2F_MAX_SECONDS
+      };
+      let state = await callA2fBackendLock('timeout', payload);
+      if(hasA2fBackendLockState(state)) return state;
+
+      for(let i = 0; i < A2F_BACKEND_MAX_FAILURES; i += 1){
+        state = await callA2fBackendLock('fail', Object.assign({}, payload, { timeoutFallback: true }));
+        if(hasA2fBackendLockState(state)) return state;
+      }
+      return state;
+    }
+    async function saveA2fTimeoutBlockMarker(){
+      const uid = currentAdmin.uid || (auth.currentUser && auth.currentUser.uid) || '';
+      if(!uid) return;
+      await setDoc(doc(db, 'a2fTimeoutBlocks', uid), {
+        uid,
+        email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
+        reason: 'A2F lebih dari 45 detik',
+        maxSeconds: A2F_MAX_SECONDS,
+        deadlineMs: twoFactorDeadlineMs || 0,
+        blockedAt: serverTimestamp(),
+        blockedAtMs: Date.now()
+      }, { merge: true });
+    }
+    async function handleTwoFactorTimeout(){
+      if(twoFactorVerified || twoFactorTimeoutTriggered) return;
+      twoFactorTimeoutTriggered = true;
+      clearTwoFactorTimeoutTimer();
+      updateA2fTimeoutNotice(0);
+      twoFactorBackendLocked = true;
+      twoFactorPermanentLocked = true;
+      setTwoFactorInputLocked(true, 'Diblokir');
+      setNotice(els.twoFactorUser, 'Waktu A2F 45 detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
+      setNotice(els.twoFactorError, 'Waktu A2F habis. Dashboard tetap terkunci dan sesi akan logout.', 'danger');
+
+      try{
+        const state = await recordA2fTimeoutBlock();
+        applyA2fBackendLockState(Object.assign({ permanentBan: true, failedCount: A2F_BACKEND_MAX_FAILURES }, state || {}));
+      }catch(error){
+        setNotice(els.twoFactorError, 'Waktu A2F habis. Backend lock gagal dicatat: ' + (error.message || 'unknown') + '.', 'danger');
+      }
+
+      try{ await saveA2fTimeoutBlockMarker(); }catch(_error){}
+      try{ await logSecurity('auth.2fa_timeout_block', 'A2F lebih dari 45 detik, akun diblokir'); }catch(_error){}
+
+      setTimeout(() => {
+        logoutAdmin().then(() => {
+          setNotice(els.loginError, 'Akun diblokir karena A2F melewati 45 detik. Hubungi owner/admin untuk reset.', 'danger');
+        }).catch(() => {});
+      }, 1200);
     }
     function applyA2fBackendLockState(state){
       if(!state || typeof state !== 'object') return false;
@@ -1880,6 +2039,7 @@
 
     async function finishFaceRecoverySuccess(){
       twoFactorVerified = true;
+      clearTwoFactorTimeoutTimer();
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
 
@@ -1946,6 +2106,10 @@
           return;
         }
       }
+      if(isTwoFactorPastDeadline()){
+        await handleTwoFactorTimeout();
+        return;
+      }
       hideNotice(els.twoFactorError);
       if(twoFactorStep < 1 || twoFactorStep > 5) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
@@ -1993,6 +2157,7 @@
           return;
         }
         twoFactorVerified = true;
+        clearTwoFactorTimeoutTimer();
         els.twoFactorSection.classList.add('hidden');
         els.adminSection.classList.remove('hidden');
         els.logoutBtn.classList.remove('hidden');
@@ -3544,6 +3709,7 @@
       markDirty(false);
     }
     async function logoutAdmin(){
+      clearTwoFactorTimeoutTimer();
       clearLocalAdminData();
       lastSensitiveReauthAt = 0;
       currentAdmin = { uid:'', email:'', role:'guest', roleLabel:'Guest', roleSource:'none', hasAdminClaim:false, hasAdminDoc:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
@@ -5020,6 +5186,7 @@
           updateMenuButtonVisibility();
         }
       } else {
+        resetTwoFactorState();
         currentAdmin = { uid:'', email:'', role:'guest', roleLabel:'Guest', roleSource:'none', hasAdminClaim:false, hasAdminDoc:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
         applyRoleUi();
         els.userPill.textContent = 'Belum login';
