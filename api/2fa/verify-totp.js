@@ -15,7 +15,7 @@ function base32Decode(base32) {
 
   for (const char of base32) {
     const val = alphabet.indexOf(char);
-    if (val === -1) throw new Error("Secret TOTP tidak valid");
+    if (val === -1) throw new Error("Konfigurasi verifikasi tidak valid");
     bits += val.toString(2).padStart(5, "0");
   }
 
@@ -72,7 +72,7 @@ module.exports = function handler(req, res) {
   if (!secret) {
     return res.status(500).json({
       success: false,
-      error: "TOTP_SECRET belum diset di Vercel"
+      error: "Konfigurasi verifikasi belum lengkap"
     });
   }
 
@@ -87,12 +87,12 @@ module.exports = function handler(req, res) {
   if (!validCodes.includes(inputCode)) {
     return res.status(401).json({
       success: false,
-      error: "Kode Authenticator salah"
+      error: "Kode verifikasi salah"
     });
   }
 
   return res.status(200).json({
     success: true,
-    message: "Kode Authenticator benar"
+    message: "Kode verifikasi benar"
   });
 };

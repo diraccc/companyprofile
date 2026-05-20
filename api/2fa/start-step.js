@@ -26,6 +26,66 @@ function hashCode(code, secret) {
   return crypto.createHmac("sha256", secret).update(String(code)).digest("hex");
 }
 
+function safeEqual(a, b) {
+  const A = Buffer.from(String(a || ""));
+  const B = Buffer.from(String(b || ""));
+  if (A.length !== B.length) return false;
+  return crypto.timingSafeEqual(A, B);
+}
+
+function base32Decode(base32) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  const bytes = [];
+
+  base32 = String(base32 || "").replace(/=+$/, "").replace(/\s+/g, "").toUpperCase();
+
+  for (const char of base32) {
+    const val = alphabet.indexOf(char);
+    if (val === -1) throw new Error("Konfigurasi verifikasi tidak valid");
+    bits += val.toString(2).padStart(5, "0");
+  }
+
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  }
+
+  return Buffer.from(bytes);
+}
+
+function generateTotp(secret, offset = 0) {
+  const key = base32Decode(secret);
+  const timeStep = Math.floor(Date.now() / 1000 / 30) + offset;
+  const buffer = Buffer.alloc(8);
+  buffer.writeUInt32BE(0, 0);
+  buffer.writeUInt32BE(timeStep, 4);
+
+  const hmac = crypto.createHmac("sha1", key).update(buffer).digest();
+  const hOffset = hmac[hmac.length - 1] & 0xf;
+  const code =
+    ((hmac[hOffset] & 0x7f) << 24) |
+    ((hmac[hOffset + 1] & 0xff) << 16) |
+    ((hmac[hOffset + 2] & 0xff) << 8) |
+    (hmac[hOffset + 3] & 0xff);
+
+  return String(code % 1000000).padStart(6, "0");
+}
+
+function verifyMainTotp(code) {
+  const secret = process.env.TOTP_SECRET;
+
+  if (!secret) {
+    throw new Error("Konfigurasi verifikasi tambahan belum lengkap");
+  }
+
+  const inputCode = String(code || "").replace(/\s+/g, "").trim();
+  if (!inputCode) return false;
+
+  const validCodes = [generateTotp(secret, -1), generateTotp(secret, 0), generateTotp(secret, 1)];
+  return validCodes.some((validCode) => safeEqual(inputCode, validCode));
+}
+
+
 function makeSession(payload, secret) {
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = sign(payloadBase64, secret);
@@ -119,6 +179,11 @@ function generateOneTimeRecoveryCode() {
 async function generateOneTimeRecoveryCodes(reqBody) {
   const secret = process.env.A2F_SECRET || "rahasia-test";
   const decoded = await verifyAdminIdToken(reqBody && reqBody.idToken);
+
+  if (!verifyMainTotp(reqBody && reqBody.totpCode)) {
+    throw new Error("Kode verifikasi tambahan salah atau expired");
+  }
+
   const countRaw = Number(reqBody && reqBody.count);
   const count = Number.isFinite(countRaw) ? Math.min(20, Math.max(1, Math.floor(countRaw))) : 10;
   const db = getFirebaseDb();
@@ -279,7 +344,7 @@ function getRecoveryTotpSecret() {
   }
 
   if (secret.length < 16) {
-    throw new Error(`${envName} terlalu pendek. Gunakan secret Base32 dari Authenticator.`);
+    throw new Error(`${envName} tidak valid.`);
   }
 
   return { envName };
@@ -338,12 +403,12 @@ module.exports = async function handler(req, res) {
         action,
         codes,
         count: codes.length,
-        message: "Recovery code sekali pakai berhasil dibuat. Simpan sekarang karena kode asli tidak disimpan di server."
+        message: "Kode pemulihan berhasil dibuat. Simpan sekarang karena kode asli tidak disimpan di server."
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error.message || "Gagal membuat recovery code sekali pakai"
+        error: error.message || "Gagal membuat kode pemulihan"
       });
     }
   }
@@ -379,12 +444,12 @@ module.exports = async function handler(req, res) {
         success: true,
         sessionId,
         step: 3,
-        message: "Kode A2F tahap 3 sudah dikirim ke email admin"
+        message: "Kode verifikasi berhasil disiapkan"
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error.message || "Gagal kirim email OTP"
+        error: "Gagal menyiapkan kode verifikasi"
       });
     }
   }
@@ -400,13 +465,12 @@ module.exports = async function handler(req, res) {
         sessionId,
         step: stepNumber,
         recoveryStep: 1,
-        delivery: "email",
-        message: "Kode Recovery Face ID tahap 1 sudah dikirim ke email admin"
+        message: "Kode verifikasi berhasil disiapkan"
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error.message || "Gagal kirim email recovery OTP"
+        error: "Gagal menyiapkan kode verifikasi"
       });
     }
   }
@@ -427,13 +491,12 @@ module.exports = async function handler(req, res) {
         sessionId,
         step: stepNumber,
         recoveryStep: 2,
-        delivery: "authenticator",
-        message: "Recovery Face ID tahap 2 siap. Buka Authenticator recovery dan masukkan kode 6 digit."
+        message: "Kode verifikasi berhasil disiapkan"
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error.message || "Gagal menyiapkan Authenticator recovery"
+        error: "Gagal menyiapkan kode verifikasi"
       });
     }
   }
@@ -451,13 +514,12 @@ module.exports = async function handler(req, res) {
         sessionId,
         step: stepNumber,
         recoveryStep: stepNumber - 5,
-        delivery: "local-secret",
-        message: `${localRecovery.label} siap. Tidak ada email dikirim. Masukkan kode rahasia yang tersimpan di Vercel.`
+        message: "Kode verifikasi berhasil disiapkan"
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        error: error.message || "Gagal membuat kode recovery lokal"
+        error: "Gagal menyiapkan kode verifikasi"
       });
     }
   }
@@ -473,8 +535,7 @@ module.exports = async function handler(req, res) {
       sessionId,
       step: stepNumber,
       recoveryStep: 5,
-      delivery: "one-time-code",
-      message: "Recovery Face ID tahap 5 siap. Masukkan recovery code sekali pakai. Setelah benar, kode langsung hangus."
+      message: "Kode verifikasi berhasil disiapkan"
     });
   }
 
@@ -483,8 +544,7 @@ module.exports = async function handler(req, res) {
   return res.status(200).json({
     success: true,
     sessionId,
-    debugCode: code,
     step: 2,
-    message: "Kode A2F tahap 2 dibuat"
+    message: "Kode verifikasi berhasil disiapkan"
   });
 };

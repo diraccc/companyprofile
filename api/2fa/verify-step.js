@@ -41,7 +41,7 @@ function base32Decode(base32) {
 
   for (const char of base32) {
     const val = alphabet.indexOf(char);
-    if (val === -1) throw new Error("Secret TOTP recovery tidak valid");
+    if (val === -1) throw new Error("Konfigurasi verifikasi tidak valid");
     bits += val.toString(2).padStart(5, "0");
   }
 
@@ -76,7 +76,7 @@ function verifyRecoveryTotp(code) {
   const secret = process.env.A2F_RECOVERY_TOTP_SECRET_2;
 
   if (!secret) {
-    throw new Error("A2F_RECOVERY_TOTP_SECRET_2 belum diset di Vercel");
+    throw new Error("Konfigurasi verifikasi belum lengkap");
   }
 
   const inputCode = String(code || "").replace(/\s+/g, "");
@@ -435,7 +435,7 @@ module.exports = async function handler(req, res) {
       if (payload.flow !== "face-recovery" || payload.method !== "recovery-totp") {
         return res.status(400).json({
           success: false,
-          error: "Session recovery Authenticator tidak valid"
+          error: "Session verifikasi tidak valid"
         });
       }
 
@@ -447,7 +447,7 @@ module.exports = async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        message: "Kode Recovery Face ID tahap 2 dari Authenticator benar",
+        message: "Kode verifikasi benar",
         recoveryStep: 2,
         nextStep: 8
       });
@@ -457,7 +457,7 @@ module.exports = async function handler(req, res) {
       if (payload.flow !== "face-recovery" || payload.method !== "one-time-recovery-code") {
         return res.status(400).json({
           success: false,
-          error: "Session recovery code sekali pakai tidak valid"
+          error: "Session verifikasi tidak valid"
         });
       }
 
@@ -471,7 +471,7 @@ module.exports = async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        message: "Recovery code sekali pakai benar. Kode ini sudah hangus dan tidak bisa dipakai lagi.",
+        message: "Kode verifikasi benar",
         recoveryStep: 5,
         nextStep: 11
       });
@@ -487,7 +487,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: stepNumber >= 6 ? `Kode Recovery Face ID tahap ${stepNumber - 5} benar` : `Kode A2F tahap ${stepNumber} benar`,
+      message: "Kode verifikasi benar",
       recoveryStep: stepNumber >= 6 ? stepNumber - 5 : undefined,
       nextStep: stepNumber + 1
     });
