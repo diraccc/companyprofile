@@ -437,6 +437,71 @@ async function handleAdminLogin(req, res, data = {}) {
   });
 }
 
+
+async function resetIpBan(req, data = {}) {
+  const db = getFirebaseDb();
+  const requestedIp = String(data.ip || data.targetIp || "").trim();
+  const ip = requestedIp || getClientIp(req);
+
+  if (!ip) {
+    return {
+      success: false,
+      error: "IP tidak terbaca"
+    };
+  }
+
+  const hash = ipDocId(ip);
+  const ref = db.collection("adminIpBans").doc(hash);
+  const snap = await ref.get();
+  const existed = snap.exists;
+  const previousData = existed ? snap.data() || {} : {};
+
+  await ref.delete().catch(() => {});
+
+  await db.collection("adminIpBanResets").add({
+    ip,
+    ipHash: hash,
+    existed,
+    previousReason: String(previousData.reason || ""),
+    previousAttemptedEmail: String(previousData.attemptedEmail || ""),
+    source: "shortcut-reset",
+    userAgent: String(req.headers["user-agent"] || ""),
+    resetAtMs: Date.now(),
+    resetAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+
+  return {
+    success: true,
+    resetType: "ip",
+    ip,
+    ipHash: hash,
+    existed,
+    message: existed
+      ? "Blokir IP berhasil dihapus."
+      : "Tidak ada blokir untuk IP ini, tapi reset tetap berhasil."
+  };
+}
+
+async function resetAdminSecurity(req, data = {}) {
+  const a2fState = await resetLock();
+  const ipState = await resetIpBan(req, data);
+
+  return {
+    success: true,
+    resetType: "all",
+    message: "A2F dan blokir IP berhasil direset.",
+    a2f: a2fState,
+    ip: ipState
+  };
+}
+
+function isResetSecretValid(req, data) {
+  const resetSecret = String(process.env.RESET_A2F_SECRET || "");
+  const inputSecret = getResetSecretInput(req, data);
+
+  return Boolean(resetSecret) && safeEqual(inputSecret, resetSecret);
+}
+
 function getRequestData(req) {
   const query = req.query || {};
   const body = req.body || {};
@@ -518,11 +583,48 @@ module.exports = async function handler(req, res) {
       return res.status(403).json(state);
     }
 
-    if (normalizedAction === "reset") {
-      const resetSecret = String(process.env.RESET_A2F_SECRET || "");
-      const inputSecret = getResetSecretInput(req, data);
+    if (
+      normalizedAction === "reset-ip" ||
+      normalizedAction === "reset_ip" ||
+      normalizedAction === "unban-ip" ||
+      normalizedAction === "unban_ip"
+    ) {
+      if (!isResetSecretValid(req, data)) {
+        return res.status(403).json({
+          success: false,
+          error: "Secret reset salah atau belum diset"
+        });
+      }
 
-      if (!resetSecret || !safeEqual(inputSecret, resetSecret)) {
+      const state = await resetIpBan(req, data || {});
+
+      if (state.success === false) {
+        return res.status(400).json(state);
+      }
+
+      return res.status(200).json(state);
+    }
+
+    if (
+      normalizedAction === "reset-all" ||
+      normalizedAction === "reset_all" ||
+      normalizedAction === "reset-admin-security" ||
+      normalizedAction === "reset_admin_security"
+    ) {
+      if (!isResetSecretValid(req, data)) {
+        return res.status(403).json({
+          success: false,
+          error: "Secret reset salah atau belum diset"
+        });
+      }
+
+      const state = await resetAdminSecurity(req, data || {});
+
+      return res.status(200).json(state);
+    }
+
+    if (normalizedAction === "reset") {
+      if (!isResetSecretValid(req, data)) {
         return res.status(403).json({
           success: false,
           error: "Secret reset A2F salah atau belum diset"
@@ -536,7 +638,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(400).json({
       success: false,
-      error: "Action tidak valid. Pakai admin-login, check, fail, timeout, timeout-lock, atau reset."
+      error: "Action tidak valid. Pakai admin-login, check, fail, timeout, timeout-lock, reset, reset-ip, atau reset-all."
     });
   } catch (error) {
     return res.status(500).json({
