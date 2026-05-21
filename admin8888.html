@@ -1185,7 +1185,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInWithCustomToken, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -4386,13 +4386,35 @@
     els.loginBtn.addEventListener('click', async () => {
       hideNotice(els.loginError);
       setBusy(true);
+
       try{
         const email = els.loginEmail.value.trim();
+        const password = els.loginPassword.value;
+
         localStorage.setItem(EMAIL_KEY, email);
-        await signInWithEmailAndPassword(auth, email, els.loginPassword.value);
+
+        const response = await fetch(A2F_LOCK_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'admin-login',
+            email,
+            password
+          })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if(!response.ok || !data.customToken){
+          throw new Error(data.message || data.error || 'Login gagal.');
+        }
+
+        await signInWithCustomToken(auth, data.customToken);
         els.loginPassword.value = '';
       }catch(error){
-        setNotice(els.loginError, 'Login gagal: ' + firebaseMessage(error), 'danger');
+        setNotice(els.loginError, 'Login gagal: ' + (error.message || firebaseMessage(error)), 'danger');
       }finally{ setBusy(false); }
     });
     els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.loginBtn.click(); });
