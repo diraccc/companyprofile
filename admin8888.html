@@ -666,7 +666,7 @@
         <div class="field"><label for="loginPassword">Password</label><input class="input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Password admin"></div>
         <button class="btn primary" id="loginBtn" type="button" style="width:100%">Login</button>
         <div class="notice danger hidden" id="loginError" role="alert"></div>
-        <div class="notice">Kalau email/password Firebase salah, IP perangkat ini langsung diblokir permanen oleh backend. Reset bisa dilakukan lewat iPhone Shortcut memakai secret reset backend. Email terakhir yang dipakai akan disimpan lokal di browser admin.</div>
+        <div class="notice">Kalau login gagal, aktifkan dulu Email/Password di Firebase Authentication dan tambahkan user admin. Email terakhir yang dipakai akan disimpan lokal di browser admin.</div>
       </div>
     </section>
 
@@ -1219,17 +1219,6 @@
       TWO_FACTOR_HASHES: []
     });
     const A2F_LOCK_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/lock';
-    const LOGIN_IP_LOCK_CHECK_ACTION = 'login-check';
-    const LOGIN_IP_LOCK_FAIL_ACTION = 'login-fail';
-    const LOGIN_IP_LOCK_SUCCESS_ACTION = 'login-success';
-    const LOGIN_IP_LOCK_RESET_ACTION = 'reset-login-ip';
-    const LOGIN_IP_LOCK_RESET_ALL_ACTION = 'reset-login-ip-all';
-    const LOGIN_IP_LOCK_FIREBASE_ERROR_CODES = new Set([
-      'auth/invalid-credential',
-      'auth/wrong-password',
-      'auth/user-not-found',
-      'auth/invalid-email'
-    ]);
     const A2F_BACKEND_MAX_FAILURES = 3;
     const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
@@ -1730,65 +1719,6 @@
     }
     async function recordA2fBackendFailure(){
       return callA2fBackendLock('fail');
-    }
-    function isFirebaseCredentialLoginFailure(error){
-      const code = String(error && error.code || '').trim();
-      return LOGIN_IP_LOCK_FIREBASE_ERROR_CODES.has(code);
-    }
-    function formatLoginIpLockMessage(state, fallback){
-      const ipText = state && state.ipMasked ? ' IP: ' + state.ipMasked + '.' : '';
-      const hashText = state && state.ipHash ? ' Hash reset: ' + state.ipHash + '.' : '';
-      const base = state && (state.error || state.message) ? String(state.error || state.message) : String(fallback || 'IP login diblokir permanen.');
-      return base + ipText + hashText + ' Reset memakai action reset-login-ip atau reset-login-ip-all di endpoint lock.';
-    }
-    async function callLoginIpLock(action, payload = {}){
-      const response = await fetch(A2F_LOCK_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        cache: 'no-store',
-        body: JSON.stringify(Object.assign({
-          action,
-          clientTimeMs: Date.now()
-        }, payload || {}))
-      });
-      const data = await readApiJson(response);
-      data.httpStatus = response.status;
-      if(response.status >= 500){
-        throw new Error(data.error || 'Backend lock IP login error.');
-      }
-      return data;
-    }
-    function isLoginIpLockedState(state){
-      return Boolean(state && (state.loginIpLocked === true || state.permanentIpBan === true));
-    }
-    async function assertLoginIpAllowed(email){
-      const state = await callLoginIpLock(LOGIN_IP_LOCK_CHECK_ACTION, {
-        email: String(email || '').trim().toLowerCase()
-      });
-      if(isLoginIpLockedState(state)){
-        const error = new Error(formatLoginIpLockMessage(state, 'IP ini sudah diblokir permanen karena login Firebase salah.'));
-        error.loginIpLocked = true;
-        error.loginIpState = state;
-        throw error;
-      }
-      return state;
-    }
-    async function recordLoginIpFirebaseFailure(email, error){
-      return callLoginIpLock(LOGIN_IP_LOCK_FAIL_ACTION, {
-        email: String(email || '').trim().toLowerCase(),
-        firebaseCode: String(error && error.code || ''),
-        firebaseMessage: String(error && error.message || '').slice(0, 260)
-      });
-    }
-    async function recordLoginIpFirebaseSuccess(email){
-      try{
-        await callLoginIpLock(LOGIN_IP_LOCK_SUCCESS_ACTION, {
-          email: String(email || '').trim().toLowerCase()
-        });
-      }catch(_error){
-        // Login sukses tidak boleh gagal hanya karena audit IP tidak tersedia.
-      }
     }
     function clearTwoFactorTimeoutTimer(){
       if(twoFactorTimeoutTimer){
@@ -4455,32 +4385,14 @@
 
     els.loginBtn.addEventListener('click', async () => {
       hideNotice(els.loginError);
-      const email = els.loginEmail.value.trim();
-      const password = els.loginPassword.value;
-      if(!email || !password){
-        setNotice(els.loginError, 'Email dan password wajib diisi.', 'danger');
-        return;
-      }
       setBusy(true);
       try{
+        const email = els.loginEmail.value.trim();
         localStorage.setItem(EMAIL_KEY, email);
-        await assertLoginIpAllowed(email);
-        await signInWithEmailAndPassword(auth, email, password);
-        await recordLoginIpFirebaseSuccess(email);
+        await signInWithEmailAndPassword(auth, email, els.loginPassword.value);
         els.loginPassword.value = '';
       }catch(error){
-        if(error && error.loginIpLocked){
-          setNotice(els.loginError, error.message || 'IP login diblokir permanen.', 'danger');
-        } else if(isFirebaseCredentialLoginFailure(error)){
-          try{
-            const state = await recordLoginIpFirebaseFailure(email, error);
-            setNotice(els.loginError, formatLoginIpLockMessage(state, 'Login gagal: email/password Firebase salah dan IP diblokir permanen.'), 'danger');
-          }catch(lockError){
-            setNotice(els.loginError, 'Login gagal: ' + firebaseMessage(error) + ' Backend lock IP gagal dicatat: ' + (lockError.message || 'unknown') + '.', 'danger');
-          }
-        } else {
-          setNotice(els.loginError, 'Login gagal: ' + firebaseMessage(error), 'danger');
-        }
+        setNotice(els.loginError, 'Login gagal: ' + firebaseMessage(error), 'danger');
       }finally{ setBusy(false); }
     });
     els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.loginBtn.click(); });
