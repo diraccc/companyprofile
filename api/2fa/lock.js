@@ -274,216 +274,6 @@ async function resetLock() {
   };
 }
 
-
-function getClientIp(req) {
-  const cfIp = req.headers["cf-connecting-ip"];
-  const realIp = req.headers["x-real-ip"];
-  const forwarded = req.headers["x-forwarded-for"];
-
-  const raw = Array.isArray(forwarded)
-    ? forwarded[0]
-    : forwarded || realIp || cfIp || req.socket?.remoteAddress || "";
-
-  return String(raw)
-    .split(",")[0]
-    .trim()
-    .replace(/^::ffff:/, "");
-}
-
-function ipDocId(ip) {
-  return crypto.createHash("sha256").update(String(ip)).digest("hex");
-}
-
-async function verifyEmailPassword(email, password) {
-  const apiKey = process.env.FIREBASE_WEB_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("FIREBASE_WEB_API_KEY belum diset");
-  }
-
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email,
-        password,
-        returnSecureToken: true
-      })
-    }
-  );
-
-  const result = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const err = new Error(result?.error?.message || "LOGIN_FAILED");
-    err.firebaseError = result?.error?.message || "LOGIN_FAILED";
-    err.statusCode = response.status || 401;
-    throw err;
-  }
-
-  return result;
-}
-
-async function writeAdminIpBan(db, req, ip, reason, payload = {}) {
-  const now = Date.now();
-  const hash = ipDocId(ip);
-
-  await db.collection("adminIpBans").doc(hash).set(
-    {
-      ip,
-      ipHash: hash,
-      permanent: true,
-      reason,
-      source: "admin-login",
-      attemptedEmail: String(payload.attemptedEmail || "").trim().toLowerCase(),
-      firebaseError: String(payload.firebaseError || ""),
-      uid: String(payload.uid || ""),
-      userAgent: String(req.headers["user-agent"] || ""),
-      bannedAtMs: now,
-      bannedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    },
-    { merge: true }
-  );
-}
-
-async function handleAdminLogin(req, res, data = {}) {
-  const db = getFirebaseDb();
-  const ip = getClientIp(req);
-
-  if (!ip) {
-    return res.status(400).json({
-      success: false,
-      error: "IP tidak terbaca"
-    });
-  }
-
-  const ipHash = ipDocId(ip);
-  const banRef = db.collection("adminIpBans").doc(ipHash);
-  const banSnap = await banRef.get();
-
-  if (banSnap.exists && banSnap.data()?.permanent === true) {
-    return res.status(403).json({
-      success: false,
-      error: "IP_BLOCKED_PERMANENTLY",
-      message: "IP ini sudah diblokir permanen."
-    });
-  }
-
-  const email = String(data.email || "").trim().toLowerCase();
-  const password = String(data.password || "");
-
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      error: "Email dan password wajib diisi"
-    });
-  }
-
-  let loginData;
-
-  try {
-    loginData = await verifyEmailPassword(email, password);
-  } catch (error) {
-    await writeAdminIpBan(db, req, ip, "wrong_email_or_password", {
-      attemptedEmail: email,
-      firebaseError: error.firebaseError || error.message || "LOGIN_FAILED"
-    });
-
-    return res.status(401).json({
-      success: false,
-      error: "LOGIN_FAILED_IP_BANNED",
-      message: "Email/password salah. IP ini sudah diblokir permanen."
-    });
-  }
-
-  const expectedUid = getAdminUid();
-  const loginUid = String(loginData.localId || "");
-
-  if (loginUid !== expectedUid) {
-    await writeAdminIpBan(db, req, ip, "valid_account_but_not_admin", {
-      attemptedEmail: email,
-      uid: loginUid
-    });
-
-    return res.status(403).json({
-      success: false,
-      error: "NOT_ADMIN_IP_BANNED",
-      message: "Akun ini bukan admin. IP ini sudah diblokir permanen."
-    });
-  }
-
-  const customToken = await admin.auth().createCustomToken(expectedUid);
-
-  await db.collection("adminLoginLogs").add({
-    uid: expectedUid,
-    email,
-    ip,
-    ipHash,
-    success: true,
-    source: "admin-login",
-    userAgent: String(req.headers["user-agent"] || ""),
-    createdAtMs: Date.now(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  });
-
-  return res.status(200).json({
-    success: true,
-    customToken
-  });
-}
-
-async function resetIpBan(req, data = {}) {
-  const db = getFirebaseDb();
-  const requestedIp = String(data.ip || "").trim();
-  const ip = requestedIp || getClientIp(req);
-
-  if (!ip) {
-    return {
-      success: false,
-      error: "IP tidak terbaca"
-    };
-  }
-
-  const hash = ipDocId(ip);
-  const ref = db.collection("adminIpBans").doc(hash);
-  const snap = await ref.get();
-
-  if (snap.exists) {
-    await ref.delete();
-  }
-
-  return {
-    success: true,
-    locked: false,
-    permanentBan: false,
-    ip,
-    ipHash: hash,
-    deleted: snap.exists,
-    message: snap.exists
-      ? "Blokir IP berhasil dihapus"
-      : "IP ini tidak sedang diblokir"
-  };
-}
-
-async function resetAllLocks(req, data = {}) {
-  const a2fState = await resetLock();
-  const ipState = await resetIpBan(req, data);
-
-  return {
-    success: Boolean(a2fState.success && ipState.success),
-    locked: false,
-    permanentBan: false,
-    a2f: a2fState,
-    ip: ipState,
-    message: "Reset selesai: A2F direset dan blokir IP untuk koneksi ini dihapus jika ada"
-  };
-}
-
 function getRequestData(req) {
   const query = req.query || {};
   const body = req.body || {};
@@ -523,10 +313,6 @@ module.exports = async function handler(req, res) {
     const { action } = data || {};
     const normalizedAction = String(action || "check").trim().toLowerCase();
 
-    if (normalizedAction === "admin-login" || normalizedAction === "admin_login") {
-      return handleAdminLogin(req, res, data || {});
-    }
-
     if (normalizedAction === "check") {
       const state = await checkLock();
 
@@ -565,13 +351,7 @@ module.exports = async function handler(req, res) {
       return res.status(403).json(state);
     }
 
-    if (
-      normalizedAction === "reset" ||
-      normalizedAction === "reset-ip" ||
-      normalizedAction === "reset_ip" ||
-      normalizedAction === "reset-all" ||
-      normalizedAction === "reset_all"
-    ) {
+    if (normalizedAction === "reset") {
       const resetSecret = String(process.env.RESET_A2F_SECRET || "");
       const inputSecret = getResetSecretInput(req, data);
 
@@ -582,16 +362,6 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      if (normalizedAction === "reset-ip" || normalizedAction === "reset_ip") {
-        const state = await resetIpBan(req, data || {});
-        return res.status(state.success ? 200 : 400).json(state);
-      }
-
-      if (normalizedAction === "reset-all" || normalizedAction === "reset_all") {
-        const state = await resetAllLocks(req, data || {});
-        return res.status(state.success ? 200 : 400).json(state);
-      }
-
       const state = await resetLock();
 
       return res.status(200).json(state);
@@ -599,7 +369,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(400).json({
       success: false,
-      error: "Action tidak valid. Pakai admin-login, check, fail, timeout, timeout-lock, reset, reset-ip, atau reset-all."
+      error: "Action tidak valid. Pakai check, fail, timeout, timeout-lock, atau reset."
     });
   } catch (error) {
     return res.status(500).json({
