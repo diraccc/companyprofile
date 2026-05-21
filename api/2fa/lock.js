@@ -437,10 +437,9 @@ async function handleAdminLogin(req, res, data = {}) {
   });
 }
 
-
 async function resetIpBan(req, data = {}) {
   const db = getFirebaseDb();
-  const requestedIp = String(data.ip || data.targetIp || "").trim();
+  const requestedIp = String(data.ip || "").trim();
   const ip = requestedIp || getClientIp(req);
 
   if (!ip) {
@@ -453,53 +452,36 @@ async function resetIpBan(req, data = {}) {
   const hash = ipDocId(ip);
   const ref = db.collection("adminIpBans").doc(hash);
   const snap = await ref.get();
-  const existed = snap.exists;
-  const previousData = existed ? snap.data() || {} : {};
 
-  await ref.delete().catch(() => {});
-
-  await db.collection("adminIpBanResets").add({
-    ip,
-    ipHash: hash,
-    existed,
-    previousReason: String(previousData.reason || ""),
-    previousAttemptedEmail: String(previousData.attemptedEmail || ""),
-    source: "shortcut-reset",
-    userAgent: String(req.headers["user-agent"] || ""),
-    resetAtMs: Date.now(),
-    resetAt: admin.firestore.FieldValue.serverTimestamp()
-  });
+  if (snap.exists) {
+    await ref.delete();
+  }
 
   return {
     success: true,
-    resetType: "ip",
+    locked: false,
+    permanentBan: false,
     ip,
     ipHash: hash,
-    existed,
-    message: existed
-      ? "Blokir IP berhasil dihapus."
-      : "Tidak ada blokir untuk IP ini, tapi reset tetap berhasil."
+    deleted: snap.exists,
+    message: snap.exists
+      ? "Blokir IP berhasil dihapus"
+      : "IP ini tidak sedang diblokir"
   };
 }
 
-async function resetAdminSecurity(req, data = {}) {
+async function resetAllLocks(req, data = {}) {
   const a2fState = await resetLock();
   const ipState = await resetIpBan(req, data);
 
   return {
-    success: true,
-    resetType: "all",
-    message: "A2F dan blokir IP berhasil direset.",
+    success: Boolean(a2fState.success && ipState.success),
+    locked: false,
+    permanentBan: false,
     a2f: a2fState,
-    ip: ipState
+    ip: ipState,
+    message: "Reset selesai: A2F direset dan blokir IP untuk koneksi ini dihapus jika ada"
   };
-}
-
-function isResetSecretValid(req, data) {
-  const resetSecret = String(process.env.RESET_A2F_SECRET || "");
-  const inputSecret = getResetSecretInput(req, data);
-
-  return Boolean(resetSecret) && safeEqual(inputSecret, resetSecret);
 }
 
 function getRequestData(req) {
@@ -584,51 +566,30 @@ module.exports = async function handler(req, res) {
     }
 
     if (
+      normalizedAction === "reset" ||
       normalizedAction === "reset-ip" ||
       normalizedAction === "reset_ip" ||
-      normalizedAction === "unban-ip" ||
-      normalizedAction === "unban_ip"
-    ) {
-      if (!isResetSecretValid(req, data)) {
-        return res.status(403).json({
-          success: false,
-          error: "Secret reset salah atau belum diset"
-        });
-      }
-
-      const state = await resetIpBan(req, data || {});
-
-      if (state.success === false) {
-        return res.status(400).json(state);
-      }
-
-      return res.status(200).json(state);
-    }
-
-    if (
       normalizedAction === "reset-all" ||
-      normalizedAction === "reset_all" ||
-      normalizedAction === "reset-admin-security" ||
-      normalizedAction === "reset_admin_security"
+      normalizedAction === "reset_all"
     ) {
-      if (!isResetSecretValid(req, data)) {
-        return res.status(403).json({
-          success: false,
-          error: "Secret reset salah atau belum diset"
-        });
-      }
+      const resetSecret = String(process.env.RESET_A2F_SECRET || "");
+      const inputSecret = getResetSecretInput(req, data);
 
-      const state = await resetAdminSecurity(req, data || {});
-
-      return res.status(200).json(state);
-    }
-
-    if (normalizedAction === "reset") {
-      if (!isResetSecretValid(req, data)) {
+      if (!resetSecret || !safeEqual(inputSecret, resetSecret)) {
         return res.status(403).json({
           success: false,
           error: "Secret reset A2F salah atau belum diset"
         });
+      }
+
+      if (normalizedAction === "reset-ip" || normalizedAction === "reset_ip") {
+        const state = await resetIpBan(req, data || {});
+        return res.status(state.success ? 200 : 400).json(state);
+      }
+
+      if (normalizedAction === "reset-all" || normalizedAction === "reset_all") {
+        const state = await resetAllLocks(req, data || {});
+        return res.status(state.success ? 200 : 400).json(state);
       }
 
       const state = await resetLock();
