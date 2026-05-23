@@ -3594,8 +3594,253 @@ html[data-effective-theme="light"] .dirac-ai-chip{color:#273044;background:rgba(
 .dirac-ai-msg-bot .dirac-ai-bubble{white-space:normal}
 </style>
 
+
+<style id="dirac-pre-notice-css">
+/* =========================================================
+   Dirac Group first-visit notice
+   Scope dibuat sangat spesifik agar tidak mengganggu katalog,
+   keranjang, checkout, tema, animasi, ataupun fitur lama.
+   ========================================================= */
+html.dirac-pre-notice-pending body,
+body.dirac-pre-notice-open{
+  overflow:hidden!important;
+}
+.dirac-pre-notice{
+  position:fixed;
+  inset:0;
+  z-index:14000;
+  display:none;
+  place-items:center;
+  padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  background:rgba(1,5,12,.76);
+  backdrop-filter:blur(12px) saturate(1.15);
+  -webkit-backdrop-filter:blur(12px) saturate(1.15);
+}
+html.dirac-pre-notice-pending .dirac-pre-notice,
+.dirac-pre-notice.is-open{
+  display:grid;
+}
+.dirac-pre-notice-card{
+  width:min(720px,100%);
+  max-height:min(90vh,760px);
+  max-height:min(90dvh,760px);
+  overflow:auto;
+  border-radius:30px;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.28);
+  background:
+    radial-gradient(circle at 16% -8%,rgba(var(--theme-rgb,243,205,112),.20),transparent 20rem),
+    linear-gradient(180deg,rgba(18,27,39,.98),rgba(7,10,15,.98));
+  box-shadow:0 30px 92px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.055) inset,0 0 36px rgba(var(--theme-rgb,243,205,112),.12);
+  color:#f8fafc;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.38) transparent;
+}
+.dirac-pre-notice-card::-webkit-scrollbar{width:5px}
+.dirac-pre-notice-card::-webkit-scrollbar-track{background:transparent}
+.dirac-pre-notice-card::-webkit-scrollbar-thumb{background:rgba(255,255,255,.34);border-radius:999px}
+.dirac-pre-notice-head{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  padding:24px 24px 16px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.dirac-pre-notice-icon{
+  width:48px;
+  height:48px;
+  border-radius:18px;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  background:linear-gradient(135deg,var(--gold,#f3cd70),var(--gold-2,#d6a642));
+  color:#14100a;
+  font-size:1.35rem;
+  box-shadow:0 14px 34px rgba(var(--theme-rgb,243,205,112),.24);
+}
+.dirac-pre-notice-title-wrap{min-width:0;flex:1}
+.dirac-pre-notice-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 8px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(var(--theme-rgb,243,205,112),.12);
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.24);
+  color:color-mix(in srgb,var(--gold,#f3cd70) 62%,#fff 38%);
+  font-size:.76rem;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.dirac-pre-notice-title{
+  margin:0;
+  color:#fff;
+  font-family:"Playfair Display",serif;
+  font-size:clamp(1.7rem,4.4vw,2.45rem);
+  line-height:1.05;
+  letter-spacing:-.025em;
+}
+.dirac-pre-notice-lead{
+  margin:9px 0 0;
+  color:#c7d0de;
+  font-size:.96rem;
+  line-height:1.7;
+}
+.dirac-pre-notice-body{padding:20px 24px 24px}
+.dirac-pre-notice-list{
+  display:grid;
+  gap:12px;
+  margin:0 0 18px;
+}
+.dirac-pre-notice-item{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:12px;
+  padding:16px;
+  border-radius:22px;
+  background:linear-gradient(135deg,rgba(255,255,255,.072),rgba(255,255,255,.028));
+  border:1px solid rgba(255,255,255,.09);
+}
+.dirac-pre-notice-number{
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  color:#15100a;
+  background:linear-gradient(135deg,var(--gold,#f3cd70),var(--gold-2,#d6a642));
+  font-weight:950;
+  font-variant-numeric:tabular-nums;
+}
+.dirac-pre-notice-item h3{
+  margin:0 0 5px;
+  color:#fff;
+  font-size:1.02rem;
+  line-height:1.35;
+}
+.dirac-pre-notice-item p{
+  margin:0;
+  color:#c7d0de;
+  line-height:1.72;
+  font-size:.93rem;
+}
+.dirac-pre-notice-footnote{
+  margin:0 0 18px;
+  padding:12px 14px;
+  border-radius:18px;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.22);
+  background:rgba(var(--theme-rgb,243,205,112),.075);
+  color:#e9edf6;
+  font-size:.88rem;
+  line-height:1.65;
+}
+.dirac-pre-notice-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.dirac-pre-notice-accept{
+  min-height:52px;
+  border:0;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  padding:13px 20px;
+  color:#11120e;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold,#f3cd70) 74%,#fff 26%),var(--gold-2,#d6a642));
+  font-weight:950;
+  box-shadow:0 16px 36px rgba(var(--theme-rgb,243,205,112),.24),0 1px 0 rgba(255,255,255,.30) inset;
+  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1);
+}
+.dirac-pre-notice-accept:hover,
+.dirac-pre-notice-accept:focus-visible{
+  transform:translateY(-2px);
+  filter:brightness(1.04);
+  outline:none;
+  box-shadow:0 20px 44px rgba(var(--theme-rgb,243,205,112),.30),0 0 0 4px rgba(var(--theme-rgb,243,205,112),.14);
+}
+html[data-effective-theme="light"] .dirac-pre-notice-card{
+  background:radial-gradient(circle at 16% -8%,rgba(var(--theme-rgb,243,205,112),.16),transparent 20rem),linear-gradient(180deg,rgba(255,255,255,.98),rgba(244,247,251,.98));
+  color:#171923;
+  box-shadow:0 30px 88px rgba(15,23,42,.24),0 0 0 1px rgba(255,255,255,.72) inset;
+}
+html[data-effective-theme="light"] .dirac-pre-notice-title,
+html[data-effective-theme="light"] .dirac-pre-notice-item h3{color:#171923}
+html[data-effective-theme="light"] .dirac-pre-notice-lead,
+html[data-effective-theme="light"] .dirac-pre-notice-item p{color:#526071}
+html[data-effective-theme="light"] .dirac-pre-notice-item{background:rgba(255,255,255,.76);border-color:rgba(32,37,49,.10)}
+html[data-effective-theme="light"] .dirac-pre-notice-footnote{color:#374151;background:rgba(var(--theme-rgb,243,205,112),.10)}
+@media(max-width:760px){
+  .dirac-pre-notice{padding:14px}
+  .dirac-pre-notice-card{border-radius:26px;max-height:min(88vh,720px);max-height:min(88dvh,720px)}
+  .dirac-pre-notice-head{padding:20px 18px 14px;gap:12px}
+  .dirac-pre-notice-icon{width:42px;height:42px;border-radius:16px;font-size:1.18rem}
+  .dirac-pre-notice-body{padding:16px 18px 18px}
+  .dirac-pre-notice-item{grid-template-columns:1fr;padding:14px}
+  .dirac-pre-notice-number{width:30px;height:30px}
+  .dirac-pre-notice-actions{display:grid;grid-template-columns:1fr}
+  .dirac-pre-notice-accept{width:100%;min-height:52px}
+}
+@media(prefers-reduced-motion:reduce){
+  .dirac-pre-notice-accept{transition:none!important}
+  .dirac-pre-notice-accept:hover,.dirac-pre-notice-accept:focus-visible{transform:none!important}
+}
+</style>
+<script id="dirac-pre-notice-boot">
+(function(){
+  try{
+    if(localStorage.getItem('dirac_pre_notice_accepted_v1') !== '1'){
+      document.documentElement.classList.add('dirac-pre-notice-pending');
+    }
+  }catch(error){
+    document.documentElement.classList.add('dirac-pre-notice-pending');
+  }
+})();
+</script>
+
 </head>
 <body>
+
+  <div class="dirac-pre-notice" id="diracPreNotice" aria-hidden="true" data-no-i18n>
+    <div class="dirac-pre-notice-card" role="dialog" aria-modal="true" aria-labelledby="diracPreNoticeTitle" aria-describedby="diracPreNoticeDesc" tabindex="-1">
+      <div class="dirac-pre-notice-head">
+        <div class="dirac-pre-notice-icon" aria-hidden="true">!</div>
+        <div class="dirac-pre-notice-title-wrap">
+          <div class="dirac-pre-notice-kicker">Informasi Penting</div>
+          <h2 class="dirac-pre-notice-title" id="diracPreNoticeTitle">Mohon dibaca sebelum membuka katalog</h2>
+          <p class="dirac-pre-notice-lead" id="diracPreNoticeDesc">Pemberitahuan ini ditampilkan untuk menjaga kenyamanan, transparansi, dan keamanan seluruh pelanggan Dirac Group.</p>
+        </div>
+      </div>
+      <div class="dirac-pre-notice-body">
+        <div class="dirac-pre-notice-list" aria-label="Daftar pemberitahuan Dirac Group">
+          <section class="dirac-pre-notice-item">
+            <span class="dirac-pre-notice-number" aria-hidden="true">1</span>
+            <div>
+              <h3>Gambar katalog bersifat polos dan ilustratif</h3>
+              <p>Gambar produk yang tampil di website dapat memakai gambar polos/ilustrasi dan tidak selalu sama dengan gambar asli produk. Hal ini dilakukan agar tampilan katalog tetap aman, rapi, dan menghormati hak cipta/copyright. Detail final produk dapat dikonfirmasi kembali melalui admin Dirac Group.</p>
+            </div>
+          </section>
+          <section class="dirac-pre-notice-item">
+            <span class="dirac-pre-notice-number" aria-hidden="true">2</span>
+            <div>
+              <h3>Larangan tindakan yang merugikan Dirac Group</h3>
+              <p>Siapapun yang berniat buruk, termasuk meretas, merusak, menyalahgunakan data, mengganggu sistem, melakukan spam, penipuan, atau tindakan lain yang merugikan Dirac Group maupun pelanggan, akan diproses secara hukum sesuai aturan yang berlaku.</p>
+            </div>
+          </section>
+        </div>
+        <p class="dirac-pre-notice-footnote">Dengan melanjutkan, pelanggan dianggap telah membaca dan memahami pemberitahuan ini sebelum menggunakan katalog dan fitur belanja di website.</p>
+        <div class="dirac-pre-notice-actions">
+          <button class="dirac-pre-notice-accept" id="diracPreNoticeAccept" type="button">Saya sudah membaca dan mengerti</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="announcement">
     <div class="container">
       <span>Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp</span>
@@ -12160,5 +12405,116 @@ function staticGeneralAnswerLocal(text) {
 
 })();
 </script>
+
+<script id="dirac-pre-notice-js">
+(function(){
+  'use strict';
+  var STORAGE_KEY = 'dirac_pre_notice_accepted_v1';
+  var modal = document.getElementById('diracPreNotice');
+  if(!modal) return;
+  var card = modal.querySelector('.dirac-pre-notice-card');
+  var acceptBtn = document.getElementById('diracPreNoticeAccept');
+  var pendingTarget = '';
+  var lastFocus = null;
+
+  function hasAccepted(){
+    try{return localStorage.getItem(STORAGE_KEY) === '1';}
+    catch(error){return false;}
+  }
+  function saveAccepted(){
+    try{localStorage.setItem(STORAGE_KEY,'1');}
+    catch(error){}
+  }
+  function openNotice(targetHash){
+    if(targetHash) pendingTarget = targetHash;
+    lastFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+    document.documentElement.classList.add('dirac-pre-notice-pending');
+    document.body.classList.add('dirac-pre-notice-open');
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden','false');
+    window.setTimeout(function(){
+      try{(acceptBtn || card || modal).focus({preventScroll:true});}
+      catch(error){try{(acceptBtn || card || modal).focus();}catch(innerError){}}
+    },60);
+  }
+  function closeNotice(){
+    saveAccepted();
+    document.documentElement.classList.remove('dirac-pre-notice-pending');
+    document.body.classList.remove('dirac-pre-notice-open');
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden','true');
+    if(pendingTarget){
+      var target = document.querySelector(pendingTarget);
+      var hash = pendingTarget;
+      pendingTarget = '';
+      if(target){
+        window.setTimeout(function(){
+          try{target.scrollIntoView({behavior:'smooth',block:'start'});}
+          catch(error){target.scrollIntoView(true);}
+          try{history.replaceState(null,'',hash);}catch(error){}
+        },80);
+      }
+      return;
+    }
+    if(lastFocus && typeof lastFocus.focus === 'function'){
+      try{lastFocus.focus({preventScroll:true});}catch(error){try{lastFocus.focus();}catch(innerError){}}
+    }
+  }
+  function shouldProtectCatalogLink(link){
+    if(!link) return false;
+    var href = link.getAttribute('href') || '';
+    if(href === '#produk') return true;
+    try{
+      var url = new URL(link.href, window.location.href);
+      return url.pathname === window.location.pathname && url.hash === '#produk';
+    }catch(error){return false;}
+  }
+
+  document.addEventListener('click', function(event){
+    if(hasAccepted()) return;
+    var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if(shouldProtectCatalogLink(link)){
+      event.preventDefault();
+      event.stopPropagation();
+      openNotice('#produk');
+    }
+  }, true);
+
+  document.addEventListener('keydown', function(event){
+    if(!modal.classList.contains('is-open') && !document.documentElement.classList.contains('dirac-pre-notice-pending')) return;
+    if(event.key === 'Escape'){
+      event.preventDefault();
+      if(acceptBtn){
+        try{acceptBtn.focus({preventScroll:true});}catch(error){acceptBtn.focus();}
+      }
+      return;
+    }
+    if(event.key === 'Tab'){
+      var focusables = modal.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+      if(!focusables.length) return;
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      if(event.shiftKey && document.activeElement === first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey && document.activeElement === last){event.preventDefault();first.focus();}
+    }
+  });
+
+  if(acceptBtn){
+    acceptBtn.addEventListener('click', closeNotice);
+  }
+
+  if(!hasAccepted()){
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', function(){openNotice('');}, {once:true});
+    }else{
+      openNotice('');
+    }
+  }else{
+    document.documentElement.classList.remove('dirac-pre-notice-pending');
+    modal.setAttribute('aria-hidden','true');
+  }
+})();
+</script>
+
 </body>
 </html>
