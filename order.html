@@ -3597,7 +3597,7 @@ html[data-effective-theme="light"] .dirac-ai-chip{color:#273044;background:rgba(
 
 <style id="dirac-pre-notice-css">
 /* =========================================================
-   Dirac Group first-visit notice
+   Dirac Group every-refresh notice
    Scope dibuat sangat spesifik agar tidak mengganggu katalog,
    keranjang, checkout, tema, animasi, ataupun fitur lama.
    ========================================================= */
@@ -3793,13 +3793,27 @@ html[data-effective-theme="light"] .dirac-pre-notice-footnote{color:#374151;back
 </style>
 <script id="dirac-pre-notice-boot">
 (function(){
-  try{
-    if(localStorage.getItem('dirac_pre_notice_accepted_v1') !== '1'){
-      document.documentElement.classList.add('dirac-pre-notice-pending');
-    }
-  }catch(error){
-    document.documentElement.classList.add('dirac-pre-notice-pending');
+  'use strict';
+  var NOTICE_STORAGE_PATTERNS = /(^dirac[_-]?pre[_-]?notice|^dirac[_-]?notice|pre[_-]?notice[_-]?accepted|pre[_-]?notice[_-]?closed|pre[_-]?notice[_-]?seen)/i;
+  function purgeNoticeStorage(storage){
+    if(!storage) return;
+    try{
+      var keys = [];
+      for(var i = 0; i < storage.length; i++){
+        var key = storage.key(i);
+        if(key && NOTICE_STORAGE_PATTERNS.test(key)) keys.push(key);
+      }
+      keys.push('dirac_pre_notice_accepted_v1');
+      keys.push('dirac-pre-notice-accepted-v1');
+      keys.push('dirac_pre_notice_closed_v1');
+      keys.push('dirac_pre_notice_seen_v1');
+      for(var j = 0; j < keys.length; j++) storage.removeItem(keys[j]);
+    }catch(error){}
   }
+  purgeNoticeStorage(window.localStorage);
+  purgeNoticeStorage(window.sessionStorage);
+  document.documentElement.classList.add('dirac-pre-notice-pending');
+  document.documentElement.setAttribute('data-dirac-pre-notice-mode','every-refresh');
 })();
 </script>
 
@@ -12513,40 +12527,69 @@ function staticGeneralAnswerLocal(text) {
 <script id="dirac-pre-notice-js">
 (function(){
   'use strict';
-  var STORAGE_KEY = 'dirac_pre_notice_accepted_v1';
   var modal = document.getElementById('diracPreNotice');
   if(!modal) return;
   var card = modal.querySelector('.dirac-pre-notice-card');
   var acceptBtn = document.getElementById('diracPreNoticeAccept');
   var pendingTarget = '';
   var lastFocus = null;
+  var noticeClosedThisPage = false;
+  var initialOpenDone = false;
+  var restoreOpenTimer = 0;
+  var NOTICE_STORAGE_PATTERNS = /(^dirac[_-]?pre[_-]?notice|^dirac[_-]?notice|pre[_-]?notice[_-]?accepted|pre[_-]?notice[_-]?closed|pre[_-]?notice[_-]?seen)/i;
 
+  function purgeNoticeStorage(storage){
+    if(!storage) return;
+    try{
+      var keys = [];
+      for(var i = 0; i < storage.length; i++){
+        var key = storage.key(i);
+        if(key && NOTICE_STORAGE_PATTERNS.test(key)) keys.push(key);
+      }
+      keys.push('dirac_pre_notice_accepted_v1');
+      keys.push('dirac-pre-notice-accepted-v1');
+      keys.push('dirac_pre_notice_closed_v1');
+      keys.push('dirac_pre_notice_seen_v1');
+      for(var j = 0; j < keys.length; j++) storage.removeItem(keys[j]);
+    }catch(error){}
+  }
+  function purgeAllNoticeStorage(){
+    purgeNoticeStorage(window.localStorage);
+    purgeNoticeStorage(window.sessionStorage);
+  }
   function hasAccepted(){
-    try{return localStorage.getItem(STORAGE_KEY) === '1';}
-    catch(error){return false;}
+    return noticeClosedThisPage;
   }
-  function saveAccepted(){
-    try{localStorage.setItem(STORAGE_KEY,'1');}
-    catch(error){}
+  function markClosedForCurrentPageOnly(){
+    noticeClosedThisPage = true;
+    purgeAllNoticeStorage();
   }
-  function openNotice(targetHash){
-    if(targetHash) pendingTarget = targetHash;
-    lastFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
-    document.documentElement.classList.add('dirac-pre-notice-pending');
-    document.body.classList.add('dirac-pre-notice-open');
-    modal.classList.add('is-open');
-    modal.setAttribute('aria-hidden','false');
+  function setOpenState(isOpen){
+    document.documentElement.classList.toggle('dirac-pre-notice-pending', !!isOpen);
+    if(document.body) document.body.classList.toggle('dirac-pre-notice-open', !!isOpen);
+    modal.classList.toggle('is-open', !!isOpen);
+    modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    modal.setAttribute('data-refresh-notice', 'always');
+  }
+  function focusNotice(){
     window.setTimeout(function(){
       try{(acceptBtn || card || modal).focus({preventScroll:true});}
       catch(error){try{(acceptBtn || card || modal).focus();}catch(innerError){}}
     },60);
   }
+  function openNotice(targetHash, options){
+    options = options || {};
+    purgeAllNoticeStorage();
+    if(targetHash) pendingTarget = targetHash;
+    if(hasAccepted() && !options.force) return;
+    if(options.force) noticeClosedThisPage = false;
+    lastFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+    setOpenState(true);
+    focusNotice();
+  }
   function closeNotice(){
-    saveAccepted();
-    document.documentElement.classList.remove('dirac-pre-notice-pending');
-    document.body.classList.remove('dirac-pre-notice-open');
-    modal.classList.remove('is-open');
-    modal.setAttribute('aria-hidden','true');
+    markClosedForCurrentPageOnly();
+    setOpenState(false);
     if(pendingTarget){
       var target = document.querySelector(pendingTarget);
       var hash = pendingTarget;
@@ -12573,6 +12616,29 @@ function staticGeneralAnswerLocal(text) {
       return url.pathname === window.location.pathname && url.hash === '#produk';
     }catch(error){return false;}
   }
+  function forceOpenOnPageEntry(reason){
+    purgeAllNoticeStorage();
+    modal.setAttribute('data-last-open-reason', reason || 'page-entry');
+    if(!initialOpenDone){
+      initialOpenDone = true;
+      noticeClosedThisPage = false;
+      openNotice('', {force:true});
+      return;
+    }
+    if(!noticeClosedThisPage && !modal.classList.contains('is-open')){
+      openNotice('', {force:true});
+    }
+  }
+  function reopenAfterBrowserRestore(reason){
+    window.clearTimeout(restoreOpenTimer);
+    restoreOpenTimer = window.setTimeout(function(){
+      noticeClosedThisPage = false;
+      initialOpenDone = false;
+      forceOpenOnPageEntry(reason || 'browser-restore');
+    },0);
+  }
+
+  purgeAllNoticeStorage();
 
   document.addEventListener('click', function(event){
     if(hasAccepted()) return;
@@ -12607,16 +12673,37 @@ function staticGeneralAnswerLocal(text) {
     acceptBtn.addEventListener('click', closeNotice);
   }
 
-  if(!hasAccepted()){
-    if(document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', function(){openNotice('');}, {once:true});
-    }else{
-      openNotice('');
-    }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){forceOpenOnPageEntry('domcontentloaded');}, {once:true});
   }else{
-    document.documentElement.classList.remove('dirac-pre-notice-pending');
-    modal.setAttribute('aria-hidden','true');
+    forceOpenOnPageEntry('script-end');
   }
+
+  window.addEventListener('load', function(){
+    if(!noticeClosedThisPage && !modal.classList.contains('is-open')) forceOpenOnPageEntry('window-load');
+  });
+
+  window.addEventListener('pageshow', function(event){
+    purgeAllNoticeStorage();
+    if(event && event.persisted){
+      reopenAfterBrowserRestore('pageshow-bfcache');
+      return;
+    }
+    try{
+      var nav = performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+      if(nav && nav.type === 'reload' && !modal.classList.contains('is-open')){
+        noticeClosedThisPage = false;
+        initialOpenDone = false;
+        forceOpenOnPageEntry('navigation-reload');
+        return;
+      }
+    }catch(error){}
+    if(!noticeClosedThisPage && !modal.classList.contains('is-open')) forceOpenOnPageEntry('pageshow');
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') purgeAllNoticeStorage();
+  });
 })();
 </script>
 
