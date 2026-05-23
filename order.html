@@ -3803,6 +3803,110 @@ html[data-effective-theme="light"] .dirac-pre-notice-footnote{color:#374151;back
 })();
 </script>
 
+
+
+<style id="dirac-pre-notice-header-auto-hide-css">
+/* =========================================================
+   Pre-notice header auto-hide patch
+   Saat pemberitahuan awal muncul, header/announcement disembunyikan
+   supaya tidak menimpa dialog. Setelah tombol "Saya sudah membaca"
+   ditekan, class lama dihapus oleh script existing dan header muncul lagi.
+   Patch ini hanya visual; fungsi katalog, cart, checkout, tema, dan AI
+   tidak disentuh.
+   ========================================================= */
+html.dirac-pre-notice-pending body > .announcement,
+html.dirac-pre-notice-pending body > .site-header,
+body.dirac-pre-notice-open > .announcement,
+body.dirac-pre-notice-open > .site-header,
+body:has(#diracPreNotice.is-open) > .announcement,
+body:has(#diracPreNotice.is-open) > .site-header{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:translate3d(0,-32px,0) scale(.985)!important;
+  filter:blur(2px)!important;
+}
+html.dirac-pre-notice-pending body .dirac-floating-actions,
+html.dirac-pre-notice-pending body .dirac-ai-widget,
+body.dirac-pre-notice-open .dirac-floating-actions,
+body.dirac-pre-notice-open .dirac-ai-widget,
+body:has(#diracPreNotice.is-open) .dirac-floating-actions,
+body:has(#diracPreNotice.is-open) .dirac-ai-widget{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:translate3d(0,8px,0) scale(.98)!important;
+}
+html.dirac-pre-notice-pending .dirac-pre-notice,
+body.dirac-pre-notice-open .dirac-pre-notice,
+#diracPreNotice.is-open{
+  z-index:30000!important;
+  background:rgba(1,5,12,.82)!important;
+  isolation:isolate!important;
+}
+html.dirac-pre-notice-pending .dirac-pre-notice-card,
+body.dirac-pre-notice-open .dirac-pre-notice-card,
+#diracPreNotice.is-open .dirac-pre-notice-card{
+  background:
+    radial-gradient(circle at 16% -8%,rgba(var(--theme-rgb,243,205,112),.20),transparent 20rem),
+    linear-gradient(180deg,rgba(18,27,39,.995),rgba(7,10,15,.995))!important;
+}
+html[data-effective-theme="light"].dirac-pre-notice-pending .dirac-pre-notice-card,
+html[data-effective-theme="light"] body.dirac-pre-notice-open .dirac-pre-notice-card,
+html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-card{
+  background:
+    radial-gradient(circle at 16% -8%,rgba(var(--theme-rgb,243,205,112),.15),transparent 20rem),
+    linear-gradient(180deg,rgba(255,255,255,.995),rgba(244,247,251,.995))!important;
+}
+@media(max-width:760px){
+  html.dirac-pre-notice-pending .dirac-pre-notice,
+  body.dirac-pre-notice-open .dirac-pre-notice,
+  #diracPreNotice.is-open{
+    padding:16px 18px!important;
+    align-items:center!important;
+  }
+  html.dirac-pre-notice-pending .dirac-pre-notice-card,
+  body.dirac-pre-notice-open .dirac-pre-notice-card,
+  #diracPreNotice.is-open .dirac-pre-notice-card{
+    width:min(520px,100%)!important;
+    max-height:min(82vh,690px)!important;
+    max-height:min(82dvh,690px)!important;
+    border-radius:24px!important;
+  }
+  .dirac-pre-notice-head{padding:16px 16px 11px!important;gap:10px!important}
+  .dirac-pre-notice-icon{width:38px!important;height:38px!important;border-radius:14px!important;font-size:1.05rem!important}
+  .dirac-pre-notice-kicker{margin-bottom:7px!important;padding:5px 9px!important;font-size:.68rem!important}
+  .dirac-pre-notice-title{font-size:clamp(1.25rem,5vw,1.55rem)!important;line-height:1.08!important}
+  .dirac-pre-notice-lead{margin-top:7px!important;font-size:.82rem!important;line-height:1.55!important}
+  .dirac-pre-notice-body{padding:14px 16px 16px!important}
+  .dirac-pre-notice-list{gap:10px!important;margin-bottom:14px!important}
+  .dirac-pre-notice-item{padding:12px!important;border-radius:18px!important;gap:9px!important}
+  .dirac-pre-notice-number{width:28px!important;height:28px!important;font-size:.84rem!important}
+  .dirac-pre-notice-item h3{font-size:.91rem!important;line-height:1.30!important;margin-bottom:4px!important}
+  .dirac-pre-notice-item p{font-size:.82rem!important;line-height:1.55!important}
+  .dirac-pre-notice-footnote{font-size:.78rem!important;line-height:1.50!important;padding:10px 11px!important;margin-bottom:14px!important}
+  .dirac-pre-notice-accept{min-height:46px!important;padding:11px 16px!important;font-size:.86rem!important}
+}
+@media(max-width:430px){
+  html.dirac-pre-notice-pending .dirac-pre-notice-card,
+  body.dirac-pre-notice-open .dirac-pre-notice-card,
+  #diracPreNotice.is-open .dirac-pre-notice-card{
+    width:min(92vw,420px)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  html.dirac-pre-notice-pending body > .announcement,
+  html.dirac-pre-notice-pending body > .site-header,
+  body.dirac-pre-notice-open > .announcement,
+  body.dirac-pre-notice-open > .site-header,
+  body:has(#diracPreNotice.is-open) > .announcement,
+  body:has(#diracPreNotice.is-open) > .site-header{
+    transform:none!important;
+    filter:none!important;
+  }
+}
+</style>
+
 </head>
 <body>
 
