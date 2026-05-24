@@ -333,7 +333,7 @@ async function checkA2fLock() {
   if (data.permanentBan === true) {
     const err = new Error("A2F_PERMANENT_BAN");
     err.statusCode = 403;
-    err.publicMessage = "A2F diblokir permanen karena salah kode 3x.";
+    err.publicMessage = "A2F diblokir permanen dari backend. Reset hanya bisa lewat secret admin.";
     throw err;
   }
 
@@ -547,7 +547,7 @@ async function startStep6EmailApproval(req, res) {
   const screenCode = randomDigitCode(60);
   const screenCodeArgon2Hash = await argon2.hash(screenCode, ARGON2ID_OPTIONS);
   const now = Date.now();
-  const expiresAtMs = now + 2 * 60 * 1000;
+  const expiresAtMs = now + 20 * 1000;
 
   const ref = db.collection("a2fEmailApprovals").doc(requestId);
 
@@ -907,12 +907,25 @@ async function denyStep6FromEmail(req, res) {
 async function checkA2fBanStatus(req, res) {
   const { idToken } = req.body || {};
   await verifyAdminIdToken(idToken);
-  await checkA2fLock();
+
+  const db = getFirebaseDb();
+  const uid = getAdminUid();
+  const snap = await db.collection("a2fLockouts").doc(uid).get();
+  const data = snap.exists ? snap.data() || {} : {};
+  const lockUntilMs = Number(data.lockUntilMs || 0);
+  const permanentBan = data.permanentBan === true;
+  const locked = permanentBan || lockUntilMs > Date.now();
 
   return res.status(200).json({
     success: true,
-    permanentBan: false,
-    message: "A2F aktif"
+    locked,
+    permanentBan,
+    failedCount: Number(data.failedCount || 0),
+    lockUntilMs,
+    permanentBanReason: data.permanentBanReason || data.reason || "",
+    error: permanentBan
+      ? "A2F diblokir permanen dari backend."
+      : (lockUntilMs > Date.now() ? getLockMessage(lockUntilMs) : "")
   });
 }
 
