@@ -439,6 +439,317 @@ async function sendWrongCodeResponse(res) {
 }
 
 
+function cleanMetaString(value, maxLength = 420) {
+  const text = String(value === undefined || value === null ? "" : value).replace(/[\u0000-\u001f\u007f]+/g, " ").trim();
+  return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+}
+
+function cleanMetaNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getHeaderValue(req, name) {
+  const raw = req && req.headers ? req.headers[String(name || "").toLowerCase()] : "";
+  if (Array.isArray(raw)) return cleanMetaString(raw[0] || "");
+  return cleanMetaString(raw || "");
+}
+
+function decodeHeaderText(value) {
+  const text = cleanMetaString(value, 260);
+  if (!text) return "";
+  try { return decodeURIComponent(text); } catch (_error) { return text; }
+}
+
+function getRequestIpInfo(req) {
+  const candidates = [
+    ["x-forwarded-for", getHeaderValue(req, "x-forwarded-for")],
+    ["x-real-ip", getHeaderValue(req, "x-real-ip")],
+    ["cf-connecting-ip", getHeaderValue(req, "cf-connecting-ip")],
+    ["x-client-ip", getHeaderValue(req, "x-client-ip")],
+    ["x-vercel-forwarded-for", getHeaderValue(req, "x-vercel-forwarded-for")]
+  ];
+
+  for (const [source, value] of candidates) {
+    if (!value) continue;
+    const firstIp = cleanMetaString(String(value).split(",")[0], 120);
+    if (firstIp) {
+      return {
+        ip: firstIp,
+        source,
+        rawForwardedFor: source === "x-forwarded-for" ? cleanMetaString(value, 300) : ""
+      };
+    }
+  }
+
+  const socketIp = req && req.socket && req.socket.remoteAddress ? cleanMetaString(req.socket.remoteAddress, 120) : "";
+  return {
+    ip: socketIp || "Tidak tersedia",
+    source: socketIp ? "socket.remoteAddress" : "not-available",
+    rawForwardedFor: ""
+  };
+}
+
+function getGeoInfoFromHeaders(req) {
+  return {
+    country: getHeaderValue(req, "x-vercel-ip-country") || "Tidak tersedia",
+    region: getHeaderValue(req, "x-vercel-ip-country-region") || "Tidak tersedia",
+    city: decodeHeaderText(getHeaderValue(req, "x-vercel-ip-city")) || "Tidak tersedia",
+    latitude: getHeaderValue(req, "x-vercel-ip-latitude") || "Tidak tersedia",
+    longitude: getHeaderValue(req, "x-vercel-ip-longitude") || "Tidak tersedia",
+    timezone: getHeaderValue(req, "x-vercel-ip-timezone") || "Tidak tersedia",
+    asn: getHeaderValue(req, "x-vercel-ip-as-number") || getHeaderValue(req, "x-asn") || "Tidak tersedia",
+    isp: getHeaderValue(req, "x-vercel-ip-isp") || getHeaderValue(req, "x-isp") || "Tidak tersedia"
+  };
+}
+
+function parseBrowserName(userAgent) {
+  const ua = String(userAgent || "");
+  if (/CriOS/i.test(ua)) return "Chrome iOS";
+  if (/FxiOS/i.test(ua)) return "Firefox iOS";
+  if (/EdgiOS/i.test(ua)) return "Edge iOS";
+  if (/OPiOS/i.test(ua)) return "Opera iOS";
+  if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return "Chrome";
+  if (/Edg\//i.test(ua)) return "Edge";
+  if (/Firefox\//i.test(ua)) return "Firefox";
+  if (/Safari\//i.test(ua) && /Version\//i.test(ua)) return "Safari";
+  return "Tidak terdeteksi";
+}
+
+function parseOsName(userAgent) {
+  const ua = String(userAgent || "");
+  const iosMatch = ua.match(/OS\s([0-9_]+)\s+like\s+Mac\s+OS\s+X/i);
+  if (/iPhone|iPad|iPod/i.test(ua)) return iosMatch ? `iOS ${iosMatch[1].replace(/_/g, ".")}` : "iOS";
+  const androidMatch = ua.match(/Android\s+([0-9.]+)/i);
+  if (androidMatch) return `Android ${androidMatch[1]}`;
+  if (/Windows NT/i.test(ua)) return "Windows";
+  if (/Mac OS X/i.test(ua)) return "macOS";
+  if (/Linux/i.test(ua)) return "Linux";
+  return "Tidak terdeteksi";
+}
+
+function parseDeviceType(userAgent, clientContext) {
+  const ua = String(userAgent || "");
+  const platform = String((clientContext && clientContext.platform) || "");
+  if (/iPhone/i.test(ua) || /iPhone/i.test(platform)) return "iPhone";
+  if (/iPad/i.test(ua) || /iPad/i.test(platform)) return "iPad";
+  if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? "Android Phone" : "Android Tablet";
+  if (/Macintosh|MacIntel/i.test(ua + " " + platform)) return "Mac";
+  if (/Windows/i.test(ua + " " + platform)) return "Windows PC";
+  return "Desktop / Browser";
+}
+
+function estimateIphoneModel(clientContext, deviceType) {
+  if (deviceType !== "iPhone") return "Tidak berlaku";
+  const width = Math.round(cleanMetaNumber(clientContext && clientContext.screenWidth));
+  const height = Math.round(cleanMetaNumber(clientContext && clientContext.screenHeight));
+  const dpr = Math.round(cleanMetaNumber(clientContext && clientContext.pixelRatio));
+  const min = Math.min(width, height);
+  const max = Math.max(width, height);
+  const key = `${min}x${max}@${dpr}`;
+  const map = {
+    "320x568@2": "iPhone 5 / 5s / SE generasi 1 (perkiraan)",
+    "375x667@2": "iPhone 6 / 6s / 7 / 8 / SE generasi 2-3 (perkiraan)",
+    "414x736@3": "iPhone 6 Plus / 6s Plus / 7 Plus / 8 Plus (perkiraan)",
+    "375x812@3": "iPhone X / XS / 11 Pro / 12 mini / 13 mini (perkiraan)",
+    "360x780@3": "iPhone 12 mini / 13 mini (perkiraan)",
+    "414x896@2": "iPhone XR / iPhone 11 (perkiraan)",
+    "414x896@3": "iPhone XS Max / iPhone 11 Pro Max (perkiraan)",
+    "390x844@3": "iPhone 12 / 12 Pro / 13 / 13 Pro / 14 / 15 / 16e (perkiraan)",
+    "393x852@3": "iPhone 14 Pro / 15 / 15 Pro / 16 (perkiraan)",
+    "402x874@3": "iPhone 16 Pro (perkiraan)",
+    "428x926@3": "iPhone 12 Pro Max / 13 Pro Max / 14 Plus (perkiraan)",
+    "430x932@3": "iPhone 14 Pro Max / 15 Plus / 15 Pro Max / 16 Plus (perkiraan)",
+    "440x956@3": "iPhone 16 Pro Max (perkiraan)"
+  };
+  return map[key] || `iPhone, model tidak pasti dari browser (${key})`;
+}
+
+function normalizeClientContext(raw) {
+  const input = raw && typeof raw === "object" ? raw : {};
+  return {
+    deviceId: cleanMetaString(input.deviceId, 200),
+    deviceName: cleanMetaString(input.deviceName, 120) || "Belum diberi nama",
+    userAgent: cleanMetaString(input.userAgent, 700),
+    language: cleanMetaString(input.language, 80),
+    languages: Array.isArray(input.languages) ? input.languages.slice(0, 8).map(v => cleanMetaString(v, 40)).filter(Boolean) : [],
+    timezone: cleanMetaString(input.timezone, 120),
+    screenWidth: cleanMetaNumber(input.screenWidth),
+    screenHeight: cleanMetaNumber(input.screenHeight),
+    availWidth: cleanMetaNumber(input.availWidth),
+    availHeight: cleanMetaNumber(input.availHeight),
+    pixelRatio: cleanMetaNumber(input.pixelRatio),
+    colorDepth: cleanMetaNumber(input.colorDepth),
+    touchSupport: input.touchSupport === true,
+    maxTouchPoints: cleanMetaNumber(input.maxTouchPoints),
+    platform: cleanMetaString(input.platform, 120),
+    vendor: cleanMetaString(input.vendor, 140),
+    hardwareConcurrency: cleanMetaNumber(input.hardwareConcurrency),
+    deviceMemory: cleanMetaNumber(input.deviceMemory),
+    online: input.online === true,
+    cookieEnabled: input.cookieEnabled === true,
+    mode: cleanMetaString(input.mode, 80),
+    browserName: cleanMetaString(input.browserName, 80),
+    connectionType: cleanMetaString(input.connectionType, 60),
+    effectiveType: cleanMetaString(input.effectiveType, 60),
+    downlink: cleanMetaString(input.downlink, 40),
+    rtt: cleanMetaString(input.rtt, 40),
+    pageUrl: cleanMetaString(input.pageUrl, 300),
+    referrer: cleanMetaString(input.referrer, 300)
+  };
+}
+
+function compactHash(hash) {
+  const text = cleanMetaString(hash, 120);
+  if (!text) return "Tidak tersedia";
+  if (text.length <= 18) return text;
+  return `${text.slice(0, 10)}...${text.slice(-6)}`;
+}
+
+function deriveRiskLevel(reasons) {
+  const count = Array.isArray(reasons) ? reasons.length : 0;
+  if (count >= 2) return "tinggi";
+  if (count === 1) return "sedang";
+  return "rendah";
+}
+
+async function buildStep6LoginContext({ req, db, decoded, clientContext, secret }) {
+  const normalizedClient = normalizeClientContext(clientContext);
+  const ipInfo = getRequestIpInfo(req);
+  const geo = getGeoInfoFromHeaders(req);
+  const headerUa = getHeaderValue(req, "user-agent");
+  const userAgent = normalizedClient.userAgent || headerUa || "Tidak tersedia";
+  const browser = normalizedClient.browserName || parseBrowserName(userAgent);
+  const os = parseOsName(userAgent);
+  const deviceType = parseDeviceType(userAgent, normalizedClient);
+  const estimatedModel = estimateIphoneModel(normalizedClient, deviceType);
+  const deviceIdHash = normalizedClient.deviceId
+    ? crypto.createHmac("sha256", secret).update(`a2f-device:${normalizedClient.deviceId}`).digest("hex")
+    : "";
+
+  let knownDevice = false;
+  let previous = {};
+  if (deviceIdHash) {
+    try {
+      const knownRef = db.collection("a2fKnownDevices").doc(`${decoded.uid}_${deviceIdHash}`);
+      const knownSnap = await knownRef.get();
+      knownDevice = knownSnap.exists;
+      previous = knownSnap.exists ? knownSnap.data() || {} : {};
+    } catch (_error) {
+      knownDevice = false;
+      previous = {};
+    }
+  }
+
+  const reasons = [];
+  if (!knownDevice) reasons.push("device baru");
+  if (knownDevice && previous.lastIp && previous.lastIp !== ipInfo.ip) reasons.push("IP berubah");
+  if (knownDevice && previous.browserName && previous.browserName !== browser) reasons.push("browser berubah");
+  if (knownDevice && previous.timezone && normalizedClient.timezone && previous.timezone !== normalizedClient.timezone) reasons.push("timezone berubah");
+  if (knownDevice && previous.deviceType && previous.deviceType !== deviceType) reasons.push("tipe perangkat berubah");
+
+  const now = new Date();
+
+  return {
+    account: {
+      email: decoded.email || process.env.A2F_ADMIN_EMAIL || "Tidak tersedia",
+      uid: decoded.uid,
+      serverTimeIso: now.toISOString(),
+      requestId: ""
+    },
+    network: {
+      ip: ipInfo.ip,
+      ipSource: ipInfo.source,
+      rawForwardedFor: ipInfo.rawForwardedFor,
+      country: geo.country,
+      region: geo.region,
+      city: geo.city,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      timezone: geo.timezone,
+      isp: geo.isp,
+      asn: geo.asn
+    },
+    device: {
+      name: normalizedClient.deviceName,
+      idHash: deviceIdHash,
+      idHashShort: compactHash(deviceIdHash),
+      type: deviceType,
+      estimatedModel,
+      os,
+      browser,
+      userAgent,
+      platform: normalizedClient.platform,
+      vendor: normalizedClient.vendor
+    },
+    browser: {
+      language: normalizedClient.language || "Tidak tersedia",
+      languages: normalizedClient.languages.join(", ") || "Tidak tersedia",
+      timezone: normalizedClient.timezone || "Tidak tersedia",
+      screen: normalizedClient.screenWidth && normalizedClient.screenHeight ? `${normalizedClient.screenWidth} x ${normalizedClient.screenHeight}` : "Tidak tersedia",
+      availableScreen: normalizedClient.availWidth && normalizedClient.availHeight ? `${normalizedClient.availWidth} x ${normalizedClient.availHeight}` : "Tidak tersedia",
+      pixelRatio: normalizedClient.pixelRatio || "Tidak tersedia",
+      colorDepth: normalizedClient.colorDepth || "Tidak tersedia",
+      touchSupport: normalizedClient.touchSupport ? "Ya" : "Tidak",
+      maxTouchPoints: normalizedClient.maxTouchPoints || 0,
+      hardwareConcurrency: normalizedClient.hardwareConcurrency || "Tidak tersedia",
+      deviceMemory: normalizedClient.deviceMemory ? `${normalizedClient.deviceMemory} GB` : "Tidak tersedia",
+      online: normalizedClient.online ? "Online" : "Offline / tidak terdeteksi",
+      cookieEnabled: normalizedClient.cookieEnabled ? "Ya" : "Tidak",
+      mode: normalizedClient.mode || "Web browser",
+      connectionType: normalizedClient.connectionType || "Tidak tersedia",
+      effectiveType: normalizedClient.effectiveType || "Tidak tersedia",
+      downlink: normalizedClient.downlink || "Tidak tersedia",
+      rtt: normalizedClient.rtt || "Tidak tersedia"
+    },
+    security: {
+      deviceStatus: knownDevice ? "dikenal" : "baru",
+      a2fStatus: "menunggu approval",
+      risk: deriveRiskLevel(reasons),
+      reasons: reasons.length ? reasons.join(", ") : "tidak ada perubahan besar",
+      previousIp: previous.lastIp || "Tidak tersedia",
+      previousSeenAtMs: previous.lastSeenAtMs || 0
+    }
+  };
+}
+
+async function rememberStep6KnownDevice(db, approvalData) {
+  const ctx = approvalData && approvalData.loginContext ? approvalData.loginContext : null;
+  if (!ctx || !ctx.device || !ctx.device.idHash || !approvalData.uid) return;
+  const now = Date.now();
+  await db.collection("a2fKnownDevices").doc(`${approvalData.uid}_${ctx.device.idHash}`).set({
+    uid: approvalData.uid,
+    email: approvalData.email || "",
+    deviceIdHash: ctx.device.idHash,
+    deviceName: ctx.device.name || "Belum diberi nama",
+    deviceType: ctx.device.type || "Tidak tersedia",
+    estimatedModel: ctx.device.estimatedModel || "Tidak tersedia",
+    os: ctx.device.os || "Tidak tersedia",
+    browserName: ctx.device.browser || "Tidak tersedia",
+    platform: ctx.device.platform || "Tidak tersedia",
+    timezone: ctx.browser && ctx.browser.timezone ? ctx.browser.timezone : "Tidak tersedia",
+    firstSeenAtMs: approvalData.createdAtMs || now,
+    lastSeenAtMs: now,
+    lastIp: ctx.network && ctx.network.ip ? ctx.network.ip : "Tidak tersedia",
+    lastCountry: ctx.network && ctx.network.country ? ctx.network.country : "Tidak tersedia",
+    lastCity: ctx.network && ctx.network.city ? ctx.network.city : "Tidak tersedia",
+    lastUserAgent: ctx.device.userAgent || "",
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+function renderEmailRow(label, value) {
+  return `<tr><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#475569;width:150px;vertical-align:top"><b>${escapeHtml(label)}</b></td><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#0f172a;vertical-align:top;word-break:break-word">${escapeHtml(value || "Tidak tersedia")}</td></tr>`;
+}
+
+function renderEmailSection(title, rows) {
+  return `<h3 style="margin:18px 0 8px;color:#0f172a">${escapeHtml(title)}</h3><table role="presentation" style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">${rows.join("")}</table>`;
+}
+
+function contextLine(label, value) {
+  return `- ${label}: ${value || "Tidak tersedia"}`;
+}
+
 function getSmtpTransporter() {
   const host = String(process.env.SMTP_HOST || "");
   const port = Number(process.env.SMTP_PORT || 465);
@@ -457,7 +768,7 @@ function getSmtpTransporter() {
   });
 }
 
-async function sendStep6Email({ requestId, approveToken, denyToken, emailCode, email }) {
+async function sendStep6Email({ requestId, approveToken, denyToken, emailCode, email, loginContext }) {
   const baseUrl = String(process.env.A2F_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
 
   if (!baseUrl) {
@@ -482,19 +793,73 @@ async function sendStep6Email({ requestId, approveToken, denyToken, emailCode, e
     `&requestId=${encodeURIComponent(requestId)}` +
     `&token=${encodeURIComponent(denyToken)}`;
 
+  const ctx = loginContext || {};
+  const account = ctx.account || {};
+  const network = ctx.network || {};
+  const device = ctx.device || {};
+  const browser = ctx.browser || {};
+  const security = ctx.security || {};
   const groupedCode = String(emailCode || "").replace(/(\d{6})(?=\d)/g, "$1 ");
-  const subject = "SETUJUI Login Admin Dirac + Kode 60 Digit";
+  const subject = `SETUJUI Login Admin Dirac - Risiko ${security.risk || "tidak diketahui"}`;
 
   const text =
-`Ada percobaan login ke Admin Dirac.
+`Percobaan Login Admin Dirac
 
-LANGKAH 1:
-Klik SETUJUI dulu:
+Akun login:
+${contextLine("Email", account.email)}
+${contextLine("UID Firebase", account.uid)}
+${contextLine("Waktu server", account.serverTimeIso)}
+${contextLine("Request ID", requestId)}
+
+Jaringan:
+${contextLine("IP login", network.ip)}
+${contextLine("IP source", network.ipSource)}
+${contextLine("Negara", network.country)}
+${contextLine("Region", network.region)}
+${contextLine("Kota", network.city)}
+${contextLine("Koordinat", network.latitude && network.longitude ? `${network.latitude}, ${network.longitude}` : "Tidak tersedia")}
+${contextLine("Timezone IP", network.timezone)}
+${contextLine("ISP/ASN", `${network.isp || "Tidak tersedia"} / ${network.asn || "Tidak tersedia"}`)}
+
+Perangkat:
+${contextLine("Nama perangkat", device.name)}
+${contextLine("Device ID hash", device.idHashShort || device.idHash)}
+${contextLine("Tipe", device.type)}
+${contextLine("Perkiraan model", device.estimatedModel)}
+${contextLine("OS", device.os)}
+${contextLine("Browser", device.browser)}
+${contextLine("Platform", device.platform)}
+${contextLine("Vendor", device.vendor)}
+${contextLine("User-Agent", device.userAgent)}
+
+Detail browser:
+${contextLine("Bahasa", browser.language)}
+${contextLine("Semua bahasa", browser.languages)}
+${contextLine("Timezone", browser.timezone)}
+${contextLine("Ukuran layar", browser.screen)}
+${contextLine("Available screen", browser.availableScreen)}
+${contextLine("Pixel ratio", browser.pixelRatio)}
+${contextLine("Color depth", browser.colorDepth)}
+${contextLine("Touch support", browser.touchSupport)}
+${contextLine("Max touch points", browser.maxTouchPoints)}
+${contextLine("CPU thread", browser.hardwareConcurrency)}
+${contextLine("Device memory", browser.deviceMemory)}
+${contextLine("Online status", browser.online)}
+${contextLine("Cookie enabled", browser.cookieEnabled)}
+${contextLine("Mode", browser.mode)}
+${contextLine("Koneksi", `${browser.connectionType || "Tidak tersedia"} / ${browser.effectiveType || "Tidak tersedia"}`)}
+
+Keamanan:
+${contextLine("Status device", security.deviceStatus)}
+${contextLine("Status A2F", security.a2fStatus)}
+${contextLine("Risiko", security.risk)}
+${contextLine("Alasan risiko", security.reasons)}
+${contextLine("IP sebelumnya", security.previousIp)}
+
+LANGKAH 1 - klik SETUJUI dulu:
 ${approveUrl}
 
-LANGKAH 2:
-Kembali ke dashboard admin, lalu masukkan kode 60 digit ini:
-
+LANGKAH 2 - kembali ke dashboard admin dan masukkan kode 60 digit ini:
 ${groupedCode}
 
 Salah 1x akan membuat A2F diblokir permanen.
@@ -503,24 +868,83 @@ Jika ini bukan kamu, klik TOLAK & BAN PERMANEN:
 ${denyUrl}`;
 
   const html =
-`<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
-  <h2>Persetujuan Login Admin Dirac</h2>
-  <p>Ada percobaan login ke Admin Dirac.</p>
-  <ol>
-    <li>Klik <b>SETUJUI LOGIN</b> dulu.</li>
-    <li>Kembali ke dashboard admin.</li>
-    <li>Masukkan kode 60 digit di bawah ini ke dashboard admin.</li>
-  </ol>
-  <p>
-    <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:13px 20px;border-radius:999px;font-weight:700">SETUJUI LOGIN</a>
-  </p>
-  <p>Kode <b>60 digit</b> untuk dimasukkan ke dashboard admin:</p>
-  <div style="font-size:22px;font-weight:800;letter-spacing:2px;line-height:1.7;padding:14px 18px;background:#eef6ff;border-radius:12px;word-break:break-all">${groupedCode}</div>
-  <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah 1x akan membuat A2F diblokir permanen.</p>
-  <p>
-    <a href="${denyUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">TOLAK & BAN PERMANEN</a>
-  </p>
-  <p style="color:#666;font-size:13px">Jika ini bukan kamu, klik TOLAK. Jika email ini sudah lama, abaikan.</p>
+`<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111;background:#f8fafc;padding:18px">
+  <div style="max-width:760px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:20px">
+    <h2 style="margin:0 0 8px;color:#0f172a">Percobaan Login Admin Dirac</h2>
+    <p style="margin:0 0 14px;color:#475569">Periksa detail di bawah sebelum menyetujui login.</p>
+    <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:${security.risk === "tinggi" ? "#fee2e2;color:#991b1b" : security.risk === "sedang" ? "#fef3c7;color:#92400e" : "#dcfce7;color:#166534"};font-weight:800">Risiko: ${escapeHtml(security.risk || "tidak diketahui")}</div>
+
+    ${renderEmailSection("Akun login", [
+      renderEmailRow("Email", account.email),
+      renderEmailRow("UID Firebase", account.uid),
+      renderEmailRow("Waktu server", account.serverTimeIso),
+      renderEmailRow("Request ID", requestId)
+    ])}
+
+    ${renderEmailSection("Jaringan", [
+      renderEmailRow("IP login", network.ip),
+      renderEmailRow("IP source", network.ipSource),
+      renderEmailRow("Raw forwarded", network.rawForwardedFor),
+      renderEmailRow("Negara", network.country),
+      renderEmailRow("Region", network.region),
+      renderEmailRow("Kota", network.city),
+      renderEmailRow("Koordinat", network.latitude && network.longitude ? `${network.latitude}, ${network.longitude}` : "Tidak tersedia"),
+      renderEmailRow("Timezone IP", network.timezone),
+      renderEmailRow("ISP/ASN", `${network.isp || "Tidak tersedia"} / ${network.asn || "Tidak tersedia"}`)
+    ])}
+
+    ${renderEmailSection("Perangkat", [
+      renderEmailRow("Nama perangkat", device.name),
+      renderEmailRow("Device ID hash", device.idHashShort || device.idHash),
+      renderEmailRow("Tipe", device.type),
+      renderEmailRow("Perkiraan model", device.estimatedModel),
+      renderEmailRow("OS", device.os),
+      renderEmailRow("Browser", device.browser),
+      renderEmailRow("Platform", device.platform),
+      renderEmailRow("Vendor", device.vendor),
+      renderEmailRow("User-Agent", device.userAgent)
+    ])}
+
+    ${renderEmailSection("Detail browser", [
+      renderEmailRow("Bahasa", browser.language),
+      renderEmailRow("Semua bahasa", browser.languages),
+      renderEmailRow("Timezone", browser.timezone),
+      renderEmailRow("Ukuran layar", browser.screen),
+      renderEmailRow("Available screen", browser.availableScreen),
+      renderEmailRow("Pixel ratio", browser.pixelRatio),
+      renderEmailRow("Color depth", browser.colorDepth),
+      renderEmailRow("Touch support", browser.touchSupport),
+      renderEmailRow("Max touch points", browser.maxTouchPoints),
+      renderEmailRow("CPU thread", browser.hardwareConcurrency),
+      renderEmailRow("Device memory", browser.deviceMemory),
+      renderEmailRow("Online status", browser.online),
+      renderEmailRow("Cookie enabled", browser.cookieEnabled),
+      renderEmailRow("Mode", browser.mode),
+      renderEmailRow("Koneksi", `${browser.connectionType || "Tidak tersedia"} / ${browser.effectiveType || "Tidak tersedia"}`)
+    ])}
+
+    ${renderEmailSection("Keamanan", [
+      renderEmailRow("Status device", security.deviceStatus),
+      renderEmailRow("Status A2F", security.a2fStatus),
+      renderEmailRow("Risiko", security.risk),
+      renderEmailRow("Alasan risiko", security.reasons),
+      renderEmailRow("IP sebelumnya", security.previousIp)
+    ])}
+
+    <div style="margin:18px 0;padding:14px;border-radius:14px;background:#eff6ff;border:1px solid #bfdbfe">
+      <b>Langkah 1:</b> klik SETUJUI dulu. Setelah itu kembali ke dashboard admin dan masukkan kode 60 digit dari email ini.
+    </div>
+    <p>
+      <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:13px 20px;border-radius:999px;font-weight:700">SETUJUI LOGIN</a>
+    </p>
+    <p style="margin:16px 0 8px"><b>Kode 60 digit</b> untuk dimasukkan ke dashboard admin:</p>
+    <div style="font-size:22px;font-weight:800;letter-spacing:2px;line-height:1.7;padding:14px 18px;background:#eef6ff;border-radius:12px;word-break:break-all;color:#0f172a">${escapeHtml(groupedCode)}</div>
+    <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah 1x akan membuat A2F diblokir permanen.</p>
+    <p>
+      <a href="${denyUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">TOLAK & BAN PERMANEN</a>
+    </p>
+    <p style="color:#64748b;font-size:13px">Catatan: model iPhone adalah estimasi dari data browser. Nama perangkat dan Device ID hash lebih akurat untuk membedakan perangkat company.</p>
+  </div>
 </div>`;
 
   const transporter = getSmtpTransporter();
@@ -536,7 +960,7 @@ ${denyUrl}`;
 async function startStep6EmailApproval(req, res) {
   await checkA2fLock();
 
-  const { idToken } = req.body || {};
+  const { idToken, clientContext } = req.body || {};
   const decoded = await verifyAdminIdToken(idToken);
 
   const db = getFirebaseDb();
@@ -550,6 +974,8 @@ async function startStep6EmailApproval(req, res) {
   const expiresAtMs = now + 60 * 1000;
 
   const ref = db.collection("a2fEmailApprovals").doc(requestId);
+  const loginContext = await buildStep6LoginContext({ req, db, decoded, clientContext, secret });
+  loginContext.account.requestId = requestId;
 
   await ref.set({
     uid: decoded.uid,
@@ -560,6 +986,7 @@ async function startStep6EmailApproval(req, res) {
     approveTokenHash: hashCode(`step6-approve:${requestId}:${approveToken}`, secret),
     denyTokenHash: hashCode(`step6-deny:${requestId}:${denyToken}`, secret),
     failedCodeCount: 0,
+    loginContext,
     createdAtMs: now,
     expiresAtMs,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -571,7 +998,8 @@ async function startStep6EmailApproval(req, res) {
     approveToken,
     denyToken,
     emailCode: screenCode,
-    email: decoded.email || ""
+    email: decoded.email || "",
+    loginContext
   });
 
   return res.status(200).json({
@@ -723,6 +1151,7 @@ async function submitStep6ScreenCode(req, res) {
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
+  await rememberStep6KnownDevice(db, data);
   await resetA2fFailure();
 
   return res.status(200).json({
@@ -848,6 +1277,7 @@ async function confirmApproveStep6FromEmail(req, res) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
+    await rememberStep6KnownDevice(db, data);
     await resetA2fFailure();
 
     return res.status(200).send(htmlPage(
