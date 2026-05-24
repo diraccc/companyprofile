@@ -27,36 +27,53 @@ function hashCode(code, secret) {
 }
 
 function safeEqual(a, b) {
-  const A = Buffer.from(String(a || ""));
-  const B = Buffer.from(String(b || ""));
+  const A = Buffer.from(String(a));
+  const B = Buffer.from(String(b));
   if (A.length !== B.length) return false;
   return crypto.timingSafeEqual(A, B);
 }
 
-function randomId(bytes = 18) {
+function randomId(bytes = 24) {
   return crypto.randomBytes(bytes).toString("base64url");
 }
 
-function htmlPage(title, message) {
+function randomDigitCode(length = 50) {
+  let out = "";
+  while (out.length < length) {
+    out += String(crypto.randomInt(0, 10));
+  }
+  return out;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function htmlPage(title, bodyHtml) {
   return `<!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#050814;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px}
-    .card{max-width:520px;border:1px solid rgba(96,165,250,.35);background:#0b1222;border-radius:24px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.38)}
-    h1{margin:0 0 10px;font-size:1.45rem}
+    body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#050814;color:#f8fbff;display:grid;place-items:center;min-height:100vh;margin:0;padding:18px}
+    .card{width:min(560px,100%);border:1px solid rgba(96,165,250,.36);background:#0b1222;border-radius:24px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.38)}
+    h1{margin:0 0 12px;font-size:1.35rem}
     p{color:#cbd5e1;line-height:1.55}
+    label{display:block;font-weight:800;margin:14px 0 6px}
+    input{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.16);background:#111827;color:#fff;border-radius:14px;padding:13px;font-size:1rem}
+    button{width:100%;border:0;border-radius:999px;background:#60a5fa;color:#07101e;font-weight:900;padding:13px 18px;margin-top:12px;font-size:1rem}
+    .danger{background:#dc2626;color:#fff}
+    .warn{border:1px solid rgba(250,204,21,.45);background:rgba(250,204,21,.10);color:#fef08a;border-radius:16px;padding:12px;margin:12px 0}
+    .codehint{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;color:#dbeafe}
   </style>
 </head>
-<body>
-  <div class="card">
-    <h1>${title}</h1>
-    <p>${message}</p>
-  </div>
-</body>
+<body><div class="card"><h1>${escapeHtml(title)}</h1>${bodyHtml}</div></body>
 </html>`;
 }
 
@@ -149,6 +166,7 @@ function getAdminUid() {
   return uid;
 }
 
+
 async function verifyAdminIdToken(idToken) {
   const token = String(idToken || "").trim();
 
@@ -161,7 +179,7 @@ async function verifyAdminIdToken(idToken) {
   const expectedUid = getAdminUid();
 
   if (decoded.uid !== expectedUid) {
-    throw new Error("Akun ini tidak diizinkan memakai A2F admin");
+    throw new Error("Akun ini tidak diizinkan memakai recovery code");
   }
 
   return decoded;
@@ -204,12 +222,19 @@ async function consumeOneTimeRecoveryCode(code, secret, idToken) {
   const now = Date.now();
   const snap = await ref.get();
 
-  if (!snap.exists) return { ok: false, reason: "not-found" };
+  if (!snap.exists) {
+    return { ok: false, reason: "not-found" };
+  }
 
   const firstRead = snap.data() || {};
 
-  if (firstRead.revoked === true) return { ok: false, reason: "revoked" };
-  if (firstRead.used === true) return { ok: false, reason: "used" };
+  if (firstRead.revoked === true) {
+    return { ok: false, reason: "revoked" };
+  }
+
+  if (firstRead.used === true) {
+    return { ok: false, reason: "used" };
+  }
 
   if (firstRead.hashType !== "argon2id" || !(await verifyOneTimeRecoveryArgon2id(normalized, firstRead.argon2Hash))) {
     return { ok: false, reason: "not-found" };
@@ -294,7 +319,7 @@ async function checkA2fLock() {
   if (data.permanentBan === true) {
     const err = new Error("A2F_PERMANENT_BAN");
     err.statusCode = 403;
-    err.publicMessage = "A2F diblokir permanen. Reset hanya bisa lewat secret admin.";
+    err.publicMessage = "A2F diblokir permanen karena salah kode 3x.";
     throw err;
   }
 
@@ -307,24 +332,6 @@ async function checkA2fLock() {
     err.publicMessage = getLockMessage(lockUntilMs);
     throw err;
   }
-}
-
-async function recordPermanentBan(reason) {
-  const db = getFirebaseDb();
-  const uid = getAdminUid();
-  const now = Date.now();
-
-  await db.collection("a2fLockouts").doc(uid).set({
-    uid,
-    email: process.env.A2F_ADMIN_EMAIL || "",
-    failedCount: 999,
-    lockUntilMs: 0,
-    permanentBan: true,
-    permanentBanReason: reason,
-    bannedAtMs: now,
-    bannedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
 }
 
 async function recordA2fFailure() {
@@ -349,9 +356,6 @@ async function recordA2fFailure() {
     if (failedCount >= 3) {
       nextData.permanentBan = true;
       nextData.lockUntilMs = 0;
-      nextData.permanentBanReason = "wrong_code_3x";
-      nextData.bannedAtMs = now;
-      nextData.bannedAt = admin.firestore.FieldValue.serverTimestamp();
     } else if (failedCount === 2) {
       nextData.permanentBan = false;
       nextData.lockUntilMs = now + 30 * 60 * 1000;
@@ -381,6 +385,25 @@ async function resetA2fFailure() {
   }, { merge: true });
 }
 
+
+async function recordPermanentBan(reason) {
+  const db = getFirebaseDb();
+  const uid = getAdminUid();
+  const now = Date.now();
+
+  await db.collection("a2fLockouts").doc(uid).set({
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || "",
+    failedCount: 999,
+    lockUntilMs: 0,
+    permanentBan: true,
+    permanentBanReason: reason,
+    bannedAtMs: now,
+    bannedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
 async function sendWrongCodeResponse(res) {
   const lockData = await recordA2fFailure();
 
@@ -401,6 +424,7 @@ async function sendWrongCodeResponse(res) {
   });
 }
 
+
 function getSmtpTransporter() {
   const host = String(process.env.SMTP_HOST || "");
   const port = Number(process.env.SMTP_PORT || 465);
@@ -419,7 +443,7 @@ function getSmtpTransporter() {
   });
 }
 
-async function sendStep6Email({ requestId, approveToken, denyToken, screenCode, email }) {
+async function sendStep6Email({ requestId, approveToken, denyToken, email }) {
   const baseUrl = String(process.env.A2F_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
 
   if (!baseUrl) {
@@ -444,16 +468,14 @@ async function sendStep6Email({ requestId, approveToken, denyToken, screenCode, 
     `&requestId=${encodeURIComponent(requestId)}` +
     `&token=${encodeURIComponent(denyToken)}`;
 
-  const subject = `Persetujuan Login Admin Dirac - Kode ${screenCode}`;
+  const subject = "Persetujuan Login Admin Dirac";
 
   const text =
 `Ada percobaan login ke Admin Dirac.
 
-Kode yang tampil di layar admin: ${screenCode}
+Klik SETUJUI jika ini kamu. Setelah klik SETUJUI, kamu akan diminta memasukkan kode 50 digit yang tampil di layar admin.
 
-Klik SETUJUI dulu. Setelah itu, kembali ke layar admin dan masukkan kode ${screenCode}.
-
-SETUJUI:
+SETUJUI LOGIN:
 ${approveUrl}
 
 TOLAK & BAN PERMANEN:
@@ -465,9 +487,8 @@ Jika ini bukan kamu, klik TOLAK.`;
 `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
   <h2>Persetujuan Login Admin Dirac</h2>
   <p>Ada percobaan login ke Admin Dirac.</p>
-  <p>Kode yang tampil di layar admin:</p>
-  <div style="font-size:34px;font-weight:800;letter-spacing:4px;padding:14px 18px;background:#eef6ff;border-radius:12px;display:inline-block">${screenCode}</div>
-  <p>Klik <b>SETUJUI</b> dulu. Setelah itu kembali ke layar admin dan masukkan kode di atas.</p>
+  <p>Klik <b>SETUJUI</b> jika ini kamu. Setelah itu kamu akan diminta memasukkan <b>kode 50 digit</b> yang tampil di layar admin.</p>
+  <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> kode tidak ditulis di email ini. Kode hanya ada di layar admin.</p>
   <p>
     <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">SETUJUI LOGIN</a>
   </p>
@@ -499,7 +520,7 @@ async function startStep6EmailApproval(req, res) {
   const requestId = randomId(18);
   const approveToken = randomId(32);
   const denyToken = randomId(32);
-  const screenCode = String(crypto.randomInt(10, 100));
+  const screenCode = randomDigitCode(50);
   const now = Date.now();
   const expiresAtMs = now + 2 * 60 * 1000;
 
@@ -523,7 +544,6 @@ async function startStep6EmailApproval(req, res) {
     requestId,
     approveToken,
     denyToken,
-    screenCode,
     email: decoded.email || ""
   });
 
@@ -533,7 +553,7 @@ async function startStep6EmailApproval(req, res) {
     screenCode,
     status: "pending_email_approval",
     expiresAtMs,
-    message: "Email persetujuan sudah dikirim."
+    message: "Email persetujuan sudah dikirim. Kode 50 digit hanya tampil di layar admin."
   });
 }
 
@@ -568,87 +588,19 @@ async function checkStep6EmailApproval(req, res) {
     });
   }
 
+  if (String(data.status || "") === "denied_permanent_ban" || String(data.status || "").startsWith("permanent_ban")) {
+    return res.status(403).json({
+      success: false,
+      status: data.status,
+      permanentBan: true,
+      error: "Step 6 ditolak. A2F diblokir permanen."
+    });
+  }
+
   return res.status(200).json({
     success: true,
     status: data.status || "unknown",
     expiresAtMs: data.expiresAtMs || 0
-  });
-}
-
-async function submitStep6ScreenCode(req, res) {
-  await checkA2fLock();
-
-  const { idToken, requestId, code } = req.body || {};
-  await verifyAdminIdToken(idToken);
-
-  const db = getFirebaseDb();
-  const secret = process.env.A2F_SECRET || "rahasia-test";
-  const ref = db.collection("a2fEmailApprovals").doc(String(requestId || ""));
-  const snap = await ref.get();
-
-  if (!snap.exists) {
-    return res.status(404).json({
-      success: false,
-      error: "Request approval tidak ditemukan"
-    });
-  }
-
-  const data = snap.data() || {};
-
-  if (Date.now() > Number(data.expiresAtMs || 0)) {
-    await ref.set({
-      status: "expired",
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-
-    return res.status(408).json({
-      success: false,
-      status: "expired",
-      error: "Waktu approval habis. Login ulang."
-    });
-  }
-
-  if (data.status !== "approved_waiting_code") {
-    return res.status(409).json({
-      success: false,
-      status: data.status || "unknown",
-      error: "Email belum disetujui."
-    });
-  }
-
-  const inputCode = String(code || "").replace(/\D+/g, "");
-  const inputHash = hashCode(`step6-screen:${requestId}:${inputCode}`, secret);
-
-  if (!safeEqual(inputHash, data.screenCodeHash)) {
-    await ref.set({
-      status: "permanent_ban_wrong_code",
-      failedCodeCount: Number(data.failedCodeCount || 0) + 1,
-      wrongCodeAtMs: Date.now(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-
-    await recordPermanentBan("step6_wrong_screen_code");
-
-    return res.status(403).json({
-      success: false,
-      permanentBan: true,
-      error: "Kode step 6 salah. A2F diblokir permanen."
-    });
-  }
-
-  await ref.set({
-    status: "approved",
-    approvedFinalAtMs: Date.now(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-
-  await resetA2fFailure();
-
-  return res.status(200).json({
-    success: true,
-    status: "approved",
-    message: "Step 6 berhasil. Dashboard boleh dibuka.",
-    nextStep: 7
   });
 }
 
@@ -665,7 +617,7 @@ async function approveStep6FromEmail(req, res) {
     const snap = await ref.get();
 
     if (!snap.exists) {
-      return res.status(404).send(htmlPage("Approval tidak ditemukan", "Request approval login tidak ditemukan."));
+      return res.status(404).send(htmlPage("Approval tidak ditemukan", "<p>Request approval login tidak ditemukan.</p>"));
     }
 
     const data = snap.data() || {};
@@ -676,13 +628,13 @@ async function approveStep6FromEmail(req, res) {
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
-      return res.status(408).send(htmlPage("Approval expired", "Waktu approval sudah habis. Silakan login ulang."));
+      return res.status(408).send(htmlPage("Approval expired", "<p>Waktu approval sudah habis. Silakan login ulang.</p>"));
     }
 
     const tokenHash = hashCode(`step6-approve:${requestId}:${token}`, secret);
 
     if (!safeEqual(tokenHash, data.approveTokenHash)) {
-      return res.status(403).send(htmlPage("Token salah", "Link approval tidak valid."));
+      return res.status(403).send(htmlPage("Token salah", "<p>Link approval tidak valid.</p>"));
     }
 
     if (data.status === "pending_email_approval") {
@@ -694,13 +646,98 @@ async function approveStep6FromEmail(req, res) {
     }
 
     return res.status(200).send(htmlPage(
-      "Login disetujui",
-      "Email sudah disetujui. Sekarang kembali ke halaman admin dan masukkan kode yang tampil di layar."
+      "Masukkan kode layar",
+      `<p>Ketik <b>kode 50 digit</b> yang tampil di layar admin.</p>
+       <div class="warn">Salah 1 kali akan membuat A2F diblokir permanen.</div>
+       <form method="GET" action="/api/2fa/verify-step">
+         <input type="hidden" name="action" value="confirmApproveStep6">
+         <input type="hidden" name="requestId" value="${escapeHtml(requestId)}">
+         <input type="hidden" name="token" value="${escapeHtml(token)}">
+         <label for="code">Kode 50 digit dari layar admin</label>
+         <input id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="80" autocomplete="off" required>
+         <button type="submit">Cocokkan & Setujui</button>
+       </form>`
     ));
   } catch (error) {
     return res.status(error.statusCode || 500).send(htmlPage(
       "Approval gagal",
-      error.publicMessage || error.message || "Gagal menyetujui login."
+      `<p>${escapeHtml(error.publicMessage || error.message || "Gagal menyetujui login.")}</p>`
+    ));
+  }
+}
+
+async function confirmApproveStep6FromEmail(req, res) {
+  try {
+    await checkA2fLock();
+
+    const requestId = String((req.query && req.query.requestId) || "");
+    const token = String((req.query && req.query.token) || "");
+    const inputCode = String((req.query && req.query.code) || "").replace(/\D+/g, "");
+    const secret = process.env.A2F_SECRET || "rahasia-test";
+
+    const db = getFirebaseDb();
+    const ref = db.collection("a2fEmailApprovals").doc(requestId);
+    const snap = await ref.get();
+
+    if (!snap.exists) {
+      return res.status(404).send(htmlPage("Approval tidak ditemukan", "<p>Request approval login tidak ditemukan.</p>"));
+    }
+
+    const data = snap.data() || {};
+
+    if (Date.now() > Number(data.expiresAtMs || 0)) {
+      await ref.set({
+        status: "expired",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      return res.status(408).send(htmlPage("Approval expired", "<p>Waktu approval sudah habis. Silakan login ulang.</p>"));
+    }
+
+    const tokenHash = hashCode(`step6-approve:${requestId}:${token}`, secret);
+
+    if (!safeEqual(tokenHash, data.approveTokenHash)) {
+      return res.status(403).send(htmlPage("Token salah", "<p>Link approval tidak valid.</p>"));
+    }
+
+    if (data.status !== "approved_waiting_code" && data.status !== "pending_email_approval") {
+      return res.status(409).send(htmlPage("Status tidak valid", `<p>Status login saat ini: ${escapeHtml(data.status || "unknown")}</p>`));
+    }
+
+    const inputHash = hashCode(`step6-screen:${requestId}:${inputCode}`, secret);
+
+    if (!safeEqual(inputHash, data.screenCodeHash)) {
+      await ref.set({
+        status: "permanent_ban_wrong_code",
+        failedCodeCount: Number(data.failedCodeCount || 0) + 1,
+        wrongCodeAtMs: Date.now(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      await recordPermanentBan("step6_wrong_50_digit_code");
+
+      return res.status(403).send(htmlPage(
+        "Kode salah",
+        "<p>Kode salah. A2F diblokir permanen. Reset hanya bisa lewat secret admin.</p>"
+      ));
+    }
+
+    await ref.set({
+      status: "approved",
+      approvedFinalAtMs: Date.now(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    await resetA2fFailure();
+
+    return res.status(200).send(htmlPage(
+      "Login disetujui",
+      "<p>Kode cocok. Kembali ke halaman admin. Dashboard akan terbuka otomatis.</p>"
+    ));
+  } catch (error) {
+    return res.status(error.statusCode || 500).send(htmlPage(
+      "Approval gagal",
+      `<p>${escapeHtml(error.publicMessage || error.message || "Gagal menyetujui login.")}</p>`
     ));
   }
 }
@@ -716,14 +753,14 @@ async function denyStep6FromEmail(req, res) {
     const snap = await ref.get();
 
     if (!snap.exists) {
-      return res.status(404).send(htmlPage("Approval tidak ditemukan", "Request approval login tidak ditemukan."));
+      return res.status(404).send(htmlPage("Approval tidak ditemukan", "<p>Request approval login tidak ditemukan.</p>"));
     }
 
     const data = snap.data() || {};
     const tokenHash = hashCode(`step6-deny:${requestId}:${token}`, secret);
 
     if (!safeEqual(tokenHash, data.denyTokenHash)) {
-      return res.status(403).send(htmlPage("Token salah", "Link penolakan tidak valid."));
+      return res.status(403).send(htmlPage("Token salah", "<p>Link penolakan tidak valid.</p>"));
     }
 
     await ref.set({
@@ -736,12 +773,12 @@ async function denyStep6FromEmail(req, res) {
 
     return res.status(200).send(htmlPage(
       "Login ditolak",
-      "Login sudah ditolak dan A2F diblokir permanen. Reset hanya bisa lewat secret admin."
+      "<p>Login sudah ditolak dan A2F diblokir permanen. Reset hanya bisa lewat secret admin.</p>"
     ));
   } catch (error) {
     return res.status(error.statusCode || 500).send(htmlPage(
       "Penolakan gagal",
-      error.publicMessage || error.message || "Gagal menolak login."
+      `<p>${escapeHtml(error.publicMessage || error.message || "Gagal menolak login.")}</p>`
     ));
   }
 }
@@ -754,15 +791,11 @@ module.exports = async function handler(req, res) {
   if (req.method === "GET") {
     const action = String((req.query && req.query.action) || "");
 
-    if (action === "approveStep6") {
-      return approveStep6FromEmail(req, res);
-    }
+    if (action === "approveStep6") return approveStep6FromEmail(req, res);
+    if (action === "confirmApproveStep6") return confirmApproveStep6FromEmail(req, res);
+    if (action === "denyStep6") return denyStep6FromEmail(req, res);
 
-    if (action === "denyStep6") {
-      return denyStep6FromEmail(req, res);
-    }
-
-    return res.status(405).send(htmlPage("Method tidak diizinkan", "Endpoint ini hanya menerima link approval A2F."));
+    return res.status(405).send(htmlPage("Method tidak diizinkan", "<p>Endpoint ini hanya menerima link approval A2F.</p>"));
   }
 
   if (req.method !== "POST") {
@@ -775,17 +808,8 @@ module.exports = async function handler(req, res) {
   try {
     const action = String((req.body && req.body.action) || "").trim();
 
-    if (action === "startStep6EmailApproval") {
-      return startStep6EmailApproval(req, res);
-    }
-
-    if (action === "checkStep6EmailApproval") {
-      return checkStep6EmailApproval(req, res);
-    }
-
-    if (action === "submitStep6ScreenCode") {
-      return submitStep6ScreenCode(req, res);
-    }
+    if (action === "startStep6EmailApproval") return startStep6EmailApproval(req, res);
+    if (action === "checkStep6EmailApproval") return checkStep6EmailApproval(req, res);
 
     await checkA2fLock();
 
