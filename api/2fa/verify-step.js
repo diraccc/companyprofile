@@ -457,7 +457,7 @@ function getSmtpTransporter() {
   });
 }
 
-async function sendStep6Email({ requestId, denyToken, emailCode, email }) {
+async function sendStep6Email({ requestId, approveToken, denyToken, emailCode, email }) {
   const baseUrl = String(process.env.A2F_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
 
   if (!baseUrl) {
@@ -472,18 +472,28 @@ async function sendStep6Email({ requestId, denyToken, emailCode, email }) {
     throw new Error("Email approval belum lengkap");
   }
 
+  const approveUrl =
+    `${baseUrl}/api/2fa/verify-step?action=approveStep6` +
+    `&requestId=${encodeURIComponent(requestId)}` +
+    `&token=${encodeURIComponent(approveToken)}`;
+
   const denyUrl =
     `${baseUrl}/api/2fa/verify-step?action=denyStep6` +
     `&requestId=${encodeURIComponent(requestId)}` +
     `&token=${encodeURIComponent(denyToken)}`;
 
   const groupedCode = String(emailCode || "").replace(/(\d{6})(?=\d)/g, "$1 ");
-  const subject = "Kode Persetujuan Login Admin Dirac";
+  const subject = "SETUJUI Login Admin Dirac + Kode 60 Digit";
 
   const text =
 `Ada percobaan login ke Admin Dirac.
 
-Masukkan kode 60 digit ini ke dashboard admin:
+LANGKAH 1:
+Klik SETUJUI dulu:
+${approveUrl}
+
+LANGKAH 2:
+Kembali ke dashboard admin, lalu masukkan kode 60 digit ini:
 
 ${groupedCode}
 
@@ -494,9 +504,17 @@ ${denyUrl}`;
 
   const html =
 `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
-  <h2>Kode Persetujuan Login Admin Dirac</h2>
+  <h2>Persetujuan Login Admin Dirac</h2>
   <p>Ada percobaan login ke Admin Dirac.</p>
-  <p>Masukkan kode <b>60 digit</b> ini ke dashboard admin:</p>
+  <ol>
+    <li>Klik <b>SETUJUI LOGIN</b> dulu.</li>
+    <li>Kembali ke dashboard admin.</li>
+    <li>Masukkan kode 60 digit di bawah ini ke dashboard admin.</li>
+  </ol>
+  <p>
+    <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:13px 20px;border-radius:999px;font-weight:700">SETUJUI LOGIN</a>
+  </p>
+  <p>Kode <b>60 digit</b> untuk dimasukkan ke dashboard admin:</p>
   <div style="font-size:22px;font-weight:800;letter-spacing:2px;line-height:1.7;padding:14px 18px;background:#eef6ff;border-radius:12px;word-break:break-all">${groupedCode}</div>
   <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah 1x akan membuat A2F diblokir permanen.</p>
   <p>
@@ -550,6 +568,7 @@ async function startStep6EmailApproval(req, res) {
 
   await sendStep6Email({
     requestId,
+    approveToken,
     denyToken,
     emailCode: screenCode,
     email: decoded.email || ""
@@ -661,6 +680,14 @@ async function submitStep6ScreenCode(req, res) {
     });
   }
 
+  if (String(data.status || "") !== "approved_waiting_code") {
+    return res.status(409).json({
+      success: false,
+      status: data.status || "unknown",
+      error: "Klik SETUJUI di email dulu, baru masukkan kode 60 digit."
+    });
+  }
+
   const inputCode = String(code || "").replace(/\D+/g, "");
 
   if (!inputCode) {
@@ -748,17 +775,8 @@ async function approveStep6FromEmail(req, res) {
     }
 
     return res.status(200).send(htmlPage(
-      "Masukkan kode layar",
-      `<p>Ketik <b>kode 60 digit</b> yang tampil di layar admin.</p>
-       <div class="warn">Salah 1 kali akan membuat A2F diblokir permanen.</div>
-       <form method="GET" action="/api/2fa/verify-step">
-         <input type="hidden" name="action" value="confirmApproveStep6">
-         <input type="hidden" name="requestId" value="${escapeHtml(requestId)}">
-         <input type="hidden" name="token" value="${escapeHtml(token)}">
-         <label for="code">Kode 60 digit dari layar admin</label>
-         <input id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="80" autocomplete="off" required>
-         <button type="submit">Cocokkan & Setujui</button>
-       </form>`
+      "Login disetujui",
+      "<p>Email sudah disetujui. Sekarang kembali ke dashboard admin dan masukkan kode 60 digit yang ada di email.</p><div class=\"warn\">Jangan salah: salah 1x akan ban permanen.</div>"
     ));
   } catch (error) {
     return res.status(error.statusCode || 500).send(htmlPage(
