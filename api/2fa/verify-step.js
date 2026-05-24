@@ -1200,13 +1200,17 @@ async function submitStep6ScreenCode(req, res) {
   }, { merge: true });
 
   await rememberStep6KnownDevice(db, data);
+  const a2fSession = await createA2fVerifiedSession(db, Object.assign({}, data, { requestId: String(requestId || "") }));
   await resetA2fFailure();
 
   return res.status(200).json({
     success: true,
     status: "approved",
     message: "Kode 60 digit benar. Dashboard boleh dibuka.",
-    nextStep: 7
+    nextStep: 7,
+    a2fSessionId: a2fSession.sessionId,
+    a2fSessionExpiresAtMs: a2fSession.expiresAtMs,
+    role: "admin"
   });
 }
 
@@ -1217,6 +1221,96 @@ async function expireStep6Approval(ref) {
   }, { merge: true });
 }
 
+function getA2fSessionTtlMs() {
+  const hours = Number(process.env.A2F_SESSION_TTL_HOURS || 8);
+  const safeHours = Number.isFinite(hours) && hours > 0 && hours <= 24 ? hours : 8;
+  return Math.round(safeHours * 60 * 60 * 1000);
+}
+
+function getA2fSessionHash(uid, sessionId, secret) {
+  return hashCode(`a2f-session:${uid}:${sessionId}`, secret);
+}
+
+async function createA2fVerifiedSession(db, approvalData) {
+  const secret = getA2fSecret();
+  const uid = String((approvalData && approvalData.uid) || getAdminUid());
+  const sessionId = randomId(36);
+  const now = Date.now();
+  const expiresAtMs = now + getA2fSessionTtlMs();
+  const loginContext = (approvalData && approvalData.loginContext) || {};
+  const device = loginContext.device || {};
+
+  await db.collection("a2fSessions").doc(uid).set({
+    uid,
+    email: (approvalData && approvalData.email) || process.env.A2F_ADMIN_EMAIL || "",
+    role: "admin",
+    verified: true,
+    sessionHash: getA2fSessionHash(uid, sessionId, secret),
+    requestId: (approvalData && approvalData.requestId) || "",
+    deviceIdHash: device.idHash || "",
+    deviceName: device.name || "",
+    createdAtMs: now,
+    expiresAtMs,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  return { sessionId, expiresAtMs };
+}
+
+async function verifyA2fSessionForAdmin(idToken, a2fSessionId) {
+  await checkA2fLock();
+  const decoded = await verifyAdminIdToken(idToken);
+  const sessionId = String(a2fSessionId || "").trim();
+
+  if (!sessionId) {
+    const err = new Error("Session A2F admin wajib dikirim.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const db = getFirebaseDb();
+  const snap = await db.collection("a2fSessions").doc(decoded.uid).get();
+
+  if (!snap.exists) {
+    const err = new Error("Session A2F admin tidak ditemukan. Login ulang.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const data = snap.data() || {};
+  const expiresAtMs = Number(data.expiresAtMs || 0);
+
+  if (data.verified !== true || expiresAtMs <= Date.now()) {
+    const err = new Error("Session A2F admin sudah expired. Login ulang.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const expectedHash = getA2fSessionHash(decoded.uid, sessionId, getA2fSecret());
+
+  if (!safeEqual(expectedHash, data.sessionHash || "")) {
+    const err = new Error("Session A2F admin tidak valid.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  return {
+    uid: decoded.uid,
+    email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
+    role: data.role || "admin",
+    expiresAtMs,
+    deviceName: data.deviceName || "",
+    deviceIdHash: data.deviceIdHash || ""
+  };
+}
+
+async function verifyA2fSessionAction(req, res) {
+  const body = getParsedBody(req);
+  const session = await verifyA2fSessionForAdmin(body.idToken, body.a2fSessionId || req.headers["x-a2f-session"] || "");
+  return res.status(200).json({ success: true, session });
+}
+
 function approvalHiddenInputs(action, requestId, token) {
   return `
     <input type="hidden" name="action" value="${escapeHtml(action)}">
@@ -1225,9 +1319,37 @@ function approvalHiddenInputs(action, requestId, token) {
   `;
 }
 
+function getParsedBody(req) {
+  const body = req && req.body;
+
+  if (!body) return {};
+  if (typeof body === "object") return body;
+
+  const raw = String(body || "");
+
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw);
+  } catch (_error) {
+    const out = {};
+    const params = new URLSearchParams(raw);
+    for (const [key, value] of params.entries()) out[key] = value;
+    return out;
+  }
+}
+
+function getRequestParam(req, name) {
+  const body = getParsedBody(req);
+  if (Object.prototype.hasOwnProperty.call(body, name)) return body[name];
+  if (req && req.query && Object.prototype.hasOwnProperty.call(req.query, name)) return req.query[name];
+  return "";
+}
+
 function approvalFormHtml({ action, requestId, token, buttonText, danger }) {
+  const actionUrl = `/api/2fa/verify-step?action=${encodeURIComponent(action)}&requestId=${encodeURIComponent(requestId)}&token=${encodeURIComponent(token)}`;
   return `
-    <form method="GET" action="/api/2fa/verify-step">
+    <form method="POST" action="${actionUrl}">
       ${approvalHiddenInputs(action, requestId, token)}
       <button class="${danger ? "danger" : ""}" type="submit">${escapeHtml(buttonText)}</button>
     </form>
@@ -1238,8 +1360,8 @@ async function approveStep6FromEmail(req, res) {
   try {
     await checkA2fLock();
 
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
+    const requestId = String(getRequestParam(req, "requestId") || "");
+    const token = String(getRequestParam(req, "token") || "");
     const secret = getA2fSecret();
 
     const db = getFirebaseDb();
@@ -1294,8 +1416,8 @@ async function confirmApproveStep6FromEmail(req, res) {
   try {
     await checkA2fLock();
 
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
+    const requestId = String(getRequestParam(req, "requestId") || "");
+    const token = String(getRequestParam(req, "token") || "");
     const secret = getA2fSecret();
 
     const db = getFirebaseDb();
@@ -1353,8 +1475,8 @@ async function confirmApproveStep6FromEmail(req, res) {
 
 async function denyStep6FromEmail(req, res) {
   try {
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
+    const requestId = String(getRequestParam(req, "requestId") || "");
+    const token = String(getRequestParam(req, "token") || "");
     const secret = getA2fSecret();
 
     const db = getFirebaseDb();
@@ -1402,8 +1524,8 @@ async function denyStep6FromEmail(req, res) {
 
 async function confirmDenyStep6FromEmail(req, res) {
   try {
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
+    const requestId = String(getRequestParam(req, "requestId") || "");
+    const token = String(getRequestParam(req, "token") || "");
     const secret = getA2fSecret();
 
     const db = getFirebaseDb();
@@ -1491,9 +1613,7 @@ module.exports = async function handler(req, res) {
     const action = String((req.query && req.query.action) || "");
 
     if (action === "approveStep6") return approveStep6FromEmail(req, res);
-    if (action === "confirmApproveStep6") return confirmApproveStep6FromEmail(req, res);
     if (action === "denyStep6") return denyStep6FromEmail(req, res);
-    if (action === "confirmDenyStep6") return confirmDenyStep6FromEmail(req, res);
 
     return res.status(405).send(htmlPage("Method tidak diizinkan", "<p>Endpoint ini hanya menerima link approval A2F.</p>"));
   }
@@ -1506,8 +1626,13 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const action = String((req.body && req.body.action) || "").trim();
+    const body = getParsedBody(req);
+    req.body = body;
+    const action = String(getRequestParam(req, "action") || "").trim();
 
+    if (action === "confirmApproveStep6") return confirmApproveStep6FromEmail(req, res);
+    if (action === "confirmDenyStep6") return confirmDenyStep6FromEmail(req, res);
+    if (action === "verifyA2fSession") return verifyA2fSessionAction(req, res);
     if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
 
     if (action === "startStep6EmailApproval") return startStep6EmailApproval(req, res);
