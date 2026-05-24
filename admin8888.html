@@ -682,7 +682,7 @@
           <span class="twofactor-step" id="twoFactorStep5">5</span>
           <span class="twofactor-step" id="twoFactorStep6">6</span>
         </div>
-        <div class="notice good" id="twoFactorUser">Role admin sudah dicek. Dashboard masih terkunci sampai A2F selesai.</div>
+        <div class="notice good" id="twoFactorUser">Login diterima. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
@@ -1204,7 +1204,7 @@
     const SECURITY_CONFIG = Object.freeze({
       APP_CHECK_SITE_KEY: '',
       ADMIN_USERS_COLLECTION: 'users',
-      REQUIRE_FIRESTORE_ADMIN_ROLE: true,
+      REQUIRE_FIRESTORE_ADMIN_ROLE: false,
       REQUIRE_ADMIN_CLAIM: false,
       REAUTH_TTL_MS: 5 * 60 * 1000,
       STRICT_IMAGE_HOSTS: false,
@@ -2791,18 +2791,25 @@
       return { role: '', rawRole: rawRole || '' };
     }
     async function loadFirestoreAdminRole(user){
-      const snap = await adminReadDoc(SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid, { requireA2F:false });
-      if(!snap.exists()){
+      if(!SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE){
+        return { exists: false, active: true, role: '', rawRole: '' };
+      }
+      try{
+        const snap = await adminReadDoc(SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid, { requireA2F:false });
+        if(!snap.exists()){
+          return { exists: false, active: false, role: '', rawRole: '' };
+        }
+        const data = snap.data() || {};
+        const rawRole = String(data.role || '').trim().toLowerCase();
+        return {
+          exists: true,
+          active: data.active !== false && data.disabled !== true,
+          role: normalizeAdminRole(rawRole),
+          rawRole
+        };
+      }catch(_error){
         return { exists: false, active: false, role: '', rawRole: '' };
       }
-      const data = snap.data() || {};
-      const rawRole = String(data.role || '').trim().toLowerCase();
-      return {
-        exists: true,
-        active: data.active !== false && data.disabled !== true,
-        role: normalizeAdminRole(rawRole),
-        rawRole
-      };
     }
     function buildAdminProfile(user, claims, roleDoc){
       const claimRole = resolveClaimRole(claims);
@@ -2820,6 +2827,10 @@
         role = claimRole.role;
         rawRole = claimRole.rawRole;
         roleSource = 'custom-claim';
+      } else if(!SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE && !SECURITY_CONFIG.REQUIRE_ADMIN_CLAIM){
+        role = 'owner';
+        rawRole = 'backend-admin';
+        roleSource = 'backend-a2f';
       }
 
       const canRead = Boolean(role);
