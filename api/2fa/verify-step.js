@@ -547,7 +547,7 @@ async function startStep6EmailApproval(req, res) {
   const screenCode = randomDigitCode(60);
   const screenCodeArgon2Hash = await argon2.hash(screenCode, ARGON2ID_OPTIONS);
   const now = Date.now();
-  const expiresAtMs = now + 20 * 1000;
+  const expiresAtMs = now + 60 * 1000;
 
   const ref = db.collection("a2fEmailApprovals").doc(requestId);
 
