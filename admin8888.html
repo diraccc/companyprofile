@@ -1223,6 +1223,8 @@
     const A2F_BACKEND_MAX_FAILURES = 3;
     const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
+    const A2F_STEP6_MAX_SECONDS = 20;
+    const A2F_STEP6_MAX_MS = A2F_STEP6_MAX_SECONDS * 1000;
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
       try{
         initializeAppCheck(app, {
@@ -1536,6 +1538,7 @@
     let step6EmailApprovalPollTimer = null;
     let step6ScreenCode = '';
     let step6ExpiresAtMs = 0;
+    let a2fBanWatcherTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
     const FACE_RECOVERY_TOTAL_STEPS = 5;
@@ -1811,7 +1814,8 @@
     function updateA2fTimeoutNotice(remainingMs){
       const totalMs = Math.max(0, Number(remainingMs || 0));
       const seconds = Math.max(0, Math.ceil(totalMs / 1000));
-      const percent = Math.max(0, Math.min(100, (totalMs / A2F_MAX_MS) * 100));
+      const maxMsForNotice = twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
+      const percent = Math.max(0, Math.min(100, (totalMs / maxMsForNotice) * 100));
       if(els.a2fTimerText) els.a2fTimerText.textContent = seconds + ' detik';
       if(els.a2fTimerBar) els.a2fTimerBar.style.width = percent + '%';
       if(els.a2fDeadlineNotice) els.a2fDeadlineNotice.classList.toggle('danger', seconds <= 10);
@@ -1832,8 +1836,11 @@
         return;
       }
       twoFactorTimeoutTriggered = false;
-      twoFactorDeadlineMs = Date.now() + A2F_MAX_MS;
-      updateA2fTimeoutNotice(A2F_MAX_MS);
+      {
+        const maxMs = twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
+        twoFactorDeadlineMs = Date.now() + maxMs;
+        updateA2fTimeoutNotice(maxMs);
+      }
       twoFactorTimeoutTimer = setInterval(() => {
         if(twoFactorVerified || els.twoFactorSection.classList.contains('hidden')){
           clearTwoFactorTimeoutTimer();
@@ -1856,17 +1863,20 @@
         return;
       }
       twoFactorTimeoutTriggered = false;
-      twoFactorDeadlineMs = Date.now() + A2F_MAX_MS;
-      updateA2fTimeoutNotice(A2F_MAX_MS);
+      {
+        const maxMs = twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
+        twoFactorDeadlineMs = Date.now() + maxMs;
+        updateA2fTimeoutNotice(maxMs);
+      }
       twoFactorRestartTimerAfterFlight = true;
       startTwoFactorTimeoutTimer();
     }
     async function recordA2fTimeoutBlock(){
       const payload = {
-        reason: 'a2f_timeout_25_seconds',
+        reason: twoFactorStep === 6 ? 'a2f_step6_timeout_20_seconds' : 'a2f_timeout_25_seconds',
         deadlineMs: twoFactorDeadlineMs || 0,
         timedOutAtMs: Date.now(),
-        maxSeconds: A2F_MAX_SECONDS
+        maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS
       };
       let state = await callA2fBackendLock('timeout', payload);
       if(hasA2fBackendLockState(state)) return state;
@@ -1884,8 +1894,8 @@
         await callA2fBackendLock('timeout-marker', {
           uid,
           email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
-          reason: 'A2F lebih dari 25 detik',
-          maxSeconds: A2F_MAX_SECONDS,
+          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 20 detik' : 'A2F lebih dari 25 detik',
+          maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS,
           deadlineMs: twoFactorDeadlineMs || 0,
           blockedAtMs: Date.now()
         });
@@ -1901,7 +1911,7 @@
       twoFactorBackendLocked = true;
       twoFactorPermanentLocked = true;
       setTwoFactorInputLocked(true, 'Diblokir');
-      setNotice(els.twoFactorUser, 'Waktu A2F 25 detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
+      setNotice(els.twoFactorUser, 'Waktu A2F ' + (twoFactorStep === 6 ? '20' : '25') + ' detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
       setNotice(els.twoFactorError, 'Waktu A2F habis. Dashboard tetap terkunci dan sesi akan logout.', 'danger');
 
       try{
@@ -1916,7 +1926,7 @@
 
       setTimeout(() => {
         logoutAdmin().then(() => {
-          setNotice(els.loginError, 'Akun diblokir karena A2F melewati 25 detik. Hubungi owner/admin untuk reset.', 'danger');
+          setNotice(els.loginError, 'Akun diblokir karena A2F melewati batas waktu. Hubungi owner/admin untuk reset.', 'danger');
         }).catch(() => {});
       }, 1200);
     }
@@ -2273,6 +2283,55 @@
         await finishTwoFactorSuccess('auth.2fa_success', 'Verifikasi selesai. Dashboard dibuka.');
       }
     }
+
+    function stopA2fBanWatcher(){
+      if(a2fBanWatcherTimer){
+        clearInterval(a2fBanWatcherTimer);
+        a2fBanWatcherTimer = null;
+      }
+    }
+    async function enforceLiveA2fBanState(){
+      if(!auth.currentUser || els.adminSection.classList.contains('hidden')) return false;
+      let data = null;
+      try{
+        data = await callStep6EmailApproval('checkA2fBanStatus');
+      }catch(error){
+        data = error && error.a2fLockState ? error.a2fLockState : null;
+      }
+      if(!data || typeof data !== 'object') return false;
+      const isPermanent = data.permanentBan === true || String(data.status || '').includes('permanent_ban');
+      const isLocked = data.locked === true && Number(data.lockUntilMs || 0) > Date.now();
+      if(!isPermanent && !isLocked) return false;
+
+      stopA2fBanWatcher();
+      clearStep6EmailApprovalPolling();
+      clearTwoFactorTimeoutTimer();
+      twoFactorVerified = false;
+      twoFactorBackendLocked = true;
+      twoFactorPermanentLocked = Boolean(isPermanent);
+      applyA2fBackendLockState(Object.assign({ failedCount:A2F_BACKEND_MAX_FAILURES }, data));
+      els.adminSection.classList.add('hidden');
+      els.twoFactorSection.classList.add('hidden');
+      els.loginSection.classList.remove('hidden');
+      setNotice(
+        els.loginError,
+        isPermanent
+          ? 'A2F diblokir permanen dari backend. Dashboard ditutup otomatis. Reset hanya lewat secret admin.'
+          : 'A2F terkunci dari backend. Dashboard ditutup otomatis.',
+        'danger'
+      );
+      try{ await signOut(auth); }catch(_error){}
+      return true;
+    }
+    function startA2fBanWatcher(){
+      stopA2fBanWatcher();
+      if(!auth.currentUser || els.adminSection.classList.contains('hidden')) return;
+      enforceLiveA2fBanState().catch(error => console.warn('Cek ban A2F gagal:', error));
+      a2fBanWatcherTimer = setInterval(() => {
+        enforceLiveA2fBanState().catch(error => console.warn('Cek ban A2F gagal:', error));
+      }, 1000);
+    }
+
     async function finishTwoFactorSuccess(logType='auth.2fa_success', toastText='Verifikasi selesai. Dashboard dibuka.'){
       twoFactorVerified = true;
       clearTwoFactorTimeoutTimer();
@@ -4190,6 +4249,7 @@
       markDirty(false);
     }
     async function logoutAdmin(){
+      stopA2fBanWatcher();
       clearTwoFactorTimeoutTimer();
       clearLocalAdminData();
       lastSensitiveReauthAt = 0;
