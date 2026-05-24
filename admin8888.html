@@ -621,7 +621,7 @@
       </button>
       <a class="brand" href="order.html" target="_blank" rel="noopener">
         <div class="logo"><img src="logo1.webp" alt="DG" onerror="this.style.display='none';this.parentNode.textContent='DG'"></div>
-        <div><h1>Dirac Admin</h1><span>Dashboard produk Firebase</span></div>
+        <div><h1>Dirac Admin</h1><span>Dashboard produk backend</span></div>
       </a>
       <div class="top-actions">
         <span class="pill" id="userPill">Belum login</span>
@@ -829,7 +829,7 @@
           <div>
             <span class="view-kicker">Produk / Tambah Produk</span>
             <h3 id="formTitle">Tambah Produk</h3>
-            <p class="help">Data akan disimpan ke Firestore. Untuk foto, kamu bisa upload langsung dari HP atau isi nama file/link gambar.</p>
+            <p class="help">Data akan dikirim ke backend. Untuk foto, kamu bisa upload langsung dari HP atau isi nama file/link gambar.</p>
           </div>
           <div class="panel-head-actions">
             <span class="dirty-badge hidden" id="dirtyBadge">Ada perubahan</span>
@@ -1027,7 +1027,7 @@
               <div class="notice hidden" id="orderMessage" role="status"></div>
             </div>
             <div class="panel anchor-panel" id="ordersTablePanel">
-              <div class="panel-head"><div><span class="view-kicker">Pesanan / Semua Pesanan</span><h3>Daftar Pesanan</h3><p class="help">Pesanan dibaca dari Firestore collection <b>orders</b>.</p></div></div>
+              <div class="panel-head"><div><span class="view-kicker">Pesanan / Semua Pesanan</span><h3>Daftar Pesanan</h3><p class="help">Pesanan dibaca dari backend, bukan langsung dari browser.</p></div></div>
               <div class="filter-grid" aria-label="Filter pesanan">
                 <input class="input" id="orderSearch" type="search" placeholder="Cari ID, pelanggan, produk, resi, alamat...">
                 <select id="orderFilterPayment"><option value="">Semua payment</option><option value="Belum Bayar">Belum Bayar</option><option value="Lunas">Lunas</option><option value="Refund">Refund</option></select>
@@ -1077,7 +1077,7 @@
             <div class="panel anchor-panel" id="customersTablePanel">
               <span class="view-kicker">Pelanggan / Semua Pelanggan</span>
               <h3>Data Pelanggan</h3>
-              <p class="help">Pelanggan dibaca dari Firestore collection <b>customers</b>.</p>
+              <p class="help">Pelanggan dibaca dari backend, bukan langsung dari browser.</p>
               <div class="filter-grid" aria-label="Filter pelanggan">
                 <input class="input" id="customerSearch" type="search" placeholder="Cari nama, HP, email, alamat, catatan...">
                 <select id="customerFilterSegment"><option value="">Semua segment</option><option value="Reguler">Reguler</option><option value="VIP">VIP</option><option value="Baru">Baru</option><option value="Tidak Aktif">Tidak Aktif</option></select>
@@ -1253,6 +1253,7 @@
     const ADMIN_API_BASE_URL = 'https://companyprofilee-expk.vercel.app';
     const ADMIN_FIRESTORE_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
     const ADMIN_UPLOAD_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
+    const ADMIN_READ_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/reset-a2f-ban';
 
     function serverTimestamp(){
       return { __diracFirestoreOp: 'serverTimestamp' };
@@ -1327,38 +1328,155 @@
       }
       return data;
     }
+
+    async function adminReadApi(payload, options={}){
+      if(!auth.currentUser) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
+      const requireA2F = options.requireA2F !== false;
+      if(requireA2F && !twoFactorVerified) throw new Error('A2F belum selesai. Selesaikan verifikasi dulu sebelum membaca data admin.');
+      const idToken = await auth.currentUser.getIdToken(true);
+      const body = Object.assign({ idToken, clientTimeMs: Date.now() }, sanitizeAdminPayload(payload || {}));
+      const response = await fetch(ADMIN_READ_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + idToken
+        },
+        credentials: 'include',
+        cache: 'no-store',
+        body: JSON.stringify(body)
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        throw new Error(data.error || data.message || ('Backend read menolak request (' + response.status + ').'));
+      }
+      return data;
+    }
+    function backendDocSnap(row, fallbackId='doc'){
+      const source = row && typeof row === 'object' ? row : {};
+      const rawData = source.data && typeof source.data === 'object' && !Array.isArray(source.data) ? source.data : source;
+      const docId = String(source.docId || rawData.docId || rawData._id || fallbackId || 'doc');
+      const existsValue = source.exists !== false && rawData.exists !== false;
+      return { id: docId, exists: () => existsValue, data: () => Object.assign({}, rawData) };
+    }
+    function backendRows(data){
+      const rows = Array.isArray(data && data.docs) ? data.docs :
+        Array.isArray(data && data.rows) ? data.rows :
+        Array.isArray(data && data.items) ? data.items :
+        Array.isArray(data && data.data) ? data.data : [];
+      return rows.map((row, index) => backendDocSnap(row, 'doc-' + index));
+    }
+    function backendLimitField(collectionName){
+      const name = String(collectionName || '').trim();
+      const map = {
+        products: 'productsLimit',
+        orders: 'ordersLimit',
+        customers: 'customersLimit',
+        securityLogs: 'securityLogsLimit',
+        categories: 'categoriesLimit',
+        brands: 'brandsLimit',
+        variants: 'variantsLimit'
+      };
+      return map[name] || '';
+    }
+    function sortBackendDocs(rows, orderField, direction='asc'){
+      const field = String(orderField || '').trim();
+      if(!field) return rows;
+      const dir = String(direction || 'asc').toLowerCase() === 'desc' ? -1 : 1;
+      return [...rows].sort((a,b) => {
+        const da = a.data ? a.data() || {} : {};
+        const db = b.data ? b.data() || {} : {};
+        const va = da[field];
+        const vb = db[field];
+        const na = Number(va);
+        const nb = Number(vb);
+        if(Number.isFinite(na) && Number.isFinite(nb)) return (na - nb) * dir;
+        return String(va ?? '').localeCompare(String(vb ?? '')) * dir;
+      });
+    }
+    async function adminReadCollection(collectionName, options={}){
+      const name = String(collectionName || '').trim();
+      const payload = { action:'readAdminData', collections:[name] };
+      const limitField = backendLimitField(name);
+      if(limitField && Number(options.limit || 0) > 0) payload[limitField] = Number(options.limit || 0);
+      const data = await adminReadApi(payload, { requireA2F: options.requireA2F !== false });
+      let rows = Array.isArray(data && data[name]) ? data[name] : [];
+      if(name === 'settings' && data && data.settings && typeof data.settings === 'object'){
+        rows = Object.keys(data.settings).map(id => Object.assign({ docId:id }, data.settings[id] || {}));
+      }
+      const docs = rows.map((row, index) => backendDocSnap(row, name + '-' + index));
+      return sortBackendDocs(docs, options.orderBy || '', options.direction || 'asc');
+    }
+    async function adminReadDoc(collectionName, docId, options={}){
+      const name = String(collectionName || '').trim();
+      const id = String(docId || '').trim();
+
+      if(name === 'users' || name === SECURITY_CONFIG.ADMIN_USERS_COLLECTION){
+        const data = await adminReadApi({ action:'readAdminData', collections:['products'], productsLimit:1 }, { requireA2F:false });
+        if(!data || data.success === false || !data.admin){
+          return { id, exists: () => false, data: () => ({}) };
+        }
+        return backendDocSnap({
+          docId:id,
+          role:data.admin.role || 'viewer',
+          active:true,
+          disabled:false,
+          email:data.admin.email || ''
+        }, id);
+      }
+
+      if(name === 'settings'){
+        const data = await adminReadApi({ action:'readAdminData', collections:['settings'] }, { requireA2F: options.requireA2F !== false });
+        const allSettings = data && data.settings && typeof data.settings === 'object' ? data.settings : {};
+        const docData = allSettings[id];
+        if(!docData) return { id, exists: () => false, data: () => ({}) };
+        return backendDocSnap(Object.assign({ docId:id }, docData), id);
+      }
+
+      const rows = await adminReadCollection(name, options);
+      const found = rows.find(row => row.id === id);
+      return found || { id, exists: () => false, data: () => ({}) };
+    }
+
     async function adminSetDoc(collectionName, docId, data, options={}){
-      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+      const result = await adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
         action: 'setDoc',
         collection: String(collectionName || '').trim(),
         docId: cleanAdminDocId(docId),
         data: sanitizeAdminPayload(data || {}),
         merge: options.merge !== false
       });
+      scheduleBackendReadRefresh();
+      return result;
     }
     async function adminUpdateDoc(collectionName, docId, data){
-      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+      const result = await adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
         action: 'updateDoc',
         collection: String(collectionName || '').trim(),
         docId: cleanAdminDocId(docId),
         data: sanitizeAdminPayload(data || {})
       });
+      scheduleBackendReadRefresh();
+      return result;
     }
     async function adminDeleteDoc(collectionName, docId){
-      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+      const result = await adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
         action: 'deleteDoc',
         collection: String(collectionName || '').trim(),
         docId: cleanAdminDocId(docId)
       });
+      scheduleBackendReadRefresh();
+      return result;
     }
     async function adminBatch(ops, actionLabel='batch'){
       const operations = (ops || []).map(normalizeAdminOperation);
       if(!operations.length) return { success:true, count:0 };
-      return adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
+      const result = await adminApiJson(ADMIN_FIRESTORE_ENDPOINT, {
         action: 'batch',
         actionLabel,
         operations
       });
+      scheduleBackendReadRefresh();
+      return result;
     }
     async function adminUploadFile(file, purpose, path){
       if(!auth.currentUser) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
@@ -2539,8 +2657,7 @@
       return { role: '', rawRole: rawRole || '' };
     }
     async function loadFirestoreAdminRole(user){
-      const userRef = doc(db, SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid);
-      const snap = await getDoc(userRef);
+      const snap = await adminReadDoc(SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid, { requireA2F:false });
       if(!snap.exists()){
         return { exists: false, active: false, role: '', rawRole: '' };
       }
@@ -3169,17 +3286,17 @@
       tick();
       setInterval(tick, 30000);
     }
-    function startListening(){
-      if(unsubscribeProducts) unsubscribeProducts();
-      setNotice(els.syncStatus, 'Membaca produk dari Firebase...');
+    let backendReadRefreshTimer = null;
+    async function loadProductsFromBackend(){
+      setNotice(els.syncStatus, 'Membaca produk dari backend...');
       els.miniSyncStatus.textContent = 'Sinkronisasi...';
-      els.lastSync.textContent = 'Mengambil data Firestore';
+      els.lastSync.textContent = 'Mengambil data via backend';
       els.syncDot.className = 'mini-dot warn';
-      const q = query(productsRef, orderBy('id'));
-      unsubscribeProducts = onSnapshot(q, (snapshot) => {
-        products = snapshot.docs.map(normalize).sort((a,b)=>a.id-b.id);
-        setNotice(els.syncStatus, 'Sinkron aktif. Produk terbaca: ' + products.length + ' • ' + nowLabel(), 'good');
-        els.miniSyncStatus.textContent = 'Sinkron aktif';
+      try{
+        const rows = await adminReadCollection('products', { orderBy:'id' });
+        products = rows.map(normalize).sort((a,b)=>a.id-b.id);
+        setNotice(els.syncStatus, 'Sinkron backend aktif. Produk terbaca: ' + products.length + ' • ' + nowLabel(), 'good');
+        els.miniSyncStatus.textContent = 'Sinkron backend aktif';
         els.lastSync.textContent = 'Terakhir: ' + nowLabel();
         els.syncDot.className = 'mini-dot good';
         ultraAutoDeleteOldArchivedDocs();
@@ -3187,12 +3304,67 @@
         runQualityAudit(false);
         renderReports();
         if(!els.id.value && !dirty) autoId({ silent:true });
-      }, (error) => {
-        setNotice(els.syncStatus, 'Gagal membaca produk: ' + firebaseMessage(error), 'danger');
+      }catch(error){
+        setNotice(els.syncStatus, 'Gagal membaca produk via backend: ' + firebaseMessage(error), 'danger');
         els.miniSyncStatus.textContent = 'Sinkron gagal';
         els.lastSync.textContent = firebaseMessage(error);
         els.syncDot.className = 'mini-dot danger';
-      });
+      }
+    }
+    async function loadOrdersFromBackend(){
+      if(!els.orderSyncStatus) return;
+      setNotice(els.orderSyncStatus, 'Membaca pesanan dari backend...');
+      try{
+        const rows = await adminReadCollection('orders', { orderBy:'createdAt' });
+        orders = rows.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
+        setNotice(els.orderSyncStatus, 'Sinkron backend aktif. Pesanan terbaca: ' + orders.length + ' • ' + nowLabel(), 'good');
+        ultraAutoDeleteOldArchivedDocs();
+        renderOrders();
+        renderBusinessDashboard();
+      }catch(error){
+        setNotice(els.orderSyncStatus, 'Gagal membaca pesanan via backend: ' + firebaseMessage(error), 'danger');
+      }
+    }
+    async function loadCustomersFromBackend(){
+      if(!els.customerSyncStatus) return;
+      setNotice(els.customerSyncStatus, 'Membaca pelanggan dari backend...');
+      try{
+        const rows = await adminReadCollection('customers', { orderBy:'name' });
+        customers = rows.map(normalizeCustomer).sort((a,b)=>a.name.localeCompare(b.name));
+        setNotice(els.customerSyncStatus, 'Sinkron backend aktif. Pelanggan terbaca: ' + customers.length + ' • ' + nowLabel(), 'good');
+        renderCustomers();
+        renderProductOptions();
+        renderBusinessDashboard();
+      }catch(error){
+        setNotice(els.customerSyncStatus, 'Gagal membaca pelanggan via backend: ' + firebaseMessage(error), 'danger');
+      }
+    }
+    async function refreshBackendReads(){
+      if(!twoFactorVerified || !currentAdmin.canRead) return;
+      await Promise.allSettled([
+        loadProductsFromBackend(),
+        loadOrdersFromBackend(),
+        loadCustomersFromBackend(),
+        loadSettingsFromBackend(),
+        loadSecurityLogsFromBackend(),
+        ultraLoadCatalogFromBackend()
+      ]);
+      renderBusinessDashboard();
+      renderReports();
+    }
+    function scheduleBackendReadRefresh(delay=700){
+      if(!twoFactorVerified || !currentAdmin.canRead) return;
+      if(backendReadRefreshTimer) clearTimeout(backendReadRefreshTimer);
+      backendReadRefreshTimer = setTimeout(() => {
+        backendReadRefreshTimer = null;
+        refreshBackendReads().catch(error => console.warn('Refresh backend gagal:', error));
+      }, delay);
+    }
+    function startListening(){
+      if(unsubscribeProducts) unsubscribeProducts();
+      loadProductsFromBackend();
+      const timer = setInterval(() => loadProductsFromBackend().catch(error => console.warn('Produk backend gagal:', error)), 30000);
+      unsubscribeProducts = () => clearInterval(timer);
       startOrdersListening();
       startCustomersListening();
       startSettingsListening();
@@ -3305,32 +3477,16 @@
     function startOrdersListening(){
       if(unsubscribeOrders) return;
       if(!els.orderSyncStatus) return;
-      setNotice(els.orderSyncStatus, 'Membaca pesanan dari Firebase...');
-      const q = query(ordersRef, orderBy('createdAt'));
-      unsubscribeOrders = onSnapshot(q, (snapshot) => {
-        orders = snapshot.docs.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
-        setNotice(els.orderSyncStatus, 'Sinkron aktif. Pesanan terbaca: ' + orders.length + ' • ' + nowLabel(), 'good');
-        ultraAutoDeleteOldArchivedDocs();
-        renderOrders();
-        renderBusinessDashboard();
-      }, (error) => {
-        setNotice(els.orderSyncStatus, 'Gagal membaca pesanan: ' + firebaseMessage(error), 'danger');
-      });
+      loadOrdersFromBackend();
+      const timer = setInterval(() => loadOrdersFromBackend().catch(error => console.warn('Pesanan backend gagal:', error)), 30000);
+      unsubscribeOrders = () => clearInterval(timer);
     }
     function startCustomersListening(){
       if(unsubscribeCustomers) return;
       if(!els.customerSyncStatus) return;
-      setNotice(els.customerSyncStatus, 'Membaca pelanggan dari Firebase...');
-      const q = query(customersRef, orderBy('name'));
-      unsubscribeCustomers = onSnapshot(q, (snapshot) => {
-        customers = snapshot.docs.map(normalizeCustomer).sort((a,b)=>a.name.localeCompare(b.name));
-        setNotice(els.customerSyncStatus, 'Sinkron aktif. Pelanggan terbaca: ' + customers.length + ' • ' + nowLabel(), 'good');
-        renderCustomers();
-        renderProductOptions();
-        renderBusinessDashboard();
-      }, (error) => {
-        setNotice(els.customerSyncStatus, 'Gagal membaca pelanggan: ' + firebaseMessage(error), 'danger');
-      });
+      loadCustomersFromBackend();
+      const timer = setInterval(() => loadCustomersFromBackend().catch(error => console.warn('Pelanggan backend gagal:', error)), 30000);
+      unsubscribeCustomers = () => clearInterval(timer);
     }
     function autoOrderId(){
       const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
@@ -3964,16 +4120,21 @@
       }catch(error){ setNotice(messageEl, firebaseMessage(error), 'danger'); }
       finally{ setBusy(false); }
     }
+    async function loadSettingsFromBackend(){
+      await Promise.all(Object.keys(settingsRefs).map(async kind => {
+        try{
+          const snap = await adminReadDoc('settings', kind);
+          if(snap.exists()) mergeSettings(kind, snap.data() || {});
+          else mergeSettings(kind, defaultSettings()[kind]);
+        }catch(error){ console.warn('Gagal membaca settings/' + kind + ' via backend', error); }
+      }));
+    }
     function startSettingsListening(){
       unsubscribeSettings.forEach(fn => { try{ fn(); }catch(_e){} });
       unsubscribeSettings = [];
-      Object.keys(settingsRefs).forEach(kind => {
-        const unsub = onSnapshot(settingsRefs[kind], snap => {
-          if(snap.exists()) mergeSettings(kind, snap.data() || {});
-          else mergeSettings(kind, defaultSettings()[kind]);
-        }, error => console.warn('Gagal membaca settings/' + kind, error));
-        unsubscribeSettings.push(unsub);
-      });
+      loadSettingsFromBackend();
+      const timer = setInterval(() => loadSettingsFromBackend().catch(error => console.warn('Settings backend gagal:', error)), 60000);
+      unsubscribeSettings.push(() => clearInterval(timer));
     }
     function localSecurityLogs(){
       try{ return JSON.parse(localStorage.getItem('dirac-admin-security-log-v1') || '[]'); }catch(_e){ return []; }
@@ -3995,14 +4156,22 @@
         saveLocalSecurityLog(entry);
       }
     }
-    function startSecurityLogsListening(){
-      if(unsubscribeSecurityLogs) unsubscribeSecurityLogs();
-      unsubscribeSecurityLogs = onSnapshot(query(securityLogsRef, orderBy('createdAtMs')), snapshot => {
-        const remote = snapshot.docs.map(d => Object.assign({ docId:d.id }, d.data() || {})).sort((a,b)=>Number(b.createdAtMs || 0)-Number(a.createdAtMs || 0)).slice(0,120);
+    async function loadSecurityLogsFromBackend(){
+      try{
+        const rows = await adminReadCollection('securityLogs', { orderBy:'createdAtMs', limit:120 });
+        const remote = rows.map(d => Object.assign({ docId:d.id }, d.data() || {})).sort((a,b)=>Number(b.createdAtMs || 0)-Number(a.createdAtMs || 0)).slice(0,120);
         const local = localSecurityLogs();
         securityLogs = remote.length ? remote : local;
-        renderSecurityLogs();
-      }, _error => { securityLogs = localSecurityLogs(); renderSecurityLogs(); });
+      }catch(_error){
+        securityLogs = localSecurityLogs();
+      }
+      renderSecurityLogs();
+    }
+    function startSecurityLogsListening(){
+      if(unsubscribeSecurityLogs) unsubscribeSecurityLogs();
+      loadSecurityLogsFromBackend();
+      const timer = setInterval(() => loadSecurityLogsFromBackend().catch(error => console.warn('Security log backend gagal:', error)), 60000);
+      unsubscribeSecurityLogs = () => clearInterval(timer);
     }
     function renderSecurityLogs(){
       if(!els.securityLogList) return;
@@ -5011,15 +5180,21 @@
       const brandList = $('brandList');
       if(brandList){ const brands = [...new Set([...ultraState.brands.map(b=>b.name), ...products.map(p=>p.brand)].filter(Boolean))].sort((a,b)=>a.localeCompare(b)); brandList.innerHTML = brands.map(b=>`<option value="${escapeHtml(b)}"></option>`).join(''); }
     }
+    async function ultraLoadCatalogFromBackend(){
+      const load = async (collectionName, key) => {
+        try{
+          const rows = await adminReadCollection(collectionName, { orderBy:'name' });
+          ultraState[key] = rows.map(d => Object.assign({ docId:d.id }, d.data() || {}));
+        }catch(error){ console.warn('Master data gagal via backend:', key, error); }
+      };
+      await Promise.allSettled([load('categories', 'categories'), load('brands', 'brands'), load('variants', 'variants')]);
+      ultraRenderMasterLists();
+    }
     function ultraStartCatalogListening(){
       if(ultraState.unsubscribeCatalog.length) return;
-      const bind = (ref, key, orderField='name') => {
-        try{
-          const unsub = onSnapshot(query(ref, orderBy(orderField)), snap => { ultraState[key] = snap.docs.map(d => Object.assign({ docId:d.id }, d.data() || {})); ultraRenderMasterLists(); }, error => { console.warn('Master data gagal:', key, error); });
-          ultraState.unsubscribeCatalog.push(unsub);
-        }catch(error){ console.warn('Master data listener gagal:', key, error); }
-      };
-      bind(categoriesRef, 'categories'); bind(brandsRef, 'brands'); bind(variantsRef, 'variants');
+      ultraLoadCatalogFromBackend();
+      const timer = setInterval(() => ultraLoadCatalogFromBackend().catch(error => console.warn('Master data backend gagal:', error)), 60000);
+      ultraState.unsubscribeCatalog.push(() => clearInterval(timer));
     }
     const ultraBaseStartListening = startListening;
     startListening = function(){ ultraBaseStartListening(); ultraStartCatalogListening(); };
