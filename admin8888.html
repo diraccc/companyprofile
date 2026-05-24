@@ -1680,18 +1680,14 @@
         } else if(twoFactorStep === 5){
           els.twoFactorHelp.textContent = 'Selesaikan pemeriksaan keamanan perangkat untuk lanjut ke persetujuan email.';
         } else if(twoFactorStep === 6){
-          if(step6EmailApprovalStatus === 'approved_waiting_code'){
-            els.twoFactorHelp.textContent = 'Email sudah dibuka. Ketik kode 50 digit yang tampil di layar ini pada halaman approval email.';
-          } else {
-            els.twoFactorHelp.textContent = 'Cek email kamu, klik SETUJUI, lalu masukkan kode 50 digit dari layar ini di halaman approval email.';
-          }
+          els.twoFactorHelp.textContent = 'Cek email kamu. Masukkan kode 60 digit dari email ke dashboard admin ini.';
         } else {
           els.twoFactorHelp.textContent = 'Ikuti tahap verifikasi untuk membuka dashboard.';
         }
       }
       if(els.twoFactorLabel) els.twoFactorLabel.textContent = method;
       if(els.twoFactorBtn){
-        els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : (twoFactorStep === 6 ? 'Cek Status Email' : 'Verifikasi');
+        els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : (twoFactorStep === 6 ? 'Verifikasi Kode Email' : 'Verifikasi');
         els.twoFactorBtn.disabled = twoFactorBackendLocked || twoFactorPermanentLocked;
       }
       if(els.twoFactorCode){
@@ -1705,15 +1701,11 @@
           els.twoFactorCode.type = 'text';
           els.twoFactorCode.placeholder = 'Klik tombol Verifikasi untuk melanjutkan.';
         } else if(twoFactorStep === 6){
+          els.twoFactorCode.disabled = false;
           els.twoFactorCode.type = 'text';
-          if(step6EmailApprovalStatus === 'approved_waiting_code'){
-            els.twoFactorCode.disabled = false;
-            els.twoFactorCode.placeholder = 'Masukkan kode layar step 6';
-            setTimeout(() => els.twoFactorCode.focus(), 60);
-          } else {
-            els.twoFactorCode.disabled = true;
-            els.twoFactorCode.placeholder = 'Klik SETUJUI di email dulu.';
-          }
+          els.twoFactorCode.inputMode = 'numeric';
+          els.twoFactorCode.placeholder = 'Masukkan kode 60 digit dari email';
+          setTimeout(() => els.twoFactorCode.focus(), 60);
         } else {
           els.twoFactorCode.disabled = false;
           els.twoFactorCode.type = 'password';
@@ -2186,31 +2178,26 @@
       twoFactorStep = 6;
       updateTwoFactorProgress();
 
-      const codeText = String(step6ScreenCode || '').replace(/(\d{5})(?=\d)/g, '$1 ').trim();
-
-      if(step6EmailApprovalStatus === 'approved_waiting_code'){
-        setNotice(
-          els.twoFactorUser,
-          'Email sudah dibuka. Masukkan kode 50 digit ini di halaman approval email, bukan di sini:\n\n' + codeText + '\n\nSalah 1x akan ban permanen.',
-          'warn'
-        );
+      if(step6EmailApprovalStatus === 'approved'){
+        setNotice(els.twoFactorUser, 'Step 6 sudah disetujui. Dashboard akan dibuka.', 'good');
       } else {
         setNotice(
           els.twoFactorUser,
-          'Step 6: kode layar 50 digit sudah dibuat. Buka email, klik SETUJUI, lalu ketik kode ini di halaman approval email:\n\n' + codeText,
-          'good'
+          'Step 6: kode 60 digit sudah dikirim ke email. Masukkan kode itu di dashboard admin ini. Salah 1x akan ban permanen.',
+          'warn'
         );
       }
 
       if(els.twoFactorCode){
-        els.twoFactorCode.value = '';
-        els.twoFactorCode.disabled = true;
+        els.twoFactorCode.disabled = false;
         els.twoFactorCode.type = 'text';
-        els.twoFactorCode.placeholder = 'Kode tidak diketik di sini. Ketik di halaman approval email.';
+        els.twoFactorCode.inputMode = 'numeric';
+        els.twoFactorCode.placeholder = 'Masukkan kode 60 digit dari email';
+        setTimeout(() => els.twoFactorCode.focus(), 60);
       }
 
       if(els.twoFactorBtn){
-        els.twoFactorBtn.textContent = 'Cek Status Email';
+        els.twoFactorBtn.textContent = 'Verifikasi Kode Email';
         els.twoFactorBtn.disabled = false;
       }
     }
@@ -2224,7 +2211,7 @@
       const data = await callStep6EmailApproval('startStep6EmailApproval');
       step6EmailApprovalRequestId = String(data.requestId || '');
       step6EmailApprovalStatus = String(data.status || 'pending_email_approval');
-      step6ScreenCode = String(data.screenCode || '');
+      step6ScreenCode = '';
       setStep6Deadline(Number(data.expiresAtMs || 0));
       renderStep6Status();
       step6EmailApprovalPollTimer = setInterval(() => {
@@ -2241,11 +2228,6 @@
       const data = await callStep6EmailApproval('checkStep6EmailApproval', { requestId: step6EmailApprovalRequestId });
       step6EmailApprovalStatus = String(data.status || step6EmailApprovalStatus || 'pending_email_approval');
       if(Number(data.expiresAtMs || 0)) setStep6Deadline(Number(data.expiresAtMs || 0));
-      if(step6EmailApprovalStatus === 'approved_waiting_code'){
-        renderStep6Status();
-        if(showWaiting) showToast('Email dibuka. Ketik kode 50 digit di halaman approval email.');
-        return;
-      }
       if(step6EmailApprovalStatus === 'approved'){
         clearStep6EmailApprovalPolling();
         await finishTwoFactorSuccess('auth.2fa_success', 'Verifikasi selesai. Dashboard dibuka.');
@@ -2260,7 +2242,7 @@
         clearStep6EmailApprovalPolling();
         throw new Error('Step 6 expired. Login ulang.');
       }
-      if(showWaiting) setNotice(els.twoFactorError, 'Belum disetujui. Buka email dan klik SETUJUI dulu.', 'warn');
+      if(showWaiting) setNotice(els.twoFactorError, 'Masukkan kode 60 digit dari email.', 'warn');
       renderStep6Status();
     }
     async function submitStep6ScreenCode(code){
@@ -2520,11 +2502,14 @@
       if(twoFactorStep < 1 || twoFactorStep > 6) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
       if(twoFactorStep === 6){
-        if(step6EmailApprovalStatus === 'approved_waiting_code'){
-          if(!String(code || '').trim()){
-            setNotice(els.twoFactorError, 'Kode layar step 6 wajib diisi. Salah 1x akan ban permanen.', 'danger');
-            return;
-          }
+        const normalizedStep6Code = String(code || '').replace(/\D+/g, '');
+        if(!normalizedStep6Code){
+          setNotice(els.twoFactorError, 'Kode 60 digit dari email wajib diisi.', 'danger');
+          return;
+        }
+        if(normalizedStep6Code.length !== 60){
+          setNotice(els.twoFactorError, 'Kode harus tepat 60 digit. Belum dikirim ke server, jadi belum dihitung salah.', 'danger');
+          return;
         }
       } else if((faceRecoveryMode || twoFactorStep !== 5) && !String(code || '').trim()){
         setNotice(els.twoFactorError, 'Kode A2F wajib diisi.', 'danger');
