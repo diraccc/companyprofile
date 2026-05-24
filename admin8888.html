@@ -680,6 +680,7 @@
           <span class="twofactor-step" id="twoFactorStep3">3</span>
           <span class="twofactor-step" id="twoFactorStep4">4</span>
           <span class="twofactor-step" id="twoFactorStep5">5</span>
+          <span class="twofactor-step" id="twoFactorStep6">6</span>
         </div>
         <div class="notice good" id="twoFactorUser">Role admin sudah dicek. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
@@ -1365,76 +1366,21 @@
         Array.isArray(data && data.data) ? data.data : [];
       return rows.map((row, index) => backendDocSnap(row, 'doc-' + index));
     }
-    function backendLimitField(collectionName){
-      const name = String(collectionName || '').trim();
-      const map = {
-        products: 'productsLimit',
-        orders: 'ordersLimit',
-        customers: 'customersLimit',
-        securityLogs: 'securityLogsLimit',
-        categories: 'categoriesLimit',
-        brands: 'brandsLimit',
-        variants: 'variantsLimit'
-      };
-      return map[name] || '';
-    }
-    function sortBackendDocs(rows, orderField, direction='asc'){
-      const field = String(orderField || '').trim();
-      if(!field) return rows;
-      const dir = String(direction || 'asc').toLowerCase() === 'desc' ? -1 : 1;
-      return [...rows].sort((a,b) => {
-        const da = a.data ? a.data() || {} : {};
-        const db = b.data ? b.data() || {} : {};
-        const va = da[field];
-        const vb = db[field];
-        const na = Number(va);
-        const nb = Number(vb);
-        if(Number.isFinite(na) && Number.isFinite(nb)) return (na - nb) * dir;
-        return String(va ?? '').localeCompare(String(vb ?? '')) * dir;
-      });
-    }
     async function adminReadCollection(collectionName, options={}){
       const name = String(collectionName || '').trim();
-      const payload = { action:'readAdminData', collections:[name] };
-      const limitField = backendLimitField(name);
-      if(limitField && Number(options.limit || 0) > 0) payload[limitField] = Number(options.limit || 0);
+      const limitKey = name + 'Limit';
+      const payload = { action: 'readAdminData', collections: [name] };
+      if(Number(options.limit || 0)) payload[limitKey] = Number(options.limit || 0);
       const data = await adminReadApi(payload, { requireA2F: options.requireA2F !== false });
-      let rows = Array.isArray(data && data[name]) ? data[name] : [];
-      if(name === 'settings' && data && data.settings && typeof data.settings === 'object'){
-        rows = Object.keys(data.settings).map(id => Object.assign({ docId:id }, data.settings[id] || {}));
-      }
-      const docs = rows.map((row, index) => backendDocSnap(row, name + '-' + index));
-      return sortBackendDocs(docs, options.orderBy || '', options.direction || 'asc');
+      const rows = Array.isArray(data && data[name]) ? data[name] : [];
+      return rows.map((row, index) => backendDocSnap(row, name + '-' + index));
     }
     async function adminReadDoc(collectionName, docId, options={}){
-      const name = String(collectionName || '').trim();
-      const id = String(docId || '').trim();
-
-      if(name === 'users' || name === SECURITY_CONFIG.ADMIN_USERS_COLLECTION){
-        const data = await adminReadApi({ action:'readAdminData', collections:['products'], productsLimit:1 }, { requireA2F:false });
-        if(!data || data.success === false || !data.admin){
-          return { id, exists: () => false, data: () => ({}) };
-        }
-        return backendDocSnap({
-          docId:id,
-          role:data.admin.role || 'viewer',
-          active:true,
-          disabled:false,
-          email:data.admin.email || ''
-        }, id);
-      }
-
-      if(name === 'settings'){
-        const data = await adminReadApi({ action:'readAdminData', collections:['settings'] }, { requireA2F: options.requireA2F !== false });
-        const allSettings = data && data.settings && typeof data.settings === 'object' ? data.settings : {};
-        const docData = allSettings[id];
-        if(!docData) return { id, exists: () => false, data: () => ({}) };
-        return backendDocSnap(Object.assign({ docId:id }, docData), id);
-      }
-
-      const rows = await adminReadCollection(name, options);
-      const found = rows.find(row => row.id === id);
-      return found || { id, exists: () => false, data: () => ({}) };
+      const rows = await adminReadCollection(collectionName, Object.assign({}, options, { limit: options.limit || 30000 }));
+      const wanted = String(docId || '');
+      const found = rows.find(row => String(row.id) === wanted);
+      if(!found) return { id: wanted, exists: () => false, data: () => ({}) };
+      return found;
     }
 
     async function adminSetDoc(collectionName, docId, data, options={}){
@@ -1585,6 +1531,11 @@
     let twoFactorTimeoutTriggered = false;
     let twoFactorVerificationInFlight = false;
     let twoFactorRestartTimerAfterFlight = false;
+    let step6EmailApprovalRequestId = '';
+    let step6EmailApprovalStatus = '';
+    let step6EmailApprovalPollTimer = null;
+    let step6ScreenCode = '';
+    let step6ExpiresAtMs = 0;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
     const FACE_RECOVERY_TOTAL_STEPS = 5;
@@ -1646,6 +1597,11 @@
       twoFactorTimeoutTriggered = false;
       twoFactorVerificationInFlight = false;
       twoFactorRestartTimerAfterFlight = false;
+      clearStep6EmailApprovalPolling();
+      step6EmailApprovalRequestId = '';
+      step6EmailApprovalStatus = '';
+      step6ScreenCode = '';
+      step6ExpiresAtMs = 0;
       clearTwoFactorTimeoutTimer();
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
@@ -1660,18 +1616,18 @@
         els.twoFactorBtn.textContent = 'Verifikasi';
       }
       if(els.twoFactorError) hideNotice(els.twoFactorError);
-      [1,2,3,4,5].forEach(step => {
+      [1,2,3,4,5,6].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(node) node.className = 'twofactor-step';
       });
     }
     function twoFactorMethodName(step){
       if(step === 5) return 'Pemeriksaan keamanan';
+      if(step === 6) return 'Kode persetujuan email';
       return 'Kode verifikasi';
-      return 'A2F';
     }
     function updateTwoFactorProgress(){
-      [1,2,3,4,5].forEach(step => {
+      [1,2,3,4,5,6].forEach(step => {
         const node = $('twoFactorStep' + step);
         if(!node) return;
         node.className = 'twofactor-step' + (step < twoFactorStep ? ' done' : step === twoFactorStep ? ' active' : '');
@@ -1722,14 +1678,20 @@
         } else if(twoFactorStep === 4){
           els.twoFactorHelp.textContent = 'Masukkan kode verifikasi untuk melanjutkan.';
         } else if(twoFactorStep === 5){
-          els.twoFactorHelp.textContent = 'Selesaikan pemeriksaan keamanan terakhir untuk membuka dashboard.';
+          els.twoFactorHelp.textContent = 'Selesaikan pemeriksaan keamanan perangkat untuk lanjut ke persetujuan email.';
+        } else if(twoFactorStep === 6){
+          if(step6EmailApprovalStatus === 'approved_waiting_code'){
+            els.twoFactorHelp.textContent = 'Email sudah disetujui. Masukkan kode layar untuk membuka dashboard.';
+          } else {
+            els.twoFactorHelp.textContent = 'Cek email kamu, klik SETUJUI dulu, lalu kembali ke sini untuk cocokkan kode.';
+          }
         } else {
           els.twoFactorHelp.textContent = 'Ikuti tahap verifikasi untuk membuka dashboard.';
         }
       }
       if(els.twoFactorLabel) els.twoFactorLabel.textContent = method;
       if(els.twoFactorBtn){
-        els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : 'Verifikasi';
+        els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : (twoFactorStep === 6 ? (step6EmailApprovalStatus === 'approved_waiting_code' ? 'Cocokkan Kode' : 'Cek Email') : 'Verifikasi');
         els.twoFactorBtn.disabled = twoFactorBackendLocked || twoFactorPermanentLocked;
       }
       if(els.twoFactorCode){
@@ -1742,6 +1704,16 @@
           els.twoFactorCode.disabled = true;
           els.twoFactorCode.type = 'text';
           els.twoFactorCode.placeholder = 'Klik tombol Verifikasi untuk melanjutkan.';
+        } else if(twoFactorStep === 6){
+          els.twoFactorCode.type = 'text';
+          if(step6EmailApprovalStatus === 'approved_waiting_code'){
+            els.twoFactorCode.disabled = false;
+            els.twoFactorCode.placeholder = 'Masukkan kode layar step 6';
+            setTimeout(() => els.twoFactorCode.focus(), 60);
+          } else {
+            els.twoFactorCode.disabled = true;
+            els.twoFactorCode.placeholder = 'Klik SETUJUI di email dulu.';
+          }
         } else {
           els.twoFactorCode.disabled = false;
           els.twoFactorCode.type = 'password';
@@ -2161,6 +2133,161 @@
       clearBackendStepSession(stepNumber);
       return data;
     }
+    function clearStep6EmailApprovalPolling(){
+      if(step6EmailApprovalPollTimer){
+        clearInterval(step6EmailApprovalPollTimer);
+        step6EmailApprovalPollTimer = null;
+      }
+    }
+    async function callStep6EmailApproval(action, payload={}){
+      if(!SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT){
+        throw new Error('Endpoint step 6 belum diisi.');
+      }
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        cache: 'no-store',
+        body: JSON.stringify(Object.assign({ action, idToken }, payload || {}))
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        const error = new Error(data.error || data.message || 'Step 6 gagal.');
+        error.countAttempt = false;
+        if(data && (data.permanentBan || data.status === 'denied_permanent_ban' || data.status === 'permanent_ban_wrong_code')){
+          error.a2fLockState = Object.assign({ permanentBan:true, failedCount:A2F_BACKEND_MAX_FAILURES }, data);
+        }
+        throw error;
+      }
+      return data;
+    }
+    function setStep6Deadline(expiresAtMs){
+      if(!expiresAtMs) return;
+      step6ExpiresAtMs = Number(expiresAtMs || 0);
+      twoFactorTimeoutTriggered = false;
+      twoFactorDeadlineMs = step6ExpiresAtMs;
+      const remainingMs = Math.max(0, step6ExpiresAtMs - Date.now());
+      updateA2fTimeoutNotice(remainingMs);
+      clearTwoFactorTimeoutTimer();
+      twoFactorTimeoutTimer = setInterval(() => {
+        if(twoFactorVerified || els.twoFactorSection.classList.contains('hidden')){
+          clearTwoFactorTimeoutTimer();
+          return;
+        }
+        const left = step6ExpiresAtMs - Date.now();
+        updateA2fTimeoutNotice(left);
+        if(left <= 0){
+          handleTwoFactorTimeout().catch(error => setNotice(els.twoFactorError, error.message || 'Step 6 timeout.', 'danger'));
+        }
+      }, 500);
+    }
+    function renderStep6Status(){
+      twoFactorStep = 6;
+      updateTwoFactorProgress();
+      if(step6EmailApprovalStatus === 'approved_waiting_code'){
+        setNotice(els.twoFactorUser, 'Email sudah disetujui. Masukkan kode layar: ' + step6ScreenCode + '. Salah 1x akan ban permanen.', 'warn');
+        if(els.twoFactorCode){
+          els.twoFactorCode.disabled = false;
+          els.twoFactorCode.type = 'text';
+          els.twoFactorCode.placeholder = 'Kode layar: ' + step6ScreenCode;
+        }
+        if(els.twoFactorBtn){
+          els.twoFactorBtn.textContent = 'Cocokkan Kode';
+          els.twoFactorBtn.disabled = false;
+        }
+      } else {
+        setNotice(els.twoFactorUser, 'Step 6: email persetujuan sudah dikirim. Klik SETUJUI di email dulu. Kode layar: ' + step6ScreenCode, 'good');
+        if(els.twoFactorCode){
+          els.twoFactorCode.value = '';
+          els.twoFactorCode.disabled = true;
+          els.twoFactorCode.type = 'text';
+          els.twoFactorCode.placeholder = 'Menunggu klik SETUJUI di email';
+        }
+        if(els.twoFactorBtn){
+          els.twoFactorBtn.textContent = 'Cek Email';
+          els.twoFactorBtn.disabled = false;
+        }
+      }
+    }
+    async function startStep6EmailApproval(){
+      clearStep6EmailApprovalPolling();
+      step6EmailApprovalRequestId = '';
+      step6EmailApprovalStatus = 'starting';
+      step6ScreenCode = '';
+      if(els.twoFactorBtn) els.twoFactorBtn.disabled = true;
+      setNotice(els.twoFactorUser, 'Mengirim email persetujuan step 6...', 'good');
+      const data = await callStep6EmailApproval('startStep6EmailApproval');
+      step6EmailApprovalRequestId = String(data.requestId || '');
+      step6EmailApprovalStatus = String(data.status || 'pending_email_approval');
+      step6ScreenCode = String(data.screenCode || '');
+      setStep6Deadline(Number(data.expiresAtMs || 0));
+      renderStep6Status();
+      step6EmailApprovalPollTimer = setInterval(() => {
+        checkStep6EmailApproval(false).catch(error => {
+          console.warn('Step 6 poll gagal:', error);
+        });
+      }, 2500);
+    }
+    async function checkStep6EmailApproval(showWaiting=true){
+      if(!step6EmailApprovalRequestId){
+        await startStep6EmailApproval();
+        return;
+      }
+      const data = await callStep6EmailApproval('checkStep6EmailApproval', { requestId: step6EmailApprovalRequestId });
+      step6EmailApprovalStatus = String(data.status || step6EmailApprovalStatus || 'pending_email_approval');
+      if(Number(data.expiresAtMs || 0)) setStep6Deadline(Number(data.expiresAtMs || 0));
+      if(step6EmailApprovalStatus === 'approved_waiting_code'){
+        clearStep6EmailApprovalPolling();
+        renderStep6Status();
+        showToast('Email disetujui. Cocokkan kode layar.');
+        return;
+      }
+      if(step6EmailApprovalStatus === 'approved'){
+        clearStep6EmailApprovalPolling();
+        await finishTwoFactorSuccess('auth.2fa_success', 'Verifikasi selesai. Dashboard dibuka.');
+        return;
+      }
+      if(step6EmailApprovalStatus.includes('denied') || step6EmailApprovalStatus.includes('permanent_ban')){
+        clearStep6EmailApprovalPolling();
+        applyA2fBackendLockState({ permanentBan:true, failedCount:A2F_BACKEND_MAX_FAILURES, error:'Step 6 ditolak. A2F diblokir permanen.' });
+        return;
+      }
+      if(step6EmailApprovalStatus === 'expired'){
+        clearStep6EmailApprovalPolling();
+        throw new Error('Step 6 expired. Login ulang.');
+      }
+      if(showWaiting) setNotice(els.twoFactorError, 'Belum disetujui. Buka email dan klik SETUJUI dulu.', 'warn');
+      renderStep6Status();
+    }
+    async function submitStep6ScreenCode(code){
+      if(!step6EmailApprovalRequestId) throw new Error('Request step 6 belum dibuat.');
+      const data = await callStep6EmailApproval('submitStep6ScreenCode', {
+        requestId: step6EmailApprovalRequestId,
+        code: String(code || '').trim()
+      });
+      if(data.status === 'approved' || data.success === true){
+        clearStep6EmailApprovalPolling();
+        await finishTwoFactorSuccess('auth.2fa_success', 'Verifikasi selesai. Dashboard dibuka.');
+      }
+    }
+    async function finishTwoFactorSuccess(logType='auth.2fa_success', toastText='Verifikasi selesai. Dashboard dibuka.'){
+      twoFactorVerified = true;
+      clearTwoFactorTimeoutTimer();
+      clearStep6EmailApprovalPolling();
+      faceRecoveryMode = false;
+      faceRecoveryStep = 0;
+      els.twoFactorSection.classList.add('hidden');
+      els.adminSection.classList.remove('hidden');
+      els.logoutBtn.classList.remove('hidden');
+      if(currentAdmin.roleSource === 'firestore'){
+        setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Verifikasi keamanan berhasil.', 'good');
+      }
+      startListening();
+      resetIdleTimer();
+      logSecurity(logType, 'Dashboard dibuka').catch(() => {});
+      showToast(toastText);
+    }
     async function verifyRiskTwoFactor(deviceToken){
       if(!SECURITY_CONFIG.TWO_FACTOR_RISK_VERIFY_ENDPOINT){
         throw new Error('Endpoint verifikasi belum diisi.');
@@ -2387,9 +2514,16 @@
         return;
       }
       hideNotice(els.twoFactorError);
-      if(twoFactorStep < 1 || twoFactorStep > 5) twoFactorStep = 1;
+      if(twoFactorStep < 1 || twoFactorStep > 6) twoFactorStep = 1;
       const code = els.twoFactorCode.value;
-      if((faceRecoveryMode || twoFactorStep !== 5) && !String(code || '').trim()){
+      if(twoFactorStep === 6){
+        if(step6EmailApprovalStatus === 'approved_waiting_code'){
+          if(!String(code || '').trim()){
+            setNotice(els.twoFactorError, 'Kode layar step 6 wajib diisi. Salah 1x akan ban permanen.', 'danger');
+            return;
+          }
+        }
+      } else if((faceRecoveryMode || twoFactorStep !== 5) && !String(code || '').trim()){
         setNotice(els.twoFactorError, 'Kode A2F wajib diisi.', 'danger');
         return;
       }
@@ -2411,6 +2545,13 @@
           await verifyRiskTwoFactor(code);
         } else if(twoFactorStep === 5){
           await verifyPasskeyTwoFactor();
+        } else if(twoFactorStep === 6){
+          if(step6EmailApprovalStatus === 'approved_waiting_code'){
+            await submitStep6ScreenCode(code);
+          } else {
+            await checkStep6EmailApproval(true);
+          }
+          return;
         }
         twoFactorAttempts = 0;
         try{
@@ -2420,7 +2561,7 @@
           setNotice(els.twoFactorError, error.message || 'Gagal cek lock backend A2F.', 'danger');
           return;
         }
-        if(twoFactorStep < 5){
+        if(twoFactorStep < 6){
           twoFactorStep += 1;
           showToast('Verifikasi berhasil');
           updateTwoFactorProgress();
@@ -2431,32 +2572,25 @@
             } else if(twoFactorStep === 4){
               setNotice(els.twoFactorUser, 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan.', 'good');
             } else if(twoFactorStep === 5){
-              setNotice(els.twoFactorUser, 'Tahap akhir: selesaikan pemeriksaan keamanan.', 'good');
+              setNotice(els.twoFactorUser, 'Tahap keamanan perangkat: selesaikan pemeriksaan passkey/Face ID.', 'good');
+            } else if(twoFactorStep === 6){
+              await startStep6EmailApproval();
             }
           }finally{
-            restartTwoFactorTimeoutTimerForNextStep();
+            if(twoFactorStep !== 6) restartTwoFactorTimeoutTimerForNextStep();
           }
           return;
         }
-        twoFactorVerified = true;
-        clearTwoFactorTimeoutTimer();
-        els.twoFactorSection.classList.add('hidden');
-        els.adminSection.classList.remove('hidden');
-        els.logoutBtn.classList.remove('hidden');
-        if(currentAdmin.roleSource === 'firestore'){
-          setNotice(els.syncStatus, 'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Verifikasi keamanan berhasil.', 'good');
-        }
-        startListening();
-        resetIdleTimer();
-        logSecurity('auth.2fa_success', 'Dashboard dibuka').catch(() => {});
-        showToast('Verifikasi selesai. Dashboard dibuka.');
+        await finishTwoFactorSuccess('auth.2fa_success', 'Verifikasi selesai. Dashboard dibuka.');
       }catch(error){
         if(!faceRecoveryMode && twoFactorStep === 5){
           await enterFaceRecovery(error.message || 'Face ID/passkey gagal.');
           return;
         }
 
-        if(error && error.countAttempt){
+        if(error && error.a2fLockState){
+          applyA2fBackendLockState(error.a2fLockState);
+        } else if(error && error.countAttempt){
           await markTwoFactorWrong(error.message || 'Kode A2F salah.', error.a2fLockState);
         } else {
           setNotice(els.twoFactorError, error.message || 'Verifikasi A2F gagal.', 'danger');
