@@ -903,6 +903,19 @@ async function denyStep6FromEmail(req, res) {
   }
 }
 
+
+async function checkA2fBanStatus(req, res) {
+  const { idToken } = req.body || {};
+  await verifyAdminIdToken(idToken);
+  await checkA2fLock();
+
+  return res.status(200).json({
+    success: true,
+    permanentBan: false,
+    message: "A2F aktif"
+  });
+}
+
 module.exports = async function handler(req, res) {
   setCors(res);
 
@@ -927,6 +940,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const action = String((req.body && req.body.action) || "").trim();
+
+    if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
 
     if (action === "startStep6EmailApproval") return startStep6EmailApproval(req, res);
     if (action === "checkStep6EmailApproval") return checkStep6EmailApproval(req, res);
