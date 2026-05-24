@@ -37,7 +37,7 @@ function randomId(bytes = 24) {
   return crypto.randomBytes(bytes).toString("base64url");
 }
 
-function randomDigitCode(length = 50) {
+function randomDigitCode(length = 60) {
   let out = "";
   while (out.length < length) {
     out += String(crypto.randomInt(0, 10));
@@ -196,6 +196,20 @@ function getOneTimeRecoveryLookupHash(code, secret) {
 
 async function verifyOneTimeRecoveryArgon2id(inputCode, storedHash) {
   const normalized = normalizeOneTimeRecoveryCode(inputCode);
+
+  if (!storedHash || typeof storedHash !== "string") {
+    return false;
+  }
+
+  try {
+    return await argon2.verify(storedHash, normalized);
+  } catch (_error) {
+    return false;
+  }
+}
+
+async function verifyStep6Argon2idCode(inputCode, storedHash) {
+  const normalized = String(inputCode || "").replace(/\D+/g, "");
 
   if (!storedHash || typeof storedHash !== "string") {
     return false;
@@ -443,7 +457,7 @@ function getSmtpTransporter() {
   });
 }
 
-async function sendStep6Email({ requestId, approveToken, denyToken, email }) {
+async function sendStep6Email({ requestId, denyToken, emailCode, email }) {
   const baseUrl = String(process.env.A2F_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
 
   if (!baseUrl) {
@@ -458,40 +472,33 @@ async function sendStep6Email({ requestId, approveToken, denyToken, email }) {
     throw new Error("Email approval belum lengkap");
   }
 
-  const approveUrl =
-    `${baseUrl}/api/2fa/verify-step?action=approveStep6` +
-    `&requestId=${encodeURIComponent(requestId)}` +
-    `&token=${encodeURIComponent(approveToken)}`;
-
   const denyUrl =
     `${baseUrl}/api/2fa/verify-step?action=denyStep6` +
     `&requestId=${encodeURIComponent(requestId)}` +
     `&token=${encodeURIComponent(denyToken)}`;
 
-  const subject = "Persetujuan Login Admin Dirac";
+  const groupedCode = String(emailCode || "").replace(/(\d{6})(?=\d)/g, "$1 ");
+  const subject = "Kode Persetujuan Login Admin Dirac";
 
   const text =
 `Ada percobaan login ke Admin Dirac.
 
-Klik SETUJUI jika ini kamu. Setelah klik SETUJUI, kamu akan diminta memasukkan kode 50 digit yang tampil di layar admin.
+Masukkan kode 60 digit ini ke dashboard admin:
 
-SETUJUI LOGIN:
-${approveUrl}
+${groupedCode}
 
-TOLAK & BAN PERMANEN:
-${denyUrl}
+Salah 1x akan membuat A2F diblokir permanen.
 
-Jika ini bukan kamu, klik TOLAK.`;
+Jika ini bukan kamu, klik TOLAK & BAN PERMANEN:
+${denyUrl}`;
 
   const html =
 `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
-  <h2>Persetujuan Login Admin Dirac</h2>
+  <h2>Kode Persetujuan Login Admin Dirac</h2>
   <p>Ada percobaan login ke Admin Dirac.</p>
-  <p>Klik <b>SETUJUI</b> jika ini kamu. Setelah itu kamu akan diminta memasukkan <b>kode 50 digit</b> yang tampil di layar admin.</p>
-  <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> kode tidak ditulis di email ini. Kode hanya ada di layar admin.</p>
-  <p>
-    <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">SETUJUI LOGIN</a>
-  </p>
+  <p>Masukkan kode <b>60 digit</b> ini ke dashboard admin:</p>
+  <div style="font-size:22px;font-weight:800;letter-spacing:2px;line-height:1.7;padding:14px 18px;background:#eef6ff;border-radius:12px;word-break:break-all">${groupedCode}</div>
+  <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah 1x akan membuat A2F diblokir permanen.</p>
   <p>
     <a href="${denyUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">TOLAK & BAN PERMANEN</a>
   </p>
@@ -508,7 +515,6 @@ Jika ini bukan kamu, klik TOLAK.`;
     html
   });
 }
-
 async function startStep6EmailApproval(req, res) {
   await checkA2fLock();
 
@@ -520,7 +526,8 @@ async function startStep6EmailApproval(req, res) {
   const requestId = randomId(18);
   const approveToken = randomId(32);
   const denyToken = randomId(32);
-  const screenCode = randomDigitCode(50);
+  const screenCode = randomDigitCode(60);
+  const screenCodeArgon2Hash = await argon2.hash(screenCode, ARGON2ID_OPTIONS);
   const now = Date.now();
   const expiresAtMs = now + 2 * 60 * 1000;
 
@@ -530,7 +537,8 @@ async function startStep6EmailApproval(req, res) {
     uid: decoded.uid,
     email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
     status: "pending_email_approval",
-    screenCodeHash: hashCode(`step6-screen:${requestId}:${screenCode}`, secret),
+    screenCodeHashType: "argon2id",
+    screenCodeArgon2Hash,
     approveTokenHash: hashCode(`step6-approve:${requestId}:${approveToken}`, secret),
     denyTokenHash: hashCode(`step6-deny:${requestId}:${denyToken}`, secret),
     failedCodeCount: 0,
@@ -542,18 +550,17 @@ async function startStep6EmailApproval(req, res) {
 
   await sendStep6Email({
     requestId,
-    approveToken,
     denyToken,
+    emailCode: screenCode,
     email: decoded.email || ""
   });
 
   return res.status(200).json({
     success: true,
     requestId,
-    screenCode,
     status: "pending_email_approval",
     expiresAtMs,
-    message: "Email persetujuan sudah dikirim. Kode 50 digit hanya tampil di layar admin."
+    message: "Kode 60 digit sudah dikirim ke email. Hash disimpan sebagai Argon2id."
   });
 }
 
@@ -604,6 +611,101 @@ async function checkStep6EmailApproval(req, res) {
   });
 }
 
+async function submitStep6ScreenCode(req, res) {
+  await checkA2fLock();
+
+  const { idToken, requestId, code } = req.body || {};
+  await verifyAdminIdToken(idToken);
+
+  const db = getFirebaseDb();
+  const secret = process.env.A2F_SECRET || "rahasia-test";
+  const ref = db.collection("a2fEmailApprovals").doc(String(requestId || ""));
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    return res.status(404).json({
+      success: false,
+      error: "Request approval tidak ditemukan"
+    });
+  }
+
+  const data = snap.data() || {};
+
+  if (Date.now() > Number(data.expiresAtMs || 0)) {
+    await ref.set({
+      status: "expired",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    return res.status(408).json({
+      success: false,
+      status: "expired",
+      error: "Waktu approval habis. Login ulang."
+    });
+  }
+
+  if (String(data.status || "") === "approved") {
+    return res.status(200).json({
+      success: true,
+      status: "approved",
+      message: "Step 6 sudah disetujui."
+    });
+  }
+
+  if (String(data.status || "") === "denied_permanent_ban" || String(data.status || "").startsWith("permanent_ban")) {
+    return res.status(403).json({
+      success: false,
+      status: data.status,
+      permanentBan: true,
+      error: "Step 6 ditolak. A2F diblokir permanen."
+    });
+  }
+
+  const inputCode = String(code || "").replace(/\D+/g, "");
+
+  if (!inputCode) {
+    return res.status(400).json({
+      success: false,
+      error: "Kode 60 digit wajib diisi."
+    });
+  }
+
+  const step6CodeOk = inputCode.length === 60 && await verifyStep6Argon2idCode(inputCode, data.screenCodeArgon2Hash);
+
+  if (!step6CodeOk) {
+    await ref.set({
+      status: "permanent_ban_wrong_code",
+      failedCodeCount: Number(data.failedCodeCount || 0) + 1,
+      wrongCodeAtMs: Date.now(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    await recordPermanentBan("step6_wrong_60_digit_email_code_argon2id");
+
+    return res.status(403).json({
+      success: false,
+      status: "permanent_ban_wrong_code",
+      permanentBan: true,
+      error: "Kode step 6 salah. A2F diblokir permanen."
+    });
+  }
+
+  await ref.set({
+    status: "approved",
+    approvedFinalAtMs: Date.now(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  await resetA2fFailure();
+
+  return res.status(200).json({
+    success: true,
+    status: "approved",
+    message: "Kode 60 digit benar. Dashboard boleh dibuka.",
+    nextStep: 7
+  });
+}
+
 async function approveStep6FromEmail(req, res) {
   try {
     await checkA2fLock();
@@ -647,13 +749,13 @@ async function approveStep6FromEmail(req, res) {
 
     return res.status(200).send(htmlPage(
       "Masukkan kode layar",
-      `<p>Ketik <b>kode 50 digit</b> yang tampil di layar admin.</p>
+      `<p>Ketik <b>kode 60 digit</b> yang tampil di layar admin.</p>
        <div class="warn">Salah 1 kali akan membuat A2F diblokir permanen.</div>
        <form method="GET" action="/api/2fa/verify-step">
          <input type="hidden" name="action" value="confirmApproveStep6">
          <input type="hidden" name="requestId" value="${escapeHtml(requestId)}">
          <input type="hidden" name="token" value="${escapeHtml(token)}">
-         <label for="code">Kode 50 digit dari layar admin</label>
+         <label for="code">Kode 60 digit dari layar admin</label>
          <input id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="80" autocomplete="off" required>
          <button type="submit">Cocokkan & Setujui</button>
        </form>`
@@ -704,9 +806,9 @@ async function confirmApproveStep6FromEmail(req, res) {
       return res.status(409).send(htmlPage("Status tidak valid", `<p>Status login saat ini: ${escapeHtml(data.status || "unknown")}</p>`));
     }
 
-    const inputHash = hashCode(`step6-screen:${requestId}:${inputCode}`, secret);
+    const step6CodeOk = inputCode.length === 60 && await verifyStep6Argon2idCode(inputCode, data.screenCodeArgon2Hash);
 
-    if (!safeEqual(inputHash, data.screenCodeHash)) {
+    if (!step6CodeOk) {
       await ref.set({
         status: "permanent_ban_wrong_code",
         failedCodeCount: Number(data.failedCodeCount || 0) + 1,
@@ -714,7 +816,7 @@ async function confirmApproveStep6FromEmail(req, res) {
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
-      await recordPermanentBan("step6_wrong_50_digit_code");
+      await recordPermanentBan("step6_wrong_60_digit_code_argon2id");
 
       return res.status(403).send(htmlPage(
         "Kode salah",
@@ -810,6 +912,7 @@ module.exports = async function handler(req, res) {
 
     if (action === "startStep6EmailApproval") return startStep6EmailApproval(req, res);
     if (action === "checkStep6EmailApproval") return checkStep6EmailApproval(req, res);
+    if (action === "submitStep6ScreenCode") return submitStep6ScreenCode(req, res);
 
     await checkA2fLock();
 
