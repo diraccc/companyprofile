@@ -1126,7 +1126,7 @@
               <span class="view-kicker">Pengaturan / Admin &amp; Role</span>
               <div class="section-title"><div><h3>Pengaturan</h3><p>Pusat pengaturan admin, toko, payment, kurir, template WhatsApp, backup data, dan security log. Panel ini hanya mengubah tampilan navigasi; sistem login, hash A2F, dan konfigurasi Firebase tetap dipertahankan.</p></div></div>
               <div class="settings-grid">
-                <div class="settings-card"><h4>Admin &amp; Role</h4><p>Role owner, editor, dan viewer tetap mengikuti logic lama. Viewer hanya melihat data, tombol simpan/edit/hapus disembunyikan.</p><span class="status-pill good">Role UI aktif</span></div>
+                <div class="settings-card"><h4>Admin &amp; Role</h4><p>Role admin, owner, editor, dan viewer tetap mengikuti logic lama. Viewer hanya melihat data, tombol simpan/edit/hapus disembunyikan.</p><span class="status-pill good">Role UI aktif</span></div>
                 <div class="settings-card"><h4>Transaksi</h4><p>Order baru mendukung multi-item, alamat, ongkir, diskon, bukti bayar, invoice, dan stok otomatis.</p><span class="status-pill good">Aktif</span></div>
                 <div class="settings-card"><h4>Backup Semua Data</h4><p>Backup mencakup products, orders, customers, settings, dan security log lokal. Import produk/pesanan append-only ada di halaman Pesanan.</p><span class="status-pill good">Aktif</span></div>
               </div>
@@ -2938,7 +2938,8 @@
     }
     function normalizeAdminRole(value){
       const role = String(value || '').trim().toLowerCase();
-      if(role === 'admin' || role === 'owner') return 'owner';
+      if(role === 'admin') return 'admin';
+      if(role === 'owner') return 'owner';
       if(role === 'editor' || role === 'staff') return 'editor';
       if(role === 'viewer' || role === 'read' || role === 'readonly') return 'viewer';
       return '';
@@ -2946,6 +2947,7 @@
     function displayRoleLabel(role, rawRole=''){
       const raw = String(rawRole || '').trim().toLowerCase();
       if(raw === 'admin') return 'Admin';
+      if(role === 'admin') return 'Admin';
       if(role === 'owner') return 'Owner';
       if(role === 'editor') return 'Editor';
       if(role === 'viewer') return 'Viewer';
@@ -2955,7 +2957,8 @@
       const rawRole = String(claims.role || '').trim().toLowerCase();
       const normalized = normalizeAdminRole(rawRole);
       if(normalized) return { role: normalized, rawRole };
-      if(claims.admin === true || claims.owner === true) return { role: 'owner', rawRole: rawRole || 'owner' };
+      if(claims.admin === true) return { role: 'admin', rawRole: rawRole || 'admin' };
+      if(claims.owner === true) return { role: 'owner', rawRole: rawRole || 'owner' };
       if(claims.editor === true) return { role: 'editor', rawRole: rawRole || 'editor' };
       if(claims.viewer === true) return { role: 'viewer', rawRole: rawRole || 'viewer' };
       return { role: '', rawRole: rawRole || '' };
@@ -2991,10 +2994,10 @@
         rawRole = claimRole.rawRole;
         roleSource = 'custom-claim';
       } else if(!SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE){
-        // Role UI tidak lagi bergantung ke dokumen Firestore users/{uid}.
+        // Role UI admin tidak lagi bergantung ke dokumen Firestore users/{uid}.
         // Akses asli tetap dikunci oleh backend A2F dengan A2F_ADMIN_UID.
-        role = 'owner';
-        rawRole = 'backend-a2f';
+        role = 'admin';
+        rawRole = 'backend-a2f-admin';
         roleSource = 'backend-a2f';
       }
 
@@ -3009,10 +3012,10 @@
         hasAdminDoc,
         claimChecked: true,
         canRead,
-        canEdit: canRead && (role === 'owner' || role === 'editor'),
-        canDelete: canRead && role === 'owner',
-        canExport: canRead && role === 'owner',
-        canUpload: canRead && (role === 'owner' || role === 'editor')
+        canEdit: canRead && (role === 'admin' || role === 'owner' || role === 'editor'),
+        canDelete: canRead && (role === 'admin' || role === 'owner'),
+        canExport: canRead && (role === 'admin' || role === 'owner'),
+        canUpload: canRead && (role === 'admin' || role === 'owner' || role === 'editor')
       };
     }
     async function loadAdminProfile(user){
