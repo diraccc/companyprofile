@@ -1314,12 +1314,13 @@
       const body = Object.assign({
         idToken,
         clientTimeMs: Date.now()
-      }, sanitizeAdminPayload(payload || {}));
+      }, getA2fSessionPayload(), sanitizeAdminPayload(payload || {}));
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + idToken
+          'Authorization': 'Bearer ' + idToken,
+          'X-A2F-Session': String(a2fSessionId || '')
         },
         credentials: 'omit',
         cache: 'no-store',
@@ -1337,12 +1338,13 @@
       const requireA2F = options.requireA2F !== false;
       if(requireA2F && !twoFactorVerified) throw new Error('A2F belum selesai. Selesaikan verifikasi dulu sebelum membaca data admin.');
       const idToken = await auth.currentUser.getIdToken(true);
-      const body = Object.assign({ idToken, clientTimeMs: Date.now() }, sanitizeAdminPayload(payload || {}));
+      const body = Object.assign({ idToken, clientTimeMs: Date.now() }, getA2fSessionPayload(), sanitizeAdminPayload(payload || {}));
       const response = await fetch(ADMIN_READ_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + idToken
+          'Authorization': 'Bearer ' + idToken,
+          'X-A2F-Session': String(a2fSessionId || '')
         },
         credentials: 'omit',
         cache: 'no-store',
@@ -1538,6 +1540,8 @@
     let step6EmailApprovalPollTimer = null;
     let step6ScreenCode = '';
     let step6ExpiresAtMs = 0;
+    let a2fSessionId = '';
+    let a2fSessionExpiresAtMs = 0;
     let a2fBanWatcherTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
@@ -1685,6 +1689,23 @@
       el.classList.remove('hidden');
     }
     function hideNotice(el){ el.classList.add('hidden'); }
+    function getA2fSessionPayload(){
+      return {
+        a2fSessionId: String(a2fSessionId || ''),
+        a2fSessionExpiresAtMs: Number(a2fSessionExpiresAtMs || 0),
+        adminRole: 'admin'
+      };
+    }
+    function saveA2fSession(data){
+      a2fSessionId = String(data && data.a2fSessionId || '');
+      a2fSessionExpiresAtMs = Number(data && data.a2fSessionExpiresAtMs || 0);
+      try{
+        if(a2fSessionId){
+          sessionStorage.setItem('dirac_a2f_session_id', a2fSessionId);
+          sessionStorage.setItem('dirac_a2f_session_expires_at', String(a2fSessionExpiresAtMs || 0));
+        }
+      }catch(_error){}
+    }
     function resetTwoFactorState(){
       twoFactorStep = 0;
       twoFactorAttempts = 0;
@@ -1703,6 +1724,9 @@
       step6EmailApprovalStatus = '';
       step6ScreenCode = '';
       step6ExpiresAtMs = 0;
+      a2fSessionId = '';
+      a2fSessionExpiresAtMs = 0;
+      try{ sessionStorage.removeItem('dirac_a2f_session_id'); sessionStorage.removeItem('dirac_a2f_session_expires_at'); }catch(_error){}
       clearTwoFactorTimeoutTimer();
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
@@ -2249,7 +2273,7 @@
         headers: { 'Content-Type': 'application/json' },
         credentials: 'omit',
         cache: 'no-store',
-        body: JSON.stringify(Object.assign({ action, idToken }, payload || {}))
+        body: JSON.stringify(Object.assign({ action, idToken }, getA2fSessionPayload(), payload || {}))
       });
       const data = await readApiJson(response);
       if(!response.ok || data.success === false){
@@ -2379,6 +2403,7 @@
         code: String(code || '').trim()
       });
       if(data.status === 'approved' || data.success === true){
+        if(data.a2fSessionId) saveA2fSession(data);
         clearStep6EmailApprovalPolling();
         await finishTwoFactorSuccess('auth.2fa_success', 'Verifikasi selesai. Dashboard dibuka.');
       }
