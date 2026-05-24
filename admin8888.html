@@ -682,7 +682,7 @@
           <span class="twofactor-step" id="twoFactorStep5">5</span>
           <span class="twofactor-step" id="twoFactorStep6">6</span>
         </div>
-        <div class="notice good" id="twoFactorUser">Login diterima. Dashboard masih terkunci sampai A2F selesai.</div>
+        <div class="notice good" id="twoFactorUser">Role admin sudah dicek. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
@@ -1204,7 +1204,7 @@
     const SECURITY_CONFIG = Object.freeze({
       APP_CHECK_SITE_KEY: '',
       ADMIN_USERS_COLLECTION: 'users',
-      REQUIRE_FIRESTORE_ADMIN_ROLE: false,
+      REQUIRE_FIRESTORE_ADMIN_ROLE: true,
       REQUIRE_ADMIN_CLAIM: false,
       REAUTH_TTL_MS: 5 * 60 * 1000,
       STRICT_IMAGE_HOSTS: false,
@@ -1681,9 +1681,9 @@
           els.twoFactorHelp.textContent = 'Selesaikan pemeriksaan keamanan perangkat untuk lanjut ke persetujuan email.';
         } else if(twoFactorStep === 6){
           if(step6EmailApprovalStatus === 'approved_waiting_code'){
-            els.twoFactorHelp.textContent = 'Email sudah disetujui. Masukkan kode layar untuk membuka dashboard.';
+            els.twoFactorHelp.textContent = 'Email sudah dibuka. Ketik kode 50 digit yang tampil di layar ini pada halaman approval email.';
           } else {
-            els.twoFactorHelp.textContent = 'Cek email kamu, klik SETUJUI dulu, lalu kembali ke sini untuk cocokkan kode.';
+            els.twoFactorHelp.textContent = 'Cek email kamu, klik SETUJUI, lalu masukkan kode 50 digit dari layar ini di halaman approval email.';
           }
         } else {
           els.twoFactorHelp.textContent = 'Ikuti tahap verifikasi untuk membuka dashboard.';
@@ -1691,7 +1691,7 @@
       }
       if(els.twoFactorLabel) els.twoFactorLabel.textContent = method;
       if(els.twoFactorBtn){
-        els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : (twoFactorStep === 6 ? (step6EmailApprovalStatus === 'approved_waiting_code' ? 'Cocokkan Kode' : 'Cek Email') : 'Verifikasi');
+        els.twoFactorBtn.textContent = twoFactorPermanentLocked ? 'Diblokir' : (twoFactorStep === 6 ? 'Cek Status Email' : 'Verifikasi');
         els.twoFactorBtn.disabled = twoFactorBackendLocked || twoFactorPermanentLocked;
       }
       if(els.twoFactorCode){
@@ -2185,29 +2185,33 @@
     function renderStep6Status(){
       twoFactorStep = 6;
       updateTwoFactorProgress();
+
+      const codeText = String(step6ScreenCode || '').replace(/(\d{5})(?=\d)/g, '$1 ').trim();
+
       if(step6EmailApprovalStatus === 'approved_waiting_code'){
-        setNotice(els.twoFactorUser, 'Email sudah disetujui. Masukkan kode layar: ' + step6ScreenCode + '. Salah 1x akan ban permanen.', 'warn');
-        if(els.twoFactorCode){
-          els.twoFactorCode.disabled = false;
-          els.twoFactorCode.type = 'text';
-          els.twoFactorCode.placeholder = 'Kode layar: ' + step6ScreenCode;
-        }
-        if(els.twoFactorBtn){
-          els.twoFactorBtn.textContent = 'Cocokkan Kode';
-          els.twoFactorBtn.disabled = false;
-        }
+        setNotice(
+          els.twoFactorUser,
+          'Email sudah dibuka. Masukkan kode 50 digit ini di halaman approval email, bukan di sini:\n\n' + codeText + '\n\nSalah 1x akan ban permanen.',
+          'warn'
+        );
       } else {
-        setNotice(els.twoFactorUser, 'Step 6: email persetujuan sudah dikirim. Klik SETUJUI di email dulu. Kode layar: ' + step6ScreenCode, 'good');
-        if(els.twoFactorCode){
-          els.twoFactorCode.value = '';
-          els.twoFactorCode.disabled = true;
-          els.twoFactorCode.type = 'text';
-          els.twoFactorCode.placeholder = 'Menunggu klik SETUJUI di email';
-        }
-        if(els.twoFactorBtn){
-          els.twoFactorBtn.textContent = 'Cek Email';
-          els.twoFactorBtn.disabled = false;
-        }
+        setNotice(
+          els.twoFactorUser,
+          'Step 6: kode layar 50 digit sudah dibuat. Buka email, klik SETUJUI, lalu ketik kode ini di halaman approval email:\n\n' + codeText,
+          'good'
+        );
+      }
+
+      if(els.twoFactorCode){
+        els.twoFactorCode.value = '';
+        els.twoFactorCode.disabled = true;
+        els.twoFactorCode.type = 'text';
+        els.twoFactorCode.placeholder = 'Kode tidak diketik di sini. Ketik di halaman approval email.';
+      }
+
+      if(els.twoFactorBtn){
+        els.twoFactorBtn.textContent = 'Cek Status Email';
+        els.twoFactorBtn.disabled = false;
       }
     }
     async function startStep6EmailApproval(){
@@ -2238,9 +2242,8 @@
       step6EmailApprovalStatus = String(data.status || step6EmailApprovalStatus || 'pending_email_approval');
       if(Number(data.expiresAtMs || 0)) setStep6Deadline(Number(data.expiresAtMs || 0));
       if(step6EmailApprovalStatus === 'approved_waiting_code'){
-        clearStep6EmailApprovalPolling();
         renderStep6Status();
-        showToast('Email disetujui. Cocokkan kode layar.');
+        if(showWaiting) showToast('Email dibuka. Ketik kode 50 digit di halaman approval email.');
         return;
       }
       if(step6EmailApprovalStatus === 'approved'){
@@ -2546,11 +2549,7 @@
         } else if(twoFactorStep === 5){
           await verifyPasskeyTwoFactor();
         } else if(twoFactorStep === 6){
-          if(step6EmailApprovalStatus === 'approved_waiting_code'){
-            await submitStep6ScreenCode(code);
-          } else {
-            await checkStep6EmailApproval(true);
-          }
+          await checkStep6EmailApproval(true);
           return;
         }
         twoFactorAttempts = 0;
@@ -2791,25 +2790,18 @@
       return { role: '', rawRole: rawRole || '' };
     }
     async function loadFirestoreAdminRole(user){
-      if(!SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE){
-        return { exists: false, active: true, role: '', rawRole: '' };
-      }
-      try{
-        const snap = await adminReadDoc(SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid, { requireA2F:false });
-        if(!snap.exists()){
-          return { exists: false, active: false, role: '', rawRole: '' };
-        }
-        const data = snap.data() || {};
-        const rawRole = String(data.role || '').trim().toLowerCase();
-        return {
-          exists: true,
-          active: data.active !== false && data.disabled !== true,
-          role: normalizeAdminRole(rawRole),
-          rawRole
-        };
-      }catch(_error){
+      const snap = await adminReadDoc(SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid, { requireA2F:false });
+      if(!snap.exists()){
         return { exists: false, active: false, role: '', rawRole: '' };
       }
+      const data = snap.data() || {};
+      const rawRole = String(data.role || '').trim().toLowerCase();
+      return {
+        exists: true,
+        active: data.active !== false && data.disabled !== true,
+        role: normalizeAdminRole(rawRole),
+        rawRole
+      };
     }
     function buildAdminProfile(user, claims, roleDoc){
       const claimRole = resolveClaimRole(claims);
@@ -2827,10 +2819,6 @@
         role = claimRole.role;
         rawRole = claimRole.rawRole;
         roleSource = 'custom-claim';
-      } else if(!SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE && !SECURITY_CONFIG.REQUIRE_ADMIN_CLAIM){
-        role = 'owner';
-        rawRole = 'backend-admin';
-        roleSource = 'backend-a2f';
       }
 
       const canRead = Boolean(role);
