@@ -1575,6 +1575,104 @@
     function nowLabel(){
       return new Date().toLocaleString('id-ID', { dateStyle:'medium', timeStyle:'short' });
     }
+
+    const DIRAC_DEVICE_ID_KEY = 'dirac_admin_device_id_v1';
+    const DIRAC_DEVICE_NAME_KEY = 'dirac_admin_device_name_v1';
+
+    function createLocalDeviceId(){
+      const bytes = new Uint8Array(32);
+      if(window.crypto && window.crypto.getRandomValues){
+        window.crypto.getRandomValues(bytes);
+      }else{
+        for(let i=0;i<bytes.length;i+=1) bytes[i] = Math.floor(Math.random() * 256);
+      }
+      return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    function getOrCreateLocalDeviceId(){
+      try{
+        let existing = localStorage.getItem(DIRAC_DEVICE_ID_KEY);
+        if(!existing){
+          existing = createLocalDeviceId();
+          localStorage.setItem(DIRAC_DEVICE_ID_KEY, existing);
+        }
+        return existing;
+      }catch(_error){
+        return createLocalDeviceId();
+      }
+    }
+
+    function getBrowserNameFromUa(){
+      const ua = navigator.userAgent || '';
+      if(/CriOS/i.test(ua)) return 'Chrome iOS';
+      if(/FxiOS/i.test(ua)) return 'Firefox iOS';
+      if(/EdgiOS/i.test(ua)) return 'Edge iOS';
+      if(/OPiOS/i.test(ua)) return 'Opera iOS';
+      if(/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'Chrome';
+      if(/Edg\//i.test(ua)) return 'Edge';
+      if(/Firefox\//i.test(ua)) return 'Firefox';
+      if(/Safari\//i.test(ua) && /Version\//i.test(ua)) return 'Safari';
+      return 'Tidak terdeteksi';
+    }
+
+    function getDeviceTypeFromClient(){
+      const ua = navigator.userAgent || '';
+      const platform = navigator.platform || '';
+      if(/iPhone/i.test(ua) || /iPhone/i.test(platform)) return 'iPhone';
+      if(/iPad/i.test(ua) || /iPad/i.test(platform)) return 'iPad';
+      if(/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Android Phone' : 'Android Tablet';
+      if(/Mac/i.test(platform)) return 'Mac';
+      if(/Win/i.test(platform)) return 'Windows PC';
+      return 'Browser Device';
+    }
+
+    function getBrowserMode(){
+      const standalone = Boolean(window.navigator.standalone) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+      return standalone ? 'PWA / Standalone' : 'Web browser';
+    }
+
+    function getLocalDeviceName(){
+      try{
+        const saved = String(localStorage.getItem(DIRAC_DEVICE_NAME_KEY) || '').trim();
+        if(saved) return saved;
+      }catch(_error){}
+      return getDeviceTypeFromClient() + ' Admin (belum dinamai)';
+    }
+
+    function collectStep6ClientContext(){
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {};
+      return {
+        deviceId: getOrCreateLocalDeviceId(),
+        deviceName: getLocalDeviceName(),
+        userAgent: navigator.userAgent || '',
+        language: navigator.language || '',
+        languages: Array.isArray(navigator.languages) ? navigator.languages : [],
+        timezone: (Intl.DateTimeFormat().resolvedOptions() || {}).timeZone || '',
+        screenWidth: window.screen ? window.screen.width : 0,
+        screenHeight: window.screen ? window.screen.height : 0,
+        availWidth: window.screen ? window.screen.availWidth : 0,
+        availHeight: window.screen ? window.screen.availHeight : 0,
+        pixelRatio: window.devicePixelRatio || 1,
+        colorDepth: window.screen ? window.screen.colorDepth : 0,
+        touchSupport: ('ontouchstart' in window) || Number(navigator.maxTouchPoints || 0) > 0,
+        maxTouchPoints: Number(navigator.maxTouchPoints || 0),
+        platform: navigator.platform || '',
+        vendor: navigator.vendor || '',
+        hardwareConcurrency: Number(navigator.hardwareConcurrency || 0),
+        deviceMemory: Number(navigator.deviceMemory || 0),
+        online: navigator.onLine === true,
+        cookieEnabled: navigator.cookieEnabled === true,
+        mode: getBrowserMode(),
+        browserName: getBrowserNameFromUa(),
+        connectionType: connection.type || '',
+        effectiveType: connection.effectiveType || '',
+        downlink: connection.downlink || '',
+        rtt: connection.rtt || '',
+        pageUrl: location.href,
+        referrer: document.referrer || ''
+      };
+    }
+
     function showToast(message){
       els.toast.textContent = message;
       els.toast.classList.add('show');
@@ -2230,7 +2328,9 @@
       step6ScreenCode = '';
       if(els.twoFactorBtn) els.twoFactorBtn.disabled = true;
       setNotice(els.twoFactorUser, 'Mengirim email persetujuan step 6...', 'good');
-      const data = await callStep6EmailApproval('startStep6EmailApproval');
+      const data = await callStep6EmailApproval('startStep6EmailApproval', {
+        clientContext: collectStep6ClientContext()
+      });
       step6EmailApprovalRequestId = String(data.requestId || '');
       step6EmailApprovalStatus = String(data.status || 'pending_email_approval');
       step6ScreenCode = '';
