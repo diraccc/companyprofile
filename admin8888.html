@@ -2287,6 +2287,7 @@
       }
       startListening();
       resetIdleTimer();
+      startA2fBanWatcher();
       logSecurity(logType, 'Dashboard dibuka').catch(() => {});
       showToast(toastText);
     }
@@ -2459,6 +2460,7 @@
 
       startListening();
       resetIdleTimer();
+      startA2fBanWatcher();
 
       logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat Recovery Face ID').catch(() => {});
       showToast('Recovery selesai. Dashboard dibuka.');
