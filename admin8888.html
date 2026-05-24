@@ -682,7 +682,7 @@
           <span class="twofactor-step" id="twoFactorStep5">5</span>
           <span class="twofactor-step" id="twoFactorStep6">6</span>
         </div>
-        <div class="notice good" id="twoFactorUser">Role admin sudah dicek. Dashboard masih terkunci sampai A2F selesai.</div>
+        <div class="notice good" id="twoFactorUser">Login diterima. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
@@ -1204,7 +1204,7 @@
     const SECURITY_CONFIG = Object.freeze({
       APP_CHECK_SITE_KEY: '',
       ADMIN_USERS_COLLECTION: 'users',
-      REQUIRE_FIRESTORE_ADMIN_ROLE: true,
+      REQUIRE_FIRESTORE_ADMIN_ROLE: false,
       REQUIRE_ADMIN_CLAIM: false,
       REAUTH_TTL_MS: 5 * 60 * 1000,
       STRICT_IMAGE_HOSTS: false,
@@ -2819,6 +2819,12 @@
         role = claimRole.role;
         rawRole = claimRole.rawRole;
         roleSource = 'custom-claim';
+      } else if(!SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE){
+        // Role UI tidak lagi bergantung ke dokumen Firestore users/{uid}.
+        // Akses asli tetap dikunci oleh backend A2F dengan A2F_ADMIN_UID.
+        role = 'owner';
+        rawRole = 'backend-a2f';
+        roleSource = 'backend-a2f';
       }
 
       const canRead = Boolean(role);
