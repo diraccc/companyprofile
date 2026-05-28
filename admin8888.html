@@ -1033,10 +1033,12 @@
                 <input class="input" id="orderSearch" type="search" placeholder="Cari ID, pelanggan, produk, resi, alamat...">
                 <select id="orderFilterPayment"><option value="">Semua payment</option><option value="Belum Bayar">Belum Bayar</option><option value="Lunas">Lunas</option><option value="Refund">Refund</option></select>
                 <select id="orderFilterStatus"><option value="">Semua status</option><option value="Menunggu Pembayaran">Menunggu Pembayaran</option><option value="Diproses">Diproses</option><option value="Dikemas">Dikemas</option><option value="Dikirim">Dikirim</option><option value="Selesai">Selesai</option><option value="Dibatalkan">Dibatalkan</option><option value="Retur">Retur</option></select>
+                <button class="btn primary" id="searchOrdersBackendBtn" type="button">Cari Pesanan</button>
                 <button class="btn" id="clearOrderFilterBtn" type="button">Reset Filter</button>
               </div>
               <div class="notice" id="orderSyncStatus">Menunggu login...</div>
               <div class="table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>Pelanggan</th><th>Item</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="orderRows"><tr><td colspan="6">Belum ada data.</td></tr></tbody></table></div>
+              <div class="ultra-pager" id="ordersBackendPager"><button class="btn primary" id="loadMoreOrdersBtn" type="button">View More Pesanan</button><span id="ordersLoadedInfo">Pesanan dimuat bertahap.</span></div>
             </div>
           </div>
         </section>
@@ -1373,9 +1375,17 @@
       const limitKey = name + 'Limit';
       const payload = { action: 'readAdminData', collections: [name] };
       if(Number(options.limit || 0)) payload[limitKey] = Number(options.limit || 0);
+      if(options.cursor) payload[name + 'Cursor'] = String(options.cursor || '');
+      if(options.search) payload[name + 'Search'] = String(options.search || '');
+      if(options.paymentStatus) payload[name + 'PaymentStatus'] = String(options.paymentStatus || '');
+      if(options.orderStatus) payload[name + 'OrderStatus'] = String(options.orderStatus || '');
+      if(options.orderBy) payload[name + 'OrderBy'] = String(options.orderBy || '');
+      if(options.orderDirection) payload[name + 'OrderDirection'] = String(options.orderDirection || '');
       const data = await adminReadApi(payload, { requireA2F: options.requireA2F !== false });
       const rows = Array.isArray(data && data[name]) ? data[name] : [];
-      return rows.map((row, index) => backendDocSnap(row, name + '-' + index));
+      const snaps = rows.map((row, index) => backendDocSnap(row, name + '-' + index));
+      snaps.pageInfo = data && data[name + 'Page'] ? data[name + 'Page'] : null;
+      return snaps;
     }
     async function adminReadDoc(collectionName, docId, options={}){
       const rows = await adminReadCollection(collectionName, Object.assign({}, options, { limit: options.limit || 30000 }));
@@ -1485,7 +1495,7 @@
     };
     Object.assign(els, {
       addOrderItemBtn:$('addOrderItemBtn'), orderItemsList:$('orderItemsList'), orderItemPrice:$('orderItemPrice'), orderSubtotal:$('orderSubtotal'), orderShippingCost:$('orderShippingCost'), orderDiscount:$('orderDiscount'), orderAddress:$('orderAddress'), orderPaymentProof:$('orderPaymentProof'), paymentProofFile:$('paymentProofFile'), chooseProofBtn:$('chooseProofBtn'), uploadProofBtn:$('uploadProofBtn'), proofFileName:$('proofFileName'), proofProgress:$('proofProgress'),
-      orderSearch:$('orderSearch'), orderFilterPayment:$('orderFilterPayment'), orderFilterStatus:$('orderFilterStatus'), clearOrderFilterBtn:$('clearOrderFilterBtn'),
+      orderSearch:$('orderSearch'), orderFilterPayment:$('orderFilterPayment'), orderFilterStatus:$('orderFilterStatus'), searchOrdersBackendBtn:$('searchOrdersBackendBtn'), clearOrderFilterBtn:$('clearOrderFilterBtn'), loadMoreOrdersBtn:$('loadMoreOrdersBtn'), ordersLoadedInfo:$('ordersLoadedInfo'),
       customerSearch:$('customerSearch'), customerFilterSegment:$('customerFilterSegment'), clearCustomerFilterBtn:$('clearCustomerFilterBtn'), exportCustomersCsvBtn:$('exportCustomersCsvBtn'),
       reportSearch:$('reportSearch'), reportFilterPayment:$('reportFilterPayment'), reportDateFrom:$('reportDateFrom'), reportDateTo:$('reportDateTo'), clearReportFilterBtn:$('clearReportFilterBtn'),
       storeName:$('storeName'), storeWhatsApp:$('storeWhatsApp'), storeCatalogUrl:$('storeCatalogUrl'), storeAddress:$('storeAddress'), saveStoreSettingsBtn:$('saveStoreSettingsBtn'), storeSettingsMessage:$('storeSettingsMessage'),
@@ -1499,6 +1509,12 @@
 
     let products = [];
     let orders = [];
+    const ORDERS_BATCH_SIZE = 100;
+    let ordersPageCursor = null;
+    let ordersHasMore = false;
+    let ordersBackendSearch = '';
+    let ordersLoadInFlight = false;
+    let ordersLoadedMode = 'latest';
     let customers = [];
     let orderItems = [];
     let appSettings = defaultSettings();
@@ -3624,19 +3640,91 @@
         els.syncDot.className = 'mini-dot danger';
       }
     }
-    async function loadOrdersFromBackend(){
+    function resetOrdersBackendState(){
+      ordersPageCursor = null;
+      ordersHasMore = false;
+      ordersBackendSearch = '';
+      ordersLoadedMode = 'latest';
+      updateOrderLoadUi();
+    }
+    function orderServerFilters(){
+      return {
+        paymentStatus: els.orderFilterPayment && els.orderFilterPayment.value || '',
+        orderStatus: els.orderFilterStatus && els.orderFilterStatus.value || ''
+      };
+    }
+    function mergeOrdersByDocId(currentRows, incomingRows){
+      const map = new Map();
+      currentRows.forEach(row => { if(row && row.docId) map.set(row.docId, row); });
+      incomingRows.forEach(row => { if(row && row.docId) map.set(row.docId, row); });
+      return Array.from(map.values()).sort((a,b)=>b.createdAtMs-a.createdAtMs);
+    }
+    function updateOrderLoadUi(){
+      if(els.ordersLoadedInfo){
+        const modeLabel = ordersLoadedMode === 'search' ? 'hasil pencarian backend' : 'pesanan terbaru';
+        const moreLabel = ordersHasMore ? 'Masih ada data berikutnya.' : 'Tidak ada halaman berikutnya.';
+        els.ordersLoadedInfo.textContent = orders.length + ' ' + modeLabel + ' sedang dimuat di browser. ' + moreLabel;
+      }
+      if(els.loadMoreOrdersBtn){
+        els.loadMoreOrdersBtn.disabled = ordersLoadInFlight || !ordersHasMore;
+        els.loadMoreOrdersBtn.textContent = ordersLoadInFlight ? 'Memuat...' : 'View More Pesanan';
+        els.loadMoreOrdersBtn.classList.toggle('hidden', !ordersHasMore && orders.length > 0);
+      }
+      if(els.searchOrdersBackendBtn){
+        els.searchOrdersBackendBtn.disabled = ordersLoadInFlight;
+      }
+    }
+    async function loadOrdersFromBackend(options={}){
       if(!els.orderSyncStatus) return;
-      setNotice(els.orderSyncStatus, 'Membaca pesanan dari backend...');
+      if(ordersLoadInFlight) return;
+      const append = options.append === true;
+      const searchText = options.search !== undefined ? String(options.search || '').trim() : String(ordersBackendSearch || '').trim();
+      const filters = orderServerFilters();
+      const useSearchMode = Boolean(searchText || filters.paymentStatus || filters.orderStatus);
+      const cursor = append && !useSearchMode ? ordersPageCursor : '';
+
+      ordersLoadInFlight = true;
+      updateOrderLoadUi();
+      setNotice(els.orderSyncStatus, (append ? 'Membaca 100 pesanan berikutnya dari backend...' : useSearchMode ? 'Mencari pesanan di backend...' : 'Membaca 100 pesanan terbaru dari backend...'));
       try{
-        const rows = await adminReadCollection('orders', { orderBy:'createdAt' });
-        orders = rows.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
-        setNotice(els.orderSyncStatus, 'Sinkron backend aktif. Pesanan terbaca: ' + orders.length + ' • ' + nowLabel(), 'good');
+        const rows = await adminReadCollection('orders', {
+          limit: ORDERS_BATCH_SIZE,
+          orderBy:'createdAtMs',
+          orderDirection:'desc',
+          cursor,
+          search: searchText,
+          paymentStatus: filters.paymentStatus,
+          orderStatus: filters.orderStatus
+        });
+        const pageInfo = rows.pageInfo || {};
+        const incoming = rows.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
+        orders = append ? mergeOrdersByDocId(orders, incoming) : incoming;
+        ordersPageCursor = pageInfo.cursor || null;
+        ordersHasMore = Boolean(pageInfo.hasMore) && !useSearchMode;
+        ordersBackendSearch = searchText;
+        ordersLoadedMode = useSearchMode ? 'search' : 'latest';
+        const label = useSearchMode ? 'Hasil backend' : 'Sinkron backend aktif';
+        setNotice(els.orderSyncStatus, label + '. Pesanan dimuat: ' + orders.length + ' dari batch @' + ORDERS_BATCH_SIZE + ' • ' + nowLabel(), 'good');
         ultraAutoDeleteOldArchivedDocs();
         renderOrders();
         renderBusinessDashboard();
       }catch(error){
         setNotice(els.orderSyncStatus, 'Gagal membaca pesanan via backend: ' + firebaseMessage(error), 'danger');
+      }finally{
+        ordersLoadInFlight = false;
+        updateOrderLoadUi();
       }
+    }
+    async function searchOrdersFromBackend(){
+      const keyword = String(els.orderSearch && els.orderSearch.value || '').trim();
+      ordersPageCursor = null;
+      ordersHasMore = false;
+      ultraState.orderPage = 1;
+      await loadOrdersFromBackend({ append:false, search: keyword });
+    }
+    async function loadMoreOrdersFromBackend(){
+      if(!ordersHasMore || ordersLoadInFlight) return;
+      await loadOrdersFromBackend({ append:true, search:'' });
     }
     async function loadCustomersFromBackend(){
       if(!els.customerSyncStatus) return;
@@ -3790,8 +3878,12 @@
     function startOrdersListening(){
       if(unsubscribeOrders) return;
       if(!els.orderSyncStatus) return;
+      resetOrdersBackendState();
       loadOrdersFromBackend();
-      const timer = setInterval(() => loadOrdersFromBackend().catch(error => console.warn('Pesanan backend gagal:', error)), 30000);
+      const timer = setInterval(() => {
+        if(ordersLoadInFlight || ordersBackendSearch || orders.length > ORDERS_BATCH_SIZE) return;
+        loadOrdersFromBackend().catch(error => console.warn('Pesanan backend gagal:', error));
+      }, 30000);
       unsubscribeOrders = () => clearInterval(timer);
     }
     function startCustomersListening(){
@@ -3883,7 +3975,9 @@
       const total = Math.max(0, Math.trunc(safeNumber(els.orderTotal.value, subtotal + shippingCost - discount)));
       if(!Number.isInteger(total)) throw new Error('Total harga harus angka bulat Rupiah.');
       const itemSnapshot = orderItems.map(normalizeOrderItem);
-      const data = { orderId, customerName, items:itemSnapshot, productName:itemSnapshot.map(item=>item.productName).join(', '), qty:itemSnapshot.reduce((sum,item)=>sum + Number(item.qty || 0), 0), subtotal, shippingCost, discount, total, address: els.orderAddress.value.trim(), paymentProof: els.orderPaymentProof.value.trim(), paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), updatedAt: serverTimestamp(), updatedAtMs: Date.now() };
+      const productNameText = itemSnapshot.map(item=>item.productName).join(', ');
+      const searchText = [orderId, customerName, productNameText, els.orderTracking.value, els.orderAddress.value, els.orderNote.value, total].join(' ').toLowerCase();
+      const data = { orderId, customerName, items:itemSnapshot, productName:productNameText, qty:itemSnapshot.reduce((sum,item)=>sum + Number(item.qty || 0), 0), subtotal, shippingCost, discount, total, address: els.orderAddress.value.trim(), paymentProof: els.orderPaymentProof.value.trim(), paymentMethod: els.orderPaymentMethod.value, paymentStatus: els.orderPaymentStatus.value, orderStatus: els.orderStatus.value, courier: els.orderCourier.value, trackingNumber: els.orderTracking.value.trim(), note: els.orderNote.value.trim(), searchText, updatedAt: serverTimestamp(), updatedAtMs: Date.now() };
       data.stockSynced = isPaid(data) && !isCancelled(data);
       return data;
     }
@@ -4921,7 +5015,17 @@
     }));
     [els.search, els.filterCategory, els.filterStatus, els.filterImage, els.filterQuality, els.sortBy].forEach(el => el.addEventListener('input', renderProducts));
     [els.orderSearch, els.orderFilterPayment, els.orderFilterStatus].forEach(el => { if(el) el.addEventListener('input', renderOrders); });
-    if(els.clearOrderFilterBtn) els.clearOrderFilterBtn.addEventListener('click', () => { els.orderSearch.value=''; els.orderFilterPayment.value=''; els.orderFilterStatus.value=''; renderOrders(); });
+    if(els.searchOrdersBackendBtn) els.searchOrdersBackendBtn.addEventListener('click', () => searchOrdersFromBackend().catch(error => setNotice(els.orderSyncStatus, firebaseMessage(error), 'danger')));
+    if(els.loadMoreOrdersBtn) els.loadMoreOrdersBtn.addEventListener('click', () => loadMoreOrdersFromBackend().catch(error => setNotice(els.orderSyncStatus, firebaseMessage(error), 'danger')));
+    if(els.orderSearch) els.orderSearch.addEventListener('keydown', event => { if(event.key === 'Enter'){ event.preventDefault(); searchOrdersFromBackend().catch(error => setNotice(els.orderSyncStatus, firebaseMessage(error), 'danger')); } });
+    if(els.clearOrderFilterBtn) els.clearOrderFilterBtn.addEventListener('click', () => {
+      els.orderSearch.value='';
+      els.orderFilterPayment.value='';
+      els.orderFilterStatus.value='';
+      ultraState.orderPage = 1;
+      resetOrdersBackendState();
+      loadOrdersFromBackend({ append:false, search:'' }).catch(error => setNotice(els.orderSyncStatus, firebaseMessage(error), 'danger'));
+    });
     [els.customerSearch, els.customerFilterSegment].forEach(el => { if(el) el.addEventListener('input', renderCustomers); });
     if(els.clearCustomerFilterBtn) els.clearCustomerFilterBtn.addEventListener('click', () => { els.customerSearch.value=''; els.customerFilterSegment.value=''; renderCustomers(); });
     [els.reportSearch, els.reportFilterPayment, els.reportDateFrom, els.reportDateTo].forEach(el => { if(el) el.addEventListener('input', renderReports); });
@@ -5821,6 +5925,7 @@
         updateMenuButtonVisibility();
         products = [];
         orders = [];
+        resetOrdersBackendState();
         customers = [];
         renderProducts();
         renderOrders();
