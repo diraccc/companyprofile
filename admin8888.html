@@ -3002,18 +3002,36 @@
       return { role: '', rawRole: rawRole || '' };
     }
     async function loadFirestoreAdminRole(user){
-      const snap = await adminReadDoc(SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid, { requireA2F:false });
-      if(!snap.exists()){
-        return { exists: false, active: false, role: '', rawRole: '' };
+      const emptyRole = { exists: false, active: false, role: '', rawRole: '' };
+      if(!user || !user.uid) return emptyRole;
+
+      try{
+        /*
+          Login/A2F guardrail:
+          jangan panggil ADMIN_READ_ENDPOINT di tahap awal login. Endpoint admin read
+          memang membutuhkan token admin dan bisa menolak sebelum A2F selesai, sehingga
+          tombol login terlihat tidak merespons. Pembacaan role awal cukup memakai
+          Firestore client biasa; jika rules menolak dan role Firestore tidak wajib,
+          sistem lanjut ke gate A2F lama tanpa mengubah hash, A2F, atau login utama.
+        */
+        const snap = await getDoc(doc(db, SECURITY_CONFIG.ADMIN_USERS_COLLECTION, user.uid));
+        if(!snap.exists()) return emptyRole;
+
+        const data = snap.data() || {};
+        const rawRole = String(data.role || '').trim().toLowerCase();
+        return {
+          exists: true,
+          active: data.active !== false && data.disabled !== true,
+          role: normalizeAdminRole(rawRole),
+          rawRole
+        };
+      }catch(error){
+        if(SECURITY_CONFIG.REQUIRE_FIRESTORE_ADMIN_ROLE){
+          throw new Error('Gagal membaca role admin. Periksa rules Firestore untuk users/' + user.uid + '.');
+        }
+        console.warn('Role Firestore dilewati saat login awal:', error);
+        return emptyRole;
       }
-      const data = snap.data() || {};
-      const rawRole = String(data.role || '').trim().toLowerCase();
-      return {
-        exists: true,
-        active: data.active !== false && data.disabled !== true,
-        role: normalizeAdminRole(rawRole),
-        rawRole
-      };
     }
     function buildAdminProfile(user, claims, roleDoc){
       const claimRole = resolveClaimRole(claims);
