@@ -625,6 +625,68 @@
     @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
   </style>
 
+
+  <style id="dirac-order-compact-total-css">
+    /* === Dirac Order Compact Total: additive only, login/hash untouched === */
+    .order-actions-compact{
+      display:grid;
+      gap:8px;
+      width:100%;
+    }
+    .order-actions-toggle{
+      width:100%;
+      justify-content:center;
+      min-height:42px;
+    }
+    .order-actions-compact .order-actions-summary{
+      display:block;
+      color:var(--muted);
+      font-size:.78rem;
+      text-align:center;
+      line-height:1.35;
+    }
+    .order-actions-panel{
+      display:none!important;
+      gap:7px;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      width:100%;
+      margin-top:2px;
+    }
+    .order-actions-compact.is-open .order-actions-panel{
+      display:grid!important;
+    }
+    .order-actions-panel .btn{
+      width:100%;
+      min-height:38px;
+    }
+    .order-count-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid rgba(96,165,250,.26);
+      background:rgba(96,165,250,.10);
+      color:#dbeafe;
+      border-radius:999px;
+      padding:4px 9px;
+      font-weight:950;
+    }
+    @media(max-width:700px){
+      .admin-table td[data-label="Aksi"]{
+        padding-top:12px;
+      }
+      .order-actions-toggle{
+        min-height:44px;
+        font-size:.95rem;
+      }
+      .order-actions-panel{
+        grid-template-columns:1fr 1fr;
+      }
+      .order-actions-panel .btn{
+        min-height:42px;
+      }
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -1527,12 +1589,15 @@
     let products = [];
     let orders = [];
     const ORDERS_BATCH_SIZE = 100;
+    const ORDERS_JSON_CHUNK_SIZE = 250;
     let ordersPageCursor = null;
     let ordersHasMore = false;
     let ordersBackendSearch = '';
     let ordersLoadInFlight = false;
     let ordersLoadedMode = 'latest';
     let ordersTotalCount = null;
+    let ordersTotalCountSource = '';
+    let ordersTotalCountInFlight = false;
     let adminReportSummary = null;
     let adminReportSignature = '';
     let reportLoadInFlight = false;
@@ -3684,12 +3749,72 @@
       ordersPageCursor = null;
       ordersHasMore = false;
       ordersTotalCount = null;
+      ordersTotalCountSource = '';
       ordersBackendSearch = '';
       ordersLoadedMode = 'latest';
       updateOrderLoadUi();
     }
+    function normalizeBackendTotal(value){
+      const total = Number(value);
+      return Number.isFinite(total) && total >= 0 ? total : null;
+    }
+    function setOrdersTotalCount(value, source='backend'){
+      const total = normalizeBackendTotal(value);
+      if(total === null) return false;
+      ordersTotalCount = total;
+      ordersTotalCountSource = source;
+      return true;
+    }
+    function extractOrdersTotalFromReport(data){
+      const report = data && data.report && typeof data.report === 'object' ? data.report : {};
+      const counts = report.counts && typeof report.counts === 'object' ? report.counts : (data && data.counts && typeof data.counts === 'object' ? data.counts : {});
+      const candidates = [counts.orders, counts.totalOrders, counts.allOrders, data && data.ordersTotal, data && data.totalOrders];
+      for(const candidate of candidates){
+        const total = normalizeBackendTotal(candidate);
+        if(total !== null) return total;
+      }
+      return null;
+    }
+    async function refreshOrdersTotalCountFromBackend(options={}){
+      if(ordersTotalCountInFlight) return ordersTotalCount;
+      if(ordersTotalCount !== null && options.force !== true) return ordersTotalCount;
+      if(!twoFactorVerified || !currentAdmin.canRead) return ordersTotalCount;
+      ordersTotalCountInFlight = true;
+      updateOrderLoadUi();
+      try{
+        const data = await adminReadApi({
+          action:'reportAdminData',
+          countOnly:true,
+          totalOnly:true,
+          reportSearch:'',
+          reportPaymentStatus:'',
+          reportDateFrom:'',
+          reportDateTo:''
+        });
+        const total = extractOrdersTotalFromReport(data);
+        if(total !== null){
+          setOrdersTotalCount(total, 'backend-count');
+          updateOrderLoadUi();
+          return total;
+        }
+      }catch(error){
+        if(!options.silent && els.orderSyncStatus){
+          setNotice(els.orderSyncStatus, 'Total pesanan backend belum bisa dihitung: ' + firebaseMessage(error), 'warn');
+        }
+      }finally{
+        ordersTotalCountInFlight = false;
+        updateOrderLoadUi();
+      }
+      return ordersTotalCount;
+    }
     function orderTotalLabel(){
-      return ordersTotalCount ? (' dari ±' + ordersTotalCount.toLocaleString('id-ID') + ' total') : '';
+      const total = normalizeBackendTotal(ordersTotalCount);
+      if(total === null){
+        return ordersTotalCountInFlight ? ' • total backend sedang dihitung efisien' : '';
+      }
+      const jsonIndex = Math.max(1, Math.ceil(total / ORDERS_JSON_CHUNK_SIZE));
+      const sourceLabel = ordersTotalCountSource === 'backend-count' ? 'total backend efisien' : 'total backend';
+      return ' dari ' + total.toLocaleString('id-ID') + ' ' + sourceLabel + ' • perkiraan sampai JSON ' + jsonIndex.toLocaleString('id-ID') + ' (@' + ORDERS_JSON_CHUNK_SIZE + ' pesanan/file)';
     }
     function reportFilterSignature(){
       return JSON.stringify({
@@ -3741,6 +3866,7 @@
         adminReportSignature = signature;
         renderReports();
         const counts = adminReportSummary && adminReportSummary.counts || {};
+        if(setOrdersTotalCount(counts.orders, 'backend-count')) updateOrderLoadUi();
         setNotice(els.reportServerStatus, 'Laporan backend aktif: ' + Number(counts.filteredOrders || 0).toLocaleString('id-ID') + ' pesanan sesuai filter dari ' + Number(counts.orders || 0).toLocaleString('id-ID') + ' total pesanan • ' + nowLabel(), 'good');
       }catch(error){
         adminReportSummary = null;
@@ -3806,12 +3932,17 @@
         const incoming = rows.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
         orders = append ? mergeOrdersByDocId(orders, incoming) : incoming;
         ordersPageCursor = pageInfo.cursor || null;
-        ordersTotalCount = Number.isFinite(Number(pageInfo.total)) ? Number(pageInfo.total) : ordersTotalCount;
+        const totalFromPage = normalizeBackendTotal(pageInfo.total);
+        if(!useSearchMode && totalFromPage !== null){
+          setOrdersTotalCount(totalFromPage, 'page');
+        }else if(!useSearchMode && !append){
+          refreshOrdersTotalCountFromBackend({ silent:true }).catch(error => console.warn('Total pesanan backend gagal:', error));
+        }
         ordersHasMore = Boolean(pageInfo.hasMore) && !useSearchMode;
         ordersBackendSearch = searchText;
         ordersLoadedMode = useSearchMode ? 'search' : 'latest';
         const label = useSearchMode ? 'Hasil backend' : 'Sinkron backend aktif';
-        setNotice(els.orderSyncStatus, label + '. Pesanan dimuat: ' + orders.length.toLocaleString('id-ID') + orderTotalLabel() + ' • batch @' + ORDERS_BATCH_SIZE + ' • ' + nowLabel(), 'good');
+        setNotice(els.orderSyncStatus, label + '. Pesanan dimuat: ' + orders.length.toLocaleString('id-ID') + orderTotalLabel() + ' • batch @' + ORDERS_BATCH_SIZE + ' • tanpa render semua data • ' + nowLabel(), 'good');
         ultraAutoDeleteOldArchivedDocs();
         renderOrders();
         renderBusinessDashboard();
@@ -6871,6 +7002,69 @@
       function pro3Install(){ pro3SetAdminReady(); pro3WizardEnhance('productFormPanel','ultra-product-tab'); pro3WizardEnhance('orderFormPanel','ultra-order-tab'); pro3EnhanceCustomerDetail(); pro3EnsureProfitReports(); pro3DecorateDashboardCards(); pro3DecorateOrderActions(); pro3ShowSkeletons(); pro3AnimateMetrics(); document.body.classList.add('dirac-pro3-ready'); if(els.modalCloseBtn) els.modalCloseBtn.setAttribute('aria-label','Tutup dialog'); }
       setTimeout(pro3Install, 20);
     }
+
+
+    /* === Dirac Order Compact Total: additive only, login/hash untouched === */
+    function diracCompactOrderActions(){
+      if(!els || !els.orderRows) return;
+      els.orderRows.querySelectorAll('tr').forEach(row => {
+        const cells = Array.from(row.children || []);
+        if(cells.length < 6) return;
+        const actionCell = cells[5];
+        if(!actionCell || actionCell.querySelector('.order-actions-compact')) return;
+        const actions = Array.from(actionCell.children || []).find(el => el.classList && el.classList.contains('row-actions') && !el.classList.contains('order-actions-panel'));
+        if(!actions) return;
+        const buttonCount = Math.max(1, actions.querySelectorAll('button,a').length);
+        const compact = document.createElement('div');
+        compact.className = 'order-actions-compact';
+        compact.setAttribute('data-dirac-order-actions', 'compact');
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'btn small primary order-actions-toggle';
+        toggle.setAttribute('data-dirac-actions-toggle', '1');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.textContent = 'Lihat selengkapnya';
+        const summary = document.createElement('span');
+        summary.className = 'order-actions-summary';
+        summary.textContent = buttonCount + ' fitur aksi disembunyikan';
+        const panel = document.createElement('div');
+        panel.className = 'row-actions order-actions-panel';
+        while(actions.firstChild) panel.appendChild(actions.firstChild);
+        actions.replaceWith(compact);
+        compact.appendChild(toggle);
+        compact.appendChild(summary);
+        compact.appendChild(panel);
+      });
+    }
+    function diracSetActionPanelState(box, open){
+      if(!box) return;
+      box.classList.toggle('is-open', Boolean(open));
+      const toggle = box.querySelector('[data-dirac-actions-toggle]');
+      const summary = box.querySelector('.order-actions-summary');
+      const panel = box.querySelector('.order-actions-panel');
+      if(toggle){
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.textContent = open ? 'Sembunyikan fitur' : 'Lihat selengkapnya';
+      }
+      if(summary){
+        const count = panel ? Math.max(1, panel.querySelectorAll('button,a').length) : 0;
+        summary.textContent = open ? 'Semua fitur aksi tampil' : count + ' fitur aksi disembunyikan';
+      }
+    }
+    document.addEventListener('click', event => {
+      const toggle = event.target.closest('[data-dirac-actions-toggle]');
+      if(!toggle) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const box = toggle.closest('.order-actions-compact');
+      diracSetActionPanelState(box, !(box && box.classList.contains('is-open')));
+    }, true);
+    const diracBaseRenderOrdersCompactTotal = renderOrders;
+    renderOrders = function(){
+      diracBaseRenderOrdersCompactTotal();
+      diracCompactOrderActions();
+      ultraEnhanceTables($('ordersTablePanel') || document);
+    };
 
 </script>
 </body>
