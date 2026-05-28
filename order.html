@@ -12820,6 +12820,476 @@ function staticGeneralAnswerLocal(text) {
     return diracPrevIsGeneralKnowledgeLocal(text);
   };
 
+
+
+  /* === DIRAC AI PERFUME SPECIALIST UPGRADE v2026-05-28 ===
+     Additive only. Fokus: rekomendasi parfum berbasis katalog, brand, notes, gender, occasion, budget, ukuran, dan follow-up.
+     Tidak menyentuh Firebase, cart, checkout, atau koneksi database. */
+  (function installDiracAiPerfumeSpecialist(){
+    var PERFUME_AI_BUILD = 'dirac-ai-perfume-specialist-2026-05-28-v1';
+    try{
+      if(localStorage.getItem('dirac_ai_perfume_build') !== PERFUME_AI_BUILD){
+        localStorage.setItem('dirac_ai_perfume_build', PERFUME_AI_BUILD);
+        localStorage.removeItem('dirac_ai_state_v2');
+        state = sanitizeLoadedAiState({});
+      }
+    }catch(error){}
+
+    var AI_PERFUME_BRANDS = [
+      'Ahmed Al Maghribi','Jean Paul Gaultier','Yves Saint Laurent','Louis Vuitton','Giorgio Armani','Antonio Banderas','Salvatore Ferragamo','Tiziana Terenzi','Al Haramain','Calvin Klein','Carolina Herrera','Bali Surfers','Fragrance World','French Avenue','Heaven Scent','Montale Paris','Mercedes Benz','Ralph Lauren','Tom Ford','Tory Burch','Rue Broca','Diptyque','Montblanc','Nishane','Valentino','Versace','Xerjoff','Rasasi','Afnan','Ajmal','Aoera','Armaf','Azzaro','Bvlgari','Byredo','Chanel','Coach','Crusita','David Beckham','Dior','Fordive','Gucci','Guess','HMNS','Jayrosse','Khadlaj','La Rive','Lattafa','MINISO','MIRADA','Mykonos','Moschino','Nautica','Prada','Rayhaan','Zimaya'
+    ];
+
+    var AI_STOPWORDS = /^(saya|aku|mau|ingin|pengen|butuh|tolong|dong|yang|untuk|buat|cari|carikan|pilih|pilihkan|rekomendasi|rekomendasikan|parfum|perfume|fragrance|wangi|aroma|produk|katalog|dirac|dengan|dan|atau|di|ke|dari|ada|ready|stok|budget|dana|harga|rp|idr|ml|edp|edt|extrait|de|the|of|for|man|men|woman|women|unisex|pria|wanita|cowok|cewek)$/;
+
+    function aiNorm(value){ return normalize(value); }
+    function aiTitle(product){ return String((product && (product.title || product.name)) || ''); }
+    function aiHay(product){
+      return aiNorm([product && product.title, product && product.name, product && product.category, product && product.desc, product && product.description, product && product.longDesc, product && product.notes, product && product.status, aiBrandOf(product)].join(' '));
+    }
+    function aiRawHay(product){ return [product && product.title, product && product.name, product && product.category, product && product.desc, product && product.description, product && product.longDesc, product && product.notes, product && product.status, aiBrandOf(product)].join(' '); }
+    function aiUnique(list){ return Array.from(new Set((list || []).filter(Boolean))); }
+
+    function aiBrandOf(product){
+      var title = String((product && (product.title || product.name)) || '').replace(/\s+/g,' ').trim();
+      var raw = String([title, product && product.longDesc, product && product.desc].join(' '));
+      var n = aiNorm(raw);
+      if(!title && !raw) return '';
+      if(/^Rue Broca\b/i.test(title) || /\brue broca\b/.test(n)) return 'Rue Broca';
+      if(/^Afnan\b/i.test(title) || /\bafnan\b/.test(n)) return 'Afnan';
+      if(/\bbleu de chanel\b|\bchanel\b/.test(n)) return 'Chanel';
+      if(/\bacqua di gio\b|\bstronger with you\b|\bgiorgio armani\b/.test(n)) return 'Giorgio Armani';
+      if(/\bblue seduction\b|\bantonio banderas\b/.test(n)) return 'Antonio Banderas';
+      if(/\bbvg4r1\b|\bbvlgari\b/.test(n)) return 'Bvlgari';
+      if(/\bpr4d4\b|\bprada\b/.test(n)) return 'Prada';
+      if(/\bck one\b|\bck be\b|\bcalvin klein\b/.test(n)) return 'Calvin Klein';
+      if(/\bysl\b|\byves saint laurent\b|\bblack opium\b|\blibre\b|\bmyself\b|\by eau de parfum\b|\by edp\b/.test(n)) return 'Yves Saint Laurent';
+      if(/\bm toy boy\b|\bmoschino\b/.test(n)) return 'Moschino';
+      if(/\bferragamo\b|\bsalvatore ferragamo\b/.test(n)) return 'Salvatore Ferragamo';
+      for(var i=0;i<AI_PERFUME_BRANDS.length;i++){
+        var brand = AI_PERFUME_BRANDS[i];
+        var bn = aiNorm(brand);
+        if(!bn) continue;
+        if(n.indexOf(bn) >= 0) return brand;
+      }
+      return '';
+    }
+
+    function aiMatchBrands(text){
+      var n = aiNorm(text);
+      var found = [];
+      var aliases = [
+        ['Louis Vuitton',['lv','louis vuitton']],
+        ['Yves Saint Laurent',['ysl','yves saint laurent','saint laurent']],
+        ['Jean Paul Gaultier',['jpg','jean paul gaultier','gaultier']],
+        ['Giorgio Armani',['armani','giorgio armani','acqua di gio','stronger with you']],
+        ['Calvin Klein',['ck','calvin klein','ck one','ck be']],
+        ['Bvlgari',['bvlgari','bvg4r1']],
+        ['Prada',['prada','pr4d4']],
+        ['Antonio Banderas',['antonio banderas','blue seduction']],
+        ['Fragrance World',['fragrance world']],
+        ['French Avenue',['french avenue']],
+        ['Al Haramain',['al haramain']],
+        ['Rue Broca',['rue broca']],
+        ['Heaven Scent',['heaven scent']],
+        ['Bali Surfers',['bali surfers']],
+        ['Tiziana Terenzi',['tiziana terenzi']],
+        ['Salvatore Ferragamo',['salvatore ferragamo','ferragamo']],
+        ['Tom Ford',['tom ford']]
+      ];
+      aliases.forEach(function(row){
+        if(row[1].some(function(term){ return new RegExp('(^|\\s)' + escapeRegExp(aiNorm(term)) + '(?=\\s|$)').test(n); })) found.push(row[0]);
+      });
+      AI_PERFUME_BRANDS.forEach(function(brand){
+        var bn = aiNorm(brand);
+        if(bn && new RegExp('(^|\\s)' + escapeRegExp(bn) + '(?=\\s|$)').test(n)) found.push(brand);
+      });
+      return aiUnique(found);
+    }
+
+    function aiFamiliesFromText(text){
+      var n = aiNorm(text);
+      var groups = {
+        fresh:['fresh','segar','citrus','lemon','orange','bergamot','mint','aquatic','aqua','marine','blue','clean','green','tea','apple','kiwi','water','breeze','ocean','pacific','swim'],
+        sweet:['sweet','manis','vanilla','tonka','honey','caramel','toffee','gourmand','fruity','fruit','peach','passion','coconut','tropical','latte','cream','mango','berry'],
+        woody:['woody','kayu','wood','woods','sandalwood','cedar','vetiver','oud','aoud','moss','mossy','patchouli','sequoia'],
+        floral:['floral','bunga','rose','jasmine','tuberose','lavender','iris','gardenia','frangipani','white floral','feminine'],
+        spicy:['spicy','spice','rempah','warm','hangat','cinnamon','cardamom','saffron','pepper','tobacco','leather','smoky','resin','boozy','bourbon','rum'],
+        musky:['musk','musky','clean musk','white musk','soft musk','powdery','soft','lembut','kalem']
+      };
+      var out = [];
+      Object.keys(groups).forEach(function(key){
+        if(groups[key].some(function(term){ return n.indexOf(aiNorm(term)) >= 0; })) out.push(key);
+      });
+      return aiUnique(out);
+    }
+
+    function aiOccasionsFromText(text){
+      var n = aiNorm(text);
+      var out = [];
+      var map = {
+        harian:['harian','sehari hari','daily','everyday','casual','santai','jalan','hangout'],
+        kantor:['kantor','kerja','office','meeting','profesional','rapi'],
+        kampus:['kampus','kuliah','sekolah','kelas','pelajar','mahasiswa'],
+        formal:['formal','acara','event','wedding','nikah','kondangan','premium','elegan','elegant'],
+        malam:['malam','night','date','kencan','pesta','party','club','clubbing','bar'],
+        hadiah:['hadiah','kado','gift','birthday','ulang tahun','anniversary'],
+        outdoor:['outdoor','gym','olahraga','panas','siang','summer','beach','pantai'],
+        dingin:['dingin','hujan','rainy','winter','ac','malam dingin']
+      };
+      Object.keys(map).forEach(function(key){
+        if(map[key].some(function(term){ return n.indexOf(aiNorm(term)) >= 0; })) out.push(key);
+      });
+      return aiUnique(out);
+    }
+
+    function aiGenderFromText(text){
+      var n = aiNorm(text);
+      if(/\b(unisex|netral|cowok cewek|pria wanita|semua gender)\b/.test(n)) return 'unisex';
+      var male = /\b(pria|laki|lelaki|cowok|cowo|men|man|male|for him|homme|masculine|maskulin)\b/.test(n);
+      var female = /\b(wanita|perempuan|cewek|cewe|women|woman|female|for her|femme|feminine|feminim)\b/.test(n);
+      if(male && female) return 'unisex';
+      if(male) return 'pria';
+      if(female) return 'wanita';
+      return null;
+    }
+
+    function aiStrengthFromText(text){
+      var n = aiNorm(text);
+      if(/\b(tahan lama|awet|strong|kuat|beast|projection|projeksi|sillage|nendang|tebal|intense|bold|elixir|extrait|8 hours|8 jam|10 hours|10 jam)\b/.test(n)) return 'strong';
+      if(/\b(soft|lembut|kalem|ringan|light|aman|tidak nyegrak|ga nyegrak|tidak menyengat|tidak terlalu kuat)\b/.test(n)) return 'soft';
+      return null;
+    }
+
+    function aiSizeFromText(text){
+      var m = String(text || '').match(/\b(30|37|40|50|75|80|90|100|105|125|150|200)\s*ml\b/i);
+      return m ? Number(m[1]) : 0;
+    }
+
+    function aiProductProfile(product){
+      var hayRaw = aiRawHay(product);
+      var n = aiNorm(hayRaw);
+      var families = aiFamiliesFromText(hayRaw);
+      var gender = aiGenderFromText(hayRaw) || 'unisex';
+      var occasions = [];
+      if(/fresh|segar|citrus|aquatic|clean|green|tea|musk/.test(n) || Number(product && product.price || 0) <= 500000) occasions.push('harian','kampus');
+      if(/clean|aromatic|fougere|fresh|green|musk|office|elegant/.test(n)) occasions.push('kantor');
+      if(/woody|amber|oud|leather|formal|elegant|premium|luxury|parfum/.test(n)) occasions.push('formal');
+      if(/sweet|vanilla|tonka|honey|caramel|tobacco|leather|oud|amber|spicy|intense|elixir|gourmand/.test(n)) occasions.push('malam');
+      if(/versatile|fresh|clean|floral|sweet|fruity|unisex|soft/.test(n) || Number(product && product.price || 0) <= 300000) occasions.push('hadiah');
+      if(/citrus|aquatic|fresh|green|blue|marine|lemon|orange|mint|beach|swim|ocean|water/.test(n)) occasions.push('outdoor');
+      if(/amber|vanilla|tobacco|leather|oud|spicy|warm|honey|coffee|latte|bourbon/.test(n)) occasions.push('dingin');
+      var strength = 'medium';
+      if(/extrait|elixir|intense|oud|aoud|amber|tobacco|leather|smoky|strong|bold|tahan lama|8 hours|10 hours|parfum/.test(n)) strength = 'strong';
+      if(/soft|clean|fresh|musk|edt|miniso|light|easy wear/.test(n) && !/intense|elixir|oud|tobacco|leather/.test(n)) strength = 'soft';
+      return {
+        brand: aiBrandOf(product),
+        families: aiUnique(families),
+        gender: gender,
+        occasions: aiUnique(occasions),
+        strength: strength,
+        size: aiSizeFromText(aiTitle(product)),
+        ready: !/sold|kosong|habis|not ready|tidak menjual/i.test(String(product && product.status || ''))
+      };
+    }
+
+    function aiAnalyzeQuery(query){
+      var useState = shouldUseStateForMessageLocal(query);
+      var stateText = useState ? stateContextTextLocal() : '';
+      var raw = String(query || '') + ' ' + stateText;
+      var n = aiNorm(raw);
+      var budget = parseBudgetLocal(n);
+      var categories = matchCategoriesLocal(n);
+      var brands = aiMatchBrands(raw);
+      var families = aiFamiliesFromText(raw);
+      var occasions = aiOccasionsFromText(raw);
+      var gender = aiGenderFromText(raw);
+      var strength = aiStrengthFromText(raw);
+      var size = aiSizeFromText(raw);
+      var requested = requestedProductCountLocal(raw);
+      var wantsAlternative = /\b(selain itu|yang lain|lainnya|alternatif|rekomendasi lain|pilihan lain|jangan yang itu|bukan itu|selain tadi|lanjut|lanjutkan)\b/.test(n);
+      var priceBias = /\b(murah|terjangkau|budget rendah|hemat|value|paling murah|lebih murah)\b/.test(n) ? 'cheap' : (/\b(premium|mahal|luxury|mewah|niche terbaik|kelas atas)\b/.test(n) ? 'premium' : null);
+      var blindBuy = /\b(blind buy|blindbuy|aman dibeli|aman untuk pemula|pemula|safe)\b/.test(n);
+      var exactWords = n.split(/\s+/).filter(function(word){ return word.length > 2 && !AI_STOPWORDS.test(word); }).slice(0,32);
+      if(useState && !categories.length && state.categories && state.categories.length) categories = state.categories.slice(0,4);
+      if(useState && !gender && state.gender) gender = state.gender;
+      if(useState && !strength && state.scent) families = aiUnique(families.concat(state.scent));
+      var budgetMax = budget.max || (useState && Number(state.budgetMax || 0) >= 50000 ? Number(state.budgetMax) : 0) || 0;
+      return {raw:raw, n:n, categories:categories, brands:brands, families:families, occasions:occasions, gender:gender, strength:strength, size:size, requested:requested, wantsAlternative:wantsAlternative, priceBias:priceBias, blindBuy:blindBuy, budgetLabel:budget.label || (state && state.budget) || '', budgetMax:budgetMax, exactWords:exactWords};
+    }
+
+    function aiCategoryOk(product, categories){
+      if(!categories || !categories.length) return true;
+      return categories.some(function(cat){ return categoryMatchesLocal(product, cat); });
+    }
+
+    function aiReasonLabel(value){
+      var map = {fresh:'fresh/segar', sweet:'manis/gourmand', woody:'woody/kayu', floral:'floral', spicy:'spicy/hangat', musky:'musky/clean', harian:'harian', kantor:'kantor', kampus:'kampus/sekolah', formal:'formal', malam:'malam/date', hadiah:'hadiah', outdoor:'siang/outdoor', dingin:'hujan/dingin'};
+      return map[value] || value;
+    }
+
+    function aiScoreProduct(product, ctx){
+      var profile = aiProductProfile(product);
+      var hay = aiHay(product);
+      var title = aiNorm(aiTitle(product));
+      var score = 0;
+      var reasons = [];
+      if(!profile.ready) return {product:product, score:-9999, reasons:['stok tidak ready'], profile:profile};
+      if(/^all parfum\b/i.test(aiTitle(product)) && !/\b(all parfum|koleksi|semua kategori|semua parfum)\b/.test(ctx.n)) score -= 180;
+      if(ctx.brands.length){
+        if(ctx.brands.indexOf(profile.brand) >= 0){ score += 155; reasons.push('brand ' + profile.brand); }
+        else return {product:product, score:-9999, reasons:['brand tidak cocok'], profile:profile};
+      }
+      if(ctx.categories.length){
+        if(aiCategoryOk(product, ctx.categories)){ score += 95; reasons.push('kategori ' + (product.category || ctx.categories[0])); }
+        else return {product:product, score:-9999, reasons:['kategori tidak cocok'], profile:profile};
+      }
+      if(ctx.families.length){
+        ctx.families.forEach(function(fam){
+          if(profile.families.indexOf(fam) >= 0){ score += 52; reasons.push(aiReasonLabel(fam)); }
+          else if(hay.indexOf(fam) >= 0){ score += 24; reasons.push(aiReasonLabel(fam)); }
+        });
+      }
+      if(ctx.occasions.length){
+        ctx.occasions.forEach(function(occ){
+          if(profile.occasions.indexOf(occ) >= 0){ score += 42; reasons.push(aiReasonLabel(occ)); }
+        });
+      }
+      if(ctx.gender){
+        if(profile.gender === ctx.gender){ score += 46; reasons.push('untuk ' + ctx.gender); }
+        else if(profile.gender === 'unisex'){ score += 29; reasons.push('unisex'); }
+        else score -= 70;
+      }
+      if(ctx.strength){
+        if(profile.strength === ctx.strength){ score += 40; reasons.push(ctx.strength === 'strong' ? 'karakter kuat/awet' : 'lebih soft/aman'); }
+        else if(ctx.strength === 'soft' && /oud|tobacco|leather|smoky|elixir|intense/.test(hay)) score -= 55;
+        else if(ctx.strength === 'strong' && profile.strength === 'soft') score -= 18;
+      }
+      if(ctx.size){
+        if(profile.size === ctx.size){ score += 35; reasons.push(ctx.size + ' ml'); }
+        else if(profile.size) score -= Math.min(30, Math.abs(profile.size - ctx.size) / 4);
+      }
+      if(ctx.budgetMax && Number(product.price || 0)){
+        var price = Number(product.price || 0);
+        if(price <= ctx.budgetMax){ score += 64; reasons.push('masuk budget ' + formatMoney(ctx.budgetMax)); }
+        else if(price <= Math.round(ctx.budgetMax * 1.1)){ score += 5; reasons.push('sedikit di atas budget'); }
+        else score -= 320;
+      }
+      if(ctx.priceBias === 'cheap'){
+        if(Number(product.price || 0) <= 200000) score += 38;
+        else if(Number(product.price || 0) <= 500000) score += 24;
+        else if(Number(product.price || 0) > 1000000) score -= 38;
+      }
+      if(ctx.priceBias === 'premium'){
+        if(/niche|designer/i.test(String(product.category || ''))) score += 30;
+        if(Number(product.price || 0) >= 1000000) score += 24;
+      }
+      if(ctx.blindBuy){
+        if(/fresh|clean|aquatic|citrus|green|tea|musk|soft|versatile|easy wear/.test(hay)){ score += 46; reasons.push('aman blind buy'); }
+        if(/oud|tobacco|leather|smoky|animalic|very strong/.test(hay)) score -= 42;
+      }
+      ctx.exactWords.forEach(function(word){
+        if(title.indexOf(word) >= 0) score += 11;
+        else if(hay.indexOf(word) >= 0) score += 4;
+      });
+      if(product.isTopSeller) score += 14;
+      if(Number(product.soldCount || 0) > 0) score += Math.min(16, Math.log10(Number(product.soldCount || 1)) * 5);
+      if(Number(product.rating || 0) >= 4.8) score += 8;
+      if(!ctx.categories.length && !ctx.brands.length && !ctx.families.length && !ctx.occasions.length && !ctx.gender && !ctx.budgetMax){
+        if(/fresh|clean|versatile|easy wear|aromatic/.test(hay)) score += 25;
+        if(Number(product.price || 0) <= 500000) score += 18;
+      }
+      if(reasons.length === 0 && product.notes) reasons.push('notes ' + String(product.notes).split(/[-,]/).slice(0,2).map(function(x){return x.trim();}).filter(Boolean).join(', '));
+      return {product:product, score:score, reasons:aiUnique(reasons).slice(0,4), profile:profile};
+    }
+
+    function aiNeedPerfumeSpecialist(query){
+      var n = aiNorm(query);
+      if(!n || isGeneralKnowledgeLocal(n) || isNonStoreGeneralQueryLocal(n)) return false;
+      if(/\b(parfum|perfume|fragrance|aroma|wangi|scent|notes|edp|edt|extrait|ml|brand|merek|merk)\b/.test(n)) return true;
+      if(/\b(fresh|segar|citrus|aquatic|clean|manis|sweet|vanilla|woody|oud|amber|musk|floral|spicy|tahan lama|awet|soft|strong|harian|kantor|kampus|sekolah|formal|malam|hadiah|cowok|cewek|pria|wanita|unisex|niche|designer|lokal|timur tengah|timteng|miniso)\b/.test(n)) return true;
+      if(aiMatchBrands(n).length) return true;
+      return isProductFollowUpTextLocal(n) && hasProductHistoryLocal();
+    }
+
+    var diracPerfumePrevProductSearch = localProductSearch;
+    localProductSearch = function(query){
+      if(!aiNeedPerfumeSpecialist(query)) return diracPerfumePrevProductSearch(query);
+      var source = getProductList().filter(function(p){ return p && aiTitle(p); });
+      var ctx = aiAnalyzeQuery(query);
+      var excluded = ctx.wantsAlternative ? new Set((state.shownProductIds || []).concat(state.lastProductIds || []).map(String)) : new Set();
+      var scored = source.map(function(p){ return aiScoreProduct(p, ctx); })
+        .filter(function(entry){
+          if(excluded.has(String(entry.product && entry.product.id))) return false;
+          return entry.score > 0 && !/^all parfum\b/i.test(aiTitle(entry.product));
+        })
+        .sort(function(a,b){ return b.score - a.score || Number(a.product.price || 0) - Number(b.product.price || 0); });
+      var requested = Math.max(1, Math.min(10, ctx.requested || 3));
+      var selected = scored.slice(0, requested);
+      if(selected.length < requested){
+        var seen = new Set(selected.map(function(entry){ return String(entry.product && entry.product.id); }));
+        var fallback = source.map(function(p){ return aiScoreProduct(p, Object.assign({}, ctx, {budgetMax:0, brands:ctx.brands, categories:ctx.categories})); })
+          .filter(function(entry){
+            var id = String(entry.product && entry.product.id);
+            return !seen.has(id) && !excluded.has(id) && entry.score > -120 && entry.profile.ready && !/^all parfum\b/i.test(aiTitle(entry.product));
+          })
+          .sort(function(a,b){ return b.score - a.score || Number(a.product.price || 0) - Number(b.product.price || 0); });
+        fallback.forEach(function(entry){ if(selected.length < requested){ selected.push(entry); seen.add(String(entry.product && entry.product.id)); } });
+      }
+      if(!selected.length) return diracPerfumePrevProductSearch(query);
+      return selected.slice(0, requested).map(function(entry){
+        return Object.assign({}, entry.product, {
+          aiReason: entry.reasons.join(', '),
+          aiBrand: entry.profile.brand,
+          aiFamilies: entry.profile.families,
+          aiGender: entry.profile.gender,
+          aiStrength: entry.profile.strength,
+          budgetOk: !ctx.budgetMax || Number(entry.product.price || 0) <= Math.round(ctx.budgetMax * 1.1)
+        });
+      });
+    };
+
+    buildLocalProductReplyText = function(picks, intro){
+      picks = Array.isArray(picks) ? picks : [];
+      if(!picks.length) return 'Saya belum menemukan produk ready yang cocok dari katalog Dirac. Coba longgarkan kategori, budget, brand, atau karakter aroma.';
+      var lines = [intro || 'Saya pilihkan produk yang paling masuk akal dari katalog Dirac:'];
+      picks.slice(0,10).forEach(function(p, index){
+        var profile = aiProductProfile(p);
+        var brand = p.aiBrand || profile.brand || '';
+        var fam = (p.aiFamilies && p.aiFamilies.length ? p.aiFamilies : profile.families).slice(0,3).map(aiReasonLabel).join(', ');
+        var reason = p.aiReason || fam || buildLocalReason(p).replace(/^Cocok karena\s*/i,'').replace(/\.$/,'');
+        var status = /sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || '')) ? 'sold' : 'ready';
+        lines.push((index + 1) + '. ' + (p.title || p.name || 'Produk Dirac') + ' - ' + formatMoney(p.price || 0));
+        lines.push('   Profil: ' + [brand, p.category, fam, profile.gender, profile.strength].filter(Boolean).join(' | ') + '.');
+        if(reason) lines.push('   Alasan: ' + reason + '.');
+        lines.push('   Status: ' + status + '.');
+      });
+      lines.push('Saya tampilkan kartu produk di bawah. Untuk alternatif lanjutan, ketik: lebih murah, lebih fresh, lebih soft, lebih awet, brand tertentu, atau selain itu.');
+      return lines.join('\n');
+    };
+
+    renderProductCards = function(list){
+      var wrap = document.createElement('div');
+      wrap.className = 'dirac-ai-product-list';
+      (Array.isArray(list) ? list : []).slice(0,10).forEach(function(raw){
+        var local = raw && raw.id ? getProductById(raw.id) : null;
+        var p = Object.assign({}, raw || {}, local || {}, raw || {});
+        var profile = aiProductProfile(p);
+        var card = document.createElement('div');
+        card.className = 'dirac-ai-product-card';
+        var sold = /sold|kosong|habis|not ready|tidak menjual/i.test(String(p.status || ''));
+        var image = p.img || p.image || '';
+        var meta = [p.aiBrand || profile.brand, p.category, (p.aiFamilies && p.aiFamilies.length ? p.aiFamilies : profile.families).slice(0,2).map(aiReasonLabel).join(', '), profile.gender, profile.strength].filter(Boolean).slice(0,5);
+        card.innerHTML = '\n          <img src="' + safeText(image) + '" alt="' + safeText(p.title || p.name || 'Produk Dirac') + '" onerror="imageFallback(this)" loading="lazy" decoding="async">\n          <div>\n            <strong>' + safeText(p.title || p.name || 'Produk Dirac') + '</strong>\n            <span>' + safeText(formatMoney(p.price || 0)) + (sold ? ' - Sold out' : '') + '</span>\n          </div>\n          <div class="dirac-ai-product-meta">' + meta.map(function(x){ return '<span>' + safeText(x) + '</span>'; }).join('') + '</div>\n          ' + (p.aiReason ? '<div class="dirac-ai-card-reason">Alasan AI: ' + safeText(p.aiReason) + '.</div>' : '') + '\n          <div class="dirac-ai-product-actions">\n            <button class="dirac-ai-mini-btn secondary" type="button" data-dirac-ai-detail="' + safeText(p.id) + '">Lihat Detail</button>\n            <button class="dirac-ai-mini-btn" type="button" data-dirac-ai-add="' + safeText(p.id) + '" ' + (sold ? 'disabled' : '') + '>Tambah</button>\n          </div>\n        ';
+        wrap.appendChild(card);
+      });
+      return wrap;
+    };
+
+    var diracPerfumePrevUpdateState = updateRecommendationState;
+    updateRecommendationState = function(message){
+      diracPerfumePrevUpdateState(message);
+      if(!aiNeedPerfumeSpecialist(message)) return;
+      var ctx = aiAnalyzeQuery(message);
+      if(ctx.categories.length){ state.categories = ctx.categories.slice(0,4); state.category = ctx.categories[0]; }
+      if(ctx.families.length) state.scent = ctx.families[0];
+      if(ctx.gender) state.gender = ctx.gender;
+      if(ctx.budgetLabel && Number(ctx.budgetMax || 0) >= 50000){ state.budget = ctx.budgetLabel; state.budgetMax = ctx.budgetMax; }
+      state.lastProductContext = sanitizeLastProductContextLocal({category:state.category,categories:state.categories,usage:state.usage,scent:state.scent,gender:state.gender,budget:state.budget,budgetMax:state.budgetMax});
+      try{ saveJson('dirac_ai_state_v2', state); }catch(error){}
+    };
+
+    var diracPerfumePrevIntent = detectLocalIntent;
+    detectLocalIntent = function(message){
+      var base = diracPerfumePrevIntent(message);
+      var n = aiNorm(message);
+      if(aiNeedPerfumeSpecialist(message) && (/\b(rekomendasi|rekomendasikan|saran|sarankan|pilihkan|pilih|cocok|carikan|mau|pengen|butuh|lebih|yang|brand|merek|merk|notes|aroma|wangi|parfum|perfume|fragrance|alternatif|selain)\b/.test(n) || isProductFollowUpTextLocal(n))){
+        base.recommendation = true;
+        base.general = false;
+      }
+      return base;
+    };
+
+    var diracPerfumePrevLocalFirst = localFirstReply;
+    localFirstReply = function(message){
+      if(aiNeedPerfumeSpecialist(message)){
+        var n = aiNorm(message);
+        var intent = detectLocalIntent(message);
+        if(intent.productPrice) return productPriceReplyLocal(message);
+        if(/\b(bandingkan|perbandingan|compare|versus|vs|lebih bagus mana|pilih mana|beda|bedanya)\b/.test(n)){
+          updateRecommendationState(message);
+          var comparePicks = localProductSearch(message);
+          if(comparePicks.length) return {text:buildAiCompareReply(comparePicks), products:comparePicks};
+        }
+        if(intent.recommendation || isProductFollowUpTextLocal(n)){
+          updateRecommendationState(message);
+          var picks = localProductSearch(message);
+          if(picks.length) return {text:buildLocalProductReplyText(picks, 'Dari katalog Dirac, ini pilihan yang paling cocok dengan kebutuhan Anda:'), products:picks};
+        }
+      }
+      return diracPerfumePrevLocalFirst(message);
+    };
+
+    var diracPerfumePrevFallback = localFallbackReply;
+    localFallbackReply = function(message){
+      if(aiNeedPerfumeSpecialist(message)){
+        var n = aiNorm(message);
+        var intent = detectLocalIntent(message);
+        if(intent.productPrice) return productPriceReplyLocal(message);
+        if(/\b(bandingkan|perbandingan|compare|versus|vs|lebih bagus mana|pilih mana|beda|bedanya)\b/.test(n)){
+          updateRecommendationState(message);
+          var comparePicks = localProductSearch(message);
+          if(comparePicks.length) return {text:buildAiCompareReply(comparePicks), products:comparePicks};
+        }
+        updateRecommendationState(message);
+        var picks = localProductSearch(message);
+        if(picks.length) return {text:buildLocalProductReplyText(picks, 'Saya analisis notes, kategori, brand, gender, occasion, budget, dan status ready. Ini hasil terbaik dari katalog:'), products:picks};
+        return {text:'Saya belum menemukan produk ready yang cocok. Coba sebutkan salah satu detail: budget, brand, aroma fresh/manis/woody/floral, untuk pria/wanita/unisex, atau pemakaian harian/kantor/formal/malam.', products:[]};
+      }
+      return diracPerfumePrevFallback(message);
+    };
+
+    function buildAiCompareReply(picks){
+      var lines = ['Perbandingan ringkas dari kandidat yang paling relevan:'];
+      picks.slice(0,5).forEach(function(p, index){
+        var profile = aiProductProfile(p);
+        var fam = (p.aiFamilies && p.aiFamilies.length ? p.aiFamilies : profile.families).slice(0,3).map(aiReasonLabel).join(', ');
+        lines.push((index + 1) + '. ' + (p.title || p.name || 'Produk Dirac') + ' - ' + formatMoney(p.price || 0));
+        lines.push('   Cocok untuk: ' + profile.occasions.slice(0,3).map(aiReasonLabel).join(', ') + '. Karakter: ' + [fam, profile.gender, profile.strength].filter(Boolean).join(' | ') + '.');
+      });
+      lines.push('Pilihan aman: pilih yang profilnya paling dekat dengan kebutuhan utama. Untuk harian, prioritaskan fresh/clean. Untuk malam atau acara, pilih amber, woody, oud, vanilla, leather, atau spicy.');
+      return lines.join('\n');
+    }
+
+    function decoratePerfumeAiUi(){
+      try{
+        var sub = panel.querySelector('.dirac-ai-title span');
+        if(sub) sub.textContent = 'Spesialis rekomendasi parfum: notes, brand, budget, gender, occasion, dan stok katalog.';
+        if(input) input.setAttribute('placeholder','Tanya AI: parfum fresh harian, sweet date night, kantor, gift, brand, budget, atau bandingkan produk...');
+        var suggestions = panel.querySelector('.dirac-ai-suggestions');
+        if(suggestions && !suggestions.getAttribute('data-perfume-specialist')){
+          suggestions.setAttribute('data-perfume-specialist','true');
+          suggestions.innerHTML = [
+            ['Parfum fresh harian pria budget 300 ribu','Fresh pria'],
+            ['Rekomendasi parfum wanita sweet floral untuk date night','Date night'],
+            ['Parfum kantor yang soft dan tidak menyengat','Kantor soft'],
+            ['Blind buy paling aman budget 250 ribu','Blind buy'],
+            ['Bandingkan parfum lokal dan timur tengah yang awet','Compare'],
+            ['Rekomendasi brand Louis Vuitton yang fresh','LV fresh'],
+            ['Cari parfum unisex woody amber untuk malam','Woody malam']
+          ].map(function(row){ return '<button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="' + safeText(row[0]) + '">' + safeText(row[1]) + '</button>'; }).join('');
+          suggestions.addEventListener('click', function(event){
+            var btn = event.target.closest('[data-dirac-ai-prompt]');
+            if(!btn) return;
+            event.preventDefault();
+            setOpen(true);
+            handleSend(btn.getAttribute('data-dirac-ai-prompt') || '');
+          });
+        }
+      }catch(error){}
+    }
+    decoratePerfumeAiUi();
+  })();
+
 })();
 </script>
 
