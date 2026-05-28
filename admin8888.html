@@ -4802,22 +4802,7 @@
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         '<title>Invoice ' + escapeHtml(order.orderId) + '</title>',
         '<style>' + invoiceCss + '</style>',
-        '
-  <style id="dirac-pro4-scale-safe-css">
-    /* === Dirac Pro 4 Scale Safe: additive only, HTML tetap satu file, login/hash tidak disentuh === */
-    .scale-safe-panel{border:1px solid rgba(96,165,250,.24);background:linear-gradient(135deg,rgba(96,165,250,.10),rgba(34,197,94,.06));border-radius:20px;padding:12px;margin:12px 0;color:#dbeafe}
-    .scale-safe-panel strong{display:block}.scale-safe-panel span{display:block;color:var(--muted);font-size:.86rem;margin-top:3px}
-    .scale-safe-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
-    .scale-safe-card{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:18px;padding:12px;min-height:92px}.scale-safe-card span{display:block;color:var(--muted);font-size:.74rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.scale-safe-card strong{display:block;margin-top:5px;font-size:1.1rem}.scale-safe-card small{display:block;color:#bfdbfe;margin-top:5px}
-    .skeleton-line,.skeleton-card,.skeleton-cell{position:relative;overflow:hidden;background:rgba(255,255,255,.08);border-radius:14px;min-height:16px}.skeleton-line::after,.skeleton-card::after,.skeleton-cell::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:safeShimmer 1.25s infinite}.skeleton-card{min-height:70px;border:1px solid rgba(96,165,250,.14)}.skeleton-cell{height:18px;margin:4px 0}.metric-pop{animation:metricPop .34s ease both}.order-row-new{animation:orderRowNew .28s ease both}
-    @keyframes safeShimmer{100%{transform:translateX(100%)}}@keyframes metricPop{0%{transform:scale(.985);filter:brightness(.92)}60%{transform:scale(1.015);filter:brightness(1.16)}100%{transform:scale(1);filter:brightness(1)}}@keyframes orderRowNew{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    .import-progress-safe{height:10px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;margin-top:8px}.import-progress-safe span{display:block;width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#bfdbfe,#60a5fa);transition:width .2s ease}.server-report-note{margin-top:10px}.order-count-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(96,165,250,.08);border-radius:999px;padding:6px 10px;color:#dbeafe;font-size:.82rem;font-weight:900}
-    @media(max-width:1040px){.scale-safe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:700px){.scale-safe-grid{grid-template-columns:1fr}.scale-safe-panel{padding:11px}.filter-grid.report{grid-template-columns:1fr!important}}
-    @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
-  </style>
-
-</head><body>',
+        '</head><body>',
         renderInvoiceHtml(order),
         '<script>window.print();</' + 'script>',
         '</body></html>'
