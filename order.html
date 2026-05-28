@@ -4003,6 +4003,20 @@ html[data-effective-theme="light"] .dirac-ai-table th{color:#221605}
 }
 </style>
 
+
+<style id="dirac-ai-vibe-compare-critical-css">
+/* Critical mobile lag fix for AI chips */
+.dirac-ai-panel{contain:layout paint style!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 18px 46px rgba(0,0,0,.42)!important}
+.dirac-ai-head{contain:layout paint!important}
+.dirac-ai-body{contain:layout paint!important;will-change:auto!important}
+.dirac-ai-suggestions{contain:layout paint!important;overscroll-behavior-x:contain!important;scroll-snap-type:none!important}
+.dirac-ai-chip{transition:none!important;animation:none!important;box-shadow:none!important;touch-action:manipulation!important}
+.dirac-ai-chip.is-dirac-lite-waiting{opacity:.46!important;pointer-events:none!important}
+.dirac-ai-product-card.pro-card{content-visibility:auto;contain-intrinsic-size:130px;box-shadow:none!important}
+.dirac-ai-guardrail{display:none!important}
+@media(max-width:760px){.dirac-ai-product-card.pro-card .dirac-ai-product-meta span:nth-child(n+4){display:none!important}.dirac-ai-score-row span:nth-child(n+2){display:none!important}.dirac-ai-product-actions.is-pro{grid-template-columns:1fr 1fr!important}.dirac-ai-product-actions.is-pro button:nth-child(n+3){display:none!important}}
+</style>
+
 </head>
 <body>
 
@@ -14187,6 +14201,179 @@ function staticGeneralAnswerLocal(text) {
     try{ localStorage.setItem('dirac_ai_anti_lag_build', ANTI_LAG_BUILD); }catch(error){}
   })();
 
+
+    /* === DIRAC AI CRITICAL CHIP FAST PATH v2026-05-28 ===
+       Fix khusus lag pada chip Vibe LV dan Compare.
+       Prinsip: chip berat dijawab lokal super ringan, tidak menunggu endpoint remote,
+       tidak scan metadata panjang berulang, dan tidak memicu multi-listener. */
+    (function installDiracAiCriticalChipFastPath(){
+      'use strict';
+      var FAST_BUILD = 'dirac-ai-critical-chip-fastpath-2026-05-28-v4';
+      var fastBusy = false;
+      var fastLastPrompt = '';
+      var fastLastAt = 0;
+      var fastProductCache = {key:'', time:0, list:[]};
+      var FAST_CACHE_MS = 4500;
+
+      function fText(value){ return String(value == null ? '' : value).replace(/\s+/g,' ').trim(); }
+      function fNorm(value){
+        try{ return normalize(value); }catch(error){}
+        return fText(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+      }
+      function fReady(p){ return !/sold|kosong|habis|not ready|tidak menjual|hidden|nonaktif/i.test(String((p && p.status) || '')); }
+      function fTitle(p){ return fText(p && (p.title || p.name)); }
+      function fHay(p){ return fNorm([fTitle(p), p && p.brand, p && p.category, p && p.desc, p && p.description, p && p.longDesc, p && p.notes, p && p.status].join(' ')); }
+      function fListKey(list){
+        list = Array.isArray(list) ? list : [];
+        var len = list.length;
+        var a = len ? fTitle(list[0]) + ':' + (list[0].price || '') : '';
+        var b = len ? fTitle(list[len - 1]) + ':' + (list[len - 1].price || '') : '';
+        return len + '|' + a + '|' + b;
+      }
+      function fProducts(){
+        var list = [];
+        try{ list = getProductList() || []; }catch(error){ list = []; }
+        var key = fListKey(list), now = Date.now();
+        if(fastProductCache.key === key && now - fastProductCache.time < FAST_CACHE_MS && fastProductCache.list.length) return fastProductCache.list;
+        fastProductCache = {key:key, time:now, list:(Array.isArray(list) ? list : []).filter(function(p){ return p && fTitle(p) && !/hidden|nonaktif/i.test(String(p.status || '')); })};
+        return fastProductCache.list;
+      }
+      function fFamilyScore(hay, terms){
+        var score = 0;
+        terms.forEach(function(term){ if(hay.indexOf(term) >= 0) score += 16; });
+        return score;
+      }
+      function fPickVibeLv(){
+        var list = fProducts();
+        var scored = list.map(function(p, idx){
+          var h = fHay(p), score = fReady(p) ? 35 : -180;
+          score += fFamilyScore(h, ['lv','louis vuitton','imagination','afternoon swim','citrus','bergamot','orange','mandarin','grapefruit','ginger','tea','green tea','fresh','clean','aquatic','blue','theoreme','turathi','rue broca','afnan','north stag']);
+          if(/oud|tobacco|leather|smoky|dark|heavy/.test(h)) score -= 26;
+          if(/fresh|citrus|tea|ginger|aquatic|clean|blue/.test(h)) score += 22;
+          if(/louis vuitton|lv|imagination/.test(h)) score += 30;
+          if(/rue broca|theoreme|turathi|afnan/.test(h)) score += 18;
+          if(Number(p.price || 0) > 0 && Number(p.price || 0) <= 700000) score += 6;
+          return {p:p, score:score, idx:idx};
+        }).filter(function(x){ return x.score > 15; }).sort(function(a,b){ return (b.score - a.score) || (Number(a.p.price || 0) - Number(b.p.price || 0)) || (a.idx - b.idx); });
+        return scored.slice(0,3).map(function(x){ return Object.assign({}, x.p, {aiReason:'vibe fresh citrus tea, clean, dan mudah dipakai seperti arah LV Imagination'}); });
+      }
+      function fPickCompareFresh(seedProduct){
+        var list = fProducts();
+        var seedHay = seedProduct ? fHay(seedProduct) : '';
+        var seedTerms = seedHay.split(' ').filter(function(t){ return t.length > 3; }).slice(0,10);
+        var scored = list.map(function(p, idx){
+          var h = fHay(p), score = fReady(p) ? 30 : -180;
+          score += fFamilyScore(h, ['fresh','segar','clean','citrus','bergamot','orange','lemon','mandarin','aquatic','blue','tea','green','apple','mint','soapy','musk','office','daily','harian','kantor']);
+          if(/oud|tobacco|leather|smoky|animalic|very strong/.test(h)) score -= 35;
+          if(/fresh|clean|citrus|aquatic|blue|tea|musk/.test(h)) score += 24;
+          if(seedProduct && String(p.id) === String(seedProduct.id)) score += 120;
+          if(seedTerms.length){ seedTerms.forEach(function(t){ if(h.indexOf(t) >= 0) score += 3; }); }
+          if(Number(p.price || 0) > 0 && Number(p.price || 0) <= 600000) score += 8;
+          return {p:p, score:score, idx:idx};
+        }).filter(function(x){ return x.score > 10; }).sort(function(a,b){ return (b.score - a.score) || (Number(a.p.price || 0) - Number(b.p.price || 0)) || (a.idx - b.idx); });
+        var out = [], seen = Object.create(null);
+        scored.forEach(function(x){ if(out.length < 3 && !seen[String(x.p.id)]){ seen[String(x.p.id)] = true; out.push(Object.assign({}, x.p, {aiReason:'karakter fresh/clean paling relevan untuk dibandingkan'})); } });
+        return out;
+      }
+      function fFindSeedFromPrompt(prompt){
+        var n = fNorm(prompt), list = fProducts();
+        var best = null, bestScore = 0;
+        list.forEach(function(p){
+          var title = fNorm(fTitle(p));
+          if(!title) return;
+          var words = title.split(' ').filter(function(w){ return w.length > 3; }).slice(0,8);
+          var score = 0;
+          words.forEach(function(w){ if(n.indexOf(w) >= 0) score += 1; });
+          if(score > bestScore){ best = p; bestScore = score; }
+        });
+        return bestScore >= 2 ? best : null;
+      }
+      function fFormat(p){ try{ return formatMoney(p.price || 0); }catch(error){ return 'Rp' + (p.price || 0); } }
+      function fBuildVibeReply(picks){
+        var lines = ['Saya pakai mode cepat agar tombol Vibe LV tidak nge-lag. Ini 3 pilihan yang paling dekat ke arah fresh citrus tea, clean, dan elegan:'];
+        picks.forEach(function(p, i){ lines.push((i + 1) + '. ' + fTitle(p) + ' - ' + fFormat(p)); });
+        lines.push('Catatan: ini arah vibe, bukan klaim dupe 1:1. Untuk yang paling aman harian, pilih yang terasa fresh, clean, citrus, tea, atau aquatic.');
+        return lines.join('\n');
+      }
+      function fBuildCompareReply(picks){
+        var lines = ['Saya pakai mode cepat agar tombol Compare tidak nge-lag. Perbandingan ringkas:'];
+        picks.forEach(function(p, i){
+          var h = fHay(p);
+          var karakter = /citrus|bergamot|orange|lemon|mandarin/.test(h) ? 'fresh citrus' : (/aquatic|blue|marine/.test(h) ? 'fresh aquatic' : (/musk|soapy|clean/.test(h) ? 'clean musky' : 'fresh versatile'));
+          var cocok = /soft|musk|clean|soapy/.test(h) ? 'kantor dan harian' : 'harian, outdoor, dan casual';
+          lines.push((i + 1) + '. ' + fTitle(p) + ' - ' + fFormat(p) + ' | ' + karakter + ' | cocok: ' + cocok + '.');
+        });
+        lines.push('Pilihan paling aman biasanya yang fresh clean atau musky. Pilihan paling menonjol biasanya yang citrus/blue lebih tegas.');
+        return lines.join('\n');
+      }
+      function fIsTargetPrompt(prompt){
+        var n = fNorm(prompt);
+        return /\b(vibe\s+lv|lv\s+imagination|louis\s+vuitton\s+imagination)\b/.test(n) || /\b(compare|bandingkan|perbandingan)\b/.test(n);
+      }
+      function fFastSubmit(prompt){
+        prompt = fText(prompt).slice(0, MESSAGE_LIMIT || 1200);
+        if(!prompt || !fIsTargetPrompt(prompt)) return false;
+        var now = Date.now();
+        if(fastBusy || isBusy) return true;
+        if(prompt === fastLastPrompt && now - fastLastAt < 1200) return true;
+        fastLastPrompt = prompt;
+        fastLastAt = now;
+        fastBusy = true;
+        isBusy = true;
+        try{
+          if(typeof setOpen === 'function') setOpen(true);
+          input.value = '';
+          sendBtn.disabled = true;
+          sendBtn.textContent = '…';
+          lastUserPrompt = prompt;
+          addUserMessage(prompt);
+          history.push({role:'user', content:prompt});
+          var typing = addTyping();
+          window.setTimeout(function(){
+            try{
+              var n = fNorm(prompt);
+              var products = /\b(vibe\s+lv|lv\s+imagination|louis\s+vuitton\s+imagination)\b/.test(n) ? fPickVibeLv() : fPickCompareFresh(fFindSeedFromPrompt(prompt));
+              var reply = /\b(vibe\s+lv|lv\s+imagination|louis\s+vuitton\s+imagination)\b/.test(n) ? fBuildVibeReply(products) : fBuildCompareReply(products);
+              try{ typing.remove(); }catch(error){}
+              try{ rememberShownProducts(products); }catch(error){}
+              addBotMessage(reply, {products:products, provider:'Dirac AI Lite', traceId:'fast-' + Date.now(), noFeedback:false});
+              history.push({role:'assistant', content:reply});
+              history = history.slice(-Math.min(MAX_HISTORY * 2, 20));
+              saveJson('dirac_ai_history_v2', history);
+              try{ trackAiEvent({type:'fast_chip', mode:'local-lite', provider:'Dirac AI Lite', ok:true, products:products.length, build:FAST_BUILD}); }catch(error){}
+            }catch(error){
+              try{ typing.remove(); }catch(inner){}
+              addBotMessage('Maaf, mode cepat belum berhasil memuat kandidat. Coba ketik kebutuhan aroma atau brand yang lebih spesifik.', {noFeedback:true});
+            }finally{
+              fastBusy = false;
+              isBusy = false;
+              sendBtn.disabled = false;
+              sendBtn.textContent = '➜';
+              sendBtn.setAttribute('aria-label','Kirim pertanyaan AI');
+              try{ if(shouldAutoFocusAi()) input.focus({preventScroll:true}); }catch(error){}
+            }
+          }, 40);
+        }catch(error){
+          fastBusy = false;
+          isBusy = false;
+          sendBtn.disabled = false;
+          sendBtn.textContent = '➜';
+        }
+        return true;
+      }
+
+      try{
+        var prevCriticalHandleSend = handleSend;
+        handleSend = async function(raw){
+          if(fFastSubmit(raw)) return;
+          return prevCriticalHandleSend(raw);
+        };
+      }catch(error){}
+      try{ window.diracAiFastChipSubmit = fFastSubmit; }catch(error){}
+      try{ window.diracAiCriticalChipFastPathStatus = function(){ return {build:FAST_BUILD, cache:fProducts().length, active:!fastBusy}; }; }catch(error){}
+      try{ localStorage.setItem('dirac_ai_critical_chip_fastpath_build', FAST_BUILD); }catch(error){}
+    })();
+
   })();
 
 })();
@@ -14777,13 +14964,13 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     var sub = qs('.dirac-ai-title > div:last-child > span:not(.dirac-ai-catalog-status)', panel);
     var pill = qs('.dirac-ai-catalog-status', panel);
     var input = qs('#diracAiInput');
-    if(title) title.textContent = 'Dirac AI';
-    if(sub) sub.textContent = 'AI parfum pintar.';
-    if(input) input.setAttribute('placeholder','Tanya parfum, budget, brand, atau aroma...');
+    if(title && title.textContent !== 'Dirac AI') title.textContent = 'Dirac AI';
+    if(sub && sub.textContent !== 'AI parfum pintar.') sub.textContent = 'AI parfum pintar.';
+    if(input && input.getAttribute('placeholder') !== 'Tanya parfum, budget, brand, atau aroma...') input.setAttribute('placeholder','Tanya parfum, budget, brand, atau aroma...');
     if(pill){
       var next = compactStatusText(pill.textContent);
       if(next && pill.textContent !== next) pill.textContent = next;
-      pill.setAttribute('title','Status katalog aktif yang dibaca AI.');
+      if(pill.getAttribute('title') !== 'Status katalog aktif yang dibaca AI.') pill.setAttribute('title','Status katalog aktif yang dibaca AI.');
     }
   }
   function renderCompactChips(){
@@ -14823,6 +15010,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       window.setTimeout(function(){ btn.classList.remove('is-dirac-lite-waiting'); }, CHIP_DEBOUNCE_MS);
     });
     var run = function(){
+      if(window.diracAiFastChipSubmit && window.diracAiFastChipSubmit(prompt)) return;
       form.dispatchEvent(new Event('submit', {bubbles:true, cancelable:true}));
     };
     if(window.requestAnimationFrame) requestAnimationFrame(function(){ setTimeout(run, 0); });
@@ -14855,14 +15043,18 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     }
   }
   function observeHeader(){
-    var panel = qs('#diracAiPanel');
-    if(!panel || panel.getAttribute('data-dirac-lite-observed') === 'true') return;
-    panel.setAttribute('data-dirac-lite-observed','true');
+    var head = qs('#diracAiPanel .dirac-ai-head');
+    if(!head || head.getAttribute('data-dirac-lite-observed') === 'true') return;
+    head.setAttribute('data-dirac-lite-observed','true');
+    var pending = false;
     try{
       var observer = new MutationObserver(function(){
-        window.requestAnimationFrame ? requestAnimationFrame(compactHeader) : setTimeout(compactHeader, 0);
+        if(pending) return;
+        pending = true;
+        var run = function(){ pending = false; compactHeader(); };
+        window.requestAnimationFrame ? requestAnimationFrame(run) : setTimeout(run, 80);
       });
-      observer.observe(panel, {childList:true, subtree:true, characterData:true});
+      observer.observe(head, {childList:true, subtree:true, characterData:true});
     }catch(error){}
   }
   function boot(){
