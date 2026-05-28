@@ -13937,6 +13937,258 @@ function staticGeneralAnswerLocal(text) {
       try{ localStorage.setItem('dirac_ai_full_catalog_build', FULL_AI_BUILD); }catch(error){}
     })();
 
+
+  /* === DIRAC AI ANTI-LAG PATCH v2026-05-28 ===
+     Root fix untuk lag saat klik/kirim pertanyaan AI.
+     Prinsip: jangan fetch QA split besar untuk query parfum, jangan stringify 393-500 produk penuh untuk setiap chat,
+     kurangi payload remote, cegah double-submit dari chip, dan tetap pertahankan Firebase/cart/checkout/theme apa adanya. */
+  (function installDiracAiAntiLagPatch(){
+    'use strict';
+    var ANTI_LAG_BUILD = 'dirac-ai-anti-lag-2026-05-28-v2';
+    var REMOTE_PRODUCT_LIMIT = 90;
+    var REMOTE_PRODUCT_LIMIT_COMMERCE = 120;
+    var REMOTE_TEXT_LIMIT = 180;
+    var REMOTE_LONG_TEXT_LIMIT = 260;
+    var SNAPSHOT_CACHE_MS = 1200;
+    var snapshotCache = {key:'', time:0, items:[]};
+    var lastSubmitText = '';
+    var lastSubmitAt = 0;
+
+    function antiNorm(value){
+      try{ if(typeof normalize === 'function') return normalize(value); }catch(error){}
+      return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s.%+-]/g,' ').replace(/\s+/g,' ').trim();
+    }
+    function antiCut(value, limit){
+      value = String(value || '').replace(/\s+/g,' ').trim();
+      limit = Number(limit || 140);
+      return value.length > limit ? value.slice(0, limit).replace(/[\s,.;:-]+$/,'') + '…' : value;
+    }
+    function antiSafeArray(value){ return Array.isArray(value) ? value : []; }
+    function antiProductTitle(p){ return String((p && (p.title || p.name)) || '').trim(); }
+    function antiProductStatus(p){ return String((p && p.status) || '').trim(); }
+    function antiProductReady(p){ return !/sold|kosong|habis|not ready|tidak menjual|hidden|nonaktif/i.test(antiProductStatus(p)); }
+    function antiIsCommerceQuery(text){
+      var n = antiNorm(text);
+      if(!n) return false;
+      if(/\b(parfum|perfume|fragrance|produk|katalog|brand|merek|notes|aroma|wangi|scent|fresh|sweet|manis|woody|oud|amber|musk|floral|vanilla|citrus|aquatic|rekomendasi|rekomendasikan|saran|sarankan|pilihkan|carikan|cari|budget|harga|stok|ready|keranjang|checkout|beli|order|pesan|resi|kurir|ongkir|promo|diskon|compare|bandingkan|dupe|mirip|vibe|blind buy|kantor|harian|formal|hadiah|date night|timur tengah|lokal|niche|designer)\b/.test(n)) return true;
+      try{
+        if(typeof detectLocalIntent === 'function'){
+          var intent = detectLocalIntent(text) || {};
+          return !!(intent.website || intent.tracking || intent.cart || intent.brand || intent.productPrice || intent.productCount || intent.priceFormat || intent.recommendation);
+        }
+      }catch(error){}
+      return false;
+    }
+    function antiIsQaDiagnostic(text){ return /\b(cek\s+qa\s+split|diagnostic\s+qa|diagnosa\s+qa)\b/.test(antiNorm(text)); }
+    function antiNeedsQaSplit(text){
+      var n = antiNorm(text);
+      if(antiIsQaDiagnostic(text)) return true;
+      if(antiIsCommerceQuery(text)) return false;
+      return /\b(analisis wacana|wacana kritis|sosiologi|teori sosial|interaksi sosial|stratifikasi|mobilitas sosial|globalisasi|demokrasi|lingkungan sosial|media massa|pendidikan inklusif|ekonomi pasar|deviasi sosial|labeling theory|anomie)\b/.test(n);
+    }
+    function antiCurrencyCode(){
+      try{ if(window.diracCurrency && typeof window.diracCurrency.read === 'function') return window.diracCurrency.read() || 'IDR'; }catch(error){}
+      return 'IDR';
+    }
+    function antiLanguageCode(){
+      try{ if(window.diracLanguage && typeof window.diracLanguage.read === 'function') return window.diracLanguage.read() || 'id'; }catch(error){}
+      return (document.documentElement.getAttribute('lang') || 'id').slice(0,8);
+    }
+    function antiCatalogStatus(){
+      var list = [];
+      try{ list = getProductList() || []; }catch(error){ list = []; }
+      var visible = antiSafeArray(list).filter(function(p){ return p && !/hidden|nonaktif/i.test(antiProductStatus(p)); });
+      var ready = visible.filter(antiProductReady);
+      var brandMap = Object.create(null);
+      visible.forEach(function(p){
+        var title = antiProductTitle(p);
+        var brand = String((p && p.brand) || '').trim();
+        if(!brand && title) brand = title.replace(/\s+(edp|edt|extrait|parfum|perfume|for men|for women|men|women|unisex).*$/i,'').split(/\s+-\s+|\s+\|\s+/)[0].trim().split(/\s+/).slice(0,3).join(' ');
+        if(brand) brandMap[brand.toLowerCase()] = brand;
+      });
+      return {count:visible.length, readyCount:ready.length, brandCount:Object.keys(brandMap).length, source:visible.length >= 300 ? 'firebase-live-or-full-catalog' : (visible.length > 217 ? 'partial-live-catalog' : 'local-fallback-catalog')};
+    }
+    function antiListKey(list){
+      list = antiSafeArray(list);
+      var len = list.length;
+      var first = len ? antiProductTitle(list[0]) + ':' + (list[0].price || '') + ':' + antiProductStatus(list[0]) : '';
+      var mid = len > 2 ? antiProductTitle(list[Math.floor(len / 2)]) + ':' + (list[Math.floor(len / 2)].price || '') : '';
+      var last = len ? antiProductTitle(list[len - 1]) + ':' + (list[len - 1].price || '') + ':' + antiProductStatus(list[len - 1]) : '';
+      return len + '|' + first + '|' + mid + '|' + last + '|' + antiCurrencyCode();
+    }
+    function antiBrandGuess(p){
+      var title = antiProductTitle(p);
+      var explicit = String((p && p.brand) || '').trim();
+      if(explicit) return explicit;
+      var known = ['Louis Vuitton','Rue Broca','Maison Alhambra','Ahmed Al Maghribi','Afnan','Lattafa','Armaf','Rasasi','Fragrance World','Paris Corner','Emper','Miniso','Zara','YSL','Dior','Chanel','Tom Ford','Giorgio Armani','Xerjoff','Nishane','Tiziana Terenzi','Montale','Mancera','Al Haramain','Swiss Arabian','Ajmal','Khadlaj','Mykonos','HMNS','Saff & Co','Onix','Carl & Claire','Cote Noire','All Parfum'];
+      var low = title.toLowerCase();
+      for(var i=0;i<known.length;i++){ if(low.indexOf(known[i].toLowerCase()) >= 0) return known[i]; }
+      return title.split(/\s+/).slice(0,2).join(' ');
+    }
+    function antiFamilies(text){
+      var n = antiNorm(text), out = [];
+      var rows = [
+        ['fresh', /\b(fresh|segar|citrus|lemon|bergamot|mandarin|orange|lime|aquatic|marine|blue|tea|green|mint|clean|soapy|soap|shower|apple|pear)\b/],
+        ['sweet', /\b(sweet|manis|vanilla|tonka|caramel|honey|gourmand|candy|sugar|creamy|coffee|chocolate|coconut|mango|berry|fruity)\b/],
+        ['woody', /\b(woody|wood|kayu|cedar|sandalwood|vetiver|oud|aoud|patchouli|moss)\b/],
+        ['floral', /\b(floral|bunga|rose|mawar|jasmine|melati|tuberose|lavender|iris|gardenia|violet)\b/],
+        ['spicy', /\b(spicy|spice|rempah|cinnamon|cardamom|saffron|pepper|tobacco|leather|smoky|boozy)\b/],
+        ['musky', /\b(musk|musky|powdery|powder|bedak|soft|lembut|kalem|skin)\b/]
+      ];
+      rows.forEach(function(row){ if(row[1].test(n)) out.push(row[0]); });
+      return out;
+    }
+    function antiMakeProduct(p){
+      var title = antiProductTitle(p);
+      var raw = [title, p && p.category, p && p.desc, p && p.longDesc, p && p.notes].join(' ');
+      return {
+        id:p && p.id,
+        title:title,
+        name:(p && p.name) || title,
+        brand:antiBrandGuess(p),
+        category:String((p && p.category) || '').trim(),
+        price:Number((p && p.price) || 0),
+        priceFormatted:(function(){ try{return formatMoney((p && p.price) || 0);}catch(error){return String((p && p.price) || 0);} })(),
+        currency:antiCurrencyCode(),
+        desc:antiCut((p && (p.desc || p.description)) || '', REMOTE_TEXT_LIMIT),
+        notes:antiCut((p && p.notes) || '', REMOTE_TEXT_LIMIT),
+        status:antiProductStatus(p) || 'ready',
+        ready:antiProductReady(p),
+        img:String((p && (p.img || p.image)) || '').slice(0,160),
+        rating:p && p.rating || null,
+        soldCount:p && p.soldCount || null,
+        isTopSeller:!!(p && p.isTopSeller),
+        scentFamilies:antiFamilies(raw),
+        sizeMl:(function(){ var m = String(raw || '').match(/\b(\d{1,3})\s*ml\b/i); return m ? Number(m[1]) : null; })()
+      };
+    }
+    function antiSnapshotProducts(){
+      var list = [];
+      try{ list = getProductList() || []; }catch(error){ list = []; }
+      var key = antiListKey(list);
+      var now = Date.now();
+      if(snapshotCache.key === key && now - snapshotCache.time < SNAPSHOT_CACHE_MS && snapshotCache.items.length){ return snapshotCache.items; }
+      var items = antiSafeArray(list).filter(function(p){ return p && antiProductTitle(p) && !/hidden|nonaktif/i.test(antiProductStatus(p)); }).map(antiMakeProduct);
+      snapshotCache = {key:key, time:now, items:items};
+      return items;
+    }
+    function antiQueryTerms(text){
+      var n = antiNorm(text);
+      return n.split(' ').filter(function(t){ return t.length >= 3 && !/^(yang|dan|atau|untuk|dari|dengan|saya|mau|cari|rekomendasi|parfum|produk|budget|harga|ada|apa|ini|itu)$/.test(t); }).slice(0,18);
+    }
+    function antiSelectProductsForRemote(text, limit){
+      var all = antiSnapshotProducts();
+      var terms = antiQueryTerms(text);
+      var commerce = antiIsCommerceQuery(text);
+      limit = Number(limit || (commerce ? REMOTE_PRODUCT_LIMIT_COMMERCE : REMOTE_PRODUCT_LIMIT));
+      if(!commerce){ return []; }
+      var scored = all.map(function(p, idx){
+        var hay = antiNorm([p.title,p.brand,p.category,p.desc,p.notes,p.status,(p.scentFamilies || []).join(' ')].join(' '));
+        var score = p.ready ? 25 : -100;
+        if(p.isTopSeller) score += 6;
+        terms.forEach(function(t){ if(hay.indexOf(t) >= 0) score += 15; });
+        antiFamilies(text).forEach(function(f){ if((p.scentFamilies || []).indexOf(f) >= 0) score += 18; });
+        if(/\b(kantor|office|harian|daily|fresh|clean)\b/.test(antiNorm(text)) && ((p.scentFamilies || []).indexOf('fresh') >= 0 || (p.scentFamilies || []).indexOf('musky') >= 0)) score += 12;
+        if(/\b(malam|date|formal|elegan|mewah|mahal)\b/.test(antiNorm(text)) && ((p.scentFamilies || []).indexOf('woody') >= 0 || (p.scentFamilies || []).indexOf('sweet') >= 0 || (p.scentFamilies || []).indexOf('spicy') >= 0)) score += 10;
+        return {p:p, score:score, idx:idx};
+      }).filter(function(x){ return x.score > -80; }).sort(function(a,b){ return (b.score - a.score) || (a.idx - b.idx); });
+      var picked = scored.slice(0, limit).map(function(x){ return x.p; });
+      if(picked.length < Math.min(24, all.length)){
+        var seen = Object.create(null); picked.forEach(function(p){ seen[String(p.id)] = true; });
+        all.filter(function(p){ return p.ready && !seen[String(p.id)]; }).slice(0, Math.min(24, all.length) - picked.length).forEach(function(p){ picked.push(p); });
+      }
+      return picked;
+    }
+    function antiApproxPayloadSize(obj){
+      try{ return JSON.stringify(obj).length; }catch(error){ return 0; }
+    }
+
+    try{
+      var prevQaSplit = (typeof diracQaSplitLocalReply === 'function') ? diracQaSplitLocalReply : null;
+      if(prevQaSplit){
+        diracQaSplitLocalReply = async function(message){
+          if(!antiNeedsQaSplit(message)) return null;
+          return prevQaSplit(message);
+        };
+      }
+    }catch(error){}
+
+    try{
+      compactProductsForApi = function(){
+        return antiSelectProductsForRemote('', REMOTE_PRODUCT_LIMIT);
+      };
+    }catch(error){}
+
+    try{
+      callRemoteAiEndpoint = async function(endpoint, message){
+        var controller = new AbortController();
+        activeController = controller;
+        var timer = setTimeout(function(){ controller.abort(); }, 6500);
+        var productsForRemote = antiSelectProductsForRemote(message, antiIsCommerceQuery(message) ? REMOTE_PRODUCT_LIMIT_COMMERCE : 0);
+        var st = antiCatalogStatus();
+        var bodyPayload = {
+          message:message,
+          sessionId:sessionId,
+          state:state,
+          page:{title:document.title,url:location.href,language:antiLanguageCode(),currency:antiCurrencyCode()},
+          catalog:{count:st.count,readyCount:st.readyCount,source:st.source,brandCount:st.brandCount,payloadProducts:productsForRemote.length,antiLagBuild:ANTI_LAG_BUILD},
+          currency:{code:antiCurrencyCode(),display:'prices follow active website currency; base price is IDR'},
+          store:{name:'Dirac Group', whatsapp:'6287892523968', hours:'09.00-21.00 WIB', checkout:'WhatsApp'},
+          products:productsForRemote,
+          cart:currentCartSummary(),
+          history:history.slice(-Math.min(MAX_HISTORY, 6))
+        };
+        /* Hard guard: kalau payload tetap membesar karena data tak terduga, potong produk lagi sebelum stringify akhir. */
+        if(antiApproxPayloadSize(bodyPayload) > 180000){
+          bodyPayload.products = productsForRemote.slice(0, 60).map(function(p){
+            return {id:p.id,title:p.title,brand:p.brand,category:p.category,price:p.price,priceFormatted:p.priceFormatted,currency:p.currency,notes:antiCut(p.notes,90),desc:antiCut(p.desc,90),status:p.status,ready:p.ready,scentFamilies:p.scentFamilies};
+          });
+        }
+        try{
+          var response = await fetch(endpoint, {
+            method:'POST',
+            mode:'cors',
+            headers:{'Content-Type':'application/json','X-Dirac-Session':sessionId},
+            body:JSON.stringify(bodyPayload),
+            signal:controller.signal
+          });
+          var data = await response.json().catch(function(){ return {}; });
+          if(!response.ok) throw new Error(data && data.reply ? data.reply : 'AI endpoint error ' + response.status);
+          if(!data || !data.reply) throw new Error('AI response empty');
+          return data;
+        }finally{ clearTimeout(timer); }
+      };
+    }catch(error){}
+
+    try{
+      var prevHandleSend = handleSend;
+      handleSend = async function(raw){
+        var text = String(raw || '').trim().slice(0, MESSAGE_LIMIT || 800);
+        if(!text && isBusy) return prevHandleSend(raw);
+        var now = Date.now();
+        if(text && text === lastSubmitText && now - lastSubmitAt < 650){ return; }
+        lastSubmitText = text;
+        lastSubmitAt = now;
+        try{ aiUpdateCatalogPill && aiUpdateCatalogPill(); }catch(error){}
+        await new Promise(function(resolve){
+          if(window.requestAnimationFrame) requestAnimationFrame(function(){ resolve(); });
+          else setTimeout(resolve, 0);
+        });
+        return prevHandleSend(raw);
+      };
+    }catch(error){}
+
+    try{
+      var style = document.createElement('style');
+      style.id = 'dirac-ai-anti-lag-css';
+      style.textContent = '.dirac-ai-catalog-status:after{content:" • ringan";opacity:.72;font-weight:700}.dirac-ai-send{touch-action:manipulation}.dirac-ai-body{overflow-anchor:none}';
+      document.head.appendChild(style);
+    }catch(error){}
+
+    try{ window.diracAiAntiLagStatus = function(){ var st = antiCatalogStatus(); return Object.assign({build:ANTI_LAG_BUILD, remoteLimit:REMOTE_PRODUCT_LIMIT_COMMERCE, qaSplitCommerceSkipped:true, snapshotProducts:antiSnapshotProducts().length}, st); }; }catch(error){}
+    try{ localStorage.setItem('dirac_ai_anti_lag_build', ANTI_LAG_BUILD); }catch(error){}
+  })();
+
   })();
 
 })();
