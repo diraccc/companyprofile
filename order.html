@@ -13911,19 +13911,17 @@ function staticGeneralAnswerLocal(text) {
           if(aiWidget){ aiWidget.classList.remove('notranslate'); aiWidget.setAttribute('translate','yes'); }
           if(aiPanel){ aiPanel.classList.remove('notranslate'); aiPanel.setAttribute('translate','yes'); }
           var sub = panel.querySelector('.dirac-ai-title span');
-          if(sub) sub.textContent = 'Spesialis parfum: 393+ katalog live, notes, brand, budget, gender, occasion, stok, mata uang, dan konsultasi bertahap.';
-          if(input) input.setAttribute('placeholder','Tanya parfum: fresh kantor, sweet date night, hadiah, dupe, compare, budget, atau quiz parfum...');
+          if(sub) sub.textContent = 'AI parfum pintar, ringan, dan siap bantu pilih aroma.';
+          if(input) input.setAttribute('placeholder','Tanya parfum, budget, brand, atau aroma...');
           var suggestions = panel.querySelector('.dirac-ai-suggestions');
           if(suggestions){
             suggestions.innerHTML = [
-              ['Quiz parfum: bantu pilih dari nol','Quiz'],
-              ['Pria budget 300 ribu, fresh clean untuk kantor, jangan manis','Kantor fresh'],
-              ['Wanita sweet floral untuk date night, budget 500 ribu','Date night'],
+              ['Pria budget 300 ribu, fresh clean untuk kantor, jangan manis','Fresh'],
+              ['Wanita sweet floral untuk date night, budget 500 ribu','Date'],
+              ['Blind buy paling aman untuk hadiah budget 250 ribu','Hadiah'],
               ['Cari alternatif vibe LV Imagination yang fresh citrus tea','Vibe LV'],
-              ['Blind buy paling aman untuk hadiah budget 250 ribu','Gift aman'],
-              ['Bandingkan parfum fresh lokal dan timur tengah yang awet','Compare'],
-              ['Cari parfum woody amber malam yang elegan, jangan terlalu smoky','Woody malam'],
-              ['Berapa produk yang terbaca AI sekarang?','Jumlah produk']
+              ['Bandingkan 3 parfum fresh yang ready dan jelaskan bedanya','Compare'],
+              ['Berapa produk yang terbaca AI sekarang?','Jumlah']
             ].map(function(row){ return '<button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="' + safeText(row[0]) + '">' + safeText(row[1]) + '</button>'; }).join('');
             suggestions.querySelectorAll('[data-dirac-ai-prompt]').forEach(function(btn){
               btn.addEventListener('click', function(){ setOpen(true); handleSend(btn.getAttribute('data-dirac-ai-prompt') || ''); });
@@ -13944,12 +13942,12 @@ function staticGeneralAnswerLocal(text) {
      kurangi payload remote, cegah double-submit dari chip, dan tetap pertahankan Firebase/cart/checkout/theme apa adanya. */
   (function installDiracAiAntiLagPatch(){
     'use strict';
-    var ANTI_LAG_BUILD = 'dirac-ai-anti-lag-2026-05-28-v2';
-    var REMOTE_PRODUCT_LIMIT = 90;
-    var REMOTE_PRODUCT_LIMIT_COMMERCE = 120;
-    var REMOTE_TEXT_LIMIT = 180;
-    var REMOTE_LONG_TEXT_LIMIT = 260;
-    var SNAPSHOT_CACHE_MS = 1200;
+    var ANTI_LAG_BUILD = 'dirac-ai-anti-lag-2026-05-28-v3-final-mobile-lite';
+    var REMOTE_PRODUCT_LIMIT = 32;
+    var REMOTE_PRODUCT_LIMIT_COMMERCE = 48;
+    var REMOTE_TEXT_LIMIT = 110;
+    var REMOTE_LONG_TEXT_LIMIT = 150;
+    var SNAPSHOT_CACHE_MS = 3000;
     var snapshotCache = {key:'', time:0, items:[]};
     var lastSubmitText = '';
     var lastSubmitAt = 0;
@@ -14136,12 +14134,12 @@ function staticGeneralAnswerLocal(text) {
           store:{name:'Dirac Group', whatsapp:'6287892523968', hours:'09.00-21.00 WIB', checkout:'WhatsApp'},
           products:productsForRemote,
           cart:currentCartSummary(),
-          history:history.slice(-Math.min(MAX_HISTORY, 6))
+          history:history.slice(-Math.min(MAX_HISTORY, 4))
         };
         /* Hard guard: kalau payload tetap membesar karena data tak terduga, potong produk lagi sebelum stringify akhir. */
-        if(antiApproxPayloadSize(bodyPayload) > 180000){
-          bodyPayload.products = productsForRemote.slice(0, 60).map(function(p){
-            return {id:p.id,title:p.title,brand:p.brand,category:p.category,price:p.price,priceFormatted:p.priceFormatted,currency:p.currency,notes:antiCut(p.notes,90),desc:antiCut(p.desc,90),status:p.status,ready:p.ready,scentFamilies:p.scentFamilies};
+        if(antiApproxPayloadSize(bodyPayload) > 90000){
+          bodyPayload.products = productsForRemote.slice(0, 36).map(function(p){
+            return {id:p.id,title:p.title,brand:p.brand,category:p.category,price:p.price,priceFormatted:p.priceFormatted,currency:p.currency,notes:antiCut(p.notes,70),desc:antiCut(p.desc,70),status:p.status,ready:p.ready,scentFamilies:p.scentFamilies};
           });
         }
         try{
@@ -14166,7 +14164,7 @@ function staticGeneralAnswerLocal(text) {
         var text = String(raw || '').trim().slice(0, MESSAGE_LIMIT || 800);
         if(!text && isBusy) return prevHandleSend(raw);
         var now = Date.now();
-        if(text && text === lastSubmitText && now - lastSubmitAt < 650){ return; }
+        if(text && text === lastSubmitText && now - lastSubmitAt < 900){ return; }
         lastSubmitText = text;
         lastSubmitAt = now;
         try{ aiUpdateCatalogPill && aiUpdateCatalogPill(); }catch(error){}
@@ -14181,7 +14179,7 @@ function staticGeneralAnswerLocal(text) {
     try{
       var style = document.createElement('style');
       style.id = 'dirac-ai-anti-lag-css';
-      style.textContent = '.dirac-ai-catalog-status:after{content:" • ringan";opacity:.72;font-weight:700}.dirac-ai-send{touch-action:manipulation}.dirac-ai-body{overflow-anchor:none}';
+      style.textContent = '.dirac-ai-send{touch-action:manipulation}.dirac-ai-body{overflow-anchor:none;scroll-behavior:auto!important}.dirac-ai-catalog-status:after{content:""!important}';
       document.head.appendChild(style);
     }catch(error){}
 
@@ -14577,6 +14575,307 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     }).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['data-language','label']});
   }
   applyCompleteI18n();
+})();
+</script>
+
+
+
+<style id="dirac-ai-final-mobile-lite-css">
+/* Final mobile anti-lag UI layer. Additive only. Firebase, cart, checkout, theme, and catalog scripts are untouched. */
+.dirac-ai-panel{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  box-shadow:0 18px 48px rgba(0,0,0,.44),0 0 0 1px rgba(255,255,255,.045) inset!important;
+  contain:layout paint style!important;
+}
+.dirac-ai-head{
+  align-items:center!important;
+  padding:9px 11px 8px!important;
+  gap:8px!important;
+}
+.dirac-ai-title{
+  align-items:center!important;
+  gap:8px!important;
+}
+.dirac-ai-avatar{
+  width:30px!important;
+  height:30px!important;
+  border-radius:11px!important;
+  font-size:.72rem!important;
+  box-shadow:none!important;
+}
+.dirac-ai-title strong{
+  font-size:.86rem!important;
+  line-height:1.05!important;
+  letter-spacing:-.01em!important;
+}
+.dirac-ai-title > div:last-child > span:not(.dirac-ai-catalog-status){
+  display:none!important;
+}
+.dirac-ai-head-actions{
+  gap:5px!important;
+  flex:0 0 auto!important;
+}
+.dirac-ai-reset{
+  height:28px!important;
+  padding:0 8px!important;
+  font-size:.68rem!important;
+  border-radius:999px!important;
+}
+.dirac-ai-close{
+  width:30px!important;
+  height:30px!important;
+  font-size:1rem!important;
+  line-height:1!important;
+}
+.dirac-ai-catalog-status{
+  margin-top:4px!important;
+  padding:4px 7px!important;
+  max-width:min(190px,calc(100vw - 190px))!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:.60rem!important;
+  line-height:1.05!important;
+}
+.dirac-ai-catalog-status:after{content:""!important}
+.dirac-ai-body{
+  scroll-behavior:auto!important;
+  overscroll-behavior:contain!important;
+  padding:10px!important;
+  padding-bottom:12px!important;
+  contain:layout paint!important;
+}
+.dirac-ai-bubble{
+  font-size:.82rem!important;
+  line-height:1.42!important;
+}
+.dirac-ai-suggestions{
+  flex:0 0 auto!important;
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  gap:5px!important;
+  padding:6px 10px 8px!important;
+  min-height:39px!important;
+  max-height:43px!important;
+  border-top:1px solid rgba(255,255,255,.075)!important;
+  border-bottom:1px solid rgba(255,255,255,.05)!important;
+  background:rgba(0,0,0,.10)!important;
+  contain:layout paint!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x!important;
+}
+.dirac-ai-chip{
+  height:30px!important;
+  min-width:max-content!important;
+  padding:0 10px!important;
+  border-radius:999px!important;
+  font-size:.69rem!important;
+  line-height:30px!important;
+  font-weight:850!important;
+  transform:none!important;
+  transition:opacity .08s linear!important;
+  touch-action:manipulation!important;
+  user-select:none!important;
+  -webkit-user-select:none!important;
+}
+.dirac-ai-chip:active{opacity:.64!important}
+.dirac-ai-chip.is-dirac-lite-waiting{opacity:.48!important;pointer-events:none!important}
+.dirac-ai-form{
+  padding:9px 10px!important;
+  gap:7px!important;
+  contain:layout paint!important;
+}
+.dirac-ai-input{
+  min-height:42px!important;
+  max-height:82px!important;
+  border-radius:15px!important;
+  font-size:16px!important;
+}
+.dirac-ai-send{
+  width:42px!important;
+  height:42px!important;
+  border-radius:15px!important;
+  box-shadow:none!important;
+}
+.dirac-ai-product-card,
+.dirac-ai-skeleton b,
+.dirac-ai-typing i,
+.dirac-ai-product-card.pro-card{
+  animation:none!important;
+  transition:none!important;
+}
+.dirac-ai-product-card.pro-card{
+  grid-template-columns:46px 1fr!important;
+  gap:8px!important;
+  padding:8px!important;
+}
+.dirac-ai-product-card.pro-card img{
+  width:46px!important;
+  height:52px!important;
+  border-radius:12px!important;
+}
+.dirac-ai-product-actions.is-pro{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:5px!important;
+}
+.dirac-ai-product-actions.is-pro .dirac-ai-mini-btn{
+  min-height:29px!important;
+  font-size:.65rem!important;
+  padding:6px 5px!important;
+}
+@media(max-width:760px){
+  .dirac-ai-panel{
+    height:min(455px,66dvh)!important;
+    bottom:calc(66px + env(safe-area-inset-bottom))!important;
+    border-radius:18px!important;
+  }
+  .dirac-ai-head{padding:8px 10px 7px!important}
+  .dirac-ai-body{padding:9px!important}
+  .dirac-ai-msg{margin-bottom:8px!important}
+}
+@media(max-width:380px){
+  .dirac-ai-catalog-status{max-width:150px!important;font-size:.57rem!important}
+  .dirac-ai-reset{max-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+@media(prefers-reduced-motion:reduce){
+  .dirac-ai-panel,.dirac-ai-chip,.dirac-ai-send,.dirac-ai-product-card{transition:none!important;animation:none!important}
+}
+</style>
+<script id="dirac-ai-final-mobile-lite-js">
+(function(){
+  'use strict';
+  if(window.__DIRAC_AI_FINAL_MOBILE_LITE__) return;
+  window.__DIRAC_AI_FINAL_MOBILE_LITE__ = true;
+
+  var lastChipSubmitAt = 0;
+  var lastChipPrompt = '';
+  var CHIP_DEBOUNCE_MS = 1000;
+
+  function qs(sel, root){ return (root || document).querySelector(sel); }
+  function qsa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function txt(v){ return String(v || '').replace(/\s+/g,' ').trim(); }
+  function isAiBusy(){
+    var send = qs('#diracAiSend');
+    if(!send) return false;
+    return send.textContent === '×' || send.getAttribute('aria-label') === 'Hentikan jawaban AI';
+  }
+  function compactStatusText(value){
+    value = txt(value).replace(/\s*•\s*ringan\s*/i,'');
+    var live = value.match(/Katalog\s+live\s*:\s*(\d+)\s*produk\s*\|\s*([^|]+)\|\s*(.+)$/i);
+    if(live) return 'Live ' + live[1] + ' | ' + txt(live[2]) + ' | ' + txt(live[3]);
+    var load = value.match(/Katalog\s+memuat\s*:\s*(\d+)\s*produk\s*\|\s*([^|]+)\|\s*(.+)$/i);
+    if(load) return 'Memuat ' + load[1] + ' | ' + txt(load[2]) + ' | ' + txt(load[3]);
+    return value.replace(/produk/ig,'').replace(/\s{2,}/g,' ').trim();
+  }
+  function compactHeader(){
+    var panel = qs('#diracAiPanel');
+    if(!panel) return;
+    var title = qs('.dirac-ai-title strong', panel);
+    var sub = qs('.dirac-ai-title > div:last-child > span:not(.dirac-ai-catalog-status)', panel);
+    var pill = qs('.dirac-ai-catalog-status', panel);
+    var input = qs('#diracAiInput');
+    if(title) title.textContent = 'Dirac AI';
+    if(sub) sub.textContent = 'AI parfum pintar.';
+    if(input) input.setAttribute('placeholder','Tanya parfum, budget, brand, atau aroma...');
+    if(pill){
+      var next = compactStatusText(pill.textContent);
+      if(next && pill.textContent !== next) pill.textContent = next;
+      pill.setAttribute('title','Status katalog aktif yang dibaca AI.');
+    }
+  }
+  function renderCompactChips(){
+    var suggestions = qs('#diracAiPanel .dirac-ai-suggestions');
+    if(!suggestions || suggestions.getAttribute('data-dirac-final-lite') === 'true') return;
+    var rows = [
+      ['Pria budget 300 ribu, fresh clean untuk kantor, jangan manis','Fresh'],
+      ['Wanita sweet floral untuk date night, budget 500 ribu','Date'],
+      ['Blind buy paling aman untuk hadiah budget 250 ribu','Hadiah'],
+      ['Cari alternatif vibe LV Imagination yang fresh citrus tea','Vibe LV'],
+      ['Bandingkan 3 parfum fresh yang ready dan jelaskan bedanya','Compare'],
+      ['Berapa produk yang terbaca AI sekarang?','Jumlah']
+    ];
+    suggestions.innerHTML = rows.map(function(row){
+      return '<button class="dirac-ai-chip" type="button" data-dirac-ai-prompt="' + row[0].replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;') + '">' + row[1].replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</button>';
+    }).join('');
+    suggestions.setAttribute('data-dirac-final-lite','true');
+  }
+  function submitPromptOnce(prompt){
+    prompt = txt(prompt);
+    if(!prompt) return;
+    var now = Date.now();
+    if(isAiBusy()) return;
+    if(prompt === lastChipPrompt && now - lastChipSubmitAt < CHIP_DEBOUNCE_MS) return;
+    lastChipPrompt = prompt;
+    lastChipSubmitAt = now;
+    var input = qs('#diracAiInput');
+    var form = qs('#diracAiForm');
+    if(!input || !form) return;
+    input.value = prompt;
+    try{
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight || 44, 82) + 'px';
+    }catch(error){}
+    qsa('#diracAiPanel .dirac-ai-chip').forEach(function(btn){
+      btn.classList.add('is-dirac-lite-waiting');
+      window.setTimeout(function(){ btn.classList.remove('is-dirac-lite-waiting'); }, CHIP_DEBOUNCE_MS);
+    });
+    var run = function(){
+      form.dispatchEvent(new Event('submit', {bubbles:true, cancelable:true}));
+    };
+    if(window.requestAnimationFrame) requestAnimationFrame(function(){ setTimeout(run, 0); });
+    else setTimeout(run, 0);
+  }
+  function installChipCapture(){
+    var suggestions = qs('#diracAiPanel .dirac-ai-suggestions');
+    if(suggestions && suggestions.getAttribute('data-dirac-lite-capture') !== 'true'){
+      suggestions.setAttribute('data-dirac-lite-capture','true');
+      suggestions.addEventListener('click', function(event){
+        var btn = event.target && event.target.closest ? event.target.closest('[data-dirac-ai-prompt]') : null;
+        if(!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if(event.stopImmediatePropagation) event.stopImmediatePropagation();
+        submitPromptOnce(btn.getAttribute('data-dirac-ai-prompt') || btn.textContent || '');
+      }, true);
+    }
+    var messages = qs('#diracAiMessages');
+    if(messages && messages.getAttribute('data-dirac-lite-question-capture') !== 'true'){
+      messages.setAttribute('data-dirac-lite-question-capture','true');
+      messages.addEventListener('click', function(event){
+        var btn = event.target && event.target.closest ? event.target.closest('.dirac-ai-question-chip[data-dirac-ai-prompt]') : null;
+        if(!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if(event.stopImmediatePropagation) event.stopImmediatePropagation();
+        submitPromptOnce(btn.getAttribute('data-dirac-ai-prompt') || btn.textContent || '');
+      }, true);
+    }
+  }
+  function observeHeader(){
+    var panel = qs('#diracAiPanel');
+    if(!panel || panel.getAttribute('data-dirac-lite-observed') === 'true') return;
+    panel.setAttribute('data-dirac-lite-observed','true');
+    try{
+      var observer = new MutationObserver(function(){
+        window.requestAnimationFrame ? requestAnimationFrame(compactHeader) : setTimeout(compactHeader, 0);
+      });
+      observer.observe(panel, {childList:true, subtree:true, characterData:true});
+    }catch(error){}
+  }
+  function boot(){
+    compactHeader();
+    renderCompactChips();
+    installChipCapture();
+    observeHeader();
+    window.setTimeout(function(){ compactHeader(); renderCompactChips(); installChipCapture(); }, 300);
+    window.setTimeout(function(){ compactHeader(); renderCompactChips(); installChipCapture(); }, 1200);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
+  else boot();
+  try{ localStorage.setItem('dirac_ai_final_mobile_lite_build','2026-05-28-final-upload'); }catch(error){}
 })();
 </script>
 
