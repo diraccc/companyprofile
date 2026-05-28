@@ -10956,7 +10956,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   const ANALYTICS_ENDPOINT = window.DIRAC_AI_ANALYTICS_URL || '';
   const FEEDBACK_ENDPOINT = window.DIRAC_AI_FEEDBACK_URL || '';
   const MAX_HISTORY = 16;
-  const MAX_PRODUCTS_FOR_API = 80;
+  const MAX_PRODUCTS_FOR_API = 500;
   const MAX_LOCAL_EVENTS = 120;
   const MESSAGE_LIMIT = 1200;
   const MAX_DAILY_CLIENT_REQUESTS = 120;
@@ -11441,7 +11441,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
     const ready = total - sold;
     const collection = list.filter(function(p){ return /^all parfum\b/i.test(String(p.title || p.name || '')); }).length;
     const specific = Math.max(0, total - collection);
-    return 'Di katalog website ini ada ' + total + ' kartu produk/item. Dari data yang terbaca AI: ' + ready + ' ready dan ' + sold + ' sold/tidak ready. Jika dihitung tanpa kartu koleksi seperti “All Parfum”, ada sekitar ' + specific + ' produk spesifik. Untuk angka final terbaru, ikuti katalog yang tampil di halaman karena stok bisa berubah.';
+    return 'Di katalog website ini ada ' + total + ' kartu produk/item dari data katalog yang sudah termuat saat AI menjawab. Dari data yang terbaca AI: ' + ready + ' ready dan ' + sold + ' sold/tidak ready. Jika dihitung tanpa kartu koleksi seperti “All Parfum”, ada sekitar ' + specific + ' produk spesifik. Jika halaman baru dibuka dan Firebase masih memuat, tunggu beberapa detik lalu tanyakan ulang agar angka mengikuti katalog live terbaru.';
   }
   function isMathQuestionLocal(n){
     const raw = String(n || '').toLowerCase().replace(/×/g,'x').replace(/÷/g,':');
@@ -12826,7 +12826,7 @@ function staticGeneralAnswerLocal(text) {
      Additive only. Fokus: rekomendasi parfum berbasis katalog, brand, notes, gender, occasion, budget, ukuran, dan follow-up.
      Tidak menyentuh Firebase, cart, checkout, atau koneksi database. */
   (function installDiracAiPerfumeSpecialist(){
-    var PERFUME_AI_BUILD = 'dirac-ai-perfume-specialist-2026-05-28-v1';
+    var PERFUME_AI_BUILD = 'dirac-ai-perfume-specialist-2026-05-28-v2-393';
     try{
       if(localStorage.getItem('dirac_ai_perfume_build') !== PERFUME_AI_BUILD){
         localStorage.setItem('dirac_ai_perfume_build', PERFUME_AI_BUILD);
@@ -12839,14 +12839,33 @@ function staticGeneralAnswerLocal(text) {
       'Ahmed Al Maghribi','Jean Paul Gaultier','Yves Saint Laurent','Louis Vuitton','Giorgio Armani','Antonio Banderas','Salvatore Ferragamo','Tiziana Terenzi','Al Haramain','Calvin Klein','Carolina Herrera','Bali Surfers','Fragrance World','French Avenue','Heaven Scent','Montale Paris','Mercedes Benz','Ralph Lauren','Tom Ford','Tory Burch','Rue Broca','Diptyque','Montblanc','Nishane','Valentino','Versace','Xerjoff','Rasasi','Afnan','Ajmal','Aoera','Armaf','Azzaro','Bvlgari','Byredo','Chanel','Coach','Crusita','David Beckham','Dior','Fordive','Gucci','Guess','HMNS','Jayrosse','Khadlaj','La Rive','Lattafa','MINISO','MIRADA','Mykonos','Moschino','Nautica','Prada','Rayhaan','Zimaya'
     ];
 
+    function aiCurrentBrands(){
+      var map = new Map();
+      function add(value){
+        var brand = String(value || '').replace(/\s+/g,' ').trim();
+        if(!brand) return;
+        map.set(aiNorm(brand), brand);
+      }
+      AI_PERFUME_BRANDS.forEach(add);
+      try{
+        getProductList().forEach(function(product){
+          if(!product) return;
+          var explicit = product.brand || product.merek || product.merk || '';
+          if(explicit) add(explicit);
+          else if(typeof getProductBrand === 'function') add(getProductBrand(product));
+        });
+      }catch(error){}
+      return Array.from(map.values()).filter(Boolean);
+    }
+
     var AI_STOPWORDS = /^(saya|aku|mau|ingin|pengen|butuh|tolong|dong|yang|untuk|buat|cari|carikan|pilih|pilihkan|rekomendasi|rekomendasikan|parfum|perfume|fragrance|wangi|aroma|produk|katalog|dirac|dengan|dan|atau|di|ke|dari|ada|ready|stok|budget|dana|harga|rp|idr|ml|edp|edt|extrait|de|the|of|for|man|men|woman|women|unisex|pria|wanita|cowok|cewek)$/;
 
     function aiNorm(value){ return normalize(value); }
     function aiTitle(product){ return String((product && (product.title || product.name)) || ''); }
     function aiHay(product){
-      return aiNorm([product && product.title, product && product.name, product && product.category, product && product.desc, product && product.description, product && product.longDesc, product && product.notes, product && product.status, aiBrandOf(product)].join(' '));
+      return aiNorm([product && product.title, product && product.name, product && product.category, product && product.brand, product && product.merek, product && product.merk, product && product.desc, product && product.description, product && product.longDesc, product && product.notes, product && product.gender, product && product.occasion, Array.isArray(product && product.tags) ? product.tags.join(' ') : (product && product.tags), product && product.size, product && product.status, aiBrandOf(product)].join(' '));
     }
-    function aiRawHay(product){ return [product && product.title, product && product.name, product && product.category, product && product.desc, product && product.description, product && product.longDesc, product && product.notes, product && product.status, aiBrandOf(product)].join(' '); }
+    function aiRawHay(product){ return [product && product.title, product && product.name, product && product.category, product && product.brand, product && product.merek, product && product.merk, product && product.desc, product && product.description, product && product.longDesc, product && product.notes, product && product.gender, product && product.occasion, Array.isArray(product && product.tags) ? product.tags.join(' ') : (product && product.tags), product && product.size, product && product.status, aiBrandOf(product)].join(' '); }
     function aiUnique(list){ return Array.from(new Set((list || []).filter(Boolean))); }
 
     function aiBrandOf(product){
@@ -12865,8 +12884,9 @@ function staticGeneralAnswerLocal(text) {
       if(/\bysl\b|\byves saint laurent\b|\bblack opium\b|\blibre\b|\bmyself\b|\by eau de parfum\b|\by edp\b/.test(n)) return 'Yves Saint Laurent';
       if(/\bm toy boy\b|\bmoschino\b/.test(n)) return 'Moschino';
       if(/\bferragamo\b|\bsalvatore ferragamo\b/.test(n)) return 'Salvatore Ferragamo';
-      for(var i=0;i<AI_PERFUME_BRANDS.length;i++){
-        var brand = AI_PERFUME_BRANDS[i];
+      var currentBrands = aiCurrentBrands();
+      for(var i=0;i<currentBrands.length;i++){
+        var brand = currentBrands[i];
         var bn = aiNorm(brand);
         if(!bn) continue;
         if(n.indexOf(bn) >= 0) return brand;
