@@ -147,13 +147,218 @@ function toPlain(value) {
   return value;
 }
 
-async function readCollection(db, collectionName, limit) {
-  const snap = await db.collection(collectionName).limit(limit).get();
+function clampLimit(value, fallback, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(Math.max(Math.trunc(parsed), 1), max);
+}
 
-  return snap.docs.map((doc) => ({
+function normalizeDirection(value, fallback = "asc") {
+  const text = String(value || "").trim().toLowerCase();
+  return text === "desc" || text === "descending" ? "desc" : fallback;
+}
+
+function normalizeOrderBy(collectionName, value) {
+  const field = String(value || "").trim();
+
+  const allowed = {
+    products: new Set(["id", "title", "category", "brand", "price", "stock", "createdAtMs", "updatedAtMs"]),
+    orders: new Set(["createdAtMs", "updatedAtMs", "orderId", "customerName", "paymentStatus", "orderStatus", "trackingNumber"]),
+    customers: new Set(["name", "createdAtMs", "updatedAtMs", "totalSpent", "segment"]),
+    securityLogs: new Set(["createdAtMs", "updatedAtMs", "action", "email"]),
+    categories: new Set(["name", "createdAtMs", "updatedAtMs"]),
+    brands: new Set(["name", "createdAtMs", "updatedAtMs"]),
+    variants: new Set(["name", "createdAtMs", "updatedAtMs"])
+  };
+
+  if (collectionName === "orders" && field === "createdAt") return "createdAtMs";
+  if (allowed[collectionName] && allowed[collectionName].has(field)) return field;
+
+  if (collectionName === "products") return "id";
+  if (collectionName === "orders") return "createdAtMs";
+  if (collectionName === "customers") return "name";
+  if (["categories", "brands", "variants"].includes(collectionName)) return "name";
+  if (collectionName === "securityLogs") return "createdAtMs";
+
+  return "";
+}
+
+function rowFromDoc(doc) {
+  return {
     docId: doc.id,
     ...toPlain(doc.data() || {})
-  }));
+  };
+}
+
+function textIncludes(value, keyword) {
+  return String(value || "").toLowerCase().includes(keyword);
+}
+
+function orderMatchesFilters(row, options = {}) {
+  const keyword = String(options.search || "").trim().toLowerCase();
+  const paymentStatus = String(options.paymentStatus || "").trim();
+  const orderStatus = String(options.orderStatus || "").trim();
+
+  if (paymentStatus && String(row.paymentStatus || "") !== paymentStatus) return false;
+  if (orderStatus && String(row.orderStatus || "") !== orderStatus) return false;
+
+  if (!keyword) return true;
+
+  const haystack = [
+    row.docId,
+    row.orderId,
+    row.customerName,
+    row.productName,
+    Array.isArray(row.items) ? row.items.map((item) => [item.productName, item.title, item.qty].join(" ")).join(" ") : "",
+    row.paymentMethod,
+    row.paymentStatus,
+    row.orderStatus,
+    row.courier,
+    row.trackingNumber,
+    row.address,
+    row.note,
+    row.searchText,
+    row.total
+  ].join(" ").toLowerCase();
+
+  return haystack.includes(keyword);
+}
+
+function sortOrdersDesc(a, b) {
+  const aMs = Number(a.createdAtMs || (a.createdAt && a.createdAt.millis) || 0);
+  const bMs = Number(b.createdAtMs || (b.createdAt && b.createdAt.millis) || 0);
+  return bMs - aMs || String(b.orderId || b.docId || "").localeCompare(String(a.orderId || a.docId || ""));
+}
+
+async function readCollectionPage(db, collectionName, limit, options = {}) {
+  const orderByField = normalizeOrderBy(collectionName, options.orderBy);
+  const orderDirection = normalizeDirection(options.orderDirection, collectionName === "orders" || collectionName === "securityLogs" ? "desc" : "asc");
+  let ref = db.collection(collectionName);
+
+  if (orderByField) {
+    ref = ref.orderBy(orderByField, orderDirection);
+  }
+
+  const cursor = String(options.cursor || "").trim();
+  if (cursor) {
+    const cursorSnap = await db.collection(collectionName).doc(cursor).get();
+    if (cursorSnap.exists) {
+      ref = ref.startAfter(cursorSnap);
+    }
+  }
+
+  const snap = await ref.limit(limit + 1).get();
+  const docs = snap.docs.slice(0, limit);
+  const lastDoc = docs[docs.length - 1] || null;
+
+  return {
+    rows: docs.map(rowFromDoc),
+    pageInfo: {
+      limit,
+      returned: docs.length,
+      hasMore: snap.docs.length > limit,
+      cursor: lastDoc ? lastDoc.id : null,
+      orderBy: orderByField,
+      orderDirection,
+      mode: options.search ? "search" : "page"
+    }
+  };
+}
+
+async function readCollection(db, collectionName, limit, options = {}) {
+  const page = await readCollectionPage(db, collectionName, limit, options);
+  return page.rows;
+}
+
+async function addOrderQueryResults(map, queryRef, maxPerQuery, options) {
+  try {
+    const snap = await queryRef.limit(maxPerQuery).get();
+    snap.docs.forEach((doc) => {
+      const row = rowFromDoc(doc);
+      if (orderMatchesFilters(row, options)) map.set(doc.id, row);
+    });
+  } catch (_error) {
+    // Sebagian project belum punya index tertentu. Query lain tetap dipakai agar pencarian tidak gagal total.
+  }
+}
+
+async function readOrdersSearch(db, limit, options = {}) {
+  const keywordRaw = String(options.search || "").trim();
+  const keywordLower = keywordRaw.toLowerCase();
+  const rowsById = new Map();
+  const ordersCol = db.collection("orders");
+  const maxPerQuery = Math.min(Math.max(limit, 30), 120);
+
+  if (!keywordRaw) {
+    const page = await readCollectionPage(db, "orders", limit, options);
+    page.rows = page.rows.filter((row) => orderMatchesFilters(row, options));
+    page.pageInfo.returned = page.rows.length;
+    return page;
+  }
+
+  if (!keywordRaw.includes("/")) {
+    const exactDoc = await ordersCol.doc(keywordRaw).get();
+    if (exactDoc.exists) {
+      const row = rowFromDoc(exactDoc);
+      if (orderMatchesFilters(row, options)) rowsById.set(exactDoc.id, row);
+    }
+  }
+
+  const keywordVariants = Array.from(new Set([keywordRaw, keywordRaw.toUpperCase(), keywordRaw.toLowerCase()].filter(Boolean)));
+
+  const exactFields = ["orderId", "trackingNumber"];
+  for (const field of exactFields) {
+    for (const value of keywordVariants) {
+      await addOrderQueryResults(rowsById, ordersCol.where(field, "==", value), maxPerQuery, options);
+    }
+  }
+
+  const prefixFields = ["searchText", "orderId", "customerName", "productName", "trackingNumber"];
+  for (const field of prefixFields) {
+    const values = field === "searchText" ? [keywordLower] : keywordVariants;
+    for (const prefixValue of values) {
+      await addOrderQueryResults(
+        rowsById,
+        ordersCol.orderBy(field).startAt(prefixValue).endAt(prefixValue + "\uf8ff"),
+        maxPerQuery,
+        options
+      );
+    }
+  }
+
+  const rows = Array.from(rowsById.values())
+    .filter((row) => orderMatchesFilters(row, Object.assign({}, options, { search: keywordLower })))
+    .sort(sortOrdersDesc)
+    .slice(0, limit);
+
+  return {
+    rows,
+    pageInfo: {
+      limit,
+      returned: rows.length,
+      hasMore: false,
+      cursor: null,
+      orderBy: "search",
+      orderDirection: "desc",
+      mode: "search",
+      search: keywordRaw
+    }
+  };
+}
+
+async function readOrdersPage(db, limit, options = {}) {
+  if (String(options.search || "").trim()) {
+    return await readOrdersSearch(db, limit, options);
+  }
+
+  const page = await readCollectionPage(db, "orders", limit, Object.assign({ orderBy: "createdAtMs", orderDirection: "desc" }, options));
+
+  if (options.paymentStatus || options.orderStatus) {
+    page.rows = page.rows.filter((row) => orderMatchesFilters(row, options));
+    page.pageInfo.returned = page.rows.length;
+  }
+
+  return page;
 }
 
 async function readSettings(db) {
@@ -189,13 +394,15 @@ async function handleReadAdminData(req, res) {
   const want = new Set(requested);
 
   const limits = {
-    products: Math.min(Number(body.productsLimit || 5000), 10000),
-    orders: Math.min(Number(body.ordersLimit || 5000), 10000),
-    customers: Math.min(Number(body.customersLimit || 25000), 30000),
-    securityLogs: Math.min(Number(body.securityLogsLimit || 120), 500),
-    categories: Math.min(Number(body.categoriesLimit || 5000), 10000),
-    brands: Math.min(Number(body.brandsLimit || 5000), 10000),
-    variants: Math.min(Number(body.variantsLimit || 5000), 10000)
+    // Produk memang diminta tetap dibaca penuh oleh dashboard.
+    products: clampLimit(body.productsLimit, 30000, 30000),
+    // Pesanan dibatasi 100 per request agar dashboard tidak membaca 22k dokumen sekaligus.
+    orders: clampLimit(body.ordersLimit, 100, 500),
+    customers: clampLimit(body.customersLimit, 25000, 30000),
+    securityLogs: clampLimit(body.securityLogsLimit, 120, 500),
+    categories: clampLimit(body.categoriesLimit, 5000, 10000),
+    brands: clampLimit(body.brandsLimit, 5000, 10000),
+    variants: clampLimit(body.variantsLimit, 5000, 10000)
   };
 
   const result = {
@@ -206,15 +413,30 @@ async function handleReadAdminData(req, res) {
   };
 
   if (want.has("products")) {
-    result.products = await readCollection(db, "products", limits.products);
+    result.products = await readCollection(db, "products", limits.products, {
+      orderBy: body.productsOrderBy || "id",
+      orderDirection: body.productsOrderDirection || "asc"
+    });
   }
 
   if (want.has("orders")) {
-    result.orders = await readCollection(db, "orders", limits.orders);
+    const ordersPage = await readOrdersPage(db, limits.orders, {
+      cursor: body.ordersCursor,
+      search: body.ordersSearch,
+      paymentStatus: body.ordersPaymentStatus,
+      orderStatus: body.ordersOrderStatus,
+      orderBy: body.ordersOrderBy || "createdAtMs",
+      orderDirection: body.ordersOrderDirection || "desc"
+    });
+    result.orders = ordersPage.rows;
+    result.ordersPage = ordersPage.pageInfo;
   }
 
   if (want.has("customers")) {
-    result.customers = await readCollection(db, "customers", limits.customers);
+    result.customers = await readCollection(db, "customers", limits.customers, {
+      orderBy: body.customersOrderBy || "name",
+      orderDirection: body.customersOrderDirection || "asc"
+    });
   }
 
   if (want.has("settings")) {
@@ -222,19 +444,31 @@ async function handleReadAdminData(req, res) {
   }
 
   if (want.has("securityLogs")) {
-    result.securityLogs = await readCollection(db, "securityLogs", limits.securityLogs);
+    result.securityLogs = await readCollection(db, "securityLogs", limits.securityLogs, {
+      orderBy: body.securityLogsOrderBy || "createdAtMs",
+      orderDirection: body.securityLogsOrderDirection || "desc"
+    });
   }
 
   if (want.has("categories")) {
-    result.categories = await readCollection(db, "categories", limits.categories);
+    result.categories = await readCollection(db, "categories", limits.categories, {
+      orderBy: body.categoriesOrderBy || "name",
+      orderDirection: body.categoriesOrderDirection || "asc"
+    });
   }
 
   if (want.has("brands")) {
-    result.brands = await readCollection(db, "brands", limits.brands);
+    result.brands = await readCollection(db, "brands", limits.brands, {
+      orderBy: body.brandsOrderBy || "name",
+      orderDirection: body.brandsOrderDirection || "asc"
+    });
   }
 
   if (want.has("variants")) {
-    result.variants = await readCollection(db, "variants", limits.variants);
+    result.variants = await readCollection(db, "variants", limits.variants, {
+      orderBy: body.variantsOrderBy || "name",
+      orderDirection: body.variantsOrderDirection || "asc"
+    });
   }
 
   return res.status(200).json(result);
