@@ -7468,8 +7468,23 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     }
 
     function getProductBrand(product){
+      const explicitBrand = normalizePlainText(product?.brand || product?.merek || product?.merk || '');
+      if(explicitBrand) return explicitBrand;
+
       const title = normalizePlainText(product?.title || '');
       const haystack = normalizePlainText(`${product?.title || ''} ${product?.longDesc || ''}`);
+      if(!title && !haystack) return '';
+
+      // Prioritas brand yang tertulis jelas di awal nama produk.
+      // Ini mencegah kasus "Rue Broca by Afnan" masuk ke Afnan.
+      const priorityMatch = BRAND_PATTERNS.find(item => {
+        const escaped = item.brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp('^' + escaped + '\\b','i').test(title);
+      });
+      if(priorityMatch) return priorityMatch.brand;
+
+      if(/^Rue Broca\b/i.test(title) || /\bRue Broca\b/i.test(haystack)) return 'Rue Broca';
+
       const match = BRAND_PATTERNS.find(item => item.patterns.some(pattern => pattern.test(title) || pattern.test(haystack)));
       return match ? match.brand : '';
     }
@@ -7675,23 +7690,48 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 
     function renderCategoryOptions(){
       const select = $('#categoryFilter');
+      if(!select) return;
+
+      const lang = typeof diracCurrentLanguage === 'function' ? diracCurrentLanguage() : (document.documentElement.getAttribute('data-language') || 'id');
+      const filterCopy = {
+        'Semua':{id:'Semua',en:'All',zh:'全部',ar:'الكل',ja:'すべて',ko:'전체',es:'Todo',fr:'Tout'},
+        'Kategori':{id:'Kategori',en:'Category',zh:'类别',ar:'الفئة',ja:'カテゴリ',ko:'카테고리',es:'Categoría',fr:'Catégorie'},
+        'Brand':{id:'Merek',en:'Brand',zh:'品牌',ar:'العلامة',ja:'ブランド',ko:'브랜드',es:'Marca',fr:'Marque'},
+        'Merek':{id:'Merek',en:'Brand',zh:'品牌',ar:'العلامة',ja:'ブランド',ko:'브랜드',es:'Marca',fr:'Marque'},
+        'Timur Tengah':{id:'Timur Tengah',en:'Middle Eastern',zh:'中东',ar:'شرق أوسطي',ja:'中東系',ko:'중동 향수',es:'Medio Oriente',fr:'Moyen-Orient'},
+        'Designer':{id:'Designer',en:'Designer',zh:'设计师品牌',ar:'مصمم',ja:'デザイナー',ko:'디자이너',es:'Designer',fr:'Designer'},
+        'Lokal':{id:'Lokal',en:'Local',zh:'本地',ar:'محلي',ja:'ローカル',ko:'로컬',es:'Local',fr:'Local'},
+        'Niche':{id:'Niche',en:'Niche',zh:'沙龙香',ar:'نيش',ja:'ニッチ',ko:'니치',es:'Niche',fr:'Niche'},
+        'Miniso':{id:'Miniso',en:'Miniso',zh:'名创优品',ar:'مينيسو',ja:'ミニソー',ko:'미니소',es:'Miniso',fr:'Miniso'},
+        'Aksesoris':{id:'Aksesoris',en:'Accessories',zh:'配件',ar:'إكسسوارات',ja:'アクセサリー',ko:'액세서리',es:'Accesorios',fr:'Accessoires'},
+        'Bundle':{id:'Bundle',en:'Bundle',zh:'套装',ar:'باقة',ja:'セット',ko:'번들',es:'Pack',fr:'Pack'},
+        'Luxury Fragrance':{id:'Luxury Fragrance',en:'Luxury Fragrance',zh:'奢华香氛',ar:'عطور فاخرة',ja:'ラグジュアリーフレグランス',ko:'럭셔리 프래그런스',es:'Fragancia de lujo',fr:'Parfum de luxe'},
+        'Aplikasi Premium':{id:'Aplikasi Premium',en:'Premium Application',zh:'高级应用',ar:'تطبيق فاخر',ja:'プレミアムアプリ',ko:'프리미엄 앱',es:'Aplicación premium',fr:'Application premium'}
+      };
+      const translateFilterLabel = (label) => {
+        const key = String(label ?? '');
+        if(filterCopy[key] && filterCopy[key][lang]) return filterCopy[key][lang];
+        if(typeof diracTranslateCopy === 'function') return diracTranslateCopy(key, lang);
+        return key;
+      };
+
       const allCategories = [...new Set(products.map(p=>p.category).filter(Boolean))];
       const productBrands = new Set(products.map(getProductBrand).filter(Boolean));
-      const brands = BRAND_OPTIONS.filter(brand => productBrands.has(brand));
+      const allBrands = [...new Set([...BRAND_OPTIONS, ...productBrands])].filter(brand => productBrands.has(brand));
+      const brands = allBrands.sort((a,b)=>a.localeCompare(b, 'id', {sensitivity:'base'}));
       const brandKeys = new Set(brands.map(normalizeFilterKey));
 
-      // Miniso/MINISO adalah brand, bukan kategori parfum. Jika ada category yang namanya sama dengan brand,
-      // category tersebut disembunyikan dari grup Kategori dan tetap muncul di grup Brand agar dropdown tidak dobel.
+      // Brand yang tertulis sebagai category tidak didobel di grup Kategori.
       const categories = allCategories.filter(cat => !brandKeys.has(normalizeFilterKey(cat)));
 
-      const option = (value,label) => `<option value="${escapeHTML(value)}">${escapeHTML(label)}</option>`;
+      const option = (value,label) => `<option value="${escapeHTML(value)}" data-i18n-source="${escapeHTML(label)}">${escapeHTML(translateFilterLabel(label))}</option>`;
       const categoryOptions = categories.map(cat => option(CATEGORY_FILTER_PREFIX + cat, cat)).join('');
       const brandOptions = brands.map(brand => option(BRAND_FILTER_PREFIX + brand, brand)).join('');
 
       select.innerHTML = [
         option(FILTER_ALL_VALUE, 'Semua'),
-        `<optgroup label="Kategori">${categoryOptions}</optgroup>`,
-        `<optgroup label="Brand">${brandOptions}</optgroup>`
+        `<optgroup label="${escapeHTML(translateFilterLabel('Kategori'))}" data-i18n-source="Kategori">${categoryOptions}</optgroup>`,
+        `<optgroup label="${escapeHTML(translateFilterLabel('Brand'))}" data-i18n-source="Brand">${brandOptions}</optgroup>`
       ].join('');
     }
 
@@ -12963,6 +13003,209 @@ function staticGeneralAnswerLocal(text) {
   document.addEventListener('visibilitychange', function(){
     if(document.visibilityState === 'visible') purgeAllNoticeStorage();
   });
+})();
+</script>
+
+
+
+<style id="dirac-compact-theme-and-i18n-v2-css">
+/* Compact theme settings v2. Keeps all features, reduces mobile scroll, and improves native select readability. */
+#themeModal .theme-card{
+  width:min(560px,calc(100vw - 26px))!important;
+  max-height:min(86vh,760px)!important;
+  max-height:min(86dvh,760px)!important;
+  border-radius:24px!important;
+  overflow:auto!important;
+}
+#themeModal .theme-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:3!important;
+  padding:13px 16px 8px!important;
+  background:linear-gradient(180deg,rgba(10,15,22,.97),rgba(10,15,22,.88))!important;
+  border-bottom:1px solid rgba(255,255,255,.06)!important;
+}
+#themeModal .theme-head h2{font-size:1.18rem!important;line-height:1.15!important;letter-spacing:-.02em!important}
+#themeModal .theme-head .icon-btn{width:34px!important;height:34px!important;min-width:34px!important}
+#themeModal .theme-body{padding:0 16px 14px!important}
+#themeModal .theme-section{padding:10px 0!important;border-bottom:1px solid rgba(255,255,255,.07)!important}
+#themeModal .theme-section h3{font-size:.9rem!important;line-height:1.2!important;margin:0 0 8px!important}
+#themeModal .theme-section p{display:none!important}
+#themeModal .theme-choice-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+#themeModal .theme-contrast-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+#themeModal .theme-choice{
+  min-height:40px!important;
+  border-radius:14px!important;
+  font-size:.78rem!important;
+  padding:6px 7px!important;
+  gap:5px!important;
+  box-shadow:0 8px 18px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.05)!important;
+}
+#themeModal .theme-choice span:first-child{font-size:.9rem!important}
+#themeModal .theme-language-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+#themeModal .theme-lang-option{min-height:38px!important;border-radius:13px!important;padding:5px 9px!important;font-size:.76rem!important;gap:6px!important;justify-content:flex-start!important}
+#themeModal .theme-lang-option span:first-child{width:24px!important;height:24px!important;border-radius:8px!important;font-size:.58rem!important;display:inline-grid!important;place-items:center!important;flex:0 0 auto!important}
+#themeModal .theme-lang-option.is-selected{padding-right:26px!important}
+#themeModal .theme-lang-option.is-selected:after{right:10px!important;width:7px!important;height:7px!important}
+#themeModal .theme-swatches{
+  display:grid!important;
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  gap:7px!important;
+  max-height:104px!important;
+  overflow:auto!important;
+  padding:1px 2px 3px!important;
+  scrollbar-width:thin;
+}
+#themeModal .theme-swatch{
+  width:100%!important;
+  height:auto!important;
+  aspect-ratio:1/1!important;
+  min-height:0!important;
+  border-radius:10px!important;
+}
+#themeModal .theme-swatch.is-selected{width:100%!important;box-shadow:inset 0 0 0 3px rgba(255,255,255,.38),0 0 0 2px rgba(var(--theme-rgb),.42),0 8px 18px rgba(0,0,0,.2)!important}
+#themeModal .theme-swatch.is-selected:after{font-size:1rem!important}
+#themeModal .theme-currency-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important}
+#themeModal .theme-currency-option{min-height:38px!important;border-radius:13px!important;padding:5px 4px!important;font-size:.74rem!important;gap:0!important}
+#themeModal .theme-currency-option span:first-child{font-size:.78rem!important;letter-spacing:.02em!important}
+#themeModal .theme-currency-option small{display:none!important}
+#themeModal .theme-currency-note{display:none!important}
+#themeModal .theme-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:3!important;
+  padding:10px 0 0!important;
+  margin-top:0!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important;
+  background:linear-gradient(180deg,rgba(7,10,15,0),rgba(7,10,15,.96) 34%)!important;
+}
+#themeModal .theme-reset,#themeModal .theme-save{min-height:42px!important;font-size:.82rem!important;border-radius:16px!important}
+html[data-effective-theme="light"] #themeModal .theme-head{background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,255,255,.88))!important}
+html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.96) 34%)!important}
+#categoryFilter option,#sortFilter option,#shippingSelect option,#paymentMethod option{font-size:16px!important;line-height:1.45!important}
+@media(max-width:430px){
+  #themeModal .theme-card{width:calc(100vw - 22px)!important;max-height:min(87vh,720px)!important;max-height:min(87dvh,720px)!important}
+  #themeModal .theme-body{padding-inline:13px!important}
+  #themeModal .theme-head{padding-inline:13px!important}
+  #themeModal .theme-language-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #themeModal .theme-swatches{grid-template-columns:repeat(7,minmax(0,1fr))!important;max-height:96px!important;gap:6px!important}
+  #themeModal .theme-currency-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+  #themeModal .theme-currency-option{font-size:.68rem!important;min-height:36px!important}
+}
+@media(max-width:360px){
+  #themeModal .theme-choice{font-size:.68rem!important}
+  #themeModal .theme-lang-option{font-size:.68rem!important;padding-inline:7px!important}
+  #themeModal .theme-currency-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(prefers-reduced-motion:reduce){#themeModal *{transition:none!important;animation:none!important}}
+</style>
+
+<script id="dirac-select-theme-i18n-complete-v2">
+(function(){
+  'use strict';
+  var COPY = {
+    'Semua':{id:'Semua',en:'All',zh:'全部',ar:'الكل',ja:'すべて',ko:'전체',es:'Todo',fr:'Tout'},
+    'Kategori':{id:'Kategori',en:'Category',zh:'类别',ar:'الفئة',ja:'カテゴリ',ko:'카테고리',es:'Categoría',fr:'Catégorie'},
+    'Brand':{id:'Merek',en:'Brand',zh:'品牌',ar:'العلامة',ja:'ブランド',ko:'브랜드',es:'Marca',fr:'Marque'},
+    'Merek':{id:'Merek',en:'Brand',zh:'品牌',ar:'العلامة',ja:'ブランド',ko:'브랜드',es:'Marca',fr:'Marque'},
+    'Rekomendasi':{id:'Rekomendasi',en:'Recommended',zh:'推荐',ar:'موصى به',ja:'おすすめ',ko:'추천',es:'Recomendado',fr:'Recommandé'},
+    'Harga terendah':{id:'Harga terendah',en:'Lowest price',zh:'最低价格',ar:'الأقل سعراً',ja:'価格が安い順',ko:'낮은 가격순',es:'Precio más bajo',fr:'Prix le plus bas'},
+    'Harga tertinggi':{id:'Harga tertinggi',en:'Highest price',zh:'最高价格',ar:'الأعلى سعراً',ja:'価格が高い順',ko:'높은 가격순',es:'Precio más alto',fr:'Prix le plus élevé'},
+    'Nama A-Z':{id:'Nama A-Z',en:'Name A-Z',zh:'名称 A-Z',ar:'الاسم A-Z',ja:'名前 A-Z',ko:'이름 A-Z',es:'Nombre A-Z',fr:'Nom A-Z'},
+    'Mode Tema':{id:'Mode Tema',en:'Theme Mode',zh:'主题模式',ar:'وضع السمة',ja:'テーマモード',ko:'테마 모드',es:'Modo de tema',fr:'Mode du thème'},
+    'Bahasa Tampilan':{id:'Bahasa Tampilan',en:'Display Language',zh:'显示语言',ar:'لغة العرض',ja:'表示言語',ko:'표시 언어',es:'Idioma de visualización',fr:'Langue d’affichage'},
+    'Kontras Tema':{id:'Kontras Tema',en:'Theme Contrast',zh:'主题对比度',ar:'تباين السمة',ja:'テーマのコントラスト',ko:'테마 대비',es:'Contraste del tema',fr:'Contraste du thème'},
+    'Kustom Tema':{id:'Kustom Tema',en:'Custom Theme',zh:'自定义主题',ar:'تخصيص السمة',ja:'テーマをカスタム',ko:'테마 사용자 지정',es:'Tema personalizado',fr:'Thème personnalisé'},
+    'Mata Uang':{id:'Mata Uang',en:'Currency',zh:'货币',ar:'العملة',ja:'通貨',ko:'통화',es:'Moneda',fr:'Devise'},
+    'Light':{id:'Terang',en:'Light',zh:'浅色',ar:'فاتح',ja:'ライト',ko:'라이트',es:'Claro',fr:'Clair'},
+    'Dark':{id:'Gelap',en:'Dark',zh:'深色',ar:'داكن',ja:'ダーク',ko:'다크',es:'Oscuro',fr:'Sombre'},
+    'Auto':{id:'Otomatis',en:'Auto',zh:'自动',ar:'تلقائي',ja:'自動',ko:'자동',es:'Auto',fr:'Auto'},
+    'On':{id:'Aktif',en:'On',zh:'开启',ar:'تشغيل',ja:'オン',ko:'켜짐',es:'Activo',fr:'Activé'},
+    'Off':{id:'Nonaktif',en:'Off',zh:'关闭',ar:'إيقاف',ja:'オフ',ko:'꺼짐',es:'Inactivo',fr:'Désactivé'},
+    'Reset':{id:'Reset',en:'Reset',zh:'重置',ar:'إعادة ضبط',ja:'リセット',ko:'초기화',es:'Restablecer',fr:'Réinitialiser'},
+    'Simpan':{id:'Simpan',en:'Save',zh:'保存',ar:'حفظ',ja:'保存',ko:'저장',es:'Guardar',fr:'Enregistrer'},
+    'Timur Tengah':{id:'Timur Tengah',en:'Middle Eastern',zh:'中东',ar:'شرق أوسطي',ja:'中東系',ko:'중동 향수',es:'Medio Oriente',fr:'Moyen-Orient'},
+    'Designer':{id:'Designer',en:'Designer',zh:'设计师品牌',ar:'مصمم',ja:'デザイナー',ko:'디자이너',es:'Designer',fr:'Designer'},
+    'Lokal':{id:'Lokal',en:'Local',zh:'本地',ar:'محلي',ja:'ローカル',ko:'로컬',es:'Local',fr:'Local'},
+    'Niche':{id:'Niche',en:'Niche',zh:'沙龙香',ar:'نيش',ja:'ニッチ',ko:'니치',es:'Niche',fr:'Niche'},
+    'Miniso':{id:'Miniso',en:'Miniso',zh:'名创优品',ar:'مينيسو',ja:'ミニソー',ko:'미니소',es:'Miniso',fr:'Miniso'},
+    'Aksesoris':{id:'Aksesoris',en:'Accessories',zh:'配件',ar:'إكسسوارات',ja:'アクセサリー',ko:'액세서리',es:'Accesorios',fr:'Accessoires'},
+    'Bundle':{id:'Bundle',en:'Bundle',zh:'套装',ar:'باقة',ja:'セット',ko:'번들',es:'Pack',fr:'Pack'},
+    'Luxury Fragrance':{id:'Luxury Fragrance',en:'Luxury Fragrance',zh:'奢华香氛',ar:'عطور فاخرة',ja:'ラグジュアリーフレグランス',ko:'럭셔리 프래그런스',es:'Fragancia de lujo',fr:'Parfum de luxe'},
+    'Aplikasi Premium':{id:'Aplikasi Premium',en:'Premium Application',zh:'高级应用',ar:'تطبيق فاخر',ja:'プレミアムアプリ',ko:'프리미엄 앱',es:'Aplicación premium',fr:'Application premium'}
+  };
+  function lang(){
+    try{ if(window.diracLanguage && typeof window.diracLanguage.read === 'function') return window.diracLanguage.read(); }catch(error){}
+    return document.documentElement.getAttribute('data-language') || localStorage.getItem('dirac_language_v1') || 'id';
+  }
+  function tr(text){
+    var key = String(text || '').trim();
+    var current = lang();
+    if(COPY[key] && COPY[key][current]) return COPY[key][current];
+    try{ if(window.diracLanguage && typeof window.diracLanguage.translate === 'function') return window.diracLanguage.translate(key, current); }catch(error){}
+    return key;
+  }
+  function setText(el, key){ if(el) el.textContent = tr(key); }
+  function ensureSource(el, attr){
+    var prop = '__diracCompleteI18n_' + attr;
+    if(typeof el[prop] !== 'string') el[prop] = attr === 'text' ? (el.textContent || '').trim() : (el.getAttribute(attr) || '').trim();
+    return el[prop];
+  }
+  function translateSelect(select){
+    if(!select) return;
+    Array.prototype.slice.call(select.querySelectorAll('option')).forEach(function(option){
+      var source = option.getAttribute('data-i18n-source') || ensureSource(option, 'text');
+      if(COPY[source] || /^(Semua|Kategori|Brand|Merek|Timur Tengah|Designer|Lokal|Niche|Miniso|Aksesoris|Bundle|Luxury Fragrance|Aplikasi Premium|Rekomendasi|Harga terendah|Harga tertinggi|Nama A-Z)$/.test(source)) option.textContent = tr(source);
+    });
+    Array.prototype.slice.call(select.querySelectorAll('optgroup[label]')).forEach(function(group){
+      var source = group.getAttribute('data-i18n-source') || ensureSource(group, 'label');
+      if(source === 'Brand' || source === 'Merek' || source === 'Kategori') group.setAttribute('label', tr(source));
+    });
+  }
+  function applyCompleteI18n(){
+    translateSelect(document.getElementById('categoryFilter'));
+    translateSelect(document.getElementById('sortFilter'));
+    var modal = document.getElementById('themeModal');
+    if(modal){
+      var h3 = modal.querySelectorAll('.theme-section h3');
+      if(h3[0]) setText(h3[0], 'Mode Tema');
+      if(h3[1]) setText(h3[1], 'Bahasa Tampilan');
+      if(h3[2]) setText(h3[2], 'Kontras Tema');
+      if(h3[3]) setText(h3[3], 'Kustom Tema');
+      if(h3[4]) setText(h3[4], 'Mata Uang');
+      var mode = {'light':'Light','dark':'Dark','auto':'Auto'};
+      Array.prototype.slice.call(modal.querySelectorAll('[data-theme-mode-option]')).forEach(function(btn){
+        var label = btn.querySelector('span:last-child');
+        setText(label, mode[btn.getAttribute('data-theme-mode-option')] || ensureSource(label, 'text'));
+      });
+      var contrast = {'on':'On','off':'Off'};
+      Array.prototype.slice.call(modal.querySelectorAll('[data-theme-contrast-option]')).forEach(function(btn){
+        var label = btn.querySelector('span:last-child');
+        setText(label, contrast[btn.getAttribute('data-theme-contrast-option')] || ensureSource(label, 'text'));
+      });
+      var reset = document.querySelector('#themeResetBtn span:last-child');
+      var save = document.querySelector('#themeSaveBtn span:last-child');
+      setText(reset, 'Reset'); setText(save, 'Simpan');
+    }
+  }
+  window.diracApplyCompleteI18n = applyCompleteI18n;
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(applyCompleteI18n, 0); setTimeout(applyCompleteI18n, 120); });
+  document.addEventListener('click', function(event){
+    if(event.target && event.target.closest && event.target.closest('[data-language-option]')){
+      setTimeout(applyCompleteI18n, 0);
+      setTimeout(applyCompleteI18n, 120);
+    }
+  });
+  if('MutationObserver' in window){
+    var pending = false;
+    new MutationObserver(function(){
+      if(pending) return;
+      pending = true;
+      requestAnimationFrame(function(){ pending = false; applyCompleteI18n(); });
+    }).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['data-language','label']});
+  }
+  applyCompleteI18n();
 })();
 </script>
 
