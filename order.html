@@ -14306,9 +14306,105 @@ function staticGeneralAnswerLocal(text) {
         lines.push('Pilihan paling aman biasanya yang fresh clean atau musky. Pilihan paling menonjol biasanya yang citrus/blue lebih tegas.');
         return lines.join('\n');
       }
-      function fIsTargetPrompt(prompt){
+
+      function fPickByProfile(config){
+        config = config || {};
+        var positive = config.positive || [];
+        var negative = config.negative || [];
+        var priceMax = Number(config.priceMax || 0);
+        var prefer = config.prefer || function(){ return 0; };
+        var reason = config.reason || 'paling relevan dengan kebutuhan';
+        var list = fProducts();
+        var scored = list.map(function(p, idx){
+          var h = fHay(p), score = fReady(p) ? 36 : -220;
+          score += fFamilyScore(h, positive);
+          negative.forEach(function(term){ if(h.indexOf(term) >= 0) score -= 26; });
+          if(priceMax && Number(p.price || 0) > 0 && Number(p.price || 0) <= priceMax) score += 18;
+          if(priceMax && Number(p.price || 0) > priceMax) score -= 10;
+          score += prefer(p, h) || 0;
+          return {p:p, score:score, idx:idx};
+        }).filter(function(x){ return x.score > 12; }).sort(function(a,b){
+          return (b.score - a.score) || (Number(a.p.price || 0) - Number(b.p.price || 0)) || (a.idx - b.idx);
+        });
+        var out = [], seen = Object.create(null);
+        scored.forEach(function(x){
+          var key = String(x.p.id || fTitle(x.p));
+          if(out.length < 3 && !seen[key]){
+            seen[key] = true;
+            out.push(Object.assign({}, x.p, {aiReason:reason}));
+          }
+        });
+        return out;
+      }
+
+      function fPickGift(){
+        return fPickByProfile({
+          positive:['gift','hadiah','kado','blind buy','aman','versatile','fresh','clean','musk','soft','floral','sweet','fruity','unisex','designer','modern','popular','office','daily','harian'],
+          negative:['oud','aoud','tobacco','leather','smoky','animalic','dark','heavy','intense','very strong'],
+          priceMax:350000,
+          reason:'aman untuk hadiah, mudah disukai, presentable, dan tidak terlalu ekstrem',
+          prefer:function(p,h){
+            var s = 0;
+            if(/unisex|woman|women|femme|pria|men|man|fresh|clean|musk|floral|sweet/.test(h)) s += 14;
+            if(/gift set|set|bundle/.test(h)) s += 18;
+            if(Number(p.price || 0) > 0 && Number(p.price || 0) <= 250000) s += 10;
+            return s;
+          }
+        });
+      }
+      function fPickDate(){
+        return fPickByProfile({
+          positive:['date','night','malam','sweet','manis','floral','vanilla','musk','amber','fruity','rose','jasmine','soft','romantic','woman','women','feminine'],
+          negative:['very strong','smoky','animalic','gym','sport','outdoor'],
+          priceMax:500000,
+          reason:'sweet floral atau musky yang cocok untuk date night dan tetap nyaman dipakai dekat',
+          prefer:function(p,h){ return /vanilla|floral|musk|amber|sweet|fruity|woman|femme/.test(h) ? 18 : 0; }
+        });
+      }
+      function fPickFreshOffice(){
+        return fPickByProfile({
+          positive:['fresh','segar','clean','citrus','bergamot','orange','lemon','aquatic','blue','musk','soapy','office','kantor','daily','harian','aromatic','green','tea'],
+          negative:['oud','tobacco','leather','smoky','animalic','sweet heavy','very strong'],
+          priceMax:300000,
+          reason:'fresh clean untuk kantor atau harian, aman, rapi, dan tidak terlalu manis',
+          prefer:function(p,h){ return /office|kantor|clean|musk|fresh|citrus|aquatic|blue/.test(h) ? 18 : 0; }
+        });
+      }
+      function fBuildGiftReply(picks){
+        var lines = ['Saya pakai mode cepat agar tombol Hadiah tidak nge-lag. Ini 3 pilihan aman untuk gift:'];
+        picks.forEach(function(p, i){ lines.push((i + 1) + '. ' + fTitle(p) + ' - ' + fFormat(p)); });
+        lines.push('Arah terbaik untuk hadiah biasanya fresh clean, soft floral, musk, atau sweet ringan. Hindari oud/leather/smoky kalau penerimanya belum jelas seleranya.');
+        return lines.join('\n');
+      }
+      function fBuildDateReply(picks){
+        var lines = ['Mode cepat aktif. Ini 3 pilihan untuk date night yang tetap nyaman:'];
+        picks.forEach(function(p, i){ lines.push((i + 1) + '. ' + fTitle(p) + ' - ' + fFormat(p)); });
+        lines.push('Untuk date night, pilih sweet floral, vanilla, amber, atau musk yang tidak terlalu menusuk.');
+        return lines.join('\n');
+      }
+      function fBuildFreshReply(picks){
+        var lines = ['Mode cepat aktif. Ini 3 pilihan fresh clean untuk kantor atau harian:'];
+        picks.forEach(function(p, i){ lines.push((i + 1) + '. ' + fTitle(p) + ' - ' + fFormat(p)); });
+        lines.push('Untuk kantor, pilih fresh clean, citrus, aquatic, tea, atau musky yang soft agar tetap sopan.');
+        return lines.join('\n');
+      }
+      function fBuildCountReply(){
+        var list = fProducts();
+        var ready = list.filter(fReady).length;
+        return 'AI sekarang membaca ' + list.length + ' produk aktif di halaman. Produk ready yang terbaca sekitar ' + ready + '. Angka ini mengikuti katalog yang sedang termuat di browser.';
+      }
+      function fPromptKind(prompt){
         var n = fNorm(prompt);
-        return /\b(vibe\s+lv|lv\s+imagination|louis\s+vuitton\s+imagination)\b/.test(n) || /\b(compare|bandingkan|perbandingan)\b/.test(n);
+        if(/\b(jumlah|berapa\s+produk|produk\s+terbaca|katalog\s+terbaca)\b/.test(n)) return 'count';
+        if(/\b(vibe\s+lv|lv\s+imagination|louis\s+vuitton\s+imagination)\b/.test(n)) return 'vibe';
+        if(/\b(compare|bandingkan|perbandingan)\b/.test(n)) return 'compare';
+        if(/\b(hadiah|kado|gift|blind\s+buy)\b/.test(n)) return 'gift';
+        if(/\b(date|date\s+night|kencan|malam)\b/.test(n)) return 'date';
+        if(/\b(fresh|segar|kantor|office|clean)\b/.test(n) && /\b(pria|cowok|budget|300|kantor|office|fresh|clean)\b/.test(n)) return 'fresh';
+        return '';
+      }
+      function fIsTargetPrompt(prompt){
+        return !!fPromptKind(prompt);
       }
       function fFastSubmit(prompt){
         prompt = fText(prompt).slice(0, MESSAGE_LIMIT || 1200);
@@ -14331,9 +14427,30 @@ function staticGeneralAnswerLocal(text) {
           var typing = addTyping();
           window.setTimeout(function(){
             try{
-              var n = fNorm(prompt);
-              var products = /\b(vibe\s+lv|lv\s+imagination|louis\s+vuitton\s+imagination)\b/.test(n) ? fPickVibeLv() : fPickCompareFresh(fFindSeedFromPrompt(prompt));
-              var reply = /\b(vibe\s+lv|lv\s+imagination|louis\s+vuitton\s+imagination)\b/.test(n) ? fBuildVibeReply(products) : fBuildCompareReply(products);
+              var kind = fPromptKind(prompt);
+              var products = [];
+              var reply = '';
+              if(kind === 'count'){
+                reply = fBuildCountReply();
+              }else if(kind === 'vibe'){
+                products = fPickVibeLv();
+                reply = fBuildVibeReply(products);
+              }else if(kind === 'compare'){
+                products = fPickCompareFresh(fFindSeedFromPrompt(prompt));
+                reply = fBuildCompareReply(products);
+              }else if(kind === 'gift'){
+                products = fPickGift();
+                reply = fBuildGiftReply(products);
+              }else if(kind === 'date'){
+                products = fPickDate();
+                reply = fBuildDateReply(products);
+              }else if(kind === 'fresh'){
+                products = fPickFreshOffice();
+                reply = fBuildFreshReply(products);
+              }else{
+                products = fPickFreshOffice();
+                reply = fBuildFreshReply(products);
+              }
               try{ typing.remove(); }catch(error){}
               try{ rememberShownProducts(products); }catch(error){}
               addBotMessage(reply, {products:products, provider:'Dirac AI Lite', traceId:'fast-' + Date.now(), noFeedback:false});
