@@ -610,6 +610,21 @@
     }
   </style>
 
+
+  <style id="dirac-pro4-scale-safe-css">
+    /* === Dirac Pro 4 Scale Safe: additive only, HTML tetap satu file, login/hash tidak disentuh === */
+    .scale-safe-panel{border:1px solid rgba(96,165,250,.24);background:linear-gradient(135deg,rgba(96,165,250,.10),rgba(34,197,94,.06));border-radius:20px;padding:12px;margin:12px 0;color:#dbeafe}
+    .scale-safe-panel strong{display:block}.scale-safe-panel span{display:block;color:var(--muted);font-size:.86rem;margin-top:3px}
+    .scale-safe-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+    .scale-safe-card{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:18px;padding:12px;min-height:92px}.scale-safe-card span{display:block;color:var(--muted);font-size:.74rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.scale-safe-card strong{display:block;margin-top:5px;font-size:1.1rem}.scale-safe-card small{display:block;color:#bfdbfe;margin-top:5px}
+    .skeleton-line,.skeleton-card,.skeleton-cell{position:relative;overflow:hidden;background:rgba(255,255,255,.08);border-radius:14px;min-height:16px}.skeleton-line::after,.skeleton-card::after,.skeleton-cell::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:safeShimmer 1.25s infinite}.skeleton-card{min-height:70px;border:1px solid rgba(96,165,250,.14)}.skeleton-cell{height:18px;margin:4px 0}.metric-pop{animation:metricPop .34s ease both}.order-row-new{animation:orderRowNew .28s ease both}
+    @keyframes safeShimmer{100%{transform:translateX(100%)}}@keyframes metricPop{0%{transform:scale(.985);filter:brightness(.92)}60%{transform:scale(1.015);filter:brightness(1.16)}100%{transform:scale(1);filter:brightness(1)}}@keyframes orderRowNew{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .import-progress-safe{height:10px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;margin-top:8px}.import-progress-safe span{display:block;width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#bfdbfe,#60a5fa);transition:width .2s ease}.server-report-note{margin-top:10px}.order-count-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(96,165,250,.08);border-radius:999px;padding:6px 10px;color:#dbeafe;font-size:.82rem;font-weight:900}
+    @media(max-width:1040px){.scale-safe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:700px){.scale-safe-grid{grid-template-columns:1fr}.scale-safe-panel{padding:11px}.filter-grid.report{grid-template-columns:1fr!important}}
+    @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -1103,7 +1118,9 @@
                 <input class="input" id="reportDateFrom" type="date" aria-label="Tanggal mulai laporan">
                 <input class="input" id="reportDateTo" type="date" aria-label="Tanggal akhir laporan">
                 <button class="btn" id="clearReportFilterBtn" type="button">Reset Laporan</button>
+                <button class="btn primary" id="refreshReportBackendBtn" type="button">Hitung Backend</button>
               </div>
+              <div class="notice server-report-note" id="reportServerStatus">Laporan akan dihitung dari backend agar tetap akurat walau pesanan dimuat bertahap.</div>
               <div class="dashboard-grid">
                 <div class="dashboard-card"><span>Harian</span><strong id="reportDaily">Rp 0</strong><small>Pesanan lunas hari ini</small></div>
                 <div class="dashboard-card"><span>Mingguan</span><strong id="reportWeekly">Rp 0</strong><small>7 hari terakhir</small></div>
@@ -1117,7 +1134,7 @@
             </div>
             <div class="wide-grid">
               <div class="panel anchor-panel" id="reportCustomerPanel"><span class="view-kicker">Laporan / Customer</span><h3>Laporan Customer</h3><p class="help">Ringkasan pelanggan tetap memakai data pelanggan dan total belanja yang sudah ada di dashboard.</p><div class="compact-list"><div class="compact-item"><strong>Customer aktif</strong><span id="reportCustomerHint">Data pelanggan otomatis diperbarui dari collection customers.</span></div></div></div>
-              <div class="panel anchor-panel" id="reportExportPanel"><span class="view-kicker">Laporan / Export</span><h3>Export Laporan &amp; Data</h3><p class="help">Gunakan tombol export yang sudah ada untuk backup data produk. Fitur ini tidak mengubah login, A2F, atau rules Firebase.</p><div class="row-actions"><button class="btn small good requires-export" id="reportExportJsonBtn" type="button">Backup Semua JSON</button><button class="btn small requires-export" id="reportExportCsvBtn" type="button">Export CSV Produk</button></div></div>
+              <div class="panel anchor-panel" id="reportExportPanel"><span class="view-kicker">Laporan / Export</span><h3>Export Laporan &amp; Data</h3><p class="help">Backup JSON sekarang meminta data lengkap dari backend, bukan dari pesanan yang sudah tampil di browser. Fitur ini tidak mengubah login, A2F, atau rules Firebase.</p><div class="row-actions"><button class="btn small good requires-export" id="reportExportJsonBtn" type="button">Backup Backend JSON</button><button class="btn small requires-export" id="reportExportCsvBtn" type="button">Export CSV Produk</button><button class="btn small requires-export" id="reportExportOrdersCsvBtn" type="button">Export CSV Pesanan Tampil</button></div></div>
             </div>
           </div>
         </section>
@@ -1154,7 +1171,7 @@
                   <div class="settings-actions"><button class="btn primary requires-edit" id="saveWhatsAppSettingsBtn" type="button">Simpan Template WA</button></div><div class="notice hidden" id="whatsAppSettingsMessage"></div>
                 </div>
                 <div class="panel anchor-panel full" id="settingsBackupPanel">
-                  <span class="view-kicker">Pengaturan / Backup</span><h3>Backup Semua Data</h3><p class="help">JSON berisi products, orders, customers, settings, dan security log lokal. Import data produk &amp; pesanan ada di halaman <b>Pesanan</b> dengan mode append-only agar data lama tidak terhapus atau tertimpa.</p>
+                  <span class="view-kicker">Pengaturan / Backup</span><h3>Backup Semua Data</h3><p class="help">JSON berisi products, orders, customers, settings, dan security log. Backup memakai backend full export agar pesanan yang belum tampil di browser tetap ikut.</p>
                   <div class="restore-box"><div class="settings-actions"><button class="btn good requires-export" id="exportAllDataBtn" type="button">Backup Semua Data JSON</button><button class="btn" type="button" data-view-target="pesanan" data-scroll-target="appendImportPanel">Buka Import Produk &amp; Pesanan</button></div><div class="notice good" id="restorePreview">Mode timpa data dimatikan. Import produk/pesanan hanya menambahkan data baru dari halaman Pesanan.</div></div>
                 </div>
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
@@ -1497,7 +1514,7 @@
       addOrderItemBtn:$('addOrderItemBtn'), orderItemsList:$('orderItemsList'), orderItemPrice:$('orderItemPrice'), orderSubtotal:$('orderSubtotal'), orderShippingCost:$('orderShippingCost'), orderDiscount:$('orderDiscount'), orderAddress:$('orderAddress'), orderPaymentProof:$('orderPaymentProof'), paymentProofFile:$('paymentProofFile'), chooseProofBtn:$('chooseProofBtn'), uploadProofBtn:$('uploadProofBtn'), proofFileName:$('proofFileName'), proofProgress:$('proofProgress'),
       orderSearch:$('orderSearch'), orderFilterPayment:$('orderFilterPayment'), orderFilterStatus:$('orderFilterStatus'), searchOrdersBackendBtn:$('searchOrdersBackendBtn'), clearOrderFilterBtn:$('clearOrderFilterBtn'), loadMoreOrdersBtn:$('loadMoreOrdersBtn'), ordersLoadedInfo:$('ordersLoadedInfo'),
       customerSearch:$('customerSearch'), customerFilterSegment:$('customerFilterSegment'), clearCustomerFilterBtn:$('clearCustomerFilterBtn'), exportCustomersCsvBtn:$('exportCustomersCsvBtn'),
-      reportSearch:$('reportSearch'), reportFilterPayment:$('reportFilterPayment'), reportDateFrom:$('reportDateFrom'), reportDateTo:$('reportDateTo'), clearReportFilterBtn:$('clearReportFilterBtn'),
+      reportSearch:$('reportSearch'), reportFilterPayment:$('reportFilterPayment'), reportDateFrom:$('reportDateFrom'), reportDateTo:$('reportDateTo'), clearReportFilterBtn:$('clearReportFilterBtn'), refreshReportBackendBtn:$('refreshReportBackendBtn'), reportServerStatus:$('reportServerStatus'), reportExportOrdersCsvBtn:$('reportExportOrdersCsvBtn'),
       storeName:$('storeName'), storeWhatsApp:$('storeWhatsApp'), storeCatalogUrl:$('storeCatalogUrl'), storeAddress:$('storeAddress'), saveStoreSettingsBtn:$('saveStoreSettingsBtn'), storeSettingsMessage:$('storeSettingsMessage'),
       paymentBankName:$('paymentBankName'), paymentAccountName:$('paymentAccountName'), paymentAccountNumber:$('paymentAccountNumber'), paymentEwallet:$('paymentEwallet'), paymentQrisUrl:$('paymentQrisUrl'), paymentInstruction:$('paymentInstruction'), savePaymentSettingsBtn:$('savePaymentSettingsBtn'), paymentSettingsMessage:$('paymentSettingsMessage'),
       courierListText:$('courierListText'), defaultShippingCost:$('defaultShippingCost'), freeShippingMin:$('freeShippingMin'), saveCourierSettingsBtn:$('saveCourierSettingsBtn'), courierSettingsMessage:$('courierSettingsMessage'),
@@ -1515,6 +1532,11 @@
     let ordersBackendSearch = '';
     let ordersLoadInFlight = false;
     let ordersLoadedMode = 'latest';
+    let ordersTotalCount = null;
+    let adminReportSummary = null;
+    let adminReportSignature = '';
+    let reportLoadInFlight = false;
+    let reportRefreshTimer = null;
     let customers = [];
     let orderItems = [];
     let appSettings = defaultSettings();
@@ -3643,10 +3665,75 @@
     function resetOrdersBackendState(){
       ordersPageCursor = null;
       ordersHasMore = false;
+      ordersTotalCount = null;
       ordersBackendSearch = '';
       ordersLoadedMode = 'latest';
       updateOrderLoadUi();
     }
+    function orderTotalLabel(){
+      return ordersTotalCount ? (' dari ±' + ordersTotalCount.toLocaleString('id-ID') + ' total') : '';
+    }
+    function reportFilterSignature(){
+      return JSON.stringify({
+        q: String(els.reportSearch && els.reportSearch.value || '').trim(),
+        payment: els.reportFilterPayment ? els.reportFilterPayment.value : 'Lunas',
+        from: els.reportDateFrom && els.reportDateFrom.value || '',
+        to: els.reportDateTo && els.reportDateTo.value || ''
+      });
+    }
+    function reportFilterPayload(){
+      return {
+        action: 'reportAdminData',
+        reportSearch: String(els.reportSearch && els.reportSearch.value || '').trim(),
+        reportPaymentStatus: els.reportFilterPayment ? els.reportFilterPayment.value : 'Lunas',
+        reportDateFrom: els.reportDateFrom && els.reportDateFrom.value || '',
+        reportDateTo: els.reportDateTo && els.reportDateTo.value || ''
+      };
+    }
+    function metricSet(el, text){
+      if(!el) return;
+      const next = String(text ?? '');
+      if(el.textContent === next) return;
+      el.textContent = next;
+      el.classList.remove('metric-pop');
+      void el.offsetWidth;
+      el.classList.add('metric-pop');
+    }
+    function renderOrdersSkeleton(){
+      if(!els.orderRows) return;
+      els.orderRows.innerHTML = Array.from({ length: 5 }, () => '<tr><td colspan="6"><div class="skeleton-card"></div></td></tr>').join('');
+    }
+    function scheduleReportBackendRefresh(delay=850){
+      if(!twoFactorVerified || !currentAdmin.canRead) return;
+      clearTimeout(reportRefreshTimer);
+      reportRefreshTimer = setTimeout(() => {
+        reportRefreshTimer = null;
+        loadReportSummaryFromBackend().catch(error => setNotice(els.reportServerStatus, firebaseMessage(error), 'danger'));
+      }, delay);
+    }
+    async function loadReportSummaryFromBackend(){
+      if(!els.reportServerStatus || reportLoadInFlight) return;
+      reportLoadInFlight = true;
+      const signature = reportFilterSignature();
+      if(els.refreshReportBackendBtn) els.refreshReportBackendBtn.disabled = true;
+      setNotice(els.reportServerStatus, 'Menghitung laporan dari backend. Data pesanan yang belum tampil tetap dihitung...');
+      try{
+        const data = await adminReadApi(reportFilterPayload());
+        adminReportSummary = data.report || null;
+        adminReportSignature = signature;
+        renderReports();
+        const counts = adminReportSummary && adminReportSummary.counts || {};
+        setNotice(els.reportServerStatus, 'Laporan backend aktif: ' + Number(counts.filteredOrders || 0).toLocaleString('id-ID') + ' pesanan sesuai filter dari ' + Number(counts.orders || 0).toLocaleString('id-ID') + ' total pesanan • ' + nowLabel(), 'good');
+      }catch(error){
+        adminReportSummary = null;
+        adminReportSignature = '';
+        setNotice(els.reportServerStatus, 'Laporan backend gagal: ' + firebaseMessage(error), 'danger');
+      }finally{
+        reportLoadInFlight = false;
+        if(els.refreshReportBackendBtn) els.refreshReportBackendBtn.disabled = false;
+      }
+    }
+
     function orderServerFilters(){
       return {
         paymentStatus: els.orderFilterPayment && els.orderFilterPayment.value || '',
@@ -3663,7 +3750,7 @@
       if(els.ordersLoadedInfo){
         const modeLabel = ordersLoadedMode === 'search' ? 'hasil pencarian backend' : 'pesanan terbaru';
         const moreLabel = ordersHasMore ? 'Masih ada data berikutnya.' : 'Tidak ada halaman berikutnya.';
-        els.ordersLoadedInfo.textContent = orders.length + ' ' + modeLabel + ' sedang dimuat di browser. ' + moreLabel;
+        els.ordersLoadedInfo.innerHTML = '<span class="order-count-chip">' + orders.length.toLocaleString('id-ID') + orderTotalLabel() + '</span> ' + modeLabel + ' sedang dimuat di browser. ' + moreLabel;
       }
       if(els.loadMoreOrdersBtn){
         els.loadMoreOrdersBtn.disabled = ordersLoadInFlight || !ordersHasMore;
@@ -3685,6 +3772,7 @@
 
       ordersLoadInFlight = true;
       updateOrderLoadUi();
+      if(!append) renderOrdersSkeleton();
       setNotice(els.orderSyncStatus, (append ? 'Membaca 100 pesanan berikutnya dari backend...' : useSearchMode ? 'Mencari pesanan di backend...' : 'Membaca 100 pesanan terbaru dari backend...'));
       try{
         const rows = await adminReadCollection('orders', {
@@ -3700,11 +3788,12 @@
         const incoming = rows.map(normalizeOrder).sort((a,b)=>b.createdAtMs-a.createdAtMs);
         orders = append ? mergeOrdersByDocId(orders, incoming) : incoming;
         ordersPageCursor = pageInfo.cursor || null;
+        ordersTotalCount = Number.isFinite(Number(pageInfo.total)) ? Number(pageInfo.total) : ordersTotalCount;
         ordersHasMore = Boolean(pageInfo.hasMore) && !useSearchMode;
         ordersBackendSearch = searchText;
         ordersLoadedMode = useSearchMode ? 'search' : 'latest';
         const label = useSearchMode ? 'Hasil backend' : 'Sinkron backend aktif';
-        setNotice(els.orderSyncStatus, label + '. Pesanan dimuat: ' + orders.length + ' dari batch @' + ORDERS_BATCH_SIZE + ' • ' + nowLabel(), 'good');
+        setNotice(els.orderSyncStatus, label + '. Pesanan dimuat: ' + orders.length.toLocaleString('id-ID') + orderTotalLabel() + ' • batch @' + ORDERS_BATCH_SIZE + ' • ' + nowLabel(), 'good');
         ultraAutoDeleteOldArchivedDocs();
         renderOrders();
         renderBusinessDashboard();
@@ -3748,7 +3837,8 @@
         loadCustomersFromBackend(),
         loadSettingsFromBackend(),
         loadSecurityLogsFromBackend(),
-        ultraLoadCatalogFromBackend()
+        ultraLoadCatalogFromBackend(),
+        loadReportSummaryFromBackend()
       ]);
       renderBusinessDashboard();
       renderReports();
@@ -4095,7 +4185,7 @@
       if(!rows.length){ els.orderRows.innerHTML = '<tr><td colspan="6">Belum ada pesanan sesuai filter.</td></tr>'; return; }
       els.orderRows.innerHTML = rows.slice(0,120).map(o => {
         const proof = o.paymentProof ? `<br><a class="proof-link" href="${escapeHtml(o.paymentProof)}" target="_blank" rel="noopener">Bukti bayar</a>` : '';
-        return `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${new Date(o.createdAtMs).toLocaleDateString('id-ID')}</span></td><td>${escapeHtml(o.customerName)}<br><span class="muted">${escapeHtml(o.address || '-')}</span></td><td>${escapeHtml(orderItemsSummary(o))}<br><span class="muted">Total item ${escapeHtml(orderQtyTotal(o))}</span></td><td>${rupiah(o.total)}<br><span class="muted">Subtotal ${rupiah(o.subtotal)} • Ongkir ${rupiah(o.shippingCost)} • Diskon ${rupiah(o.discount)}</span>${proof}</td><td><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span><br><span class="status-pill ${statusClass(o.orderStatus)}">${escapeHtml(o.orderStatus)}</span><br><span class="muted">${escapeHtml([o.courier,o.trackingNumber].filter(Boolean).join(' • ') || '-')}</span></td><td><div class="row-actions">${currentAdmin.canEdit ? `<button class="btn small primary requires-edit" type="button" data-order-action="edit" data-doc="${escapeHtml(o.docId)}">Edit</button>` : ''}<button class="btn small" type="button" data-order-action="invoice" data-doc="${escapeHtml(o.docId)}">Invoice</button>${currentAdmin.canDelete ? `<button class="btn small danger requires-delete" type="button" data-order-action="delete" data-doc="${escapeHtml(o.docId)}">Hapus</button>` : ''}</div></td></tr>`;
+        return `<tr><td><strong>${escapeHtml(o.orderId)}</strong><br><span class="muted">${new Date(o.createdAtMs).toLocaleDateString('id-ID')}</span></td><td>${escapeHtml(o.customerName)}<br><span class="muted">${escapeHtml(o.address || '-')}</span></td><td>${escapeHtml(orderItemsSummary(o))}<br><span class="muted">Total item ${escapeHtml(orderQtyTotal(o))}</span></td><td>${rupiah(o.total)}<br><span class="muted">Subtotal ${rupiah(o.subtotal)} • Ongkir ${rupiah(o.shippingCost)} • Diskon ${rupiah(o.discount)}</span>${proof}</td><td><span class="status-pill ${statusClass(o.paymentStatus)}">${escapeHtml(o.paymentStatus)}</span><br><span class="status-pill ${statusClass(o.orderStatus)}">${escapeHtml(o.orderStatus)}</span><br><span class="muted">${escapeHtml([o.courier,o.trackingNumber].filter(Boolean).join(' • ') || '-')}</span></td><td><div class="row-actions">${currentAdmin.canEdit ? `<button class="btn small primary requires-edit" type="button" data-order-action="edit" data-doc="${escapeHtml(o.docId)}">Edit</button>` : ''}<button class="btn small" type="button" data-order-action="detail" data-doc="${escapeHtml(o.docId)}">Detail</button><button class="btn small" type="button" data-order-action="invoice" data-doc="${escapeHtml(o.docId)}">Invoice</button>${currentAdmin.canDelete ? `<button class="btn small danger requires-delete" type="button" data-order-action="delete" data-doc="${escapeHtml(o.docId)}">Hapus</button>` : ''}</div></td></tr>`;
       }).join('');
     }
     function collectCustomer(){
@@ -4195,6 +4285,16 @@
       if(els.reportWeekly) els.reportWeekly.textContent = rupiah(weekly);
       if(els.reportMonthly) els.reportMonthly.textContent = rupiah(monthly);
       if(els.reportGrossProfit) els.reportGrossProfit.textContent = rupiah(profit);
+      if(adminReportSummary && adminReportSignature === reportFilterSignature()){
+        const summary = adminReportSummary.summary || {};
+        const counts = adminReportSummary.counts || {};
+        metricSet(els.reportDaily, rupiah(summary.dailyRevenue || 0));
+        metricSet(els.reportWeekly, rupiah(summary.weeklyRevenue || 0));
+        metricSet(els.reportMonthly, rupiah(summary.monthlyRevenue || 0));
+        metricSet(els.reportGrossProfit, rupiah(summary.grossProfit || 0));
+        const hintBackend = $('reportCustomerHint');
+        if(hintBackend) hintBackend.textContent = 'Backend menghitung ' + Number(counts.filteredOrders || 0).toLocaleString('id-ID') + ' pesanan sesuai filter dari ' + Number(counts.orders || 0).toLocaleString('id-ID') + ' total pesanan.';
+      }
       if(els.categoryReportRows){
         const groups = new Map();
         products.forEach(p => {
@@ -4295,17 +4395,34 @@
         customers: customers.map(c => ({ docId:c.docId, name:c.name, phone:c.phone, email:c.email, address:c.address, segment:c.segment, totalSpent:c.totalSpent, note:c.note, createdAtMs:c.createdAtMs || 0, updatedAtMs:c.updatedAtMs || 0 }))
       };
     }
+    async function fetchBackendFullExport(){
+      const payload = await adminReadApi({ action:'exportAdminData' });
+      if(!payload || payload.success === false) throw new Error(payload && payload.error || 'Backend export gagal.');
+      return payload;
+    }
     async function exportJson(){
       try{
         requirePermission('canExport', 'membuat backup semua data JSON');
         await requireSensitiveReauth('membuat backup semua data JSON');
-        const payload = backupPayload();
-        downloadFile('dirac-all-data-backup-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
-        await logSecurity('backup.export', 'Export semua data JSON');
-        showToast('Backup semua data dibuat');
+        showToast('Meminta backup lengkap dari backend...');
+        const payload = await fetchBackendFullExport();
+        downloadFile('dirac-backend-full-backup-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
+        await logSecurity('backup.export.backend_full', 'Export backend lengkap: ' + JSON.stringify(payload.counts || {}));
+        showToast('Backup backend lengkap dibuat');
       }catch(error){
         showToast(firebaseMessage(error));
       }
+    }
+    async function exportVisibleOrdersCsv(){
+      try{
+        requirePermission('canExport', 'export CSV pesanan tampil');
+        await requireSensitiveReauth('export CSV pesanan tampil');
+        const header = ['docId','orderId','customerName','items','qty','subtotal','shippingCost','discount','total','paymentMethod','paymentStatus','orderStatus','courier','trackingNumber','address','note','createdAtMs','updatedAtMs'];
+        const rows = filteredOrders().map(o => header.map(k => csvCell(k === 'items' ? orderItemsSummary(o) : o[k])).join(','));
+        downloadFile('dirac-visible-orders-' + new Date().toISOString().slice(0,10) + '.csv', [header.join(','), ...rows].join('\n'), 'text/csv;charset=utf-8');
+        await logSecurity('orders.export_visible_csv', 'Export CSV pesanan tampil: ' + rows.length);
+        showToast('CSV pesanan tampil dibuat');
+      }catch(error){ showToast(firebaseMessage(error)); }
     }
     function csvCell(value){
       const text = String(value ?? '');
@@ -4618,6 +4735,33 @@
       const items = getOrderItems(order);
       return `<div class="invoice-box"><h2>${escapeHtml(store.storeName || 'Dirac Group')}</h2><p>${escapeHtml(store.storeAddress || '')}<br>${escapeHtml(store.storeWhatsApp || '')}</p><hr><h3>Invoice ${escapeHtml(order.orderId)}</h3><p><b>Pelanggan:</b> ${escapeHtml(order.customerName)}<br><b>Alamat:</b> ${escapeHtml(order.address || '-')}<br><b>Tanggal:</b> ${escapeHtml(new Date(order.createdAtMs).toLocaleString('id-ID'))}<br><b>Status:</b> ${escapeHtml(order.paymentStatus)} / ${escapeHtml(order.orderStatus)}</p><table><thead><tr><th>Produk</th><th class="right">Qty</th><th class="right">Harga</th><th class="right">Subtotal</th></tr></thead><tbody>${items.map(item => `<tr><td>${escapeHtml(item.productName)}</td><td class="right">${escapeHtml(item.qty)}</td><td class="right">${rupiah(item.price)}</td><td class="right">${rupiah(itemSubtotal(item))}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="3" class="right">Subtotal</td><td class="right">${rupiah(order.subtotal)}</td></tr><tr><td colspan="3" class="right">Ongkir</td><td class="right">${rupiah(order.shippingCost)}</td></tr><tr><td colspan="3" class="right">Diskon</td><td class="right">${rupiah(order.discount)}</td></tr><tr><th colspan="3" class="right">Total</th><th class="right">${rupiah(order.total)}</th></tr></tfoot></table><p><b>Pembayaran:</b> ${escapeHtml(order.paymentMethod)}<br>${escapeHtml([payment.bankName,payment.accountNumber,payment.accountName].filter(Boolean).join(' • ') || payment.instruction || '')}</p><p><b>Pengiriman:</b> ${escapeHtml([order.courier,order.trackingNumber].filter(Boolean).join(' • ') || '-')}</p></div>`;
     }
+    function showOrderDetail(order){
+      if(!order) return;
+      const customer = customers.find(c => String(c.name || '').toLowerCase() === String(order.customerName || '').toLowerCase()) || {};
+      els.modalTitle.textContent = 'Detail Pesanan ' + (order.orderId || order.docId);
+      els.modalBody.innerHTML = `
+        <div class="scale-safe-grid">
+          <div class="scale-safe-card"><span>Total</span><strong>${rupiah(order.total || 0)}</strong><small>${escapeHtml(order.paymentStatus || '-')}</small></div>
+          <div class="scale-safe-card"><span>Status</span><strong>${escapeHtml(order.orderStatus || '-')}</strong><small>${escapeHtml([order.courier, order.trackingNumber].filter(Boolean).join(' • ') || 'Belum ada resi')}</small></div>
+          <div class="scale-safe-card"><span>Pelanggan</span><strong>${escapeHtml(order.customerName || '-')}</strong><small>${escapeHtml(customer.phone || customer.email || '-')}</small></div>
+          <div class="scale-safe-card"><span>Tanggal</span><strong>${escapeHtml(new Date(order.createdAtMs || Date.now()).toLocaleDateString('id-ID'))}</strong><small>${escapeHtml(new Date(order.createdAtMs || Date.now()).toLocaleTimeString('id-ID'))}</small></div>
+        </div>
+        <h3>Item Pesanan</h3>
+        <div class="compact-list">${getOrderItems(order).map(item => `<div class="compact-item"><strong>${escapeHtml(item.productName)}</strong><span>Qty ${escapeHtml(item.qty)} • ${rupiah(item.price)} • Subtotal ${rupiah(itemSubtotal(item))}</span></div>`).join('')}</div>
+        <h3>Alamat & Catatan</h3>
+        <pre>${escapeHtml([order.address || '-', order.note || ''].filter(Boolean).join('\n\n'))}</pre>
+        <h3>Timeline</h3>
+        ${typeof renderOrderTimeline === 'function' ? renderOrderTimeline(order) : '<div class="empty">Timeline belum tersedia.</div>'}
+        <div class="row-actions" style="margin-top:12px">
+          <button class="btn primary" id="detailOrderInvoiceBtn" type="button">Invoice</button>
+          ${currentAdmin.canEdit ? '<button class="btn" id="detailOrderEditBtn" type="button">Edit pesanan</button>' : ''}
+        </div>`;
+      openModal();
+      const invoiceBtn = $('detailOrderInvoiceBtn');
+      const editBtn = $('detailOrderEditBtn');
+      if(invoiceBtn) invoiceBtn.onclick = () => showInvoice(order);
+      if(editBtn) editBtn.onclick = () => { closeModal(); fillOrderForm(order); };
+    }
     function showInvoice(order){
       if(!order) return;
       els.modalTitle.textContent = 'Invoice ' + order.orderId;
@@ -4640,7 +4784,22 @@
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         '<title>Invoice ' + escapeHtml(order.orderId) + '</title>',
         '<style>' + invoiceCss + '</style>',
-        '</head><body>',
+        '
+  <style id="dirac-pro4-scale-safe-css">
+    /* === Dirac Pro 4 Scale Safe: additive only, HTML tetap satu file, login/hash tidak disentuh === */
+    .scale-safe-panel{border:1px solid rgba(96,165,250,.24);background:linear-gradient(135deg,rgba(96,165,250,.10),rgba(34,197,94,.06));border-radius:20px;padding:12px;margin:12px 0;color:#dbeafe}
+    .scale-safe-panel strong{display:block}.scale-safe-panel span{display:block;color:var(--muted);font-size:.86rem;margin-top:3px}
+    .scale-safe-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+    .scale-safe-card{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:18px;padding:12px;min-height:92px}.scale-safe-card span{display:block;color:var(--muted);font-size:.74rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em}.scale-safe-card strong{display:block;margin-top:5px;font-size:1.1rem}.scale-safe-card small{display:block;color:#bfdbfe;margin-top:5px}
+    .skeleton-line,.skeleton-card,.skeleton-cell{position:relative;overflow:hidden;background:rgba(255,255,255,.08);border-radius:14px;min-height:16px}.skeleton-line::after,.skeleton-card::after,.skeleton-cell::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:safeShimmer 1.25s infinite}.skeleton-card{min-height:70px;border:1px solid rgba(96,165,250,.14)}.skeleton-cell{height:18px;margin:4px 0}.metric-pop{animation:metricPop .34s ease both}.order-row-new{animation:orderRowNew .28s ease both}
+    @keyframes safeShimmer{100%{transform:translateX(100%)}}@keyframes metricPop{0%{transform:scale(.985);filter:brightness(.92)}60%{transform:scale(1.015);filter:brightness(1.16)}100%{transform:scale(1);filter:brightness(1)}}@keyframes orderRowNew{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .import-progress-safe{height:10px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;margin-top:8px}.import-progress-safe span{display:block;width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#bfdbfe,#60a5fa);transition:width .2s ease}.server-report-note{margin-top:10px}.order-count-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(96,165,250,.08);border-radius:999px;padding:6px 10px;color:#dbeafe;font-size:.82rem;font-weight:900}
+    @media(max-width:1040px){.scale-safe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:700px){.scale-safe-grid{grid-template-columns:1fr}.scale-safe-panel{padding:11px}.filter-grid.report{grid-template-columns:1fr!important}}
+    @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
+  </style>
+
+</head><body>',
         renderInvoiceHtml(order),
         '<script>window.print();</' + 'script>',
         '</body></html>'
@@ -4713,7 +4872,7 @@
           const orderDocs = new Set(orders.map(o => String(o.docId || '')));
           const productConflicts = pendingAppendImportPayload.products.filter(p => productIds.has(Number(p.id || 0)) || productDocs.has(String(p.docId || padDocId(p.id || 0)))).length;
           const orderConflicts = pendingAppendImportPayload.orders.filter(o => orderIds.has(String(o.orderId || '').toLowerCase()) || orderDocs.has(String(o.docId || sanitizeDocId(o.orderId || '')))).length;
-          const msg = 'File siap import append-only: ' + pendingAppendImportPayload.products.length + ' produk, ' + pendingAppendImportPayload.orders.length + ' pesanan. Bentrok ID terdeteksi: ' + productConflicts + ' produk, ' + orderConflicts + ' pesanan. Semua bentrok akan dibuatkan ID baru, data lama tidak disentuh. Klik Import Tambahan untuk menjalankan.';
+          const msg = 'File siap import append-only: ' + pendingAppendImportPayload.products.length + ' produk, ' + pendingAppendImportPayload.orders.length + ' pesanan. Bentrok ID terdeteksi: ' + productConflicts + ' produk, ' + orderConflicts + ' pesanan. Semua bentrok akan dibuatkan ID baru, data lama tidak disentuh. Import berjalan per 250 dokumen dengan jeda otomatis.';
           setAppendImportNotice(msg, 'good');
         }catch(error){
           pendingAppendImportPayload = null;
@@ -4930,9 +5089,30 @@
       };
       reader.readAsText(file);
     }
-    async function commitOpsInBatches(ops){
-      for(let i=0;i<ops.length;i+=430){
-        await adminBatch(ops.slice(i,i+430), 'import.restore.batch');
+    function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+    async function commitOpsInBatches(ops, options={}){
+      const chunkSize = Math.max(1, Math.min(Number(options.chunkSize || 250), 250));
+      const delayMs = Math.max(0, Number(options.delayMs ?? 1800));
+      const maxRetry = Math.max(0, Number(options.maxRetry ?? 2));
+      const totalBatch = Math.ceil((ops || []).length / chunkSize);
+      for(let i=0, batchIndex=1;i<ops.length;i+=chunkSize,batchIndex+=1){
+        const batch = ops.slice(i,i+chunkSize);
+        let attempt = 0;
+        while(true){
+          try{
+            setAppendImportNotice('Mengupload batch ' + batchIndex + ' dari ' + totalBatch + ' (' + batch.length + ' dokumen). Jeda otomatis aktif agar aman dari limit Firebase.', 'warn');
+            await adminBatch(batch, options.actionLabel || 'import.restore.batch.safe');
+            break;
+          }catch(error){
+            attempt += 1;
+            if(attempt > maxRetry) throw error;
+            setAppendImportNotice('Batch ' + batchIndex + ' gagal. Retry ' + attempt + ' dari ' + maxRetry + ' setelah jeda aman...', 'warn');
+            await sleep(delayMs * attempt);
+          }
+        }
+        const percent = Math.round((batchIndex / totalBatch) * 100);
+        setAppendImportNotice('Progress import: ' + percent + '% • batch ' + batchIndex + ' dari ' + totalBatch + ' selesai.', 'good');
+        if(batchIndex < totalBatch) await sleep(delayMs);
       }
     }
     async function restoreAllData(){
@@ -5028,8 +5208,9 @@
     });
     [els.customerSearch, els.customerFilterSegment].forEach(el => { if(el) el.addEventListener('input', renderCustomers); });
     if(els.clearCustomerFilterBtn) els.clearCustomerFilterBtn.addEventListener('click', () => { els.customerSearch.value=''; els.customerFilterSegment.value=''; renderCustomers(); });
-    [els.reportSearch, els.reportFilterPayment, els.reportDateFrom, els.reportDateTo].forEach(el => { if(el) el.addEventListener('input', renderReports); });
-    if(els.clearReportFilterBtn) els.clearReportFilterBtn.addEventListener('click', () => { els.reportSearch.value=''; els.reportFilterPayment.value='Lunas'; els.reportDateFrom.value=''; els.reportDateTo.value=''; renderReports(); });
+    [els.reportSearch, els.reportFilterPayment, els.reportDateFrom, els.reportDateTo].forEach(el => { if(el) el.addEventListener('input', () => { renderReports(); scheduleReportBackendRefresh(); }); });
+    if(els.refreshReportBackendBtn) els.refreshReportBackendBtn.addEventListener('click', () => loadReportSummaryFromBackend().catch(error => setNotice(els.reportServerStatus, firebaseMessage(error), 'danger')));
+    if(els.clearReportFilterBtn) els.clearReportFilterBtn.addEventListener('click', () => { els.reportSearch.value=''; els.reportFilterPayment.value='Lunas'; els.reportDateFrom.value=''; els.reportDateTo.value=''; adminReportSummary = null; adminReportSignature = ''; renderReports(); scheduleReportBackendRefresh(150); });
     els.clearFilterBtn.addEventListener('click', clearFilters);
     els.exportJsonBtn.addEventListener('click', exportJson);
     els.exportCsvBtn.addEventListener('click', exportCsv);
@@ -5058,6 +5239,7 @@
     const reportExportCsvBtn = $('reportExportCsvBtn');
     if(reportExportJsonBtn) reportExportJsonBtn.addEventListener('click', exportJson);
     if(reportExportCsvBtn) reportExportCsvBtn.addEventListener('click', exportCsv);
+    if(els.reportExportOrdersCsvBtn) els.reportExportOrdersCsvBtn.addEventListener('click', exportVisibleOrdersCsv);
     if(els.exportAllDataBtn) els.exportAllDataBtn.addEventListener('click', exportJson);
     if(els.exportCustomersCsvBtn) els.exportCustomersCsvBtn.addEventListener('click', exportCustomersCsv);
     if(els.chooseRestoreFileBtn && els.restoreFile) els.chooseRestoreFileBtn.addEventListener('click', () => els.restoreFile.click());
@@ -5164,6 +5346,7 @@
       if(!btn) return;
       const order = orders.find(o => o.docId === btn.dataset.doc);
       if(btn.dataset.orderAction === 'edit') fillOrderForm(order);
+      if(btn.dataset.orderAction === 'detail') showOrderDetail(order);
       if(btn.dataset.orderAction === 'invoice') showInvoice(order);
       if(btn.dataset.orderAction === 'delete') deleteOrder(order);
     });
