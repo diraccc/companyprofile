@@ -687,6 +687,54 @@
     }
   </style>
 
+
+  <style id="dirac-visual-suite-css">
+    /* === Dirac Visual Suite: tampilan, animasi, ringkas mobile, bottom sheet. Additive only. === */
+    :root{
+      --dirac-glow:0 18px 44px rgba(96,165,250,.16);
+      --dirac-sheet-bg:linear-gradient(180deg,rgba(17,26,46,.98),rgba(8,12,23,.99));
+    }
+    .dirac-sticky-order-summary{
+      position:sticky;
+      top:86px;
+      z-index:18;
+      border:1px solid rgba(96,165,250,.28);
+      background:linear-gradient(135deg,rgba(96,165,250,.13),rgba(34,197,94,.07)),rgba(7,13,28,.94);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      border-radius:22px;
+      padding:12px;
+      margin:10px 0 12px;
+      box-shadow:0 16px 42px rgba(0,0,0,.22);
+    }
+    .dirac-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .dirac-summary-head strong{display:block;line-height:1.2}.dirac-summary-head span{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
+    .dirac-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .dirac-summary-chip{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);border-radius:16px;padding:10px;min-height:66px}
+    .dirac-summary-chip span{display:block;color:#bfdbfe;font-size:.72rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .dirac-summary-chip strong{display:block;margin-top:4px;font-size:1rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .dirac-summary-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.dirac-summary-actions .btn{min-height:36px;padding:7px 10px;font-size:.82rem}
+    .dirac-total-pulse{animation:diracTotalPulse .48s ease both}@keyframes diracTotalPulse{0%{transform:scale(.985);filter:brightness(.92)}58%{transform:scale(1.012);filter:brightness(1.14)}100%{transform:scale(1);filter:brightness(1)}}
+    .dirac-mobile-card-head{display:none}.dirac-mobile-main{min-width:0}.dirac-mobile-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}.dirac-mobile-title strong{font-size:1.02rem;letter-spacing:.01em}.dirac-mobile-price{color:#bfdbfe;font-weight:950;white-space:nowrap}.dirac-mobile-sub{color:var(--muted);font-size:.86rem;line-height:1.35}.dirac-mobile-status{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.dirac-mobile-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.dirac-mobile-actions .btn{width:100%;min-height:40px}
+    .dirac-order-row{transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease}.dirac-order-row:hover{background:rgba(96,165,250,.035)}.dirac-order-row.dirac-row-new{animation:diracRowGlow 1.1s ease both}@keyframes diracRowGlow{0%{box-shadow:0 0 0 0 rgba(96,165,250,.34);border-color:rgba(96,165,250,.55)}100%{box-shadow:0 0 0 16px rgba(96,165,250,0);border-color:var(--line)}}
+    .dirac-inline-status{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.dirac-inline-status .status-pill{margin:0}.dirac-status-meta{color:var(--muted);font-size:.82rem}
+    .dirac-action-sheet-backdrop{position:fixed;inset:0;z-index:88;background:rgba(2,6,23,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .2s ease}.dirac-action-sheet-backdrop.is-open{opacity:1;pointer-events:auto}
+    .dirac-action-sheet{position:fixed;left:50%;bottom:0;z-index:90;width:min(720px,calc(100% - 18px));transform:translate(-50%,calc(100% + 18px));opacity:.96;border:1px solid var(--line2);background:var(--dirac-sheet-bg);border-radius:26px 26px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.46);padding:14px 14px calc(14px + env(safe-area-inset-bottom));transition:transform .24s ease,opacity .24s ease}.dirac-action-sheet.is-open{transform:translate(-50%,0);opacity:1}.dirac-sheet-handle{width:46px;height:5px;border-radius:999px;background:rgba(255,255,255,.22);margin:0 auto 12px}.dirac-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.dirac-sheet-head strong{display:block}.dirac-sheet-head span{display:block;color:var(--muted);font-size:.84rem;margin-top:2px}.dirac-sheet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dirac-sheet-grid .btn{width:100%;min-height:44px}.dirac-sheet-close{min-width:42px}.dirac-sheet-note{margin-top:10px;color:var(--muted);font-size:.82rem;text-align:center}
+    .dirac-empty-state{border:1px dashed var(--line2);background:rgba(96,165,250,.07);border-radius:22px;padding:22px;text-align:center;color:#dbeafe}.dirac-empty-state b{display:grid;place-items:center;width:42px;height:42px;border-radius:16px;background:rgba(96,165,250,.16);margin:0 auto 10px}.dirac-empty-state strong{display:block}.dirac-empty-state span{display:block;color:var(--muted);margin-top:5px}.dirac-skeleton-wrap{display:grid;gap:10px}.dirac-skeleton-row{border:1px solid rgba(96,165,250,.18);background:rgba(255,255,255,.045);border-radius:20px;padding:13px}.dirac-skeleton-line{position:relative;overflow:hidden;height:14px;border-radius:999px;background:rgba(255,255,255,.08);margin:7px 0}.dirac-skeleton-line.w70{width:70%}.dirac-skeleton-line.w45{width:45%}.dirac-skeleton-line.w90{width:90%}.dirac-skeleton-line::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:diracVisualShimmer 1.2s infinite}@keyframes diracVisualShimmer{100%{transform:translateX(100%)}}
+    .btn:active,.quick-card:active,.nav-btn:active{transform:translateY(1px) scale(.99)}.toast.show{animation:diracToastIn .26s ease both}@keyframes diracToastIn{from{transform:translate(-50%,18px) scale(.98);opacity:0}to{transform:translate(-50%,0) scale(1);opacity:1}}
+    @media(max-width:1040px){.dirac-sticky-order-summary{top:84px}.dirac-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:700px){
+      .dirac-sticky-order-summary{top:104px;border-radius:20px;padding:10px}.dirac-summary-head{display:block}.dirac-summary-actions{justify-content:flex-start;margin-top:9px}.dirac-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.dirac-summary-chip{min-height:58px;padding:8px}.dirac-summary-chip strong{font-size:.94rem}
+      #ordersTablePanel .filter-grid{position:sticky;top:104px;z-index:14;background:rgba(7,13,28,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(96,165,250,.16);border-radius:18px;padding:9px;box-shadow:0 14px 36px rgba(0,0,0,.22)}
+      .dirac-mobile-card-head{display:block;border:1px solid rgba(96,165,250,.18);background:rgba(96,165,250,.055);border-radius:18px;padding:11px;margin:0 0 8px}.dirac-order-row td.dirac-col-id{border-bottom:none!important}.dirac-order-row td.dirac-col-id > strong,.dirac-order-row td.dirac-col-id > .muted{display:none!important}
+      body.dirac-order-compact-mode .dirac-order-row:not(.is-expanded) td.dirac-col-customer,body.dirac-order-compact-mode .dirac-order-row:not(.is-expanded) td.dirac-col-item,body.dirac-order-compact-mode .dirac-order-row:not(.is-expanded) td.dirac-col-total,body.dirac-order-compact-mode .dirac-order-row:not(.is-expanded) td.dirac-col-status,body.dirac-order-compact-mode .dirac-order-row:not(.is-expanded) td.dirac-col-actions{display:none!important}
+      body.dirac-order-compact-mode .dirac-order-row.is-expanded td{animation:diracCellDown .18s ease both}@keyframes diracCellDown{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+      .dirac-action-sheet{width:100%;border-radius:24px 24px 0 0}.dirac-sheet-grid{grid-template-columns:1fr 1fr}.dirac-sheet-grid .btn{min-height:46px}.order-actions-compact{display:none!important}.dirac-order-row.is-expanded .order-actions-compact{display:grid!important}.dirac-order-row{scroll-margin-top:220px}
+    }
+    @media(max-width:440px){.dirac-summary-grid,.dirac-mobile-actions,.dirac-sheet-grid{grid-template-columns:1fr}.dirac-mobile-title{display:block}.dirac-mobile-price{display:block;margin-top:3px}.dirac-sheet-head{display:block}.dirac-sheet-close{margin-top:8px;width:100%}}
+    @media(prefers-reduced-motion:reduce){.dirac-order-row,.dirac-action-sheet,.dirac-action-sheet-backdrop,.toast.show,.dirac-skeleton-line::after{animation:none!important;transition:none!important}}
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -7065,6 +7113,266 @@
       diracCompactOrderActions();
       ultraEnhanceTables($('ordersTablePanel') || document);
     };
+
+
+    /* === Dirac Visual Suite: additive only. Login, hash, A2F, dan Firebase config tidak disentuh. === */
+    if(!window.__diracVisualSuiteInstalled){
+      window.__diracVisualSuiteInstalled = true;
+      const DIRAC_ORDER_VIEW_MODE_KEY = 'dirac_order_view_mode_v1';
+      const diracVisualState = {
+        compactMode: localStorage.getItem(DIRAC_ORDER_VIEW_MODE_KEY) !== 'detail',
+        expanded: new Set(),
+        seenRows: new Set(),
+        sheetSourceButtons: [],
+        lastTotalLabel: ''
+      };
+      function diracVisualNumber(value){
+        const n = Number(value);
+        return Number.isFinite(n) ? n.toLocaleString('id-ID') : '-';
+      }
+      function diracVisualTotal(){
+        const total = typeof normalizeBackendTotal === 'function' ? normalizeBackendTotal(ordersTotalCount) : Number(ordersTotalCount);
+        return Number.isFinite(total) && total >= 0 ? total : null;
+      }
+      function diracVisualApplyMode(){
+        document.body.classList.toggle('dirac-order-compact-mode', diracVisualState.compactMode);
+        const btn = document.querySelector('[data-dirac-view-mode-toggle]');
+        if(btn) btn.textContent = diracVisualState.compactMode ? 'Mode detail' : 'Mode ringkas';
+      }
+      function diracVisualEnsureSummary(){
+        const panel = $('ordersTablePanel');
+        if(!panel || $('diracVisualOrderSummary')) return;
+        const anchor = els.orderSyncStatus || panel.querySelector('.filter-grid');
+        const wrap = document.createElement('div');
+        wrap.id = 'diracVisualOrderSummary';
+        wrap.className = 'dirac-sticky-order-summary';
+        wrap.setAttribute('aria-live', 'polite');
+        wrap.innerHTML = '<div class="dirac-summary-head"><div><strong>Ringkasan pesanan</strong><span>Total dibaca efisien dari backend, bukan dari render semua data.</span></div><div class="dirac-summary-actions"><button class="btn small" type="button" data-dirac-refresh-total>Refresh total</button><button class="btn small primary" type="button" data-dirac-view-mode-toggle>Mode detail</button></div></div><div class="dirac-summary-grid"><div class="dirac-summary-chip"><span>Total backend</span><strong data-dirac-summary="total">-</strong></div><div class="dirac-summary-chip"><span>Ditampilkan</span><strong data-dirac-summary="loaded">-</strong></div><div class="dirac-summary-chip"><span>Perkiraan JSON</span><strong data-dirac-summary="json">-</strong></div><div class="dirac-summary-chip"><span>Batch</span><strong data-dirac-summary="batch">@100</strong></div></div>';
+        if(anchor && anchor.parentNode) anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+        else panel.insertBefore(wrap, panel.firstChild);
+        diracVisualApplyMode();
+      }
+      function diracVisualUpdateSummary(){
+        const box = $('diracVisualOrderSummary');
+        if(!box) return;
+        const total = diracVisualTotal();
+        const loaded = Array.isArray(orders) ? orders.length : 0;
+        let visible = loaded;
+        try{ visible = typeof filteredOrders === 'function' ? filteredOrders().length : loaded; }catch(error){ visible = loaded; }
+        const jsonCount = total === null ? (ordersTotalCountInFlight ? '...' : '-') : Math.max(1, Math.ceil(total / ORDERS_JSON_CHUNK_SIZE)).toLocaleString('id-ID');
+        const totalText = total === null ? (ordersTotalCountInFlight ? 'Menghitung...' : 'Belum tersedia') : total.toLocaleString('id-ID');
+        const loadedText = visible === loaded ? loaded.toLocaleString('id-ID') : visible.toLocaleString('id-ID') + ' / ' + loaded.toLocaleString('id-ID');
+        const values = { total: totalText, loaded: loadedText, json: jsonCount, batch: '@' + ORDERS_BATCH_SIZE };
+        Object.keys(values).forEach(key => {
+          const node = box.querySelector('[data-dirac-summary="' + key + '"]');
+          if(!node) return;
+          if(node.textContent !== values[key]){
+            node.textContent = values[key];
+            node.classList.remove('dirac-total-pulse');
+            void node.offsetWidth;
+            node.classList.add('dirac-total-pulse');
+          }
+        });
+        const totalLabel = totalText + '|' + loadedText + '|' + jsonCount;
+        diracVisualState.lastTotalLabel = totalLabel;
+      }
+      function diracVisualStatusHtml(order){
+        const payment = escapeHtml(order.paymentStatus || '-');
+        const status = escapeHtml(order.orderStatus || '-');
+        const shipping = escapeHtml([order.courier, order.trackingNumber].filter(Boolean).join(' • ') || '-');
+        return '<span class="status-pill ' + statusClass(order.paymentStatus) + '">' + payment + '</span><span class="status-pill ' + statusClass(order.orderStatus) + '">' + status + '</span><span class="dirac-status-meta">' + shipping + '</span>';
+      }
+      function diracVisualSummaryHead(order){
+        const id = escapeHtml(order.orderId || order.docId || '-');
+        const customer = escapeHtml(order.customerName || '-');
+        const date = escapeHtml(new Date(order.createdAtMs || Date.now()).toLocaleDateString('id-ID'));
+        const total = rupiah(order.total || 0);
+        const item = escapeHtml(orderItemsSummary(order));
+        const expanded = diracVisualState.expanded.has(order.docId) || !diracVisualState.compactMode;
+        return '<div class="dirac-mobile-card-head" data-dirac-head="' + escapeHtml(order.docId) + '"><div class="dirac-mobile-title"><strong>' + id + '</strong><span class="dirac-mobile-price">' + total + '</span></div><div class="dirac-mobile-sub">' + customer + ' • ' + date + '</div><div class="dirac-mobile-sub">' + item + '</div><div class="dirac-mobile-status">' + diracVisualStatusHtml(order) + '</div><div class="dirac-mobile-actions"><button class="btn small primary" type="button" data-dirac-row-toggle="' + escapeHtml(order.docId) + '">' + (expanded ? 'Sembunyikan' : 'Lihat selengkapnya') + '</button><button class="btn small good" type="button" data-dirac-action-sheet="' + escapeHtml(order.docId) + '">Aksi</button></div></div>';
+      }
+      function diracVisualEnhanceEmpty(){
+        if(!els.orderRows) return false;
+        const row = els.orderRows.querySelector('tr');
+        if(!row || row.children.length !== 1 || !row.children[0].hasAttribute('colspan')) return false;
+        const text = String(row.textContent || '').trim();
+        if(!text || row.querySelector('.dirac-empty-state') || row.querySelector('.dirac-skeleton-wrap')) return true;
+        row.children[0].innerHTML = '<div class="dirac-empty-state"><b>0</b><strong>Belum ada pesanan yang cocok</strong><span>' + escapeHtml(text) + '</span></div>';
+        return true;
+      }
+      function diracVisualSkeleton(){
+        if(!els.orderRows) return;
+        els.orderRows.innerHTML = '<tr><td colspan="6"><div class="dirac-skeleton-wrap">' + Array.from({ length: 4 }, () => '<div class="dirac-skeleton-row"><div class="dirac-skeleton-line w45"></div><div class="dirac-skeleton-line w90"></div><div class="dirac-skeleton-line w70"></div></div>').join('') + '</div></td></tr>';
+      }
+      function diracVisualEnhanceRows(){
+        diracVisualEnsureSummary();
+        diracVisualUpdateSummary();
+        if(!els.orderRows || diracVisualEnhanceEmpty()) return;
+        let data = [];
+        try{ data = filteredOrders().slice(0,120); }catch(error){ data = []; }
+        Array.from(els.orderRows.querySelectorAll('tr')).forEach((row, index) => {
+          const order = data[index];
+          if(!order || !order.docId) return;
+          row.classList.add('dirac-order-row');
+          row.dataset.orderDoc = order.docId;
+          row.classList.toggle('is-expanded', diracVisualState.expanded.has(order.docId) || !diracVisualState.compactMode);
+          if(!diracVisualState.seenRows.has(order.docId)){
+            if(diracVisualState.seenRows.size > 0) row.classList.add('dirac-row-new');
+            diracVisualState.seenRows.add(order.docId);
+          }
+          const cells = row.children;
+          if(cells[0]) cells[0].classList.add('dirac-col-id');
+          if(cells[1]) cells[1].classList.add('dirac-col-customer');
+          if(cells[2]) cells[2].classList.add('dirac-col-item');
+          if(cells[3]) cells[3].classList.add('dirac-col-total');
+          if(cells[4]){
+            cells[4].classList.add('dirac-col-status');
+            if(!cells[4].querySelector('.dirac-inline-status')){
+              const muted = cells[4].querySelector('.muted');
+              const badges = Array.from(cells[4].querySelectorAll('.status-pill'));
+              if(badges.length){
+                const inline = document.createElement('div');
+                inline.className = 'dirac-inline-status';
+                badges.forEach(badge => inline.appendChild(badge));
+                if(muted) inline.appendChild(muted);
+                cells[4].insertBefore(inline, cells[4].firstChild);
+              }
+            }
+          }
+          if(cells[5]) cells[5].classList.add('dirac-col-actions');
+          const idCell = cells[0];
+          if(idCell){
+            let head = idCell.querySelector('.dirac-mobile-card-head');
+            const html = diracVisualSummaryHead(order);
+            if(head) head.outerHTML = html;
+            else idCell.insertAdjacentHTML('afterbegin', html);
+          }
+        });
+      }
+      function diracVisualEnsureSheet(){
+        if(!$('diracActionSheetBackdrop')){
+          const backdrop = document.createElement('div');
+          backdrop.id = 'diracActionSheetBackdrop';
+          backdrop.className = 'dirac-action-sheet-backdrop';
+          backdrop.setAttribute('data-dirac-sheet-close', '1');
+          document.body.appendChild(backdrop);
+        }
+        if(!$('diracActionSheet')){
+          const sheet = document.createElement('div');
+          sheet.id = 'diracActionSheet';
+          sheet.className = 'dirac-action-sheet';
+          sheet.setAttribute('role', 'dialog');
+          sheet.setAttribute('aria-modal', 'true');
+          sheet.setAttribute('aria-labelledby', 'diracSheetTitle');
+          sheet.innerHTML = '<div class="dirac-sheet-handle" aria-hidden="true"></div><div class="dirac-sheet-head"><div><strong id="diracSheetTitle">Aksi pesanan</strong><span id="diracSheetSub">Pilih aksi yang diperlukan.</span></div><button class="btn small dirac-sheet-close" type="button" data-dirac-sheet-close="1">Tutup</button></div><div class="dirac-sheet-grid" id="diracSheetGrid"></div><div class="dirac-sheet-note">Tombol lama tetap dipakai. Panel ini hanya memindahkan tampilan agar mobile lebih ringkas.</div>';
+          document.body.appendChild(sheet);
+        }
+      }
+      function diracVisualCloseSheet(){
+        const sheet = $('diracActionSheet');
+        const backdrop = $('diracActionSheetBackdrop');
+        if(sheet) sheet.classList.remove('is-open');
+        if(backdrop) backdrop.classList.remove('is-open');
+        document.body.classList.remove('modal-open');
+        diracVisualState.sheetSourceButtons = [];
+      }
+      function diracVisualOpenSheet(docId){
+        diracVisualEnsureSheet();
+        const row = els.orderRows && els.orderRows.querySelector('tr[data-order-doc="' + CSS.escape(docId) + '"]');
+        const order = orders.find(o => o.docId === docId);
+        const grid = $('diracSheetGrid');
+        const title = $('diracSheetTitle');
+        const sub = $('diracSheetSub');
+        if(!row || !grid) return;
+        const buttons = Array.from(row.querySelectorAll('.order-actions-panel button,.order-actions-panel a,[data-pro3-order],[data-pro3-wa],[data-order-action]')).filter((btn, index, arr) => arr.indexOf(btn) === index);
+        diracVisualState.sheetSourceButtons = buttons;
+        grid.innerHTML = buttons.length ? buttons.map((btn, index) => {
+          const text = escapeHtml(String(btn.textContent || 'Aksi').trim() || 'Aksi');
+          const isDanger = btn.classList.contains('danger') || /hapus/i.test(text);
+          const isGood = btn.classList.contains('good') || /wa|workflow/i.test(text);
+          const tone = isDanger ? ' danger' : isGood ? ' good' : '';
+          return '<button class="btn' + tone + '" type="button" data-dirac-sheet-action="' + index + '">' + text + '</button>';
+        }).join('') : '<button class="btn" type="button" disabled>Belum ada aksi</button>';
+        if(title) title.textContent = 'Aksi ' + (order ? order.orderId : 'pesanan');
+        if(sub) sub.textContent = order ? (order.customerName + ' • ' + rupiah(order.total || 0)) : 'Pilih aksi yang diperlukan.';
+        $('diracActionSheet').classList.add('is-open');
+        $('diracActionSheetBackdrop').classList.add('is-open');
+        document.body.classList.add('modal-open');
+      }
+      document.addEventListener('click', event => {
+        const mode = event.target.closest('[data-dirac-view-mode-toggle]');
+        if(mode){
+          event.preventDefault();
+          diracVisualState.compactMode = !diracVisualState.compactMode;
+          localStorage.setItem(DIRAC_ORDER_VIEW_MODE_KEY, diracVisualState.compactMode ? 'compact' : 'detail');
+          diracVisualApplyMode();
+          diracVisualEnhanceRows();
+          return;
+        }
+        const refresh = event.target.closest('[data-dirac-refresh-total]');
+        if(refresh){
+          event.preventDefault();
+          if(typeof refreshOrdersTotalCountFromBackend === 'function') refreshOrdersTotalCountFromBackend({ force:true, silent:false, updateOrderNotice:true }).finally(diracVisualUpdateSummary);
+          return;
+        }
+        const toggle = event.target.closest('[data-dirac-row-toggle]');
+        if(toggle){
+          event.preventDefault();
+          const docId = toggle.getAttribute('data-dirac-row-toggle');
+          if(diracVisualState.expanded.has(docId)) diracVisualState.expanded.delete(docId);
+          else diracVisualState.expanded.add(docId);
+          diracVisualEnhanceRows();
+          const row = els.orderRows && els.orderRows.querySelector('tr[data-order-doc="' + CSS.escape(docId) + '"]');
+          if(row && diracVisualState.expanded.has(docId)) row.scrollIntoView({ behavior:'smooth', block:'nearest' });
+          return;
+        }
+        const sheetBtn = event.target.closest('[data-dirac-action-sheet]');
+        if(sheetBtn){
+          event.preventDefault();
+          diracVisualOpenSheet(sheetBtn.getAttribute('data-dirac-action-sheet'));
+          return;
+        }
+        if(event.target.closest('[data-dirac-sheet-close]')){
+          event.preventDefault();
+          diracVisualCloseSheet();
+          return;
+        }
+        const sheetAction = event.target.closest('[data-dirac-sheet-action]');
+        if(sheetAction){
+          event.preventDefault();
+          const original = diracVisualState.sheetSourceButtons[Number(sheetAction.getAttribute('data-dirac-sheet-action'))];
+          diracVisualCloseSheet();
+          if(original) setTimeout(() => original.click(), 20);
+        }
+      }, true);
+      document.addEventListener('keydown', event => { if(event.key === 'Escape' && $('diracActionSheet') && $('diracActionSheet').classList.contains('is-open')) diracVisualCloseSheet(); });
+      const diracVisualBaseRenderOrdersSkeleton = renderOrdersSkeleton;
+      renderOrdersSkeleton = function(){
+        diracVisualEnsureSummary();
+        diracVisualUpdateSummary();
+        diracVisualSkeleton();
+      };
+      const diracVisualBaseRenderOrders = renderOrders;
+      renderOrders = function(){
+        diracVisualBaseRenderOrders();
+        diracVisualApplyMode();
+        diracVisualEnhanceRows();
+      };
+      if(typeof updateOrderLoadUi === 'function'){
+        const diracVisualBaseUpdateOrderLoadUi = updateOrderLoadUi;
+        updateOrderLoadUi = function(){
+          diracVisualBaseUpdateOrderLoadUi();
+          diracVisualEnsureSummary();
+          diracVisualUpdateSummary();
+        };
+      }
+      setTimeout(() => {
+        diracVisualApplyMode();
+        diracVisualEnsureSummary();
+        diracVisualUpdateSummary();
+        diracVisualEnhanceRows();
+      }, 80);
+    }
 
 </script>
 </body>
