@@ -1357,7 +1357,6 @@
       lockTable: 'a2f_locks'
     });
     const A2F_BACKEND_MAX_FAILURES = 3;
-    const A2F_COOLDOWN_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
     const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
     const A2F_STEP6_MAX_SECONDS = 60;
@@ -2033,20 +2032,6 @@
       if(minutes > 0) return minutes + ' menit ' + seconds + ' detik';
       return seconds + ' detik';
     }
-    function getA2fCooldownYears(failedCount){
-      const count = Math.max(1, Number(failedCount || 1));
-      if(count <= 1) return 1;
-      if(count === 2) return 10;
-      return 100;
-    }
-    function formatA2fLongCooldown(ms){
-      const remainingMs = Math.max(0, Number(ms || 0));
-      const days = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
-      if(days >= 36500) return 'sekitar 100 tahun';
-      if(days >= 3650) return 'sekitar 10 tahun';
-      if(days >= 365) return 'sekitar 1 tahun';
-      return formatLockRemaining(remainingMs);
-    }
     function hasA2fBackendLockState(data){
       if(!data || typeof data !== 'object') return false;
       return data.locked === true || data.permanentBan === true || Number(data.lockUntilMs || 0) > 0 || Number(data.failedCount || 0) > 0;
@@ -2167,12 +2152,10 @@
       const reason = (cause && cause.message) ? cause.message : 'Supabase lock belum siap.';
       if(action === 'fail'){
         const failedCount = Math.max(0, Number(state.failedCount || 0)) + 1;
-        const cooldownYears = getA2fCooldownYears(failedCount);
         state.failedCount = failedCount;
-        state.locked = true;
-        state.permanentBan = false;
-        state.lockUntilMs = Date.now() + cooldownYears * A2F_COOLDOWN_YEAR_MS;
-        state.lastReason = 'Percobaan A2F salah. Cooldown ' + cooldownYears + ' tahun.';
+        state.locked = failedCount >= A2F_BACKEND_MAX_FAILURES;
+        state.permanentBan = failedCount >= A2F_BACKEND_MAX_FAILURES;
+        state.lastReason = state.permanentBan ? 'A2F diblokir permanen oleh fallback lokal karena salah 3x.' : 'Percobaan A2F salah dicatat di fallback lokal.';
         state = writeLocalA2fFallbackState(identity, state);
       }else if(action === 'timeout'){
         state.failedCount = A2F_BACKEND_MAX_FAILURES;
@@ -2216,11 +2199,9 @@
         let reason = '';
         if(action === 'fail'){
           failedCount += 1;
-          const cooldownYears = getA2fCooldownYears(failedCount);
-          permanentBan = false;
-          lockUntilMs = Date.now() + cooldownYears * A2F_COOLDOWN_YEAR_MS;
-          locked = true;
-          reason = 'Kode A2F salah. Cooldown ' + cooldownYears + ' tahun.';
+          permanentBan = permanentBan || failedCount >= A2F_BACKEND_MAX_FAILURES;
+          locked = permanentBan || (lockUntilMs > Date.now());
+          reason = permanentBan ? 'A2F diblokir permanen karena salah 3x.' : 'Kode A2F salah.';
         }else if(action === 'timeout'){
           failedCount = A2F_BACKEND_MAX_FAILURES;
           permanentBan = true;
@@ -2384,7 +2365,7 @@
       if(!state || typeof state !== 'object') return false;
       clearTwoFactorLockTimer();
       const failedCount = Math.min(Number(state.failedCount || 0), A2F_BACKEND_MAX_FAILURES);
-      if(state.permanentBan === true){
+      if(state.permanentBan === true || failedCount >= A2F_BACKEND_MAX_FAILURES){
         clearTwoFactorTimeoutTimer();
         updateA2fTimeoutNotice(0);
         twoFactorBackendLocked = true;
@@ -2420,7 +2401,7 @@
             return;
           }
           setTwoFactorInputLocked(true, 'Terkunci');
-          setNotice(els.twoFactorError, (state.error || 'A2F terkunci sementara.') + ' Coba lagi dalam ' + formatA2fLongCooldown(remainingMs) + '. Percobaan ' + failedCount + ' dari ' + A2F_BACKEND_MAX_FAILURES + '.', 'danger');
+          setNotice(els.twoFactorError, (state.error || 'A2F terkunci sementara.') + ' Coba lagi dalam ' + formatLockRemaining(remainingMs) + '. Percobaan ' + failedCount + ' dari ' + A2F_BACKEND_MAX_FAILURES + '.', 'danger');
         };
         updateCountdown();
         twoFactorLockTimer = setInterval(updateCountdown, 1000);
@@ -2445,9 +2426,9 @@
         twoFactorAttempts += 1;
         if(twoFactorAttempts >= A2F_BACKEND_MAX_FAILURES){
           twoFactorBackendLocked = true;
-          twoFactorPermanentLocked = false;
-          setTwoFactorInputLocked(true, 'Terkunci');
-          setNotice(els.twoFactorError, 'A2F terkunci lokal 100 tahun karena backend fail tidak bisa dicatat. Periksa tabel Supabase a2f_locks.', 'danger');
+          twoFactorPermanentLocked = true;
+          setTwoFactorInputLocked(true, 'Diblokir');
+          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa tabel Supabase a2f_locks.', 'danger');
           return true;
         }
         setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
@@ -7863,11 +7844,9 @@
 
           if(action === 'fail'){
             failedCount += 1;
-            const cooldownYears = getA2fCooldownYears(failedCount);
-            permanentBan = false;
-            lockUntilMs = Date.now() + cooldownYears * A2F_COOLDOWN_YEAR_MS;
-            locked = true;
-            reason = 'Kode A2F salah. Cooldown ' + cooldownYears + ' tahun.';
+            permanentBan = permanentBan || failedCount >= A2F_BACKEND_MAX_FAILURES;
+            locked = permanentBan || (lockUntilMs > Date.now());
+            reason = permanentBan ? 'A2F diblokir permanen karena salah 3x.' : 'Kode A2F salah.';
           }else if(action === 'timeout'){
             failedCount = A2F_BACKEND_MAX_FAILURES;
             permanentBan = true;
@@ -7921,69 +7900,73 @@
 
 
     /* =========================================================
-       BACKEND ONLY SAFETY PATCH
-       Tujuan: jangan tulis/read A2F lock langsung dari HTML.
-       Login Firebase, hash, passkey, sign, safeEqual, parseSession tidak disentuh.
-       Semua data admin tetap lewat backend endpoint lama.
+       DIRAC A2F SERVER LOCK BRIDGE V2
+       Semua lock penting dicek dan dicatat lewat backend.
+       Login Firebase, hash, sign, safeEqual, dan endpoint login tidak disentuh.
        ========================================================= */
     try{
-      checkA2fBackendLock = async function(){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0
-        };
-      };
-      callA2fBackendLock = async function(action, payload = {}){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0,
-          action: String(action || ''),
-          ignoredInClient: true
-        };
-      };
-      recordA2fBackendFailure = async function(){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0
-        };
-      };
-      recordA2fTimeoutBlock = async function(){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0,
-          timeoutIgnoredInClient: true
-        };
-      };
-      saveA2fTimeoutBlockMarker = async function(){
-        return { success: true, provider: 'backend-only', timeoutMarkerIgnoredInClient: true };
-      };
-      readSupabaseA2fLockRow = async function(){ return null; };
-      upsertSupabaseA2fLockRow = async function(row){ return row || {}; };
-
-      for(let i = localStorage.length - 1; i >= 0; i--){
-        const key = localStorage.key(i) || '';
-        if(key.indexOf('dirac_a2f_supabase_lock_fallback_') === 0 || key.indexOf('a2f') >= 0 || key.indexOf('A2F') >= 0){
-          try{ localStorage.removeItem(key); }catch(_error){}
+      async function diracA2fServerLockAction(action, payload = {}){
+        if(!SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT){
+          throw new Error('Endpoint backend A2F belum diisi.');
         }
+
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+        const actionMap = {
+          check: 'checkA2fBanStatus',
+          fail: 'recordA2fFailure',
+          timeout: 'recordA2fTimeoutBlock',
+          'timeout-marker': 'recordA2fTimeoutMarker'
+        };
+        const backendAction = actionMap[String(action || '')] || '';
+
+        if(!backendAction){
+          throw new Error('Aksi lock A2F tidak dikenal: ' + String(action || 'unknown'));
+        }
+
+        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'omit',
+          cache: 'no-store',
+          body: JSON.stringify(Object.assign({}, payload || {}, {
+            action: backendAction,
+            idToken,
+            clientTimeMs: Date.now()
+          }))
+        });
+        const data = await readApiJson(response);
+
+        if(!response.ok || data.success === false){
+          const error = new Error(data.error || data.message || 'Backend lock A2F gagal.');
+          error.a2fLockState = data;
+          throw error;
+        }
+
+        return data;
       }
+
+      callA2fBackendLock = async function(action, payload = {}){
+        return diracA2fServerLockAction(action, payload);
+      };
+
+      checkA2fBackendLock = function(){
+        return callA2fBackendLock('check');
+      };
+
+      recordA2fBackendFailure = function(){
+        return callA2fBackendLock('fail', { reason: 'client_recorded_failure' });
+      };
+
+      saveA2fTimeoutBlockMarker = async function(){
+        return callA2fBackendLock('timeout-marker', {
+          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 25 detik',
+          maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS,
+          deadlineMs: twoFactorDeadlineMs || 0,
+          blockedAtMs: Date.now()
+        });
+      };
     }catch(error){
-      console.warn('Backend-only safety patch gagal dipasang:', error);
+      console.warn('DIRAC A2F server lock bridge gagal dipasang:', error);
     }
 </script>
 </body>
