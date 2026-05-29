@@ -22,7 +22,6 @@ const ALLOWED_COLLECTIONS = new Set(
 const A2F_SESSION_COLLECTION = process.env.A2F_SESSION_COLLECTION || "adminA2FSessions"; // legacy Firebase fallback name
 const A2F_SESSION_TABLE = process.env.A2F_SESSION_TABLE || "admin_a2f_sessions";
 const ADMIN_LOG_TABLE = process.env.ADMIN_LOG_TABLE || "admin_logs";
-const ADMIN_DOCUMENTS_TABLE = process.env.ADMIN_DOCUMENTS_TABLE || "admin_documents";
 const A2F_SESSION_TTL_MS = Number(process.env.A2F_SESSION_TTL_MS || 30 * 60 * 1000);
 const MAX_UPLOAD_BYTES = Number(process.env.ADMIN_MAX_UPLOAD_BYTES || 7 * 1024 * 1024);
 const ALLOWED_UPLOAD_PREFIXES = String(process.env.ADMIN_ALLOWED_UPLOAD_PREFIXES || "product-images/,payment-proofs/")
@@ -269,7 +268,7 @@ async function assertA2FSession(decoded) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from(A2F_SESSION_TABLE)
-    .select("uid, role, verified, status, expires_at")
+    .select("uid, verified, status, expires_at")
     .eq("uid", decoded.uid)
     .maybeSingle();
 
@@ -293,8 +292,6 @@ async function assertA2FSession(decoded) {
     .from(A2F_SESSION_TABLE)
     .update({ last_used_at: new Date().toISOString() })
     .eq("uid", decoded.uid);
-
-  return data;
 }
 
 function cleanDocId(id) {
@@ -322,21 +319,16 @@ function cleanDocPath(path) {
   return `${cleanCollectionName(parts[0])}/${cleanDocId(parts[1])}`;
 }
 
-function isPlainObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
 function decodeValue(value) {
   if (value === null || value === undefined) return null;
   if (Array.isArray(value)) return value.map(decodeValue);
   if (typeof value !== "object") return value;
 
   if (value.__diracFirestoreOp === "serverTimestamp") {
-    return new Date().toISOString();
+    return admin.firestore.FieldValue.serverTimestamp();
   }
-
   if (value.__diracFirestoreOp === "increment") {
-    return { __diracSupabaseOp: "increment", value: Number(value.value || 0) };
+    return admin.firestore.FieldValue.increment(Number(value.value || 0));
   }
 
   const out = {};
@@ -344,83 +336,6 @@ function decodeValue(value) {
     if (val !== undefined) out[key] = decodeValue(val);
   }
   return out;
-}
-
-function applyDecodedPatch(current, patch, merge) {
-  const base = merge && isPlainObject(current) ? { ...current } : {};
-  const input = isPlainObject(patch) ? patch : {};
-
-  for (const [key, value] of Object.entries(input)) {
-    if (isPlainObject(value) && value.__diracSupabaseOp === "increment") {
-      base[key] = Number(base[key] || 0) + Number(value.value || 0);
-      continue;
-    }
-
-    if (merge && isPlainObject(base[key]) && isPlainObject(value)) {
-      base[key] = applyDecodedPatch(base[key], value, true);
-      continue;
-    }
-
-    base[key] = value;
-  }
-
-  return base;
-}
-
-function getOrderValue(row, key) {
-  const data = row && row.data && typeof row.data === "object" ? row.data : {};
-  if (key === "docId" || key === "id") return data[key] || row.doc_id || "";
-  return data[key] !== undefined ? data[key] : "";
-}
-
-function normalizeComparable(value) {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "number") return value;
-  if (typeof value === "boolean") return value ? 1 : 0;
-  const text = String(value);
-  const numeric = Number(text);
-  if (text.trim() !== "" && Number.isFinite(numeric)) return numeric;
-  const parsed = Date.parse(text);
-  if (Number.isFinite(parsed) && /\d{4}-\d{2}-\d{2}|T\d{2}:\d{2}/.test(text)) return parsed;
-  return text.toLowerCase();
-}
-
-function sortRows(rows, orderByKey, direction) {
-  const key = String(orderByKey || "").trim();
-  const dir = String(direction || "asc").toLowerCase() === "desc" ? -1 : 1;
-  if (!key) return rows;
-
-  return rows.sort((a, b) => {
-    const av = normalizeComparable(getOrderValue(a, key));
-    const bv = normalizeComparable(getOrderValue(b, key));
-    if (av < bv) return -1 * dir;
-    if (av > bv) return 1 * dir;
-    return String(a.doc_id || "").localeCompare(String(b.doc_id || ""));
-  });
-}
-
-function filterRows(rows, collection, body) {
-  const prefix = `${collection}`;
-  const search = String(body[`${prefix}Search`] || "").trim().toLowerCase();
-  const paymentStatus = String(body[`${prefix}PaymentStatus`] || "").trim().toLowerCase();
-  const orderStatus = String(body[`${prefix}OrderStatus`] || "").trim().toLowerCase();
-
-  return rows.filter((row) => {
-    const data = row && row.data && typeof row.data === "object" ? row.data : {};
-    if (search && !JSON.stringify(data).toLowerCase().includes(search) && !String(row.doc_id || "").toLowerCase().includes(search)) return false;
-    if (paymentStatus && String(data.paymentStatus || "").trim().toLowerCase() !== paymentStatus) return false;
-    if (orderStatus && String(data.status || data.orderStatus || "").trim().toLowerCase() !== orderStatus) return false;
-    return true;
-  });
-}
-
-function rowToClient(row) {
-  const data = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
-  return {
-    docId: row.doc_id,
-    id: data.id || row.doc_id,
-    data: Object.assign({}, data, { docId: row.doc_id })
-  };
 }
 
 function cleanUploadPath(path) {
@@ -467,180 +382,53 @@ async function handleCreateUploadUrl(body) {
   return { success: true, action: "createUploadUrl", uploadUrl, uploadHeaders, downloadURL, url: downloadURL };
 }
 
-async function getSupabaseDocument(collection, docId) {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from(ADMIN_DOCUMENTS_TABLE)
-    .select("collection, doc_id, data, created_at, updated_at")
-    .eq("collection", collection)
-    .eq("doc_id", docId)
-    .maybeSingle();
-
-  if (error) {
-    throw Object.assign(new Error("Gagal membaca dokumen Supabase: " + error.message), { status: 500 });
-  }
-
-  return data || null;
-}
-
-async function upsertSupabaseDocument(collection, docId, patch, merge) {
-  const supabase = getSupabaseAdmin();
-  const existing = merge ? await getSupabaseDocument(collection, docId) : null;
-  const nowIso = new Date().toISOString();
-  const nextData = applyDecodedPatch(existing && existing.data ? existing.data : {}, decodeValue(patch || {}), merge);
-
-  const { error } = await supabase
-    .from(ADMIN_DOCUMENTS_TABLE)
-    .upsert({
-      collection,
-      doc_id: docId,
-      data: nextData,
-      updated_at: nowIso,
-      created_at: existing && existing.created_at ? existing.created_at : nowIso
-    }, { onConflict: "collection,doc_id" });
-
-  if (error) {
-    throw Object.assign(new Error("Gagal menyimpan dokumen Supabase: " + error.message), { status: 500 });
-  }
-}
-
-async function updateSupabaseDocument(collection, docId, patch) {
-  const existing = await getSupabaseDocument(collection, docId);
-  if (!existing) {
-    throw Object.assign(new Error("Dokumen tidak ditemukan: " + collection + "/" + docId), { status: 404 });
-  }
-
-  return upsertSupabaseDocument(collection, docId, patch, true);
-}
-
-async function deleteSupabaseDocument(collection, docId) {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from(ADMIN_DOCUMENTS_TABLE)
-    .delete()
-    .eq("collection", collection)
-    .eq("doc_id", docId);
-
-  if (error) {
-    throw Object.assign(new Error("Gagal menghapus dokumen Supabase: " + error.message), { status: 500 });
-  }
-}
-
-async function readSupabaseCollection(collection, body) {
-  const supabase = getSupabaseAdmin();
-  const limitRaw = Number(body[`${collection}Limit`] || body.limit || 30000);
-  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 30000) : 30000;
-  const cursor = String(body[`${collection}Cursor`] || "").trim();
-  const orderByKey = String(body[`${collection}OrderBy`] || "").trim();
-  const orderDirection = String(body[`${collection}OrderDirection`] || "asc").trim();
-
-  let query = supabase
-    .from(ADMIN_DOCUMENTS_TABLE)
-    .select("collection, doc_id, data, created_at, updated_at")
-    .eq("collection", collection)
-    .limit(30000);
-
-  const { data, error } = await query;
-  if (error) {
-    throw Object.assign(new Error("Gagal membaca collection Supabase: " + error.message), { status: 500 });
-  }
-
-  let rows = Array.isArray(data) ? data.slice() : [];
-  rows = filterRows(rows, collection, body);
-  rows = sortRows(rows, orderByKey || "docId", orderDirection);
-
-  let startIndex = 0;
-  if (cursor) {
-    const found = rows.findIndex((row) => String(row.doc_id) === cursor);
-    if (found >= 0) startIndex = found + 1;
-  }
-
-  const pageRows = rows.slice(startIndex, startIndex + limit);
-  const next = rows[startIndex + limit] ? String(pageRows[pageRows.length - 1].doc_id || "") : "";
-
-  return {
-    rows: pageRows.map(rowToClient),
-    page: {
-      limit,
-      total: rows.length,
-      returned: pageRows.length,
-      cursor: cursor || "",
-      nextCursor: next,
-      hasMore: Boolean(next)
-    }
-  };
-}
-
-async function handleReadAdminData(body) {
-  const requested = Array.isArray(body.collections) ? body.collections : [];
-  const collections = requested.length ? requested.map(cleanCollectionName) : ["products", "orders", "customers", "settings", "securityLogs", "categories", "brands", "variants"];
-  const response = { success: true, action: "readAdminData", provider: "supabase" };
-
-  for (const collection of collections) {
-    const result = await readSupabaseCollection(collection, body);
-    response[collection] = result.rows;
-    response[`${collection}Page`] = result.page;
-  }
-
-  return response;
-}
-
-async function handleAdminDataAction(role, body) {
+async function handleFirestoreAction(db, role, body) {
   const action = String(body.action || "").trim();
-
-  if (action === "readAdminData") {
-    return handleReadAdminData(body);
-  }
-
   if (action === "setDoc") {
-    if (!canWrite(role)) throw Object.assign(new Error("Role admin/editor wajib untuk simpan data"), { status: 403 });
     const collection = cleanCollectionName(body.collection);
     const docId = cleanDocId(body.docId);
-    await upsertSupabaseDocument(collection, docId, body.data || {}, body.merge !== false);
-    return { success: true, action, provider: "supabase", path: `${collection}/${docId}` };
+    await db.collection(collection).doc(docId).set(decodeValue(body.data || {}), { merge: body.merge !== false });
+    return { success: true, action, path: `${collection}/${docId}` };
   }
 
   if (action === "updateDoc") {
-    if (!canWrite(role)) throw Object.assign(new Error("Role admin/editor wajib untuk update data"), { status: 403 });
     const collection = cleanCollectionName(body.collection);
     const docId = cleanDocId(body.docId);
-    await updateSupabaseDocument(collection, docId, body.data || {});
-    return { success: true, action, provider: "supabase", path: `${collection}/${docId}` };
+    await db.collection(collection).doc(docId).update(decodeValue(body.data || {}));
+    return { success: true, action, path: `${collection}/${docId}` };
   }
 
   if (action === "deleteDoc") {
     if (!canDelete(role)) throw Object.assign(new Error("Hanya owner/admin yang boleh hapus data"), { status: 403 });
     const collection = cleanCollectionName(body.collection);
     const docId = cleanDocId(body.docId);
-    await deleteSupabaseDocument(collection, docId);
-    return { success: true, action, provider: "supabase", path: `${collection}/${docId}` };
+    await db.collection(collection).doc(docId).delete();
+    return { success: true, action, path: `${collection}/${docId}` };
   }
 
   if (action === "batch") {
-    if (!canWrite(role)) throw Object.assign(new Error("Role admin/editor wajib untuk batch data"), { status: 403 });
     const ops = Array.isArray(body.operations) ? body.operations : [];
-    if (!ops.length) return { success: true, action, provider: "supabase", count: 0 };
+    if (!ops.length) return { success: true, action, count: 0 };
     if (ops.length > 450) {
       throw Object.assign(new Error("Terlalu banyak operasi batch. Maksimal 450."), { status: 400 });
     }
 
+    const batch = db.batch();
     for (const op of ops) {
       const type = String(op.type || "set").toLowerCase();
-      const [collectionRaw, docIdRaw] = cleanDocPath(op.path).split("/");
-      const collection = cleanCollectionName(collectionRaw);
-      const docId = cleanDocId(docIdRaw);
-
+      const ref = db.doc(cleanDocPath(op.path));
       if (type === "delete") {
         if (!canDelete(role)) throw Object.assign(new Error("Hanya owner/admin yang boleh delete batch"), { status: 403 });
-        await deleteSupabaseDocument(collection, docId);
+        batch.delete(ref);
       } else if (type === "update") {
-        await updateSupabaseDocument(collection, docId, op.data || {});
+        batch.update(ref, decodeValue(op.data || {}));
       } else {
-        await upsertSupabaseDocument(collection, docId, op.data || {}, op.merge !== false);
+        batch.set(ref, decodeValue(op.data || {}), { merge: op.merge !== false });
       }
     }
 
-    return { success: true, action, provider: "supabase", count: ops.length };
+    await batch.commit();
+    return { success: true, action, count: ops.length };
   }
 
   if (action === "createUploadUrl") {
@@ -651,18 +439,16 @@ async function handleAdminDataAction(role, body) {
 }
 
 async function handleAdminAction(req, res, body) {
+  const db = getDb();
   const decoded = await verifyIdToken(req, body);
   assertExpectedAdmin(decoded);
-
-  const session = await assertA2FSession(decoded);
-  const role = normalizeRole(session && session.role) || getPasskeyOpenRole(decoded);
-
-  const action = String(body.action || "").trim();
-  if (action !== "readAdminData" && !canWrite(role)) {
+  const role = await getAdminRole(db, decoded);
+  if (!canWrite(role)) {
     throw Object.assign(new Error("Role admin/editor wajib untuk aksi admin"), { status: 403 });
   }
+  await assertA2FSession(decoded);
 
-  const result = await handleAdminDataAction(role, body);
+  const result = await handleFirestoreAction(db, role, body);
   await writeAdminLog({
     uid: decoded.uid,
     email: decoded.email || "",
