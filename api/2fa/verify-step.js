@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const admin = require("firebase-admin");
 const argon2 = require("argon2");
 const nodemailer = require("nodemailer");
+const { createClient } = require("@supabase/supabase-js");
 
 const ONE_TIME_RECOVERY_RANDOM_LENGTH = 50;
 const ARGON2ID_OPTIONS = Object.freeze({
@@ -11,6 +12,89 @@ const ARGON2ID_OPTIONS = Object.freeze({
   parallelism: 1,
   hashLength: 32
 });
+
+const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_lockouts";
+let supabaseAdminClient = null;
+
+function getSupabaseAdmin() {
+  if (supabaseAdminClient) return supabaseAdminClient;
+
+  const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    const err = new Error("ENV Supabase belum lengkap. Set SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY di Vercel.");
+    err.statusCode = 500;
+    throw err;
+  }
+
+  supabaseAdminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
+
+  return supabaseAdminClient;
+}
+
+function normalizeLockRow(data) {
+  const row = data && typeof data === "object" ? data : {};
+  return {
+    uid: String(row.uid || ""),
+    email: String(row.email || ""),
+    failedCount: Number(row.failed_count ?? row.failedCount ?? 0),
+    lockUntilMs: Number(row.lock_until_ms ?? row.lockUntilMs ?? 0),
+    permanentBan: row.permanent_ban === true || row.permanentBan === true,
+    permanentBanReason: String(row.permanent_ban_reason || row.permanentBanReason || row.reason || ""),
+    lastFailedAtMs: Number(row.last_failed_at_ms ?? row.lastFailedAtMs ?? 0),
+    bannedAtMs: Number(row.banned_at_ms ?? row.bannedAtMs ?? 0)
+  };
+}
+
+async function readA2fLockRow(uid) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(A2F_LOCKOUTS_TABLE)
+    .select("*")
+    .eq("uid", uid)
+    .maybeSingle();
+
+  if (error) {
+    error.statusCode = error.status || 500;
+    throw error;
+  }
+
+  return normalizeLockRow(data || { uid });
+}
+
+async function saveA2fLockRow(row) {
+  const supabase = getSupabaseAdmin();
+  const payload = {
+    uid: String(row.uid || getAdminUid()),
+    email: String(row.email || process.env.A2F_ADMIN_EMAIL || ""),
+    failed_count: Number(row.failedCount || 0),
+    lock_until_ms: Number(row.lockUntilMs || 0),
+    permanent_ban: row.permanentBan === true,
+    permanent_ban_reason: row.permanentBanReason || null,
+    last_failed_at_ms: Number(row.lastFailedAtMs || 0),
+    banned_at_ms: row.bannedAtMs ? Number(row.bannedAtMs) : null,
+    updated_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from(A2F_LOCKOUTS_TABLE)
+    .upsert(payload, { onConflict: "uid" })
+    .select("*")
+    .single();
+
+  if (error) {
+    error.statusCode = error.status || 500;
+    throw error;
+  }
+
+  return normalizeLockRow(data || payload);
+}
 
 function getAllowedOrigins() {
   const fromEnv = String(process.env.A2F_ALLOWED_ORIGINS || "")
@@ -357,26 +441,19 @@ function getLockMessage(lockUntilMs) {
 }
 
 async function checkA2fLock() {
-  const db = getFirebaseDb();
   const uid = getAdminUid();
-  const ref = db.collection("a2fLockouts").doc(uid);
-  const snap = await ref.get();
+  let data = await readA2fLockRow(uid);
 
-  if (!snap.exists) {
-    await ref.set({
+  if (!data.uid) {
+    data = await saveA2fLockRow({
       uid,
       email: process.env.A2F_ADMIN_EMAIL || "",
       failedCount: 0,
       lockUntilMs: 0,
       permanentBan: false,
-      lastFailedAtMs: 0,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-
-    return;
+      lastFailedAtMs: 0
+    });
   }
-
-  const data = snap.data() || {};
 
   if (data.permanentBan === true) {
     const err = new Error("A2F_PERMANENT_BAN");
@@ -397,63 +474,51 @@ async function checkA2fLock() {
 }
 
 async function recordA2fFailure() {
-  const db = getFirebaseDb();
   const uid = getAdminUid();
-  const ref = db.collection("a2fLockouts").doc(uid);
+  const data = await readA2fLockRow(uid);
+  const failedCount = Number(data.failedCount || 0) + 1;
+  const now = Date.now();
 
-  return db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const data = snap.exists ? snap.data() || {} : {};
-    const failedCount = Number(data.failedCount || 0) + 1;
-    const now = Date.now();
+  const nextData = {
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || data.email || "",
+    failedCount,
+    lastFailedAtMs: now,
+    permanentBan: false,
+    lockUntilMs: now + 60 * 1000
+  };
 
-    const nextData = {
-      uid,
-      email: process.env.A2F_ADMIN_EMAIL || data.email || "",
-      failedCount,
-      lastFailedAtMs: now,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    };
+  if (failedCount >= 3) {
+    nextData.permanentBan = true;
+    nextData.lockUntilMs = 0;
+  } else if (failedCount === 2) {
+    nextData.lockUntilMs = now + 30 * 60 * 1000;
+  }
 
-    if (failedCount >= 3) {
-      nextData.permanentBan = true;
-      nextData.lockUntilMs = 0;
-    } else if (failedCount === 2) {
-      nextData.permanentBan = false;
-      nextData.lockUntilMs = now + 30 * 60 * 1000;
-    } else {
-      nextData.permanentBan = false;
-      nextData.lockUntilMs = now + 60 * 1000;
-    }
-
-    tx.set(ref, nextData, { merge: true });
-
-    return nextData;
-  });
+  return saveA2fLockRow(nextData);
 }
 
 async function resetA2fFailure() {
-  const db = getFirebaseDb();
   const uid = getAdminUid();
-  const ref = db.collection("a2fLockouts").doc(uid);
 
-  await ref.set({
+  await saveA2fLockRow({
     uid,
     email: process.env.A2F_ADMIN_EMAIL || "",
     failedCount: 0,
     lockUntilMs: 0,
     permanentBan: false,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+    lastFailedAtMs: 0,
+    permanentBanReason: null,
+    bannedAtMs: null
+  });
 }
 
 
 async function recordPermanentBan(reason) {
-  const db = getFirebaseDb();
   const uid = getAdminUid();
   const now = Date.now();
 
-  await db.collection("a2fLockouts").doc(uid).set({
+  await saveA2fLockRow({
     uid,
     email: process.env.A2F_ADMIN_EMAIL || "",
     failedCount: 999,
@@ -461,9 +526,8 @@ async function recordPermanentBan(reason) {
     permanentBan: true,
     permanentBanReason: reason,
     bannedAtMs: now,
-    bannedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+    lastFailedAtMs: now
+  });
 }
 
 async function sendWrongCodeResponse(res) {
@@ -1461,10 +1525,8 @@ async function checkA2fBanStatus(req, res) {
   const { idToken } = req.body || {};
   await verifyAdminIdToken(idToken);
 
-  const db = getFirebaseDb();
   const uid = getAdminUid();
-  const snap = await db.collection("a2fLockouts").doc(uid).get();
-  const data = snap.exists ? snap.data() || {} : {};
+  const data = await readA2fLockRow(uid);
   const lockUntilMs = Number(data.lockUntilMs || 0);
   const permanentBan = data.permanentBan === true;
   const locked = permanentBan || lockUntilMs > Date.now();
@@ -1475,7 +1537,7 @@ async function checkA2fBanStatus(req, res) {
     permanentBan,
     failedCount: Number(data.failedCount || 0),
     lockUntilMs,
-    permanentBanReason: data.permanentBanReason || data.reason || "",
+    permanentBanReason: data.permanentBanReason || "",
     error: permanentBan
       ? "A2F diblokir permanen dari backend."
       : (lockUntilMs > Date.now() ? getLockMessage(lockUntilMs) : "")
