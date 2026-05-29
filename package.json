@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@simplewebauthn/server": "^13.1.2",
+    "@supabase/supabase-js": "^2.45.4",
     "firebase-admin": "^13.0.0",
     "argon2": "^0.41.1",
     "nodemailer": "^6.9.16"
