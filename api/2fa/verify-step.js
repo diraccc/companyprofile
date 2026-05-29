@@ -13,9 +13,8 @@ const ARGON2ID_OPTIONS = Object.freeze({
   hashLength: 32
 });
 
-const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKS_TABLE || process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_locks";
+const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_lockouts";
 const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-
 let supabaseAdminClient = null;
 
 function getSupabaseAdmin() {
@@ -77,13 +76,8 @@ async function saveA2fLockRow(row) {
     email: String(row.email || process.env.A2F_ADMIN_EMAIL || ""),
     failed_count: Number(row.failedCount || 0),
     lock_until_ms: Number(row.lockUntilMs || 0),
-    locked: row.locked === true || Number(row.lockUntilMs || 0) > Date.now(),
     permanent_ban: row.permanentBan === true,
     permanent_ban_reason: row.permanentBanReason || null,
-    last_reason: row.lastReason || row.permanentBanReason || null,
-    last_action: row.lastAction || null,
-    client_time_ms: Date.now(),
-    payload: row.payload && typeof row.payload === "object" ? row.payload : {},
     last_failed_at_ms: Number(row.lastFailedAtMs || 0),
     banned_at_ms: row.bannedAtMs ? Number(row.bannedAtMs) : null,
     updated_at: new Date().toISOString()
@@ -434,25 +428,22 @@ async function consumeOneTimeRecoveryCode(code, secret, idToken) {
   return result;
 }
 
-function getA2fCooldownYears(failedCount) {
-  if (failedCount <= 1) return 1;
-  if (failedCount === 2) return 10;
-  return 100;
-}
-
-function getA2fCooldownLabel(years) {
-  return years + " tahun";
+function getA2fLockDurationMs(failedCount) {
+  const count = Number(failedCount || 0);
+  if (count <= 1) return A2F_YEAR_MS;
+  if (count === 2) return 10 * A2F_YEAR_MS;
+  return 100 * A2F_YEAR_MS;
 }
 
 function getLockMessage(lockUntilMs) {
   const remainingMs = Math.max(0, Number(lockUntilMs || 0) - Date.now());
   const days = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
 
-  if (days >= 36500) return "A2F terkunci. Coba lagi sekitar 100 tahun.";
-  if (days >= 3650) return "A2F terkunci. Coba lagi sekitar 10 tahun.";
-  if (days >= 365) return "A2F terkunci. Coba lagi sekitar 1 tahun.";
-  if (days > 1) return "A2F terkunci. Coba lagi dalam " + days + " hari.";
-  return "A2F terkunci. Coba lagi setelah cooldown selesai.";
+  if (days >= 36500) return "A2F terkunci 100 tahun. Reset hanya bisa lewat Supabase/admin.";
+  if (days >= 3650) return "A2F terkunci 10 tahun. Reset hanya bisa lewat Supabase/admin.";
+  if (days >= 365) return "A2F terkunci 1 tahun. Reset hanya bisa lewat Supabase/admin.";
+  if (days > 0) return `A2F terkunci. Coba lagi dalam ${days} hari.`;
+  return "A2F terkunci. Reset lewat Supabase/admin.";
 }
 
 async function checkA2fLock() {
@@ -493,7 +484,6 @@ async function recordA2fFailure() {
   const data = await readA2fLockRow(uid);
   const failedCount = Number(data.failedCount || 0) + 1;
   const now = Date.now();
-  const cooldownYears = getA2fCooldownYears(failedCount);
 
   const nextData = {
     uid,
@@ -501,14 +491,9 @@ async function recordA2fFailure() {
     failedCount,
     lastFailedAtMs: now,
     permanentBan: false,
-    lockUntilMs: now + cooldownYears * A2F_YEAR_MS,
-    locked: true,
-    lastAction: "fail",
-    lastReason: "Kode A2F salah. Cooldown " + getA2fCooldownLabel(cooldownYears) + ".",
-    payload: {
-      failedCount,
-      cooldownYears
-    }
+    permanentBanReason: failedCount >= 3 ? "wrong_code_100_year_lock" : "wrong_code_cooldown",
+    lockUntilMs: now + getA2fLockDurationMs(failedCount),
+    bannedAtMs: failedCount >= 3 ? now : data.bannedAtMs || 0
   };
 
   return saveA2fLockRow(nextData);
@@ -546,17 +531,36 @@ async function recordPermanentBan(reason) {
   });
 }
 
+async function recordA2fTimeoutBlock(reason = "a2f_timeout") {
+  const uid = getAdminUid();
+  const data = await readA2fLockRow(uid);
+  const now = Date.now();
+
+  return saveA2fLockRow({
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || data.email || "",
+    failedCount: Math.max(3, Number(data.failedCount || 0)),
+    lockUntilMs: now + 100 * A2F_YEAR_MS,
+    permanentBan: false,
+    permanentBanReason: reason,
+    bannedAtMs: now,
+    lastFailedAtMs: now
+  });
+}
+
+
 async function sendWrongCodeResponse(res) {
   const lockData = await recordA2fFailure();
 
-  return res.status(423).json({
+  return res.status(Number(lockData.failedCount || 0) >= 3 ? 403 : 401).json({
     success: false,
-    error: lockData.lastReason || getLockMessage(lockData.lockUntilMs),
+    locked: Number(lockData.lockUntilMs || 0) > Date.now(),
+    permanentBan: lockData.permanentBan === true,
+    error: getLockMessage(lockData.lockUntilMs),
     failedCount: lockData.failedCount,
     lockUntilMs: lockData.lockUntilMs,
-    locked: true,
-    permanentBan: false,
-    cooldownYears: getA2fCooldownYears(Number(lockData.failedCount || 1))
+    uid: lockData.uid || getAdminUid(),
+    email: lockData.email || process.env.A2F_ADMIN_EMAIL || ""
   });
 }
 
@@ -1581,6 +1585,19 @@ module.exports = async function handler(req, res) {
     const action = String((req.body && req.body.action) || "").trim();
 
     if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
+    if (action === "recordA2fTimeoutBlock") {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const data = await recordA2fTimeoutBlock(String((req.body && req.body.reason) || "a2f_timeout"));
+      return res.status(200).json({
+        success: true,
+        locked: true,
+        permanentBan: false,
+        failedCount: Number(data.failedCount || 0),
+        lockUntilMs: Number(data.lockUntilMs || 0),
+        permanentBanReason: data.permanentBanReason || "a2f_timeout",
+        error: getLockMessage(data.lockUntilMs)
+      });
+    }
 
     if (action === "startStep6EmailApproval") return startStep6EmailApproval(req, res);
     if (action === "checkStep6EmailApproval") return checkStep6EmailApproval(req, res);

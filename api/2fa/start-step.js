@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const admin = require("firebase-admin");
 const argon2 = require("argon2");
+const { createClient } = require("@supabase/supabase-js");
 
 const ONE_TIME_RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ONE_TIME_RECOVERY_RANDOM_LENGTH = 50;
@@ -11,6 +12,204 @@ const ARGON2ID_OPTIONS = Object.freeze({
   parallelism: 1,
   hashLength: 32
 });
+
+const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_lockouts";
+const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+let supabaseAdminClient = null;
+
+function getSupabaseAdmin() {
+  if (supabaseAdminClient) return supabaseAdminClient;
+
+  const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    const err = new Error("ENV Supabase belum lengkap. Set SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY di Vercel.");
+    err.statusCode = 500;
+    throw err;
+  }
+
+  supabaseAdminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  return supabaseAdminClient;
+}
+
+function normalizeLockRow(data) {
+  const row = data && typeof data === "object" ? data : {};
+  return {
+    uid: String(row.uid || ""),
+    email: String(row.email || ""),
+    failedCount: Number(row.failed_count ?? row.failedCount ?? 0),
+    lockUntilMs: Number(row.lock_until_ms ?? row.lockUntilMs ?? 0),
+    permanentBan: row.permanent_ban === true || row.permanentBan === true,
+    permanentBanReason: String(row.permanent_ban_reason || row.permanentBanReason || row.reason || row.last_reason || ""),
+    lastFailedAtMs: Number(row.last_failed_at_ms ?? row.lastFailedAtMs ?? 0),
+    bannedAtMs: Number(row.banned_at_ms ?? row.bannedAtMs ?? 0)
+  };
+}
+
+async function readA2fLockRow(uid) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(A2F_LOCKOUTS_TABLE)
+    .select("*")
+    .eq("uid", uid)
+    .maybeSingle();
+
+  if (error) {
+    error.statusCode = error.status || 500;
+    throw error;
+  }
+
+  return normalizeLockRow(data || { uid });
+}
+
+async function saveA2fLockRow(row) {
+  const supabase = getSupabaseAdmin();
+  const payload = {
+    uid: String(row.uid || getAdminUid()),
+    email: String(row.email || process.env.A2F_ADMIN_EMAIL || ""),
+    failed_count: Number(row.failedCount || 0),
+    lock_until_ms: Number(row.lockUntilMs || 0),
+    permanent_ban: row.permanentBan === true,
+    permanent_ban_reason: row.permanentBanReason || null,
+    last_failed_at_ms: Number(row.lastFailedAtMs || 0),
+    banned_at_ms: row.bannedAtMs ? Number(row.bannedAtMs) : null,
+    updated_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from(A2F_LOCKOUTS_TABLE)
+    .upsert(payload, { onConflict: "uid" })
+    .select("*")
+    .single();
+
+  if (error) {
+    error.statusCode = error.status || 500;
+    throw error;
+  }
+
+  return normalizeLockRow(data || payload);
+}
+
+function getA2fLockDurationMs(failedCount) {
+  const count = Number(failedCount || 0);
+  if (count <= 1) return A2F_YEAR_MS;
+  if (count === 2) return 10 * A2F_YEAR_MS;
+  return 100 * A2F_YEAR_MS;
+}
+
+function getLockMessage(lockUntilMs) {
+  const remainingMs = Math.max(0, Number(lockUntilMs || 0) - Date.now());
+  const days = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+  if (days >= 36500) return "A2F terkunci 100 tahun. Reset hanya bisa lewat Supabase/admin.";
+  if (days >= 3650) return "A2F terkunci 10 tahun. Reset hanya bisa lewat Supabase/admin.";
+  if (days >= 365) return "A2F terkunci 1 tahun. Reset hanya bisa lewat Supabase/admin.";
+  if (days > 0) return `A2F terkunci. Coba lagi dalam ${days} hari.`;
+  return "A2F terkunci. Reset lewat Supabase/admin.";
+}
+
+function formatLockStatus(data) {
+  const row = normalizeLockRow(data || {});
+  const lockUntilMs = Number(row.lockUntilMs || 0);
+  const locked = row.permanentBan === true || lockUntilMs > Date.now();
+  return {
+    success: true,
+    locked,
+    permanentBan: row.permanentBan === true,
+    failedCount: Number(row.failedCount || 0),
+    lockUntilMs,
+    uid: row.uid || getAdminUid(),
+    email: row.email || process.env.A2F_ADMIN_EMAIL || "",
+    permanentBanReason: row.permanentBanReason || "",
+    error: locked ? (row.permanentBanReason || getLockMessage(lockUntilMs)) : ""
+  };
+}
+
+async function ensureA2fLockRow() {
+  const uid = getAdminUid();
+  let data = await readA2fLockRow(uid);
+
+  if (!data.uid) {
+    data = await saveA2fLockRow({
+      uid,
+      email: process.env.A2F_ADMIN_EMAIL || "",
+      failedCount: 0,
+      lockUntilMs: 0,
+      permanentBan: false,
+      lastFailedAtMs: 0
+    });
+  }
+
+  return data;
+}
+
+async function checkA2fLock() {
+  const data = await ensureA2fLockRow();
+  const status = formatLockStatus(data);
+
+  if (status.locked) {
+    const err = new Error(status.error || "A2F terkunci dari backend.");
+    err.statusCode = status.permanentBan ? 403 : 423;
+    err.lockStatus = status;
+    throw err;
+  }
+
+  return data;
+}
+
+async function recordA2fFailure(reason = "wrong_code") {
+  const uid = getAdminUid();
+  const data = await readA2fLockRow(uid);
+  const now = Date.now();
+  const failedCount = Number(data.failedCount || 0) + 1;
+  const saved = await saveA2fLockRow({
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || data.email || "",
+    failedCount,
+    lastFailedAtMs: now,
+    permanentBan: false,
+    permanentBanReason: reason,
+    lockUntilMs: now + getA2fLockDurationMs(failedCount),
+    bannedAtMs: failedCount >= 3 ? now : data.bannedAtMs || 0
+  });
+  return formatLockStatus(saved);
+}
+
+async function recordA2fTimeoutBlock(reason = "a2f_timeout") {
+  const uid = getAdminUid();
+  const data = await readA2fLockRow(uid);
+  const now = Date.now();
+  const saved = await saveA2fLockRow({
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || data.email || "",
+    failedCount: Math.max(3, Number(data.failedCount || 0)),
+    lastFailedAtMs: now,
+    permanentBan: false,
+    permanentBanReason: reason,
+    lockUntilMs: now + 100 * A2F_YEAR_MS,
+    bannedAtMs: now
+  });
+  return formatLockStatus(saved);
+}
+
+async function resetA2fFailure() {
+  const uid = getAdminUid();
+  const saved = await saveA2fLockRow({
+    uid,
+    email: process.env.A2F_ADMIN_EMAIL || "",
+    failedCount: 0,
+    lockUntilMs: 0,
+    permanentBan: false,
+    permanentBanReason: null,
+    lastFailedAtMs: 0,
+    bannedAtMs: null
+  });
+  return formatLockStatus(saved);
+}
+
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -411,6 +610,78 @@ module.exports = async function handler(req, res) {
 
   const { step, action } = req.body || {};
 
+  if (action === "checkA2fBanStatus") {
+    try {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const data = await ensureA2fLockRow();
+      return res.status(200).json(formatLockStatus(data));
+    } catch (error) {
+      return res.status(error.statusCode || 500).json(error.lockStatus || {
+        success: false,
+        locked: true,
+        error: error.message || "Gagal cek status ban A2F"
+      });
+    }
+  }
+
+  if (action === "recordA2fTimeoutBlock") {
+    try {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const status = await recordA2fTimeoutBlock(String((req.body && req.body.reason) || "a2f_timeout"));
+      return res.status(200).json(status);
+    } catch (error) {
+      return res.status(error.statusCode || 500).json(error.lockStatus || {
+        success: false,
+        locked: true,
+        error: error.message || "Gagal mencatat timeout A2F"
+      });
+    }
+  }
+
+  if (action === "recordA2fFailure") {
+    try {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const current = await ensureA2fLockRow();
+      const currentStatus = formatLockStatus(current);
+      if (currentStatus.locked) return res.status(200).json(currentStatus);
+      const status = await recordA2fFailure(String((req.body && req.body.reason) || "client_recorded_failure"));
+      return res.status(200).json(status);
+    } catch (error) {
+      return res.status(error.statusCode || 500).json(error.lockStatus || {
+        success: false,
+        locked: true,
+        error: error.message || "Gagal mencatat gagal A2F"
+      });
+    }
+  }
+
+  if (action === "recordA2fTimeoutMarker") {
+    try {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const data = await ensureA2fLockRow();
+      return res.status(200).json(formatLockStatus(data));
+    } catch (error) {
+      return res.status(error.statusCode || 500).json(error.lockStatus || {
+        success: false,
+        locked: true,
+        error: error.message || "Gagal mencatat marker timeout A2F"
+      });
+    }
+  }
+
+  if (action === "resetA2fFailure") {
+    try {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const status = await resetA2fFailure();
+      return res.status(200).json(status);
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        error: error.message || "Gagal reset A2F"
+      });
+    }
+  }
+
   if (action === "generate-recovery-codes") {
     try {
       const codes = await generateOneTimeRecoveryCodes(req.body || {});
@@ -437,6 +708,17 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({
       success: false,
       error: "Step harus 2, 3, 6, 7, 8, 9, atau 10"
+    });
+  }
+
+  try {
+    await verifyAdminIdToken(req.body && req.body.idToken);
+    await checkA2fLock();
+  } catch (error) {
+    return res.status(error.statusCode || 423).json(error.lockStatus || {
+      success: false,
+      locked: true,
+      error: error.message || "A2F terkunci dari backend"
     });
   }
 
