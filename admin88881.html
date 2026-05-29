@@ -1357,6 +1357,7 @@
       lockTable: 'a2f_locks'
     });
     const A2F_BACKEND_MAX_FAILURES = 3;
+    const A2F_COOLDOWN_YEARS_BY_FAILURE = Object.freeze({ 1: 1, 2: 10, 3: 100 });
     const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
     const A2F_STEP6_MAX_SECONDS = 60;
@@ -2025,10 +2026,30 @@
         }
       }
     }
+    function getA2fCooldownYearsForFailure(failedCount){
+      const count = Math.max(1, Number(failedCount || 1));
+      if(count >= A2F_BACKEND_MAX_FAILURES) return A2F_COOLDOWN_YEARS_BY_FAILURE[3];
+      return A2F_COOLDOWN_YEARS_BY_FAILURE[count] || A2F_COOLDOWN_YEARS_BY_FAILURE[1];
+    }
+    function addA2fCooldownYears(baseMs, years){
+      const date = new Date(Number(baseMs || Date.now()));
+      date.setFullYear(date.getFullYear() + Number(years || 0));
+      return date.getTime();
+    }
     function formatLockRemaining(ms){
       const totalSeconds = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
+      const daySeconds = 24 * 60 * 60;
+      const yearSeconds = 365 * daySeconds;
+      const hourSeconds = 60 * 60;
+      const minuteSeconds = 60;
+      const years = Math.floor(totalSeconds / yearSeconds);
+      const days = Math.floor((totalSeconds % yearSeconds) / daySeconds);
+      const hours = Math.floor((totalSeconds % daySeconds) / hourSeconds);
+      const minutes = Math.floor((totalSeconds % hourSeconds) / minuteSeconds);
+      const seconds = totalSeconds % minuteSeconds;
+      if(years > 0) return years + ' tahun' + (days > 0 ? ' ' + days + ' hari' : '');
+      if(days > 0) return days + ' hari' + (hours > 0 ? ' ' + hours + ' jam' : '');
+      if(hours > 0) return hours + ' jam' + (minutes > 0 ? ' ' + minutes + ' menit' : '');
       if(minutes > 0) return minutes + ' menit ' + seconds + ' detik';
       return seconds + ' detik';
     }
@@ -2152,10 +2173,13 @@
       const reason = (cause && cause.message) ? cause.message : 'Supabase lock belum siap.';
       if(action === 'fail'){
         const failedCount = Math.max(0, Number(state.failedCount || 0)) + 1;
+        const cooldownYears = getA2fCooldownYearsForFailure(failedCount);
         state.failedCount = failedCount;
-        state.locked = failedCount >= A2F_BACKEND_MAX_FAILURES;
-        state.permanentBan = failedCount >= A2F_BACKEND_MAX_FAILURES;
-        state.lastReason = state.permanentBan ? 'A2F diblokir permanen oleh fallback lokal karena salah 3x.' : 'Percobaan A2F salah dicatat di fallback lokal.';
+        state.locked = true;
+        state.permanentBan = false;
+        state.lockUntilMs = addA2fCooldownYears(Date.now(), cooldownYears);
+        state.cooldownYears = cooldownYears;
+        state.lastReason = 'Kode A2F salah. Cooldown ' + cooldownYears + ' tahun aktif.';
         state = writeLocalA2fFallbackState(identity, state);
       }else if(action === 'timeout'){
         state.failedCount = A2F_BACKEND_MAX_FAILURES;
@@ -2199,9 +2223,15 @@
         let reason = '';
         if(action === 'fail'){
           failedCount += 1;
-          permanentBan = permanentBan || failedCount >= A2F_BACKEND_MAX_FAILURES;
-          locked = permanentBan || (lockUntilMs > Date.now());
-          reason = permanentBan ? 'A2F diblokir permanen karena salah 3x.' : 'Kode A2F salah.';
+          if(!permanentBan){
+            const cooldownYears = getA2fCooldownYearsForFailure(failedCount);
+            locked = true;
+            lockUntilMs = addA2fCooldownYears(Date.now(), cooldownYears);
+            reason = 'Kode A2F salah. Cooldown ' + cooldownYears + ' tahun aktif.';
+          }else{
+            locked = true;
+            reason = 'A2F sudah diblokir permanen.';
+          }
         }else if(action === 'timeout'){
           failedCount = A2F_BACKEND_MAX_FAILURES;
           permanentBan = true;
@@ -2218,6 +2248,7 @@
           locked,
           permanent_ban: permanentBan,
           lock_until_ms: lockUntilMs,
+          cooldown_years: action === 'fail' ? getA2fCooldownYearsForFailure(failedCount) : null,
           last_action: String(action || ''),
           last_reason: reason,
           client_time_ms: Number(payload && payload.clientTimeMs || Date.now()),
@@ -2365,13 +2396,13 @@
       if(!state || typeof state !== 'object') return false;
       clearTwoFactorLockTimer();
       const failedCount = Math.min(Number(state.failedCount || 0), A2F_BACKEND_MAX_FAILURES);
-      if(state.permanentBan === true || failedCount >= A2F_BACKEND_MAX_FAILURES){
+      if(state.permanentBan === true){
         clearTwoFactorTimeoutTimer();
         updateA2fTimeoutNotice(0);
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = true;
         setTwoFactorInputLocked(true, 'Diblokir');
-        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat tabel Supabase a2f_locks.', 'danger');
+        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen dari backend. Reset lewat tabel Supabase a2f_locks.', 'danger');
         setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban Supabase.', 'danger');
         return true;
       }
@@ -2428,7 +2459,7 @@
           twoFactorBackendLocked = true;
           twoFactorPermanentLocked = true;
           setTwoFactorInputLocked(true, 'Diblokir');
-          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa tabel Supabase a2f_locks.', 'danger');
+          setNotice(els.twoFactorError, 'A2F dikunci di tampilan karena backend fail tidak bisa dicatat. Periksa tabel Supabase a2f_locks.', 'danger');
           return true;
         }
         setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
@@ -2588,7 +2619,9 @@
       if(!response.ok || data.success === false){
         const error = new Error(data.error || data.message || 'Step 6 gagal.');
         error.countAttempt = false;
-        if(data && (data.permanentBan || data.status === 'denied_permanent_ban' || data.status === 'permanent_ban_wrong_code')){
+        if(hasA2fBackendLockState(data)){
+          error.a2fLockState = data;
+        } else if(data && (data.permanentBan || data.status === 'denied_permanent_ban' || data.status === 'permanent_ban_wrong_code')){
           error.a2fLockState = Object.assign({ permanentBan:true, failedCount:A2F_BACKEND_MAX_FAILURES }, data);
         }
         throw error;
@@ -2626,7 +2659,7 @@
       } else if(step6EmailApprovalStatus === 'approved_waiting_code'){
         setNotice(
           els.twoFactorUser,
-          'Email sudah disetujui. Sekarang masukkan kode 60 digit dari email. Salah 1x akan ban permanen.',
+          'Email sudah disetujui. Sekarang masukkan kode 60 digit dari email. Salah kode memicu cooldown: 1x 1 tahun, 2x 10 tahun, 3x 100 tahun.',
           'warn'
         );
       } else {
@@ -2742,7 +2775,7 @@
       twoFactorVerified = false;
       twoFactorBackendLocked = true;
       twoFactorPermanentLocked = Boolean(isPermanent);
-      applyA2fBackendLockState(Object.assign({ failedCount:A2F_BACKEND_MAX_FAILURES }, data));
+      applyA2fBackendLockState(Object.assign({}, data));
       els.adminSection.classList.add('hidden');
       els.twoFactorSection.classList.add('hidden');
       els.loginSection.classList.remove('hidden');
@@ -7744,6 +7777,7 @@
           locked: state.locked,
           permanent_ban: state.permanentBan,
           lock_until_ms: state.lockUntilMs || 0,
+          cooldown_years: row.cooldown_years ?? row.cooldownYears ?? null,
           last_action: String(row.last_action || row.lastAction || ''),
           last_reason: reason,
           client_time_ms: diracA2fNumber(row.client_time_ms || row.clientTimeMs, Date.now()),
@@ -7757,6 +7791,7 @@
           failed_attempts: state.failedCount,
           locked_until: diracA2fIsoFromMs(state.lockUntilMs),
           permanent_locked: state.permanentBan,
+          cooldown_years: row.cooldown_years ?? row.cooldownYears ?? null,
           reason,
           updated_at: new Date().toISOString()
         };
@@ -7844,9 +7879,15 @@
 
           if(action === 'fail'){
             failedCount += 1;
-            permanentBan = permanentBan || failedCount >= A2F_BACKEND_MAX_FAILURES;
-            locked = permanentBan || (lockUntilMs > Date.now());
-            reason = permanentBan ? 'A2F diblokir permanen karena salah 3x.' : 'Kode A2F salah.';
+            if(!permanentBan){
+              const cooldownYears = getA2fCooldownYearsForFailure(failedCount);
+              locked = true;
+              lockUntilMs = addA2fCooldownYears(Date.now(), cooldownYears);
+              reason = 'Kode A2F salah. Cooldown ' + cooldownYears + ' tahun aktif.';
+            }else{
+              locked = true;
+              reason = 'A2F sudah diblokir permanen.';
+            }
           }else if(action === 'timeout'){
             failedCount = A2F_BACKEND_MAX_FAILURES;
             permanentBan = true;
@@ -7868,6 +7909,7 @@
             permanent_locked: permanentBan,
             lock_until_ms: lockUntilMs,
             locked_until: diracA2fIsoFromMs(lockUntilMs),
+            cooldown_years: action === 'fail' ? getA2fCooldownYearsForFailure(failedCount) : null,
             last_action: String(action || ''),
             last_reason: reason,
             reason,
