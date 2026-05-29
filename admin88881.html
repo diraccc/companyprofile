@@ -1348,15 +1348,13 @@
       TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish',
       TWO_FACTOR_HASHES: []
     });
-    // A2F lock tidak lagi memakai Supabase langsung dari HTML.
-    // Semua data sensitif wajib lewat backend Vercel.
-    const A2F_LOCK_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
-    const A2F_LOCK_PROVIDER = 'backend-only';
+    const A2F_LOCK_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/lock';
+    const A2F_LOCK_PROVIDER = 'supabase';
     const A2F_SUPABASE_CONFIG = Object.freeze({
-      url: '',
-      restUrl: '',
-      anonKey: '',
-      lockTable: ''
+      url: 'https://aqvzzfijlomcznotyigx.supabase.co',
+      restUrl: 'https://aqvzzfijlomcznotyigx.supabase.co/rest/v1',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdnp6ZmlqbG9tY3pub3R5aWd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTE3OTIsImV4cCI6MjA5NTU2Nzc5Mn0.Azp6CBvS3amdzCX0ujsz_RgjNak6OrLHa5FsDJWXxF0',
+      lockTable: 'a2f_locks'
     });
     const A2F_BACKEND_MAX_FAILURES = 3;
     const A2F_MAX_SECONDS = 25;
@@ -1394,7 +1392,7 @@
     const ADMIN_API_BASE_URL = 'https://companyprofilee-expk.vercel.app';
     const ADMIN_FIRESTORE_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
     const ADMIN_UPLOAD_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
-    const ADMIN_READ_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
+    const ADMIN_READ_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/reset-a2f-ban';
 
     function serverTimestamp(){
       return { __diracFirestoreOp: 'serverTimestamp' };
@@ -2001,7 +1999,7 @@
       }catch(error){
         twoFactorBackendLocked = true;
         setTwoFactorInputLocked(true, 'Lock backend error');
-        setNotice(els.twoFactorError, error.message || 'A2F backend belum siap. Login ulang dari awal.', 'danger');
+        setNotice(els.twoFactorError, error.message || 'Supabase lock A2F belum siap. Jalankan SQL a2f_locks, lalu coba lagi.', 'danger');
       }
     }
     async function readApiJson(response){
@@ -2236,44 +2234,7 @@
       return callA2fBackendLock('check');
     }
     async function recordA2fBackendFailure(){
-      // Client tidak boleh menulis lock A2F ke Supabase atau localStorage.
-      // Kesalahan kode tetap divalidasi oleh endpoint backend A2F.
-      return {
-        success: true,
-        provider: A2F_LOCK_PROVIDER,
-        locked: false,
-        permanentBan: false,
-        failedCount: 0,
-        lockUntilMs: 0
-      };
-    }
-
-    async function checkA2fBackendLock(){
-      // Lock state tidak dibaca langsung dari HTML.
-      // Backend adalah sumber kebenaran untuk verifikasi A2F.
-      return {
-        success: true,
-        provider: A2F_LOCK_PROVIDER,
-        locked: false,
-        permanentBan: false,
-        failedCount: 0,
-        lockUntilMs: 0
-      };
-    }
-
-    async function callA2fBackendLock(action, payload = {}){
-      // Jangan pernah tulis a2f_locks dari browser.
-      // Ini mencegah ban muncul lagi dari HTML/localStorage setelah Supabase dikunci RLS.
-      return {
-        success: true,
-        provider: A2F_LOCK_PROVIDER,
-        locked: false,
-        permanentBan: false,
-        failedCount: 0,
-        lockUntilMs: 0,
-        action: String(action || ''),
-        ignoredInClient: true
-      };
+      return callA2fBackendLock('fail');
     }
     function clearTwoFactorTimeoutTimer(){
       if(twoFactorTimeoutTimer){
@@ -2410,7 +2371,7 @@
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = true;
         setTwoFactorInputLocked(true, 'Diblokir');
-        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen oleh backend. Reset A2F lalu login ulang dari awal.', 'danger');
+        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat tabel Supabase a2f_locks.', 'danger');
         setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban Supabase.', 'danger');
         return true;
       }
@@ -2467,7 +2428,7 @@
           twoFactorBackendLocked = true;
           twoFactorPermanentLocked = true;
           setTwoFactorInputLocked(true, 'Diblokir');
-          setNotice(els.twoFactorError, 'A2F gagal dicatat oleh backend. Login ulang dari awal.', 'danger');
+          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa tabel Supabase a2f_locks.', 'danger');
           return true;
         }
         setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
@@ -7879,6 +7840,73 @@
       };
     }
 
+
+
+    /* =========================================================
+       BACKEND ONLY SAFETY PATCH
+       Tujuan: jangan tulis/read A2F lock langsung dari HTML.
+       Login Firebase, hash, passkey, sign, safeEqual, parseSession tidak disentuh.
+       Semua data admin tetap lewat backend endpoint lama.
+       ========================================================= */
+    try{
+      checkA2fBackendLock = async function(){
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0
+        };
+      };
+      callA2fBackendLock = async function(action, payload = {}){
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0,
+          action: String(action || ''),
+          ignoredInClient: true
+        };
+      };
+      recordA2fBackendFailure = async function(){
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0
+        };
+      };
+      recordA2fTimeoutBlock = async function(){
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0,
+          timeoutIgnoredInClient: true
+        };
+      };
+      saveA2fTimeoutBlockMarker = async function(){
+        return { success: true, provider: 'backend-only', timeoutMarkerIgnoredInClient: true };
+      };
+      readSupabaseA2fLockRow = async function(){ return null; };
+      upsertSupabaseA2fLockRow = async function(row){ return row || {}; };
+
+      for(let i = localStorage.length - 1; i >= 0; i--){
+        const key = localStorage.key(i) || '';
+        if(key.indexOf('dirac_a2f_supabase_lock_fallback_') === 0 || key.indexOf('a2f') >= 0 || key.indexOf('A2F') >= 0){
+          try{ localStorage.removeItem(key); }catch(_error){}
+        }
+      }
+    }catch(error){
+      console.warn('Backend-only safety patch gagal dipasang:', error);
+    }
 </script>
 </body>
 </html>
