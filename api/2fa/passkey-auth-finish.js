@@ -702,6 +702,234 @@ async function handleReadAdminData(body) {
   return response;
 }
 
+async function fetchAllAdminDocumentsFromSupabase() {
+  const supabase = getSupabaseAdmin();
+  const pageSize = 1000;
+  let from = 0;
+  const rows = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(ADMIN_DOCUMENTS_TABLE)
+      .select("collection, doc_id, data, created_at, updated_at")
+      .order("collection", { ascending: true })
+      .order("doc_id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw Object.assign(new Error("Gagal membaca admin_documents: " + error.message), { status: 500 });
+    }
+
+    const batch = Array.isArray(data) ? data : [];
+    rows.push(...batch);
+
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return rows;
+}
+
+function toPlainAdminDocument(row) {
+  const data = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
+  const docId = String(row && row.doc_id || data.docId || data.id || "");
+
+  return {
+    docId,
+    id: data.id || docId,
+    ...data,
+    docId,
+    _collection: row.collection || "",
+    _createdAt: row.created_at || null,
+    _updatedAt: row.updated_at || null
+  };
+}
+
+function groupAdminDocuments(rows) {
+  const grouped = {
+    products: [],
+    orders: [],
+    customers: [],
+    settings: [],
+    securityLogs: [],
+    categories: [],
+    brands: [],
+    variants: [],
+    order_items: []
+  };
+
+  for (const row of rows) {
+    const collection = String(row && row.collection || "").trim();
+    if (!collection) continue;
+    if (!grouped[collection]) grouped[collection] = [];
+    grouped[collection].push(toPlainAdminDocument(row));
+  }
+
+  return grouped;
+}
+
+function countGroupedDocuments(grouped, rows) {
+  return {
+    total: rows.length,
+    products: (grouped.products || []).length,
+    orders: (grouped.orders || []).length,
+    customers: (grouped.customers || []).length,
+    settings: (grouped.settings || []).length,
+    securityLogs: (grouped.securityLogs || []).length,
+    categories: (grouped.categories || []).length,
+    brands: (grouped.brands || []).length,
+    variants: (grouped.variants || []).length,
+    order_items: (grouped.order_items || []).length
+  };
+}
+
+async function exportAdminDataFromSupabase() {
+  const rows = await fetchAllAdminDocumentsFromSupabase();
+  const grouped = groupAdminDocuments(rows);
+
+  return {
+    success: true,
+    action: "exportAdminData",
+    provider: "supabase",
+    source: "supabase",
+    table: ADMIN_DOCUMENTS_TABLE,
+    schemaVersion: 4,
+    exportedAt: new Date().toISOString(),
+    app: "Dirac Admin",
+    collection: "all",
+    counts: countGroupedDocuments(grouped, rows),
+    products: grouped.products || [],
+    orders: grouped.orders || [],
+    customers: grouped.customers || [],
+    settings: grouped.settings || [],
+    securityLogs: grouped.securityLogs || [],
+    categories: grouped.categories || [],
+    brands: grouped.brands || [],
+    variants: grouped.variants || [],
+    order_items: grouped.order_items || [],
+    rawRows: rows.map((row) => ({
+      collection: row.collection,
+      doc_id: row.doc_id,
+      data: row.data || {},
+      created_at: row.created_at || null,
+      updated_at: row.updated_at || null
+    }))
+  };
+}
+
+function numberValue(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function lowerText(value) {
+  return String(value === undefined || value === null ? "" : value).toLowerCase();
+}
+
+function dateMsValue(value) {
+  if (!value) return 0;
+  if (typeof value === "number") return value;
+  if (value instanceof Date) return value.getTime();
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function matchReportOrderFilter(order, body) {
+  const q = lowerText(body.reportSearch || body.search || "").trim();
+  const paymentStatus = String(body.reportPaymentStatus || body.paymentStatus || "").trim();
+  const orderStatus = String(body.reportOrderStatus || body.orderStatus || "").trim();
+  const from = String(body.reportDateFrom || body.dateFrom || "").trim();
+  const to = String(body.reportDateTo || body.dateTo || "").trim();
+
+  if (q) {
+    const haystack = [
+      order.docId,
+      order.id,
+      order.orderId,
+      order.customerName,
+      order.customerPhone,
+      order.phone,
+      order.email,
+      order.address,
+      order.paymentMethod,
+      order.paymentStatus,
+      order.orderStatus,
+      order.status,
+      order.courier,
+      order.trackingNumber,
+      order.note
+    ].map(lowerText).join(" ");
+
+    if (!haystack.includes(q)) return false;
+  }
+
+  if (paymentStatus && paymentStatus !== "Semua" && paymentStatus !== "all") {
+    if (String(order.paymentStatus || "") !== paymentStatus) return false;
+  }
+
+  if (orderStatus && orderStatus !== "Semua" && orderStatus !== "all") {
+    if (String(order.orderStatus || order.status || "") !== orderStatus) return false;
+  }
+
+  const createdMs =
+    numberValue(order.createdAtMs) ||
+    dateMsValue(order.createdAt) ||
+    dateMsValue(order._createdAt);
+
+  if (from) {
+    const fromMs = Date.parse(from + "T00:00:00");
+    if (Number.isFinite(fromMs) && createdMs && createdMs < fromMs) return false;
+  }
+
+  if (to) {
+    const toMs = Date.parse(to + "T23:59:59");
+    if (Number.isFinite(toMs) && createdMs && createdMs > toMs) return false;
+  }
+
+  return true;
+}
+
+async function reportAdminDataFromSupabase(body) {
+  const rows = await fetchAllAdminDocumentsFromSupabase();
+  const grouped = groupAdminDocuments(rows);
+  const filteredOrders = (grouped.orders || []).filter((order) => matchReportOrderFilter(order, body || {}));
+
+  const revenue = filteredOrders.reduce((sum, order) => sum + numberValue(order.total), 0);
+  const subtotal = filteredOrders.reduce((sum, order) => sum + numberValue(order.subtotal), 0);
+  const shippingCost = filteredOrders.reduce((sum, order) => sum + numberValue(order.shippingCost), 0);
+  const discount = filteredOrders.reduce((sum, order) => sum + numberValue(order.discount), 0);
+
+  return {
+    success: true,
+    action: "reportAdminData",
+    provider: "supabase",
+    source: "supabase",
+    table: ADMIN_DOCUMENTS_TABLE,
+    counts: {
+      products: (grouped.products || []).length,
+      orders: filteredOrders.length,
+      totalOrders: (grouped.orders || []).length,
+      customers: (grouped.customers || []).length,
+      settings: (grouped.settings || []).length,
+      securityLogs: (grouped.securityLogs || []).length,
+      categories: (grouped.categories || []).length,
+      brands: (grouped.brands || []).length,
+      variants: (grouped.variants || []).length,
+      order_items: (grouped.order_items || []).length
+    },
+    totals: {
+      revenue,
+      subtotal,
+      shippingCost,
+      discount
+    },
+    orders: body && body.countOnly ? [] : filteredOrders,
+    products: body && body.countOnly ? [] : (grouped.products || []),
+    customers: body && body.countOnly ? [] : (grouped.customers || [])
+  };
+}
+
+
 async function handleAdminDataAction(role, body) {
   const action = String(body.action || "").trim();
 
@@ -764,6 +992,14 @@ async function handleAdminDataAction(role, body) {
     }
 
     return { success: true, action, provider: "supabase", count: ops.length };
+  }
+
+  if (action === "exportAdminData") {
+    return exportAdminDataFromSupabase();
+  }
+
+  if (action === "reportAdminData") {
+    return reportAdminDataFromSupabase(body);
   }
 
   if (action === "createUploadUrl") {
