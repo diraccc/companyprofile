@@ -530,24 +530,35 @@ async function recordPermanentBan(reason) {
   });
 }
 
+function buildA2fLockResponse(lockData, extra = {}) {
+  const lockUntilMs = Number(lockData && lockData.lockUntilMs || 0);
+  const permanentBan = lockData && lockData.permanentBan === true;
+  const locked = permanentBan || lockUntilMs > Date.now();
+
+  return Object.assign({
+    success: false,
+    provider: "supabase",
+    locked,
+    permanentBan,
+    failedCount: Number(lockData && lockData.failedCount || 0),
+    lockUntilMs,
+    remainingMs: Math.max(0, lockUntilMs - Date.now()),
+    permanentBanReason: lockData && lockData.permanentBanReason || "",
+    error: permanentBan
+      ? "Kode salah. A2F diblokir permanen karena salah kode 3x."
+      : (locked ? getLockMessage(lockUntilMs) : "Kode A2F salah.")
+  }, extra || {});
+}
+
 async function sendWrongCodeResponse(res) {
   const lockData = await recordA2fFailure();
+  const payload = buildA2fLockResponse(lockData);
 
-  if (lockData.permanentBan === true) {
-    return res.status(403).json({
-      success: false,
-      error: "Kode salah. A2F diblokir permanen karena salah kode 3x.",
-      failedCount: lockData.failedCount,
-      permanentBan: true
-    });
+  if (payload.permanentBan === true) {
+    return res.status(403).json(payload);
   }
 
-  return res.status(401).json({
-    success: false,
-    error: getLockMessage(lockData.lockUntilMs),
-    failedCount: lockData.failedCount,
-    lockUntilMs: lockData.lockUntilMs
-  });
+  return res.status(401).json(payload);
 }
 
 
@@ -1544,6 +1555,23 @@ async function checkA2fBanStatus(req, res) {
   });
 }
 
+async function recordA2fFailureFromClient(req, res) {
+  const { idToken } = req.body || {};
+  await verifyAdminIdToken(idToken);
+  const lockData = await recordA2fFailure();
+  const payload = buildA2fLockResponse(lockData, { success: true, action: "recordA2fFailure" });
+  return res.status(payload.permanentBan ? 403 : 200).json(payload);
+}
+
+async function recordA2fTimeoutBlockFromClient(req, res) {
+  const { idToken } = req.body || {};
+  await verifyAdminIdToken(idToken);
+  await recordPermanentBan("a2f_timeout_from_admin_backend");
+  const lockData = await readA2fLockRow(getAdminUid());
+  const payload = buildA2fLockResponse(lockData, { success: true, action: "recordA2fTimeoutBlock" });
+  return res.status(403).json(payload);
+}
+
 module.exports = async function handler(req, res) {
   setCors(req, res);
 
@@ -1571,6 +1599,8 @@ module.exports = async function handler(req, res) {
     const action = String((req.body && req.body.action) || "").trim();
 
     if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
+    if (action === "recordA2fFailure") return recordA2fFailureFromClient(req, res);
+    if (action === "recordA2fTimeoutBlock") return recordA2fTimeoutBlockFromClient(req, res);
 
     if (action === "startStep6EmailApproval") return startStep6EmailApproval(req, res);
     if (action === "checkStep6EmailApproval") return checkStep6EmailApproval(req, res);
@@ -1695,8 +1725,16 @@ module.exports = async function handler(req, res) {
       nextStep: stepNumber + 1
     });
   } catch (error) {
-    return res.status(error.statusCode || 500).json({
+    const status = error.statusCode || error.status || 500;
+    const lockUntilMs = Number(error.lockUntilMs || 0);
+    const permanentBan = String(error.message || "") === "A2F_PERMANENT_BAN" || status === 403 && /permanen|PERMANENT/i.test(String(error.publicMessage || error.message || ""));
+    return res.status(status).json({
       success: false,
+      provider: "supabase",
+      locked: permanentBan || lockUntilMs > Date.now(),
+      permanentBan,
+      lockUntilMs,
+      remainingMs: Math.max(0, lockUntilMs - Date.now()),
       error: error.publicMessage || error.message || "Server A2F error"
     });
   }
