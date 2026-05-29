@@ -220,6 +220,12 @@ function canDelete(role) {
   return role === "owner";
 }
 
+function getPasskeyOpenRole(decoded) {
+  const envRole = normalizeRole(process.env.A2F_ADMIN_ROLE || process.env.ADMIN_ROLE || "");
+  const claimRole = normalizeRole(decoded && (decoded.role || (decoded.admin === true ? "admin" : "")));
+  return envRole || claimRole || "owner";
+}
+
 function toMs(value) {
   if (!value) return 0;
   if (typeof value === "number") return value;
@@ -491,8 +497,10 @@ async function handlePasskeyFinish(req, res, body) {
     });
   }
 
-  const db = getDb();
-  const role = await getAdminRole(db, decoded);
+  // Tahap 5 hanya membuka A2F session setelah passkey valid.
+  // Jangan baca Firestore di sini agar tidak mentok RESOURCE_EXHAUSTED.
+  // Akses admin tetap dikunci oleh verifyIdToken + A2F_ADMIN_UID + passkey.
+  const role = getPasskeyOpenRole(decoded);
   if (!canWrite(role)) {
     return send(res, 403, {
       success: false,
