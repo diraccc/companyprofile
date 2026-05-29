@@ -8561,13 +8561,25 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   }
 
   function boolActive(row){
+    row = unwrapAdminDocumentRow(row);
     if(row && Object.prototype.hasOwnProperty.call(row, 'is_active')) return row.is_active !== false;
     if(row && Object.prototype.hasOwnProperty.call(row, 'active')) return row.active !== false;
     return true;
   }
 
+  function unwrapAdminDocumentRow(row){
+    const raw = row || {};
+    const data = raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data) ? raw.data : raw;
+    const out = Object.assign({}, data || {});
+    if(Object.prototype.hasOwnProperty.call(raw, 'doc_id')) out.doc_id = raw.doc_id;
+    if(Object.prototype.hasOwnProperty.call(raw, 'collection')) out.collection = raw.collection;
+    if(Object.prototype.hasOwnProperty.call(raw, 'updated_at') && !out.updatedAt) out.updatedAt = raw.updated_at;
+    if(Object.prototype.hasOwnProperty.call(raw, 'created_at') && !out.createdAt) out.createdAt = raw.created_at;
+    return out;
+  }
+
   function normalizeSupabaseProduct(row, index){
-    row = row || {};
+    row = unwrapAdminDocumentRow(row || {});
     const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.id || String(index + 1).padStart(3, '0'));
     const numericId = toNumber(row.firebase_id || row.product_id || row.productId || row.sort_order || row.id || docId, index + 1);
     const status = cleanText(row.status || (toNumber(row.stock, 1) <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
@@ -8625,17 +8637,17 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   }
 
   async function supabaseFetchProducts(){
-    const url = DIRAC_SUPABASE_REST + '/products?select=*&is_active=eq.true&order=doc_id.asc';
+    const url = DIRAC_SUPABASE_REST + '/admin_documents?select=doc_id,data,updated_at,created_at&collection=eq.products&order=doc_id.asc';
     const response = await fetch(url, { headers: sbHeaders(), cache:'no-store', credentials:'omit' });
     const data = await response.json().catch(function(){ return []; });
     if(!response.ok){
-      throw new Error((data && (data.message || data.error)) || ('Supabase products HTTP ' + response.status));
+      throw new Error((data && (data.message || data.error || data.details)) || ('Supabase admin_documents products HTTP ' + response.status));
     }
     if(!Array.isArray(data)) throw new Error('Format produk Supabase tidak valid.');
     const next = data.map(normalizeSupabaseProduct).filter(function(item){
       return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
     });
-    if(!next.length) throw new Error('Supabase products kosong. Fallback katalog lokal tetap dipakai.');
+    if(!next.length) throw new Error('Supabase admin_documents products kosong. Fallback katalog lokal tetap dipakai.');
     products = next;
     window.diracSupabaseProductsLoaded = true;
     window.diracSupabaseProductCount = next.length;
@@ -8661,6 +8673,15 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       throw new Error((data && (data.message || data.error || data.details)) || ('Supabase ' + table + ' HTTP ' + response.status));
     }
     return data;
+  }
+
+  async function sbInsertAdminDocument(collection, docId, data, prefer){
+    return sbPost('admin_documents', {
+      collection: String(collection || '').trim(),
+      doc_id: String(docId || '').trim(),
+      data: data || {},
+      updated_at: new Date().toISOString()
+    }, prefer || 'return=representation');
   }
 
   function buildCheckoutSnapshot(orderText){
@@ -8694,68 +8715,103 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   async function saveCheckoutToSupabase(orderText){
     const snap = buildCheckoutSnapshot(orderText);
     const now = new Date().toISOString();
-    const customerPayload = {
-      doc_id: snap.customerDocId,
+    const nowMs = Date.now();
+
+    const customerData = {
       name: snap.name,
       phone: snap.phone,
       email: '',
       address: snap.address,
       segment: 'Reguler',
+      totalSpent: Number(snap.t.total || 0),
       total_spent: Number(snap.t.total || 0),
+      orderCount: 1,
       order_count: 1,
+      lastOrderAt: now,
       last_order_at: now,
       note: snap.note,
       source: 'order.html',
-      updated_at: now
+      createdAt: now,
+      updatedAt: now,
+      createdAtMs: nowMs,
+      updatedAtMs: nowMs
     };
+
     try{
-      await sbPost('customers', customerPayload, 'resolution=merge-duplicates,return=representation');
+      await sbInsertAdminDocument('customers', snap.customerDocId, customerData, 'return=representation');
     }catch(error){
-      console.warn('Customer Supabase belum tersimpan:', error);
+      console.warn('Customer admin_documents belum tersimpan:', error);
     }
 
-    const orderPayload = {
-      doc_id: snap.orderDocId,
+    const orderData = {
+      orderId: snap.orderId,
       order_id: snap.orderId,
+      customerDocId: snap.customerDocId,
       customer_doc_id: snap.customerDocId,
+      customerName: snap.name,
       customer_name: snap.name,
+      customerPhone: snap.phone,
       customer_phone: snap.phone,
+      customerEmail: '',
       customer_email: '',
       address: snap.address,
       items: snap.items,
+      productName: snap.items.map(function(item){ return item.productName; }).filter(Boolean).join(', '),
+      qty: snap.items.reduce(function(sum, item){ return sum + Number(item.qty || 0); }, 0),
       subtotal: Number(snap.t.sub || 0),
+      shippingCost: Number(snap.t.shipping || 0),
       shipping_cost: Number(snap.t.shipping || 0),
       discount: Number(snap.t.discount || 0),
       total: Number(snap.t.total || 0),
+      paymentMethod: snap.payment,
       payment_method: snap.payment,
+      paymentStatus: 'Belum Bayar',
       payment_status: 'Belum Bayar',
+      orderStatus: 'Menunggu Konfirmasi',
       order_status: 'Menunggu Konfirmasi',
       courier: typeof diracShippingLabel === 'function' ? diracShippingLabel(shippingMode) : String(shippingMode || ''),
+      trackingNumber: '',
       tracking_number: '',
+      paymentProof: '',
       payment_proof: '',
       note: snap.note,
       source: 'order.html',
-      created_at: now,
-      updated_at: now
+      stockSynced: false,
+      createdAt: now,
+      updatedAt: now,
+      createdAtMs: nowMs,
+      updatedAtMs: nowMs
     };
-    await sbPost('orders', orderPayload, 'return=representation');
+
+    await sbInsertAdminDocument('orders', snap.orderDocId, orderData, 'return=representation');
 
     if(snap.items.length){
-      const rows = snap.items.map(function(item){
+      const rows = snap.items.map(function(item, index){
         return {
-          order_doc_id: snap.orderDocId,
-          product_doc_id: item.productDocId,
-          product_id: item.productId,
-          product_name: item.productName,
-          qty: item.qty,
-          price: item.price,
-          subtotal: item.subtotal,
-          created_at: now
+          collection: 'order_items',
+          doc_id: snap.orderDocId + '-' + String(index + 1).padStart(2, '0'),
+          data: {
+            orderDocId: snap.orderDocId,
+            order_doc_id: snap.orderDocId,
+            productDocId: item.productDocId,
+            product_doc_id: item.productDocId,
+            productId: item.productId,
+            product_id: item.productId,
+            productName: item.productName,
+            product_name: item.productName,
+            qty: item.qty,
+            price: item.price,
+            subtotal: item.subtotal,
+            createdAt: now,
+            createdAtMs: nowMs
+          },
+          updated_at: now
         };
       });
-      try{ await sbPost('order_items', rows, 'return=minimal'); }
-      catch(error){ console.warn('Order items Supabase belum tersimpan:', error); }
+      try{ await sbPost('admin_documents', rows, 'return=minimal'); }
+      catch(error){ console.warn('Order items admin_documents belum tersimpan:', error); }
     }
+
     window.diracLastSupabaseOrderId = snap.orderId;
     return snap.orderId;
   }
