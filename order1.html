@@ -8534,21 +8534,13 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 })();
 </script>
 
-<script id="dirac-supabase-products-orders-js">
+<script id="dirac-backend-products-orders-js">
 (function(){
   'use strict';
 
-  const DIRAC_SUPABASE_URL = 'https://aqvzzfijlomcznotyigx.supabase.co';
-  const DIRAC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdnp6ZmlqbG9tY3pub3R5aWd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTE3OTIsImV4cCI6MjA5NTU2Nzc5Mn0.Azp6CBvS3amdzCX0ujsz_RgjNak6OrLHa5FsDJWXxF0';
-  const DIRAC_SUPABASE_REST = DIRAC_SUPABASE_URL + '/rest/v1';
-
-  function sbHeaders(extra){
-    return Object.assign({
-      apikey: DIRAC_SUPABASE_ANON_KEY,
-      Authorization: 'Bearer ' + DIRAC_SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
-    }, extra || {});
-  }
+  // Semua aktivitas katalog dan checkout website toko lewat backend.
+  // Tidak ada SUPABASE_URL, SUPABASE_ANON_KEY, atau REST Supabase di HTML ini.
+  const DIRAC_BACKEND_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish';
 
   function cleanText(value, fallback){
     const text = String(value ?? '').trim();
@@ -8561,29 +8553,36 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   }
 
   function boolActive(row){
-    row = unwrapAdminDocumentRow(row);
     if(row && Object.prototype.hasOwnProperty.call(row, 'is_active')) return row.is_active !== false;
+    if(row && Object.prototype.hasOwnProperty.call(row, 'isActive')) return row.isActive !== false;
     if(row && Object.prototype.hasOwnProperty.call(row, 'active')) return row.active !== false;
     return true;
   }
 
-  function unwrapAdminDocumentRow(row){
-    const raw = row || {};
-    const data = raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data) ? raw.data : raw;
-    const out = Object.assign({}, data || {});
-    if(Object.prototype.hasOwnProperty.call(raw, 'doc_id')) out.doc_id = raw.doc_id;
-    if(Object.prototype.hasOwnProperty.call(raw, 'collection')) out.collection = raw.collection;
-    if(Object.prototype.hasOwnProperty.call(raw, 'updated_at') && !out.updatedAt) out.updatedAt = raw.updated_at;
-    if(Object.prototype.hasOwnProperty.call(raw, 'created_at') && !out.createdAt) out.createdAt = raw.created_at;
-    return out;
+  function backendPost(payload){
+    return fetch(DIRAC_BACKEND_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'omit',
+      cache: 'no-store',
+      body: JSON.stringify(payload || {})
+    }).then(async function(response){
+      const data = await response.json().catch(function(){ return null; });
+      if(!response.ok || !data || data.success === false){
+        throw new Error((data && (data.error || data.message)) || ('Backend HTTP ' + response.status));
+      }
+      return data;
+    });
   }
 
-  function normalizeSupabaseProduct(row, index){
-    row = unwrapAdminDocumentRow(row || {});
-    const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.id || String(index + 1).padStart(3, '0'));
-    const numericId = toNumber(row.firebase_id || row.product_id || row.productId || row.sort_order || row.id || docId, index + 1);
-    const status = cleanText(row.status || (toNumber(row.stock, 1) <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
-    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo_url || row.photoUrl, '');
+  function normalizeBackendProduct(row, index){
+    row = row || {};
+    const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.id || String(index + 1).padStart(3, '0'));
+    const numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.firebase_id || row.firebaseId || row.id || docId, index + 1);
+    const stock = toNumber(row.stock || row.stok, 1);
+    const status = cleanText(row.status || row.publishStatus || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
+    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl, '');
+
     return {
       id: numericId || (index + 1),
       docId: docId,
@@ -8598,8 +8597,8 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       desc: cleanText(row.desc || row.description || row.deskripsi || ''),
       notes: cleanText(row.notes || row.catatan || ''),
       longDesc: cleanText(row.long_desc || row.longDesc || row.long_description || row.deskripsi_panjang || row.description || row.desc || ''),
-      status: status === 'hidden' || status === 'nonaktif' || status === 'inactive' ? 'hidden' : (status === 'sold' || status === 'habis' ? 'sold' : 'ready'),
-      stock: Math.max(0, Math.round(toNumber(row.stock || row.stok, status === 'sold' ? 0 : 1))),
+      status: status === 'hidden' || status === 'nonaktif' || status === 'inactive' || status === 'draft' || status === 'archived' || status === 'deleted' ? 'hidden' : (status === 'sold' || status === 'habis' ? 'sold' : 'ready'),
+      stock: Math.max(0, Math.round(stock)),
       soldCount: Math.max(0, Math.round(toNumber(row.sold_count || row.soldCount || row.terjual, 0))),
       rating: Math.max(0, Math.min(5, toNumber(row.rating, 0))),
       reviewCount: Math.max(0, Math.round(toNumber(row.review_count || row.reviewCount, 0))),
@@ -8607,7 +8606,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     };
   }
 
-  function enrichSupabaseProducts(){
+  function enrichBackendProducts(){
     try{
       const salesMap = typeof distributeSalesWithBucketRatio === 'function' ? distributeSalesWithBucketRatio(products, TOTAL_SOCIAL_PROOF_SOLD) : new Map();
       const topSellerIds = typeof getTopSellerIds === 'function' ? getTopSellerIds(salesMap, TOP_SELLER_COUNT) : new Set();
@@ -8627,61 +8626,38 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     }
   }
 
-  function refreshCatalogAfterSupabase(count){
+  function refreshCatalogAfterBackend(count){
     try{ if(typeof loadCart === 'function') loadCart(); }catch(error){}
     try{ if(typeof renderCategoryOptions === 'function') renderCategoryOptions(); }catch(error){}
     try{ if(typeof renderProducts === 'function') renderProducts({ keepFilterLimit:true }); }catch(error){}
     try{ if(typeof renderCart === 'function') renderCart(); }catch(error){}
     try{ if(typeof refreshDiracCurrencyStaticText === 'function') refreshDiracCurrencyStaticText(document.body || document); }catch(error){}
-    try{ if(typeof showToast === 'function') showToast('Katalog Supabase aktif: ' + count + ' produk.'); }catch(error){}
+    try{ if(typeof showToast === 'function') showToast('Katalog backend aktif: ' + count + ' produk.'); }catch(error){}
   }
 
-  async function supabaseFetchProducts(){
-    const url = DIRAC_SUPABASE_REST + '/admin_documents?select=doc_id,data,updated_at,created_at&collection=eq.products&order=doc_id.asc';
-    const response = await fetch(url, { headers: sbHeaders(), cache:'no-store', credentials:'omit' });
-    const data = await response.json().catch(function(){ return []; });
-    if(!response.ok){
-      throw new Error((data && (data.message || data.error || data.details)) || ('Supabase admin_documents products HTTP ' + response.status));
-    }
-    if(!Array.isArray(data)) throw new Error('Format produk Supabase tidak valid.');
-    const next = data.map(normalizeSupabaseProduct).filter(function(item){
+  async function backendFetchProducts(){
+    const data = await backendPost({
+      action: 'publicReadProducts',
+      limit: 5000
+    });
+
+    const list = Array.isArray(data.products) ? data.products : [];
+    const next = list.map(normalizeBackendProduct).filter(function(item){
       return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
     });
-    if(!next.length) throw new Error('Supabase admin_documents products kosong. Fallback katalog lokal tetap dipakai.');
+
+    if(!next.length) throw new Error('Produk backend kosong. Fallback katalog lokal tetap dipakai.');
+
     products = next;
-    window.diracSupabaseProductsLoaded = true;
-    window.diracSupabaseProductCount = next.length;
-    enrichSupabaseProducts();
-    refreshCatalogAfterSupabase(next.length);
+    window.diracBackendProductsLoaded = true;
+    window.diracBackendProductCount = next.length;
+    enrichBackendProducts();
+    refreshCatalogAfterBackend(next.length);
   }
 
   function slug(value, fallback){
     const clean = String(value || '').toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120);
     return clean || fallback || ('doc-' + Date.now());
-  }
-
-  async function sbPost(table, payload, prefer){
-    const response = await fetch(DIRAC_SUPABASE_REST + '/' + table, {
-      method:'POST',
-      headers: sbHeaders({ Prefer: prefer || 'return=representation' }),
-      credentials:'omit',
-      cache:'no-store',
-      body: JSON.stringify(payload)
-    });
-    const data = await response.json().catch(function(){ return null; });
-    if(!response.ok){
-      throw new Error((data && (data.message || data.error || data.details)) || ('Supabase ' + table + ' HTTP ' + response.status));
-    }
-    return data;
-  }
-
-  async function sbInsertAdminDocument(collection, docId, data, prefer){
-    return sbPost('admin_documents', {
-      collection: String(collection || '').trim(),
-      doc_id: String(docId || '').trim(),
-      data: data || {},
-      updated_at: new Date().toISOString()
-    }, prefer || 'return=representation');
   }
 
   function buildCheckoutSnapshot(orderText){
@@ -8695,6 +8671,8 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     const orderId = cleanText(match && match[1], 'DRC-' + Date.now().toString().slice(-7));
     const customerDocId = slug((phone || name) + '-' + name, 'customer-' + Date.now());
     const orderDocId = slug(orderId, 'order-' + Date.now());
+    const now = new Date().toISOString();
+
     const items = (cart || []).map(function(item){
       const p = typeof getProduct === 'function' ? getProduct(item.id) : null;
       const qty = Math.max(1, Number(item.qty || 1));
@@ -8705,121 +8683,79 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         productName: cleanText(p && p.title, 'Produk'),
         title: cleanText(p && p.title, 'Produk'),
         qty: qty,
+        quantity: qty,
         price: price,
-        subtotal: qty * price
+        subtotal: qty * price,
+        image: cleanText(p && p.img, ''),
+        createdAt: now,
+        createdAtMs: Date.now()
       };
     });
-    return { t, name, phone, address, payment, note, orderId, customerDocId, orderDocId, items };
+
+    return { t, name, phone, address, payment, note, orderId, customerDocId, orderDocId, items, now };
   }
 
-  async function saveCheckoutToSupabase(orderText){
+  async function saveCheckoutToBackend(orderText){
     const snap = buildCheckoutSnapshot(orderText);
-    const now = new Date().toISOString();
-    const nowMs = Date.now();
 
-    const customerData = {
+    const customerPayload = {
+      docId: snap.customerDocId,
+      id: snap.customerDocId,
+      customerId: snap.customerDocId,
       name: snap.name,
+      fullName: snap.name,
+      phone: snap.phone,
+      whatsapp: snap.phone,
+      email: '',
+      address: snap.address,
+      note: snap.note,
+      source: 'order1.html',
+      createdAt: snap.now,
+      createdAtMs: Date.now()
+    };
+
+    const orderPayload = {
+      docId: snap.orderDocId,
+      id: snap.orderDocId,
+      orderId: snap.orderId,
+      customerId: snap.customerDocId,
+      customerName: snap.name,
+      customerPhone: snap.phone,
+      customerEmail: '',
       phone: snap.phone,
       email: '',
       address: snap.address,
-      segment: 'Reguler',
-      totalSpent: Number(snap.t.total || 0),
-      total_spent: Number(snap.t.total || 0),
-      orderCount: 1,
-      order_count: 1,
-      lastOrderAt: now,
-      last_order_at: now,
-      note: snap.note,
-      source: 'order.html',
-      createdAt: now,
-      updatedAt: now,
-      createdAtMs: nowMs,
-      updatedAtMs: nowMs
-    };
-
-    try{
-      await sbInsertAdminDocument('customers', snap.customerDocId, customerData, 'return=representation');
-    }catch(error){
-      console.warn('Customer admin_documents belum tersimpan:', error);
-    }
-
-    const orderData = {
-      orderId: snap.orderId,
-      order_id: snap.orderId,
-      customerDocId: snap.customerDocId,
-      customer_doc_id: snap.customerDocId,
-      customerName: snap.name,
-      customer_name: snap.name,
-      customerPhone: snap.phone,
-      customer_phone: snap.phone,
-      customerEmail: '',
-      customer_email: '',
-      address: snap.address,
       items: snap.items,
-      productName: snap.items.map(function(item){ return item.productName; }).filter(Boolean).join(', '),
-      qty: snap.items.reduce(function(sum, item){ return sum + Number(item.qty || 0); }, 0),
       subtotal: Number(snap.t.sub || 0),
       shippingCost: Number(snap.t.shipping || 0),
-      shipping_cost: Number(snap.t.shipping || 0),
       discount: Number(snap.t.discount || 0),
       total: Number(snap.t.total || 0),
       paymentMethod: snap.payment,
-      payment_method: snap.payment,
       paymentStatus: 'Belum Bayar',
-      payment_status: 'Belum Bayar',
       orderStatus: 'Menunggu Konfirmasi',
-      order_status: 'Menunggu Konfirmasi',
+      status: 'Menunggu Konfirmasi',
       courier: typeof diracShippingLabel === 'function' ? diracShippingLabel(shippingMode) : String(shippingMode || ''),
-      trackingNumber: '',
-      tracking_number: '',
-      paymentProof: '',
-      payment_proof: '',
       note: snap.note,
-      source: 'order.html',
-      stockSynced: false,
-      createdAt: now,
-      updatedAt: now,
-      createdAtMs: nowMs,
-      updatedAtMs: nowMs
+      source: 'order1.html',
+      createdAt: snap.now,
+      createdAtMs: Date.now()
     };
 
-    await sbInsertAdminDocument('orders', snap.orderDocId, orderData, 'return=representation');
+    const data = await backendPost({
+      action: 'publicCreateOrder',
+      customer: customerPayload,
+      order: orderPayload,
+      items: snap.items
+    });
 
-    if(snap.items.length){
-      const rows = snap.items.map(function(item, index){
-        return {
-          collection: 'order_items',
-          doc_id: snap.orderDocId + '-' + String(index + 1).padStart(2, '0'),
-          data: {
-            orderDocId: snap.orderDocId,
-            order_doc_id: snap.orderDocId,
-            productDocId: item.productDocId,
-            product_doc_id: item.productDocId,
-            productId: item.productId,
-            product_id: item.productId,
-            productName: item.productName,
-            product_name: item.productName,
-            qty: item.qty,
-            price: item.price,
-            subtotal: item.subtotal,
-            createdAt: now,
-            createdAtMs: nowMs
-          },
-          updated_at: now
-        };
-      });
-      try{ await sbPost('admin_documents', rows, 'return=minimal'); }
-      catch(error){ console.warn('Order items admin_documents belum tersimpan:', error); }
-    }
-
-    window.diracLastSupabaseOrderId = snap.orderId;
-    return snap.orderId;
+    window.diracLastBackendOrderId = data.orderId || snap.orderId;
+    return data.orderId || snap.orderId;
   }
 
-  function installSupabaseCheckoutCapture(){
+  function installBackendCheckoutCapture(){
     document.addEventListener('click', async function(event){
       const btn = event.target && event.target.closest && event.target.closest('#sendWhatsappBtn');
-      if(!btn || btn.dataset.supabaseHandling === 'true') return;
+      if(!btn || btn.dataset.backendHandling === 'true') return;
       event.preventDefault();
       event.stopImmediatePropagation();
 
@@ -8831,31 +8767,41 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
           if(typeof showToast === 'function') showToast(diracTranslateCopy('Lengkapi data wajib sebelum kirim ke WhatsApp.'));
           return;
         }
+
         const text = typeof buildOrderText === 'function' ? buildOrderText() : '';
-        btn.dataset.supabaseHandling = 'true';
+        btn.dataset.backendHandling = 'true';
         btn.disabled = true;
         btn.classList.add('dirac-checkout-working');
+
         try{
-          await saveCheckoutToSupabase(text);
-          if(typeof showToast === 'function') showToast('Pesanan tersimpan di Supabase. WhatsApp dibuka.');
+          await saveCheckoutToBackend(text);
+          if(typeof showToast === 'function') showToast('Pesanan tersimpan lewat backend. WhatsApp dibuka.');
         }catch(error){
-          console.warn('Supabase order insert gagal, WhatsApp tetap dibuka:', error);
-          if(typeof showToast === 'function') showToast('WhatsApp dibuka. Supabase belum tersimpan: ' + (error.message || error));
+          console.warn('Backend order insert gagal, WhatsApp tetap dibuka:', error);
+          if(typeof showToast === 'function') showToast('WhatsApp dibuka. Backend belum tersimpan: ' + (error.message || error));
         }
+
         window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
       }finally{
         btn.disabled = false;
         btn.classList.remove('dirac-checkout-working');
-        delete btn.dataset.supabaseHandling;
+        delete btn.dataset.backendHandling;
       }
     }, true);
   }
 
+  function startBackendStorefront(){
+    installBackendCheckoutCapture();
+    backendFetchProducts().catch(function(error){
+      console.warn('Gagal memuat katalog lewat backend:', error);
+      try{ if(typeof showToast === 'function') showToast('Backend belum terbaca, katalog lokal tetap dipakai.'); }catch(e){}
+    });
+  }
+
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ installSupabaseCheckoutCapture(); supabaseFetchProducts().catch(function(error){ console.warn('Gagal memuat katalog Supabase:', error); try{ if(typeof showToast === 'function') showToast('Supabase belum terbaca, katalog lokal tetap dipakai.'); }catch(e){} }); }, { once:true });
+    document.addEventListener('DOMContentLoaded', startBackendStorefront, { once:true });
   }else{
-    installSupabaseCheckoutCapture();
-    supabaseFetchProducts().catch(function(error){ console.warn('Gagal memuat katalog Supabase:', error); try{ if(typeof showToast === 'function') showToast('Supabase belum terbaca, katalog lokal tetap dipakai.'); }catch(e){} });
+    startBackendStorefront();
   }
 })();
 </script>
