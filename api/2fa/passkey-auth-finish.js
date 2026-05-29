@@ -55,6 +55,26 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(A, B);
 }
 
+function isResourceExhausted(error) {
+  const code = error && (error.code || error.status || error.statusCode);
+  const message = [
+    error && error.message,
+    error && error.details,
+    error && error.stack
+  ].filter(Boolean).join("\n");
+
+  return (
+    code === 8 ||
+    String(code || "").toLowerCase() === "resource-exhausted" ||
+    /RESOURCE_EXHAUSTED|quota exceeded|quota/i.test(message)
+  );
+}
+
+function resourceExhaustedWarning(context, error) {
+  const rawMessage = String((error && error.message) || "Quota exceeded").replace(/\s+/g, " ").trim();
+  return `${context}: ${rawMessage}`;
+}
+
 function base64urlToBuffer(value) {
   return Buffer.from(String(value || ""), "base64url");
 }
@@ -129,8 +149,18 @@ function normalizeRole(value) {
 
 async function getAdminRole(db, decoded) {
   const claimRole = normalizeRole(decoded.role || (decoded.admin === true ? "admin" : ""));
-  const snap = await db.collection("users").doc(decoded.uid).get();
-  const data = snap.exists ? snap.data() || {} : {};
+  let data = {};
+
+  try {
+    const snap = await db.collection("users").doc(decoded.uid).get();
+    data = snap.exists ? snap.data() || {} : {};
+  } catch (error) {
+    if (isResourceExhausted(error) && claimRole) {
+      return claimRole;
+    }
+    throw error;
+  }
+
   const docRole = normalizeRole(data.role || "");
 
   if (data.active === false || data.disabled === true) {
@@ -168,7 +198,7 @@ function toMs(value) {
 async function createA2FSession(db, decoded) {
   const now = Date.now();
   const expiresAtMs = now + A2F_SESSION_TTL_MS;
-  await db.collection(A2F_SESSION_COLLECTION).doc(decoded.uid).set({
+  const sessionDoc = {
     uid: decoded.uid,
     email: decoded.email || "",
     verified: true,
@@ -180,8 +210,25 @@ async function createA2FSession(db, decoded) {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
     expiresAt: admin.firestore.Timestamp.fromMillis(expiresAtMs)
-  }, { merge: true });
-  return expiresAtMs;
+  };
+
+  try {
+    await db.collection(A2F_SESSION_COLLECTION).doc(decoded.uid).set(sessionDoc, { merge: true });
+    return {
+      expiresAtMs,
+      stored: true,
+      quotaFallback: false
+    };
+  } catch (error) {
+    if (!isResourceExhausted(error)) throw error;
+
+    return {
+      expiresAtMs,
+      stored: false,
+      quotaFallback: true,
+      warning: resourceExhaustedWarning("Firestore A2F session tidak tersimpan karena quota", error)
+    };
+  }
 }
 
 async function assertA2FSession(db, decoded) {
@@ -420,7 +467,8 @@ async function handlePasskeyFinish(req, res, body) {
     });
   }
 
-  const expiresAtMs = await createA2FSession(db, decoded);
+  const a2fSessionResult = await createA2FSession(db, decoded);
+  const expiresAtMs = a2fSessionResult.expiresAtMs;
   await db.collection("adminLogs").add({
     uid: decoded.uid,
     email: decoded.email || "",
@@ -435,7 +483,10 @@ async function handlePasskeyFinish(req, res, body) {
     success: true,
     message: "Passkey benar",
     a2fSession: "verified",
-    expiresAtMs
+    expiresAtMs,
+    sessionStored: a2fSessionResult.stored,
+    quotaFallback: a2fSessionResult.quotaFallback,
+    warning: a2fSessionResult.warning
   });
 }
 
