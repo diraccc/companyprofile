@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#071021">
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.recaptcha.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://companyprofilee-expk.vercel.app https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://www.recaptcha.net; frame-src https://www.google.com https://www.recaptcha.net; child-src https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob:; manifest-src 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.recaptcha.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://companyprofilee-expk.vercel.app https://aqvzzfijlomcznotyigx.supabase.co https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://storage.googleapis.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com https://www.recaptcha.net; frame-src https://www.google.com https://www.recaptcha.net; child-src https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob:; manifest-src 'self'; form-action 'self'">
   <title>Admin Produk - Dirac Group</title>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <style>
@@ -1349,6 +1349,13 @@
       TWO_FACTOR_HASHES: []
     });
     const A2F_LOCK_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/lock';
+    const A2F_LOCK_PROVIDER = 'supabase';
+    const A2F_SUPABASE_CONFIG = Object.freeze({
+      url: 'https://aqvzzfijlomcznotyigx.supabase.co',
+      restUrl: 'https://aqvzzfijlomcznotyigx.supabase.co/rest/v1',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdnp6ZmlqbG9tY3pub3R5aWd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTE3OTIsImV4cCI6MjA5NTU2Nzc5Mn0.Azp6CBvS3amdzCX0ujsz_RgjNak6OrLHa5FsDJWXxF0',
+      lockTable: 'a2f_locks'
+    });
     const A2F_BACKEND_MAX_FAILURES = 3;
     const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
@@ -1992,7 +1999,7 @@
       }catch(error){
         twoFactorBackendLocked = true;
         setTwoFactorInputLocked(true, 'Lock backend error');
-        setNotice(els.twoFactorError, error.message || 'Backend lock A2F belum siap. Coba deploy ulang backend.', 'danger');
+        setNotice(els.twoFactorError, error.message || 'Supabase lock A2F belum siap. Jalankan SQL a2f_locks, lalu coba lagi.', 'danger');
       }
     }
     async function readApiJson(response){
@@ -2029,24 +2036,199 @@
       if(!data || typeof data !== 'object') return false;
       return data.locked === true || data.permanentBan === true || Number(data.lockUntilMs || 0) > 0 || Number(data.failedCount || 0) > 0;
     }
-    async function callA2fBackendLock(action, payload = {}){
-      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
-      const response = await fetch(A2F_LOCK_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({
-          action,
-          idToken,
-          uid: currentAdmin.uid || (auth.currentUser && auth.currentUser.uid) || '',
-          email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || ''
-        }, payload || {}))
-      });
-      const data = await readApiJson(response);
-      data.httpStatus = response.status;
-      if(response.status >= 500){
-        throw new Error(data.error || 'Backend lock A2F error.');
+    function getA2fSupabaseIdentity(){
+      const uid = String(currentAdmin.uid || (auth.currentUser && auth.currentUser.uid) || currentAdmin.email || (auth.currentUser && auth.currentUser.email) || 'unknown-admin').trim();
+      const email = String(currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '').trim();
+      return { uid: uid || email || 'unknown-admin', email };
+    }
+    function normalizeA2fSupabaseLockRow(row, fallback={}){
+      const source = row && typeof row === 'object' ? row : {};
+      const failedCount = Math.max(0, Number(source.failed_count ?? source.failedCount ?? fallback.failedCount ?? 0));
+      const lockUntilMs = Math.max(0, Number(source.lock_until_ms ?? source.lockUntilMs ?? fallback.lockUntilMs ?? 0));
+      const permanentBan = Boolean(source.permanent_ban ?? source.permanentBan ?? fallback.permanentBan ?? false);
+      const locked = Boolean(source.locked ?? fallback.locked ?? false) || permanentBan || (lockUntilMs > Date.now());
+      return {
+        success: true,
+        provider: A2F_LOCK_PROVIDER,
+        locked,
+        permanentBan,
+        failedCount,
+        lockUntilMs,
+        uid: String(source.uid || fallback.uid || ''),
+        email: String(source.email || fallback.email || ''),
+        error: source.last_reason || source.error || fallback.error || ''
+      };
+    }
+    async function supabaseA2fFetch(path, options={}){
+      const headers = Object.assign({
+        apikey: A2F_SUPABASE_CONFIG.anonKey,
+        Authorization: 'Bearer ' + A2F_SUPABASE_CONFIG.anonKey
+      }, options.headers || {});
+      const response = await fetch(A2F_SUPABASE_CONFIG.restUrl + path, Object.assign({
+        credentials: 'omit',
+        cache: 'no-store',
+        headers
+      }, options, { headers }));
+      const text = await response.text();
+      let data = null;
+      if(text){
+        try{ data = JSON.parse(text); }
+        catch(_error){ data = { message: text }; }
+      }
+      if(!response.ok){
+        const message = data && (data.message || data.error || data.details || data.hint) ? (data.message || data.error || data.details || data.hint) : ('Supabase A2F lock error (' + response.status + ').');
+        const error = new Error(message);
+        error.httpStatus = response.status;
+        error.data = data;
+        throw error;
       }
       return data;
+    }
+    async function readSupabaseA2fLockRow(uid){
+      const rows = await supabaseA2fFetch('/' + A2F_SUPABASE_CONFIG.lockTable + '?select=*&uid=eq.' + encodeURIComponent(uid) + '&limit=1', {
+        method: 'GET'
+      });
+      return Array.isArray(rows) && rows.length ? rows[0] : null;
+    }
+    async function upsertSupabaseA2fLockRow(row){
+      const data = await supabaseA2fFetch('/' + A2F_SUPABASE_CONFIG.lockTable + '?on_conflict=uid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=representation'
+        },
+        body: JSON.stringify(row)
+      });
+      return Array.isArray(data) && data.length ? data[0] : data;
+    }
+    async function insertSupabaseA2fSecurityLog(action, detail, level='warn'){
+      try{
+        await supabaseA2fFetch('/security_logs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal'
+          },
+          body: JSON.stringify({
+            action,
+            detail,
+            level,
+            admin_email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
+            role: currentAdmin.role || 'admin'
+          })
+        });
+      }catch(error){
+        console.warn('Security log Supabase A2F gagal:', error);
+      }
+    }
+    function a2fLocalFallbackKey(identity){
+      const raw = String(identity.uid || identity.email || 'unknown-admin');
+      let encoded = '';
+      try{ encoded = btoa(unescape(encodeURIComponent(raw))).replace(/=+$/g, '').replace(/[^a-zA-Z0-9_-]/g, ''); }
+      catch(_error){ encoded = raw.replace(/[^a-zA-Z0-9_-]/g, '_'); }
+      return 'dirac_a2f_supabase_lock_fallback_' + encoded;
+    }
+    function readLocalA2fFallbackState(identity){
+      const key = a2fLocalFallbackKey(identity);
+      let stored = {};
+      try{ stored = JSON.parse(localStorage.getItem(key) || '{}') || {}; }
+      catch(_error){ stored = {}; }
+      if(stored.lockUntilMs && Number(stored.lockUntilMs) <= Date.now() && !stored.permanentBan){
+        stored.locked = false;
+        stored.lockUntilMs = 0;
+        try{ localStorage.setItem(key, JSON.stringify(stored)); }catch(_error){}
+      }
+      return Object.assign({ uid: identity.uid, email: identity.email, failedCount: 0, locked: false, permanentBan: false, lockUntilMs: 0 }, stored);
+    }
+    function writeLocalA2fFallbackState(identity, state){
+      const key = a2fLocalFallbackKey(identity);
+      const next = Object.assign({}, state, { uid: identity.uid, email: identity.email, updatedAtMs: Date.now() });
+      try{ localStorage.setItem(key, JSON.stringify(next)); }catch(_error){}
+      return next;
+    }
+    function localA2fFallbackLock(action, payload, cause){
+      const identity = getA2fSupabaseIdentity();
+      let state = readLocalA2fFallbackState(identity);
+      const reason = (cause && cause.message) ? cause.message : 'Supabase lock belum siap.';
+      if(action === 'fail'){
+        const failedCount = Math.max(0, Number(state.failedCount || 0)) + 1;
+        state.failedCount = failedCount;
+        state.locked = failedCount >= A2F_BACKEND_MAX_FAILURES;
+        state.permanentBan = failedCount >= A2F_BACKEND_MAX_FAILURES;
+        state.lastReason = state.permanentBan ? 'A2F diblokir permanen oleh fallback lokal karena salah 3x.' : 'Percobaan A2F salah dicatat di fallback lokal.';
+        state = writeLocalA2fFallbackState(identity, state);
+      }else if(action === 'timeout'){
+        state.failedCount = A2F_BACKEND_MAX_FAILURES;
+        state.locked = true;
+        state.permanentBan = true;
+        state.lastReason = 'A2F timeout dicatat di fallback lokal.';
+        state = writeLocalA2fFallbackState(identity, state);
+      }else if(action === 'timeout-marker'){
+        state.lastReason = payload && payload.reason ? String(payload.reason) : reason;
+        state = writeLocalA2fFallbackState(identity, state);
+      }
+      return Object.assign(normalizeA2fSupabaseLockRow({
+        uid: state.uid,
+        email: state.email,
+        failed_count: state.failedCount,
+        locked: state.locked,
+        permanent_ban: state.permanentBan,
+        lock_until_ms: state.lockUntilMs,
+        last_reason: state.lastReason || reason
+      }, identity), {
+        fallback: true,
+        fallbackReason: reason
+      });
+    }
+    async function callA2fBackendLock(action, payload = {}){
+      const identity = getA2fSupabaseIdentity();
+      try{
+        const existingRow = await readSupabaseA2fLockRow(identity.uid);
+        const currentState = normalizeA2fSupabaseLockRow(existingRow, identity);
+        if(action === 'check'){
+          return currentState;
+        }
+        if(action === 'timeout-marker'){
+          await insertSupabaseA2fSecurityLog('auth.2fa_timeout_marker', payload && payload.reason ? String(payload.reason) : 'A2F timeout marker', 'danger');
+          return currentState;
+        }
+        let failedCount = Number(currentState.failedCount || 0);
+        let permanentBan = Boolean(currentState.permanentBan);
+        let locked = Boolean(currentState.locked);
+        let lockUntilMs = Number(currentState.lockUntilMs || 0);
+        let reason = '';
+        if(action === 'fail'){
+          failedCount += 1;
+          permanentBan = permanentBan || failedCount >= A2F_BACKEND_MAX_FAILURES;
+          locked = permanentBan || (lockUntilMs > Date.now());
+          reason = permanentBan ? 'A2F diblokir permanen karena salah 3x.' : 'Kode A2F salah.';
+        }else if(action === 'timeout'){
+          failedCount = A2F_BACKEND_MAX_FAILURES;
+          permanentBan = true;
+          locked = true;
+          lockUntilMs = 0;
+          reason = payload && payload.reason ? String(payload.reason) : 'A2F timeout.';
+        }else{
+          reason = 'Aksi A2F lock tidak dikenal: ' + String(action || 'unknown');
+        }
+        const savedRow = await upsertSupabaseA2fLockRow({
+          uid: identity.uid,
+          email: identity.email,
+          failed_count: failedCount,
+          locked,
+          permanent_ban: permanentBan,
+          lock_until_ms: lockUntilMs,
+          last_action: String(action || ''),
+          last_reason: reason,
+          client_time_ms: Number(payload && payload.clientTimeMs || Date.now()),
+          payload: payload && typeof payload === 'object' ? payload : {}
+        });
+        await insertSupabaseA2fSecurityLog('auth.2fa_lock_' + String(action || 'unknown'), reason, permanentBan || action === 'timeout' ? 'danger' : 'warn');
+        return normalizeA2fSupabaseLockRow(savedRow, identity);
+      }catch(error){
+        console.warn('Supabase A2F lock memakai fallback lokal:', error);
+        return localA2fFallbackLock(action, payload, error);
+      }
     }
     async function checkA2fBackendLock(){
       return callA2fBackendLock('check');
@@ -2189,8 +2371,8 @@
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = true;
         setTwoFactorInputLocked(true, 'Diblokir');
-        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat backend/Firebase.', 'danger');
-        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban backend.', 'danger');
+        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat tabel Supabase a2f_locks.', 'danger');
+        setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban Supabase.', 'danger');
         return true;
       }
       const lockUntilMs = Number(state.lockUntilMs || 0);
@@ -2246,7 +2428,7 @@
           twoFactorBackendLocked = true;
           twoFactorPermanentLocked = true;
           setTwoFactorInputLocked(true, 'Diblokir');
-          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa /api/2fa/lock.', 'danger');
+          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa tabel Supabase a2f_locks.', 'danger');
           return true;
         }
         setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
@@ -2790,7 +2972,7 @@
         const state = await checkA2fBackendLock();
         if(applyA2fBackendLockState(state)) return;
       }catch(error){
-        setNotice(els.twoFactorError, error.message || 'Gagal cek lock backend A2F.', 'danger');
+        setNotice(els.twoFactorError, error.message || 'Gagal cek lock Supabase A2F.', 'danger');
         return;
       }
 
@@ -2879,7 +3061,7 @@
           const state = await checkA2fBackendLock();
           if(applyA2fBackendLockState(state)) return;
         }catch(error){
-          setNotice(els.twoFactorError, error.message || 'Gagal cek lock backend A2F.', 'danger');
+          setNotice(els.twoFactorError, error.message || 'Gagal cek lock Supabase A2F.', 'danger');
           return;
         }
         if(twoFactorStep < 6){
