@@ -1392,7 +1392,7 @@
     const ADMIN_API_BASE_URL = 'https://companyprofilee-expk.vercel.app';
     const ADMIN_FIRESTORE_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
     const ADMIN_UPLOAD_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
-    const ADMIN_READ_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/reset-a2f-ban';
+    const ADMIN_READ_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
 
     function serverTimestamp(){
       return { __diracFirestoreOp: 'serverTimestamp' };
@@ -7964,78 +7964,6 @@
     }catch(error){
       console.warn('Backend-only safety patch gagal dipasang:', error);
     }
-
-
-    /* =========================================================
-       FINAL A2F BACKEND LOCK PATCH
-       Semua cooldown/ban dicatat lewat backend verify-step.js.
-       HTML tidak baca/tulis Supabase langsung dan tidak pakai dummy false.
-       ========================================================= */
-    try{
-      async function diracFinalBackendA2fLock(action, payload = {}){
-        if(typeof callStep6EmailApproval !== 'function'){
-          throw new Error('Backend A2F helper belum siap.');
-        }
-
-        const rawAction = String(action || 'check').trim();
-        let backendAction = 'checkA2fBanStatus';
-
-        if(rawAction === 'fail') backendAction = 'recordA2fFailure';
-        else if(rawAction === 'timeout') backendAction = 'recordA2fTimeoutBlock';
-        else if(rawAction === 'timeout-marker') backendAction = 'recordA2fTimeoutMarker';
-        else if(rawAction === 'check') backendAction = 'checkA2fBanStatus';
-
-        const data = await callStep6EmailApproval(backendAction, Object.assign({
-          clientTimeMs: Date.now(),
-          source: 'admin_html_backend_only'
-        }, payload || {}));
-
-        return Object.assign({
-          success: true,
-          provider: 'backend',
-          action: rawAction,
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0
-        }, data || {});
-      }
-
-      checkA2fBackendLock = function(){
-        return diracFinalBackendA2fLock('check');
-      };
-
-      callA2fBackendLock = function(action, payload = {}){
-        return diracFinalBackendA2fLock(action, payload);
-      };
-
-      recordA2fBackendFailure = function(){
-        return diracFinalBackendA2fLock('fail');
-      };
-
-      recordA2fTimeoutBlock = function(reason){
-        return diracFinalBackendA2fLock('timeout', {
-          reason: String(reason || 'A2F timeout dari admin HTML')
-        });
-      };
-
-      saveA2fTimeoutBlockMarker = function(reason){
-        return diracFinalBackendA2fLock('timeout-marker', {
-          reason: String(reason || 'A2F timeout marker dari admin HTML')
-        });
-      };
-
-      readSupabaseA2fLockRow = function(){
-        return diracFinalBackendA2fLock('check');
-      };
-
-      upsertSupabaseA2fLockRow = async function(row){
-        return row || {};
-      };
-    }catch(error){
-      console.warn('Final A2F backend lock patch gagal dipasang:', error);
-    }
-
 </script>
 </body>
 </html>
