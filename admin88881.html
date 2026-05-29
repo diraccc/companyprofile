@@ -7556,6 +7556,290 @@
       }, 80);
     }
 
+
+    /* === Dirac A2F Supabase Lock Adapter v2
+       Patch tambahan saja. Sistem login Firebase, hash A2F, dan konfigurasi utama tidak diubah.
+       Tujuan: membuat lock A2F Supabase tahan terhadap perbedaan skema tabel:
+       - skema lama: uid, failed_count, locked, permanent_ban, lock_until_ms
+       - skema SQL baru: user_id, email, failed_attempts, locked_until, permanent_locked, reason
+    */
+    if(!window.__diracA2fSupabaseLockAdapterV2Installed){
+      window.__diracA2fSupabaseLockAdapterV2Installed = true;
+
+      function diracA2fUuidLike(value){
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+      }
+
+      function diracA2fNumber(value, fallback=0){
+        const n = Number(value);
+        return Number.isFinite(n) ? n : fallback;
+      }
+
+      function diracA2fMsFrom(value){
+        if(value === null || value === undefined || value === '') return 0;
+        if(typeof value === 'number') return Math.max(0, value);
+        const text = String(value || '').trim();
+        if(/^\d+$/.test(text)) return Math.max(0, Number(text));
+        const parsed = Date.parse(text);
+        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+      }
+
+      function diracA2fIsoFromMs(ms){
+        const n = Number(ms || 0);
+        return n > 0 ? new Date(n).toISOString() : null;
+      }
+
+      function diracA2fSafeJson(value){
+        if(value === undefined) return null;
+        if(value === null) return null;
+        try{ return JSON.parse(JSON.stringify(value)); }
+        catch(_error){ return { value:String(value) }; }
+      }
+
+      function diracA2fIsMissingColumnError(error){
+        const raw = String(
+          (error && error.message) ||
+          (error && error.data && (error.data.message || error.data.details || error.data.hint)) ||
+          ''
+        ).toLowerCase();
+        return raw.includes('column') || raw.includes('schema cache') || raw.includes('does not exist') || raw.includes('could not find');
+      }
+
+      function diracA2fNormalizeLockRow(row, fallback={}){
+        const source = row && typeof row === 'object' ? row : {};
+        const failedCount = Math.max(0, diracA2fNumber(
+          source.failed_count ?? source.failedCount ?? source.failed_attempts ?? source.failedAttempts ?? fallback.failedCount,
+          0
+        ));
+        const lockUntilMs = Math.max(0, diracA2fMsFrom(
+          source.lock_until_ms ?? source.lockUntilMs ?? source.locked_until ?? source.lockedUntil ?? fallback.lockUntilMs
+        ));
+        const permanentBan = Boolean(
+          source.permanent_ban ?? source.permanentBan ?? source.permanent_locked ?? source.permanentLocked ?? fallback.permanentBan ?? false
+        );
+        const lockedFlag = Boolean(source.locked ?? fallback.locked ?? false);
+        const locked = lockedFlag || permanentBan || (lockUntilMs > Date.now());
+        return {
+          success: true,
+          provider: A2F_LOCK_PROVIDER,
+          locked,
+          permanentBan,
+          failedCount,
+          lockUntilMs,
+          uid: String(source.uid || source.user_id || fallback.uid || fallback.user_id || ''),
+          email: String(source.email || fallback.email || ''),
+          error: source.last_reason || source.reason || source.error || fallback.error || ''
+        };
+      }
+
+      normalizeA2fSupabaseLockRow = diracA2fNormalizeLockRow;
+
+      function getA2fSupabaseIdentity(){
+        const uid = String(
+          currentAdmin.uid ||
+          (auth.currentUser && auth.currentUser.uid) ||
+          currentAdmin.email ||
+          (auth.currentUser && auth.currentUser.email) ||
+          'unknown-admin'
+        ).trim();
+        const email = String(currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '').trim();
+        return { uid: uid || email || 'unknown-admin', email };
+      }
+
+      async function diracA2fTrySelect(query){
+        const rows = await supabaseA2fFetch('/' + A2F_SUPABASE_CONFIG.lockTable + '?select=*&' + query + '&limit=1', { method:'GET' });
+        return Array.isArray(rows) && rows.length ? rows[0] : null;
+      }
+
+      readSupabaseA2fLockRow = async function(uid){
+        const identity = getA2fSupabaseIdentity();
+        const lookupUid = String(uid || identity.uid || '').trim();
+        const attempts = [];
+
+        if(lookupUid){
+          attempts.push('uid=eq.' + encodeURIComponent(lookupUid));
+          if(diracA2fUuidLike(lookupUid)) attempts.push('user_id=eq.' + encodeURIComponent(lookupUid));
+        }
+        if(identity.email){
+          attempts.push('email=eq.' + encodeURIComponent(identity.email));
+        }
+
+        let lastError = null;
+        for(const query of attempts){
+          try{
+            const row = await diracA2fTrySelect(query);
+            if(row) return row;
+          }catch(error){
+            lastError = error;
+            if(!diracA2fIsMissingColumnError(error)) throw error;
+          }
+        }
+
+        if(lastError && !diracA2fIsMissingColumnError(lastError)) throw lastError;
+        return null;
+      };
+
+      function diracA2fBuildLegacyPayload(row, state, identity, reason){
+        return {
+          uid: identity.uid,
+          email: identity.email,
+          failed_count: state.failedCount,
+          locked: state.locked,
+          permanent_ban: state.permanentBan,
+          lock_until_ms: state.lockUntilMs || 0,
+          last_action: String(row.last_action || row.lastAction || ''),
+          last_reason: reason,
+          client_time_ms: diracA2fNumber(row.client_time_ms || row.clientTimeMs, Date.now()),
+          payload: diracA2fSafeJson(row.payload || {})
+        };
+      }
+
+      function diracA2fBuildSqlPayload(row, state, identity, reason){
+        const payload = {
+          email: identity.email,
+          failed_attempts: state.failedCount,
+          locked_until: diracA2fIsoFromMs(state.lockUntilMs),
+          permanent_locked: state.permanentBan,
+          reason,
+          updated_at: new Date().toISOString()
+        };
+        if(diracA2fUuidLike(identity.uid)) payload.user_id = identity.uid;
+        return payload;
+      }
+
+      async function diracA2fWriteCandidate(existingRow, candidate){
+        const headers = {
+          'Content-Type':'application/json',
+          Prefer:'return=representation'
+        };
+
+        if(existingRow && existingRow.id){
+          const data = await supabaseA2fFetch('/' + A2F_SUPABASE_CONFIG.lockTable + '?id=eq.' + encodeURIComponent(existingRow.id), {
+            method:'PATCH',
+            headers,
+            body: JSON.stringify(candidate)
+          });
+          return Array.isArray(data) && data.length ? data[0] : data;
+        }
+
+        const data = await supabaseA2fFetch('/' + A2F_SUPABASE_CONFIG.lockTable, {
+          method:'POST',
+          headers,
+          body: JSON.stringify(candidate)
+        });
+        return Array.isArray(data) && data.length ? data[0] : data;
+      }
+
+      upsertSupabaseA2fLockRow = async function(row){
+        const identity = getA2fSupabaseIdentity();
+        let existingRow = null;
+        try{ existingRow = await readSupabaseA2fLockRow(identity.uid); }
+        catch(error){
+          if(!diracA2fIsMissingColumnError(error)) throw error;
+        }
+
+        const state = diracA2fNormalizeLockRow(row, identity);
+        const reason = String(row.last_reason || row.reason || state.error || '').trim();
+
+        const candidates = [
+          diracA2fBuildLegacyPayload(row, state, identity, reason),
+          diracA2fBuildSqlPayload(row, state, identity, reason)
+        ];
+
+        let lastError = null;
+        for(const candidate of candidates){
+          try{
+            return await diracA2fWriteCandidate(existingRow, candidate);
+          }catch(error){
+            lastError = error;
+            if(!diracA2fIsMissingColumnError(error)) throw error;
+          }
+        }
+
+        if(lastError) throw lastError;
+        throw new Error('Supabase A2F lock tidak bisa ditulis.');
+      };
+
+      callA2fBackendLock = async function(action, payload = {}){
+        const identity = getA2fSupabaseIdentity();
+        try{
+          const existingRow = await readSupabaseA2fLockRow(identity.uid);
+          const currentState = diracA2fNormalizeLockRow(existingRow, identity);
+
+          if(action === 'check'){
+            return currentState;
+          }
+
+          if(action === 'timeout-marker'){
+            await insertSupabaseA2fSecurityLog(
+              'auth.2fa_timeout_marker',
+              payload && payload.reason ? String(payload.reason) : 'A2F timeout marker',
+              'danger'
+            );
+            return currentState;
+          }
+
+          let failedCount = Number(currentState.failedCount || 0);
+          let permanentBan = Boolean(currentState.permanentBan);
+          let locked = Boolean(currentState.locked);
+          let lockUntilMs = Number(currentState.lockUntilMs || 0);
+          let reason = '';
+
+          if(action === 'fail'){
+            failedCount += 1;
+            permanentBan = permanentBan || failedCount >= A2F_BACKEND_MAX_FAILURES;
+            locked = permanentBan || (lockUntilMs > Date.now());
+            reason = permanentBan ? 'A2F diblokir permanen karena salah 3x.' : 'Kode A2F salah.';
+          }else if(action === 'timeout'){
+            failedCount = A2F_BACKEND_MAX_FAILURES;
+            permanentBan = true;
+            locked = true;
+            lockUntilMs = 0;
+            reason = payload && payload.reason ? String(payload.reason) : 'A2F timeout.';
+          }else{
+            reason = 'Aksi A2F lock tidak dikenal: ' + String(action || 'unknown');
+          }
+
+          const savedRow = await upsertSupabaseA2fLockRow({
+            uid: identity.uid,
+            user_id: diracA2fUuidLike(identity.uid) ? identity.uid : undefined,
+            email: identity.email,
+            failed_count: failedCount,
+            failed_attempts: failedCount,
+            locked,
+            permanent_ban: permanentBan,
+            permanent_locked: permanentBan,
+            lock_until_ms: lockUntilMs,
+            locked_until: diracA2fIsoFromMs(lockUntilMs),
+            last_action: String(action || ''),
+            last_reason: reason,
+            reason,
+            client_time_ms: Number(payload && payload.clientTimeMs || Date.now()),
+            payload: payload && typeof payload === 'object' ? payload : {}
+          });
+
+          await insertSupabaseA2fSecurityLog(
+            'auth.2fa_lock_' + String(action || 'unknown'),
+            reason,
+            permanentBan || action === 'timeout' ? 'danger' : 'warn'
+          );
+
+          return diracA2fNormalizeLockRow(savedRow, identity);
+        }catch(error){
+          console.warn('Supabase A2F lock memakai fallback lokal:', error);
+          return localA2fFallbackLock(action, payload, error);
+        }
+      };
+
+      checkA2fBackendLock = function(){
+        return callA2fBackendLock('check');
+      };
+
+      recordA2fBackendFailure = function(){
+        return callA2fBackendLock('fail');
+      };
+    }
+
 </script>
 </body>
 </html>
