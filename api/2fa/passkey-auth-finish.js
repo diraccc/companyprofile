@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const admin = require("firebase-admin");
+const { createClient } = require("@supabase/supabase-js");
 const { verifyAuthenticationResponse } = require("@simplewebauthn/server");
 
 const DEFAULT_ALLOWED_COLLECTIONS = [
@@ -18,7 +19,9 @@ const ALLOWED_COLLECTIONS = new Set(
     .map((value) => value.trim())
     .filter(Boolean)
 );
-const A2F_SESSION_COLLECTION = process.env.A2F_SESSION_COLLECTION || "adminA2FSessions";
+const A2F_SESSION_COLLECTION = process.env.A2F_SESSION_COLLECTION || "adminA2FSessions"; // legacy Firebase fallback name
+const A2F_SESSION_TABLE = process.env.A2F_SESSION_TABLE || "admin_a2f_sessions";
+const ADMIN_LOG_TABLE = process.env.ADMIN_LOG_TABLE || "admin_logs";
 const A2F_SESSION_TTL_MS = Number(process.env.A2F_SESSION_TTL_MS || 30 * 60 * 1000);
 const MAX_UPLOAD_BYTES = Number(process.env.ADMIN_MAX_UPLOAD_BYTES || 7 * 1024 * 1024);
 const ALLOWED_UPLOAD_PREFIXES = String(process.env.ADMIN_ALLOWED_UPLOAD_PREFIXES || "product-images/,payment-proofs/")
@@ -126,6 +129,38 @@ function getDb() {
   return admin.firestore();
 }
 
+function getSupabaseAdmin() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw Object.assign(new Error("ENV Supabase belum lengkap. Isi SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY di Vercel."), { status: 500 });
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
+}
+
+async function writeAdminLog({ uid, email, role, action, ok = true, message = "" }) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from(ADMIN_LOG_TABLE).insert({
+    uid: uid || "",
+    email: email || "",
+    role: role || "",
+    action: action || "",
+    ok: Boolean(ok),
+    message: message || ""
+  });
+
+  if (error) {
+    console.warn("Gagal menulis admin log Supabase:", error.message || error);
+  }
+}
+
 function getBearerToken(req) {
   const header = String(req.headers.authorization || "");
   const match = header.match(/^Bearer\s+(.+)$/i);
@@ -195,62 +230,62 @@ function toMs(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-async function createA2FSession(db, decoded) {
+async function createA2FSession(decoded, role) {
+  const supabase = getSupabaseAdmin();
   const now = Date.now();
   const expiresAtMs = now + A2F_SESSION_TTL_MS;
-  const sessionDoc = {
+
+  const { error } = await supabase.from(A2F_SESSION_TABLE).upsert({
     uid: decoded.uid,
     email: decoded.email || "",
+    role: role || "",
     verified: true,
     status: "verified",
     method: "passkey",
-    createdAtMs: now,
-    lastUsedAtMs: now,
-    expiresAtMs,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
-    expiresAt: admin.firestore.Timestamp.fromMillis(expiresAtMs)
-  };
+    created_at: new Date(now).toISOString(),
+    last_used_at: new Date(now).toISOString(),
+    expires_at: new Date(expiresAtMs).toISOString()
+  }, { onConflict: "uid" });
 
-  try {
-    await db.collection(A2F_SESSION_COLLECTION).doc(decoded.uid).set(sessionDoc, { merge: true });
-    return {
-      expiresAtMs,
-      stored: true,
-      quotaFallback: false
-    };
-  } catch (error) {
-    if (!isResourceExhausted(error)) throw error;
-
-    return {
-      expiresAtMs,
-      stored: false,
-      quotaFallback: true,
-      warning: resourceExhaustedWarning("Firestore A2F session tidak tersimpan karena quota", error)
-    };
+  if (error) {
+    throw Object.assign(new Error("Gagal menyimpan session A2F ke Supabase: " + error.message), { status: 500 });
   }
+
+  return {
+    expiresAtMs,
+    stored: true,
+    quotaFallback: false
+  };
 }
 
-async function assertA2FSession(db, decoded) {
-  const snap = await db.collection(A2F_SESSION_COLLECTION).doc(decoded.uid).get();
-  if (!snap.exists) {
+async function assertA2FSession(decoded) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(A2F_SESSION_TABLE)
+    .select("uid, verified, status, expires_at")
+    .eq("uid", decoded.uid)
+    .maybeSingle();
+
+  if (error) {
+    throw Object.assign(new Error("Gagal cek session A2F Supabase: " + error.message), { status: 500 });
+  }
+
+  if (!data) {
     throw Object.assign(new Error("A2F session not found. Selesaikan A2F lagi."), { status: 403 });
   }
 
-  const data = snap.data() || {};
-  const verified = data.verified === true || data.completed === true || data.status === "verified";
-  const expiresAtMs = toMs(data.expiresAt) || Number(data.expiresAtMs || 0);
-  const createdAtMs = toMs(data.createdAt) || Number(data.createdAtMs || 0);
-  const notExpired = expiresAtMs ? expiresAtMs > Date.now() : (createdAtMs && Date.now() - createdAtMs <= A2F_SESSION_TTL_MS);
+  const verified = data.verified === true || data.status === "verified";
+  const expiresAtMs = Date.parse(data.expires_at || "");
+  const notExpired = Number.isFinite(expiresAtMs) && expiresAtMs > Date.now();
 
   if (!verified || !notExpired) {
     throw Object.assign(new Error("A2F session expired or invalid. Selesaikan A2F lagi."), { status: 403 });
   }
 
-  await db.collection(A2F_SESSION_COLLECTION).doc(decoded.uid).set({
-    lastUsedAtMs: Date.now(),
-    lastUsedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true }).catch(() => {});
+  await supabase
+    .from(A2F_SESSION_TABLE)
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("uid", decoded.uid);
 }
 
 function cleanDocId(id) {
@@ -405,18 +440,16 @@ async function handleAdminAction(req, res, body) {
   if (!canWrite(role)) {
     throw Object.assign(new Error("Role admin/editor wajib untuk aksi admin"), { status: 403 });
   }
-  await assertA2FSession(db, decoded);
+  await assertA2FSession(decoded);
 
   const result = await handleFirestoreAction(db, role, body);
-  await db.collection("adminLogs").add({
+  await writeAdminLog({
     uid: decoded.uid,
     email: decoded.email || "",
     role,
     action: body.action || "",
-    ok: true,
-    createdAtMs: Date.now(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  }).catch(() => {});
+    ok: true
+  });
   return send(res, 200, result);
 }
 
@@ -467,17 +500,15 @@ async function handlePasskeyFinish(req, res, body) {
     });
   }
 
-  const a2fSessionResult = await createA2FSession(db, decoded);
+  const a2fSessionResult = await createA2FSession(decoded, role);
   const expiresAtMs = a2fSessionResult.expiresAtMs;
-  await db.collection("adminLogs").add({
+  await writeAdminLog({
     uid: decoded.uid,
     email: decoded.email || "",
     role,
     action: "a2f.passkey_finish",
-    ok: true,
-    createdAtMs: Date.now(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  }).catch(() => {});
+    ok: true
+  });
 
   return send(res, 200, {
     success: true,
