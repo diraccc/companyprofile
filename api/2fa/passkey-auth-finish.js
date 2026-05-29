@@ -414,8 +414,48 @@ function filterRows(rows, collection, body) {
   });
 }
 
+function truthyFlag(value) {
+  return value === true || String(value || "").trim().toLowerCase() === "true" || String(value || "").trim() === "1";
+}
+
+function normalizeProductStatus(data) {
+  const input = data && typeof data === "object" ? data : {};
+  const raw = String(input.status || "").trim().toLowerCase();
+  const flagSold = truthyFlag(input.isSold) || truthyFlag(input.soldOut) || truthyFlag(input.outOfStock);
+  if (flagSold || raw === "sold" || raw === "habis" || raw === "soldout" || raw === "sold_out") return "sold";
+  return "ready";
+}
+
+function canonicalizeProductData(data) {
+  const input = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const out = Object.assign({}, input);
+  const status = normalizeProductStatus(out);
+  out.status = status;
+  out.isSold = status === "sold";
+  out.soldOut = status === "sold";
+  out.outOfStock = status === "sold";
+  return out;
+}
+
+function applyExplicitProductStatusIntent(nextData, decodedPatch) {
+  const patch = decodedPatch && typeof decodedPatch === "object" && !Array.isArray(decodedPatch) ? decodedPatch : {};
+  if (!Object.prototype.hasOwnProperty.call(patch, "status")) return nextData;
+  const raw = String(patch.status || "").trim().toLowerCase();
+  if (raw !== "sold" && raw !== "ready") return nextData;
+  const forced = Object.assign({}, nextData);
+  forced.status = raw;
+  forced.isSold = raw === "sold";
+  forced.soldOut = raw === "sold";
+  forced.outOfStock = raw === "sold";
+  if (raw === "ready" && Number(forced.stock || 0) <= 0) {
+    forced.stock = 1;
+  }
+  return forced;
+}
+
 function rowToClient(row) {
-  const data = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
+  const raw = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
+  const data = row && row.collection === "products" ? canonicalizeProductData(raw) : raw;
   return {
     docId: row.doc_id,
     id: data.id || row.doc_id,
@@ -487,7 +527,11 @@ async function upsertSupabaseDocument(collection, docId, patch, merge) {
   const supabase = getSupabaseAdmin();
   const existing = merge ? await getSupabaseDocument(collection, docId) : null;
   const nowIso = new Date().toISOString();
-  const nextData = applyDecodedPatch(existing && existing.data ? existing.data : {}, decodeValue(patch || {}), merge);
+  const decodedPatch = decodeValue(patch || {});
+  let nextData = applyDecodedPatch(existing && existing.data ? existing.data : {}, decodedPatch, merge);
+  if (collection === "products") {
+    nextData = canonicalizeProductData(applyExplicitProductStatusIntent(nextData, decodedPatch));
+  }
 
   const { error } = await supabase
     .from(ADMIN_DOCUMENTS_TABLE)
@@ -704,7 +748,8 @@ async function handleReadAdminData(body) {
 
 
 function plainDataFromRow(row) {
-  const data = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
+  const raw = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
+  const data = row && row.collection === "products" ? canonicalizeProductData(raw) : raw;
   return Object.assign({}, data, {
     docId: row.doc_id,
     id: data.id || row.doc_id,
