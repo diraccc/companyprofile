@@ -13,13 +13,9 @@ const ARGON2ID_OPTIONS = Object.freeze({
   hashLength: 32
 });
 
-const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_lockouts";
-const A2F_MAX_FAILURES = 3;
-const A2F_COOLDOWN_YEARS_BY_FAILURE = Object.freeze({
-  1: 1,
-  2: 10,
-  3: 100
-});
+const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKS_TABLE || process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_locks";
+const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
 let supabaseAdminClient = null;
 
 function getSupabaseAdmin() {
@@ -81,8 +77,13 @@ async function saveA2fLockRow(row) {
     email: String(row.email || process.env.A2F_ADMIN_EMAIL || ""),
     failed_count: Number(row.failedCount || 0),
     lock_until_ms: Number(row.lockUntilMs || 0),
+    locked: row.locked === true || Number(row.lockUntilMs || 0) > Date.now(),
     permanent_ban: row.permanentBan === true,
     permanent_ban_reason: row.permanentBanReason || null,
+    last_reason: row.lastReason || row.permanentBanReason || null,
+    last_action: row.lastAction || null,
+    client_time_ms: Date.now(),
+    payload: row.payload && typeof row.payload === "object" ? row.payload : {},
     last_failed_at_ms: Number(row.lastFailedAtMs || 0),
     banned_at_ms: row.bannedAtMs ? Number(row.bannedAtMs) : null,
     updated_at: new Date().toISOString()
@@ -433,40 +434,25 @@ async function consumeOneTimeRecoveryCode(code, secret, idToken) {
   return result;
 }
 
-function getA2fCooldownYearsForFailure(failedCount) {
-  const count = Math.max(1, Number(failedCount || 1));
-  if (count >= A2F_MAX_FAILURES) return A2F_COOLDOWN_YEARS_BY_FAILURE[3];
-  return A2F_COOLDOWN_YEARS_BY_FAILURE[count] || A2F_COOLDOWN_YEARS_BY_FAILURE[1];
+function getA2fCooldownYears(failedCount) {
+  if (failedCount <= 1) return 1;
+  if (failedCount === 2) return 10;
+  return 100;
 }
 
-function addA2fCooldownYears(baseMs, years) {
-  const date = new Date(Number(baseMs || Date.now()));
-  date.setFullYear(date.getFullYear() + Number(years || 0));
-  return date.getTime();
-}
-
-function formatLockRemaining(lockUntilMs) {
-  const totalSeconds = Math.max(0, Math.ceil((Number(lockUntilMs || 0) - Date.now()) / 1000));
-  const daySeconds = 24 * 60 * 60;
-  const yearSeconds = 365 * daySeconds;
-  const hourSeconds = 60 * 60;
-  const minuteSeconds = 60;
-
-  const years = Math.floor(totalSeconds / yearSeconds);
-  const days = Math.floor((totalSeconds % yearSeconds) / daySeconds);
-  const hours = Math.floor((totalSeconds % daySeconds) / hourSeconds);
-  const minutes = Math.floor((totalSeconds % hourSeconds) / minuteSeconds);
-  const seconds = totalSeconds % minuteSeconds;
-
-  if (years > 0) return `${years} tahun${days > 0 ? ` ${days} hari` : ""}`;
-  if (days > 0) return `${days} hari${hours > 0 ? ` ${hours} jam` : ""}`;
-  if (hours > 0) return `${hours} jam${minutes > 0 ? ` ${minutes} menit` : ""}`;
-  if (minutes > 0) return `${minutes} menit ${seconds} detik`;
-  return `${seconds} detik`;
+function getA2fCooldownLabel(years) {
+  return years + " tahun";
 }
 
 function getLockMessage(lockUntilMs) {
-  return `A2F terkunci. Coba lagi dalam ${formatLockRemaining(lockUntilMs)}.`;
+  const remainingMs = Math.max(0, Number(lockUntilMs || 0) - Date.now());
+  const days = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+
+  if (days >= 36500) return "A2F terkunci. Coba lagi sekitar 100 tahun.";
+  if (days >= 3650) return "A2F terkunci. Coba lagi sekitar 10 tahun.";
+  if (days >= 365) return "A2F terkunci. Coba lagi sekitar 1 tahun.";
+  if (days > 1) return "A2F terkunci. Coba lagi dalam " + days + " hari.";
+  return "A2F terkunci. Coba lagi setelah cooldown selesai.";
 }
 
 async function checkA2fLock() {
@@ -507,7 +493,7 @@ async function recordA2fFailure() {
   const data = await readA2fLockRow(uid);
   const failedCount = Number(data.failedCount || 0) + 1;
   const now = Date.now();
-  const cooldownYears = getA2fCooldownYearsForFailure(failedCount);
+  const cooldownYears = getA2fCooldownYears(failedCount);
 
   const nextData = {
     uid,
@@ -515,10 +501,14 @@ async function recordA2fFailure() {
     failedCount,
     lastFailedAtMs: now,
     permanentBan: false,
-    permanentBanReason: null,
-    bannedAtMs: null,
-    lockUntilMs: addA2fCooldownYears(now, cooldownYears),
-    cooldownYears
+    lockUntilMs: now + cooldownYears * A2F_YEAR_MS,
+    locked: true,
+    lastAction: "fail",
+    lastReason: "Kode A2F salah. Cooldown " + getA2fCooldownLabel(cooldownYears) + ".",
+    payload: {
+      failedCount,
+      cooldownYears
+    }
   };
 
   return saveA2fLockRow(nextData);
@@ -558,28 +548,15 @@ async function recordPermanentBan(reason) {
 
 async function sendWrongCodeResponse(res) {
   const lockData = await recordA2fFailure();
-  const failedCount = Number(lockData.failedCount || 1);
-  const cooldownYears = getA2fCooldownYearsForFailure(failedCount);
-
-  if (lockData.permanentBan === true) {
-    return res.status(403).json({
-      success: false,
-      status: "permanent_ban",
-      error: "A2F diblokir permanen dari backend.",
-      failedCount,
-      permanentBan: true
-    });
-  }
 
   return res.status(423).json({
     success: false,
-    status: "cooldown_wrong_code",
-    error: getLockMessage(lockData.lockUntilMs),
-    failedCount,
-    cooldownYears,
-    permanentBan: false,
+    error: lockData.lastReason || getLockMessage(lockData.lockUntilMs),
+    failedCount: lockData.failedCount,
+    lockUntilMs: lockData.lockUntilMs,
     locked: true,
-    lockUntilMs: lockData.lockUntilMs
+    permanentBan: false,
+    cooldownYears: getA2fCooldownYears(Number(lockData.failedCount || 1))
   });
 }
 
@@ -1084,7 +1061,7 @@ ${denyUrl}`;
     </p>
     <p style="margin:16px 0 8px"><b>Kode 60 digit</b> untuk dimasukkan ke dashboard admin:</p>
     <div style="font-size:22px;font-weight:800;letter-spacing:2px;line-height:1.7;padding:14px 18px;background:#eef6ff;border-radius:12px;word-break:break-all;color:#0f172a">${escapeHtml(groupedCode)}</div>
-    <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah kode memicu cooldown: 1x 1 tahun, 2x 10 tahun, 3x 100 tahun.</p>
+    <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah 1x akan membuat A2F diblokir permanen.</p>
     <p>
       <a href="${denyUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">TOLAK & BAN PERMANEN</a>
     </p>
@@ -1273,28 +1250,20 @@ async function submitStep6ScreenCode(req, res) {
   const step6CodeOk = inputCode.length === 60 && await verifyStep6Argon2idCode(inputCode, data.screenCodeArgon2Hash);
 
   if (!step6CodeOk) {
-    const lockData = await recordA2fFailure();
-    const failedCount = Number(lockData.failedCount || 1);
-    const cooldownYears = getA2fCooldownYearsForFailure(failedCount);
-
     await ref.set({
-      status: "wrong_code_cooldown",
+      status: "permanent_ban_wrong_code",
       failedCodeCount: Number(data.failedCodeCount || 0) + 1,
       wrongCodeAtMs: Date.now(),
-      lockUntilMs: lockData.lockUntilMs,
-      cooldownYears,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
-    return res.status(423).json({
+    await recordPermanentBan("step6_wrong_60_digit_email_code_argon2id");
+
+    return res.status(403).json({
       success: false,
-      status: "wrong_code_cooldown",
-      locked: true,
-      permanentBan: false,
-      failedCount,
-      cooldownYears,
-      lockUntilMs: lockData.lockUntilMs,
-      error: getLockMessage(lockData.lockUntilMs)
+      status: "permanent_ban_wrong_code",
+      permanentBan: true,
+      error: "Kode step 6 salah. A2F diblokir permanen."
     });
   }
 
@@ -1446,7 +1415,7 @@ async function confirmApproveStep6FromEmail(req, res) {
 
     return res.status(200).send(htmlPage(
       "Login disetujui",
-      "<p>Email sudah disetujui. Sekarang kembali ke dashboard admin dan masukkan kode 60 digit yang ada di email.</p><div class=\"warn\">Jangan salah: 1x salah cooldown 1 tahun, 2x salah cooldown 10 tahun, 3x salah cooldown 100 tahun.</div>"
+      "<p>Email sudah disetujui. Sekarang kembali ke dashboard admin dan masukkan kode 60 digit yang ada di email.</p><div class=\"warn\">Jangan salah: salah 1x akan ban permanen.</div>"
     ));
   } catch (error) {
     return res.status(error.statusCode || 500).send(htmlPage(
