@@ -3744,6 +3744,22 @@
     function productHasWarnings(product){
       return !product.img || !product.desc || !product.longDesc || !product.category || !product.title || !product.brand || !Number.isFinite(product.price) || product.price < 0 || !Number.isFinite(product.stock) || product.stock < 0 || Number(product.stock || 0) <= Number(product.minStock || 0) || !['ready','sold'].includes(product.status);
     }
+    function productStatusValue(product){
+      const raw = String(product && product.status || '').trim().toLowerCase();
+      if(raw === 'sold' || raw === 'ready') return raw;
+      if(product && (product.isSold === true || product.soldOut === true || product.outOfStock === true)) return 'sold';
+      return 'ready';
+    }
+    function applyProductLocalPatch(product, patch){
+      if(!product || !patch) return;
+      Object.assign(product, patch);
+      const index = products.findIndex(function(item){
+        return String(item && item.docId) === String(product.docId);
+      });
+      if(index >= 0){
+        products[index] = Object.assign({}, products[index], patch);
+      }
+    }
     function filteredProducts(){
       const q = els.search.value.trim().toLowerCase();
       const cat = els.filterCategory.value;
@@ -3751,12 +3767,13 @@
       const image = els.filterImage.value;
       const quality = els.filterQuality.value;
       const sorted = products.filter(p => !(p && (p.archived || p.deletedAt))).filter(p => {
-        const text = [p.id,p.title,p.brand,p.category,p.size,p.fragranceType,p.gender,p.scentFamily,p.topNotes,p.middleNotes,p.baseNotes,p.desc,p.notes,p.status,p.longDesc,p.price,p.stock].join(' ').toLowerCase();
+        const productStatus = productStatusValue(p);
+        const text = [p.id,p.title,p.brand,p.category,p.size,p.fragranceType,p.gender,p.scentFamily,p.topNotes,p.middleNotes,p.baseNotes,p.desc,p.notes,p.status,productStatus,p.longDesc,p.price,p.stock].join(' ').toLowerCase();
         const hasImg = Boolean(p.img);
         const warning = productHasWarnings(p);
         return (!q || text.includes(q)) &&
           (!cat || p.category === cat) &&
-          (!status || p.status === status) &&
+          (!status || productStatus === status) &&
           (!image || (image === 'with' ? hasImg : !hasImg)) &&
           (!quality || (quality === 'warning' ? warning : !warning));
       });
@@ -3774,9 +3791,9 @@
     function renderProducts(){
       const visibleProducts = products.filter(p => !(p && (p.archived || p.deletedAt)));
       const total = visibleProducts.length;
-      const readyProducts = visibleProducts.filter(p=>p.status === 'ready');
+      const readyProducts = visibleProducts.filter(p=>productStatusValue(p) === 'ready');
       const ready = readyProducts.length;
-      const sold = visibleProducts.filter(p=>p.status === 'sold').length;
+      const sold = visibleProducts.filter(p=>productStatusValue(p) === 'sold').length;
       const categories = new Set(visibleProducts.map(p => p.category).filter(Boolean)).size;
       const totalValue = readyProducts.reduce((sum,p)=>sum + (Number(p.price || 0) * Math.max(Number(p.stock || 0), 1)), 0);
       const average = total ? visibleProducts.reduce((sum,p)=>sum + Number(p.price || 0), 0) / total : 0;
@@ -3797,15 +3814,16 @@
       }
       els.productList.innerHTML = list.map(p => {
         const img = imageSrc(p.img);
-        const nextStatus = p.status === 'sold' ? 'ready' : 'sold';
-        const statusLabel = p.status === 'sold' ? 'Jadikan ready' : 'Jadikan sold';
+        const productStatus = productStatusValue(p);
+        const nextStatus = productStatus === 'sold' ? 'ready' : 'sold';
+        const statusLabel = productStatus === 'sold' ? 'Jadikan ready' : 'Jadikan sold';
         const warning = productHasWarnings(p);
         return `
           <article class="product-card" data-doc="${escapeHtml(p.docId)}">
             <div class="thumb">${img ? `<img loading="lazy" src="${escapeHtml(img)}" alt="${escapeHtml(p.title)}" onerror="this.style.display='none';this.parentNode.textContent='Foto tidak ada'">` : 'No image'}</div>
             <div class="product-main">
               <p class="product-title">#${escapeHtml(p.id)} - ${escapeHtml(p.title)}</p>
-              <div class="meta"><span class="tag">${escapeHtml(p.brand || 'Tanpa brand')}</span><span class="tag">${escapeHtml(p.category || 'Tanpa kategori')}</span><span class="tag ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span><span class="tag ${Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'ready'}">Stok ${escapeHtml(p.stock || 0)}</span>${warning ? '<span class="tag warn">perlu cek</span>' : ''}<span class="price">${rupiah(p.price)}</span></div>
+              <div class="meta"><span class="tag">${escapeHtml(p.brand || 'Tanpa brand')}</span><span class="tag">${escapeHtml(p.category || 'Tanpa kategori')}</span><span class="tag ${escapeHtml(productStatus)}">${escapeHtml(productStatus)}</span><span class="tag ${Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'ready'}">Stok ${escapeHtml(p.stock || 0)}</span>${warning ? '<span class="tag warn">perlu cek</span>' : ''}<span class="price">${rupiah(p.price)}</span></div>
               <p class="desc">${escapeHtml([p.size, p.fragranceType, p.gender, p.scentFamily].filter(Boolean).join(' • ') || p.desc || p.notes || p.longDesc || '-')}</p>
               <div class="card-actions">
                 ${currentAdmin.canEdit ? `<button class="btn small primary requires-edit" type="button" data-action="edit" data-doc="${escapeHtml(p.docId)}">Edit</button>` : ''}
@@ -3892,9 +3910,28 @@
       if(!product) return;
       try{ requirePermission('canEdit', 'mengubah status produk'); }
       catch(error){ showAlertModal(error.message); return; }
+
+      const nextStatus = String(status || '').trim().toLowerCase() === 'sold' ? 'sold' : 'ready';
+      const nextIsSold = nextStatus === 'sold';
+      const patch = {
+        status: nextStatus,
+        isSold: nextIsSold,
+        soldOut: nextIsSold,
+        outOfStock: nextIsSold,
+        updatedAt: serverTimestamp()
+      };
+      if(nextStatus === 'ready' && Number(product.stock || 0) <= 0){
+        patch.stock = 1;
+      }
+
       try{
-        await adminUpdateDoc('products', product.docId, { status, updatedAt: serverTimestamp() });
-        showToast('Status diubah ke ' + status);
+        await adminUpdateDoc('products', product.docId, patch);
+        const localPatch = Object.assign({}, patch, { updatedAt: new Date().toISOString() });
+        applyProductLocalPatch(product, localPatch);
+        renderProducts();
+        renderProductOptions();
+        renderBusinessDashboard();
+        showToast('Status diubah ke ' + nextStatus);
       }catch(error){ showAlertModal('Gagal ubah status: ' + firebaseMessage(error)); }
     }
     async function duplicateProduct(product){
