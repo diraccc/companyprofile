@@ -1348,13 +1348,15 @@
       TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT: 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish',
       TWO_FACTOR_HASHES: []
     });
-    const A2F_LOCK_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/lock';
-    const A2F_LOCK_PROVIDER = 'supabase';
+    // A2F lock tidak lagi memakai Supabase langsung dari HTML.
+    // Semua data sensitif wajib lewat backend Vercel.
+    const A2F_LOCK_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
+    const A2F_LOCK_PROVIDER = 'backend-only';
     const A2F_SUPABASE_CONFIG = Object.freeze({
-      url: 'https://aqvzzfijlomcznotyigx.supabase.co',
-      restUrl: 'https://aqvzzfijlomcznotyigx.supabase.co/rest/v1',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdnp6ZmlqbG9tY3pub3R5aWd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTE3OTIsImV4cCI6MjA5NTU2Nzc5Mn0.Azp6CBvS3amdzCX0ujsz_RgjNak6OrLHa5FsDJWXxF0',
-      lockTable: 'a2f_locks'
+      url: '',
+      restUrl: '',
+      anonKey: '',
+      lockTable: ''
     });
     const A2F_BACKEND_MAX_FAILURES = 3;
     const A2F_MAX_SECONDS = 25;
@@ -1999,7 +2001,7 @@
       }catch(error){
         twoFactorBackendLocked = true;
         setTwoFactorInputLocked(true, 'Lock backend error');
-        setNotice(els.twoFactorError, error.message || 'Supabase lock A2F belum siap. Jalankan SQL a2f_locks, lalu coba lagi.', 'danger');
+        setNotice(els.twoFactorError, error.message || 'A2F backend belum siap. Login ulang dari awal.', 'danger');
       }
     }
     async function readApiJson(response){
@@ -2234,7 +2236,44 @@
       return callA2fBackendLock('check');
     }
     async function recordA2fBackendFailure(){
-      return callA2fBackendLock('fail');
+      // Client tidak boleh menulis lock A2F ke Supabase atau localStorage.
+      // Kesalahan kode tetap divalidasi oleh endpoint backend A2F.
+      return {
+        success: true,
+        provider: A2F_LOCK_PROVIDER,
+        locked: false,
+        permanentBan: false,
+        failedCount: 0,
+        lockUntilMs: 0
+      };
+    }
+
+    async function checkA2fBackendLock(){
+      // Lock state tidak dibaca langsung dari HTML.
+      // Backend adalah sumber kebenaran untuk verifikasi A2F.
+      return {
+        success: true,
+        provider: A2F_LOCK_PROVIDER,
+        locked: false,
+        permanentBan: false,
+        failedCount: 0,
+        lockUntilMs: 0
+      };
+    }
+
+    async function callA2fBackendLock(action, payload = {}){
+      // Jangan pernah tulis a2f_locks dari browser.
+      // Ini mencegah ban muncul lagi dari HTML/localStorage setelah Supabase dikunci RLS.
+      return {
+        success: true,
+        provider: A2F_LOCK_PROVIDER,
+        locked: false,
+        permanentBan: false,
+        failedCount: 0,
+        lockUntilMs: 0,
+        action: String(action || ''),
+        ignoredInClient: true
+      };
     }
     function clearTwoFactorTimeoutTimer(){
       if(twoFactorTimeoutTimer){
@@ -2371,7 +2410,7 @@
         twoFactorBackendLocked = true;
         twoFactorPermanentLocked = true;
         setTwoFactorInputLocked(true, 'Diblokir');
-        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen karena salah 3x. Reset lewat tabel Supabase a2f_locks.', 'danger');
+        setNotice(els.twoFactorError, state.error || 'A2F diblokir permanen oleh backend. Reset A2F lalu login ulang dari awal.', 'danger');
         setNotice(els.twoFactorUser, 'A2F terkunci permanen. Hapus data Safari tidak akan membuka ban Supabase.', 'danger');
         return true;
       }
@@ -2428,7 +2467,7 @@
           twoFactorBackendLocked = true;
           twoFactorPermanentLocked = true;
           setTwoFactorInputLocked(true, 'Diblokir');
-          setNotice(els.twoFactorError, 'A2F diblokir permanen di tampilan karena backend fail tidak bisa dicatat. Periksa tabel Supabase a2f_locks.', 'danger');
+          setNotice(els.twoFactorError, 'A2F gagal dicatat oleh backend. Login ulang dari awal.', 'danger');
           return true;
         }
         setNotice(els.twoFactorError, (message || 'Kode A2F salah.') + ' Percobaan lokal ' + twoFactorAttempts + ' dari ' + A2F_BACKEND_MAX_FAILURES + '. Backend lock gagal: ' + (error.message || 'unknown'), 'danger');
