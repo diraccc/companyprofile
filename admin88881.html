@@ -7900,61 +7900,58 @@
 
 
     /* =========================================================
-       BACKEND ONLY A2F LOCK PATCH
-       Tujuan: HTML tidak baca/tulis Supabase langsung.
-       Semua cek cooldown, salah kode, dan timeout dikirim ke backend verify-step.
-       Hash, passkey, sign, safeEqual, parseSession tidak disentuh.
+       BACKEND ONLY SAFETY PATCH
+       Tujuan: jangan tulis/read A2F lock langsung dari HTML.
+       Login Firebase, hash, passkey, sign, safeEqual, parseSession tidak disentuh.
+       Semua data admin tetap lewat backend endpoint lama.
        ========================================================= */
     try{
-      async function diracBackendA2fRequest(action, payload = {}){
-        if(!SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT){
-          throw new Error('Endpoint verify-step belum diisi.');
-        }
-        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
-        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'omit',
-          cache: 'no-store',
-          body: JSON.stringify(Object.assign({ action, idToken }, payload || {}))
-        });
-        const data = await readApiJson(response);
-        if(!response.ok && !hasA2fBackendLockState(data)){
-          throw new Error(data.error || data.message || 'Backend A2F lock gagal.');
-        }
-        return data;
-      }
-
       checkA2fBackendLock = async function(){
-        return diracBackendA2fRequest('checkA2fBanStatus');
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0
+        };
       };
-
       callA2fBackendLock = async function(action, payload = {}){
-        const name = String(action || '').trim();
-        if(name === 'check') return diracBackendA2fRequest('checkA2fBanStatus', payload);
-        if(name === 'fail') return diracBackendA2fRequest('recordA2fFailure', payload);
-        if(name === 'timeout') return diracBackendA2fRequest('recordA2fTimeoutBlock', payload);
-        if(name === 'timeout-marker') return diracBackendA2fRequest('checkA2fBanStatus', payload);
-        return diracBackendA2fRequest('checkA2fBanStatus', payload);
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0,
+          action: String(action || ''),
+          ignoredInClient: true
+        };
       };
-
       recordA2fBackendFailure = async function(){
-        return diracBackendA2fRequest('recordA2fFailure');
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0
+        };
       };
-
       recordA2fTimeoutBlock = async function(){
-        return diracBackendA2fRequest('recordA2fTimeoutBlock', {
-          reason: twoFactorStep === 6 ? 'a2f_step6_timeout_60_seconds' : 'a2f_timeout_25_seconds',
-          deadlineMs: twoFactorDeadlineMs || 0,
-          timedOutAtMs: Date.now(),
-          maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS
-        });
+        return {
+          success: true,
+          provider: 'backend-only',
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0,
+          timeoutIgnoredInClient: true
+        };
       };
-
       saveA2fTimeoutBlockMarker = async function(){
         return { success: true, provider: 'backend-only', timeoutMarkerIgnoredInClient: true };
       };
-
       readSupabaseA2fLockRow = async function(){ return null; };
       upsertSupabaseA2fLockRow = async function(row){ return row || {}; };
 
@@ -7965,8 +7962,80 @@
         }
       }
     }catch(error){
-      console.warn('Backend-only A2F lock patch gagal dipasang:', error);
+      console.warn('Backend-only safety patch gagal dipasang:', error);
     }
+
+
+    /* =========================================================
+       FINAL A2F BACKEND LOCK PATCH
+       Semua cooldown/ban dicatat lewat backend verify-step.js.
+       HTML tidak baca/tulis Supabase langsung dan tidak pakai dummy false.
+       ========================================================= */
+    try{
+      async function diracFinalBackendA2fLock(action, payload = {}){
+        if(typeof callStep6EmailApproval !== 'function'){
+          throw new Error('Backend A2F helper belum siap.');
+        }
+
+        const rawAction = String(action || 'check').trim();
+        let backendAction = 'checkA2fBanStatus';
+
+        if(rawAction === 'fail') backendAction = 'recordA2fFailure';
+        else if(rawAction === 'timeout') backendAction = 'recordA2fTimeoutBlock';
+        else if(rawAction === 'timeout-marker') backendAction = 'recordA2fTimeoutMarker';
+        else if(rawAction === 'check') backendAction = 'checkA2fBanStatus';
+
+        const data = await callStep6EmailApproval(backendAction, Object.assign({
+          clientTimeMs: Date.now(),
+          source: 'admin_html_backend_only'
+        }, payload || {}));
+
+        return Object.assign({
+          success: true,
+          provider: 'backend',
+          action: rawAction,
+          locked: false,
+          permanentBan: false,
+          failedCount: 0,
+          lockUntilMs: 0
+        }, data || {});
+      }
+
+      checkA2fBackendLock = function(){
+        return diracFinalBackendA2fLock('check');
+      };
+
+      callA2fBackendLock = function(action, payload = {}){
+        return diracFinalBackendA2fLock(action, payload);
+      };
+
+      recordA2fBackendFailure = function(){
+        return diracFinalBackendA2fLock('fail');
+      };
+
+      recordA2fTimeoutBlock = function(reason){
+        return diracFinalBackendA2fLock('timeout', {
+          reason: String(reason || 'A2F timeout dari admin HTML')
+        });
+      };
+
+      saveA2fTimeoutBlockMarker = function(reason){
+        return diracFinalBackendA2fLock('timeout-marker', {
+          reason: String(reason || 'A2F timeout marker dari admin HTML')
+        });
+      };
+
+      readSupabaseA2fLockRow = function(){
+        return diracFinalBackendA2fLock('check');
+      };
+
+      upsertSupabaseA2fLockRow = async function(row){
+        return row || {};
+      };
+    }catch(error){
+      console.warn('Final A2F backend lock patch gagal dipasang:', error);
+    }
+
 </script>
 </body>
 </html>
