@@ -1392,7 +1392,7 @@
     const ADMIN_API_BASE_URL = 'https://companyprofilee-expk.vercel.app';
     const ADMIN_FIRESTORE_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
     const ADMIN_UPLOAD_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
-    const ADMIN_READ_ENDPOINT = ADMIN_API_BASE_URL + '/api/admin/reset-a2f-ban';
+    const ADMIN_READ_ENDPOINT = SECURITY_CONFIG.TWO_FACTOR_PASSKEY_AUTH_FINISH_ENDPOINT;
 
     function serverTimestamp(){
       return { __diracFirestoreOp: 'serverTimestamp' };
@@ -3153,12 +3153,6 @@
     }
     function normalize(docSnap){
       const data = docSnap.data() || {};
-      const rawStatus = String(data.status || '').trim().toLowerCase();
-      const hasSoldFlag = data.isSold === true || data.soldOut === true || data.outOfStock === true ||
-        String(data.isSold || '').toLowerCase() === 'true' ||
-        String(data.soldOut || '').toLowerCase() === 'true' ||
-        String(data.outOfStock || '').toLowerCase() === 'true';
-      const effectiveStatus = hasSoldFlag || rawStatus === 'sold' || rawStatus === 'habis' ? 'sold' : 'ready';
       return {
         docId: docSnap.id,
         id: Number(data.id || 0),
@@ -3167,7 +3161,7 @@
         category: String(data.category || '').trim(),
         price: Number(data.price || 0),
         costPrice: Number(data.costPrice || 0),
-        stock: Number(data.stock ?? (effectiveStatus === 'sold' ? 0 : 1)),
+        stock: Number(data.stock ?? (data.status === 'sold' ? 0 : 1)),
         minStock: Number(data.minStock || 0),
         soldCount: Number(data.soldCount || 0),
         size: String(data.size || '').trim(),
@@ -3182,10 +3176,7 @@
         img: String(data.img || '').trim(),
         desc: String(data.desc || '').trim(),
         notes: String(data.notes || '').trim(),
-        status: effectiveStatus,
-        isSold: effectiveStatus === 'sold',
-        soldOut: effectiveStatus === 'sold',
-        outOfStock: effectiveStatus === 'sold',
+        status: String(data.status || 'ready').trim() || 'ready',
         longDesc: String(data.longDesc || '').trim(),
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
@@ -3539,8 +3530,7 @@
       const stock = Number(els.stock.value || 0);
       const minStock = Number(els.minStock.value || 0);
       const soldCount = Number(els.soldCount.value || 0);
-      const status = String(els.status.value || 'ready').trim().toLowerCase() === 'sold' ? 'sold' : 'ready';
-      const formSoldFlag = status === 'sold';
+      const status = els.status.value || 'ready';
       const currentDocId = els.docId.value.trim();
       if(!id || id < 1) throw new Error('ID produk wajib angka lebih dari 0.');
       if(!Number.isInteger(id)) throw new Error('ID produk harus angka bulat.');
@@ -3567,9 +3557,6 @@
       if(duplicate) throw new Error('ID ' + id + ' sudah dipakai oleh produk "' + duplicate.title + '". Pakai ID lain agar data tidak bentrok.');
       return {
         id, title, brand, category, price, costPrice, stock, minStock, soldCount,
-        isSold: formSoldFlag,
-        soldOut: formSoldFlag,
-        outOfStock: formSoldFlag,
         size: els.size.value.trim(),
         fragranceType: els.fragranceType.value || '',
         gender: els.gender.value || '',
@@ -3610,7 +3597,7 @@
       els.middleNotes.value = product.middleNotes || '';
       els.baseNotes.value = product.baseNotes || '';
       els.img.value = product.img || '';
-      els.status.value = productStatusValue(product);
+      els.status.value = product.status || 'ready';
       els.notes.value = product.notes || '';
       els.desc.value = product.desc || '';
       els.longDesc.value = product.longDesc || '';
@@ -3757,26 +3744,6 @@
     function productHasWarnings(product){
       return !product.img || !product.desc || !product.longDesc || !product.category || !product.title || !product.brand || !Number.isFinite(product.price) || product.price < 0 || !Number.isFinite(product.stock) || product.stock < 0 || Number(product.stock || 0) <= Number(product.minStock || 0) || !['ready','sold'].includes(product.status);
     }
-    function productStatusValue(product){
-      if(!product) return 'ready';
-      const soldFlag = product.isSold === true || product.soldOut === true || product.outOfStock === true ||
-        String(product.isSold || '').toLowerCase() === 'true' ||
-        String(product.soldOut || '').toLowerCase() === 'true' ||
-        String(product.outOfStock || '').toLowerCase() === 'true';
-      const raw = String(product.status || '').trim().toLowerCase();
-      if(soldFlag || raw === 'sold' || raw === 'habis') return 'sold';
-      return 'ready';
-    }
-    function applyProductLocalPatch(product, patch){
-      if(!product || !patch) return;
-      Object.assign(product, patch);
-      const index = products.findIndex(function(item){
-        return String(item && item.docId) === String(product.docId);
-      });
-      if(index >= 0){
-        products[index] = Object.assign({}, products[index], patch);
-      }
-    }
     function filteredProducts(){
       const q = els.search.value.trim().toLowerCase();
       const cat = els.filterCategory.value;
@@ -3784,13 +3751,12 @@
       const image = els.filterImage.value;
       const quality = els.filterQuality.value;
       const sorted = products.filter(p => !(p && (p.archived || p.deletedAt))).filter(p => {
-        const productStatus = productStatusValue(p);
-        const text = [p.id,p.title,p.brand,p.category,p.size,p.fragranceType,p.gender,p.scentFamily,p.topNotes,p.middleNotes,p.baseNotes,p.desc,p.notes,p.status,productStatus,p.longDesc,p.price,p.stock].join(' ').toLowerCase();
+        const text = [p.id,p.title,p.brand,p.category,p.size,p.fragranceType,p.gender,p.scentFamily,p.topNotes,p.middleNotes,p.baseNotes,p.desc,p.notes,p.status,p.longDesc,p.price,p.stock].join(' ').toLowerCase();
         const hasImg = Boolean(p.img);
         const warning = productHasWarnings(p);
         return (!q || text.includes(q)) &&
           (!cat || p.category === cat) &&
-          (!status || productStatus === status) &&
+          (!status || p.status === status) &&
           (!image || (image === 'with' ? hasImg : !hasImg)) &&
           (!quality || (quality === 'warning' ? warning : !warning));
       });
@@ -3808,9 +3774,9 @@
     function renderProducts(){
       const visibleProducts = products.filter(p => !(p && (p.archived || p.deletedAt)));
       const total = visibleProducts.length;
-      const readyProducts = visibleProducts.filter(p=>productStatusValue(p) === 'ready');
+      const readyProducts = visibleProducts.filter(p=>p.status === 'ready');
       const ready = readyProducts.length;
-      const sold = visibleProducts.filter(p=>productStatusValue(p) === 'sold').length;
+      const sold = visibleProducts.filter(p=>p.status === 'sold').length;
       const categories = new Set(visibleProducts.map(p => p.category).filter(Boolean)).size;
       const totalValue = readyProducts.reduce((sum,p)=>sum + (Number(p.price || 0) * Math.max(Number(p.stock || 0), 1)), 0);
       const average = total ? visibleProducts.reduce((sum,p)=>sum + Number(p.price || 0), 0) / total : 0;
@@ -3831,16 +3797,15 @@
       }
       els.productList.innerHTML = list.map(p => {
         const img = imageSrc(p.img);
-        const productStatus = productStatusValue(p);
-        const nextStatus = productStatus === 'sold' ? 'ready' : 'sold';
-        const statusLabel = productStatus === 'sold' ? 'Jadikan ready' : 'Jadikan sold';
+        const nextStatus = p.status === 'sold' ? 'ready' : 'sold';
+        const statusLabel = p.status === 'sold' ? 'Jadikan ready' : 'Jadikan sold';
         const warning = productHasWarnings(p);
         return `
           <article class="product-card" data-doc="${escapeHtml(p.docId)}">
             <div class="thumb">${img ? `<img loading="lazy" src="${escapeHtml(img)}" alt="${escapeHtml(p.title)}" onerror="this.style.display='none';this.parentNode.textContent='Foto tidak ada'">` : 'No image'}</div>
             <div class="product-main">
               <p class="product-title">#${escapeHtml(p.id)} - ${escapeHtml(p.title)}</p>
-              <div class="meta"><span class="tag">${escapeHtml(p.brand || 'Tanpa brand')}</span><span class="tag">${escapeHtml(p.category || 'Tanpa kategori')}</span><span class="tag ${escapeHtml(productStatus)}">${escapeHtml(productStatus)}</span><span class="tag ${Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'ready'}">Stok ${escapeHtml(p.stock || 0)}</span>${warning ? '<span class="tag warn">perlu cek</span>' : ''}<span class="price">${rupiah(p.price)}</span></div>
+              <div class="meta"><span class="tag">${escapeHtml(p.brand || 'Tanpa brand')}</span><span class="tag">${escapeHtml(p.category || 'Tanpa kategori')}</span><span class="tag ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span><span class="tag ${Number(p.stock || 0) <= Number(p.minStock || 0) ? 'warn' : 'ready'}">Stok ${escapeHtml(p.stock || 0)}</span>${warning ? '<span class="tag warn">perlu cek</span>' : ''}<span class="price">${rupiah(p.price)}</span></div>
               <p class="desc">${escapeHtml([p.size, p.fragranceType, p.gender, p.scentFamily].filter(Boolean).join(' • ') || p.desc || p.notes || p.longDesc || '-')}</p>
               <div class="card-actions">
                 ${currentAdmin.canEdit ? `<button class="btn small primary requires-edit" type="button" data-action="edit" data-doc="${escapeHtml(p.docId)}">Edit</button>` : ''}
@@ -3927,28 +3892,9 @@
       if(!product) return;
       try{ requirePermission('canEdit', 'mengubah status produk'); }
       catch(error){ showAlertModal(error.message); return; }
-
-      const nextStatus = String(status || '').trim().toLowerCase() === 'sold' ? 'sold' : 'ready';
-      const nextIsSold = nextStatus === 'sold';
-      const patch = {
-        status: nextStatus,
-        isSold: nextIsSold,
-        soldOut: nextIsSold,
-        outOfStock: nextIsSold,
-        updatedAt: serverTimestamp()
-      };
-      if(nextStatus === 'ready' && Number(product.stock || 0) <= 0){
-        patch.stock = 1;
-      }
-
       try{
-        await adminUpdateDoc('products', product.docId, patch);
-        const localPatch = Object.assign({}, patch, { updatedAt: new Date().toISOString() });
-        applyProductLocalPatch(product, localPatch);
-        renderProducts();
-        renderProductOptions();
-        renderBusinessDashboard();
-        showToast('Status diubah ke ' + nextStatus);
+        await adminUpdateDoc('products', product.docId, { status, updatedAt: serverTimestamp() });
+        showToast('Status diubah ke ' + status);
       }catch(error){ showAlertModal('Gagal ubah status: ' + firebaseMessage(error)); }
     }
     async function duplicateProduct(product){
@@ -3982,10 +3928,7 @@
           img: product.img,
           desc: product.desc,
           notes: product.notes,
-          status: productStatusValue(product),
-          isSold: productStatusValue(product) === 'sold',
-          soldOut: productStatusValue(product) === 'sold',
-          outOfStock: productStatusValue(product) === 'sold',
+          status: product.status,
           longDesc: product.longDesc,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -7897,73 +7840,6 @@
       };
     }
 
-
-
-    /* =========================================================
-       BACKEND ONLY SAFETY PATCH
-       Tujuan: jangan tulis/read A2F lock langsung dari HTML.
-       Login Firebase, hash, passkey, sign, safeEqual, parseSession tidak disentuh.
-       Semua data admin tetap lewat backend endpoint lama.
-       ========================================================= */
-    try{
-      checkA2fBackendLock = async function(){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0
-        };
-      };
-      callA2fBackendLock = async function(action, payload = {}){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0,
-          action: String(action || ''),
-          ignoredInClient: true
-        };
-      };
-      recordA2fBackendFailure = async function(){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0
-        };
-      };
-      recordA2fTimeoutBlock = async function(){
-        return {
-          success: true,
-          provider: 'backend-only',
-          locked: false,
-          permanentBan: false,
-          failedCount: 0,
-          lockUntilMs: 0,
-          timeoutIgnoredInClient: true
-        };
-      };
-      saveA2fTimeoutBlockMarker = async function(){
-        return { success: true, provider: 'backend-only', timeoutMarkerIgnoredInClient: true };
-      };
-      readSupabaseA2fLockRow = async function(){ return null; };
-      upsertSupabaseA2fLockRow = async function(row){ return row || {}; };
-
-      for(let i = localStorage.length - 1; i >= 0; i--){
-        const key = localStorage.key(i) || '';
-        if(key.indexOf('dirac_a2f_supabase_lock_fallback_') === 0 || key.indexOf('a2f') >= 0 || key.indexOf('A2F') >= 0){
-          try{ localStorage.removeItem(key); }catch(_error){}
-        }
-      }
-    }catch(error){
-      console.warn('Backend-only safety patch gagal dipasang:', error);
-    }
 </script>
 </body>
 </html>
