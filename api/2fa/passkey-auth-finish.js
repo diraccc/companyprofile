@@ -702,7 +702,209 @@ async function handleReadAdminData(body) {
   return response;
 }
 
-async function fetchAllAdminDocumentsFromSupabase() {
+
+function plainDataFromRow(row) {
+  const data = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
+  return Object.assign({}, data, {
+    docId: row.doc_id,
+    id: data.id || row.doc_id,
+    _collection: row.collection,
+    _createdAt: row.created_at || null,
+    _updatedAt: row.updated_at || null
+  });
+}
+
+function isDeletedStatus(value) {
+  return ["deleted", "archived", "hidden", "inactive", "draft"].includes(String(value || "").trim().toLowerCase());
+}
+
+function isPublicVisibleProduct(data) {
+  if (!data || typeof data !== "object") return false;
+  if (data.deleted === true || data.archived === true || data.hidden === true) return false;
+  if (isDeletedStatus(data.status)) return false;
+  if (isDeletedStatus(data.publishStatus)) return false;
+  if (isDeletedStatus(data.visibility)) return false;
+  return true;
+}
+
+async function handlePublicReadProducts(body) {
+  const supabase = getSupabaseAdmin();
+  const limitRaw = Number(body && body.limit || 5000);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 5000) : 5000;
+
+  const { data, error } = await supabase
+    .from(ADMIN_DOCUMENTS_TABLE)
+    .select("collection, doc_id, data, created_at, updated_at")
+    .eq("collection", "products")
+    .limit(limit);
+
+  if (error) {
+    throw Object.assign(new Error("Gagal membaca produk publik: " + error.message), { status: 500 });
+  }
+
+  const products = (Array.isArray(data) ? data : [])
+    .map(plainDataFromRow)
+    .filter(isPublicVisibleProduct);
+
+  return {
+    success: true,
+    action: "publicReadProducts",
+    provider: "supabase-backend",
+    products,
+    count: products.length
+  };
+}
+
+function cleanPublicString(value, maxLength = 500) {
+  const text = String(value === undefined || value === null ? "" : value)
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .trim();
+  return text.length > maxLength ? text.slice(0, maxLength) : text;
+}
+
+function cleanPublicNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function cleanPublicObject(raw, allowedKeys, maxStringLength = 800) {
+  const input = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const output = {};
+
+  for (const key of allowedKeys) {
+    const value = input[key];
+    if (value === undefined) continue;
+
+    if (typeof value === "number" || typeof value === "boolean") {
+      output[key] = value;
+    } else if (Array.isArray(value)) {
+      output[key] = value.slice(0, 60).map((item) => {
+        if (item && typeof item === "object") return cleanPublicObject(item, ["id", "docId", "productId", "name", "title", "qty", "quantity", "price", "subtotal", "image", "photo", "variant", "sku"], maxStringLength);
+        return cleanPublicString(item, maxStringLength);
+      });
+    } else if (value && typeof value === "object") {
+      output[key] = cleanPublicObject(value, Object.keys(value).slice(0, 60), maxStringLength);
+    } else {
+      output[key] = cleanPublicString(value, maxStringLength);
+    }
+  }
+
+  return output;
+}
+
+function makePublicDocId(prefix) {
+  const now = Date.now();
+  const random = crypto.randomBytes(8).toString("hex");
+  return `${prefix}_${now}_${random}`;
+}
+
+async function upsertRawAdminDocument(collection, docId, data) {
+  const supabase = getSupabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase
+    .from(ADMIN_DOCUMENTS_TABLE)
+    .upsert({
+      collection,
+      doc_id: docId,
+      data: Object.assign({}, data, { docId, id: data.id || docId }),
+      created_at: data.created_at || data.createdAt || nowIso,
+      updated_at: nowIso
+    }, { onConflict: "collection,doc_id" });
+
+  if (error) {
+    throw Object.assign(new Error("Gagal menyimpan data publik ke Supabase: " + error.message), { status: 500 });
+  }
+}
+
+async function handlePublicCreateOrder(body) {
+  const nowIso = new Date().toISOString();
+  const orderInput = body && typeof body.order === "object" ? body.order : body;
+  const customerInput = body && typeof body.customer === "object" ? body.customer : {};
+  const itemsInput = Array.isArray(body && body.items) ? body.items : (Array.isArray(orderInput.items) ? orderInput.items : []);
+
+  const orderId = cleanDocId(orderInput.docId || orderInput.id || orderInput.orderId || makePublicDocId("order"));
+  const customerId = cleanDocId(customerInput.docId || customerInput.id || customerInput.customerId || orderInput.customerId || makePublicDocId("customer"));
+
+  const customer = cleanPublicObject(customerInput, [
+    "id", "docId", "customerId", "name", "fullName", "email", "phone", "whatsapp", "address", "city", "province", "postalCode", "note"
+  ], 900);
+
+  const order = cleanPublicObject(orderInput, [
+    "id", "docId", "orderId", "customerId", "customerName", "customerPhone", "customerEmail", "phone", "email", "address", "city", "province", "postalCode", "items", "subtotal", "shippingCost", "discount", "total", "paymentMethod", "paymentStatus", "orderStatus", "status", "courier", "note", "createdAtMs", "createdAt"
+  ], 1200);
+
+  customer.customerId = customerId;
+  customer.docId = customerId;
+  customer.id = customer.id || customerId;
+  customer.createdAt = customer.createdAt || nowIso;
+  customer.createdAtMs = customer.createdAtMs || Date.now();
+
+  order.orderId = order.orderId || orderId;
+  order.docId = orderId;
+  order.id = order.id || orderId;
+  order.customerId = customerId;
+  order.createdAt = order.createdAt || nowIso;
+  order.createdAtMs = order.createdAtMs || Date.now();
+  order.paymentStatus = order.paymentStatus || "pending";
+  order.orderStatus = order.orderStatus || order.status || "new";
+  order.status = order.status || order.orderStatus;
+
+  const items = itemsInput.slice(0, 80).map((item, index) => {
+    const cleaned = cleanPublicObject(item, [
+      "id", "docId", "productId", "sku", "name", "title", "variant", "qty", "quantity", "price", "subtotal", "image", "photo"
+    ], 600);
+    const itemId = cleanDocId(cleaned.docId || cleaned.id || `${orderId}_item_${index + 1}`);
+    return Object.assign({}, cleaned, {
+      docId: itemId,
+      id: cleaned.id || itemId,
+      orderId,
+      customerId,
+      qty: cleanPublicNumber(cleaned.qty || cleaned.quantity || 1, 1),
+      quantity: cleanPublicNumber(cleaned.quantity || cleaned.qty || 1, 1),
+      price: cleanPublicNumber(cleaned.price, 0),
+      subtotal: cleanPublicNumber(cleaned.subtotal, cleanPublicNumber(cleaned.price, 0) * cleanPublicNumber(cleaned.qty || cleaned.quantity || 1, 1)),
+      createdAt: nowIso,
+      createdAtMs: Date.now()
+    });
+  });
+
+  order.items = items;
+
+  await upsertRawAdminDocument("customers", customerId, customer);
+  await upsertRawAdminDocument("orders", orderId, order);
+
+  for (const item of items) {
+    await upsertRawAdminDocument("order_items", item.docId, item);
+  }
+
+  return {
+    success: true,
+    action: "publicCreateOrder",
+    provider: "supabase-backend",
+    orderId,
+    customerId,
+    itemCount: items.length
+  };
+}
+
+async function handlePublicStorefrontAction(req, res, body) {
+  const action = String(body.action || "").trim();
+
+  if (action === "publicReadProducts") {
+    return send(res, 200, await handlePublicReadProducts(body));
+  }
+
+  if (action === "publicCreateOrder") {
+    return send(res, 200, await handlePublicCreateOrder(body));
+  }
+
+  return send(res, 400, {
+    success: false,
+    error: "Action publik tidak didukung: " + action
+  });
+}
+
+async function fetchAllAdminDocumentsForExport() {
   const supabase = getSupabaseAdmin();
   const pageSize = 1000;
   let from = 0;
@@ -717,7 +919,7 @@ async function fetchAllAdminDocumentsFromSupabase() {
       .range(from, from + pageSize - 1);
 
     if (error) {
-      throw Object.assign(new Error("Gagal membaca admin_documents: " + error.message), { status: 500 });
+      throw Object.assign(new Error("Gagal membaca backup Supabase: " + error.message), { status: 500 });
     }
 
     const batch = Array.isArray(data) ? data : [];
@@ -730,22 +932,7 @@ async function fetchAllAdminDocumentsFromSupabase() {
   return rows;
 }
 
-function toPlainAdminDocument(row) {
-  const data = row && row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
-  const docId = String(row && row.doc_id || data.docId || data.id || "");
-
-  return {
-    docId,
-    id: data.id || docId,
-    ...data,
-    docId,
-    _collection: row.collection || "",
-    _createdAt: row.created_at || null,
-    _updatedAt: row.updated_at || null
-  };
-}
-
-function groupAdminDocuments(rows) {
+function groupAdminDocumentRows(rows) {
   const grouped = {
     products: [],
     orders: [],
@@ -759,176 +946,78 @@ function groupAdminDocuments(rows) {
   };
 
   for (const row of rows) {
-    const collection = String(row && row.collection || "").trim();
-    if (!collection) continue;
+    const collection = String(row.collection || "").trim();
     if (!grouped[collection]) grouped[collection] = [];
-    grouped[collection].push(toPlainAdminDocument(row));
+    grouped[collection].push(plainDataFromRow(row));
   }
 
   return grouped;
 }
 
-function countGroupedDocuments(grouped, rows) {
-  return {
-    total: rows.length,
-    products: (grouped.products || []).length,
-    orders: (grouped.orders || []).length,
-    customers: (grouped.customers || []).length,
-    settings: (grouped.settings || []).length,
-    securityLogs: (grouped.securityLogs || []).length,
-    categories: (grouped.categories || []).length,
-    brands: (grouped.brands || []).length,
-    variants: (grouped.variants || []).length,
-    order_items: (grouped.order_items || []).length
-  };
-}
-
 async function exportAdminDataFromSupabase() {
-  const rows = await fetchAllAdminDocumentsFromSupabase();
-  const grouped = groupAdminDocuments(rows);
+  const rows = await fetchAllAdminDocumentsForExport();
+  const grouped = groupAdminDocumentRows(rows);
 
   return {
     success: true,
     action: "exportAdminData",
     provider: "supabase",
-    source: "supabase",
     table: ADMIN_DOCUMENTS_TABLE,
-    schemaVersion: 4,
     exportedAt: new Date().toISOString(),
-    app: "Dirac Admin",
-    collection: "all",
-    counts: countGroupedDocuments(grouped, rows),
-    products: grouped.products || [],
-    orders: grouped.orders || [],
-    customers: grouped.customers || [],
-    settings: grouped.settings || [],
-    securityLogs: grouped.securityLogs || [],
-    categories: grouped.categories || [],
-    brands: grouped.brands || [],
-    variants: grouped.variants || [],
-    order_items: grouped.order_items || [],
-    rawRows: rows.map((row) => ({
-      collection: row.collection,
-      doc_id: row.doc_id,
-      data: row.data || {},
-      created_at: row.created_at || null,
-      updated_at: row.updated_at || null
-    }))
+    counts: {
+      total: rows.length,
+      products: grouped.products.length,
+      orders: grouped.orders.length,
+      customers: grouped.customers.length,
+      settings: grouped.settings.length,
+      securityLogs: grouped.securityLogs.length,
+      categories: grouped.categories.length,
+      brands: grouped.brands.length,
+      variants: grouped.variants.length,
+      order_items: grouped.order_items.length
+    },
+    products: grouped.products,
+    orders: grouped.orders,
+    customers: grouped.customers,
+    settings: grouped.settings,
+    securityLogs: grouped.securityLogs,
+    categories: grouped.categories,
+    brands: grouped.brands,
+    variants: grouped.variants,
+    order_items: grouped.order_items,
+    rawRows: rows
   };
 }
 
-function numberValue(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+function numberForReport(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
 }
 
-function lowerText(value) {
-  return String(value === undefined || value === null ? "" : value).toLowerCase();
-}
-
-function dateMsValue(value) {
-  if (!value) return 0;
-  if (typeof value === "number") return value;
-  if (value instanceof Date) return value.getTime();
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function matchReportOrderFilter(order, body) {
-  const q = lowerText(body.reportSearch || body.search || "").trim();
-  const paymentStatus = String(body.reportPaymentStatus || body.paymentStatus || "").trim();
-  const orderStatus = String(body.reportOrderStatus || body.orderStatus || "").trim();
-  const from = String(body.reportDateFrom || body.dateFrom || "").trim();
-  const to = String(body.reportDateTo || body.dateTo || "").trim();
-
-  if (q) {
-    const haystack = [
-      order.docId,
-      order.id,
-      order.orderId,
-      order.customerName,
-      order.customerPhone,
-      order.phone,
-      order.email,
-      order.address,
-      order.paymentMethod,
-      order.paymentStatus,
-      order.orderStatus,
-      order.status,
-      order.courier,
-      order.trackingNumber,
-      order.note
-    ].map(lowerText).join(" ");
-
-    if (!haystack.includes(q)) return false;
-  }
-
-  if (paymentStatus && paymentStatus !== "Semua" && paymentStatus !== "all") {
-    if (String(order.paymentStatus || "") !== paymentStatus) return false;
-  }
-
-  if (orderStatus && orderStatus !== "Semua" && orderStatus !== "all") {
-    if (String(order.orderStatus || order.status || "") !== orderStatus) return false;
-  }
-
-  const createdMs =
-    numberValue(order.createdAtMs) ||
-    dateMsValue(order.createdAt) ||
-    dateMsValue(order._createdAt);
-
-  if (from) {
-    const fromMs = Date.parse(from + "T00:00:00");
-    if (Number.isFinite(fromMs) && createdMs && createdMs < fromMs) return false;
-  }
-
-  if (to) {
-    const toMs = Date.parse(to + "T23:59:59");
-    if (Number.isFinite(toMs) && createdMs && createdMs > toMs) return false;
-  }
-
-  return true;
-}
-
-async function reportAdminDataFromSupabase(body) {
-  const rows = await fetchAllAdminDocumentsFromSupabase();
-  const grouped = groupAdminDocuments(rows);
-  const filteredOrders = (grouped.orders || []).filter((order) => matchReportOrderFilter(order, body || {}));
-
-  const revenue = filteredOrders.reduce((sum, order) => sum + numberValue(order.total), 0);
-  const subtotal = filteredOrders.reduce((sum, order) => sum + numberValue(order.subtotal), 0);
-  const shippingCost = filteredOrders.reduce((sum, order) => sum + numberValue(order.shippingCost), 0);
-  const discount = filteredOrders.reduce((sum, order) => sum + numberValue(order.discount), 0);
+async function reportAdminDataFromSupabase() {
+  const rows = await fetchAllAdminDocumentsForExport();
+  const grouped = groupAdminDocumentRows(rows);
+  const revenue = grouped.orders.reduce((sum, order) => sum + numberForReport(order.total), 0);
 
   return {
     success: true,
     action: "reportAdminData",
     provider: "supabase",
-    source: "supabase",
-    table: ADMIN_DOCUMENTS_TABLE,
     counts: {
-      products: (grouped.products || []).length,
-      orders: filteredOrders.length,
-      totalOrders: (grouped.orders || []).length,
-      customers: (grouped.customers || []).length,
-      settings: (grouped.settings || []).length,
-      securityLogs: (grouped.securityLogs || []).length,
-      categories: (grouped.categories || []).length,
-      brands: (grouped.brands || []).length,
-      variants: (grouped.variants || []).length,
-      order_items: (grouped.order_items || []).length
+      products: grouped.products.length,
+      orders: grouped.orders.length,
+      customers: grouped.customers.length,
+      settings: grouped.settings.length,
+      securityLogs: grouped.securityLogs.length
     },
     totals: {
-      revenue,
-      subtotal,
-      shippingCost,
-      discount
+      revenue
     },
-    orders: body && body.countOnly ? [] : filteredOrders,
-    products: body && body.countOnly ? [] : (grouped.products || []),
-    customers: body && body.countOnly ? [] : (grouped.customers || [])
+    products: grouped.products,
+    orders: grouped.orders,
+    customers: grouped.customers
   };
 }
-
 
 async function handleAdminDataAction(role, body) {
   const action = String(body.action || "").trim();
@@ -994,16 +1083,16 @@ async function handleAdminDataAction(role, body) {
     return { success: true, action, provider: "supabase", count: ops.length };
   }
 
+  if (action === "createUploadUrl") {
+    return handleCreateUploadUrl(body);
+  }
+
   if (action === "exportAdminData") {
     return exportAdminDataFromSupabase();
   }
 
   if (action === "reportAdminData") {
     return reportAdminDataFromSupabase(body);
-  }
-
-  if (action === "createUploadUrl") {
-    return handleCreateUploadUrl(body);
   }
 
   throw Object.assign(new Error("Action admin tidak didukung: " + action), { status: 400 });
@@ -1117,6 +1206,10 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const action = String(body.action || "").trim();
+
+    if (action === "publicReadProducts" || action === "publicCreateOrder") {
+      return await handlePublicStorefrontAction(req, res, body);
+    }
 
     if (action) {
       return await handleAdminAction(req, res, body);
