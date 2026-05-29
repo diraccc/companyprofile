@@ -3153,6 +3153,12 @@
     }
     function normalize(docSnap){
       const data = docSnap.data() || {};
+      const rawStatus = String(data.status || '').trim().toLowerCase();
+      const hasSoldFlag = data.isSold === true || data.soldOut === true || data.outOfStock === true ||
+        String(data.isSold || '').toLowerCase() === 'true' ||
+        String(data.soldOut || '').toLowerCase() === 'true' ||
+        String(data.outOfStock || '').toLowerCase() === 'true';
+      const effectiveStatus = hasSoldFlag || rawStatus === 'sold' || rawStatus === 'habis' ? 'sold' : 'ready';
       return {
         docId: docSnap.id,
         id: Number(data.id || 0),
@@ -3161,7 +3167,7 @@
         category: String(data.category || '').trim(),
         price: Number(data.price || 0),
         costPrice: Number(data.costPrice || 0),
-        stock: Number(data.stock ?? (data.status === 'sold' ? 0 : 1)),
+        stock: Number(data.stock ?? (effectiveStatus === 'sold' ? 0 : 1)),
         minStock: Number(data.minStock || 0),
         soldCount: Number(data.soldCount || 0),
         size: String(data.size || '').trim(),
@@ -3176,7 +3182,10 @@
         img: String(data.img || '').trim(),
         desc: String(data.desc || '').trim(),
         notes: String(data.notes || '').trim(),
-        status: String(data.status || 'ready').trim() || 'ready',
+        status: effectiveStatus,
+        isSold: effectiveStatus === 'sold',
+        soldOut: effectiveStatus === 'sold',
+        outOfStock: effectiveStatus === 'sold',
         longDesc: String(data.longDesc || '').trim(),
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
@@ -3530,7 +3539,8 @@
       const stock = Number(els.stock.value || 0);
       const minStock = Number(els.minStock.value || 0);
       const soldCount = Number(els.soldCount.value || 0);
-      const status = els.status.value || 'ready';
+      const status = String(els.status.value || 'ready').trim().toLowerCase() === 'sold' ? 'sold' : 'ready';
+      const formSoldFlag = status === 'sold';
       const currentDocId = els.docId.value.trim();
       if(!id || id < 1) throw new Error('ID produk wajib angka lebih dari 0.');
       if(!Number.isInteger(id)) throw new Error('ID produk harus angka bulat.');
@@ -3557,6 +3567,9 @@
       if(duplicate) throw new Error('ID ' + id + ' sudah dipakai oleh produk "' + duplicate.title + '". Pakai ID lain agar data tidak bentrok.');
       return {
         id, title, brand, category, price, costPrice, stock, minStock, soldCount,
+        isSold: formSoldFlag,
+        soldOut: formSoldFlag,
+        outOfStock: formSoldFlag,
         size: els.size.value.trim(),
         fragranceType: els.fragranceType.value || '',
         gender: els.gender.value || '',
@@ -3597,7 +3610,7 @@
       els.middleNotes.value = product.middleNotes || '';
       els.baseNotes.value = product.baseNotes || '';
       els.img.value = product.img || '';
-      els.status.value = product.status || 'ready';
+      els.status.value = productStatusValue(product);
       els.notes.value = product.notes || '';
       els.desc.value = product.desc || '';
       els.longDesc.value = product.longDesc || '';
@@ -3745,9 +3758,13 @@
       return !product.img || !product.desc || !product.longDesc || !product.category || !product.title || !product.brand || !Number.isFinite(product.price) || product.price < 0 || !Number.isFinite(product.stock) || product.stock < 0 || Number(product.stock || 0) <= Number(product.minStock || 0) || !['ready','sold'].includes(product.status);
     }
     function productStatusValue(product){
-      const raw = String(product && product.status || '').trim().toLowerCase();
-      if(raw === 'sold' || raw === 'ready') return raw;
-      if(product && (product.isSold === true || product.soldOut === true || product.outOfStock === true)) return 'sold';
+      if(!product) return 'ready';
+      const soldFlag = product.isSold === true || product.soldOut === true || product.outOfStock === true ||
+        String(product.isSold || '').toLowerCase() === 'true' ||
+        String(product.soldOut || '').toLowerCase() === 'true' ||
+        String(product.outOfStock || '').toLowerCase() === 'true';
+      const raw = String(product.status || '').trim().toLowerCase();
+      if(soldFlag || raw === 'sold' || raw === 'habis') return 'sold';
       return 'ready';
     }
     function applyProductLocalPatch(product, patch){
@@ -3965,7 +3982,10 @@
           img: product.img,
           desc: product.desc,
           notes: product.notes,
-          status: product.status,
+          status: productStatusValue(product),
+          isSold: productStatusValue(product) === 'sold',
+          soldOut: productStatusValue(product) === 'sold',
+          outOfStock: productStatusValue(product) === 'sold',
           longDesc: product.longDesc,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
