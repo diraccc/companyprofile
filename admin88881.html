@@ -808,6 +808,10 @@
           <span class="twofactor-step" id="twoFactorStep6">6</span>
         </div>
         <div class="notice good" id="twoFactorUser">Login diterima. Dashboard masih terkunci sampai A2F selesai.</div>
+        <div class="notice hidden" id="clipboardSecurityNotice" role="status" aria-live="polite"></div>
+        <div style="display:grid;grid-template-columns:1fr;gap:10px;margin:10px 0">
+          <button class="btn small" id="clipboardStatusBtn" type="button">Cek Status Proteksi</button>
+        </div>
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
@@ -1612,7 +1616,7 @@
     const $ = (id) => document.getElementById(id);
     const els = {
       loginSection:$('loginSection'), twoFactorSection:$('twoFactorSection'), adminSection:$('adminSection'), loginBtn:$('loginBtn'), loginEmail:$('loginEmail'), loginPassword:$('loginPassword'),
-      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
+      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), clipboardSecurityNotice:$('clipboardSecurityNotice'), clipboardStatusBtn:$('clipboardStatusBtn'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
       statTotal:$('statTotal'), statReady:$('statReady'), statSold:$('statSold'), statValue:$('statValue'), statCategory:$('statCategory'), statAverage:$('statAverage'),
       miniSyncStatus:$('miniSyncStatus'), lastSync:$('lastSync'), syncDot:$('syncDot'), netStatus:$('netStatus'), netDot:$('netDot'), qualityStatus:$('qualityStatus'), qualitySummary:$('qualitySummary'), qualityDot:$('qualityDot'), clockText:$('clockText'),
       menuToggleBtn:$('menuToggleBtn'), sidebarBackdrop:$('sidebarBackdrop'), adminSidebar:$('adminSidebar'),
@@ -2595,6 +2599,57 @@
       }
       return data;
     }
+    function renderClipboardSecurityStatus(data){
+      const protectionEnabled = data && data.protectionEnabled !== false;
+      const unlocked = Boolean(data && data.clipboardUnlocked === true);
+      const permanentBan = Boolean(data && data.permanentBan === true);
+      const untilMs = Number(data && data.clipboardUnlockedUntilMs || 0);
+      const untilText = untilMs > Date.now() ? new Date(untilMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '';
+
+      if(permanentBan){
+        return {
+          message: 'Proteksi copy-paste: ON. Izin copy-paste 5 menit diblokir permanen. Reset hanya lewat Supabase/admin manual.',
+          type: 'danger'
+        };
+      }
+
+      if(!protectionEnabled){
+        return {
+          message: 'Proteksi copy-paste: OFF. Copy-paste berjalan normal sesuai status backend.',
+          type: 'warn'
+        };
+      }
+
+      if(unlocked){
+        return {
+          message: 'Proteksi copy-paste: ON. Copy-paste sedang diizinkan sementara sampai ' + untilText + '.',
+          type: 'good'
+        };
+      }
+
+      return {
+        message: 'Proteksi copy-paste: ON. Copy-paste terkunci sesuai status backend.',
+        type: 'warn'
+      };
+    }
+
+    async function checkClipboardSecurityStatus(showToastMessage=true){
+      if(els.clipboardStatusBtn) els.clipboardStatusBtn.disabled = true;
+      try{
+        const data = await callStep6EmailApproval('checkClipboardSecurityStatus');
+        const rendered = renderClipboardSecurityStatus(data);
+        if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, rendered.message, rendered.type);
+        if(showToastMessage) showToast('Status proteksi berhasil dicek');
+        return data;
+      }catch(error){
+        const message = 'Gagal cek status proteksi: ' + firebaseMessage(error);
+        if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, message, 'danger');
+        throw error;
+      }finally{
+        if(els.clipboardStatusBtn) els.clipboardStatusBtn.disabled = false;
+      }
+    }
+
     function setStep6Deadline(expiresAtMs){
       if(!expiresAtMs) return;
       step6ExpiresAtMs = Number(expiresAtMs || 0);
@@ -5576,6 +5631,11 @@
     els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.loginBtn.click(); });
     els.twoFactorBtn.addEventListener('click', verifyTwoFactorCode);
     els.twoFactorCode.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.twoFactorBtn.click(); });
+    if(els.clipboardStatusBtn) els.clipboardStatusBtn.addEventListener('click', () => {
+      checkClipboardSecurityStatus(true).catch(error => {
+        console.warn('Cek status proteksi copy-paste gagal:', error);
+      });
+    });
     els.twoFactorCancelBtn.addEventListener('click', logoutAdmin);
     els.logoutBtn.addEventListener('click', logoutAdmin);
     els.form.addEventListener('submit', saveProduct);
