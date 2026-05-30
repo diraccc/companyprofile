@@ -1641,8 +1641,8 @@
                 <div class="panel anchor-panel full" id="settingsSecurityPanel">
                   <span class="view-kicker">Pengaturan / Security Log</span><h3>Security Log</h3><p class="help">Mencatat aksi sensitif: login selesai A2F, simpan/hapus, export, upload bukti, dan pengaturan.</p>
                   <div class="settings-actions"><button class="btn requires-export" id="exportSecurityLogBtn" type="button">Export Security Log</button><button class="btn danger requires-delete" id="clearLocalSecurityLogBtn" type="button">Bersihkan Log Lokal</button></div>
-                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Format baru memakai 50 karakter acak dan disimpan sebagai Argon2id di backend. Simpan di tempat aman. Kode yang sudah dipakai akan otomatis hangus.</div>
-                  <div class="settings-actions requires-delete"><button class="btn warn" id="generateRecoveryCodesBtn" type="button">Buat 10 Recovery Code Sekali Pakai</button></div>
+                  <div class="notice warn requires-delete">Recovery code sekali pakai hanya ditampilkan sekali setelah dibuat. Format baru memakai 3 kode aktif, masing-masing 1000 karakter acak berisi angka, huruf, dan simbol spesial, disimpan sebagai Argon2id di backend. Kode lama otomatis tidak berlaku setelah diganti.</div>
+                  <div class="settings-actions requires-delete"><button class="btn warn" id="generateRecoveryCodesBtn" type="button">Buat 3 Recovery Code Sekali Pakai</button></div>
                   <div class="notice hidden" id="recoveryCodesNotice" role="status"></div>
                   <pre class="rules-box hidden" id="recoveryCodesOutput" aria-label="Recovery code sekali pakai"></pre>
                   <div class="security-log-list" id="securityLogList"><div class="empty">Belum ada log.</div></div>
@@ -3166,8 +3166,8 @@
           </div>
           <div class="security-center-actions">
             <button class="btn small primary" type="button" data-security-action="refresh">Refresh real-time</button>
-            <button class="btn small warn" type="button" data-security-action="generate-recovery-one">Buat 1 Recovery Code</button>
-            <button class="btn small" type="button" data-security-action="generate-recovery-ten">Buat 10 Recovery Code</button>
+            <button class="btn small warn" type="button" data-security-action="generate-recovery-one">Buat 3 Recovery Code</button>
+            <button class="btn small" type="button" data-security-action="generate-recovery-ten">Buat 3 Recovery Code</button>
             <button class="btn small good" type="button" data-security-action="export-snapshot">Export Snapshot</button>
           </div>
           <div class="security-section"><div class="security-section-head"><div><h4>Perangkat sekarang</h4><p>Data browser/IP saat panel dibuka.</p></div>${current.trusted ? securityPill('Trusted copy-paste','good') : securityPill('Belum trusted','warn')}</div>${renderSecurityInfoGrid([
@@ -3262,8 +3262,8 @@
       const action = btn && btn.dataset ? btn.dataset.securityAction : '';
       if(!action) return;
       if(action === 'refresh') return loadSecurityCenter(true).catch(error => showToast(error.message || 'Refresh gagal'));
-      if(action === 'generate-recovery-one') return generateSecurityCenterRecoveryCodes(1);
-      if(action === 'generate-recovery-ten') return generateSecurityCenterRecoveryCodes(10);
+      if(action === 'generate-recovery-one') return generateSecurityCenterRecoveryCodes(3);
+      if(action === 'generate-recovery-ten') return generateSecurityCenterRecoveryCodes(3);
       if(action === 'export-snapshot') return exportSecuritySnapshot();
       const hash = btn.dataset.deviceHash || '';
       if(action === 'device-trust') return updateSecurityDevice(hash, 'trust');
@@ -6851,7 +6851,7 @@
         setNotice(els.recoveryCodesNotice, error.message || 'Akses ditolak.', 'danger');
         return;
       }
-      const ok = window.confirm('Buat 10 recovery code sekali pakai baru?\n\nFormat baru: 50 karakter acak, disimpan sebagai Argon2id. Kode asli hanya muncul sekali. Simpan sekarang juga. Kode yang sudah dipakai tidak bisa digunakan lagi.');
+      const ok = window.confirm('Buat 3 recovery code sekali pakai baru?\n\nFormat baru: 1000 karakter acak berisi angka, huruf, dan simbol spesial. Disimpan sebagai Argon2id. Kode lama otomatis tidak berlaku setelah diganti. Kode asli hanya muncul sekali.');
       if(!ok) return;
       busy = true;
       if(els.generateRecoveryCodesBtn) els.generateRecoveryCodesBtn.disabled = true;
@@ -6871,7 +6871,7 @@
         const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode, clientContext: collectStep6ClientContext() })
+          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 3, sensitiveTotpCode, clientContext: collectStep6ClientContext() })
         });
         const data = await readApiJson(response);
         if(!response.ok || data.success === false){
@@ -6883,7 +6883,7 @@
         }
         const text = [
           'SIMPAN SEKARANG - kode ini hanya ditampilkan sekali.',
-          'Dipakai untuk Recovery Face ID tahap 5. Setiap kode berisi 50 karakter acak dan hanya bisa dipakai 1 kali.',
+          'Dipakai untuk Recovery Face ID tahap 5. Setiap kode berisi 1000 karakter acak angka, huruf, dan simbol spesial. Kode lama otomatis tidak berlaku setelah diganti.',
           '',
           ...codes.map((code, index) => String(index + 1).padStart(2, '0') + '. ' + code)
         ].join('\n');
