@@ -14,6 +14,7 @@ const ARGON2ID_OPTIONS = Object.freeze({
 });
 
 const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_lockouts";
+const CLIPBOARD_SECURITY_TABLE = process.env.SUPABASE_CLIPBOARD_SECURITY_TABLE || "admin_clipboard_security";
 const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 let supabaseAdminClient = null;
 
@@ -1558,6 +1559,82 @@ async function checkA2fBanStatus(req, res) {
   });
 }
 
+function normalizeClipboardSecurityStatus(row) {
+  const data = row && typeof row === "object" ? row : {};
+  const unlockedUntilMs = data.clipboard_unlocked_until
+    ? Date.parse(data.clipboard_unlocked_until)
+    : 0;
+  const safeUnlockedUntilMs = Number.isFinite(unlockedUntilMs) ? unlockedUntilMs : 0;
+  const clipboardUnlocked = Boolean(safeUnlockedUntilMs && safeUnlockedUntilMs > Date.now());
+
+  return {
+    success: true,
+    protectionEnabled: data.protection_enabled !== false,
+    clipboardUnlocked,
+    clipboardUnlockedUntil: clipboardUnlocked ? data.clipboard_unlocked_until : null,
+    clipboardUnlockedUntilMs: clipboardUnlocked ? safeUnlockedUntilMs : 0,
+    permanentBan: data.clipboard_permanent_ban === true,
+    banReason: String(data.clipboard_ban_reason || ""),
+    updatedAt: data.updated_at || null
+  };
+}
+
+async function ensureClipboardSecurityRow() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(CLIPBOARD_SECURITY_TABLE)
+    .select("*")
+    .eq("id", "global")
+    .maybeSingle();
+
+  if (error) {
+    error.statusCode = error.status || 500;
+    throw error;
+  }
+
+  if (data) return data;
+
+  const { data: inserted, error: insertError } = await supabase
+    .from(CLIPBOARD_SECURITY_TABLE)
+    .insert({
+      id: "global",
+      protection_enabled: true,
+      clipboard_unlocked_until: null,
+      clipboard_permanent_ban: false
+    })
+    .select("*")
+    .single();
+
+  if (insertError) {
+    insertError.statusCode = insertError.status || 500;
+    throw insertError;
+  }
+
+  return inserted;
+}
+
+async function checkClipboardSecurityStatus(req, res) {
+  const { idToken } = req.body || {};
+  await verifyAdminIdToken(idToken);
+
+  try {
+    const row = await ensureClipboardSecurityRow();
+    return res.status(200).json(normalizeClipboardSecurityStatus(row));
+  } catch (error) {
+    console.error("checkClipboardSecurityStatus error:", error);
+    return res.status(500).json({
+      success: false,
+      protectionEnabled: true,
+      clipboardUnlocked: false,
+      clipboardUnlockedUntil: null,
+      clipboardUnlockedUntilMs: 0,
+      permanentBan: false,
+      banReason: "",
+      error: "Gagal membaca status proteksi. Default aman: ON."
+    });
+  }
+}
+
 module.exports = async function handler(req, res) {
   setCors(req, res);
 
@@ -1585,6 +1662,7 @@ module.exports = async function handler(req, res) {
     const action = String((req.body && req.body.action) || "").trim();
 
     if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
+    if (action === "checkClipboardSecurityStatus") return checkClipboardSecurityStatus(req, res);
     if (action === "recordA2fTimeoutBlock") {
       await verifyAdminIdToken(req.body && req.body.idToken);
       const data = await recordA2fTimeoutBlock(String((req.body && req.body.reason) || "a2f_timeout"));
