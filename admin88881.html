@@ -809,8 +809,25 @@
         </div>
         <div class="notice good" id="twoFactorUser">Login diterima. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="notice hidden" id="clipboardSecurityNotice" role="status" aria-live="polite"></div>
-        <div style="display:grid;grid-template-columns:1fr;gap:10px;margin:10px 0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0">
           <button class="btn small" id="clipboardStatusBtn" type="button">Cek Status Proteksi</button>
+          <button class="btn small good" id="clipboardUnlockStartBtn" type="button">Izinkan Copy-Paste 5 Menit</button>
+        </div>
+        <div class="notice hidden" id="clipboardUnlockPanel" role="group" aria-label="Verifikasi izin copy-paste 5 menit">
+          <strong>Verifikasi izin copy-paste 5 menit</strong>
+          <p class="help" style="margin:6px 0 10px">Kode SMTP dikirim ke email admin. Salah input kode SMTP 1x akan memblokir fitur izin copy-paste secara permanen.</p>
+          <div class="field">
+            <label for="clipboardUnlockSmtpCode">Kode SMTP</label>
+            <input class="input" id="clipboardUnlockSmtpCode" type="password" inputmode="text" autocomplete="off" placeholder="15 karakter dari email">
+          </div>
+          <div class="field">
+            <label for="clipboardUnlockTotpCode">Kode Authenticator</label>
+            <input class="input" id="clipboardUnlockTotpCode" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Kode Authenticator/TOTP">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button class="btn small primary" id="clipboardUnlockVerifyBtn" type="button">Verifikasi & Izinkan</button>
+            <button class="btn small" id="clipboardUnlockCancelBtn" type="button">Batal</button>
+          </div>
         </div>
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
@@ -1616,7 +1633,7 @@
     const $ = (id) => document.getElementById(id);
     const els = {
       loginSection:$('loginSection'), twoFactorSection:$('twoFactorSection'), adminSection:$('adminSection'), loginBtn:$('loginBtn'), loginEmail:$('loginEmail'), loginPassword:$('loginPassword'),
-      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), clipboardSecurityNotice:$('clipboardSecurityNotice'), clipboardStatusBtn:$('clipboardStatusBtn'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
+      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), clipboardSecurityNotice:$('clipboardSecurityNotice'), clipboardStatusBtn:$('clipboardStatusBtn'), clipboardUnlockStartBtn:$('clipboardUnlockStartBtn'), clipboardUnlockPanel:$('clipboardUnlockPanel'), clipboardUnlockSmtpCode:$('clipboardUnlockSmtpCode'), clipboardUnlockTotpCode:$('clipboardUnlockTotpCode'), clipboardUnlockVerifyBtn:$('clipboardUnlockVerifyBtn'), clipboardUnlockCancelBtn:$('clipboardUnlockCancelBtn'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
       statTotal:$('statTotal'), statReady:$('statReady'), statSold:$('statSold'), statValue:$('statValue'), statCategory:$('statCategory'), statAverage:$('statAverage'),
       miniSyncStatus:$('miniSyncStatus'), lastSync:$('lastSync'), syncDot:$('syncDot'), netStatus:$('netStatus'), netDot:$('netDot'), qualityStatus:$('qualityStatus'), qualitySummary:$('qualitySummary'), qualityDot:$('qualityDot'), clockText:$('clockText'),
       menuToggleBtn:$('menuToggleBtn'), sidebarBackdrop:$('sidebarBackdrop'), adminSidebar:$('adminSidebar'),
@@ -1700,11 +1717,14 @@
     let step6EmailApprovalPollTimer = null;
     let step6ScreenCode = '';
     let step6ExpiresAtMs = 0;
-    let clipboardProtectionEnabled = true;
+    let clipboardProtectionEnabled = false;
     let clipboardUnlockedUntilMs = 0;
     let clipboardPermanentBan = false;
     let clipboardStatusKnown = false;
     let clipboardGuardWarnedAt = 0;
+    let clipboardUnlockChallengeId = '';
+    let clipboardUnlockExpiresAtMs = 0;
+    let clipboardUnlockInFlight = false;
     let a2fBanWatcherTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
@@ -2634,7 +2654,7 @@
       clipboardProtectionEnabled = true;
       clipboardUnlockedUntilMs = 0;
       clipboardPermanentBan = false;
-      clipboardStatusKnown = false;
+      clipboardStatusKnown = true;
       document.documentElement.dataset.clipboardProtection = 'on';
       document.documentElement.dataset.clipboardUnlocked = 'off';
     }
@@ -2643,8 +2663,16 @@
       return clipboardProtectionEnabled !== true || (Number(clipboardUnlockedUntilMs || 0) > Date.now());
     }
 
+    function isClipboardGuardEligible(){
+      if(!clipboardStatusKnown) return false;
+      const loginVisible = els.loginSection && !els.loginSection.classList.contains('hidden');
+      const twoFactorVisible = els.twoFactorSection && !els.twoFactorSection.classList.contains('hidden');
+      const adminVisible = els.adminSection && !els.adminSection.classList.contains('hidden');
+      return !loginVisible && (twoFactorVisible || adminVisible);
+    }
+
     function isClipboardGuardActive(){
-      return clipboardProtectionEnabled === true && !isClipboardPasteAllowed();
+      return isClipboardGuardEligible() && clipboardProtectionEnabled === true && !isClipboardPasteAllowed();
     }
 
     function showClipboardLockedWarning(){
@@ -2731,6 +2759,113 @@
         throw error;
       }finally{
         if(els.clipboardStatusBtn) els.clipboardStatusBtn.disabled = false;
+      }
+    }
+
+    function setClipboardUnlockBusy(isBusy){
+      clipboardUnlockInFlight = isBusy === true;
+      [
+        els.clipboardUnlockStartBtn,
+        els.clipboardUnlockVerifyBtn,
+        els.clipboardUnlockCancelBtn,
+        els.clipboardUnlockSmtpCode,
+        els.clipboardUnlockTotpCode
+      ].filter(Boolean).forEach(el => { el.disabled = clipboardUnlockInFlight; });
+    }
+
+    function resetClipboardUnlockForm(hidePanel=true){
+      clipboardUnlockChallengeId = '';
+      clipboardUnlockExpiresAtMs = 0;
+      if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.value = '';
+      if(els.clipboardUnlockTotpCode) els.clipboardUnlockTotpCode.value = '';
+      if(hidePanel && els.clipboardUnlockPanel) els.clipboardUnlockPanel.classList.add('hidden');
+    }
+
+    function normalizeClipboardOtpInput(value){
+      return String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '');
+    }
+
+    async function startClipboardUnlockOtp(){
+      if(clipboardUnlockInFlight) return;
+      setClipboardUnlockBusy(true);
+      try{
+        const statusData = await checkClipboardSecurityStatus(false).catch(() => null);
+        const state = statusData ? normalizeClipboardSecurityState(statusData) : null;
+        if(state && state.permanentBan){
+          throw new Error(state.banReason || 'Fitur izin copy-paste diblokir permanen.');
+        }
+        if(state && state.protectionEnabled === false){
+          if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, 'Proteksi copy-paste sedang OFF dari backend. Izin 5 menit tidak diperlukan.', 'warn');
+          showToast('Proteksi copy-paste sedang OFF');
+          return;
+        }
+
+        const data = await callStep6EmailApproval('startClipboardUnlockOtp');
+        clipboardUnlockChallengeId = String(data.challengeId || '');
+        clipboardUnlockExpiresAtMs = Number(data.expiresAtMs || (data.expiresAt ? Date.parse(data.expiresAt) : 0) || 0);
+
+        if(!clipboardUnlockChallengeId){
+          throw new Error('Backend tidak mengembalikan challenge ID.');
+        }
+
+        if(els.clipboardUnlockPanel) els.clipboardUnlockPanel.classList.remove('hidden');
+        if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.value = '';
+        if(els.clipboardUnlockTotpCode) els.clipboardUnlockTotpCode.value = '';
+        if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.focus();
+
+        const expiresText = clipboardUnlockExpiresAtMs ? new Date(clipboardUnlockExpiresAtMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '5 menit';
+        if(els.clipboardSecurityNotice){
+          setNotice(els.clipboardSecurityNotice, 'Kode SMTP izin copy-paste sudah dikirim. Masukkan kode SMTP dan Authenticator sebelum ' + expiresText + '. Salah SMTP 1x = permanent ban fitur izin copy-paste.', 'warn');
+        }
+        showToast('Kode SMTP izin copy-paste sudah dikirim');
+      }catch(error){
+        const message = 'Gagal meminta kode izin copy-paste: ' + firebaseMessage(error);
+        if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, message, 'danger');
+        showToast(message);
+      }finally{
+        setClipboardUnlockBusy(false);
+      }
+    }
+
+    async function verifyClipboardUnlockOtp(){
+      if(clipboardUnlockInFlight) return;
+
+      const smtpCode = normalizeClipboardOtpInput(els.clipboardUnlockSmtpCode && els.clipboardUnlockSmtpCode.value);
+      const totpCode = String(els.clipboardUnlockTotpCode && els.clipboardUnlockTotpCode.value || '').trim();
+
+      if(!clipboardUnlockChallengeId){
+        setNotice(els.clipboardSecurityNotice, 'Minta kode SMTP terlebih dahulu.', 'warn');
+        return;
+      }
+      if(!smtpCode || !totpCode){
+        setNotice(els.clipboardSecurityNotice, 'Isi kode SMTP dan kode Authenticator terlebih dahulu.', 'warn');
+        return;
+      }
+
+      setClipboardUnlockBusy(true);
+      try{
+        const data = await callStep6EmailApproval('verifyClipboardUnlockOtp', {
+          challengeId: clipboardUnlockChallengeId,
+          smtpCode,
+          totpCode
+        });
+        const rendered = renderClipboardSecurityStatus(data);
+        if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, rendered.message, rendered.type);
+        resetClipboardUnlockForm(true);
+        showToast('Copy-paste diizinkan maksimal 5 menit');
+      }catch(error){
+        const message = firebaseMessage(error);
+        if(error && error.a2fLockState && error.a2fLockState.permanentBan){
+          applyClipboardSecurityState(error.a2fLockState);
+          resetClipboardUnlockForm(true);
+          if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, 'Fitur izin copy-paste diblokir permanen: ' + message, 'danger');
+          showToast('Fitur izin copy-paste diblokir permanen');
+          return;
+        }
+        if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, 'Gagal membuka izin copy-paste: ' + message, 'danger');
+        showToast('Gagal membuka izin copy-paste');
+      }finally{
+        setClipboardUnlockBusy(false);
       }
     }
 
@@ -5720,6 +5855,21 @@
       checkClipboardSecurityStatus(true).catch(error => {
         console.warn('Cek status proteksi copy-paste gagal:', error);
       });
+    });
+    if(els.clipboardUnlockStartBtn) els.clipboardUnlockStartBtn.addEventListener('click', startClipboardUnlockOtp);
+    if(els.clipboardUnlockVerifyBtn) els.clipboardUnlockVerifyBtn.addEventListener('click', verifyClipboardUnlockOtp);
+    if(els.clipboardUnlockCancelBtn) els.clipboardUnlockCancelBtn.addEventListener('click', () => resetClipboardUnlockForm(true));
+    if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.addEventListener('keydown', event => {
+      if(event.key === 'Enter'){
+        event.preventDefault();
+        if(els.clipboardUnlockTotpCode) els.clipboardUnlockTotpCode.focus();
+      }
+    });
+    if(els.clipboardUnlockTotpCode) els.clipboardUnlockTotpCode.addEventListener('keydown', event => {
+      if(event.key === 'Enter'){
+        event.preventDefault();
+        verifyClipboardUnlockOtp();
+      }
     });
     els.twoFactorCancelBtn.addEventListener('click', logoutAdmin);
     els.logoutBtn.addEventListener('click', logoutAdmin);
