@@ -19,7 +19,7 @@ const CLIPBOARD_OTP_CHALLENGES_TABLE = process.env.SUPABASE_CLIPBOARD_OTP_CHALLE
 const CLIPBOARD_UNLOCK_PURPOSE = "clipboard_unlock_5m";
 const CLIPBOARD_OTP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CLIPBOARD_OTP_LENGTH = 15;
-const CLIPBOARD_OTP_TTL_MS = 5 * 60 * 1000;
+const CLIPBOARD_OTP_TTL_MS = 90 * 1000;
 const CLIPBOARD_UNLOCK_MS = 5 * 60 * 1000;
 const CLIPBOARD_ARGON2ID_OPTIONS = Object.freeze({
   type: argon2.argon2id,
@@ -1779,7 +1779,7 @@ async function startClipboardUnlockOtp(req, res) {
     challengeId: data.id,
     expiresAt: data.expires_at,
     expiresAtMs,
-    message: "Kode SMTP untuk izin copy-paste 5 menit sudah dikirim."
+    message: "Kode SMTP untuk izin copy-paste 5 menit sudah dikirim. Kode SMTP expired dalam 90 detik."
   });
 }
 
