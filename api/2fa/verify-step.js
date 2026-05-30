@@ -4,7 +4,13 @@ const argon2 = require("argon2");
 const nodemailer = require("nodemailer");
 const { createClient } = require("@supabase/supabase-js");
 
-const ONE_TIME_RECOVERY_RANDOM_LENGTH = 50;
+const ONE_TIME_RECOVERY_CODE_COUNT = 3;
+const ONE_TIME_RECOVERY_CODE_LENGTH = 1000;
+const ONE_TIME_RECOVERY_DIGITS = "0123456789";
+const ONE_TIME_RECOVERY_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ONE_TIME_RECOVERY_SYMBOLS = "!@#$%^&*_=+[]{}:,.?";
+const ONE_TIME_RECOVERY_ALPHABET = ONE_TIME_RECOVERY_DIGITS + ONE_TIME_RECOVERY_LETTERS + ONE_TIME_RECOVERY_SYMBOLS;
+const ONE_TIME_RECOVERY_CODE_FORMAT = "MIXED-1000-V1";
 const ARGON2ID_OPTIONS = Object.freeze({
   type: argon2.argon2id,
   memoryCost: 19456,
@@ -447,9 +453,20 @@ function normalizeOneTimeRecoveryCode(code) {
   return String(code || "").trim().toUpperCase().replace(/[\s-]+/g, "");
 }
 
-function getOneTimeRecoveryLookupHash(code, secret) {
+function isValidOneTimeRecoveryCode(code) {
   const normalized = normalizeOneTimeRecoveryCode(code);
-  return crypto.createHmac("sha256", secret).update(`one-time-recovery-lookup:${normalized}`).digest("hex");
+
+  if (normalized.length !== ONE_TIME_RECOVERY_CODE_LENGTH) return false;
+
+  for (const char of normalized) {
+    if (!ONE_TIME_RECOVERY_ALPHABET.includes(char)) return false;
+  }
+
+  return true;
+}
+
+async function hashOneTimeRecoveryCodeArgon2id(code) {
+  return argon2.hash(normalizeOneTimeRecoveryCode(code), ARGON2ID_OPTIONS);
 }
 
 async function verifyOneTimeRecoveryArgon2id(inputCode, storedHash) {
@@ -520,77 +537,96 @@ async function verifyClipboardOtpCode(inputCode, storedHash) {
   }
 }
 
-async function consumeOneTimeRecoveryCode(code, secret, idToken) {
+async function consumeOneTimeRecoveryCode(code, _secret, idToken) {
   const normalized = normalizeOneTimeRecoveryCode(code);
 
-  if (!new RegExp(`^DGRCV[A-Z2-9]{${ONE_TIME_RECOVERY_RANDOM_LENGTH}}$`).test(normalized)) {
+  if (!isValidOneTimeRecoveryCode(normalized)) {
     return { ok: false, reason: "format" };
   }
 
   const decoded = await verifyAdminIdToken(idToken);
   const db = getFirebaseDb();
-  const lookupHash = getOneTimeRecoveryLookupHash(normalized, secret);
-  const ref = db.collection("a2fRecoveryCodes").doc(lookupHash);
   const now = Date.now();
-  const snap = await ref.get();
+  const snapshot = await db.collection("a2fRecoveryCodes").where("uid", "==", decoded.uid).get();
+  const candidates = [];
 
-  if (!snap.exists) {
-    return { ok: false, reason: "not-found" };
-  }
+  snapshot.forEach((doc) => {
+    const data = doc.data() || {};
 
-  const firstRead = snap.data() || {};
-
-  if (firstRead.revoked === true) {
-    return { ok: false, reason: "revoked" };
-  }
-
-  if (firstRead.used === true) {
-    return { ok: false, reason: "used" };
-  }
-
-  if (firstRead.hashType !== "argon2id" || !(await verifyOneTimeRecoveryArgon2id(normalized, firstRead.argon2Hash))) {
-    return { ok: false, reason: "not-found" };
-  }
-
-  let result = { ok: false, reason: "not-found" };
-
-  await db.runTransaction(async (tx) => {
-    const txSnap = await tx.get(ref);
-
-    if (!txSnap.exists) {
-      result = { ok: false, reason: "not-found" };
-      return;
+    if (
+      data.active === true &&
+      data.used !== true &&
+      data.revoked !== true &&
+      data.hashType === "argon2id" &&
+      data.purpose === "face_recovery_step_5" &&
+      data.codeFormat === ONE_TIME_RECOVERY_CODE_FORMAT &&
+      Number(data.codeLength || 0) === ONE_TIME_RECOVERY_CODE_LENGTH &&
+      typeof data.argon2Hash === "string"
+    ) {
+      candidates.push({ ref: doc.ref, data });
     }
-
-    const data = txSnap.data() || {};
-
-    if (data.revoked === true) {
-      result = { ok: false, reason: "revoked" };
-      return;
-    }
-
-    if (data.used === true) {
-      result = { ok: false, reason: "used" };
-      return;
-    }
-
-    if (data.hashType !== "argon2id" || data.argon2Hash !== firstRead.argon2Hash) {
-      result = { ok: false, reason: "not-found" };
-      return;
-    }
-
-    tx.set(ref, {
-      used: true,
-      usedAtMs: now,
-      usedAt: admin.firestore.FieldValue.serverTimestamp(),
-      usedByUid: decoded.uid,
-      usedByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || ""
-    }, { merge: true });
-
-    result = { ok: true };
   });
 
-  return result;
+  if (!candidates.length) {
+    return { ok: false, reason: "not-found" };
+  }
+
+  for (const candidate of candidates) {
+    const firstRead = candidate.data;
+
+    if (!(await verifyOneTimeRecoveryArgon2id(normalized, firstRead.argon2Hash))) {
+      continue;
+    }
+
+    let result = { ok: false, reason: "not-found" };
+
+    await db.runTransaction(async (tx) => {
+      const txSnap = await tx.get(candidate.ref);
+
+      if (!txSnap.exists) {
+        result = { ok: false, reason: "not-found" };
+        return;
+      }
+
+      const data = txSnap.data() || {};
+
+      if (data.revoked === true || data.active !== true) {
+        result = { ok: false, reason: "revoked" };
+        return;
+      }
+
+      if (data.used === true) {
+        result = { ok: false, reason: "used" };
+        return;
+      }
+
+      if (
+        data.hashType !== "argon2id" ||
+        data.purpose !== "face_recovery_step_5" ||
+        data.codeFormat !== ONE_TIME_RECOVERY_CODE_FORMAT ||
+        Number(data.codeLength || 0) !== ONE_TIME_RECOVERY_CODE_LENGTH ||
+        data.argon2Hash !== firstRead.argon2Hash
+      ) {
+        result = { ok: false, reason: "not-found" };
+        return;
+      }
+
+      tx.set(candidate.ref, {
+        used: true,
+        active: false,
+        usedAtMs: now,
+        usedAt: admin.firestore.FieldValue.serverTimestamp(),
+        usedByUid: decoded.uid,
+        usedByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || ""
+      }, { merge: true });
+
+      result = { ok: true };
+    });
+
+    return result;
+  }
+
+  return { ok: false, reason: "not-found" };
 }
 
 function getA2fLockDurationMs(failedCount) {
@@ -1039,17 +1075,62 @@ async function rememberStep6KnownDevice(db, approvalData) {
 }
 
 
-function randomRecoveryAlphabet(length) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function oneTimeRecoveryCodeHasRequiredCategories(code) {
+  const value = String(code || "");
+  return (
+    [...ONE_TIME_RECOVERY_DIGITS].some((char) => value.includes(char)) &&
+    [...ONE_TIME_RECOVERY_LETTERS].some((char) => value.includes(char)) &&
+    [...ONE_TIME_RECOVERY_SYMBOLS].some((char) => value.includes(char))
+  );
+}
+
+function createOneTimeRecoveryCode(length = ONE_TIME_RECOVERY_CODE_LENGTH) {
   let out = "";
-  while (out.length < length) {
-    out += alphabet[crypto.randomInt(0, alphabet.length)];
-  }
+
+  do {
+    out = "";
+    while (out.length < length) {
+      const index = crypto.randomInt(0, ONE_TIME_RECOVERY_ALPHABET.length);
+      out += ONE_TIME_RECOVERY_ALPHABET[index];
+    }
+  } while (!oneTimeRecoveryCodeHasRequiredCategories(out));
+
   return out;
 }
 
-function createOneTimeRecoveryCode() {
-  return `DGRCV${randomRecoveryAlphabet(ONE_TIME_RECOVERY_RANDOM_LENGTH)}`;
+async function revokeExistingOneTimeRecoveryCodes(db, decoded, now, reason = "rotated_by_new_1000_char_recovery_codes") {
+  const refs = new Map();
+
+  async function collect(field) {
+    const snap = await db.collection("a2fRecoveryCodes").where(field, "==", decoded.uid).get();
+    snap.forEach((doc) => {
+      const data = doc.data() || {};
+      if (data.used === true || data.revoked === true) return;
+      refs.set(doc.ref.path, doc.ref);
+    });
+  }
+
+  await collect("uid");
+  await collect("createdByUid");
+
+  const allRefs = Array.from(refs.values());
+
+  for (let index = 0; index < allRefs.length; index += 450) {
+    const batch = db.batch();
+    for (const ref of allRefs.slice(index, index + 450)) {
+      batch.set(ref, {
+        active: false,
+        revoked: true,
+        revokedAtMs: now,
+        revokedAt: admin.firestore.FieldValue.serverTimestamp(),
+        revokedReason: reason,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+    await batch.commit();
+  }
+
+  return allRefs.length;
 }
 
 function getDeviceIdHashFromClientContext(clientContext, secret) {
@@ -1230,49 +1311,62 @@ function makeStep6TimeoutBanError(message = "Waktu step 6 60 detik habis. A2F di
 }
 
 async function generateOneTimeRecoveryCodes(req, res) {
-  const { idToken, count, sensitiveTotpCode } = req.body || {};
+  const { idToken, sensitiveTotpCode } = req.body || {};
   const decoded = await verifyAdminIdToken(idToken);
-  const requestedCount = Math.max(1, Math.min(10, Number(count || 1)));
+  const requestedCount = ONE_TIME_RECOVERY_CODE_COUNT;
 
   if (!verifyRecoveryTotp(sensitiveTotpCode)) {
     return res.status(403).json({ success: false, error: "Kode A2F utama salah. Recovery code tidak dibuat." });
   }
 
   const db = getFirebaseDb();
-  const secret = getA2fSecret();
   const batch = db.batch();
   const now = Date.now();
   const codes = [];
+  const revokedCount = await revokeExistingOneTimeRecoveryCodes(db, decoded, now);
 
   for (let i = 0; i < requestedCount; i += 1) {
     const code = createOneTimeRecoveryCode();
-    const lookupHash = getOneTimeRecoveryLookupHash(code, secret);
-    const argon2Hash = await argon2.hash(normalizeOneTimeRecoveryCode(code), ARGON2ID_OPTIONS);
+    const argon2Hash = await hashOneTimeRecoveryCodeArgon2id(code);
     codes.push(code);
-    batch.set(db.collection("a2fRecoveryCodes").doc(lookupHash), {
+    batch.set(db.collection("a2fRecoveryCodes").doc(randomId(24)), {
       uid: decoded.uid,
       email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
       hashType: "argon2id",
       argon2Hash,
+      active: true,
       used: false,
       revoked: false,
       createdAtMs: now,
       createdByUid: decoded.uid,
       createdByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
-      codeLast4: code.slice(-4),
-      codeLength: code.length,
+      codeLength: ONE_TIME_RECOVERY_CODE_LENGTH,
+      codeFormat: ONE_TIME_RECOVERY_CODE_FORMAT,
+      alphabetVersion: "numbers-uppercase-symbols-v1",
+      randomMethod: "crypto.randomInt",
+      lookupType: "argon2id-active-candidate-scan",
       purpose: "face_recovery_step_5",
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      usedAtMs: null,
+      usedAt: null,
+      usedByUid: null,
+      usedByEmail: null,
+      revokedAtMs: null,
+      revokedAt: null,
+      revokedReason: null
     }, { merge: false });
   }
 
   await batch.commit();
-  await writeBackendSecurityLog("auth.recovery_codes_generated", `${requestedCount} recovery code sekali pakai dibuat untuk Recovery Face ID tahap 5.`, "warn", decoded, { count: requestedCount });
+  await writeBackendSecurityLog("auth.recovery_codes_generated", `${requestedCount} recovery code sekali pakai 1000 karakter dibuat untuk Recovery Face ID tahap 5. Kode lama direvoke: ${revokedCount}.`, "warn", decoded, { count: requestedCount, revokedCount, codeLength: ONE_TIME_RECOVERY_CODE_LENGTH, codeFormat: ONE_TIME_RECOVERY_CODE_FORMAT });
 
   return res.status(200).json({
     success: true,
     count: requestedCount,
     codes,
+    revokedCount,
+    codeLength: ONE_TIME_RECOVERY_CODE_LENGTH,
+    codeFormat: ONE_TIME_RECOVERY_CODE_FORMAT,
     message: "Recovery code sekali pakai berhasil dibuat. Kode asli hanya tampil sekali."
   });
 }

@@ -3,8 +3,13 @@ const admin = require("firebase-admin");
 const argon2 = require("argon2");
 const { createClient } = require("@supabase/supabase-js");
 
-const ONE_TIME_RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const ONE_TIME_RECOVERY_RANDOM_LENGTH = 50;
+const ONE_TIME_RECOVERY_CODE_COUNT = 3;
+const ONE_TIME_RECOVERY_CODE_LENGTH = 1000;
+const ONE_TIME_RECOVERY_DIGITS = "0123456789";
+const ONE_TIME_RECOVERY_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ONE_TIME_RECOVERY_SYMBOLS = "!@#$%^&*_=+[]{}:,.?";
+const ONE_TIME_RECOVERY_ALPHABET = ONE_TIME_RECOVERY_DIGITS + ONE_TIME_RECOVERY_LETTERS + ONE_TIME_RECOVERY_SYMBOLS;
+const ONE_TIME_RECOVERY_CODE_FORMAT = "MIXED-1000-V1";
 const ARGON2ID_OPTIONS = Object.freeze({
   type: argon2.argon2id,
   memoryCost: 19456,
@@ -365,9 +370,22 @@ function normalizeOneTimeRecoveryCode(code) {
   return String(code || "").trim().toUpperCase().replace(/[\s-]+/g, "");
 }
 
-function getOneTimeRecoveryLookupHash(code, secret) {
-  const normalized = normalizeOneTimeRecoveryCode(code);
-  return crypto.createHmac("sha256", secret).update(`one-time-recovery-lookup:${normalized}`).digest("hex");
+function getA2fSecretForRecoveryCodeGeneration() {
+  const secret = String(process.env.A2F_SECRET || "").trim();
+
+  if (!secret) {
+    throw new Error("A2F_SECRET belum diset di Environment Variables backend.");
+  }
+
+  if (secret === "rahasia-test") {
+    throw new Error("A2F_SECRET masih memakai nilai testing. Ganti dengan secret production yang panjang dan acak.");
+  }
+
+  if (secret.length < 32) {
+    throw new Error("A2F_SECRET terlalu pendek. Gunakan minimal 32 karakter acak.");
+  }
+
+  return secret;
 }
 
 async function hashOneTimeRecoveryCodeArgon2id(code) {
@@ -375,47 +393,86 @@ async function hashOneTimeRecoveryCodeArgon2id(code) {
   return argon2.hash(normalized, ARGON2ID_OPTIONS);
 }
 
-function generateRandomRecoveryBody(length = ONE_TIME_RECOVERY_RANDOM_LENGTH) {
-  const bytes = crypto.randomBytes(length);
-  let body = "";
+function oneTimeRecoveryCodeHasRequiredCategories(code) {
+  const value = String(code || "");
+  return (
+    [...ONE_TIME_RECOVERY_DIGITS].some((char) => value.includes(char)) &&
+    [...ONE_TIME_RECOVERY_LETTERS].some((char) => value.includes(char)) &&
+    [...ONE_TIME_RECOVERY_SYMBOLS].some((char) => value.includes(char))
+  );
+}
 
-  for (const byte of bytes) {
-    body += ONE_TIME_RECOVERY_ALPHABET[byte & 31];
+function generateOneTimeRecoveryCode(length = ONE_TIME_RECOVERY_CODE_LENGTH) {
+  let out = "";
+
+  do {
+    out = "";
+    while (out.length < length) {
+      const index = crypto.randomInt(0, ONE_TIME_RECOVERY_ALPHABET.length);
+      out += ONE_TIME_RECOVERY_ALPHABET[index];
+    }
+  } while (!oneTimeRecoveryCodeHasRequiredCategories(out));
+
+  return out;
+}
+
+async function revokeExistingOneTimeRecoveryCodes(db, decoded, now, reason = "rotated_by_new_1000_char_recovery_codes") {
+  const refs = new Map();
+
+  async function collect(field) {
+    const snap = await db.collection("a2fRecoveryCodes").where(field, "==", decoded.uid).get();
+    snap.forEach((doc) => {
+      const data = doc.data() || {};
+      if (data.used === true || data.revoked === true) return;
+      refs.set(doc.ref.path, doc.ref);
+    });
   }
 
-  return body;
-}
+  await collect("uid");
+  await collect("createdByUid");
 
-function formatOneTimeRecoveryCode(body) {
-  const groups = String(body).match(/.{1,5}/g) || [];
-  return `DG-RCV-${groups.join("-")}`;
-}
+  const allRefs = Array.from(refs.values());
 
-function generateOneTimeRecoveryCode() {
-  return formatOneTimeRecoveryCode(generateRandomRecoveryBody());
+  for (let index = 0; index < allRefs.length; index += 450) {
+    const batch = db.batch();
+    for (const ref of allRefs.slice(index, index + 450)) {
+      batch.set(ref, {
+        active: false,
+        revoked: true,
+        revokedAtMs: now,
+        revokedAt: admin.firestore.FieldValue.serverTimestamp(),
+        revokedReason: reason,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+    await batch.commit();
+  }
+
+  return allRefs.length;
 }
 
 async function generateOneTimeRecoveryCodes(reqBody) {
-  const secret = process.env.A2F_SECRET || "rahasia-test";
+  getA2fSecretForRecoveryCodeGeneration();
   const decoded = await verifyAdminIdToken(reqBody && reqBody.idToken);
   verifyRecentAdminAuth(decoded);
   verifySensitiveTotpCode(reqBody && reqBody.sensitiveTotpCode);
-  const countRaw = Number(reqBody && reqBody.count);
-  const count = Number.isFinite(countRaw) ? Math.min(20, Math.max(1, Math.floor(countRaw))) : 10;
+  const count = ONE_TIME_RECOVERY_CODE_COUNT;
   const db = getFirebaseDb();
   const batch = db.batch();
   const codes = [];
   const now = Date.now();
 
+  await revokeExistingOneTimeRecoveryCodes(db, decoded, now);
+
   while (codes.length < count) {
     const code = generateOneTimeRecoveryCode();
-    const lookupHash = getOneTimeRecoveryLookupHash(code, secret);
     const argon2Hash = await hashOneTimeRecoveryCodeArgon2id(code);
-    const ref = db.collection("a2fRecoveryCodes").doc(lookupHash);
+    const ref = db.collection("a2fRecoveryCodes").doc(crypto.randomBytes(24).toString("base64url"));
 
     codes.push(code);
     batch.set(ref, {
-      lookupHash,
+      uid: decoded.uid,
+      email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
       argon2Hash,
       hashType: "argon2id",
       hashParams: {
@@ -424,12 +481,16 @@ async function generateOneTimeRecoveryCodes(reqBody) {
         parallelism: ARGON2ID_OPTIONS.parallelism,
         hashLength: ARGON2ID_OPTIONS.hashLength
       },
-      codeFormat: "DG-RCV-10x5",
-      randomLength: ONE_TIME_RECOVERY_RANDOM_LENGTH,
+      active: true,
       used: false,
       revoked: false,
       label: `Recovery code ${codes.length}`,
-      codePreview: code.slice(-5),
+      codeLength: ONE_TIME_RECOVERY_CODE_LENGTH,
+      codeFormat: ONE_TIME_RECOVERY_CODE_FORMAT,
+      alphabetVersion: "numbers-uppercase-symbols-v1",
+      randomMethod: "crypto.randomInt",
+      lookupType: "argon2id-active-candidate-scan",
+      purpose: "face_recovery_step_5",
       createdByUid: decoded.uid,
       createdByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
       createdAtMs: now,
@@ -437,7 +498,10 @@ async function generateOneTimeRecoveryCodes(reqBody) {
       usedAtMs: null,
       usedAt: null,
       usedByUid: null,
-      usedByEmail: null
+      usedByEmail: null,
+      revokedAtMs: null,
+      revokedAt: null,
+      revokedReason: null
     }, { merge: false });
   }
 
