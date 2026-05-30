@@ -8527,85 +8527,282 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     initCountUps();
   </script>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script id="dirac-firestore-products-js">
 (function(){
   'use strict';
+  console.info('Firebase product loader disabled. Katalog utama sekarang memakai Supabase REST dengan fallback katalog lokal.');
+})();
+</script>
 
-  const firebaseConfig = {
-  apiKey: "AIzaSyD9tYvv7nyrNZuQp9Cu6huVlzY8poeRBHY",
-  authDomain: "dirac-group.firebaseapp.com",
-  projectId: "dirac-group",
-  storageBucket: "dirac-group.firebasestorage.app",
-  messagingSenderId: "1043667529348",
-  appId: "1:1043667529348:web:5709ed46eb908f3c97dcd1",
-  measurementId: "G-VRF7S5GCH2"
-};
+<script id="dirac-backend-products-orders-js">
+(function(){
+  'use strict';
 
-  function normalizeProduct(data, index){
-    data = data || {};
+  // Semua aktivitas katalog dan checkout website toko lewat backend.
+  // Tidak ada SUPABASE_URL, SUPABASE_ANON_KEY, atau REST Supabase di HTML ini.
+  const DIRAC_BACKEND_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish';
+
+  function cleanText(value, fallback){
+    const text = String(value ?? '').trim();
+    return text || (fallback || '');
+  }
+
+  function toNumber(value, fallback){
+    const n = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(n) ? n : (fallback || 0);
+  }
+
+  function boolActive(row){
+    if(row && Object.prototype.hasOwnProperty.call(row, 'is_active')) return row.is_active !== false;
+    if(row && Object.prototype.hasOwnProperty.call(row, 'isActive')) return row.isActive !== false;
+    if(row && Object.prototype.hasOwnProperty.call(row, 'active')) return row.active !== false;
+    return true;
+  }
+
+  function backendPost(payload){
+    return fetch(DIRAC_BACKEND_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'omit',
+      cache: 'no-store',
+      body: JSON.stringify(payload || {})
+    }).then(async function(response){
+      const data = await response.json().catch(function(){ return null; });
+      if(!response.ok || !data || data.success === false){
+        throw new Error((data && (data.error || data.message)) || ('Backend HTTP ' + response.status));
+      }
+      return data;
+    });
+  }
+
+  function normalizeBackendProduct(row, index){
+    row = row || {};
+    const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.id || String(index + 1).padStart(3, '0'));
+    const numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.firebase_id || row.firebaseId || row.id || docId, index + 1);
+    const stock = toNumber(row.stock || row.stok, 1);
+    const status = cleanText(row.status || row.publishStatus || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
+    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl, '');
+
     return {
-      id: Number(data.id || index + 1),
-      title: String(data.title || data.nama || data.name || 'Produk Tanpa Nama'),
-      category: String(data.category || data.kategori || 'Lokal'),
-      price: Number(data.price || data.harga || 0),
-      img: String(data.img || data.foto || data.image || ''),
-      desc: String(data.desc || data.deskripsi || data.description || ''),
-      notes: String(data.notes || data.catatan || ''),
-      status: String(data.status || 'ready'),
-      longDesc: String(data.longDesc || data.longdesc || data.deskripsiPanjang || data.desc || data.deskripsi || '')
+      id: numericId || (index + 1),
+      docId: docId,
+      supabaseDocId: docId,
+      firebaseId: cleanText(row.firebase_id || row.firebaseId || ''),
+      title: cleanText(row.title || row.name || row.nama || 'Produk Tanpa Nama'),
+      name: cleanText(row.name || row.title || row.nama || 'Produk Tanpa Nama'),
+      category: cleanText(row.category || row.kategori || 'Lokal'),
+      brand: cleanText(row.brand || row.merek || ''),
+      price: Math.max(0, Math.round(toNumber(row.price || row.harga, 0))),
+      img: image,
+      desc: cleanText(row.desc || row.description || row.deskripsi || ''),
+      notes: cleanText(row.notes || row.catatan || ''),
+      longDesc: cleanText(row.long_desc || row.longDesc || row.long_description || row.deskripsi_panjang || row.description || row.desc || ''),
+      status: status === 'hidden' || status === 'nonaktif' || status === 'inactive' || status === 'draft' || status === 'archived' || status === 'deleted' ? 'hidden' : (status === 'sold' || status === 'habis' ? 'sold' : 'ready'),
+      stock: Math.max(0, Math.round(stock)),
+      soldCount: Math.max(0, Math.round(toNumber(row.sold_count || row.soldCount || row.terjual, 0))),
+      rating: Math.max(0, Math.min(5, toNumber(row.rating, 0))),
+      reviewCount: Math.max(0, Math.round(toNumber(row.review_count || row.reviewCount, 0))),
+      isTopSeller: row.is_top_seller === true || row.isTopSeller === true || String(row.badge || '').toLowerCase().includes('top')
     };
   }
 
-  function enrichFirestoreProducts(){
+  function enrichBackendProducts(){
     try{
-      const salesMap = distributeSalesWithBucketRatio(products, TOTAL_SOCIAL_PROOF_SOLD);
-      const topSellerIds = getTopSellerIds(salesMap, TOP_SELLER_COUNT);
+      const salesMap = typeof distributeSalesWithBucketRatio === 'function' ? distributeSalesWithBucketRatio(products, TOTAL_SOCIAL_PROOF_SOLD) : new Map();
+      const topSellerIds = typeof getTopSellerIds === 'function' ? getTopSellerIds(salesMap, TOP_SELLER_COUNT) : new Set();
       products.forEach(function(product){
-        product.soldCount = salesMap.get(product.id) || 0;
-        product.isTopSeller = topSellerIds.has(product.id);
-        product.rating = buildProductRating(product);
-        product.reviewCount = buildReviewCount(product);
+        product.soldCount = Number(product.soldCount || salesMap.get(product.id) || 0);
+        product.isTopSeller = product.isTopSeller || topSellerIds.has(product.id);
+        product.rating = Number(product.rating || (typeof buildProductRating === 'function' ? buildProductRating(product) : 4.8));
+        product.reviewCount = Number(product.reviewCount || (typeof buildReviewCount === 'function' ? buildReviewCount(product) : 0));
       });
     }catch(error){
       products.forEach(function(product){
-        if(!product.soldCount) product.soldCount = 0;
-        if(!product.rating) product.rating = 4.8;
-        if(!product.reviewCount) product.reviewCount = 0;
-        if(typeof product.isTopSeller === 'undefined') product.isTopSeller = false;
+        product.soldCount = Number(product.soldCount || 0);
+        product.isTopSeller = Boolean(product.isTopSeller);
+        product.rating = Number(product.rating || 4.8);
+        product.reviewCount = Number(product.reviewCount || 0);
       });
     }
   }
 
-  function refreshCatalogAfterFirestore(){
+  function refreshCatalogAfterBackend(count){
     try{ if(typeof loadCart === 'function') loadCart(); }catch(error){}
     try{ if(typeof renderCategoryOptions === 'function') renderCategoryOptions(); }catch(error){}
-    try{ if(typeof renderProducts === 'function') renderProducts({keepFilterLimit:true}); }catch(error){}
+    try{ if(typeof renderProducts === 'function') renderProducts({ keepFilterLimit:true }); }catch(error){}
     try{ if(typeof renderCart === 'function') renderCart(); }catch(error){}
-    try{ if(typeof showToast === 'function') showToast('Katalog Firebase berhasil dimuat.'); }catch(error){}
+    try{ if(typeof refreshDiracCurrencyStaticText === 'function') refreshDiracCurrencyStaticText(document.body || document); }catch(error){}
+    try{ if(typeof showToast === 'function') showToast('Katalog backend aktif: ' + count + ' produk.'); }catch(error){}
   }
 
-  async function loadProductsFromFirestore(){
-    if(!window.firebase || !firebase.apps) return;
-    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const snapshot = await db.collection('products').orderBy('id').get();
-    const nextProducts = [];
-    snapshot.forEach(function(doc){
-      const item = normalizeProduct(Object.assign({docId:doc.id}, doc.data()), nextProducts.length);
-      if(item.status !== 'hidden' && item.status !== 'nonaktif') nextProducts.push(item);
+  async function backendFetchProducts(){
+    const data = await backendPost({
+      action: 'publicReadProducts',
+      limit: 5000
     });
-    if(!nextProducts.length) return;
-    products = nextProducts;
-    enrichFirestoreProducts();
-    refreshCatalogAfterFirestore();
+
+    const list = Array.isArray(data.products) ? data.products : [];
+    const next = list.map(normalizeBackendProduct).filter(function(item){
+      return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
+    });
+
+    if(!next.length) throw new Error('Produk backend kosong. Fallback katalog lokal tetap dipakai.');
+
+    products = next;
+    window.diracBackendProductsLoaded = true;
+    window.diracBackendProductCount = next.length;
+    enrichBackendProducts();
+    refreshCatalogAfterBackend(next.length);
   }
 
-  loadProductsFromFirestore().catch(function(error){
-    console.warn('Gagal memuat produk dari Firebase:', error);
-    try{ if(typeof showToast === 'function') showToast('Firebase belum terbaca, katalog lokal tetap dipakai.'); }catch(e){}
-  });
+  function slug(value, fallback){
+    const clean = String(value || '').toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120);
+    return clean || fallback || ('doc-' + Date.now());
+  }
+
+  function buildCheckoutSnapshot(orderText){
+    const t = typeof totals === 'function' ? totals() : { sub:0, shipping:0, discount:0, total:0 };
+    const name = cleanText(document.getElementById('buyerName') && document.getElementById('buyerName').value, 'Customer');
+    const phone = cleanText(document.getElementById('buyerPhone') && document.getElementById('buyerPhone').value, '');
+    const address = cleanText(document.getElementById('buyerAddress') && document.getElementById('buyerAddress').value, '');
+    const payment = cleanText(document.getElementById('paymentMethod') && document.getElementById('paymentMethod').value, 'Transfer Bank');
+    const note = cleanText(document.getElementById('buyerNote') && document.getElementById('buyerNote').value, '');
+    const match = String(orderText || '').match(/Kode Pesanan:\s*([^\n]+)/i);
+    const orderId = cleanText(match && match[1], 'DRC-' + Date.now().toString().slice(-7));
+    const customerDocId = slug((phone || name) + '-' + name, 'customer-' + Date.now());
+    const orderDocId = slug(orderId, 'order-' + Date.now());
+    const now = new Date().toISOString();
+
+    const items = (cart || []).map(function(item){
+      const p = typeof getProduct === 'function' ? getProduct(item.id) : null;
+      const qty = Math.max(1, Number(item.qty || 1));
+      const price = Math.max(0, Number(p && p.price || 0));
+      return {
+        productDocId: cleanText(p && (p.supabaseDocId || p.docId || p.firebaseId || p.id), ''),
+        productId: Number(p && p.id || item.id || 0),
+        productName: cleanText(p && p.title, 'Produk'),
+        title: cleanText(p && p.title, 'Produk'),
+        qty: qty,
+        quantity: qty,
+        price: price,
+        subtotal: qty * price,
+        image: cleanText(p && p.img, ''),
+        createdAt: now,
+        createdAtMs: Date.now()
+      };
+    });
+
+    return { t, name, phone, address, payment, note, orderId, customerDocId, orderDocId, items, now };
+  }
+
+  async function saveCheckoutToBackend(orderText){
+    const snap = buildCheckoutSnapshot(orderText);
+
+    const customerPayload = {
+      docId: snap.customerDocId,
+      id: snap.customerDocId,
+      customerId: snap.customerDocId,
+      name: snap.name,
+      fullName: snap.name,
+      phone: snap.phone,
+      whatsapp: snap.phone,
+      email: '',
+      address: snap.address,
+      note: snap.note,
+      source: 'order1.html',
+      createdAt: snap.now,
+      createdAtMs: Date.now()
+    };
+
+    const orderPayload = {
+      docId: snap.orderDocId,
+      id: snap.orderDocId,
+      orderId: snap.orderId,
+      customerId: snap.customerDocId,
+      customerName: snap.name,
+      customerPhone: snap.phone,
+      customerEmail: '',
+      phone: snap.phone,
+      email: '',
+      address: snap.address,
+      items: snap.items,
+      subtotal: Number(snap.t.sub || 0),
+      shippingCost: Number(snap.t.shipping || 0),
+      discount: Number(snap.t.discount || 0),
+      total: Number(snap.t.total || 0),
+      paymentMethod: snap.payment,
+      paymentStatus: 'Belum Bayar',
+      orderStatus: 'Menunggu Konfirmasi',
+      status: 'Menunggu Konfirmasi',
+      courier: typeof diracShippingLabel === 'function' ? diracShippingLabel(shippingMode) : String(shippingMode || ''),
+      note: snap.note,
+      source: 'order1.html',
+      createdAt: snap.now,
+      createdAtMs: Date.now()
+    };
+
+    const data = await backendPost({
+      action: 'publicCreateOrder',
+      customer: customerPayload,
+      order: orderPayload,
+      items: snap.items
+    });
+
+    window.diracLastBackendOrderId = data.orderId || snap.orderId;
+    return data.orderId || snap.orderId;
+  }
+
+  function installBackendCheckoutCapture(){
+    document.addEventListener('click', async function(event){
+      const btn = event.target && event.target.closest && event.target.closest('#sendWhatsappBtn');
+      if(!btn || btn.dataset.backendHandling === 'true') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      try{
+        if(!cart || !cart.length){ if(typeof showToast === 'function') showToast(diracTranslateCopy('Keranjang kosong.')); return; }
+        if(typeof bindCheckoutValidation === 'function') bindCheckoutValidation();
+        if(typeof validateCheckoutForm === 'function' && !validateCheckoutForm({ focusFirst:true })){
+          if(typeof shakeCheckoutButton === 'function') shakeCheckoutButton();
+          if(typeof showToast === 'function') showToast(diracTranslateCopy('Lengkapi data wajib sebelum kirim ke WhatsApp.'));
+          return;
+        }
+
+        const text = typeof buildOrderText === 'function' ? buildOrderText() : '';
+        btn.dataset.backendHandling = 'true';
+        btn.disabled = true;
+        btn.classList.add('dirac-checkout-working');
+
+        try{
+          await saveCheckoutToBackend(text);
+          if(typeof showToast === 'function') showToast('Pesanan tersimpan lewat backend. WhatsApp dibuka.');
+        }catch(error){
+          console.warn('Backend order insert gagal, WhatsApp tetap dibuka:', error);
+          if(typeof showToast === 'function') showToast('WhatsApp dibuka. Backend belum tersimpan: ' + (error.message || error));
+        }
+
+        window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
+      }finally{
+        btn.disabled = false;
+        btn.classList.remove('dirac-checkout-working');
+        delete btn.dataset.backendHandling;
+      }
+    }, true);
+  }
+
+  function startBackendStorefront(){
+    installBackendCheckoutCapture();
+    backendFetchProducts().catch(function(error){
+      console.warn('Gagal memuat katalog lewat backend:', error);
+      try{ if(typeof showToast === 'function') showToast('Backend belum terbaca, katalog lokal tetap dipakai.'); }catch(e){}
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', startBackendStorefront, { once:true });
+  }else{
+    startBackendStorefront();
+  }
 })();
 </script>
 
