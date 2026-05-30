@@ -704,6 +704,91 @@
     }
   </style>
 
+
+  <style id="dirac-a2f-clipboard-focus-polish">
+    /* Fokus verifikasi copy-paste: A2F utama dipause dan disembunyikan sementara. Login, hash, dan sistem verifikasi tidak diubah. */
+    #twoFactorSection.clipboard-focus-active #a2fStepProgress,
+    #twoFactorSection.clipboard-focus-active #a2fDeadlineNotice,
+    #twoFactorSection.clipboard-focus-active #a2fCodeField,
+    #twoFactorSection.clipboard-focus-active #a2fActionGrid{
+      display:none!important;
+    }
+    #twoFactorSection.clipboard-focus-active .clipboard-unlock-panel{
+      margin-top:14px;
+    }
+    #twoFactorSection .clipboard-unlock-timer{
+      border:1px solid rgba(96,165,250,.35);
+      background:rgba(96,165,250,.10);
+      border-radius:20px;
+      padding:13px 14px;
+      margin:12px 0 4px;
+      color:#dbeafe;
+      display:grid;
+      gap:10px;
+    }
+    #twoFactorSection .clipboard-unlock-timer div:first-child{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      font-weight:950;
+    }
+    #twoFactorSection .clipboard-unlock-timer span{
+      font-variant-numeric:tabular-nums;
+      white-space:nowrap;
+    }
+    #twoFactorSection .clipboard-unlock-track{
+      height:9px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      overflow:hidden;
+    }
+    #twoFactorSection .clipboard-unlock-track span{
+      display:block;
+      height:100%;
+      width:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg,#bfdbfe,#60a5fa,#22c55e);
+      transition:width .25s ease;
+    }
+    #twoFactorSection .clipboard-unlock-timer.danger{
+      border-color:rgba(239,68,68,.45);
+      background:rgba(239,68,68,.12);
+      color:#fecaca;
+    }
+    #twoFactorSection .clipboard-action-grid + .clipboard-unlock-panel{
+      margin-bottom:14px;
+    }
+    #twoFactorSection .notice{
+      overflow-wrap:anywhere;
+    }
+    .toast{
+      border-radius:18px!important;
+      padding:11px 14px!important;
+      line-height:1.36!important;
+      font-size:.88rem!important;
+      max-width:min(390px,calc(100vw - 32px))!important;
+      white-space:normal!important;
+      overflow-wrap:anywhere!important;
+      word-break:normal!important;
+      text-align:left!important;
+      bottom:max(18px,calc(env(safe-area-inset-bottom) + 18px))!important;
+      box-shadow:0 18px 50px rgba(0,0,0,.42)!important;
+    }
+    .toast.show{animation:none!important;}
+    @media(max-width:520px){
+      #twoFactorSection .clipboard-unlock-timer div:first-child{display:grid;gap:4px;}
+      .toast{
+        left:14px!important;
+        right:14px!important;
+        width:auto!important;
+        max-width:none!important;
+        transform:translateY(16px)!important;
+      }
+      .toast.show{transform:translateY(0)!important;}
+    }
+  </style>
+
   <style id="dirac-pro4-scale-safe-css">
     /* === Dirac Pro 4 Scale Safe: additive only, HTML tetap satu file, login/hash tidak disentuh === */
     .scale-safe-panel{border:1px solid rgba(96,165,250,.24);background:linear-gradient(135deg,rgba(96,165,250,.10),rgba(34,197,94,.06));border-radius:20px;padding:12px;margin:12px 0;color:#dbeafe}
@@ -892,7 +977,7 @@
       <div class="login-card">
         <h2>Verifikasi A2F</h2>
         <p id="twoFactorHelp">Verifikasi keamanan berlapis aktif. Ikuti tahap yang tampil untuk membuka dashboard.</p>
-        <div class="twofactor-steps" aria-label="Progres verifikasi A2F">
+        <div class="twofactor-steps" id="a2fStepProgress" aria-label="Progres verifikasi A2F">
           <span class="twofactor-step active" id="twoFactorStep1">1</span>
           <span class="twofactor-step" id="twoFactorStep2">2</span>
           <span class="twofactor-step" id="twoFactorStep3">3</span>
@@ -924,6 +1009,13 @@
             <button class="btn small" id="clipboardUnlockCancelBtn" type="button">Batal</button>
           </div>
         </div>
+        <div class="clipboard-unlock-timer hidden" id="clipboardUnlockTimerBox" role="status" aria-live="polite">
+          <div>
+            <strong>Batas verifikasi copy-paste</strong>
+            <span id="clipboardUnlockTimerText">90 detik</span>
+          </div>
+          <div class="clipboard-unlock-track" aria-hidden="true"><span id="clipboardUnlockTimerBar"></span></div>
+        </div>
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
@@ -931,11 +1023,11 @@
           </div>
           <div class="a2f-timer-track" aria-hidden="true"><span id="a2fTimerBar"></span></div>
         </div>
-        <div class="field">
+        <div class="field" id="a2fCodeField">
           <label id="twoFactorLabel" for="twoFactorCode">Kode verifikasi</label>
           <input class="input" id="twoFactorCode" type="password" inputmode="text" autocomplete="one-time-code" placeholder="Masukkan kode A2F">
         </div>
-        <div class="a2f-action-grid">
+        <div class="a2f-action-grid" id="a2fActionGrid">
           <button class="btn primary" id="twoFactorBtn" type="button">Verifikasi</button>
           <button class="btn danger" id="twoFactorCancelBtn" type="button">Batal / Logout</button>
         </div>
@@ -1730,7 +1822,7 @@
     const $ = (id) => document.getElementById(id);
     const els = {
       loginSection:$('loginSection'), twoFactorSection:$('twoFactorSection'), adminSection:$('adminSection'), loginBtn:$('loginBtn'), loginEmail:$('loginEmail'), loginPassword:$('loginPassword'),
-      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), clipboardSecurityNotice:$('clipboardSecurityNotice'), clipboardStatusBtn:$('clipboardStatusBtn'), clipboardUnlockStartBtn:$('clipboardUnlockStartBtn'), clipboardUnlockPanel:$('clipboardUnlockPanel'), clipboardUnlockSmtpCode:$('clipboardUnlockSmtpCode'), clipboardUnlockTotpCode:$('clipboardUnlockTotpCode'), clipboardUnlockVerifyBtn:$('clipboardUnlockVerifyBtn'), clipboardUnlockCancelBtn:$('clipboardUnlockCancelBtn'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
+      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), clipboardSecurityNotice:$('clipboardSecurityNotice'), clipboardStatusBtn:$('clipboardStatusBtn'), clipboardUnlockStartBtn:$('clipboardUnlockStartBtn'), clipboardUnlockPanel:$('clipboardUnlockPanel'), clipboardUnlockSmtpCode:$('clipboardUnlockSmtpCode'), clipboardUnlockTotpCode:$('clipboardUnlockTotpCode'), clipboardUnlockVerifyBtn:$('clipboardUnlockVerifyBtn'), clipboardUnlockCancelBtn:$('clipboardUnlockCancelBtn'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fStepProgress:$('a2fStepProgress'), a2fCodeField:$('a2fCodeField'), a2fActionGrid:$('a2fActionGrid'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), clipboardUnlockTimerBox:$('clipboardUnlockTimerBox'), clipboardUnlockTimerText:$('clipboardUnlockTimerText'), clipboardUnlockTimerBar:$('clipboardUnlockTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
       statTotal:$('statTotal'), statReady:$('statReady'), statSold:$('statSold'), statValue:$('statValue'), statCategory:$('statCategory'), statAverage:$('statAverage'),
       miniSyncStatus:$('miniSyncStatus'), lastSync:$('lastSync'), syncDot:$('syncDot'), netStatus:$('netStatus'), netDot:$('netDot'), qualityStatus:$('qualityStatus'), qualitySummary:$('qualitySummary'), qualityDot:$('qualityDot'), clockText:$('clockText'),
       menuToggleBtn:$('menuToggleBtn'), sidebarBackdrop:$('sidebarBackdrop'), adminSidebar:$('adminSidebar'),
@@ -1825,6 +1917,8 @@
     let clipboardUnlockVerificationTimer = null;
     let clipboardUnlockVerificationDeadlineMs = 0;
     let clipboardUnlockVerificationActive = false;
+    let clipboardPausedA2fRemainingMs = 0;
+    let clipboardPausedA2fStep = 0;
     let a2fBanWatcherTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
@@ -1960,11 +2054,18 @@
       };
     }
 
+    function compactToastMessage(message){
+      const raw = String(message || '').replace(/\s+/g, ' ').trim();
+      if(raw.length <= 140) return raw;
+      return raw.slice(0, 137).trimEnd() + '…';
+    }
     function showToast(message){
-      els.toast.textContent = message;
+      const fullMessage = String(message || '');
+      els.toast.textContent = compactToastMessage(fullMessage);
+      els.toast.title = fullMessage.length > 140 ? fullMessage : '';
       els.toast.classList.add('show');
       clearTimeout(showToast.t);
-      showToast.t = setTimeout(() => els.toast.classList.remove('show'), 2600);
+      showToast.t = setTimeout(() => els.toast.classList.remove('show'), 3400);
     }
     function setNotice(el, message, type=''){
       el.textContent = message;
@@ -2381,6 +2482,7 @@
       }
       clipboardUnlockVerificationDeadlineMs = 0;
       clipboardUnlockVerificationActive = false;
+      updateClipboardUnlockTimerNotice(0, true);
     }
     function shouldResumeA2fTimerAfterClipboard(){
       return Boolean(
@@ -2392,12 +2494,61 @@
       );
     }
     function getA2fTimerMaxMs(){
-      if(clipboardUnlockVerificationActive) return A2F_CLIPBOARD_UNLOCK_VERIFY_MS;
       return twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
     }
     function getA2fTimerMaxSeconds(){
-      if(clipboardUnlockVerificationActive) return A2F_CLIPBOARD_UNLOCK_VERIFY_SECONDS;
       return twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS;
+    }
+    function getLiveA2fRemainingMs(){
+      const fallbackMs = getA2fTimerMaxMs();
+      if(!twoFactorDeadlineMs) return fallbackMs;
+      const remainingMs = Math.max(0, twoFactorDeadlineMs - Date.now());
+      return Number.isFinite(remainingMs) ? remainingMs : fallbackMs;
+    }
+    function setClipboardFocusMode(active){
+      if(!els.twoFactorSection) return;
+      els.twoFactorSection.classList.toggle('clipboard-focus-active', active === true);
+      [els.a2fStepProgress, els.a2fDeadlineNotice, els.a2fCodeField, els.a2fActionGrid].filter(Boolean).forEach(node => {
+        if(active === true){
+          node.setAttribute('aria-hidden', 'true');
+        } else {
+          node.removeAttribute('aria-hidden');
+        }
+      });
+    }
+    function updateClipboardUnlockTimerNotice(remainingMs, hide=false){
+      const totalMs = Math.max(0, Number(remainingMs || 0));
+      const seconds = Math.max(0, Math.ceil(totalMs / 1000));
+      const percent = Math.max(0, Math.min(100, (totalMs / A2F_CLIPBOARD_UNLOCK_VERIFY_MS) * 100));
+      if(els.clipboardUnlockTimerText) els.clipboardUnlockTimerText.textContent = seconds + ' detik';
+      if(els.clipboardUnlockTimerBar) els.clipboardUnlockTimerBar.style.width = percent + '%';
+      if(els.clipboardUnlockTimerBox){
+        els.clipboardUnlockTimerBox.classList.toggle('hidden', hide === true || !clipboardUnlockVerificationActive);
+        els.clipboardUnlockTimerBox.classList.toggle('danger', seconds <= 15 && hide !== true);
+      }
+    }
+    function pauseA2fTimerForClipboard(){
+      if(!clipboardUnlockVerificationActive){
+        clipboardPausedA2fRemainingMs = getLiveA2fRemainingMs();
+        clipboardPausedA2fStep = twoFactorStep;
+      }
+      if(!clipboardPausedA2fRemainingMs || clipboardPausedA2fRemainingMs < 0){
+        clipboardPausedA2fRemainingMs = getA2fTimerMaxMs();
+      }
+      clearTwoFactorTimeoutTimer();
+      setClipboardFocusMode(true);
+    }
+    function resumeA2fTimerAfterClipboard(){
+      setClipboardFocusMode(false);
+      updateClipboardUnlockTimerNotice(0, true);
+      const savedRemainingMs = Math.max(0, Number(clipboardPausedA2fRemainingMs || 0));
+      const savedStep = Number(clipboardPausedA2fStep || 0);
+      clipboardPausedA2fRemainingMs = 0;
+      clipboardPausedA2fStep = 0;
+      if(!shouldResumeA2fTimerAfterClipboard()) return;
+      const maxMs = getA2fTimerMaxMs();
+      const remainingMs = savedStep === twoFactorStep && savedRemainingMs ? Math.min(savedRemainingMs, maxMs) : maxMs;
+      startTwoFactorTimeoutTimer(remainingMs || maxMs);
     }
     function getA2fTimeoutReasonCode(){
       return twoFactorStep === 6 ? 'a2f_step6_timeout_60_seconds' : 'a2f_timeout_25_seconds';
@@ -2421,10 +2572,11 @@
         !twoFactorVerified &&
         !twoFactorVerificationInFlight &&
         !twoFactorBackendLocked &&
-        !twoFactorPermanentLocked
+        !twoFactorPermanentLocked &&
+        !clipboardUnlockVerificationActive
       );
     }
-    function startTwoFactorTimeoutTimer(){
+    function startTwoFactorTimeoutTimer(resumeRemainingMs){
       if(clipboardUnlockVerificationActive){
         resetClipboardUnlockForm(true, { resumeA2fTimer: false });
       } else {
@@ -2436,7 +2588,8 @@
       }
       twoFactorTimeoutTriggered = false;
       {
-        const maxMs = getA2fTimerMaxMs();
+        const requestedMs = Number(resumeRemainingMs);
+        const maxMs = Number.isFinite(requestedMs) && requestedMs > 0 ? Math.min(requestedMs, getA2fTimerMaxMs()) : getA2fTimerMaxMs();
         twoFactorDeadlineMs = Date.now() + maxMs;
         updateA2fTimeoutNotice(maxMs);
       }
@@ -2926,22 +3079,28 @@
       if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.value = '';
       if(els.clipboardUnlockTotpCode) els.clipboardUnlockTotpCode.value = '';
       if(hidePanel && els.clipboardUnlockPanel) els.clipboardUnlockPanel.classList.add('hidden');
-      if(shouldResumeTimer && shouldResumeA2fTimerAfterClipboard()) startTwoFactorTimeoutTimer();
+      if(shouldResumeTimer){
+        resumeA2fTimerAfterClipboard();
+      } else {
+        setClipboardFocusMode(false);
+        clipboardPausedA2fRemainingMs = 0;
+        clipboardPausedA2fStep = 0;
+      }
     }
 
     function startClipboardUnlockVerificationTimer(){
-      clearTwoFactorTimeoutTimer();
+      pauseA2fTimerForClipboard();
       clearClipboardUnlockVerificationTimer();
       clipboardUnlockVerificationActive = true;
       clipboardUnlockVerificationDeadlineMs = Date.now() + A2F_CLIPBOARD_UNLOCK_VERIFY_MS;
-      twoFactorDeadlineMs = clipboardUnlockVerificationDeadlineMs;
       twoFactorTimeoutTriggered = false;
-      updateA2fTimeoutNotice(A2F_CLIPBOARD_UNLOCK_VERIFY_MS);
+      setClipboardFocusMode(true);
+      updateClipboardUnlockTimerNotice(A2F_CLIPBOARD_UNLOCK_VERIFY_MS);
 
       clipboardUnlockVerificationTimer = setInterval(() => {
         if(!clipboardUnlockVerificationActive) return;
         if(twoFactorVerified || twoFactorBackendLocked || twoFactorPermanentLocked || els.twoFactorSection.classList.contains('hidden')){
-          clearClipboardUnlockVerificationTimer();
+          resetClipboardUnlockForm(true, { resumeA2fTimer: false });
           return;
         }
         if(!clipboardUnlockChallengeId || (els.clipboardUnlockPanel && els.clipboardUnlockPanel.classList.contains('hidden'))){
@@ -2949,7 +3108,7 @@
           return;
         }
         const remainingMs = clipboardUnlockVerificationDeadlineMs - Date.now();
-        updateA2fTimeoutNotice(remainingMs);
+        updateClipboardUnlockTimerNotice(remainingMs);
         if(remainingMs <= 0){
           resetClipboardUnlockForm(true);
           if(els.clipboardSecurityNotice){
@@ -2995,7 +3154,7 @@
 
         const expiresText = clipboardUnlockExpiresAtMs ? new Date(clipboardUnlockExpiresAtMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '90 detik';
         if(els.clipboardSecurityNotice){
-          setNotice(els.clipboardSecurityNotice, 'Kode SMTP izin copy-paste sudah dikirim. Batas verifikasi panel ini 90 detik. Masukkan kode SMTP dan Authenticator sebelum ' + expiresText + '. Salah kode 1x = ban 1 tahun; salah ke-2 = 100 tahun lewat backend Supabase.', 'warn');
+          setNotice(els.clipboardSecurityNotice, 'Kode SMTP copy-paste sudah dikirim. A2F utama dipause sementara. Masukkan SMTP dan Authenticator sebelum ' + expiresText + '. Salah 1x = ban 1 tahun; salah ke-2 = 100 tahun lewat backend Supabase.', 'warn');
         }
         showToast('Kode SMTP izin copy-paste sudah dikirim');
       }catch(error){
@@ -7061,7 +7220,7 @@
         if(els.toast){
           els.toast.setAttribute('aria-live','polite');
           clearTimeout(showToast.t);
-          showToast.t = setTimeout(() => els.toast.classList.remove('show'), 5200);
+          showToast.t = setTimeout(() => els.toast.classList.remove('show'), 3600);
         }
       };
 
