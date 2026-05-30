@@ -913,6 +913,26 @@
     @media(prefers-reduced-motion:reduce){.dirac-order-row,.dirac-action-sheet,.dirac-action-sheet-backdrop,.toast.show,.dirac-skeleton-line::after{animation:none!important;transition:none!important}}
   </style>
 
+
+  <style id="dirac-security-center-polish">
+    .security-center-btn{
+      justify-self:end;width:46px;height:46px;border-radius:17px;border:1px solid rgba(96,165,250,.28);
+      background:linear-gradient(135deg,rgba(14,165,233,.16),rgba(16,185,129,.10));color:#dbeafe;display:grid;place-items:center;
+      box-shadow:0 18px 38px rgba(2,6,23,.28),inset 0 1px 0 rgba(255,255,255,.10);transition:.2s ease;position:relative;overflow:hidden
+    }
+    .security-center-btn::after{content:"";position:absolute;inset:-40%;background:radial-gradient(circle,rgba(96,165,250,.20),transparent 55%);opacity:.8;animation:diracSecPulse 4s ease-in-out infinite}
+    .security-center-btn svg{position:relative;z-index:1;width:23px;height:23px;filter:drop-shadow(0 8px 14px rgba(96,165,250,.22))}
+    .security-center-btn:hover{transform:translateY(-1px);border-color:rgba(125,211,252,.62);background:linear-gradient(135deg,rgba(37,99,235,.24),rgba(16,185,129,.18))}
+    .security-center-btn:focus-visible{outline:none;box-shadow:var(--focus)}
+    @keyframes diracSecPulse{0%,100%{transform:scale(.9);opacity:.45}50%{transform:scale(1.08);opacity:.82}}
+    .topbar-inner{grid-template-columns:auto minmax(0,1fr) auto auto!important}
+    @media(max-width:700px){.topbar-inner{grid-template-columns:auto minmax(0,1fr) auto!important}.topbar .top-actions{grid-column:1/-1}.security-center-btn{width:44px;height:44px;border-radius:16px}}
+    .security-center-wrap{display:grid;gap:14px}.security-center-hero{border:1px solid rgba(96,165,250,.22);border-radius:24px;padding:15px;background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(16,185,129,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+    .security-center-hero h4{margin:0 0 5px;font-size:1.02rem}.security-center-hero p{margin:0;color:var(--muted);line-height:1.45}.security-center-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.security-metric{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);border-radius:18px;padding:11px;min-height:82px}.security-metric b{display:block;font-size:.74rem;color:var(--muted);margin-bottom:5px}.security-metric strong{display:block;font-size:1rem;line-height:1.2}.security-metric span{display:block;color:var(--muted);font-size:.76rem;margin-top:4px}.security-center-actions{display:flex;gap:8px;flex-wrap:wrap}.security-section{border:1px solid rgba(96,165,250,.16);background:rgba(255,255,255,.035);border-radius:22px;padding:13px}.security-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.security-section-head h4{margin:0}.security-section-head p{margin:3px 0 0;color:var(--muted);font-size:.86rem}.security-device-list,.security-login-list,.security-log-stream{display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:3px}.security-device-card{border:1px solid rgba(255,255,255,.11);background:rgba(9,14,27,.72);border-radius:20px;padding:12px;display:grid;gap:10px}.security-device-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.security-device-top strong{display:block;line-height:1.15}.security-device-top span{display:block;color:var(--muted);font-size:.78rem;margin-top:3px}.security-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.security-info-grid div{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);border-radius:14px;padding:8px}.security-info-grid b{display:block;color:var(--muted);font-size:.72rem;margin-bottom:2px}.security-info-grid span{display:block;font-size:.82rem;word-break:break-word}.security-device-actions{display:flex;gap:8px;flex-wrap:wrap}.security-timeline-item{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:16px;padding:10px}.security-timeline-item strong{display:block}.security-timeline-item span{display:block;color:var(--muted);font-size:.8rem;margin-top:3px}.security-code-output{white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;border:1px solid rgba(250,204,21,.25);background:rgba(250,204,21,.06);border-radius:18px;padding:12px}.security-empty{border:1px dashed rgba(148,163,184,.28);border-radius:18px;padding:16px;text-align:center;color:var(--muted)}
+    @media(max-width:900px){.security-center-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.security-info-grid{grid-template-columns:1fr}}
+    @media(max-width:560px){.security-center-grid{grid-template-columns:1fr}.security-device-top,.security-section-head{display:block}.security-device-actions .btn,.security-center-actions .btn{width:100%;justify-content:center}.modal-card{border-radius:24px}}
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -926,6 +946,9 @@
         <div class="logo"><img src="logo1.webp" alt="DG" onerror="this.style.display='none';this.parentNode.textContent='DG'"></div>
         <div><h1>Dirac Admin</h1><span>Dashboard produk backend</span></div>
       </a>
+      <button class="security-center-btn hidden" id="securityCenterBtn" type="button" aria-label="Buka pusat keamanan admin" title="Pusat Keamanan">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.7-2.9 8.8-7 10-4.1-1.2-7-5.3-7-10V6l7-3z"/><path d="M9.4 12.1l1.7 1.7 3.8-4"/></svg>
+      </button>
       <div class="top-actions">
         <span class="pill" id="userPill">Belum login</span>
         <a class="btn small" href="order.html" target="_blank" rel="noopener">Buka toko</a>
@@ -1822,7 +1845,7 @@
     const $ = (id) => document.getElementById(id);
     const els = {
       loginSection:$('loginSection'), twoFactorSection:$('twoFactorSection'), adminSection:$('adminSection'), loginBtn:$('loginBtn'), loginEmail:$('loginEmail'), loginPassword:$('loginPassword'),
-      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), clipboardSecurityNotice:$('clipboardSecurityNotice'), clipboardStatusBtn:$('clipboardStatusBtn'), clipboardUnlockStartBtn:$('clipboardUnlockStartBtn'), clipboardUnlockPanel:$('clipboardUnlockPanel'), clipboardUnlockSmtpCode:$('clipboardUnlockSmtpCode'), clipboardUnlockTotpCode:$('clipboardUnlockTotpCode'), clipboardUnlockVerifyBtn:$('clipboardUnlockVerifyBtn'), clipboardUnlockCancelBtn:$('clipboardUnlockCancelBtn'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fStepProgress:$('a2fStepProgress'), a2fCodeField:$('a2fCodeField'), a2fActionGrid:$('a2fActionGrid'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), clipboardUnlockTimerBox:$('clipboardUnlockTimerBox'), clipboardUnlockTimerText:$('clipboardUnlockTimerText'), clipboardUnlockTimerBar:$('clipboardUnlockTimerBar'), logoutBtn:$('logoutBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
+      loginError:$('loginError'), twoFactorHelp:$('twoFactorHelp'), twoFactorUser:$('twoFactorUser'), clipboardSecurityNotice:$('clipboardSecurityNotice'), clipboardStatusBtn:$('clipboardStatusBtn'), clipboardUnlockStartBtn:$('clipboardUnlockStartBtn'), clipboardUnlockPanel:$('clipboardUnlockPanel'), clipboardUnlockSmtpCode:$('clipboardUnlockSmtpCode'), clipboardUnlockTotpCode:$('clipboardUnlockTotpCode'), clipboardUnlockVerifyBtn:$('clipboardUnlockVerifyBtn'), clipboardUnlockCancelBtn:$('clipboardUnlockCancelBtn'), twoFactorLabel:$('twoFactorLabel'), twoFactorCode:$('twoFactorCode'), twoFactorBtn:$('twoFactorBtn'), twoFactorCancelBtn:$('twoFactorCancelBtn'), twoFactorError:$('twoFactorError'), a2fStepProgress:$('a2fStepProgress'), a2fCodeField:$('a2fCodeField'), a2fActionGrid:$('a2fActionGrid'), a2fDeadlineNotice:$('a2fDeadlineNotice'), a2fTimerText:$('a2fTimerText'), a2fTimerBar:$('a2fTimerBar'), clipboardUnlockTimerBox:$('clipboardUnlockTimerBox'), clipboardUnlockTimerText:$('clipboardUnlockTimerText'), clipboardUnlockTimerBar:$('clipboardUnlockTimerBar'), logoutBtn:$('logoutBtn'), securityCenterBtn:$('securityCenterBtn'), userPill:$('userPill'), productList:$('productList'), syncStatus:$('syncStatus'),
       statTotal:$('statTotal'), statReady:$('statReady'), statSold:$('statSold'), statValue:$('statValue'), statCategory:$('statCategory'), statAverage:$('statAverage'),
       miniSyncStatus:$('miniSyncStatus'), lastSync:$('lastSync'), syncDot:$('syncDot'), netStatus:$('netStatus'), netDot:$('netDot'), qualityStatus:$('qualityStatus'), qualitySummary:$('qualitySummary'), qualityDot:$('qualityDot'), clockText:$('clockText'),
       menuToggleBtn:$('menuToggleBtn'), sidebarBackdrop:$('sidebarBackdrop'), adminSidebar:$('adminSidebar'),
@@ -1909,6 +1932,7 @@
     let clipboardProtectionEnabled = false;
     let clipboardUnlockedUntilMs = 0;
     let clipboardPermanentBan = false;
+    let clipboardTrustedDeviceBypass = false;
     let clipboardStatusKnown = false;
     let clipboardGuardWarnedAt = 0;
     let clipboardUnlockChallengeId = '';
@@ -1920,6 +1944,8 @@
     let clipboardPausedA2fRemainingMs = 0;
     let clipboardPausedA2fStep = 0;
     let a2fBanWatcherTimer = null;
+    let currentDeviceSecurityTimer = null;
+    let securityCenterState = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
     const FACE_RECOVERY_TOTAL_STEPS = 5;
@@ -2921,6 +2947,231 @@
       }
       return data;
     }
+
+    async function callSecurityCenterApi(action, payload={}){
+      if(!auth.currentUser) throw new Error('Sesi admin tidak valid. Login ulang dulu.');
+      const idToken = await auth.currentUser.getIdToken(true);
+      const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        cache: 'no-store',
+        body: JSON.stringify(Object.assign({ action, idToken, clientContext: collectStep6ClientContext() }, payload || {}))
+      });
+      const data = await readApiJson(response);
+      if(!response.ok || data.success === false){
+        throw new Error(data.error || data.message || 'Security Center gagal.');
+      }
+      return data;
+    }
+
+    function formatSecurityDate(ms){
+      const value = Number(ms || 0);
+      if(!value) return '-';
+      return new Date(value).toLocaleString('id-ID', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+
+    function securityPill(text, type=''){
+      return '<span class="status-pill ' + escapeHtml(type || '') + '">' + escapeHtml(text || '-') + '</span>';
+    }
+
+    function renderSecurityInfoGrid(items){
+      return '<div class="security-info-grid">' + items.map(item => '<div><b>' + escapeHtml(item[0]) + '</b><span>' + escapeHtml(item[1] || '-') + '</span></div>').join('') + '</div>';
+    }
+
+    function renderSecurityDevice(device){
+      const trusted = device && device.clipboardTrusted === true;
+      const revoked = device && device.revoked === true;
+      const current = device && device.isCurrent === true;
+      const title = (device.deviceName || 'Perangkat') + (current ? ' • perangkat ini' : '');
+      const meta = [device.deviceType, device.os, device.browserName].filter(Boolean).join(' • ');
+      return `
+        <div class="security-device-card" data-device-hash="${escapeHtml(device.deviceIdHash || '')}">
+          <div class="security-device-top">
+            <div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(meta || '-')}</span></div>
+            <div>${revoked ? securityPill('Dikeluarkan','danger') : trusted ? securityPill('Terpercaya','good') : securityPill('Tidak terpercaya','warn')}</div>
+          </div>
+          ${renderSecurityInfoGrid([
+            ['Email', device.email || '-'],
+            ['Hash device', device.deviceIdHashShort || '-'],
+            ['Model', device.estimatedModel || '-'],
+            ['Platform', device.platform || '-'],
+            ['Zona waktu', device.timezone || '-'],
+            ['IP terakhir', device.lastIp || '-'],
+            ['Lokasi', [device.lastCity, device.lastCountry].filter(Boolean).join(', ') || '-'],
+            ['Login terakhir', formatSecurityDate(device.lastSeenAtMs)]
+          ])}
+          <div class="security-device-actions">
+            ${trusted ? '<button class="btn small warn" type="button" data-security-action="device-untrust" data-device-hash="' + escapeHtml(device.deviceIdHash || '') + '">Cabut terpercaya</button>' : '<button class="btn small good" type="button" data-security-action="device-trust" data-device-hash="' + escapeHtml(device.deviceIdHash || '') + '">Jadikan terpercaya</button>'}
+            <button class="btn small danger" type="button" data-security-action="device-revoke" data-device-hash="${escapeHtml(device.deviceIdHash || '')}">${current ? 'Keluarkan perangkat ini' : 'Keluarkan'}</button>
+          </div>
+        </div>`;
+    }
+
+    function renderSecurityLoginItem(item){
+      const status = String(item.status || 'unknown');
+      const type = status.includes('approved') ? 'good' : status.includes('denied') || status.includes('ban') ? 'danger' : status.includes('expired') ? 'warn' : '';
+      return `<div class="security-timeline-item"><strong>${escapeHtml(item.email || '-')} ${securityPill(status, type)}</strong><span>${escapeHtml([item.deviceName, item.deviceType, item.os, item.browserName].filter(Boolean).join(' • ') || '-')}</span><span>${escapeHtml([item.ip, item.city, item.country].filter(Boolean).join(' • ') || '-')}</span><span>Risk: ${escapeHtml(item.risk || '-')} • ${escapeHtml(item.reasons || '-')}</span><span>${formatSecurityDate(item.createdAtMs)}</span></div>`;
+    }
+
+    function renderSecurityLogItem(item){
+      const level = String(item.level || 'info');
+      const type = level === 'danger' ? 'danger' : level === 'warn' ? 'warn' : level === 'good' ? 'good' : '';
+      return `<div class="security-timeline-item"><strong>${escapeHtml(item.action || '-')} ${securityPill(level, type)}</strong><span>${escapeHtml(item.detail || '-')}</span><span>${escapeHtml([item.adminEmail, item.role].filter(Boolean).join(' • ') || '-')} • ${escapeHtml(item.createdAtText || formatSecurityDate(item.createdAtMs))}</span></div>`;
+    }
+
+    function renderSecurityCenter(data){
+      securityCenterState = data || {};
+      const current = securityCenterState.currentDevice || {};
+      const devices = Array.isArray(securityCenterState.devices) ? securityCenterState.devices : [];
+      const approvals = Array.isArray(securityCenterState.approvals) ? securityCenterState.approvals : [];
+      const logs = Array.isArray(securityCenterState.logs) ? securityCenterState.logs : [];
+      const a2fLock = securityCenterState.a2fLock || {};
+      const clipboard = securityCenterState.clipboard || {};
+      const health = securityCenterState.health || {};
+      const locked = a2fLock.permanentBan === true || Number(a2fLock.lockUntilMs || 0) > Date.now();
+      els.modalTitle.textContent = 'Pusat Keamanan Dirac';
+      els.modalBody.innerHTML = `
+        <div class="security-center-wrap">
+          <div class="security-center-hero"><h4>Security Center</h4><p>Panel ini menampilkan perangkat login, riwayat A2F, status copy-paste, recovery code sekali pakai, dan kontrol perangkat terpercaya. Kode hash dan sistem login utama tidak diubah.</p></div>
+          <div class="security-center-grid">
+            <div class="security-metric"><b>A2F Lock</b><strong>${locked ? 'Terkunci' : 'Normal'}</strong><span>${escapeHtml(a2fLock.permanentBanReason || (locked ? 'Lock aktif' : 'Tidak ada lock aktif'))}</span></div>
+            <div class="security-metric"><b>Copy-Paste</b><strong>${clipboard.trustedDeviceBypass ? 'Trusted bypass' : clipboard.clipboardUnlocked ? 'Diizinkan' : clipboard.permanentBan ? 'Diban' : 'Terkunci'}</strong><span>${clipboard.clipboardUnlockedUntilMs ? 'Sampai ' + formatSecurityDate(clipboard.clipboardUnlockedUntilMs) : 'Proteksi backend aktif'}</span></div>
+            <div class="security-metric"><b>Perangkat ini</b><strong>${current.trusted ? 'Terpercaya' : current.revoked ? 'Dikeluarkan' : current.known ? 'Dikenal' : 'Baru'}</strong><span>${escapeHtml(current.deviceIdHashShort || '-')}</span></div>
+            <div class="security-metric"><b>Health</b><strong>${health.supabaseAdmin && health.recoveryTotpReady && health.a2fSecretReady ? 'Siap' : 'Cek ENV'}</strong><span>Firebase ${health.firebaseAdmin ? 'OK' : '-'} • Supabase ${health.supabaseAdmin ? 'OK' : '-'}</span></div>
+          </div>
+          <div class="security-center-actions">
+            <button class="btn small primary" type="button" data-security-action="refresh">Refresh real-time</button>
+            <button class="btn small warn" type="button" data-security-action="generate-recovery-one">Buat 1 Recovery Code</button>
+            <button class="btn small" type="button" data-security-action="generate-recovery-ten">Buat 10 Recovery Code</button>
+            <button class="btn small good" type="button" data-security-action="export-snapshot">Export Snapshot</button>
+          </div>
+          <div class="security-section"><div class="security-section-head"><div><h4>Perangkat sekarang</h4><p>Data browser/IP saat panel dibuka.</p></div>${current.trusted ? securityPill('Trusted copy-paste','good') : securityPill('Belum trusted','warn')}</div>${renderSecurityInfoGrid([
+            ['Email', (securityCenterState.account && securityCenterState.account.email) || current.email || '-'],
+            ['Nama perangkat', current.deviceName || '-'],
+            ['Tipe', current.deviceType || '-'],
+            ['Model', current.estimatedModel || '-'],
+            ['OS / Browser', [current.os, current.browserName].filter(Boolean).join(' / ') || '-'],
+            ['IP / lokasi', [current.ip, current.city, current.country].filter(Boolean).join(' • ') || '-'],
+            ['Risk', current.risk || '-'],
+            ['Alasan', current.reasons || '-']
+          ])}</div>
+          <div class="security-section"><div class="security-section-head"><div><h4>Perangkat login & terpercaya</h4><p>Keluarkan perangkat atau cabut bypass verifikasi copy-paste.</p></div><span class="status-pill">${devices.length} perangkat</span></div><div class="security-device-list">${devices.length ? devices.map(renderSecurityDevice).join('') : '<div class="security-empty">Belum ada perangkat tersimpan. Perangkat akan muncul setelah A2F step email/Face ID selesai.</div>'}</div></div>
+          <div class="security-section"><div class="security-section-head"><div><h4>Riwayat login A2F</h4><p>Mirip daftar aktivitas login: status approval, device, IP, dan risk.</p></div></div><div class="security-login-list">${approvals.length ? approvals.map(renderSecurityLoginItem).join('') : '<div class="security-empty">Belum ada riwayat login A2F.</div>'}</div></div>
+          <div class="security-section"><div class="security-section-head"><div><h4>Recovery code sekali pakai</h4><p>Dipakai di Recovery Face ID tahap 5. Kode asli hanya tampil sekali setelah dibuat.</p></div></div><pre class="security-code-output hidden" id="securityRecoveryOutput"></pre></div>
+          <div class="security-section"><div class="security-section-head"><div><h4>Security log</h4><p>Aktivitas sensitif website dan backend.</p></div></div><div class="security-log-stream">${logs.length ? logs.map(renderSecurityLogItem).join('') : '<div class="security-empty">Belum ada log.</div>'}</div></div>
+        </div>`;
+    }
+
+    async function loadSecurityCenter(showToastAfter=false){
+      const data = await callSecurityCenterApi('listAdminSecurityCenter');
+      renderSecurityCenter(data);
+      if(showToastAfter) showToast('Pusat keamanan diperbarui');
+      return data;
+    }
+
+    async function openSecurityCenter(){
+      if(!auth.currentUser || els.adminSection.classList.contains('hidden')){
+        showToast('Pusat keamanan tersedia setelah login dan A2F selesai');
+        return;
+      }
+      els.modalTitle.textContent = 'Pusat Keamanan Dirac';
+      els.modalBody.innerHTML = '<div class="security-center-wrap"><div class="security-center-hero"><h4>Memuat Security Center...</h4><p>Membaca perangkat, A2F, copy-paste, dan log keamanan dari backend.</p></div></div>';
+      openModal();
+      try{ await loadSecurityCenter(false); }
+      catch(error){ els.modalBody.innerHTML = '<div class="notice danger">' + escapeHtml(error.message || 'Gagal membuka Security Center.') + '</div>'; }
+    }
+
+    async function generateSecurityCenterRecoveryCodes(count){
+      try{ requirePermission('canDelete', 'membuat recovery code sekali pakai'); }
+      catch(error){ showToast(error.message || 'Akses ditolak'); return; }
+      const ok = window.confirm('Buat ' + count + ' recovery code sekali pakai untuk Recovery Face ID tahap 5?\n\nKode asli hanya tampil sekali. Simpan segera.');
+      if(!ok) return;
+      try{
+        const proof = await requireSensitiveReauth('membuat recovery code sekali pakai dari Security Center');
+        let sensitiveTotpCode = String((proof && proof.sensitiveTotpCode) || '').trim();
+        if(!sensitiveTotpCode){
+          sensitiveTotpCode = String(window.prompt('Masukkan kode A2F utama dari Authenticator untuk membuat recovery code:') || '').trim();
+          if(!sensitiveTotpCode) throw new Error('Kode A2F utama wajib diisi.');
+        }
+        const data = await callSecurityCenterApi('generate-recovery-codes', { count, sensitiveTotpCode });
+        const codes = Array.isArray(data.codes) ? data.codes : [];
+        if(!codes.length) throw new Error('Backend tidak mengirim recovery code.');
+        const text = ['SIMPAN SEKARANG - recovery code hanya tampil sekali.', 'Dipakai untuk Recovery Face ID tahap 5.', '', ...codes.map((code, index) => String(index + 1).padStart(2,'0') + '. ' + code)].join('\n');
+        const out = $('securityRecoveryOutput');
+        if(out){ out.textContent = text; out.classList.remove('hidden'); }
+        downloadFile('dirac-recovery-code-security-center-' + new Date().toISOString().slice(0,10) + '.txt', text, 'text/plain;charset=utf-8');
+        showToast('Recovery code dibuat');
+        await loadSecurityCenter(false).catch(() => {});
+        const out2 = $('securityRecoveryOutput');
+        if(out2){ out2.textContent = text; out2.classList.remove('hidden'); }
+      }catch(error){
+        showToast(error.message || 'Gagal membuat recovery code');
+      }
+    }
+
+    async function updateSecurityDevice(hash, mode){
+      const label = mode === 'trust' ? 'menjadikan perangkat terpercaya' : mode === 'untrust' ? 'mencabut perangkat terpercaya' : 'mengeluarkan perangkat';
+      const ok = window.confirm('Yakin ingin ' + label + '?');
+      if(!ok) return;
+      try{
+        const data = await callSecurityCenterApi('updateTrustedDevice', { deviceIdHash: hash, mode });
+        showToast(data.message || 'Status perangkat diperbarui');
+        await loadSecurityCenter(false);
+        if((mode === 'revoke' || mode === 'kick') && securityCenterState && securityCenterState.currentDevice && securityCenterState.currentDevice.deviceIdHash === hash){
+          await logoutAdmin();
+          closeModal();
+          showToast('Perangkat ini dikeluarkan');
+        }
+      }catch(error){
+        showToast(error.message || 'Gagal memperbarui perangkat');
+      }
+    }
+
+    function exportSecuritySnapshot(){
+      if(!securityCenterState){ showToast('Snapshot belum siap'); return; }
+      downloadFile('dirac-security-center-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(securityCenterState, null, 2), 'application/json;charset=utf-8');
+      showToast('Snapshot Security Center diexport');
+    }
+
+    async function handleSecurityCenterAction(btn){
+      const action = btn && btn.dataset ? btn.dataset.securityAction : '';
+      if(!action) return;
+      if(action === 'refresh') return loadSecurityCenter(true).catch(error => showToast(error.message || 'Refresh gagal'));
+      if(action === 'generate-recovery-one') return generateSecurityCenterRecoveryCodes(1);
+      if(action === 'generate-recovery-ten') return generateSecurityCenterRecoveryCodes(10);
+      if(action === 'export-snapshot') return exportSecuritySnapshot();
+      const hash = btn.dataset.deviceHash || '';
+      if(action === 'device-trust') return updateSecurityDevice(hash, 'trust');
+      if(action === 'device-untrust') return updateSecurityDevice(hash, 'untrust');
+      if(action === 'device-revoke') return updateSecurityDevice(hash, 'revoke');
+    }
+
+    function stopCurrentDeviceSecurityMonitor(){
+      if(currentDeviceSecurityTimer){ clearInterval(currentDeviceSecurityTimer); currentDeviceSecurityTimer = null; }
+    }
+
+    async function enforceCurrentDeviceSecurity(){
+      if(!auth.currentUser || els.adminSection.classList.contains('hidden')) return;
+      try{
+        const data = await callSecurityCenterApi('checkCurrentDeviceSecurity');
+        if(data.shouldSignOut){
+          stopCurrentDeviceSecurityMonitor();
+          await logoutAdmin();
+          showToast(data.message || 'Perangkat ini dikeluarkan dari Security Center.');
+        }
+      }catch(error){
+        console.warn('Cek perangkat terkini gagal:', error);
+      }
+    }
+
+    function startCurrentDeviceSecurityMonitor(){
+      stopCurrentDeviceSecurityMonitor();
+      if(!auth.currentUser || els.adminSection.classList.contains('hidden')) return;
+      setTimeout(() => enforceCurrentDeviceSecurity(), 1200);
+      currentDeviceSecurityTimer = setInterval(enforceCurrentDeviceSecurity, 15000);
+    }
+
     function normalizeClipboardSecurityState(data){
       const source = data && typeof data === 'object' ? data : {};
       const untilMs = Number(source.clipboardUnlockedUntilMs || (source.clipboardUnlockedUntil ? Date.parse(source.clipboardUnlockedUntil) : 0) || 0);
@@ -2931,7 +3182,8 @@
         permanentBan: source.permanentBan === true,
         banReason: String(source.banReason || ''),
         clipboardBanUntilMs: Math.max(0, Number(source.clipboardBanUntilMs || source.lockUntilMs || 0)),
-        clipboardUnlockFailedCount: Math.max(0, Number(source.clipboardUnlockFailedCount || 0))
+        clipboardUnlockFailedCount: Math.max(0, Number(source.clipboardUnlockFailedCount || 0)),
+        trustedDeviceBypass: source.trustedDeviceBypass === true
       };
     }
 
@@ -2940,6 +3192,7 @@
       clipboardProtectionEnabled = state.protectionEnabled;
       clipboardUnlockedUntilMs = state.clipboardUnlocked ? state.clipboardUnlockedUntilMs : 0;
       clipboardPermanentBan = state.permanentBan;
+      clipboardTrustedDeviceBypass = state.trustedDeviceBypass === true;
       clipboardStatusKnown = true;
       document.documentElement.dataset.clipboardProtection = clipboardProtectionEnabled ? 'on' : 'off';
       document.documentElement.dataset.clipboardUnlocked = isClipboardPasteAllowed() ? 'on' : 'off';
@@ -2950,13 +3203,14 @@
       clipboardProtectionEnabled = true;
       clipboardUnlockedUntilMs = 0;
       clipboardPermanentBan = false;
+      clipboardTrustedDeviceBypass = false;
       clipboardStatusKnown = true;
       document.documentElement.dataset.clipboardProtection = 'on';
       document.documentElement.dataset.clipboardUnlocked = 'off';
     }
 
     function isClipboardPasteAllowed(){
-      return clipboardProtectionEnabled !== true || (Number(clipboardUnlockedUntilMs || 0) > Date.now());
+      return clipboardTrustedDeviceBypass === true || clipboardProtectionEnabled !== true || (Number(clipboardUnlockedUntilMs || 0) > Date.now());
     }
 
     function isClipboardGuardEligible(){
@@ -3013,6 +3267,13 @@
       const state = applyClipboardSecurityState(data);
       const untilText = state.clipboardUnlockedUntilMs > Date.now() ? new Date(state.clipboardUnlockedUntilMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '';
 
+      if(data && data.trustedDeviceBypass){
+        return {
+          message: 'Perangkat terpercaya terdeteksi. Verifikasi copy-paste dilewati dan izin aktif sampai ' + (untilText || '5 menit') + '.',
+          type: 'good'
+        };
+      }
+
       if(state.permanentBan){
         const untilText = state.clipboardBanUntilMs > Date.now() ? new Date(state.clipboardBanUntilMs).toLocaleString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit', day:'2-digit', month:'2-digit', year:'numeric' }) : '';
         const failCount = Number(state.clipboardUnlockFailedCount || 0);
@@ -3045,7 +3306,7 @@
     async function checkClipboardSecurityStatus(showToastMessage=true){
       if(els.clipboardStatusBtn) els.clipboardStatusBtn.disabled = true;
       try{
-        const data = await callStep6EmailApproval('checkClipboardSecurityStatus');
+        const data = await callStep6EmailApproval('checkClipboardSecurityStatus', { clientContext: collectStep6ClientContext() });
         const rendered = renderClipboardSecurityStatus(data);
         if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, rendered.message, rendered.type);
         if(showToastMessage) showToast('Status proteksi berhasil dicek');
@@ -3138,7 +3399,15 @@
           return;
         }
 
-        const data = await callStep6EmailApproval('startClipboardUnlockOtp');
+        const data = await callStep6EmailApproval('startClipboardUnlockOtp', { clientContext: collectStep6ClientContext() });
+        if(data && data.trustedDeviceBypass){
+          const rendered = renderClipboardSecurityStatus(data);
+          if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, rendered.message, rendered.type);
+          resetClipboardUnlockForm(true, { resumeA2fTimer: false });
+          showToast('Perangkat terpercaya: verifikasi copy-paste dilewati');
+          return;
+        }
+
         clipboardUnlockChallengeId = String(data.challengeId || '');
         clipboardUnlockExpiresAtMs = Number(data.expiresAtMs || (data.expiresAt ? Date.parse(data.expiresAt) : 0) || 0);
 
@@ -3393,6 +3662,8 @@
       startListening();
       resetIdleTimer();
       startA2fBanWatcher();
+      startCurrentDeviceSecurityMonitor();
+      applyRoleUi();
       logSecurity(logType, 'Dashboard dibuka').catch(() => {});
       showToast(toastText);
     }
@@ -3566,6 +3837,8 @@
       startListening();
       resetIdleTimer();
       startA2fBanWatcher();
+      startCurrentDeviceSecurityMonitor();
+      applyRoleUi();
 
       logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat Recovery Face ID').catch(() => {});
       showToast('Recovery selesai. Dashboard dibuka.');
@@ -4020,6 +4293,11 @@
       document.body.dataset.adminRole = currentAdmin.role || 'guest';
       if(currentAdmin.email){
         els.userPill.textContent = currentAdmin.email + ' • ' + (currentAdmin.roleLabel || 'Guest');
+      }
+      if(els.securityCenterBtn){
+        const canOpenSecurity = Boolean(currentAdmin.canRead && twoFactorVerified);
+        els.securityCenterBtn.disabled = busy || !canOpenSecurity;
+        els.securityCenterBtn.classList.toggle('hidden', !canOpenSecurity);
       }
       if(els.saveBtn) els.saveBtn.disabled = busy || !currentAdmin.canEdit;
       if(els.autoIdBtn) els.autoIdBtn.disabled = busy || !currentAdmin.canEdit;
@@ -5613,10 +5891,12 @@
     }
     async function logoutAdmin(){
       stopA2fBanWatcher();
+      stopCurrentDeviceSecurityMonitor();
       clearTwoFactorTimeoutTimer();
       clearLocalAdminData();
       lastSensitiveReauthAt = 0;
       currentAdmin = { uid:'', email:'', role:'guest', roleLabel:'Guest', roleSource:'none', hasAdminClaim:false, hasAdminDoc:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
+      if(els.securityCenterBtn) els.securityCenterBtn.classList.add('hidden');
       await signOut(auth);
     }
     function resetIdleTimer(){
@@ -6337,10 +6617,10 @@
           if(!sensitiveTotpCode) throw new Error('Aksi dibatalkan karena kode A2F utama tidak diisi.');
         }
         const idToken = await auth.currentUser.getIdToken(true);
-        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
+        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode })
+          body: JSON.stringify({ idToken, action: 'generate-recovery-codes', count: 10, sensitiveTotpCode, clientContext: collectStep6ClientContext() })
         });
         const data = await readApiJson(response);
         if(!response.ok || data.success === false){
@@ -6415,6 +6695,8 @@
       if(btn.dataset.customerAction === 'delete') deleteCustomer(customer);
     });
     els.modalCloseBtn.addEventListener('click', closeModal);
+    if(els.securityCenterBtn) els.securityCenterBtn.addEventListener('click', openSecurityCenter);
+    if(els.modalBody) els.modalBody.addEventListener('click', event => { const btn = event.target.closest('[data-security-action]'); if(btn) handleSecurityCenterAction(btn); });
     els.modal.addEventListener('click', event => { if(event.target === els.modal) closeModal(); });
     document.addEventListener('keydown', (event) => {
       if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
