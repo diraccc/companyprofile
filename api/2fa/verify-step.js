@@ -13,9 +13,12 @@ const ARGON2ID_OPTIONS = Object.freeze({
   hashLength: 32
 });
 const STEP6_EMAIL_CODE_DIGITS = 1000;
-const STEP6_EMAIL_CODE_TTL_MS = 50 * 1000;
+const STEP6_EMAIL_CODE_TTL_MS = 60 * 1000;
 const STEP6_COPY_TOKEN_BYTES = 48;
 const STEP6_CODE_ENCRYPTION_ALG = "aes-256-gcm";
+const STEP6_GENERIC_LINK_ERROR = "Link tidak valid, sudah expired, atau sudah dipakai.";
+const STEP6_CONFIRM_PHRASE = "SETUJU";
+const STEP6_DENY_PHRASE = "TOLAK";
 
 const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_lockouts";
 const CLIPBOARD_SECURITY_TABLE = process.env.SUPABASE_CLIPBOARD_SECURITY_TABLE || "admin_clipboard_security";
@@ -157,6 +160,40 @@ function hashCode(code, secret) {
   return crypto.createHmac("sha256", secret).update(String(code)).digest("hex");
 }
 
+function hashStep6ActionToken(purpose, { requestId, uid, createdAtMs, expiresAtMs, token }, secret) {
+  return hashCode(
+    [
+      "step6-action-token-v2",
+      String(purpose || ""),
+      String(requestId || ""),
+      String(uid || ""),
+      String(createdAtMs || 0),
+      String(expiresAtMs || 0),
+      String(token || "")
+    ].join(":"),
+    secret
+  );
+}
+
+function verifyStep6ActionToken(purpose, data, requestId, token, secret) {
+  const row = data && typeof data === "object" ? data : {};
+  const fieldName = `${purpose}TokenHash`;
+  const storedHash = String(row[fieldName] || "");
+  if (!storedHash || !token) return false;
+  const expectedHash = hashStep6ActionToken(
+    purpose,
+    {
+      requestId,
+      uid: row.uid || "",
+      createdAtMs: row.createdAtMs || 0,
+      expiresAtMs: row.expiresAtMs || 0,
+      token
+    },
+    secret
+  );
+  return safeEqual(expectedHash, storedHash);
+}
+
 function safeEqual(a, b) {
   const A = Buffer.from(String(a));
   const B = Buffer.from(String(b));
@@ -227,6 +264,13 @@ function setNoStore(res) {
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
   res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Permissions-Policy", "clipboard-read=(), clipboard-write=(self), camera=(), microphone=(), geolocation=(), payment=()");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+  );
 }
 
 function makeHttpError(statusCode, message) {
@@ -656,19 +700,20 @@ async function recordA2fTimeoutBlock(reason = "a2f_timeout") {
   const uid = getAdminUid();
   const data = await readA2fLockRow(uid);
   const now = Date.now();
+  const reasonText = String(reason || "a2f_timeout");
+  const isStep6Timeout = /step6|step_6|1000|60/i.test(reasonText);
 
   return saveA2fLockRow({
     uid,
     email: process.env.A2F_ADMIN_EMAIL || data.email || "",
-    failedCount: Math.max(3, Number(data.failedCount || 0)),
-    lockUntilMs: now + 100 * A2F_YEAR_MS,
-    permanentBan: false,
-    permanentBanReason: reason,
+    failedCount: isStep6Timeout ? 999 : Math.max(3, Number(data.failedCount || 0)),
+    lockUntilMs: isStep6Timeout ? 0 : now + 100 * A2F_YEAR_MS,
+    permanentBan: isStep6Timeout,
+    permanentBanReason: reasonText,
     bannedAtMs: now,
     lastFailedAtMs: now
   });
 }
-
 
 async function sendWrongCodeResponse(res) {
   const lockData = await recordA2fFailure();
@@ -1112,6 +1157,78 @@ async function writeBackendSecurityLog(action, detail, level, decoded, extra = {
   }
 }
 
+function hashStep6AuditValue(value) {
+  const secretPart = String(process.env.A2F_SECRET || "step6-audit");
+  return crypto
+    .createHash("sha256")
+    .update(`step6-url-audit-v1:${secretPart}:${String(value || "")}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+async function writeStep6UrlAuditLog(action, detail, level, req, requestId, ok = true, extra = {}) {
+  try {
+    const db = getFirebaseDb();
+    const now = Date.now();
+    const ipInfo = getRequestIpInfo(req || {});
+    const userAgent = getHeaderValue(req, "user-agent");
+    const origin = getHeaderValue(req, "origin");
+    await db.collection("securityLogs").doc(`${now}-step6-url-${randomId(6)}`).set({
+      action: `auth.step6_url.${String(action || "event")}`,
+      detail: String(detail || ""),
+      level: String(level || (ok ? "info" : "warn")),
+      role: "backend",
+      backend: true,
+      step: 6,
+      requestId: String(requestId || ""),
+      ok: Boolean(ok),
+      ipHash: hashStep6AuditValue(ipInfo.ip || ""),
+      ipSource: ipInfo.source || "",
+      userAgentHash: hashStep6AuditValue(userAgent),
+      origin: origin || "",
+      createdAtMs: now,
+      createdAtText: new Date(now).toLocaleString("id-ID"),
+      ...extra,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.warn("Step 6 URL audit log gagal:", error && error.message ? error.message : error);
+  }
+}
+
+function assertAllowedStep6PostOrigin(req) {
+  const origin = String((req && req.headers && req.headers.origin) || "").trim();
+  if (!origin || !getAllowedOrigins().includes(origin)) {
+    const err = makeHttpError(403, STEP6_GENERIC_LINK_ERROR);
+    err.publicMessage = STEP6_GENERIC_LINK_ERROR;
+    throw err;
+  }
+  return origin;
+}
+
+function step6ExpiredBanFields(now, reason = "step6_60s_expired") {
+  return {
+    status: "permanent_ban_timeout",
+    screenCodeArgon2Hash: null,
+    encryptedScreenCode: null,
+    approveTokenHash: null,
+    denyTokenHash: null,
+    copyTokenHash: null,
+    permanentBanReason: reason,
+    expiredAtMs: now,
+    bannedAtMs: now,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+}
+
+function makeStep6TimeoutBanError(message = "Waktu step 6 60 detik habis. A2F diblokir permanen.") {
+  const err = makeHttpError(403, message);
+  err.step6PermanentBan = true;
+  err.permanentBanReason = "step6_60_seconds_expired";
+  err.publicMessage = "Waktu step 6 60 detik habis. A2F diblokir permanen dari backend.";
+  return err;
+}
+
 async function generateOneTimeRecoveryCodes(req, res) {
   const { idToken, count, sensitiveTotpCode } = req.body || {};
   const decoded = await verifyAdminIdToken(idToken);
@@ -1375,17 +1492,19 @@ async function sendStep6Email({ requestId, approveToken, denyToken, copyToken, e
   const approveUrl =
     `${baseUrl}/api/2fa/verify-step?action=approveStep6` +
     `&requestId=${encodeURIComponent(requestId)}` +
-    `&token=${encodeURIComponent(approveToken)}`;
+    `#t=${encodeURIComponent(approveToken)}`;
 
   const denyUrl =
     `${baseUrl}/api/2fa/verify-step?action=denyStep6` +
     `&requestId=${encodeURIComponent(requestId)}` +
-    `&token=${encodeURIComponent(denyToken)}`;
+    `#t=${encodeURIComponent(denyToken)}`;
 
   const copyUrl =
     `${baseUrl}/api/2fa/verify-step?action=copyStep6Code` +
     `&requestId=${encodeURIComponent(requestId)}` +
     `#t=${encodeURIComponent(copyToken)}`;
+
+  const step6TtlSeconds = Math.floor(STEP6_EMAIL_CODE_TTL_MS / 1000);
 
   const ctx = loginContext || {};
   const account = ctx.account || {};
@@ -1455,7 +1574,7 @@ ${approveUrl}
 LANGKAH 2 - klik BUKA HALAMAN SALIN KODE 1000 DIGIT:
 ${copyUrl}
 
-Kode 1000 digit hanya bisa dibuka 1x, hanya berlaku 50 detik, dan akan hangus setelah dipakai.
+Kode 1000 digit hanya bisa dibuka 1x, hanya berlaku ${step6TtlSeconds} detik, dan akan hangus setelah dipakai.
 Salah 1x akan membuat A2F diblokir permanen.
 
 Jika ini bukan kamu, klik TOLAK & BAN PERMANEN:
@@ -1532,7 +1651,7 @@ ${denyUrl}`;
       <a href="${approveUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:13px 20px;border-radius:999px;font-weight:700">SETUJUI LOGIN</a>
     </p>
     <div style="margin:18px 0;padding:14px;border-radius:14px;background:#f8fafc;border:1px solid #cbd5e1">
-      <p style="margin:0 0 10px;color:#334155"><b>Kode 1000 digit tidak ditulis di email.</b> Kode hanya bisa dibuka 1x melalui halaman HTTPS di bawah, berlaku 50 detik, lalu hangus permanen.</p>
+      <p style="margin:0 0 10px;color:#334155"><b>Kode 1000 digit tidak ditulis di email.</b> Kode hanya bisa dibuka 1x melalui halaman HTTPS di bawah, berlaku ${step6TtlSeconds} detik, lalu hangus permanen.</p>
       <a href="${copyUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:13px 20px;border-radius:999px;font-weight:700">BUKA HALAMAN SALIN KODE 1000 DIGIT</a>
     </div>
     <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah 1x akan membuat A2F diblokir permanen. Link salin hanya bisa dipakai setelah login disetujui.</p>
@@ -1621,9 +1740,9 @@ async function startStep6EmailApproval(req, res) {
     screenCodeHashType: "argon2id",
     screenCodeArgon2Hash,
     encryptedScreenCode,
-    approveTokenHash: hashCode(`step6-approve:${requestId}:${approveToken}`, secret),
-    denyTokenHash: hashCode(`step6-deny:${requestId}:${denyToken}`, secret),
-    copyTokenHash: hashCode(`step6-copy:${requestId}:${copyToken}`, secret),
+    approveTokenHash: hashStep6ActionToken("approve", { requestId, uid: decoded.uid, createdAtMs: now, expiresAtMs, token: approveToken }, secret),
+    denyTokenHash: hashStep6ActionToken("deny", { requestId, uid: decoded.uid, createdAtMs: now, expiresAtMs, token: denyToken }, secret),
+    copyTokenHash: hashStep6ActionToken("copy", { requestId, uid: decoded.uid, createdAtMs: now, expiresAtMs, token: copyToken }, secret),
     copyTokenUsedAtMs: 0,
     copyRevealedAtMs: 0,
     codeConsumedAtMs: 0,
@@ -1676,12 +1795,13 @@ async function checkStep6EmailApproval(req, res) {
   const status = String(data.status || "unknown");
 
   if (Date.now() > Number(data.expiresAtMs || 0) && status !== "consumed") {
-    await expireStep6Approval(snap.ref);
+    await expireStep6Approval(snap.ref, "step6_60_seconds_expired_poll", req);
 
-    return res.status(408).json({
+    return res.status(403).json({
       success: false,
-      status: "expired",
-      error: "Waktu approval 50 detik habis. Login ulang."
+      status: "permanent_ban_timeout",
+      permanentBan: true,
+      error: "Waktu step 6 60 detik habis. A2F diblokir permanen dari backend."
     });
   }
 
@@ -1724,12 +1844,13 @@ async function submitStep6ScreenCode(req, res) {
   const status = String(data.status || "");
 
   if (Date.now() > Number(data.expiresAtMs || 0)) {
-    await expireStep6Approval(ref);
+    await expireStep6Approval(ref, "step6_60_seconds_expired_submit", req);
 
-    return res.status(408).json({
+    return res.status(403).json({
       success: false,
-      status: "expired",
-      error: "Waktu approval 50 detik habis. Login ulang."
+      status: "permanent_ban_timeout",
+      permanentBan: true,
+      error: "Waktu step 6 60 detik habis. A2F diblokir permanen dari backend."
     });
   }
 
@@ -1815,133 +1936,162 @@ async function submitStep6ScreenCode(req, res) {
   });
 }
 
-async function expireStep6Approval(ref) {
-  await ref.set({
-    status: "expired",
-    screenCodeArgon2Hash: null,
-    encryptedScreenCode: null,
-    approveTokenHash: null,
-    denyTokenHash: null,
-    copyTokenHash: null,
-    expiredAtMs: Date.now(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+async function expireStep6Approval(ref, reason = "step6_60_seconds_expired", req = null) {
+  const now = Date.now();
+  await ref.set(step6ExpiredBanFields(now, reason), { merge: true });
+  await recordPermanentBan(reason);
+  if (req) {
+    await writeStep6UrlAuditLog("expired_ban", "Step 6 expired 60 detik dan A2F diblokir permanen.", "danger", req, ref.id, false, { reason });
+  }
 }
 
-function approvalHiddenInputs(action, requestId, token) {
-  return `
-    <input type="hidden" name="action" value="${escapeHtml(action)}">
-    <input type="hidden" name="requestId" value="${escapeHtml(requestId)}">
-    <input type="hidden" name="token" value="${escapeHtml(token)}">
-  `;
+function genericStep6Html(title = "Link tidak valid") {
+  return htmlPage(title, `<p>${escapeHtml(STEP6_GENERIC_LINK_ERROR)}</p>`);
 }
 
-function approvalFormHtml({ action, requestId, token, buttonText, danger }) {
-  return `
-    <form method="GET" action="/api/2fa/verify-step">
-      ${approvalHiddenInputs(action, requestId, token)}
-      <button class="${danger ? "danger" : ""}" type="submit">${escapeHtml(buttonText)}</button>
-    </form>
-  `;
+function renderStep6FragmentActionPage({ title, requestId, action, buttonText, danger = false, warning = "", phrase = "" }) {
+  const requestIdJson = JSON.stringify(String(requestId || "")).replace(/</g, "\\u003c");
+  const actionJson = JSON.stringify(String(action || "")).replace(/</g, "\\u003c");
+  const phraseJson = JSON.stringify(String(phrase || "")).replace(/</g, "\\u003c");
+  const buttonTextSafe = escapeHtml(buttonText || "Konfirmasi");
+  const phraseHtml = phrase
+    ? `<label for="confirmPhrase">Ketik <span class="codehint">${escapeHtml(phrase)}</span> untuk melanjutkan</label><input id="confirmPhrase" autocomplete="off" inputmode="text" placeholder="${escapeHtml(phrase)}">`
+    : "";
+
+  return htmlPage(
+    title,
+    `<p>Token rahasia dibaca dari bagian <span class="codehint">#t=...</span> di link email, lalu langsung dihapus dari address bar. Aksi penting baru berjalan setelah tombol konfirmasi ditekan.</p>
+     ${warning ? `<div class="warn">${escapeHtml(warning)}</div>` : ""}
+     ${phraseHtml}
+     <button id="confirmStep6ActionBtn" class="${danger ? "danger" : ""}" type="button">${buttonTextSafe}</button>
+     <p id="step6ActionStatus" class="codehint">Siap menunggu konfirmasi manual.</p>
+     <script>
+     (() => {
+       const requestId = ${requestIdJson};
+       const action = ${actionJson};
+       const requiredPhrase = ${phraseJson};
+       const button = document.getElementById('confirmStep6ActionBtn');
+       const statusBox = document.getElementById('step6ActionStatus');
+       const phraseInput = document.getElementById('confirmPhrase');
+       const hashParams = new URLSearchParams(String(location.hash || '').replace(/^#/, ''));
+       const token = hashParams.get('t') || '';
+       try {
+         history.replaceState(null, document.title, location.pathname + '?action=' + encodeURIComponent(new URLSearchParams(location.search).get('action') || '') + '&requestId=' + encodeURIComponent(requestId));
+       } catch (_error) {}
+       function setStatus(message) { if (statusBox) statusBox.textContent = message; }
+       if (!token) {
+         button.disabled = true;
+         setStatus('Token tidak ditemukan. Buka link asli dari email approval.');
+         return;
+       }
+       button.addEventListener('click', async () => {
+         const confirmText = phraseInput ? String(phraseInput.value || '').trim().toUpperCase() : '';
+         if (requiredPhrase && confirmText !== requiredPhrase) {
+           setStatus('Ketik ' + requiredPhrase + ' dengan benar dulu.');
+           if (phraseInput) phraseInput.focus();
+           return;
+         }
+         button.disabled = true;
+         setStatus('Memproses konfirmasi aman...');
+         try {
+           const response = await fetch(location.pathname, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             cache: 'no-store',
+             credentials: 'omit',
+             body: JSON.stringify({ action, requestId, token, confirmText })
+           });
+           const data = await response.json().catch(() => ({}));
+           if (!response.ok || !data.success) throw new Error(data.error || '${STEP6_GENERIC_LINK_ERROR}');
+           setStatus(data.message || 'Berhasil.');
+         } catch (error) {
+           setStatus(error.message || '${STEP6_GENERIC_LINK_ERROR}');
+         }
+       });
+     })();
+     </script>`
+  );
+}
+
+async function readStep6RequestOrShowGeneric(req, res, requestId, actionName) {
+  const db = getFirebaseDb();
+  const ref = db.collection("a2fEmailApprovals").doc(String(requestId || ""));
+  const snap = await ref.get();
+  if (!snap.exists) {
+    await writeStep6UrlAuditLog(actionName || "missing_request", STEP6_GENERIC_LINK_ERROR, "warn", req, requestId, false);
+    res.status(404).send(genericStep6Html());
+    return null;
+  }
+  return { db, ref, data: snap.data() || {} };
 }
 
 async function approveStep6FromEmail(req, res) {
+  setNoStore(res);
   try {
     await checkA2fLock();
-
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
-    const secret = getA2fSecret();
-
-    const db = getFirebaseDb();
-    const ref = db.collection("a2fEmailApprovals").doc(requestId);
-    const snap = await ref.get();
-
-    if (!snap.exists) {
-      return res.status(404).send(htmlPage("Approval tidak ditemukan", "<p>Request approval login tidak ditemukan.</p>"));
+    const requestId = String((req.query && req.query.requestId) || "").trim();
+    if (!requestId) {
+      await writeStep6UrlAuditLog("approve_page_invalid", "Request ID approve kosong.", "warn", req, "", false);
+      return res.status(400).send(genericStep6Html());
     }
 
-    const data = snap.data() || {};
+    const loaded = await readStep6RequestOrShowGeneric(req, res, requestId, "approve_page_missing");
+    if (!loaded) return;
+    const { ref, data } = loaded;
     const status = String(data.status || "");
 
-    if (Date.now() > Number(data.expiresAtMs || 0)) {
-      await expireStep6Approval(ref);
-      return res.status(408).send(htmlPage("Approval expired", "<p>Waktu approval sudah habis. Silakan login ulang.</p>"));
+    if (Date.now() > Number(data.expiresAtMs || 0) && status !== "consumed") {
+      await expireStep6Approval(ref, "step6_60_seconds_expired_approve_page", req);
+      return res.status(403).send(htmlPage("A2F diblokir permanen", "<p>Waktu step 6 60 detik habis. A2F diblokir permanen dari backend.</p>"));
     }
 
-    const tokenHash = hashCode(`step6-approve:${requestId}:${token}`, secret);
-
-    if (!safeEqual(tokenHash, data.approveTokenHash)) {
-      return res.status(403).send(htmlPage("Token salah", "<p>Link approval tidak valid.</p>"));
-    }
-
-    if (status === "approved") {
-      return res.status(200).send(htmlPage("Login sudah selesai", "<p>Step 6 sudah pernah disetujui. Dashboard boleh terbuka jika sesi masih aktif.</p>"));
-    }
-
-    if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) {
-      return res.status(403).send(htmlPage("Login sudah ditolak", "<p>Request ini sudah ditolak dan A2F sudah diblokir permanen.</p>"));
-    }
-
-    if (status !== "pending_email_approval" && status !== "approved_waiting_code") {
-      return res.status(409).send(htmlPage("Status tidak valid", `<p>Status login saat ini: ${escapeHtml(status || "unknown")}</p>`));
-    }
-
-    return res.status(200).send(htmlPage(
-      "Konfirmasi Setujui Login",
-      `<p>Tekan tombol di bawah untuk menyetujui login ini. Tahap ini sengaja butuh konfirmasi agar scanner email tidak otomatis menyetujui login.</p>
-       <div class="warn">Setelah disetujui, kembali ke dashboard admin dan masukkan kode 1000 digit dari halaman salin kode.</div>
-       ${approvalFormHtml({ action: "confirmApproveStep6", requestId, token, buttonText: "SETUJUI LOGIN", danger: false })}`
-    ));
+    await writeStep6UrlAuditLog("approve_page_opened", "Halaman konfirmasi approve dibuka.", "info", req, requestId, true);
+    return res.status(200).send(renderStep6FragmentActionPage({
+      title: "Konfirmasi Setujui Login",
+      requestId,
+      action: "confirmApproveStep6",
+      buttonText: "KONFIRMASI SETUJUI LOGIN",
+      warning: "Halaman ini mencegah scanner email menyetujui login otomatis. Semua proses step 6 hanya berlaku 60 detik."
+    }));
   } catch (error) {
-    return res.status(error.statusCode || 500).send(htmlPage(
-      "Approval gagal",
-      `<p>${escapeHtml(error.publicMessage || error.message || "Gagal menyetujui login.")}</p>`
-    ));
+    await writeStep6UrlAuditLog("approve_page_error", error.message || STEP6_GENERIC_LINK_ERROR, "danger", req, req.query && req.query.requestId, false);
+    return res.status(error.statusCode || 500).send(genericStep6Html("Approval gagal"));
   }
 }
 
 async function confirmApproveStep6FromEmail(req, res) {
+  setNoStore(res);
+  let requestId = "";
   try {
     await checkA2fLock();
-
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
+    assertAllowedStep6PostOrigin(req);
+    requestId = String((req.body && req.body.requestId) || "").trim();
+    const token = String((req.body && req.body.token) || "").trim();
     const secret = getA2fSecret();
+
+    if (!requestId || !token) throw makeHttpError(400, STEP6_GENERIC_LINK_ERROR);
 
     const db = getFirebaseDb();
     const ref = db.collection("a2fEmailApprovals").doc(requestId);
     const snap = await ref.get();
-
-    if (!snap.exists) {
-      return res.status(404).send(htmlPage("Approval tidak ditemukan", "<p>Request approval login tidak ditemukan.</p>"));
-    }
+    if (!snap.exists) throw makeHttpError(404, STEP6_GENERIC_LINK_ERROR);
 
     const data = snap.data() || {};
     const status = String(data.status || "");
 
-    if (Date.now() > Number(data.expiresAtMs || 0)) {
-      await expireStep6Approval(ref);
-      return res.status(408).send(htmlPage("Approval expired", "<p>Waktu approval sudah habis. Silakan login ulang.</p>"));
+    if (Date.now() > Number(data.expiresAtMs || 0) && status !== "consumed") {
+      await expireStep6Approval(ref, "step6_60_seconds_expired_approve_confirm", req);
+      throw makeStep6TimeoutBanError();
     }
 
-    const tokenHash = hashCode(`step6-approve:${requestId}:${token}`, secret);
-
-    if (!safeEqual(tokenHash, data.approveTokenHash)) {
-      return res.status(403).send(htmlPage("Token salah", "<p>Link approval tidak valid.</p>"));
+    if (!verifyStep6ActionToken("approve", data, requestId, token, secret)) {
+      await writeStep6UrlAuditLog("invalid_token", "Token approve tidak valid.", "danger", req, requestId, false, { purpose: "approve" });
+      throw makeHttpError(403, STEP6_GENERIC_LINK_ERROR);
     }
 
-    if (status === "approved") {
-      return res.status(200).send(htmlPage("Login sudah selesai", "<p>Step 6 sudah pernah selesai. Kembali ke halaman admin.</p>"));
-    }
-
-    if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) {
-      return res.status(403).send(htmlPage("Login sudah ditolak", "<p>Request ini sudah ditolak dan A2F sudah diblokir permanen.</p>"));
-    }
-
-    if (status !== "pending_email_approval" && status !== "approved_waiting_code") {
-      return res.status(409).send(htmlPage("Status tidak valid", `<p>Status login saat ini: ${escapeHtml(status || "unknown")}</p>`));
-    }
+    if (status === "consumed" || status === "approved") throw makeHttpError(410, STEP6_GENERIC_LINK_ERROR);
+    if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) throw makeHttpError(403, STEP6_GENERIC_LINK_ERROR);
+    if (status !== "pending_email_approval" && status !== "approved_waiting_code") throw makeHttpError(409, STEP6_GENERIC_LINK_ERROR);
 
     await ref.set({
       status: "approved_waiting_code",
@@ -1950,52 +2100,58 @@ async function confirmApproveStep6FromEmail(req, res) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
-    return res.status(200).send(htmlPage(
-      "Login disetujui",
-      "<p>Email sudah disetujui. Sekarang kembali ke dashboard admin dan masukkan kode 1000 digit dari halaman salin kode.</p><div class=\"warn\">Jangan salah: salah 1x akan ban permanen.</div>"
-    ));
+    await writeStep6UrlAuditLog("approve_confirmed", "Login step 6 disetujui via POST manual.", "good", req, requestId, true);
+    return res.status(200).json({
+      success: true,
+      status: "approved_waiting_code",
+      message: "Login disetujui. Sekarang buka halaman salin kode, salin 1000 digit, lalu paste ke dashboard sebelum 60 detik habis."
+    });
   } catch (error) {
-    return res.status(error.statusCode || 500).send(htmlPage(
-      "Approval gagal",
-      `<p>${escapeHtml(error.publicMessage || error.message || "Gagal menyetujui login.")}</p>`
-    ));
+    if (error.step6PermanentBan) {
+      await writeStep6UrlAuditLog("expired_token", error.publicMessage || STEP6_GENERIC_LINK_ERROR, "danger", req, requestId, false);
+    }
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      permanentBan: error.step6PermanentBan === true,
+      error: error.publicMessage || STEP6_GENERIC_LINK_ERROR
+    });
   }
 }
 
 function renderStep6CopyCodePage(req, res) {
   setNoStore(res);
-
   const requestId = String((req.query && req.query.requestId) || "").trim();
-
   if (!requestId) {
-    return res.status(400).send(htmlPage("Request tidak valid", "<p>Request ID salin kode tidak lengkap.</p>"));
+    writeStep6UrlAuditLog("copy_page_invalid", "Request ID copy kosong.", "warn", req, "", false).catch(() => {});
+    return res.status(400).send(genericStep6Html("Request tidak valid"));
   }
 
+  writeStep6UrlAuditLog("copy_page_opened", "Halaman salin kode dibuka.", "info", req, requestId, true).catch(() => {});
   const requestIdJson = JSON.stringify(requestId).replace(/</g, "\\u003c");
+  const ttlSeconds = Math.floor(STEP6_EMAIL_CODE_TTL_MS / 1000);
 
   return res.status(200).send(htmlPage(
     "Salin Kode Step 6",
     `<p>Halaman ini hanya bisa membuka kode <b>${STEP6_EMAIL_CODE_DIGITS} digit</b> satu kali. Token rahasia dibaca dari bagian <span class="codehint">#t=...</span> di link email dan tidak dikirim lewat URL HTTP.</p>
-     <div class="warn">Wajib klik <b>SETUJUI LOGIN</b> di email dulu. Setelah kode tersalin, link salin langsung hangus. Semua proses hanya berlaku ${Math.floor(STEP6_EMAIL_CODE_TTL_MS / 1000)} detik.</div>
+     <div class="warn">Wajib klik <b>SETUJUI LOGIN</b> di email dulu. Setelah kode tersalin, link salin langsung hangus. Semua proses hanya berlaku ${ttlSeconds} detik. Lewat waktu ini A2F diblokir permanen dari backend.</div>
+     <label for="confirmRevealText">Ketik <span class="codehint">${STEP6_CONFIRM_PHRASE}</span> sebelum membuka kode</label>
+     <input id="confirmRevealText" autocomplete="off" inputmode="text" placeholder="${STEP6_CONFIRM_PHRASE}">
      <button id="revealCopyBtn" type="button">Salin Semua ${STEP6_EMAIL_CODE_DIGITS} Digit</button>
      <textarea id="manualCodeBox" readonly spellcheck="false" style="display:none;width:100%;min-height:180px;box-sizing:border-box;margin-top:12px;border:1px solid rgba(255,255,255,.16);background:#020617;color:#e0f2fe;border-radius:14px;padding:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;line-height:1.5"></textarea>
-     <p id="copyStatus" class="codehint">Siap. Tekan tombol sekali saja.</p>
+     <p id="copyStatus" class="codehint">Siap. Ketik ${STEP6_CONFIRM_PHRASE}, lalu tekan tombol sekali saja.</p>
      <script>
      (() => {
        const requestId = ${requestIdJson};
        const button = document.getElementById('revealCopyBtn');
        const statusBox = document.getElementById('copyStatus');
        const manualBox = document.getElementById('manualCodeBox');
+       const confirmBox = document.getElementById('confirmRevealText');
        const hashParams = new URLSearchParams(String(location.hash || '').replace(/^#/, ''));
        const copyToken = hashParams.get('t') || '';
        try {
          history.replaceState(null, document.title, location.pathname + '?action=copyStep6Code&requestId=' + encodeURIComponent(requestId));
        } catch (_error) {}
-
-       function setStatus(message) {
-         if (statusBox) statusBox.textContent = message;
-       }
-
+       function setStatus(message) { if (statusBox) statusBox.textContent = message; }
        async function copyText(text) {
          if (navigator.clipboard && window.isSecureContext) {
            await navigator.clipboard.writeText(text);
@@ -2015,14 +2171,18 @@ function renderStep6CopyCodePage(req, res) {
          if (!ok) throw new Error('Clipboard browser menolak salin otomatis.');
          return true;
        }
-
        if (!copyToken) {
          button.disabled = true;
          setStatus('Token salin tidak ditemukan. Buka link asli dari email approval.');
          return;
        }
-
        button.addEventListener('click', async () => {
+         const confirmText = String(confirmBox && confirmBox.value || '').trim().toUpperCase();
+         if (confirmText !== '${STEP6_CONFIRM_PHRASE}') {
+           setStatus('Ketik ${STEP6_CONFIRM_PHRASE} dengan benar dulu.');
+           if (confirmBox) confirmBox.focus();
+           return;
+         }
          button.disabled = true;
          setStatus('Membuka kode terenkripsi satu kali...');
          try {
@@ -2031,16 +2191,10 @@ function renderStep6CopyCodePage(req, res) {
              headers: { 'Content-Type': 'application/json' },
              cache: 'no-store',
              credentials: 'omit',
-             body: JSON.stringify({
-               action: 'revealStep6CopyCode',
-               requestId,
-               copyToken
-             })
+             body: JSON.stringify({ action: 'revealStep6CopyCode', requestId, copyToken, confirmText })
            });
            const data = await response.json().catch(() => ({}));
-           if (!response.ok || !data.success || !data.code) {
-             throw new Error(data.error || 'Kode tidak bisa dibuka.');
-           }
+           if (!response.ok || !data.success || !data.code) throw new Error(data.error || '${STEP6_GENERIC_LINK_ERROR}');
            try {
              await copyText(String(data.code));
              setStatus('Kode 1000 digit berhasil disalin. Link salin sudah hangus. Segera paste ke dashboard admin.');
@@ -2052,9 +2206,9 @@ function renderStep6CopyCodePage(req, res) {
              setStatus((copyError && copyError.message ? copyError.message + ' ' : '') + 'Kode ditampilkan sekali di kotak ini. Salin manual sekarang; refresh tidak akan menampilkan ulang.');
            }
          } catch (error) {
-           setStatus(error.message || 'Gagal membuka kode.');
+           setStatus(error.message || '${STEP6_GENERIC_LINK_ERROR}');
          } finally {
-           setTimeout(() => { manualBox.value = ''; }, 45000);
+           setTimeout(() => { manualBox.value = ''; }, 60000);
          }
        });
      })();
@@ -2068,81 +2222,42 @@ async function revealStep6CopyCode(req, res) {
 
   const requestId = String((req.body && req.body.requestId) || "").trim();
   const copyToken = String((req.body && req.body.copyToken) || "").trim();
-
-  if (!requestId || !copyToken) {
-    return res.status(400).json({
-      success: false,
-      error: "Request ID dan token salin wajib lengkap."
-    });
-  }
-
-  const origin = String((req.headers && req.headers.origin) || "").trim();
-  if (origin && !getAllowedOrigins().includes(origin)) {
-    return res.status(403).json({
-      success: false,
-      error: "Origin halaman salin tidak diizinkan."
-    });
-  }
-
-  const db = getFirebaseDb();
-  const secret = getA2fSecret();
-  const ref = db.collection("a2fEmailApprovals").doc(requestId);
-  let revealedCode = "";
-  let expiresAtMs = 0;
+  const confirmText = String((req.body && req.body.confirmText) || "").trim().toUpperCase();
 
   try {
+    assertAllowedStep6PostOrigin(req);
+    if (!requestId || !copyToken || confirmText !== STEP6_CONFIRM_PHRASE) {
+      throw makeHttpError(400, STEP6_GENERIC_LINK_ERROR);
+    }
+
+    const db = getFirebaseDb();
+    const secret = getA2fSecret();
+    const ref = db.collection("a2fEmailApprovals").doc(requestId);
+    let revealedCode = "";
+    let expiresAtMs = 0;
+
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
-
-      if (!snap.exists) {
-        throw makeHttpError(404, "Request approval tidak ditemukan.");
-      }
-
+      if (!snap.exists) throw makeHttpError(404, STEP6_GENERIC_LINK_ERROR);
       const data = snap.data() || {};
       const status = String(data.status || "");
       expiresAtMs = Number(data.expiresAtMs || 0);
       const now = Date.now();
 
-      if (now > expiresAtMs) {
-        tx.set(ref, {
-          status: "expired",
-          screenCodeArgon2Hash: null,
-          encryptedScreenCode: null,
-          approveTokenHash: null,
-          denyTokenHash: null,
-          copyTokenHash: null,
-          expiredAtMs: now,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        throw makeHttpError(408, "Waktu 50 detik habis. Login ulang.");
-      }
-
-      if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) {
-        throw makeHttpError(403, "Step 6 ditolak atau diblokir permanen.");
-      }
-
-      if (status === "consumed" || status === "approved") {
-        throw makeHttpError(410, "Kode sudah pernah dipakai dan sudah hangus.");
-      }
-
-      if (status !== "approved_waiting_code") {
-        throw makeHttpError(409, "Klik SETUJUI LOGIN di email dulu, lalu tekan tombol salin lagi.");
-      }
-
-      if (Number(data.copyTokenUsedAtMs || 0) || !data.copyTokenHash || !data.encryptedScreenCode) {
-        throw makeHttpError(410, "Link salin sudah pernah dipakai atau sudah hangus.");
-      }
-
-      const expectedHash = hashCode(`step6-copy:${requestId}:${copyToken}`, secret);
-      if (!safeEqual(expectedHash, data.copyTokenHash)) {
-        throw makeHttpError(403, "Token salin tidak valid.");
+      if (now > expiresAtMs) throw makeStep6TimeoutBanError();
+      if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) throw makeHttpError(403, STEP6_GENERIC_LINK_ERROR);
+      if (status === "consumed" || status === "approved") throw makeHttpError(410, STEP6_GENERIC_LINK_ERROR);
+      if (status !== "approved_waiting_code") throw makeHttpError(409, "Klik SETUJUI LOGIN di email dulu, lalu tekan tombol salin lagi.");
+      if (Number(data.copyTokenUsedAtMs || 0) || !data.copyTokenHash || !data.encryptedScreenCode) throw makeHttpError(410, STEP6_GENERIC_LINK_ERROR);
+      if (!verifyStep6ActionToken("copy", data, requestId, copyToken, secret)) {
+        const err = makeHttpError(403, STEP6_GENERIC_LINK_ERROR);
+        err.step6AuditAction = "invalid_token";
+        err.step6AuditPurpose = "copy";
+        throw err;
       }
 
       const code = decryptStep6Code(data.encryptedScreenCode, secret);
-      if (!new RegExp(`^\\d{${STEP6_EMAIL_CODE_DIGITS}}$`).test(code)) {
-        throw makeHttpError(500, "Kode tersimpan tidak valid. Login ulang.");
-      }
-
+      if (!new RegExp(`^\\d{${STEP6_EMAIL_CODE_DIGITS}}$`).test(code)) throw makeHttpError(500, STEP6_GENERIC_LINK_ERROR);
       revealedCode = code;
       tx.set(ref, {
         copyTokenUsedAtMs: now,
@@ -2152,124 +2267,124 @@ async function revealStep6CopyCode(req, res) {
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     });
+
+    await writeStep6UrlAuditLog("copy_revealed", "Kode 1000 digit berhasil dibuka 1x.", "good", req, requestId, true);
+    return res.status(200).json({
+      success: true,
+      code: revealedCode,
+      codeDigits: STEP6_EMAIL_CODE_DIGITS,
+      expiresAtMs,
+      message: "Kode 1000 digit dibuka satu kali. Link salin sekarang hangus."
+    });
   } catch (error) {
+    if (error.step6PermanentBan) {
+      const db = getFirebaseDb();
+      const ref = db.collection("a2fEmailApprovals").doc(requestId);
+      await expireStep6Approval(ref, error.permanentBanReason || "step6_60_seconds_expired_reveal", req);
+    } else {
+      await writeStep6UrlAuditLog(error.step6AuditAction || "copy_reveal_failed", error.publicMessage || error.message || STEP6_GENERIC_LINK_ERROR, "warn", req, requestId, false, error.step6AuditPurpose ? { purpose: error.step6AuditPurpose } : {});
+    }
     return res.status(error.statusCode || 500).json({
       success: false,
-      error: error.publicMessage || error.message || "Gagal membuka kode."
+      permanentBan: error.step6PermanentBan === true,
+      error: error.publicMessage || STEP6_GENERIC_LINK_ERROR
     });
   }
-
-  return res.status(200).json({
-    success: true,
-    code: revealedCode,
-    codeDigits: STEP6_EMAIL_CODE_DIGITS,
-    expiresAtMs,
-    message: "Kode 1000 digit dibuka satu kali. Link salin sekarang hangus."
-  });
 }
 
 async function denyStep6FromEmail(req, res) {
+  setNoStore(res);
   try {
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
-    const secret = getA2fSecret();
-
-    const db = getFirebaseDb();
-    const ref = db.collection("a2fEmailApprovals").doc(requestId);
-    const snap = await ref.get();
-
-    if (!snap.exists) {
-      return res.status(404).send(htmlPage("Approval tidak ditemukan", "<p>Request approval login tidak ditemukan.</p>"));
+    const requestId = String((req.query && req.query.requestId) || "").trim();
+    if (!requestId) {
+      await writeStep6UrlAuditLog("deny_page_invalid", "Request ID deny kosong.", "warn", req, "", false);
+      return res.status(400).send(genericStep6Html());
     }
 
-    const data = snap.data() || {};
+    const loaded = await readStep6RequestOrShowGeneric(req, res, requestId, "deny_page_missing");
+    if (!loaded) return;
+    const { ref, data } = loaded;
     const status = String(data.status || "");
-    const tokenHash = hashCode(`step6-deny:${requestId}:${token}`, secret);
 
-    if (!safeEqual(tokenHash, data.denyTokenHash)) {
-      return res.status(403).send(htmlPage("Token salah", "<p>Link penolakan tidak valid.</p>"));
+    if (Date.now() > Number(data.expiresAtMs || 0) && status !== "consumed") {
+      await expireStep6Approval(ref, "step6_60_seconds_expired_deny_page", req);
+      return res.status(403).send(htmlPage("A2F diblokir permanen", "<p>Waktu step 6 60 detik habis. A2F diblokir permanen dari backend.</p>"));
     }
 
-    if (Date.now() > Number(data.expiresAtMs || 0)) {
-      await expireStep6Approval(ref);
-      return res.status(408).send(htmlPage("Approval expired", "<p>Waktu approval sudah habis. Link tolak tidak berlaku lagi.</p>"));
-    }
-
-    if (status === "approved") {
-      return res.status(409).send(htmlPage("Login sudah selesai", "<p>Step 6 sudah selesai disetujui. Link tolak lama tidak bisa dipakai untuk ban.</p>"));
-    }
-
-    if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) {
-      return res.status(200).send(htmlPage("Sudah diblokir", "<p>Request ini sudah ditolak dan A2F sudah diblokir permanen.</p>"));
-    }
-
-    return res.status(200).send(htmlPage(
-      "Konfirmasi Tolak Login",
-      `<p>Tekan tombol merah di bawah hanya jika percobaan login ini bukan kamu.</p>
-       <div class="warn">Konfirmasi ini akan membuat A2F diblokir permanen. Halaman konfirmasi ini mencegah scanner email mem-ban akun otomatis.</div>
-       ${approvalFormHtml({ action: "confirmDenyStep6", requestId, token, buttonText: "KONFIRMASI TOLAK & BAN PERMANEN", danger: true })}`
-    ));
+    await writeStep6UrlAuditLog("deny_page_opened", "Halaman konfirmasi deny dibuka.", "warn", req, requestId, true);
+    return res.status(200).send(renderStep6FragmentActionPage({
+      title: "Konfirmasi Tolak Login",
+      requestId,
+      action: "confirmDenyStep6",
+      buttonText: "KONFIRMASI TOLAK & BAN PERMANEN",
+      danger: true,
+      phrase: STEP6_DENY_PHRASE,
+      warning: "Konfirmasi ini akan membuat A2F diblokir permanen. Halaman ini mencegah scanner email mem-ban akun otomatis."
+    }));
   } catch (error) {
-    return res.status(error.statusCode || 500).send(htmlPage(
-      "Penolakan gagal",
-      `<p>${escapeHtml(error.publicMessage || error.message || "Gagal menolak login.")}</p>`
-    ));
+    await writeStep6UrlAuditLog("deny_page_error", error.message || STEP6_GENERIC_LINK_ERROR, "danger", req, req.query && req.query.requestId, false);
+    return res.status(error.statusCode || 500).send(genericStep6Html("Penolakan gagal"));
   }
 }
 
 async function confirmDenyStep6FromEmail(req, res) {
+  setNoStore(res);
+  let requestId = "";
   try {
-    const requestId = String((req.query && req.query.requestId) || "");
-    const token = String((req.query && req.query.token) || "");
+    assertAllowedStep6PostOrigin(req);
+    requestId = String((req.body && req.body.requestId) || "").trim();
+    const token = String((req.body && req.body.token) || "").trim();
+    const confirmText = String((req.body && req.body.confirmText) || "").trim().toUpperCase();
     const secret = getA2fSecret();
+    if (!requestId || !token || confirmText !== STEP6_DENY_PHRASE) throw makeHttpError(400, STEP6_GENERIC_LINK_ERROR);
 
     const db = getFirebaseDb();
     const ref = db.collection("a2fEmailApprovals").doc(requestId);
     const snap = await ref.get();
-
-    if (!snap.exists) {
-      return res.status(404).send(htmlPage("Approval tidak ditemukan", "<p>Request approval login tidak ditemukan.</p>"));
-    }
+    if (!snap.exists) throw makeHttpError(404, STEP6_GENERIC_LINK_ERROR);
 
     const data = snap.data() || {};
     const status = String(data.status || "");
-    const tokenHash = hashCode(`step6-deny:${requestId}:${token}`, secret);
 
-    if (!safeEqual(tokenHash, data.denyTokenHash)) {
-      return res.status(403).send(htmlPage("Token salah", "<p>Link penolakan tidak valid.</p>"));
+    if (Date.now() > Number(data.expiresAtMs || 0) && status !== "consumed") {
+      await expireStep6Approval(ref, "step6_60_seconds_expired_deny_confirm", req);
+      throw makeStep6TimeoutBanError();
     }
 
-    if (Date.now() > Number(data.expiresAtMs || 0)) {
-      await expireStep6Approval(ref);
-      return res.status(408).send(htmlPage("Approval expired", "<p>Waktu approval sudah habis. Link tolak tidak berlaku lagi.</p>"));
+    if (!verifyStep6ActionToken("deny", data, requestId, token, secret)) {
+      await writeStep6UrlAuditLog("invalid_token", "Token deny tidak valid.", "danger", req, requestId, false, { purpose: "deny" });
+      throw makeHttpError(403, STEP6_GENERIC_LINK_ERROR);
     }
 
-    if (status === "approved") {
-      return res.status(409).send(htmlPage("Login sudah selesai", "<p>Step 6 sudah selesai disetujui. Link tolak lama tidak bisa dipakai untuk ban.</p>"));
-    }
-
-    if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) {
-      return res.status(200).send(htmlPage("Sudah diblokir", "<p>Request ini sudah ditolak dan A2F sudah diblokir permanen.</p>"));
-    }
+    if (status === "consumed" || status === "approved") throw makeHttpError(410, STEP6_GENERIC_LINK_ERROR);
+    if (status === "denied_permanent_ban" || status.startsWith("permanent_ban")) throw makeHttpError(403, STEP6_GENERIC_LINK_ERROR);
 
     await ref.set({
       status: "denied_permanent_ban",
       deniedAtMs: Date.now(),
       denyTokenUsedAtMs: data.denyTokenUsedAtMs || Date.now(),
+      approveTokenHash: null,
+      denyTokenHash: null,
+      copyTokenHash: null,
+      encryptedScreenCode: null,
+      screenCodeArgon2Hash: null,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
     await recordPermanentBan("step6_email_denied_confirmed");
-
-    return res.status(200).send(htmlPage(
-      "Login ditolak",
-      "<p>Login sudah ditolak dan A2F diblokir permanen. Reset hanya bisa lewat secret admin.</p>"
-    ));
+    await writeStep6UrlAuditLog("deny_confirmed", "Login ditolak dan A2F diblokir permanen via POST manual.", "danger", req, requestId, true);
+    return res.status(200).json({
+      success: true,
+      permanentBan: true,
+      status: "denied_permanent_ban",
+      message: "Login ditolak. A2F diblokir permanen dari backend."
+    });
   } catch (error) {
-    return res.status(error.statusCode || 500).send(htmlPage(
-      "Penolakan gagal",
-      `<p>${escapeHtml(error.publicMessage || error.message || "Gagal menolak login.")}</p>`
-    ));
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      permanentBan: error.step6PermanentBan === true,
+      error: error.publicMessage || STEP6_GENERIC_LINK_ERROR
+    });
   }
 }
 
@@ -2774,11 +2889,10 @@ module.exports = async function handler(req, res) {
   if (req.method === "GET") {
     const action = String((req.query && req.query.action) || "");
 
+    setNoStore(res);
     if (action === "approveStep6") return approveStep6FromEmail(req, res);
-    if (action === "confirmApproveStep6") return confirmApproveStep6FromEmail(req, res);
     if (action === "copyStep6Code") return renderStep6CopyCodePage(req, res);
     if (action === "denyStep6") return denyStep6FromEmail(req, res);
-    if (action === "confirmDenyStep6") return confirmDenyStep6FromEmail(req, res);
 
     return res.status(405).send(htmlPage("Method tidak diizinkan", "<p>Endpoint ini hanya menerima link approval/salin A2F.</p>"));
   }
@@ -2793,6 +2907,8 @@ module.exports = async function handler(req, res) {
   try {
     const action = String((req.body && req.body.action) || "").trim();
 
+    if (action === "confirmApproveStep6") return confirmApproveStep6FromEmail(req, res);
+    if (action === "confirmDenyStep6") return confirmDenyStep6FromEmail(req, res);
     if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
     if (action === "generate-recovery-codes") return generateOneTimeRecoveryCodes(req, res);
     if (action === "listAdminSecurityCenter") return listAdminSecurityCenter(req, res);
@@ -2811,7 +2927,7 @@ module.exports = async function handler(req, res) {
         failedCount: Number(data.failedCount || 0),
         lockUntilMs: Number(data.lockUntilMs || 0),
         permanentBanReason: data.permanentBanReason || "wrong_code_cooldown",
-        error: getLockMessage(data.lockUntilMs)
+        error: data.permanentBan === true ? "A2F diblokir permanen dari backend." : getLockMessage(data.lockUntilMs)
       });
     }
     if (action === "recordA2fTimeoutMarker") {
@@ -2834,11 +2950,11 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         success: true,
         locked: true,
-        permanentBan: false,
+        permanentBan: data.permanentBan === true,
         failedCount: Number(data.failedCount || 0),
         lockUntilMs: Number(data.lockUntilMs || 0),
         permanentBanReason: data.permanentBanReason || "a2f_timeout",
-        error: getLockMessage(data.lockUntilMs)
+        error: data.permanentBan === true ? "A2F diblokir permanen dari backend." : getLockMessage(data.lockUntilMs)
       });
     }
 
