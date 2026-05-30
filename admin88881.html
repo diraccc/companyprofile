@@ -1714,7 +1714,7 @@
     const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
     const A2F_STEP6_CODE_DIGITS = 1000;
-    const A2F_STEP6_MAX_SECONDS = 50;
+    const A2F_STEP6_MAX_SECONDS = 60;
     const A2F_STEP6_MAX_MS = A2F_STEP6_MAX_SECONDS * 1000;
     const A2F_CLIPBOARD_UNLOCK_VERIFY_SECONDS = 90;
     const A2F_CLIPBOARD_UNLOCK_VERIFY_MS = A2F_CLIPBOARD_UNLOCK_VERIFY_SECONDS * 1000;
@@ -2319,7 +2319,7 @@
         } else if(twoFactorStep === 5){
           els.twoFactorHelp.textContent = 'Selesaikan pemeriksaan keamanan perangkat untuk lanjut ke persetujuan email.';
         } else if(twoFactorStep === 6){
-          els.twoFactorHelp.textContent = 'Cek email kamu. Klik SETUJUI dulu, buka HALAMAN SALIN KODE, lalu paste kode 1000 digit ke dashboard admin ini dalam 50 detik.';
+          els.twoFactorHelp.textContent = 'Cek email kamu. Klik SETUJUI dulu, buka HALAMAN SALIN KODE, lalu paste kode 1000 digit ke dashboard admin ini dalam 60 detik.';
         } else {
           els.twoFactorHelp.textContent = 'Ikuti tahap verifikasi untuk membuka dashboard.';
         }
@@ -2701,10 +2701,10 @@
       startTwoFactorTimeoutTimer(remainingMs || maxMs);
     }
     function getA2fTimeoutReasonCode(){
-      return twoFactorStep === 6 ? 'a2f_step6_timeout_50_seconds' : 'a2f_timeout_25_seconds';
+      return twoFactorStep === 6 ? 'a2f_step6_timeout_60_seconds_permanent_ban' : 'a2f_timeout_25_seconds';
     }
     function getA2fTimeoutReasonText(){
-      return twoFactorStep === 6 ? 'A2F step 6 lebih dari 50 detik' : 'A2F lebih dari 25 detik';
+      return twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 25 detik';
     }
     function updateA2fTimeoutNotice(remainingMs){
       const totalMs = Math.max(0, Number(remainingMs || 0));
@@ -3638,7 +3638,7 @@
       } else {
         setNotice(
           els.twoFactorUser,
-          'Step 6: email sudah dikirim. Klik SETUJUI di email dulu, buka HALAMAN SALIN KODE, lalu paste kode 1000 digit ke dashboard ini. Berlaku 50 detik.',
+          'Step 6: email sudah dikirim. Klik SETUJUI di email dulu, buka HALAMAN SALIN KODE, lalu paste kode 1000 digit ke dashboard ini. Berlaku 60 detik.',
           'warn'
         );
       }
@@ -3701,7 +3701,7 @@
       }
       if(step6EmailApprovalStatus === 'expired'){
         clearStep6EmailApprovalPolling();
-        throw new Error('Step 6 expired. Login ulang.');
+        throw new Error('Step 6 melewati 60 detik. A2F diblokir permanen dari backend.');
       }
       if(showWaiting){
         const msg = step6EmailApprovalStatus === 'approved_waiting_code'
