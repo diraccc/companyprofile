@@ -1700,6 +1700,11 @@
     let step6EmailApprovalPollTimer = null;
     let step6ScreenCode = '';
     let step6ExpiresAtMs = 0;
+    let clipboardProtectionEnabled = true;
+    let clipboardUnlockedUntilMs = 0;
+    let clipboardPermanentBan = false;
+    let clipboardStatusKnown = false;
+    let clipboardGuardWarnedAt = 0;
     let a2fBanWatcherTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
@@ -1997,6 +2002,9 @@
       els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 25 detik.';
       updateTwoFactorProgress();
       startTwoFactorTimeoutTimer();
+      checkClipboardSecurityStatus(false).catch(error => {
+        console.warn('Auto cek status proteksi copy-paste gagal:', error);
+      });
       try{
         const state = await checkA2fBackendLock();
         applyA2fBackendLockState(state);
@@ -2599,28 +2607,103 @@
       }
       return data;
     }
-    function renderClipboardSecurityStatus(data){
-      const protectionEnabled = data && data.protectionEnabled !== false;
-      const unlocked = Boolean(data && data.clipboardUnlocked === true);
-      const permanentBan = Boolean(data && data.permanentBan === true);
-      const untilMs = Number(data && data.clipboardUnlockedUntilMs || 0);
-      const untilText = untilMs > Date.now() ? new Date(untilMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '';
+    function normalizeClipboardSecurityState(data){
+      const source = data && typeof data === 'object' ? data : {};
+      const untilMs = Number(source.clipboardUnlockedUntilMs || (source.clipboardUnlockedUntil ? Date.parse(source.clipboardUnlockedUntil) : 0) || 0);
+      return {
+        protectionEnabled: source.protectionEnabled !== false,
+        clipboardUnlocked: Boolean(source.clipboardUnlocked === true && untilMs > Date.now()),
+        clipboardUnlockedUntilMs: Number.isFinite(untilMs) ? untilMs : 0,
+        permanentBan: source.permanentBan === true,
+        banReason: String(source.banReason || '')
+      };
+    }
 
-      if(permanentBan){
+    function applyClipboardSecurityState(data){
+      const state = normalizeClipboardSecurityState(data);
+      clipboardProtectionEnabled = state.protectionEnabled;
+      clipboardUnlockedUntilMs = state.clipboardUnlocked ? state.clipboardUnlockedUntilMs : 0;
+      clipboardPermanentBan = state.permanentBan;
+      clipboardStatusKnown = true;
+      document.documentElement.dataset.clipboardProtection = clipboardProtectionEnabled ? 'on' : 'off';
+      document.documentElement.dataset.clipboardUnlocked = isClipboardPasteAllowed() ? 'on' : 'off';
+      return state;
+    }
+
+    function failSafeClipboardSecurityState(){
+      clipboardProtectionEnabled = true;
+      clipboardUnlockedUntilMs = 0;
+      clipboardPermanentBan = false;
+      clipboardStatusKnown = false;
+      document.documentElement.dataset.clipboardProtection = 'on';
+      document.documentElement.dataset.clipboardUnlocked = 'off';
+    }
+
+    function isClipboardPasteAllowed(){
+      return clipboardProtectionEnabled !== true || (Number(clipboardUnlockedUntilMs || 0) > Date.now());
+    }
+
+    function isClipboardGuardActive(){
+      return clipboardProtectionEnabled === true && !isClipboardPasteAllowed();
+    }
+
+    function showClipboardLockedWarning(){
+      const now = Date.now();
+      if(now - clipboardGuardWarnedAt < 1200) return;
+      clipboardGuardWarnedAt = now;
+      showToast('Copy-paste terkunci oleh proteksi backend. Gunakan izin 5 menit jika tersedia.');
+    }
+
+    function blockClipboardWhenProtected(event){
+      if(!isClipboardGuardActive()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      showClipboardLockedWarning();
+    }
+
+    function blockClipboardShortcutWhenProtected(event){
+      if(!isClipboardGuardActive()) return;
+      const key = String(event.key || '').toLowerCase();
+      const withModifier = event.ctrlKey || event.metaKey;
+      const blocked = withModifier && (key === 'c' || key === 'v' || key === 'x' || key === 'a' || key === 'insert');
+      if(!blocked) return;
+      event.preventDefault();
+      event.stopPropagation();
+      showClipboardLockedWarning();
+    }
+
+    function installClipboardProtectionGuard(){
+      ['copy','paste','cut','drop','dragstart','contextmenu'].forEach(eventName => {
+        document.addEventListener(eventName, blockClipboardWhenProtected, true);
+      });
+      document.addEventListener('keydown', blockClipboardShortcutWhenProtected, true);
+      setInterval(() => {
+        if(clipboardProtectionEnabled === true && clipboardUnlockedUntilMs && clipboardUnlockedUntilMs <= Date.now()){
+          clipboardUnlockedUntilMs = 0;
+          document.documentElement.dataset.clipboardUnlocked = 'off';
+        }
+      }, 1000);
+    }
+
+    function renderClipboardSecurityStatus(data){
+      const state = applyClipboardSecurityState(data);
+      const untilText = state.clipboardUnlockedUntilMs > Date.now() ? new Date(state.clipboardUnlockedUntilMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '';
+
+      if(state.permanentBan){
         return {
           message: 'Proteksi copy-paste: ON. Izin copy-paste 5 menit diblokir permanen. Reset hanya lewat Supabase/admin manual.',
           type: 'danger'
         };
       }
 
-      if(!protectionEnabled){
+      if(!state.protectionEnabled){
         return {
           message: 'Proteksi copy-paste: OFF. Copy-paste berjalan normal sesuai status backend.',
           type: 'warn'
         };
       }
 
-      if(unlocked){
+      if(state.clipboardUnlocked){
         return {
           message: 'Proteksi copy-paste: ON. Copy-paste sedang diizinkan sementara sampai ' + untilText + '.',
           type: 'good'
@@ -2642,7 +2725,8 @@
         if(showToastMessage) showToast('Status proteksi berhasil dicek');
         return data;
       }catch(error){
-        const message = 'Gagal cek status proteksi: ' + firebaseMessage(error);
+        failSafeClipboardSecurityState();
+        const message = 'Gagal cek status proteksi: ' + firebaseMessage(error) + '. Default aman: copy-paste terkunci.';
         if(els.clipboardSecurityNotice) setNotice(els.clipboardSecurityNotice, message, 'danger');
         throw error;
       }finally{
@@ -5616,6 +5700,7 @@
       finally{ setBusy(false); }
     }
 
+    installClipboardProtectionGuard();
     els.loginBtn.addEventListener('click', async () => {
       hideNotice(els.loginError);
       setBusy(true);
