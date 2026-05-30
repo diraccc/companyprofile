@@ -832,7 +832,7 @@
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
-            <span id="a2fTimerText">90 detik</span>
+            <span id="a2fTimerText">25 detik</span>
           </div>
           <div class="a2f-timer-track" aria-hidden="true"><span id="a2fTimerBar"></span></div>
         </div>
@@ -1378,10 +1378,12 @@
       lockTable: 'a2f_locks'
     });
     const A2F_BACKEND_MAX_FAILURES = 3;
-    const A2F_MAX_SECONDS = 90;
+    const A2F_MAX_SECONDS = 25;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
     const A2F_STEP6_MAX_SECONDS = 60;
     const A2F_STEP6_MAX_MS = A2F_STEP6_MAX_SECONDS * 1000;
+    const A2F_CLIPBOARD_UNLOCK_VERIFY_SECONDS = 90;
+    const A2F_CLIPBOARD_UNLOCK_VERIFY_MS = A2F_CLIPBOARD_UNLOCK_VERIFY_SECONDS * 1000;
     if(SECURITY_CONFIG.APP_CHECK_SITE_KEY){
       try{
         initializeAppCheck(app, {
@@ -1725,6 +1727,9 @@
     let clipboardUnlockChallengeId = '';
     let clipboardUnlockExpiresAtMs = 0;
     let clipboardUnlockInFlight = false;
+    let clipboardUnlockVerificationTimer = null;
+    let clipboardUnlockVerificationDeadlineMs = 0;
+    let clipboardUnlockVerificationActive = false;
     let a2fBanWatcherTimer = null;
     let faceRecoveryMode = false;
     let faceRecoveryStep = 0;
@@ -2019,7 +2024,7 @@
       els.logoutBtn.classList.remove('hidden');
       updateMenuButtonVisibility();
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
-      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 90 detik.';
+      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 25 detik.';
       updateTwoFactorProgress();
       startTwoFactorTimeoutTimer();
       checkClipboardSecurityStatus(false).catch(error => {
@@ -2274,10 +2279,41 @@
         twoFactorTimeoutTimer = null;
       }
     }
+    function clearClipboardUnlockVerificationTimer(){
+      if(clipboardUnlockVerificationTimer){
+        clearInterval(clipboardUnlockVerificationTimer);
+        clipboardUnlockVerificationTimer = null;
+      }
+      clipboardUnlockVerificationDeadlineMs = 0;
+      clipboardUnlockVerificationActive = false;
+    }
+    function shouldResumeA2fTimerAfterClipboard(){
+      return Boolean(
+        !twoFactorVerified &&
+        !twoFactorBackendLocked &&
+        !twoFactorPermanentLocked &&
+        els.twoFactorSection &&
+        !els.twoFactorSection.classList.contains('hidden')
+      );
+    }
+    function getA2fTimerMaxMs(){
+      if(clipboardUnlockVerificationActive) return A2F_CLIPBOARD_UNLOCK_VERIFY_MS;
+      return twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
+    }
+    function getA2fTimerMaxSeconds(){
+      if(clipboardUnlockVerificationActive) return A2F_CLIPBOARD_UNLOCK_VERIFY_SECONDS;
+      return twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS;
+    }
+    function getA2fTimeoutReasonCode(){
+      return twoFactorStep === 6 ? 'a2f_step6_timeout_60_seconds' : 'a2f_timeout_25_seconds';
+    }
+    function getA2fTimeoutReasonText(){
+      return twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 25 detik';
+    }
     function updateA2fTimeoutNotice(remainingMs){
       const totalMs = Math.max(0, Number(remainingMs || 0));
       const seconds = Math.max(0, Math.ceil(totalMs / 1000));
-      const maxMsForNotice = twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
+      const maxMsForNotice = getA2fTimerMaxMs();
       const percent = Math.max(0, Math.min(100, (totalMs / maxMsForNotice) * 100));
       if(els.a2fTimerText) els.a2fTimerText.textContent = seconds + ' detik';
       if(els.a2fTimerBar) els.a2fTimerBar.style.width = percent + '%';
@@ -2294,13 +2330,18 @@
       );
     }
     function startTwoFactorTimeoutTimer(){
+      if(clipboardUnlockVerificationActive){
+        resetClipboardUnlockForm(true, { resumeA2fTimer: false });
+      } else {
+        clearClipboardUnlockVerificationTimer();
+      }
       clearTwoFactorTimeoutTimer();
       if(twoFactorVerified || twoFactorBackendLocked || twoFactorPermanentLocked || els.twoFactorSection.classList.contains('hidden')){
         return;
       }
       twoFactorTimeoutTriggered = false;
       {
-        const maxMs = twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
+        const maxMs = getA2fTimerMaxMs();
         twoFactorDeadlineMs = Date.now() + maxMs;
         updateA2fTimeoutNotice(maxMs);
       }
@@ -2325,9 +2366,14 @@
       if(twoFactorVerified || twoFactorBackendLocked || twoFactorPermanentLocked || els.twoFactorSection.classList.contains('hidden')){
         return;
       }
+      if(clipboardUnlockVerificationActive){
+        resetClipboardUnlockForm(true, { resumeA2fTimer: false });
+      } else {
+        clearClipboardUnlockVerificationTimer();
+      }
       twoFactorTimeoutTriggered = false;
       {
-        const maxMs = twoFactorStep === 6 ? A2F_STEP6_MAX_MS : A2F_MAX_MS;
+        const maxMs = getA2fTimerMaxMs();
         twoFactorDeadlineMs = Date.now() + maxMs;
         updateA2fTimeoutNotice(maxMs);
       }
@@ -2336,10 +2382,10 @@
     }
     async function recordA2fTimeoutBlock(){
       const payload = {
-        reason: twoFactorStep === 6 ? 'a2f_step6_timeout_60_seconds' : 'a2f_timeout_90_seconds',
+        reason: getA2fTimeoutReasonCode(),
         deadlineMs: twoFactorDeadlineMs || 0,
         timedOutAtMs: Date.now(),
-        maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS
+        maxSeconds: getA2fTimerMaxSeconds()
       };
       let state = await callA2fBackendLock('timeout', payload);
       if(hasA2fBackendLockState(state)) return state;
@@ -2357,8 +2403,8 @@
         await callA2fBackendLock('timeout-marker', {
           uid,
           email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
-          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 90 detik',
-          maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS,
+          reason: getA2fTimeoutReasonText(),
+          maxSeconds: getA2fTimerMaxSeconds(),
           deadlineMs: twoFactorDeadlineMs || 0,
           blockedAtMs: Date.now()
         });
@@ -2374,7 +2420,7 @@
       twoFactorBackendLocked = true;
       twoFactorPermanentLocked = true;
       setTwoFactorInputLocked(true, 'Diblokir');
-      setNotice(els.twoFactorUser, 'Waktu A2F ' + (twoFactorStep === 6 ? '60' : '90') + ' detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
+      setNotice(els.twoFactorUser, 'Waktu A2F ' + getA2fTimerMaxSeconds() + ' detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
       setNotice(els.twoFactorError, 'Waktu A2F habis. Dashboard tetap terkunci dan sesi akan logout.', 'danger');
 
       try{
@@ -2385,7 +2431,7 @@
       }
 
       try{ await saveA2fTimeoutBlockMarker(); }catch(_error){}
-      try{ await logSecurity('auth.2fa_timeout_block', 'A2F lebih dari 90 detik, akun diblokir'); }catch(_error){}
+      try{ await logSecurity('auth.2fa_timeout_block', getA2fTimeoutReasonText() + ', akun diblokir'); }catch(_error){}
 
       setTimeout(() => {
         logoutAdmin().then(() => {
@@ -2773,12 +2819,46 @@
       ].filter(Boolean).forEach(el => { el.disabled = clipboardUnlockInFlight; });
     }
 
-    function resetClipboardUnlockForm(hidePanel=true){
+    function resetClipboardUnlockForm(hidePanel=true, options={}){
+      const shouldResumeTimer = clipboardUnlockVerificationActive && options.resumeA2fTimer !== false;
+      clearClipboardUnlockVerificationTimer();
       clipboardUnlockChallengeId = '';
       clipboardUnlockExpiresAtMs = 0;
       if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.value = '';
       if(els.clipboardUnlockTotpCode) els.clipboardUnlockTotpCode.value = '';
       if(hidePanel && els.clipboardUnlockPanel) els.clipboardUnlockPanel.classList.add('hidden');
+      if(shouldResumeTimer && shouldResumeA2fTimerAfterClipboard()) startTwoFactorTimeoutTimer();
+    }
+
+    function startClipboardUnlockVerificationTimer(){
+      clearTwoFactorTimeoutTimer();
+      clearClipboardUnlockVerificationTimer();
+      clipboardUnlockVerificationActive = true;
+      clipboardUnlockVerificationDeadlineMs = Date.now() + A2F_CLIPBOARD_UNLOCK_VERIFY_MS;
+      twoFactorDeadlineMs = clipboardUnlockVerificationDeadlineMs;
+      twoFactorTimeoutTriggered = false;
+      updateA2fTimeoutNotice(A2F_CLIPBOARD_UNLOCK_VERIFY_MS);
+
+      clipboardUnlockVerificationTimer = setInterval(() => {
+        if(!clipboardUnlockVerificationActive) return;
+        if(twoFactorVerified || twoFactorBackendLocked || twoFactorPermanentLocked || els.twoFactorSection.classList.contains('hidden')){
+          clearClipboardUnlockVerificationTimer();
+          return;
+        }
+        if(!clipboardUnlockChallengeId || (els.clipboardUnlockPanel && els.clipboardUnlockPanel.classList.contains('hidden'))){
+          resetClipboardUnlockForm(true);
+          return;
+        }
+        const remainingMs = clipboardUnlockVerificationDeadlineMs - Date.now();
+        updateA2fTimeoutNotice(remainingMs);
+        if(remainingMs <= 0){
+          resetClipboardUnlockForm(true);
+          if(els.clipboardSecurityNotice){
+            setNotice(els.clipboardSecurityNotice, 'Waktu verifikasi izin copy-paste 90 detik habis. Silakan minta kode SMTP baru jika masih diperlukan.', 'warn');
+          }
+          showToast('Verifikasi copy-paste expired');
+        }
+      }, 250);
     }
 
     function normalizeClipboardOtpInput(value){
@@ -2809,13 +2889,14 @@
         }
 
         if(els.clipboardUnlockPanel) els.clipboardUnlockPanel.classList.remove('hidden');
+        startClipboardUnlockVerificationTimer();
         if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.value = '';
         if(els.clipboardUnlockTotpCode) els.clipboardUnlockTotpCode.value = '';
         if(els.clipboardUnlockSmtpCode) els.clipboardUnlockSmtpCode.focus();
 
-        const expiresText = clipboardUnlockExpiresAtMs ? new Date(clipboardUnlockExpiresAtMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '5 menit';
+        const expiresText = clipboardUnlockExpiresAtMs ? new Date(clipboardUnlockExpiresAtMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '90 detik';
         if(els.clipboardSecurityNotice){
-          setNotice(els.clipboardSecurityNotice, 'Kode SMTP izin copy-paste sudah dikirim. Masukkan kode SMTP dan Authenticator sebelum ' + expiresText + '. Salah SMTP 1x = permanent ban fitur izin copy-paste.', 'warn');
+          setNotice(els.clipboardSecurityNotice, 'Kode SMTP izin copy-paste sudah dikirim. Batas verifikasi panel ini 90 detik. Masukkan kode SMTP dan Authenticator sebelum ' + expiresText + '. Salah SMTP 1x = permanent ban fitur izin copy-paste.', 'warn');
         }
         showToast('Kode SMTP izin copy-paste sudah dikirim');
       }catch(error){
@@ -8254,8 +8335,8 @@
 
       saveA2fTimeoutBlockMarker = async function(){
         return callA2fBackendLock('timeout-marker', {
-          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 90 detik',
-          maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS,
+          reason: getA2fTimeoutReasonText(),
+          maxSeconds: getA2fTimerMaxSeconds(),
           deadlineMs: twoFactorDeadlineMs || 0,
           blockedAtMs: Date.now()
         });
