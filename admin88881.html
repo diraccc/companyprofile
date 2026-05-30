@@ -931,6 +931,15 @@
     .security-center-hero h4{margin:0 0 5px;font-size:1.02rem}.security-center-hero p{margin:0;color:var(--muted);line-height:1.45}.security-center-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.security-metric{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);border-radius:18px;padding:11px;min-height:82px}.security-metric b{display:block;font-size:.74rem;color:var(--muted);margin-bottom:5px}.security-metric strong{display:block;font-size:1rem;line-height:1.2}.security-metric span{display:block;color:var(--muted);font-size:.76rem;margin-top:4px}.security-center-actions{display:flex;gap:8px;flex-wrap:wrap}.security-section{border:1px solid rgba(96,165,250,.16);background:rgba(255,255,255,.035);border-radius:22px;padding:13px}.security-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.security-section-head h4{margin:0}.security-section-head p{margin:3px 0 0;color:var(--muted);font-size:.86rem}.security-device-list,.security-login-list,.security-log-stream{display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:3px}.security-device-card{border:1px solid rgba(255,255,255,.11);background:rgba(9,14,27,.72);border-radius:20px;padding:12px;display:grid;gap:10px}.security-device-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.security-device-top strong{display:block;line-height:1.15}.security-device-top span{display:block;color:var(--muted);font-size:.78rem;margin-top:3px}.security-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.security-info-grid div{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);border-radius:14px;padding:8px}.security-info-grid b{display:block;color:var(--muted);font-size:.72rem;margin-bottom:2px}.security-info-grid span{display:block;font-size:.82rem;word-break:break-word}.security-device-actions{display:flex;gap:8px;flex-wrap:wrap}.security-timeline-item{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:16px;padding:10px}.security-timeline-item strong{display:block}.security-timeline-item span{display:block;color:var(--muted);font-size:.8rem;margin-top:3px}.security-code-output{white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;border:1px solid rgba(250,204,21,.25);background:rgba(250,204,21,.06);border-radius:18px;padding:12px}.security-empty{border:1px dashed rgba(148,163,184,.28);border-radius:18px;padding:16px;text-align:center;color:var(--muted)}
     @media(max-width:900px){.security-center-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.security-info-grid{grid-template-columns:1fr}}
     @media(max-width:560px){.security-center-grid{grid-template-columns:1fr}.security-device-top,.security-section-head{display:block}.security-device-actions .btn,.security-center-actions .btn{width:100%;justify-content:center}.modal-card{border-radius:24px}}
+    /* Login safety guard: Security Center tidak boleh membuat area transparan menutup form login. */
+    body:not(.dirac-admin-open) #securityCenterBtn,
+    body[data-admin-role="guest"] #securityCenterBtn,
+    #securityCenterBtn.hidden{display:none!important;pointer-events:none!important;visibility:hidden!important}
+    #loginSection:not(.hidden){position:relative;z-index:46;pointer-events:auto!important;isolation:isolate}
+    #loginSection:not(.hidden) .login-card,
+    #loginSection:not(.hidden) #loginBtn,
+    #loginSection:not(.hidden) input{pointer-events:auto!important}
+    #modal.hidden,.sidebar-backdrop.hidden{display:none!important;pointer-events:none!important;visibility:hidden!important}
   </style>
 
 </head>
@@ -4291,6 +4300,7 @@
     }
     function applyRoleUi(){
       document.body.dataset.adminRole = currentAdmin.role || 'guest';
+      document.body.classList.toggle('dirac-admin-open', Boolean(twoFactorVerified && currentAdmin.canRead && els.adminSection && !els.adminSection.classList.contains('hidden')));
       if(currentAdmin.email){
         els.userPill.textContent = currentAdmin.email + ' • ' + (currentAdmin.roleLabel || 'Guest');
       }
@@ -4318,6 +4328,53 @@
       if(els.orderForm) els.orderForm.classList.toggle('hidden', !currentAdmin.canEdit && currentAdmin.canRead);
       if(els.customerForm) els.customerForm.classList.toggle('hidden', !currentAdmin.canEdit && currentAdmin.canRead);
     }
+    function isLoginPanelActive(){
+      return Boolean(els.loginSection && !els.loginSection.classList.contains('hidden'));
+    }
+    function repairLoginButtonState(){
+      try{
+        const loginActive = isLoginPanelActive();
+        document.body.classList.toggle('dirac-admin-open', Boolean(twoFactorVerified && currentAdmin && currentAdmin.canRead && els.adminSection && !els.adminSection.classList.contains('hidden')));
+        if(els.securityCenterBtn){
+          const canOpenSecurity = Boolean(currentAdmin && currentAdmin.canRead && twoFactorVerified && els.adminSection && !els.adminSection.classList.contains('hidden'));
+          els.securityCenterBtn.disabled = busy || !canOpenSecurity;
+          els.securityCenterBtn.classList.toggle('hidden', !canOpenSecurity);
+          els.securityCenterBtn.setAttribute('aria-hidden', canOpenSecurity ? 'false' : 'true');
+          els.securityCenterBtn.style.pointerEvents = canOpenSecurity ? '' : 'none';
+        }
+        if(els.modal && els.modal.classList.contains('hidden')){
+          els.modal.style.pointerEvents = 'none';
+        }
+        if(els.sidebarBackdrop && els.sidebarBackdrop.classList.contains('hidden')){
+          els.sidebarBackdrop.style.pointerEvents = 'none';
+        }
+        if(loginActive && !auth.currentUser && !busy && els.loginBtn){
+          els.loginBtn.disabled = false;
+          els.loginBtn.removeAttribute('aria-disabled');
+          els.loginBtn.removeAttribute('aria-busy');
+          els.loginBtn.style.pointerEvents = 'auto';
+          els.loginBtn.style.touchAction = 'manipulation';
+        }
+      }catch(error){
+        console.warn('Login safety guard gagal:', error);
+      }
+    }
+    function startLoginButtonSafetyGuard(){
+      repairLoginButtonState();
+      ['pageshow','focus','visibilitychange','online'].forEach(eventName => {
+        window.addEventListener(eventName, repairLoginButtonState, { passive:true });
+      });
+      document.addEventListener('pointerdown', event => {
+        if(event.target && event.target.closest && event.target.closest('#loginBtn')) repairLoginButtonState();
+      }, true);
+      document.addEventListener('touchstart', event => {
+        if(event.target && event.target.closest && event.target.closest('#loginBtn')) repairLoginButtonState();
+      }, { passive:true, capture:true });
+      setInterval(() => {
+        if(isLoginPanelActive()) repairLoginButtonState();
+      }, 1200);
+    }
+
     function requirePermission(permission, actionLabel){
       if(!currentAdmin[permission]){
         throw new Error('Akses ditolak. Role ' + (currentAdmin.role || 'guest') + ' tidak boleh ' + actionLabel + '.');
@@ -4778,6 +4835,7 @@
       els.restoreDraftBtn.disabled = state || !sessionStorage.getItem(DRAFT_KEY);
       els.uploadPhotoBtn.disabled = state || !(els.photoFile.files && els.photoFile.files[0]);
       if(!state) applyRoleUi();
+      repairLoginButtonState();
     }
     async function saveProduct(event){
       event.preventDefault();
@@ -5897,6 +5955,8 @@
       lastSensitiveReauthAt = 0;
       currentAdmin = { uid:'', email:'', role:'guest', roleLabel:'Guest', roleSource:'none', hasAdminClaim:false, hasAdminDoc:false, claimChecked:false, canRead:false, canEdit:false, canDelete:false, canExport:false, canUpload:false };
       if(els.securityCenterBtn) els.securityCenterBtn.classList.add('hidden');
+      document.body.classList.remove('dirac-admin-open');
+      repairLoginButtonState();
       await signOut(auth);
     }
     function resetIdleTimer(){
@@ -6454,8 +6514,11 @@
       finally{ setBusy(false); }
     }
 
+    startLoginButtonSafetyGuard();
     installClipboardProtectionGuard();
     els.loginBtn.addEventListener('click', async () => {
+      repairLoginButtonState();
+      if(busy) return;
       hideNotice(els.loginError);
       setBusy(true);
       try{
@@ -6465,7 +6528,7 @@
         els.loginPassword.value = '';
       }catch(error){
         setNotice(els.loginError, 'Login gagal: ' + firebaseMessage(error), 'danger');
-      }finally{ setBusy(false); }
+      }finally{ setBusy(false); repairLoginButtonState(); }
     });
     els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.loginBtn.click(); });
     els.twoFactorBtn.addEventListener('click', verifyTwoFactorCode);
@@ -7439,6 +7502,7 @@
         applyRoleUi();
         els.userPill.textContent = 'Belum login';
         els.loginSection.classList.remove('hidden');
+        repairLoginButtonState();
         els.twoFactorSection.classList.add('hidden');
         els.adminSection.classList.add('hidden');
         els.logoutBtn.classList.add('hidden');
