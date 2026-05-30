@@ -942,6 +942,92 @@
     #modal.hidden,.sidebar-backdrop.hidden{display:none!important;pointer-events:none!important;visibility:hidden!important}
   </style>
 
+
+  <style id="dirac-security-center-touch-hotfix">
+    /* Hotfix tombol Security Center + modal close: hit area lebih besar, topbar lebih ringkas, dan anti ghost-tap ke link toko. */
+    #securityCenterBtn.security-center-btn{
+      position:relative!important;
+      z-index:72!important;
+      width:56px!important;
+      height:56px!important;
+      min-width:56px!important;
+      min-height:56px!important;
+      flex:0 0 56px!important;
+      place-self:center end!important;
+      touch-action:manipulation!important;
+      pointer-events:auto;
+      -webkit-tap-highlight-color:transparent;
+      isolation:isolate;
+    }
+    #securityCenterBtn.security-center-btn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      z-index:0;
+      background:transparent;
+      pointer-events:none;
+    }
+    #securityCenterBtn.security-center-btn::after,
+    #securityCenterBtn.security-center-btn svg{pointer-events:none!important}
+    #securityCenterBtn.security-center-btn:active{transform:scale(.985)!important}
+    .modal{z-index:10000!important;pointer-events:auto!important;overscroll-behavior:contain;touch-action:manipulation}
+    .modal-card{position:relative;z-index:10001!important;overscroll-behavior:contain}
+    .modal-head{position:sticky;top:-20px;z-index:10002;background:linear-gradient(180deg,rgba(17,26,46,.99),rgba(17,26,46,.94));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:0 0 10px;margin-bottom:12px;border-bottom:1px solid rgba(96,165,250,.12)}
+    #modalCloseBtn{position:relative;z-index:10003!important;min-width:92px;min-height:46px;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
+    body.modal-open .topbar,
+    body.dirac-modal-closing .topbar{pointer-events:none!important}
+    body.modal-open .modal,
+    body.modal-open .modal *{pointer-events:auto}
+    body.modal-open .brand,
+    body.dirac-modal-closing .brand,
+    body.dirac-modal-closing .top-actions a{pointer-events:none!important}
+    @media(max-width:700px){
+      .topbar-inner{
+        display:grid!important;
+        grid-template-columns:auto minmax(0,1fr) auto!important;
+        align-items:center!important;
+        gap:8px!important;
+        padding:8px 0 9px!important;
+      }
+      .menu-toggle{width:46px!important;height:46px!important;border-radius:17px!important;grid-column:1!important;grid-row:1!important}
+      .brand{grid-column:2!important;grid-row:1!important;min-width:0!important;gap:9px!important;align-self:center!important;max-width:100%!important}
+      .brand .logo{width:44px!important;height:44px!important;border-radius:15px!important}
+      .brand h1{font-size:1rem!important;line-height:1.05!important;max-width:100%!important}
+      .brand span{font-size:.73rem!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+      #securityCenterBtn.security-center-btn{grid-column:3!important;grid-row:1!important;width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;flex-basis:52px!important;border-radius:18px!important;margin:0!important}
+      #securityCenterBtn.security-center-btn svg{width:24px!important;height:24px!important}
+      .topbar .top-actions{
+        grid-column:1/-1!important;
+        grid-row:2!important;
+        display:grid!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:8px!important;
+        width:100%!important;
+        margin-top:2px!important;
+      }
+      .topbar .top-actions #userPill{display:none!important}
+      .topbar .top-actions .btn{
+        width:100%!important;
+        min-height:40px!important;
+        padding:7px 10px!important;
+        border-radius:18px!important;
+        font-size:.85rem!important;
+      }
+      .modal{padding:8px!important;align-items:start!important;padding-top:calc(10px + env(safe-area-inset-top))!important}
+      .modal-card{width:calc(100vw - 16px)!important;max-height:calc(100vh - 20px - env(safe-area-inset-top))!important;border-radius:22px!important;padding:14px!important}
+      .modal-head{top:-14px!important;padding-top:2px!important}
+      #modalCloseBtn{min-width:96px!important;min-height:48px!important}
+    }
+    @media(max-width:390px){
+      .topbar-inner{gap:7px!important}
+      .brand .logo{width:40px!important;height:40px!important}
+      .brand h1{font-size:.95rem!important}
+      #securityCenterBtn.security-center-btn{width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important}
+      .topbar .top-actions .btn{min-height:38px!important;font-size:.82rem!important}
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -5933,12 +6019,30 @@
       });
     }
     function openModal(){
-      els.modal.classList.remove('hidden');
+      document.body.classList.remove('dirac-modal-closing');
+      if(els.modal){
+        els.modal.style.pointerEvents = 'auto';
+        els.modal.classList.remove('hidden');
+      }
       document.body.classList.add('modal-open');
+      setTimeout(() => {
+        try{
+          const focusTarget = els.modal && els.modal.querySelector('#modalCloseBtn, button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+          if(focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus({ preventScroll:true });
+        }catch(_){}
+      }, 40);
     }
-    function closeModal(){
-      els.modal.classList.add('hidden');
+    function closeModal(event){
+      if(event && typeof event.preventDefault === 'function') event.preventDefault();
+      if(event && typeof event.stopPropagation === 'function') event.stopPropagation();
+      if(event && typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      document.body.classList.add('dirac-modal-closing');
+      if(els.modal){
+        els.modal.classList.add('hidden');
+        els.modal.style.pointerEvents = 'none';
+      }
       document.body.classList.remove('modal-open');
+      window.setTimeout(() => document.body.classList.remove('dirac-modal-closing'), 750);
     }
     let idleTimer = null;
     function clearLocalAdminData(){
@@ -6757,10 +6861,46 @@
       if(btn.dataset.customerAction === 'edit') fillCustomerForm(customer);
       if(btn.dataset.customerAction === 'delete') deleteCustomer(customer);
     });
-    els.modalCloseBtn.addEventListener('click', closeModal);
-    if(els.securityCenterBtn) els.securityCenterBtn.addEventListener('click', openSecurityCenter);
+    function guardTopbarStoreDuringModal(event){
+      if(document.body.classList.contains('modal-open') || document.body.classList.contains('dirac-modal-closing')){
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+    const brandLink = document.querySelector('.topbar .brand');
+    if(brandLink) brandLink.addEventListener('click', guardTopbarStoreDuringModal, true);
+    if(els.modalCloseBtn){
+      ['pointerdown','touchstart','mousedown'].forEach(type => {
+        els.modalCloseBtn.addEventListener(type, event => { event.preventDefault(); event.stopPropagation(); }, { passive:false, capture:true });
+      });
+      els.modalCloseBtn.addEventListener('click', closeModal, { capture:true });
+      els.modalCloseBtn.addEventListener('pointerup', closeModal, { passive:false, capture:true });
+      els.modalCloseBtn.addEventListener('touchend', closeModal, { passive:false, capture:true });
+    }
+    let lastSecurityCenterPressAt = 0;
+    function handleSecurityCenterButtonPress(event){
+      if(event){
+        event.preventDefault();
+        event.stopPropagation();
+        if(typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      }
+      const now = Date.now();
+      if(now - lastSecurityCenterPressAt < 650) return;
+      lastSecurityCenterPressAt = now;
+      repairLoginButtonState();
+      if(!els.securityCenterBtn || els.securityCenterBtn.disabled || els.securityCenterBtn.classList.contains('hidden')) return;
+      openSecurityCenter();
+    }
+    if(els.securityCenterBtn){
+      ['pointerdown','touchstart','mousedown'].forEach(type => {
+        els.securityCenterBtn.addEventListener(type, event => { event.preventDefault(); event.stopPropagation(); }, { passive:false, capture:true });
+      });
+      els.securityCenterBtn.addEventListener('pointerup', handleSecurityCenterButtonPress, { passive:false, capture:true });
+      els.securityCenterBtn.addEventListener('touchend', handleSecurityCenterButtonPress, { passive:false, capture:true });
+      els.securityCenterBtn.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); }, { capture:true });
+    }
     if(els.modalBody) els.modalBody.addEventListener('click', event => { const btn = event.target.closest('[data-security-action]'); if(btn) handleSecurityCenterAction(btn); });
-    els.modal.addEventListener('click', event => { if(event.target === els.modal) closeModal(); });
+    els.modal.addEventListener('click', event => { if(event.target === els.modal) closeModal(event); });
     document.addEventListener('keydown', (event) => {
       if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
         event.preventDefault();
