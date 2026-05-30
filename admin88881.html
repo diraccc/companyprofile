@@ -832,7 +832,7 @@
         <div class="a2f-timer-box" id="a2fDeadlineNotice" role="status" aria-live="polite">
           <div>
             <strong>Batas waktu A2F</strong>
-            <span id="a2fTimerText">25 detik</span>
+            <span id="a2fTimerText">90 detik</span>
           </div>
           <div class="a2f-timer-track" aria-hidden="true"><span id="a2fTimerBar"></span></div>
         </div>
@@ -1378,7 +1378,7 @@
       lockTable: 'a2f_locks'
     });
     const A2F_BACKEND_MAX_FAILURES = 3;
-    const A2F_MAX_SECONDS = 25;
+    const A2F_MAX_SECONDS = 90;
     const A2F_MAX_MS = A2F_MAX_SECONDS * 1000;
     const A2F_STEP6_MAX_SECONDS = 60;
     const A2F_STEP6_MAX_MS = A2F_STEP6_MAX_SECONDS * 1000;
@@ -2019,7 +2019,7 @@
       els.logoutBtn.classList.remove('hidden');
       updateMenuButtonVisibility();
       els.userPill.textContent = currentAdmin.email + ' • A2F belum selesai';
-      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 25 detik.';
+      els.twoFactorUser.textContent = 'Tahap aktif: masukkan kode verifikasi untuk melanjutkan. Waktu maksimal 90 detik.';
       updateTwoFactorProgress();
       startTwoFactorTimeoutTimer();
       checkClipboardSecurityStatus(false).catch(error => {
@@ -2336,7 +2336,7 @@
     }
     async function recordA2fTimeoutBlock(){
       const payload = {
-        reason: twoFactorStep === 6 ? 'a2f_step6_timeout_60_seconds' : 'a2f_timeout_25_seconds',
+        reason: twoFactorStep === 6 ? 'a2f_step6_timeout_60_seconds' : 'a2f_timeout_90_seconds',
         deadlineMs: twoFactorDeadlineMs || 0,
         timedOutAtMs: Date.now(),
         maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS
@@ -2357,7 +2357,7 @@
         await callA2fBackendLock('timeout-marker', {
           uid,
           email: currentAdmin.email || (auth.currentUser && auth.currentUser.email) || '',
-          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 25 detik',
+          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 90 detik',
           maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS,
           deadlineMs: twoFactorDeadlineMs || 0,
           blockedAtMs: Date.now()
@@ -2374,7 +2374,7 @@
       twoFactorBackendLocked = true;
       twoFactorPermanentLocked = true;
       setTwoFactorInputLocked(true, 'Diblokir');
-      setNotice(els.twoFactorUser, 'Waktu A2F ' + (twoFactorStep === 6 ? '60' : '25') + ' detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
+      setNotice(els.twoFactorUser, 'Waktu A2F ' + (twoFactorStep === 6 ? '60' : '90') + ' detik habis. Akun sedang diblokir dari backend/Firebase.', 'danger');
       setNotice(els.twoFactorError, 'Waktu A2F habis. Dashboard tetap terkunci dan sesi akan logout.', 'danger');
 
       try{
@@ -2385,7 +2385,7 @@
       }
 
       try{ await saveA2fTimeoutBlockMarker(); }catch(_error){}
-      try{ await logSecurity('auth.2fa_timeout_block', 'A2F lebih dari 25 detik, akun diblokir'); }catch(_error){}
+      try{ await logSecurity('auth.2fa_timeout_block', 'A2F lebih dari 90 detik, akun diblokir'); }catch(_error){}
 
       setTimeout(() => {
         logoutAdmin().then(() => {
@@ -8254,7 +8254,7 @@
 
       saveA2fTimeoutBlockMarker = async function(){
         return callA2fBackendLock('timeout-marker', {
-          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 25 detik',
+          reason: twoFactorStep === 6 ? 'A2F step 6 lebih dari 60 detik' : 'A2F lebih dari 90 detik',
           maxSeconds: twoFactorStep === 6 ? A2F_STEP6_MAX_SECONDS : A2F_MAX_SECONDS,
           deadlineMs: twoFactorDeadlineMs || 0,
           blockedAtMs: Date.now()
