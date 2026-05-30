@@ -21,6 +21,10 @@ const CLIPBOARD_OTP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CLIPBOARD_OTP_LENGTH = 15;
 const CLIPBOARD_OTP_TTL_MS = 90 * 1000;
 const CLIPBOARD_UNLOCK_MS = 5 * 60 * 1000;
+const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+const CLIPBOARD_UNLOCK_FIRST_WRONG_LOCK_MS = A2F_YEAR_MS;
+const CLIPBOARD_UNLOCK_SECOND_WRONG_LOCK_MS = 100 * A2F_YEAR_MS;
+const CLIPBOARD_BAN_META_PREFIX = "clipboard_unlock_ban_v1:";
 const CLIPBOARD_ARGON2ID_OPTIONS = Object.freeze({
   type: argon2.argon2id,
   memoryCost: 65536,
@@ -28,7 +32,6 @@ const CLIPBOARD_ARGON2ID_OPTIONS = Object.freeze({
   parallelism: 1,
   hashLength: 32
 });
-const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 let supabaseAdminClient = null;
 
 function getSupabaseAdmin() {
@@ -1151,7 +1154,7 @@ async function sendClipboardUnlockEmail({ code, email, expiresAtMs }) {
   const subject = "Kode Izinkan Copy-Paste 5 Menit - Dirac Admin";
   const safeCode = escapeHtml(code);
 
-  const text = `Kode izin copy-paste 5 menit Dirac Admin\n\nKode: ${code}\nExpired: ${expiresAtIso}\n\nJangan berikan kode ini ke siapa pun. Salah input 1x akan memblokir fitur izin copy-paste secara permanen.`;
+  const text = `Kode izin copy-paste 5 menit Dirac Admin\n\nKode: ${code}\nExpired: ${expiresAtIso}\n\nJangan berikan kode ini ke siapa pun. Salah input kode SMTP/Authenticator 1x memblokir izin copy-paste 1 tahun; salah ke-2 memblokir 100 tahun. Semua ban dicatat lewat backend Supabase.`;
 
   const html =
 `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111;background:#f8fafc;padding:18px">
@@ -1160,7 +1163,7 @@ async function sendClipboardUnlockEmail({ code, email, expiresAtMs }) {
     <p style="margin:0 0 14px;color:#475569">Masukkan kode berikut di dashboard admin, lalu lanjutkan dengan Authenticator/TOTP.</p>
     <div style="font-size:26px;font-weight:900;letter-spacing:3px;line-height:1.7;padding:14px 18px;background:#eef6ff;border-radius:12px;word-break:break-all;color:#0f172a">${safeCode}</div>
     <p style="margin:14px 0 0;color:#475569">Expired: <b>${escapeHtml(expiresAtIso)}</b></p>
-    <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah input kode SMTP 1x akan memblokir fitur izin copy-paste secara permanen. Reset hanya bisa lewat Supabase/admin manual.</p>
+    <p style="padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412"><b>Penting:</b> salah input kode SMTP/Authenticator 1x = ban izin copy-paste 1 tahun; salah ke-2 = 100 tahun. Semua ban dicatat lewat backend Supabase.</p>
   </div>
 </div>`;
 
@@ -1649,6 +1652,118 @@ async function checkA2fBanStatus(req, res) {
   });
 }
 
+
+function parseClipboardBanMeta(reason) {
+  const raw = String(reason || "").trim();
+
+  if (!raw.startsWith(CLIPBOARD_BAN_META_PREFIX)) {
+    return {
+      version: 0,
+      active: false,
+      failedCount: 0,
+      banUntilMs: 0,
+      reasonCode: raw
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw.slice(CLIPBOARD_BAN_META_PREFIX.length));
+    return {
+      version: 1,
+      active: parsed.active !== false,
+      failedCount: Math.max(0, Number(parsed.failedCount || 0)),
+      banUntilMs: Math.max(0, Number(parsed.banUntilMs || 0)),
+      reasonCode: String(parsed.reasonCode || "clipboard_unlock_wrong_code")
+    };
+  } catch (_error) {
+    return {
+      version: 1,
+      active: true,
+      failedCount: 0,
+      banUntilMs: 0,
+      reasonCode: "clipboard_unlock_ban_meta_corrupt"
+    };
+  }
+}
+
+function buildClipboardBanMeta({ active = true, failedCount = 0, banUntilMs = 0, reasonCode = "clipboard_unlock_wrong_code" } = {}) {
+  return CLIPBOARD_BAN_META_PREFIX + JSON.stringify({
+    active: active === true,
+    failedCount: Math.max(0, Number(failedCount || 0)),
+    banUntilMs: Math.max(0, Number(banUntilMs || 0)),
+    reasonCode: String(reasonCode || "clipboard_unlock_wrong_code")
+  });
+}
+
+function getClipboardUnlockFailureCountFromRow(row) {
+  const data = row && typeof row === "object" ? row : {};
+  const meta = parseClipboardBanMeta(data.clipboard_ban_reason || "");
+  return Math.max(0, Number(meta.failedCount || 0));
+}
+
+function getClipboardUnlockBanDurationMs(failedCount) {
+  return Number(failedCount || 0) >= 2
+    ? CLIPBOARD_UNLOCK_SECOND_WRONG_LOCK_MS
+    : CLIPBOARD_UNLOCK_FIRST_WRONG_LOCK_MS;
+}
+
+function getClipboardUnlockBanLabel(failedCount) {
+  return Number(failedCount || 0) >= 2 ? "100 tahun" : "1 tahun";
+}
+
+function getClipboardUnlockBanMessage(failedCount, banUntilMs, reasonCode) {
+  const until = banUntilMs ? new Date(banUntilMs).toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }) : "waktu backend";
+  const label = getClipboardUnlockBanLabel(failedCount);
+  const codeText = String(reasonCode || "").includes("totp") ? "Authenticator" : "SMTP";
+
+  return `Kode ${codeText} salah. Fitur izin copy-paste diblokir ${label} lewat backend Supabase sampai ${until}.`;
+}
+
+function isExpiredClipboardTimedBan(row) {
+  const data = row && typeof row === "object" ? row : {};
+  const meta = parseClipboardBanMeta(data.clipboard_ban_reason || "");
+  return Boolean(data.clipboard_permanent_ban === true && meta.version === 1 && meta.banUntilMs && meta.banUntilMs <= Date.now());
+}
+
+async function clearExpiredClipboardTimedBan(row) {
+  if (!isExpiredClipboardTimedBan(row)) return row;
+
+  const supabase = getSupabaseAdmin();
+  const meta = parseClipboardBanMeta(row.clipboard_ban_reason || "");
+  const { data, error } = await supabase
+    .from(CLIPBOARD_SECURITY_TABLE)
+    .upsert({
+      id: "global",
+      protection_enabled: true,
+      clipboard_unlocked_until: null,
+      clipboard_permanent_ban: false,
+      clipboard_ban_reason: buildClipboardBanMeta({
+        active: false,
+        failedCount: meta.failedCount,
+        banUntilMs: meta.banUntilMs,
+        reasonCode: meta.reasonCode || "clipboard_unlock_ban_expired"
+      }),
+      updated_at: new Date().toISOString()
+    }, { onConflict: "id" })
+    .select("*")
+    .single();
+
+  if (error) {
+    error.statusCode = error.status || 500;
+    throw error;
+  }
+
+  return data || row;
+}
+
 function normalizeClipboardSecurityStatus(row) {
   const data = row && typeof row === "object" ? row : {};
   const unlockedUntilMs = data.clipboard_unlocked_until
@@ -1656,6 +1771,17 @@ function normalizeClipboardSecurityStatus(row) {
     : 0;
   const safeUnlockedUntilMs = Number.isFinite(unlockedUntilMs) ? unlockedUntilMs : 0;
   const clipboardUnlocked = Boolean(safeUnlockedUntilMs && safeUnlockedUntilMs > Date.now());
+  const meta = parseClipboardBanMeta(data.clipboard_ban_reason || "");
+  const timedBanActive = Boolean(data.clipboard_permanent_ban === true && meta.version === 1 && meta.banUntilMs && meta.banUntilMs > Date.now());
+  const legacyPermanentBan = Boolean(data.clipboard_permanent_ban === true && meta.version !== 1);
+  const permanentBan = legacyPermanentBan || timedBanActive;
+  const banUntilMs = timedBanActive ? meta.banUntilMs : 0;
+  const failedCount = Math.max(0, Number(meta.failedCount || 0));
+  const banReason = permanentBan
+    ? (timedBanActive
+      ? getClipboardUnlockBanMessage(failedCount, banUntilMs, meta.reasonCode)
+      : String(data.clipboard_ban_reason || "Fitur izin copy-paste diblokir permanen."))
+    : String(data.clipboard_ban_reason || "");
 
   return {
     success: true,
@@ -1663,8 +1789,11 @@ function normalizeClipboardSecurityStatus(row) {
     clipboardUnlocked,
     clipboardUnlockedUntil: clipboardUnlocked ? data.clipboard_unlocked_until : null,
     clipboardUnlockedUntilMs: clipboardUnlocked ? safeUnlockedUntilMs : 0,
-    permanentBan: data.clipboard_permanent_ban === true,
-    banReason: String(data.clipboard_ban_reason || ""),
+    permanentBan,
+    banReason,
+    clipboardBanUntilMs: banUntilMs,
+    lockUntilMs: banUntilMs,
+    clipboardUnlockFailedCount: failedCount,
     updatedAt: data.updated_at || null
   };
 }
@@ -1682,7 +1811,7 @@ async function ensureClipboardSecurityRow() {
     throw error;
   }
 
-  if (data) return data;
+  if (data) return clearExpiredClipboardTimedBan(data);
 
   const { data: inserted, error: insertError } = await supabase
     .from(CLIPBOARD_SECURITY_TABLE)
@@ -1736,9 +1865,10 @@ async function startClipboardUnlockOtp(req, res) {
 
   if (status.permanentBan) {
     return res.status(403).json({
+      ...status,
       success: false,
       permanentBan: true,
-      error: status.banReason || "Fitur izin copy-paste diblokir permanen. Reset hanya bisa lewat Supabase/admin manual."
+      error: status.banReason || "Fitur izin copy-paste sedang diblokir dari backend Supabase."
     });
   }
 
@@ -1783,20 +1913,30 @@ async function startClipboardUnlockOtp(req, res) {
   });
 }
 
-async function permanentlyBanClipboardUnlock({ uid, email, reason, challengeId }) {
+async function banClipboardUnlockForWrongCode({ uid, email, reasonCode, challengeId, currentRow }) {
   const supabase = getSupabaseAdmin();
-  const nowIso = new Date().toISOString();
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const previousFailedCount = getClipboardUnlockFailureCountFromRow(currentRow);
+  const failedCount = previousFailedCount + 1;
+  const banUntilMs = now + getClipboardUnlockBanDurationMs(failedCount);
+  const reason = buildClipboardBanMeta({
+    active: true,
+    failedCount,
+    banUntilMs,
+    reasonCode: reasonCode || "clipboard_unlock_wrong_code"
+  });
 
   if (challengeId) {
     await supabase
       .from(CLIPBOARD_OTP_CHALLENGES_TABLE)
       .update({
-        failed_count: 1,
+        failed_count: failedCount,
         permanently_failed: true,
-        failed_reason: reason,
+        failed_reason: reasonCode || "clipboard_unlock_wrong_code",
         updated_at: nowIso
       })
-      .eq("id", challengeId);
+      .eq("id", String(challengeId));
   }
 
   const { data, error } = await supabase
@@ -1832,16 +1972,28 @@ async function verifyClipboardUnlockOtp(req, res) {
 
   if (currentStatus.permanentBan) {
     return res.status(403).json({
+      ...currentStatus,
       success: false,
       permanentBan: true,
-      error: currentStatus.banReason || "Fitur izin copy-paste diblokir permanen."
+      error: currentStatus.banReason || "Fitur izin copy-paste sedang diblokir dari backend Supabase."
     });
   }
 
   if (!verifyRecoveryTotp(totpCode)) {
-    return res.status(401).json({
+    const bannedRow = await banClipboardUnlockForWrongCode({
+      uid: decoded.uid,
+      email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
+      reasonCode: "clipboard_unlock_totp_wrong",
+      challengeId: String(challengeId || ""),
+      currentRow
+    });
+    const bannedStatus = normalizeClipboardSecurityStatus(bannedRow);
+
+    return res.status(403).json({
+      ...bannedStatus,
       success: false,
-      error: "Kode Authenticator tidak valid."
+      permanentBan: true,
+      error: bannedStatus.banReason || "Kode Authenticator salah. Fitur izin copy-paste diblokir lewat backend Supabase."
     });
   }
 
@@ -1871,7 +2023,7 @@ async function verifyClipboardUnlockOtp(req, res) {
     return res.status(403).json({
       success: false,
       permanentBan: true,
-      error: "Request ini sudah gagal permanen."
+      error: "Request ini sudah gagal dan sudah dicatat backend Supabase."
     });
   }
 
@@ -1885,24 +2037,27 @@ async function verifyClipboardUnlockOtp(req, res) {
   const otpOk = await verifyClipboardOtpCode(smtpCode, challenge.otp_hash);
 
   if (!otpOk) {
-    const bannedRow = await permanentlyBanClipboardUnlock({
+    const bannedRow = await banClipboardUnlockForWrongCode({
       uid: decoded.uid,
       email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
-      reason: "clipboard_unlock_smtp_wrong_once",
-      challengeId: challenge.id
+      reasonCode: "clipboard_unlock_smtp_wrong",
+      challengeId: challenge.id,
+      currentRow
     });
+    const bannedStatus = normalizeClipboardSecurityStatus(bannedRow);
 
     return res.status(403).json({
-      ...normalizeClipboardSecurityStatus(bannedRow),
+      ...bannedStatus,
       success: false,
       permanentBan: true,
-      error: "Kode SMTP salah. Fitur izin copy-paste diblokir permanen. Reset hanya bisa lewat Supabase/admin manual."
+      error: bannedStatus.banReason || "Kode SMTP salah. Fitur izin copy-paste diblokir lewat backend Supabase."
     });
   }
 
   const nowIso = new Date().toISOString();
   const unlockedUntilMs = Date.now() + CLIPBOARD_UNLOCK_MS;
   const unlockedUntilIso = new Date(unlockedUntilMs).toISOString();
+  const historyCount = getClipboardUnlockFailureCountFromRow(currentRow);
 
   await supabase
     .from(CLIPBOARD_OTP_CHALLENGES_TABLE)
@@ -1919,7 +2074,12 @@ async function verifyClipboardUnlockOtp(req, res) {
       protection_enabled: true,
       clipboard_unlocked_until: unlockedUntilIso,
       clipboard_permanent_ban: false,
-      clipboard_ban_reason: null,
+      clipboard_ban_reason: historyCount > 0 ? buildClipboardBanMeta({
+        active: false,
+        failedCount: historyCount,
+        banUntilMs: 0,
+        reasonCode: "clipboard_unlock_success_after_previous_failure"
+      }) : null,
       updated_by_uid: decoded.uid,
       updated_by_email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
       updated_at: nowIso
@@ -1940,6 +2100,7 @@ async function verifyClipboardUnlockOtp(req, res) {
     clipboardUnlockedUntilMs: unlockedUntilMs
   });
 }
+
 
 module.exports = async function handler(req, res) {
   setCors(req, res);
@@ -1971,6 +2132,33 @@ module.exports = async function handler(req, res) {
     if (action === "checkClipboardSecurityStatus") return checkClipboardSecurityStatus(req, res);
     if (action === "startClipboardUnlockOtp") return startClipboardUnlockOtp(req, res);
     if (action === "verifyClipboardUnlockOtp") return verifyClipboardUnlockOtp(req, res);
+    if (action === "recordA2fFailure") {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const data = await recordA2fFailure();
+      return res.status(200).json({
+        success: true,
+        locked: Number(data.lockUntilMs || 0) > Date.now(),
+        permanentBan: data.permanentBan === true,
+        failedCount: Number(data.failedCount || 0),
+        lockUntilMs: Number(data.lockUntilMs || 0),
+        permanentBanReason: data.permanentBanReason || "wrong_code_cooldown",
+        error: getLockMessage(data.lockUntilMs)
+      });
+    }
+    if (action === "recordA2fTimeoutMarker") {
+      await verifyAdminIdToken(req.body && req.body.idToken);
+      const uid = getAdminUid();
+      const data = await readA2fLockRow(uid);
+      return res.status(200).json({
+        success: true,
+        locked: Number(data.lockUntilMs || 0) > Date.now() || data.permanentBan === true,
+        permanentBan: data.permanentBan === true,
+        failedCount: Number(data.failedCount || 0),
+        lockUntilMs: Number(data.lockUntilMs || 0),
+        permanentBanReason: data.permanentBanReason || "",
+        error: Number(data.lockUntilMs || 0) > Date.now() ? getLockMessage(data.lockUntilMs) : ""
+      });
+    }
     if (action === "recordA2fTimeoutBlock") {
       await verifyAdminIdToken(req.body && req.body.idToken);
       const data = await recordA2fTimeoutBlock(String((req.body && req.body.reason) || "a2f_timeout"));
