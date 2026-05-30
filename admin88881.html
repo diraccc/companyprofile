@@ -3941,31 +3941,56 @@
     }
 
     async function finishFaceRecoverySuccess(){
-      twoFactorVerified = true;
+      // Recovery Face ID tahap 1-5 sudah valid, tetapi dashboard TIDAK boleh dibuka dulu.
+      // Alur wajib lanjut ke A2F utama tahap 6. Hash, token, endpoint, dan sistem login inti tidak diubah.
+      twoFactorVerified = false;
       clearTwoFactorTimeoutTimer();
+      clearStep6EmailApprovalPolling();
       faceRecoveryMode = false;
       faceRecoveryStep = 0;
+      twoFactorStep = 6;
+      twoFactorAttempts = 0;
+      twoFactorTimeoutTriggered = false;
+      twoFactorVerificationInFlight = false;
+      twoFactorRestartTimerAfterFlight = false;
+      step6EmailApprovalRequestId = '';
+      step6EmailApprovalStatus = '';
+      step6ScreenCode = '';
+      step6ExpiresAtMs = 0;
 
-      els.twoFactorSection.classList.add('hidden');
-      els.adminSection.classList.remove('hidden');
+      els.twoFactorSection.classList.remove('hidden');
+      els.adminSection.classList.add('hidden');
       els.logoutBtn.classList.remove('hidden');
 
-      if(currentAdmin.roleSource === 'firestore'){
-        setNotice(
-          els.syncStatus,
-          'Role admin terverifikasi dari Firestore users/' + currentAdmin.uid + '. Recovery A2F berhasil.',
-          'good'
-        );
+      if(els.twoFactorCode){
+        els.twoFactorCode.value = '';
+        els.twoFactorCode.disabled = true;
+        els.twoFactorCode.type = 'text';
+        els.twoFactorCode.inputMode = 'numeric';
+        els.twoFactorCode.placeholder = 'Menyiapkan A2F utama tahap 6...';
+      }
+      if(els.twoFactorBtn){
+        els.twoFactorBtn.textContent = 'Menyiapkan Step 6';
+        els.twoFactorBtn.disabled = true;
       }
 
-      startListening();
-      resetIdleTimer();
-      startA2fBanWatcher();
-      startCurrentDeviceSecurityMonitor();
-      applyRoleUi();
+      updateTwoFactorProgress();
+      setNotice(els.twoFactorError, 'Recovery Face ID selesai. Dashboard masih terkunci sampai A2F utama tahap 6 berhasil.', 'warn');
+      setNotice(els.twoFactorUser, 'Lanjut ke A2F utama tahap 6. Sistem sedang menyiapkan email persetujuan dan kode 1000 digit.', 'warn');
+      logSecurity('auth.2fa_recovery_step6_required', 'Recovery Face ID selesai; dashboard belum dibuka, lanjut ke A2F utama tahap 6').catch(() => {});
 
-      logSecurity('auth.2fa_recovery_success', 'Dashboard dibuka lewat Recovery Face ID').catch(() => {});
-      showToast('Recovery selesai. Dashboard dibuka.');
+      try{
+        await startStep6EmailApproval();
+        showToast('Recovery selesai. Lanjut A2F utama tahap 6.');
+      }catch(error){
+        updateTwoFactorProgress();
+        setNotice(els.twoFactorError, error.message || 'Gagal menyiapkan A2F utama tahap 6. Dashboard tetap terkunci.', 'danger');
+        setNotice(els.twoFactorUser, 'Recovery sudah selesai, tetapi Step 6 belum siap. Klik tombol untuk cek/mulai ulang persetujuan email.', 'warn');
+        if(els.twoFactorBtn){
+          els.twoFactorBtn.textContent = 'Cek Email';
+          els.twoFactorBtn.disabled = false;
+        }
+      }
     }
 
     async function verifyFaceRecoveryStep(code){
