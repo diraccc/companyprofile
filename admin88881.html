@@ -1028,6 +1028,34 @@
     }
   </style>
 
+
+  <style id="dirac-login-click-hardening">
+    /* Login click hardening: hanya memperkuat interaksi tombol login, tidak mengubah hash/A2F/auth. */
+    body:not(.modal-open) #loginSection:not(.hidden){
+      position:relative!important;
+      z-index:120!important;
+      pointer-events:auto!important;
+      isolation:isolate!important;
+    }
+    body:not(.modal-open) #loginSection:not(.hidden) .login-card,
+    body:not(.modal-open) #loginSection:not(.hidden) #loginBtn,
+    body:not(.modal-open) #loginSection:not(.hidden) #loginEmail,
+    body:not(.modal-open) #loginSection:not(.hidden) #loginPassword{
+      pointer-events:auto!important;
+      touch-action:manipulation!important;
+      -webkit-tap-highlight-color:rgba(96,165,250,.28)!important;
+    }
+    body:not(.modal-open) #loginBtn:not(:disabled){cursor:pointer!important;opacity:1!important}
+    body:not(.modal-open) #modal.hidden,
+    body:not(.modal-open) .sidebar-backdrop.hidden,
+    body:not(.sidebar-open) .sidebar-backdrop,
+    .dirac-action-sheet-backdrop:not(.is-open){
+      display:none!important;
+      pointer-events:none!important;
+      visibility:hidden!important;
+    }
+  </style>
+
 </head>
 <body>
   <header class="topbar">
@@ -4434,12 +4462,26 @@
         if(els.sidebarBackdrop && els.sidebarBackdrop.classList.contains('hidden')){
           els.sidebarBackdrop.style.pointerEvents = 'none';
         }
-        if(loginActive && !auth.currentUser && !busy && els.loginBtn){
-          els.loginBtn.disabled = false;
-          els.loginBtn.removeAttribute('aria-disabled');
-          els.loginBtn.removeAttribute('aria-busy');
-          els.loginBtn.style.pointerEvents = 'auto';
-          els.loginBtn.style.touchAction = 'manipulation';
+        if(loginActive){
+          document.body.classList.remove('sidebar-open');
+          if(els.modal && els.modal.classList.contains('hidden')){
+            document.body.classList.remove('modal-open', 'dirac-modal-closing');
+            els.modal.style.pointerEvents = 'none';
+          }
+          if(els.sidebarBackdrop){
+            els.sidebarBackdrop.classList.add('hidden');
+            els.sidebarBackdrop.style.pointerEvents = 'none';
+          }
+          if(els.loginBtn){
+            els.loginBtn.style.pointerEvents = 'auto';
+            els.loginBtn.style.touchAction = 'manipulation';
+            els.loginBtn.setAttribute('type', 'button');
+            if(!busy && !twoFactorVerified){
+              els.loginBtn.disabled = false;
+              els.loginBtn.removeAttribute('aria-disabled');
+              els.loginBtn.removeAttribute('aria-busy');
+            }
+          }
         }
       }catch(error){
         console.warn('Login safety guard gagal:', error);
@@ -6618,23 +6660,64 @@
       finally{ setBusy(false); }
     }
 
-    startLoginButtonSafetyGuard();
-    installClipboardProtectionGuard();
-    els.loginBtn.addEventListener('click', async () => {
+    function safeRememberLoginEmail(email){
+      try{
+        localStorage.setItem(EMAIL_KEY, email);
+      }catch(error){
+        console.warn('Penyimpanan email login lokal dilewati:', error);
+      }
+    }
+    function normalizeLoginButtonBeforeAction(){
       repairLoginButtonState();
+      if(els.loginBtn){
+        els.loginBtn.disabled = Boolean(busy);
+        els.loginBtn.style.pointerEvents = 'auto';
+        els.loginBtn.style.touchAction = 'manipulation';
+      }
+    }
+    async function handleLoginButtonClick(event){
+      if(event && typeof event.preventDefault === 'function') event.preventDefault();
+      normalizeLoginButtonBeforeAction();
       if(busy) return;
       hideNotice(els.loginError);
+      const email = els.loginEmail.value.trim();
+      const password = els.loginPassword.value;
+      if(!email){
+        setNotice(els.loginError, 'Email admin wajib diisi.', 'danger');
+        els.loginEmail.focus();
+        repairLoginButtonState();
+        return;
+      }
+      if(!password){
+        setNotice(els.loginError, 'Password admin wajib diisi.', 'danger');
+        els.loginPassword.focus();
+        repairLoginButtonState();
+        return;
+      }
       setBusy(true);
       try{
-        const email = els.loginEmail.value.trim();
-        localStorage.setItem(EMAIL_KEY, email);
-        await signInWithEmailAndPassword(auth, email, els.loginPassword.value);
+        safeRememberLoginEmail(email);
+        await signInWithEmailAndPassword(auth, email, password);
         els.loginPassword.value = '';
       }catch(error){
         setNotice(els.loginError, 'Login gagal: ' + firebaseMessage(error), 'danger');
-      }finally{ setBusy(false); repairLoginButtonState(); }
+      }finally{
+        setBusy(false);
+        repairLoginButtonState();
+      }
+    }
+    startLoginButtonSafetyGuard();
+    installClipboardProtectionGuard();
+    els.loginBtn.addEventListener('click', handleLoginButtonClick);
+    els.loginBtn.addEventListener('pointerdown', normalizeLoginButtonBeforeAction, { passive:true });
+    els.loginBtn.addEventListener('touchstart', normalizeLoginButtonBeforeAction, { passive:true });
+    els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') handleLoginButtonClick(event); });
+    els.loginEmail.addEventListener('keydown', (event) => {
+      if(event.key === 'Enter'){
+        event.preventDefault();
+        els.loginPassword.focus();
+      }
     });
-    els.loginPassword.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.loginBtn.click(); });
     els.twoFactorBtn.addEventListener('click', verifyTwoFactorCode);
     els.twoFactorCode.addEventListener('keydown', (event) => { if(event.key === 'Enter') els.twoFactorBtn.click(); });
     if(els.clipboardStatusBtn) els.clipboardStatusBtn.addEventListener('click', () => {
