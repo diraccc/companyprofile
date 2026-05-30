@@ -611,6 +611,99 @@
   </style>
 
 
+  <style id="dirac-a2f-copy-unlock-roomy">
+    /* A2F copy-paste panel dibuat lebih lega; login, hash, dan endpoint verifikasi tidak diubah. */
+    #twoFactorSection .login-card{
+      max-width:560px;
+      padding:22px;
+    }
+    #twoFactorSection .twofactor-steps{
+      display:grid;
+      grid-template-columns:repeat(6,minmax(0,1fr));
+      gap:10px;
+      margin:14px 0 16px;
+    }
+    #twoFactorSection .twofactor-step{
+      min-height:40px;
+      border-radius:999px;
+    }
+    #twoFactorSection .notice{
+      padding:13px 14px;
+      margin:12px 0;
+      line-height:1.5;
+    }
+    #twoFactorSection .clipboard-action-grid,
+    #twoFactorSection .a2f-action-grid,
+    #twoFactorSection .clipboard-unlock-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin:12px 0;
+    }
+    #twoFactorSection .clipboard-unlock-panel{
+      padding:16px;
+      border-radius:22px;
+    }
+    #twoFactorSection .clipboard-unlock-title{
+      display:block;
+      font-size:1rem;
+      margin-bottom:8px;
+    }
+    #twoFactorSection .clipboard-unlock-help{
+      margin:0 0 14px!important;
+      line-height:1.55;
+    }
+    #twoFactorSection .clipboard-unlock-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    #twoFactorSection .clipboard-unlock-grid .field{
+      margin-bottom:0;
+    }
+    #twoFactorSection .a2f-timer-box{
+      margin:14px 0;
+      padding:14px;
+      gap:11px;
+    }
+    #twoFactorSection .a2f-timer-box div:first-child{
+      align-items:flex-start;
+    }
+    #twoFactorSection .a2f-timer-box strong{
+      line-height:1.25;
+    }
+    #twoFactorSection #twoFactorCode{
+      min-height:56px;
+    }
+    @media(max-width:520px){
+      #twoFactorSection .login-card{
+        width:min(100%,calc(100vw - 24px));
+        padding:18px;
+        border-radius:24px;
+      }
+      #twoFactorSection .twofactor-steps{
+        gap:8px;
+      }
+      #twoFactorSection .twofactor-step{
+        min-height:36px;
+        padding:6px;
+      }
+      #twoFactorSection .clipboard-action-grid,
+      #twoFactorSection .clipboard-unlock-actions,
+      #twoFactorSection .a2f-action-grid{
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+      #twoFactorSection .clipboard-unlock-panel{
+        padding:14px;
+      }
+      #twoFactorSection .btn{
+        width:100%;
+        min-height:46px;
+      }
+    }
+  </style>
+
   <style id="dirac-pro4-scale-safe-css">
     /* === Dirac Pro 4 Scale Safe: additive only, HTML tetap satu file, login/hash tidak disentuh === */
     .scale-safe-panel{border:1px solid rgba(96,165,250,.24);background:linear-gradient(135deg,rgba(96,165,250,.10),rgba(34,197,94,.06));border-radius:20px;padding:12px;margin:12px 0;color:#dbeafe}
@@ -809,22 +902,24 @@
         </div>
         <div class="notice good" id="twoFactorUser">Login diterima. Dashboard masih terkunci sampai A2F selesai.</div>
         <div class="notice hidden" id="clipboardSecurityNotice" role="status" aria-live="polite"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0">
+        <div class="clipboard-action-grid">
           <button class="btn small" id="clipboardStatusBtn" type="button">Cek Status Proteksi</button>
           <button class="btn small good" id="clipboardUnlockStartBtn" type="button">Izinkan Copy-Paste 5 Menit</button>
         </div>
-        <div class="notice hidden" id="clipboardUnlockPanel" role="group" aria-label="Verifikasi izin copy-paste 5 menit">
-          <strong>Verifikasi izin copy-paste 5 menit</strong>
-          <p class="help" style="margin:6px 0 10px">Kode SMTP dikirim ke email admin. Salah input kode SMTP 1x akan memblokir fitur izin copy-paste secara permanen.</p>
-          <div class="field">
-            <label for="clipboardUnlockSmtpCode">Kode SMTP</label>
-            <input class="input" id="clipboardUnlockSmtpCode" type="password" inputmode="text" autocomplete="off" placeholder="15 karakter dari email">
+        <div class="notice hidden clipboard-unlock-panel" id="clipboardUnlockPanel" role="group" aria-label="Verifikasi izin copy-paste 5 menit">
+          <strong class="clipboard-unlock-title">Verifikasi izin copy-paste 5 menit</strong>
+          <p class="help clipboard-unlock-help">Kode SMTP dikirim ke email admin. Salah kode SMTP/Authenticator 1x = ban 1 tahun; salah ke-2 = ban 100 tahun. Semua ban dicatat lewat backend Supabase.</p>
+          <div class="clipboard-unlock-grid">
+            <div class="field">
+              <label for="clipboardUnlockSmtpCode">Kode SMTP</label>
+              <input class="input" id="clipboardUnlockSmtpCode" type="password" inputmode="text" autocomplete="off" placeholder="15 karakter dari email">
+            </div>
+            <div class="field">
+              <label for="clipboardUnlockTotpCode">Kode Authenticator</label>
+              <input class="input" id="clipboardUnlockTotpCode" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Kode Authenticator/TOTP">
+            </div>
           </div>
-          <div class="field">
-            <label for="clipboardUnlockTotpCode">Kode Authenticator</label>
-            <input class="input" id="clipboardUnlockTotpCode" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Kode Authenticator/TOTP">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="clipboard-unlock-actions">
             <button class="btn small primary" id="clipboardUnlockVerifyBtn" type="button">Verifikasi & Izinkan</button>
             <button class="btn small" id="clipboardUnlockCancelBtn" type="button">Batal</button>
           </div>
@@ -840,7 +935,7 @@
           <label id="twoFactorLabel" for="twoFactorCode">Kode verifikasi</label>
           <input class="input" id="twoFactorCode" type="password" inputmode="text" autocomplete="one-time-code" placeholder="Masukkan kode A2F">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="a2f-action-grid">
           <button class="btn primary" id="twoFactorBtn" type="button">Verifikasi</button>
           <button class="btn danger" id="twoFactorCancelBtn" type="button">Batal / Logout</button>
         </div>
@@ -2681,7 +2776,9 @@
         clipboardUnlocked: Boolean(source.clipboardUnlocked === true && untilMs > Date.now()),
         clipboardUnlockedUntilMs: Number.isFinite(untilMs) ? untilMs : 0,
         permanentBan: source.permanentBan === true,
-        banReason: String(source.banReason || '')
+        banReason: String(source.banReason || ''),
+        clipboardBanUntilMs: Math.max(0, Number(source.clipboardBanUntilMs || source.lockUntilMs || 0)),
+        clipboardUnlockFailedCount: Math.max(0, Number(source.clipboardUnlockFailedCount || 0))
       };
     }
 
@@ -2764,8 +2861,10 @@
       const untilText = state.clipboardUnlockedUntilMs > Date.now() ? new Date(state.clipboardUnlockedUntilMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '';
 
       if(state.permanentBan){
+        const untilText = state.clipboardBanUntilMs > Date.now() ? new Date(state.clipboardBanUntilMs).toLocaleString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit', day:'2-digit', month:'2-digit', year:'numeric' }) : '';
+        const failCount = Number(state.clipboardUnlockFailedCount || 0);
         return {
-          message: 'Proteksi copy-paste: ON. Izin copy-paste 5 menit diblokir permanen. Reset hanya lewat Supabase/admin manual.',
+          message: state.banReason || ('Proteksi copy-paste: ON. Izin copy-paste diblokir lewat backend Supabase' + (untilText ? ' sampai ' + untilText : '') + (failCount ? '. Salah ke-' + failCount + '.' : '.')),
           type: 'danger'
         };
       }
@@ -2896,7 +2995,7 @@
 
         const expiresText = clipboardUnlockExpiresAtMs ? new Date(clipboardUnlockExpiresAtMs).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '90 detik';
         if(els.clipboardSecurityNotice){
-          setNotice(els.clipboardSecurityNotice, 'Kode SMTP izin copy-paste sudah dikirim. Batas verifikasi panel ini 90 detik. Masukkan kode SMTP dan Authenticator sebelum ' + expiresText + '. Salah SMTP 1x = permanent ban fitur izin copy-paste.', 'warn');
+          setNotice(els.clipboardSecurityNotice, 'Kode SMTP izin copy-paste sudah dikirim. Batas verifikasi panel ini 90 detik. Masukkan kode SMTP dan Authenticator sebelum ' + expiresText + '. Salah kode 1x = ban 1 tahun; salah ke-2 = 100 tahun lewat backend Supabase.', 'warn');
         }
         showToast('Kode SMTP izin copy-paste sudah dikirim');
       }catch(error){
@@ -8282,7 +8381,8 @@
        ========================================================= */
     try{
       async function diracA2fServerLockAction(action, payload = {}){
-        if(!SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT){
+        const lockEndpoint = SECURITY_CONFIG.TWO_FACTOR_STEP_VERIFY_ENDPOINT || SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT;
+        if(!lockEndpoint){
           throw new Error('Endpoint backend A2F belum diisi.');
         }
 
@@ -8299,7 +8399,7 @@
           throw new Error('Aksi lock A2F tidak dikenal: ' + String(action || 'unknown'));
         }
 
-        const response = await fetch(SECURITY_CONFIG.TWO_FACTOR_STEP_START_ENDPOINT, {
+        const response = await fetch(lockEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'omit',
