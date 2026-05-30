@@ -21,6 +21,7 @@ const CLIPBOARD_OTP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CLIPBOARD_OTP_LENGTH = 15;
 const CLIPBOARD_OTP_TTL_MS = 90 * 1000;
 const CLIPBOARD_UNLOCK_MS = 5 * 60 * 1000;
+const CLIPBOARD_TRUSTED_BYPASS_MS = CLIPBOARD_UNLOCK_MS;
 const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const CLIPBOARD_UNLOCK_FIRST_WRONG_LOCK_MS = A2F_YEAR_MS;
 const CLIPBOARD_UNLOCK_SECOND_WRONG_LOCK_MS = 100 * A2F_YEAR_MS;
@@ -900,7 +901,10 @@ async function rememberStep6KnownDevice(db, approvalData) {
   const ctx = approvalData && approvalData.loginContext ? approvalData.loginContext : null;
   if (!ctx || !ctx.device || !ctx.device.idHash || !approvalData.uid) return;
   const now = Date.now();
-  await db.collection("a2fKnownDevices").doc(`${approvalData.uid}_${ctx.device.idHash}`).set({
+  const ref = db.collection("a2fKnownDevices").doc(`${approvalData.uid}_${ctx.device.idHash}`);
+  const previousSnap = await ref.get().catch(() => null);
+  const previousData = previousSnap && previousSnap.exists ? (previousSnap.data() || {}) : {};
+  await ref.set({
     uid: approvalData.uid,
     email: approvalData.email || "",
     deviceIdHash: ctx.device.idHash,
@@ -911,14 +915,353 @@ async function rememberStep6KnownDevice(db, approvalData) {
     browserName: ctx.device.browser || "Tidak tersedia",
     platform: ctx.device.platform || "Tidak tersedia",
     timezone: ctx.browser && ctx.browser.timezone ? ctx.browser.timezone : "Tidak tersedia",
-    firstSeenAtMs: approvalData.createdAtMs || now,
+    firstSeenAtMs: previousData.firstSeenAtMs || approvalData.createdAtMs || now,
     lastSeenAtMs: now,
     lastIp: ctx.network && ctx.network.ip ? ctx.network.ip : "Tidak tersedia",
     lastCountry: ctx.network && ctx.network.country ? ctx.network.country : "Tidak tersedia",
     lastCity: ctx.network && ctx.network.city ? ctx.network.city : "Tidak tersedia",
     lastUserAgent: ctx.device.userAgent || "",
+    revoked: previousData.revoked === true ? false : false,
+    revokedAtMs: null,
+    clipboardTrusted: previousData.clipboardTrusted === false ? false : true,
+    trustedSource: previousData.trustedSource || "a2f_step6_approved",
+    lastTrustedAtMs: previousData.lastTrustedAtMs || now,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
+}
+
+
+function randomRecoveryAlphabet(length) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  while (out.length < length) {
+    out += alphabet[crypto.randomInt(0, alphabet.length)];
+  }
+  return out;
+}
+
+function createOneTimeRecoveryCode() {
+  return `DGRCV${randomRecoveryAlphabet(ONE_TIME_RECOVERY_RANDOM_LENGTH)}`;
+}
+
+function getDeviceIdHashFromClientContext(clientContext, secret) {
+  const normalizedClient = normalizeClientContext(clientContext);
+  if (!normalizedClient.deviceId) return "";
+  return crypto.createHmac("sha256", secret).update(`a2f-device:${normalizedClient.deviceId}`).digest("hex");
+}
+
+function sanitizeDeviceForClient(id, row, currentDeviceHash) {
+  const data = row && typeof row === "object" ? row : {};
+  const hash = String(data.deviceIdHash || data.device_id_hash || "");
+  const revoked = data.revoked === true;
+  const trusted = !revoked && data.clipboardTrusted !== false;
+  return {
+    id: String(id || ""),
+    uid: String(data.uid || ""),
+    email: String(data.email || ""),
+    deviceIdHash: hash,
+    deviceIdHashShort: compactHash(hash),
+    deviceName: String(data.deviceName || "Belum diberi nama"),
+    deviceType: String(data.deviceType || "Tidak tersedia"),
+    estimatedModel: String(data.estimatedModel || "Tidak tersedia"),
+    os: String(data.os || "Tidak tersedia"),
+    browserName: String(data.browserName || "Tidak tersedia"),
+    platform: String(data.platform || "Tidak tersedia"),
+    timezone: String(data.timezone || "Tidak tersedia"),
+    lastIp: String(data.lastIp || "Tidak tersedia"),
+    lastCountry: String(data.lastCountry || "Tidak tersedia"),
+    lastCity: String(data.lastCity || "Tidak tersedia"),
+    lastUserAgent: String(data.lastUserAgent || ""),
+    firstSeenAtMs: Number(data.firstSeenAtMs || 0),
+    lastSeenAtMs: Number(data.lastSeenAtMs || 0),
+    revoked,
+    clipboardTrusted: trusted,
+    trustedSource: String(data.trustedSource || ""),
+    isCurrent: Boolean(currentDeviceHash && hash && safeEqual(hash, currentDeviceHash))
+  };
+}
+
+async function getCurrentTrustedDeviceState({ db, decoded, clientContext, secret }) {
+  const deviceIdHash = getDeviceIdHashFromClientContext(clientContext, secret);
+  if (!deviceIdHash) {
+    return { known: false, trusted: false, revoked: false, deviceIdHash: "", deviceIdHashShort: "Tidak tersedia" };
+  }
+
+  const ref = db.collection("a2fKnownDevices").doc(`${decoded.uid}_${deviceIdHash}`);
+  const snap = await ref.get();
+  const data = snap.exists ? (snap.data() || {}) : {};
+  const revoked = data.revoked === true;
+  const trusted = snap.exists && !revoked && data.clipboardTrusted !== false;
+  return {
+    known: snap.exists,
+    trusted,
+    revoked,
+    deviceIdHash,
+    deviceIdHashShort: compactHash(deviceIdHash),
+    deviceName: String(data.deviceName || "Perangkat ini"),
+    deviceType: String(data.deviceType || "Tidak tersedia"),
+    os: String(data.os || "Tidak tersedia"),
+    browserName: String(data.browserName || "Tidak tersedia"),
+    lastSeenAtMs: Number(data.lastSeenAtMs || 0)
+  };
+}
+
+function applyTrustedClipboardBypass(status, trustedState) {
+  if (!trustedState || trustedState.trusted !== true || status.permanentBan === true || status.protectionEnabled === false) return status;
+  const untilMs = Date.now() + CLIPBOARD_TRUSTED_BYPASS_MS;
+  return {
+    ...status,
+    success: true,
+    clipboardUnlocked: true,
+    clipboardUnlockedUntil: new Date(untilMs).toISOString(),
+    clipboardUnlockedUntilMs: untilMs,
+    trustedDeviceBypass: true,
+    trustedDevice: {
+      deviceIdHashShort: trustedState.deviceIdHashShort,
+      deviceName: trustedState.deviceName,
+      deviceType: trustedState.deviceType,
+      os: trustedState.os,
+      browserName: trustedState.browserName
+    },
+    message: "Perangkat terpercaya. Verifikasi copy-paste dilewati untuk sesi ini."
+  };
+}
+
+async function writeBackendSecurityLog(action, detail, level, decoded, extra = {}) {
+  try {
+    const db = getFirebaseDb();
+    const now = Date.now();
+    await db.collection("securityLogs").doc(`${now}-${randomId(6)}`).set({
+      action: String(action || "security.event"),
+      detail: String(detail || ""),
+      level: String(level || "info"),
+      adminUid: decoded && decoded.uid ? decoded.uid : "",
+      adminEmail: decoded && decoded.email ? decoded.email : "",
+      role: "backend",
+      createdAtMs: now,
+      createdAtText: new Date(now).toLocaleString("id-ID"),
+      backend: true,
+      ...extra,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.warn("Backend security log gagal:", error && error.message ? error.message : error);
+  }
+}
+
+async function generateOneTimeRecoveryCodes(req, res) {
+  const { idToken, count, sensitiveTotpCode } = req.body || {};
+  const decoded = await verifyAdminIdToken(idToken);
+  const requestedCount = Math.max(1, Math.min(10, Number(count || 1)));
+
+  if (!verifyRecoveryTotp(sensitiveTotpCode)) {
+    return res.status(403).json({ success: false, error: "Kode A2F utama salah. Recovery code tidak dibuat." });
+  }
+
+  const db = getFirebaseDb();
+  const secret = getA2fSecret();
+  const batch = db.batch();
+  const now = Date.now();
+  const codes = [];
+
+  for (let i = 0; i < requestedCount; i += 1) {
+    const code = createOneTimeRecoveryCode();
+    const lookupHash = getOneTimeRecoveryLookupHash(code, secret);
+    const argon2Hash = await argon2.hash(normalizeOneTimeRecoveryCode(code), ARGON2ID_OPTIONS);
+    codes.push(code);
+    batch.set(db.collection("a2fRecoveryCodes").doc(lookupHash), {
+      uid: decoded.uid,
+      email: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
+      hashType: "argon2id",
+      argon2Hash,
+      used: false,
+      revoked: false,
+      createdAtMs: now,
+      createdByUid: decoded.uid,
+      createdByEmail: decoded.email || process.env.A2F_ADMIN_EMAIL || "",
+      codeLast4: code.slice(-4),
+      codeLength: code.length,
+      purpose: "face_recovery_step_5",
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: false });
+  }
+
+  await batch.commit();
+  await writeBackendSecurityLog("auth.recovery_codes_generated", `${requestedCount} recovery code sekali pakai dibuat untuk Recovery Face ID tahap 5.`, "warn", decoded, { count: requestedCount });
+
+  return res.status(200).json({
+    success: true,
+    count: requestedCount,
+    codes,
+    message: "Recovery code sekali pakai berhasil dibuat. Kode asli hanya tampil sekali."
+  });
+}
+
+async function listAdminSecurityCenter(req, res) {
+  const { idToken, clientContext } = req.body || {};
+  const decoded = await verifyAdminIdToken(idToken);
+  const db = getFirebaseDb();
+  const secret = getA2fSecret();
+  const currentDeviceHash = getDeviceIdHashFromClientContext(clientContext, secret);
+  const currentContext = await buildStep6LoginContext({ req, db, decoded, clientContext, secret }).catch(() => null);
+
+  const devicesSnap = await db.collection("a2fKnownDevices").where("uid", "==", decoded.uid).get();
+  const devices = [];
+  devicesSnap.forEach((docSnap) => devices.push(sanitizeDeviceForClient(docSnap.id, docSnap.data() || {}, currentDeviceHash)));
+  devices.sort((a, b) => Number(b.lastSeenAtMs || 0) - Number(a.lastSeenAtMs || 0));
+
+  let approvals = [];
+  try {
+    const approvalsSnap = await db.collection("a2fEmailApprovals").where("uid", "==", decoded.uid).limit(60).get();
+    approvalsSnap.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      const ctx = data.loginContext || {};
+      approvals.push({
+        id: docSnap.id,
+        email: String(data.email || decoded.email || ""),
+        status: String(data.status || "unknown"),
+        createdAtMs: Number(data.createdAtMs || 0),
+        expiresAtMs: Number(data.expiresAtMs || 0),
+        approvedAtMs: Number(data.emailApprovedAtMs || data.approvedAtMs || 0),
+        deniedAtMs: Number(data.deniedAtMs || 0),
+        deviceName: String((ctx.device && ctx.device.name) || "Tidak tersedia"),
+        deviceType: String((ctx.device && ctx.device.type) || "Tidak tersedia"),
+        browserName: String((ctx.device && ctx.device.browser) || "Tidak tersedia"),
+        os: String((ctx.device && ctx.device.os) || "Tidak tersedia"),
+        ip: String((ctx.network && ctx.network.ip) || "Tidak tersedia"),
+        city: String((ctx.network && ctx.network.city) || "Tidak tersedia"),
+        country: String((ctx.network && ctx.network.country) || "Tidak tersedia"),
+        risk: String((ctx.security && ctx.security.risk) || "Tidak tersedia"),
+        reasons: String((ctx.security && ctx.security.reasons) || "Tidak tersedia")
+      });
+    });
+    approvals.sort((a, b) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
+    approvals = approvals.slice(0, 30);
+  } catch (error) {
+    approvals = [{ id: "error", status: "error", email: decoded.email || "", createdAtMs: Date.now(), deviceName: "Gagal membaca riwayat approval", reasons: error.message || "" }];
+  }
+
+  let logs = [];
+  try {
+    const logsSnap = await db.collection("securityLogs").limit(120).get();
+    logsSnap.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      logs.push({
+        id: docSnap.id,
+        action: String(data.action || "-"),
+        detail: String(data.detail || "-"),
+        level: String(data.level || "info"),
+        adminEmail: String(data.adminEmail || ""),
+        role: String(data.role || ""),
+        createdAtMs: Number(data.createdAtMs || 0),
+        createdAtText: String(data.createdAtText || "")
+      });
+    });
+    logs.sort((a, b) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0));
+    logs = logs.slice(0, 50);
+  } catch (_error) {
+    logs = [];
+  }
+
+  const a2fLock = await readA2fLockRow(getAdminUid()).catch(() => null);
+  const clipboardRow = await ensureClipboardSecurityRow().catch(() => null);
+  const trustedState = await getCurrentTrustedDeviceState({ db, decoded, clientContext, secret }).catch(() => ({ trusted: false }));
+  const clipboard = clipboardRow ? applyTrustedClipboardBypass(normalizeClipboardSecurityStatus(clipboardRow), trustedState) : null;
+
+  return res.status(200).json({
+    success: true,
+    serverTimeMs: Date.now(),
+    account: { uid: decoded.uid, email: decoded.email || process.env.A2F_ADMIN_EMAIL || "" },
+    currentDevice: {
+      ...(currentContext ? {
+        deviceName: currentContext.device.name,
+        deviceType: currentContext.device.type,
+        estimatedModel: currentContext.device.estimatedModel,
+        os: currentContext.device.os,
+        browserName: currentContext.device.browser,
+        platform: currentContext.device.platform,
+        timezone: currentContext.browser.timezone,
+        ip: currentContext.network.ip,
+        city: currentContext.network.city,
+        country: currentContext.network.country,
+        risk: currentContext.security.risk,
+        reasons: currentContext.security.reasons
+      } : {}),
+      deviceIdHash: currentDeviceHash,
+      deviceIdHashShort: compactHash(currentDeviceHash),
+      trusted: trustedState.trusted === true,
+      known: trustedState.known === true,
+      revoked: trustedState.revoked === true
+    },
+    devices,
+    approvals,
+    logs,
+    a2fLock,
+    clipboard,
+    health: {
+      firebaseAdmin: true,
+      supabaseAdmin: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
+      smtpConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+      recoveryTotpReady: Boolean(process.env.A2F_RECOVERY_TOTP_SECRET_2),
+      a2fSecretReady: Boolean(process.env.A2F_SECRET)
+    }
+  });
+}
+
+async function updateTrustedDevice(req, res) {
+  const { idToken, deviceIdHash, mode } = req.body || {};
+  const decoded = await verifyAdminIdToken(idToken);
+  const hash = String(deviceIdHash || "").trim();
+  const action = String(mode || "").trim();
+
+  if (!/^[a-f0-9]{64}$/i.test(hash)) {
+    return res.status(400).json({ success: false, error: "Device hash tidak valid." });
+  }
+
+  if (!["trust", "untrust", "revoke", "kick"].includes(action)) {
+    return res.status(400).json({ success: false, error: "Mode perangkat tidak valid." });
+  }
+
+  const db = getFirebaseDb();
+  const ref = db.collection("a2fKnownDevices").doc(`${decoded.uid}_${hash}`);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ success: false, error: "Perangkat tidak ditemukan." });
+
+  const now = Date.now();
+  let update = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+  let detail = "";
+  if (action === "trust") {
+    update = { ...update, revoked: false, revokedAtMs: null, clipboardTrusted: true, lastTrustedAtMs: now, trustedSource: "manual_security_center" };
+    detail = "Perangkat ditandai terpercaya untuk bypass verifikasi copy-paste.";
+  } else if (action === "untrust") {
+    update = { ...update, clipboardTrusted: false, lastUntrustedAtMs: now };
+    detail = "Status perangkat terpercaya untuk copy-paste dicabut.";
+  } else {
+    update = { ...update, revoked: true, clipboardTrusted: false, revokedAtMs: now, lastKickedAtMs: now };
+    detail = "Perangkat dikeluarkan dan dicabut dari daftar perangkat terpercaya.";
+  }
+
+  await ref.set(update, { merge: true });
+  await writeBackendSecurityLog("security.device_" + action, detail + " Hash: " + compactHash(hash), action === "trust" ? "good" : "danger", decoded, { deviceIdHashShort: compactHash(hash) });
+
+  return res.status(200).json({ success: true, mode: action, deviceIdHash: hash, deviceIdHashShort: compactHash(hash), message: detail });
+}
+
+async function checkCurrentDeviceSecurity(req, res) {
+  const { idToken, clientContext } = req.body || {};
+  const decoded = await verifyAdminIdToken(idToken);
+  const db = getFirebaseDb();
+  const secret = getA2fSecret();
+  const state = await getCurrentTrustedDeviceState({ db, decoded, clientContext, secret });
+  return res.status(200).json({
+    success: true,
+    known: state.known === true,
+    trusted: state.trusted === true,
+    revoked: state.revoked === true,
+    shouldSignOut: state.revoked === true,
+    deviceIdHashShort: state.deviceIdHashShort,
+    message: state.revoked === true ? "Perangkat ini sudah dikeluarkan dari Security Center." : "Perangkat aktif."
+  });
 }
 
 function renderEmailRow(label, value) {
@@ -1833,12 +2176,20 @@ async function ensureClipboardSecurityRow() {
 }
 
 async function checkClipboardSecurityStatus(req, res) {
-  const { idToken } = req.body || {};
-  await verifyAdminIdToken(idToken);
+  const { idToken, clientContext } = req.body || {};
+  const decoded = await verifyAdminIdToken(idToken);
 
   try {
     const row = await ensureClipboardSecurityRow();
-    return res.status(200).json(normalizeClipboardSecurityStatus(row));
+    const status = normalizeClipboardSecurityStatus(row);
+    const db = getFirebaseDb();
+    const trustedState = await getCurrentTrustedDeviceState({
+      db,
+      decoded,
+      clientContext,
+      secret: getA2fSecret()
+    }).catch(() => ({ trusted: false }));
+    return res.status(200).json(applyTrustedClipboardBypass(status, trustedState));
   } catch (error) {
     console.error("checkClipboardSecurityStatus error:", error);
     return res.status(500).json({
@@ -1858,10 +2209,21 @@ async function checkClipboardSecurityStatus(req, res) {
 async function startClipboardUnlockOtp(req, res) {
   await checkA2fLock();
 
-  const { idToken } = req.body || {};
+  const { idToken, clientContext } = req.body || {};
   const decoded = await verifyAdminIdToken(idToken);
   const row = await ensureClipboardSecurityRow();
   const status = normalizeClipboardSecurityStatus(row);
+  const trustedState = await getCurrentTrustedDeviceState({
+    db: getFirebaseDb(),
+    decoded,
+    clientContext,
+    secret: getA2fSecret()
+  }).catch(() => ({ trusted: false }));
+  const trustedBypassStatus = applyTrustedClipboardBypass(status, trustedState);
+  if (trustedBypassStatus.trustedDeviceBypass === true) {
+    await writeBackendSecurityLog("clipboard.trusted_bypass", "Verifikasi copy-paste dilewati karena perangkat terpercaya.", "good", decoded, { deviceIdHashShort: trustedState.deviceIdHashShort || "" });
+    return res.status(200).json(trustedBypassStatus);
+  }
 
   if (status.permanentBan) {
     return res.status(403).json({
@@ -2129,6 +2491,10 @@ module.exports = async function handler(req, res) {
     const action = String((req.body && req.body.action) || "").trim();
 
     if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
+    if (action === "generate-recovery-codes") return generateOneTimeRecoveryCodes(req, res);
+    if (action === "listAdminSecurityCenter") return listAdminSecurityCenter(req, res);
+    if (action === "updateTrustedDevice") return updateTrustedDevice(req, res);
+    if (action === "checkCurrentDeviceSecurity") return checkCurrentDeviceSecurity(req, res);
     if (action === "checkClipboardSecurityStatus") return checkClipboardSecurityStatus(req, res);
     if (action === "startClipboardUnlockOtp") return startClipboardUnlockOtp(req, res);
     if (action === "verifyClipboardUnlockOtp") return verifyClipboardUnlockOtp(req, res);
