@@ -10,6 +10,8 @@
   <meta name="color-scheme" content="light" />
   <meta property="og:title" content="Dashboard Dirac Group Domain" />
   <meta property="og:description" content="Cek domain, checkout, dan pantau status pesanan domain Dirac Group." />
+  <meta name="dirac-dashboard-route" content="./dashboard.html" />
+  <meta name="dirac-login-route" content="./index.html" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
 
   <style>
@@ -1092,6 +1094,256 @@
       }
     }
 
+
+    /* ===== Ultra refinement: detail-level production fixes ===== */
+    .sr-only {
+      position:absolute !important;
+      width:1px !important;
+      height:1px !important;
+      padding:0 !important;
+      margin:-1px !important;
+      overflow:hidden !important;
+      clip:rect(0,0,0,0) !important;
+      white-space:nowrap !important;
+      border:0 !important;
+    }
+
+    .btn, .menu-card, .tld-chip, .cart-remove, .order-action, .mobile-bottom-nav button {
+      font-weight:900;
+    }
+
+    .alert.info {
+      color:#1d4ed8;
+      background:#dbeafe;
+      border:1px solid #bfdbfe;
+    }
+
+    .field-error {
+      display:none;
+      color:#be123c;
+      font-size:12px;
+      font-weight:850;
+      line-height:1.45;
+    }
+
+    .field-error.show { display:block; }
+
+    .field input.is-invalid,
+    .field textarea.is-invalid,
+    .field select.is-invalid,
+    .agree-box.is-invalid {
+      border-color:#f43f5e !important;
+      box-shadow:0 0 0 5px rgba(244,63,94,.10) !important;
+    }
+
+    .agree-box {
+      grid-column:1/-1;
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:14px;
+      border-radius:18px;
+      border:1px solid rgba(35,43,85,.12);
+      background:rgba(255,255,255,.82);
+      color:var(--deep);
+      font-weight:850;
+    }
+
+    .agree-box input { margin-top:4px; accent-color:var(--violet); }
+    .agree-box small { display:block; color:var(--muted); font-weight:750; margin-top:3px; }
+
+    .platform-presets {
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-top:8px;
+    }
+
+    .preset-chip,
+    .filter-chip {
+      border:1px solid rgba(98,88,255,.16);
+      background:rgba(98,88,255,.07);
+      color:var(--violet);
+      border-radius:999px;
+      padding:8px 11px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+
+    .filter-chip.active,
+    .preset-chip:hover {
+      color:white;
+      background:linear-gradient(135deg,var(--violet),var(--cyan));
+      box-shadow:0 12px 24px rgba(98,88,255,.16);
+    }
+
+    .order-tools {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:16px;
+      padding:10px;
+      border:1px solid rgba(35,43,85,.08);
+      border-radius:20px;
+      background:rgba(247,249,255,.72);
+    }
+
+    .order-filters { display:flex; flex-wrap:wrap; gap:7px; }
+
+    .order-search {
+      min-height:42px;
+      width:min(320px,100%);
+      border:1px solid rgba(35,43,85,.12);
+      border-radius:999px;
+      padding:0 14px;
+      outline:0;
+      background:white;
+      color:var(--deep);
+      font-weight:800;
+    }
+
+    .copy-inline {
+      border:0;
+      background:rgba(98,88,255,.09);
+      color:var(--violet);
+      border-radius:999px;
+      padding:4px 8px;
+      margin-left:6px;
+      font-size:11px;
+      font-weight:900;
+      vertical-align:middle;
+    }
+
+    .badge.unknown,
+    .badge.cancelled,
+    .timeline-step.cancelled {
+      color:#6b7280;
+      background:#f3f4f6;
+      border:1px solid #e5e7eb;
+    }
+
+    .toast {
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .toast::before {
+      content:"✓";
+      display:inline-grid;
+      place-items:center;
+      width:22px;
+      height:22px;
+      flex:0 0 auto;
+      border-radius:999px;
+      background:#dcfce7;
+      color:#047857;
+      font-size:12px;
+      margin-top:1px;
+    }
+    .toast.error::before { content:"!"; background:#ffe4ea; color:#be123c; }
+    .toast.info::before { content:"i"; background:#dbeafe; color:#1d4ed8; }
+    .toast.info { border-color:#bfdbfe; color:#1d4ed8; }
+
+    .empty-action {
+      margin-top:12px;
+      width:fit-content;
+    }
+
+    .payment-box {
+      margin-top:12px;
+      padding:14px;
+      border-radius:18px;
+      border:1px solid rgba(25,191,120,.22);
+      background:#ecfdf5;
+      color:#065f46;
+      font-weight:820;
+    }
+
+    .modal-backdrop {
+      position:fixed;
+      inset:0;
+      z-index:120;
+      display:none;
+      place-items:center;
+      padding:18px;
+      background:rgba(15,23,42,.36);
+      backdrop-filter:blur(10px);
+    }
+
+    .modal-backdrop.show { display:grid; animation:fadeInUp .18s ease both; }
+
+    .confirm-modal {
+      width:min(560px,100%);
+      max-height:min(80vh,720px);
+      overflow:auto;
+      padding:22px;
+      border-radius:28px;
+      background:rgba(255,255,255,.96);
+      border:1px solid rgba(255,255,255,.76);
+      box-shadow:0 28px 90px rgba(15,23,42,.24);
+    }
+
+    .confirm-modal h3 {
+      margin:0 0 8px;
+      color:var(--deep);
+      font-size:26px;
+      line-height:1.05;
+      letter-spacing:-.05em;
+    }
+
+    .confirm-modal p { margin:0 0 12px; color:var(--muted); font-weight:760; }
+    .confirm-body { display:grid; gap:8px; margin:12px 0; }
+    .confirm-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-top:14px; }
+
+    .mobile-bottom-nav button.active {
+      color:white;
+      background:linear-gradient(135deg,var(--violet),var(--cyan));
+      box-shadow:0 12px 24px rgba(98,88,255,.18);
+    }
+
+    .mobile-bottom-nav svg {
+      width:19px;
+      height:19px;
+      stroke:currentColor;
+      stroke-width:2.2;
+      fill:none;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+
+    .logout-mobile-only { display:none; }
+
+    @media (max-width:900px) {
+      .nav-actions .btn-danger { display:none; }
+      .hero { padding:20px 0 10px; }
+      .hero-card { padding:18px; }
+      .hero-card h1 { font-size:clamp(27px,8.6vw,38px); }
+      .pill { padding:7px 10px; font-size:12px; }
+      .menu-card { min-height:78px; }
+      .section:last-of-type { padding-bottom:118px; }
+      .order-tools { align-items:stretch; }
+      .order-search { width:100%; }
+    }
+
+    @media (max-width:520px) {
+      .stats-grid { grid-template-columns:1fr 1fr; }
+      .stat-card { padding:14px; border-radius:18px; }
+      .stat-card strong { font-size:26px; }
+      .order-timeline { grid-template-columns:1fr 1fr; }
+      .mobile-bottom-nav { border-radius:22px; }
+      .mobile-bottom-nav small { font-size:10px; }
+      .confirm-modal { border-radius:22px; padding:18px; }
+    }
+
+    @media (max-width:380px) {
+      .stats-grid, .order-timeline { grid-template-columns:1fr; }
+      .mobile-bottom-nav { left:8px; right:8px; gap:4px; padding:6px; }
+      .mobile-bottom-nav button { min-height:50px; border-radius:16px; }
+    }
+
   </style>
 </head>
 
@@ -1220,29 +1472,33 @@
               <div class="form-grid">
                 <div class="field">
                   <label for="customerName">Nama Pembeli</label>
-                  <input id="customerName" required autocomplete="name" placeholder="Nama lengkap" />
+                  <input id="customerName" required autocomplete="name" placeholder="Nama lengkap" aria-describedby="customerNameError" />
+                  <small class="field-error" id="customerNameError"></small>
                 </div>
 
                 <div class="field">
                   <label for="customerWhatsapp">WhatsApp</label>
                   <input id="customerWhatsapp" required inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx" aria-describedby="waHelp" />
                   <small class="field-help" id="waHelp">Gunakan nomor aktif. Contoh: 081234567890 atau 6281234567890.</small>
+                  <small class="field-error" id="customerWhatsappError"></small>
                 </div>
 
                 <div class="field">
                   <label for="customerEmail">Email Pembeli</label>
-                  <input id="customerEmail" type="email" autocomplete="email" placeholder="nama@email.com" />
+                  <input id="customerEmail" type="email" autocomplete="email" placeholder="nama@email.com" aria-describedby="customerEmailError" />
+                  <small class="field-error" id="customerEmailError"></small>
                 </div>
 
                 <div class="field">
                   <label for="ownerEmail">Email Pemilik Domain</label>
                   <input id="ownerEmail" type="email" autocomplete="email" placeholder="email pemilik domain" aria-describedby="ownerHelp" />
                   <small class="field-help" id="ownerHelp">Kosongkan jika sama dengan email pembeli.</small>
+                  <small class="field-error" id="ownerEmailError"></small>
                 </div>
 
                 <div class="field full">
                   <label for="dnsMethod">Metode DNS</label>
-                  <select id="dnsMethod">
+                  <select id="dnsMethod" aria-describedby="dnsHelp">
                     <option value="managed_by_dirac">Dikelola Dirac Group</option>
                     <option value="use_own_nameserver">Pakai nameserver hosting sendiri</option>
                     <option value="point_to_platform">Arahkan ke platform tertentu</option>
@@ -1254,18 +1510,28 @@
                 <div class="dns-extra" id="nameserverFields">
                   <div class="field">
                     <label for="nameserver1">Nameserver 1</label>
-                    <input id="nameserver1" autocapitalize="none" spellcheck="false" placeholder="ns1.hosting.com" />
+                    <input id="nameserver1" autocapitalize="none" spellcheck="false" placeholder="ns1.hosting.com" aria-describedby="nameserver1Error" />
+                    <small class="field-error" id="nameserver1Error"></small>
                   </div>
                   <div class="field">
                     <label for="nameserver2">Nameserver 2</label>
-                    <input id="nameserver2" autocapitalize="none" spellcheck="false" placeholder="ns2.hosting.com" />
+                    <input id="nameserver2" autocapitalize="none" spellcheck="false" placeholder="ns2.hosting.com" aria-describedby="nameserver2Error" />
+                    <small class="field-error" id="nameserver2Error"></small>
                   </div>
                 </div>
 
                 <div class="dns-extra" id="platformFields">
                   <div class="field">
                     <label for="targetPlatform">Platform / Tujuan</label>
-                    <input id="targetPlatform" autocapitalize="none" spellcheck="false" placeholder="Vercel, Netlify, Blogger, Shopify, atau IP hosting" />
+                    <input id="targetPlatform" autocapitalize="none" spellcheck="false" placeholder="Vercel, Netlify, Blogger, Shopify, atau IP hosting" aria-describedby="targetPlatformError" />
+                    <div class="platform-presets" aria-label="Pilihan cepat platform">
+                      <button type="button" class="preset-chip" data-platform="Vercel">Vercel</button>
+                      <button type="button" class="preset-chip" data-platform="Netlify">Netlify</button>
+                      <button type="button" class="preset-chip" data-platform="Blogger">Blogger</button>
+                      <button type="button" class="preset-chip" data-platform="Shopify">Shopify</button>
+                      <button type="button" class="preset-chip" data-platform="Custom IP">Custom IP</button>
+                    </div>
+                    <small class="field-error" id="targetPlatformError"></small>
                   </div>
                 </div>
 
@@ -1276,6 +1542,14 @@
                 </div>
 
                 <div class="checkout-summary" id="checkoutSummary"></div>
+
+                <label class="agree-box" id="accuracyBox">
+                  <input id="domainAccuracyAgree" type="checkbox" />
+                  <span>Saya sudah memeriksa ejaan domain, email pemilik, dan data DNS.
+                    <small>Domain yang salah ketik dapat sulit dibatalkan setelah proses registrasi dimulai.</small>
+                  </span>
+                </label>
+                <small class="field-error" id="domainAccuracyAgreeError"></small>
 
                 <button class="btn btn-primary full" type="submit" id="checkoutBtn">Checkout Sekarang</button>
               </div>
@@ -1298,6 +1572,17 @@
             <button class="btn btn-primary" id="refreshOrdersBtn"><span class="btn-icon" aria-hidden="true">↻</span> Refresh Pesanan</button>
           </div>
 
+          <div class="order-tools" aria-label="Alat penyaring pesanan">
+            <div class="order-filters" role="list" aria-label="Filter status pesanan">
+              <button class="filter-chip active" type="button" data-order-filter="all">Semua</button>
+              <button class="filter-chip" type="button" data-order-filter="pending">Menunggu</button>
+              <button class="filter-chip" type="button" data-order-filter="process">Diproses</button>
+              <button class="filter-chip" type="button" data-order-filter="active">Aktif</button>
+              <button class="filter-chip" type="button" data-order-filter="cancelled">Dibatalkan</button>
+            </div>
+            <input class="order-search" id="orderSearch" type="search" placeholder="Cari domain/invoice" aria-label="Cari domain atau invoice" />
+          </div>
+
           <div id="ordersList" class="orders">
             <div class="cart-empty">Memuat pesanan...</div>
           </div>
@@ -1307,13 +1592,25 @@
   </main>
 
   <nav class="mobile-bottom-nav" aria-label="Navigasi cepat mobile">
-    <button data-scroll="cek"><span aria-hidden="true">⌕</span><small>Cek</small></button>
-    <button data-scroll="keranjang"><span aria-hidden="true">🛒</span><small>Cart</small></button>
-    <button data-scroll="orders"><span aria-hidden="true">☑</span><small>Order</small></button>
-    <button data-mobile-logout="true"><span aria-hidden="true">↪</span><small>Keluar</small></button>
+    <button data-scroll="cek" aria-label="Cek domain"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><small>Cek</small></button>
+    <button data-scroll="keranjang" aria-label="Keranjang"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6h15l-2 9H8L6 6Z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg><small>Keranjang</small></button>
+    <button data-scroll="orders" aria-label="Pesanan"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="m3 6 1 1 2-2"></path><path d="m3 12 1 1 2-2"></path><path d="m3 18 1 1 2-2"></path></svg><small>Pesanan</small></button>
+    <button data-mobile-logout="true" aria-label="Keluar"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><small>Keluar</small></button>
   </nav>
 
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="modal-backdrop" id="checkoutConfirmModal" role="dialog" aria-modal="true" aria-labelledby="checkoutConfirmTitle" aria-hidden="true">
+    <div class="confirm-modal">
+      <h3 id="checkoutConfirmTitle">Periksa ulang pesanan</h3>
+      <p>Pastikan ejaan domain dan email pemilik sudah benar sebelum checkout dikirim ke admin.</p>
+      <div class="confirm-body" id="checkoutConfirmBody"></div>
+      <div class="confirm-actions">
+        <button class="btn btn-soft" type="button" id="cancelCheckoutConfirm">Periksa Lagi</button>
+        <button class="btn btn-primary" type="button" id="approveCheckoutConfirm">Kirim Checkout</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const PRICE_RULES = {
@@ -1325,9 +1622,32 @@
       ".xyz": { register: 45000, renewal: 150000 }
     };
 
+    const ROUTES = {
+      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || (location.pathname.includes("dirac-") ? "./dirac-dashboard-ultra-final.html" : "./dashboard.html"),
+      login: document.querySelector('meta[name="dirac-login-route"]')?.content || (location.pathname.includes("dirac-") ? "./dirac-login-ultra-final.html" : "./index.html")
+    };
+
+    const ADMIN_CONTACT = {
+      email: "companydirac@gmail.com",
+      whatsapp: ""
+    };
+
+    function loadCartSafely() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("dirac_domain_cart") || "[]");
+        return Array.isArray(parsed) ? parsed.filter((item) => item && item.domain_name) : [];
+      } catch (_) {
+        localStorage.removeItem("dirac_domain_cart");
+        return [];
+      }
+    }
+
     const state = {
-      cart: JSON.parse(localStorage.getItem("dirac_domain_cart") || "[]"),
-      user: null
+      cart: loadCartSafely(),
+      user: null,
+      orders: [],
+      orderFilter: "all",
+      orderSearch: ""
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1356,14 +1676,22 @@
     }
 
     function safeClass(value) {
-      return STATUS_CLASS_MAP[String(value || "").toLowerCase()] || "pending";
+      return STATUS_CLASS_MAP[String(value || "").toLowerCase()] || "unknown";
+    }
+
+    function friendlyError(error) {
+      const raw = String(error?.message || error || "");
+      if (/failed to fetch|network/i.test(raw)) return "Koneksi bermasalah. Periksa internet lalu coba lagi.";
+      if (/abort|terlalu lama/i.test(raw)) return "Koneksi terlalu lama. Silakan coba lagi.";
+      if (/unauthorized|jwt|session|login/i.test(raw)) return "Sesi login berakhir. Silakan masuk kembali.";
+      return raw || "Terjadi kesalahan. Silakan coba lagi.";
     }
 
     function showToast(message, type = "success") {
       const region = $("toastRegion");
       if (!region) return;
       const toast = document.createElement("div");
-      toast.className = "toast " + (type === "error" ? "error" : "success");
+      toast.className = "toast " + (type === "error" ? "error" : type === "info" ? "info" : "success");
       toast.textContent = message;
       region.appendChild(toast);
       setTimeout(() => {
@@ -1374,21 +1702,27 @@
     }
 
     async function copyText(value, label = "Teks") {
+      const text = String(value || "").trim();
+      if (!text) {
+        showToast(label + " kosong, tidak ada yang disalin.", "error");
+        return;
+      }
       try {
-        await navigator.clipboard.writeText(String(value || ""));
+        await navigator.clipboard.writeText(text);
         showToast(label + " berhasil disalin.");
       } catch (_) {
-        showToast("Browser belum mengizinkan salin otomatis.", "error");
+        window.prompt("Salin manual " + label + ":", text);
+        showToast("Salin manual ditampilkan.", "info");
       }
     }
 
     function renderOrderStats(orders = []) {
       const total = Array.isArray(orders) ? orders.length : 0;
       const pending = (orders || []).filter((order) => {
-        const status = String(order.order_status || order.payment_status || "");
+        const status = `${order.order_status || ""} ${order.payment_status || ""}`.toLowerCase();
         return ["pending", "menunggu_pembayaran", "unpaid", "proses_register"].some((item) => status.includes(item));
       }).length;
-      const active = (orders || []).filter((order) => String(order.order_status || "").includes("domain_aktif") || String(order.order_status || "").includes("active")).length;
+      const active = (orders || []).filter((order) => String(order.order_status || "").toLowerCase().includes("domain_aktif") || String(order.order_status || "").toLowerCase().includes("active")).length;
 
       if ($("statCart")) $("statCart").textContent = state.cart.length;
       if ($("statOrders")) $("statOrders").textContent = total;
@@ -1451,7 +1785,11 @@
     }
 
     function saveCart() {
-      localStorage.setItem("dirac_domain_cart", JSON.stringify(state.cart));
+      try {
+        localStorage.setItem("dirac_domain_cart", JSON.stringify(state.cart));
+      } catch (_) {
+        showToast("Keranjang tidak bisa disimpan di browser ini.", "error");
+      }
     }
 
     function formatRupiah(value) {
@@ -1484,7 +1822,8 @@
         dibatalkan: "Dibatalkan",
         cancelled: "Dibatalkan"
       };
-      return labels[value] || value || "-";
+      const key = String(value || "").toLowerCase();
+      return labels[key] || value || "-";
     }
 
     function dnsLabel(value) {
@@ -1504,11 +1843,29 @@
         .replace(/^https?:\/\//, "")
         .replace(/^www\./, "")
         .replace(/\/.*$/, "")
-        .replace(/\s+/g, "");
+        .replace(/\s+/g, "")
+        .replace(/\.$/, "");
+    }
+
+    function isValidDomainName(value, allowBare = false) {
+      const domain = normalizeDomain(value);
+      const label = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?";
+      const pattern = allowBare
+        ? new RegExp(`^${label}(\.${label})*$`, "i")
+        : new RegExp(`^${label}(\.${label})+\.[a-z]{2,}$`, "i");
+      return domain.length >= 2 && domain.length <= 253 && pattern.test(domain);
     }
 
     function hasTld(value) {
       return /\.[a-z0-9-]{2,}(\.[a-z0-9-]{2,})?$/.test(value);
+    }
+
+    function normalizeWhatsapp(value) {
+      return String(value || "").replace(/[^0-9+]/g, "").replace(/^\+/, "");
+    }
+
+    function normalizeNameserver(value) {
+      return String(value || "").trim().toLowerCase().replace(/\.$/, "");
     }
 
     function getExtension(domain) {
@@ -1536,7 +1893,7 @@
         }
         return true;
       } catch (_) {
-        window.location.href = "./index.html";
+        window.location.href = ROUTES.login;
         return false;
       }
     }
@@ -1622,6 +1979,11 @@
         return;
       }
 
+      if (!isValidDomainName(domain, true)) {
+        renderError(domain, "Nama domain mengandung karakter yang belum valid.");
+        return;
+      }
+
       if (!hasTld(domain)) {
         await checkManyExtensions(domain);
         return;
@@ -1638,7 +2000,7 @@
         const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
         renderCheckResult(data, domain);
       } catch (error) {
-        renderError(domain, error.message);
+        renderError(domain, friendlyError(error));
       }
     }
 
@@ -1647,6 +2009,11 @@
 
       if (!cleanBase) {
         renderInitialResult();
+        return;
+      }
+
+      if (!isValidDomainName(cleanBase, true)) {
+        renderError(cleanBase, "Nama brand/domain mengandung karakter yang belum valid.");
         return;
       }
 
@@ -1703,7 +2070,7 @@
               <div class="result-domain">${escapeHTML(domain)}</div>
               <span class="status-badge badge-taken">Gagal dicek</span>
             </div>
-            <p>${escapeHTML(error.message)}</p>
+            <p>${escapeHTML(friendlyError(error))}</p>
             <div class="result-actions">
               <button class="btn btn-soft" data-recheck="${escapeHTML(domain)}">Coba Lagi</button>
             </div>
@@ -1727,6 +2094,11 @@
     function addToCart(domain) {
       const clean = normalizeDomain(domain);
       const price = getPrice(clean);
+
+      if (!isValidDomainName(clean)) {
+        showToast("Format domain belum valid.", "error");
+        return;
+      }
 
       if (!price) {
         showToast("Harga domain ini belum tersedia.", "error");
@@ -1772,13 +2144,16 @@
       if ($("statCart")) $("statCart").textContent = state.cart.length;
       $("cartTotal").textContent = formatRupiah(getCartTotal());
       updateCheckoutSummary();
+      updateStepper();
 
       if (!state.cart.length) {
         $("cartItems").innerHTML = `
           <div class="cart-empty">
             Keranjang masih kosong. Cek domain terlebih dahulu, lalu klik <b>Tambah ke Keranjang</b>.
+            <button class="btn btn-soft empty-action" type="button" data-scroll="cek">Cek domain sekarang</button>
           </div>
         `;
+        initScrollButtons($("cartItems"));
         return;
       }
 
@@ -1803,6 +2178,13 @@
       document.querySelectorAll("[data-remove]").forEach((button) => {
         button.addEventListener("click", () => removeFromCart(button.dataset.remove));
       });
+    }
+
+    function updateStepper(stage = null) {
+      const steps = document.querySelectorAll(".stepper span");
+      if (!steps.length) return;
+      const activeCount = stage ? Number(stage) : state.cart.length ? 2 : 1;
+      steps.forEach((step, index) => step.classList.toggle("active", index < activeCount));
     }
 
     function updateCheckoutSummary() {
@@ -1845,34 +2227,106 @@
       updateCheckoutSummary();
     }
 
+    function clearFieldErrors() {
+      ["customerName", "customerWhatsapp", "customerEmail", "ownerEmail", "nameserver1", "nameserver2", "targetPlatform", "domainAccuracyAgree"].forEach((id) => setFieldError(id, ""));
+    }
+
+    function setFieldError(id, message) {
+      const input = $(id);
+      const box = $(id + "Error");
+      const visual = id === "domainAccuracyAgree" ? $("accuracyBox") : input;
+      if (visual) visual.classList.toggle("is-invalid", Boolean(message));
+      if (input) input.setAttribute("aria-invalid", message ? "true" : "false");
+      if (box) {
+        box.textContent = message || "";
+        box.classList.toggle("show", Boolean(message));
+      }
+    }
+
     function validateCheckoutPayload(payload) {
+      clearFieldErrors();
       const errors = [];
-      const wa = payload.customer_whatsapp.replace(/[^0-9+]/g, "");
+      const wa = normalizeWhatsapp(payload.customer_whatsapp);
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const nsPattern = /^([a-z0-9-]+\.)+[a-z]{2,}$/i;
 
-      if (!payload.customer_name) errors.push("Nama pembeli wajib diisi.");
-      if (!payload.customer_whatsapp) errors.push("Nomor WhatsApp wajib diisi.");
-      if (payload.customer_whatsapp && !/^(\+?62|0)\d{8,14}$/.test(wa)) errors.push("Format WhatsApp belum valid.");
-      if (payload.customer_email && !emailPattern.test(payload.customer_email)) errors.push("Format email pembeli belum valid.");
-      if (payload.owner_email && !emailPattern.test(payload.owner_email)) errors.push("Format email pemilik domain belum valid.");
+      const add = (field, message) => {
+        errors.push(message);
+        if (field) setFieldError(field, message);
+      };
+
+      if (!payload.customer_name) add("customerName", "Nama pembeli wajib diisi.");
+      if (!payload.customer_whatsapp) add("customerWhatsapp", "Nomor WhatsApp wajib diisi.");
+      if (payload.customer_whatsapp && !/^(62|0)\d{8,14}$/.test(wa)) add("customerWhatsapp", "Format WhatsApp belum valid.");
+      if (!payload.customer_email) add("customerEmail", "Email pembeli wajib diisi.");
+      if (payload.customer_email && !emailPattern.test(payload.customer_email)) add("customerEmail", "Format email pembeli belum valid.");
+      if (payload.owner_email && !emailPattern.test(payload.owner_email)) add("ownerEmail", "Format email pemilik domain belum valid.");
       if (payload.dns_method === "use_own_nameserver") {
-        if (!payload.nameserver_1 || !payload.nameserver_2) errors.push("Nameserver 1 dan 2 wajib diisi jika memakai nameserver sendiri.");
-        if (payload.nameserver_1 && !nsPattern.test(payload.nameserver_1)) errors.push("Format Nameserver 1 belum valid.");
-        if (payload.nameserver_2 && !nsPattern.test(payload.nameserver_2)) errors.push("Format Nameserver 2 belum valid.");
+        if (!payload.nameserver_1) add("nameserver1", "Nameserver 1 wajib diisi.");
+        if (!payload.nameserver_2) add("nameserver2", "Nameserver 2 wajib diisi.");
+        if (payload.nameserver_1 && !nsPattern.test(payload.nameserver_1)) add("nameserver1", "Format Nameserver 1 belum valid.");
+        if (payload.nameserver_2 && !nsPattern.test(payload.nameserver_2)) add("nameserver2", "Format Nameserver 2 belum valid.");
       }
-      if (payload.dns_method === "point_to_platform" && !payload.target_platform) errors.push("Tujuan platform wajib diisi jika memilih arahkan ke platform.");
+      if (payload.dns_method === "point_to_platform" && !payload.target_platform) add("targetPlatform", "Tujuan platform wajib diisi jika memilih arahkan ke platform.");
       if (payload.customer_note.length > 500) errors.push("Catatan maksimal 500 karakter.");
+      if (!$('domainAccuracyAgree')?.checked) add("domainAccuracyAgree", "Centang persetujuan setelah memeriksa ejaan domain dan data DNS.");
       return errors;
     }
 
     async function recheckCartBeforeCheckout() {
-      for (const item of state.cart) {
+      const results = await Promise.all(state.cart.map(async (item) => {
         const result = await api(`?action=domain_check&domain=${encodeURIComponent(item.domain_name)}`);
-        if (!result.available) {
-          throw new Error(`${item.domain_name} sudah tidak tersedia. Hapus dari keranjang lalu pilih domain lain.`);
-        }
+        return { item, result };
+      }));
+      const unavailable = results.find(({ result }) => !result.available);
+      if (unavailable) {
+        throw new Error(`${unavailable.item.domain_name} sudah tidak tersedia. Hapus dari keranjang lalu pilih domain lain.`);
       }
+    }
+
+    function buildCheckoutConfirmHTML(payload) {
+      const domainRows = state.cart.map((item) => `
+        <div class="summary-line"><span>${escapeHTML(item.domain_name)}</span><b>${formatRupiah(item.subtotal)}</b></div>
+      `).join("");
+      return `
+        ${domainRows}
+        <div class="summary-line"><span>Total</span><b>${formatRupiah(getCartTotal())}</b></div>
+        <div class="summary-line"><span>Nama</span><b>${escapeHTML(payload.customer_name)}</b></div>
+        <div class="summary-line"><span>WhatsApp</span><b>${escapeHTML(payload.customer_whatsapp)}</b></div>
+        <div class="summary-line"><span>Email pemilik</span><b>${escapeHTML(payload.owner_email)}</b></div>
+        <div class="summary-line"><span>DNS</span><b>${escapeHTML(dnsLabel(payload.dns_method))}</b></div>
+      `;
+    }
+
+    function confirmCheckout(payload) {
+      const modal = $("checkoutConfirmModal");
+      const body = $("checkoutConfirmBody");
+      const approve = $("approveCheckoutConfirm");
+      const cancel = $("cancelCheckoutConfirm");
+      if (!modal || !body || !approve || !cancel) return Promise.resolve(true);
+      body.innerHTML = buildCheckoutConfirmHTML(payload);
+      modal.classList.add("show");
+      modal.setAttribute("aria-hidden", "false");
+      approve.focus();
+      return new Promise((resolve) => {
+        const cleanup = (value) => {
+          modal.classList.remove("show");
+          modal.setAttribute("aria-hidden", "true");
+          approve.removeEventListener("click", onApprove);
+          cancel.removeEventListener("click", onCancel);
+          modal.removeEventListener("click", onBackdrop);
+          document.removeEventListener("keydown", onKey);
+          resolve(value);
+        };
+        const onApprove = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+        const onBackdrop = (event) => { if (event.target === modal) cleanup(false); };
+        const onKey = (event) => { if (event.key === "Escape") cleanup(false); };
+        approve.addEventListener("click", onApprove);
+        cancel.addEventListener("click", onCancel);
+        modal.addEventListener("click", onBackdrop);
+        document.addEventListener("keydown", onKey);
+      });
     }
 
 
@@ -1889,14 +2343,15 @@
         return;
       }
 
+      const customerEmail = $("customerEmail").value.trim() || state.user?.email || "";
       const payload = {
         customer_name: $("customerName").value.trim(),
-        customer_whatsapp: $("customerWhatsapp").value.trim(),
-        customer_email: $("customerEmail").value.trim(),
-        owner_email: $("ownerEmail").value.trim(),
+        customer_whatsapp: normalizeWhatsapp($("customerWhatsapp").value.trim()),
+        customer_email: customerEmail,
+        owner_email: $("ownerEmail").value.trim() || customerEmail,
         dns_method: $("dnsMethod").value,
-        nameserver_1: $("nameserver1").value.trim(),
-        nameserver_2: $("nameserver2").value.trim(),
+        nameserver_1: normalizeNameserver($("nameserver1").value),
+        nameserver_2: normalizeNameserver($("nameserver2").value),
         target_platform: $("targetPlatform").value.trim(),
         customer_note: $("customerNote").value.trim(),
         items: state.cart.map((item) => ({
@@ -1936,6 +2391,10 @@
           Invoice: <b>${escapeHTML(invoiceCode)}</b><br>
           Total: <b>${formatRupiah(result.total_amount)}</b><br>
           Status: menunggu konfirmasi admin.<br>
+          <div class="payment-box">
+            Simpan invoice ini. Setelah pembayaran dilakukan, kirim bukti pembayaran ke admin agar domain segera diproses.
+            <br><a href="mailto:${ADMIN_CONTACT.email}?subject=${encodeURIComponent('Konfirmasi Pembayaran ' + invoiceCode)}" style="color:#047857;text-decoration:underline;font-weight:1000;">Hubungi admin via email</a>
+          </div>
           <button class="order-action" type="button" data-copy="${escapeHTML(invoiceCode)}" data-copy-label="Invoice">Salin invoice</button>
         `;
 
@@ -1952,9 +2411,10 @@
         showToast("Checkout berhasil dibuat.");
         loadOrders();
       } catch (error) {
+        const message = friendlyError(error) || "Checkout belum berhasil.";
         alertBox.className = "alert error show";
-        alertBox.textContent = error.message || "Checkout belum berhasil.";
-        showToast(error.message || "Checkout belum berhasil.", "error");
+        alertBox.textContent = message;
+        showToast(message, "error");
       } finally {
         button.disabled = false;
         button.textContent = "Checkout Sekarang";
@@ -1966,16 +2426,23 @@
 
       try {
         const result = await api("?action=domain_orders");
-        renderOrders(result.data || []);
+        state.orders = result.data || [];
+        renderOrders(state.orders);
       } catch (error) {
-        $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${escapeHTML(error.message)}</div>`;
+        $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${escapeHTML(friendlyError(error))}</div>`;
         showToast("Gagal memuat pesanan.", "error");
       }
     }
 
     function renderTimeline(order) {
-      const orderStatus = String(order.order_status || "");
-      const paymentStatus = String(order.payment_status || "");
+      const orderStatus = String(order.order_status || "").toLowerCase();
+      const paymentStatus = String(order.payment_status || "").toLowerCase();
+      if (["cancelled", "dibatalkan"].includes(orderStatus) || ["cancelled", "dibatalkan"].includes(paymentStatus)) {
+        return `<div class="order-timeline" aria-label="Timeline pesanan dibatalkan">
+          <span class="timeline-step done">Pesanan dibuat</span>
+          <span class="timeline-step cancelled">Dibatalkan</span>
+        </div>`;
+      }
       const isPaid = ["paid", "dibayar"].includes(paymentStatus) || ["proses_register", "domain_aktif", "active"].includes(orderStatus);
       const isProcess = ["proses_register", "domain_aktif", "active"].includes(orderStatus);
       const isActive = ["domain_aktif", "active"].includes(orderStatus);
@@ -1988,6 +2455,20 @@
       return `<div class="order-timeline" aria-label="Timeline pesanan">${steps.map((step) => `
         <span class="timeline-step ${step.done ? "done" : step.current ? "current" : ""}">${escapeHTML(step.label)}</span>
       `).join("")}</div>`;
+    }
+
+    function orderMatchesFilter(order, invoiceCode) {
+      const statusText = `${order.order_status || ""} ${order.payment_status || ""}`.toLowerCase();
+      const domains = Array.isArray(order.domain_order_items) ? order.domain_order_items.map((item) => item.domain_name).join(" ").toLowerCase() : "";
+      const search = state.orderSearch.trim().toLowerCase();
+      const filter = state.orderFilter;
+      const filterOk = filter === "all"
+        || (filter === "pending" && /pending|menunggu|unpaid/.test(statusText))
+        || (filter === "process" && /proses_register|dibayar|paid/.test(statusText))
+        || (filter === "active" && /domain_aktif|active/.test(statusText))
+        || (filter === "cancelled" && /cancelled|dibatalkan/.test(statusText));
+      const searchOk = !search || invoiceCode.toLowerCase().includes(search) || domains.includes(search);
+      return filterOk && searchOk;
     }
 
     function bindOrderButtons() {
@@ -2003,12 +2484,20 @@
         $("ordersList").innerHTML = `
           <div class="cart-empty">
             Belum ada pesanan. Cek domain dan checkout terlebih dahulu.
+            <button class="btn btn-soft empty-action" type="button" data-scroll="cek">Cek domain sekarang</button>
           </div>
         `;
+        initScrollButtons($("ordersList"));
         return;
       }
 
-      $("ordersList").innerHTML = orders.map((order) => {
+      const filteredOrders = orders.filter((order) => orderMatchesFilter(order, makeInvoiceCode(order.id)));
+      if (!filteredOrders.length) {
+        $("ordersList").innerHTML = `<div class="cart-empty">Tidak ada pesanan yang cocok dengan filter/pencarian.</div>`;
+        return;
+      }
+
+      $("ordersList").innerHTML = filteredOrders.map((order) => {
         const items = Array.isArray(order.domain_order_items) ? order.domain_order_items : [];
         const invoiceCode = makeInvoiceCode(order.id);
         const orderStatusClass = safeClass(order.order_status);
@@ -2048,16 +2537,17 @@
                 <h3>Detail Pesanan</h3>
                 <div class="line"><span>Total</span><b>${formatRupiah(order.total_amount)}</b></div>
                 <div class="line"><span>Metode DNS</span><b>${escapeHTML(dnsLabel(order.dns_method))}</b></div>
-                <div class="line"><span>Email pemilik</span><b>${escapeHTML(order.owner_email || "-")}</b></div>
-                <div class="line"><span>Nameserver 1</span><b>${escapeHTML(order.nameserver_1 || "-")}</b></div>
-                <div class="line"><span>Nameserver 2</span><b>${escapeHTML(order.nameserver_2 || "-")}</b></div>
-                <div class="line"><span>Tujuan platform</span><b>${escapeHTML(order.target_platform || "-")}</b></div>
+                <div class="line"><span>Email pemilik</span><b>${escapeHTML(order.owner_email || "-")}${order.owner_email ? `<button class="copy-inline" type="button" data-copy="${escapeHTML(order.owner_email)}" data-copy-label="Email pemilik">Salin</button>` : ""}</b></div>
+                <div class="line"><span>Nameserver 1</span><b>${escapeHTML(order.nameserver_1 || "-")}${order.nameserver_1 ? `<button class="copy-inline" type="button" data-copy="${escapeHTML(order.nameserver_1)}" data-copy-label="Nameserver 1">Salin</button>` : ""}</b></div>
+                <div class="line"><span>Nameserver 2</span><b>${escapeHTML(order.nameserver_2 || "-")}${order.nameserver_2 ? `<button class="copy-inline" type="button" data-copy="${escapeHTML(order.nameserver_2)}" data-copy-label="Nameserver 2">Salin</button>` : ""}</b></div>
+                <div class="line"><span>Tujuan platform</span><b>${escapeHTML(order.target_platform || "-")}${order.target_platform ? `<button class="copy-inline" type="button" data-copy="${escapeHTML(order.target_platform)}" data-copy-label="Tujuan platform">Salin</button>` : ""}</b></div>
               </div>
             </div>
 
             <div class="order-actions">
               <button class="order-action" type="button" data-copy="${escapeHTML(invoiceCode)}" data-copy-label="Invoice">Salin invoice</button>
-              <button class="order-action" type="button" data-copy="${escapeHTML(items.map((item) => item.domain_name).join(", "))}" data-copy-label="Daftar domain">Salin domain</button>
+              ${items.length ? `<button class="order-action" type="button" data-copy="${escapeHTML(items.map((item) => item.domain_name).join(", "))}" data-copy-label="Daftar domain">Salin domain</button>` : ""}
+              <a class="order-action" href="mailto:${ADMIN_CONTACT.email}?subject=${encodeURIComponent('Bantuan Invoice ' + invoiceCode)}">Hubungi admin</a>
             </div>
           </article>
         `;
@@ -2067,24 +2557,49 @@
     }
 
     async function logout() {
+      if (!window.confirm("Keluar dari dashboard Dirac Group?")) return;
       try {
         await api("?action=domain_logout", { method: "POST" });
       } finally {
         localStorage.removeItem("dirac_domain_cart");
         localStorage.removeItem("dirac_domain_access_token");
         localStorage.removeItem("dirac_domain_refresh_token");
-        window.location.href = "./index.html";
+        window.location.href = ROUTES.login;
       }
     }
 
-    function initEvents() {
-      document.querySelectorAll("[data-scroll]").forEach((button) => {
+    function initScrollButtons(scope = document) {
+      scope.querySelectorAll("[data-scroll]").forEach((button) => {
+        if (button.dataset.boundScroll === "true") return;
+        button.dataset.boundScroll = "true";
         button.addEventListener("click", () => {
           const id = button.dataset.scroll;
           const target = document.getElementById(id);
           if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       });
+    }
+
+    function updateBottomNavActive(id) {
+      document.querySelectorAll(".mobile-bottom-nav [data-scroll]").forEach((button) => {
+        const active = button.dataset.scroll === id;
+        button.classList.toggle("active", active);
+        if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current");
+      });
+    }
+
+    function initBottomNavObserver() {
+      const ids = ["cek", "keranjang", "orders"];
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target?.id) updateBottomNavActive(visible.target.id);
+      }, { threshold:[.25, .45], rootMargin:"-20% 0px -55% 0px" });
+      ids.forEach((id) => { const node = document.getElementById(id); if (node) observer.observe(node); });
+      updateBottomNavActive("cek");
+    }
+
+    function initEvents() {
+      initScrollButtons();
 
       $("domainCheckForm").addEventListener("submit", (event) => {
         event.preventDefault();
@@ -2107,9 +2622,32 @@
       document.querySelectorAll("[data-mobile-logout]").forEach((button) => {
         button.addEventListener("click", logout);
       });
+      document.querySelectorAll("[data-platform]").forEach((button) => {
+        button.addEventListener("click", () => {
+          $("targetPlatform").value = button.dataset.platform;
+          setFieldError("targetPlatform", "");
+        });
+      });
+      document.querySelectorAll("[data-order-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.orderFilter = button.dataset.orderFilter;
+          document.querySelectorAll("[data-order-filter]").forEach((item) => item.classList.toggle("active", item === button));
+          renderOrders(state.orders);
+        });
+      });
+      $("orderSearch")?.addEventListener("input", (event) => {
+        state.orderSearch = event.target.value;
+        renderOrders(state.orders);
+      });
+      ["customerName", "customerWhatsapp", "customerEmail", "ownerEmail", "nameserver1", "nameserver2", "targetPlatform"].forEach((id) => {
+        $(id)?.addEventListener("input", () => setFieldError(id, ""));
+      });
+      $("domainAccuracyAgree")?.addEventListener("change", () => setFieldError("domainAccuracyAgree", ""));
+      initBottomNavObserver();
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
+      document.querySelector('.brand')?.setAttribute('href', ROUTES.dashboard);
       const ok = await requireLogin();
       if (!ok) return;
 
