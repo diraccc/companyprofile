@@ -30,6 +30,10 @@
 
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; }
+/* Offset anchor scrolling to account for sticky header */
+html {
+  scroll-padding-top: 90px;
+}
 
     body {
       margin:0;
@@ -118,6 +122,8 @@
       align-items:center;
       gap:10px;
       flex-wrap:wrap;
+  /* Center nav buttons on narrow viewports for better alignment */
+  justify-content:center;
     }
 
     .btn {
@@ -130,7 +136,8 @@
       justify-content:center;
       gap:9px;
       font-weight:950;
-      transition:.2s ease;
+  /* Smooth hover and active states */
+  transition:transform .2s ease, box-shadow .2s ease;
     }
 
     .btn:hover { transform:translateY(-2px); }
@@ -219,7 +226,14 @@
       color:var(--deep);
       font-weight:950;
       box-shadow:0 12px 30px rgba(42,51,105,.07);
+  transition:transform .2s ease, box-shadow .2s ease;
     }
+
+.menu-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 16px 36px rgba(42,51,105,.12);
+}
 
     .menu-card span {
       display:block;
@@ -235,8 +249,13 @@
       border-radius:28px;
       background:rgba(255,255,255,.78);
       border:1px solid rgba(255,255,255,.72);
-      box-shadow:var(--shadow-soft);
+  box-shadow:var(--shadow-soft);
+  transition: box-shadow .3s ease;
     }
+
+.panel:hover {
+  box-shadow: 0 16px 36px rgba(42,51,105,.12);
+}
 
     .section-head {
       display:flex;
@@ -307,6 +326,8 @@
       border:1px solid rgba(35,43,85,.10);
       background:white;
       box-shadow:0 12px 30px rgba(42,51,105,.07);
+  /* Animate cards sliding into view */
+  animation: fadeInUp .6s ease;
     }
 
     .result-card.available {
@@ -323,6 +344,18 @@
       border-color:rgba(98,88,255,.20);
       background:linear-gradient(135deg,rgba(238,242,255,.95),white);
     }
+
+/* Keyframe for slide/fade in animation used by result cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
     .result-head {
       display:flex;

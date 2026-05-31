@@ -157,6 +157,8 @@
     .auth-card {
       padding:32px;
       background:rgba(255,255,255,.86);
+      /* Animate auth card entry */
+      animation: fadeInUp .6s ease;
     }
 
     .tabs {
@@ -178,6 +180,13 @@
       color:var(--muted);
       background:transparent;
       cursor:pointer;
+      transition: background .3s ease, color .3s ease, transform .2s ease;
+    }
+
+    .tab:hover {
+      transform: translateY(-2px);
+      background: rgba(98,88,255,.08);
+      color: var(--deep);
     }
 
     .tab.active {
@@ -232,7 +241,8 @@
       gap:9px;
       font-weight:950;
       cursor:pointer;
-      transition:.2s ease;
+      /* Smooth hover and active transitions */
+      transition: transform .2s ease, box-shadow .2s ease;
     }
 
     .btn:hover { transform:translateY(-2px); }
@@ -266,6 +276,18 @@
     .alert.show { display:block; }
     .alert.success { color:#047857; background:#dcfce7; border:1px solid #a7f3d0; }
     .alert.error { color:#be123c; background:#ffe4ea; border:1px solid #fecdd3; }
+
+    /* Keyframe for slide/fade in animation */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
     @media (max-width:850px) {
       body { padding:14px; align-items:start; }
