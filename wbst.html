@@ -1004,7 +1004,7 @@
           <div class="section-title">
             <div class="kicker">Admin Panel</div>
             <h2>Kelola domain dan pesanan</h2>
-            <p>Admin panel ini memakai token untuk memanggil API Vercel. Jangan bagikan token admin kepada orang lain.</p>
+            <p>Admin panel ini memakai token untuk memanggil API Supabase Edge Function. Jangan bagikan token admin kepada orang lain.</p>
           </div>
         </div>
 
@@ -1012,7 +1012,7 @@
           <div class="form-grid">
             <div class="field full">
               <label for="adminToken">Admin Token</label>
-              <input id="adminToken" type="password" placeholder="Masukkan ADMIN_TOKEN dari Vercel" />
+              <input id="adminToken" type="password" placeholder="Masukkan ADMIN_TOKEN dari Supabase Edge Function" />
             </div>
             <button class="btn btn-gold full" id="saveTokenBtn">Simpan Token & Muat Data</button>
           </div>
@@ -1187,6 +1187,58 @@
       rdapCache: new Map()
     };
 
+    // =============================
+    // KONFIGURASI API SUPABASE
+    // Ganti PROJECT_REF dengan project ref Supabase kamu.
+    // Contoh akhir:
+    // https://abcdxyz.supabase.co/functions/v1/domain-api
+    // =============================
+    const API_BASE_URL = "https://aqvzzfijlomcznotyigx.supabase.co/functions/v1/domain-api";
+    const ADMIN_WHATSAPP = "6281234567890";
+
+    function getApiBaseUrl() {
+      return API_BASE_URL.trim().replace(/\/$/, "");
+    }
+
+    function apiUrl(params = {}) {
+      const url = new URL(getApiBaseUrl());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      });
+      return url.toString();
+    }
+
+    function convertLegacyApiPath(path) {
+      if (!String(path).startsWith("/api/")) return path;
+
+      const legacyUrl = new URL(path, window.location.origin);
+      const endpoint = legacyUrl.pathname.replace("/api/", "");
+
+      if (endpoint === "rdap") {
+        return apiUrl({ domain: legacyUrl.searchParams.get("domain") });
+      }
+
+      if (endpoint === "domains") {
+        return apiUrl({ action: "domains" });
+      }
+
+      if (endpoint === "domain") {
+        return apiUrl({ action: "domain", id: legacyUrl.searchParams.get("id") });
+      }
+
+      if (endpoint === "orders") {
+        return apiUrl({ action: "orders" });
+      }
+
+      if (endpoint === "order") {
+        return apiUrl({ action: "order", id: legacyUrl.searchParams.get("id") });
+      }
+
+      return apiUrl();
+    }
+
     const sampleDomains = [
       {
         id: "sample-1",
@@ -1261,14 +1313,18 @@
     }
 
     async function fetchJson(url, options = {}) {
-      const response = await fetch(url, {
+      const finalUrl = convertLegacyApiPath(url);
+
+      const response = await fetch(finalUrl, {
         headers: { "Content-Type": "application/json", ...(options.headers || {}) },
         ...options
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success === false) {
-        throw new Error(data.message || "Request gagal.");
+      if (!response.ok || data.success === false || data.ok === false) {
+        const error = new Error(data.message || "Request gagal.");
+        error.apiError = response.ok;
+        throw error;
       }
       return data;
     }
@@ -1279,7 +1335,7 @@
 
       try {
         const result = await fetchJson("/api/domains");
-        state.domains = result.data || [];
+        state.domains = result.data || result.domains || [];
       } catch (error) {
         state.domains = sampleDomains;
         console.warn("Menggunakan data contoh karena API belum siap:", error.message);
@@ -1405,9 +1461,16 @@
 
     function formatRdapAlert(data) {
       const info = data.info || {};
+      const statusText = data.available === true
+        ? "Kemungkinan tersedia"
+        : data.available === false
+          ? "Sudah terdaftar"
+          : (data.status || data.message || "belum pasti");
+
       return [
-        `Domain: ${data.domain}`,
-        `Status: ${data.status || "belum pasti"}`,
+        `Domain: ${data.domain || "-"}`,
+        `Status: ${statusText}`,
+        `Keterangan: ${data.message || "-"}`,
         `Registrar: ${info.registrar || "-"}`,
         `Registrant: ${info.registrant || "-"}`,
         `Masa aktif sampai: ${info.expirationDate ? new Date(info.expirationDate).toLocaleDateString("id-ID") : "-"}`
@@ -1481,8 +1544,8 @@
           const data = await checkRdap(domain.domain_name);
           const info = data.info || {};
           box.innerHTML = `
-            <div><span>Domain</span><b>${data.domain}</b></div>
-            <div><span>Status</span><b>${data.status || "-"}</b></div>
+            <div><span>Domain</span><b>${data.domain || "-"}</b></div>
+            <div><span>Status</span><b>${data.available === true ? "Kemungkinan tersedia" : data.available === false ? "Sudah terdaftar" : (data.status || data.message || "-")}</b></div>
             <div><span>Registrar</span><b>${info.registrar || "-"}</b></div>
             <div><span>Registrant</span><b>${info.registrant || "-"}</b></div>
             <div><span>Tanggal Registrasi</span><b>${info.registrationDate ? new Date(info.registrationDate).toLocaleDateString("id-ID") : "-"}</b></div>
@@ -1540,6 +1603,13 @@
       const payload = {
         product_id: $("orderProductId").value,
         domain_name: $("orderDomainName").value,
+
+        // Nama field di bawah ini disesuaikan dengan Edge Function Supabase.
+        buyer_name: $("customerName").value,
+        buyer_whatsapp: $("customerWhatsapp").value,
+        buyer_email: $("customerEmail").value,
+
+        // Field tambahan tetap dikirim agar kompatibel jika API kamu sudah memakai nama lama.
         customer_name: $("customerName").value,
         customer_whatsapp: $("customerWhatsapp").value,
         customer_email: $("customerEmail").value,
@@ -1555,7 +1625,7 @@
         });
 
         alertBox.className = "alert success show";
-        alertBox.innerHTML = `Pesanan berhasil dibuat. ${result.whatsappUrl ? `<a href="${result.whatsappUrl}" target="_blank" rel="noopener"><b>Lanjutkan ke WhatsApp</b></a>` : "Admin akan menghubungi Anda."}`;
+        alertBox.innerHTML = `Pesanan berhasil dibuat. ${result.whatsappUrl ? `<a href="${result.whatsappUrl}" target="_blank" rel="noopener"><b>Lanjutkan ke WhatsApp</b></a>` : (result.message || "Admin akan menghubungi Anda.")}`;
 
         if (result.whatsappUrl) {
           setTimeout(() => window.open(result.whatsappUrl, "_blank"), 900);
@@ -1563,10 +1633,16 @@
 
         event.target.reset();
       } catch (error) {
-        const whatsappNumber = "6281234567890";
+        if (error.apiError) {
+          alertBox.className = "alert error show";
+          alertBox.textContent = error.message;
+          return;
+        }
+
+        const whatsappNumber = ADMIN_WHATSAPP;
         const text = `Halo Admin, saya ingin membeli domain ${payload.domain_name}. Nama: ${payload.customer_name}. WhatsApp: ${payload.customer_whatsapp}.`;
         alertBox.className = "alert success show";
-        alertBox.innerHTML = `API order belum aktif. <a href="https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener"><b>Lanjutkan via WhatsApp</b></a>`;
+        alertBox.innerHTML = `API order belum bisa dihubungi. <a href="https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener"><b>Lanjutkan via WhatsApp</b></a>`;
       } finally {
         button.disabled = false;
         button.textContent = "Kirim Pesanan";
@@ -1619,7 +1695,7 @@
 
       try {
         const result = await adminRequest("/api/domains");
-        adminState.domains = result.data || [];
+        adminState.domains = result.data || result.domains || [];
         renderAdminDomains();
       } catch (error) {
         rows.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
@@ -1664,7 +1740,7 @@
 
       try {
         const result = await adminRequest("/api/orders");
-        adminState.orders = result.data || [];
+        adminState.orders = result.data || result.orders || [];
         renderAdminOrders();
       } catch (error) {
         rows.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
