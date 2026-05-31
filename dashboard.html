@@ -5867,5 +5867,224 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
 })();
 </script>
 
+<!-- DIRAC_V6_PRECISION_START -->
+<style id="dirac-v6-precision-floating-liquid-smooth">
+:root{
+  --dirac-nav-liquid-x:6px;
+  --dirac-nav-liquid-y:6px;
+  --dirac-nav-liquid-w:60px;
+  --dirac-nav-liquid-h:50px;
+}
+
+@media(max-width:900px){
+  .dirac-floating-actions{
+    right:18px!important;
+    bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;
+    gap:8px!important;
+    z-index:19200!important;
+    will-change:transform,opacity!important;
+  }
+
+  .dirac-float-btn{
+    width:48px!important;
+    height:48px!important;
+    transform:translate3d(0,0,0)!important;
+    transition:
+      transform .34s cubic-bezier(.18,.88,.22,1),
+      box-shadow .34s cubic-bezier(.18,.88,.22,1),
+      filter .34s ease,
+      opacity .34s ease!important;
+  }
+
+  .dirac-float-btn:hover,
+  .dirac-float-btn:focus-visible{
+    transform:translate3d(0,-2px,0) scale(1.028)!important;
+  }
+
+  .mobile-bottom-nav{
+    isolation:isolate!important;
+    overflow:hidden!important;
+    contain:layout paint!important;
+  }
+
+  .mobile-bottom-nav::before{
+    left:0!important;
+    top:0!important;
+    transform:translate3d(var(--dirac-nav-liquid-x),var(--dirac-nav-liquid-y),0)!important;
+    will-change:transform,width,height,border-radius,filter!important;
+    transition:
+      transform .78s cubic-bezier(.16,1,.24,1),
+      width .78s cubic-bezier(.16,1,.24,1),
+      height .78s cubic-bezier(.16,1,.24,1),
+      border-radius .78s cubic-bezier(.16,1,.24,1),
+      filter .28s ease!important;
+    backface-visibility:hidden!important;
+    -webkit-backface-visibility:hidden!important;
+  }
+
+  .mobile-bottom-nav::after{
+    left:0!important;
+    top:0!important;
+    transform:translate3d(
+      calc(var(--dirac-nav-liquid-x) + 10px),
+      calc(var(--dirac-nav-liquid-y) + 6px),
+      0
+    )!important;
+    will-change:transform,width,opacity!important;
+    transition:
+      transform .78s cubic-bezier(.16,1,.24,1),
+      width .78s cubic-bezier(.16,1,.24,1),
+      opacity .34s ease!important;
+    backface-visibility:hidden!important;
+    -webkit-backface-visibility:hidden!important;
+  }
+
+  .mobile-bottom-nav button{
+    transition:
+      color .34s ease,
+      opacity .34s ease,
+      transform .42s cubic-bezier(.16,1,.24,1),
+      text-shadow .34s ease!important;
+    -webkit-tap-highlight-color:transparent!important;
+  }
+
+  .mobile-bottom-nav button.active{
+    transform:translate3d(0,-1px,0)!important;
+  }
+
+  .mobile-bottom-nav button:not(.active){
+    transform:translate3d(0,0,0)!important;
+  }
+}
+
+@media(max-width:520px){
+  .dirac-floating-actions{
+    right:18px!important;
+    bottom:calc(86px + env(safe-area-inset-bottom,0px))!important;
+    gap:8px!important;
+  }
+}
+
+@media(max-width:380px){
+  .dirac-floating-actions{
+    right:14px!important;
+    bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .mobile-bottom-nav::before,
+  .mobile-bottom-nav::after,
+  .mobile-bottom-nav button,
+  .dirac-float-btn{
+    transition:none!important;
+    animation:none!important;
+  }
+}
+</style>
+
+<script id="dirac-v6-precision-liquid-js">
+(function(){
+  "use strict";
+  function ready(fn){
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+    else fn();
+  }
+  function bar(){ return document.querySelector(".mobile-bottom-nav"); }
+  function activeButton(){
+    return document.querySelector(".mobile-bottom-nav button.active[data-scroll]") ||
+           document.querySelector(".mobile-bottom-nav button[data-scroll]");
+  }
+  function setLiquidTo(button){
+    var nav = bar();
+    if(!nav || !button) return;
+    var b = button.getBoundingClientRect();
+    var n = nav.getBoundingClientRect();
+    if(!b.width || !n.width) return;
+
+    var padX = 2;
+    var padY = 2;
+    var x = Math.max(4, b.left - n.left + padX);
+    var y = Math.max(4, b.top - n.top + padY);
+    var w = Math.max(44, b.width - padX * 2);
+    var h = Math.max(42, b.height - padY * 2);
+
+    nav.style.setProperty("--dirac-nav-liquid-x", x.toFixed(2) + "px");
+    nav.style.setProperty("--dirac-nav-liquid-y", y.toFixed(2) + "px");
+    nav.style.setProperty("--dirac-nav-liquid-w", w.toFixed(2) + "px");
+    nav.style.setProperty("--dirac-nav-liquid-h", h.toFixed(2) + "px");
+  }
+  function syncLiquid(){
+    window.requestAnimationFrame(function(){
+      setLiquidTo(activeButton());
+    });
+  }
+
+  window.diracSyncLiquidNav = syncLiquid;
+
+  function setActive(id){
+    document.querySelectorAll(".mobile-bottom-nav [data-scroll]").forEach(function(button){
+      var isActive = button.dataset.scroll === id;
+      button.classList.toggle("active", isActive);
+      if(isActive) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+    syncLiquid();
+  }
+
+  if(typeof window.updateBottomNavActive === "function"){
+    var previous = window.updateBottomNavActive;
+    window.updateBottomNavActive = function(id){
+      previous.call(this, id);
+      syncLiquid();
+    };
+    try{ updateBottomNavActive = window.updateBottomNavActive; }catch(_){}
+  }else{
+    window.updateBottomNavActive = setActive;
+    try{ updateBottomNavActive = window.updateBottomNavActive; }catch(_){}
+  }
+
+  document.addEventListener("click", function(event){
+    var button = event.target.closest && event.target.closest(".mobile-bottom-nav button[data-scroll]");
+    if(!button) return;
+    if(typeof window.updateBottomNavActive === "function"){
+      window.updateBottomNavActive(button.dataset.scroll);
+    }else{
+      setActive(button.dataset.scroll);
+    }
+    syncLiquid();
+    window.setTimeout(syncLiquid, 220);
+    window.setTimeout(syncLiquid, 760);
+  }, true);
+
+  ready(function(){
+    syncLiquid();
+    window.setTimeout(syncLiquid, 80);
+    window.setTimeout(syncLiquid, 360);
+    window.setTimeout(syncLiquid, 1000);
+
+    var nav = bar();
+    if(nav && "ResizeObserver" in window){
+      var ro = new ResizeObserver(syncLiquid);
+      ro.observe(nav);
+      Array.prototype.forEach.call(nav.querySelectorAll("button"), function(button){ ro.observe(button); });
+    }
+
+    var ticking = false;
+    function onMove(){
+      if(ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function(){
+        ticking = false;
+        syncLiquid();
+      });
+    }
+    window.addEventListener("resize", onMove, { passive:true });
+    window.addEventListener("orientationchange", function(){ window.setTimeout(syncLiquid, 260); }, { passive:true });
+    window.addEventListener("scroll", onMove, { passive:true });
+  });
+})();
+</script>
+<!-- DIRAC_V6_PRECISION_END -->
 </body>
 </html>
