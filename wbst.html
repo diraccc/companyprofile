@@ -357,14 +357,30 @@
     }
 
     async function api(path, options = {}) {
-      const response = await fetch(path, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {})
-        },
+      const API_BASE = "https://companyprofilee-expk.vercel.app/api/health";
+      const accessToken = localStorage.getItem("dirac_domain_access_token") || "";
+      const refreshToken = localStorage.getItem("dirac_domain_refresh_token") || "";
+      const url = path.startsWith("http") ? path : API_BASE + path;
+
+      const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      };
+
+      if (accessToken) headers.Authorization = "Bearer " + accessToken;
+      if (refreshToken) headers["X-Domain-Refresh"] = refreshToken;
+
+      const response = await fetch(url, {
+        credentials: "omit",
+        headers,
         ...options
       });
+
+      const newAccessToken = response.headers.get("X-Domain-Access-Token");
+      const newRefreshToken = response.headers.get("X-Domain-Refresh-Token");
+
+      if (newAccessToken) localStorage.setItem("dirac_domain_access_token", newAccessToken);
+      if (newRefreshToken) localStorage.setItem("dirac_domain_refresh_token", newRefreshToken);
 
       const data = await response.json().catch(() => ({}));
 
@@ -372,12 +388,19 @@
         throw new Error(data.message || "Request gagal.");
       }
 
+      if (data.session?.access_token) {
+        localStorage.setItem("dirac_domain_access_token", data.session.access_token);
+      }
+      if (data.session?.refresh_token) {
+        localStorage.setItem("dirac_domain_refresh_token", data.session.refresh_token);
+      }
+
       return data;
     }
 
     async function checkSession() {
       try {
-        await api("/api/health?action=domain_me");
+        await api("?action=domain_me");
         window.location.href = "./dashboard.html";
       } catch (_) {}
     }
@@ -393,8 +416,8 @@
 
       try {
         const endpoint = mode === "login"
-          ? "/api/health?action=domain_login"
-          : "/api/health?action=domain_register";
+          ? "?action=domain_login"
+          : "?action=domain_register";
 
         const result = await api(endpoint, {
           method: "POST",
