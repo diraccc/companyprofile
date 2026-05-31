@@ -7,13 +7,13 @@
   <title>Masuk / Daftar | Dirac Group Domain</title>
   <meta name="description" content="Login atau daftar pelanggan Dirac Group untuk membeli dan memantau status domain." />
   <meta name="theme-color" content="#6258ff" />
-  <meta name="color-scheme" content="light" />
+  <meta name="color-scheme" content="light dark" />
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="canonical" href="./login.html" />
+  <link rel="canonical" href="./wbst.html" />
   <meta property="og:title" content="Masuk Dirac Group Domain" />
   <meta property="og:description" content="Login pelanggan untuk cek domain, checkout, dan melihat status pesanan." />
   <meta name="dirac-dashboard-route" content="./dashboard.html" />
-  <meta name="dirac-login-route" content="./login.html" />
+  <meta name="dirac-login-route" content="./wbst.html" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
 
   <style>
@@ -1386,6 +1386,229 @@ input,select,textarea { font-size:16px; }
 @media (max-width:430px) {
   .auth-status-strip { grid-template-columns:1fr !important; }
   .mini-list { font-size:13px; }
+}
+
+
+/* ===== Ultra refinement v2: corporate domain marketplace, clean background, dark-mode repair, and richer animation ===== */
+:root {
+  --page-bg:#ffffff;
+  --surface:#ffffff;
+  --surface-2:#f8fafc;
+  --surface-3:#f1f5f9;
+  --cart-navy:#0f2747;
+  --cart-blue:#2563eb;
+  --cart-cyan:#06b6d4;
+  --cart-green:#10b981;
+  --cart-amber:#f59e0b;
+  --cart-line:rgba(15,39,71,.12);
+  --corporate-shadow:0 22px 60px rgba(15,39,71,.10);
+  --corporate-shadow-strong:0 28px 80px rgba(15,39,71,.16);
+  --motion-fast:180ms;
+  --motion-med:360ms;
+  --motion-slow:760ms;
+}
+
+html[data-theme="dark"] {
+  color-scheme:dark;
+  --page-bg:#0b1120;
+  --surface:#111827;
+  --surface-2:#0f172a;
+  --surface-3:#1e293b;
+  --ink:#e5edf8;
+  --deep:#f8fafc;
+  --muted:#aebbd0;
+  --line:rgba(226,232,240,.14);
+  --cart-line:rgba(226,232,240,.16);
+  --corporate-shadow:0 22px 60px rgba(0,0,0,.32);
+  --corporate-shadow-strong:0 30px 90px rgba(0,0,0,.44);
+}
+
+html, body { max-width:100%; overflow-x:hidden; }
+body {
+  background:var(--page-bg) !important;
+  background-color:var(--page-bg) !important;
+  color:var(--ink) !important;
+}
+body::before { display:none !important; }
+
+.container { width:min(1180px, calc(100% - 32px)) !important; }
+.site-header {
+  background:rgba(255,255,255,.92) !important;
+  border-bottom:1px solid rgba(15,39,71,.08) !important;
+  box-shadow:0 10px 34px rgba(15,39,71,.07) !important;
+}
+html[data-theme="dark"] .site-header {
+  background:rgba(11,17,32,.90) !important;
+  border-bottom-color:rgba(226,232,240,.12) !important;
+}
+.panel,.card,.stat-card,.price-card,.feature-card,.listing-card,.auth-card,.domain-card,.order-card,.flow-step,.filter-pill,.market-card,.security-card,.auth-metric,.auth-trust-panel,.domain-terminal-card,.console-window,.payment-method-grid > div,.guide-note,.owned-domain-card,.metric-card,.hero-card {
+  background:var(--surface) !important;
+  border-color:var(--cart-line) !important;
+  color:var(--ink) !important;
+  box-shadow:var(--corporate-shadow) !important;
+}
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .stat-card,
+html[data-theme="dark"] .price-card,
+html[data-theme="dark"] .feature-card,
+html[data-theme="dark"] .listing-card,
+html[data-theme="dark"] .auth-card,
+html[data-theme="dark"] .domain-card,
+html[data-theme="dark"] .order-card,
+html[data-theme="dark"] .flow-step,
+html[data-theme="dark"] .filter-pill,
+html[data-theme="dark"] .market-card,
+html[data-theme="dark"] .security-card,
+html[data-theme="dark"] .auth-metric,
+html[data-theme="dark"] .auth-trust-panel,
+html[data-theme="dark"] .payment-method-grid > div,
+html[data-theme="dark"] .guide-note,
+html[data-theme="dark"] .owned-domain-card,
+html[data-theme="dark"] .metric-card,
+html[data-theme="dark"] .hero-card {
+  background:var(--surface) !important;
+  border-color:rgba(226,232,240,.14) !important;
+}
+
+html[data-theme="dark"] .domain-form,
+html[data-theme="dark"] .domain-search,
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select,
+html[data-theme="dark"] .checkout-summary,
+html[data-theme="dark"] .cart-empty,
+html[data-theme="dark"] .order-search,
+html[data-theme="dark"] .tabs,
+html[data-theme="dark"] .password-wrap,
+html[data-theme="dark"] .search-polish-note,
+html[data-theme="dark"] .alert,
+html[data-theme="dark"] .total-row,
+html[data-theme="dark"] .modal-backdrop .confirm-modal {
+  background:var(--surface-2) !important;
+  color:var(--ink) !important;
+  border-color:rgba(226,232,240,.16) !important;
+}
+html[data-theme="dark"] .btn-soft,
+html[data-theme="dark"] .theme-toggle,
+html[data-theme="dark"] .preset-chip,
+html[data-theme="dark"] .tld-chip,
+html[data-theme="dark"] .filter-chip,
+html[data-theme="dark"] .order-action,
+html[data-theme="dark"] .auth-links a,
+html[data-theme="dark"] .helper a {
+  background:rgba(15,23,42,.92) !important;
+  color:#e5edf8 !important;
+  border-color:rgba(226,232,240,.16) !important;
+}
+html[data-theme="dark"] .brand-copy strong,
+html[data-theme="dark"] .section-title h2,
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] strong,
+html[data-theme="dark"] label,
+html[data-theme="dark"] .summary-line b,
+html[data-theme="dark"] .summary-line strong {
+  color:#f8fafc !important;
+}
+html[data-theme="dark"] p,
+html[data-theme="dark"] small,
+html[data-theme="dark"] .microcopy,
+html[data-theme="dark"] .field-help,
+html[data-theme="dark"] .brand-copy span,
+html[data-theme="dark"] .section-title p {
+  color:#aebbd0 !important;
+}
+html[data-theme="dark"] .hero-console,
+html[data-theme="dark"] .hero-domain-console,
+html[data-theme="dark"] .brand-panel {
+  color:#fff !important;
+  background:linear-gradient(145deg,#111827,#1e3a8a 58%,#0f766e) !important;
+}
+html[data-theme="dark"] .hero-console *,
+html[data-theme="dark"] .hero-domain-console *,
+html[data-theme="dark"] .brand-panel * { color:inherit; }
+
+.btn,.card,.panel,.stat-card,.listing-card,.filter-pill,.flow-step,.menu-card,.auth-metric,.price-card,.feature-card,.payment-method-grid > div,.tld-chip,.preset-chip,.filter-chip,.order-action,.theme-toggle,.cart-item,.owned-domain-card,.order-card {
+  transition:transform var(--motion-med) cubic-bezier(.2,.8,.2,1), box-shadow var(--motion-med) cubic-bezier(.2,.8,.2,1), border-color var(--motion-med), background var(--motion-med), color var(--motion-med), opacity var(--motion-med) !important;
+}
+.btn,.theme-toggle { position:relative; overflow:hidden; isolation:isolate; }
+.btn::after,.theme-toggle::after {
+  content:"";
+  position:absolute;
+  inset:-2px auto -2px -55%;
+  width:46%;
+  transform:skewX(-20deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);
+  opacity:0;
+  pointer-events:none;
+  z-index:-1;
+}
+.btn:hover::after,.theme-toggle:hover::after { animation:shineSweep 780ms ease; opacity:1; }
+.btn:hover,.theme-toggle:hover,.card:hover,.panel:hover,.stat-card:hover,.listing-card:hover,.filter-pill:hover,.flow-step:hover,.menu-card:hover,.auth-metric:hover,.price-card:hover,.feature-card:hover,.payment-method-grid > div:hover,.tld-chip:hover,.preset-chip:hover,.filter-chip:hover,.order-action:hover,.owned-domain-card:hover,.order-card:hover {
+  transform:translateY(-4px) !important;
+  box-shadow:var(--corporate-shadow-strong) !important;
+}
+.hero-card,.brand-panel,.hero-console,.hero-domain-console {
+  position:relative;
+  overflow:hidden;
+}
+.hero-card::before,.brand-panel::before,.hero-console::before,.hero-domain-console::before {
+  content:"";
+  position:absolute;
+  inset:-1px;
+  pointer-events:none;
+  background:linear-gradient(120deg, transparent 0%, rgba(37,99,235,.10) 30%, rgba(6,182,212,.16) 50%, transparent 72%);
+  transform:translateX(-120%);
+  animation:glassWave 7s ease-in-out infinite;
+}
+.panel:nth-of-type(odd),.card:nth-of-type(odd),.stat-card:nth-of-type(odd),.listing-card:nth-of-type(odd) { animation:softFloatA 7s ease-in-out infinite; }
+.panel:nth-of-type(even),.card:nth-of-type(even),.stat-card:nth-of-type(even),.listing-card:nth-of-type(even) { animation:softFloatB 8s ease-in-out infinite; }
+.price-card b,.stat-card strong,.console-window strong,.domain-terminal-card strong { animation:microGlow 3.6s ease-in-out infinite; }
+input:focus,textarea:focus,select:focus,.btn:focus-visible,.theme-toggle:focus-visible,.tab:focus-visible,.tld-chip:focus-visible,.preset-chip:focus-visible {
+  outline:none !important;
+  border-color:rgba(37,99,235,.52) !important;
+  box-shadow:0 0 0 4px rgba(37,99,235,.14), 0 12px 32px rgba(15,39,71,.10) !important;
+}
+
+@keyframes shineSweep { from { transform:translateX(0) skewX(-20deg); } to { transform:translateX(340%) skewX(-20deg); } }
+@keyframes glassWave { 0%,62%,100% { transform:translateX(-120%); opacity:0; } 72% { opacity:1; } 88% { transform:translateX(120%); opacity:0; } }
+@keyframes softFloatA { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+@keyframes softFloatB { 0%,100% { transform:translateY(0); } 50% { transform:translateY(3px); } }
+@keyframes microGlow { 0%,100% { text-shadow:0 0 0 rgba(37,99,235,0); } 50% { text-shadow:0 0 18px rgba(37,99,235,.22); } }
+@keyframes cartEnter { from { opacity:0; transform:translateY(16px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes premiumBorder { 0% { background-position:0% 50%; } 50% { background-position:100% 50%; } 100% { background-position:0% 50%; } }
+
+@media (max-width:760px) {
+  .container { width:min(100% - 22px, 1180px) !important; }
+  .site-header { position:sticky !important; }
+  .nav { min-height:auto !important; padding:12px 0 !important; align-items:stretch !important; }
+  .brand { min-width:0 !important; }
+  .brand-mark { width:44px !important; height:44px !important; border-radius:15px !important; flex:0 0 auto; }
+  .brand-copy strong { font-size:16px !important; }
+  .brand-copy span { font-size:9px !important; letter-spacing:.12em !important; }
+  .nav-actions { width:100% !important; display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:8px !important; }
+  .nav-actions .btn,.nav-actions .theme-toggle { width:100% !important; min-height:44px !important; padding:10px 12px !important; white-space:nowrap !important; }
+  .hero { padding-top:28px !important; }
+  .hero-card,.panel,.brand-panel,.auth-card { border-radius:24px !important; padding:20px !important; }
+  .domain-form,.domain-search { grid-template-columns:1fr !important; border-radius:18px !important; }
+  .domain-form .btn,.domain-search .btn { width:100% !important; }
+  .filter-strip,.marketplace-home-grid,.listing-grid,.price-grid,.feature-grid,.stats-grid,.auth-metric-grid,.auth-trust-panel,.payment-method-grid,.console-grid { grid-template-columns:1fr !important; }
+  .section-head { flex-direction:column !important; align-items:stretch !important; gap:12px !important; }
+  .section-head .btn { width:100% !important; }
+}
+
+@media (max-width:440px) {
+  .container { width:min(100% - 18px, 1180px) !important; }
+  .nav-actions { grid-template-columns:1fr !important; }
+  .hero-card,.panel,.brand-panel,.auth-card { padding:17px !important; border-radius:20px !important; }
+  .btn { min-height:44px !important; }
+  h1 { font-size:clamp(30px, 10vw, 42px) !important; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
 }
 
   </style>
