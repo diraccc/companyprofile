@@ -3203,6 +3203,91 @@ html[data-theme="dark"] #keranjang .cart-price{background:linear-gradient(135deg
 }
 
   </style>
+
+
+<style id="dirac-dashboard-v4-account-dark-menu-polish">
+/* V4 dashboard polish: account, dark mode, menu content, and order-like floating actions. */
+:root{--v4-dark-bg:#07111f;--v4-dark-panel:#101a2c;--v4-dark-panel-2:#0d1628;--v4-dark-line:rgba(226,232,240,.16);--v4-dark-text:#f8fafc;--v4-dark-muted:#cbd5e1;--v4-blue:#2563eb;--v4-cyan:#06b6d4;--v4-green:#14b8a6;}
+.theme-toggle-header{flex:0 0 auto;min-height:44px;padding:10px 14px;border-radius:999px;white-space:nowrap;}
+.account-panel{position:relative;overflow:hidden;}
+.account-panel::before{content:"";position:absolute;right:-90px;top:-90px;width:220px;height:220px;border-radius:999px;background:linear-gradient(135deg,rgba(37,99,235,.14),rgba(6,182,212,.12));pointer-events:none;}
+.account-grid{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:16px;position:relative;z-index:1;}
+.account-card{border:1px solid rgba(15,23,42,.10);background:linear-gradient(180deg,#ffffff,#f8fbff);border-radius:28px;padding:18px;box-shadow:0 18px 44px rgba(42,51,105,.10);}
+.account-profile-card{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;}
+.account-card-head{display:flex;gap:12px;align-items:center;margin-bottom:14px;}
+.account-icon{width:48px;height:48px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(135deg,var(--v4-blue),var(--v4-cyan));color:#fff;font-size:22px;box-shadow:0 16px 32px rgba(37,99,235,.20);}
+.account-card small{display:block;color:var(--muted);font-weight:850;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.account-card strong{display:block;color:var(--deep);font-size:clamp(18px,2.7vw,24px);line-height:1.15;word-break:break-word;}
+.account-card p,.account-help{color:var(--muted);line-height:1.55;margin:8px 0 12px;}
+.account-form-grid{grid-template-columns:1fr 1fr;gap:12px;}
+.account-alert-success{display:block!important;background:rgba(20,184,166,.10)!important;border-color:rgba(20,184,166,.30)!important;color:#047857!important;}
+.account-alert-error{display:block!important;background:rgba(239,68,68,.10)!important;border-color:rgba(239,68,68,.30)!important;color:#b91c1c!important;}
+
+/* Order.html-like floating quick actions */
+.float-actions{display:none!important;}
+.dirac-floating-actions{position:fixed;right:clamp(14px,2.8vw,22px);bottom:calc(108px + env(safe-area-inset-bottom,0px));z-index:9200;display:flex;flex-direction:column;align-items:flex-end;gap:10px;pointer-events:none;opacity:1;transform:translate3d(0,0,0);transition:opacity .28s cubic-bezier(.22,1,.36,1),transform .28s cubic-bezier(.22,1,.36,1);}
+.dirac-float-btn{pointer-events:auto;width:48px;height:48px;border-radius:999px;border:1px solid rgba(255,255,255,.18);display:grid;place-items:center;position:relative;isolation:isolate;overflow:hidden;color:#fff;background:linear-gradient(145deg,rgba(11,16,24,.88),rgba(16,23,34,.78));box-shadow:0 16px 36px rgba(0,0,0,.32),0 0 0 1px rgba(255,255,255,.05) inset;backdrop-filter:blur(16px) saturate(1.14);-webkit-backdrop-filter:blur(16px) saturate(1.14);transform:translate3d(0,0,0);transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s cubic-bezier(.22,1,.36,1),border-color .28s cubic-bezier(.22,1,.36,1),filter .28s cubic-bezier(.22,1,.36,1),opacity .28s cubic-bezier(.22,1,.36,1);-webkit-tap-highlight-color:transparent;}
+.dirac-float-btn::before{content:"";position:absolute;inset:-1px;z-index:-1;border-radius:inherit;background:linear-gradient(115deg,transparent 12%,rgba(255,255,255,.18) 36%,rgba(96,165,250,.22) 48%,transparent 70%);transform:translateX(-145%) rotate(8deg);opacity:.72;transition:transform .72s cubic-bezier(.22,1,.36,1);}
+.dirac-float-btn::after{content:"";position:absolute;inset:5px;z-index:-1;border-radius:inherit;border:1px solid rgba(255,255,255,.10);opacity:.7;}
+.dirac-float-btn svg{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:2.35;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 4px 10px rgba(0,0,0,.24));}
+.dirac-float-btn:hover,.dirac-float-btn:focus-visible{transform:translate3d(0,-3px,0) scale(1.035);border-color:rgba(96,165,250,.62);box-shadow:0 20px 44px rgba(0,0,0,.38),0 0 26px rgba(37,99,235,.15),0 0 0 1px rgba(255,255,255,.08) inset;filter:brightness(1.06);outline:none;}
+.dirac-float-btn:hover::before,.dirac-float-btn:focus-visible::before{transform:translateX(145%) rotate(8deg);}
+.dirac-float-top{color:#f9fafb;background:linear-gradient(145deg,#173ea8,#2563eb);}
+.dirac-float-wa{color:#fff;border-color:rgba(255,255,255,.18);background:linear-gradient(145deg,rgba(37,211,102,.98),rgba(18,140,126,.96));box-shadow:0 16px 36px rgba(0,0,0,.34),0 10px 28px rgba(37,211,102,.16),0 0 0 1px rgba(255,255,255,.10) inset;animation:diracWaQuietBreathe 4.2s ease-in-out infinite;}
+.dirac-float-wa svg{stroke-width:0;fill:currentColor;filter:drop-shadow(0 4px 10px rgba(0,0,0,.20));}
+@keyframes diracWaQuietBreathe{0%,100%{box-shadow:0 16px 36px rgba(0,0,0,.34),0 10px 28px rgba(37,211,102,.14),0 0 0 1px rgba(255,255,255,.10) inset}50%{box-shadow:0 18px 40px rgba(0,0,0,.36),0 12px 34px rgba(37,211,102,.22),0 0 0 1px rgba(255,255,255,.12) inset}}
+
+/* Strong dark-mode readability fixes */
+html[data-theme="dark"] body{background:#07111f!important;color:var(--v4-dark-text)!important;}
+html[data-theme="dark"] body::before{opacity:.22!important;}
+html[data-theme="dark"] .site-header{background:rgba(7,17,31,.94)!important;border-color:var(--v4-dark-line)!important;box-shadow:0 18px 54px rgba(0,0,0,.42)!important;}
+html[data-theme="dark"] .panel,html[data-theme="dark"] .hero-card,html[data-theme="dark"] .stat-card,html[data-theme="dark"] .result-card,html[data-theme="dark"] .cart-item,html[data-theme="dark"] .order-card,html[data-theme="dark"] .owned-domain-card,html[data-theme="dark"] .checkout-summary,html[data-theme="dark"] .tool-card,html[data-theme="dark"] .safety-card,html[data-theme="dark"] .price-card,html[data-theme="dark"] .market-card,html[data-theme="dark"] .account-card,html[data-theme="dark"] .payment-method-grid>div,html[data-theme="dark"] .guide-note,html[data-theme="dark"] .agree-box,html[data-theme="dark"] .bulk-panel,html[data-theme="dark"] .suggestion-box,html[data-theme="dark"] .domain-terminal-card,html[data-theme="dark"] .owned-domain-meta div{background:linear-gradient(180deg,var(--v4-dark-panel),var(--v4-dark-panel-2))!important;color:var(--v4-dark-text)!important;border-color:var(--v4-dark-line)!important;box-shadow:0 22px 52px rgba(0,0,0,.38)!important;}
+html[data-theme="dark"] .section-title h2,html[data-theme="dark"] .hero-card h1,html[data-theme="dark"] .account-card strong,html[data-theme="dark"] .cart-item h3,html[data-theme="dark"] .order-card h3,html[data-theme="dark"] .owned-domain-card strong,html[data-theme="dark"] .tool-card strong,html[data-theme="dark"] .safety-card b,html[data-theme="dark"] .checkout-summary h3{color:#f8fafc!important;text-shadow:none!important;}
+html[data-theme="dark"] p,html[data-theme="dark"] .section-title p,html[data-theme="dark"] .hero-card p,html[data-theme="dark"] .tool-card p,html[data-theme="dark"] .safety-card p,html[data-theme="dark"] .account-card p,html[data-theme="dark"] .microcopy,html[data-theme="dark"] .field-help,html[data-theme="dark"] .summary-line,html[data-theme="dark"] .cart-item p,html[data-theme="dark"] .owned-domain-card span,html[data-theme="dark"] .guide-list li,html[data-theme="dark"] .account-help{color:var(--v4-dark-muted)!important;}
+html[data-theme="dark"] .dashboard-market-ribbon span,html[data-theme="dark"] .filter-chip,html[data-theme="dark"] .tld-chip,html[data-theme="dark"] .preset-chip,html[data-theme="dark"] .order-action,html[data-theme="dark"] .btn-soft{background:#131f33!important;color:#e2e8f0!important;border-color:rgba(148,163,184,.30)!important;box-shadow:none!important;}
+html[data-theme="dark"] .dashboard-market-ribbon span:hover,html[data-theme="dark"] .filter-chip.active,html[data-theme="dark"] .filter-chip:hover,html[data-theme="dark"] .order-action:hover{background:linear-gradient(135deg,#1d4ed8,#0891b2)!important;color:#ffffff!important;border-color:rgba(96,165,250,.44)!important;}
+html[data-theme="dark"] input,html[data-theme="dark"] textarea,html[data-theme="dark"] select,html[data-theme="dark"] .domain-form,html[data-theme="dark"] .order-search{background:#091322!important;color:#f8fafc!important;border-color:rgba(148,163,184,.28)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important;}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:rgba(203,213,225,.70)!important;}
+html[data-theme="dark"] label,html[data-theme="dark"] .field label,html[data-theme="dark"] .account-card small{color:#dbeafe!important;}
+html[data-theme="dark"] .agree-box small{color:#cbd5e1!important;}
+html[data-theme="dark"] .mobile-bottom-nav{background:rgba(8,17,31,.92)!important;border-color:rgba(226,232,240,.14)!important;box-shadow:0 22px 70px rgba(0,0,0,.55)!important;}
+html[data-theme="dark"] .mobile-bottom-nav button{color:#dbeafe!important;background:transparent!important;}
+html[data-theme="dark"] .mobile-bottom-nav button.active{background:linear-gradient(135deg,#1e3a8a,#0f766e)!important;color:#ffffff!important;}
+html[data-theme="dark"] .nav-backdrop{background:rgba(0,0,0,.58)!important;}
+
+@media(max-width:900px){
+  body{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important;}
+  .site-header{z-index:30000!important;}
+  .nav{display:flex!important;align-items:center!important;gap:8px!important;}
+  .brand{margin-right:auto!important;min-width:0!important;max-width:calc(100% - 118px)!important;}
+  .theme-toggle-header{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:42px!important;min-width:42px!important;padding:9px 10px!important;border-radius:15px!important;}
+  .theme-toggle-header .theme-label{display:none!important;}
+  .menu-toggle{position:relative!important;z-index:30040!important;display:flex!important;flex:0 0 auto!important;margin-left:0!important;}
+  .site-header .nav-actions{position:fixed!important;top:calc(76px + env(safe-area-inset-top,0px))!important;right:12px!important;left:12px!important;z-index:30030!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;padding:14px!important;border-radius:24px!important;background:rgba(255,255,255,.98)!important;border:1px solid rgba(15,23,42,.10)!important;box-shadow:0 24px 70px rgba(15,23,42,.24)!important;transform:translateY(-12px) scale(.98)!important;opacity:0!important;pointer-events:none!important;max-height:calc(100vh - 104px)!important;overflow:auto!important;backdrop-filter:blur(22px)!important;-webkit-backdrop-filter:blur(22px)!important;}
+  body.menu-open .site-header .nav-actions{transform:translateY(0) scale(1)!important;opacity:1!important;pointer-events:auto!important;}
+  html[data-theme="dark"] .site-header .nav-actions{background:rgba(8,17,31,.98)!important;border-color:rgba(226,232,240,.16)!important;box-shadow:0 24px 80px rgba(0,0,0,.56)!important;}
+  .site-header .nav-actions .btn,.site-header .nav-actions .theme-toggle{display:flex!important;width:100%!important;min-height:50px!important;border-radius:16px!important;font-size:13px!important;justify-content:center!important;}
+  .nav-backdrop{position:fixed!important;inset:0!important;z-index:30010!important;background:rgba(15,23,42,.26)!important;opacity:0!important;pointer-events:none!important;backdrop-filter:blur(3px)!important;transition:.22s ease!important;}
+  body.menu-open .nav-backdrop{opacity:1!important;pointer-events:auto!important;}
+  .mobile-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;z-index:19000!important;gap:4px!important;padding:6px!important;}
+  .mobile-bottom-nav button{min-width:0!important;min-height:50px!important;padding:5px 2px!important;border-radius:15px!important;}
+  .mobile-bottom-nav svg{width:18px!important;height:18px!important;}
+  .mobile-bottom-nav small{font-size:9.5px!important;line-height:1!important;}
+  .account-grid{grid-template-columns:1fr!important;}
+  .account-form-grid{grid-template-columns:1fr!important;}
+  .account-card{border-radius:24px!important;padding:16px!important;}
+  .dirac-floating-actions{right:13px!important;bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;gap:9px!important;}
+  .dirac-float-btn{width:46px!important;height:46px!important;}
+}
+@media(max-width:520px){
+  .brand{max-width:calc(100% - 104px)!important;}
+  .site-header .nav-actions{grid-template-columns:1fr!important;}
+  .mobile-bottom-nav small{font-size:9px!important;}
+  .dirac-floating-actions{right:10px!important;}
+}
+@media(prefers-reduced-motion:reduce){.dirac-float-wa{animation:none!important}.dirac-float-btn,.dirac-floating-actions,.dirac-float-btn::before{transition:none!important}.dirac-float-btn:hover,.dirac-float-btn:focus-visible{transform:none!important}.dirac-float-btn::before{display:none!important}}
+</style>
+
 </head>
 
 <body>
@@ -3216,6 +3301,7 @@ html[data-theme="dark"] #keranjang .cart-price{background:linear-gradient(135deg
           <span>Dashboard</span>
         </span>
       </a>
+      <button class="theme-toggle theme-toggle-header" type="button" data-theme-toggle aria-label="Mode gelap"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Mode gelap</span></button>
       <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="siteMenu"><span></span><span></span><span></span><b>Menu</b></button>
       <div class="nav-actions" id="siteMenu">
         <button class="btn btn-soft" data-scroll="cek">Cek Domain</button>
@@ -3224,6 +3310,7 @@ html[data-theme="dark"] #keranjang .cart-price{background:linear-gradient(135deg
         <button class="btn btn-soft" data-scroll="keranjang">Keranjang <span id="cartCount">0</span></button>
         <button class="btn btn-soft" data-scroll="domains">Domain Saya</button>
         <button class="btn btn-soft" data-scroll="orders">Pesanan</button>
+        <button class="btn btn-soft" data-scroll="account">Akun</button>
         <button class="theme-toggle theme-toggle-nav" type="button" data-theme-toggle aria-label="Mode gelap"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Mode gelap</span></button>
         <button class="btn btn-danger" id="logoutBtn">Keluar</button>
       </div>
@@ -3247,6 +3334,7 @@ html[data-theme="dark"] #keranjang .cart-price{background:linear-gradient(135deg
               <button class="menu-card" data-scroll="checkout">Checkout<span>Kirim data pemilik domain</span></button>
               <button class="menu-card" data-scroll="domains">Domain Saya<span>Pantau domain aktif/diproses</span></button>
               <button class="menu-card" data-scroll="orders">Status Pesanan<span>Invoice dan timeline pesanan</span></button>
+              <button class="menu-card" data-scroll="account">Kelola Akun<span>Ganti password dan data login</span></button>
             </div>
 
             <div class="hero-proof" aria-label="Ringkasan alur layanan">
@@ -3583,6 +3671,63 @@ namabrand"></textarea>
       </div>
     </section>
 
+
+    <section class="section" id="account" aria-label="Kelola akun Dirac Group">
+      <div class="container">
+        <div class="panel account-panel">
+          <div class="section-head">
+            <div class="section-title">
+              <h2>Kelola akun</h2>
+              <p>Atur data login tanpa mengubah sistem autentikasi utama.</p>
+            </div>
+            <button class="btn btn-soft" type="button" id="accountLogoutBtn">Keluar akun</button>
+          </div>
+
+          <div class="account-grid">
+            <article class="account-card account-profile-card">
+              <span class="account-icon" aria-hidden="true">👤</span>
+              <div>
+                <small>Email login</small>
+                <strong id="accountEmailText">Memuat akun...</strong>
+                <p>Gunakan email ini untuk login dan memantau invoice domain.</p>
+                <button class="order-action" type="button" id="copyAccountEmailBtn">Salin email</button>
+              </div>
+            </article>
+
+            <form class="account-card account-password-card" id="changePasswordForm" autocomplete="off">
+              <div class="account-card-head">
+                <span class="account-icon" aria-hidden="true">🔐</span>
+                <div>
+                  <small>Keamanan</small>
+                  <strong>Ganti password</strong>
+                </div>
+              </div>
+              <div class="form-grid account-form-grid">
+                <div class="field full">
+                  <label for="currentPassword">Password sekarang</label>
+                  <input id="currentPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Masukkan password lama" />
+                  <small class="field-error" id="currentPasswordError"></small>
+                </div>
+                <div class="field">
+                  <label for="newPassword">Password baru</label>
+                  <input id="newPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Minimal 6 karakter" />
+                  <small class="field-error" id="newPasswordError"></small>
+                </div>
+                <div class="field">
+                  <label for="confirmNewPassword">Ulangi password baru</label>
+                  <input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Ulangi password" />
+                  <small class="field-error" id="confirmNewPasswordError"></small>
+                </div>
+                <button class="btn btn-primary full" type="submit" id="changePasswordBtn">Simpan password baru</button>
+                <p class="account-help full">Jika server belum mengaktifkan endpoint ganti password, sistem akan menampilkan arahan bantuan admin tanpa mengubah sesi login.</p>
+              </div>
+              <div class="alert" id="accountAlert" role="status" aria-live="polite"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="orders">
       <div class="container">
         <div class="panel">
@@ -3634,6 +3779,7 @@ namabrand"></textarea>
     <button data-scroll="cek" aria-label="Cek domain"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><small>Cek</small></button>
     <button data-scroll="keranjang" aria-label="Keranjang"><span class="nav-badge" id="mobileCartCount">0</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6h15l-2 9H8L6 6Z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg><small>Keranjang</small></button>
     <button data-scroll="orders" aria-label="Pesanan"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="m3 6 1 1 2-2"></path><path d="m3 12 1 1 2-2"></path><path d="m3 18 1 1 2-2"></path></svg><small>Pesanan</small></button>
+    <button data-scroll="account" aria-label="Akun"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.8-4 5-6 8-6s6.2 2 8 6"></path></svg><small>Akun</small></button>
     <button data-mobile-logout="true" aria-label="Keluar"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><small>Keluar</small></button>
   </nav>
 
@@ -5160,10 +5306,13 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
     })();
   </script>
 
-
-  <div class="float-actions" aria-label="Aksi cepat">
-    <button class="float-btn top-float" type="button" data-scroll-top aria-label="Kembali ke atas">↑</button>
-    <a class="float-btn wa-float" href="https://wa.me/?text=Halo%20Dirac%20Group%2C%20saya%20ingin%20bertanya%20tentang%20domain." target="_blank" rel="noopener" aria-label="Hubungi via WhatsApp">WA</a>
+  <div class="dirac-floating-actions" id="diracFloatingActions" aria-label="Aksi cepat Dirac Group">
+    <button class="dirac-float-btn dirac-float-top" type="button" id="diracScrollTopBtn" data-scroll-top aria-label="Kembali ke atas" title="Kembali ke atas">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5"></path><path d="M6 11l6-6 6 6"></path></svg>
+    </button>
+    <a class="dirac-float-btn dirac-float-wa" href="https://wa.me/6287892523968?text=Halo%20Dirac%20Group%2C%20saya%20ingin%20bertanya%20tentang%20domain." target="_blank" rel="noopener" aria-label="Chat WhatsApp Dirac Group" title="Chat WhatsApp">
+      <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16.04 3.2c-7.02 0-12.72 5.62-12.72 12.55 0 2.22.6 4.4 1.73 6.3L3.2 28.8l6.95-1.8a12.93 12.93 0 0 0 5.89 1.43c7.02 0 12.76-5.62 12.76-12.55S23.06 3.2 16.04 3.2Zm0 22.99c-1.9 0-3.76-.5-5.38-1.47l-.39-.23-4.13 1.07 1.1-3.95-.26-.41a10.17 10.17 0 0 1-1.57-5.45c0-5.68 4.78-10.31 10.63-10.31 5.87 0 10.64 4.63 10.64 10.31 0 5.7-4.77 10.44-10.64 10.44Zm5.84-7.82c-.32-.16-1.9-.92-2.2-1.03-.29-.1-.51-.16-.72.16-.21.31-.82 1.02-1 1.23-.18.2-.37.23-.69.08-.32-.16-1.36-.49-2.58-1.57-.95-.84-1.6-1.88-1.79-2.2-.18-.31-.02-.48.14-.64.14-.14.32-.37.48-.55.16-.19.21-.32.32-.53.1-.21.05-.39-.03-.55-.08-.16-.72-1.7-.98-2.33-.26-.62-.52-.53-.72-.54h-.62c-.21 0-.55.08-.84.39-.29.31-1.1 1.06-1.1 2.58s1.13 3 1.29 3.2c.16.21 2.23 3.36 5.4 4.71.75.32 1.34.51 1.8.65.76.24 1.45.2 1.99.12.61-.09 1.9-.76 2.17-1.49.27-.73.27-1.36.19-1.49-.08-.13-.29-.21-.61-.37Z"></path></svg>
+    </a>
   </div>
 
 
@@ -5281,6 +5430,98 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
       });
     })();
   </script>
+
+
+
+<script id="dirac-dashboard-v4-account-js">
+(function(){
+  "use strict";
+  function ready(fn){ if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
+  function $(id){ return document.getElementById(id); }
+  function setAlert(type, message){
+    var box = $("accountAlert");
+    if(!box) return;
+    if(!message){ box.className = "alert"; box.textContent = ""; return; }
+    box.className = "alert " + (type === "success" ? "account-alert-success" : "account-alert-error");
+    box.textContent = message;
+  }
+  function setErr(id, message){
+    var node = $(id + "Error");
+    if(node) node.textContent = message || "";
+    var input = $(id);
+    if(input) input.classList.toggle("is-invalid", !!message);
+  }
+  function currentEmail(){
+    try{ if(typeof state !== "undefined" && state.user && state.user.email) return state.user.email; }catch(error){}
+    var customerEmail = $("customerEmail");
+    if(customerEmail && customerEmail.value) return customerEmail.value;
+    var userText = $("userText");
+    var text = userText ? userText.textContent || "" : "";
+    return text.replace(/^Login sebagai\s*/i, "").trim();
+  }
+  function syncAccountEmail(){
+    var email = currentEmail();
+    var target = $("accountEmailText");
+    if(target && email) target.textContent = email;
+  }
+  async function handleChangePassword(event){
+    event.preventDefault();
+    ["currentPassword","newPassword","confirmNewPassword"].forEach(function(id){ setErr(id, ""); });
+    setAlert("success", "");
+    var oldPass = ($("currentPassword") && $("currentPassword").value || "").trim();
+    var newPass = ($("newPassword") && $("newPassword").value || "").trim();
+    var confirm = ($("confirmNewPassword") && $("confirmNewPassword").value || "").trim();
+    var hasError = false;
+    if(oldPass.length < 6){ setErr("currentPassword", "Password lama minimal 6 karakter."); hasError = true; }
+    if(newPass.length < 6){ setErr("newPassword", "Password baru minimal 6 karakter."); hasError = true; }
+    if(newPass && oldPass && newPass === oldPass){ setErr("newPassword", "Password baru sebaiknya berbeda dari password lama."); hasError = true; }
+    if(confirm !== newPass){ setErr("confirmNewPassword", "Konfirmasi password belum sama."); hasError = true; }
+    if(hasError) return;
+    var btn = $("changePasswordBtn");
+    if(btn){ btn.disabled = true; btn.textContent = "Menyimpan..."; }
+    try{
+      if(typeof api !== "function") throw new Error("API dashboard belum siap.");
+      await api("?action=domain_change_password", { method:"POST", body:JSON.stringify({ current_password:oldPass, new_password:newPass }) });
+      ["currentPassword","newPassword","confirmNewPassword"].forEach(function(id){ var input = $(id); if(input) input.value = ""; });
+      setAlert("success", "Password berhasil diperbarui. Silakan gunakan password baru saat login berikutnya.");
+      if(typeof showToast === "function") showToast("Password berhasil diperbarui.", "success");
+    }catch(error){
+      var msg = (error && error.message) ? error.message : "Ganti password belum tersedia dari server.";
+      setAlert("error", msg + " Jika tetap gagal, hubungi admin Dirac Group melalui tombol WhatsApp.");
+      if(typeof showToast === "function") showToast("Ganti password belum berhasil.", "error");
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = "Simpan password baru"; }
+    }
+  }
+  function initFloatingActions(){
+    var actions = $("diracFloatingActions");
+    if(!actions) return;
+    function update(){ actions.classList.toggle("is-scroll-ready", (window.pageYOffset || document.documentElement.scrollTop || 0) > 320); }
+    var ticking = false;
+    function onScroll(){ if(ticking) return; ticking = true; requestAnimationFrame(function(){ ticking = false; update(); }); }
+    window.addEventListener("scroll", onScroll, { passive:true });
+    window.addEventListener("resize", onScroll, { passive:true });
+    update();
+  }
+  ready(function(){
+    syncAccountEmail();
+    setTimeout(syncAccountEmail, 700);
+    setTimeout(syncAccountEmail, 1600);
+    var form = $("changePasswordForm");
+    if(form) form.addEventListener("submit", handleChangePassword);
+    var copy = $("copyAccountEmailBtn");
+    if(copy) copy.addEventListener("click", function(){
+      var email = currentEmail();
+      if(typeof copyText === "function") copyText(email, "Email akun");
+      else if(email) navigator.clipboard && navigator.clipboard.writeText(email);
+    });
+    var logoutBtn = $("accountLogoutBtn");
+    if(logoutBtn) logoutBtn.addEventListener("click", function(){ var main = $("logoutBtn"); if(main) main.click(); });
+    ["currentPassword","newPassword","confirmNewPassword"].forEach(function(id){ var input = $(id); if(input) input.addEventListener("input", function(){ setErr(id, ""); }); });
+    initFloatingActions();
+  });
+})();
+</script>
 
 </body>
 </html>
