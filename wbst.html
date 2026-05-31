@@ -9,12 +9,12 @@
   <meta name="theme-color" content="#6258ff" />
   <meta name="color-scheme" content="light dark" />
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="canonical" href="./wbst.html" />
+  <link rel="canonical" href="wbst.html" />
   <meta property="og:title" content="Masuk Dirac Group Domain" />
   <meta property="og:description" content="Login pelanggan untuk cek domain, checkout, dan melihat status pesanan." />
-  <meta name="dirac-dashboard-route" content="./dashboard.html" />
-  <meta name="dirac-login-route" content="./wbst.html" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
+  <meta name="dirac-dashboard-route" content="dashboard.html" />
+  <meta name="dirac-login-route" content="wbst.html" />
+  <link rel="icon" href="logo3.webp" type="image/webp" />
 
   <style>
     :root {
@@ -1611,6 +1611,125 @@ input:focus,textarea:focus,select:focus,.btn:focus-visible,.theme-toggle:focus-v
   *,*::before,*::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
 }
 
+  
+
+/* ===== DIRAC V3 FINAL POLISH: mobile menu, dark mode, logo, animation, compact UX ===== */
+:root{
+  --dg-bg:#ffffff;
+  --dg-surface:#ffffff;
+  --dg-ink:#111827;
+  --dg-muted:#667085;
+  --dg-line:rgba(15,23,42,.12);
+  --dg-navy:#111f4f;
+  --dg-blue:#2563eb;
+  --dg-cyan:#06b6d4;
+  --dg-green:#10b981;
+  --dg-shadow:0 18px 48px rgba(15,23,42,.10);
+}
+html[data-theme="dark"]{
+  --dg-bg:#08111f;
+  --dg-surface:#101a2c;
+  --dg-ink:#f8fafc;
+  --dg-muted:#cbd5e1;
+  --dg-line:rgba(226,232,240,.16);
+  --deep:#f8fafc;
+  --ink:#f8fafc;
+  --muted:#cbd5e1;
+  --white:#101a2c;
+  --line:rgba(226,232,240,.16);
+}
+body{background:var(--dg-bg)!important;color:var(--dg-ink)!important;overflow-x:hidden;}
+body::before{opacity:0!important;background-image:none!important;}
+.site-header{background:rgba(255,255,255,.94)!important;border-bottom:1px solid rgba(15,23,42,.08)!important;box-shadow:0 10px 34px rgba(15,23,42,.08)!important;}
+html[data-theme="dark"] .site-header{background:rgba(8,17,31,.92)!important;border-color:rgba(226,232,240,.12)!important;box-shadow:0 18px 46px rgba(0,0,0,.38)!important;}
+.brand-mark{overflow:hidden;flex:0 0 auto;isolation:isolate;}
+.brand-mark img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit;}
+.hero-card,.panel,.brand-panel,.auth-card,.card,.listing-card,.price-card,.feature-card,.market-card,.tool-card,.safety-card,.stat-card,.result-card,.cart-item,.order-card,.owned-domain-card,.checkout-summary,.filter-pill,.flow-step,.trust-item,.payment-method-grid>div,.domain-terminal-card,.console-window{background:var(--dg-surface)!important;color:var(--dg-ink)!important;border-color:var(--dg-line)!important;box-shadow:var(--dg-shadow)!important;}
+html[data-theme="dark"] .hero-card,html[data-theme="dark"] .panel,html[data-theme="dark"] .brand-panel,html[data-theme="dark"] .auth-card,html[data-theme="dark"] .card,html[data-theme="dark"] .listing-card,html[data-theme="dark"] .price-card,html[data-theme="dark"] .feature-card,html[data-theme="dark"] .market-card,html[data-theme="dark"] .tool-card,html[data-theme="dark"] .safety-card,html[data-theme="dark"] .stat-card,html[data-theme="dark"] .result-card,html[data-theme="dark"] .cart-item,html[data-theme="dark"] .order-card,html[data-theme="dark"] .owned-domain-card,html[data-theme="dark"] .checkout-summary,html[data-theme="dark"] .filter-pill,html[data-theme="dark"] .flow-step,html[data-theme="dark"] .trust-item,html[data-theme="dark"] .payment-method-grid>div,html[data-theme="dark"] .domain-terminal-card,html[data-theme="dark"] .console-window{background:linear-gradient(180deg,#101a2c,#0d1628)!important;color:#f8fafc!important;border-color:rgba(226,232,240,.16)!important;box-shadow:0 22px 52px rgba(0,0,0,.38)!important;}
+html[data-theme="dark"] h1,html[data-theme="dark"] h2,html[data-theme="dark"] h3,html[data-theme="dark"] strong,html[data-theme="dark"] b,html[data-theme="dark"] .brand-copy strong,html[data-theme="dark"] .section-title h2,html[data-theme="dark"] .hero-card h1,html[data-theme="dark"] .order-card .invoice,html[data-theme="dark"] .cart-item h3{color:#f8fafc!important;}
+html[data-theme="dark"] p,html[data-theme="dark"] span,html[data-theme="dark"] small,html[data-theme="dark"] .date,html[data-theme="dark"] .microcopy,html[data-theme="dark"] .field-help,html[data-theme="dark"] .brand-copy span{color:#cbd5e1!important;}
+html[data-theme="dark"] input,html[data-theme="dark"] textarea,html[data-theme="dark"] select{background:#0b1220!important;color:#f8fafc!important;border-color:rgba(148,163,184,.32)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important;}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#94a3b8!important;opacity:1!important;}
+html[data-theme="dark"] .btn-soft,html[data-theme="dark"] .order-action,html[data-theme="dark"] .filter-chip,html[data-theme="dark"] .tld-chip,html[data-theme="dark"] .preset-chip{background:#131f33!important;color:#e2e8f0!important;border-color:rgba(148,163,184,.30)!important;}
+html[data-theme="dark"] .alert,html[data-theme="dark"] .cart-empty,html[data-theme="dark"] .info-box,html[data-theme="dark"] .guide-note,html[data-theme="dark"] .total-row{background:#0b1220!important;color:#e2e8f0!important;border-color:rgba(148,163,184,.25)!important;}
+html[data-theme="dark"] .badge,html[data-theme="dark"] .status-badge{filter:saturate(1.05);}
+
+.menu-toggle{display:none;min-width:48px;height:48px;border:1px solid rgba(15,23,42,.10);border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.10);align-items:center;justify-content:center;gap:4px;flex-direction:column;color:var(--dg-navy);font-weight:1000;}
+.menu-toggle span{display:block;width:22px;height:2.5px;border-radius:999px;background:currentColor;transition:transform .24s ease,opacity .2s ease;}
+.menu-toggle b{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+body.menu-open .menu-toggle span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+body.menu-open .menu-toggle span:nth-child(2){opacity:0;}
+body.menu-open .menu-toggle span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+html[data-theme="dark"] .menu-toggle{background:#101a2c;color:#f8fafc;border-color:rgba(226,232,240,.16);}
+.nav-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.36);backdrop-filter:blur(2px);z-index:45;opacity:0;pointer-events:none;transition:.22s ease;}
+body.menu-open .nav-backdrop{opacity:1;pointer-events:auto;}
+
+.float-actions{position:fixed;right:18px;bottom:22px;z-index:80;display:grid;gap:10px;}
+.float-actions .float-btn{width:54px;height:54px;border-radius:18px;border:1px solid rgba(15,23,42,.10);display:grid;place-items:center;background:#fff;color:#111f4f;font-weight:1000;box-shadow:0 18px 40px rgba(15,23,42,.18);transition:transform .24s ease,box-shadow .24s ease,filter .24s ease;}
+.float-actions .float-btn:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 24px 54px rgba(15,23,42,.22);filter:saturate(1.08);}
+.float-actions .wa-float{background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;}
+.float-actions .top-float{background:linear-gradient(135deg,#111f4f,#2563eb);color:#fff;}
+html[data-theme="dark"] .float-actions .float-btn{border-color:rgba(226,232,240,.16);box-shadow:0 22px 46px rgba(0,0,0,.42);}
+
+.btn,.menu-card,.card,.listing-card,.price-card,.feature-card,.market-card,.tool-card,.safety-card,.stat-card,.result-card,.cart-item,.order-card,.owned-domain-card,.filter-pill,.flow-step,.trust-item,.tld-chip,.order-action{will-change:transform;position:relative;overflow:hidden;}
+.btn::after,.menu-card::after,.card::after,.listing-card::after,.result-card::after,.cart-item::after,.order-card::after{content:"";position:absolute;inset:-120% -55%;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.38) 50%,transparent 62%);transform:translateX(-130%);pointer-events:none;}
+.btn:hover::after,.menu-card:hover::after,.card:hover::after,.listing-card:hover::after,.result-card:hover::after,.cart-item:hover::after,.order-card:hover::after{animation:dgShine .86s ease both;}
+@keyframes dgShine{to{transform:translateX(130%);}}
+@keyframes dgFloatSoft{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes dgPopIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes dgBorderGlow{0%{box-shadow:0 0 0 rgba(37,99,235,0),var(--dg-shadow)}50%{box-shadow:0 0 0 5px rgba(37,99,235,.09),var(--dg-shadow)}100%{box-shadow:0 0 0 rgba(37,99,235,0),var(--dg-shadow)}}
+.card,.listing-card,.price-card,.feature-card,.market-card,.tool-card,.safety-card,.result-card,.cart-item,.order-card{animation:dgPopIn .55s cubic-bezier(.2,.8,.2,1) both;}
+.hero-card .pill,.console-window,.hero-domain-console,.hero-console{animation:dgFloatSoft 5.8s ease-in-out infinite;}
+.cart-item,.card,.listing-card,.result-card,.order-card{cursor:pointer;}
+.cart-item:active,.card:active,.listing-card:active,.result-card:active,.order-card:active,.cart-item.cart-item-active{transform:scale(.985)!important;animation:dgBorderGlow .75s ease both;}
+
+.compact-copy p,.section-title p,.hero-card p{max-width:780px;}
+.public-compact .section{padding-block:30px!important;}
+.public-compact .card p,.public-compact .listing-card p,.public-compact .flow-step span,.public-compact .trust-item span{line-height:1.45!important;}
+
+.orders-view-more-wrap{margin-top:16px;display:flex;justify-content:center;}
+.orders-view-more{min-width:min(100%,360px);}
+.order-card[hidden]{display:none!important;}
+
+@media (max-width:900px){
+  .site-header{z-index:70!important;}
+  .nav{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;min-height:68px!important;padding:10px 0!important;}
+  .brand{min-width:0!important;max-width:calc(100% - 62px)!important;}
+  .brand-copy strong{font-size:15.5px!important;}
+  .brand-copy span{font-size:8.5px!important;letter-spacing:.10em!important;}
+  .brand-mark{width:44px!important;height:44px!important;border-radius:15px!important;}
+  .menu-toggle{display:flex!important;margin-left:auto!important;}
+  .nav-actions{position:fixed!important;top:78px!important;right:12px!important;left:12px!important;z-index:75!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;padding:14px!important;border-radius:24px!important;background:rgba(255,255,255,.96)!important;border:1px solid rgba(15,23,42,.10)!important;box-shadow:0 24px 70px rgba(15,23,42,.22)!important;transform:translateY(-12px) scale(.98)!important;opacity:0!important;pointer-events:none!important;max-height:calc(100vh - 98px)!important;overflow:auto!important;backdrop-filter:blur(20px)!important;}
+  body.menu-open .nav-actions{transform:translateY(0) scale(1)!important;opacity:1!important;pointer-events:auto!important;}
+  html[data-theme="dark"] .nav-actions{background:rgba(8,17,31,.96)!important;border-color:rgba(226,232,240,.16)!important;box-shadow:0 24px 80px rgba(0,0,0,.48)!important;}
+  .nav-actions .btn,.nav-actions .theme-toggle{width:100%!important;min-height:48px!important;border-radius:16px!important;}
+  .hero{padding-top:24px!important;}
+  .hero-card,.panel,.brand-panel,.auth-card{padding:18px!important;border-radius:24px!important;}
+  .section{padding-block:24px!important;}
+  .domain-form,.domain-search{grid-template-columns:1fr!important;padding:9px!important;border-radius:22px!important;}
+  .domain-form input,.domain-search input{min-height:56px!important;font-size:16px!important;}
+  .domain-form .btn,.domain-search .btn{width:100%!important;min-height:56px!important;}
+  .order-tools{display:grid!important;grid-template-columns:1fr!important;gap:12px!important;}
+  .order-filters{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important;}
+  .filter-chip{min-height:48px!important;border-radius:16px!important;}
+  .order-search{width:100%!important;min-height:54px!important;}
+  .float-actions{right:14px;bottom:96px;}
+  .float-actions .float-btn{width:50px;height:50px;border-radius:17px;}
+}
+@media (max-width:520px){
+  .nav-actions{grid-template-columns:1fr!important;}
+  .section-title h2,.hero-card h1{letter-spacing:-.055em!important;}
+  .section-title h2{font-size:clamp(28px,8.8vw,38px)!important;}
+  .hero-card h1{font-size:clamp(31px,9.8vw,44px)!important;}
+  .section-title p,.hero-card p{font-size:15px!important;line-height:1.55!important;}
+  .market-table{min-width:620px!important;}
+  .responsive-table-card{overflow-x:auto!important;}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero-card .pill,.console-window,.hero-domain-console,.hero-console{animation:none!important;}
+  .btn::after,.menu-card::after,.card::after,.listing-card::after,.result-card::after,.cart-item::after,.order-card::after{display:none!important;}
+}
+
   </style>
 </head>
 
@@ -1620,7 +1739,7 @@ input:focus,textarea:focus,select:focus,.btn:focus-visible,.theme-toggle:focus-v
   <div class="shell" id="mainContent">
     <section class="brand-panel">
       <div class="brand">
-        <div class="brand-mark">DG</div>
+        <div class="brand-mark"><img src="logo3.webp" alt="Dirac Group" /></div>
         <div class="brand-copy">
           <strong>Dirac Group</strong>
           <span>Domain Partner</span>
@@ -1715,7 +1834,7 @@ input:focus,textarea:focus,select:focus,.btn:focus-visible,.theme-toggle:focus-v
       <div class="auth-links">
         <a id="forgotPasswordLink" href="mailto:companydirac@gmail.com?subject=Lupa%20Password%20Dirac%20Group">Lupa password?</a>
         <a id="resendVerifyLink" href="mailto:companydirac@gmail.com?subject=Kirim%20Ulang%20Verifikasi%20Akun">Kirim ulang verifikasi</a>
-        <a id="dashboardLink" href="./dashboard.html">Dashboard</a>
+        <a id="dashboardLink" href="dashboard.html">Dashboard</a>
       </div>
 
       <div class="helper">
@@ -2062,6 +2181,32 @@ input:focus,textarea:focus,select:focus,.btn:focus-visible,.theme-toggle:focus-v
         document.addEventListener("click", (event) => {
           if (event.target.closest("[data-add-cart]")) window.setTimeout(pulseCartBadges, 80);
         });
+      });
+    })();
+  </script>
+
+
+  <div class="float-actions" aria-label="Aksi cepat">
+    <button class="float-btn top-float" type="button" data-scroll-top aria-label="Kembali ke atas">↑</button>
+    <a class="float-btn wa-float" href="https://wa.me/?text=Halo%20Dirac%20Group%2C%20saya%20ingin%20bertanya%20tentang%20domain." target="_blank" rel="noopener" aria-label="Hubungi via WhatsApp">WA</a>
+  </div>
+
+
+  <script>
+    (() => {
+      function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+      ready(() => {
+        const body = document.body;
+        const toggle = document.querySelector('[data-menu-toggle]');
+        const backdrop = document.querySelector('[data-menu-close]');
+        const closeMenu = () => { body.classList.remove('menu-open'); if(toggle) toggle.setAttribute('aria-expanded','false'); };
+        const openMenu = () => { body.classList.add('menu-open'); if(toggle) toggle.setAttribute('aria-expanded','true'); };
+        toggle?.addEventListener('click', () => body.classList.contains('menu-open') ? closeMenu() : openMenu());
+        backdrop?.addEventListener('click', closeMenu);
+        document.addEventListener('keydown', (event) => { if(event.key === 'Escape') closeMenu(); });
+        document.querySelectorAll('.nav-actions a,.nav-actions button').forEach((item) => item.addEventListener('click', () => setTimeout(closeMenu, 80)));
+        document.querySelectorAll('[data-scroll-top]').forEach((button) => button.addEventListener('click', () => window.scrollTo({ top:0, behavior:'smooth' })));
+        document.querySelectorAll('input[placeholder*="brandkamu.com"]').forEach((input) => input.setAttribute('placeholder','contoh: brandkamu'));
       });
     })();
   </script>
