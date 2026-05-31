@@ -3288,6 +3288,52 @@ html[data-theme="dark"] .nav-backdrop{background:rgba(0,0,0,.58)!important;}
 @media(prefers-reduced-motion:reduce){.dirac-float-wa{animation:none!important}.dirac-float-btn,.dirac-floating-actions,.dirac-float-btn::before{transition:none!important}.dirac-float-btn:hover,.dirac-float-btn:focus-visible{transform:none!important}.dirac-float-btn::before{display:none!important}}
 </style>
 
+
+<style id="dirac-ultra-menu-wa-safety-fix">
+/* Ultra careful fix: menu layer must appear above backdrop; backdrop no longer blurs the menu. */
+@media(max-width:900px){
+  .site-header{z-index:30000!important;}
+  .nav-backdrop{z-index:29980!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(2,6,23,.38)!important;}
+  .site-header .nav-actions{z-index:30020!important;visibility:hidden!important;box-sizing:border-box!important;width:calc(100vw - 24px)!important;max-width:calc(100vw - 24px)!important;left:12px!important;right:12px!important;}
+  body.menu-open .site-header .nav-actions{visibility:visible!important;opacity:1!important;pointer-events:auto!important;}
+  .site-header .nav-actions .btn-danger::before{content:none!important;display:none!important;}
+}
+.float-actions .wa-float{font-size:0!important;line-height:0!important;}
+.float-actions .wa-float svg{width:24px;height:24px;display:block;fill:currentColor;stroke:none;}
+@media(max-width:900px){
+  .float-actions{right:18px!important;bottom:calc(104px + env(safe-area-inset-bottom,0px))!important;z-index:9200!important;}
+  .float-actions .float-btn{width:50px!important;height:50px!important;border-radius:999px!important;}
+}
+</style>
+
+
+<style id="dirac-ultra-dashboard-mobile-position-fix">
+/* Ultra careful fix: bottom navigation is no longer shifted off-screen and quick actions sit cleanly above it. */
+@media(max-width:900px){
+  body{padding-bottom:calc(164px + env(safe-area-inset-bottom,0px))!important;}
+  .mobile-bottom-nav{
+    left:20px!important;
+    right:14px!important;
+    bottom:calc(44px + env(safe-area-inset-bottom,0px))!important;
+    width:auto!important;
+    max-width:none!important;
+    margin:0!important;
+    transform:none!important;
+    z-index:19000!important;
+  }
+  body.show-mobile-nav .mobile-bottom-nav{transform:none!important;opacity:1!important;pointer-events:auto!important;}
+  .mobile-bottom-nav button{min-width:0!important;}
+  .dirac-floating-actions{right:18px!important;bottom:calc(150px + env(safe-area-inset-bottom,0px))!important;z-index:19200!important;}
+  .dirac-float-btn{width:48px!important;height:48px!important;}
+  .dirac-float-wa{font-size:0!important;line-height:0!important;}
+  .dirac-float-wa svg{width:25px!important;height:25px!important;display:block!important;fill:currentColor!important;stroke:none!important;}
+}
+@media(max-width:520px){
+  .mobile-bottom-nav{left:20px!important;right:14px!important;bottom:calc(44px + env(safe-area-inset-bottom,0px))!important;border-radius:23px!important;}
+  .dirac-floating-actions{right:18px!important;bottom:calc(152px + env(safe-area-inset-bottom,0px))!important;}
+}
+</style>
+
 </head>
 
 <body>
