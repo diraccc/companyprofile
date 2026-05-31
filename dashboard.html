@@ -7,6 +7,10 @@
   <title>Dashboard | Dirac Group Domain</title>
   <meta name="description" content="Dashboard pelanggan Dirac Group untuk cek domain, checkout, dan melihat status pesanan." />
   <meta name="theme-color" content="#6258ff" />
+  <meta name="color-scheme" content="light" />
+  <meta property="og:title" content="Dashboard Dirac Group Domain" />
+  <meta property="og:description" content="Cek domain, checkout, dan pantau status pesanan domain Dirac Group." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
 
   <style>
     :root {
@@ -30,10 +34,6 @@
 
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; }
-/* Offset anchor scrolling to account for sticky header */
-html {
-  scroll-padding-top: 90px;
-}
 
     body {
       margin:0;
@@ -122,8 +122,6 @@ html {
       align-items:center;
       gap:10px;
       flex-wrap:wrap;
-  /* Center nav buttons on narrow viewports for better alignment */
-  justify-content:center;
     }
 
     .btn {
@@ -136,8 +134,7 @@ html {
       justify-content:center;
       gap:9px;
       font-weight:950;
-  /* Smooth hover and active states */
-  transition:transform .2s ease, box-shadow .2s ease;
+      transition:.2s ease;
     }
 
     .btn:hover { transform:translateY(-2px); }
@@ -226,14 +223,7 @@ html {
       color:var(--deep);
       font-weight:950;
       box-shadow:0 12px 30px rgba(42,51,105,.07);
-  transition:transform .2s ease, box-shadow .2s ease;
     }
-
-.menu-card:hover {
-  transform: translateY(-4px);
-  background: rgba(255,255,255,.86);
-  box-shadow: 0 16px 36px rgba(42,51,105,.12);
-}
 
     .menu-card span {
       display:block;
@@ -249,13 +239,8 @@ html {
       border-radius:28px;
       background:rgba(255,255,255,.78);
       border:1px solid rgba(255,255,255,.72);
-  box-shadow:var(--shadow-soft);
-  transition: box-shadow .3s ease;
+      box-shadow:var(--shadow-soft);
     }
-
-.panel:hover {
-  box-shadow: 0 16px 36px rgba(42,51,105,.12);
-}
 
     .section-head {
       display:flex;
@@ -326,8 +311,6 @@ html {
       border:1px solid rgba(35,43,85,.10);
       background:white;
       box-shadow:0 12px 30px rgba(42,51,105,.07);
-  /* Animate cards sliding into view */
-  animation: fadeInUp .6s ease;
     }
 
     .result-card.available {
@@ -344,18 +327,6 @@ html {
       border-color:rgba(98,88,255,.20);
       background:linear-gradient(135deg,rgba(238,242,255,.95),white);
     }
-
-/* Keyframe for slide/fade in animation used by result cards */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
     .result-head {
       display:flex;
@@ -671,6 +642,456 @@ html {
       .cart-price { text-align:left; }
       .hero-card { padding:24px; border-radius:28px; }
     }
+
+
+    /* ===== Production polish: responsive UX, accessibility, animation, and overflow fixes ===== */
+    :root {
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    html {
+      scroll-padding-top: 104px;
+    }
+
+    body {
+      overflow-x: hidden;
+      padding-bottom: calc(22px + var(--safe-bottom));
+    }
+
+    .btn, .menu-card, .tld-chip, .cart-remove, .mobile-bottom-nav button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :focus-visible {
+      outline: 4px solid rgba(98,88,255,.28);
+      outline-offset: 3px;
+      border-radius: 14px;
+    }
+
+    .site-header {
+      padding-top: var(--safe-top);
+    }
+
+    .brand, .btn, .menu-card, .tld-chip, .cart-remove {
+      touch-action: manipulation;
+    }
+
+    .brand-mark {
+      flex: 0 0 auto;
+    }
+
+    .btn-icon {
+      display:inline-grid;
+      place-items:center;
+      line-height:1;
+    }
+
+    .btn:active, .menu-card:active, .tld-chip:active, .mobile-bottom-nav button:active {
+      transform: translateY(1px) scale(.99);
+    }
+
+    .btn-primary:hover, .btn-mint:hover {
+      box-shadow: 0 22px 48px rgba(98,88,255,.25);
+    }
+
+    .compact-section {
+      padding-top: 18px;
+      padding-bottom: 18px;
+    }
+
+    .stats-grid {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+    }
+
+    .stat-card {
+      position:relative;
+      overflow:hidden;
+      padding:18px;
+      border-radius:24px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.76);
+      box-shadow:var(--shadow-soft);
+      animation: fadeInUp .55s ease both;
+    }
+
+    .stat-card::after {
+      content:"";
+      position:absolute;
+      width:120px;
+      height:120px;
+      right:-54px;
+      top:-54px;
+      border-radius:999px;
+      background:rgba(98,88,255,.09);
+    }
+
+    .stat-card span,
+    .stat-card small {
+      display:block;
+      color:var(--muted);
+      font-weight:850;
+      position:relative;
+      z-index:1;
+    }
+
+    .stat-card strong {
+      display:block;
+      margin:5px 0 2px;
+      color:var(--deep);
+      font-size:clamp(24px,3vw,34px);
+      line-height:1;
+      letter-spacing:-.06em;
+      position:relative;
+      z-index:1;
+    }
+
+    .microcopy, .field-help {
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:760;
+      line-height:1.5;
+    }
+
+    .field-help {
+      margin:0;
+    }
+
+    .domain-form {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.76), 0 16px 36px rgba(42,51,105,.08);
+    }
+
+    .domain-form input::placeholder,
+    .field input::placeholder,
+    .field textarea::placeholder {
+      color:rgba(101,114,141,.72);
+    }
+
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus,
+    .domain-form:focus-within {
+      border-color:rgba(98,88,255,.58);
+      box-shadow:0 0 0 5px rgba(98,88,255,.10);
+    }
+
+    .stepper {
+      margin-top:14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .stepper span {
+      display:inline-flex;
+      align-items:center;
+      min-height:34px;
+      padding:7px 11px;
+      border-radius:999px;
+      background:#f4f6ff;
+      color:var(--muted);
+      border:1px solid rgba(35,43,85,.10);
+      font-size:12px;
+      font-weight:1000;
+    }
+
+    .stepper span.active {
+      background:rgba(98,88,255,.10);
+      color:var(--violet);
+      border-color:rgba(98,88,255,.20);
+    }
+
+    .dns-extra {
+      overflow:hidden;
+      opacity:0;
+      transform:translateY(-4px);
+      transition:opacity .25s ease, transform .25s ease;
+    }
+
+    .dns-extra.show {
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .checkout-summary {
+      overflow:hidden;
+    }
+
+    .summary-line,
+    .line,
+    .domain-item {
+      min-width:0;
+    }
+
+    .summary-line span,
+    .summary-line b,
+    .line span,
+    .line b,
+    .domain-item span,
+    .domain-item b,
+    .cart-item h3,
+    .result-domain,
+    .invoice {
+      min-width:0;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
+
+    .line b,
+    .summary-line b,
+    .domain-item b {
+      max-width:100%;
+    }
+
+    .orders {
+      min-width:0;
+    }
+
+    .order-card {
+      animation: fadeInUp .5s ease both;
+    }
+
+    .order-timeline {
+      grid-column:1 / -1;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+      margin-top:4px;
+    }
+
+    .timeline-step {
+      position:relative;
+      min-height:42px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(247,249,255,.82);
+      border:1px solid rgba(35,43,85,.08);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:950;
+    }
+
+    .timeline-step.done {
+      background:#ecfdf5;
+      color:#047857;
+      border-color:#a7f3d0;
+    }
+
+    .timeline-step.current {
+      background:#eef2ff;
+      color:#4338ca;
+      border-color:#c7d2fe;
+    }
+
+    .order-actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:14px;
+    }
+
+    .order-action {
+      border:1px solid rgba(35,43,85,.10);
+      background:#fff;
+      color:var(--deep);
+      border-radius:999px;
+      padding:8px 11px;
+      font-weight:950;
+      font-size:12px;
+    }
+
+
+    .spinner {
+      width:1em;
+      height:1em;
+      border-radius:999px;
+      border:2px solid currentColor;
+      border-right-color:transparent;
+      display:inline-block;
+      animation:spin .7s linear infinite;
+      vertical-align:-.12em;
+    }
+
+    @keyframes spin {
+      to { transform:rotate(360deg); }
+    }
+
+    .skeleton {
+      position:relative;
+      overflow:hidden;
+      min-height:96px;
+      border-radius:20px;
+      background:linear-gradient(90deg, rgba(247,249,255,.74), rgba(255,255,255,.9), rgba(247,249,255,.74));
+      background-size:220% 100%;
+      animation:skeletonMove 1.4s linear infinite;
+      border:1px solid rgba(35,43,85,.08);
+    }
+
+    @keyframes skeletonMove {
+      from { background-position: 220% 0; }
+      to { background-position: -220% 0; }
+    }
+
+    .toast-region {
+      position:fixed;
+      right:18px;
+      bottom:calc(18px + var(--safe-bottom));
+      z-index:90;
+      display:grid;
+      gap:10px;
+      width:min(360px, calc(100vw - 32px));
+      pointer-events:none;
+    }
+
+    .toast {
+      padding:13px 15px;
+      border-radius:18px;
+      background:rgba(255,255,255,.94);
+      border:1px solid rgba(35,43,85,.10);
+      color:var(--deep);
+      box-shadow:0 18px 46px rgba(42,51,105,.17);
+      font-weight:850;
+      animation: toastIn .25s ease both;
+    }
+
+    .toast.success { border-color:#a7f3d0; }
+    .toast.error { border-color:#fecdd3; color:#be123c; }
+
+    @keyframes toastIn {
+      from { opacity:0; transform:translateY(12px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    .mobile-bottom-nav {
+      display:none;
+    }
+
+    @media (max-width:900px) {
+      html { scroll-padding-top: 20px; }
+      body { padding-bottom: calc(92px + var(--safe-bottom)); }
+      .site-header {
+        position:sticky;
+        top:0;
+      }
+      .nav {
+        min-height:70px;
+        flex-wrap:nowrap;
+        padding:10px 0;
+      }
+      .brand-copy strong { font-size:16px; }
+      .brand-copy span { font-size:9px; letter-spacing:.15em; }
+      .brand-mark { width:44px; height:44px; border-radius:15px; }
+      .nav-actions {
+        width:auto;
+        margin-left:auto;
+        justify-content:flex-end;
+      }
+      .nav-actions [data-scroll] {
+        display:none;
+      }
+      .nav-actions .btn-danger {
+        min-height:40px;
+        padding:9px 12px;
+        border-radius:14px;
+        font-size:13px;
+      }
+      .hero { padding:28px 0 14px; }
+      .hero-card {
+        padding:22px;
+        border-radius:28px;
+      }
+      .hero-card h1 {
+        font-size:clamp(30px,10vw,48px);
+        letter-spacing:-.06em;
+      }
+      .hero-card p { font-size:15px; }
+      .menu-grid { grid-template-columns:1fr 1fr; }
+      .stats-grid { grid-template-columns:1fr 1fr; }
+      .cart-layout, .order-grid, .form-grid, .domain-form { grid-template-columns:1fr; }
+      .section { padding:20px 0; }
+      .section-head { align-items:stretch; flex-direction:column; }
+      .panel { padding:20px; border-radius:24px; }
+      .domain-form { padding:7px; }
+      .domain-form input { min-height:50px; font-size:15px; }
+      .domain-form .btn { min-height:48px; }
+      .cart-item { grid-template-columns:1fr; }
+      .cart-price { text-align:left; }
+      .order-timeline { grid-template-columns:1fr 1fr; }
+      .line, .summary-line {
+        display:grid;
+        grid-template-columns:1fr;
+        gap:3px;
+      }
+      .line b, .summary-line b { text-align:left; }
+      .domain-item {
+        display:grid;
+        grid-template-columns:1fr;
+      }
+      .mobile-bottom-nav {
+        position:fixed;
+        left:12px;
+        right:12px;
+        bottom:calc(10px + var(--safe-bottom));
+        z-index:80;
+        display:grid;
+        grid-template-columns:repeat(4,1fr);
+        gap:6px;
+        padding:8px;
+        border-radius:24px;
+        background:rgba(255,255,255,.86);
+        border:1px solid rgba(255,255,255,.74);
+        box-shadow:0 22px 60px rgba(42,51,105,.19);
+        backdrop-filter:blur(20px);
+      }
+      .mobile-bottom-nav button {
+        border:0;
+        border-radius:18px;
+        background:transparent;
+        color:var(--deep);
+        min-height:54px;
+        display:grid;
+        place-items:center;
+        align-content:center;
+        gap:3px;
+        font-weight:1000;
+      }
+      .mobile-bottom-nav span { font-size:18px; line-height:1; }
+      .mobile-bottom-nav small { font-size:11px; font-weight:1000; }
+      .toast-region {
+        bottom:calc(92px + var(--safe-bottom));
+        right:12px;
+        left:12px;
+        width:auto;
+      }
+    }
+
+    @media (max-width:520px) {
+      .container { width:min(100% - 22px,1180px); }
+      .hero-card, .panel, .order-card { border-radius:22px; }
+      .menu-grid, .stats-grid, .order-timeline { grid-template-columns:1fr; }
+      .brand-copy strong { max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .section-title h2 { font-size:30px; }
+      .result-head, .order-top { align-items:stretch; }
+      .status-badge, .badge { width:max-content; max-width:100%; }
+      .tld-group { gap:7px; }
+      .tld-chip { padding:8px 10px; }
+      .stepper span { width:100%; justify-content:center; }
+      .nav-actions .btn-danger { font-size:0; padding:9px 11px; }
+      .nav-actions .btn-danger::before { content:"Keluar"; font-size:13px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration:.01ms !important;
+        animation-iteration-count:1 !important;
+        scroll-behavior:auto !important;
+        transition-duration:.01ms !important;
+      }
+    }
+
   </style>
 </head>
 
@@ -712,6 +1133,33 @@ html {
       </div>
     </section>
 
+    <section class="section compact-section" aria-label="Ringkasan dashboard">
+      <div class="container">
+        <div class="stats-grid" id="statsGrid">
+          <article class="stat-card">
+            <span>Keranjang</span>
+            <strong id="statCart">0</strong>
+            <small>Domain siap checkout</small>
+          </article>
+          <article class="stat-card">
+            <span>Pesanan</span>
+            <strong id="statOrders">-</strong>
+            <small>Total order akun ini</small>
+          </article>
+          <article class="stat-card">
+            <span>Menunggu</span>
+            <strong id="statPending">-</strong>
+            <small>Perlu konfirmasi/admin</small>
+          </article>
+          <article class="stat-card">
+            <span>Aktif</span>
+            <strong id="statActive">-</strong>
+            <small>Domain selesai diproses</small>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="cek">
       <div class="container">
         <div class="panel">
@@ -722,10 +1170,11 @@ html {
             </div>
           </div>
 
-          <form class="domain-form" id="domainCheckForm">
-            <input id="domainInput" type="text" autocomplete="off" placeholder="contoh: brandkamu.com" />
-            <button class="btn btn-primary" type="submit">Cek Domain</button>
+          <form class="domain-form" id="domainCheckForm" autocomplete="off">
+            <input id="domainInput" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="contoh: brandkamu.com" aria-label="Nama domain" />
+            <button class="btn btn-primary" type="submit"><span class="btn-icon" aria-hidden="true">⌕</span> Cek Domain</button>
           </form>
+          <p class="microcopy">Tips: boleh tulis nama brand saja, sistem akan mengecek beberapa ekstensi populer sekaligus.</p>
 
           <div class="tld-group">
             <button class="tld-chip" data-tld=".com">.com</button>
@@ -759,29 +1208,36 @@ html {
           <section class="panel" id="checkout">
             <div class="section-title">
               <h2>Checkout</h2>
-              <p>Isi data pemesan dan metode DNS.</p>
+              <p>Isi data pemesan dan metode DNS. Data ini dipakai admin untuk mendaftarkan domain.</p>
+            </div>
+            <div class="stepper" aria-label="Tahapan checkout">
+              <span class="active">1 Pilih domain</span>
+              <span class="active">2 Isi data</span>
+              <span>3 Konfirmasi admin</span>
             </div>
 
             <form id="checkoutForm" style="margin-top:16px;">
               <div class="form-grid">
                 <div class="field">
                   <label for="customerName">Nama Pembeli</label>
-                  <input id="customerName" required placeholder="Nama lengkap" />
+                  <input id="customerName" required autocomplete="name" placeholder="Nama lengkap" />
                 </div>
 
                 <div class="field">
                   <label for="customerWhatsapp">WhatsApp</label>
-                  <input id="customerWhatsapp" required placeholder="08xxxxxxxxxx" />
+                  <input id="customerWhatsapp" required inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx" aria-describedby="waHelp" />
+                  <small class="field-help" id="waHelp">Gunakan nomor aktif. Contoh: 081234567890 atau 6281234567890.</small>
                 </div>
 
                 <div class="field">
                   <label for="customerEmail">Email Pembeli</label>
-                  <input id="customerEmail" type="email" placeholder="nama@email.com" />
+                  <input id="customerEmail" type="email" autocomplete="email" placeholder="nama@email.com" />
                 </div>
 
                 <div class="field">
                   <label for="ownerEmail">Email Pemilik Domain</label>
-                  <input id="ownerEmail" type="email" placeholder="email pemilik domain" />
+                  <input id="ownerEmail" type="email" autocomplete="email" placeholder="email pemilik domain" aria-describedby="ownerHelp" />
+                  <small class="field-help" id="ownerHelp">Kosongkan jika sama dengan email pembeli.</small>
                 </div>
 
                 <div class="field full">
@@ -792,29 +1248,31 @@ html {
                     <option value="point_to_platform">Arahkan ke platform tertentu</option>
                     <option value="not_sure">Belum tahu, minta dibantu admin</option>
                   </select>
+                  <small class="field-help" id="dnsHelp">Pilih “Dikelola Dirac Group” bila belum memiliki hosting atau belum paham pengaturan DNS.</small>
                 </div>
 
                 <div class="dns-extra" id="nameserverFields">
                   <div class="field">
                     <label for="nameserver1">Nameserver 1</label>
-                    <input id="nameserver1" placeholder="ns1.hosting.com" />
+                    <input id="nameserver1" autocapitalize="none" spellcheck="false" placeholder="ns1.hosting.com" />
                   </div>
                   <div class="field">
                     <label for="nameserver2">Nameserver 2</label>
-                    <input id="nameserver2" placeholder="ns2.hosting.com" />
+                    <input id="nameserver2" autocapitalize="none" spellcheck="false" placeholder="ns2.hosting.com" />
                   </div>
                 </div>
 
                 <div class="dns-extra" id="platformFields">
                   <div class="field">
                     <label for="targetPlatform">Platform / Tujuan</label>
-                    <input id="targetPlatform" placeholder="Vercel, Netlify, Blogger, Shopify, atau IP hosting" />
+                    <input id="targetPlatform" autocapitalize="none" spellcheck="false" placeholder="Vercel, Netlify, Blogger, Shopify, atau IP hosting" />
                   </div>
                 </div>
 
                 <div class="field full">
                   <label for="customerNote">Catatan</label>
-                  <textarea id="customerNote" rows="4" placeholder="Catatan tambahan"></textarea>
+                  <textarea id="customerNote" rows="4" maxlength="500" placeholder="Catatan tambahan"></textarea>
+                  <small class="field-help">Maksimal 500 karakter.</small>
                 </div>
 
                 <div class="checkout-summary" id="checkoutSummary"></div>
@@ -822,7 +1280,7 @@ html {
                 <button class="btn btn-primary full" type="submit" id="checkoutBtn">Checkout Sekarang</button>
               </div>
 
-              <div id="checkoutAlert" class="alert"></div>
+              <div id="checkoutAlert" class="alert" role="status" aria-live="polite"></div>
             </form>
           </section>
         </div>
@@ -835,9 +1293,9 @@ html {
           <div class="section-head">
             <div class="section-title">
               <h2>Status pesanan</h2>
-              <p>Pesanan domain yang terhubung dengan akun ini.</p>
+              <p>Pesanan domain yang terhubung dengan akun ini. Gunakan refresh jika status baru dibayar atau diproses admin belum berubah.</p>
             </div>
-            <button class="btn btn-primary" id="refreshOrdersBtn">Refresh Pesanan</button>
+            <button class="btn btn-primary" id="refreshOrdersBtn"><span class="btn-icon" aria-hidden="true">↻</span> Refresh Pesanan</button>
           </div>
 
           <div id="ordersList" class="orders">
@@ -847,6 +1305,15 @@ html {
       </div>
     </section>
   </main>
+
+  <nav class="mobile-bottom-nav" aria-label="Navigasi cepat mobile">
+    <button data-scroll="cek"><span aria-hidden="true">⌕</span><small>Cek</small></button>
+    <button data-scroll="keranjang"><span aria-hidden="true">🛒</span><small>Cart</small></button>
+    <button data-scroll="orders"><span aria-hidden="true">☑</span><small>Order</small></button>
+    <button data-mobile-logout="true"><span aria-hidden="true">↪</span><small>Keluar</small></button>
+  </nav>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 
   <script>
     const PRICE_RULES = {
@@ -865,11 +1332,84 @@ html {
 
     const $ = (id) => document.getElementById(id);
 
+
+    const STATUS_CLASS_MAP = {
+      pending: "pending",
+      menunggu_pembayaran: "pending",
+      unpaid: "unpaid",
+      paid: "paid",
+      dibayar: "dibayar",
+      proses_register: "proses_register",
+      domain_aktif: "domain_aktif",
+      active: "active",
+      dibatalkan: "cancelled",
+      cancelled: "cancelled"
+    };
+
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function safeClass(value) {
+      return STATUS_CLASS_MAP[String(value || "").toLowerCase()] || "pending";
+    }
+
+    function showToast(message, type = "success") {
+      const region = $("toastRegion");
+      if (!region) return;
+      const toast = document.createElement("div");
+      toast.className = "toast " + (type === "error" ? "error" : "success");
+      toast.textContent = message;
+      region.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(10px)";
+        setTimeout(() => toast.remove(), 220);
+      }, 3200);
+    }
+
+    async function copyText(value, label = "Teks") {
+      try {
+        await navigator.clipboard.writeText(String(value || ""));
+        showToast(label + " berhasil disalin.");
+      } catch (_) {
+        showToast("Browser belum mengizinkan salin otomatis.", "error");
+      }
+    }
+
+    function renderOrderStats(orders = []) {
+      const total = Array.isArray(orders) ? orders.length : 0;
+      const pending = (orders || []).filter((order) => {
+        const status = String(order.order_status || order.payment_status || "");
+        return ["pending", "menunggu_pembayaran", "unpaid", "proses_register"].some((item) => status.includes(item));
+      }).length;
+      const active = (orders || []).filter((order) => String(order.order_status || "").includes("domain_aktif") || String(order.order_status || "").includes("active")).length;
+
+      if ($("statCart")) $("statCart").textContent = state.cart.length;
+      if ($("statOrders")) $("statOrders").textContent = total;
+      if ($("statPending")) $("statPending").textContent = pending;
+      if ($("statActive")) $("statActive").textContent = active;
+    }
+
+    function renderSkeletonOrders() {
+      $("ordersList").innerHTML = `
+        <div class="skeleton" aria-label="Memuat pesanan"></div>
+        <div class="skeleton" aria-label="Memuat pesanan"></div>
+      `;
+    }
+
     async function api(path, options = {}) {
       const API_BASE = "https://companyprofilee-expk.vercel.app/api/health";
       const accessToken = localStorage.getItem("dirac_domain_access_token") || "";
       const refreshToken = localStorage.getItem("dirac_domain_refresh_token") || "";
       const url = path.startsWith("http") ? path : API_BASE + path;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 22000);
 
       const headers = {
         "Content-Type": "application/json",
@@ -879,25 +1419,35 @@ html {
       if (accessToken) headers.Authorization = "Bearer " + accessToken;
       if (refreshToken) headers["X-Domain-Refresh"] = refreshToken;
 
-      const response = await fetch(url, {
-        credentials: "omit",
-        headers,
-        ...options
-      });
+      try {
+        const response = await fetch(url, {
+          credentials: "omit",
+          headers,
+          ...options,
+          signal: options.signal || controller.signal
+        });
 
-      const newAccessToken = response.headers.get("X-Domain-Access-Token");
-      const newRefreshToken = response.headers.get("X-Domain-Refresh-Token");
+        const newAccessToken = response.headers.get("X-Domain-Access-Token");
+        const newRefreshToken = response.headers.get("X-Domain-Refresh-Token");
 
-      if (newAccessToken) localStorage.setItem("dirac_domain_access_token", newAccessToken);
-      if (newRefreshToken) localStorage.setItem("dirac_domain_refresh_token", newRefreshToken);
+        if (newAccessToken) localStorage.setItem("dirac_domain_access_token", newAccessToken);
+        if (newRefreshToken) localStorage.setItem("dirac_domain_refresh_token", newRefreshToken);
 
-      const data = await response.json().catch(() => ({}));
+        const data = await response.json().catch(() => ({}));
 
-      if (!response.ok || data.ok === false) {
-        throw new Error(data.message || "Request gagal.");
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.message || "Request gagal.");
+        }
+
+        return data;
+      } catch (error) {
+        if (error.name === "AbortError") {
+          throw new Error("Koneksi terlalu lama. Silakan coba lagi.");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      return data;
     }
 
     function saveCart() {
@@ -1004,11 +1554,12 @@ html {
     }
 
     function renderChecking(domain) {
+      const cleanDomain = escapeHTML(domain);
       $("resultArea").innerHTML = `
         <div class="result-card checking">
           <div class="result-head">
-            <div class="result-domain">${domain}</div>
-            <span class="status-badge badge-checking">Mengecek...</span>
+            <div class="result-domain">${cleanDomain}</div>
+            <span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span>
           </div>
           <p>Sistem sedang memeriksa status domain.</p>
         </div>
@@ -1016,25 +1567,28 @@ html {
     }
 
     function renderCheckResult(data, fallbackDomain) {
-      const domain = data.domain || fallbackDomain;
+      const domain = normalizeDomain(data.domain || fallbackDomain);
+      const displayDomain = escapeHTML(domain);
       const available = Boolean(data.available);
       const price = getPrice(domain);
+      const message = escapeHTML(data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar."));
 
       $("resultArea").innerHTML = `
         <div class="result-card ${available ? "available" : "taken"}">
           <div class="result-head">
-            <div class="result-domain">${domain}</div>
+            <div class="result-domain">${displayDomain}</div>
             <span class="status-badge ${available ? "badge-available" : "badge-taken"}">
               ${available ? "Tersedia" : "Tidak tersedia"}
             </span>
           </div>
-          <p>${data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar.")}</p>
+          <p>${message}</p>
           ${available ? `
             <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
+            <p class="microcopy">Harga ditampilkan sebagai estimasi frontend dan tetap diverifikasi ulang saat checkout.</p>
           ` : ""}
           <div class="result-actions">
-            ${available ? `<button class="btn btn-mint" data-add-cart="${domain}">Tambah ke Keranjang</button>` : ""}
-            <button class="btn btn-soft" data-recheck="${domain}">Cek Ulang</button>
+            ${available ? `<button class="btn btn-mint" data-add-cart="${displayDomain}">Tambah ke Keranjang</button>` : ""}
+            <button class="btn btn-soft" data-recheck="${displayDomain}">Cek Ulang</button>
           </div>
         </div>
       `;
@@ -1043,15 +1597,17 @@ html {
     }
 
     function renderError(domain, message) {
+      const displayDomain = escapeHTML(domain || "Domain");
+      const displayMessage = escapeHTML(message || "Terjadi kesalahan saat mengecek domain.");
       $("resultArea").innerHTML = `
         <div class="result-card taken">
           <div class="result-head">
-            <div class="result-domain">${domain || "Domain"}</div>
+            <div class="result-domain">${displayDomain}</div>
             <span class="status-badge badge-taken">Gagal dicek</span>
           </div>
-          <p>${message || "Terjadi kesalahan saat mengecek domain."}</p>
+          <p>${displayMessage}</p>
           <div class="result-actions">
-            <button class="btn btn-soft" data-recheck="${domain}">Coba Lagi</button>
+            <button class="btn btn-soft" data-recheck="${displayDomain}">Coba Lagi</button>
           </div>
         </div>
       `;
@@ -1102,8 +1658,8 @@ html {
         return `
           <div class="result-card checking" id="${id}">
             <div class="result-head">
-              <div class="result-domain">${domain}</div>
-              <span class="status-badge badge-checking">Mengecek...</span>
+              <div class="result-domain">${escapeHTML(domain)}</div>
+              <span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span>
             </div>
             <p>${price ? `Harga: ${formatRupiah(price.register)} / tahun pertama` : "Harga belum tersedia."}</p>
           </div>
@@ -1117,36 +1673,39 @@ html {
 
         try {
           const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
+          const safeDomain = normalizeDomain(data.domain || domain);
           const available = Boolean(data.available);
-          const price = getPrice(domain);
+          const price = getPrice(safeDomain);
+          const displayDomain = escapeHTML(safeDomain);
+          const displayMessage = escapeHTML(data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar."));
 
           card.className = `result-card ${available ? "available" : "taken"}`;
           card.innerHTML = `
             <div class="result-head">
-              <div class="result-domain">${data.domain || domain}</div>
+              <div class="result-domain">${displayDomain}</div>
               <span class="status-badge ${available ? "badge-available" : "badge-taken"}">
                 ${available ? "Tersedia" : "Tidak tersedia"}
               </span>
             </div>
-            <p>${data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar.")}</p>
+            <p>${displayMessage}</p>
             ${available ? `
               <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
             ` : ""}
             <div class="result-actions">
-              ${available ? `<button class="btn btn-mint" data-add-cart="${data.domain || domain}">Tambah ke Keranjang</button>` : ""}
-              <button class="btn btn-soft" data-recheck="${data.domain || domain}">Cek Ulang</button>
+              ${available ? `<button class="btn btn-mint" data-add-cart="${displayDomain}">Tambah ke Keranjang</button>` : ""}
+              <button class="btn btn-soft" data-recheck="${displayDomain}">Cek Ulang</button>
             </div>
           `;
         } catch (error) {
           card.className = "result-card taken";
           card.innerHTML = `
             <div class="result-head">
-              <div class="result-domain">${domain}</div>
+              <div class="result-domain">${escapeHTML(domain)}</div>
               <span class="status-badge badge-taken">Gagal dicek</span>
             </div>
-            <p>${error.message}</p>
+            <p>${escapeHTML(error.message)}</p>
             <div class="result-actions">
-              <button class="btn btn-soft" data-recheck="${domain}">Coba Lagi</button>
+              <button class="btn btn-soft" data-recheck="${escapeHTML(domain)}">Coba Lagi</button>
             </div>
           `;
         }
@@ -1170,14 +1729,14 @@ html {
       const price = getPrice(clean);
 
       if (!price) {
-        alert("Harga domain ini belum tersedia.");
+        showToast("Harga domain ini belum tersedia.", "error");
         return;
       }
 
       const exists = state.cart.some((item) => item.domain_name === clean);
 
       if (exists) {
-        alert("Domain ini sudah ada di keranjang.");
+        showToast("Domain ini sudah ada di keranjang.", "error");
         return;
       }
 
@@ -1193,6 +1752,7 @@ html {
 
       saveCart();
       renderCart();
+      showToast(clean + " ditambahkan ke keranjang.");
       document.getElementById("keranjang").scrollIntoView({ behavior: "smooth" });
     }
 
@@ -1200,6 +1760,7 @@ html {
       state.cart = state.cart.filter((item) => item.domain_name !== domain);
       saveCart();
       renderCart();
+      showToast("Domain dihapus dari keranjang.");
     }
 
     function getCartTotal() {
@@ -1208,6 +1769,7 @@ html {
 
     function renderCart() {
       $("cartCount").textContent = state.cart.length;
+      if ($("statCart")) $("statCart").textContent = state.cart.length;
       $("cartTotal").textContent = formatRupiah(getCartTotal());
       updateCheckoutSummary();
 
@@ -1220,19 +1782,23 @@ html {
         return;
       }
 
-      $("cartItems").innerHTML = state.cart.map((item) => `
-        <div class="cart-item">
-          <div>
-            <h3>${item.domain_name}</h3>
-            <p>${item.extension} • ${item.years} tahun • renewal ${formatRupiah(item.renewal_price)}</p>
+      $("cartItems").innerHTML = state.cart.map((item) => {
+        const domain = escapeHTML(item.domain_name);
+        const ext = escapeHTML(item.extension);
+        return `
+          <div class="cart-item">
+            <div>
+              <h3>${domain}</h3>
+              <p>${ext} • ${Number(item.years || 1)} tahun • renewal ${formatRupiah(item.renewal_price)}</p>
+            </div>
+            <div class="cart-price">
+              ${formatRupiah(item.subtotal)}
+              <br>
+              <button class="cart-remove" data-remove="${domain}">Hapus</button>
+            </div>
           </div>
-          <div class="cart-price">
-            ${formatRupiah(item.subtotal)}
-            <br>
-            <button class="cart-remove" data-remove="${item.domain_name}">Hapus</button>
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
 
       document.querySelectorAll("[data-remove]").forEach((button) => {
         button.addEventListener("click", () => removeFromCart(button.dataset.remove));
@@ -1254,7 +1820,7 @@ html {
       const dnsMethod = $("dnsMethod") ? $("dnsMethod").value : "managed_by_dirac";
       const domainRows = state.cart.map((item) => `
         <div class="summary-line">
-          <span>${item.domain_name}</span>
+          <span>${escapeHTML(item.domain_name)}</span>
           <b>${formatRupiah(item.subtotal)}</b>
         </div>
       `).join("");
@@ -1263,7 +1829,8 @@ html {
         <h3 style="margin:0;color:var(--deep);">Ringkasan Pesanan</h3>
         ${domainRows}
         <div class="summary-line"><span>Durasi</span><b>1 tahun</b></div>
-        <div class="summary-line"><span>Metode DNS</span><b>${dnsLabel(dnsMethod)}</b></div>
+        <div class="summary-line"><span>Metode DNS</span><b>${escapeHTML(dnsLabel(dnsMethod))}</b></div>
+        <div class="summary-line"><span>Verifikasi</span><b>Domain dicek ulang sebelum checkout</b></div>
         <div class="summary-line"><span>Total</span><b>${formatRupiah(getCartTotal())}</b></div>
       `;
     }
@@ -1272,8 +1839,42 @@ html {
       const method = $("dnsMethod").value;
       $("nameserverFields").classList.toggle("show", method === "use_own_nameserver");
       $("platformFields").classList.toggle("show", method === "point_to_platform");
+      $("nameserver1").required = method === "use_own_nameserver";
+      $("nameserver2").required = method === "use_own_nameserver";
+      $("targetPlatform").required = method === "point_to_platform";
       updateCheckoutSummary();
     }
+
+    function validateCheckoutPayload(payload) {
+      const errors = [];
+      const wa = payload.customer_whatsapp.replace(/[^0-9+]/g, "");
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const nsPattern = /^([a-z0-9-]+\.)+[a-z]{2,}$/i;
+
+      if (!payload.customer_name) errors.push("Nama pembeli wajib diisi.");
+      if (!payload.customer_whatsapp) errors.push("Nomor WhatsApp wajib diisi.");
+      if (payload.customer_whatsapp && !/^(\+?62|0)\d{8,14}$/.test(wa)) errors.push("Format WhatsApp belum valid.");
+      if (payload.customer_email && !emailPattern.test(payload.customer_email)) errors.push("Format email pembeli belum valid.");
+      if (payload.owner_email && !emailPattern.test(payload.owner_email)) errors.push("Format email pemilik domain belum valid.");
+      if (payload.dns_method === "use_own_nameserver") {
+        if (!payload.nameserver_1 || !payload.nameserver_2) errors.push("Nameserver 1 dan 2 wajib diisi jika memakai nameserver sendiri.");
+        if (payload.nameserver_1 && !nsPattern.test(payload.nameserver_1)) errors.push("Format Nameserver 1 belum valid.");
+        if (payload.nameserver_2 && !nsPattern.test(payload.nameserver_2)) errors.push("Format Nameserver 2 belum valid.");
+      }
+      if (payload.dns_method === "point_to_platform" && !payload.target_platform) errors.push("Tujuan platform wajib diisi jika memilih arahkan ke platform.");
+      if (payload.customer_note.length > 500) errors.push("Catatan maksimal 500 karakter.");
+      return errors;
+    }
+
+    async function recheckCartBeforeCheckout() {
+      for (const item of state.cart) {
+        const result = await api(`?action=domain_check&domain=${encodeURIComponent(item.domain_name)}`);
+        if (!result.available) {
+          throw new Error(`${item.domain_name} sudah tidak tersedia. Hapus dari keranjang lalu pilih domain lain.`);
+        }
+      }
+    }
+
 
     async function submitCheckout(event) {
       event.preventDefault();
@@ -1284,6 +1885,7 @@ html {
       if (!state.cart.length) {
         alertBox.className = "alert error show";
         alertBox.textContent = "Keranjang masih kosong. Tambahkan domain terlebih dahulu.";
+        showToast("Keranjang masih kosong.", "error");
         return;
       }
 
@@ -1304,16 +1906,23 @@ html {
         }))
       };
 
-      if (!payload.customer_name || !payload.customer_whatsapp) {
+      const validationErrors = validateCheckoutPayload(payload);
+      if (validationErrors.length) {
         alertBox.className = "alert error show";
-        alertBox.textContent = "Nama pembeli dan WhatsApp wajib diisi.";
+        alertBox.innerHTML = `<b>Periksa data checkout:</b><br>${validationErrors.map(escapeHTML).join("<br>")}`;
+        showToast("Ada data checkout yang belum valid.", "error");
         return;
       }
 
       button.disabled = true;
-      button.textContent = "Memproses checkout...";
+      button.innerHTML = `<span class="spinner" aria-hidden="true"></span> Memverifikasi domain...`;
+      alertBox.className = "alert show";
+      alertBox.textContent = "Sistem sedang mengecek ulang ketersediaan domain sebelum checkout.";
 
       try {
+        await recheckCartBeforeCheckout();
+        button.innerHTML = `<span class="spinner" aria-hidden="true"></span> Memproses checkout...`;
+
         const result = await api("?action=domain_checkout", {
           method: "POST",
           body: JSON.stringify(payload)
@@ -1324,10 +1933,15 @@ html {
         alertBox.className = "alert success show";
         alertBox.innerHTML = `
           <b>Pesanan berhasil dibuat.</b><br>
-          Invoice: <b>${invoiceCode}</b><br>
+          Invoice: <b>${escapeHTML(invoiceCode)}</b><br>
           Total: <b>${formatRupiah(result.total_amount)}</b><br>
-          Status: menunggu konfirmasi admin.
+          Status: menunggu konfirmasi admin.<br>
+          <button class="order-action" type="button" data-copy="${escapeHTML(invoiceCode)}" data-copy-label="Invoice">Salin invoice</button>
         `;
+
+        alertBox.querySelector("[data-copy]")?.addEventListener("click", (event) => {
+          copyText(event.currentTarget.dataset.copy, event.currentTarget.dataset.copyLabel || "Invoice");
+        });
 
         state.cart = [];
         saveCart();
@@ -1335,10 +1949,12 @@ html {
         event.target.reset();
         if (state.user?.email) $("customerEmail").value = state.user.email;
         updateDnsFields();
+        showToast("Checkout berhasil dibuat.");
         loadOrders();
       } catch (error) {
         alertBox.className = "alert error show";
         alertBox.textContent = error.message || "Checkout belum berhasil.";
+        showToast(error.message || "Checkout belum berhasil.", "error");
       } finally {
         button.disabled = false;
         button.textContent = "Checkout Sekarang";
@@ -1346,17 +1962,43 @@ html {
     }
 
     async function loadOrders() {
-      $("ordersList").innerHTML = `<div class="cart-empty">Memuat pesanan...</div>`;
+      renderSkeletonOrders();
 
       try {
         const result = await api("?action=domain_orders");
         renderOrders(result.data || []);
       } catch (error) {
-        $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${error.message}</div>`;
+        $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${escapeHTML(error.message)}</div>`;
+        showToast("Gagal memuat pesanan.", "error");
       }
     }
 
+    function renderTimeline(order) {
+      const orderStatus = String(order.order_status || "");
+      const paymentStatus = String(order.payment_status || "");
+      const isPaid = ["paid", "dibayar"].includes(paymentStatus) || ["proses_register", "domain_aktif", "active"].includes(orderStatus);
+      const isProcess = ["proses_register", "domain_aktif", "active"].includes(orderStatus);
+      const isActive = ["domain_aktif", "active"].includes(orderStatus);
+      const steps = [
+        { label: "Pesanan dibuat", done: true },
+        { label: "Pembayaran", done: isPaid, current: !isPaid },
+        { label: "Proses register", done: isProcess, current: isPaid && !isProcess },
+        { label: "Domain aktif", done: isActive, current: isProcess && !isActive }
+      ];
+      return `<div class="order-timeline" aria-label="Timeline pesanan">${steps.map((step) => `
+        <span class="timeline-step ${step.done ? "done" : step.current ? "current" : ""}">${escapeHTML(step.label)}</span>
+      `).join("")}</div>`;
+    }
+
+    function bindOrderButtons() {
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", () => copyText(button.dataset.copy, button.dataset.copyLabel || "Teks"));
+      });
+    }
+
     function renderOrders(orders) {
+      renderOrderStats(orders);
+
       if (!orders.length) {
         $("ordersList").innerHTML = `
           <div class="cart-empty">
@@ -1368,11 +2010,14 @@ html {
 
       $("ordersList").innerHTML = orders.map((order) => {
         const items = Array.isArray(order.domain_order_items) ? order.domain_order_items : [];
+        const invoiceCode = makeInvoiceCode(order.id);
+        const orderStatusClass = safeClass(order.order_status);
+        const paymentStatusClass = safeClass(order.payment_status);
 
         const domainRows = items.length
           ? items.map((item) => `
               <div class="domain-item">
-                <span>${item.domain_name}</span>
+                <span>${escapeHTML(item.domain_name)}</span>
                 <b>${formatRupiah(item.subtotal)}</b>
               </div>
             `).join("")
@@ -1382,14 +2027,16 @@ html {
           <article class="order-card">
             <div class="order-top">
               <div>
-                <div class="invoice">${makeInvoiceCode(order.id)}</div>
-                <div class="date">${formatDate(order.created_at)}</div>
+                <div class="invoice">${escapeHTML(invoiceCode)}</div>
+                <div class="date">${escapeHTML(formatDate(order.created_at))}</div>
               </div>
               <div class="badge-row">
-                <span class="badge ${order.order_status}">${statusLabel(order.order_status)}</span>
-                <span class="badge ${order.payment_status}">${statusLabel(order.payment_status)}</span>
+                <span class="badge ${orderStatusClass}">${escapeHTML(statusLabel(order.order_status))}</span>
+                <span class="badge ${paymentStatusClass}">${escapeHTML(statusLabel(order.payment_status))}</span>
               </div>
             </div>
+
+            ${renderTimeline(order)}
 
             <div class="order-grid">
               <div class="info-box">
@@ -1400,16 +2047,23 @@ html {
               <div class="info-box">
                 <h3>Detail Pesanan</h3>
                 <div class="line"><span>Total</span><b>${formatRupiah(order.total_amount)}</b></div>
-                <div class="line"><span>Metode DNS</span><b>${dnsLabel(order.dns_method)}</b></div>
-                <div class="line"><span>Email pemilik</span><b>${order.owner_email || "-"}</b></div>
-                <div class="line"><span>Nameserver 1</span><b>${order.nameserver_1 || "-"}</b></div>
-                <div class="line"><span>Nameserver 2</span><b>${order.nameserver_2 || "-"}</b></div>
-                <div class="line"><span>Tujuan platform</span><b>${order.target_platform || "-"}</b></div>
+                <div class="line"><span>Metode DNS</span><b>${escapeHTML(dnsLabel(order.dns_method))}</b></div>
+                <div class="line"><span>Email pemilik</span><b>${escapeHTML(order.owner_email || "-")}</b></div>
+                <div class="line"><span>Nameserver 1</span><b>${escapeHTML(order.nameserver_1 || "-")}</b></div>
+                <div class="line"><span>Nameserver 2</span><b>${escapeHTML(order.nameserver_2 || "-")}</b></div>
+                <div class="line"><span>Tujuan platform</span><b>${escapeHTML(order.target_platform || "-")}</b></div>
               </div>
+            </div>
+
+            <div class="order-actions">
+              <button class="order-action" type="button" data-copy="${escapeHTML(invoiceCode)}" data-copy-label="Invoice">Salin invoice</button>
+              <button class="order-action" type="button" data-copy="${escapeHTML(items.map((item) => item.domain_name).join(", "))}" data-copy-label="Daftar domain">Salin domain</button>
             </div>
           </article>
         `;
       }).join("");
+
+      bindOrderButtons();
     }
 
     async function logout() {
@@ -1427,7 +2081,8 @@ html {
       document.querySelectorAll("[data-scroll]").forEach((button) => {
         button.addEventListener("click", () => {
           const id = button.dataset.scroll;
-          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+          const target = document.getElementById(id);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       });
 
@@ -1449,6 +2104,9 @@ html {
       $("checkoutForm").addEventListener("submit", submitCheckout);
       $("refreshOrdersBtn").addEventListener("click", loadOrders);
       $("logoutBtn").addEventListener("click", logout);
+      document.querySelectorAll("[data-mobile-logout]").forEach((button) => {
+        button.addEventListener("click", logout);
+      });
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
