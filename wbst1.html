@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dirac Group Domain | Cari, Beli, dan Kelola Domain</title>
+  <meta name="description" content="Cari domain, bandingkan harga TLD, checkout, dan kelola status pesanan domain bersama Dirac Group." />
+  <meta name="theme-color" content="#6258ff" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="dirac-dashboard-route" content="https://diracgroup.store/dashboard.html" />
+  <meta name="dirac-login-route" content="https://diracgroup.store/wbst.html" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg-a:#f6f3ff; --bg-b:#eaf8ff; --bg-c:#fff8e9;
+      --ink:#141b34; --deep:#232b55; --muted:#65728d; --white:#fff;
+      --violet:#6258ff; --cyan:#13b6d6; --mint:#19bf78; --amber:#f5b23f;
+      --line:rgba(35,43,85,.12); --shadow:0 28px 90px rgba(42,51,105,.17);
+    }
+    html[data-theme="dark"] {
+      color-scheme:dark; --bg-a:#0f1230; --bg-b:#071f2d; --bg-c:#1d1728;
+      --ink:#eef3ff; --deep:#f6f8ff; --muted:#b6c2da; --line:rgba(226,232,240,.14);
+      --shadow:0 28px 90px rgba(0,0,0,.34);
+    }
+    * { box-sizing:border-box; min-width:0; }
+    html { scroll-behavior:smooth; scroll-padding-top:96px; }
+    body {
+      margin:0; min-height:100vh; font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      color:var(--ink); line-height:1.65; overflow-x:hidden;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(98,88,255,.22), transparent 30%),
+        radial-gradient(circle at 88% 6%, rgba(19,182,214,.18), transparent 28%),
+        radial-gradient(circle at 48% 90%, rgba(245,178,63,.20), transparent 34%),
+        linear-gradient(135deg,var(--bg-a),var(--bg-b) 52%,var(--bg-c));
+    }
+    body::before { content:""; position:fixed; inset:0; z-index:-1; background-image:linear-gradient(rgba(98,88,255,.052) 1px, transparent 1px),linear-gradient(90deg, rgba(98,88,255,.052) 1px, transparent 1px); background-size:42px 42px; mask-image:linear-gradient(to bottom,rgba(0,0,0,.85),rgba(0,0,0,.18)); }
+    a { color:inherit; text-decoration:none; }
+    button,input { font:inherit; }
+    .container { width:min(1180px, calc(100% - 32px)); margin:0 auto; }
+    .site-header { position:sticky; top:0; z-index:50; background:rgba(255,255,255,.76); border-bottom:1px solid rgba(35,43,85,.08); backdrop-filter:blur(22px); box-shadow:0 12px 36px rgba(42,51,105,.08); }
+    html[data-theme="dark"] .site-header { background:rgba(15,23,42,.74); }
+    .nav { min-height:76px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { display:flex; align-items:center; gap:13px; font-weight:1000; }
+    .brand-mark { width:52px; height:52px; border-radius:18px; display:grid; place-items:center; color:white; background:linear-gradient(135deg,var(--violet),var(--cyan)); box-shadow:0 18px 40px rgba(98,88,255,.26); letter-spacing:-.08em; }
+    .brand-copy { display:grid; line-height:1.08; }
+    .brand-copy strong { color:var(--deep); font-size:19px; letter-spacing:-.045em; }
+    .brand-copy span { color:var(--violet); font-size:11px; font-weight:1000; text-transform:uppercase; letter-spacing:.16em; }
+    .nav-actions { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+    .btn { min-height:46px; border:0; border-radius:15px; padding:11px 15px; display:inline-flex; align-items:center; justify-content:center; gap:8px; font-weight:950; cursor:pointer; transition:.2s ease; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn-primary { color:white; background:linear-gradient(135deg,var(--violet),var(--cyan)); box-shadow:0 18px 38px rgba(98,88,255,.22); }
+    .btn-soft { color:var(--deep); background:rgba(255,255,255,.78); border:1px solid rgba(35,43,85,.10); }
+    html[data-theme="dark"] .btn-soft { background:rgba(15,23,42,.76); border-color:rgba(226,232,240,.14); }
+    .theme-toggle { border:1px solid rgba(35,43,85,.10); background:rgba(255,255,255,.86); color:var(--deep); }
+    .hero { padding:64px 0 30px; }
+    .hero-card { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr); gap:24px; align-items:stretch; padding:32px; border-radius:34px; background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.76); box-shadow:var(--shadow); overflow:hidden; backdrop-filter:blur(18px); }
+    html[data-theme="dark"] .hero-card, html[data-theme="dark"] .panel, html[data-theme="dark"] .card { background:rgba(15,23,42,.80); border-color:rgba(226,232,240,.12); }
+    .pill { display:inline-flex; width:fit-content; align-items:center; gap:8px; padding:9px 13px; border-radius:999px; border:1px solid rgba(98,88,255,.17); color:var(--violet); background:rgba(255,255,255,.74); box-shadow:0 10px 28px rgba(98,88,255,.10); font-size:13px; font-weight:950; }
+    .hero h1 { margin:18px 0 12px; color:var(--deep); font-size:clamp(40px,6vw,72px); line-height:.96; letter-spacing:-.075em; text-wrap:balance; }
+    .hero p { margin:0; color:var(--muted); font-size:17px; max-width:740px; }
+    .domain-search { margin-top:24px; padding:8px; display:grid; grid-template-columns:1fr auto; gap:8px; border-radius:24px; background:#f7f9ff; border:1px solid rgba(35,43,85,.10); box-shadow:inset 0 1px 0 rgba(255,255,255,.76),0 16px 36px rgba(42,51,105,.08); }
+    html[data-theme="dark"] .domain-search { background:rgba(30,41,59,.66); }
+    .domain-search input { min-height:58px; border:0; outline:0; padding:0 14px; background:transparent; color:var(--deep); font-size:18px; font-weight:850; }
+    .quick-tlds { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
+    .quick-tlds span { border:1px solid rgba(98,88,255,.16); background:rgba(98,88,255,.08); color:var(--violet); padding:8px 11px; border-radius:999px; font-weight:950; font-size:13px; }
+    .hero-console { position:relative; padding:18px; border-radius:28px; color:white; background:linear-gradient(145deg,#141b34,#332f7d 58%,#0f8da8); overflow:hidden; box-shadow:0 26px 70px rgba(35,43,85,.22); display:grid; gap:13px; }
+    .console-window { padding:18px; border-radius:22px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.20); backdrop-filter:blur(12px); }
+    .console-window small { display:block; text-transform:uppercase; letter-spacing:.12em; opacity:.78; font-weight:900; }
+    .console-window strong { display:block; margin:6px 0; font-size:32px; letter-spacing:-.06em; overflow-wrap:anywhere; }
+    .console-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .console-grid div { padding:14px; border-radius:18px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.16); }
+    .console-grid b { display:block; font-size:24px; }
+    .console-grid span { color:rgba(255,255,255,.78); font-size:12px; font-weight:850; }
+    .section { padding:34px 0; }
+    .panel { padding:26px; border-radius:30px; background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.76); box-shadow:0 14px 42px rgba(42,51,105,.11); backdrop-filter:blur(18px); }
+    .section-head { display:flex; justify-content:space-between; gap:18px; align-items:end; margin-bottom:18px; }
+    .section-title h2 { margin:0 0 6px; color:var(--deep); font-size:clamp(30px,4vw,48px); line-height:1.04; letter-spacing:-.06em; }
+    .section-title p { margin:0; color:var(--muted); }
+    .price-grid, .feature-grid, .steps-grid, .trust-grid { display:grid; gap:12px; }
+    .price-grid { grid-template-columns:repeat(5,minmax(0,1fr)); }
+    .feature-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .steps-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .trust-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .card { padding:17px; border-radius:22px; background:rgba(255,255,255,.84); border:1px solid rgba(35,43,85,.09); box-shadow:0 12px 30px rgba(42,51,105,.07); }
+    .card strong { display:block; color:var(--deep); font-size:20px; letter-spacing:-.04em; }
+    .card p, .card span { color:var(--muted); font-weight:760; }
+    .price-card strong { font-size:30px; color:var(--violet); }
+    .price-card b { display:block; margin:8px 0 2px; color:var(--deep); font-size:21px; letter-spacing:-.05em; }
+    .step-num { width:36px; height:36px; border-radius:14px; display:grid; place-items:center; color:white; background:linear-gradient(135deg,var(--violet),var(--cyan)); font-weight:1000; margin-bottom:10px; }
+    .footer { padding:36px 0 48px; color:var(--muted); text-align:center; font-weight:760; }
+    .alert { display:none; margin-top:12px; padding:13px 14px; border-radius:16px; color:#1d4ed8; background:#dbeafe; border:1px solid #bfdbfe; font-weight:850; }
+    .alert.show { display:block; }
+    @media (max-width:1000px) { .hero-card { grid-template-columns:1fr; } .price-grid { grid-template-columns:repeat(3,1fr); } .feature-grid, .trust-grid { grid-template-columns:repeat(2,1fr); } .steps-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:720px) { .container { width:min(100% - 24px,1180px); } .nav { flex-wrap:wrap; padding:12px 0; } .nav-actions { width:100%; } .hero { padding:28px 0 18px; } .hero-card, .panel { padding:20px; border-radius:24px; } .domain-search { grid-template-columns:1fr; } .hero-console { display:none; } .price-grid, .feature-grid, .steps-grid, .trust-grid { grid-template-columns:1fr; } .section-head { flex-direction:column; align-items:stretch; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="./index.html" aria-label="Dirac Group Domain">
+        <span class="brand-mark">DG</span>
+        <span class="brand-copy"><strong>Dirac Group</strong><span>Domain Store</span></span>
+      </a>
+      <div class="nav-actions">
+        <a class="btn btn-soft" href="#harga">Harga</a>
+        <a class="btn btn-soft" href="#fitur">Fitur</a>
+        <a class="btn btn-soft" href="#alur">Alur</a>
+        <a class="btn btn-primary" id="loginLink" href="./wbst.html">Masuk</a>
+        <button class="btn theme-toggle" type="button" id="themeToggle">☾</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-card">
+          <div>
+            <div class="pill">✦ Register • Renewal • DNS • Invoice</div>
+            <h1>Cari domain profesional untuk brand Anda.</h1>
+            <p>Bandingkan harga TLD, simpan pilihan domain, lalu lanjut ke dashboard untuk checkout dan pemantauan status pesanan.</p>
+            <form class="domain-search" id="publicDomainForm" autocomplete="off">
+              <input id="publicDomainInput" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="contoh: brandkamu.com" aria-label="Cari nama domain" />
+              <button class="btn btn-primary" type="submit">Cek Domain</button>
+            </form>
+            <div class="quick-tlds" aria-label="Ekstensi populer"><span>.com</span><span>.id</span><span>.co.id</span><span>.my.id</span><span>.xyz</span><span>.online</span></div>
+            <div class="alert" id="publicAlert">Domain akan dibawa ke dashboard setelah login.</div>
+          </div>
+          <aside class="hero-console" aria-label="Ringkasan layanan domain">
+            <div class="console-window"><small>Contoh hasil</small><strong>brandkamu.com</strong><p>Tersedia • mulai Rp185.000/tahun</p></div>
+            <div class="console-grid">
+              <div><b>10+</b><span>Ekstensi populer</span></div>
+              <div><b>DNS</b><span>Nameserver/platform</span></div>
+              <div><b>Invoice</b><span>Status pesanan</span></div>
+              <div><b>Admin</b><span>Verifikasi manual</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="harga">
+      <div class="container panel">
+        <div class="section-head"><div class="section-title"><h2>Harga TLD populer</h2><p>Harga awal untuk membantu pembeli memilih ekstensi domain. Final tetap diverifikasi saat checkout.</p></div><a class="btn btn-primary" href="./wbst.html" id="priceLoginLink">Mulai Checkout</a></div>
+        <div class="price-grid">
+          <article class="card price-card"><strong>.com</strong><b>Rp185.000</b><span>Renewal Rp185.000/tahun</span></article>
+          <article class="card price-card"><strong>.id</strong><b>Rp260.000</b><span>Brand lokal Indonesia</span></article>
+          <article class="card price-card"><strong>.co.id</strong><b>Rp330.000</b><span>Bisnis/perusahaan</span></article>
+          <article class="card price-card"><strong>.my.id</strong><b>Rp120.000</b><span>Personal/portofolio</span></article>
+          <article class="card price-card"><strong>.xyz</strong><b>Rp45.000</b><span>Promo tahun pertama</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="fitur">
+      <div class="container panel">
+        <div class="section-title"><h2>Fitur seperti website domain modern</h2><p>Didesain untuk alur registrar sederhana: pencarian, keranjang, checkout, invoice, dan manajemen domain.</p></div>
+        <div class="feature-grid" style="margin-top:18px;">
+          <article class="card"><strong>Bulk search</strong><p>Cek banyak domain sekaligus dari dashboard pelanggan.</p></article>
+          <article class="card"><strong>Domain suggestion</strong><p>Alternatif nama domain disiapkan ketika domain tidak tersedia.</p></article>
+          <article class="card"><strong>Pricing jelas</strong><p>Register dan renewal ditampilkan agar tidak membingungkan pembeli.</p></article>
+          <article class="card"><strong>DNS options</strong><p>Dikelola Dirac, nameserver sendiri, atau diarahkan ke platform.</p></article>
+          <article class="card"><strong>Invoice ringkas</strong><p>Status pembayaran dan proses register bisa dipantau.</p></article>
+          <article class="card"><strong>Domain Saya</strong><p>Ringkasan domain aktif/diproses tersedia di dashboard.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="alur">
+      <div class="container panel">
+        <div class="section-title"><h2>Alur pembelian</h2><p>Alur dibuat ringkas agar mudah dipahami pembeli baru.</p></div>
+        <div class="steps-grid" style="margin-top:18px;">
+          <article class="card"><span class="step-num">1</span><strong>Cari domain</strong><p>Masukkan nama domain atau brand.</p></article>
+          <article class="card"><span class="step-num">2</span><strong>Tambah keranjang</strong><p>Pilih TLD dan durasi pembelian.</p></article>
+          <article class="card"><span class="step-num">3</span><strong>Checkout</strong><p>Isi data pemilik, WhatsApp, dan DNS.</p></article>
+          <article class="card"><span class="step-num">4</span><strong>Aktivasi</strong><p>Admin verifikasi pembayaran dan memproses domain.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container panel">
+        <div class="section-title"><h2>Kepercayaan & keamanan</h2><p>Bagian ini membantu website terlihat lebih siap dipakai untuk transaksi domain.</p></div>
+        <div class="trust-grid" style="margin-top:18px;">
+          <article class="card"><strong>Data pemilik jelas</strong><p>Email pemilik domain dipisahkan dari email pembeli bila diperlukan.</p></article>
+          <article class="card"><strong>Verifikasi ulang</strong><p>Domain dicek ulang sebelum checkout dikirim ke admin.</p></article>
+          <article class="card"><strong>Bantuan DNS</strong><p>Pengguna awam tetap bisa membeli domain meskipun belum paham nameserver.</p></article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer"><div class="container">© Dirac Group Domain. Landing page publik untuk pencarian dan edukasi layanan domain.</div></footer>
+
+  <script>
+    const ROUTES = {
+      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || "https://diracgroup.store/dashboard.html",
+      login: document.querySelector('meta[name="dirac-login-route"]')?.content || "https://diracgroup.store/wbst.html"
+    };
+    const safeStorage = {
+      get(key) { try { return localStorage.getItem(key); } catch (_) { return null; } },
+      set(key, value) { try { localStorage.setItem(key, value); } catch (_) {} }
+    };
+    function normalizeDomain(value) {
+      return String(value || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "").replace(/\s+/g, "").replace(/\.$/, "");
+    }
+    function goLoginWithDomain(domain) {
+      const clean = normalizeDomain(domain);
+      if (clean) safeStorage.set("dirac_domain_prefill", clean);
+      const alert = document.getElementById("publicAlert");
+      if (alert) alert.classList.add("show");
+      window.setTimeout(() => { window.location.href = ROUTES.login; }, 450);
+    }
+    document.getElementById("loginLink")?.setAttribute("href", ROUTES.login);
+    document.getElementById("priceLoginLink")?.setAttribute("href", ROUTES.login);
+    document.getElementById("publicDomainForm")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      goLoginWithDomain(document.getElementById("publicDomainInput")?.value || "");
+    });
+    const root = document.documentElement;
+    const theme = safeStorage.get("dirac_ui_theme");
+    if (theme === "dark") root.dataset.theme = "dark";
+    function syncTheme() {
+      const isDark = root.dataset.theme === "dark";
+      const btn = document.getElementById("themeToggle");
+      if (btn) btn.textContent = isDark ? "☀" : "☾";
+    }
+    document.getElementById("themeToggle")?.addEventListener("click", () => {
+      const next = root.dataset.theme === "dark" ? "light" : "dark";
+      if (next === "dark") root.dataset.theme = "dark"; else delete root.dataset.theme;
+      safeStorage.set("dirac_ui_theme", next);
+      syncTheme();
+    });
+    syncTheme();
+  </script>
+</body>
+</html>

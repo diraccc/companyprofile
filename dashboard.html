@@ -2058,6 +2058,248 @@
       }
     }
 
+
+    /* ===== Dirac Domain Ultra Refined Marketplace Layer ===== */
+    html { scroll-padding-top: 96px; }
+    .hero-dashboard-card {
+      display:grid;
+      grid-template-columns:minmax(0,1.16fr) minmax(300px,.84fr);
+      gap:22px;
+      align-items:stretch;
+      padding:28px;
+    }
+    .hero-maincopy { min-width:0; display:flex; flex-direction:column; }
+    .hero-maincopy .menu-grid { margin-top:22px; }
+    .menu-grid-pro { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .hero-domain-console {
+      position:relative;
+      z-index:2;
+      align-self:stretch;
+      padding:18px;
+      border-radius:28px;
+      color:#fff;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(255,255,255,.28), transparent 32%),
+        linear-gradient(145deg,#141b34,#332f7d 58%,#0f8da8);
+      box-shadow:0 26px 70px rgba(35,43,85,.22);
+      overflow:hidden;
+      display:grid;
+      gap:14px;
+      min-height:100%;
+    }
+    .hero-domain-console::after {
+      content:"";
+      position:absolute;
+      inset:auto -74px -88px auto;
+      width:210px;
+      height:210px;
+      border-radius:64px;
+      transform:rotate(18deg);
+      background:rgba(255,255,255,.13);
+      animation:floatShape 8s ease-in-out infinite alternate;
+    }
+    .console-topbar { display:flex; align-items:center; gap:7px; position:relative; z-index:1; }
+    .console-topbar span { width:10px; height:10px; border-radius:999px; background:rgba(255,255,255,.44); }
+    .console-topbar b { margin-left:auto; font-size:12px; text-transform:uppercase; letter-spacing:.12em; opacity:.82; }
+    .domain-terminal-card {
+      position:relative;
+      z-index:1;
+      padding:18px;
+      border-radius:22px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.20);
+      backdrop-filter:blur(12px);
+    }
+    .domain-terminal-card small { display:block; opacity:.78; font-weight:900; text-transform:uppercase; letter-spacing:.11em; }
+    .domain-terminal-card strong { display:block; margin:6px 0; font-size:clamp(25px,3vw,39px); letter-spacing:-.07em; overflow-wrap:anywhere; }
+    .domain-terminal-card p { margin:0; color:rgba(255,255,255,.78); }
+    .console-metrics { position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+    .console-metrics div, .console-stack span {
+      padding:12px;
+      border-radius:18px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.16);
+    }
+    .console-metrics b { display:block; font-size:24px; line-height:1; letter-spacing:-.05em; }
+    .console-metrics span, .console-stack span { display:block; font-size:12px; font-weight:850; color:rgba(255,255,255,.78); }
+    .console-stack { position:relative; z-index:1; display:grid; gap:8px; }
+    .pricing-panel, .marketplace-panel, .domain-management-panel { overflow:hidden; }
+    .tld-price-grid {
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
+    }
+    .tld-price-card {
+      position:relative;
+      overflow:hidden;
+      padding:16px;
+      min-height:166px;
+      border-radius:22px;
+      background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,249,255,.86));
+      border:1px solid rgba(35,43,85,.09);
+      box-shadow:0 14px 34px rgba(42,51,105,.08);
+      animation:cardIn .28s ease both;
+    }
+    .tld-price-card::after {
+      content:"";
+      position:absolute;
+      right:-48px;
+      top:-48px;
+      width:118px;
+      height:118px;
+      border-radius:999px;
+      background:rgba(98,88,255,.08);
+    }
+    .price-card-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; position:relative; z-index:1; }
+    .price-card-top strong { color:var(--deep); font-size:27px; letter-spacing:-.07em; }
+    .price-card-top span {
+      padding:5px 8px;
+      border-radius:999px;
+      color:var(--violet);
+      background:rgba(98,88,255,.09);
+      font-size:11px;
+      font-weight:1000;
+    }
+    .price-card-main { margin-top:12px; color:var(--deep); font-size:21px; font-weight:1000; letter-spacing:-.05em; position:relative; z-index:1; }
+    .price-card-main small, .price-card-renew, .tld-price-card p { display:block; color:var(--muted); font-size:12px; font-weight:800; letter-spacing:0; }
+    .price-card-renew { margin-top:8px; }
+    .tld-price-card p { margin:10px 0 0; line-height:1.45; }
+    .registrar-feature-grid, .marketplace-grid {
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+    .registrar-feature-grid article, .market-card {
+      padding:16px;
+      border-radius:20px;
+      background:rgba(247,249,255,.76);
+      border:1px solid rgba(35,43,85,.08);
+    }
+    .registrar-feature-grid b, .market-card b { display:block; color:var(--deep); font-size:16px; letter-spacing:-.035em; }
+    .registrar-feature-grid span, .market-card p { display:block; margin:6px 0 0; color:var(--muted); font-weight:760; line-height:1.5; }
+    .market-card span {
+      display:inline-grid;
+      place-items:center;
+      width:34px;
+      height:34px;
+      margin-bottom:10px;
+      border-radius:12px;
+      color:white;
+      background:linear-gradient(135deg,var(--violet),var(--cyan));
+      font-weight:1000;
+      box-shadow:0 12px 24px rgba(98,88,255,.18);
+    }
+    .search-assist-grid { margin-top:14px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr); gap:12px; align-items:start; }
+    .assist-title { color:var(--deep); font-size:13px; font-weight:1000; text-transform:uppercase; letter-spacing:.08em; }
+    .bulk-panel {
+      padding:14px;
+      border-radius:20px;
+      background:rgba(247,249,255,.78);
+      border:1px solid rgba(35,43,85,.09);
+    }
+    .bulk-panel summary { cursor:pointer; color:var(--deep); font-weight:1000; }
+    .bulk-panel textarea {
+      width:100%;
+      margin:10px 0;
+      border:1px solid rgba(35,43,85,.12);
+      border-radius:16px;
+      padding:12px 13px;
+      resize:vertical;
+      outline:0;
+      background:#fff;
+      color:var(--deep);
+    }
+    .bulk-panel textarea:focus { border-color:rgba(98,88,255,.58); box-shadow:var(--focus-ring); }
+    .suggestion-box {
+      margin-top:14px;
+      padding:13px;
+      border-radius:18px;
+      background:rgba(247,249,255,.82);
+      border:1px solid rgba(35,43,85,.08);
+    }
+    .suggestion-title { margin-bottom:9px; color:var(--deep); font-size:13px; font-weight:1000; }
+    .suggestion-list { display:flex; flex-wrap:wrap; gap:8px; }
+    .suggestion-chip {
+      border:1px solid rgba(98,88,255,.15);
+      border-radius:999px;
+      padding:8px 10px;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      background:rgba(255,255,255,.82);
+      color:var(--deep);
+      font-size:12px;
+      font-weight:900;
+    }
+    .suggestion-chip span { color:var(--muted); font-weight:800; }
+    .suggestion-chip:hover { color:white; background:linear-gradient(135deg,var(--violet),var(--cyan)); transform:translateY(-1px); }
+    .suggestion-chip:hover span { color:rgba(255,255,255,.82); }
+    .payment-method-grid { display:grid; grid-template-columns:1fr; gap:8px; margin:14px 0; }
+    .payment-method-grid div {
+      padding:12px;
+      border-radius:16px;
+      background:#ecfdf5;
+      border:1px solid rgba(25,191,120,.20);
+    }
+    .payment-method-grid b { display:block; color:#047857; }
+    .payment-method-grid span { display:block; color:#065f46; font-size:12px; font-weight:760; line-height:1.45; }
+    .owned-domain-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .owned-domain-card {
+      padding:18px;
+      border-radius:24px;
+      background:rgba(255,255,255,.84);
+      border:1px solid rgba(35,43,85,.09);
+      box-shadow:0 14px 34px rgba(42,51,105,.08);
+    }
+    .owned-domain-head { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; flex-wrap:wrap; }
+    .owned-domain-head strong { display:block; color:var(--deep); font-size:22px; letter-spacing:-.05em; overflow-wrap:anywhere; }
+    .owned-domain-head span:not(.badge) { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; }
+    .owned-domain-meta { margin-top:14px; display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+    .owned-domain-meta div { padding:11px; border-radius:16px; background:rgba(247,249,255,.78); border:1px solid rgba(35,43,85,.07); }
+    .owned-domain-meta small { display:block; color:var(--muted); font-size:11px; font-weight:1000; text-transform:uppercase; letter-spacing:.06em; }
+    .owned-domain-meta b { display:block; margin-top:3px; color:var(--deep); font-size:13px; overflow-wrap:anywhere; }
+    .owned-actions { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+    .bulk-result-card { animation:cardIn .24s ease both; }
+    @media (max-width:1040px) {
+      .hero-dashboard-card, .search-assist-grid { grid-template-columns:1fr; }
+      .tld-price-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .registrar-feature-grid, .marketplace-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:900px) {
+      .hero-dashboard-card { padding:18px; }
+      .hero-domain-console { display:none; }
+      .menu-grid-pro { grid-template-columns:1fr 1fr; }
+      .nav-actions [data-scroll="harga"], .nav-actions [data-scroll="domains"] { display:none; }
+      .owned-domain-grid { grid-template-columns:1fr; }
+    }
+    @media (max-width:620px) {
+      .menu-grid-pro, .tld-price-grid, .registrar-feature-grid, .marketplace-grid, .owned-domain-meta { grid-template-columns:1fr; }
+      .tld-price-card { min-height:auto; }
+      .hero-proof { grid-template-columns:1fr !important; }
+    }
+
+    @keyframes floatShape {
+      from { transform:rotate(18deg) translate3d(0,0,0); }
+      to { transform:rotate(22deg) translate3d(-10px,-12px,0); }
+    }
+
+    html[data-theme="dark"] .tld-price-card,
+    html[data-theme="dark"] .owned-domain-card,
+    html[data-theme="dark"] .suggestion-chip,
+    html[data-theme="dark"] .bulk-panel textarea {
+      background:rgba(15,23,42,.78);
+      border-color:rgba(226,232,240,.12);
+    }
+    html[data-theme="dark"] .registrar-feature-grid article,
+    html[data-theme="dark"] .market-card,
+    html[data-theme="dark"] .bulk-panel,
+    html[data-theme="dark"] .suggestion-box,
+    html[data-theme="dark"] .owned-domain-meta div {
+      background:rgba(30,41,59,.62);
+      border-color:rgba(226,232,240,.10);
+    }
+
   </style>
 </head>
 
@@ -2075,7 +2317,9 @@
 
       <div class="nav-actions">
         <button class="btn btn-soft" data-scroll="cek">Cek Domain</button>
+        <button class="btn btn-soft" data-scroll="harga">Harga</button>
         <button class="btn btn-soft" data-scroll="keranjang">Keranjang <span id="cartCount">0</span></button>
+        <button class="btn btn-soft" data-scroll="domains">Domain Saya</button>
         <button class="btn btn-soft" data-scroll="orders">Pesanan</button>
         <button class="theme-toggle theme-toggle-nav" type="button" data-theme-toggle aria-label="Mode gelap"><span class="theme-icon" aria-hidden="true">☾</span><span class="theme-label">Mode gelap</span></button>
         <button class="btn btn-danger" id="logoutBtn">Keluar</button>
@@ -2086,24 +2330,47 @@
   <main id="mainContent">
     <section class="hero">
       <div class="container">
-        <div class="hero-card">
-          <div class="pill">✦ Menu Utama Pelanggan</div>
-          <h1>Dashboard pembelian domain Dirac Group.</h1>
-          <p id="userText">Memeriksa sesi login...</p>
+        <div class="hero-card hero-dashboard-card">
+          <div class="hero-maincopy">
+            <div class="pill">✦ Dashboard Registrar Dirac Group</div>
+            <h1>Kelola pembelian domain dari pencarian sampai aktivasi.</h1>
+            <p id="userText">Memeriksa sesi login...</p>
 
-          <div class="menu-grid">
-            <button class="menu-card" data-scroll="cek">Cek Domain<span>Cari domain dan lihat status</span></button>
-            <button class="menu-card" data-scroll="keranjang">Keranjang<span>Lihat domain yang dipilih</span></button>
-            <button class="menu-card" data-scroll="checkout">Checkout<span>Kirim pesanan domain</span></button>
-            <button class="menu-card" data-scroll="orders">Status Pesanan<span>Pantau proses domain</span></button>
+            <div class="menu-grid menu-grid-pro">
+              <button class="menu-card" data-scroll="cek">Cek Domain<span>Cari nama dan ekstensi populer</span></button>
+              <button class="menu-card" data-scroll="harga">Harga TLD<span>Lihat register dan renewal</span></button>
+              <button class="menu-card" data-scroll="keranjang">Keranjang<span>Atur durasi sebelum checkout</span></button>
+              <button class="menu-card" data-scroll="checkout">Checkout<span>Kirim data pemilik domain</span></button>
+              <button class="menu-card" data-scroll="domains">Domain Saya<span>Pantau domain aktif/diproses</span></button>
+              <button class="menu-card" data-scroll="orders">Status Pesanan<span>Invoice dan timeline pesanan</span></button>
+            </div>
+
+            <div class="hero-proof" aria-label="Ringkasan alur layanan">
+              <div class="proof-item"><span class="proof-icon">1</span><b>Cek cepat<small>Domain dicek lewat API sebelum masuk keranjang.</small></b></div>
+              <div class="proof-item"><span class="proof-icon">2</span><b>Checkout aman<small>Data domain diverifikasi ulang sebelum dikirim.</small></b></div>
+              <div class="proof-item"><span class="proof-icon">3</span><b>Admin proses<small>Status pesanan dapat dipantau dari dashboard.</small></b></div>
+              <div class="proof-item"><span class="proof-icon">4</span><b>Domain aktif<small>Pesanan selesai saat status domain aktif.</small></b></div>
+            </div>
           </div>
 
-          <div class="hero-proof" aria-label="Ringkasan alur layanan">
-            <div class="proof-item"><span class="proof-icon">1</span><b>Cek cepat<small>Domain dicek lewat API sebelum masuk keranjang.</small></b></div>
-            <div class="proof-item"><span class="proof-icon">2</span><b>Checkout aman<small>Data domain diverifikasi ulang sebelum dikirim.</small></b></div>
-            <div class="proof-item"><span class="proof-icon">3</span><b>Admin proses<small>Status pesanan dapat dipantau dari dashboard.</small></b></div>
-            <div class="proof-item"><span class="proof-icon">4</span><b>Domain aktif<small>Pesanan selesai saat status domain aktif.</small></b></div>
-          </div>
+          <aside class="hero-domain-console" aria-label="Ringkasan sistem domain">
+            <div class="console-topbar"><span></span><span></span><span></span><b>Domain OS</b></div>
+            <div class="domain-terminal-card">
+              <small>Pencarian cepat</small>
+              <strong>brandkamu.com</strong>
+              <p>Register, renewal, DNS, dan invoice berada dalam satu dashboard.</p>
+            </div>
+            <div class="console-metrics">
+              <div><b>10</b><span>TLD tersedia</span></div>
+              <div><b>5 th</b><span>Durasi maksimal</span></div>
+              <div><b>API</b><span>Cek ulang saat checkout</span></div>
+            </div>
+            <div class="console-stack">
+              <span>WHOIS privacy dibantu admin</span>
+              <span>Nameserver / platform preset</span>
+              <span>Timeline pembayaran dan register</span>
+            </div>
+          </aside>
         </div>
       </div>
     </section>
@@ -2135,13 +2402,55 @@
       </div>
     </section>
 
+    <section class="section" id="harga">
+      <div class="container">
+        <div class="panel pricing-panel">
+          <div class="section-head">
+            <div class="section-title">
+              <h2>Harga TLD & layanan domain</h2>
+              <p>Harga register dan renewal ditampilkan agar pembeli bisa membandingkan biaya sebelum checkout.</p>
+            </div>
+            <button class="btn btn-primary" type="button" data-scroll="cek">Cari Domain</button>
+          </div>
+          <div class="tld-price-grid" id="tldPriceGrid" aria-label="Daftar harga ekstensi domain"></div>
+          <div class="registrar-feature-grid" aria-label="Fitur domain profesional">
+            <article><b>Register baru</b><span>Pendaftaran domain baru setelah ketersediaan diverifikasi ulang.</span></article>
+            <article><b>Renewal</b><span>Perpanjangan domain dapat dikomunikasikan melalui invoice dan admin.</span></article>
+            <article><b>Transfer domain</b><span>Transfer dan EPP/Auth code dicatat sebagai layanan manual agar aman.</span></article>
+            <article><b>DNS management</b><span>Nameserver sendiri, platform preset, atau dibantu Dirac Group.</span></article>
+            <article><b>WHOIS privacy</b><span>Privasi data pemilik domain dapat dikonsultasikan saat pemesanan.</span></article>
+            <article><b>Domain lock</b><span>Perlindungan transfer keluar dibantu admin setelah domain aktif.</span></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="marketplace">
+      <div class="container">
+        <div class="panel marketplace-panel">
+          <div class="section-head">
+            <div class="section-title">
+              <h2>Mode jual-beli domain</h2>
+              <p>Fitur marketplace disiapkan sebagai alur layanan manual: beli langsung, ajukan penawaran, transfer, dan negosiasi premium domain.</p>
+            </div>
+          </div>
+          <div class="marketplace-grid">
+            <article class="market-card"><span>01</span><b>Premium domain</b><p>Domain bernilai tinggi diberi label premium dan diarahkan ke negosiasi admin.</p></article>
+            <article class="market-card"><span>02</span><b>Make offer</b><p>Calon pembeli dapat mengajukan penawaran domain yang sudah dimiliki pihak lain.</p></article>
+            <article class="market-card"><span>03</span><b>Transfer masuk</b><p>Domain dari registrar lain dapat dibantu transfer dengan Auth/EPP code.</p></article>
+            <article class="market-card"><span>04</span><b>Escrow manual</b><p>Transaksi jual-beli domain ditangani bertahap melalui invoice dan bukti pembayaran.</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="cek">
       <div class="container">
         <div class="panel">
           <div class="section-head">
             <div class="section-title">
               <h2>Cek domain</h2>
-              <p>Ketik domain lengkap atau nama brand tanpa ekstensi.</p>
+              <p>Ketik domain lengkap, nama brand tanpa ekstensi, atau gunakan mode bulk untuk mengecek banyak pilihan sekaligus.</p>
             </div>
           </div>
 
@@ -2151,13 +2460,31 @@
           </form>
           <p class="microcopy">Tips: boleh tulis nama brand saja, sistem akan mengecek beberapa ekstensi populer sekaligus.</p>
 
-          <div class="tld-group">
-            <button class="tld-chip" data-tld=".com">.com</button>
-            <button class="tld-chip" data-tld=".net">.net</button>
-            <button class="tld-chip" data-tld=".org">.org</button>
-            <button class="tld-chip" data-tld=".id">.id</button>
-            <button class="tld-chip" data-tld=".co.id">.co.id</button>
-            <button class="tld-chip" data-tld=".xyz">.xyz</button>
+          <div class="search-assist-grid">
+            <div>
+              <div class="assist-title">Ekstensi cepat</div>
+              <div class="tld-group">
+                <button class="tld-chip" data-tld=".com">.com</button>
+                <button class="tld-chip" data-tld=".net">.net</button>
+                <button class="tld-chip" data-tld=".org">.org</button>
+                <button class="tld-chip" data-tld=".id">.id</button>
+                <button class="tld-chip" data-tld=".co.id">.co.id</button>
+                <button class="tld-chip" data-tld=".my.id">.my.id</button>
+                <button class="tld-chip" data-tld=".xyz">.xyz</button>
+                <button class="tld-chip" data-tld=".site">.site</button>
+                <button class="tld-chip" data-tld=".online">.online</button>
+                <button class="tld-chip" data-tld=".biz">.biz</button>
+              </div>
+            </div>
+            <details class="bulk-panel">
+              <summary>Cek banyak domain</summary>
+              <p class="microcopy">Masukkan maksimal 12 domain/nama brand, satu per baris. Jika tanpa ekstensi, sistem memakai ekstensi populer.</p>
+              <textarea id="bulkDomainInput" rows="5" placeholder="contoh:
+brandkamu.com
+brandkamu.id
+tokokamu"></textarea>
+              <button class="btn btn-soft" type="button" id="bulkCheckBtn">Cek Bulk</button>
+            </details>
           </div>
 
           <div id="resultArea" class="result-area" role="status" aria-live="polite" aria-busy="false"></div>
@@ -2191,6 +2518,11 @@
               <li>Pilih DNS “Dikelola Dirac Group” jika belum paham hosting.</li>
               <li>Setelah checkout, simpan kode invoice untuk konfirmasi.</li>
             </ul>
+            <div class="payment-method-grid" aria-label="Metode pembayaran manual">
+              <div><b>QRIS</b><span>Siapkan bukti pembayaran untuk verifikasi admin.</span></div>
+              <div><b>Transfer Bank</b><span>Gunakan kode invoice pada catatan transfer.</span></div>
+              <div><b>Konfirmasi</b><span>Kirim invoice dan bukti pembayaran melalui email/admin.</span></div>
+            </div>
             <div class="guide-note">Estimasi proses tergantung verifikasi pembayaran dan ketersediaan domain saat registrasi final.</div>
           </aside>
 
@@ -2326,6 +2658,23 @@
         </div>
       </div>
     </section>
+
+    <section class="section" id="domains">
+      <div class="container">
+        <div class="panel domain-management-panel">
+          <div class="section-head">
+            <div class="section-title">
+              <h2>Domain Saya</h2>
+              <p>Ringkasan domain dari pesanan akun ini. Data teknis seperti expired, registrar lock, dan EPP/Auth code tetap dikonfirmasi admin agar aman.</p>
+            </div>
+            <button class="btn btn-soft" type="button" data-scroll="orders">Lihat Invoice</button>
+          </div>
+          <div class="owned-domain-grid" id="ownedDomainsList">
+            <div class="cart-empty">Memuat domain dari pesanan...</div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <nav class="mobile-bottom-nav" aria-label="Navigasi cepat mobile">
@@ -2351,12 +2700,16 @@
 
   <script>
     const PRICE_RULES = {
-      ".com": { register: 185000, renewal: 185000 },
-      ".net": { register: 210000, renewal: 210000 },
-      ".org": { register: 220000, renewal: 220000 },
-      ".id": { register: 260000, renewal: 260000 },
-      ".co.id": { register: 330000, renewal: 330000 },
-      ".xyz": { register: 45000, renewal: 150000 }
+      ".com": { register: 185000, renewal: 185000, category: "Global", note: "Paling umum untuk bisnis" },
+      ".net": { register: 210000, renewal: 210000, category: "Global", note: "Alternatif teknologi" },
+      ".org": { register: 220000, renewal: 220000, category: "Organisasi", note: "Komunitas/lembaga" },
+      ".id": { register: 260000, renewal: 260000, category: "Indonesia", note: "Brand lokal Indonesia" },
+      ".co.id": { register: 330000, renewal: 330000, category: "Bisnis ID", note: "Perusahaan Indonesia" },
+      ".my.id": { register: 120000, renewal: 120000, category: "Personal", note: "Portofolio/personal" },
+      ".xyz": { register: 45000, renewal: 150000, category: "Promo", note: "Murah tahun pertama" },
+      ".site": { register: 65000, renewal: 180000, category: "Promo", note: "Landing page singkat" },
+      ".online": { register: 85000, renewal: 210000, category: "Promo", note: "Toko/profil online" },
+      ".biz": { register: 220000, renewal: 220000, category: "Bisnis", note: "Alternatif bisnis" }
     };
 
     const ROUTES = {
@@ -2633,8 +2986,211 @@
       return {
         extension,
         register: PRICE_RULES[extension].register,
-        renewal: PRICE_RULES[extension].renewal
+        renewal: PRICE_RULES[extension].renewal,
+        category: PRICE_RULES[extension].category || "Domain",
+        note: PRICE_RULES[extension].note || ""
       };
+    }
+
+    function domainBaseName(domain) {
+      const clean = normalizeDomain(domain);
+      const extension = getExtension(clean);
+      if (extension) return clean.slice(0, -extension.length).replace(/\.$/, "");
+      return clean.replace(/\..*$/, "");
+    }
+
+    function buildDomainSuggestions(domain, limit = 6) {
+      const base = domainBaseName(domain).replace(/[^a-z0-9-]/g, "").replace(/^-+|-+$/g, "") || "brandkamu";
+      const extensions = [".com", ".id", ".co.id", ".my.id", ".xyz", ".site", ".online"];
+      const variants = [base, base + "store", base + "online", base + "digital", "get" + base, base + "id"];
+      const seen = new Set([normalizeDomain(domain)]);
+      const suggestions = [];
+      variants.forEach((name) => {
+        extensions.forEach((ext) => {
+          const candidate = normalizeDomain(name + ext);
+          if (!seen.has(candidate) && getPrice(candidate) && isValidDomainName(candidate)) {
+            seen.add(candidate);
+            suggestions.push(candidate);
+          }
+        });
+      });
+      return suggestions.slice(0, limit);
+    }
+
+    function renderSuggestionHTML(domain, title = "Alternatif yang bisa dicoba") {
+      const suggestions = buildDomainSuggestions(domain);
+      if (!suggestions.length) return "";
+      return `
+        <div class="suggestion-box">
+          <div class="suggestion-title">${escapeHTML(title)}</div>
+          <div class="suggestion-list">
+            ${suggestions.map((item) => {
+              const price = getPrice(item);
+              return `<button type="button" class="suggestion-chip" data-suggest-domain="${escapeHTML(item)}"><b>${escapeHTML(item)}</b><span>${price ? formatRupiah(price.register) : "Cek harga"}</span></button>`;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPriceCards() {
+      const grid = $("tldPriceGrid");
+      if (!grid) return;
+      grid.innerHTML = Object.entries(PRICE_RULES).map(([ext, rule]) => `
+        <article class="tld-price-card">
+          <div class="price-card-top"><strong>${escapeHTML(ext)}</strong><span>${escapeHTML(rule.category || "Domain")}</span></div>
+          <div class="price-card-main">${formatRupiah(rule.register)}<small>/tahun pertama</small></div>
+          <div class="price-card-renew">Renewal ${formatRupiah(rule.renewal)}/tahun</div>
+          <p>${escapeHTML(rule.note || "Harga estimasi frontend, final diverifikasi saat checkout.")}</p>
+        </article>
+      `).join("");
+    }
+
+    function parseBulkDomains(value) {
+      return String(value || "")
+        .split(/[\n,;]+/)
+        .map((item) => normalizeDomain(item))
+        .filter(Boolean)
+        .filter((item, index, arr) => arr.indexOf(item) === index)
+        .slice(0, 12);
+    }
+
+    async function bulkCheckDomains() {
+      const input = $("bulkDomainInput");
+      const button = $("bulkCheckBtn");
+      const entries = parseBulkDomains(input?.value || "");
+      if (!entries.length) {
+        showToast("Masukkan minimal satu domain atau nama brand.", "error");
+        return;
+      }
+      const expanded = [];
+      entries.forEach((entry) => {
+        if (hasTld(entry)) expanded.push(entry);
+        else [".com", ".id", ".co.id"].forEach((ext) => expanded.push(entry + ext));
+      });
+      const domains = expanded.filter((item, index, arr) => arr.indexOf(item) === index).slice(0, 18);
+      if (button) {
+        button.disabled = true;
+        button.innerHTML = `<span class="spinner" aria-hidden="true"></span> Mengecek bulk...`;
+      }
+      setResultBusy(true);
+      $("resultArea").innerHTML = domains.map((domain, index) => `
+        <div class="result-card checking bulk-result-card" id="bulk-card-${index}">
+          <div class="result-head">
+            <div class="result-domain">${escapeHTML(domain)}</div>
+            <span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span>
+          </div>
+          <p>Menunggu hasil pengecekan.</p>
+        </div>
+      `).join("");
+      await Promise.all(domains.map(async (domain, index) => {
+        const card = $("bulk-card-" + index);
+        if (!card) return;
+        try {
+          if (!isValidDomainName(domain)) throw new Error("Format domain belum valid.");
+          if (!getPrice(domain)) throw new Error("Harga ekstensi ini belum diatur.");
+          const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
+          const safeDomain = normalizeDomain(data.domain || domain);
+          const available = Boolean(data.available);
+          const price = getPrice(safeDomain);
+          card.className = `result-card ${available ? "available" : "taken"} bulk-result-card`;
+          card.innerHTML = `
+            <div class="result-head">
+              <div class="result-domain">${escapeHTML(safeDomain)}</div>
+              <span class="status-badge ${available ? "badge-available" : "badge-taken"}">${available ? "Tersedia" : "Tidak tersedia"}</span>
+            </div>
+            <p>${escapeHTML(data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar."))}</p>
+            ${available ? `<div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>` : renderSuggestionHTML(safeDomain, "Alternatif")}
+            <div class="result-actions">
+              ${available ? `<button class="btn btn-mint" data-add-cart="${escapeHTML(safeDomain)}">Tambah ke Keranjang</button>` : ""}
+              <button class="btn btn-soft" data-recheck="${escapeHTML(safeDomain)}">Cek Ulang</button>
+            </div>
+          `;
+        } catch (error) {
+          card.className = "result-card error bulk-result-card";
+          card.innerHTML = `
+            <div class="result-head">
+              <div class="result-domain">${escapeHTML(domain)}</div>
+              <span class="status-badge badge-error">Gagal dicek</span>
+            </div>
+            <p>${escapeHTML(friendlyError(error))}</p>
+          `;
+        }
+      }));
+      setResultBusy(false);
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Cek Bulk";
+      }
+      bindResultButtons();
+    }
+
+    function applyDomainPrefill() {
+      try {
+        const prefill = localStorage.getItem("dirac_domain_prefill");
+        if (!prefill) return;
+        localStorage.removeItem("dirac_domain_prefill");
+        const domain = normalizeDomain(prefill);
+        if (!domain) return;
+        if ($("domainInput")) $("domainInput").value = domain;
+        window.setTimeout(() => checkDomain(domain), 180);
+      } catch (_) {}
+    }
+
+    function renderMyDomains(orders = state.orders) {
+      const list = $("ownedDomainsList");
+      if (!list) return;
+      const rows = [];
+      (Array.isArray(orders) ? orders : []).forEach((order) => {
+        const items = Array.isArray(order.domain_order_items) ? order.domain_order_items : [];
+        items.forEach((item) => {
+          rows.push({
+            domain: item.domain_name,
+            subtotal: item.subtotal,
+            orderStatus: order.order_status,
+            paymentStatus: order.payment_status,
+            invoice: makeInvoiceCode(order.id),
+            dnsMethod: order.dns_method,
+            createdAt: order.created_at
+          });
+        });
+      });
+      if (!rows.length) {
+        list.innerHTML = `
+          <div class="cart-empty">
+            Belum ada domain dari pesanan akun ini. Setelah checkout dibuat, domain akan muncul di sini sebagai ringkasan manajemen.
+            <button class="btn btn-soft empty-action" type="button" data-scroll="cek">Cari domain</button>
+          </div>
+        `;
+        initScrollButtons(list);
+        return;
+      }
+      list.innerHTML = rows.map((row) => {
+        const statusClass = safeClass(row.orderStatus || row.paymentStatus);
+        const activeLike = /domain_aktif|active/i.test(String(row.orderStatus || ""));
+        return `
+          <article class="owned-domain-card">
+            <div class="owned-domain-head">
+              <div>
+                <strong>${escapeHTML(row.domain || "-")}</strong>
+                <span>Invoice ${escapeHTML(row.invoice)} • ${escapeHTML(formatDate(row.createdAt))}</span>
+              </div>
+              <span class="badge ${statusClass}">${escapeHTML(statusLabel(row.orderStatus || row.paymentStatus))}</span>
+            </div>
+            <div class="owned-domain-meta">
+              <div><small>DNS</small><b>${escapeHTML(dnsLabel(row.dnsMethod))}</b></div>
+              <div><small>Expired</small><b>${activeLike ? "Konfirmasi admin" : "Menunggu aktif"}</b></div>
+              <div><small>Lock/EPP</small><b>${activeLike ? "Minta admin" : "Belum tersedia"}</b></div>
+            </div>
+            <div class="owned-actions">
+              <button class="order-action" type="button" data-copy="${escapeHTML(row.domain || "")}" data-copy-label="Domain">Salin domain</button>
+              <a class="order-action" href="mailto:${ADMIN_CONTACT.email}?subject=${encodeURIComponent('Kelola Domain ' + (row.domain || row.invoice))}">Kelola DNS</a>
+              <a class="order-action" href="mailto:${ADMIN_CONTACT.email}?subject=${encodeURIComponent('Perpanjang Domain ' + (row.domain || row.invoice))}">Perpanjang</a>
+            </div>
+          </article>
+        `;
+      }).join("");
+      bindOrderButtons();
     }
 
     async function requireLogin() {
@@ -2660,9 +3216,11 @@
             <div class="result-domain">Masukkan nama domain</div>
             <span class="status-badge badge-checking">Siap dicek</span>
           </div>
-          <p>Jika domain tersedia, tombol tambah ke keranjang akan muncul otomatis.</p>
+          <p>Jika domain tersedia, tombol tambah ke keranjang akan muncul otomatis. Untuk nama brand tanpa ekstensi, sistem akan menampilkan beberapa TLD sekaligus.</p>
+          ${renderSuggestionHTML("brandkamu.com", "Contoh kombinasi domain")}
         </div>
       `;
+      bindResultButtons();
     }
 
     function renderChecking(domain) {
@@ -2699,7 +3257,7 @@
           ${available ? `
             <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
             <p class="microcopy">Harga ditampilkan sebagai estimasi frontend dan tetap diverifikasi ulang saat checkout.</p>
-          ` : ""}
+          ` : renderSuggestionHTML(domain)}
           <div class="result-actions">
             ${available ? `<button class="btn btn-mint" data-add-cart="${displayDomain}">Tambah ke Keranjang</button>` : ""}
             <button class="btn btn-soft" data-recheck="${displayDomain}">Cek Ulang</button>
@@ -2780,7 +3338,7 @@
         return;
       }
 
-      const tlds = [".com", ".net", ".org", ".id", ".co.id", ".xyz"];
+      const tlds = Object.keys(PRICE_RULES);
       setResultBusy(true);
       $("resultArea").innerHTML = tlds.map((tld) => {
         const domain = cleanBase + tld;
@@ -2860,6 +3418,14 @@
 
       document.querySelectorAll("[data-recheck]").forEach((button) => {
         button.addEventListener("click", () => checkDomain(button.dataset.recheck));
+      });
+
+      document.querySelectorAll("[data-suggest-domain]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const domain = button.dataset.suggestDomain;
+          if ($("domainInput")) $("domainInput").value = domain;
+          checkDomain(domain);
+        });
       });
     }
 
@@ -3287,8 +3853,10 @@
         const result = await api("?action=domain_orders");
         state.orders = result.data || [];
         renderOrders(state.orders);
+        renderMyDomains(state.orders);
       } catch (error) {
         $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${escapeHTML(friendlyError(error))}</div>`;
+        renderMyDomains([]);
         showToast("Gagal memuat pesanan.", "error");
       } finally {
         if (refreshButton) {
@@ -3337,7 +3905,34 @@
 
     function bindOrderButtons() {
       document.querySelectorAll("[data-copy]").forEach((button) => {
+        if (button.dataset.boundCopy === "true") return;
+        button.dataset.boundCopy = "true";
         button.addEventListener("click", () => copyText(button.dataset.copy, button.dataset.copyLabel || "Teks"));
+      });
+      document.querySelectorAll("[data-download-invoice]").forEach((button) => {
+        if (button.dataset.boundDownload === "true") return;
+        button.dataset.boundDownload = "true";
+        button.addEventListener("click", () => {
+          const invoice = button.dataset.downloadInvoice || "invoice";
+          const domains = button.dataset.invoiceDomains || "-";
+          const total = button.dataset.invoiceTotal || "-";
+          const content = `Dirac Group Domain
+Invoice: ${invoice}
+Domain: ${domains}
+Total: ${total}
+
+Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
+          const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = invoice + "-ringkasan.txt";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          showToast("Ringkasan invoice diunduh.", "info");
+        });
       });
     }
 
@@ -3411,6 +4006,7 @@
             <div class="order-actions">
               <button class="order-action" type="button" data-copy="${escapeHTML(invoiceCode)}" data-copy-label="Invoice">Salin invoice</button>
               ${items.length ? `<button class="order-action" type="button" data-copy="${escapeHTML(items.map((item) => item.domain_name).join(", "))}" data-copy-label="Daftar domain">Salin domain</button>` : ""}
+              <button class="order-action" type="button" data-download-invoice="${escapeHTML(invoiceCode)}" data-invoice-total="${escapeHTML(formatRupiah(order.total_amount))}" data-invoice-domains="${escapeHTML(items.map((item) => item.domain_name).join(", "))}">Unduh ringkasan</button>
               <a class="order-action" href="mailto:${ADMIN_CONTACT.email}?subject=${encodeURIComponent('Bantuan Invoice ' + invoiceCode)}">Hubungi admin</a>
             </div>
           </article>
@@ -3482,6 +4078,7 @@
       $("dnsMethod").addEventListener("change", updateDnsFields);
       $("checkoutForm").addEventListener("submit", submitCheckout);
       $("refreshOrdersBtn").addEventListener("click", loadOrders);
+      $("bulkCheckBtn")?.addEventListener("click", bulkCheckDomains);
       $("clearCartBtn")?.addEventListener("click", clearCart);
       $("logoutBtn").addEventListener("click", logout);
       document.querySelectorAll("[data-mobile-logout]").forEach((button) => {
@@ -3520,8 +4117,10 @@
       const ok = await requireLogin();
       if (!ok) return;
 
+      renderPriceCards();
       renderInitialResult();
       renderCart();
+      applyDomainPrefill();
       updateDnsFields();
       initEvents();
       loadOrders();

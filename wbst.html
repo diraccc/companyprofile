@@ -953,6 +953,110 @@
       }
     }
 
+
+    /* ===== Dirac Auth Ultra Refined Access Layer ===== */
+    .shell {
+      grid-template-columns:minmax(0,1.02fr) minmax(420px,.98fr);
+      gap:18px;
+    }
+    .brand-panel, .auth-card { border-radius:32px; }
+    .brand-panel {
+      min-height:620px;
+      padding:30px;
+      background:
+        radial-gradient(circle at 22% 18%, rgba(255,255,255,.34), transparent 32%),
+        radial-gradient(circle at 78% 70%, rgba(255,255,255,.19), transparent 30%),
+        linear-gradient(145deg,#6258ff 0%,#13b6d6 62%,#19bf78 100%);
+    }
+    .hero-copy { display:grid; gap:18px; }
+    .hero-copy p { max-width:520px; }
+    .login-domain-preview {
+      width:min(440px,100%);
+      padding:15px;
+      border-radius:24px;
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.24);
+      box-shadow:0 20px 50px rgba(0,0,0,.10);
+      backdrop-filter:blur(14px);
+    }
+    .preview-search-row {
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:0 14px;
+      border-radius:18px;
+      color:#232b55;
+      background:rgba(255,255,255,.92);
+      font-weight:1000;
+      font-size:20px;
+      letter-spacing:-.04em;
+    }
+    .preview-search-row b { color:#6258ff; }
+    .preview-result-row {
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+      color:rgba(255,255,255,.88);
+      font-weight:900;
+    }
+    .preview-result-row strong {
+      padding:7px 10px;
+      border-radius:999px;
+      color:#047857;
+      background:#dcfce7;
+      font-size:12px;
+    }
+    .preview-result-row small { text-align:right; color:rgba(255,255,255,.78); }
+    .preview-tld-row { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+    .preview-tld-row span {
+      padding:7px 9px;
+      border-radius:999px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.18);
+      color:rgba(255,255,255,.86);
+      font-size:12px;
+      font-weight:950;
+    }
+    .auth-status-strip { grid-template-columns:repeat(4,1fr); }
+    .auth-trust-panel {
+      margin-top:16px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:9px;
+      padding-top:16px;
+      border-top:1px solid rgba(35,43,85,.08);
+    }
+    .auth-trust-panel div {
+      padding:12px;
+      border-radius:16px;
+      background:rgba(247,249,255,.78);
+      border:1px solid rgba(35,43,85,.08);
+    }
+    .auth-trust-panel b { display:block; color:var(--deep); font-size:13px; letter-spacing:-.02em; }
+    .auth-trust-panel span { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:760; line-height:1.42; }
+    .auth-card { box-shadow:0 26px 80px rgba(42,51,105,.17); }
+    .field input, .password-wrap { min-height:52px; }
+    .btn-primary { min-height:54px; }
+    @media (max-width:980px) {
+      .shell { grid-template-columns:1fr; width:min(100%,640px); }
+      .brand-panel { min-height:auto; }
+      .auth-status-strip, .auth-trust-panel { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width:520px) {
+      .login-domain-preview { display:none; }
+      .auth-status-strip, .auth-trust-panel { grid-template-columns:1fr; }
+      .brand-panel { padding:18px !important; }
+      .hero-copy { gap:12px; }
+    }
+    html[data-theme="dark"] .auth-trust-panel div {
+      background:rgba(30,41,59,.66);
+      border-color:rgba(226,232,240,.12);
+    }
+
   </style>
 </head>
 
@@ -970,12 +1074,18 @@
       </div>
 
       <div class="hero-copy">
-        <h1>Masuk dulu, baru kelola domain.</h1>
-        <p>Setelah login, pelanggan dapat cek domain, tambah ke keranjang, checkout, dan melihat status pesanan.</p>
+        <h1>Pusat akses pembelian domain Dirac Group.</h1>
+        <p>Masuk untuk mencari domain, membandingkan TLD, checkout, dan memantau invoice sampai domain aktif.</p>
+        <div class="login-domain-preview" aria-label="Pratinjau pencarian domain">
+          <div class="preview-search-row"><span>brandkamu</span><b>.com</b></div>
+          <div class="preview-result-row"><strong>Tersedia</strong><small>Harga diverifikasi ulang saat checkout</small></div>
+          <div class="preview-tld-row"><span>.id</span><span>.co.id</span><span>.xyz</span><span>.online</span></div>
+        </div>
         <div class="mini-list">
           <div>✓ Login dan daftar tanpa key di HTML</div>
           <div>✓ Checkout domain via API Vercel</div>
           <div>✓ Dashboard pelanggan setelah masuk</div>
+          <div>✓ Invoice, DNS, dan status pesanan dalam satu alur</div>
         </div>
       </div>
     </section>
@@ -995,6 +1105,7 @@
         <div class="auth-status-item"><span>✓</span>Akses dashboard</div>
         <div class="auth-status-item"><span>✓</span>Checkout via API</div>
         <div class="auth-status-item"><span>✓</span>Status pesanan</div>
+        <div class="auth-status-item"><span>✓</span>DNS dibantu admin</div>
       </div>
 
       <form id="authForm" class="form" role="tabpanel" aria-labelledby="loginTab" aria-describedby="formSubtitle">
@@ -1025,6 +1136,12 @@
         <button class="btn btn-primary" type="submit" id="submitBtn">Masuk</button>
         <p class="microcopy">Keamanan: Supabase key tidak ditempatkan di HTML, proses autentikasi tetap melalui API.</p>
       </form>
+
+      <div class="auth-trust-panel" aria-label="Ringkasan keamanan akun">
+        <div><b>Token aman</b><span>Sesi disimpan dari response API, bukan hardcode di HTML.</span></div>
+        <div><b>Validasi form</b><span>Email, password, dan konfirmasi password diperiksa sebelum request.</span></div>
+        <div><b>Bantuan admin</b><span>Lupa password/verifikasi tetap tersedia melalui kontak resmi.</span></div>
+      </div>
 
       <div class="auth-links">
         <a id="forgotPasswordLink" href="mailto:companydirac@gmail.com?subject=Lupa%20Password%20Dirac%20Group">Lupa password?</a>
