@@ -57,8 +57,11 @@ function setCors(req, res, options = {}) {
   if (allowedOrigin) res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, POST, OPTIONS' : 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', options.isDomainAction ? 'Content-Type, X-Dirac-Admin, Authorization' : 'Content-Type, X-Dirac-Admin');
-  if (options.isDomainAction) res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Headers', options.isDomainAction ? 'Content-Type, X-Dirac-Admin, Authorization, X-Domain-Refresh, X-Refresh-Token' : 'Content-Type, X-Dirac-Admin');
+  if (options.isDomainAction) {
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Expose-Headers', 'X-Domain-Access-Token, X-Domain-Refresh-Token, X-Domain-Token-Refreshed');
+  }
   res.setHeader('Access-Control-Max-Age', '600');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -141,7 +144,12 @@ async function domainLogin(req, res) {
   return res.status(200).json({
     ok: true,
     message: 'Login berhasil.',
-    user: sanitizeUser(result.data.user)
+    user: sanitizeUser(result.data.user),
+    session: {
+      access_token: result.data.access_token,
+      refresh_token: result.data.refresh_token,
+      expires_in: result.data.expires_in
+    }
   });
 }
 
@@ -183,7 +191,12 @@ async function domainRegister(req, res) {
       ? 'Akun berhasil dibuat dan login otomatis.'
       : 'Akun berhasil dibuat. Silakan cek email verifikasi jika diperlukan.',
     needs_email_confirmation: !result.data.access_token,
-    user: sanitizeUser(result.data.user)
+    user: sanitizeUser(result.data.user),
+    session: result.data.access_token ? {
+      access_token: result.data.access_token,
+      refresh_token: result.data.refresh_token,
+      expires_in: result.data.expires_in
+    } : null
   });
 }
 
@@ -442,8 +455,11 @@ async function domainOrders(req, res) {
 
 async function requireDomainUser(req, res) {
   const cookies = parseCookies(req);
-  const accessToken = cookies[ACCESS_COOKIE];
-  const refreshToken = cookies[REFRESH_COOKIE];
+  const headerToken = getBearerToken(req);
+  const headerRefreshToken = String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
+
+  const accessToken = headerToken || cookies[ACCESS_COOKIE];
+  const refreshToken = headerRefreshToken || cookies[REFRESH_COOKIE];
 
   if (accessToken) {
     const userResult = await supabaseFetch('/auth/v1/user', {
@@ -466,6 +482,9 @@ async function requireDomainUser(req, res) {
 
     if (refreshResult.ok && refreshResult.data && refreshResult.data.access_token) {
       setSessionCookies(res, refreshResult.data);
+      res.setHeader('X-Domain-Access-Token', refreshResult.data.access_token);
+      res.setHeader('X-Domain-Refresh-Token', refreshResult.data.refresh_token);
+      res.setHeader('X-Domain-Token-Refreshed', 'true');
       return refreshResult.data.user;
     }
   }
@@ -624,6 +643,13 @@ function sanitizeUser(user) {
     id: user.id,
     email: user.email
   };
+}
+
+function getBearerToken(req) {
+  const auth = String((req.headers && req.headers.authorization) || '').trim();
+  if (!auth) return '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : '';
 }
 
 function requiredEnv(name) {
