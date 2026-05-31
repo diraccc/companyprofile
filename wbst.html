@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Dirac Group | Cek, Beli & Kelola Domain</title>
+  <title>Dirac Group | Cek Domain, Cart & Checkout Profesional</title>
   <meta name="description" content="Cek ketersediaan domain, lihat harga, tambah ke keranjang, checkout, dan pilih metode DNS bersama Dirac Group." />
   <meta name="theme-color" content="#5b5ef7" />
 
@@ -636,6 +636,93 @@
 
     .dns-extra.show { display: grid; gap: 14px; }
 
+
+    .checkout-summary {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(98,88,255,.13);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.88), rgba(247,249,255,.78));
+      box-shadow: 0 12px 30px rgba(42,51,105,.07);
+    }
+
+    .checkout-summary h3 {
+      margin: 0;
+      color: var(--deep);
+      font-size: 20px;
+      letter-spacing: -.04em;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(35,43,85,.08);
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .summary-line:last-child {
+      border-bottom: 0;
+    }
+
+    .summary-line b {
+      color: var(--deep);
+      text-align: right;
+    }
+
+    .summary-domains {
+      display: grid;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .summary-domain-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(35,43,85,.08);
+      font-weight: 850;
+      color: var(--deep);
+    }
+
+    .invoice-success {
+      display: grid;
+      gap: 12px;
+    }
+
+    .invoice-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.82);
+      border: 1px solid rgba(4,120,87,.16);
+    }
+
+    .invoice-card h3 {
+      margin: 0 0 10px;
+      color: #047857;
+      letter-spacing: -.04em;
+    }
+
+    .invoice-code {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #047857;
+      font-weight: 1000;
+      letter-spacing: .02em;
+    }
+
     .alert {
       display: none;
       margin-top: 14px;
@@ -842,8 +929,8 @@
 <body>
   <div class="topbar">
     <div class="container">
-      <span>Dirac Group • Domain search, cart, checkout, dan pilihan DNS</span>
-      <span>Proses register domain dilakukan manual oleh admin setelah pesanan masuk</span>
+      <span>Dirac Group • Cek domain, pilih paket, checkout, dan konsultasi DNS</span>
+      <span>Pesanan diproses oleh admin setelah data dan pembayaran dikonfirmasi</span>
     </div>
   </div>
 
@@ -873,10 +960,10 @@
     <section class="hero" id="home">
       <div class="container hero-grid">
         <div>
-          <div class="pill">✦ Hostinger-lite untuk Dirac Group</div>
+          <div class="pill">✦ Website domain Dirac Group</div>
           <h1>Cari domain, lihat harga, lalu checkout seperti website domain <span>profesional.</span></h1>
           <p class="hero-lead">
-            Pengunjung dapat mengecek domain, memilih ekstensi, menambahkan ke keranjang, mengisi data pemilik, memilih metode DNS, lalu pesanan masuk ke Supabase untuk diproses admin.
+            Cari domain pilihanmu, lihat harga, masukkan ke keranjang, pilih metode DNS, lalu selesaikan checkout dengan alur yang lebih rapi dan profesional.
           </p>
 
           <div class="hero-actions">
@@ -932,7 +1019,7 @@
           <div class="section-title">
             <div class="kicker">Checkout</div>
             <h2>Keranjang dan data pemilik domain</h2>
-            <p>Setelah domain tersedia, tambahkan ke keranjang. Checkout akan masuk ke tabel Supabase yang sudah kamu buat.</p>
+            <p>Setelah domain tersedia, tambahkan ke keranjang. Periksa ringkasan pesanan sebelum mengirim checkout.</p>
           </div>
         </div>
 
@@ -1003,7 +1090,12 @@
                   <textarea id="customerNote" rows="4" placeholder="Contoh: domain untuk toko online, minta dibantu setting DNS, atau catatan pembayaran."></textarea>
                 </div>
 
-                <button class="btn btn-primary full" type="submit" id="checkoutBtn">Kirim Pesanan ke Supabase</button>
+                <div class="checkout-summary" id="checkoutSummary">
+                  <h3>Ringkasan Pesanan</h3>
+                  <div class="cart-empty">Keranjang masih kosong. Tambahkan domain terlebih dahulu.</div>
+                </div>
+
+                <button class="btn btn-primary full" type="submit" id="checkoutBtn">Checkout Sekarang</button>
               </div>
 
               <div id="checkoutAlert" class="alert"></div>
@@ -1033,7 +1125,7 @@
           <div class="section-title">
             <div class="kicker">Alur Pembelian</div>
             <h2>Prosesnya dibuat jelas untuk pelanggan</h2>
-            <p>Website ini belum otomatis menjadi registrar penuh. Admin tetap melakukan register domain manual setelah pesanan dan pembayaran dikonfirmasi.</p>
+            <p>Setelah checkout, admin Dirac Group akan menghubungi pelanggan untuk konfirmasi pembayaran dan proses registrasi domain.</p>
           </div>
         </div>
 
@@ -1053,7 +1145,7 @@
           <article class="step-card">
             <div class="step-number">3</div>
             <h3>Admin proses manual</h3>
-            <p>Pesanan masuk ke Supabase. Admin cek pembayaran, register domain, lalu update status aktif.</p>
+            <p>Pesanan diterima. Admin cek pembayaran, register domain, lalu mengabarkan status aktivasi domain.</p>
           </article>
         </div>
       </div>
@@ -1390,9 +1482,78 @@
       return state.cart.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
     }
 
+    function makeInvoiceCode(orderId) {
+      const raw = String(orderId || Date.now()).replace(/-/g, "").toUpperCase();
+      return "DRC-" + raw.slice(0, 8);
+    }
+
+    function getDnsLabel(value) {
+      const labels = {
+        managed_by_dirac: "Dikelola Dirac Group",
+        use_own_nameserver: "Pakai nameserver hosting sendiri",
+        point_to_platform: "Arahkan ke platform tertentu",
+        not_sure: "Belum tahu, minta dibantu admin"
+      };
+      return labels[value] || value || "-";
+    }
+
+    function buildWhatsappMessage(invoiceCode, payload, totalText) {
+      const domains = state.cart.map((item) => `- ${item.domain_name} (${formatRupiah(item.subtotal)})`).join("\\n");
+
+      return [
+        "Halo Admin Dirac Group, saya sudah membuat pesanan domain.",
+        `Invoice: ${invoiceCode}`,
+        "",
+        "Domain:",
+        domains || "-",
+        "",
+        `Total: ${totalText}`,
+        `Nama: ${payload.customer_name}`,
+        `WhatsApp: ${payload.customer_whatsapp}`,
+        payload.customer_email ? `Email: ${payload.customer_email}` : "",
+        payload.owner_email ? `Email pemilik domain: ${payload.owner_email}` : "",
+        `Metode DNS: ${getDnsLabel(payload.dns_method)}`,
+        payload.nameserver_1 ? `Nameserver 1: ${payload.nameserver_1}` : "",
+        payload.nameserver_2 ? `Nameserver 2: ${payload.nameserver_2}` : "",
+        payload.target_platform ? `Platform/Tujuan: ${payload.target_platform}` : "",
+        payload.customer_note ? `Catatan: ${payload.customer_note}` : ""
+      ].filter(Boolean).join("\\n");
+    }
+
+    function updateCheckoutSummary() {
+      const box = $("checkoutSummary");
+      if (!box) return;
+
+      if (!state.cart.length) {
+        box.innerHTML = `
+          <h3>Ringkasan Pesanan</h3>
+          <div class="cart-empty">Keranjang masih kosong. Tambahkan domain terlebih dahulu.</div>
+        `;
+        return;
+      }
+
+      const dnsMethod = $("dnsMethod") ? $("dnsMethod").value : "managed_by_dirac";
+      const domainRows = state.cart.map((item) => `
+        <div class="summary-domain-item">
+          <span>${item.domain_name}</span>
+          <b>${formatRupiah(item.subtotal)}</b>
+        </div>
+      `).join("");
+
+      box.innerHTML = `
+        <h3>Ringkasan Pesanan</h3>
+        <div class="summary-domains">${domainRows}</div>
+        <div class="summary-line"><span>Durasi</span><b>1 tahun</b></div>
+        <div class="summary-line"><span>Metode DNS</span><b>${getDnsLabel(dnsMethod)}</b></div>
+        <div class="summary-line"><span>Total</span><b>${formatRupiah(getCartTotal())}</b></div>
+      `;
+    }
+
+
     function renderCart() {
       $("cartCount").textContent = state.cart.length;
       $("cartTotal").textContent = formatRupiah(getCartTotal());
+      updateCheckoutSummary();
 
       if (!state.cart.length) {
         $("cartItems").innerHTML = `
@@ -1435,6 +1596,7 @@
       const method = $("dnsMethod").value;
       $("nameserverFields").classList.toggle("show", method === "use_own_nameserver");
       $("platformFields").classList.toggle("show", method === "point_to_platform");
+      updateCheckoutSummary();
     }
 
     function openWhatsapp(domain = "", payload = {}) {
@@ -1487,7 +1649,7 @@
       }
 
       button.disabled = true;
-      button.textContent = "Mengirim ke Supabase...";
+      button.textContent = "Memproses checkout...";
 
       try {
         const result = await fetchJson(CONFIG.CHECKOUT_API, {
@@ -1495,8 +1657,27 @@
           body: JSON.stringify(payload)
         });
 
+        const invoiceCode = makeInvoiceCode(result.order_id);
+        const totalText = formatRupiah(result.total_amount);
+        const whatsappText = buildWhatsappMessage(invoiceCode, payload, totalText);
+        const whatsappUrl = `https://wa.me/${CONFIG.WHATSAPP_ADMIN}?text=${encodeURIComponent(whatsappText)}`;
+
         alertBox.className = "alert success show";
-        alertBox.innerHTML = `Pesanan berhasil masuk ke Supabase. Total: <b>${formatRupiah(result.total_amount)}</b>. Admin akan memproses register domain manual.`;
+        alertBox.innerHTML = `
+          <div class="invoice-success">
+            <div class="invoice-card">
+              <h3>Pesanan berhasil dibuat</h3>
+              <div class="invoice-code">${invoiceCode}</div>
+              <div class="summary-line"><span>Total</span><b>${totalText}</b></div>
+              <div class="summary-line"><span>Status</span><b>Menunggu konfirmasi admin</b></div>
+              <div class="summary-line"><span>Metode DNS</span><b>${getDnsLabel(payload.dns_method)}</b></div>
+            </div>
+            <div>
+              Admin Dirac Group akan menghubungi Anda untuk konfirmasi pembayaran dan proses registrasi domain.
+            </div>
+            <a class="btn btn-mint" href="${whatsappUrl}" target="_blank" rel="noopener">Lanjutkan ke WhatsApp Admin</a>
+          </div>
+        `;
 
         state.cart = [];
         saveCart();
@@ -1504,11 +1685,19 @@
         event.target.reset();
         updateDnsFields();
       } catch (error) {
+        const invoiceCode = makeInvoiceCode();
+        const totalText = formatRupiah(getCartTotal());
+        const whatsappText = buildWhatsappMessage(invoiceCode, payload, totalText);
+        const whatsappUrl = `https://wa.me/${CONFIG.WHATSAPP_ADMIN}?text=${encodeURIComponent(whatsappText)}`;
+
         alertBox.className = "alert error show";
-        alertBox.innerHTML = `Checkout gagal: ${error.message}. Pastikan function <b>domain-checkout</b> sudah deploy dan Verify JWT OFF.`;
+        alertBox.innerHTML = `
+          Checkout belum berhasil: ${error.message}.<br>
+          <a class="btn btn-mint" style="margin-top:12px;" href="${whatsappUrl}" target="_blank" rel="noopener">Kirim Pesanan via WhatsApp</a>
+        `;
       } finally {
         button.disabled = false;
-        button.textContent = "Kirim Pesanan ke Supabase";
+        button.textContent = "Checkout Sekarang";
       }
     }
 
@@ -1548,6 +1737,7 @@
       renderCart();
       renderPriceGrid();
       updateDnsFields();
+      updateCheckoutSummary();
       initEvents();
     });
   </script>
