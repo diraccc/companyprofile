@@ -4,1742 +4,425 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Dirac Group | Cek Domain, Cart & Checkout Profesional</title>
-  <meta name="description" content="Cek ketersediaan domain, lihat harga, tambah ke keranjang, checkout, dan pilih metode DNS bersama Dirac Group." />
-  <meta name="theme-color" content="#5b5ef7" />
+  <title>Masuk | Dirac Group Domain</title>
+  <meta name="description" content="Login atau daftar pelanggan Dirac Group untuk membeli dan memantau status domain." />
+  <meta name="theme-color" content="#6258ff" />
 
   <style>
     :root {
-      --bg-a: #f6f3ff;
-      --bg-b: #eaf8ff;
-      --bg-c: #fff8e9;
-      --ink: #141b34;
-      --deep: #232b55;
-      --muted: #65728d;
-      --white: #fff;
-      --violet: #6258ff;
-      --purple: #8b5cf6;
-      --cyan: #13b6d6;
-      --mint: #19bf78;
-      --amber: #f5b23f;
-      --rose: #ef5f80;
-      --line: rgba(35,43,85,.12);
-      --glass: rgba(255,255,255,.74);
-      --shadow: 0 28px 90px rgba(42, 51, 105, .17);
-      --shadow-soft: 0 14px 42px rgba(42, 51, 105, .11);
-      --radius-xl: 36px;
-      --radius-lg: 26px;
-      --radius-md: 18px;
-      --radius-sm: 14px;
+      --bg-a:#f6f3ff;
+      --bg-b:#eaf8ff;
+      --bg-c:#fff8e9;
+      --ink:#141b34;
+      --deep:#232b55;
+      --muted:#65728d;
+      --white:#fff;
+      --violet:#6258ff;
+      --purple:#8b5cf6;
+      --cyan:#13b6d6;
+      --mint:#19bf78;
+      --rose:#ef5f80;
+      --line:rgba(35,43,85,.12);
+      --shadow:0 28px 90px rgba(42,51,105,.17);
     }
 
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    * { box-sizing:border-box; }
+
     body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-      color: var(--ink);
+      margin:0;
+      min-height:100vh;
+      font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      color:var(--ink);
       background:
-        radial-gradient(circle at 8% 8%, rgba(98, 88, 255, .22), transparent 30%),
-        radial-gradient(circle at 88% 6%, rgba(19, 182, 214, .18), transparent 28%),
-        radial-gradient(circle at 48% 90%, rgba(245, 178, 63, .26), transparent 34%),
-        linear-gradient(135deg, var(--bg-a), var(--bg-b) 52%, var(--bg-c));
-      line-height: 1.65;
-      overflow-x: hidden;
+        radial-gradient(circle at 8% 8%, rgba(98,88,255,.22), transparent 30%),
+        radial-gradient(circle at 88% 6%, rgba(19,182,214,.18), transparent 28%),
+        radial-gradient(circle at 48% 90%, rgba(245,178,63,.22), transparent 34%),
+        linear-gradient(135deg,var(--bg-a),var(--bg-b) 52%,var(--bg-c));
+      line-height:1.65;
+      display:grid;
+      place-items:center;
+      padding:24px;
     }
 
     body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      pointer-events: none;
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-1;
       background-image:
         linear-gradient(rgba(98,88,255,.052) 1px, transparent 1px),
         linear-gradient(90deg, rgba(98,88,255,.052) 1px, transparent 1px);
-      background-size: 42px 42px;
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,.85), rgba(0,0,0,.18));
+      background-size:42px 42px;
+      mask-image:linear-gradient(to bottom, rgba(0,0,0,.85), rgba(0,0,0,.18));
     }
 
-    body.modal-open { overflow: hidden; }
-    a { color: inherit; text-decoration: none; }
-    button, input, textarea, select { font: inherit; }
-    button { cursor: pointer; }
-    button:disabled { opacity: .65; cursor: not-allowed; }
+    a { color:inherit; text-decoration:none; }
+    button,input { font:inherit; }
 
-    .container {
-      width: min(1180px, calc(100% - 32px));
-      margin: 0 auto;
+    .shell {
+      width:min(1060px,100%);
+      display:grid;
+      grid-template-columns:.95fr 1.05fr;
+      gap:22px;
+      align-items:stretch;
     }
 
-    .topbar {
-      color: rgba(255,255,255,.96);
-      background: linear-gradient(90deg, var(--violet), var(--purple), var(--cyan));
-      padding: 12px 0;
-      font-size: 13px;
-      font-weight: 820;
+    .brand-panel,.auth-card {
+      border-radius:34px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.74);
+      box-shadow:var(--shadow);
+      overflow:hidden;
     }
 
-    .topbar .container {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      flex-wrap: wrap;
+    .brand-panel {
+      position:relative;
+      padding:34px;
+      background:
+        radial-gradient(circle at 20% 16%, rgba(255,255,255,.32), transparent 30%),
+        linear-gradient(135deg,var(--violet),var(--cyan) 65%,var(--mint));
+      color:white;
+      min-height:540px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
     }
 
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 70;
-      backdrop-filter: blur(22px);
-      background: rgba(255,255,255,.76);
-      border-bottom: 1px solid rgba(255,255,255,.68);
-      box-shadow: 0 12px 36px rgba(42,51,105,.08);
-    }
-
-    .nav {
-      min-height: 76px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
+    .brand-panel::after {
+      content:"";
+      position:absolute;
+      width:260px;
+      height:260px;
+      right:-90px;
+      bottom:-110px;
+      border-radius:60px;
+      background:rgba(255,255,255,.18);
+      transform:rotate(14deg);
     }
 
     .brand {
-      min-width: max-content;
-      display: flex;
-      align-items: center;
-      gap: 13px;
+      display:flex;
+      align-items:center;
+      gap:13px;
+      position:relative;
+      z-index:1;
     }
 
     .brand-mark {
-      width: 52px;
-      height: 52px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-      color: white;
-      font-weight: 1000;
-      letter-spacing: -.08em;
-      background:
-        radial-gradient(circle at 28% 22%, rgba(255,255,255,.48), transparent 32%),
-        linear-gradient(135deg, var(--violet), var(--cyan));
-      box-shadow: 0 18px 40px rgba(98,88,255,.26);
+      width:58px;
+      height:58px;
+      display:grid;
+      place-items:center;
+      border-radius:20px;
+      color:white;
+      font-weight:1000;
+      letter-spacing:-.08em;
+      background:rgba(255,255,255,.20);
+      border:1px solid rgba(255,255,255,.28);
+      box-shadow:0 18px 44px rgba(0,0,0,.12);
     }
 
-    .brand-copy {
-      display: grid;
-      line-height: 1.08;
-    }
-
-    .brand-copy strong {
-      color: var(--deep);
-      font-size: 19px;
-      letter-spacing: -.045em;
-    }
-
+    .brand-copy { display:grid; line-height:1.05; }
+    .brand-copy strong { font-size:22px; letter-spacing:-.04em; }
     .brand-copy span {
-      color: var(--violet);
-      font-size: 11px;
-      font-weight: 1000;
-      text-transform: uppercase;
-      letter-spacing: .16em;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      font-weight:900;
+      color:rgba(255,255,255,.78);
     }
 
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #4f5d78;
-      font-size: 14px;
-      font-weight: 850;
+    .hero-copy { position:relative; z-index:1; }
+    .hero-copy h1 {
+      margin:0 0 14px;
+      font-size:clamp(36px,5vw,58px);
+      line-height:1;
+      letter-spacing:-.07em;
+    }
+    .hero-copy p {
+      margin:0;
+      color:rgba(255,255,255,.82);
+      font-size:17px;
     }
 
-    .nav-links a,
-    .cart-mini {
-      padding: 10px 13px;
-      border-radius: 999px;
+    .mini-list { margin-top:26px; display:grid; gap:10px; }
+    .mini-list div {
+      padding:12px 14px;
+      border-radius:16px;
+      background:rgba(255,255,255,.15);
+      border:1px solid rgba(255,255,255,.20);
+      font-weight:850;
     }
 
-    .nav-links a:hover {
-      color: var(--violet);
-      background: rgba(98,88,255,.08);
+    .auth-card {
+      padding:32px;
+      background:rgba(255,255,255,.86);
     }
 
-    .cart-mini {
-      border: 0;
-      color: white;
-      background: linear-gradient(135deg, var(--violet), var(--cyan));
-      font-weight: 950;
-      box-shadow: 0 14px 30px rgba(98,88,255,.19);
+    .tabs {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      padding:6px;
+      border-radius:18px;
+      background:#f4f6ff;
+      border:1px solid var(--line);
+      margin-bottom:24px;
     }
 
-    .mobile-toggle {
-      display: none;
-      width: 46px;
-      height: 46px;
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      background: white;
-      color: var(--deep);
-      font-size: 22px;
-      font-weight: 1000;
+    .tab {
+      border:0;
+      border-radius:14px;
+      padding:12px;
+      font-weight:950;
+      color:var(--muted);
+      background:transparent;
+      cursor:pointer;
     }
 
-    .hero {
-      padding: 76px 0 48px;
+    .tab.active {
+      color:white;
+      background:linear-gradient(135deg,var(--violet),var(--cyan));
+      box-shadow:0 14px 26px rgba(98,88,255,.18);
     }
 
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1.02fr .98fr;
-      align-items: center;
-      gap: 34px;
+    .auth-title h2 {
+      margin:0 0 8px;
+      color:var(--deep);
+      font-size:34px;
+      letter-spacing:-.055em;
     }
 
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      gap: 8px;
-      padding: 9px 13px;
-      border-radius: 999px;
-      border: 1px solid rgba(98,88,255,.17);
-      color: var(--violet);
-      background: rgba(255,255,255,.74);
-      box-shadow: 0 10px 28px rgba(98,88,255,.10);
-      font-size: 13px;
-      font-weight: 950;
+    .auth-title p { margin:0 0 22px; color:var(--muted); }
+
+    .form { display:grid; gap:14px; }
+
+    .field { display:grid; gap:7px; }
+    .field label {
+      color:#4c5a75;
+      font-size:12px;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.08em;
     }
 
-    .hero h1 {
-      margin: 18px 0 18px;
-      color: var(--deep);
-      font-size: clamp(42px, 6.7vw, 82px);
-      line-height: .96;
-      letter-spacing: -.08em;
+    .field input {
+      width:100%;
+      border:1px solid rgba(35,43,85,.12);
+      border-radius:15px;
+      outline:0;
+      padding:14px 15px;
+      background:white;
+      color:var(--deep);
     }
 
-    .hero h1 span {
-      color: transparent;
-      background: linear-gradient(120deg, var(--violet), var(--purple), var(--cyan));
-      -webkit-background-clip: text;
-      background-clip: text;
-    }
-
-    .hero-lead {
-      max-width: 680px;
-      margin: 0;
-      color: #59667f;
-      font-size: 18px;
-    }
-
-    .hero-actions {
-      margin-top: 28px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+    .field input:focus {
+      border-color:rgba(98,88,255,.64);
+      box-shadow:0 0 0 5px rgba(98,88,255,.10);
     }
 
     .btn {
-      min-height: 50px;
-      border: 0;
-      border-radius: 16px;
-      padding: 13px 18px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-      font-weight: 950;
-      transition: .2s ease;
+      min-height:52px;
+      border:0;
+      border-radius:16px;
+      padding:13px 18px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      font-weight:950;
+      cursor:pointer;
+      transition:.2s ease;
     }
 
-    .btn:hover { transform: translateY(-2px); }
+    .btn:hover { transform:translateY(-2px); }
     .btn-primary {
-      color: white;
-      background: linear-gradient(135deg, var(--violet), var(--cyan));
-      box-shadow: 0 18px 38px rgba(98,88,255,.22);
+      color:white;
+      background:linear-gradient(135deg,var(--violet),var(--cyan));
+      box-shadow:0 18px 38px rgba(98,88,255,.22);
     }
 
-    .btn-mint {
-      color: white;
-      background: linear-gradient(135deg, #0aa96a, var(--mint));
-      box-shadow: 0 18px 38px rgba(25,191,120,.21);
+    .helper {
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      color:var(--muted);
+      font-size:14px;
+      font-weight:750;
     }
 
-    .btn-soft {
-      color: var(--deep);
-      background: rgba(255,255,255,.78);
-      border: 1px solid rgba(35,43,85,.10);
-      box-shadow: 0 12px 30px rgba(42,51,105,.08);
-    }
-
-    .btn-danger {
-      color: #be123c;
-      background: #ffe4ea;
-      border: 1px solid #fecdd3;
-    }
-
-    .hero-card {
-      position: relative;
-      padding: 18px;
-      border-radius: 38px;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.88), rgba(255,255,255,.58)),
-        radial-gradient(circle at 16% 10%, rgba(98,88,255,.14), transparent 38%),
-        radial-gradient(circle at 86% 22%, rgba(19,182,214,.16), transparent 36%);
-      border: 1px solid rgba(255,255,255,.82);
-      box-shadow: var(--shadow);
-    }
-
-    .search-panel {
-      padding: 24px;
-      border-radius: 30px;
-      background: rgba(255,255,255,.87);
-      border: 1px solid rgba(35,43,85,.10);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .search-panel h2 {
-      margin: 0 0 8px;
-      color: var(--deep);
-      font-size: 31px;
-      letter-spacing: -.05em;
-    }
-
-    .search-panel p {
-      margin: 0 0 20px;
-      color: var(--muted);
-    }
-
-    .domain-form {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      padding: 8px;
-      border-radius: 22px;
-      background: #f7f9ff;
-      border: 1px solid rgba(35,43,85,.10);
-    }
-
-    .domain-form input {
-      min-height: 54px;
-      width: 100%;
-      border: 0;
-      outline: none;
-      padding: 0 13px;
-      background: transparent;
-      color: var(--deep);
-      font-size: 17px;
-      font-weight: 800;
-    }
-
-    .domain-form input::placeholder {
-      color: #98a4ba;
-      font-weight: 650;
-    }
-
-    .tld-group {
-      margin-top: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .tld-chip {
-      border: 1px solid rgba(98,88,255,.16);
-      background: rgba(98,88,255,.08);
-      color: var(--violet);
-      padding: 9px 12px;
-      border-radius: 999px;
-      font-weight: 950;
-      font-size: 13px;
-    }
-
-    .result-area {
-      margin-top: 18px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .result-card {
-      padding: 16px;
-      border-radius: 20px;
-      border: 1px solid rgba(35,43,85,.10);
-      background: white;
-      box-shadow: 0 12px 30px rgba(42,51,105,.07);
-      animation: fadeUp .32s ease both;
-    }
-
-    .result-card.available {
-      border-color: rgba(25,191,120,.34);
-      background: linear-gradient(135deg, rgba(236,253,245,.95), white);
-    }
-
-    .result-card.taken {
-      border-color: rgba(239,95,128,.30);
-      background: linear-gradient(135deg, rgba(255,241,244,.95), white);
-    }
-
-    .result-card.checking {
-      border-color: rgba(98,88,255,.20);
-      background: linear-gradient(135deg, rgba(238,242,255,.95), white);
-    }
-
-    .result-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-
-    .result-domain {
-      color: var(--deep);
-      font-size: 21px;
-      font-weight: 1000;
-      letter-spacing: -.045em;
-      overflow-wrap: anywhere;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 1000;
-      white-space: nowrap;
-    }
-
-    .badge-available { color: #047857; background: #dffbec; }
-    .badge-taken { color: #be123c; background: #ffe4ea; }
-    .badge-checking { color: var(--violet); background: #ebe9ff; }
-    .price-line {
-      margin-top: 10px;
-      color: var(--deep);
-      font-weight: 950;
-      font-size: 19px;
-    }
-
-    .price-line span {
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 780;
-    }
-
-    .result-actions {
-      margin-top: 14px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .trust-row {
-      margin-top: 22px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-
-    .trust-item {
-      padding: 15px;
-      border-radius: 20px;
-      background: rgba(255,255,255,.70);
-      border: 1px solid rgba(35,43,85,.09);
-    }
-
-    .trust-item strong {
-      display: block;
-      color: var(--deep);
-      font-size: 18px;
-      letter-spacing: -.04em;
-    }
-
-    .trust-item span {
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 750;
-    }
-
-    .section {
-      padding: 74px 0;
-    }
-
-    .section-head {
-      margin-bottom: 26px;
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-      align-items: end;
-    }
-
-    .section-title { max-width: 760px; }
-    .kicker {
-      margin-bottom: 8px;
-      color: var(--violet);
-      font-size: 12px;
-      font-weight: 1000;
-      text-transform: uppercase;
-      letter-spacing: .18em;
-    }
-
-    .section-title h2 {
-      margin: 0 0 10px;
-      color: var(--deep);
-      font-size: clamp(31px, 4.8vw, 54px);
-      line-height: 1.04;
-      letter-spacing: -.065em;
-    }
-
-    .section-title p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 16px;
-    }
-
-    .cart-layout {
-      display: grid;
-      grid-template-columns: 1.08fr .92fr;
-      gap: 18px;
-      align-items: start;
-    }
-
-    .cart-box,
-    .checkout-box,
-    .step-card,
-    .extension-card {
-      border-radius: var(--radius-lg);
-      background: rgba(255,255,255,.76);
-      border: 1px solid rgba(255,255,255,.72);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .cart-box,
-    .checkout-box {
-      padding: 22px;
-    }
-
-    .cart-empty {
-      color: var(--muted);
-      padding: 20px;
-      border-radius: 18px;
-      border: 1px dashed rgba(35,43,85,.18);
-      background: rgba(247,249,255,.78);
-    }
-
-    .cart-item {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      padding: 15px 0;
-      border-bottom: 1px solid rgba(35,43,85,.10);
-    }
-
-    .cart-item:last-child { border-bottom: 0; }
-    .cart-item h3 {
-      margin: 0 0 4px;
-      color: var(--deep);
-      font-size: 19px;
-      letter-spacing: -.04em;
-      overflow-wrap: anywhere;
-    }
-
-    .cart-item p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 760;
-    }
-
-    .cart-price {
-      text-align: right;
-      color: var(--deep);
-      font-weight: 1000;
-      min-width: max-content;
-    }
-
-    .cart-remove {
-      margin-top: 8px;
-      border: 0;
-      color: #be123c;
-      background: #ffe4ea;
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .total-row {
-      margin-top: 18px;
-      padding-top: 18px;
-      border-top: 1px solid rgba(35,43,85,.12);
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      color: var(--deep);
-      font-weight: 1000;
-      font-size: 22px;
-      letter-spacing: -.035em;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .field {
-      display: grid;
-      gap: 7px;
-    }
-
-    .field.full { grid-column: 1 / -1; }
-
-    .field label {
-      color: #4c5a75;
-      font-size: 12px;
-      font-weight: 1000;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    .field input,
-    .field textarea,
-    .field select {
-      width: 100%;
-      border: 1px solid rgba(35,43,85,.12);
-      border-radius: 15px;
-      outline: 0;
-      padding: 13px 14px;
-      background: white;
-      color: var(--deep);
-    }
-
-    .field input:focus,
-    .field textarea:focus,
-    .field select:focus {
-      border-color: rgba(98,88,255,.64);
-      box-shadow: 0 0 0 5px rgba(98,88,255,.10);
-    }
-
-    .dns-extra {
-      display: none;
-      grid-column: 1 / -1;
-      padding: 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(98,88,255,.12);
-      background: rgba(247,249,255,.74);
-    }
-
-    .dns-extra.show { display: grid; gap: 14px; }
-
-
-    .checkout-summary {
-      grid-column: 1 / -1;
-      display: grid;
-      gap: 12px;
-      padding: 16px;
-      border-radius: 20px;
-      border: 1px solid rgba(98,88,255,.13);
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.88), rgba(247,249,255,.78));
-      box-shadow: 0 12px 30px rgba(42,51,105,.07);
-    }
-
-    .checkout-summary h3 {
-      margin: 0;
-      color: var(--deep);
-      font-size: 20px;
-      letter-spacing: -.04em;
-    }
-
-    .summary-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 9px 0;
-      border-bottom: 1px solid rgba(35,43,85,.08);
-      color: var(--muted);
-      font-weight: 760;
-    }
-
-    .summary-line:last-child {
-      border-bottom: 0;
-    }
-
-    .summary-line b {
-      color: var(--deep);
-      text-align: right;
-    }
-
-    .summary-domains {
-      display: grid;
-      gap: 8px;
-      margin-top: 4px;
-    }
-
-    .summary-domain-item {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.78);
-      border: 1px solid rgba(35,43,85,.08);
-      font-weight: 850;
-      color: var(--deep);
-    }
-
-    .invoice-success {
-      display: grid;
-      gap: 12px;
-    }
-
-    .invoice-card {
-      padding: 16px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.82);
-      border: 1px solid rgba(4,120,87,.16);
-    }
-
-    .invoice-card h3 {
-      margin: 0 0 10px;
-      color: #047857;
-      letter-spacing: -.04em;
-    }
-
-    .invoice-code {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      padding: 8px 11px;
-      border-radius: 999px;
-      background: #dcfce7;
-      color: #047857;
-      font-weight: 1000;
-      letter-spacing: .02em;
-    }
+    .helper a { color:var(--violet); font-weight:950; }
 
     .alert {
-      display: none;
-      margin-top: 14px;
-      padding: 14px;
-      border-radius: 16px;
-      font-weight: 820;
+      display:none;
+      margin-top:14px;
+      padding:14px;
+      border-radius:16px;
+      font-weight:820;
     }
 
-    .alert.show { display: block; }
-    .alert.success { color: #047857; background: #dcfce7; border: 1px solid #a7f3d0; }
-    .alert.error { color: #be123c; background: #ffe4ea; border: 1px solid #fecdd3; }
+    .alert.show { display:block; }
+    .alert.success { color:#047857; background:#dcfce7; border:1px solid #a7f3d0; }
+    .alert.error { color:#be123c; background:#ffe4ea; border:1px solid #fecdd3; }
 
-    .extension-grid,
-    .step-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-    }
-
-    .extension-card,
-    .step-card {
-      position: relative;
-      overflow: hidden;
-      padding: 24px;
-    }
-
-    .extension-card::after,
-    .step-card::after {
-      content: "";
-      position: absolute;
-      right: -42px;
-      bottom: -54px;
-      width: 150px;
-      height: 150px;
-      border-radius: 38px;
-      background: linear-gradient(135deg, rgba(98,88,255,.17), rgba(19,182,214,.16));
-      transform: rotate(13deg);
-    }
-
-    .extension-card h3,
-    .step-card h3 {
-      margin: 0 0 8px;
-      position: relative;
-      z-index: 1;
-      color: var(--deep);
-      font-size: 27px;
-      letter-spacing: -.055em;
-    }
-
-    .extension-card p,
-    .step-card p {
-      margin: 0;
-      position: relative;
-      z-index: 1;
-      color: var(--muted);
-    }
-
-    .step-number {
-      position: relative;
-      z-index: 1;
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      margin-bottom: 16px;
-      color: white;
-      border-radius: 16px;
-      font-weight: 1000;
-      background: linear-gradient(135deg, var(--violet), var(--cyan));
-      box-shadow: 0 16px 30px rgba(98,88,255,.18);
-    }
-
-    .contact-band {
-      position: relative;
-      overflow: hidden;
-      padding: 32px;
-      border-radius: 36px;
-      color: white;
-      background:
-        radial-gradient(circle at 14% 22%, rgba(255,255,255,.22), transparent 28%),
-        linear-gradient(135deg, var(--violet), var(--cyan) 58%, var(--mint));
-      box-shadow: 0 28px 80px rgba(98,88,255,.23);
-    }
-
-    .contact-content {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    .contact-band h2 {
-      margin: 0 0 8px;
-      font-size: clamp(28px, 4vw, 46px);
-      line-height: 1.05;
-      letter-spacing: -.06em;
-    }
-
-    .contact-band p {
-      margin: 0;
-      max-width: 680px;
-      color: rgba(255,255,255,.83);
-    }
-
-    .footer {
-      padding: 40px 0;
-      color: #65738d;
-    }
-
-    .footer-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-      flex-wrap: wrap;
-      padding-top: 22px;
-      border-top: 1px solid rgba(35,43,85,.10);
-    }
-
-    .footer strong { color: var(--deep); }
-
-    .loading-dots::after {
-      content: "";
-      animation: dots 1.2s steps(4, end) infinite;
-    }
-
-    @keyframes dots {
-      0%, 20% { content: ""; }
-      40% { content: "."; }
-      60% { content: ".."; }
-      80%, 100% { content: "..."; }
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 980px) {
-      .nav-links {
-        position: fixed;
-        top: 88px;
-        left: 16px;
-        right: 16px;
-        display: none;
-        flex-direction: column;
-        align-items: stretch;
-        padding: 16px;
-        border-radius: 24px;
-        background: rgba(255,255,255,.96);
-        border: 1px solid rgba(35,43,85,.12);
-        box-shadow: var(--shadow);
-      }
-
-      .nav-links.show { display: flex; }
-      .mobile-toggle { display: grid; place-items: center; }
-      .hero-grid,
-      .cart-layout {
-        grid-template-columns: 1fr;
-      }
-
-      .trust-row,
-      .extension-grid,
-      .step-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .section-head {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .container { width: min(100% - 24px, 1180px); }
-      .topbar .container { display: grid; }
-      .nav { min-height: 72px; }
-      .brand-mark { width: 46px; height: 46px; }
-      .brand-copy strong { font-size: 16px; }
-      .brand-copy span { font-size: 10px; }
-      .nav-links { top: 84px; }
-      .hero { padding-top: 52px; }
-      .domain-form { grid-template-columns: 1fr; }
-      .domain-form .btn { width: 100%; }
-      .hero-card,
-      .search-panel {
-        border-radius: 26px;
-      }
-      .section { padding: 52px 0; }
-      .form-grid { grid-template-columns: 1fr; }
-      .cart-item {
-        grid-template-columns: 1fr;
-      }
-      .cart-price { text-align: left; }
-      .contact-band { padding: 24px; border-radius: 28px; }
-      .footer-content { flex-direction: column; align-items: flex-start; }
+    @media (max-width:850px) {
+      body { padding:14px; align-items:start; }
+      .shell { grid-template-columns:1fr; }
+      .brand-panel { min-height:auto; padding:26px; border-radius:28px; }
+      .hero-copy { margin-top:64px; }
+      .auth-card { padding:24px; border-radius:28px; }
     }
   </style>
 </head>
 
 <body>
-  <div class="topbar">
-    <div class="container">
-      <span>Dirac Group • Cek domain, pilih paket, checkout, dan konsultasi DNS</span>
-      <span>Pesanan diproses oleh admin setelah data dan pembayaran dikonfirmasi</span>
-    </div>
-  </div>
-
-  <header class="site-header">
-    <div class="container nav">
-      <a href="#home" class="brand" aria-label="Dirac Group">
-        <span class="brand-mark">DG</span>
-        <span class="brand-copy">
+  <div class="shell">
+    <section class="brand-panel">
+      <div class="brand">
+        <div class="brand-mark">DG</div>
+        <div class="brand-copy">
           <strong>Dirac Group</strong>
           <span>Domain Partner</span>
-        </span>
-      </a>
-
-      <nav class="nav-links" id="navLinks">
-        <a href="#home">Beranda</a>
-        <a href="#cek">Cek Domain</a>
-        <a href="#keranjang">Keranjang</a>
-        <a href="#cara">Cara Beli</a>
-        <button class="cart-mini" id="cartButton">Cart: <span id="cartCount">0</span></button>
-      </nav>
-
-      <button class="mobile-toggle" id="mobileToggle" aria-label="Buka menu">☰</button>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero" id="home">
-      <div class="container hero-grid">
-        <div>
-          <div class="pill">✦ Website domain Dirac Group</div>
-          <h1>Cari domain, lihat harga, lalu checkout seperti website domain <span>profesional.</span></h1>
-          <p class="hero-lead">
-            Cari domain pilihanmu, lihat harga, masukkan ke keranjang, pilih metode DNS, lalu selesaikan checkout dengan alur yang lebih rapi dan profesional.
-          </p>
-
-          <div class="hero-actions">
-            <a href="#cek" class="btn btn-primary">Cek Domain Sekarang</a>
-            <a href="#keranjang" class="btn btn-soft">Lihat Keranjang</a>
-          </div>
-
-          <div class="trust-row">
-            <div class="trust-item">
-              <strong>RDAP</strong>
-              <span>Cek ketersediaan domain</span>
-            </div>
-            <div class="trust-item">
-              <strong>Cart</strong>
-              <span>Tambah beberapa domain</span>
-            </div>
-            <div class="trust-item">
-              <strong>DNS</strong>
-              <span>Pilih metode pengelolaan</span>
-            </div>
-          </div>
         </div>
+      </div>
 
-        <div class="hero-card" id="cek">
-          <div class="search-panel">
-            <div class="pill">Cek ketersediaan</div>
-            <h2>Cari domain pilihanmu</h2>
-            <p>Ketik domain lengkap seperti <b>brandkamu.com</b>, atau ketik nama brand tanpa ekstensi untuk mengecek beberapa ekstensi sekaligus.</p>
-
-            <form class="domain-form" id="domainCheckForm">
-              <input id="domainInput" type="text" autocomplete="off" placeholder="contoh: diracgroup.com" />
-              <button class="btn btn-primary" type="submit" id="checkBtn">Cek Domain</button>
-            </form>
-
-            <div class="tld-group">
-              <button class="tld-chip" data-tld=".com">.com</button>
-              <button class="tld-chip" data-tld=".net">.net</button>
-              <button class="tld-chip" data-tld=".org">.org</button>
-              <button class="tld-chip" data-tld=".id">.id</button>
-              <button class="tld-chip" data-tld=".co.id">.co.id</button>
-              <button class="tld-chip" data-tld=".xyz">.xyz</button>
-            </div>
-
-            <div id="resultArea" class="result-area"></div>
-          </div>
+      <div class="hero-copy">
+        <h1>Masuk dulu, baru kelola domain.</h1>
+        <p>Setelah login, pelanggan dapat cek domain, tambah ke keranjang, checkout, dan melihat status pesanan.</p>
+        <div class="mini-list">
+          <div>✓ Login dan daftar tanpa key di HTML</div>
+          <div>✓ Checkout domain via API Vercel</div>
+          <div>✓ Dashboard pelanggan setelah masuk</div>
         </div>
       </div>
     </section>
 
-    <section class="section" id="keranjang">
-      <div class="container">
-        <div class="section-head">
-          <div class="section-title">
-            <div class="kicker">Checkout</div>
-            <h2>Keranjang dan data pemilik domain</h2>
-            <p>Setelah domain tersedia, tambahkan ke keranjang. Periksa ringkasan pesanan sebelum mengirim checkout.</p>
-          </div>
-        </div>
-
-        <div class="cart-layout">
-          <section class="cart-box">
-            <h2 style="margin:0 0 14px;color:var(--deep);letter-spacing:-.05em;">Keranjang Domain</h2>
-            <div id="cartItems"></div>
-            <div class="total-row">
-              <span>Total</span>
-              <span id="cartTotal">Rp0</span>
-            </div>
-          </section>
-
-          <section class="checkout-box">
-            <h2 style="margin:0 0 14px;color:var(--deep);letter-spacing:-.05em;">Checkout</h2>
-            <form id="checkoutForm">
-              <div class="form-grid">
-                <div class="field">
-                  <label for="customerName">Nama Pembeli</label>
-                  <input id="customerName" required placeholder="Nama lengkap" />
-                </div>
-
-                <div class="field">
-                  <label for="customerWhatsapp">WhatsApp</label>
-                  <input id="customerWhatsapp" required placeholder="08xxxxxxxxxx" />
-                </div>
-
-                <div class="field">
-                  <label for="customerEmail">Email Pembeli</label>
-                  <input id="customerEmail" type="email" placeholder="nama@email.com" />
-                </div>
-
-                <div class="field">
-                  <label for="ownerEmail">Email Pemilik Domain</label>
-                  <input id="ownerEmail" type="email" placeholder="email pemilik domain" />
-                </div>
-
-                <div class="field full">
-                  <label for="dnsMethod">Metode Pengelolaan DNS</label>
-                  <select id="dnsMethod">
-                    <option value="managed_by_dirac">Dikelola Dirac Group</option>
-                    <option value="use_own_nameserver">Pakai nameserver hosting sendiri</option>
-                    <option value="point_to_platform">Arahkan ke platform tertentu</option>
-                    <option value="not_sure">Belum tahu, minta dibantu admin</option>
-                  </select>
-                </div>
-
-                <div class="dns-extra" id="nameserverFields">
-                  <div class="field">
-                    <label for="nameserver1">Nameserver 1</label>
-                    <input id="nameserver1" placeholder="ns1.hosting.com" />
-                  </div>
-                  <div class="field">
-                    <label for="nameserver2">Nameserver 2</label>
-                    <input id="nameserver2" placeholder="ns2.hosting.com" />
-                  </div>
-                </div>
-
-                <div class="dns-extra" id="platformFields">
-                  <div class="field">
-                    <label for="targetPlatform">Platform / Tujuan</label>
-                    <input id="targetPlatform" placeholder="Vercel, Netlify, Blogger, Shopify, atau IP hosting" />
-                  </div>
-                </div>
-
-                <div class="field full">
-                  <label for="customerNote">Catatan</label>
-                  <textarea id="customerNote" rows="4" placeholder="Contoh: domain untuk toko online, minta dibantu setting DNS, atau catatan pembayaran."></textarea>
-                </div>
-
-                <div class="checkout-summary" id="checkoutSummary">
-                  <h3>Ringkasan Pesanan</h3>
-                  <div class="cart-empty">Keranjang masih kosong. Tambahkan domain terlebih dahulu.</div>
-                </div>
-
-                <button class="btn btn-primary full" type="submit" id="checkoutBtn">Checkout Sekarang</button>
-              </div>
-
-              <div id="checkoutAlert" class="alert"></div>
-            </form>
-          </section>
-        </div>
+    <section class="auth-card">
+      <div class="tabs">
+        <button class="tab active" id="loginTab">Masuk</button>
+        <button class="tab" id="registerTab">Daftar</button>
       </div>
+
+      <div class="auth-title">
+        <h2 id="formTitle">Masuk akun</h2>
+        <p id="formSubtitle">Gunakan email dan password yang sudah terdaftar.</p>
+      </div>
+
+      <form id="authForm" class="form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" required placeholder="nama@email.com" />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" required minlength="6" placeholder="Minimal 6 karakter" />
+        </div>
+
+        <button class="btn btn-primary" type="submit" id="submitBtn">Masuk</button>
+      </form>
+
+      <div class="helper">
+        <span>Tidak ada Supabase key di halaman ini.</span>
+        <a href="./dashboard.html">Dashboard</a>
+      </div>
+
+      <div id="authAlert" class="alert"></div>
     </section>
-
-    <section class="section" id="ekstensi">
-      <div class="container">
-        <div class="section-head">
-          <div class="section-title">
-            <div class="kicker">Harga Ekstensi</div>
-            <h2>Harga dasar yang tampil di website</h2>
-            <p>Harga ini hanya untuk tampilan. Saat checkout, total tetap dihitung ulang oleh Edge Function supaya lebih aman.</p>
-          </div>
-        </div>
-
-        <div class="extension-grid" id="priceGrid"></div>
-      </div>
-    </section>
-
-    <section class="section" id="cara">
-      <div class="container">
-        <div class="section-head">
-          <div class="section-title">
-            <div class="kicker">Alur Pembelian</div>
-            <h2>Prosesnya dibuat jelas untuk pelanggan</h2>
-            <p>Setelah checkout, admin Dirac Group akan menghubungi pelanggan untuk konfirmasi pembayaran dan proses registrasi domain.</p>
-          </div>
-        </div>
-
-        <div class="step-grid">
-          <article class="step-card">
-            <div class="step-number">1</div>
-            <h3>Cek & tambah ke cart</h3>
-            <p>Pelanggan mengecek domain. Jika tersedia, domain bisa dimasukkan ke keranjang.</p>
-          </article>
-
-          <article class="step-card">
-            <div class="step-number">2</div>
-            <h3>Checkout & pilih DNS</h3>
-            <p>Pelanggan mengisi data pemilik domain dan memilih apakah DNS dikelola Dirac Group atau memakai nameserver sendiri.</p>
-          </article>
-
-          <article class="step-card">
-            <div class="step-number">3</div>
-            <h3>Admin proses manual</h3>
-            <p>Pesanan diterima. Admin cek pembayaran, register domain, lalu mengabarkan status aktivasi domain.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="kontak">
-      <div class="container">
-        <div class="contact-band">
-          <div class="contact-content">
-            <div>
-              <h2>Butuh bantuan sebelum checkout?</h2>
-              <p>Admin Dirac Group bisa membantu memilih ekstensi domain dan menentukan metode DNS yang paling cocok.</p>
-            </div>
-            <button class="btn btn-soft" id="whatsappConsultBtn">Chat WhatsApp</button>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container footer-content">
-      <div>
-        <strong>Dirac Group</strong><br />
-        Cek, beli, dan kelola domain profesional dengan alur yang lebih jelas.
-      </div>
-      <div>© 2026 Dirac Group. All rights reserved.</div>
-    </div>
-  </footer>
+  </div>
 
   <script>
-    const CONFIG = {
-      CHECK_API: "https://fbwyomgnlbfmvhsasvmv.supabase.co/functions/v1/check-domain",
-      CHECKOUT_API: "https://fbwyomgnlbfmvhsasvmv.supabase.co/functions/v1/domain-checkout",
-      WHATSAPP_ADMIN: "6281234567890"
-    };
-
-    const PRICE_RULES = {
-      ".com": { register: 185000, renewal: 185000 },
-      ".net": { register: 210000, renewal: 210000 },
-      ".org": { register: 220000, renewal: 220000 },
-      ".id": { register: 260000, renewal: 260000 },
-      ".co.id": { register: 330000, renewal: 330000 },
-      ".xyz": { register: 45000, renewal: 150000 }
-    };
-
-    const state = {
-      cart: JSON.parse(localStorage.getItem("dirac_domain_cart") || "[]")
-    };
-
     const $ = (id) => document.getElementById(id);
+    let mode = "login";
 
-    function saveCart() {
-      localStorage.setItem("dirac_domain_cart", JSON.stringify(state.cart));
+    function showAlert(type, message) {
+      const box = $("authAlert");
+      box.className = "alert " + type + " show";
+      box.textContent = message;
     }
 
-    function formatRupiah(value) {
-      return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        maximumFractionDigits: 0
-      }).format(Number(value || 0));
+    function setMode(nextMode) {
+      mode = nextMode;
+      $("loginTab").classList.toggle("active", mode === "login");
+      $("registerTab").classList.toggle("active", mode === "register");
+      $("formTitle").textContent = mode === "login" ? "Masuk akun" : "Daftar akun";
+      $("formSubtitle").textContent = mode === "login"
+        ? "Gunakan email dan password yang sudah terdaftar."
+        : "Buat akun pelanggan untuk masuk ke dashboard.";
+      $("submitBtn").textContent = mode === "login" ? "Masuk" : "Daftar";
+      $("authAlert").className = "alert";
+      $("authAlert").textContent = "";
     }
 
-    function normalizeDomain(value) {
-      return String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/^https?:\/\//, "")
-        .replace(/^www\./, "")
-        .replace(/\/.*$/, "")
-        .replace(/\s+/g, "");
-    }
-
-    function hasTld(value) {
-      return /\.[a-z0-9-]{2,}(\.[a-z0-9-]{2,})?$/.test(value);
-    }
-
-    function getExtension(domain) {
-      const extensions = Object.keys(PRICE_RULES).sort((a, b) => b.length - a.length);
-      return extensions.find((ext) => domain.endsWith(ext)) || null;
-    }
-
-    function getPrice(domain) {
-      const extension = getExtension(domain);
-      if (!extension) return null;
-      return {
-        extension,
-        register: PRICE_RULES[extension].register,
-        renewal: PRICE_RULES[extension].renewal
-      };
-    }
-
-    function renderInitialResult() {
-      $("resultArea").innerHTML = `
-        <div class="result-card checking">
-          <div class="result-head">
-            <div class="result-domain">Masukkan nama domain</div>
-            <span class="status-badge badge-checking">Siap dicek</span>
-          </div>
-          <p>Jika domain tersedia, tombol tambah ke keranjang akan muncul otomatis.</p>
-        </div>
-      `;
-    }
-
-    function renderChecking(domain) {
-      $("resultArea").innerHTML = `
-        <div class="result-card checking">
-          <div class="result-head">
-            <div class="result-domain">${domain}</div>
-            <span class="status-badge badge-checking loading-dots">Mengecek</span>
-          </div>
-          <p>Sistem sedang memeriksa status domain.</p>
-        </div>
-      `;
-    }
-
-    async function fetchJson(url, options = {}) {
-      const response = await fetch(url, {
-        ...options,
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           ...(options.headers || {})
-        }
+        },
+        ...options
       });
 
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok || data.ok === false || data.success === false) {
+      if (!response.ok || data.ok === false) {
         throw new Error(data.message || "Request gagal.");
       }
 
       return data;
     }
 
-    function renderCheckResult(data, fallbackDomain) {
-      const domain = data.domain || fallbackDomain;
-      const available = Boolean(data.available);
-      const price = getPrice(domain);
-
-      $("resultArea").innerHTML = `
-        <div class="result-card ${available ? "available" : "taken"}">
-          <div class="result-head">
-            <div class="result-domain">${domain}</div>
-            <span class="status-badge ${available ? "badge-available" : "badge-taken"}">
-              ${available ? "Tersedia" : "Tidak tersedia"}
-            </span>
-          </div>
-          <p>${data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar.")}</p>
-          ${available ? `
-            <div class="price-line">
-              ${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span>
-            </div>
-          ` : ""}
-          <div class="result-actions">
-            ${available ? `<button class="btn btn-mint" data-add-cart="${domain}">Tambah ke Keranjang</button>` : ""}
-            <button class="btn btn-soft" data-recheck="${domain}">Cek Ulang</button>
-          </div>
-        </div>
-      `;
-
-      bindResultButtons();
-    }
-
-    function renderError(domain, message) {
-      $("resultArea").innerHTML = `
-        <div class="result-card taken">
-          <div class="result-head">
-            <div class="result-domain">${domain || "Domain"}</div>
-            <span class="status-badge badge-taken">Gagal dicek</span>
-          </div>
-          <p>${message || "API belum bisa dihubungi."}</p>
-          <div class="result-actions">
-            <button class="btn btn-soft" data-recheck="${domain}">Coba Lagi</button>
-            <button class="btn btn-mint" id="manualWhatsappBtn">Hubungi Admin</button>
-          </div>
-        </div>
-      `;
-
-      bindResultButtons();
-      const manual = $("manualWhatsappBtn");
-      if (manual) manual.addEventListener("click", () => openWhatsapp(domain));
-    }
-
-    async function checkDomain(rawDomain) {
-      const domain = normalizeDomain(rawDomain);
-
-      if (!domain) {
-        renderInitialResult();
-        return;
-      }
-
-      if (!hasTld(domain)) {
-        await checkManyExtensions(domain);
-        return;
-      }
-
-      if (!getPrice(domain)) {
-        renderError(domain, "Harga untuk ekstensi domain ini belum diatur di website.");
-        return;
-      }
-
-      renderChecking(domain);
-
+    async function checkSession() {
       try {
-        const data = await fetchJson(`${CONFIG.CHECK_API}?domain=${encodeURIComponent(domain)}`, {
-          headers: {}
-        });
-        renderCheckResult(data, domain);
-      } catch (error) {
-        renderError(domain, error.message);
-      }
+        await api("/api/health?action=domain_me");
+        window.location.href = "./dashboard.html";
+      } catch (_) {}
     }
 
-    async function checkManyExtensions(baseName) {
-      const cleanBase = normalizeDomain(baseName).replace(/\..*$/, "");
-
-      if (!cleanBase) {
-        renderInitialResult();
-        return;
-      }
-
-      const tlds = [".com", ".net", ".org", ".id", ".co.id", ".xyz"];
-      $("resultArea").innerHTML = tlds.map((tld) => {
-        const domain = cleanBase + tld;
-        const id = "card-" + tld.replace(/\./g, "-");
-        const price = getPrice(domain);
-        return `
-          <div class="result-card checking" id="${id}">
-            <div class="result-head">
-              <div class="result-domain">${domain}</div>
-              <span class="status-badge badge-checking loading-dots">Mengecek</span>
-            </div>
-            <p>${price ? `Harga: ${formatRupiah(price.register)} / tahun pertama` : "Harga belum tersedia."}</p>
-          </div>
-        `;
-      }).join("");
-
-      for (const tld of tlds) {
-        const domain = cleanBase + tld;
-        const id = "card-" + tld.replace(/\./g, "-");
-        const card = $(id);
-
-        try {
-          const data = await fetchJson(`${CONFIG.CHECK_API}?domain=${encodeURIComponent(domain)}`, {
-            headers: {}
-          });
-          const available = Boolean(data.available);
-          const price = getPrice(domain);
-
-          card.className = `result-card ${available ? "available" : "taken"}`;
-          card.innerHTML = `
-            <div class="result-head">
-              <div class="result-domain">${data.domain || domain}</div>
-              <span class="status-badge ${available ? "badge-available" : "badge-taken"}">
-                ${available ? "Tersedia" : "Tidak tersedia"}
-              </span>
-            </div>
-            <p>${data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar.")}</p>
-            ${available ? `
-              <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
-            ` : ""}
-            <div class="result-actions">
-              ${available ? `<button class="btn btn-mint" data-add-cart="${data.domain || domain}">Tambah ke Keranjang</button>` : ""}
-              <button class="btn btn-soft" data-recheck="${data.domain || domain}">Cek Ulang</button>
-            </div>
-          `;
-        } catch (error) {
-          card.className = "result-card taken";
-          card.innerHTML = `
-            <div class="result-head">
-              <div class="result-domain">${domain}</div>
-              <span class="status-badge badge-taken">Gagal dicek</span>
-            </div>
-            <p>${error.message}</p>
-            <div class="result-actions">
-              <button class="btn btn-soft" data-recheck="${domain}">Coba Lagi</button>
-            </div>
-          `;
-        }
-      }
-
-      bindResultButtons();
-    }
-
-    function bindResultButtons() {
-      document.querySelectorAll("[data-add-cart]").forEach((button) => {
-        button.addEventListener("click", () => addToCart(button.dataset.addCart));
-      });
-
-      document.querySelectorAll("[data-recheck]").forEach((button) => {
-        button.addEventListener("click", () => checkDomain(button.dataset.recheck));
-      });
-    }
-
-    function addToCart(domain) {
-      const clean = normalizeDomain(domain);
-      const price = getPrice(clean);
-
-      if (!price) {
-        alert("Harga domain ini belum tersedia.");
-        return;
-      }
-
-      const exists = state.cart.some((item) => item.domain_name === clean);
-
-      if (exists) {
-        alert("Domain ini sudah ada di keranjang.");
-        return;
-      }
-
-      state.cart.push({
-        domain_name: clean,
-        extension: price.extension,
-        years: 1,
-        register_price: price.register,
-        renewal_price: price.renewal,
-        subtotal: price.register,
-        availability_snapshot: true
-      });
-
-      saveCart();
-      renderCart();
-      location.hash = "keranjang";
-    }
-
-    function removeFromCart(domain) {
-      state.cart = state.cart.filter((item) => item.domain_name !== domain);
-      saveCart();
-      renderCart();
-    }
-
-    function getCartTotal() {
-      return state.cart.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
-    }
-
-    function makeInvoiceCode(orderId) {
-      const raw = String(orderId || Date.now()).replace(/-/g, "").toUpperCase();
-      return "DRC-" + raw.slice(0, 8);
-    }
-
-    function getDnsLabel(value) {
-      const labels = {
-        managed_by_dirac: "Dikelola Dirac Group",
-        use_own_nameserver: "Pakai nameserver hosting sendiri",
-        point_to_platform: "Arahkan ke platform tertentu",
-        not_sure: "Belum tahu, minta dibantu admin"
-      };
-      return labels[value] || value || "-";
-    }
-
-    function buildWhatsappMessage(invoiceCode, payload, totalText) {
-      const domains = state.cart.map((item) => `- ${item.domain_name} (${formatRupiah(item.subtotal)})`).join("\\n");
-
-      return [
-        "Halo Admin Dirac Group, saya sudah membuat pesanan domain.",
-        `Invoice: ${invoiceCode}`,
-        "",
-        "Domain:",
-        domains || "-",
-        "",
-        `Total: ${totalText}`,
-        `Nama: ${payload.customer_name}`,
-        `WhatsApp: ${payload.customer_whatsapp}`,
-        payload.customer_email ? `Email: ${payload.customer_email}` : "",
-        payload.owner_email ? `Email pemilik domain: ${payload.owner_email}` : "",
-        `Metode DNS: ${getDnsLabel(payload.dns_method)}`,
-        payload.nameserver_1 ? `Nameserver 1: ${payload.nameserver_1}` : "",
-        payload.nameserver_2 ? `Nameserver 2: ${payload.nameserver_2}` : "",
-        payload.target_platform ? `Platform/Tujuan: ${payload.target_platform}` : "",
-        payload.customer_note ? `Catatan: ${payload.customer_note}` : ""
-      ].filter(Boolean).join("\\n");
-    }
-
-    function updateCheckoutSummary() {
-      const box = $("checkoutSummary");
-      if (!box) return;
-
-      if (!state.cart.length) {
-        box.innerHTML = `
-          <h3>Ringkasan Pesanan</h3>
-          <div class="cart-empty">Keranjang masih kosong. Tambahkan domain terlebih dahulu.</div>
-        `;
-        return;
-      }
-
-      const dnsMethod = $("dnsMethod") ? $("dnsMethod").value : "managed_by_dirac";
-      const domainRows = state.cart.map((item) => `
-        <div class="summary-domain-item">
-          <span>${item.domain_name}</span>
-          <b>${formatRupiah(item.subtotal)}</b>
-        </div>
-      `).join("");
-
-      box.innerHTML = `
-        <h3>Ringkasan Pesanan</h3>
-        <div class="summary-domains">${domainRows}</div>
-        <div class="summary-line"><span>Durasi</span><b>1 tahun</b></div>
-        <div class="summary-line"><span>Metode DNS</span><b>${getDnsLabel(dnsMethod)}</b></div>
-        <div class="summary-line"><span>Total</span><b>${formatRupiah(getCartTotal())}</b></div>
-      `;
-    }
-
-
-    function renderCart() {
-      $("cartCount").textContent = state.cart.length;
-      $("cartTotal").textContent = formatRupiah(getCartTotal());
-      updateCheckoutSummary();
-
-      if (!state.cart.length) {
-        $("cartItems").innerHTML = `
-          <div class="cart-empty">
-            Keranjang masih kosong. Cek domain terlebih dahulu, lalu klik <b>Tambah ke Keranjang</b>.
-          </div>
-        `;
-        return;
-      }
-
-      $("cartItems").innerHTML = state.cart.map((item) => `
-        <div class="cart-item">
-          <div>
-            <h3>${item.domain_name}</h3>
-            <p>${item.extension} • ${item.years} tahun • renewal ${formatRupiah(item.renewal_price)}</p>
-          </div>
-          <div class="cart-price">
-            ${formatRupiah(item.subtotal)}
-            <br>
-            <button class="cart-remove" data-remove="${item.domain_name}">Hapus</button>
-          </div>
-        </div>
-      `).join("");
-
-      document.querySelectorAll("[data-remove]").forEach((button) => {
-        button.addEventListener("click", () => removeFromCart(button.dataset.remove));
-      });
-    }
-
-    function renderPriceGrid() {
-      $("priceGrid").innerHTML = Object.entries(PRICE_RULES).map(([extension, price]) => `
-        <article class="extension-card">
-          <h3>${extension}</h3>
-          <p>Register tahun pertama <b>${formatRupiah(price.register)}</b>. Perpanjangan sekitar <b>${formatRupiah(price.renewal)}</b>.</p>
-        </article>
-      `).join("");
-    }
-
-    function updateDnsFields() {
-      const method = $("dnsMethod").value;
-      $("nameserverFields").classList.toggle("show", method === "use_own_nameserver");
-      $("platformFields").classList.toggle("show", method === "point_to_platform");
-      updateCheckoutSummary();
-    }
-
-    function openWhatsapp(domain = "", payload = {}) {
-      const text = [
-        "Halo Admin Dirac Group, saya ingin konsultasi/pesan domain.",
-        domain ? `Domain: ${domain}` : "",
-        payload.customer_name ? `Nama: ${payload.customer_name}` : "",
-        payload.customer_whatsapp ? `WhatsApp: ${payload.customer_whatsapp}` : "",
-        payload.customer_email ? `Email: ${payload.customer_email}` : "",
-        payload.dns_method ? `Metode DNS: ${payload.dns_method}` : "",
-        payload.customer_note ? `Catatan: ${payload.customer_note}` : ""
-      ].filter(Boolean).join("\n");
-
-      window.open(`https://wa.me/${CONFIG.WHATSAPP_ADMIN}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-    }
-
-    async function submitCheckout(event) {
+    async function handleAuth(event) {
       event.preventDefault();
 
-      const alertBox = $("checkoutAlert");
-      const button = $("checkoutBtn");
+      const email = $("email").value.trim();
+      const password = $("password").value;
 
-      if (!state.cart.length) {
-        alertBox.className = "alert error show";
-        alertBox.textContent = "Keranjang masih kosong. Tambahkan domain terlebih dahulu.";
-        return;
-      }
-
-      const payload = {
-        customer_name: $("customerName").value.trim(),
-        customer_whatsapp: $("customerWhatsapp").value.trim(),
-        customer_email: $("customerEmail").value.trim(),
-        owner_email: $("ownerEmail").value.trim(),
-        dns_method: $("dnsMethod").value,
-        nameserver_1: $("nameserver1").value.trim(),
-        nameserver_2: $("nameserver2").value.trim(),
-        target_platform: $("targetPlatform").value.trim(),
-        customer_note: $("customerNote").value.trim(),
-        items: state.cart.map((item) => ({
-          domain_name: item.domain_name,
-          years: item.years,
-          availability_snapshot: item.availability_snapshot
-        }))
-      };
-
-      if (!payload.customer_name || !payload.customer_whatsapp) {
-        alertBox.className = "alert error show";
-        alertBox.textContent = "Nama pembeli dan WhatsApp wajib diisi.";
-        return;
-      }
-
-      button.disabled = true;
-      button.textContent = "Memproses checkout...";
+      $("submitBtn").disabled = true;
+      $("submitBtn").textContent = mode === "login" ? "Memproses masuk..." : "Mendaftarkan...";
 
       try {
-        const result = await fetchJson(CONFIG.CHECKOUT_API, {
+        const endpoint = mode === "login"
+          ? "/api/health?action=domain_login"
+          : "/api/health?action=domain_register";
+
+        const result = await api(endpoint, {
           method: "POST",
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ email, password })
         });
 
-        const invoiceCode = makeInvoiceCode(result.order_id);
-        const totalText = formatRupiah(result.total_amount);
-        const whatsappText = buildWhatsappMessage(invoiceCode, payload, totalText);
-        const whatsappUrl = `https://wa.me/${CONFIG.WHATSAPP_ADMIN}?text=${encodeURIComponent(whatsappText)}`;
-
-        alertBox.className = "alert success show";
-        alertBox.innerHTML = `
-          <div class="invoice-success">
-            <div class="invoice-card">
-              <h3>Pesanan berhasil dibuat</h3>
-              <div class="invoice-code">${invoiceCode}</div>
-              <div class="summary-line"><span>Total</span><b>${totalText}</b></div>
-              <div class="summary-line"><span>Status</span><b>Menunggu konfirmasi admin</b></div>
-              <div class="summary-line"><span>Metode DNS</span><b>${getDnsLabel(payload.dns_method)}</b></div>
-            </div>
-            <div>
-              Admin Dirac Group akan menghubungi Anda untuk konfirmasi pembayaran dan proses registrasi domain.
-            </div>
-            <a class="btn btn-mint" href="${whatsappUrl}" target="_blank" rel="noopener">Lanjutkan ke WhatsApp Admin</a>
-          </div>
-        `;
-
-        state.cart = [];
-        saveCart();
-        renderCart();
-        event.target.reset();
-        updateDnsFields();
+        if (mode === "register" && result.needs_email_confirmation) {
+          showAlert("success", "Akun berhasil dibuat. Silakan cek email verifikasi jika diminta, lalu login.");
+          setMode("login");
+        } else {
+          showAlert("success", "Berhasil. Mengalihkan ke dashboard...");
+          setTimeout(() => {
+            window.location.href = "./dashboard.html";
+          }, 700);
+        }
       } catch (error) {
-        const invoiceCode = makeInvoiceCode();
-        const totalText = formatRupiah(getCartTotal());
-        const whatsappText = buildWhatsappMessage(invoiceCode, payload, totalText);
-        const whatsappUrl = `https://wa.me/${CONFIG.WHATSAPP_ADMIN}?text=${encodeURIComponent(whatsappText)}`;
-
-        alertBox.className = "alert error show";
-        alertBox.innerHTML = `
-          Checkout belum berhasil: ${error.message}.<br>
-          <a class="btn btn-mint" style="margin-top:12px;" href="${whatsappUrl}" target="_blank" rel="noopener">Kirim Pesanan via WhatsApp</a>
-        `;
+        showAlert("error", error.message || "Proses gagal.");
       } finally {
-        button.disabled = false;
-        button.textContent = "Checkout Sekarang";
+        $("submitBtn").disabled = false;
+        $("submitBtn").textContent = mode === "login" ? "Masuk" : "Daftar";
       }
     }
 
-    function initEvents() {
-      $("mobileToggle").addEventListener("click", () => $("navLinks").classList.toggle("show"));
+    $("loginTab").addEventListener("click", () => setMode("login"));
+    $("registerTab").addEventListener("click", () => setMode("register"));
+    $("authForm").addEventListener("submit", handleAuth);
 
-      document.querySelectorAll(".nav-links a").forEach((link) => {
-        link.addEventListener("click", () => $("navLinks").classList.remove("show"));
-      });
-
-      $("cartButton").addEventListener("click", () => {
-        location.hash = "keranjang";
-        $("navLinks").classList.remove("show");
-      });
-
-      $("domainCheckForm").addEventListener("submit", (event) => {
-        event.preventDefault();
-        checkDomain($("domainInput").value);
-      });
-
-      document.querySelectorAll("[data-tld]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const base = normalizeDomain($("domainInput").value).replace(/\..*$/, "") || "diracgroup";
-          const domain = base + button.dataset.tld;
-          $("domainInput").value = domain;
-          checkDomain(domain);
-        });
-      });
-
-      $("dnsMethod").addEventListener("change", updateDnsFields);
-      $("checkoutForm").addEventListener("submit", submitCheckout);
-      $("whatsappConsultBtn").addEventListener("click", () => openWhatsapp(""));
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      renderInitialResult();
-      renderCart();
-      renderPriceGrid();
-      updateDnsFields();
-      updateCheckoutSummary();
-      initEvents();
-    });
+    checkSession();
   </script>
 </body>
 </html>

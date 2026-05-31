@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Dashboard | Dirac Group Domain</title>
+  <meta name="description" content="Dashboard pelanggan Dirac Group untuk cek domain, checkout, dan melihat status pesanan." />
+  <meta name="theme-color" content="#6258ff" />
+
+  <style>
+    :root {
+      --bg-a:#f6f3ff;
+      --bg-b:#eaf8ff;
+      --bg-c:#fff8e9;
+      --ink:#141b34;
+      --deep:#232b55;
+      --muted:#65728d;
+      --white:#fff;
+      --violet:#6258ff;
+      --purple:#8b5cf6;
+      --cyan:#13b6d6;
+      --mint:#19bf78;
+      --amber:#f5b23f;
+      --rose:#ef5f80;
+      --line:rgba(35,43,85,.12);
+      --shadow:0 28px 90px rgba(42,51,105,.17);
+      --shadow-soft:0 14px 42px rgba(42,51,105,.11);
+    }
+
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+
+    body {
+      margin:0;
+      min-height:100vh;
+      font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(98,88,255,.22), transparent 30%),
+        radial-gradient(circle at 88% 6%, rgba(19,182,214,.18), transparent 28%),
+        radial-gradient(circle at 48% 90%, rgba(245,178,63,.22), transparent 34%),
+        linear-gradient(135deg,var(--bg-a),var(--bg-b) 52%,var(--bg-c));
+      line-height:1.65;
+    }
+
+    body::before {
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      background-image:
+        linear-gradient(rgba(98,88,255,.052) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(98,88,255,.052) 1px, transparent 1px);
+      background-size:42px 42px;
+      mask-image:linear-gradient(to bottom, rgba(0,0,0,.85), rgba(0,0,0,.18));
+    }
+
+    a { color:inherit; text-decoration:none; }
+    button,input,textarea,select { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { opacity:.65; cursor:not-allowed; }
+
+    .container { width:min(1180px, calc(100% - 32px)); margin:0 auto; }
+
+    .site-header {
+      position:sticky;
+      top:0;
+      z-index:50;
+      background:rgba(255,255,255,.76);
+      border-bottom:1px solid rgba(255,255,255,.68);
+      backdrop-filter:blur(22px);
+      box-shadow:0 12px 36px rgba(42,51,105,.08);
+    }
+
+    .nav {
+      min-height:76px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+    }
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:13px;
+      min-width:max-content;
+    }
+
+    .brand-mark {
+      width:52px;
+      height:52px;
+      display:grid;
+      place-items:center;
+      border-radius:18px;
+      color:white;
+      font-weight:1000;
+      letter-spacing:-.08em;
+      background:
+        radial-gradient(circle at 28% 22%, rgba(255,255,255,.48), transparent 32%),
+        linear-gradient(135deg,var(--violet),var(--cyan));
+      box-shadow:0 18px 40px rgba(98,88,255,.26);
+    }
+
+    .brand-copy { display:grid; line-height:1.08; }
+    .brand-copy strong { color:var(--deep); font-size:19px; letter-spacing:-.045em; }
+    .brand-copy span {
+      color:var(--violet);
+      font-size:11px;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+    }
+
+    .nav-actions {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .btn {
+      min-height:46px;
+      border:0;
+      border-radius:15px;
+      padding:11px 15px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      font-weight:950;
+      transition:.2s ease;
+    }
+
+    .btn:hover { transform:translateY(-2px); }
+
+    .btn-primary {
+      color:white;
+      background:linear-gradient(135deg,var(--violet),var(--cyan));
+      box-shadow:0 18px 38px rgba(98,88,255,.22);
+    }
+
+    .btn-mint {
+      color:white;
+      background:linear-gradient(135deg,#0aa96a,var(--mint));
+      box-shadow:0 18px 38px rgba(25,191,120,.21);
+    }
+
+    .btn-soft {
+      color:var(--deep);
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(35,43,85,.10);
+    }
+
+    .btn-danger {
+      color:#be123c;
+      background:#ffe4ea;
+      border:1px solid #fecdd3;
+    }
+
+    .hero { padding:58px 0 22px; }
+
+    .hero-card {
+      padding:30px;
+      border-radius:34px;
+      background:
+        linear-gradient(135deg,rgba(255,255,255,.88),rgba(255,255,255,.62)),
+        radial-gradient(circle at 12% 18%,rgba(98,88,255,.14),transparent 34%),
+        radial-gradient(circle at 86% 22%,rgba(19,182,214,.16),transparent 36%);
+      border:1px solid rgba(255,255,255,.82);
+      box-shadow:var(--shadow);
+    }
+
+    .pill {
+      display:inline-flex;
+      width:fit-content;
+      align-items:center;
+      gap:8px;
+      padding:9px 13px;
+      border-radius:999px;
+      border:1px solid rgba(98,88,255,.17);
+      color:var(--violet);
+      background:rgba(255,255,255,.74);
+      box-shadow:0 10px 28px rgba(98,88,255,.10);
+      font-size:13px;
+      font-weight:950;
+    }
+
+    .hero-card h1 {
+      margin:18px 0 10px;
+      color:var(--deep);
+      font-size:clamp(34px,5.6vw,64px);
+      line-height:1;
+      letter-spacing:-.07em;
+    }
+
+    .hero-card p {
+      margin:0;
+      color:var(--muted);
+      max-width:760px;
+      font-size:17px;
+    }
+
+    .menu-grid {
+      margin-top:22px;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+    }
+
+    .menu-card {
+      border:0;
+      text-align:left;
+      padding:17px;
+      border-radius:20px;
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(35,43,85,.09);
+      color:var(--deep);
+      font-weight:950;
+      box-shadow:0 12px 30px rgba(42,51,105,.07);
+    }
+
+    .menu-card span {
+      display:block;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:750;
+      margin-top:4px;
+    }
+
+    .section { padding:34px 0; }
+    .panel {
+      padding:24px;
+      border-radius:28px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.72);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .section-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:end;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .section-title h2 {
+      margin:0 0 6px;
+      color:var(--deep);
+      font-size:clamp(28px,4vw,44px);
+      line-height:1.05;
+      letter-spacing:-.06em;
+    }
+
+    .section-title p { margin:0; color:var(--muted); }
+
+    .domain-form {
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      padding:8px;
+      border-radius:22px;
+      background:#f7f9ff;
+      border:1px solid rgba(35,43,85,.10);
+    }
+
+    .domain-form input {
+      min-height:54px;
+      width:100%;
+      border:0;
+      outline:none;
+      padding:0 13px;
+      background:transparent;
+      color:var(--deep);
+      font-size:17px;
+      font-weight:800;
+    }
+
+    .tld-group {
+      margin-top:14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .tld-chip {
+      border:1px solid rgba(98,88,255,.16);
+      background:rgba(98,88,255,.08);
+      color:var(--violet);
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:950;
+      font-size:13px;
+    }
+
+    .result-area {
+      margin-top:18px;
+      display:grid;
+      gap:12px;
+    }
+
+    .result-card {
+      padding:16px;
+      border-radius:20px;
+      border:1px solid rgba(35,43,85,.10);
+      background:white;
+      box-shadow:0 12px 30px rgba(42,51,105,.07);
+    }
+
+    .result-card.available {
+      border-color:rgba(25,191,120,.34);
+      background:linear-gradient(135deg,rgba(236,253,245,.95),white);
+    }
+
+    .result-card.taken {
+      border-color:rgba(239,95,128,.30);
+      background:linear-gradient(135deg,rgba(255,241,244,.95),white);
+    }
+
+    .result-card.checking {
+      border-color:rgba(98,88,255,.20);
+      background:linear-gradient(135deg,rgba(238,242,255,.95),white);
+    }
+
+    .result-head {
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
+    .result-domain {
+      color:var(--deep);
+      font-size:21px;
+      font-weight:1000;
+      letter-spacing:-.045em;
+      overflow-wrap:anywhere;
+    }
+
+    .status-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:1000;
+      white-space:nowrap;
+    }
+
+    .badge-available { color:#047857; background:#dffbec; }
+    .badge-taken { color:#be123c; background:#ffe4ea; }
+    .badge-checking { color:var(--violet); background:#ebe9ff; }
+
+    .price-line {
+      margin-top:10px;
+      color:var(--deep);
+      font-weight:950;
+      font-size:19px;
+    }
+
+    .price-line span {
+      color:var(--muted);
+      font-size:13px;
+      font-weight:780;
+    }
+
+    .result-actions {
+      margin-top:14px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .cart-layout {
+      display:grid;
+      grid-template-columns:1.06fr .94fr;
+      gap:18px;
+      align-items:start;
+    }
+
+    .cart-empty {
+      color:var(--muted);
+      padding:20px;
+      border-radius:18px;
+      border:1px dashed rgba(35,43,85,.18);
+      background:rgba(247,249,255,.78);
+      font-weight:820;
+    }
+
+    .cart-item {
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:12px;
+      padding:15px 0;
+      border-bottom:1px solid rgba(35,43,85,.10);
+    }
+
+    .cart-item:last-child { border-bottom:0; }
+    .cart-item h3 {
+      margin:0 0 4px;
+      color:var(--deep);
+      font-size:19px;
+      letter-spacing:-.04em;
+      overflow-wrap:anywhere;
+    }
+
+    .cart-item p {
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:760;
+    }
+
+    .cart-price {
+      text-align:right;
+      color:var(--deep);
+      font-weight:1000;
+      min-width:max-content;
+    }
+
+    .cart-remove {
+      margin-top:8px;
+      border:0;
+      color:#be123c;
+      background:#ffe4ea;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      font-weight:900;
+    }
+
+    .total-row {
+      margin-top:18px;
+      padding-top:18px;
+      border-top:1px solid rgba(35,43,85,.12);
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      color:var(--deep);
+      font-weight:1000;
+      font-size:22px;
+      letter-spacing:-.035em;
+    }
+
+    .form-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .field { display:grid; gap:7px; }
+    .field.full { grid-column:1/-1; }
+    .field label {
+      color:#4c5a75;
+      font-size:12px;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .field input,.field textarea,.field select {
+      width:100%;
+      border:1px solid rgba(35,43,85,.12);
+      border-radius:15px;
+      outline:0;
+      padding:13px 14px;
+      background:white;
+      color:var(--deep);
+    }
+
+    .dns-extra {
+      display:none;
+      grid-column:1/-1;
+      padding:14px;
+      border-radius:18px;
+      border:1px solid rgba(98,88,255,.12);
+      background:rgba(247,249,255,.74);
+    }
+
+    .dns-extra.show { display:grid; gap:14px; }
+
+    .checkout-summary {
+      grid-column:1/-1;
+      display:grid;
+      gap:12px;
+      padding:16px;
+      border-radius:20px;
+      border:1px solid rgba(98,88,255,.13);
+      background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(247,249,255,.78));
+      box-shadow:0 12px 30px rgba(42,51,105,.07);
+    }
+
+    .summary-line {
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      padding:9px 0;
+      border-bottom:1px solid rgba(35,43,85,.08);
+      color:var(--muted);
+      font-weight:760;
+    }
+
+    .summary-line:last-child { border-bottom:0; }
+    .summary-line b { color:var(--deep); text-align:right; }
+
+    .orders { display:grid; gap:16px; }
+    .order-card {
+      padding:22px;
+      border-radius:26px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.72);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .order-top {
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      margin-bottom:14px;
+    }
+
+    .invoice {
+      color:var(--deep);
+      font-weight:1000;
+      letter-spacing:-.035em;
+      font-size:20px;
+    }
+
+    .date {
+      color:var(--muted);
+      font-size:13px;
+      font-weight:750;
+    }
+
+    .badge-row { display:flex; gap:8px; flex-wrap:wrap; }
+    .badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:1000;
+      white-space:nowrap;
+    }
+
+    .badge.pending,.badge.unpaid {
+      color:#92400e;
+      background:#fffbeb;
+      border:1px solid #fde68a;
+    }
+
+    .badge.paid,.badge.domain_aktif,.badge.active {
+      color:#047857;
+      background:#dcfce7;
+      border:1px solid #a7f3d0;
+    }
+
+    .badge.proses_register,.badge.dibayar {
+      color:#1d4ed8;
+      background:#dbeafe;
+      border:1px solid #bfdbfe;
+    }
+
+    .order-grid {
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+    }
+
+    .info-box {
+      padding:16px;
+      border-radius:20px;
+      background:rgba(247,249,255,.78);
+      border:1px solid rgba(35,43,85,.08);
+    }
+
+    .info-box h3 {
+      margin:0 0 10px;
+      color:var(--deep);
+      font-size:18px;
+      letter-spacing:-.04em;
+    }
+
+    .line {
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 0;
+      border-bottom:1px solid rgba(35,43,85,.08);
+      color:var(--muted);
+      font-weight:760;
+    }
+
+    .line:last-child { border-bottom:0; }
+    .line b { color:var(--deep); text-align:right; }
+
+    .domain-list { display:grid; gap:9px; }
+
+    .domain-item {
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:white;
+      border:1px solid rgba(35,43,85,.08);
+      font-weight:850;
+      color:var(--deep);
+    }
+
+    .alert {
+      display:none;
+      margin-top:14px;
+      padding:14px;
+      border-radius:16px;
+      font-weight:820;
+    }
+
+    .alert.show { display:block; }
+    .alert.success { color:#047857; background:#dcfce7; border:1px solid #a7f3d0; }
+    .alert.error { color:#be123c; background:#ffe4ea; border:1px solid #fecdd3; }
+
+    @media (max-width:900px) {
+      .container { width:min(100% - 24px,1180px); }
+      .nav { flex-wrap:wrap; padding:12px 0; }
+      .nav-actions { width:100%; justify-content:flex-start; }
+      .menu-grid,.cart-layout,.order-grid { grid-template-columns:1fr; }
+      .domain-form { grid-template-columns:1fr; }
+      .form-grid { grid-template-columns:1fr; }
+      .cart-item { grid-template-columns:1fr; }
+      .cart-price { text-align:left; }
+      .hero-card { padding:24px; border-radius:28px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a href="./dashboard.html" class="brand">
+        <span class="brand-mark">DG</span>
+        <span class="brand-copy">
+          <strong>Dirac Group</strong>
+          <span>Dashboard</span>
+        </span>
+      </a>
+
+      <div class="nav-actions">
+        <button class="btn btn-soft" data-scroll="cek">Cek Domain</button>
+        <button class="btn btn-soft" data-scroll="keranjang">Keranjang <span id="cartCount">0</span></button>
+        <button class="btn btn-soft" data-scroll="orders">Pesanan</button>
+        <button class="btn btn-danger" id="logoutBtn">Keluar</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-card">
+          <div class="pill">✦ Menu Utama Pelanggan</div>
+          <h1>Dashboard pembelian domain Dirac Group.</h1>
+          <p id="userText">Memeriksa sesi login...</p>
+
+          <div class="menu-grid">
+            <button class="menu-card" data-scroll="cek">Cek Domain<span>Cari domain dan lihat status</span></button>
+            <button class="menu-card" data-scroll="keranjang">Keranjang<span>Lihat domain yang dipilih</span></button>
+            <button class="menu-card" data-scroll="checkout">Checkout<span>Kirim pesanan domain</span></button>
+            <button class="menu-card" data-scroll="orders">Status Pesanan<span>Pantau proses domain</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="cek">
+      <div class="container">
+        <div class="panel">
+          <div class="section-head">
+            <div class="section-title">
+              <h2>Cek domain</h2>
+              <p>Ketik domain lengkap atau nama brand tanpa ekstensi.</p>
+            </div>
+          </div>
+
+          <form class="domain-form" id="domainCheckForm">
+            <input id="domainInput" type="text" autocomplete="off" placeholder="contoh: brandkamu.com" />
+            <button class="btn btn-primary" type="submit">Cek Domain</button>
+          </form>
+
+          <div class="tld-group">
+            <button class="tld-chip" data-tld=".com">.com</button>
+            <button class="tld-chip" data-tld=".net">.net</button>
+            <button class="tld-chip" data-tld=".org">.org</button>
+            <button class="tld-chip" data-tld=".id">.id</button>
+            <button class="tld-chip" data-tld=".co.id">.co.id</button>
+            <button class="tld-chip" data-tld=".xyz">.xyz</button>
+          </div>
+
+          <div id="resultArea" class="result-area"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="keranjang">
+      <div class="container">
+        <div class="cart-layout">
+          <section class="panel">
+            <div class="section-title">
+              <h2>Keranjang</h2>
+              <p>Domain yang sudah dipilih sebelum checkout.</p>
+            </div>
+            <div id="cartItems" style="margin-top:16px;"></div>
+            <div class="total-row">
+              <span>Total</span>
+              <span id="cartTotal">Rp0</span>
+            </div>
+          </section>
+
+          <section class="panel" id="checkout">
+            <div class="section-title">
+              <h2>Checkout</h2>
+              <p>Isi data pemesan dan metode DNS.</p>
+            </div>
+
+            <form id="checkoutForm" style="margin-top:16px;">
+              <div class="form-grid">
+                <div class="field">
+                  <label for="customerName">Nama Pembeli</label>
+                  <input id="customerName" required placeholder="Nama lengkap" />
+                </div>
+
+                <div class="field">
+                  <label for="customerWhatsapp">WhatsApp</label>
+                  <input id="customerWhatsapp" required placeholder="08xxxxxxxxxx" />
+                </div>
+
+                <div class="field">
+                  <label for="customerEmail">Email Pembeli</label>
+                  <input id="customerEmail" type="email" placeholder="nama@email.com" />
+                </div>
+
+                <div class="field">
+                  <label for="ownerEmail">Email Pemilik Domain</label>
+                  <input id="ownerEmail" type="email" placeholder="email pemilik domain" />
+                </div>
+
+                <div class="field full">
+                  <label for="dnsMethod">Metode DNS</label>
+                  <select id="dnsMethod">
+                    <option value="managed_by_dirac">Dikelola Dirac Group</option>
+                    <option value="use_own_nameserver">Pakai nameserver hosting sendiri</option>
+                    <option value="point_to_platform">Arahkan ke platform tertentu</option>
+                    <option value="not_sure">Belum tahu, minta dibantu admin</option>
+                  </select>
+                </div>
+
+                <div class="dns-extra" id="nameserverFields">
+                  <div class="field">
+                    <label for="nameserver1">Nameserver 1</label>
+                    <input id="nameserver1" placeholder="ns1.hosting.com" />
+                  </div>
+                  <div class="field">
+                    <label for="nameserver2">Nameserver 2</label>
+                    <input id="nameserver2" placeholder="ns2.hosting.com" />
+                  </div>
+                </div>
+
+                <div class="dns-extra" id="platformFields">
+                  <div class="field">
+                    <label for="targetPlatform">Platform / Tujuan</label>
+                    <input id="targetPlatform" placeholder="Vercel, Netlify, Blogger, Shopify, atau IP hosting" />
+                  </div>
+                </div>
+
+                <div class="field full">
+                  <label for="customerNote">Catatan</label>
+                  <textarea id="customerNote" rows="4" placeholder="Catatan tambahan"></textarea>
+                </div>
+
+                <div class="checkout-summary" id="checkoutSummary"></div>
+
+                <button class="btn btn-primary full" type="submit" id="checkoutBtn">Checkout Sekarang</button>
+              </div>
+
+              <div id="checkoutAlert" class="alert"></div>
+            </form>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="orders">
+      <div class="container">
+        <div class="panel">
+          <div class="section-head">
+            <div class="section-title">
+              <h2>Status pesanan</h2>
+              <p>Pesanan domain yang terhubung dengan akun ini.</p>
+            </div>
+            <button class="btn btn-primary" id="refreshOrdersBtn">Refresh Pesanan</button>
+          </div>
+
+          <div id="ordersList" class="orders">
+            <div class="cart-empty">Memuat pesanan...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const PRICE_RULES = {
+      ".com": { register: 185000, renewal: 185000 },
+      ".net": { register: 210000, renewal: 210000 },
+      ".org": { register: 220000, renewal: 220000 },
+      ".id": { register: 260000, renewal: 260000 },
+      ".co.id": { register: 330000, renewal: 330000 },
+      ".xyz": { register: 45000, renewal: 150000 }
+    };
+
+    const state = {
+      cart: JSON.parse(localStorage.getItem("dirac_domain_cart") || "[]"),
+      user: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        },
+        ...options
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.message || "Request gagal.");
+      }
+
+      return data;
+    }
+
+    function saveCart() {
+      localStorage.setItem("dirac_domain_cart", JSON.stringify(state.cart));
+    }
+
+    function formatRupiah(value) {
+      return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0
+      }).format(Number(value || 0));
+    }
+
+    function formatDate(value) {
+      if (!value) return "-";
+      return new Date(value).toLocaleString("id-ID");
+    }
+
+    function makeInvoiceCode(orderId) {
+      const raw = String(orderId || Date.now()).replace(/-/g, "").toUpperCase();
+      return "DRC-" + raw.slice(0, 8);
+    }
+
+    function statusLabel(value) {
+      const labels = {
+        pending: "Menunggu konfirmasi",
+        menunggu_pembayaran: "Menunggu pembayaran",
+        unpaid: "Belum dibayar",
+        paid: "Sudah dibayar",
+        dibayar: "Sudah dibayar",
+        proses_register: "Proses register",
+        domain_aktif: "Domain aktif",
+        dibatalkan: "Dibatalkan",
+        cancelled: "Dibatalkan"
+      };
+      return labels[value] || value || "-";
+    }
+
+    function dnsLabel(value) {
+      const labels = {
+        managed_by_dirac: "Dikelola Dirac Group",
+        use_own_nameserver: "Pakai nameserver sendiri",
+        point_to_platform: "Arahkan ke platform",
+        not_sure: "Minta dibantu admin"
+      };
+      return labels[value] || value || "-";
+    }
+
+    function normalizeDomain(value) {
+      return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .replace(/\/.*$/, "")
+        .replace(/\s+/g, "");
+    }
+
+    function hasTld(value) {
+      return /\.[a-z0-9-]{2,}(\.[a-z0-9-]{2,})?$/.test(value);
+    }
+
+    function getExtension(domain) {
+      const extensions = Object.keys(PRICE_RULES).sort((a, b) => b.length - a.length);
+      return extensions.find((ext) => domain.endsWith(ext)) || null;
+    }
+
+    function getPrice(domain) {
+      const extension = getExtension(domain);
+      if (!extension) return null;
+      return {
+        extension,
+        register: PRICE_RULES[extension].register,
+        renewal: PRICE_RULES[extension].renewal
+      };
+    }
+
+    async function requireLogin() {
+      try {
+        const result = await api("/api/health?action=domain_me");
+        state.user = result.user;
+        $("userText").textContent = "Login sebagai " + state.user.email;
+        if ($("customerEmail") && !$("customerEmail").value) {
+          $("customerEmail").value = state.user.email || "";
+        }
+        return true;
+      } catch (_) {
+        window.location.href = "./index.html";
+        return false;
+      }
+    }
+
+    function renderInitialResult() {
+      $("resultArea").innerHTML = `
+        <div class="result-card checking">
+          <div class="result-head">
+            <div class="result-domain">Masukkan nama domain</div>
+            <span class="status-badge badge-checking">Siap dicek</span>
+          </div>
+          <p>Jika domain tersedia, tombol tambah ke keranjang akan muncul otomatis.</p>
+        </div>
+      `;
+    }
+
+    function renderChecking(domain) {
+      $("resultArea").innerHTML = `
+        <div class="result-card checking">
+          <div class="result-head">
+            <div class="result-domain">${domain}</div>
+            <span class="status-badge badge-checking">Mengecek...</span>
+          </div>
+          <p>Sistem sedang memeriksa status domain.</p>
+        </div>
+      `;
+    }
+
+    function renderCheckResult(data, fallbackDomain) {
+      const domain = data.domain || fallbackDomain;
+      const available = Boolean(data.available);
+      const price = getPrice(domain);
+
+      $("resultArea").innerHTML = `
+        <div class="result-card ${available ? "available" : "taken"}">
+          <div class="result-head">
+            <div class="result-domain">${domain}</div>
+            <span class="status-badge ${available ? "badge-available" : "badge-taken"}">
+              ${available ? "Tersedia" : "Tidak tersedia"}
+            </span>
+          </div>
+          <p>${data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar.")}</p>
+          ${available ? `
+            <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
+          ` : ""}
+          <div class="result-actions">
+            ${available ? `<button class="btn btn-mint" data-add-cart="${domain}">Tambah ke Keranjang</button>` : ""}
+            <button class="btn btn-soft" data-recheck="${domain}">Cek Ulang</button>
+          </div>
+        </div>
+      `;
+
+      bindResultButtons();
+    }
+
+    function renderError(domain, message) {
+      $("resultArea").innerHTML = `
+        <div class="result-card taken">
+          <div class="result-head">
+            <div class="result-domain">${domain || "Domain"}</div>
+            <span class="status-badge badge-taken">Gagal dicek</span>
+          </div>
+          <p>${message || "Terjadi kesalahan saat mengecek domain."}</p>
+          <div class="result-actions">
+            <button class="btn btn-soft" data-recheck="${domain}">Coba Lagi</button>
+          </div>
+        </div>
+      `;
+      bindResultButtons();
+    }
+
+    async function checkDomain(rawDomain) {
+      const domain = normalizeDomain(rawDomain);
+
+      if (!domain) {
+        renderInitialResult();
+        return;
+      }
+
+      if (!hasTld(domain)) {
+        await checkManyExtensions(domain);
+        return;
+      }
+
+      if (!getPrice(domain)) {
+        renderError(domain, "Harga untuk ekstensi domain ini belum diatur.");
+        return;
+      }
+
+      renderChecking(domain);
+
+      try {
+        const data = await api(`/api/health?action=domain_check&domain=${encodeURIComponent(domain)}`);
+        renderCheckResult(data, domain);
+      } catch (error) {
+        renderError(domain, error.message);
+      }
+    }
+
+    async function checkManyExtensions(baseName) {
+      const cleanBase = normalizeDomain(baseName).replace(/\..*$/, "");
+
+      if (!cleanBase) {
+        renderInitialResult();
+        return;
+      }
+
+      const tlds = [".com", ".net", ".org", ".id", ".co.id", ".xyz"];
+      $("resultArea").innerHTML = tlds.map((tld) => {
+        const domain = cleanBase + tld;
+        const id = "card-" + tld.replace(/\./g, "-");
+        const price = getPrice(domain);
+        return `
+          <div class="result-card checking" id="${id}">
+            <div class="result-head">
+              <div class="result-domain">${domain}</div>
+              <span class="status-badge badge-checking">Mengecek...</span>
+            </div>
+            <p>${price ? `Harga: ${formatRupiah(price.register)} / tahun pertama` : "Harga belum tersedia."}</p>
+          </div>
+        `;
+      }).join("");
+
+      for (const tld of tlds) {
+        const domain = cleanBase + tld;
+        const id = "card-" + tld.replace(/\./g, "-");
+        const card = $(id);
+
+        try {
+          const data = await api(`/api/health?action=domain_check&domain=${encodeURIComponent(domain)}`);
+          const available = Boolean(data.available);
+          const price = getPrice(domain);
+
+          card.className = `result-card ${available ? "available" : "taken"}`;
+          card.innerHTML = `
+            <div class="result-head">
+              <div class="result-domain">${data.domain || domain}</div>
+              <span class="status-badge ${available ? "badge-available" : "badge-taken"}">
+                ${available ? "Tersedia" : "Tidak tersedia"}
+              </span>
+            </div>
+            <p>${data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar.")}</p>
+            ${available ? `
+              <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
+            ` : ""}
+            <div class="result-actions">
+              ${available ? `<button class="btn btn-mint" data-add-cart="${data.domain || domain}">Tambah ke Keranjang</button>` : ""}
+              <button class="btn btn-soft" data-recheck="${data.domain || domain}">Cek Ulang</button>
+            </div>
+          `;
+        } catch (error) {
+          card.className = "result-card taken";
+          card.innerHTML = `
+            <div class="result-head">
+              <div class="result-domain">${domain}</div>
+              <span class="status-badge badge-taken">Gagal dicek</span>
+            </div>
+            <p>${error.message}</p>
+            <div class="result-actions">
+              <button class="btn btn-soft" data-recheck="${domain}">Coba Lagi</button>
+            </div>
+          `;
+        }
+      }
+
+      bindResultButtons();
+    }
+
+    function bindResultButtons() {
+      document.querySelectorAll("[data-add-cart]").forEach((button) => {
+        button.addEventListener("click", () => addToCart(button.dataset.addCart));
+      });
+
+      document.querySelectorAll("[data-recheck]").forEach((button) => {
+        button.addEventListener("click", () => checkDomain(button.dataset.recheck));
+      });
+    }
+
+    function addToCart(domain) {
+      const clean = normalizeDomain(domain);
+      const price = getPrice(clean);
+
+      if (!price) {
+        alert("Harga domain ini belum tersedia.");
+        return;
+      }
+
+      const exists = state.cart.some((item) => item.domain_name === clean);
+
+      if (exists) {
+        alert("Domain ini sudah ada di keranjang.");
+        return;
+      }
+
+      state.cart.push({
+        domain_name: clean,
+        extension: price.extension,
+        years: 1,
+        register_price: price.register,
+        renewal_price: price.renewal,
+        subtotal: price.register,
+        availability_snapshot: true
+      });
+
+      saveCart();
+      renderCart();
+      document.getElementById("keranjang").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function removeFromCart(domain) {
+      state.cart = state.cart.filter((item) => item.domain_name !== domain);
+      saveCart();
+      renderCart();
+    }
+
+    function getCartTotal() {
+      return state.cart.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
+    }
+
+    function renderCart() {
+      $("cartCount").textContent = state.cart.length;
+      $("cartTotal").textContent = formatRupiah(getCartTotal());
+      updateCheckoutSummary();
+
+      if (!state.cart.length) {
+        $("cartItems").innerHTML = `
+          <div class="cart-empty">
+            Keranjang masih kosong. Cek domain terlebih dahulu, lalu klik <b>Tambah ke Keranjang</b>.
+          </div>
+        `;
+        return;
+      }
+
+      $("cartItems").innerHTML = state.cart.map((item) => `
+        <div class="cart-item">
+          <div>
+            <h3>${item.domain_name}</h3>
+            <p>${item.extension} • ${item.years} tahun • renewal ${formatRupiah(item.renewal_price)}</p>
+          </div>
+          <div class="cart-price">
+            ${formatRupiah(item.subtotal)}
+            <br>
+            <button class="cart-remove" data-remove="${item.domain_name}">Hapus</button>
+          </div>
+        </div>
+      `).join("");
+
+      document.querySelectorAll("[data-remove]").forEach((button) => {
+        button.addEventListener("click", () => removeFromCart(button.dataset.remove));
+      });
+    }
+
+    function updateCheckoutSummary() {
+      const box = $("checkoutSummary");
+      if (!box) return;
+
+      if (!state.cart.length) {
+        box.innerHTML = `
+          <h3 style="margin:0;color:var(--deep);">Ringkasan Pesanan</h3>
+          <div class="cart-empty">Keranjang masih kosong.</div>
+        `;
+        return;
+      }
+
+      const dnsMethod = $("dnsMethod") ? $("dnsMethod").value : "managed_by_dirac";
+      const domainRows = state.cart.map((item) => `
+        <div class="summary-line">
+          <span>${item.domain_name}</span>
+          <b>${formatRupiah(item.subtotal)}</b>
+        </div>
+      `).join("");
+
+      box.innerHTML = `
+        <h3 style="margin:0;color:var(--deep);">Ringkasan Pesanan</h3>
+        ${domainRows}
+        <div class="summary-line"><span>Durasi</span><b>1 tahun</b></div>
+        <div class="summary-line"><span>Metode DNS</span><b>${dnsLabel(dnsMethod)}</b></div>
+        <div class="summary-line"><span>Total</span><b>${formatRupiah(getCartTotal())}</b></div>
+      `;
+    }
+
+    function updateDnsFields() {
+      const method = $("dnsMethod").value;
+      $("nameserverFields").classList.toggle("show", method === "use_own_nameserver");
+      $("platformFields").classList.toggle("show", method === "point_to_platform");
+      updateCheckoutSummary();
+    }
+
+    async function submitCheckout(event) {
+      event.preventDefault();
+
+      const alertBox = $("checkoutAlert");
+      const button = $("checkoutBtn");
+
+      if (!state.cart.length) {
+        alertBox.className = "alert error show";
+        alertBox.textContent = "Keranjang masih kosong. Tambahkan domain terlebih dahulu.";
+        return;
+      }
+
+      const payload = {
+        customer_name: $("customerName").value.trim(),
+        customer_whatsapp: $("customerWhatsapp").value.trim(),
+        customer_email: $("customerEmail").value.trim(),
+        owner_email: $("ownerEmail").value.trim(),
+        dns_method: $("dnsMethod").value,
+        nameserver_1: $("nameserver1").value.trim(),
+        nameserver_2: $("nameserver2").value.trim(),
+        target_platform: $("targetPlatform").value.trim(),
+        customer_note: $("customerNote").value.trim(),
+        items: state.cart.map((item) => ({
+          domain_name: item.domain_name,
+          years: item.years,
+          availability_snapshot: item.availability_snapshot
+        }))
+      };
+
+      if (!payload.customer_name || !payload.customer_whatsapp) {
+        alertBox.className = "alert error show";
+        alertBox.textContent = "Nama pembeli dan WhatsApp wajib diisi.";
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Memproses checkout...";
+
+      try {
+        const result = await api("/api/health?action=domain_checkout", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        const invoiceCode = makeInvoiceCode(result.order_id);
+
+        alertBox.className = "alert success show";
+        alertBox.innerHTML = `
+          <b>Pesanan berhasil dibuat.</b><br>
+          Invoice: <b>${invoiceCode}</b><br>
+          Total: <b>${formatRupiah(result.total_amount)}</b><br>
+          Status: menunggu konfirmasi admin.
+        `;
+
+        state.cart = [];
+        saveCart();
+        renderCart();
+        event.target.reset();
+        if (state.user?.email) $("customerEmail").value = state.user.email;
+        updateDnsFields();
+        loadOrders();
+      } catch (error) {
+        alertBox.className = "alert error show";
+        alertBox.textContent = error.message || "Checkout belum berhasil.";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Checkout Sekarang";
+      }
+    }
+
+    async function loadOrders() {
+      $("ordersList").innerHTML = `<div class="cart-empty">Memuat pesanan...</div>`;
+
+      try {
+        const result = await api("/api/health?action=domain_orders");
+        renderOrders(result.data || []);
+      } catch (error) {
+        $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${error.message}</div>`;
+      }
+    }
+
+    function renderOrders(orders) {
+      if (!orders.length) {
+        $("ordersList").innerHTML = `
+          <div class="cart-empty">
+            Belum ada pesanan. Cek domain dan checkout terlebih dahulu.
+          </div>
+        `;
+        return;
+      }
+
+      $("ordersList").innerHTML = orders.map((order) => {
+        const items = Array.isArray(order.domain_order_items) ? order.domain_order_items : [];
+
+        const domainRows = items.length
+          ? items.map((item) => `
+              <div class="domain-item">
+                <span>${item.domain_name}</span>
+                <b>${formatRupiah(item.subtotal)}</b>
+              </div>
+            `).join("")
+          : `<div class="cart-empty">Item domain belum tersedia.</div>`;
+
+        return `
+          <article class="order-card">
+            <div class="order-top">
+              <div>
+                <div class="invoice">${makeInvoiceCode(order.id)}</div>
+                <div class="date">${formatDate(order.created_at)}</div>
+              </div>
+              <div class="badge-row">
+                <span class="badge ${order.order_status}">${statusLabel(order.order_status)}</span>
+                <span class="badge ${order.payment_status}">${statusLabel(order.payment_status)}</span>
+              </div>
+            </div>
+
+            <div class="order-grid">
+              <div class="info-box">
+                <h3>Domain Dipesan</h3>
+                <div class="domain-list">${domainRows}</div>
+              </div>
+
+              <div class="info-box">
+                <h3>Detail Pesanan</h3>
+                <div class="line"><span>Total</span><b>${formatRupiah(order.total_amount)}</b></div>
+                <div class="line"><span>Metode DNS</span><b>${dnsLabel(order.dns_method)}</b></div>
+                <div class="line"><span>Email pemilik</span><b>${order.owner_email || "-"}</b></div>
+                <div class="line"><span>Nameserver 1</span><b>${order.nameserver_1 || "-"}</b></div>
+                <div class="line"><span>Nameserver 2</span><b>${order.nameserver_2 || "-"}</b></div>
+                <div class="line"><span>Tujuan platform</span><b>${order.target_platform || "-"}</b></div>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function logout() {
+      try {
+        await api("/api/health?action=domain_logout", { method: "POST" });
+      } finally {
+        localStorage.removeItem("dirac_domain_cart");
+        window.location.href = "./index.html";
+      }
+    }
+
+    function initEvents() {
+      document.querySelectorAll("[data-scroll]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const id = button.dataset.scroll;
+          document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+        });
+      });
+
+      $("domainCheckForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        checkDomain($("domainInput").value);
+      });
+
+      document.querySelectorAll("[data-tld]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const base = normalizeDomain($("domainInput").value).replace(/\..*$/, "") || "diracgroup";
+          const domain = base + button.dataset.tld;
+          $("domainInput").value = domain;
+          checkDomain(domain);
+        });
+      });
+
+      $("dnsMethod").addEventListener("change", updateDnsFields);
+      $("checkoutForm").addEventListener("submit", submitCheckout);
+      $("refreshOrdersBtn").addEventListener("click", loadOrders);
+      $("logoutBtn").addEventListener("click", logout);
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const ok = await requireLogin();
+      if (!ok) return;
+
+      renderInitialResult();
+      renderCart();
+      updateDnsFields();
+      initEvents();
+      loadOrders();
+    });
+  </script>
+</body>
+</html>
