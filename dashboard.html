@@ -3334,6 +3334,213 @@ html[data-theme="dark"] .nav-backdrop{background:rgba(0,0,0,.58)!important;}
 }
 </style>
 
+
+
+<style id="dirac-precision-ui-ux-final-pass">
+/* Final precision layer: hanya menambah/menyempurnakan posisi, visibilitas, dan animasi tanpa mengubah struktur/fungsi login. */
+:root{
+  --dirac-nav-liquid-x:6px;
+  --dirac-nav-liquid-y:6px;
+  --dirac-nav-liquid-w:60px;
+  --dirac-nav-liquid-h:50px;
+}
+
+@media(max-width:900px){
+  /* Tombol WA dan kembali-ke-atas diturunkan sedikit agar tidak menabrak area total/keranjang. */
+  .dirac-floating-actions{
+    right:18px!important;
+    bottom:calc(116px + env(safe-area-inset-bottom,0px))!important;
+    z-index:19200!important;
+  }
+  .dirac-float-btn{width:48px!important;height:48px!important;border-radius:999px!important;}
+  .dirac-float-top{box-shadow:0 16px 42px rgba(37,99,235,.34), inset 0 1px 0 rgba(255,255,255,.38)!important;}
+  .dirac-float-wa{box-shadow:0 16px 42px rgba(16,185,129,.30), inset 0 1px 0 rgba(255,255,255,.36)!important;}
+
+  /* Bottom nav liquid-glass indicator: area biru mengikuti menu aktif, termasuk Akun. */
+  .mobile-bottom-nav{
+    isolation:isolate!important;
+    overflow:hidden!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.84),rgba(241,246,255,.78))!important;
+    border:1px solid rgba(255,255,255,.72)!important;
+    box-shadow:0 22px 70px rgba(15,23,42,.20), inset 0 1px 0 rgba(255,255,255,.70)!important;
+    -webkit-backdrop-filter:blur(24px) saturate(1.25)!important;
+    backdrop-filter:blur(24px) saturate(1.25)!important;
+  }
+  .mobile-bottom-nav::before{
+    content:"";
+    position:absolute;
+    left:var(--dirac-nav-liquid-x);
+    top:var(--dirac-nav-liquid-y);
+    width:var(--dirac-nav-liquid-w);
+    height:var(--dirac-nav-liquid-h);
+    border-radius:18px;
+    background:
+      radial-gradient(circle at 28% 18%,rgba(255,255,255,.46),transparent 34%),
+      linear-gradient(135deg,rgba(24,112,230,.97),rgba(8,177,168,.94));
+    box-shadow:0 16px 38px rgba(37,99,235,.30), inset 0 1px 1px rgba(255,255,255,.42), inset 0 -14px 28px rgba(2,6,23,.12);
+    transition:left .54s cubic-bezier(.18,.92,.22,1), top .54s cubic-bezier(.18,.92,.22,1), width .54s cubic-bezier(.18,.92,.22,1), height .54s cubic-bezier(.18,.92,.22,1), border-radius .54s cubic-bezier(.18,.92,.22,1), filter .28s ease;
+    z-index:0;
+    pointer-events:none;
+  }
+  .mobile-bottom-nav::after{
+    content:"";
+    position:absolute;
+    left:calc(var(--dirac-nav-liquid-x) + 10px);
+    top:calc(var(--dirac-nav-liquid-y) + 6px);
+    width:calc(var(--dirac-nav-liquid-w) - 20px);
+    height:10px;
+    border-radius:999px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);
+    opacity:.85;
+    z-index:0;
+    pointer-events:none;
+    transition:left .54s cubic-bezier(.18,.92,.22,1), top .54s cubic-bezier(.18,.92,.22,1), width .54s cubic-bezier(.18,.92,.22,1);
+  }
+  .mobile-bottom-nav button{
+    position:relative!important;
+    z-index:1!important;
+    transition:color .28s ease, transform .26s ease, opacity .26s ease!important;
+  }
+  .mobile-bottom-nav button.active{
+    background:transparent!important;
+    box-shadow:none!important;
+    color:#ffffff!important;
+    transform:translateY(-1px)!important;
+  }
+  .mobile-bottom-nav button:not(.active){opacity:.88;}
+  .mobile-bottom-nav button:not(.active):active{transform:scale(.965)!important;}
+  .mobile-bottom-nav svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.08));}
+  .mobile-bottom-nav button.active svg{filter:drop-shadow(0 2px 4px rgba(2,6,23,.24));}
+
+  /* Toast/notifikasi dinaikkan di atas nav agar tidak tertutup, tetap halus di mobile. */
+  .toast-region{
+    bottom:calc(132px + env(safe-area-inset-bottom,0px))!important;
+    left:12px!important;
+    right:76px!important;
+    width:auto!important;
+    z-index:19300!important;
+  }
+  .toast{
+    border-radius:18px!important;
+    -webkit-backdrop-filter:blur(18px) saturate(1.18)!important;
+    backdrop-filter:blur(18px) saturate(1.18)!important;
+    animation:diracToastLift .32s cubic-bezier(.2,.8,.2,1) both!important;
+  }
+
+  /* Ikon judul keranjang dibuat stabil agar tidak terlihat menempel/bertabrakan pada layar kecil. */
+  #keranjang .section-title h2{gap:12px!important; align-items:center!important; min-width:0!important;}
+  #keranjang .section-title h2::before{flex:0 0 34px!important;}
+}
+
+@media(max-width:520px){
+  .dirac-floating-actions{right:18px!important;bottom:calc(118px + env(safe-area-inset-bottom,0px))!important;}
+  .toast-region{bottom:calc(132px + env(safe-area-inset-bottom,0px))!important;right:76px!important;}
+  #keranjang .section-title h2{font-size:clamp(31px,9.2vw,42px)!important;}
+}
+
+@media(max-width:380px){
+  .dirac-floating-actions{right:14px!important;bottom:calc(114px + env(safe-area-inset-bottom,0px))!important;}
+  .toast-region{right:70px!important;}
+}
+
+html[data-theme="dark"] .mobile-bottom-nav{
+  background:linear-gradient(180deg,rgba(9,18,34,.90),rgba(5,12,24,.86))!important;
+  border-color:rgba(226,232,240,.16)!important;
+  box-shadow:0 24px 76px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.06)!important;
+}
+html[data-theme="dark"] .mobile-bottom-nav::before{
+  background:
+    radial-gradient(circle at 28% 18%,rgba(255,255,255,.34),transparent 35%),
+    linear-gradient(135deg,#1d4ed8,#0f766e)!important;
+  box-shadow:0 16px 42px rgba(37,99,235,.34), inset 0 1px 1px rgba(255,255,255,.24), inset 0 -14px 28px rgba(0,0,0,.18)!important;
+}
+html[data-theme="dark"] .mobile-bottom-nav button:not(.active){color:#dbeafe!important;}
+html[data-theme="dark"] .mobile-bottom-nav button.active{color:#ffffff!important;}
+
+/* Dark-mode visibility audit: notifikasi, pencarian, placeholder, panel kosong, dan helper text dibuat kontras. */
+html[data-theme="dark"] .toast{
+  background:linear-gradient(180deg,rgba(15,23,42,.96),rgba(8,15,28,.96))!important;
+  color:#f8fafc!important;
+  border:1px solid rgba(148,163,184,.32)!important;
+  box-shadow:0 22px 58px rgba(0,0,0,.58)!important;
+}
+html[data-theme="dark"] .toast.success{color:#dcfce7!important;border-color:rgba(52,211,153,.50)!important;}
+html[data-theme="dark"] .toast.info{color:#dbeafe!important;border-color:rgba(96,165,250,.52)!important;}
+html[data-theme="dark"] .toast.error{color:#fecdd3!important;border-color:rgba(251,113,133,.58)!important;}
+html[data-theme="dark"] .toast::before{box-shadow:inset 0 1px 0 rgba(255,255,255,.16)!important;}
+
+html[data-theme="dark"] #domainInput,
+html[data-theme="dark"] #bulkDomainInput,
+html[data-theme="dark"] #orderSearch,
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select{
+  background:#091322!important;
+  color:#f8fafc!important;
+  -webkit-text-fill-color:#f8fafc!important;
+  border-color:rgba(148,163,184,.34)!important;
+  caret-color:#38bdf8!important;
+}
+html[data-theme="dark"] #domainInput::placeholder,
+html[data-theme="dark"] #bulkDomainInput::placeholder,
+html[data-theme="dark"] #orderSearch::placeholder,
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder{
+  color:rgba(203,213,225,.78)!important;
+  -webkit-text-fill-color:rgba(203,213,225,.78)!important;
+  opacity:1!important;
+}
+html[data-theme="dark"] .domain-form,
+html[data-theme="dark"] .domain-search,
+html[data-theme="dark"] .order-search,
+html[data-theme="dark"] .bulk-panel,
+html[data-theme="dark"] .search-polish-note,
+html[data-theme="dark"] .cart-empty,
+html[data-theme="dark"] .alert,
+html[data-theme="dark"] .guide-note,
+html[data-theme="dark"] .agree-box{
+  background:linear-gradient(180deg,#0f1b2f,#0a1425)!important;
+  color:#e2e8f0!important;
+  border-color:rgba(148,163,184,.30)!important;
+}
+html[data-theme="dark"] .cart-empty b,
+html[data-theme="dark"] .search-polish-note b,
+html[data-theme="dark"] .guide-title,
+html[data-theme="dark"] .summary-line b,
+html[data-theme="dark"] .line b,
+html[data-theme="dark"] .total-row span,
+html[data-theme="dark"] #cartTotal{color:#ffffff!important;}
+html[data-theme="dark"] .field-help,
+html[data-theme="dark"] .microcopy,
+html[data-theme="dark"] .search-polish-note,
+html[data-theme="dark"] .cart-empty,
+html[data-theme="dark"] .account-help{color:#cbd5e1!important;}
+html[data-theme="dark"] .field-error{color:#fecdd3!important;}
+html[data-theme="dark"] .status-badge,
+html[data-theme="dark"] .badge,
+html[data-theme="dark"] .filter-chip,
+html[data-theme="dark"] .tld-chip,
+html[data-theme="dark"] .preset-chip{
+  text-shadow:none!important;
+}
+
+@keyframes diracToastLift{
+  from{opacity:0;transform:translateY(14px) scale(.985);filter:blur(1px);}
+  to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}
+}
+@keyframes diracQuietFloat{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-3px);}
+}
+@media(hover:hover) and (pointer:fine){
+  .dirac-float-btn:hover{animation:diracQuietFloat 1.6s ease-in-out infinite!important;}
+  .mobile-bottom-nav:hover::before{filter:saturate(1.06) brightness(1.03);}
+}
+@media(prefers-reduced-motion:reduce){
+  .mobile-bottom-nav::before,.mobile-bottom-nav::after,.mobile-bottom-nav button,.toast,.dirac-float-btn{transition:none!important;animation:none!important;}
+}
+</style>
+
 </head>
 
 <body>
@@ -5565,6 +5772,97 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
     if(logoutBtn) logoutBtn.addEventListener("click", function(){ var main = $("logoutBtn"); if(main) main.click(); });
     ["currentPassword","newPassword","confirmNewPassword"].forEach(function(id){ var input = $(id); if(input) input.addEventListener("input", function(){ setErr(id, ""); }); });
     initFloatingActions();
+  });
+})();
+</script>
+
+
+
+<script id="dirac-precision-ui-ux-final-pass-js">
+(function(){
+  "use strict";
+  function ready(fn){ if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
+  function nav(){ return document.querySelector(".mobile-bottom-nav"); }
+  function activeButton(){ return document.querySelector(".mobile-bottom-nav button.active[data-scroll]") || document.querySelector(".mobile-bottom-nav button[data-scroll]"); }
+  function syncLiquidIndicator(){
+    var bar = nav();
+    var button = activeButton();
+    if(!bar || !button) return;
+    var b = button.getBoundingClientRect();
+    var n = bar.getBoundingClientRect();
+    var padX = 2;
+    var padY = 2;
+    bar.style.setProperty("--dirac-nav-liquid-x", Math.max(4, b.left - n.left + padX) + "px");
+    bar.style.setProperty("--dirac-nav-liquid-y", Math.max(4, b.top - n.top + padY) + "px");
+    bar.style.setProperty("--dirac-nav-liquid-w", Math.max(44, b.width - padX * 2) + "px");
+    bar.style.setProperty("--dirac-nav-liquid-h", Math.max(42, b.height - padY * 2) + "px");
+  }
+  window.diracSyncLiquidNav = syncLiquidIndicator;
+
+  if(typeof window.updateBottomNavActive === "function"){
+    var originalUpdateBottomNavActive = window.updateBottomNavActive;
+    window.updateBottomNavActive = function(id){
+      originalUpdateBottomNavActive.call(this, id);
+      window.requestAnimationFrame(syncLiquidIndicator);
+    };
+    try { updateBottomNavActive = window.updateBottomNavActive; } catch(_) {}
+  }
+
+  if(typeof window.initBottomNavObserver === "function"){
+    window.initBottomNavObserver = function(){
+      var ids = ["cek", "keranjang", "orders", "account"];
+      var targets = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+      if(!targets.length){ if(typeof window.updateBottomNavActive === "function") window.updateBottomNavActive("cek"); return; }
+      var setByPosition = function(){
+        var current = targets[0];
+        var best = Infinity;
+        var anchor = Math.max(86, window.innerHeight * 0.28);
+        targets.forEach(function(node){
+          var rect = node.getBoundingClientRect();
+          var distance = Math.abs(rect.top - anchor);
+          if(rect.top <= window.innerHeight * 0.56 && rect.bottom >= 120 && distance < best){ best = distance; current = node; }
+        });
+        if(current && typeof window.updateBottomNavActive === "function") window.updateBottomNavActive(current.id);
+      };
+      if("IntersectionObserver" in window){
+        var observer = new IntersectionObserver(function(entries){
+          var visible = entries.filter(function(entry){ return entry.isIntersecting; }).sort(function(a,b){ return b.intersectionRatio - a.intersectionRatio; })[0];
+          if(visible && visible.target && visible.target.id && typeof window.updateBottomNavActive === "function") window.updateBottomNavActive(visible.target.id);
+          else setByPosition();
+        }, { threshold:[.18,.28,.42,.58], rootMargin:"-18% 0px -50% 0px" });
+        targets.forEach(function(node){ observer.observe(node); });
+      }
+      setByPosition();
+      var ticking = false;
+      var onScroll = function(){
+        if(ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function(){ ticking = false; setByPosition(); syncLiquidIndicator(); });
+      };
+      window.addEventListener("scroll", onScroll, { passive:true });
+      window.addEventListener("resize", function(){ setByPosition(); syncLiquidIndicator(); }, { passive:true });
+    };
+    try { initBottomNavObserver = window.initBottomNavObserver; } catch(_) {}
+  }
+
+  document.addEventListener("click", function(event){
+    var button = event.target.closest && event.target.closest(".mobile-bottom-nav button[data-scroll]");
+    if(!button) return;
+    if(typeof window.updateBottomNavActive === "function") window.updateBottomNavActive(button.dataset.scroll);
+    window.requestAnimationFrame(syncLiquidIndicator);
+    window.setTimeout(syncLiquidIndicator, 360);
+  }, true);
+
+  ready(function(){
+    syncLiquidIndicator();
+    window.setTimeout(syncLiquidIndicator, 120);
+    window.setTimeout(syncLiquidIndicator, 600);
+    var bar = nav();
+    if(bar && "ResizeObserver" in window){
+      var ro = new ResizeObserver(syncLiquidIndicator);
+      ro.observe(bar);
+      Array.prototype.forEach.call(bar.querySelectorAll("button"), function(btn){ ro.observe(btn); });
+    }
   });
 })();
 </script>

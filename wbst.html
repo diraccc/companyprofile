@@ -1772,6 +1772,40 @@ html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::pla
 }
 </style>
 
+
+
+<style id="dirac-global-dark-visibility-final-pass">
+@media(max-width:900px){
+  .float-actions{bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;}
+}
+html[data-theme="dark"] .toast,
+html[data-theme="dark"] .alert,
+html[data-theme="dark"] .cart-empty,
+html[data-theme="dark"] .info-box,
+html[data-theme="dark"] .guide-note,
+html[data-theme="dark"] .total-row{
+  background:linear-gradient(180deg,#0f1b2f,#0a1425)!important;
+  color:#e2e8f0!important;
+  border-color:rgba(148,163,184,.30)!important;
+}
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select{
+  background:#091322!important;
+  color:#f8fafc!important;
+  -webkit-text-fill-color:#f8fafc!important;
+  border-color:rgba(148,163,184,.34)!important;
+  caret-color:#38bdf8!important;
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder{
+  color:rgba(203,213,225,.78)!important;
+  -webkit-text-fill-color:rgba(203,213,225,.78)!important;
+  opacity:1!important;
+}
+@media(prefers-reduced-motion:reduce){.float-actions .float-btn{transition:none!important;animation:none!important;}}
+</style>
+
 </head>
 
 <body>
