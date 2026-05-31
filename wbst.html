@@ -31,7 +31,31 @@
     const clean=v=>String(v||"").trim().toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").replace(/\/.*$/,"").replace(/\s+/g,"");
     const hasTld=v=>/\.[a-z0-9-]{2,}(\.[a-z0-9-]{2,})?$/.test(v);
     function initial(){ $("results").innerHTML=`<div class="result wait"><div class="result-head"><div class="domain-name">Masukkan nama domain</div><span class="badge b-wait">Siap dicek</span></div><p>Hasil pengecekan akan tampil di sini. Jika domain tersedia, tombol pemesanan akan muncul otomatis.</p></div>` }
-    async function fetchJson(url,opt={}){const r=await fetch(url,{...opt,headers:{"Content-Type":"application/json",...(opt.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false||d.success===false)throw new Error(d.message||"Request gagal.");return d}
+    async function fetchJson(url,opt={}){
+      const method=(opt.method||"GET").toUpperCase();
+      const request={...opt};
+      request.headers={...(opt.headers||{})};
+
+      // GET tidak diberi Content-Type agar browser tidak melakukan preflight OPTIONS.
+      // Ini mengurangi risiko error Safari: "Load failed" karena CORS/preflight.
+      if(method!=="GET") request.headers={"Content-Type":"application/json",...request.headers};
+
+      let r;
+      try{
+        r=await fetch(url,request);
+      }catch(err){
+        throw new Error("API tidak bisa dijangkau. Biasanya karena CORS, Edge Function belum public, atau function domain-api belum aktif.");
+      }
+
+      const text=await r.text().catch(()=>"");
+      let d={};
+      try{d=text?JSON.parse(text):{}}catch(_){d={message:text||"Response API bukan JSON."}}
+
+      if(!r.ok||d.ok===false||d.success===false){
+        throw new Error(d.message||d.error||`Request gagal. Status ${r.status}`);
+      }
+      return d;
+    }
     function checking(domain){$("results").innerHTML=`<div class="result wait"><div class="result-head"><div class="domain-name">${domain}</div><span class="badge b-wait dots">Mengecek</span></div><p>Sistem sedang memeriksa status domain melalui API Dirac Group.</p></div>`}
     function errorCard(domain,msg){$("results").innerHTML=`<div class="result no"><div class="result-head"><div class="domain-name">${domain||"Domain"}</div><span class="badge b-no">Gagal dicek</span></div><p>${msg||"API belum bisa dihubungi. Periksa kembali Edge Function Supabase kamu."}</p><div class="result-actions"><button class="btn soft" data-recheck="${domain}">Coba Lagi</button><button class="btn mint" id="manualWa">Hubungi Admin</button></div></div>`;document.querySelectorAll('[data-recheck]').forEach(b=>b.onclick=()=>checkDomain(b.dataset.recheck));const wa=$("manualWa");if(wa)wa.onclick=()=>openWa(domain)}
     function showResult(d){const domain=d.domain||"-",ok=!!d.available;$("results").innerHTML=`<div class="result ${ok?"ok":"no"}"><div class="result-head"><div class="domain-name">${domain}</div><span class="badge ${ok?"b-ok":"b-no"}">${ok?"Tersedia":"Tidak tersedia"}</span></div><p>${d.message||(ok?"Domain kemungkinan tersedia.":"Domain sudah terdaftar.")}</p><div class="result-actions">${ok?`<button class="btn mint" data-order="${domain}">Pesan Domain Ini</button>`:""}<button class="btn soft" data-recheck="${domain}">Cek Ulang</button></div></div>`;bindResultButtons()}
