@@ -9,11 +9,11 @@
   <meta name="theme-color" content="#6258ff" />
   <meta name="color-scheme" content="light" />
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="canonical" href="https://diracgroup.store/wbst.html" />
+  <link rel="canonical" href="./login.html" />
   <meta property="og:title" content="Masuk Dirac Group Domain" />
   <meta property="og:description" content="Login pelanggan untuk cek domain, checkout, dan melihat status pesanan." />
-  <meta name="dirac-dashboard-route" content="https://diracgroup.store/dashboard.html" />
-  <meta name="dirac-login-route" content="https://diracgroup.store/wbst.html" />
+  <meta name="dirac-dashboard-route" content="./dashboard.html" />
+  <meta name="dirac-login-route" content="./login.html" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
 
   <style>
@@ -1057,6 +1057,109 @@
       border-color:rgba(226,232,240,.12);
     }
 
+
+
+    /* === Dirac Domain Marketplace UI/UX Max Patch: non-auth visual layer only === */
+    :root {
+      --glass-strong:rgba(255,255,255,.90);
+      --glass-soft:rgba(255,255,255,.68);
+      --focus-ring:0 0 0 4px rgba(98,88,255,.18);
+      --market-gradient:linear-gradient(135deg,var(--violet),var(--cyan));
+      --success-bg:#ecfdf5;
+      --warning-bg:#fff7ed;
+      --danger-bg:#fff1f2;
+    }
+    * { min-width:0; }
+    html { scroll-padding-top:96px; }
+    body { overflow-x:hidden; }
+    img,svg,video,canvas { max-width:100%; }
+    h1,h2,h3 { text-wrap:balance; }
+    p,li,small,span { overflow-wrap:anywhere; }
+    :focus-visible { outline:0; box-shadow:var(--focus-ring); }
+    .btn,.tab,.menu-card,.card,.market-card,.price-card,.stat-card,.filter-chip,.tld-chip,.preset-chip { -webkit-tap-highlight-color:transparent; }
+    .btn,.tab,.menu-card,.card,.market-card,.price-card,.stat-card,.domain-card,.listing-card,.trust-item,.flow-step,.quality-card { transform:translateZ(0); }
+    .btn:active,.tab:active,.menu-card:active { transform:translateY(0) scale(.98); }
+    .site-header { isolation:isolate; }
+    .site-header::after { content:""; position:absolute; inset:auto 0 -1px; height:1px; background:linear-gradient(90deg,transparent,rgba(98,88,255,.28),rgba(19,182,214,.24),transparent); pointer-events:none; }
+    .hero-card,.panel,.auth-card,.brand-panel { position:relative; isolation:isolate; }
+    .hero-card::before,.panel::before,.auth-card::before,.brand-panel::before {
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+      background:linear-gradient(135deg,rgba(255,255,255,.55),transparent 42%,rgba(19,182,214,.10));
+      opacity:.75;
+    }
+    .hero-card,.brand-panel,.auth-card,.panel { animation:dgRise .65s cubic-bezier(.2,.8,.2,1) both; }
+    .card,.menu-card,.market-card,.stat-card,.price-card,.listing-card,.quality-card,.trust-item,.flow-step { animation:dgRise .72s cubic-bezier(.2,.8,.2,1) both; }
+    .card:nth-child(2),.menu-card:nth-child(2),.market-card:nth-child(2),.listing-card:nth-child(2),.quality-card:nth-child(2),.flow-step:nth-child(2) { animation-delay:.05s; }
+    .card:nth-child(3),.menu-card:nth-child(3),.market-card:nth-child(3),.listing-card:nth-child(3),.quality-card:nth-child(3),.flow-step:nth-child(3) { animation-delay:.1s; }
+    .card:nth-child(4),.menu-card:nth-child(4),.market-card:nth-child(4),.listing-card:nth-child(4),.quality-card:nth-child(4),.flow-step:nth-child(4) { animation-delay:.15s; }
+    @keyframes dgRise { from { opacity:0; transform:translateY(18px) scale(.985); filter:blur(3px); } to { opacity:1; transform:none; filter:none; } }
+    @keyframes dgFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+    @keyframes dgShine { from { transform:translateX(-120%) skewX(-16deg); } to { transform:translateX(220%) skewX(-16deg); } }
+    .brand-mark,.pill,.step-num,.proof-icon { position:relative; overflow:hidden; }
+    .brand-mark::after,.pill::after,.step-num::after,.proof-icon::after { content:""; position:absolute; top:-30%; bottom:-30%; left:-45%; width:34%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent); transform:translateX(-120%) skewX(-16deg); animation:dgShine 4.8s ease-in-out infinite; pointer-events:none; }
+    .domain-market-showcase,.marketplace-control-deck,.marketplace-home-grid,.buyer-tool-grid,.quality-grid,.trust-strip,.filter-strip,.escrow-flow,.listing-grid,.compare-grid,.mini-insight-grid,.auth-progress,.auth-metric-grid,.transfer-safety-grid {
+      display:grid; gap:14px;
+    }
+    .trust-strip,.filter-strip { margin-top:16px; grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .trust-item,.filter-pill,.quality-card,.flow-step,.listing-card,.compare-card,.tool-card,.mini-insight,.auth-metric,.safety-card {
+      border:1px solid rgba(35,43,85,.10); background:rgba(255,255,255,.76); border-radius:20px; box-shadow:0 12px 30px rgba(42,51,105,.07);
+      padding:15px; backdrop-filter:blur(14px);
+    }
+    .trust-item b,.filter-pill b,.quality-card b,.flow-step b,.listing-card b,.compare-card b,.tool-card b,.mini-insight b,.auth-metric b,.safety-card b { display:block; color:var(--deep); letter-spacing:-.035em; }
+    .trust-item span,.filter-pill span,.quality-card span,.flow-step span,.listing-card span,.compare-card span,.tool-card span,.mini-insight span,.auth-metric span,.safety-card span,
+    .trust-item p,.filter-pill p,.quality-card p,.flow-step p,.listing-card p,.compare-card p,.tool-card p,.mini-insight p,.auth-metric p,.safety-card p { color:var(--muted); margin:.35rem 0 0; font-weight:720; }
+    .filter-pill { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .filter-pill i,.listing-badge,.premium-badge,.safe-badge { font-style:normal; color:white; background:var(--market-gradient); border-radius:999px; padding:6px 10px; font-size:12px; font-weight:1000; white-space:nowrap; box-shadow:0 10px 22px rgba(98,88,255,.18); }
+    .domain-market-showcase,.marketplace-home-grid { margin-top:18px; grid-template-columns:1.05fr .95fr; align-items:stretch; }
+    .listing-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .listing-card { position:relative; overflow:hidden; }
+    .listing-card::after { content:""; position:absolute; width:130px; height:130px; right:-54px; top:-62px; border-radius:44px; background:rgba(98,88,255,.10); transform:rotate(18deg); }
+    .listing-card .domain-name { display:block; margin-top:8px; color:var(--deep); font-size:clamp(22px,2.8vw,34px); line-height:1.05; font-weight:1000; letter-spacing:-.065em; overflow-wrap:anywhere; }
+    .listing-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .listing-meta span { margin:0; border-radius:999px; padding:7px 10px; background:rgba(98,88,255,.08); color:var(--violet); font-size:12px; font-weight:900; }
+    .compare-grid { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:14px; }
+    .compare-card { min-height:140px; }
+    .flow-step { position:relative; padding-left:54px; }
+    .flow-step em { position:absolute; left:14px; top:15px; width:30px; height:30px; border-radius:12px; display:grid; place-items:center; color:white; background:var(--market-gradient); font-style:normal; font-weight:1000; }
+    .escrow-flow { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:16px; }
+    .buyer-tool-grid { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:16px; }
+    .tool-card { display:grid; align-content:start; gap:8px; }
+    .tool-card strong { color:var(--deep); font-size:22px; letter-spacing:-.045em; }
+    .tool-card .tool-icon { width:42px; height:42px; border-radius:16px; display:grid; place-items:center; background:rgba(98,88,255,.10); color:var(--violet); font-weight:1000; }
+    .quality-grid,.auth-metric-grid,.transfer-safety-grid { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:16px; }
+    .mini-insight-grid { grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:16px; }
+    .auth-progress { grid-template-columns:repeat(3,minmax(0,1fr)); margin:18px 0; }
+    .auth-progress .flow-step { padding:14px 14px 14px 50px; min-height:96px; }
+    .dashboard-market-ribbon { margin-top:16px; display:flex; flex-wrap:wrap; gap:10px; }
+    .dashboard-market-ribbon span { border-radius:999px; padding:9px 12px; background:rgba(255,255,255,.72); border:1px solid rgba(35,43,85,.10); color:var(--deep); font-weight:900; }
+    .search-polish-note { margin-top:14px; display:flex; gap:10px; align-items:flex-start; border-radius:18px; padding:14px; background:rgba(236,253,245,.82); border:1px solid rgba(25,191,120,.20); color:#065f46; font-weight:800; }
+    .search-polish-note span { flex:0 0 auto; width:30px; height:30px; border-radius:12px; display:grid; place-items:center; color:white; background:linear-gradient(135deg,#0aa96a,var(--mint)); }
+    .responsive-table-card { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .market-table { width:100%; border-collapse:separate; border-spacing:0 10px; min-width:720px; }
+    .market-table th { text-align:left; color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; padding:0 12px; }
+    .market-table td { padding:14px 12px; background:rgba(255,255,255,.75); border-top:1px solid rgba(35,43,85,.08); border-bottom:1px solid rgba(35,43,85,.08); font-weight:800; color:var(--deep); }
+    .market-table td:first-child { border-left:1px solid rgba(35,43,85,.08); border-radius:16px 0 0 16px; }
+    .market-table td:last-child { border-right:1px solid rgba(35,43,85,.08); border-radius:0 16px 16px 0; color:var(--violet); }
+    .hero-console,.hero-domain-console,.login-domain-preview { animation:dgFloat 7s ease-in-out infinite; }
+    input,textarea,select { transition:border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+    input:focus,textarea:focus,select:focus { border-color:rgba(98,88,255,.52) !important; box-shadow:var(--focus-ring), inset 0 1px 0 rgba(255,255,255,.75); outline:0; }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.001ms !important; }
+    }
+    @media (max-width:1050px) {
+      .trust-strip,.filter-strip,.escrow-flow,.compare-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .domain-market-showcase,.marketplace-home-grid { grid-template-columns:1fr; }
+      .listing-grid,.buyer-tool-grid,.quality-grid,.auth-metric-grid,.transfer-safety-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:720px) {
+      .trust-strip,.filter-strip,.listing-grid,.buyer-tool-grid,.quality-grid,.auth-metric-grid,.transfer-safety-grid,.escrow-flow,.compare-grid,.auth-progress,.mini-insight-grid { grid-template-columns:1fr; }
+      .filter-pill { align-items:flex-start; }
+      .listing-card .domain-name { font-size:28px; }
+      .hero-card,.panel,.auth-card,.brand-panel { overflow:hidden; }
+      .nav-actions .btn,.nav-actions a,.theme-toggle { flex:1 1 auto; }
+      .market-table { min-width:640px; }
+    }
+
   </style>
 </head>
 
@@ -1081,6 +1184,13 @@
           <div class="preview-result-row"><strong>Tersedia</strong><small>Harga diverifikasi ulang saat checkout</small></div>
           <div class="preview-tld-row"><span>.id</span><span>.co.id</span><span>.xyz</span><span>.online</span></div>
         </div>
+
+        <div class="auth-metric-grid" aria-label="Ringkasan fitur akun">
+          <div class="auth-metric"><b>1 akun</b><span>Untuk cek domain, checkout, dan status pesanan.</span></div>
+          <div class="auth-metric"><b>Invoice</b><span>Pesanan tersusun rapi setelah login.</span></div>
+          <div class="auth-metric"><b>DNS</b><span>Pengaturan domain bisa dibantu admin.</span></div>
+        </div>
+
         <div class="mini-list">
           <div>✓ Login dan daftar tanpa key di HTML</div>
           <div>✓ Checkout domain via API Vercel</div>
@@ -1106,6 +1216,14 @@
         <div class="auth-status-item"><span>✓</span>Checkout via API</div>
         <div class="auth-status-item"><span>✓</span>Status pesanan</div>
         <div class="auth-status-item"><span>✓</span>DNS dibantu admin</div>
+      </div>
+
+
+
+      <div class="auth-progress" aria-label="Alur setelah masuk">
+        <div class="flow-step"><em>1</em><b>Masuk akun</b><span>Sesi tersimpan dari respons API.</span></div>
+        <div class="flow-step"><em>2</em><b>Pilih domain</b><span>Cek TLD, harga, dan keranjang.</span></div>
+        <div class="flow-step"><em>3</em><b>Checkout</b><span>Invoice dan status dipantau di dashboard.</span></div>
       </div>
 
       <form id="authForm" class="form" role="tabpanel" aria-labelledby="loginTab" aria-describedby="formSubtitle">
@@ -1146,7 +1264,7 @@
       <div class="auth-links">
         <a id="forgotPasswordLink" href="mailto:companydirac@gmail.com?subject=Lupa%20Password%20Dirac%20Group">Lupa password?</a>
         <a id="resendVerifyLink" href="mailto:companydirac@gmail.com?subject=Kirim%20Ulang%20Verifikasi%20Akun">Kirim ulang verifikasi</a>
-        <a id="dashboardLink" href="https://diracgroup.store/dashboard.html">Dashboard</a>
+        <a id="dashboardLink" href="./dashboard.html">Dashboard</a>
       </div>
 
       <div class="helper">

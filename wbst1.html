@@ -7,8 +7,8 @@
   <meta name="description" content="Cari domain, bandingkan harga TLD, checkout, dan kelola status pesanan domain bersama Dirac Group." />
   <meta name="theme-color" content="#6258ff" />
   <meta name="color-scheme" content="light dark" />
-  <meta name="dirac-dashboard-route" content="https://diracgroup.store/dashboard.html" />
-  <meta name="dirac-login-route" content="https://diracgroup.store/wbst.html" />
+  <meta name="dirac-dashboard-route" content="./dashboard.html" />
+  <meta name="dirac-login-route" content="./login.html" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
   <style>
     :root {
@@ -92,6 +92,109 @@
     .alert.show { display:block; }
     @media (max-width:1000px) { .hero-card { grid-template-columns:1fr; } .price-grid { grid-template-columns:repeat(3,1fr); } .feature-grid, .trust-grid { grid-template-columns:repeat(2,1fr); } .steps-grid { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:720px) { .container { width:min(100% - 24px,1180px); } .nav { flex-wrap:wrap; padding:12px 0; } .nav-actions { width:100%; } .hero { padding:28px 0 18px; } .hero-card, .panel { padding:20px; border-radius:24px; } .domain-search { grid-template-columns:1fr; } .hero-console { display:none; } .price-grid, .feature-grid, .steps-grid, .trust-grid { grid-template-columns:1fr; } .section-head { flex-direction:column; align-items:stretch; } }
+
+
+    /* === Dirac Domain Marketplace UI/UX Max Patch: non-auth visual layer only === */
+    :root {
+      --glass-strong:rgba(255,255,255,.90);
+      --glass-soft:rgba(255,255,255,.68);
+      --focus-ring:0 0 0 4px rgba(98,88,255,.18);
+      --market-gradient:linear-gradient(135deg,var(--violet),var(--cyan));
+      --success-bg:#ecfdf5;
+      --warning-bg:#fff7ed;
+      --danger-bg:#fff1f2;
+    }
+    * { min-width:0; }
+    html { scroll-padding-top:96px; }
+    body { overflow-x:hidden; }
+    img,svg,video,canvas { max-width:100%; }
+    h1,h2,h3 { text-wrap:balance; }
+    p,li,small,span { overflow-wrap:anywhere; }
+    :focus-visible { outline:0; box-shadow:var(--focus-ring); }
+    .btn,.tab,.menu-card,.card,.market-card,.price-card,.stat-card,.filter-chip,.tld-chip,.preset-chip { -webkit-tap-highlight-color:transparent; }
+    .btn,.tab,.menu-card,.card,.market-card,.price-card,.stat-card,.domain-card,.listing-card,.trust-item,.flow-step,.quality-card { transform:translateZ(0); }
+    .btn:active,.tab:active,.menu-card:active { transform:translateY(0) scale(.98); }
+    .site-header { isolation:isolate; }
+    .site-header::after { content:""; position:absolute; inset:auto 0 -1px; height:1px; background:linear-gradient(90deg,transparent,rgba(98,88,255,.28),rgba(19,182,214,.24),transparent); pointer-events:none; }
+    .hero-card,.panel,.auth-card,.brand-panel { position:relative; isolation:isolate; }
+    .hero-card::before,.panel::before,.auth-card::before,.brand-panel::before {
+      content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+      background:linear-gradient(135deg,rgba(255,255,255,.55),transparent 42%,rgba(19,182,214,.10));
+      opacity:.75;
+    }
+    .hero-card,.brand-panel,.auth-card,.panel { animation:dgRise .65s cubic-bezier(.2,.8,.2,1) both; }
+    .card,.menu-card,.market-card,.stat-card,.price-card,.listing-card,.quality-card,.trust-item,.flow-step { animation:dgRise .72s cubic-bezier(.2,.8,.2,1) both; }
+    .card:nth-child(2),.menu-card:nth-child(2),.market-card:nth-child(2),.listing-card:nth-child(2),.quality-card:nth-child(2),.flow-step:nth-child(2) { animation-delay:.05s; }
+    .card:nth-child(3),.menu-card:nth-child(3),.market-card:nth-child(3),.listing-card:nth-child(3),.quality-card:nth-child(3),.flow-step:nth-child(3) { animation-delay:.1s; }
+    .card:nth-child(4),.menu-card:nth-child(4),.market-card:nth-child(4),.listing-card:nth-child(4),.quality-card:nth-child(4),.flow-step:nth-child(4) { animation-delay:.15s; }
+    @keyframes dgRise { from { opacity:0; transform:translateY(18px) scale(.985); filter:blur(3px); } to { opacity:1; transform:none; filter:none; } }
+    @keyframes dgFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+    @keyframes dgShine { from { transform:translateX(-120%) skewX(-16deg); } to { transform:translateX(220%) skewX(-16deg); } }
+    .brand-mark,.pill,.step-num,.proof-icon { position:relative; overflow:hidden; }
+    .brand-mark::after,.pill::after,.step-num::after,.proof-icon::after { content:""; position:absolute; top:-30%; bottom:-30%; left:-45%; width:34%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent); transform:translateX(-120%) skewX(-16deg); animation:dgShine 4.8s ease-in-out infinite; pointer-events:none; }
+    .domain-market-showcase,.marketplace-control-deck,.marketplace-home-grid,.buyer-tool-grid,.quality-grid,.trust-strip,.filter-strip,.escrow-flow,.listing-grid,.compare-grid,.mini-insight-grid,.auth-progress,.auth-metric-grid,.transfer-safety-grid {
+      display:grid; gap:14px;
+    }
+    .trust-strip,.filter-strip { margin-top:16px; grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .trust-item,.filter-pill,.quality-card,.flow-step,.listing-card,.compare-card,.tool-card,.mini-insight,.auth-metric,.safety-card {
+      border:1px solid rgba(35,43,85,.10); background:rgba(255,255,255,.76); border-radius:20px; box-shadow:0 12px 30px rgba(42,51,105,.07);
+      padding:15px; backdrop-filter:blur(14px);
+    }
+    .trust-item b,.filter-pill b,.quality-card b,.flow-step b,.listing-card b,.compare-card b,.tool-card b,.mini-insight b,.auth-metric b,.safety-card b { display:block; color:var(--deep); letter-spacing:-.035em; }
+    .trust-item span,.filter-pill span,.quality-card span,.flow-step span,.listing-card span,.compare-card span,.tool-card span,.mini-insight span,.auth-metric span,.safety-card span,
+    .trust-item p,.filter-pill p,.quality-card p,.flow-step p,.listing-card p,.compare-card p,.tool-card p,.mini-insight p,.auth-metric p,.safety-card p { color:var(--muted); margin:.35rem 0 0; font-weight:720; }
+    .filter-pill { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .filter-pill i,.listing-badge,.premium-badge,.safe-badge { font-style:normal; color:white; background:var(--market-gradient); border-radius:999px; padding:6px 10px; font-size:12px; font-weight:1000; white-space:nowrap; box-shadow:0 10px 22px rgba(98,88,255,.18); }
+    .domain-market-showcase,.marketplace-home-grid { margin-top:18px; grid-template-columns:1.05fr .95fr; align-items:stretch; }
+    .listing-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .listing-card { position:relative; overflow:hidden; }
+    .listing-card::after { content:""; position:absolute; width:130px; height:130px; right:-54px; top:-62px; border-radius:44px; background:rgba(98,88,255,.10); transform:rotate(18deg); }
+    .listing-card .domain-name { display:block; margin-top:8px; color:var(--deep); font-size:clamp(22px,2.8vw,34px); line-height:1.05; font-weight:1000; letter-spacing:-.065em; overflow-wrap:anywhere; }
+    .listing-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .listing-meta span { margin:0; border-radius:999px; padding:7px 10px; background:rgba(98,88,255,.08); color:var(--violet); font-size:12px; font-weight:900; }
+    .compare-grid { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:14px; }
+    .compare-card { min-height:140px; }
+    .flow-step { position:relative; padding-left:54px; }
+    .flow-step em { position:absolute; left:14px; top:15px; width:30px; height:30px; border-radius:12px; display:grid; place-items:center; color:white; background:var(--market-gradient); font-style:normal; font-weight:1000; }
+    .escrow-flow { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:16px; }
+    .buyer-tool-grid { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:16px; }
+    .tool-card { display:grid; align-content:start; gap:8px; }
+    .tool-card strong { color:var(--deep); font-size:22px; letter-spacing:-.045em; }
+    .tool-card .tool-icon { width:42px; height:42px; border-radius:16px; display:grid; place-items:center; background:rgba(98,88,255,.10); color:var(--violet); font-weight:1000; }
+    .quality-grid,.auth-metric-grid,.transfer-safety-grid { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:16px; }
+    .mini-insight-grid { grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:16px; }
+    .auth-progress { grid-template-columns:repeat(3,minmax(0,1fr)); margin:18px 0; }
+    .auth-progress .flow-step { padding:14px 14px 14px 50px; min-height:96px; }
+    .dashboard-market-ribbon { margin-top:16px; display:flex; flex-wrap:wrap; gap:10px; }
+    .dashboard-market-ribbon span { border-radius:999px; padding:9px 12px; background:rgba(255,255,255,.72); border:1px solid rgba(35,43,85,.10); color:var(--deep); font-weight:900; }
+    .search-polish-note { margin-top:14px; display:flex; gap:10px; align-items:flex-start; border-radius:18px; padding:14px; background:rgba(236,253,245,.82); border:1px solid rgba(25,191,120,.20); color:#065f46; font-weight:800; }
+    .search-polish-note span { flex:0 0 auto; width:30px; height:30px; border-radius:12px; display:grid; place-items:center; color:white; background:linear-gradient(135deg,#0aa96a,var(--mint)); }
+    .responsive-table-card { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .market-table { width:100%; border-collapse:separate; border-spacing:0 10px; min-width:720px; }
+    .market-table th { text-align:left; color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; padding:0 12px; }
+    .market-table td { padding:14px 12px; background:rgba(255,255,255,.75); border-top:1px solid rgba(35,43,85,.08); border-bottom:1px solid rgba(35,43,85,.08); font-weight:800; color:var(--deep); }
+    .market-table td:first-child { border-left:1px solid rgba(35,43,85,.08); border-radius:16px 0 0 16px; }
+    .market-table td:last-child { border-right:1px solid rgba(35,43,85,.08); border-radius:0 16px 16px 0; color:var(--violet); }
+    .hero-console,.hero-domain-console,.login-domain-preview { animation:dgFloat 7s ease-in-out infinite; }
+    input,textarea,select { transition:border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+    input:focus,textarea:focus,select:focus { border-color:rgba(98,88,255,.52) !important; box-shadow:var(--focus-ring), inset 0 1px 0 rgba(255,255,255,.75); outline:0; }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.001ms !important; }
+    }
+    @media (max-width:1050px) {
+      .trust-strip,.filter-strip,.escrow-flow,.compare-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .domain-market-showcase,.marketplace-home-grid { grid-template-columns:1fr; }
+      .listing-grid,.buyer-tool-grid,.quality-grid,.auth-metric-grid,.transfer-safety-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:720px) {
+      .trust-strip,.filter-strip,.listing-grid,.buyer-tool-grid,.quality-grid,.auth-metric-grid,.transfer-safety-grid,.escrow-flow,.compare-grid,.auth-progress,.mini-insight-grid { grid-template-columns:1fr; }
+      .filter-pill { align-items:flex-start; }
+      .listing-card .domain-name { font-size:28px; }
+      .hero-card,.panel,.auth-card,.brand-panel { overflow:hidden; }
+      .nav-actions .btn,.nav-actions a,.theme-toggle { flex:1 1 auto; }
+      .market-table { min-width:640px; }
+    }
+
   </style>
 </head>
 <body>
@@ -104,8 +207,9 @@
       <div class="nav-actions">
         <a class="btn btn-soft" href="#harga">Harga</a>
         <a class="btn btn-soft" href="#fitur">Fitur</a>
+        <a class="btn btn-soft" href="#marketplace">Marketplace</a>
         <a class="btn btn-soft" href="#alur">Alur</a>
-        <a class="btn btn-primary" id="loginLink" href="./wbst.html">Masuk</a>
+        <a class="btn btn-primary" id="loginLink" href="./login.html">Masuk</a>
         <button class="btn theme-toggle" type="button" id="themeToggle">☾</button>
       </div>
     </div>
@@ -124,6 +228,7 @@
               <button class="btn btn-primary" type="submit">Cek Domain</button>
             </form>
             <div class="quick-tlds" aria-label="Ekstensi populer"><span>.com</span><span>.id</span><span>.co.id</span><span>.my.id</span><span>.xyz</span><span>.online</span></div>
+            <div class="filter-strip" aria-label="Kontrol pencarian domain"><div class="filter-pill"><div><b>Buy now</b><span>Domain siap checkout</span></div><i>Instan</i></div><div class="filter-pill"><div><b>Premium</b><span>Nama pendek bernilai brand</span></div><i>Kurasi</i></div><div class="filter-pill"><div><b>Make offer</b><span>Ajukan penawaran</span></div><i>Offer</i></div><div class="filter-pill"><div><b>Transfer</b><span>Bantu pindah registrar</span></div><i>EPP</i></div></div>
             <div class="alert" id="publicAlert">Domain akan dibawa ke dashboard setelah login.</div>
           </div>
           <aside class="hero-console" aria-label="Ringkasan layanan domain">
@@ -141,7 +246,7 @@
 
     <section class="section" id="harga">
       <div class="container panel">
-        <div class="section-head"><div class="section-title"><h2>Harga TLD populer</h2><p>Harga awal untuk membantu pembeli memilih ekstensi domain. Final tetap diverifikasi saat checkout.</p></div><a class="btn btn-primary" href="./wbst.html" id="priceLoginLink">Mulai Checkout</a></div>
+        <div class="section-head"><div class="section-title"><h2>Harga TLD populer</h2><p>Harga awal untuk membantu pembeli memilih ekstensi domain. Final tetap diverifikasi saat checkout.</p></div><a class="btn btn-primary" href="./login.html" id="priceLoginLink">Mulai Checkout</a></div>
         <div class="price-grid">
           <article class="card price-card"><strong>.com</strong><b>Rp185.000</b><span>Renewal Rp185.000/tahun</span></article>
           <article class="card price-card"><strong>.id</strong><b>Rp260.000</b><span>Brand lokal Indonesia</span></article>
@@ -152,9 +257,72 @@
       </div>
     </section>
 
+    <section class="section" id="marketplace">
+      <div class="container panel">
+        <div class="section-head">
+          <div class="section-title">
+            <h2>Marketplace domain siap jual-beli</h2>
+            <p>Tampilan dibuat menyerupai marketplace domain modern: ada listing premium, filter kategori, alur penawaran, transfer, dan indikator keamanan transaksi.</p>
+          </div>
+          <a class="btn btn-primary" href="./login.html">Masuk untuk transaksi</a>
+        </div>
+
+        <div class="filter-strip" aria-label="Filter marketplace domain">
+          <div class="filter-pill"><div><b>Jenis listing</b><span>Buy now, make offer, transfer</span></div><i>Filter</i></div>
+          <div class="filter-pill"><div><b>Kategori</b><span>Brand, bisnis, teknologi, lokal</span></div><i>Kurasi</i></div>
+          <div class="filter-pill"><div><b>Harga</b><span>Promo, standar, premium</span></div><i>Sort</i></div>
+          <div class="filter-pill"><div><b>Keamanan</b><span>Verifikasi admin dan invoice</span></div><i>Aman</i></div>
+        </div>
+
+        <div class="marketplace-home-grid">
+          <div class="listing-grid" aria-label="Contoh listing domain marketplace">
+            <article class="listing-card">
+              <span class="listing-badge">Premium</span>
+              <strong class="domain-name">brand.id</strong>
+              <p>Nama pendek untuk brand lokal, cocok untuk bisnis yang ingin terlihat resmi.</p>
+              <div class="listing-meta"><span>Brandable</span><span>.id</span><span>Negosiasi</span></div>
+            </article>
+            <article class="listing-card">
+              <span class="listing-badge">Buy now</span>
+              <strong class="domain-name">tokokamu.com</strong>
+              <p>Contoh listing langsung beli dengan estimasi harga dan status register.</p>
+              <div class="listing-meta"><span>Global</span><span>.com</span><span>Checkout</span></div>
+            </article>
+            <article class="listing-card">
+              <span class="listing-badge">Make offer</span>
+              <strong class="domain-name">startup.co.id</strong>
+              <p>Format penawaran untuk domain bernilai tinggi atau domain milik pihak lain.</p>
+              <div class="listing-meta"><span>Bisnis</span><span>.co.id</span><span>Admin</span></div>
+            </article>
+          </div>
+
+          <div class="responsive-table-card" aria-label="Perbandingan fitur marketplace">
+            <table class="market-table">
+              <thead><tr><th>Fitur</th><th>Untuk pembeli</th><th>Untuk admin</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Pencarian domain</td><td>Cek ekstensi populer</td><td>Verifikasi final</td><td>Siap</td></tr>
+                <tr><td>Keranjang</td><td>Simpan beberapa domain</td><td>Lihat total invoice</td><td>Siap</td></tr>
+                <tr><td>Make offer</td><td>Ajukan penawaran</td><td>Negosiasi manual</td><td>Disiapkan</td></tr>
+                <tr><td>Transfer domain</td><td>Pakai EPP/Auth code</td><td>Cek keamanan</td><td>Manual</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="escrow-flow" aria-label="Alur aman transaksi domain">
+          <div class="flow-step"><em>1</em><b>Cari & pilih</b><span>Pembeli melihat domain, TLD, dan tipe listing.</span></div>
+          <div class="flow-step"><em>2</em><b>Invoice</b><span>Pesanan dicatat agar pembayaran tidak membingungkan.</span></div>
+          <div class="flow-step"><em>3</em><b>Verifikasi</b><span>Admin mengecek ketersediaan, pembayaran, dan data pemilik.</span></div>
+          <div class="flow-step"><em>4</em><b>Aktivasi</b><span>Domain diproses, DNS diarahkan, lalu status diperbarui.</span></div>
+        </div>
+      </div>
+    </section>
+
+
     <section class="section" id="fitur">
       <div class="container panel">
         <div class="section-title"><h2>Fitur seperti website domain modern</h2><p>Didesain untuk alur registrar sederhana: pencarian, keranjang, checkout, invoice, dan manajemen domain.</p></div>
+        <div class="trust-strip" aria-label="Keunggulan marketplace"><div class="trust-item"><b>Verifikasi admin</b><span>Mengurangi risiko domain salah proses.</span></div><div class="trust-item"><b>Ringkasan harga</b><span>Biaya register dan renewal lebih transparan.</span></div><div class="trust-item"><b>Alur transfer</b><span>Auth/EPP code tetap ditangani aman.</span></div><div class="trust-item"><b>Bantuan DNS</b><span>Cocok untuk pembeli non-teknis.</span></div></div>
         <div class="feature-grid" style="margin-top:18px;">
           <article class="card"><strong>Bulk search</strong><p>Cek banyak domain sekaligus dari dashboard pelanggan.</p></article>
           <article class="card"><strong>Domain suggestion</strong><p>Alternatif nama domain disiapkan ketika domain tidak tersedia.</p></article>
