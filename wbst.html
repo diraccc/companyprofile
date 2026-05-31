@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website Jualan Domain</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f7f7f7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #result {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #eee;
+      min-height: 40px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cek Ketersediaan Domain</h1>
+  <div class="container">
+    <input type="text" id="domainInput" placeholder="Masukkan nama domain">
+    <button id="checkBtn">Cek Domain</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const VERCEL_API_URL = "PASTE_URL_VERCEL_API_DI_SINI";
+
+    async function checkDomain(domain) {
+      try {
+        const response = await fetch(`${VERCEL_API_URL}?domain=${encodeURIComponent(domain)}`);
+        return await response.json();
+      } catch (err) {
+        return { success: false, message: "Gagal menghubungi API" };
+      }
+    }
+
+    const input = document.getElementById("domainInput");
+    const button = document.getElementById("checkBtn");
+    const resultDiv = document.getElementById("result");
+
+    button.addEventListener("click", async () => {
+      const domain = input.value.trim();
+      if (!domain) {
+        resultDiv.textContent = "Masukkan nama domain dulu!";
+        return;
+      }
+      resultDiv.textContent = "Memeriksa...";
+      const data = await checkDomain(domain);
+      if (data.success) {
+        if (data.available) {
+          resultDiv.textContent = `${domain} kemungkinan tersedia ✅`;
+        } else {
+          resultDiv.textContent = `${domain} sudah terdaftar ❌`;
+        }
+      } else {
+        resultDiv.textContent = `Error: ${data.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
