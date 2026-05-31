@@ -8,10 +8,12 @@
   <meta name="description" content="Dashboard pelanggan Dirac Group untuk cek domain, checkout, dan melihat status pesanan." />
   <meta name="theme-color" content="#6258ff" />
   <meta name="color-scheme" content="light" />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="canonical" href="https://diracgroup.store/dashboard.html" />
   <meta property="og:title" content="Dashboard Dirac Group Domain" />
   <meta property="og:description" content="Cek domain, checkout, dan pantau status pesanan domain Dirac Group." />
-  <meta name="dirac-dashboard-route" content="./dashboard.html" />
-  <meta name="dirac-login-route" content="./index.html" />
+  <meta name="dirac-dashboard-route" content="https://diracgroup.store/dashboard.html" />
+  <meta name="dirac-login-route" content="https://diracgroup.store/wbst.html" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
 
   <style>
@@ -1344,6 +1346,289 @@
       .mobile-bottom-nav button { min-height:50px; border-radius:16px; }
     }
 
+
+    /* ===== Final production polish: clean desktop/mobile, micro-interactions, accessibility ===== */
+    :root {
+      --radius-xl:34px;
+      --radius-lg:24px;
+      --focus-ring:0 0 0 5px rgba(98,88,255,.12);
+      --card-border:1px solid rgba(255,255,255,.78);
+      --card-bg:rgba(255,255,255,.82);
+    }
+
+    body::after {
+      content:"";
+      position:fixed;
+      inset:auto auto -180px -160px;
+      width:420px;
+      height:420px;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(98,88,255,.16), transparent 68%);
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .container, .panel, .hero-card, .order-card, .result-card, .cart-item, .checkout-summary {
+      min-width:0;
+    }
+
+    .site-header {
+      border-bottom:1px solid rgba(35,43,85,.08);
+    }
+
+    .nav-actions .btn {
+      white-space:nowrap;
+    }
+
+    .hero-card {
+      position:relative;
+      overflow:hidden;
+    }
+
+    .hero-card::after {
+      content:"";
+      position:absolute;
+      right:-90px;
+      top:-90px;
+      width:260px;
+      height:260px;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(98,88,255,.12), transparent 70%);
+      pointer-events:none;
+    }
+
+    .hero-card > * { position:relative; z-index:1; }
+
+    .panel, .order-card, .stat-card, .result-card {
+      border:var(--card-border);
+      background:var(--card-bg);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+    }
+
+    .compact-head {
+      align-items:center;
+      margin-bottom:10px;
+    }
+
+    #clearCartBtn[hidden] { display:none !important; }
+
+    .domain-form {
+      align-items:center;
+    }
+
+    .domain-form input {
+      min-width:0;
+    }
+
+    .result-card {
+      position:relative;
+      overflow:hidden;
+      animation:cardIn .24s ease both;
+    }
+
+    .result-card::before {
+      content:"";
+      position:absolute;
+      inset:0 0 auto;
+      height:4px;
+      background:rgba(98,88,255,.16);
+    }
+
+    .result-card.available::before { background:linear-gradient(90deg,#19bf78,#13b6d6); }
+    .result-card.taken::before { background:linear-gradient(90deg,#ef5f80,#f5b23f); }
+    .result-card.error::before { background:linear-gradient(90deg,#ef5f80,#be123c); }
+    .badge-error { color:#be123c; background:#ffe4ea; }
+
+    .cart-item {
+      border:1px solid rgba(35,43,85,.08);
+      border-radius:18px;
+      padding:14px;
+      margin-top:10px;
+      background:rgba(255,255,255,.78);
+      transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+    .cart-item:first-child { margin-top:0; }
+
+    .cart-controls {
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .cart-year-select {
+      min-height:36px;
+      border:1px solid rgba(35,43,85,.12);
+      border-radius:999px;
+      background:#fff;
+      color:var(--deep);
+      padding:0 10px;
+      font-weight:850;
+    }
+
+    .cart-remove {
+      margin-top:0;
+    }
+
+    .total-row {
+      position:relative;
+    }
+
+    .checkout-summary {
+      transition:box-shadow .2s ease, transform .2s ease;
+    }
+
+    .checkout-summary h3, .info-box h3 {
+      text-wrap:balance;
+    }
+
+    .dns-extra {
+      overflow:hidden;
+    }
+
+    .dns-extra.show {
+      display:grid;
+      gap:14px;
+      animation:cardIn .22s ease both;
+    }
+
+    .toast {
+      transition:opacity .22s ease, transform .22s ease;
+    }
+
+    .confirm-modal {
+      animation:modalIn .2s ease both;
+      outline:none;
+    }
+
+    .modal-backdrop.show {
+      animation:backdropIn .16s ease both;
+    }
+
+    .nav-badge {
+      position:absolute;
+      top:4px;
+      right:12px;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      display:inline-grid;
+      place-items:center;
+      border-radius:999px;
+      color:white;
+      background:#ef5f80;
+      font-size:10px;
+      font-weight:1000;
+      line-height:1;
+      box-shadow:0 8px 18px rgba(239,95,128,.25);
+    }
+
+    .nav-badge[data-empty="true"] {
+      display:none;
+    }
+
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(8px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    @keyframes modalIn {
+      from { opacity:0; transform:translateY(12px) scale(.98); }
+      to { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    @keyframes backdropIn {
+      from { opacity:0; }
+      to { opacity:1; }
+    }
+
+    @supports not ((backdrop-filter: blur(18px)) or (-webkit-backdrop-filter: blur(18px))) {
+      .site-header, .panel, .order-card, .stat-card, .result-card, .mobile-bottom-nav {
+        background:#fff;
+      }
+    }
+
+    @media (hover:hover) {
+      .cart-item:hover, .result-card:hover, .menu-card:hover {
+        transform:translateY(-2px);
+        box-shadow:0 18px 46px rgba(42,51,105,.12);
+      }
+    }
+
+    @media (min-width:901px) {
+      .cart-layout {
+        grid-template-columns:minmax(0,1fr) minmax(380px,.92fr);
+      }
+      #checkout {
+        position:sticky;
+        top:104px;
+      }
+      .order-card:nth-child(odd) {
+        background:rgba(255,255,255,.84);
+      }
+    }
+
+    @media (max-width:900px) {
+      .container { width:min(100% - 22px, 1180px); }
+      .hero-card { padding:18px; }
+      .hero-card p { max-width:100%; }
+      .compact-head {
+        align-items:stretch;
+        gap:10px;
+      }
+      .compact-head #clearCartBtn {
+        width:fit-content;
+      }
+      .panel {
+        padding:18px;
+      }
+      .domain-form {
+        border-radius:20px;
+      }
+      .domain-form input, .field input, .field textarea, .field select, .order-search {
+        font-size:16px;
+      }
+      .mobile-bottom-nav button {
+        position:relative;
+      }
+      .section:last-of-type {
+        padding-bottom:128px;
+      }
+    }
+
+    @media (max-width:520px) {
+      .hero { padding-top:16px; }
+      .hero-card h1 { font-size:clamp(26px,8vw,36px); }
+      .menu-grid { grid-template-columns:1fr 1fr; }
+      .menu-card { min-height:74px; padding:13px; }
+      .section-title h2 { font-size:28px; }
+      .result-actions .btn {
+        width:100%;
+      }
+      .cart-item {
+        grid-template-columns:1fr;
+      }
+      .cart-controls {
+        align-items:stretch;
+      }
+      .cart-year-select, .cart-remove {
+        width:100%;
+      }
+      .mobile-bottom-nav {
+        grid-template-columns:repeat(4,1fr);
+      }
+      .mobile-bottom-nav button {
+        min-width:0;
+      }
+    }
+
+    @media (max-width:380px) {
+      .menu-grid { grid-template-columns:1fr; }
+    }
+
   </style>
 </head>
 
@@ -1437,7 +1722,7 @@
             <button class="tld-chip" data-tld=".xyz">.xyz</button>
           </div>
 
-          <div id="resultArea" class="result-area"></div>
+          <div id="resultArea" class="result-area" role="status" aria-live="polite" aria-busy="false"></div>
         </div>
       </div>
     </section>
@@ -1446,9 +1731,12 @@
       <div class="container">
         <div class="cart-layout">
           <section class="panel">
-            <div class="section-title">
-              <h2>Keranjang</h2>
-              <p>Domain yang sudah dipilih sebelum checkout.</p>
+            <div class="section-head compact-head">
+              <div class="section-title">
+                <h2>Keranjang</h2>
+                <p>Domain yang sudah dipilih sebelum checkout.</p>
+              </div>
+              <button class="btn btn-soft" type="button" id="clearCartBtn">Kosongkan</button>
             </div>
             <div id="cartItems" style="margin-top:16px;"></div>
             <div class="total-row">
@@ -1593,7 +1881,7 @@
 
   <nav class="mobile-bottom-nav" aria-label="Navigasi cepat mobile">
     <button data-scroll="cek" aria-label="Cek domain"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><small>Cek</small></button>
-    <button data-scroll="keranjang" aria-label="Keranjang"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6h15l-2 9H8L6 6Z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg><small>Keranjang</small></button>
+    <button data-scroll="keranjang" aria-label="Keranjang"><span class="nav-badge" id="mobileCartCount">0</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6h15l-2 9H8L6 6Z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg><small>Keranjang</small></button>
     <button data-scroll="orders" aria-label="Pesanan"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="m3 6 1 1 2-2"></path><path d="m3 12 1 1 2-2"></path><path d="m3 18 1 1 2-2"></path></svg><small>Pesanan</small></button>
     <button data-mobile-logout="true" aria-label="Keluar"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><small>Keluar</small></button>
   </nav>
@@ -1601,7 +1889,7 @@
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 
   <div class="modal-backdrop" id="checkoutConfirmModal" role="dialog" aria-modal="true" aria-labelledby="checkoutConfirmTitle" aria-hidden="true">
-    <div class="confirm-modal">
+    <div class="confirm-modal" role="document" tabindex="-1">
       <h3 id="checkoutConfirmTitle">Periksa ulang pesanan</h3>
       <p>Pastikan ejaan domain dan email pemilik sudah benar sebelum checkout dikirim ke admin.</p>
       <div class="confirm-body" id="checkoutConfirmBody"></div>
@@ -1623,8 +1911,8 @@
     };
 
     const ROUTES = {
-      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || (location.pathname.includes("dirac-") ? "./dirac-dashboard-ultra-final.html" : "./dashboard.html"),
-      login: document.querySelector('meta[name="dirac-login-route"]')?.content || (location.pathname.includes("dirac-") ? "./dirac-login-ultra-final.html" : "./index.html")
+      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || "https://diracgroup.store/dashboard.html",
+      login: document.querySelector('meta[name="dirac-login-route"]')?.content || "https://diracgroup.store/wbst.html"
     };
 
     const ADMIN_CONTACT = {
@@ -1647,7 +1935,9 @@
       user: null,
       orders: [],
       orderFilter: "all",
-      orderSearch: ""
+      orderSearch: "",
+      domainCheckRunId: 0,
+      lastRemovedCartItem: null
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1735,6 +2025,22 @@
         <div class="skeleton" aria-label="Memuat pesanan"></div>
         <div class="skeleton" aria-label="Memuat pesanan"></div>
       `;
+    }
+
+    function debounce(callback, delay = 180) {
+      let timer = null;
+      return (...args) => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => callback(...args), delay);
+      };
+    }
+
+    function setResultBusy(isBusy) {
+      const area = $("resultArea");
+      if (area) area.setAttribute("aria-busy", isBusy ? "true" : "false");
+      document.querySelectorAll("#domainCheckForm button, [data-tld]").forEach((button) => {
+        button.disabled = Boolean(isBusy);
+      });
     }
 
     async function api(path, options = {}) {
@@ -1850,10 +2156,9 @@
     function isValidDomainName(value, allowBare = false) {
       const domain = normalizeDomain(value);
       const label = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?";
-      const pattern = allowBare
-        ? new RegExp(`^${label}(\.${label})*$`, "i")
-        : new RegExp(`^${label}(\.${label})+\.[a-z]{2,}$`, "i");
-      return domain.length >= 2 && domain.length <= 253 && pattern.test(domain);
+      const pattern = new RegExp(`^${label}(\\.${label})${allowBare ? "*" : "+"}$`, "i");
+      const tldLooksValid = /\.[a-z]{2,}$/i.test(domain);
+      return domain.length >= 2 && domain.length <= 253 && pattern.test(domain) && (allowBare || tldLooksValid);
     }
 
     function hasTld(value) {
@@ -1899,6 +2204,7 @@
     }
 
     function renderInitialResult() {
+      setResultBusy(false);
       $("resultArea").innerHTML = `
         <div class="result-card checking">
           <div class="result-head">
@@ -1911,6 +2217,7 @@
     }
 
     function renderChecking(domain) {
+      setResultBusy(true);
       const cleanDomain = escapeHTML(domain);
       $("resultArea").innerHTML = `
         <div class="result-card checking">
@@ -1924,6 +2231,7 @@
     }
 
     function renderCheckResult(data, fallbackDomain) {
+      setResultBusy(false);
       const domain = normalizeDomain(data.domain || fallbackDomain);
       const displayDomain = escapeHTML(domain);
       const available = Boolean(data.available);
@@ -1954,13 +2262,14 @@
     }
 
     function renderError(domain, message) {
+      setResultBusy(false);
       const displayDomain = escapeHTML(domain || "Domain");
       const displayMessage = escapeHTML(message || "Terjadi kesalahan saat mengecek domain.");
       $("resultArea").innerHTML = `
-        <div class="result-card taken">
+        <div class="result-card error">
           <div class="result-head">
             <div class="result-domain">${displayDomain}</div>
-            <span class="status-badge badge-taken">Gagal dicek</span>
+            <span class="status-badge badge-error">Gagal dicek</span>
           </div>
           <p>${displayMessage}</p>
           <div class="result-actions">
@@ -1972,6 +2281,7 @@
     }
 
     async function checkDomain(rawDomain) {
+      const runId = ++state.domainCheckRunId;
       const domain = normalizeDomain(rawDomain);
 
       if (!domain) {
@@ -1985,7 +2295,7 @@
       }
 
       if (!hasTld(domain)) {
-        await checkManyExtensions(domain);
+        await checkManyExtensions(domain, runId);
         return;
       }
 
@@ -1998,13 +2308,17 @@
 
       try {
         const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
+        if (runId !== state.domainCheckRunId) return;
         renderCheckResult(data, domain);
       } catch (error) {
+        if (runId !== state.domainCheckRunId) return;
         renderError(domain, friendlyError(error));
+      } finally {
+        if (runId === state.domainCheckRunId) setResultBusy(false);
       }
     }
 
-    async function checkManyExtensions(baseName) {
+    async function checkManyExtensions(baseName, runId = ++state.domainCheckRunId) {
       const cleanBase = normalizeDomain(baseName).replace(/\..*$/, "");
 
       if (!cleanBase) {
@@ -2018,6 +2332,7 @@
       }
 
       const tlds = [".com", ".net", ".org", ".id", ".co.id", ".xyz"];
+      setResultBusy(true);
       $("resultArea").innerHTML = tlds.map((tld) => {
         const domain = cleanBase + tld;
         const id = "card-" + tld.replace(/\./g, "-");
@@ -2033,13 +2348,15 @@
         `;
       }).join("");
 
-      for (const tld of tlds) {
+      await Promise.all(tlds.map(async (tld) => {
         const domain = cleanBase + tld;
         const id = "card-" + tld.replace(/\./g, "-");
         const card = $(id);
+        if (!card) return;
 
         try {
           const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
+          if (runId !== state.domainCheckRunId) return;
           const safeDomain = normalizeDomain(data.domain || domain);
           const available = Boolean(data.available);
           const price = getPrice(safeDomain);
@@ -2057,18 +2374,22 @@
             <p>${displayMessage}</p>
             ${available ? `
               <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
-            ` : ""}
+              <p class="microcopy">Harga estimasi. Final tetap diverifikasi ulang saat checkout.</p>
+            ` : `
+              <p class="microcopy">Coba variasi ekstensi lain atau ubah nama brand sedikit.</p>
+            `}
             <div class="result-actions">
               ${available ? `<button class="btn btn-mint" data-add-cart="${displayDomain}">Tambah ke Keranjang</button>` : ""}
               <button class="btn btn-soft" data-recheck="${displayDomain}">Cek Ulang</button>
             </div>
           `;
         } catch (error) {
-          card.className = "result-card taken";
+          if (runId !== state.domainCheckRunId) return;
+          card.className = "result-card error";
           card.innerHTML = `
             <div class="result-head">
               <div class="result-domain">${escapeHTML(domain)}</div>
-              <span class="status-badge badge-taken">Gagal dicek</span>
+              <span class="status-badge badge-error">Gagal dicek</span>
             </div>
             <p>${escapeHTML(friendlyError(error))}</p>
             <div class="result-actions">
@@ -2076,8 +2397,10 @@
             </div>
           `;
         }
-      }
+      }));
 
+      if (runId !== state.domainCheckRunId) return;
+      setResultBusy(false);
       bindResultButtons();
     }
 
@@ -2089,6 +2412,22 @@
       document.querySelectorAll("[data-recheck]").forEach((button) => {
         button.addEventListener("click", () => checkDomain(button.dataset.recheck));
       });
+    }
+
+    function calculateSubtotal(registerPrice, renewalPrice, years = 1) {
+      const safeYears = Math.min(5, Math.max(1, Number(years) || 1));
+      return Number(registerPrice || 0) + Math.max(0, safeYears - 1) * Number(renewalPrice || 0);
+    }
+
+    function updateCartYears(domain, years) {
+      const clean = normalizeDomain(domain);
+      const item = state.cart.find((entry) => entry.domain_name === clean);
+      if (!item) return;
+      item.years = Math.min(5, Math.max(1, Number(years) || 1));
+      item.subtotal = calculateSubtotal(item.register_price, item.renewal_price, item.years);
+      saveCart();
+      renderCart();
+      showToast("Durasi " + clean + " diperbarui.", "info");
     }
 
     function addToCart(domain) {
@@ -2118,7 +2457,7 @@
         years: 1,
         register_price: price.register,
         renewal_price: price.renewal,
-        subtotal: price.register,
+        subtotal: calculateSubtotal(price.register, price.renewal, 1),
         availability_snapshot: true
       });
 
@@ -2129,10 +2468,24 @@
     }
 
     function removeFromCart(domain) {
-      state.cart = state.cart.filter((item) => item.domain_name !== domain);
+      const clean = normalizeDomain(domain);
+      state.lastRemovedCartItem = state.cart.find((item) => item.domain_name === clean) || null;
+      state.cart = state.cart.filter((item) => item.domain_name !== clean);
       saveCart();
       renderCart();
       showToast("Domain dihapus dari keranjang.");
+    }
+
+    function clearCart() {
+      if (!state.cart.length) {
+        showToast("Keranjang sudah kosong.", "info");
+        return;
+      }
+      if (!window.confirm("Kosongkan semua domain dari keranjang?")) return;
+      state.cart = [];
+      saveCart();
+      renderCart();
+      showToast("Keranjang berhasil dikosongkan.", "info");
     }
 
     function getCartTotal() {
@@ -2140,8 +2493,14 @@
     }
 
     function renderCart() {
-      $("cartCount").textContent = state.cart.length;
-      if ($("statCart")) $("statCart").textContent = state.cart.length;
+      const cartCount = state.cart.length;
+      $("cartCount").textContent = cartCount;
+      if ($("mobileCartCount")) {
+        $("mobileCartCount").textContent = cartCount;
+        $("mobileCartCount").dataset.empty = cartCount ? "false" : "true";
+      }
+      if ($("clearCartBtn")) $("clearCartBtn").hidden = !cartCount;
+      if ($("statCart")) $("statCart").textContent = cartCount;
       $("cartTotal").textContent = formatRupiah(getCartTotal());
       updateCheckoutSummary();
       updateStepper();
@@ -2160,16 +2519,21 @@
       $("cartItems").innerHTML = state.cart.map((item) => {
         const domain = escapeHTML(item.domain_name);
         const ext = escapeHTML(item.extension);
+        const years = Number(item.years || 1);
+        const yearOptions = [1, 2, 3, 4, 5].map((year) => `<option value="${year}" ${year === years ? "selected" : ""}>${year} tahun</option>`).join("");
         return `
           <div class="cart-item">
             <div>
               <h3>${domain}</h3>
-              <p>${ext} • ${Number(item.years || 1)} tahun • renewal ${formatRupiah(item.renewal_price)}</p>
+              <p>${ext} • tahun pertama ${formatRupiah(item.register_price)} • renewal ${formatRupiah(item.renewal_price)}/tahun</p>
+              <div class="cart-controls">
+                <label class="sr-only" for="years-${domain}">Durasi ${domain}</label>
+                <select class="cart-year-select" id="years-${domain}" data-years="${domain}" aria-label="Durasi ${domain}">${yearOptions}</select>
+                <button class="cart-remove" data-remove="${domain}">Hapus</button>
+              </div>
             </div>
             <div class="cart-price">
               ${formatRupiah(item.subtotal)}
-              <br>
-              <button class="cart-remove" data-remove="${domain}">Hapus</button>
             </div>
           </div>
         `;
@@ -2177,6 +2541,9 @@
 
       document.querySelectorAll("[data-remove]").forEach((button) => {
         button.addEventListener("click", () => removeFromCart(button.dataset.remove));
+      });
+      document.querySelectorAll("[data-years]").forEach((select) => {
+        select.addEventListener("change", () => updateCartYears(select.dataset.years, select.value));
       });
     }
 
@@ -2210,7 +2577,7 @@
       box.innerHTML = `
         <h3 style="margin:0;color:var(--deep);">Ringkasan Pesanan</h3>
         ${domainRows}
-        <div class="summary-line"><span>Durasi</span><b>1 tahun</b></div>
+        <div class="summary-line"><span>Durasi</span><b>${escapeHTML(state.cart.map((item) => item.domain_name + ": " + Number(item.years || 1) + " tahun").join(", "))}</b></div>
         <div class="summary-line"><span>Metode DNS</span><b>${escapeHTML(dnsLabel(dnsMethod))}</b></div>
         <div class="summary-line"><span>Verifikasi</span><b>Domain dicek ulang sebelum checkout</b></div>
         <div class="summary-line"><span>Total</span><b>${formatRupiah(getCartTotal())}</b></div>
@@ -2303,25 +2670,51 @@
       const body = $("checkoutConfirmBody");
       const approve = $("approveCheckoutConfirm");
       const cancel = $("cancelCheckoutConfirm");
+      const dialog = modal?.querySelector(".confirm-modal");
       if (!modal || !body || !approve || !cancel) return Promise.resolve(true);
+
+      const previouslyFocused = document.activeElement;
       body.innerHTML = buildCheckoutConfirmHTML(payload);
       modal.classList.add("show");
       modal.setAttribute("aria-hidden", "false");
-      approve.focus();
+      document.body.style.overflow = "hidden";
+      window.requestAnimationFrame(() => (dialog || approve).focus());
+
       return new Promise((resolve) => {
+        const getFocusables = () => Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter((node) => !node.disabled && node.offsetParent !== null);
         const cleanup = (value) => {
           modal.classList.remove("show");
           modal.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
           approve.removeEventListener("click", onApprove);
           cancel.removeEventListener("click", onCancel);
           modal.removeEventListener("click", onBackdrop);
           document.removeEventListener("keydown", onKey);
+          if (previouslyFocused && typeof previouslyFocused.focus === "function") previouslyFocused.focus({ preventScroll:true });
           resolve(value);
         };
         const onApprove = () => cleanup(true);
         const onCancel = () => cleanup(false);
         const onBackdrop = (event) => { if (event.target === modal) cleanup(false); };
-        const onKey = (event) => { if (event.key === "Escape") cleanup(false); };
+        const onKey = (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            cleanup(false);
+            return;
+          }
+          if (event.key !== "Tab") return;
+          const focusables = getFocusables();
+          if (!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        };
         approve.addEventListener("click", onApprove);
         cancel.addEventListener("click", onCancel);
         modal.addEventListener("click", onBackdrop);
@@ -2366,6 +2759,7 @@
         alertBox.className = "alert error show";
         alertBox.innerHTML = `<b>Periksa data checkout:</b><br>${validationErrors.map(escapeHTML).join("<br>")}`;
         showToast("Ada data checkout yang belum valid.", "error");
+        document.querySelector('[aria-invalid="true"]')?.focus({ preventScroll:false });
         return;
       }
 
@@ -2376,6 +2770,17 @@
 
       try {
         await recheckCartBeforeCheckout();
+        button.innerHTML = `<span class="spinner" aria-hidden="true"></span> Menunggu konfirmasi...`;
+        alertBox.className = "alert info show";
+        alertBox.textContent = "Domain masih tersedia. Periksa ulang ringkasan pesanan sebelum dikirim.";
+        const approved = await confirmCheckout(payload);
+        if (!approved) {
+          alertBox.className = "alert info show";
+          alertBox.textContent = "Checkout belum dikirim. Silakan periksa kembali data pesanan.";
+          showToast("Checkout belum dikirim.", "info");
+          return;
+        }
+
         button.innerHTML = `<span class="spinner" aria-hidden="true"></span> Memproses checkout...`;
 
         const result = await api("?action=domain_checkout", {
@@ -2422,6 +2827,11 @@
     }
 
     async function loadOrders() {
+      const refreshButton = $("refreshOrdersBtn");
+      if (refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.innerHTML = `<span class="spinner" aria-hidden="true"></span> Memuat...`;
+      }
       renderSkeletonOrders();
 
       try {
@@ -2431,6 +2841,11 @@
       } catch (error) {
         $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${escapeHTML(friendlyError(error))}</div>`;
         showToast("Gagal memuat pesanan.", "error");
+      } finally {
+        if (refreshButton) {
+          refreshButton.disabled = false;
+          refreshButton.innerHTML = `<span class="btn-icon" aria-hidden="true">↻</span> Refresh Pesanan`;
+        }
       }
     }
 
@@ -2618,6 +3033,7 @@
       $("dnsMethod").addEventListener("change", updateDnsFields);
       $("checkoutForm").addEventListener("submit", submitCheckout);
       $("refreshOrdersBtn").addEventListener("click", loadOrders);
+      $("clearCartBtn")?.addEventListener("click", clearCart);
       $("logoutBtn").addEventListener("click", logout);
       document.querySelectorAll("[data-mobile-logout]").forEach((button) => {
         button.addEventListener("click", logout);
@@ -2635,12 +3051,16 @@
           renderOrders(state.orders);
         });
       });
+      const debouncedOrderRender = debounce(() => renderOrders(state.orders), 160);
       $("orderSearch")?.addEventListener("input", (event) => {
         state.orderSearch = event.target.value;
-        renderOrders(state.orders);
+        debouncedOrderRender();
       });
       ["customerName", "customerWhatsapp", "customerEmail", "ownerEmail", "nameserver1", "nameserver2", "targetPlatform"].forEach((id) => {
-        $(id)?.addEventListener("input", () => setFieldError(id, ""));
+        $(id)?.addEventListener("input", () => {
+          setFieldError(id, "");
+          updateCheckoutSummary();
+        });
       });
       $("domainAccuracyAgree")?.addEventListener("change", () => setFieldError("domainAccuracyAgree", ""));
       initBottomNavObserver();

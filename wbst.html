@@ -4,14 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Masuk | Dirac Group Domain</title>
+  <title>Masuk / Daftar | Dirac Group Domain</title>
   <meta name="description" content="Login atau daftar pelanggan Dirac Group untuk membeli dan memantau status domain." />
   <meta name="theme-color" content="#6258ff" />
   <meta name="color-scheme" content="light" />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="canonical" href="https://diracgroup.store/wbst.html" />
   <meta property="og:title" content="Masuk Dirac Group Domain" />
   <meta property="og:description" content="Login pelanggan untuk cek domain, checkout, dan melihat status pesanan." />
-  <meta name="dirac-dashboard-route" content="./dashboard.html" />
-  <meta name="dirac-login-route" content="./index.html" />
+  <meta name="dirac-dashboard-route" content="https://diracgroup.store/dashboard.html" />
+  <meta name="dirac-login-route" content="https://diracgroup.store/wbst.html" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%236258ff'/%3E%3Cstop offset='1' stop-color='%2313b6d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Ctext x='32' y='39' font-size='21' text-anchor='middle' font-family='Arial' font-weight='900' fill='white'%3EDG%3C/text%3E%3C/svg%3E" />
 
   <style>
@@ -514,6 +516,173 @@
       .helper, .auth-links { justify-content:center; text-align:center; }
     }
 
+
+    /* ===== Final production polish: cleaner layout, stronger mobile, smoother auth ===== */
+    :root {
+      --radius-xl:34px;
+      --radius-lg:24px;
+      --focus-ring:0 0 0 5px rgba(98,88,255,.12);
+      --shadow-card:0 24px 70px rgba(42,51,105,.16);
+    }
+
+    body::after {
+      content:"";
+      position:fixed;
+      inset:auto -120px -180px auto;
+      width:380px;
+      height:380px;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(19,182,214,.18), transparent 68%);
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .shell {
+      min-height:min(680px, calc(100vh - 48px));
+      align-items:stretch;
+    }
+
+    .brand-panel, .auth-card {
+      box-shadow:var(--shadow-card);
+      border-color:rgba(255,255,255,.78);
+      transform-origin:center;
+    }
+
+    .brand-panel {
+      overflow:hidden;
+    }
+
+    .brand-panel::after {
+      animation:floatShape 7s ease-in-out infinite alternate;
+    }
+
+    .brand-mark {
+      user-select:none;
+    }
+
+    .hero-copy h1 {
+      text-wrap:balance;
+    }
+
+    .mini-list div {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .auth-card {
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .tabs {
+      position:relative;
+      overflow:hidden;
+    }
+
+    .tab.active {
+      transform:none;
+    }
+
+    .form {
+      animation:authPanelIn .28s ease both;
+    }
+
+    .confirm-password-field[hidden] {
+      display:none !important;
+    }
+
+    .field input:hover, .password-wrap:hover {
+      border-color:rgba(98,88,255,.24);
+    }
+
+    .field input.is-invalid::placeholder {
+      color:rgba(190,18,60,.55);
+    }
+
+    .btn-primary {
+      position:relative;
+      overflow:hidden;
+    }
+
+    .btn-primary::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      transform:translateX(-110%);
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+      transition:transform .55s ease;
+    }
+
+    .btn-primary:hover::before {
+      transform:translateX(110%);
+    }
+
+    .auth-links {
+      padding-top:4px;
+      border-top:1px solid rgba(35,43,85,.08);
+    }
+
+    .alert.show {
+      animation:alertIn .22s ease both;
+    }
+
+    @keyframes authPanelIn {
+      from { opacity:0; transform:translateY(6px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    @keyframes alertIn {
+      from { opacity:0; transform:translateY(6px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    @keyframes floatShape {
+      from { transform:rotate(14deg) translate3d(0,0,0); }
+      to { transform:rotate(20deg) translate3d(-10px,-12px,0); }
+    }
+
+    @supports not ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+      .brand-panel, .auth-card { background:#fff; }
+      .mini-list div { background:rgba(255,255,255,.24); }
+    }
+
+    @media (hover:hover) {
+      .btn:hover, .tab:hover { transform:translateY(-2px); }
+    }
+
+    @media (max-width:850px) {
+      .shell {
+        min-height:auto;
+        width:min(100%, 580px);
+      }
+      .brand-panel {
+        display:block;
+      }
+      .auth-card {
+        justify-content:start;
+      }
+      .field input, .password-wrap input {
+        font-size:16px;
+      }
+    }
+
+    @media (max-width:420px) {
+      .auth-card {
+        padding:18px !important;
+      }
+      .tabs {
+        gap:6px;
+      }
+      .tab {
+        padding:10px 8px;
+      }
+      .btn {
+        width:100%;
+      }
+    }
+
   </style>
 </head>
 
@@ -541,8 +710,8 @@
 
     <section class="auth-card" aria-label="Form autentikasi pelanggan">
       <div class="tabs" role="tablist" aria-label="Pilih mode autentikasi">
-        <button class="tab active" id="loginTab" role="tab" aria-selected="true" type="button">Masuk</button>
-        <button class="tab" id="registerTab" role="tab" aria-selected="false" type="button">Daftar</button>
+        <button class="tab active" id="loginTab" role="tab" aria-selected="true" aria-controls="authPanel" type="button">Masuk</button>
+        <button class="tab" id="registerTab" role="tab" aria-selected="false" aria-controls="authPanel" type="button">Daftar</button>
       </div>
 
       <div class="auth-title">
@@ -550,7 +719,7 @@
         <p id="formSubtitle">Gunakan email dan password yang sudah terdaftar.</p>
       </div>
 
-      <form id="authForm" class="form">
+      <form id="authForm" class="form" role="tabpanel" aria-labelledby="loginTab" aria-describedby="formSubtitle">
         <div class="field">
           <label for="email">Email</label>
           <input id="email" type="email" required autocomplete="email" inputmode="email" placeholder="nama@email.com" aria-describedby="emailHelp emailError" />
@@ -566,7 +735,13 @@
           </div>
           <small class="field-error" id="passwordError"></small>
           <small class="caps-warning" id="capsWarning">Caps Lock aktif. Periksa huruf besar/kecil password.</small>
-          <small class="strength-text" id="passwordStrength">Minimal 6 karakter.</small>
+          <small class="strength-text" id="passwordStrength" aria-live="polite">Minimal 6 karakter.</small>
+        </div>
+
+        <div class="field confirm-password-field" id="confirmPasswordField" hidden>
+          <label for="confirmPassword">Konfirmasi Password</label>
+          <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Ulangi password" aria-describedby="confirmPasswordError" />
+          <small class="field-error" id="confirmPasswordError"></small>
         </div>
 
         <button class="btn btn-primary" type="submit" id="submitBtn">Masuk</button>
@@ -576,7 +751,7 @@
       <div class="auth-links">
         <a id="forgotPasswordLink" href="mailto:companydirac@gmail.com?subject=Lupa%20Password%20Dirac%20Group">Lupa password?</a>
         <a id="resendVerifyLink" href="mailto:companydirac@gmail.com?subject=Kirim%20Ulang%20Verifikasi%20Akun">Kirim ulang verifikasi</a>
-        <a id="dashboardLink" href="./dashboard.html">Dashboard</a>
+        <a id="dashboardLink" href="https://diracgroup.store/dashboard.html">Dashboard</a>
       </div>
 
       <div class="helper">
@@ -591,8 +766,8 @@
   <script>
     const $ = (id) => document.getElementById(id);
     const ROUTES = {
-      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || (location.pathname.includes("dirac-") ? "./dirac-dashboard-ultra-final.html" : "./dashboard.html"),
-      login: document.querySelector('meta[name="dirac-login-route"]')?.content || (location.pathname.includes("dirac-") ? "./dirac-login-ultra-final.html" : "./index.html")
+      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || "https://diracgroup.store/dashboard.html",
+      login: document.querySelector('meta[name="dirac-login-route"]')?.content || "https://diracgroup.store/wbst.html"
     };
     let mode = "login";
 
@@ -625,10 +800,16 @@
     function clearFieldErrors() {
       setFieldError("email", "");
       setFieldError("password", "");
+      setFieldError("confirmPassword", "");
     }
 
     function validEmail(value) {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""));
+    }
+
+    function focusFirstError() {
+      const firstInvalid = document.querySelector('[aria-invalid="true"]');
+      if (firstInvalid) firstInvalid.focus({ preventScroll:false });
     }
 
     function setMode(nextMode) {
@@ -638,6 +819,13 @@
       $("loginTab").setAttribute("aria-selected", mode === "login" ? "true" : "false");
       $("registerTab").setAttribute("aria-selected", mode === "register" ? "true" : "false");
       $("password").setAttribute("autocomplete", mode === "login" ? "current-password" : "new-password");
+      $("authForm").setAttribute("aria-labelledby", mode === "login" ? "loginTab" : "registerTab");
+      const confirmField = $("confirmPasswordField");
+      if (confirmField) {
+        confirmField.hidden = mode !== "register";
+        $("confirmPassword").required = mode === "register";
+        if (mode !== "register") $("confirmPassword").value = "";
+      }
       $("formTitle").textContent = mode === "login" ? "Masuk akun" : "Daftar akun";
       $("formSubtitle").textContent = mode === "login"
         ? "Gunakan email dan password yang sudah terdaftar."
@@ -717,11 +905,20 @@
       if (!validEmail(email)) {
         setFieldError("email", "Format email belum valid.");
         showAlert("error", "Periksa format email terlebih dahulu.");
+        focusFirstError();
         return;
       }
       if (!password || password.length < 6) {
         setFieldError("password", "Password minimal 6 karakter.");
         showAlert("error", "Password minimal 6 karakter.");
+        focusFirstError();
+        return;
+      }
+
+      if (mode === "register" && $("confirmPassword") && $("confirmPassword").value !== password) {
+        setFieldError("confirmPassword", "Konfirmasi password belum sama.");
+        showAlert("error", "Konfirmasi password belum sama.");
+        focusFirstError();
         return;
       }
 
@@ -741,12 +938,13 @@
         });
 
         if (mode === "register" && result.needs_email_confirmation) {
-          showAlert("success", "Akun berhasil dibuat. Silakan cek email verifikasi jika diminta, lalu login.");
           const registeredEmail = email;
           setMode("login");
           $("email").value = registeredEmail;
           $("password").value = "";
+          if ($("confirmPassword")) $("confirmPassword").value = "";
           updatePasswordStrength();
+          showAlert("success", "Akun berhasil dibuat. Silakan cek email verifikasi jika diminta, lalu login.");
         } else {
           showAlert("success", "Berhasil. Mengalihkan ke dashboard...");
           setTimeout(() => {
