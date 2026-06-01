@@ -4003,8 +4003,12 @@ namabrand"></textarea>
             <input class="order-search" id="orderSearch" type="search" placeholder="Cari domain/invoice" aria-label="Cari domain atau invoice" />
           </div>
 
-          <div id="ordersList" class="orders">
-            <div class="cart-empty">Memuat pesanan...</div>
+          <div id="ordersList" class="orders orders-hpanel" data-loading-state="orders">
+            <div class="hpanel-loading-card" role="status" aria-live="polite">
+              <span class="spinner" aria-hidden="true"></span>
+              <strong>Menyiapkan daftar pesanan...</strong>
+              <small>Data invoice akan muncul otomatis setelah akun berhasil terhubung.</small>
+            </div>
           </div>
         </div>
       </div>
@@ -4020,8 +4024,12 @@ namabrand"></textarea>
             </div>
             <button class="btn btn-soft" type="button" data-scroll="orders">Lihat Invoice</button>
           </div>
-          <div class="owned-domain-grid" id="ownedDomainsList">
-            <div class="cart-empty">Memuat domain dari pesanan...</div>
+          <div class="owned-domain-grid" id="ownedDomainsList" data-loading-state="domains">
+            <div class="hpanel-loading-card hpanel-domain-loading" role="status" aria-live="polite">
+              <span class="spinner" aria-hidden="true"></span>
+              <strong>Menyiapkan ringkasan domain...</strong>
+              <small>Ringkasan akan terisi dari invoice akun ini.</small>
+            </div>
           </div>
         </div>
       </div>
@@ -4238,9 +4246,16 @@ namabrand"></textarea>
     }
 
     function renderSkeletonOrders() {
-      $("ordersList").innerHTML = `
-        <div class="skeleton" aria-label="Memuat pesanan"></div>
-        <div class="skeleton" aria-label="Memuat pesanan"></div>
+      const list = $("ordersList");
+      if (!list) return;
+      list.classList.add("orders-hpanel");
+      list.dataset.loadingState = "orders";
+      list.innerHTML = `
+        <div class="hpanel-loading-card" role="status" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <strong>Menyiapkan daftar pesanan...</strong>
+          <small>Sistem sedang mengambil invoice dan status domain Anda.</small>
+        </div>
       `;
     }
 
@@ -5289,7 +5304,8 @@ namabrand"></textarea>
         renderOrders(state.orders);
         renderMyDomains(state.orders);
       } catch (error) {
-        $("ordersList").innerHTML = `<div class="cart-empty">Gagal memuat pesanan: ${escapeHTML(friendlyError(error))}</div>`;
+        $("ordersList").classList.add("orders-hpanel");
+        $("ordersList").innerHTML = `<div class="cart-empty hpanel-empty-state"><b>Pesanan belum dapat dimuat.</b><span>Detail: ${escapeHTML(friendlyError(error))}</span><button class="btn btn-soft empty-action" type="button" data-scroll="account">Cek akun</button></div>`;
         renderMyDomains([]);
         showToast("Gagal memuat pesanan.", "error");
       } finally {
@@ -7397,5 +7413,381 @@ body{
 </script>
 <!-- DIRAC_COMPACT_STABLE_DOMAIN_CHECK_FIX_END -->
 
+
+<style id="dirac-hpanel-orders-theme-v5">
+/* ===== DIRAC HPANEL-STYLE ORDER THEME v5 =====
+   Isolated to #orders. Checkout/cart/domain/search API logic remains untouched. */
+#orders{
+  --hp-purple:#673de6;
+  --hp-purple-soft:#f2ecff;
+  --hp-ink:#111217;
+  --hp-muted:#727586;
+  --hp-line:#e5e7eb;
+  --hp-bg:#f5f5f7;
+  --hp-card:#ffffff;
+  background:var(--hp-bg)!important;
+  padding-top:34px!important;
+  padding-bottom:42px!important;
+}
+#orders .container{width:min(1080px,calc(100% - 42px))!important;}
+#orders .panel{
+  background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;backdrop-filter:none!important;
+}
+#orders .section-head{
+  align-items:center!important;margin-bottom:18px!important;padding:0 6px!important;
+}
+#orders .section-title h2{
+  color:var(--hp-ink)!important;font-size:clamp(31px,4vw,48px)!important;letter-spacing:-.055em!important;
+}
+#orders .section-title p{color:var(--hp-muted)!important;font-size:16px!important;}
+#orders #refreshOrdersBtn{
+  border-radius:999px!important;background:#fff!important;color:var(--hp-ink)!important;border:1px solid var(--hp-line)!important;
+  box-shadow:0 12px 28px rgba(17,18,23,.06)!important;
+}
+#orders .order-tools{
+  margin-bottom:18px!important;padding:12px!important;border-radius:22px!important;background:#fff!important;border:1px solid var(--hp-line)!important;
+  box-shadow:0 14px 34px rgba(17,18,23,.06)!important;
+}
+#orders .filter-chip{
+  min-height:44px!important;padding:0 14px!important;border-radius:999px!important;background:#f4f4f6!important;color:#181920!important;border:1px solid transparent!important;
+  box-shadow:none!important;font-size:13px!important;
+}
+#orders .filter-chip.active{
+  color:var(--hp-purple)!important;background:var(--hp-purple-soft)!important;border-color:#e1d5ff!important;
+}
+#orders .order-search{
+  min-height:46px!important;border-radius:999px!important;background:#f7f7fa!important;border:1px solid var(--hp-line)!important;color:var(--hp-ink)!important;
+}
+#orders .orders.orders-hpanel{
+  display:block!important;background:#fff!important;border:1px solid var(--hp-line)!important;border-radius:26px!important;overflow:hidden!important;
+  box-shadow:0 22px 60px rgba(17,18,23,.08)!important;
+}
+#orders .orders-hpanel .cart-empty{margin:0!important;background:#fff!important;border:0!important;border-radius:0!important;color:var(--hp-muted)!important;}
+#orders .hpanel-order-card{
+  padding:0!important;margin:0!important;border:0!important;border-bottom:1px solid var(--hp-line)!important;border-radius:0!important;background:#fff!important;box-shadow:none!important;
+  overflow:hidden!important;color:var(--hp-ink)!important;
+}
+#orders .hpanel-order-card:last-of-type{border-bottom:0!important;}
+#orders .hpanel-order-head{
+  display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:26px 28px 16px!important;background:#fff!important;
+}
+#orders .hpanel-eyebrow{
+  display:block;color:var(--hp-muted)!important;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;
+}
+#orders .hpanel-order-card .invoice{
+  color:var(--hp-ink)!important;font-size:24px!important;line-height:1.05!important;font-weight:1000!important;letter-spacing:-.05em!important;
+}
+#orders .hpanel-order-card .date{margin-top:6px;color:var(--hp-muted)!important;font-size:14px!important;}
+#orders .hpanel-order-card .badge-row{justify-content:flex-end!important;gap:8px!important;}
+#orders .hpanel-order-card .badge{
+  border:0!important;border-radius:999px!important;padding:8px 12px!important;font-size:12px!important;font-weight:1000!important;
+}
+#orders .hpanel-domain-stack{padding:0 28px!important;}
+#orders .hpanel-domain-row{
+  display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:22px;align-items:center;padding:24px 0!important;border-top:1px solid var(--hp-line)!important;
+}
+#orders .hpanel-domain-row:first-child{border-top:0!important;}
+#orders .hpanel-domain-name{
+  display:block;color:var(--hp-ink)!important;font-size:clamp(24px,3vw,34px)!important;line-height:1.08!important;font-weight:1000!important;letter-spacing:-.045em!important;overflow-wrap:anywhere!important;
+}
+#orders .hpanel-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 13px;}
+#orders .hpanel-discount-chip,
+#orders .hpanel-small-chip{
+  display:inline-flex;align-items:center;min-height:28px;padding:4px 11px;border-radius:999px;background:var(--hp-purple-soft)!important;color:#25104e!important;font-size:13px;font-weight:900;
+}
+#orders .hpanel-small-chip{background:#f4f4f6!important;color:var(--hp-muted)!important;}
+#orders .hpanel-old-price{
+  color:#7f808b!important;text-decoration:line-through;font-size:17px;font-weight:700;margin-bottom:2px;opacity:.8;
+}
+#orders .hpanel-price{
+  display:block;color:var(--hp-ink)!important;font-size:clamp(22px,3vw,34px)!important;line-height:1.1!important;font-weight:1000!important;letter-spacing:-.04em!important;
+}
+#orders .hpanel-price span{font-size:.68em;font-weight:900;color:var(--hp-ink)!important;}
+#orders .hpanel-copy-icon{
+  width:76px;height:76px;border-radius:18px;border:1px solid var(--hp-line)!important;background:#fff!important;color:#111217!important;
+  display:grid;place-items:center;font-size:32px;font-weight:1000;box-shadow:none!important;cursor:pointer;transition:transform .18s ease, border-color .18s ease;
+}
+#orders .hpanel-copy-icon:hover{transform:translateY(-2px);border-color:var(--hp-purple)!important;}
+#orders .hpanel-copy-icon svg{width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+#orders .hpanel-process{padding:4px 28px 20px!important;}
+#orders .hpanel-process .order-timeline{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:0!important;
+}
+#orders .hpanel-process .timeline-step{
+  min-height:38px!important;border-radius:12px!important;background:#f7f7fa!important;border:1px solid var(--hp-line)!important;color:var(--hp-muted)!important;font-size:11px!important;text-align:center!important;
+}
+#orders .hpanel-process .timeline-step.done{background:#ecfdf5!important;color:#047857!important;border-color:#bbf7d0!important;}
+#orders .hpanel-process .timeline-step.current{background:#f2ecff!important;color:var(--hp-purple)!important;border-color:#e1d5ff!important;}
+#orders .hpanel-detail-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--hp-line)!important;background:#fafafa!important;
+}
+#orders .hpanel-detail-item{padding:18px 24px;border-right:1px solid var(--hp-line)!important;}
+#orders .hpanel-detail-item:nth-child(3n){border-right:0!important;}
+#orders .hpanel-detail-item span{display:block;color:var(--hp-muted)!important;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+#orders .hpanel-detail-item b{display:block;color:var(--hp-ink)!important;font-size:15px!important;line-height:1.35;overflow-wrap:anywhere;}
+#orders .hpanel-order-actions{
+  display:flex;flex-wrap:wrap;gap:8px;padding:18px 24px 24px!important;background:#fff!important;border-top:1px solid var(--hp-line)!important;
+}
+#orders .hpanel-order-actions .order-action{
+  border-radius:999px!important;border:1px solid var(--hp-line)!important;background:#fff!important;color:var(--hp-ink)!important;padding:9px 13px!important;font-size:12px!important;font-weight:1000!important;
+}
+#orders .orders-subtotal-bar{
+  position:sticky;bottom:22px;z-index:6;margin:18px auto 0;padding:18px;border:4px solid var(--hp-purple);border-radius:26px;background:#fff;
+  box-shadow:0 18px 45px rgba(103,61,230,.16), 0 4px 24px rgba(17,18,23,.08);
+}
+#orders .orders-subtotal-top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;}
+#orders .orders-subtotal-top span{color:var(--hp-ink)!important;font-size:24px;font-weight:500;}
+#orders .orders-subtotal-top strong{color:var(--hp-ink)!important;font-size:27px;font-weight:1000;letter-spacing:-.035em;}
+#orders .orders-bottom-btn{
+  min-height:64px;border-radius:16px;background:#151515;color:#fff!important;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:1000;text-decoration:none!important;
+}
+html[data-theme="dark"] #orders{--hp-bg:#090f1a;--hp-card:#101a2c;--hp-ink:#f8fafc;--hp-muted:#cbd5e1;--hp-line:rgba(226,232,240,.14);--hp-purple-soft:#20133f;background:var(--hp-bg)!important;}
+html[data-theme="dark"] #orders .order-tools,
+html[data-theme="dark"] #orders .orders.orders-hpanel,
+html[data-theme="dark"] #orders .hpanel-order-card,
+html[data-theme="dark"] #orders .hpanel-order-head,
+html[data-theme="dark"] #orders .hpanel-order-actions,
+html[data-theme="dark"] #orders .orders-subtotal-bar{background:#101a2c!important;border-color:var(--hp-line)!important;}
+html[data-theme="dark"] #orders .hpanel-detail-grid{background:#0b1220!important;}
+html[data-theme="dark"] #orders .hpanel-copy-icon,
+html[data-theme="dark"] #orders .hpanel-order-actions .order-action,
+html[data-theme="dark"] #orders #refreshOrdersBtn{background:#0b1220!important;color:#f8fafc!important;border-color:rgba(226,232,240,.16)!important;}
+html[data-theme="dark"] #orders .filter-chip,html[data-theme="dark"] #orders .order-search{background:#0b1220!important;color:#f8fafc!important;border-color:rgba(226,232,240,.16)!important;}
+@media(max-width:900px){
+  #orders{padding-top:22px!important;padding-bottom:128px!important;}
+  #orders .container{width:min(100% - 22px,1080px)!important;}
+  #orders .section-head{display:flex!important;align-items:flex-start!important;gap:12px!important;}
+  #orders .section-title h2{font-size:30px!important;}
+  #orders #refreshOrdersBtn{width:100%!important;}
+  #orders .order-tools{border-radius:18px!important;padding:10px!important;}
+  #orders .order-filters{display:grid!important;grid-template-columns:1fr 1fr!important;width:100%!important;gap:8px!important;}
+  #orders .filter-chip{min-height:42px!important;}
+  #orders .orders.orders-hpanel{border-radius:18px!important;}
+  #orders .hpanel-order-head{padding:22px 18px 12px!important;display:grid!important;grid-template-columns:1fr!important;}
+  #orders .hpanel-order-card .badge-row{justify-content:flex-start!important;}
+  #orders .hpanel-domain-stack{padding:0 18px!important;}
+  #orders .hpanel-domain-row{grid-template-columns:minmax(0,1fr) 68px!important;gap:12px!important;padding:24px 0!important;}
+  #orders .hpanel-domain-name{font-size:27px!important;}
+  #orders .hpanel-copy-icon{width:66px;height:66px;border-radius:15px;}
+  #orders .hpanel-copy-icon svg{width:32px;height:32px;}
+  #orders .hpanel-process{padding:4px 18px 18px!important;}
+  #orders .hpanel-process .order-timeline{grid-template-columns:1fr 1fr!important;}
+  #orders .hpanel-detail-grid{grid-template-columns:1fr!important;}
+  #orders .hpanel-detail-item{border-right:0!important;border-bottom:1px solid var(--hp-line)!important;padding:14px 18px!important;}
+  #orders .hpanel-detail-item:last-child{border-bottom:0!important;}
+  #orders .hpanel-order-actions{padding:16px 18px 20px!important;}
+  #orders .hpanel-order-actions .order-action{flex:1 1 calc(50% - 8px);text-align:center!important;}
+  #orders .orders-subtotal-bar{bottom:92px;margin-top:16px;padding:15px;border-radius:24px;border-width:4px;}
+  #orders .orders-subtotal-top span{font-size:24px;}
+  #orders .orders-subtotal-top strong{font-size:27px;}
+  #orders .orders-bottom-btn{min-height:62px;font-size:21px;}
+}
+@media(max-width:520px){
+  #orders .section-title h2{font-size:28px!important;}
+  #orders .order-filters{grid-template-columns:1fr!important;}
+  #orders .hpanel-domain-name{font-size:25px!important;}
+  #orders .hpanel-price{font-size:27px!important;}
+  #orders .hpanel-order-actions .order-action{flex-basis:100%;}
+  #orders .orders-subtotal-top span{font-size:22px;}
+  #orders .orders-subtotal-top strong{font-size:25px;}
+}
+</style>
+
+
+<script id="dirac-hpanel-orders-render-v5">
+(function(){
+  function hasFn(name){ return typeof window[name] === "function"; }
+  function e(value){ return hasFn("escapeHTML") ? window.escapeHTML(value) : String(value == null ? "" : value).replace(/[&<>"']/g, function(ch){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"})[ch]; }); }
+  function money(value){ return hasFn("formatRupiah") ? window.formatRupiah(value) : "Rp" + (Number(value || 0)).toLocaleString("id-ID"); }
+  function invoice(order){ return hasFn("makeInvoiceCode") ? window.makeInvoiceCode(order.id) : ("INV-" + (order && order.id || "")); }
+  function date(value){ return hasFn("formatDate") ? window.formatDate(value) : (value || "-"); }
+  function status(value){ return hasFn("statusLabel") ? window.statusLabel(value) : (value || "-"); }
+  function cls(value){ return hasFn("safeClass") ? window.safeClass(value) : String(value || "unknown").toLowerCase().replace(/[^a-z0-9_-]/g,"_"); }
+  function dns(value){ return hasFn("dnsLabel") ? window.dnsLabel(value) : (value || "-"); }
+  function itemYears(item){ return Number(item && item.years || item && item.period || 1) || 1; }
+  function itemPrice(item){ return Number(item && (item.subtotal || item.total || item.price || item.register_price) || 0); }
+  function maybeOldPrice(item){
+    var subtotal = itemPrice(item);
+    var register = Number(item && item.register_price || 0);
+    var renewal = Number(item && item.renewal_price || register || 0);
+    var years = itemYears(item);
+    var computed = register && years ? register + Math.max(0, years - 1) * renewal : 0;
+    if (computed && subtotal && computed > subtotal) return '<div class="hpanel-old-price">' + e(money(computed)) + '</div>';
+    return '';
+  }
+  function copyIcon(domain){
+    return '<button class="hpanel-copy-icon" type="button" data-copy="' + e(domain) + '" data-copy-label="Domain" aria-label="Salin domain ' + e(domain) + '">' +
+      '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 8h11v11H8z"></path><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>' +
+    '</button>';
+  }
+  function renderDomainItem(item, index, order){
+    var domain = item && item.domain_name ? item.domain_name : ("domain-" + (index + 1));
+    var years = itemYears(item);
+    var subtotal = itemPrice(item);
+    var st = status(order.order_status);
+    return ''+
+      '<div class="hpanel-domain-row">' +
+        '<div>' +
+          '<strong class="hpanel-domain-name">' + e(domain) + '</strong>' +
+          '<div class="hpanel-chip-row"><span class="hpanel-discount-chip">' + e(st) + '</span><span class="hpanel-small-chip">' + years + ' tahun</span></div>' +
+          maybeOldPrice(item) +
+          '<b class="hpanel-price">' + e(money(subtotal)) + '<span>/total</span></b>' +
+        '</div>' +
+        copyIcon(domain) +
+      '</div>';
+  }
+  function detail(label, value, copyLabel){
+    var clean = value == null || value === "" ? "-" : value;
+    var copy = clean !== "-" ? '<button class="copy-inline" type="button" data-copy="' + e(clean) + '" data-copy-label="' + e(copyLabel || label) + '">Salin</button>' : '';
+    return '<div class="hpanel-detail-item"><span>' + e(label) + '</span><b>' + e(clean) + copy + '</b></div>';
+  }
+  function renderOrderCard(order){
+    var items = Array.isArray(order.domain_order_items) ? order.domain_order_items : [];
+    var invoiceCode = invoice(order);
+    var domains = items.map(function(it){ return it && it.domain_name || ""; }).filter(Boolean).join(", ");
+    var total = Number(order.total_amount || items.reduce(function(sum,it){ return sum + itemPrice(it); }, 0));
+    var domainRows = items.length ? items.map(function(item, i){ return renderDomainItem(item, i, order); }).join("") : '<div class="cart-empty">Item domain belum tersedia.</div>';
+    var timeline = hasFn("renderTimeline") ? window.renderTimeline(order) : '';
+    var adminEmail = (window.ADMIN_CONTACT && window.ADMIN_CONTACT.email) || 'admin@diracgroup.com';
+    return ''+
+      '<article class="order-card hpanel-order-card">' +
+        '<div class="hpanel-order-head">' +
+          '<div><span class="hpanel-eyebrow">Invoice</span><div class="invoice">' + e(invoiceCode) + '</div><div class="date">' + e(date(order.created_at)) + '</div></div>' +
+          '<div class="badge-row"><span class="badge ' + e(cls(order.order_status)) + '">' + e(status(order.order_status)) + '</span><span class="badge ' + e(cls(order.payment_status)) + '">' + e(status(order.payment_status)) + '</span></div>' +
+        '</div>' +
+        '<div class="hpanel-domain-stack">' + domainRows + '</div>' +
+        '<div class="hpanel-process">' + timeline + '</div>' +
+        '<div class="hpanel-detail-grid">' +
+          detail('Total invoice', money(total), 'Total invoice') +
+          detail('Metode DNS', dns(order.dns_method), 'Metode DNS') +
+          detail('Email pemilik', order.owner_email || '-', 'Email pemilik') +
+          detail('Nameserver 1', order.nameserver_1 || '-', 'Nameserver 1') +
+          detail('Nameserver 2', order.nameserver_2 || '-', 'Nameserver 2') +
+          detail('Tujuan platform', order.target_platform || '-', 'Tujuan platform') +
+        '</div>' +
+        '<div class="hpanel-order-actions">' +
+          '<button class="order-action" type="button" data-copy="' + e(invoiceCode) + '" data-copy-label="Invoice">Salin invoice</button>' +
+          (domains ? '<button class="order-action" type="button" data-copy="' + e(domains) + '" data-copy-label="Daftar domain">Salin domain</button>' : '') +
+          '<button class="order-action" type="button" data-download-invoice="' + e(invoiceCode) + '" data-invoice-total="' + e(money(total)) + '" data-invoice-domains="' + e(domains) + '">Unduh ringkasan</button>' +
+          '<a class="order-action" href="mailto:' + e(adminEmail) + '?subject=' + encodeURIComponent('Bantuan Invoice ' + invoiceCode) + '">Hubungi admin</a>' +
+        '</div>' +
+      '</article>';
+  }
+  function hpanelRenderOrders(orders){
+    orders = Array.isArray(orders) ? orders : [];
+    if (hasFn("renderOrderStats")) window.renderOrderStats(orders);
+    var list = document.getElementById("ordersList");
+    if (!list) return;
+    list.classList.add("orders-hpanel");
+    if (!orders.length) {
+      list.innerHTML = '<div class="cart-empty">Belum ada pesanan. Cek domain dan checkout terlebih dahulu.<button class="btn btn-soft empty-action" type="button" data-scroll="cek">Cek domain sekarang</button></div>';
+      if (hasFn("initScrollButtons")) window.initScrollButtons(list);
+      return;
+    }
+    var filtered = orders.filter(function(order){
+      return hasFn("orderMatchesFilter") ? window.orderMatchesFilter(order, invoice(order)) : true;
+    });
+    if (!filtered.length) {
+      list.innerHTML = '<div class="cart-empty">Tidak ada pesanan yang cocok dengan filter/pencarian.</div>';
+      return;
+    }
+    var total = filtered.reduce(function(sum, order){
+      var items = Array.isArray(order.domain_order_items) ? order.domain_order_items : [];
+      return sum + Number(order.total_amount || items.reduce(function(s,it){ return s + itemPrice(it); }, 0) || 0);
+    }, 0);
+    var adminEmail = (window.ADMIN_CONTACT && window.ADMIN_CONTACT.email) || 'admin@diracgroup.com';
+    list.innerHTML = filtered.map(renderOrderCard).join('') +
+      '<div class="orders-subtotal-bar" aria-label="Ringkasan subtotal pesanan">' +
+        '<div class="orders-subtotal-top"><span>Subtotal (' + filtered.length + ' pesanan)</span><strong>' + e(money(total)) + '</strong></div>' +
+        '<a class="orders-bottom-btn" href="mailto:' + e(adminEmail) + '?subject=' + encodeURIComponent('Konfirmasi pesanan domain') + '">Lanjut konfirmasi</a>' +
+      '</div>';
+    if (hasFn("bindOrderButtons")) window.bindOrderButtons();
+  }
+  window.renderOrders = hpanelRenderOrders;
+  try { renderOrders = hpanelRenderOrders; } catch (_) {}
+})();
+</script>
+
+
+
+<style id="dirac-dashboard-loading-fix-v6">
+/* Polished non-stuck loading states for hPanel-style orders and Domain Saya. */
+#orders .hpanel-loading-card,
+.domain-management-panel .hpanel-loading-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:8px 14px;
+  align-items:center;
+  margin:0!important;
+  padding:26px 28px!important;
+  border-radius:24px!important;
+  background:#fff!important;
+  border:1px dashed #d9dbe5!important;
+  color:#1f2a44!important;
+  box-shadow:none!important;
+}
+#orders .hpanel-loading-card .spinner,
+.domain-management-panel .hpanel-loading-card .spinner{grid-row:1 / span 2;color:#673de6;width:1.15em;height:1.15em;}
+#orders .hpanel-loading-card strong,
+.domain-management-panel .hpanel-loading-card strong{display:block;color:#1f2a44!important;font-size:17px!important;line-height:1.2;font-weight:1000;}
+#orders .hpanel-loading-card small,
+.domain-management-panel .hpanel-loading-card small{display:block;color:#727586!important;font-size:13px!important;font-weight:800;line-height:1.35;}
+#orders .hpanel-empty-state{
+  display:grid!important;
+  gap:8px!important;
+  padding:26px 28px!important;
+  border:1px dashed #d9dbe5!important;
+  border-radius:24px!important;
+  background:#fff!important;
+  color:#727586!important;
+}
+#orders .hpanel-empty-state b{color:#111217!important;font-size:18px!important;}
+#orders .hpanel-empty-state span{color:#727586!important;font-weight:800;}
+.domain-management-panel .hpanel-domain-loading{margin-top:6px!important;}
+html[data-theme="dark"] #orders .hpanel-loading-card,
+html[data-theme="dark"] #orders .hpanel-empty-state,
+html[data-theme="dark"] .domain-management-panel .hpanel-loading-card{
+  background:#0b1220!important;
+  border-color:rgba(148,163,184,.30)!important;
+  color:#f8fafc!important;
+}
+html[data-theme="dark"] #orders .hpanel-loading-card strong,
+html[data-theme="dark"] #orders .hpanel-empty-state b,
+html[data-theme="dark"] .domain-management-panel .hpanel-loading-card strong{color:#f8fafc!important;}
+html[data-theme="dark"] #orders .hpanel-loading-card small,
+html[data-theme="dark"] #orders .hpanel-empty-state span,
+html[data-theme="dark"] .domain-management-panel .hpanel-loading-card small{color:#cbd5e1!important;}
+@media(max-width:900px){
+  #orders .hpanel-loading-card,
+  #orders .hpanel-empty-state,
+  .domain-management-panel .hpanel-loading-card{padding:22px 20px!important;border-radius:22px!important;}
+}
+</style>
+<script id="dirac-dashboard-loading-fallback-v6">
+(function(){
+  function stillLoading(node){
+    if (!node) return false;
+    if (node.querySelector('.hpanel-order-card,.owned-domain-card')) return false;
+    var text = (node.textContent || '').toLowerCase();
+    return /memuat|menyiapkan|loading|mengambil/.test(text) || node.dataset.loadingState;
+  }
+  function installFallback(){
+    var orders = document.getElementById('ordersList');
+    if (stillLoading(orders)) {
+      orders.classList.add('orders-hpanel');
+      orders.innerHTML = '<div class="cart-empty hpanel-empty-state"><b>Pesanan belum tampil.</b><span>Jika halaman dibuka tanpa sesi login atau jaringan lambat, masuk ulang lalu tekan Refresh Pesanan. Data asli tetap akan tampil otomatis saat API merespons.</span><button class="btn btn-soft empty-action" type="button" data-scroll="account">Cek akun</button></div>';
+      if (typeof window.initScrollButtons === 'function') window.initScrollButtons(orders);
+    }
+    var domains = document.getElementById('ownedDomainsList');
+    if (stillLoading(domains)) {
+      domains.innerHTML = '<div class="cart-empty"><b>Domain belum tampil.</b><br>Ringkasan domain akan muncul setelah pesanan berhasil dimuat.</div>';
+      if (typeof window.initScrollButtons === 'function') window.initScrollButtons(domains);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    window.setTimeout(installFallback, 12000);
+  });
+})();
+</script>
 </body>
 </html>
