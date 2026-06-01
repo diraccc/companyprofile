@@ -7098,76 +7098,123 @@ html[data-theme="dark"] .professional-mobile-note{
 <!-- DIRAC_USER_REQUESTED_PRECISION_FIX_END -->
 
 
-<!-- DIRAC_CHECKOUT_API_EXTENSIONS_PRECISION_FIX_START -->
-<style id="dirac-checkout-api-extensions-precision-fix">
+<!-- DIRAC_NO_CRASH_CLEANUP_PATCH_START -->
+<style id="dirac-no-crash-cleanup-patch">
 /*
-  Patch presisi lanjutan:
-  - bottom nav dan floating action disembunyikan otomatis ketika area checkout/konfirmasi tampil;
-  - total keranjang, badge angka, ikon judul checkout, dan daftar ekstensi dibuat stabil di mobile;
-  - daftar ekstensi tidak lagi dikunci pada PRICE_RULES statis; JS di bawah memuat daftar TLD dari API bila tersedia,
-    lalu fallback ke katalog luas tanpa mengubah alur API checkout/order/login.
+  Patch final non-destruktif:
+  1) Menghapus tampilan daftar ekstensi cepat yang terlalu panjang.
+  2) Mengecilkan tipografi mobile agar layout tidak terasa penuh.
+  3) Menstabilkan alur Cek Domain agar tidak membuat browser mobile berat/crash.
 */
+#cek .search-assist-grid > div:first-child{
+  display:none!important;
+}
+#cek .search-assist-grid{
+  display:block!important;
+}
+#cek .bulk-panel{
+  margin-top:12px!important;
+}
+#cek #resultArea{
+  scroll-margin-top:86px!important;
+}
+#resultArea .dirac-check-summary{
+  border-color:rgba(98,88,255,.18)!important;
+  background:linear-gradient(135deg,rgba(238,242,255,.92),rgba(255,255,255,.92))!important;
+}
+#resultArea .dirac-progress-line{
+  margin-top:10px;
+  height:8px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(98,88,255,.13);
+}
+#resultArea .dirac-progress-line > span{
+  display:block;
+  width:0%;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,var(--violet,#6258ff),var(--cyan,#13b6d6));
+  transition:width .2s ease;
+}
+#resultArea .dirac-result-grid{
+  display:grid;
+  gap:12px;
+}
+#resultArea .result-card{
+  contain:layout paint;
+}
+
 @media(max-width:900px){
-  body.dirac-checkout-in-view .mobile-bottom-nav,
-  body.dirac-checkout-modal-open .mobile-bottom-nav,
-  body.dirac-hide-bottom-nav .mobile-bottom-nav{
-    opacity:0!important;
-    visibility:hidden!important;
-    pointer-events:none!important;
-    transform:translate3d(-50%,118%,0)!important;
-    filter:none!important;
+  body{
+    font-size:15px!important;
+    line-height:1.5!important;
   }
-
-  body.dirac-cart-zone-in-view .dirac-floating-actions,
-  body.dirac-checkout-in-view .dirac-floating-actions,
-  body.dirac-checkout-modal-open .dirac-floating-actions,
-  body.dirac-hide-bottom-nav .dirac-floating-actions,
-  body.dirac-cart-zone-in-view .float-actions,
-  body.dirac-checkout-in-view .float-actions,
-  body.dirac-checkout-modal-open .float-actions{
-    opacity:0!important;
-    visibility:hidden!important;
-    pointer-events:none!important;
-    transform:translate3d(0,14px,0)!important;
-  }
-
-  #checkout .section-title h2::before,
-  #checkout .section-title h2::after{
-    display:none!important;
-    content:none!important;
-  }
-  #checkout .section-title h2{
-    display:block!important;
-    padding-left:0!important;
-    margin-left:0!important;
-    gap:0!important;
-    font-size:clamp(30px,8vw,38px)!important;
-    line-height:1.06!important;
+  .hero-card h1,
+  .section-title h2{
+    font-size:clamp(24px,7.1vw,34px)!important;
+    line-height:1.08!important;
     letter-spacing:-.055em!important;
-    overflow:visible!important;
   }
-  #checkout .section-title p{
-    margin-top:7px!important;
-    max-width:100%!important;
-    line-height:1.45!important;
+  .section-title p,
+  .hero-card p,
+  .microcopy,
+  .field-help,
+  .cart-empty,
+  .result-card p,
+  .checkout-summary,
+  .line,
+  .summary-line{
+    font-size:14px!important;
+    line-height:1.48!important;
   }
-
+  .panel,
+  .order-card,
+  .hero-card{
+    border-radius:22px!important;
+  }
+  .panel{
+    padding:17px!important;
+  }
+  .domain-form input,
+  .field input,
+  .field textarea,
+  .field select{
+    font-size:15px!important;
+  }
+  .btn{
+    font-size:14px!important;
+    min-height:44px!important;
+    border-radius:15px!important;
+  }
+  .result-domain,
+  .cart-item h3{
+    font-size:18px!important;
+    line-height:1.18!important;
+  }
+  .price-line{
+    font-size:17px!important;
+  }
+  #keranjang .cart-empty{
+    padding:18px!important;
+    font-size:15px!important;
+  }
   #keranjang .total-row{
     display:grid!important;
     grid-template-columns:auto minmax(0,1fr)!important;
     align-items:center!important;
-    gap:12px!important;
+    gap:10px!important;
     width:100%!important;
-    min-height:74px!important;
-    padding:17px 18px!important;
-    border-radius:22px!important;
+    min-height:62px!important;
+    padding:14px 16px!important;
+    border-radius:20px!important;
     overflow:hidden!important;
   }
   #keranjang .total-row span:first-child{
     justify-self:start!important;
     white-space:nowrap!important;
-    font-size:clamp(22px,6.5vw,32px)!important;
-    line-height:1.1!important;
+    font-size:clamp(20px,5.8vw,26px)!important;
+    line-height:1.08!important;
   }
   #keranjang #cartTotal{
     justify-self:end!important;
@@ -7178,152 +7225,124 @@ html[data-theme="dark"] .professional-mobile-note{
     white-space:nowrap!important;
     overflow:hidden!important;
     text-overflow:clip!important;
-    font-size:clamp(24px,7vw,34px)!important;
+    font-size:clamp(20px,5.8vw,27px)!important;
     line-height:1.08!important;
-    letter-spacing:-.045em!important;
+    letter-spacing:-.035em!important;
     font-variant-numeric:tabular-nums!important;
   }
-
   #keranjang .cart-price{
-    min-height:56px!important;
+    min-height:46px!important;
     width:100%!important;
     justify-content:center!important;
     text-align:center!important;
-    border-radius:17px!important;
-    font-size:clamp(20px,6vw,30px)!important;
+    border-radius:16px!important;
+    font-size:clamp(18px,5.4vw,24px)!important;
     line-height:1.1!important;
     font-weight:1000!important;
     font-variant-numeric:tabular-nums!important;
     overflow:hidden!important;
   }
-
   .mobile-bottom-nav .nav-badge{
     top:2px!important;
     right:5px!important;
     min-width:17px!important;
-    width:auto!important;
     height:17px!important;
     padding:0 4px!important;
-    border-radius:999px!important;
-    display:inline-grid!important;
-    place-items:center!important;
     font-size:9px!important;
-    font-weight:1000!important;
     line-height:1!important;
-    letter-spacing:0!important;
-    color:#fff!important;
-    background:#ef5f80!important;
-    border:2px solid rgba(255,255,255,.96)!important;
-    box-shadow:0 7px 16px rgba(239,95,128,.30)!important;
-    transform:translate3d(0,0,0)!important;
-    z-index:5!important;
+    transform:none!important;
   }
   .mobile-bottom-nav .nav-badge[data-empty="true"]{display:none!important;}
-
-  #cek .tld-group{
-    display:grid!important;
-    grid-template-columns:repeat(auto-fit,minmax(68px,1fr))!important;
-    gap:7px!important;
-    align-items:stretch!important;
+  body.dirac-checkout-in-view .mobile-bottom-nav,
+  body.dirac-checkout-modal-open .mobile-bottom-nav,
+  body.dirac-hide-bottom-nav .mobile-bottom-nav{
+    opacity:0!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+    transform:translate3d(-50%,118%,0)!important;
   }
-  #cek .tld-group.dirac-api-tlds-loaded{
-    grid-template-columns:repeat(auto-fit,minmax(72px,1fr))!important;
-  }
-  #cek .tld-chip{
-    min-height:42px!important;
-    display:inline-flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    padding:8px 7px!important;
-    border-radius:999px!important;
-    line-height:1!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    font-variant-numeric:tabular-nums!important;
-  }
-  #cek .assist-title.dirac-api-tlds-title::after{
-    content:" — semua ekstensi API";
-    color:var(--muted)!important;
-    font-weight:800!important;
-    letter-spacing:0!important;
-    text-transform:none!important;
-  }
-
-  #resultArea{
-    scroll-margin-top:84px!important;
+  body.dirac-checkout-in-view .dirac-floating-actions,
+  body.dirac-checkout-modal-open .dirac-floating-actions,
+  body.dirac-cart-zone-in-view .dirac-floating-actions,
+  body.dirac-hide-bottom-nav .dirac-floating-actions,
+  body.dirac-checkout-in-view .float-actions,
+  body.dirac-checkout-modal-open .float-actions,
+  body.dirac-cart-zone-in-view .float-actions{
+    opacity:0!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+    transform:translate3d(0,14px,0)!important;
   }
 }
 
-@media(max-width:520px){
-  #keranjang .total-row{
-    padding:16px!important;
-    min-height:68px!important;
-    gap:10px!important;
-  }
-  #keranjang .total-row span:first-child{font-size:clamp(20px,6.3vw,28px)!important;}
-  #keranjang #cartTotal{font-size:clamp(22px,6.8vw,31px)!important;}
-  #keranjang .cart-price{font-size:clamp(19px,6.4vw,28px)!important;}
-  #cek .tld-group,
-  #cek .tld-group.dirac-api-tlds-loaded{
-    grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  }
-  #cek .tld-chip{font-size:12px!important;min-height:40px!important;padding-inline:5px!important;}
-}
-
-@media(max-width:360px){
-  #keranjang .total-row{grid-template-columns:1fr!important;align-items:start!important;}
-  #keranjang #cartTotal{justify-self:start!important;text-align:left!important;white-space:normal!important;}
-  #cek .tld-group,
-  #cek .tld-group.dirac-api-tlds-loaded{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+@media(max-width:420px){
+  body{font-size:14px!important;}
+  .section-title h2{font-size:clamp(23px,6.8vw,31px)!important;}
+  .section-title p,
+  .microcopy,
+  .cart-empty,
+  .result-card p{font-size:13.5px!important;}
+  #keranjang #cartTotal{font-size:clamp(19px,5.6vw,25px)!important;}
+  #keranjang .total-row span:first-child{font-size:clamp(19px,5.5vw,24px)!important;}
 }
 </style>
 
-<script id="dirac-checkout-api-extensions-precision-fix-js">
+<script id="dirac-no-crash-cleanup-patch-js">
 (function(){
   "use strict";
-  function ready(fn){ if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
+
+  function ready(fn){
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, { once:true });
+    else fn();
+  }
   function byId(id){ return document.getElementById(id); }
-
-  var FALLBACK_API_TLDS = [
-    ".com", ".net", ".org", ".id", ".co.id", ".my.id", ".web.id", ".biz.id", ".or.id", ".ac.id", ".sch.id",
-    ".xyz", ".site", ".online", ".biz", ".store", ".shop", ".info", ".co", ".io", ".me", ".app", ".dev", ".tech",
-    ".cloud", ".website", ".space", ".live", ".world", ".digital", ".agency", ".company", ".solutions", ".services",
-    ".media", ".network", ".systems", ".center", ".email", ".link", ".click", ".blog", ".news", ".press", ".pro",
-    ".asia", ".tv", ".cc", ".name", ".mobi", ".club", ".fun", ".life", ".today", ".academy", ".education",
-    ".finance", ".capital", ".group", ".team", ".works", ".support", ".consulting", ".marketing", ".events", ".travel"
-  ];
-
-  var API_TLD_ACTIONS = [
-    "hostinger-tlds", "hostinger-extensions", "hostinger-prices", "domain-tlds", "domain-extensions", "domain-prices",
-    "tlds", "extensions", "prices", "get-tlds", "get-extensions", "supported-tlds", "supported-extensions"
-  ];
-
+  function sleep(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms || 0); }); }
+  function nextFrame(){ return new Promise(function(resolve){ requestAnimationFrame(function(){ resolve(); }); }); }
+  function html(value){
+    try{ if(typeof escapeHTML === "function") return escapeHTML(value); }catch(_){ }
+    return String(value == null ? "" : value).replace(/[&<>'"]/g, function(ch){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch];
+    });
+  }
+  function safeNormalizeDomain(value){
+    try{ if(typeof normalizeDomain === "function") return normalizeDomain(value); }catch(_){ }
+    return String(value || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "").replace(/\s+/g, "").replace(/\.$/, "");
+  }
+  function safeFormatRupiah(value){
+    try{ if(typeof formatRupiah === "function") return formatRupiah(value); }catch(_){ }
+    return "Rp" + Number(value || 0).toLocaleString("id-ID");
+  }
+  function safeFriendlyError(error){
+    try{ if(typeof friendlyError === "function") return friendlyError(error); }catch(_){ }
+    var raw = String(error && error.message || error || "");
+    if(/failed to fetch|network/i.test(raw)) return "Koneksi bermasalah. Periksa internet lalu coba lagi.";
+    if(/abort|terlalu lama|timeout/i.test(raw)) return "Koneksi terlalu lama. Silakan coba lagi.";
+    return raw || "Terjadi kesalahan saat mengecek domain.";
+  }
   function normalizeTld(value){
     var raw = String(value == null ? "" : value).trim().toLowerCase();
-    raw = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\s+/g, "").replace(/\/+$/g, "").replace(/^\*?\.?/, ".");
-    raw = raw.replace(/[^.a-z0-9-]/g, "");
+    raw = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\s+/g, "").replace(/\/.*$/g, "");
+    raw = raw.replace(/^\*?\.?/, ".").replace(/[^.a-z0-9-]/g, "");
     if(!raw || raw === ".") return "";
     if(!/^\.[a-z0-9-]+(?:\.[a-z0-9-]+)*$/.test(raw)) return "";
     return raw;
   }
-
   function uniqTlds(list){
+    var preferred = [".com", ".id", ".co.id", ".my.id", ".web.id", ".net", ".org", ".xyz", ".site", ".online", ".biz"];
     var seen = Object.create(null), out = [];
     (list || []).forEach(function(item){
       var tld = normalizeTld(item);
       if(tld && !seen[tld]){ seen[tld] = true; out.push(tld); }
     });
-    return out.sort(function(a,b){
-      var pa = [".com", ".id", ".co.id", ".my.id", ".web.id", ".net", ".org", ".xyz", ".site", ".online"].indexOf(a);
-      var pb = [".com", ".id", ".co.id", ".my.id", ".web.id", ".net", ".org", ".xyz", ".site", ".online"].indexOf(b);
+    out.sort(function(a,b){
+      var pa = preferred.indexOf(a), pb = preferred.indexOf(b);
       if(pa !== -1 || pb !== -1) return (pa === -1 ? 999 : pa) - (pb === -1 ? 999 : pb);
       return a.length === b.length ? a.localeCompare(b) : a.length - b.length;
     });
+    return out;
   }
-
   function collectTldsDeep(value, bag, depth){
-    if(depth > 6 || value == null) return;
+    if(depth > 7 || value == null) return;
     if(Array.isArray(value)){ value.forEach(function(item){ collectTldsDeep(item, bag, depth + 1); }); return; }
     if(typeof value === "string"){
       var t = normalizeTld(value);
@@ -7338,80 +7357,223 @@ html[data-theme="dark"] .professional-mobile-note{
         }
       });
       Object.keys(value).forEach(function(key){
-        if(/tld|extension|ext|price|data|result|items|list|supported/i.test(key)) collectTldsDeep(value[key], bag, depth + 1);
+        if(/tld|extension|ext|price|data|result|items|list|supported|domain/i.test(key)) collectTldsDeep(value[key], bag, depth + 1);
       });
     }
   }
-
-  function parseApiTlds(payload){
+  function parseTlds(payload){
     var bag = [];
     collectTldsDeep(payload, bag, 0);
     return uniqTlds(bag);
   }
-
-  async function fetchApiTlds(){
-    var cached = [];
-    try { cached = JSON.parse(localStorage.getItem("dirac_api_tlds_cache") || "[]"); } catch(_) { cached = []; }
-    cached = uniqTlds(cached);
-    if(cached.length > 10) return cached;
-    if(typeof api !== "function") return uniqTlds(FALLBACK_API_TLDS);
-
-    var probes = API_TLD_ACTIONS.map(function(action){
-      return api("?action=" + encodeURIComponent(action), { timeout: 4200 })
-        .then(function(result){ return parseApiTlds(result); })
-        .catch(function(){ return []; });
-    });
-
-    try{
-      var settled = await Promise.all(probes);
-      for(var i = 0; i < settled.length; i++){
-        var parsed = uniqTlds(settled[i]);
+  function priceRuleTlds(){
+    try{ if(typeof PRICE_RULES !== "undefined") return uniqTlds(Object.keys(PRICE_RULES || {})); }catch(_){ }
+    var chips = [].map.call(document.querySelectorAll("#cek .tld-chip[data-tld]"), function(btn){ return btn.getAttribute("data-tld"); });
+    return uniqTlds(chips.length ? chips : [".com", ".id", ".co.id", ".my.id", ".net", ".org", ".xyz", ".site", ".online", ".biz"]);
+  }
+  var TLD_ACTIONS = [
+    "hostinger-tlds", "hostinger-extensions", "hostinger-prices", "domain-tlds", "domain-extensions", "domain-prices",
+    "tlds", "extensions", "prices", "get-tlds", "get-extensions", "supported-tlds", "supported-extensions"
+  ];
+  async function getSupportedTlds(){
+    var fallback = priceRuleTlds();
+    if(typeof api !== "function") return fallback;
+    for(var i = 0; i < TLD_ACTIONS.length; i++){
+      try{
+        var response = await api("?action=" + encodeURIComponent(TLD_ACTIONS[i]), { timeout: 5200 });
+        var parsed = parseTlds(response);
         if(parsed.length){
-          try { localStorage.setItem("dirac_api_tlds_cache", JSON.stringify(parsed)); } catch(_) {}
+          try{ if(typeof state !== "undefined") state.apiTlds = parsed; }catch(_){ }
           return parsed;
         }
-      }
-    }catch(_){ /* fallback tetap aman */ }
-
-    return uniqTlds(FALLBACK_API_TLDS);
+      }catch(_){ }
+    }
+    return fallback;
   }
-
-  function currentTlds(){
-    try{
-      if(typeof state !== "undefined" && Array.isArray(state.apiTlds) && state.apiTlds.length) return uniqTlds(state.apiTlds);
-    }catch(_){ }
-    try{
-      var cached = uniqTlds(JSON.parse(localStorage.getItem("dirac_api_tlds_cache") || "[]"));
-      if(cached.length) return cached;
-    }catch(_){ }
-    try{
-      if(typeof PRICE_RULES !== "undefined") return uniqTlds(Object.keys(PRICE_RULES).concat(FALLBACK_API_TLDS));
-    }catch(_){ }
-    return uniqTlds(FALLBACK_API_TLDS);
+  function hasUsableTld(value){
+    var clean = safeNormalizeDomain(value);
+    try{ if(typeof hasTld === "function") return hasTld(clean); }catch(_){ }
+    return /\.[a-z0-9-]{2,}(\.[a-z0-9-]{2,})?$/.test(clean);
   }
-
-  function renderApiTldChips(list){
-    var group = document.querySelector("#cek .tld-group");
-    if(!group) return;
-    var tlds = uniqTlds(list || currentTlds());
-    if(!tlds.length) return;
-    group.classList.add("dirac-api-tlds-loaded");
-    var title = group.closest("div") && group.closest("div").querySelector(".assist-title");
-    if(title) title.classList.add("dirac-api-tlds-title");
-    group.innerHTML = tlds.map(function(tld){
-      return '<button class="tld-chip" type="button" data-tld="' + escapeHTML(tld) + '" title="Cek ekstensi ' + escapeHTML(tld) + '">' + escapeHTML(tld) + '</button>';
-    }).join("");
+  function validDomain(value, allowBare){
+    try{ if(typeof isValidDomainName === "function") return isValidDomainName(value, !!allowBare); }catch(_){ }
+    var clean = safeNormalizeDomain(value);
+    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(clean) && clean.length >= 2 && clean.length <= 253 && (allowBare || hasUsableTld(clean));
   }
-
-  function scrollToResults(preferStart){
+  function setBusy(value){
+    try{ if(typeof setResultBusy === "function") setResultBusy(!!value); }catch(_){ }
+    var area = byId("resultArea");
+    if(area) area.setAttribute("aria-busy", value ? "true" : "false");
+  }
+  function scrollToResults(force){
     var area = byId("resultArea");
     if(!area) return;
     var rect = area.getBoundingClientRect();
-    if(preferStart || rect.top > window.innerHeight * 0.62 || rect.top < 72){
-      area.scrollIntoView({ behavior:"smooth", block:"start" });
+    if(force || rect.top > window.innerHeight * 0.64 || rect.top < 70){
+      try{ area.scrollIntoView({ behavior:"smooth", block:"start" }); }catch(_){ area.scrollIntoView(); }
+    }
+  }
+  function renderInitial(){
+    try{ if(typeof renderInitialResult === "function") return renderInitialResult(); }catch(_){ }
+    var area = byId("resultArea");
+    if(area) area.innerHTML = "";
+  }
+  function renderErrorSafe(domain, message){
+    setBusy(false);
+    try{ if(typeof renderError === "function") return renderError(domain, message); }catch(_){ }
+    var area = byId("resultArea");
+    if(!area) return;
+    area.innerHTML = '<div class="result-card error"><div class="result-head"><div class="result-domain">' + html(domain || "Domain") + '</div><span class="status-badge badge-error">Gagal dicek</span></div><p>' + html(message || "Terjadi kesalahan saat mengecek domain.") + '</p></div>';
+  }
+  function resultCardSkeleton(domain, id){
+    return '<div class="result-card checking" id="' + html(id) + '"><div class="result-head"><div class="result-domain">' + html(domain) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Menunggu</span></div><p>Sedang masuk antrean pengecekan.</p></div>';
+  }
+  function safeCardId(index, tld){
+    return "dirac-safe-card-" + index + "-" + String(tld).replace(/[^a-z0-9]+/gi, "-");
+  }
+  function totalLabelFrom(data, price){
+    try{ if(typeof priceLabelFromApi === "function") return priceLabelFromApi(data, price); }catch(_){ }
+    return (data && data.price_label) || safeFormatRupiah((price && price.register) || (data && data.price) || 0);
+  }
+  function updateSummary(done, total, label){
+    var summary = byId("diracCheckSummary");
+    var progress = byId("diracCheckProgress");
+    if(summary){
+      var text = label || ("Mengecek " + done + " dari " + total + " ekstensi.");
+      summary.querySelector("p").textContent = text;
+    }
+    if(progress) progress.style.width = (total ? Math.round((done / total) * 100) : 0) + "%";
+  }
+  async function appendCardsInChunks(area, base, tlds){
+    var grid = document.createElement("div");
+    grid.className = "dirac-result-grid";
+    grid.id = "diracSafeResultGrid";
+    area.appendChild(grid);
+    for(var i = 0; i < tlds.length; i += 12){
+      var htmlChunk = "";
+      tlds.slice(i, i + 12).forEach(function(tld, offset){
+        var index = i + offset;
+        htmlChunk += resultCardSkeleton(base + tld, safeCardId(index, tld));
+      });
+      grid.insertAdjacentHTML("beforeend", htmlChunk);
+      await nextFrame();
+    }
+  }
+  async function runQueue(items, limit, worker, runId){
+    var index = 0;
+    async function loop(){
+      while(index < items.length){
+        var currentIndex = index++;
+        try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
+        await worker(items[currentIndex], currentIndex);
+        await sleep(35);
+      }
+    }
+    var workers = [];
+    var max = Math.max(1, Math.min(limit || 2, items.length));
+    for(var i = 0; i < max; i++) workers.push(loop());
+    await Promise.all(workers);
+  }
+
+  async function safeCheckManyExtensions(baseName, runId){
+    runId = runId || (typeof state !== "undefined" ? ++state.domainCheckRunId : Date.now());
+    var cleanBase = safeNormalizeDomain(baseName).replace(/\..*$/, "").replace(/[^a-z0-9-]/g, "").replace(/^-+|-+$/g, "");
+    if(!cleanBase){ renderInitial(); return; }
+    if(!validDomain(cleanBase, true)){ renderErrorSafe(cleanBase, "Nama brand/domain mengandung karakter yang belum valid."); return; }
+
+    var area = byId("resultArea");
+    if(!area) return;
+    setBusy(true);
+    area.innerHTML = '<div class="result-card checking dirac-check-summary" id="diracCheckSummary"><div class="result-head"><div class="result-domain">' + html(cleanBase) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek</span></div><p>Menyiapkan daftar ekstensi dari API.</p><div class="dirac-progress-line" aria-hidden="true"><span id="diracCheckProgress"></span></div></div>';
+    scrollToResults(true);
+
+    var tlds = [];
+    try{ tlds = await getSupportedTlds(); }catch(_){ tlds = priceRuleTlds(); }
+    tlds = uniqTlds(tlds);
+    if(!tlds.length) tlds = priceRuleTlds();
+
+    // Hindari cache/fallback lama yang pernah menjejalkan puluhan ekstensi palsu ke UI.
+    // Jika API tidak mengirim daftar eksplisit, fallback tetap pada PRICE_RULES bawaan agar browser mobile tidak crash.
+    updateSummary(0, tlds.length, "Mengecek " + tlds.length + " ekstensi yang tersedia di sistem.");
+    await appendCardsInChunks(area, cleanBase, tlds);
+
+    var done = 0;
+    var concurrency = window.innerWidth <= 520 ? 2 : 3;
+    await runQueue(tlds, concurrency, async function(tld, index){
+      var domain = cleanBase + tld;
+      var card = byId(safeCardId(index, tld));
+      if(!card) return;
+      try{
+        card.innerHTML = '<div class="result-head"><div class="result-domain">' + html(domain) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span></div><p>Sedang diproses lewat API.</p>';
+        var data = await checkHostingerDomain(domain, { timeout: 26000 });
+        try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
+        var safeDomain = safeNormalizeDomain((data && data.domain) || domain);
+        var available = Boolean(data && data.available);
+        var price = null;
+        try{ if(typeof getPrice === "function") price = getPrice(safeDomain); }catch(_){ }
+        var label = totalLabelFrom(data, price);
+        card.className = "result-card " + (available ? "available" : "taken");
+        card.innerHTML = '<div class="result-head"><div class="result-domain">' + html(safeDomain) + '</div><span class="status-badge ' + (available ? "badge-available" : "badge-taken") + '">' + (available ? "Tersedia" : "Tidak tersedia") + '</span></div><p>' + html((data && data.message) || (available ? "Domain tersedia." : "Domain sudah terdaftar.")) + '</p>' + (available ? '<div class="price-line">Harga Total: ' + html(label) + '</div><p class="microcopy">Harga total diambil dari API saat pengecekan.</p>' : '<p class="microcopy">Silakan coba variasi nama lain bila domain tidak tersedia.</p>') + '<div class="result-actions">' + (available ? '<button class="btn btn-mint" data-add-cart="' + html(safeDomain) + '">Tambah ke Keranjang</button>' : '') + '<button class="btn btn-soft" data-recheck="' + html(safeDomain) + '">Cek Ulang</button></div>';
+      }catch(error){
+        try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
+        card.className = "result-card error";
+        card.innerHTML = '<div class="result-head"><div class="result-domain">' + html(domain) + '</div><span class="status-badge badge-error">Tidak ada hasil</span></div><p>' + html(safeFriendlyError(error)) + '</p><div class="result-actions"><button class="btn btn-soft" data-recheck="' + html(domain) + '">Coba Lagi</button></div>';
+      }finally{
+        done += 1;
+        updateSummary(done, tlds.length, done >= tlds.length ? "Pengecekan selesai. Pilih domain yang tersedia untuk dimasukkan ke keranjang." : "Mengecek " + done + " dari " + tlds.length + " ekstensi.");
+      }
+    }, runId);
+
+    try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
+    setBusy(false);
+    try{ if(typeof bindResultButtons === "function") bindResultButtons(); }catch(_){ }
+    updateSummary(tlds.length, tlds.length, "Pengecekan selesai. Pilih domain yang tersedia untuk dimasukkan ke keranjang.");
+  }
+
+  async function safeCheckDomain(rawDomain){
+    var runId = (typeof state !== "undefined" ? ++state.domainCheckRunId : Date.now());
+    var domain = safeNormalizeDomain(rawDomain);
+    try{
+      if(!domain){ renderInitial(); return; }
+      if(!validDomain(domain, true)){ renderErrorSafe(domain, "Nama domain mengandung karakter yang belum valid."); return; }
+      if(!hasUsableTld(domain)){
+        await safeCheckManyExtensions(domain, runId);
+        return;
+      }
+      setBusy(true);
+      try{ if(typeof renderChecking === "function") renderChecking(domain); }catch(_){ }
+      scrollToResults(true);
+      var data = await checkHostingerDomain(domain, { timeout: 26000 });
+      try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
+      try{ if(typeof renderCheckResult === "function") renderCheckResult(data, domain); }catch(error){ throw error; }
+      try{ if(typeof bindResultButtons === "function") bindResultButtons(); }catch(_){ }
+    }catch(error){
+      try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
+      renderErrorSafe(domain, safeFriendlyError(error));
+    }finally{
+      try{ if(typeof state === "undefined" || runId === state.domainCheckRunId) setBusy(false); }catch(_){ setBusy(false); }
+      setTimeout(function(){ scrollToResults(false); }, 90);
     }
   }
 
+  function installNoCrashDomainCheck(){
+    try{
+      if(typeof checkManyExtensions === "function"){
+        checkManyExtensions = safeCheckManyExtensions;
+        window.checkManyExtensions = safeCheckManyExtensions;
+      }
+    }catch(_){ window.checkManyExtensions = safeCheckManyExtensions; }
+    try{
+      checkDomain = safeCheckDomain;
+      window.checkDomain = safeCheckDomain;
+    }catch(_){ window.checkDomain = safeCheckDomain; }
+  }
+  function hideExtensionQuickList(){
+    var group = document.querySelector("#cek .tld-group");
+    if(group) group.setAttribute("aria-hidden", "true");
+    var title = document.querySelector("#cek .assist-title");
+    if(title) title.setAttribute("aria-hidden", "true");
+  }
   function syncCheckoutVisibility(){
     var body = document.body;
     var checkout = byId("checkout");
@@ -7420,7 +7582,7 @@ html[data-theme="dark"] .professional-mobile-note{
     var checkoutVisible = false, cartVisible = false, modalOpen = false;
     if(checkout){
       var r = checkout.getBoundingClientRect();
-      checkoutVisible = r.top < window.innerHeight * 0.88 && r.bottom > window.innerHeight * 0.12;
+      checkoutVisible = r.top < window.innerHeight * 0.88 && r.bottom > window.innerHeight * 0.10;
     }
     if(cart){
       var c = cart.getBoundingClientRect();
@@ -7432,163 +7594,41 @@ html[data-theme="dark"] .professional-mobile-note{
     body.classList.toggle("dirac-checkout-modal-open", !!modalOpen);
     body.classList.toggle("dirac-hide-bottom-nav", !!(checkoutVisible || modalOpen));
   }
-
-  function installCheckoutVisibilityWatcher(){
+  function installCheckoutWatcher(){
     var ticking = false;
-    function onMove(){
+    function requestSync(){
       if(ticking) return;
       ticking = true;
       requestAnimationFrame(function(){ ticking = false; syncCheckoutVisibility(); });
     }
-    window.addEventListener("scroll", onMove, { passive:true });
-    window.addEventListener("resize", onMove, { passive:true });
-    window.addEventListener("orientationchange", function(){ setTimeout(onMove, 240); }, { passive:true });
+    window.addEventListener("scroll", requestSync, { passive:true });
+    window.addEventListener("resize", requestSync, { passive:true });
+    window.addEventListener("orientationchange", function(){ setTimeout(requestSync, 220); }, { passive:true });
     var modal = byId("checkoutConfirmModal");
     if(modal && typeof MutationObserver !== "undefined"){
-      new MutationObserver(onMove).observe(modal, { attributes:true, attributeFilter:["class", "aria-hidden"] });
+      new MutationObserver(requestSync).observe(modal, { attributes:true, attributeFilter:["class", "aria-hidden"] });
     }
     document.addEventListener("focusin", function(event){
       if(event.target && event.target.closest && event.target.closest("#checkout")){
         document.body.classList.add("dirac-hide-bottom-nav", "dirac-checkout-in-view");
       }
     }, true);
-    onMove();
-    setTimeout(onMove, 500);
-  }
-
-  function installTldDelegation(){
-    document.addEventListener("click", function(event){
-      var button = event.target && event.target.closest ? event.target.closest(".tld-chip[data-tld]") : null;
-      if(!button) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if(event.stopImmediatePropagation) event.stopImmediatePropagation();
-      var input = byId("domainInput");
-      var base = "diracgroup";
-      try{ base = normalizeDomain(input && input.value).replace(/\..*$/, "") || "diracgroup"; }catch(_){ }
-      var domain = base + button.dataset.tld;
-      if(input) input.value = domain;
-      try{ checkDomain(domain); }catch(_){ }
-      setTimeout(function(){ scrollToResults(true); }, 80);
-    }, true);
-  }
-
-  function installCheckDomainScrollWrapper(){
-    try{
-      if(typeof checkDomain !== "function" || checkDomain.__diracScrollWrapped) return;
-      var original = checkDomain;
-      var wrapped = function(){
-        var result = original.apply(this, arguments);
-        setTimeout(function(){ scrollToResults(true); }, 80);
-        Promise.resolve(result).then(function(){ setTimeout(function(){ scrollToResults(false); }, 90); }, function(){ setTimeout(function(){ scrollToResults(false); }, 90); });
-        return result;
-      };
-      wrapped.__diracScrollWrapped = true;
-      checkDomain = wrapped;
-      window.checkDomain = wrapped;
-    }catch(_){ }
-  }
-
-  function safeCardId(prefix, tld, index){
-    return prefix + "-" + index + "-" + String(tld).replace(/[^a-z0-9]+/gi, "-");
-  }
-
-  async function runWithConcurrency(items, limit, worker){
-    var cursor = 0;
-    async function next(){
-      while(cursor < items.length){
-        var index = cursor++;
-        await worker(items[index], index);
-      }
-    }
-    var workers = [];
-    var count = Math.min(Math.max(1, limit || 6), items.length);
-    for(var i = 0; i < count; i++) workers.push(next());
-    await Promise.all(workers);
-  }
-
-  function installDynamicCheckManyExtensions(){
-    try{
-      if(typeof checkManyExtensions !== "function") return;
-      checkManyExtensions = async function(baseName, runId){
-        runId = runId || (++state.domainCheckRunId);
-        var cleanBase = normalizeDomain(baseName).replace(/\..*$/, "");
-        if(!cleanBase){ renderInitialResult(); return; }
-        if(!isValidDomainName(cleanBase, true)){ renderError(cleanBase, "Nama brand/domain mengandung karakter yang belum valid."); return; }
-
-        var tlds = currentTlds();
-        try{
-          var apiTlds = await fetchApiTlds();
-          if(apiTlds && apiTlds.length){
-            tlds = apiTlds;
-            if(typeof state !== "undefined") state.apiTlds = tlds;
-            renderApiTldChips(tlds);
-          }
-        }catch(_){ }
-        tlds = uniqTlds(tlds);
-        if(!tlds.length){ tlds = uniqTlds(FALLBACK_API_TLDS); }
-
-        setResultBusy(true);
-        var area = byId("resultArea");
-        if(!area) return;
-        area.innerHTML = '<div class="result-card checking"><div class="result-head"><div class="result-domain">' + escapeHTML(cleanBase) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek semua ekstensi API...</span></div><p>Sistem menampilkan seluruh ekstensi yang terdeteksi dari API/fallback tanpa membatasi hanya .com, .net, dan ekstensi lama.</p></div>' + tlds.map(function(tld, index){
-          var domain = cleanBase + tld;
-          var id = safeCardId("api-card", tld, index);
-          return '<div class="result-card checking" id="' + id + '" data-api-tld="' + escapeHTML(tld) + '"><div class="result-head"><div class="result-domain">' + escapeHTML(domain) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span></div><p>Menunggu hasil API untuk ' + escapeHTML(tld) + '.</p></div>';
-        }).join("");
-        setTimeout(function(){ scrollToResults(true); }, 80);
-
-        await runWithConcurrency(tlds, 7, async function(tld, index){
-          var domain = cleanBase + tld;
-          var id = safeCardId("api-card", tld, index);
-          var card = byId(id);
-          if(!card) return;
-          try{
-            var data = await checkHostingerDomain(domain, { timeout: 30000 });
-            if(runId !== state.domainCheckRunId) return;
-            var safeDomain = normalizeDomain(data.domain || domain);
-            var available = Boolean(data.available);
-            var price = getPrice(safeDomain);
-            var displayDomain = escapeHTML(safeDomain);
-            var displayMessage = escapeHTML(data.message || (available ? "Domain tersedia." : "Domain sudah terdaftar."));
-            var totalLabel = priceLabelFromApi(data, price);
-            card.className = "result-card " + (available ? "available" : "taken");
-            card.innerHTML = '<div class="result-head"><div class="result-domain">' + displayDomain + '</div><span class="status-badge ' + (available ? "badge-available" : "badge-taken") + '">' + (available ? "Tersedia" : "Tidak tersedia") + '</span></div><p>' + displayMessage + '</p>' + (available ? '<div class="price-line">Harga Total: ' + escapeHTML(totalLabel) + '</div><p class="microcopy">Harga total diambil dari API saat pengecekan.</p>' : '<p class="microcopy">Ekstensi ini dicek melalui API. Coba variasi nama bila tidak tersedia.</p>') + '<div class="result-actions">' + (available ? '<button class="btn btn-mint" data-add-cart="' + displayDomain + '">Tambah ke Keranjang</button>' : '') + '<button class="btn btn-soft" data-recheck="' + displayDomain + '">Cek Ulang</button></div>';
-          }catch(error){
-            if(runId !== state.domainCheckRunId) return;
-            card.className = "result-card error";
-            card.innerHTML = '<div class="result-head"><div class="result-domain">' + escapeHTML(domain) + '</div><span class="status-badge badge-error">Tidak ada hasil</span></div><p>' + escapeHTML(friendlyError(error)) + '</p><div class="result-actions"><button class="btn btn-soft" data-recheck="' + escapeHTML(domain) + '">Coba Lagi</button></div>';
-          }
-        });
-        if(runId !== state.domainCheckRunId) return;
-        setResultBusy(false);
-        bindResultButtons();
-      };
-      window.checkManyExtensions = checkManyExtensions;
-    }catch(_){ }
-  }
-
-  function initApiTlds(){
-    renderApiTldChips(currentTlds());
-    fetchApiTlds().then(function(list){
-      if(list && list.length){
-        try{ if(typeof state !== "undefined") state.apiTlds = list; }catch(_){ }
-        renderApiTldChips(list);
-      }
-    }).catch(function(){ renderApiTldChips(currentTlds()); });
+    requestSync();
+    setTimeout(requestSync, 350);
   }
 
   ready(function(){
-    installDynamicCheckManyExtensions();
-    installCheckDomainScrollWrapper();
-    installTldDelegation();
-    installCheckoutVisibilityWatcher();
-    initApiTlds();
-    setTimeout(function(){ installDynamicCheckManyExtensions(); installCheckDomainScrollWrapper(); syncCheckoutVisibility(); }, 900);
+    hideExtensionQuickList();
+    installNoCrashDomainCheck();
+    installCheckoutWatcher();
+    // Ulangi setelah semua patch lama selesai memasang wrapper, agar fungsi final tetap yang aman.
+    [250, 900, 1600, 2600].forEach(function(delay){
+      setTimeout(function(){ hideExtensionQuickList(); installNoCrashDomainCheck(); syncCheckoutVisibility(); }, delay);
+    });
   });
 })();
 </script>
-<!-- DIRAC_CHECKOUT_API_EXTENSIONS_PRECISION_FIX_END -->
+<!-- DIRAC_NO_CRASH_CLEANUP_PATCH_END -->
 
 </body>
 </html>
