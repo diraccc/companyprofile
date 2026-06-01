@@ -3754,15 +3754,6 @@ html[data-theme="dark"] .preset-chip{
           <p class="microcopy">Tips: cukup tulis nama brand, misalnya brandkamu.</p>
           <div class="search-polish-note"><span>✓</span><div><b>Mode marketplace aktif secara visual.</b><br/>Gunakan pencarian untuk domain reguler, sedangkan premium, make offer, dan transfer tetap diarahkan ke verifikasi admin agar aman.</div></div>
 
-          <!-- Navigasi mobile dipindahkan ke alur konten agar tidak menutup kartu marketplace dan berada tepat sebelum Ekstensi Cepat. -->
-  <nav class="mobile-bottom-nav mobile-bottom-nav-inline" aria-label="Navigasi cepat mobile">
-              <button data-scroll="cek" aria-label="Cek domain"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><small>Cek</small></button>
-              <button data-scroll="keranjang" aria-label="Keranjang"><span class="nav-badge" id="mobileCartCount">0</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6h15l-2 9H8L6 6Z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg><small>Keranjang</small></button>
-              <button data-scroll="orders" aria-label="Pesanan"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="m3 6 1 1 2-2"></path><path d="m3 12 1 1 2-2"></path><path d="m3 18 1 1 2-2"></path></svg><small>Pesanan</small></button>
-              <button data-scroll="account" aria-label="Akun"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.8-4 5-6 8-6s6.2 2 8 6"></path></svg><small>Akun</small></button>
-              <button data-mobile-logout="true" aria-label="Keluar"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><small>Keluar</small></button>
-            </nav>
-
           <div class="search-assist-grid">
             <div>
               <div class="assist-title">Ekstensi cepat</div>
@@ -4036,6 +4027,14 @@ namabrand"></textarea>
       </div>
     </section>
   </main>
+
+  <nav class="mobile-bottom-nav" aria-label="Navigasi cepat mobile">
+    <button data-scroll="cek" aria-label="Cek domain"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><small>Cek</small></button>
+    <button data-scroll="keranjang" aria-label="Keranjang"><span class="nav-badge" id="mobileCartCount">0</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6h15l-2 9H8L6 6Z"></path><path d="M6 6 5 3H2"></path><circle cx="9" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg><small>Keranjang</small></button>
+    <button data-scroll="orders" aria-label="Pesanan"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="m3 6 1 1 2-2"></path><path d="m3 12 1 1 2-2"></path><path d="m3 18 1 1 2-2"></path></svg><small>Pesanan</small></button>
+    <button data-scroll="account" aria-label="Akun"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.8-4 5-6 8-6s6.2 2 8 6"></path></svg><small>Akun</small></button>
+    <button data-mobile-logout="true" aria-label="Keluar"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg><small>Keluar</small></button>
+  </nav>
 
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 
@@ -6089,75 +6088,73 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
 <!-- DIRAC_V6_PRECISION_END -->
 
 
-<!-- DIRAC_NAV_RELOCATION_PRECISION_FIX_START -->
-<style id="dirac-nav-relocation-precision-fix">
+<!-- DIRAC_NAV_FIXED_LOWER_PRECISION_FIX_START -->
+<style id="dirac-nav-fixed-lower-precision-fix">
 /*
-  Fix presisi navigasi mobile:
-  - Penyebab lama: .mobile-bottom-nav dibuat position:fixed dan beberapa layer CSS memakai !important pada bottom/left/transform.
-  - Solusi: nav dipindahkan ke dalam section Cek Domain, tepat setelah catatan marketplace dan sebelum Ekstensi Cepat.
-  - Aturan final ini sengaja diletakkan paling akhir agar menang dari seluruh override sebelumnya tanpa mengubah fungsi tombol.
+  Koreksi final:
+  Navigasi mobile tetap FIXED saat halaman discroll, tetapi posisinya diturunkan.
+  Tidak ditempelkan ke alur konten, sehingga tidak "nyangkut" di section Cek Domain.
 */
 @media (max-width:900px){
   body{
-    padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))!important;
+    padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important;
   }
 
-  #cek .mobile-bottom-nav.mobile-bottom-nav-inline{
-    position:relative!important;
-    inset:auto!important;
-    left:auto!important;
-    right:auto!important;
+  .mobile-bottom-nav{
+    position:fixed!important;
+    left:16px!important;
+    right:16px!important;
     top:auto!important;
-    bottom:auto!important;
-    width:100%!important;
-    max-width:100%!important;
+    bottom:calc(6px + env(safe-area-inset-bottom,0px))!important;
+    width:auto!important;
+    max-width:none!important;
     min-width:0!important;
-    margin:16px 0 18px!important;
+    margin:0!important;
     display:grid!important;
     grid-template-columns:repeat(5,minmax(0,1fr))!important;
     gap:4px!important;
     padding:6px!important;
-    border-radius:22px!important;
+    border-radius:23px!important;
     transform:none!important;
     opacity:1!important;
     visibility:visible!important;
     pointer-events:auto!important;
-    z-index:5!important;
-    contain:layout paint!important;
+    z-index:19000!important;
     box-sizing:border-box!important;
   }
 
-  body.show-mobile-nav #cek .mobile-bottom-nav.mobile-bottom-nav-inline{
+  body.show-mobile-nav .mobile-bottom-nav{
     transform:none!important;
     opacity:1!important;
     visibility:visible!important;
     pointer-events:auto!important;
   }
 
-  #cek .mobile-bottom-nav.mobile-bottom-nav-inline button{
+  .mobile-bottom-nav button{
     min-width:0!important;
     min-height:50px!important;
     padding:5px 2px!important;
     border-radius:15px!important;
   }
 
-  #cek .mobile-bottom-nav.mobile-bottom-nav-inline svg{
+  .mobile-bottom-nav svg{
     width:18px!important;
     height:18px!important;
   }
 
-  #cek .mobile-bottom-nav.mobile-bottom-nav-inline small{
+  .mobile-bottom-nav small{
     font-size:9.5px!important;
     line-height:1!important;
   }
 
   .dirac-floating-actions{
-    bottom:calc(20px + env(safe-area-inset-bottom,0px))!important;
     right:18px!important;
+    bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;
+    z-index:19200!important;
   }
 
   .toast-region{
-    bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+    bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;
     left:12px!important;
     right:12px!important;
     width:auto!important;
@@ -6165,22 +6162,52 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
 }
 
 @media (max-width:520px){
-  #cek .mobile-bottom-nav.mobile-bottom-nav-inline{
-    margin:14px 0 16px!important;
-    border-radius:21px!important;
+  body{
+    padding-bottom:calc(98px + env(safe-area-inset-bottom,0px))!important;
   }
-  #cek .mobile-bottom-nav.mobile-bottom-nav-inline small{
+
+  .mobile-bottom-nav{
+    left:10px!important;
+    right:10px!important;
+    bottom:calc(4px + env(safe-area-inset-bottom,0px))!important;
+    border-radius:22px!important;
+  }
+
+  .mobile-bottom-nav button{
+    min-height:49px!important;
+    border-radius:15px!important;
+  }
+
+  .mobile-bottom-nav small{
     font-size:9px!important;
+  }
+
+  .dirac-floating-actions{
+    right:18px!important;
+    bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
+  }
+}
+
+@media (max-width:380px){
+  .mobile-bottom-nav{
+    left:8px!important;
+    right:8px!important;
+    bottom:calc(4px + env(safe-area-inset-bottom,0px))!important;
+    padding:5px!important;
+  }
+
+  .mobile-bottom-nav button{
+    min-height:47px!important;
   }
 }
 
 @media (min-width:901px){
-  #cek .mobile-bottom-nav.mobile-bottom-nav-inline{
+  .mobile-bottom-nav{
     display:none!important;
   }
 }
 </style>
-<!-- DIRAC_NAV_RELOCATION_PRECISION_FIX_END -->
+<!-- DIRAC_NAV_FIXED_LOWER_PRECISION_FIX_END -->
 
 </body>
 </html>
