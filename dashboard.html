@@ -6652,5 +6652,604 @@ html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
 </style>
 <!-- DIRAC_DARK_LIQUID_GLASS_ACTIVE_STATE_FIX_END -->
 
+
+
+<!-- DIRAC_STABLE_BOTTOM_NAV_100X_FIX_START -->
+<style id="dirac-stable-bottom-nav-100x-fix">
+/*
+  Patch final: stabilisasi navigasi bawah mobile pada mode terang/gelap.
+  Ruang lingkup sengaja hanya .mobile-bottom-nav agar fungsi cek domain,
+  keranjang, checkout, pesanan, akun, API, dan desktop tidak ikut berubah.
+*/
+:root{
+  --dirac-stable-nav-x:6px;
+  --dirac-stable-nav-y:6px;
+  --dirac-stable-nav-w:64px;
+  --dirac-stable-nav-h:50px;
+  --dirac-stable-nav-radius:20px;
+  --dirac-stable-nav-ease:cubic-bezier(.2,.9,.2,1);
+}
+
+@media (max-width:900px){
+  body{
+    padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
+  }
+
+  .mobile-bottom-nav{
+    position:fixed!important;
+    left:clamp(8px,3vw,16px)!important;
+    right:clamp(8px,3vw,16px)!important;
+    top:auto!important;
+    bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
+    width:auto!important;
+    max-width:520px!important;
+    min-width:0!important;
+    margin-inline:auto!important;
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    align-items:center!important;
+    gap:5px!important;
+    padding:7px!important;
+    min-height:66px!important;
+    border-radius:28px!important;
+    overflow:hidden!important;
+    isolation:isolate!important;
+    contain:layout paint!important;
+    transform:translate3d(0,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    z-index:19000!important;
+    box-sizing:border-box!important;
+    background:
+      linear-gradient(112deg,rgba(49,57,72,.76),rgba(103,115,137,.66),rgba(54,68,91,.72),rgba(30,41,59,.78))!important;
+    background-size:260% 260%!important;
+    animation:diracStableNavColorWalk 7.8s linear infinite!important;
+    border:1px solid rgba(255,255,255,.26)!important;
+    box-shadow:
+      0 24px 66px rgba(15,23,42,.30),
+      0 7px 24px rgba(37,99,235,.13),
+      inset 0 1px 0 rgba(255,255,255,.28),
+      inset 0 -1px 0 rgba(15,23,42,.15)!important;
+    -webkit-backdrop-filter:blur(24px) saturate(1.42)!important;
+    backdrop-filter:blur(24px) saturate(1.42)!important;
+    -webkit-font-smoothing:antialiased!important;
+    touch-action:manipulation!important;
+  }
+
+  body.show-mobile-nav .mobile-bottom-nav{
+    transform:translate3d(0,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+  }
+
+  .mobile-bottom-nav::after{
+    content:""!important;
+    position:absolute!important;
+    inset:-18% -70%!important;
+    z-index:0!important;
+    pointer-events:none!important;
+    border-radius:inherit!important;
+    background:
+      linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,.00) 20%,
+        rgba(226,232,240,.23) 34%,
+        rgba(125,211,252,.18) 45%,
+        rgba(255,255,255,.30) 53%,
+        rgba(203,213,225,.18) 63%,
+        transparent 78%,
+        transparent 100%)!important;
+    opacity:.92!important;
+    transform:translate3d(-24%,0,0)!important;
+    animation:diracStableNavSheen 4.8s linear infinite!important;
+    will-change:transform!important;
+  }
+
+  .mobile-bottom-nav::before{
+    content:""!important;
+    position:absolute!important;
+    left:0!important;
+    top:0!important;
+    width:var(--dirac-stable-nav-w)!important;
+    height:var(--dirac-stable-nav-h)!important;
+    z-index:1!important;
+    pointer-events:none!important;
+    border-radius:var(--dirac-stable-nav-radius)!important;
+    transform:translate3d(var(--dirac-stable-nav-x),var(--dirac-stable-nav-y),0)!important;
+    transform-origin:center!important;
+    background:
+      radial-gradient(80% 70% at 28% 16%,rgba(255,255,255,.92),rgba(255,255,255,.34) 40%,transparent 67%),
+      linear-gradient(145deg,rgba(238,242,247,.88),rgba(191,219,254,.55) 52%,rgba(226,232,240,.38))!important;
+    border:1px solid rgba(255,255,255,.54)!important;
+    box-shadow:
+      0 14px 30px rgba(2,6,23,.24),
+      0 0 24px rgba(125,211,252,.12),
+      inset 0 1px 1px rgba(255,255,255,.86),
+      inset 0 -14px 26px rgba(15,23,42,.14)!important;
+    transition:
+      transform .34s var(--dirac-stable-nav-ease),
+      width .34s var(--dirac-stable-nav-ease),
+      height .34s var(--dirac-stable-nav-ease),
+      border-radius .34s var(--dirac-stable-nav-ease),
+      filter .20s ease!important;
+    will-change:transform,width,height!important;
+    backface-visibility:hidden!important;
+    -webkit-backface-visibility:hidden!important;
+  }
+
+  .mobile-bottom-nav.is-stable-instant::before{
+    transition-duration:.001s!important;
+  }
+
+  .mobile-bottom-nav button{
+    position:relative!important;
+    z-index:2!important;
+    min-width:0!important;
+    min-height:52px!important;
+    padding:5px 2px 4px!important;
+    border:0!important;
+    border-radius:21px!important;
+    display:grid!important;
+    place-items:center!important;
+    align-content:center!important;
+    gap:3px!important;
+    color:rgba(248,250,252,.84)!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    opacity:.92!important;
+    transform:translate3d(0,0,0)!important;
+    text-shadow:0 1px 8px rgba(2,6,23,.36)!important;
+    transition:
+      color .18s ease,
+      opacity .18s ease,
+      transform .20s var(--dirac-stable-nav-ease),
+      text-shadow .18s ease!important;
+    -webkit-tap-highlight-color:transparent!important;
+    touch-action:manipulation!important;
+  }
+
+  .mobile-bottom-nav button.active,
+  .mobile-bottom-nav button[aria-current="page"],
+  .mobile-bottom-nav button.is-stable-pressed{
+    color:#07111f!important;
+    opacity:1!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    transform:translate3d(0,-1px,0)!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.46)!important;
+  }
+
+  .mobile-bottom-nav button:not(.active):not([aria-current="page"]):not(.is-stable-pressed){
+    color:rgba(248,250,252,.82)!important;
+    opacity:.86!important;
+  }
+
+  .mobile-bottom-nav button:active{
+    transform:translate3d(0,0,0) scale(.985)!important;
+  }
+
+  .mobile-bottom-nav svg{
+    width:19px!important;
+    height:19px!important;
+    display:block!important;
+    stroke:currentColor!important;
+    stroke-width:2.2!important;
+    fill:none!important;
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
+    filter:drop-shadow(0 1px 2px rgba(2,6,23,.30))!important;
+    transition:filter .18s ease,transform .20s var(--dirac-stable-nav-ease)!important;
+  }
+
+  .mobile-bottom-nav button.active svg,
+  .mobile-bottom-nav button[aria-current="page"] svg,
+  .mobile-bottom-nav button.is-stable-pressed svg{
+    transform:translate3d(0,-.5px,0)!important;
+    filter:drop-shadow(0 1px 0 rgba(255,255,255,.20))!important;
+  }
+
+  .mobile-bottom-nav small{
+    display:block!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+    font-size:9.5px!important;
+    line-height:1!important;
+    font-weight:950!important;
+    letter-spacing:-.02em!important;
+    color:currentColor!important;
+  }
+
+  .mobile-bottom-nav .nav-badge{
+    z-index:3!important;
+    top:3px!important;
+    right:11px!important;
+    min-width:18px!important;
+    height:18px!important;
+    display:inline-grid!important;
+    place-items:center!important;
+    color:#fff!important;
+    background:#ef4444!important;
+    box-shadow:0 5px 14px rgba(239,68,68,.28)!important;
+  }
+
+  .mobile-bottom-nav .nav-badge[data-empty="true"]{
+    display:none!important;
+  }
+
+  .dirac-floating-actions{
+    bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;
+    z-index:19200!important;
+  }
+
+  .toast-region{
+    bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
+    left:12px!important;
+    right:12px!important;
+    width:auto!important;
+    z-index:19300!important;
+  }
+}
+
+@media (max-width:520px){
+  body{padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;}
+  .mobile-bottom-nav{
+    left:8px!important;
+    right:8px!important;
+    bottom:calc(6px + env(safe-area-inset-bottom,0px))!important;
+    gap:4px!important;
+    padding:6px!important;
+    min-height:64px!important;
+    border-radius:26px!important;
+  }
+  .mobile-bottom-nav button{min-height:51px!important;border-radius:20px!important;}
+  .mobile-bottom-nav small{font-size:9px!important;}
+  .mobile-bottom-nav svg{width:18px!important;height:18px!important;}
+}
+
+@media (max-width:380px){
+  .mobile-bottom-nav{left:6px!important;right:6px!important;padding:5px!important;gap:3px!important;}
+  .mobile-bottom-nav button{min-height:49px!important;border-radius:18px!important;}
+  .mobile-bottom-nav small{font-size:8.5px!important;}
+}
+
+@media (min-width:901px){
+  .mobile-bottom-nav{display:none!important;}
+}
+
+html[data-theme="dark"] .mobile-bottom-nav{
+  background:
+    linear-gradient(112deg,rgba(15,23,42,.84),rgba(71,85,105,.62),rgba(30,41,59,.80),rgba(2,6,23,.88))!important;
+  background-size:260% 260%!important;
+  border-color:rgba(226,232,240,.18)!important;
+  box-shadow:
+    0 28px 72px rgba(0,0,0,.54),
+    0 8px 26px rgba(37,99,235,.12),
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(0,0,0,.24)!important;
+}
+
+html[data-theme="dark"] .mobile-bottom-nav::after{
+  background:
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,255,255,.00) 20%,
+      rgba(148,163,184,.18) 34%,
+      rgba(96,165,250,.20) 46%,
+      rgba(255,255,255,.22) 54%,
+      rgba(203,213,225,.12) 64%,
+      transparent 78%,
+      transparent 100%)!important;
+  opacity:.80!important;
+}
+
+html[data-theme="dark"] .mobile-bottom-nav::before{
+  background:
+    radial-gradient(78% 70% at 28% 15%,rgba(255,255,255,.92),rgba(255,255,255,.38) 39%,transparent 66%),
+    linear-gradient(145deg,rgba(241,245,249,.82),rgba(147,197,253,.50) 50%,rgba(203,213,225,.34))!important;
+  border-color:rgba(255,255,255,.48)!important;
+  box-shadow:
+    0 18px 40px rgba(0,0,0,.36),
+    0 0 28px rgba(96,165,250,.13),
+    inset 0 1px 1px rgba(255,255,255,.78),
+    inset 0 -15px 30px rgba(15,23,42,.18)!important;
+}
+
+html[data-theme="dark"] .mobile-bottom-nav button:not(.active):not([aria-current="page"]):not(.is-stable-pressed){
+  color:rgba(226,232,240,.82)!important;
+  opacity:.88!important;
+  text-shadow:0 1px 9px rgba(0,0,0,.40)!important;
+}
+
+html[data-theme="dark"] .mobile-bottom-nav button.active,
+html[data-theme="dark"] .mobile-bottom-nav button[aria-current="page"],
+html[data-theme="dark"] .mobile-bottom-nav button.is-stable-pressed{
+  color:#06111f!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.50)!important;
+}
+
+@keyframes diracStableNavColorWalk{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+
+@keyframes diracStableNavSheen{
+  from{transform:translate3d(-32%,0,0);}
+  to{transform:translate3d(32%,0,0);}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mobile-bottom-nav,
+  .mobile-bottom-nav::before,
+  .mobile-bottom-nav::after,
+  .mobile-bottom-nav button,
+  .mobile-bottom-nav svg{
+    animation:none!important;
+    transition:none!important;
+  }
+}
+</style>
+
+<script id="dirac-stable-bottom-nav-100x-fix-js">
+(function(){
+  var SECTION_IDS = ["cek", "keranjang", "orders", "account"];
+  var raf = 0;
+  var scrollRaf = 0;
+  var manualLockUntil = 0;
+  var lockedId = "";
+  var observerInstalled = false;
+  var eventsInstalled = false;
+  var mutationObserver = null;
+
+  function ready(fn){
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, { once:true });
+    else fn();
+  }
+
+  function prefersReducedMotion(){
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function nav(){
+    return document.querySelector(".mobile-bottom-nav");
+  }
+
+  function buttons(){
+    var bar = nav();
+    return bar ? Array.prototype.slice.call(bar.querySelectorAll("button")) : [];
+  }
+
+  function scrollButtons(){
+    return buttons().filter(function(button){ return button.dataset && button.dataset.scroll; });
+  }
+
+  function buttonFor(id){
+    var bar = nav();
+    if(!bar || !id) return null;
+    return bar.querySelector('button[data-scroll="' + window.CSS.escape(id) + '"]');
+  }
+
+  function currentActiveButton(){
+    var bar = nav();
+    if(!bar) return null;
+    return bar.querySelector("button.active[data-scroll]") || bar.querySelector("button[aria-current='page'][data-scroll]") || bar.querySelector("button[data-scroll]");
+  }
+
+  function replaceLegacyNavOnce(){
+    var oldNav = nav();
+    if(!oldNav) return null;
+    if(oldNav.dataset.diracStableNav === "true") return oldNav;
+    var clone = oldNav.cloneNode(true);
+    clone.dataset.diracStableNav = "true";
+    clone.querySelectorAll("[data-bound-scroll],[data-bound-copy],[data-bound-download]").forEach(function(node){
+      node.removeAttribute("data-bound-scroll");
+      node.removeAttribute("data-bound-copy");
+      node.removeAttribute("data-bound-download");
+    });
+    oldNav.replaceWith(clone);
+    return clone;
+  }
+
+  function syncCartBadgeVisibility(){
+    var badge = document.getElementById("mobileCartCount");
+    if(!badge) return;
+    var count = Number(String(badge.textContent || "0").replace(/\D+/g, "")) || 0;
+    badge.dataset.empty = count > 0 ? "false" : "true";
+  }
+
+  function setIndicator(button, immediate){
+    var bar = nav();
+    if(!bar || !button) return;
+    var b = button.getBoundingClientRect();
+    var n = bar.getBoundingClientRect();
+    if(!b.width || !b.height || !n.width) return;
+
+    var padX = Math.max(2, Math.min(5, b.width * 0.04));
+    var padY = 2;
+    var x = Math.max(4, b.left - n.left + padX);
+    var y = Math.max(4, b.top - n.top + padY);
+    var w = Math.max(42, b.width - (padX * 2));
+    var h = Math.max(42, b.height - (padY * 2));
+
+    if(immediate) bar.classList.add("is-stable-instant");
+    bar.style.setProperty("--dirac-stable-nav-x", x.toFixed(2) + "px");
+    bar.style.setProperty("--dirac-stable-nav-y", y.toFixed(2) + "px");
+    bar.style.setProperty("--dirac-stable-nav-w", w.toFixed(2) + "px");
+    bar.style.setProperty("--dirac-stable-nav-h", h.toFixed(2) + "px");
+    bar.style.setProperty("--dirac-stable-nav-radius", Math.min(22, Math.max(18, h * 0.42)).toFixed(2) + "px");
+    if(immediate){
+      requestAnimationFrame(function(){ bar.classList.remove("is-stable-instant"); });
+    }
+  }
+
+  function syncIndicator(button, immediate){
+    if(raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(function(){
+      raf = 0;
+      setIndicator(button || currentActiveButton(), !!immediate);
+    });
+  }
+
+  function stableSetActive(id, immediate){
+    var bar = nav();
+    if(!bar) return;
+    var matchedButton = null;
+    scrollButtons().forEach(function(button){
+      var active = button.dataset.scroll === id;
+      button.classList.toggle("active", active);
+      if(active){
+        matchedButton = button;
+        button.setAttribute("aria-current", "page");
+      } else {
+        button.removeAttribute("aria-current");
+      }
+      button.classList.remove("is-stable-pressed");
+    });
+    syncIndicator(matchedButton || currentActiveButton(), immediate);
+    syncCartBadgeVisibility();
+  }
+
+  function stableSectionByPosition(){
+    if(lockedId && Date.now() < manualLockUntil) return lockedId;
+    var existing = SECTION_IDS.filter(function(id){ return document.getElementById(id); });
+    if(!existing.length) return "cek";
+    var anchor = Math.max(100, window.innerHeight * 0.38);
+    var bestId = existing[0];
+    var bestScore = Infinity;
+    existing.forEach(function(id){
+      var node = document.getElementById(id);
+      if(!node) return;
+      var rect = node.getBoundingClientRect();
+      if(rect.bottom < 70 || rect.top > window.innerHeight * 0.92) return;
+      var score = Math.abs(rect.top - anchor);
+      if(score < bestScore){
+        bestScore = score;
+        bestId = id;
+      }
+    });
+    return bestId;
+  }
+
+  function enforceManualLock(){
+    if(!lockedId || Date.now() >= manualLockUntil) return;
+    stableSetActive(lockedId, false);
+  }
+
+  function installMutationGuard(){
+    if(mutationObserver) mutationObserver.disconnect();
+    var bar = nav();
+    if(!bar || !("MutationObserver" in window)) return;
+    mutationObserver = new MutationObserver(function(){
+      if(lockedId && Date.now() < manualLockUntil){
+        requestAnimationFrame(enforceManualLock);
+      }
+      syncCartBadgeVisibility();
+    });
+    mutationObserver.observe(bar, { subtree:true, attributes:true, childList:true, characterData:true, attributeFilter:["class", "aria-current"] });
+  }
+
+  function installStableObserver(){
+    if(observerInstalled) return;
+    observerInstalled = true;
+    var onScroll = function(){
+      if(scrollRaf) return;
+      scrollRaf = requestAnimationFrame(function(){
+        scrollRaf = 0;
+        stableSetActive(stableSectionByPosition(), false);
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive:true });
+    window.addEventListener("resize", function(){ syncIndicator(currentActiveButton(), false); onScroll(); }, { passive:true });
+    window.addEventListener("orientationchange", function(){ setTimeout(function(){ syncIndicator(currentActiveButton(), true); onScroll(); }, 240); }, { passive:true });
+    onScroll();
+  }
+
+  function clearPressed(){
+    buttons().forEach(function(button){ button.classList.remove("is-stable-pressed"); });
+    syncIndicator(currentActiveButton(), false);
+  }
+
+  function installStableEvents(){
+    var bar = nav();
+    if(!bar || eventsInstalled) return;
+    eventsInstalled = true;
+
+    bar.addEventListener("pointerdown", function(event){
+      var button = event.target.closest && event.target.closest("button");
+      if(!button || !bar.contains(button)) return;
+      buttons().forEach(function(item){ item.classList.toggle("is-stable-pressed", item === button); });
+      if(button.dataset.scroll) stableSetActive(button.dataset.scroll, false);
+    }, { capture:true, passive:true });
+
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function(type){
+      bar.addEventListener(type, clearPressed, { capture:true, passive:true });
+    });
+
+    bar.addEventListener("click", function(event){
+      var button = event.target.closest && event.target.closest("button");
+      if(!button || !bar.contains(button)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if(event.stopImmediatePropagation) event.stopImmediatePropagation();
+
+      if(button.dataset.scroll){
+        var id = button.dataset.scroll;
+        var target = document.getElementById(id);
+        lockedId = id;
+        manualLockUntil = Date.now() + 950;
+        stableSetActive(id, false);
+        [40, 120, 260, 520, 860].forEach(function(delay){ setTimeout(enforceManualLock, delay); });
+        if(target){
+          target.scrollIntoView({ behavior:prefersReducedMotion() ? "auto" : "smooth", block:"start" });
+        }
+        setTimeout(function(){
+          lockedId = "";
+          manualLockUntil = 0;
+          stableSetActive(stableSectionByPosition(), false);
+        }, 980);
+        return false;
+      }
+
+      if(button.dataset.mobileLogout === "true"){
+        clearPressed();
+        if(typeof window.logout === "function") window.logout();
+        else document.getElementById("logoutBtn")?.click();
+        return false;
+      }
+    }, { capture:true });
+  }
+
+  function exposeStableHooks(){
+    window.diracLiquidSetActive = stableSetActive;
+    window.diracSyncLiquidNav = function(){ syncIndicator(currentActiveButton(), false); };
+    window.diracInstallLiquidNavObserver = installStableObserver;
+    window.initBottomNavObserver = installStableObserver;
+    try { window.updateBottomNavActive = stableSetActive; } catch(_){ }
+  }
+
+  function boot(){
+    replaceLegacyNavOnce();
+    exposeStableHooks();
+    installStableEvents();
+    installStableObserver();
+    installMutationGuard();
+    stableSetActive(stableSectionByPosition(), true);
+    syncCartBadgeVisibility();
+    setTimeout(function(){ syncIndicator(currentActiveButton(), true); }, 80);
+    setTimeout(function(){ syncIndicator(currentActiveButton(), false); }, 420);
+    setTimeout(function(){ syncIndicator(currentActiveButton(), false); }, 1200);
+  }
+
+  boot();
+  ready(boot);
+  window.addEventListener("load", function(){ setTimeout(boot, 60); }, { once:true, passive:true });
+})();
+</script>
+<!-- DIRAC_STABLE_BOTTOM_NAV_100X_FIX_END -->
+
 </body>
 </html>
