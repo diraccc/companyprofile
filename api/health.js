@@ -7,6 +7,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
 ];
 
 const DOMAIN_ACTIONS = new Set([
+  'domain_health',
   'domain_login',
   'domain_register',
   'domain_me',
@@ -16,8 +17,20 @@ const DOMAIN_ACTIONS = new Set([
   'domain_orders'
 ]);
 
+const DOMAIN_ACTION_ALIASES = Object.freeze({
+  'domain-health': 'domain_health',
+  'domain_health': 'domain_health',
+  'check-domain': 'domain_check',
+  'domain_check': 'domain_check',
+  'create-order': 'domain_checkout',
+  'domain_create_order': 'domain_checkout',
+  'get-orders': 'domain_orders',
+  'domain_get_orders': 'domain_orders'
+});
+
 module.exports = async function handler(req, res) {
-  const action = String((req.query && req.query.action) || '').trim();
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = normalizeDomainAction(rawAction);
   const isDomainAction = DOMAIN_ACTIONS.has(action);
 
   const cors = setCors(req, res, { isDomainAction });
@@ -80,16 +93,26 @@ function isAdminRequest(req) {
   return !!secret && String(req.headers && req.headers['x-dirac-admin'] || '') === secret;
 }
 
+function normalizeDomainAction(action) {
+  const cleanAction = String(action || '').trim();
+  return DOMAIN_ACTION_ALIASES[cleanAction] || cleanAction;
+}
+
 /* ============================================================
    DOMAIN ROUTER TAMBAHAN
    Endpoint tetap memakai file lama:
+   /api/health?action=domain_health
+   /api/health?action=domain-health
    /api/health?action=domain_login
    /api/health?action=domain_register
    /api/health?action=domain_me
    /api/health?action=domain_logout
    /api/health?action=domain_check&domain=contoh.com
+   /api/health?action=check-domain&domain=contoh.com
    /api/health?action=domain_checkout
+   /api/health?action=create-order
    /api/health?action=domain_orders
+   /api/health?action=get-orders
    ============================================================ */
 
 const ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || 'dirac_domain_session';
@@ -97,6 +120,7 @@ const REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || 'dirac_domain_refres
 
 async function handleDomainAction(action, req, res) {
   try {
+    if (action === 'domain_health') return domainHealth(req, res);
     if (action === 'domain_login') return domainLogin(req, res);
     if (action === 'domain_register') return domainRegister(req, res);
     if (action === 'domain_me') return domainMe(req, res);
@@ -113,6 +137,28 @@ async function handleDomainAction(action, req, res) {
       error: String(error && error.message ? error.message : error)
     });
   }
+}
+
+async function domainHealth(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  return res.status(200).json({
+    ok: true,
+    service: 'dirac-domain',
+    message: 'Domain API aktif.',
+    endpoints: {
+      check: '/api/health?action=domain_check&domain=contoh.com',
+      checkout: '/api/health?action=domain_checkout',
+      orders: '/api/health?action=domain_orders'
+    },
+    aliases: {
+      health: '/api/health?action=domain-health',
+      check: '/api/health?action=check-domain&domain=contoh.com',
+      createOrder: '/api/health?action=create-order',
+      getOrders: '/api/health?action=get-orders'
+    },
+    time: new Date().toISOString()
+  });
 }
 
 async function domainLogin(req, res) {
