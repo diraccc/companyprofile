@@ -7098,537 +7098,304 @@ html[data-theme="dark"] .professional-mobile-note{
 <!-- DIRAC_USER_REQUESTED_PRECISION_FIX_END -->
 
 
-<!-- DIRAC_NO_CRASH_CLEANUP_PATCH_START -->
-<style id="dirac-no-crash-cleanup-patch">
+
+<!-- Removed unstable wide-TLD API extension patch: replaced with compact stable checker below. -->
+
+
+
+
+<!-- DIRAC_COMPACT_STABLE_DOMAIN_CHECK_FIX_START -->
+<style id="dirac-compact-stable-domain-check-fix">
 /*
-  Patch final non-destruktif:
-  1) Menghapus tampilan daftar ekstensi cepat yang terlalu panjang.
-  2) Mengecilkan tipografi mobile agar layout tidak terasa penuh.
-  3) Menstabilkan alur Cek Domain agar tidak membuat browser mobile berat/crash.
+  Patch stabil: menyederhanakan area ekstensi, mengecilkan teks utama,
+  dan mencegah pengecekan massal puluhan TLD yang dapat membuat mobile crash.
 */
-#cek .search-assist-grid > div:first-child{
-  display:none!important;
+body{
+  font-size:15px!important;
+  line-height:1.55!important;
+}
+.hero-card h1{
+  font-size:clamp(28px,4.8vw,46px)!important;
+  line-height:1.06!important;
+  letter-spacing:-.045em!important;
+}
+.hero-card p,
+.section-title p,
+.microcopy,
+.field-help,
+.cart-empty,
+.tool-card p,
+.market-card p,
+.quality-card p{
+  font-size:14px!important;
+  line-height:1.48!important;
+}
+.section-title h2{
+  font-size:clamp(24px,3.2vw,34px)!important;
+  line-height:1.08!important;
+  letter-spacing:-.04em!important;
+}
+.btn,
+.menu-card,
+.order-action,
+.cart-remove,
+.filter-chip,
+.preset-chip{
+  font-size:14px!important;
+  min-height:42px!important;
+}
+.menu-card span{
+  font-size:12px!important;
+}
+.result-domain{
+  font-size:18px!important;
+  letter-spacing:-.025em!important;
+}
+.price-line{
+  font-size:16px!important;
+}
+.cart-item h3{
+  font-size:17px!important;
+}
+.total-row{
+  font-size:20px!important;
+  padding-top:14px!important;
+  margin-top:14px!important;
+}
+#cartTotal{
+  font-size:22px!important;
+  font-variant-numeric:tabular-nums!important;
+}
+.form-grid label,
+.field label{
+  font-size:11px!important;
+}
+.field input,
+.field textarea,
+.field select,
+.domain-form input,
+.order-search{
+  font-size:15px!important;
 }
 #cek .search-assist-grid{
-  display:block!important;
+  display:none!important;
 }
-#cek .bulk-panel{
-  margin-top:12px!important;
+#cek .microcopy::after{
+  content:" Sistem sekarang hanya mengecek ekstensi utama agar halaman tetap ringan dan stabil.";
 }
-#cek #resultArea{
-  scroll-margin-top:86px!important;
+#resultArea{
+  contain:layout paint!important;
 }
-#resultArea .dirac-check-summary{
-  border-color:rgba(98,88,255,.18)!important;
-  background:linear-gradient(135deg,rgba(238,242,255,.92),rgba(255,255,255,.92))!important;
+.result-area{
+  gap:10px!important;
 }
-#resultArea .dirac-progress-line{
-  margin-top:10px;
-  height:8px;
-  border-radius:999px;
-  overflow:hidden;
-  background:rgba(98,88,255,.13);
+.result-card{
+  padding:14px!important;
+  border-radius:18px!important;
 }
-#resultArea .dirac-progress-line > span{
-  display:block;
-  width:0%;
-  height:100%;
-  border-radius:inherit;
-  background:linear-gradient(90deg,var(--violet,#6258ff),var(--cyan,#13b6d6));
-  transition:width .2s ease;
+.status-badge,
+.badge{
+  font-size:11px!important;
+  padding:6px 9px!important;
 }
-#resultArea .dirac-result-grid{
-  display:grid;
-  gap:12px;
-}
-#resultArea .result-card{
-  contain:layout paint;
-}
-
 @media(max-width:900px){
-  body{
-    font-size:15px!important;
-    line-height:1.5!important;
-  }
-  .hero-card h1,
-  .section-title h2{
-    font-size:clamp(24px,7.1vw,34px)!important;
-    line-height:1.08!important;
-    letter-spacing:-.055em!important;
-  }
-  .section-title p,
-  .hero-card p,
-  .microcopy,
-  .field-help,
-  .cart-empty,
-  .result-card p,
-  .checkout-summary,
-  .line,
-  .summary-line{
-    font-size:14px!important;
-    line-height:1.48!important;
-  }
-  .panel,
-  .order-card,
-  .hero-card{
-    border-radius:22px!important;
-  }
-  .panel{
-    padding:17px!important;
-  }
-  .domain-form input,
-  .field input,
-  .field textarea,
-  .field select{
-    font-size:15px!important;
-  }
-  .btn{
-    font-size:14px!important;
-    min-height:44px!important;
-    border-radius:15px!important;
-  }
-  .result-domain,
-  .cart-item h3{
-    font-size:18px!important;
-    line-height:1.18!important;
-  }
-  .price-line{
-    font-size:17px!important;
-  }
-  #keranjang .cart-empty{
-    padding:18px!important;
-    font-size:15px!important;
-  }
-  #keranjang .total-row{
-    display:grid!important;
-    grid-template-columns:auto minmax(0,1fr)!important;
-    align-items:center!important;
-    gap:10px!important;
-    width:100%!important;
-    min-height:62px!important;
-    padding:14px 16px!important;
-    border-radius:20px!important;
-    overflow:hidden!important;
-  }
-  #keranjang .total-row span:first-child{
-    justify-self:start!important;
-    white-space:nowrap!important;
-    font-size:clamp(20px,5.8vw,26px)!important;
-    line-height:1.08!important;
-  }
-  #keranjang #cartTotal{
-    justify-self:end!important;
-    margin-left:0!important;
-    max-width:100%!important;
-    min-width:0!important;
-    text-align:right!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:clip!important;
-    font-size:clamp(20px,5.8vw,27px)!important;
-    line-height:1.08!important;
-    letter-spacing:-.035em!important;
-    font-variant-numeric:tabular-nums!important;
-  }
-  #keranjang .cart-price{
-    min-height:46px!important;
-    width:100%!important;
-    justify-content:center!important;
-    text-align:center!important;
-    border-radius:16px!important;
-    font-size:clamp(18px,5.4vw,24px)!important;
-    line-height:1.1!important;
-    font-weight:1000!important;
-    font-variant-numeric:tabular-nums!important;
-    overflow:hidden!important;
-  }
-  .mobile-bottom-nav .nav-badge{
-    top:2px!important;
-    right:5px!important;
-    min-width:17px!important;
-    height:17px!important;
-    padding:0 4px!important;
-    font-size:9px!important;
-    line-height:1!important;
-    transform:none!important;
-  }
-  .mobile-bottom-nav .nav-badge[data-empty="true"]{display:none!important;}
-  body.dirac-checkout-in-view .mobile-bottom-nav,
-  body.dirac-checkout-modal-open .mobile-bottom-nav,
-  body.dirac-hide-bottom-nav .mobile-bottom-nav{
-    opacity:0!important;
-    visibility:hidden!important;
-    pointer-events:none!important;
-    transform:translate3d(-50%,118%,0)!important;
-  }
-  body.dirac-checkout-in-view .dirac-floating-actions,
-  body.dirac-checkout-modal-open .dirac-floating-actions,
-  body.dirac-cart-zone-in-view .dirac-floating-actions,
-  body.dirac-hide-bottom-nav .dirac-floating-actions,
-  body.dirac-checkout-in-view .float-actions,
-  body.dirac-checkout-modal-open .float-actions,
-  body.dirac-cart-zone-in-view .float-actions{
-    opacity:0!important;
-    visibility:hidden!important;
-    pointer-events:none!important;
-    transform:translate3d(0,14px,0)!important;
-  }
-}
-
-@media(max-width:420px){
   body{font-size:14px!important;}
-  .section-title h2{font-size:clamp(23px,6.8vw,31px)!important;}
-  .section-title p,
-  .microcopy,
-  .cart-empty,
-  .result-card p{font-size:13.5px!important;}
-  #keranjang #cartTotal{font-size:clamp(19px,5.6vw,25px)!important;}
-  #keranjang .total-row span:first-child{font-size:clamp(19px,5.5vw,24px)!important;}
+  .hero{padding-top:14px!important;}
+  .hero-card{padding:16px!important;gap:10px!important;}
+  .hero-card h1{font-size:clamp(24px,7.6vw,34px)!important;}
+  .section{padding:16px 0!important;}
+  .panel{padding:16px!important;border-radius:20px!important;}
+  .section-title h2{font-size:clamp(23px,7vw,30px)!important;}
+  .domain-form input{min-height:46px!important;font-size:15px!important;}
+  .domain-form .btn{min-height:44px!important;}
+  .cart-empty{padding:16px!important;}
+  #keranjang .total-row{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:12px!important;
+    padding:14px 16px!important;
+    min-height:58px!important;
+    border-radius:18px!important;
+    overflow:hidden!important;
+  }
+  #keranjang .total-row span:first-child{font-size:22px!important;line-height:1.1!important;}
+  #keranjang #cartTotal{font-size:24px!important;line-height:1.1!important;white-space:nowrap!important;}
+  .checkout-summary h3,.info-box h3{font-size:16px!important;}
+  .mobile-bottom-nav small{font-size:10px!important;}
+}
+@media(max-width:520px){
+  .container{width:min(100% - 18px,1180px)!important;}
+  .hero-card h1{font-size:28px!important;}
+  .section-title h2{font-size:26px!important;}
+  .btn{font-size:13px!important;}
+  .result-domain{font-size:16px!important;}
+  #keranjang .total-row span:first-child{font-size:21px!important;}
+  #keranjang #cartTotal{font-size:23px!important;}
 }
 </style>
 
-<script id="dirac-no-crash-cleanup-patch-js">
+<script id="dirac-compact-stable-domain-check-fix-js">
 (function(){
   "use strict";
+  var SAFE_QUICK_TLDS = [".com", ".id", ".co.id", ".my.id"];
+  var MAX_VISIBLE_RESULTS = 4;
+  var CHECK_CONCURRENCY = 2;
 
   function ready(fn){
-    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, { once:true });
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
     else fn();
   }
-  function byId(id){ return document.getElementById(id); }
-  function sleep(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms || 0); }); }
-  function nextFrame(){ return new Promise(function(resolve){ requestAnimationFrame(function(){ resolve(); }); }); }
-  function html(value){
-    try{ if(typeof escapeHTML === "function") return escapeHTML(value); }catch(_){ }
-    return String(value == null ? "" : value).replace(/[&<>'"]/g, function(ch){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch];
+  function id(name){ return document.getElementById(name); }
+  function safeCall(fn, fallback){
+    try { return fn(); } catch (_) { return fallback; }
+  }
+  function stableTlds(){
+    var out = [];
+    var seen = Object.create(null);
+    SAFE_QUICK_TLDS.forEach(function(tld){
+      if(!seen[tld]){ seen[tld] = true; out.push(tld); }
     });
+    return out.slice(0, MAX_VISIBLE_RESULTS);
   }
-  function safeNormalizeDomain(value){
-    try{ if(typeof normalizeDomain === "function") return normalizeDomain(value); }catch(_){ }
-    return String(value || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "").replace(/\s+/g, "").replace(/\.$/, "");
-  }
-  function safeFormatRupiah(value){
-    try{ if(typeof formatRupiah === "function") return formatRupiah(value); }catch(_){ }
-    return "Rp" + Number(value || 0).toLocaleString("id-ID");
-  }
-  function safeFriendlyError(error){
-    try{ if(typeof friendlyError === "function") return friendlyError(error); }catch(_){ }
-    var raw = String(error && error.message || error || "");
-    if(/failed to fetch|network/i.test(raw)) return "Koneksi bermasalah. Periksa internet lalu coba lagi.";
-    if(/abort|terlalu lama|timeout/i.test(raw)) return "Koneksi terlalu lama. Silakan coba lagi.";
-    return raw || "Terjadi kesalahan saat mengecek domain.";
-  }
-  function normalizeTld(value){
-    var raw = String(value == null ? "" : value).trim().toLowerCase();
-    raw = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\s+/g, "").replace(/\/.*$/g, "");
-    raw = raw.replace(/^\*?\.?/, ".").replace(/[^.a-z0-9-]/g, "");
-    if(!raw || raw === ".") return "";
-    if(!/^\.[a-z0-9-]+(?:\.[a-z0-9-]+)*$/.test(raw)) return "";
-    return raw;
-  }
-  function uniqTlds(list){
-    var preferred = [".com", ".id", ".co.id", ".my.id", ".web.id", ".net", ".org", ".xyz", ".site", ".online", ".biz"];
-    var seen = Object.create(null), out = [];
-    (list || []).forEach(function(item){
-      var tld = normalizeTld(item);
-      if(tld && !seen[tld]){ seen[tld] = true; out.push(tld); }
-    });
-    out.sort(function(a,b){
-      var pa = preferred.indexOf(a), pb = preferred.indexOf(b);
-      if(pa !== -1 || pb !== -1) return (pa === -1 ? 999 : pa) - (pb === -1 ? 999 : pb);
-      return a.length === b.length ? a.localeCompare(b) : a.length - b.length;
-    });
-    return out;
-  }
-  function collectTldsDeep(value, bag, depth){
-    if(depth > 7 || value == null) return;
-    if(Array.isArray(value)){ value.forEach(function(item){ collectTldsDeep(item, bag, depth + 1); }); return; }
-    if(typeof value === "string"){
-      var t = normalizeTld(value);
-      if(t) bag.push(t);
-      return;
-    }
-    if(typeof value === "object"){
-      ["tld", "extension", "ext", "name", "domain_extension", "domainExtension", "suffix"].forEach(function(key){
-        if(Object.prototype.hasOwnProperty.call(value, key)){
-          var t = normalizeTld(value[key]);
-          if(t) bag.push(t);
-        }
-      });
-      Object.keys(value).forEach(function(key){
-        if(/tld|extension|ext|price|data|result|items|list|supported|domain/i.test(key)) collectTldsDeep(value[key], bag, depth + 1);
-      });
-    }
-  }
-  function parseTlds(payload){
-    var bag = [];
-    collectTldsDeep(payload, bag, 0);
-    return uniqTlds(bag);
-  }
-  function priceRuleTlds(){
-    try{ if(typeof PRICE_RULES !== "undefined") return uniqTlds(Object.keys(PRICE_RULES || {})); }catch(_){ }
-    var chips = [].map.call(document.querySelectorAll("#cek .tld-chip[data-tld]"), function(btn){ return btn.getAttribute("data-tld"); });
-    return uniqTlds(chips.length ? chips : [".com", ".id", ".co.id", ".my.id", ".net", ".org", ".xyz", ".site", ".online", ".biz"]);
-  }
-  var TLD_ACTIONS = [
-    "hostinger-tlds", "hostinger-extensions", "hostinger-prices", "domain-tlds", "domain-extensions", "domain-prices",
-    "tlds", "extensions", "prices", "get-tlds", "get-extensions", "supported-tlds", "supported-extensions"
-  ];
-  async function getSupportedTlds(){
-    var fallback = priceRuleTlds();
-    if(typeof api !== "function") return fallback;
-    for(var i = 0; i < TLD_ACTIONS.length; i++){
-      try{
-        var response = await api("?action=" + encodeURIComponent(TLD_ACTIONS[i]), { timeout: 5200 });
-        var parsed = parseTlds(response);
-        if(parsed.length){
-          try{ if(typeof state !== "undefined") state.apiTlds = parsed; }catch(_){ }
-          return parsed;
-        }
-      }catch(_){ }
-    }
-    return fallback;
-  }
-  function hasUsableTld(value){
-    var clean = safeNormalizeDomain(value);
-    try{ if(typeof hasTld === "function") return hasTld(clean); }catch(_){ }
-    return /\.[a-z0-9-]{2,}(\.[a-z0-9-]{2,})?$/.test(clean);
-  }
-  function validDomain(value, allowBare){
-    try{ if(typeof isValidDomainName === "function") return isValidDomainName(value, !!allowBare); }catch(_){ }
-    var clean = safeNormalizeDomain(value);
-    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(clean) && clean.length >= 2 && clean.length <= 253 && (allowBare || hasUsableTld(clean));
-  }
-  function setBusy(value){
-    try{ if(typeof setResultBusy === "function") setResultBusy(!!value); }catch(_){ }
-    var area = byId("resultArea");
-    if(area) area.setAttribute("aria-busy", value ? "true" : "false");
-  }
-  function scrollToResults(force){
-    var area = byId("resultArea");
-    if(!area) return;
-    var rect = area.getBoundingClientRect();
-    if(force || rect.top > window.innerHeight * 0.64 || rect.top < 70){
-      try{ area.scrollIntoView({ behavior:"smooth", block:"start" }); }catch(_){ area.scrollIntoView(); }
-    }
-  }
-  function renderInitial(){
-    try{ if(typeof renderInitialResult === "function") return renderInitialResult(); }catch(_){ }
-    var area = byId("resultArea");
-    if(area) area.innerHTML = "";
-  }
-  function renderErrorSafe(domain, message){
-    setBusy(false);
-    try{ if(typeof renderError === "function") return renderError(domain, message); }catch(_){ }
-    var area = byId("resultArea");
-    if(!area) return;
-    area.innerHTML = '<div class="result-card error"><div class="result-head"><div class="result-domain">' + html(domain || "Domain") + '</div><span class="status-badge badge-error">Gagal dicek</span></div><p>' + html(message || "Terjadi kesalahan saat mengecek domain.") + '</p></div>';
-  }
-  function resultCardSkeleton(domain, id){
-    return '<div class="result-card checking" id="' + html(id) + '"><div class="result-head"><div class="result-domain">' + html(domain) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Menunggu</span></div><p>Sedang masuk antrean pengecekan.</p></div>';
-  }
-  function safeCardId(index, tld){
-    return "dirac-safe-card-" + index + "-" + String(tld).replace(/[^a-z0-9]+/gi, "-");
-  }
-  function totalLabelFrom(data, price){
-    try{ if(typeof priceLabelFromApi === "function") return priceLabelFromApi(data, price); }catch(_){ }
-    return (data && data.price_label) || safeFormatRupiah((price && price.register) || (data && data.price) || 0);
-  }
-  function updateSummary(done, total, label){
-    var summary = byId("diracCheckSummary");
-    var progress = byId("diracCheckProgress");
-    if(summary){
-      var text = label || ("Mengecek " + done + " dari " + total + " ekstensi.");
-      summary.querySelector("p").textContent = text;
-    }
-    if(progress) progress.style.width = (total ? Math.round((done / total) * 100) : 0) + "%";
-  }
-  async function appendCardsInChunks(area, base, tlds){
-    var grid = document.createElement("div");
-    grid.className = "dirac-result-grid";
-    grid.id = "diracSafeResultGrid";
-    area.appendChild(grid);
-    for(var i = 0; i < tlds.length; i += 12){
-      var htmlChunk = "";
-      tlds.slice(i, i + 12).forEach(function(tld, offset){
-        var index = i + offset;
-        htmlChunk += resultCardSkeleton(base + tld, safeCardId(index, tld));
-      });
-      grid.insertAdjacentHTML("beforeend", htmlChunk);
-      await nextFrame();
-    }
-  }
-  async function runQueue(items, limit, worker, runId){
+  async function runLimited(items, limit, worker){
     var index = 0;
     async function loop(){
       while(index < items.length){
-        var currentIndex = index++;
-        try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
-        await worker(items[currentIndex], currentIndex);
-        await sleep(35);
+        var current = index++;
+        await worker(items[current], current);
       }
     }
     var workers = [];
-    var max = Math.max(1, Math.min(limit || 2, items.length));
-    for(var i = 0; i < max; i++) workers.push(loop());
+    for(var i = 0; i < Math.min(limit, items.length); i++) workers.push(loop());
     await Promise.all(workers);
   }
-
-  async function safeCheckManyExtensions(baseName, runId){
-    runId = runId || (typeof state !== "undefined" ? ++state.domainCheckRunId : Date.now());
-    var cleanBase = safeNormalizeDomain(baseName).replace(/\..*$/, "").replace(/[^a-z0-9-]/g, "").replace(/^-+|-+$/g, "");
-    if(!cleanBase){ renderInitial(); return; }
-    if(!validDomain(cleanBase, true)){ renderErrorSafe(cleanBase, "Nama brand/domain mengandung karakter yang belum valid."); return; }
-
-    var area = byId("resultArea");
+  function compactInitialResult(){
+    var area = id("resultArea");
     if(!area) return;
-    setBusy(true);
-    area.innerHTML = '<div class="result-card checking dirac-check-summary" id="diracCheckSummary"><div class="result-head"><div class="result-domain">' + html(cleanBase) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek</span></div><p>Menyiapkan daftar ekstensi dari API.</p><div class="dirac-progress-line" aria-hidden="true"><span id="diracCheckProgress"></span></div></div>';
-    scrollToResults(true);
-
-    var tlds = [];
-    try{ tlds = await getSupportedTlds(); }catch(_){ tlds = priceRuleTlds(); }
-    tlds = uniqTlds(tlds);
-    if(!tlds.length) tlds = priceRuleTlds();
-
-    // Hindari cache/fallback lama yang pernah menjejalkan puluhan ekstensi palsu ke UI.
-    // Jika API tidak mengirim daftar eksplisit, fallback tetap pada PRICE_RULES bawaan agar browser mobile tidak crash.
-    updateSummary(0, tlds.length, "Mengecek " + tlds.length + " ekstensi yang tersedia di sistem.");
-    await appendCardsInChunks(area, cleanBase, tlds);
-
-    var done = 0;
-    var concurrency = window.innerWidth <= 520 ? 2 : 3;
-    await runQueue(tlds, concurrency, async function(tld, index){
-      var domain = cleanBase + tld;
-      var card = byId(safeCardId(index, tld));
-      if(!card) return;
-      try{
-        card.innerHTML = '<div class="result-head"><div class="result-domain">' + html(domain) + '</div><span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span></div><p>Sedang diproses lewat API.</p>';
-        var data = await checkHostingerDomain(domain, { timeout: 26000 });
-        try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
-        var safeDomain = safeNormalizeDomain((data && data.domain) || domain);
-        var available = Boolean(data && data.available);
-        var price = null;
-        try{ if(typeof getPrice === "function") price = getPrice(safeDomain); }catch(_){ }
-        var label = totalLabelFrom(data, price);
-        card.className = "result-card " + (available ? "available" : "taken");
-        card.innerHTML = '<div class="result-head"><div class="result-domain">' + html(safeDomain) + '</div><span class="status-badge ' + (available ? "badge-available" : "badge-taken") + '">' + (available ? "Tersedia" : "Tidak tersedia") + '</span></div><p>' + html((data && data.message) || (available ? "Domain tersedia." : "Domain sudah terdaftar.")) + '</p>' + (available ? '<div class="price-line">Harga Total: ' + html(label) + '</div><p class="microcopy">Harga total diambil dari API saat pengecekan.</p>' : '<p class="microcopy">Silakan coba variasi nama lain bila domain tidak tersedia.</p>') + '<div class="result-actions">' + (available ? '<button class="btn btn-mint" data-add-cart="' + html(safeDomain) + '">Tambah ke Keranjang</button>' : '') + '<button class="btn btn-soft" data-recheck="' + html(safeDomain) + '">Cek Ulang</button></div>';
-      }catch(error){
-        try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
-        card.className = "result-card error";
-        card.innerHTML = '<div class="result-head"><div class="result-domain">' + html(domain) + '</div><span class="status-badge badge-error">Tidak ada hasil</span></div><p>' + html(safeFriendlyError(error)) + '</p><div class="result-actions"><button class="btn btn-soft" data-recheck="' + html(domain) + '">Coba Lagi</button></div>';
-      }finally{
-        done += 1;
-        updateSummary(done, tlds.length, done >= tlds.length ? "Pengecekan selesai. Pilih domain yang tersedia untuk dimasukkan ke keranjang." : "Mengecek " + done + " dari " + tlds.length + " ekstensi.");
-      }
-    }, runId);
-
-    try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
-    setBusy(false);
-    try{ if(typeof bindResultButtons === "function") bindResultButtons(); }catch(_){ }
-    updateSummary(tlds.length, tlds.length, "Pengecekan selesai. Pilih domain yang tersedia untuk dimasukkan ke keranjang.");
+    safeCall(function(){ setResultBusy(false); }, null);
+    area.innerHTML = '' +
+      '<div class="result-card checking">' +
+        '<div class="result-head">' +
+          '<div class="result-domain">Masukkan nama domain</div>' +
+          '<span class="status-badge badge-checking">Siap dicek</span>' +
+        '</div>' +
+        '<p>Ketik nama brand saja, misalnya <b>brandkamu</b>. Sistem akan mengecek ekstensi utama secara ringkas agar halaman tidak berat di HP.</p>' +
+      '</div>';
   }
-
-  async function safeCheckDomain(rawDomain){
-    var runId = (typeof state !== "undefined" ? ++state.domainCheckRunId : Date.now());
-    var domain = safeNormalizeDomain(rawDomain);
-    try{
-      if(!domain){ renderInitial(); return; }
-      if(!validDomain(domain, true)){ renderErrorSafe(domain, "Nama domain mengandung karakter yang belum valid."); return; }
-      if(!hasUsableTld(domain)){
-        await safeCheckManyExtensions(domain, runId);
-        return;
-      }
-      setBusy(true);
-      try{ if(typeof renderChecking === "function") renderChecking(domain); }catch(_){ }
-      scrollToResults(true);
-      var data = await checkHostingerDomain(domain, { timeout: 26000 });
-      try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
-      try{ if(typeof renderCheckResult === "function") renderCheckResult(data, domain); }catch(error){ throw error; }
-      try{ if(typeof bindResultButtons === "function") bindResultButtons(); }catch(_){ }
-    }catch(error){
-      try{ if(typeof state !== "undefined" && runId !== state.domainCheckRunId) return; }catch(_){ }
-      renderErrorSafe(domain, safeFriendlyError(error));
-    }finally{
-      try{ if(typeof state === "undefined" || runId === state.domainCheckRunId) setBusy(false); }catch(_){ setBusy(false); }
-      setTimeout(function(){ scrollToResults(false); }, 90);
-    }
-  }
-
-  function installNoCrashDomainCheck(){
-    try{
-      if(typeof checkManyExtensions === "function"){
-        checkManyExtensions = safeCheckManyExtensions;
-        window.checkManyExtensions = safeCheckManyExtensions;
-      }
-    }catch(_){ window.checkManyExtensions = safeCheckManyExtensions; }
-    try{
-      checkDomain = safeCheckDomain;
-      window.checkDomain = safeCheckDomain;
-    }catch(_){ window.checkDomain = safeCheckDomain; }
-  }
-  function hideExtensionQuickList(){
-    var group = document.querySelector("#cek .tld-group");
-    if(group) group.setAttribute("aria-hidden", "true");
-    var title = document.querySelector("#cek .assist-title");
-    if(title) title.setAttribute("aria-hidden", "true");
-  }
-  function syncCheckoutVisibility(){
-    var body = document.body;
-    var checkout = byId("checkout");
-    var cart = byId("keranjang");
-    var modal = byId("checkoutConfirmModal");
-    var checkoutVisible = false, cartVisible = false, modalOpen = false;
-    if(checkout){
-      var r = checkout.getBoundingClientRect();
-      checkoutVisible = r.top < window.innerHeight * 0.88 && r.bottom > window.innerHeight * 0.10;
-    }
-    if(cart){
-      var c = cart.getBoundingClientRect();
-      cartVisible = c.top < window.innerHeight * 0.94 && c.bottom > 84;
-    }
-    if(modal){ modalOpen = modal.classList.contains("show") || modal.getAttribute("aria-hidden") === "false"; }
-    body.classList.toggle("dirac-checkout-in-view", !!checkoutVisible);
-    body.classList.toggle("dirac-cart-zone-in-view", !!cartVisible);
-    body.classList.toggle("dirac-checkout-modal-open", !!modalOpen);
-    body.classList.toggle("dirac-hide-bottom-nav", !!(checkoutVisible || modalOpen));
-  }
-  function installCheckoutWatcher(){
-    var ticking = false;
-    function requestSync(){
-      if(ticking) return;
-      ticking = true;
-      requestAnimationFrame(function(){ ticking = false; syncCheckoutVisibility(); });
-    }
-    window.addEventListener("scroll", requestSync, { passive:true });
-    window.addEventListener("resize", requestSync, { passive:true });
-    window.addEventListener("orientationchange", function(){ setTimeout(requestSync, 220); }, { passive:true });
-    var modal = byId("checkoutConfirmModal");
-    if(modal && typeof MutationObserver !== "undefined"){
-      new MutationObserver(requestSync).observe(modal, { attributes:true, attributeFilter:["class", "aria-hidden"] });
-    }
-    document.addEventListener("focusin", function(event){
-      if(event.target && event.target.closest && event.target.closest("#checkout")){
-        document.body.classList.add("dirac-hide-bottom-nav", "dirac-checkout-in-view");
-      }
-    }, true);
-    requestSync();
-    setTimeout(requestSync, 350);
+  function bindCompactResultButtons(){
+    safeCall(function(){ bindResultButtons(); }, null);
   }
 
   ready(function(){
-    hideExtensionQuickList();
-    installNoCrashDomainCheck();
-    installCheckoutWatcher();
-    // Ulangi setelah semua patch lama selesai memasang wrapper, agar fungsi final tetap yang aman.
-    [250, 900, 1600, 2600].forEach(function(delay){
-      setTimeout(function(){ hideExtensionQuickList(); installNoCrashDomainCheck(); syncCheckoutVisibility(); }, delay);
-    });
+    var assist = document.querySelector("#cek .search-assist-grid");
+    if(assist) assist.setAttribute("aria-hidden", "true");
+
+    safeCall(function(){
+      buildDomainSuggestions = function(domain, limit){
+        var base = domainBaseName(domain).replace(/[^a-z0-9-]/g, "").replace(/^-+|-+$/g, "") || "brandkamu";
+        var seen = Object.create(null);
+        var suggestions = [];
+        stableTlds().forEach(function(ext){
+          var candidate = normalizeDomain(base + ext);
+          if(!seen[candidate] && getPrice(candidate) && isValidDomainName(candidate)){
+            seen[candidate] = true;
+            suggestions.push(candidate);
+          }
+        });
+        return suggestions.slice(0, Math.min(Number(limit) || 3, 3));
+      };
+    }, null);
+
+    safeCall(function(){
+      renderInitialResult = compactInitialResult;
+      window.renderInitialResult = compactInitialResult;
+    }, null);
+
+    safeCall(function(){
+      checkManyExtensions = async function(baseName, runId){
+        runId = runId || (++state.domainCheckRunId);
+        var cleanBase = normalizeDomain(baseName).replace(/\..*$/, "");
+        var area = id("resultArea");
+        if(!area) return;
+
+        if(!cleanBase){ compactInitialResult(); return; }
+        if(!isValidDomainName(cleanBase, true)){
+          renderError(cleanBase, "Nama brand/domain mengandung karakter yang belum valid.");
+          return;
+        }
+
+        var tlds = stableTlds();
+        setResultBusy(true);
+        area.innerHTML = tlds.map(function(tld, index){
+          var domain = cleanBase + tld;
+          return '' +
+            '<div class="result-card checking" id="stable-card-' + index + '">' +
+              '<div class="result-head">' +
+                '<div class="result-domain">' + escapeHTML(domain) + '</div>' +
+                '<span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span>' +
+              '</div>' +
+              '<p>Memeriksa ekstensi utama secara bertahap.</p>' +
+            '</div>';
+        }).join("");
+
+        await runLimited(tlds, CHECK_CONCURRENCY, async function(tld, index){
+          var domain = cleanBase + tld;
+          var card = id("stable-card-" + index);
+          if(!card) return;
+          try{
+            var data = await checkHostingerDomain(domain, { timeout: 26000 });
+            if(runId !== state.domainCheckRunId) return;
+            var safeDomain = normalizeDomain((data && data.domain) || domain);
+            var available = Boolean(data && data.available);
+            var price = getPrice(safeDomain);
+            var totalLabel = priceLabelFromApi(data, price);
+            card.className = "result-card " + (available ? "available" : "taken");
+            card.innerHTML = '' +
+              '<div class="result-head">' +
+                '<div class="result-domain">' + escapeHTML(safeDomain) + '</div>' +
+                '<span class="status-badge ' + (available ? "badge-available" : "badge-taken") + '">' + (available ? "Tersedia" : "Tidak tersedia") + '</span>' +
+              '</div>' +
+              '<p>' + escapeHTML((data && data.message) || (available ? "Domain tersedia." : "Domain sudah terdaftar.")) + '</p>' +
+              (available ? '<div class="price-line">Harga Total: ' + escapeHTML(totalLabel) + '</div>' : '<p class="microcopy">Coba ubah nama brand atau cek domain lengkap secara manual.</p>') +
+              '<div class="result-actions">' +
+                (available ? '<button class="btn btn-mint" type="button" data-add-cart="' + escapeHTML(safeDomain) + '">Tambah ke Keranjang</button>' : '') +
+                '<button class="btn btn-soft" type="button" data-recheck="' + escapeHTML(safeDomain) + '">Cek Ulang</button>' +
+              '</div>';
+          }catch(error){
+            if(runId !== state.domainCheckRunId) return;
+            card.className = "result-card error";
+            card.innerHTML = '' +
+              '<div class="result-head">' +
+                '<div class="result-domain">' + escapeHTML(domain) + '</div>' +
+                '<span class="status-badge badge-error">Gagal dicek</span>' +
+              '</div>' +
+              '<p>' + escapeHTML(friendlyError(error)) + '</p>' +
+              '<div class="result-actions"><button class="btn btn-soft" type="button" data-recheck="' + escapeHTML(domain) + '">Coba Lagi</button></div>';
+          }
+        });
+
+        if(runId !== state.domainCheckRunId) return;
+        setResultBusy(false);
+        bindCompactResultButtons();
+      };
+      window.checkManyExtensions = checkManyExtensions;
+    }, null);
+
+    var form = id("domainCheckForm");
+    var input = id("domainInput");
+    if(form && input){
+      form.addEventListener("submit", function(){
+        window.setTimeout(function(){
+          var area = id("resultArea");
+          if(area) area.scrollIntoView({ behavior:"smooth", block:"start" });
+        }, 120);
+      }, true);
+    }
   });
 })();
 </script>
-<!-- DIRAC_NO_CRASH_CLEANUP_PATCH_END -->
+<!-- DIRAC_COMPACT_STABLE_DOMAIN_CHECK_FIX_END -->
 
 </body>
 </html>
