@@ -6209,5 +6209,145 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
 </style>
 <!-- DIRAC_NAV_FIXED_LOWER_PRECISION_FIX_END -->
 
+    <!--
+      Custom liquid‑glass override
+
+      The existing mobile bottom navigation already implements a fluid indicator that
+      tracks the active section. To better match Apple’s Liquid Glass design, this
+      override darkens the navigation background and introduces a multi‑coloured
+      animated gradient within the active indicator. A pair of radial gradients
+      add subtle colour tints to the bar itself, while the linear gradient on the
+      indicator animates its hues over time. Colours and blur levels were chosen
+      to approximate the swirling, translucent effect seen in modern iOS builds.
+    -->
+    <style id="dirac-liquid-glass-override">
+      @media(max-width:900px){
+        /* Dark, translucent base for the navigation bar with subtle colour accents */
+        .mobile-bottom-nav{
+          background:
+            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
+            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
+            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
+          border:1px solid rgba(255,255,255,.22) !important;
+          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
+          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
+          backdrop-filter:blur(26px) saturate(1.4) !important;
+        }
+        html[data-theme="dark"] .mobile-bottom-nav{
+          /* Dark mode uses the same tinted palette for consistency */
+          background:
+            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
+            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
+            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
+          border:1px solid rgba(255,255,255,.22) !important;
+          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
+          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
+          backdrop-filter:blur(26px) saturate(1.4) !important;
+        }
+
+        /* Animated, multicoloured indicator that follows the active button */
+        .mobile-bottom-nav::before{
+          /* Preserve positioning from existing rules; only override colours */
+          background:
+            radial-gradient(circle at 50% 30%, rgba(255,255,255,.45), transparent 40%),
+            linear-gradient(270deg, #4fa4ff, #58d68d, #ff6f61, #8e44ad, #4fa4ff);
+          background-size:800% 800%;
+          animation: navLiquidGradient 8s ease infinite;
+          box-shadow:0 18px 38px rgba(0,0,0,.45), inset 0 1px 2px rgba(255,255,255,.40), inset 0 -12px 22px rgba(0,0,0,.35) !important;
+        }
+        /* Thin highlight line under the indicator */
+        .mobile-bottom-nav::after{
+          background:linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent) !important;
+        }
+
+        /* Neutral default colour for buttons on darkened bar */
+        .mobile-bottom-nav button{
+          color:#d1d5db !important;
+        }
+        /* Active button inherits white text to contrast the multicolour glow */
+        .mobile-bottom-nav button.active{
+          color:#ffffff !important;
+        }
+      }
+
+      /* Animate the gradient for the liquid indicator. Background‑position shifts
+         horizontally to create a smooth colour swirl. */
+      @keyframes navLiquidGradient{
+        0%{ background-position:0% 50%; }
+        50%{ background-position:100% 50%; }
+        100%{ background-position:0% 50%; }
+      }
+    </style>
+
+    <!--
+      Custom liquid‑glass override
+
+      The existing mobile bottom navigation already implements a fluid indicator that
+      tracks the active section. To better match Apple’s Liquid Glass design, this
+      override darkens the navigation background and introduces a multi‑coloured
+      animated gradient within the active indicator. A pair of radial gradients
+      add subtle colour tints to the bar itself, while the linear gradient on the
+      indicator animates its hues over time. Colours and blur levels were chosen
+      to approximate the swirling, translucent effect seen in modern iOS builds.
+    -->
+    <style id="dirac-liquid-glass-override">
+      @media(max-width:900px){
+        /* Dark, translucent base for the navigation bar with subtle colour accents */
+        .mobile-bottom-nav{
+          background:
+            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
+            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
+            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
+          border:1px solid rgba(255,255,255,.22) !important;
+          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
+          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
+          backdrop-filter:blur(26px) saturate(1.4) !important;
+        }
+        html[data-theme="dark"] .mobile-bottom-nav{
+          /* Dark mode uses the same tinted palette for consistency */
+          background:
+            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
+            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
+            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
+          border:1px solid rgba(255,255,255,.22) !important;
+          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
+          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
+          backdrop-filter:blur(26px) saturate(1.4) !important;
+        }
+
+        /* Animated, multicoloured indicator that follows the active button */
+        .mobile-bottom-nav::before{
+          /* Preserve positioning from existing rules; only override colours */
+          background:
+            radial-gradient(circle at 50% 30%, rgba(255,255,255,.45), transparent 40%),
+            linear-gradient(270deg, #4fa4ff, #58d68d, #ff6f61, #8e44ad, #4fa4ff);
+          background-size:800% 800%;
+          animation: navLiquidGradient 8s ease infinite;
+          box-shadow:0 18px 38px rgba(0,0,0,.45), inset 0 1px 2px rgba(255,255,255,.40), inset 0 -12px 22px rgba(0,0,0,.35) !important;
+        }
+        /* Thin highlight line under the indicator */
+        .mobile-bottom-nav::after{
+          background:linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent) !important;
+        }
+
+        /* Neutral default colour for buttons on darkened bar */
+        .mobile-bottom-nav button{
+          color:#d1d5db !important;
+        }
+        /* Active button inherits white text to contrast the multicolour glow */
+        .mobile-bottom-nav button.active{
+          color:#ffffff !important;
+        }
+      }
+
+      /* Animate the gradient for the liquid indicator. Background‑position shifts
+         horizontally to create a smooth colour swirl. */
+      @keyframes navLiquidGradient{
+        0%{ background-position:0% 50%; }
+        50%{ background-position:100% 50%; }
+        100%{ background-position:0% 50%; }
+      }
+    </style>
+
 </body>
 </html>
