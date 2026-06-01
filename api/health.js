@@ -136,6 +136,13 @@ const HOSTINGER_TOKEN_COOLDOWNS = globalThis.__DIRAC_HOSTINGER_TOKEN_COOLDOWNS__
 globalThis.__DIRAC_HOSTINGER_TOKEN_COOLDOWNS__ = HOSTINGER_TOKEN_COOLDOWNS;
 globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ = globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ || 0;
 
+
+// Provider domain tambahan untuk mengurangi ketergantungan ke Hostinger.
+// Endpoint publik tetap sama: /api/health?action=hostinger-check&domain=contoh.com
+// Urutan default: Name.com -> NameSilo -> WhoisJSON -> Hostinger.
+const DOMAIN_PROVIDER_COOLDOWNS = globalThis.__DIRAC_DOMAIN_PROVIDER_COOLDOWNS__ || new Map();
+globalThis.__DIRAC_DOMAIN_PROVIDER_COOLDOWNS__ = DOMAIN_PROVIDER_COOLDOWNS;
+
 async function handleDomainAction(action, req, res) {
   try {
     if (action === 'domain_health') return domainHealth(req, res);
@@ -192,7 +199,7 @@ async function hostingerCheckDomain(req, res) {
     return res.status(400).json({ ok: false, message: 'Domain tidak valid. Contoh: namabrand.com' });
   }
 
-  const cacheKey = `hostinger:${parts.fullDomain}`;
+  const cacheKey = `domain-provider:${parts.fullDomain}`;
   const cacheSeconds = Math.max(0, Number(process.env.DOMAIN_API_CACHE_SECONDS || process.env.HOSTINGER_DOMAIN_CACHE_SECONDS || 60));
   const cached = HOSTINGER_CHECK_CACHE.get(cacheKey);
 
@@ -200,69 +207,50 @@ async function hostingerCheckDomain(req, res) {
     return res.status(200).json({ ...cached.payload, cached: true });
   }
 
-  const availability = await hostingerFetch('/api/domains/v1/availability', {
-    method: 'POST',
-    body: {
-      domain: parts.name,
-      tlds: [parts.tld],
-      with_alternatives: false
-    }
-  });
+  const check = await checkDomainWithProviders(parts);
 
-  if (!availability.ok) {
-    return res.status(availability.status || 502).json({
+  if (!check.ok) {
+    return res.status(check.status || 502).json({
       ok: false,
-      message: getUpstreamMessage(availability.data) || 'Gagal cek ketersediaan domain.'
+      message: check.message || 'Gagal cek ketersediaan domain.',
+      provider: check.provider || null
     });
   }
 
-  const available = parseHostingerAvailability(availability.data, parts.fullDomain);
-
-  if (available === false) {
+  if (check.available === false) {
     const payload = {
       ok: true,
       domain: parts.fullDomain,
       available: false,
+      provider: check.provider || null,
       message: 'Domain tidak tersedia.'
     };
     if (cacheSeconds > 0) HOSTINGER_CHECK_CACHE.set(cacheKey, { expiresAt: Date.now() + cacheSeconds * 1000, payload });
     return res.status(200).json(payload);
   }
 
-  const catalog = await hostingerFetch(`/api/billing/v1/catalog?category=DOMAIN&name=${encodeURIComponent(`.${parts.tld.toUpperCase()}*`)}`, {
-    method: 'GET'
-  });
-
-  if (!catalog.ok) {
-    return res.status(catalog.status || 502).json({
-      ok: false,
-      message: getUpstreamMessage(catalog.data) || 'Gagal mengambil harga domain.'
-    });
-  }
-
-  const priceInfo = extractHostingerDomainPrice(catalog.data, parts.tld);
+  const priceInfo = check.priceInfo || await resolveDomainPrice(parts, check);
 
   if (!priceInfo) {
     return res.status(502).json({
       ok: false,
-      message: `Harga domain .${parts.tld} belum ditemukan.`
+      domain: parts.fullDomain,
+      available: check.available !== false,
+      provider: check.provider || null,
+      message: `Domain tersedia, tetapi harga .${parts.tld} belum ditemukan.`
     });
   }
 
-  const normalMarkup = Math.max(0, Number(process.env.DOMAIN_PRICE_MARKUP || 10000));
-  const storeMarkup = Math.max(0, Number(process.env.DOMAIN_STORE_MARKUP || 1200000));
-  const markup = parts.tld === 'store' ? storeMarkup : normalMarkup;
-  const finalPrice = priceInfo.price + markup;
-  const currency = String(process.env.DOMAIN_DEFAULT_CURRENCY || priceInfo.currency || 'IDR').toUpperCase();
-
+  const priced = buildDomainPrice(parts, priceInfo);
   const payload = {
     ok: true,
     domain: parts.fullDomain,
-    available: available !== false,
-    price: finalPrice,
-    price_label: formatCurrency(finalPrice, currency),
-    currency,
-    message: available === null ? 'Domain berhasil dicek.' : 'Domain tersedia.'
+    available: check.available !== false,
+    provider: check.provider || priceInfo.source || null,
+    price: priced.price,
+    price_label: formatCurrency(priced.price, priced.currency),
+    currency: priced.currency,
+    message: check.available === null ? 'Domain berhasil dicek.' : 'Domain tersedia.'
   };
 
   if (cacheSeconds > 0) HOSTINGER_CHECK_CACHE.set(cacheKey, { expiresAt: Date.now() + cacheSeconds * 1000, payload });
@@ -647,6 +635,418 @@ async function requireDomainUser(req, res) {
   clearSessionCookies(res);
   res.status(401).json({ ok: false, message: 'Belum login atau sesi sudah habis.' });
   return null;
+}
+
+
+function getDomainProviderOrder() {
+  const aliases = {
+    'name.com': 'namecom',
+    'name_com': 'namecom',
+    namecom: 'namecom',
+    namesilo: 'namesilo',
+    name_silo: 'namesilo',
+    'name-silo': 'namesilo',
+    whoisjson: 'whoisjson',
+    'whois-json': 'whoisjson',
+    whois_json: 'whoisjson',
+    hostinger: 'hostinger'
+  };
+
+  const raw = String(process.env.DOMAIN_AVAILABILITY_PROVIDERS || process.env.DOMAIN_CHECK_PROVIDERS || 'namecom,namesilo,whoisjson,hostinger')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .map((item) => aliases[item] || item)
+    .filter((item) => ['namecom', 'namesilo', 'whoisjson', 'hostinger'].includes(item));
+
+  return Array.from(new Set(raw.length ? raw : ['namecom', 'namesilo', 'whoisjson', 'hostinger']));
+}
+
+function hasDomainProviderCredentials(provider) {
+  if (provider === 'namecom') return Boolean(process.env.NAMECOM_USERNAME && process.env.NAMECOM_API_TOKEN);
+  if (provider === 'namesilo') return Boolean(process.env.NAMESILO_API_KEY);
+  if (provider === 'whoisjson') return Boolean(process.env.WHOISJSON_API_KEY);
+  if (provider === 'hostinger') return Boolean(process.env.HOSTINGER_API_TOKEN || process.env.HOSTINGER_API_TOKENS || process.env.HOSTINGER_API_KEYS || process.env.HOSTINGER_API_TOKEN_1);
+  return false;
+}
+
+async function checkDomainWithProviders(parts) {
+  const providers = getDomainProviderOrder().filter(hasDomainProviderCredentials);
+  let lastError = null;
+  let availableCandidate = null;
+
+  if (!providers.length) {
+    return {
+      ok: false,
+      status: 500,
+      message: 'Belum ada API domain yang disetel. Isi NAMECOM_API_TOKEN, NAMESILO_API_KEY, WHOISJSON_API_KEY, atau HOSTINGER_API_TOKEN.'
+    };
+  }
+
+  for (const provider of providers) {
+    const cooldownUntil = Number(DOMAIN_PROVIDER_COOLDOWNS.get(provider) || 0);
+    if (cooldownUntil > Date.now()) {
+      lastError = {
+        ok: false,
+        status: 429,
+        provider,
+        message: `${getProviderLabel(provider)} masih cooldown. Coba lagi ${Math.ceil((cooldownUntil - Date.now()) / 1000)} detik.`
+      };
+      continue;
+    }
+
+    try {
+      const result = await checkDomainWithProvider(provider, parts);
+
+      if (!result || !result.ok) {
+        lastError = result || { ok: false, status: 502, provider, message: `${getProviderLabel(provider)} tidak merespons.` };
+        if (lastError.status === 429) setProviderCooldown(provider, lastError.retry_after_seconds || 60);
+        continue;
+      }
+
+      if (result.available === false) return result;
+
+      if (result.available === true || result.available === null) {
+        const priceInfo = await resolveDomainPrice(parts, result);
+        if (priceInfo) return { ...result, priceInfo };
+        if (result.available === true && !availableCandidate) availableCandidate = result;
+      }
+    } catch (error) {
+      lastError = {
+        ok: false,
+        status: 502,
+        provider,
+        message: String(error && error.message ? error.message : error)
+      };
+    }
+  }
+
+  if (availableCandidate) return { ...availableCandidate, priceInfo: null };
+
+  return {
+    ok: false,
+    status: lastError && lastError.status ? lastError.status : 502,
+    provider: lastError && lastError.provider ? lastError.provider : null,
+    message: lastError && lastError.message ? lastError.message : 'Semua provider domain gagal mengecek domain.'
+  };
+}
+
+async function checkDomainWithProvider(provider, parts) {
+  if (provider === 'namecom') return checkNamecomDomain(parts);
+  if (provider === 'namesilo') return checkNamesiloDomain(parts);
+  if (provider === 'whoisjson') return checkWhoisJsonDomain(parts);
+  if (provider === 'hostinger') return checkHostingerDomainAvailabilityAndPrice(parts);
+  return { ok: false, status: 400, provider, message: `Provider ${provider} tidak dikenal.` };
+}
+
+async function checkNamecomDomain(parts) {
+  const username = requiredEnv('NAMECOM_USERNAME');
+  const token = requiredEnv('NAMECOM_API_TOKEN');
+  const baseUrl = String(process.env.NAMECOM_API_BASE || 'https://api.name.com').replace(/\/$/, '');
+  const auth = Buffer.from(`${username}:${token}`).toString('base64');
+
+  const response = await fetch(`${baseUrl}/core/v1/domains:checkAvailability`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({
+      domainNames: [parts.fullDomain],
+      purchaseType: 'registration'
+    })
+  });
+
+  const data = await parseFetchResponse(response);
+  if (!response.ok) {
+    return upstreamFailure('namecom', response, data);
+  }
+
+  const results = Array.isArray(data && data.results) ? data.results : [];
+  const item = results.find((entry) => String(entry && entry.domainName || '').toLowerCase() === parts.fullDomain) || results[0];
+
+  if (!item || typeof item !== 'object') {
+    return { ok: false, status: 502, provider: 'namecom', message: 'Response Name.com tidak berisi hasil domain.' };
+  }
+
+  const purchasable = typeof item.purchasable === 'boolean' ? item.purchasable : parseAvailabilityValue(item.available ?? item.status ?? item.reason);
+  const rawPrice = Number(item.purchasePrice ?? item.price ?? item.registrationPrice);
+
+  return {
+    ok: true,
+    status: 200,
+    provider: 'namecom',
+    available: purchasable === null ? null : Boolean(purchasable),
+    priceInfo: Number.isFinite(rawPrice) && rawPrice > 0 ? {
+      price: rawPrice,
+      currency: String(item.currency || process.env.NAMECOM_DEFAULT_CURRENCY || 'USD').toUpperCase(),
+      source: 'namecom',
+      final: false
+    } : null,
+    data
+  };
+}
+
+async function checkNamesiloDomain(parts) {
+  const apiKey = requiredEnv('NAMESILO_API_KEY');
+  const baseUrl = String(process.env.NAMESILO_API_BASE || 'https://www.namesilo.com/api').replace(/\/$/, '');
+  const url = new URL(`${baseUrl}/checkRegisterAvailability`);
+  url.searchParams.set('version', '1');
+  url.searchParams.set('type', 'json');
+  url.searchParams.set('key', apiKey);
+  url.searchParams.set('domains', parts.fullDomain);
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { Accept: 'application/json' }
+  });
+
+  const data = await parseFetchResponse(response);
+  if (!response.ok) return upstreamFailure('namesilo', response, data);
+
+  const reply = data && data.reply ? data.reply : data;
+  const code = Number(reply && reply.code);
+  if (Number.isFinite(code) && code !== 300) {
+    return {
+      ok: false,
+      status: code === 280 ? 429 : 502,
+      provider: 'namesilo',
+      message: getUpstreamMessage(reply) || `NameSilo mengembalikan kode ${code}.`,
+      data
+    };
+  }
+
+  const availableDomains = extractDomainStrings(reply && reply.available).map((item) => item.toLowerCase());
+  const unavailableDomains = extractDomainStrings(reply && reply.unavailable).map((item) => item.toLowerCase());
+  let available = null;
+
+  if (availableDomains.includes(parts.fullDomain)) available = true;
+  if (unavailableDomains.includes(parts.fullDomain)) available = false;
+
+  if (available === null) available = parseAvailabilityValue(reply && (reply.available || reply.status || reply.detail));
+
+  return {
+    ok: true,
+    status: 200,
+    provider: 'namesilo',
+    available,
+    data
+  };
+}
+
+async function checkWhoisJsonDomain(parts) {
+  const apiKey = requiredEnv('WHOISJSON_API_KEY');
+  const baseUrl = String(process.env.WHOISJSON_API_BASE || 'https://whoisjson.com/api/v1').replace(/\/$/, '');
+  const url = new URL(`${baseUrl}/domain-availability`);
+  url.searchParams.set('domain', parts.fullDomain);
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      Authorization: `TOKEN=${apiKey}`,
+      Accept: 'application/json'
+    }
+  });
+
+  const data = await parseFetchResponse(response);
+  if (!response.ok) return upstreamFailure('whoisjson', response, data);
+
+  return {
+    ok: true,
+    status: 200,
+    provider: 'whoisjson',
+    available: parseAvailabilityValue(data && (data.available ?? data.is_available ?? data.status ?? data.result)),
+    data
+  };
+}
+
+async function checkHostingerDomainAvailabilityAndPrice(parts) {
+  const availability = await hostingerFetch('/api/domains/v1/availability', {
+    method: 'POST',
+    body: {
+      domain: parts.name,
+      tlds: [parts.tld],
+      with_alternatives: false
+    }
+  });
+
+  if (!availability.ok) {
+    return {
+      ok: false,
+      status: availability.status || 502,
+      provider: 'hostinger',
+      message: getUpstreamMessage(availability.data) || 'Hostinger gagal cek ketersediaan domain.',
+      data: availability.data
+    };
+  }
+
+  const available = parseHostingerAvailability(availability.data, parts.fullDomain);
+
+  if (available === false) {
+    return {
+      ok: true,
+      status: 200,
+      provider: 'hostinger',
+      available: false,
+      data: availability.data
+    };
+  }
+
+  // Hindari request katalog Hostinger tambahan jika harga final sudah tersedia di Supabase.
+  const localPrice = await getLocalDomainPrice(parts);
+  const priceInfo = localPrice || await getHostingerDomainPriceInfo(parts);
+
+  return {
+    ok: true,
+    status: 200,
+    provider: 'hostinger',
+    available: available === null ? null : Boolean(available),
+    priceInfo,
+    data: availability.data
+  };
+}
+
+async function getHostingerDomainPriceInfo(parts) {
+  const catalog = await hostingerFetch(`/api/billing/v1/catalog?category=DOMAIN&name=${encodeURIComponent(`.${parts.tld.toUpperCase()}*`)}`, {
+    method: 'GET'
+  });
+
+  if (!catalog.ok) return null;
+
+  const priceInfo = extractHostingerDomainPrice(catalog.data, parts.tld);
+  return priceInfo ? { ...priceInfo, source: 'hostinger', final: false } : null;
+}
+
+async function resolveDomainPrice(parts, providerResult = {}) {
+  const localPrice = await getLocalDomainPrice(parts);
+  if (localPrice) return localPrice;
+  if (providerResult.priceInfo) return providerResult.priceInfo;
+  return null;
+}
+
+async function getLocalDomainPrice(parts) {
+  if (!process.env.DOMAIN_SUPABASE_URL || !process.env.DOMAIN_SUPABASE_ANON_KEY || !process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+
+  try {
+    const result = await supabaseFetch('/rest/v1/domain_tld_prices?select=extension,register_price,renewal_price,currency,is_active&is_active=eq.true', {
+      method: 'GET',
+      auth: 'service'
+    });
+
+    if (!result.ok || !Array.isArray(result.data)) return null;
+
+    const row = result.data.find((item) => {
+      const ext = normalizeExtension(item && item.extension);
+      return ext && ext === normalizeExtension(parts.tld);
+    });
+
+    if (!row) return null;
+
+    const price = Number(row.register_price);
+    if (!Number.isFinite(price) || price <= 0) return null;
+
+    return {
+      price,
+      currency: String(row.currency || process.env.DOMAIN_DEFAULT_CURRENCY || 'IDR').toUpperCase(),
+      source: 'supabase',
+      final: true
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function buildDomainPrice(parts, priceInfo) {
+  const defaultCurrency = String(process.env.DOMAIN_DEFAULT_CURRENCY || 'IDR').toUpperCase();
+  let currency = String(priceInfo.currency || defaultCurrency).toUpperCase();
+  let price = Number(priceInfo.price || 0);
+
+  if (!Number.isFinite(price) || price <= 0) {
+    return { price: 0, currency: defaultCurrency };
+  }
+
+  if (priceInfo.final) {
+    return { price: Math.round(price), currency };
+  }
+
+  if (currency !== defaultCurrency && currency === 'USD' && defaultCurrency === 'IDR') {
+    const exchangeRate = Math.max(1, Number(process.env.DOMAIN_USD_TO_IDR || process.env.NAMECOM_USD_TO_IDR || 16000));
+    price = price * exchangeRate;
+    currency = defaultCurrency;
+  }
+
+  const normalMarkup = Math.max(0, Number(process.env.DOMAIN_PRICE_MARKUP || 10000));
+  const storeMarkup = Math.max(0, Number(process.env.DOMAIN_STORE_MARKUP || 1200000));
+  const markup = parts.tld === 'store' ? storeMarkup : normalMarkup;
+
+  if (currency === 'IDR') {
+    return { price: Math.round(price + markup), currency };
+  }
+
+  const foreignMarkup = Math.max(0, Number(process.env.DOMAIN_FOREIGN_PRICE_MARKUP || 0));
+  return { price: Number((price + foreignMarkup).toFixed(2)), currency };
+}
+
+function upstreamFailure(provider, response, data) {
+  const retryAfterMs = response.status === 429 ? getRetryAfterMs(response) : 0;
+  return {
+    ok: false,
+    status: response.status,
+    provider,
+    retry_after_seconds: retryAfterMs ? Math.ceil(retryAfterMs / 1000) : undefined,
+    message: getUpstreamMessage(data) || `${getProviderLabel(provider)} error ${response.status}.`,
+    data
+  };
+}
+
+function setProviderCooldown(provider, seconds) {
+  DOMAIN_PROVIDER_COOLDOWNS.set(provider, Date.now() + Math.max(1, Number(seconds || 60)) * 1000);
+}
+
+function getProviderLabel(provider) {
+  if (provider === 'namecom') return 'Name.com';
+  if (provider === 'namesilo') return 'NameSilo';
+  if (provider === 'whoisjson') return 'WhoisJSON';
+  if (provider === 'hostinger') return 'Hostinger';
+  return provider || 'Provider';
+}
+
+function parseAvailabilityValue(value) {
+  if (typeof value === 'boolean') return value;
+  const text = String(value ?? '').trim().toLowerCase();
+  if (!text) return null;
+  if (['true', 'available', 'purchasable', 'free', 'ok', 'success', 'yes'].includes(text)) return true;
+  if (['false', 'taken', 'unavailable', 'registered', 'not_available', 'blocked', 'no'].includes(text)) return false;
+  return null;
+}
+
+function extractDomainStrings(value) {
+  const output = [];
+
+  function walk(item) {
+    if (item === null || item === undefined) return;
+    if (typeof item === 'string') {
+      output.push(item.trim());
+      return;
+    }
+    if (Array.isArray(item)) {
+      item.forEach(walk);
+      return;
+    }
+    if (typeof item === 'object') {
+      Object.values(item).forEach(walk);
+    }
+  }
+
+  walk(value);
+  return output.filter(Boolean);
+}
+
+function normalizeExtension(value) {
+  return String(value || '').trim().toLowerCase().replace(/^\./, '');
 }
 
 async function hostingerFetch(path, options = {}) {
