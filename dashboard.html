@@ -7335,5 +7335,336 @@ html[data-theme="dark"] .professional-mobile-note{
 })();
 </script>
 
+
+
+<!-- DIRAC_MENU_BLUR_CART_CLEAN_V8_START -->
+<style id="dirac-menu-blur-cart-clean-v8">
+/*
+  V8 Focus:
+  - Membetulkan drawer blur/tidak bisa klik dengan memperbaiki stacking context.
+  - Merapikan header keranjang, item keranjang, badge bottom-nav, dan dark mode.
+  - Tidak mengubah hash/login/session/API; hanya override visual dan interaksi menu.
+*/
+:root{
+  --dirac-v8-navy:#132252;
+  --dirac-v8-muted:#66738b;
+  --dirac-v8-line:rgba(19,34,82,.12);
+  --dirac-v8-card:#ffffff;
+  --dirac-v8-soft:#f7f9ff;
+  --dirac-v8-blue:#2563eb;
+  --dirac-v8-cyan:#10b7d6;
+  --dirac-v8-green:#16b981;
+  --dirac-v8-shadow:0 20px 58px rgba(15,23,42,.11);
+}
+html[data-theme="dark"]{
+  --dirac-v8-navy:#f8fbff;
+  --dirac-v8-muted:#b8c4d8;
+  --dirac-v8-line:rgba(226,232,240,.14);
+  --dirac-v8-card:#0d1728;
+  --dirac-v8-soft:#111d31;
+  --dirac-v8-shadow:0 24px 70px rgba(0,0,0,.42);
+}
+
+@media(max-width:900px){
+  /* Penyebab blur sebelumnya: backdrop berada pada root stacking context yang z-index-nya
+     lebih tinggi daripada .site-header, sementara drawer berada di dalam .site-header.
+     Akibatnya backdrop menutup drawer. Solusi: header/drawer dinaikkan di atas backdrop. */
+  body.menu-open .site-header{z-index:56000!important;isolation:isolate!important;}
+  body.menu-open .nav{z-index:56020!important;}
+  body.menu-open .nav-backdrop{
+    z-index:55000!important;
+    opacity:1!important;
+    pointer-events:auto!important;
+    background:rgba(15,23,42,.50)!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    filter:none!important;
+  }
+  body.menu-open .site-header .nav-actions{
+    z-index:57000!important;
+    pointer-events:auto!important;
+    opacity:1!important;
+    visibility:visible!important;
+    filter:none!important;
+    -webkit-filter:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    transform:translate3d(0,0,0)!important;
+    background:#fff!important;
+    color:#111f4f!important;
+  }
+  body.menu-open .site-header .nav-actions,
+  body.menu-open .site-header .nav-actions *{
+    filter:none!important;
+    -webkit-filter:none!important;
+    text-shadow:none!important;
+  }
+  .site-header .nav-actions{
+    top:0!important;
+    left:0!important;
+    right:auto!important;
+    bottom:0!important;
+    width:min(84vw,372px)!important;
+    max-width:min(84vw,372px)!important;
+    height:100dvh!important;
+    border-radius:0 30px 30px 0!important;
+    box-shadow:30px 0 85px rgba(15,23,42,.26)!important;
+  }
+  .dirac-drawer-head{
+    grid-template-columns:minmax(0,1fr) 48px 44px!important;
+    gap:12px!important;
+    padding:8px 0 18px!important;
+    margin-bottom:8px!important;
+    border-bottom:1px solid rgba(17,31,79,.10)!important;
+  }
+  .dirac-drawer-title strong{font-size:21px!important;letter-spacing:-.04em!important;color:#111f4f!important;}
+  .dirac-drawer-title small{font-size:10.5px!important;color:#6258ff!important;letter-spacing:.18em!important;}
+  .dirac-drawer-logo{width:48px!important;height:48px!important;border-radius:16px!important;justify-self:end!important;}
+  .dirac-drawer-close{
+    width:44px!important;height:44px!important;border-radius:999px!important;
+    background:#f3f6fb!important;color:#111f4f!important;border:1px solid rgba(17,31,79,.08)!important;
+    box-shadow:0 10px 24px rgba(15,23,42,.08)!important;
+  }
+  .site-header .nav-actions > .btn,
+  .site-header .nav-actions > .theme-toggle{
+    min-height:60px!important;
+    border-radius:19px!important;
+    background:#fff!important;
+    color:#111f4f!important;
+    border:1px solid rgba(17,31,79,.10)!important;
+    box-shadow:none!important;
+    opacity:1!important;
+  }
+  .site-header .nav-actions > .btn[data-menu-icon]::before,
+  .site-header .nav-actions > .theme-toggle::before{
+    background:#f4f6fb!important;
+    color:#4b5568!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.80)!important;
+  }
+  .site-header .nav-actions > .btn-danger{
+    background:#fff1f2!important;
+    color:#be123c!important;
+    border-color:#fecdd3!important;
+  }
+}
+
+/* Keranjang: ikon judul dibuat grid agar tidak menempel/menimpa huruf pertama. */
+#keranjang .section-head.compact-head{
+  gap:14px!important;
+  align-items:start!important;
+}
+#keranjang .section-title h2{
+  display:grid!important;
+  grid-template-columns:40px minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:15px!important;
+  line-height:1.04!important;
+  margin:0 0 8px!important;
+  overflow:visible!important;
+}
+#keranjang .section-title h2::before{
+  content:""!important;
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  flex:none!important;
+  width:40px!important;
+  height:40px!important;
+  border-radius:14px!important;
+  background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.42),transparent 34%),linear-gradient(135deg,#2563eb,#10b7d6)!important;
+  box-shadow:0 14px 30px rgba(37,99,235,.22)!important;
+  justify-self:start!important;
+}
+@media(max-width:520px){
+  #keranjang .section-title h2{
+    grid-template-columns:36px minmax(0,1fr)!important;
+    column-gap:14px!important;
+    font-size:clamp(29px,8.5vw,38px)!important;
+  }
+  #keranjang .section-title h2::before{width:36px!important;height:36px!important;border-radius:13px!important;}
+}
+
+/* Keranjang item: garis vertikal panjang diganti aksen atas agar kartu lebih profesional dan tidak terasa berantakan. */
+#keranjang .cart-item{
+  border-radius:22px!important;
+  padding:17px!important;
+  background:linear-gradient(180deg,#fff,#f8fbff)!important;
+  border:1px solid rgba(19,34,82,.10)!important;
+  box-shadow:0 16px 42px rgba(15,23,42,.08)!important;
+  overflow:hidden!important;
+}
+#keranjang .cart-item::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  bottom:auto!important;
+  width:100%!important;
+  height:5px!important;
+  border-radius:22px 22px 0 0!important;
+  background:linear-gradient(90deg,#2563eb,#10b7d6,#16b981)!important;
+}
+#keranjang .cart-item h3{padding-top:2px!important;}
+#keranjang .cart-controls{margin-top:12px!important;}
+#keranjang .cart-year-select,
+#keranjang .cart-remove{
+  min-height:42px!important;
+  border-radius:999px!important;
+}
+#keranjang .cart-price{
+  min-height:54px!important;
+  border-radius:18px!important;
+  padding:12px 14px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(16,183,214,.12))!important;
+  color:#132252!important;
+  font-size:20px!important;
+  font-weight:1000!important;
+  text-align:left!important;
+}
+@media(max-width:520px){
+  #keranjang .cart-item{padding:16px!important;}
+  #keranjang .cart-price{font-size:19px!important;}
+}
+
+/* Total row dirapikan agar tidak tertutup floating button di sisi kanan. */
+@media(max-width:900px){
+  #keranjang .total-row{
+    padding:17px 20px!important;
+    padding-right:30px!important;
+    border-radius:22px!important;
+    min-height:66px!important;
+    align-items:center!important;
+  }
+  #keranjang #cartTotal{font-size:clamp(20px,6vw,30px)!important;white-space:nowrap!important;}
+}
+
+/* Bottom nav: badge tidak lagi menutupi ikon/tulisan; dibuat floating kecil di pojok tombol. */
+@media(max-width:900px){
+  .mobile-bottom-nav{overflow:visible!important;}
+  .mobile-bottom-nav button{overflow:visible!important;}
+  .mobile-bottom-nav button.active::before{
+    inset:0!important;
+    border-radius:inherit!important;
+  }
+  .nav-badge{
+    top:-7px!important;
+    right:8px!important;
+    min-width:22px!important;
+    height:22px!important;
+    padding:0 6px!important;
+    border:2px solid rgba(255,255,255,.96)!important;
+    box-shadow:0 10px 22px rgba(239,95,128,.30)!important;
+    z-index:5!important;
+    transform:none!important;
+    font-size:11px!important;
+  }
+  html[data-theme="dark"] .nav-badge{border-color:#0d1728!important;}
+}
+
+/* Floating actions diberi jarak lebih aman dari kartu total dan bottom-nav. */
+@media(max-width:900px){
+  .dirac-floating-actions,
+  .float-actions{
+    right:18px!important;
+    bottom:calc(156px + env(safe-area-inset-bottom,0px))!important;
+    z-index:19000!important;
+  }
+}
+
+/* Dark mode cleanup final: panel lebih solid, teks tidak abu-abu pudar, menu benar-benar tajam. */
+html[data-theme="dark"] .site-header .nav-actions{
+  background:#0d1728!important;
+  color:#f8fbff!important;
+  box-shadow:30px 0 85px rgba(0,0,0,.58)!important;
+}
+html[data-theme="dark"] .site-header .nav-actions > .btn,
+html[data-theme="dark"] .site-header .nav-actions > .theme-toggle,
+html[data-theme="dark"] .dirac-drawer-close{
+  background:#111d31!important;
+  color:#f8fbff!important;
+  border-color:rgba(226,232,240,.14)!important;
+}
+html[data-theme="dark"] .site-header .nav-actions > .btn[data-menu-icon]::before,
+html[data-theme="dark"] .site-header .nav-actions > .theme-toggle::before{
+  background:#17243a!important;
+  color:#dbeafe!important;
+}
+html[data-theme="dark"] #keranjang .cart-item,
+html[data-theme="dark"] #keranjang .guidance-panel,
+html[data-theme="dark"] #checkout,
+html[data-theme="dark"] .order-card,
+html[data-theme="dark"] .owned-domain-card{
+  background:linear-gradient(180deg,#101a2c,#0b1424)!important;
+  border-color:rgba(226,232,240,.14)!important;
+  box-shadow:0 22px 58px rgba(0,0,0,.42)!important;
+}
+html[data-theme="dark"] #keranjang .cart-price{
+  background:linear-gradient(135deg,rgba(37,99,235,.22),rgba(16,183,214,.16))!important;
+  color:#f8fbff!important;
+}
+html[data-theme="dark"] #keranjang .cart-year-select,
+html[data-theme="dark"] #keranjang .cart-remove{
+  background:#0b1424!important;
+  color:#f8fbff!important;
+  border-color:rgba(226,232,240,.16)!important;
+}
+html[data-theme="dark"] #keranjang .total-row{
+  background:linear-gradient(135deg,#0f2747,#1d4ed8 62%,#0891b2)!important;
+  box-shadow:0 22px 58px rgba(37,99,235,.24)!important;
+}
+html[data-theme="dark"] .mobile-bottom-nav{
+  background:linear-gradient(180deg,rgba(9,18,34,.96),rgba(5,12,24,.94))!important;
+  border-color:rgba(226,232,240,.16)!important;
+}
+</style>
+<script id="dirac-menu-blur-cart-clean-v8-js">
+(() => {
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once:true });
+    else fn();
+  }
+  ready(() => {
+    const body = document.body;
+    const toggle = document.querySelector('[data-menu-toggle]');
+    const menu = document.getElementById('siteMenu');
+    const backdrop = document.querySelector('[data-menu-close]');
+    if(!toggle || !menu) return;
+
+    const sync = () => {
+      const open = body.classList.contains('menu-open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if(backdrop) backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
+    };
+    const open = (event) => {
+      if(event){ event.preventDefault(); event.stopPropagation(); }
+      body.classList.add('menu-open');
+      sync();
+    };
+    const close = (event) => {
+      if(event){ event.preventDefault(); event.stopPropagation(); }
+      body.classList.remove('menu-open');
+      sync();
+    };
+
+    // Capture phase dipakai supaya handler lama yang bertabrakan tidak membuat drawer setengah terbuka/tertutup.
+    toggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      body.classList.contains('menu-open') ? close() : open();
+    }, true);
+    backdrop?.addEventListener('click', close, true);
+    menu.querySelector('.dirac-drawer-close')?.addEventListener('click', close, true);
+    document.addEventListener('keydown', (event) => { if(event.key === 'Escape') close(event); });
+    menu.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => setTimeout(close, 90), true));
+    sync();
+  });
+})();
+</script>
+<!-- DIRAC_MENU_BLUR_CART_CLEAN_V8_END -->
+
 </body>
 </html>
