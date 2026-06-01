@@ -6551,5 +6551,106 @@ html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
 </script>
 <!-- DIRAC_ULTRA_SMOOTH_IPHONE_LIQUID_GLASS_END -->
 
+
+
+<!-- DIRAC_DARK_LIQUID_GLASS_REPAIR_START -->
+<style id="dirac-dark-liquid-glass-repair">
+/*
+  Final dark-mode-only repair for the mobile bottom navigation.
+  Scope is deliberately limited to .mobile-bottom-nav so checkout, cart, orders,
+  account, logout, API calls, and existing desktop behavior remain untouched.
+*/
+@media (max-width:900px){
+  .mobile-bottom-nav.is-liquid-instant::before,
+  .mobile-bottom-nav.is-liquid-instant::after{
+    transition-duration:.001s!important;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav{
+    background:
+      radial-gradient(115% 150% at 8% -10%,rgba(255,255,255,.20),transparent 42%),
+      radial-gradient(110% 130% at 92% 105%,rgba(96,165,250,.20),transparent 48%),
+      linear-gradient(180deg,rgba(21,29,44,.60),rgba(7,12,22,.74))!important;
+    border:1px solid rgba(255,255,255,.26)!important;
+    box-shadow:
+      0 30px 78px rgba(0,0,0,.54),
+      0 8px 30px rgba(37,99,235,.12),
+      inset 0 1px 0 rgba(255,255,255,.34),
+      inset 0 -1px 0 rgba(255,255,255,.08)!important;
+    -webkit-backdrop-filter:blur(38px) saturate(1.95) contrast(1.05) brightness(1.08)!important;
+    backdrop-filter:blur(38px) saturate(1.95) contrast(1.05) brightness(1.08)!important;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav::before{
+    background:
+      radial-gradient(78% 70% at 28% 15%,rgba(255,255,255,.94),rgba(255,255,255,.42) 39%,transparent 66%),
+      radial-gradient(90% 92% at 76% 88%,rgba(103,187,255,.28),transparent 60%),
+      linear-gradient(145deg,rgba(255,255,255,.78),rgba(218,232,255,.46) 48%,rgba(128,190,255,.30))!important;
+    border:1px solid rgba(255,255,255,.58)!important;
+    box-shadow:
+      0 18px 42px rgba(0,0,0,.34),
+      0 0 32px rgba(125,198,255,.15),
+      inset 0 1px 1px rgba(255,255,255,.90),
+      inset 0 -17px 32px rgba(22,42,68,.16)!important;
+    filter:saturate(1.18) contrast(1.03)!important;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav::after{
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.92),rgba(255,255,255,.42),transparent)!important;
+    opacity:.96!important;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav button,
+  html[data-theme="dark"] .mobile-bottom-nav button.active,
+  html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav button:not(.active):not(.is-liquid-pressed){
+    color:rgba(235,243,255,.80)!important;
+    opacity:.88!important;
+    text-shadow:0 1px 8px rgba(0,0,0,.34)!important;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav button.active,
+  html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
+    color:#07111f!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.52)!important;
+  }
+
+  html[data-theme="dark"] .mobile-bottom-nav button.active svg,
+  html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed svg{
+    filter:drop-shadow(0 1px 0 rgba(255,255,255,.20))!important;
+  }
+}
+</style>
+<!-- DIRAC_DARK_LIQUID_GLASS_REPAIR_END -->
+
+
+
+<!-- DIRAC_DARK_LIQUID_GLASS_ACTIVE_STATE_FIX_START -->
+<style id="dirac-dark-liquid-glass-active-state-fix">
+@media (max-width:900px){
+  html[data-theme="dark"] body .mobile-bottom-nav button.active,
+  html[data-theme="dark"] body .mobile-bottom-nav button[aria-current="page"],
+  html[data-theme="dark"] body .mobile-bottom-nav button.is-liquid-pressed{
+    color:#07111f!important;
+    opacity:1!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.55)!important;
+  }
+  html[data-theme="dark"] body .mobile-bottom-nav button:not(.active):not([aria-current="page"]):not(.is-liquid-pressed){
+    color:rgba(235,243,255,.80)!important;
+    opacity:.88!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    text-shadow:0 1px 8px rgba(0,0,0,.34)!important;
+  }
+}
+</style>
+<!-- DIRAC_DARK_LIQUID_GLASS_ACTIVE_STATE_FIX_END -->
+
 </body>
 </html>
