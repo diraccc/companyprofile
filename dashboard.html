@@ -3541,390 +3541,6 @@ html[data-theme="dark"] .preset-chip{
 }
 </style>
 
-
-
-<style id="dirac-final-v6-menu-collapse-dark">
-/* ============================================================
-   Dirac final V6: professional mobile drawer, collapsed orders/domains,
-   dark-mode cleanup. CSS/DOM-only enhancement. Login/hash/session logic is not changed.
-   ============================================================ */
-:root{
-  --dirac-drawer-width: min(82vw, 372px);
-  --dirac-clean-navy: #111f4f;
-  --dirac-clean-muted: #69758f;
-  --dirac-clean-line: rgba(17,31,79,.10);
-  --dirac-clean-soft: #f7f9ff;
-  --dirac-clean-surface: rgba(255,255,255,.98);
-}
-
-.dirac-reveal-gate{
-  margin:14px 0 0;
-  padding:16px;
-  border-radius:22px;
-  border:1px solid rgba(17,31,79,.10);
-  background:
-    radial-gradient(circle at 92% 10%, rgba(19,182,214,.12), transparent 32%),
-    linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,250,255,.92));
-  box-shadow:0 16px 42px rgba(15,23,42,.08);
-  display:grid;
-  gap:12px;
-}
-.dirac-reveal-copy{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
-  color:var(--dirac-clean-muted);
-  font-weight:800;
-  line-height:1.45;
-}
-.dirac-reveal-copy b{
-  display:block;
-  color:var(--dirac-clean-navy);
-  font-size:16px;
-  letter-spacing:-.025em;
-}
-.dirac-reveal-count{
-  min-width:34px;
-  height:34px;
-  padding:0 10px;
-  border-radius:999px;
-  display:inline-grid;
-  place-items:center;
-  color:#fff!important;
-  background:linear-gradient(135deg,#6258ff,#13b6d6);
-  box-shadow:0 12px 28px rgba(37,99,235,.18);
-  font-size:13px;
-  font-weight:1000;
-}
-.dirac-reveal-btn{
-  width:100%;
-  min-height:52px;
-  border:0;
-  border-radius:18px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:9px;
-  color:#fff;
-  background:linear-gradient(135deg,#6258ff,#13b6d6);
-  box-shadow:0 18px 42px rgba(37,99,235,.22);
-  font-weight:1000;
-  cursor:pointer;
-  -webkit-tap-highlight-color:transparent;
-}
-.dirac-reveal-btn:active{transform:translateY(1px) scale(.99)}
-#orders[data-dirac-collapsed="true"] .order-tools,
-#orders[data-dirac-collapsed="true"] #ordersList,
-#orders[data-dirac-collapsed="true"] #ordersViewMoreWrap,
-#domains[data-dirac-collapsed="true"] #ownedDomainsList{
-  display:none!important;
-}
-#orders[data-dirac-expanded="true"] #ordersViewMoreWrap{display:none!important;}
-#orders[data-dirac-expanded="true"] .order-card[hidden]{display:block!important;}
-#domains[data-dirac-expanded="true"] #ownedDomainsList{display:grid!important;}
-#orders .panel,
-#domains .panel{overflow:hidden;}
-#orders .section-head,
-#domains .section-head{align-items:center;}
-
-@media(max-width:900px){
-  body.menu-open{overflow:hidden!important;touch-action:none;}
-  .site-header{z-index:41000!important;}
-  .nav{position:relative;z-index:41010!important;}
-  .menu-toggle{
-    z-index:41260!important;
-    width:52px!important;
-    height:52px!important;
-    min-width:52px!important;
-    border-radius:18px!important;
-    background:rgba(255,255,255,.98)!important;
-    border:1px solid rgba(17,31,79,.12)!important;
-    box-shadow:0 14px 34px rgba(15,23,42,.12)!important;
-  }
-  .nav-backdrop{
-    z-index:41100!important;
-    opacity:0!important;
-    pointer-events:none!important;
-    background:rgba(15,23,42,.48)!important;
-    backdrop-filter:none!important;
-    -webkit-backdrop-filter:none!important;
-    transition:opacity .22s ease!important;
-  }
-  body.menu-open .nav-backdrop{opacity:1!important;pointer-events:auto!important;}
-
-  .site-header .nav-actions{
-    position:fixed!important;
-    left:0!important;
-    right:auto!important;
-    top:0!important;
-    bottom:0!important;
-    width:var(--dirac-drawer-width)!important;
-    max-width:var(--dirac-drawer-width)!important;
-    height:100dvh!important;
-    z-index:41200!important;
-    display:flex!important;
-    flex-direction:column!important;
-    grid-template-columns:none!important;
-    gap:10px!important;
-    padding:18px 16px calc(22px + env(safe-area-inset-bottom,0px))!important;
-    border-radius:0 28px 28px 0!important;
-    background:var(--dirac-clean-surface)!important;
-    border:0!important;
-    border-right:1px solid rgba(17,31,79,.10)!important;
-    box-shadow:30px 0 80px rgba(15,23,42,.24)!important;
-    transform:translate3d(-106%,0,0)!important;
-    opacity:1!important;
-    visibility:visible!important;
-    pointer-events:none!important;
-    overflow-y:auto!important;
-    overscroll-behavior:contain!important;
-    -webkit-overflow-scrolling:touch!important;
-    backdrop-filter:none!important;
-    -webkit-backdrop-filter:none!important;
-    transition:transform .28s cubic-bezier(.22,1,.36,1)!important;
-  }
-  body.menu-open .site-header .nav-actions{
-    transform:translate3d(0,0,0)!important;
-    pointer-events:auto!important;
-  }
-  .dirac-drawer-head{
-    display:grid!important;
-    grid-template-columns:1fr auto auto!important;
-    gap:12px!important;
-    align-items:center!important;
-    padding:4px 0 16px!important;
-    margin-bottom:6px!important;
-    border-bottom:1px solid rgba(17,31,79,.08)!important;
-  }
-  .dirac-drawer-title{min-width:0!important;display:grid!important;gap:2px!important;}
-  .dirac-drawer-title strong{
-    color:var(--dirac-clean-navy)!important;
-    font-size:20px!important;
-    line-height:1!important;
-    letter-spacing:-.045em!important;
-  }
-  .dirac-drawer-title small{
-    color:#6258ff!important;
-    font-size:10px!important;
-    text-transform:uppercase!important;
-    letter-spacing:.18em!important;
-    font-weight:1000!important;
-  }
-  .dirac-drawer-logo{
-    width:52px!important;
-    height:52px!important;
-    border-radius:18px!important;
-    object-fit:cover!important;
-    box-shadow:0 14px 30px rgba(37,99,235,.14)!important;
-  }
-  .dirac-drawer-close{
-    width:44px!important;
-    height:44px!important;
-    border-radius:999px!important;
-    border:0!important;
-    background:#f3f5fb!important;
-    color:var(--dirac-clean-navy)!important;
-    display:grid!important;
-    place-items:center!important;
-    font-size:28px!important;
-    line-height:1!important;
-    cursor:pointer!important;
-  }
-  .site-header .nav-actions > .btn,
-  .site-header .nav-actions > .theme-toggle{
-    width:100%!important;
-    min-height:58px!important;
-    border-radius:18px!important;
-    padding:12px 14px!important;
-    justify-content:flex-start!important;
-    text-align:left!important;
-    color:var(--dirac-clean-navy)!important;
-    background:#fff!important;
-    border:1px solid rgba(17,31,79,.10)!important;
-    box-shadow:none!important;
-    font-size:16px!important;
-    font-weight:950!important;
-    flex:0 0 auto!important;
-  }
-  .site-header .nav-actions > .btn[data-menu-icon]::before,
-  .site-header .nav-actions > .theme-toggle::before{
-    content:attr(data-menu-icon);
-    width:34px!important;
-    height:34px!important;
-    flex:0 0 34px!important;
-    display:inline-grid!important;
-    place-items:center!important;
-    margin-right:10px!important;
-    border-radius:13px!important;
-    color:#475569!important;
-    background:#f4f6fb!important;
-    font-size:18px!important;
-    font-weight:900!important;
-  }
-  .site-header .nav-actions > .btn:hover,
-  .site-header .nav-actions > .theme-toggle:hover,
-  .site-header .nav-actions > .btn:focus-visible,
-  .site-header .nav-actions > .theme-toggle:focus-visible{
-    transform:none!important;
-    border-color:rgba(98,88,255,.24)!important;
-    background:#f9fbff!important;
-    box-shadow:0 10px 28px rgba(15,23,42,.07)!important;
-  }
-  .site-header .nav-actions .theme-toggle-nav .theme-label{display:inline!important;font-size:16px!important;}
-  .site-header .nav-actions .theme-toggle-nav .theme-icon{display:none!important;}
-  .site-header .nav-actions > .btn-danger{
-    margin-top:auto!important;
-    color:#be123c!important;
-    background:#fff1f2!important;
-    border-color:#fecdd3!important;
-  }
-  .site-header .nav-actions > .btn-danger::before{content:"↪"!important;background:#ffe4ea!important;color:#be123c!important;display:inline-grid!important;}
-
-  #orders .section-head,
-  #domains .section-head{align-items:stretch!important;gap:12px!important;}
-  #orders .section-head .btn,
-  #domains .section-head .btn{width:100%!important;}
-  .dirac-reveal-gate{border-radius:20px!important;padding:14px!important;}
-  .dirac-reveal-copy{font-size:13px!important;}
-  .dirac-reveal-copy b{font-size:15px!important;}
-  .dirac-reveal-btn{min-height:50px!important;border-radius:16px!important;}
-}
-
-@media(max-width:420px){
-  :root{--dirac-drawer-width:min(86vw,360px);}
-  .site-header .nav-actions{padding-left:14px!important;padding-right:14px!important;}
-  .site-header .nav-actions > .btn,
-  .site-header .nav-actions > .theme-toggle{min-height:56px!important;font-size:15px!important;}
-}
-
-html[data-theme="dark"]{
-  --dirac-clean-navy:#f8fafc;
-  --dirac-clean-muted:#b8c4d8;
-  --dirac-clean-line:rgba(226,232,240,.15);
-  --dirac-clean-soft:#111b2e;
-  --dirac-clean-surface:#0d1728;
-}
-html[data-theme="dark"] body{
-  background:
-    radial-gradient(circle at 12% 0%, rgba(37,99,235,.22), transparent 30%),
-    radial-gradient(circle at 90% 8%, rgba(19,182,214,.13), transparent 28%),
-    linear-gradient(180deg,#07111f,#0a1424 52%,#07111f)!important;
-}
-html[data-theme="dark"] .dirac-reveal-gate{
-  background:linear-gradient(180deg,#101a2c,#0b1424)!important;
-  border-color:rgba(226,232,240,.14)!important;
-  box-shadow:0 22px 56px rgba(0,0,0,.40)!important;
-}
-html[data-theme="dark"] .dirac-reveal-copy,
-html[data-theme="dark"] .dirac-reveal-copy small{color:#b8c4d8!important;}
-html[data-theme="dark"] .dirac-reveal-copy b{color:#f8fafc!important;}
-html[data-theme="dark"] .site-header .nav-actions{
-  background:#0d1728!important;
-  border-right-color:rgba(226,232,240,.14)!important;
-  box-shadow:30px 0 80px rgba(0,0,0,.58)!important;
-}
-html[data-theme="dark"] .dirac-drawer-head{border-bottom-color:rgba(226,232,240,.12)!important;}
-html[data-theme="dark"] .dirac-drawer-title strong{color:#f8fafc!important;}
-html[data-theme="dark"] .dirac-drawer-title small{color:#8ec5ff!important;}
-html[data-theme="dark"] .dirac-drawer-close,
-html[data-theme="dark"] .site-header .nav-actions > .btn,
-html[data-theme="dark"] .site-header .nav-actions > .theme-toggle{
-  background:#111d31!important;
-  color:#f8fafc!important;
-  border-color:rgba(226,232,240,.14)!important;
-}
-html[data-theme="dark"] .site-header .nav-actions > .btn[data-menu-icon]::before,
-html[data-theme="dark"] .site-header .nav-actions > .theme-toggle::before{
-  background:#17243a!important;
-  color:#dbeafe!important;
-}
-html[data-theme="dark"] .site-header .nav-actions > .btn-danger{
-  background:rgba(190,18,60,.13)!important;
-  color:#fecdd3!important;
-  border-color:rgba(251,113,133,.26)!important;
-}
-html[data-theme="dark"] .site-header .nav-actions > .btn-danger::before{background:rgba(190,18,60,.20)!important;color:#fecdd3!important;}
-
-html[data-theme="dark"] .order-tools,
-html[data-theme="dark"] .order-filters,
-html[data-theme="dark"] .domain-form,
-html[data-theme="dark"] .cart-empty,
-html[data-theme="dark"] .info-box,
-html[data-theme="dark"] .owned-domain-meta div,
-html[data-theme="dark"] .timeline-step,
-html[data-theme="dark"] .domain-item,
-html[data-theme="dark"] .line,
-html[data-theme="dark"] .summary-line,
-html[data-theme="dark"] .agree-box,
-html[data-theme="dark"] .bulk-panel,
-html[data-theme="dark"] .suggestion-box{
-  background:#0b1424!important;
-  border-color:rgba(226,232,240,.12)!important;
-  color:#e5edf9!important;
-}
-html[data-theme="dark"] .line b,
-html[data-theme="dark"] .summary-line b,
-html[data-theme="dark"] .domain-item b,
-html[data-theme="dark"] .domain-item span,
-html[data-theme="dark"] .owned-domain-meta b{color:#f8fafc!important;}
-html[data-theme="dark"] .order-search,
-html[data-theme="dark"] .field input,
-html[data-theme="dark"] .field textarea,
-html[data-theme="dark"] .field select,
-html[data-theme="dark"] .cart-year-select{
-  background:#08111f!important;
-  color:#f8fafc!important;
-  border-color:rgba(148,163,184,.34)!important;
-}
-html[data-theme="dark"] .filter-chip,
-html[data-theme="dark"] .order-action,
-html[data-theme="dark"] .tld-chip,
-html[data-theme="dark"] .preset-chip{
-  background:#111d31!important;
-  color:#dbeafe!important;
-  border-color:rgba(148,163,184,.25)!important;
-}
-html[data-theme="dark"] .filter-chip.active,
-html[data-theme="dark"] .preset-chip:hover{
-  color:#fff!important;
-  background:linear-gradient(135deg,#6258ff,#13b6d6)!important;
-  border-color:transparent!important;
-}
-html[data-theme="dark"] .badge.pending,
-html[data-theme="dark"] .badge.unpaid{
-  color:#fde68a!important;
-  background:rgba(146,64,14,.18)!important;
-  border-color:rgba(253,230,138,.25)!important;
-}
-html[data-theme="dark"] .badge.paid,
-html[data-theme="dark"] .badge.domain_aktif,
-html[data-theme="dark"] .badge.active,
-html[data-theme="dark"] .timeline-step.done{
-  color:#86efac!important;
-  background:rgba(4,120,87,.18)!important;
-  border-color:rgba(134,239,172,.24)!important;
-}
-html[data-theme="dark"] .timeline-step.current,
-html[data-theme="dark"] .badge.proses_register,
-html[data-theme="dark"] .badge.dibayar{
-  color:#bfdbfe!important;
-  background:rgba(29,78,216,.18)!important;
-  border-color:rgba(191,219,254,.24)!important;
-}
-html[data-theme="dark"] .mobile-bottom-nav{
-  background:linear-gradient(120deg,rgba(8,17,31,.96),rgba(17,29,49,.92),rgba(8,17,31,.96))!important;
-  border-color:rgba(226,232,240,.16)!important;
-}
-html[data-theme="dark"] .mobile-bottom-nav button:not(.active){color:#d7e2f3!important;}
-html[data-theme="dark"] .nav-badge{color:#fff!important;}
-@media(prefers-reduced-motion:reduce){
-  .site-header .nav-actions,
-  .nav-backdrop,
-  .dirac-reveal-btn{transition:none!important;animation:none!important;}
-}
-</style>
-
 </head>
 
 <body>
@@ -7199,472 +6815,287 @@ html[data-theme="dark"] .professional-mobile-note{
 
 
 
-<script id="dirac-final-v6-menu-collapse-dark-js">
-(() => {
-  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once:true }); else fn(); }
-  const q = (sel, root=document) => root.querySelector(sel);
-  const qa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-
-  function setupDrawer(){
-    const menu = q('#siteMenu');
-    if(!menu) return;
-    if(!q('.dirac-drawer-head', menu)){
-      const head = document.createElement('div');
-      head.className = 'dirac-drawer-head';
-      head.innerHTML = `
-        <div class="dirac-drawer-title"><strong>Menu Dashboard</strong><small>Dirac Group</small></div>
-        <img class="dirac-drawer-logo" src="logo3.webp" alt="Dirac Group" />
-        <button class="dirac-drawer-close" type="button" aria-label="Tutup menu">×</button>
-      `;
-      menu.insertBefore(head, menu.firstChild);
-    }
-    const iconByScroll = {
-      cek:'⌕', harga:'◌', 'market-tools':'▦', keranjang:'🛒', domains:'◎', orders:'☷', account:'♙'
-    };
-    qa('#siteMenu > .btn, #siteMenu > .theme-toggle').forEach((button) => {
-      if(button.classList.contains('btn-danger')) button.setAttribute('data-menu-icon','↪');
-      else if(button.matches('[data-theme-toggle]')) button.setAttribute('data-menu-icon','☾');
-      else if(button.dataset.scroll && iconByScroll[button.dataset.scroll]) button.setAttribute('data-menu-icon', iconByScroll[button.dataset.scroll]);
-    });
-    const toggle = q('[data-menu-toggle]');
-    const close = () => {
-      document.body.classList.remove('menu-open');
-      toggle?.setAttribute('aria-expanded','false');
-    };
-    q('.dirac-drawer-close', menu)?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); close(); });
-    q('[data-menu-close]')?.addEventListener('click', close);
-    qa('#siteMenu [data-scroll]').forEach((button) => button.addEventListener('click', () => setTimeout(close, 120)));
-  }
-
-  function countCards(listSelector, cardSelector){
-    const list = q(listSelector);
-    if(!list) return 0;
-    return qa(cardSelector, list).length;
-  }
-
-  function setupCollapsedSection({ id, gateId, listSelector, cardSelector, title, text, showLabel, hideLabel }){
-    const section = q('#' + id);
-    const list = q(listSelector);
-    if(!section || !list) return;
-    if(!section.hasAttribute('data-dirac-collapsed')){
-      section.setAttribute('data-dirac-collapsed','true');
-      section.removeAttribute('data-dirac-expanded');
-    }
-    let gate = q('#' + gateId);
-    if(!gate){
-      gate = document.createElement('div');
-      gate.id = gateId;
-      gate.className = 'dirac-reveal-gate';
-      gate.innerHTML = `
-        <div class="dirac-reveal-copy">
-          <span><b>${title}</b><small>${text}</small></span>
-          <span class="dirac-reveal-count" aria-label="Jumlah data">0</span>
-        </div>
-        <button class="dirac-reveal-btn" type="button" aria-expanded="false">${showLabel}</button>
-      `;
-      const tools = id === 'orders' ? q('#orders .order-tools') : list;
-      (tools || list).insertAdjacentElement('beforebegin', gate);
-    }
-    const button = q('.dirac-reveal-btn', gate);
-    const countNode = q('.dirac-reveal-count', gate);
-
-    function isCollapsed(){ return section.getAttribute('data-dirac-collapsed') === 'true'; }
-    function setCollapsed(next){
-      section.setAttribute('data-dirac-collapsed', next ? 'true' : 'false');
-      section.toggleAttribute('data-dirac-expanded', !next);
-      if(!next && id === 'orders'){
-        qa('#ordersList .order-card').forEach((card) => { card.hidden = false; });
-        const more = q('#ordersViewMoreWrap');
-        if(more) more.hidden = true;
-      }
-      update();
-      if(!next) setTimeout(() => section.scrollIntoView({ behavior:'smooth', block:'start' }), 40);
-    }
-    function update(){
-      const count = countCards(listSelector, cardSelector);
-      if(countNode) countNode.textContent = String(count);
-      if(button){
-        button.textContent = isCollapsed() ? (count ? `${showLabel} (${count})` : showLabel) : hideLabel;
-        button.setAttribute('aria-expanded', String(!isCollapsed()));
-      }
-      if(!isCollapsed() && id === 'orders') qa('#ordersList .order-card').forEach((card) => { card.hidden = false; });
-    }
-    if(button && button.dataset.diracBound !== 'true'){
-      button.dataset.diracBound = 'true';
-      button.addEventListener('click', () => setCollapsed(!isCollapsed()));
-    }
-    const observer = new MutationObserver(update);
-    observer.observe(list, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden','class'] });
-    update();
-  }
-
-  function setupCollapses(){
-    setupCollapsedSection({
-      id:'orders',
-      gateId:'ordersRevealGate',
-      listSelector:'#ordersList',
-      cardSelector:'.order-card',
-      title:'Daftar pesanan disembunyikan agar tampilan tetap rapi.',
-      text:'Tekan tombol di bawah untuk membuka invoice, timeline, detail pembayaran, dan tombol tindakan.',
-      showLabel:'Lihat pesanan',
-      hideLabel:'Sembunyikan pesanan'
-    });
-    setupCollapsedSection({
-      id:'domains',
-      gateId:'domainsRevealGate',
-      listSelector:'#ownedDomainsList',
-      cardSelector:'.owned-domain-card',
-      title:'Ringkasan domain disembunyikan.',
-      text:'Buka hanya saat ingin melihat domain dari pesanan akun ini, supaya halaman mobile tidak terlalu panjang.',
-      showLabel:'Lihat domain saya',
-      hideLabel:'Sembunyikan domain'
-    });
-  }
-
-  function strengthenDarkModeLabels(){
-    // No logic change. This only marks small technical labels to receive final CSS contrast.
-    qa('.line span,.summary-line span,.owned-domain-meta small,.field-help,.microcopy').forEach((node) => node.classList.add('dirac-muted-label'));
-  }
-
-  ready(() => {
-    setupDrawer();
-    setupCollapses();
-    strengthenDarkModeLabels();
-    window.addEventListener('resize', () => { if(window.innerWidth > 900) document.body.classList.remove('menu-open'); }, { passive:true });
-  });
-})();
-</script>
-
-
-
-<!-- DIRAC_MENU_BLUR_CART_CLEAN_V8_START -->
-<style id="dirac-menu-blur-cart-clean-v8">
+<!-- DIRAC_USER_REQUESTED_PRECISION_FIX_START -->
+<style id="dirac-user-requested-precision-fix">
 /*
-  V8 Focus:
-  - Membetulkan drawer blur/tidak bisa klik dengan memperbaiki stacking context.
-  - Merapikan header keranjang, item keranjang, badge bottom-nav, dan dark mode.
-  - Tidak mengubah hash/login/session/API; hanya override visual dan interaksi menu.
+  Patch final permintaan user:
+  1) Menu mobile dipaksa berada DI ATAS backdrop, tajam, dan tidak ikut blur.
+  2) Area keranjang yang ditandai dirapikan: aksen kiri tidak lagi menjadi garis panjang ganda,
+     badge cart dibuat stabil, dan floating action tidak menutup total.
+  Patch ini hanya layer CSS/JS visual; alur login, API, checkout, order, dan storage tidak diubah.
 */
-:root{
-  --dirac-v8-navy:#132252;
-  --dirac-v8-muted:#66738b;
-  --dirac-v8-line:rgba(19,34,82,.12);
-  --dirac-v8-card:#ffffff;
-  --dirac-v8-soft:#f7f9ff;
-  --dirac-v8-blue:#2563eb;
-  --dirac-v8-cyan:#10b7d6;
-  --dirac-v8-green:#16b981;
-  --dirac-v8-shadow:0 20px 58px rgba(15,23,42,.11);
-}
-html[data-theme="dark"]{
-  --dirac-v8-navy:#f8fbff;
-  --dirac-v8-muted:#b8c4d8;
-  --dirac-v8-line:rgba(226,232,240,.14);
-  --dirac-v8-card:#0d1728;
-  --dirac-v8-soft:#111d31;
-  --dirac-v8-shadow:0 24px 70px rgba(0,0,0,.42);
-}
+@media (max-width:900px){
+  :root{ --dirac-mobile-menu-z:42000; --dirac-mobile-backdrop-z:41000; }
 
-@media(max-width:900px){
-  /* Penyebab blur sebelumnya: backdrop berada pada root stacking context yang z-index-nya
-     lebih tinggi daripada .site-header, sementara drawer berada di dalam .site-header.
-     Akibatnya backdrop menutup drawer. Solusi: header/drawer dinaikkan di atas backdrop. */
-  body.menu-open .site-header{z-index:56000!important;isolation:isolate!important;}
-  body.menu-open .nav{z-index:56020!important;}
-  body.menu-open .nav-backdrop{
-    z-index:55000!important;
-    opacity:1!important;
-    pointer-events:auto!important;
-    background:rgba(15,23,42,.50)!important;
-    backdrop-filter:none!important;
-    -webkit-backdrop-filter:none!important;
+  .site-header{
+    position:sticky!important;
+    top:0!important;
+    z-index:var(--dirac-mobile-menu-z)!important;
+    isolation:isolate!important;
     filter:none!important;
+    -webkit-filter:none!important;
   }
+
+  .site-header .nav{
+    position:relative!important;
+    z-index:calc(var(--dirac-mobile-menu-z) + 4)!important;
+  }
+
+  .menu-toggle,
+  body.menu-open .menu-toggle{
+    position:relative!important;
+    z-index:calc(var(--dirac-mobile-menu-z) + 8)!important;
+    opacity:1!important;
+    filter:none!important;
+    -webkit-filter:none!important;
+  }
+
+  .nav-backdrop,
+  body.menu-open .nav-backdrop{
+    position:fixed!important;
+    inset:0!important;
+    z-index:var(--dirac-mobile-backdrop-z)!important;
+    background:rgba(15,23,42,.46)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+    filter:none!important;
+    -webkit-filter:none!important;
+  }
+
+  .nav-backdrop{ opacity:0!important; pointer-events:none!important; }
+  body.menu-open .nav-backdrop{ opacity:1!important; pointer-events:auto!important; }
+
+  .site-header .nav-actions,
   body.menu-open .site-header .nav-actions{
-    z-index:57000!important;
-    pointer-events:auto!important;
+    position:fixed!important;
+    top:calc(72px + env(safe-area-inset-top,0px))!important;
+    left:12px!important;
+    right:12px!important;
+    width:calc(100vw - 24px)!important;
+    max-width:calc(100vw - 24px)!important;
+    z-index:calc(var(--dirac-mobile-menu-z) + 6)!important;
+    border-radius:24px!important;
+    padding:14px!important;
+    gap:10px!important;
+    box-sizing:border-box!important;
+    background:#ffffff!important;
+    color:#0f172a!important;
+    border:1px solid rgba(15,23,42,.12)!important;
+    box-shadow:0 26px 76px rgba(15,23,42,.30)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+    filter:none!important;
+    -webkit-filter:none!important;
+    mix-blend-mode:normal!important;
+    transform:translate3d(0,-10px,0) scale(.985)!important;
+    opacity:0!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+    max-height:calc(100svh - 98px)!important;
+    overflow:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+
+  body.menu-open .site-header .nav-actions{
+    transform:translate3d(0,0,0) scale(1)!important;
     opacity:1!important;
     visibility:visible!important;
-    filter:none!important;
-    -webkit-filter:none!important;
-    backdrop-filter:none!important;
-    -webkit-backdrop-filter:none!important;
-    transform:translate3d(0,0,0)!important;
-    background:#fff!important;
-    color:#111f4f!important;
+    pointer-events:auto!important;
   }
-  body.menu-open .site-header .nav-actions,
-  body.menu-open .site-header .nav-actions *{
+
+  .site-header .nav-actions .btn,
+  .site-header .nav-actions .theme-toggle{
+    opacity:1!important;
     filter:none!important;
     -webkit-filter:none!important;
+    color:#111f4f!important;
+    background:#f8fbff!important;
+    border:1px solid rgba(15,23,42,.10)!important;
+    box-shadow:0 8px 22px rgba(15,23,42,.08)!important;
     text-shadow:none!important;
   }
-  .site-header .nav-actions{
-    top:0!important;
-    left:0!important;
-    right:auto!important;
-    bottom:0!important;
-    width:min(84vw,372px)!important;
-    max-width:min(84vw,372px)!important;
-    height:100dvh!important;
-    border-radius:0 30px 30px 0!important;
-    box-shadow:30px 0 85px rgba(15,23,42,.26)!important;
-  }
-  .dirac-drawer-head{
-    grid-template-columns:minmax(0,1fr) 48px 44px!important;
-    gap:12px!important;
-    padding:8px 0 18px!important;
-    margin-bottom:8px!important;
-    border-bottom:1px solid rgba(17,31,79,.10)!important;
-  }
-  .dirac-drawer-title strong{font-size:21px!important;letter-spacing:-.04em!important;color:#111f4f!important;}
-  .dirac-drawer-title small{font-size:10.5px!important;color:#6258ff!important;letter-spacing:.18em!important;}
-  .dirac-drawer-logo{width:48px!important;height:48px!important;border-radius:16px!important;justify-self:end!important;}
-  .dirac-drawer-close{
-    width:44px!important;height:44px!important;border-radius:999px!important;
-    background:#f3f6fb!important;color:#111f4f!important;border:1px solid rgba(17,31,79,.08)!important;
-    box-shadow:0 10px 24px rgba(15,23,42,.08)!important;
-  }
-  .site-header .nav-actions > .btn,
-  .site-header .nav-actions > .theme-toggle{
-    min-height:60px!important;
-    border-radius:19px!important;
-    background:#fff!important;
-    color:#111f4f!important;
-    border:1px solid rgba(17,31,79,.10)!important;
-    box-shadow:none!important;
-    opacity:1!important;
-  }
-  .site-header .nav-actions > .btn[data-menu-icon]::before,
-  .site-header .nav-actions > .theme-toggle::before{
-    background:#f4f6fb!important;
-    color:#4b5568!important;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.80)!important;
-  }
-  .site-header .nav-actions > .btn-danger{
+
+  .site-header .nav-actions .btn-danger,
+  .site-header .nav-actions #logoutBtn{
+    color:#991b1b!important;
     background:#fff1f2!important;
-    color:#be123c!important;
     border-color:#fecdd3!important;
   }
-}
 
-/* Keranjang: ikon judul dibuat grid agar tidak menempel/menimpa huruf pertama. */
-#keranjang .section-head.compact-head{
-  gap:14px!important;
-  align-items:start!important;
-}
-#keranjang .section-title h2{
-  display:grid!important;
-  grid-template-columns:40px minmax(0,1fr)!important;
-  align-items:center!important;
-  column-gap:15px!important;
-  line-height:1.04!important;
-  margin:0 0 8px!important;
-  overflow:visible!important;
-}
-#keranjang .section-title h2::before{
-  content:""!important;
-  position:relative!important;
-  left:auto!important;
-  top:auto!important;
-  flex:none!important;
-  width:40px!important;
-  height:40px!important;
-  border-radius:14px!important;
-  background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.42),transparent 34%),linear-gradient(135deg,#2563eb,#10b7d6)!important;
-  box-shadow:0 14px 30px rgba(37,99,235,.22)!important;
-  justify-self:start!important;
-}
-@media(max-width:520px){
-  #keranjang .section-title h2{
-    grid-template-columns:36px minmax(0,1fr)!important;
-    column-gap:14px!important;
-    font-size:clamp(29px,8.5vw,38px)!important;
+  html[data-theme="dark"] .site-header .nav-actions{
+    background:#0b1220!important;
+    color:#f8fafc!important;
+    border-color:rgba(226,232,240,.18)!important;
+    box-shadow:0 28px 82px rgba(0,0,0,.64)!important;
   }
-  #keranjang .section-title h2::before{width:36px!important;height:36px!important;border-radius:13px!important;}
-}
 
-/* Keranjang item: garis vertikal panjang diganti aksen atas agar kartu lebih profesional dan tidak terasa berantakan. */
-#keranjang .cart-item{
-  border-radius:22px!important;
-  padding:17px!important;
-  background:linear-gradient(180deg,#fff,#f8fbff)!important;
-  border:1px solid rgba(19,34,82,.10)!important;
-  box-shadow:0 16px 42px rgba(15,23,42,.08)!important;
-  overflow:hidden!important;
-}
-#keranjang .cart-item::before{
-  content:""!important;
-  position:absolute!important;
-  left:0!important;
-  top:0!important;
-  bottom:auto!important;
-  width:100%!important;
-  height:5px!important;
-  border-radius:22px 22px 0 0!important;
-  background:linear-gradient(90deg,#2563eb,#10b7d6,#16b981)!important;
-}
-#keranjang .cart-item h3{padding-top:2px!important;}
-#keranjang .cart-controls{margin-top:12px!important;}
-#keranjang .cart-year-select,
-#keranjang .cart-remove{
-  min-height:42px!important;
-  border-radius:999px!important;
-}
-#keranjang .cart-price{
-  min-height:54px!important;
-  border-radius:18px!important;
-  padding:12px 14px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(16,183,214,.12))!important;
-  color:#132252!important;
-  font-size:20px!important;
-  font-weight:1000!important;
-  text-align:left!important;
-}
-@media(max-width:520px){
-  #keranjang .cart-item{padding:16px!important;}
-  #keranjang .cart-price{font-size:19px!important;}
-}
+  html[data-theme="dark"] .site-header .nav-actions .btn,
+  html[data-theme="dark"] .site-header .nav-actions .theme-toggle{
+    color:#e5edf8!important;
+    background:#111827!important;
+    border-color:rgba(226,232,240,.16)!important;
+  }
 
-/* Total row dirapikan agar tidak tertutup floating button di sisi kanan. */
-@media(max-width:900px){
-  #keranjang .total-row{
-    padding:17px 20px!important;
-    padding-right:30px!important;
-    border-radius:22px!important;
-    min-height:66px!important;
+  body.menu-open{
+    overflow:hidden!important;
+    touch-action:none!important;
+  }
+
+  /* Keranjang: hapus aksen kiri ganda yang tampak seperti garis panjang berantakan. */
+  #keranjang .cart-item{
+    border-left:0!important;
+    padding:15px 14px 15px 42px!important;
+    overflow:hidden!important;
+  }
+
+  #keranjang .cart-item::before{
+    content:""!important;
+    position:absolute!important;
+    left:16px!important;
+    top:20px!important;
+    bottom:auto!important;
+    width:13px!important;
+    height:13px!important;
+    border-radius:999px!important;
+    background:linear-gradient(135deg,var(--cart-blue,#2563eb),var(--cart-cyan,#06b6d4),var(--cart-green,#10b981))!important;
+    box-shadow:0 0 0 4px rgba(37,99,235,.10)!important;
+  }
+
+  #keranjang .cart-item::after{
+    display:none!important;
+    content:none!important;
+  }
+
+  #keranjang .cart-controls{
+    margin-top:11px!important;
+  }
+
+  #keranjang .cart-price{
+    min-height:48px!important;
+    display:flex!important;
     align-items:center!important;
+    justify-content:flex-start!important;
+    text-align:left!important;
+    overflow-wrap:anywhere!important;
   }
-  #keranjang #cartTotal{font-size:clamp(20px,6vw,30px)!important;white-space:nowrap!important;}
-}
 
-/* Bottom nav: badge tidak lagi menutupi ikon/tulisan; dibuat floating kecil di pojok tombol. */
-@media(max-width:900px){
-  .mobile-bottom-nav{overflow:visible!important;}
-  .mobile-bottom-nav button{overflow:visible!important;}
-  .mobile-bottom-nav button.active::before{
-    inset:0!important;
-    border-radius:inherit!important;
+  /* Total tetap terbaca walaupun tombol naik/WhatsApp berada di sisi kanan. */
+  #keranjang .total-row{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    min-height:72px!important;
+    padding:18px 78px 18px 18px!important;
+    overflow:hidden!important;
   }
-  .nav-badge{
-    top:-7px!important;
+
+  #keranjang #cartTotal{
+    margin-left:auto!important;
+    white-space:nowrap!important;
+    text-align:right!important;
+  }
+
+  .dirac-floating-actions{
+    right:12px!important;
+    bottom:calc(var(--dirac-bottom-nav-h,72px) + 20px + env(safe-area-inset-bottom,0px))!important;
+    z-index:18950!important;
+  }
+
+  .dirac-float-btn{
+    width:44px!important;
+    height:44px!important;
+    border-radius:16px!important;
+  }
+
+  /* Badge keranjang di bottom nav: posisi stabil, tidak menabrak ikon/teks. */
+  .mobile-bottom-nav .nav-badge{
+    top:4px!important;
     right:8px!important;
-    min-width:22px!important;
-    height:22px!important;
-    padding:0 6px!important;
-    border:2px solid rgba(255,255,255,.96)!important;
-    box-shadow:0 10px 22px rgba(239,95,128,.30)!important;
-    z-index:5!important;
+    min-width:18px!important;
+    height:18px!important;
+    padding:0 5px!important;
+    display:inline-grid!important;
+    place-items:center!important;
+    line-height:1!important;
+    border:2px solid rgba(255,255,255,.92)!important;
+    box-shadow:0 7px 18px rgba(239,95,128,.28)!important;
     transform:none!important;
-    font-size:11px!important;
   }
-  html[data-theme="dark"] .nav-badge{border-color:#0d1728!important;}
-}
 
-/* Floating actions diberi jarak lebih aman dari kartu total dan bottom-nav. */
-@media(max-width:900px){
-  .dirac-floating-actions,
-  .float-actions{
-    right:18px!important;
-    bottom:calc(156px + env(safe-area-inset-bottom,0px))!important;
-    z-index:19000!important;
+  .mobile-bottom-nav .nav-badge[data-empty="true"]{
+    display:none!important;
   }
 }
 
-/* Dark mode cleanup final: panel lebih solid, teks tidak abu-abu pudar, menu benar-benar tajam. */
-html[data-theme="dark"] .site-header .nav-actions{
-  background:#0d1728!important;
-  color:#f8fbff!important;
-  box-shadow:30px 0 85px rgba(0,0,0,.58)!important;
-}
-html[data-theme="dark"] .site-header .nav-actions > .btn,
-html[data-theme="dark"] .site-header .nav-actions > .theme-toggle,
-html[data-theme="dark"] .dirac-drawer-close{
-  background:#111d31!important;
-  color:#f8fbff!important;
-  border-color:rgba(226,232,240,.14)!important;
-}
-html[data-theme="dark"] .site-header .nav-actions > .btn[data-menu-icon]::before,
-html[data-theme="dark"] .site-header .nav-actions > .theme-toggle::before{
-  background:#17243a!important;
-  color:#dbeafe!important;
-}
-html[data-theme="dark"] #keranjang .cart-item,
-html[data-theme="dark"] #keranjang .guidance-panel,
-html[data-theme="dark"] #checkout,
-html[data-theme="dark"] .order-card,
-html[data-theme="dark"] .owned-domain-card{
-  background:linear-gradient(180deg,#101a2c,#0b1424)!important;
-  border-color:rgba(226,232,240,.14)!important;
-  box-shadow:0 22px 58px rgba(0,0,0,.42)!important;
-}
-html[data-theme="dark"] #keranjang .cart-price{
-  background:linear-gradient(135deg,rgba(37,99,235,.22),rgba(16,183,214,.16))!important;
-  color:#f8fbff!important;
-}
-html[data-theme="dark"] #keranjang .cart-year-select,
-html[data-theme="dark"] #keranjang .cart-remove{
-  background:#0b1424!important;
-  color:#f8fbff!important;
-  border-color:rgba(226,232,240,.16)!important;
-}
-html[data-theme="dark"] #keranjang .total-row{
-  background:linear-gradient(135deg,#0f2747,#1d4ed8 62%,#0891b2)!important;
-  box-shadow:0 22px 58px rgba(37,99,235,.24)!important;
-}
-html[data-theme="dark"] .mobile-bottom-nav{
-  background:linear-gradient(180deg,rgba(9,18,34,.96),rgba(5,12,24,.94))!important;
-  border-color:rgba(226,232,240,.16)!important;
+@media (max-width:520px){
+  .site-header .nav-actions,
+  body.menu-open .site-header .nav-actions{
+    grid-template-columns:1fr!important;
+    top:calc(68px + env(safe-area-inset-top,0px))!important;
+    left:10px!important;
+    right:10px!important;
+    width:calc(100vw - 20px)!important;
+    max-width:calc(100vw - 20px)!important;
+    padding:12px!important;
+    gap:9px!important;
+    border-radius:22px!important;
+  }
+
+  #keranjang .cart-item{
+    padding:14px 13px 14px 38px!important;
+  }
+
+  #keranjang .cart-item::before{
+    left:14px!important;
+    top:19px!important;
+    width:12px!important;
+    height:12px!important;
+  }
+
+  #keranjang .total-row{
+    padding:17px 66px 17px 16px!important;
+    min-height:68px!important;
+  }
+
+  .dirac-floating-actions{
+    right:10px!important;
+    bottom:calc(var(--dirac-bottom-nav-h,72px) + 18px + env(safe-area-inset-bottom,0px))!important;
+  }
+
+  .dirac-float-btn{
+    width:42px!important;
+    height:42px!important;
+    border-radius:15px!important;
+  }
 }
 </style>
-<script id="dirac-menu-blur-cart-clean-v8-js">
-(() => {
-  function ready(fn){
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once:true });
-    else fn();
+
+<script id="dirac-user-requested-precision-fix-js">
+(function(){
+  "use strict";
+  function ready(fn){ if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
+  function syncMenuLayer(){
+    var header = document.querySelector(".site-header");
+    var menu = document.querySelector(".site-header .nav-actions");
+    var toggle = document.querySelector("[data-menu-toggle]");
+    var backdrop = document.querySelector(".nav-backdrop");
+    if(header) header.style.zIndex = "42000";
+    if(menu) menu.style.zIndex = "42006";
+    if(toggle) toggle.style.zIndex = "42008";
+    if(backdrop) backdrop.style.zIndex = "41000";
   }
-  ready(() => {
-    const body = document.body;
-    const toggle = document.querySelector('[data-menu-toggle]');
-    const menu = document.getElementById('siteMenu');
-    const backdrop = document.querySelector('[data-menu-close]');
-    if(!toggle || !menu) return;
-
-    const sync = () => {
-      const open = body.classList.contains('menu-open');
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      menu.setAttribute('aria-hidden', open ? 'false' : 'true');
-      if(backdrop) backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
-    };
-    const open = (event) => {
-      if(event){ event.preventDefault(); event.stopPropagation(); }
-      body.classList.add('menu-open');
-      sync();
-    };
-    const close = (event) => {
-      if(event){ event.preventDefault(); event.stopPropagation(); }
-      body.classList.remove('menu-open');
-      sync();
-    };
-
-    // Capture phase dipakai supaya handler lama yang bertabrakan tidak membuat drawer setengah terbuka/tertutup.
-    toggle.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      body.classList.contains('menu-open') ? close() : open();
-    }, true);
-    backdrop?.addEventListener('click', close, true);
-    menu.querySelector('.dirac-drawer-close')?.addEventListener('click', close, true);
-    document.addEventListener('keydown', (event) => { if(event.key === 'Escape') close(event); });
-    menu.querySelectorAll('[data-scroll]').forEach((button) => button.addEventListener('click', () => setTimeout(close, 90), true));
-    sync();
+  ready(function(){
+    syncMenuLayer();
+    var toggle = document.querySelector("[data-menu-toggle]");
+    if(toggle){
+      toggle.addEventListener("click", function(){ setTimeout(syncMenuLayer, 0); }, true);
+    }
+    window.addEventListener("resize", syncMenuLayer, { passive:true });
+    window.addEventListener("orientationchange", function(){ setTimeout(syncMenuLayer, 180); }, { passive:true });
   });
 })();
 </script>
-<!-- DIRAC_MENU_BLUR_CART_CLEAN_V8_END -->
+<!-- DIRAC_USER_REQUESTED_PRECISION_FIX_END -->
 
 </body>
 </html>
