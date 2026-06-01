@@ -5780,1012 +5780,136 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
   });
 })();
 </script>
-<!-- DIRAC_V6_PRECISION_START -->
-<style id="dirac-v6-precision-floating-liquid-smooth">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- DIRAC_CENTERED_BOTTOM_NAV_FINAL_100X_START -->
+<style id="dirac-centered-bottom-nav-final-100x-css">
 :root{
-  --dirac-nav-liquid-x:6px;
-  --dirac-nav-liquid-y:6px;
-  --dirac-nav-liquid-w:60px;
-  --dirac-nav-liquid-h:50px;
+  --dirac-nav-bubble-x:7px;
+  --dirac-nav-bubble-y:7px;
+  --dirac-nav-bubble-w:64px;
+  --dirac-nav-bubble-h:50px;
+  --dirac-nav-bubble-r:21px;
+  --dirac-nav-shine-x:15px;
+  --dirac-nav-shine-y:14px;
+  --dirac-nav-shine-w:42px;
+  --dirac-nav-ease:cubic-bezier(.18,.92,.2,1);
 }
-
 @media(max-width:900px){
-  .dirac-floating-actions{
-    right:18px!important;
-    bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;
-    gap:8px!important;
-    z-index:19200!important;
-    will-change:transform,opacity!important;
-  }
-
-  .dirac-float-btn{
-    width:48px!important;
-    height:48px!important;
-    transform:translate3d(0,0,0)!important;
-    transition:
-      transform .34s cubic-bezier(.18,.88,.22,1),
-      box-shadow .34s cubic-bezier(.18,.88,.22,1),
-      filter .34s ease,
-      opacity .34s ease!important;
-  }
-
-  .dirac-float-btn:hover,
-  .dirac-float-btn:focus-visible{
-    transform:translate3d(0,-2px,0) scale(1.028)!important;
-  }
-
-  .mobile-bottom-nav{
-    isolation:isolate!important;
-    overflow:hidden!important;
-    contain:layout paint!important;
-  }
-
-  .mobile-bottom-nav::before{
-    left:0!important;
-    top:0!important;
-    transform:translate3d(var(--dirac-nav-liquid-x),var(--dirac-nav-liquid-y),0)!important;
-    will-change:transform,width,height,border-radius,filter!important;
-    transition:
-      transform .78s cubic-bezier(.16,1,.24,1),
-      width .78s cubic-bezier(.16,1,.24,1),
-      height .78s cubic-bezier(.16,1,.24,1),
-      border-radius .78s cubic-bezier(.16,1,.24,1),
-      filter .28s ease!important;
-    backface-visibility:hidden!important;
-    -webkit-backface-visibility:hidden!important;
-  }
-
-  .mobile-bottom-nav::after{
-    left:0!important;
-    top:0!important;
-    transform:translate3d(
-      calc(var(--dirac-nav-liquid-x) + 10px),
-      calc(var(--dirac-nav-liquid-y) + 6px),
-      0
-    )!important;
-    will-change:transform,width,opacity!important;
-    transition:
-      transform .78s cubic-bezier(.16,1,.24,1),
-      width .78s cubic-bezier(.16,1,.24,1),
-      opacity .34s ease!important;
-    backface-visibility:hidden!important;
-    -webkit-backface-visibility:hidden!important;
-  }
-
-  .mobile-bottom-nav button{
-    transition:
-      color .34s ease,
-      opacity .34s ease,
-      transform .42s cubic-bezier(.16,1,.24,1),
-      text-shadow .34s ease!important;
-    -webkit-tap-highlight-color:transparent!important;
-  }
-
-  .mobile-bottom-nav button.active{
-    transform:translate3d(0,-1px,0)!important;
-  }
-
-  .mobile-bottom-nav button:not(.active){
-    transform:translate3d(0,0,0)!important;
-  }
-}
-
-@media(max-width:520px){
-  .dirac-floating-actions{
-    right:18px!important;
-    bottom:calc(86px + env(safe-area-inset-bottom,0px))!important;
-    gap:8px!important;
-  }
-}
-
-@media(max-width:380px){
-  .dirac-floating-actions{
-    right:14px!important;
-    bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
-  }
-}
-
-@media(prefers-reduced-motion:reduce){
-  .mobile-bottom-nav::before,
-  .mobile-bottom-nav::after,
-  .mobile-bottom-nav button,
-  .dirac-float-btn{
-    transition:none!important;
-    animation:none!important;
-  }
-}
-</style>
-<!-- DIRAC_V6_PRECISION_END -->
-
-
-<!-- DIRAC_NAV_FIXED_LOWER_PRECISION_FIX_START -->
-<style id="dirac-nav-fixed-lower-precision-fix">
-/*
-  Koreksi final:
-  Navigasi mobile tetap FIXED saat halaman discroll, tetapi posisinya diturunkan.
-  Tidak ditempelkan ke alur konten, sehingga tidak "nyangkut" di section Cek Domain.
-*/
-@media (max-width:900px){
-  body{
-    padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important;
-  }
-
+  body{padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;}
   .mobile-bottom-nav{
     position:fixed!important;
-    left:16px!important;
-    right:16px!important;
+    left:50%!important;
+    right:auto!important;
     top:auto!important;
     bottom:calc(6px + env(safe-area-inset-bottom,0px))!important;
-    width:auto!important;
-    max-width:none!important;
+    width:min(calc(100vw - 16px),520px)!important;
+    max-width:520px!important;
     min-width:0!important;
     margin:0!important;
     display:grid!important;
     grid-template-columns:repeat(5,minmax(0,1fr))!important;
-    gap:4px!important;
-    padding:6px!important;
-    border-radius:23px!important;
-    transform:none!important;
-    opacity:1!important;
-    visibility:visible!important;
-    pointer-events:auto!important;
-    z-index:19000!important;
-    box-sizing:border-box!important;
-  }
-
-  body.show-mobile-nav .mobile-bottom-nav{
-    transform:none!important;
-    opacity:1!important;
-    visibility:visible!important;
-    pointer-events:auto!important;
-  }
-
-  .mobile-bottom-nav button{
-    min-width:0!important;
-    min-height:50px!important;
-    padding:5px 2px!important;
-    border-radius:15px!important;
-  }
-
-  .mobile-bottom-nav svg{
-    width:18px!important;
-    height:18px!important;
-  }
-
-  .mobile-bottom-nav small{
-    font-size:9.5px!important;
-    line-height:1!important;
-  }
-
-  .dirac-floating-actions{
-    right:18px!important;
-    bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;
-    z-index:19200!important;
-  }
-
-  .toast-region{
-    bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;
-    left:12px!important;
-    right:12px!important;
-    width:auto!important;
-  }
-}
-
-@media (max-width:520px){
-  body{
-    padding-bottom:calc(98px + env(safe-area-inset-bottom,0px))!important;
-  }
-
-  .mobile-bottom-nav{
-    left:10px!important;
-    right:10px!important;
-    bottom:calc(4px + env(safe-area-inset-bottom,0px))!important;
-    border-radius:22px!important;
-  }
-
-  .mobile-bottom-nav button{
-    min-height:49px!important;
-    border-radius:15px!important;
-  }
-
-  .mobile-bottom-nav small{
-    font-size:9px!important;
-  }
-
-  .dirac-floating-actions{
-    right:18px!important;
-    bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
-  }
-}
-
-@media (max-width:380px){
-  .mobile-bottom-nav{
-    left:8px!important;
-    right:8px!important;
-    bottom:calc(4px + env(safe-area-inset-bottom,0px))!important;
-    padding:5px!important;
-  }
-
-  .mobile-bottom-nav button{
-    min-height:47px!important;
-  }
-}
-
-@media (min-width:901px){
-  .mobile-bottom-nav{
-    display:none!important;
-  }
-}
-</style>
-<!-- DIRAC_NAV_FIXED_LOWER_PRECISION_FIX_END -->
-
-<!-- DIRAC_ULTRA_SMOOTH_IPHONE_LIQUID_GLASS_START -->
-<style id="dirac-ultra-smooth-iphone-liquid-glass">
-/*
-  Final mobile navigation refinement.
-  Scope is intentionally limited to .mobile-bottom-nav so existing website flows,
-  cart, orders, account, logout, and desktop layout remain untouched.
-*/
-:root{
-  --dirac-lg-x:6px;
-  --dirac-lg-y:6px;
-  --dirac-lg-w:64px;
-  --dirac-lg-h:50px;
-  --dirac-lg-scale:1;
-  --dirac-lg-radius:20px;
-  --dirac-lg-ease:cubic-bezier(.16,1,.24,1);
-}
-
-@media (max-width:900px){
-  body{
-    padding-bottom:calc(114px + env(safe-area-inset-bottom,0px))!important;
-  }
-
-  .mobile-bottom-nav{
-    position:fixed!important;
-    left:clamp(8px,3vw,16px)!important;
-    right:clamp(8px,3vw,16px)!important;
-    top:auto!important;
-    bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
-    width:auto!important;
-    max-width:520px!important;
-    margin-inline:auto!important;
-    display:grid!important;
-    grid-template-columns:repeat(5,minmax(0,1fr))!important;
     align-items:center!important;
+    justify-items:stretch!important;
     gap:5px!important;
     padding:7px!important;
     min-height:66px!important;
     border-radius:28px!important;
-    overflow:hidden!important;
-    isolation:isolate!important;
-    contain:layout paint style!important;
-    transform:translate3d(0,0,0)!important;
+    transform:translate3d(-50%,0,0)!important;
     opacity:1!important;
     visibility:visible!important;
     pointer-events:auto!important;
-    z-index:19000!important;
-    box-sizing:border-box!important;
-    background:
-      radial-gradient(120% 140% at 12% 0%,rgba(255,255,255,.22),transparent 42%),
-      radial-gradient(110% 130% at 88% 100%,rgba(98,186,255,.16),transparent 45%),
-      linear-gradient(180deg,rgba(16,20,30,.66),rgba(8,12,22,.76))!important;
-    border:1px solid rgba(255,255,255,.28)!important;
-    box-shadow:
-      0 28px 70px rgba(0,0,0,.34),
-      0 8px 28px rgba(11,26,54,.22),
-      inset 0 1px 0 rgba(255,255,255,.32),
-      inset 0 -1px 0 rgba(255,255,255,.08)!important;
-    -webkit-backdrop-filter:blur(34px) saturate(1.85) contrast(1.04)!important;
-    backdrop-filter:blur(34px) saturate(1.85) contrast(1.04)!important;
-    -webkit-font-smoothing:antialiased!important;
-    touch-action:manipulation!important;
-  }
-
-  body.show-mobile-nav .mobile-bottom-nav{
-    transform:translate3d(0,0,0)!important;
-    opacity:1!important;
-    visibility:visible!important;
-    pointer-events:auto!important;
-  }
-
-  .mobile-bottom-nav::before{
-    content:""!important;
-    position:absolute!important;
-    left:0!important;
-    top:0!important;
-    width:var(--dirac-lg-w)!important;
-    height:var(--dirac-lg-h)!important;
-    border-radius:var(--dirac-lg-radius)!important;
-    z-index:0!important;
-    pointer-events:none!important;
-    transform:translate3d(var(--dirac-lg-x),var(--dirac-lg-y),0) scale(var(--dirac-lg-scale))!important;
-    transform-origin:center!important;
-    will-change:transform,width,height,border-radius,filter!important;
-    background:
-      radial-gradient(80% 70% at 28% 18%,rgba(255,255,255,.92),rgba(255,255,255,.34) 38%,transparent 64%),
-      radial-gradient(90% 85% at 72% 86%,rgba(90,170,255,.30),transparent 58%),
-      linear-gradient(145deg,rgba(255,255,255,.70),rgba(217,231,255,.36) 46%,rgba(255,255,255,.20))!important;
-    border:1px solid rgba(255,255,255,.52)!important;
-    box-shadow:
-      0 15px 34px rgba(0,0,0,.30),
-      0 0 30px rgba(116,188,255,.12),
-      inset 0 1px 1px rgba(255,255,255,.86),
-      inset 0 -16px 30px rgba(20,39,65,.18)!important;
-    transition:
-      transform .72s var(--dirac-lg-ease),
-      width .72s var(--dirac-lg-ease),
-      height .72s var(--dirac-lg-ease),
-      border-radius .72s var(--dirac-lg-ease),
-      filter .30s ease!important;
-    -webkit-backdrop-filter:blur(22px) saturate(1.65)!important;
-    backdrop-filter:blur(22px) saturate(1.65)!important;
-    backface-visibility:hidden!important;
-    -webkit-backface-visibility:hidden!important;
-  }
-
-  .mobile-bottom-nav::after{
-    content:""!important;
-    position:absolute!important;
-    left:0!important;
-    top:0!important;
-    width:calc(var(--dirac-lg-w) - 18px)!important;
-    height:11px!important;
-    border-radius:999px!important;
-    z-index:0!important;
-    pointer-events:none!important;
-    transform:translate3d(calc(var(--dirac-lg-x) + 9px),calc(var(--dirac-lg-y) + 6px),0)!important;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.86),rgba(255,255,255,.38),transparent)!important;
-    opacity:.92!important;
-    filter:blur(.15px)!important;
-    will-change:transform,width,opacity!important;
-    transition:
-      transform .72s var(--dirac-lg-ease),
-      width .72s var(--dirac-lg-ease),
-      opacity .32s ease!important;
-  }
-
-  .mobile-bottom-nav button{
-    position:relative!important;
-    z-index:1!important;
-    min-width:0!important;
-    min-height:52px!important;
-    padding:5px 2px 4px!important;
-    border:0!important;
-    border-radius:21px!important;
-    display:grid!important;
-    place-items:center!important;
-    align-content:center!important;
-    gap:3px!important;
-    color:rgba(242,247,255,.82)!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    text-shadow:0 1px 9px rgba(0,0,0,.26)!important;
-    opacity:1!important;
-    transform:translate3d(0,0,0)!important;
-    transition:
-      color .24s ease,
-      transform .42s var(--dirac-lg-ease),
-      opacity .24s ease,
-      text-shadow .24s ease!important;
-    -webkit-tap-highlight-color:transparent!important;
-    touch-action:manipulation!important;
-  }
-
-  .mobile-bottom-nav button::before{
-    content:"";
-    position:absolute;
-    inset:5px;
-    border-radius:inherit;
-    background:radial-gradient(70% 80% at 50% 0%,rgba(255,255,255,.18),transparent 72%);
-    opacity:0;
-    transform:scale(.92);
-    transition:opacity .28s ease,transform .42s var(--dirac-lg-ease);
-    pointer-events:none;
-  }
-
-  .mobile-bottom-nav button.active,
-  .mobile-bottom-nav button.is-liquid-pressed{
-    color:#071423!important;
-    transform:translate3d(0,-1px,0)!important;
-    text-shadow:0 1px 0 rgba(255,255,255,.28)!important;
-  }
-
-  .mobile-bottom-nav button.active::before,
-  .mobile-bottom-nav button.is-liquid-pressed::before{
-    opacity:.42;
-    transform:scale(1);
-  }
-
-  .mobile-bottom-nav button:not(.active):not(.is-liquid-pressed){
-    opacity:.88!important;
-  }
-
-  .mobile-bottom-nav button:active{
-    transform:translate3d(0,0,0) scale(.975)!important;
-  }
-
-  .mobile-bottom-nav svg{
-    width:19px!important;
-    height:19px!important;
-    display:block!important;
-    stroke:currentColor!important;
-    stroke-width:2.2!important;
-    fill:none!important;
-    stroke-linecap:round!important;
-    stroke-linejoin:round!important;
-    filter:drop-shadow(0 1px 2px rgba(0,0,0,.26))!important;
-    transition:filter .24s ease,transform .42s var(--dirac-lg-ease)!important;
-  }
-
-  .mobile-bottom-nav button.active svg,
-  .mobile-bottom-nav button.is-liquid-pressed svg{
-    filter:drop-shadow(0 1px 0 rgba(255,255,255,.16))!important;
-    transform:translate3d(0,-.5px,0)!important;
-  }
-
-  .mobile-bottom-nav small{
-    display:block!important;
-    font-size:9.5px!important;
-    line-height:1!important;
-    font-weight:950!important;
-    letter-spacing:-.02em!important;
-    max-width:100%!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    white-space:nowrap!important;
-  }
-
-  .nav-badge{
-    z-index:2!important;
-    top:3px!important;
-    right:11px!important;
-    box-shadow:0 5px 14px rgba(244,63,94,.28)!important;
-  }
-
-  .dirac-floating-actions{
-    right:18px!important;
-    bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;
-    z-index:19200!important;
-  }
-
-  .toast-region{
-    bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
-    left:12px!important;
-    right:12px!important;
-    width:auto!important;
-    z-index:19300!important;
-  }
-}
-
-@media (max-width:520px){
-  body{padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;}
-  .mobile-bottom-nav{
-    left:8px!important;
-    right:8px!important;
-    bottom:calc(6px + env(safe-area-inset-bottom,0px))!important;
-    gap:4px!important;
-    padding:6px!important;
-    min-height:64px!important;
-    border-radius:26px!important;
-  }
-  .mobile-bottom-nav button{min-height:51px!important;border-radius:20px!important;}
-  .mobile-bottom-nav small{font-size:9px!important;}
-  .mobile-bottom-nav svg{width:18px!important;height:18px!important;}
-  .dirac-floating-actions{right:16px!important;bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;}
-}
-
-@media (max-width:380px){
-  .mobile-bottom-nav{left:6px!important;right:6px!important;padding:5px!important;gap:3px!important;}
-  .mobile-bottom-nav button{min-height:49px!important;border-radius:18px!important;}
-  .mobile-bottom-nav small{font-size:8.5px!important;}
-  .dirac-floating-actions{right:13px!important;bottom:calc(86px + env(safe-area-inset-bottom,0px))!important;}
-}
-
-html[data-theme="dark"] .mobile-bottom-nav{
-  background:
-    radial-gradient(120% 140% at 12% 0%,rgba(255,255,255,.16),transparent 42%),
-    radial-gradient(110% 130% at 88% 100%,rgba(85,168,255,.15),transparent 45%),
-    linear-gradient(180deg,rgba(13,18,28,.72),rgba(5,9,18,.82))!important;
-  border-color:rgba(255,255,255,.22)!important;
-  box-shadow:
-    0 30px 76px rgba(0,0,0,.56),
-    0 8px 28px rgba(0,0,0,.30),
-    inset 0 1px 0 rgba(255,255,255,.20),
-    inset 0 -1px 0 rgba(255,255,255,.06)!important;
-}
-
-html[data-theme="dark"] .mobile-bottom-nav button:not(.active):not(.is-liquid-pressed){
-  color:rgba(232,240,255,.82)!important;
-}
-
-html[data-theme="dark"] .mobile-bottom-nav button.active,
-html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
-  color:#06111f!important;
-}
-
-@media (min-width:901px){
-  .mobile-bottom-nav{display:none!important;}
-}
-
-@media (prefers-reduced-motion:reduce){
-  .mobile-bottom-nav::before,
-  .mobile-bottom-nav::after,
-  .mobile-bottom-nav button,
-  .mobile-bottom-nav svg{
-    transition:none!important;
-    animation:none!important;
-  }
-}
-</style>
-
-<script id="dirac-ultra-smooth-iphone-liquid-glass-js">
-(function(){
-  "use strict";
-
-  var SECTION_IDS = ["cek","keranjang","orders","account"];
-  var raf = 0;
-  var lastId = "cek";
-  var restoreTimer = 0;
-  var manualLockUntil = 0;
-  var lockedId = "";
-  var eventsInstalled = false;
-  var observerInstalled = false;
-
-  function ready(fn){
-    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, { once:true });
-    else fn();
-  }
-
-  function bar(){ return document.querySelector(".mobile-bottom-nav"); }
-  function navButtons(){
-    var nav = bar();
-    return nav ? Array.prototype.slice.call(nav.querySelectorAll("button")) : [];
-  }
-  function activeButton(){
-    var nav = bar();
-    if(!nav) return null;
-    return nav.querySelector("button.active[data-scroll]") || nav.querySelector("button[data-scroll]") || nav.querySelector("button");
-  }
-
-  function setIndicatorTo(button, immediate){
-    var nav = bar();
-    if(!nav || !button) return;
-    var b = button.getBoundingClientRect();
-    var n = nav.getBoundingClientRect();
-    if(!b.width || !n.width) return;
-
-    var padX = Math.max(2, Math.min(4, b.width * .035));
-    var padY = 2;
-    var x = Math.max(4, b.left - n.left + padX);
-    var y = Math.max(4, b.top - n.top + padY);
-    var w = Math.max(42, b.width - padX * 2);
-    var h = Math.max(42, b.height - padY * 2);
-
-    if(immediate){ nav.classList.add("is-liquid-instant"); }
-    nav.style.setProperty("--dirac-lg-x", x.toFixed(2) + "px");
-    nav.style.setProperty("--dirac-lg-y", y.toFixed(2) + "px");
-    nav.style.setProperty("--dirac-lg-w", w.toFixed(2) + "px");
-    nav.style.setProperty("--dirac-lg-h", h.toFixed(2) + "px");
-    nav.style.setProperty("--dirac-lg-radius", Math.min(22, Math.max(18, h * .42)).toFixed(2) + "px");
-    if(immediate){
-      requestAnimationFrame(function(){ nav.classList.remove("is-liquid-instant"); });
-    }
-  }
-
-  function sync(button, immediate){
-    if(raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(function(){
-      raf = 0;
-      setIndicatorTo(button || activeButton(), Boolean(immediate));
-    });
-  }
-
-  function setPressed(button){
-    var nav = bar();
-    if(!nav || !button) return;
-    clearTimeout(restoreTimer);
-    if(button.dataset.scroll){
-      lockedId = button.dataset.scroll;
-      manualLockUntil = Date.now() + 1400;
-      updateActive(button.dataset.scroll);
-      [40,100,180,300,520,820,1160].forEach(function(delay){ setTimeout(enforceLockedActive, delay); });
-      var target = document.getElementById(button.dataset.scroll);
-      if(target) target.scrollIntoView({ behavior:"smooth", block:"start" });
-    }
-    navButtons().forEach(function(btn){ btn.classList.toggle("is-liquid-pressed", btn === button && !btn.classList.contains("active")); });
-    nav.style.setProperty("--dirac-lg-scale", ".985");
-    sync(button, false);
-  }
-
-  function releasePressed(){
-    var nav = bar();
-    if(!nav) return;
-    nav.style.setProperty("--dirac-lg-scale", "1");
-    restoreTimer = setTimeout(function(){
-      navButtons().forEach(function(btn){ btn.classList.remove("is-liquid-pressed"); });
-      sync(activeButton(), false);
-    }, 320);
-  }
-
-  function enforceLockedActive(){
-    if(!lockedId || Date.now() >= manualLockUntil) return false;
-    navButtons().forEach(function(button){
-      var isActive = button.dataset.scroll === lockedId;
-      button.classList.toggle("active", isActive);
-      button.classList.remove("is-liquid-pressed");
-      if(isActive) button.setAttribute("aria-current", "page");
-      else button.removeAttribute("aria-current");
-    });
-    sync(activeButton(), false);
-    return true;
-  }
-
-  function updateActive(id){
-    var nav = bar();
-    if(!nav) return;
-    if(lockedId && id !== lockedId && Date.now() < manualLockUntil){
-      enforceLockedActive();
-      return;
-    }
-    var matched = false;
-    navButtons().forEach(function(button){
-      var isActive = button.dataset.scroll === id;
-      if(isActive) matched = true;
-      button.classList.toggle("active", isActive);
-      button.classList.remove("is-liquid-pressed");
-      if(isActive) button.setAttribute("aria-current", "page");
-      else button.removeAttribute("aria-current");
-    });
-    if(matched) lastId = id;
-    sync(activeButton(), false);
-  }
-
-  window.diracLiquidSetActive = updateActive;
-  window.updateBottomNavActive = updateActive;
-  try { updateBottomNavActive = updateActive; } catch(_) {}
-  window.diracSyncLiquidNav = function(){ sync(activeButton(), false); };
-  try { diracSyncLiquidNav = window.diracSyncLiquidNav; } catch(_) {}
-  window.diracInstallLiquidNavObserver = installSectionObserver;
-  window.initBottomNavObserver = function(){ installSectionObserver(); };
-  try { initBottomNavObserver = window.initBottomNavObserver; } catch(_) {}
-
-  function currentSectionByPosition(){
-    var anchor = Math.max(92, window.innerHeight * .34);
-    var current = SECTION_IDS[0];
-    var best = Infinity;
-    SECTION_IDS.forEach(function(id){
-      var node = document.getElementById(id);
-      if(!node) return;
-      var rect = node.getBoundingClientRect();
-      if(rect.bottom < 88 || rect.top > window.innerHeight * .78) return;
-      var distance = Math.abs(rect.top - anchor);
-      if(distance < best){ best = distance; current = id; }
-    });
-    if(lockedId && Date.now() < manualLockUntil) return lockedId;
-    return current || lastId;
-  }
-
-  function installSectionObserver(){
-    if(observerInstalled) return;
-    observerInstalled = true;
-    var ticking = false;
-    function evaluate(){
-      ticking = false;
-      updateActive(currentSectionByPosition());
-    }
-    function onScroll(){
-      if(ticking) return;
-      ticking = true;
-      requestAnimationFrame(evaluate);
-    }
-    window.addEventListener("scroll", onScroll, { passive:true });
-    window.addEventListener("resize", function(){ sync(activeButton(), false); onScroll(); }, { passive:true });
-    window.addEventListener("orientationchange", function(){ setTimeout(function(){ sync(activeButton(), true); onScroll(); }, 260); }, { passive:true });
-
-    if("IntersectionObserver" in window){
-      var nodes = SECTION_IDS.map(function(id){ return document.getElementById(id); }).filter(Boolean);
-      var observer = new IntersectionObserver(onScroll, { threshold:[.12,.24,.36,.52,.68], rootMargin:"-16% 0px -48% 0px" });
-      nodes.forEach(function(node){ observer.observe(node); });
-    }
-    onScroll();
-  }
-
-  function installEvents(){
-    if(eventsInstalled) return;
-    var nav = bar();
-    if(!nav) return;
-    eventsInstalled = true;
-    nav.addEventListener("pointerdown", function(event){
-      var button = event.target.closest && event.target.closest("button");
-      if(!button || !nav.contains(button)) return;
-      setPressed(button);
-    }, { passive:true });
-    ["pointerup","pointercancel","pointerleave"].forEach(function(type){
-      nav.addEventListener(type, releasePressed, { passive:true });
-    });
-    nav.addEventListener("click", function(event){
-      var button = event.target.closest && event.target.closest("button");
-      if(!button || !nav.contains(button)) return;
-      if(button.dataset.scroll){
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        lockedId = button.dataset.scroll;
-        manualLockUntil = Date.now() + 1400;
-        updateActive(button.dataset.scroll);
-        [40,100,180,300,520,820,1160].forEach(function(delay){ setTimeout(enforceLockedActive, delay); });
-        var target = document.getElementById(button.dataset.scroll);
-        if(target) target.scrollIntoView({ behavior:"smooth", block:"start" });
-        setTimeout(function(){ lockedId = ""; manualLockUntil = 0; sync(activeButton(), false); }, 1420);
-      }
-      else releasePressed();
-      setTimeout(function(){ sync(activeButton(), false); }, 260);
-      setTimeout(function(){ sync(activeButton(), false); }, 780);
-    }, true);
-
-    if("ResizeObserver" in window){
-      var ro = new ResizeObserver(function(){ sync(activeButton(), false); });
-      ro.observe(nav);
-      navButtons().forEach(function(button){ ro.observe(button); });
-    }
-    if("MutationObserver" in window){
-      var mo = new MutationObserver(function(){ if(!enforceLockedActive()) sync(activeButton(), false); });
-      mo.observe(nav, { attributes:true, subtree:true, attributeFilter:["class","style","aria-current"] });
-    }
-  }
-
-  function bootLiquidNav(){
-    var first = activeButton();
-    if(first && !first.classList.contains("active") && first.dataset.scroll) updateActive(first.dataset.scroll);
-    sync(activeButton(), true);
-    installEvents();
-    installSectionObserver();
-    setTimeout(function(){ sync(activeButton(), true); }, 90);
-    setTimeout(function(){ sync(activeButton(), false); }, 420);
-    setTimeout(function(){ sync(activeButton(), false); }, 1100);
-  }
-
-  if(bar()) bootLiquidNav();
-  ready(bootLiquidNav);
-})();
-</script>
-<!-- DIRAC_ULTRA_SMOOTH_IPHONE_LIQUID_GLASS_END -->
-
-
-
-<!-- DIRAC_DARK_LIQUID_GLASS_REPAIR_START -->
-<style id="dirac-dark-liquid-glass-repair">
-/*
-  Final dark-mode-only repair for the mobile bottom navigation.
-  Scope is deliberately limited to .mobile-bottom-nav so checkout, cart, orders,
-  account, logout, API calls, and existing desktop behavior remain untouched.
-*/
-@media (max-width:900px){
-  .mobile-bottom-nav.is-liquid-instant::before,
-  .mobile-bottom-nav.is-liquid-instant::after{
-    transition-duration:.001s!important;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav{
-    background:
-      radial-gradient(115% 150% at 8% -10%,rgba(255,255,255,.20),transparent 42%),
-      radial-gradient(110% 130% at 92% 105%,rgba(96,165,250,.20),transparent 48%),
-      linear-gradient(180deg,rgba(21,29,44,.60),rgba(7,12,22,.74))!important;
-    border:1px solid rgba(255,255,255,.26)!important;
-    box-shadow:
-      0 30px 78px rgba(0,0,0,.54),
-      0 8px 30px rgba(37,99,235,.12),
-      inset 0 1px 0 rgba(255,255,255,.34),
-      inset 0 -1px 0 rgba(255,255,255,.08)!important;
-    -webkit-backdrop-filter:blur(38px) saturate(1.95) contrast(1.05) brightness(1.08)!important;
-    backdrop-filter:blur(38px) saturate(1.95) contrast(1.05) brightness(1.08)!important;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav::before{
-    background:
-      radial-gradient(78% 70% at 28% 15%,rgba(255,255,255,.94),rgba(255,255,255,.42) 39%,transparent 66%),
-      radial-gradient(90% 92% at 76% 88%,rgba(103,187,255,.28),transparent 60%),
-      linear-gradient(145deg,rgba(255,255,255,.78),rgba(218,232,255,.46) 48%,rgba(128,190,255,.30))!important;
-    border:1px solid rgba(255,255,255,.58)!important;
-    box-shadow:
-      0 18px 42px rgba(0,0,0,.34),
-      0 0 32px rgba(125,198,255,.15),
-      inset 0 1px 1px rgba(255,255,255,.90),
-      inset 0 -17px 32px rgba(22,42,68,.16)!important;
-    filter:saturate(1.18) contrast(1.03)!important;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav::after{
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.92),rgba(255,255,255,.42),transparent)!important;
-    opacity:.96!important;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav button,
-  html[data-theme="dark"] .mobile-bottom-nav button.active,
-  html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
-    background:transparent!important;
-    box-shadow:none!important;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav button:not(.active):not(.is-liquid-pressed){
-    color:rgba(235,243,255,.80)!important;
-    opacity:.88!important;
-    text-shadow:0 1px 8px rgba(0,0,0,.34)!important;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav button.active,
-  html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
-    color:#07111f!important;
-    text-shadow:0 1px 0 rgba(255,255,255,.52)!important;
-  }
-
-  html[data-theme="dark"] .mobile-bottom-nav button.active svg,
-  html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed svg{
-    filter:drop-shadow(0 1px 0 rgba(255,255,255,.20))!important;
-  }
-}
-</style>
-<!-- DIRAC_DARK_LIQUID_GLASS_REPAIR_END -->
-
-
-
-<!-- DIRAC_DARK_LIQUID_GLASS_ACTIVE_STATE_FIX_START -->
-<style id="dirac-dark-liquid-glass-active-state-fix">
-@media (max-width:900px){
-  html[data-theme="dark"] body .mobile-bottom-nav button.active,
-  html[data-theme="dark"] body .mobile-bottom-nav button[aria-current="page"],
-  html[data-theme="dark"] body .mobile-bottom-nav button.is-liquid-pressed{
-    color:#07111f!important;
-    opacity:1!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    text-shadow:0 1px 0 rgba(255,255,255,.55)!important;
-  }
-  html[data-theme="dark"] body .mobile-bottom-nav button:not(.active):not([aria-current="page"]):not(.is-liquid-pressed){
-    color:rgba(235,243,255,.80)!important;
-    opacity:.88!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    text-shadow:0 1px 8px rgba(0,0,0,.34)!important;
-  }
-}
-</style>
-<!-- DIRAC_DARK_LIQUID_GLASS_ACTIVE_STATE_FIX_END -->
-
-
-
-<!-- DIRAC_STABLE_BOTTOM_NAV_100X_FIX_START -->
-<style id="dirac-stable-bottom-nav-100x-fix">
-/*
-  Patch final: stabilisasi navigasi bawah mobile pada mode terang/gelap.
-  Ruang lingkup sengaja hanya .mobile-bottom-nav agar fungsi cek domain,
-  keranjang, checkout, pesanan, akun, API, dan desktop tidak ikut berubah.
-*/
-:root{
-  --dirac-stable-nav-x:6px;
-  --dirac-stable-nav-y:6px;
-  --dirac-stable-nav-w:64px;
-  --dirac-stable-nav-h:50px;
-  --dirac-stable-nav-radius:20px;
-  --dirac-stable-nav-ease:cubic-bezier(.2,.9,.2,1);
-}
-
-@media (max-width:900px){
-  body{
-    padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
-  }
-
-  .mobile-bottom-nav{
-    position:fixed!important;
-    left:clamp(8px,3vw,16px)!important;
-    right:clamp(8px,3vw,16px)!important;
-    top:auto!important;
-    bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
-    width:auto!important;
-    max-width:520px!important;
-    min-width:0!important;
-    margin-inline:auto!important;
-    display:grid!important;
-    grid-template-columns:repeat(5,minmax(0,1fr))!important;
-    align-items:center!important;
-    gap:5px!important;
-    padding:7px!important;
-    min-height:66px!important;
-    border-radius:28px!important;
     overflow:hidden!important;
     isolation:isolate!important;
     contain:layout paint!important;
-    transform:translate3d(0,0,0)!important;
-    opacity:1!important;
-    visibility:visible!important;
-    pointer-events:auto!important;
     z-index:19000!important;
     box-sizing:border-box!important;
     background:
-      linear-gradient(112deg,rgba(49,57,72,.76),rgba(103,115,137,.66),rgba(54,68,91,.72),rgba(30,41,59,.78))!important;
-    background-size:260% 260%!important;
-    animation:diracStableNavColorWalk 7.8s linear infinite!important;
-    border:1px solid rgba(255,255,255,.26)!important;
+      radial-gradient(140% 170% at 8% -20%,rgba(255,255,255,.25),transparent 42%),
+      radial-gradient(120% 145% at 94% 120%,rgba(125,211,252,.18),transparent 46%),
+      linear-gradient(112deg,rgba(47,55,70,.76),rgba(105,116,139,.66),rgba(56,70,92,.72),rgba(28,39,58,.78))!important;
+    background-size:260% 260%,100% 100%,280% 280%!important;
+    animation:diracNavBarWalk 8.4s linear infinite!important;
+    border:1px solid rgba(255,255,255,.27)!important;
     box-shadow:
-      0 24px 66px rgba(15,23,42,.30),
+      0 24px 66px rgba(15,23,42,.31),
       0 7px 24px rgba(37,99,235,.13),
-      inset 0 1px 0 rgba(255,255,255,.28),
+      inset 0 1px 0 rgba(255,255,255,.30),
       inset 0 -1px 0 rgba(15,23,42,.15)!important;
-    -webkit-backdrop-filter:blur(24px) saturate(1.42)!important;
-    backdrop-filter:blur(24px) saturate(1.42)!important;
-    -webkit-font-smoothing:antialiased!important;
+    -webkit-backdrop-filter:blur(26px) saturate(1.48)!important;
+    backdrop-filter:blur(26px) saturate(1.48)!important;
     touch-action:manipulation!important;
+    -webkit-font-smoothing:antialiased!important;
   }
-
-  body.show-mobile-nav .mobile-bottom-nav{
-    transform:translate3d(0,0,0)!important;
-    opacity:1!important;
-    visibility:visible!important;
-    pointer-events:auto!important;
-  }
-
-  .mobile-bottom-nav::after{
-    content:""!important;
-    position:absolute!important;
-    inset:-18% -70%!important;
-    z-index:0!important;
-    pointer-events:none!important;
-    border-radius:inherit!important;
-    background:
-      linear-gradient(90deg,
-        transparent 0%,
-        rgba(255,255,255,.00) 20%,
-        rgba(226,232,240,.23) 34%,
-        rgba(125,211,252,.18) 45%,
-        rgba(255,255,255,.30) 53%,
-        rgba(203,213,225,.18) 63%,
-        transparent 78%,
-        transparent 100%)!important;
-    opacity:.92!important;
-    transform:translate3d(-24%,0,0)!important;
-    animation:diracStableNavSheen 4.8s linear infinite!important;
-    will-change:transform!important;
-  }
-
+  body.show-mobile-nav .mobile-bottom-nav{transform:translate3d(-50%,0,0)!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;}
   .mobile-bottom-nav::before{
     content:""!important;
     position:absolute!important;
     left:0!important;
     top:0!important;
-    width:var(--dirac-stable-nav-w)!important;
-    height:var(--dirac-stable-nav-h)!important;
+    width:var(--dirac-nav-bubble-w)!important;
+    height:var(--dirac-nav-bubble-h)!important;
+    border-radius:var(--dirac-nav-bubble-r)!important;
+    transform:translate3d(var(--dirac-nav-bubble-x),var(--dirac-nav-bubble-y),0)!important;
+    transform-origin:center!important;
     z-index:1!important;
     pointer-events:none!important;
-    border-radius:var(--dirac-stable-nav-radius)!important;
-    transform:translate3d(var(--dirac-stable-nav-x),var(--dirac-stable-nav-y),0)!important;
-    transform-origin:center!important;
     background:
-      radial-gradient(80% 70% at 28% 16%,rgba(255,255,255,.92),rgba(255,255,255,.34) 40%,transparent 67%),
-      linear-gradient(145deg,rgba(238,242,247,.88),rgba(191,219,254,.55) 52%,rgba(226,232,240,.38))!important;
-    border:1px solid rgba(255,255,255,.54)!important;
+      radial-gradient(72% 66% at 26% 14%,rgba(255,255,255,.96),rgba(255,255,255,.45) 38%,transparent 66%),
+      radial-gradient(95% 110% at 78% 92%,rgba(56,189,248,.34),transparent 62%),
+      linear-gradient(135deg,rgba(255,255,255,.86),rgba(191,219,254,.60) 42%,rgba(226,232,240,.42) 66%,rgba(255,255,255,.70))!important;
+    background-size:100% 100%,120% 120%,260% 260%!important;
+    background-position:center,center,0% 50%!important;
+    border:1px solid rgba(255,255,255,.56)!important;
     box-shadow:
-      0 14px 30px rgba(2,6,23,.24),
-      0 0 24px rgba(125,211,252,.12),
-      inset 0 1px 1px rgba(255,255,255,.86),
-      inset 0 -14px 26px rgba(15,23,42,.14)!important;
-    transition:
-      transform .34s var(--dirac-stable-nav-ease),
-      width .34s var(--dirac-stable-nav-ease),
-      height .34s var(--dirac-stable-nav-ease),
-      border-radius .34s var(--dirac-stable-nav-ease),
-      filter .20s ease!important;
-    will-change:transform,width,height!important;
+      0 15px 32px rgba(2,6,23,.26),
+      0 0 0 1px rgba(255,255,255,.12),
+      0 0 26px rgba(125,211,252,.18),
+      inset 0 1px 1px rgba(255,255,255,.90),
+      inset 0 -15px 28px rgba(15,23,42,.14)!important;
+    transition:transform .36s var(--dirac-nav-ease),width .36s var(--dirac-nav-ease),height .36s var(--dirac-nav-ease),border-radius .36s var(--dirac-nav-ease),filter .20s ease!important;
+    animation:diracBubblePrism 4.6s ease-in-out infinite,diracBubbleGlow 3.1s ease-in-out infinite!important;
+    will-change:transform,width,height,background-position,filter!important;
     backface-visibility:hidden!important;
     -webkit-backface-visibility:hidden!important;
   }
-
-  .mobile-bottom-nav.is-stable-instant::before{
-    transition-duration:.001s!important;
+  .mobile-bottom-nav::after{
+    content:""!important;
+    position:absolute!important;
+    left:0!important;
+    top:0!important;
+    width:var(--dirac-nav-shine-w)!important;
+    height:12px!important;
+    border-radius:999px!important;
+    transform:translate3d(var(--dirac-nav-shine-x),var(--dirac-nav-shine-y),0)!important;
+    z-index:2!important;
+    pointer-events:none!important;
+    background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.74) 36%,rgba(255,255,255,.95) 50%,rgba(255,255,255,.28) 66%,transparent 100%)!important;
+    background-size:220% 100%!important;
+    background-position:0% 50%!important;
+    opacity:.86!important;
+    filter:blur(.12px)!important;
+    transition:transform .36s var(--dirac-nav-ease),width .36s var(--dirac-nav-ease),opacity .22s ease!important;
+    animation:diracBubbleSheen 2.45s ease-in-out infinite!important;
+    will-change:transform,width,background-position,opacity!important;
   }
-
+  .mobile-bottom-nav.is-dirac-instant::before,.mobile-bottom-nav.is-dirac-instant::after{transition-duration:.001s!important;}
   .mobile-bottom-nav button{
     position:relative!important;
-    z-index:2!important;
+    z-index:4!important;
     min-width:0!important;
     min-height:52px!important;
     padding:5px 2px 4px!important;
@@ -6794,462 +5918,151 @@ html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
     display:grid!important;
     place-items:center!important;
     align-content:center!important;
+    justify-content:center!important;
     gap:3px!important;
-    color:rgba(248,250,252,.84)!important;
+    color:rgba(248,250,252,.82)!important;
     background:transparent!important;
     box-shadow:none!important;
-    opacity:.92!important;
+    opacity:.86!important;
     transform:translate3d(0,0,0)!important;
     text-shadow:0 1px 8px rgba(2,6,23,.36)!important;
-    transition:
-      color .18s ease,
-      opacity .18s ease,
-      transform .20s var(--dirac-stable-nav-ease),
-      text-shadow .18s ease!important;
+    transition:color .18s ease,opacity .18s ease,transform .22s var(--dirac-nav-ease),text-shadow .18s ease!important;
     -webkit-tap-highlight-color:transparent!important;
     touch-action:manipulation!important;
   }
-
-  .mobile-bottom-nav button.active,
-  .mobile-bottom-nav button[aria-current="page"],
-  .mobile-bottom-nav button.is-stable-pressed{
-    color:#07111f!important;
+  .mobile-bottom-nav button[data-dirac-current="true"],
+  .mobile-bottom-nav button.is-dirac-pressing{
+    color:#06111f!important;
     opacity:1!important;
     background:transparent!important;
     box-shadow:none!important;
     transform:translate3d(0,-1px,0)!important;
-    text-shadow:0 1px 0 rgba(255,255,255,.46)!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.52)!important;
   }
-
-  .mobile-bottom-nav button:not(.active):not([aria-current="page"]):not(.is-stable-pressed){
-    color:rgba(248,250,252,.82)!important;
-    opacity:.86!important;
-  }
-
-  .mobile-bottom-nav button:active{
-    transform:translate3d(0,0,0) scale(.985)!important;
-  }
-
   .mobile-bottom-nav svg{
     width:19px!important;
     height:19px!important;
     display:block!important;
+    margin-inline:auto!important;
     stroke:currentColor!important;
     stroke-width:2.2!important;
     fill:none!important;
     stroke-linecap:round!important;
     stroke-linejoin:round!important;
     filter:drop-shadow(0 1px 2px rgba(2,6,23,.30))!important;
-    transition:filter .18s ease,transform .20s var(--dirac-stable-nav-ease)!important;
+    transition:filter .18s ease,transform .22s var(--dirac-nav-ease)!important;
   }
-
-  .mobile-bottom-nav button.active svg,
-  .mobile-bottom-nav button[aria-current="page"] svg,
-  .mobile-bottom-nav button.is-stable-pressed svg{
-    transform:translate3d(0,-.5px,0)!important;
-    filter:drop-shadow(0 1px 0 rgba(255,255,255,.20))!important;
-  }
-
-  .mobile-bottom-nav small{
-    display:block!important;
-    max-width:100%!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    white-space:nowrap!important;
-    font-size:9.5px!important;
-    line-height:1!important;
-    font-weight:950!important;
-    letter-spacing:-.02em!important;
-    color:currentColor!important;
-  }
-
-  .mobile-bottom-nav .nav-badge{
-    z-index:3!important;
-    top:3px!important;
-    right:11px!important;
-    min-width:18px!important;
-    height:18px!important;
-    display:inline-grid!important;
-    place-items:center!important;
-    color:#fff!important;
-    background:#ef4444!important;
-    box-shadow:0 5px 14px rgba(239,68,68,.28)!important;
-  }
-
-  .mobile-bottom-nav .nav-badge[data-empty="true"]{
-    display:none!important;
-  }
-
-  .dirac-floating-actions{
-    bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;
-    z-index:19200!important;
-  }
-
-  .toast-region{
-    bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
-    left:12px!important;
-    right:12px!important;
-    width:auto!important;
-    z-index:19300!important;
-  }
+  .mobile-bottom-nav button[data-dirac-current="true"] svg,.mobile-bottom-nav button.is-dirac-pressing svg{transform:translate3d(0,-.5px,0)!important;filter:drop-shadow(0 1px 0 rgba(255,255,255,.22))!important;}
+  .mobile-bottom-nav small{display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:9.5px!important;line-height:1!important;font-weight:950!important;letter-spacing:-.02em!important;color:currentColor!important;text-align:center!important;}
+  .mobile-bottom-nav .nav-badge{z-index:6!important;top:3px!important;right:11px!important;min-width:18px!important;height:18px!important;display:inline-grid!important;place-items:center!important;color:#fff!important;background:#ef4444!important;box-shadow:0 5px 14px rgba(239,68,68,.28)!important;}
+  .mobile-bottom-nav .nav-badge[data-empty="true"]{display:none!important;}
+  .dirac-floating-actions{bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;z-index:19200!important;}
+  .toast-region{bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;left:12px!important;right:12px!important;width:auto!important;z-index:19300!important;}
 }
-
-@media (max-width:520px){
+@media(max-width:520px){
   body{padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;}
-  .mobile-bottom-nav{
-    left:8px!important;
-    right:8px!important;
-    bottom:calc(6px + env(safe-area-inset-bottom,0px))!important;
-    gap:4px!important;
-    padding:6px!important;
-    min-height:64px!important;
-    border-radius:26px!important;
-  }
+  .mobile-bottom-nav{width:min(calc(100vw - 14px),520px)!important;gap:4px!important;padding:6px!important;min-height:64px!important;border-radius:26px!important;}
   .mobile-bottom-nav button{min-height:51px!important;border-radius:20px!important;}
   .mobile-bottom-nav small{font-size:9px!important;}
   .mobile-bottom-nav svg{width:18px!important;height:18px!important;}
 }
-
-@media (max-width:380px){
-  .mobile-bottom-nav{left:6px!important;right:6px!important;padding:5px!important;gap:3px!important;}
-  .mobile-bottom-nav button{min-height:49px!important;border-radius:18px!important;}
-  .mobile-bottom-nav small{font-size:8.5px!important;}
-}
-
-@media (min-width:901px){
-  .mobile-bottom-nav{display:none!important;}
-}
-
-html[data-theme="dark"] .mobile-bottom-nav{
-  background:
-    linear-gradient(112deg,rgba(15,23,42,.84),rgba(71,85,105,.62),rgba(30,41,59,.80),rgba(2,6,23,.88))!important;
-  background-size:260% 260%!important;
-  border-color:rgba(226,232,240,.18)!important;
-  box-shadow:
-    0 28px 72px rgba(0,0,0,.54),
-    0 8px 26px rgba(37,99,235,.12),
-    inset 0 1px 0 rgba(255,255,255,.18),
-    inset 0 -1px 0 rgba(0,0,0,.24)!important;
-}
-
-html[data-theme="dark"] .mobile-bottom-nav::after{
-  background:
-    linear-gradient(90deg,
-      transparent 0%,
-      rgba(255,255,255,.00) 20%,
-      rgba(148,163,184,.18) 34%,
-      rgba(96,165,250,.20) 46%,
-      rgba(255,255,255,.22) 54%,
-      rgba(203,213,225,.12) 64%,
-      transparent 78%,
-      transparent 100%)!important;
-  opacity:.80!important;
-}
-
-html[data-theme="dark"] .mobile-bottom-nav::before{
-  background:
-    radial-gradient(78% 70% at 28% 15%,rgba(255,255,255,.92),rgba(255,255,255,.38) 39%,transparent 66%),
-    linear-gradient(145deg,rgba(241,245,249,.82),rgba(147,197,253,.50) 50%,rgba(203,213,225,.34))!important;
-  border-color:rgba(255,255,255,.48)!important;
-  box-shadow:
-    0 18px 40px rgba(0,0,0,.36),
-    0 0 28px rgba(96,165,250,.13),
-    inset 0 1px 1px rgba(255,255,255,.78),
-    inset 0 -15px 30px rgba(15,23,42,.18)!important;
-}
-
-html[data-theme="dark"] .mobile-bottom-nav button:not(.active):not([aria-current="page"]):not(.is-stable-pressed){
-  color:rgba(226,232,240,.82)!important;
-  opacity:.88!important;
-  text-shadow:0 1px 9px rgba(0,0,0,.40)!important;
-}
-
-html[data-theme="dark"] .mobile-bottom-nav button.active,
-html[data-theme="dark"] .mobile-bottom-nav button[aria-current="page"],
-html[data-theme="dark"] .mobile-bottom-nav button.is-stable-pressed{
-  color:#06111f!important;
-  text-shadow:0 1px 0 rgba(255,255,255,.50)!important;
-}
-
-@keyframes diracStableNavColorWalk{
-  0%{background-position:0% 50%;}
-  50%{background-position:100% 50%;}
-  100%{background-position:0% 50%;}
-}
-
-@keyframes diracStableNavSheen{
-  from{transform:translate3d(-32%,0,0);}
-  to{transform:translate3d(32%,0,0);}
-}
-
-@media (prefers-reduced-motion:reduce){
-  .mobile-bottom-nav,
-  .mobile-bottom-nav::before,
-  .mobile-bottom-nav::after,
-  .mobile-bottom-nav button,
-  .mobile-bottom-nav svg{
-    animation:none!important;
-    transition:none!important;
-  }
-}
+@media(max-width:380px){.mobile-bottom-nav{width:calc(100vw - 12px)!important;padding:5px!important;gap:3px!important;}.mobile-bottom-nav button{min-height:49px!important;border-radius:18px!important;}.mobile-bottom-nav small{font-size:8.5px!important;}}
+@media(min-width:901px){.mobile-bottom-nav{display:none!important;}}
+html[data-theme="dark"] .mobile-bottom-nav{background:radial-gradient(140% 170% at 8% -20%,rgba(255,255,255,.18),transparent 42%),radial-gradient(120% 145% at 94% 120%,rgba(96,165,250,.18),transparent 46%),linear-gradient(112deg,rgba(15,23,42,.86),rgba(71,85,105,.64),rgba(30,41,59,.82),rgba(2,6,23,.90))!important;background-size:260% 260%,100% 100%,280% 280%!important;border-color:rgba(226,232,240,.19)!important;box-shadow:0 28px 72px rgba(0,0,0,.55),0 8px 26px rgba(37,99,235,.12),inset 0 1px 0 rgba(255,255,255,.19),inset 0 -1px 0 rgba(0,0,0,.24)!important;}
+html[data-theme="dark"] .mobile-bottom-nav::before{background:radial-gradient(76% 66% at 26% 14%,rgba(255,255,255,.95),rgba(255,255,255,.42) 38%,transparent 66%),radial-gradient(95% 110% at 78% 92%,rgba(96,165,250,.34),transparent 62%),linear-gradient(135deg,rgba(241,245,249,.86),rgba(147,197,253,.56) 42%,rgba(203,213,225,.38) 66%,rgba(255,255,255,.68))!important;background-size:100% 100%,120% 120%,260% 260%!important;border-color:rgba(255,255,255,.50)!important;box-shadow:0 18px 40px rgba(0,0,0,.38),0 0 30px rgba(96,165,250,.17),inset 0 1px 1px rgba(255,255,255,.82),inset 0 -15px 30px rgba(15,23,42,.18)!important;}
+html[data-theme="dark"] .mobile-bottom-nav button{color:rgba(226,232,240,.82)!important;text-shadow:0 1px 9px rgba(0,0,0,.42)!important;}
+html[data-theme="dark"] .mobile-bottom-nav button[data-dirac-current="true"],html[data-theme="dark"] .mobile-bottom-nav button.is-dirac-pressing{color:#06111f!important;text-shadow:0 1px 0 rgba(255,255,255,.52)!important;}
+@keyframes diracNavBarWalk{0%{background-position:0% 50%,center,0% 50%;}50%{background-position:100% 50%,center,100% 50%;}100%{background-position:0% 50%,center,0% 50%;}}
+@keyframes diracBubblePrism{0%{background-position:center,center,0% 50%;}50%{background-position:center,center,100% 50%;}100%{background-position:center,center,0% 50%;}}
+@keyframes diracBubbleGlow{0%,100%{filter:saturate(1.06) brightness(1);}50%{filter:saturate(1.20) brightness(1.06);}}
+@keyframes diracBubbleSheen{0%{background-position:0% 50%;opacity:.54;}44%{background-position:100% 50%;opacity:.95;}100%{background-position:100% 50%;opacity:.66;}}
+@media(prefers-reduced-motion:reduce){.mobile-bottom-nav,.mobile-bottom-nav::before,.mobile-bottom-nav::after,.mobile-bottom-nav button,.mobile-bottom-nav svg{animation:none!important;transition:none!important;}}
 </style>
-
-<script id="dirac-stable-bottom-nav-100x-fix-js">
+<script id="dirac-centered-bottom-nav-final-100x-js">
 (function(){
-  var SECTION_IDS = ["cek", "keranjang", "orders", "account"];
-  var raf = 0;
-  var scrollRaf = 0;
-  var manualLockUntil = 0;
-  var lockedId = "";
-  var observerInstalled = false;
-  var eventsInstalled = false;
-  var mutationObserver = null;
-
-  function ready(fn){
-    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, { once:true });
-    else fn();
+  "use strict";
+  var ids=["cek","keranjang","orders","account"];
+  var lockedId="";
+  var lockUntil=0;
+  var raf=0;
+  var resizeObserver=null;
+  var fastTimer=0;
+  function ready(fn){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",fn,{once:true});else fn();}
+  function nav(){return document.querySelector(".mobile-bottom-nav");}
+  function navButtons(){var n=nav();return n?Array.prototype.slice.call(n.querySelectorAll("button")):[];}
+  function scrollButtons(){var n=nav();return n?Array.prototype.slice.call(n.querySelectorAll("button[data-scroll]")):[];}
+  function buttonFor(id){var n=nav();return n&&id?n.querySelector('button[data-scroll="'+id+'"]'):null;}
+  function currentButton(){var n=nav();return n?(n.querySelector('button.is-dirac-pressing')||n.querySelector('button[data-dirac-current="true"][data-scroll]')||n.querySelector('button.active[data-scroll]')||n.querySelector('button[data-scroll]')):null;}
+  function px(v){var n=parseFloat(v);return Number.isFinite(n)?n:0;}
+  function syncBadge(){var b=document.getElementById("mobileCartCount");if(!b)return;var c=Number(String(b.textContent||"0").replace(/\D+/g,""))||0;b.dataset.empty=c>0?"false":"true";}
+  function moveBubble(button,instant){
+    var n=nav(); if(!n||!button)return false;
+    var nr=n.getBoundingClientRect(), br=button.getBoundingClientRect(); if(!nr.width||!nr.height||!br.width||!br.height)return false;
+    var cs=getComputedStyle(n), pl=px(cs.paddingLeft), pr=px(cs.paddingRight), pt=px(cs.paddingTop), pb=px(cs.paddingBottom);
+    var w=Math.min(Math.max(52,br.width-Math.max(4,Math.min(10,br.width*.10))),Math.max(42,nr.width-pl-pr));
+    var h=Math.min(Math.max(44,br.height-Math.max(3,Math.min(8,br.height*.08))),Math.max(42,nr.height-pt-pb));
+    var x=(br.left-nr.left)+br.width/2-w/2, y=(br.top-nr.top)+br.height/2-h/2;
+    var minX=Math.max(3,pl*.35), maxX=Math.max(minX,nr.width-w-Math.max(3,pr*.35));
+    var minY=Math.max(3,pt*.35), maxY=Math.max(minY,nr.height-h-Math.max(3,pb*.35));
+    x=Math.min(Math.max(x,minX),maxX); y=Math.min(Math.max(y,minY),maxY);
+    var sw=Math.max(30,Math.min(w*.74,w-12)), sx=x+(w-sw)/2, sy=y+Math.max(5,h*.13), r=Math.min(24,Math.max(18,h*.44));
+    if(instant)n.classList.add("is-dirac-instant");
+    n.style.setProperty("--dirac-nav-bubble-x",x.toFixed(2)+"px");
+    n.style.setProperty("--dirac-nav-bubble-y",y.toFixed(2)+"px");
+    n.style.setProperty("--dirac-nav-bubble-w",w.toFixed(2)+"px");
+    n.style.setProperty("--dirac-nav-bubble-h",h.toFixed(2)+"px");
+    n.style.setProperty("--dirac-nav-bubble-r",r.toFixed(2)+"px");
+    n.style.setProperty("--dirac-nav-shine-x",sx.toFixed(2)+"px");
+    n.style.setProperty("--dirac-nav-shine-y",sy.toFixed(2)+"px");
+    n.style.setProperty("--dirac-nav-shine-w",sw.toFixed(2)+"px");
+    if(instant)requestAnimationFrame(function(){n.classList.remove("is-dirac-instant");});
+    return true;
   }
-
-  function prefersReducedMotion(){
-    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  function setCurrent(id,instant){
+    var n=nav(); if(!n||!id)return;
+    var target=null;
+    scrollButtons().forEach(function(b){var on=b.dataset.scroll===id;b.dataset.diracCurrent=on?"true":"false";b.classList.toggle("active",on);if(on){b.setAttribute("aria-current","page");target=b;}else b.removeAttribute("aria-current");b.classList.remove("is-dirac-pressing");});
+    syncBadge(); moveBubble(target||currentButton(),!!instant);
   }
-
-  function nav(){
-    return document.querySelector(".mobile-bottom-nav");
+  function sectionByPosition(){
+    if(lockedId&&Date.now()<lockUntil)return lockedId;
+    var anchor=Math.max(92,innerHeight*.38), best="cek", score=Infinity;
+    ids.forEach(function(id){var el=document.getElementById(id);if(!el)return;var r=el.getBoundingClientRect();if(r.bottom<60||r.top>innerHeight*.94)return;var s=Math.abs(r.top-anchor);if(s<score){score=s;best=id;}});
+    return best;
   }
-
-  function buttons(){
-    var bar = nav();
-    return bar ? Array.prototype.slice.call(bar.querySelectorAll("button")) : [];
+  function enforce(){setCurrent(sectionByPosition(),false);}
+  function startLock(id){lockedId=id;lockUntil=Date.now()+1500;setCurrent(id,false);if(fastTimer)clearInterval(fastTimer);var stop=Date.now()+1550;fastTimer=setInterval(function(){setCurrent(lockedId,false);if(Date.now()>stop){clearInterval(fastTimer);fastTimer=0;}},24);}
+  function scrollToSection(id){var el=document.getElementById(id);if(!el)return;var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;el.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});}
+  function onPointer(event){var b=event.target&&event.target.closest?event.target.closest(".mobile-bottom-nav button"):null;if(!b||!nav().contains(b))return;navButtons().forEach(function(x){x.classList.toggle("is-dirac-pressing",x===b);});moveBubble(b,false);}
+  function onRelease(){navButtons().forEach(function(b){b.classList.remove("is-dirac-pressing");});moveBubble(currentButton(),false);}
+  function onClick(event){
+    var b=event.target&&event.target.closest?event.target.closest(".mobile-bottom-nav button"):null; if(!b||!nav().contains(b))return;
+    event.preventDefault(); event.stopPropagation(); if(event.stopImmediatePropagation)event.stopImmediatePropagation();
+    if(b.dataset.scroll){startLock(b.dataset.scroll);scrollToSection(b.dataset.scroll);return false;}
+    if(b.dataset.mobileLogout==="true"){onRelease();var l=document.getElementById("logoutBtn");if(l)l.click();return false;}
   }
-
-  function scrollButtons(){
-    return buttons().filter(function(button){ return button.dataset && button.dataset.scroll; });
+  function onScroll(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;enforce();});}
+  function replaceNav(){var n=nav();if(!n)return null;if(n.dataset.diracCenteredFinal==="true")return n;var clone=n.cloneNode(true);clone.dataset.diracCenteredFinal="true";clone.querySelectorAll("[data-bound-scroll],[data-bound-copy],[data-bound-download]").forEach(function(x){x.removeAttribute("data-bound-scroll");x.removeAttribute("data-bound-copy");x.removeAttribute("data-bound-download");});n.replaceWith(clone);return clone;}
+  function install(){
+    var n=replaceNav(); if(!n||n.dataset.diracCenteredInstalled==="true")return; n.dataset.diracCenteredInstalled="true";
+    n.addEventListener("pointerdown",onPointer,{capture:true,passive:true});
+    n.addEventListener("mousedown",onPointer,{capture:true,passive:true});
+    n.addEventListener("touchstart",onPointer,{capture:true,passive:true});
+    ["pointerup","pointercancel","pointerleave","mouseup","touchend"].forEach(function(t){n.addEventListener(t,onRelease,{capture:true,passive:true});});
+    n.addEventListener("click",onClick,true);
+    window.addEventListener("scroll",onScroll,{passive:true});
+    window.addEventListener("resize",function(){moveBubble(currentButton(),false);onScroll();},{passive:true});
+    window.addEventListener("orientationchange",function(){setTimeout(function(){moveBubble(currentButton(),true);onScroll();},260);},{passive:true});
+    if("ResizeObserver" in window){resizeObserver=new ResizeObserver(function(){moveBubble(currentButton(),false);});resizeObserver.observe(n);scrollButtons().forEach(function(b){resizeObserver.observe(b);});}
+    window.diracCenteredBottomNavSet=setCurrent;window.diracCenteredBottomNavSync=function(){moveBubble(currentButton(),false);};
+    window.diracCenteredBottomNavMetrics=function(){var n=nav(),b=currentButton();if(!n||!b)return null;var nr=n.getBoundingClientRect(),br=b.getBoundingClientRect(),cs=getComputedStyle(n),x=px(cs.getPropertyValue("--dirac-nav-bubble-x")),y=px(cs.getPropertyValue("--dirac-nav-bubble-y")),w=px(cs.getPropertyValue("--dirac-nav-bubble-w")),h=px(cs.getPropertyValue("--dirac-nav-bubble-h")),bcx=x+w/2,bcy=y+h/2,tcx=(br.left-nr.left)+br.width/2,tcy=(br.top-nr.top)+br.height/2;return{active:b.dataset.scroll||b.dataset.mobileLogout||"unknown",navWidth:nr.width,navHeight:nr.height,buttonCenterX:tcx,buttonCenterY:tcy,bubbleCenterX:bcx,bubbleCenterY:bcy,deltaX:Math.abs(tcx-bcx),deltaY:Math.abs(tcy-bcy),bubbleW:w,bubbleH:h};};
+    setCurrent(sectionByPosition(),true);[60,220,760,1300].forEach(function(d){setTimeout(function(){moveBubble(currentButton(),d<100);},d);});
   }
-
-  function buttonFor(id){
-    var bar = nav();
-    if(!bar || !id) return null;
-    return bar.querySelector('button[data-scroll="' + window.CSS.escape(id) + '"]');
-  }
-
-  function currentActiveButton(){
-    var bar = nav();
-    if(!bar) return null;
-    return bar.querySelector("button.active[data-scroll]") || bar.querySelector("button[aria-current='page'][data-scroll]") || bar.querySelector("button[data-scroll]");
-  }
-
-  function replaceLegacyNavOnce(){
-    var oldNav = nav();
-    if(!oldNav) return null;
-    if(oldNav.dataset.diracStableNav === "true") return oldNav;
-    var clone = oldNav.cloneNode(true);
-    clone.dataset.diracStableNav = "true";
-    clone.querySelectorAll("[data-bound-scroll],[data-bound-copy],[data-bound-download]").forEach(function(node){
-      node.removeAttribute("data-bound-scroll");
-      node.removeAttribute("data-bound-copy");
-      node.removeAttribute("data-bound-download");
-    });
-    oldNav.replaceWith(clone);
-    return clone;
-  }
-
-  function syncCartBadgeVisibility(){
-    var badge = document.getElementById("mobileCartCount");
-    if(!badge) return;
-    var count = Number(String(badge.textContent || "0").replace(/\D+/g, "")) || 0;
-    badge.dataset.empty = count > 0 ? "false" : "true";
-  }
-
-  function setIndicator(button, immediate){
-    var bar = nav();
-    if(!bar || !button) return;
-    var b = button.getBoundingClientRect();
-    var n = bar.getBoundingClientRect();
-    if(!b.width || !b.height || !n.width) return;
-
-    var padX = Math.max(2, Math.min(5, b.width * 0.04));
-    var padY = 2;
-    var x = Math.max(4, b.left - n.left + padX);
-    var y = Math.max(4, b.top - n.top + padY);
-    var w = Math.max(42, b.width - (padX * 2));
-    var h = Math.max(42, b.height - (padY * 2));
-
-    if(immediate) bar.classList.add("is-stable-instant");
-    bar.style.setProperty("--dirac-stable-nav-x", x.toFixed(2) + "px");
-    bar.style.setProperty("--dirac-stable-nav-y", y.toFixed(2) + "px");
-    bar.style.setProperty("--dirac-stable-nav-w", w.toFixed(2) + "px");
-    bar.style.setProperty("--dirac-stable-nav-h", h.toFixed(2) + "px");
-    bar.style.setProperty("--dirac-stable-nav-radius", Math.min(22, Math.max(18, h * 0.42)).toFixed(2) + "px");
-    if(immediate){
-      requestAnimationFrame(function(){ bar.classList.remove("is-stable-instant"); });
-    }
-  }
-
-  function syncIndicator(button, immediate){
-    if(raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(function(){
-      raf = 0;
-      setIndicator(button || currentActiveButton(), !!immediate);
-    });
-  }
-
-  function stableSetActive(id, immediate){
-    var bar = nav();
-    if(!bar) return;
-    var matchedButton = null;
-    scrollButtons().forEach(function(button){
-      var active = button.dataset.scroll === id;
-      button.classList.toggle("active", active);
-      if(active){
-        matchedButton = button;
-        button.setAttribute("aria-current", "page");
-      } else {
-        button.removeAttribute("aria-current");
-      }
-      button.classList.remove("is-stable-pressed");
-    });
-    syncIndicator(matchedButton || currentActiveButton(), immediate);
-    syncCartBadgeVisibility();
-  }
-
-  function stableSectionByPosition(){
-    if(lockedId && Date.now() < manualLockUntil) return lockedId;
-    var existing = SECTION_IDS.filter(function(id){ return document.getElementById(id); });
-    if(!existing.length) return "cek";
-    var anchor = Math.max(100, window.innerHeight * 0.38);
-    var bestId = existing[0];
-    var bestScore = Infinity;
-    existing.forEach(function(id){
-      var node = document.getElementById(id);
-      if(!node) return;
-      var rect = node.getBoundingClientRect();
-      if(rect.bottom < 70 || rect.top > window.innerHeight * 0.92) return;
-      var score = Math.abs(rect.top - anchor);
-      if(score < bestScore){
-        bestScore = score;
-        bestId = id;
-      }
-    });
-    return bestId;
-  }
-
-  function enforceManualLock(){
-    if(!lockedId || Date.now() >= manualLockUntil) return;
-    stableSetActive(lockedId, false);
-  }
-
-  function installMutationGuard(){
-    if(mutationObserver) mutationObserver.disconnect();
-    var bar = nav();
-    if(!bar || !("MutationObserver" in window)) return;
-    mutationObserver = new MutationObserver(function(){
-      if(lockedId && Date.now() < manualLockUntil){
-        requestAnimationFrame(enforceManualLock);
-      }
-      syncCartBadgeVisibility();
-    });
-    mutationObserver.observe(bar, { subtree:true, attributes:true, childList:true, characterData:true, attributeFilter:["class", "aria-current"] });
-  }
-
-  function installStableObserver(){
-    if(observerInstalled) return;
-    observerInstalled = true;
-    var onScroll = function(){
-      if(scrollRaf) return;
-      scrollRaf = requestAnimationFrame(function(){
-        scrollRaf = 0;
-        stableSetActive(stableSectionByPosition(), false);
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive:true });
-    window.addEventListener("resize", function(){ syncIndicator(currentActiveButton(), false); onScroll(); }, { passive:true });
-    window.addEventListener("orientationchange", function(){ setTimeout(function(){ syncIndicator(currentActiveButton(), true); onScroll(); }, 240); }, { passive:true });
-    onScroll();
-  }
-
-  function clearPressed(){
-    buttons().forEach(function(button){ button.classList.remove("is-stable-pressed"); });
-    syncIndicator(currentActiveButton(), false);
-  }
-
-  function installStableEvents(){
-    var bar = nav();
-    if(!bar || eventsInstalled) return;
-    eventsInstalled = true;
-
-    bar.addEventListener("pointerdown", function(event){
-      var button = event.target.closest && event.target.closest("button");
-      if(!button || !bar.contains(button)) return;
-      buttons().forEach(function(item){ item.classList.toggle("is-stable-pressed", item === button); });
-      if(button.dataset.scroll) stableSetActive(button.dataset.scroll, false);
-    }, { capture:true, passive:true });
-
-    ["pointerup", "pointercancel", "pointerleave"].forEach(function(type){
-      bar.addEventListener(type, clearPressed, { capture:true, passive:true });
-    });
-
-    bar.addEventListener("click", function(event){
-      var button = event.target.closest && event.target.closest("button");
-      if(!button || !bar.contains(button)) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if(event.stopImmediatePropagation) event.stopImmediatePropagation();
-
-      if(button.dataset.scroll){
-        var id = button.dataset.scroll;
-        var target = document.getElementById(id);
-        lockedId = id;
-        manualLockUntil = Date.now() + 950;
-        stableSetActive(id, false);
-        [40, 120, 260, 520, 860].forEach(function(delay){ setTimeout(enforceManualLock, delay); });
-        if(target){
-          target.scrollIntoView({ behavior:prefersReducedMotion() ? "auto" : "smooth", block:"start" });
-        }
-        setTimeout(function(){
-          lockedId = "";
-          manualLockUntil = 0;
-          stableSetActive(stableSectionByPosition(), false);
-        }, 980);
-        return false;
-      }
-
-      if(button.dataset.mobileLogout === "true"){
-        clearPressed();
-        if(typeof window.logout === "function") window.logout();
-        else document.getElementById("logoutBtn")?.click();
-        return false;
-      }
-    }, { capture:true });
-  }
-
-  function exposeStableHooks(){
-    window.diracLiquidSetActive = stableSetActive;
-    window.diracSyncLiquidNav = function(){ syncIndicator(currentActiveButton(), false); };
-    window.diracInstallLiquidNavObserver = installStableObserver;
-    window.initBottomNavObserver = installStableObserver;
-    try { window.updateBottomNavActive = stableSetActive; } catch(_){ }
-  }
-
-  function boot(){
-    replaceLegacyNavOnce();
-    exposeStableHooks();
-    installStableEvents();
-    installStableObserver();
-    installMutationGuard();
-    stableSetActive(stableSectionByPosition(), true);
-    syncCartBadgeVisibility();
-    setTimeout(function(){ syncIndicator(currentActiveButton(), true); }, 80);
-    setTimeout(function(){ syncIndicator(currentActiveButton(), false); }, 420);
-    setTimeout(function(){ syncIndicator(currentActiveButton(), false); }, 1200);
-  }
-
-  boot();
-  ready(boot);
-  window.addEventListener("load", function(){ setTimeout(boot, 60); }, { once:true, passive:true });
+  ready(function(){setTimeout(install,0);});
+  window.addEventListener("load",function(){setTimeout(install,80);},{once:true,passive:true});
 })();
 </script>
-<!-- DIRAC_STABLE_BOTTOM_NAV_100X_FIX_END -->
+<!-- DIRAC_CENTERED_BOTTOM_NAV_FINAL_100X_END -->
 
 </body>
 </html>
