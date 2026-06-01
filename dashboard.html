@@ -3582,7 +3582,7 @@ html[data-theme="dark"] .preset-chip{
 
             <div class="menu-grid menu-grid-pro">
               <button class="menu-card" data-scroll="cek">Cek Domain<span>Cari nama dan ekstensi populer</span></button>
-              <button class="menu-card" data-scroll="harga">Harga TLD<span>Lihat register dan renewal</span></button>
+              <button class="menu-card" data-scroll="harga">Harga<span>Cek harga total terbaru</span></button>
               <button class="menu-card" data-scroll="keranjang">Keranjang<span>Atur durasi sebelum checkout</span></button>
               <button class="menu-card" data-scroll="checkout">Checkout<span>Kirim data pemilik domain</span></button>
               <button class="menu-card" data-scroll="domains">Domain Saya<span>Pantau domain aktif/diproses</span></button>
@@ -3653,7 +3653,7 @@ html[data-theme="dark"] .preset-chip{
           <div class="section-head">
             <div class="section-title">
               <h2>Pusat marketplace domain</h2>
-              <p>Komponen marketplace diringkas agar pembeli cepat paham.</p>
+              <p>Tampilan diringkas agar pembeli tidak bingung saat membeli domain.</p>
             </div>
             <button class="btn btn-primary" type="button" data-scroll="cek">Mulai Cari</button>
           </div>
@@ -3663,10 +3663,10 @@ html[data-theme="dark"] .preset-chip{
           </div>
 
           <div class="buyer-tool-grid">
-            <article class="tool-card"><span class="tool-icon">⌕</span><strong>Search & compare</strong><p>Bandingkan ekstensi populer, harga register, dan renewal sebelum masuk keranjang.</p></article>
+            <article class="tool-card"><span class="tool-icon">⌕</span><strong>Search & compare</strong><p>Bandingkan ekstensi populer dan cek harga total langsung dari form pencarian.</p></article>
             <article class="tool-card"><span class="tool-icon">★</span><strong>Premium listing</strong><p>Domain pendek atau bernilai brand diberi konteks premium dan bisa diarahkan ke negosiasi admin.</p></article>
             <article class="tool-card"><span class="tool-icon">↔</span><strong>Transfer domain</strong><p>Alur transfer dari registrar lain disiapkan melalui Auth/EPP code tanpa membuka kode sensitif ke halaman publik.</p></article>
-            <article class="tool-card"><span class="tool-icon">₿</span><strong>Pricing clarity</strong><p>Harga register dan renewal dibuat terbaca sehingga pengguna tidak salah memahami biaya tahunan.</p></article>
+            <article class="tool-card"><span class="tool-icon">₿</span><strong>Harga total jelas</strong><p>Website menampilkan harga total akhir pada hasil cek domain dan keranjang.</p></article>
             <article class="tool-card"><span class="tool-icon">☑</span><strong>Safe checkout</strong><p>Checkbox akurasi domain, konfirmasi modal, dan ringkasan pesanan membantu mencegah typo domain.</p></article>
             <article class="tool-card"><span class="tool-icon">DNS</span><strong>DNS guided</strong><p>Pilihan managed, nameserver sendiri, atau platform preset membantu pembeli awam.</p></article>
           </div>
@@ -3686,8 +3686,8 @@ html[data-theme="dark"] .preset-chip{
         <div class="panel pricing-panel">
           <div class="section-head">
             <div class="section-title">
-              <h2>Harga TLD & layanan domain</h2>
-              <p>Harga register dan renewal ditampilkan agar pembeli bisa membandingkan biaya sebelum checkout.</p>
+              <h2>Harga domain real-time</h2>
+              <p>Harga total final muncul setelah domain dicek. Data harga tidak ditulis manual di kartu agar tetap konsisten dengan API.</p>
             </div>
             <button class="btn btn-primary" type="button" data-scroll="cek">Cari Domain</button>
           </div>
@@ -3751,8 +3751,8 @@ html[data-theme="dark"] .preset-chip{
             <input id="domainInput" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="contoh: brandkamu" aria-label="Nama domain" />
             <button class="btn btn-primary" type="submit"><span class="btn-icon" aria-hidden="true">⌕</span> Cek Domain</button>
           </form>
-          <p class="microcopy">Tips: cukup tulis nama brand, misalnya brandkamu.</p>
-          <div class="search-polish-note"><span>✓</span><div><b>Mode marketplace aktif secara visual.</b><br/>Gunakan pencarian untuk domain reguler, sedangkan premium, make offer, dan transfer tetap diarahkan ke verifikasi admin agar aman.</div></div>
+          <p class="microcopy">Tips: ketik nama brand saja, lalu pilih ekstensi. Harga total muncul setelah pengecekan.</p>
+          <div class="search-polish-note"><span>✓</span><div><b>Cek harga real-time aktif.</b><br/>Harga yang tampil di hasil cek adalah harga total untuk pembeli.</div></div>
 
           <div class="search-assist-grid">
             <div>
@@ -3772,7 +3772,7 @@ html[data-theme="dark"] .preset-chip{
             </div>
             <details class="bulk-panel">
               <summary>Cek banyak domain</summary>
-              <p class="microcopy">Masukkan maksimal 12 domain/nama brand, satu per baris. Jika tanpa ekstensi, sistem memakai ekstensi populer.</p>
+              <p class="microcopy">Opsional: masukkan beberapa nama/domain. Sistem tetap menampilkan harga total saat tersedia.</p>
               <textarea id="bulkDomainInput" rows="5" placeholder="contoh:
 brandkamu
 usahahebat
@@ -6290,6 +6290,528 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
 }
 </style>
 <!-- DIRAC_NAV_FIXED_LOWER_PRECISION_FIX_END -->
+
+
+
+<!-- DIRAC_PROFESSIONAL_MOBILE_REFINEMENT_V7_START -->
+<style id="dirac-professional-mobile-refinement-v7">
+/*
+  Final non-destructive polish layer.
+  Fokus: mobile precision, single active-pill nav, real-time price clarity,
+  compact checkout, reduced visual noise, and safer spacing.
+  Auth/login/session logic is intentionally untouched.
+*/
+:root{
+  --dirac-bottom-nav-h:72px;
+  --dirac-mobile-gap:14px;
+  --dirac-professional-blue:#2563eb;
+  --dirac-professional-cyan:#08b1a8;
+  --dirac-professional-panel:rgba(255,255,255,.92);
+  --dirac-professional-line:rgba(35,43,85,.10);
+}
+
+html[data-theme="dark"]{
+  --dirac-professional-panel:rgba(15,23,42,.92);
+  --dirac-professional-line:rgba(226,232,240,.13);
+}
+
+.price-line{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  width:fit-content;
+  max-width:100%;
+  padding:10px 13px;
+  border-radius:16px;
+  background:linear-gradient(135deg,rgba(25,191,120,.12),rgba(19,182,214,.10));
+  border:1px solid rgba(25,191,120,.18);
+  color:var(--deep)!important;
+  font-size:20px!important;
+  line-height:1.2;
+  box-shadow:0 12px 28px rgba(25,191,120,.08);
+}
+.price-line::before{
+  content:"✓";
+  display:inline-grid;
+  place-items:center;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  color:#fff;
+  background:linear-gradient(135deg,var(--mint),var(--cyan));
+  font-size:12px;
+  flex:0 0 auto;
+}
+html[data-theme="dark"] .price-line{
+  background:linear-gradient(135deg,rgba(25,191,120,.18),rgba(19,182,214,.14));
+  border-color:rgba(134,239,172,.20);
+}
+
+.tld-price-grid .tld-price-card,
+.tld-price-grid .live-price-card{
+  min-height:0;
+}
+.live-price-card{
+  position:relative;
+  overflow:hidden;
+  padding:18px;
+  border-radius:22px;
+  background:var(--dirac-professional-panel);
+  border:1px solid var(--dirac-professional-line);
+  box-shadow:0 14px 36px rgba(42,51,105,.08);
+}
+.live-price-card::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto 0;
+  height:4px;
+  background:linear-gradient(90deg,var(--violet),var(--cyan),var(--mint));
+}
+.live-price-card strong{display:block;color:var(--deep);font-size:18px;letter-spacing:-.035em;}
+.live-price-card p{margin:8px 0 0;color:var(--muted);font-weight:760;line-height:1.5;}
+.live-price-card small{display:inline-flex;margin-top:12px;padding:7px 10px;border-radius:999px;background:rgba(98,88,255,.09);color:var(--violet);font-weight:950;}
+
+.professional-mobile-note{
+  margin-top:12px;
+  padding:13px 14px;
+  border-radius:18px;
+  color:#065f46;
+  background:linear-gradient(135deg,rgba(236,253,245,.94),rgba(240,253,250,.80));
+  border:1px solid rgba(25,191,120,.18);
+  font-weight:820;
+  line-height:1.5;
+}
+html[data-theme="dark"] .professional-mobile-note{
+  color:#bbf7d0;
+  background:rgba(20,83,45,.20);
+  border-color:rgba(134,239,172,.18);
+}
+
+@media(max-width:900px){
+  html{scroll-padding-top:82px!important;}
+  body{
+    padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
+    overflow-x:hidden!important;
+  }
+  .site-header{z-index:16000!important;}
+  .container{width:min(100% - 20px,1180px)!important;}
+  .nav{min-height:62px!important;padding:8px 0!important;gap:8px!important;}
+  .brand{gap:9px!important;padding:3px!important;}
+  .brand-mark{width:40px!important;height:40px!important;border-radius:14px!important;}
+  .brand-copy strong{font-size:15px!important;max-width:132px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+  .brand-copy span{font-size:8.5px!important;letter-spacing:.12em!important;}
+  .theme-toggle-header{min-height:38px!important;padding:8px 10px!important;border-radius:13px!important;}
+  .theme-toggle-header .theme-label{display:none!important;}
+  .menu-toggle{min-height:38px!important;border-radius:13px!important;}
+  .menu-toggle b{font-size:11px!important;}
+
+  .hero{padding:14px 0 8px!important;}
+  .hero-card.hero-dashboard-card{
+    display:block!important;
+    padding:16px!important;
+    border-radius:22px!important;
+  }
+  .hero-maincopy{gap:0!important;}
+  .hero-card .pill{font-size:11.5px!important;padding:7px 10px!important;margin:0 0 10px!important;animation:none!important;}
+  .hero-card h1{font-size:clamp(25px,8vw,34px)!important;line-height:1.03!important;margin:0 0 8px!important;letter-spacing:-.055em!important;}
+  .hero-card p{font-size:14px!important;line-height:1.45!important;}
+  .hero-domain-console{display:none!important;}
+  .hero-proof{display:none!important;}
+  .menu-grid.menu-grid-pro{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:8px!important;
+    margin-top:14px!important;
+  }
+  .menu-grid.menu-grid-pro .menu-card{
+    min-height:70px!important;
+    padding:12px 8px 10px!important;
+    border-radius:17px!important;
+    text-align:center!important;
+    display:grid!important;
+    place-content:center!important;
+    box-shadow:0 10px 24px rgba(42,51,105,.08)!important;
+  }
+  .menu-grid.menu-grid-pro .menu-card::before,
+  .menu-grid.menu-grid-pro .menu-card::after{display:none!important;}
+  .menu-grid.menu-grid-pro .menu-card span{font-size:10.5px!important;line-height:1.2!important;margin-top:4px!important;}
+  .menu-grid.menu-grid-pro .menu-card:nth-child(n+7){display:none!important;}
+
+  .compact-section{padding:12px 0!important;}
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;}
+  .stat-card{min-height:86px!important;padding:13px!important;border-radius:18px!important;}
+  .stat-card strong{font-size:25px!important;}
+  .stat-card small{font-size:11px!important;line-height:1.25!important;}
+
+  #market-tools,.marketplace-panel,.registrar-feature-grid,.transfer-safety-grid{display:none!important;}
+  #harga .section-head{margin-bottom:10px!important;}
+  #harga .section-title h2{font-size:25px!important;}
+  #harga .section-title p{font-size:13.5px!important;line-height:1.45!important;}
+  #harga .registrar-feature-grid{display:none!important;}
+  .tld-price-grid{grid-template-columns:1fr!important;gap:10px!important;}
+
+  #cek{padding-top:16px!important;}
+  #cek .panel{padding:16px!important;border-radius:22px!important;}
+  #cek .section-title h2{font-size:28px!important;}
+  #cek .section-title p{font-size:14px!important;}
+  .domain-form{padding:7px!important;border-radius:18px!important;gap:8px!important;}
+  .domain-form input{min-height:52px!important;font-size:16px!important;font-weight:850!important;}
+  .domain-form .btn{min-height:50px!important;border-radius:15px!important;}
+  .microcopy{font-size:12.5px!important;line-height:1.4!important;}
+  .search-polish-note{padding:11px!important;border-radius:16px!important;font-size:12.5px!important;line-height:1.4!important;}
+  .search-assist-grid{grid-template-columns:1fr!important;gap:10px!important;margin-top:12px!important;}
+  .assist-title{font-size:12px!important;margin-bottom:8px!important;}
+  .tld-group{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;}
+  .tld-chip{padding:8px 5px!important;text-align:center!important;font-size:12px!important;border-radius:999px!important;}
+  .bulk-panel{border-radius:16px!important;}
+  .bulk-panel summary{min-height:42px!important;display:flex!important;align-items:center!important;}
+  .bulk-panel textarea{min-height:96px!important;font-size:14px!important;}
+
+  .result-area{gap:10px!important;margin-top:14px!important;}
+  .result-card{padding:15px!important;border-radius:20px!important;}
+  .result-domain{font-size:18px!important;}
+  .status-badge{font-size:11px!important;}
+  .price-line{font-size:18px!important;width:100%!important;justify-content:center!important;text-align:center!important;}
+  .result-actions{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;}
+  .result-actions .btn{width:100%!important;}
+  .suggestion-list{display:grid!important;grid-template-columns:1fr!important;gap:7px!important;}
+  .suggestion-chip{width:100%!important;justify-content:space-between!important;}
+
+  .cart-layout{grid-template-columns:1fr!important;gap:12px!important;}
+  .cart-layout > #checkout,.cart-layout > .guidance-panel{grid-column:auto!important;grid-row:auto!important;}
+  .guidance-panel{display:none!important;}
+  #keranjang .panel{padding:16px!important;border-radius:22px!important;}
+  #keranjang .section-title h2,#checkout .section-title h2{font-size:26px!important;}
+  .cart-item{grid-template-columns:1fr!important;border-radius:16px!important;padding:13px!important;margin-top:8px!important;}
+  .cart-item h3{font-size:17px!important;}
+  .cart-item p{font-size:12px!important;}
+  .cart-price{text-align:left!important;font-size:18px!important;}
+  .cart-controls{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;}
+  .cart-year-select,.cart-remove{width:100%!important;min-height:40px!important;}
+  .total-row{font-size:20px!important;margin-top:14px!important;padding-top:14px!important;}
+
+  .stepper{display:grid!important;grid-template-columns:1fr!important;gap:6px!important;padding:6px!important;margin-top:10px!important;}
+  .stepper span{width:100%!important;min-height:32px!important;font-size:11px!important;}
+  #checkoutForm{margin-top:12px!important;}
+  .form-grid{gap:11px!important;}
+  .field{gap:5px!important;}
+  .field label{font-size:11px!important;letter-spacing:.06em!important;}
+  .field input,.field textarea,.field select{padding:12px!important;border-radius:14px!important;font-size:16px!important;}
+  .field-help{font-size:11.5px!important;line-height:1.35!important;}
+  #customerNote{rows:3;min-height:86px!important;}
+  .dns-extra{padding:11px!important;border-radius:16px!important;}
+  .checkout-summary{padding:13px!important;border-radius:17px!important;gap:7px!important;}
+  .summary-line{padding:7px 0!important;font-size:13px!important;}
+  .agree-box{padding:12px!important;border-radius:16px!important;font-size:13px!important;line-height:1.35!important;}
+  .agree-box small{font-size:11.5px!important;}
+  #checkoutBtn{min-height:52px!important;border-radius:16px!important;font-size:16px!important;}
+
+  .order-tools{display:grid!important;grid-template-columns:1fr!important;padding:8px!important;border-radius:17px!important;}
+  .order-filters{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;}
+  .filter-chip{padding:8px 5px!important;font-size:11px!important;text-align:center!important;}
+  .order-search{width:100%!important;min-height:42px!important;}
+  .order-card{padding:16px!important;border-radius:20px!important;}
+  .invoice{font-size:17px!important;}
+  .order-timeline{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;}
+  .timeline-step{font-size:11px!important;min-height:38px!important;padding:8px!important;}
+  .order-grid{grid-template-columns:1fr!important;gap:10px!important;}
+  .info-box{padding:13px!important;border-radius:17px!important;}
+  .info-box h3{font-size:16px!important;}
+  .line{font-size:12.5px!important;}
+  .copy-inline{margin-left:0!important;margin-top:4px!important;display:inline-flex!important;}
+  .order-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important;}
+  .order-action{text-align:center!important;justify-content:center!important;}
+
+  .domain-management-panel .section-head{gap:10px!important;}
+  .owned-domain-grid{grid-template-columns:1fr!important;gap:10px!important;}
+  .owned-domain-card{padding:14px!important;border-radius:18px!important;}
+  .owned-domain-meta{grid-template-columns:1fr 1fr!important;gap:8px!important;}
+  .owned-domain-meta div:nth-child(n+3){display:none!important;}
+
+  .account-grid{grid-template-columns:1fr!important;gap:10px!important;}
+  .account-card{padding:14px!important;border-radius:18px!important;}
+  .account-form-grid{gap:10px!important;}
+  .account-help{font-size:12px!important;line-height:1.35!important;}
+
+  .dirac-floating-actions{
+    right:14px!important;
+    bottom:calc(var(--dirac-bottom-nav-h) + 28px + env(safe-area-inset-bottom,0px))!important;
+    gap:7px!important;
+    z-index:18900!important;
+  }
+  .dirac-float-btn{width:44px!important;height:44px!important;border-radius:16px!important;}
+  .toast-region{bottom:calc(var(--dirac-bottom-nav-h) + 30px + env(safe-area-inset-bottom,0px))!important;left:10px!important;right:10px!important;width:auto!important;}
+
+  .mobile-bottom-nav,
+  body.show-mobile-nav .mobile-bottom-nav{
+    position:fixed!important;
+    left:50%!important;
+    right:auto!important;
+    top:auto!important;
+    bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+    width:min(430px,calc(100vw - 18px))!important;
+    max-width:430px!important;
+    margin:0!important;
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:5px!important;
+    padding:7px!important;
+    border-radius:24px!important;
+    transform:translate3d(-50%,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    z-index:19000!important;
+    overflow:hidden!important;
+    isolation:isolate!important;
+    contain:layout paint style!important;
+    background:
+      linear-gradient(120deg,rgba(255,255,255,.92),rgba(239,246,255,.86),rgba(255,255,255,.92))!important;
+    background-size:220% 100%!important;
+    border:1px solid rgba(255,255,255,.74)!important;
+    box-shadow:0 18px 52px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.65)!important;
+    -webkit-backdrop-filter:blur(24px) saturate(1.18)!important;
+    backdrop-filter:blur(24px) saturate(1.18)!important;
+    animation:diracNavSheen 7s linear infinite!important;
+  }
+  html[data-theme="dark"] .mobile-bottom-nav{
+    background:linear-gradient(120deg,rgba(15,23,42,.94),rgba(30,41,59,.88),rgba(15,23,42,.94))!important;
+    border-color:rgba(226,232,240,.13)!important;
+    box-shadow:0 18px 58px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.08)!important;
+  }
+  .mobile-bottom-nav::before,
+  .mobile-bottom-nav::after{display:none!important;content:none!important;}
+  .mobile-bottom-nav button{
+    position:relative!important;
+    z-index:1!important;
+    min-width:0!important;
+    min-height:52px!important;
+    padding:6px 2px!important;
+    border:1px solid transparent!important;
+    border-radius:18px!important;
+    display:grid!important;
+    place-items:center!important;
+    align-content:center!important;
+    gap:3px!important;
+    color:var(--deep)!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    opacity:.88!important;
+    transform:none!important;
+    transition:background .26s ease,color .26s ease,opacity .26s ease,box-shadow .26s ease,transform .26s cubic-bezier(.2,.9,.2,1)!important;
+    overflow:hidden!important;
+  }
+  html[data-theme="dark"] .mobile-bottom-nav button{color:#dbeafe!important;}
+  .mobile-bottom-nav button.active{
+    color:#fff!important;
+    opacity:1!important;
+    transform:translate3d(0,-1px,0)!important;
+    border-color:rgba(255,255,255,.16)!important;
+    background:
+      radial-gradient(circle at 28% 18%,rgba(255,255,255,.38),transparent 35%),
+      linear-gradient(135deg,var(--dirac-professional-blue),var(--dirac-professional-cyan))!important;
+    box-shadow:0 12px 28px rgba(37,99,235,.26), inset 0 1px 1px rgba(255,255,255,.38)!important;
+  }
+  .mobile-bottom-nav button.active::before{
+    content:""!important;
+    position:absolute!important;
+    inset:-45% -70%!important;
+    background:linear-gradient(110deg,transparent 36%,rgba(255,255,255,.34) 48%,transparent 60%)!important;
+    transform:translateX(-45%) rotate(10deg)!important;
+    animation:diracActivePillShine 2.6s ease-in-out infinite!important;
+    pointer-events:none!important;
+  }
+  .mobile-bottom-nav button.active svg,
+  .mobile-bottom-nav button.active small{position:relative!important;z-index:1!important;}
+  .mobile-bottom-nav svg{width:18px!important;height:18px!important;}
+  .mobile-bottom-nav small{font-size:9.2px!important;line-height:1!important;font-weight:950!important;letter-spacing:-.015em!important;}
+  .nav-badge{top:3px!important;right:7px!important;z-index:2!important;}
+}
+
+@media(max-width:520px){
+  .menu-grid.menu-grid-pro{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .menu-grid.menu-grid-pro .menu-card{min-height:66px!important;}
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .tld-group{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+  .order-filters{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .order-actions{grid-template-columns:1fr!important;}
+  .cart-controls{grid-template-columns:1fr!important;}
+  .mobile-bottom-nav,
+  body.show-mobile-nav .mobile-bottom-nav{
+    width:calc(100vw - 16px)!important;
+    gap:4px!important;
+    padding:6px!important;
+    border-radius:22px!important;
+  }
+  .mobile-bottom-nav button{min-height:49px!important;border-radius:16px!important;}
+  .mobile-bottom-nav svg{width:17px!important;height:17px!important;}
+  .mobile-bottom-nav small{font-size:8.8px!important;}
+}
+
+@media(max-width:380px){
+  .tld-group{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .stats-grid{grid-template-columns:1fr!important;}
+  .mobile-bottom-nav,
+  body.show-mobile-nav .mobile-bottom-nav{width:calc(100vw - 12px)!important;padding:5px!important;gap:3px!important;}
+  .mobile-bottom-nav button{min-height:46px!important;border-radius:14px!important;}
+  .mobile-bottom-nav small{font-size:8.3px!important;}
+}
+
+@media(min-width:901px){
+  .mobile-bottom-nav{display:none!important;}
+  .hero-domain-console{transform:translateZ(0);}
+  #checkout{top:92px!important;}
+}
+
+@keyframes diracNavSheen{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+@keyframes diracActivePillShine{
+  0%,55%{transform:translateX(-48%) rotate(10deg);opacity:0;}
+  70%{opacity:.8;}
+  100%{transform:translateX(50%) rotate(10deg);opacity:0;}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .mobile-bottom-nav,.mobile-bottom-nav button.active::before{animation:none!important;}
+}
+</style>
+
+<script id="dirac-professional-mobile-refinement-v7-js">
+(function(){
+  "use strict";
+  function ready(fn){ if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
+  function el(id){ return document.getElementById(id); }
+  function exists(name){ try { return typeof window[name] !== "undefined" || typeof eval(name) !== "undefined"; } catch(_) { return false; } }
+
+  function ensureLivePriceCards(){
+    var grid = el("tldPriceGrid");
+    if(!grid) return;
+    grid.innerHTML = [
+      ["Cek harga total", "Masukkan nama domain, pilih ekstensi, lalu sistem mengambil harga total dari API."],
+      ["Harga final di hasil cek", "Website hanya menampilkan Harga Total agar pembeli tidak melihat rincian internal."],
+      ["Checkout tetap diverifikasi", "Sebelum checkout dikirim, domain dicek ulang untuk mengurangi risiko salah harga atau salah ejaan."]
+    ].map(function(item){
+      return '<article class="live-price-card"><strong>'+ item[0] +'</strong><p>'+ item[1] +'</p><small>Real-time saat dicek</small></article>';
+    }).join("");
+  }
+
+  try{
+    if(typeof renderPriceCards === "function"){
+      renderPriceCards = ensureLivePriceCards;
+      window.renderPriceCards = ensureLivePriceCards;
+    }
+  }catch(_){}
+
+  try{
+    if(typeof renderSuggestionHTML === "function"){
+      renderSuggestionHTML = function(domain, title){
+        var suggestions = [];
+        try { suggestions = buildDomainSuggestions(domain); } catch(_) { suggestions = []; }
+        if(!suggestions.length) return "";
+        return '<div class="suggestion-box"><div class="suggestion-title">'+ escapeHTML(title || "Alternatif yang bisa dicoba") +'</div><div class="suggestion-list">' + suggestions.map(function(item){
+          return '<button type="button" class="suggestion-chip" data-suggest-domain="'+ escapeHTML(item) +'"><b>'+ escapeHTML(item) +'</b><span>Cek harga</span></button>';
+        }).join("") + '</div></div>';
+      };
+      window.renderSuggestionHTML = renderSuggestionHTML;
+    }
+  }catch(_){}
+
+  function refineStaticCopy(){
+    var priceTitle = document.querySelector('#harga .section-title h2');
+    var priceText = document.querySelector('#harga .section-title p');
+    if(priceTitle) priceTitle.textContent = "Harga domain real-time";
+    if(priceText) priceText.textContent = "Harga total muncul setelah domain dicek. Kartu ini tidak menampilkan rincian internal agar tampilan tetap bersih.";
+
+    var priceMenu = document.querySelectorAll('[data-scroll="harga"]');
+    priceMenu.forEach(function(btn){
+      if(btn.classList.contains('menu-card')){
+        btn.childNodes.forEach(function(node){ if(node.nodeType === 3 && /Harga/i.test(node.textContent)) node.textContent = 'Harga'; });
+        var span = btn.querySelector('span'); if(span) span.textContent = 'Cek harga total';
+      }
+    });
+
+    var note = document.querySelector('.search-polish-note div');
+    if(note) note.innerHTML = '<b>Cek harga real-time aktif.</b><br>Hasil pencarian hanya menampilkan Harga Total untuk pembeli.';
+
+    var input = el('domainInput');
+    if(input) input.setAttribute('placeholder','contoh: brandkamu atau brandkamu.com');
+
+    var bulk = document.querySelector('.bulk-panel .microcopy');
+    if(bulk) bulk.textContent = 'Opsional untuk cek beberapa domain. Hasil tetap menampilkan harga total saat domain tersedia.';
+
+    var accuracy = document.querySelector('#accuracyBox span');
+    if(accuracy) accuracy.innerHTML = 'Saya sudah memeriksa ejaan domain dan data pemilik.<small>Domain yang salah ketik dapat sulit dibatalkan setelah proses registrasi dimulai.</small>';
+  }
+
+  function syncStableMobileNav(){
+    var nav = document.querySelector('.mobile-bottom-nav');
+    if(!nav) return;
+    nav.style.removeProperty('--dirac-nav-liquid-x');
+    nav.style.removeProperty('--dirac-nav-liquid-y');
+    nav.style.removeProperty('--dirac-nav-liquid-w');
+    nav.style.removeProperty('--dirac-nav-liquid-h');
+    var active = nav.querySelector('button.active[data-scroll]') || nav.querySelector('button[data-scroll]');
+    if(active && !active.classList.contains('active')) active.classList.add('active');
+  }
+
+  try{
+    var originalUpdateBottomNavActive = typeof updateBottomNavActive === "function" ? updateBottomNavActive : null;
+    window.updateBottomNavActive = function(id){
+      document.querySelectorAll('.mobile-bottom-nav [data-scroll]').forEach(function(button){
+        var active = button.dataset.scroll === id;
+        button.classList.toggle('active', active);
+        if(active) button.setAttribute('aria-current','page'); else button.removeAttribute('aria-current');
+      });
+      syncStableMobileNav();
+      if(originalUpdateBottomNavActive && false){ originalUpdateBottomNavActive(id); }
+    };
+    try{ updateBottomNavActive = window.updateBottomNavActive; }catch(_){}
+  }catch(_){}
+
+  try{
+    window.diracSyncLiquidNav = syncStableMobileNav;
+  }catch(_){}
+
+  function installBetterObserver(){
+    var ids = ['cek','keranjang','orders','account'];
+    var targets = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    if(!targets.length) return;
+    var pick = function(){
+      var anchor = Math.max(86, window.innerHeight * .28);
+      var current = targets[0], best = Infinity;
+      targets.forEach(function(node){
+        var rect = node.getBoundingClientRect();
+        if(rect.bottom < 90 || rect.top > window.innerHeight * .68) return;
+        var distance = Math.abs(rect.top - anchor);
+        if(distance < best){ best = distance; current = node; }
+      });
+      if(current && typeof window.updateBottomNavActive === 'function') window.updateBottomNavActive(current.id);
+    };
+    var ticking = false;
+    function onMove(){
+      if(ticking) return;
+      ticking = true;
+      requestAnimationFrame(function(){ ticking = false; pick(); syncStableMobileNav(); });
+    }
+    window.addEventListener('scroll', onMove, { passive:true });
+    window.addEventListener('resize', onMove, { passive:true });
+    window.addEventListener('orientationchange', function(){ setTimeout(onMove, 240); }, { passive:true });
+    pick();
+  }
+
+  ready(function(){
+    refineStaticCopy();
+    ensureLivePriceCards();
+    syncStableMobileNav();
+    installBetterObserver();
+    setTimeout(function(){ ensureLivePriceCards(); syncStableMobileNav(); }, 250);
+    setTimeout(function(){ ensureLivePriceCards(); syncStableMobileNav(); }, 900);
+  });
+})();
+</script>
+<!-- DIRAC_PROFESSIONAL_MOBILE_REFINEMENT_V7_END -->
 
 </body>
 </html>
