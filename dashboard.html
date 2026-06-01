@@ -5393,6 +5393,10 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
     }
 
     function updateBottomNavActive(id) {
+      if (window.diracLiquidSetActive) {
+        window.diracLiquidSetActive(id);
+        return;
+      }
       document.querySelectorAll(".mobile-bottom-nav [data-scroll]").forEach((button) => {
         const active = button.dataset.scroll === id;
         button.classList.toggle("active", active);
@@ -5461,7 +5465,8 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
         });
       });
       $("domainAccuracyAgree")?.addEventListener("change", () => setFieldError("domainAccuracyAgree", ""));
-      initBottomNavObserver();
+      if (window.diracInstallLiquidNavObserver) window.diracInstallLiquidNavObserver();
+      else initBottomNavObserver();
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -5775,98 +5780,6 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
   });
 })();
 </script>
-
-
-
-<script id="dirac-precision-ui-ux-final-pass-js">
-(function(){
-  "use strict";
-  function ready(fn){ if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn); else fn(); }
-  function nav(){ return document.querySelector(".mobile-bottom-nav"); }
-  function activeButton(){ return document.querySelector(".mobile-bottom-nav button.active[data-scroll]") || document.querySelector(".mobile-bottom-nav button[data-scroll]"); }
-  function syncLiquidIndicator(){
-    var bar = nav();
-    var button = activeButton();
-    if(!bar || !button) return;
-    var b = button.getBoundingClientRect();
-    var n = bar.getBoundingClientRect();
-    var padX = 2;
-    var padY = 2;
-    bar.style.setProperty("--dirac-nav-liquid-x", Math.max(4, b.left - n.left + padX) + "px");
-    bar.style.setProperty("--dirac-nav-liquid-y", Math.max(4, b.top - n.top + padY) + "px");
-    bar.style.setProperty("--dirac-nav-liquid-w", Math.max(44, b.width - padX * 2) + "px");
-    bar.style.setProperty("--dirac-nav-liquid-h", Math.max(42, b.height - padY * 2) + "px");
-  }
-  window.diracSyncLiquidNav = syncLiquidIndicator;
-
-  if(typeof window.updateBottomNavActive === "function"){
-    var originalUpdateBottomNavActive = window.updateBottomNavActive;
-    window.updateBottomNavActive = function(id){
-      originalUpdateBottomNavActive.call(this, id);
-      window.requestAnimationFrame(syncLiquidIndicator);
-    };
-    try { updateBottomNavActive = window.updateBottomNavActive; } catch(_) {}
-  }
-
-  if(typeof window.initBottomNavObserver === "function"){
-    window.initBottomNavObserver = function(){
-      var ids = ["cek", "keranjang", "orders", "account"];
-      var targets = ids.map(function(id){ return document.getElementById(id); }).filter(Boolean);
-      if(!targets.length){ if(typeof window.updateBottomNavActive === "function") window.updateBottomNavActive("cek"); return; }
-      var setByPosition = function(){
-        var current = targets[0];
-        var best = Infinity;
-        var anchor = Math.max(86, window.innerHeight * 0.28);
-        targets.forEach(function(node){
-          var rect = node.getBoundingClientRect();
-          var distance = Math.abs(rect.top - anchor);
-          if(rect.top <= window.innerHeight * 0.56 && rect.bottom >= 120 && distance < best){ best = distance; current = node; }
-        });
-        if(current && typeof window.updateBottomNavActive === "function") window.updateBottomNavActive(current.id);
-      };
-      if("IntersectionObserver" in window){
-        var observer = new IntersectionObserver(function(entries){
-          var visible = entries.filter(function(entry){ return entry.isIntersecting; }).sort(function(a,b){ return b.intersectionRatio - a.intersectionRatio; })[0];
-          if(visible && visible.target && visible.target.id && typeof window.updateBottomNavActive === "function") window.updateBottomNavActive(visible.target.id);
-          else setByPosition();
-        }, { threshold:[.18,.28,.42,.58], rootMargin:"-18% 0px -50% 0px" });
-        targets.forEach(function(node){ observer.observe(node); });
-      }
-      setByPosition();
-      var ticking = false;
-      var onScroll = function(){
-        if(ticking) return;
-        ticking = true;
-        window.requestAnimationFrame(function(){ ticking = false; setByPosition(); syncLiquidIndicator(); });
-      };
-      window.addEventListener("scroll", onScroll, { passive:true });
-      window.addEventListener("resize", function(){ setByPosition(); syncLiquidIndicator(); }, { passive:true });
-    };
-    try { initBottomNavObserver = window.initBottomNavObserver; } catch(_) {}
-  }
-
-  document.addEventListener("click", function(event){
-    var button = event.target.closest && event.target.closest(".mobile-bottom-nav button[data-scroll]");
-    if(!button) return;
-    if(typeof window.updateBottomNavActive === "function") window.updateBottomNavActive(button.dataset.scroll);
-    window.requestAnimationFrame(syncLiquidIndicator);
-    window.setTimeout(syncLiquidIndicator, 360);
-  }, true);
-
-  ready(function(){
-    syncLiquidIndicator();
-    window.setTimeout(syncLiquidIndicator, 120);
-    window.setTimeout(syncLiquidIndicator, 600);
-    var bar = nav();
-    if(bar && "ResizeObserver" in window){
-      var ro = new ResizeObserver(syncLiquidIndicator);
-      ro.observe(bar);
-      Array.prototype.forEach.call(bar.querySelectorAll("button"), function(btn){ ro.observe(btn); });
-    }
-  });
-})();
-</script>
-
 <!-- DIRAC_V6_PRECISION_START -->
 <style id="dirac-v6-precision-floating-liquid-smooth">
 :root{
@@ -5982,109 +5895,6 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
   }
 }
 </style>
-
-<script id="dirac-v6-precision-liquid-js">
-(function(){
-  "use strict";
-  function ready(fn){
-    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
-    else fn();
-  }
-  function bar(){ return document.querySelector(".mobile-bottom-nav"); }
-  function activeButton(){
-    return document.querySelector(".mobile-bottom-nav button.active[data-scroll]") ||
-           document.querySelector(".mobile-bottom-nav button[data-scroll]");
-  }
-  function setLiquidTo(button){
-    var nav = bar();
-    if(!nav || !button) return;
-    var b = button.getBoundingClientRect();
-    var n = nav.getBoundingClientRect();
-    if(!b.width || !n.width) return;
-
-    var padX = 2;
-    var padY = 2;
-    var x = Math.max(4, b.left - n.left + padX);
-    var y = Math.max(4, b.top - n.top + padY);
-    var w = Math.max(44, b.width - padX * 2);
-    var h = Math.max(42, b.height - padY * 2);
-
-    nav.style.setProperty("--dirac-nav-liquid-x", x.toFixed(2) + "px");
-    nav.style.setProperty("--dirac-nav-liquid-y", y.toFixed(2) + "px");
-    nav.style.setProperty("--dirac-nav-liquid-w", w.toFixed(2) + "px");
-    nav.style.setProperty("--dirac-nav-liquid-h", h.toFixed(2) + "px");
-  }
-  function syncLiquid(){
-    window.requestAnimationFrame(function(){
-      setLiquidTo(activeButton());
-    });
-  }
-
-  window.diracSyncLiquidNav = syncLiquid;
-
-  function setActive(id){
-    document.querySelectorAll(".mobile-bottom-nav [data-scroll]").forEach(function(button){
-      var isActive = button.dataset.scroll === id;
-      button.classList.toggle("active", isActive);
-      if(isActive) button.setAttribute("aria-current", "page");
-      else button.removeAttribute("aria-current");
-    });
-    syncLiquid();
-  }
-
-  if(typeof window.updateBottomNavActive === "function"){
-    var previous = window.updateBottomNavActive;
-    window.updateBottomNavActive = function(id){
-      previous.call(this, id);
-      syncLiquid();
-    };
-    try{ updateBottomNavActive = window.updateBottomNavActive; }catch(_){}
-  }else{
-    window.updateBottomNavActive = setActive;
-    try{ updateBottomNavActive = window.updateBottomNavActive; }catch(_){}
-  }
-
-  document.addEventListener("click", function(event){
-    var button = event.target.closest && event.target.closest(".mobile-bottom-nav button[data-scroll]");
-    if(!button) return;
-    if(typeof window.updateBottomNavActive === "function"){
-      window.updateBottomNavActive(button.dataset.scroll);
-    }else{
-      setActive(button.dataset.scroll);
-    }
-    syncLiquid();
-    window.setTimeout(syncLiquid, 220);
-    window.setTimeout(syncLiquid, 760);
-  }, true);
-
-  ready(function(){
-    syncLiquid();
-    window.setTimeout(syncLiquid, 80);
-    window.setTimeout(syncLiquid, 360);
-    window.setTimeout(syncLiquid, 1000);
-
-    var nav = bar();
-    if(nav && "ResizeObserver" in window){
-      var ro = new ResizeObserver(syncLiquid);
-      ro.observe(nav);
-      Array.prototype.forEach.call(nav.querySelectorAll("button"), function(button){ ro.observe(button); });
-    }
-
-    var ticking = false;
-    function onMove(){
-      if(ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(function(){
-        ticking = false;
-        syncLiquid();
-      });
-    }
-    window.addEventListener("resize", onMove, { passive:true });
-    window.addEventListener("orientationchange", function(){ window.setTimeout(syncLiquid, 260); }, { passive:true });
-    window.addEventListener("scroll", onMove, { passive:true });
-  });
-})();
-</script>
 <!-- DIRAC_V6_PRECISION_END -->
 
 
@@ -6209,145 +6019,537 @@ Simpan ringkasan ini dan gunakan kode invoice saat konfirmasi pembayaran.`;
 </style>
 <!-- DIRAC_NAV_FIXED_LOWER_PRECISION_FIX_END -->
 
-    <!--
-      Custom liquid‑glass override
+<!-- DIRAC_ULTRA_SMOOTH_IPHONE_LIQUID_GLASS_START -->
+<style id="dirac-ultra-smooth-iphone-liquid-glass">
+/*
+  Final mobile navigation refinement.
+  Scope is intentionally limited to .mobile-bottom-nav so existing website flows,
+  cart, orders, account, logout, and desktop layout remain untouched.
+*/
+:root{
+  --dirac-lg-x:6px;
+  --dirac-lg-y:6px;
+  --dirac-lg-w:64px;
+  --dirac-lg-h:50px;
+  --dirac-lg-scale:1;
+  --dirac-lg-radius:20px;
+  --dirac-lg-ease:cubic-bezier(.16,1,.24,1);
+}
 
-      The existing mobile bottom navigation already implements a fluid indicator that
-      tracks the active section. To better match Apple’s Liquid Glass design, this
-      override darkens the navigation background and introduces a multi‑coloured
-      animated gradient within the active indicator. A pair of radial gradients
-      add subtle colour tints to the bar itself, while the linear gradient on the
-      indicator animates its hues over time. Colours and blur levels were chosen
-      to approximate the swirling, translucent effect seen in modern iOS builds.
-    -->
-    <style id="dirac-liquid-glass-override">
-      @media(max-width:900px){
-        /* Dark, translucent base for the navigation bar with subtle colour accents */
-        .mobile-bottom-nav{
-          background:
-            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
-            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
-            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
-          border:1px solid rgba(255,255,255,.22) !important;
-          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
-          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
-          backdrop-filter:blur(26px) saturate(1.4) !important;
-        }
-        html[data-theme="dark"] .mobile-bottom-nav{
-          /* Dark mode uses the same tinted palette for consistency */
-          background:
-            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
-            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
-            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
-          border:1px solid rgba(255,255,255,.22) !important;
-          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
-          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
-          backdrop-filter:blur(26px) saturate(1.4) !important;
-        }
+@media (max-width:900px){
+  body{
+    padding-bottom:calc(114px + env(safe-area-inset-bottom,0px))!important;
+  }
 
-        /* Animated, multicoloured indicator that follows the active button */
-        .mobile-bottom-nav::before{
-          /* Preserve positioning from existing rules; only override colours */
-          background:
-            radial-gradient(circle at 50% 30%, rgba(255,255,255,.45), transparent 40%),
-            linear-gradient(270deg, #4fa4ff, #58d68d, #ff6f61, #8e44ad, #4fa4ff);
-          background-size:800% 800%;
-          animation: navLiquidGradient 8s ease infinite;
-          box-shadow:0 18px 38px rgba(0,0,0,.45), inset 0 1px 2px rgba(255,255,255,.40), inset 0 -12px 22px rgba(0,0,0,.35) !important;
-        }
-        /* Thin highlight line under the indicator */
-        .mobile-bottom-nav::after{
-          background:linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent) !important;
-        }
+  .mobile-bottom-nav{
+    position:fixed!important;
+    left:clamp(8px,3vw,16px)!important;
+    right:clamp(8px,3vw,16px)!important;
+    top:auto!important;
+    bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
+    width:auto!important;
+    max-width:520px!important;
+    margin-inline:auto!important;
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    align-items:center!important;
+    gap:5px!important;
+    padding:7px!important;
+    min-height:66px!important;
+    border-radius:28px!important;
+    overflow:hidden!important;
+    isolation:isolate!important;
+    contain:layout paint style!important;
+    transform:translate3d(0,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    z-index:19000!important;
+    box-sizing:border-box!important;
+    background:
+      radial-gradient(120% 140% at 12% 0%,rgba(255,255,255,.22),transparent 42%),
+      radial-gradient(110% 130% at 88% 100%,rgba(98,186,255,.16),transparent 45%),
+      linear-gradient(180deg,rgba(16,20,30,.66),rgba(8,12,22,.76))!important;
+    border:1px solid rgba(255,255,255,.28)!important;
+    box-shadow:
+      0 28px 70px rgba(0,0,0,.34),
+      0 8px 28px rgba(11,26,54,.22),
+      inset 0 1px 0 rgba(255,255,255,.32),
+      inset 0 -1px 0 rgba(255,255,255,.08)!important;
+    -webkit-backdrop-filter:blur(34px) saturate(1.85) contrast(1.04)!important;
+    backdrop-filter:blur(34px) saturate(1.85) contrast(1.04)!important;
+    -webkit-font-smoothing:antialiased!important;
+    touch-action:manipulation!important;
+  }
 
-        /* Neutral default colour for buttons on darkened bar */
-        .mobile-bottom-nav button{
-          color:#d1d5db !important;
-        }
-        /* Active button inherits white text to contrast the multicolour glow */
-        .mobile-bottom-nav button.active{
-          color:#ffffff !important;
-        }
+  body.show-mobile-nav .mobile-bottom-nav{
+    transform:translate3d(0,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+  }
+
+  .mobile-bottom-nav::before{
+    content:""!important;
+    position:absolute!important;
+    left:0!important;
+    top:0!important;
+    width:var(--dirac-lg-w)!important;
+    height:var(--dirac-lg-h)!important;
+    border-radius:var(--dirac-lg-radius)!important;
+    z-index:0!important;
+    pointer-events:none!important;
+    transform:translate3d(var(--dirac-lg-x),var(--dirac-lg-y),0) scale(var(--dirac-lg-scale))!important;
+    transform-origin:center!important;
+    will-change:transform,width,height,border-radius,filter!important;
+    background:
+      radial-gradient(80% 70% at 28% 18%,rgba(255,255,255,.92),rgba(255,255,255,.34) 38%,transparent 64%),
+      radial-gradient(90% 85% at 72% 86%,rgba(90,170,255,.30),transparent 58%),
+      linear-gradient(145deg,rgba(255,255,255,.70),rgba(217,231,255,.36) 46%,rgba(255,255,255,.20))!important;
+    border:1px solid rgba(255,255,255,.52)!important;
+    box-shadow:
+      0 15px 34px rgba(0,0,0,.30),
+      0 0 30px rgba(116,188,255,.12),
+      inset 0 1px 1px rgba(255,255,255,.86),
+      inset 0 -16px 30px rgba(20,39,65,.18)!important;
+    transition:
+      transform .72s var(--dirac-lg-ease),
+      width .72s var(--dirac-lg-ease),
+      height .72s var(--dirac-lg-ease),
+      border-radius .72s var(--dirac-lg-ease),
+      filter .30s ease!important;
+    -webkit-backdrop-filter:blur(22px) saturate(1.65)!important;
+    backdrop-filter:blur(22px) saturate(1.65)!important;
+    backface-visibility:hidden!important;
+    -webkit-backface-visibility:hidden!important;
+  }
+
+  .mobile-bottom-nav::after{
+    content:""!important;
+    position:absolute!important;
+    left:0!important;
+    top:0!important;
+    width:calc(var(--dirac-lg-w) - 18px)!important;
+    height:11px!important;
+    border-radius:999px!important;
+    z-index:0!important;
+    pointer-events:none!important;
+    transform:translate3d(calc(var(--dirac-lg-x) + 9px),calc(var(--dirac-lg-y) + 6px),0)!important;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.86),rgba(255,255,255,.38),transparent)!important;
+    opacity:.92!important;
+    filter:blur(.15px)!important;
+    will-change:transform,width,opacity!important;
+    transition:
+      transform .72s var(--dirac-lg-ease),
+      width .72s var(--dirac-lg-ease),
+      opacity .32s ease!important;
+  }
+
+  .mobile-bottom-nav button{
+    position:relative!important;
+    z-index:1!important;
+    min-width:0!important;
+    min-height:52px!important;
+    padding:5px 2px 4px!important;
+    border:0!important;
+    border-radius:21px!important;
+    display:grid!important;
+    place-items:center!important;
+    align-content:center!important;
+    gap:3px!important;
+    color:rgba(242,247,255,.82)!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    text-shadow:0 1px 9px rgba(0,0,0,.26)!important;
+    opacity:1!important;
+    transform:translate3d(0,0,0)!important;
+    transition:
+      color .24s ease,
+      transform .42s var(--dirac-lg-ease),
+      opacity .24s ease,
+      text-shadow .24s ease!important;
+    -webkit-tap-highlight-color:transparent!important;
+    touch-action:manipulation!important;
+  }
+
+  .mobile-bottom-nav button::before{
+    content:"";
+    position:absolute;
+    inset:5px;
+    border-radius:inherit;
+    background:radial-gradient(70% 80% at 50% 0%,rgba(255,255,255,.18),transparent 72%);
+    opacity:0;
+    transform:scale(.92);
+    transition:opacity .28s ease,transform .42s var(--dirac-lg-ease);
+    pointer-events:none;
+  }
+
+  .mobile-bottom-nav button.active,
+  .mobile-bottom-nav button.is-liquid-pressed{
+    color:#071423!important;
+    transform:translate3d(0,-1px,0)!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.28)!important;
+  }
+
+  .mobile-bottom-nav button.active::before,
+  .mobile-bottom-nav button.is-liquid-pressed::before{
+    opacity:.42;
+    transform:scale(1);
+  }
+
+  .mobile-bottom-nav button:not(.active):not(.is-liquid-pressed){
+    opacity:.88!important;
+  }
+
+  .mobile-bottom-nav button:active{
+    transform:translate3d(0,0,0) scale(.975)!important;
+  }
+
+  .mobile-bottom-nav svg{
+    width:19px!important;
+    height:19px!important;
+    display:block!important;
+    stroke:currentColor!important;
+    stroke-width:2.2!important;
+    fill:none!important;
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.26))!important;
+    transition:filter .24s ease,transform .42s var(--dirac-lg-ease)!important;
+  }
+
+  .mobile-bottom-nav button.active svg,
+  .mobile-bottom-nav button.is-liquid-pressed svg{
+    filter:drop-shadow(0 1px 0 rgba(255,255,255,.16))!important;
+    transform:translate3d(0,-.5px,0)!important;
+  }
+
+  .mobile-bottom-nav small{
+    display:block!important;
+    font-size:9.5px!important;
+    line-height:1!important;
+    font-weight:950!important;
+    letter-spacing:-.02em!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+
+  .nav-badge{
+    z-index:2!important;
+    top:3px!important;
+    right:11px!important;
+    box-shadow:0 5px 14px rgba(244,63,94,.28)!important;
+  }
+
+  .dirac-floating-actions{
+    right:18px!important;
+    bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;
+    z-index:19200!important;
+  }
+
+  .toast-region{
+    bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
+    left:12px!important;
+    right:12px!important;
+    width:auto!important;
+    z-index:19300!important;
+  }
+}
+
+@media (max-width:520px){
+  body{padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))!important;}
+  .mobile-bottom-nav{
+    left:8px!important;
+    right:8px!important;
+    bottom:calc(6px + env(safe-area-inset-bottom,0px))!important;
+    gap:4px!important;
+    padding:6px!important;
+    min-height:64px!important;
+    border-radius:26px!important;
+  }
+  .mobile-bottom-nav button{min-height:51px!important;border-radius:20px!important;}
+  .mobile-bottom-nav small{font-size:9px!important;}
+  .mobile-bottom-nav svg{width:18px!important;height:18px!important;}
+  .dirac-floating-actions{right:16px!important;bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;}
+}
+
+@media (max-width:380px){
+  .mobile-bottom-nav{left:6px!important;right:6px!important;padding:5px!important;gap:3px!important;}
+  .mobile-bottom-nav button{min-height:49px!important;border-radius:18px!important;}
+  .mobile-bottom-nav small{font-size:8.5px!important;}
+  .dirac-floating-actions{right:13px!important;bottom:calc(86px + env(safe-area-inset-bottom,0px))!important;}
+}
+
+html[data-theme="dark"] .mobile-bottom-nav{
+  background:
+    radial-gradient(120% 140% at 12% 0%,rgba(255,255,255,.16),transparent 42%),
+    radial-gradient(110% 130% at 88% 100%,rgba(85,168,255,.15),transparent 45%),
+    linear-gradient(180deg,rgba(13,18,28,.72),rgba(5,9,18,.82))!important;
+  border-color:rgba(255,255,255,.22)!important;
+  box-shadow:
+    0 30px 76px rgba(0,0,0,.56),
+    0 8px 28px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -1px 0 rgba(255,255,255,.06)!important;
+}
+
+html[data-theme="dark"] .mobile-bottom-nav button:not(.active):not(.is-liquid-pressed){
+  color:rgba(232,240,255,.82)!important;
+}
+
+html[data-theme="dark"] .mobile-bottom-nav button.active,
+html[data-theme="dark"] .mobile-bottom-nav button.is-liquid-pressed{
+  color:#06111f!important;
+}
+
+@media (min-width:901px){
+  .mobile-bottom-nav{display:none!important;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .mobile-bottom-nav::before,
+  .mobile-bottom-nav::after,
+  .mobile-bottom-nav button,
+  .mobile-bottom-nav svg{
+    transition:none!important;
+    animation:none!important;
+  }
+}
+</style>
+
+<script id="dirac-ultra-smooth-iphone-liquid-glass-js">
+(function(){
+  "use strict";
+
+  var SECTION_IDS = ["cek","keranjang","orders","account"];
+  var raf = 0;
+  var lastId = "cek";
+  var restoreTimer = 0;
+  var manualLockUntil = 0;
+  var lockedId = "";
+  var eventsInstalled = false;
+  var observerInstalled = false;
+
+  function ready(fn){
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, { once:true });
+    else fn();
+  }
+
+  function bar(){ return document.querySelector(".mobile-bottom-nav"); }
+  function navButtons(){
+    var nav = bar();
+    return nav ? Array.prototype.slice.call(nav.querySelectorAll("button")) : [];
+  }
+  function activeButton(){
+    var nav = bar();
+    if(!nav) return null;
+    return nav.querySelector("button.active[data-scroll]") || nav.querySelector("button[data-scroll]") || nav.querySelector("button");
+  }
+
+  function setIndicatorTo(button, immediate){
+    var nav = bar();
+    if(!nav || !button) return;
+    var b = button.getBoundingClientRect();
+    var n = nav.getBoundingClientRect();
+    if(!b.width || !n.width) return;
+
+    var padX = Math.max(2, Math.min(4, b.width * .035));
+    var padY = 2;
+    var x = Math.max(4, b.left - n.left + padX);
+    var y = Math.max(4, b.top - n.top + padY);
+    var w = Math.max(42, b.width - padX * 2);
+    var h = Math.max(42, b.height - padY * 2);
+
+    if(immediate){ nav.classList.add("is-liquid-instant"); }
+    nav.style.setProperty("--dirac-lg-x", x.toFixed(2) + "px");
+    nav.style.setProperty("--dirac-lg-y", y.toFixed(2) + "px");
+    nav.style.setProperty("--dirac-lg-w", w.toFixed(2) + "px");
+    nav.style.setProperty("--dirac-lg-h", h.toFixed(2) + "px");
+    nav.style.setProperty("--dirac-lg-radius", Math.min(22, Math.max(18, h * .42)).toFixed(2) + "px");
+    if(immediate){
+      requestAnimationFrame(function(){ nav.classList.remove("is-liquid-instant"); });
+    }
+  }
+
+  function sync(button, immediate){
+    if(raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(function(){
+      raf = 0;
+      setIndicatorTo(button || activeButton(), Boolean(immediate));
+    });
+  }
+
+  function setPressed(button){
+    var nav = bar();
+    if(!nav || !button) return;
+    clearTimeout(restoreTimer);
+    if(button.dataset.scroll){
+      lockedId = button.dataset.scroll;
+      manualLockUntil = Date.now() + 1400;
+      updateActive(button.dataset.scroll);
+      [40,100,180,300,520,820,1160].forEach(function(delay){ setTimeout(enforceLockedActive, delay); });
+      var target = document.getElementById(button.dataset.scroll);
+      if(target) target.scrollIntoView({ behavior:"smooth", block:"start" });
+    }
+    navButtons().forEach(function(btn){ btn.classList.toggle("is-liquid-pressed", btn === button && !btn.classList.contains("active")); });
+    nav.style.setProperty("--dirac-lg-scale", ".985");
+    sync(button, false);
+  }
+
+  function releasePressed(){
+    var nav = bar();
+    if(!nav) return;
+    nav.style.setProperty("--dirac-lg-scale", "1");
+    restoreTimer = setTimeout(function(){
+      navButtons().forEach(function(btn){ btn.classList.remove("is-liquid-pressed"); });
+      sync(activeButton(), false);
+    }, 320);
+  }
+
+  function enforceLockedActive(){
+    if(!lockedId || Date.now() >= manualLockUntil) return false;
+    navButtons().forEach(function(button){
+      var isActive = button.dataset.scroll === lockedId;
+      button.classList.toggle("active", isActive);
+      button.classList.remove("is-liquid-pressed");
+      if(isActive) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+    sync(activeButton(), false);
+    return true;
+  }
+
+  function updateActive(id){
+    var nav = bar();
+    if(!nav) return;
+    if(lockedId && id !== lockedId && Date.now() < manualLockUntil){
+      enforceLockedActive();
+      return;
+    }
+    var matched = false;
+    navButtons().forEach(function(button){
+      var isActive = button.dataset.scroll === id;
+      if(isActive) matched = true;
+      button.classList.toggle("active", isActive);
+      button.classList.remove("is-liquid-pressed");
+      if(isActive) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+    if(matched) lastId = id;
+    sync(activeButton(), false);
+  }
+
+  window.diracLiquidSetActive = updateActive;
+  window.updateBottomNavActive = updateActive;
+  try { updateBottomNavActive = updateActive; } catch(_) {}
+  window.diracSyncLiquidNav = function(){ sync(activeButton(), false); };
+  try { diracSyncLiquidNav = window.diracSyncLiquidNav; } catch(_) {}
+  window.diracInstallLiquidNavObserver = installSectionObserver;
+  window.initBottomNavObserver = function(){ installSectionObserver(); };
+  try { initBottomNavObserver = window.initBottomNavObserver; } catch(_) {}
+
+  function currentSectionByPosition(){
+    var anchor = Math.max(92, window.innerHeight * .34);
+    var current = SECTION_IDS[0];
+    var best = Infinity;
+    SECTION_IDS.forEach(function(id){
+      var node = document.getElementById(id);
+      if(!node) return;
+      var rect = node.getBoundingClientRect();
+      if(rect.bottom < 88 || rect.top > window.innerHeight * .78) return;
+      var distance = Math.abs(rect.top - anchor);
+      if(distance < best){ best = distance; current = id; }
+    });
+    if(lockedId && Date.now() < manualLockUntil) return lockedId;
+    return current || lastId;
+  }
+
+  function installSectionObserver(){
+    if(observerInstalled) return;
+    observerInstalled = true;
+    var ticking = false;
+    function evaluate(){
+      ticking = false;
+      updateActive(currentSectionByPosition());
+    }
+    function onScroll(){
+      if(ticking) return;
+      ticking = true;
+      requestAnimationFrame(evaluate);
+    }
+    window.addEventListener("scroll", onScroll, { passive:true });
+    window.addEventListener("resize", function(){ sync(activeButton(), false); onScroll(); }, { passive:true });
+    window.addEventListener("orientationchange", function(){ setTimeout(function(){ sync(activeButton(), true); onScroll(); }, 260); }, { passive:true });
+
+    if("IntersectionObserver" in window){
+      var nodes = SECTION_IDS.map(function(id){ return document.getElementById(id); }).filter(Boolean);
+      var observer = new IntersectionObserver(onScroll, { threshold:[.12,.24,.36,.52,.68], rootMargin:"-16% 0px -48% 0px" });
+      nodes.forEach(function(node){ observer.observe(node); });
+    }
+    onScroll();
+  }
+
+  function installEvents(){
+    if(eventsInstalled) return;
+    var nav = bar();
+    if(!nav) return;
+    eventsInstalled = true;
+    nav.addEventListener("pointerdown", function(event){
+      var button = event.target.closest && event.target.closest("button");
+      if(!button || !nav.contains(button)) return;
+      setPressed(button);
+    }, { passive:true });
+    ["pointerup","pointercancel","pointerleave"].forEach(function(type){
+      nav.addEventListener(type, releasePressed, { passive:true });
+    });
+    nav.addEventListener("click", function(event){
+      var button = event.target.closest && event.target.closest("button");
+      if(!button || !nav.contains(button)) return;
+      if(button.dataset.scroll){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        lockedId = button.dataset.scroll;
+        manualLockUntil = Date.now() + 1400;
+        updateActive(button.dataset.scroll);
+        [40,100,180,300,520,820,1160].forEach(function(delay){ setTimeout(enforceLockedActive, delay); });
+        var target = document.getElementById(button.dataset.scroll);
+        if(target) target.scrollIntoView({ behavior:"smooth", block:"start" });
+        setTimeout(function(){ lockedId = ""; manualLockUntil = 0; sync(activeButton(), false); }, 1420);
       }
+      else releasePressed();
+      setTimeout(function(){ sync(activeButton(), false); }, 260);
+      setTimeout(function(){ sync(activeButton(), false); }, 780);
+    }, true);
 
-      /* Animate the gradient for the liquid indicator. Background‑position shifts
-         horizontally to create a smooth colour swirl. */
-      @keyframes navLiquidGradient{
-        0%{ background-position:0% 50%; }
-        50%{ background-position:100% 50%; }
-        100%{ background-position:0% 50%; }
-      }
-    </style>
+    if("ResizeObserver" in window){
+      var ro = new ResizeObserver(function(){ sync(activeButton(), false); });
+      ro.observe(nav);
+      navButtons().forEach(function(button){ ro.observe(button); });
+    }
+    if("MutationObserver" in window){
+      var mo = new MutationObserver(function(){ if(!enforceLockedActive()) sync(activeButton(), false); });
+      mo.observe(nav, { attributes:true, subtree:true, attributeFilter:["class","style","aria-current"] });
+    }
+  }
 
-    <!--
-      Custom liquid‑glass override
+  function bootLiquidNav(){
+    var first = activeButton();
+    if(first && !first.classList.contains("active") && first.dataset.scroll) updateActive(first.dataset.scroll);
+    sync(activeButton(), true);
+    installEvents();
+    installSectionObserver();
+    setTimeout(function(){ sync(activeButton(), true); }, 90);
+    setTimeout(function(){ sync(activeButton(), false); }, 420);
+    setTimeout(function(){ sync(activeButton(), false); }, 1100);
+  }
 
-      The existing mobile bottom navigation already implements a fluid indicator that
-      tracks the active section. To better match Apple’s Liquid Glass design, this
-      override darkens the navigation background and introduces a multi‑coloured
-      animated gradient within the active indicator. A pair of radial gradients
-      add subtle colour tints to the bar itself, while the linear gradient on the
-      indicator animates its hues over time. Colours and blur levels were chosen
-      to approximate the swirling, translucent effect seen in modern iOS builds.
-    -->
-    <style id="dirac-liquid-glass-override">
-      @media(max-width:900px){
-        /* Dark, translucent base for the navigation bar with subtle colour accents */
-        .mobile-bottom-nav{
-          background:
-            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
-            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
-            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
-          border:1px solid rgba(255,255,255,.22) !important;
-          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
-          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
-          backdrop-filter:blur(26px) saturate(1.4) !important;
-        }
-        html[data-theme="dark"] .mobile-bottom-nav{
-          /* Dark mode uses the same tinted palette for consistency */
-          background:
-            linear-gradient(180deg, rgba(6,12,30,.82), rgba(4,8,20,.88)),
-            radial-gradient(circle at 30% 10%, rgba(104,187,250,.12), transparent 60%),
-            radial-gradient(circle at 80% 90%, rgba(180,106,255,.12), transparent 60%) !important;
-          border:1px solid rgba(255,255,255,.22) !important;
-          box-shadow:0 22px 70px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.15) !important;
-          -webkit-backdrop-filter:blur(26px) saturate(1.4) !important;
-          backdrop-filter:blur(26px) saturate(1.4) !important;
-        }
-
-        /* Animated, multicoloured indicator that follows the active button */
-        .mobile-bottom-nav::before{
-          /* Preserve positioning from existing rules; only override colours */
-          background:
-            radial-gradient(circle at 50% 30%, rgba(255,255,255,.45), transparent 40%),
-            linear-gradient(270deg, #4fa4ff, #58d68d, #ff6f61, #8e44ad, #4fa4ff);
-          background-size:800% 800%;
-          animation: navLiquidGradient 8s ease infinite;
-          box-shadow:0 18px 38px rgba(0,0,0,.45), inset 0 1px 2px rgba(255,255,255,.40), inset 0 -12px 22px rgba(0,0,0,.35) !important;
-        }
-        /* Thin highlight line under the indicator */
-        .mobile-bottom-nav::after{
-          background:linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent) !important;
-        }
-
-        /* Neutral default colour for buttons on darkened bar */
-        .mobile-bottom-nav button{
-          color:#d1d5db !important;
-        }
-        /* Active button inherits white text to contrast the multicolour glow */
-        .mobile-bottom-nav button.active{
-          color:#ffffff !important;
-        }
-      }
-
-      /* Animate the gradient for the liquid indicator. Background‑position shifts
-         horizontally to create a smooth colour swirl. */
-      @keyframes navLiquidGradient{
-        0%{ background-position:0% 50%; }
-        50%{ background-position:100% 50%; }
-        100%{ background-position:0% 50%; }
-      }
-    </style>
+  if(bar()) bootLiquidNav();
+  ready(bootLiquidNav);
+})();
+</script>
+<!-- DIRAC_ULTRA_SMOOTH_IPHONE_LIQUID_GLASS_END -->
 
 </body>
 </html>
