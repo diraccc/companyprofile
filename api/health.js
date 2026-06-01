@@ -8,6 +8,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
 
 const DOMAIN_ACTIONS = new Set([
   'domain_health',
+  'hostinger_check',
   'domain_login',
   'domain_register',
   'domain_me',
@@ -20,6 +21,10 @@ const DOMAIN_ACTIONS = new Set([
 const DOMAIN_ACTION_ALIASES = Object.freeze({
   'domain-health': 'domain_health',
   'domain_health': 'domain_health',
+  'hostinger-check': 'hostinger_check',
+  'hostinger_check': 'hostinger_check',
+  'hostinger-domain-check': 'hostinger_check',
+  'domain_hostinger_check': 'hostinger_check',
   'check-domain': 'domain_check',
   'domain_check': 'domain_check',
   'create-order': 'domain_checkout',
@@ -103,6 +108,7 @@ function normalizeDomainAction(action) {
    Endpoint tetap memakai file lama:
    /api/health?action=domain_health
    /api/health?action=domain-health
+   /api/health?action=hostinger-check&domain=contoh.com
    /api/health?action=domain_login
    /api/health?action=domain_register
    /api/health?action=domain_me
@@ -118,9 +124,13 @@ function normalizeDomainAction(action) {
 const ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || 'dirac_domain_session';
 const REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || 'dirac_domain_refresh';
 
+const HOSTINGER_API_BASE = 'https://developers.hostinger.com';
+const HOSTINGER_CHECK_CACHE = new Map();
+
 async function handleDomainAction(action, req, res) {
   try {
     if (action === 'domain_health') return domainHealth(req, res);
+    if (action === 'hostinger_check') return hostingerCheckDomain(req, res);
     if (action === 'domain_login') return domainLogin(req, res);
     if (action === 'domain_register') return domainRegister(req, res);
     if (action === 'domain_me') return domainMe(req, res);
@@ -148,17 +158,107 @@ async function domainHealth(req, res) {
     message: 'Domain API aktif.',
     endpoints: {
       check: '/api/health?action=domain_check&domain=contoh.com',
+      hostingerCheck: '/api/health?action=hostinger-check&domain=contoh.com',
       checkout: '/api/health?action=domain_checkout',
       orders: '/api/health?action=domain_orders'
     },
     aliases: {
       health: '/api/health?action=domain-health',
+      hostingerCheck: '/api/health?action=hostinger-check&domain=contoh.com',
       check: '/api/health?action=check-domain&domain=contoh.com',
       createOrder: '/api/health?action=create-order',
       getOrders: '/api/health?action=get-orders'
     },
     time: new Date().toISOString()
   });
+}
+
+async function hostingerCheckDomain(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  const domain = normalizeDomain(req.query && req.query.domain);
+  const parts = splitDomainForHostinger(domain);
+
+  if (!parts) {
+    return res.status(400).json({ ok: false, message: 'Domain tidak valid. Contoh: namabrand.com' });
+  }
+
+  const cacheKey = `hostinger:${parts.fullDomain}`;
+  const cacheSeconds = Math.max(0, Number(process.env.DOMAIN_API_CACHE_SECONDS || process.env.HOSTINGER_DOMAIN_CACHE_SECONDS || 60));
+  const cached = HOSTINGER_CHECK_CACHE.get(cacheKey);
+
+  if (cached && cached.expiresAt > Date.now()) {
+    return res.status(200).json({ ...cached.payload, cached: true });
+  }
+
+  const availability = await hostingerFetch('/api/domains/v1/availability', {
+    method: 'POST',
+    body: {
+      domain: parts.name,
+      tlds: [parts.tld],
+      with_alternatives: false
+    }
+  });
+
+  if (!availability.ok) {
+    return res.status(availability.status || 502).json({
+      ok: false,
+      message: getUpstreamMessage(availability.data) || 'Gagal cek ketersediaan domain.'
+    });
+  }
+
+  const available = parseHostingerAvailability(availability.data, parts.fullDomain);
+
+  if (available === false) {
+    const payload = {
+      ok: true,
+      domain: parts.fullDomain,
+      available: false,
+      message: 'Domain tidak tersedia.'
+    };
+    if (cacheSeconds > 0) HOSTINGER_CHECK_CACHE.set(cacheKey, { expiresAt: Date.now() + cacheSeconds * 1000, payload });
+    return res.status(200).json(payload);
+  }
+
+  const catalog = await hostingerFetch(`/api/billing/v1/catalog?category=DOMAIN&name=${encodeURIComponent(`.${parts.tld.toUpperCase()}*`)}`, {
+    method: 'GET'
+  });
+
+  if (!catalog.ok) {
+    return res.status(catalog.status || 502).json({
+      ok: false,
+      message: getUpstreamMessage(catalog.data) || 'Gagal mengambil harga domain.'
+    });
+  }
+
+  const priceInfo = extractHostingerDomainPrice(catalog.data, parts.tld);
+
+  if (!priceInfo) {
+    return res.status(502).json({
+      ok: false,
+      message: `Harga domain .${parts.tld} belum ditemukan.`
+    });
+  }
+
+  const normalMarkup = Math.max(0, Number(process.env.DOMAIN_PRICE_MARKUP || 10000));
+  const storeMarkup = Math.max(0, Number(process.env.DOMAIN_STORE_MARKUP || 1200000));
+  const markup = parts.tld === 'store' ? storeMarkup : normalMarkup;
+  const finalPrice = priceInfo.price + markup;
+  const currency = String(process.env.DOMAIN_DEFAULT_CURRENCY || priceInfo.currency || 'IDR').toUpperCase();
+
+  const payload = {
+    ok: true,
+    domain: parts.fullDomain,
+    available: available !== false,
+    price: finalPrice,
+    price_label: formatCurrency(finalPrice, currency),
+    currency,
+    message: available === null ? 'Domain berhasil dicek.' : 'Domain tersedia.'
+  };
+
+  if (cacheSeconds > 0) HOSTINGER_CHECK_CACHE.set(cacheKey, { expiresAt: Date.now() + cacheSeconds * 1000, payload });
+
+  return res.status(200).json(payload);
 }
 
 async function domainLogin(req, res) {
@@ -538,6 +638,140 @@ async function requireDomainUser(req, res) {
   clearSessionCookies(res);
   res.status(401).json({ ok: false, message: 'Belum login atau sesi sudah habis.' });
   return null;
+}
+
+async function hostingerFetch(path, options = {}) {
+  const token = requiredEnv('HOSTINGER_API_TOKEN');
+  const baseUrl = String(process.env.HOSTINGER_API_BASE || HOSTINGER_API_BASE).replace(/\/$/, '');
+  const headers = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`
+  };
+
+  const fetchOptions = {
+    method: options.method || 'GET',
+    headers
+  };
+
+  if (options.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    fetchOptions.body = JSON.stringify(options.body);
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, fetchOptions);
+  const text = await response.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (_) {
+    data = text;
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    data
+  };
+}
+
+function splitDomainForHostinger(value) {
+  const domain = normalizeDomain(value);
+
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(domain)) {
+    return null;
+  }
+
+  const labels = domain.split('.').filter(Boolean);
+  if (labels.length < 2) return null;
+
+  return {
+    fullDomain: domain,
+    name: labels[0],
+    tld: labels.slice(1).join('.')
+  };
+}
+
+function parseHostingerAvailability(data, fullDomain) {
+  const items = Array.isArray(data) ? data : Array.isArray(data && data.data) ? data.data : [data];
+  const wanted = String(fullDomain || '').toLowerCase();
+  const match = items.find((item) => {
+    const domain = String((item && (item.domain || item.name || item.fqdn || item.domain_name)) || '').toLowerCase();
+    return domain === wanted || domain.endsWith(`.${wanted}`) || wanted.endsWith(`.${domain}`);
+  }) || items[0];
+
+  if (!match || typeof match !== 'object') return null;
+
+  const directFields = ['available', 'is_available', 'isAvailable', 'available_for_registration', 'is_free'];
+  for (const field of directFields) {
+    if (typeof match[field] === 'boolean') return match[field];
+  }
+
+  const status = String(match.status || match.availability || match.result || match.state || '').toLowerCase();
+  if (['available', 'free', 'success', 'ok'].includes(status)) return true;
+  if (['taken', 'unavailable', 'registered', 'not_available', 'blocked'].includes(status)) return false;
+
+  return null;
+}
+
+function extractHostingerDomainPrice(data, tld) {
+  const items = Array.isArray(data) ? data : Array.isArray(data && data.data) ? data.data : [];
+  const targetTld = String(tld || '').toLowerCase().replace(/^\./, '');
+  const divisor = Math.max(1, Number(process.env.HOSTINGER_PRICE_DIVISOR || 100));
+
+  const candidates = items.filter((item) => {
+    const name = String((item && item.name) || '').toLowerCase();
+    const id = String((item && item.id) || '').toLowerCase();
+    const metadata = JSON.stringify((item && item.metadata) || {}).toLowerCase();
+    return name.includes(targetTld) || id.includes(targetTld) || metadata.includes(targetTld) || !targetTld;
+  });
+
+  const pool = candidates.length ? candidates : items;
+
+  for (const item of pool) {
+    const prices = Array.isArray(item && item.prices) ? item.prices : [];
+    const sortedPrices = [...prices].sort((a, b) => {
+      const aYear = String(a.period_unit || '').toLowerCase() === 'year' ? 0 : 1;
+      const bYear = String(b.period_unit || '').toLowerCase() === 'year' ? 0 : 1;
+      const aPeriod = Number(a.period || 9999);
+      const bPeriod = Number(b.period || 9999);
+      return aYear - bYear || aPeriod - bPeriod;
+    });
+
+    for (const price of sortedPrices) {
+      const raw = price.first_period_price ?? price.price;
+      const number = Number(raw);
+      if (!Number.isFinite(number) || number <= 0) continue;
+
+      return {
+        price: Math.round(number / divisor),
+        currency: String(price.currency || process.env.DOMAIN_DEFAULT_CURRENCY || 'IDR').toUpperCase(),
+        period: Number(price.period || 1),
+        period_unit: String(price.period_unit || 'year')
+      };
+    }
+  }
+
+  return null;
+}
+
+function formatCurrency(value, currency = 'IDR') {
+  const numeric = Number(value || 0);
+  try {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: String(currency || 'IDR').toUpperCase(),
+      maximumFractionDigits: 0
+    }).format(numeric).replace(/\s/g, '');
+  } catch (_) {
+    return `Rp${Math.round(numeric).toLocaleString('id-ID')}`;
+  }
+}
+
+function getUpstreamMessage(data) {
+  if (!data) return '';
+  if (typeof data === 'string') return data.slice(0, 220);
+  return String(data.error || data.message || data.detail || data.title || '').slice(0, 220);
 }
 
 async function supabaseFetch(path, options = {}) {
