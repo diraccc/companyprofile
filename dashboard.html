@@ -4091,10 +4091,73 @@ namabrand"></textarea>
       orderFilter: "all",
       orderSearch: "",
       domainCheckRunId: 0,
-      lastRemovedCartItem: null
+      lastRemovedCartItem: null,
+      hostingerPriceCache: Object.create(null)
     };
 
     const $ = (id) => document.getElementById(id);
+
+    const HOSTINGER_CHECK_ACTION = "hostinger-check";
+
+    function domainExtensionFromName(domain) {
+      const clean = normalizeDomain(domain);
+      const knownExtension = Object.keys(PRICE_RULES || {}).sort((a, b) => b.length - a.length).find((ext) => clean.endsWith(ext));
+      if (knownExtension) return knownExtension;
+      const parts = clean.split(".");
+      return parts.length > 1 ? "." + parts.slice(1).join(".") : "";
+    }
+
+    function cacheHostingerDomainResult(data, fallbackDomain) {
+      const domain = normalizeDomain((data && data.domain) || fallbackDomain);
+      const rawPrice = Number(data && data.price);
+      const hasPrice = Number.isFinite(rawPrice) && rawPrice > 0;
+
+      if (domain && data && data.available !== false && hasPrice) {
+        const extension = domainExtensionFromName(domain);
+        state.hostingerPriceCache[domain] = {
+          extension,
+          register: rawPrice,
+          renewal: rawPrice,
+          category: "Domain",
+          note: "Harga total dari API.",
+          source: "hostinger_total",
+          price_label: data.price_label || ""
+        };
+      }
+
+      return {
+        ...(data || {}),
+        domain,
+        price: hasPrice ? rawPrice : Number((state.hostingerPriceCache[domain] || {}).register || 0),
+        price_label: (data && data.price_label) || ((state.hostingerPriceCache[domain] || {}).price_label) || ""
+      };
+    }
+
+    async function checkHostingerDomain(domain, options = {}) {
+      const clean = normalizeDomain(domain);
+      const data = await api(`?action=${HOSTINGER_CHECK_ACTION}&domain=${encodeURIComponent(clean)}`, {
+        timeout: options.timeout || 28000
+      });
+      return cacheHostingerDomainResult(data, clean);
+    }
+
+    function priceLabelFromApi(data, price) {
+      return (data && data.price_label) || (price && price.price_label) || formatRupiah((price && price.register) || (data && data.price) || 0);
+    }
+
+    function applyCheckedPriceToCartItem(item, data) {
+      if (!item || !data) return;
+      const clean = normalizeDomain(item.domain_name || data.domain);
+      const cachedPrice = getPrice(clean);
+      if (!cachedPrice) return;
+      item.domain_name = clean;
+      item.extension = cachedPrice.extension || item.extension || domainExtensionFromName(clean);
+      item.register_price = Number(cachedPrice.register || 0);
+      item.renewal_price = Number(cachedPrice.renewal || cachedPrice.register || 0);
+      item.subtotal = calculateSubtotal(item.register_price, item.renewal_price, item.years || 1);
+      item.availability_snapshot = data.available !== false;
+      item.price_source = "hostinger_total";
+    }
 
 
     const STATUS_CLASS_MAP = {
@@ -4333,7 +4396,21 @@ namabrand"></textarea>
     }
 
     function getPrice(domain) {
-      const extension = getExtension(domain);
+      const clean = normalizeDomain(domain);
+      const cached = state.hostingerPriceCache[clean];
+      if (cached && Number(cached.register) > 0) {
+        return {
+          extension: cached.extension || domainExtensionFromName(clean),
+          register: Number(cached.register),
+          renewal: Number(cached.renewal || cached.register),
+          category: cached.category || "Domain",
+          note: cached.note || "",
+          source: cached.source || "hostinger_total",
+          price_label: cached.price_label || ""
+        };
+      }
+
+      const extension = getExtension(clean);
       if (!extension) return null;
       return {
         extension,
@@ -4440,19 +4517,19 @@ namabrand"></textarea>
         if (!card) return;
         try {
           if (!isValidDomainName(domain)) throw new Error("Format domain belum valid.");
-          if (!getPrice(domain)) throw new Error("Harga ekstensi ini belum diatur.");
-          const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
+          const data = await checkHostingerDomain(domain);
           const safeDomain = normalizeDomain(data.domain || domain);
           const available = Boolean(data.available);
           const price = getPrice(safeDomain);
+          const totalLabel = priceLabelFromApi(data, price);
           card.className = `result-card ${available ? "available" : "taken"} bulk-result-card`;
           card.innerHTML = `
             <div class="result-head">
               <div class="result-domain">${escapeHTML(safeDomain)}</div>
               <span class="status-badge ${available ? "badge-available" : "badge-taken"}">${available ? "Tersedia" : "Tidak tersedia"}</span>
             </div>
-            <p>${escapeHTML(data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar."))}</p>
-            ${available ? `<div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>` : renderSuggestionHTML(safeDomain, "Alternatif")}
+            <p>${escapeHTML(data.message || (available ? "Domain tersedia." : "Domain sudah terdaftar."))}</p>
+            ${available ? `<div class="price-line">Harga Total: ${escapeHTML(totalLabel)}</div>` : renderSuggestionHTML(safeDomain, "Alternatif")}
             <div class="result-actions">
               ${available ? `<button class="btn btn-mint" data-add-cart="${escapeHTML(safeDomain)}">Tambah ke Keranjang</button>` : ""}
               <button class="btn btn-soft" data-recheck="${escapeHTML(safeDomain)}">Cek Ulang</button>
@@ -4591,11 +4668,13 @@ namabrand"></textarea>
 
     function renderCheckResult(data, fallbackDomain) {
       setResultBusy(false);
-      const domain = normalizeDomain(data.domain || fallbackDomain);
+      const normalized = cacheHostingerDomainResult(data, fallbackDomain);
+      const domain = normalizeDomain(normalized.domain || fallbackDomain);
       const displayDomain = escapeHTML(domain);
-      const available = Boolean(data.available);
+      const available = Boolean(normalized.available);
       const price = getPrice(domain);
-      const message = escapeHTML(data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar."));
+      const message = escapeHTML(normalized.message || (available ? "Domain tersedia." : "Domain sudah terdaftar."));
+      const totalLabel = priceLabelFromApi(normalized, price);
 
       $("resultArea").innerHTML = `
         <div class="result-card ${available ? "available" : "taken"}">
@@ -4607,8 +4686,8 @@ namabrand"></textarea>
           </div>
           <p>${message}</p>
           ${available ? `
-            <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
-            <p class="microcopy">Harga ditampilkan sebagai estimasi frontend dan tetap diverifikasi ulang saat checkout.</p>
+            <div class="price-line">Harga Total: ${escapeHTML(totalLabel)}</div>
+            <p class="microcopy">Harga sudah memakai total jual yang tampil di website.</p>
           ` : renderSuggestionHTML(domain)}
           <div class="result-actions">
             ${available ? `<button class="btn btn-mint" data-add-cart="${displayDomain}">Tambah ke Keranjang</button>` : ""}
@@ -4658,15 +4737,10 @@ namabrand"></textarea>
         return;
       }
 
-      if (!getPrice(domain)) {
-        renderError(domain, "Harga untuk ekstensi domain ini belum diatur.");
-        return;
-      }
-
       renderChecking(domain);
 
       try {
-        const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
+        const data = await checkHostingerDomain(domain);
         if (runId !== state.domainCheckRunId) return;
         renderCheckResult(data, domain);
       } catch (error) {
@@ -4702,7 +4776,7 @@ namabrand"></textarea>
               <div class="result-domain">${escapeHTML(domain)}</div>
               <span class="status-badge badge-checking"><span class="spinner" aria-hidden="true"></span> Mengecek...</span>
             </div>
-            <p>${price ? `Harga: ${formatRupiah(price.register)} / tahun pertama` : "Harga belum tersedia."}</p>
+            <p>Menunggu harga total dari API...</p>
           </div>
         `;
       }).join("");
@@ -4714,13 +4788,14 @@ namabrand"></textarea>
         if (!card) return;
 
         try {
-          const data = await api(`?action=domain_check&domain=${encodeURIComponent(domain)}`);
+          const data = await checkHostingerDomain(domain);
           if (runId !== state.domainCheckRunId) return;
           const safeDomain = normalizeDomain(data.domain || domain);
           const available = Boolean(data.available);
           const price = getPrice(safeDomain);
           const displayDomain = escapeHTML(safeDomain);
-          const displayMessage = escapeHTML(data.message || (available ? "Domain kemungkinan tersedia." : "Domain sudah terdaftar."));
+          const displayMessage = escapeHTML(data.message || (available ? "Domain tersedia." : "Domain sudah terdaftar."));
+          const totalLabel = priceLabelFromApi(data, price);
 
           card.className = `result-card ${available ? "available" : "taken"}`;
           card.innerHTML = `
@@ -4732,8 +4807,8 @@ namabrand"></textarea>
             </div>
             <p>${displayMessage}</p>
             ${available ? `
-              <div class="price-line">${price ? formatRupiah(price.register) : "Hubungi admin"} <span>/ tahun pertama</span></div>
-              <p class="microcopy">Harga estimasi. Final tetap diverifikasi ulang saat checkout.</p>
+              <div class="price-line">Harga Total: ${escapeHTML(totalLabel)}</div>
+              <p class="microcopy">Harga sudah memakai total jual yang tampil di website.</p>
             ` : `
               <p class="microcopy">Coba variasi ekstensi lain atau ubah nama brand sedikit.</p>
             `}
@@ -4807,7 +4882,7 @@ namabrand"></textarea>
       }
 
       if (!price) {
-        showToast("Harga domain ini belum tersedia.", "error");
+        showToast("Cek domain dahulu agar harga total dari API tersedia.", "error");
         return;
       }
 
@@ -4825,7 +4900,8 @@ namabrand"></textarea>
         register_price: price.register,
         renewal_price: price.renewal,
         subtotal: calculateSubtotal(price.register, price.renewal, 1),
-        availability_snapshot: true
+        availability_snapshot: true,
+        price_source: price.source || "static" 
       });
 
       saveCart();
@@ -4892,7 +4968,7 @@ namabrand"></textarea>
           <div class="cart-item">
             <div>
               <h3>${domain}</h3>
-              <p>${ext} • tahun pertama ${formatRupiah(item.register_price)} • renewal ${formatRupiah(item.renewal_price)}/tahun</p>
+              <p>${ext} • Harga Total ${formatRupiah(item.register_price)}</p>
               <div class="cart-controls">
                 <label class="sr-only" for="years-${domain}">Durasi ${domain}</label>
                 <select class="cart-year-select" id="years-${domain}" data-years="${domain}" aria-label="Durasi ${domain}">${yearOptions}</select>
@@ -5009,13 +5085,16 @@ namabrand"></textarea>
 
     async function recheckCartBeforeCheckout() {
       const results = await Promise.all(state.cart.map(async (item) => {
-        const result = await api(`?action=domain_check&domain=${encodeURIComponent(item.domain_name)}`);
+        const result = await checkHostingerDomain(item.domain_name, { timeout: 32000 });
+        applyCheckedPriceToCartItem(item, result);
         return { item, result };
       }));
       const unavailable = results.find(({ result }) => !result.available);
       if (unavailable) {
         throw new Error(`${unavailable.item.domain_name} sudah tidak tersedia. Hapus dari keranjang lalu pilih domain lain.`);
       }
+      saveCart();
+      renderCart();
     }
 
     function buildCheckoutConfirmHTML(payload) {
@@ -5117,6 +5196,9 @@ namabrand"></textarea>
         items: state.cart.map((item) => ({
           domain_name: item.domain_name,
           years: item.years,
+          register_price: item.register_price,
+          renewal_price: item.renewal_price,
+          subtotal: item.subtotal,
           availability_snapshot: item.availability_snapshot
         }))
       };
@@ -5161,7 +5243,7 @@ namabrand"></textarea>
         alertBox.innerHTML = `
           <b>Pesanan berhasil dibuat.</b><br>
           Invoice: <b>${escapeHTML(invoiceCode)}</b><br>
-          Total: <b>${formatRupiah(result.total_amount)}</b><br>
+          Total: <b>${formatRupiah(getCartTotal())}</b><br>
           Status: menunggu konfirmasi admin.<br>
           <div class="payment-box">
             Simpan invoice ini. Setelah pembayaran dilakukan, kirim bukti pembayaran ke admin agar domain segera diproses.
