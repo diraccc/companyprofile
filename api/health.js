@@ -127,6 +127,15 @@ const REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || 'dirac_domain_refres
 const HOSTINGER_API_BASE = 'https://developers.hostinger.com';
 const HOSTINGER_CHECK_CACHE = new Map();
 
+// Pool token Hostinger disimpan di memori instance Vercel.
+// Tetap kompatibel dengan env lama HOSTINGER_API_TOKEN:
+// - 1 token: HOSTINGER_API_TOKEN=token_utama
+// - 11 token: HOSTINGER_API_TOKEN=token1,token2,...,token11
+// Opsional juga mendukung HOSTINGER_API_TOKEN_1 s.d. HOSTINGER_API_TOKEN_11.
+const HOSTINGER_TOKEN_COOLDOWNS = globalThis.__DIRAC_HOSTINGER_TOKEN_COOLDOWNS__ || new Map();
+globalThis.__DIRAC_HOSTINGER_TOKEN_COOLDOWNS__ = HOSTINGER_TOKEN_COOLDOWNS;
+globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ = globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ || 0;
+
 async function handleDomainAction(action, req, res) {
   try {
     if (action === 'domain_health') return domainHealth(req, res);
@@ -641,11 +650,93 @@ async function requireDomainUser(req, res) {
 }
 
 async function hostingerFetch(path, options = {}) {
-  const token = requiredEnv('HOSTINGER_API_TOKEN');
+  const tokens = getHostingerApiTokens();
   const baseUrl = String(process.env.HOSTINGER_API_BASE || HOSTINGER_API_BASE).replace(/\/$/, '');
+  const fetchOptionsTemplate = buildHostingerFetchOptions(options);
+  const startPointer = Number(globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ || 0);
+  let lastLimited = null;
+  let lastAuthError = null;
+
+  for (let attempt = 0; attempt < tokens.length; attempt += 1) {
+    const index = (startPointer + attempt) % tokens.length;
+    const cooldownUntil = Number(HOSTINGER_TOKEN_COOLDOWNS.get(index) || 0);
+
+    if (cooldownUntil > Date.now()) {
+      lastLimited = {
+        status: 429,
+        api_index: index + 1,
+        retry_after_seconds: Math.ceil((cooldownUntil - Date.now()) / 1000),
+        message: `API Hostinger ke-${index + 1} masih cooldown.`
+      };
+      continue;
+    }
+
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...fetchOptionsTemplate,
+      headers: {
+        ...fetchOptionsTemplate.headers,
+        Authorization: `Bearer ${tokens[index]}`
+      }
+    });
+
+    const data = await parseFetchResponse(response);
+
+    if (response.status === 429) {
+      const cooldownMs = getRetryAfterMs(response);
+      HOSTINGER_TOKEN_COOLDOWNS.set(index, Date.now() + cooldownMs);
+      lastLimited = {
+        status: 429,
+        api_index: index + 1,
+        retry_after_seconds: Math.ceil(cooldownMs / 1000),
+        message: getUpstreamMessage(data) || `API Hostinger ke-${index + 1} terkena limit.`,
+        data
+      };
+      continue;
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      const cooldownMs = Math.max(60_000, Number(process.env.HOSTINGER_AUTH_ERROR_COOLDOWN_SECONDS || 300) * 1000);
+      HOSTINGER_TOKEN_COOLDOWNS.set(index, Date.now() + cooldownMs);
+      lastAuthError = {
+        status: response.status,
+        api_index: index + 1,
+        retry_after_seconds: Math.ceil(cooldownMs / 1000),
+        message: getUpstreamMessage(data) || `API Hostinger ke-${index + 1} tidak valid atau tidak punya izin.`,
+        data
+      };
+      continue;
+    }
+
+    globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ = (index + 1) % tokens.length;
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      data,
+      api_index: index + 1
+    };
+  }
+
+  const fallback = lastLimited || lastAuthError || {
+    status: 429,
+    message: 'Semua API Hostinger sedang terkena limit atau belum dapat dipakai.',
+    retry_after_seconds: 60
+  };
+
+  return {
+    ok: false,
+    status: fallback.status || 429,
+    data: {
+      message: fallback.message || 'Semua API Hostinger sedang terkena limit atau belum dapat dipakai.',
+      api_index: fallback.api_index || null,
+      retry_after_seconds: fallback.retry_after_seconds || 60
+    }
+  };
+}
+
+function buildHostingerFetchOptions(options = {}) {
   const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`
+    Accept: 'application/json'
   };
 
   const fetchOptions = {
@@ -658,21 +749,60 @@ async function hostingerFetch(path, options = {}) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${baseUrl}${path}`, fetchOptions);
-  const text = await response.text();
-  let data = null;
+  return fetchOptions;
+}
 
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch (_) {
-    data = text;
+function getHostingerApiTokens() {
+  const fromMainEnv = String(process.env.HOSTINGER_API_TOKEN || '')
+    .split(',')
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  const fromAliases = String(process.env.HOSTINGER_API_TOKENS || process.env.HOSTINGER_API_KEYS || '')
+    .split(',')
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  const numbered = Array.from({ length: 11 }, (_, index) => String(process.env[`HOSTINGER_API_TOKEN_${index + 1}`] || '').trim())
+    .filter(Boolean);
+
+  const tokens = Array.from(new Set([...fromMainEnv, ...fromAliases, ...numbered]));
+
+  if (!tokens.length) {
+    throw new Error('HOSTINGER_API_TOKEN belum diisi di Environment Variables Vercel.');
   }
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    data
-  };
+  return tokens;
+}
+
+function getRetryAfterMs(response) {
+  const retryAfter = response && response.headers && response.headers.get ? response.headers.get('retry-after') : '';
+
+  if (!retryAfter) {
+    return Math.max(1, Number(process.env.HOSTINGER_DEFAULT_COOLDOWN_SECONDS || 60)) * 1000;
+  }
+
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.max(1, seconds) * 1000;
+  }
+
+  const retryDate = new Date(retryAfter).getTime();
+  if (Number.isFinite(retryDate)) {
+    return Math.max(retryDate - Date.now(), 1000);
+  }
+
+  return Math.max(1, Number(process.env.HOSTINGER_DEFAULT_COOLDOWN_SECONDS || 60)) * 1000;
+}
+
+async function parseFetchResponse(response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch (_) {
+    return text;
+  }
 }
 
 function splitDomainForHostinger(value) {
