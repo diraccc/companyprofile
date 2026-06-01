@@ -3541,6 +3541,390 @@ html[data-theme="dark"] .preset-chip{
 }
 </style>
 
+
+
+<style id="dirac-final-v6-menu-collapse-dark">
+/* ============================================================
+   Dirac final V6: professional mobile drawer, collapsed orders/domains,
+   dark-mode cleanup. CSS/DOM-only enhancement. Login/hash/session logic is not changed.
+   ============================================================ */
+:root{
+  --dirac-drawer-width: min(82vw, 372px);
+  --dirac-clean-navy: #111f4f;
+  --dirac-clean-muted: #69758f;
+  --dirac-clean-line: rgba(17,31,79,.10);
+  --dirac-clean-soft: #f7f9ff;
+  --dirac-clean-surface: rgba(255,255,255,.98);
+}
+
+.dirac-reveal-gate{
+  margin:14px 0 0;
+  padding:16px;
+  border-radius:22px;
+  border:1px solid rgba(17,31,79,.10);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(19,182,214,.12), transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,250,255,.92));
+  box-shadow:0 16px 42px rgba(15,23,42,.08);
+  display:grid;
+  gap:12px;
+}
+.dirac-reveal-copy{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  color:var(--dirac-clean-muted);
+  font-weight:800;
+  line-height:1.45;
+}
+.dirac-reveal-copy b{
+  display:block;
+  color:var(--dirac-clean-navy);
+  font-size:16px;
+  letter-spacing:-.025em;
+}
+.dirac-reveal-count{
+  min-width:34px;
+  height:34px;
+  padding:0 10px;
+  border-radius:999px;
+  display:inline-grid;
+  place-items:center;
+  color:#fff!important;
+  background:linear-gradient(135deg,#6258ff,#13b6d6);
+  box-shadow:0 12px 28px rgba(37,99,235,.18);
+  font-size:13px;
+  font-weight:1000;
+}
+.dirac-reveal-btn{
+  width:100%;
+  min-height:52px;
+  border:0;
+  border-radius:18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  color:#fff;
+  background:linear-gradient(135deg,#6258ff,#13b6d6);
+  box-shadow:0 18px 42px rgba(37,99,235,.22);
+  font-weight:1000;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.dirac-reveal-btn:active{transform:translateY(1px) scale(.99)}
+#orders[data-dirac-collapsed="true"] .order-tools,
+#orders[data-dirac-collapsed="true"] #ordersList,
+#orders[data-dirac-collapsed="true"] #ordersViewMoreWrap,
+#domains[data-dirac-collapsed="true"] #ownedDomainsList{
+  display:none!important;
+}
+#orders[data-dirac-expanded="true"] #ordersViewMoreWrap{display:none!important;}
+#orders[data-dirac-expanded="true"] .order-card[hidden]{display:block!important;}
+#domains[data-dirac-expanded="true"] #ownedDomainsList{display:grid!important;}
+#orders .panel,
+#domains .panel{overflow:hidden;}
+#orders .section-head,
+#domains .section-head{align-items:center;}
+
+@media(max-width:900px){
+  body.menu-open{overflow:hidden!important;touch-action:none;}
+  .site-header{z-index:41000!important;}
+  .nav{position:relative;z-index:41010!important;}
+  .menu-toggle{
+    z-index:41260!important;
+    width:52px!important;
+    height:52px!important;
+    min-width:52px!important;
+    border-radius:18px!important;
+    background:rgba(255,255,255,.98)!important;
+    border:1px solid rgba(17,31,79,.12)!important;
+    box-shadow:0 14px 34px rgba(15,23,42,.12)!important;
+  }
+  .nav-backdrop{
+    z-index:41100!important;
+    opacity:0!important;
+    pointer-events:none!important;
+    background:rgba(15,23,42,.48)!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    transition:opacity .22s ease!important;
+  }
+  body.menu-open .nav-backdrop{opacity:1!important;pointer-events:auto!important;}
+
+  .site-header .nav-actions{
+    position:fixed!important;
+    left:0!important;
+    right:auto!important;
+    top:0!important;
+    bottom:0!important;
+    width:var(--dirac-drawer-width)!important;
+    max-width:var(--dirac-drawer-width)!important;
+    height:100dvh!important;
+    z-index:41200!important;
+    display:flex!important;
+    flex-direction:column!important;
+    grid-template-columns:none!important;
+    gap:10px!important;
+    padding:18px 16px calc(22px + env(safe-area-inset-bottom,0px))!important;
+    border-radius:0 28px 28px 0!important;
+    background:var(--dirac-clean-surface)!important;
+    border:0!important;
+    border-right:1px solid rgba(17,31,79,.10)!important;
+    box-shadow:30px 0 80px rgba(15,23,42,.24)!important;
+    transform:translate3d(-106%,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:none!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    transition:transform .28s cubic-bezier(.22,1,.36,1)!important;
+  }
+  body.menu-open .site-header .nav-actions{
+    transform:translate3d(0,0,0)!important;
+    pointer-events:auto!important;
+  }
+  .dirac-drawer-head{
+    display:grid!important;
+    grid-template-columns:1fr auto auto!important;
+    gap:12px!important;
+    align-items:center!important;
+    padding:4px 0 16px!important;
+    margin-bottom:6px!important;
+    border-bottom:1px solid rgba(17,31,79,.08)!important;
+  }
+  .dirac-drawer-title{min-width:0!important;display:grid!important;gap:2px!important;}
+  .dirac-drawer-title strong{
+    color:var(--dirac-clean-navy)!important;
+    font-size:20px!important;
+    line-height:1!important;
+    letter-spacing:-.045em!important;
+  }
+  .dirac-drawer-title small{
+    color:#6258ff!important;
+    font-size:10px!important;
+    text-transform:uppercase!important;
+    letter-spacing:.18em!important;
+    font-weight:1000!important;
+  }
+  .dirac-drawer-logo{
+    width:52px!important;
+    height:52px!important;
+    border-radius:18px!important;
+    object-fit:cover!important;
+    box-shadow:0 14px 30px rgba(37,99,235,.14)!important;
+  }
+  .dirac-drawer-close{
+    width:44px!important;
+    height:44px!important;
+    border-radius:999px!important;
+    border:0!important;
+    background:#f3f5fb!important;
+    color:var(--dirac-clean-navy)!important;
+    display:grid!important;
+    place-items:center!important;
+    font-size:28px!important;
+    line-height:1!important;
+    cursor:pointer!important;
+  }
+  .site-header .nav-actions > .btn,
+  .site-header .nav-actions > .theme-toggle{
+    width:100%!important;
+    min-height:58px!important;
+    border-radius:18px!important;
+    padding:12px 14px!important;
+    justify-content:flex-start!important;
+    text-align:left!important;
+    color:var(--dirac-clean-navy)!important;
+    background:#fff!important;
+    border:1px solid rgba(17,31,79,.10)!important;
+    box-shadow:none!important;
+    font-size:16px!important;
+    font-weight:950!important;
+    flex:0 0 auto!important;
+  }
+  .site-header .nav-actions > .btn[data-menu-icon]::before,
+  .site-header .nav-actions > .theme-toggle::before{
+    content:attr(data-menu-icon);
+    width:34px!important;
+    height:34px!important;
+    flex:0 0 34px!important;
+    display:inline-grid!important;
+    place-items:center!important;
+    margin-right:10px!important;
+    border-radius:13px!important;
+    color:#475569!important;
+    background:#f4f6fb!important;
+    font-size:18px!important;
+    font-weight:900!important;
+  }
+  .site-header .nav-actions > .btn:hover,
+  .site-header .nav-actions > .theme-toggle:hover,
+  .site-header .nav-actions > .btn:focus-visible,
+  .site-header .nav-actions > .theme-toggle:focus-visible{
+    transform:none!important;
+    border-color:rgba(98,88,255,.24)!important;
+    background:#f9fbff!important;
+    box-shadow:0 10px 28px rgba(15,23,42,.07)!important;
+  }
+  .site-header .nav-actions .theme-toggle-nav .theme-label{display:inline!important;font-size:16px!important;}
+  .site-header .nav-actions .theme-toggle-nav .theme-icon{display:none!important;}
+  .site-header .nav-actions > .btn-danger{
+    margin-top:auto!important;
+    color:#be123c!important;
+    background:#fff1f2!important;
+    border-color:#fecdd3!important;
+  }
+  .site-header .nav-actions > .btn-danger::before{content:"↪"!important;background:#ffe4ea!important;color:#be123c!important;display:inline-grid!important;}
+
+  #orders .section-head,
+  #domains .section-head{align-items:stretch!important;gap:12px!important;}
+  #orders .section-head .btn,
+  #domains .section-head .btn{width:100%!important;}
+  .dirac-reveal-gate{border-radius:20px!important;padding:14px!important;}
+  .dirac-reveal-copy{font-size:13px!important;}
+  .dirac-reveal-copy b{font-size:15px!important;}
+  .dirac-reveal-btn{min-height:50px!important;border-radius:16px!important;}
+}
+
+@media(max-width:420px){
+  :root{--dirac-drawer-width:min(86vw,360px);}
+  .site-header .nav-actions{padding-left:14px!important;padding-right:14px!important;}
+  .site-header .nav-actions > .btn,
+  .site-header .nav-actions > .theme-toggle{min-height:56px!important;font-size:15px!important;}
+}
+
+html[data-theme="dark"]{
+  --dirac-clean-navy:#f8fafc;
+  --dirac-clean-muted:#b8c4d8;
+  --dirac-clean-line:rgba(226,232,240,.15);
+  --dirac-clean-soft:#111b2e;
+  --dirac-clean-surface:#0d1728;
+}
+html[data-theme="dark"] body{
+  background:
+    radial-gradient(circle at 12% 0%, rgba(37,99,235,.22), transparent 30%),
+    radial-gradient(circle at 90% 8%, rgba(19,182,214,.13), transparent 28%),
+    linear-gradient(180deg,#07111f,#0a1424 52%,#07111f)!important;
+}
+html[data-theme="dark"] .dirac-reveal-gate{
+  background:linear-gradient(180deg,#101a2c,#0b1424)!important;
+  border-color:rgba(226,232,240,.14)!important;
+  box-shadow:0 22px 56px rgba(0,0,0,.40)!important;
+}
+html[data-theme="dark"] .dirac-reveal-copy,
+html[data-theme="dark"] .dirac-reveal-copy small{color:#b8c4d8!important;}
+html[data-theme="dark"] .dirac-reveal-copy b{color:#f8fafc!important;}
+html[data-theme="dark"] .site-header .nav-actions{
+  background:#0d1728!important;
+  border-right-color:rgba(226,232,240,.14)!important;
+  box-shadow:30px 0 80px rgba(0,0,0,.58)!important;
+}
+html[data-theme="dark"] .dirac-drawer-head{border-bottom-color:rgba(226,232,240,.12)!important;}
+html[data-theme="dark"] .dirac-drawer-title strong{color:#f8fafc!important;}
+html[data-theme="dark"] .dirac-drawer-title small{color:#8ec5ff!important;}
+html[data-theme="dark"] .dirac-drawer-close,
+html[data-theme="dark"] .site-header .nav-actions > .btn,
+html[data-theme="dark"] .site-header .nav-actions > .theme-toggle{
+  background:#111d31!important;
+  color:#f8fafc!important;
+  border-color:rgba(226,232,240,.14)!important;
+}
+html[data-theme="dark"] .site-header .nav-actions > .btn[data-menu-icon]::before,
+html[data-theme="dark"] .site-header .nav-actions > .theme-toggle::before{
+  background:#17243a!important;
+  color:#dbeafe!important;
+}
+html[data-theme="dark"] .site-header .nav-actions > .btn-danger{
+  background:rgba(190,18,60,.13)!important;
+  color:#fecdd3!important;
+  border-color:rgba(251,113,133,.26)!important;
+}
+html[data-theme="dark"] .site-header .nav-actions > .btn-danger::before{background:rgba(190,18,60,.20)!important;color:#fecdd3!important;}
+
+html[data-theme="dark"] .order-tools,
+html[data-theme="dark"] .order-filters,
+html[data-theme="dark"] .domain-form,
+html[data-theme="dark"] .cart-empty,
+html[data-theme="dark"] .info-box,
+html[data-theme="dark"] .owned-domain-meta div,
+html[data-theme="dark"] .timeline-step,
+html[data-theme="dark"] .domain-item,
+html[data-theme="dark"] .line,
+html[data-theme="dark"] .summary-line,
+html[data-theme="dark"] .agree-box,
+html[data-theme="dark"] .bulk-panel,
+html[data-theme="dark"] .suggestion-box{
+  background:#0b1424!important;
+  border-color:rgba(226,232,240,.12)!important;
+  color:#e5edf9!important;
+}
+html[data-theme="dark"] .line b,
+html[data-theme="dark"] .summary-line b,
+html[data-theme="dark"] .domain-item b,
+html[data-theme="dark"] .domain-item span,
+html[data-theme="dark"] .owned-domain-meta b{color:#f8fafc!important;}
+html[data-theme="dark"] .order-search,
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field textarea,
+html[data-theme="dark"] .field select,
+html[data-theme="dark"] .cart-year-select{
+  background:#08111f!important;
+  color:#f8fafc!important;
+  border-color:rgba(148,163,184,.34)!important;
+}
+html[data-theme="dark"] .filter-chip,
+html[data-theme="dark"] .order-action,
+html[data-theme="dark"] .tld-chip,
+html[data-theme="dark"] .preset-chip{
+  background:#111d31!important;
+  color:#dbeafe!important;
+  border-color:rgba(148,163,184,.25)!important;
+}
+html[data-theme="dark"] .filter-chip.active,
+html[data-theme="dark"] .preset-chip:hover{
+  color:#fff!important;
+  background:linear-gradient(135deg,#6258ff,#13b6d6)!important;
+  border-color:transparent!important;
+}
+html[data-theme="dark"] .badge.pending,
+html[data-theme="dark"] .badge.unpaid{
+  color:#fde68a!important;
+  background:rgba(146,64,14,.18)!important;
+  border-color:rgba(253,230,138,.25)!important;
+}
+html[data-theme="dark"] .badge.paid,
+html[data-theme="dark"] .badge.domain_aktif,
+html[data-theme="dark"] .badge.active,
+html[data-theme="dark"] .timeline-step.done{
+  color:#86efac!important;
+  background:rgba(4,120,87,.18)!important;
+  border-color:rgba(134,239,172,.24)!important;
+}
+html[data-theme="dark"] .timeline-step.current,
+html[data-theme="dark"] .badge.proses_register,
+html[data-theme="dark"] .badge.dibayar{
+  color:#bfdbfe!important;
+  background:rgba(29,78,216,.18)!important;
+  border-color:rgba(191,219,254,.24)!important;
+}
+html[data-theme="dark"] .mobile-bottom-nav{
+  background:linear-gradient(120deg,rgba(8,17,31,.96),rgba(17,29,49,.92),rgba(8,17,31,.96))!important;
+  border-color:rgba(226,232,240,.16)!important;
+}
+html[data-theme="dark"] .mobile-bottom-nav button:not(.active){color:#d7e2f3!important;}
+html[data-theme="dark"] .nav-badge{color:#fff!important;}
+@media(prefers-reduced-motion:reduce){
+  .site-header .nav-actions,
+  .nav-backdrop,
+  .dirac-reveal-btn{transition:none!important;animation:none!important;}
+}
+</style>
+
 </head>
 
 <body>
@@ -6812,6 +7196,144 @@ html[data-theme="dark"] .professional-mobile-note{
 })();
 </script>
 <!-- DIRAC_PROFESSIONAL_MOBILE_REFINEMENT_V7_END -->
+
+
+
+<script id="dirac-final-v6-menu-collapse-dark-js">
+(() => {
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once:true }); else fn(); }
+  const q = (sel, root=document) => root.querySelector(sel);
+  const qa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  function setupDrawer(){
+    const menu = q('#siteMenu');
+    if(!menu) return;
+    if(!q('.dirac-drawer-head', menu)){
+      const head = document.createElement('div');
+      head.className = 'dirac-drawer-head';
+      head.innerHTML = `
+        <div class="dirac-drawer-title"><strong>Menu Dashboard</strong><small>Dirac Group</small></div>
+        <img class="dirac-drawer-logo" src="logo3.webp" alt="Dirac Group" />
+        <button class="dirac-drawer-close" type="button" aria-label="Tutup menu">×</button>
+      `;
+      menu.insertBefore(head, menu.firstChild);
+    }
+    const iconByScroll = {
+      cek:'⌕', harga:'◌', 'market-tools':'▦', keranjang:'🛒', domains:'◎', orders:'☷', account:'♙'
+    };
+    qa('#siteMenu > .btn, #siteMenu > .theme-toggle').forEach((button) => {
+      if(button.classList.contains('btn-danger')) button.setAttribute('data-menu-icon','↪');
+      else if(button.matches('[data-theme-toggle]')) button.setAttribute('data-menu-icon','☾');
+      else if(button.dataset.scroll && iconByScroll[button.dataset.scroll]) button.setAttribute('data-menu-icon', iconByScroll[button.dataset.scroll]);
+    });
+    const toggle = q('[data-menu-toggle]');
+    const close = () => {
+      document.body.classList.remove('menu-open');
+      toggle?.setAttribute('aria-expanded','false');
+    };
+    q('.dirac-drawer-close', menu)?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); close(); });
+    q('[data-menu-close]')?.addEventListener('click', close);
+    qa('#siteMenu [data-scroll]').forEach((button) => button.addEventListener('click', () => setTimeout(close, 120)));
+  }
+
+  function countCards(listSelector, cardSelector){
+    const list = q(listSelector);
+    if(!list) return 0;
+    return qa(cardSelector, list).length;
+  }
+
+  function setupCollapsedSection({ id, gateId, listSelector, cardSelector, title, text, showLabel, hideLabel }){
+    const section = q('#' + id);
+    const list = q(listSelector);
+    if(!section || !list) return;
+    if(!section.hasAttribute('data-dirac-collapsed')){
+      section.setAttribute('data-dirac-collapsed','true');
+      section.removeAttribute('data-dirac-expanded');
+    }
+    let gate = q('#' + gateId);
+    if(!gate){
+      gate = document.createElement('div');
+      gate.id = gateId;
+      gate.className = 'dirac-reveal-gate';
+      gate.innerHTML = `
+        <div class="dirac-reveal-copy">
+          <span><b>${title}</b><small>${text}</small></span>
+          <span class="dirac-reveal-count" aria-label="Jumlah data">0</span>
+        </div>
+        <button class="dirac-reveal-btn" type="button" aria-expanded="false">${showLabel}</button>
+      `;
+      const tools = id === 'orders' ? q('#orders .order-tools') : list;
+      (tools || list).insertAdjacentElement('beforebegin', gate);
+    }
+    const button = q('.dirac-reveal-btn', gate);
+    const countNode = q('.dirac-reveal-count', gate);
+
+    function isCollapsed(){ return section.getAttribute('data-dirac-collapsed') === 'true'; }
+    function setCollapsed(next){
+      section.setAttribute('data-dirac-collapsed', next ? 'true' : 'false');
+      section.toggleAttribute('data-dirac-expanded', !next);
+      if(!next && id === 'orders'){
+        qa('#ordersList .order-card').forEach((card) => { card.hidden = false; });
+        const more = q('#ordersViewMoreWrap');
+        if(more) more.hidden = true;
+      }
+      update();
+      if(!next) setTimeout(() => section.scrollIntoView({ behavior:'smooth', block:'start' }), 40);
+    }
+    function update(){
+      const count = countCards(listSelector, cardSelector);
+      if(countNode) countNode.textContent = String(count);
+      if(button){
+        button.textContent = isCollapsed() ? (count ? `${showLabel} (${count})` : showLabel) : hideLabel;
+        button.setAttribute('aria-expanded', String(!isCollapsed()));
+      }
+      if(!isCollapsed() && id === 'orders') qa('#ordersList .order-card').forEach((card) => { card.hidden = false; });
+    }
+    if(button && button.dataset.diracBound !== 'true'){
+      button.dataset.diracBound = 'true';
+      button.addEventListener('click', () => setCollapsed(!isCollapsed()));
+    }
+    const observer = new MutationObserver(update);
+    observer.observe(list, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden','class'] });
+    update();
+  }
+
+  function setupCollapses(){
+    setupCollapsedSection({
+      id:'orders',
+      gateId:'ordersRevealGate',
+      listSelector:'#ordersList',
+      cardSelector:'.order-card',
+      title:'Daftar pesanan disembunyikan agar tampilan tetap rapi.',
+      text:'Tekan tombol di bawah untuk membuka invoice, timeline, detail pembayaran, dan tombol tindakan.',
+      showLabel:'Lihat pesanan',
+      hideLabel:'Sembunyikan pesanan'
+    });
+    setupCollapsedSection({
+      id:'domains',
+      gateId:'domainsRevealGate',
+      listSelector:'#ownedDomainsList',
+      cardSelector:'.owned-domain-card',
+      title:'Ringkasan domain disembunyikan.',
+      text:'Buka hanya saat ingin melihat domain dari pesanan akun ini, supaya halaman mobile tidak terlalu panjang.',
+      showLabel:'Lihat domain saya',
+      hideLabel:'Sembunyikan domain'
+    });
+  }
+
+  function strengthenDarkModeLabels(){
+    // No logic change. This only marks small technical labels to receive final CSS contrast.
+    qa('.line span,.summary-line span,.owned-domain-meta small,.field-help,.microcopy').forEach((node) => node.classList.add('dirac-muted-label'));
+  }
+
+  ready(() => {
+    setupDrawer();
+    setupCollapses();
+    strengthenDarkModeLabels();
+    window.addEventListener('resize', () => { if(window.innerWidth > 900) document.body.classList.remove('menu-open'); }, { passive:true });
+  });
+})();
+</script>
 
 </body>
 </html>
