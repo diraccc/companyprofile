@@ -391,17 +391,66 @@ async function readPublicMfa(identifier) {
 async function savePublicMfa(payload) {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
-  const row = Object.assign({}, payload, { updated_at: now });
+  const identifier = normalizeIdentifier(payload && payload.identifier);
+
+  if (!identifier) {
+    const err = new Error("Identifier pengguna wajib ada untuk menyimpan MFA.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const row = Object.assign({}, payload, {
+    identifier,
+    updated_at: now
+  });
+
+  // Hindari upsert ON CONFLICT karena beberapa project Supabase sering gagal 400
+  // jika schema cache/constraint belum sinkron. Alur manual ini lebih stabil:
+  // 1) cek row, 2) update jika ada, 3) insert jika belum ada.
+  const existing = await readPublicMfa(identifier);
+
+  if (existing) {
+    delete row.created_at;
+    const { data, error } = await supabase
+      .from(PUBLIC_TOTP_TABLE)
+      .update(row)
+      .eq("identifier", identifier)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Gagal update user_totp_mfa:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      error.statusCode = error.status || 500;
+      throw error;
+    }
+
+    return data || row;
+  }
+
   if (!row.created_at) row.created_at = now;
+
   const { data, error } = await supabase
     .from(PUBLIC_TOTP_TABLE)
-    .upsert(row, { onConflict: "identifier" })
+    .insert(row)
     .select("*")
     .single();
+
   if (error) {
+    console.error("Gagal insert user_totp_mfa:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
     error.statusCode = error.status || 500;
     throw error;
   }
+
   return data || row;
 }
 
