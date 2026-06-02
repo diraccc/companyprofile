@@ -2536,56 +2536,202 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   #a2fModal #a2fStartBtn,
   #a2fModal #a2fDoneBtn{min-height:48px!important;font-size:.84rem!important;}
 }
+</style>
 
-/* Mobile method card precision override: fixes overflow from older grid rules. */
+
+
+<style id="dirac-a2f-12s-keyboard-final-css">
+/* =========================================================
+   Revisi final: A2F 12 detik + IP pengguna + keyboard mobile fix.
+   Penyebab bug keyboard sebelumnya: tombol aksi memakai campuran fixed/sticky
+   dengan svh/dvh dan visualViewport bottom, sehingga ketika keyboard muncul
+   iOS/Safari ikut menggulir body dan bar aksi meloncat ke area yang salah.
+   ========================================================= */
+:root{
+  --a2f-vv-top:0px;
+  --a2f-keyboard-gap:0px;
+}
+.a2f-launch-card{width:min(650px,calc(100vw - 36px))!important;border-radius:32px!important}
+.a2f-launch-body{gap:14px!important}
+.a2f-terminal{min-height:156px!important;font-size:.74rem!important;line-height:1.5!important}
+.a2f-terminal-line.info{color:#93c5fd!important}
+.a2f-terminal-line.warn{color:#fde68a!important}
+.a2f-terminal-line.ok{color:#86efac!important}
+.a2f-launch-ip{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;
+  border:2px solid #111827!important;border-radius:12px!important;background:#ecfeff!important;color:#0f172a!important;
+  padding:8px 10px!important;box-shadow:3px 3px 0 #111827!important;font-weight:950!important;
+}
+.a2f-launch-ip span{font-size:.68rem!important;text-transform:uppercase!important;letter-spacing:.06em!important;color:#0369a1!important}
+.a2f-launch-ip strong{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace!important;font-size:.78rem!important;word-break:break-all!important;text-align:right!important;color:#111827!important}
+.a2f-launch-ip.is-loading strong:after{content:"";display:inline-block;width:.85em;text-align:left;animation:diracIpDots .8s steps(3,end) infinite}
+@keyframes diracIpDots{0%{content:""}33%{content:"."}66%{content:".."}100%{content:"..."}}
 @media(max-width:760px){
-  #a2fModal .a2f-method{
-    display:grid!important;
-    grid-template-columns:48px minmax(0,1fr)!important;
-    grid-auto-rows:auto!important;
-    column-gap:12px!important;
-    row-gap:5px!important;
-    align-items:start!important;
-    min-height:auto!important;
-    padding:14px!important;
-  }
-  #a2fModal .a2f-method-top{
-    position:static!important;
-    grid-column:1!important;
-    grid-row:1 / span 3!important;
-    display:flex!important;
+  body.modal-open{overflow:hidden!important;touch-action:none!important;}
+  #a2fModal.open{
+    position:fixed!important;
+    left:0!important;right:0!important;
+    top:var(--a2f-vv-top,0px)!important;
+    bottom:auto!important;
+    width:100vw!important;
+    height:var(--a2f-vh,100svh)!important;
+    max-height:var(--a2f-vh,100svh)!important;
     align-items:flex-start!important;
-    justify-content:center!important;
-    margin:0!important;
-    width:48px!important;
-    min-width:48px!important;
+    justify-items:center!important;
+    padding:8px!important;
+    overflow:hidden!important;
   }
-  #a2fModal .a2f-method-top em,
-  #a2fModal .a2f-recommend-ribbon{display:none!important;}
-  #a2fModal .a2f-method-icon{
-    width:48px!important;
-    height:48px!important;
-    min-width:48px!important;
-    border-radius:15px!important;
+  #a2fModal .a2f-card{
+    width:calc(100vw - 16px)!important;
+    max-width:680px!important;
+    height:calc(var(--a2f-vh,100svh) - 16px)!important;
+    max-height:calc(var(--a2f-vh,100svh) - 16px)!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    border-radius:28px!important;
   }
-  #a2fModal .a2f-method strong,
-  #a2fModal .a2f-method span:not(.a2f-method-icon):not(.a2f-method-top),
-  #a2fModal .a2f-method small{
-    grid-column:2!important;
-    min-width:0!important;
-    max-width:100%!important;
-    overflow-wrap:anywhere!important;
-    word-break:normal!important;
-    text-align:left!important;
+  #a2fModal .a2f-shell{
+    height:100%!important;
+    max-height:100%!important;
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
   }
-  #a2fModal .a2f-method strong{padding-right:34px!important;}
+  #a2fModal .a2f-side{flex:0 0 auto!important;}
+  #a2fModal .a2f-main{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow:auto!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    padding:16px 16px 20px!important;
+    scroll-padding-top:14px!important;
+    scroll-padding-bottom:112px!important;
+  }
+  #a2fModal .a2f-actions{
+    position:sticky!important;
+    left:auto!important;right:auto!important;bottom:0!important;top:auto!important;
+    transform:none!important;
+    z-index:80!important;
+    width:100%!important;max-width:none!important;
+    grid-template-columns:52px minmax(0,1fr)!important;
+    gap:8px!important;
+    margin:18px 0 0!important;
+    padding:8px!important;
+    border-radius:24px!important;
+    border:1px solid rgba(191,219,254,.96)!important;
+    background:rgba(255,255,255,.985)!important;
+    box-shadow:0 -10px 28px rgba(255,255,255,.82),0 14px 34px rgba(15,23,42,.14)!important;
+    backdrop-filter:blur(14px) saturate(1.1)!important;
+    -webkit-backdrop-filter:blur(14px) saturate(1.1)!important;
+  }
+  #a2fModal #a2fSwitchAccountBtn,
+  #a2fModal .a2f-switch-account{
+    width:52px!important;min-width:52px!important;max-width:52px!important;height:52px!important;min-height:52px!important;
+  }
+  #a2fModal #a2fStartBtn,
+  #a2fModal #a2fDoneBtn{
+    min-height:52px!important;font-size:.92rem!important;line-height:1.14!important;padding:9px 12px!important;
+  }
+  html.a2f-keyboard-open #a2fModal.open{
+    padding:6px!important;
+  }
+  html.a2f-keyboard-open #a2fModal .a2f-card{
+    width:calc(100vw - 12px)!important;
+    height:calc(var(--a2f-vh,100svh) - 30px)!important;
+    max-height:calc(var(--a2f-vh,100svh) - 30px)!important;
+    border-radius:22px!important;
+  }
+  html.a2f-keyboard-open #a2fModal .a2f-side{
+    padding:10px 12px 9px!important;
+  }
+  html.a2f-keyboard-open #a2fModal .a2f-mini-brand{margin-bottom:8px!important;}
+  html.a2f-keyboard-open #a2fModal #a2fStepIndicator{margin-bottom:8px!important;padding:6px 10px!important;font-size:.76rem!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-step{min-height:36px!important;padding:5px 4px!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-step span{width:24px!important;height:24px!important;font-size:.78rem!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-main{
+    padding:12px 12px 14px!important;
+    scroll-padding-bottom:104px!important;
+  }
+  html.a2f-keyboard-open #a2fModal .a2f-hero,
+  html.a2f-keyboard-open #a2fModal .a2f-note,
+  html.a2f-keyboard-open #a2fModal .a2f-methods,
+  html.a2f-keyboard-open #a2fModal .a2f-production-grid{
+    display:none!important;
+  }
+  html.a2f-keyboard-open #a2fModal .a2f-preview{padding:12px!important;border-radius:18px!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-preview-head{margin-bottom:8px!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-panel-copy h3{font-size:.96rem!important;margin-bottom:4px!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-panel-copy p{font-size:.78rem!important;line-height:1.38!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-verify-box{margin-top:8px!important;padding:10px!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-otp-cell{min-height:42px!important;}
+  html.a2f-keyboard-open #a2fModal .a2f-actions{
+    position:sticky!important;
+    bottom:0!important;
+    margin-top:12px!important;
+    padding:7px!important;
+    border-radius:22px!important;
+  }
 }
 @media(max-width:430px){
-  #a2fModal .a2f-method{grid-template-columns:46px minmax(0,1fr)!important;column-gap:10px!important;padding:13px!important;}
-  #a2fModal .a2f-method-top{width:46px!important;min-width:46px!important;}
-  #a2fModal .a2f-method-icon{width:46px!important;height:46px!important;min-width:46px!important;}
+  .a2f-launch-card{width:calc(100vw - 24px)!important;border-radius:24px!important}
+  .a2f-launch-head{padding:13px 13px 10px!important}
+  .a2f-launch-title{font-size:.98rem!important}
+  .a2f-launch-body{padding:12px!important;gap:10px!important}
+  .a2f-terminal{min-height:126px!important;font-size:.62rem!important;padding:10px!important}
+  .a2f-map-visual{height:78px!important}
+  .a2f-launch-ip{padding:7px 9px!important}
+  .a2f-launch-ip strong{font-size:.66rem!important}
 }
+</style>
 
+
+<style id="dirac-a2f-launch-center-safety-css">
+/* Launch overlay safety: force centered card on narrow mobile screens. */
+.a2f-launch-overlay.show{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  width:100vw!important;
+  max-width:100vw!important;
+}
+.a2f-launch-card{
+  width:min(650px,calc(100vw - 36px))!important;
+  max-width:calc(100vw - 36px)!important;
+  margin:0 auto!important;
+}
+@media(max-width:430px){
+  .a2f-launch-card{width:calc(100vw - 24px)!important;max-width:calc(100vw - 24px)!important;}
+}
+</style>
+
+
+<style id="dirac-a2f-launch-viewport-zfix-css">
+/* Launch overlay must cover capsule header and center inside the actual visual viewport. */
+.a2f-launch-overlay{
+  z-index:2147483600!important;
+  top:var(--a2f-vv-top,0px)!important;
+  left:0!important;right:0!important;bottom:auto!important;
+  height:var(--a2f-vh,100svh)!important;
+  max-height:var(--a2f-vh,100svh)!important;
+}
+body.a2f-launching > .site-header{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
+</style>
+
+
+<style id="dirac-a2f-launch-card-fit-css">
+/* Keep 12-second launch card fully visible on small mobile screens. */
+.a2f-launch-card{
+  max-height:calc(var(--a2f-vh,100svh) - 36px)!important;
+  overflow:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+@media(max-width:430px){
+  .a2f-launch-card{max-height:calc(var(--a2f-vh,100svh) - 24px)!important;}
+}
 </style>
 
 </head>
@@ -2955,6 +3101,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
           <div class="a2f-map-visual"><i class="a2f-map-route"></i><i class="a2f-map-node n1"></i><i class="a2f-map-node n2"></i><i class="a2f-map-node n3"></i></div>
         </div>
         <div class="a2f-launch-progress" aria-hidden="true"><span id="a2fLaunchProgress"></span></div>
+        <div class="a2f-launch-ip" id="a2fLaunchIpRow"><span>IP Pengguna</span><strong id="a2fLaunchIp">Mendeteksi...</strong></div>
         <div class="a2f-launch-status" id="a2fLaunchStatus">Menyiapkan dashboard...</div>
       </div>
     </section>
@@ -4159,37 +4306,158 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   function playDashboardLaunchAnimation(){
     return new Promise(function(resolve){
       var overlay = $('#a2fLaunchOverlay');
-      var duration = 5000;
-      if(!overlay || reducedMotion()){
-        setTimeout(resolve, 500);
-        return;
-      }
+      var duration = 12000;
+      if(!overlay){ setTimeout(resolve, duration); return; }
       var progress = $('#a2fLaunchProgress');
       var status = $('#a2fLaunchStatus');
       var pill = $('#a2fLaunchPill');
-      var lines = $$('.a2f-terminal-line', overlay);
+      var terminal = $('#a2fLaunchTerminal');
+      var ipEl = $('#a2fLaunchIp');
+      var ipRow = $('#a2fLaunchIpRow');
       var steps = $$('.a2f-launch-step', overlay);
-      lines.forEach(function(line){ line.classList.remove('show'); });
+      var engineState = $('.a2f-engine-head span:last-child', overlay);
+      var isEnglish = lang()==='en';
+      var clientIP = isEnglish ? 'detecting...' : 'mendeteksi...';
+      var done = false;
+      var timers = [];
+      function addTimer(fn, delay){ var id = setTimeout(fn, delay); timers.push(id); return id; }
+      function setSafeText(el, text){ if(el) el.textContent = text; }
+      function pct(value){ if(progress) progress.style.width = Math.max(0, Math.min(100, value)).toFixed(1) + '%'; }
+      function setLine(text, tone){
+        if(!terminal) return;
+        var line = document.createElement('div');
+        line.className = 'a2f-terminal-line show' + (tone ? ' ' + tone : '');
+        line.textContent = text;
+        terminal.appendChild(line);
+        while(terminal.children.length > 8){ terminal.removeChild(terminal.firstElementChild); }
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+      function readSessionHint(){
+        try{
+          var s = JSON.parse(localStorage.getItem('dirac_auth_session_v1') || '{}');
+          return (s && (s.identifier || s.email || s.username || s.name)) ? String(s.identifier || s.email || s.username || s.name).slice(0,32) : 'guest-session';
+        }catch(e){ return 'guest-session'; }
+      }
+      function fetchClientIP(){
+        if(!window.fetch){ return Promise.resolve(isEnglish ? 'browser protected' : 'browser terlindungi'); }
+        var controller = null;
+        var timer = null;
+        try{ controller = new AbortController(); timer = setTimeout(function(){ try{ controller.abort(); }catch(e){} }, 2200); }catch(e){}
+        return fetch('https://api.ipify.org?format=json', {cache:'no-store', signal: controller && controller.signal})
+          .then(function(res){ return res && res.ok ? res.json() : null; })
+          .then(function(data){ return data && data.ip ? String(data.ip) : (isEnglish ? 'private network' : 'jaringan privat'); })
+          .catch(function(){ return isEnglish ? 'private/protected' : 'privat/terlindungi'; })
+          .finally(function(){ if(timer) clearTimeout(timer); });
+      }
+      var scriptId = String(Date.now()).slice(-6);
+      var sessionHint = readSessionHint();
+      var idText = isEnglish ? 'USER-IP' : 'IP PENGGUNA';
+      if(terminal) terminal.innerHTML = '';
       steps.forEach(function(step){ step.classList.remove('active','done'); });
-      if(progress) progress.style.width = '0%';
-      if(status) status.textContent = lang()==='en' ? 'Checking account security layer...' : 'Mengecek lapisan keamanan akun...';
-      if(pill) pill.textContent = lang()==='en' ? 'CHECKING' : 'CEK SISTEM';
+      pct(0);
+      setSafeText(status, isEnglish ? 'Running 12-second security verification...' : 'Menjalankan verifikasi keamanan 12 detik...');
+      setSafeText(pill, isEnglish ? 'SYNC' : 'SINKRON');
+      setSafeText(engineState, isEnglish ? 'PROCESSING' : 'MEMPROSES');
+      if(ipRow) ipRow.classList.add('is-loading');
+      setSafeText(ipEl, clientIP);
       overlay.setAttribute('aria-hidden','false');
       overlay.classList.add('show');
       document.body.classList.add('a2f-launching');
-      var timeline = [
-        {t:250, run:function(){ if(steps[0]) steps[0].classList.add('active'); if(lines[0]) lines[0].classList.add('show'); if(progress) progress.style.width='14%'; if(status) status.textContent = lang()==='en' ? 'Reading encrypted session token...' : 'Membaca token session terenkripsi...'; }},
-        {t:1150, run:function(){ if(lines[1]) lines[1].classList.add('show'); if(progress) progress.style.width='34%'; if(status) status.textContent = lang()==='en' ? 'Verifying 2FA signature and device context...' : 'Memverifikasi tanda tangan A2F dan perangkat...'; }},
-        {t:2250, run:function(){ if(steps[0]) steps[0].classList.add('done'); if(steps[1]) steps[1].classList.add('active'); if(lines[2]) lines[2].classList.add('show'); if(progress) progress.style.width='58%'; if(pill) pill.textContent = lang()==='en' ? 'SYNCING' : 'SINKRON'; if(status) status.textContent = lang()==='en' ? 'Syncing dashboard gateway...' : 'Menyinkronkan gateway dashboard...'; }},
-        {t:3350, run:function(){ if(progress) progress.style.width='78%'; if(status) status.textContent = lang()==='en' ? 'Opening protected dashboard access...' : 'Membuka akses dashboard terlindungi...'; }},
-        {t:4200, run:function(){ if(lines[3]) lines[3].classList.add('show'); if(steps[1]) steps[1].classList.add('done'); if(progress) progress.style.width='100%'; if(pill) pill.textContent = lang()==='en' ? 'READY' : 'AMAN'; if(status) status.textContent = lang()==='en' ? 'Security check complete. Redirecting...' : 'Pemeriksaan sistem selesai. Mengalihkan...'; }}
+
+      fetchClientIP().then(function(ip){
+        clientIP = ip;
+        setSafeText(ipEl, ip);
+        if(ipRow) ipRow.classList.remove('is-loading');
+        setLine('['+idText+'] ' + ip, 'info');
+      });
+
+      var baseLines = isEnglish ? [
+        '[BOOT] Initializing secure dashboard bridge #' + scriptId,
+        '[SCAN] Reading encrypted A2F token...',
+        '[TRACE] Session target: ' + sessionHint,
+        '[DEVICE] Checking browser fingerprint hash...',
+        '[IP] User IP: {ip}',
+        '[AUTH] Matching TOTP recovery signature...',
+        '[VAULT] Refreshing local security gate...',
+        '[TLS] Binding HTTPS route to dashboard...',
+        '[MFA] Validating one-time security nonce...',
+        '[SYNC] Writing dashboard-ready session marker...',
+        '[ROUTE] Preparing /dashboard.html redirect...',
+        '[OK] Gateway ready. Opening dashboard...'
+      ] : [
+        '[BOOT] Menyalakan bridge dashboard aman #' + scriptId,
+        '[SCAN] Membaca token A2F terenkripsi...',
+        '[TRACE] Target session: ' + sessionHint,
+        '[DEVICE] Mengecek hash fingerprint browser...',
+        '[IP] IP pengguna: {ip}',
+        '[AUTH] Mencocokkan tanda tangan TOTP...',
+        '[VAULT] Memperbarui gerbang keamanan lokal...',
+        '[TLS] Mengikat rute HTTPS ke dashboard...',
+        '[MFA] Memvalidasi nonce keamanan sekali pakai...',
+        '[SYNC] Menulis marker session dashboard-ready...',
+        '[ROUTE] Menyiapkan redirect /dashboard.html...',
+        '[OK] Gateway siap. Membuka dashboard...'
       ];
-      timeline.forEach(function(item){ setTimeout(item.run, item.t); });
-      setTimeout(function(){
-        overlay.classList.remove('show');
-        overlay.setAttribute('aria-hidden','true');
-        document.body.classList.remove('a2f-launching');
-        resolve();
+      var statusLines = isEnglish ? [
+        'Scanning encrypted security token...',
+        'Resolving user IP and device context...',
+        'Verifying A2F signature matrix...',
+        'Synchronizing protected dashboard route...',
+        'Writing secure session gate...',
+        'Finalizing access handoff...'
+      ] : [
+        'Memindai token keamanan terenkripsi...',
+        'Mendeteksi IP pengguna dan konteks perangkat...',
+        'Memverifikasi matriks tanda tangan A2F...',
+        'Menyinkronkan rute dashboard terlindungi...',
+        'Menulis gerbang session aman...',
+        'Finalisasi akses dashboard...'
+      ];
+      var lineIndex = 0;
+      var statusIndex = 0;
+      var startTime = Date.now();
+      if(steps[0]) steps[0].classList.add('active');
+      setLine(baseLines[0].replace('{ip}', clientIP), 'info');
+      var ticker = setInterval(function(){
+        if(done) return;
+        var elapsed = Date.now() - startTime;
+        var ratio = Math.min(.985, elapsed / duration);
+        pct(ratio * 100);
+        if(lineIndex < baseLines.length - 1){
+          lineIndex += 1;
+        }else{
+          lineIndex = 2 + Math.floor(Math.random() * Math.max(1, baseLines.length - 4));
+        }
+        var tone = lineIndex >= baseLines.length - 2 ? 'ok' : (lineIndex % 4 === 0 ? 'warn' : 'info');
+        setLine(baseLines[lineIndex].replace('{ip}', clientIP), tone);
+        statusIndex = (statusIndex + 1) % statusLines.length;
+        setSafeText(status, statusLines[statusIndex]);
+        if(elapsed > 2600 && steps[0]) steps[0].classList.add('done');
+        if(elapsed > 3300 && steps[1]) steps[1].classList.add('active');
+        if(elapsed > 7300 && steps[1]) steps[1].classList.add('done');
+        if(elapsed > 7800) setSafeText(pill, isEnglish ? 'GATEWAY' : 'GATEWAY');
+        if(elapsed > 10000) setSafeText(engineState, isEnglish ? 'FINALIZING' : 'FINALISASI');
+      }, 165);
+      timers.push(ticker);
+      addTimer(function(){ setSafeText(pill, isEnglish ? 'VERIFY' : 'VALIDASI'); }, 1200);
+      addTimer(function(){ setSafeText(pill, isEnglish ? 'SYNC' : 'SINKRON'); }, 4600);
+      addTimer(function(){ setSafeText(pill, isEnglish ? 'READY' : 'AMAN'); }, 10800);
+      addTimer(function(){
+        done = true;
+        timers.forEach(function(id){ clearTimeout(id); clearInterval(id); });
+        if(steps[0]) steps[0].classList.add('done');
+        if(steps[1]) steps[1].classList.add('active','done');
+        pct(100);
+        setLine((isEnglish ? '[COMPLETE] Access verified for IP: ' : '[SELESAI] Akses terverifikasi untuk IP: ') + clientIP, 'ok');
+        setSafeText(status, isEnglish ? 'Security check complete. Redirecting...' : 'Pemeriksaan sistem selesai. Mengalihkan...');
+        setSafeText(pill, isEnglish ? 'READY' : 'AMAN');
+        setSafeText(engineState, isEnglish ? 'DONE' : 'SELESAI');
+        addTimer(function(){
+          overlay.classList.remove('show');
+          overlay.setAttribute('aria-hidden','true');
+          document.body.classList.remove('a2f-launching');
+          resolve();
+        }, 360);
       }, duration);
     });
   }
@@ -4405,7 +4673,6 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     var modal = $('#a2fModal');
     var actions = modal && $('.a2f-actions', modal);
     if(!modal || !actions) return;
-    Array.prototype.slice.call(modal.querySelectorAll('.a2f-recommend-ribbon')).forEach(function(el){ el.remove(); });
     var switchBtn = $('#a2fSwitchAccountBtn', modal);
     if(!switchBtn){
       actions.insertAdjacentHTML('afterbegin','<button class="btn-secondary a2f-switch-account" type="button" id="a2fSwitchAccountBtn" aria-label="Gunakan akun lain" title="Gunakan akun lain"></button>');
@@ -4415,24 +4682,15 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       if(switchBtn.parentElement !== actions) actions.insertBefore(switchBtn, actions.firstElementChild || null);
       switchBtn.classList.add('a2f-switch-account');
       var label = document.documentElement.lang === 'en' ? 'Use another account' : 'Gunakan akun lain';
-      if(switchBtn.getAttribute('aria-label') !== label) switchBtn.setAttribute('aria-label', label);
-      if(switchBtn.getAttribute('title') !== label) switchBtn.setAttribute('title', label);
-      if(switchBtn.getAttribute('data-a2f-switch-icon') !== 'arrow') switchBtn.setAttribute('data-a2f-switch-icon','arrow');
-      if(switchBtn.textContent) switchBtn.textContent = '';
+      switchBtn.setAttribute('aria-label', label);
+      switchBtn.setAttribute('title', label);
+      switchBtn.setAttribute('data-a2f-switch-icon','arrow');
+      switchBtn.textContent = '';
     }
     ['a2fStartBtn','a2fDoneBtn'].forEach(function(id){
       var btn = document.getElementById(id);
       if(btn) btn.setAttribute('data-a2f-main-action','true');
     });
-    var start = document.getElementById('a2fStartBtn');
-    if(start){
-      var labelEl = start.querySelector('.a2f-start-label') || start;
-      var text = (labelEl.textContent || '').trim();
-      if(window.matchMedia('(max-width:760px)').matches){
-        if(/Tampilkan setup key Authenticator/i.test(text)) labelEl.textContent = 'Tampilkan setup key';
-        if(/Show Authenticator setup key/i.test(text)) labelEl.textContent = 'Show setup key';
-      }
-    }
     syncViewportVars();
   }
   function markDashboardReady(reason){
@@ -4495,18 +4753,76 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     }, true);
     var modal = $('#a2fModal');
     if(modal && window.MutationObserver){
-      var scheduled = false;
-      var scheduleSync = function(){
-        if(scheduled) return;
-        scheduled = true;
-        requestAnimationFrame(function(){ scheduled = false; normalizeButtons(); syncViewportVars(); });
-      };
-      new MutationObserver(scheduleSync).observe(modal, {subtree:true, childList:true, attributes:true, attributeFilter:['class','data-a2f-step-index','disabled','aria-hidden']});
+      new MutationObserver(function(){normalizeButtons(); syncViewportVars();}).observe(modal, {subtree:true, childList:true, attributes:true, attributeFilter:['class','data-a2f-step-index','style','disabled']});
     }
     setTimeout(syncViewportVars, 120);
     setTimeout(syncViewportVars, 480);
   }
   ready(bind);
+})();
+</script>
+
+
+
+<script id="dirac-a2f-keyboard-viewport-final-js">
+(function(){
+  'use strict';
+  function $(selector, root){return (root || document).querySelector(selector);}
+  function ready(fn){if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn();}
+  function syncViewport(){
+    var root = document.documentElement;
+    var vv = window.visualViewport;
+    var layoutH = window.innerHeight || document.documentElement.clientHeight || 0;
+    var h = layoutH;
+    var top = 0;
+    var bottomGap = 0;
+    if(vv){
+      h = Math.max(280, Math.round(vv.height || layoutH));
+      top = Math.max(0, Math.round(vv.offsetTop || 0));
+      bottomGap = Math.max(0, Math.round(layoutH - (vv.height || layoutH) - (vv.offsetTop || 0)));
+    }
+    root.style.setProperty('--a2f-vh', h + 'px');
+    root.style.setProperty('--a2f-vv-top', top + 'px');
+    root.style.setProperty('--a2f-vv-bottom', bottomGap + 'px');
+    root.style.setProperty('--a2f-keyboard-gap', bottomGap + 'px');
+    var keyboardOpen = !!(vv && bottomGap > 120 && h < layoutH - 80);
+    root.classList.toggle('a2f-keyboard-open', keyboardOpen);
+    var actions = $('#a2fModal .a2f-actions');
+    if(actions){ root.style.setProperty('--a2f-actions-height', Math.ceil(actions.getBoundingClientRect().height || 76) + 'px'); }
+  }
+  function keepFocusedVisible(target){
+    var modal = $('#a2fModal');
+    var main = $('#a2fModal .a2f-main');
+    if(!modal || !main || !modal.classList.contains('open')) return;
+    if(!target || !(target.matches && target.matches('input,textarea,select,.a2f-otp-cell'))) return;
+    setTimeout(function(){
+      syncViewport();
+      try{ target.scrollIntoView({block:'center', inline:'nearest', behavior:'auto'}); }catch(e){ try{ target.scrollIntoView(false); }catch(err){} }
+      var box = target.closest('.a2f-verify-box') || target;
+      try{
+        var mainRect = main.getBoundingClientRect();
+        var boxRect = box.getBoundingClientRect();
+        if(boxRect.bottom > mainRect.bottom - 88){ main.scrollTop += (boxRect.bottom - mainRect.bottom + 104); }
+        if(boxRect.top < mainRect.top + 18){ main.scrollTop -= (mainRect.top - boxRect.top + 28); }
+      }catch(e){}
+    }, 80);
+    setTimeout(syncViewport, 260);
+  }
+  ready(function(){
+    syncViewport();
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', syncViewport, {passive:true});
+      window.visualViewport.addEventListener('scroll', syncViewport, {passive:true});
+    }
+    window.addEventListener('resize', syncViewport, {passive:true});
+    window.addEventListener('orientationchange', function(){ setTimeout(syncViewport, 80); setTimeout(syncViewport, 360); }, {passive:true});
+    document.addEventListener('focusin', function(e){ keepFocusedVisible(e.target); }, true);
+    document.addEventListener('focusout', function(){ setTimeout(syncViewport, 120); setTimeout(syncViewport, 420); }, true);
+    var modal = $('#a2fModal');
+    if(modal && window.MutationObserver){
+      new MutationObserver(function(){ setTimeout(syncViewport, 0); setTimeout(syncViewport, 120); }).observe(modal, {attributes:true, childList:true, subtree:true, attributeFilter:['class','style','data-a2f-step-index','disabled']});
+    }
+  });
 })();
 </script>
 
