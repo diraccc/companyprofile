@@ -462,15 +462,380 @@
     }
 
   </style>
+
+
+<style id="dirac-header-capsule-redesign-css">
+/* =========================================================
+   Dirac Header Capsule Redesign v1
+   Tujuan: ubah tampilan header mobile/desktop agar lebih rounded,
+   premium, dan tidak terasa kotak/persegi panjang.
+   Fungsi SEMUA tombol tetap sama (tema, cart, navigasi, sticky).
+   ========================================================= */
+.site-header{
+  top:max(8px, env(safe-area-inset-top));
+  padding:12px 0 0;
+  background:transparent!important;
+  border-bottom:0!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  box-shadow:none!important;
+}
+.site-header:after{display:none!important}
+.site-header .nav{
+  width:min(var(--max), calc(100% - 28px));
+  margin-inline:auto;
+  min-height:84px;
+  padding:14px 18px;
+  border-radius:34px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb),.12), transparent 10rem),
+    linear-gradient(145deg, rgba(9,13,21,.94), rgba(15,22,34,.90));
+  border:1px solid rgba(var(--theme-rgb),.22);
+  box-shadow:
+    0 18px 54px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 0 0 1px rgba(var(--theme-rgb),.07);
+}
+.site-header.is-scrolled{
+  background:transparent!important;
+  border-bottom:0!important;
+  box-shadow:none!important;
+}
+.site-header.is-scrolled .nav{
+  padding:12px 18px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb),.14), transparent 10rem),
+    linear-gradient(145deg, rgba(8,12,20,.97), rgba(13,19,30,.94));
+  border-color:rgba(var(--theme-rgb),.28);
+  box-shadow:
+    0 20px 58px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 0 0 1px rgba(var(--theme-rgb),.08);
+}
+.brand{
+  min-width:0;
+  flex:1 1 auto;
+  gap:14px;
+}
+.brand-mark{
+  width:64px;
+  height:64px;
+  border-radius:22px;
+  box-shadow:0 14px 30px rgba(var(--theme-rgb),.18)!important;
+}
+.brand-name{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:clamp(1.08rem, 1.8vw, 1.34rem);
+}
+.nav-links{
+  gap:4px;
+}
+.nav-links a{
+  padding:10px 13px;
+  border-radius:999px;
+}
+.header-actions{
+  flex:0 0 auto;
+  gap:12px;
+}
+.theme-toggle{
+  width:58px;
+  height:58px;
+  min-width:58px;
+  padding:0!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.055)!important;
+  color:#fff!important;
+  border:1px solid rgba(var(--theme-rgb),.20)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 12px 24px rgba(0,0,0,.18)!important;
+}
+.theme-toggle .label{display:none!important}
+.theme-toggle:hover{
+  background:rgba(var(--theme-rgb),.12)!important;
+  border-color:rgba(var(--theme-rgb),.48)!important;
+}
+.header-cart{
+  min-height:58px;
+  padding:0 18px!important;
+  gap:10px;
+  border-radius:999px!important;
+  box-shadow:0 16px 34px rgba(var(--theme-rgb),.22)!important;
+}
+.header-cart .count-badge{
+  min-width:26px;
+  height:26px;
+  padding:0 8px;
+  font-size:.8rem;
+  box-shadow:0 8px 18px rgba(0,0,0,.22);
+}
+.site-header.is-scrolled .brand-mark{
+  width:60px;
+  height:60px;
+  border-radius:20px;
+}
+.site-header.is-scrolled .header-cart{
+  min-height:56px;
+  box-shadow:0 14px 30px rgba(var(--theme-rgb),.20)!important;
+}
+.site-header.is-scrolled .theme-toggle{
+  width:56px;
+  height:56px;
+  min-width:56px;
+}
+@media(max-width:1080px){
+  .site-header .nav{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    align-items:center;
+    gap:12px;
+  }
+  .nav-links{display:none!important}
+}
+@media(max-width:760px){
+  .site-header{
+    top:max(8px, env(safe-area-inset-top));
+    padding-top:10px;
+  }
+  .site-header .nav{
+    width:calc(100% - 18px);
+    min-height:78px;
+    padding:10px 12px;
+    gap:10px;
+    border-radius:32px;
+  }
+  .brand{gap:12px}
+  .brand-mark{
+    width:50px!important;
+    height:50px!important;
+    border-radius:18px!important;
+  }
+  .brand-name{
+    max-width:10.25rem;
+    font-size:1.06rem!important;
+    line-height:1.1;
+  }
+  .theme-toggle{
+    width:48px!important;
+    height:48px!important;
+    min-width:48px!important;
+  }
+  .header-cart{
+    min-height:48px!important;
+    padding:0 14px!important;
+    gap:8px;
+  }
+  .header-cart .label{display:none!important}
+  .header-cart > span:first-child{font-size:1.08rem;line-height:1}
+  .header-cart .count-badge{
+    min-width:24px;
+    height:24px;
+    font-size:.78rem;
+    padding:0 7px;
+  }
+  .site-header.is-scrolled .nav{padding:9px 12px}
+}
+@media(max-width:430px){
+  .site-header .nav{
+    width:calc(100% - 14px);
+    min-height:74px;
+    padding:9px 10px;
+    gap:8px;
+    border-radius:30px;
+  }
+  .brand{gap:10px}
+  .brand-mark{
+    width:46px!important;
+    height:46px!important;
+    border-radius:16px!important;
+  }
+  .brand-name{
+    max-width:9rem;
+    font-size:1rem!important;
+  }
+  .theme-toggle{
+    width:46px!important;
+    height:46px!important;
+    min-width:46px!important;
+  }
+  .header-cart{
+    min-height:46px!important;
+    padding:0 12px!important;
+  }
+}
+html[data-effective-theme="light"] .site-header .nav{
+  background:
+    radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb),.12), transparent 10rem),
+    linear-gradient(145deg, rgba(255,255,255,.95), rgba(244,247,251,.92))!important;
+  border-color:rgba(var(--theme-rgb),.24)!important;
+  box-shadow:
+    0 18px 46px rgba(15,23,42,.14),
+    inset 0 1px 0 rgba(255,255,255,.75),
+    0 0 0 1px rgba(var(--theme-rgb),.08)!important;
+}
+html[data-effective-theme="light"] .theme-toggle{
+  color:#171923!important;
+  background:rgba(255,255,255,.86)!important;
+  border-color:rgba(var(--theme-rgb),.20)!important;
+}
+html[data-effective-theme="light"] .site-header.is-scrolled .nav{
+  background:
+    radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb),.14), transparent 10rem),
+    linear-gradient(145deg, rgba(255,255,255,.98), rgba(239,244,249,.94))!important;
+}
+</style>
+
+<style id="dirac-header-click-fix-css">
+/* =========================================================
+   Dirac Header Click Fix v2
+   Tujuan: area header tetap berbentuk capsule, tetapi semua tombol/link
+   di dalamnya benar-benar bisa ditap/klik di mobile Safari/Chrome.
+   ========================================================= */
+.site-header{
+  z-index:2147483000!important;
+  pointer-events:none!important;
+}
+.site-header .nav,
+.site-header .brand,
+.site-header .brand *,
+.site-header .nav-links,
+.site-header .nav-links a,
+.site-header .header-actions,
+.site-header .theme-toggle,
+.site-header .header-cart{
+  pointer-events:auto!important;
+}
+.site-header .nav{
+  position:relative!important;
+  z-index:2!important;
+  overflow:visible!important;
+}
+.site-header .brand{
+  position:relative!important;
+  z-index:3!important;
+}
+.site-header .header-actions{
+  position:relative!important;
+  z-index:20!important;
+  isolation:isolate!important;
+}
+.site-header .theme-toggle,
+.site-header .header-cart{
+  position:relative!important;
+  z-index:21!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:transparent!important;
+  user-select:none!important;
+  -webkit-user-select:none!important;
+}
+.site-header .theme-toggle:before,
+.site-header .theme-toggle:after,
+.site-header .header-cart:before,
+.site-header .header-cart:after,
+.site-header .nav:before,
+.site-header .nav:after{
+  pointer-events:none!important;
+}
+.site-header .theme-toggle > *,
+.site-header .header-cart > *{
+  pointer-events:none!important;
+}
+@media(max-width:1080px){
+  .site-header .nav{
+    grid-template-columns:minmax(0,1fr) auto!important;
+  }
+  .site-header .header-actions{
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+  }
+}
+@media(max-width:430px){
+  .site-header .header-actions{
+    gap:7px!important;
+  }
+  .site-header .header-cart{
+    min-width:74px!important;
+    justify-content:center!important;
+  }
+}
+</style>
+
+<style id="dirac-login-overlay-header-safety-css">
+/* Header capsule safety for this login page: prevents the floating header from covering Theme/Menu/AI overlays. */
+body.modal-open > .site-header,
+body.menu-open > .site-header,
+body.ai-open > .site-header,
+body:has(#themeModal.open) > .site-header,
+body:has(#menuOverlay.open) > .site-header,
+body:has(#aiOverlay.open) > .site-header{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transform:translate3d(0,-28px,0) scale(.985)!important;
+  filter:blur(2px)!important;
+}
+.theme-modal.open,
+.menu-overlay.open,
+.ai-panel-overlay.open{
+  isolation:isolate;
+}
+@media(prefers-reduced-motion:reduce){
+  body.modal-open > .site-header,
+  body.menu-open > .site-header,
+  body.ai-open > .site-header,
+  body:has(#themeModal.open) > .site-header,
+  body:has(#menuOverlay.open) > .site-header,
+  body:has(#aiOverlay.open) > .site-header{
+    transform:none!important;
+    filter:none!important;
+  }
+}
+</style>
+
+<style id="dirac-brand-typewriter-css">
+/* Brand typewriter loop - safe, visual only, no catalog/cart logic touched. */
+.brand-typewriter{
+  display:inline-flex;
+  align-items:center;
+  min-width:9.6ch;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:clip;
+}
+.brand-typewriter-text{
+  display:inline-block;
+  min-width:0;
+  white-space:nowrap;
+}
+.brand-typewriter:after{
+  content:"";
+  flex:0 0 auto;
+  width:.08em;
+  height:.96em;
+  margin-left:.08em;
+  border-radius:999px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 70%,#fff 30%),var(--gold-2));
+  box-shadow:0 0 12px rgba(var(--theme-rgb,243,205,112),.34);
+  animation:diracBrandCaretBlink .76s steps(1,end) infinite;
+}
+@keyframes diracBrandCaretBlink{
+  0%,48%{opacity:1}
+  49%,100%{opacity:.18}
+}
+@media(max-width:760px){
+  .brand-typewriter{min-width:9.35ch}
+}
+@media(prefers-reduced-motion:reduce){
+  .brand-typewriter:after{animation:none;opacity:.75}
+}
+</style>
 </head>
 <body>
-  <div class="announcement">
-    <div class="container">
-      <span data-i18n="announce">Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp</span>
-      <a href="https://wa.me/6287892523968" target="_blank" rel="noopener">+62 878-9252-3968</a>
-    </div>
-  </div>
-
+  <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
   <header class="site-header" id="siteHeader">
     <div class="container nav">
       <a class="brand" href="https://diracgroup.store/" aria-label="Dirac Group Beranda">
@@ -478,7 +843,7 @@
           <span class="brand-fallback-text">DG</span>
           <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'" decoding="async" fetchpriority="high">
         </span>
-        <span class="brand-name" data-no-i18n>Dirac Group</span>
+        <span class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n aria-label="Dirac Group"><span class="brand-typewriter-text" aria-hidden="true">Dirac Group</span></span>
       </a>
       <nav class="nav-links" aria-label="Navigasi utama">
         <a href="https://diracgroup.store/order.html#produk" data-i18n="navProducts">Produk</a>
@@ -490,9 +855,6 @@
       <div class="header-actions">
         <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">
           <span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span>
-        </button>
-        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Buka menu" aria-controls="menuOverlay" aria-expanded="false">
-          <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
         </button>
       </div>
     </div>
@@ -820,7 +1182,7 @@
     function closeModal(id){
       var el = $(id); if(!el) return;
       el.classList.remove('open'); el.setAttribute('aria-hidden','true'); document.body.classList.remove('modal-open','menu-open','ai-open');
-      if(id==='#menuOverlay') $('#menuToggle').setAttribute('aria-expanded','false');
+      if(id==='#menuOverlay'){ var menuToggle = $('#menuToggle'); if(menuToggle) menuToggle.setAttribute('aria-expanded','false'); }
     }
     function showToast(msg){
       var t = $('#toast'); if(!t) return;
@@ -912,7 +1274,7 @@
       }, {passive:true});
       $$('[data-open-theme]').forEach(function(btn){btn.addEventListener('click', function(){ closeModal('#menuOverlay'); openModal('#themeModal'); });});
       $$('[data-close-theme]').forEach(function(btn){btn.addEventListener('click', function(){ closeModal('#themeModal'); });});
-      $('#menuToggle').addEventListener('click', function(){ this.setAttribute('aria-expanded','true'); openModal('#menuOverlay'); });
+      var menuToggle = $('#menuToggle'); if(menuToggle){ menuToggle.addEventListener('click', function(){ this.setAttribute('aria-expanded','true'); openModal('#menuOverlay'); }); }
       $$('[data-close-menu]').forEach(function(btn){btn.addEventListener('click', function(){ closeModal('#menuOverlay'); });});
       $('#themeModal').addEventListener('click', function(e){ if(e.target === this) closeModal('#themeModal'); });
       $('#menuOverlay').addEventListener('click', function(e){ if(e.target === this) closeModal('#menuOverlay'); });
@@ -943,5 +1305,82 @@
     });
   })();
   </script>
+
+<script id="dirac-brand-typewriter-js">
+(function(){
+  'use strict';
+  var FULL_TEXT = 'Dirac Group';
+  var selector = '[data-brand-typewriter] .brand-typewriter-text';
+  var target = document.querySelector(selector);
+  if(!target) return;
+  var wrapper = target.closest('[data-brand-typewriter]');
+  if(wrapper){
+    wrapper.setAttribute('aria-label', FULL_TEXT);
+    wrapper.setAttribute('data-no-i18n', '');
+  }
+  target.setAttribute('aria-hidden', 'true');
+  target.textContent = FULL_TEXT;
+
+  var reducedMotion = false;
+  try{
+    reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }catch(error){}
+  if(reducedMotion) return;
+
+  var index = FULL_TEXT.length;
+  var deleting = true;
+  var timer = null;
+  var pauseUntil = Date.now() + 1100;
+
+  function schedule(delay){
+    window.clearTimeout(timer);
+    timer = window.setTimeout(tick, delay);
+  }
+
+  function render(){
+    target.textContent = FULL_TEXT.slice(0, index);
+  }
+
+  function tick(){
+    if(document.hidden){
+      schedule(650);
+      return;
+    }
+    var now = Date.now();
+    if(now < pauseUntil){
+      schedule(pauseUntil - now);
+      return;
+    }
+
+    if(deleting){
+      index = Math.max(0, index - 1);
+      render();
+      if(index === 0){
+        deleting = false;
+        pauseUntil = Date.now() + 420;
+        schedule(420);
+      }else{
+        schedule(78);
+      }
+    }else{
+      index = Math.min(FULL_TEXT.length, index + 1);
+      render();
+      if(index === FULL_TEXT.length){
+        deleting = true;
+        pauseUntil = Date.now() + 1350;
+        schedule(1350);
+      }else{
+        schedule(index === 6 ? 155 : 105);
+      }
+    }
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && !timer) schedule(160);
+  });
+
+  schedule(650);
+})();
+</script>
 </body>
 </html>
