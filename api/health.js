@@ -3,7 +3,8 @@
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
   'https://www.diracgroup.store',
-  'https://companyprofilee-ochre.vercel.app'
+  'https://companyprofilee-ochre.vercel.app',
+  'https://companyprofilee-expk.vercel.app'
 ];
 
 const DOMAIN_ACTIONS = new Set([
@@ -30,20 +31,38 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'create-order': 'domain_checkout',
   'domain_create_order': 'domain_checkout',
   'get-orders': 'domain_orders',
-  'domain_get_orders': 'domain_orders'
+  'domain_get_orders': 'domain_orders',
+  'domain-login': 'domain_login',
+  'domain_login': 'domain_login',
+  'login-domain': 'domain_login',
+  'domain-register': 'domain_register',
+  'domain_register': 'domain_register',
+  'register-domain': 'domain_register',
+  'domain-me': 'domain_me',
+  'domain_logout': 'domain_logout',
+  'domain-logout': 'domain_logout'
 });
 
 module.exports = async function handler(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = normalizeDomainAction(rawAction);
   const isDomainAction = DOMAIN_ACTIONS.has(action);
+  const isLegacyAuthPost = !rawAction && (req.method === 'POST' || req.method === 'OPTIONS');
 
-  const cors = setCors(req, res, { isDomainAction });
+  const cors = setCors(req, res, { isDomainAction: isDomainAction || isLegacyAuthPost });
   if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
   if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
 
   if (isDomainAction) {
     return handleDomainAction(action, req, res);
+  }
+
+  if (isLegacyAuthPost) {
+    const legacyBody = await readBody(req);
+    const legacyMode = String(legacyBody.mode || legacyBody.action || '').trim().toLowerCase();
+    if (legacyMode === 'login' || legacyMode === 'domain_login') return domainLogin(req, res, legacyBody);
+    if (legacyMode === 'register' || legacyMode === 'signup' || legacyMode === 'domain_register') return domainRegister(req, res, legacyBody);
+    return res.status(400).json({ ok: false, message: 'Mode autentikasi tidak valid.' });
   }
 
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Method tidak diizinkan.' });
@@ -258,15 +277,19 @@ async function hostingerCheckDomain(req, res) {
   return res.status(200).json(payload);
 }
 
-async function domainLogin(req, res) {
+async function domainLogin(req, res, preloadedBody) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  const body = await readBody(req);
-  const email = String(body.email || '').trim();
+  const body = preloadedBody || await readBody(req);
+  const email = normalizeAuthEmail(body.email || body.identifier || body.customer_email);
   const password = String(body.password || '');
 
   if (!email || !password) {
     return res.status(400).json({ ok: false, message: 'Email dan password wajib diisi.' });
+  }
+
+  if (!isValidAuthEmail(email)) {
+    return res.status(400).json({ ok: false, message: 'Login server memakai email. Masukkan alamat email yang valid.' });
   }
 
   const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
@@ -296,25 +319,41 @@ async function domainLogin(req, res) {
   });
 }
 
-async function domainRegister(req, res) {
+async function domainRegister(req, res, preloadedBody) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  const body = await readBody(req);
-  const email = String(body.email || '').trim();
+  const body = preloadedBody || await readBody(req);
+  const email = normalizeAuthEmail(body.email || body.identifier || body.customer_email);
   const password = String(body.password || '');
+  const fullName = String(body.full_name || body.fullName || body.name || '').trim();
+  const whatsapp = normalizePhone(body.whatsapp || body.phone || body.customer_whatsapp || '');
 
   if (!email || !password) {
     return res.status(400).json({ ok: false, message: 'Email dan password wajib diisi.' });
+  }
+
+  if (!isValidAuthEmail(email)) {
+    return res.status(400).json({ ok: false, message: 'Pendaftaran server memakai email. Masukkan alamat email yang valid.' });
   }
 
   if (password.length < 6) {
     return res.status(400).json({ ok: false, message: 'Password minimal 6 karakter.' });
   }
 
+  const userData = {};
+  if (fullName) {
+    userData.full_name = fullName;
+    userData.name = fullName;
+  }
+  if (whatsapp) userData.whatsapp = whatsapp;
+
+  const signupBody = { email, password };
+  if (Object.keys(userData).length) signupBody.data = userData;
+
   const result = await supabaseFetch('/auth/v1/signup', {
     method: 'POST',
     auth: 'anon',
-    body: { email, password }
+    body: signupBody
   });
 
   if (!result.ok) {
@@ -1346,6 +1385,18 @@ async function supabaseFetch(path, options = {}) {
   };
 }
 
+function normalizeAuthEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isValidAuthEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function normalizePhone(value) {
+  return String(value || '').trim().replace(/[^+\d]/g, '');
+}
+
 async function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
 
@@ -1393,14 +1444,15 @@ function parseCookies(req) {
 }
 
 function makeCookie(name, value, options = {}) {
+  const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || (process.env.NODE_ENV === 'development' ? 'Lax' : 'None')).trim();
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax'
+    `SameSite=${sameSite}`
   ];
 
-  if (process.env.NODE_ENV !== 'development') {
+  if (sameSite.toLowerCase() === 'none' || process.env.NODE_ENV !== 'development') {
     parts.push('Secure');
   }
 
