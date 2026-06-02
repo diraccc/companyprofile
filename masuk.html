@@ -2087,6 +2087,181 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
 }
 </style>
 
+
+
+<style id="dirac-a2f-two-button-arrow-final-css">
+/* =========================================================
+   Revisi final tombol A2F
+   - "Gunakan akun lain" dijadikan tombol ikon panah dengan fungsi yang sama.
+   - Area aksi hanya menampilkan 2 tombol: ikon akun lain + tombol aksi utama.
+   - Tombol aksi bawah dibuat aman dari browser bar dan tetap mudah ditap.
+   ========================================================= */
+#a2fModal .a2f-actions{
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr)!important;
+  align-items:stretch!important;
+  gap:10px!important;
+  width:100%!important;
+  margin:22px 0 calc(58px + env(safe-area-inset-bottom,0px))!important;
+  padding:10px!important;
+  border:1px solid rgba(191,219,254,.95)!important;
+  border-radius:28px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.96),#ffffff 100%)!important;
+  box-shadow:0 18px 42px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.72)!important;
+  backdrop-filter:blur(12px)!important;
+  -webkit-backdrop-filter:blur(12px)!important;
+}
+#a2fModal .a2f-actions .btn-secondary,
+#a2fModal .a2f-actions .btn-primary{
+  min-width:0!important;
+  min-height:58px!important;
+  border-radius:999px!important;
+  margin:0!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+#a2fModal #a2fSwitchAccountBtn,
+#a2fModal .a2f-switch-account{
+  grid-column:1!important;
+  width:58px!important;
+  min-width:58px!important;
+  max-width:58px!important;
+  height:58px!important;
+  padding:0!important;
+  border-radius:999px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  font-size:0!important;
+  line-height:0!important;
+  color:#2563eb!important;
+  background:#ffffff!important;
+  border:1px solid #bfdbfe!important;
+  box-shadow:none!important;
+}
+#a2fModal #a2fSwitchAccountBtn:before,
+#a2fModal .a2f-switch-account:before{
+  content:"←";
+  display:grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  border-radius:999px;
+  font-size:1.45rem;
+  line-height:1;
+  font-weight:900;
+  color:#2563eb;
+  transform:translateX(-1px);
+}
+#a2fModal #a2fSwitchAccountBtn:hover,
+#a2fModal .a2f-switch-account:hover{
+  background:#eff6ff!important;
+  border-color:#93c5fd!important;
+  transform:none!important;
+  filter:none!important;
+}
+#a2fModal #a2fSwitchAccountBtn:focus-visible,
+#a2fModal .a2f-switch-account:focus-visible,
+#a2fModal #a2fStartBtn:focus-visible,
+#a2fModal #a2fDoneBtn:focus-visible{
+  outline:0!important;
+  box-shadow:0 0 0 4px #dbeafe!important;
+}
+#a2fModal #a2fStartBtn,
+#a2fModal #a2fDoneBtn{
+  grid-column:2!important;
+  width:100%!important;
+  justify-content:center!important;
+}
+#a2fModal .a2f-card[data-a2f-step-index="1"] #a2fDoneBtn,
+#a2fModal .a2f-card[data-a2f-step-index="2"] #a2fDoneBtn{
+  display:none!important;
+}
+#a2fModal .a2f-card[data-a2f-step-index="3"] #a2fStartBtn,
+#a2fModal .a2f-card[data-a2f-step-index="4"] #a2fStartBtn{
+  display:none!important;
+}
+#a2fModal .a2f-card[data-a2f-step-index="1"] #a2fStartBtn,
+#a2fModal .a2f-card[data-a2f-step-index="2"] #a2fStartBtn,
+#a2fModal .a2f-card[data-a2f-step-index="3"] #a2fDoneBtn,
+#a2fModal .a2f-card[data-a2f-step-index="4"] #a2fDoneBtn{
+  display:inline-flex!important;
+}
+#a2fModal .a2f-card[data-a2f-step-index="3"] #a2fDoneBtn:disabled{
+  background:#e2e8f0!important;
+  color:#64748b!important;
+  border-color:#cbd5e1!important;
+  box-shadow:none!important;
+}
+#a2fModal .a2f-main{
+  scroll-padding-bottom:calc(140px + env(safe-area-inset-bottom,0px))!important;
+  padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))!important;
+}
+@media(max-width:760px){
+  #a2fModal .a2f-main{
+    padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;
+    scroll-padding-bottom:calc(176px + env(safe-area-inset-bottom,0px))!important;
+  }
+  #a2fModal .a2f-actions{
+    position:sticky!important;
+    bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+    z-index:80!important;
+    grid-template-columns:54px minmax(0,1fr)!important;
+    gap:9px!important;
+    margin:22px 0 calc(28px + env(safe-area-inset-bottom,0px))!important;
+    padding:9px!important;
+    border-radius:26px!important;
+    box-shadow:0 16px 46px rgba(15,23,42,.18),0 -8px 26px rgba(255,255,255,.78)!important;
+  }
+  #a2fModal #a2fSwitchAccountBtn,
+  #a2fModal .a2f-switch-account{
+    width:54px!important;
+    min-width:54px!important;
+    max-width:54px!important;
+    height:54px!important;
+  }
+  #a2fModal .a2f-actions .btn-secondary,
+  #a2fModal .a2f-actions .btn-primary{
+    min-height:54px!important;
+    font-size:.96rem!important;
+    padding:10px 14px!important;
+  }
+}
+@media(max-width:430px){
+  #a2fModal .a2f-actions{
+    grid-template-columns:52px minmax(0,1fr)!important;
+    gap:8px!important;
+    padding:8px!important;
+    margin-bottom:calc(34px + env(safe-area-inset-bottom,0px))!important;
+  }
+  #a2fModal #a2fSwitchAccountBtn,
+  #a2fModal .a2f-switch-account{
+    width:52px!important;
+    min-width:52px!important;
+    max-width:52px!important;
+    height:52px!important;
+  }
+  #a2fModal #a2fSwitchAccountBtn:before,
+  #a2fModal .a2f-switch-account:before{
+    font-size:1.34rem;
+  }
+  #a2fModal .a2f-actions .btn-secondary,
+  #a2fModal .a2f-actions .btn-primary{
+    min-height:52px!important;
+    font-size:.92rem!important;
+    padding:10px 12px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #a2fModal .a2f-actions,
+  #a2fModal #a2fSwitchAccountBtn,
+  #a2fModal .a2f-switch-account{
+    transition:none!important;
+  }
+}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -3794,6 +3969,78 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     }
   }
   ready(function(){ enhance(); bind(); });
+})();
+</script>
+
+
+
+<script id="dirac-a2f-two-button-arrow-final-js">
+(function(){
+  'use strict';
+  function $(selector, root){return (root || document).querySelector(selector);}
+  function ready(fn){if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn();}
+  function currentLang(){return document.documentElement.lang === 'en' ? 'en' : 'id';}
+  function switchLabel(){return currentLang() === 'en' ? 'Use another account' : 'Gunakan akun lain';}
+  function normalizeSwitchButton(){
+    var modal = $('#a2fModal');
+    if(!modal) return;
+    var actions = $('.a2f-actions', modal);
+    if(!actions) return;
+    var btn = $('#a2fSwitchAccountBtn', modal);
+    if(!btn){
+      actions.insertAdjacentHTML('afterbegin','<button class="btn-secondary a2f-switch-account" type="button" id="a2fSwitchAccountBtn"></button>');
+      btn = $('#a2fSwitchAccountBtn', modal);
+    }
+    if(!btn) return;
+    var label = switchLabel();
+    btn.classList.add('a2f-switch-account');
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', label);
+    btn.setAttribute('data-a2f-switch-icon', 'arrow');
+    if(btn.parentElement !== actions){
+      actions.insertBefore(btn, actions.firstElementChild || null);
+    }
+  }
+  function refreshActionState(){
+    var card = $('#a2fModal .a2f-card');
+    if(!card) return;
+    var step = parseInt(card.getAttribute('data-a2f-step-index') || '1', 10);
+    if(!step || step < 1 || step > 4) step = 1;
+    card.setAttribute('data-a2f-step-index', String(step));
+    var start = $('#a2fStartBtn');
+    var done = $('#a2fDoneBtn');
+    var switchBtn = $('#a2fSwitchAccountBtn');
+    if(switchBtn){
+      switchBtn.setAttribute('aria-label', switchLabel());
+      switchBtn.setAttribute('title', switchLabel());
+    }
+    if(start){
+      start.setAttribute('aria-hidden', step >= 3 ? 'true' : 'false');
+    }
+    if(done){
+      done.setAttribute('aria-hidden', step <= 2 ? 'true' : 'false');
+    }
+  }
+  function apply(){
+    normalizeSwitchButton();
+    refreshActionState();
+  }
+  ready(function(){
+    apply();
+    setTimeout(apply, 0);
+    setTimeout(apply, 120);
+    setTimeout(apply, 500);
+    var modal = $('#a2fModal');
+    if(!modal || !window.MutationObserver) return;
+    var lock = false;
+    var schedule = function(){
+      if(lock) return;
+      lock = true;
+      requestAnimationFrame(function(){ lock = false; apply(); });
+    };
+    new MutationObserver(schedule).observe(modal, {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['data-a2f-step-index','class','lang']});
+    new MutationObserver(schedule).observe(document.documentElement, {attributes:true, attributeFilter:['lang']});
+  });
 })();
 </script>
 
