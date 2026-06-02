@@ -1717,6 +1717,13 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 }
 </style>
 
+
+<style id="dirac-a2f-public-setup-css">
+.a2f-auth-setup{margin-top:12px;padding:12px;border:1px solid #e2e8f0;background:#fff;border-radius:16px;color:#111827}
+.a2f-auth-setup img{display:block}
+html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;border-color:#e2e8f0}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -1921,8 +1928,8 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 
 
 
-  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="/api/mfa/status" data-mfa-setup-endpoint="/api/mfa/setup" data-mfa-verify-endpoint="/api/mfa/verify">
-    <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="passkey" data-a2f-step-index="1">
+  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="/api/2fa/lock" data-mfa-setup-endpoint="/api/2fa/verify-totp" data-mfa-verify-endpoint="/api/2fa/verify-totp">
+    <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="authenticator" data-a2f-step-index="1">
       <div class="a2f-shell">
         <aside class="a2f-side" aria-label="Ringkasan keamanan akun">
           <div class="a2f-mini-brand">
@@ -1957,13 +1964,13 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
           <p class="a2f-note" data-i18n="a2fNote">Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, atau authenticator dari server sebelum dashboard dibuka.</p>
 
           <div class="a2f-methods" aria-label="Pilihan metode A2F">
-            <button class="a2f-method active" type="button" data-a2f-select="passkey" aria-pressed="true">
+            <button class="a2f-method" type="button" data-a2f-select="passkey" aria-pressed="false">
               <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">🔑</span><em data-i18n="a2fRecommended">Direkomendasikan</em></span>
               <strong data-i18n="a2fPasskey">Passkey</strong>
               <span data-i18n="a2fPasskeyText">Face ID, sidik jari, PIN, atau kunci perangkat.</span>
               <small data-i18n="a2fPasskeyMini">Paling modern dan tahan phishing.</small>
             </button>
-            <button class="a2f-method" type="button" data-a2f-select="authenticator" aria-pressed="false">
+            <button class="a2f-method active" type="button" data-a2f-select="authenticator" aria-pressed="true">
               <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">📲</span><em data-i18n="a2fStrong">Aman</em></span>
               <strong data-i18n="a2fAuth">Authenticator</strong>
               <span data-i18n="a2fAuthText">Gunakan kode 6 digit dari aplikasi autentikator.</span>
@@ -2018,7 +2025,7 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 
           <div class="a2f-result" id="a2fResult" role="status" aria-live="polite"></div>
           <div class="a2f-actions">
-            <button class="btn-secondary" type="button" id="a2fStartBtn" data-a2f-method="passkey" data-i18n="a2fStart">Aktifkan pilihan ini</button>
+            <button class="btn-secondary" type="button" id="a2fStartBtn" data-a2f-method="authenticator" data-i18n="a2fStart">Aktifkan pilihan ini</button>
             <button class="btn-primary a2f-done-btn" type="button" id="a2fDoneBtn" disabled data-i18n="a2fDone">Selesai, tetap di halaman akun</button>
           </div>
         </div>
@@ -2295,15 +2302,15 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
       var done = $('#a2fDoneBtn');
       if(done) done.disabled = true;
       var start = $('#a2fStartBtn');
-      if(start){ start.disabled = false; start.setAttribute('data-a2f-method','passkey'); }
+      if(start){ start.disabled = false; start.setAttribute('data-a2f-method','authenticator'); }
       var card = $('#a2fModal .a2f-card');
-      if(card){ card.classList.remove('is-verified'); card.setAttribute('data-selected-a2f','passkey'); }
+      if(card){ card.classList.remove('is-verified'); card.setAttribute('data-selected-a2f','authenticator'); }
       $$('#a2fModal [data-a2f-method]').forEach(function(btn){ btn.classList.remove('active'); btn.disabled = false; });
-      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === 'passkey'; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.disabled = false; });
-      $$('#a2fModal [data-a2f-panel]').forEach(function(panel){ panel.classList.toggle('active', panel.getAttribute('data-a2f-panel') === 'passkey'); });
+      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === 'authenticator'; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.disabled = false; });
+      $$('#a2fModal [data-a2f-panel]').forEach(function(panel){ panel.classList.toggle('active', panel.getAttribute('data-a2f-panel') === 'authenticator'); });
       $$('#a2fModal .a2f-step').forEach(function(step){ step.classList.remove('is-done','is-current'); });
       var first = $('#a2fModal [data-a2f-step="choose"]'); if(first) first.classList.add('is-current');
-      syncA2FPreview('passkey');
+      syncA2FPreview('authenticator');
       setA2FStep(1);
     }
     function activateA2F(method, detail){
@@ -2909,14 +2916,14 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
       selectedPasskey:'Passkey siap dibuat', selectedAuthenticator:'Authenticator siap diverifikasi', selectedEmail:'Email OTP siap dikirim',
       pillPasskey:'Anti-phishing', pillAuthenticator:'Kode 6 digit', pillEmail:'OTP email',
       beginPasskey:'Menyiapkan passkey...', beginAuthenticator:'Menyiapkan QR authenticator...', beginEmail:'Mengirim kode email...',
-      verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Mode demo UI aktif: gunakan kode 123456. Pada produksi, endpoint server harus mengganti simulasi ini.',
-      resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Kode baru disiapkan. Gunakan 123456 untuk pratinjau UI.',
-      passkeyNeedsServer:'Passkey membutuhkan HTTPS dan endpoint WebAuthn server. Pilih Authenticator atau Email untuk mencoba flow UI, atau hubungkan endpoint /api/mfa/setup dan /api/mfa/verify.',
+      verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Endpoint A2F belum siap. Cek koneksi/server lalu coba lagi.',
+      resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Kode baru disiapkan. Scan QR atau gunakan setup key, lalu masukkan kode dari Authenticator.',
+      passkeyNeedsServer:'Passkey membutuhkan HTTPS dan endpoint WebAuthn server. Pilih Authenticator dan pastikan endpoint /api/2fa/verify-totp aktif.',
       passkeyCancel:'Pembuatan passkey dibatalkan atau gagal. A2F belum diaktifkan.', unsupported:'Browser/perangkat ini belum mendukung metode tersebut.',
-      codeInvalid:'Kode harus 6 digit. Sisa percobaan: {n}.', codeWrong:'Kode belum cocok. Gunakan 123456 untuk demo UI atau sambungkan endpoint verifikasi server.', locked:'Terlalu banyak percobaan. Kirim ulang kode untuk mencoba lagi.',
+      codeInvalid:'Kode harus 6 digit. Sisa percobaan: {n}.', codeWrong:'Kode belum cocok. Masukkan 6 digit terbaru dari aplikasi Authenticator.', locked:'Terlalu banyak percobaan. Kirim ulang kode untuk mencoba lagi.',
       recoveryTitle:'Simpan recovery code', recoveryText:'Simpan kode ini di tempat aman. Kode hanya contoh lokal bila backend belum mengirim recovery code produksi.',
       copyCodes:'Salin kode', downloadCodes:'Unduh .txt', savedConfirm:'Saya sudah menyimpan recovery code.', copied:'Recovery code disalin.', downloaded:'Recovery code diunduh.',
-      successServer:'A2F berhasil diverifikasi oleh server menggunakan {method}. Simpan recovery code sebelum selesai.', successDemo:'Flow A2F {method} berhasil diverifikasi dalam mode UI lokal. Untuk produksi, server tetap harus memverifikasi OTP/challenge dan menyimpan recovery code.',
+      successServer:'A2F berhasil diverifikasi oleh server menggunakan {method}. Simpan recovery code sebelum selesai.', successDemo:'A2F belum diverifikasi server. Coba ulangi verifikasi.',
       finish:'Selesai', doneLocked:'Simpan recovery code terlebih dahulu.', switchAccount:'Gunakan akun lain', switched:'Sesi lokal dibersihkan. Silakan masuk lagi.',
       activeTitle:'Proteksi siap', activeText:'Recovery code sudah dikonfirmasi. Akun siap memakai langkah keamanan tambahan.', notActiveTitle:'Proteksi belum aktif', notActiveText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',
       focusBlocked:'Selesaikan A2F atau gunakan akun lain.'
@@ -2928,14 +2935,14 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
       selectedPasskey:'Passkey ready', selectedAuthenticator:'Authenticator ready to verify', selectedEmail:'Email OTP ready to send',
       pillPasskey:'Phishing-resistant', pillAuthenticator:'6-digit code', pillEmail:'Email OTP',
       beginPasskey:'Preparing passkey...', beginAuthenticator:'Preparing authenticator QR...', beginEmail:'Sending email code...',
-      verifyHelp:'Enter the 6-digit code, then press Continue.', demoCode:'UI demo mode is active: use code 123456. In production, the server endpoint must replace this simulation.',
-      resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new code is prepared. Use 123456 for the UI preview.',
-      passkeyNeedsServer:'Passkey requires HTTPS and a WebAuthn server endpoint. Choose Authenticator or Email to preview the UI flow, or connect /api/mfa/setup and /api/mfa/verify.',
+      verifyHelp:'Enter the 6-digit code, then press Continue.', demoCode:'The 2FA endpoint is not ready. Check the server/connection and try again.',
+      resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new setup is ready. Scan the QR or use the setup key, then enter the Authenticator code.',
+      passkeyNeedsServer:'Passkey requires HTTPS and a WebAuthn server endpoint. Choose Authenticator and make sure /api/2fa/verify-totp is active.',
       passkeyCancel:'Passkey creation was cancelled or failed. 2FA has not been enabled.', unsupported:'This browser/device does not support that method.',
-      codeInvalid:'Code must be 6 digits. Attempts left: {n}.', codeWrong:'The code does not match. Use 123456 for UI demo or connect the server verification endpoint.', locked:'Too many attempts. Resend the code to try again.',
+      codeInvalid:'Code must be 6 digits. Attempts left: {n}.', codeWrong:'The code does not match. Enter the latest 6-digit code from your Authenticator app.', locked:'Too many attempts. Resend the code to try again.',
       recoveryTitle:'Save recovery codes', recoveryText:'Keep these codes somewhere safe. Codes are local examples when the backend has not returned production recovery codes.',
       copyCodes:'Copy codes', downloadCodes:'Download .txt', savedConfirm:'I have saved the recovery codes.', copied:'Recovery codes copied.', downloaded:'Recovery codes downloaded.',
-      successServer:'2FA was verified by the server with {method}. Save the recovery codes before finishing.', successDemo:'2FA {method} flow was verified in local UI mode. In production, the server must still verify the OTP/challenge and store recovery codes.',
+      successServer:'2FA was verified by the server with {method}. Save the recovery codes before finishing.', successDemo:'2FA was not verified by the server. Please try verification again.',
       finish:'Done', doneLocked:'Save recovery codes first.', switchAccount:'Use another account', switched:'Local session cleared. Please sign in again.',
       activeTitle:'Protection ready', activeText:'Recovery codes are confirmed. The account is ready for the extra security step.', notActiveTitle:'Protection not active', notActiveText:'The dashboard stays locked until the security method is verified.',
       focusBlocked:'Complete 2FA or use another account.'
@@ -3085,6 +3092,30 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
     setMessage('status', t('recoveryText'));
     setStep(3);
   }
+
+  function authIdentifier(){
+    try{
+      var raw = localStorage.getItem('dirac_auth_session_v1');
+      var session = raw ? JSON.parse(raw) : {};
+      if(session && session.identifier) return String(session.identifier).trim();
+    }catch(e){}
+    var input = $('#identifier');
+    return input && input.value ? String(input.value).trim() : '';
+  }
+  function renderAuthenticatorSetup(setup){
+    var panel = $('#a2fModal .a2f-panel[data-a2f-panel="authenticator"] .a2f-panel-copy');
+    if(!panel || !setup) return;
+    var box = $('#a2fAuthenticatorSetup', panel);
+    if(!box){
+      panel.insertAdjacentHTML('beforeend','<div class="a2f-auth-setup" id="a2fAuthenticatorSetup" aria-live="polite"></div>');
+      box = $('#a2fAuthenticatorSetup', panel);
+    }
+    var manualKey = String(setup.manualKey || setup.secret || '').replace(/[^A-Z2-7]/gi,'').toUpperCase();
+    var qr = setup.qrCodeDataUrl ? '<img src="'+String(setup.qrCodeDataUrl).replace(/"/g,'&quot;')+'" alt="QR Authenticator Dirac Group" loading="eager" decoding="async" style="width:168px;height:168px;border-radius:16px;border:1px solid #e2e8f0;background:#fff;padding:8px;margin:10px 0;object-fit:contain">' : '';
+    var manual = manualKey ? '<div class="a2f-manual-key" style="margin-top:8px"><span style="display:block;color:#64748b;font-size:.76rem;font-weight:700;margin-bottom:5px">Setup key manual</span><code style="display:block;word-break:break-all;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:9px 10px;color:#111827">'+manualKey+'</code></div>' : '';
+    var hint = '<p style="margin:8px 0 0;color:#475569;font-size:.82rem;line-height:1.45">Scan QR di Google Authenticator/Authy. Jika QR tidak tampil, pilih “Enter setup key” lalu masukkan setup key manual di atas.</p>';
+    box.innerHTML = qr + manual + hint;
+  }
   async function callEndpoint(kind, payload){
     var modal = $('#a2fModal'); if(!modal || !window.fetch) throw new Error('endpoint unavailable');
     var url = modal.getAttribute(kind === 'setup' ? 'data-mfa-setup-endpoint' : kind === 'verify' ? 'data-mfa-verify-endpoint' : 'data-mfa-status-endpoint');
@@ -3100,13 +3131,15 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
     setMessage('status', resend ? t('resendDone') : msg);
     setBusy(true);
     try{
-      var setup = await callEndpoint('setup', {method:state.method, action:resend ? 'resend' : 'setup'});
+      var setup = await callEndpoint('setup', {method:state.method, action:resend ? 'resend' : 'setup', identifier:authIdentifier()});
       state.verifyMode = 'server';
       if(setup && Array.isArray(setup.recoveryCodes)) state.recoveryCodes = setup.recoveryCodes;
+      if(state.method === 'authenticator') renderAuthenticatorSetup(setup);
       setMessage('status', t('verifyHelp'));
     }catch(e){
-      state.verifyMode = 'demo';
-      setMessage('status', t('demoCode'));
+      state.verifyMode = 'none';
+      setMessage('error', t('demoCode'));
+      setStep(1);
     }finally{
       setBusy(false);
       updateActionText();
@@ -3126,20 +3159,17 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
     if(box) box.classList.remove('is-invalid');
     setBusy(true); setMessage('status', lang()==='en' ? 'Verifying code...' : 'Memverifikasi kode...');
     try{
-      var data = await callEndpoint('verify', {method:state.method, code:code});
+      var data = await callEndpoint('verify', {method:state.method, action:'verify', identifier:authIdentifier(), code:code});
       if(data && (data.verified || data.ok)){
         finishVerification('server', data.recoveryCodes || state.recoveryCodes);
         return;
       }
       throw new Error('not verified');
     }catch(e){
-      if(code === '123456') finishVerification('demo', state.recoveryCodes);
-      else{
-        state.attempts += 1;
-        var remaining = Math.max(0, 5 - state.attempts);
-        if(box) box.classList.add('is-invalid');
-        setMessage('error', remaining ? t('codeWrong') : t('locked'));
-      }
+      state.attempts += 1;
+      var remaining = Math.max(0, 5 - state.attempts);
+      if(box) box.classList.add('is-invalid');
+      setMessage('error', remaining ? t('codeWrong') : t('locked'));
     }finally{ setBusy(false); updateActionText(); }
   }
   async function startPasskey(){
@@ -3243,7 +3273,7 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
     }
     var actions = $('.a2f-actions', modal);
     if(actions && !$('#a2fSwitchAccountBtn', modal)) actions.insertAdjacentHTML('afterbegin','<button class="btn-secondary a2f-switch-account" type="button" id="a2fSwitchAccountBtn">'+t('switchAccount')+'</button>');
-    selectMethod('passkey');
+    selectMethod('authenticator');
   }
   function bind(){
     var modal = $('#a2fModal'); if(!modal || modal.getAttribute('data-a2f-p13-bound') === 'true') return;
