@@ -660,6 +660,275 @@ function getRecoveryLocalCode(stepNumber) {
   return { code, label: item.label, envName: item.envName };
 }
 
+
+const PUBLIC_MFA_SETUP_TTL_MS = Number(process.env.PUBLIC_MFA_SETUP_TTL_MS || 5 * 60 * 1000);
+const PUBLIC_MFA_EMAIL_CODE_TTL_MS = Number(process.env.PUBLIC_MFA_EMAIL_CODE_TTL_MS || PUBLIC_MFA_SETUP_TTL_MS);
+const PUBLIC_MFA_CHALLENGE_PURPOSE = "public-a2f-setup-v1";
+
+function normalizePublicMfaMethod(method) {
+  const value = String(method || "").trim().toLowerCase();
+  if (["email", "otp", "email-otp", "mail"].includes(value)) return "email";
+  if (["authenticator", "totp", "app", "google-authenticator"].includes(value)) return "authenticator";
+  if (["passkey", "webauthn", "security-key", "security_key"].includes(value)) return "passkey";
+  return "";
+}
+
+function isPublicMfaStartRequest(body) {
+  const method = normalizePublicMfaMethod(body && body.method);
+  const action = String((body && body.action) || "setup").trim().toLowerCase();
+  return Boolean(method && ["setup", "start", "resend", "begin", "register", "create"].includes(action));
+}
+
+function getPublicMfaSecret() {
+  const secret = String(process.env.A2F_SECRET || process.env.PUBLIC_MFA_SECRET || "").trim();
+  if (!secret || secret === "rahasia-test" || secret.length < 32) {
+    const err = new Error("A2F_SECRET/PUBLIC_MFA_SECRET belum aman. Gunakan secret production minimal 32 karakter.");
+    err.statusCode = 500;
+    throw err;
+  }
+  return secret;
+}
+
+function publicMfaRandomId(bytes = 18) {
+  return crypto.randomBytes(bytes).toString("base64url");
+}
+
+function publicMfaBase64Url(input) {
+  return Buffer.from(input).toString("base64url");
+}
+
+function normalizePublicMfaIdentifier(value) {
+  const text = String(value || process.env.A2F_ADMIN_EMAIL || "").trim().toLowerCase();
+  return text.length > 220 ? text.slice(0, 220) : text;
+}
+
+function hashPublicMfaIdentifier(identifier, secret) {
+  return crypto.createHmac("sha256", secret).update(`public-mfa-identifier:${normalizePublicMfaIdentifier(identifier)}`).digest("hex");
+}
+
+function createPublicMfaSetupToken(payload) {
+  const secret = getPublicMfaSecret();
+  const now = Date.now();
+  const safePayload = {
+    purpose: PUBLIC_MFA_CHALLENGE_PURPOSE,
+    createdAt: now,
+    expiresAt: now + PUBLIC_MFA_SETUP_TTL_MS,
+    nonce: publicMfaRandomId(18),
+    ...payload
+  };
+  return makeSession(safePayload, secret);
+}
+
+function generatePublicMfaRecoveryCodes(count = 6) {
+  const codes = [];
+  while (codes.length < count) {
+    const left = crypto.randomBytes(5).toString("base64url").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8).padEnd(8, "X");
+    const right = crypto.randomBytes(5).toString("base64url").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8).padEnd(8, "Y");
+    codes.push(`DIRAC-${left}-${right}`);
+  }
+  return codes;
+}
+
+function randomBase32Secret(length = 32) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let out = "";
+  while (out.length < length) out += alphabet[crypto.randomInt(0, alphabet.length)];
+  return out;
+}
+
+function otpauthUrl({ issuer, account, secret }) {
+  const label = `${encodeURIComponent(issuer)}:${encodeURIComponent(account || "Dirac User")}`;
+  const qs = new URLSearchParams({ secret, issuer, algorithm: "SHA1", digits: "6", period: "30" });
+  return `otpauth://totp/${label}?${qs.toString()}`;
+}
+
+function getRequestOrigin(req) {
+  const headerOrigin = String((req && req.headers && req.headers.origin) || "").trim();
+  if (headerOrigin) return headerOrigin.replace(/\/$/, "");
+  const proto = String((req && req.headers && (req.headers["x-forwarded-proto"] || "https")) || "https").split(",")[0].trim() || "https";
+  const host = String((req && req.headers && (req.headers["x-forwarded-host"] || req.headers.host)) || "").split(",")[0].trim();
+  return host ? `${proto}://${host}` : "https://diracgroup.store";
+}
+
+function getPublicMfaRpId(req) {
+  const envRpId = String(process.env.WEBAUTHN_RP_ID || process.env.PUBLIC_MFA_RP_ID || "").trim();
+  if (envRpId) return envRpId;
+  try {
+    const hostname = new URL(getRequestOrigin(req)).hostname;
+    return hostname.replace(/^www\./i, "");
+  } catch (_error) {
+    return "diracgroup.store";
+  }
+}
+
+function getPublicMfaRpName() {
+  return String(process.env.WEBAUTHN_RP_NAME || process.env.PUBLIC_MFA_RP_NAME || "Dirac Group").trim() || "Dirac Group";
+}
+
+function buildPublicMfaPasskeyOptions(req, identifier) {
+  const secret = getPublicMfaSecret();
+  const challenge = publicMfaBase64Url(crypto.randomBytes(32));
+  const userId = publicMfaBase64Url(crypto.randomBytes(32));
+  const rpId = getPublicMfaRpId(req);
+  const origin = getRequestOrigin(req);
+  const account = normalizePublicMfaIdentifier(identifier) || "dirac-user";
+  const setupToken = createPublicMfaSetupToken({
+    method: "passkey",
+    challenge,
+    userId,
+    rpId,
+    origin,
+    identifierHash: hashPublicMfaIdentifier(account, secret),
+    recoveryCodes: generatePublicMfaRecoveryCodes()
+  });
+
+  return {
+    success: true,
+    ok: true,
+    method: "passkey",
+    setupToken,
+    publicKey: {
+      challenge,
+      rp: { name: getPublicMfaRpName(), id: rpId },
+      user: {
+        id: userId,
+        name: account,
+        displayName: account || "Dirac Group User"
+      },
+      pubKeyCredParams: [
+        { type: "public-key", alg: -7 },
+        { type: "public-key", alg: -257 }
+      ],
+      timeout: Number(process.env.PUBLIC_MFA_PASSKEY_TIMEOUT_MS || 60000),
+      attestation: "none",
+      authenticatorSelection: {
+        residentKey: "preferred",
+        requireResidentKey: false,
+        userVerification: "preferred"
+      },
+      extensions: { credProps: true }
+    },
+    message: "Challenge passkey berhasil dibuat."
+  };
+}
+
+function getSmtpConfigForPublicMfa() {
+  const host = String(process.env.SMTP_HOST || process.env.GMAIL_SMTP_HOST || "smtp.gmail.com").trim();
+  const port = Number(process.env.SMTP_PORT || process.env.GMAIL_SMTP_PORT || 465);
+  const user = String(process.env.SMTP_USER || process.env.GMAIL_USER || process.env.GMAIL_EMAIL || "").trim();
+  const pass = String(process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASS || "").trim();
+  const fromName = String(process.env.SMTP_FROM_NAME || "Dirac Security").trim();
+  const fromEmail = String(process.env.SMTP_FROM_EMAIL || user || process.env.A2F_SENDER_EMAIL || "").trim();
+  return { host, port, user, pass, fromName, fromEmail };
+}
+
+async function sendPublicMfaEmailOtp({ code, to, expiresAtMs }) {
+  const target = String(to || process.env.PUBLIC_MFA_EMAIL_TO || process.env.A2F_ADMIN_EMAIL || "").trim();
+  if (!target) throw new Error("Email tujuan OTP belum tersedia.");
+
+  const smtp = getSmtpConfigForPublicMfa();
+  if (smtp.user && smtp.pass && smtp.fromEmail) {
+    const nodemailer = require("nodemailer");
+    const transporter = nodemailer.createTransport({
+      host: smtp.host,
+      port: smtp.port,
+      secure: smtp.port === 465,
+      auth: { user: smtp.user, pass: smtp.pass }
+    });
+    await transporter.sendMail({
+      from: `"${smtp.fromName}" <${smtp.fromEmail}>`,
+      to: target,
+      subject: "Kode OTP A2F Dirac Group",
+      text: `Kode OTP A2F Dirac Group kamu adalah ${code}. Kode berlaku sampai ${new Date(expiresAtMs).toISOString()}. Jangan berikan kode ini ke siapa pun.`,
+      html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111"><h2>Kode OTP A2F Dirac Group</h2><p>Kode verifikasi kamu:</p><div style="font-size:30px;font-weight:800;letter-spacing:5px">${code}</div><p>Kode berlaku sampai <b>${new Date(expiresAtMs).toISOString()}</b>.</p><p>Jika kamu tidak meminta kode ini, abaikan email ini.</p></div>`
+    });
+    return { provider: "smtp" };
+  }
+
+  if (process.env.BREVO_API_KEY && process.env.A2F_SENDER_EMAIL) {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": process.env.BREVO_API_KEY, "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        sender: { name: "Dirac Security", email: process.env.A2F_SENDER_EMAIL },
+        to: [{ email: target, name: "Dirac User" }],
+        subject: "Kode OTP A2F Dirac Group",
+        htmlContent: `<div style="font-family:Arial,sans-serif;line-height:1.6"><h2>Kode OTP A2F</h2><p>Kode verifikasi kamu:</p><div style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</div><p>Kode berlaku singkat. Jangan berikan kode ini ke siapa pun.</p></div>`,
+        textContent: `Kode OTP A2F Dirac Group kamu adalah: ${code}`
+      })
+    });
+    const result = await response.text();
+    if (!response.ok) throw new Error(result || "Gagal kirim email OTP");
+    return { provider: "brevo" };
+  }
+
+  throw new Error("SMTP/Gmail belum diset. Isi SMTP_USER dan SMTP_PASS/GMAIL_APP_PASSWORD di Environment Variables.");
+}
+
+async function startPublicMfaSetup(req, res) {
+  const body = req.body || {};
+  const method = normalizePublicMfaMethod(body.method);
+  const identifier = normalizePublicMfaIdentifier(body.identifier || body.email || body.username || process.env.A2F_ADMIN_EMAIL || "");
+  const secret = getPublicMfaSecret();
+  const now = Date.now();
+  const expiresAtMs = now + (method === "email" ? PUBLIC_MFA_EMAIL_CODE_TTL_MS : PUBLIC_MFA_SETUP_TTL_MS);
+
+  if (!method) {
+    return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak valid." });
+  }
+
+  if (method === "email") {
+    const code = String(crypto.randomInt(100000, 1000000)).padStart(6, "0");
+    const setupToken = createPublicMfaSetupToken({
+      method,
+      identifierHash: hashPublicMfaIdentifier(identifier, secret),
+      codeHash: hashCode(`public-email:${identifier}:${code}`, secret),
+      expiresAt: expiresAtMs,
+      recoveryCodes: generatePublicMfaRecoveryCodes()
+    });
+    const mail = await sendPublicMfaEmailOtp({ code, to: identifier, expiresAtMs });
+    return res.status(200).json({
+      success: true,
+      ok: true,
+      method,
+      setupToken,
+      mfaSetupToken: setupToken,
+      token: setupToken,
+      ttlSeconds: Math.max(1, Math.floor((expiresAtMs - now) / 1000)),
+      provider: mail.provider,
+      message: "Kode OTP email berhasil dikirim."
+    });
+  }
+
+  if (method === "authenticator") {
+    const manualKey = randomBase32Secret(32);
+    const setupToken = createPublicMfaSetupToken({
+      method,
+      identifierHash: hashPublicMfaIdentifier(identifier, secret),
+      totpSecret: manualKey,
+      recoveryCodes: generatePublicMfaRecoveryCodes()
+    });
+    return res.status(200).json({
+      success: true,
+      ok: true,
+      method,
+      setupToken,
+      mfaSetupToken: setupToken,
+      token: setupToken,
+      manualKey,
+      secret: manualKey,
+      otpauthUrl: otpauthUrl({ issuer: getPublicMfaRpName(), account: identifier || "Dirac User", secret: manualKey }),
+      message: "Setup key Authenticator berhasil disiapkan."
+    });
+  }
+
+  if (method === "passkey") {
+    return res.status(200).json(buildPublicMfaPasskeyOptions(req, identifier));
+  }
+
+  return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak dikenal." });
+}
+
 module.exports = async function handler(req, res) {
   setCors(res);
 
@@ -673,6 +942,18 @@ module.exports = async function handler(req, res) {
   }
 
   const { step, action } = req.body || {};
+
+  if (isPublicMfaStartRequest(req.body || {})) {
+    try {
+      return startPublicMfaSetup(req, res);
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        ok: false,
+        error: error.message || "Gagal menyiapkan A2F"
+      });
+    }
+  }
 
   if (action === "checkA2fBanStatus") {
     try {

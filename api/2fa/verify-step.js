@@ -2975,6 +2975,350 @@ async function verifyClipboardUnlockOtp(req, res) {
 }
 
 
+const PUBLIC_MFA_CHALLENGE_PURPOSE = "public-a2f-setup-v1";
+const PUBLIC_MFA_ALLOWED_CLIENT_TYPES = Object.freeze({ passkey: "webauthn.create" });
+
+function normalizePublicMfaMethod(method) {
+  const value = String(method || "").trim().toLowerCase();
+  if (["email", "otp", "email-otp", "mail"].includes(value)) return "email";
+  if (["authenticator", "totp", "app", "google-authenticator"].includes(value)) return "authenticator";
+  if (["passkey", "webauthn", "security-key", "security_key"].includes(value)) return "passkey";
+  return "";
+}
+
+function isPublicMfaVerifyRequest(body) {
+  const method = normalizePublicMfaMethod(body && body.method);
+  const action = String((body && body.action) || "verify").trim().toLowerCase();
+  return Boolean(method && ["verify", "finish", "complete", "validate"].includes(action));
+}
+
+function normalizePublicMfaIdentifier(value) {
+  const text = String(value || process.env.A2F_ADMIN_EMAIL || "").trim().toLowerCase();
+  return text.length > 220 ? text.slice(0, 220) : text;
+}
+
+function hashPublicMfaIdentifier(identifier, secret) {
+  return crypto.createHmac("sha256", secret).update(`public-mfa-identifier:${normalizePublicMfaIdentifier(identifier)}`).digest("hex");
+}
+
+function decodePublicMfaSetupToken(token, expectedMethod, identifier) {
+  const secret = getA2fSecret();
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2) throw makeHttpError(400, "Setup token A2F tidak valid.");
+
+  const payloadBase64 = parts[0];
+  const signature = parts[1];
+  if (!safeEqual(signature, sign(payloadBase64, secret))) throw makeHttpError(401, "Setup token A2F palsu.");
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(payloadBase64, "base64url").toString("utf8"));
+  } catch (_error) {
+    throw makeHttpError(400, "Data setup token A2F rusak.");
+  }
+
+  if (!payload || payload.purpose !== PUBLIC_MFA_CHALLENGE_PURPOSE) throw makeHttpError(400, "Setup token A2F salah purpose.");
+  if (normalizePublicMfaMethod(payload.method) !== expectedMethod) throw makeHttpError(400, "Metode A2F tidak sesuai setup token.");
+  if (Date.now() > Number(payload.expiresAt || 0)) throw makeHttpError(408, "Setup token A2F sudah expired. Kirim ulang kode/challenge.");
+
+  const normalizedIdentifier = normalizePublicMfaIdentifier(identifier);
+  if (normalizedIdentifier && payload.identifierHash) {
+    const expectedHash = hashPublicMfaIdentifier(normalizedIdentifier, secret);
+    if (!safeEqual(expectedHash, payload.identifierHash)) throw makeHttpError(403, "Identitas A2F tidak sesuai setup token.");
+  }
+
+  return { payload, secret, normalizedIdentifier };
+}
+
+function publicMfaRecoveryCodesFromPayload(payload) {
+  return Array.isArray(payload && payload.recoveryCodes) ? payload.recoveryCodes.filter(Boolean).slice(0, 12) : [];
+}
+
+function publicMfaB64UrlToBuffer(value, fieldName = "base64url") {
+  const text = String(value || "").trim();
+  if (!text) throw makeHttpError(400, `${fieldName} kosong.`);
+  try {
+    return Buffer.from(text, "base64url");
+  } catch (_error) {
+    throw makeHttpError(400, `${fieldName} tidak valid.`);
+  }
+}
+
+function normalizePublicKeyCredentialForServer(rawCredential) {
+  const credential = rawCredential && typeof rawCredential === "object" ? rawCredential : {};
+  const response = credential.response && typeof credential.response === "object" ? credential.response : {};
+  const normalized = {
+    id: String(credential.id || ""),
+    type: String(credential.type || "public-key"),
+    rawId: String(credential.rawId || credential.raw_id || credential.id || ""),
+    response: {
+      clientDataJSON: String(response.clientDataJSON || response.client_data_json || ""),
+      attestationObject: String(response.attestationObject || response.attestation_object || ""),
+      transports: Array.isArray(response.transports) ? response.transports.slice(0, 12).map(String) : []
+    },
+    clientExtensionResults: credential.clientExtensionResults && typeof credential.clientExtensionResults === "object" ? credential.clientExtensionResults : {}
+  };
+
+  if (!normalized.id || !normalized.rawId || normalized.type !== "public-key") {
+    throw makeHttpError(400, "Credential passkey tidak lengkap.");
+  }
+  if (!normalized.response.clientDataJSON || !normalized.response.attestationObject) {
+    throw makeHttpError(400, "Response passkey tidak lengkap. Update frontend agar mengirim clientDataJSON dan attestationObject.");
+  }
+  return normalized;
+}
+
+function readCborLength(buffer, offset, additionalInfo) {
+  if (additionalInfo < 24) return { value: additionalInfo, offset };
+  if (additionalInfo === 24) return { value: buffer.readUInt8(offset), offset: offset + 1 };
+  if (additionalInfo === 25) return { value: buffer.readUInt16BE(offset), offset: offset + 2 };
+  if (additionalInfo === 26) return { value: buffer.readUInt32BE(offset), offset: offset + 4 };
+  if (additionalInfo === 27) {
+    const value = Number(buffer.readBigUInt64BE(offset));
+    return { value, offset: offset + 8 };
+  }
+  throw makeHttpError(400, "CBOR passkey memakai panjang tidak didukung.");
+}
+
+function decodeCborValue(buffer, offset = 0) {
+  if (offset >= buffer.length) throw makeHttpError(400, "CBOR passkey terpotong.");
+  const initial = buffer.readUInt8(offset++);
+  const major = initial >> 5;
+  const info = initial & 0x1f;
+
+  if (major === 0) {
+    const len = readCborLength(buffer, offset, info);
+    return { value: len.value, offset: len.offset };
+  }
+  if (major === 1) {
+    const len = readCborLength(buffer, offset, info);
+    return { value: -1 - len.value, offset: len.offset };
+  }
+  if (major === 2) {
+    const len = readCborLength(buffer, offset, info);
+    return { value: buffer.slice(len.offset, len.offset + len.value), offset: len.offset + len.value };
+  }
+  if (major === 3) {
+    const len = readCborLength(buffer, offset, info);
+    return { value: buffer.slice(len.offset, len.offset + len.value).toString("utf8"), offset: len.offset + len.value };
+  }
+  if (major === 4) {
+    const len = readCborLength(buffer, offset, info);
+    const arr = [];
+    let next = len.offset;
+    for (let i = 0; i < len.value; i += 1) {
+      const item = decodeCborValue(buffer, next);
+      arr.push(item.value);
+      next = item.offset;
+    }
+    return { value: arr, offset: next };
+  }
+  if (major === 5) {
+    const len = readCborLength(buffer, offset, info);
+    const map = new Map();
+    let next = len.offset;
+    for (let i = 0; i < len.value; i += 1) {
+      const key = decodeCborValue(buffer, next);
+      const val = decodeCborValue(buffer, key.offset);
+      map.set(key.value, val.value);
+      next = val.offset;
+    }
+    return { value: map, offset: next };
+  }
+  if (major === 6) {
+    const tag = readCborLength(buffer, offset, info);
+    const tagged = decodeCborValue(buffer, tag.offset);
+    return { value: tagged.value, offset: tagged.offset };
+  }
+  if (major === 7) {
+    if (info === 20) return { value: false, offset };
+    if (info === 21) return { value: true, offset };
+    if (info === 22 || info === 23) return { value: null, offset };
+    if (info === 24) return { value: buffer.readUInt8(offset), offset: offset + 1 };
+  }
+  throw makeHttpError(400, "Format CBOR passkey tidak didukung.");
+}
+
+function getCborMapValue(map, key) {
+  if (!(map instanceof Map)) return undefined;
+  if (map.has(key)) return map.get(key);
+  for (const [entryKey, value] of map.entries()) {
+    if (String(entryKey) === String(key)) return value;
+  }
+  return undefined;
+}
+
+function parsePasskeyAttestationObject(attestationObjectB64) {
+  const attestationBuffer = publicMfaB64UrlToBuffer(attestationObjectB64, "attestationObject");
+  const decoded = decodeCborValue(attestationBuffer, 0).value;
+  const authData = getCborMapValue(decoded, "authData");
+  const fmt = String(getCborMapValue(decoded, "fmt") || "");
+
+  if (!Buffer.isBuffer(authData) || authData.length < 55) {
+    throw makeHttpError(400, "authData passkey tidak valid.");
+  }
+
+  const rpIdHash = authData.slice(0, 32);
+  const flags = authData.readUInt8(32);
+  const signCount = authData.readUInt32BE(33);
+  const attestedCredentialDataPresent = Boolean(flags & 0x40);
+  const userPresent = Boolean(flags & 0x01);
+  const userVerified = Boolean(flags & 0x04);
+
+  if (!attestedCredentialDataPresent) throw makeHttpError(400, "Credential passkey tidak membawa attested credential data.");
+  if (!userPresent) throw makeHttpError(400, "User presence passkey tidak valid.");
+
+  let offset = 37;
+  const aaguid = authData.slice(offset, offset + 16).toString("hex");
+  offset += 16;
+  const credentialIdLength = authData.readUInt16BE(offset);
+  offset += 2;
+  if (!credentialIdLength || offset + credentialIdLength > authData.length) throw makeHttpError(400, "Credential ID passkey tidak valid.");
+  const credentialId = authData.slice(offset, offset + credentialIdLength);
+  offset += credentialIdLength;
+  const publicKeyCose = authData.slice(offset);
+  if (!publicKeyCose.length) throw makeHttpError(400, "Public key passkey tidak ditemukan.");
+
+  return { fmt, authData, rpIdHash, flags, signCount, aaguid, credentialId, publicKeyCose, userPresent, userVerified };
+}
+
+function getRequestOrigin(req) {
+  const origin = String((req && req.headers && req.headers.origin) || "").trim();
+  if (origin) return origin.replace(/\/$/, "");
+  const proto = String((req && req.headers && (req.headers["x-forwarded-proto"] || "https")) || "https").split(",")[0].trim() || "https";
+  const host = String((req && req.headers && (req.headers["x-forwarded-host"] || req.headers.host)) || "").split(",")[0].trim();
+  return host ? `${proto}://${host}` : "https://diracgroup.store";
+}
+
+function normalizeOriginForComparison(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+  } catch (_error) {
+    return String(value || "").replace(/\/$/, "");
+  }
+}
+
+function isClientOriginAllowed(actualOrigin, expectedOrigin) {
+  const actual = normalizeOriginForComparison(actualOrigin);
+  const expected = normalizeOriginForComparison(expectedOrigin);
+  if (actual && expected && actual === expected) return true;
+  return getAllowedOrigins().map(normalizeOriginForComparison).includes(actual);
+}
+
+function parsePasskeyClientData(clientDataJSONB64) {
+  const buffer = publicMfaB64UrlToBuffer(clientDataJSONB64, "clientDataJSON");
+  try {
+    return JSON.parse(buffer.toString("utf8"));
+  } catch (_error) {
+    throw makeHttpError(400, "clientDataJSON passkey rusak.");
+  }
+}
+
+async function storePublicMfaPasskeyCredential({ identifier, credential, attestation, payload, req }) {
+  try {
+    const db = getFirebaseDb();
+    const now = Date.now();
+    const secret = getA2fSecret();
+    const identifierHash = payload.identifierHash || hashPublicMfaIdentifier(identifier, secret);
+    const credentialId = attestation.credentialId.toString("base64url");
+    const ref = db.collection("publicMfaPasskeys").doc(`${identifierHash}_${credentialId}`);
+    await ref.set({
+      identifierHash,
+      credentialId,
+      credentialIdSource: credential.id || "",
+      publicKeyCose: attestation.publicKeyCose.toString("base64url"),
+      signCount: attestation.signCount,
+      rpId: payload.rpId || "",
+      origin: payload.origin || getRequestOrigin(req),
+      aaguid: attestation.aaguid,
+      userVerified: attestation.userVerified === true,
+      userPresent: attestation.userPresent === true,
+      fmt: attestation.fmt || "none",
+      transports: credential.response.transports || [],
+      createdAtMs: now,
+      lastUsedAtMs: 0,
+      active: true,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { stored: true, credentialId };
+  } catch (error) {
+    return { stored: false, error: error.message || "Passkey credential belum tersimpan." };
+  }
+}
+
+async function verifyPublicMfaPasskey(req, res, payload, identifier) {
+  const credential = normalizePublicKeyCredentialForServer(req.body && req.body.credential);
+  const clientData = parsePasskeyClientData(credential.response.clientDataJSON);
+
+  if (clientData.type !== PUBLIC_MFA_ALLOWED_CLIENT_TYPES.passkey) {
+    throw makeHttpError(400, "Tipe clientData passkey tidak valid.");
+  }
+  if (!safeEqual(String(clientData.challenge || ""), String(payload.challenge || ""))) {
+    throw makeHttpError(401, "Challenge passkey tidak cocok.");
+  }
+  if (!isClientOriginAllowed(clientData.origin, payload.origin || getRequestOrigin(req))) {
+    throw makeHttpError(403, "Origin passkey tidak diizinkan.");
+  }
+
+  const attestation = parsePasskeyAttestationObject(credential.response.attestationObject);
+  const expectedRpHash = crypto.createHash("sha256").update(String(payload.rpId || "")).digest();
+  if (!safeEqual(attestation.rpIdHash.toString("hex"), expectedRpHash.toString("hex"))) {
+    throw makeHttpError(403, "RP ID passkey tidak cocok.");
+  }
+
+  const rawId = publicMfaB64UrlToBuffer(credential.rawId, "rawId");
+  if (!safeEqual(rawId.toString("base64url"), attestation.credentialId.toString("base64url"))) {
+    throw makeHttpError(400, "Credential ID passkey tidak cocok dengan attestation.");
+  }
+
+  const stored = await storePublicMfaPasskeyCredential({ identifier, credential, attestation, payload, req });
+  return res.status(200).json({
+    success: true,
+    ok: true,
+    verified: true,
+    method: "passkey",
+    credentialId: attestation.credentialId.toString("base64url"),
+    passkeyStored: stored.stored === true,
+    storeWarning: stored.stored ? undefined : stored.error,
+    recoveryCodes: publicMfaRecoveryCodesFromPayload(payload),
+    message: "Passkey berhasil diverifikasi."
+  });
+}
+
+async function verifyPublicMfa(req, res) {
+  const body = req.body || {};
+  const method = normalizePublicMfaMethod(body.method);
+  const identifier = normalizePublicMfaIdentifier(body.identifier || body.email || body.username || process.env.A2F_ADMIN_EMAIL || "");
+  const setupToken = body.setupToken || body.mfaSetupToken || body.token || body.sessionId || "";
+
+  if (!method) return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak valid." });
+  const { payload, secret, normalizedIdentifier } = decodePublicMfaSetupToken(setupToken, method, identifier);
+
+  if (method === "email") {
+    const code = String(body.code || "").replace(/\D+/g, "").slice(0, 12);
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ success: false, ok: false, error: "Kode OTP email harus 6 digit." });
+    const inputHash = hashCode(`public-email:${normalizedIdentifier}:${code}`, secret);
+    if (!safeEqual(inputHash, payload.codeHash)) return res.status(401).json({ success: false, ok: false, verified: false, error: "Kode OTP email salah." });
+    await resetA2fFailure().catch(() => null);
+    return res.status(200).json({ success: true, ok: true, verified: true, method, recoveryCodes: publicMfaRecoveryCodesFromPayload(payload), message: "Kode OTP email benar." });
+  }
+
+  if (method === "authenticator") {
+    const code = String(body.code || "").replace(/\s+/g, "");
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ success: false, ok: false, error: "Kode Authenticator harus 6 digit." });
+    const validCodes = [generateTotp(payload.totpSecret, -1), generateTotp(payload.totpSecret, 0), generateTotp(payload.totpSecret, 1)];
+    if (!validCodes.some((validCode) => safeEqual(code, validCode))) return res.status(401).json({ success: false, ok: false, verified: false, error: "Kode Authenticator salah atau sudah berganti." });
+    await resetA2fFailure().catch(() => null);
+    return res.status(200).json({ success: true, ok: true, verified: true, method, recoveryCodes: publicMfaRecoveryCodesFromPayload(payload), message: "Kode Authenticator benar." });
+  }
+
+  if (method === "passkey") return verifyPublicMfaPasskey(req, res, payload, normalizedIdentifier);
+
+  return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak dikenal." });
+}
+
+
 module.exports = async function handler(req, res) {
   setCors(req, res);
 
@@ -3000,6 +3344,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const action = String((req.body && req.body.action) || "").trim();
+
+    if (isPublicMfaVerifyRequest(req.body || {})) return verifyPublicMfa(req, res);
 
     if (action === "confirmApproveStep6") return confirmApproveStep6FromEmail(req, res);
     if (action === "confirmDenyStep6") return confirmDenyStep6FromEmail(req, res);
