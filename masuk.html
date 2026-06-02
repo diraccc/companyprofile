@@ -1717,191 +1717,6 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 }
 </style>
 
-
-<style id="dirac-a2f-all-sides-hardening-css">
-/* =========================================================
-   Dirac A2F All-Sides Hardening v2
-   Additive, non-destructive: UI/UX/a11y/API-readiness polish.
-   ========================================================= */
-#a2fModal{--a2f-sticky-bg:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.96) 28%,#fff 100%)}
-#a2fModal .a2f-card{outline:none!important}
-#a2fModal .a2f-card:focus-visible,#a2fModal button:focus-visible,#a2fModal input:focus-visible{outline:3px solid rgba(var(--theme-rgb),.42)!important;outline-offset:3px!important}
-#a2fModal .a2f-actions{position:sticky!important;bottom:0!important;z-index:7!important;padding-top:16px!important;margin-top:18px!important;background:var(--a2f-sticky-bg)!important;border-top:1px solid rgba(226,232,240,.78)!important}
-#a2fModal .a2f-actions .btn-primary,#a2fModal .a2f-actions .btn-secondary{min-width:0!important}
-#a2fModal .a2f-help-box,#a2fModal .a2f-final-box{display:none;margin:14px 0 0;padding:14px 15px;border-radius:18px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;line-height:1.55;font-size:.86rem}
-#a2fModal .a2f-help-box.show,#a2fModal .a2f-final-box.show{display:block}
-#a2fModal .a2f-help-box strong,#a2fModal .a2f-final-box strong{display:block;color:#111827;margin-bottom:5px;font-weight:760}
-#a2fModal .a2f-help-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-#a2fModal .a2f-help-actions button{border:1px solid #cbd5e1;background:#fff;color:#111827;border-radius:999px;padding:8px 11px;font-weight:800;font-size:.78rem}
-#a2fModal .a2f-final-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
-#a2fModal .a2f-final-grid div{padding:10px;border-radius:14px;background:#fff;border:1px solid #e5e7eb}
-#a2fModal .a2f-final-grid span{display:block;color:#64748b;font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-#a2fModal .a2f-final-grid b{display:block;color:#111827;font-size:.82rem;margin-top:3px;word-break:break-word}
-#a2fModal .a2f-dev-contract{display:none;margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed #cbd5e1;background:#f8fafc;color:#475569;font-size:.76rem;line-height:1.45}
-#a2fModal[data-dev-mode="true"] .a2f-dev-contract{display:block}
-#a2fModal .a2f-qr-visual.has-real-qr{background:#fff!important;padding:10px!important;display:grid!important;place-items:center!important}
-#a2fModal .a2f-qr-visual.has-real-qr .a2f-qr-img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px}
-#a2fModal .a2f-verify-box[data-locked="true"] .a2f-otp-cell{opacity:.55;pointer-events:none}
-#a2fModal .a2f-method[aria-checked="true"]{box-shadow:0 0 0 1px rgba(var(--theme-rgb),.24),0 12px 26px rgba(15,23,42,.06)!important}
-#a2fModal .a2f-otp-cell{caret-color:rgb(var(--theme-rgb))}
-#a2fModal .a2f-otp-cell:focus{transform:translateY(-1px)}
-#a2fModal .a2f-recovery-list code{user-select:all}
-#a2fModal .a2f-sensitive-note{display:block;margin-top:8px;color:#64748b;font-size:.75rem}
-#a2fModal .a2f-loading-dot{display:none;width:12px;height:12px;border-radius:999px;border:2px solid currentColor;border-right-color:transparent;margin-right:7px;vertical-align:-2px;animation:a2fSpin .75s linear infinite}
-#a2fModal .a2f-card[data-a2f-busy="true"] .a2f-loading-dot{display:inline-block}
-@keyframes a2fSpin{to{transform:rotate(360deg)}}
-html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
-@media(max-width:920px){#a2fModal .a2f-actions{margin-left:-22px!important;margin-right:-22px!important;padding:14px 22px 0!important}#a2fModal .a2f-final-grid{grid-template-columns:1fr}}
-@media(max-width:540px){#a2fModal .a2f-method{min-height:auto!important;display:grid!important;grid-template-columns:auto 1fr!important;align-items:center!important;gap:8px 11px!important;padding:12px!important;text-align:left!important}#a2fModal .a2f-method-top{grid-row:1 / span 2;margin:0!important}#a2fModal .a2f-method strong{align-self:end!important}#a2fModal .a2f-method span:not(.a2f-method-icon):not(.a2f-method-top),#a2fModal .a2f-method small{grid-column:2!important}#a2fModal .a2f-step-indicator{display:inline-flex!important;margin:0 0 12px;padding:7px 10px;border-radius:999px;background:#f1f5f9;color:#475569;font-weight:800;font-size:.78rem}#a2fModal .a2f-actions{margin-left:-18px!important;margin-right:-18px!important;padding:12px 18px 0!important}#a2fModal .a2f-help-actions{display:grid;grid-template-columns:1fr}#a2fModal .a2f-help-actions button{width:100%;justify-content:center}#a2fModal .a2f-otp-grid{gap:6px!important}#a2fModal .a2f-otp-cell{height:46px!important;border-radius:13px!important}}
-</style>
-
-
-
-<style id="dirac-a2f-mobile-cta-safe-final-css">
-/* =========================================================
-   Dirac A2F Mobile CTA Safe Area Final
-   Scope: hanya #a2fModal. Tujuan: tombol Lanjutkan tidak tertutup
-   toolbar browser/iPhone dan modal tetap normal di semua ukuran layar.
-   ========================================================= */
-:root{
-  --dirac-a2f-vvh:100dvh;
-  --dirac-a2f-bottom-guard:22px;
-}
-@supports (height:100svh){
-  :root{--dirac-a2f-vvh:100svh;}
-}
-#a2fModal.open{min-height:var(--dirac-a2f-vvh)!important;}
-#a2fModal .a2f-main{
-  overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
-}
-#a2fModal .a2f-actions{
-  scroll-margin-bottom:calc(120px + env(safe-area-inset-bottom))!important;
-}
-@media(max-width:620px){
-  body.modal-open{overscroll-behavior:none!important;}
-  #a2fModal{
-    align-items:start!important;
-    overflow:hidden!important;
-    padding:8px!important;
-    padding-top:max(8px, env(safe-area-inset-top))!important;
-    padding-bottom:max(8px, env(safe-area-inset-bottom))!important;
-  }
-  #a2fModal .a2f-card{
-    width:calc(100vw - 16px)!important;
-    height:calc(var(--dirac-a2f-vvh,100svh) - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)))!important;
-    max-height:calc(var(--dirac-a2f-vvh,100svh) - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)))!important;
-    min-height:0!important;
-    display:flex!important;
-    flex-direction:column!important;
-    overflow:hidden!important;
-    border-radius:24px!important;
-  }
-  #a2fModal .a2f-shell{
-    display:flex!important;
-    flex-direction:column!important;
-    flex:1 1 auto!important;
-    min-height:0!important;
-    height:100%!important;
-    max-height:100%!important;
-    overflow:hidden!important;
-  }
-  #a2fModal .a2f-side{
-    flex:0 0 auto!important;
-    padding:12px 14px!important;
-    max-height:150px!important;
-    overflow:visible!important;
-  }
-  #a2fModal .a2f-mini-brand{margin-bottom:10px!important;}
-  #a2fModal .a2f-steps{margin-bottom:0!important;}
-  #a2fModal .a2f-main{
-    flex:1 1 auto!important;
-    min-height:0!important;
-    height:auto!important;
-    max-height:none!important;
-    overflow-y:auto!important;
-    padding:16px 18px calc(30px + env(safe-area-inset-bottom))!important;
-    scroll-padding-bottom:calc(150px + env(safe-area-inset-bottom))!important;
-  }
-  #a2fModal .a2f-actions{
-    position:sticky!important;
-    bottom:calc(var(--dirac-a2f-bottom-guard,22px) + env(safe-area-inset-bottom))!important;
-    z-index:30!important;
-    display:grid!important;
-    grid-template-columns:1fr!important;
-    gap:10px!important;
-    margin:18px -2px calc(var(--dirac-a2f-bottom-guard,22px) + env(safe-area-inset-bottom))!important;
-    padding:12px!important;
-    border-radius:24px!important;
-    border:1px solid rgba(226,232,240,.94)!important;
-    background:linear-gradient(180deg,rgba(255,255,255,.94),#fff 48%,#fff)!important;
-    box-shadow:0 -12px 30px rgba(15,23,42,.09),0 1px 0 rgba(255,255,255,.9) inset!important;
-  }
-  #a2fModal .a2f-actions .btn-secondary,
-  #a2fModal .a2f-actions .btn-primary{
-    width:100%!important;
-    min-height:52px!important;
-    justify-content:center!important;
-    border-radius:18px!important;
-    line-height:1.12!important;
-    padding:12px 16px!important;
-  }
-  #a2fModal .a2f-status-msg.show,
-  #a2fModal .a2f-error-msg.show,
-  #a2fModal .a2f-result.show{
-    max-height:none!important;
-  }
-}
-@media(max-width:430px){
-  #a2fModal .a2f-side{max-height:142px!important;}
-  #a2fModal .a2f-main{padding:14px 16px calc(30px + env(safe-area-inset-bottom))!important;}
-  #a2fModal .a2f-actions{bottom:calc(24px + env(safe-area-inset-bottom))!important;margin-bottom:calc(24px + env(safe-area-inset-bottom))!important;}
-  #a2fModal .a2f-actions .btn-secondary,
-  #a2fModal .a2f-actions .btn-primary{min-height:50px!important;}
-}
-@media(max-width:360px){
-  #a2fModal .a2f-side{max-height:132px!important;}
-  #a2fModal .a2f-main{padding:12px 14px calc(28px + env(safe-area-inset-bottom))!important;}
-  #a2fModal .a2f-otp-grid{gap:5px!important;}
-  #a2fModal .a2f-otp-cell{height:42px!important;min-height:42px!important;}
-}
-@media(prefers-reduced-motion:reduce){
-  #a2fModal .a2f-main{scroll-behavior:auto!important;}
-}
-</style>
-
-
-
-<style id="dirac-a2f-mobile-cta-safe-final-v2-css">
-/* Final mobile correction: no disabled finish button during verify, no sticky overlay over status/help. */
-#a2fModal .a2f-card[data-a2f-step-index="1"] #a2fDoneBtn,
-#a2fModal .a2f-card[data-a2f-step-index="2"] #a2fDoneBtn{display:none!important;}
-@media(max-width:620px){
-  #a2fModal .a2f-actions{
-    position:relative!important;
-    bottom:auto!important;
-    margin:18px 0 calc(44px + env(safe-area-inset-bottom))!important;
-    padding:12px!important;
-    transform:none!important;
-  }
-  #a2fModal .a2f-main{scroll-padding-bottom:calc(80px + env(safe-area-inset-bottom))!important;}
-}
-</style>
-
-
-
-<style id="dirac-a2f-recovery-action-cleanup-css">
-/* Setelah kode terverifikasi, tombol verifikasi utama disembunyikan agar recovery step tidak penuh/bertabrakan. */
-#a2fModal .a2f-card[data-a2f-step-index="3"] #a2fStartBtn,
-#a2fModal .a2f-card[data-a2f-step-index="4"] #a2fStartBtn{display:none!important;}
-</style>
-
-
-<style id="dirac-a2f-step3-recovery-first-css">
-/* Step 3 fokus ke recovery code; tombol bawah baru muncul setelah checkbox menyimpan kode. */
-#a2fModal .a2f-card[data-a2f-step-index="3"] .a2f-actions{display:none!important;}
-</style>
-
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -2106,7 +1921,7 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
 
 
 
-  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="/api/mfa/status" data-mfa-setup-endpoint="/api/mfa/setup" data-mfa-verify-endpoint="/api/mfa/verify" data-mfa-demo-mode="true" data-api-contract="webauthn-json-v1">
+  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="/api/mfa/status" data-mfa-setup-endpoint="/api/mfa/setup" data-mfa-verify-endpoint="/api/mfa/verify">
     <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="passkey" data-a2f-step-index="1">
       <div class="a2f-shell">
         <aside class="a2f-side" aria-label="Ringkasan keamanan akun">
@@ -2238,7 +2053,7 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
         </div>
       </div>
       <form class="ai-form" id="aiForm">
-        <input class="field" id="aiInput" type="text" placeholder="Tulis pertanyaan..." autocomplete="off" aria-label="Tulis pertanyaan untuk Dirac AI">
+        <input class="field" id="aiInput" type="text" placeholder="Tulis pertanyaan..." autocomplete="off">
         <button class="btn-primary" type="submit" aria-label="Kirim pertanyaan">➤</button>
       </form>
     </section>
@@ -3085,42 +2900,42 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
   function ready(fn){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn);else fn()}
   function lang(){return document.documentElement.lang === 'en' ? 'en' : 'id'}
   function reducedMotion(){return document.documentElement.getAttribute('data-motion') === 'reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)}
-  var state = {method:'passkey', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], timer:null, seconds:0, attempts:0, lastFocus:null, setupId:null, challengeId:null, trustedDevice:false, lastSetup:null};
+  var state = {method:'passkey', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], timer:null, seconds:0, attempts:0, lastFocus:null};
   var copy = {
     id:{
-      note:'<strong>A2F / Verifikasi 2 Langkah wajib sebelum dashboard.</strong> Pilih metode, lakukan verifikasi, lalu simpan recovery code. Saat API MFA Anda aktif, server akan menjadi sumber utama status keamanan akun.',
+      note:'<strong>A2F / Verifikasi 2 Langkah wajib sebelum dashboard.</strong> Pilih metode, lakukan verifikasi, lalu simpan recovery code. Sistem tidak akan menandai A2F produksi aktif sebelum challenge atau OTP benar-benar terverifikasi.',
       chooseStatus:'Pilih metode keamanan yang paling nyaman. Passkey direkomendasikan untuk perangkat pribadi.',
       selectPasskey:'Buat passkey sekarang', selectAuthenticator:'Tampilkan QR authenticator', selectEmail:'Kirim kode ke email',
       selectedPasskey:'Passkey siap dibuat', selectedAuthenticator:'Authenticator siap diverifikasi', selectedEmail:'Email OTP siap dikirim',
       pillPasskey:'Anti-phishing', pillAuthenticator:'Kode 6 digit', pillEmail:'OTP email',
       beginPasskey:'Menyiapkan passkey...', beginAuthenticator:'Menyiapkan QR authenticator...', beginEmail:'Mengirim kode email...',
-      verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Kode verifikasi sementara sudah siap. Masukkan kode 6 digit untuk melanjutkan. Saat API MFA aktif, verifikasi diproses oleh server.',
-      resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Kode baru sudah disiapkan. Masukkan kode 6 digit untuk melanjutkan.',
-      passkeyNeedsServer:'Passkey akan aktif setelah endpoint WebAuthn tersambung. Untuk sementara, gunakan Email atau Authenticator agar flow keamanan tetap bisa diuji.',
+      verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Mode demo UI aktif: gunakan kode 123456. Pada produksi, endpoint server harus mengganti simulasi ini.',
+      resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Kode baru disiapkan. Gunakan 123456 untuk pratinjau UI.',
+      passkeyNeedsServer:'Passkey membutuhkan HTTPS dan endpoint WebAuthn server. Pilih Authenticator atau Email untuk mencoba flow UI, atau hubungkan endpoint /api/mfa/setup dan /api/mfa/verify.',
       passkeyCancel:'Pembuatan passkey dibatalkan atau gagal. A2F belum diaktifkan.', unsupported:'Browser/perangkat ini belum mendukung metode tersebut.',
-      codeInvalid:'Kode harus 6 digit. Sisa percobaan: {n}.', codeWrong:'Kode belum cocok. Periksa kembali 6 digit kode verifikasi Anda.', locked:'Terlalu banyak percobaan. Kirim ulang kode untuk mencoba lagi.',
-      recoveryTitle:'Simpan recovery code', recoveryText:'Simpan kode ini di tempat aman. Saat API MFA aktif, recovery code dibuat server dan hanya ditampilkan satu kali.',
+      codeInvalid:'Kode harus 6 digit. Sisa percobaan: {n}.', codeWrong:'Kode belum cocok. Gunakan 123456 untuk demo UI atau sambungkan endpoint verifikasi server.', locked:'Terlalu banyak percobaan. Kirim ulang kode untuk mencoba lagi.',
+      recoveryTitle:'Simpan recovery code', recoveryText:'Simpan kode ini di tempat aman. Kode hanya contoh lokal bila backend belum mengirim recovery code produksi.',
       copyCodes:'Salin kode', downloadCodes:'Unduh .txt', savedConfirm:'Saya sudah menyimpan recovery code.', copied:'Recovery code disalin.', downloaded:'Recovery code diunduh.',
-      successServer:'A2F berhasil diverifikasi oleh server menggunakan {method}. Simpan recovery code sebelum selesai.', successDemo:'Flow A2F {method} berhasil diverifikasi untuk pratinjau UI. Saat API MFA aktif, server akan memverifikasi kode dan menyimpan status keamanan.',
+      successServer:'A2F berhasil diverifikasi oleh server menggunakan {method}. Simpan recovery code sebelum selesai.', successDemo:'Flow A2F {method} berhasil diverifikasi dalam mode UI lokal. Untuk produksi, server tetap harus memverifikasi OTP/challenge dan menyimpan recovery code.',
       finish:'Selesai', doneLocked:'Simpan recovery code terlebih dahulu.', switchAccount:'Gunakan akun lain', switched:'Sesi lokal dibersihkan. Silakan masuk lagi.',
       activeTitle:'Proteksi siap', activeText:'Recovery code sudah dikonfirmasi. Akun siap memakai langkah keamanan tambahan.', notActiveTitle:'Proteksi belum aktif', notActiveText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',
       focusBlocked:'Selesaikan A2F atau gunakan akun lain.'
     },
     en:{
-      note:'<strong>2FA is required before the dashboard.</strong> Choose a method, verify it, then save the recovery codes. When your MFA API is active, the server becomes the source of truth for account security.',
+      note:'<strong>2FA is required before the dashboard.</strong> Choose a method, verify it, then save the recovery codes. The system will not mark production 2FA as active before a real server challenge or OTP is verified.',
       chooseStatus:'Choose the security method that feels safest. Passkey is recommended for personal devices.',
       selectPasskey:'Create passkey now', selectAuthenticator:'Show authenticator QR', selectEmail:'Send email code',
       selectedPasskey:'Passkey ready', selectedAuthenticator:'Authenticator ready to verify', selectedEmail:'Email OTP ready to send',
       pillPasskey:'Phishing-resistant', pillAuthenticator:'6-digit code', pillEmail:'Email OTP',
       beginPasskey:'Preparing passkey...', beginAuthenticator:'Preparing authenticator QR...', beginEmail:'Sending email code...',
-      verifyHelp:'Enter the 6-digit code, then press Continue.', demoCode:'A temporary verification code is ready. Enter the 6-digit code to continue. When the MFA API is active, verification is processed by the server.',
-      resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new code is ready. Enter the 6-digit code to continue.',
-      passkeyNeedsServer:'Passkey becomes active after the WebAuthn endpoint is connected. For now, use Email or Authenticator to test the security flow.',
+      verifyHelp:'Enter the 6-digit code, then press Continue.', demoCode:'UI demo mode is active: use code 123456. In production, the server endpoint must replace this simulation.',
+      resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new code is prepared. Use 123456 for the UI preview.',
+      passkeyNeedsServer:'Passkey requires HTTPS and a WebAuthn server endpoint. Choose Authenticator or Email to preview the UI flow, or connect /api/mfa/setup and /api/mfa/verify.',
       passkeyCancel:'Passkey creation was cancelled or failed. 2FA has not been enabled.', unsupported:'This browser/device does not support that method.',
-      codeInvalid:'Code must be 6 digits. Attempts left: {n}.', codeWrong:'The code does not match. Please check the 6 verification digits again.', locked:'Too many attempts. Resend the code to try again.',
-      recoveryTitle:'Save recovery codes', recoveryText:'Keep these codes somewhere safe. When the MFA API is active, recovery codes are generated server-side and shown once.',
+      codeInvalid:'Code must be 6 digits. Attempts left: {n}.', codeWrong:'The code does not match. Use 123456 for UI demo or connect the server verification endpoint.', locked:'Too many attempts. Resend the code to try again.',
+      recoveryTitle:'Save recovery codes', recoveryText:'Keep these codes somewhere safe. Codes are local examples when the backend has not returned production recovery codes.',
       copyCodes:'Copy codes', downloadCodes:'Download .txt', savedConfirm:'I have saved the recovery codes.', copied:'Recovery codes copied.', downloaded:'Recovery codes downloaded.',
-      successServer:'2FA was verified by the server with {method}. Save the recovery codes before finishing.', successDemo:'2FA {method} flow was verified for the UI preview. When the MFA API is active, the server will verify the code and store the security status.',
+      successServer:'2FA was verified by the server with {method}. Save the recovery codes before finishing.', successDemo:'2FA {method} flow was verified in local UI mode. In production, the server must still verify the OTP/challenge and store recovery codes.',
       finish:'Done', doneLocked:'Save recovery codes first.', switchAccount:'Use another account', switched:'Local session cleared. Please sign in again.',
       activeTitle:'Protection ready', activeText:'Recovery codes are confirmed. The account is ready for the extra security step.', notActiveTitle:'Protection not active', notActiveText:'The dashboard stays locked until the security method is verified.',
       focusBlocked:'Complete 2FA or use another account.'
@@ -3157,7 +2972,7 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
     if(status){ status.classList.remove('show'); status.textContent = ''; }
     if(error){ error.classList.remove('show'); error.textContent = ''; }
     if(card) card.classList.remove('is-error');
-    if(type === 'error' && error){ error.textContent = msg; error.classList.add('show'); var help=$('#a2fHelpBox'); if(help) help.classList.add('show'); if(card){ card.classList.add('is-error'); setTimeout(function(){ card.classList.remove('is-error'); }, 360); } }
+    if(type === 'error' && error){ error.textContent = msg; error.classList.add('show'); if(card){ card.classList.add('is-error'); setTimeout(function(){ card.classList.remove('is-error'); }, 360); } }
     if(type === 'status' && status){ status.textContent = msg; status.classList.add('show'); }
   }
   function showResult(msg){
@@ -3182,8 +2997,8 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
   }
   function selectMethod(method){
     method = method || 'passkey';
-    state.method = method; state.attempts = 0; state.verified = false; state.verifyMode = 'none'; state.recoveryCodes = []; state.setupId = null; state.challengeId = null; state.lastSetup = null;
-    clearTimeout(state.timer); clearResult(); var help=$('#a2fHelpBox'); if(help) help.classList.remove('show'); var final=$('#a2fFinalBox'); if(final) final.classList.remove('show'); setMessage('status', t('chooseStatus'));
+    state.method = method; state.attempts = 0; state.verified = false; state.verifyMode = 'none'; state.recoveryCodes = [];
+    clearTimeout(state.timer); clearResult(); setMessage('status', t('chooseStatus'));
     var card = $('#a2fModal .a2f-card');
     if(card){ card.classList.remove('is-verified','is-verified-pulse'); card.setAttribute('data-selected-a2f', method); }
     $$('#a2fModal [data-a2f-select]').forEach(function(btn){
@@ -3205,7 +3020,7 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
   function resetOtpBoxes(){
     $$('#a2fModal .a2f-otp-cell').forEach(function(input){ input.value=''; });
     $$('#a2fModal .a2f-verify-input').forEach(function(input){ input.value=''; });
-    $$('#a2fModal .a2f-verify-box').forEach(function(box){ box.classList.remove('is-invalid'); box.removeAttribute('data-locked'); });
+    $$('#a2fModal .a2f-verify-box').forEach(function(box){ box.classList.remove('is-invalid'); });
   }
   function syncOtpFromCells(box){
     if(!box) return '';
@@ -3243,102 +3058,9 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
     var confirm = $('#a2fRecoveryConfirm'); if(confirm) confirm.checked = false;
     var done = $('#a2fDoneBtn'); if(done) done.disabled = true;
   }
-  function escapeHtml(value){
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; });
-  }
-  function nowLabel(){
-    try{return new Intl.DateTimeFormat(lang()==='en'?'en-US':'id-ID',{dateStyle:'medium',timeStyle:'short'}).format(new Date());}
-    catch(e){return new Date().toLocaleString();}
-  }
-  function getEmailMasked(){
-    var input = $('#identifier');
-    var value = input && input.value ? input.value.trim() : '';
-    if(!value){ try{ value = (JSON.parse(localStorage.getItem('dirac_auth_session_v1')||'{}').identifier || '').trim(); }catch(e){} }
-    var m = value.match(/^([^@\s]+)(@[^@\s]+)$/);
-    if(!m) return lang()==='en' ? 'Account email' : 'Email akun';
-    return (m[1].charAt(0)||'e') + '••••' + (m[1].length > 4 ? m[1].slice(-1) : '') + m[2];
-  }
-  function renderFinalSummary(mode){
-    var box = $('#a2fFinalBox'); if(!box) return;
-    var server = mode === 'server';
-    var status = server ? (lang()==='en' ? 'Server verified' : 'Terverifikasi server') : (lang()==='en' ? 'UI preview only' : 'Pratinjau UI saja');
-    var method = label(state.method);
-    box.innerHTML = '<strong>'+(lang()==='en'?'Security summary':'Ringkasan keamanan')+'</strong>'+
-      '<p>'+(server ? (lang()==='en'?'This method has been accepted by the configured MFA endpoint.':'Metode ini diterima oleh endpoint MFA yang terpasang.') : (lang()==='en'?'This is a local UI preview. It does not replace backend verification.':'Ini pratinjau UI lokal. Ini tidak menggantikan verifikasi backend.'))+'</p>'+
-      '<div class="a2f-final-grid">'+
-      '<div><span>'+(lang()==='en'?'Method':'Metode')+'</span><b>'+escapeHtml(method)+'</b></div>'+
-      '<div><span>Status</span><b>'+escapeHtml(status)+'</b></div>'+
-      '<div><span>'+(lang()==='en'?'Account':'Akun')+'</span><b>'+escapeHtml(getEmailMasked())+'</b></div>'+
-      '<div><span>'+(lang()==='en'?'Time':'Waktu')+'</span><b>'+escapeHtml(nowLabel())+'</b></div>'+
-      '</div>';
-    box.classList.add('show');
-  }
-  function applySetupPayload(setup){
-    state.lastSetup = setup || null;
-    state.setupId = setup && (setup.setupId || setup.transactionId || setup.challengeId || setup.id) || null;
-    state.challengeId = setup && (setup.challengeId || setup.challenge || setup.transactionId) || null;
-    if(setup && (setup.qrSvg || setup.qrDataUrl || setup.qrImage || setup.otpauthUrl)){
-      var qr = $('[data-a2f-panel="authenticator"] .a2f-qr-visual');
-      if(qr){
-        qr.classList.add('has-real-qr');
-        if(setup.qrSvg){ qr.innerHTML = setup.qrSvg; }
-        else if(setup.qrDataUrl || setup.qrImage){ qr.innerHTML = '<img class="a2f-qr-img" alt="Authenticator QR" src="'+escapeHtml(setup.qrDataUrl || setup.qrImage)+'">'; }
-        else { qr.innerHTML = '<span aria-hidden="true">QR</span><small class="sr-only">'+escapeHtml(setup.otpauthUrl)+'</small>'; }
-      }
-    }
-  }
-  function normalizeBase64Url(value){ return String(value || '').replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(String(value || '').length/4)*4,'='); }
-  function base64UrlToBuffer(value){
-    if(value instanceof ArrayBuffer) return value;
-    if(ArrayBuffer.isView(value)) return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
-    var binary = atob(normalizeBase64Url(value));
-    var bytes = new Uint8Array(binary.length);
-    for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer;
-  }
-  function bufferToBase64Url(buffer){
-    if(!buffer) return '';
-    var bytes = new Uint8Array(buffer), bin = '';
-    for(var i=0;i<bytes.byteLength;i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  }
-  function preparePublicKey(publicKey){
-    var pk = JSON.parse(JSON.stringify(publicKey || {}));
-    if(typeof pk.challenge === 'string') pk.challenge = base64UrlToBuffer(pk.challenge);
-    if(pk.user && typeof pk.user.id === 'string') pk.user.id = base64UrlToBuffer(pk.user.id);
-    ['excludeCredentials','allowCredentials'].forEach(function(key){
-      if(Array.isArray(pk[key])) pk[key] = pk[key].map(function(cred){ if(cred && typeof cred.id === 'string') cred.id = base64UrlToBuffer(cred.id); return cred; });
-    });
-    return pk;
-  }
-  function serializeCredential(credential){
-    if(!credential) return null;
-    var response = credential.response || {};
-    var out = {id:credential.id,type:credential.type,rawId:bufferToBase64Url(credential.rawId),response:{}};
-    ['clientDataJSON','attestationObject','authenticatorData','signature','userHandle'].forEach(function(key){ if(response[key]) out.response[key] = bufferToBase64Url(response[key]); });
-    if(typeof credential.getClientExtensionResults === 'function') out.clientExtensionResults = credential.getClientExtensionResults();
-    if(response.getTransports){ try{ out.response.transports = response.getTransports(); }catch(e){} }
-    return out;
-  }
-  function setA2FInert(open){
-    var modal = $('#a2fModal');
-    Array.prototype.slice.call(document.body.children).forEach(function(el){
-      if(el === modal) return;
-      if(open){
-        if(!el.hasAttribute('data-a2f-inert-managed')){
-          el.setAttribute('data-a2f-inert-managed','true');
-          if('inert' in el) el.inert = true;
-        }
-      }else if(el.hasAttribute('data-a2f-inert-managed')){
-        if('inert' in el) el.inert = false;
-        el.removeAttribute('data-a2f-inert-managed');
-      }
-    });
-  }
-
   function finishVerification(mode, codes){
     state.verified = true; state.verifyMode = mode || 'demo';
-    clearTimeout(state.timer); renderRecovery(codes); renderFinalSummary(mode);
+    clearTimeout(state.timer); renderRecovery(codes);
     var card = $('#a2fModal .a2f-card');
     if(card){
       card.classList.add('is-verified','is-verified-pulse');
@@ -3367,34 +3089,24 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
     var modal = $('#a2fModal'); if(!modal || !window.fetch) throw new Error('endpoint unavailable');
     var url = modal.getAttribute(kind === 'setup' ? 'data-mfa-setup-endpoint' : kind === 'verify' ? 'data-mfa-verify-endpoint' : 'data-mfa-status-endpoint');
     if(!url) throw new Error('endpoint missing');
-    var controller = window.AbortController ? new AbortController() : null;
-    var timeout = setTimeout(function(){ if(controller) controller.abort(); }, 9000);
-    var csrf = document.querySelector('meta[name="csrf-token"]');
-    var headers = {'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest'};
-    if(csrf && csrf.content) headers['X-CSRF-Token'] = csrf.content;
-    var body = Object.assign({contract:'dirac-mfa-json-v1', language:lang(), method:state.method, setupId:state.setupId, challengeId:state.challengeId}, payload || {});
-    try{
-      var res = await fetch(url, {method:'POST', headers:headers, body:JSON.stringify(body), credentials:'same-origin', cache:'no-store', signal:controller && controller.signal});
-      var data = await res.clone().json().catch(function(){return null;});
-      if(!res.ok || !data || data.ok === false || data.error) throw new Error(data && (data.message || data.error) || 'endpoint rejected');
-      return data;
-    }finally{ clearTimeout(timeout); }
+    var res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:'same-origin', cache:'no-store'});
+    var data = await res.clone().json().catch(function(){return null;});
+    if(!res.ok || !data || data.ok === false) throw new Error('endpoint rejected');
+    return data;
   }
   async function beginVerifyStep(resend){
     state.attempts = 0; resetOtpBoxes(); clearResult(); setStep(2);
     var msg = state.method === 'authenticator' ? t('beginAuthenticator') : t('beginEmail');
     setMessage('status', resend ? t('resendDone') : msg);
-    var box = activeVerifyBox(); if(box) box.removeAttribute('data-locked');
     setBusy(true);
     try{
-      var setup = await callEndpoint('setup', {method:state.method, action:resend ? 'resend' : 'setup', destination:getEmailMasked()});
+      var setup = await callEndpoint('setup', {method:state.method, action:resend ? 'resend' : 'setup'});
       state.verifyMode = 'server';
-      applySetupPayload(setup);
       if(setup && Array.isArray(setup.recoveryCodes)) state.recoveryCodes = setup.recoveryCodes;
-      setMessage('status', setup && setup.message ? setup.message : t('verifyHelp'));
+      setMessage('status', t('verifyHelp'));
     }catch(e){
-      state.verifyMode = $('#a2fModal').getAttribute('data-mfa-demo-mode') === 'false' ? 'server_unavailable' : 'demo';
-      setMessage(state.verifyMode === 'demo' ? 'status' : 'error', state.verifyMode === 'demo' ? t('demoCode') : (lang()==='en' ? 'MFA endpoint is not ready yet. Try again after the API is connected.' : 'Endpoint MFA belum siap. Coba lagi setelah API terhubung.'));
+      state.verifyMode = 'demo';
+      setMessage('status', t('demoCode'));
     }finally{
       setBusy(false);
       updateActionText();
@@ -3404,32 +3116,28 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
   }
   async function verifyCode(){
     var box = activeVerifyBox(); var code = syncOtpFromCells(box);
-    if(box) box.removeAttribute('data-locked');
-    if(state.attempts >= 5){ if(box) box.setAttribute('data-locked','true'); setMessage('error', t('locked')); return; }
     if(!/^\d{6}$/.test(code)){
       state.attempts += 1; if(box) box.classList.add('is-invalid');
       var left = Math.max(0, 5 - state.attempts);
-      if(!left && box) box.setAttribute('data-locked','true');
       setMessage('error', left ? t('codeInvalid',{n:left}) : t('locked'));
       return;
     }
-    if(box) box.classList.remove('is-invalid'); box.removeAttribute('data-locked');
+    if(state.attempts >= 5){ setMessage('error', t('locked')); return; }
+    if(box) box.classList.remove('is-invalid');
     setBusy(true); setMessage('status', lang()==='en' ? 'Verifying code...' : 'Memverifikasi kode...');
     try{
-      var data = await callEndpoint('verify', {method:state.method, code:code, setupId:state.setupId, challengeId:state.challengeId});
+      var data = await callEndpoint('verify', {method:state.method, code:code});
       if(data && (data.verified || data.ok)){
         finishVerification('server', data.recoveryCodes || state.recoveryCodes);
         return;
       }
       throw new Error('not verified');
     }catch(e){
-      var demoAllowed = $('#a2fModal').getAttribute('data-mfa-demo-mode') !== 'false';
-      if(demoAllowed && code === '123456') finishVerification('demo', state.recoveryCodes);
+      if(code === '123456') finishVerification('demo', state.recoveryCodes);
       else{
         state.attempts += 1;
         var remaining = Math.max(0, 5 - state.attempts);
         if(box) box.classList.add('is-invalid');
-        if(!remaining && box) box.setAttribute('data-locked','true');
         setMessage('error', remaining ? t('codeWrong') : t('locked'));
       }
     }finally{ setBusy(false); updateActionText(); }
@@ -3437,13 +3145,10 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
   async function startPasskey(){
     clearResult(); setStep(2); setBusy(true); setMessage('status', t('beginPasskey'));
     try{
-      if(!navigator.credentials || !window.PublicKeyCredential) throw new Error('unsupported');
-      var setup = await callEndpoint('setup', {method:'passkey', action:'setup', rpId:location.hostname});
-      applySetupPayload(setup);
-      if(!setup || !setup.publicKey) throw new Error('server publicKey missing');
-      var credential = await navigator.credentials.create({publicKey:preparePublicKey(setup.publicKey)});
-      var serialized = serializeCredential(credential);
-      var verify = await callEndpoint('verify', {method:'passkey', setupId:state.setupId, challengeId:state.challengeId, credential:serialized});
+      var setup = await callEndpoint('setup', {method:'passkey', action:'setup'});
+      if(!setup || !setup.publicKey || !navigator.credentials || !window.PublicKeyCredential) throw new Error('server publicKey missing');
+      var credential = await navigator.credentials.create({publicKey:setup.publicKey});
+      var verify = await callEndpoint('verify', {method:'passkey', credentialId:credential && credential.id, rawId:credential && credential.rawId ? true : false});
       if(verify && (verify.verified || verify.ok)){ finishVerification('server', verify.recoveryCodes || setup.recoveryCodes); return; }
       throw new Error('server rejected');
     }catch(e){
@@ -3483,7 +3188,6 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
   function switchAccount(){
     try{ localStorage.removeItem('dirac_auth_session_v1'); localStorage.removeItem('dirac_auth_a2f_v1'); }catch(e){}
     var modal = $('#a2fModal'); if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
-    setA2FInert(false);
     document.body.classList.remove('modal-open','menu-open','ai-open');
     var input = $('#identifier'); if(input) input.focus({preventScroll:true});
     var toast = $('#toast'); if(toast){ toast.textContent = t('switched'); toast.classList.add('show'); setTimeout(function(){ toast.classList.remove('show'); }, 2600); }
@@ -3491,7 +3195,6 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
   function closeDone(){
     if(state.step < 4 || !state.verified){ setMessage('error', t('doneLocked')); return; }
     var modal = $('#a2fModal'); if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
-    setA2FInert(false);
     document.body.classList.remove('modal-open','menu-open','ai-open');
   }
   function trapFocus(e){
@@ -3536,10 +3239,8 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
     var preview = $('#a2fPreview', modal);
     if(preview && !$('#a2fErrorMsg', modal)) preview.insertAdjacentHTML('afterend','<div class="a2f-error-msg" id="a2fErrorMsg" role="alert"></div><div class="a2f-status-msg" id="a2fStatusMsg" role="status" aria-live="polite"></div>');
     if(preview && !$('#a2fRecoveryBox', modal)){
-      preview.insertAdjacentHTML('afterend','<section class="a2f-recovery-box" id="a2fRecoveryBox" aria-live="polite"><h3>'+t('recoveryTitle')+'</h3><p>'+t('recoveryText')+'<span class="a2f-sensitive-note">'+(lang()==='en'?'Never share recovery codes with anyone.':'Jangan pernah bagikan recovery code ke siapa pun.')+'</span></p><div class="a2f-recovery-list" id="a2fRecoveryCodes"></div><div class="a2f-recovery-toolbar"><button class="a2f-small-btn" type="button" id="a2fCopyRecoveryBtn">'+t('copyCodes')+'</button><button class="a2f-small-btn" type="button" id="a2fDownloadRecoveryBtn">'+t('downloadCodes')+'</button></div><label class="a2f-recovery-consent"><input type="checkbox" id="a2fRecoveryConfirm"><span id="a2fRecoveryConfirmLabel">'+t('savedConfirm')+'</span></label></section>');
+      preview.insertAdjacentHTML('afterend','<section class="a2f-recovery-box" id="a2fRecoveryBox" aria-live="polite"><h3>'+t('recoveryTitle')+'</h3><p>'+t('recoveryText')+'</p><div class="a2f-recovery-list" id="a2fRecoveryCodes"></div><div class="a2f-recovery-toolbar"><button class="a2f-small-btn" type="button" id="a2fCopyRecoveryBtn">'+t('copyCodes')+'</button><button class="a2f-small-btn" type="button" id="a2fDownloadRecoveryBtn">'+t('downloadCodes')+'</button></div><label class="a2f-recovery-consent"><input type="checkbox" id="a2fRecoveryConfirm"><span id="a2fRecoveryConfirmLabel">'+t('savedConfirm')+'</span></label></section>');
     }
-    if(preview && !$('#a2fFinalBox', modal)) preview.insertAdjacentHTML('afterend','<section class="a2f-final-box" id="a2fFinalBox" aria-live="polite"></section>');
-    if(preview && !$('#a2fHelpBox', modal)) preview.insertAdjacentHTML('afterend','<section class="a2f-help-box" id="a2fHelpBox"><strong>'+(lang()==='en'?'Need another way?':'Butuh cara lain?')+'</strong><p>'+(lang()==='en'?'Use another method if the current device, email, or authenticator app is not available.':'Gunakan metode lain jika perangkat, email, atau aplikasi authenticator sedang tidak tersedia.')+'</p><div class="a2f-help-actions"><button type="button" data-a2f-select="email">Email</button><button type="button" data-a2f-select="authenticator">Authenticator</button><button type="button" data-a2f-select="passkey">Passkey</button></div><div class="a2f-dev-contract">Contract: setup returns {ok, setupId, publicKey|qrDataUrl}; verify returns {ok, verified, recoveryCodes}.</div></section>');
     var actions = $('.a2f-actions', modal);
     if(actions && !$('#a2fSwitchAccountBtn', modal)) actions.insertAdjacentHTML('afterbegin','<button class="btn-secondary a2f-switch-account" type="button" id="a2fSwitchAccountBtn">'+t('switchAccount')+'</button>');
     selectMethod('passkey');
@@ -3566,13 +3267,6 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
       }
     }, true);
     modal.addEventListener('keydown', function(e){
-      if(e.target.closest && e.target.closest('[data-a2f-select]') && ['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].indexOf(e.key) >= 0){
-        e.preventDefault();
-        var radios = $$('#a2fModal [data-a2f-select]'); var idx = radios.indexOf(e.target.closest('[data-a2f-select]'));
-        if(e.key === 'Home') idx = 0; else if(e.key === 'End') idx = radios.length - 1; else idx += (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
-        idx = (idx + radios.length) % radios.length; if(radios[idx]){ selectMethod(radios[idx].getAttribute('data-a2f-select')); radios[idx].focus({preventScroll:true}); }
-        return;
-      }
       if(e.target.classList && e.target.classList.contains('a2f-otp-cell') && e.key === 'Backspace' && !e.target.value){ var cells = $$('.a2f-otp-cell', e.target.closest('.a2f-verify-box')); var i = cells.indexOf(e.target); if(cells[i-1]) cells[i-1].focus({preventScroll:true}); }
     }, true);
     modal.addEventListener('paste', function(e){
@@ -3583,115 +3277,14 @@ html[data-motion="reduced"] #a2fModal .a2f-loading-dot{animation:none!important}
     if(window.MutationObserver){
       new MutationObserver(function(){
         if(modal.classList.contains('open')){
-          setA2FInert(true);
           state.lastFocus = document.activeElement;
           setTimeout(function(){ var focus = $('#a2fModal [data-a2f-select].active') || $('#a2fStartBtn') || $('#a2fModal .a2f-card'); if(focus) focus.focus({preventScroll:true}); }, 40);
-        }else{ setA2FInert(false); }
+        }
       }).observe(modal,{attributes:true,attributeFilter:['class']});
       new MutationObserver(function(){ refreshLanguage(); }).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
     }
   }
   ready(function(){ enhance(); bind(); });
-})();
-</script>
-
-
-
-<script id="dirac-a2f-mobile-cta-safe-final-js">
-/* Dirac A2F mobile viewport + CTA guard. Additive only. */
-(function(){
-  'use strict';
-  var root = document.documentElement;
-  function prefersReduced(){return root.getAttribute('data-motion') === 'reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);}
-  function updateViewportVars(){
-    var vv = window.visualViewport;
-    var h = Math.max(320, Math.round(vv ? vv.height : window.innerHeight));
-    var bottom = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
-    var guard = Math.max(22, Math.min(92, bottom + 22));
-    root.style.setProperty('--dirac-a2f-vvh', h + 'px');
-    root.style.setProperty('--dirac-a2f-bottom-guard', guard + 'px');
-  }
-  function isOpen(){var m=document.getElementById('a2fModal'); return !!(m && m.classList.contains('open'));}
-  function keepActionsVisible(force){
-    if(!isOpen()) return;
-    var modal = document.getElementById('a2fModal');
-    var main = modal && modal.querySelector('.a2f-main');
-    var actions = modal && modal.querySelector('.a2f-actions');
-    if(!main || !actions) return;
-    var vvH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    var box = actions.getBoundingClientRect();
-    var limit = vvH - Math.max(28, parseInt(getComputedStyle(root).getPropertyValue('--dirac-a2f-bottom-guard'),10) || 28);
-    if(force || box.bottom > limit || box.top < 0){
-      var delta = box.bottom - limit + 18;
-      if(force && delta < 0) delta = 0;
-      if(delta > 1 || force){
-        try{ main.scrollBy({top:Math.max(0, delta), behavior:prefersReduced() ? 'auto' : 'smooth'}); }
-        catch(e){ main.scrollTop += Math.max(0, delta); }
-      }
-    }
-  }
-  function scheduleGuard(force){
-    updateViewportVars();
-    [0,80,220,520].forEach(function(ms){ setTimeout(function(){ keepActionsVisible(force); }, ms); });
-  }
-  updateViewportVars();
-  window.addEventListener('resize', function(){scheduleGuard(false);}, {passive:true});
-  window.addEventListener('orientationchange', function(){scheduleGuard(true);}, {passive:true});
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', function(){scheduleGuard(false);}, {passive:true});
-    window.visualViewport.addEventListener('scroll', function(){scheduleGuard(false);}, {passive:true});
-  }
-  document.addEventListener('click', function(e){
-    if(e.target && e.target.closest && e.target.closest('#a2fModal')) scheduleGuard(false);
-  }, true);
-  document.addEventListener('focusin', function(e){
-    if(e.target && e.target.closest && e.target.closest('#a2fModal')) scheduleGuard(false);
-  }, true);
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){ scheduleGuard(false); });
-    function attach(){
-      var modal = document.getElementById('a2fModal');
-      if(modal) obs.observe(modal, {attributes:true, childList:true, subtree:true, characterData:true});
-    }
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach, {once:true}); else attach();
-  }
-})();
-</script>
-
-
-
-<script id="dirac-a2f-recovery-scroll-focus-js">
-/* Recovery step guard: setelah OTP valid, tampilkan recovery code dulu, bukan langsung tombol bawah. */
-(function(){
-  'use strict';
-  function reduced(){return document.documentElement.getAttribute('data-motion')==='reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);}
-  function scrollInMain(target, block){
-    var modal=document.getElementById('a2fModal');
-    var main=modal && modal.querySelector('.a2f-main');
-    if(!target || !main) return;
-    var top=target.offsetTop - 12;
-    if(block === 'end') top = target.offsetTop + target.offsetHeight - main.clientHeight + 28;
-    top=Math.max(0, top);
-    try{ main.scrollTo({top:top, behavior:reduced()?'auto':'smooth'}); }
-    catch(e){ main.scrollTop=top; }
-  }
-  function syncStepScroll(){
-    var card=document.querySelector('#a2fModal .a2f-card');
-    var modal=document.getElementById('a2fModal');
-    if(!card || !modal || !modal.classList.contains('open')) return;
-    var step=card.getAttribute('data-a2f-step-index');
-    if(step === '3'){
-      setTimeout(function(){ scrollInMain(document.getElementById('a2fRecoveryBox'), 'start'); }, 680);
-    }else if(step === '4'){
-      setTimeout(function(){ scrollInMain(modal.querySelector('.a2f-actions'), 'end'); }, 120);
-    }
-  }
-  function attach(){
-    var card=document.querySelector('#a2fModal .a2f-card');
-    if(!card || !window.MutationObserver) return;
-    new MutationObserver(syncStepScroll).observe(card,{attributes:true,attributeFilter:['data-a2f-step-index']});
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', attach, {once:true}); else attach();
 })();
 </script>
 
