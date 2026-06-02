@@ -1148,6 +1148,18 @@ html[data-effective-theme="light"] .a2f-card{background:linear-gradient(145deg,r
 @media(prefers-reduced-motion:reduce){.a2f-panel.active,.a2f-card,.a2f-method{animation:none!important;transition:none!important}}
 </style>
 
+
+<style id="dirac-email-input-crash-fix-css">
+/* Fix input email crash: root theme attributes must not behave like clickable controls; keep form stable during typing. */
+html[data-contrast]{pointer-events:auto;}
+.field{backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.field:focus{transform:none!important;}
+.field.is-invalid{animation:none;}
+@media(max-width:760px){
+  .auth-hero{overflow:visible;}
+  .field{font-size:16px;}
+}
+</style>
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -1560,7 +1572,7 @@ html[data-effective-theme="light"] .a2f-card{background:linear-gradient(145deg,r
       $$('#accentChoices [data-accent]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-accent') === settings.accent);});
       $$('[data-language]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-language') === settings.language);});
       $$('[data-motion-choice]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-motion-choice') === settings.motion);});
-      $$('[data-contrast]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-contrast') === (settings.contrast || 'off'));});
+      $$('#themeModal [data-contrast]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-contrast') === (settings.contrast || 'off'));});
       translate(settings.language);
       saveSettings();
     }
@@ -1795,7 +1807,7 @@ html[data-effective-theme="light"] .a2f-card{background:linear-gradient(145deg,r
       $('#motionSelect').addEventListener('change', function(){ settings.motion = this.value; applySettings(); showToast('Pengaturan gerak disimpan.'); });
       $$('[data-language]').forEach(function(btn){btn.addEventListener('click', function(){ settings.language = this.getAttribute('data-language'); applySettings(); showToast('Bahasa disimpan.'); });});
       $$('[data-motion-choice]').forEach(function(btn){btn.addEventListener('click', function(){ settings.motion = this.getAttribute('data-motion-choice'); applySettings(); showToast('Pengaturan gerak disimpan.'); });});
-      $$('[data-contrast]').forEach(function(btn){btn.addEventListener('click', function(){ settings.contrast = this.getAttribute('data-contrast'); applySettings(); showToast(settings.contrast === 'on' ? 'Kontras tema aktif.' : 'Kontras tema nonaktif.'); });});
+      $$('#themeModal [data-contrast]').forEach(function(btn){btn.addEventListener('click', function(){ settings.contrast = this.getAttribute('data-contrast'); applySettings(); showToast(settings.contrast === 'on' ? 'Kontras tema aktif.' : 'Kontras tema nonaktif.'); });});
       $('#themeResetBtn').addEventListener('click', function(){ settings = Object.assign({}, DEFAULT_SETTINGS); applySettings(); showToast('Tema direset.'); });
       if(window.matchMedia){
         var scheme = window.matchMedia('(prefers-color-scheme: light)');
@@ -1879,7 +1891,7 @@ html[data-effective-theme="light"] .a2f-card{background:linear-gradient(145deg,r
       document.documentElement.classList.add('dirac-theme-transitioning');
       clearTimeout(trigger._t); trigger._t = setTimeout(function(){ document.documentElement.classList.remove('dirac-theme-transitioning'); }, 620);
     };
-    document.addEventListener('click', function(e){ if(e.target && e.target.closest('[data-accent],[data-theme-mode],[data-contrast],[data-motion-choice]')) trigger(); }, true);
+    document.addEventListener('click', function(e){ if(e.target && e.target.closest('#themeModal [data-accent], #themeModal [data-theme-mode], #themeModal [data-contrast], #themeModal [data-motion-choice]')) trigger(); }, true);
     document.addEventListener('change', function(e){ if(e.target && (e.target.matches('#languageSelect') || e.target.matches('#motionSelect'))) trigger(); }, true);
   }
   function installStatusAndSubmitMotion(){
@@ -1937,7 +1949,15 @@ html[data-effective-theme="light"] .a2f-card{background:linear-gradient(145deg,r
   }
   function installToastRestart(){
     var toast = $('#toast'); if(!toast || !window.MutationObserver) return;
-    new MutationObserver(function(){ if(toast.classList.contains('show')){ toast.classList.remove('toast-restart'); void toast.offsetWidth; toast.classList.add('toast-restart'); } }).observe(toast, {childList:true, attributes:true, attributeFilter:['class']});
+    var restarting = false;
+    new MutationObserver(function(){
+      if(restarting || !toast.classList.contains('show')) return;
+      restarting = true;
+      toast.classList.remove('toast-restart');
+      void toast.offsetWidth;
+      toast.classList.add('toast-restart');
+      window.setTimeout(function(){ restarting = false; }, 0);
+    }).observe(toast, {childList:true, attributes:true, attributeFilter:['class']});
   }
   ready(function(){
     installReveal();
