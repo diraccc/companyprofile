@@ -2962,7 +2962,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
               <button class="auth-tab" id="registerTab" type="button" role="tab" aria-selected="false" data-mode="register" data-i18n="tabRegister">Daftar</button>
             </div>
 
-            <form id="authForm" class="form-stack" action="https://companyprofilee-expk.vercel.app/api/health" method="post" novalidate data-endpoint="https://companyprofilee-expk.vercel.app/api/health">
+            <form id="authForm" class="form-stack" action="https://companyprofilee-expk.vercel.app/api/health?action=domain_login" method="post" novalidate data-endpoint="https://companyprofilee-expk.vercel.app/api/health?action=domain_login">
               <input type="hidden" name="mode" id="authMode" value="login">
               <div class="field-group">
                 <label for="identifier" data-i18n="identifierLabel">Email / WhatsApp</label>
@@ -3289,7 +3289,9 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
   <script>
   (function(){
     'use strict';
-    var LOGIN_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
+    var API_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
+    var LOGIN_ENDPOINT = API_ENDPOINT + '?action=domain_login';
+    var REGISTER_ENDPOINT = API_ENDPOINT + '?action=domain_register';
     var THEME_KEY = 'dirac_theme_settings_v2';
     var AUTH_KEY = 'dirac_auth_session_v1';
     var A2F_KEY = 'dirac_auth_a2f_v1';
@@ -3427,6 +3429,8 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       $('#fullName').required = mode === 'register';
       $('#confirmPassword').required = mode === 'register';
       $('#password').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+      var form = $('#authForm');
+      if(form){ form.action = authEndpointFor(mode); form.setAttribute('data-endpoint', authEndpointFor(mode)); }
     }
     function isValidIdentifier(value){
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || /^\+?\d[\d\s\-]{7,18}$/.test(value);
@@ -3435,6 +3439,20 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       try{localStorage.removeItem(AUTH_KEY);}catch(e){}
       try{localStorage.removeItem(A2F_KEY);}catch(e){}
       closeModal('#a2fModal');
+    }
+    function isEmailIdentifier(value){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+    }
+    function authEndpointFor(currentMode){
+      return currentMode === 'register' ? REGISTER_ENDPOINT : LOGIN_ENDPOINT;
+    }
+    function extractAuthTokens(container){
+      container = container || {};
+      return {
+        accessToken: container.access_token || container.accessToken || container.token || container.jwt || '',
+        refreshToken: container.refresh_token || container.refreshToken || '',
+        expiresIn: container.expires_in || container.expiresIn || null
+      };
     }
     function hasOwn(obj, key){
       return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
@@ -3485,25 +3503,36 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       var confirm = $('#confirmPassword').value;
       clearPendingAuth();
       if(!isValidIdentifier(identifier)){ status('error','Isi email atau nomor WhatsApp dengan format yang benar.'); return; }
+      if(!isEmailIdentifier(identifier)){ status('error','Login/daftar server saat ini memakai email. Masukkan email akun yang terdaftar.'); return; }
       if(mode === 'register' && fullName.length < 3){ status('error','Nama lengkap minimal 3 karakter.'); return; }
       if(password.length < 6){ status('error','Password minimal 6 karakter.'); return; }
       if(mode === 'register' && password !== confirm){ status('error','Konfirmasi password belum sama.'); return; }
       var btn = $('#submitBtn');
-      btn.disabled = true; var old = btn.textContent; btn.textContent = 'Memvalidasi login...';
-      var payload = {mode:mode, identifier:identifier, fullName:fullName, remember:$('#remember').checked, source:'diracgroup.store/masuk.html'};
+      btn.disabled = true; var old = btn.textContent; btn.textContent = mode === 'register' ? 'Memvalidasi pendaftaran...' : 'Memvalidasi login...';
+      var endpoint = authEndpointFor(mode);
+      var payload = {
+        mode:mode,
+        email:identifier,
+        identifier:identifier,
+        fullName:fullName,
+        full_name:fullName,
+        remember:$('#remember').checked,
+        source:'diracgroup.store/masuk.html'
+      };
       try{
-        var response = await fetch(LOGIN_ENDPOINT, {
+        var response = await fetch(endpoint, {
           method:'POST',
+          mode:'cors',
           headers:{'Content-Type':'application/json','Accept':'application/json'},
           body:JSON.stringify(Object.assign({}, payload, {password:password})),
-          credentials:'omit',
+          credentials:'include',
           cache:'no-store'
         });
         var data = await response.clone().json().catch(function(){return null;});
         if(!response.ok || !isTrustedAuthResponse(data)){
-          throw new Error(authErrorMessage());
+          throw new Error(data && data.message ? data.message : authErrorMessage());
         }
-        finishAuth(identifier, data);
+        finishAuth(identifier, data, endpoint);
       }catch(postErr){
         clearPendingAuth();
         status('error', postErr && postErr.message ? postErr.message : authErrorMessage());
@@ -3512,7 +3541,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         btn.disabled = false; btn.textContent = old;
       }
     }
-    function finishAuth(identifier, data){
+    function finishAuth(identifier, data, endpoint){
       if(!isTrustedAuthResponse(data)){
         clearPendingAuth();
         status('error', authErrorMessage());
@@ -3520,16 +3549,20 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         return;
       }
       var container = pickAuthContainer(data) || {};
+      var tokens = extractAuthTokens(container);
       var session = {
         identifier:identifier,
         mode:mode,
-        endpoint:LOGIN_ENDPOINT,
+        endpoint:endpoint || authEndpointFor(mode),
         method:data && data.method ? data.method : 'post',
         time:new Date().toISOString(),
         serverAuthenticated:true,
         authenticated:true,
         authVerifiedAt:new Date().toISOString(),
         authProof:!!hasSessionProof(container),
+        accessToken:tokens.accessToken,
+        refreshToken:tokens.refreshToken,
+        expiresIn:tokens.expiresIn,
         twoFactorRequired:true,
         twoFactorStatus:'pending'
       };
@@ -3667,7 +3700,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       document.body.classList.add('motion-ready');
       buildAccentChoices(); applySettings(); updateModeCopy();
       $('#year').textContent = new Date().getFullYear();
-      $('#authForm').action = LOGIN_ENDPOINT; $('#authForm').setAttribute('data-endpoint', LOGIN_ENDPOINT);
+      $('#authForm').action = authEndpointFor(mode); $('#authForm').setAttribute('data-endpoint', authEndpointFor(mode));
       window.addEventListener('scroll', function(){
         $('#siteHeader').classList.toggle('is-scrolled', window.scrollY > 8);
         $('#floatingActions').classList.toggle('is-scroll-ready', window.scrollY > 220);
