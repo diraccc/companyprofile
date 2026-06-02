@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="id" data-theme="dark" data-effective-theme="dark" data-du-accent="cyan" data-du-motion="on">
+<html lang="id" data-theme="dark" data-effective-theme="dark" data-du-accent="gold" data-du-motion="on">
 <head>
 <script id="dirac-safe-storage-guard">
 (function(){
@@ -19,11 +19,11 @@
 <meta content="Cari domain, bandingkan harga TLD, checkout, dan kelola status pesanan domain bersama Dirac Group." name="description"/>
 <meta content="#6258ff" name="theme-color"/>
 <meta content="light dark" name="color-scheme"/>
-<meta name="dirac-dashboard-route" content="https://diraccc.github.io/ngetes/dashboard.html" />
-<meta name="dirac-login-route" content="https://diraccc.github.io/ngetes/masuk.html" />
+<meta name="dirac-dashboard-route" content="https://diracgroup.store/dashboard.html" />
+<meta name="dirac-login-route" content="https://diracgroup.store/masuk.html" />
 <link href="logo3.webp" rel="icon" type="image/webp"/>
 <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"Organization","name":"Dirac Group","url":"https://diraccc.github.io/ngetes/awal.html","logo":"logo3.webp","sameAs":[],"description":"Layanan pencarian, pembelian, checkout, dan bantuan pengelolaan domain."}
+  {"@context":"https://schema.org","@type":"Organization","name":"Dirac Group","url":"https://diracgroup.store/awal.html","logo":"logo3.webp","sameAs":[],"description":"Layanan pencarian, pembelian, checkout, dan bantuan pengelolaan domain."}
   </script>
 <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"Service","name":"Dirac Group Domain","provider":{"@type":"Organization","name":"Dirac Group"},"serviceType":"Domain registration and domain checkout","areaServed":"ID","description":"Cek nama brand, bandingkan ekstensi domain yang didukung, lalu lanjut checkout domain dengan bantuan admin."}
@@ -1100,7 +1100,7 @@ html[data-theme="dark"] body.dirac-hostinger-inspired .dirac-rating-line b{color
   --violet:var(--du-accent);--cyan:var(--du-accent-2);--blue-600:var(--du-accent);--blue-500:var(--du-accent);--blue-400:var(--du-accent-2);
   --deep:var(--du-text);--ink:var(--du-text);--text:var(--du-text);--muted:var(--du-muted);
 }
-html[data-du-accent="cyan"]{--du-rgb:37,191,244;--du-accent:#25bff4;--du-accent-2:#4ed8ff}
+html[data-du-accent="gold"]{--du-rgb:37,191,244;--du-accent:#25bff4;--du-accent-2:#4ed8ff}
 html[data-du-accent="gold"]{--du-rgb:243,205,112;--du-accent:#f3cd70;--du-accent-2:#ffe58e}
 html[data-du-accent="violet"]{--du-rgb:139,92,246;--du-accent:#8b5cf6;--du-accent-2:#c4b5fd}
 html[data-du-accent="mint"]{--du-rgb:24,185,129;--du-accent:#18b981;--du-accent-2:#65e4b4}
@@ -1258,11 +1258,42 @@ body.du-clean-ready .hero-card,body.du-clean-ready .brand-panel,body.du-clean-re
 </style>
 <!-- DIRAC_CLEAN_V3_END -->
 
+  <meta name="dirac-home-route" content="https://diracgroup.store/awal.html" />
+  <link rel="canonical" href="https://diracgroup.store/awal.html" />
+
+<!-- DIRAC_FINAL_DOMAIN_LOGIN_FIX_START -->
+<style id="dirac-final-domain-login-fix-css">
+/* Final domain/login polish: menyamakan detail kecil dengan order.html tanpa menghapus fungsi asli. */
+:root{--du-rgb:243,205,112;--du-accent:#f3cd70;--du-accent-2:#ffe58e;--du-bg:#050608;--du-panel:rgba(10,13,18,.92);--du-line:rgba(243,205,112,.24);--du-line-strong:rgba(243,205,112,.42);--du-shadow:0 24px 70px rgba(0,0,0,.45);}
+html[data-du-accent="gold"]{--du-rgb:243,205,112;--du-accent:#f3cd70;--du-accent-2:#ffe58e}
+body.du-clean-ready{background:radial-gradient(circle at top left,rgba(var(--du-rgb),.18),transparent 34rem),radial-gradient(circle at 85% 12%,rgba(128,88,34,.22),transparent 26rem),linear-gradient(180deg,#07080b 0%,#020304 100%)!important;}
+.du-nav{min-height:76px!important;border-radius:28px!important;background:linear-gradient(135deg,rgba(5,6,8,.96),rgba(13,19,29,.91))!important;border-color:rgba(var(--du-rgb),.28)!important;box-shadow:0 18px 55px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.08)!important;}
+.du-logo{border-radius:18px!important;box-shadow:0 10px 28px rgba(var(--du-rgb),.22)!important;}
+.du-title{font-family:"Playfair Display",Georgia,serif!important;font-size:clamp(22px,2.7vw,30px)!important;letter-spacing:-.035em!important;}
+.du-type-line{color:#f9e7b6!important;letter-spacing:.10em!important;}
+.du-icon-btn,.du-order-btn,.du-round{border-radius:999px!important;border-color:rgba(var(--du-rgb),.34)!important;transition:transform .22s cubic-bezier(.22,1,.36,1),border-color .22s cubic-bezier(.22,1,.36,1),background .22s cubic-bezier(.22,1,.36,1),box-shadow .22s cubic-bezier(.22,1,.36,1)!important;}
+.du-order-btn{background:linear-gradient(135deg,#ffe58e,#d3a03a 55%,#a8762e)!important;color:#1a1208!important;}
+.du-icon-btn:hover,.du-order-btn:hover,.du-round:hover{transform:translateY(-2px)!important;filter:brightness(1.05)!important;}
+.du-modal,.du-menu-panel,.du-ai-panel{background:linear-gradient(180deg,#101722,#07090d)!important;border-color:rgba(var(--du-rgb),.28)!important;box-shadow:0 24px 70px rgba(0,0,0,.50)!important;}
+.du-modal-head h2,.du-panel-head strong{font-family:"Playfair Display",Georgia,serif!important;color:var(--du-accent)!important;letter-spacing:-.02em!important;}
+.du-choice,.du-menu-links a,.du-menu-links button,.du-ai-body button{border-color:rgba(255,255,255,.12)!important;background:rgba(255,255,255,.06)!important;}
+.du-choice.active{background:linear-gradient(135deg,#ffe58e,#d3a03a 55%,#a8762e)!important;color:#1a1208!important;}
+.du-round.primary{background:linear-gradient(135deg,#25d366,#128c7e)!important;color:#fff!important;}
+.du-ai-button{background:linear-gradient(145deg,rgba(10,13,18,.94),rgba(21,28,40,.90))!important;}
+.du-ai-button::after{background:linear-gradient(135deg,#ffe58e,#d3a03a)!important;color:#1a1208!important;}
+body.du-clean-ready .hero-card,body.du-clean-ready .brand-panel,body.du-clean-ready .auth-card,body.du-clean-ready .panel,body.du-clean-ready .card,body.du-clean-ready .tracking-card,body.du-clean-ready .tracking-panel,body.du-clean-ready .result-card,body.du-clean-ready .stat-card,body.du-clean-ready .order-card,body.du-clean-ready .info-box,body.du-clean-ready .feature-card,body.du-clean-ready .faq-item,body.du-clean-ready .contact-card,body.du-clean-ready .trust-card,body.du-clean-ready .listing-card,body.du-clean-ready .domain-card,body.du-clean-ready .login-domain-preview,body.du-clean-ready .truck-card,body.du-clean-ready .hero-stat,body.du-clean-ready .console-window,body.du-clean-ready .market-card,body.du-clean-ready .step-card,body.du-clean-ready .price-card,body.du-clean-ready .assurance-card{border-radius:24px!important;border-color:rgba(255,255,255,.09)!important;box-shadow:0 18px 42px rgba(0,0,0,.22)!important;}
+body.du-clean-ready .btn-primary,body.du-clean-ready .btn.btn-primary,body.du-clean-ready button.btn-primary,body.du-clean-ready .header-contact,body.du-clean-ready .submit-btn,body.du-clean-ready [type="submit"]{background:linear-gradient(135deg,#ffe58e,#d3a03a 55%,#a8762e)!important;color:#1a1208!important;border-color:rgba(243,205,112,.26)!important;font-weight:900!important;}
+body.du-clean-ready .btn-secondary,body.du-clean-ready .btn.btn-secondary,body.du-clean-ready .btn-soft{background:rgba(255,255,255,.075)!important;color:#fff!important;border-color:rgba(255,255,255,.12)!important;}
+@media(max-width:760px){.du-nav{border-radius:24px!important;min-height:70px!important}.du-title{font-size:21px!important}.du-type-line{max-width:31vw!important}.du-icon-btn,.du-order-btn{width:50px!important;height:50px!important}.du-round{width:60px!important;height:60px!important}}
+@media(max-width:380px){.du-type-line{display:none!important}.du-title{font-size:20px!important}}
+</style>
+<!-- DIRAC_FINAL_DOMAIN_LOGIN_FIX_END -->
+
 </head>
 <body class="public-compact dirac-hostinger-inspired dirac-public-v5 du-clean-ready">
 <header class="site-header">
 <div class="container nav">
-<a aria-label="Dirac Group Domain" class="brand" href="https://diraccc.github.io/ngetes/awal.html">
+<a aria-label="Dirac Group Domain" class="brand" href="https://diracgroup.store/awal.html">
 <span class="brand-mark"><img alt="Dirac Group" src="logo3.webp"/></span>
 <span class="brand-copy"><strong>Dirac Group</strong><span>Domain Store</span></span>
 </a>
@@ -1272,7 +1303,7 @@ body.du-clean-ready .hero-card,body.du-clean-ready .brand-panel,body.du-clean-re
 <a class="btn btn-soft" href="#fitur">Fitur</a>
 <a class="btn btn-soft" href="#marketplace">Marketplace</a>
 <a class="btn btn-soft" href="#alur">Alur</a>
-<a class="btn btn-primary" href="https://diraccc.github.io/ngetes/masuk.html" id="loginLink">Masuk</a>
+<a class="btn btn-primary" href="https://diracgroup.store/masuk.html" id="loginLink">Masuk</a>
 <button class="btn theme-toggle" id="themeToggle" type="button">☾</button>
 </div>
 </div>
@@ -1333,7 +1364,7 @@ Browser Anda tidak mendukung pemutar video HTML5.
 
 <section class="section" id="harga">
 <div class="container panel">
-<div class="section-head"><div class="section-title"><h2>Harga TLD populer</h2><p>Harga ringkas untuk memilih TLD. Final diverifikasi saat checkout.</p></div><a class="btn btn-primary" href="https://diraccc.github.io/ngetes/masuk.html" id="priceLoginLink">Mulai Checkout</a></div>
+<div class="section-head"><div class="section-title"><h2>Harga TLD populer</h2><p>Harga ringkas untuk memilih TLD. Final diverifikasi saat checkout.</p></div><a class="btn btn-primary" href="https://diracgroup.store/masuk.html" id="priceLoginLink">Mulai Checkout</a></div>
 <div class="price-grid">
 <article class="card price-card"><strong>.com</strong><b>Rp185.000</b><span>Renewal Rp185.000/tahun</span></article>
 <article class="card price-card"><strong>.id</strong><b>Rp260.000</b><span>Brand lokal Indonesia</span></article>
@@ -1350,7 +1381,7 @@ Browser Anda tidak mendukung pemutar video HTML5.
 <h2>Marketplace domain siap jual-beli</h2>
 <p>Marketplace dibuat ringkas: cari, pilih, tawar, checkout, dan pantau status.</p>
 </div>
-<a class="btn btn-primary" href="https://diraccc.github.io/ngetes/masuk.html">Masuk untuk transaksi</a>
+<a class="btn btn-primary" href="https://diracgroup.store/masuk.html">Masuk untuk transaksi</a>
 </div>
 <div aria-label="Filter marketplace domain" class="filter-strip">
 <div class="filter-pill"><div><b>Jenis listing</b><span>Buy now, make offer, transfer</span></div><i>Filter</i></div>
@@ -1438,8 +1469,8 @@ Browser Anda tidak mendukung pemutar video HTML5.
 <footer class="footer"><div class="container">© Dirac Group Domain. Landing page publik untuk pencarian dan edukasi layanan domain.</div></footer>
 <script>
     const ROUTES = {
-      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || "dashboard.html",
-      login: document.querySelector('meta[name="dirac-login-route"]')?.content || "wbst.html"
+      dashboard: document.querySelector('meta[name="dirac-dashboard-route"]')?.content || "https://diracgroup.store/dashboard.html",
+      login: document.querySelector('meta[name="dirac-login-route"]')?.content || "https://diracgroup.store/masuk.html"
     };
     const safeStorage = {
       get(key) { try { return localStorage.getItem(key); } catch (_) { return null; } },
@@ -1595,13 +1626,13 @@ body.dirac-hostinger-inspired .hero-console.dirac-video-hero::after{display:none
 <!-- DIRAC_CLEAN_V3_BODY_START -->
 <header class="du-topbar" aria-label="Dirac unified header">
   <nav class="du-nav">
-    <a class="du-brand" href="https://diraccc.github.io/ngetes/awal.html" aria-label="Dirac Group">
+    <a class="du-brand" href="https://diracgroup.store/awal.html" aria-label="Dirac Group">
       <span class="du-logo"><img src="logo3.webp" alt="Dirac Group"></span>
       <span class="du-brand-copy"><span class="du-title">Dirac</span><span class="du-type-line"><span data-du-typewriter>Company Profile • Masuk/Daftar • Dashboard • Cek Resi • Order Parfum</span></span></span>
     </a>
     <div class="du-actions">
       <button class="du-icon-btn" type="button" data-du-open-theme aria-label="Pengaturan tema">🎨</button>
-      <a class="du-order-btn" data-du-order-link href="https://diraccc.github.io/ngetes/order.html" aria-label="Order parfum"><span>🛍️</span><span class="du-badge" data-du-cart-count>0</span></a>
+      <a class="du-order-btn" data-du-order-link href="https://diracgroup.store/order.html" aria-label="Order parfum"><span>🛍️</span><span class="du-badge" data-du-cart-count>0</span></a>
       <button class="du-icon-btn" type="button" data-du-open-menu aria-label="Menu">☰</button>
     </div>
   </nav>
@@ -1613,7 +1644,7 @@ body.dirac-hostinger-inspired .hero-console.dirac-video-hero::after{display:none
       <section class="du-section"><h3 data-du-i18n="modeTitle">Mode Tema</h3><p data-du-i18n="modeDesc">Semua halaman dipaksa hitam premium agar terasa satu website.</p><div class="du-grid"><button class="du-choice" type="button" data-du-mode="dark">☾ Dark</button><button class="du-choice" type="button" data-du-mode="auto">⚙ Auto</button></div></section>
       <section class="du-section"><h3 data-du-i18n="langTitle">Bahasa Tampilan</h3><p data-du-i18n="langDesc">Pilih bahasa panel sistem Dirac.</p><div class="du-lang-grid"><button class="du-choice" type="button" data-du-lang="id">ID Indonesia</button><button class="du-choice" type="button" data-du-lang="en">EN English</button><button class="du-choice" type="button" data-du-lang="zh">中 中文</button><button class="du-choice" type="button" data-du-lang="ar">ع العربية</button><button class="du-choice" type="button" data-du-lang="ja">日 日本語</button><button class="du-choice" type="button" data-du-lang="ko">한 한국어</button><button class="du-choice" type="button" data-du-lang="es">ES Español</button><button class="du-choice" type="button" data-du-lang="fr">FR Français</button></div></section>
       <section class="du-section"><h3 data-du-i18n="contrastTitle">Kontras Tema</h3><p data-du-i18n="contrastDesc">Pertegas garis dan panel.</p><div class="du-grid"><button class="du-choice" type="button" data-du-contrast="on">◐ On</button><button class="du-choice" type="button" data-du-contrast="off">◌ Off</button></div></section>
-      <section class="du-section"><h3 data-du-i18n="colorTitle">Kustom Warna</h3><p data-du-i18n="colorDesc">Pilih warna aksen utama website.</p><div class="du-swatches"><button class="du-swatch" type="button" data-du-accent="cyan" title="Cyan" style="background:#25bff4"></button><button class="du-swatch" type="button" data-du-accent="gold" title="Gold" style="background:#f3cd70"></button><button class="du-swatch" type="button" data-du-accent="violet" title="Violet" style="background:#8b5cf6"></button><button class="du-swatch" type="button" data-du-accent="mint" title="Mint" style="background:#18b981"></button><button class="du-swatch" type="button" data-du-accent="rose" title="Rose" style="background:#ef5f80"></button><button class="du-swatch" type="button" data-du-accent="amber" title="Amber" style="background:#f59e0b"></button></div></section>
+      <section class="du-section"><h3 data-du-i18n="colorTitle">Kustom Warna</h3><p data-du-i18n="colorDesc">Pilih warna aksen utama website.</p><div class="du-swatches"><button class="du-swatch" type="button" data-du-accent="gold" title="Cyan" style="background:#25bff4"></button><button class="du-swatch" type="button" data-du-accent="gold" title="Gold" style="background:#f3cd70"></button><button class="du-swatch" type="button" data-du-accent="violet" title="Violet" style="background:#8b5cf6"></button><button class="du-swatch" type="button" data-du-accent="mint" title="Mint" style="background:#18b981"></button><button class="du-swatch" type="button" data-du-accent="rose" title="Rose" style="background:#ef5f80"></button><button class="du-swatch" type="button" data-du-accent="amber" title="Amber" style="background:#f59e0b"></button></div></section>
       <section class="du-section"><h3 data-du-i18n="motionTitle">Gerak Website</h3><p data-du-i18n="motionDesc">Animasi aman seperti order.html, bisa dimatikan.</p><div class="du-grid"><button class="du-choice" type="button" data-du-motion="on">Aktif</button><button class="du-choice" type="button" data-du-motion="off">Nonaktif</button></div></section>
       <section class="du-section"><h3 data-du-i18n="currencyTitle">Mata Uang</h3><p data-du-i18n="currencyDesc">Harga domain dapat ditampilkan dalam mata uang pilihan.</p><div class="du-currency-grid"><button class="du-choice" type="button" data-du-currency="IDR">IDR Rp</button><button class="du-choice" type="button" data-du-currency="USD">USD $</button><button class="du-choice" type="button" data-du-currency="SGD">SGD S$</button><button class="du-choice" type="button" data-du-currency="MYR">MYR RM</button><button class="du-choice" type="button" data-du-currency="EUR">EUR €</button><button class="du-choice" type="button" data-du-currency="JPY">JPY ¥</button><button class="du-choice" type="button" data-du-currency="CNY">CNY ¥</button><button class="du-choice" type="button" data-du-currency="KRW">KRW ₩</button></div></section>
     </div>
@@ -1628,12 +1659,12 @@ body.dirac-hostinger-inspired .hero-console.dirac-video-hero::after{display:none
   <div class="du-panel-head"><div><strong>AI Dirac</strong><span data-du-i18n="aiSub">Asisten cepat untuk halaman ini</span></div><button class="du-close" type="button" data-du-close aria-label="Tutup">×</button></div>
   <div class="du-ai-body"><button type="button" data-du-ai="help" data-du-i18n="aiHelp">Bantu saya pakai halaman ini</button><button type="button" data-du-ai="contact" data-du-i18n="aiContact">Butuh bantuan admin</button><button type="button" data-du-ai="security" data-du-i18n="aiSecurity">Tips keamanan</button><div class="du-ai-answer" data-du-ai-answer>Halo, saya AI Dirac. Pilih bantuan cepat di atas.</div></div>
 </aside>
-<div class="du-float-right"><button class="du-round du-scroll" type="button" data-du-scroll-top aria-label="Scroll ke atas">↑</button><a class="du-round primary du-wa" data-du-wa href="https://wa.me/6281225329368?text=Halo%20Admin%20Dirac%2C%20saya%20butuh%20bantuan." target="_blank" rel="noopener" aria-label="WhatsApp Dirac">☘</a></div>
+<div class="du-float-right"><button class="du-round du-scroll" type="button" data-du-scroll-top aria-label="Scroll ke atas">↑</button><a class="du-round primary du-wa" data-du-wa href="https://wa.me/6281225329368?text=Halo%20Admin%20Dirac%2C%20saya%20butuh%20bantuan." target="_blank" rel="noopener" aria-label="WhatsApp Dirac">✆</a></div>
 <div class="du-toast" data-du-toast></div>
 <script id="dirac-clean-v3-js">
 (function(){
 'use strict';
-var BASE='https://diraccc.github.io/ngetes/'; var root=document.documentElement;
+var BASE='https://diracgroup.store/'; var root=document.documentElement;
 function q(s,c){return (c||document).querySelector(s)} function qa(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}
 function page(){var p=(location.pathname.split('/').pop()||'awal.html').replace(/\.html?$/,''); if(!p||p==='index')p='awal'; return p}
 function safeSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
@@ -1655,15 +1686,15 @@ function duNormalizeRupiah(n){return parseInt(String(n||'').replace(/[^0-9]/g,''
 function duFormatCurrency(amount,currency){currency=currency||'IDR';var val=amount*(duCurrencyRates[currency]||1);if(currency==='IDR'){return 'Rp'+Math.round(val).toLocaleString('id-ID')}if(currency==='JPY'||currency==='KRW'){return duCurrencyLabels[currency]+Math.round(val).toLocaleString('en-US')}return duCurrencyLabels[currency]+val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function duApplyCurrency(currency){currency=currency||safeGet('du_currency','IDR');var selector='[data-du-money-source], body.du-clean-ready .price-card b, body.du-clean-ready .price-card span, body.du-clean-ready .cart-price, body.du-clean-ready .summary-line b, body.du-clean-ready .line b, body.du-clean-ready .order-total, body.du-clean-ready .domain-price, body.du-clean-ready .price, body.du-clean-ready [class*="price"], body.du-clean-ready [class*="harga"]';qa(selector).forEach(function(el){if(!el||el.children&&el.children.length)return;var original=el.getAttribute('data-du-money-source')||el.textContent;if(!/Rp\s*[0-9][0-9.]*|Rp[0-9][0-9.]*/i.test(original))return;el.setAttribute('data-du-money-source',original);el.textContent=original.replace(/Rp\s*([0-9][0-9.]*)/gi,function(_,n){return duFormatCurrency(duNormalizeRupiah(n),currency)})})}
 
-function apply(){var accent=safeGet('du_accent','cyan'),lang=safeGet('du_lang','id'),motion=safeGet('du_motion','on'),contrast=safeGet('du_contrast','off'),currency=safeGet('du_currency','IDR');root.setAttribute('data-du-accent',accent);root.setAttribute('data-du-motion',motion);root.setAttribute('data-du-contrast',contrast);root.setAttribute('data-du-lang',lang);root.setAttribute('data-effective-theme','dark');root.setAttribute('data-theme','dark');document.body.classList.add('du-clean-ready');qa('[data-du-i18n]').forEach(function(el){var k=el.getAttribute('data-du-i18n'); if(dict[lang]&&dict[lang][k])el.textContent=dict[lang][k]});qa('[data-du-accent]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-accent')===accent)});qa('[data-du-lang]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-lang')===lang)});qa('[data-du-motion]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-motion')===motion)});qa('[data-du-contrast]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-contrast')===contrast)});qa('[data-du-currency]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-currency')===currency)});qa('[data-du-mode]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-mode')==='dark')});duApplyCurrency(currency);}
-function linkMap(){var map={'wbst.html':'masuk.html','wbst1.html':'awal.html','index.html':'awal.html','awal.html':'awal.html','masuk.html':'masuk.html','dashboard.html':'dashboard.html','cekresi.html':'cekresi.html','order.html':'order.html'};qa('a[href]').forEach(function(a){var h=a.getAttribute('href'); if(!h||h[0]==='#'||/^mailto:|^tel:|^https?:|^whatsapp:/i.test(h))return; var clean=h.split('#')[0].split('?')[0].split('/').pop(); if(map[clean]){var tail=h.indexOf('#')>-1?h.slice(h.indexOf('#')):''; a.setAttribute('href',BASE+map[clean]+tail)}});}
-function setupMenu(){var items=[['Company Profile','awal.html'],['Masuk / Daftar','masuk.html'],['Dashboard','dashboard.html'],['Cek Resi','cekresi.html'],['Order Parfum','order.html']];var wrap=q('[data-du-menu-links]');if(!wrap)return;wrap.innerHTML='';items.forEach(function(it){var a=document.createElement('a');a.href=BASE+it[1];a.textContent=it[0];wrap.appendChild(a)});if(page()==='dashboard'&&document.getElementById('logoutBtn')){var b=document.createElement('button');b.type='button';b.textContent='Keluar';b.addEventListener('click',function(){document.getElementById('logoutBtn').click()});wrap.appendChild(b)}}
+function apply(){var accent=safeGet('du_accent','gold'),lang=safeGet('du_lang','id'),motion=safeGet('du_motion','on'),contrast=safeGet('du_contrast','off'),currency=safeGet('du_currency','IDR');root.setAttribute('data-du-accent',accent);root.setAttribute('data-du-motion',motion);root.setAttribute('data-du-contrast',contrast);root.setAttribute('data-du-lang',lang);root.setAttribute('data-effective-theme','dark');root.setAttribute('data-theme','dark');document.body.classList.add('du-clean-ready');qa('[data-du-i18n]').forEach(function(el){var k=el.getAttribute('data-du-i18n'); if(dict[lang]&&dict[lang][k])el.textContent=dict[lang][k]});qa('[data-du-accent]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-accent')===accent)});qa('[data-du-lang]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-lang')===lang)});qa('[data-du-motion]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-motion')===motion)});qa('[data-du-contrast]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-contrast')===contrast)});qa('[data-du-currency]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-currency')===currency)});qa('[data-du-mode]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-mode')==='dark')});duApplyCurrency(currency);}
+function linkMap(){var map={'masuk.html':'masuk.html','awal.html':'awal.html','index.html':'awal.html','awal.html':'awal.html','masuk.html':'masuk.html','dashboard.html':'dashboard.html','cekresi1.html':'cekresi1.html','order.html':'order.html'};qa('a[href]').forEach(function(a){var h=a.getAttribute('href'); if(!h||h[0]==='#'||/^mailto:|^tel:|^https?:|^whatsapp:/i.test(h))return; var clean=h.split('#')[0].split('?')[0].split('/').pop(); if(map[clean]){var tail=h.indexOf('#')>-1?h.slice(h.indexOf('#')):''; a.setAttribute('href',BASE+map[clean]+tail)}});}
+function setupMenu(){var items=[['Company Profile','awal.html'],['Masuk / Daftar','masuk.html'],['Dashboard','dashboard.html'],['Cek Resi','cekresi1.html'],['Order Parfum','order.html']];var wrap=q('[data-du-menu-links]');if(!wrap)return;wrap.innerHTML='';items.forEach(function(it){var a=document.createElement('a');a.href=BASE+it[1];a.textContent=it[0];wrap.appendChild(a)});if(page()==='dashboard'&&document.getElementById('logoutBtn')){var b=document.createElement('button');b.type='button';b.textContent='Keluar';b.addEventListener('click',function(){document.getElementById('logoutBtn').click()});wrap.appendChild(b)}}
 function setupWA(){var msg='Halo Admin Dirac, saya butuh bantuan di halaman '+page()+'.';var url='https://wa.me/6281225329368?text='+encodeURIComponent(msg);var a=q('[data-du-wa]');if(a)a.href=url;}
 function closeAll(){qa('.du-overlay,.du-menu-panel,.du-ai-panel').forEach(function(el){el.classList.remove('open');el.setAttribute('aria-hidden','true')})}
 function actionChoice(t,attr){var el=t&&t.closest?t.closest('['+attr+']'):null;return(el&&el!==root&&el.tagName!=='HTML')?el:null}
 function toast(t){var el=q('[data-du-toast]');if(!el)return;el.textContent=t;el.classList.add('show');clearTimeout(window.__du_toast);window.__du_toast=setTimeout(function(){el.classList.remove('show')},2200)}
 function bind(){document.addEventListener('click',function(e){var t=e.target;if(t.closest('[data-du-open-theme]')){closeAll();var m=q('[data-du-theme-modal]');m.classList.add('open');m.setAttribute('aria-hidden','false');return}if(t.closest('[data-du-open-menu]')){var p=q('[data-du-menu-panel]');var on=p.classList.contains('open');closeAll();if(!on){p.classList.add('open');p.setAttribute('aria-hidden','false')}return}if(t.closest('[data-du-open-ai]')){var p2=q('[data-du-ai-panel]');var on2=p2.classList.contains('open');closeAll();if(!on2){p2.classList.add('open');p2.setAttribute('aria-hidden','false')}return}if(t.closest('[data-du-close]')||t.matches('.du-overlay')){closeAll();return}var acc=actionChoice(t,'data-du-accent');if(acc){safeSet('du_accent',acc.getAttribute('data-du-accent'));apply();toast('Warna tema diperbarui.');return}var lang=actionChoice(t,'data-du-lang');if(lang){safeSet('du_lang',lang.getAttribute('data-du-lang'));apply();toast('Bahasa panel diperbarui.');return}var currency=actionChoice(t,'data-du-currency');if(currency){safeSet('du_currency',currency.getAttribute('data-du-currency'));apply();toast('Mata uang diperbarui.');return}var motion=actionChoice(t,'data-du-motion');if(motion){safeSet('du_motion',motion.getAttribute('data-du-motion'));apply();toast('Pengaturan gerak website diperbarui.');return}var contrast=actionChoice(t,'data-du-contrast');if(contrast){safeSet('du_contrast',contrast.getAttribute('data-du-contrast'));apply();toast('Kontras tema diperbarui.');return}var st=t.closest('[data-du-scroll-top]');if(st){window.scrollTo({top:0,behavior:root.getAttribute('data-du-motion')==='off'?'auto':'smooth'});return}var ai=actionChoice(t,'data-du-ai');if(ai){var ans=q('[data-du-ai-answer]');var type=ai.getAttribute('data-du-ai');var text={help:'Gunakan menu kanan atas untuk pindah halaman. Pengaturan tema mengatur warna, bahasa, dan gerak. Tombol WhatsApp ada di kanan bawah.',contact:'Tekan tombol WhatsApp hijau di kanan bawah untuk menghubungi admin Dirac.',security:'Jangan bagikan password, OTP, kode hash, atau akses perangkat kepada siapa pun.'}[type]||'Siap membantu.';if(ans)ans.textContent=text;return}});document.addEventListener('keydown',function(e){if(e.key==='Escape')closeAll()});}
-function typewriter(){var el=q('[data-du-typewriter]');if(!el)return;var words=['Company Profile • Masuk/Daftar • Dashboard • Cek Resi • Order Parfum','Tema • Bahasa • Warna • Gerak Website','AI • WhatsApp • Scroll Up • Menu','diraccc.github.io/ngetes'];var wi=0,i=0,del=false;function tick(){if(root.getAttribute('data-du-motion')==='off'){el.textContent=words[0];setTimeout(tick,1200);return}var w=words[wi];el.textContent=w.slice(0,i);if(!del&&i<w.length){i++;setTimeout(tick,38);return}if(!del&&i>=w.length){del=true;setTimeout(tick,1050);return}if(del&&i>0){i--;setTimeout(tick,18);return}del=false;wi=(wi+1)%words.length;setTimeout(tick,220)}tick()}
+function typewriter(){var el=q('[data-du-typewriter]');if(!el)return;var words=['Company Profile • Masuk/Daftar • Dashboard • Cek Resi • Order Parfum','Tema • Bahasa • Warna • Gerak Website','AI • WhatsApp • Scroll Up • Menu','diracgroup.store'];var wi=0,i=0,del=false;function tick(){if(root.getAttribute('data-du-motion')==='off'){el.textContent=words[0];setTimeout(tick,1200);return}var w=words[wi];el.textContent=w.slice(0,i);if(!del&&i<w.length){i++;setTimeout(tick,38);return}if(!del&&i>=w.length){del=true;setTimeout(tick,1050);return}if(del&&i>0){i--;setTimeout(tick,18);return}del=false;wi=(wi+1)%words.length;setTimeout(tick,220)}tick()}
 function setupOrderButton(){var order=q('[data-du-order-link]'); if(!order)return; var path=page(); if(path==='order'){order.setAttribute('href','#keranjang'); order.setAttribute('data-open-cart',''); order.addEventListener('click',function(e){e.preventDefault(); var old=document.querySelector('.header-cart,[data-open-cart]:not([data-du-order-link])'); if(old&&old!==order){old.click();} else {try{ if(typeof window.openCart==='function') window.openCart(); }catch(err){} } });} var oldCount=document.querySelector('.cart-count,.header-cart-count,.count-badge'); if(oldCount){q('[data-du-cart-count]').textContent=(oldCount.textContent||'0').trim()||'0';}}
 function init(){apply();linkMap();setupMenu();setupWA();bind();typewriter();setupOrderButton();}
 var __duStarted=false;function __duStart(){if(__duStarted)return;__duStarted=true;init()}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',__duStart,{once:true});setTimeout(__duStart,60);}else{__duStart();}
