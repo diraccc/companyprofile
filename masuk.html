@@ -1724,6 +1724,88 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;border-color:#e2e8f0}
 </style>
 
+
+<style id="dirac-a2f-noqr-setupkey-final-css">
+/* Final A2F Authenticator UX: tanpa QR, setup key manual di atas input kode. */
+#a2fModal [data-a2f-panel="authenticator"]{
+  grid-template-columns:1fr!important;
+}
+#a2fModal [data-a2f-panel="authenticator"] .a2f-qr-visual,
+#a2fModal [data-a2f-panel="authenticator"] .a2f-otp-dots{
+  display:none!important;
+}
+#a2fModal [data-a2f-panel="authenticator"] .a2f-panel-copy{
+  min-width:0!important;
+}
+#a2fModal .a2f-auth-setup{
+  margin:12px 0 14px!important;
+}
+#a2fModal .a2f-setup-key-card{
+  padding:14px!important;
+  border:1px solid var(--a2f-line,#e2e8f0)!important;
+  border-radius:18px!important;
+  background:#f8fafc!important;
+  color:#111827!important;
+}
+#a2fModal .a2f-setup-key-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  margin-bottom:9px!important;
+}
+#a2fModal .a2f-setup-key-head span{
+  color:#64748b!important;
+  font-size:.74rem!important;
+  font-weight:800!important;
+  text-transform:uppercase!important;
+  letter-spacing:.06em!important;
+}
+#a2fModal .a2f-setup-copy-btn{
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  color:#2563eb!important;
+  border-radius:999px!important;
+  padding:8px 11px!important;
+  font-size:.78rem!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+  white-space:nowrap!important;
+}
+#a2fModal .a2f-setup-copy-btn:hover{
+  background:#dbeafe!important;
+}
+#a2fModal .a2f-setup-key-value{
+  display:block!important;
+  width:100%!important;
+  word-break:break-all!important;
+  white-space:normal!important;
+  background:#ffffff!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:14px!important;
+  padding:12px!important;
+  color:#111827!important;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace!important;
+  font-size:.86rem!important;
+  font-weight:800!important;
+  line-height:1.45!important;
+  letter-spacing:.04em!important;
+}
+#a2fModal .a2f-setup-key-card p{
+  margin:9px 0 0!important;
+  color:#475569!important;
+  font-size:.82rem!important;
+  line-height:1.45!important;
+}
+#a2fModal .a2f-setup-key-card.is-empty{
+  border-color:#fecaca!important;
+  background:#fff7f7!important;
+}
+@media(max-width:620px){
+  #a2fModal .a2f-setup-key-head{align-items:flex-start!important;flex-direction:column!important}
+  #a2fModal .a2f-setup-copy-btn{width:100%!important;justify-content:center!important}
+}
+</style>
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -2000,11 +2082,9 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
               </div>
             </div>
             <div class="a2f-panel" data-a2f-panel="authenticator">
-              <div class="a2f-qr-visual" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
               <div class="a2f-panel-copy">
-                <h3 data-i18n="a2fAuthPanelTitle">Scan QR di aplikasi authenticator</h3>
-                <p data-i18n="a2fAuthPanelText">Untuk produksi, server membuat secret TOTP terenkripsi, menampilkan QR otpauth://, lalu memverifikasi kode 6 digit sebelum A2F aktif.</p>
-                <div class="a2f-otp-dots" aria-label="Contoh input kode OTP"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                <h3 data-i18n="a2fAuthPanelTitle">Masukkan setup key di aplikasi Authenticator</h3>
+                <p data-i18n="a2fAuthPanelText">Salin setup key ke Google Authenticator/Authy, lalu masukkan kode 6 digit sebelum A2F aktif.</p>
               </div>
             </div>
             <div class="a2f-panel" data-a2f-panel="email">
@@ -2096,8 +2176,8 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       graphite:{label:'Graphite', gold:'#94a3b8', gold2:'#475569', gold3:'#0f172a', rgb:'148,163,184'}
     };
     var I18N = {
-      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fSideSub:'Lapisan proteksi akun',a2fStepChoose:'Pilih metode',a2fStepVerify:'Verifikasi',a2fStepRecover:'Recovery code',a2fStepFinish:'Selesai',a2fRiskKicker:'Status',a2fRiskTitle:'Proteksi belum aktif',a2fRiskText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',a2fKicker:'Wajib sebelum dashboard',a2fRecommended:'Disarankan',a2fStrong:'Aman',a2fBackup:'Backup',a2fPasskeyMini:'Paling modern dan tahan phishing.',a2fAuthMini:'Cadangan kuat untuk akun.',a2fEmailMini:'Mudah, jangan jadikan metode utama.',a2fPreviewKicker:'Detail metode',a2fSelectedPasskey:'Passkey siap dibuat',a2fSelectedAuth:'Authenticator siap dihubungkan',a2fSelectedEmail:'Email OTP siap dikirim',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Buat passkey di perangkat pelanggan',a2fPasskeyPanelText:'Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser membuka Face ID, sidik jari, PIN, atau password manager.',a2fAuthPanelTitle:'Scan QR di aplikasi authenticator',a2fAuthPanelText:'Untuk produksi, server membuat secret TOTP terenkripsi, menampilkan QR otpauth://, lalu memverifikasi kode 6 digit sebelum A2F aktif.',a2fEmailPanelTitle:'Kirim kode ke email pelanggan',a2fEmailPanelText:'Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.',a2fReadyHttps:'Domain aman',a2fReadyApi:'Hook endpoint siap',a2fReadyDb:'Butuh tabel MFA',a2fStart:'Aktifkan pilihan ini',a2fTitle:'Aktifkan A2F',a2fSub:'Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.',a2fNote:'Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, atau authenticator dari server sebelum dashboard dibuka.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, tetap di halaman akun',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email atau nomor WhatsApp pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email / WhatsApp',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
-      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Recovery code',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Scan QR in an authenticator app',a2fAuthPanelText:'For production, the server creates an encrypted TOTP secret, shows an otpauth:// QR, then verifies the 6-digit code before enabling 2FA.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, email OTP, or authenticator codes on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, stay on account page',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email or WhatsApp number.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email / WhatsApp',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
+      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fSideSub:'Lapisan proteksi akun',a2fStepChoose:'Pilih metode',a2fStepVerify:'Verifikasi',a2fStepRecover:'Recovery code',a2fStepFinish:'Selesai',a2fRiskKicker:'Status',a2fRiskTitle:'Proteksi belum aktif',a2fRiskText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',a2fKicker:'Wajib sebelum dashboard',a2fRecommended:'Disarankan',a2fStrong:'Aman',a2fBackup:'Backup',a2fPasskeyMini:'Paling modern dan tahan phishing.',a2fAuthMini:'Cadangan kuat untuk akun.',a2fEmailMini:'Mudah, jangan jadikan metode utama.',a2fPreviewKicker:'Detail metode',a2fSelectedPasskey:'Passkey siap dibuat',a2fSelectedAuth:'Authenticator siap dihubungkan',a2fSelectedEmail:'Email OTP siap dikirim',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Buat passkey di perangkat pelanggan',a2fPasskeyPanelText:'Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser membuka Face ID, sidik jari, PIN, atau password manager.',a2fAuthPanelTitle:'Masukkan setup key di aplikasi Authenticator',a2fAuthPanelText:'Salin setup key ke Google Authenticator/Authy, lalu masukkan kode 6 digit sebelum A2F aktif.',a2fEmailPanelTitle:'Kirim kode ke email pelanggan',a2fEmailPanelText:'Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.',a2fReadyHttps:'Domain aman',a2fReadyApi:'Hook endpoint siap',a2fReadyDb:'Butuh tabel MFA',a2fStart:'Aktifkan pilihan ini',a2fTitle:'Aktifkan A2F',a2fSub:'Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.',a2fNote:'Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, atau authenticator dari server sebelum dashboard dibuka.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, tetap di halaman akun',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email atau nomor WhatsApp pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email / WhatsApp',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
+      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Recovery code',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Enter the setup key in an authenticator app',a2fAuthPanelText:'Copy the setup key into Google Authenticator/Authy, then enter the 6-digit code before enabling 2FA.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, email OTP, or authenticator codes on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, stay on account page',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email or WhatsApp number.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email / WhatsApp',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
       zh:{loginTitle:'登录账号',tabLogin:'登录',tabRegister:'注册',theme:'主题',menuTitle:'菜单',themeTitle:'主题设置',languageTitle:'语言',motionTitle:'网站动效',heroLead:'更快登录，',heroGold:'更整洁购物。',submitLogin:'立即登录',submitRegister:'创建账号',aiTitle:'Dirac AI',aiWelcome:'你好！我可以帮助登录、注册、主题、语言、WhatsApp 和导航。'},
       ar:{loginTitle:'تسجيل الدخول',tabLogin:'دخول',tabRegister:'تسجيل',theme:'السمة',menuTitle:'القائمة',themeTitle:'إعدادات السمة',languageTitle:'اللغة',motionTitle:'حركة الموقع',heroLead:'ادخل أسرع،',heroGold:'وتسوق بترتيب أكثر.',submitLogin:'تسجيل الدخول الآن',submitRegister:'إنشاء حساب',aiTitle:'Dirac AI',aiWelcome:'مرحباً! يمكنني المساعدة في الدخول، التسجيل، السمة، اللغة، واتساب والتنقل.'},
       ja:{loginTitle:'ログイン',tabLogin:'ログイン',tabRegister:'登録',theme:'テーマ',menuTitle:'メニュー',themeTitle:'テーマ設定',languageTitle:'言語',motionTitle:'サイトの動き',heroLead:'より速くログイン、',heroGold:'より快適に購入。',submitLogin:'今すぐログイン',submitRegister:'アカウント作成',aiTitle:'Dirac AI',aiWelcome:'こんにちは。ログイン、登録、テーマ、言語、WhatsApp、ナビをサポートします。'},
@@ -2297,9 +2377,11 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       var pill = $('#a2fLivePill'); if(pill) pill.textContent = data.pill[lang] || data.pill.id;
     }
     function resetA2FModal(){
-      try{ if(typeof state === 'object'){ state.method = 'authenticator'; state.setupToken = ''; state.verifyMode = 'none'; state.verified = false; state.attempts = 0; } }catch(e){}
+      try{ if(typeof state === 'object'){ state.method = 'authenticator'; state.setupToken = ''; state.setupKey = ''; state.verifyMode = 'none'; state.verified = false; state.attempts = 0; } }catch(e){}
       var result = $('#a2fResult');
       if(result){ result.className = 'a2f-result'; result.textContent = ''; }
+      var setupBox = $('#a2fAuthenticatorSetup');
+      if(setupBox) setupBox.remove();
       var done = $('#a2fDoneBtn');
       if(done) done.disabled = true;
       var start = $('#a2fStartBtn');
@@ -2699,7 +2781,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       note:'Kami akan meminta satu langkah tambahan saat masuk dari perangkat baru. Data email tetap disamarkan dan metode bisa diganti kapan saja.',
       passTitle:'Gunakan passkey', authTitle:'Gunakan Authenticator', emailTitle:'Gunakan kode email',
       passPanel:'Konfirmasi dengan Face ID, sidik jari, PIN, atau password manager perangkat Anda.',
-      authPanel:'Scan QR, lalu masukkan kode 6 digit dari aplikasi authenticator.',
+      authPanel:'Salin setup key ke aplikasi Authenticator, lalu masukkan kode 6 digit.',
       emailPanel:'Kami kirim kode sekali pakai ke email akun Anda. Kode berlaku singkat untuk keamanan.',
       selectedPass:'Passkey siap digunakan', selectedAuth:'Authenticator siap diverifikasi', selectedEmail:'Kode email siap dikirim',
       livePass:'Metode utama', liveAuth:'Kode 6 digit', liveEmail:'OTP email',
@@ -2717,7 +2799,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       note:'We will ask for one extra step when signing in from a new device. Your email stays masked and the method can be changed later.',
       passTitle:'Use a passkey', authTitle:'Use Authenticator', emailTitle:'Use email code',
       passPanel:'Confirm with Face ID, fingerprint, PIN, or the password manager on your device.',
-      authPanel:'Scan the QR, then enter the 6-digit code from your authenticator app.',
+      authPanel:'Copy the setup key into your authenticator app, then enter the 6-digit code.',
       emailPanel:'We send a one-time code to your account email. Codes expire quickly for security.',
       selectedPass:'Passkey ready', selectedAuth:'Authenticator ready to verify', selectedEmail:'Email code ready to send',
       livePass:'Primary method', liveAuth:'6-digit code', liveEmail:'Email OTP',
@@ -2908,17 +2990,17 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   function ready(fn){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn);else fn()}
   function lang(){return document.documentElement.lang === 'en' ? 'en' : 'id'}
   function reducedMotion(){return document.documentElement.getAttribute('data-motion') === 'reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)}
-  var state = {method:'authenticator', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], setupToken:'', timer:null, seconds:0, attempts:0, lastFocus:null};
+  var state = {method:'authenticator', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], setupToken:'', setupKey:'', timer:null, seconds:0, attempts:0, lastFocus:null};
   var copy = {
     id:{
       note:'<strong>A2F / Verifikasi 2 Langkah wajib sebelum dashboard.</strong> Pilih metode, lakukan verifikasi, lalu simpan recovery code. Sistem tidak akan menandai A2F produksi aktif sebelum challenge atau OTP benar-benar terverifikasi.',
       chooseStatus:'Pilih metode keamanan yang paling nyaman. Passkey direkomendasikan untuk perangkat pribadi.',
-      selectPasskey:'Buat passkey sekarang', selectAuthenticator:'Tampilkan QR authenticator', selectEmail:'Kirim kode ke email',
+      selectPasskey:'Buat passkey sekarang', selectAuthenticator:'Tampilkan setup key Authenticator', selectEmail:'Kirim kode ke email',
       selectedPasskey:'Passkey siap dibuat', selectedAuthenticator:'Authenticator siap diverifikasi', selectedEmail:'Email OTP siap dikirim',
       pillPasskey:'Anti-phishing', pillAuthenticator:'Kode 6 digit', pillEmail:'OTP email',
-      beginPasskey:'Menyiapkan passkey...', beginAuthenticator:'Menyiapkan QR authenticator...', beginEmail:'Mengirim kode email...',
+      beginPasskey:'Menyiapkan passkey...', beginAuthenticator:'Menyiapkan setup key Authenticator...', beginEmail:'Mengirim kode email...',
       verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Endpoint A2F belum siap. Cek koneksi/server lalu coba lagi.',
-      resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Kode baru disiapkan. Scan QR atau gunakan setup key, lalu masukkan kode dari Authenticator.',
+      resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Setup key baru disiapkan. Salin setup key, lalu masukkan kode dari Authenticator.',
       passkeyNeedsServer:'Passkey membutuhkan HTTPS dan endpoint WebAuthn server. Pilih Authenticator dan pastikan endpoint /api/2fa/verify-totp aktif.',
       passkeyCancel:'Pembuatan passkey dibatalkan atau gagal. A2F belum diaktifkan.', unsupported:'Browser/perangkat ini belum mendukung metode tersebut.',
       codeInvalid:'Kode harus 6 digit. Sisa percobaan: {n}.', codeWrong:'Kode belum cocok. Masukkan 6 digit terbaru dari aplikasi Authenticator.', locked:'Terlalu banyak percobaan. Kirim ulang kode untuk mencoba lagi.',
@@ -2932,12 +3014,12 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     en:{
       note:'<strong>2FA is required before the dashboard.</strong> Choose a method, verify it, then save the recovery codes. The system will not mark production 2FA as active before a real server challenge or OTP is verified.',
       chooseStatus:'Choose the security method that feels safest. Passkey is recommended for personal devices.',
-      selectPasskey:'Create passkey now', selectAuthenticator:'Show authenticator QR', selectEmail:'Send email code',
+      selectPasskey:'Create passkey now', selectAuthenticator:'Show Authenticator setup key', selectEmail:'Send email code',
       selectedPasskey:'Passkey ready', selectedAuthenticator:'Authenticator ready to verify', selectedEmail:'Email OTP ready to send',
       pillPasskey:'Phishing-resistant', pillAuthenticator:'6-digit code', pillEmail:'Email OTP',
-      beginPasskey:'Preparing passkey...', beginAuthenticator:'Preparing authenticator QR...', beginEmail:'Sending email code...',
+      beginPasskey:'Preparing passkey...', beginAuthenticator:'Preparing Authenticator setup key...', beginEmail:'Sending email code...',
       verifyHelp:'Enter the 6-digit code, then press Continue.', demoCode:'The 2FA endpoint is not ready. Check the server/connection and try again.',
-      resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new setup is ready. Scan the QR or use the setup key, then enter the Authenticator code.',
+      resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new setup key is ready. Copy the setup key, then enter the Authenticator code.',
       passkeyNeedsServer:'Passkey requires HTTPS and a WebAuthn server endpoint. Choose Authenticator and make sure /api/2fa/verify-totp is active.',
       passkeyCancel:'Passkey creation was cancelled or failed. 2FA has not been enabled.', unsupported:'This browser/device does not support that method.',
       codeInvalid:'Code must be 6 digits. Attempts left: {n}.', codeWrong:'The code does not match. Enter the latest 6-digit code from your Authenticator app.', locked:'Too many attempts. Resend the code to try again.',
@@ -3107,15 +3189,32 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     var panel = $('#a2fModal .a2f-panel[data-a2f-panel="authenticator"] .a2f-panel-copy');
     if(!panel || !setup) return;
     var box = $('#a2fAuthenticatorSetup', panel);
+    var verifyBox = $('.a2f-verify-box', panel);
     if(!box){
-      panel.insertAdjacentHTML('beforeend','<div class="a2f-auth-setup" id="a2fAuthenticatorSetup" aria-live="polite"></div>');
-      box = $('#a2fAuthenticatorSetup', panel);
+      box = document.createElement('div');
+      box.className = 'a2f-auth-setup';
+      box.id = 'a2fAuthenticatorSetup';
+      box.setAttribute('aria-live','polite');
+      if(verifyBox) panel.insertBefore(box, verifyBox); else panel.appendChild(box);
+    }else if(verifyBox && box.nextSibling !== verifyBox){
+      panel.insertBefore(box, verifyBox);
     }
     var manualKey = String(setup.manualKey || setup.secret || '').replace(/[^A-Z2-7]/gi,'').toUpperCase();
-    var qr = setup.qrCodeDataUrl ? '<img src="'+String(setup.qrCodeDataUrl).replace(/"/g,'&quot;')+'" alt="QR Authenticator Dirac Group" loading="eager" decoding="async" style="width:168px;height:168px;border-radius:16px;border:1px solid #e2e8f0;background:#fff;padding:8px;margin:10px 0;object-fit:contain">' : '';
-    var manual = manualKey ? '<div class="a2f-manual-key" style="margin-top:8px"><span style="display:block;color:#64748b;font-size:.76rem;font-weight:700;margin-bottom:5px">Setup key manual</span><code style="display:block;word-break:break-all;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:9px 10px;color:#111827">'+manualKey+'</code></div>' : '';
-    var hint = '<p style="margin:8px 0 0;color:#475569;font-size:.82rem;line-height:1.45">Scan QR di Google Authenticator/Authy. Jika QR tidak tampil, pilih “Enter setup key” lalu masukkan setup key manual di atas.</p>';
-    box.innerHTML = qr + manual + hint;
+    state.setupKey = manualKey;
+    var isEn = lang() === 'en';
+    var title = isEn ? 'Setup key' : 'Setup key';
+    var intro = isEn ? 'Copy this key into Google Authenticator/Authy, then use the 6-digit code it generates.' : 'Salin key ini ke Google Authenticator/Authy, lalu gunakan kode 6 digit yang muncul.';
+    var copyText = isEn ? 'Copy setup key' : 'Copy setup key';
+    var emptyText = isEn ? 'Setup key is not available. Press resend.' : 'Setup key belum tersedia. Tekan kirim ulang.';
+    if(!manualKey){
+      box.innerHTML = '<div class="a2f-setup-key-card is-empty"><strong>'+emptyText+'</strong></div>';
+      return;
+    }
+    box.innerHTML = '<div class="a2f-setup-key-card">'
+      + '<div class="a2f-setup-key-head"><span>'+title+'</span><button type="button" class="a2f-setup-copy-btn" data-a2f-copy-setup>'+copyText+'</button></div>'
+      + '<code class="a2f-setup-key-value" id="a2fSetupKeyValue">'+manualKey+'</code>'
+      + '<p>'+intro+'</p>'
+      + '</div>';
   }
   async function callEndpoint(kind, payload){
     var modal = $('#a2fModal'); if(!modal || !window.fetch) throw new Error('endpoint unavailable');
@@ -3211,6 +3310,18 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       if(rText) rText.textContent = t('activeText');
     }else if(state.verified){ setStep(3); }
   }
+  function copySetupKey(){
+    var valueEl = $('#a2fSetupKeyValue');
+    var text = String(state.setupKey || (valueEl && valueEl.textContent) || '').trim();
+    if(!text) return;
+    var done = function(){ setMessage('status', lang()==='en' ? 'Setup key copied.' : 'Setup key disalin.'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(function(){ window.prompt(lang()==='en' ? 'Copy setup key' : 'Salin setup key', text); done(); });
+    }else{
+      window.prompt(lang()==='en' ? 'Copy setup key' : 'Salin setup key', text);
+      done();
+    }
+  }
   function copyRecovery(){
     var text = state.recoveryCodes.join('\n'); if(!text) return;
     var done = function(){ setMessage('status', t('copied')); };
@@ -3291,6 +3402,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       if(select){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); if(!state.busy) selectMethod(select.getAttribute('data-a2f-select')); return; }
       if(e.target.closest('#a2fStartBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); startFlow(); return; }
       if(e.target.closest('[data-a2f-resend]')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); if(!state.busy) beginVerifyStep(true); return; }
+      if(e.target.closest('[data-a2f-copy-setup]')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); copySetupKey(); return; }
       if(e.target.closest('#a2fCopyRecoveryBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); copyRecovery(); return; }
       if(e.target.closest('#a2fDownloadRecoveryBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); downloadRecovery(); return; }
       if(e.target.closest('#a2fSwitchAccountBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); switchAccount(); return; }
