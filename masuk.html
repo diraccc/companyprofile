@@ -3114,7 +3114,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
 
 
 
-  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/lock" data-mfa-setup-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/verify-totp" data-mfa-verify-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/verify-totp">
+  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/lock" data-mfa-setup-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/start-step" data-mfa-verify-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/verify-step">
     <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="authenticator" data-a2f-step-index="1">
       <div class="a2f-shell">
         <aside class="a2f-side" aria-label="Ringkasan keamanan akun">
@@ -4535,18 +4535,65 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       setMessage('error', e && e.message ? e.message : (remaining ? t('codeWrong') : t('locked')));
     }finally{ setBusy(false); updateActionText(); }
   }
+  function b64UrlToArrayBuffer(value){
+    value = String(value || '').replace(/-/g,'+').replace(/_/g,'/');
+    while(value.length % 4) value += '=';
+    var binary = atob(value);
+    var bytes = new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+  }
+  function arrayBufferToB64Url(buffer){
+    var bytes = new Uint8Array(buffer || new ArrayBuffer(0));
+    var binary = '';
+    for(var i=0;i<bytes.length;i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function normalizePasskeyCreationOptions(publicKey){
+    publicKey = Object.assign({}, publicKey || {});
+    if(typeof publicKey.challenge === 'string') publicKey.challenge = b64UrlToArrayBuffer(publicKey.challenge);
+    if(publicKey.user && typeof publicKey.user.id === 'string') publicKey.user.id = b64UrlToArrayBuffer(publicKey.user.id);
+    if(Array.isArray(publicKey.excludeCredentials)){
+      publicKey.excludeCredentials = publicKey.excludeCredentials.map(function(item){
+        item = Object.assign({}, item || {});
+        if(typeof item.id === 'string') item.id = b64UrlToArrayBuffer(item.id);
+        return item;
+      });
+    }
+    return publicKey;
+  }
+  function serializePublicKeyCredential(credential){
+    if(!credential || !credential.response) return null;
+    var out = {
+      id: credential.id || '',
+      rawId: credential.rawId ? arrayBufferToB64Url(credential.rawId) : '',
+      type: credential.type || 'public-key',
+      response: {},
+      clientExtensionResults: credential.getClientExtensionResults ? credential.getClientExtensionResults() : {}
+    };
+    if(credential.response.clientDataJSON) out.response.clientDataJSON = arrayBufferToB64Url(credential.response.clientDataJSON);
+    if(credential.response.attestationObject) out.response.attestationObject = arrayBufferToB64Url(credential.response.attestationObject);
+    if(credential.response.authenticatorData) out.response.authenticatorData = arrayBufferToB64Url(credential.response.authenticatorData);
+    if(credential.response.signature) out.response.signature = arrayBufferToB64Url(credential.response.signature);
+    if(credential.response.userHandle) out.response.userHandle = arrayBufferToB64Url(credential.response.userHandle);
+    if(credential.response.getTransports){
+      try{ out.response.transports = credential.response.getTransports(); }catch(e){}
+    }
+    return out;
+  }
   async function startPasskey(){
     clearResult(); setStep(2); setBusy(true); setMessage('status', t('beginPasskey'));
     try{
-      var setup = await callEndpoint('setup', {method:'passkey', action:'setup'});
+      var setup = await callEndpoint('setup', {method:'passkey', action:'setup', identifier:authIdentifier()});
       if(!setup || !setup.publicKey || !navigator.credentials || !window.PublicKeyCredential) throw new Error('server publicKey missing');
-      var credential = await navigator.credentials.create({publicKey:setup.publicKey});
-      var verify = await callEndpoint('verify', {method:'passkey', credentialId:credential && credential.id, rawId:credential && credential.rawId ? true : false});
+      var credential = await navigator.credentials.create({publicKey:normalizePasskeyCreationOptions(setup.publicKey)});
+      var serialized = serializePublicKeyCredential(credential);
+      var verify = await callEndpoint('verify', {method:'passkey', action:'verify', identifier:authIdentifier(), setupToken:setup.setupToken || setup.mfaSetupToken || setup.token || '', credential:serialized});
       if(verify && (verify.verified || verify.ok)){ finishVerification('server', verify.recoveryCodes || setup.recoveryCodes); return; }
       throw new Error('server rejected');
     }catch(e){
       var support = !!(window.PublicKeyCredential && navigator.credentials);
-      setMessage('error', support ? t('passkeyNeedsServer') : t('unsupported'));
+      setMessage('error', e && e.message ? e.message : (support ? t('passkeyNeedsServer') : t('unsupported')));
       setStep(1);
     }finally{ setBusy(false); updateActionText(); }
   }
