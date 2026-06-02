@@ -703,6 +703,7 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
 .site-header .nav-links a,
 .site-header .header-actions,
 .site-header .theme-toggle,
+.site-header .catalog-return,
 .site-header .header-cart{
   pointer-events:auto!important;
 }
@@ -721,6 +722,7 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
   isolation:isolate!important;
 }
 .site-header .theme-toggle,
+.site-header .catalog-return,
 .site-header .header-cart{
   position:relative!important;
   z-index:21!important;
@@ -731,6 +733,8 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
 }
 .site-header .theme-toggle:before,
 .site-header .theme-toggle:after,
+.site-header .catalog-return:before,
+.site-header .catalog-return:after,
 .site-header .header-cart:before,
 .site-header .header-cart:after,
 .site-header .nav:before,
@@ -738,6 +742,7 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
   pointer-events:none!important;
 }
 .site-header .theme-toggle > *,
+.site-header .catalog-return > *,
 .site-header .header-cart > *{
   pointer-events:none!important;
 }
@@ -755,6 +760,9 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
 @media(max-width:430px){
   .site-header .header-actions{
     gap:7px!important;
+  }
+  .site-header .catalog-return{
+    min-width:46px!important;
   }
   .site-header .header-cart{
     min-width:74px!important;
@@ -833,6 +841,136 @@ body:has(#aiOverlay.open) > .site-header{
   .brand-typewriter:after{animation:none;opacity:.75}
 }
 </style>
+
+
+<style id="dirac-revisi-a2f-catalog-css">
+/* =========================================================
+   Revisi akun Dirac: tombol katalog, warna tema berlabel,
+   flow A2F setelah login/daftar, dan cleanup Back to Home.
+   ========================================================= */
+.catalog-return{
+  min-height:58px;
+  padding:0 18px;
+  border-radius:999px;
+  border:1px solid rgba(var(--theme-rgb),.24);
+  background:linear-gradient(135deg,rgba(255,255,255,.075),rgba(var(--theme-rgb),.12));
+  color:#fff;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  font-weight:950;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 12px 28px rgba(0,0,0,.20);
+  transition:transform .22s var(--motion-ease),border-color .22s var(--motion-ease),background .22s var(--motion-ease),filter .22s var(--motion-ease);
+  white-space:nowrap;
+  isolation:isolate;
+  overflow:hidden;
+}
+.catalog-return:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:linear-gradient(110deg,transparent 18%,rgba(255,255,255,.18),rgba(var(--theme-rgb),.24),transparent 78%);
+  transform:translateX(-130%);
+  transition:transform .72s var(--motion-soft);
+}
+.catalog-return:hover{transform:translateY(-2px);border-color:rgba(var(--theme-rgb),.52);background:rgba(var(--theme-rgb),.13);filter:brightness(1.04)}
+.catalog-return:hover:before{transform:translateX(130%)}
+.form-row-clean{justify-content:flex-start!important;margin-top:2px;margin-bottom:2px}
+.form-row-clean .check{padding:2px 0}
+.custom-theme-grid{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))!important;align-items:stretch}
+.theme-swatch-btn{
+  aspect-ratio:auto!important;
+  min-height:76px!important;
+  padding:10px 8px!important;
+  display:grid!important;
+  grid-template-rows:auto auto;
+  place-items:center;
+  gap:7px;
+  border-radius:20px!important;
+}
+.theme-color-orb{
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  background:
+    radial-gradient(circle at 32% 24%,rgba(255,255,255,.55),transparent 32%),
+    linear-gradient(145deg,var(--swatch-a),var(--swatch-b));
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.22),inset 0 -8px 12px rgba(0,0,0,.16),0 10px 18px rgba(0,0,0,.16);
+}
+.theme-color-label{font-size:.72rem;font-weight:950;line-height:1.1;color:#f8fafc;text-align:center;letter-spacing:-.02em}
+.theme-swatch-btn.active:after{inset:auto 8px 8px auto;width:22px;height:22px;border-radius:999px;background:rgba(255,255,255,.86);color:#07111d;font-size:.82rem;box-shadow:0 8px 20px rgba(0,0,0,.25);text-shadow:none}
+.a2f-modal{
+  position:fixed;
+  inset:0;
+  z-index:12000;
+  display:none;
+  place-items:center;
+  padding:18px;
+  background:
+    radial-gradient(circle at 20% 18%,rgba(var(--theme-rgb),.22),transparent 24rem),
+    radial-gradient(circle at 82% 88%,rgba(56,189,248,.14),transparent 18rem),
+    rgba(0,0,0,.72);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.a2f-modal.open{display:grid}
+.a2f-card{
+  width:min(760px,100%);
+  max-height:min(90vh,800px);
+  overflow:auto;
+  border-radius:34px;
+  border:1px solid rgba(var(--theme-rgb),.34);
+  background:linear-gradient(180deg,rgba(16,23,34,.98),rgba(5,8,13,.98));
+  box-shadow:0 30px 95px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.055) inset,0 0 44px rgba(var(--theme-rgb),.12);
+  padding:26px;
+  animation:modalIn .34s var(--motion-soft) both;
+}
+.a2f-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
+.a2f-hero h2{margin:0;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:#fff;font-size:clamp(1.65rem,4.4vw,2.25rem);line-height:1.03;font-weight:950;letter-spacing:-.045em}
+.a2f-hero p{margin:8px 0 0;color:#cbd5e1;font-size:.95rem;line-height:1.55;max-width:560px}
+.a2f-badge{width:60px;height:60px;border-radius:22px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.13);border:1px solid rgba(var(--theme-rgb),.26);font-size:1.65rem;box-shadow:inset 0 1px 0 rgba(255,255,255,.07);flex:0 0 auto}
+.a2f-methods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0 16px}
+.a2f-method{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:24px;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.025));
+  color:#fff;
+  padding:18px 14px;
+  min-height:168px;
+  text-align:left;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  transition:transform .24s var(--motion-ease),border-color .24s var(--motion-ease),background .24s var(--motion-ease),box-shadow .24s var(--motion-ease);
+}
+.a2f-method:hover,.a2f-method.active{transform:translateY(-2px);border-color:rgba(var(--theme-rgb),.66);background:linear-gradient(180deg,rgba(var(--theme-rgb),.16),rgba(255,255,255,.035));box-shadow:0 18px 38px rgba(0,0,0,.24),0 0 0 1px rgba(var(--theme-rgb),.09) inset}
+.a2f-method-icon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.13);border:1px solid rgba(var(--theme-rgb),.22);font-size:1.3rem}
+.a2f-method strong{font-size:1.02rem;line-height:1.18}.a2f-method span:last-child{color:#aeb7c6;font-size:.82rem;line-height:1.42;font-weight:650}
+.a2f-note{margin:0 0 14px;padding:13px 14px;border-radius:18px;background:rgba(var(--theme-rgb),.09);border:1px solid rgba(var(--theme-rgb),.20);color:#f7e8c5;font-size:.86rem;line-height:1.55}
+.a2f-result{display:none;margin:12px 0 0;padding:13px 14px;border-radius:18px;border:1px solid rgba(24,185,129,.34);background:rgba(24,185,129,.10);color:#d1fae5;font-weight:800;font-size:.9rem;line-height:1.45}
+.a2f-result.show{display:block}
+.a2f-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:18px}
+.a2f-done-btn{min-height:50px;border-radius:999px;padding:12px 18px}.a2f-done-btn:disabled{opacity:.48;cursor:not-allowed;filter:grayscale(.35);transform:none!important}
+html[data-effective-theme="light"] .catalog-return{color:#171923;background:rgba(255,255,255,.86);border-color:rgba(var(--theme-rgb),.22)}
+html[data-effective-theme="light"] .a2f-card{background:linear-gradient(180deg,rgba(255,250,241,.98),rgba(248,250,252,.98));color:#151923}
+html[data-effective-theme="light"] .a2f-hero h2,html[data-effective-theme="light"] .a2f-method{color:#151923}
+html[data-effective-theme="light"] .a2f-hero p,html[data-effective-theme="light"] .a2f-method span:last-child{color:#526071}
+html[data-effective-theme="light"] .a2f-method{background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.58));border-color:rgba(15,23,42,.10)}
+html[data-effective-theme="light"] .theme-color-label{color:#151923}
+@media(max-width:760px){
+  .catalog-return{width:48px!important;height:48px!important;min-height:48px!important;min-width:48px!important;padding:0!important;border-radius:999px!important;font-size:1.15rem}
+  .catalog-return .label{display:none!important}
+  .custom-theme-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+  .theme-swatch-btn{min-height:70px!important;border-radius:17px!important}
+  .a2f-card{border-radius:30px;padding:20px;width:calc(100vw - 34px);max-height:calc(100dvh - 72px)}
+  .a2f-methods{grid-template-columns:1fr;gap:10px}.a2f-method{min-height:118px}.a2f-hero{align-items:center}.a2f-badge{width:52px;height:52px;border-radius:19px}
+}
+@media(max-width:430px){.catalog-return{width:46px!important;height:46px!important;min-width:46px!important}.custom-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.a2f-card{padding:18px;width:calc(100vw - 22px)}.a2f-actions .btn-secondary,.a2f-actions .btn-primary{width:100%;justify-content:center}}
+@media(prefers-reduced-motion:reduce){.catalog-return:before{transition:none!important}.a2f-card{animation:none!important}}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -846,13 +984,16 @@ body:has(#aiOverlay.open) > .site-header{
         <span class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n aria-label="Dirac Group"><span class="brand-typewriter-text" aria-hidden="true">Dirac Group</span></span>
       </a>
       <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="https://diracgroup.store/order.html#produk" data-i18n="navProducts">Produk</a>
-        <a href="https://diracgroup.store/order.html#lifestyle" data-i18n="navStyle">Gaya</a>
-        <a href="https://diracgroup.store/order.html#blog" data-i18n="navBlog">Blog</a>
-        <a href="https://diracgroup.store/order.html#kebijakan" data-i18n="navPolicy">Kebijakan</a>
-        <a href="https://diracgroup.store/order.html#faq" data-i18n="navFaq">FAQ</a>
+        <a href="https://diracgroup.store/order1.html#produk" data-i18n="navProducts">Produk</a>
+        <a href="https://diracgroup.store/order1.html#lifestyle" data-i18n="navStyle">Gaya</a>
+        <a href="https://diracgroup.store/order1.html#blog" data-i18n="navBlog">Blog</a>
+        <a href="https://diracgroup.store/order1.html#kebijakan" data-i18n="navPolicy">Kebijakan</a>
+        <a href="https://diracgroup.store/order1.html#faq" data-i18n="navFaq">FAQ</a>
       </nav>
       <div class="header-actions">
+        <a class="catalog-return" href="https://diracgroup.store/order1.html" aria-label="Kembali ke katalog Dirac Group">
+          <span aria-hidden="true">←</span><span class="label" data-i18n="returnCatalog">Katalog</span>
+        </a>
         <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">
           <span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span>
         </button>
@@ -916,9 +1057,8 @@ body:has(#aiOverlay.open) > .site-header{
                 <label for="confirmPassword" data-i18n="confirmLabel">Ulangi password</label>
                 <input class="field" id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Tulis ulang password">
               </div>
-              <div class="form-row">
+              <div class="form-row form-row-clean">
                 <label class="check"><input type="checkbox" id="remember" name="remember" checked> <span data-i18n="remember">Ingat perangkat ini</span></label>
-                <a class="small-link" href="https://diracgroup.store/" data-i18n="forgot">Kembali ke beranda</a>
               </div>
               <button class="btn-primary auth-submit" id="submitBtn" type="submit" data-i18n="submitLogin">Masuk sekarang</button>
               <div class="status-box" id="statusBox" role="status" aria-live="polite"></div>
@@ -940,8 +1080,8 @@ body:has(#aiOverlay.open) > .site-header{
           <h4 data-i18n="footerNav">Navigasi</h4>
           <ul>
             <li><a href="https://diracgroup.store/" data-i18n="home">Beranda</a></li>
-            <li><a href="https://diracgroup.store/order.html#produk" data-i18n="products">Produk</a></li>
-            <li><a href="https://diracgroup.store/order.html#faq" data-i18n="faq">FAQ</a></li>
+            <li><a href="https://diracgroup.store/order1.html#produk" data-i18n="products">Produk</a></li>
+            <li><a href="https://diracgroup.store/order1.html#faq" data-i18n="faq">FAQ</a></li>
           </ul>
         </div>
         <div>
@@ -959,23 +1099,7 @@ body:has(#aiOverlay.open) > .site-header{
     </div>
   </footer>
 
-  <div class="menu-overlay" id="menuOverlay" aria-hidden="true">
-    <aside class="menu-drawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
-      <div class="drawer-head">
-        <div><h2 id="menuTitle" data-i18n="menuTitle">Menu</h2><p data-i18n="menuSub">Akses halaman utama Dirac Group.</p></div>
-        <button class="icon-btn" type="button" data-close-menu aria-label="Tutup menu">×</button>
-      </div>
-      <nav class="drawer-links" aria-label="Menu samping">
-        <a href="https://diracgroup.store/"><span data-i18n="home">Beranda</span><span aria-hidden="true">→</span></a>
-        <a href="https://diracgroup.store/order.html#produk"><span data-i18n="products">Produk</span><span aria-hidden="true">→</span></a>
-        <a href="https://diracgroup.store/order.html#blog"><span data-i18n="navBlog">Blog</span><span aria-hidden="true">→</span></a>
-        <a href="https://diracgroup.store/order.html#kebijakan"><span data-i18n="navPolicy">Kebijakan</span><span aria-hidden="true">→</span></a>
-        <a href="https://diracgroup.store/order.html#faq"><span data-i18n="faq">FAQ</span><span aria-hidden="true">→</span></a>
-      </nav>
-      <button class="btn-primary" type="button" data-open-theme data-i18n="openTheme">Buka pengaturan tema</button>
-      <div class="drawer-foot" data-i18n="drawerFoot">Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.</div>
-    </aside>
-  </div>
+  <!-- Menu drawer removed: hamburger/menu button intentionally absent on login page. -->
 
   <div class="theme-modal" id="themeModal" aria-hidden="true">
     <section class="theme-card theme-pro-card" role="dialog" aria-modal="true" aria-labelledby="themeTitle" tabindex="-1">
@@ -1049,6 +1173,42 @@ body:has(#aiOverlay.open) > .site-header{
     </section>
   </div>
 
+
+
+  <div class="a2f-modal" id="a2fModal" aria-hidden="true">
+    <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" tabindex="-1">
+      <div class="a2f-hero">
+        <div>
+          <h2 id="a2fTitle" data-i18n="a2fTitle">Aktifkan A2F</h2>
+          <p data-i18n="a2fSub">Sebelum lanjut, pilih metode keamanan tambahan untuk melindungi akun Dirac Group pelanggan.</p>
+        </div>
+        <div class="a2f-badge" aria-hidden="true">🛡️</div>
+      </div>
+      <p class="a2f-note" data-i18n="a2fNote">A2F tidak membuka dashboard otomatis. Setelah metode dipilih, status keamanan disimpan di perangkat ini dan pelanggan tetap berada di halaman akun.</p>
+      <div class="a2f-methods" aria-label="Pilihan metode A2F">
+        <button class="a2f-method" type="button" data-a2f-method="passkey">
+          <span class="a2f-method-icon" aria-hidden="true">🔑</span>
+          <strong data-i18n="a2fPasskey">Passkey</strong>
+          <span data-i18n="a2fPasskeyText">Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.</span>
+        </button>
+        <button class="a2f-method" type="button" data-a2f-method="email">
+          <span class="a2f-method-icon" aria-hidden="true">✉️</span>
+          <strong data-i18n="a2fEmail">Email</strong>
+          <span data-i18n="a2fEmailText">Gunakan kode keamanan yang dikirim ke email pelanggan.</span>
+        </button>
+        <button class="a2f-method" type="button" data-a2f-method="authenticator">
+          <span class="a2f-method-icon" aria-hidden="true">📲</span>
+          <strong data-i18n="a2fAuth">Authenticator</strong>
+          <span data-i18n="a2fAuthText">Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.</span>
+        </button>
+      </div>
+      <div class="a2f-result" id="a2fResult" role="status" aria-live="polite"></div>
+      <div class="a2f-actions">
+        <button class="btn-primary a2f-done-btn" type="button" id="a2fDoneBtn" disabled data-i18n="a2fDone">Selesai, tetap di halaman akun</button>
+      </div>
+    </section>
+  </div>
+
   <div class="dirac-floating-actions" id="floatingActions" aria-label="Aksi cepat">
     <button class="dirac-float-btn dirac-float-top" id="scrollTopBtn" type="button" aria-label="Scroll ke atas">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M12 19V5m0 0-7 7m7-7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1090,24 +1250,30 @@ body:has(#aiOverlay.open) > .site-header{
     var LOGIN_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
     var THEME_KEY = 'dirac_theme_settings_v2';
     var AUTH_KEY = 'dirac_auth_session_v1';
+    var A2F_KEY = 'dirac_auth_a2f_v1';
     var DEFAULT_SETTINGS = {mode:'dark', accent:'gold', language:'id', motion:'full', contrast:'off'};
     var PALETTES = {
       gold:{label:'Gold', gold:'#f3cd70', gold2:'#d6a642', gold3:'#8e6425', rgb:'243,205,112'},
       champagne:{label:'Champagne', gold:'#fde68a', gold2:'#f59e0b', gold3:'#92400e', rgb:'253,230,138'},
-      blue:{label:'Blue', gold:'#4f83ff', gold2:'#2563eb', gold3:'#1e3a8a', rgb:'79,131,255'},
+      bronze:{label:'Bronze', gold:'#d97706', gold2:'#92400e', gold3:'#451a03', rgb:'217,119,6'},
+      blue:{label:'Royal Blue', gold:'#4f83ff', gold2:'#2563eb', gold3:'#1e3a8a', rgb:'79,131,255'},
       sky:{label:'Sky', gold:'#38bdf8', gold2:'#0284c7', gold3:'#075985', rgb:'56,189,248'},
+      cyan:{label:'Cyan', gold:'#22d3ee', gold2:'#0891b2', gold3:'#164e63', rgb:'34,211,238'},
+      emerald:{label:'Emerald', gold:'#34d399', gold2:'#059669', gold3:'#064e3b', rgb:'52,211,153'},
+      teal:{label:'Teal', gold:'#2dd4bf', gold2:'#0d9488', gold3:'#134e4a', rgb:'45,212,191'},
+      lime:{label:'Lime', gold:'#a3e635', gold2:'#65a30d', gold3:'#365314', rgb:'163,230,53'},
       purple:{label:'Purple', gold:'#8b5cf6', gold2:'#6d28d9', gold3:'#432076', rgb:'139,92,246'},
+      violet:{label:'Violet', gold:'#a78bfa', gold2:'#7c3aed', gold3:'#4c1d95', rgb:'167,139,250'},
       pink:{label:'Pink', gold:'#ec4899', gold2:'#be185d', gold3:'#7f123d', rgb:'236,72,153'},
       rose:{label:'Rose', gold:'#fb7185', gold2:'#e11d48', gold3:'#881337', rgb:'251,113,133'},
       red:{label:'Red', gold:'#ef4444', gold2:'#dc2626', gold3:'#7f1d1d', rgb:'239,68,68'},
       orange:{label:'Orange', gold:'#f97316', gold2:'#ea580c', gold3:'#7c2d12', rgb:'249,115,22'},
-      emerald:{label:'Emerald', gold:'#34d399', gold2:'#059669', gold3:'#064e3b', rgb:'52,211,153'},
-      teal:{label:'Teal', gold:'#2dd4bf', gold2:'#0d9488', gold3:'#134e4a', rgb:'45,212,191'},
-      white:{label:'White', gold:'#f8fafc', gold2:'#cbd5e1', gold3:'#64748b', rgb:'248,250,252'}
+      white:{label:'White', gold:'#f8fafc', gold2:'#cbd5e1', gold3:'#64748b', rgb:'248,250,252'},
+      graphite:{label:'Graphite', gold:'#94a3b8', gold2:'#475569', gold3:'#0f172a', rgb:'148,163,184'}
     };
     var I18N = {
-      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email atau nomor WhatsApp pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email / WhatsApp',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
-      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email or WhatsApp number.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email / WhatsApp',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
+      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fTitle:'Aktifkan A2F',a2fSub:'Sebelum lanjut, pilih metode keamanan tambahan untuk melindungi akun Dirac Group pelanggan.',a2fNote:'A2F tidak membuka dashboard otomatis. Setelah metode dipilih, status keamanan disimpan di perangkat ini dan pelanggan tetap berada di halaman akun.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, tetap di halaman akun',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email atau nomor WhatsApp pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email / WhatsApp',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
+      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fTitle:'Enable 2FA',a2fSub:'Before continuing, choose an extra security method to protect the customer account.',a2fNote:'2FA does not open a dashboard automatically. After a method is selected, the security status is saved on this device and the customer stays on the account page.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, stay on account page',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email or WhatsApp number.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email / WhatsApp',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
       zh:{loginTitle:'登录账号',tabLogin:'登录',tabRegister:'注册',theme:'主题',menuTitle:'菜单',themeTitle:'主题设置',languageTitle:'语言',motionTitle:'网站动效',heroLead:'更快登录，',heroGold:'更整洁购物。',submitLogin:'立即登录',submitRegister:'创建账号',aiTitle:'Dirac AI',aiWelcome:'你好！我可以帮助登录、注册、主题、语言、WhatsApp 和导航。'},
       ar:{loginTitle:'تسجيل الدخول',tabLogin:'دخول',tabRegister:'تسجيل',theme:'السمة',menuTitle:'القائمة',themeTitle:'إعدادات السمة',languageTitle:'اللغة',motionTitle:'حركة الموقع',heroLead:'ادخل أسرع،',heroGold:'وتسوق بترتيب أكثر.',submitLogin:'تسجيل الدخول الآن',submitRegister:'إنشاء حساب',aiTitle:'Dirac AI',aiWelcome:'مرحباً! يمكنني المساعدة في الدخول، التسجيل، السمة، اللغة، واتساب والتنقل.'},
       ja:{loginTitle:'ログイン',tabLogin:'ログイン',tabRegister:'登録',theme:'テーマ',menuTitle:'メニュー',themeTitle:'テーマ設定',languageTitle:'言語',motionTitle:'サイトの動き',heroLead:'より速くログイン、',heroGold:'より快適に購入。',submitLogin:'今すぐログイン',submitRegister:'アカウント作成',aiTitle:'Dirac AI',aiWelcome:'こんにちは。ログイン、登録、テーマ、言語、WhatsApp、ナビをサポートします。'},
@@ -1170,7 +1336,7 @@ body:has(#aiOverlay.open) > .site-header{
         btn.setAttribute('aria-label', p.label);
         btn.style.setProperty('--swatch-a', p.gold);
         btn.style.setProperty('--swatch-b', p.gold2);
-        btn.innerHTML = '<span class="sr-only">'+p.label+'</span>';
+        btn.innerHTML = '<span class="theme-color-orb" aria-hidden="true"></span><span class="theme-color-label">'+p.label+'</span>';
         wrap.appendChild(btn);
       });
     }
@@ -1247,10 +1413,70 @@ body:has(#aiOverlay.open) > .site-header{
       }
     }
     function finishAuth(identifier, data){
-      var session = {identifier:identifier, mode:mode, endpoint:LOGIN_ENDPOINT, method:data && data.method ? data.method : 'post', time:new Date().toISOString()};
+      var session = {identifier:identifier, mode:mode, endpoint:LOGIN_ENDPOINT, method:data && data.method ? data.method : 'post', time:new Date().toISOString(), twoFactorRequired:true, twoFactorStatus:'pending'};
       try{localStorage.setItem(AUTH_KEY, JSON.stringify(session));}catch(e){}
-      status('success', mode === 'login' ? 'Berhasil tersambung. Status masuk disimpan di perangkat ini.' : 'Pendaftaran tersambung. Data sesi awal disimpan di perangkat ini.');
-      showToast(mode === 'login' ? 'Masuk berhasil.' : 'Daftar berhasil.');
+      status('success', mode === 'login' ? 'Berhasil tersambung. Aktifkan A2F untuk melanjutkan keamanan akun.' : 'Pendaftaran tersambung. Aktifkan A2F untuk mengamankan akun baru.');
+      showToast(mode === 'login' ? 'Masuk berhasil. Pilih A2F.' : 'Daftar berhasil. Pilih A2F.');
+      resetA2FModal();
+      openModal('#a2fModal');
+    }
+    function readAuthSession(){
+      try{return JSON.parse(localStorage.getItem(AUTH_KEY) || '{}') || {};}catch(e){return {};}
+    }
+    function writeAuthSession(next){
+      try{localStorage.setItem(AUTH_KEY, JSON.stringify(next));}catch(e){}
+    }
+    function a2fLabel(method){
+      return method === 'passkey' ? 'Passkey' : method === 'email' ? 'Email' : 'Authenticator';
+    }
+    function resetA2FModal(){
+      var result = $('#a2fResult');
+      if(result){ result.className = 'a2f-result'; result.textContent = ''; }
+      var done = $('#a2fDoneBtn');
+      if(done) done.disabled = true;
+      $$('#a2fModal [data-a2f-method]').forEach(function(btn){ btn.classList.remove('active'); btn.disabled = false; });
+    }
+    function activateA2F(method, detail){
+      var label = a2fLabel(method);
+      var session = readAuthSession();
+      session.twoFactorRequired = true;
+      session.twoFactorStatus = 'active';
+      session.twoFactorMethod = method;
+      session.twoFactorActivatedAt = new Date().toISOString();
+      if(detail) session.twoFactorDetail = detail;
+      writeAuthSession(session);
+      try{localStorage.setItem(A2F_KEY, JSON.stringify({method:method, label:label, active:true, time:session.twoFactorActivatedAt}));}catch(e){}
+      $$('#a2fModal [data-a2f-method]').forEach(function(btn){ btn.classList.toggle('active', btn.getAttribute('data-a2f-method') === method); });
+      var result = $('#a2fResult');
+      if(result){ result.className = 'a2f-result show'; result.textContent = 'A2F via ' + label + ' sudah diaktifkan untuk sesi pelanggan ini. Dashboard tidak dibuka otomatis.'; }
+      var done = $('#a2fDoneBtn');
+      if(done) done.disabled = false;
+      showToast('A2F ' + label + ' aktif.');
+    }
+    function arrayBufferToBase64Url(buffer){
+      var bytes = new Uint8Array(buffer), binary = '';
+      bytes.forEach(function(b){ binary += String.fromCharCode(b); });
+      return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+    async function startA2F(method){
+      var clicked = $('#a2fModal [data-a2f-method="' + method + '"]');
+      if(clicked) clicked.disabled = true;
+      try{
+        if(method === 'passkey' && window.PublicKeyCredential && navigator.credentials && window.crypto && window.crypto.getRandomValues){
+          var challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+          var userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
+          var session = readAuthSession();
+          var name = session.identifier || 'pelanggan@diracgroup.store';
+          var credential = await navigator.credentials.create({publicKey:{challenge:challenge,rp:{name:'Dirac Group'},user:{id:userId,name:name,displayName:'Dirac Group Customer'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],timeout:60000,authenticatorSelection:{userVerification:'preferred'}}});
+          activateA2F(method, credential && credential.rawId ? {credentialId:arrayBufferToBase64Url(credential.rawId)} : {credentialId:'created'});
+          return;
+        }
+        activateA2F(method, {selected:true});
+      }catch(e){
+        activateA2F(method, {selected:true, note:'Passkey tidak selesai di browser; metode tetap disimpan sebagai pilihan keamanan.'});
+      }finally{
+        if(clicked) clicked.disabled = false;
+      }
     }
     function aiAnswer(q){
       q = String(q || '').toLowerCase();
@@ -1277,7 +1503,7 @@ body:has(#aiOverlay.open) > .site-header{
       var menuToggle = $('#menuToggle'); if(menuToggle){ menuToggle.addEventListener('click', function(){ this.setAttribute('aria-expanded','true'); openModal('#menuOverlay'); }); }
       $$('[data-close-menu]').forEach(function(btn){btn.addEventListener('click', function(){ closeModal('#menuOverlay'); });});
       $('#themeModal').addEventListener('click', function(e){ if(e.target === this) closeModal('#themeModal'); });
-      $('#menuOverlay').addEventListener('click', function(e){ if(e.target === this) closeModal('#menuOverlay'); });
+      var menuOverlay = $('#menuOverlay'); if(menuOverlay) menuOverlay.addEventListener('click', function(e){ if(e.target === this) closeModal('#menuOverlay'); });
       $('#aiOverlay').addEventListener('click', function(e){ if(e.target === this) closeModal('#aiOverlay'); });
       $$('#themeModal [data-theme-mode]').forEach(function(btn){btn.addEventListener('click', function(){ settings.mode = this.getAttribute('data-theme-mode'); applySettings(); });});
       $('#accentChoices').addEventListener('click', function(e){ var btn = e.target.closest('[data-accent]'); if(!btn) return; settings.accent = btn.getAttribute('data-accent'); applySettings(); });
@@ -1296,6 +1522,15 @@ body:has(#aiOverlay.open) > .site-header{
       $$('.auth-tab').forEach(function(tab){tab.addEventListener('click', function(){ mode = this.getAttribute('data-mode') || 'login'; updateModeCopy(); $('#statusBox').className = 'status-box'; });});
       $('#passwordToggle').addEventListener('click', function(){ var p = $('#password'); p.type = p.type === 'password' ? 'text' : 'password'; this.textContent = p.type === 'password' ? '👁️' : '🙈'; });
       $('#authForm').addEventListener('submit', submitAuth);
+      var a2fModal = $('#a2fModal');
+      if(a2fModal){
+        a2fModal.addEventListener('click', function(e){
+          var methodBtn = e.target.closest('[data-a2f-method]');
+          if(methodBtn){ startA2F(methodBtn.getAttribute('data-a2f-method')); }
+        });
+      }
+      var a2fDoneBtn = $('#a2fDoneBtn');
+      if(a2fDoneBtn){ a2fDoneBtn.addEventListener('click', function(){ if(!this.disabled) closeModal('#a2fModal'); }); }
       $('#scrollTopBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior: settings.motion === 'reduced' ? 'auto' : 'smooth'}); });
       $('#aiTrigger').addEventListener('click', function(){ openModal('#aiOverlay'); });
       $$('[data-close-ai]').forEach(function(btn){btn.addEventListener('click', function(){ closeModal('#aiOverlay'); });});
