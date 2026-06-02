@@ -3384,6 +3384,12 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
     }
     function openModal(id){
       var el = $(id); if(!el) return;
+      if(id === '#a2fModal' && !isServerAuthenticatedSession(readAuthSession())){
+        closeModal('#a2fModal');
+        status('error','Login belum tervalidasi dari server. A2F tidak dibuka sebelum email dan password benar.');
+        showToast('A2F dikunci sampai login server berhasil.');
+        return;
+      }
       el.classList.add('open'); el.setAttribute('aria-hidden','false'); document.body.classList.add(id==='#menuOverlay'?'menu-open':id==='#aiOverlay'?'ai-open':'modal-open');
       setTimeout(function(){
         if(id === '#a2fModal'){
@@ -3425,18 +3431,65 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
     function isValidIdentifier(value){
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || /^\+?\d[\d\s\-]{7,18}$/.test(value);
     }
+    function clearPendingAuth(){
+      try{localStorage.removeItem(AUTH_KEY);}catch(e){}
+      try{localStorage.removeItem(A2F_KEY);}catch(e){}
+      closeModal('#a2fModal');
+    }
+    function hasOwn(obj, key){
+      return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
+    }
+    function pickAuthContainer(data){
+      if(!data || typeof data !== 'object') return null;
+      if(data.session && typeof data.session === 'object') return data.session;
+      if(data.auth && typeof data.auth === 'object') return data.auth;
+      if(data.data && typeof data.data === 'object'){
+        if(data.data.session && typeof data.data.session === 'object') return data.data.session;
+        if(data.data.auth && typeof data.data.auth === 'object') return data.data.auth;
+        if(data.data.user && typeof data.data.user === 'object') return data.data;
+      }
+      return data;
+    }
+    function hasSessionProof(container){
+      if(!container || typeof container !== 'object') return false;
+      return !!(
+        container.token || container.accessToken || container.access_token || container.jwt || container.idToken || container.id_token ||
+        container.sessionToken || container.session_token || container.refreshToken || container.refresh_token ||
+        container.sessionId || container.session_id || container.sid || container.user || container.profile || container.account
+      );
+    }
+    function isTrustedAuthResponse(data){
+      if(!data || typeof data !== 'object') return false;
+      if(data.health || data.status === 'ok' || data.status === 'healthy' || data.service === 'health') return false;
+      if(data.twoFactorRequired === true || data.mfaRequired === true || data.require2fa === true) return true;
+      var container = pickAuthContainer(data);
+      var successFlag = data.authenticated === true || data.isAuthenticated === true || data.authorized === true || data.login === true || data.loggedIn === true || data.success === true || data.registered === true || data.created === true || data.accountCreated === true || data.ok === true;
+      var containerFlag = container && (container.authenticated === true || container.authorized === true || container.login === true || container.loggedIn === true || container.success === true || container.ok === true || container.registered === true || container.created === true);
+      if((successFlag || containerFlag) && hasSessionProof(container)) return true;
+      if(hasSessionProof(data)) return true;
+      return false;
+    }
+    function isServerAuthenticatedSession(session){
+      return !!(session && session.serverAuthenticated === true && session.authVerifiedAt && session.identifier);
+    }
+    function authErrorMessage(){
+      return mode === 'login'
+        ? 'Email/WhatsApp atau password tidak valid. A2F tidak akan dibuka sebelum login benar.'
+        : 'Pendaftaran belum dikonfirmasi server. A2F tidak akan dibuka sebelum akun valid.';
+    }
     async function submitAuth(event){
       event.preventDefault();
       var identifier = $('#identifier').value.trim();
       var fullName = $('#fullName').value.trim();
       var password = $('#password').value;
       var confirm = $('#confirmPassword').value;
+      clearPendingAuth();
       if(!isValidIdentifier(identifier)){ status('error','Isi email atau nomor WhatsApp dengan format yang benar.'); return; }
       if(mode === 'register' && fullName.length < 3){ status('error','Nama lengkap minimal 3 karakter.'); return; }
       if(password.length < 6){ status('error','Password minimal 6 karakter.'); return; }
       if(mode === 'register' && password !== confirm){ status('error','Konfirmasi password belum sama.'); return; }
       var btn = $('#submitBtn');
-      btn.disabled = true; var old = btn.textContent; btn.textContent = 'Memeriksa endpoint...';
+      btn.disabled = true; var old = btn.textContent; btn.textContent = 'Memvalidasi login...';
       var payload = {mode:mode, identifier:identifier, fullName:fullName, remember:$('#remember').checked, source:'diracgroup.store/masuk.html'};
       try{
         var response = await fetch(LOGIN_ENDPOINT, {
@@ -3447,26 +3500,42 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
           cache:'no-store'
         });
         var data = await response.clone().json().catch(function(){return null;});
-        if(!response.ok){ throw new Error('POST '+response.status); }
-        finishAuth(identifier, data || {ok:true, method:'post'});
-      }catch(postErr){
-        try{
-          var health = await fetch(LOGIN_ENDPOINT, {method:'GET', cache:'no-store', credentials:'omit'});
-          if(!health.ok){ throw new Error('GET '+health.status); }
-          finishAuth(identifier, {ok:true, method:'health-fallback'});
-        }catch(getErr){
-          status('error','Endpoint belum merespons. Cek koneksi atau status server lalu coba lagi.');
-          showToast('Login belum berhasil, endpoint tidak merespons.');
+        if(!response.ok || !isTrustedAuthResponse(data)){
+          throw new Error(authErrorMessage());
         }
+        finishAuth(identifier, data);
+      }catch(postErr){
+        clearPendingAuth();
+        status('error', postErr && postErr.message ? postErr.message : authErrorMessage());
+        showToast('Login ditolak. A2F tetap terkunci.');
       }finally{
         btn.disabled = false; btn.textContent = old;
       }
     }
     function finishAuth(identifier, data){
-      var session = {identifier:identifier, mode:mode, endpoint:LOGIN_ENDPOINT, method:data && data.method ? data.method : 'post', time:new Date().toISOString(), twoFactorRequired:true, twoFactorStatus:'pending'};
+      if(!isTrustedAuthResponse(data)){
+        clearPendingAuth();
+        status('error', authErrorMessage());
+        showToast('Login ditolak. A2F tetap terkunci.');
+        return;
+      }
+      var container = pickAuthContainer(data) || {};
+      var session = {
+        identifier:identifier,
+        mode:mode,
+        endpoint:LOGIN_ENDPOINT,
+        method:data && data.method ? data.method : 'post',
+        time:new Date().toISOString(),
+        serverAuthenticated:true,
+        authenticated:true,
+        authVerifiedAt:new Date().toISOString(),
+        authProof:!!hasSessionProof(container),
+        twoFactorRequired:true,
+        twoFactorStatus:'pending'
+      };
       try{localStorage.setItem(AUTH_KEY, JSON.stringify(session));}catch(e){}
-      status('success', mode === 'login' ? 'Berhasil tersambung. Aktifkan A2F untuk melanjutkan keamanan akun.' : 'Pendaftaran tersambung. Aktifkan A2F untuk mengamankan akun baru.');
-      showToast(mode === 'login' ? 'Masuk berhasil. Pilih A2F.' : 'Daftar berhasil. Pilih A2F.');
+      status('success', mode === 'login' ? 'Login valid. Aktifkan A2F untuk melanjutkan keamanan akun.' : 'Akun valid. Aktifkan A2F untuk mengamankan akun baru.');
+      showToast(mode === 'login' ? 'Login valid. Pilih A2F.' : 'Akun valid. Pilih A2F.');
       resetA2FModal();
       openModal('#a2fModal');
     }
