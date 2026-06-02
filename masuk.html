@@ -1650,6 +1650,73 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 }
 </style>
 
+
+
+<style id="dirac-a2f-priority-1-3-final-css">
+/* =========================================================
+   Dirac A2F Priority 1-3 Final Hardening
+   Scope: hanya #a2fModal. Additive override; tidak menghapus login/theme/header lama.
+   ========================================================= */
+#a2fModal .a2f-methods[role="radiogroup"]{position:relative;}
+#a2fModal .a2f-method[role="radio"]{cursor:pointer;}
+#a2fModal .a2f-method[aria-checked="true"]{border-color:#2563eb!important;background:#f8fbff!important;box-shadow:0 0 0 1px #60a5fa inset!important;}
+#a2fModal .a2f-method[aria-checked="true"]:after{content:"✓";position:absolute;right:14px;top:14px;width:22px;height:22px;border-radius:999px;display:grid;place-items:center;background:#2563eb;color:#fff;font-size:.72rem;font-weight:800;}
+#a2fModal .a2f-method[aria-disabled="true"],
+#a2fModal .a2f-method:disabled{opacity:.56;cursor:not-allowed;}
+#a2fModal .a2f-method .a2f-recommend-ribbon{display:inline-flex;margin-left:6px;border-radius:999px;padding:3px 7px;background:#ecfdf5;color:#047857;border:1px solid #bbf7d0;font-size:.58rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;}
+#a2fModal .a2f-production-grid{display:none!important;}
+#a2fModal .a2f-note strong{font-weight:780;color:#1d4ed8;}
+#a2fModal .a2f-error-msg,
+#a2fModal .a2f-status-msg{display:none;margin-top:14px;padding:12px 14px;border-radius:16px;font-size:.84rem;line-height:1.48;}
+#a2fModal .a2f-error-msg.show{display:block;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;animation:diracA2FShake .28s ease both;}
+#a2fModal .a2f-status-msg.show{display:block;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;}
+#a2fModal .a2f-card.is-error .a2f-preview{animation:diracA2FShake .28s ease both;}
+@keyframes diracA2FShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+#a2fModal .a2f-panel:not(.active) .a2f-verify-box{display:none!important;}
+#a2fModal .a2f-card[data-a2f-step-index="1"] .a2f-verify-box,
+#a2fModal .a2f-card[data-a2f-step-index="3"] .a2f-verify-box,
+#a2fModal .a2f-card[data-a2f-step-index="4"] .a2f-verify-box{display:none!important;}
+#a2fModal .a2f-card[data-a2f-step-index="2"] .a2f-panel.active .a2f-verify-box{display:block!important;}
+#a2fModal .a2f-hidden-source{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;left:-9999px!important;}
+#a2fModal .a2f-otp-grid{display:grid;grid-template-columns:repeat(6, minmax(0, 1fr));gap:8px;margin-top:9px;}
+#a2fModal .a2f-otp-cell{width:100%;min-height:46px;border-radius:13px;border:1px solid var(--a2f-line-strong,#cbd5e1);background:#fff;color:#111827;text-align:center;font-weight:800;font-size:1rem;outline:none;}
+#a2fModal .a2f-otp-cell:focus{border-color:#2563eb;box-shadow:0 0 0 4px #dbeafe;}
+#a2fModal .a2f-verify-box.is-invalid .a2f-otp-cell{border-color:#fca5a5;background:#fff7f7;}
+#a2fModal .a2f-verify-meta button:disabled{color:#94a3b8!important;cursor:not-allowed!important;}
+#a2fModal .a2f-recovery-box{display:none;margin-top:16px;padding:16px;border:1px solid var(--a2f-line,#e2e8f0);background:#fff;border-radius:22px;}
+#a2fModal .a2f-card[data-a2f-step-index="3"] .a2f-recovery-box,
+#a2fModal .a2f-card[data-a2f-step-index="4"] .a2f-recovery-box{display:block;}
+#a2fModal .a2f-recovery-box h3{margin:0 0 6px;color:var(--a2f-ink,#111827);font-size:1rem;font-weight:760;}
+#a2fModal .a2f-recovery-box p{margin:0 0 12px;color:var(--a2f-text,#334155);font-size:.84rem;line-height:1.5;}
+#a2fModal .a2f-recovery-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 12px;}
+#a2fModal .a2f-recovery-list code{display:block;padding:10px;border:1px dashed var(--a2f-line-strong,#cbd5e1);border-radius:12px;background:#f8fafc;color:#334155;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-weight:780;text-align:center;font-size:.78rem;}
+#a2fModal .a2f-recovery-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
+#a2fModal .a2f-small-btn{min-height:38px;border:1px solid #bfdbfe;border-radius:999px;background:#fff;color:#2563eb;font-weight:760;padding:8px 12px;}
+#a2fModal .a2f-small-btn:hover{background:#eff6ff;}
+#a2fModal .a2f-recovery-consent{display:flex;align-items:flex-start;gap:9px;color:#334155;font-size:.84rem;line-height:1.45;font-weight:650;}
+#a2fModal .a2f-recovery-consent input{margin-top:3px;accent-color:#2563eb;}
+#a2fModal .a2f-actions{position:sticky!important;bottom:0!important;z-index:3;background:linear-gradient(180deg,rgba(255,255,255,0),#fff 28%)!important;padding-top:18px!important;margin-top:18px!important;}
+#a2fModal .a2f-switch-account{background:#fff!important;color:#64748b!important;border-color:#e2e8f0!important;}
+#a2fModal .a2f-card[data-a2f-busy="true"] .a2f-start-label{opacity:.72;}
+#a2fModal .a2f-loading-dot{display:none;width:14px;height:14px;border:2px solid #bfdbfe;border-top-color:#2563eb;border-radius:999px;animation:diracSpin .72s linear infinite;}
+#a2fModal .a2f-card[data-a2f-busy="true"] .a2f-loading-dot{display:inline-block;}
+#a2fModal .a2f-card.is-verified-pulse{animation:diracA2FVerifiedSoft .72s var(--motion-soft,cubic-bezier(.16,1,.3,1)) both!important;}
+@media(max-width:620px){
+  #a2fModal .a2f-method{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:12px!important;align-items:start!important;}
+  #a2fModal .a2f-method-top{grid-row:1 / span 3;margin:0!important;}
+  #a2fModal .a2f-method-top em{display:none!important;}
+  #a2fModal .a2f-otp-grid{gap:6px;}
+  #a2fModal .a2f-otp-cell{min-height:42px;border-radius:11px;}
+  #a2fModal .a2f-recovery-list{grid-template-columns:1fr;}
+  #a2fModal .a2f-recovery-toolbar{display:grid;grid-template-columns:1fr;}
+  #a2fModal .a2f-small-btn{width:100%;}
+}
+@media(prefers-reduced-motion:reduce){
+  #a2fModal .a2f-error-msg.show,#a2fModal .a2f-card.is-error .a2f-preview,#a2fModal .a2f-card.is-verified-pulse{animation:none!important;}
+  #a2fModal .a2f-loading-dot{animation:none!important;}
+}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -2820,6 +2887,404 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
     if(card && window.MutationObserver){ new MutationObserver(syncIndicator).observe(card,{attributes:true,attributeFilter:['data-a2f-step-index','class']}); }
     if(window.MutationObserver){ new MutationObserver(syncIndicator).observe(document.documentElement,{attributes:true,attributeFilter:['lang']}); }
   });
+})();
+</script>
+
+
+
+<script id="dirac-a2f-priority-1-3-final-js">
+(function(){
+  'use strict';
+  function $(s,r){return (r||document).querySelector(s)}
+  function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+  function ready(fn){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn);else fn()}
+  function lang(){return document.documentElement.lang === 'en' ? 'en' : 'id'}
+  function reducedMotion(){return document.documentElement.getAttribute('data-motion') === 'reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)}
+  var state = {method:'passkey', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], timer:null, seconds:0, attempts:0, lastFocus:null};
+  var copy = {
+    id:{
+      note:'<strong>A2F / Verifikasi 2 Langkah wajib sebelum dashboard.</strong> Pilih metode, lakukan verifikasi, lalu simpan recovery code. Sistem tidak akan menandai A2F produksi aktif sebelum challenge atau OTP benar-benar terverifikasi.',
+      chooseStatus:'Pilih metode keamanan yang paling nyaman. Passkey direkomendasikan untuk perangkat pribadi.',
+      selectPasskey:'Buat passkey sekarang', selectAuthenticator:'Tampilkan QR authenticator', selectEmail:'Kirim kode ke email',
+      selectedPasskey:'Passkey siap dibuat', selectedAuthenticator:'Authenticator siap diverifikasi', selectedEmail:'Email OTP siap dikirim',
+      pillPasskey:'Anti-phishing', pillAuthenticator:'Kode 6 digit', pillEmail:'OTP email',
+      beginPasskey:'Menyiapkan passkey...', beginAuthenticator:'Menyiapkan QR authenticator...', beginEmail:'Mengirim kode email...',
+      verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Mode demo UI aktif: gunakan kode 123456. Pada produksi, endpoint server harus mengganti simulasi ini.',
+      resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Kode baru disiapkan. Gunakan 123456 untuk pratinjau UI.',
+      passkeyNeedsServer:'Passkey membutuhkan HTTPS dan endpoint WebAuthn server. Pilih Authenticator atau Email untuk mencoba flow UI, atau hubungkan endpoint /api/mfa/setup dan /api/mfa/verify.',
+      passkeyCancel:'Pembuatan passkey dibatalkan atau gagal. A2F belum diaktifkan.', unsupported:'Browser/perangkat ini belum mendukung metode tersebut.',
+      codeInvalid:'Kode harus 6 digit. Sisa percobaan: {n}.', codeWrong:'Kode belum cocok. Gunakan 123456 untuk demo UI atau sambungkan endpoint verifikasi server.', locked:'Terlalu banyak percobaan. Kirim ulang kode untuk mencoba lagi.',
+      recoveryTitle:'Simpan recovery code', recoveryText:'Simpan kode ini di tempat aman. Kode hanya contoh lokal bila backend belum mengirim recovery code produksi.',
+      copyCodes:'Salin kode', downloadCodes:'Unduh .txt', savedConfirm:'Saya sudah menyimpan recovery code.', copied:'Recovery code disalin.', downloaded:'Recovery code diunduh.',
+      successServer:'A2F berhasil diverifikasi oleh server menggunakan {method}. Simpan recovery code sebelum selesai.', successDemo:'Flow A2F {method} berhasil diverifikasi dalam mode UI lokal. Untuk produksi, server tetap harus memverifikasi OTP/challenge dan menyimpan recovery code.',
+      finish:'Selesai', doneLocked:'Simpan recovery code terlebih dahulu.', switchAccount:'Gunakan akun lain', switched:'Sesi lokal dibersihkan. Silakan masuk lagi.',
+      activeTitle:'Proteksi siap', activeText:'Recovery code sudah dikonfirmasi. Akun siap memakai langkah keamanan tambahan.', notActiveTitle:'Proteksi belum aktif', notActiveText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',
+      focusBlocked:'Selesaikan A2F atau gunakan akun lain.'
+    },
+    en:{
+      note:'<strong>2FA is required before the dashboard.</strong> Choose a method, verify it, then save the recovery codes. The system will not mark production 2FA as active before a real server challenge or OTP is verified.',
+      chooseStatus:'Choose the security method that feels safest. Passkey is recommended for personal devices.',
+      selectPasskey:'Create passkey now', selectAuthenticator:'Show authenticator QR', selectEmail:'Send email code',
+      selectedPasskey:'Passkey ready', selectedAuthenticator:'Authenticator ready to verify', selectedEmail:'Email OTP ready to send',
+      pillPasskey:'Phishing-resistant', pillAuthenticator:'6-digit code', pillEmail:'Email OTP',
+      beginPasskey:'Preparing passkey...', beginAuthenticator:'Preparing authenticator QR...', beginEmail:'Sending email code...',
+      verifyHelp:'Enter the 6-digit code, then press Continue.', demoCode:'UI demo mode is active: use code 123456. In production, the server endpoint must replace this simulation.',
+      resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new code is prepared. Use 123456 for the UI preview.',
+      passkeyNeedsServer:'Passkey requires HTTPS and a WebAuthn server endpoint. Choose Authenticator or Email to preview the UI flow, or connect /api/mfa/setup and /api/mfa/verify.',
+      passkeyCancel:'Passkey creation was cancelled or failed. 2FA has not been enabled.', unsupported:'This browser/device does not support that method.',
+      codeInvalid:'Code must be 6 digits. Attempts left: {n}.', codeWrong:'The code does not match. Use 123456 for UI demo or connect the server verification endpoint.', locked:'Too many attempts. Resend the code to try again.',
+      recoveryTitle:'Save recovery codes', recoveryText:'Keep these codes somewhere safe. Codes are local examples when the backend has not returned production recovery codes.',
+      copyCodes:'Copy codes', downloadCodes:'Download .txt', savedConfirm:'I have saved the recovery codes.', copied:'Recovery codes copied.', downloaded:'Recovery codes downloaded.',
+      successServer:'2FA was verified by the server with {method}. Save the recovery codes before finishing.', successDemo:'2FA {method} flow was verified in local UI mode. In production, the server must still verify the OTP/challenge and store recovery codes.',
+      finish:'Done', doneLocked:'Save recovery codes first.', switchAccount:'Use another account', switched:'Local session cleared. Please sign in again.',
+      activeTitle:'Protection ready', activeText:'Recovery codes are confirmed. The account is ready for the extra security step.', notActiveTitle:'Protection not active', notActiveText:'The dashboard stays locked until the security method is verified.',
+      focusBlocked:'Complete 2FA or use another account.'
+    }
+  };
+  function t(key, vars){
+    var d = copy[lang()] || copy.id;
+    var out = d[key] || copy.id[key] || key;
+    if(vars){ Object.keys(vars).forEach(function(k){ out = out.replace(new RegExp('\\{'+k+'\\}','g'), vars[k]); }); }
+    return out;
+  }
+  function setBusy(on){
+    state.busy = !!on;
+    var card = $('#a2fModal .a2f-card'); if(card) card.setAttribute('data-a2f-busy', on ? 'true' : 'false');
+    var start = $('#a2fStartBtn'); if(start){ start.disabled = !!on; start.setAttribute('aria-busy', on ? 'true' : 'false'); }
+    $$('#a2fModal [data-a2f-select]').forEach(function(btn){ btn.disabled = !!on; btn.setAttribute('aria-disabled', on ? 'true' : 'false'); });
+  }
+  function setStep(index){
+    index = Math.max(1, Math.min(4, parseInt(index,10) || 1));
+    state.step = index;
+    var card = $('#a2fModal .a2f-card'); if(card) card.setAttribute('data-a2f-step-index', String(index));
+    var labels = lang()==='en' ? ['Step 1 of 4','Step 2 of 4','Step 3 of 4','Step 4 of 4'] : ['Langkah 1 dari 4','Langkah 2 dari 4','Langkah 3 dari 4','Langkah 4 dari 4'];
+    var indicator = $('#a2fStepIndicator'); if(indicator) indicator.textContent = labels[index-1];
+    $$('#a2fModal .a2f-step').forEach(function(step, i){
+      var n = i + 1;
+      step.classList.toggle('is-done', n < index);
+      step.classList.toggle('is-current', n === index);
+      if(n === index) step.setAttribute('aria-current','step'); else step.removeAttribute('aria-current');
+    });
+    updateActionText();
+  }
+  function setMessage(type, msg){
+    var status = $('#a2fStatusMsg'), error = $('#a2fErrorMsg'), card = $('#a2fModal .a2f-card');
+    if(status){ status.classList.remove('show'); status.textContent = ''; }
+    if(error){ error.classList.remove('show'); error.textContent = ''; }
+    if(card) card.classList.remove('is-error');
+    if(type === 'error' && error){ error.textContent = msg; error.classList.add('show'); if(card){ card.classList.add('is-error'); setTimeout(function(){ card.classList.remove('is-error'); }, 360); } }
+    if(type === 'status' && status){ status.textContent = msg; status.classList.add('show'); }
+  }
+  function showResult(msg){
+    var result = $('#a2fResult');
+    if(result){ result.className = 'a2f-result show'; result.textContent = msg; }
+  }
+  function clearResult(){
+    var result = $('#a2fResult');
+    if(result){ result.className = 'a2f-result'; result.textContent = ''; }
+  }
+  function label(method){return method === 'authenticator' ? 'Authenticator' : method === 'email' ? 'Email' : 'Passkey'}
+  function updateActionText(){
+    var start = $('#a2fStartBtn');
+    if(start){
+      var key = state.method === 'authenticator' ? 'selectAuthenticator' : state.method === 'email' ? 'selectEmail' : 'selectPasskey';
+      var text = state.step === 2 && state.method !== 'passkey' ? (lang()==='en' ? 'Continue' : 'Lanjutkan') : t(key);
+      start.innerHTML = '<span class="a2f-loading-dot" aria-hidden="true"></span><span class="a2f-start-label">'+text+'</span>';
+      start.setAttribute('data-a2f-method', state.method);
+    }
+    var done = $('#a2fDoneBtn'); if(done) done.textContent = state.step >= 4 ? t('finish') : (lang()==='en' ? 'Save recovery codes first' : 'Simpan recovery code dulu');
+    var switchBtn = $('#a2fSwitchAccountBtn'); if(switchBtn) switchBtn.textContent = t('switchAccount');
+  }
+  function selectMethod(method){
+    method = method || 'passkey';
+    state.method = method; state.attempts = 0; state.verified = false; state.verifyMode = 'none'; state.recoveryCodes = [];
+    clearTimeout(state.timer); clearResult(); setMessage('status', t('chooseStatus'));
+    var card = $('#a2fModal .a2f-card');
+    if(card){ card.classList.remove('is-verified','is-verified-pulse'); card.setAttribute('data-selected-a2f', method); }
+    $$('#a2fModal [data-a2f-select]').forEach(function(btn){
+      var on = btn.getAttribute('data-a2f-select') === method;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      btn.tabIndex = on ? 0 : -1;
+    });
+    $$('#a2fModal [data-a2f-panel]').forEach(function(panel){ panel.classList.toggle('active', panel.getAttribute('data-a2f-panel') === method); });
+    var title = $('#a2fSelectedTitle'), pill = $('#a2fLivePill');
+    if(title) title.textContent = method === 'authenticator' ? t('selectedAuthenticator') : method === 'email' ? t('selectedEmail') : t('selectedPasskey');
+    if(pill) pill.textContent = method === 'authenticator' ? t('pillAuthenticator') : method === 'email' ? t('pillEmail') : t('pillPasskey');
+    resetOtpBoxes();
+    var done = $('#a2fDoneBtn'); if(done) done.disabled = true;
+    var confirm = $('#a2fRecoveryConfirm'); if(confirm) confirm.checked = false;
+    setStep(1);
+  }
+  function resetOtpBoxes(){
+    $$('#a2fModal .a2f-otp-cell').forEach(function(input){ input.value=''; });
+    $$('#a2fModal .a2f-verify-input').forEach(function(input){ input.value=''; });
+    $$('#a2fModal .a2f-verify-box').forEach(function(box){ box.classList.remove('is-invalid'); });
+  }
+  function syncOtpFromCells(box){
+    if(!box) return '';
+    var value = $$('.a2f-otp-cell', box).map(function(input){ return input.value.replace(/\D/g,'').slice(0,1); }).join('').slice(0,6);
+    var source = $('.a2f-verify-input', box); if(source) source.value = value;
+    return value;
+  }
+  function fillOtpCells(box, value){
+    value = String(value || '').replace(/\D/g,'').slice(0,6);
+    var cells = $$('.a2f-otp-cell', box);
+    cells.forEach(function(cell, i){ cell.value = value.charAt(i) || ''; });
+    var source = $('.a2f-verify-input', box); if(source) source.value = value;
+    var next = cells[Math.min(value.length, 5)]; if(next) next.focus({preventScroll:true});
+  }
+  function activeVerifyBox(){return $('#a2fModal .a2f-panel.active .a2f-verify-box')}
+  function startCountdown(seconds){
+    clearTimeout(state.timer); state.seconds = seconds || 60;
+    function tick(){
+      var box = activeVerifyBox();
+      var meta = box && $('.a2f-verify-meta', box); var text = meta && $('span', meta); var btn = meta && $('[data-a2f-resend]', meta);
+      if(text) text.textContent = state.seconds > 0 ? t('resendWait', {s:state.seconds}) : t('resendReady');
+      if(btn) btn.disabled = state.seconds > 0;
+      if(state.seconds > 0){ state.seconds -= 1; state.timer = setTimeout(tick, 1000); }
+    }
+    tick();
+  }
+  function randomCode(){
+    var part = function(){ return Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,6).padEnd(4,'X'); };
+    return 'DRC-' + part() + '-' + part();
+  }
+  function renderRecovery(codes){
+    state.recoveryCodes = codes && codes.length ? codes.slice(0,8) : [randomCode(),randomCode(),randomCode(),randomCode(),randomCode(),randomCode()];
+    var list = $('#a2fRecoveryCodes');
+    if(list){ list.innerHTML = state.recoveryCodes.map(function(code){return '<code>'+code+'</code>';}).join(''); }
+    var confirm = $('#a2fRecoveryConfirm'); if(confirm) confirm.checked = false;
+    var done = $('#a2fDoneBtn'); if(done) done.disabled = true;
+  }
+  function finishVerification(mode, codes){
+    state.verified = true; state.verifyMode = mode || 'demo';
+    clearTimeout(state.timer); renderRecovery(codes);
+    var card = $('#a2fModal .a2f-card');
+    if(card){
+      card.classList.add('is-verified','is-verified-pulse');
+      card.setAttribute('data-selected-a2f', state.method);
+      setTimeout(function(){ card.classList.remove('is-verified-pulse'); }, 760);
+    }
+    try{
+      var raw = localStorage.getItem('dirac_auth_session_v1');
+      var session = raw ? JSON.parse(raw) : {};
+      session.twoFactorRequired = true;
+      session.twoFactorStatus = mode === 'server' ? 'server_verified' : 'ui_demo_verified_pending_server';
+      session.twoFactorMethod = state.method;
+      session.twoFactorActivatedAt = new Date().toISOString();
+      session.twoFactorVerificationMode = mode;
+      localStorage.setItem('dirac_auth_session_v1', JSON.stringify(session));
+      localStorage.setItem('dirac_auth_a2f_v1', JSON.stringify({method:state.method,label:label(state.method),active:mode === 'server',uiVerified:mode !== 'server',time:session.twoFactorActivatedAt}));
+    }catch(e){}
+    var rTitle = $('#a2fModal .a2f-risk-card strong'), rText = $('#a2fModal .a2f-risk-card p');
+    if(rTitle) rTitle.textContent = mode === 'server' ? t('activeTitle') : (lang()==='en' ? 'UI flow verified' : 'Flow UI terverifikasi');
+    if(rText) rText.textContent = mode === 'server' ? t('activeText') : (lang()==='en' ? 'Server verification is still required before production release.' : 'Verifikasi server tetap wajib sebelum rilis produksi.');
+    showResult((mode === 'server' ? t('successServer',{method:label(state.method)}) : t('successDemo',{method:label(state.method)})));
+    setMessage('status', t('recoveryText'));
+    setStep(3);
+  }
+  async function callEndpoint(kind, payload){
+    var modal = $('#a2fModal'); if(!modal || !window.fetch) throw new Error('endpoint unavailable');
+    var url = modal.getAttribute(kind === 'setup' ? 'data-mfa-setup-endpoint' : kind === 'verify' ? 'data-mfa-verify-endpoint' : 'data-mfa-status-endpoint');
+    if(!url) throw new Error('endpoint missing');
+    var res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:'same-origin', cache:'no-store'});
+    var data = await res.clone().json().catch(function(){return null;});
+    if(!res.ok || !data || data.ok === false) throw new Error('endpoint rejected');
+    return data;
+  }
+  async function beginVerifyStep(resend){
+    state.attempts = 0; resetOtpBoxes(); clearResult(); setStep(2);
+    var msg = state.method === 'authenticator' ? t('beginAuthenticator') : t('beginEmail');
+    setMessage('status', resend ? t('resendDone') : msg);
+    setBusy(true);
+    try{
+      var setup = await callEndpoint('setup', {method:state.method, action:resend ? 'resend' : 'setup'});
+      state.verifyMode = 'server';
+      if(setup && Array.isArray(setup.recoveryCodes)) state.recoveryCodes = setup.recoveryCodes;
+      setMessage('status', t('verifyHelp'));
+    }catch(e){
+      state.verifyMode = 'demo';
+      setMessage('status', t('demoCode'));
+    }finally{
+      setBusy(false);
+      updateActionText();
+      startCountdown(60);
+      setTimeout(function(){ var box = activeVerifyBox(); var first = box && $('.a2f-otp-cell', box); if(first) first.focus({preventScroll:true}); }, 60);
+    }
+  }
+  async function verifyCode(){
+    var box = activeVerifyBox(); var code = syncOtpFromCells(box);
+    if(!/^\d{6}$/.test(code)){
+      state.attempts += 1; if(box) box.classList.add('is-invalid');
+      var left = Math.max(0, 5 - state.attempts);
+      setMessage('error', left ? t('codeInvalid',{n:left}) : t('locked'));
+      return;
+    }
+    if(state.attempts >= 5){ setMessage('error', t('locked')); return; }
+    if(box) box.classList.remove('is-invalid');
+    setBusy(true); setMessage('status', lang()==='en' ? 'Verifying code...' : 'Memverifikasi kode...');
+    try{
+      var data = await callEndpoint('verify', {method:state.method, code:code});
+      if(data && (data.verified || data.ok)){
+        finishVerification('server', data.recoveryCodes || state.recoveryCodes);
+        return;
+      }
+      throw new Error('not verified');
+    }catch(e){
+      if(code === '123456') finishVerification('demo', state.recoveryCodes);
+      else{
+        state.attempts += 1;
+        var remaining = Math.max(0, 5 - state.attempts);
+        if(box) box.classList.add('is-invalid');
+        setMessage('error', remaining ? t('codeWrong') : t('locked'));
+      }
+    }finally{ setBusy(false); updateActionText(); }
+  }
+  async function startPasskey(){
+    clearResult(); setStep(2); setBusy(true); setMessage('status', t('beginPasskey'));
+    try{
+      var setup = await callEndpoint('setup', {method:'passkey', action:'setup'});
+      if(!setup || !setup.publicKey || !navigator.credentials || !window.PublicKeyCredential) throw new Error('server publicKey missing');
+      var credential = await navigator.credentials.create({publicKey:setup.publicKey});
+      var verify = await callEndpoint('verify', {method:'passkey', credentialId:credential && credential.id, rawId:credential && credential.rawId ? true : false});
+      if(verify && (verify.verified || verify.ok)){ finishVerification('server', verify.recoveryCodes || setup.recoveryCodes); return; }
+      throw new Error('server rejected');
+    }catch(e){
+      var support = !!(window.PublicKeyCredential && navigator.credentials);
+      setMessage('error', support ? t('passkeyNeedsServer') : t('unsupported'));
+      setStep(1);
+    }finally{ setBusy(false); updateActionText(); }
+  }
+  function startFlow(){
+    if(state.busy) return;
+    if(state.method === 'passkey') startPasskey();
+    else if(state.step === 2) verifyCode();
+    else beginVerifyStep(false);
+  }
+  function confirmRecovery(){
+    var confirm = $('#a2fRecoveryConfirm'); var done = $('#a2fDoneBtn');
+    if(done) done.disabled = !(confirm && confirm.checked && state.verified);
+    if(confirm && confirm.checked && state.verified){
+      setStep(4);
+      var rTitle = $('#a2fModal .a2f-risk-card strong'), rText = $('#a2fModal .a2f-risk-card p');
+      if(rTitle) rTitle.textContent = t('activeTitle');
+      if(rText) rText.textContent = t('activeText');
+    }else if(state.verified){ setStep(3); }
+  }
+  function copyRecovery(){
+    var text = state.recoveryCodes.join('\n'); if(!text) return;
+    var done = function(){ setMessage('status', t('copied')); };
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(done); else { window.prompt(t('copyCodes'), text); done(); }
+  }
+  function downloadRecovery(){
+    var text = state.recoveryCodes.join('\n'); if(!text) return;
+    var blob = new Blob([text+'\n'], {type:'text/plain;charset=utf-8'});
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dirac-recovery-codes.txt'; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    setMessage('status', t('downloaded'));
+  }
+  function switchAccount(){
+    try{ localStorage.removeItem('dirac_auth_session_v1'); localStorage.removeItem('dirac_auth_a2f_v1'); }catch(e){}
+    var modal = $('#a2fModal'); if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+    document.body.classList.remove('modal-open','menu-open','ai-open');
+    var input = $('#identifier'); if(input) input.focus({preventScroll:true});
+    var toast = $('#toast'); if(toast){ toast.textContent = t('switched'); toast.classList.add('show'); setTimeout(function(){ toast.classList.remove('show'); }, 2600); }
+  }
+  function closeDone(){
+    if(state.step < 4 || !state.verified){ setMessage('error', t('doneLocked')); return; }
+    var modal = $('#a2fModal'); if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+    document.body.classList.remove('modal-open','menu-open','ai-open');
+  }
+  function trapFocus(e){
+    var modal = $('#a2fModal'); if(!modal || !modal.classList.contains('open')) return;
+    if(e.key === 'Escape'){
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); setMessage('status', t('focusBlocked')); return;
+    }
+    if(e.key !== 'Tab') return;
+    var focusables = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])', modal).filter(function(el){ return el.offsetParent !== null || el === document.activeElement; });
+    if(!focusables.length) return;
+    var first = focusables[0], last = focusables[focusables.length - 1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+  function refreshLanguage(){
+    var note = $('#a2fModal .a2f-note'); if(note){ note.innerHTML = t('note'); note.setAttribute('data-no-i18n',''); }
+    var recovery = $('#a2fRecoveryBox'); if(recovery){
+      var h = $('h3', recovery), p = $('p', recovery), c = $('#a2fRecoveryConfirmLabel');
+      if(h) h.textContent = t('recoveryTitle'); if(p) p.textContent = t('recoveryText'); if(c) c.textContent = t('savedConfirm');
+    }
+    $$('#a2fModal [data-a2f-resend]').forEach(function(btn){ btn.textContent = t('resendReady'); });
+    var copyBtn = $('#a2fCopyRecoveryBtn'); if(copyBtn) copyBtn.textContent = t('copyCodes');
+    var dlBtn = $('#a2fDownloadRecoveryBtn'); if(dlBtn) dlBtn.textContent = t('downloadCodes');
+    selectMethod(state.method || 'passkey');
+  }
+  function enhance(){
+    var modal = $('#a2fModal'), card = $('#a2fModal .a2f-card'); if(!modal || !card || modal.getAttribute('data-a2f-p13-ready') === 'true') return;
+    modal.setAttribute('data-a2f-p13-ready','true');
+    var note = $('.a2f-note', modal); if(note){ note.innerHTML = t('note'); note.setAttribute('data-no-i18n',''); }
+    var methods = $('.a2f-methods', modal); if(methods){ methods.setAttribute('role','radiogroup'); methods.setAttribute('aria-label', lang()==='en' ? '2FA method options' : 'Pilihan metode 2FA'); }
+    $$('.a2f-method', modal).forEach(function(btn){ btn.setAttribute('role','radio'); btn.setAttribute('aria-checked', btn.classList.contains('active') ? 'true' : 'false'); btn.tabIndex = btn.classList.contains('active') ? 0 : -1; });
+    var pass = $('[data-a2f-select="passkey"] .a2f-method-top', modal);
+    if(pass && !$('.a2f-recommend-ribbon', pass)) pass.insertAdjacentHTML('beforeend','<span class="a2f-recommend-ribbon">Best</span>');
+    $$('.a2f-verify-box', modal).forEach(function(box){
+      var source = $('.a2f-verify-input', box); if(source) source.classList.add('a2f-hidden-source');
+      if(!$('.a2f-otp-grid', box)){
+        var grid = document.createElement('div'); grid.className = 'a2f-otp-grid'; grid.setAttribute('role','group'); grid.setAttribute('aria-label', lang()==='en' ? 'Six digit verification code' : 'Kode verifikasi enam digit');
+        for(var i=0;i<6;i++){ var input = document.createElement('input'); input.className='a2f-otp-cell'; input.type='text'; input.inputMode='numeric'; input.autocomplete = i===0 ? 'one-time-code' : 'off'; input.maxLength=1; input.setAttribute('aria-label', (lang()==='en' ? 'Digit ' : 'Digit ') + (i+1)); grid.appendChild(input); }
+        var labelEl = $('.a2f-verify-label', box); if(labelEl) labelEl.appendChild(grid); else box.insertBefore(grid, box.firstChild);
+      }
+    });
+    var preview = $('#a2fPreview', modal);
+    if(preview && !$('#a2fErrorMsg', modal)) preview.insertAdjacentHTML('afterend','<div class="a2f-error-msg" id="a2fErrorMsg" role="alert"></div><div class="a2f-status-msg" id="a2fStatusMsg" role="status" aria-live="polite"></div>');
+    if(preview && !$('#a2fRecoveryBox', modal)){
+      preview.insertAdjacentHTML('afterend','<section class="a2f-recovery-box" id="a2fRecoveryBox" aria-live="polite"><h3>'+t('recoveryTitle')+'</h3><p>'+t('recoveryText')+'</p><div class="a2f-recovery-list" id="a2fRecoveryCodes"></div><div class="a2f-recovery-toolbar"><button class="a2f-small-btn" type="button" id="a2fCopyRecoveryBtn">'+t('copyCodes')+'</button><button class="a2f-small-btn" type="button" id="a2fDownloadRecoveryBtn">'+t('downloadCodes')+'</button></div><label class="a2f-recovery-consent"><input type="checkbox" id="a2fRecoveryConfirm"><span id="a2fRecoveryConfirmLabel">'+t('savedConfirm')+'</span></label></section>');
+    }
+    var actions = $('.a2f-actions', modal);
+    if(actions && !$('#a2fSwitchAccountBtn', modal)) actions.insertAdjacentHTML('afterbegin','<button class="btn-secondary a2f-switch-account" type="button" id="a2fSwitchAccountBtn">'+t('switchAccount')+'</button>');
+    selectMethod('passkey');
+  }
+  function bind(){
+    var modal = $('#a2fModal'); if(!modal || modal.getAttribute('data-a2f-p13-bound') === 'true') return;
+    modal.setAttribute('data-a2f-p13-bound','true');
+    modal.addEventListener('click', function(e){
+      var select = e.target.closest('[data-a2f-select]');
+      if(select){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); if(!state.busy) selectMethod(select.getAttribute('data-a2f-select')); return; }
+      if(e.target.closest('#a2fStartBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); startFlow(); return; }
+      if(e.target.closest('[data-a2f-resend]')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); if(!state.busy) beginVerifyStep(true); return; }
+      if(e.target.closest('#a2fCopyRecoveryBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); copyRecovery(); return; }
+      if(e.target.closest('#a2fDownloadRecoveryBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); downloadRecovery(); return; }
+      if(e.target.closest('#a2fSwitchAccountBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); switchAccount(); return; }
+      if(e.target.closest('#a2fDoneBtn')){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); closeDone(); return; }
+    }, true);
+    modal.addEventListener('input', function(e){
+      if(e.target.classList && e.target.classList.contains('a2f-otp-cell')){
+        var box = e.target.closest('.a2f-verify-box');
+        var v = e.target.value.replace(/\D/g,'').slice(0,1); e.target.value = v;
+        if(v){ var cells = $$('.a2f-otp-cell', box); var i = cells.indexOf(e.target); if(cells[i+1]) cells[i+1].focus({preventScroll:true}); }
+        syncOtpFromCells(box);
+      }
+    }, true);
+    modal.addEventListener('keydown', function(e){
+      if(e.target.classList && e.target.classList.contains('a2f-otp-cell') && e.key === 'Backspace' && !e.target.value){ var cells = $$('.a2f-otp-cell', e.target.closest('.a2f-verify-box')); var i = cells.indexOf(e.target); if(cells[i-1]) cells[i-1].focus({preventScroll:true}); }
+    }, true);
+    modal.addEventListener('paste', function(e){
+      if(e.target.classList && e.target.classList.contains('a2f-otp-cell')){ e.preventDefault(); var text = (e.clipboardData || window.clipboardData).getData('text'); fillOtpCells(e.target.closest('.a2f-verify-box'), text); }
+    }, true);
+    modal.addEventListener('change', function(e){ if(e.target && e.target.id === 'a2fRecoveryConfirm') confirmRecovery(); }, true);
+    document.addEventListener('keydown', trapFocus, true);
+    if(window.MutationObserver){
+      new MutationObserver(function(){
+        if(modal.classList.contains('open')){
+          state.lastFocus = document.activeElement;
+          setTimeout(function(){ var focus = $('#a2fModal [data-a2f-select].active') || $('#a2fStartBtn') || $('#a2fModal .a2f-card'); if(focus) focus.focus({preventScroll:true}); }, 40);
+        }
+      }).observe(modal,{attributes:true,attributeFilter:['class']});
+      new MutationObserver(function(){ refreshLanguage(); }).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+    }
+  }
+  ready(function(){ enhance(); bind(); });
 })();
 </script>
 
