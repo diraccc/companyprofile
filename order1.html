@@ -3954,6 +3954,124 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 }
 </style>
 
+
+
+<style id="dirac-auth-entry-css">
+/* =========================================================
+   Dirac Account/Login Entry v1
+   Tambahan aman: satu link Masuk/Daftar di header tanpa mengubah JS,
+   cart, theme customizer, filter produk, modal, atau checkout.
+   ========================================================= */
+.header-account{
+  min-height:58px;
+  padding:0 16px!important;
+  border-radius:999px!important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.22)!important;
+  background:rgba(255,255,255,.055)!important;
+  color:#fff!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18)!important;
+  font-weight:900;
+  line-height:1;
+  white-space:nowrap;
+  position:relative!important;
+  z-index:21!important;
+  overflow:hidden;
+  isolation:isolate;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  -webkit-user-select:none;
+  transition:transform .22s var(--motion-ease,cubic-bezier(.22,1,.36,1)),background .22s var(--motion-ease,cubic-bezier(.22,1,.36,1)),border-color .22s var(--motion-ease,cubic-bezier(.22,1,.36,1)),box-shadow .22s var(--motion-ease,cubic-bezier(.22,1,.36,1));
+}
+.header-account:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.20),transparent 78%);
+  transform:translateX(-130%);
+  transition:transform .75s var(--motion-ease-soft,cubic-bezier(.16,1,.3,1));
+}
+.header-account:hover{
+  transform:translateY(-2px);
+  background:rgba(var(--theme-rgb,243,205,112),.12)!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.48)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 30px rgba(0,0,0,.22),0 0 20px rgba(var(--theme-rgb,243,205,112),.10)!important;
+}
+.header-account:hover:after{transform:translateX(130%)}
+.header-account:focus-visible{
+  outline:3px solid rgba(var(--theme-rgb,243,205,112),.40);
+  outline-offset:3px;
+}
+.header-account > *{pointer-events:none!important}
+.site-header .header-account{pointer-events:auto!important}
+.site-header .header-account:before,
+.site-header .header-account:after{pointer-events:none!important}
+.site-header.is-scrolled .header-account{
+  min-height:56px;
+  box-shadow:0 14px 30px rgba(var(--theme-rgb,243,205,112),.16)!important;
+}
+html[data-effective-theme="light"] .header-account{
+  color:#171923!important;
+  background:rgba(255,255,255,.86)!important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.22)!important;
+}
+html[data-effective-theme="light"] .header-account:hover{
+  background:rgba(var(--theme-rgb,243,205,112),.14)!important;
+}
+@media(max-width:760px){
+  .header-account{
+    width:48px!important;
+    height:48px!important;
+    min-width:48px!important;
+    min-height:48px!important;
+    padding:0!important;
+  }
+  .header-account .label{display:none!important}
+}
+@media(max-width:430px){
+  .site-header .nav{gap:8px!important}
+  .brand-name{max-width:7.8rem!important}
+  .site-header .header-actions{gap:6px!important}
+  .theme-toggle,
+  .header-account{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+  }
+  .header-cart{
+    min-height:42px!important;
+    min-width:66px!important;
+    padding:0 10px!important;
+    gap:6px!important;
+  }
+  .header-cart .count-badge{
+    min-width:22px!important;
+    height:22px!important;
+    padding:0 6px!important;
+    font-size:.74rem!important;
+  }
+}
+@media(max-width:360px){
+  .brand-name{max-width:6.4rem!important}
+  .brand-mark{width:42px!important;height:42px!important;border-radius:15px!important}
+  .theme-toggle,
+  .header-account{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}
+  .header-cart{min-height:40px!important;min-width:62px!important;padding:0 9px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .header-account,
+  .header-account:after{transition:none!important;animation:none!important}
+  .header-account:hover{transform:none!important}
+}
+</style>
+
 </head>
 <body>
 
@@ -4027,6 +4145,9 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">
           <span aria-hidden="true">🎨</span><span class="label">Tema</span>
         </button>
+        <a class="header-account" href="https://diracgroup.store/masuk.html" aria-label="Masuk atau daftar akun Dirac Group">
+          <span aria-hidden="true">👤</span><span class="label">Masuk/Daftar</span>
+        </a>
         <button class="header-cart" type="button" data-open-cart>
           <span>🛍️</span><span class="label">Keranjang</span><span class="count-badge" data-cart-count>0</span>
         </button>
