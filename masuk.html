@@ -1806,6 +1806,80 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   #a2fModal .a2f-setup-copy-btn{width:100%!important;justify-content:center!important}
 }
 </style>
+
+
+<style id="dirac-a2f-finish-button-and-launch-animation-css">
+/* Final revision: keep Selesai button reachable on mobile and add dashboard launch animation before closing A2F. */
+#a2fModal .a2f-main{
+  scroll-padding-bottom:calc(132px + env(safe-area-inset-bottom,0px))!important;
+}
+#a2fModal .a2f-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:40!important;
+  margin-top:18px!important;
+  padding:12px 0 calc(14px + env(safe-area-inset-bottom,0px))!important;
+  border-top:1px solid rgba(226,232,240,.72)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.82),#fff 34%,#fff 100%)!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
+}
+#a2fModal .a2f-actions .btn-primary,
+#a2fModal .a2f-actions .btn-secondary{
+  min-height:58px!important;
+  touch-action:manipulation!important;
+}
+#a2fModal .a2f-done-btn{
+  position:relative!important;
+  z-index:42!important;
+  margin-bottom:0!important;
+}
+@media(max-width:920px){
+  #a2fModal .a2f-main{
+    padding-bottom:24px!important;
+    max-height:calc(100svh - 96px)!important;
+  }
+}
+@media(max-width:620px){
+  #a2fModal{
+    padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+  }
+  #a2fModal .a2f-card{
+    max-height:calc(100svh - 20px)!important;
+  }
+  #a2fModal .a2f-main{
+    max-height:calc(100svh - 102px)!important;
+    padding-bottom:18px!important;
+  }
+  #a2fModal .a2f-actions{
+    bottom:0!important;
+    padding:12px 0 calc(18px + env(safe-area-inset-bottom,0px))!important;
+    box-shadow:0 -18px 34px rgba(255,255,255,.92)!important;
+  }
+}
+@supports(height:100dvh){
+  @media(max-width:620px){
+    #a2fModal .a2f-card{max-height:calc(100dvh - 20px)!important}
+    #a2fModal .a2f-main{max-height:calc(100dvh - 102px)!important}
+  }
+}
+.a2f-launch-overlay{
+  position:fixed;inset:0;z-index:13000;display:none;place-items:center;padding:18px;
+  background:radial-gradient(circle at 18% 12%,rgba(37,99,235,.20),transparent 24rem),radial-gradient(circle at 80% 86%,rgba(16,185,129,.20),transparent 22rem),rgba(7,10,18,.84);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+}
+.a2f-launch-overlay.show{display:grid;animation:diracLaunchFade .24s ease-out both}
+.a2f-launch-card{
+  width:min(470px,100%);border-radius:30px;border:1px solid rgba(255,255,255,.18);
+  background:#f8fafc;color:#0f172a;box-shadow:0 34px 90px rgba(0,0,0,.38);
+  overflow:hidden;transform-origin:center;animation:diracLaunchCard .46s cubic-bezier(.16,1,.3,1) both;
+}
+.a2f-launch-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px 12px;border-bottom:1px solid #e2e8f0;background:#fff}
+.a2f-launch-title{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.03em}.a2f-launch-title span{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:#eef6ff;color:#2563eb;border:1px solid #bfdbfe}.a2f-launch-pill{border:1px solid #fde68a;background:#fef3c7;color:#92400e;border-radius:999px;padding:6px 10px;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;animation:diracLaunchPulse 1s ease-in-out infinite}.a2f-launch-body{padding:14px;display:grid;gap:12px}.a2f-launch-steps{display:grid;grid-template-columns:1fr;gap:8px}.a2f-launch-step{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;border:2px solid #111827;background:#fff;padding:10px;border-radius:12px;box-shadow:3px 3px 0 #111827;opacity:.58;transform:translateY(4px);transition:.35s cubic-bezier(.16,1,.3,1)}.a2f-launch-step b{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:#facc15;color:#111827;border:2px solid #111827;font-size:.86rem}.a2f-launch-step span{font-weight:900;font-size:.86rem;line-height:1.22}.a2f-launch-step small{display:block;margin-top:2px;color:#475569;font-weight:700}.a2f-launch-step.active{opacity:1;transform:none;background:#fefce8}.a2f-launch-step.done{opacity:1;transform:none;background:#ecfdf5}.a2f-launch-step.done b{background:#22c55e;color:#052e16}.a2f-engine{border:2px solid #111827;background:#fff;border-radius:12px;overflow:hidden;box-shadow:4px 4px 0 #111827}.a2f-engine-head{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:2px solid #111827;font-size:.76rem;font-weight:950}.a2f-engine-head span:first-child:before{content:'>_ ';color:#2563eb}.a2f-engine-head span:last-child{background:#facc15;border:2px solid #111827;border-radius:7px;padding:3px 7px;animation:diracLaunchPulse .9s ease-in-out infinite}.a2f-terminal{min-height:118px;background:#020617;color:#bfdbfe;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.72rem;line-height:1.55;padding:14px;position:relative;overflow:hidden}.a2f-terminal:after{content:'';position:absolute;left:0;right:0;top:0;height:100%;background:repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.035) 10px 11px);pointer-events:none}.a2f-terminal-line{opacity:0;transform:translateY(6px);transition:.26s ease}.a2f-terminal-line.show{opacity:1;transform:none}.a2f-terminal-line.ok{color:#86efac}.a2f-terminal-line.warn{color:#fef08a}.a2f-map{border:2px solid #111827;border-radius:12px;overflow:hidden;background:#ccfbf1;box-shadow:4px 4px 0 #111827}.a2f-map-head{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;font-size:.62rem;font-weight:950;border-bottom:2px solid #111827}.a2f-map-head span:first-child{background:#34d399;border:2px solid #111827;border-radius:5px;padding:3px 6px}.a2f-map-visual{height:116px;position:relative;background:radial-gradient(circle at 18% 24%,#fff 0 10px,transparent 11px),radial-gradient(circle at 64% 38%,#fff 0 16px,transparent 17px),radial-gradient(circle at 44% 72%,#fff 0 14px,transparent 15px),linear-gradient(135deg,#cffafe,#a7f3d0)}.a2f-map-node{position:absolute;width:10px;height:10px;border-radius:999px;background:#16a34a;border:2px solid #052e16;box-shadow:0 0 0 0 rgba(22,163,74,.45);animation:diracMapPing 1.1s ease-in-out infinite}.a2f-map-node.n1{left:20%;top:34%}.a2f-map-node.n2{left:55%;top:48%;animation-delay:.15s}.a2f-map-node.n3{left:78%;top:24%;animation-delay:.3s}.a2f-map-route{position:absolute;left:22%;top:38%;width:54%;height:2px;background:repeating-linear-gradient(90deg,#0f172a 0 8px,transparent 8px 14px);transform:rotate(7deg);transform-origin:left center}.a2f-launch-progress{height:9px;border-radius:999px;background:#e2e8f0;overflow:hidden;border:1px solid #cbd5e1}.a2f-launch-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e);border-radius:999px;transition:width .46s cubic-bezier(.16,1,.3,1)}.a2f-launch-status{text-align:center;font-weight:900;color:#0f766e;font-size:.92rem;min-height:1.25em}@keyframes diracLaunchFade{from{opacity:0}to{opacity:1}}@keyframes diracLaunchCard{from{opacity:.3;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}@keyframes diracLaunchPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.08)}}@keyframes diracMapPing{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}50%{box-shadow:0 0 0 10px rgba(22,163,74,0)}}
+@media(max-width:420px){.a2f-launch-card{border-radius:24px}.a2f-launch-body{padding:12px}.a2f-terminal{font-size:.66rem;min-height:104px}.a2f-map-visual{height:96px}.a2f-launch-step span{font-size:.8rem}}
+@media(prefers-reduced-motion:reduce){.a2f-launch-overlay.show,.a2f-launch-card,.a2f-launch-pill,.a2f-engine-head span:last-child,.a2f-map-node{animation:none!important}.a2f-terminal-line{opacity:1!important;transform:none!important}}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -2145,6 +2219,39 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       </form>
     </section>
   </div>
+
+
+
+  <div class="a2f-launch-overlay" id="a2fLaunchOverlay" aria-hidden="true">
+    <section class="a2f-launch-card" role="status" aria-live="polite" aria-label="Menyiapkan dashboard Dirac">
+      <div class="a2f-launch-head">
+        <div class="a2f-launch-title"><span aria-hidden="true">CD</span><strong>Dirac Secure</strong></div>
+        <div class="a2f-launch-pill" id="a2fLaunchPill">MEMPROSES</div>
+      </div>
+      <div class="a2f-launch-body">
+        <div class="a2f-launch-steps" aria-hidden="true">
+          <div class="a2f-launch-step" data-launch-step="1"><b>1</b><span>Validasi A2F<small>Memeriksa session pelanggan</small></span></div>
+          <div class="a2f-launch-step" data-launch-step="2"><b>2</b><span>Sinkronisasi akun<small>Membuka akses dashboard</small></span></div>
+        </div>
+        <div class="a2f-engine" aria-hidden="true">
+          <div class="a2f-engine-head"><span>ENGINE TERMINAL</span><span>MEMPROSES</span></div>
+          <div class="a2f-terminal" id="a2fLaunchTerminal">
+            <div class="a2f-terminal-line">[18:48:10] Membaca token keamanan...</div>
+            <div class="a2f-terminal-line">[18:48:11] Session JSON tervalidasi.</div>
+            <div class="a2f-terminal-line warn">[18:48:12] Menghubungkan dashboard gateway...</div>
+            <div class="a2f-terminal-line ok">[18:48:13] Uplink established. Dashboard siap.</div>
+          </div>
+        </div>
+        <div class="a2f-map" aria-hidden="true">
+          <div class="a2f-map-head"><span>UPLINK ESTABLISHED</span><span>LAT: -6.2 / LNG: 106.8</span></div>
+          <div class="a2f-map-visual"><i class="a2f-map-route"></i><i class="a2f-map-node n1"></i><i class="a2f-map-node n2"></i><i class="a2f-map-node n3"></i></div>
+        </div>
+        <div class="a2f-launch-progress" aria-hidden="true"><span id="a2fLaunchProgress"></span></div>
+        <div class="a2f-launch-status" id="a2fLaunchStatus">Menyiapkan dashboard...</div>
+      </div>
+    </section>
+  </div>
+
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -3341,10 +3448,50 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     var input = $('#identifier'); if(input) input.focus({preventScroll:true});
     var toast = $('#toast'); if(toast){ toast.textContent = t('switched'); toast.classList.add('show'); setTimeout(function(){ toast.classList.remove('show'); }, 2600); }
   }
+  function playDashboardLaunchAnimation(){
+    return new Promise(function(resolve){
+      var overlay = $('#a2fLaunchOverlay');
+      if(!overlay || reducedMotion()){ resolve(); return; }
+      var progress = $('#a2fLaunchProgress');
+      var status = $('#a2fLaunchStatus');
+      var pill = $('#a2fLaunchPill');
+      var lines = $$('.a2f-terminal-line', overlay);
+      var steps = $$('.a2f-launch-step', overlay);
+      lines.forEach(function(line){ line.classList.remove('show'); });
+      steps.forEach(function(step){ step.classList.remove('active','done'); });
+      if(progress) progress.style.width = '0%';
+      if(status) status.textContent = lang()==='en' ? 'Preparing dashboard...' : 'Menyiapkan dashboard...';
+      if(pill) pill.textContent = 'MEMPROSES';
+      overlay.setAttribute('aria-hidden','false');
+      overlay.classList.add('show');
+      document.body.classList.add('a2f-launching');
+      var timeline = [
+        function(){ if(steps[0]) steps[0].classList.add('active'); if(lines[0]) lines[0].classList.add('show'); if(progress) progress.style.width='18%'; },
+        function(){ if(lines[1]) lines[1].classList.add('show'); if(progress) progress.style.width='38%'; },
+        function(){ if(steps[0]) steps[0].classList.add('done'); if(steps[1]) steps[1].classList.add('active'); if(lines[2]) lines[2].classList.add('show'); if(progress) progress.style.width='66%'; },
+        function(){ if(lines[3]) lines[3].classList.add('show'); if(progress) progress.style.width='88%'; if(status) status.textContent = lang()==='en' ? 'Finalizing secure session...' : 'Menyelesaikan session aman...'; },
+        function(){ if(steps[1]) steps[1].classList.add('done'); if(progress) progress.style.width='100%'; if(pill) pill.textContent='SELESAI'; if(status) status.textContent = lang()==='en' ? 'Dashboard is ready.' : 'Dashboard siap dibuka.'; }
+      ];
+      timeline.forEach(function(fn,i){ setTimeout(fn, 180 + i * 420); });
+      setTimeout(function(){
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden','true');
+        document.body.classList.remove('a2f-launching');
+        resolve();
+      }, 2850);
+    });
+  }
   function closeDone(){
     if(state.step < 4 || !state.verified){ setMessage('error', t('doneLocked')); return; }
-    var modal = $('#a2fModal'); if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
-    document.body.classList.remove('modal-open','menu-open','ai-open');
+    if(state.finishing) return;
+    state.finishing = true;
+    var done = $('#a2fDoneBtn'); if(done){ done.disabled = true; done.textContent = lang()==='en' ? 'Opening dashboard...' : 'Membuka dashboard...'; }
+    playDashboardLaunchAnimation().then(function(){
+      var modal = $('#a2fModal'); if(modal){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+      document.body.classList.remove('modal-open','menu-open','ai-open');
+      state.finishing = false;
+      if(done){ done.disabled = false; done.textContent = t('finish'); }
+    });
   }
   function trapFocus(e){
     var modal = $('#a2fModal'); if(!modal || !modal.classList.contains('open')) return;
