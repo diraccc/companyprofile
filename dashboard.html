@@ -4392,7 +4392,7 @@ namabrand"></textarea>
 
     function friendlyError(error) {
       const raw = String(error?.message || error || "");
-      if (/failed to fetch|network/i.test(raw)) return "Koneksi bermasalah. Periksa internet lalu coba lagi.";
+      if (/failed to fetch|load failed|network|cors/i.test(raw)) return "Server login belum bisa dijangkau. Periksa koneksi, pastikan API aktif, lalu coba lagi.";
       if (/abort|terlalu lama/i.test(raw)) return "Koneksi terlalu lama. Silakan coba lagi.";
       if (/unauthorized|jwt|session|login/i.test(raw)) return "Sesi login berakhir. Silakan masuk kembali.";
       return raw || "Terjadi kesalahan. Silakan coba lagi.";
@@ -4472,53 +4472,83 @@ namabrand"></textarea>
     }
 
     async function api(path, options = {}) {
-      const API_BASE = "https://companyprofilee-expk.vercel.app/api/health";
+      const API_BASES = [
+        document.querySelector('meta[name="dirac-api-base"]')?.content,
+        "https://companyprofilee-expk.vercel.app/api/health",
+        "https://companyprofilee-ochre.vercel.app/api/health",
+        "https://diracgroup.store/api/health",
+        "/api/health"
+      ].filter(Boolean).filter((value, index, arr) => arr.indexOf(value) === index);
+
       const accessToken = localStorage.getItem("dirac_domain_access_token") || "";
       const refreshToken = localStorage.getItem("dirac_domain_refresh_token") || "";
-      const url = path.startsWith("http") ? path : API_BASE + path;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 22000);
+      const targets = path.startsWith("http") ? [path] : API_BASES.map((base) => base + path);
+      let lastError = null;
 
-      const headers = {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
+      const isRetryableError = (error) => {
+        const raw = String(error?.message || error || "");
+        return /failed to fetch|load failed|network|cors|server login belum bisa dijangkau|koneksi terlalu lama|timeout|request gagal|not found|404|405|500|502|503|504/i.test(raw) || error?.name === "AbortError" || error?.retryable === true;
       };
 
-      if (accessToken) headers.Authorization = "Bearer " + accessToken;
-      if (refreshToken) headers["X-Domain-Refresh"] = refreshToken;
+      for (let i = 0; i < targets.length; i++) {
+        const url = targets[i];
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), options.timeout || 22000);
+        const headers = {
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        };
 
-      try {
-        const response = await fetch(url, {
-          credentials: "omit",
-          headers,
-          ...options,
-          signal: options.signal || controller.signal
-        });
+        if (accessToken) headers.Authorization = "Bearer " + accessToken;
+        if (refreshToken) headers["X-Domain-Refresh"] = refreshToken;
 
-        const newAccessToken = response.headers.get("X-Domain-Access-Token");
-        const newRefreshToken = response.headers.get("X-Domain-Refresh-Token");
+        try {
+          const response = await fetch(url, {
+            credentials: "omit",
+            ...options,
+            headers,
+            signal: options.signal || controller.signal
+          });
 
-        if (newAccessToken) localStorage.setItem("dirac_domain_access_token", newAccessToken);
-        if (newRefreshToken) localStorage.setItem("dirac_domain_refresh_token", newRefreshToken);
+          const newAccessToken = response.headers.get("X-Domain-Access-Token");
+          const newRefreshToken = response.headers.get("X-Domain-Refresh-Token");
 
-        const data = await response.json().catch(() => ({}));
+          if (newAccessToken) localStorage.setItem("dirac_domain_access_token", newAccessToken);
+          if (newRefreshToken) localStorage.setItem("dirac_domain_refresh_token", newRefreshToken);
 
-        if (!response.ok || data.ok === false) {
-          throw new Error(data.message || "Request gagal.");
+          const data = await response.json().catch(async () => {
+            const text = await response.text().catch(() => "");
+            return text ? { message: text } : {};
+          });
+
+          if (!response.ok || data.ok === false) {
+            const message = data.message || data.error || `Request gagal (${response.status}).`;
+            const error = new Error(message);
+            error.status = response.status;
+            error.retryable = response.status === 404 || response.status === 405 || response.status >= 500;
+            throw error;
+          }
+
+          return data;
+        } catch (error) {
+          lastError = error;
+          if (error.name === "AbortError") {
+            lastError = new Error("Koneksi terlalu lama. Silakan coba lagi.");
+            lastError.retryable = true;
+          }
+          if (i < targets.length - 1 && isRetryableError(lastError)) {
+            continue;
+          }
+          throw lastError;
+        } finally {
+          clearTimeout(timeoutId);
         }
-
-        return data;
-      } catch (error) {
-        if (error.name === "AbortError") {
-          throw new Error("Koneksi terlalu lama. Silakan coba lagi.");
-        }
-        throw error;
-      } finally {
-        clearTimeout(timeoutId);
       }
+
+      throw lastError || new Error("Server login belum bisa dijangkau.");
     }
 
-    function saveCart() {
+        function saveCart() {
       try {
         localStorage.setItem("dirac_domain_cart", JSON.stringify(state.cart));
       } catch (_) {
