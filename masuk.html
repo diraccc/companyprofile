@@ -1160,6 +1160,302 @@ html[data-contrast]{pointer-events:auto;}
   .field{font-size:16px;}
 }
 </style>
+
+
+<style id="dirac-a2f-clean-ux-upgrade-css">
+/* =========================================================
+   Dirac A2F Clean UX Upgrade v1
+   Tujuan: A2F terasa lebih normal, polos, jelas, dan aman seperti
+   flow 2-step verification modern, tanpa mengubah fungsi login lama.
+   ========================================================= */
+:root{
+  --a2f-surface:#ffffff;
+  --a2f-surface-soft:#f8fafc;
+  --a2f-surface-muted:#f1f5f9;
+  --a2f-ink:#111827;
+  --a2f-text:#334155;
+  --a2f-muted:#64748b;
+  --a2f-line:#e2e8f0;
+  --a2f-line-strong:#cbd5e1;
+  --a2f-accent:rgb(var(--theme-rgb));
+  --a2f-focus:rgba(var(--theme-rgb),.16);
+  --a2f-success:#16a34a;
+  --a2f-danger:#dc2626;
+}
+.a2f-modal{
+  place-items:center!important;
+  padding:clamp(12px,2vw,24px)!important;
+  background:rgba(15,23,42,.46)!important;
+  backdrop-filter:blur(12px) saturate(1.05)!important;
+  -webkit-backdrop-filter:blur(12px) saturate(1.05)!important;
+}
+.a2f-card{
+  width:min(920px,100%)!important;
+  max-height:min(91dvh,820px)!important;
+  border-radius:30px!important;
+  background:var(--a2f-surface)!important;
+  color:var(--a2f-ink)!important;
+  border:1px solid rgba(226,232,240,.96)!important;
+  box-shadow:0 24px 70px rgba(15,23,42,.24)!important;
+  overflow:hidden!important;
+}
+.a2f-shell{
+  grid-template-columns:248px minmax(0,1fr)!important;
+  min-height:min(700px,91dvh)!important;
+}
+.a2f-side{
+  background:linear-gradient(180deg,#f8fafc,#ffffff)!important;
+  border-right:1px solid var(--a2f-line)!important;
+  padding:24px 18px!important;
+  color:var(--a2f-ink)!important;
+}
+.a2f-side:before{display:none!important}
+.a2f-mini-brand{color:var(--a2f-ink)!important;margin-bottom:22px!important}
+.a2f-brand-icon{
+  width:42px!important;height:42px!important;border-radius:14px!important;
+  background:#111827!important;color:#fff!important;box-shadow:none!important;
+}
+.a2f-mini-brand strong{font-size:.96rem!important;font-weight:750!important;color:var(--a2f-ink)!important}
+.a2f-mini-brand small{color:var(--a2f-muted)!important;font-weight:500!important}
+.a2f-steps{gap:8px!important}
+.a2f-step{
+  border-radius:14px!important;padding:10px 9px!important;color:var(--a2f-muted)!important;
+  border:1px solid transparent!important;background:transparent!important;
+}
+.a2f-step span{
+  width:28px!important;height:28px!important;background:var(--a2f-surface-muted)!important;
+  border:1px solid var(--a2f-line)!important;color:var(--a2f-muted)!important;font-weight:700!important;
+}
+.a2f-step strong{font-size:.82rem!important;font-weight:650!important;color:inherit!important}
+.a2f-step.is-current{background:#eef6ff!important;border-color:#bfdbfe!important;color:#1d4ed8!important}
+.a2f-step.is-current span{background:#dbeafe!important;border-color:#bfdbfe!important;color:#1d4ed8!important}
+.a2f-step.is-done{color:var(--a2f-success)!important;background:transparent!important}
+.a2f-step.is-done span{background:#dcfce7!important;border-color:#bbf7d0!important;color:var(--a2f-success)!important}
+.a2f-risk-card{
+  margin-top:20px!important;padding:14px!important;border-radius:18px!important;
+  background:#fff!important;border:1px solid var(--a2f-line)!important;box-shadow:none!important;
+}
+.a2f-risk-kicker{color:var(--a2f-muted)!important;font-size:.68rem!important;font-weight:700!important;letter-spacing:.08em!important}
+.a2f-risk-card strong{color:var(--a2f-ink)!important;font-weight:750!important}
+.a2f-risk-card p{color:var(--a2f-muted)!important;font-weight:400!important;font-size:.78rem!important}
+.a2f-meter{height:6px!important;background:var(--a2f-surface-muted)!important}
+.a2f-meter span{background:linear-gradient(90deg,#f97316,#fbbf24)!important}
+.a2f-card.is-verified .a2f-meter span{background:linear-gradient(90deg,#16a34a,#86efac)!important}
+.a2f-main{
+  padding:32px!important;
+  max-height:91dvh!important;
+  background:var(--a2f-surface)!important;
+  color:var(--a2f-ink)!important;
+}
+.a2f-hero{
+  align-items:flex-start!important;
+  margin-bottom:16px!important;
+  padding-bottom:0!important;
+}
+.a2f-kicker{
+  margin-bottom:12px!important;
+  border-color:var(--a2f-line)!important;
+  background:var(--a2f-surface-soft)!important;
+  color:var(--a2f-muted)!important;
+  font-size:.7rem!important;
+  font-weight:700!important;
+  letter-spacing:.06em!important;
+}
+.a2f-hero h2{
+  color:var(--a2f-ink)!important;
+  font-size:clamp(1.7rem,4vw,2.36rem)!important;
+  letter-spacing:-.04em!important;
+  font-weight:760!important;
+  margin-bottom:8px!important;
+}
+.a2f-hero p{
+  color:var(--a2f-text)!important;
+  max-width:610px!important;
+  font-size:.98rem!important;
+  line-height:1.55!important;
+  font-weight:400!important;
+}
+.a2f-badge{
+  width:50px!important;height:50px!important;border-radius:16px!important;
+  background:var(--a2f-surface-soft)!important;
+  border:1px solid var(--a2f-line)!important;
+  box-shadow:none!important;
+  font-size:1.38rem!important;
+}
+.a2f-note{
+  display:flex!important;gap:10px!important;align-items:flex-start!important;
+  margin:0 0 18px!important;
+  color:var(--a2f-text)!important;
+  background:#f8fafc!important;
+  border:1px solid var(--a2f-line)!important;
+  border-radius:18px!important;
+  padding:12px 14px!important;
+  font-size:.88rem!important;
+  line-height:1.5!important;
+  font-weight:400!important;
+}
+.a2f-note:before{content:"ⓘ";color:#2563eb;font-weight:800;flex:0 0 auto}
+.a2f-methods{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:12px!important;
+  margin:16px 0!important;
+}
+.a2f-method{
+  min-height:122px!important;
+  padding:15px!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  border:1px solid var(--a2f-line)!important;
+  box-shadow:none!important;
+  color:var(--a2f-ink)!important;
+  text-align:left!important;
+  outline:none!important;
+}
+.a2f-method:hover{transform:none!important;border-color:var(--a2f-line-strong)!important;background:#f8fafc!important;box-shadow:none!important}
+.a2f-method:focus-visible{box-shadow:0 0 0 4px var(--a2f-focus)!important;border-color:rgba(var(--theme-rgb),.58)!important}
+.a2f-method.active{
+  transform:none!important;
+  background:#f8fbff!important;
+  border-color:#60a5fa!important;
+  box-shadow:0 0 0 1px #60a5fa inset!important;
+}
+.a2f-method.active:after{
+  content:"✓";position:absolute;right:14px;top:14px;
+  width:22px;height:22px;border-radius:999px;display:grid;place-items:center;
+  background:#2563eb;color:#fff;font-size:.72rem;font-weight:800;
+}
+.a2f-method-top{margin-bottom:8px!important}
+.a2f-method-top em{
+  background:#eef2ff!important;color:#4338ca!important;border:1px solid #e0e7ff!important;
+  font-size:.61rem!important;font-weight:700!important;padding:4px 7px!important;
+}
+.a2f-method-icon{
+  width:38px!important;height:38px!important;border-radius:13px!important;
+  background:var(--a2f-surface-soft)!important;
+  border:1px solid var(--a2f-line)!important;
+  font-size:1.08rem!important;
+}
+.a2f-method strong{color:var(--a2f-ink)!important;font-size:1rem!important;font-weight:740!important;margin:0!important}
+.a2f-method span:not(.a2f-method-icon):not(.a2f-method-top){color:var(--a2f-text)!important;font-size:.78rem!important;line-height:1.38!important;font-weight:400!important}
+.a2f-method small{color:var(--a2f-muted)!important;font-size:.72rem!important;font-weight:500!important;line-height:1.3!important}
+.a2f-preview{
+  background:#fff!important;
+  border:1px solid var(--a2f-line)!important;
+  border-radius:24px!important;
+  padding:18px!important;
+  box-shadow:none!important;
+}
+.a2f-preview-head{align-items:center!important;margin-bottom:14px!important}
+.a2f-preview-head span:first-child{color:var(--a2f-muted)!important;font-weight:700!important;font-size:.68rem!important;letter-spacing:.07em!important}
+.a2f-preview-head strong{color:var(--a2f-ink)!important;font-size:1.08rem!important;font-weight:740!important}
+.a2f-live-pill{
+  background:#ecfdf5!important;border:1px solid #bbf7d0!important;color:#047857!important;
+  font-size:.7rem!important;font-weight:700!important;
+}
+.a2f-panel{grid-template-columns:120px minmax(0,1fr)!important;gap:16px!important}
+.a2f-panel-copy h3{color:var(--a2f-ink)!important;font-size:1rem!important;font-weight:740!important}
+.a2f-panel-copy p{color:var(--a2f-text)!important;font-size:.86rem!important;font-weight:400!important;line-height:1.55!important}
+.a2f-device-visual,.a2f-mail-visual,.a2f-qr-visual{
+  height:108px!important;border-radius:20px!important;border:1px solid var(--a2f-line)!important;
+  background:var(--a2f-surface-soft)!important;color:var(--a2f-ink)!important;box-shadow:none!important;
+}
+.a2f-device-visual span{color:var(--a2f-ink)!important;font-weight:720!important;font-size:.92rem!important}
+.a2f-device-visual i{border-color:#93c5fd!important;box-shadow:0 0 0 8px #dbeafe!important;width:56px!important;height:56px!important}
+.a2f-device-visual b{background:#cbd5e1!important;height:4px!important}
+.a2f-mail-visual{font-size:3.25rem!important;text-shadow:none!important;color:#2563eb!important}
+.a2f-qr-visual{grid-template-columns:repeat(2,34px)!important;grid-template-rows:repeat(2,34px)!important;gap:7px!important}
+.a2f-qr-visual span{width:34px!important;height:34px!important;border-radius:8px!important;background:repeating-linear-gradient(45deg,#111827 0 5px,#f8fafc 5px 10px,#60a5fa 10px 15px)!important}
+.a2f-otp-dots,.a2f-code-row{margin-top:10px!important}
+.a2f-otp-dots span,.a2f-code-row span{background:#f8fafc!important;border-color:var(--a2f-line)!important;color:var(--a2f-ink)!important}
+.a2f-verify-box{
+  margin-top:14px;padding:14px;border:1px solid var(--a2f-line);background:#f8fafc;border-radius:18px;
+}
+.a2f-verify-label{display:grid;gap:8px;color:var(--a2f-ink);font-weight:700;font-size:.82rem}
+.a2f-verify-input{
+  width:100%;min-height:48px;border-radius:14px;border:1px solid var(--a2f-line-strong);background:#fff;color:var(--a2f-ink);
+  padding:11px 13px;letter-spacing:.18em;text-align:center;font-weight:750;font-size:1rem;outline:none;
+}
+.a2f-verify-input:focus{border-color:#60a5fa;box-shadow:0 0 0 4px #dbeafe}
+.a2f-verify-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:9px;color:var(--a2f-muted);font-size:.76rem;font-weight:500}
+.a2f-verify-meta button{border:0;background:transparent;color:#2563eb;font-weight:700;padding:0;cursor:pointer}
+.a2f-recovery-preview{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px;
+}
+.a2f-recovery-code{
+  border:1px dashed var(--a2f-line-strong);background:#f8fafc;border-radius:12px;padding:9px 10px;color:#334155;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.78rem;font-weight:750;text-align:center;
+}
+.a2f-passkey-steps{margin:12px 0 0;padding:0;display:grid;gap:8px;list-style:none;color:var(--a2f-text);font-size:.82rem}
+.a2f-passkey-steps li{display:flex;gap:8px;align-items:flex-start}.a2f-passkey-steps li:before{content:"✓";color:#16a34a;font-weight:800;flex:0 0 auto}
+.a2f-production-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-top:14px!important;
+}
+.a2f-production-grid div{
+  border:1px solid var(--a2f-line)!important;background:#f8fafc!important;border-radius:16px!important;padding:12px!important;
+}
+.a2f-production-grid span{color:var(--a2f-muted)!important;font-size:.66rem!important;font-weight:700!important}
+.a2f-production-grid strong{color:var(--a2f-ink)!important;font-size:.78rem!important;font-weight:650!important}
+.a2f-try-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding-top:2px;color:var(--a2f-muted);font-size:.82rem}
+.a2f-try-row button{border:0;background:transparent;color:#2563eb;font-weight:750;padding:6px 0;cursor:pointer}
+.a2f-result{
+  border-radius:18px!important;margin-top:14px!important;padding:0!important;max-height:0;opacity:0;overflow:hidden;
+  transition:max-height .28s var(--motion-ease),opacity .22s var(--motion-ease),padding .22s var(--motion-ease)!important;
+}
+.a2f-result.show{
+  max-height:160px!important;opacity:1!important;padding:13px 14px!important;
+  background:#ecfdf5!important;border:1px solid #bbf7d0!important;color:#047857!important;font-weight:650!important;
+}
+.a2f-actions{
+  justify-content:flex-end!important;
+  margin-top:18px!important;
+  padding-top:2px!important;
+}
+.a2f-actions .btn-secondary{
+  background:#fff!important;color:#2563eb!important;border:1px solid #bfdbfe!important;box-shadow:none!important;font-weight:750!important;
+}
+.a2f-actions .btn-secondary:hover{transform:none!important;background:#eff6ff!important;filter:none!important}
+.a2f-actions .btn-secondary[disabled]{color:#94a3b8!important;background:#f8fafc!important;border-color:var(--a2f-line)!important;opacity:1!important}
+.a2f-actions .btn-primary{
+  background:#2563eb!important;color:#fff!important;box-shadow:none!important;font-weight:760!important;
+}
+.a2f-actions .btn-primary:hover{transform:none!important;background:#1d4ed8!important;filter:none!important}
+.a2f-actions .btn-primary:disabled{background:#cbd5e1!important;color:#64748b!important;opacity:1!important}
+.a2f-card[data-a2f-busy="true"] .a2f-actions .btn-secondary:before{
+  content:"";width:14px;height:14px;border-radius:999px;border:2px solid #bfdbfe;border-top-color:#2563eb;display:inline-block;animation:diracSpin .72s linear infinite;
+}
+html[data-effective-theme="light"] .a2f-card,
+html[data-effective-theme="light"] .a2f-side,
+html[data-effective-theme="light"] .a2f-main{background:var(--a2f-surface)!important;color:var(--a2f-ink)!important}
+html[data-effective-theme="light"] .a2f-method,
+html[data-effective-theme="light"] .a2f-preview,
+html[data-effective-theme="light"] .a2f-production-grid div,
+html[data-effective-theme="light"] .a2f-risk-card{background:#fff!important;border-color:var(--a2f-line)!important}
+html[data-effective-theme="dark"] .a2f-card,
+html[data-effective-theme="dark"] .a2f-side,
+html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111827!important}
+@media(max-width:920px){
+  .a2f-shell{grid-template-columns:1fr!important;min-height:0!important}
+  .a2f-side{display:block!important;border-right:0!important;border-bottom:1px solid var(--a2f-line)!important;padding:16px 18px!important}
+  .a2f-mini-brand{margin-bottom:12px!important}.a2f-risk-card{display:none!important}
+  .a2f-steps{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}.a2f-step{display:grid!important;place-items:center;text-align:center;padding:8px 5px!important}.a2f-step span{width:24px!important;height:24px!important}.a2f-step strong{font-size:.68rem!important}
+  .a2f-main{max-height:calc(91dvh - 116px)!important;padding:24px!important}
+  .a2f-methods{grid-template-columns:1fr!important}.a2f-method{min-height:auto!important}
+}
+@media(max-width:620px){
+  .a2f-modal{align-items:start!important;padding:8px!important;padding-top:max(8px,env(safe-area-inset-top))!important}
+  .a2f-card{width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;border-radius:24px!important}
+  .a2f-side{padding:14px!important}.a2f-steps{grid-template-columns:repeat(4,1fr)!important}
+  .a2f-step strong{display:none!important}.a2f-step{border-radius:12px!important}
+  .a2f-main{padding:18px!important;max-height:calc(100dvh - 92px)!important}.a2f-hero{display:grid!important;grid-template-columns:1fr auto!important;gap:10px!important}.a2f-hero h2{font-size:1.62rem!important}.a2f-hero p{font-size:.9rem!important}.a2f-badge{width:44px!important;height:44px!important}
+  .a2f-note{font-size:.8rem!important}.a2f-panel{grid-template-columns:1fr!important}.a2f-device-visual,.a2f-mail-visual,.a2f-qr-visual{height:86px!important}.a2f-preview{padding:14px!important;border-radius:20px!important}.a2f-preview-head{display:grid!important;gap:8px!important}.a2f-live-pill{width:max-content!important}.a2f-production-grid{grid-template-columns:1fr!important}.a2f-recovery-preview{grid-template-columns:1fr!important}.a2f-actions{display:grid!important;grid-template-columns:1fr!important}.a2f-actions .btn-secondary,.a2f-actions .btn-primary{width:100%!important;justify-content:center!important}.a2f-try-row{display:grid!important;gap:4px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .a2f-result,.a2f-panel.active,.a2f-card,.a2f-method{animation:none!important;transition:none!important}
+}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -1468,7 +1764,6 @@ html[data-contrast]{pointer-events:auto;}
     </section>
   </div>
 
-  <div class="dirac-floating-actions"
   <div class="dirac-floating-actions" id="floatingActions" aria-label="Aksi cepat">
     <button class="dirac-float-btn dirac-float-top" id="scrollTopBtn" type="button" aria-label="Scroll ke atas">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M12 19V5m0 0-7 7m7-7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2090,6 +2385,195 @@ html[data-contrast]{pointer-events:auto;}
   document.addEventListener('visibilitychange', function(){ if(!document.hidden && !timer) schedule(180); });
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();
   window.__diracBrandTypewriterState = function(){ return {phraseKind:phraseKind, phrase:getPhrase(), index:index, deleting:deleting, authPhrase:getAuthPhrase()}; };
+})();
+</script>
+
+
+
+<script id="dirac-a2f-clean-ux-upgrade-js">
+(function(){
+  'use strict';
+  var $ = function(sel, root){ return (root || document).querySelector(sel); };
+  var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
+  var copy = {
+    id:{
+      sideSub:'Keamanan akun', choose:'Pilih', verify:'Verifikasi', recover:'Backup', finish:'Selesai',
+      riskTitle:'Menunggu verifikasi', riskText:'Aktifkan salah satu metode agar akun tidak hanya bergantung pada password.',
+      kicker:'Verifikasi 2 langkah', title:'Amankan akun Anda', sub:'Pilih metode keamanan tambahan. Tampilan ini dibuat ringkas agar mudah dipahami dan nyaman di HP.',
+      note:'Kami akan meminta satu langkah tambahan saat masuk dari perangkat baru. Data email tetap disamarkan dan metode bisa diganti kapan saja.',
+      passTitle:'Gunakan passkey', authTitle:'Gunakan Authenticator', emailTitle:'Gunakan kode email',
+      passPanel:'Konfirmasi dengan Face ID, sidik jari, PIN, atau password manager perangkat Anda.',
+      authPanel:'Scan QR, lalu masukkan kode 6 digit dari aplikasi authenticator.',
+      emailPanel:'Kami kirim kode sekali pakai ke email akun Anda. Kode berlaku singkat untuk keamanan.',
+      selectedPass:'Passkey siap digunakan', selectedAuth:'Authenticator siap diverifikasi', selectedEmail:'Kode email siap dikirim',
+      livePass:'Metode utama', liveAuth:'Kode 6 digit', liveEmail:'OTP email',
+      start:'Lanjutkan', done:'Selesai',
+      trust1k:'Privasi', trust1:'Email ditampilkan tersamarkan', trust2k:'Kode', trust2:'Input OTP nyaman di mobile', trust3k:'Cadangan', trust3:'Recovery code tersedia',
+      tryText:'Bukan metode yang Anda mau?', tryBtn:'Coba cara lain', otpLabel:'Kode verifikasi', otpPlaceholder:'000000', resend:'Kirim ulang kode', timer:'Bisa kirim ulang dalam 60 detik',
+      recoveryTitle:'Recovery code cadangan', recoveryText:'Simpan kode ini jika suatu saat perangkat utama tidak tersedia.',
+      pass1:'Pastikan perangkat pribadi sedang digunakan', pass2:'Browser akan membuka konfirmasi keamanan perangkat', pass3:'Tidak perlu mengingat kode tambahan setelah aktif',
+      successPrefix:'A2F aktif menggunakan ', successSuffix:'. Tampilan sudah siap; untuk produksi, backend tetap memverifikasi kode/challenge asli.', loading:'Memproses...'
+    },
+    en:{
+      sideSub:'Account security', choose:'Choose', verify:'Verify', recover:'Backup', finish:'Done',
+      riskTitle:'Waiting for verification', riskText:'Enable one method so the account does not rely on password only.',
+      kicker:'2-step verification', title:'Secure your account', sub:'Choose an extra security method. This view is cleaner, clearer, and comfortable on mobile.',
+      note:'We will ask for one extra step when signing in from a new device. Your email stays masked and the method can be changed later.',
+      passTitle:'Use a passkey', authTitle:'Use Authenticator', emailTitle:'Use email code',
+      passPanel:'Confirm with Face ID, fingerprint, PIN, or the password manager on your device.',
+      authPanel:'Scan the QR, then enter the 6-digit code from your authenticator app.',
+      emailPanel:'We send a one-time code to your account email. Codes expire quickly for security.',
+      selectedPass:'Passkey ready', selectedAuth:'Authenticator ready to verify', selectedEmail:'Email code ready to send',
+      livePass:'Primary method', liveAuth:'6-digit code', liveEmail:'Email OTP',
+      start:'Continue', done:'Done', trust1k:'Privacy', trust1:'Email is shown masked', trust2k:'Code', trust2:'Mobile-friendly OTP input', trust3k:'Backup', trust3:'Recovery codes available',
+      tryText:'Not the method you want?', tryBtn:'Try another way', otpLabel:'Verification code', otpPlaceholder:'000000', resend:'Resend code', timer:'Can resend in 60 seconds',
+      recoveryTitle:'Backup recovery codes', recoveryText:'Save these codes in case your primary device is unavailable.',
+      pass1:'Make sure you are using your personal device', pass2:'The browser opens device security confirmation', pass3:'No extra code to remember after setup',
+      successPrefix:'2FA enabled with ', successSuffix:'. UI is ready; in production, the backend still verifies the real code/challenge.', loading:'Processing...'
+    }
+  };
+  function t(key){ var d = copy[lang()] || copy.id; return d[key] || copy.id[key] || key; }
+  function setText(sel, key){ var el = $(sel); if(el) el.textContent = t(key); }
+  function maskEmail(value){
+    value = String(value || '').trim();
+    var m = value.match(/^([^@\s]{1,})(@[^@\s]+)$/);
+    if(!m) return 'e••••@mail';
+    var name = m[1], domain = m[2];
+    return (name.charAt(0) || 'e') + '••••' + (name.length > 5 ? name.slice(-2) : '') + domain;
+  }
+  function getIdentifier(){
+    var input = $('#identifier');
+    var value = input && input.value ? input.value : '';
+    try{
+      var s = JSON.parse(localStorage.getItem('dirac_auth_session_v1') || '{}');
+      if(!value && s && s.identifier) value = s.identifier;
+    }catch(e){}
+    return value;
+  }
+  function enhanceMarkup(){
+    var modal = $('#a2fModal'); if(!modal || modal.getAttribute('data-clean-ux-ready') === 'true') return;
+    modal.setAttribute('data-clean-ux-ready','true');
+    var note = $('.a2f-note', modal); if(note) note.setAttribute('data-no-i18n','');
+    var methods = $$('.a2f-method', modal);
+    methods.forEach(function(btn){ btn.setAttribute('role','button'); });
+
+    var passPanel = $('[data-a2f-panel="passkey"] .a2f-panel-copy', modal);
+    if(passPanel && !$('.a2f-passkey-steps', passPanel)){
+      passPanel.insertAdjacentHTML('beforeend','<ul class="a2f-passkey-steps"><li data-a2f-ux="pass1"></li><li data-a2f-ux="pass2"></li><li data-a2f-ux="pass3"></li></ul>');
+    }
+    ['authenticator','email'].forEach(function(method){
+      var panel = $('[data-a2f-panel="'+method+'"] .a2f-panel-copy', modal);
+      if(panel && !$('.a2f-verify-box', panel)){
+        panel.insertAdjacentHTML('beforeend', '<div class="a2f-verify-box"><label class="a2f-verify-label"><span data-a2f-ux="otpLabel"></span><input class="a2f-verify-input" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" aria-label="Kode verifikasi '+method+'"></label><div class="a2f-verify-meta"><span data-a2f-ux="timer"></span><button type="button" data-a2f-resend>'+t('resend')+'</button></div></div>');
+      }
+    });
+    var preview = $('#a2fPreview', modal);
+    if(preview && !$('.a2f-recovery-preview', preview)){
+      preview.insertAdjacentHTML('beforeend', '<div class="a2f-recovery-preview" aria-label="Contoh recovery code"><span class="a2f-recovery-code">DG-84K2-19PA</span><span class="a2f-recovery-code">DG-51MX-73QL</span></div>');
+    }
+    var result = $('#a2fResult', modal);
+    if(result && !$('.a2f-try-row', modal)){
+      result.insertAdjacentHTML('beforebegin','<div class="a2f-try-row"><span data-a2f-ux="tryText"></span><button type="button" id="a2fTryOtherBtn" data-a2f-ux="tryBtn"></button></div>');
+    }
+  }
+  function applyCopy(){
+    var modal = $('#a2fModal'); if(!modal) return;
+    setText('.a2f-mini-brand small','sideSub');
+    setText('[data-a2f-step="choose"] strong','choose');
+    setText('[data-a2f-step="verify"] strong','verify');
+    setText('[data-a2f-step="recover"] strong','recover');
+    setText('[data-a2f-step="finish"] strong','finish');
+    setText('.a2f-risk-card strong','riskTitle');
+    setText('.a2f-risk-card p','riskText');
+    setText('.a2f-kicker','kicker');
+    setText('#a2fTitle','title');
+    setText('#a2fSub','sub');
+    setText('.a2f-note','note');
+    var methodTitles = {passkey:'passTitle', authenticator:'authTitle', email:'emailTitle'};
+    Object.keys(methodTitles).forEach(function(method){ var strong = $('[data-a2f-select="'+method+'"] strong', modal); if(strong) strong.textContent = t(methodTitles[method]); });
+    var panelText = {
+      passkey:['passTitle','passPanel'], authenticator:['authTitle','authPanel'], email:['emailTitle','emailPanel']
+    };
+    Object.keys(panelText).forEach(function(method){
+      var panel = $('[data-a2f-panel="'+method+'"]', modal); if(!panel) return;
+      var h = $('h3', panel), p = $('p', panel); if(h) h.textContent = t(panelText[method][0]); if(p) p.textContent = t(panelText[method][1]);
+    });
+    $$('[data-a2f-ux]', modal).forEach(function(el){ var key = el.getAttribute('data-a2f-ux'); if(key) el.textContent = t(key); });
+    $$('.a2f-verify-input', modal).forEach(function(input){ input.placeholder = t('otpPlaceholder'); });
+    $$('[data-a2f-resend]', modal).forEach(function(btn){ btn.textContent = t('resend'); });
+    var prod = $$('.a2f-production-grid div', modal);
+    if(prod[0]){ $('span',prod[0]).textContent = t('trust1k'); $('strong',prod[0]).textContent = t('trust1'); }
+    if(prod[1]){ $('span',prod[1]).textContent = t('trust2k'); $('strong',prod[1]).textContent = t('trust2'); }
+    if(prod[2]){ $('span',prod[2]).textContent = t('trust3k'); $('strong',prod[2]).textContent = t('trust3'); }
+    var start = $('#a2fStartBtn'); if(start && !start.disabled) start.textContent = t('start');
+    var done = $('#a2fDoneBtn'); if(done) done.textContent = t('done');
+    updateSelectedCopy();
+  }
+  function currentMethod(){
+    var active = $('#a2fModal [data-a2f-select].active');
+    return active ? active.getAttribute('data-a2f-select') : (($('#a2fStartBtn') || {}).getAttribute ? $('#a2fStartBtn').getAttribute('data-a2f-method') : 'passkey') || 'passkey';
+  }
+  function updateSelectedCopy(){
+    var method = currentMethod();
+    var title = $('#a2fSelectedTitle'), pill = $('#a2fLivePill');
+    var map = {passkey:['selectedPass','livePass'], authenticator:['selectedAuth','liveAuth'], email:['selectedEmail','liveEmail']};
+    var pair = map[method] || map.passkey;
+    if(title){ title.textContent = t(pair[0]); title.setAttribute('data-no-i18n',''); }
+    if(pill){ pill.textContent = t(pair[1]); pill.setAttribute('data-no-i18n',''); }
+    var emailPanelText = $('[data-a2f-panel="email"] .a2f-panel-copy p');
+    if(emailPanelText){ emailPanelText.textContent = t('emailPanel') + ' (' + maskEmail(getIdentifier()) + ')'; }
+  }
+  function observeStates(){
+    var modal = $('#a2fModal'); if(!modal) return;
+    modal.addEventListener('click', function(e){
+      if(e.target.closest('[data-a2f-select]')) setTimeout(updateSelectedCopy, 0);
+      if(e.target.closest('#a2fTryOtherBtn')){
+        var methods = $('.a2f-methods', modal);
+        if(methods){ methods.scrollIntoView({block:'nearest', behavior: document.documentElement.getAttribute('data-motion') === 'reduced' ? 'auto' : 'smooth'}); }
+        var active = $('[data-a2f-select].active', modal); if(active) active.focus({preventScroll:true});
+      }
+      if(e.target.closest('[data-a2f-resend]')){
+        var meta = e.target.closest('.a2f-verify-meta');
+        var msg = meta && $('span', meta); if(msg) msg.textContent = t('timer');
+      }
+    }, true);
+    modal.addEventListener('input', function(e){
+      if(e.target && e.target.classList && e.target.classList.contains('a2f-verify-input')){
+        e.target.value = e.target.value.replace(/\D/g,'').slice(0,6);
+      }
+    });
+    var start = $('#a2fStartBtn');
+    if(start && window.MutationObserver){
+      var defaultText = function(){ if(!start.disabled) start.textContent = t('start'); };
+      new MutationObserver(function(){
+        var busy = !!start.disabled;
+        var card = $('.a2f-card', modal); if(card) card.setAttribute('data-a2f-busy', busy ? 'true' : 'false');
+        start.setAttribute('aria-busy', busy ? 'true' : 'false');
+        start.textContent = busy ? t('loading') : t('start');
+      }).observe(start, {attributes:true, attributeFilter:['disabled']});
+      defaultText();
+    }
+    var resultBox = $('#a2fResult', modal);
+    if(resultBox && window.MutationObserver){
+      new MutationObserver(function(){
+        if(!resultBox.classList.contains('show')) return;
+        var method = currentMethod();
+        if(resultBox.getAttribute('data-clean-ux-success') === method) return;
+        resultBox.setAttribute('data-clean-ux-success', method);
+        var label = method === 'authenticator' ? 'Authenticator' : method === 'email' ? 'Email' : 'Passkey';
+        resultBox.textContent = t('successPrefix') + label + t('successSuffix');
+        var rTitle = $('.a2f-risk-card strong'), rText = $('.a2f-risk-card p');
+        if(rTitle) rTitle.textContent = lang() === 'en' ? 'Protection active' : 'Proteksi aktif';
+        if(rText) rText.textContent = lang() === 'en' ? 'The account now has an extra sign-in step.' : 'Akun sekarang punya langkah keamanan tambahan.';
+      }).observe(resultBox, {attributes:true, childList:true, subtree:false});
+    }
+    if(window.MutationObserver){
+      new MutationObserver(function(){ setTimeout(function(){ applyCopy(); updateSelectedCopy(); }, 0); }).observe(document.documentElement, {attributes:true, attributeFilter:['lang']});
+    }
+  }
+  ready(function(){ enhanceMarkup(); applyCopy(); observeStates(); });
 })();
 </script>
 
