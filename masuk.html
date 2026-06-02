@@ -1094,6 +1094,60 @@ html[data-motion="reduced"] body.motion-page-ready .motion-reveal,
 html[data-motion="reduced"] .toast.show:after{animation:none!important;transition-duration:1ms!important;filter:none!important;transform:none!important}
 </style>
 
+
+<style id="dirac-production-a2f-and-brand-css">
+/* =========================================================
+   Dirac Production Polish v1
+   Fokus: header brand corporate putih permanen + A2F wizard siap integrasi backend.
+   ========================================================= */
+.brand-name,
+.brand-typewriter,
+.brand-typewriter-text,
+.brand-typewriter[data-phrase="auth"] .brand-typewriter-text,
+.brand-typewriter[data-phrase="brand"] .brand-typewriter-text,
+html[data-effective-theme="light"] .brand-name,
+html[data-effective-theme="light"] .brand-typewriter-text{
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  font-family:Poppins,Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-weight:850!important;
+  letter-spacing:-.025em!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.08),0 10px 24px rgba(0,0,0,.34)!important;
+  filter:none!important;
+}
+.brand-typewriter[data-typing-state="pause"] .brand-typewriter-text{
+  color:#fff!important;
+  filter:drop-shadow(0 0 10px rgba(255,255,255,.10))!important;
+}
+.brand-typewriter:after{
+  background:#fff!important;
+  box-shadow:0 0 12px rgba(255,255,255,.42)!important;
+}
+
+.a2f-modal{padding:clamp(10px,2.5vw,24px)!important;background:radial-gradient(circle at 16% 10%,rgba(var(--theme-rgb),.24),transparent 28rem),radial-gradient(circle at 84% 92%,rgba(20,184,166,.16),transparent 22rem),linear-gradient(135deg,rgba(2,6,23,.86),rgba(0,0,0,.78))!important;}
+.a2f-card{width:min(1040px,100%)!important;max-height:min(92dvh,860px)!important;padding:0!important;overflow:hidden!important;border-radius:36px!important;border:1px solid rgba(255,255,255,.12)!important;background:linear-gradient(145deg,rgba(13,18,28,.98),rgba(4,7,13,.98))!important;box-shadow:0 34px 110px rgba(0,0,0,.62),0 0 0 1px rgba(var(--theme-rgb),.18) inset,0 0 70px rgba(var(--theme-rgb),.10)!important;}
+.a2f-shell{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:min(760px,92dvh);}
+.a2f-side{position:relative;padding:26px 22px;background:linear-gradient(180deg,rgba(var(--theme-rgb),.14),rgba(255,255,255,.035) 42%,rgba(255,255,255,.018));border-right:1px solid rgba(255,255,255,.09);overflow:hidden;}
+.a2f-side:before{content:"";position:absolute;inset:-30% -35% auto auto;width:260px;height:260px;border-radius:999px;background:radial-gradient(circle,rgba(var(--theme-rgb),.26),transparent 64%);filter:blur(3px);pointer-events:none;}
+.a2f-mini-brand{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:26px;color:#fff;}
+.a2f-brand-icon{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;background:#fff;color:#103f84;font-weight:950;box-shadow:0 16px 34px rgba(0,0,0,.24);}
+.a2f-mini-brand strong{display:block;font-size:1rem;line-height:1.15}.a2f-mini-brand small{display:block;margin-top:3px;color:#b7c2d5;font-size:.75rem;font-weight:750;}
+.a2f-steps{position:relative;list-style:none;margin:0;padding:0;display:grid;gap:12px;}
+.a2f-step{display:flex;align-items:center;gap:10px;padding:10px;border-radius:18px;border:1px solid transparent;color:#aeb7c6;transition:.28s var(--motion-ease);}
+.a2f-step span{width:30px;height:30px;border-radius:999px;display:grid;place-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);font-weight:950;font-size:.82rem;}
+.a2f-step strong{font-size:.88rem;line-height:1.1;}.a2f-step.is-current{color:#fff;background:rgba(255,255,255,.075);border-color:rgba(var(--theme-rgb),.22)}.a2f-step.is-done{color:#d1fae5}.a2f-step.is-done span{background:rgba(24,185,129,.18);border-color:rgba(24,185,129,.34);color:#d1fae5;}
+.a2f-risk-card{position:relative;margin-top:24px;padding:16px;border-radius:22px;background:rgba(2,6,23,.46);border:1px solid rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);}
+.a2f-risk-kicker{display:block;color:var(--gold);font-size:.72rem;font-weight:950;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}.a2f-risk-card strong{display:block;color:#fff;line-height:1.2}.a2f-risk-card p{margin:7px 0 12px;color:#aeb7c6;font-size:.78rem;line-height:1.45}.a2f-meter{height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}.a2f-meter span{display:block;width:38%;height:100%;border-radius:999px;background:linear-gradient(90deg,#ef4444,var(--gold));transition:width .42s var(--motion-ease),background .42s var(--motion-ease)}.a2f-card.is-verified .a2f-meter span{width:100%;background:linear-gradient(90deg,#18b981,#a7f3d0)}
+.a2f-main{padding:28px;overflow:auto;max-height:92dvh;}
+.a2f-hero{margin-bottom:15px!important;}.a2f-kicker{display:inline-flex;align-items:center;gap:7px;margin-bottom:10px;padding:7px 10px;border-radius:999px;border:1px solid rgba(var(--theme-rgb),.24);background:rgba(var(--theme-rgb),.08);color:#f8ead1;font-size:.72rem;font-weight:950;text-transform:uppercase;letter-spacing:.08em}.a2f-hero h2{font-size:clamp(2rem,5vw,3.15rem)!important;letter-spacing:-.06em!important}.a2f-badge{background:linear-gradient(145deg,rgba(var(--theme-rgb),.20),rgba(255,255,255,.055))!important;box-shadow:0 18px 44px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08)!important}.a2f-note{margin:0 0 18px!important;color:#dbe4f0!important;background:linear-gradient(135deg,rgba(14,165,233,.10),rgba(var(--theme-rgb),.075))!important;border-color:rgba(56,189,248,.18)!important;}
+.a2f-methods{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;margin:18px 0!important}.a2f-method{min-height:196px!important;padding:16px!important;border-radius:26px!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.028))!important;border:1px solid rgba(255,255,255,.10)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045);}.a2f-method.active{border-color:rgba(var(--theme-rgb),.62)!important;background:linear-gradient(180deg,rgba(var(--theme-rgb),.18),rgba(255,255,255,.035))!important;box-shadow:0 22px 48px rgba(0,0,0,.28),0 0 0 1px rgba(var(--theme-rgb),.12) inset!important;}.a2f-method-top{display:flex;justify-content:space-between;align-items:center;gap:10px}.a2f-method-top em{font-style:normal;font-size:.66rem;font-weight:950;text-transform:uppercase;letter-spacing:.06em;color:#0b111b;background:linear-gradient(135deg,#fff,var(--gold));border-radius:999px;padding:5px 8px;white-space:nowrap}.a2f-method strong{font-size:1.1rem!important;margin-top:3px}.a2f-method span:not(.a2f-method-icon):not(.a2f-method-top){color:#cbd5e1!important;font-size:.84rem!important;line-height:1.48!important}.a2f-method small{margin-top:auto;color:#8fa0b7;font-weight:800;font-size:.74rem;line-height:1.35}.a2f-method-icon{width:48px!important;height:48px!important;border-radius:17px!important;background:rgba(var(--theme-rgb),.14)!important;}
+.a2f-preview{border:1px solid rgba(255,255,255,.10);border-radius:28px;background:radial-gradient(circle at 18% 0%,rgba(var(--theme-rgb),.12),transparent 17rem),linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.025));padding:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.055);}.a2f-preview-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}.a2f-preview-head span:first-child{display:block;color:#92a2b8;font-weight:900;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}.a2f-preview-head strong{display:block;color:#fff;font-size:1.22rem;line-height:1.2;margin-top:3px}.a2f-live-pill{flex:0 0 auto;border-radius:999px;padding:7px 10px;background:rgba(24,185,129,.11);border:1px solid rgba(24,185,129,.24);color:#d1fae5!important;font-weight:950;font-size:.72rem}.a2f-panel{display:none;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:center}.a2f-panel.active{display:grid;animation:diracA2FOptionIn .38s var(--motion-soft) both}.a2f-panel-copy h3{margin:0 0 6px;color:#fff;font-size:1.04rem;line-height:1.25}.a2f-panel-copy p{margin:0;color:#b7c2d5;font-size:.88rem;line-height:1.55}.a2f-device-visual,.a2f-mail-visual,.a2f-qr-visual{height:132px;border-radius:25px;border:1px solid rgba(255,255,255,.10);background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.035));display:grid;place-items:center;position:relative;overflow:hidden}.a2f-device-visual span{color:#fff;font-weight:950;z-index:2}.a2f-device-visual i{position:absolute;width:72px;height:72px;border-radius:999px;border:2px solid rgba(var(--theme-rgb),.42);box-shadow:0 0 0 10px rgba(var(--theme-rgb),.05)}.a2f-device-visual b{position:absolute;inset:auto 20px 18px;height:5px;border-radius:999px;background:rgba(255,255,255,.20)}.a2f-qr-visual{grid-template-columns:repeat(2,42px);grid-template-rows:repeat(2,42px);gap:8px}.a2f-qr-visual span{width:42px;height:42px;border-radius:9px;background:repeating-linear-gradient(45deg,#fff 0 5px,rgba(var(--theme-rgb),.55) 5px 10px,#111827 10px 15px)}.a2f-mail-visual{font-size:4.2rem;color:#fff;font-weight:950;text-shadow:0 16px 38px rgba(0,0,0,.32)}.a2f-otp-dots,.a2f-code-row{display:flex;gap:7px;margin-top:12px}.a2f-otp-dots span,.a2f-code-row span{width:34px;height:38px;border-radius:12px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-weight:950}.a2f-production-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.a2f-production-grid div{padding:12px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04)}.a2f-production-grid span{display:block;color:var(--gold);font-size:.68rem;font-weight:950;letter-spacing:.08em;text-transform:uppercase}.a2f-production-grid strong{display:block;color:#e9eef7;font-size:.78rem;line-height:1.25;margin-top:3px}.a2f-result.show{border-radius:20px!important;margin-top:14px!important;padding:14px 15px!important;font-weight:850!important}.a2f-actions{align-items:center!important;margin-top:16px!important}.a2f-actions .btn-secondary,.a2f-actions .btn-primary{min-height:52px!important;padding:12px 18px!important;border-radius:999px!important;}
+html[data-effective-theme="light"] .a2f-card{background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(245,248,252,.98))!important;color:#151923!important;}html[data-effective-theme="light"] .a2f-side{background:linear-gradient(180deg,rgba(var(--theme-rgb),.14),rgba(255,255,255,.72))!important;border-right-color:rgba(15,23,42,.08)}html[data-effective-theme="light"] .a2f-hero h2,html[data-effective-theme="light"] .a2f-preview-head strong,html[data-effective-theme="light"] .a2f-panel-copy h3,html[data-effective-theme="light"] .a2f-risk-card strong{color:#111827!important}html[data-effective-theme="light"] .a2f-note,html[data-effective-theme="light"] .a2f-panel-copy p,html[data-effective-theme="light"] .a2f-method span:not(.a2f-method-icon):not(.a2f-method-top){color:#475569!important}html[data-effective-theme="light"] .a2f-method,html[data-effective-theme="light"] .a2f-preview,html[data-effective-theme="light"] .a2f-production-grid div,html[data-effective-theme="light"] .a2f-risk-card{background:rgba(255,255,255,.74)!important;border-color:rgba(15,23,42,.09)!important}html[data-effective-theme="light"] .a2f-production-grid strong{color:#1f2937!important}
+@media(max-width:920px){.a2f-shell{grid-template-columns:1fr}.a2f-side{display:none}.a2f-main{max-height:calc(92dvh - 0px);padding:22px}.a2f-card{border-radius:32px!important}.a2f-methods{grid-template-columns:1fr!important}.a2f-method{min-height:130px!important}.a2f-panel{grid-template-columns:118px 1fr}.a2f-device-visual,.a2f-mail-visual,.a2f-qr-visual{height:112px}.a2f-production-grid{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:540px){.a2f-modal{padding:9px!important;align-items:start!important;padding-top:max(10px,env(safe-area-inset-top))!important}.a2f-card{width:calc(100vw - 18px)!important;max-height:calc(100dvh - 18px)!important;border-radius:28px!important}.a2f-main{padding:18px;max-height:calc(100dvh - 18px)}.a2f-hero{align-items:center!important}.a2f-badge{width:52px!important;height:52px!important;border-radius:18px!important}.a2f-note{font-size:.8rem!important}.a2f-panel{grid-template-columns:1fr}.a2f-device-visual,.a2f-mail-visual,.a2f-qr-visual{height:100px}.a2f-preview-head{display:grid}.a2f-live-pill{width:max-content}.a2f-production-grid{grid-template-columns:1fr}.a2f-actions{display:grid!important;grid-template-columns:1fr!important}.a2f-actions .btn-secondary,.a2f-actions .btn-primary{width:100%;justify-content:center}.a2f-method-top em{font-size:.62rem}.brand-typewriter{max-width:calc(100vw - 168px)!important}}
+@media(prefers-reduced-motion:reduce){.a2f-panel.active,.a2f-card,.a2f-method{animation:none!important;transition:none!important}}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -1298,40 +1352,111 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
 
 
 
-  <div class="a2f-modal" id="a2fModal" aria-hidden="true">
-    <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" tabindex="-1">
-      <div class="a2f-hero">
-        <div>
-          <h2 id="a2fTitle" data-i18n="a2fTitle">Aktifkan A2F</h2>
-          <p data-i18n="a2fSub">Sebelum lanjut, pilih metode keamanan tambahan untuk melindungi akun Dirac Group pelanggan.</p>
+  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="/api/mfa/status" data-mfa-setup-endpoint="/api/mfa/setup" data-mfa-verify-endpoint="/api/mfa/verify">
+    <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="passkey">
+      <div class="a2f-shell">
+        <aside class="a2f-side" aria-label="Ringkasan keamanan akun">
+          <div class="a2f-mini-brand">
+            <span class="a2f-brand-icon" aria-hidden="true">DG</span>
+            <span><strong>Dirac Secure</strong><small data-i18n="a2fSideSub">Account protection layer</small></span>
+          </div>
+          <ol class="a2f-steps" aria-label="Langkah aktivasi A2F">
+            <li class="a2f-step is-current" data-a2f-step="choose"><span>1</span><strong data-i18n="a2fStepChoose">Pilih metode</strong></li>
+            <li class="a2f-step" data-a2f-step="verify"><span>2</span><strong data-i18n="a2fStepVerify">Verifikasi</strong></li>
+            <li class="a2f-step" data-a2f-step="recover"><span>3</span><strong data-i18n="a2fStepRecover">Recovery code</strong></li>
+            <li class="a2f-step" data-a2f-step="finish"><span>4</span><strong data-i18n="a2fStepFinish">Selesai</strong></li>
+          </ol>
+          <div class="a2f-risk-card">
+            <span class="a2f-risk-kicker" data-i18n="a2fRiskKicker">Status</span>
+            <strong data-i18n="a2fRiskTitle">Proteksi belum aktif</strong>
+            <p data-i18n="a2fRiskText">Dashboard tetap terkunci sampai metode keamanan diverifikasi.</p>
+            <div class="a2f-meter" aria-hidden="true"><span></span></div>
+          </div>
+        </aside>
+
+        <div class="a2f-main">
+          <div class="a2f-hero">
+            <div>
+              <span class="a2f-kicker" data-i18n="a2fKicker">Wajib sebelum dashboard</span>
+              <h2 id="a2fTitle" data-i18n="a2fTitle">Aktifkan A2F</h2>
+              <p id="a2fSub" data-i18n="a2fSub">Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.</p>
+            </div>
+            <div class="a2f-badge" aria-hidden="true">🛡️</div>
+          </div>
+
+          <p class="a2f-note" data-i18n="a2fNote">Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, atau authenticator dari server sebelum dashboard dibuka.</p>
+
+          <div class="a2f-methods" aria-label="Pilihan metode A2F">
+            <button class="a2f-method active" type="button" data-a2f-select="passkey" aria-pressed="true">
+              <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">🔑</span><em data-i18n="a2fRecommended">Direkomendasikan</em></span>
+              <strong data-i18n="a2fPasskey">Passkey</strong>
+              <span data-i18n="a2fPasskeyText">Face ID, sidik jari, PIN, atau kunci perangkat.</span>
+              <small data-i18n="a2fPasskeyMini">Paling modern dan tahan phishing.</small>
+            </button>
+            <button class="a2f-method" type="button" data-a2f-select="authenticator" aria-pressed="false">
+              <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">📲</span><em data-i18n="a2fStrong">Aman</em></span>
+              <strong data-i18n="a2fAuth">Authenticator</strong>
+              <span data-i18n="a2fAuthText">Gunakan kode 6 digit dari aplikasi autentikator.</span>
+              <small data-i18n="a2fAuthMini">Cocok sebagai metode cadangan kuat.</small>
+            </button>
+            <button class="a2f-method" type="button" data-a2f-select="email" aria-pressed="false">
+              <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">✉️</span><em data-i18n="a2fBackup">Backup</em></span>
+              <strong data-i18n="a2fEmail">Email</strong>
+              <span data-i18n="a2fEmailText">Kode keamanan dikirim ke email pelanggan.</span>
+              <small data-i18n="a2fEmailMini">Mudah, tetapi sebaiknya bukan metode utama.</small>
+            </button>
+          </div>
+
+          <section class="a2f-preview" id="a2fPreview" aria-live="polite">
+            <div class="a2f-preview-head">
+              <div>
+                <span data-i18n="a2fPreviewKicker">Detail metode</span>
+                <strong id="a2fSelectedTitle" data-i18n="a2fSelectedPasskey">Passkey siap dibuat</strong>
+              </div>
+              <span class="a2f-live-pill" id="a2fLivePill" data-i18n="a2fLivePasskey">WebAuthn ready</span>
+            </div>
+            <div class="a2f-panel active" data-a2f-panel="passkey">
+              <div class="a2f-device-visual" aria-hidden="true"><span>Face ID</span><i></i><b></b></div>
+              <div class="a2f-panel-copy">
+                <h3 data-i18n="a2fPasskeyPanelTitle">Buat passkey di perangkat pelanggan</h3>
+                <p data-i18n="a2fPasskeyPanelText">Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser akan membuka Face ID, sidik jari, PIN, atau password manager.</p>
+              </div>
+            </div>
+            <div class="a2f-panel" data-a2f-panel="authenticator">
+              <div class="a2f-qr-visual" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <div class="a2f-panel-copy">
+                <h3 data-i18n="a2fAuthPanelTitle">Scan QR di aplikasi authenticator</h3>
+                <p data-i18n="a2fAuthPanelText">Untuk produksi, server membuat secret TOTP terenkripsi, menampilkan QR otpauth://, lalu memverifikasi kode 6 digit sebelum A2F aktif.</p>
+                <div class="a2f-otp-dots" aria-label="Contoh input kode OTP"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              </div>
+            </div>
+            <div class="a2f-panel" data-a2f-panel="email">
+              <div class="a2f-mail-visual" aria-hidden="true">@</div>
+              <div class="a2f-panel-copy">
+                <h3 data-i18n="a2fEmailPanelTitle">Kirim kode ke email pelanggan</h3>
+                <p data-i18n="a2fEmailPanelText">Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.</p>
+                <div class="a2f-code-row" aria-hidden="true"><span>•</span><span>•</span><span>•</span><span>•</span><span>•</span><span>•</span></div>
+              </div>
+            </div>
+          </section>
+
+          <div class="a2f-production-grid" aria-label="Kesiapan integrasi produksi">
+            <div><span>HTTPS</span><strong data-i18n="a2fReadyHttps">Domain aman</strong></div>
+            <div><span>API</span><strong data-i18n="a2fReadyApi">Hook endpoint siap</strong></div>
+            <div><span>DB</span><strong data-i18n="a2fReadyDb">Butuh tabel MFA</strong></div>
+          </div>
+
+          <div class="a2f-result" id="a2fResult" role="status" aria-live="polite"></div>
+          <div class="a2f-actions">
+            <button class="btn-secondary" type="button" id="a2fStartBtn" data-a2f-method="passkey" data-i18n="a2fStart">Aktifkan pilihan ini</button>
+            <button class="btn-primary a2f-done-btn" type="button" id="a2fDoneBtn" disabled data-i18n="a2fDone">Selesai, tetap di halaman akun</button>
+          </div>
         </div>
-        <div class="a2f-badge" aria-hidden="true">🛡️</div>
-      </div>
-      <p class="a2f-note" data-i18n="a2fNote">A2F tidak membuka dashboard otomatis. Setelah metode dipilih, status keamanan disimpan di perangkat ini dan pelanggan tetap berada di halaman akun.</p>
-      <div class="a2f-methods" aria-label="Pilihan metode A2F">
-        <button class="a2f-method" type="button" data-a2f-method="passkey">
-          <span class="a2f-method-icon" aria-hidden="true">🔑</span>
-          <strong data-i18n="a2fPasskey">Passkey</strong>
-          <span data-i18n="a2fPasskeyText">Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.</span>
-        </button>
-        <button class="a2f-method" type="button" data-a2f-method="email">
-          <span class="a2f-method-icon" aria-hidden="true">✉️</span>
-          <strong data-i18n="a2fEmail">Email</strong>
-          <span data-i18n="a2fEmailText">Gunakan kode keamanan yang dikirim ke email pelanggan.</span>
-        </button>
-        <button class="a2f-method" type="button" data-a2f-method="authenticator">
-          <span class="a2f-method-icon" aria-hidden="true">📲</span>
-          <strong data-i18n="a2fAuth">Authenticator</strong>
-          <span data-i18n="a2fAuthText">Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.</span>
-        </button>
-      </div>
-      <div class="a2f-result" id="a2fResult" role="status" aria-live="polite"></div>
-      <div class="a2f-actions">
-        <button class="btn-primary a2f-done-btn" type="button" id="a2fDoneBtn" disabled data-i18n="a2fDone">Selesai, tetap di halaman akun</button>
       </div>
     </section>
   </div>
 
+  <div class="dirac-floating-actions"
   <div class="dirac-floating-actions" id="floatingActions" aria-label="Aksi cepat">
     <button class="dirac-float-btn dirac-float-top" id="scrollTopBtn" type="button" aria-label="Scroll ke atas">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M12 19V5m0 0-7 7m7-7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1395,8 +1520,8 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
       graphite:{label:'Graphite', gold:'#94a3b8', gold2:'#475569', gold3:'#0f172a', rgb:'148,163,184'}
     };
     var I18N = {
-      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fTitle:'Aktifkan A2F',a2fSub:'Sebelum lanjut, pilih metode keamanan tambahan untuk melindungi akun Dirac Group pelanggan.',a2fNote:'A2F tidak membuka dashboard otomatis. Setelah metode dipilih, status keamanan disimpan di perangkat ini dan pelanggan tetap berada di halaman akun.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, tetap di halaman akun',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email atau nomor WhatsApp pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email / WhatsApp',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
-      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fTitle:'Enable 2FA',a2fSub:'Before continuing, choose an extra security method to protect the customer account.',a2fNote:'2FA does not open a dashboard automatically. After a method is selected, the security status is saved on this device and the customer stays on the account page.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, stay on account page',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email or WhatsApp number.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email / WhatsApp',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
+      id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fSideSub:'Lapisan proteksi akun',a2fStepChoose:'Pilih metode',a2fStepVerify:'Verifikasi',a2fStepRecover:'Recovery code',a2fStepFinish:'Selesai',a2fRiskKicker:'Status',a2fRiskTitle:'Proteksi belum aktif',a2fRiskText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',a2fKicker:'Wajib sebelum dashboard',a2fRecommended:'Disarankan',a2fStrong:'Aman',a2fBackup:'Backup',a2fPasskeyMini:'Paling modern dan tahan phishing.',a2fAuthMini:'Cadangan kuat untuk akun.',a2fEmailMini:'Mudah, jangan jadikan metode utama.',a2fPreviewKicker:'Detail metode',a2fSelectedPasskey:'Passkey siap dibuat',a2fSelectedAuth:'Authenticator siap dihubungkan',a2fSelectedEmail:'Email OTP siap dikirim',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Buat passkey di perangkat pelanggan',a2fPasskeyPanelText:'Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser membuka Face ID, sidik jari, PIN, atau password manager.',a2fAuthPanelTitle:'Scan QR di aplikasi authenticator',a2fAuthPanelText:'Untuk produksi, server membuat secret TOTP terenkripsi, menampilkan QR otpauth://, lalu memverifikasi kode 6 digit sebelum A2F aktif.',a2fEmailPanelTitle:'Kirim kode ke email pelanggan',a2fEmailPanelText:'Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.',a2fReadyHttps:'Domain aman',a2fReadyApi:'Hook endpoint siap',a2fReadyDb:'Butuh tabel MFA',a2fStart:'Aktifkan pilihan ini',a2fTitle:'Aktifkan A2F',a2fSub:'Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.',a2fNote:'Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, atau authenticator dari server sebelum dashboard dibuka.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, tetap di halaman akun',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email atau nomor WhatsApp pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email / WhatsApp',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
+      en:{announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Recovery code',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Scan QR in an authenticator app',a2fAuthPanelText:'For production, the server creates an encrypted TOTP secret, shows an otpauth:// QR, then verifies the 6-digit code before enabling 2FA.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, email OTP, or authenticator codes on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, stay on account page',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email or WhatsApp number.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email / WhatsApp',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'},
       zh:{loginTitle:'登录账号',tabLogin:'登录',tabRegister:'注册',theme:'主题',menuTitle:'菜单',themeTitle:'主题设置',languageTitle:'语言',motionTitle:'网站动效',heroLead:'更快登录，',heroGold:'更整洁购物。',submitLogin:'立即登录',submitRegister:'创建账号',aiTitle:'Dirac AI',aiWelcome:'你好！我可以帮助登录、注册、主题、语言、WhatsApp 和导航。'},
       ar:{loginTitle:'تسجيل الدخول',tabLogin:'دخول',tabRegister:'تسجيل',theme:'السمة',menuTitle:'القائمة',themeTitle:'إعدادات السمة',languageTitle:'اللغة',motionTitle:'حركة الموقع',heroLead:'ادخل أسرع،',heroGold:'وتسوق بترتيب أكثر.',submitLogin:'تسجيل الدخول الآن',submitRegister:'إنشاء حساب',aiTitle:'Dirac AI',aiWelcome:'مرحباً! يمكنني المساعدة في الدخول، التسجيل، السمة، اللغة، واتساب والتنقل.'},
       ja:{loginTitle:'ログイン',tabLogin:'ログイン',tabRegister:'登録',theme:'テーマ',menuTitle:'メニュー',themeTitle:'テーマ設定',languageTitle:'言語',motionTitle:'サイトの動き',heroLead:'より速くログイン、',heroGold:'より快適に購入。',submitLogin:'今すぐログイン',submitRegister:'アカウント作成',aiTitle:'Dirac AI',aiWelcome:'こんにちは。ログイン、登録、テーマ、言語、WhatsApp、ナビをサポートします。'},
@@ -1552,12 +1677,41 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
     function a2fLabel(method){
       return method === 'passkey' ? 'Passkey' : method === 'email' ? 'Email' : 'Authenticator';
     }
+    function syncA2FPreview(method){
+      method = method || 'passkey';
+      var card = $('#a2fModal .a2f-card'); if(card) card.setAttribute('data-selected-a2f', method);
+      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === method; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      $$('#a2fModal [data-a2f-panel]').forEach(function(panel){ panel.classList.toggle('active', panel.getAttribute('data-a2f-panel') === method); });
+      var start = $('#a2fStartBtn'); if(start) start.setAttribute('data-a2f-method', method);
+      var lang = settings && settings.language === 'en' ? 'en' : 'id';
+      var map = {
+        passkey:{title:{id:'Passkey siap dibuat',en:'Passkey ready to create'},pill:{id:'WebAuthn ready',en:'WebAuthn ready'}},
+        authenticator:{title:{id:'Authenticator siap dihubungkan',en:'Authenticator ready to connect'},pill:{id:'TOTP ready',en:'TOTP ready'}},
+        email:{title:{id:'Email OTP siap dikirim',en:'Email OTP ready to send'},pill:{id:'OTP ready',en:'OTP ready'}}
+      };
+      var data = map[method] || map.passkey;
+      var title = $('#a2fSelectedTitle'); if(title) title.textContent = data.title[lang] || data.title.id;
+      var pill = $('#a2fLivePill'); if(pill) pill.textContent = data.pill[lang] || data.pill.id;
+      var verify = $('#a2fModal [data-a2f-step="verify"]');
+      $$('#a2fModal .a2f-step').forEach(function(step){ step.classList.remove('is-current'); });
+      var choose = $('#a2fModal [data-a2f-step="choose"]'); if(choose) choose.classList.add('is-done');
+      if(verify) verify.classList.add('is-current');
+    }
     function resetA2FModal(){
       var result = $('#a2fResult');
       if(result){ result.className = 'a2f-result'; result.textContent = ''; }
       var done = $('#a2fDoneBtn');
       if(done) done.disabled = true;
+      var start = $('#a2fStartBtn');
+      if(start){ start.disabled = false; start.setAttribute('data-a2f-method','passkey'); }
+      var card = $('#a2fModal .a2f-card');
+      if(card){ card.classList.remove('is-verified'); card.setAttribute('data-selected-a2f','passkey'); }
       $$('#a2fModal [data-a2f-method]').forEach(function(btn){ btn.classList.remove('active'); btn.disabled = false; });
+      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === 'passkey'; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.disabled = false; });
+      $$('#a2fModal [data-a2f-panel]').forEach(function(panel){ panel.classList.toggle('active', panel.getAttribute('data-a2f-panel') === 'passkey'); });
+      $$('#a2fModal .a2f-step').forEach(function(step){ step.classList.remove('is-done','is-current'); });
+      var first = $('#a2fModal [data-a2f-step="choose"]'); if(first) first.classList.add('is-current');
+      syncA2FPreview('passkey');
     }
     function activateA2F(method, detail){
       var label = a2fLabel(method);
@@ -1570,11 +1724,16 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
       writeAuthSession(session);
       try{localStorage.setItem(A2F_KEY, JSON.stringify({method:method, label:label, active:true, time:session.twoFactorActivatedAt}));}catch(e){}
       $$('#a2fModal [data-a2f-method]').forEach(function(btn){ btn.classList.toggle('active', btn.getAttribute('data-a2f-method') === method); });
+      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === method; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      var card = $('#a2fModal .a2f-card'); if(card){ card.classList.add('is-verified'); card.setAttribute('data-selected-a2f', method); }
+      $$('#a2fModal .a2f-step').forEach(function(step){ step.classList.remove('is-current'); step.classList.add('is-done'); });
+      var finish = $('#a2fModal [data-a2f-step="finish"]'); if(finish) finish.classList.add('is-current');
+      syncA2FPreview(method);
       var result = $('#a2fResult');
-      if(result){ result.className = 'a2f-result show'; result.textContent = 'A2F via ' + label + ' sudah diaktifkan untuk sesi pelanggan ini. Dashboard tidak dibuka otomatis.'; }
+      if(result){ result.className = 'a2f-result show'; result.textContent = 'A2F via ' + label + ' siap untuk sesi pelanggan ini. Untuk produksi nyata, server tetap harus memverifikasi challenge atau OTP sebelum dashboard dibuka.'; }
       var done = $('#a2fDoneBtn');
       if(done) done.disabled = false;
-      showToast('A2F ' + label + ' aktif.');
+      showToast('A2F ' + label + ' siap.');
     }
     function arrayBufferToBase64Url(buffer){
       var bytes = new Uint8Array(buffer), binary = '';
@@ -1584,6 +1743,7 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
     async function startA2F(method){
       var clicked = $('#a2fModal [data-a2f-method="' + method + '"]');
       if(clicked) clicked.disabled = true;
+      var startBtn = $('#a2fStartBtn'); if(startBtn) startBtn.disabled = true;
       try{
         if(method === 'passkey' && window.PublicKeyCredential && navigator.credentials && window.crypto && window.crypto.getRandomValues){
           var challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
@@ -1599,6 +1759,7 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
         activateA2F(method, {selected:true, note:'Passkey tidak selesai di browser; metode tetap disimpan sebagai pilihan keamanan.'});
       }finally{
         if(clicked) clicked.disabled = false;
+        if(startBtn) startBtn.disabled = false;
       }
     }
     function aiAnswer(q){
@@ -1648,6 +1809,8 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
       var a2fModal = $('#a2fModal');
       if(a2fModal){
         a2fModal.addEventListener('click', function(e){
+          var selectBtn = e.target.closest('[data-a2f-select]');
+          if(selectBtn){ syncA2FPreview(selectBtn.getAttribute('data-a2f-select')); return; }
           var methodBtn = e.target.closest('[data-a2f-method]');
           if(methodBtn){ startA2F(methodBtn.getAttribute('data-a2f-method')); }
         });
@@ -1784,7 +1947,7 @@ html[data-motion="reduced"] .toast.show:after{animation:none!important;transitio
     installA2FMotion();
     installThemeTransition();
     installRipple();
-    /* Toast progress CSS runs without JS observer to avoid class-mutation loops. */
+    installToastRestart();
   });
 })();
 </script>
