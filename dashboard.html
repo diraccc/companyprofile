@@ -1,19 +1,30 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark" data-effective-theme="dark" data-du-accent="cyan" data-du-motion="on">
 <head>
+<script id="dirac-safe-storage-guard">
+(function(){
+  'use strict';
+  try{var k='__dirac_storage_test__';window.localStorage.setItem(k,'1');window.localStorage.removeItem(k);}
+  catch(e){
+    var mem={};
+    try{Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:function(k){return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null},setItem:function(k,v){mem[k]=String(v)},removeItem:function(k){delete mem[k]},clear:function(){mem={}},key:function(i){return Object.keys(mem)[i]||null},get length(){return Object.keys(mem).length}}});}catch(_e){}
+  }
+})();
+</script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Dashboard | Dirac Group Domain</title>
   <meta name="description" content="Dashboard pelanggan Dirac Group untuk cek domain, checkout, dan melihat status pesanan." />
-  <meta name="theme-color" content="#6258ff" />
+  <meta name="theme-color" content="#07090d" />
   <meta name="color-scheme" content="light dark" />
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="canonical" href="dashboard.html" />
+  <link rel="canonical" href="https://diraccc.github.io/ngetes/dashboard.html" />
   <meta property="og:title" content="Dashboard Dirac Group Domain" />
   <meta property="og:description" content="Cek domain, checkout, dan pantau status pesanan domain Dirac Group." />
-  <meta name="dirac-dashboard-route" content="dashboard.html" />
-  <meta name="dirac-login-route" content="wbst.html" />
+  <meta name="dirac-dashboard-route" content="https://diraccc.github.io/ngetes/dashboard.html" />
+  <meta name="dirac-login-route" content="https://diraccc.github.io/ngetes/masuk.html" />
   <link rel="icon" href="logo3.webp" type="image/webp" />
 
   <style>
@@ -3255,6 +3266,7 @@ html[data-theme="dark"] .mobile-bottom-nav button{color:#dbeafe!important;backgr
 html[data-theme="dark"] .mobile-bottom-nav button.active{background:linear-gradient(135deg,#1e3a8a,#0f766e)!important;color:#ffffff!important;}
 html[data-theme="dark"] .nav-backdrop{background:rgba(0,0,0,.58)!important;}
 
+.du-currency-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
 @media(max-width:900px){
   body{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important;}
   .site-header{z-index:30000!important;}
@@ -3541,13 +3553,197 @@ html[data-theme="dark"] .preset-chip{
 }
 </style>
 
+
+<!-- DIRAC_CLEAN_V3_START -->
+<style id="dirac-clean-v3-css">
+:root{
+  --du-rgb:37,191,244;
+  --du-accent:#25bff4;
+  --du-accent-2:#4ed8ff;
+  --du-bg:#020407;
+  --du-bg-2:#07111d;
+  --du-panel:rgba(10,18,30,.88);
+  --du-panel-2:rgba(15,28,44,.82);
+  --du-card:rgba(255,255,255,.062);
+  --du-card-strong:rgba(255,255,255,.10);
+  --du-text:#f8fbff;
+  --du-muted:#aebed2;
+  --du-soft:#d7e7f7;
+  --du-line:rgba(var(--du-rgb),.28);
+  --du-line-strong:rgba(var(--du-rgb),.48);
+  --du-shadow:0 24px 74px rgba(0,0,0,.48);
+  --du-radius:28px;
+  --du-max:1180px;
+  --theme-rgb:var(--du-rgb);
+  --gold:var(--du-accent);--gold-2:var(--du-accent-2);--line:var(--du-line);--line-strong:var(--du-line-strong);
+  --violet:var(--du-accent);--cyan:var(--du-accent-2);--blue-600:var(--du-accent);--blue-500:var(--du-accent);--blue-400:var(--du-accent-2);
+  --deep:var(--du-text);--ink:var(--du-text);--text:var(--du-text);--muted:var(--du-muted);
+}
+html[data-du-accent="cyan"]{--du-rgb:37,191,244;--du-accent:#25bff4;--du-accent-2:#4ed8ff}
+html[data-du-accent="gold"]{--du-rgb:243,205,112;--du-accent:#f3cd70;--du-accent-2:#ffe58e}
+html[data-du-accent="violet"]{--du-rgb:139,92,246;--du-accent:#8b5cf6;--du-accent-2:#c4b5fd}
+html[data-du-accent="mint"]{--du-rgb:24,185,129;--du-accent:#18b981;--du-accent-2:#65e4b4}
+html[data-du-accent="rose"]{--du-rgb:239,95,128;--du-accent:#ef5f80;--du-accent-2:#ffb0c0}
+html[data-du-accent="amber"]{--du-rgb:245,158,11;--du-accent:#f59e0b;--du-accent-2:#fcd34d}
+html[data-du-contrast="on"]{--du-line:rgba(var(--du-rgb),.42);--du-line-strong:rgba(var(--du-rgb),.68);--du-card:rgba(255,255,255,.08);--du-card-strong:rgba(255,255,255,.135)}
+html[data-du-motion="off"],html[data-du-motion="off"] *{scroll-behavior:auto!important}
+html[data-du-motion="off"] *,html[data-du-motion="off"] *::before,html[data-du-motion="off"] *::after{animation:none!important;transition:none!important}
+html{background:#020407!important;color-scheme:dark!important;scroll-padding-top:126px!important;}
+html,body{max-width:100%;overflow-x:hidden!important;}
+body.du-clean-ready{
+  display:block!important;
+  place-items:initial!important;
+  min-height:100vh!important;
+  margin:0!important;
+  padding:124px 0 42px!important;
+  font-family:Poppins,Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;
+  color:var(--du-text)!important;
+  background:
+    radial-gradient(circle at 14% 0%,rgba(var(--du-rgb),.24),transparent 31rem),
+    radial-gradient(circle at 92% 7%,rgba(var(--du-rgb),.16),transparent 25rem),
+    radial-gradient(circle at 18% 82%,rgba(8,70,105,.24),transparent 28rem),
+    linear-gradient(180deg,#04070b 0%,#07111d 46%,#020407 100%)!important;
+  line-height:1.65!important;
+  letter-spacing:-.01em;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+body.du-clean-ready::before{
+  content:""!important;position:fixed!important;inset:0!important;z-index:-2!important;pointer-events:none!important;
+  background-image:linear-gradient(rgba(var(--du-rgb),.055) 1px,transparent 1px),linear-gradient(90deg,rgba(var(--du-rgb),.055) 1px,transparent 1px)!important;
+  background-size:46px 46px!important;mask-image:linear-gradient(to bottom,rgba(0,0,0,.86),rgba(0,0,0,.15))!important;opacity:.72!important;
+}
+body.du-clean-ready::after{content:"";position:fixed;left:-20%;right:-20%;top:-45%;height:88vh;z-index:-1;pointer-events:none;background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.025) 40%,rgba(var(--du-rgb),.08) 50%,transparent 62%);transform:translateX(-125%);animation:duCleanPageShine 9s ease-in-out infinite;}
+@keyframes duCleanPageShine{0%,62%{transform:translateX(-125%)}84%,100%{transform:translateX(125%)}}
+body.du-clean-ready a{color:inherit;text-decoration:none}
+body.du-clean-ready img{max-width:100%;height:auto}
+body.du-clean-ready button,body.du-clean-ready input,body.du-clean-ready select,body.du-clean-ready textarea{font:inherit}
+body.du-clean-ready button{cursor:pointer}
+/* hilangkan header / floating lama supaya tidak dobel dan tidak tumpang tindih */
+body.du-clean-ready .site-header,
+body.du-clean-ready .announcement,
+body.du-clean-ready header.header,
+body.du-clean-ready .hero-shell > .container.header,
+body.du-clean-ready header:not(.du-topbar):not(.du-keep),
+body.du-clean-ready .dirac-v2-topbar,
+body.du-clean-ready .dirac-floating-actions,
+body.du-clean-ready .floating-cart,
+body.du-clean-ready .wa-float,
+body.du-clean-ready .whatsapp-float,
+body.du-clean-ready .scroll-top,
+body.du-clean-ready #scrollTop,
+body.du-clean-ready #backToTop,
+body.du-clean-ready .dirac-ai-pill,
+body.du-clean-ready .mobile-bottom-nav,
+body.du-clean-ready .theme-toggle,
+body.du-clean-ready [data-theme-toggle],
+body.du-clean-ready .menu-toggle,
+body.du-clean-ready .nav-backdrop,
+body.du-clean-ready .float-actions,
+body.du-clean-ready .theme-toggle-nav{display:none!important;}
+body.du-clean-ready .hero-shell{background:transparent!important;overflow:visible!important;}
+body.du-clean-ready .hero-shell::before,body.du-clean-ready .hero-shell::after{display:none!important;}
+/* header final */
+.du-topbar{position:fixed;left:0;right:0;top:0;z-index:2147483000;padding:14px 16px 10px;pointer-events:none;}
+.du-nav{width:min(var(--du-max),100%);margin:auto;pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:78px;padding:10px 14px;border-radius:34px;background:linear-gradient(135deg,rgba(6,13,22,.96),rgba(11,24,38,.90));border:1px solid rgba(var(--du-rgb),.34);box-shadow:0 20px 70px rgba(0,0,0,.44),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);overflow:hidden;position:relative;}
+.du-nav::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 10% 0%,rgba(var(--du-rgb),.20),transparent 38%),linear-gradient(110deg,transparent 28%,rgba(255,255,255,.05),transparent 62%);}
+.du-brand{position:relative;z-index:1;display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto;}
+.du-logo{width:58px;height:58px;min-width:58px;border-radius:20px;display:grid;place-items:center;overflow:hidden;background:#fff;color:#0b2235;border:1px solid rgba(255,255,255,.25);box-shadow:0 14px 36px rgba(var(--du-rgb),.24);font-weight:1000;}
+.du-logo img{width:100%;height:100%;object-fit:contain;background:#fff;display:block;}
+.du-brand-copy{display:grid;gap:4px;min-width:0;}
+.du-title{display:block;color:#fff;font-weight:950;font-size:clamp(22px,3.2vw,28px);line-height:1;letter-spacing:-.055em;white-space:nowrap;}
+.du-type-line{display:flex;align-items:center;gap:6px;min-width:0;max-width:min(520px,44vw);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(225,240,255,.78);font-weight:950;line-height:1.16;white-space:nowrap;overflow:hidden;text-overflow:clip;}
+.du-type-line::after{content:"";width:.12em;height:1em;border-radius:999px;background:linear-gradient(180deg,var(--du-accent-2),var(--du-accent));box-shadow:0 0 13px rgba(var(--du-rgb),.44);animation:duCaretBlink .76s steps(1,end) infinite;flex:0 0 auto;}
+@keyframes duCaretBlink{0%,48%{opacity:1}49%,100%{opacity:.16}}
+.du-actions{position:relative;z-index:1;display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+.du-icon-btn,.du-order-btn{width:58px;height:58px;border-radius:22px;display:grid;place-items:center;border:1px solid rgba(var(--du-rgb),.30);background:rgba(255,255,255,.075);color:#eef8ff;font-weight:1000;font-size:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);cursor:pointer;transition:transform .24s ease,border-color .24s ease,background .24s ease,box-shadow .24s ease;position:relative;}
+.du-icon-btn:hover,.du-order-btn:hover{transform:translateY(-2px);border-color:rgba(var(--du-rgb),.62);background:rgba(255,255,255,.13);box-shadow:0 16px 38px rgba(0,0,0,.26);}
+.du-order-btn{background:linear-gradient(135deg,var(--du-accent-2),var(--du-accent));color:#06111e;border-color:rgba(255,255,255,.22);box-shadow:0 16px 38px rgba(var(--du-rgb),.24);}
+.du-badge{position:absolute;right:-2px;top:-2px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#e32935;color:#fff;display:grid;place-items:center;font-size:12px;line-height:1;font-weight:1000;border:2px solid rgba(5,10,16,.96);}
+/* rapikan area konten dan semua panel */
+body.du-clean-ready main,body.du-clean-ready .page,body.du-clean-ready .hero,body.du-clean-ready .section{background:transparent!important;position:relative;z-index:1;}
+body.du-clean-ready .container{width:min(var(--du-max),calc(100% - 32px))!important;margin-left:auto!important;margin-right:auto!important;}
+body.du-clean-ready .shell{width:min(1060px,calc(100% - 32px))!important;margin:24px auto 50px!important;display:grid!important;grid-template-columns:.95fr 1.05fr!important;gap:22px!important;align-items:stretch!important;}
+body.du-clean-ready .hero{padding-top:26px!important;}
+body.du-clean-ready .section{padding-top:42px!important;padding-bottom:42px!important;}
+body.du-clean-ready .hero-card,body.du-clean-ready .brand-panel,body.du-clean-ready .auth-card,
+body.du-clean-ready .panel,body.du-clean-ready .card,body.du-clean-ready .tracking-card,body.du-clean-ready .tracking-panel,
+body.du-clean-ready .result-card,body.du-clean-ready .stat-card,body.du-clean-ready .order-card,body.du-clean-ready .info-box,
+body.du-clean-ready .feature-card,body.du-clean-ready .faq-item,body.du-clean-ready .contact-card,body.du-clean-ready .trust-card,
+body.du-clean-ready .listing-card,body.du-clean-ready .domain-card,body.du-clean-ready .login-domain-preview,
+body.du-clean-ready .truck-card,body.du-clean-ready .hero-stat,body.du-clean-ready .console-window,body.du-clean-ready .console-grid div,
+body.du-clean-ready .market-card,body.du-clean-ready .step-card,body.du-clean-ready .price-card,body.du-clean-ready .assurance-card,
+body.du-clean-ready .product-card,body.du-clean-ready .promo-box,body.du-clean-ready .content-card,body.du-clean-ready .info-card,body.du-clean-ready .blog-card,
+body.du-clean-ready .tabs,body.du-clean-ready .domain-form,body.du-clean-ready .domain-search,body.du-clean-ready .checkout-summary,body.du-clean-ready .cart-empty,
+body.du-clean-ready .orbit-wrap,body.du-clean-ready .hero-console{
+  background:linear-gradient(180deg,var(--du-card-strong),var(--du-card))!important;
+  border:1px solid var(--du-line)!important;
+  color:var(--du-text)!important;
+  box-shadow:var(--du-shadow)!important;
+  backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;
+}
+body.du-clean-ready .brand-panel{background:radial-gradient(circle at 18% 12%,rgba(255,255,255,.14),transparent 30%),linear-gradient(135deg,rgba(var(--du-rgb),.32),rgba(9,17,28,.88) 58%,rgba(0,0,0,.92))!important;}
+body.du-clean-ready .hero-card{background:linear-gradient(145deg,rgba(22,34,54,.86),rgba(9,17,28,.84)),radial-gradient(circle at 88% 18%,rgba(var(--du-rgb),.13),transparent 34%)!important;}
+body.du-clean-ready h1,body.du-clean-ready h2,body.du-clean-ready h3,body.du-clean-ready h4,
+body.du-clean-ready .section-title h2,body.du-clean-ready .auth-title h2,body.du-clean-ready .hero-card h1,
+body.du-clean-ready .result-domain,body.du-clean-ready .invoice,body.du-clean-ready .card strong,
+body.du-clean-ready .line b,body.du-clean-ready .summary-line b,body.du-clean-ready .cart-price,
+body.du-clean-ready .domain-name,body.du-clean-ready .brand-copy strong,body.du-clean-ready .product-title{color:var(--du-text)!important;}
+body.du-clean-ready p,body.du-clean-ready small,body.du-clean-ready .muted,body.du-clean-ready .section-title p,
+body.du-clean-ready .hero-card p,body.du-clean-ready .auth-title p,body.du-clean-ready .field-help,body.du-clean-ready .microcopy,
+body.du-clean-ready .date,body.du-clean-ready .line,body.du-clean-ready .summary-line,body.du-clean-ready .card span,
+body.du-clean-ready .mini-list div,body.du-clean-ready .hero-subtitle,body.du-clean-ready .brand-copy span,
+body.du-clean-ready .product-desc,body.du-clean-ready .section-lead{color:var(--du-muted)!important;}
+body.du-clean-ready .pill,body.du-clean-ready .hero-label,body.du-clean-ready .eyebrow,body.du-clean-ready .tld-chip,
+body.du-clean-ready .quick-tlds span,body.du-clean-ready .filter-pill,body.du-clean-ready .status-badge,
+body.du-clean-ready .badge,body.du-clean-ready .tag{color:var(--du-accent-2)!important;background:rgba(var(--du-rgb),.11)!important;border:1px solid rgba(var(--du-rgb),.28)!important;}
+body.du-clean-ready input,body.du-clean-ready textarea,body.du-clean-ready select,
+body.du-clean-ready .field input,body.du-clean-ready .field textarea,body.du-clean-ready .field select,
+body.du-clean-ready .password-wrap{background:rgba(255,255,255,.075)!important;border:1px solid rgba(var(--du-rgb),.20)!important;color:var(--du-text)!important;border-radius:16px!important;box-shadow:none!important;}
+body.du-clean-ready input::placeholder,body.du-clean-ready textarea::placeholder{color:rgba(225,240,255,.48)!important;}
+body.du-clean-ready option{background:#0d1624!important;color:#fff!important;}
+body.du-clean-ready input:focus,body.du-clean-ready textarea:focus,body.du-clean-ready select:focus{border-color:rgba(var(--du-rgb),.68)!important;box-shadow:0 0 0 5px rgba(var(--du-rgb),.14)!important;outline:none!important;}
+body.du-clean-ready .btn,body.du-clean-ready .btn-primary,body.du-clean-ready .btn-secondary,body.du-clean-ready .btn-soft,body.du-clean-ready .btn-mint,
+body.du-clean-ready .load-more-btn,body.du-clean-ready .tab,body.du-clean-ready .menu-card{
+  border-radius:999px!important;border:1px solid rgba(var(--du-rgb),.24)!important;font-weight:950!important;transition:transform .22s ease,filter .22s ease,border-color .22s ease,background .22s ease!important;
+}
+body.du-clean-ready .btn-primary,body.du-clean-ready .btn-mint,body.du-clean-ready .tab.active,body.du-clean-ready .load-more-btn{background:linear-gradient(135deg,var(--du-accent-2),var(--du-accent))!important;color:#06111e!important;box-shadow:0 16px 38px rgba(var(--du-rgb),.22)!important;}
+body.du-clean-ready .btn-secondary,body.du-clean-ready .btn-soft,body.du-clean-ready .tab,body.du-clean-ready .menu-card{background:rgba(255,255,255,.07)!important;color:var(--du-text)!important;}
+body.du-clean-ready .btn:hover,body.du-clean-ready .menu-card:hover{transform:translateY(-2px)!important;filter:brightness(1.05);}
+body.du-clean-ready .menu-grid{gap:14px!important;}
+body.du-clean-ready .menu-card{border-radius:22px!important;text-align:left!important;min-height:94px!important;padding:16px!important;}
+body.du-clean-ready table{color:var(--du-text)!important;background:rgba(255,255,255,.04)!important;border-radius:18px!important;overflow:hidden;}
+body.du-clean-ready th,body.du-clean-ready td{border-color:rgba(var(--du-rgb),.16)!important;}
+body.du-clean-ready .product-media img,body.du-clean-ready .quick-grid img,body.du-clean-ready .blog-card img,body.du-clean-ready .lifestyle-card img{object-fit:contain!important;background:#fff!important;padding:8px;border-radius:18px;}
+/* panel tema/menu/AI */
+.du-overlay{position:fixed;inset:0;background:rgba(0,0,0,.64);backdrop-filter:blur(8px);z-index:2147483100;display:none;padding:18px;}
+.du-overlay.open{display:grid;place-items:center;animation:duFade .22s ease both;}@keyframes duFade{from{opacity:.15}to{opacity:1}}
+.du-modal{width:min(740px,100%);max-height:92vh;overflow:auto;border-radius:30px;background:linear-gradient(180deg,rgba(16,23,34,.98),rgba(7,11,18,.98));border:1px solid rgba(var(--du-rgb),.30);box-shadow:0 24px 96px rgba(0,0,0,.62);color:#fff;}
+.du-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.08);}
+.du-modal-head h2{margin:0;color:var(--du-accent)!important;font-size:clamp(24px,4vw,34px);line-height:1.05;letter-spacing:-.045em;}.du-modal-head p{margin:5px 0 0;color:var(--du-muted)!important;}
+.du-close{width:42px;height:42px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#fff;font-size:24px;font-weight:900;cursor:pointer;}
+.du-modal-body{padding:20px 22px 24px;display:grid;gap:18px;}.du-section{padding:0 0 18px;border-bottom:1px solid rgba(255,255,255,.08);}.du-section:last-child{border-bottom:0;padding-bottom:0;}.du-section h3{margin:0 0 5px;color:#fff!important;font-size:16px;}.du-section p{margin:0 0 12px;color:var(--du-muted)!important;font-size:13px;}
+.du-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}.du-lang-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}.du-choice{min-height:48px;border-radius:16px;border:1px solid rgba(var(--du-rgb),.22);background:rgba(255,255,255,.07);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:900;cursor:pointer;}.du-choice.active{background:linear-gradient(135deg,var(--du-accent-2),var(--du-accent));color:#06111e;border-color:transparent;}.du-swatches{display:flex;gap:10px;flex-wrap:wrap;}.du-swatch{width:42px;height:42px;border-radius:999px;border:2px solid rgba(255,255,255,.35);cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.22);}.du-swatch.active{outline:3px solid rgba(255,255,255,.34);outline-offset:3px;}
+.du-menu-panel,.du-ai-panel{position:fixed;z-index:2147483090;border-radius:28px;background:linear-gradient(180deg,rgba(12,22,36,.98),rgba(6,11,18,.98));border:1px solid rgba(var(--du-rgb),.30);box-shadow:0 24px 90px rgba(0,0,0,.58);display:none;overflow:hidden;color:#fff;}.du-menu-panel{right:18px;top:102px;width:min(390px,calc(100vw - 32px));}.du-ai-panel{left:18px;bottom:100px;width:min(380px,calc(100vw - 32px));}.du-menu-panel.open,.du-ai-panel.open{display:block;animation:duPanelPop .24s ease both;}@keyframes duPanelPop{from{opacity:.2;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.du-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px;border-bottom:1px solid rgba(255,255,255,.08);}.du-panel-head strong{display:block;color:#fff;font-size:18px;line-height:1.08;}.du-panel-head span{display:block;color:var(--du-muted);font-size:12px;font-weight:750;margin-top:4px;}.du-menu-links{padding:14px;display:grid;gap:9px;}.du-menu-links a,.du-menu-links button,.du-ai-body button{width:100%;min-height:48px;text-align:left;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.065);color:#fff;padding:12px 14px;font-weight:900;cursor:pointer;}.du-menu-links a:hover,.du-menu-links button:hover,.du-ai-body button:hover{background:rgba(var(--du-rgb),.14);border-color:rgba(var(--du-rgb),.32);}.du-ai-body{padding:16px 18px 18px;display:grid;gap:10px;}.du-ai-answer{min-height:76px;border-radius:20px;background:rgba(var(--du-rgb),.10);border:1px solid rgba(var(--du-rgb),.22);color:#dceeff;padding:13px;line-height:1.55;}
+.du-float-left{position:fixed;left:clamp(14px,2.8vw,22px);bottom:calc(22px + env(safe-area-inset-bottom));z-index:2147483050;}.du-float-right{position:fixed;right:clamp(14px,2.8vw,22px);bottom:calc(22px + env(safe-area-inset-bottom));z-index:2147483050;display:grid;gap:12px;}.du-round{width:64px;height:64px;border-radius:24px;border:1px solid rgba(var(--du-rgb),.34);display:grid;place-items:center;background:linear-gradient(145deg,rgba(10,18,30,.94),rgba(17,39,58,.90));color:#fff;box-shadow:0 18px 52px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(18px);font-weight:1000;font-size:26px;cursor:pointer;}.du-round.primary{background:linear-gradient(135deg,#48e38d,#13bf6f);color:#062012;text-decoration:none;}.du-round:hover{transform:translateY(-3px);border-color:rgba(var(--du-rgb),.65);}.du-ai-button{position:relative;overflow:hidden;}.du-ai-button::after{content:"AI";position:absolute;right:-3px;top:-4px;font-size:10px;line-height:1;font-weight:1000;background:var(--du-accent);color:#06111e;border-radius:999px;padding:5px 7px;}
+.du-toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,16px);opacity:0;pointer-events:none;z-index:2147483200;max-width:min(92vw,560px);border-radius:999px;background:rgba(10,18,30,.94);border:1px solid rgba(var(--du-rgb),.28);color:#fff;padding:12px 16px;box-shadow:0 18px 54px rgba(0,0,0,.45);transition:.24s ease;}.du-toast.show{opacity:1;transform:translate(-50%,0);}
+body.du-clean-ready .hero-card,body.du-clean-ready .brand-panel,body.du-clean-ready .auth-card,body.du-clean-ready .panel,body.du-clean-ready .card,body.du-clean-ready .tracking-card{animation:duSafeRise .7s cubic-bezier(.16,1,.3,1) both;}@keyframes duSafeRise{from{transform:translateY(12px);filter:saturate(.92)}to{transform:none;filter:none}}
+@media(max-width:900px){body.du-clean-ready .shell{grid-template-columns:1fr!important;}body.du-clean-ready .brand-panel{min-height:320px!important}.du-lang-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:760px){body.du-clean-ready{padding-top:108px!important;}.du-topbar{padding:12px 12px 8px;}.du-nav{min-height:72px;padding:9px 10px;border-radius:30px;gap:8px;}.du-logo{width:54px;height:54px;min-width:54px;border-radius:18px;}.du-title{font-size:22px;}.du-type-line{font-size:9px;max-width:34vw;letter-spacing:.09em;}.du-actions{gap:7px;}.du-icon-btn,.du-order-btn{width:52px;height:52px;border-radius:20px;font-size:20px;}.du-grid,.du-lang-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.du-menu-panel{top:92px;right:12px;}.du-modal{border-radius:26px;}.du-round{width:62px;height:62px;}body.du-clean-ready .hero{padding-top:16px!important;}body.du-clean-ready .section{padding-top:34px!important;padding-bottom:34px!important;}}
+@media(max-width:410px){.du-logo{width:50px;height:50px;min-width:50px}.du-icon-btn,.du-order-btn{width:48px;height:48px;border-radius:18px}.du-type-line{max-width:26vw}.du-title{font-size:20px}.du-badge{min-width:20px;height:20px;font-size:11px}.du-actions{gap:6px}}
+@media(max-width:360px){.du-type-line{display:none}.du-nav{padding:8px}.du-logo{width:48px;height:48px;min-width:48px}.du-icon-btn,.du-order-btn{width:46px;height:46px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+<!-- DIRAC_CLEAN_V3_END -->
+
 </head>
 
-<body>
+<body class="du-clean-ready">
   <a class="skip-link" href="#mainContent">Lewati ke konten utama</a>
   <header class="site-header">
     <div class="container nav">
-      <a href="dashboard.html" class="brand">
+      <a href="https://diraccc.github.io/ngetes/dashboard.html" class="brand">
         <span class="brand-mark"><img src="logo3.webp" alt="Dirac Group" /></span>
         <span class="brand-copy">
           <strong>Dirac Group</strong>
@@ -7789,5 +7985,85 @@ html[data-theme="dark"] .domain-management-panel .hpanel-loading-card small{colo
   });
 })();
 </script>
+
+<!-- DIRAC_CLEAN_V3_BODY_START -->
+<header class="du-topbar" aria-label="Dirac unified header">
+  <nav class="du-nav">
+    <a class="du-brand" href="https://diraccc.github.io/ngetes/awal.html" aria-label="Dirac Group">
+      <span class="du-logo"><img src="logo3.webp" alt="Dirac Group"></span>
+      <span class="du-brand-copy"><span class="du-title">Dirac</span><span class="du-type-line"><span data-du-typewriter>Company Profile • Masuk/Daftar • Dashboard • Cek Resi • Order Parfum</span></span></span>
+    </a>
+    <div class="du-actions">
+      <button class="du-icon-btn" type="button" data-du-open-theme aria-label="Pengaturan tema">🎨</button>
+      <a class="du-order-btn" data-du-order-link href="https://diraccc.github.io/ngetes/order.html" aria-label="Order parfum"><span>🛍️</span><span class="du-badge" data-du-cart-count>0</span></a>
+      <button class="du-icon-btn" type="button" data-du-open-menu aria-label="Menu">☰</button>
+    </div>
+  </nav>
+</header>
+<div class="du-overlay" data-du-theme-modal aria-hidden="true">
+  <div class="du-modal" role="dialog" aria-modal="true" aria-label="Pengaturan tema Dirac">
+    <div class="du-modal-head"><div><h2 data-du-i18n="themeTitle">Pengaturan Tema</h2><p data-du-i18n="themeSub">Warna, bahasa, dan gerak website dibuat sama di semua halaman.</p></div><button class="du-close" type="button" data-du-close aria-label="Tutup">×</button></div>
+    <div class="du-modal-body">
+      <section class="du-section"><h3 data-du-i18n="modeTitle">Mode Tema</h3><p data-du-i18n="modeDesc">Semua halaman dipaksa hitam premium agar terasa satu website.</p><div class="du-grid"><button class="du-choice" type="button" data-du-mode="dark">☾ Dark</button><button class="du-choice" type="button" data-du-mode="auto">⚙ Auto</button></div></section>
+      <section class="du-section"><h3 data-du-i18n="langTitle">Bahasa Tampilan</h3><p data-du-i18n="langDesc">Pilih bahasa panel sistem Dirac.</p><div class="du-lang-grid"><button class="du-choice" type="button" data-du-lang="id">ID Indonesia</button><button class="du-choice" type="button" data-du-lang="en">EN English</button><button class="du-choice" type="button" data-du-lang="zh">中 中文</button><button class="du-choice" type="button" data-du-lang="ar">ع العربية</button><button class="du-choice" type="button" data-du-lang="ja">日 日本語</button><button class="du-choice" type="button" data-du-lang="ko">한 한국어</button><button class="du-choice" type="button" data-du-lang="es">ES Español</button><button class="du-choice" type="button" data-du-lang="fr">FR Français</button></div></section>
+      <section class="du-section"><h3 data-du-i18n="contrastTitle">Kontras Tema</h3><p data-du-i18n="contrastDesc">Pertegas garis dan panel.</p><div class="du-grid"><button class="du-choice" type="button" data-du-contrast="on">◐ On</button><button class="du-choice" type="button" data-du-contrast="off">◌ Off</button></div></section>
+      <section class="du-section"><h3 data-du-i18n="colorTitle">Kustom Warna</h3><p data-du-i18n="colorDesc">Pilih warna aksen utama website.</p><div class="du-swatches"><button class="du-swatch" type="button" data-du-accent="cyan" title="Cyan" style="background:#25bff4"></button><button class="du-swatch" type="button" data-du-accent="gold" title="Gold" style="background:#f3cd70"></button><button class="du-swatch" type="button" data-du-accent="violet" title="Violet" style="background:#8b5cf6"></button><button class="du-swatch" type="button" data-du-accent="mint" title="Mint" style="background:#18b981"></button><button class="du-swatch" type="button" data-du-accent="rose" title="Rose" style="background:#ef5f80"></button><button class="du-swatch" type="button" data-du-accent="amber" title="Amber" style="background:#f59e0b"></button></div></section>
+      <section class="du-section"><h3 data-du-i18n="motionTitle">Gerak Website</h3><p data-du-i18n="motionDesc">Animasi aman seperti order.html, bisa dimatikan.</p><div class="du-grid"><button class="du-choice" type="button" data-du-motion="on">Aktif</button><button class="du-choice" type="button" data-du-motion="off">Nonaktif</button></div></section>
+      <section class="du-section"><h3 data-du-i18n="currencyTitle">Mata Uang</h3><p data-du-i18n="currencyDesc">Harga domain dapat ditampilkan dalam mata uang pilihan.</p><div class="du-currency-grid"><button class="du-choice" type="button" data-du-currency="IDR">IDR Rp</button><button class="du-choice" type="button" data-du-currency="USD">USD $</button><button class="du-choice" type="button" data-du-currency="SGD">SGD S$</button><button class="du-choice" type="button" data-du-currency="MYR">MYR RM</button><button class="du-choice" type="button" data-du-currency="EUR">EUR €</button><button class="du-choice" type="button" data-du-currency="JPY">JPY ¥</button><button class="du-choice" type="button" data-du-currency="CNY">CNY ¥</button><button class="du-choice" type="button" data-du-currency="KRW">KRW ₩</button></div></section>
+    </div>
+  </div>
+</div>
+<aside class="du-menu-panel" data-du-menu-panel aria-hidden="true">
+  <div class="du-panel-head"><div><strong>Dirac Menu</strong><span data-du-i18n="menuSub">Navigasi utama</span></div><button class="du-close" type="button" data-du-close aria-label="Tutup">×</button></div>
+  <div class="du-menu-links" data-du-menu-links></div>
+</aside>
+<div class="du-float-left"><button class="du-round du-ai-button" type="button" data-du-open-ai aria-label="AI Dirac">✦</button></div>
+<aside class="du-ai-panel" data-du-ai-panel aria-hidden="true">
+  <div class="du-panel-head"><div><strong>AI Dirac</strong><span data-du-i18n="aiSub">Asisten cepat untuk halaman ini</span></div><button class="du-close" type="button" data-du-close aria-label="Tutup">×</button></div>
+  <div class="du-ai-body"><button type="button" data-du-ai="help" data-du-i18n="aiHelp">Bantu saya pakai halaman ini</button><button type="button" data-du-ai="contact" data-du-i18n="aiContact">Butuh bantuan admin</button><button type="button" data-du-ai="security" data-du-i18n="aiSecurity">Tips keamanan</button><div class="du-ai-answer" data-du-ai-answer>Halo, saya AI Dirac. Pilih bantuan cepat di atas.</div></div>
+</aside>
+<div class="du-float-right"><button class="du-round du-scroll" type="button" data-du-scroll-top aria-label="Scroll ke atas">↑</button><a class="du-round primary du-wa" data-du-wa href="https://wa.me/6281225329368?text=Halo%20Admin%20Dirac%2C%20saya%20butuh%20bantuan." target="_blank" rel="noopener" aria-label="WhatsApp Dirac">☘</a></div>
+<div class="du-toast" data-du-toast></div>
+<script id="dirac-clean-v3-js">
+(function(){
+'use strict';
+var BASE='https://diraccc.github.io/ngetes/'; var root=document.documentElement;
+function q(s,c){return (c||document).querySelector(s)} function qa(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}
+function page(){var p=(location.pathname.split('/').pop()||'awal.html').replace(/\.html?$/,''); if(!p||p==='index')p='awal'; return p}
+function safeSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function safeGet(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
+var dict={
+ id:{themeTitle:'Pengaturan Tema',themeSub:'Warna, bahasa, dan gerak website dibuat sama di semua halaman.',modeTitle:'Mode Tema',modeDesc:'Semua halaman dipaksa hitam premium agar terasa satu website.',langTitle:'Bahasa Tampilan',langDesc:'Pilih bahasa panel sistem Dirac.',contrastTitle:'Kontras Tema',contrastDesc:'Pertegas garis dan panel.',colorTitle:'Kustom Warna',colorDesc:'Pilih warna aksen utama website.',motionTitle:'Gerak Website',motionDesc:'Animasi aman seperti order.html, bisa dimatikan.',menuSub:'Navigasi utama',aiSub:'Asisten cepat untuk halaman ini',aiHelp:'Bantu saya pakai halaman ini',aiContact:'Butuh bantuan admin',aiSecurity:'Tips keamanan'},
+ en:{themeTitle:'Theme Settings',themeSub:'Color, language, and motion stay unified on every page.',modeTitle:'Theme Mode',modeDesc:'All pages stay premium black so the website feels unified.',langTitle:'Display Language',langDesc:'Choose the Dirac system panel language.',contrastTitle:'Theme Contrast',contrastDesc:'Sharpen borders and panels.',colorTitle:'Custom Color',colorDesc:'Choose the main accent color.',motionTitle:'Website Motion',motionDesc:'Safe order.html-style animation can be disabled.',menuSub:'Main navigation',aiSub:'Quick assistant for this page',aiHelp:'Help me use this page',aiContact:'Need admin support',aiSecurity:'Security tips'},
+ zh:{themeTitle:'主题设置',themeSub:'颜色、语言和动画在所有页面保持一致。',modeTitle:'主题模式',modeDesc:'所有页面保持高级黑色。',langTitle:'显示语言',langDesc:'选择 Dirac 面板语言。',contrastTitle:'主题对比',contrastDesc:'增强边框和面板。',colorTitle:'自定义颜色',colorDesc:'选择主色。',motionTitle:'网站动画',motionDesc:'可关闭安全动画。',menuSub:'主导航',aiSub:'此页面快速助手',aiHelp:'帮助我使用此页面',aiContact:'需要管理员帮助',aiSecurity:'安全提示'},
+ ar:{themeTitle:'إعدادات المظهر',themeSub:'الألوان واللغة والحركة موحدة في كل الصفحات.',modeTitle:'وضع المظهر',modeDesc:'كل الصفحات بالأسود الفاخر.',langTitle:'لغة العرض',langDesc:'اختر لغة لوحة Dirac.',contrastTitle:'تباين المظهر',contrastDesc:'تقوية الحدود واللوحات.',colorTitle:'لون مخصص',colorDesc:'اختر اللون الأساسي.',motionTitle:'حركة الموقع',motionDesc:'يمكن إيقاف الحركة الآمنة.',menuSub:'التنقل الرئيسي',aiSub:'مساعد سريع لهذه الصفحة',aiHelp:'ساعدني في استخدام هذه الصفحة',aiContact:'أحتاج مساعدة الإدارة',aiSecurity:'نصائح الأمان'},
+ ja:{themeTitle:'テーマ設定',themeSub:'色・言語・動きを全ページで統一します。',modeTitle:'テーマモード',modeDesc:'全ページを高級感のある黒に統一します。',langTitle:'表示言語',langDesc:'Diracパネルの言語を選択。',contrastTitle:'コントラスト',contrastDesc:'線とパネルを強調。',colorTitle:'カスタムカラー',colorDesc:'メインカラーを選択。',motionTitle:'サイトの動き',motionDesc:'安全なアニメーションをオフにできます。',menuSub:'メインナビ',aiSub:'このページのクイック助手',aiHelp:'このページの使い方',aiContact:'管理者に相談',aiSecurity:'セキュリティのヒント'},
+ ko:{themeTitle:'테마 설정',themeSub:'색상, 언어, 모션을 모든 페이지에 통일합니다.',modeTitle:'테마 모드',modeDesc:'모든 페이지를 프리미엄 블랙으로 유지합니다.',langTitle:'표시 언어',langDesc:'Dirac 패널 언어 선택.',contrastTitle:'테마 대비',contrastDesc:'선과 패널 강조.',colorTitle:'사용자 색상',colorDesc:'기본 강조색 선택.',motionTitle:'웹사이트 모션',motionDesc:'안전한 애니메이션을 끌 수 있습니다.',menuSub:'기본 내비게이션',aiSub:'이 페이지 빠른 도우미',aiHelp:'페이지 사용 도움',aiContact:'관리자 지원 필요',aiSecurity:'보안 팁'},
+ es:{themeTitle:'Ajustes de tema',themeSub:'Color, idioma y movimiento unificados en todas las páginas.',modeTitle:'Modo de tema',modeDesc:'Todas las páginas permanecen en negro premium.',langTitle:'Idioma',langDesc:'Elige el idioma del panel Dirac.',contrastTitle:'Contraste',contrastDesc:'Refuerza líneas y paneles.',colorTitle:'Color personalizado',colorDesc:'Elige el color principal.',motionTitle:'Movimiento web',motionDesc:'La animación segura se puede desactivar.',menuSub:'Navegación principal',aiSub:'Asistente rápido de esta página',aiHelp:'Ayúdame a usar esta página',aiContact:'Necesito ayuda del admin',aiSecurity:'Consejos de seguridad'},
+ fr:{themeTitle:'Réglages du thème',themeSub:'Couleur, langue et mouvement unifiés sur toutes les pages.',modeTitle:'Mode du thème',modeDesc:'Toutes les pages restent en noir premium.',langTitle:'Langue',langDesc:'Choisissez la langue du panneau Dirac.',contrastTitle:'Contraste',contrastDesc:'Renforce les lignes et panneaux.',colorTitle:'Couleur personnalisée',colorDesc:'Choisissez la couleur principale.',motionTitle:'Animation du site',motionDesc:'Animation sûre désactivable.',menuSub:'Navigation principale',aiSub:'Assistant rapide pour cette page',aiHelp:'Aidez-moi à utiliser cette page',aiContact:'Besoin d’aide admin',aiSecurity:'Conseils de sécurité'}
+};
+
+var duCurrencyRates={IDR:1,USD:1/16000,SGD:1/12000,MYR:1/3500,EUR:1/17500,JPY:1/110,CNY:1/2200,KRW:1/12};
+var duCurrencyLabels={IDR:'Rp',USD:'$',SGD:'S$',MYR:'RM',EUR:'€',JPY:'¥',CNY:'¥',KRW:'₩'};
+function duNormalizeRupiah(n){return parseInt(String(n||'').replace(/[^0-9]/g,''),10)||0}
+function duFormatCurrency(amount,currency){currency=currency||'IDR';var val=amount*(duCurrencyRates[currency]||1);if(currency==='IDR'){return 'Rp'+Math.round(val).toLocaleString('id-ID')}if(currency==='JPY'||currency==='KRW'){return duCurrencyLabels[currency]+Math.round(val).toLocaleString('en-US')}return duCurrencyLabels[currency]+val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function duApplyCurrency(currency){currency=currency||safeGet('du_currency','IDR');var selector='[data-du-money-source], body.du-clean-ready .price-card b, body.du-clean-ready .price-card span, body.du-clean-ready .cart-price, body.du-clean-ready .summary-line b, body.du-clean-ready .line b, body.du-clean-ready .order-total, body.du-clean-ready .domain-price, body.du-clean-ready .price, body.du-clean-ready [class*="price"], body.du-clean-ready [class*="harga"]';qa(selector).forEach(function(el){if(!el||el.children&&el.children.length)return;var original=el.getAttribute('data-du-money-source')||el.textContent;if(!/Rp\s*[0-9][0-9.]*|Rp[0-9][0-9.]*/i.test(original))return;el.setAttribute('data-du-money-source',original);el.textContent=original.replace(/Rp\s*([0-9][0-9.]*)/gi,function(_,n){return duFormatCurrency(duNormalizeRupiah(n),currency)})})}
+
+function apply(){var accent=safeGet('du_accent','cyan'),lang=safeGet('du_lang','id'),motion=safeGet('du_motion','on'),contrast=safeGet('du_contrast','off'),currency=safeGet('du_currency','IDR');root.setAttribute('data-du-accent',accent);root.setAttribute('data-du-motion',motion);root.setAttribute('data-du-contrast',contrast);root.setAttribute('data-du-lang',lang);root.setAttribute('data-effective-theme','dark');root.setAttribute('data-theme','dark');document.body.classList.add('du-clean-ready');qa('[data-du-i18n]').forEach(function(el){var k=el.getAttribute('data-du-i18n'); if(dict[lang]&&dict[lang][k])el.textContent=dict[lang][k]});qa('[data-du-accent]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-accent')===accent)});qa('[data-du-lang]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-lang')===lang)});qa('[data-du-motion]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-motion')===motion)});qa('[data-du-contrast]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-contrast')===contrast)});qa('[data-du-currency]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-currency')===currency)});qa('[data-du-mode]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-du-mode')==='dark')});duApplyCurrency(currency);}
+function linkMap(){var map={'wbst.html':'masuk.html','wbst1.html':'awal.html','index.html':'awal.html','awal.html':'awal.html','masuk.html':'masuk.html','dashboard.html':'dashboard.html','cekresi.html':'cekresi.html','order.html':'order.html'};qa('a[href]').forEach(function(a){var h=a.getAttribute('href'); if(!h||h[0]==='#'||/^mailto:|^tel:|^https?:|^whatsapp:/i.test(h))return; var clean=h.split('#')[0].split('?')[0].split('/').pop(); if(map[clean]){var tail=h.indexOf('#')>-1?h.slice(h.indexOf('#')):''; a.setAttribute('href',BASE+map[clean]+tail)}});}
+function setupMenu(){var items=[['Company Profile','awal.html'],['Masuk / Daftar','masuk.html'],['Dashboard','dashboard.html'],['Cek Resi','cekresi.html'],['Order Parfum','order.html']];var wrap=q('[data-du-menu-links]');if(!wrap)return;wrap.innerHTML='';items.forEach(function(it){var a=document.createElement('a');a.href=BASE+it[1];a.textContent=it[0];wrap.appendChild(a)});if(page()==='dashboard'&&document.getElementById('logoutBtn')){var b=document.createElement('button');b.type='button';b.textContent='Keluar';b.addEventListener('click',function(){document.getElementById('logoutBtn').click()});wrap.appendChild(b)}}
+function setupWA(){var msg='Halo Admin Dirac, saya butuh bantuan di halaman '+page()+'.';var url='https://wa.me/6281225329368?text='+encodeURIComponent(msg);var a=q('[data-du-wa]');if(a)a.href=url;}
+function closeAll(){qa('.du-overlay,.du-menu-panel,.du-ai-panel').forEach(function(el){el.classList.remove('open');el.setAttribute('aria-hidden','true')})}
+function actionChoice(t,attr){var el=t&&t.closest?t.closest('['+attr+']'):null;return(el&&el!==root&&el.tagName!=='HTML')?el:null}
+function toast(t){var el=q('[data-du-toast]');if(!el)return;el.textContent=t;el.classList.add('show');clearTimeout(window.__du_toast);window.__du_toast=setTimeout(function(){el.classList.remove('show')},2200)}
+function bind(){document.addEventListener('click',function(e){var t=e.target;if(t.closest('[data-du-open-theme]')){closeAll();var m=q('[data-du-theme-modal]');m.classList.add('open');m.setAttribute('aria-hidden','false');return}if(t.closest('[data-du-open-menu]')){var p=q('[data-du-menu-panel]');var on=p.classList.contains('open');closeAll();if(!on){p.classList.add('open');p.setAttribute('aria-hidden','false')}return}if(t.closest('[data-du-open-ai]')){var p2=q('[data-du-ai-panel]');var on2=p2.classList.contains('open');closeAll();if(!on2){p2.classList.add('open');p2.setAttribute('aria-hidden','false')}return}if(t.closest('[data-du-close]')||t.matches('.du-overlay')){closeAll();return}var acc=actionChoice(t,'data-du-accent');if(acc){safeSet('du_accent',acc.getAttribute('data-du-accent'));apply();toast('Warna tema diperbarui.');return}var lang=actionChoice(t,'data-du-lang');if(lang){safeSet('du_lang',lang.getAttribute('data-du-lang'));apply();toast('Bahasa panel diperbarui.');return}var currency=actionChoice(t,'data-du-currency');if(currency){safeSet('du_currency',currency.getAttribute('data-du-currency'));apply();toast('Mata uang diperbarui.');return}var motion=actionChoice(t,'data-du-motion');if(motion){safeSet('du_motion',motion.getAttribute('data-du-motion'));apply();toast('Pengaturan gerak website diperbarui.');return}var contrast=actionChoice(t,'data-du-contrast');if(contrast){safeSet('du_contrast',contrast.getAttribute('data-du-contrast'));apply();toast('Kontras tema diperbarui.');return}var st=t.closest('[data-du-scroll-top]');if(st){window.scrollTo({top:0,behavior:root.getAttribute('data-du-motion')==='off'?'auto':'smooth'});return}var ai=actionChoice(t,'data-du-ai');if(ai){var ans=q('[data-du-ai-answer]');var type=ai.getAttribute('data-du-ai');var text={help:'Gunakan menu kanan atas untuk pindah halaman. Pengaturan tema mengatur warna, bahasa, dan gerak. Tombol WhatsApp ada di kanan bawah.',contact:'Tekan tombol WhatsApp hijau di kanan bawah untuk menghubungi admin Dirac.',security:'Jangan bagikan password, OTP, kode hash, atau akses perangkat kepada siapa pun.'}[type]||'Siap membantu.';if(ans)ans.textContent=text;return}});document.addEventListener('keydown',function(e){if(e.key==='Escape')closeAll()});}
+function typewriter(){var el=q('[data-du-typewriter]');if(!el)return;var words=['Company Profile • Masuk/Daftar • Dashboard • Cek Resi • Order Parfum','Tema • Bahasa • Warna • Gerak Website','AI • WhatsApp • Scroll Up • Menu','diraccc.github.io/ngetes'];var wi=0,i=0,del=false;function tick(){if(root.getAttribute('data-du-motion')==='off'){el.textContent=words[0];setTimeout(tick,1200);return}var w=words[wi];el.textContent=w.slice(0,i);if(!del&&i<w.length){i++;setTimeout(tick,38);return}if(!del&&i>=w.length){del=true;setTimeout(tick,1050);return}if(del&&i>0){i--;setTimeout(tick,18);return}del=false;wi=(wi+1)%words.length;setTimeout(tick,220)}tick()}
+function setupOrderButton(){var order=q('[data-du-order-link]'); if(!order)return; var path=page(); if(path==='order'){order.setAttribute('href','#keranjang'); order.setAttribute('data-open-cart',''); order.addEventListener('click',function(e){e.preventDefault(); var old=document.querySelector('.header-cart,[data-open-cart]:not([data-du-order-link])'); if(old&&old!==order){old.click();} else {try{ if(typeof window.openCart==='function') window.openCart(); }catch(err){} } });} var oldCount=document.querySelector('.cart-count,.header-cart-count,.count-badge'); if(oldCount){q('[data-du-cart-count]').textContent=(oldCount.textContent||'0').trim()||'0';}}
+function init(){apply();linkMap();setupMenu();setupWA();bind();typewriter();setupOrderButton();}
+var __duStarted=false;function __duStart(){if(__duStarted)return;__duStarted=true;init()}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',__duStart,{once:true});setTimeout(__duStart,60);}else{__duStart();}
+})();
+</script>
+<!-- DIRAC_CLEAN_V3_BODY_END -->
+
 </body>
 </html>
