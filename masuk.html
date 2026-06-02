@@ -4846,5 +4846,363 @@ body.a2f-launching > .site-header{opacity:0!important;visibility:hidden!importan
 })();
 </script>
 
+
+
+<style id="dirac-ui-sound-feedback-css">
+/* =========================================================
+   Dirac UI Sound Feedback v2
+   Efek suara original dari Web Audio API: tidak memakai file audio,
+   tidak mengambil audio TikTok/JJ, dan tidak mengubah flow login/A2F lama.
+   ========================================================= */
+.dirac-sound-toggle{
+  position:fixed;
+  left:84px;
+  bottom:calc(20px + env(safe-area-inset-bottom));
+  z-index:9401;
+  width:44px;
+  height:44px;
+  border-radius:999px;
+  border:1px solid rgba(var(--theme-rgb),.28);
+  background:linear-gradient(145deg,rgba(15,23,42,.94),rgba(6,11,20,.86));
+  color:#fff;
+  display:grid;
+  place-items:center;
+  box-shadow:0 14px 34px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.08);
+  font-size:1.05rem;
+  line-height:1;
+  transition:transform .22s var(--motion-ease),border-color .22s var(--motion-ease),background .22s var(--motion-ease),filter .22s var(--motion-ease),opacity .22s var(--motion-ease);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.dirac-sound-toggle:hover,
+.dirac-sound-toggle:focus-visible{
+  transform:translateY(-2px);
+  border-color:rgba(var(--theme-rgb),.56);
+  outline:none;
+}
+.dirac-sound-toggle[aria-pressed="false"]{
+  filter:saturate(.72);
+  opacity:.78;
+}
+html[data-effective-theme="light"] .dirac-sound-toggle{
+  background:linear-gradient(145deg,#fff,#f8fafc);
+  color:#111827;
+  border-color:rgba(var(--theme-rgb),.24);
+  box-shadow:0 14px 30px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.82);
+}
+@media(max-width:760px){
+  .dirac-sound-toggle{left:76px;bottom:calc(20px + env(safe-area-inset-bottom));width:42px;height:42px;font-size:1rem}
+}
+@media(max-width:430px){
+  .dirac-sound-toggle{left:72px;bottom:calc(18px + env(safe-area-inset-bottom));width:40px;height:40px;font-size:.96rem}
+}
+@media(prefers-reduced-motion:reduce){.dirac-sound-toggle{transition:none!important}}
+</style>
+
+<script id="dirac-ui-sound-feedback-js">
+(function(){
+  'use strict';
+  var STORAGE_KEY = 'dirac_ui_sound_enabled_v2';
+  var LEGACY_STORAGE_KEY = 'dirac_ui_sound_enabled_v1';
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var ctx = null;
+  var unlocked = false;
+  var enabled = readEnabled();
+  var lastTapAt = 0;
+  var lastLoadingAt = 0;
+  var lastSuccessAt = 0;
+  var lastFinishAt = 0;
+  var lastErrorAt = 0;
+
+  function $(selector, root){return (root || document).querySelector(selector);}
+  function ready(fn){if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn();}
+  function readEnabled(){
+    try{
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if(saved === 'on' || saved === 'off') return saved !== 'off';
+      var legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if(legacy === 'on' || legacy === 'off') return legacy !== 'off';
+    }catch(e){}
+    return true;
+  }
+  function saveEnabled(){
+    try{localStorage.setItem(STORAGE_KEY, enabled ? 'on' : 'off');}catch(e){}
+  }
+  function nowMs(){return (window.performance && performance.now) ? performance.now() : Date.now();}
+  function canPlay(){return !!(enabled && AudioCtx);}
+  function ensureContext(){
+    if(!canPlay()) return null;
+    try{
+      if(!ctx) ctx = new AudioCtx();
+      if(ctx.state === 'suspended'){
+        var resume = ctx.resume();
+        if(resume && resume.catch) resume.catch(function(){});
+      }
+      return ctx;
+    }catch(e){return null;}
+  }
+  function unlock(){
+    var audio = ensureContext();
+    if(!audio || unlocked) return;
+    unlocked = true;
+    try{
+      var gain = audio.createGain();
+      gain.gain.value = 0.00001;
+      gain.connect(audio.destination);
+      var osc = audio.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = 440;
+      osc.connect(gain);
+      osc.start();
+      osc.stop(audio.currentTime + 0.01);
+    }catch(e){}
+  }
+  function tone(freq, duration, type, gainValue, delay, endFreq){
+    var audio = ensureContext();
+    if(!audio) return;
+    var t = audio.currentTime + (delay || 0);
+    try{
+      var osc = audio.createOscillator();
+      var gain = audio.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(Math.max(1, freq), t);
+      if(endFreq && osc.frequency.exponentialRampToValueAtTime){
+        osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), t + duration);
+      }
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainValue || 0.035), t + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      osc.connect(gain);
+      gain.connect(audio.destination);
+      osc.start(t);
+      osc.stop(t + duration + 0.03);
+    }catch(e){}
+  }
+  function softNoise(duration, gainValue, delay){
+    var audio = ensureContext();
+    if(!audio || !audio.createBufferSource) return;
+    try{
+      var length = Math.max(1, Math.floor(audio.sampleRate * duration));
+      var buffer = audio.createBuffer(1, length, audio.sampleRate);
+      var data = buffer.getChannelData(0);
+      for(var i = 0; i < length; i++){
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 1.7);
+      }
+      var source = audio.createBufferSource();
+      source.buffer = buffer;
+      var filter = audio.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1500;
+      filter.Q.value = 0.8;
+      var gain = audio.createGain();
+      var t = audio.currentTime + (delay || 0);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainValue || 0.02), t + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(audio.destination);
+      source.start(t);
+      source.stop(t + duration + 0.02);
+    }catch(e){}
+  }
+  function playTap(){
+    var n = nowMs();
+    if(n - lastTapAt < 80) return;
+    lastTapAt = n;
+    tone(720, 0.045, 'triangle', 0.028, 0, 980);
+  }
+  function playLoading(){
+    var n = nowMs();
+    if(n - lastLoadingAt < 330) return;
+    lastLoadingAt = n;
+    softNoise(0.18, 0.018, 0);
+    tone(260, 0.16, 'sine', 0.018, 0.015, 520);
+  }
+  function playSuccess(){
+    var n = nowMs();
+    if(n - lastSuccessAt < 620) return;
+    lastSuccessAt = n;
+    tone(523.25, 0.095, 'sine', 0.036, 0);
+    tone(659.25, 0.105, 'sine', 0.034, 0.07);
+    tone(987.77, 0.16, 'triangle', 0.03, 0.145);
+  }
+  function playFinish(){
+    var n = nowMs();
+    if(n - lastFinishAt < 900) return;
+    lastFinishAt = n;
+    softNoise(0.22, 0.018, 0);
+    tone(392, 0.11, 'sine', 0.03, 0.03, 784);
+    tone(1046.5, 0.18, 'triangle', 0.032, 0.16);
+  }
+  function playError(){
+    var n = nowMs();
+    if(n - lastErrorAt < 650) return;
+    lastErrorAt = n;
+    tone(220, 0.085, 'sine', 0.034, 0, 180);
+    tone(146.83, 0.13, 'triangle', 0.028, 0.095);
+  }
+  function play(name){
+    unlock();
+    if(name === 'tap') playTap();
+    else if(name === 'loading') playLoading();
+    else if(name === 'success') playSuccess();
+    else if(name === 'finish') playFinish();
+    else if(name === 'error') playError();
+  }
+  function updateToggle(){
+    var btn = $('#diracSoundToggle');
+    if(!btn) return;
+    btn.textContent = enabled ? '🔊' : '🔇';
+    btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    btn.setAttribute('aria-label', enabled ? 'Matikan suara tombol dan proses' : 'Aktifkan suara tombol dan proses');
+    btn.title = enabled ? 'Suara aktif' : 'Suara mati';
+  }
+  function createToggle(){
+    if($('#diracSoundToggle')) return;
+    var btn = document.createElement('button');
+    btn.id = 'diracSoundToggle';
+    btn.type = 'button';
+    btn.className = 'dirac-sound-toggle';
+    btn.addEventListener('click', function(){
+      enabled = !enabled;
+      saveEnabled();
+      updateToggle();
+      if(enabled) setTimeout(function(){ playSuccess(); }, 30);
+      var toast = $('#toast');
+      if(toast){
+        toast.textContent = enabled ? 'Suara website aktif.' : 'Suara website dimatikan.';
+        toast.classList.add('show');
+        clearTimeout(createToggle._toastTimer);
+        createToggle._toastTimer = setTimeout(function(){toast.classList.remove('show');}, 1900);
+      }
+    });
+    document.body.appendChild(btn);
+    updateToggle();
+  }
+  function isInteractive(target){
+    if(!target || !target.closest) return null;
+    return target.closest('button,a,[role="button"],input[type="checkbox"],input[type="radio"],.ai-chip,[data-a2f-select],[data-a2f-method]');
+  }
+  function observeStatusBox(){
+    var box = $('#statusBox');
+    if(!box || !window.MutationObserver) return;
+    var lastSignature = '';
+    new MutationObserver(function(){
+      if(!box.classList.contains('show')) return;
+      var signature = box.className + '|' + box.textContent;
+      if(signature === lastSignature) return;
+      lastSignature = signature;
+      if(box.classList.contains('success')) playSuccess();
+      else if(box.classList.contains('error')) playError();
+    }).observe(box, {attributes:true, childList:true, characterData:true, subtree:true, attributeFilter:['class']});
+  }
+  function observeA2F(){
+    if(!window.MutationObserver) return;
+    var result = $('#a2fResult');
+    if(result){
+      var lastResult = '';
+      new MutationObserver(function(){
+        if(!result.classList.contains('show')) return;
+        var signature = result.className + '|' + result.textContent;
+        if(signature === lastResult) return;
+        lastResult = signature;
+        playSuccess();
+      }).observe(result, {attributes:true, childList:true, characterData:true, subtree:true, attributeFilter:['class']});
+    }
+    var card = $('#a2fModal .a2f-card');
+    if(card){
+      var wasVerified = card.classList.contains('is-verified');
+      var wasError = card.classList.contains('is-error');
+      new MutationObserver(function(){
+        var verified = card.classList.contains('is-verified');
+        var errored = card.classList.contains('is-error');
+        if(verified && !wasVerified) playSuccess();
+        if(errored && !wasError) playError();
+        wasVerified = verified;
+        wasError = errored;
+      }).observe(card, {attributes:true, attributeFilter:['class','data-a2f-step-index','data-a2f-busy']});
+    }
+    var done = $('#a2fDoneBtn');
+    if(done){
+      var wasDisabled = done.disabled;
+      new MutationObserver(function(){
+        if(wasDisabled && !done.disabled) playSuccess();
+        wasDisabled = done.disabled;
+      }).observe(done, {attributes:true, attributeFilter:['disabled']});
+    }
+  }
+  function observeFinalLaunch(){
+    var overlay = $('#a2fLaunchOverlay');
+    if(!overlay || !window.MutationObserver) return;
+    var pill = $('#a2fLaunchPill');
+    var terminal = $('#a2fLaunchTerminal');
+    var wasShowing = false;
+    var completed = false;
+    function readLaunchText(){
+      return ((pill && pill.textContent) || '') + ' ' + ((terminal && terminal.textContent) || '');
+    }
+    function inspect(){
+      var showing = overlay.classList.contains('show') || document.body.classList.contains('a2f-launching');
+      if(showing && !wasShowing){
+        completed = false;
+        playLoading();
+      }
+      var text = readLaunchText().toUpperCase();
+      var isComplete = showing && /(READY|AMAN|DONE|SELESAI|COMPLETE|\[OK\])/.test(text);
+      if(isComplete && !completed){
+        completed = true;
+        playFinish();
+      }
+      if(!showing && wasShowing && !completed){
+        completed = true;
+        playFinish();
+      }
+      wasShowing = showing;
+    }
+    new MutationObserver(inspect).observe(overlay, {attributes:true, childList:true, subtree:true, characterData:true, attributeFilter:['class']});
+    if(pill) new MutationObserver(inspect).observe(pill, {childList:true, characterData:true, subtree:true});
+    if(terminal) new MutationObserver(inspect).observe(terminal, {childList:true, characterData:true, subtree:true});
+  }
+  document.addEventListener('pointerdown', function(e){
+    var item = isInteractive(e.target);
+    if(!item || item.id === 'diracSoundToggle' || item.closest('#diracSoundToggle')) return;
+    unlock();
+    if(item.disabled || item.getAttribute('aria-disabled') === 'true') return;
+    playTap();
+  }, true);
+  document.addEventListener('keydown', function(e){
+    if(e.repeat || (e.key !== 'Enter' && e.key !== ' ')) return;
+    var item = isInteractive(e.target);
+    if(!item || item.id === 'diracSoundToggle' || item.closest('#diracSoundToggle')) return;
+    unlock();
+    if(item.disabled || item.getAttribute('aria-disabled') === 'true') return;
+    playTap();
+  }, true);
+  document.addEventListener('submit', function(e){
+    if(e.target && e.target.matches && e.target.matches('#authForm')) playLoading();
+  }, true);
+  document.addEventListener('click', function(e){
+    var target = e.target;
+    if(!target || !target.closest) return;
+    var a2fStart = target.closest('#a2fStartBtn,[data-a2f-method]');
+    if(a2fStart && !a2fStart.disabled) playLoading();
+    var done = target.closest('#a2fDoneBtn');
+    if(done && !done.disabled) playLoading();
+  }, true);
+  window.DiracSound = {
+    play:play,
+    setEnabled:function(value){enabled = value !== false; saveEnabled(); updateToggle();},
+    isEnabled:function(){return enabled;}
+  };
+  ready(function(){
+    createToggle();
+    observeStatusBox();
+    observeA2F();
+    observeFinalLaunch();
+  });
+})();
+</script>
+
 </body>
 </html>
