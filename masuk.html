@@ -2297,6 +2297,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       var pill = $('#a2fLivePill'); if(pill) pill.textContent = data.pill[lang] || data.pill.id;
     }
     function resetA2FModal(){
+      try{ if(typeof state === 'object'){ state.method = 'authenticator'; state.setupToken = ''; state.verifyMode = 'none'; state.verified = false; state.attempts = 0; } }catch(e){}
       var result = $('#a2fResult');
       if(result){ result.className = 'a2f-result'; result.textContent = ''; }
       var done = $('#a2fDoneBtn');
@@ -2907,7 +2908,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   function ready(fn){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn);else fn()}
   function lang(){return document.documentElement.lang === 'en' ? 'en' : 'id'}
   function reducedMotion(){return document.documentElement.getAttribute('data-motion') === 'reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)}
-  var state = {method:'passkey', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], timer:null, seconds:0, attempts:0, lastFocus:null};
+  var state = {method:'authenticator', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], setupToken:'', timer:null, seconds:0, attempts:0, lastFocus:null};
   var copy = {
     id:{
       note:'<strong>A2F / Verifikasi 2 Langkah wajib sebelum dashboard.</strong> Pilih metode, lakukan verifikasi, lalu simpan recovery code. Sistem tidak akan menandai A2F produksi aktif sebelum challenge atau OTP benar-benar terverifikasi.',
@@ -3122,7 +3123,13 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     if(!url) throw new Error('endpoint missing');
     var res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:'same-origin', cache:'no-store'});
     var data = await res.clone().json().catch(function(){return null;});
-    if(!res.ok || !data || data.ok === false) throw new Error('endpoint rejected');
+    if(!res.ok || !data || data.ok === false){
+      var message = data && (data.error || data.message || data.hint || data.details) ? (data.error || data.message || data.hint || data.details) : 'Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.';
+      var err = new Error(message);
+      err.response = data;
+      err.status = res.status;
+      throw err;
+    }
     return data;
   }
   async function beginVerifyStep(resend){
@@ -3133,12 +3140,13 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     try{
       var setup = await callEndpoint('setup', {method:state.method, action:resend ? 'resend' : 'setup', identifier:authIdentifier()});
       state.verifyMode = 'server';
+      state.setupToken = setup && (setup.setupToken || setup.mfaSetupToken || setup.token) ? String(setup.setupToken || setup.mfaSetupToken || setup.token) : '';
       if(setup && Array.isArray(setup.recoveryCodes)) state.recoveryCodes = setup.recoveryCodes;
       if(state.method === 'authenticator') renderAuthenticatorSetup(setup);
       setMessage('status', t('verifyHelp'));
     }catch(e){
       state.verifyMode = 'none';
-      setMessage('error', t('demoCode'));
+      setMessage('error', e && e.message ? e.message : t('demoCode'));
       setStep(1);
     }finally{
       setBusy(false);
@@ -3159,7 +3167,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
     if(box) box.classList.remove('is-invalid');
     setBusy(true); setMessage('status', lang()==='en' ? 'Verifying code...' : 'Memverifikasi kode...');
     try{
-      var data = await callEndpoint('verify', {method:state.method, action:'verify', identifier:authIdentifier(), code:code});
+      var data = await callEndpoint('verify', {method:state.method, action:'verify', identifier:authIdentifier(), code:code, setupToken:state.setupToken || ''});
       if(data && (data.verified || data.ok)){
         finishVerification('server', data.recoveryCodes || state.recoveryCodes);
         return;
@@ -3169,7 +3177,7 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
       state.attempts += 1;
       var remaining = Math.max(0, 5 - state.attempts);
       if(box) box.classList.add('is-invalid');
-      setMessage('error', remaining ? t('codeWrong') : t('locked'));
+      setMessage('error', e && e.message ? e.message : (remaining ? t('codeWrong') : t('locked')));
     }finally{ setBusy(false); updateActionText(); }
   }
   async function startPasskey(){
