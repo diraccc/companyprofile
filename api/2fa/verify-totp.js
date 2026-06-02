@@ -204,15 +204,6 @@ function otpauthUrl(identifier, secret) {
   return `otpauth://totp/${encodeURIComponent(label)}?${params.toString()}`;
 }
 
-async function makeQrCodeDataUrl(uri) {
-  try {
-    const QRCode = require("qrcode");
-    return await QRCode.toDataURL(uri, { margin: 1, width: 220 });
-  } catch (_error) {
-    return "";
-  }
-}
-
 function makeRecoveryCodes(count = 8) {
   const codes = [];
   for (let i = 0; i < count; i += 1) {
@@ -340,7 +331,6 @@ async function setupAuthenticator(identifier) {
 
   const uri = otpauthUrl(id, secret);
   const setupToken = makeSetupToken({ identifier: id, secret });
-  const qrCodeDataUrl = await makeQrCodeDataUrl(uri);
 
   let persisted = false;
   let persistError = "";
@@ -363,13 +353,12 @@ async function setupAuthenticator(identifier) {
       success: true,
       ok: true,
       method: "authenticator",
-      qrCodeDataUrl,
       manualKey: secret,
       otpauthUrl: uri,
       setupToken,
       persisted,
       persistError: persisted ? "" : persistError,
-      message: "Scan QR atau masukkan setup key di aplikasi Authenticator, lalu masukkan kode 6 digit."
+      message: "Masukkan setup key di aplikasi Authenticator, lalu masukkan kode 6 digit."
     }
   };
 }
@@ -401,7 +390,7 @@ async function verifyAuthenticator(identifier, code, setupToken) {
   }
 
   if (!secret) {
-    return { status: 400, body: { success: false, ok: false, error: "Authenticator belum disiapkan. Tekan Lanjutkan/Kirim ulang untuk membuat QR baru." } };
+    return { status: 400, body: { success: false, ok: false, error: "Authenticator belum disiapkan. Tekan Lanjutkan/Kirim ulang untuk membuat setup key baru." } };
   }
 
   if (!verifyTotpCode(secret, code)) {
@@ -503,7 +492,7 @@ module.exports = async function handler(req, res) {
       return json(res, 400, { success: false, ok: false, error: "Endpoint ini khusus Authenticator. Pilih metode Authenticator." });
     }
 
-    // Pastikan secret backend valid sebelum membuat QR atau token.
+    // Pastikan secret backend valid sebelum membuat setup key atau token.
     getEncryptionSecret();
 
     if (!identifier) {
