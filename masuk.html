@@ -971,6 +971,129 @@ html[data-effective-theme="light"] .theme-color-label{color:#151923}
 @media(prefers-reduced-motion:reduce){.catalog-return:before{transition:none!important}.a2f-card{animation:none!important}}
 </style>
 
+
+
+<style id="dirac-premium-motion-revisi-css">
+/* =========================================================
+   Dirac Premium Motion Revisi v3
+   Fokus: motion modern, halus, aman, dan tidak mengubah logic login/A2F.
+   ========================================================= */
+:root{
+  --dirac-fast:180ms;
+  --dirac-mid:360ms;
+  --dirac-slow:760ms;
+  --dirac-ease:cubic-bezier(.22,1,.36,1);
+  --dirac-soft:cubic-bezier(.16,1,.3,1);
+}
+html,body,.site-header,.nav,.auth-card,.auth-shell,.field,.btn-primary,.btn-secondary,.theme-toggle,.catalog-return,.a2f-card,.theme-card,.toast{
+  transition-property:background-color,border-color,box-shadow,color,filter,transform,opacity;
+  transition-duration:var(--dirac-mid);
+  transition-timing-function:var(--dirac-ease);
+}
+html.dirac-theme-transitioning body,
+html.dirac-theme-transitioning .site-header .nav,
+html.dirac-theme-transitioning .auth-shell,
+html.dirac-theme-transitioning .auth-card,
+html.dirac-theme-transitioning .field,
+html.dirac-theme-transitioning .theme-card,
+html.dirac-theme-transitioning .a2f-card{
+  transition-duration:520ms!important;
+}
+.auth-hero:before{animation:diracAmbientDrift 22s ease-in-out infinite alternate;transform-origin:50% 35%}
+.auth-hero:after{animation:heroLuxuryShine 8s ease-in-out 1s infinite,diracBeamBreath 11s ease-in-out infinite alternate}
+@keyframes diracAmbientDrift{0%{transform:translate3d(-1.2%,0,0) scale(1)}50%{transform:translate3d(1.6%,-.8%,0) scale(1.025)}100%{transform:translate3d(-.6%,1%,0) scale(1.01)}}
+@keyframes diracBeamBreath{0%{opacity:.58}100%{opacity:.92}}
+body.motion-page-ready .brand-mark{animation:diracLogoPop .62s var(--dirac-soft) both}
+body.motion-page-ready .catalog-return{animation:diracActionIn .52s var(--dirac-soft) .12s both}
+body.motion-page-ready .theme-toggle{animation:diracActionIn .52s var(--dirac-soft) .20s both}
+@keyframes diracLogoPop{0%{transform:translateY(8px) scale(.94);filter:blur(1px)}100%{transform:none;filter:none}}
+@keyframes diracActionIn{0%{transform:translateY(8px) scale(.94);opacity:.72}100%{transform:none;opacity:1}}
+.motion-reveal{opacity:.94;transform:translate3d(0,14px,0) scale(.995);will-change:transform,filter,opacity}
+body.motion-page-ready .motion-reveal{animation:diracRevealUp .78s var(--dirac-soft) both;animation-delay:var(--motion-delay,0ms)}
+@keyframes diracRevealUp{0%{opacity:.78;transform:translate3d(0,16px,0) scale(.992);filter:blur(.7px)}100%{opacity:1;transform:none;filter:none}}
+.brand-typewriter{
+  min-width:clamp(9.6ch,14vw,16.4ch)!important;
+  max-width:min(17.5ch,100%)!important;
+  letter-spacing:.01em;
+}
+.brand-typewriter-text{transition:color .28s var(--dirac-ease),filter .28s var(--dirac-ease),letter-spacing .28s var(--dirac-ease)}
+.brand-typewriter[data-phrase="auth"] .brand-typewriter-text{color:var(--gold);filter:drop-shadow(0 0 14px rgba(var(--theme-rgb),.22));letter-spacing:.005em}
+.brand-typewriter[data-typing-state="pause"] .brand-typewriter-text{filter:drop-shadow(0 0 12px rgba(var(--theme-rgb),.26))}
+.brand-typewriter:after{height:1.05em!important;width:.075em!important;box-shadow:0 0 14px rgba(var(--theme-rgb),.44)!important}
+.auth-tabs{position:relative;isolation:isolate;overflow:hidden}
+.auth-tabs:before{
+  content:"";position:absolute;z-index:0;top:6px;bottom:6px;left:6px;width:calc((100% - 20px)/2);border-radius:999px;
+  background:linear-gradient(135deg,#fff2a9,var(--gold) 34%,var(--gold-2) 76%,var(--gold-3));
+  box-shadow:0 14px 28px rgba(var(--theme-rgb),.20),inset 0 1px 0 rgba(255,255,255,.34);
+  transform:translateX(0);transition:transform .38s var(--dirac-soft),background .38s var(--dirac-ease),box-shadow .38s var(--dirac-ease);
+}
+.auth-tabs[data-active="register"]:before{transform:translateX(calc(100% + 8px))}
+.auth-tab{position:relative;z-index:1;background:transparent!important;overflow:hidden}
+.auth-tab.active{background:transparent!important;color:#191103!important;box-shadow:none!important}
+.auth-tab:not(.active){color:#e9edf5}
+.auth-tab:after{content:"";position:absolute;inset:6px;border-radius:999px;background:rgba(255,255,255,.08);opacity:0;transition:opacity .22s var(--dirac-ease)}
+.auth-tab:not(.active):hover:after{opacity:1}
+.auth-form-swapping .form-stack{animation:diracFormSwap .42s var(--dirac-soft) both}
+@keyframes diracFormSwap{0%{transform:translateY(8px);filter:blur(.45px);opacity:.86}100%{transform:none;filter:none;opacity:1}}
+.field-group label{transition:color .22s var(--dirac-ease),transform .22s var(--dirac-ease),filter .22s var(--dirac-ease)}
+.field-group:focus-within label{color:var(--gold);transform:translateX(2px);filter:drop-shadow(0 0 8px rgba(var(--theme-rgb),.18))}
+.field-wrap:after{
+  content:"";position:absolute;left:16px;right:16px;bottom:0;height:1px;border-radius:999px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transform:scaleX(.35);transition:opacity .22s var(--dirac-ease),transform .22s var(--dirac-ease);pointer-events:none;
+}
+.field-wrap:focus-within:after{opacity:.72;transform:scaleX(1)}
+.field{will-change:transform,border-color,box-shadow,background-color}
+.field:focus{transform:translateY(-1px)}
+.field.is-valid{border-color:rgba(24,185,129,.52)!important;box-shadow:0 0 0 4px rgba(24,185,129,.08)!important}
+.field.is-invalid{border-color:rgba(239,68,68,.66)!important;box-shadow:0 0 0 4px rgba(239,68,68,.10)!important;animation:diracFieldShake .24s var(--dirac-ease)}
+@keyframes diracFieldShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.status-box.show.error{animation:diracStatusError .34s var(--dirac-soft) both}.status-box.show.success{animation:diracStatusSuccess .46s var(--dirac-soft) both}
+@keyframes diracStatusError{0%{transform:translateY(6px);filter:blur(.4px)}55%{transform:translateY(0) scale(1.01)}100%{transform:none;filter:none}}
+@keyframes diracStatusSuccess{0%{transform:translateY(6px);filter:blur(.4px)}55%{transform:translateY(-2px)}100%{transform:none;filter:none}}
+.auth-submit{min-height:54px;will-change:transform,filter,box-shadow}.auth-submit:active{transform:scale(.985)}
+.auth-submit.is-loading{color:transparent!important;pointer-events:none;filter:brightness(1.04)}
+.auth-submit.is-loading:before{
+  content:"";position:absolute;z-index:2;left:50%;top:50%;width:21px;height:21px;margin:-10.5px 0 0 -10.5px;border-radius:999px;
+  border:3px solid rgba(25,17,3,.26);border-top-color:#191103;animation:diracSpin .72s linear infinite;
+}
+.auth-submit.is-loading:after{
+  content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(110deg,transparent 16%,rgba(255,255,255,.28),transparent 82%);transform:translateX(-130%);animation:diracBtnShimmer 1.1s var(--dirac-soft) infinite!important;
+}
+.auth-submit.is-success{animation:diracSubmitSuccess .62s var(--dirac-soft) both}.auth-card.motion-success{animation:diracCardSuccess .72s var(--dirac-soft) both}
+@keyframes diracSpin{to{transform:rotate(360deg)}}
+@keyframes diracBtnShimmer{to{transform:translateX(130%)}}
+@keyframes diracSubmitSuccess{0%{transform:scale(1)}40%{transform:scale(.985)}70%{transform:scale(1.018);box-shadow:0 18px 48px rgba(24,185,129,.20)}100%{transform:scale(1)}}
+@keyframes diracCardSuccess{0%{box-shadow:var(--shadow)}45%{box-shadow:0 24px 70px rgba(0,0,0,.45),0 0 0 1px rgba(24,185,129,.22),0 0 38px rgba(24,185,129,.13)}100%{box-shadow:var(--shadow)}}
+.theme-swatch-btn,.theme-pro-choice,.a2f-method,.catalog-return,.theme-toggle,.btn-primary,.btn-secondary,.ai-chip,.dirac-float-btn{position:relative;overflow:hidden;isolation:isolate;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.theme-swatch-btn.active .theme-color-orb{animation:diracSwatchPulse .72s var(--dirac-soft) both}.theme-swatch-btn.active{box-shadow:0 0 0 1px rgba(var(--theme-rgb),.28),0 12px 28px rgba(var(--theme-rgb),.13)}
+@keyframes diracSwatchPulse{0%{transform:scale(.88)}52%{transform:scale(1.09);filter:saturate(1.12)}100%{transform:scale(1)}}
+.dirac-ripple{position:absolute;border-radius:999px;pointer-events:none;background:rgba(255,255,255,.32);width:12px;height:12px;transform:translate(-50%,-50%) scale(0);animation:diracRipple .62s var(--dirac-ease) forwards;z-index:5;mix-blend-mode:screen}
+@keyframes diracRipple{to{transform:translate(-50%,-50%) scale(14);opacity:0}}
+.a2f-modal.open .a2f-card{animation:diracA2FCardIn .42s var(--dirac-soft) both}.a2f-modal.open .a2f-method{animation:diracA2FOptionIn .46s var(--dirac-soft) both;animation-delay:calc(.10s + var(--a2f-i,0) * 82ms)}
+.a2f-method:nth-child(1){--a2f-i:0}.a2f-method:nth-child(2){--a2f-i:1}.a2f-method:nth-child(3){--a2f-i:2}
+.a2f-method.active{animation:diracA2FSelected .58s var(--dirac-soft) both}.a2f-card.is-verified{animation:diracA2FVerified .82s var(--dirac-soft) both}
+@keyframes diracA2FCardIn{0%{transform:translateY(18px) scale(.97);opacity:.78;filter:blur(1px)}100%{transform:none;opacity:1;filter:none}}
+@keyframes diracA2FOptionIn{0%{transform:translateY(12px);opacity:.78}100%{transform:none;opacity:1}}
+@keyframes diracA2FSelected{0%{transform:scale(1)}45%{transform:scale(.985)}76%{transform:scale(1.012)}100%{transform:scale(1)}}
+@keyframes diracA2FVerified{0%{box-shadow:var(--shadow)}45%{box-shadow:0 24px 80px rgba(0,0,0,.50),0 0 0 1px rgba(24,185,129,.24),0 0 42px rgba(24,185,129,.14)}100%{box-shadow:var(--shadow)}}
+.toast{padding-inline:18px!important}.toast.show{animation:diracToastIn .32s var(--dirac-soft) both}.toast.show:after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--gold),#fff2b6,var(--gold-2));transform-origin:left center;animation:diracToastProgress 2.6s linear forwards}
+@keyframes diracToastIn{0%{opacity:0;transform:translate(-50%,18px) scale(.975);filter:blur(.6px)}100%{opacity:1;transform:translate(-50%,0) scale(1);filter:none}}
+@keyframes diracToastProgress{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.dirac-floating-actions .dirac-float-btn,.dirac-ai-widget .ai-trigger{animation:diracFloatEntrance .58s var(--dirac-soft) both}.dirac-floating-actions .dirac-float-whatsapp{animation-delay:.10s}.dirac-floating-actions .dirac-float-top{animation-delay:.18s}.dirac-ai-widget .ai-trigger{animation-delay:.04s}
+@keyframes diracFloatEntrance{0%{opacity:.62;transform:translateY(12px) scale(.92)}100%{opacity:1;transform:none}}
+@media(max-width:760px){.brand-typewriter{min-width:clamp(8.2ch,30vw,13.5ch)!important;max-width:calc(100vw - 178px)!important}.brand-typewriter[data-phrase="auth"]{font-size:.98rem!important}.motion-reveal{transform:translate3d(0,10px,0) scale(.997)}}
+@media(max-width:430px){.brand-typewriter{min-width:7.8ch!important;max-width:calc(100vw - 162px)!important}.brand-typewriter[data-phrase="auth"]{font-size:.93rem!important}.auth-tabs:before{display:none}.auth-tab.active{background:linear-gradient(135deg,#ffe58e,var(--gold-2))!important;color:#191103!important}}
+@media(prefers-reduced-motion:reduce){
+  .auth-hero:before,.auth-hero:after,.motion-reveal,body.motion-page-ready .motion-reveal,.brand-mark,.catalog-return,.theme-toggle,.a2f-modal.open .a2f-card,.a2f-modal.open .a2f-method,.toast.show:after{animation:none!important;transition:none!important;transform:none!important;filter:none!important}
+  .dirac-ripple{display:none!important}.field.is-invalid{animation:none!important}.auth-tabs:before{transition:none!important}
+}
+html[data-motion="reduced"] .auth-hero:before,
+html[data-motion="reduced"] .auth-hero:after,
+html[data-motion="reduced"] .motion-reveal,
+html[data-motion="reduced"] body.motion-page-ready .motion-reveal,
+html[data-motion="reduced"] .toast.show:after{animation:none!important;transition-duration:1ms!important;filter:none!important;transform:none!important}
+</style>
+
 </head>
 <body>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -1541,81 +1664,251 @@ html[data-effective-theme="light"] .theme-color-label{color:#151923}
   })();
   </script>
 
+
+<script id="dirac-premium-motion-revisi-js">
+(function(){
+  'use strict';
+  var $ = function(sel, root){ return (root || document).querySelector(sel); };
+  var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  function isValidIdentifier(value){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || /^\+?\d[\d\s\-]{7,18}$/.test(value); }
+  function addClassPulse(el, cls, ms){ if(!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); window.setTimeout(function(){ el.classList.remove(cls); }, ms || 650); }
+  function syncTabs(){
+    var wrap = $('.auth-tabs'); if(!wrap) return;
+    var active = $('.auth-tab.active', wrap);
+    wrap.setAttribute('data-active', active && active.getAttribute('data-mode') === 'register' ? 'register' : 'login');
+  }
+  function markField(field, state){
+    if(!field) return;
+    field.classList.remove('is-valid','is-invalid');
+    if(state) field.classList.add(state === 'valid' ? 'is-valid' : 'is-invalid');
+  }
+  function validateField(field, touched){
+    if(!field) return;
+    var id = field.id, value = String(field.value || '').trim();
+    var mode = ($('#authMode') && $('#authMode').value) || 'login';
+    if(!value && !touched){ markField(field, ''); return; }
+    if(id === 'identifier') return markField(field, isValidIdentifier(value) ? 'valid' : (value ? 'invalid' : ''));
+    if(id === 'fullName') return markField(field, mode !== 'register' && !value ? '' : (value.length >= 3 ? 'valid' : (value ? 'invalid' : '')));
+    if(id === 'password') return markField(field, value.length >= 6 ? 'valid' : (value ? 'invalid' : ''));
+    if(id === 'confirmPassword'){
+      if(mode !== 'register' && !value) return markField(field, '');
+      var pass = $('#password');
+      return markField(field, value && pass && value === pass.value ? 'valid' : (value ? 'invalid' : ''));
+    }
+  }
+  function validateAll(touched){ ['#identifier','#fullName','#password','#confirmPassword'].forEach(function(sel){ validateField($(sel), touched); }); }
+  function installRipple(){
+    document.addEventListener('pointerdown', function(e){
+      var el = e.target && e.target.closest ? e.target.closest('.theme-swatch-btn,.theme-pro-choice,.a2f-method,.catalog-return,.theme-toggle,.btn-primary,.btn-secondary,.ai-chip,.dirac-float-btn') : null;
+      if(!el || el.disabled || window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var rect = el.getBoundingClientRect();
+      var ripple = document.createElement('span');
+      ripple.className = 'dirac-ripple';
+      ripple.style.left = (e.clientX - rect.left) + 'px';
+      ripple.style.top = (e.clientY - rect.top) + 'px';
+      el.appendChild(ripple);
+      window.setTimeout(function(){ ripple.remove(); }, 680);
+    }, {passive:true});
+  }
+  function installThemeTransition(){
+    var trigger = function(){
+      document.documentElement.classList.add('dirac-theme-transitioning');
+      clearTimeout(trigger._t); trigger._t = setTimeout(function(){ document.documentElement.classList.remove('dirac-theme-transitioning'); }, 620);
+    };
+    document.addEventListener('click', function(e){ if(e.target && e.target.closest('[data-accent],[data-theme-mode],[data-contrast],[data-motion-choice]')) trigger(); }, true);
+    document.addEventListener('change', function(e){ if(e.target && (e.target.matches('#languageSelect') || e.target.matches('#motionSelect'))) trigger(); }, true);
+  }
+  function installStatusAndSubmitMotion(){
+    var btn = $('#submitBtn'), status = $('#statusBox'), card = $('.auth-card');
+    if(btn && window.MutationObserver){
+      new MutationObserver(function(){
+        if(btn.disabled){ btn.classList.add('is-loading'); btn.classList.remove('is-success'); }
+        else{ btn.classList.remove('is-loading'); }
+      }).observe(btn, {attributes:true, attributeFilter:['disabled']});
+    }
+    if(status && window.MutationObserver){
+      new MutationObserver(function(){
+        if(status.classList.contains('error')){ addClassPulse(status, 'motion-error', 420); validateAll(true); }
+        if(status.classList.contains('success')){ if(btn) addClassPulse(btn, 'is-success', 720); if(card) addClassPulse(card, 'motion-success', 820); }
+      }).observe(status, {attributes:true, childList:true, characterData:true, subtree:true});
+    }
+  }
+  function installA2FMotion(){
+    var modal = $('#a2fModal'); if(!modal) return;
+    modal.addEventListener('click', function(e){
+      var method = e.target && e.target.closest ? e.target.closest('.a2f-method') : null;
+      if(method){ addClassPulse(method, 'is-selecting', 520); }
+    });
+    var result = $('#a2fResult'), card = $('.a2f-card', modal);
+    if(result && card && window.MutationObserver){
+      new MutationObserver(function(){ if(result.classList.contains('show')) addClassPulse(card, 'is-verified', 900); }).observe(result, {attributes:true, childList:true, subtree:true});
+    }
+  }
+  function installReveal(){
+    var items = [
+      '.auth-copy .eyebrow','.auth-copy h1','.auth-copy p','.trust-row','.auth-shell','.mini-card','.footer-grid > *','.copyright'
+    ];
+    var els = $$(items.join(','));
+    els.forEach(function(el, i){ el.classList.add('motion-reveal'); el.style.setProperty('--motion-delay', Math.min(i * 68, 520) + 'ms'); });
+    requestAnimationFrame(function(){ document.body.classList.add('motion-page-ready'); });
+  }
+  function installTabMotion(){
+    syncTabs();
+    var tabs = $('.auth-tabs');
+    if(tabs && window.MutationObserver){ new MutationObserver(syncTabs).observe(tabs, {subtree:true, attributes:true, attributeFilter:['class','aria-selected']}); }
+    $$('.auth-tab').forEach(function(tab){ tab.addEventListener('click', function(){
+      var shell = $('.auth-shell'); if(shell){ shell.classList.remove('auth-form-swapping'); void shell.offsetWidth; shell.classList.add('auth-form-swapping'); setTimeout(function(){ shell.classList.remove('auth-form-swapping'); }, 460); }
+      setTimeout(syncTabs, 0);
+    }); });
+  }
+  function installFieldMotion(){
+    ['#identifier','#fullName','#password','#confirmPassword'].forEach(function(sel){
+      var field = $(sel); if(!field) return;
+      field.addEventListener('input', function(){ validateField(field, true); if(field.id === 'password') validateField($('#confirmPassword'), !!($('#confirmPassword') && $('#confirmPassword').value)); });
+      field.addEventListener('blur', function(){ validateField(field, true); });
+      field.addEventListener('focus', function(){ field.classList.remove('is-invalid'); });
+    });
+    var form = $('#authForm'); if(form) form.addEventListener('submit', function(){ validateAll(true); }, true);
+    $$('.auth-tab').forEach(function(tab){ tab.addEventListener('click', function(){ setTimeout(function(){ validateAll(false); }, 60); }); });
+  }
+  function installToastRestart(){
+    var toast = $('#toast'); if(!toast || !window.MutationObserver) return;
+    new MutationObserver(function(){ if(toast.classList.contains('show')){ toast.classList.remove('toast-restart'); void toast.offsetWidth; toast.classList.add('toast-restart'); } }).observe(toast, {childList:true, attributes:true, attributeFilter:['class']});
+  }
+  ready(function(){
+    installReveal();
+    installTabMotion();
+    installFieldMotion();
+    installStatusAndSubmitMotion();
+    installA2FMotion();
+    installThemeTransition();
+    installRipple();
+    /* Toast progress CSS runs without JS observer to avoid class-mutation loops. */
+  });
+})();
+</script>
+
+
 <script id="dirac-brand-typewriter-js">
 (function(){
   'use strict';
-  var FULL_TEXT = 'Dirac Group';
-  var selector = '[data-brand-typewriter] .brand-typewriter-text';
-  var target = document.querySelector(selector);
+  var BRAND_TEXT = 'Dirac Group';
+  var target = document.querySelector('[data-brand-typewriter] .brand-typewriter-text');
   if(!target) return;
   var wrapper = target.closest('[data-brand-typewriter]');
-  if(wrapper){
-    wrapper.setAttribute('aria-label', FULL_TEXT);
-    wrapper.setAttribute('data-no-i18n', '');
-  }
-  target.setAttribute('aria-hidden', 'true');
-  target.textContent = FULL_TEXT;
-
-  var reducedMotion = false;
-  try{
-    reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  }catch(error){}
-  if(reducedMotion) return;
-
-  var index = FULL_TEXT.length;
-  var deleting = true;
   var timer = null;
-  var pauseUntil = Date.now() + 1100;
+  var phraseKind = 'brand';
+  var index = 0;
+  var deleting = false;
+  var lastAuthPhrase = '';
+  var speed = {type:84, authType:72, erase:46, pauseBrand:1180, pauseAuth:1320, gap:260};
 
-  function schedule(delay){
-    window.clearTimeout(timer);
-    timer = window.setTimeout(tick, delay);
+  function reduceMotion(){
+    try{
+      return (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || document.documentElement.getAttribute('data-motion') === 'reduced';
+    }catch(error){ return false; }
   }
-
+  function textOf(selector, fallback){
+    var el = document.querySelector(selector);
+    var text = el ? String(el.textContent || '').replace(/\s+/g,' ').trim() : '';
+    return text || fallback;
+  }
+  function getAuthPhrase(){
+    var login = textOf('#loginTab', document.documentElement.lang === 'en' ? 'Sign in' : 'Masuk');
+    var register = textOf('#registerTab', document.documentElement.lang === 'en' ? 'Register' : 'Daftar');
+    return login + ' / ' + register;
+  }
+  function getPhrase(){
+    return phraseKind === 'brand' ? BRAND_TEXT : getAuthPhrase();
+  }
+  function setWrapperState(state){
+    if(!wrapper) return;
+    wrapper.setAttribute('data-phrase', phraseKind);
+    wrapper.setAttribute('data-typing-state', state || (deleting ? 'deleting' : 'typing'));
+    wrapper.setAttribute('aria-label', getPhrase());
+    wrapper.setAttribute('data-no-i18n','');
+  }
   function render(){
-    target.textContent = FULL_TEXT.slice(0, index);
+    var phrase = getPhrase();
+    if(index > phrase.length) index = phrase.length;
+    target.textContent = phrase.slice(0, index);
+    target.setAttribute('aria-hidden','true');
+    setWrapperState(deleting ? 'deleting' : 'typing');
   }
-
+  function clearTimer(){ if(timer){ window.clearTimeout(timer); timer = null; } }
+  function schedule(delay){ clearTimer(); timer = window.setTimeout(tick, delay); }
+  function switchPhrase(){
+    phraseKind = phraseKind === 'brand' ? 'auth' : 'brand';
+    if(phraseKind === 'auth') lastAuthPhrase = getAuthPhrase();
+    index = 0;
+    deleting = false;
+    render();
+    schedule(speed.gap);
+  }
   function tick(){
-    if(document.hidden){
-      schedule(650);
-      return;
+    timer = null;
+    if(document.hidden){ schedule(700); return; }
+    if(reduceMotion()){
+      phraseKind = 'brand'; index = BRAND_TEXT.length; deleting = false; render(); setWrapperState('pause'); return;
     }
-    var now = Date.now();
-    if(now < pauseUntil){
-      schedule(pauseUntil - now);
-      return;
-    }
-
-    if(deleting){
-      index = Math.max(0, index - 1);
+    var phrase = getPhrase();
+    if(!deleting){
+      index = Math.min(phrase.length, index + 1);
       render();
-      if(index === 0){
-        deleting = false;
-        pauseUntil = Date.now() + 420;
-        schedule(420);
+      if(index >= phrase.length){
+        setWrapperState('pause');
+        deleting = true;
+        schedule(phraseKind === 'brand' ? speed.pauseBrand : speed.pauseAuth);
       }else{
-        schedule(78);
+        var nextDelay = phraseKind === 'auth' ? speed.authType : speed.type;
+        if(/[\s\/]/.test(phrase.charAt(Math.max(0,index-1)))) nextDelay += 34;
+        schedule(nextDelay);
       }
     }else{
-      index = Math.min(FULL_TEXT.length, index + 1);
+      index = Math.max(0, index - 1);
       render();
-      if(index === FULL_TEXT.length){
-        deleting = true;
-        pauseUntil = Date.now() + 1350;
-        schedule(1350);
-      }else{
-        schedule(index === 6 ? 155 : 105);
-      }
+      if(index <= 0) switchPhrase();
+      else schedule(speed.erase);
     }
   }
-
-  document.addEventListener('visibilitychange', function(){
-    if(!document.hidden && !timer) schedule(160);
-  });
-
-  schedule(650);
+  function restartAuthPhraseIfNeeded(){
+    var next = getAuthPhrase();
+    if(next === lastAuthPhrase) return;
+    lastAuthPhrase = next;
+    if(phraseKind === 'auth'){
+      index = 0;
+      deleting = false;
+      target.textContent = '';
+      setWrapperState('typing');
+      schedule(140);
+    }
+  }
+  function watchLanguage(){
+    var login = document.querySelector('#loginTab');
+    var register = document.querySelector('#registerTab');
+    var debounce = null;
+    var onChange = function(){ window.clearTimeout(debounce); debounce = window.setTimeout(restartAuthPhraseIfNeeded, 80); };
+    if(window.MutationObserver){
+      [login, register].forEach(function(el){ if(el) new MutationObserver(onChange).observe(el, {childList:true,characterData:true,subtree:true}); });
+      new MutationObserver(onChange).observe(document.documentElement, {attributes:true,attributeFilter:['lang','dir','data-motion']});
+    }
+    ['change','click'].forEach(function(evt){ document.addEventListener(evt, function(e){ if(e.target && (e.target.matches('#languageSelect') || e.target.closest('[data-language]'))) onChange(); }, true); });
+  }
+  function start(){
+    if(wrapper){ wrapper.setAttribute('data-phrase','brand'); wrapper.setAttribute('data-typing-state','typing'); wrapper.setAttribute('data-no-i18n',''); }
+    lastAuthPhrase = getAuthPhrase();
+    target.textContent = '';
+    index = 0;
+    deleting = false;
+    watchLanguage();
+    schedule(360);
+  }
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden && !timer) schedule(180); });
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();
+  window.__diracBrandTypewriterState = function(){ return {phraseKind:phraseKind, phrase:getPhrase(), index:index, deleting:deleting, authPhrase:getAuthPhrase()}; };
 })();
 </script>
+
 </body>
 </html>
