@@ -5714,6 +5714,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     return configured || (kind === 'start' ? '/api/2fa/start-step' : '/api/2fa/verify-step');
   }
   function setStatus(type,msg){var box=$('#forgotStatus'); if(!box)return; box.className='status-box show '+type; box.textContent=msg;}
+  function setMainStatus(type,msg){var box=$('#statusBox')||$('#forgotStatus'); if(!box)return; box.className='status-box show '+type; box.textContent=msg;}
   function emailValue(){return String(($('#forgotEmail')&&$('#forgotEmail').value)||($('#identifier')&&$('#identifier').value)||'').trim().toLowerCase();}
   function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||''));}
   function strongPassword(pass,email){
@@ -5757,7 +5758,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   async function resendVerification(){
     var email=String((($('#identifier')&&$('#identifier').value)||($('#forgotEmail')&&$('#forgotEmail').value)||'')).trim().toLowerCase();
-    if(!validEmail(email)){status('error','Masukkan email akun yang ingin dikirim ulang verifikasi.');return;}
+    if(!validEmail(email)){setMainStatus('error','Masukkan email akun yang ingin dikirim ulang verifikasi.');return;}
     var btn=$('#resendVerificationBtn'); var old=btn&&btn.textContent; if(btn){btn.disabled=true;btn.textContent='Mengirim ulang verifikasi...';}
     try{
       var res=await fetch(endpoint('start'),{method:'POST',mode:'cors',headers:{'Content-Type':'application/json','Accept':'application/json'},credentials:'omit',cache:'no-store',body:JSON.stringify({action:'resend-email-verification',email:email,identifier:email})});
@@ -5765,10 +5766,10 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       if(!res.ok||!data||data.ok!==true||data.sent!==true){
         throw new Error((data&&(data.error||data.message))||'Email belum terdaftar, sudah terverifikasi, atau belum lolos keamanan. Verifikasi tidak dikirim.');
       }
-      status('success',data.message||'Email verifikasi baru sudah dikirim. Pakai email terbaru, jangan pakai link lama yang masih localhost.');
+      setMainStatus('success',data.message||'Email verifikasi baru sudah dikirim. Silakan cek inbox/spam dan gunakan email terbaru.');
       try{if(typeof showToast==='function')showToast('Email verifikasi baru sudah dikirim.');}catch(_e){}
     }catch(e){
-      status('error',e&&e.message?e.message:'Gagal kirim ulang verifikasi email.');
+      setMainStatus('error',e&&e.message?e.message:'Gagal kirim ulang verifikasi email.');
     }finally{if(btn){btn.disabled=false;btn.textContent=old;}}
   }
   async function confirmReset(){
