@@ -1098,6 +1098,39 @@ async function diracHandlePasswordResetRequest(req, res) {
   }
 }
 
+
+async function diracListCustomerPasskeysByUserId(userId) {
+  const supabase = getDomainSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(process.env.DOMAIN_PASSKEYS_TABLE || "domain_passkeys")
+    .select("credential_id,transports,sign_count,is_active")
+    .eq("user_id", String(userId || ""))
+    .eq("is_active", true)
+    .order("last_used_at", { ascending: false });
+
+  if (error) {
+    // Kalau table belum dibuat, jangan matikan login email/authenticator. Passkey akan fallback ke registrasi.
+    console.warn("[domain_passkeys] gagal dibaca:", error.message || error);
+    return [];
+  }
+
+  return Array.isArray(data) ? data.filter((row) => row && row.credential_id) : [];
+}
+
+function diracBuildPasskeyAuthenticationOptions({ challenge, passkeys }) {
+  return {
+    challenge,
+    timeout: DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+    rpId: DIRAC_CUSTOMER_MFA_RP_ID,
+    allowCredentials: (Array.isArray(passkeys) ? passkeys : []).map((item) => ({
+      id: String(item.credential_id || ""),
+      type: "public-key",
+      transports: Array.isArray(item.transports) ? item.transports : []
+    })).filter((item) => item.id),
+    userVerification: "preferred"
+  };
+}
+
 async function diracHandleCustomerMfaStart(req, res) {
   try {
     const action = String((req.body && req.body.action) || "").trim().toLowerCase();
@@ -1160,17 +1193,51 @@ async function diracHandleCustomerMfaStart(req, res) {
       });
     }
 
+    const user = await diracFindSupabaseUserByEmail(email);
+    const savedPasskeys = user && user.id ? await diracListCustomerPasskeysByUserId(user.id) : [];
     const challenge = diracRandomId(32);
+    const allowedOrigins = String(process.env.A2F_ALLOWED_ORIGINS || "https://diracgroup.store,https://www.diracgroup.store,https://companyprofilee-expk.vercel.app")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (savedPasskeys.length) {
+      const setupToken = diracBuildCustomerMfaToken({
+        method: "passkey",
+        email,
+        userId: user.id,
+        nonce,
+        challenge,
+        rpId: DIRAC_CUSTOMER_MFA_RP_ID,
+        allowedOrigins,
+        allowedCredentialIds: savedPasskeys.map((item) => String(item.credential_id || "")).filter(Boolean),
+        expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+        purpose: "passkey-authentication-login-mfa"
+      });
+
+      return res.status(200).json({
+        ok: true,
+        success: true,
+        method: "passkey",
+        passkeyMode: "authentication",
+        setupToken,
+        mfaSetupToken: setupToken,
+        token: setupToken,
+        publicKey: diracBuildPasskeyAuthenticationOptions({ challenge, passkeys: savedPasskeys }),
+        expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+        ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS / 1000),
+        message: "Passkey tersimpan ditemukan. Gunakan passkey perangkat untuk verifikasi."
+      });
+    }
+
     const setupToken = diracBuildCustomerMfaToken({
       method: "passkey",
       email,
+      userId: user && user.id ? user.id : "",
       nonce,
       challenge,
       rpId: DIRAC_CUSTOMER_MFA_RP_ID,
-      allowedOrigins: String(process.env.A2F_ALLOWED_ORIGINS || "https://diracgroup.store,https://www.diracgroup.store,https://companyprofilee-expk.vercel.app")
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
+      allowedOrigins,
       expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
       purpose: "passkey-registration-login-mfa"
     });
@@ -1179,13 +1246,14 @@ async function diracHandleCustomerMfaStart(req, res) {
       ok: true,
       success: true,
       method: "passkey",
+      passkeyMode: "registration",
       setupToken,
       mfaSetupToken: setupToken,
       token: setupToken,
       publicKey: diracBuildPasskeyPublicKeyOptions({ email, challenge }),
       expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
       ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS / 1000),
-      message: "Challenge passkey berhasil disiapkan."
+      message: "Belum ada passkey tersimpan. Buat passkey sekali, setelah itu login berikutnya memakai passkey tersimpan."
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -1212,7 +1280,7 @@ module.exports = async function handler(req, res) {
 
   const normalizedAction = String(action || "").trim().toLowerCase();
 
-  if (normalizedAction === "setup" || normalizedAction === "resend") {
+  if (["setup", "resend", "login", "resume"].includes(normalizedAction)) {
     return diracHandleCustomerMfaStart(req, res);
   }
 
