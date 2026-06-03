@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const admin = require("firebase-admin");
 const argon2 = require("argon2");
 const { createClient } = require("@supabase/supabase-js");
+const { generateRegistrationOptions, generateAuthenticationOptions } = require("@simplewebauthn/server");
 
 const ONE_TIME_RECOVERY_CODE_COUNT = 3;
 const ONE_TIME_RECOVERY_CODE_LENGTH = 1000;
@@ -706,6 +707,7 @@ const DIRAC_CUSTOMER_MFA_OTP_DIGITS = 6;
 const DIRAC_CUSTOMER_MFA_TOTP_BYTES = 20;
 const DIRAC_CUSTOMER_MFA_RP_NAME = process.env.WEBAUTHN_RP_NAME || "Dirac Group";
 const DIRAC_CUSTOMER_MFA_RP_ID = process.env.WEBAUTHN_RP_ID || "diracgroup.store";
+const DIRAC_CUSTOMER_MFA_PROFILE_COLLECTION = process.env.DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION || "diracCustomerMfaProfiles";
 const DIRAC_CUSTOMER_MFA_EMAIL_SUBJECT = process.env.DIRAC_CUSTOMER_MFA_EMAIL_SUBJECT || "Kode A2F Login Dirac Group";
 const DIRAC_EMAIL_VERIFY_SUBJECT = process.env.DIRAC_EMAIL_VERIFY_SUBJECT || "Verifikasi email akun Dirac Group";
 const DIRAC_PASSWORD_RESET_TOKEN_TYPE = "dirac-password-reset-v1";
@@ -1098,6 +1100,119 @@ async function diracHandlePasswordResetRequest(req, res) {
   }
 }
 
+
+function diracMfaProfileId(email) {
+  return hashCode(`dirac-customer-mfa-profile-v1:${diracNormalizeEmail(email)}`, diracGetCustomerMfaSecret());
+}
+
+async function diracReadCustomerMfaProfile(email) {
+  const db = getFirebaseDb();
+  const snap = await db.collection(DIRAC_CUSTOMER_MFA_PROFILE_COLLECTION).doc(diracMfaProfileId(email)).get();
+  if (!snap.exists) return null;
+  return { id: snap.id, ...(snap.data() || {}) };
+}
+
+function diracAllowedOriginsForCustomerMfa() {
+  return String(process.env.A2F_ALLOWED_ORIGINS || "https://diracgroup.store,https://www.diracgroup.store,https://companyprofilee-expk.vercel.app")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function diracPasskeyCredentialFromProfile(profile) {
+  const row = profile && typeof profile === "object" ? profile : {};
+  const id = String(row.passkeyCredentialId || "").trim();
+  const publicKey = String(row.passkeyPublicKey || "").trim();
+  if (!id || !publicKey || row.enabled !== true) return null;
+  return {
+    id,
+    type: "public-key",
+    transports: Array.isArray(row.passkeyTransports) ? row.passkeyTransports : []
+  };
+}
+
+async function diracBuildCustomerPasskeyStart({ email, now, nonce }) {
+  const profile = await diracReadCustomerMfaProfile(email).catch((error) => {
+    error.statusCode = error.statusCode || error.status || 500;
+    throw error;
+  });
+  const existingCredential = diracPasskeyCredentialFromProfile(profile);
+
+  if (existingCredential) {
+    const options = await generateAuthenticationOptions({
+      rpID: DIRAC_CUSTOMER_MFA_RP_ID,
+      userVerification: "preferred",
+      allowCredentials: [existingCredential]
+    });
+    const setupToken = diracBuildCustomerMfaToken({
+      method: "passkey",
+      email,
+      nonce,
+      challenge: options.challenge,
+      rpId: DIRAC_CUSTOMER_MFA_RP_ID,
+      credentialId: existingCredential.id,
+      allowedOrigins: diracAllowedOriginsForCustomerMfa(),
+      expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+      purpose: "passkey-authentication-login-mfa"
+    });
+
+    return {
+      ok: true,
+      success: true,
+      method: "passkey",
+      passkeyMode: "authentication",
+      needsRegistration: false,
+      setupToken,
+      mfaSetupToken: setupToken,
+      token: setupToken,
+      publicKey: options,
+      expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+      ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS / 1000),
+      message: "Passkey tersimpan ditemukan. Lanjutkan verifikasi perangkat."
+    };
+  }
+
+  const options = await generateRegistrationOptions({
+    rpName: DIRAC_CUSTOMER_MFA_RP_NAME,
+    rpID: DIRAC_CUSTOMER_MFA_RP_ID,
+    userName: email,
+    userID: crypto.createHash("sha256").update(`dirac-customer-passkey-user-v1:${email}`).digest(),
+    userDisplayName: email,
+    attestationType: "none",
+    authenticatorSelection: {
+      residentKey: "preferred",
+      requireResidentKey: false,
+      userVerification: "preferred"
+    },
+    timeout: DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS
+  });
+  const setupToken = diracBuildCustomerMfaToken({
+    method: "passkey",
+    email,
+    nonce,
+    challenge: options.challenge,
+    rpId: DIRAC_CUSTOMER_MFA_RP_ID,
+    allowedOrigins: diracAllowedOriginsForCustomerMfa(),
+    expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+    purpose: "passkey-registration-login-mfa"
+  });
+
+  return {
+    ok: true,
+    success: true,
+    method: "passkey",
+    passkeyMode: "registration",
+    needsRegistration: true,
+    setupToken,
+    mfaSetupToken: setupToken,
+    token: setupToken,
+    publicKey: options,
+    expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+    ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS / 1000),
+    message: "Belum ada passkey tersimpan. Daftarkan passkey perangkat ini sekali saja."
+  };
+}
+
 async function diracHandleCustomerMfaStart(req, res) {
   try {
     const action = String((req.body && req.body.action) || "").trim().toLowerCase();
@@ -1160,33 +1275,8 @@ async function diracHandleCustomerMfaStart(req, res) {
       });
     }
 
-    const challenge = diracRandomId(32);
-    const setupToken = diracBuildCustomerMfaToken({
-      method: "passkey",
-      email,
-      nonce,
-      challenge,
-      rpId: DIRAC_CUSTOMER_MFA_RP_ID,
-      allowedOrigins: String(process.env.A2F_ALLOWED_ORIGINS || "https://diracgroup.store,https://www.diracgroup.store,https://companyprofilee-expk.vercel.app")
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
-      expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
-      purpose: "passkey-registration-login-mfa"
-    });
-
-    return res.status(200).json({
-      ok: true,
-      success: true,
-      method: "passkey",
-      setupToken,
-      mfaSetupToken: setupToken,
-      token: setupToken,
-      publicKey: diracBuildPasskeyPublicKeyOptions({ email, challenge }),
-      expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
-      ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS / 1000),
-      message: "Challenge passkey berhasil disiapkan."
-    });
+    const passkeyStart = await diracBuildCustomerPasskeyStart({ email, now, nonce });
+    return res.status(200).json(passkeyStart);
   } catch (error) {
     return res.status(error.statusCode || 500).json({
       ok: false,

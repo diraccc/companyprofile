@@ -3,6 +3,7 @@ const admin = require("firebase-admin");
 const argon2 = require("argon2");
 const nodemailer = require("nodemailer");
 const { createClient } = require("@supabase/supabase-js");
+const { verifyRegistrationResponse, verifyAuthenticationResponse } = require("@simplewebauthn/server");
 
 const ONE_TIME_RECOVERY_CODE_COUNT = 3;
 const ONE_TIME_RECOVERY_CODE_LENGTH = 1000;
@@ -3124,6 +3125,10 @@ function diracJsonFromBase64Url(value) {
   return JSON.parse(diracBase64UrlToBuffer(value).toString("utf8"));
 }
 
+function diracBufferToBase64Url(value) {
+  return Buffer.from(value || Buffer.alloc(0)).toString("base64url");
+}
+
 function diracGenerateRecoveryCode() {
   let out = "";
   while (out.length < 12) {
@@ -3136,33 +3141,49 @@ function diracMfaProfileId(email) {
   return hashCode(`dirac-customer-mfa-profile-v1:${diracNormalizeEmail(email)}`, diracGetCustomerMfaSecret());
 }
 
-async function diracPersistVerifiedCustomerMfa({ email, method, credential }) {
-  const codes = [];
-  const recoveryHashes = [];
-
-  while (codes.length < DIRAC_CUSTOMER_MFA_RECOVERY_COUNT) {
-    const code = diracGenerateRecoveryCode();
-    if (codes.includes(code)) continue;
-    codes.push(code);
-    recoveryHashes.push(await argon2.hash(code.replace(/-/g, ""), ARGON2ID_OPTIONS));
-  }
-
+async function diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo, passkeyAuthenticationInfo }) {
   const db = getFirebaseDb();
   const profileRef = db.collection(DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION).doc(diracMfaProfileId(email));
-  await profileRef.set({
+  const now = Date.now();
+  const payload = {
     emailHash: diracMfaProfileId(email),
     method,
     enabled: true,
-    verifiedAtMs: Date.now(),
+    verifiedAtMs: now,
     verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
-    recoveryCodeCount: codes.length,
-    recoveryCodeHashes: recoveryHashes,
-    recoveryHashType: "argon2id",
-    passkeyCredentialId: credential && (credential.id || credential.rawId) ? String(credential.id || credential.rawId) : null,
+    recoveryCodeCount: 0,
+    recoveryCodeHashes: [],
+    recoveryHashType: "disabled-for-customer-login",
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+  };
 
-  return codes;
+  if (method === "passkey" && passkeyRegistrationInfo) {
+    const info = passkeyRegistrationInfo || {};
+    const savedCredential = info.credential || {};
+    const credentialId = String(savedCredential.id || (credential && (credential.id || credential.rawId)) || info.credentialID || "").trim();
+    const publicKey = savedCredential.publicKey || info.credentialPublicKey;
+    if (!credentialId || !publicKey) {
+      const err = new Error("Registrasi passkey belum menghasilkan credential yang bisa disimpan.");
+      err.statusCode = 500;
+      throw err;
+    }
+    payload.passkeyCredentialId = credentialId;
+    payload.passkeyPublicKey = diracBufferToBase64Url(publicKey);
+    payload.passkeyCounter = Number(savedCredential.counter ?? info.counter ?? 0);
+    payload.passkeyTransports = credential && credential.response && Array.isArray(credential.response.transports) ? credential.response.transports : [];
+    payload.passkeyDeviceType = String(info.credentialDeviceType || "");
+    payload.passkeyBackedUp = info.credentialBackedUp === true;
+    payload.passkeyRegisteredAtMs = now;
+  }
+
+  if (method === "passkey" && passkeyAuthenticationInfo) {
+    const info = passkeyAuthenticationInfo || {};
+    if (Number.isFinite(Number(info.newCounter))) payload.passkeyCounter = Number(info.newCounter);
+    payload.passkeyLastAuthenticatedAtMs = now;
+  }
+
+  await profileRef.set(payload, { merge: true });
+  return [];
 }
 
 function diracVerifyTotpCode(secret, inputCode) {
@@ -3182,56 +3203,64 @@ function diracAllowedOriginsFromPayload(payload) {
   return Array.from(new Set([...fromPayload, ...fromEnv, ...defaults].filter(Boolean)));
 }
 
-function diracVerifyPasskeyCredential({ payload, credential }) {
+async function diracVerifyPasskeyCredential({ payload, credential, email }) {
   const item = credential && typeof credential === "object" ? credential : null;
-  if (!item || item.type !== "public-key" || !item.id || !item.response || !item.response.clientDataJSON || !item.response.attestationObject) {
+  if (!item || item.type !== "public-key" || !item.id || !item.response || !item.response.clientDataJSON) {
     const err = new Error("Data passkey dari browser tidak lengkap.");
     err.statusCode = 400;
     throw err;
   }
 
-  let clientData;
-  try {
-    clientData = diracJsonFromBase64Url(item.response.clientDataJSON);
-  } catch (_error) {
-    const err = new Error("ClientData passkey tidak bisa dibaca server.");
-    err.statusCode = 400;
-    throw err;
+  const rpID = String(payload.rpId || process.env.WEBAUTHN_RP_ID || "diracgroup.store").trim();
+  const expectedOrigin = diracAllowedOriginsFromPayload(payload);
+  const purpose = String(payload.purpose || "");
+
+  if (purpose === "passkey-authentication-login-mfa") {
+    const db = getFirebaseDb();
+    const snap = await db.collection(DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION).doc(diracMfaProfileId(email)).get();
+    const profile = snap.exists ? (snap.data() || {}) : null;
+    const credentialId = String(profile && profile.passkeyCredentialId || "").trim();
+    const publicKey = String(profile && profile.passkeyPublicKey || "").trim();
+
+    if (!profile || profile.enabled !== true || !credentialId || !publicKey) {
+      const err = new Error("Passkey belum tersimpan untuk akun ini. Daftarkan passkey terlebih dahulu.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const verification = await verifyAuthenticationResponse({
+      response: item,
+      expectedChallenge: String(payload.challenge || ""),
+      expectedOrigin,
+      expectedRPID: rpID,
+      credential: {
+        id: credentialId,
+        publicKey: Buffer.from(publicKey, "base64url"),
+        counter: Number(profile.passkeyCounter || 0),
+        transports: Array.isArray(profile.passkeyTransports) ? profile.passkeyTransports : []
+      }
+    });
+
+    return {
+      verified: verification.verified === true,
+      mode: "authentication",
+      authenticationInfo: verification.authenticationInfo || null
+    };
   }
 
-  if (clientData.type !== "webauthn.create") {
-    const err = new Error("Tipe challenge passkey tidak sesuai.");
-    err.statusCode = 400;
-    throw err;
-  }
+  const verification = await verifyRegistrationResponse({
+    response: item,
+    expectedChallenge: String(payload.challenge || ""),
+    expectedOrigin,
+    expectedRPID: rpID,
+    requireUserVerification: false
+  });
 
-  if (!safeEqual(String(clientData.challenge || ""), String(payload.challenge || ""))) {
-    const err = new Error("Challenge passkey tidak cocok. Minta challenge baru.");
-    err.statusCode = 401;
-    throw err;
-  }
-
-  const origin = String(clientData.origin || "").trim();
-  const allowedOrigins = diracAllowedOriginsFromPayload(payload);
-  if (!allowedOrigins.includes(origin)) {
-    const err = new Error("Origin passkey tidak diizinkan oleh backend.");
-    err.statusCode = 403;
-    throw err;
-  }
-
-  if (clientData.crossOrigin === true) {
-    const err = new Error("Passkey cross-origin ditolak.");
-    err.statusCode = 403;
-    throw err;
-  }
-
-  if (!item.rawId || String(item.rawId).length < 16) {
-    const err = new Error("Credential ID passkey tidak valid.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  return true;
+  return {
+    verified: verification.verified === true,
+    mode: "registration",
+    registrationInfo: verification.registrationInfo || null
+  };
 }
 
 function diracHashPasswordResetCode({ email, userId, code, nonce }) {
@@ -3424,7 +3453,10 @@ async function diracHandleCustomerMfaVerify(req, res) {
       verified = diracVerifyTotpCode(payload.totpSecret, req.body && req.body.code);
     } else {
       credential = req.body && req.body.credential;
-      verified = diracVerifyPasskeyCredential({ payload, credential });
+      const passkeyResult = await diracVerifyPasskeyCredential({ payload, credential, email });
+      verified = passkeyResult && passkeyResult.verified === true;
+      if (passkeyResult && passkeyResult.registrationInfo) req.__diracPasskeyRegistrationInfo = passkeyResult.registrationInfo;
+      if (passkeyResult && passkeyResult.authenticationInfo) req.__diracPasskeyAuthenticationInfo = passkeyResult.authenticationInfo;
     }
 
     if (!verified) {
@@ -3436,7 +3468,7 @@ async function diracHandleCustomerMfaVerify(req, res) {
       });
     }
 
-    const recoveryCodes = await diracPersistVerifiedCustomerMfa({ email, method, credential });
+    const recoveryCodes = await diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo: req.__diracPasskeyRegistrationInfo, passkeyAuthenticationInfo: req.__diracPasskeyAuthenticationInfo });
 
     return res.status(200).json({
       ok: true,
