@@ -666,7 +666,7 @@ function getRecoveryLocalCode(stepNumber) {
    Additive only: does not alter legacy admin A2F step/hash/login flow.
    Supported frontend payloads:
    - POST /api/2fa/start-step { action:"setup"|"resend", method:"passkey"|"email"|"authenticator", identifier/email }
-   - POST /api/2fa/start-step { action:"resend-email-verification", email }
+   - POST /api/2fa/start-step { action:"resend-email-verification", email } // Supabase Auth resend signup confirmation
    ========================================================= */
 const DIRAC_CUSTOMER_MFA_TOKEN_TYPE = "dirac-customer-login-mfa-v1";
 const DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS = Number(process.env.DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS || 5 * 60 * 1000);
@@ -861,57 +861,102 @@ async function diracSendCustomerMfaEmailOtp(email, code) {
   });
 }
 
+function diracSupabaseUserEmail(user) {
+  const row = user && typeof user === "object" ? user : {};
+  return diracNormalizeEmail(row.email || (row.user && row.user.email) || "");
+}
+
+function diracIsSupabaseEmailConfirmed(user) {
+  const row = user && typeof user === "object" ? user : {};
+  return Boolean(row.email_confirmed_at || row.confirmed_at || row.emailConfirmedAt || row.emailVerified === true);
+}
+
+async function diracFindSupabaseUserByEmail(email) {
+  const supabase = getSupabaseAdmin();
+  const targetEmail = diracAssertEmail(email);
+  const perPage = Math.max(1, Math.min(1000, Number(process.env.DIRAC_SUPABASE_USER_SCAN_PER_PAGE || 1000)));
+  const maxPages = Math.max(1, Math.min(50, Number(process.env.DIRAC_SUPABASE_USER_SCAN_MAX_PAGES || 10)));
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+
+    if (error) {
+      error.statusCode = error.status || 500;
+      throw error;
+    }
+
+    const users = Array.isArray(data && data.users)
+      ? data.users
+      : (Array.isArray(data) ? data : []);
+
+    const matched = users.find((user) => diracSupabaseUserEmail(user) === targetEmail);
+    if (matched) return matched;
+
+    if (users.length < perPage) break;
+  }
+
+  return null;
+}
+
 async function diracResendEmailVerification(req, res) {
   try {
     const email = diracAssertEmail((req.body && (req.body.email || req.body.identifier)) || "");
-    getFirebaseDb();
+    const supabase = getSupabaseAdmin();
+    const user = await diracFindSupabaseUserByEmail(email);
 
-    const user = await admin.auth().getUserByEmail(email);
-    if (user.emailVerified === true) {
+    if (!user) {
+      return res.status(404).json({
+        ok: false,
+        success: false,
+        sent: false,
+        provider: "supabase",
+        error: "Email belum terdaftar di Supabase Auth. Verifikasi tidak dikirim."
+      });
+    }
+
+    if (diracIsSupabaseEmailConfirmed(user)) {
       return res.status(409).json({
         ok: false,
         success: false,
         sent: false,
-        error: "Email akun ini sudah terverifikasi. Silakan masuk seperti biasa."
+        provider: "supabase",
+        error: "Email akun ini sudah terverifikasi di Supabase. Silakan masuk seperti biasa."
       });
     }
 
-    const continueUrl = process.env.A2F_EMAIL_VERIFY_CONTINUE_URL || process.env.FIREBASE_AUTH_CONTINUE_URL || "https://diracgroup.store/masuk.html";
-    const link = await admin.auth().generateEmailVerificationLink(email, {
-      url: continueUrl,
-      handleCodeInApp: false
+    const continueUrl = process.env.A2F_EMAIL_VERIFY_CONTINUE_URL || process.env.SUPABASE_AUTH_CONTINUE_URL || "https://diracgroup.store/masuk.html";
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: continueUrl
+      }
     });
 
-    await diracSendBrevoMail({
-      to: email,
-      subject: DIRAC_EMAIL_VERIFY_SUBJECT,
-      htmlContent: `
-        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
-          <h2>Verifikasi Email Dirac Group</h2>
-          <p>Klik tombol berikut untuk memverifikasi email akun kamu:</p>
-          <p><a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:800;padding:12px 18px;border-radius:999px">Verifikasi email</a></p>
-          <p>Jika tombol tidak bisa dibuka, salin link berikut:</p>
-          <p style="word-break:break-all;color:#475569">${link}</p>
-          <p>Jika kamu tidak meminta email ini, abaikan pesan ini.</p>
-        </div>
-      `,
-      textContent: `Verifikasi email akun Dirac Group: ${link}`
-    });
+    if (error) {
+      error.statusCode = error.status || 500;
+      throw error;
+    }
 
     return res.status(200).json({
       ok: true,
       success: true,
       sent: true,
+      provider: "supabase",
       email: diracMaskEmail(email),
-      message: "Email verifikasi baru sudah dikirim. Silakan cek inbox/spam dan gunakan email terbaru."
+      message: "Email verifikasi Supabase sudah dikirim ulang. Silakan cek inbox/spam dan gunakan email terbaru."
     });
   } catch (error) {
-    const code = /no user record|user-not-found/i.test(String(error && error.message || "")) ? 404 : (error.statusCode || 500);
+    const rawMessage = String((error && (error.message || error.error_description || error.msg)) || "");
+    const notFound = /not found|not exist|not registered|user.*not|no user/i.test(rawMessage);
+    const code = notFound ? 404 : (error.statusCode || error.status || 500);
+
     return res.status(code).json({
       ok: false,
       success: false,
       sent: false,
-      error: code === 404 ? "Email belum terdaftar. Verifikasi tidak dikirim." : (error.message || "Gagal mengirim verifikasi email.")
+      provider: "supabase",
+      error: code === 404 ? "Email belum terdaftar di Supabase Auth. Verifikasi tidak dikirim." : (rawMessage || "Gagal mengirim verifikasi email Supabase.")
     });
   }
 }
