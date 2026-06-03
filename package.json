@@ -1,7 +1,10 @@
 {
-  "name": "dirac-admin",
+  "name": "dirac-customer-security",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@simplewebauthn/server": "^13.1.2",
     "@supabase/supabase-js": "^2.45.4",
