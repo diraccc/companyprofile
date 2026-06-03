@@ -4257,7 +4257,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       beginPasskey:'Menyiapkan passkey...', beginAuthenticator:'Menyiapkan setup key Authenticator...', beginEmail:'Mengirim kode email...',
       verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Endpoint A2F belum siap. Cek koneksi/server lalu coba lagi.',
       resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Setup key baru disiapkan. Salin setup key, lalu masukkan kode dari Authenticator.',
-      passkeyNeedsServer:'Passkey membutuhkan HTTPS dan endpoint WebAuthn server. Pilih Authenticator dan pastikan endpoint /api/2fa/verify-totp aktif.',
+      passkeyNeedsServer:'Passkey membutuhkan HTTPS, dukungan WebAuthn perangkat, dan endpoint /api/2fa/start-step serta /api/2fa/verify-step aktif.',
       passkeyCancel:'Pembuatan passkey dibatalkan atau gagal. A2F belum diaktifkan.', unsupported:'Browser/perangkat ini belum mendukung metode tersebut.',
       codeInvalid:'Kode harus 6 digit. Sisa percobaan: {n}.', codeWrong:'Kode belum cocok. Masukkan 6 digit terbaru dari aplikasi Authenticator.', locked:'Terlalu banyak percobaan. Kirim ulang kode untuk mencoba lagi.',
       recoveryTitle:'Simpan recovery code', recoveryText:'Simpan kode ini di tempat aman. Kode hanya contoh lokal bila backend belum mengirim recovery code produksi.',
@@ -4276,7 +4276,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       beginPasskey:'Preparing passkey...', beginAuthenticator:'Preparing Authenticator setup key...', beginEmail:'Sending email code...',
       verifyHelp:'Enter the 6-digit code, then press Continue.', demoCode:'The 2FA endpoint is not ready. Check the server/connection and try again.',
       resendReady:'Resend code now', resendWait:'Resend in {s} seconds', resendDone:'A new setup key is ready. Copy the setup key, then enter the Authenticator code.',
-      passkeyNeedsServer:'Passkey requires HTTPS and a WebAuthn server endpoint. Choose Authenticator and make sure /api/2fa/verify-totp is active.',
+      passkeyNeedsServer:'Passkey requires HTTPS, device WebAuthn support, and active /api/2fa/start-step plus /api/2fa/verify-step endpoints.',
       passkeyCancel:'Passkey creation was cancelled or failed. 2FA has not been enabled.', unsupported:'This browser/device does not support that method.',
       codeInvalid:'Code must be 6 digits. Attempts left: {n}.', codeWrong:'The code does not match. Enter the latest 6-digit code from your Authenticator app.', locked:'Too many attempts. Resend the code to try again.',
       recoveryTitle:'Save recovery codes', recoveryText:'Keep these codes somewhere safe. Codes are local examples when the backend has not returned production recovery codes.',
@@ -4472,20 +4472,42 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       + '<p>'+intro+'</p>'
       + '</div>';
   }
+  function uniqueEndpoints(list){
+    var seen = {};
+    return list.filter(function(url){
+      url = String(url || '').trim();
+      if(!url || seen[url]) return false;
+      seen[url] = true;
+      return true;
+    });
+  }
+  function endpointCandidates(kind){
+    var modal = $('#a2fModal');
+    var configured = modal && modal.getAttribute(kind === 'setup' ? 'data-mfa-setup-endpoint' : kind === 'verify' ? 'data-mfa-verify-endpoint' : 'data-mfa-status-endpoint');
+    var sameOrigin = kind === 'setup' ? '/api/2fa/start-step' : kind === 'verify' ? '/api/2fa/verify-step' : '/api/2fa/lock';
+    var legacyCompat = '/api/2fa/verify-totp';
+    return uniqueEndpoints([configured, sameOrigin, legacyCompat]);
+  }
   async function callEndpoint(kind, payload){
-    var modal = $('#a2fModal'); if(!modal || !window.fetch) throw new Error('endpoint unavailable');
-    var url = modal.getAttribute(kind === 'setup' ? 'data-mfa-setup-endpoint' : kind === 'verify' ? 'data-mfa-verify-endpoint' : 'data-mfa-status-endpoint');
-    if(!url) throw new Error('endpoint missing');
-    var res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:'same-origin', cache:'no-store'});
-    var data = await res.clone().json().catch(function(){return null;});
-    if(!res.ok || !data || data.ok === false){
-      var message = data && (data.error || data.message || data.hint || data.details) ? (data.error || data.message || data.hint || data.details) : 'Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.';
-      var err = new Error(message);
-      err.response = data;
-      err.status = res.status;
-      throw err;
+    if(!window.fetch) throw new Error('endpoint unavailable');
+    var urls = endpointCandidates(kind);
+    if(!urls.length) throw new Error('endpoint missing');
+    var lastError = null;
+    for(var i=0;i<urls.length;i++){
+      try{
+        var res = await fetch(urls[i], {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:'same-origin', cache:'no-store'});
+        var data = await res.clone().json().catch(function(){return null;});
+        if(res.ok && data && data.ok !== false) return data;
+        var message = data && (data.error || data.message || data.hint || data.details) ? (data.error || data.message || data.hint || data.details) : 'Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.';
+        var err = new Error(message);
+        err.response = data;
+        err.status = res.status;
+        lastError = err;
+      }catch(e){
+        lastError = e;
+      }
     }
-    return data;
+    throw lastError || new Error('Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.');
   }
   async function beginVerifyStep(resend){
     state.attempts = 0; resetOtpBoxes(); clearResult(); setStep(2);
