@@ -1084,7 +1084,7 @@ async function startEmailVerificationResend(req, res) {
     redirectTo: emailRedirectTo,
     provider: "supabase-auth-resend",
     data: data || null,
-    message: "Email verifikasi baru sudah dikirim. Pakai email terbaru, jangan pakai link lama yang masih localhost."
+    message: "Email verifikasi baru sudah dikirim. Silakan cek inbox/spam dan gunakan email terbaru."
   });
 }
 
