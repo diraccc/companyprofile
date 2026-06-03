@@ -170,8 +170,87 @@ html[data-effective-theme="light"] .theme-card,html[data-effective-theme="light"
 @media(prefers-reduced-motion:reduce){.brand-typewriter:after,.drawer-menu-item,.menu-drawer,.gate-checking .gate-card .gate-icon{animation:none!important}}
 </style>
 
+
+<style id="dirac-dashboard-final-security-ui-fix">
+/* Final revision: header pill like order1, compact theme modal, and secure backend gate. */
+.site-header{background:transparent!important;border-bottom:0!important;box-shadow:none!important;padding:10px 0 8px;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+.site-header:after{display:none!important}
+.site-header .nav{position:relative;isolation:isolate;border-radius:34px;padding:14px 16px!important;background:linear-gradient(135deg,rgba(8,18,22,.86),rgba(5,8,13,.90));border:1px solid rgba(var(--theme-rgb),.28);box-shadow:0 22px 58px rgba(0,0,0,.38),0 0 0 1px rgba(255,255,255,.055) inset,0 0 38px rgba(var(--theme-rgb),.075);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);overflow:hidden;}
+.site-header .nav:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 18% 35%,rgba(var(--theme-rgb),.10),transparent 34%),linear-gradient(90deg,rgba(255,255,255,.05),transparent 48%,rgba(var(--theme-rgb),.065));opacity:.95;}
+.site-header .nav:after{content:"";position:absolute;left:18px;right:18px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--theme-rgb),.32),transparent);opacity:.9;}
+.site-header.is-scrolled .nav{padding:10px 14px!important;background:linear-gradient(135deg,rgba(8,18,22,.94),rgba(5,8,13,.96));box-shadow:0 18px 48px rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.05) inset;}
+.theme-toggle,.menu-toggle{border-radius:999px!important;background:linear-gradient(145deg,rgba(14,24,30,.94),rgba(8,10,16,.88))!important;border:1px solid rgba(var(--theme-rgb),.30)!important;box-shadow:0 14px 30px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.07) inset!important;color:#fff!important;}
+.theme-toggle:hover,.menu-toggle:hover{border-color:rgba(var(--theme-rgb),.52)!important;box-shadow:0 18px 38px rgba(0,0,0,.34),0 0 22px rgba(var(--theme-rgb),.13)!important;}
+.menu-toggle[aria-expanded="true"]{background:rgba(var(--theme-rgb),.13)!important;}
+/* Hide protected content until backend says OK. */
+.gate-locked #dashboardRoot,.gate-locked .announcement,.gate-locked .site-header,.gate-locked .footer,.gate-locked .dirac-floating-actions{display:none!important;}
+.gate-locked .security-gate,.gate-checking .security-gate{display:grid!important;}
+.gate-checking .security-gate .gate-card:after{content:"Mengecek sesi backend...";display:block;margin-top:12px;color:#f8ead1;font-weight:800;letter-spacing:.02em;}
+/* Theme modal: compact app-like layout, matching order1 reference. */
+.theme-modal{padding:18px!important;place-items:center!important;}
+.theme-card{width:min(760px,calc(100vw - 40px))!important;max-height:min(86dvh,820px)!important;border-radius:34px!important;padding:0!important;background:linear-gradient(180deg,#111b27 0%,#071018 100%)!important;border:1px solid rgba(var(--theme-rgb),.28)!important;box-shadow:0 30px 88px rgba(0,0,0,.56),0 0 0 1px rgba(255,255,255,.06) inset,0 0 45px rgba(var(--theme-rgb),.08)!important;overflow:auto!important;}
+.theme-head{position:sticky;top:0;z-index:3;padding:24px 24px 16px!important;margin:0!important;background:linear-gradient(180deg,rgba(17,27,39,.98),rgba(17,27,39,.88));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);}
+.theme-head h2{font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;font-size:clamp(1.45rem,4vw,2rem)!important;line-height:1.1!important;color:#fff!important;letter-spacing:-.03em!important;font-weight:900!important;}
+.theme-head .icon-btn{width:54px!important;height:54px!important;border-radius:999px!important;background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.14)!important;}
+.theme-body{padding:18px 24px 24px!important;}
+.theme-section{margin:0!important;padding:18px 0!important;border-top:1px solid rgba(255,255,255,.08)!important;}
+.theme-section:first-child{border-top:0!important;padding-top:2px!important;}
+.theme-section h3{font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;font-size:clamp(1.05rem,3.4vw,1.45rem)!important;line-height:1.15!important;font-weight:900!important;color:#fff!important;margin:0 0 8px!important;}
+.theme-section p{font-size:clamp(.86rem,2.9vw,1rem)!important;line-height:1.45!important;color:#9aa6ba!important;margin:0 0 14px!important;}
+.theme-choice-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important;}
+.theme-language-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;}
+.theme-contrast-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;}
+.theme-choice{min-height:66px!important;border-radius:18px!important;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(0,0,0,.14))!important;border:1px solid rgba(255,255,255,.10)!important;color:#eef2f8!important;box-shadow:0 10px 22px rgba(0,0,0,.18),0 1px 0 rgba(255,255,255,.06) inset!important;font-size:.98rem!important;font-weight:900!important;padding:10px 12px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;text-align:center!important;}
+.theme-choice span:first-child{min-width:32px;height:32px;border-radius:10px;display:inline-grid;place-items:center;background:rgba(255,255,255,.07);font-size:.86rem!important;font-weight:900;}
+.theme-choice.active,.theme-choice.is-selected{background:linear-gradient(135deg,rgba(var(--theme-rgb),.18),rgba(var(--theme-rgb),.08))!important;border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(var(--theme-rgb),.14),0 14px 30px rgba(0,0,0,.24)!important;}
+.theme-swatches{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:10px!important;align-items:center!important;}
+.theme-swatch-choice,.theme-swatches .choice{width:100%!important;aspect-ratio:1/1!important;height:auto!important;min-height:0!important;max-height:none!important;border-radius:14px!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.16),0 8px 20px rgba(0,0,0,.22)!important;}
+.theme-swatches .choice.active,.theme-swatches .choice.is-selected,.theme-swatch-choice.active,.theme-swatch-choice.is-selected{width:100%!important;transform:translateY(-2px)!important;box-shadow:inset 0 0 0 4px rgba(255,255,255,.28),0 0 0 3px rgba(var(--theme-rgb),.30),0 14px 28px rgba(0,0,0,.28)!important;}
+.theme-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important;padding:18px 0 0!important;position:sticky;bottom:0;background:linear-gradient(0deg,#071018 72%,rgba(7,16,24,.82));}
+.theme-reset,.theme-save{min-height:58px!important;border-radius:22px!important;font-size:1rem!important;}
+.theme-save{background:linear-gradient(135deg,#6ee7f9,#38bdf8)!important;color:#06111d!important;}
+.theme-reset{background:linear-gradient(135deg,#ff5757,#dc2626)!important;color:#fff!important;}
+html[data-effective-theme="light"] .site-header .nav{background:rgba(255,255,255,.78)!important;border-color:rgba(var(--theme-rgb),.28)!important;}
+html[data-effective-theme="light"] .theme-card{background:linear-gradient(180deg,#fffaf2,#fff3df)!important;color:#171923!important;}
+html[data-effective-theme="light"] .theme-head{background:linear-gradient(180deg,rgba(255,250,242,.98),rgba(255,250,242,.88))!important;}
+html[data-effective-theme="light"] .theme-section h3,html[data-effective-theme="light"] .theme-head h2{color:#171923!important;}
+@media(max-width:760px){
+  .site-header{padding:8px 0!important;}
+  .site-header .container{width:min(var(--max),calc(100% - 28px))!important;}
+  .site-header .nav{border-radius:32px!important;padding:13px 14px!important;gap:12px!important;}
+  .brand-mark{width:58px!important;height:58px!important;border-radius:18px!important;}
+  .site-header.is-scrolled .brand-mark{width:52px!important;height:52px!important;border-radius:16px!important;}
+  .brand-name{font-size:1.18rem!important;max-width:10rem!important;}
+  .theme-toggle,.menu-toggle{width:62px!important;height:62px!important;min-width:62px!important;}
+  .header-actions{gap:10px!important;}
+  .theme-card{width:calc(100vw - 38px)!important;border-radius:30px!important;max-height:82dvh!important;}
+  .theme-head{padding:20px 22px 14px!important;}
+  .theme-body{padding:14px 22px 22px!important;}
+  .theme-choice-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;}
+  .theme-language-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;}
+  .theme-contrast-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;}
+  .theme-choice{min-height:58px!important;border-radius:16px!important;font-size:.82rem!important;padding:8px!important;gap:6px!important;}
+  .theme-choice span:first-child{min-width:26px;height:26px;font-size:.74rem!important;border-radius:8px;}
+  .theme-swatches{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:8px!important;}
+  .theme-actions{grid-template-columns:1fr 1fr!important;gap:10px!important;}
+  .theme-reset,.theme-save{min-height:52px!important;border-radius:20px!important;font-size:.92rem!important;}
+}
+@media(max-width:430px){
+  .site-header .container{width:min(var(--max),calc(100% - 20px))!important;}
+  .site-header .nav{border-radius:28px!important;padding:12px!important;}
+  .brand-mark{width:54px!important;height:54px!important;}
+  .theme-toggle,.menu-toggle{width:56px!important;height:56px!important;min-width:56px!important;}
+  .brand-name{font-size:1.08rem!important;max-width:8.6rem!important;}
+  .theme-card{width:calc(100vw - 28px)!important;border-radius:26px!important;}
+  .theme-body{padding:12px 18px 20px!important;}
+  .theme-head{padding:18px 18px 12px!important;}
+  .theme-choice{font-size:.76rem!important;min-height:54px!important;}
+  .theme-swatches{gap:7px!important;}
+}
+</style>
+
 </head>
-<body>
+<body class="gate-locked gate-checking">
   <div class="announcement">
     <div class="container">
       <span data-i18n="announce">Dashboard pelanggan Dirac Group — ringkasan semua layanan dalam satu tempat</span>
@@ -361,7 +440,7 @@ html[data-effective-theme="light"] .theme-card,html[data-effective-theme="light"
       <div class="theme-body">
         <section class="theme-section" aria-label="Mode tema">
           <h3 data-i18n="modeTitle">Mode Tema</h3>
-          <p data-i18n="modeSub">Pilih mode tema</p>
+          <p data-i18n="modeSub">Pilih gelap, terang, atau otomatis mengikuti perangkat.</p>
           <div class="theme-choice-grid">
             <button class="choice theme-choice" type="button" data-theme-mode="light" aria-pressed="false"><span aria-hidden="true">☼</span><span data-i18n="light">Terang</span></button>
             <button class="choice theme-choice" type="button" data-theme-mode="dark" aria-pressed="false"><span aria-hidden="true">☾</span><span data-i18n="dark">Gelap</span></button>
@@ -370,15 +449,21 @@ html[data-effective-theme="light"] .theme-card,html[data-effective-theme="light"
         </section>
         <section class="theme-section" aria-label="Bahasa tampilan">
           <h3 data-i18n="languageTitle">Bahasa Tampilan</h3>
-          <p data-i18n="languageSub">Pilih bahasa dashboard</p>
-          <div class="theme-language-grid" aria-label="Pilihan bahasa website">
+          <p data-i18n="languageSub">Pilih bahasa website</p>
+          <div class="theme-language-grid" id="themeLanguageOptions" aria-label="Pilihan bahasa website" data-no-i18n>
             <button class="choice theme-choice theme-lang-option" type="button" data-language="id" aria-pressed="false"><span aria-hidden="true">ID</span><span>Indonesia</span></button>
             <button class="choice theme-choice theme-lang-option" type="button" data-language="en" aria-pressed="false"><span aria-hidden="true">EN</span><span>English</span></button>
+            <button class="choice theme-choice theme-lang-option" type="button" data-language="zh" aria-pressed="false"><span aria-hidden="true">中</span><span>中文</span></button>
+            <button class="choice theme-choice theme-lang-option" type="button" data-language="ar" aria-pressed="false"><span aria-hidden="true">ع</span><span>العربية</span></button>
+            <button class="choice theme-choice theme-lang-option" type="button" data-language="ja" aria-pressed="false"><span aria-hidden="true">日</span><span>日本語</span></button>
+            <button class="choice theme-choice theme-lang-option" type="button" data-language="ko" aria-pressed="false"><span aria-hidden="true">한</span><span>한국어</span></button>
+            <button class="choice theme-choice theme-lang-option" type="button" data-language="es" aria-pressed="false"><span aria-hidden="true">ES</span><span>Español</span></button>
+            <button class="choice theme-choice theme-lang-option" type="button" data-language="fr" aria-pressed="false"><span aria-hidden="true">FR</span><span>Français</span></button>
           </div>
         </section>
         <section class="theme-section" aria-label="Kontras tema">
           <h3 data-i18n="contrastTitle">Kontras Tema</h3>
-          <p data-i18n="contrastSub">Pilih kontras tampilan</p>
+          <p data-i18n="contrastSub">Pilih kontras tema</p>
           <div class="theme-contrast-grid">
             <button class="choice theme-choice" type="button" data-contrast="on" aria-pressed="false"><span aria-hidden="true">◐</span><span>On</span></button>
             <button class="choice theme-choice" type="button" data-contrast="off" aria-pressed="false"><span aria-hidden="true">◌</span><span>Off</span></button>
@@ -440,15 +525,19 @@ html[data-effective-theme="light"] .theme-card,html[data-effective-theme="light"
     var DEFAULT_SETTINGS={mode:'dark',accent:'gold',language:'id',motion:'full',contrast:'off'};
     var PALETTES={
       gold:{label:'Gold',gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},
-      champagne:{label:'Champagne',gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'},
-      blue:{label:'Royal',gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
-      cyan:{label:'Cyan',gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'},
-      emerald:{label:'Emerald',gold:'#34d399',gold2:'#059669',gold3:'#064e3b',rgb:'52,211,153'},
-      violet:{label:'Violet',gold:'#a78bfa',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'167,139,250'},
+      lightgold:{label:'Light Gold',gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'},
+      bronze:{label:'Bronze',gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122'},
+      blue:{label:'Blue',gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
+      cyan:{label:'Cyan',gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240'},
+      indigo:{label:'Indigo',gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'},
+      violet:{label:'Violet',gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246'},
+      purple:{label:'Purple',gold:'#a78bfa',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'167,139,250'},
+      lavender:{label:'Lavender',gold:'#b095ff',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'176,149,255'},
+      magenta:{label:'Magenta',gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'},
       pink:{label:'Pink',gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},
       rose:{label:'Rose',gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'},
-      orange:{label:'Orange',gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'},
-      graphite:{label:'Graphite',gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}
+      red:{label:'Red',gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},
+      orange:{label:'Orange',gold:'#fb6a3d',gold2:'#ea580c',gold3:'#7c2d12',rgb:'251,106,61'}
     };
     var I18N={
       id:{announce:'Dashboard pelanggan Dirac Group — ringkasan semua layanan dalam satu tempat',openCatalog:'Buka katalog',navDashboard:'Dashboard',theme:'Tema',heroKicker:'Dashboard pelanggan',welcomeTitle:'Selamat datang',heroText:'Ringkasan semua layanan pelanggan Dirac Group tersusun rapi dalam satu halaman: parfum, domain, project website, invoice, pengiriman, layanan nomor, dan bantuan admin.',shopNow:'Buka katalog parfum',contactAdmin:'Hubungi admin',openThemeSettings:'Atur tema',attentionKicker:'Perlu perhatian',attentionTitle:'Status penting',attentionSub:'Hal yang membutuhkan tindakan pelanggan akan muncul paling atas agar tidak terlewat.',attentionInvoice:'Tagihan',attentionInvoiceSub:'Tidak ada invoice tertunda.',attentionDomain:'Domain',attentionDomainSub:'Belum ada domain yang hampir expired.',attentionProject:'Project Website',attentionProjectSub:'Belum ada approval yang menunggu.',attentionSupport:'Bantuan',attentionSupportSub:'Tidak ada tiket yang menunggu balasan.',summaryTitle:'Ringkasan layanan',summarySub:'Kondisi utama akun pelanggan ditampilkan singkat, tanpa tabel besar dan tanpa informasi teknis yang membingungkan.',summaryOrders:'Pesanan aktif',summaryOrdersSub:'Belum ada pesanan parfum atau layanan yang sedang diproses.',summaryShipments:'Pengiriman',summaryShipmentsSub:'Belum ada paket yang sedang dalam perjalanan.',summaryDomains:'Domain aktif',summaryDomainsSub:'Domain pelanggan akan tampil setelah layanan domain dibuat.',summaryProjects:'Project website',summaryProjectsSub:'Progress pembuatan atau pengembangan website akan muncul di sini.',emptyState:'Belum ada data',servicesTitle:'Layanan pelanggan',servicesSub:'Setiap card dibuat sebagai pintu masuk cepat agar pelanggan paham layanan mana yang ingin dibuka atau ditanyakan.',serviceEmpty:'Belum ada pesanan',serviceEmptyDomain:'Belum ada domain',serviceEmptyProject:'Belum ada project',serviceTrackingStatus:'Siap dicek',serviceEmptyNumber:'Belum aktif',serviceInvoiceStatus:'Tidak ada tagihan',serviceSupportStatus:'Admin siap',servicePerfume:'Parfum',servicePerfumeText:'Pantau pembelian parfum, pengiriman, review, dan riwayat pembelian pelanggan.',serviceDomain:'Domain',serviceDomainText:'Lihat status domain, masa aktif, perpanjangan, dan kebutuhan pengelolaan domain.',serviceWebsite:'Project Website',serviceWebsiteText:'Pantau progress pembuatan, pengembangan, revisi, approval, dan maintenance website.',serviceTracking:'Cek Resi',serviceTrackingText:'Lacak paket dari pesanan parfum dan bantu pelanggan mengetahui status pengiriman.',serviceNumber:'Layanan Nomor',serviceNumberText:'Tampilkan layanan nomor yang legal, masa aktif, invoice, dan bantuan penggunaan.',serviceInvoice:'Invoice',serviceInvoiceText:'Cek tagihan, status pembayaran, bukti transfer, dan riwayat invoice pelanggan.',serviceSupport:'Bantuan',serviceSupportText:'Hubungi admin untuk kendala parfum, domain, website, pembayaran, pengiriman, dan layanan nomor.',ctaCatalog:'Buka katalog',ctaAskAdmin:'Tanya admin',ctaConsult:'Konsultasi',ctaTrack:'Cek resi',ctaConfirmPayment:'Konfirmasi',ctaChat:'Chat admin',ctaNeedHelp:'Butuh bantuan?',ctaStartOrder:'Mulai belanja',notifTitle:'Notifikasi terbaru',notifSub:'Pemberitahuan penting akan muncul di sini jika ada pembayaran, pengiriman, domain, project, atau balasan admin.',emptyNotifTitle:'Belum ada notifikasi terbaru',emptyNotifText:'Saat ada invoice, pengiriman, domain hampir expired, atau project menunggu approval, informasinya akan muncul di bagian ini.',activityTitle:'Aktivitas terbaru',activitySub:'Riwayat aktivitas pelanggan ditampilkan ringkas agar dashboard tetap bersih.',emptyActivityTitle:'Belum ada aktivitas',emptyActivityText:'Pesanan baru, pembayaran, update project, dan tiket bantuan akan tercatat otomatis setelah pelanggan mulai memakai layanan.',quickTitle:'Akses layanan',quickSub:'Akses layanan dipusatkan pada menu dan kartu layanan agar tampilan tetap rapi.',actCatalog:'Buka katalog',actCatalogSub:'Belanja parfum dan produk utama',actTracking:'Cek resi',actTrackingSub:'Lacak pengiriman pesanan',actWA:'Hubungi admin',actWASub:'Bantuan parfum, domain, website',actTheme:'Atur tema',actThemeSub:'Warna, bahasa, dan animasi',trackingTitle:'Cek Resi',trackingSub:'Masukkan nomor resi untuk menyiapkan pengecekan pengiriman.',cancel:'Batal',checkTracking:'Cek sekarang',menuTitle:'Menu Dashboard',menuSub:'Navigasi utama pelanggan.',logout:'Keluar',menuFoot:'Dashboard berisi ringkasan layanan pelanggan, notifikasi, aktivitas, dan pintu masuk layanan melalui menu serta kartu layanan.',themeTitle:'Pengaturan Tema',themeSub:'Ganti warna, bahasa, mode, dan gerak website.',modeTitle:'Mode tampilan',modeSub:'Pilih gelap, terang, atau otomatis mengikuti perangkat.',dark:'Gelap',light:'Terang',auto:'Otomatis',contrast:'Kontras',accentTitle:'Warna aksen',accentSub:'Warna akan mengikuti header, tombol, kartu, dan elemen dashboard.',languageTitle:'Bahasa',languageSub:'Pilih bahasa tampilan dashboard.',motionTitle:'Gerak website',motionSub:'Animasi bisa dikurangi untuk kenyamanan.',motionFull:'Full animasi',motionReduced:'Gerak ringan',resetTheme:'Reset tema',saveClose:'Simpan & tutup',gateTitle:'Dashboard terkunci',gateText:'Dashboard hanya dapat dibuka setelah login dan verifikasi keamanan dari sistem selesai.',goLogin:'Masuk dulu',viewCatalog:'Lihat katalog',footerText:'Dashboard pelanggan modern untuk ringkasan parfum, domain, website, invoice, pengiriman, dan bantuan.',footerNav:'Navigasi',footerHelp:'Bantuan',copyright:'Dashboard ringkasan pelanggan.',themeSaved:'Tema disimpan.',themeReset:'Tema direset.',loggedOut:'Session dibersihkan. Mengarah ke login...',trackingFill:'Isi nomor resi terlebih dahulu.',trackingReady:'Resi siap dicek. Silakan kirim ke admin untuk dibantu pengecekan realtime.'},
@@ -485,26 +574,33 @@ html[data-effective-theme="light"] .theme-card,html[data-effective-theme="light"
     }
     function verifyBackendSecurity(){
       if(!authAllowed()) return Promise.resolve(false);
-      if(hasBackendSecurityMarker()) return Promise.resolve(true);
-      var endpoint=(session&&session.dashboardVerifyEndpoint)||'https://companyprofilee-expk.vercel.app/api/auth/dashboard-verify';
+      var endpoint='https://companyprofilee-expk.vercel.app/api/auth/dashboard-verify';
+      if(session&&session.dashboardVerifyEndpoint&&/^https:\/\/companyprofilee-expk\.vercel\.app\//.test(session.dashboardVerifyEndpoint)) endpoint=session.dashboardVerifyEndpoint;
       var token=(session&&(session.token||session.accessToken||session.jwt||session.sessionToken))||'';
-      var headers={'Accept':'application/json'};
+      var headers={'Accept':'application/json','X-Requested-With':'DiracDashboard'};
       if(token) headers.Authorization='Bearer '+token;
       return fetch(endpoint,{method:'GET',credentials:'include',cache:'no-store',headers:headers}).then(function(res){
         if(!res.ok) return false;
         return res.json().then(function(data){
-          return !!(data&&(data.ok||data.authenticated||data.dashboardAllowed||data.dashboardReady)&& (data.twoFactorVerified||data.securityComplete||data.a2fVerified||data.mfaVerified));
+          return !!(data && data.ok===true && (data.authenticated===true||data.dashboardAllowed===true||data.dashboardReady===true) && (data.twoFactorVerified===true||data.securityComplete===true||data.a2fVerified===true||data.mfaVerified===true));
         }).catch(function(){return false});
       }).catch(function(){return false});
     }
     function enforceDashboardAccess(){
-      document.body.classList.add('gate-checking');
+      document.body.classList.add('gate-locked','gate-checking');
       verifyBackendSecurity().then(function(ok){
         document.body.classList.remove('gate-checking');
-        if(!ok) document.body.classList.add('gate-locked');
+        if(ok){
+          document.body.classList.remove('gate-locked');
+          document.documentElement.setAttribute('data-dashboard-unlocked','true');
+        }else{
+          document.body.classList.add('gate-locked');
+          document.documentElement.removeAttribute('data-dashboard-unlocked');
+        }
       }).catch(function(){
         document.body.classList.remove('gate-checking');
         document.body.classList.add('gate-locked');
+        document.documentElement.removeAttribute('data-dashboard-unlocked');
       });
     }
     function hydrateProfile(){
