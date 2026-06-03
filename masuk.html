@@ -3841,8 +3841,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
       return {
         accessToken: container.access_token || container.accessToken || container.token || container.jwt || '',
         refreshToken: container.refresh_token || container.refreshToken || '',
-        expiresIn: container.expires_in || container.expiresIn || null,
-        rememberToken: container.remember_token || container.rememberToken || container.device_token || container.deviceToken || ''
+        expiresIn: container.expires_in || container.expiresIn || null
       };
     }
     function hasOwn(obj, key){
@@ -3954,7 +3953,6 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
         accessToken:tokens.accessToken,
         refreshToken:tokens.refreshToken,
         expiresIn:tokens.expiresIn,
-        rememberToken:tokens.rememberToken || (data && (data.remember_token || data.rememberToken)) || '',
         twoFactorRequired:true,
         twoFactorStatus:'pending'
       };
@@ -4813,7 +4811,10 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
   }
   function finishVerification(mode, codes){
     state.verified = true; state.verifyMode = mode || 'demo';
-    clearTimeout(state.timer); state.recoveryCodes = [];
+    clearTimeout(state.timer);
+    state.recoveryCodes = [];
+    var list = $('#a2fRecoveryCodes'); if(list) list.textContent = '';
+    var confirm = $('#a2fRecoveryConfirm'); if(confirm) confirm.checked = true;
     var card = $('#a2fModal .a2f-card');
     if(card){
       card.classList.add('is-verified','is-verified-pulse');
@@ -4835,7 +4836,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
     if(rTitle) rTitle.textContent = mode === 'server' ? t('activeTitle') : (lang()==='en' ? 'UI flow verified' : 'Flow UI terverifikasi');
     if(rText) rText.textContent = mode === 'server' ? t('activeText') : (lang()==='en' ? 'Server verification is still required before production release.' : 'Verifikasi server tetap wajib sebelum rilis produksi.');
     showResult((mode === 'server' ? 'A2F berhasil diverifikasi backend. Mengalihkan ke dashboard...' : t('successDemo',{method:label(state.method)})));
-    setMessage('status', 'A2F selesai. Dashboard akan dibuka.');
+    setMessage('status', mode === 'server' ? 'A2F selesai. Dashboard akan dibuka.' : t('verifyHelp'));
     setStep(4);
     var done = $('#a2fDoneBtn'); if(done) done.disabled = false;
     if(mode === 'server') setTimeout(function(){ closeDone(); }, 650);
@@ -4954,7 +4955,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
     try{
       var data = await callEndpoint('verify', {method:state.method, action:'verify', identifier:authIdentifier(), code:code, setupToken:state.setupToken || ''});
       if(data && (data.verified || data.ok)){
-        finishVerification('server', data.recoveryCodes || state.recoveryCodes);
+        finishVerification('server', []);
         return;
       }
       throw new Error('not verified');
@@ -5029,10 +5030,10 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
       var identifier = authIdentifier();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(identifier||''))){ throw new Error('Email akun tidak valid untuk passkey. Login ulang dengan email akun.'); }
       if(!navigator.credentials || !window.PublicKeyCredential){ throw new Error(t('unsupported')); }
-      var setup = await callEndpoint('setup', {method:'passkey', action:'login', identifier:identifier});
+      var setup = await callEndpoint('setup', {method:'passkey', action:'setup', identifier:identifier});
       if(!setup || !setup.publicKey) throw new Error('Server belum mengirim challenge passkey. Cek API /api/2fa/start-step dan tabel Supabase.');
-      var mode = setup.passkeyMode || (setup.publicKey.allowCredentials ? 'authentication' : 'registration');
-      var credential = mode === 'authentication'
+      var passkeyMode = setup.passkeyMode || (setup.publicKey && setup.publicKey.allowCredentials && setup.publicKey.allowCredentials.length ? 'authentication' : 'registration');
+      var credential = passkeyMode === 'authentication'
         ? await navigator.credentials.get({publicKey:normalizePasskeyRequestOptions(setup.publicKey)})
         : await navigator.credentials.create({publicKey:normalizePasskeyCreationOptions(setup.publicKey)});
       var serialized = serializePublicKeyCredential(credential);
@@ -6241,66 +6242,54 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 #a2fModal [data-a2f-step="recover"]{display:none!important}
 #a2fModal .a2f-note{font-size:.9rem!important}
 </style>
-<script id="dirac-public-resume-a2f-v1">
+<script id="dirac-public-existing-session-a2f-v2">
 (function(){
   'use strict';
   var AUTH_KEY = 'dirac_auth_session_v1';
-  var ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health?action=domain_resume_a2f';
+  var BASE_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
+  var ME_ENDPOINT = BASE_ENDPOINT + '?action=domain_me';
   function $(s,r){return (r||document).querySelector(s)}
   function readSession(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'{}')||{}}catch(e){return {}}}
   function writeSession(s){try{localStorage.setItem(AUTH_KEY, JSON.stringify(s||{}))}catch(e){}}
+  function isEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim())}
   function openA2F(){
     var modal = $('#a2fModal');
-    if(!modal) return;
+    if(!modal || modal.classList.contains('open')) return;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden','false');
     document.body.classList.add('modal-open');
     var card = $('#a2fModal .a2f-card');
     if(card){card.setAttribute('data-a2f-step-index','1'); card.classList.remove('is-verified');}
-    var title = $('#authTitle');
-    if(title) title.textContent = 'Verifikasi A2F';
   }
-  async function resume(){
+  async function verifyExistingSession(){
     if(!window.fetch || !window.localStorage) return;
     var old = readSession();
-    if(old && old.twoFactorStatus === 'server_verified') return;
-    var token = old.rememberToken || old.remember_token || '';
     try{
-      var res = await fetch(ENDPOINT, {
-        method:'POST',
-        mode:'cors',
-        credentials:'include',
-        cache:'no-store',
-        headers:{'Content-Type':'application/json','Accept':'application/json'},
-        body:JSON.stringify({rememberToken:token})
-      });
+      var res = await fetch(ME_ENDPOINT, {method:'GET', mode:'cors', credentials:'include', cache:'no-store', headers:{'Accept':'application/json'}});
       var data = await res.clone().json().catch(function(){return null});
-      if(!res.ok || !data || !data.ok) return;
-      var user = data.user || {};
-      var email = user.email || old.identifier || '';
+      if(!res.ok || !data || data.ok === false || !data.user) return;
+      var email = (data.user && data.user.email) || old.identifier || '';
+      if(!isEmail(email)) return;
       writeSession(Object.assign({}, old, {
         identifier:email,
-        mode:'resume',
-        endpoint:ENDPOINT,
+        mode:'login',
+        endpoint:BASE_ENDPOINT + '?action=domain_login',
         serverAuthenticated:true,
         authenticated:true,
         authVerifiedAt:new Date().toISOString(),
         authProof:true,
         twoFactorRequired:true,
         twoFactorStatus:'pending',
-        resumeSource:data.source || 'backend',
-        accessToken:data.session && data.session.access_token || old.accessToken || '',
-        refreshToken:data.session && data.session.refresh_token || old.refreshToken || '',
-        expiresIn:data.session && data.session.expires_in || old.expiresIn || null,
-        rememberToken:token
+        resumeSource:'domain_me_existing_endpoint'
       }));
+      var idInput = $('#identifier'); if(idInput && !idInput.value) idInput.value = email;
       var box = $('#statusBox');
-      if(box){box.className='status-box success show'; box.textContent='Sesi perangkat valid. Lanjutkan A2F tanpa email/password.';}
+      if(box){box.className='status-box success show'; box.textContent='Sesi backend masih valid. Lanjutkan A2F tanpa isi email/password.';}
       openA2F();
     }catch(_e){}
   }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){setTimeout(resume, 450)}, {once:true});
-  else setTimeout(resume, 450);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){setTimeout(verifyExistingSession, 550)}, {once:true});
+  else setTimeout(verifyExistingSession, 550);
 })();
 </script>
 
