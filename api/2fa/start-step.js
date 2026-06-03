@@ -976,6 +976,118 @@ async function assertPasswordResetEmailSafe(email, user) {
   return parts.email;
 }
 
+
+async function assertEmailVerificationAddressSafe(email) {
+  const parts = splitEmailParts(email);
+  if (!parts.local || !parts.domain || parts.local.length > 64 || parts.domain.length > 253) {
+    throw Object.assign(new Error("Email verifikasi tidak valid."), { statusCode: 400 });
+  }
+  if (/\.\.|^\.|\.$/.test(parts.domain) || /(^-|-$)/.test(parts.domain) || /(^\.|\.$)/.test(parts.local)) {
+    throw Object.assign(new Error("Format email verifikasi tidak aman."), { statusCode: 400 });
+  }
+  if (/localhost|\.local$|\.test$|\.invalid$|\.example$/.test(parts.domain) || /^\d+\.\d+\.\d+\.\d+$/.test(parts.domain)) {
+    throw Object.assign(new Error("Domain email verifikasi tidak diizinkan."), { statusCode: 400 });
+  }
+  const allowDomains = envList("EMAIL_VERIFICATION_ALLOWED_EMAIL_DOMAINS");
+  if (allowDomains.length && !isDomainListed(parts.domain, allowDomains)) {
+    throw Object.assign(new Error("Domain email belum diizinkan untuk verifikasi akun."), { statusCode: 403 });
+  }
+  const blockedDomains = [...DEFAULT_BLOCKED_PASSWORD_RESET_DOMAINS, ...envList("EMAIL_VERIFICATION_BLOCKED_EMAIL_DOMAINS")];
+  if (isDomainListed(parts.domain, blockedDomains)) {
+    throw Object.assign(new Error("Email sementara/berisiko tidak boleh dipakai untuk verifikasi akun."), { statusCode: 403 });
+  }
+  const requireMx = String(process.env.EMAIL_VERIFICATION_REQUIRE_MX_CHECK || "true").toLowerCase() !== "false";
+  if (requireMx) {
+    try {
+      const mx = await dns.resolveMx(parts.domain);
+      if (!Array.isArray(mx) || mx.length === 0) throw new Error("no_mx");
+    } catch (_error) {
+      throw Object.assign(new Error("Domain email tidak memiliki MX record valid."), { statusCode: 400 });
+    }
+  }
+  return parts.email;
+}
+
+function isSupabaseEmailConfirmed(user) {
+  return Boolean(user && (user.email_confirmed_at || user.confirmed_at || (user.user_metadata && user.user_metadata.email_verified === true)));
+}
+
+function getEmailVerificationRedirectTo(req) {
+  const raw = String(
+    process.env.EMAIL_VERIFICATION_REDIRECT_URL ||
+    process.env.AUTH_VERIFY_REDIRECT ||
+    process.env.SUPABASE_AUTH_REDIRECT_TO ||
+    ""
+  ).trim();
+  const candidate = raw || `${getStrictPublicOrigin(req)}/masuk.html`;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== "https:") throw new Error("redirect_must_be_https");
+    const origin = normalizeOriginForComparison(`${parsed.protocol}//${parsed.host}`);
+    const allowed = getAllowedOrigins().map(normalizeOriginForComparison).filter(Boolean);
+    if (allowed.length && !allowed.includes(origin)) throw new Error("redirect_origin_not_allowlisted");
+    return parsed.toString();
+  } catch (_error) {
+    const err = new Error("Redirect verifikasi email tidak valid. Set EMAIL_VERIFICATION_REDIRECT_URL=https://diracgroup.store/masuk.html dan masukkan origin ke A2F_ALLOWED_ORIGINS.");
+    err.statusCode = 500;
+    throw err;
+  }
+}
+
+function isEmailVerificationResendRequest(body) {
+  const action = normalizePasswordResetAction(body);
+  return ["resend-email-verification", "resend-verification", "resend-signup-confirmation", "kirim-ulang-verifikasi"].includes(action);
+}
+
+async function startEmailVerificationResend(req, res) {
+  const email = normalizeEmailStrict((req.body || {}).email || (req.body || {}).identifier || "");
+  const secret = getPublicMfaSecret();
+  const identifierHash = hashPublicMfaIdentifier(email, secret);
+  await upsertSecurityRateLimit(
+    req,
+    "email-verification-resend",
+    identifierHash,
+    Number(process.env.EMAIL_VERIFICATION_RESEND_MAX_PER_WINDOW || 3),
+    Number(process.env.EMAIL_VERIFICATION_RESEND_WINDOW_MS || 15 * 60 * 1000)
+  );
+
+  await assertEmailVerificationAddressSafe(email);
+  const user = await findSupabaseUserByEmailForReset(email);
+  if (!user || !user.id) {
+    const err = new Error("Email belum terdaftar. Verifikasi tidak dikirim.");
+    err.statusCode = 404;
+    throw err;
+  }
+  if (isSupabaseEmailConfirmed(user)) {
+    const err = new Error("Email akun sudah terverifikasi. Silakan login.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const emailRedirectTo = getEmailVerificationRedirectTo(req);
+  const { data, error } = await getSupabaseAdmin().auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo }
+  });
+  if (error) {
+    const err = new Error(error.message || "Gagal mengirim ulang email verifikasi.");
+    err.statusCode = error.status || error.statusCode || 500;
+    throw err;
+  }
+  return res.status(200).json({
+    success: true,
+    ok: true,
+    sent: true,
+    registered: true,
+    alreadyVerified: false,
+    redirectTo: emailRedirectTo,
+    provider: "supabase-auth-resend",
+    data: data || null,
+    message: "Email verifikasi baru sudah dikirim. Pakai email terbaru, jangan pakai link lama yang masih localhost."
+  });
+}
+
 async function findSupabaseUserByEmailForReset(email) {
   const supabase = getSupabaseAdmin();
   const target = normalizeEmailStrict(email);
@@ -1303,6 +1415,22 @@ module.exports = async function handler(req, res) {
   }
 
   const { step, action } = req.body || {};
+
+  if (isEmailVerificationResendRequest(req.body || {})) {
+    try {
+      return await startEmailVerificationResend(req, res);
+    } catch (error) {
+      const statusCode = Number(error && error.statusCode || 500);
+      return res.status(statusCode).json({
+        success: false,
+        ok: false,
+        sent: false,
+        registered: statusCode === 404 ? false : undefined,
+        alreadyVerified: statusCode === 409 ? true : undefined,
+        error: publicSafeError(error, "Email verifikasi belum bisa dikirim ulang.")
+      });
+    }
+  }
 
   if (isPasswordResetStartRequest(req.body || {})) {
     try {
