@@ -708,6 +708,10 @@ const DIRAC_CUSTOMER_MFA_RP_NAME = process.env.WEBAUTHN_RP_NAME || "Dirac Group"
 const DIRAC_CUSTOMER_MFA_RP_ID = process.env.WEBAUTHN_RP_ID || "diracgroup.store";
 const DIRAC_CUSTOMER_MFA_EMAIL_SUBJECT = process.env.DIRAC_CUSTOMER_MFA_EMAIL_SUBJECT || "Kode A2F Login Dirac Group";
 const DIRAC_EMAIL_VERIFY_SUBJECT = process.env.DIRAC_EMAIL_VERIFY_SUBJECT || "Verifikasi email akun Dirac Group";
+const DIRAC_PASSWORD_RESET_TOKEN_TYPE = "dirac-password-reset-v1";
+const DIRAC_PASSWORD_RESET_CODE_DIGITS = 8;
+const DIRAC_PASSWORD_RESET_TTL_MS = Number(process.env.DIRAC_PASSWORD_RESET_TTL_MS || 10 * 60 * 1000);
+const DIRAC_PASSWORD_RESET_EMAIL_SUBJECT = process.env.DIRAC_PASSWORD_RESET_EMAIL_SUBJECT || "Kode reset password Dirac Group";
 
 function diracGetCustomerMfaSecret() {
   const secret = String(process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || "").trim();
@@ -992,6 +996,108 @@ async function diracResendEmailVerification(req, res) {
   }
 }
 
+function diracHashPasswordResetCode({ email, userId, code, nonce }) {
+  return hashCode([
+    "dirac-password-reset-code-v1",
+    diracNormalizeEmail(email),
+    String(userId || ""),
+    String(nonce || ""),
+    String(code || "")
+  ].join(":"), diracGetCustomerMfaSecret());
+}
+
+function diracBuildPasswordResetToken(payload) {
+  return makeSession({
+    tokenType: DIRAC_PASSWORD_RESET_TOKEN_TYPE,
+    version: 1,
+    purpose: "password-reset",
+    createdAtMs: Date.now(),
+    ...payload
+  }, diracGetCustomerMfaSecret());
+}
+
+async function diracSendPasswordResetEmail(email, code) {
+  const safeEmail = diracAssertEmail(email);
+  const safeCode = String(code || "").replace(/\D+/g, "");
+
+  if (!/^\d{8}$/.test(safeCode)) {
+    const err = new Error("Kode reset internal tidak valid.");
+    err.statusCode = 500;
+    throw err;
+  }
+
+  await diracSendBrevoMail({
+    to: safeEmail,
+    subject: DIRAC_PASSWORD_RESET_EMAIL_SUBJECT,
+    htmlContent: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+        <h2>Kode Reset Password Dirac Group</h2>
+        <p>Masukkan kode 8 digit berikut di halaman lupa password:</p>
+        <div style="font-size:30px;font-weight:800;letter-spacing:6px;padding:14px 16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;display:inline-block">${safeCode}</div>
+        <p>Kode berlaku singkat dan hanya untuk permintaan reset password terbaru.</p>
+        <p>Jika kamu tidak meminta reset password, abaikan email ini dan segera amankan akun.</p>
+      </div>
+    `,
+    textContent: `Kode reset password Dirac Group kamu adalah ${safeCode}. Kode berlaku singkat dan hanya untuk permintaan terbaru.`
+  });
+}
+
+async function diracHandlePasswordResetRequest(req, res) {
+  try {
+    const email = diracAssertEmail((req.body && (req.body.email || req.body.identifier)) || "");
+    const user = await diracFindSupabaseUserByEmail(email);
+
+    if (!user || !user.id) {
+      return res.status(404).json({
+        ok: false,
+        success: false,
+        sent: false,
+        provider: "supabase",
+        error: "Email belum terdaftar di Supabase Auth. Kode reset tidak dikirim."
+      });
+    }
+
+    const now = Date.now();
+    const nonce = diracRandomId(24);
+    const code = diracRandomDigitCode(DIRAC_PASSWORD_RESET_CODE_DIGITS);
+    const expiresAtMs = now + DIRAC_PASSWORD_RESET_TTL_MS;
+    const resetToken = diracBuildPasswordResetToken({
+      email,
+      userId: String(user.id),
+      nonce,
+      codeHash: diracHashPasswordResetCode({ email, userId: user.id, code, nonce }),
+      expiresAtMs
+    });
+
+    await diracSendPasswordResetEmail(email, code);
+
+    return res.status(200).json({
+      ok: true,
+      success: true,
+      sent: true,
+      provider: "supabase",
+      email: diracMaskEmail(email),
+      resetToken,
+      token: resetToken,
+      expiresAtMs,
+      ttlSeconds: Math.floor(DIRAC_PASSWORD_RESET_TTL_MS / 1000),
+      message: "Kode reset 8 digit sudah dikirim. Cek email lalu masukkan password baru."
+    });
+  } catch (error) {
+    const rawMessage = String((error && (error.message || error.error_description || error.msg)) || "");
+    const notFound = /not found|not exist|not registered|user.*not|no user/i.test(rawMessage);
+    const code = notFound ? 404 : (error.statusCode || error.status || 500);
+
+    return res.status(code).json({
+      ok: false,
+      success: false,
+      sent: false,
+      provider: "supabase",
+      error: code === 404 ? "Email belum terdaftar di Supabase Auth. Kode reset tidak dikirim." : (rawMessage || "Gagal mengirim kode reset password.")
+    });
+  }
+}
+
 async function diracHandleCustomerMfaStart(req, res) {
   try {
     const action = String((req.body && req.body.action) || "").trim().toLowerCase();
@@ -1108,6 +1214,10 @@ module.exports = async function handler(req, res) {
 
   if (normalizedAction === "setup" || normalizedAction === "resend") {
     return diracHandleCustomerMfaStart(req, res);
+  }
+
+  if (normalizedAction === "request-password-reset") {
+    return diracHandlePasswordResetRequest(req, res);
   }
 
   if (normalizedAction === "resend-email-verification") {

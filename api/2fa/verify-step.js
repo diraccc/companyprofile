@@ -47,6 +47,7 @@ const CLIPBOARD_ARGON2ID_OPTIONS = Object.freeze({
   hashLength: 32
 });
 let supabaseAdminClient = null;
+let domainSupabaseAdminClient = null;
 
 function getSupabaseAdmin() {
   if (supabaseAdminClient) return supabaseAdminClient;
@@ -68,6 +69,36 @@ function getSupabaseAdmin() {
   });
 
   return supabaseAdminClient;
+}
+
+
+function getDomainSupabaseAdmin() {
+  if (domainSupabaseAdminClient) return domainSupabaseAdminClient;
+
+  const supabaseUrl = String(
+    process.env.DOMAIN_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    ""
+  ).trim();
+
+  const serviceRoleKey = String(
+    process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    ""
+  ).trim();
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    const err = new Error("ENV Supabase domain belum lengkap. Set DOMAIN_SUPABASE_URL dan DOMAIN_SUPABASE_SERVICE_ROLE_KEY di Vercel.");
+    err.statusCode = 500;
+    throw err;
+  }
+
+  domainSupabaseAdminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  return domainSupabaseAdminClient;
 }
 
 function normalizeLockRow(data) {
@@ -2986,6 +3017,8 @@ const DIRAC_CUSTOMER_MFA_TOKEN_TYPE = "dirac-customer-login-mfa-v1";
 const DIRAC_CUSTOMER_MFA_RECOVERY_COUNT = Number(process.env.DIRAC_CUSTOMER_MFA_RECOVERY_COUNT || 8);
 const DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION = process.env.DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION || "diracCustomerMfaProfiles";
 const DIRAC_CUSTOMER_MFA_RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const DIRAC_PASSWORD_RESET_TOKEN_TYPE = "dirac-password-reset-v1";
+const DIRAC_PASSWORD_RESET_CODE_DIGITS = 8;
 
 function diracGetCustomerMfaSecret() {
   const secret = String(process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || "").trim();
@@ -3201,6 +3234,167 @@ function diracVerifyPasskeyCredential({ payload, credential }) {
   return true;
 }
 
+function diracHashPasswordResetCode({ email, userId, code, nonce }) {
+  return hashCode([
+    "dirac-password-reset-code-v1",
+    diracNormalizeEmail(email),
+    String(userId || ""),
+    String(nonce || ""),
+    String(code || "")
+  ].join(":"), diracGetCustomerMfaSecret());
+}
+
+function diracDecodePasswordResetToken(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2) {
+    const err = new Error("Token reset tidak valid. Kirim kode reset lagi.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const payloadBase64 = parts[0];
+  const signature = parts[1];
+  const expectedSignature = sign(payloadBase64, diracGetCustomerMfaSecret());
+
+  if (!safeEqual(signature, expectedSignature)) {
+    const err = new Error("Token reset tidak valid atau sudah dimodifikasi.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(payloadBase64, "base64url").toString("utf8"));
+  } catch (_error) {
+    const err = new Error("Data token reset rusak. Kirim kode reset lagi.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!payload || payload.tokenType !== DIRAC_PASSWORD_RESET_TOKEN_TYPE || payload.purpose !== "password-reset") {
+    const err = new Error("Token reset bukan untuk reset password.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!payload.expiresAtMs || Date.now() > Number(payload.expiresAtMs)) {
+    const err = new Error("Kode reset sudah expired. Kirim kode reset lagi.");
+    err.statusCode = 410;
+    throw err;
+  }
+
+  return payload;
+}
+
+function diracValidateNewPassword(password, email) {
+  const pass = String(password || "");
+  const normalizedEmail = diracNormalizeEmail(email);
+  const local = String(normalizedEmail.split("@")[0] || "").toLowerCase();
+
+  if (pass.length < 12) {
+    const err = new Error("Password baru minimal 12 karakter.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!/[a-z]/.test(pass) || !/[A-Z]/.test(pass) || !/\d/.test(pass) || !/[^A-Za-z0-9]/.test(pass)) {
+    const err = new Error("Password baru wajib berisi huruf besar, huruf kecil, angka, dan simbol.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (/password|qwerty|123456|dirac|admin|welcome/i.test(pass)) {
+    const err = new Error("Password baru terlalu mudah ditebak.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (local.length >= 3 && pass.toLowerCase().includes(local)) {
+    const err = new Error("Password baru tidak boleh mengandung nama/email akun.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return pass;
+}
+
+async function diracHandleConfirmPasswordReset(req, res) {
+  try {
+    const email = diracAssertEmail((req.body && (req.body.email || req.body.identifier)) || "");
+    const code = String((req.body && req.body.code) || "").replace(/\D+/g, "");
+    const resetToken = String((req.body && (req.body.resetToken || req.body.token)) || "").trim();
+    const newPassword = String((req.body && req.body.newPassword) || "");
+    const confirmPassword = String((req.body && req.body.confirmPassword) || "");
+
+    if (!/^\d{8}$/.test(code)) {
+      const err = new Error("Kode reset harus 8 digit.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (!resetToken) {
+      const err = new Error("Token reset belum ada. Kirim kode reset lagi.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (newPassword !== confirmPassword) {
+      const err = new Error("Konfirmasi password baru belum sama.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    diracValidateNewPassword(newPassword, email);
+
+    const payload = diracDecodePasswordResetToken(resetToken);
+    if (diracNormalizeEmail(payload.email) !== email || !payload.userId) {
+      const err = new Error("Token reset tidak sesuai dengan email akun.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const expectedHash = diracHashPasswordResetCode({
+      email,
+      userId: payload.userId,
+      code,
+      nonce: payload.nonce
+    });
+
+    if (!safeEqual(expectedHash, String(payload.codeHash || ""))) {
+      const err = new Error("Kode reset salah.");
+      err.statusCode = 401;
+      throw err;
+    }
+
+    const supabase = getDomainSupabaseAdmin();
+    const { data, error } = await supabase.auth.admin.updateUserById(String(payload.userId), {
+      password: newPassword
+    });
+
+    if (error) {
+      error.statusCode = error.status || 500;
+      throw error;
+    }
+
+    return res.status(200).json({
+      ok: true,
+      success: true,
+      updated: true,
+      provider: "supabase",
+      user: data && data.user ? { id: data.user.id, email: data.user.email } : null,
+      message: "Password berhasil diganti. Silakan login memakai password baru."
+    });
+  } catch (error) {
+    return res.status(error.statusCode || error.status || 500).json({
+      ok: false,
+      success: false,
+      updated: false,
+      provider: "supabase",
+      error: error.message || "Reset password gagal."
+    });
+  }
+}
+
 async function diracHandleCustomerMfaVerify(req, res) {
   try {
     const method = diracNormalizeMfaMethod(req.body && req.body.method);
@@ -3287,6 +3481,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const action = String((req.body && req.body.action) || "").trim();
+
+    if (action.toLowerCase() === "confirm-password-reset") return diracHandleConfirmPasswordReset(req, res);
 
     if (action.toLowerCase() === "verify" && req.body && req.body.method) return diracHandleCustomerMfaVerify(req, res);
 
