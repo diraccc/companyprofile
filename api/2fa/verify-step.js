@@ -1567,12 +1567,24 @@ function getSmtpTransporter() {
   });
 }
 
-async function sendStep6Email({ requestId, approveToken, denyToken, copyToken, emailCode, email, loginContext }) {
-  const baseUrl = String(process.env.A2F_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
-
-  if (!baseUrl) {
-    throw new Error("A2F_PUBLIC_BASE_URL belum diset");
+function getStrictA2fPublicBaseUrl() {
+  const baseUrl = String(process.env.A2F_PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+  if (!baseUrl) throw new Error("A2F_PUBLIC_BASE_URL belum diset");
+  let parsed;
+  try {
+    parsed = new URL(baseUrl);
+  } catch (_error) {
+    throw new Error("A2F_PUBLIC_BASE_URL tidak valid");
   }
+  if (parsed.protocol !== "https:") throw new Error("A2F_PUBLIC_BASE_URL wajib HTTPS");
+  const allowed = getAllowedOrigins().map(normalizeOriginForComparison);
+  const normalized = normalizeOriginForComparison(baseUrl);
+  if (!allowed.includes(normalized)) throw new Error("A2F_PUBLIC_BASE_URL tidak ada di allowlist origin production");
+  return normalized;
+}
+
+async function sendStep6Email({ requestId, approveToken, denyToken, copyToken, emailCode, email, loginContext }) {
+  const baseUrl = getStrictA2fPublicBaseUrl();
 
   const to = String(process.env.A2F_APPROVAL_EMAIL || process.env.A2F_ADMIN_EMAIL || email || "").trim();
   const fromEmail = String(process.env.SMTP_USER || "").trim();
@@ -3181,12 +3193,20 @@ function parsePasskeyAttestationObject(attestationObjectB64) {
   return { fmt, authData, rpIdHash, flags, signCount, aaguid, credentialId, publicKeyCose, userPresent, userVerified };
 }
 
-function getRequestOrigin(req) {
-  const origin = String((req && req.headers && req.headers.origin) || "").trim();
-  if (origin) return origin.replace(/\/$/, "");
-  const proto = String((req && req.headers && (req.headers["x-forwarded-proto"] || "https")) || "https").split(",")[0].trim() || "https";
-  const host = String((req && req.headers && (req.headers["x-forwarded-host"] || req.headers.host)) || "").split(",")[0].trim();
-  return host ? `${proto}://${host}` : "https://diracgroup.store";
+function getStrictPublicOrigin() {
+  const allowed = getAllowedOrigins().map((item) => String(item || "").trim().replace(/\/+$/, "")).filter(Boolean);
+  const configured = String(process.env.WEBAUTHN_ORIGIN || process.env.PUBLIC_MFA_EXPECTED_ORIGIN || process.env.A2F_PUBLIC_BASE_URL || allowed[0] || "https://diracgroup.store").trim().replace(/\/+$/, "");
+  try {
+    const parsed = new URL(configured);
+    if (parsed.protocol !== "https:") throw new Error("origin_must_be_https");
+    return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, "");
+  } catch (_error) {
+    throw makeHttpError(500, "WEBAUTHN_ORIGIN/PUBLIC_MFA_EXPECTED_ORIGIN tidak valid. Gunakan origin HTTPS production.");
+  }
+}
+
+function getRequestOrigin(_req) {
+  return getStrictPublicOrigin();
 }
 
 function normalizeOriginForComparison(value) {
@@ -3200,9 +3220,9 @@ function normalizeOriginForComparison(value) {
 
 function isClientOriginAllowed(actualOrigin, expectedOrigin) {
   const actual = normalizeOriginForComparison(actualOrigin);
-  const expected = normalizeOriginForComparison(expectedOrigin);
-  if (actual && expected && actual === expected) return true;
-  return getAllowedOrigins().map(normalizeOriginForComparison).includes(actual);
+  const expected = normalizeOriginForComparison(expectedOrigin || getStrictPublicOrigin());
+  const allowed = getAllowedOrigins().map(normalizeOriginForComparison);
+  return Boolean(actual && expected && actual === expected && allowed.includes(actual));
 }
 
 function parsePasskeyClientData(clientDataJSONB64) {
@@ -3339,7 +3359,15 @@ function hasSupabaseEnv() {
 function nowIso() { return new Date().toISOString(); }
 function getClientIp(req) {
   const h = (req && req.headers) || {};
-  return String(h["cf-connecting-ip"] || h["x-real-ip"] || h["x-forwarded-for"] || "").split(",")[0].trim().slice(0, 96) || "unknown";
+  const provider = String(process.env.TRUSTED_IP_HEADER || "").trim().toLowerCase();
+  const candidates = [];
+  if (provider && h[provider]) candidates.push(h[provider]);
+  candidates.push(h["cf-connecting-ip"], h["x-vercel-forwarded-for"], h["x-real-ip"], h["x-forwarded-for"]);
+  for (const candidate of candidates) {
+    const value = String(candidate || "").split(",")[0].trim();
+    if (value && /^[A-Fa-f0-9:.]{3,96}$/.test(value)) return value.slice(0, 96);
+  }
+  return "unknown";
 }
 function getUserAgent(req) {
   return String((req && req.headers && req.headers["user-agent"]) || "").slice(0, 500);
@@ -3432,11 +3460,36 @@ async function updateSecurityChallenge(challengeId, patch) {
   await db.collection(securityTableName()).doc(challengeId).set(clean, { merge: true });
 }
 async function consumeSecurityAttempt(row, reason) {
-  const attempts = Number(row.attempts || 0) + 1;
-  const patch = { attempts };
-  if (attempts >= Number(row.max_attempts || 5)) patch.locked_at_ms = Date.now();
-  await updateSecurityChallenge(row.challenge_id, patch).catch(() => null);
-  if (patch.locked_at_ms) throw makeHttpError(423, "Terlalu banyak percobaan. Minta kode/challenge baru.");
+  let attempts = Number(row.attempts || 0) + 1;
+  let lockedAtMs = 0;
+  if (hasSupabaseEnv()) {
+    try {
+      const { data, error } = await getSupabaseAdmin().rpc("public_consume_security_attempt", {
+        p_challenge_id: row.challenge_id,
+        p_now_ms: Date.now()
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (result && typeof result === "object") {
+        attempts = Number(result.attempts || attempts);
+        lockedAtMs = Number(result.locked_at_ms || 0);
+      } else {
+        attempts = Number(result || attempts);
+      }
+    } catch (error) {
+      if (String(process.env.PUBLIC_SECURITY_STORE || "").toLowerCase() === "supabase") throw error;
+      const patch = { attempts };
+      if (attempts >= Number(row.max_attempts || 5)) patch.locked_at_ms = Date.now();
+      await updateSecurityChallenge(row.challenge_id, patch).catch(() => null);
+      lockedAtMs = Number(patch.locked_at_ms || 0);
+    }
+  } else {
+    const patch = { attempts };
+    if (attempts >= Number(row.max_attempts || 5)) patch.locked_at_ms = Date.now();
+    await updateSecurityChallenge(row.challenge_id, patch).catch(() => null);
+    lockedAtMs = Number(patch.locked_at_ms || 0);
+  }
+  if (lockedAtMs || attempts >= Number(row.max_attempts || 5)) throw makeHttpError(423, "Terlalu banyak percobaan. Minta kode/challenge baru.");
   throw makeHttpError(401, reason || "Kode/challenge salah.");
 }
 async function loadSecurityChallengeFromToken(token, { label, expectedPurpose, expectedMethod, identifier, tokenPrefix }) {

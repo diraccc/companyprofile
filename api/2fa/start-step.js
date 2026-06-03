@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const dns = require("dns").promises;
 const admin = require("firebase-admin");
 const argon2 = require("argon2");
 const { createClient } = require("@supabase/supabase-js");
@@ -729,19 +730,29 @@ function otpauthUrl({ issuer, account, secret }) {
   return `otpauth://totp/${label}?${qs.toString()}`;
 }
 
-function getRequestOrigin(req) {
-  const headerOrigin = String((req && req.headers && req.headers.origin) || "").trim();
-  if (headerOrigin) return headerOrigin.replace(/\/$/, "");
-  const proto = String((req && req.headers && (req.headers["x-forwarded-proto"] || "https")) || "https").split(",")[0].trim() || "https";
-  const host = String((req && req.headers && (req.headers["x-forwarded-host"] || req.headers.host)) || "").split(",")[0].trim();
-  return host ? `${proto}://${host}` : "https://diracgroup.store";
+function getStrictPublicOrigin() {
+  const allowed = getAllowedOrigins().map((item) => String(item || "").trim().replace(/\/+$/, "")).filter(Boolean);
+  const configured = String(process.env.WEBAUTHN_ORIGIN || process.env.PUBLIC_MFA_EXPECTED_ORIGIN || process.env.A2F_PUBLIC_BASE_URL || allowed[0] || "https://diracgroup.store").trim().replace(/\/+$/, "");
+  try {
+    const parsed = new URL(configured);
+    if (parsed.protocol !== "https:") throw new Error("origin_must_be_https");
+    return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, "");
+  } catch (_error) {
+    const err = new Error("WEBAUTHN_ORIGIN/PUBLIC_MFA_EXPECTED_ORIGIN tidak valid. Gunakan origin HTTPS production.");
+    err.statusCode = 500;
+    throw err;
+  }
 }
 
-function getPublicMfaRpId(req) {
+function getRequestOrigin(_req) {
+  return getStrictPublicOrigin();
+}
+
+function getPublicMfaRpId(_req) {
   const envRpId = String(process.env.WEBAUTHN_RP_ID || process.env.PUBLIC_MFA_RP_ID || "").trim();
   if (envRpId) return envRpId;
   try {
-    const hostname = new URL(getRequestOrigin(req)).hostname;
+    const hostname = new URL(getStrictPublicOrigin()).hostname;
     return hostname.replace(/^www\./i, "");
   } catch (_error) {
     return "diracgroup.store";
@@ -853,10 +864,15 @@ function hasSupabaseEnv() {
 
 function getClientIp(req) {
   const h = (req && req.headers) || {};
-  return String(h["cf-connecting-ip"] || h["x-real-ip"] || h["x-forwarded-for"] || "")
-    .split(",")[0]
-    .trim()
-    .slice(0, 96) || "unknown";
+  const provider = String(process.env.TRUSTED_IP_HEADER || "").trim().toLowerCase();
+  const candidates = [];
+  if (provider && h[provider]) candidates.push(h[provider]);
+  candidates.push(h["cf-connecting-ip"], h["x-vercel-forwarded-for"], h["x-real-ip"], h["x-forwarded-for"]);
+  for (const candidate of candidates) {
+    const value = String(candidate || "").split(",")[0].trim();
+    if (value && /^[A-Fa-f0-9:.]{3,96}$/.test(value)) return value.slice(0, 96);
+  }
+  return "unknown";
 }
 function getUserAgent(req) {
   return String((req && req.headers && req.headers["user-agent"]) || "").slice(0, 500);
@@ -872,6 +888,82 @@ function normalizeEmailStrict(value) {
     throw err;
   }
   return email;
+}
+
+
+const DEFAULT_BLOCKED_PASSWORD_RESET_DOMAINS = Object.freeze([
+  "10minutemail.com", "20minutemail.com", "33mail.com", "anonaddy.com", "burnermail.io", "dispostable.com", "fakeinbox.com",
+  "guerrillamail.com", "guerrillamail.net", "mailinator.com", "mailinator.net", "maildrop.cc", "mohmal.com", "sharklasers.com",
+  "tempmail.com", "temp-mail.org", "throwawaymail.com", "trashmail.com", "yopmail.com", "yopmail.fr"
+]);
+
+function splitEmailParts(email) {
+  const normalized = normalizeEmailStrict(email);
+  const at = normalized.lastIndexOf("@");
+  return { email: normalized, local: normalized.slice(0, at), domain: normalized.slice(at + 1) };
+}
+
+function envList(name) {
+  return String(process.env[name] || "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
+}
+
+function isDomainListed(domain, list) {
+  const value = String(domain || "").toLowerCase();
+  return list.some((item) => value === item || value.endsWith(`.${item}`));
+}
+
+async function assertPasswordResetEmailSafe(email, user) {
+  const parts = splitEmailParts(email);
+  if (!parts.local || !parts.domain || parts.local.length > 64 || parts.domain.length > 253) {
+    throw Object.assign(new Error("Email reset password tidak valid."), { statusCode: 400 });
+  }
+  if (/\.\.|^\.|\.$/.test(parts.domain) || /(^-|-$)/.test(parts.domain) || /(^\.|\.$)/.test(parts.local)) {
+    throw Object.assign(new Error("Format email reset password tidak aman."), { statusCode: 400 });
+  }
+  if (/localhost|\.local$|\.test$|\.invalid$|\.example$/.test(parts.domain) || /^\d+\.\d+\.\d+\.\d+$/.test(parts.domain)) {
+    throw Object.assign(new Error("Domain email reset password tidak diizinkan."), { statusCode: 400 });
+  }
+  const allowDomains = envList("PASSWORD_RESET_ALLOWED_EMAIL_DOMAINS");
+  if (allowDomains.length && !isDomainListed(parts.domain, allowDomains)) {
+    throw Object.assign(new Error("Domain email belum diizinkan untuk reset password."), { statusCode: 403 });
+  }
+  const blockedDomains = [...DEFAULT_BLOCKED_PASSWORD_RESET_DOMAINS, ...envList("PASSWORD_RESET_BLOCKED_EMAIL_DOMAINS")];
+  if (isDomainListed(parts.domain, blockedDomains)) {
+    throw Object.assign(new Error("Email sementara/berisiko tidak boleh dipakai untuk reset password."), { statusCode: 403 });
+  }
+  const mustBeConfirmed = String(process.env.PASSWORD_RESET_REQUIRE_CONFIRMED_EMAIL || "true").toLowerCase() !== "false";
+  if (mustBeConfirmed) {
+    const confirmed = Boolean(user && (user.email_confirmed_at || user.confirmed_at || (user.user_metadata && user.user_metadata.email_verified === true)));
+    if (!confirmed) throw Object.assign(new Error("Email akun belum terverifikasi. Verifikasi email dulu atau hubungi admin."), { statusCode: 403 });
+  }
+  const requireMx = String(process.env.PASSWORD_RESET_REQUIRE_MX_CHECK || "true").toLowerCase() !== "false";
+  if (requireMx) {
+    try {
+      const mx = await dns.resolveMx(parts.domain);
+      if (!Array.isArray(mx) || mx.length === 0) throw new Error("no_mx");
+    } catch (_error) {
+      throw Object.assign(new Error("Domain email tidak memiliki MX record valid."), { statusCode: 400 });
+    }
+  }
+  return parts.email;
+}
+
+async function findSupabaseUserByEmailForReset(email) {
+  const supabase = getSupabaseAdmin();
+  const target = normalizeEmailStrict(email);
+  let page = 1;
+  const perPage = Math.min(1000, Math.max(1, Number(process.env.PASSWORD_RESET_USER_LOOKUP_PER_PAGE || 1000)));
+  const maxPages = Math.max(1, Number(process.env.PASSWORD_RESET_USER_LOOKUP_MAX_PAGES || 20));
+  while (page <= maxPages) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = (data && data.users) || [];
+    const found = users.find((user) => String(user.email || "").trim().toLowerCase() === target);
+    if (found) return found;
+    if (users.length < perPage) break;
+    page += 1;
+  }
+  return null;
 }
 function nowIso() { return new Date().toISOString(); }
 async function argon2idStrongHash(value) {
@@ -972,13 +1064,15 @@ async function upsertSecurityRateLimit(req, purpose, identifierHash, maxCount = 
   const base = { key, purpose, identifier_hash: identifierHash, ip_hash: hmacSecurity(getClientIp(req)), count: 1, expires_at_ms: (bucket + 1) * windowMs, updated_at: nowIso() };
   if (hasSupabaseEnv()) {
     try {
-      const supabase = getSupabaseAdmin();
-      const { data: existing, error: readError } = await supabase.from(rateLimitTableName()).select("*").eq("key", key).maybeSingle();
-      if (readError) throw readError;
-      const count = Number(existing && existing.count || 0) + 1;
-      const payload = { ...base, count };
-      const { error } = await supabase.from(rateLimitTableName()).upsert(payload, { onConflict: "key" });
+      const { data, error } = await getSupabaseAdmin().rpc("public_increment_security_rate_limit", {
+        p_key: key,
+        p_purpose: purpose,
+        p_identifier_hash: identifierHash,
+        p_ip_hash: base.ip_hash,
+        p_expires_at_ms: base.expires_at_ms
+      });
       if (error) throw error;
+      const count = Number(Array.isArray(data) ? data[0] : data || 0);
       if (count > maxCount) {
         const err = new Error("Terlalu banyak permintaan. Tunggu beberapa menit lalu coba lagi.");
         err.statusCode = 429;
@@ -1124,6 +1218,15 @@ async function startStrictPasswordReset(req, res) {
   const secret = getPublicMfaSecret();
   const identifierHash = hashPublicMfaIdentifier(email, secret);
   await upsertSecurityRateLimit(req, "password-reset-start", identifierHash, Number(process.env.PASSWORD_RESET_START_MAX_PER_WINDOW || 3), Number(process.env.PASSWORD_RESET_START_WINDOW_MS || 15 * 60 * 1000));
+
+  const user = await findSupabaseUserByEmailForReset(email);
+  if (!user || !user.id) {
+    const err = new Error("Email belum terdaftar. Kode reset tidak dikirim.");
+    err.statusCode = 404;
+    throw err;
+  }
+  await assertPasswordResetEmailSafe(email, user);
+
   const now = Date.now();
   const ttlMs = Number(process.env.PASSWORD_RESET_TTL_MS || 5 * 60 * 1000);
   const challengeId = publicMfaRandomId(24);
@@ -1139,7 +1242,7 @@ async function startStrictPasswordReset(req, res) {
     token_hash_type: "argon2id",
     code_hash: await argon2idStrongHash(`password-reset-code:${email}:${code}`),
     code_hash_type: "argon2id",
-    encrypted_payload: encryptSecurityPayload({ email, requestedAtMs: now }),
+    encrypted_payload: encryptSecurityPayload({ email, registeredUserId: String(user.id || ""), requestedAtMs: now }),
     expires_at_ms: now + ttlMs,
     attempts: 0,
     max_attempts: Number(process.env.PASSWORD_RESET_MAX_ATTEMPTS || 5),
@@ -1147,7 +1250,7 @@ async function startStrictPasswordReset(req, res) {
     user_agent_hash: hmacSecurity(getUserAgent(req))
   });
   await sendPasswordResetOtp({ code, to: email, expiresAtMs: now + ttlMs });
-  return res.status(200).json({ success: true, ok: true, resetToken, ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)), message: "Jika email terdaftar, kode reset sudah dikirim." });
+  return res.status(200).json({ success: true, ok: true, resetToken, ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)), message: "Kode reset 8 digit sudah dikirim ke email akun terdaftar dan terverifikasi." });
 }
 
 module.exports = async function handler(req, res) {
