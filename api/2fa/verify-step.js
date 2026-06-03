@@ -3193,29 +3193,41 @@ function parsePasskeyAttestationObject(attestationObjectB64) {
   return { fmt, authData, rpIdHash, flags, signCount, aaguid, credentialId, publicKeyCose, userPresent, userVerified };
 }
 
-function getStrictPublicOrigin() {
-  const allowed = getAllowedOrigins().map((item) => String(item || "").trim().replace(/\/+$/, "")).filter(Boolean);
-  const configured = String(process.env.WEBAUTHN_ORIGIN || process.env.PUBLIC_MFA_EXPECTED_ORIGIN || process.env.A2F_PUBLIC_BASE_URL || allowed[0] || "https://diracgroup.store").trim().replace(/\/+$/, "");
+function normalizeOriginForComparison(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+  } catch (_error) {
+    return String(value || "").trim().replace(/\/+$/, "");
+  }
+}
+
+function getAllowedRequestOrigin(req) {
+  const origin = normalizeOriginForComparison(req && req.headers ? req.headers.origin : "");
+  if (!origin) return "";
+  const allowed = getAllowedOrigins().map(normalizeOriginForComparison).filter(Boolean);
+  return allowed.includes(origin) ? origin : "";
+}
+
+function getStrictPublicOrigin(req) {
+  const allowedRequestOrigin = getAllowedRequestOrigin(req);
+  if (allowedRequestOrigin) return allowedRequestOrigin;
+
+  const allowed = getAllowedOrigins().map(normalizeOriginForComparison).filter(Boolean);
+  const configured = normalizeOriginForComparison(process.env.WEBAUTHN_ORIGIN || process.env.PUBLIC_MFA_EXPECTED_ORIGIN || allowed[0] || "https://diracgroup.store");
   try {
     const parsed = new URL(configured);
     if (parsed.protocol !== "https:") throw new Error("origin_must_be_https");
-    return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, "");
+    const normalized = `${parsed.protocol}//${parsed.host}`.replace(/\/$/, "");
+    if (allowed.length && !allowed.includes(normalized)) throw new Error("origin_not_allowlisted");
+    return normalized;
   } catch (_error) {
-    throw makeHttpError(500, "WEBAUTHN_ORIGIN/PUBLIC_MFA_EXPECTED_ORIGIN tidak valid. Gunakan origin HTTPS production.");
+    throw makeHttpError(500, "WEBAUTHN_ORIGIN/PUBLIC_MFA_EXPECTED_ORIGIN tidak valid. Gunakan origin HTTPS production yang masuk A2F_ALLOWED_ORIGINS.");
   }
 }
 
-function getRequestOrigin(_req) {
-  return getStrictPublicOrigin();
-}
-
-function normalizeOriginForComparison(value) {
-  try {
-    const url = new URL(String(value || ""));
-    return `${url.protocol}//${url.host}`.replace(/\/$/, "");
-  } catch (_error) {
-    return String(value || "").replace(/\/$/, "");
-  }
+function getRequestOrigin(req) {
+  return getStrictPublicOrigin(req);
 }
 
 function isClientOriginAllowed(actualOrigin, expectedOrigin) {
@@ -3704,9 +3716,9 @@ module.exports = async function handler(req, res) {
     const action = String((req.query && req.query.action) || "");
 
     setNoStore(res);
-    if (action === "approveStep6") return approveStep6FromEmail(req, res);
+    if (action === "approveStep6") return await approveStep6FromEmail(req, res);
     if (action === "copyStep6Code") return renderStep6CopyCodePage(req, res);
-    if (action === "denyStep6") return denyStep6FromEmail(req, res);
+    if (action === "denyStep6") return await denyStep6FromEmail(req, res);
 
     return res.status(405).send(htmlPage("Method tidak diizinkan", "<p>Endpoint ini hanya menerima link approval/salin A2F.</p>"));
   }
@@ -3721,20 +3733,20 @@ module.exports = async function handler(req, res) {
   try {
     const action = String((req.body && req.body.action) || "").trim();
 
-    if (isPasswordResetConfirmRequest(req.body || {})) return confirmStrictPasswordReset(req, res);
+    if (isPasswordResetConfirmRequest(req.body || {})) return await confirmStrictPasswordReset(req, res);
 
-    if (isPublicMfaVerifyRequest(req.body || {})) return verifyPublicMfa(req, res);
+    if (isPublicMfaVerifyRequest(req.body || {})) return await verifyPublicMfa(req, res);
 
-    if (action === "confirmApproveStep6") return confirmApproveStep6FromEmail(req, res);
-    if (action === "confirmDenyStep6") return confirmDenyStep6FromEmail(req, res);
-    if (action === "checkA2fBanStatus") return checkA2fBanStatus(req, res);
-    if (action === "generate-recovery-codes") return generateOneTimeRecoveryCodes(req, res);
-    if (action === "listAdminSecurityCenter") return listAdminSecurityCenter(req, res);
-    if (action === "updateTrustedDevice") return updateTrustedDevice(req, res);
-    if (action === "checkCurrentDeviceSecurity") return checkCurrentDeviceSecurity(req, res);
-    if (action === "checkClipboardSecurityStatus") return checkClipboardSecurityStatus(req, res);
-    if (action === "startClipboardUnlockOtp") return startClipboardUnlockOtp(req, res);
-    if (action === "verifyClipboardUnlockOtp") return verifyClipboardUnlockOtp(req, res);
+    if (action === "confirmApproveStep6") return await confirmApproveStep6FromEmail(req, res);
+    if (action === "confirmDenyStep6") return await confirmDenyStep6FromEmail(req, res);
+    if (action === "checkA2fBanStatus") return await checkA2fBanStatus(req, res);
+    if (action === "generate-recovery-codes") return await generateOneTimeRecoveryCodes(req, res);
+    if (action === "listAdminSecurityCenter") return await listAdminSecurityCenter(req, res);
+    if (action === "updateTrustedDevice") return await updateTrustedDevice(req, res);
+    if (action === "checkCurrentDeviceSecurity") return await checkCurrentDeviceSecurity(req, res);
+    if (action === "checkClipboardSecurityStatus") return await checkClipboardSecurityStatus(req, res);
+    if (action === "startClipboardUnlockOtp") return await startClipboardUnlockOtp(req, res);
+    if (action === "verifyClipboardUnlockOtp") return await verifyClipboardUnlockOtp(req, res);
     if (action === "recordA2fFailure") {
       await verifyAdminIdToken(req.body && req.body.idToken);
       const data = await recordA2fFailure();

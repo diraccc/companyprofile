@@ -730,29 +730,57 @@ function otpauthUrl({ issuer, account, secret }) {
   return `otpauth://totp/${label}?${qs.toString()}`;
 }
 
-function getStrictPublicOrigin() {
-  const allowed = getAllowedOrigins().map((item) => String(item || "").trim().replace(/\/+$/, "")).filter(Boolean);
-  const configured = String(process.env.WEBAUTHN_ORIGIN || process.env.PUBLIC_MFA_EXPECTED_ORIGIN || process.env.A2F_PUBLIC_BASE_URL || allowed[0] || "https://diracgroup.store").trim().replace(/\/+$/, "");
+function normalizeOriginForComparison(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return `${url.protocol}//${url.host}`.replace(/\/$/, "");
+  } catch (_error) {
+    return String(value || "").trim().replace(/\/+$/, "");
+  }
+}
+
+function getAllowedRequestOrigin(req) {
+  const origin = normalizeOriginForComparison(req && req.headers ? req.headers.origin : "");
+  if (!origin) return "";
+  const allowed = getAllowedOrigins().map(normalizeOriginForComparison).filter(Boolean);
+  return allowed.includes(origin) ? origin : "";
+}
+
+function getStrictPublicOrigin(req) {
+  /*
+     WebAuthn/passkey MUST use the storefront origin, not the API endpoint origin.
+     The API may stay on companyprofilee-expk.vercel.app, while the browser creates
+     credentials on diracgroup.store. We therefore prefer the browser Origin header
+     only when it is explicitly allowlisted, and never derive RP data from Host or
+     X-Forwarded-Host. This fixes mobile passkey creation without changing endpoints.
+  */
+  const allowedRequestOrigin = getAllowedRequestOrigin(req);
+  if (allowedRequestOrigin) return allowedRequestOrigin;
+
+  const allowed = getAllowedOrigins().map(normalizeOriginForComparison).filter(Boolean);
+  const configured = normalizeOriginForComparison(process.env.WEBAUTHN_ORIGIN || process.env.PUBLIC_MFA_EXPECTED_ORIGIN || allowed[0] || "https://diracgroup.store");
   try {
     const parsed = new URL(configured);
     if (parsed.protocol !== "https:") throw new Error("origin_must_be_https");
-    return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, "");
+    const normalized = `${parsed.protocol}//${parsed.host}`.replace(/\/$/, "");
+    if (allowed.length && !allowed.includes(normalized)) throw new Error("origin_not_allowlisted");
+    return normalized;
   } catch (_error) {
-    const err = new Error("WEBAUTHN_ORIGIN/PUBLIC_MFA_EXPECTED_ORIGIN tidak valid. Gunakan origin HTTPS production.");
+    const err = new Error("WEBAUTHN_ORIGIN/PUBLIC_MFA_EXPECTED_ORIGIN tidak valid. Gunakan origin HTTPS production yang masuk A2F_ALLOWED_ORIGINS.");
     err.statusCode = 500;
     throw err;
   }
 }
 
-function getRequestOrigin(_req) {
-  return getStrictPublicOrigin();
+function getRequestOrigin(req) {
+  return getStrictPublicOrigin(req);
 }
 
-function getPublicMfaRpId(_req) {
+function getPublicMfaRpId(req) {
   const envRpId = String(process.env.WEBAUTHN_RP_ID || process.env.PUBLIC_MFA_RP_ID || "").trim();
   if (envRpId) return envRpId;
   try {
-    const hostname = new URL(getStrictPublicOrigin()).hostname;
+    const hostname = new URL(getRequestOrigin(req)).hostname;
     return hostname.replace(/^www\./i, "");
   } catch (_error) {
     return "diracgroup.store";
@@ -1250,7 +1278,16 @@ async function startStrictPasswordReset(req, res) {
     user_agent_hash: hmacSecurity(getUserAgent(req))
   });
   await sendPasswordResetOtp({ code, to: email, expiresAtMs: now + ttlMs });
-  return res.status(200).json({ success: true, ok: true, resetToken, ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)), message: "Kode reset 8 digit sudah dikirim ke email akun terdaftar dan terverifikasi." });
+  return res.status(200).json({
+    success: true,
+    ok: true,
+    sent: true,
+    registered: true,
+    emailVerified: true,
+    resetToken,
+    ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)),
+    message: "Kode reset 8 digit sudah dikirim ke email akun terdaftar dan terverifikasi."
+  });
 }
 
 module.exports = async function handler(req, res) {
@@ -1269,11 +1306,15 @@ module.exports = async function handler(req, res) {
 
   if (isPasswordResetStartRequest(req.body || {})) {
     try {
-      return startStrictPasswordReset(req, res);
+      return await startStrictPasswordReset(req, res);
     } catch (error) {
-      return res.status(error.statusCode || 500).json({
+      const statusCode = Number(error && error.statusCode || 500);
+      return res.status(statusCode).json({
         success: false,
         ok: false,
+        sent: false,
+        registered: statusCode === 404 ? false : undefined,
+        emailVerified: statusCode === 403 ? false : undefined,
         error: publicSafeError(error, "Permintaan reset password belum bisa diproses.")
       });
     }
@@ -1281,7 +1322,7 @@ module.exports = async function handler(req, res) {
 
   if (isPublicMfaStartRequest(req.body || {})) {
     try {
-      return startPublicMfaSetup(req, res);
+      return await startPublicMfaSetup(req, res);
     } catch (error) {
       return res.status(error.statusCode || 500).json({
         success: false,
