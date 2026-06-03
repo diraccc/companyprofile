@@ -4623,16 +4623,22 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
   async function startPasskey(){
     clearResult(); setStep(2); setBusy(true); setMessage('status', t('beginPasskey'));
     try{
-      var setup = await callEndpoint('setup', {method:'passkey', action:'setup', identifier:authIdentifier()});
-      if(!setup || !setup.publicKey || !navigator.credentials || !window.PublicKeyCredential) throw new Error('server publicKey missing');
+      var identifier = authIdentifier();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(identifier||''))){ throw new Error('Email akun tidak valid untuk membuat passkey. Login ulang dengan email akun.'); }
+      if(!navigator.credentials || !window.PublicKeyCredential){ throw new Error(t('unsupported')); }
+      var setup = await callEndpoint('setup', {method:'passkey', action:'setup', identifier:identifier});
+      if(!setup || !setup.publicKey) throw new Error('Server belum mengirim challenge passkey. Cek API /api/2fa/start-step dan tabel Supabase.');
       var credential = await navigator.credentials.create({publicKey:normalizePasskeyCreationOptions(setup.publicKey)});
       var serialized = serializePublicKeyCredential(credential);
-      var verify = await callEndpoint('verify', {method:'passkey', action:'verify', identifier:authIdentifier(), setupToken:setup.setupToken || setup.mfaSetupToken || setup.token || '', credential:serialized});
+      var verify = await callEndpoint('verify', {method:'passkey', action:'verify', identifier:identifier, setupToken:setup.setupToken || setup.mfaSetupToken || setup.token || '', credential:serialized});
       if(verify && (verify.verified || verify.ok)){ finishVerification('server', verify.recoveryCodes || setup.recoveryCodes); return; }
-      throw new Error('server rejected');
+      throw new Error('Server menolak verifikasi passkey. Minta challenge baru lalu coba lagi.');
     }catch(e){
-      var support = !!(window.PublicKeyCredential && navigator.credentials);
-      setMessage('error', e && e.message ? e.message : (support ? t('passkeyNeedsServer') : t('unsupported')));
+      var msg = e && e.message ? e.message : t('passkeyNeedsServer');
+      if(/relying party|rp id|securityerror|not a registrable domain|current domain/i.test(msg)){
+        msg = 'Passkey gagal karena RP ID/origin tidak cocok. Pastikan A2F_ALLOWED_ORIGINS berisi https://diracgroup.store dan WEBAUTHN_RP_ID=diracgroup.store.';
+      }
+      setMessage('error', msg);
       setStep(1);
     }finally{ setBusy(false); updateActionText(); }
   }
@@ -5725,17 +5731,25 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   var resetToken='';
   async function requestReset(){
     var email=emailValue(); if(!validEmail(email)){setStatus('error','Masukkan email akun yang valid.');return;}
+    resetToken='';
+    var verifyBox=$('#forgotVerifyBox'); if(verifyBox) verifyBox.hidden=true;
     var btn=$('#forgotRequestBtn'); var old=btn&&btn.textContent; if(btn){btn.disabled=true;btn.textContent='Mengirim kode...';}
     try{
       var res=await fetch(endpoint('start'),{method:'POST',mode:'cors',headers:{'Content-Type':'application/json','Accept':'application/json'},credentials:'omit',cache:'no-store',body:JSON.stringify({action:'request-password-reset',email:email})});
       var data=await res.clone().json().catch(function(){return null});
-      if(!res.ok||!data||data.ok===false)throw new Error((data&&(data.error||data.message))||'Kode reset gagal dikirim.');
+      if(!res.ok||!data||data.ok!==true||data.sent!==true){
+        throw new Error((data&&(data.error||data.message))||'Email belum terdaftar atau tidak lolos verifikasi keamanan. Kode reset tidak dikirim.');
+      }
       resetToken=String(data.resetToken||data.token||'');
-      if(!resetToken){ throw new Error((data&&(data.message||data.error))||'Kode reset tidak dikirim untuk email ini.'); }
+      if(!resetToken){ throw new Error('Server tidak mengirim token reset. Kode reset tidak dianggap valid.'); }
       var box=$('#forgotVerifyBox'); if(box) box.hidden=false;
       setStatus('success',data.message||'Kode reset 8 digit sudah dikirim. Cek email lalu masukkan password baru.');
       setTimeout(function(){var c=$('#forgotCode'); if(c)c.focus({preventScroll:true});},50);
-    }catch(e){setStatus('error',e&&e.message?e.message:'Kode reset gagal dikirim.');}
+    }catch(e){
+      resetToken='';
+      var box=$('#forgotVerifyBox'); if(box) box.hidden=true;
+      setStatus('error',e&&e.message?e.message:'Email belum terdaftar atau tidak lolos verifikasi keamanan. Kode reset tidak dikirim.');
+    }
     finally{if(btn){btn.disabled=false;btn.textContent=old;}}
   }
   async function confirmReset(){
