@@ -12,8 +12,8 @@ const ONE_TIME_RECOVERY_ALPHABET = ONE_TIME_RECOVERY_DIGITS + ONE_TIME_RECOVERY_
 const ONE_TIME_RECOVERY_CODE_FORMAT = "MIXED-1000-V1";
 const ARGON2ID_OPTIONS = Object.freeze({
   type: argon2.argon2id,
-  memoryCost: 19456,
-  timeCost: 2,
+  memoryCost: Number(process.env.ARGON2_MEMORY_COST || 65536),
+  timeCost: Number(process.env.ARGON2_TIME_COST || 3),
   parallelism: 1,
   hashLength: 32
 });
@@ -217,7 +217,7 @@ async function resetA2fFailure() {
 
 
 function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -356,7 +356,7 @@ async function verifyAdminIdToken(idToken) {
   }
 
   getFirebaseDb();
-  const decoded = await admin.auth().verifyIdToken(token);
+  const decoded = await admin.auth().verifyIdToken(token, true);
   const expectedUid = getAdminUid();
 
   if (decoded.uid !== expectedUid) {
@@ -706,19 +706,6 @@ function hashPublicMfaIdentifier(identifier, secret) {
   return crypto.createHmac("sha256", secret).update(`public-mfa-identifier:${normalizePublicMfaIdentifier(identifier)}`).digest("hex");
 }
 
-function createPublicMfaSetupToken(payload) {
-  const secret = getPublicMfaSecret();
-  const now = Date.now();
-  const safePayload = {
-    purpose: PUBLIC_MFA_CHALLENGE_PURPOSE,
-    createdAt: now,
-    expiresAt: now + PUBLIC_MFA_SETUP_TTL_MS,
-    nonce: publicMfaRandomId(18),
-    ...payload
-  };
-  return makeSession(safePayload, secret);
-}
-
 function generatePublicMfaRecoveryCodes(count = 6) {
   const codes = [];
   while (codes.length < count) {
@@ -763,53 +750,6 @@ function getPublicMfaRpId(req) {
 
 function getPublicMfaRpName() {
   return String(process.env.WEBAUTHN_RP_NAME || process.env.PUBLIC_MFA_RP_NAME || "Dirac Group").trim() || "Dirac Group";
-}
-
-function buildPublicMfaPasskeyOptions(req, identifier) {
-  const secret = getPublicMfaSecret();
-  const challenge = publicMfaBase64Url(crypto.randomBytes(32));
-  const userId = publicMfaBase64Url(crypto.randomBytes(32));
-  const rpId = getPublicMfaRpId(req);
-  const origin = getRequestOrigin(req);
-  const account = normalizePublicMfaIdentifier(identifier) || "dirac-user";
-  const setupToken = createPublicMfaSetupToken({
-    method: "passkey",
-    challenge,
-    userId,
-    rpId,
-    origin,
-    identifierHash: hashPublicMfaIdentifier(account, secret),
-    recoveryCodes: generatePublicMfaRecoveryCodes()
-  });
-
-  return {
-    success: true,
-    ok: true,
-    method: "passkey",
-    setupToken,
-    publicKey: {
-      challenge,
-      rp: { name: getPublicMfaRpName(), id: rpId },
-      user: {
-        id: userId,
-        name: account,
-        displayName: account || "Dirac Group User"
-      },
-      pubKeyCredParams: [
-        { type: "public-key", alg: -7 },
-        { type: "public-key", alg: -257 }
-      ],
-      timeout: Number(process.env.PUBLIC_MFA_PASSKEY_TIMEOUT_MS || 60000),
-      attestation: "none",
-      authenticatorSelection: {
-        residentKey: "preferred",
-        requireResidentKey: false,
-        userVerification: "preferred"
-      },
-      extensions: { credProps: true }
-    },
-    message: "Challenge passkey berhasil dibuat."
-  };
 }
 
 function getSmtpConfigForPublicMfa() {
@@ -865,48 +805,266 @@ async function sendPublicMfaEmailOtp({ code, to, expiresAtMs }) {
   throw new Error("SMTP/Gmail belum diset. Isi SMTP_USER dan SMTP_PASS/GMAIL_APP_PASSWORD di Environment Variables.");
 }
 
+/* DIRAC CUSTOMER SECURITY HARDENING PATCH 2026-06
+   - DB-backed MFA setup token (opaque token, no readable TOTP/recovery data)
+   - Argon2id hashes for OTP/reset/recovery secrets
+   - strict forgot-password start flow
+   - strict CORS allowlist
+*/
+function publicSafeError(error, fallback) {
+  const status = Number(error && error.statusCode || 500);
+  if (status >= 500) return fallback || "Server keamanan belum siap.";
+  return (error && error.message) || fallback || "Permintaan tidak valid.";
+}
+
+function getAllowedOrigins() {
+  const fromEnv = String(process.env.A2F_ALLOWED_ORIGINS || process.env.PUBLIC_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((item) => item.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  if (fromEnv.length) return fromEnv;
+  return ["https://diracgroup.store", "https://www.diracgroup.store"];
+}
+
+function setCors(reqOrRes, maybeRes) {
+  const req = maybeRes ? reqOrRes : null;
+  const res = maybeRes || reqOrRes;
+  const origin = req && req.headers ? String(req.headers.origin || "").replace(/\/$/, "") : "";
+  const allowed = getAllowedOrigins();
+  if (origin && allowed.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Cache-Control", "no-store");
+}
+
+function securityTableName() {
+  return String(process.env.PUBLIC_SECURITY_CHALLENGES_TABLE || process.env.PUBLIC_MFA_CHALLENGES_TABLE || "public_security_challenges").trim();
+}
+function rateLimitTableName() {
+  return String(process.env.PUBLIC_SECURITY_RATE_LIMITS_TABLE || "public_security_rate_limits").trim();
+}
+
+function hasSupabaseEnv() {
+  return Boolean(String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim() && String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim());
+}
+
+function getClientIp(req) {
+  const h = (req && req.headers) || {};
+  return String(h["cf-connecting-ip"] || h["x-real-ip"] || h["x-forwarded-for"] || "")
+    .split(",")[0]
+    .trim()
+    .slice(0, 96) || "unknown";
+}
+function getUserAgent(req) {
+  return String((req && req.headers && req.headers["user-agent"]) || "").slice(0, 500);
+}
+function hmacSecurity(value) {
+  return crypto.createHmac("sha256", getPublicMfaSecret()).update(String(value || "")).digest("hex");
+}
+function normalizeEmailStrict(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    const err = new Error("Masukkan email yang valid.");
+    err.statusCode = 400;
+    throw err;
+  }
+  return email;
+}
+function nowIso() { return new Date().toISOString(); }
+async function argon2idStrongHash(value) {
+  return argon2.hash(String(value || ""), {
+    type: argon2.argon2id,
+    memoryCost: Number(process.env.ARGON2_MEMORY_COST || 65536),
+    timeCost: Number(process.env.ARGON2_TIME_COST || 3),
+    parallelism: Number(process.env.ARGON2_PARALLELISM || 1),
+    hashLength: Number(process.env.ARGON2_HASH_LENGTH || 32)
+  });
+}
+
+function deriveAesKey() {
+  return crypto.createHash("sha256").update(`dirac-public-security-v1:${getPublicMfaSecret()}`).digest();
+}
+function encryptSecurityPayload(payload) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", deriveAesKey(), iv);
+  const plain = Buffer.from(JSON.stringify(payload || {}), "utf8");
+  const encrypted = Buffer.concat([cipher.update(plain), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([iv, tag, encrypted]).toString("base64url");
+}
+function randomOpaqueToken(challengeId, bytes = 32) {
+  return `${challengeId}.${crypto.randomBytes(bytes).toString("base64url")}`;
+}
+function splitOpaqueToken(token, label = "token") {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2 || !/^[A-Za-z0-9_-]{12,128}$/.test(parts[0]) || parts[1].length < 32) {
+    const err = new Error(`${label} tidak valid atau sudah rusak.`);
+    err.statusCode = 400;
+    throw err;
+  }
+  return { challengeId: parts[0], tokenSecret: parts[1] };
+}
+function publicMfaRandomId(bytes = 18) {
+  return crypto.randomBytes(bytes).toString("base64url");
+}
+
+function mapSecurityChallengeRow(row) {
+  row = row && typeof row === "object" ? row : {};
+  return {
+    challenge_id: String(row.challenge_id || row.challengeId || ""),
+    purpose: String(row.purpose || ""),
+    method: String(row.method || ""),
+    identifier_hash: String(row.identifier_hash || row.identifierHash || ""),
+    token_hash: String(row.token_hash || row.tokenHash || ""),
+    token_hash_type: String(row.token_hash_type || row.tokenHashType || "argon2id"),
+    code_hash: String(row.code_hash || row.codeHash || ""),
+    code_hash_type: String(row.code_hash_type || row.codeHashType || "argon2id"),
+    encrypted_payload: String(row.encrypted_payload || row.encryptedPayload || ""),
+    expires_at_ms: Number(row.expires_at_ms ?? row.expiresAtMs ?? 0),
+    attempts: Number(row.attempts || 0),
+    max_attempts: Number(row.max_attempts ?? row.maxAttempts ?? 5),
+    used_at_ms: Number(row.used_at_ms ?? row.usedAtMs ?? 0),
+    locked_at_ms: Number(row.locked_at_ms ?? row.lockedAtMs ?? 0)
+  };
+}
+async function insertSecurityChallenge(row) {
+  const payload = {
+    challenge_id: row.challenge_id,
+    purpose: row.purpose,
+    method: row.method,
+    identifier_hash: row.identifier_hash,
+    token_hash: row.token_hash,
+    token_hash_type: row.token_hash_type || "argon2id",
+    code_hash: row.code_hash || null,
+    code_hash_type: row.code_hash ? "argon2id" : null,
+    encrypted_payload: row.encrypted_payload || null,
+    expires_at_ms: Number(row.expires_at_ms || 0),
+    attempts: Number(row.attempts || 0),
+    max_attempts: Number(row.max_attempts || 5),
+    used_at_ms: null,
+    locked_at_ms: null,
+    request_ip_hash: row.request_ip_hash || null,
+    user_agent_hash: row.user_agent_hash || null,
+    created_at_ms: Date.now(),
+    created_at: nowIso(),
+    updated_at: nowIso()
+  };
+  if (hasSupabaseEnv()) {
+    try {
+      const { data, error } = await getSupabaseAdmin().from(securityTableName()).insert(payload).select("*").single();
+      if (error) throw error;
+      return mapSecurityChallengeRow(data || payload);
+    } catch (error) {
+      if (String(process.env.PUBLIC_SECURITY_STORE || "").toLowerCase() === "supabase") throw error;
+    }
+  }
+  const db = getFirebaseDb();
+  await db.collection(securityTableName()).doc(payload.challenge_id).set(payload, { merge: false });
+  return mapSecurityChallengeRow(payload);
+}
+async function upsertSecurityRateLimit(req, purpose, identifierHash, maxCount = 5, windowMs = 10 * 60 * 1000) {
+  const now = Date.now();
+  const bucket = Math.floor(now / windowMs);
+  const key = hmacSecurity(`${purpose}:${identifierHash}:${getClientIp(req)}:${bucket}`);
+  const base = { key, purpose, identifier_hash: identifierHash, ip_hash: hmacSecurity(getClientIp(req)), count: 1, expires_at_ms: (bucket + 1) * windowMs, updated_at: nowIso() };
+  if (hasSupabaseEnv()) {
+    try {
+      const supabase = getSupabaseAdmin();
+      const { data: existing, error: readError } = await supabase.from(rateLimitTableName()).select("*").eq("key", key).maybeSingle();
+      if (readError) throw readError;
+      const count = Number(existing && existing.count || 0) + 1;
+      const payload = { ...base, count };
+      const { error } = await supabase.from(rateLimitTableName()).upsert(payload, { onConflict: "key" });
+      if (error) throw error;
+      if (count > maxCount) {
+        const err = new Error("Terlalu banyak permintaan. Tunggu beberapa menit lalu coba lagi.");
+        err.statusCode = 429;
+        throw err;
+      }
+      return;
+    } catch (error) {
+      if (error.statusCode === 429 || String(process.env.PUBLIC_SECURITY_STORE || "").toLowerCase() === "supabase") throw error;
+    }
+  }
+  const db = getFirebaseDb();
+  const ref = db.collection(rateLimitTableName()).doc(key);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const current = snap.exists ? Number((snap.data() || {}).count || 0) : 0;
+    const count = current + 1;
+    if (count > maxCount) {
+      const err = new Error("Terlalu banyak permintaan. Tunggu beberapa menit lalu coba lagi.");
+      err.statusCode = 429;
+      throw err;
+    }
+    tx.set(ref, { ...base, count }, { merge: true });
+  });
+}
+
+function buildPublicMfaPasskeyOptions(req, identifier) {
+  throw new Error("buildPublicMfaPasskeyOptions diganti oleh startPublicMfaSetup async.");
+}
+
 async function startPublicMfaSetup(req, res) {
   const body = req.body || {};
   const method = normalizePublicMfaMethod(body.method);
-  const identifier = normalizePublicMfaIdentifier(body.identifier || body.email || body.username || process.env.A2F_ADMIN_EMAIL || "");
+  const identifier = normalizeEmailStrict(body.identifier || body.email || body.username || "");
   const secret = getPublicMfaSecret();
-  const now = Date.now();
-  const expiresAtMs = now + (method === "email" ? PUBLIC_MFA_EMAIL_CODE_TTL_MS : PUBLIC_MFA_SETUP_TTL_MS);
+  const identifierHash = hashPublicMfaIdentifier(identifier, secret);
+  await upsertSecurityRateLimit(req, `public-mfa-start:${method || "unknown"}`, identifierHash, Number(process.env.PUBLIC_MFA_START_MAX_PER_WINDOW || 5), Number(process.env.PUBLIC_MFA_START_WINDOW_MS || 10 * 60 * 1000));
 
-  if (!method) {
-    return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak valid." });
-  }
+  if (!method) return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak valid." });
+
+  const now = Date.now();
+  const ttlMs = method === "email" ? PUBLIC_MFA_EMAIL_CODE_TTL_MS : PUBLIC_MFA_SETUP_TTL_MS;
+  const challengeId = publicMfaRandomId(24);
+  const setupToken = randomOpaqueToken(challengeId, 36);
+  const { tokenSecret } = splitOpaqueToken(setupToken, "setupToken");
+  const base = {
+    challenge_id: challengeId,
+    purpose: PUBLIC_MFA_CHALLENGE_PURPOSE,
+    method,
+    identifier_hash: identifierHash,
+    token_hash: await argon2idStrongHash(`setup-token:${challengeId}:${tokenSecret}`),
+    token_hash_type: "argon2id",
+    expires_at_ms: now + ttlMs,
+    attempts: 0,
+    max_attempts: Number(process.env.PUBLIC_MFA_MAX_VERIFY_ATTEMPTS || 5),
+    request_ip_hash: hmacSecurity(getClientIp(req)),
+    user_agent_hash: hmacSecurity(getUserAgent(req))
+  };
 
   if (method === "email") {
     const code = String(crypto.randomInt(100000, 1000000)).padStart(6, "0");
-    const setupToken = createPublicMfaSetupToken({
-      method,
-      identifierHash: hashPublicMfaIdentifier(identifier, secret),
-      codeHash: hashCode(`public-email:${identifier}:${code}`, secret),
-      expiresAt: expiresAtMs,
-      recoveryCodes: generatePublicMfaRecoveryCodes()
+    await insertSecurityChallenge({
+      ...base,
+      code_hash: await argon2idStrongHash(`public-email:${identifier}:${code}`),
+      encrypted_payload: encryptSecurityPayload({ issuer: getPublicMfaRpName() })
     });
-    const mail = await sendPublicMfaEmailOtp({ code, to: identifier, expiresAtMs });
-    return res.status(200).json({
-      success: true,
-      ok: true,
-      method,
-      setupToken,
-      mfaSetupToken: setupToken,
-      token: setupToken,
-      ttlSeconds: Math.max(1, Math.floor((expiresAtMs - now) / 1000)),
-      provider: mail.provider,
-      message: "Kode OTP email berhasil dikirim."
-    });
+    const mail = await sendPublicMfaEmailOtp({ code, to: identifier, expiresAtMs: now + ttlMs });
+    return res.status(200).json({ success: true, ok: true, method, setupToken, mfaSetupToken: setupToken, token: setupToken, ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)), provider: mail.provider, message: "Kode OTP email berhasil dikirim." });
   }
 
   if (method === "authenticator") {
     const manualKey = randomBase32Secret(32);
-    const setupToken = createPublicMfaSetupToken({
-      method,
-      identifierHash: hashPublicMfaIdentifier(identifier, secret),
-      totpSecret: manualKey,
-      recoveryCodes: generatePublicMfaRecoveryCodes()
+    await insertSecurityChallenge({
+      ...base,
+      encrypted_payload: encryptSecurityPayload({ totpSecret: manualKey, issuer: getPublicMfaRpName(), account: identifier })
+    });
+    return res.status(200).json({ success: true, ok: true, method, setupToken, mfaSetupToken: setupToken, token: setupToken, manualKey, secret: manualKey, otpauthUrl: otpauthUrl({ issuer: getPublicMfaRpName(), account: identifier, secret: manualKey }), ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)), message: "Setup key Authenticator berhasil disiapkan." });
+  }
+
+  if (method === "passkey") {
+    const challenge = publicMfaBase64Url(crypto.randomBytes(32));
+    const userId = publicMfaBase64Url(crypto.randomBytes(32));
+    const rpId = getPublicMfaRpId(req);
+    const origin = getRequestOrigin(req);
+    await insertSecurityChallenge({
+      ...base,
+      encrypted_payload: encryptSecurityPayload({ challenge, userId, rpId, origin, account: identifier, issuer: getPublicMfaRpName() })
     });
     return res.status(200).json({
       success: true,
@@ -915,22 +1073,85 @@ async function startPublicMfaSetup(req, res) {
       setupToken,
       mfaSetupToken: setupToken,
       token: setupToken,
-      manualKey,
-      secret: manualKey,
-      otpauthUrl: otpauthUrl({ issuer: getPublicMfaRpName(), account: identifier || "Dirac User", secret: manualKey }),
-      message: "Setup key Authenticator berhasil disiapkan."
+      ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)),
+      publicKey: {
+        challenge,
+        rp: { name: getPublicMfaRpName(), id: rpId },
+        user: { id: userId, name: identifier, displayName: identifier || "Dirac Group User" },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+        timeout: Number(process.env.PUBLIC_MFA_PASSKEY_TIMEOUT_MS || 60000),
+        attestation: "none",
+        authenticatorSelection: { residentKey: "preferred", requireResidentKey: false, userVerification: "required" },
+        extensions: { credProps: true }
+      },
+      message: "Challenge passkey berhasil dibuat."
     });
-  }
-
-  if (method === "passkey") {
-    return res.status(200).json(buildPublicMfaPasskeyOptions(req, identifier));
   }
 
   return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak dikenal." });
 }
 
+function normalizePasswordResetAction(body) {
+  return String((body && body.action) || "").trim().toLowerCase();
+}
+function isPasswordResetStartRequest(body) {
+  return ["forgot-password", "request-password-reset", "password-reset-start", "start-password-reset", "lupa-password"].includes(normalizePasswordResetAction(body));
+}
+async function sendPasswordResetOtp({ code, to, expiresAtMs }) {
+  const smtp = getSmtpConfigForPublicMfa();
+  const subject = "Kode Reset Password Dirac Group";
+  const text = `Kode reset password Dirac Group kamu adalah ${code}. Kode berlaku sampai ${new Date(expiresAtMs).toISOString()}. Jika kamu tidak meminta reset password, abaikan email ini.`;
+  const html = `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111"><h2>Kode Reset Password Dirac Group</h2><p>Kode verifikasi kamu:</p><div style="font-size:30px;font-weight:800;letter-spacing:5px">${code}</div><p>Kode berlaku sampai <b>${new Date(expiresAtMs).toISOString()}</b>.</p><p>Jika kamu tidak meminta reset password, abaikan email ini.</p></div>`;
+  if (smtp.user && smtp.pass && smtp.fromEmail) {
+    const nodemailer = require("nodemailer");
+    const transporter = nodemailer.createTransport({ host: smtp.host, port: smtp.port, secure: smtp.port === 465, auth: { user: smtp.user, pass: smtp.pass } });
+    await transporter.sendMail({ from: `"${smtp.fromName}" <${smtp.fromEmail}>`, to, subject, text, html });
+    return { provider: "smtp" };
+  }
+  if (process.env.BREVO_API_KEY && process.env.A2F_SENDER_EMAIL) {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": process.env.BREVO_API_KEY, "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ sender: { name: "Dirac Security", email: process.env.A2F_SENDER_EMAIL }, to: [{ email: to, name: "Dirac User" }], subject, htmlContent: html, textContent: text })
+    });
+    if (!response.ok) throw new Error("Email reset password gagal dikirim.");
+    return { provider: "brevo" };
+  }
+  throw new Error("SMTP/Gmail belum diset. Isi SMTP_USER dan SMTP_PASS/GMAIL_APP_PASSWORD di Environment Variables.");
+}
+async function startStrictPasswordReset(req, res) {
+  const email = normalizeEmailStrict((req.body || {}).email || (req.body || {}).identifier || "");
+  const secret = getPublicMfaSecret();
+  const identifierHash = hashPublicMfaIdentifier(email, secret);
+  await upsertSecurityRateLimit(req, "password-reset-start", identifierHash, Number(process.env.PASSWORD_RESET_START_MAX_PER_WINDOW || 3), Number(process.env.PASSWORD_RESET_START_WINDOW_MS || 15 * 60 * 1000));
+  const now = Date.now();
+  const ttlMs = Number(process.env.PASSWORD_RESET_TTL_MS || 5 * 60 * 1000);
+  const challengeId = publicMfaRandomId(24);
+  const resetToken = randomOpaqueToken(challengeId, 40);
+  const { tokenSecret } = splitOpaqueToken(resetToken, "resetToken");
+  const code = String(crypto.randomInt(10000000, 100000000)).padStart(8, "0");
+  await insertSecurityChallenge({
+    challenge_id: challengeId,
+    purpose: "password-reset-v1",
+    method: "email",
+    identifier_hash: identifierHash,
+    token_hash: await argon2idStrongHash(`password-reset-token:${challengeId}:${tokenSecret}`),
+    token_hash_type: "argon2id",
+    code_hash: await argon2idStrongHash(`password-reset-code:${email}:${code}`),
+    code_hash_type: "argon2id",
+    encrypted_payload: encryptSecurityPayload({ email, requestedAtMs: now }),
+    expires_at_ms: now + ttlMs,
+    attempts: 0,
+    max_attempts: Number(process.env.PASSWORD_RESET_MAX_ATTEMPTS || 5),
+    request_ip_hash: hmacSecurity(getClientIp(req)),
+    user_agent_hash: hmacSecurity(getUserAgent(req))
+  });
+  await sendPasswordResetOtp({ code, to: email, expiresAtMs: now + ttlMs });
+  return res.status(200).json({ success: true, ok: true, resetToken, ttlSeconds: Math.max(1, Math.floor(ttlMs / 1000)), message: "Jika email terdaftar, kode reset sudah dikirim." });
+}
+
 module.exports = async function handler(req, res) {
-  setCors(res);
+  setCors(req, res);
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -942,6 +1163,18 @@ module.exports = async function handler(req, res) {
   }
 
   const { step, action } = req.body || {};
+
+  if (isPasswordResetStartRequest(req.body || {})) {
+    try {
+      return startStrictPasswordReset(req, res);
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        ok: false,
+        error: publicSafeError(error, "Permintaan reset password belum bisa diproses.")
+      });
+    }
+  }
 
   if (isPublicMfaStartRequest(req.body || {})) {
     try {
@@ -1067,7 +1300,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const secret = process.env.A2F_SECRET || "rahasia-test";
+  const secret = getPublicMfaSecret();
   const code = crypto.randomInt(100000, 999999).toString();
 
   const payload = {

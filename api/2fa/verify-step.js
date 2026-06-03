@@ -13,8 +13,8 @@ const ONE_TIME_RECOVERY_ALPHABET = ONE_TIME_RECOVERY_DIGITS + ONE_TIME_RECOVERY_
 const ONE_TIME_RECOVERY_CODE_FORMAT = "MIXED-1000-V1";
 const ARGON2ID_OPTIONS = Object.freeze({
   type: argon2.argon2id,
-  memoryCost: 19456,
-  timeCost: 2,
+  memoryCost: Number(process.env.ARGON2_MEMORY_COST || 65536),
+  timeCost: Number(process.env.ARGON2_TIME_COST || 3),
   parallelism: 1,
   hashLength: 32
 });
@@ -138,8 +138,7 @@ function getAllowedOrigins() {
 
   return [
     "https://diracgroup.store",
-    "https://www.diracgroup.store",
-    "https://companyprofilee-expk.vercel.app"
+    "https://www.diracgroup.store"
   ];
 }
 
@@ -439,7 +438,7 @@ async function verifyAdminIdToken(idToken) {
   }
 
   getFirebaseDb();
-  const decoded = await admin.auth().verifyIdToken(token);
+  const decoded = await admin.auth().verifyIdToken(token, true);
   const expectedUid = getAdminUid();
 
   if (decoded.uid !== expectedUid) {
@@ -3031,7 +3030,7 @@ function decodePublicMfaSetupToken(token, expectedMethod, identifier) {
 }
 
 function publicMfaRecoveryCodesFromPayload(payload) {
-  return Array.isArray(payload && payload.recoveryCodes) ? payload.recoveryCodes.filter(Boolean).slice(0, 12) : [];
+  return [];
 }
 
 function publicMfaB64UrlToBuffer(value, fieldName = "base64url") {
@@ -3243,7 +3242,7 @@ async function storePublicMfaPasskeyCredential({ identifier, credential, attesta
     }, { merge: true });
     return { stored: true, credentialId };
   } catch (error) {
-    return { stored: false, error: error.message || "Passkey credential belum tersimpan." };
+    throw error;
   }
 }
 
@@ -3273,14 +3272,14 @@ async function verifyPublicMfaPasskey(req, res, payload, identifier) {
   }
 
   const stored = await storePublicMfaPasskeyCredential({ identifier, credential, attestation, payload, req });
+  if (!stored || stored.stored !== true) throw makeHttpError(500, "Credential passkey gagal disimpan.");
   return res.status(200).json({
     success: true,
     ok: true,
     verified: true,
     method: "passkey",
     credentialId: attestation.credentialId.toString("base64url"),
-    passkeyStored: stored.stored === true,
-    storeWarning: stored.stored ? undefined : stored.error,
+    passkeyStored: true,
     recoveryCodes: publicMfaRecoveryCodesFromPayload(payload),
     message: "Passkey berhasil diverifikasi."
   });
@@ -3319,6 +3318,330 @@ async function verifyPublicMfa(req, res) {
 }
 
 
+
+/* DIRAC CUSTOMER SECURITY HARDENING PATCH 2026-06
+   DB-backed opaque public MFA token + strict password reset confirmation.
+*/
+function publicSafeError(error, fallback) {
+  const status = Number(error && error.statusCode || 500);
+  if (status >= 500) return fallback || "Server keamanan belum siap.";
+  return (error && error.message) || fallback || "Permintaan tidak valid.";
+}
+function securityTableName() {
+  return String(process.env.PUBLIC_SECURITY_CHALLENGES_TABLE || process.env.PUBLIC_MFA_CHALLENGES_TABLE || "public_security_challenges").trim();
+}
+function recoveryTableName() {
+  return String(process.env.PUBLIC_MFA_RECOVERY_CODES_TABLE || "public_mfa_recovery_codes").trim();
+}
+function hasSupabaseEnv() {
+  return Boolean(String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim() && String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim());
+}
+function nowIso() { return new Date().toISOString(); }
+function getClientIp(req) {
+  const h = (req && req.headers) || {};
+  return String(h["cf-connecting-ip"] || h["x-real-ip"] || h["x-forwarded-for"] || "").split(",")[0].trim().slice(0, 96) || "unknown";
+}
+function getUserAgent(req) {
+  return String((req && req.headers && req.headers["user-agent"]) || "").slice(0, 500);
+}
+function hmacSecurity(value) {
+  return crypto.createHmac("sha256", getA2fSecret()).update(String(value || "")).digest("hex");
+}
+function normalizeEmailStrict(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    throw makeHttpError(400, "Masukkan email yang valid.");
+  }
+  return email;
+}
+async function argon2idStrongHash(value) {
+  return argon2.hash(String(value || ""), {
+    type: argon2.argon2id,
+    memoryCost: Number(process.env.ARGON2_MEMORY_COST || 65536),
+    timeCost: Number(process.env.ARGON2_TIME_COST || 3),
+    parallelism: Number(process.env.ARGON2_PARALLELISM || 1),
+    hashLength: Number(process.env.ARGON2_HASH_LENGTH || 32)
+  });
+}
+async function argon2idStrongVerify(hash, value) {
+  if (!hash || !String(hash).startsWith("$argon2id$")) return false;
+  try { return await argon2.verify(String(hash), String(value || "")); } catch (_error) { return false; }
+}
+function deriveAesKey() { return crypto.createHash("sha256").update(`dirac-public-security-v1:${getA2fSecret()}`).digest(); }
+function decryptSecurityPayload(encrypted) {
+  const raw = Buffer.from(String(encrypted || ""), "base64url");
+  if (raw.length < 29) throw makeHttpError(400, "Payload keamanan tidak valid.");
+  const iv = raw.slice(0, 12);
+  const tag = raw.slice(12, 28);
+  const data = raw.slice(28);
+  const decipher = crypto.createDecipheriv("aes-256-gcm", deriveAesKey(), iv);
+  decipher.setAuthTag(tag);
+  const plain = Buffer.concat([decipher.update(data), decipher.final()]);
+  try { return JSON.parse(plain.toString("utf8")); } catch (_error) { throw makeHttpError(400, "Payload keamanan rusak."); }
+}
+function splitOpaqueToken(token, label = "token") {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2 || !/^[A-Za-z0-9_-]{12,128}$/.test(parts[0]) || parts[1].length < 32) throw makeHttpError(400, `${label} tidak valid atau sudah rusak.`);
+  return { challengeId: parts[0], tokenSecret: parts[1] };
+}
+function mapSecurityChallengeRow(row) {
+  row = row && typeof row === "object" ? row : {};
+  return {
+    challenge_id: String(row.challenge_id || row.challengeId || ""),
+    purpose: String(row.purpose || ""),
+    method: String(row.method || ""),
+    identifier_hash: String(row.identifier_hash || row.identifierHash || ""),
+    token_hash: String(row.token_hash || row.tokenHash || ""),
+    token_hash_type: String(row.token_hash_type || row.tokenHashType || "argon2id"),
+    code_hash: String(row.code_hash || row.codeHash || ""),
+    code_hash_type: String(row.code_hash_type || row.codeHashType || "argon2id"),
+    encrypted_payload: String(row.encrypted_payload || row.encryptedPayload || ""),
+    expires_at_ms: Number(row.expires_at_ms ?? row.expiresAtMs ?? 0),
+    attempts: Number(row.attempts || 0),
+    max_attempts: Number(row.max_attempts ?? row.maxAttempts ?? 5),
+    used_at_ms: Number(row.used_at_ms ?? row.usedAtMs ?? 0),
+    locked_at_ms: Number(row.locked_at_ms ?? row.lockedAtMs ?? 0)
+  };
+}
+async function readSecurityChallenge(challengeId) {
+  if (hasSupabaseEnv()) {
+    try {
+      const { data, error } = await getSupabaseAdmin().from(securityTableName()).select("*").eq("challenge_id", challengeId).maybeSingle();
+      if (error) throw error;
+      if (data) return mapSecurityChallengeRow(data);
+    } catch (error) {
+      if (String(process.env.PUBLIC_SECURITY_STORE || "").toLowerCase() === "supabase") throw error;
+    }
+  }
+  const db = getFirebaseDb();
+  const snap = await db.collection(securityTableName()).doc(challengeId).get();
+  return snap.exists ? mapSecurityChallengeRow(snap.data()) : null;
+}
+async function updateSecurityChallenge(challengeId, patch) {
+  const clean = { ...patch, updated_at: nowIso() };
+  if (hasSupabaseEnv()) {
+    try {
+      const { error } = await getSupabaseAdmin().from(securityTableName()).update(clean).eq("challenge_id", challengeId);
+      if (error) throw error;
+      return;
+    } catch (error) {
+      if (String(process.env.PUBLIC_SECURITY_STORE || "").toLowerCase() === "supabase") throw error;
+    }
+  }
+  const db = getFirebaseDb();
+  await db.collection(securityTableName()).doc(challengeId).set(clean, { merge: true });
+}
+async function consumeSecurityAttempt(row, reason) {
+  const attempts = Number(row.attempts || 0) + 1;
+  const patch = { attempts };
+  if (attempts >= Number(row.max_attempts || 5)) patch.locked_at_ms = Date.now();
+  await updateSecurityChallenge(row.challenge_id, patch).catch(() => null);
+  if (patch.locked_at_ms) throw makeHttpError(423, "Terlalu banyak percobaan. Minta kode/challenge baru.");
+  throw makeHttpError(401, reason || "Kode/challenge salah.");
+}
+async function loadSecurityChallengeFromToken(token, { label, expectedPurpose, expectedMethod, identifier, tokenPrefix }) {
+  const { challengeId, tokenSecret } = splitOpaqueToken(token, label);
+  const row = await readSecurityChallenge(challengeId);
+  if (!row) throw makeHttpError(404, `${label} tidak ditemukan atau sudah dibersihkan.`);
+  if (row.purpose !== expectedPurpose) throw makeHttpError(400, `${label} salah purpose.`);
+  if (expectedMethod && row.method !== expectedMethod) throw makeHttpError(400, `Metode ${label} tidak cocok.`);
+  if (row.used_at_ms) throw makeHttpError(409, `${label} sudah dipakai.`);
+  if (row.locked_at_ms || Number(row.attempts || 0) >= Number(row.max_attempts || 5)) throw makeHttpError(423, "Terlalu banyak percobaan. Minta kode/challenge baru.");
+  if (Date.now() > Number(row.expires_at_ms || 0)) throw makeHttpError(408, `${label} sudah expired. Minta ulang.`);
+  const ok = await argon2idStrongVerify(row.token_hash, `${tokenPrefix}:${challengeId}:${tokenSecret}`);
+  if (!ok) await consumeSecurityAttempt(row, `${label} tidak valid.`);
+  if (identifier) {
+    const expectedHash = hashPublicMfaIdentifier(normalizeEmailStrict(identifier), getA2fSecret());
+    if (!safeEqual(expectedHash, row.identifier_hash)) await consumeSecurityAttempt(row, "Identitas tidak cocok dengan challenge.");
+  }
+  return { row, payload: row.encrypted_payload ? decryptSecurityPayload(row.encrypted_payload) : {}, normalizedIdentifier: identifier ? normalizeEmailStrict(identifier) : "" };
+}
+function generatePublicMfaRecoveryCodes(count = 6) {
+  const codes = [];
+  while (codes.length < count) {
+    const left = crypto.randomBytes(5).toString("base64url").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8).padEnd(8, "X");
+    const right = crypto.randomBytes(5).toString("base64url").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8).padEnd(8, "Y");
+    codes.push(`DIRAC-${left}-${right}`);
+  }
+  return codes;
+}
+async function storePublicMfaRecoveryCodeHashes(identifierHash, method, codes, req) {
+  const rows = [];
+  for (const code of codes) {
+    rows.push({
+      recovery_id: crypto.randomBytes(18).toString("base64url"),
+      identifier_hash: identifierHash,
+      method,
+      code_hash: await argon2idStrongHash(String(code).trim().toUpperCase()),
+      code_hash_type: "argon2id",
+      active: true,
+      used_at_ms: null,
+      request_ip_hash: hmacSecurity(getClientIp(req)),
+      created_at_ms: Date.now(),
+      created_at: nowIso(),
+      updated_at: nowIso()
+    });
+  }
+  if (hasSupabaseEnv()) {
+    try {
+      const { error } = await getSupabaseAdmin().from(recoveryTableName()).insert(rows);
+      if (error) throw error;
+      return;
+    } catch (error) {
+      if (String(process.env.PUBLIC_SECURITY_STORE || "").toLowerCase() === "supabase") throw error;
+    }
+  }
+  const db = getFirebaseDb();
+  const batch = db.batch();
+  rows.forEach((row) => batch.set(db.collection(recoveryTableName()).doc(row.recovery_id), row));
+  await batch.commit();
+}
+async function issueAndStoreRecoveryCodes(row, method, req) {
+  const codes = generatePublicMfaRecoveryCodes(Number(process.env.PUBLIC_MFA_RECOVERY_CODE_COUNT || 6));
+  await storePublicMfaRecoveryCodeHashes(row.identifier_hash, method, codes, req);
+  return codes;
+}
+
+async function storePublicMfaPasskeyCredential({ identifier, credential, attestation, payload, row, req }) {
+  const db = getFirebaseDb();
+  const now = Date.now();
+  const identifierHash = (row && row.identifier_hash) || hashPublicMfaIdentifier(identifier, getA2fSecret());
+  const credentialId = attestation.credentialId.toString("base64url");
+  const ref = db.collection("publicMfaPasskeys").doc(`${identifierHash}_${credentialId}`);
+  await ref.set({
+    identifierHash,
+    credentialId,
+    credentialIdSource: credential.id || "",
+    publicKeyCose: attestation.publicKeyCose.toString("base64url"),
+    signCount: attestation.signCount,
+    rpId: payload.rpId || "",
+    origin: payload.origin || getRequestOrigin(req),
+    aaguid: attestation.aaguid,
+    userVerified: attestation.userVerified === true,
+    userPresent: attestation.userPresent === true,
+    fmt: attestation.fmt || "none",
+    transports: credential.response.transports || [],
+    createdAtMs: now,
+    lastUsedAtMs: 0,
+    active: true,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  return { stored: true, credentialId };
+}
+
+async function verifyPublicMfaPasskey(req, res, payload, identifier, row) {
+  const credential = normalizePublicKeyCredentialForServer(req.body && req.body.credential);
+  const clientData = parsePasskeyClientData(credential.response.clientDataJSON);
+  if (clientData.type !== PUBLIC_MFA_ALLOWED_CLIENT_TYPES.passkey) await consumeSecurityAttempt(row, "Tipe clientData passkey tidak valid.");
+  if (!safeEqual(String(clientData.challenge || ""), String(payload.challenge || ""))) await consumeSecurityAttempt(row, "Challenge passkey tidak cocok.");
+  if (!isClientOriginAllowed(clientData.origin, payload.origin || getRequestOrigin(req))) await consumeSecurityAttempt(row, "Origin passkey tidak diizinkan.");
+  const attestation = parsePasskeyAttestationObject(credential.response.attestationObject);
+  if (attestation.userVerified !== true) await consumeSecurityAttempt(row, "Passkey wajib memakai user verification Face ID/sidik jari/PIN.");
+  const expectedRpHash = crypto.createHash("sha256").update(String(payload.rpId || "")).digest();
+  if (!safeEqual(attestation.rpIdHash.toString("hex"), expectedRpHash.toString("hex"))) await consumeSecurityAttempt(row, "RP ID passkey tidak cocok.");
+  const rawId = publicMfaB64UrlToBuffer(credential.rawId, "rawId");
+  if (!safeEqual(rawId.toString("base64url"), attestation.credentialId.toString("base64url"))) await consumeSecurityAttempt(row, "Credential ID passkey tidak cocok dengan attestation.");
+  await storePublicMfaPasskeyCredential({ identifier, credential, attestation, payload, row, req });
+  const recoveryCodes = await issueAndStoreRecoveryCodes(row, "passkey", req);
+  await updateSecurityChallenge(row.challenge_id, { used_at_ms: Date.now(), attempts: Number(row.attempts || 0) });
+  return res.status(200).json({ success: true, ok: true, verified: true, method: "passkey", credentialId: attestation.credentialId.toString("base64url"), passkeyStored: true, recoveryCodes, message: "Passkey berhasil diverifikasi dan disimpan." });
+}
+
+async function verifyPublicMfa(req, res) {
+  const body = req.body || {};
+  const method = normalizePublicMfaMethod(body.method);
+  const identifier = normalizeEmailStrict(body.identifier || body.email || body.username || "");
+  const setupToken = body.setupToken || body.mfaSetupToken || body.token || body.sessionId || "";
+  if (!method) return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak valid." });
+  try {
+    const loaded = await loadSecurityChallengeFromToken(setupToken, { label: "setupToken", expectedPurpose: PUBLIC_MFA_CHALLENGE_PURPOSE, expectedMethod: method, identifier, tokenPrefix: "setup-token" });
+    const row = loaded.row;
+    const payload = loaded.payload || {};
+    if (method === "email") {
+      const code = String(body.code || "").replace(/\D+/g, "").slice(0, 12);
+      if (!/^\d{6}$/.test(code)) return res.status(400).json({ success: false, ok: false, error: "Kode OTP email harus 6 digit." });
+      const ok = await argon2idStrongVerify(row.code_hash, `public-email:${identifier}:${code}`);
+      if (!ok) await consumeSecurityAttempt(row, "Kode OTP email salah.");
+      const recoveryCodes = await issueAndStoreRecoveryCodes(row, "email", req);
+      await updateSecurityChallenge(row.challenge_id, { used_at_ms: Date.now(), attempts: Number(row.attempts || 0) });
+      await resetA2fFailure().catch(() => null);
+      return res.status(200).json({ success: true, ok: true, verified: true, method, recoveryCodes, message: "Kode OTP email benar." });
+    }
+    if (method === "authenticator") {
+      const code = String(body.code || "").replace(/\s+/g, "");
+      if (!/^\d{6}$/.test(code)) return res.status(400).json({ success: false, ok: false, error: "Kode Authenticator harus 6 digit." });
+      if (!payload.totpSecret) throw makeHttpError(400, "Setup key Authenticator tidak ditemukan. Mulai ulang setup.");
+      const validCodes = [generateTotp(payload.totpSecret, -1), generateTotp(payload.totpSecret, 0), generateTotp(payload.totpSecret, 1)];
+      if (!validCodes.some((validCode) => safeEqual(code, validCode))) await consumeSecurityAttempt(row, "Kode Authenticator salah atau sudah berganti.");
+      const recoveryCodes = await issueAndStoreRecoveryCodes(row, "authenticator", req);
+      await updateSecurityChallenge(row.challenge_id, { used_at_ms: Date.now(), attempts: Number(row.attempts || 0) });
+      await resetA2fFailure().catch(() => null);
+      return res.status(200).json({ success: true, ok: true, verified: true, method, recoveryCodes, message: "Kode Authenticator benar." });
+    }
+    if (method === "passkey") return verifyPublicMfaPasskey(req, res, payload, identifier, row);
+    return res.status(400).json({ success: false, ok: false, error: "Metode A2F tidak dikenal." });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, ok: false, verified: false, error: publicSafeError(error, "Verifikasi A2F gagal.") });
+  }
+}
+
+function normalizePasswordResetAction(body) { return String((body && body.action) || "").trim().toLowerCase(); }
+function isPasswordResetConfirmRequest(body) {
+  return ["confirm-password-reset", "password-reset-confirm", "reset-password", "verify-password-reset", "lupa-password-confirm"].includes(normalizePasswordResetAction(body));
+}
+function validateStrongCustomerPassword(password, email) {
+  const value = String(password || "");
+  const lowered = value.toLowerCase();
+  const local = String(email || "").split("@")[0].toLowerCase();
+  if (value.length < Number(process.env.PASSWORD_RESET_MIN_LENGTH || 12)) throw makeHttpError(400, "Password baru minimal 12 karakter.");
+  if (!/[a-z]/.test(value) || !/[A-Z]/.test(value) || !/\d/.test(value) || !/[^A-Za-z0-9]/.test(value)) throw makeHttpError(400, "Password baru wajib berisi huruf besar, huruf kecil, angka, dan simbol.");
+  if (/password|qwerty|123456|dirac|admin|welcome/i.test(value)) throw makeHttpError(400, "Password baru terlalu mudah ditebak.");
+  if (local && local.length >= 3 && lowered.includes(local)) throw makeHttpError(400, "Password baru tidak boleh mengandung nama/email akun.");
+  return value;
+}
+async function findSupabaseUserByEmail(email) {
+  const supabase = getSupabaseAdmin();
+  const target = normalizeEmailStrict(email);
+  let page = 1;
+  const perPage = 1000;
+  while (page <= Number(process.env.PASSWORD_RESET_USER_LOOKUP_MAX_PAGES || 20)) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = (data && data.users) || [];
+    const found = users.find((user) => String(user.email || "").toLowerCase() === target);
+    if (found) return found;
+    if (users.length < perPage) break;
+    page += 1;
+  }
+  return null;
+}
+async function confirmStrictPasswordReset(req, res) {
+  try {
+    const body = req.body || {};
+    const email = normalizeEmailStrict(body.email || body.identifier || "");
+    const code = String(body.code || body.otp || "").replace(/\D+/g, "").slice(0, 12);
+    const password = validateStrongCustomerPassword(body.newPassword || body.password || "", email);
+    const confirm = String(body.confirmPassword || body.passwordConfirm || body.newPasswordConfirm || "");
+    if (password !== confirm) throw makeHttpError(400, "Konfirmasi password baru belum sama.");
+    if (!/^\d{8}$/.test(code)) throw makeHttpError(400, "Kode reset harus 8 digit.");
+    const loaded = await loadSecurityChallengeFromToken(body.resetToken || body.token || "", { label: "resetToken", expectedPurpose: "password-reset-v1", expectedMethod: "email", identifier: email, tokenPrefix: "password-reset-token" });
+    const row = loaded.row;
+    const okCode = await argon2idStrongVerify(row.code_hash, `password-reset-code:${email}:${code}`);
+    if (!okCode) await consumeSecurityAttempt(row, "Kode reset password salah.");
+    const user = await findSupabaseUserByEmail(email);
+    if (!user || !user.id) {
+      await updateSecurityChallenge(row.challenge_id, { used_at_ms: Date.now() }).catch(() => null);
+      throw makeHttpError(404, "Reset tidak dapat diproses. Periksa email atau hubungi admin.");
+    }
+    const { error } = await getSupabaseAdmin().auth.admin.updateUserById(user.id, { password });
+    if (error) throw error;
+    await updateSecurityChallenge(row.challenge_id, { used_at_ms: Date.now(), attempts: Number(row.attempts || 0) });
+    return res.status(200).json({ success: true, ok: true, message: "Password berhasil diganti. Silakan login memakai password baru." });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, ok: false, error: publicSafeError(error, "Reset password gagal diproses.") });
+  }
+}
+
 module.exports = async function handler(req, res) {
   setCors(req, res);
 
@@ -3344,6 +3667,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const action = String((req.body && req.body.action) || "").trim();
+
+    if (isPasswordResetConfirmRequest(req.body || {})) return confirmStrictPasswordReset(req, res);
 
     if (isPublicMfaVerifyRequest(req.body || {})) return verifyPublicMfa(req, res);
 
