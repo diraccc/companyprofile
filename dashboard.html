@@ -5,7 +5,12 @@
   <meta name="theme-color" content="#07090d">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' https: data:; connect-src 'self' https://companyprofilee-expk.vercel.app https://wa.me https://api.whatsapp.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, private, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)">
+  <!-- Dirac production security note: enforce these again as real HTTP headers in hosting/backend. Meta tags are only a frontend fallback. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://companyprofilee-expk.vercel.app https://wa.me https://api.whatsapp.com; object-src 'none'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:">
   <title>Dashboard - Dirac Group</title>
   <meta name="description" content="Dashboard pelanggan Dirac Group untuk ringkasan layanan parfum, domain, website, invoice, pengiriman, dan bantuan pelanggan.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -640,7 +645,7 @@ html[dir="rtl"] .app-search input{text-align:right}
       nodes.forEach(function(node){ if(typeof node.__diracOriginalText!=='string') node.__diracOriginalText=node.nodeValue; var raw=node.__diracOriginalText; var compact=raw.replace(/\s+/g,' ').trim(); var key=reverse[compact]; if(!key) return; var next=d[key]||compact; node.nodeValue=raw.replace(compact,next); });
     }
     function updateI18n(){var d=langDict(); $$('[data-i18n]').forEach(function(el){var key=el.getAttribute('data-i18n'); if(d[key]) txt(el,d[key]);}); $$('[data-i18n-placeholder]').forEach(function(el){var key=el.getAttribute('data-i18n-placeholder'); if(d[key]) el.setAttribute('placeholder',d[key]);}); translateStaticTextNodes(d);} 
-    function buildAccentChoices(){var wrap=$('#accentChoices'); if(!wrap) return; wrap.innerHTML=''; Object.keys(PALETTES).forEach(function(key){var p=PALETTES[key]; var visual=p.swatch||('linear-gradient(145deg,'+p.gold+','+p.gold2+')'); var b=document.createElement('button'); b.className='choice theme-swatch-choice'; b.type='button'; b.setAttribute('data-accent',key); b.setAttribute('aria-label',p.label); b.setAttribute('title',p.label); b.style.setProperty('--swatch',visual); b.innerHTML='<span class="swatch" aria-hidden="true"></span><span class="sr-only">'+p.label+'</span>'; wrap.appendChild(b);});}
+    function buildAccentChoices(){var wrap=$('#accentChoices'); if(!wrap) return; while(wrap.firstChild) wrap.removeChild(wrap.firstChild); Object.keys(PALETTES).forEach(function(key){var p=PALETTES[key]; var visual=p.swatch||('linear-gradient(145deg,'+p.gold+','+p.gold2+')'); var b=document.createElement('button'); b.className='choice theme-swatch-choice'; b.type='button'; b.setAttribute('data-accent',key); b.setAttribute('aria-label',p.label); b.setAttribute('title',p.label); b.style.setProperty('--swatch',visual); var sw=document.createElement('span'); sw.className='swatch'; sw.setAttribute('aria-hidden','true'); var sr=document.createElement('span'); sr.className='sr-only'; sr.textContent=p.label; b.appendChild(sw); b.appendChild(sr); wrap.appendChild(b);});}
     function updateThemeChoices(){function mark(b,on){b.classList.toggle('active',!!on);b.classList.toggle('is-selected',!!on);b.setAttribute('aria-pressed',on?'true':'false');} $$('#themeModal [data-theme-mode]').forEach(function(b){mark(b,b.getAttribute('data-theme-mode')===settings.mode)}); $$('#themeModal [data-language]').forEach(function(b){mark(b,b.getAttribute('data-language')===settings.language)}); $$('#themeModal [data-motion-choice]').forEach(function(b){mark(b,b.getAttribute('data-motion-choice')===settings.motion)}); $$('#themeModal [data-accent]').forEach(function(b){mark(b,b.getAttribute('data-accent')===settings.accent)}); $$('#themeModal [data-contrast]').forEach(function(b){mark(b,b.getAttribute('data-contrast')===settings.contrast)}); }
     function applySettings(){var root=document.documentElement, pal=PALETTES[settings.accent]||PALETTES.gold; var meta=LANG_META[settings.language]||LANG_META.id; root.lang=meta.htmlLang||settings.language; root.dir=meta.dir||'ltr'; root.setAttribute('data-language',settings.language); root.setAttribute('data-effective-theme',getEffectiveMode()); root.setAttribute('data-motion',settings.motion); root.setAttribute('data-contrast',settings.contrast); root.style.setProperty('--gold',pal.gold); root.style.setProperty('--gold-2',pal.gold2); root.style.setProperty('--gold-3',pal.gold3); root.style.setProperty('--theme-rgb',pal.rgb); try{document.querySelector('meta[name="theme-color"]').setAttribute('content','#07090d')}catch(e){} writeJson(THEME_KEY,settings); updateI18n(); updateThemeChoices();}
     function openModal(sel){var el=$(sel); if(!el) return; el.classList.add('open'); el.setAttribute('aria-hidden','false'); document.body.classList.add(sel==='#menuOverlay'?'menu-open':'modal-open'); setTimeout(function(){var focus=el.querySelector('button,input,a,[tabindex]'); if(focus) focus.focus({preventScroll:true});},20)}
@@ -815,6 +820,155 @@ html[dir="rtl"] .app-search input{text-align:right}
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',startBrandTypewriter);
   else startBrandTypewriter();
+})();
+</script>
+
+
+<script id="dirac-dashboard-client-hardening-js">
+(function(){
+  'use strict';
+  var SECURITY_VERSION='dirac-dashboard-client-hardening-v20-2026-06-03';
+  var ALLOWED_HOSTS={};
+  [location.hostname,'diracgroup.store','www.diracgroup.store','companyprofilee-expk.vercel.app','wa.me','api.whatsapp.com'].forEach(function(h){if(h) ALLOWED_HOSTS[String(h).toLowerCase()]=true;});
+  var BLOCKED_PROTOCOLS=/^(javascript|data|vbscript|file):$/i;
+  var AUTH_MARKERS=/^(dirac_auth_session_v1|dirac_auth_a2f_v1|dirac_auth_a2f_dashboard_ready_v1|dirac_dashboard_gate_v1)$/;
+  var lastSubmitAt={};
+  function setText(el,value){if(el) el.textContent=String(value==null?'':value)}
+  function isLocalHost(){return /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(location.hostname)}
+  function forceHttps(){
+    if(location.protocol==='http:'&&!isLocalHost()){
+      try{location.replace('https:'+location.href.slice(location.protocol.length));}catch(e){}
+    }
+  }
+  function blockFraming(){
+    if(window.top!==window.self){
+      try{window.top.location=window.self.location.href;}catch(e){
+        try{
+          if(document.body){
+            while(document.body.firstChild) document.body.removeChild(document.body.firstChild);
+            var box=document.createElement('main');
+            box.style.cssText='min-height:100vh;display:grid;place-items:center;padding:24px;background:#050608;color:#f9fafb;font-family:system-ui,sans-serif;text-align:center';
+            var card=document.createElement('div');
+            card.style.cssText='max-width:560px;border:1px solid rgba(243,205,112,.34);border-radius:24px;padding:22px;background:#101722';
+            var h=document.createElement('h1'); h.textContent='Akses dashboard diblokir';
+            var p=document.createElement('p'); p.textContent='Dashboard tidak boleh dibuka di dalam frame untuk mencegah clickjacking.';
+            card.appendChild(h); card.appendChild(p); box.appendChild(card); document.body.appendChild(box);
+          }
+          document.documentElement.setAttribute('data-frame-blocked','true');
+        }catch(_e){}
+      }
+    }
+  }
+  function hardenAnchors(root){
+    Array.prototype.slice.call((root||document).querySelectorAll('a[href]')).forEach(function(a){
+      var raw=String(a.getAttribute('href')||'').trim();
+      if(!raw) return;
+      if(BLOCKED_PROTOCOLS.test(raw.split('#')[0])){a.removeAttribute('href');a.setAttribute('aria-disabled','true');return;}
+      try{
+        var url=new URL(raw, location.href);
+        if(BLOCKED_PROTOCOLS.test(url.protocol)){a.removeAttribute('href');a.setAttribute('aria-disabled','true');return;}
+        var host=String(url.hostname||'').toLowerCase();
+        if(url.origin!==location.origin){
+          var rel=String(a.getAttribute('rel')||'').split(/\s+/).filter(Boolean);
+          ['noopener','noreferrer'].forEach(function(v){if(rel.indexOf(v)<0) rel.push(v);});
+          a.setAttribute('rel',rel.join(' '));
+          if(url.protocol==='http:'||url.protocol==='https:'){
+            if(!ALLOWED_HOSTS[host]&&!/\.vercel\.app$/i.test(host)){a.setAttribute('target','_blank');}
+          }
+        }
+      }catch(e){a.removeAttribute('href');a.setAttribute('aria-disabled','true');}
+    });
+  }
+  function hardenForms(root){
+    Array.prototype.slice.call((root||document).querySelectorAll('form')).forEach(function(form){
+      form.setAttribute('autocomplete',form.getAttribute('autocomplete')||'off');
+      if(!form.getAttribute('data-security-form')) form.setAttribute('data-security-form','client-guard');
+    });
+    Array.prototype.slice.call((root||document).querySelectorAll('input,textarea')).forEach(function(input){
+      if(!input.hasAttribute('maxlength')){
+        var name=(input.getAttribute('name')||input.id||'').toLowerCase();
+        input.setAttribute('maxlength',/resi|tracking/.test(name)?'80':'500');
+      }
+      input.setAttribute('spellcheck',input.getAttribute('spellcheck')||'false');
+    });
+  }
+  function rateLimitSubmit(event){
+    var form=event.target;
+    if(!form||form.nodeType!==1||form.tagName!=='FORM') return;
+    var id=form.id||form.getAttribute('name')||'form';
+    var now=Date.now();
+    var minDelay=id==='trackingForm'?1800:1200;
+    if(lastSubmitAt[id]&&now-lastSubmitAt[id]<minDelay){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var toast=document.getElementById('toast');
+      if(toast){setText(toast,'Terlalu cepat. Tunggu sebentar lalu coba lagi.'); toast.classList.add('show'); setTimeout(function(){toast.classList.remove('show')},2200);}
+      return false;
+    }
+    lastSubmitAt[id]=now;
+  }
+  function disableRiskyAutocomplete(){
+    Array.prototype.slice.call(document.querySelectorAll('[data-sensitive], input[type="password"], input[name*="token" i], input[name*="secret" i]')).forEach(function(el){
+      el.setAttribute('autocomplete','off');
+      el.setAttribute('autocapitalize','off');
+      el.setAttribute('autocorrect','off');
+    });
+  }
+  function recordSecurityState(){
+    try{
+      sessionStorage.setItem('dirac_dashboard_security_last_check_v1',JSON.stringify({version:SECURITY_VERSION,time:new Date().toISOString(),path:location.pathname,protocol:location.protocol,framed:window.top!==window.self}));
+    }catch(e){}
+    document.documentElement.setAttribute('data-security-hardened','v20');
+  }
+  function clearSensitiveCacheHints(){
+    try{if('caches' in window){caches.keys().then(function(keys){keys.forEach(function(k){if(/dirac|dashboard|auth|a2f/i.test(k)) caches.delete(k);});}).catch(function(){});}}catch(e){}
+  }
+  function protectBackForwardCache(){
+    window.addEventListener('pageshow',function(e){
+      if(e.persisted){
+        try{document.dispatchEvent(new Event('visibilitychange'));}catch(_e){}
+      }
+    });
+  }
+  function observeDomSafety(){
+    if(!('MutationObserver' in window)) return;
+    var mo=new MutationObserver(function(mutations){
+      var needsAnchor=false, needsForm=false;
+      mutations.forEach(function(m){
+        Array.prototype.slice.call(m.addedNodes||[]).forEach(function(node){
+          if(node.nodeType!==1) return;
+          if(node.matches&&node.matches('a[href],form,input,textarea')){needsAnchor=true;needsForm=true;}
+          if(node.querySelector&&node.querySelector('a[href]')) needsAnchor=true;
+          if(node.querySelector&&node.querySelector('form,input,textarea')) needsForm=true;
+        });
+      });
+      if(needsAnchor) hardenAnchors(document);
+      if(needsForm) hardenForms(document);
+    });
+    try{mo.observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
+  }
+  function storageAttackSurfaceGuard(){
+    window.addEventListener('storage',function(e){
+      if(e&&AUTH_MARKERS.test(e.key||'')){
+        recordSecurityState();
+      }
+    });
+  }
+  function init(){
+    forceHttps();
+    blockFraming();
+    hardenAnchors(document);
+    hardenForms(document);
+    disableRiskyAutocomplete();
+    document.addEventListener('submit',rateLimitSubmit,true);
+    protectBackForwardCache();
+    storageAttackSurfaceGuard();
+    observeDomSafety();
+    clearSensitiveCacheHints();
+    recordSecurityState();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
 })();
 </script>
 
