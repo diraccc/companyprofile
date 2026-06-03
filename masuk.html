@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="theme-color" content="#07090d">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Masuk / Daftar - Dirac Group</title>
   <meta name="description" content="Halaman masuk dan daftar akun Dirac Group dengan tema, bahasa, AI, WhatsApp, dan navigasi yang konsisten dengan katalog order.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2898,6 +2898,45 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
 </style>
 
 
+
+<style id="dirac-final-login-revisi-20260603-css">
+/* Revisi ultra final: tap emoji password stabil, double-tap zoom dicegah, resend verification tidak tampil di login, dan terminal A2F lebih ramai/cepat. Visual only; login/hash/API flow tidak diubah. */
+html,body{touch-action:manipulation;overscroll-behavior-x:none;}
+button,a,.password-toggle,.auth-tab,.btn-primary,.btn-secondary{touch-action:manipulation;}
+.field-wrap .field{padding-right:84px!important;font-size:16px!important;}
+.password-toggle{
+  right:6px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  width:64px!important;
+  min-width:64px!important;
+  height:46px!important;
+  z-index:7!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+  font-size:1.18rem!important;
+  line-height:1!important;
+  touch-action:manipulation!important;
+  -ms-touch-action:manipulation!important;
+  -webkit-tap-highlight-color:transparent!important;
+  user-select:none!important;
+  -webkit-user-select:none!important;
+  -webkit-touch-callout:none!important;
+}
+.password-toggle:active{transform:translateY(-50%) scale(.96)!important;}
+.password-toggle:focus-visible{outline:3px solid rgba(var(--theme-rgb),.38)!important;outline-offset:3px!important;}
+body[data-auth-mode="login"] .dirac-resend-verification,
+.auth-shell .dirac-resend-verification.is-hidden{display:none!important;}
+.a2f-terminal{min-height:220px!important;font-size:.70rem!important;line-height:1.34!important;}
+.a2f-terminal-line{transition:.10s ease!important;}
+@media(max-width:430px){
+  .field-wrap .field{padding-right:84px!important;font-size:16px!important;}
+  .password-toggle{width:64px!important;min-width:64px!important;height:48px!important;right:4px!important;}
+  .a2f-terminal{min-height:182px!important;font-size:.56rem!important;line-height:1.25!important;padding:8px!important;}
+}
+</style>
+
 <style id="dirac-forgot-password-secure-css">
   .dirac-auth-row-secure{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important}
   .forgot-link{appearance:none;border:0;background:transparent;color:var(--gold);font-weight:900;cursor:pointer;padding:6px 0;text-decoration:none}
@@ -2914,7 +2953,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
 </style>
 
 </head>
-<body>
+<body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
   <header class="site-header" id="siteHeader">
     <div class="container nav">
@@ -3004,7 +3043,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
                 <button class="forgot-link" type="button" id="forgotPasswordBtn">Lupa password?</button>
               </div>
               <button class="btn-primary auth-submit" id="submitBtn" type="submit" data-i18n="submitLogin">Masuk sekarang</button>
-              <button class="forgot-link dirac-resend-verification" type="button" id="resendVerificationBtn" aria-describedby="statusBox">Kirim ulang verifikasi email</button>
+              <button class="forgot-link dirac-resend-verification is-register-only is-hidden" type="button" id="resendVerificationBtn" aria-describedby="statusBox">Kirim ulang verifikasi email</button>
               <div class="status-box" id="statusBox" role="status" aria-live="polite"></div>
             </form>
           </div>
@@ -3314,9 +3353,13 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         <div class="a2f-engine" aria-hidden="true">
           <div class="a2f-engine-head"><span>ENGINE TERMINAL</span><span>MEMPROSES</span></div>
           <div class="a2f-terminal" id="a2fLaunchTerminal">
-            <div class="a2f-terminal-line">[SECURE] Membaca token keamanan akun...</div>
-            <div class="a2f-terminal-line">[CHECK] Session terenkripsi valid.</div>
-            <div class="a2f-terminal-line warn">[GATEWAY] Menghubungkan akses dashboard...</div>
+            <div class="a2f-terminal-line">[BOOT] Menyalakan bridge dashboard aman...</div>
+            <div class="a2f-terminal-line">[TOKEN] Membaca token keamanan akun...</div>
+            <div class="a2f-terminal-line">[COOKIE] Mengecek mode SameSite session...</div>
+            <div class="a2f-terminal-line">[STORE] Menyiapkan marker dashboard-ready...</div>
+            <div class="a2f-terminal-line">[ACL] Memuat cakupan akses pelanggan...</div>
+            <div class="a2f-terminal-line warn">[GUARD] Gerbang anti-replay aktif...</div>
+            <div class="a2f-terminal-line">[SYNC] Menyinkronkan panel dashboard...</div>
             <div class="a2f-terminal-line ok">[OK] Sistem aman. Dashboard siap dibuka.</div>
           </div>
         </div>
@@ -3477,8 +3520,9 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       $('#fullName').required = mode === 'register';
       $('#confirmPassword').required = mode === 'register';
       $('#password').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+      if(document.body) document.body.setAttribute('data-auth-mode', mode);
       var form = $('#authForm');
-      if(form){ form.action = authEndpointFor(mode); form.setAttribute('data-endpoint', authEndpointFor(mode)); }
+      if(form){ form.action = authEndpointFor(mode); form.setAttribute('data-endpoint', authEndpointFor(mode)); form.setAttribute('data-mode', mode); }
     }
     function isValidIdentifier(value){
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || /^\+?\d[\d\s\-]{7,18}$/.test(value);
@@ -3741,7 +3785,49 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         else if(scheme.addListener) scheme.addListener(refreshAutoTheme);
       }
       $$('.auth-tab').forEach(function(tab){tab.addEventListener('click', function(){ mode = this.getAttribute('data-mode') || 'login'; updateModeCopy(); $('#statusBox').className = 'status-box'; });});
-      $('#passwordToggle').addEventListener('click', function(){ var p = $('#password'); p.type = p.type === 'password' ? 'text' : 'password'; this.textContent = p.type === 'password' ? '👁️' : '🙈'; });
+      var passwordToggleBtn = $('#passwordToggle');
+      if(passwordToggleBtn){
+        passwordToggleBtn.setAttribute('aria-pressed','false');
+        var ignoreSyntheticPasswordTapUntil = 0;
+        var preventPasswordTapDefault = function(e){
+          if(e){
+            e.preventDefault();
+            e.stopPropagation();
+            if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+          }
+        };
+        var runPasswordToggle = function(){
+          var p = $('#password');
+          if(!p) return;
+          var reveal = p.type === 'password';
+          p.type = reveal ? 'text' : 'password';
+          passwordToggleBtn.textContent = reveal ? '🙈' : '👁️';
+          passwordToggleBtn.setAttribute('aria-label', reveal ? 'Sembunyikan password' : 'Tampilkan password');
+          passwordToggleBtn.setAttribute('aria-pressed', reveal ? 'true' : 'false');
+          try{
+            p.focus({preventScroll:true});
+            var end = p.value.length;
+            if(typeof p.setSelectionRange === 'function') p.setSelectionRange(end,end);
+          }catch(_e){}
+        };
+        var handlePasswordTogglePointer = function(e){
+          preventPasswordTapDefault(e);
+          ignoreSyntheticPasswordTapUntil = Date.now() + 700;
+          runPasswordToggle();
+        };
+        var handlePasswordToggleFallback = function(e){
+          preventPasswordTapDefault(e);
+          if(Date.now() < ignoreSyntheticPasswordTapUntil) return;
+          ignoreSyntheticPasswordTapUntil = Date.now() + 280;
+          runPasswordToggle();
+        };
+        passwordToggleBtn.addEventListener('pointerdown', handlePasswordTogglePointer, {passive:false});
+        passwordToggleBtn.addEventListener('touchend', handlePasswordToggleFallback, {passive:false});
+        passwordToggleBtn.addEventListener('click', handlePasswordToggleFallback, {passive:false});
+        passwordToggleBtn.addEventListener('dblclick', preventPasswordTapDefault, {passive:false});
+        passwordToggleBtn.addEventListener('gesturestart', preventPasswordTapDefault, {passive:false});
+        passwordToggleBtn.addEventListener('contextmenu', preventPasswordTapDefault, {passive:false});
+      }
       $('#authForm').addEventListener('submit', submitAuth);
       var a2fModal = $('#a2fModal');
       if(a2fModal){
@@ -4695,7 +4781,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
   function playDashboardLaunchAnimation(){
     return new Promise(function(resolve){
       var overlay = $('#a2fLaunchOverlay');
-      var duration = 12000;
+      var duration = 6200;
       if(!overlay){ setTimeout(resolve, duration); return; }
       var progress = $('#a2fLaunchProgress');
       var status = $('#a2fLaunchStatus');
@@ -4719,7 +4805,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         line.className = 'a2f-terminal-line show is-typing' + (tone ? ' ' + tone : '');
         line.textContent = '';
         terminal.appendChild(line);
-        while(terminal.children.length > 8){ terminal.removeChild(terminal.firstElementChild); }
+        while(terminal.children.length > 20){ terminal.removeChild(terminal.firstElementChild); }
         terminal.scrollTop = terminal.scrollHeight;
         if(document.documentElement.getAttribute('data-motion') === 'reduced'){
           line.textContent = text;
@@ -4727,8 +4813,8 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
           return;
         }
         var pos = 0;
-        var interval = Math.max(3, Math.min(7, Math.floor(210 / Math.max(18, text.length))));
-        var step = text.length > 70 ? 3 : (text.length > 38 ? 2 : 1);
+        var interval = Math.max(1, Math.min(3, Math.floor(95 / Math.max(18, text.length))));
+        var step = text.length > 70 ? 6 : (text.length > 38 ? 5 : 3);
         var typeTimer = setInterval(function(){
           if(done){ clearInterval(typeTimer); return; }
           pos = Math.min(text.length, pos + step);
@@ -4757,7 +4843,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       if(terminal) terminal.innerHTML = '';
       steps.forEach(function(step){ step.classList.remove('active','done'); });
       pct(0);
-      setSafeText(status, isEnglish ? 'Running 12-second security verification...' : 'Menjalankan verifikasi keamanan 12 detik...');
+      setSafeText(status, isEnglish ? 'Running fast security verification...' : 'Menjalankan verifikasi keamanan cepat...');
       setSafeText(pill, isEnglish ? 'SYNC' : 'SINKRON');
       setSafeText(engineState, isEnglish ? 'PROCESSING' : 'MEMPROSES');
       if(ipRow) ipRow.classList.add('is-loading');
@@ -4800,11 +4886,23 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         '[UI] Freezing duplicate submit controls...',
         '[API] Endpoint fallback channel ready...',
         '[NETWORK] Gateway connection stable...',
+        '[EDGE] Warming dashboard route cache...',
+        '[QUEUE] Draining pending auth handoff...',
+        '[SANDBOX] Isolating login form context...',
         '[HASH] Checksum validation complete...',
         '[PROFILE] Loading account preferences...',
+        '[PREF] Applying saved theme and language...',
+        '[CACHE] Rebuilding dashboard quick index...',
+        '[PERMISSION] Confirming customer dashboard role...',
+        '[SESSION] Sealing login timestamp window...',
+        '[MEMORY] Persisting remember-device marker...',
+        '[AUDIT] Writing safe login audit marker...',
+        '[AUDIT] Verifying audit marker integrity...',
         '[SECURE] Account protection is active...',
+        '[HEALTH] Running final UI route health check...',
         '[ROUTE] Preparing /dashboard.html redirect...',
         '[FINAL] Writing secure session gateway...',
+        '[FINAL] Closing temporary verification channel...',
         '[OK] All checks complete...',
         '[OPEN] Opening Dirac dashboard...'
       ] : [
@@ -4835,11 +4933,23 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         '[UI] Mengunci kontrol double-submit...',
         '[API] Kanal fallback endpoint siap...',
         '[NETWORK] Gateway koneksi stabil...',
+        '[EDGE] Memanaskan cache rute dashboard...',
+        '[QUEUE] Mengosongkan antrian handoff auth...',
+        '[SANDBOX] Mengisolasi konteks form login...',
         '[HASH] Validasi checksum selesai...',
         '[PROFILE] Memuat preferensi akun...',
+        '[PREF] Menerapkan tema dan bahasa tersimpan...',
+        '[CACHE] Membangun ulang indeks cepat dashboard...',
+        '[PERMISSION] Mengonfirmasi role dashboard pelanggan...',
+        '[SESSION] Mengunci jendela timestamp login...',
+        '[MEMORY] Menyimpan marker remember-device...',
+        '[AUDIT] Menulis marker audit login aman...',
+        '[AUDIT] Memverifikasi integritas marker audit...',
         '[SECURE] Proteksi akun sudah aktif...',
+        '[HEALTH] Menjalankan cek akhir rute UI...',
         '[ROUTE] Menyiapkan redirect /dashboard.html...',
         '[FINAL] Menulis gerbang session aman...',
+        '[FINAL] Menutup kanal verifikasi sementara...',
         '[OK] Semua pemeriksaan selesai...',
         '[OPEN] Membuka dashboard Dirac...'
       ];
@@ -4854,7 +4964,8 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         'Refreshing secure session gate...',
         'Synchronizing dashboard route...',
         'Writing access marker...',
-        'Final checksum complete...',
+        'Locking secure session...',
+        'Final dashboard check complete...',
         'Opening dashboard...'
       ] : [
         'Menyalakan bridge keamanan...',
@@ -4867,7 +4978,8 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         'Memperbarui gerbang session...',
         'Menyinkronkan rute dashboard...',
         'Menulis marker akses...',
-        'Checksum akhir selesai...',
+        'Mengunci sesi aman...',
+        'Cek akhir dashboard selesai...',
         'Membuka dashboard...'
       ];
       var startTime = Date.now();
@@ -4878,25 +4990,25 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
         pct(Math.min(99.2, (elapsed / duration) * 100));
       }, 120);
       timers.push(progressTicker);
-      var lineSpacing = Math.max(220, Math.floor((duration - 520) / Math.max(1, baseLines.length)));
+      var lineSpacing = Math.max(95, Math.floor((duration - 480) / Math.max(1, baseLines.length)));
       baseLines.forEach(function(text, index){
         addTimer(function(){
           var tone = /\[OK\]|\[OPEN\]|\[SECURE\]|\[FINAL\]/.test(text) ? 'ok' : (/\[IP\]|\[MFA\]|\[GUARD\]|\[AUTH\]/.test(text) ? 'warn' : 'info');
           setLine(text.replace('{ip}', clientIP), tone);
         }, Math.min(duration - 360, index * lineSpacing));
       });
-      var statusSpacing = Math.max(520, Math.floor((duration - 860) / Math.max(1, statusLines.length)));
+      var statusSpacing = Math.max(360, Math.floor((duration - 700) / Math.max(1, statusLines.length)));
       statusLines.forEach(function(text, index){
         addTimer(function(){ setSafeText(status, text); }, Math.min(duration - 520, index * statusSpacing));
       });
-      addTimer(function(){ if(steps[0]) steps[0].classList.add('done'); }, 2800);
-      addTimer(function(){ if(steps[1]) steps[1].classList.add('active'); }, 3400);
-      addTimer(function(){ setSafeText(pill, isEnglish ? 'VERIFY' : 'VALIDASI'); }, 1200);
-      addTimer(function(){ setSafeText(pill, isEnglish ? 'SYNC' : 'SINKRON'); }, 4600);
-      addTimer(function(){ if(steps[1]) steps[1].classList.add('done'); }, 7600);
-      addTimer(function(){ setSafeText(pill, isEnglish ? 'GATEWAY' : 'GATEWAY'); }, 7900);
-      addTimer(function(){ setSafeText(engineState, isEnglish ? 'FINALIZING' : 'FINALISASI'); }, 10000);
-      addTimer(function(){ setSafeText(pill, isEnglish ? 'READY' : 'AMAN'); }, 10800);
+      addTimer(function(){ if(steps[0]) steps[0].classList.add('done'); }, 1050);
+      addTimer(function(){ if(steps[1]) steps[1].classList.add('active'); }, 1350);
+      addTimer(function(){ setSafeText(pill, isEnglish ? 'VERIFY' : 'VALIDASI'); }, 520);
+      addTimer(function(){ setSafeText(pill, isEnglish ? 'SYNC' : 'SINKRON'); }, 2200);
+      addTimer(function(){ if(steps[1]) steps[1].classList.add('done'); }, 4200);
+      addTimer(function(){ setSafeText(pill, isEnglish ? 'GATEWAY' : 'GATEWAY'); }, 4450);
+      addTimer(function(){ setSafeText(engineState, isEnglish ? 'FINALIZING' : 'FINALISASI'); }, 5200);
+      addTimer(function(){ setSafeText(pill, isEnglish ? 'READY' : 'AMAN'); }, 5800);
       addTimer(function(){
         done = true;
         timers.forEach(function(id){ clearTimeout(id); clearInterval(id); });
