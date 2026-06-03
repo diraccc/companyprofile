@@ -2952,6 +2952,304 @@ body[data-auth-mode="login"] .dirac-resend-verification,
   .forgot-card .btn-primary{width:100%;justify-content:center;margin-top:10px}.forgot-card .status-box{margin-top:14px}
 </style>
 
+
+
+<style id="dirac-ultra-rapi-safe-polish-20260603-css">
+/* =========================================================
+   Dirac Login Ultra Rapi Safe Polish - 2026-06-03
+   Visual-only layer. Tidak mengubah HTML form, endpoint, hash,
+   token, script login, script daftar, script lupa password, atau A2F logic.
+   Tujuan: membuat halaman lebih rapi, fokus, konsisten, dan lega.
+   ========================================================= */
+:root{
+  --clean-space-xs:8px;
+  --clean-space-sm:12px;
+  --clean-space-md:16px;
+  --clean-space-lg:24px;
+  --clean-space-xl:40px;
+  --clean-radius-sm:16px;
+  --clean-radius-md:22px;
+  --clean-radius-lg:30px;
+  --clean-shadow-soft:0 22px 58px rgba(0,0,0,.34);
+  --clean-panel-glass:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.032));
+}
+html{scroll-padding-top:110px;text-rendering:geometricPrecision;-webkit-font-smoothing:antialiased;}
+body{line-height:1.58;background-attachment:fixed;}
+.container{width:min(var(--max),calc(100% - 36px));}
+button,a,input,select,textarea{-webkit-tap-highlight-color:transparent;}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid rgba(var(--theme-rgb),.42)!important;
+  outline-offset:3px!important;
+}
+
+/* Header dibuat lebih tenang tanpa menghilangkan fungsi tombol/link. */
+.site-header{top:max(10px,env(safe-area-inset-top));padding-top:8px;}
+.site-header .nav{
+  min-height:74px!important;
+  padding:11px 16px!important;
+  border-radius:30px!important;
+  gap:14px!important;
+  box-shadow:var(--clean-shadow-soft),inset 0 1px 0 rgba(255,255,255,.06),0 0 0 1px rgba(var(--theme-rgb),.06)!important;
+}
+.site-header.is-scrolled .nav{padding:10px 16px!important;min-height:70px!important;}
+.brand{gap:12px!important;}
+.brand-mark{width:52px!important;height:52px!important;border-radius:18px!important;}
+.site-header.is-scrolled .brand-mark{width:50px!important;height:50px!important;border-radius:17px!important;}
+.brand-name{font-size:clamp(1.02rem,1.45vw,1.22rem)!important;letter-spacing:-.015em;}
+.brand-typewriter{min-width:8.6ch;}
+.nav-links{gap:2px!important;}
+.nav-links a{
+  padding:8px 10px!important;
+  font-size:.84rem!important;
+  font-weight:750!important;
+  color:#cdd6e4!important;
+  opacity:.88;
+}
+.nav-links a:hover{opacity:1;background:rgba(var(--theme-rgb),.095)!important;}
+.header-actions{gap:10px!important;}
+.catalog-return,.theme-toggle{
+  min-height:48px!important;
+  height:48px!important;
+  border-radius:999px!important;
+}
+.catalog-return{padding:0 15px!important;font-size:.91rem!important;}
+.theme-toggle{width:48px!important;min-width:48px!important;padding:0!important;}
+
+/* Area hero difokuskan ke form, dekorasi tetap ada tetapi lebih rapi. */
+.auth-hero{
+  min-height:calc(100svh - 98px)!important;
+  padding:42px 0 58px!important;
+  overflow:clip!important;
+}
+.auth-hero:after{opacity:.42;}
+.auth-grid{
+  grid-template-columns:minmax(0,.98fr) minmax(360px,438px)!important;
+  gap:34px!important;
+  align-items:center!important;
+}
+.auth-copy{max-width:660px;}
+.eyebrow{padding:7px 11px!important;font-size:.73rem!important;letter-spacing:.075em!important;}
+.auth-copy h1{
+  font-size:clamp(2.55rem,5.7vw,4.9rem)!important;
+  line-height:.98!important;
+  margin:14px 0 16px!important;
+  letter-spacing:-.045em!important;
+}
+.auth-copy p{
+  max-width:590px!important;
+  font-size:clamp(.96rem,1.45vw,1.06rem)!important;
+  line-height:1.62!important;
+  margin-bottom:18px!important;
+}
+.trust-row{gap:8px!important;margin-top:18px!important;}
+.trust-row span{
+  padding:7px 10px!important;
+  border-radius:999px!important;
+  font-size:.82rem!important;
+  background:rgba(255,255,255,.052)!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+}
+.mini-grid{gap:9px!important;margin-top:18px!important;opacity:.88;}
+.mini-card{padding:12px!important;border-radius:18px!important;background:rgba(255,255,255,.045)!important;}
+.mini-card strong{font-size:.88rem!important;}
+.mini-card span{font-size:.74rem!important;}
+
+/* Form dibuat lebih bersih, konsisten, dan menjadi fokus utama. */
+.auth-shell{
+  max-width:438px!important;
+  justify-self:end;
+  border-radius:30px!important;
+  background:var(--clean-panel-glass)!important;
+  border-color:rgba(255,255,255,.105)!important;
+  box-shadow:0 24px 62px rgba(0,0,0,.42),0 0 0 1px rgba(var(--theme-rgb),.055) inset!important;
+}
+.auth-card{padding:24px!important;}
+.auth-card-head{align-items:center!important;margin-bottom:16px!important;}
+.auth-card-head h2{font-size:1.82rem!important;letter-spacing:-.02em!important;}
+.auth-card-head p{font-size:.88rem!important;margin-top:6px!important;line-height:1.45!important;}
+.auth-lock{width:44px!important;height:44px!important;border-radius:16px!important;font-size:1.16rem!important;}
+.auth-tabs{
+  margin:13px 0 17px!important;
+  padding:5px!important;
+  gap:5px!important;
+  border-radius:999px!important;
+}
+.auth-tab{min-height:44px!important;padding:10px 12px!important;font-size:.93rem!important;}
+.form-stack{gap:12px!important;}
+.field-group{gap:6px!important;}
+.field-group label{font-size:.80rem!important;font-weight:800!important;letter-spacing:.01em;}
+.field{
+  min-height:50px!important;
+  border-radius:16px!important;
+  padding:12px 14px!important;
+  background:rgba(255,255,255,.055)!important;
+  border-color:rgba(255,255,255,.115)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+.field:focus{box-shadow:0 0 0 4px rgba(var(--theme-rgb),.105),inset 0 1px 0 rgba(255,255,255,.05)!important;}
+.field-wrap .field{padding-right:76px!important;}
+.password-toggle{
+  width:58px!important;
+  min-width:58px!important;
+  height:40px!important;
+  right:6px!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.075)!important;
+}
+.form-row-clean{margin:0!important;gap:10px!important;}
+.check{font-size:.84rem!important;line-height:1.35!important;}
+.forgot-link{font-size:.84rem!important;font-weight:850!important;}
+.auth-submit{min-height:50px!important;margin-top:2px!important;border-radius:999px!important;font-size:.94rem!important;}
+.status-box{border-radius:16px!important;margin-top:11px!important;}
+
+/* Modal tema dirapikan supaya terasa seperti panel pengaturan, bukan halaman baru. */
+.theme-modal{padding:20px!important;}
+.theme-card.theme-pro-card{
+  width:min(700px,calc(100vw - 40px))!important;
+  border-radius:30px!important;
+}
+.theme-pro-head{padding:22px 24px 18px!important;}
+.theme-pro-head h2{font-size:clamp(1.36rem,3.2vw,1.72rem)!important;letter-spacing:-.035em!important;}
+.theme-close-btn{width:52px!important;height:52px!important;min-width:52px!important;font-size:1.34rem!important;}
+.theme-content{padding:0 24px 14px!important;}
+.theme-section{padding:18px 0!important;}
+.theme-section h3{font-size:clamp(1rem,2.2vw,1.16rem)!important;margin-bottom:11px!important;}
+.theme-choice-grid{gap:9px!important;}
+.theme-pro-choice{min-height:56px!important;border-radius:17px!important;font-size:.91rem!important;padding:10px 12px!important;}
+.theme-pro-choice.active:after{right:14px!important;width:8px!important;height:8px!important;}
+.custom-theme-grid{grid-template-columns:repeat(auto-fit,minmax(78px,1fr))!important;gap:10px!important;}
+.theme-swatch-btn{min-height:66px!important;border-radius:17px!important;}
+.theme-color-orb{width:30px!important;height:30px!important;}
+.theme-color-label{font-size:.68rem!important;}
+.theme-actions{padding:0 24px 22px!important;gap:12px!important;}
+.theme-reset-btn,.theme-save-btn{min-height:56px!important;border-radius:18px!important;font-size:.98rem!important;}
+
+/* A2F tetap berfungsi, tetapi tampilan teknis dibuat lebih tenang. */
+.a2f-modal{padding:18px!important;}
+.a2f-card{
+  width:min(700px,100%)!important;
+  border-radius:30px!important;
+  padding:24px!important;
+}
+.a2f-hero{gap:14px!important;margin-bottom:16px!important;}
+.a2f-hero h2{font-size:clamp(1.48rem,3.6vw,2rem)!important;line-height:1.08!important;}
+.a2f-hero p{font-size:.9rem!important;line-height:1.5!important;}
+.a2f-badge{width:52px!important;height:52px!important;border-radius:18px!important;font-size:1.36rem!important;}
+.a2f-methods{gap:10px!important;margin:16px 0 14px!important;}
+.a2f-method{min-height:136px!important;border-radius:20px!important;padding:15px 13px!important;}
+.a2f-method strong{font-size:.94rem!important;}
+.a2f-method span:last-child{font-size:.76rem!important;line-height:1.36!important;}
+.a2f-production-grid{opacity:.58;filter:saturate(.78);}
+.a2f-actions{gap:9px!important;margin-top:15px!important;}
+.a2f-actions .btn-primary,.a2f-actions .btn-secondary{min-height:48px!important;}
+.a2f-terminal{border-radius:18px!important;}
+
+/* Floating actions tidak lagi berebut perhatian dengan form. */
+.dirac-floating-actions{right:16px!important;bottom:calc(16px + env(safe-area-inset-bottom))!important;gap:8px!important;}
+.dirac-float-btn{width:46px!important;height:46px!important;}
+.dirac-float-top{display:none!important;}
+.dirac-ai-widget{left:16px!important;bottom:calc(16px + env(safe-area-inset-bottom))!important;}
+.ai-trigger{width:48px!important;height:48px!important;border-radius:18px!important;opacity:.78;box-shadow:0 12px 30px rgba(0,0,0,.30),0 0 18px rgba(var(--theme-rgb),.08)!important;}
+.ai-trigger:after{font-size:.58rem!important;padding:4px 6px!important;right:-3px!important;top:-3px!important;}
+@media(hover:hover){.ai-trigger:hover{opacity:1;transform:translateY(-2px)!important;}}
+.toast{bottom:18px!important;border-radius:18px!important;}
+
+/* Footer dibuat lebih kompak dan menyatu dengan halaman. */
+.footer{padding:34px 0 24px!important;background:linear-gradient(180deg,#050608,#030405)!important;}
+.footer-grid{gap:22px!important;grid-template-columns:1.25fr .85fr 1fr!important;}
+.footer h3,.footer h4{margin-bottom:8px!important;}
+.footer p,.footer a,.footer li{font-size:.88rem!important;line-height:1.72!important;}
+.copyright{margin-top:20px!important;padding-top:14px!important;font-size:.82rem!important;}
+
+/* Light mode polish. */
+html[data-effective-theme="light"] .auth-shell,
+html[data-effective-theme="light"] .theme-card.theme-pro-card,
+html[data-effective-theme="light"] .a2f-card,
+html[data-effective-theme="light"] .forgot-card{
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,248,236,.92))!important;
+  box-shadow:0 22px 58px rgba(80,55,18,.16),0 0 0 1px rgba(var(--theme-rgb),.08) inset!important;
+}
+html[data-effective-theme="light"] .field{background:rgba(255,255,255,.82)!important;border-color:rgba(15,23,42,.10)!important;}
+html[data-effective-theme="light"] .trust-row span,
+html[data-effective-theme="light"] .mini-card{background:rgba(255,255,255,.68)!important;border-color:rgba(15,23,42,.08)!important;}
+html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#fff7e8,#fff2dc)!important;}
+
+@media(max-width:1080px){
+  .site-header .nav{grid-template-columns:minmax(0,1fr) auto!important;}
+  .auth-grid{grid-template-columns:1fr!important;gap:28px!important;}
+  .auth-copy{text-align:center;max-width:760px;margin-inline:auto;}
+  .auth-copy p{margin-inline:auto!important;}
+  .trust-row{justify-content:center!important;}
+  .mini-grid{max-width:720px;margin-inline:auto;}
+  .auth-shell{justify-self:center!important;width:min(438px,100%)!important;}
+  .footer-grid{grid-template-columns:1fr 1fr!important;}
+}
+@media(max-width:760px){
+  .container{width:min(var(--max),calc(100% - 24px))!important;}
+  html{scroll-padding-top:92px;}
+  .site-header{top:max(7px,env(safe-area-inset-top))!important;padding-top:6px!important;}
+  .site-header .nav{width:calc(100% - 16px)!important;min-height:66px!important;padding:8px 10px!important;border-radius:26px!important;gap:8px!important;}
+  .brand{gap:9px!important;}
+  .brand-mark{width:42px!important;height:42px!important;border-radius:15px!important;}
+  .brand-name{font-size:.96rem!important;max-width:8.8rem!important;}
+  .catalog-return,.theme-toggle{height:42px!important;min-height:42px!important;}
+  .catalog-return{padding:0 12px!important;font-size:.84rem!important;}
+  .theme-toggle{width:42px!important;min-width:42px!important;}
+  .auth-hero{min-height:auto!important;padding:28px 0 46px!important;}
+  .auth-copy h1{font-size:clamp(2.22rem,11vw,3.5rem)!important;line-height:1!important;margin-bottom:12px!important;}
+  .auth-copy p{font-size:.93rem!important;line-height:1.55!important;}
+  .trust-row{margin-top:14px!important;}
+  .trust-row span{font-size:.76rem!important;padding:6px 9px!important;}
+  .mini-grid{display:none!important;}
+  .auth-card{padding:20px!important;}
+  .auth-card-head h2{font-size:1.55rem!important;}
+  .auth-card-head p{font-size:.84rem!important;}
+  .auth-lock{width:40px!important;height:40px!important;border-radius:14px!important;}
+  .field{min-height:49px!important;}
+  .field-wrap .field{padding-right:72px!important;}
+  .password-toggle{width:56px!important;min-width:56px!important;height:39px!important;}
+  .dirac-ai-widget{left:12px!important;bottom:calc(14px + env(safe-area-inset-bottom))!important;}
+  .dirac-floating-actions{right:12px!important;bottom:calc(14px + env(safe-area-inset-bottom))!important;}
+  .ai-trigger,.dirac-float-btn{width:43px!important;height:43px!important;}
+  .theme-card.theme-pro-card{width:calc(100vw - 28px)!important;max-height:calc(100dvh - 72px)!important;border-radius:26px!important;}
+  .theme-pro-head{padding:18px 18px 15px!important;}
+  .theme-content{padding:0 18px 12px!important;}
+  .theme-actions{padding:0 18px 18px!important;}
+  .theme-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .language-grid,.contrast-grid,.motion-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .theme-pro-choice{min-height:50px!important;font-size:.82rem!important;}
+  .a2f-card{padding:20px!important;border-radius:26px!important;}
+  .a2f-methods{grid-template-columns:1fr!important;}
+  .a2f-method{min-height:0!important;}
+  .a2f-production-grid{display:none!important;}
+  .footer-grid{grid-template-columns:1fr!important;gap:18px!important;}
+}
+@media(max-width:430px){
+  .container{width:min(var(--max),calc(100% - 20px))!important;}
+  .site-header .nav{width:calc(100% - 12px)!important;min-height:62px!important;border-radius:24px!important;padding:8px 9px!important;}
+  .brand-mark{width:40px!important;height:40px!important;border-radius:14px!important;}
+  .brand-name{max-width:7.8rem!important;font-size:.92rem!important;}
+  .catalog-return .label{display:none!important;}
+  .catalog-return{width:42px!important;min-width:42px!important;padding:0!important;}
+  .auth-copy h1{font-size:clamp(2.05rem,11.8vw,3.05rem)!important;}
+  .auth-copy p{font-size:.88rem!important;}
+  .auth-card{padding:18px!important;}
+  .auth-tabs{margin:12px 0 15px!important;}
+  .auth-tab{min-height:42px!important;font-size:.88rem!important;}
+  .form-stack{gap:11px!important;}
+  .dirac-auth-row-secure{align-items:flex-start!important;}
+  .forgot-link{padding-top:2px!important;}
+  .theme-actions{grid-template-columns:1fr!important;}
+  .theme-reset-btn,.theme-save-btn{min-height:50px!important;}
+  .custom-theme-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .a2f-actions{display:grid!important;grid-template-columns:1fr!important;}
+}
+@media(prefers-reduced-motion:reduce){
+  .auth-hero:after,.dirac-float-wa,.brand-typewriter:after{animation:none!important;}
+}
+</style>
+
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
