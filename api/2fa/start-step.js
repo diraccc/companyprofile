@@ -21,6 +21,7 @@ const ARGON2ID_OPTIONS = Object.freeze({
 const A2F_LOCKOUTS_TABLE = process.env.SUPABASE_A2F_LOCKOUTS_TABLE || "a2f_lockouts";
 const A2F_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 let supabaseAdminClient = null;
+let domainSupabaseAdminClient = null;
 
 function getSupabaseAdmin() {
   if (supabaseAdminClient) return supabaseAdminClient;
@@ -39,6 +40,36 @@ function getSupabaseAdmin() {
   });
 
   return supabaseAdminClient;
+}
+
+
+function getDomainSupabaseAdmin() {
+  if (domainSupabaseAdminClient) return domainSupabaseAdminClient;
+
+  const supabaseUrl = String(
+    process.env.DOMAIN_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    ""
+  ).trim();
+
+  const serviceRoleKey = String(
+    process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    ""
+  ).trim();
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    const err = new Error("ENV Supabase domain belum lengkap. Set DOMAIN_SUPABASE_URL dan DOMAIN_SUPABASE_SERVICE_ROLE_KEY di Vercel.");
+    err.statusCode = 500;
+    throw err;
+  }
+
+  domainSupabaseAdminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  return domainSupabaseAdminClient;
 }
 
 function normalizeLockRow(data) {
@@ -872,7 +903,7 @@ function diracIsSupabaseEmailConfirmed(user) {
 }
 
 async function diracFindSupabaseUserByEmail(email) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getDomainSupabaseAdmin();
   const targetEmail = diracAssertEmail(email);
   const perPage = Math.max(1, Math.min(1000, Number(process.env.DIRAC_SUPABASE_USER_SCAN_PER_PAGE || 1000)));
   const maxPages = Math.max(1, Math.min(50, Number(process.env.DIRAC_SUPABASE_USER_SCAN_MAX_PAGES || 10)));
@@ -901,7 +932,7 @@ async function diracFindSupabaseUserByEmail(email) {
 async function diracResendEmailVerification(req, res) {
   try {
     const email = diracAssertEmail((req.body && (req.body.email || req.body.identifier)) || "");
-    const supabase = getSupabaseAdmin();
+    const supabase = getDomainSupabaseAdmin();
     const user = await diracFindSupabaseUserByEmail(email);
 
     if (!user) {
