@@ -3682,25 +3682,9 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       setA2FStep(1);
     }
     function activateA2F(method, detail){
-      var label = a2fLabel(method);
-      var session = readAuthSession();
-      session.twoFactorRequired = true;
-      session.twoFactorStatus = 'active';
-      session.twoFactorMethod = method;
-      session.twoFactorActivatedAt = new Date().toISOString();
-      if(detail) session.twoFactorDetail = detail;
-      writeAuthSession(session);
-      try{localStorage.setItem(A2F_KEY, JSON.stringify({method:method, label:label, active:true, time:session.twoFactorActivatedAt}));}catch(e){}
-      $$('#a2fModal [data-a2f-method]').forEach(function(btn){ btn.classList.toggle('active', btn.getAttribute('data-a2f-method') === method); });
-      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === method; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-      var card = $('#a2fModal .a2f-card'); if(card){ card.classList.add('is-verified'); card.setAttribute('data-selected-a2f', method); }
-      syncA2FPreview(method);
-      setA2FStep(4);
-      var result = $('#a2fResult');
-      if(result){ result.className = 'a2f-result show'; result.textContent = 'A2F via ' + label + ' siap untuk sesi pelanggan ini. Untuk produksi nyata, server tetap harus memverifikasi challenge atau OTP sebelum dashboard dibuka.'; }
-      var done = $('#a2fDoneBtn');
-      if(done) done.disabled = false;
-      showToast('A2F ' + label + ' siap.');
+      console.warn('[Dirac Security] Legacy activateA2F dinonaktifkan. A2F hanya boleh aktif setelah verifikasi backend.', method, detail);
+      if(typeof showToast === 'function') showToast('A2F wajib diverifikasi lewat server keamanan.');
+      return false;
     }
     function arrayBufferToBase64Url(buffer){
       var bytes = new Uint8Array(buffer), binary = '';
@@ -3708,27 +3692,9 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
       return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
     }
     async function startA2F(method){
-      setA2FStep(2);
-      var clicked = $('#a2fModal [data-a2f-method="' + method + '"]');
-      if(clicked) clicked.disabled = true;
-      var startBtn = $('#a2fStartBtn'); if(startBtn) startBtn.disabled = true;
-      try{
-        if(method === 'passkey' && window.PublicKeyCredential && navigator.credentials && window.crypto && window.crypto.getRandomValues){
-          var challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-          var userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
-          var session = readAuthSession();
-          var name = session.identifier || 'pelanggan@diracgroup.store';
-          var credential = await navigator.credentials.create({publicKey:{challenge:challenge,rp:{name:'Dirac Group'},user:{id:userId,name:name,displayName:'Dirac Group Customer'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],timeout:60000,authenticatorSelection:{userVerification:'required'}}});
-          activateA2F(method, credential && credential.rawId ? {credentialId:arrayBufferToBase64Url(credential.rawId)} : {credentialId:'created'});
-          return;
-        }
-        activateA2F(method, {selected:true});
-      }catch(e){
-        activateA2F(method, {selected:true, note:'Passkey tidak selesai di browser; metode tetap disimpan sebagai pilihan keamanan.'});
-      }finally{
-        if(clicked) clicked.disabled = false;
-        if(startBtn) startBtn.disabled = false;
-      }
+      console.warn('[Dirac Security] Legacy startA2F dinonaktifkan. Gunakan flow A2F server-side aktif.', method);
+      if(typeof showToast === 'function') showToast('Gunakan proses A2F server-side yang aktif. Muat ulang halaman bila tombol belum merespons.');
+      return false;
     }
     function aiAnswer(q){
       q = String(q || '').toLowerCase();
@@ -4445,7 +4411,14 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
   function renderRecovery(codes){
     state.recoveryCodes = codes && codes.length ? codes.slice(0,8) : [randomCode(),randomCode(),randomCode(),randomCode(),randomCode(),randomCode()];
     var list = $('#a2fRecoveryCodes');
-    if(list){ list.innerHTML = state.recoveryCodes.map(function(code){return '<code>'+code+'</code>';}).join(''); }
+    if(list){
+      list.textContent = '';
+      state.recoveryCodes.forEach(function(code){
+        var item = document.createElement('code');
+        item.textContent = String(code || '');
+        list.appendChild(item);
+      });
+    }
     var confirm = $('#a2fRecoveryConfirm'); if(confirm) confirm.checked = false;
     var done = $('#a2fDoneBtn'); if(done) done.disabled = true;
   }
@@ -5758,8 +5731,9 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       var data=await res.clone().json().catch(function(){return null});
       if(!res.ok||!data||data.ok===false)throw new Error((data&&(data.error||data.message))||'Kode reset gagal dikirim.');
       resetToken=String(data.resetToken||data.token||'');
+      if(!resetToken){ throw new Error((data&&(data.message||data.error))||'Kode reset tidak dikirim untuk email ini.'); }
       var box=$('#forgotVerifyBox'); if(box) box.hidden=false;
-      setStatus('success','Kode reset 8 digit sudah dikirim. Cek email lalu masukkan password baru.');
+      setStatus('success',data.message||'Kode reset 8 digit sudah dikirim. Cek email lalu masukkan password baru.');
       setTimeout(function(){var c=$('#forgotCode'); if(c)c.focus({preventScroll:true});},50);
     }catch(e){setStatus('error',e&&e.message?e.message:'Kode reset gagal dikirim.');}
     finally{if(btn){btn.disabled=false;btn.textContent=old;}}
