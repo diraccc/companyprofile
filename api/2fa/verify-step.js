@@ -3136,69 +3136,33 @@ function diracMfaProfileId(email) {
   return hashCode(`dirac-customer-mfa-profile-v1:${diracNormalizeEmail(email)}`, diracGetCustomerMfaSecret());
 }
 
+async function diracPersistVerifiedCustomerMfa({ email, method, credential }) {
+  const codes = [];
+  const recoveryHashes = [];
 
-async function diracFindDomainSupabaseUserByEmail(email) {
-  const supabase = getDomainSupabaseAdmin();
-  const targetEmail = diracAssertEmail(email);
-  const perPage = Math.max(1, Math.min(1000, Number(process.env.DIRAC_SUPABASE_USER_SCAN_PER_PAGE || 1000)));
-  const maxPages = Math.max(1, Math.min(50, Number(process.env.DIRAC_SUPABASE_USER_SCAN_MAX_PAGES || 10)));
-
-  for (let page = 1; page <= maxPages; page += 1) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
-    if (error) {
-      error.statusCode = error.status || 500;
-      throw error;
-    }
-    const users = Array.isArray(data && data.users) ? data.users : [];
-    const found = users.find((user) => diracNormalizeEmail(user && user.email) === targetEmail);
-    if (found) return found;
-    if (users.length < perPage) break;
-  }
-  return null;
-}
-
-async function diracPersistVerifiedCustomerMfaToSupabase({ email, method, credential, payload }) {
-  const supabase = getDomainSupabaseAdmin();
-  const user = await diracFindDomainSupabaseUserByEmail(email);
-  const userId = user && user.id ? String(user.id) : String(payload && payload.userId || "");
-  const nowIso = new Date().toISOString();
-
-  await supabase
-    .from(process.env.DOMAIN_MFA_METHODS_TABLE || "domain_mfa_methods")
-    .upsert({
-      user_id: userId || null,
-      email: diracNormalizeEmail(email),
-      method,
-      enabled: true,
-      verified_at: nowIso,
-      last_verified_at: nowIso,
-      updated_at: nowIso
-    }, { onConflict: "user_id,method" });
-
-  if (method === "passkey" && credential && (credential.rawId || credential.id)) {
-    const credentialId = String(credential.rawId || credential.id || "");
-    const transports = credential.response && Array.isArray(credential.response.transports) ? credential.response.transports : [];
-    await supabase
-      .from(process.env.DOMAIN_PASSKEYS_TABLE || "domain_passkeys")
-      .upsert({
-        user_id: userId || null,
-        email: diracNormalizeEmail(email),
-        credential_id: credentialId,
-        credential_json: credential,
-        transports,
-        is_active: true,
-        sign_count: 0,
-        last_used_at: nowIso,
-        updated_at: nowIso
-      }, { onConflict: "credential_id" });
+  while (codes.length < DIRAC_CUSTOMER_MFA_RECOVERY_COUNT) {
+    const code = diracGenerateRecoveryCode();
+    if (codes.includes(code)) continue;
+    codes.push(code);
+    recoveryHashes.push(await argon2.hash(code.replace(/-/g, ""), ARGON2ID_OPTIONS));
   }
 
-  return [];
-}
+  const db = getFirebaseDb();
+  const profileRef = db.collection(DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION).doc(diracMfaProfileId(email));
+  await profileRef.set({
+    emailHash: diracMfaProfileId(email),
+    method,
+    enabled: true,
+    verifiedAtMs: Date.now(),
+    verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+    recoveryCodeCount: codes.length,
+    recoveryCodeHashes: recoveryHashes,
+    recoveryHashType: "argon2id",
+    passkeyCredentialId: credential && (credential.id || credential.rawId) ? String(credential.id || credential.rawId) : null,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
 
-async function diracPersistVerifiedCustomerMfa({ email, method, credential, payload }) {
-  // Public/customer flow: simpan status MFA ke Supabase dan jangan tampilkan recovery code setelah login.
-  return diracPersistVerifiedCustomerMfaToSupabase({ email, method, credential, payload });
+  return codes;
 }
 
 function diracVerifyTotpCode(secret, inputCode) {
@@ -3220,24 +3184,8 @@ function diracAllowedOriginsFromPayload(payload) {
 
 function diracVerifyPasskeyCredential({ payload, credential }) {
   const item = credential && typeof credential === "object" ? credential : null;
-  const purpose = String(payload && payload.purpose || "");
-  const isAuthentication = /authentication/i.test(purpose);
-  const isRegistration = !isAuthentication;
-
-  if (!item || item.type !== "public-key" || !item.id || !item.response || !item.response.clientDataJSON) {
+  if (!item || item.type !== "public-key" || !item.id || !item.response || !item.response.clientDataJSON || !item.response.attestationObject) {
     const err = new Error("Data passkey dari browser tidak lengkap.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  if (isRegistration && !item.response.attestationObject) {
-    const err = new Error("Data pembuatan passkey tidak lengkap.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  if (isAuthentication && (!item.response.authenticatorData || !item.response.signature)) {
-    const err = new Error("Data login passkey tidak lengkap.");
     err.statusCode = 400;
     throw err;
   }
@@ -3251,9 +3199,8 @@ function diracVerifyPasskeyCredential({ payload, credential }) {
     throw err;
   }
 
-  const expectedType = isAuthentication ? "webauthn.get" : "webauthn.create";
-  if (clientData.type !== expectedType) {
-    const err = new Error(isAuthentication ? "Passkey login harus memakai passkey yang sudah tersimpan." : "Pembuatan passkey tidak sesuai.");
+  if (clientData.type !== "webauthn.create") {
+    const err = new Error("Tipe challenge passkey tidak sesuai.");
     err.statusCode = 400;
     throw err;
   }
@@ -3278,20 +3225,10 @@ function diracVerifyPasskeyCredential({ payload, credential }) {
     throw err;
   }
 
-  const credentialId = String(item.rawId || item.id || "");
-  if (!credentialId || credentialId.length < 16) {
+  if (!item.rawId || String(item.rawId).length < 16) {
     const err = new Error("Credential ID passkey tidak valid.");
     err.statusCode = 400;
     throw err;
-  }
-
-  if (isAuthentication) {
-    const allowed = Array.isArray(payload.allowedCredentialIds) ? payload.allowedCredentialIds.map(String) : [];
-    if (!allowed.length || !allowed.includes(credentialId)) {
-      const err = new Error("Passkey ini tidak terdaftar untuk akun tersebut.");
-      err.statusCode = 401;
-      throw err;
-    }
   }
 
   return true;
@@ -3499,15 +3436,14 @@ async function diracHandleCustomerMfaVerify(req, res) {
       });
     }
 
-    const recoveryCodes = await diracPersistVerifiedCustomerMfa({ email, method, credential, payload });
+    const recoveryCodes = await diracPersistVerifiedCustomerMfa({ email, method, credential });
 
     return res.status(200).json({
       ok: true,
       success: true,
       verified: true,
       method,
-      recoveryCodes: [],
-      requiresRecoveryCode: false,
+      recoveryCodes,
       message: "A2F berhasil diverifikasi oleh backend."
     });
   } catch (error) {
