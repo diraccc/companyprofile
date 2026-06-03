@@ -7,7 +7,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' https: data:; connect-src 'self' https://companyprofilee-expk.vercel.app https://wa.me https://api.whatsapp.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com">
   <title>Dashboard - Dirac Group</title>
-  <meta name="description" content="Dashboard pelanggan Dirac Group yang terhubung dengan session login, tema, bahasa, animasi, AI, keamanan, pesanan, dan katalog premium.">
+  <meta name="description" content="Dashboard pelanggan Dirac Group untuk ringkasan layanan parfum, domain, website, invoice, pengiriman, dan bantuan pelanggan.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -58,12 +58,101 @@
     @media(max-width:760px){.announcement .container{flex-direction:column;gap:3px;text-align:center}.brand-mark{width:56px;height:56px;border-radius:16px}.brand-name{font-size:1.08rem}.theme-toggle{width:48px;height:48px;min-width:48px;padding:0}.theme-toggle .label{display:none}.menu-toggle{width:48px;height:48px;min-width:48px}.dashboard-hero{padding:28px 0 18px}.welcome-card{padding:22px;border-radius:28px}.secure-ring{width:136px;height:136px}.dash-layout{padding-bottom:58px}.kpi-grid,.quick-actions,.profile-grid{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr}.choice-grid,.choice-grid.colors{grid-template-columns:1fr 1fr}.side-nav{grid-template-columns:1fr 1fr}.dirac-floating-actions{right:14px;bottom:calc(16px + env(safe-area-inset-bottom));gap:9px}.dirac-float-btn{width:46px;height:46px}.ai-trigger{width:54px;height:54px;border-radius:20px}.dirac-ai-widget{left:14px;bottom:calc(16px + env(safe-area-inset-bottom))}.menu-overlay{place-items:center}.menu-drawer{height:auto;max-height:86vh;border-radius:30px}.toast{bottom:14px;border-radius:18px;white-space:normal;text-align:center}}
     @media(max-width:430px){.container{width:min(var(--max),calc(100% - 22px))}.nav{gap:8px}.brand-name{max-width:7.2rem}.header-actions{gap:6px}.theme-toggle,.menu-toggle{width:42px;height:42px;min-width:42px}.brand-mark{width:44px;height:44px;border-radius:15px}.choice-grid,.choice-grid.colors,.side-nav{grid-template-columns:1fr}.ai-panel{width:calc(100vw - 24px);margin-bottom:72px}.welcome-card h1{font-size:2.7rem}.bar-chart{gap:7px}.gate-card{padding:22px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.motion-ready [data-reveal]{opacity:1!important;transform:none!important}}
+
+    /* Dashboard-only refinement: layout helper only, theme variables remain unchanged. */
+    .dashboard-only-shell{padding:18px 0 72px}
+    .dashboard-single{grid-template-columns:1fr}
+    .dashboard-single .welcome-card{min-height:360px;display:flex;flex-direction:column;justify-content:center}
+    .dashboard-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .service-card{border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028));border:1px solid rgba(255,255,255,.09);box-shadow:0 18px 42px rgba(0,0,0,.22);padding:18px;display:grid;gap:12px;min-height:184px;transition:.22s var(--motion-ease)}
+    .service-card:hover{transform:translateY(-5px);border-color:var(--line-strong);box-shadow:0 26px 56px rgba(0,0,0,.34)}
+    .service-icon{width:48px;height:48px;border-radius:17px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.12);border:1px solid var(--line);font-size:1.35rem}
+    .service-card h3{margin:0;color:#fff;font-size:1.06rem}.service-card p{margin:0;color:var(--muted);font-size:.9rem}.service-card small{color:#f9e7b6;font-weight:800}
+    .dashboard-empty{border-radius:20px;background:rgba(255,255,255,.045);border:1px dashed rgba(var(--theme-rgb),.28);padding:18px;color:var(--muted)}
+    .dashboard-empty strong{display:block;color:#fff;margin-bottom:4px}.dashboard-empty p{margin:0;color:var(--muted)}
+    .dashboard-badge-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.dashboard-badge-row span{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);padding:8px 11px;border-radius:999px;color:#dfe6f3;font-size:.9rem;font-weight:800}
+    .drawer-links .logout-drawer-btn{width:100%;text-align:left}
+    @media(max-width:1120px){.dashboard-summary-grid{grid-template-columns:repeat(2,1fr)}.service-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:760px){.dashboard-summary-grid,.service-grid{grid-template-columns:1fr}.dashboard-single .welcome-card{min-height:auto}.hero-actions .btn-primary,.hero-actions .btn-secondary,.hero-actions .btn-ghost{width:100%}}
+
+
+    /* Pro dashboard refinement v2: stronger hierarchy, cleaner UX, micro-interactions. */
+    .dashboard-hero{padding:46px 0 30px}
+    .pro-hero-grid{display:grid;grid-template-columns:minmax(0,1.22fr) minmax(320px,.78fr);gap:22px;align-items:stretch}
+    .welcome-card.pro-welcome{min-height:420px;padding:34px;display:flex;flex-direction:column;justify-content:center}
+    .welcome-card.pro-welcome h1{max-width:760px}
+    .hero-lead{max-width:780px;color:#d6dde8;font-size:clamp(1rem,2vw,1.14rem);margin:0}
+    .hero-mini-note{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;color:#dfe6f3;font-size:.9rem}
+    .hero-mini-note span{display:inline-flex;align-items:center;gap:7px;border-radius:999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);padding:8px 11px;font-weight:800}
+    .attention-panel{border-radius:34px;background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.032));border:1px solid rgba(255,255,255,.10);box-shadow:var(--shadow);padding:22px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:14px;min-height:100%}
+    .attention-panel:before{content:"";position:absolute;right:-70px;top:-70px;width:190px;height:190px;border-radius:50%;background:rgba(var(--theme-rgb),.12);pointer-events:none}
+    .attention-panel h2{font-family:"Playfair Display",serif;color:var(--gold);font-size:2rem;line-height:1;margin:0;position:relative}
+    .attention-panel p{color:var(--muted);margin:0;position:relative}
+    .attention-list{display:grid;gap:10px;position:relative;margin-top:2px}
+    .attention-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px;border-radius:20px;background:rgba(255,255,255,.048);border:1px solid rgba(255,255,255,.085)}
+    .attention-item strong{display:block;color:#fff;font-size:.93rem}.attention-item small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
+    .soft-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 10px;font-size:.74rem;font-weight:900;white-space:nowrap;border:1px solid rgba(24,185,129,.28);background:rgba(24,185,129,.12);color:#d1fae5}
+    .soft-chip.wait{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.12);color:#fde68a}.soft-chip.info{border-color:var(--line);background:rgba(var(--theme-rgb),.10);color:#f9e7b6}
+    .dashboard-only-shell{padding:18px 0 76px}
+    .section-head.pro-head{align-items:center;margin-bottom:16px}.section-head.pro-head p{max-width:720px}
+    .summary-pro-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .summary-card{border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.078),rgba(255,255,255,.030));border:1px solid rgba(255,255,255,.09);box-shadow:0 18px 42px rgba(0,0,0,.22);padding:18px;position:relative;overflow:hidden;transition:.25s var(--motion-ease)}
+    .summary-card:after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.06) 42%,transparent 64%);transform:translateX(-130%);opacity:.55;pointer-events:none}.motion-ready .summary-card:after{animation:proSweep 7.5s ease-in-out infinite}.summary-card:nth-child(2):after{animation-delay:.5s}.summary-card:nth-child(3):after{animation-delay:1s}.summary-card:nth-child(4):after{animation-delay:1.5s}@keyframes proSweep{0%,75%{transform:translateX(-130%)}92%,100%{transform:translateX(130%)}}
+    .summary-card:hover{transform:translateY(-5px);border-color:var(--line-strong);box-shadow:0 26px 56px rgba(0,0,0,.34)}
+    .summary-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.summary-icon{width:48px;height:48px;border-radius:18px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.12);border:1px solid var(--line);font-size:1.32rem}.summary-value{font-family:"Playfair Display",serif;font-size:2.2rem;line-height:1;color:#fff;font-weight:800;font-variant-numeric:tabular-nums}.summary-card h3{margin:0;color:#fff;font-size:1rem}.summary-card p{margin:6px 0 0;color:var(--muted);font-size:.88rem;line-height:1.55}.summary-card .soft-chip{margin-top:12px}
+    .service-grid.pro-service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.service-card.pro-service{min-height:220px;padding:20px;border-radius:28px;display:flex;flex-direction:column;justify-content:space-between;gap:16px;position:relative;overflow:hidden}.service-card.pro-service:before{content:"";position:absolute;right:-64px;top:-70px;width:170px;height:170px;border-radius:50%;background:rgba(var(--theme-rgb),.08);opacity:.9}.service-main{display:grid;gap:12px;position:relative}.service-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.service-icon{flex:0 0 auto}.service-card.pro-service h3{font-size:1.12rem}.service-card.pro-service p{font-size:.91rem;line-height:1.6}.service-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative}.service-cta{border:1px solid var(--line);background:rgba(var(--theme-rgb),.10);color:#f9e7b6;border-radius:999px;padding:8px 11px;font-size:.78rem;font-weight:900;transition:.22s var(--motion-ease);display:inline-flex;align-items:center;gap:7px}.service-card:hover .service-cta,.service-cta:hover{background:rgba(var(--theme-rgb),.18);border-color:var(--line-strong);transform:translateY(-1px)}
+    .focus-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.empty-pro{position:relative;overflow:hidden;border-radius:24px;background:linear-gradient(135deg,rgba(var(--theme-rgb),.10),rgba(255,255,255,.035));border:1px solid var(--line);padding:20px;min-height:154px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start}.empty-pro:before{content:"";position:absolute;right:-60px;bottom:-70px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.035)}.empty-icon{width:52px;height:52px;border-radius:19px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);display:grid;place-items:center;font-size:1.5rem}.empty-pro strong{display:block;color:#fff;font-size:1.02rem}.empty-pro p{margin:5px 0 0;color:var(--muted);font-size:.9rem;line-height:1.6}.empty-pro .service-cta{margin-top:12px}
+    .quick-actions.pro-quick{grid-template-columns:repeat(4,1fr)}.action-card.pro-action{border-radius:28px;min-height:150px;position:relative;overflow:hidden}.action-card.pro-action:after{content:"→";position:absolute;right:17px;top:15px;color:rgba(255,255,255,.55);font-weight:900;transition:.22s var(--motion-ease)}.action-card.pro-action:hover:after{transform:translateX(3px);color:#fff}.action-card.pro-action b{width:46px;height:46px;border-radius:17px;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);font-size:1.35rem}.action-card.pro-action span{line-height:1.45}
+    .tracking-form{display:grid;gap:10px}.tracking-result{margin-top:12px;border-radius:18px;background:rgba(var(--theme-rgb),.09);border:1px solid var(--line);padding:13px;color:#f8ead1;display:none}.tracking-result.show{display:block}.tracking-result strong{color:#fff}.tracking-result p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+    .pro-modal{place-items:center}.pro-modal-card{width:min(560px,calc(100vw - 36px));max-height:min(88vh,720px);overflow:auto;border-radius:30px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid var(--line);box-shadow:var(--shadow);padding:22px;animation:modalIn .34s var(--motion-soft) both}.pro-modal-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+    html[data-effective-theme="light"] .attention-panel,html[data-effective-theme="light"] .summary-card,html[data-effective-theme="light"] .pro-modal-card{background:rgba(255,250,241,.92);color:var(--text);border-color:rgba(var(--theme-rgb),.28)}html[data-effective-theme="light"] .attention-panel h2,html[data-effective-theme="light"] .summary-value,html[data-effective-theme="light"] .summary-card h3,html[data-effective-theme="light"] .empty-pro strong{color:#151923}
+    @media(max-width:1120px){.pro-hero-grid{grid-template-columns:1fr}.summary-pro-grid{grid-template-columns:repeat(2,1fr)}.service-grid.pro-service-grid{grid-template-columns:repeat(2,1fr)}.quick-actions.pro-quick{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:760px){.dashboard-hero{padding:28px 0 18px}.welcome-card.pro-welcome{min-height:auto;padding:24px;border-radius:28px}.attention-panel{border-radius:28px}.summary-pro-grid,.service-grid.pro-service-grid,.focus-grid,.quick-actions.pro-quick{grid-template-columns:1fr}.empty-pro{grid-template-columns:1fr}.hero-actions .btn-primary,.hero-actions .btn-secondary,.hero-actions .btn-ghost{width:100%}.pro-modal-actions{justify-content:stretch}.pro-modal-actions .btn-primary,.pro-modal-actions .btn-secondary,.pro-modal-actions .btn-ghost{width:100%}}
+
+  
+
+    /* Ultra UI pass: full-stack customer dashboard visual system. Login/hash logic untouched. */
+    .fs-page{position:relative;padding:34px 0 78px;isolation:isolate;overflow:hidden}
+    .fs-page:before{content:"";position:absolute;inset:-12% -8% auto -8%;height:620px;z-index:-2;background:radial-gradient(circle at 18% 16%,rgba(var(--theme-rgb),.22),transparent 24rem),radial-gradient(circle at 86% 10%,rgba(255,255,255,.085),transparent 19rem),radial-gradient(circle at 48% 64%,rgba(var(--theme-rgb),.10),transparent 28rem);pointer-events:none}
+    .fs-shell{display:grid;gap:22px}.fs-hero{display:grid;grid-template-columns:minmax(0,1.33fr) minmax(340px,.67fr);gap:20px;align-items:stretch}.fs-hero-main,.fs-today-card,.fs-glass-panel,.fs-metric-card,.fs-service-card,.fs-empty-card,.fs-action-card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.095);box-shadow:0 18px 50px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.055);background:linear-gradient(180deg,rgba(255,255,255,.078),rgba(255,255,255,.030));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    .fs-hero-main{border-radius:36px;padding:32px;min-height:370px;display:flex;flex-direction:column;justify-content:space-between}.fs-hero-main:before{content:"";position:absolute;right:-130px;top:-160px;width:430px;height:430px;border-radius:50%;background:radial-gradient(circle,rgba(var(--theme-rgb),.19),transparent 68%);pointer-events:none}.fs-hero-main:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0%,rgba(255,255,255,.06) 46%,transparent 62%);transform:translateX(-130%);opacity:.6;pointer-events:none}.motion-ready .fs-hero-main:after{animation:fsHeroSweep 8.8s ease-in-out infinite}@keyframes fsHeroSweep{0%,70%{transform:translateX(-130%)}92%,100%{transform:translateX(130%)}}
+    .fs-hero-copy{position:relative;z-index:1}.fs-hero-copy h1{font-family:"Playfair Display",serif;margin:16px 0 12px;font-size:clamp(2.7rem,6vw,5.15rem);line-height:.93;letter-spacing:-.045em;color:#fff;text-wrap:balance}.fs-hero-copy h1 span:last-child{color:var(--gold)}.fs-hero-copy p{max-width:760px;margin:0;color:#d6dde8;font-size:clamp(1rem,2vw,1.12rem);line-height:1.72}.fs-hero-actions{position:relative;z-index:1;display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.fs-mini-row{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.fs-mini-pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 11px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.095);color:#dfe6f3;font-size:.86rem;font-weight:800}.fs-mini-pill i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--success);box-shadow:0 0 0 4px rgba(24,185,129,.10)}
+    .fs-today-card{border-radius:34px;padding:22px;display:flex;flex-direction:column;gap:15px}.fs-today-card:before{content:"";position:absolute;right:-70px;top:-70px;width:210px;height:210px;border-radius:50%;background:rgba(var(--theme-rgb),.11);pointer-events:none}.fs-card-head{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fs-card-head h2,.fs-section-head h2{font-family:"Playfair Display",serif;color:var(--gold);font-size:clamp(1.75rem,3vw,2.45rem);line-height:1;margin:0}.fs-card-head p,.fs-section-head p{color:var(--muted);margin:7px 0 0}.fs-status-list{position:relative;z-index:1;display:grid;gap:10px}.fs-status-item{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:11px;padding:12px;border-radius:20px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.075)}.fs-status-icon{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.11);border:1px solid var(--line);font-size:1.08rem}.fs-status-item strong{display:block;color:#fff;font-size:.92rem;line-height:1.25}.fs-status-item small{display:block;color:var(--muted);font-size:.78rem;line-height:1.35;margin-top:3px}.fs-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(var(--theme-rgb),.10);color:#f9e7b6;border-radius:999px;padding:7px 9px;font-weight:900;font-size:.74rem;white-space:nowrap}.fs-badge.ok{border-color:rgba(24,185,129,.28);background:rgba(24,185,129,.12);color:#d1fae5}.fs-badge.info{border-color:rgba(56,189,248,.28);background:rgba(56,189,248,.11);color:#dff7ff}.fs-badge.warn{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.12);color:#fde68a}.fs-today-foot{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}
+    .fs-section{display:grid;gap:14px}.fs-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}.fs-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.fs-metric-card{border-radius:26px;padding:18px;min-height:168px;display:flex;flex-direction:column;justify-content:space-between;transition:.25s var(--motion-ease)}.fs-metric-card:hover,.fs-service-card:hover,.fs-action-card:hover{transform:translateY(-4px);border-color:var(--line-strong);box-shadow:0 26px 58px rgba(0,0,0,.33),0 0 0 1px rgba(var(--theme-rgb),.06) inset}.fs-metric-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fs-metric-icon{width:46px;height:46px;border-radius:17px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.12);border:1px solid var(--line);font-size:1.22rem}.fs-metric-value{font-family:"Playfair Display",serif;font-size:2.15rem;line-height:1;color:#fff;font-weight:800;font-variant-numeric:tabular-nums}.fs-metric-card h3{margin:13px 0 5px;color:#fff;font-size:1rem}.fs-metric-card p{margin:0;color:var(--muted);font-size:.86rem;line-height:1.55}.fs-meter{height:7px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:14px}.fs-meter i{display:block;height:100%;width:var(--w,18%);border-radius:inherit;background:linear-gradient(90deg,var(--gold),var(--gold-2));box-shadow:0 0 18px rgba(var(--theme-rgb),.28)}
+    .fs-attention{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:16px}.fs-glass-panel{border-radius:30px;padding:22px}.fs-attention-list{display:grid;gap:10px;margin-top:14px}.fs-attention-row{display:grid;grid-template-columns:42px 1fr auto;gap:11px;align-items:center;padding:12px;border-radius:20px;background:rgba(255,255,255,.044);border:1px solid rgba(255,255,255,.075)}.fs-attention-row strong{display:block;color:#fff;font-size:.92rem}.fs-attention-row small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}.fs-flow{display:grid;gap:10px;margin-top:14px}.fs-flow-step{display:grid;grid-template-columns:34px 1fr;gap:11px;align-items:start}.fs-flow-step i{width:34px;height:34px;border-radius:13px;background:rgba(var(--theme-rgb),.11);border:1px solid var(--line);display:grid;place-items:center;color:var(--gold);font-style:normal;font-weight:900}.fs-flow-step strong{display:block;color:#fff;font-size:.9rem}.fs-flow-step span{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
+    .fs-service-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.fs-service-card{border-radius:28px;padding:16px;min-height:214px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;transition:.25s var(--motion-ease)}.fs-service-card.featured{grid-column:span 2}.fs-service-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.fs-service-icon{width:48px;height:48px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(var(--theme-rgb),.16),rgba(255,255,255,.055));border:1px solid var(--line);font-size:1.28rem}.fs-service-card h3{margin:13px 0 6px;color:#fff;font-size:1.04rem}.fs-service-card p{margin:0;color:var(--muted);font-size:.87rem;line-height:1.56}.fs-service-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.fs-tag{display:inline-flex;align-items:center;border-radius:999px;padding:6px 9px;background:rgba(255,255,255,.052);border:1px solid rgba(255,255,255,.078);color:#d7deea;font-size:.73rem;font-weight:850}.fs-service-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.075);padding-top:12px}.fs-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:999px;border:1px solid var(--line);background:rgba(var(--theme-rgb),.10);color:#f9e7b6;padding:8px 11px;font-size:.78rem;font-weight:900;transition:.22s var(--motion-ease);white-space:nowrap}.fs-link:hover{background:rgba(var(--theme-rgb),.18);border-color:var(--line-strong);transform:translateY(-1px)}
+    .fs-updates{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fs-empty-card{border-radius:30px;padding:22px}.fs-empty-state{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:start;margin-top:14px;padding:16px;border-radius:24px;background:rgba(255,255,255,.043);border:1px dashed rgba(var(--theme-rgb),.24)}.fs-empty-icon{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.11);border:1px solid var(--line);font-size:1.45rem}.fs-empty-state strong{display:block;color:#fff}.fs-empty-state p{margin:6px 0 12px;color:var(--muted);font-size:.9rem;line-height:1.62}.fs-quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.fs-action-card{min-height:118px;border-radius:26px;padding:16px;display:flex;align-items:center;gap:14px;transition:.25s var(--motion-ease)}.fs-action-card b{width:48px;height:48px;display:grid;place-items:center;border-radius:18px;background:rgba(var(--theme-rgb),.12);border:1px solid var(--line);font-size:1.2rem;flex:0 0 auto}.fs-action-card strong{display:block;color:#fff}.fs-action-card span{display:block;color:var(--muted);font-size:.84rem;margin-top:3px;line-height:1.42;text-align:left}.fs-action-card.button-reset{width:100%;border:1px solid rgba(255,255,255,.095);color:inherit;text-align:left}
+    .tracking-result{display:none}.tracking-result.show{display:block}.tracking-result strong{display:block;color:#fff}.tracking-result p{margin:6px 0 0;color:var(--muted)}.tracking-result.is-ready{border-color:rgba(24,185,129,.35);background:rgba(24,185,129,.10)}
+    html[data-effective-theme="light"] .fs-hero-main,html[data-effective-theme="light"] .fs-today-card,html[data-effective-theme="light"] .fs-glass-panel,html[data-effective-theme="light"] .fs-metric-card,html[data-effective-theme="light"] .fs-service-card,html[data-effective-theme="light"] .fs-empty-card,html[data-effective-theme="light"] .fs-action-card{background:rgba(255,250,241,.92);color:var(--text);border-color:rgba(var(--theme-rgb),.26);box-shadow:0 24px 70px rgba(80,55,18,.13),inset 0 1px 0 rgba(255,255,255,.65)}html[data-effective-theme="light"] .fs-hero-copy h1,html[data-effective-theme="light"] .fs-card-head h2,html[data-effective-theme="light"] .fs-section-head h2,html[data-effective-theme="light"] .fs-metric-value,html[data-effective-theme="light"] .fs-metric-card h3,html[data-effective-theme="light"] .fs-service-card h3,html[data-effective-theme="light"] .fs-empty-state strong,html[data-effective-theme="light"] .fs-action-card strong,html[data-effective-theme="light"] .fs-status-item strong,html[data-effective-theme="light"] .fs-attention-row strong,html[data-effective-theme="light"] .fs-flow-step strong{color:#151923}html[data-effective-theme="light"] .fs-hero-copy p,html[data-effective-theme="light"] .fs-metric-card p,html[data-effective-theme="light"] .fs-service-card p,html[data-effective-theme="light"] .fs-empty-state p{color:#526071}
+    @media(max-width:1180px){.fs-hero{grid-template-columns:1fr}.fs-metric-grid,.fs-service-grid,.fs-quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fs-attention,.fs-updates{grid-template-columns:1fr}.fs-service-card.featured{grid-column:span 1}}
+    @media(max-width:760px){.fs-page{padding:24px 0 60px}.fs-hero-main,.fs-today-card,.fs-glass-panel,.fs-empty-card{border-radius:26px}.fs-hero-main{padding:23px;min-height:auto}.fs-metric-grid,.fs-service-grid,.fs-quick-grid{grid-template-columns:1fr}.fs-section-head{align-items:flex-start;flex-direction:column}.fs-status-item,.fs-attention-row{grid-template-columns:40px 1fr;align-items:start}.fs-status-item .fs-badge,.fs-attention-row .fs-badge{grid-column:2}.fs-empty-state{grid-template-columns:1fr}.fs-hero-actions .btn-primary,.fs-hero-actions .btn-secondary,.fs-hero-actions .btn-ghost,.fs-today-foot .btn-secondary,.fs-today-foot .btn-ghost{width:100%}.fs-action-card{min-height:104px}.fs-service-foot{align-items:flex-start;flex-direction:column}.fs-link{width:100%}}
+
+
+    /* App Suite refinement pass: compact full-stack dashboard UI. Auth/hash/login logic untouched. */
+    .fs-page.app-suite{padding:24px 0 72px;background:radial-gradient(circle at 16% 4%,rgba(var(--theme-rgb),.105),transparent 20rem),radial-gradient(circle at 88% 0%,rgba(255,255,255,.055),transparent 17rem)}
+    .app-suite .fs-shell{gap:18px}.app-topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid rgba(255,255,255,.09);background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.028));box-shadow:0 16px 44px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.05);border-radius:28px;padding:16px 18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    .app-breadcrumb{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.86rem;font-weight:800}.app-breadcrumb strong{color:#fff}.app-page-title{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:8px}.app-page-title h1{font-family:"Playfair Display",serif;color:#fff;font-size:clamp(2rem,4vw,3.45rem);line-height:.98;margin:0;letter-spacing:-.035em}.app-page-title h1 span{color:var(--gold)}.app-page-title p{margin:7px 0 0;color:var(--muted);max-width:700px}.app-toolbar-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.app-date-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(var(--theme-rgb),.075);color:#f9e7b6;border-radius:999px;padding:10px 12px;font-size:.84rem;font-weight:900;white-space:nowrap}.app-search{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.052);border-radius:999px;padding:10px 13px;min-width:min(320px,44vw);transition:.22s var(--motion-ease)}.app-search:focus-within{border-color:var(--line-strong);box-shadow:0 0 0 4px rgba(var(--theme-rgb),.08)}.app-search span{color:var(--gold)}.app-search input{width:100%;border:0;outline:0;background:transparent;color:#fff;min-width:0;font-size:.9rem}.app-search input::placeholder{color:#8490a2}
+    .app-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px}.app-welcome-card,.app-control-card,.app-panel,.app-metric,.app-service,.app-mini-card,.app-action{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.092);background:linear-gradient(180deg,rgba(255,255,255,.074),rgba(255,255,255,.030));box-shadow:0 18px 48px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.052);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    .app-welcome-card{border-radius:32px;padding:26px;min-height:290px;display:flex;flex-direction:column;justify-content:space-between}.app-welcome-card:before{content:"";position:absolute;right:-120px;top:-140px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(var(--theme-rgb),.18),transparent 68%);pointer-events:none}.app-welcome-card:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0%,rgba(255,255,255,.055) 44%,transparent 60%);transform:translateX(-135%);pointer-events:none;opacity:.58}.motion-ready .app-welcome-card:after{animation:fsHeroSweep 9.4s ease-in-out infinite}.app-welcome-copy{position:relative;z-index:1}.app-welcome-copy .eyebrow{margin-bottom:12px}.app-welcome-copy h2{font-family:"Playfair Display",serif;color:#fff;font-size:clamp(2.2rem,5vw,4.3rem);letter-spacing:-.045em;line-height:.94;margin:0 0 12px}.app-welcome-copy h2 span{color:var(--gold)}.app-welcome-copy p{margin:0;color:#d6dde8;line-height:1.72;max-width:820px}.app-primary-row{position:relative;z-index:1;display:flex;gap:11px;flex-wrap:wrap;margin-top:18px}.app-mini-status{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}.app-mini-card{border-radius:20px;padding:12px}.app-mini-card small{display:block;color:var(--muted);font-size:.75rem;font-weight:850;letter-spacing:.05em;text-transform:uppercase}.app-mini-card strong{display:block;color:#fff;margin-top:4px;font-size:.95rem}.app-mini-card .dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--success);box-shadow:0 0 0 4px rgba(24,185,129,.10);margin-right:7px}
+    .app-control-card{border-radius:32px;padding:22px;display:grid;gap:14px}.app-card-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.app-card-title h2,.app-section-head h2{font-family:"Playfair Display",serif;color:var(--gold);font-size:clamp(1.65rem,2.7vw,2.28rem);line-height:1;margin:0}.app-card-title p,.app-section-head p{margin:7px 0 0;color:var(--muted);line-height:1.55}.app-alert-stack{display:grid;gap:10px}.app-alert{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.045);border-radius:19px;padding:11px}.app-alert-icon{width:40px;height:40px;border-radius:15px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.11);border:1px solid var(--line)}.app-alert strong{display:block;color:#fff;font-size:.9rem}.app-alert small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}.app-chip{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:7px 9px;border:1px solid var(--line);background:rgba(var(--theme-rgb),.10);color:#f9e7b6;font-size:.72rem;font-weight:900;white-space:nowrap}.app-chip.ok{border-color:rgba(24,185,129,.28);background:rgba(24,185,129,.12);color:#d1fae5}.app-chip.info{border-color:rgba(56,189,248,.28);background:rgba(56,189,248,.11);color:#dff7ff}.app-chip.warn{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.12);color:#fde68a}.app-control-foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto}
+    .app-section{display:grid;gap:13px}.app-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.app-muted-action{color:#f9e7b6;border:1px solid var(--line);background:rgba(var(--theme-rgb),.08);border-radius:999px;padding:8px 11px;font-weight:900;font-size:.78rem}.app-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.app-metric{border-radius:24px;padding:16px;min-height:148px;display:grid;align-content:space-between;gap:12px;transition:.22s var(--motion-ease)}.app-metric:hover,.app-service:hover,.app-action:hover{transform:translateY(-3px);border-color:var(--line-strong);box-shadow:0 22px 55px rgba(0,0,0,.31),0 0 0 1px rgba(var(--theme-rgb),.05) inset}.app-metric-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.app-iconbox{width:42px;height:42px;border-radius:16px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.115);border:1px solid var(--line);font-size:1.12rem;flex:0 0 auto}.app-value{font-family:"Playfair Display",serif;color:#fff;font-size:2.1rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}.app-metric h3{margin:0;color:#fff;font-size:.98rem}.app-metric p{margin:5px 0 0;color:var(--muted);font-size:.82rem;line-height:1.52}.app-progress{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}.app-progress i{display:block;height:100%;width:var(--w,10%);border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold-2));box-shadow:0 0 16px rgba(var(--theme-rgb),.22)}
+    .app-dashboard-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:15px}.app-panel{border-radius:28px;padding:20px}.app-list{display:grid;gap:10px;margin-top:13px}.app-list-row{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.043);border-radius:18px;padding:11px}.app-list-row strong{display:block;color:#fff;font-size:.9rem}.app-list-row small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}.app-flow{display:grid;gap:10px;margin-top:13px}.app-flow-step{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}.app-flow-step i{width:34px;height:34px;border-radius:13px;background:rgba(var(--theme-rgb),.11);border:1px solid var(--line);display:grid;place-items:center;color:var(--gold);font-style:normal;font-weight:900}.app-flow-step strong{display:block;color:#fff;font-size:.9rem}.app-flow-step span{display:block;color:var(--muted);font-size:.78rem;margin-top:2px;line-height:1.45}
+    .app-services{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.app-service{border-radius:24px;padding:15px;min-height:190px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;transition:.22s var(--motion-ease)}.app-service.wide{grid-column:span 2}.app-service-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.app-service h3{margin:12px 0 5px;color:#fff;font-size:1rem}.app-service p{margin:0;color:var(--muted);font-size:.82rem;line-height:1.54}.app-service-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}.app-tag{display:inline-flex;border-radius:999px;border:1px solid rgba(255,255,255,.078);background:rgba(255,255,255,.05);color:#d7deea;padding:5px 8px;font-size:.7rem;font-weight:850}.app-service-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.075);padding-top:11px}.app-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:999px;border:1px solid var(--line);background:rgba(var(--theme-rgb),.10);color:#f9e7b6;padding:8px 10px;font-size:.76rem;font-weight:900;white-space:nowrap;transition:.22s var(--motion-ease)}.app-link:hover{background:rgba(var(--theme-rgb),.18);border-color:var(--line-strong);transform:translateY(-1px)}button.app-link{cursor:pointer}.app-link.disabled{opacity:.72;cursor:default}.app-no-results{display:none;border:1px dashed rgba(var(--theme-rgb),.28);background:rgba(var(--theme-rgb),.07);border-radius:22px;padding:18px;color:var(--muted);text-align:center}.app-no-results.show{display:block}.app-no-results strong{display:block;color:#fff;margin-bottom:4px}
+    .app-updates{display:grid;grid-template-columns:1fr 1fr;gap:15px}.app-empty{display:grid;grid-template-columns:52px 1fr;gap:13px;align-items:start;border:1px dashed rgba(var(--theme-rgb),.24);background:rgba(255,255,255,.038);border-radius:22px;padding:15px;margin-top:12px}.app-empty .app-iconbox{width:52px;height:52px;border-radius:19px;font-size:1.35rem}.app-empty strong{display:block;color:#fff}.app-empty p{margin:5px 0 11px;color:var(--muted);font-size:.84rem;line-height:1.56}.app-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.app-action{border-radius:24px;padding:14px;display:flex;align-items:center;gap:12px;min-height:104px;transition:.22s var(--motion-ease)}.app-action strong{display:block;color:#fff}.app-action span{display:block;color:var(--muted);font-size:.8rem;line-height:1.4;margin-top:2px;text-align:left}.app-action.button-reset{width:100%;border:1px solid rgba(255,255,255,.092);color:inherit;text-align:left}
+    .app-skeleton{position:relative;overflow:hidden;background:rgba(255,255,255,.07);border-radius:999px;min-height:9px}.app-skeleton:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transform:translateX(-100%);animation:appSkeleton 1.65s linear infinite}@keyframes appSkeleton{to{transform:translateX(100%)}}body.app-ready .app-skeleton{display:none}.app-load-note{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.78rem;margin-top:8px}body.app-ready .app-load-note{display:none}.app-connection{display:inline-flex;align-items:center;gap:8px}.app-connection i{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 4px rgba(24,185,129,.10)}.app-connection.offline i{background:var(--warning);box-shadow:0 0 0 4px rgba(245,158,11,.12)}
+    .tracking-form{display:grid;gap:12px}.pro-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}.tracking-result{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);border-radius:20px;padding:13px}.tracking-result.show{display:block}.tracking-result{display:none}.tracking-result.is-ready{border-color:rgba(24,185,129,.34);background:rgba(24,185,129,.10)}.tracking-result strong{display:block;color:#fff}.tracking-result p{margin:6px 0 0;color:var(--muted)}
+    html[data-effective-theme="light"] .app-topbar,html[data-effective-theme="light"] .app-welcome-card,html[data-effective-theme="light"] .app-control-card,html[data-effective-theme="light"] .app-panel,html[data-effective-theme="light"] .app-metric,html[data-effective-theme="light"] .app-service,html[data-effective-theme="light"] .app-mini-card,html[data-effective-theme="light"] .app-action{background:rgba(255,250,241,.92);border-color:rgba(var(--theme-rgb),.24);box-shadow:0 20px 60px rgba(80,55,18,.12),inset 0 1px 0 rgba(255,255,255,.60)}html[data-effective-theme="light"] .app-page-title h1,html[data-effective-theme="light"] .app-welcome-copy h2,html[data-effective-theme="light"] .app-value,html[data-effective-theme="light"] .app-metric h3,html[data-effective-theme="light"] .app-service h3,html[data-effective-theme="light"] .app-mini-card strong,html[data-effective-theme="light"] .app-alert strong,html[data-effective-theme="light"] .app-list-row strong,html[data-effective-theme="light"] .app-empty strong,html[data-effective-theme="light"] .app-action strong,html[data-effective-theme="light"] .app-flow-step strong,html[data-effective-theme="light"] .app-breadcrumb strong{color:#151923}html[data-effective-theme="light"] .app-search input{color:#151923}html[data-effective-theme="light"] .app-search input::placeholder{color:#667085}
+    @media(max-width:1180px){.app-topbar,.app-hero,.app-dashboard-grid,.app-updates{grid-template-columns:1fr}.app-toolbar-actions{justify-content:flex-start}.app-metrics,.app-services{grid-template-columns:repeat(2,minmax(0,1fr))}.app-service.wide{grid-column:span 1}.app-search{min-width:min(100%,460px)}}
+    @media(max-width:760px){.fs-page.app-suite{padding:18px 0 58px}.app-topbar,.app-welcome-card,.app-control-card,.app-panel{border-radius:24px}.app-page-title{align-items:flex-start;flex-direction:column}.app-toolbar-actions{width:100%}.app-date-pill,.app-search{width:100%;min-width:0}.app-welcome-card{padding:21px;min-height:auto}.app-mini-status,.app-metrics,.app-services{grid-template-columns:1fr}.app-alert,.app-list-row{grid-template-columns:38px 1fr}.app-alert .app-chip,.app-list-row .app-chip{grid-column:2}.app-empty{grid-template-columns:1fr}.app-service-foot{align-items:flex-start;flex-direction:column}.app-link{width:100%}.app-action{min-height:96px}.pro-modal-actions .btn-primary,.pro-modal-actions .btn-secondary{width:100%}}
+
   </style>
+
 </head>
 <body>
   <div class="announcement">
     <div class="container">
-      <span data-i18n="announce">Dashboard pelanggan aman - tema menyatu - katalog premium Dirac Group</span>
+      <span data-i18n="announce">Dashboard pelanggan Dirac Group — ringkasan semua layanan dalam satu tempat</span>
       <a href="order1.html" data-i18n="openCatalog">Buka katalog</a>
     </div>
   </div>
@@ -75,11 +164,7 @@
         <span class="brand-name">Dirac Group</span>
       </a>
       <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="#overview" class="active" data-nav-link data-i18n="navOverview">Overview</a>
-        <a href="#orders" data-nav-link data-i18n="navOrders">Pesanan</a>
-        <a href="#security" data-nav-link data-i18n="navSecurity">Keamanan</a>
-        <a href="#settings" data-nav-link data-i18n="navSettings">Pengaturan</a>
-        <a href="order1.html" data-i18n="navCatalog">Katalog</a>
+        <a href="#overview" class="active" data-nav-link data-i18n="navDashboard">Dashboard</a>
       </nav>
       <div class="header-actions">
         <button class="theme-toggle" type="button" data-open-theme aria-label="Buka pengaturan tema"><span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span></button>
@@ -88,224 +173,180 @@
     </div>
   </header>
 
+
+
   <main id="dashboardRoot">
-    <section class="dashboard-hero" id="overview">
-      <div class="container hero-grid">
-        <article class="welcome-card" data-reveal>
-          <span class="eyebrow" data-i18n="heroKicker">Akses dashboard aman</span>
-          <h1><span data-i18n="hello">Halo</span>, <span id="displayName">Pelanggan</span></h1>
-          <p data-i18n="heroText">Semua ringkasan pesanan, profil, keamanan A2F, preferensi tema, dan aksi cepat dibuat menyatu dengan gaya katalog Dirac agar pindah halaman terasa mulus.</p>
-          <div class="hero-actions">
-            <a class="btn-primary" href="order1.html" data-i18n="shopNow">Belanja parfum</a>
-            <button class="btn-secondary" type="button" id="openCommandBtn" data-i18n="quickCommand">Command cepat</button>
-            <button class="btn-ghost" type="button" id="exportBtn" data-i18n="exportData">Export data</button>
-          </div>
-          <div class="trust-row">
-            <span data-i18n="trust1">Session login terenkripsi lokal</span>
-            <span data-i18n="trust2">A2F gate aktif</span>
-            <span data-i18n="trust3">Tema global sinkron</span>
-          </div>
-        </article>
-        <aside class="secure-card" data-reveal style="--reveal-delay:80ms">
+    <section class="fs-page app-suite" id="overview">
+      <div class="container fs-shell">
+        <section class="app-topbar" data-reveal aria-label="Toolbar dashboard pelanggan">
           <div>
-            <div class="secure-ring"><strong id="secureScore">88</strong><span>Secure</span></div>
-          </div>
-          <div>
-            <h2 data-i18n="secureTitle">Proteksi akun</h2>
-            <p id="secureSummary">A2F aktif dan dashboard hanya terbuka setelah login valid.</p>
-          </div>
-          <div class="health-pill"><span class="pulse-dot"></span><span id="apiHealth" data-i18n="checkingApi">Mengecek gateway API...</span></div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="container dash-layout">
-      <aside class="sidebar" data-reveal>
-        <div class="side-profile">
-          <div class="avatar" id="avatarText">DG</div>
-          <div><strong id="sideName">Pelanggan Dirac</strong><small id="sideEmail">session@login</small></div>
-        </div>
-        <nav class="side-nav" aria-label="Navigasi dashboard">
-          <a href="#overview" class="active" data-nav-link><span>🏠 <span data-i18n="sideOverview">Overview</span></span><b>›</b></a>
-          <a href="#insight" data-nav-link><span>📊 <span data-i18n="sideInsight">Insight</span></span><b>›</b></a>
-          <a href="#orders" data-nav-link><span>🛍️ <span data-i18n="sideOrders">Pesanan</span></span><b>›</b></a>
-          <a href="#security" data-nav-link><span>🛡️ <span data-i18n="sideSecurity">Keamanan</span></span><b>›</b></a>
-          <a href="#profile" data-nav-link><span>👤 <span data-i18n="sideProfile">Profil</span></span><b>›</b></a>
-          <a href="#settings" data-nav-link><span>⚙️ <span data-i18n="sideSettings">Pengaturan</span></span><b>›</b></a>
-          <button type="button" data-open-theme><span>🎨 <span data-i18n="sideTheme">Tema</span></span><b>›</b></button>
-          <button type="button" id="logoutBtn"><span>↩ <span data-i18n="logout">Keluar</span></span><b>›</b></button>
-        </nav>
-        <div class="side-foot" data-i18n="sideFoot">Tekan Ctrl/⌘ + K untuk membuka command palette.</div>
-      </aside>
-
-      <div class="content-stack">
-        <section class="section-block" id="metrics" data-reveal>
-          <div class="kpi-grid">
-            <article class="kpi-card"><div class="kpi-icon">🧾</div><span class="kpi-label" data-i18n="kpiOrders">Total Pesanan</span><strong class="kpi-value" data-count="12">0</strong><span class="kpi-trend up" data-i18n="kpiOrdersTrend">+3 bulan ini</span></article>
-            <article class="kpi-card"><div class="kpi-icon">💎</div><span class="kpi-label" data-i18n="kpiTier">Member Tier</span><strong class="kpi-value">Gold</strong><span class="kpi-trend" data-i18n="kpiTierTrend">Loyalty aktif</span></article>
-            <article class="kpi-card"><div class="kpi-icon">🚚</div><span class="kpi-label" data-i18n="kpiShipping">Pengiriman</span><strong class="kpi-value" data-count="2">0</strong><span class="kpi-trend warn" data-i18n="kpiShippingTrend">Sedang diproses</span></article>
-            <article class="kpi-card"><div class="kpi-icon">🛡️</div><span class="kpi-label" data-i18n="kpiSecure">Security</span><strong class="kpi-value" id="kpiSecure">A+</strong><span class="kpi-trend up" data-i18n="kpiSecureTrend">A2F terverifikasi</span></article>
-          </div>
-        </section>
-
-        <section class="section-block grid-2" id="insight">
-          <article class="card chart-card" data-reveal>
-            <div class="section-head"><div><h2 data-i18n="insightTitle">Insight aktivitas</h2><p data-i18n="insightSub">Grafik pesanan mingguan dan performa akun.</p></div><button class="btn-ghost" type="button" id="refreshChartBtn" data-i18n="refresh">Refresh</button></div>
-            <div class="bar-chart" aria-label="Grafik aktivitas mingguan">
-              <div class="bar"><i style="--h:46%"></i><span>Sen</span></div><div class="bar"><i style="--h:62%"></i><span>Sel</span></div><div class="bar"><i style="--h:38%"></i><span>Rab</span></div><div class="bar"><i style="--h:74%"></i><span>Kam</span></div><div class="bar"><i style="--h:58%"></i><span>Jum</span></div><div class="bar"><i style="--h:86%"></i><span>Sab</span></div><div class="bar"><i style="--h:68%"></i><span>Min</span></div>
-            </div>
-          </article>
-          <article class="card" data-reveal style="--reveal-delay:80ms">
-            <h3 data-i18n="categoryTitle">Kategori favorit</h3>
-            <p data-i18n="categoryText">Distribusi minat produk berdasarkan aktivitas katalog.</p>
-            <div class="donut-wrap">
-              <div class="donut" aria-hidden="true"></div>
-              <div class="legend">
-                <span><span><i></i>Woody Amber</span><b>58%</b></span>
-                <span><span><i style="background:#38bdf8"></i>Fresh Citrus</span><b>21%</b></span>
-                <span><span><i style="background:#18b981"></i>Sweet Vanilla</span><b>12%</b></span>
-                <span><span><i style="background:rgba(255,255,255,.28)"></i>Lainnya</span><b>9%</b></span>
+            <div class="app-breadcrumb"><span>Client Area</span><span>›</span><strong>Dashboard</strong><span class="app-connection" id="connectionState"><i></i><span id="connectionText">Online</span></span></div>
+            <div class="app-page-title">
+              <div>
+                <h1>Dashboard <span>Pelanggan</span></h1>
+                <p>Ringkasan cepat untuk layanan parfum, domain, project website, invoice, pengiriman, layanan nomor, dan bantuan admin.</p>
               </div>
             </div>
-          </article>
-        </section>
-
-        <section class="section-block" id="quick" data-reveal>
-          <div class="section-head"><div><h2 data-i18n="quickTitle">Aksi cepat</h2><p data-i18n="quickSub">Semua akses penting dibuat satu rasa dengan katalog dan login.</p></div></div>
-          <div class="quick-actions">
-            <a class="action-card" href="order1.html"><b>🛒</b><div><strong data-i18n="actCatalog">Lanjut belanja</strong><span data-i18n="actCatalogSub">Buka katalog premium</span></div></a>
-            <button class="action-card" type="button" data-open-theme><b>🎨</b><div><strong data-i18n="actTheme">Atur tema</strong><span data-i18n="actThemeSub">Warna, bahasa, gerak</span></div></button>
-            <button class="action-card" type="button" id="copySummaryBtn"><b>📋</b><div><strong data-i18n="actCopy">Copy ringkasan</strong><span data-i18n="actCopySub">Untuk admin/WA</span></div></button>
-            <a class="action-card" href="https://wa.me/6287892523968" target="_blank" rel="noopener"><b>💬</b><div><strong data-i18n="actWA">Chat WhatsApp</strong><span data-i18n="actWASub">Konsultasi aroma</span></div></a>
+          </div>
+          <div class="app-toolbar-actions">
+            <label class="app-search" for="serviceSearch"><span aria-hidden="true">⌕</span><input id="serviceSearch" type="search" autocomplete="off" placeholder="Cari layanan, invoice, resi..."></label>
+            <span class="app-date-pill" id="todayDate">Hari ini</span>
           </div>
         </section>
 
-        <section class="section-block card" id="orders" data-reveal>
-          <div class="section-head"><div><h2 data-i18n="ordersTitle">Pesanan terbaru</h2><p data-i18n="ordersSub">Cari, filter, dan lihat status pesanan tanpa merusak sistem cart asli.</p></div><a class="btn-primary" href="order1.html" data-i18n="newOrder">Pesan baru</a></div>
-          <div class="toolbar">
-            <input class="field" id="orderSearch" type="search" placeholder="Cari pesanan / produk..." data-i18n-placeholder="searchOrder">
-            <select class="field" id="orderStatusFilter" aria-label="Filter status"><option value="all" data-i18n="filterAll">Semua status</option><option value="delivered" data-i18n="filterDelivered">Terkirim</option><option value="processing" data-i18n="filterProcessing">Diproses</option><option value="waiting" data-i18n="filterWaiting">Menunggu</option></select>
-            <select class="field" id="orderSort" aria-label="Urutkan"><option value="newest" data-i18n="sortNewest">Terbaru</option><option value="oldest" data-i18n="sortOldest">Terlama</option><option value="highest" data-i18n="sortHighest">Nominal tertinggi</option></select>
+        <section class="app-hero" aria-labelledby="dashboardWelcome">
+          <article class="app-welcome-card" data-reveal>
+            <div class="app-welcome-copy">
+              <span class="eyebrow">Dashboard pelanggan</span>
+              <h2 id="dashboardWelcome">Selamat datang, <span id="displayName">Pelanggan</span></h2>
+              <p>Semua layanan utama disusun seperti dashboard full stack: status penting di atas, ringkasan angka yang padat, kartu layanan rapi, lalu notifikasi dan aktivitas terbaru. Gunakan menu atau kartu layanan untuk membuka fitur yang dibutuhkan.</p>
+            </div>
+            <div class="app-mini-status" aria-label="Status singkat">
+              <div class="app-mini-card"><small>Status akun</small><strong><span class="dot"></span>Aktif</strong></div>
+              <div class="app-mini-card"><small>Tagihan</small><strong>Tidak ada tertunda</strong></div>
+              <div class="app-mini-card"><small>Bantuan</small><strong>Admin tersedia</strong></div>
+            </div>
+          </article>
+
+          <aside class="app-control-card" data-reveal style="--reveal-delay:80ms" aria-labelledby="focusTodayTitle">
+            <div class="app-card-title">
+              <div><span class="eyebrow">Hari ini</span><h2 id="focusTodayTitle">Pusat perhatian</h2><p>Hal yang perlu ditindaklanjuti tampil di panel ini agar pelanggan tidak melewatkan informasi penting tanpa perlu tombol tambahan yang mengganggu layout.</p></div>
+            </div>
+            <div class="app-alert-stack">
+              <div class="app-alert"><span class="app-alert-icon">🧾</span><div><strong>Invoice</strong><small>Tidak ada tagihan yang perlu dibayar.</small></div><span class="app-chip ok">Aman</span></div>
+              <div class="app-alert"><span class="app-alert-icon">🌐</span><div><strong>Domain</strong><small>Belum ada domain yang mendekati masa expired.</small></div><span class="app-chip ok">Aman</span></div>
+              <div class="app-alert"><span class="app-alert-icon">💻</span><div><strong>Project website</strong><small>Tidak ada approval yang menunggu persetujuan.</small></div><span class="app-chip info">Info</span></div>
+              <div class="app-alert"><span class="app-alert-icon">💬</span><div><strong>Tiket bantuan</strong><small>Tidak ada tiket yang menunggu balasan.</small></div><span class="app-chip ok">Aman</span></div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="app-section" aria-labelledby="summaryTitle" data-reveal>
+          <div class="app-section-head">
+            <div><h2 id="summaryTitle">Ringkasan layanan</h2><p>Angka penting dibuat ringkas seperti dashboard aplikasi, tanpa tabel besar dan tanpa istilah teknis yang membingungkan pelanggan.</p></div>
+            <span class="app-muted-action">Data kosong tetap aman</span>
           </div>
-          <div class="table-wrap"><table><thead><tr><th data-i18n="thOrder">Order</th><th data-i18n="thProduct">Produk</th><th data-i18n="thDate">Tanggal</th><th data-i18n="thTotal">Total</th><th data-i18n="thStatus">Status</th><th data-i18n="thAction">Aksi</th></tr></thead><tbody id="ordersBody"></tbody></table></div>
-        </section>
-
-        <section class="section-block grid-2" id="security">
-          <article class="card" data-reveal>
-            <div class="section-head"><div><h2 data-i18n="securityTitle">Pusat keamanan</h2><p data-i18n="securitySub">Lapisan keamanan dashboard membaca status login/A2F dari halaman masuk.</p></div></div>
-            <div class="mini-list">
-              <div class="mini-item"><div><strong data-i18n="secLogin">Session login</strong><small id="loginSessionMeta">-</small></div><span class="status-chip ok">✓ <span data-i18n="active">Aktif</span></span></div>
-              <div class="mini-item"><div><strong data-i18n="secA2F">A2F / MFA</strong><small id="a2fMeta">-</small></div><span class="status-chip ok" id="a2fChip">✓ Verified</span></div>
-              <div class="mini-item"><div><strong data-i18n="secStorage">Local secure marker</strong><small id="markerMeta">-</small></div><span class="status-chip ok">✓ Gate</span></div>
-              <div class="mini-item"><div><strong data-i18n="secCsp">CSP & privacy meta</strong><small data-i18n="secCspSub">Inline guard aktif di halaman dashboard.</small></div><span class="status-chip ok">✓ CSP</span></div>
-            </div>
-          </article>
-          <article class="card" data-reveal style="--reveal-delay:80ms">
-            <h3 data-i18n="securityActions">Kontrol keamanan</h3>
-            <p data-i18n="securityActionsSub">Pengaturan ini bersifat UI dashboard dan tidak mengubah endpoint/hash login.</p>
-            <div class="switch-row"><div><strong data-i18n="toggleLock">Auto-lock visual</strong><small class="muted" data-i18n="toggleLockSub">Blur data saat tab tidak aktif</small></div><button class="toggle-switch on" type="button" id="visualLockToggle" aria-pressed="true"><i></i></button></div>
-            <div class="switch-row"><div><strong data-i18n="toggleSound">Feedback suara</strong><small class="muted" data-i18n="toggleSoundSub">Bunyi ringan saat aksi berhasil</small></div><button class="toggle-switch" type="button" id="soundToggle" aria-pressed="false"><i></i></button></div>
-            <div class="switch-row"><div><strong data-i18n="toggleSensitive">Mode sensitif</strong><small class="muted" data-i18n="toggleSensitiveSub">Sembunyikan email dan nominal</small></div><button class="toggle-switch" type="button" id="sensitiveToggle" aria-pressed="false"><i></i></button></div>
-          </article>
-        </section>
-
-        <section class="section-block grid-2" id="profile">
-          <article class="card" data-reveal>
-            <div class="section-head"><div><h2 data-i18n="profileTitle">Profil pelanggan</h2><p data-i18n="profileSub">Data tampilan diambil dari session login, tanpa mengirim password.</p></div></div>
-            <div class="profile-grid">
-              <div class="profile-field"><span data-i18n="profileName">Nama</span><strong id="profileName">Pelanggan Dirac</strong></div>
-              <div class="profile-field"><span data-i18n="profileEmail">Email / ID</span><strong id="profileEmail">-</strong></div>
-              <div class="profile-field"><span data-i18n="profileMode">Mode akses</span><strong id="profileMode">Login</strong></div>
-              <div class="profile-field"><span data-i18n="profileTime">Waktu validasi</span><strong id="profileTime">-</strong></div>
-            </div>
-          </article>
-          <article class="card" data-reveal style="--reveal-delay:80ms">
-            <h3 data-i18n="notifTitle">Notifikasi</h3>
-            <p data-i18n="notifSub">Prioritas sistem, pesanan, dan promo katalog.</p>
-            <div class="timeline">
-              <div class="timeline-item"><span class="timeline-dot">🛡️</span><div class="timeline-copy"><strong data-i18n="noti1">Dashboard aman dibuka</strong><span data-i18n="noti1Sub">Gate login dan A2F sudah terbaca.</span></div></div>
-              <div class="timeline-item"><span class="timeline-dot">🎨</span><div class="timeline-copy"><strong data-i18n="noti2">Tema global aktif</strong><span data-i18n="noti2Sub">Warna, bahasa, dan gerak tersimpan.</span></div></div>
-              <div class="timeline-item"><span class="timeline-dot">🛒</span><div class="timeline-copy"><strong data-i18n="noti3">Cart katalog tetap asli</strong><span data-i18n="noti3Sub">Dashboard tidak mengubah fungsi keranjang.</span></div></div>
-            </div>
-          </article>
-        </section>
-
-        <section class="section-block card" id="settings" data-reveal>
-          <div class="section-head"><div><h2 data-i18n="settingsTitle">Pengaturan dashboard</h2><p data-i18n="settingsSub">Semua pilihan dibuat konsisten dengan halaman masuk dan order.</p></div><button class="btn-primary" type="button" data-open-theme data-i18n="openThemeSettings">Buka tema</button></div>
-          <div class="grid-3">
-            <div class="mini-item"><div><strong data-i18n="setTheme">Tema</strong><small id="settingThemeMeta">Dark / Gold</small></div><span>🎨</span></div>
-            <div class="mini-item"><div><strong data-i18n="setLanguage">Bahasa</strong><small id="settingLanguageMeta">Indonesia</small></div><span>🌐</span></div>
-            <div class="mini-item"><div><strong data-i18n="setMotion">Gerak website</strong><small id="settingMotionMeta">Full animation</small></div><span>✨</span></div>
+          <div class="app-metrics" aria-label="Ringkasan angka layanan">
+            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🛍️</span><strong class="app-value" data-app-count="0">0</strong></div><h3>Pesanan aktif</h3><p>Belum ada pesanan parfum atau layanan yang sedang diproses.</p><div class="app-load-note"><span class="app-skeleton" style="width:72px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
+            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🚚</span><strong class="app-value" data-app-count="0">0</strong></div><h3>Pengiriman</h3><p>Belum ada paket yang sedang dalam perjalanan.</p><div class="app-load-note"><span class="app-skeleton" style="width:74px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
+            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🌐</span><strong class="app-value" data-app-count="0">0</strong></div><h3>Domain aktif</h3><p>Domain pelanggan akan muncul setelah layanan domain dibuat.</p><div class="app-load-note"><span class="app-skeleton" style="width:76px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
+            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">💻</span><strong class="app-value" data-app-count="0">0</strong></div><h3>Project website</h3><p>Progress website akan tampil ketika project berjalan.</p><div class="app-load-note"><span class="app-skeleton" style="width:70px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
           </div>
+        </section>
+
+        <section class="app-dashboard-grid" data-reveal>
+          <article class="app-panel" aria-labelledby="attentionTitle">
+            <div class="app-card-title"><div><span class="eyebrow">Perlu perhatian</span><h2 id="attentionTitle">Status penting</h2><p>Bagian ini menonjolkan hal yang biasanya membutuhkan tindakan pelanggan.</p></div></div>
+            <div class="app-list">
+              <div class="app-list-row"><span class="app-alert-icon">🧾</span><div><strong>Tagihan</strong><small>Tidak ada invoice tertunda.</small></div><span class="app-chip ok">Beres</span></div>
+              <div class="app-list-row"><span class="app-alert-icon">🌐</span><div><strong>Masa aktif domain</strong><small>Belum ada domain yang hampir expired.</small></div><span class="app-chip ok">Aman</span></div>
+              <div class="app-list-row"><span class="app-alert-icon">✅</span><div><strong>Approval website</strong><small>Belum ada desain atau website final yang menunggu persetujuan.</small></div><span class="app-chip info">Kosong</span></div>
+            </div>
+          </article>
+          <article class="app-panel" aria-labelledby="workflowTitle">
+            <div class="app-card-title"><div><span class="eyebrow">Alur layanan</span><h2 id="workflowTitle">Cara dashboard bekerja</h2><p>Informasi akan masuk ke ringkasan saat pelanggan mulai menggunakan layanan.</p></div></div>
+            <div class="app-flow">
+              <div class="app-flow-step"><i>1</i><div><strong>Order atau layanan dibuat</strong><span>Parfum, domain, website, invoice, dan layanan nomor masuk sebagai ringkasan.</span></div></div>
+              <div class="app-flow-step"><i>2</i><div><strong>Status diperbarui</strong><span>Pengiriman, tagihan, project, dan tiket tampil dalam bentuk status pendek.</span></div></div>
+              <div class="app-flow-step"><i>3</i><div><strong>Pelanggan ambil tindakan</strong><span>Cek resi, buka katalog, konfirmasi pembayaran, atau hubungi admin dari tombol cepat.</span></div></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="app-section" aria-labelledby="servicesTitle" data-reveal>
+          <div class="app-section-head">
+            <div><h2 id="servicesTitle">Layanan pelanggan</h2><p>Card dibuat seragam, lebih padat, dan berfungsi sebagai pintu masuk ke layanan utama. Tidak ada section aksi cepat terpisah agar navigasi tetap fokus.</p></div>
+            <span class="app-muted-action" id="serviceCount">7 layanan</span>
+          </div>
+          <div class="app-no-results" id="serviceNoResults"><strong>Layanan tidak ditemukan</strong><span>Coba kata kunci lain seperti parfum, domain, invoice, resi, website, atau bantuan.</span></div>
+          <div class="app-services" id="serviceGrid">
+            <article class="app-service" data-service-card data-keywords="parfum produk pengiriman pesanan katalog"><div><div class="app-service-head"><span class="app-iconbox">🌸</span><span class="app-chip info">Belum ada pesanan</span></div><h3>Parfum</h3><p>Pantau pembelian parfum, pengiriman, review, dan riwayat pesanan.</p><div class="app-service-tags"><span class="app-tag">Produk utama</span><span class="app-tag">Pengiriman</span></div></div><div class="app-service-foot"><span class="muted">Katalog</span><a class="app-link" href="order1.html">Buka</a></div></article>
+            <article class="app-service" data-service-card data-keywords="domain renewal expired dns website"><div><div class="app-service-head"><span class="app-iconbox">🌐</span><span class="app-chip info">Belum ada domain</span></div><h3>Domain</h3><p>Lihat domain aktif, masa berlaku, renewal, dan kebutuhan pengelolaan domain.</p><div class="app-service-tags"><span class="app-tag">Digital</span><span class="app-tag">Renewal</span></div></div><div class="app-service-foot"><span class="muted">Admin</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener">Tanya</a></div></article>
+            <article class="app-service" data-service-card data-keywords="project website development revisi desain maintenance"><div><div class="app-service-head"><span class="app-iconbox">💻</span><span class="app-chip info">Belum ada project</span></div><h3>Project Website</h3><p>Pantau pembuatan, pengembangan, revisi, approval, dan maintenance website.</p><div class="app-service-tags"><span class="app-tag">Progress</span><span class="app-tag">Revisi</span></div></div><div class="app-service-foot"><span class="muted">Konsultasi</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener">Chat</a></div></article>
+            <article class="app-service" data-service-card data-keywords="cek resi tracking pengiriman kurir paket"><div><div class="app-service-head"><span class="app-iconbox">🚚</span><span class="app-chip info">Siap dicek</span></div><h3>Cek Resi</h3><p>Lacak paket dan bantu pelanggan mengetahui status pengiriman.</p><div class="app-service-tags"><span class="app-tag">Kurir</span><span class="app-tag">Tracking</span></div></div><div class="app-service-foot"><span class="muted">Pengiriman</span><button class="app-link" type="button" data-open-tracking>Cek</button></div></article>
+            <article class="app-service" data-service-card data-keywords="nomor layanan legal masa aktif"><div><div class="app-service-head"><span class="app-iconbox">📱</span><span class="app-chip info">Belum aktif</span></div><h3>Layanan Nomor</h3><p>Lihat layanan nomor legal, masa aktif, invoice, dan bantuan penggunaan.</p><div class="app-service-tags"><span class="app-tag">Legal</span><span class="app-tag">Masa aktif</span></div></div><div class="app-service-foot"><span class="muted">Sesuai aturan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener">Tanya</a></div></article>
+            <article class="app-service" data-service-card data-keywords="invoice tagihan pembayaran bukti transfer kwitansi"><div><div class="app-service-head"><span class="app-iconbox">🧾</span><span class="app-chip ok">Tidak ada tagihan</span></div><h3>Invoice</h3><p>Cek tagihan, status pembayaran, bukti transfer, dan riwayat invoice.</p><div class="app-service-tags"><span class="app-tag">Pembayaran</span><span class="app-tag">Kwitansi</span></div></div><div class="app-service-foot"><span class="muted">Tagihan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener">Konfirmasi</a></div></article>
+            <article class="app-service wide" data-service-card data-keywords="tiket bantuan admin support whatsapp masalah"><div><div class="app-service-head"><span class="app-iconbox">💬</span><span class="app-chip ok">Admin siap</span></div><h3>Tiket Bantuan</h3><p>Hubungi admin untuk kendala parfum, domain, website, pembayaran, pengiriman, dan layanan nomor.</p><div class="app-service-tags"><span class="app-tag">Customer care</span><span class="app-tag">WhatsApp</span><span class="app-tag">Respons normal</span></div></div><div class="app-service-foot"><span class="muted">Bantuan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener">Chat admin</a></div></article>
+          </div>
+        </section>
+
+        <section class="app-updates" data-reveal>
+          <article class="app-panel" aria-labelledby="notificationsTitle">
+            <div class="app-card-title"><div><h2 id="notificationsTitle">Notifikasi terbaru</h2><p>Pemberitahuan penting tentang invoice, pengiriman, domain, project, dan balasan admin.</p></div></div>
+            <div class="app-empty"><span class="app-iconbox">🔔</span><div><strong>Belum ada notifikasi terbaru</strong><p>Jika ada tagihan, paket dikirim, domain hampir expired, atau project menunggu approval, informasinya muncul di sini.</p><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener">Butuh bantuan?</a></div></div>
+          </article>
+          <article class="app-panel" aria-labelledby="activityTitle">
+            <div class="app-card-title"><div><h2 id="activityTitle">Aktivitas terbaru</h2><p>Riwayat singkat dibuat seperti feed aplikasi agar dashboard tetap bersih.</p></div></div>
+            <div class="app-empty"><span class="app-iconbox">🕘</span><div><strong>Belum ada aktivitas</strong><p>Pesanan baru, pembayaran, update project, dan tiket bantuan akan tercatat setelah pelanggan mulai memakai layanan.</p><a class="app-link" href="order1.html">Mulai dari katalog</a></div></div>
+          </article>
         </section>
       </div>
     </section>
   </main>
 
+
+
   <div class="menu-overlay" id="menuOverlay" aria-hidden="true">
     <aside class="menu-drawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
-      <div class="drawer-head"><div><h2 id="menuTitle" data-i18n="menuTitle">Menu Dashboard</h2><p data-i18n="menuSub">Navigasi cepat Dirac Group.</p></div><button class="icon-btn" type="button" data-close-menu aria-label="Tutup menu">×</button></div>
+      <div class="drawer-head"><div><h2 id="menuTitle" data-i18n="menuTitle">Menu Dashboard</h2><p data-i18n="menuSub">Navigasi utama pelanggan.</p></div><button class="icon-btn" type="button" data-close-menu aria-label="Tutup menu">×</button></div>
       <div class="drawer-links">
-        <a href="#overview" data-close-menu><span data-i18n="navOverview">Overview</span><b>›</b></a>
-        <a href="#orders" data-close-menu><span data-i18n="navOrders">Pesanan</span><b>›</b></a>
-        <a href="#security" data-close-menu><span data-i18n="navSecurity">Keamanan</span><b>›</b></a>
-        <a href="order1.html"><span data-i18n="navCatalog">Katalog</span><b>›</b></a>
-        <a href="masuk.html"><span data-i18n="backLogin">Halaman masuk</span><b>›</b></a>
+        <a href="#overview" data-close-menu><span data-i18n="navDashboard">Dashboard</span><b>›</b></a>
+        <a href="order1.html"><span data-i18n="openCatalog">Buka katalog</span><b>›</b></a>
+        <button type="button" data-open-tracking><span data-i18n="actTracking">Cek resi</span><b>›</b></button>
+        <a href="https://wa.me/6287892523968" target="_blank" rel="noopener"><span data-i18n="contactAdmin">Hubungi admin</span><b>›</b></a>
         <button type="button" data-open-theme><span data-i18n="theme">Tema</span><b>›</b></button>
+        <button type="button" id="logoutBtn" class="logout-drawer-btn"><span data-i18n="logout">Keluar</span><b>›</b></button>
       </div>
-      <div class="drawer-foot" data-i18n="menuFoot">Header, tema, menu, AI, dan animasi dibuat satu kesatuan dengan order1.html.</div>
+      <div class="drawer-foot" data-i18n="menuFoot">Dashboard berisi ringkasan layanan pelanggan, notifikasi, aktivitas, dan pintu masuk layanan melalui menu serta kartu layanan.</div>
     </aside>
+  </div>
+
+  <div class="theme-modal pro-modal" id="trackingModal" aria-hidden="true">
+    <section class="pro-modal-card" role="dialog" aria-modal="true" aria-labelledby="trackingTitle" tabindex="-1">
+      <div class="theme-head"><div><h2 id="trackingTitle" data-i18n="trackingTitle">Cek Resi</h2><p data-i18n="trackingSub">Masukkan nomor resi untuk menyiapkan pengecekan pengiriman.</p></div><button class="icon-btn" type="button" data-close-tracking aria-label="Tutup cek resi">×</button></div>
+      <form class="tracking-form" id="trackingForm">
+        <input class="field" id="trackingNumber" name="trackingNumber" type="text" autocomplete="off" placeholder="Masukkan nomor resi">
+        <select class="field" id="trackingCourier" name="trackingCourier" aria-label="Pilih kurir">
+          <option value="">Pilih kurir</option><option>JNE</option><option>J&T</option><option>SiCepat</option><option>Anteraja</option><option>Pos Indonesia</option><option>TIKI</option><option>Shopee Express</option><option>Lion Parcel</option><option>Ninja Express</option><option>Wahana</option>
+        </select>
+        <div class="tracking-result" id="trackingResult"><strong>Resi siap dicek.</strong><p>Untuk tracking realtime, kirim nomor resi ke admin agar bisa dibantu pengecekan.</p></div>
+        <div class="pro-modal-actions"><button class="btn-secondary" type="button" data-close-tracking data-i18n="cancel">Batal</button><button class="btn-primary" type="submit" data-i18n="checkTracking">Cek sekarang</button></div>
+      </form>
+    </section>
   </div>
 
   <div class="theme-modal" id="themeModal" aria-hidden="true">
     <section class="theme-card" role="dialog" aria-modal="true" aria-labelledby="themeTitle" tabindex="-1">
       <div class="theme-head"><div><h2 id="themeTitle" data-i18n="themeTitle">Pengaturan Tema</h2><p data-i18n="themeSub">Ganti warna, bahasa, mode, dan gerak website.</p></div><button class="icon-btn" type="button" data-close-theme aria-label="Tutup tema">×</button></div>
       <div class="theme-section"><h3 data-i18n="modeTitle">Mode tampilan</h3><p data-i18n="modeSub">Pilih gelap, terang, atau otomatis mengikuti perangkat.</p><div class="choice-grid"><button class="choice" type="button" data-theme-mode="dark">🌙 <span data-i18n="dark">Gelap</span></button><button class="choice" type="button" data-theme-mode="light">☀️ <span data-i18n="light">Terang</span></button><button class="choice" type="button" data-theme-mode="auto">💻 <span data-i18n="auto">Otomatis</span></button><button class="choice" type="button" data-contrast="on">◐ <span data-i18n="contrast">Kontras</span></button></div></div>
-      <div class="theme-section"><h3 data-i18n="accentTitle">Warna aksen</h3><p data-i18n="accentSub">Warna akan ikut mempengaruhi header, tombol, kartu, chart, dan AI.</p><div class="choice-grid colors" id="accentChoices"></div></div>
+      <div class="theme-section"><h3 data-i18n="accentTitle">Warna aksen</h3><p data-i18n="accentSub">Warna akan mengikuti header, tombol, kartu, dan elemen dashboard.</p><div class="choice-grid colors" id="accentChoices"></div></div>
       <div class="theme-section"><h3 data-i18n="languageTitle">Bahasa</h3><p data-i18n="languageSub">Pilih bahasa tampilan dashboard.</p><div class="choice-grid"><button class="choice" type="button" data-language="id">🇮🇩 Indonesia</button><button class="choice" type="button" data-language="en">🇬🇧 English</button></div></div>
-      <div class="theme-section"><h3 data-i18n="motionTitle">Gerak website</h3><p data-i18n="motionSub">Animasi wajib ada, tetapi bisa dikurangi untuk kenyamanan.</p><div class="choice-grid"><button class="choice" type="button" data-motion-choice="full">✨ <span data-i18n="motionFull">Full animasi</span></button><button class="choice" type="button" data-motion-choice="reduced">🪶 <span data-i18n="motionReduced">Gerak ringan</span></button></div></div>
+      <div class="theme-section"><h3 data-i18n="motionTitle">Gerak website</h3><p data-i18n="motionSub">Animasi bisa dikurangi untuk kenyamanan.</p><div class="choice-grid"><button class="choice" type="button" data-motion-choice="full">✨ <span data-i18n="motionFull">Full animasi</span></button><button class="choice" type="button" data-motion-choice="reduced">🪶 <span data-i18n="motionReduced">Gerak ringan</span></button></div></div>
       <div class="theme-section"><div class="choice-grid"><button class="btn-secondary" type="button" id="themeResetBtn" data-i18n="resetTheme">Reset tema</button><button class="btn-primary" type="button" data-close-theme data-i18n="saveClose">Simpan & tutup</button></div></div>
     </section>
   </div>
 
-  <div class="dirac-floating-actions" id="floatingActions" aria-label="Aksi cepat">
+  <div class="dirac-floating-actions" id="floatingActions" aria-label="Tombol bantuan dan kembali ke atas">
     <button class="dirac-float-btn dirac-float-top" id="scrollTopBtn" type="button" aria-label="Scroll ke atas">↑</button>
     <a class="dirac-float-btn dirac-float-wa" href="https://wa.me/6287892523968" target="_blank" rel="noopener" aria-label="Chat WhatsApp Dirac Group">☎</a>
   </div>
 
-  <div class="dirac-ai-widget" aria-label="Dirac AI"><button class="ai-trigger" id="aiTrigger" type="button" aria-label="Buka Dirac AI">✨</button></div>
-  <div class="ai-panel-overlay" id="aiOverlay" aria-hidden="true">
-    <section class="ai-panel" role="dialog" aria-modal="true" aria-labelledby="aiTitle" tabindex="-1">
-      <div class="ai-head"><div><h2 id="aiTitle" data-i18n="aiTitle">Dirac AI</h2><p data-i18n="aiSub">Bantuan cepat untuk dashboard.</p></div><button class="icon-btn" type="button" data-close-ai aria-label="Tutup Dirac AI">×</button></div>
-      <div class="ai-body" id="aiBody"><div class="ai-message bot" data-i18n="aiWelcome">Halo! Saya bisa bantu soal dashboard, pesanan, tema, bahasa, gerak website, keamanan, dan katalog.</div><div class="ai-chips"><button class="ai-chip" type="button" data-ai-question="security" data-i18n="aiChipSecurity">Cek keamanan</button><button class="ai-chip" type="button" data-ai-question="theme" data-i18n="aiChipTheme">Ganti tema</button><button class="ai-chip" type="button" data-ai-question="order" data-i18n="aiChipOrder">Pesanan</button></div></div>
-      <form class="ai-form" id="aiForm"><input class="field" id="aiInput" type="text" placeholder="Tulis pertanyaan..." autocomplete="off" data-i18n-placeholder="aiPlaceholder"><button class="btn-primary" type="submit" aria-label="Kirim pertanyaan">➤</button></form>
-    </section>
-  </div>
-
-  <div class="command-modal" id="commandModal" aria-hidden="true">
-    <section class="command-card" role="dialog" aria-modal="true" aria-labelledby="commandTitle" tabindex="-1">
-      <div class="command-head"><div><h2 id="commandTitle" data-i18n="commandTitle">Command cepat</h2><p data-i18n="commandSub">Cari aksi dashboard.</p></div><button class="icon-btn" type="button" data-close-command aria-label="Tutup command">×</button></div>
-      <div class="command-search"><input class="field" id="commandInput" type="search" placeholder="Cari: pesanan, tema, keamanan..." data-i18n-placeholder="commandPlaceholder"></div>
-      <div class="command-list" id="commandList"></div>
-    </section>
-  </div>
-
   <div class="security-gate" id="securityGate">
     <section class="gate-card" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
-      <div class="gate-icon">🛡️</div>
+      <div class="gate-icon">🔒</div>
       <h1 id="gateTitle" data-i18n="gateTitle">Dashboard terkunci</h1>
-      <p data-i18n="gateText">Login dan A2F harus valid dari halaman masuk. Sistem login/hash tidak diubah; dashboard hanya membaca session yang sudah ada.</p>
+      <p data-i18n="gateText">Silakan masuk terlebih dahulu untuk membuka dashboard pelanggan.</p>
       <div class="gate-actions"><a class="btn-primary" href="masuk.html" data-i18n="goLogin">Masuk dulu</a><a class="btn-secondary" href="order1.html" data-i18n="viewCatalog">Lihat katalog</a></div>
     </section>
   </div>
 
   <footer class="footer">
     <div class="container footer-grid">
-      <div><h3>Dirac Group</h3><p data-i18n="footerText">Dashboard premium modern minimalis, tersambung dengan login, katalog, tema, bahasa, AI, dan animasi.</p></div>
-      <div><h4 data-i18n="footerNav">Navigasi</h4><ul><li><a href="#overview" data-i18n="navOverview">Overview</a></li><li><a href="#orders" data-i18n="navOrders">Pesanan</a></li><li><a href="order1.html" data-i18n="navCatalog">Katalog</a></li></ul></div>
-      <div><h4 data-i18n="footerSecurity">Keamanan</h4><ul><li data-i18n="footSec1">Tidak menyentuh kode hash login</li><li data-i18n="footSec2">Guard session lokal</li><li data-i18n="footSec3">A2F marker dibaca aman</li></ul></div>
+      <div><h3>Dirac Group</h3><p data-i18n="footerText">Dashboard pelanggan modern untuk ringkasan parfum, domain, website, invoice, pengiriman, dan bantuan.</p></div>
+      <div><h4 data-i18n="footerNav">Navigasi</h4><ul><li><a href="#overview" data-i18n="navDashboard">Dashboard</a></li><li><a href="order1.html" data-i18n="openCatalog">Buka katalog</a></li></ul></div>
+      <div><h4 data-i18n="footerHelp">Bantuan</h4><ul><li><a href="https://wa.me/6287892523968" target="_blank" rel="noopener" data-i18n="contactAdmin">Hubungi admin</a></li><li><button class="btn-ghost" type="button" data-open-theme data-i18n="theme">Tema</button></li></ul></div>
     </div>
-    <div class="container copyright"><span>© <span id="year"></span> Dirac Group.</span><span data-i18n="copyright">Dashboard unified dengan order1.html dan masuk.html.</span></div>
+    <div class="container copyright"><span>© <span id="year"></span> Dirac Group.</span><span data-i18n="copyright">Dashboard ringkasan pelanggan.</span></div>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -313,7 +354,6 @@
   <script>
   (function(){
     'use strict';
-    var API_ENDPOINT='https://companyprofilee-expk.vercel.app/api/health';
     var THEME_KEY='dirac_theme_settings_v2';
     var AUTH_KEY='dirac_auth_session_v1';
     var A2F_KEY='dirac_auth_a2f_v1';
@@ -332,44 +372,26 @@
       graphite:{label:'Graphite',gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}
     };
     var I18N={
-      id:{announce:'Dashboard pelanggan aman - tema menyatu - katalog premium Dirac Group',openCatalog:'Buka katalog',navOverview:'Overview',navOrders:'Pesanan',navSecurity:'Keamanan',navSettings:'Pengaturan',navCatalog:'Katalog',theme:'Tema',heroKicker:'Akses dashboard aman',hello:'Halo',heroText:'Semua ringkasan pesanan, profil, keamanan A2F, preferensi tema, dan aksi cepat dibuat menyatu dengan gaya katalog Dirac agar pindah halaman terasa mulus.',shopNow:'Belanja parfum',quickCommand:'Command cepat',exportData:'Export data',trust1:'Session login terenkripsi lokal',trust2:'A2F gate aktif',trust3:'Tema global sinkron',secureTitle:'Proteksi akun',checkingApi:'Mengecek gateway API...',sideOverview:'Overview',sideInsight:'Insight',sideOrders:'Pesanan',sideSecurity:'Keamanan',sideProfile:'Profil',sideSettings:'Pengaturan',sideTheme:'Tema',logout:'Keluar',sideFoot:'Tekan Ctrl/⌘ + K untuk membuka command palette.',kpiOrders:'Total Pesanan',kpiOrdersTrend:'+3 bulan ini',kpiTier:'Member Tier',kpiTierTrend:'Loyalty aktif',kpiShipping:'Pengiriman',kpiShippingTrend:'Sedang diproses',kpiSecure:'Security',kpiSecureTrend:'A2F terverifikasi',insightTitle:'Insight aktivitas',insightSub:'Grafik pesanan mingguan dan performa akun.',refresh:'Refresh',categoryTitle:'Kategori favorit',categoryText:'Distribusi minat produk berdasarkan aktivitas katalog.',quickTitle:'Aksi cepat',quickSub:'Semua akses penting dibuat satu rasa dengan katalog dan login.',actCatalog:'Lanjut belanja',actCatalogSub:'Buka katalog premium',actTheme:'Atur tema',actThemeSub:'Warna, bahasa, gerak',actCopy:'Copy ringkasan',actCopySub:'Untuk admin/WA',actWA:'Chat WhatsApp',actWASub:'Konsultasi aroma',ordersTitle:'Pesanan terbaru',ordersSub:'Cari, filter, dan lihat status pesanan tanpa merusak sistem cart asli.',newOrder:'Pesan baru',searchOrder:'Cari pesanan / produk...',filterAll:'Semua status',filterDelivered:'Terkirim',filterProcessing:'Diproses',filterWaiting:'Menunggu',sortNewest:'Terbaru',sortOldest:'Terlama',sortHighest:'Nominal tertinggi',thOrder:'Order',thProduct:'Produk',thDate:'Tanggal',thTotal:'Total',thStatus:'Status',thAction:'Aksi',securityTitle:'Pusat keamanan',securitySub:'Lapisan keamanan dashboard membaca status login/A2F dari halaman masuk.',secLogin:'Session login',active:'Aktif',secA2F:'A2F / MFA',secStorage:'Local secure marker',secCsp:'CSP & privacy meta',secCspSub:'Inline guard aktif di halaman dashboard.',securityActions:'Kontrol keamanan',securityActionsSub:'Pengaturan ini bersifat UI dashboard dan tidak mengubah endpoint/hash login.',toggleLock:'Auto-lock visual',toggleLockSub:'Blur data saat tab tidak aktif',toggleSound:'Feedback suara',toggleSoundSub:'Bunyi ringan saat aksi berhasil',toggleSensitive:'Mode sensitif',toggleSensitiveSub:'Sembunyikan email dan nominal',profileTitle:'Profil pelanggan',profileSub:'Data tampilan diambil dari session login, tanpa mengirim password.',profileName:'Nama',profileEmail:'Email / ID',profileMode:'Mode akses',profileTime:'Waktu validasi',notifTitle:'Notifikasi',notifSub:'Prioritas sistem, pesanan, dan promo katalog.',noti1:'Dashboard aman dibuka',noti1Sub:'Gate login dan A2F sudah terbaca.',noti2:'Tema global aktif',noti2Sub:'Warna, bahasa, dan gerak tersimpan.',noti3:'Cart katalog tetap asli',noti3Sub:'Dashboard tidak mengubah fungsi keranjang.',settingsTitle:'Pengaturan dashboard',settingsSub:'Semua pilihan dibuat konsisten dengan halaman masuk dan order.',openThemeSettings:'Buka tema',setTheme:'Tema',setLanguage:'Bahasa',setMotion:'Gerak website',menuTitle:'Menu Dashboard',menuSub:'Navigasi cepat Dirac Group.',backLogin:'Halaman masuk',menuFoot:'Header, tema, menu, AI, dan animasi dibuat satu kesatuan dengan order1.html.',themeTitle:'Pengaturan Tema',themeSub:'Ganti warna, bahasa, mode, dan gerak website.',modeTitle:'Mode tampilan',modeSub:'Pilih gelap, terang, atau otomatis mengikuti perangkat.',dark:'Gelap',light:'Terang',auto:'Otomatis',contrast:'Kontras',accentTitle:'Warna aksen',accentSub:'Warna akan ikut mempengaruhi header, tombol, kartu, chart, dan AI.',languageTitle:'Bahasa',languageSub:'Pilih bahasa tampilan dashboard.',motionTitle:'Gerak website',motionSub:'Animasi wajib ada, tetapi bisa dikurangi untuk kenyamanan.',motionFull:'Full animasi',motionReduced:'Gerak ringan',resetTheme:'Reset tema',saveClose:'Simpan & tutup',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk dashboard.',aiWelcome:'Halo! Saya bisa bantu soal dashboard, pesanan, tema, bahasa, gerak website, keamanan, dan katalog.',aiChipSecurity:'Cek keamanan',aiChipTheme:'Ganti tema',aiChipOrder:'Pesanan',aiPlaceholder:'Tulis pertanyaan...',commandTitle:'Command cepat',commandSub:'Cari aksi dashboard.',commandPlaceholder:'Cari: pesanan, tema, keamanan...',gateTitle:'Dashboard terkunci',gateText:'Login dan A2F harus valid dari halaman masuk. Sistem login/hash tidak diubah; dashboard hanya membaca session yang sudah ada.',goLogin:'Masuk dulu',viewCatalog:'Lihat katalog',footerText:'Dashboard premium modern minimalis, tersambung dengan login, katalog, tema, bahasa, AI, dan animasi.',footerNav:'Navigasi',footerSecurity:'Keamanan',footSec1:'Tidak menyentuh kode hash login',footSec2:'Guard session lokal',footSec3:'A2F marker dibaca aman',copyright:'Dashboard unified dengan order1.html dan masuk.html.',emptyOrders:'Tidak ada pesanan yang cocok.',view:'Lihat',apiOk:'Gateway API aktif',apiLocal:'Mode lokal: API tidak terbaca',copied:'Ringkasan berhasil disalin.',exported:'Data dashboard berhasil diexport.',themeSaved:'Tema disimpan.',themeReset:'Tema direset.',loggedOut:'Session dibersihkan. Mengarah ke login...',orderDetail:'Detail pesanan',sensitiveOn:'Mode sensitif aktif.',sensitiveOff:'Mode sensitif nonaktif.'},
-      en:{announce:'Secure customer dashboard - unified theme - Dirac Group premium catalog',openCatalog:'Open catalog',navOverview:'Overview',navOrders:'Orders',navSecurity:'Security',navSettings:'Settings',navCatalog:'Catalog',theme:'Theme',heroKicker:'Secure dashboard access',hello:'Hello',heroText:'Orders, profile, 2FA security, theme preferences, and quick actions are unified with the Dirac catalog style so page switching feels seamless.',shopNow:'Shop perfume',quickCommand:'Quick command',exportData:'Export data',trust1:'Local encrypted login session',trust2:'Active 2FA gate',trust3:'Synced global theme',secureTitle:'Account protection',checkingApi:'Checking API gateway...',sideOverview:'Overview',sideInsight:'Insight',sideOrders:'Orders',sideSecurity:'Security',sideProfile:'Profile',sideSettings:'Settings',sideTheme:'Theme',logout:'Logout',sideFoot:'Press Ctrl/⌘ + K to open the command palette.',kpiOrders:'Total Orders',kpiOrdersTrend:'+3 this month',kpiTier:'Member Tier',kpiTierTrend:'Active loyalty',kpiShipping:'Shipping',kpiShippingTrend:'In progress',kpiSecure:'Security',kpiSecureTrend:'2FA verified',insightTitle:'Activity insight',insightSub:'Weekly order chart and account performance.',refresh:'Refresh',categoryTitle:'Favorite category',categoryText:'Product interest distribution based on catalog activity.',quickTitle:'Quick actions',quickSub:'Every important access point is styled consistently with catalog and login.',actCatalog:'Continue shopping',actCatalogSub:'Open premium catalog',actTheme:'Set theme',actThemeSub:'Color, language, motion',actCopy:'Copy summary',actCopySub:'For admin/WA',actWA:'WhatsApp chat',actWASub:'Scent consultation',ordersTitle:'Recent orders',ordersSub:'Search, filter, and view order status without changing the original cart system.',newOrder:'New order',searchOrder:'Search order / product...',filterAll:'All statuses',filterDelivered:'Delivered',filterProcessing:'Processing',filterWaiting:'Waiting',sortNewest:'Newest',sortOldest:'Oldest',sortHighest:'Highest amount',thOrder:'Order',thProduct:'Product',thDate:'Date',thTotal:'Total',thStatus:'Status',thAction:'Action',securityTitle:'Security center',securitySub:'The dashboard security layer reads login/2FA state from the login page.',secLogin:'Login session',active:'Active',secA2F:'2FA / MFA',secStorage:'Local secure marker',secCsp:'CSP & privacy meta',secCspSub:'Inline guard is active on the dashboard.',securityActions:'Security controls',securityActionsSub:'These are dashboard UI settings and do not alter login endpoint/hash.',toggleLock:'Visual auto-lock',toggleLockSub:'Blur data when the tab is inactive',toggleSound:'Sound feedback',toggleSoundSub:'Light sound when actions succeed',toggleSensitive:'Sensitive mode',toggleSensitiveSub:'Hide email and totals',profileTitle:'Customer profile',profileSub:'Display data is read from login session, without sending password.',profileName:'Name',profileEmail:'Email / ID',profileMode:'Access mode',profileTime:'Validation time',notifTitle:'Notifications',notifSub:'System, order, and catalog promo priorities.',noti1:'Dashboard opened securely',noti1Sub:'Login and 2FA gate detected.',noti2:'Global theme active',noti2Sub:'Color, language, and motion saved.',noti3:'Catalog cart kept original',noti3Sub:'Dashboard does not change cart behavior.',settingsTitle:'Dashboard settings',settingsSub:'All options are consistent with the login and order pages.',openThemeSettings:'Open theme',setTheme:'Theme',setLanguage:'Language',setMotion:'Website motion',menuTitle:'Dashboard Menu',menuSub:'Quick Dirac Group navigation.',backLogin:'Login page',menuFoot:'Header, theme, menu, AI, and animations are unified with order1.html.',themeTitle:'Theme Settings',themeSub:'Change color, language, mode, and website motion.',modeTitle:'Display mode',modeSub:'Choose dark, light, or system automatic.',dark:'Dark',light:'Light',auto:'Auto',contrast:'Contrast',accentTitle:'Accent color',accentSub:'Color affects header, buttons, cards, charts, and AI.',languageTitle:'Language',languageSub:'Choose dashboard display language.',motionTitle:'Website motion',motionSub:'Motion is included, but can be reduced for comfort.',motionFull:'Full animation',motionReduced:'Reduced motion',resetTheme:'Reset theme',saveClose:'Save & close',aiTitle:'Dirac AI',aiSub:'Quick dashboard assistant.',aiWelcome:'Hi! I can help with dashboard, orders, theme, language, motion, security, and catalog.',aiChipSecurity:'Check security',aiChipTheme:'Change theme',aiChipOrder:'Orders',aiPlaceholder:'Write a question...',commandTitle:'Quick command',commandSub:'Search dashboard actions.',commandPlaceholder:'Search: orders, theme, security...',gateTitle:'Dashboard locked',gateText:'Login and 2FA must be valid from the login page. The login/hash system is not changed; the dashboard only reads the existing session.',goLogin:'Login first',viewCatalog:'View catalog',footerText:'Premium modern minimalist dashboard connected to login, catalog, theme, language, AI, and animations.',footerNav:'Navigation',footerSecurity:'Security',footSec1:'Does not touch login hash code',footSec2:'Local session guard',footSec3:'2FA marker read safely',copyright:'Dashboard unified with order1.html and masuk.html.',emptyOrders:'No matching orders.',view:'View',apiOk:'API gateway active',apiLocal:'Local mode: API unavailable',copied:'Summary copied.',exported:'Dashboard data exported.',themeSaved:'Theme saved.',themeReset:'Theme reset.',loggedOut:'Session cleared. Going to login...',orderDetail:'Order detail',sensitiveOn:'Sensitive mode on.',sensitiveOff:'Sensitive mode off.'}
+      id:{announce:'Dashboard pelanggan Dirac Group — ringkasan semua layanan dalam satu tempat',openCatalog:'Buka katalog',navDashboard:'Dashboard',theme:'Tema',heroKicker:'Dashboard pelanggan',welcomeTitle:'Selamat datang',heroText:'Ringkasan semua layanan pelanggan Dirac Group tersusun rapi dalam satu halaman: parfum, domain, project website, invoice, pengiriman, layanan nomor, dan bantuan admin.',shopNow:'Buka katalog parfum',contactAdmin:'Hubungi admin',openThemeSettings:'Atur tema',attentionKicker:'Perlu perhatian',attentionTitle:'Status penting',attentionSub:'Hal yang membutuhkan tindakan pelanggan akan muncul paling atas agar tidak terlewat.',attentionInvoice:'Tagihan',attentionInvoiceSub:'Tidak ada invoice tertunda.',attentionDomain:'Domain',attentionDomainSub:'Belum ada domain yang hampir expired.',attentionProject:'Project Website',attentionProjectSub:'Belum ada approval yang menunggu.',attentionSupport:'Bantuan',attentionSupportSub:'Tidak ada tiket yang menunggu balasan.',summaryTitle:'Ringkasan layanan',summarySub:'Kondisi utama akun pelanggan ditampilkan singkat, tanpa tabel besar dan tanpa informasi teknis yang membingungkan.',summaryOrders:'Pesanan aktif',summaryOrdersSub:'Belum ada pesanan parfum atau layanan yang sedang diproses.',summaryShipments:'Pengiriman',summaryShipmentsSub:'Belum ada paket yang sedang dalam perjalanan.',summaryDomains:'Domain aktif',summaryDomainsSub:'Domain pelanggan akan tampil setelah layanan domain dibuat.',summaryProjects:'Project website',summaryProjectsSub:'Progress pembuatan atau pengembangan website akan muncul di sini.',emptyState:'Belum ada data',servicesTitle:'Layanan pelanggan',servicesSub:'Setiap card dibuat sebagai pintu masuk cepat agar pelanggan paham layanan mana yang ingin dibuka atau ditanyakan.',serviceEmpty:'Belum ada pesanan',serviceEmptyDomain:'Belum ada domain',serviceEmptyProject:'Belum ada project',serviceTrackingStatus:'Siap dicek',serviceEmptyNumber:'Belum aktif',serviceInvoiceStatus:'Tidak ada tagihan',serviceSupportStatus:'Admin siap',servicePerfume:'Parfum',servicePerfumeText:'Pantau pembelian parfum, pengiriman, review, dan riwayat pembelian pelanggan.',serviceDomain:'Domain',serviceDomainText:'Lihat status domain, masa aktif, perpanjangan, dan kebutuhan pengelolaan domain.',serviceWebsite:'Project Website',serviceWebsiteText:'Pantau progress pembuatan, pengembangan, revisi, approval, dan maintenance website.',serviceTracking:'Cek Resi',serviceTrackingText:'Lacak paket dari pesanan parfum dan bantu pelanggan mengetahui status pengiriman.',serviceNumber:'Layanan Nomor',serviceNumberText:'Tampilkan layanan nomor yang legal, masa aktif, invoice, dan bantuan penggunaan.',serviceInvoice:'Invoice',serviceInvoiceText:'Cek tagihan, status pembayaran, bukti transfer, dan riwayat invoice pelanggan.',serviceSupport:'Bantuan',serviceSupportText:'Hubungi admin untuk kendala parfum, domain, website, pembayaran, pengiriman, dan layanan nomor.',ctaCatalog:'Buka katalog',ctaAskAdmin:'Tanya admin',ctaConsult:'Konsultasi',ctaTrack:'Cek resi',ctaConfirmPayment:'Konfirmasi',ctaChat:'Chat admin',ctaNeedHelp:'Butuh bantuan?',ctaStartOrder:'Mulai belanja',notifTitle:'Notifikasi terbaru',notifSub:'Pemberitahuan penting akan muncul di sini jika ada pembayaran, pengiriman, domain, project, atau balasan admin.',emptyNotifTitle:'Belum ada notifikasi terbaru',emptyNotifText:'Saat ada invoice, pengiriman, domain hampir expired, atau project menunggu approval, informasinya akan muncul di bagian ini.',activityTitle:'Aktivitas terbaru',activitySub:'Riwayat aktivitas pelanggan ditampilkan ringkas agar dashboard tetap bersih.',emptyActivityTitle:'Belum ada aktivitas',emptyActivityText:'Pesanan baru, pembayaran, update project, dan tiket bantuan akan tercatat otomatis setelah pelanggan mulai memakai layanan.',quickTitle:'Akses layanan',quickSub:'Akses layanan dipusatkan pada menu dan kartu layanan agar tampilan tetap rapi.',actCatalog:'Buka katalog',actCatalogSub:'Belanja parfum dan produk utama',actTracking:'Cek resi',actTrackingSub:'Lacak pengiriman pesanan',actWA:'Hubungi admin',actWASub:'Bantuan parfum, domain, website',actTheme:'Atur tema',actThemeSub:'Warna, bahasa, dan animasi',trackingTitle:'Cek Resi',trackingSub:'Masukkan nomor resi untuk menyiapkan pengecekan pengiriman.',cancel:'Batal',checkTracking:'Cek sekarang',menuTitle:'Menu Dashboard',menuSub:'Navigasi utama pelanggan.',logout:'Keluar',menuFoot:'Dashboard berisi ringkasan layanan pelanggan, notifikasi, aktivitas, dan pintu masuk layanan melalui menu serta kartu layanan.',themeTitle:'Pengaturan Tema',themeSub:'Ganti warna, bahasa, mode, dan gerak website.',modeTitle:'Mode tampilan',modeSub:'Pilih gelap, terang, atau otomatis mengikuti perangkat.',dark:'Gelap',light:'Terang',auto:'Otomatis',contrast:'Kontras',accentTitle:'Warna aksen',accentSub:'Warna akan mengikuti header, tombol, kartu, dan elemen dashboard.',languageTitle:'Bahasa',languageSub:'Pilih bahasa tampilan dashboard.',motionTitle:'Gerak website',motionSub:'Animasi bisa dikurangi untuk kenyamanan.',motionFull:'Full animasi',motionReduced:'Gerak ringan',resetTheme:'Reset tema',saveClose:'Simpan & tutup',gateTitle:'Dashboard terkunci',gateText:'Silakan masuk terlebih dahulu untuk membuka dashboard pelanggan.',goLogin:'Masuk dulu',viewCatalog:'Lihat katalog',footerText:'Dashboard pelanggan modern untuk ringkasan parfum, domain, website, invoice, pengiriman, dan bantuan.',footerNav:'Navigasi',footerHelp:'Bantuan',copyright:'Dashboard ringkasan pelanggan.',themeSaved:'Tema disimpan.',themeReset:'Tema direset.',loggedOut:'Session dibersihkan. Mengarah ke login...',trackingFill:'Isi nomor resi terlebih dahulu.',trackingReady:'Resi siap dicek. Silakan kirim ke admin untuk dibantu pengecekan realtime.'},
+      en:{announce:'Dirac Group customer dashboard — all service summaries in one place',openCatalog:'Open catalog',navDashboard:'Dashboard',theme:'Theme',heroKicker:'Customer dashboard',welcomeTitle:'Welcome',heroText:'Dirac Group customer services are organized in one clean page: perfume, domains, website projects, invoices, shipping, number services, and admin help.',shopNow:'Open perfume catalog',contactAdmin:'Contact admin',openThemeSettings:'Set theme',attentionKicker:'Needs attention',attentionTitle:'Important status',attentionSub:'Items that require customer action appear at the top so they are not missed.',attentionInvoice:'Bills',attentionInvoiceSub:'No pending invoices.',attentionDomain:'Domains',attentionDomainSub:'No domains are near expiry.',attentionProject:'Website Project',attentionProjectSub:'No approval is waiting.',attentionSupport:'Support',attentionSupportSub:'No tickets are waiting for reply.',summaryTitle:'Service summary',summarySub:'Key customer account conditions are shown briefly, without big tables or confusing technical information.',summaryOrders:'Active orders',summaryOrdersSub:'No perfume or service orders are being processed.',summaryShipments:'Shipping',summaryShipmentsSub:'No packages are currently in transit.',summaryDomains:'Active domains',summaryDomainsSub:'Customer domains will appear after a domain service is created.',summaryProjects:'Website projects',summaryProjectsSub:'Website build or development progress will appear here.',emptyState:'No data yet',servicesTitle:'Customer services',servicesSub:'Each card is designed as a quick entry point so customers understand what to open or ask about.',serviceEmpty:'No orders yet',serviceEmptyDomain:'No domains yet',serviceEmptyProject:'No projects yet',serviceTrackingStatus:'Ready to check',serviceEmptyNumber:'Not active yet',serviceInvoiceStatus:'No bills',serviceSupportStatus:'Admin ready',servicePerfume:'Perfume',servicePerfumeText:'Track perfume purchases, shipping, reviews, and customer purchase history.',serviceDomain:'Domain',serviceDomainText:'View domain status, active period, renewal, and domain-management needs.',serviceWebsite:'Website Project',serviceWebsiteText:'Track build progress, development, revisions, approval, and maintenance.',serviceTracking:'Tracking',serviceTrackingText:'Track perfume-order packages and help customers see shipping status.',serviceNumber:'Number Service',serviceNumberText:'Show legal number services, active period, invoices, and usage support.',serviceInvoice:'Invoice',serviceInvoiceText:'Check bills, payment status, transfer proof, and customer invoice history.',serviceSupport:'Support',serviceSupportText:'Contact admin for perfume, domain, website, payment, shipping, and number-service issues.',ctaCatalog:'Open catalog',ctaAskAdmin:'Ask admin',ctaConsult:'Consult',ctaTrack:'Track',ctaConfirmPayment:'Confirm',ctaChat:'Chat admin',ctaNeedHelp:'Need help?',ctaStartOrder:'Start shopping',notifTitle:'Latest notifications',notifSub:'Important alerts will appear here for payments, shipping, domains, projects, or admin replies.',emptyNotifTitle:'No latest notifications',emptyNotifText:'Invoices, shipping, expiring domains, or projects waiting for approval will appear here.',activityTitle:'Latest activity',activitySub:'Customer activity history is shown briefly to keep the dashboard clean.',emptyActivityTitle:'No activity yet',emptyActivityText:'New orders, payments, project updates, and support tickets will be logged automatically.',quickTitle:'Service access',quickSub:'Service access is centered on the menu and service cards to keep the layout clean.',actCatalog:'Open catalog',actCatalogSub:'Shop perfume and main products',actTracking:'Track package',actTrackingSub:'Track order shipping',actWA:'Contact admin',actWASub:'Perfume, domain, website support',actTheme:'Set theme',actThemeSub:'Color, language, and animation',trackingTitle:'Tracking',trackingSub:'Enter your tracking number to prepare shipment checking.',cancel:'Cancel',checkTracking:'Check now',menuTitle:'Dashboard Menu',menuSub:'Main customer navigation.',logout:'Logout',menuFoot:'The dashboard contains customer service summaries, notifications, activity, and service entry points through the menu and service cards.',themeTitle:'Theme Settings',themeSub:'Change color, language, mode, and website motion.',modeTitle:'Display mode',modeSub:'Choose dark, light, or system automatic.',dark:'Dark',light:'Light',auto:'Auto',contrast:'Contrast',accentTitle:'Accent color',accentSub:'Color follows the header, buttons, cards, and dashboard elements.',languageTitle:'Language',languageSub:'Choose dashboard display language.',motionTitle:'Website motion',motionSub:'Animation can be reduced for comfort.',motionFull:'Full animation',motionReduced:'Reduced motion',resetTheme:'Reset theme',saveClose:'Save & close',gateTitle:'Dashboard locked',gateText:'Please log in first to open the customer dashboard.',goLogin:'Login first',viewCatalog:'View catalog',footerText:'Modern customer dashboard for perfume, domains, websites, invoices, shipping, and support summaries.',footerNav:'Navigation',footerHelp:'Help',copyright:'Customer summary dashboard.',themeSaved:'Theme saved.',themeReset:'Theme reset.',loggedOut:'Session cleared. Going to login...',trackingFill:'Please enter a tracking number first.',trackingReady:'Tracking number is ready. Send it to admin for realtime help.'}
     };
-    var ORDERS=[
-      {id:'DG-2406-108',product:'Dirac Signature Amber',date:'2026-06-01',total:450000,status:'processing',icon:'A'},
-      {id:'DG-2405-097',product:'Velvet Oud Premium',date:'2026-05-24',total:620000,status:'delivered',icon:'V'},
-      {id:'DG-2405-083',product:'Citrus Fresh Daily',date:'2026-05-12',total:285000,status:'delivered',icon:'C'},
-      {id:'DG-2404-064',product:'Vanilla Night Layer',date:'2026-04-30',total:390000,status:'waiting',icon:'N'},
-      {id:'DG-2404-031',product:'Royal Blue Essence',date:'2026-04-09',total:510000,status:'delivered',icon:'R'}
-    ];
-    var settings=readJson(THEME_KEY,DEFAULT_SETTINGS); settings=Object.assign({},DEFAULT_SETTINGS,settings||{});
-    var session=readJson(AUTH_KEY,{}), a2f=readJson(A2F_KEY,{});
-    var state={visualLock:true,sound:false,sensitive:false,allowed:false};
-    function $(s,r){return (r||document).querySelector(s)} function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
-    function readJson(k,fallback){try{var raw=localStorage.getItem(k);return raw?JSON.parse(raw):(fallback||{});}catch(e){return fallback||{};}}
+    var $=function(s,r){return (r||document).querySelector(s)};
+    var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+    function readJson(k,fallback){try{var raw=localStorage.getItem(k);return raw?JSON.parse(raw):fallback}catch(e){return fallback}}
+    var settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{}));
+    var session=readJson(AUTH_KEY,{});
+    var a2f=readJson(A2F_KEY,{});
     function writeJson(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
     function txt(el,value){if(el) el.textContent=String(value==null?'':value)}
-    function fmtIDR(n){return state.sensitive?'••••••':new Intl.NumberFormat(settings.language==='en'?'en-US':'id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n)}
-    function dateFmt(value){try{return new Intl.DateTimeFormat(settings.language==='en'?'en-US':'id-ID',{dateStyle:'medium'}).format(new Date(value));}catch(e){return value||'-'}}
-    function maskEmail(v){v=String(v||'-'); if(!state.sensitive) return v; var parts=v.split('@'); if(parts.length<2) return '••••'; return parts[0].slice(0,2)+'•••@'+parts[1];}
     function langDict(){return Object.assign({},I18N.id,I18N[settings.language]||{})}
-    function showToast(msg){var el=$('#toast'); if(!el) return; txt(el,msg); el.classList.add('show'); clearTimeout(showToast.t); showToast.t=setTimeout(function(){el.classList.remove('show')},2600); playClick();}
-    function playClick(){if(!state.sound) return; try{var AudioContext=window.AudioContext||window.webkitAudioContext; if(!AudioContext) return; var ctx=new AudioContext(), osc=ctx.createOscillator(), gain=ctx.createGain(); osc.frequency.value=520; gain.gain.value=.025; osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+.045);}catch(e){}}
+    function showToast(msg){var el=$('#toast'); if(!el) return; txt(el,msg); el.classList.add('show'); clearTimeout(showToast.t); showToast.t=setTimeout(function(){el.classList.remove('show')},2400)}
     function getEffectiveMode(){if(settings.mode==='auto'&&window.matchMedia) return window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'; return settings.mode==='light'?'light':'dark'}
-    function applySettings(){
-      var root=document.documentElement, pal=PALETTES[settings.accent]||PALETTES.gold;
-      root.lang=settings.language; root.dir=settings.language==='ar'?'rtl':'ltr';
-      root.setAttribute('data-effective-theme',getEffectiveMode()); root.setAttribute('data-motion',settings.motion); root.setAttribute('data-contrast',settings.contrast);
-      root.style.setProperty('--gold',pal.gold); root.style.setProperty('--gold-2',pal.gold2); root.style.setProperty('--gold-3',pal.gold3); root.style.setProperty('--theme-rgb',pal.rgb);
-      try{document.querySelector('meta[name="theme-color"]').setAttribute('content',getEffectiveMode()==='light'?'#fff8ed':'#07090d')}catch(e){}
-      writeJson(THEME_KEY,settings); updateI18n(); updateThemeChoices(); updateSettingsMeta(); renderOrders();
-    }
     function updateI18n(){var d=langDict(); $$('[data-i18n]').forEach(function(el){var key=el.getAttribute('data-i18n'); if(d[key]) txt(el,d[key]);}); $$('[data-i18n-placeholder]').forEach(function(el){var key=el.getAttribute('data-i18n-placeholder'); if(d[key]) el.setAttribute('placeholder',d[key]);});}
     function buildAccentChoices(){var wrap=$('#accentChoices'); if(!wrap) return; wrap.innerHTML=''; Object.keys(PALETTES).forEach(function(key){var p=PALETTES[key]; var b=document.createElement('button'); b.className='choice'; b.type='button'; b.setAttribute('data-accent',key); b.innerHTML='<span class="swatch" style="--swatch:'+p.gold+'"></span><span>'+p.label+'</span>'; wrap.appendChild(b);});}
     function updateThemeChoices(){ $$('#themeModal [data-theme-mode]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-theme-mode')===settings.mode)}); $$('#themeModal [data-language]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-language')===settings.language)}); $$('#themeModal [data-motion-choice]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-motion-choice')===settings.motion)}); $$('#themeModal [data-accent]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-accent')===settings.accent)}); $$('#themeModal [data-contrast]').forEach(function(b){b.classList.toggle('active',settings.contrast==='on')}); }
-    function updateSettingsMeta(){var pal=PALETTES[settings.accent]||PALETTES.gold; txt($('#settingThemeMeta'),settings.mode+' / '+pal.label); txt($('#settingLanguageMeta'),settings.language==='en'?'English':'Indonesia'); txt($('#settingMotionMeta'),settings.motion==='full'?'Full animation':'Reduced motion');}
-    function openModal(sel){var el=$(sel); if(!el) return; el.classList.add('open'); el.setAttribute('aria-hidden','false'); document.body.classList.add(sel==='#menuOverlay'?'menu-open':sel==='#aiOverlay'?'ai-open':sel==='#commandModal'?'command-open':'modal-open'); setTimeout(function(){var focus=el.querySelector('button,input,a,[tabindex]'); if(focus) focus.focus({preventScroll:true});},20)}
-    function closeModal(sel){var el=$(sel); if(!el) return; el.classList.remove('open'); el.setAttribute('aria-hidden','true'); document.body.classList.remove('menu-open','modal-open','ai-open','command-open'); if(sel==='#menuOverlay'){var m=$('#menuToggle'); if(m) m.setAttribute('aria-expanded','false');}}
+    function applySettings(){var root=document.documentElement, pal=PALETTES[settings.accent]||PALETTES.gold; root.lang=settings.language; root.dir='ltr'; root.setAttribute('data-effective-theme',getEffectiveMode()); root.setAttribute('data-motion',settings.motion); root.setAttribute('data-contrast',settings.contrast); root.style.setProperty('--gold',pal.gold); root.style.setProperty('--gold-2',pal.gold2); root.style.setProperty('--gold-3',pal.gold3); root.style.setProperty('--theme-rgb',pal.rgb); try{document.querySelector('meta[name="theme-color"]').setAttribute('content',getEffectiveMode()==='light'?'#fff8ed':'#07090d')}catch(e){} writeJson(THEME_KEY,settings); updateI18n(); updateThemeChoices();}
+    function openModal(sel){var el=$(sel); if(!el) return; el.classList.add('open'); el.setAttribute('aria-hidden','false'); document.body.classList.add(sel==='#menuOverlay'?'menu-open':'modal-open'); setTimeout(function(){var focus=el.querySelector('button,input,a,[tabindex]'); if(focus) focus.focus({preventScroll:true});},20)}
+    function closeModal(sel){var el=$(sel); if(!el) return; el.classList.remove('open'); el.setAttribute('aria-hidden','true'); document.body.classList.remove('menu-open','modal-open'); if(sel==='#menuOverlay'){var m=$('#menuToggle'); if(m) m.setAttribute('aria-expanded','false');}}
     function authAllowed(){
       var ready=!!localStorage.getItem(A2F_READY_KEY);
       var sessionOk=!!(session&&(session.serverAuthenticated||session.authenticated||session.isAuthenticated||session.loggedIn||session.dashboardAllowed||session.dashboardReady));
@@ -379,66 +401,91 @@
     }
     function hydrateProfile(){
       var container=(session.user&&typeof session.user==='object')?session.user:(session.profile&&typeof session.profile==='object'?session.profile:{});
-      var identifier=session.identifier||session.email||container.email||container.identifier||'-';
-      var name=session.fullName||session.full_name||session.name||container.name||container.fullName||identifier.split('@')[0]||'Pelanggan Dirac';
-      var initials=String(name||'DG').trim().split(/\s+/).map(function(x){return x.charAt(0)}).join('').slice(0,2).toUpperCase()||'DG';
-      txt($('#displayName'),name); txt($('#sideName'),name); txt($('#sideEmail'),maskEmail(identifier)); txt($('#avatarText'),initials); txt($('#profileName'),name); txt($('#profileEmail'),maskEmail(identifier)); txt($('#profileMode'),session.mode||'login'); txt($('#profileTime'),dateFmt(session.authVerifiedAt||session.dashboardReadyAt||session.time||Date.now()));
-      txt($('#loginSessionMeta'),(session.endpoint||'dirac auth')+' • '+dateFmt(session.authVerifiedAt||session.time||Date.now()));
-      txt($('#a2fMeta'),(session.twoFactorLabel||a2f.label||a2f.method||'A2F')+' • '+dateFmt(session.twoFactorActivatedAt||a2f.verifiedAt||Date.now()));
-      txt($('#markerMeta'),localStorage.getItem(A2F_READY_KEY)?'dashboard_ready_v1':'session derived');
-      txt($('#secureSummary'),settings.language==='en'?'2FA is active and this dashboard opens only after valid login.':'A2F aktif dan dashboard hanya terbuka setelah login valid.');
+      var identifier=session.identifier||session.email||container.email||container.identifier||'';
+      var name=session.fullName||session.full_name||session.name||container.name||container.fullName||(identifier?identifier.split('@')[0]:'Pelanggan');
+      txt($('#displayName'),name||'Pelanggan');
     }
-    function renderOrders(){
-      var body=$('#ordersBody'); if(!body) return; var d=langDict(); var q=($('#orderSearch')&&$('#orderSearch').value||'').toLowerCase(); var status=($('#orderStatusFilter')&&$('#orderStatusFilter').value)||'all'; var sort=($('#orderSort')&&$('#orderSort').value)||'newest';
-      var rows=ORDERS.filter(function(o){return (status==='all'||o.status===status)&&((o.id+' '+o.product).toLowerCase().indexOf(q)>-1)}).sort(function(a,b){if(sort==='highest') return b.total-a.total; return sort==='oldest'?new Date(a.date)-new Date(b.date):new Date(b.date)-new Date(a.date)});
-      body.innerHTML='';
-      if(!rows.length){var tr=document.createElement('tr'); tr.innerHTML='<td colspan="6"><div class="empty-state">'+d.emptyOrders+'</div></td>'; body.appendChild(tr); return;}
-      rows.forEach(function(o){var tr=document.createElement('tr'); var statusClass=o.status==='delivered'?'ok':(o.status==='processing'?'wait':'danger'); var label=o.status==='delivered'?(settings.language==='en'?'Delivered':'Terkirim'):o.status==='processing'?(settings.language==='en'?'Processing':'Diproses'):(settings.language==='en'?'Waiting':'Menunggu');
-        tr.innerHTML='<td><strong>'+o.id+'</strong></td><td><div class="product-cell"><span class="product-thumb">'+o.icon+'</span><span>'+o.product+'</span></div></td><td>'+dateFmt(o.date)+'</td><td>'+fmtIDR(o.total)+'</td><td><span class="status-chip '+statusClass+'">'+label+'</span></td><td><button class="btn-ghost" type="button" data-view-order="'+o.id+'">'+d.view+'</button></td>'; body.appendChild(tr);
-      });
-    }
-    function animateCounters(){ $$('.kpi-value[data-count]').forEach(function(el){var target=parseInt(el.getAttribute('data-count'),10)||0, start=0, t0=performance.now(); function step(t){var p=Math.min(1,(t-t0)/850); txt(el,Math.round(start+(target-start)*p)); if(p<1) requestAnimationFrame(step);} requestAnimationFrame(step);}); }
-    function bindReveal(){ if(!('IntersectionObserver' in window)){ $$('[data-reveal]').forEach(function(el){el.classList.add('is-visible')}); return;} var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('is-visible'); io.unobserve(e.target);}})},{threshold:.12}); $$('[data-reveal]').forEach(function(el){io.observe(el)}); }
-    function checkApi(){var el=$('#apiHealth'); var d=langDict(); fetch(API_ENDPOINT,{cache:'no-store',credentials:'omit'}).then(function(r){txt(el,r.ok?d.apiOk:d.apiLocal)}).catch(function(){txt(el,d.apiLocal)});}
-    function aiAnswer(q){q=String(q||'').toLowerCase(); if(/security|aman|keamanan|a2f|mfa/.test(q)) return settings.language==='en'?'Security reads the login session and 2FA marker from masuk.html. If invalid, the dashboard locks.':'Keamanan membaca session login dan marker A2F dari masuk.html. Jika tidak valid, dashboard terkunci.'; if(/theme|tema|warna|bahasa|gerak/.test(q)) return settings.language==='en'?'Use the theme icon in the header to change color, language, display mode, and motion.':'Tekan ikon tema di header untuk ganti warna, bahasa, mode tampilan, dan gerak website.'; if(/order|pesanan|katalog|cart/.test(q)) return settings.language==='en'?'Orders are shown here, while the original cart stays in order1.html.':'Pesanan tampil di sini, sedangkan cart asli tetap berada di order1.html.'; return settings.language==='en'?'I can help with dashboard, orders, theme, language, motion, security, and catalog navigation.':'Saya bisa bantu dashboard, pesanan, tema, bahasa, gerak website, keamanan, dan navigasi katalog.';}
-    function appendAi(text,who){var div=document.createElement('div'); div.className='ai-message '+(who||'bot'); div.textContent=text; $('#aiBody').appendChild(div); $('#aiBody').scrollTop=$('#aiBody').scrollHeight;}
-    function getSummary(){return 'Dirac Dashboard\nUser: '+($('#profileName').textContent||'-')+'\nID: '+($('#profileEmail').textContent||'-')+'\nSecurity: '+($('#kpiSecure').textContent||'A+')+'\nOrders: '+ORDERS.length;}
-    function exportData(){var payload={exportedAt:new Date().toISOString(),session:{identifier:session.identifier||session.email||null,mode:session.mode||'login',authVerifiedAt:session.authVerifiedAt||session.time||null},theme:settings,orders:ORDERS}; var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='dirac-dashboard-export.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url)},500); showToast(langDict().exported);}
-    function runCommand(id){closeModal('#commandModal'); if(id==='orders') location.hash='orders'; if(id==='security') location.hash='security'; if(id==='theme') openModal('#themeModal'); if(id==='catalog') location.href='order1.html'; if(id==='logout') doLogout();}
-    function renderCommands(){var d=langDict(), list=$('#commandList'), q=($('#commandInput')&&$('#commandInput').value||'').toLowerCase(); if(!list) return; var items=[{id:'orders',title:d.navOrders,sub:d.ordersSub,key:'orders pesanan'},{id:'security',title:d.navSecurity,sub:d.securitySub,key:'security keamanan a2f'},{id:'theme',title:d.themeTitle,sub:d.themeSub,key:'theme tema warna bahasa gerak'},{id:'catalog',title:d.navCatalog,sub:d.actCatalogSub,key:'catalog katalog cart order'},{id:'logout',title:d.logout,sub:d.loggedOut,key:'logout keluar'}].filter(function(it){return (it.title+' '+it.sub+' '+it.key).toLowerCase().indexOf(q)>-1}); list.innerHTML=''; items.forEach(function(it){var b=document.createElement('button'); b.type='button'; b.className='command-item'; b.setAttribute('data-command',it.id); b.innerHTML='<span><strong>'+it.title+'</strong><br><small>'+it.sub+'</small></span><b>↵</b>'; list.appendChild(b);});}
     function doLogout(){try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(A2F_KEY);localStorage.removeItem(A2F_READY_KEY);}catch(e){} showToast(langDict().loggedOut); setTimeout(function(){location.href='masuk.html'},650);}
+    function bindReveal(){ if(!('IntersectionObserver' in window)){ $$('[data-reveal]').forEach(function(el){el.classList.add('is-visible')}); return;} var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('is-visible'); io.unobserve(e.target);}})},{threshold:.12}); $$('[data-reveal]').forEach(function(el){io.observe(el)}); }
     function wire(){
-      $('#year').textContent=new Date().getFullYear();
-      window.addEventListener('scroll',function(){ $('#siteHeader').classList.toggle('is-scrolled',window.scrollY>8); $('#floatingActions').classList.toggle('is-scroll-ready',window.scrollY>220);},{passive:true});
-      $$('[data-open-theme]').forEach(function(b){b.addEventListener('click',function(){closeModal('#menuOverlay');openModal('#themeModal')})}); $$('[data-close-theme]').forEach(function(b){b.addEventListener('click',function(){closeModal('#themeModal')})});
-      var mt=$('#menuToggle'); if(mt) mt.addEventListener('click',function(){this.setAttribute('aria-expanded','true');openModal('#menuOverlay')}); $$('[data-close-menu]').forEach(function(b){b.addEventListener('click',function(){closeModal('#menuOverlay')})});
-      ['#themeModal','#menuOverlay','#aiOverlay','#commandModal'].forEach(function(sel){var el=$(sel); if(el) el.addEventListener('click',function(e){if(e.target===this) closeModal(sel)});});
+      var year=$('#year'); if(year) txt(year,new Date().getFullYear());
+      window.addEventListener('scroll',function(){var header=$('#siteHeader'), floats=$('#floatingActions'); if(header) header.classList.toggle('is-scrolled',window.scrollY>8); if(floats) floats.classList.toggle('is-scroll-ready',window.scrollY>220);},{passive:true});
+      $$('[data-open-theme]').forEach(function(b){b.addEventListener('click',function(){closeModal('#menuOverlay');openModal('#themeModal')})});
+      $$('[data-close-theme]').forEach(function(b){b.addEventListener('click',function(){closeModal('#themeModal')})});
+      $$('[data-open-tracking]').forEach(function(b){b.addEventListener('click',function(){closeModal('#menuOverlay');openModal('#trackingModal')})});
+      $$('[data-close-tracking]').forEach(function(b){b.addEventListener('click',function(){closeModal('#trackingModal')})});
+      var mt=$('#menuToggle'); if(mt) mt.addEventListener('click',function(){this.setAttribute('aria-expanded','true');openModal('#menuOverlay')});
+      $$('[data-close-menu]').forEach(function(b){b.addEventListener('click',function(){closeModal('#menuOverlay')})});
+      ['#themeModal','#menuOverlay','#trackingModal'].forEach(function(sel){var el=$(sel); if(el) el.addEventListener('click',function(e){if(e.target===this) closeModal(sel)});});
       $$('#themeModal [data-theme-mode]').forEach(function(b){b.addEventListener('click',function(){settings.mode=this.getAttribute('data-theme-mode');applySettings();showToast(langDict().themeSaved)})});
       $$('#themeModal [data-language]').forEach(function(b){b.addEventListener('click',function(){settings.language=this.getAttribute('data-language');applySettings();showToast(langDict().themeSaved)})});
       $$('#themeModal [data-motion-choice]').forEach(function(b){b.addEventListener('click',function(){settings.motion=this.getAttribute('data-motion-choice');applySettings();showToast(langDict().themeSaved)})});
       $$('#themeModal [data-contrast]').forEach(function(b){b.addEventListener('click',function(){settings.contrast=settings.contrast==='on'?'off':'on';applySettings();showToast(langDict().themeSaved)})});
-      $('#accentChoices').addEventListener('click',function(e){var b=e.target.closest('[data-accent]'); if(!b) return; settings.accent=b.getAttribute('data-accent'); applySettings(); showToast(langDict().themeSaved);});
-      $('#themeResetBtn').addEventListener('click',function(){settings=Object.assign({},DEFAULT_SETTINGS); applySettings(); showToast(langDict().themeReset);});
-      if(window.matchMedia){var mq=window.matchMedia('(prefers-color-scheme: light)'); var cb=function(){if(settings.mode==='auto') applySettings()}; if(mq.addEventListener) mq.addEventListener('change',cb); else if(mq.addListener) mq.addListener(cb);}
-      ['orderSearch','orderStatusFilter','orderSort'].forEach(function(id){var el=$('#'+id); if(el) el.addEventListener('input',renderOrders); if(el) el.addEventListener('change',renderOrders);});
-      $('#ordersBody').addEventListener('click',function(e){var b=e.target.closest('[data-view-order]'); if(b) showToast(langDict().orderDetail+': '+b.getAttribute('data-view-order'));});
-      $('#refreshChartBtn').addEventListener('click',function(){ $$('.bar i').forEach(function(i){var h=(30+Math.round(Math.random()*62))+'%'; i.style.setProperty('--h',h);}); showToast('Chart refreshed');});
-      $('#copySummaryBtn').addEventListener('click',function(){navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(getSummary()).then(function(){showToast(langDict().copied)}).catch(function(){showToast(getSummary())}):showToast(getSummary());});
-      $('#exportBtn').addEventListener('click',exportData); $('#logoutBtn').addEventListener('click',doLogout); $('#scrollTopBtn').addEventListener('click',function(){window.scrollTo({top:0,behavior:settings.motion==='reduced'?'auto':'smooth'})});
-      $('#aiTrigger').addEventListener('click',function(){openModal('#aiOverlay')}); $$('[data-close-ai]').forEach(function(b){b.addEventListener('click',function(){closeModal('#aiOverlay')})}); $$('.ai-chip').forEach(function(c){c.addEventListener('click',function(){var q=this.getAttribute('data-ai-question'); appendAi(this.textContent,'user'); setTimeout(function(){appendAi(aiAnswer(q),'bot')},110);});}); $('#aiForm').addEventListener('submit',function(e){e.preventDefault();var inp=$('#aiInput'),q=inp.value.trim();if(!q)return;appendAi(q,'user');inp.value='';setTimeout(function(){appendAi(aiAnswer(q),'bot')},120)});
-      function toggle(btn,key,onMsg,offMsg){state[key]=!state[key]; btn.classList.toggle('on',state[key]); btn.setAttribute('aria-pressed',state[key]?'true':'false'); showToast(state[key]?onMsg:offMsg); if(key==='sensitive'){hydrateProfile(); renderOrders();}}
-      $('#visualLockToggle').addEventListener('click',function(){toggle(this,'visualLock','Auto-lock aktif','Auto-lock mati')}); $('#soundToggle').addEventListener('click',function(){toggle(this,'sound','Feedback suara aktif','Feedback suara mati')}); $('#sensitiveToggle').addEventListener('click',function(){var d=langDict(); toggle(this,'sensitive',d.sensitiveOn,d.sensitiveOff)});
-      document.addEventListener('visibilitychange',function(){var root=$('#dashboardRoot'); if(state.visualLock&&document.hidden) root.classList.add('security-blur'); else root.classList.remove('security-blur');});
-      $('#openCommandBtn').addEventListener('click',function(){renderCommands(); openModal('#commandModal'); setTimeout(function(){$('#commandInput').focus()},30)}); $$('[data-close-command]').forEach(function(b){b.addEventListener('click',function(){closeModal('#commandModal')})}); $('#commandInput').addEventListener('input',renderCommands); $('#commandList').addEventListener('click',function(e){var b=e.target.closest('[data-command]'); if(b) runCommand(b.getAttribute('data-command'));});
-      document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();renderCommands();openModal('#commandModal');setTimeout(function(){$('#commandInput').focus()},30)} if(e.key==='Escape'){closeModal('#themeModal');closeModal('#menuOverlay');closeModal('#aiOverlay');closeModal('#commandModal')}});
-      $$('.side-nav a,[data-nav-link]').forEach(function(a){a.addEventListener('click',function(){ $$('.side-nav a,[data-nav-link]').forEach(function(x){x.classList.remove('active')}); this.classList.add('active');});});
+      var accents=$('#accentChoices'); if(accents) accents.addEventListener('click',function(e){var b=e.target.closest('[data-accent]'); if(!b) return; settings.accent=b.getAttribute('data-accent'); applySettings(); showToast(langDict().themeSaved);});
+      var reset=$('#themeResetBtn'); if(reset) reset.addEventListener('click',function(){settings=Object.assign({},DEFAULT_SETTINGS); applySettings(); showToast(langDict().themeReset);});
+      var top=$('#scrollTopBtn'); if(top) top.addEventListener('click',function(){window.scrollTo({top:0,behavior:settings.motion==='reduced'?'auto':'smooth'})});
+      var logout=$('#logoutBtn'); if(logout) logout.addEventListener('click',doLogout);
+      $$('[data-action-toast]').forEach(function(el){el.addEventListener('click',function(){showToast(this.getAttribute('data-action-toast'))})});
+      var trackingForm=$('#trackingForm'); if(trackingForm) trackingForm.addEventListener('submit',function(e){e.preventDefault(); var number=($('#trackingNumber')&&$('#trackingNumber').value||'').trim(); var courier=($('#trackingCourier')&&$('#trackingCourier').value||'').trim(); if(!number){showToast(langDict().trackingFill); return;} var result=$('#trackingResult'); if(result){result.classList.add('show'); result.classList.add('is-ready'); result.textContent=''; var strong=document.createElement('strong'); strong.textContent=number+(courier?' · '+courier:''); var p=document.createElement('p'); p.textContent=langDict().trackingReady; result.appendChild(strong); result.appendChild(p);} showToast(langDict().trackingReady);});
+      document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('#themeModal');closeModal('#menuOverlay');closeModal('#trackingModal')}});
+    }
+    document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('motion-ready'); buildAccentChoices(); applySettings(); wire(); hydrateProfile(); bindReveal(); if(!authAllowed()){document.body.classList.add('gate-locked');}});
+  })();
+  </script>
+
+  <script>
+  (function(){
+    'use strict';
+    function $(s,r){return (r||document).querySelector(s)}
+    function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+    function setText(el,value){if(el) el.textContent=String(value==null?'':value)}
+    function updateDate(){
+      var el=$('#todayDate');
+      if(!el) return;
+      try{setText(el,new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date()));}
+      catch(e){setText(el,'Hari ini')}
+    }
+    function animateCounts(){
+      $$('[data-app-count]').forEach(function(el){
+        var target=parseInt(el.getAttribute('data-app-count')||'0',10);
+        var start=0, steps=18, current=0;
+        var tick=function(){current++; var val=Math.round(start+(target-start)*(current/steps)); setText(el,val); if(current<steps) requestAnimationFrame(tick);};
+        requestAnimationFrame(tick);
+      });
+    }
+    function updateConnection(){
+      var wrap=$('#connectionState'), text=$('#connectionText');
+      if(!wrap||!text) return;
+      var online=navigator.onLine!==false;
+      wrap.classList.toggle('offline',!online);
+      setText(text,online?'Online':'Offline');
+    }
+    function filterServices(){
+      var input=$('#serviceSearch'), cards=$$('[data-service-card]'), empty=$('#serviceNoResults'), count=$('#serviceCount');
+      if(!input||!cards.length) return;
+      var q=input.value.trim().toLowerCase();
+      var shown=0;
+      cards.forEach(function(card){
+        var txt=(card.textContent+' '+(card.getAttribute('data-keywords')||'')).toLowerCase();
+        var ok=!q||txt.indexOf(q)>-1;
+        card.style.display=ok?'':'none';
+        if(ok) shown++;
+      });
+      if(empty) empty.classList.toggle('show',shown===0);
+      if(count) setText(count,shown+' layanan');
     }
     document.addEventListener('DOMContentLoaded',function(){
-      document.body.classList.add('motion-ready'); buildAccentChoices(); applySettings(); wire(); hydrateProfile(); animateCounters(); bindReveal(); checkApi(); renderCommands();
-      state.allowed=authAllowed();
-      if(!state.allowed){document.body.classList.add('gate-locked');}
+      updateDate();
+      updateConnection();
+      animateCounts();
+      setTimeout(function(){document.body.classList.add('app-ready')},380);
+      var input=$('#serviceSearch');
+      if(input) input.addEventListener('input',filterServices);
+      window.addEventListener('online',updateConnection);
+      window.addEventListener('offline',updateConnection);
     });
   })();
   </script>
+
 </body>
 </html>
