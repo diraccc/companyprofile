@@ -2902,6 +2902,8 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
   .dirac-auth-row-secure{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important}
   .forgot-link{appearance:none;border:0;background:transparent;color:var(--gold);font-weight:900;cursor:pointer;padding:6px 0;text-decoration:none}
   .forgot-link:hover{text-decoration:underline;filter:brightness(1.05)}
+  .dirac-resend-verification{display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:100%;text-align:left}
+  .dirac-resend-verification[disabled]{opacity:.62;cursor:not-allowed;text-decoration:none;filter:saturate(.65)}
   .forgot-modal{position:fixed;inset:0;z-index:10050;background:rgba(2,6,23,.74);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;place-items:center;padding:18px}
   .forgot-modal.open{display:grid}
   .forgot-card{width:min(520px,calc(100vw - 36px));max-height:min(90dvh,760px);overflow:auto;border-radius:30px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 70px rgba(0,0,0,.42);padding:24px;position:relative}
@@ -3002,6 +3004,7 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
                 <button class="forgot-link" type="button" id="forgotPasswordBtn">Lupa password?</button>
               </div>
               <button class="btn-primary auth-submit" id="submitBtn" type="submit" data-i18n="submitLogin">Masuk sekarang</button>
+              <button class="forgot-link dirac-resend-verification" type="button" id="resendVerificationBtn" aria-describedby="statusBox">Kirim ulang verifikasi email</button>
               <div class="status-box" id="statusBox" role="status" aria-live="polite"></div>
             </form>
           </div>
@@ -5752,6 +5755,22 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     }
     finally{if(btn){btn.disabled=false;btn.textContent=old;}}
   }
+  async function resendVerification(){
+    var email=String((($('#identifier')&&$('#identifier').value)||($('#forgotEmail')&&$('#forgotEmail').value)||'')).trim().toLowerCase();
+    if(!validEmail(email)){status('error','Masukkan email akun yang ingin dikirim ulang verifikasi.');return;}
+    var btn=$('#resendVerificationBtn'); var old=btn&&btn.textContent; if(btn){btn.disabled=true;btn.textContent='Mengirim ulang verifikasi...';}
+    try{
+      var res=await fetch(endpoint('start'),{method:'POST',mode:'cors',headers:{'Content-Type':'application/json','Accept':'application/json'},credentials:'omit',cache:'no-store',body:JSON.stringify({action:'resend-email-verification',email:email,identifier:email})});
+      var data=await res.clone().json().catch(function(){return null});
+      if(!res.ok||!data||data.ok!==true||data.sent!==true){
+        throw new Error((data&&(data.error||data.message))||'Email belum terdaftar, sudah terverifikasi, atau belum lolos keamanan. Verifikasi tidak dikirim.');
+      }
+      status('success',data.message||'Email verifikasi baru sudah dikirim. Pakai email terbaru, jangan pakai link lama yang masih localhost.');
+      try{if(typeof showToast==='function')showToast('Email verifikasi baru sudah dikirim.');}catch(_e){}
+    }catch(e){
+      status('error',e&&e.message?e.message:'Gagal kirim ulang verifikasi email.');
+    }finally{if(btn){btn.disabled=false;btn.textContent=old;}}
+  }
   async function confirmReset(){
     var email=emailValue(), code=String(($('#forgotCode')&&$('#forgotCode').value)||'').replace(/\D/g,'').slice(0,8), pass=($('#forgotNewPassword')&&$('#forgotNewPassword').value)||'', confirm=($('#forgotConfirmPassword')&&$('#forgotConfirmPassword').value)||'';
     if(!validEmail(email)){setStatus('error','Masukkan email akun yang valid.');return;}
@@ -5772,11 +5791,12 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     finally{if(btn){btn.disabled=false;btn.textContent=old;}}
   }
   ready(function(){
-    var open=$('#forgotPasswordBtn'), close=$('#forgotCloseBtn'), req=$('#forgotRequestBtn'), ok=$('#forgotConfirmBtn'), modal=$('#forgotModal');
+    var open=$('#forgotPasswordBtn'), close=$('#forgotCloseBtn'), req=$('#forgotRequestBtn'), ok=$('#forgotConfirmBtn'), modal=$('#forgotModal'), resend=$('#resendVerificationBtn');
     if(open)open.addEventListener('click',openForgot);
     if(close)close.addEventListener('click',closeForgot);
     if(req)req.addEventListener('click',requestReset);
     if(ok)ok.addEventListener('click',confirmReset);
+    if(resend)resend.addEventListener('click',resendVerification);
     if(modal)modal.addEventListener('click',function(e){if(e.target===modal)closeForgot();});
     document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal&&modal.classList.contains('open')){e.preventDefault();closeForgot();}},true);
   });
