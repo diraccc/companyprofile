@@ -660,6 +660,360 @@ function getRecoveryLocalCode(stepNumber) {
   return { code, label: item.label, envName: item.envName };
 }
 
+
+/* =========================================================
+   Dirac customer login MFA API bridge for masuk.html
+   Additive only: does not alter legacy admin A2F step/hash/login flow.
+   Supported frontend payloads:
+   - POST /api/2fa/start-step { action:"setup"|"resend", method:"passkey"|"email"|"authenticator", identifier/email }
+   - POST /api/2fa/start-step { action:"resend-email-verification", email }
+   ========================================================= */
+const DIRAC_CUSTOMER_MFA_TOKEN_TYPE = "dirac-customer-login-mfa-v1";
+const DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS = Number(process.env.DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS || 5 * 60 * 1000);
+const DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS = Number(process.env.DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS || 3 * 60 * 1000);
+const DIRAC_CUSTOMER_MFA_OTP_DIGITS = 6;
+const DIRAC_CUSTOMER_MFA_TOTP_BYTES = 20;
+const DIRAC_CUSTOMER_MFA_RP_NAME = process.env.WEBAUTHN_RP_NAME || "Dirac Group";
+const DIRAC_CUSTOMER_MFA_RP_ID = process.env.WEBAUTHN_RP_ID || "diracgroup.store";
+const DIRAC_CUSTOMER_MFA_EMAIL_SUBJECT = process.env.DIRAC_CUSTOMER_MFA_EMAIL_SUBJECT || "Kode A2F Login Dirac Group";
+const DIRAC_EMAIL_VERIFY_SUBJECT = process.env.DIRAC_EMAIL_VERIFY_SUBJECT || "Verifikasi email akun Dirac Group";
+
+function diracGetCustomerMfaSecret() {
+  const secret = String(process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || "").trim();
+
+  if (!secret) {
+    const err = new Error("DIRAC_MFA_SECRET atau A2F_SECRET belum diset di Environment Variables backend.");
+    err.statusCode = 500;
+    throw err;
+  }
+
+  if (secret === "rahasia-test" || secret.length < 32) {
+    const err = new Error("Secret MFA production belum aman. Gunakan DIRAC_MFA_SECRET minimal 32 karakter acak.");
+    err.statusCode = 500;
+    throw err;
+  }
+
+  return secret;
+}
+
+function diracNormalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function diracAssertEmail(value) {
+  const email = diracNormalizeEmail(value);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const err = new Error("Email akun wajib valid.");
+    err.statusCode = 400;
+    throw err;
+  }
+  return email;
+}
+
+function diracNormalizeMfaMethod(value) {
+  const method = String(value || "").trim().toLowerCase();
+  if (method === "authen" || method === "totp" || method === "authenticator") return "authenticator";
+  if (method === "mail" || method === "otp-email" || method === "email") return "email";
+  if (method === "paskey" || method === "pass-key" || method === "webauthn" || method === "passkey") return "passkey";
+  const err = new Error("Metode A2F harus passkey, email, atau authenticator.");
+  err.statusCode = 400;
+  throw err;
+}
+
+function diracBufferToBase64Url(buffer) {
+  return Buffer.from(buffer).toString("base64url");
+}
+
+function diracRandomId(bytes = 32) {
+  return crypto.randomBytes(bytes).toString("base64url");
+}
+
+function diracRandomDigitCode(length = DIRAC_CUSTOMER_MFA_OTP_DIGITS) {
+  let out = "";
+  while (out.length < length) out += String(crypto.randomInt(0, 10));
+  return out;
+}
+
+function diracBase32Encode(buffer) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const bytes = Buffer.from(buffer);
+  let bits = "";
+  let out = "";
+
+  for (const byte of bytes) bits += byte.toString(2).padStart(8, "0");
+  for (let i = 0; i < bits.length; i += 5) {
+    const chunk = bits.slice(i, i + 5).padEnd(5, "0");
+    out += alphabet[parseInt(chunk, 2)];
+  }
+
+  return out;
+}
+
+function diracBuildCustomerMfaToken(payload) {
+  return makeSession({
+    tokenType: DIRAC_CUSTOMER_MFA_TOKEN_TYPE,
+    version: 1,
+    createdAtMs: Date.now(),
+    ...payload
+  }, diracGetCustomerMfaSecret());
+}
+
+function diracHashCustomerMfaCode({ method, email, code, nonce }) {
+  return hashCode([
+    "dirac-customer-login-mfa-code-v1",
+    String(method || ""),
+    diracNormalizeEmail(email),
+    String(nonce || ""),
+    String(code || "")
+  ].join(":"), diracGetCustomerMfaSecret());
+}
+
+function diracMaskEmail(email) {
+  email = diracNormalizeEmail(email);
+  const [name, domain] = email.split("@");
+  if (!name || !domain) return "email akun";
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+function diracBuildOtpAuthUrl({ email, secret }) {
+  const issuer = process.env.WEBAUTHN_RP_NAME || "Dirac Group";
+  const label = `${issuer}:${email}`;
+  return `otpauth://totp/${encodeURIComponent(label)}?secret=${encodeURIComponent(secret)}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+}
+
+function diracBuildPasskeyPublicKeyOptions({ email, challenge }) {
+  const userId = crypto
+    .createHash("sha256")
+    .update(`dirac-customer-passkey-user-v1:${email}`)
+    .digest();
+
+  return {
+    challenge,
+    rp: {
+      name: DIRAC_CUSTOMER_MFA_RP_NAME,
+      id: DIRAC_CUSTOMER_MFA_RP_ID
+    },
+    user: {
+      id: diracBufferToBase64Url(userId),
+      name: email,
+      displayName: email
+    },
+    pubKeyCredParams: [
+      { type: "public-key", alg: -7 },
+      { type: "public-key", alg: -257 }
+    ],
+    timeout: DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+    attestation: "none",
+    authenticatorSelection: {
+      residentKey: "preferred",
+      requireResidentKey: false,
+      userVerification: "preferred"
+    }
+  };
+}
+
+async function diracSendBrevoMail({ to, subject, htmlContent, textContent }) {
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.A2F_SENDER_EMAIL || process.env.DIRAC_SENDER_EMAIL;
+  const senderName = process.env.DIRAC_SENDER_NAME || "Dirac Group";
+
+  if (!apiKey) throw new Error("BREVO_API_KEY belum diset");
+  if (!senderEmail) throw new Error("A2F_SENDER_EMAIL atau DIRAC_SENDER_EMAIL belum diset");
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: to, name: to.split("@")[0] || "Pelanggan" }],
+      subject,
+      htmlContent,
+      textContent
+    })
+  });
+
+  const result = await response.text();
+  if (!response.ok) throw new Error(result || "Gagal mengirim email");
+  return result;
+}
+
+async function diracSendCustomerMfaEmailOtp(email, code) {
+  const safeEmail = diracAssertEmail(email);
+  const safeCode = String(code || "").replace(/\D+/g, "");
+
+  await diracSendBrevoMail({
+    to: safeEmail,
+    subject: DIRAC_CUSTOMER_MFA_EMAIL_SUBJECT,
+    htmlContent: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+        <h2>Kode A2F Login Dirac Group</h2>
+        <p>Masukkan kode berikut di halaman masuk:</p>
+        <div style="font-size:30px;font-weight:800;letter-spacing:6px;padding:14px 16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;display:inline-block">${safeCode}</div>
+        <p>Kode berlaku 5 menit dan hanya untuk proses login yang baru saja dimulai.</p>
+        <p>Jika kamu tidak sedang masuk, abaikan email ini dan segera amankan akun.</p>
+      </div>
+    `,
+    textContent: `Kode A2F Login Dirac Group kamu adalah ${safeCode}. Kode berlaku 5 menit.`
+  });
+}
+
+async function diracResendEmailVerification(req, res) {
+  try {
+    const email = diracAssertEmail((req.body && (req.body.email || req.body.identifier)) || "");
+    getFirebaseDb();
+
+    const user = await admin.auth().getUserByEmail(email);
+    if (user.emailVerified === true) {
+      return res.status(409).json({
+        ok: false,
+        success: false,
+        sent: false,
+        error: "Email akun ini sudah terverifikasi. Silakan masuk seperti biasa."
+      });
+    }
+
+    const continueUrl = process.env.A2F_EMAIL_VERIFY_CONTINUE_URL || process.env.FIREBASE_AUTH_CONTINUE_URL || "https://diracgroup.store/masuk.html";
+    const link = await admin.auth().generateEmailVerificationLink(email, {
+      url: continueUrl,
+      handleCodeInApp: false
+    });
+
+    await diracSendBrevoMail({
+      to: email,
+      subject: DIRAC_EMAIL_VERIFY_SUBJECT,
+      htmlContent: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+          <h2>Verifikasi Email Dirac Group</h2>
+          <p>Klik tombol berikut untuk memverifikasi email akun kamu:</p>
+          <p><a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:800;padding:12px 18px;border-radius:999px">Verifikasi email</a></p>
+          <p>Jika tombol tidak bisa dibuka, salin link berikut:</p>
+          <p style="word-break:break-all;color:#475569">${link}</p>
+          <p>Jika kamu tidak meminta email ini, abaikan pesan ini.</p>
+        </div>
+      `,
+      textContent: `Verifikasi email akun Dirac Group: ${link}`
+    });
+
+    return res.status(200).json({
+      ok: true,
+      success: true,
+      sent: true,
+      email: diracMaskEmail(email),
+      message: "Email verifikasi baru sudah dikirim. Silakan cek inbox/spam dan gunakan email terbaru."
+    });
+  } catch (error) {
+    const code = /no user record|user-not-found/i.test(String(error && error.message || "")) ? 404 : (error.statusCode || 500);
+    return res.status(code).json({
+      ok: false,
+      success: false,
+      sent: false,
+      error: code === 404 ? "Email belum terdaftar. Verifikasi tidak dikirim." : (error.message || "Gagal mengirim verifikasi email.")
+    });
+  }
+}
+
+async function diracHandleCustomerMfaStart(req, res) {
+  try {
+    const action = String((req.body && req.body.action) || "").trim().toLowerCase();
+    const method = diracNormalizeMfaMethod(req.body && req.body.method);
+    const email = diracAssertEmail((req.body && (req.body.identifier || req.body.email)) || "");
+    const now = Date.now();
+    const nonce = diracRandomId(24);
+
+    if (method === "email") {
+      const code = diracRandomDigitCode();
+      const setupToken = diracBuildCustomerMfaToken({
+        method,
+        email,
+        nonce,
+        codeHash: diracHashCustomerMfaCode({ method, email, code, nonce }),
+        expiresAtMs: now + DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS,
+        purpose: "email-otp-login-mfa"
+      });
+
+      await diracSendCustomerMfaEmailOtp(email, code);
+
+      return res.status(200).json({
+        ok: true,
+        success: true,
+        sent: true,
+        method,
+        setupToken,
+        mfaSetupToken: setupToken,
+        token: setupToken,
+        expiresAtMs: now + DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS,
+        ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS / 1000),
+        message: action === "resend" ? "Kode email baru sudah dikirim." : "Kode email sudah dikirim."
+      });
+    }
+
+    if (method === "authenticator") {
+      const totpSecret = diracBase32Encode(crypto.randomBytes(DIRAC_CUSTOMER_MFA_TOTP_BYTES));
+      const setupToken = diracBuildCustomerMfaToken({
+        method,
+        email,
+        nonce,
+        totpSecret,
+        expiresAtMs: now + DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS,
+        purpose: "authenticator-setup-login-mfa"
+      });
+
+      return res.status(200).json({
+        ok: true,
+        success: true,
+        method,
+        setupToken,
+        mfaSetupToken: setupToken,
+        token: setupToken,
+        manualKey: totpSecret,
+        secret: totpSecret,
+        otpAuthUrl: diracBuildOtpAuthUrl({ email, secret: totpSecret }),
+        expiresAtMs: now + DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS,
+        ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS / 1000),
+        message: action === "resend" ? "Setup key Authenticator baru sudah disiapkan." : "Setup key Authenticator berhasil disiapkan."
+      });
+    }
+
+    const challenge = diracRandomId(32);
+    const setupToken = diracBuildCustomerMfaToken({
+      method: "passkey",
+      email,
+      nonce,
+      challenge,
+      rpId: DIRAC_CUSTOMER_MFA_RP_ID,
+      allowedOrigins: String(process.env.A2F_ALLOWED_ORIGINS || "https://diracgroup.store,https://www.diracgroup.store,https://companyprofilee-expk.vercel.app")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+      purpose: "passkey-registration-login-mfa"
+    });
+
+    return res.status(200).json({
+      ok: true,
+      success: true,
+      method: "passkey",
+      setupToken,
+      mfaSetupToken: setupToken,
+      token: setupToken,
+      publicKey: diracBuildPasskeyPublicKeyOptions({ email, challenge }),
+      expiresAtMs: now + DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS,
+      ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_PASSKEY_TTL_MS / 1000),
+      message: "Challenge passkey berhasil disiapkan."
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      ok: false,
+      success: false,
+      error: error.message || "Gagal menyiapkan A2F login."
+    });
+  }
+}
+
 module.exports = async function handler(req, res) {
   setCors(res);
 
@@ -673,6 +1027,16 @@ module.exports = async function handler(req, res) {
   }
 
   const { step, action } = req.body || {};
+
+  const normalizedAction = String(action || "").trim().toLowerCase();
+
+  if (normalizedAction === "setup" || normalizedAction === "resend") {
+    return diracHandleCustomerMfaStart(req, res);
+  }
+
+  if (normalizedAction === "resend-email-verification") {
+    return diracResendEmailVerification(req, res);
+  }
 
   if (action === "checkA2fBanStatus") {
     try {
