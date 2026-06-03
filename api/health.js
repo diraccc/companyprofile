@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
   'https://www.diracgroup.store',
@@ -11,6 +13,7 @@ const DOMAIN_ACTIONS = new Set([
   'domain_health',
   'hostinger_check',
   'domain_login',
+  'domain_resume_a2f',
   'domain_register',
   'domain_me',
   'domain_logout',
@@ -34,6 +37,9 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'domain_get_orders': 'domain_orders',
   'domain-login': 'domain_login',
   'domain_login': 'domain_login',
+  'domain-resume-a2f': 'domain_resume_a2f',
+  'domain_resume_a2f': 'domain_resume_a2f',
+  'domain-resume': 'domain_resume_a2f',
   'login-domain': 'domain_login',
   'domain-register': 'domain_register',
   'domain_register': 'domain_register',
@@ -94,7 +100,7 @@ function setCors(req, res, options = {}) {
   if (allowedOrigin) res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, POST, OPTIONS' : 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', options.isDomainAction ? 'Content-Type, X-Dirac-Admin, Authorization, X-Domain-Refresh, X-Refresh-Token' : 'Content-Type, X-Dirac-Admin');
+  res.setHeader('Access-Control-Allow-Headers', options.isDomainAction ? 'Content-Type, X-Dirac-Admin, Authorization, X-Domain-Refresh, X-Refresh-Token, X-Domain-Remember, X-Remember-Device' : 'Content-Type, X-Dirac-Admin');
   if (options.isDomainAction) {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Expose-Headers', 'X-Domain-Access-Token, X-Domain-Refresh-Token, X-Domain-Token-Refreshed');
@@ -167,6 +173,7 @@ async function handleDomainAction(action, req, res) {
     if (action === 'domain_health') return domainHealth(req, res);
     if (action === 'hostinger_check') return hostingerCheckDomain(req, res);
     if (action === 'domain_login') return domainLogin(req, res);
+    if (action === 'domain_resume_a2f') return domainResumeA2f(req, res);
     if (action === 'domain_register') return domainRegister(req, res);
     if (action === 'domain_me') return domainMe(req, res);
     if (action === 'domain_logout') return domainLogout(req, res);
@@ -277,12 +284,233 @@ async function hostingerCheckDomain(req, res) {
   return res.status(200).json(payload);
 }
 
+
+/* ============================================================
+   PUBLIC DOMAIN REMEMBER-DEVICE / A2F RESUME
+   Additive only. Admin actions and legacy endpoint contracts are untouched.
+   ============================================================ */
+const DOMAIN_REMEMBER_TABLE = process.env.DOMAIN_REMEMBER_TABLE || 'domain_remember_devices';
+const DOMAIN_REMEMBER_TTL_DAYS = Math.max(1, Math.min(365, Number(process.env.DOMAIN_REMEMBER_TTL_DAYS || 30)));
+
+function getDomainRememberSecret() {
+  const secret = String(process.env.DOMAIN_REMEMBER_SECRET || process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || '').trim();
+  if (!secret || secret.length < 32) {
+    const err = new Error('DOMAIN_REMEMBER_SECRET wajib minimal 32 karakter acak.');
+    err.statusCode = 500;
+    throw err;
+  }
+  return secret;
+}
+
+function domainRememberHash(token) {
+  return crypto
+    .createHmac('sha256', getDomainRememberSecret())
+    .update(`dirac-domain-remember-device-v1:${String(token || '')}`)
+    .digest('hex');
+}
+
+function domainRememberEncryptionKey() {
+  return crypto.createHash('sha256').update(`dirac-domain-refresh-token-v1:${getDomainRememberSecret()}`).digest();
+}
+
+function encryptDomainRefreshToken(refreshToken) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', domainRememberEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(String(refreshToken || ''), 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return {
+    v: 1,
+    alg: 'aes-256-gcm',
+    iv: iv.toString('base64url'),
+    tag: tag.toString('base64url'),
+    data: encrypted.toString('base64url')
+  };
+}
+
+function decryptDomainRefreshToken(payload) {
+  const row = payload && typeof payload === 'object' ? payload : {};
+  if (row.v !== 1 || row.alg !== 'aes-256-gcm' || !row.iv || !row.tag || !row.data) {
+    const err = new Error('Token perangkat tidak valid. Silakan login ulang.');
+    err.statusCode = 401;
+    throw err;
+  }
+  const decipher = crypto.createDecipheriv('aes-256-gcm', domainRememberEncryptionKey(), Buffer.from(String(row.iv), 'base64url'));
+  decipher.setAuthTag(Buffer.from(String(row.tag), 'base64url'));
+  return Buffer.concat([
+    decipher.update(Buffer.from(String(row.data), 'base64url')),
+    decipher.final()
+  ]).toString('utf8');
+}
+
+function normalizeRememberFlag(value) {
+  if (value === false) return false;
+  const text = String(value === undefined ? 'true' : value).trim().toLowerCase();
+  return !(text === 'false' || text === '0' || text === 'no' || text === 'off');
+}
+
+async function createDomainRememberDevice({ user, email, refreshToken, req }) {
+  if (!refreshToken || !user || !user.id) return null;
+  const rawToken = crypto.randomBytes(48).toString('base64url');
+  const now = new Date();
+  const expires = new Date(now.getTime() + DOMAIN_REMEMBER_TTL_DAYS * 24 * 60 * 60 * 1000);
+  const payload = {
+    user_id: String(user.id),
+    email: normalizeAuthEmail(email || user.email || ''),
+    token_hash: domainRememberHash(rawToken),
+    refresh_token_ciphertext: encryptDomainRefreshToken(refreshToken),
+    device_label: String((req.headers && req.headers['user-agent']) || 'browser').slice(0, 180),
+    user_agent: String((req.headers && req.headers['user-agent']) || '').slice(0, 500),
+    ip_hint: String((req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || '').split(',')[0].trim().slice(0, 80),
+    created_at: now.toISOString(),
+    last_used_at: now.toISOString(),
+    expires_at: expires.toISOString(),
+    revoked_at: null
+  };
+
+  const result = await supabaseFetch(`/rest/v1/${DOMAIN_REMEMBER_TABLE}`, {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: payload
+  });
+
+  if (!result.ok) {
+    console.warn('[domain_remember_devices] gagal menyimpan remember-device:', result.status, result.data);
+    return null;
+  }
+
+  return {
+    token: rawToken,
+    expires_at: expires.toISOString(),
+    ttl_days: DOMAIN_REMEMBER_TTL_DAYS
+  };
+}
+
+async function findDomainRememberDevice(rawToken) {
+  const token = String(rawToken || '').trim();
+  if (!token) return null;
+  const tokenHash = domainRememberHash(token);
+  const nowIso = new Date().toISOString();
+  const result = await supabaseFetch(
+    `/rest/v1/${DOMAIN_REMEMBER_TABLE}?select=*&token_hash=eq.${encodeURIComponent(tokenHash)}&revoked_at=is.null&expires_at=gt.${encodeURIComponent(nowIso)}&limit=1`,
+    { method: 'GET', auth: 'service' }
+  );
+  if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
+  return result.data[0];
+}
+
+async function touchDomainRememberDevice(id) {
+  if (!id) return;
+  await supabaseFetch(`/rest/v1/${DOMAIN_REMEMBER_TABLE}?id=eq.${encodeURIComponent(String(id))}`, {
+    method: 'PATCH',
+    auth: 'service',
+    body: { last_used_at: new Date().toISOString() }
+  }).catch(() => null);
+}
+
+async function domainResumeA2f(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ ok: false, message: 'Gunakan GET atau POST.' });
+  }
+
+  // Jalur 1: sesi Supabase cookie/header masih valid. Ini paling aman dan tidak butuh password ulang.
+  const userFromSession = await tryRequireDomainUser(req, res);
+  if (userFromSession) {
+    return res.status(200).json({
+      ok: true,
+      success: true,
+      resume: true,
+      source: 'supabase_session',
+      a2f_required: true,
+      twoFactorRequired: true,
+      user: sanitizeUser(userFromSession),
+      message: 'Sesi valid. Lanjutkan A2F.'
+    });
+  }
+
+  // Jalur 2: remember-device token tersimpan lokal, diverifikasi backend, lalu refresh Supabase session.
+  const body = req.method === 'POST' ? await readBody(req) : {};
+  const rememberToken = String(
+    (body && (body.rememberToken || body.remember_token || body.deviceToken || body.device_token)) ||
+    (req.headers && (req.headers['x-domain-remember'] || req.headers['x-remember-device'])) ||
+    (req.query && (req.query.rememberToken || req.query.remember_token)) ||
+    ''
+  ).trim();
+
+  if (!rememberToken) {
+    return res.status(401).json({ ok: false, success: false, resume: false, message: 'Sesi perangkat tidak ditemukan.' });
+  }
+
+  const device = await findDomainRememberDevice(rememberToken);
+  if (!device) {
+    clearSessionCookies(res);
+    return res.status(401).json({ ok: false, success: false, resume: false, message: 'Sesi perangkat tidak valid atau expired.' });
+  }
+
+  const refreshToken = decryptDomainRefreshToken(device.refresh_token_ciphertext || device.refreshTokenCiphertext);
+  const refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+    method: 'POST',
+    auth: 'anon',
+    body: { refresh_token: refreshToken }
+  });
+
+  if (!refreshResult.ok || !refreshResult.data || !refreshResult.data.access_token) {
+    clearSessionCookies(res);
+    return res.status(401).json({ ok: false, success: false, resume: false, message: 'Sesi Supabase perangkat sudah expired. Login ulang diperlukan.' });
+  }
+
+  setSessionCookies(res, refreshResult.data, { remember: true });
+  await touchDomainRememberDevice(device.id);
+
+  return res.status(200).json({
+    ok: true,
+    success: true,
+    resume: true,
+    source: 'remember_device',
+    a2f_required: true,
+    twoFactorRequired: true,
+    user: sanitizeUser(refreshResult.data.user || { id: device.user_id, email: device.email }),
+    session: {
+      access_token: refreshResult.data.access_token,
+      refresh_token: refreshResult.data.refresh_token,
+      expires_in: refreshResult.data.expires_in
+    },
+    message: 'Perangkat terverifikasi. Lanjutkan A2F.'
+  });
+}
+
+async function tryRequireDomainUser(req, res) {
+  const originalStatus = res.status;
+  const originalJson = res.json;
+  let swallowed = false;
+  try {
+    res.status = function statusProxy(code) {
+      if (Number(code) === 401) {
+        swallowed = true;
+        return { json: function jsonProxy() { return null; } };
+      }
+      return originalStatus.call(this, code);
+    };
+    res.json = function jsonProxy(data) {
+      if (swallowed) return null;
+      return originalJson.call(this, data);
+    };
+    return await requireDomainUser(req, res);
+  } catch (_error) {
+    return null;
+  } finally {
+    res.status = originalStatus;
+    res.json = originalJson;
+  }
+}
+
 async function domainLogin(req, res, preloadedBody) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
   const body = preloadedBody || await readBody(req);
   const email = normalizeAuthEmail(body.email || body.identifier || body.customer_email);
   const password = String(body.password || '');
+  const rememberDevice = normalizeRememberFlag(body.remember);
 
   if (!email || !password) {
     return res.status(400).json({ ok: false, message: 'Email dan password wajib diisi.' });
@@ -305,7 +533,10 @@ async function domainLogin(req, res, preloadedBody) {
     });
   }
 
-  setSessionCookies(res, result.data);
+  setSessionCookies(res, result.data, { remember: rememberDevice });
+  const rememberDeviceResult = rememberDevice
+    ? await createDomainRememberDevice({ user: result.data.user, email, refreshToken: result.data.refresh_token, req })
+    : null;
 
   return res.status(200).json({
     ok: true,
@@ -314,8 +545,12 @@ async function domainLogin(req, res, preloadedBody) {
     session: {
       access_token: result.data.access_token,
       refresh_token: result.data.refresh_token,
-      expires_in: result.data.expires_in
-    }
+      expires_in: result.data.expires_in,
+      remember_token: rememberDeviceResult ? rememberDeviceResult.token : '',
+      remember_expires_at: rememberDeviceResult ? rememberDeviceResult.expires_at : null
+    },
+    remember_device: rememberDeviceResult ? { enabled: true, expires_at: rememberDeviceResult.expires_at } : { enabled: false },
+    remember_token: rememberDeviceResult ? rememberDeviceResult.token : ''
   });
 }
 
@@ -364,7 +599,7 @@ async function domainRegister(req, res, preloadedBody) {
   }
 
   if (result.data.access_token && result.data.refresh_token) {
-    setSessionCookies(res, result.data);
+    setSessionCookies(res, result.data, { remember: true });
   }
 
   return res.status(200).json({
@@ -1463,12 +1698,14 @@ function makeCookie(name, value, options = {}) {
   return parts.join('; ');
 }
 
-function setSessionCookies(res, session) {
-  const maxAge = 60 * 60 * 24 * 7;
+function setSessionCookies(res, session, options = {}) {
+  const remember = options.remember !== false;
+  const maxAge = remember ? 60 * 60 * 24 * DOMAIN_REMEMBER_TTL_DAYS : undefined;
+  const cookieOptions = remember ? { maxAge } : {};
 
   res.setHeader('Set-Cookie', [
-    makeCookie(ACCESS_COOKIE, session.access_token, { maxAge }),
-    makeCookie(REFRESH_COOKIE, session.refresh_token, { maxAge })
+    makeCookie(ACCESS_COOKIE, session.access_token, cookieOptions),
+    makeCookie(REFRESH_COOKIE, session.refresh_token, cookieOptions)
   ]);
 }
 
