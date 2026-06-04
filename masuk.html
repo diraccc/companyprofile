@@ -4968,6 +4968,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
     var sameOrigin = kind === 'setup' ? '/api/2fa/start-step' : kind === 'verify' ? '/api/2fa/verify-step' : '/api/2fa/lock';
     return uniqueEndpoints([configured, sameOrigin]);
   }
+  /* Production fix: A2F verify uses credentials:'include' so the backend HttpOnly dashboard MFA cookie from the Vercel API is saved. Setup/start stays credentials:'omit' to avoid CORS side effects. */
   async function callEndpoint(kind, payload){
     if(!window.fetch) throw new Error('endpoint unavailable');
     var urls = endpointCandidates(kind);
@@ -4975,7 +4976,8 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
     var lastError = null;
     for(var i=0;i<urls.length;i++){
       try{
-        var res = await fetch(urls[i], {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:'same-origin', cache:'no-store'});
+        var credentialMode = kind === 'verify' ? 'include' : 'omit';
+        var res = await fetch(urls[i], {method:'POST', mode:'cors', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:credentialMode, cache:'no-store'});
         var data = await res.clone().json().catch(function(){return null;});
         if(res.ok && data && data.ok !== false) return data;
         var message = data && (data.error || data.message || data.hint || data.details) ? (data.error || data.message || data.hint || data.details) : 'Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.';
