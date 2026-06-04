@@ -457,28 +457,34 @@ async function domainLogout(req, res) {
 }
 
 async function domainCheck(req, res) {
-  // Public domain availability check.
-  // Tetap memakai action lama /api/health?action=domain_check dan alias check-domain,
-  // tetapi sumber pengecekan sekarang diarahkan ke engine multi-provider internal:
-  // Name.com -> NameSilo -> WhoisJSON -> Hostinger.
-  // Ini menghapus ketergantungan ke DOMAIN_CHECK_API eksternal dan tidak menyentuh login/A2F/hash.
-  return hostingerCheckDomain(req, res);
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const domain = normalizeDomain(req.query && req.query.domain);
+
+  if (!domain) {
+    return res.status(400).json({ ok: false, message: 'Domain wajib diisi.' });
+  }
+
+  const checkApi = requiredEnv('DOMAIN_CHECK_API');
+  const response = await fetch(`${checkApi}?domain=${encodeURIComponent(domain)}`);
+  const data = await response.json().catch(() => ({}));
+
+  return res.status(response.status).json(data);
 }
 
 async function domainCheckout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
+  // Bypass fix: checkout domain adalah aksi dashboard, jadi wajib lolos sesi login + A2F backend.
+  // Login/hash/A2F signing tidak diubah; fungsi verifikasi yang sudah ada dipakai ulang.
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+  const { user } = access;
+
   const body = await readBody(req);
-
-  // Jalur baru multi-kategori DiracGroup.
-  // Tetap memakai endpoint lama /api/health?action=create-order agar tidak menambah file API baru.
-  // Jalur lama checkout domain berbasis login tetap di bawah dan tetap wajib sesi login.
-  if (isMultiCategoryOrderPayload(body)) {
-    return createMultiCategoryOrder(req, res, body);
-  }
-
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
 
   const customerName = String(body.customer_name || '').trim();
   const customerWhatsapp = String(body.customer_whatsapp || '').trim();
@@ -634,146 +640,6 @@ async function domainCheckout(req, res) {
     total_amount: totalAmount,
     currency: 'IDR',
     items: orderItems
-  });
-}
-
-function isMultiCategoryOrderPayload(body) {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
-  if (Array.isArray(body.items) && body.items.length) return false;
-  return Boolean(
-    body.product_id ||
-    body.product_category ||
-    body.product_name ||
-    body.total_price
-  );
-}
-
-function cleanDomainOrderText(value, maxLength = 500) {
-  return String(value ?? '').trim().slice(0, maxLength);
-}
-
-function isValidDomainProductCategory(value) {
-  return [
-    'domain',
-    'website_service',
-    'development_service',
-    'empty_number'
-  ].includes(String(value || '').trim());
-}
-
-async function createMultiCategoryOrder(req, res, body) {
-  const customerName = cleanDomainOrderText(body.customer_name || body.name, 160);
-  const customerWhatsapp = normalizePhone(body.customer_whatsapp || body.customer_phone || body.whatsapp || body.phone);
-  const customerEmail = cleanDomainOrderText(body.customer_email || body.email, 254).toLowerCase();
-  const domainName = cleanDomainOrderText(body.domain_name || body.order_name || body.request_name || body.project_name, 255);
-  const productId = cleanDomainOrderText(body.product_id, 80);
-  const notes = cleanDomainOrderText(body.notes || body.customer_note || body.message, 1000);
-
-  if (!customerName || customerName.length < 2) {
-    return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi minimal 2 karakter.' });
-  }
-
-  if (!customerWhatsapp || customerWhatsapp.length < 8) {
-    return res.status(400).json({ ok: false, message: 'Nomor WhatsApp wajib diisi minimal 8 karakter.' });
-  }
-
-  if (customerEmail && !isValidAuthEmail(customerEmail)) {
-    return res.status(400).json({ ok: false, message: 'Email pelanggan tidak valid.' });
-  }
-
-  if (!domainName || domainName.length < 3) {
-    return res.status(400).json({ ok: false, message: 'Nama domain/kebutuhan wajib diisi minimal 3 karakter.' });
-  }
-
-  if (!productId) {
-    return res.status(400).json({ ok: false, message: 'Produk wajib dipilih.' });
-  }
-
-  const productPath = `/rest/v1/domain_products?select=id,name,price,product_category,is_active&id=eq.${encodeURIComponent(productId)}&is_active=eq.true&limit=1`;
-  const productResult = await supabaseFetch(productPath, {
-    method: 'GET',
-    auth: 'service'
-  });
-
-  if (!productResult.ok) {
-    return res.status(productResult.status).json({
-      ok: false,
-      message: 'Gagal membaca data produk.',
-      error: productResult.data
-    });
-  }
-
-  const product = Array.isArray(productResult.data) ? productResult.data[0] : null;
-
-  if (!product || !product.id) {
-    return res.status(404).json({ ok: false, message: 'Produk tidak ditemukan atau tidak aktif.' });
-  }
-
-  const productCategory = cleanDomainOrderText(product.product_category, 80);
-  const productPrice = Number(product.price);
-
-  if (!isValidDomainProductCategory(productCategory)) {
-    return res.status(400).json({ ok: false, message: 'Kategori produk tidak valid.' });
-  }
-
-  if (!Number.isFinite(productPrice) || productPrice < 0) {
-    return res.status(400).json({ ok: false, message: 'Harga produk tidak valid.' });
-  }
-
-  const orderPayload = {
-    customer_name: customerName,
-    customer_whatsapp: customerWhatsapp,
-    customer_phone: customerWhatsapp,
-    customer_email: customerEmail || null,
-    domain_name: domainName,
-    product_id: product.id,
-    product_name: cleanDomainOrderText(product.name, 255),
-    product_category: productCategory,
-    total_price: productPrice,
-    order_status: 'pending',
-    status: 'pending',
-    payment_status: 'unpaid',
-    notes: notes || null
-  };
-
-  const orderResult = await supabaseFetch('/rest/v1/domain_orders', {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: [orderPayload]
-  });
-
-  if (!orderResult.ok) {
-    return res.status(orderResult.status).json({
-      ok: false,
-      message: 'Gagal membuat order.',
-      error: orderResult.data
-    });
-  }
-
-  const order = Array.isArray(orderResult.data) ? orderResult.data[0] : orderResult.data;
-
-  if (!order || !order.id) {
-    return res.status(500).json({
-      ok: false,
-      message: 'Order dibuat, tetapi ID order tidak ditemukan.'
-    });
-  }
-
-  return res.status(200).json({
-    ok: true,
-    message: 'Order berhasil dibuat.',
-    order: {
-      id: order && order.id,
-      order_code: order && order.order_code,
-      product_name: order && order.product_name,
-      product_category: order && order.product_category,
-      total_price: order && order.total_price,
-      order_status: order && order.order_status,
-      status: order && order.status,
-      payment_status: order && order.payment_status,
-      created_at: order && order.created_at
-    }
   });
 }
 
