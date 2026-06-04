@@ -457,22 +457,12 @@ async function domainLogout(req, res) {
 }
 
 async function domainCheck(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
-
-  const domain = normalizeDomain(req.query && req.query.domain);
-
-  if (!domain) {
-    return res.status(400).json({ ok: false, message: 'Domain wajib diisi.' });
-  }
-
-  const checkApi = requiredEnv('DOMAIN_CHECK_API');
-  const response = await fetch(`${checkApi}?domain=${encodeURIComponent(domain)}`);
-  const data = await response.json().catch(() => ({}));
-
-  return res.status(response.status).json(data);
+  // Public domain availability check.
+  // Tetap memakai action lama /api/health?action=domain_check dan alias check-domain,
+  // tetapi sumber pengecekan sekarang diarahkan ke engine multi-provider internal:
+  // Name.com -> NameSilo -> WhoisJSON -> Hostinger.
+  // Ini menghapus ketergantungan ke DOMAIN_CHECK_API eksternal dan tidak menyentuh login/A2F/hash.
+  return hostingerCheckDomain(req, res);
 }
 
 async function domainCheckout(req, res) {
