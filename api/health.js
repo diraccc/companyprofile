@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
   'https://www.diracgroup.store',
@@ -13,6 +15,7 @@ const DOMAIN_ACTIONS = new Set([
   'domain_login',
   'domain_register',
   'domain_me',
+  'domain_dashboard_me',
   'domain_logout',
   'domain_check',
   'domain_checkout',
@@ -39,6 +42,10 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'domain_register': 'domain_register',
   'register-domain': 'domain_register',
   'domain-me': 'domain_me',
+  'domain-dashboard-me': 'domain_dashboard_me',
+  'domain_dashboard_me': 'domain_dashboard_me',
+  'dashboard-me': 'domain_dashboard_me',
+  'dashboard_me': 'domain_dashboard_me',
   'domain_logout': 'domain_logout',
   'domain-logout': 'domain_logout'
 });
@@ -131,6 +138,7 @@ function normalizeDomainAction(action) {
    /api/health?action=domain_login
    /api/health?action=domain_register
    /api/health?action=domain_me
+   /api/health?action=domain_dashboard_me
    /api/health?action=domain_logout
    /api/health?action=domain_check&domain=contoh.com
    /api/health?action=check-domain&domain=contoh.com
@@ -142,6 +150,9 @@ function normalizeDomainAction(action) {
 
 const ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || 'dirac_domain_session';
 const REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || 'dirac_domain_refresh';
+const CUSTOMER_MFA_COOKIE = process.env.DIRAC_CUSTOMER_MFA_COOKIE || 'dirac_customer_mfa_session';
+const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
+
 
 const HOSTINGER_API_BASE = 'https://developers.hostinger.com';
 const HOSTINGER_CHECK_CACHE = new Map();
@@ -169,6 +180,7 @@ async function handleDomainAction(action, req, res) {
     if (action === 'domain_login') return domainLogin(req, res);
     if (action === 'domain_register') return domainRegister(req, res);
     if (action === 'domain_me') return domainMe(req, res);
+    if (action === 'domain_dashboard_me') return domainDashboardMe(req, res);
     if (action === 'domain_logout') return domainLogout(req, res);
     if (action === 'domain_check') return domainCheck(req, res);
     if (action === 'domain_checkout') return domainCheckout(req, res);
@@ -391,6 +403,34 @@ async function domainMe(req, res) {
   return res.status(200).json({
     ok: true,
     user: sanitizeUser(user)
+  });
+}
+
+async function domainDashboardMe(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const mfa = verifyCustomerDashboardMfaCookie(req, user);
+  if (!mfa.ok) {
+    return res.status(403).json({
+      ok: false,
+      dashboard: false,
+      message: mfa.message || 'Dashboard wajib verifikasi A2F backend sebelum dibuka.'
+    });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    dashboard: true,
+    user: sanitizeUser(user),
+    mfa: {
+      verified: true,
+      method: mfa.method || '',
+      verifiedAtMs: mfa.verifiedAtMs || 0,
+      expiresAtMs: mfa.expiresAtMs || 0
+    }
   });
 }
 
@@ -676,6 +716,74 @@ async function requireDomainUser(req, res) {
   return null;
 }
 
+
+function safeEqual(a, b) {
+  const A = Buffer.from(String(a || ''));
+  const B = Buffer.from(String(b || ''));
+  if (A.length !== B.length) return false;
+  return crypto.timingSafeEqual(A, B);
+}
+
+function signDashboardMfa(data, secret) {
+  return crypto.createHmac('sha256', secret).update(data).digest('base64url');
+}
+
+function hashDashboardMfa(value, secret) {
+  return crypto.createHmac('sha256', secret).update(String(value || '')).digest('hex');
+}
+
+function getCustomerMfaSecret() {
+  const secret = String(process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || '').trim();
+  if (!secret || secret === 'rahasia-test' || secret.length < 32) {
+    const err = new Error('DIRAC_MFA_SECRET atau A2F_SECRET production wajib minimal 32 karakter acak.');
+    err.statusCode = 500;
+    throw err;
+  }
+  return secret;
+}
+
+function customerMfaProfileId(email) {
+  return hashDashboardMfa(`dirac-customer-mfa-profile-v1:${normalizeAuthEmail(email)}`, getCustomerMfaSecret());
+}
+
+function decodeCustomerDashboardMfaToken(token) {
+  const [payloadBase64, signature] = String(token || '').split('.');
+  if (!payloadBase64 || !signature) return null;
+
+  const expected = signDashboardMfa(payloadBase64, getCustomerMfaSecret());
+  if (!safeEqual(signature, expected)) return null;
+
+  try {
+    return JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+function verifyCustomerDashboardMfaCookie(req, user) {
+  const cookies = parseCookies(req);
+  const payload = decodeCustomerDashboardMfaToken(cookies[CUSTOMER_MFA_COOKIE]);
+  const email = normalizeAuthEmail(user && user.email);
+
+  if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE) {
+    return { ok: false, message: 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang.' };
+  }
+
+  if (!payload.expiresAtMs || Date.now() > Number(payload.expiresAtMs)) {
+    return { ok: false, message: 'Sesi A2F backend sudah expired. Login dan verifikasi A2F ulang.' };
+  }
+
+  if (!email || !payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(email))) {
+    return { ok: false, message: 'Sesi A2F backend tidak cocok dengan akun login.' };
+  }
+
+  return {
+    ok: true,
+    method: String(payload.method || ''),
+    verifiedAtMs: Number(payload.verifiedAtMs || 0),
+    expiresAtMs: Number(payload.expiresAtMs || 0)
+  };
+}
 
 function getDomainProviderOrder() {
   const aliases = {
