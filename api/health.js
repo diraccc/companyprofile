@@ -18,7 +18,6 @@ const DOMAIN_ACTIONS = new Set([
   'domain_dashboard_me',
   'domain_logout',
   'domain_check',
-  'domain_products',
   'domain_checkout',
   'domain_orders'
 ]);
@@ -32,10 +31,6 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'domain_hostinger_check': 'hostinger_check',
   'check-domain': 'domain_check',
   'domain_check': 'domain_check',
-  'domain-products': 'domain_products',
-  'domain_products': 'domain_products',
-  'get-products': 'domain_products',
-  'domain_get_products': 'domain_products',
   'create-order': 'domain_checkout',
   'domain_create_order': 'domain_checkout',
   'get-orders': 'domain_orders',
@@ -188,7 +183,6 @@ async function handleDomainAction(action, req, res) {
     if (action === 'domain_dashboard_me') return domainDashboardMe(req, res);
     if (action === 'domain_logout') return domainLogout(req, res);
     if (action === 'domain_check') return domainCheck(req, res);
-    if (action === 'domain_products') return domainProducts(req, res);
     if (action === 'domain_checkout') return domainCheckout(req, res);
     if (action === 'domain_orders') return domainOrders(req, res);
 
@@ -212,7 +206,6 @@ async function domainHealth(req, res) {
     endpoints: {
       check: '/api/health?action=domain_check&domain=contoh.com',
       hostingerCheck: '/api/health?action=hostinger-check&domain=contoh.com',
-      products: '/api/health?action=domain_products',
       checkout: '/api/health?action=domain_checkout',
       orders: '/api/health?action=domain_orders'
     },
@@ -220,7 +213,6 @@ async function domainHealth(req, res) {
       health: '/api/health?action=domain-health',
       hostingerCheck: '/api/health?action=hostinger-check&domain=contoh.com',
       check: '/api/health?action=check-domain&domain=contoh.com',
-      getProducts: '/api/health?action=get-products',
       createOrder: '/api/health?action=create-order',
       getOrders: '/api/health?action=get-orders'
     },
@@ -483,50 +475,20 @@ async function domainCheck(req, res) {
   return res.status(response.status).json(data);
 }
 
-async function domainProducts(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-
-  const result = await supabaseFetch('/rest/v1/rpc/domain_get_active_products_public', {
-    method: 'POST',
-    auth: 'anon',
-    body: {}
-  });
-
-  if (!result.ok) {
-    return res.status(result.status).json({
-      ok: false,
-      message: 'Gagal memuat produk aktif lewat RPC.',
-      error: result.data
-    });
-  }
-
-  const rows = Array.isArray(result.data) ? result.data : [];
-
-  return res.status(200).json({
-    ok: true,
-    source: 'rpc:domain_get_active_products_public',
-    data: rows.map((item) => ({
-      id: item.id,
-      name: item.name,
-      price: Number(item.price || 0),
-      description: item.description || '',
-      product_category: item.product_category,
-      category: item.product_category,
-      is_active: item.is_active === true,
-      created_at: item.created_at || null,
-      updated_at: item.updated_at || null
-    })),
-    count: rows.length
-  });
-}
-
 async function domainCheckout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
+  const body = await readBody(req);
+
+  // Jalur baru multi-kategori DiracGroup.
+  // Tetap memakai endpoint lama /api/health?action=create-order agar tidak menambah file API baru.
+  // Jalur lama checkout domain berbasis login tetap di bawah dan tetap wajib sesi login.
+  if (isMultiCategoryOrderPayload(body)) {
+    return createMultiCategoryOrder(req, res, body);
+  }
+
   const user = await requireDomainUser(req, res);
   if (!user) return;
-
-  const body = await readBody(req);
 
   const customerName = String(body.customer_name || '').trim();
   const customerWhatsapp = String(body.customer_whatsapp || '').trim();
@@ -682,6 +644,146 @@ async function domainCheckout(req, res) {
     total_amount: totalAmount,
     currency: 'IDR',
     items: orderItems
+  });
+}
+
+function isMultiCategoryOrderPayload(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
+  if (Array.isArray(body.items) && body.items.length) return false;
+  return Boolean(
+    body.product_id ||
+    body.product_category ||
+    body.product_name ||
+    body.total_price
+  );
+}
+
+function cleanDomainOrderText(value, maxLength = 500) {
+  return String(value ?? '').trim().slice(0, maxLength);
+}
+
+function isValidDomainProductCategory(value) {
+  return [
+    'domain',
+    'website_service',
+    'development_service',
+    'empty_number'
+  ].includes(String(value || '').trim());
+}
+
+async function createMultiCategoryOrder(req, res, body) {
+  const customerName = cleanDomainOrderText(body.customer_name || body.name, 160);
+  const customerWhatsapp = normalizePhone(body.customer_whatsapp || body.customer_phone || body.whatsapp || body.phone);
+  const customerEmail = cleanDomainOrderText(body.customer_email || body.email, 254).toLowerCase();
+  const domainName = cleanDomainOrderText(body.domain_name || body.order_name || body.request_name || body.project_name, 255);
+  const productId = cleanDomainOrderText(body.product_id, 80);
+  const notes = cleanDomainOrderText(body.notes || body.customer_note || body.message, 1000);
+
+  if (!customerName || customerName.length < 2) {
+    return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi minimal 2 karakter.' });
+  }
+
+  if (!customerWhatsapp || customerWhatsapp.length < 8) {
+    return res.status(400).json({ ok: false, message: 'Nomor WhatsApp wajib diisi minimal 8 karakter.' });
+  }
+
+  if (customerEmail && !isValidAuthEmail(customerEmail)) {
+    return res.status(400).json({ ok: false, message: 'Email pelanggan tidak valid.' });
+  }
+
+  if (!domainName || domainName.length < 3) {
+    return res.status(400).json({ ok: false, message: 'Nama domain/kebutuhan wajib diisi minimal 3 karakter.' });
+  }
+
+  if (!productId) {
+    return res.status(400).json({ ok: false, message: 'Produk wajib dipilih.' });
+  }
+
+  const productPath = `/rest/v1/domain_products?select=id,name,price,product_category,is_active&id=eq.${encodeURIComponent(productId)}&is_active=eq.true&limit=1`;
+  const productResult = await supabaseFetch(productPath, {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!productResult.ok) {
+    return res.status(productResult.status).json({
+      ok: false,
+      message: 'Gagal membaca data produk.',
+      error: productResult.data
+    });
+  }
+
+  const product = Array.isArray(productResult.data) ? productResult.data[0] : null;
+
+  if (!product || !product.id) {
+    return res.status(404).json({ ok: false, message: 'Produk tidak ditemukan atau tidak aktif.' });
+  }
+
+  const productCategory = cleanDomainOrderText(product.product_category, 80);
+  const productPrice = Number(product.price);
+
+  if (!isValidDomainProductCategory(productCategory)) {
+    return res.status(400).json({ ok: false, message: 'Kategori produk tidak valid.' });
+  }
+
+  if (!Number.isFinite(productPrice) || productPrice < 0) {
+    return res.status(400).json({ ok: false, message: 'Harga produk tidak valid.' });
+  }
+
+  const orderPayload = {
+    customer_name: customerName,
+    customer_whatsapp: customerWhatsapp,
+    customer_phone: customerWhatsapp,
+    customer_email: customerEmail || null,
+    domain_name: domainName,
+    product_id: product.id,
+    product_name: cleanDomainOrderText(product.name, 255),
+    product_category: productCategory,
+    total_price: productPrice,
+    order_status: 'pending',
+    status: 'pending',
+    payment_status: 'unpaid',
+    notes: notes || null
+  };
+
+  const orderResult = await supabaseFetch('/rest/v1/domain_orders', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [orderPayload]
+  });
+
+  if (!orderResult.ok) {
+    return res.status(orderResult.status).json({
+      ok: false,
+      message: 'Gagal membuat order.',
+      error: orderResult.data
+    });
+  }
+
+  const order = Array.isArray(orderResult.data) ? orderResult.data[0] : orderResult.data;
+
+  if (!order || !order.id) {
+    return res.status(500).json({
+      ok: false,
+      message: 'Order dibuat, tetapi ID order tidak ditemukan.'
+    });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    message: 'Order berhasil dibuat.',
+    order: {
+      id: order && order.id,
+      order_code: order && order.order_code,
+      product_name: order && order.product_name,
+      product_category: order && order.product_category,
+      total_price: order && order.total_price,
+      order_status: order && order.order_status,
+      status: order && order.status,
+      payment_status: order && order.payment_status,
+      created_at: order && order.created_at
+    }
   });
 }
 
