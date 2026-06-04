@@ -478,11 +478,8 @@ async function domainCheck(req, res) {
 async function domainCheckout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  // Bypass fix: checkout domain adalah aksi dashboard, jadi wajib lolos sesi login + A2F backend.
-  // Login/hash/A2F signing tidak diubah; fungsi verifikasi yang sudah ada dipakai ulang.
-  const access = await requireDomainDashboardAccess(req, res);
-  if (!access) return;
-  const { user } = access;
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
 
   const body = await readBody(req);
 
