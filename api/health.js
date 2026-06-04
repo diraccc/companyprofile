@@ -1583,7 +1583,8 @@ function setSessionCookies(res, session) {
 function clearSessionCookies(res) {
   res.setHeader('Set-Cookie', [
     makeCookie(ACCESS_COOKIE, '', { maxAge: 0 }),
-    makeCookie(REFRESH_COOKIE, '', { maxAge: 0 })
+    makeCookie(REFRESH_COOKIE, '', { maxAge: 0 }),
+    makeCookie(CUSTOMER_MFA_COOKIE, '', { maxAge: 0 })
   ]);
 }
 
