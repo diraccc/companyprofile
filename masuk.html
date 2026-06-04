@@ -5446,6 +5446,12 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
       }, duration);
     });
   }
+  function dashboardRedirectUrl(){
+    /* Keep dashboard on the exact same website origin used for login/A2F.
+       The backend MFA proof is origin-bound, so switching www -> non-www here
+       can make a valid A2F session look invalid and keep the dashboard locked. */
+    try{ return new URL('dashboard.html', window.location.href).href; }catch(e){ return 'dashboard.html'; }
+  }
   function closeDone(){
     if(state.step < 4 || !state.verified || state.verifyMode !== 'server'){ setMessage('error', t('doneLocked')); return; }
     if(state.finishing) return;
@@ -5454,9 +5460,9 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
     if(done){ done.disabled = true; done.textContent = lang()==='en' ? 'Checking system...' : 'Mengecek sistem...'; }
     playDashboardLaunchAnimation().then(function(){
       try{ localStorage.setItem('dirac_auth_a2f_dashboard_ready_v1', String(Date.now())); }catch(e){}
-      window.location.href = 'https://diracgroup.store/dashboard.html';
+      window.location.href = dashboardRedirectUrl();
     }).catch(function(){
-      window.location.href = 'https://diracgroup.store/dashboard.html';
+      window.location.href = dashboardRedirectUrl();
     });
   }
   function trapFocus(e){
