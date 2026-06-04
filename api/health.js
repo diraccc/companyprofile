@@ -486,28 +486,16 @@ async function domainCheck(req, res) {
 async function domainProducts(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
-  const select = [
-    'id',
-    'name',
-    'price',
-    'description',
-    'product_category',
-    'is_active',
-    'created_at',
-    'updated_at'
-  ].join(',');
-
-  const path = `/rest/v1/domain_products?select=${encodeURIComponent(select)}&is_active=eq.true&order=created_at.asc`;
-
-  const result = await supabaseFetch(path, {
-    method: 'GET',
-    auth: 'anon'
+  const result = await supabaseFetch('/rest/v1/rpc/domain_get_active_products_public', {
+    method: 'POST',
+    auth: 'anon',
+    body: {}
   });
 
   if (!result.ok) {
     return res.status(result.status).json({
       ok: false,
-      message: 'Gagal memuat produk aktif.',
+      message: 'Gagal memuat produk aktif lewat RPC.',
       error: result.data
     });
   }
@@ -516,6 +504,7 @@ async function domainProducts(req, res) {
 
   return res.status(200).json({
     ok: true,
+    source: 'rpc:domain_get_active_products_public',
     data: rows.map((item) => ({
       id: item.id,
       name: item.name,
