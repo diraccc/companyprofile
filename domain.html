@@ -3827,26 +3827,10 @@ html[data-effective-theme="light"] .dirac-pre-notice-footnote{color:#374151;back
 <script id="dirac-pre-notice-boot">
 (function(){
   'use strict';
-  var NOTICE_STORAGE_PATTERNS = /(^dirac[_-]?pre[_-]?notice|^dirac[_-]?notice|pre[_-]?notice[_-]?accepted|pre[_-]?notice[_-]?closed|pre[_-]?notice[_-]?seen)/i;
-  function purgeNoticeStorage(storage){
-    if(!storage) return;
-    try{
-      var keys = [];
-      for(var i = 0; i < storage.length; i++){
-        var key = storage.key(i);
-        if(key && NOTICE_STORAGE_PATTERNS.test(key)) keys.push(key);
-      }
-      keys.push('dirac_pre_notice_accepted_v1');
-      keys.push('dirac-pre-notice-accepted-v1');
-      keys.push('dirac_pre_notice_closed_v1');
-      keys.push('dirac_pre_notice_seen_v1');
-      for(var j = 0; j < keys.length; j++) storage.removeItem(keys[j]);
-    }catch(error){}
-  }
-  purgeNoticeStorage(window.localStorage);
-  purgeNoticeStorage(window.sessionStorage);
-  document.documentElement.classList.add('dirac-pre-notice-pending');
-  document.documentElement.setAttribute('data-dirac-pre-notice-mode','every-refresh');
+  try{
+    document.documentElement.classList.remove('dirac-pre-notice-pending');
+    document.documentElement.removeAttribute('data-dirac-pre-notice-mode');
+  }catch(error){}
 })();
 </script>
 
@@ -4874,15 +4858,98 @@ body.gate-checking .gate-icon{animation:securityCheckPulse 1.25s ease-in-out inf
 }
 </style>
 
+
+
+<style id="dirac-html-backend-lock-no-blur-final-css">
+/* =========================================================
+   FINAL CORRECTION: HTML benar-benar terkunci backend.
+   - Tidak ada blur.
+   - Tidak ada pemberitahuan awal.
+   - Konten utama tidak ditampilkan sampai /api/health?action=domain_dashboard_me PASS.
+   - Login/hash/A2F tidak diubah; ini hanya gate visual + fail-closed HTML.
+   ========================================================= */
+html:not([data-domain-menu-backend="verified"]) body{
+  overflow:hidden!important;
+  min-height:100vh!important;
+  background:
+    radial-gradient(circle at top left,rgba(var(--theme-rgb,243,205,112),.20),transparent 34rem),
+    radial-gradient(circle at 80% 14%,rgba(255,255,255,.075),transparent 22rem),
+    linear-gradient(180deg,#07090d,#020304)!important;
+}
+html:not([data-domain-menu-backend="verified"]) body > :not(#securityGate):not(.security-gate){
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  user-select:none!important;
+  filter:none!important;
+  transform:none!important;
+}
+html[data-domain-menu-backend="checking"] #securityGate,
+html[data-domain-menu-backend="locked"] #securityGate,
+body.gate-checking #securityGate,
+body.gate-locked #securityGate{
+  display:grid!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+html[data-domain-menu-backend="verified"] #securityGate,
+html[data-domain-menu-backend="verified"] .security-gate,
+#diracPreNotice,
+.dirac-pre-notice{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+body.gate-locked > :not(#securityGate):not(.security-gate),
+body.gate-checking > :not(#securityGate):not(.security-gate){
+  display:none!important;
+  filter:none!important;
+  transform:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  user-select:none!important;
+}
+#securityGate.security-gate{
+  filter:none!important;
+  transform:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+#securityGate .gate-card{
+  filter:none!important;
+  transform:none!important;
+}
+html[data-domain-menu-backend="verified"] body{
+  overflow-x:hidden!important;
+}
+</style>
+
+<script id="dirac-html-backend-lock-boot">
+(function(){
+  'use strict';
+  try{
+    if(!document.documentElement.getAttribute('data-domain-menu-backend')){
+      document.documentElement.setAttribute('data-domain-menu-backend','checking');
+    }
+    document.documentElement.classList.remove('dirac-pre-notice-pending');
+    document.documentElement.removeAttribute('data-dirac-pre-notice-mode');
+  }catch(error){}
+})();
+</script>
+
 </head>
-<body class="gate-locked gate-checking">
+<body>
 
   <div class="security-gate" id="securityGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" aria-describedby="gateReason">
     <div class="gate-card" tabindex="-1">
       <div class="gate-icon" aria-hidden="true">🔒</div>
       <p class="gate-kicker">Menu dashboard domain</p>
-      <h1 id="gateTitle">Halaman terkunci backend</h1>
-      <p id="gateReason">Memeriksa sesi login dan verifikasi A2F dari backend...</p>
+      <h1 id="gateTitle">Akses dashboard terkunci</h1>
+      <p id="gateReason">Memeriksa akses backend...</p>
       <div class="gate-status-row" aria-label="Status keamanan halaman">
         <span><i aria-hidden="true"></i> Fail-closed</span>
         <span><i aria-hidden="true"></i> Dashboard only</span>
@@ -4893,7 +4960,7 @@ body.gate-checking .gate-icon{animation:securityCheckPulse 1.25s ease-in-out inf
         <button class="btn-secondary" type="button" id="retryBackendGate">Cek ulang</button>
         <a class="btn-ghost" href="dashboard.html">Kembali dashboard</a>
       </div>
-      <p class="security-backend-note">Akses halaman ini hanya terbuka jika backend <strong>/api/health?action=domain_dashboard_me</strong> mengembalikan sesi pelanggan yang valid.</p>
+      <p class="security-backend-note">Halaman HTML ini hanya terbuka setelah backend <strong>/api/health?action=domain_dashboard_me</strong> mengembalikan sesi pelanggan yang valid.</p>
     </div>
   </div>
 
@@ -11593,183 +11660,23 @@ function staticGeneralAnswerLocal(text) {
 <script id="dirac-pre-notice-js">
 (function(){
   'use strict';
-  var modal = document.getElementById('diracPreNotice');
-  if(!modal) return;
-  var card = modal.querySelector('.dirac-pre-notice-card');
-  var acceptBtn = document.getElementById('diracPreNoticeAccept');
-  var pendingTarget = '';
-  var lastFocus = null;
-  var noticeClosedThisPage = false;
-  var initialOpenDone = false;
-  var restoreOpenTimer = 0;
-  var NOTICE_STORAGE_PATTERNS = /(^dirac[_-]?pre[_-]?notice|^dirac[_-]?notice|pre[_-]?notice[_-]?accepted|pre[_-]?notice[_-]?closed|pre[_-]?notice[_-]?seen)/i;
-
-  function purgeNoticeStorage(storage){
-    if(!storage) return;
+  function closePreNotice(){
     try{
-      var keys = [];
-      for(var i = 0; i < storage.length; i++){
-        var key = storage.key(i);
-        if(key && NOTICE_STORAGE_PATTERNS.test(key)) keys.push(key);
+      var modal=document.getElementById('diracPreNotice');
+      document.documentElement.classList.remove('dirac-pre-notice-pending');
+      document.documentElement.removeAttribute('data-dirac-pre-notice-mode');
+      if(document.body) document.body.classList.remove('dirac-pre-notice-open');
+      if(modal){
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden','true');
+        modal.setAttribute('data-disabled-by-request','true');
       }
-      keys.push('dirac_pre_notice_accepted_v1');
-      keys.push('dirac-pre-notice-accepted-v1');
-      keys.push('dirac_pre_notice_closed_v1');
-      keys.push('dirac_pre_notice_seen_v1');
-      for(var j = 0; j < keys.length; j++) storage.removeItem(keys[j]);
     }catch(error){}
   }
-  function purgeAllNoticeStorage(){
-    purgeNoticeStorage(window.localStorage);
-    purgeNoticeStorage(window.sessionStorage);
-  }
-  function hasAccepted(){
-    return noticeClosedThisPage;
-  }
-  function markClosedForCurrentPageOnly(){
-    noticeClosedThisPage = true;
-    purgeAllNoticeStorage();
-  }
-  function setOpenState(isOpen){
-    document.documentElement.classList.toggle('dirac-pre-notice-pending', !!isOpen);
-    if(document.body) document.body.classList.toggle('dirac-pre-notice-open', !!isOpen);
-    modal.classList.toggle('is-open', !!isOpen);
-    modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-    modal.setAttribute('data-refresh-notice', 'always');
-  }
-  function focusNotice(){
-    window.setTimeout(function(){
-      try{(acceptBtn || card || modal).focus({preventScroll:true});}
-      catch(error){try{(acceptBtn || card || modal).focus();}catch(innerError){}}
-    },60);
-  }
-  function openNotice(targetHash, options){
-    options = options || {};
-    purgeAllNoticeStorage();
-    if(targetHash) pendingTarget = targetHash;
-    if(hasAccepted() && !options.force) return;
-    if(options.force) noticeClosedThisPage = false;
-    lastFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
-    setOpenState(true);
-    focusNotice();
-  }
-  function closeNotice(){
-    markClosedForCurrentPageOnly();
-    setOpenState(false);
-    if(pendingTarget){
-      var target = document.querySelector(pendingTarget);
-      var hash = pendingTarget;
-      pendingTarget = '';
-      if(target){
-        window.setTimeout(function(){
-          try{target.scrollIntoView({behavior:'smooth',block:'start'});}
-          catch(error){target.scrollIntoView(true);}
-          try{history.replaceState(null,'',hash);}catch(error){}
-        },80);
-      }
-      return;
-    }
-    if(lastFocus && typeof lastFocus.focus === 'function'){
-      try{lastFocus.focus({preventScroll:true});}catch(error){try{lastFocus.focus();}catch(innerError){}}
-    }
-  }
-  function shouldProtectCatalogLink(link){
-    if(!link) return false;
-    var href = link.getAttribute('href') || '';
-    if(href === '#produk') return true;
-    try{
-      var url = new URL(link.href, window.location.href);
-      return url.pathname === window.location.pathname && url.hash === '#produk';
-    }catch(error){return false;}
-  }
-  function forceOpenOnPageEntry(reason){
-    purgeAllNoticeStorage();
-    modal.setAttribute('data-last-open-reason', reason || 'page-entry');
-    if(!initialOpenDone){
-      initialOpenDone = true;
-      noticeClosedThisPage = false;
-      openNotice('', {force:true});
-      return;
-    }
-    if(!noticeClosedThisPage && !modal.classList.contains('is-open')){
-      openNotice('', {force:true});
-    }
-  }
-  function reopenAfterBrowserRestore(reason){
-    window.clearTimeout(restoreOpenTimer);
-    restoreOpenTimer = window.setTimeout(function(){
-      noticeClosedThisPage = false;
-      initialOpenDone = false;
-      forceOpenOnPageEntry(reason || 'browser-restore');
-    },0);
-  }
-
-  purgeAllNoticeStorage();
-
-  document.addEventListener('click', function(event){
-    if(hasAccepted()) return;
-    var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
-    if(shouldProtectCatalogLink(link)){
-      event.preventDefault();
-      event.stopPropagation();
-      openNotice('#produk');
-    }
-  }, true);
-
-  document.addEventListener('keydown', function(event){
-    if(!modal.classList.contains('is-open') && !document.documentElement.classList.contains('dirac-pre-notice-pending')) return;
-    if(event.key === 'Escape'){
-      event.preventDefault();
-      if(acceptBtn){
-        try{acceptBtn.focus({preventScroll:true});}catch(error){acceptBtn.focus();}
-      }
-      return;
-    }
-    if(event.key === 'Tab'){
-      var focusables = modal.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
-      if(!focusables.length) return;
-      var first = focusables[0];
-      var last = focusables[focusables.length - 1];
-      if(event.shiftKey && document.activeElement === first){event.preventDefault();last.focus();}
-      else if(!event.shiftKey && document.activeElement === last){event.preventDefault();first.focus();}
-    }
-  });
-
-  if(acceptBtn){
-    acceptBtn.addEventListener('click', closeNotice);
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){forceOpenOnPageEntry('domcontentloaded');}, {once:true});
-  }else{
-    forceOpenOnPageEntry('script-end');
-  }
-
-  window.addEventListener('load', function(){
-    if(!noticeClosedThisPage && !modal.classList.contains('is-open')) forceOpenOnPageEntry('window-load');
-  });
-
-  window.addEventListener('pageshow', function(event){
-    purgeAllNoticeStorage();
-    if(event && event.persisted){
-      reopenAfterBrowserRestore('pageshow-bfcache');
-      return;
-    }
-    try{
-      var nav = performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
-      if(nav && nav.type === 'reload' && !modal.classList.contains('is-open')){
-        noticeClosedThisPage = false;
-        initialOpenDone = false;
-        forceOpenOnPageEntry('navigation-reload');
-        return;
-      }
-    }catch(error){}
-    if(!noticeClosedThisPage && !modal.classList.contains('is-open')) forceOpenOnPageEntry('pageshow');
-  });
-
-  document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'visible') purgeAllNoticeStorage();
-  });
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', closePreNotice, {once:true});
+  else closePreNotice();
+  window.addEventListener('pageshow', closePreNotice);
+  window.addEventListener('load', closePreNotice);
 })();
 </script>
 
@@ -12160,7 +12067,7 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
   var backendVerifiedAt=0;
   var backendUser=null;
   var verificationPromise=null;
-  var gateLastReason='Memeriksa sesi login dan verifikasi A2F dari backend...';
+  var gateLastReason='Memeriksa akses backend...';
 
   function $(selector){return document.querySelector(selector);}
   function readJson(key,fallback){try{var raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback;}catch(error){return fallback;}}
@@ -12209,7 +12116,7 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
     backendVerifiedAt=0;
     backendUser=null;
     if(message) setGateReason(message); else setGateReason(gateLastReason);
-    document.body.classList.add('gate-locked');
+    if(document.body){document.body.classList.remove('gate-checking');document.body.classList.add('gate-locked');}
     document.documentElement.removeAttribute('data-domain-menu-unlocked');
     document.documentElement.setAttribute('data-domain-menu-backend','locked');
   }
@@ -12233,6 +12140,8 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
       writeJson(AUTH_KEY,s);
     }catch(error){}
     document.body.classList.remove('gate-locked','gate-checking');
+    document.documentElement.classList.remove('dirac-pre-notice-pending');
+    if(document.body) document.body.classList.remove('dirac-pre-notice-open');
     document.documentElement.setAttribute('data-domain-menu-unlocked','true');
     document.documentElement.setAttribute('data-domain-menu-backend','verified');
     setGateReason('Akses backend valid. Membuka menu domain...');
@@ -12241,8 +12150,9 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
   function verifyExistingLoginSession(){
     if(authAllowed()) return Promise.resolve(true);
     if(verificationPromise) return verificationPromise;
-    document.body.classList.add('gate-locked','gate-checking');
-    setGateReason('Memeriksa sesi login dan verifikasi A2F dari backend...');
+    if(document.body){document.body.classList.remove('gate-locked');document.body.classList.add('gate-checking');}
+    document.documentElement.setAttribute('data-domain-menu-backend','checking');
+    setGateReason('Memeriksa akses backend...');
     if(!window.fetch){
       lockDomainPage('Browser tidak mendukung fetch. Halaman tetap terkunci.');
       document.body.classList.remove('gate-checking');
@@ -12295,7 +12205,7 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
     event.stopImmediatePropagation();
     lockDomainPage('Menu domain wajib diverifikasi backend sebelum digunakan.');
     verifyExistingLoginSession();
-    if(typeof window.showToast==='function') window.showToast('Menu domain masih terkunci backend. Login dan A2F dulu.');
+    if(typeof window.showToast==='function') window.showToast('Sesi dashboard belum tervalidasi backend. Login/A2F dulu, lalu coba lagi.');
   }
   function initDomainBackendGate(){
     var retry=$('#retryBackendGate');
@@ -12440,7 +12350,7 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
     if(window.diracDomainDashboardGate && typeof window.diracDomainDashboardGate.lock === 'function'){
       try{ window.diracDomainDashboardGate.lock(message); }catch(error){}
     }
-    document.body.classList.add('gate-locked');
+    if(document.body){document.body.classList.remove('gate-checking');document.body.classList.add('gate-locked');}
     document.documentElement.removeAttribute('data-domain-menu-unlocked');
     document.documentElement.setAttribute('data-domain-menu-backend','locked');
     setText('#gateReason', message || 'Akses backend tidak valid. Login dan verifikasi A2F ulang.');
@@ -12809,6 +12719,43 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
     loadOrders: loadBackendOrders
   };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
+})();
+</script>
+
+
+<script id="dirac-html-lock-runtime-enforcer">
+(function(){
+  'use strict';
+  function cleanNoticeOnly(){
+    try{
+      document.documentElement.classList.remove('dirac-pre-notice-pending');
+      document.documentElement.removeAttribute('data-dirac-pre-notice-mode');
+      if(document.body) document.body.classList.remove('dirac-pre-notice-open');
+      var notice=document.getElementById('diracPreNotice');
+      if(notice){notice.classList.remove('is-open');notice.setAttribute('aria-hidden','true');}
+    }catch(error){}
+  }
+  function enforceLockState(){
+    try{
+      var state=document.documentElement.getAttribute('data-domain-menu-backend')||'checking';
+      var gate=document.getElementById('securityGate');
+      if(state !== 'verified'){
+        document.documentElement.setAttribute('data-domain-menu-backend', state === 'locked' ? 'locked' : 'checking');
+        if(document.body){
+          document.body.classList.toggle('gate-locked', state === 'locked');
+          document.body.classList.toggle('gate-checking', state !== 'locked');
+        }
+        if(gate){gate.removeAttribute('aria-hidden');}
+      }else{
+        if(document.body) document.body.classList.remove('gate-locked','gate-checking');
+        if(gate){gate.setAttribute('aria-hidden','true');}
+      }
+    }catch(error){}
+  }
+  function run(){cleanNoticeOnly();enforceLockState();}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run, {once:true});
+  else run();
+  window.addEventListener('pageshow', run);
 })();
 </script>
 
