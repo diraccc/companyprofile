@@ -12681,51 +12681,53 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
 <script id="dirac-global-product-final-js">
 (function(){
   'use strict';
-  if(window.__diracGlobalProductFinalV8) return;
-  window.__diracGlobalProductFinalV8 = true;
-  var badPairs = [
-    [/konfirmasi\s+backend/gi,'verifikasi backend'],[/dikonfirmasi\s+backend/gi,'diverifikasi backend'],[/backend\s+melayani/gi,'bantuan pelanggan tersedia'],[/via\s+WA/gi,'melalui payment gateway'],[/Filter katalog lama/gi,'Filter domain']
-  ];
-  function cleanTextValue(value){
-    var out = String(value == null ? '' : value);
-    badPairs.forEach(function(pair){ out = out.replace(pair[0], pair[1]); });
-    return out;
+  if(window.__diracGlobalProductFinalV8Hotfix) return;
+  window.__diracGlobalProductFinalV8Hotfix = true;
+  function $(id){ return document.getElementById(id); }
+  function runOnce(){
+    try{
+      var send = $('sendWhatsappBtn');
+      if(send){ send.textContent='Lanjut ke Pembayaran'; send.setAttribute('aria-label','Lanjut ke payment gateway otomatis'); }
+      var payment = $('paymentMethod');
+      if(payment && !payment.getAttribute('data-dirac-payment-hotfix')){
+        payment.setAttribute('data-dirac-payment-hotfix','1');
+        payment.innerHTML = '<option value="payment_gateway">Payment gateway otomatis</option><option value="qris">QRIS / virtual account</option><option value="card">Kartu / e-wallet</option>';
+      }
+      var phone = $('buyerPhone');
+      if(phone) phone.setAttribute('placeholder','Nomor HP aktif *');
+      var cartTitle = $('cartTitle'); if(cartTitle) cartTitle.textContent='Ringkasan Pembayaran Domain';
+      var checkoutTitle = $('checkoutTitle'); if(checkoutTitle) checkoutTitle.textContent='Checkout Domain Otomatis';
+      var smart = $('diracSmartTools'); if(smart) smart.style.display='none';
+      var status = $('diracResultsStatus'); if(status) status.style.display='none';
+      // Jangan biarkan class modal/cart nyangkut menutup semua klik saat overlay sebenarnya tertutup.
+      if(!document.querySelector('.cart-overlay.open') && !document.querySelector('.modal.open') && !document.querySelector('.theme-modal.open') && !document.querySelector('.dirac-professional-modal.open')){
+        document.body.classList.remove('cart-open','modal-open');
+      }
+    }catch(error){ console.warn('Dirac UI hotfix skipped:', error && error.message ? error.message : error); }
   }
-  function setText(id, value){ var el=document.getElementById(id); if(el) el.textContent=value; }
-  function cleanup(root){
-    root = root || document;
-    var smart = document.getElementById('diracSmartTools'); if(smart) smart.remove();
-    var status = document.getElementById('diracResultsStatus'); if(status) status.remove();
-    var send = document.getElementById('sendWhatsappBtn');
-    if(send){ send.textContent='Lanjut ke Pembayaran'; send.setAttribute('aria-label','Lanjut ke payment gateway otomatis'); }
-    var payment = document.getElementById('paymentMethod');
-    if(payment){ payment.innerHTML = '<option value="payment_gateway">Payment gateway otomatis</option><option value="qris">QRIS / virtual account</option><option value="card">Kartu / e-wallet</option>'; }
-    var phone = document.getElementById('buyerPhone'); if(phone) phone.setAttribute('placeholder','Nomor HP aktif *');
-    var nodes = [];
-    try{ nodes = Array.prototype.slice.call(root.querySelectorAll('body *:not(script):not(style)')); }catch(error){}
-    nodes.forEach(function(el){
-      if(el.childNodes && el.childNodes.length === 1 && el.childNodes[0].nodeType === 3){ var next = cleanTextValue(el.textContent); if(next !== el.textContent) el.textContent = next; }
-      ['aria-label','title','placeholder'].forEach(function(attr){ if(el.hasAttribute && el.hasAttribute(attr)){ var v = el.getAttribute(attr), n = cleanTextValue(v); if(n !== v) el.setAttribute(attr, n); } });
-    });
-    setText('cartTitle','Ringkasan Pembayaran Domain');
-    setText('checkoutTitle','Checkout Domain Otomatis');
-  }
-  function addSecureChips(){
-    var note = document.querySelector('.cart-backend-note');
-    if(note && !note.querySelector('.dirac-secure-mini')){
-      var mini = document.createElement('div');
-      mini.className = 'dirac-secure-mini';
-      mini.style.cssText = 'grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px';
-      mini.innerHTML = '<span style="padding:5px 8px;border-radius:999px;background:rgba(24,185,129,.10);border:1px solid rgba(24,185,129,.26);font-size:.75rem;font-weight:900">Secure Checkout</span><span style="padding:5px 8px;border-radius:999px;background:rgba(139,92,246,.10);border:1px solid rgba(139,92,246,.26);font-size:.75rem;font-weight:900">Payment Gateway</span><span style="padding:5px 8px;border-radius:999px;background:rgba(243,205,112,.10);border:1px solid rgba(243,205,112,.26);font-size:.75rem;font-weight:900">Dashboard Status</span>';
-      note.appendChild(mini);
-    }
-  }
-  function run(){ cleanup(document); addSecureChips(); }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, {once:true}); else run();
-  setTimeout(run,300); setTimeout(run,1200);
-  if('MutationObserver' in window){ new MutationObserver(function(mutations){ mutations.forEach(function(m){ if(m.addedNodes && m.addedNodes.length) cleanup(document); }); addSecureChips(); }).observe(document.documentElement,{childList:true,subtree:true}); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', runOnce, {once:true}); else runOnce();
+  window.addEventListener('pageshow', runOnce);
 })();
 </script>
+
+
+<style id="dirac-clickability-hotfix-css">
+/* Hotfix: overlay yang tertutup tidak boleh menangkap klik. Tidak menyentuh login/hash/A2F. */
+.cart-overlay:not(.open),
+.modal:not(.open),
+.theme-modal:not(.open),
+.dirac-professional-modal:not(.open),
+.dirac-mini-cart-preview:not(.is-visible),
+.toast:not(.show){
+  pointer-events:none!important;
+}
+html[data-domain-menu-backend="verified"] body > :not(#securityGate):not(.security-gate){
+  pointer-events:auto;
+}
+html[data-domain-menu-backend="verified"] body{
+  overflow-x:hidden!important;
+}
+</style>
 
 </body>
 </html>
