@@ -3018,6 +3018,9 @@ const DIRAC_CUSTOMER_MFA_TOKEN_TYPE = "dirac-customer-login-mfa-v1";
 const DIRAC_CUSTOMER_MFA_RECOVERY_COUNT = Number(process.env.DIRAC_CUSTOMER_MFA_RECOVERY_COUNT || 8);
 const DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION = process.env.DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION || "diracCustomerMfaProfiles";
 const DIRAC_CUSTOMER_MFA_RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const DIRAC_CUSTOMER_MFA_COOKIE = process.env.DIRAC_CUSTOMER_MFA_COOKIE || "dirac_customer_mfa_session";
+const DIRAC_CUSTOMER_MFA_SESSION_TYPE = "dirac-customer-mfa-session-v1";
+const DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS = Number(process.env.DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS || 6 * 60 * 60 * 1000);
 const DIRAC_PASSWORD_RESET_TOKEN_TYPE = "dirac-password-reset-v1";
 const DIRAC_PASSWORD_RESET_CODE_DIGITS = 8;
 
@@ -3139,6 +3142,54 @@ function diracGenerateRecoveryCode() {
 
 function diracMfaProfileId(email) {
   return hashCode(`dirac-customer-mfa-profile-v1:${diracNormalizeEmail(email)}`, diracGetCustomerMfaSecret());
+}
+
+function diracAppendSetCookie(res, cookie) {
+  const current = res.getHeader && res.getHeader("Set-Cookie");
+  if (!current) return res.setHeader("Set-Cookie", cookie);
+  const list = Array.isArray(current) ? current.slice() : [String(current)];
+  list.push(cookie);
+  return res.setHeader("Set-Cookie", list);
+}
+
+function diracMakeCookie(name, value, options = {}) {
+  const sameSite = String(process.env.DIRAC_CUSTOMER_MFA_COOKIE_SAMESITE || (process.env.NODE_ENV === "development" ? "Lax" : "None")).trim();
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    "Path=/",
+    "HttpOnly",
+    `SameSite=${sameSite}`
+  ];
+
+  if (sameSite.toLowerCase() === "none" || process.env.NODE_ENV !== "development") parts.push("Secure");
+  if (options.maxAge !== undefined) parts.push(`Max-Age=${Number(options.maxAge) || 0}`);
+  return parts.join("; ");
+}
+
+function diracMakeCustomerMfaDashboardToken({ email, method }) {
+  const now = Date.now();
+  const expiresAtMs = now + DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS;
+  const payload = {
+    type: DIRAC_CUSTOMER_MFA_SESSION_TYPE,
+    emailHash: diracMfaProfileId(email),
+    method: String(method || ""),
+    verifiedAtMs: now,
+    expiresAtMs,
+    nonce: randomId(18)
+  };
+  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return {
+    token: `${payloadBase64}.${sign(payloadBase64, diracGetCustomerMfaSecret())}`,
+    verifiedAtMs: now,
+    expiresAtMs
+  };
+}
+
+function diracSetCustomerMfaDashboardCookie(res, { email, method }) {
+  const session = diracMakeCustomerMfaDashboardToken({ email, method });
+  const maxAge = Math.max(1, Math.floor((session.expiresAtMs - Date.now()) / 1000));
+  diracAppendSetCookie(res, diracMakeCookie(DIRAC_CUSTOMER_MFA_COOKIE, session.token, { maxAge }));
+  return session;
 }
 
 async function diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo, passkeyAuthenticationInfo }) {
@@ -3469,6 +3520,7 @@ async function diracHandleCustomerMfaVerify(req, res) {
     }
 
     const recoveryCodes = await diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo: req.__diracPasskeyRegistrationInfo, passkeyAuthenticationInfo: req.__diracPasskeyAuthenticationInfo });
+    const dashboardSession = diracSetCustomerMfaDashboardCookie(res, { email, method });
 
     return res.status(200).json({
       ok: true,
@@ -3476,6 +3528,10 @@ async function diracHandleCustomerMfaVerify(req, res) {
       verified: true,
       method,
       recoveryCodes,
+      dashboardSession: {
+        verified: true,
+        expiresAtMs: dashboardSession.expiresAtMs
+      },
       message: "A2F berhasil diverifikasi oleh backend."
     });
   } catch (error) {
