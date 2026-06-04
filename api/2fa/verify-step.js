@@ -3168,27 +3168,47 @@ function diracMakeCookie(name, value, options = {}) {
   return parts.join("; ");
 }
 
-function diracMakeCustomerMfaDashboardToken({ email, method }) {
+function diracMfaBindingHash(kind, value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return hashCode(`dirac-customer-mfa-binding-v2:${kind}:${text}`, diracGetCustomerMfaSecret());
+}
+
+function diracRequestOrigin(req) {
+  return String((req && req.headers && (req.headers.origin || req.headers.referer)) || "").trim().replace(/\/$/, "");
+}
+
+function diracRequestUserAgent(req) {
+  return String((req && req.headers && req.headers["user-agent"]) || "").trim().slice(0, 512);
+}
+
+function diracMakeCustomerMfaDashboardToken({ email, method, req }) {
   const now = Date.now();
   const expiresAtMs = now + DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS;
+  const origin = diracRequestOrigin(req);
+  const userAgent = diracRequestUserAgent(req);
   const payload = {
     type: DIRAC_CUSTOMER_MFA_SESSION_TYPE,
     emailHash: diracMfaProfileId(email),
     method: String(method || ""),
     verifiedAtMs: now,
     expiresAtMs,
-    nonce: randomId(18)
+    nonce: randomId(18),
+    bindingVersion: 2,
+    originHash: diracMfaBindingHash("origin", origin),
+    uaHash: diracMfaBindingHash("ua", userAgent)
   };
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return {
     token: `${payloadBase64}.${sign(payloadBase64, diracGetCustomerMfaSecret())}`,
     verifiedAtMs: now,
-    expiresAtMs
+    expiresAtMs,
+    bindingVersion: 2
   };
 }
 
-function diracSetCustomerMfaDashboardCookie(res, { email, method }) {
-  const session = diracMakeCustomerMfaDashboardToken({ email, method });
+function diracSetCustomerMfaDashboardCookie(req, res, { email, method }) {
+  const session = diracMakeCustomerMfaDashboardToken({ email, method, req });
   const maxAge = Math.max(1, Math.floor((session.expiresAtMs - Date.now()) / 1000));
   diracAppendSetCookie(res, diracMakeCookie(DIRAC_CUSTOMER_MFA_COOKIE, session.token, { maxAge }));
   return session;
@@ -3522,7 +3542,7 @@ async function diracHandleCustomerMfaVerify(req, res) {
     }
 
     const recoveryCodes = await diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo: req.__diracPasskeyRegistrationInfo, passkeyAuthenticationInfo: req.__diracPasskeyAuthenticationInfo });
-    const dashboardSession = diracSetCustomerMfaDashboardCookie(res, { email, method });
+    const dashboardSession = diracSetCustomerMfaDashboardCookie(req, res, { email, method });
 
     return res.status(200).json({
       ok: true,
@@ -3532,7 +3552,10 @@ async function diracHandleCustomerMfaVerify(req, res) {
       recoveryCodes,
       dashboardSession: {
         verified: true,
-        expiresAtMs: dashboardSession.expiresAtMs
+        expiresAtMs: dashboardSession.expiresAtMs,
+        proofToken: dashboardSession.token,
+        proofHeader: "X-Dirac-MFA-Proof",
+        transport: "httponly-cookie-with-signed-header-fallback"
       },
       message: "A2F berhasil diverifikasi oleh backend."
     });
