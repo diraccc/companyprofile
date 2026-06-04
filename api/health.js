@@ -478,8 +478,11 @@ async function domainCheck(req, res) {
 async function domainCheckout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
+  // Anti-bypass: checkout domain berada sejajar dengan dashboard, jadi tidak cukup hanya login.
+  // Backend wajib memastikan sesi user + A2F/MFA dashboard masih valid sebelum membuat order.
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+  const { user } = access;
 
   const body = await readBody(req);
 
@@ -497,11 +500,15 @@ async function domainCheckout(req, res) {
   const items = Array.isArray(body.items) ? body.items : [];
 
   if (!customerName || !customerWhatsapp) {
-    return res.status(400).json({ ok: false, message: 'Nama dan WhatsApp wajib diisi.' });
+    return res.status(400).json({ ok: false, message: 'Nama dan nomor HP wajib diisi.' });
   }
 
   if (!items.length) {
-    return res.status(400).json({ ok: false, message: 'Keranjang domain masih kosong.' });
+    return res.status(400).json({ ok: false, message: 'Ringkasan domain masih kosong.' });
+  }
+
+  if (items.length > 10) {
+    return res.status(400).json({ ok: false, message: 'Maksimal 10 domain per checkout.' });
   }
 
   const pricesResult = await supabaseFetch('/rest/v1/domain_tld_prices?select=extension,register_price,renewal_price,currency,is_active&is_active=eq.true', {
@@ -551,10 +558,34 @@ async function domainCheckout(req, res) {
       });
     }
 
-    const years = Number(item.years || 1);
+    const years = Math.trunc(Number(item.years || 1));
 
-    if (years < 1) {
-      return res.status(400).json({ ok: false, message: 'Durasi pembelian minimal 1 tahun.' });
+    if (!Number.isFinite(years) || years < 1 || years > 10) {
+      return res.status(400).json({ ok: false, message: 'Durasi pembelian domain harus 1 sampai 10 tahun.' });
+    }
+
+    const partsForCheckout = splitDomainForHostinger(domainName);
+    if (!partsForCheckout) {
+      return res.status(400).json({ ok: false, message: `Format domain ${domainName} tidak valid.` });
+    }
+
+    const requireAvailabilityCheck = String(process.env.DOMAIN_CHECKOUT_REQUIRE_AVAILABILITY || 'true').toLowerCase() !== 'false';
+    if (requireAvailabilityCheck) {
+      const availabilityCheck = await checkDomainWithProviders(partsForCheckout);
+      if (!availabilityCheck || !availabilityCheck.ok) {
+        return res.status(409).json({
+          ok: false,
+          message: `Backend belum bisa memverifikasi ketersediaan ${domainName}. Checkout dihentikan agar tidak bisa dibypass.`,
+          provider: availabilityCheck && availabilityCheck.provider ? availabilityCheck.provider : null
+        });
+      }
+      if (availabilityCheck.available === false) {
+        return res.status(409).json({
+          ok: false,
+          message: `${domainName} tidak tersedia saat diverifikasi backend.`,
+          provider: availabilityCheck.provider || null
+        });
+      }
     }
 
     const registerPrice = Number(priceRow.register_price);
@@ -630,14 +661,93 @@ async function domainCheckout(req, res) {
     });
   }
 
+  let payment = { configured: false, payment_url: null };
+  try {
+    payment = await maybeCreateDomainPaymentInvoice(order, orderItems, {
+      customerName,
+      customerWhatsapp,
+      customerEmail,
+      ownerEmail,
+      totalAmount
+    });
+  } catch (paymentError) {
+    payment = {
+      configured: true,
+      payment_url: null,
+      provider: 'payment_gateway',
+      error: String(paymentError && paymentError.message ? paymentError.message : paymentError)
+    };
+  }
+
   return res.status(200).json({
     ok: true,
-    message: 'Pesanan domain berhasil dibuat.',
+    message: payment && payment.payment_url
+      ? 'Pesanan domain berhasil dibuat. Lanjutkan pembayaran otomatis.'
+      : 'Pesanan domain berhasil dibuat. Payment gateway belum mengembalikan URL pembayaran.',
     order_id: order.id,
     total_amount: totalAmount,
     currency: 'IDR',
+    payment_status: 'unpaid',
+    order_status: 'pending_payment',
+    payment_url: payment && payment.payment_url ? payment.payment_url : null,
+    invoice_id: payment && payment.invoice_id ? payment.invoice_id : null,
+    payment_provider: payment && payment.provider ? payment.provider : null,
+    payment_gateway_configured: Boolean(payment && payment.configured),
+    payment_error: payment && payment.error ? payment.error : null,
     items: orderItems
   });
+}
+
+
+async function maybeCreateDomainPaymentInvoice(order, orderItems, customer) {
+  const endpoint = String(process.env.DOMAIN_PAYMENT_CREATE_URL || '').trim();
+  if (!endpoint) return { configured: false, payment_url: null };
+
+  const payload = {
+    order_id: order && order.id,
+    amount: Number(customer && customer.totalAmount || 0),
+    currency: 'IDR',
+    customer: {
+      name: customer && customer.customerName || '',
+      phone: customer && customer.customerWhatsapp || '',
+      email: customer && customer.customerEmail || ''
+    },
+    items: orderItems.map((item) => ({
+      domain_name: item.domain_name,
+      years: item.years,
+      price: item.register_price,
+      subtotal: item.subtotal
+    })),
+    return_url: String(process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/dashboard.html'),
+    callback_url: String(process.env.DOMAIN_PAYMENT_CALLBACK_URL || '')
+  };
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+  const secret = String(process.env.DOMAIN_PAYMENT_CREATE_SECRET || '').trim();
+  if (secret) headers['Authorization'] = `Bearer ${secret}`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+  const data = await parseFetchResponse(response);
+  if (!response.ok) {
+    const err = new Error(getUpstreamMessage(data) || 'Payment gateway gagal membuat invoice.');
+    err.statusCode = response.status || 502;
+    throw err;
+  }
+
+  return {
+    configured: true,
+    provider: String(data.provider || data.payment_provider || 'payment_gateway'),
+    invoice_id: data.invoice_id || data.id || data.external_id || null,
+    payment_url: data.payment_url || data.invoice_url || data.redirect_url || data.checkout_url || null,
+    raw: data
+  };
 }
 
 async function domainOrders(req, res) {
