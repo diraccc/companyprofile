@@ -18,6 +18,7 @@ const DOMAIN_ACTIONS = new Set([
   'domain_dashboard_me',
   'domain_logout',
   'domain_check',
+  'domain_products',
   'domain_checkout',
   'domain_orders'
 ]);
@@ -31,6 +32,10 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'domain_hostinger_check': 'hostinger_check',
   'check-domain': 'domain_check',
   'domain_check': 'domain_check',
+  'domain-products': 'domain_products',
+  'domain_products': 'domain_products',
+  'get-products': 'domain_products',
+  'domain_get_products': 'domain_products',
   'create-order': 'domain_checkout',
   'domain_create_order': 'domain_checkout',
   'get-orders': 'domain_orders',
@@ -183,6 +188,7 @@ async function handleDomainAction(action, req, res) {
     if (action === 'domain_dashboard_me') return domainDashboardMe(req, res);
     if (action === 'domain_logout') return domainLogout(req, res);
     if (action === 'domain_check') return domainCheck(req, res);
+    if (action === 'domain_products') return domainProducts(req, res);
     if (action === 'domain_checkout') return domainCheckout(req, res);
     if (action === 'domain_orders') return domainOrders(req, res);
 
@@ -206,6 +212,7 @@ async function domainHealth(req, res) {
     endpoints: {
       check: '/api/health?action=domain_check&domain=contoh.com',
       hostingerCheck: '/api/health?action=hostinger-check&domain=contoh.com',
+      products: '/api/health?action=domain_products',
       checkout: '/api/health?action=domain_checkout',
       orders: '/api/health?action=domain_orders'
     },
@@ -213,6 +220,7 @@ async function domainHealth(req, res) {
       health: '/api/health?action=domain-health',
       hostingerCheck: '/api/health?action=hostinger-check&domain=contoh.com',
       check: '/api/health?action=check-domain&domain=contoh.com',
+      getProducts: '/api/health?action=get-products',
       createOrder: '/api/health?action=create-order',
       getOrders: '/api/health?action=get-orders'
     },
@@ -473,6 +481,54 @@ async function domainCheck(req, res) {
   const data = await response.json().catch(() => ({}));
 
   return res.status(response.status).json(data);
+}
+
+async function domainProducts(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  const select = [
+    'id',
+    'name',
+    'price',
+    'description',
+    'product_category',
+    'is_active',
+    'created_at',
+    'updated_at'
+  ].join(',');
+
+  const path = `/rest/v1/domain_products?select=${encodeURIComponent(select)}&is_active=eq.true&order=created_at.asc`;
+
+  const result = await supabaseFetch(path, {
+    method: 'GET',
+    auth: 'anon'
+  });
+
+  if (!result.ok) {
+    return res.status(result.status).json({
+      ok: false,
+      message: 'Gagal memuat produk aktif.',
+      error: result.data
+    });
+  }
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+
+  return res.status(200).json({
+    ok: true,
+    data: rows.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: Number(item.price || 0),
+      description: item.description || '',
+      product_category: item.product_category,
+      category: item.product_category,
+      is_active: item.is_active === true,
+      created_at: item.created_at || null,
+      updated_at: item.updated_at || null
+    })),
+    count: rows.length
+  });
 }
 
 async function domainCheckout(req, res) {
