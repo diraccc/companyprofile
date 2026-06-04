@@ -101,7 +101,7 @@ function setCors(req, res, options = {}) {
   if (allowedOrigin) res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, POST, OPTIONS' : 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', options.isDomainAction ? 'Content-Type, X-Dirac-Admin, Authorization, X-Domain-Refresh, X-Refresh-Token' : 'Content-Type, X-Dirac-Admin');
+  res.setHeader('Access-Control-Allow-Headers', options.isDomainAction ? 'Content-Type, X-Dirac-Admin, Authorization, X-Domain-Refresh, X-Refresh-Token, X-Dirac-MFA-Proof, X-Dashboard-MFA-Proof, X-Dirac-Dashboard-MFA' : 'Content-Type, X-Dirac-Admin');
   if (options.isDomainAction) {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Expose-Headers', 'X-Domain-Access-Token, X-Domain-Refresh-Token, X-Domain-Token-Refreshed');
@@ -429,7 +429,8 @@ async function domainDashboardMe(req, res) {
       verified: true,
       method: mfa.method || '',
       verifiedAtMs: mfa.verifiedAtMs || 0,
-      expiresAtMs: mfa.expiresAtMs || 0
+      expiresAtMs: mfa.expiresAtMs || 0,
+      source: mfa.source || ''
     }
   });
 }
@@ -760,13 +761,44 @@ function decodeCustomerDashboardMfaToken(token) {
   }
 }
 
-function verifyCustomerDashboardMfaCookie(req, user) {
+function requestOrigin(req) {
+  return String((req && req.headers && (req.headers.origin || req.headers.referer)) || '').trim().replace(/\/$/, '');
+}
+
+function requestUserAgent(req) {
+  return String((req && req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+}
+
+function customerMfaBindingHash(kind, value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return hashDashboardMfa(`dirac-customer-mfa-binding-v2:${kind}:${text}`, getCustomerMfaSecret());
+}
+
+function getCustomerDashboardMfaToken(req) {
   const cookies = parseCookies(req);
-  const payload = decodeCustomerDashboardMfaToken(cookies[CUSTOMER_MFA_COOKIE]);
+  const cookieToken = String(cookies[CUSTOMER_MFA_COOKIE] || '').trim();
+  if (cookieToken) return { token: cookieToken, source: 'cookie' };
+
+  const headerToken = String(
+    (req && req.headers && (
+      req.headers['x-dirac-mfa-proof'] ||
+      req.headers['x-dashboard-mfa-proof'] ||
+      req.headers['x-dirac-dashboard-mfa']
+    )) || ''
+  ).trim();
+  if (headerToken) return { token: headerToken, source: 'signed-header' };
+
+  return { token: '', source: 'missing' };
+}
+
+function verifyCustomerDashboardMfaCookie(req, user) {
+  const proof = getCustomerDashboardMfaToken(req);
+  const payload = decodeCustomerDashboardMfaToken(proof.token);
   const email = normalizeAuthEmail(user && user.email);
 
   if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE) {
-    return { ok: false, message: 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang.' };
+    return { ok: false, message: 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang. Jika browser memblokir third-party cookie, paket v2 memakai proof header bertanda tangan.' };
   }
 
   if (!payload.expiresAtMs || Date.now() > Number(payload.expiresAtMs)) {
@@ -777,11 +809,26 @@ function verifyCustomerDashboardMfaCookie(req, user) {
     return { ok: false, message: 'Sesi A2F backend tidak cocok dengan akun login.' };
   }
 
+  if (payload.originHash) {
+    const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
+    if (!expectedOriginHash || !safeEqual(String(payload.originHash), expectedOriginHash)) {
+      return { ok: false, message: 'Sesi A2F backend tidak cocok dengan origin website ini. Login ulang dari domain resmi.' };
+    }
+  }
+
+  if (payload.uaHash) {
+    const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+    if (!expectedUaHash || !safeEqual(String(payload.uaHash), expectedUaHash)) {
+      return { ok: false, message: 'Sesi A2F backend tidak cocok dengan browser/perangkat ini. Login ulang dari browser yang sama.' };
+    }
+  }
+
   return {
     ok: true,
     method: String(payload.method || ''),
     verifiedAtMs: Number(payload.verifiedAtMs || 0),
-    expiresAtMs: Number(payload.expiresAtMs || 0)
+    expiresAtMs: Number(payload.expiresAtMs || 0),
+    source: proof.source
   };
 }
 
