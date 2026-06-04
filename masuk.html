@@ -4877,7 +4877,33 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
     var confirm = $('#a2fRecoveryConfirm'); if(confirm) confirm.checked = false;
     var done = $('#a2fDoneBtn'); if(done) done.disabled = true;
   }
-  function finishVerification(mode, codes){
+  function persistDashboardMfaProof(serverData){
+    var ds = serverData && serverData.dashboardSession ? serverData.dashboardSession : {};
+    var proofToken = String(ds.proofToken || ds.token || serverData && (serverData.mfaProofToken || serverData.dashboardMfaProofToken) || '');
+    if(!proofToken) return;
+    var expiresAtMs = Number(ds.expiresAtMs || serverData.expiresAtMs || 0) || 0;
+    try{
+      var raw = localStorage.getItem('dirac_auth_session_v1');
+      var session = raw ? JSON.parse(raw) : {};
+      session.dashboardMfaProofToken = proofToken;
+      session.mfaProofToken = proofToken;
+      session.dashboardMfaProofHeader = 'X-Dirac-MFA-Proof';
+      session.dashboardMfaProofTransport = 'signed-header-fallback';
+      session.dashboardMfaProofExpiresAtMs = expiresAtMs;
+      session.dashboardMfaProofStoredAt = new Date().toISOString();
+      localStorage.setItem('dirac_auth_session_v1', JSON.stringify(session));
+    }catch(e){}
+    try{
+      var a2fRaw = localStorage.getItem('dirac_auth_a2f_v1');
+      var a2f = a2fRaw ? JSON.parse(a2fRaw) : {};
+      a2f.dashboardMfaProofToken = proofToken;
+      a2f.dashboardMfaProofExpiresAtMs = expiresAtMs;
+      a2f.dashboardMfaProofHeader = 'X-Dirac-MFA-Proof';
+      localStorage.setItem('dirac_auth_a2f_v1', JSON.stringify(a2f));
+    }catch(e){}
+  }
+  function finishVerification(mode, codes, serverData){
+    if(mode === 'server') persistDashboardMfaProof(serverData || {});
     state.verified = true; state.verifyMode = mode || 'demo';
     clearTimeout(state.timer);
     state.recoveryCodes = [];
@@ -5028,7 +5054,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
     try{
       var data = await callEndpoint('verify', {method:state.method, action:'verify', identifier:authIdentifier(), code:code, setupToken:state.setupToken || ''});
       if(data && (data.verified || data.ok)){
-        finishVerification('server', data.recoveryCodes || state.recoveryCodes);
+        finishVerification('server', data.recoveryCodes || state.recoveryCodes, data);
         return;
       }
       throw new Error('not verified');
@@ -5111,7 +5137,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
       }
       var serialized = serializePublicKeyCredential(credential);
       var verify = await callEndpoint('verify', {method:'passkey', action:'verify', identifier:identifier, setupToken:setup.setupToken || setup.mfaSetupToken || setup.token || '', passkeyMode:passkeyMode || (setup.needsRegistration === false ? 'authentication' : 'registration'), credential:serialized});
-      if(verify && (verify.verified || verify.ok)){ finishVerification('server', []); return; }
+      if(verify && (verify.verified || verify.ok)){ finishVerification('server', [], verify); return; }
       throw new Error('Server menolak verifikasi passkey. Minta challenge baru lalu coba lagi.');
     }catch(e){
       var msg = e && e.message ? e.message : t('passkeyNeedsServer');

@@ -552,7 +552,7 @@ html[dir="rtl"] .app-search input{text-align:right}
     <section class="gate-card" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
       <div class="gate-icon">🔒</div>
       <h1 id="gateTitle" data-i18n="gateTitle">Dashboard terkunci</h1>
-      <p data-i18n="gateText">Dashboard hanya dapat dibuka setelah login dan verifikasi keamanan dari sistem selesai.</p>
+      <p data-i18n="gateText">Dashboard hanya dapat dibuka setelah login dan verifikasi keamanan dari sistem selesai.</p><p id="gateReason" class="security-backend-note" aria-live="polite">Mengecek sesi login dan A2F backend...</p>
       <div class="gate-actions"><a class="btn-primary" href="masuk.html" data-i18n="goLogin">Masuk dulu</a><a class="btn-secondary" href="order1.html" data-i18n="viewCatalog">Lihat katalog</a></div><p class="security-backend-note">Dashboard mengikuti sesi login dan A2F yang sudah selesai dari halaman masuk.</p>
     </section>
   </div>
@@ -668,12 +668,18 @@ html[dir="rtl"] .app-search input{text-align:right}
     var backendVerifiedAt=0;
     var backendUser=null;
     var verificationPromise=null;
+    var gateLastReason='Mengecek sesi login dan A2F backend...';
     var CUSTOMER_DASHBOARD_PAGE=/^(dashboard|pesanan|detail-pesanan|parfum|detail-parfum|domain|detail-domain|project-website|detail-project|invoice|detail-invoice|layanan-nomor|tiket-bantuan|detail-tiket|notifikasi|profil|keamanan)\.html$/i;
 
-    function clearBackendVerification(){
+    function setGateReason(message){
+      gateLastReason=String(message||'Dashboard masih terkunci. Login dan verifikasi A2F ulang.');
+      try{var el=document.getElementById('gateReason'); if(el) el.textContent=gateLastReason;}catch(e){}
+    }
+    function clearBackendVerification(message){
       backendVerified=false;
       backendVerifiedAt=0;
       backendUser=null;
+      if(message) setGateReason(message);
       document.documentElement.removeAttribute('data-dashboard-unlocked');
       document.documentElement.setAttribute('data-dashboard-backend','locked');
     }
@@ -681,11 +687,16 @@ html[dir="rtl"] .app-search input{text-align:right}
       return backendVerified===true&&!!backendUser&&timestampFresh(backendVerifiedAt,BACKEND_VERIFICATION_MAX_AGE_MS);
     }
     function sessionHeaders(){
-      var s=refreshAuthState().session||{};
+      var state=refreshAuthState();
+      var s=state.session||{};
+      var a=state.a2f||{};
+      var g=state.gate||{};
       var headers={'Accept':'application/json'};
       var token=s.accessToken||s.access_token||s.token||s.jwt||s.idToken||s.id_token||s.sessionToken||s.session_token||'';
+      var proof=s.dashboardMfaProofToken||s.mfaProofToken||s.dashboard_mfa_proof||a.dashboardMfaProofToken||a.mfaProofToken||g.dashboardMfaProofToken||'';
       if(token) headers.Authorization='Bearer '+token;
       if(s.refreshToken||s.refresh_token) headers['X-Domain-Refresh']=s.refreshToken||s.refresh_token;
+      if(proof) headers['X-Dirac-MFA-Proof']=proof;
       return headers;
     }
     function mergeRefreshedTokens(res){
@@ -722,23 +733,27 @@ html[dir="rtl"] .app-search input{text-align:right}
       if(verificationPromise) return verificationPromise;
       verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{method:'GET',mode:'cors',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){
         if(!res.ok){
-          clearBackendVerification();
-          if(res.status===401||res.status===403||res.status===419){try{localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1');}catch(e){}}
-          return false;
+          return res.clone().json().catch(function(){return null;}).then(function(data){
+            var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses dashboard. Status '+res.status+'. Login dan A2F ulang.');
+            clearBackendVerification(msg);
+            if(res.status===401||res.status===403||res.status===419){try{localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1');}catch(e){}}
+            return false;
+          });
         }
         mergeRefreshedTokens(res);
         return res.json().then(function(data){
           if(!data||data.ok!==true||!data.user||!(data.user.id||data.user.email)){
-            clearBackendVerification();
+            clearBackendVerification('Respons backend tidak valid. Login dan verifikasi A2F ulang.');
             return false;
           }
+          setGateReason('Dashboard diverifikasi backend. Membuka...');
           return markBackendVerified(data.user);
         }).catch(function(){
-          clearBackendVerification();
+          clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');
           return false;
         });
       }).catch(function(){
-        clearBackendVerification();
+        clearBackendVerification('Tidak bisa menghubungi backend dashboard. Cek domain API, CORS, atau koneksi.');
         return false;
       }).then(function(ok){
         verificationPromise=null;
@@ -751,6 +766,7 @@ html[dir="rtl"] .app-search input{text-align:right}
       return verificationPromise;
     }
     function lockDashboard(){
+      setGateReason(gateLastReason);
       document.body.classList.add('gate-locked');
       document.documentElement.removeAttribute('data-dashboard-unlocked');
     }
