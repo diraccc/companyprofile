@@ -313,9 +313,24 @@ html[dir="rtl"] .app-search input{text-align:right}
 </style>
 
 
-<style id="dirac-dashboard-order-form-step2-css">
-/* Langkah 2 DiracGroup: form order multi-kategori. Tidak mengubah login, A2F, hash, atau sistem parfum. */
-.dg-order-section{scroll-margin-top:120px}.dg-order-card{position:relative;overflow:hidden;border-radius:32px;padding:22px;border:1px solid rgba(255,255,255,.095);background:linear-gradient(180deg,rgba(255,255,255,.078),rgba(255,255,255,.030));box-shadow:0 18px 50px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.055)}.dg-order-card:before{content:"";position:absolute;right:-90px;top:-110px;width:260px;height:260px;border-radius:50%;background:rgba(var(--theme-rgb),.10);pointer-events:none}.dg-order-grid{position:relative;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:18px;align-items:start}.dg-order-form{display:grid;gap:12px}.dg-order-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.dg-field-label{display:grid;gap:7px;color:#f8ead1;font-size:.84rem;font-weight:900}.dg-field-help{display:block;color:var(--muted);font-size:.78rem;font-weight:700;line-height:1.45}.dg-order-result{display:none;border-radius:22px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);padding:14px;color:#d7deea}.dg-order-result.show{display:block}.dg-order-result.ok{border-color:rgba(24,185,129,.34);background:rgba(24,185,129,.10)}.dg-order-result.err{border-color:rgba(239,68,68,.34);background:rgba(239,68,68,.09)}.dg-order-result strong{display:block;color:#fff;margin-bottom:4px}.dg-order-note{border-radius:24px;border:1px solid var(--line);background:rgba(var(--theme-rgb),.08);padding:16px;color:#d7deea}.dg-order-note h3{margin:0 0 8px;color:#fff}.dg-order-note p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.65}.dg-order-note ul{margin:12px 0 0;padding-left:18px;color:#d7deea;font-size:.88rem}.dg-order-note li{margin:5px 0}.dg-order-submit-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.dg-order-submit-row .btn-primary{min-height:52px}.dg-order-loading{color:var(--muted);font-size:.84rem}.dg-order-price-preview{display:none;border-radius:18px;border:1px solid var(--line);background:rgba(var(--theme-rgb),.08);padding:12px;color:#f8ead1;font-weight:900}.dg-order-price-preview.show{display:block}html[data-effective-theme="light"] .dg-order-card{background:rgba(255,250,241,.92);border-color:rgba(var(--theme-rgb),.24)}html[data-effective-theme="light"] .dg-order-note,html[data-effective-theme="light"] .dg-order-price-preview{background:rgba(var(--theme-rgb),.10)}@media(max-width:900px){.dg-order-grid,.dg-order-two{grid-template-columns:1fr}.dg-order-card{border-radius:26px;padding:18px}.dg-order-submit-row .btn-primary,.dg-order-submit-row .btn-secondary{width:100%}}
+<style id="dirac-dashboard-safe-3d-layer-css">
+/* Safe visual-only 3D layer. Tidak menyentuh login, A2F, session, cookie, API, atau security gate. */
+body{isolation:isolate}
+.dirac-3d-backdrop{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;perspective:1100px;transform-style:preserve-3d;opacity:.78}
+.dirac-3d-grid{position:absolute;left:50%;top:52%;width:120vmax;height:120vmax;transform:translate3d(-50%,-50%,-180px) rotateX(66deg) rotateZ(-18deg);background-image:linear-gradient(rgba(var(--theme-rgb),.13) 1px,transparent 1px),linear-gradient(90deg,rgba(var(--theme-rgb),.10) 1px,transparent 1px);background-size:74px 74px;mask-image:radial-gradient(circle at center,rgba(0,0,0,.78),transparent 64%);-webkit-mask-image:radial-gradient(circle at center,rgba(0,0,0,.78),transparent 64%);animation:dirac3dGridDrift 22s linear infinite}
+.dirac-3d-orb{position:absolute;border-radius:999px;filter:blur(.2px);opacity:.78;transform-style:preserve-3d;background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.82),rgba(var(--theme-rgb),.36) 28%,rgba(var(--theme-rgb),.08) 62%,transparent 72%);box-shadow:0 0 46px rgba(var(--theme-rgb),.16),inset -14px -18px 40px rgba(0,0,0,.20);animation:dirac3dFloat 9s var(--motion-ease) infinite}
+.dirac-3d-orb.one{width:150px;height:150px;left:7%;top:18%;transform:translateZ(54px);animation-delay:-1.4s}.dirac-3d-orb.two{width:92px;height:92px;right:9%;top:24%;transform:translateZ(34px);animation-delay:-4.2s}.dirac-3d-orb.three{width:122px;height:122px;right:18%;bottom:14%;transform:translateZ(72px);animation-delay:-2.6s}.dirac-3d-orb.four{width:72px;height:72px;left:18%;bottom:17%;transform:translateZ(26px);animation-delay:-6.1s}
+@keyframes dirac3dGridDrift{from{background-position:0 0,0 0}to{background-position:148px 222px,148px 222px}}
+@keyframes dirac3dFloat{0%,100%{translate:0 0;scale:1}45%{translate:0 -18px;scale:1.035}70%{translate:10px -8px;scale:.985}}
+.app-suite{perspective:1400px;transform-style:preserve-3d}.app-welcome-card.dirac-3d-hero-card{transform-style:preserve-3d;perspective:1200px}.app-welcome-card.dirac-3d-hero-card .app-welcome-copy,.app-welcome-card.dirac-3d-hero-card .app-mini-status{position:relative;z-index:3}.dirac-3d-stage{position:absolute;right:20px;bottom:22px;width:min(35%,300px);height:235px;z-index:2;pointer-events:none;transform-style:preserve-3d;perspective:900px;opacity:.94}.dirac-3d-ring{position:absolute;right:12px;bottom:4px;width:210px;height:210px;border-radius:50%;border:1px solid rgba(var(--theme-rgb),.38);box-shadow:0 0 30px rgba(var(--theme-rgb),.14),inset 0 0 26px rgba(var(--theme-rgb),.08);transform:rotateX(68deg) rotateZ(0deg);animation:dirac3dRing 14s linear infinite}.dirac-3d-ring:before,.dirac-3d-ring:after{content:"";position:absolute;inset:22px;border-radius:inherit;border:1px dashed rgba(255,255,255,.13)}.dirac-3d-ring:after{inset:55px;border-style:solid;border-color:rgba(var(--theme-rgb),.20)}
+.dirac-3d-stack{position:absolute;right:42px;bottom:48px;width:176px;height:118px;transform-style:preserve-3d;transform:rotateX(57deg) rotateZ(-28deg);animation:dirac3dStack 8.2s var(--motion-ease) infinite}.dirac-3d-panel{position:absolute;inset:0;border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.17),rgba(var(--theme-rgb),.12));border:1px solid rgba(var(--theme-rgb),.32);box-shadow:0 22px 45px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.dirac-3d-panel.one{transform:translateZ(52px)}.dirac-3d-panel.two{transform:translate3d(15px,18px,25px);opacity:.72}.dirac-3d-panel.three{transform:translate3d(30px,36px,0);opacity:.46}.dirac-3d-card-line{position:absolute;left:20px;right:22px;height:8px;border-radius:999px;background:rgba(255,255,255,.15);box-shadow:0 0 18px rgba(var(--theme-rgb),.12)}.dirac-3d-card-line.a{top:25px;width:52%}.dirac-3d-card-line.b{top:48px;width:74%;background:rgba(var(--theme-rgb),.23)}.dirac-3d-card-line.c{top:72px;width:42%}.dirac-3d-chip{position:absolute;right:18px;top:18px;width:34px;height:34px;border-radius:13px;background:linear-gradient(135deg,#ffe58e,var(--gold-2));box-shadow:0 10px 30px rgba(var(--theme-rgb),.22)}
+.dirac-3d-cube{position:absolute;left:-36px;top:-42px;width:58px;height:58px;transform-style:preserve-3d;transform:translateZ(82px) rotateX(-18deg) rotateY(26deg);animation:dirac3dCube 7.2s linear infinite}.dirac-3d-cube span{position:absolute;inset:0;border:1px solid rgba(255,255,255,.18);background:linear-gradient(135deg,rgba(var(--theme-rgb),.34),rgba(255,255,255,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}.dirac-3d-cube span:nth-child(1){transform:translateZ(29px)}.dirac-3d-cube span:nth-child(2){transform:rotateY(90deg) translateZ(29px)}.dirac-3d-cube span:nth-child(3){transform:rotateX(90deg) translateZ(29px)}.dirac-3d-cube span:nth-child(4){transform:rotateY(180deg) translateZ(29px)}.dirac-3d-cube span:nth-child(5){transform:rotateY(-90deg) translateZ(29px)}.dirac-3d-cube span:nth-child(6){transform:rotateX(-90deg) translateZ(29px)}
+@keyframes dirac3dRing{to{transform:rotateX(68deg) rotateZ(360deg)}}@keyframes dirac3dStack{0%,100%{translate:0 0}50%{translate:0 -10px}}@keyframes dirac3dCube{to{transform:translateZ(82px) rotateX(342deg) rotateY(386deg)}}
+.app-welcome-card[data-dirac-tilt],.app-control-card[data-dirac-tilt],.app-metric[data-dirac-tilt],.app-service[data-dirac-tilt],.app-panel[data-dirac-tilt],.app-action[data-dirac-tilt],.app-mini-card[data-dirac-tilt]{transform:perspective(1200px) rotateX(var(--dirac-rx,0deg)) rotateY(var(--dirac-ry,0deg)) translateY(var(--dirac-ty,0)) translateZ(var(--dirac-tz,0));transition:transform .22s var(--motion-ease),border-color .22s var(--motion-ease),box-shadow .22s var(--motion-ease);will-change:transform}.app-welcome-card[data-dirac-tilt]:hover,.app-control-card[data-dirac-tilt]:hover,.app-metric[data-dirac-tilt]:hover,.app-service[data-dirac-tilt]:hover,.app-panel[data-dirac-tilt]:hover,.app-action[data-dirac-tilt]:hover,.app-mini-card[data-dirac-tilt]:hover{--dirac-ty:-4px;--dirac-tz:8px;border-color:var(--line-strong);box-shadow:0 28px 64px rgba(0,0,0,.34),0 0 0 1px rgba(var(--theme-rgb),.07) inset}.app-iconbox,.app-alert-icon,.app-mini-card strong,.app-value,.app-link{transform:translateZ(18px)}.app-service-foot,.app-card-title,.app-alert,.app-list-row{position:relative;z-index:2}.app-metric:focus-within,.app-service:focus-within,.app-panel:focus-within{outline:2px solid rgba(var(--theme-rgb),.42);outline-offset:3px}
+html[data-effective-theme="light"] .dirac-3d-backdrop{opacity:.35}.gate-locked .dirac-3d-backdrop{opacity:.28}
+@media(max-width:1120px){.dirac-3d-stage{width:260px;height:205px;opacity:.72}.dirac-3d-ring{width:188px;height:188px}.app-welcome-copy p{max-width:690px}}
+@media(max-width:760px){.dirac-3d-backdrop{opacity:.42}.dirac-3d-grid{background-size:54px 54px}.dirac-3d-orb.one,.dirac-3d-orb.three{display:none}.dirac-3d-stage{position:relative;right:auto;bottom:auto;width:100%;height:146px;margin:10px 0 -4px;order:2;opacity:.72}.dirac-3d-ring{right:50%;bottom:-12px;width:152px;height:152px;margin-right:-76px}.dirac-3d-stack{right:50%;bottom:28px;margin-right:-82px;scale:.72}.app-welcome-card[data-dirac-tilt],.app-control-card[data-dirac-tilt],.app-metric[data-dirac-tilt],.app-service[data-dirac-tilt],.app-panel[data-dirac-tilt],.app-action[data-dirac-tilt],.app-mini-card[data-dirac-tilt]{transform:none!important}}
+html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dirac-3d-stage,html[data-motion="reduced"] [data-dirac-tilt]{animation:none!important;transform:none!important}html[data-motion="reduced"] .dirac-3d-grid,html[data-motion="reduced"] .dirac-3d-orb,html[data-motion="reduced"] .dirac-3d-ring,html[data-motion="reduced"] .dirac-3d-stack,html[data-motion="reduced"] .dirac-3d-cube{animation:none!important} @media(prefers-reduced-motion:reduce){.dirac-3d-grid,.dirac-3d-orb,.dirac-3d-ring,.dirac-3d-stack,.dirac-3d-cube{animation:none!important}.app-welcome-card[data-dirac-tilt],.app-control-card[data-dirac-tilt],.app-metric[data-dirac-tilt],.app-service[data-dirac-tilt],.app-panel[data-dirac-tilt],.app-action[data-dirac-tilt],.app-mini-card[data-dirac-tilt]{transform:none!important}}
 </style>
 
 </head>
@@ -368,7 +383,7 @@ html[dir="rtl"] .app-search input{text-align:right}
         </section>
 
         <section class="app-hero" aria-labelledby="dashboardWelcome">
-          <article class="app-welcome-card" data-reveal>
+          <article class="app-welcome-card dirac-3d-hero-card" data-reveal>
             <div class="app-welcome-copy">
               <span class="eyebrow">Dashboard pelanggan</span>
               <h2 id="dashboardWelcome">Selamat datang, <span id="displayName">Pelanggan</span></h2>
@@ -440,61 +455,6 @@ html[dir="rtl"] .app-search input{text-align:right}
             <article class="app-service" data-service-card data-keywords="nomor layanan legal masa aktif"><div><div class="app-service-head"><span class="app-iconbox">📱</span><span class="app-chip info">Belum aktif</span></div><h3>Layanan Nomor</h3><p>Lihat layanan nomor legal, masa aktif, invoice, dan bantuan penggunaan.</p><div class="app-service-tags"><span class="app-tag">Legal</span><span class="app-tag">Masa aktif</span></div></div><div class="app-service-foot"><span class="muted">Sesuai aturan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Tanya</a></div></article>
             <article class="app-service" data-service-card data-keywords="invoice tagihan pembayaran bukti transfer kwitansi"><div><div class="app-service-head"><span class="app-iconbox">🧾</span><span class="app-chip ok">Tidak ada tagihan</span></div><h3>Invoice</h3><p>Cek tagihan, status pembayaran, bukti transfer, dan riwayat invoice.</p><div class="app-service-tags"><span class="app-tag">Pembayaran</span><span class="app-tag">Kwitansi</span></div></div><div class="app-service-foot"><span class="muted">Tagihan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Konfirmasi</a></div></article>
             <article class="app-service wide" data-service-card data-keywords="tiket bantuan admin support whatsapp masalah"><div><div class="app-service-head"><span class="app-iconbox">💬</span><span class="app-chip ok">Admin siap</span></div><h3>Tiket Bantuan</h3><p>Hubungi admin untuk kendala parfum, domain, website, pembayaran, pengiriman, dan layanan nomor.</p><div class="app-service-tags"><span class="app-tag">Customer care</span><span class="app-tag">WhatsApp</span><span class="app-tag">Respons normal</span></div></div><div class="app-service-foot"><span class="muted">Bantuan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Chat admin</a></div></article>
-          </div>
-        </section>
-
-
-
-        <section class="app-section dg-order-section" id="buatOrder" aria-labelledby="dgOrderTitle" data-reveal>
-          <div class="app-section-head">
-            <div><h2 id="dgOrderTitle">Buat order DiracGroup</h2><p>Form awal untuk order domain, jasa website, pengembangan sistem, dan nomor kosong. Payment gateway belum dipasang; status awal tetap unpaid/pending.</p></div>
-            <span class="app-muted-action">Tahap awal aman</span>
-          </div>
-          <div class="dg-order-card">
-            <div class="dg-order-grid">
-              <form class="dg-order-form" id="dgOrderForm" novalidate>
-                <label class="dg-field-label" for="dgOrderProduct">Pilih produk
-                  <select class="field" id="dgOrderProduct" name="product_id" required>
-                    <option value="">Memuat produk...</option>
-                  </select>
-                  <span class="dg-field-help">Produk diambil dari tabel domain_products yang aktif.</span>
-                </label>
-                <div class="dg-order-price-preview" id="dgOrderPricePreview" aria-live="polite"></div>
-                <div class="dg-order-two">
-                  <label class="dg-field-label" for="dgCustomerName">Nama pelanggan
-                    <input class="field" id="dgCustomerName" name="customer_name" type="text" autocomplete="name" minlength="2" required placeholder="Contoh: Customer Test">
-                  </label>
-                  <label class="dg-field-label" for="dgCustomerWhatsapp">WhatsApp
-                    <input class="field" id="dgCustomerWhatsapp" name="customer_whatsapp" type="tel" autocomplete="tel" minlength="8" required placeholder="Contoh: 080000000000">
-                  </label>
-                </div>
-                <label class="dg-field-label" for="dgCustomerEmail">Email pelanggan <span class="dg-field-help">Boleh dikosongkan kalau belum ada.</span>
-                  <input class="field" id="dgCustomerEmail" name="customer_email" type="email" autocomplete="email" placeholder="contoh@email.com">
-                </label>
-                <label class="dg-field-label" for="dgOrderNeed">Domain / kebutuhan
-                  <input class="field" id="dgOrderNeed" name="domain_name" type="text" minlength="3" required placeholder="contohdomain.com / buat website company profile">
-                  <span class="dg-field-help">Untuk jasa website atau nomor kosong, isi kebutuhan singkat pelanggan.</span>
-                </label>
-                <label class="dg-field-label" for="dgOrderNotes">Catatan
-                  <textarea class="field" id="dgOrderNotes" name="notes" rows="4" placeholder="Catatan tambahan jika ada"></textarea>
-                </label>
-                <div class="dg-order-submit-row">
-                  <button class="btn-primary" id="dgOrderSubmit" type="submit">Buat order</button>
-                  <span class="dg-order-loading" id="dgOrderLoading">Produk sedang dimuat...</span>
-                </div>
-                <div class="dg-order-result" id="dgOrderResult" aria-live="polite"></div>
-              </form>
-              <aside class="dg-order-note" aria-label="Catatan keamanan order">
-                <h3>Catatan tahap ini</h3>
-                <p>Form ini baru membuat order awal. Pembayaran otomatis belum aktif, jadi status pembayaran tetap <strong>unpaid</strong> sampai payment gateway dibuat pada tahap berikutnya.</p>
-                <ul>
-                  <li>Tidak memakai tabel parfum.</li>
-                  <li>Tidak mengubah login, A2F, atau hash.</li>
-                  <li>Order masuk ke tabel domain_orders.</li>
-                  <li>Kode order dibuat otomatis oleh database.</li>
-                </ul>
-              </aside>
-            </div>
           </div>
         </section>
 
@@ -965,28 +925,6 @@ html[dir="rtl"] .app-search input{text-align:right}
   </script>
 
 
-<script id="dirac-dashboard-order-form-step2-js">
-(function(){
-  'use strict';
-  var API_BASE='https://companyprofilee-expk.vercel.app/api/health';
-  var products=[];
-  function $(s,r){return (r||document).querySelector(s)}
-  function clean(v){return String(v==null?'':v).trim()}
-  function money(v){var n=Number(v||0);try{return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n).replace(/\s/g,'')}catch(e){return 'Rp'+Math.round(n).toLocaleString('id-ID')}}
-  function setResult(type,title,msg,extra){var box=$('#dgOrderResult');if(!box)return;box.className='dg-order-result show '+(type==='ok'?'ok':'err');box.textContent='';var strong=document.createElement('strong');strong.textContent=title;var p=document.createElement('p');p.textContent=msg;box.appendChild(strong);box.appendChild(p);if(extra){var small=document.createElement('small');small.textContent=extra;box.appendChild(small)}}
-  function setLoading(text){var el=$('#dgOrderLoading');if(el)el.textContent=text||''}
-  function selectedProduct(){var select=$('#dgOrderProduct');var id=select?select.value:'';return products.find(function(p){return String(p.id)===String(id)})||null}
-  function updatePricePreview(){var box=$('#dgOrderPricePreview');if(!box)return;var p=selectedProduct();if(!p){box.classList.remove('show');box.textContent='';return}box.classList.add('show');box.textContent=p.name+' · '+money(p.price)+' · '+String(p.product_category||'').replace(/_/g,' ')}
-  function fillProducts(items){products=Array.isArray(items)?items:[];var select=$('#dgOrderProduct');if(!select)return;select.textContent='';var empty=document.createElement('option');empty.value='';empty.textContent=products.length?'Pilih produk':'Produk aktif belum tersedia';select.appendChild(empty);products.forEach(function(p){var opt=document.createElement('option');opt.value=p.id;opt.textContent=p.name+' — '+money(p.price);select.appendChild(opt)});select.disabled=!products.length;setLoading(products.length?'Produk siap dipilih':'Produk aktif belum tersedia');updatePricePreview()}
-  function loadProducts(){var select=$('#dgOrderProduct');if(select)select.disabled=true;setLoading('Memuat produk...');fetch(API_BASE+'?action=domain-products',{method:'GET',mode:'cors',credentials:'include',cache:'no-store',headers:{Accept:'application/json'}}).then(function(res){return res.json().catch(function(){return {ok:false,message:'Respons produk tidak valid'}}).then(function(data){if(!res.ok||!data.ok)throw new Error(data.message||'Gagal memuat produk');fillProducts(data.products||data.data||[])})}).catch(function(err){fillProducts([]);setResult('err','Produk gagal dimuat',err&&err.message?err.message:'Coba refresh halaman.');setLoading('Produk gagal dimuat')})}
-  function formPayload(form){var fd=new FormData(form);return {product_id:clean(fd.get('product_id')),customer_name:clean(fd.get('customer_name')),customer_email:clean(fd.get('customer_email')),customer_whatsapp:clean(fd.get('customer_whatsapp')),domain_name:clean(fd.get('domain_name')),notes:clean(fd.get('notes'))}}
-  function validatePayload(payload){if(!payload.product_id)return 'Produk wajib dipilih.';if(payload.customer_name.length<2)return 'Nama pelanggan minimal 2 karakter.';if(payload.customer_whatsapp.replace(/[^+\d]/g,'').length<8)return 'WhatsApp minimal 8 angka.';if(payload.customer_email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.customer_email))return 'Email tidak valid.';if(payload.domain_name.length<3)return 'Domain/kebutuhan minimal 3 karakter.';return ''}
-  function submitOrder(e){e.preventDefault();var form=e.currentTarget;var btn=$('#dgOrderSubmit');var payload=formPayload(form);var invalid=validatePayload(payload);if(invalid){setResult('err','Data belum lengkap',invalid);return}if(btn)btn.disabled=true;setLoading('Membuat order...');fetch(API_BASE+'?action=create-order',{method:'POST',mode:'cors',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload)}).then(function(res){return res.json().catch(function(){return {ok:false,message:'Respons order tidak valid'}}).then(function(data){if(!res.ok||!data.ok)throw new Error(data.message||'Gagal membuat order');var order=data.order||{};var kode=order.order_code||order.id||'order baru';var price=order.total_price!=null?money(order.total_price):'';setResult('ok','Order berhasil dibuat','Kode: '+kode+(price?' · Total: '+price:''),'Status awal: '+(order.payment_status||'unpaid')+' / '+(order.status||order.order_status||'pending'));form.reset();updatePricePreview()})}).catch(function(err){setResult('err','Order gagal dibuat',err&&err.message?err.message:'Coba lagi atau hubungi admin.')}).finally(function(){if(btn)btn.disabled=false;setLoading(products.length?'Produk siap dipilih':'')})}
-  document.addEventListener('DOMContentLoaded',function(){var form=$('#dgOrderForm');var select=$('#dgOrderProduct');if(form)form.addEventListener('submit',submitOrder);if(select)select.addEventListener('change',updatePricePreview);loadProducts()});
-})();
-</script>
-
-
 <script id="dirac-dashboard-brand-typewriter-js">
 (function(){
   'use strict';
@@ -1166,6 +1104,53 @@ html[dir="rtl"] .app-search input{text-align:right}
     observeDomSafety();
     clearSensitiveCacheHints();
     recordSecurityState();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+})();
+</script>
+
+
+<script id="dirac-dashboard-safe-3d-layer-js">
+(function(){
+  'use strict';
+  /* Visual-only 3D micro interaction. Tidak membaca/menulis auth, A2F, cookie, sessionStorage, localStorage, atau API. */
+  function motionReduced(){
+    try{
+      return document.documentElement.getAttribute('data-motion')==='reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }catch(e){return false;}
+  }
+  function setupTilt(card){
+    if(!card || card.dataset.diracTiltReady==='1') return;
+    card.dataset.diracTilt='true';
+    card.dataset.diracTiltReady='1';
+    var raf=0;
+    function reset(){
+      card.style.setProperty('--dirac-rx','0deg');
+      card.style.setProperty('--dirac-ry','0deg');
+    }
+    function move(ev){
+      if(motionReduced()) return reset();
+      var rect=card.getBoundingClientRect();
+      if(!rect.width || !rect.height) return;
+      var px=(ev.clientX-rect.left)/rect.width;
+      var py=(ev.clientY-rect.top)/rect.height;
+      var ry=((px-.5)*7).toFixed(2)+'deg';
+      var rx=((-py+.5)*5).toFixed(2)+'deg';
+      if(raf) cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(function(){
+        card.style.setProperty('--dirac-rx',rx);
+        card.style.setProperty('--dirac-ry',ry);
+      });
+    }
+    card.addEventListener('pointermove',move,{passive:true});
+    card.addEventListener('pointerleave',reset,{passive:true});
+    card.addEventListener('blur',reset,true);
+  }
+  function init(){
+    if(motionReduced()) return;
+    var selector='.app-welcome-card.dirac-3d-hero-card,.app-control-card,.app-metric,.app-service,.app-panel,.app-action,.app-mini-card';
+    Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(setupTilt);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
