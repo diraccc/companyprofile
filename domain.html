@@ -4862,7 +4862,7 @@ body.gate-checking .gate-icon{animation:securityCheckPulse 1.25s ease-in-out inf
 
 <style id="dirac-html-backend-lock-no-blur-final-css">
 /* =========================================================
-   FINAL CORRECTION: HTML benar-benar terkunci backend.
+   FINAL CORRECTION: HTML benar-benar terkunci backend. Endpoint API TIDAK DIUBAH.
    - Tidak ada blur.
    - Tidak ada pemberitahuan awal.
    - Konten utama tidak ditampilkan sampai /api/health?action=domain_dashboard_me PASS.
@@ -4960,57 +4960,7 @@ html[data-domain-menu-backend="verified"] body{
         <button class="btn-secondary" type="button" id="retryBackendGate">Cek ulang</button>
         <a class="btn-ghost" href="dashboard.html">Kembali dashboard</a>
       </div>
-      <p class="security-backend-note">Halaman HTML ini hanya terbuka setelah backend <strong>/api/health?action=domain_dashboard_me</strong> mengembalikan sesi pelanggan yang valid.</p>
-    </div>
-  </div>
-
-
-  <div class="dirac-pre-notice" id="diracPreNotice" aria-hidden="true">
-    <div class="dirac-pre-notice-card" role="dialog" aria-modal="true" aria-labelledby="diracPreNoticeTitle" aria-describedby="diracPreNoticeDesc" tabindex="-1">
-      <div class="dirac-pre-notice-head">
-        <div class="dirac-pre-notice-icon" aria-hidden="true">!</div>
-        <div class="dirac-pre-notice-title-wrap">
-          <div class="dirac-pre-notice-kicker">Informasi Penting</div>
-          <h2 class="dirac-pre-notice-title" id="diracPreNoticeTitle">Mohon dibaca sebelum cek domain</h2>
-          <p class="dirac-pre-notice-lead" id="diracPreNoticeDesc">Pemberitahuan ini ditampilkan agar proses cek domain, konfirmasi nama, dan pemesanan lebih jelas untuk pelanggan Dirac Group.</p>
-        </div>
-      </div>
-      <div class="dirac-pre-notice-body">
-        <div class="dirac-pre-notice-list" aria-label="Daftar pemberitahuan Dirac Group">
-          <section class="dirac-pre-notice-item">
-            <span class="dirac-pre-notice-number" aria-hidden="true">1</span>
-            <div>
-              <h3>Pengecekan domain transparan</h3>
-              <p>Nama domain yang diminta pelanggan akan dicek kembali oleh admin sebelum pembayaran agar tidak terjadi kesalahan nama, ekstensi, atau harga.</p>
-            </div>
-          </section>
-          <section class="dirac-pre-notice-item">
-            <span class="dirac-pre-notice-number" aria-hidden="true">2</span>
-            <div>
-              <h3>Harga bersifat estimasi awal</h3>
-              <p>Harga domain di halaman ini bersifat estimasi katalog. Total final, masa aktif, dan syarat ekstensi akan dikonfirmasi admin melalui WhatsApp.</p>
-            </div>
-          </section>
-          <section class="dirac-pre-notice-item">
-            <span class="dirac-pre-notice-number" aria-hidden="true">3</span>
-            <div>
-              <h3>Konfirmasi sebelum pembayaran</h3>
-              <p>Pelanggan disarankan menunggu konfirmasi final dari admin sebelum melakukan pembayaran atau melanjutkan proses pendaftaran domain.</p>
-            </div>
-          </section>
-        </div>
-        <p class="dirac-pre-notice-footnote">Dengan melanjutkan, pelanggan dianggap memahami bahwa pengecekan domain final dilakukan melalui admin Dirac Group.</p>
-        <div class="dirac-pre-notice-actions">
-          <button class="dirac-pre-notice-accept" id="diracPreNoticeAccept" type="button">Saya sudah membaca dan mengerti</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="announcement">
-    <div class="container">
-      <span>Cek domain - konsultasi nama brand gratis - order langsung via WhatsApp</span>
-      <a href="https://wa.me/6287892523968" target="_blank" rel="noopener">+62 878-9252-3968</a>
+      <p class="security-backend-note">Halaman ini terbuka hanya setelah endpoint dashboard yang sudah ada mengembalikan sesi pelanggan valid.</p>
     </div>
   </div>
 
@@ -12091,7 +12041,7 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
     var s=state.session||{};
     var a=state.a2f||{};
     var g=state.gate||{};
-    var headers={'Accept':'application/json','X-Dirac-Page':'domain-dashboard-menu'};
+    var headers={'Accept':'application/json'};
     var token=s.accessToken||s.access_token||s.token||s.jwt||s.idToken||s.id_token||s.sessionToken||s.session_token||'';
     var proof=s.dashboardMfaProofToken||s.mfaProofToken||s.dashboard_mfa_proof||a.dashboardMfaProofToken||a.mfaProofToken||g.dashboardMfaProofToken||'';
     if(token) headers.Authorization='Bearer '+token;
@@ -12298,7 +12248,7 @@ html[data-effective-theme="light"] .domain-checker-result{background:rgba(255,25
     var a = readJson(A2F_KEY, {}) || {};
     var r = readJson(A2F_READY_KEY, {}) || {};
     var g = readJson(GATE_KEY, {}) || {};
-    var headers = {'Accept':'application/json', 'X-Dirac-Page':'domain-dashboard-menu'};
+    var headers = {'Accept':'application/json'};
     var token = s.accessToken || s.access_token || s.token || s.jwt || s.idToken || s.id_token || s.sessionToken || s.session_token || '';
     var refresh = s.refreshToken || s.refresh_token || '';
     var proof = s.dashboardMfaProofToken || s.mfaProofToken || s.dashboard_mfa_proof || a.dashboardMfaProofToken || a.mfaProofToken || a.dashboard_mfa_proof || r.dashboardMfaProofToken || r.mfaProofToken || g.dashboardMfaProofToken || g.mfaProofToken || '';
