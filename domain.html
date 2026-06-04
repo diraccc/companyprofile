@@ -12728,5 +12728,388 @@ main{position:relative!important;z-index:1!important}.hero{min-height:auto!impor
 })();
 </script>
 
+
+
+<!-- DIRAC FINAL GLOBAL READY PATCH: header polish, domain-only cart UX, automated payment copy. Login/hash/backend gate untouched. -->
+<style id="dirac-final-global-ready-polish-v6">
+/* =========================================================
+   Dirac Final Global Ready Polish v6
+   Fokus: header rapi, hapus tools parfum/quiz/status katalog yang dilingkari,
+   domain cart lebih profesional, copy checkout otomatis payment gateway.
+   Catatan: tidak mengubah login, hash, A2F, cookie, endpoint, atau security gate.
+   ========================================================= */
+:root{--dirac-final-violet:#6f5cff;--dirac-final-violet-2:#4f46e5;--dirac-final-green:#22c55e;--dirac-final-line:rgba(255,255,255,.105)}
+
+/* Hapus 100% elemen yang dilingkari pada screenshot 1 */
+#diracSmartTools,
+.dirac-smart-tools,
+#diracResultsStatus,
+.dirac-results-status,
+.dirac-empty-suggestions,
+#diracQuizModal,
+.dirac-quiz-results,
+.dirac-professional-card[aria-label*="quiz"],
+.dirac-mobile-scent-card{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  height:0!important;
+  max-height:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+
+/* Support tidak menjadi jalur order/checkout */
+.dirac-floating-actions .dirac-float-wa{display:none!important;visibility:hidden!important;pointer-events:none!important}
+
+/* Header final: lebih compact, simetris, clickable, dan aman mobile */
+.site-header{
+  position:sticky!important;
+  top:max(8px, env(safe-area-inset-top))!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  z-index:2147483000!important;
+  pointer-events:none!important;
+}
+.site-header .nav{
+  pointer-events:auto!important;
+  width:min(1120px,calc(100% - 28px))!important;
+  margin:10px auto 0!important;
+  min-height:72px!important;
+  padding:9px 12px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  border-radius:30px!important;
+  overflow:visible!important;
+  background:
+    radial-gradient(circle at 7% 0%,rgba(var(--theme-rgb,243,205,112),.18),transparent 12rem),
+    radial-gradient(circle at 92% 0%,rgba(111,92,255,.18),transparent 11rem),
+    linear-gradient(145deg,rgba(7,11,18,.965),rgba(13,19,30,.93))!important;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.26)!important;
+  box-shadow:0 18px 50px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.07)!important;
+  transform:translateZ(0)!important;
+}
+.site-header.is-scrolled .nav{min-height:66px!important;margin-top:8px!important;padding:8px 12px!important;border-color:rgba(var(--theme-rgb,243,205,112),.34)!important;box-shadow:0 16px 42px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.075)!important}
+.site-header .brand{flex:1 1 auto!important;min-width:0!important;display:flex!important;align-items:center!important;gap:12px!important;position:relative!important;z-index:2!important}
+.site-header .brand-mark{width:54px!important;height:54px!important;min-width:54px!important;border-radius:18px!important;box-shadow:0 12px 28px rgba(var(--theme-rgb,243,205,112),.20)!important;background:#fff!important}
+.site-header .brand-name{font-size:1.12rem!important;line-height:1.05!important;max-width:180px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;color:#fff!important;letter-spacing:.01em!important}
+.site-header .header-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;flex:0 0 auto!important;position:relative!important;z-index:3!important;isolation:isolate!important}
+.site-header .theme-toggle,
+.site-header .header-account,
+.site-header .header-cart{
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:transparent!important;
+  user-select:none!important;
+  -webkit-user-select:none!important;
+  height:50px!important;
+  min-height:50px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  background:rgba(255,255,255,.055)!important;
+  color:#fff!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 22px rgba(0,0,0,.18)!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  text-decoration:none!important;
+  font-weight:900!important;
+  transition:transform .18s cubic-bezier(.22,1,.36,1),border-color .18s cubic-bezier(.22,1,.36,1),background .18s cubic-bezier(.22,1,.36,1)!important;
+}
+.site-header .theme-toggle,
+.site-header .header-account{width:50px!important;min-width:50px!important;padding:0!important;font-size:1.1rem!important}
+.site-header .header-cart{min-width:98px!important;padding:0 12px!important;background:linear-gradient(135deg,#765cff,#4f46e5 62%,#3821a8)!important;border-color:rgba(255,255,255,.16)!important;box-shadow:0 14px 34px rgba(79,70,229,.30),inset 0 1px 0 rgba(255,255,255,.13)!important;color:#fff!important}
+.site-header .theme-toggle:hover,
+.site-header .header-account:hover,
+.site-header .header-cart:hover{transform:translateY(-1px)!important;border-color:rgba(var(--theme-rgb,243,205,112),.42)!important;background:rgba(255,255,255,.09)!important}
+.site-header .header-cart:hover{background:linear-gradient(135deg,#806bff,#5b52f0 62%,#4026b6)!important}
+.site-header .theme-toggle .label,
+.site-header .header-account .label{display:none!important}
+.site-header .header-cart .label{font-size:.84rem!important;line-height:1!important;display:inline!important;color:#fff!important}
+.site-header .count-badge{min-width:24px!important;height:24px!important;padding:0 7px!important;background:#ef4444!important;color:#fff!important;font-size:.78rem!important;box-shadow:0 7px 16px rgba(0,0,0,.26)!important}
+.site-header .nav-links{display:none!important}
+
+/* Rapikan jarak setelah header, terutama mobile */
+.hero{padding-top:78px!important}
+#produk{padding-top:54px!important}
+#produk .text-center{margin-bottom:14px!important}
+#produk .domain-tld-strip{margin-top:16px!important;margin-bottom:18px!important}
+#produk .toolbar{display:none!important}
+
+/* Domain checker lebih rapi dan tidak mepet */
+.domain-checker-card{margin-top:22px!important;margin-bottom:22px!important}
+.domain-checker-copy .mini-label{border-color:rgba(111,92,255,.35)!important;color:#eef2ff!important;background:rgba(111,92,255,.10)!important}
+.domain-checker-result{box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important}
+.domain-checker-result.is-success{border-color:rgba(34,197,94,.42)!important;background:rgba(34,197,94,.10)!important;color:#d9ffe7!important}
+.domain-checker-result.is-warning{border-color:rgba(245,158,11,.42)!important;background:rgba(245,158,11,.10)!important;color:#fff3cf!important}
+
+/* Cart domain-specific, payment-gateway ready */
+.cart-drawer{width:min(520px,100vw)!important;background:linear-gradient(180deg,#0c111b,#05070b)!important;border-left:1px solid rgba(111,92,255,.24)!important}
+.cart-head{padding:20px 20px 16px!important;background:radial-gradient(circle at 16% 0%,rgba(111,92,255,.18),transparent 13rem),rgba(255,255,255,.018)!important}
+.cart-kicker{display:inline-flex!important;align-items:center!important;gap:7px!important;padding:6px 10px!important;border-radius:999px!important;background:rgba(111,92,255,.12)!important;border:1px solid rgba(111,92,255,.24)!important;color:#dfe2ff!important;font-weight:900!important;font-size:.76rem!important;letter-spacing:.035em!important;text-transform:uppercase!important}
+.cart-head h2{font-size:1.82rem!important;margin-top:9px!important;color:#fff!important;letter-spacing:-.025em!important}
+.cart-head p{color:#aeb8ca!important;font-weight:700!important}
+.cart-body{padding:16px!important}
+.cart-empty{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025))!important;border-style:solid!important;border-color:rgba(111,92,255,.20)!important}
+.cart-item{grid-template-columns:1fr auto!important;padding:14px!important;border-radius:20px!important;background:linear-gradient(180deg,rgba(255,255,255,.072),rgba(255,255,255,.03))!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:0 12px 26px rgba(0,0,0,.20)!important}
+.cart-thumb{display:none!important}
+.cart-item h3{font-size:1rem!important;line-height:1.24!important;margin-bottom:6px!important;color:#fff!important}
+.cart-product-desc{font-size:.82rem!important;color:#aeb8ca!important;margin-bottom:10px!important;-webkit-line-clamp:2!important}
+.cart-item .line,.cart-item-meta,.cart-mini-label{color:#aab4c5!important;font-weight:700!important}
+.qty-control{border-color:rgba(111,92,255,.24)!important;background:rgba(111,92,255,.08)!important}
+.remove-btn{color:#a0a9bb!important}
+.cart-footer{padding:16px!important;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.18))!important}
+.cart-backend-note{border-radius:18px!important;border:1px solid rgba(34,197,94,.24)!important;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(111,92,255,.06))!important;padding:13px 14px!important;margin-bottom:12px!important}
+.cart-backend-note strong{display:block!important;color:#d9ffe7!important;font-size:.88rem!important;letter-spacing:.03em!important;text-transform:uppercase!important;margin-bottom:3px!important}
+.cart-backend-note span{color:#c9d3e4!important;font-size:.86rem!important;line-height:1.45!important}
+.cart-optional{border-radius:18px!important;border:1px solid rgba(255,255,255,.08)!important;background:rgba(255,255,255,.034)!important;margin:12px 0!important;padding:0!important;overflow:hidden!important}
+.cart-optional summary{padding:12px 14px!important;color:#e9edf7!important;font-weight:900!important;cursor:pointer!important}
+.cart-ready-card,.cart-control-grid{padding-inline:12px!important}
+.cart-ready-card{padding-bottom:12px!important}
+.free-ship small{font-size:.82rem!important;color:#cad3e4!important;font-weight:800!important}
+.free-ship .meter{display:none!important}
+.cart-control-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;padding-bottom:12px!important}
+.cart-control-card{border-radius:16px!important;background:rgba(255,255,255,.035)!important;border:1px solid rgba(255,255,255,.07)!important;padding:10px!important}
+.cart-summary{border-radius:20px!important;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.028))!important;border:1px solid rgba(255,255,255,.085)!important;padding:14px!important;margin-top:12px!important}
+.cart-summary-head{display:flex!important;justify-content:space-between!important;gap:10px!important;color:#dce4f2!important;font-size:.82rem!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.04em!important;margin-bottom:10px!important}
+.cart-summary-head span:last-child{color:#b8f7d0!important}
+.cart-row{margin:9px 0!important;color:#ccd6e6!important;font-weight:700!important}
+.cart-row.total{font-family:Poppins,system-ui,sans-serif!important;font-size:1.12rem!important;border-top-color:rgba(255,255,255,.12)!important}
+.cart-row.total strong{font-size:1.34rem!important;color:#fff!important;font-weight:950!important}
+.cart-actions{display:grid!important;grid-template-columns:.78fr 1.22fr!important;gap:10px!important;margin-top:12px!important}
+.cart-actions .btn-primary,.cart-actions .btn-secondary{min-height:50px!important;border-radius:17px!important;font-weight:950!important}
+.cart-actions .btn-primary{background:linear-gradient(135deg,#765cff,#4f46e5 65%,#3520a3)!important;color:#fff!important;box-shadow:0 14px 34px rgba(79,70,229,.30)!important}
+
+/* Checkout modal lebih global */
+#checkoutModal .modal-card{border-radius:26px!important;border-color:rgba(111,92,255,.28)!important;background:linear-gradient(180deg,#101725,#070a11)!important}
+#checkoutModal .modal-head{background:radial-gradient(circle at 16% 0%,rgba(111,92,255,.16),transparent 12rem)!important}
+#checkoutModal .modal-head h2{color:#fff!important;letter-spacing:-.02em!important}
+.checkout-required-note{border:1px solid rgba(111,92,255,.20)!important;background:rgba(111,92,255,.07)!important;border-radius:16px!important;padding:10px 12px!important;color:#dce4f2!important}
+.checkout-grid .field{min-height:52px!important;border-radius:16px!important;background:rgba(255,255,255,.055)!important;border-color:rgba(255,255,255,.11)!important}
+#sendWhatsappBtn{background:linear-gradient(135deg,#765cff,#4f46e5 65%,#3520a3)!important;color:#fff!important;box-shadow:0 14px 34px rgba(79,70,229,.28)!important}
+#sendWhatsappBtn.is-locked{opacity:.58!important;filter:saturate(.82)!important}
+
+/* Satu sistem motion yang lebih ringan */
+.product-card,.btn-primary,.btn-secondary,.header-cart,.theme-toggle,.header-account,.cart-item{transition-duration:.18s!important}
+.tag.top-seller:before,.promo-box:before,.hero:after{animation-duration:7.5s!important;opacity:.28!important}
+
+@media(max-width:760px){
+  .site-header{top:max(6px,env(safe-area-inset-top))!important}
+  .site-header .nav{width:calc(100% - 18px)!important;margin-top:7px!important;min-height:64px!important;padding:8px 9px!important;border-radius:27px!important;gap:8px!important}
+  .site-header.is-scrolled .nav{min-height:60px!important;margin-top:6px!important;padding:7px 9px!important}
+  .site-header .brand{flex:0 1 auto!important;gap:0!important}
+  .site-header .brand-name{display:none!important}
+  .site-header .brand-mark{width:48px!important;height:48px!important;min-width:48px!important;border-radius:17px!important}
+  .site-header .theme-toggle,.site-header .header-account{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;font-size:1.04rem!important}
+  .site-header .header-cart{height:44px!important;min-height:44px!important;min-width:76px!important;padding:0 9px!important;gap:6px!important}
+  .site-header .header-cart .label{display:none!important}
+  .site-header .count-badge{min-width:22px!important;height:22px!important;font-size:.74rem!important;padding:0 6px!important}
+  .hero{padding-top:74px!important;padding-bottom:30px!important}
+  .hero-grid>div:first-child{padding:24px!important;border-radius:28px!important}
+  .hero h1{font-size:clamp(2.46rem,12vw,4rem)!important;line-height:.94!important}
+  #produk{padding-top:42px!important}
+  #produk .domain-tld-strip{margin-bottom:16px!important}
+  .domain-checker-card{margin-top:18px!important;margin-bottom:18px!important}
+  .cart-actions{grid-template-columns:1fr!important}
+  .cart-head{padding:18px 16px 14px!important}
+  .cart-body,.cart-footer{padding:14px!important}
+  #checkoutModal .modal-card{max-height:92vh!important}
+}
+@media(max-width:390px){
+  .site-header .nav{width:calc(100% - 14px)!important;padding:7px 8px!important;border-radius:25px!important}
+  .site-header .brand-mark{width:44px!important;height:44px!important;min-width:44px!important;border-radius:16px!important}
+  .site-header .theme-toggle,.site-header .header-account{width:41px!important;min-width:41px!important;height:41px!important;min-height:41px!important}
+  .site-header .header-cart{min-width:70px!important;height:41px!important;min-height:41px!important;padding:0 8px!important}
+  .site-header .header-actions{gap:6px!important}
+  .hero{padding-top:70px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+
+<script id="dirac-final-global-ready-polish-v6-js">
+(function(){
+  'use strict';
+  if(window.__diracFinalGlobalReadyPolishV6) return;
+  window.__diracFinalGlobalReadyPolishV6 = true;
+
+  function qs(sel, root){return (root||document).querySelector(sel);}
+  function qsa(sel, root){return Array.prototype.slice.call((root||document).querySelectorAll(sel));}
+  function setText(sel, text){var el=qs(sel); if(el && el.textContent!==text) el.textContent=text;}
+  function setHTML(sel, html){var el=qs(sel); if(el && el.innerHTML!==html) el.innerHTML=html;}
+  function removeNoise(){
+    qsa('#diracSmartTools,.dirac-smart-tools,#diracResultsStatus,.dirac-results-status,.dirac-empty-suggestions,#diracQuizModal,.dirac-mobile-scent-card').forEach(function(el){
+      if(el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    qsa('.dirac-floating-actions .dirac-float-wa').forEach(function(el){
+      el.setAttribute('aria-hidden','true');
+      el.setAttribute('tabindex','-1');
+      el.style.display='none';
+    });
+  }
+  function cleanCopy(value){
+    return String(value == null ? '' : value)
+      .replace(/Bantu\s+Pilih\s+Aroma/gi,'Rekomendasi Domain')
+      .replace(/Aroma\s+premium,?/gi,'Domain premium')
+      .replace(/aroma/gi,'domain')
+      .replace(/parfum/gi,'domain')
+      .replace(/scent/gi,'domain')
+      .replace(/Order\s+WhatsApp/gi,'Checkout Otomatis')
+      .replace(/WhatsApp\s+checkout/gi,'Checkout otomatis')
+      .replace(/checkout\s+WhatsApp/gi,'checkout otomatis')
+      .replace(/order\s+langsung\s+via\s+WhatsApp/gi,'checkout otomatis melalui payment gateway')
+      .replace(/langsung\s+ke\s+WhatsApp/gi,'ke pembayaran otomatis')
+      .replace(/dikirim\s+ke\s+WhatsApp/gi,'diproses payment gateway')
+      .replace(/mengirim\s+pesan\s+WhatsApp/gi,'melanjutkan pembayaran')
+      .replace(/kirim\s+permintaan\s+ke\s+WhatsApp/gi,'lanjut ke pembayaran otomatis')
+      .replace(/via\s+WhatsApp/gi,'melalui payment gateway')
+      .replace(/ke\s+WhatsApp/gi,'ke pembayaran otomatis')
+      .replace(/melalui\s+WhatsApp/gi,'melalui payment gateway')
+      .replace(/WhatsApp/gi,'bantuan pelanggan')
+      .replace(/konfirmasi\s+final\s+dari\s+admin/gi,'validasi otomatis sistem')
+      .replace(/konfirmasi\s+admin/gi,'validasi otomatis')
+      .replace(/admin\s+akan/gi,'sistem akan')
+      .replace(/administrator/gi,'sistem')
+      .replace(/\badmin\b/gi,'sistem')
+      .replace(/stok/gi,'ketersediaan')
+      .replace(/ready-stock/gi,'tersedia')
+      .replace(/shipping|pengiriman|ongkir/gi,'layanan')
+      .replace(/keranjang/gi,'pesanan')
+      .replace(/\bCart\b/gi,'Pesanan');
+  }
+  function cleanVisibleText(root){
+    var skip = /^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|NOSCRIPT)$/;
+    var walker = document.createTreeWalker(root||document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode:function(node){
+        var p = node.parentElement;
+        if(!p || skip.test(p.tagName)) return NodeFilter.FILTER_REJECT;
+        return /admin|WhatsApp|Bantu Pilih Aroma|aroma|parfum|scent|shipping|pengiriman|ongkir|keranjang|Cart|stok/i.test(node.nodeValue||'') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      }
+    });
+    var nodes=[];
+    while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function(node){node.nodeValue = cleanCopy(node.nodeValue);});
+  }
+  function polishHeader(){
+    qsa('.site-header .nav-links a').forEach(function(a){
+      var txt = (a.textContent||'').trim();
+      if(txt === 'Produk') a.textContent = 'Ekstensi';
+      if(['Gaya','Blog','Proses','Kebijakan','FAQ'].indexOf(txt) !== -1) a.style.display = 'none';
+    });
+    var account = qs('.site-header .header-account');
+    if(account){
+      account.setAttribute('aria-label','Masuk akun Dirac Group');
+      account.setAttribute('title','Masuk akun');
+    }
+    var theme = qs('.site-header .theme-toggle');
+    if(theme){theme.setAttribute('title','Tema');theme.setAttribute('aria-label','Buka pengaturan tema');}
+    qsa('.site-header .header-cart').forEach(function(btn){
+      btn.setAttribute('aria-label','Buka ringkasan pembayaran');
+      btn.setAttribute('title','Ringkasan pembayaran');
+      var first = btn.querySelector('span:first-child'); if(first) first.textContent = '🧾';
+      var label = btn.querySelector('.label'); if(label) label.textContent = 'Pesanan';
+    });
+  }
+  function polishCart(){
+    setText('#cartTitle','Ringkasan Pembayaran');
+    var count = qsa('#cartItems .cart-item').length;
+    setText('#cartSubtitle', count ? (count + ' domain dipilih') : 'Belum ada domain dipilih');
+    var close = qs('[data-close-cart]'); if(close) close.setAttribute('aria-label','Tutup ringkasan pembayaran');
+    var kicker = qs('.cart-kicker'); if(kicker) kicker.textContent = '🌐 Domain dipilih';
+    var noteStrong = qs('.cart-backend-note strong'); if(noteStrong) noteStrong.textContent = 'Checkout otomatis';
+    var noteSpan = qs('.cart-backend-note span'); if(noteSpan) noteSpan.textContent = 'Order disiapkan backend. Setelah pembayaran berhasil, status pesanan tampil otomatis di dashboard.';
+    var summaryTitle = qs('.cart-summary-head span:first-child'); if(summaryTitle) summaryTitle.textContent='Ringkasan biaya';
+    var summaryStatus = qs('.cart-summary-head span:last-child'); if(summaryStatus) summaryStatus.textContent='Payment gateway ready';
+    setText('#freeShipText', count ? 'Pesanan siap lanjut ke payment gateway.' : 'Pilih domain untuk menyiapkan pembayaran otomatis.');
+    var shipLabel = qs('label[for="shippingSelect"]'); if(shipLabel) shipLabel.textContent='Mode checkout';
+    var ship = qs('#shippingSelect');
+    if(ship && ship.dataset.finalPaymentOptions !== 'true'){
+      ship.innerHTML = '<option value="standard">Standar otomatis - Rp0</option><option value="express">Prioritas proses - Rp0</option><option value="pickup">Tanpa biaya layanan - Rp0</option>';
+      ship.dataset.finalPaymentOptions = 'true';
+    }
+    setText('#checkoutBtn','Lanjut Pembayaran');
+    setText('#clearCartBtn','Kosongkan');
+    qsa('#cartItems .cart-product-desc,#cartItems .line,#cartItems .cart-item-meta,#cartItems .cart-mini-label').forEach(function(el){el.textContent = cleanCopy(el.textContent);});
+  }
+  function polishCheckout(){
+    setText('#checkoutTitle','Data Pemilik Domain');
+    var modalText = qs('#checkoutModal .modal-body > p.muted');
+    if(modalText) modalText.textContent = 'Lengkapi data pemilik domain sebelum lanjut ke payment gateway otomatis.';
+    var required = qs('.checkout-required-note');
+    if(required) required.innerHTML = '<strong>Wajib diisi:</strong> nama lengkap, nomor HP aktif, dan catatan kebutuhan domain.';
+    var phone = qs('#buyerPhone'); if(phone) phone.setAttribute('placeholder','Nomor HP aktif *');
+    var addr = qs('#buyerAddress'); if(addr) addr.setAttribute('placeholder','Catatan kebutuhan domain / nama brand *');
+    var method = qs('#paymentMethod');
+    if(method && method.dataset.finalPaymentOptions !== 'true'){
+      method.innerHTML = '<option>Payment Gateway Otomatis</option><option>Virtual Account</option><option>QRIS</option><option>E-wallet</option><option>Kartu debit/kredit</option>';
+      method.dataset.finalPaymentOptions = 'true';
+    }
+    var payBtn = qs('#sendWhatsappBtn');
+    if(payBtn){
+      payBtn.textContent = 'Lanjut Pembayaran';
+      payBtn.setAttribute('aria-label','Lanjut ke pembayaran otomatis');
+      payBtn.setAttribute('data-payment-action','gateway-ready');
+    }
+  }
+  function polishDomainArea(){
+    setHTML('#heroDomainResult','<span class="domain-status-dot" aria-hidden="true"></span>Siap cek domain. Status dan estimasi biaya disiapkan untuk checkout otomatis.');
+    var checker = qs('#domainCheckResult');
+    if(checker && /admin|WhatsApp|keranjang|cart|kirim/i.test(checker.textContent||'')) checker.textContent = 'Ketik nama domain, lalu tekan cek. Sistem menyiapkan status ketersediaan dan ringkasan pembayaran otomatis.';
+    qsa('#productGrid [data-add]').forEach(function(btn){
+      if(btn.disabled){btn.setAttribute('aria-label','Domain tidak tersedia'); return;}
+      btn.setAttribute('aria-label','Pilih domain');
+      btn.setAttribute('title','Pilih domain');
+      if(/cart|keranjang|WhatsApp|admin|order/i.test(btn.textContent||'')) btn.textContent='Pilih';
+    });
+    qsa('#productGrid [data-quick]').forEach(function(btn){
+      btn.setAttribute('aria-label','Lihat detail domain');
+      btn.setAttribute('title','Detail domain');
+    });
+    qsa('.quick-desc,.product-desc,.quick-grid p,.modal-body p:not(.checkout-required-note)').forEach(function(el){el.textContent = cleanCopy(el.textContent);});
+  }
+  function polishSupportLinks(){
+    qsa('a[href*="wa.me"],a[href*="api.whatsapp.com"]').forEach(function(a){
+      a.setAttribute('aria-label','Bantuan pelanggan Dirac Group');
+      a.setAttribute('title','Bantuan pelanggan');
+      if(!a.classList.contains('dirac-float-wa')) a.textContent = 'Bantuan pelanggan';
+    });
+  }
+  function run(){
+    removeNoise();
+    polishHeader();
+    polishCart();
+    polishCheckout();
+    polishDomainArea();
+    polishSupportLinks();
+    if(document.body) cleanVisibleText(document.body);
+  }
+  function start(){
+    run();
+    var timer = null;
+    var observer = new MutationObserver(function(){
+      clearTimeout(timer);
+      timer = setTimeout(run, 35);
+    });
+    observer.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+    document.addEventListener('click', function(event){
+      var blocked = event.target && event.target.closest && event.target.closest('#diracOpenQuiz,.dirac-smart-tools,.dirac-empty-chip');
+      if(blocked){event.preventDefault();event.stopPropagation();removeNoise();}
+    }, true);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();
+})();
+</script>
+
 </body>
 </html>
