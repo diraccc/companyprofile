@@ -406,20 +406,30 @@ async function domainMe(req, res) {
   });
 }
 
-async function domainDashboardMe(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-
+async function requireDomainDashboardAccess(req, res) {
   const user = await requireDomainUser(req, res);
-  if (!user) return;
+  if (!user) return null;
 
   const mfa = verifyCustomerDashboardMfaCookie(req, user);
   if (!mfa.ok) {
-    return res.status(403).json({
+    res.status(403).json({
       ok: false,
       dashboard: false,
       message: mfa.message || 'Dashboard wajib verifikasi A2F backend sebelum dibuka.'
     });
+    return null;
   }
+
+  return { user, mfa };
+}
+
+async function domainDashboardMe(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+
+  const { user, mfa } = access;
 
   return res.status(200).json({
     ok: true,
@@ -633,8 +643,10 @@ async function domainCheckout(req, res) {
 async function domainOrders(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+
+  const { user } = access;
 
   const select = [
     'id',
