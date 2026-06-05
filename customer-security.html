@@ -610,7 +610,13 @@
         const statusResult = await safeFetchJson(CONFIG.statusAction);
         if (!statusResult.ok) {
           let msg = cleanText(statusResult.data && statusResult.data.message, statusResult.status === 401 ? 'Belum login atau sesi sudah habis.' : 'Status API gagal.');
-          if (statusResult.status === 401) msg = msg + ' — ' + getLocalSessionSummaryText();
+          const diagnosticParts = [
+            'HTTP ' + Number(statusResult.status || 0),
+            cleanText(statusResult.data && statusResult.data.source, ''),
+            cleanText(statusResult.data && statusResult.data.error, '')
+          ].filter(Boolean);
+          if (statusResult.status === 401) diagnosticParts.push(getLocalSessionSummaryText());
+          if (diagnosticParts.length) msg = msg + ' — ' + diagnosticParts.join(' · ');
           if (statusResult.status === 401) setLockedMode(msg); else { setLockedMode(msg); toast('Status API gagal', msg); }
           return;
         }
