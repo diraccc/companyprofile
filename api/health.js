@@ -2692,3 +2692,437 @@ async function customerSecurityWriteSessionTelemetry(customerId, fingerprint) {
 function customerSecuritySafeLogError(error) {
   return String(error && error.message ? error.message : error).slice(0, 180);
 }
+
+
+
+/* ============================================================
+   CUSTOMER SECURITY GUARDED ACTIONS - APPEND ONLY
+   Tujuan:
+   - Anti-bypass backend untuk aksi sensitif customer security.
+   - Tidak mengubah domainLogin(), domainRegister(), hash, A2F/MFA lama, passkey, lock, admin/staff.
+   - Semua validasi memakai backend service_role-only.
+   - customer_id SELALU diambil dari security_customer_auth_links, bukan body/query frontend.
+   Endpoint:
+   POST /api/health?action=customer_security_revoke_session
+   POST /api/health?action=customer_security_revoke_other_sessions
+   POST /api/health?action=customer_security_account_request
+   GET  /api/health?action=customer_security_guard_status
+   ============================================================ */
+
+const __diracCustomerSecurityGuardedActionsPreviousHandler = module.exports;
+
+const CUSTOMER_SECURITY_GUARDED_ACTIONS = new Set([
+  'customer_security_guard_status',
+  'customer_security_revoke_session',
+  'customer_security_revoke_other_sessions',
+  'customer_security_account_request'
+]);
+
+const CUSTOMER_SECURITY_GUARDED_ALIASES = Object.freeze({
+  'customer-security-guard-status': 'customer_security_guard_status',
+  'customer_security_guard_status': 'customer_security_guard_status',
+  'customer-security-revoke-session': 'customer_security_revoke_session',
+  'customer_security_revoke_session': 'customer_security_revoke_session',
+  'customer-security-revoke-other-sessions': 'customer_security_revoke_other_sessions',
+  'customer_security_revoke_other_sessions': 'customer_security_revoke_other_sessions',
+  'customer-security-account-request': 'customer_security_account_request',
+  'customer_security_account_request': 'customer_security_account_request'
+});
+
+const CUSTOMER_SECURITY_RATE_LIMIT_STORE = globalThis.__DIRAC_CUSTOMER_SECURITY_RATE_LIMIT_STORE__ || new Map();
+globalThis.__DIRAC_CUSTOMER_SECURITY_RATE_LIMIT_STORE__ = CUSTOMER_SECURITY_RATE_LIMIT_STORE;
+
+module.exports = async function customerSecurityGuardedActionsWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityGuardedNormalizeAction(rawAction);
+
+  if (!CUSTOMER_SECURITY_GUARDED_ACTIONS.has(action)) {
+    return __diracCustomerSecurityGuardedActionsPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  return customerSecurityHandleGuardedAction(action, req, res);
+};
+
+function customerSecurityGuardedNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return CUSTOMER_SECURITY_GUARDED_ALIASES[clean] || clean;
+}
+
+async function customerSecurityHandleGuardedAction(action, req, res) {
+  try {
+    if (action === 'customer_security_guard_status') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      const access = await customerSecurityRequireAccess(req, res, {
+        action,
+        requireMfa: false,
+        rateLimit: { limit: 60, windowMs: 60_000 }
+      });
+      if (!access) return;
+
+      return res.status(200).json({
+        ok: true,
+        service: 'dirac-customer-security',
+        endpoint: action,
+        user: sanitizeUser(access.user),
+        linked: true,
+        link_status: 'active',
+        customer_id_available: true,
+        direct_frontend_table_access: false,
+        mfa_required_for_write: true,
+        mfa_verified_now: Boolean(access.mfa && access.mfa.ok),
+        guarded_actions_ready: true,
+        message: 'Guard customer security aktif. Aksi write tetap membutuhkan MFA/re-auth.',
+        time: new Date().toISOString()
+      });
+    }
+
+    if (action === 'customer_security_revoke_session') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityRevokeSession(req, res, action);
+    }
+
+    if (action === 'customer_security_revoke_other_sessions') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityRevokeOtherSessions(req, res, action);
+    }
+
+    if (action === 'customer_security_account_request') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityCreateAccountRequest(req, res, action);
+    }
+
+    return res.status(404).json({ ok: false, message: 'Aksi keamanan tidak ditemukan.' });
+  } catch (error) {
+    console.error('[customer-security-guarded-action]', customerSecuritySafeLogError(error));
+    return res.status(500).json({
+      ok: false,
+      message: 'Aksi keamanan belum dapat diproses.',
+      source: 'customer_security_guarded_action'
+    });
+  }
+}
+
+async function customerSecurityRequireAccess(req, res, options = {}) {
+  const user = await requireDomainUser(req, res);
+  if (!user) return null;
+
+  const authUserId = String(user.id || '').trim();
+  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
+    res.status(401).json({ ok: false, message: 'Sesi tidak valid.' });
+    return null;
+  }
+
+  const rate = customerSecurityCheckRateLimit(req, options.action || 'customer_security', authUserId, options.rateLimit);
+  if (!rate.ok) {
+    res.setHeader('Retry-After', String(Math.ceil(rate.retryAfterMs / 1000)));
+    res.status(429).json({
+      ok: false,
+      message: 'Terlalu banyak percobaan. Coba lagi sebentar.',
+      retry_after_seconds: Math.ceil(rate.retryAfterMs / 1000)
+    });
+    return null;
+  }
+
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  if (!linkResult.ok) {
+    if (customerSecurityIsSchemaCacheMissing(linkResult)) {
+      res.status(503).json({
+        ok: false,
+        message: 'Storage keamanan belum siap. Coba lagi setelah sinkronisasi schema selesai.',
+        source: 'customer_security_guard'
+      });
+      return null;
+    }
+
+    res.status(500).json({
+      ok: false,
+      message: 'Gagal memverifikasi akses customer security.',
+      source: 'customer_security_guard'
+    });
+    return null;
+  }
+
+  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const customerId = String(link && link.customer_id || '').trim();
+
+  if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
+    res.status(403).json({
+      ok: false,
+      message: 'Akun belum terhubung ke customer profile aktif.',
+      source: 'customer_security_guard'
+    });
+    return null;
+  }
+
+  await customerSecurityEnsureSettingsRow(customerId).catch(() => null);
+
+  let mfa = null;
+  if (options.requireMfa) {
+    mfa = verifyCustomerDashboardMfaCookie(req, user);
+    if (!mfa || !mfa.ok) {
+      await customerSecurityWriteGuardEvent(customerId, {
+        event_type: 'security_settings_updated',
+        status: 'warning',
+        risk_level: 'medium',
+        description: 'Aksi keamanan ditolak karena MFA/re-auth proof tidak valid.',
+        req,
+        metadata: { action: options.action || 'customer_security', reason: 'missing_or_invalid_mfa_proof' }
+      });
+      res.status(403).json({
+        ok: false,
+        code: 'MFA_REQUIRED',
+        message: 'Aksi ini membutuhkan verifikasi A2F/MFA ulang dari dashboard resmi.'
+      });
+      return null;
+    }
+  } else {
+    try { mfa = verifyCustomerDashboardMfaCookie(req, user); } catch (_) { mfa = null; }
+  }
+
+  return { user, authUserId, customerId, link, mfa };
+}
+
+function customerSecurityCheckRateLimit(req, action, userId, config = {}) {
+  const limit = Math.max(1, Number(config.limit || 12));
+  const windowMs = Math.max(1000, Number(config.windowMs || 60_000));
+  const ip = customerSecurityRequestIp(req) || 'no-ip';
+  const key = [String(action || 'customer_security'), String(userId || 'anonymous'), ip].join(':');
+  const now = Date.now();
+  const bucket = CUSTOMER_SECURITY_RATE_LIMIT_STORE.get(key) || [];
+  const fresh = bucket.filter(ts => now - ts < windowMs);
+  if (fresh.length >= limit) {
+    const oldest = fresh[0] || now;
+    return { ok: false, retryAfterMs: Math.max(1000, windowMs - (now - oldest)) };
+  }
+  fresh.push(now);
+  CUSTOMER_SECURITY_RATE_LIMIT_STORE.set(key, fresh);
+
+  if (CUSTOMER_SECURITY_RATE_LIMIT_STORE.size > 5000) {
+    for (const [k, values] of CUSTOMER_SECURITY_RATE_LIMIT_STORE.entries()) {
+      const active = values.filter(ts => now - ts < windowMs);
+      if (active.length) CUSTOMER_SECURITY_RATE_LIMIT_STORE.set(k, active);
+      else CUSTOMER_SECURITY_RATE_LIMIT_STORE.delete(k);
+      if (CUSTOMER_SECURITY_RATE_LIMIT_STORE.size <= 3500) break;
+    }
+  }
+
+  return { ok: true };
+}
+
+async function customerSecurityRevokeSession(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 8, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const body = await readBody(req);
+  const sessionId = String(body.session_id || body.id || '').trim();
+
+  if (!customerSecurityLooksLikeUuid(sessionId)) {
+    return res.status(400).json({ ok: false, message: 'Session ID tidak valid.' });
+  }
+
+  const current = customerSecurityBuildSessionFingerprint(req, access.customerId);
+  const readPath = '/rest/v1/security_customer_sessions?select=' +
+    encodeURIComponent('id,status,session_token_hash') +
+    '&customer_id=eq.' + encodeURIComponent(access.customerId) +
+    '&id=eq.' + encodeURIComponent(sessionId) +
+    '&limit=1';
+
+  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
+  if (!found.ok) {
+    return res.status(500).json({ ok: false, message: 'Gagal membaca sesi.' });
+  }
+
+  const rows = Array.isArray(found.data) ? found.data : [];
+  const row = rows[0] || null;
+  if (!row) {
+    return res.status(404).json({ ok: false, message: 'Sesi tidak ditemukan.' });
+  }
+
+  if (row.session_token_hash && current && row.session_token_hash === current.session_token_hash) {
+    return res.status(409).json({
+      ok: false,
+      message: 'Sesi saat ini tidak dicabut dari daftar perangkat. Gunakan tombol Logout untuk keluar dari perangkat ini.'
+    });
+  }
+
+  const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(sessionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      status: 'revoked',
+      revoked_at: new Date().toISOString(),
+      revoke_reason: 'customer_requested'
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(500).json({ ok: false, message: 'Gagal mencabut sesi.' });
+  }
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'session_revoked',
+    status: 'success',
+    risk_level: 'low',
+    description: 'Customer mencabut salah satu sesi perangkat.',
+    req,
+    metadata: { action, session_id: sessionId }
+  });
+
+  return res.status(200).json({
+    ok: true,
+    message: 'Sesi perangkat berhasil dicabut.',
+    revoked_session_id: sessionId,
+    time: new Date().toISOString()
+  });
+}
+
+async function customerSecurityRevokeOtherSessions(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 4, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const current = customerSecurityBuildSessionFingerprint(req, access.customerId);
+  const path = '/rest/v1/security_customer_sessions?customer_id=eq.' +
+    encodeURIComponent(access.customerId) +
+    '&status=eq.active' +
+    '&session_token_hash=neq.' +
+    encodeURIComponent(current.session_token_hash || 'none');
+
+  const patched = await supabaseFetch(path, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      status: 'revoked',
+      revoked_at: new Date().toISOString(),
+      revoke_reason: 'customer_revoked_other_sessions'
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(500).json({ ok: false, message: 'Gagal mencabut sesi lain.' });
+  }
+
+  const rows = Array.isArray(patched.data) ? patched.data : [];
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'all_sessions_revoked',
+    status: 'success',
+    risk_level: 'medium',
+    description: 'Customer mencabut semua sesi perangkat lain.',
+    req,
+    metadata: { action, revoked_count: rows.length }
+  });
+
+  return res.status(200).json({
+    ok: true,
+    message: rows.length ? 'Semua sesi perangkat lain berhasil dicabut.' : 'Tidak ada sesi perangkat lain yang aktif.',
+    revoked_count: rows.length,
+    time: new Date().toISOString()
+  });
+}
+
+async function customerSecurityCreateAccountRequest(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 3, windowMs: 10 * 60_000 }
+  });
+  if (!access) return;
+
+  const body = await readBody(req);
+  const allowed = new Set(['security_review', 'export_data', 'deactivate_account', 'reactivate_account']);
+  const requestType = String(body.request_type || 'security_review').trim().toLowerCase();
+  const safeType = allowed.has(requestType) ? requestType : 'security_review';
+  const reason = customerSecuritySanitizeReason(body.reason || 'Customer meminta review keamanan akun.');
+
+  const created = await supabaseFetch('/rest/v1/security_customer_account_requests', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{
+      customer_id: access.customerId,
+      request_type: safeType,
+      status: 'pending',
+      reason,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      metadata: {
+        source: 'customer_security_guarded_action',
+        action
+      }
+    }]
+  });
+
+  if (!created.ok) {
+    return res.status(500).json({ ok: false, message: 'Gagal membuat request keamanan akun.' });
+  }
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'security_settings_updated',
+    status: 'info',
+    risk_level: 'low',
+    description: 'Customer membuat request keamanan akun.',
+    req,
+    metadata: { action, request_type: safeType }
+  });
+
+  const rows = Array.isArray(created.data) ? created.data : [];
+
+  return res.status(200).json({
+    ok: true,
+    message: 'Request keamanan akun berhasil dibuat.',
+    request: rows[0] || null,
+    time: new Date().toISOString()
+  });
+}
+
+function customerSecuritySanitizeReason(value) {
+  return String(value || '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500) || 'Customer security request.';
+}
+
+async function customerSecurityWriteGuardEvent(customerId, options = {}) {
+  try {
+    const req = options.req || {};
+    const userAgent = String((req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+    const payload = {
+      customer_id: customerId,
+      event_type: options.event_type || 'security_settings_updated',
+      status: options.status || 'info',
+      risk_level: options.risk_level || 'low',
+      description: customerSecuritySanitizeReason(options.description || 'Security event.'),
+      ip_address: customerSecurityRequestIp(req),
+      user_agent: userAgent,
+      device_name: customerSecurityDeviceName(userAgent),
+      browser_name: customerSecurityBrowserName(userAgent),
+      operating_system: customerSecurityOperatingSystem(userAgent),
+      metadata: {
+        source: 'customer_security_guarded_actions',
+        ...(options.metadata && typeof options.metadata === 'object' ? options.metadata : {})
+      }
+    };
+
+    await supabaseFetch('/rest/v1/security_customer_events', {
+      method: 'POST',
+      auth: 'service',
+      body: [payload]
+    });
+  } catch (error) {
+    console.error('[customer-security-guard-event]', customerSecuritySafeLogError(error));
+  }
+}
