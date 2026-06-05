@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-theme="dark" data-motion="full">
+<html lang="id" data-theme="dark" data-motion="full" data-build="customer-security-production-safe-v3">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -136,10 +136,10 @@
         <div class="panel reveal">
           <div class="panel-title"><h2>Kontrol keamanan</h2><span class="tag warn">Write locked</span></div>
           <div class="action-grid">
-            <article class="action-card"><div><h3>🔐 Aktifkan 2FA/A2F</h3><p>Siap untuk TOTP/Auth App, email OTP, SMS, atau biometrik setelah backend write endpoint benar-benar aman.</p></div><div class="action-row"><span class="locked">🔒 Belum dibuka</span><button class="btn ghost" type="button" disabled>Aktifkan</button></div></article>
-            <article class="action-card"><div><h3>🧾 Recovery codes</h3><p>Recovery code harus dibuat server-side, di-hash, dan hanya ditampilkan satu kali.</p></div><div class="action-row"><span class="locked">🔒 Server required</span><button class="btn ghost" type="button" disabled>Generate</button></div></article>
+            <article class="action-card"><div><h3>🔐 Aktifkan 2FA/A2F</h3><p>Siap untuk TOTP/Auth App, email OTP, SMS, atau biometrik setelah backend write endpoint benar-benar aman.</p></div><div class="action-row"><span class="locked">🔒 Belum dibuka</span><button class="btn ghost locked-action" type="button" data-locked-action="2FA/A2F">Aktifkan</button></div></article>
+            <article class="action-card"><div><h3>🧾 Recovery codes</h3><p>Recovery code harus dibuat server-side, di-hash, dan hanya ditampilkan satu kali.</p></div><div class="action-row"><span class="locked">🔒 Server required</span><button class="btn ghost locked-action" type="button" data-locked-action="Recovery codes">Generate</button></div></article>
             <article class="action-card"><div><h3>📱 Kelola perangkat</h3><p>Daftar sesi bisa dibaca; revoke session harus menunggu endpoint write khusus yang tidak menyentuh login lama.</p></div><div class="action-row"><span class="locked">👁️ Read-only</span><a class="btn ghost" href="#sessions">Lihat sesi</a></div></article>
-            <article class="action-card"><div><h3>📦 Request akun</h3><p>Export data, deactivate, reactivate, dan review keamanan harus masuk antrean backend, bukan langsung dari frontend.</p></div><div class="action-row"><span class="locked">🔒 Pending API</span><button class="btn ghost" type="button" disabled>Buat request</button></div></article>
+            <article class="action-card"><div><h3>📦 Request akun</h3><p>Export data, deactivate, reactivate, dan review keamanan harus masuk antrean backend, bukan langsung dari frontend.</p></div><div class="action-row"><span class="locked">🔒 Pending API</span><button class="btn ghost locked-action" type="button" data-locked-action="Request akun">Buat request</button></div></article>
           </div>
           <div style="height:14px"></div>
           <div class="safe-note"><strong>Anti-bypass rule:</strong> tombol UI tidak pernah menjadi sumber kebenaran. Semua aksi sensitif wajib divalidasi ulang oleh backend dengan session user, auth link aktif, customer_id valid, rate limit, audit log, dan endpoint write khusus.</div>
@@ -197,7 +197,7 @@
           <article class="check-card reveal"><strong>✅ No secret in browser</strong><p>File ini tidak menyimpan service_role key, token, password, atau recovery code di client.</p></article>
           <article class="check-card reveal"><strong>✅ Credentials include only</strong><p>Fetch memakai cookie session server dengan <code>credentials: include</code>, bukan localStorage token.</p></article>
           <article class="check-card reveal"><strong>✅ Safe rendering</strong><p>Data backend dirender lewat <code>textContent</code>, bukan HTML injection.</p></article>
-          <article class="check-card reveal"><strong>✅ Read-only by default</strong><p>Semua kontrol sensitif disabled sampai endpoint write khusus tersedia.</p></article>
+          <article class="check-card reveal"><strong>✅ Read-only by default</strong><p>Semua aksi sensitif tetap dikunci server-side sampai endpoint write khusus tersedia.</p></article>
           <article class="check-card reveal"><strong>✅ API failure safe</strong><p>Jika API error/401, halaman masuk ke mode terkunci dan tidak menampilkan data palsu.</p></article>
           <article class="check-card reveal"><strong>✅ Legacy isolation</strong><p>Halaman baru berdiri sendiri dan tidak mengubah dashboard admin/staff, login, hash, atau A2F lama.</p></article>
         </div>
@@ -610,13 +610,7 @@
         const statusResult = await safeFetchJson(CONFIG.statusAction);
         if (!statusResult.ok) {
           let msg = cleanText(statusResult.data && statusResult.data.message, statusResult.status === 401 ? 'Belum login atau sesi sudah habis.' : 'Status API gagal.');
-          const diagnosticParts = [
-            'HTTP ' + Number(statusResult.status || 0),
-            cleanText(statusResult.data && statusResult.data.source, ''),
-            cleanText(statusResult.data && statusResult.data.error, '')
-          ].filter(Boolean);
-          if (statusResult.status === 401) diagnosticParts.push(getLocalSessionSummaryText());
-          if (diagnosticParts.length) msg = msg + ' — ' + diagnosticParts.join(' · ');
+          if (statusResult.status === 401) msg = msg + ' — ' + getLocalSessionSummaryText();
           if (statusResult.status === 401) setLockedMode(msg); else { setLockedMode(msg); toast('Status API gagal', msg); }
           return;
         }
@@ -668,6 +662,12 @@
       onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
       $('#refreshBtn')?.addEventListener('click', refreshSecurity);
       $('#logoutBtn')?.addEventListener('click', logout);
+      $$('.locked-action').forEach((button) => {
+        button.addEventListener('click', () => {
+          const actionName = button.getAttribute('data-locked-action') || 'Aksi keamanan';
+          toast(actionName + ' belum dibuka', 'Aksi ini membutuhkan endpoint backend write khusus dengan MFA/re-auth, rate limit, audit log, dan anti-bypass server-side.');
+        });
+      });
       $('#motionToggle')?.addEventListener('click', () => {
         document.body.classList.toggle('reduce-motion');
         document.documentElement.dataset.motion = document.body.classList.contains('reduce-motion') ? 'reduced' : 'full';
