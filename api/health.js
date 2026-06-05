@@ -2196,3 +2196,247 @@ async function customerSecurityFetchRows(tableName, columns, customerId, orderBy
     auth: 'service'
   });
 }
+
+
+/* ============================================================
+   CUSTOMER SECURITY REGISTER BOOTSTRAP TAMBAHAN - ISOLATED APPEND ONLY
+   SUMBER PATCH: /mnt/data/health.js FILE SATUAN, BUKAN health (7).js DARI ZIP.
+   Tujuan:
+   - Tidak mengubah domainRegister() lama.
+   - Tidak mengubah domainLogin(), hash, A2F/MFA, passkey, lock, admin/staff.
+   - Hanya membungkus response register sukses untuk bootstrap customer security.
+   - Semua akses database tetap backend service_role-only.
+   ============================================================ */
+
+const __diracCustomerSecurityRegisterBootstrapPreviousHandler = module.exports;
+
+module.exports = async function customerSecurityRegisterBootstrapWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityRegisterBootstrapNormalizeAction(rawAction);
+
+  if (!customerSecurityRegisterBootstrapIsRegisterAction(action) || req.method !== 'POST') {
+    return __diracCustomerSecurityRegisterBootstrapPreviousHandler(req, res);
+  }
+
+  return customerSecurityBootstrapWrapRegisterResponse(req, res, function runPreviousHandler() {
+    return __diracCustomerSecurityRegisterBootstrapPreviousHandler(req, res);
+  });
+};
+
+function customerSecurityRegisterBootstrapNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  if (clean === 'domain-register') return 'domain_register';
+  if (clean === 'domain_register') return 'domain_register';
+  if (clean === 'register-domain') return 'domain_register';
+  return clean;
+}
+
+function customerSecurityRegisterBootstrapIsRegisterAction(action) {
+  return action === 'domain_register';
+}
+
+async function customerSecurityBootstrapWrapRegisterResponse(req, res, runPreviousHandler) {
+  const originalStatus = typeof res.status === 'function' ? res.status.bind(res) : null;
+  const originalJson = typeof res.json === 'function' ? res.json.bind(res) : null;
+  let capturedStatus = Number(res.statusCode || 200);
+
+  if (!originalJson) {
+    return runPreviousHandler();
+  }
+
+  res.status = function patchedCustomerSecurityStatus(code) {
+    capturedStatus = Number(code || capturedStatus || 200);
+    if (originalStatus) return originalStatus(code);
+    res.statusCode = capturedStatus;
+    return res;
+  };
+
+  res.json = async function patchedCustomerSecurityRegisterJson(payload) {
+    let finalPayload = payload;
+    const httpStatus = Number(capturedStatus || res.statusCode || 200);
+
+    if (httpStatus >= 200 && httpStatus < 300 && payload && payload.ok === true && payload.user && payload.user.id) {
+      const bootstrap = await customerSecurityBootstrapRegisteredUser(req, payload.user);
+      finalPayload = customerSecurityAttachBootstrapSummary(payload, bootstrap);
+    }
+
+    return originalJson(finalPayload);
+  };
+
+  return runPreviousHandler();
+}
+
+function customerSecurityAttachBootstrapSummary(payload, bootstrap) {
+  const safe = bootstrap && bootstrap.ok ? bootstrap : null;
+  return {
+    ...payload,
+    customer_security: {
+      mode: 'backend_service_role_only',
+      direct_frontend_table_access: false,
+      profile_ready: Boolean(safe && safe.customer_id),
+      link_ready: Boolean(safe && safe.link_status === 'active' && safe.customer_id),
+      settings_ready: Boolean(safe && safe.settings_ready),
+      pending: !Boolean(safe && safe.customer_id && safe.link_status === 'active' && safe.settings_ready)
+    }
+  };
+}
+
+async function customerSecurityBootstrapRegisteredUser(req, responseUser) {
+  try {
+    const body = req && req.body && typeof req.body === 'object' ? req.body : {};
+    const authUserId = String(responseUser && responseUser.id || '').trim();
+    const email = normalizeAuthEmail((responseUser && responseUser.email) || body.email || body.identifier || body.customer_email);
+    const fullName = customerSecuritySafeCustomerName(body.full_name || body.fullName || body.name || email);
+    const phone = normalizePhone(body.whatsapp || body.phone || body.customer_whatsapp || '');
+
+    if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !email || !isValidAuthEmail(email)) {
+      return { ok: false, reason: 'invalid_auth_user_or_email' };
+    }
+
+    const existingLinkResult = await customerSecurityFetchAuthLink(authUserId);
+    if (!existingLinkResult.ok) return { ok: false, reason: 'auth_link_read_failed', status: existingLinkResult.status };
+
+    const existingLink = Array.isArray(existingLinkResult.data) && existingLinkResult.data.length ? existingLinkResult.data[0] : null;
+    if (existingLink && existingLink.link_status === 'active' && existingLink.customer_id) {
+      const settingsReadyExisting = await customerSecurityEnsureSettingsRow(existingLink.customer_id);
+      return {
+        ok: Boolean(settingsReadyExisting.ok),
+        customer_id: existingLink.customer_id,
+        link_status: 'active',
+        settings_ready: Boolean(settingsReadyExisting.ok)
+      };
+    }
+
+    const customerResult = await customerSecurityFindOrCreateCustomer({ email, fullName, phone });
+    if (!customerResult.ok || !customerResult.customer_id) return customerResult;
+
+    const linkWriteResult = existingLink
+      ? await customerSecurityActivateExistingAuthLink(authUserId, customerResult.customer_id, email)
+      : await customerSecurityCreateAuthLink(authUserId, customerResult.customer_id, email);
+
+    if (!linkWriteResult.ok) return { ok: false, reason: 'auth_link_write_failed', status: linkWriteResult.status };
+
+    const settingsResult = await customerSecurityEnsureSettingsRow(customerResult.customer_id);
+
+    return {
+      ok: Boolean(settingsResult.ok),
+      customer_id: customerResult.customer_id,
+      link_status: 'active',
+      settings_ready: Boolean(settingsResult.ok)
+    };
+  } catch (error) {
+    console.error('[customer-security-bootstrap]', customerSecuritySafeLogError(error));
+    return { ok: false, reason: 'bootstrap_exception' };
+  }
+}
+
+function customerSecurityLooksLikeUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function customerSecuritySafeCustomerName(value) {
+  const raw = String(value || '').trim();
+  const fromEmail = raw.includes('@') ? raw.split('@')[0] : raw;
+  const cleaned = fromEmail.replace(/[^a-zA-Z0-9À-ž ._'-]/g, ' ').replace(/\s+/g, ' ').trim();
+  return (cleaned || 'Customer DiracGroup').slice(0, 120);
+}
+
+async function customerSecurityFindOrCreateCustomer({ email, fullName, phone }) {
+  const existing = await customerSecurityFetchCustomerByEmail(email);
+  if (!existing.ok) return { ok: false, reason: 'customer_read_failed', status: existing.status };
+
+  const rows = Array.isArray(existing.data) ? existing.data : [];
+  if (rows.length && rows[0] && rows[0].id) {
+    return { ok: true, customer_id: rows[0].id, created: false };
+  }
+
+  const body = {
+    name: fullName || 'Customer DiracGroup',
+    email
+  };
+  if (phone) body.phone = phone;
+
+  const created = await supabaseFetch('/rest/v1/customers', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [body]
+  });
+
+  if (!created.ok) return { ok: false, reason: 'customer_create_failed', status: created.status };
+
+  const createdRows = Array.isArray(created.data) ? created.data : [];
+  const row = createdRows[0] || created.data;
+  if (!row || !row.id) return { ok: false, reason: 'customer_create_no_id' };
+
+  return { ok: true, customer_id: row.id, created: true };
+}
+
+async function customerSecurityFetchCustomerByEmail(email) {
+  const select = ['id', 'email', 'name', 'phone'].join(',');
+  const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&email=eq.' + encodeURIComponent(email) + '&limit=1';
+  return supabaseFetch(path, { method: 'GET', auth: 'service' });
+}
+
+async function customerSecurityActivateExistingAuthLink(authUserId, customerId, email) {
+  const body = customerSecurityBuildActiveAuthLinkBody(customerId, email);
+  const path = '/rest/v1/security_customer_auth_links?auth_user_id=eq.' + encodeURIComponent(authUserId);
+  return supabaseFetch(path, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body
+  });
+}
+
+async function customerSecurityCreateAuthLink(authUserId, customerId, email) {
+  const body = {
+    auth_user_id: authUserId,
+    ...customerSecurityBuildActiveAuthLinkBody(customerId, email)
+  };
+  return supabaseFetch('/rest/v1/security_customer_auth_links', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [body]
+  });
+}
+
+function customerSecurityBuildActiveAuthLinkBody(customerId, email) {
+  return {
+    customer_id: customerId,
+    email,
+    link_status: 'active',
+    link_method: 'system_created',
+    match_confidence: 'verified',
+    verified_at: new Date().toISOString()
+  };
+}
+
+async function customerSecurityEnsureSettingsRow(customerId) {
+  const existing = await customerSecurityFetchRows(
+    'security_customer_settings',
+    ['id', 'customer_id'],
+    customerId,
+    'created_at.desc',
+    1
+  );
+
+  if (!existing.ok) return { ok: false, reason: 'settings_read_failed', status: existing.status };
+  const rows = Array.isArray(existing.data) ? existing.data : [];
+  if (rows.length) return { ok: true, created: false };
+
+  const created = await supabaseFetch('/rest/v1/security_customer_settings', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{ customer_id: customerId }]
+  });
+
+  if (!created.ok) return { ok: false, reason: 'settings_create_failed', status: created.status };
+  return { ok: true, created: true };
+}
+
+function customerSecuritySafeLogError(error) {
+  return String(error && error.message ? error.message : error).slice(0, 180);
+}
