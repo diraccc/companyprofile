@@ -1799,3 +1799,116 @@ function requiredEnv(name) {
   }
   return value;
 }
+
+/* ============================================================
+   CUSTOMER SECURITY STATUS TAMBAHAN - ISOLATED APPEND ONLY
+   Tidak mengubah router/fungsi lama. Tidak membuat file API baru.
+   Endpoint baru tetap memakai file health lama:
+   GET /api/health?action=customer_security_status
+   GET /api/health?action=customer-security-status
+   ============================================================ */
+
+const __diracOriginalHealthHandler = module.exports;
+
+module.exports = async function customerSecurityHealthWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityNormalizeAction(rawAction);
+
+  if (customerSecurityIsStatusAction(action)) {
+    const cors = setCors(req, res, { isDomainAction: true });
+    if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+    if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+    return customerSecurityStatus(req, res);
+  }
+
+  return __diracOriginalHealthHandler(req, res);
+};
+
+function customerSecurityNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  if (clean === 'customer-security-status') return 'customer_security_status';
+  if (clean === 'customer_security_status') return 'customer_security_status';
+  return clean;
+}
+
+function customerSecurityIsStatusAction(action) {
+  return action === 'customer_security_status';
+}
+
+async function customerSecurityStatus(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+  }
+
+  try {
+    const user = await requireDomainUser(req, res);
+    if (!user) return;
+
+    const authUserId = String(user.id || '').trim();
+    if (!authUserId) {
+      return res.status(401).json({ ok: false, message: 'Sesi tidak valid.' });
+    }
+
+    const linkResult = await customerSecurityFetchAuthLink(authUserId);
+    if (!linkResult.ok) {
+      return res.status(linkResult.status || 500).json({
+        ok: false,
+        message: 'Gagal membaca status keamanan akun.',
+        source: 'customer_security_status',
+        error: customerSecuritySafeUpstreamError(linkResult.data)
+      });
+    }
+
+    const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+    const linked = Boolean(link && link.link_status === 'active' && link.customer_id);
+
+    return res.status(200).json({
+      ok: true,
+      service: 'dirac-customer-security',
+      mode: 'service_role_backend_only',
+      user: sanitizeUser(user),
+      linked,
+      link_status: link ? String(link.link_status || 'pending') : 'not_linked',
+      customer_id_available: Boolean(link && link.customer_id),
+      security_data_ready: false,
+      policy_ready: false,
+      direct_frontend_table_access: false,
+      message: linked
+        ? 'Akun sudah terhubung. Data keamanan dapat dibaca melalui backend service_role-only.'
+        : 'Akun belum terhubung ke customer profile. Data keamanan belum dibuat.',
+      next_allowed_phase: 'backend_api_service_role_only',
+      time: new Date().toISOString()
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      message: 'Terjadi kesalahan pada customer security status.',
+      source: 'customer_security_status',
+      error: String(error && error.message ? error.message : error)
+    });
+  }
+}
+
+async function customerSecurityFetchAuthLink(authUserId) {
+  const select = [
+    'id',
+    'auth_user_id',
+    'customer_id',
+    'link_status',
+    'match_confidence',
+    'verified_at'
+  ].join(',');
+
+  const path = `/rest/v1/security_customer_auth_links?select=${encodeURIComponent(select)}&auth_user_id=eq.${encodeURIComponent(authUserId)}&limit=1`;
+
+  return supabaseFetch(path, {
+    method: 'GET',
+    auth: 'service'
+  });
+}
+
+function customerSecuritySafeUpstreamError(data) {
+  if (!data) return null;
+  if (typeof data === 'string') return data.slice(0, 180);
+  return String(data.message || data.error || data.detail || 'upstream_error').slice(0, 180);
+}
