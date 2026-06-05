@@ -270,14 +270,99 @@
       return url.toString();
     }
 
-    function readLegacyAuthSession() {
-      try {
-        const raw = window.localStorage ? window.localStorage.getItem('dirac_auth_session_v1') : '';
-        const session = raw ? JSON.parse(raw) : null;
-        return session && typeof session === 'object' ? session : null;
-      } catch (_) {
-        return null;
+    function looksLikeJwt(value) {
+      return /^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$/.test(String(value || '').trim());
+    }
+
+    function safeJsonParse(raw) {
+      try { return raw ? JSON.parse(raw) : null; } catch (_) { return null; }
+    }
+
+    function findTokenDeep(value, type, depth = 0) {
+      if (!value || depth > 8) return '';
+      if (typeof value === 'string') {
+        const text = value.trim();
+        if (type === 'access' && looksLikeJwt(text)) return text;
+        return '';
       }
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const found = findTokenDeep(item, type, depth + 1);
+          if (found) return found;
+        }
+        return '';
+      }
+      if (typeof value !== 'object') return '';
+
+      const accessKeys = ['accessToken','access_token','access','token','jwt','idToken','id_token'];
+      const refreshKeys = ['refreshToken','refresh_token','refresh'];
+
+      const keys = type === 'access' ? accessKeys : refreshKeys;
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(value, key) && typeof value[key] === 'string' && value[key].trim()) {
+          if (type === 'access') {
+            if (key.toLowerCase().includes('refresh')) continue;
+            if (looksLikeJwt(value[key]) || key === 'accessToken' || key === 'access_token' || key === 'jwt' || key === 'token') return value[key].trim();
+          } else {
+            return value[key].trim();
+          }
+        }
+      }
+
+      for (const child of Object.values(value)) {
+        const found = findTokenDeep(child, type, depth + 1);
+        if (found) return found;
+      }
+      return '';
+    }
+
+    function readLegacyAuthSession() {
+      const summary = { key: '', accessFound: false, refreshFound: false, keysScanned: 0 };
+      try {
+        if (!window.localStorage) return { accessToken: '', refreshToken: '', summary };
+
+        const preferredKeys = ['dirac_auth_session_v1', 'dirac_domain_session', 'sb-auth-token'];
+        const allKeys = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key) allKeys.push(key);
+        }
+
+        const ordered = Array.from(new Set([
+          ...preferredKeys,
+          ...allKeys.filter(k => /dirac|auth|session|token|supabase|sb-/i.test(k)),
+          ...allKeys
+        ]));
+
+        for (const key of ordered) {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          summary.keysScanned += 1;
+
+          const parsed = safeJsonParse(raw);
+          const target = parsed || raw;
+
+          const accessToken = findTokenDeep(target, 'access');
+          const refreshToken = findTokenDeep(target, 'refresh');
+
+          if (accessToken || refreshToken) {
+            summary.key = key;
+            summary.accessFound = Boolean(accessToken);
+            summary.refreshFound = Boolean(refreshToken);
+            return { accessToken, refreshToken, summary };
+          }
+        }
+      } catch (_) {}
+      return { accessToken: '', refreshToken: '', summary };
+    }
+
+    function getLocalSessionSummaryText() {
+      const found = readLegacyAuthSession();
+      const s = found.summary || {};
+      return 'Local session: ' + (s.key ? 'ada' : 'tidak ada') +
+        ' · access: ' + (s.accessFound ? 'ada' : 'tidak ada') +
+        ' · refresh: ' + (s.refreshFound ? 'ada' : 'tidak ada') +
+        ' · keys checked: ' + Number(s.keysScanned || 0);
     }
 
     function buildAuthHeaders() {
@@ -524,7 +609,8 @@
       try {
         const statusResult = await safeFetchJson(CONFIG.statusAction);
         if (!statusResult.ok) {
-          const msg = cleanText(statusResult.data && statusResult.data.message, statusResult.status === 401 ? 'Belum login atau sesi sudah habis.' : 'Status API gagal.');
+          let msg = cleanText(statusResult.data && statusResult.data.message, statusResult.status === 401 ? 'Belum login atau sesi sudah habis.' : 'Status API gagal.');
+          if (statusResult.status === 401) msg = msg + ' — ' + getLocalSessionSummaryText();
           if (statusResult.status === 401) setLockedMode(msg); else { setLockedMode(msg); toast('Status API gagal', msg); }
           return;
         }
