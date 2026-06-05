@@ -2041,6 +2041,14 @@ async function customerSecurityOverview(req, res) {
     }
 
     const customerId = String(link.customer_id || '').trim();
+
+    // Production-safe sync:
+    // - MFA status in security_customer_settings is mandatory true for all linked customers.
+    // - Current browser/device is registered in security_customer_sessions.
+    // These operations are backend service_role-only and do not touch legacy login/hash/A2F.
+    await customerSecurityEnsureSettingsRow(customerId);
+    await customerSecurityTouchCurrentSession(req, customerId);
+
     const overviewResult = await customerSecurityFetchOverviewData(customerId);
     if (!overviewResult.ok) {
       return res.status(overviewResult.status || 500).json({
@@ -2456,25 +2464,229 @@ function customerSecurityBuildActiveAuthLinkBody(customerId, email) {
 async function customerSecurityEnsureSettingsRow(customerId) {
   const existing = await customerSecurityFetchRows(
     'security_customer_settings',
-    ['id', 'customer_id'],
+    ['id', 'customer_id', 'two_factor_enabled', 'two_factor_method'],
     customerId,
     'created_at.desc',
     1
   );
 
   if (!existing.ok) return { ok: false, reason: 'settings_read_failed', status: existing.status };
+
   const rows = Array.isArray(existing.data) ? existing.data : [];
-  if (rows.length) return { ok: true, created: false };
+  const mandatoryBody = {
+    two_factor_enabled: true,
+    two_factor_method: 'authenticator',
+    last_security_check_at: new Date().toISOString()
+  };
+
+  if (rows.length && rows[0] && rows[0].id) {
+    const currentMethod = String(rows[0].two_factor_method || '').trim().toLowerCase();
+    const alreadyMandatory = rows[0].two_factor_enabled === true && currentMethod && currentMethod !== 'none';
+
+    if (alreadyMandatory) return { ok: true, created: false, enforced: false };
+
+    const patched = await supabaseFetch('/rest/v1/security_customer_settings?id=eq.' + encodeURIComponent(rows[0].id), {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: mandatoryBody
+    });
+
+    if (!patched.ok) return { ok: false, reason: 'settings_enforce_failed', status: patched.status };
+    return { ok: true, created: false, enforced: true };
+  }
 
   const created = await supabaseFetch('/rest/v1/security_customer_settings', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
-    body: [{ customer_id: customerId }]
+    body: [{
+      customer_id: customerId,
+      ...mandatoryBody
+    }]
   });
 
   if (!created.ok) return { ok: false, reason: 'settings_create_failed', status: created.status };
-  return { ok: true, created: true };
+  return { ok: true, created: true, enforced: true };
+}
+
+async function customerSecurityTouchCurrentSession(req, customerId) {
+  try {
+    const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+    if (!fingerprint || !fingerprint.session_token_hash) return { ok: false, reason: 'missing_session_fingerprint' };
+
+    const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
+      encodeURIComponent(customerId) +
+      '&session_token_hash=eq.' +
+      encodeURIComponent(fingerprint.session_token_hash) +
+      '&limit=1';
+
+    const existing = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!existing.ok) return { ok: false, reason: 'session_read_failed', status: existing.status };
+
+    const rows = Array.isArray(existing.data) ? existing.data : [];
+    const now = new Date().toISOString();
+
+    const updateBody = {
+      device_id: fingerprint.device_id,
+      device_name: fingerprint.device_name,
+      browser_name: fingerprint.browser_name,
+      operating_system: fingerprint.operating_system,
+      user_agent: fingerprint.user_agent,
+      ip_address: fingerprint.ip_address || null,
+      status: 'active',
+      last_seen_at: now,
+      expires_at: fingerprint.expires_at
+    };
+
+    if (rows.length && rows[0] && rows[0].id) {
+      const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(rows[0].id), {
+        method: 'PATCH',
+        auth: 'service',
+        prefer: 'return=representation',
+        body: updateBody
+      });
+
+      if (!patched.ok) return { ok: false, reason: 'session_update_failed', status: patched.status };
+      return { ok: true, created: false, session_id: rows[0].id };
+    }
+
+    const created = await supabaseFetch('/rest/v1/security_customer_sessions', {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [{
+        customer_id: customerId,
+        session_token_hash: fingerprint.session_token_hash,
+        trusted_device: false,
+        metadata: {
+          source: 'customer_security_overview',
+          auto_detected: true
+        },
+        ...updateBody
+      }]
+    });
+
+    if (!created.ok) return { ok: false, reason: 'session_create_failed', status: created.status };
+
+    await customerSecurityWriteSessionTelemetry(customerId, fingerprint);
+
+    const createdRows = Array.isArray(created.data) ? created.data : [];
+    return { ok: true, created: true, session_id: createdRows[0] && createdRows[0].id ? createdRows[0].id : null };
+  } catch (error) {
+    console.error('[customer-security-session]', customerSecuritySafeLogError(error));
+    return { ok: false, reason: 'session_exception' };
+  }
+}
+
+function customerSecurityBuildSessionFingerprint(req, customerId) {
+  const cookies = parseCookies(req);
+  const headerToken = getBearerToken(req);
+  const headerRefreshToken = String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
+  const tokenMaterial = headerToken || cookies[ACCESS_COOKIE] || headerRefreshToken || cookies[REFRESH_COOKIE] || '';
+
+  const userAgent = String((req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+  const ip = customerSecurityRequestIp(req);
+  const fallbackMaterial = [customerId, userAgent, ip].filter(Boolean).join('|');
+
+  const sessionTokenHash = customerSecuritySha256(tokenMaterial || fallbackMaterial);
+  const deviceId = customerSecuritySha256(['device', userAgent, ip].filter(Boolean).join('|')).slice(0, 48);
+
+  return {
+    session_token_hash: sessionTokenHash,
+    device_id: deviceId,
+    device_name: customerSecurityDeviceName(userAgent),
+    browser_name: customerSecurityBrowserName(userAgent),
+    operating_system: customerSecurityOperatingSystem(userAgent),
+    user_agent: userAgent,
+    ip_address: ip,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  };
+}
+
+function customerSecuritySha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function customerSecurityRequestIp(req) {
+  const forwarded = String((req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.headers['cf-connecting-ip'])) || '').trim();
+  const first = forwarded.split(',')[0].trim();
+  if (!first) return null;
+  if (/^[0-9a-f:.]+$/i.test(first)) return first.slice(0, 64);
+  return null;
+}
+
+function customerSecurityDeviceName(userAgent) {
+  const ua = String(userAgent || '');
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/iPad/i.test(ua)) return 'iPad';
+  if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Android Phone' : 'Android Tablet';
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+  if (/Windows/i.test(ua)) return 'Windows PC';
+  if (/Linux/i.test(ua)) return 'Linux Device';
+  return 'Unknown Device';
+}
+
+function customerSecurityBrowserName(userAgent) {
+  const ua = String(userAgent || '');
+  if (/Edg\//i.test(ua)) return 'Microsoft Edge';
+  if (/OPR\//i.test(ua)) return 'Opera';
+  if (/CriOS\//i.test(ua)) return 'Chrome iOS';
+  if (/Chrome\//i.test(ua)) return 'Chrome';
+  if (/FxiOS\//i.test(ua)) return 'Firefox iOS';
+  if (/Firefox\//i.test(ua)) return 'Firefox';
+  if (/Safari\//i.test(ua)) return 'Safari';
+  return 'Unknown Browser';
+}
+
+function customerSecurityOperatingSystem(userAgent) {
+  const ua = String(userAgent || '');
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+  if (/Android/i.test(ua)) return 'Android';
+  if (/Windows NT/i.test(ua)) return 'Windows';
+  if (/Mac OS X|Macintosh/i.test(ua)) return 'macOS';
+  if (/Linux/i.test(ua)) return 'Linux';
+  return 'Unknown OS';
+}
+
+async function customerSecurityWriteSessionTelemetry(customerId, fingerprint) {
+  const base = {
+    customer_id: customerId,
+    device_name: fingerprint.device_name,
+    browser_name: fingerprint.browser_name,
+    operating_system: fingerprint.operating_system,
+    user_agent: fingerprint.user_agent,
+    ip_address: fingerprint.ip_address || null,
+    country: null,
+    city: null,
+    metadata: {
+      source: 'customer_security_overview',
+      auto_detected: true
+    }
+  };
+
+  await supabaseFetch('/rest/v1/security_customer_login_logs', {
+    method: 'POST',
+    auth: 'service',
+    body: [{
+      ...base,
+      event_type: 'login_success',
+      status: 'success',
+      risk_level: 'low'
+    }]
+  }).catch(() => null);
+
+  await supabaseFetch('/rest/v1/security_customer_events', {
+    method: 'POST',
+    auth: 'service',
+    body: [{
+      ...base,
+      event_type: 'login_from_new_device',
+      status: 'info',
+      risk_level: 'low',
+      description: 'Perangkat terdeteksi otomatis saat membuka halaman keamanan.'
+    }]
+  }).catch(() => null);
 }
 
 function customerSecuritySafeLogError(error) {
