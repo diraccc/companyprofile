@@ -122,7 +122,7 @@
       <div class="panel reveal">
         <div class="panel-title"><h2>Kontrol keamanan</h2><span class="tag warn">Write locked</span></div>
         <div class="action-grid">
-          <article class="action-card"><div><h3>🔐 2FA/A2F</h3><p>Butuh endpoint write khusus, re-auth/MFA, rate limit, dan audit log.</p></div><div class="action-row"><span class="locked">🔒 Locked</span><button class="btn ghost locked-action" type="button" data-locked-action="2FA/A2F">Aktifkan</button></div></article>
+          <article class="action-card"><div><h3>🔐 2FA/A2F</h3><p>A2F wajib aktif untuk semua akun. Nonaktifkan A2F tidak disediakan demi keamanan.</p></div><div class="action-row"><span class="locked">🔒 Locked</span><button class="btn ghost locked-action" type="button" data-locked-action="A2F wajib aktif">Kelola</button></div></article>
           <article class="action-card"><div><h3>🧾 Recovery codes</h3><p>Harus dibuat server-side, di-hash, dan ditampilkan sekali.</p></div><div class="action-row"><span class="locked">🔒 Server</span><button class="btn ghost locked-action" type="button" data-locked-action="Recovery codes">Generate</button></div></article>
           <article class="action-card"><div><h3>📱 Perangkat</h3><p>Sesi bisa dibaca. Revoke menunggu endpoint anti-bypass.</p></div><div class="action-row"><span class="locked">👁️ Read</span><a class="btn ghost" href="#sessions">Lihat</a></div></article>
           <article class="action-card"><div><h3>📦 Request akun</h3><p>Export/deactivate/security review wajib antrean backend.</p></div><div class="action-row"><span class="locked">🔒 Pending</span><button class="btn ghost locked-action" type="button" data-locked-action="Request akun">Request</button></div></article>
@@ -631,6 +631,10 @@
       $$('.locked-action').forEach((button) => {
         button.addEventListener('click', () => {
           const actionName = button.getAttribute('data-locked-action') || 'Aksi keamanan';
+          if (actionName === 'A2F wajib aktif') {
+            toast('A2F wajib aktif', 'A2F tidak bisa dinonaktifkan. Status aktif disinkronkan dari backend security customer.');
+            return;
+          }
           toast(actionName + ' belum dibuka', 'Aksi ini membutuhkan endpoint backend write khusus dengan MFA/re-auth, rate limit, audit log, dan anti-bypass server-side.');
         });
       });
