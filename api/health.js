@@ -1912,3 +1912,287 @@ function customerSecuritySafeUpstreamError(data) {
   if (typeof data === 'string') return data.slice(0, 180);
   return String(data.message || data.error || data.detail || 'upstream_error').slice(0, 180);
 }
+
+
+/* ============================================================
+   CUSTOMER SECURITY OVERVIEW TAMBAHAN - ISOLATED APPEND ONLY
+   Tidak mengubah router/fungsi lama. Tidak membuat file API baru.
+   Endpoint baru tetap memakai file health lama:
+   GET /api/health?action=customer_security_overview
+   GET /api/health?action=customer-security-overview
+   GET /api/health?action=customer_security_dashboard
+   ============================================================ */
+
+const __diracCustomerSecurityWrapperV2PreviousHandler = module.exports;
+
+module.exports = async function customerSecurityOverviewWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityOverviewNormalizeAction(rawAction);
+
+  if (customerSecurityOverviewIsAction(action)) {
+    const cors = setCors(req, res, { isDomainAction: true });
+    if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+    if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+    return customerSecurityOverview(req, res);
+  }
+
+  return __diracCustomerSecurityWrapperV2PreviousHandler(req, res);
+};
+
+function customerSecurityOverviewNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  if (clean === 'customer-security-overview') return 'customer_security_overview';
+  if (clean === 'customer_security_overview') return 'customer_security_overview';
+  if (clean === 'customer-security-dashboard') return 'customer_security_overview';
+  if (clean === 'customer_security_dashboard') return 'customer_security_overview';
+  if (clean === 'customer-security-summary') return 'customer_security_overview';
+  if (clean === 'customer_security_summary') return 'customer_security_overview';
+  return clean;
+}
+
+function customerSecurityOverviewIsAction(action) {
+  return action === 'customer_security_overview';
+}
+
+async function customerSecurityOverview(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+  }
+
+  try {
+    const user = await requireDomainUser(req, res);
+    if (!user) return;
+
+    const authUserId = String(user.id || '').trim();
+    if (!authUserId) {
+      return res.status(401).json({ ok: false, message: 'Sesi tidak valid.' });
+    }
+
+    const linkResult = await customerSecurityFetchAuthLink(authUserId);
+    if (!linkResult.ok) {
+      return res.status(linkResult.status || 500).json({
+        ok: false,
+        message: 'Gagal membaca status penghubung akun.',
+        source: 'customer_security_overview',
+        error: customerSecuritySafeUpstreamError(linkResult.data)
+      });
+    }
+
+    const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+    const linked = Boolean(link && link.link_status === 'active' && link.customer_id);
+
+    if (!linked) {
+      return res.status(200).json({
+        ok: true,
+        service: 'dirac-customer-security',
+        endpoint: 'customer_security_overview',
+        mode: 'backend_only',
+        user: sanitizeUser(user),
+        linked: false,
+        link_status: link ? String(link.link_status || 'pending') : 'not_linked',
+        customer_id_available: false,
+        direct_frontend_table_access: false,
+        policy_ready: false,
+        security_data_ready: false,
+        overview: customerSecurityEmptyOverview(),
+        message: 'Akun belum terhubung ke customer profile. Data keamanan belum dibuat.',
+        time: new Date().toISOString()
+      });
+    }
+
+    const customerId = String(link.customer_id || '').trim();
+    const overviewResult = await customerSecurityFetchOverviewData(customerId);
+    if (!overviewResult.ok) {
+      return res.status(overviewResult.status || 500).json({
+        ok: false,
+        message: 'Gagal membaca overview keamanan akun.',
+        source: 'customer_security_overview',
+        section: overviewResult.section || 'unknown',
+        error: customerSecuritySafeUpstreamError(overviewResult.data)
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      service: 'dirac-customer-security',
+      endpoint: 'customer_security_overview',
+      mode: 'backend_only',
+      user: sanitizeUser(user),
+      linked: true,
+      link_status: String(link.link_status || 'active'),
+      customer_id_available: true,
+      direct_frontend_table_access: false,
+      policy_ready: false,
+      security_data_ready: true,
+      overview: overviewResult.data,
+      message: 'Overview keamanan akun berhasil dibaca melalui backend.',
+      time: new Date().toISOString()
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      message: 'Terjadi kesalahan pada customer security overview.',
+      source: 'customer_security_overview',
+      error: String(error && error.message ? error.message : error)
+    });
+  }
+}
+
+function customerSecurityEmptyOverview() {
+  return {
+    settings: null,
+    sessions: [],
+    login_logs: [],
+    events: [],
+    account_requests: [],
+    counts: {
+      sessions: 0,
+      login_logs: 0,
+      events: 0,
+      account_requests: 0
+    }
+  };
+}
+
+async function customerSecurityFetchOverviewData(customerId) {
+  const empty = customerSecurityEmptyOverview();
+
+  const settingsResult = await customerSecurityFetchRows(
+    'security_customer_settings',
+    [
+      'email_verified',
+      'two_factor_enabled',
+      'two_factor_method',
+      'notify_new_login',
+      'notify_password_change',
+      'notify_new_device',
+      'password_changed_at',
+      'last_security_check_at',
+      'account_locked',
+      'locked_until',
+      'updated_at'
+    ],
+    customerId,
+    'updated_at.desc',
+    1
+  );
+
+  if (!settingsResult.ok) return { ok: false, status: settingsResult.status, section: 'settings', data: settingsResult.data };
+
+  const sessionsResult = await customerSecurityFetchRows(
+    'security_customer_sessions',
+    [
+      'id',
+      'device_id',
+      'device_name',
+      'browser_name',
+      'operating_system',
+      'country',
+      'city',
+      'status',
+      'trusted_device',
+      'created_at',
+      'last_seen_at',
+      'expires_at',
+      'revoked_at',
+      'revoke_reason'
+    ],
+    customerId,
+    'last_seen_at.desc',
+    10
+  );
+
+  if (!sessionsResult.ok) return { ok: false, status: sessionsResult.status, section: 'sessions', data: sessionsResult.data };
+
+  const loginLogsResult = await customerSecurityFetchRows(
+    'security_customer_login_logs',
+    [
+      'id',
+      'event_type',
+      'status',
+      'failure_reason',
+      'risk_level',
+      'device_name',
+      'browser_name',
+      'operating_system',
+      'country',
+      'city',
+      'created_at'
+    ],
+    customerId,
+    'created_at.desc',
+    10
+  );
+
+  if (!loginLogsResult.ok) return { ok: false, status: loginLogsResult.status, section: 'login_logs', data: loginLogsResult.data };
+
+  const eventsResult = await customerSecurityFetchRows(
+    'security_customer_events',
+    [
+      'id',
+      'event_type',
+      'status',
+      'risk_level',
+      'description',
+      'created_at'
+    ],
+    customerId,
+    'created_at.desc',
+    20
+  );
+
+  if (!eventsResult.ok) return { ok: false, status: eventsResult.status, section: 'events', data: eventsResult.data };
+
+  const requestsResult = await customerSecurityFetchRows(
+    'security_customer_account_requests',
+    [
+      'id',
+      'request_type',
+      'status',
+      'reason',
+      'created_at',
+      'updated_at',
+      'completed_at',
+      'expires_at'
+    ],
+    customerId,
+    'created_at.desc',
+    10
+  );
+
+  if (!requestsResult.ok) return { ok: false, status: requestsResult.status, section: 'account_requests', data: requestsResult.data };
+
+  const settingsRows = Array.isArray(settingsResult.data) ? settingsResult.data : [];
+  const sessions = Array.isArray(sessionsResult.data) ? sessionsResult.data : [];
+  const loginLogs = Array.isArray(loginLogsResult.data) ? loginLogsResult.data : [];
+  const events = Array.isArray(eventsResult.data) ? eventsResult.data : [];
+  const accountRequests = Array.isArray(requestsResult.data) ? requestsResult.data : [];
+
+  return {
+    ok: true,
+    data: {
+      settings: settingsRows.length ? settingsRows[0] : empty.settings,
+      sessions,
+      login_logs: loginLogs,
+      events,
+      account_requests: accountRequests,
+      counts: {
+        sessions: sessions.length,
+        login_logs: loginLogs.length,
+        events: events.length,
+        account_requests: accountRequests.length
+      }
+    }
+  };
+}
+
+async function customerSecurityFetchRows(tableName, columns, customerId, orderBy, limit) {
+  const safeTable = String(tableName || '').trim();
+  const select = columns.join(',');
+  const path = `/rest/v1/${encodeURIComponent(safeTable)}?select=${encodeURIComponent(select)}&customer_id=eq.${encodeURIComponent(customerId)}&order=${encodeURIComponent(orderBy)}&limit=${encodeURIComponent(String(limit))}`;
+
+  return supabaseFetch(path, {
+    method: 'GET',
+    auth: 'service'
+  });
+}
