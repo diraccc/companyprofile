@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="id" data-theme="dark" data-motion="full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07090d">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, private, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://companyprofilee-expk.vercel.app https://diracgroup.store https://www.diracgroup.store; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:">
+  <title>Keamanan Akun Customer - Dirac Group</title>
+  <meta name="description" content="Halaman keamanan akun customer Dirac Group dengan status 2FA, sesi login, aktivitas keamanan, dan kontrol akun berbasis backend service-role only.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#050608;--bg-2:#080b11;--bg-soft:#0b1018;--panel:#101722;--panel-2:#141d2a;--panel-3:#0d131d;
+      --gold:#f3cd70;--gold-2:#d6a642;--gold-3:#8e6425;--theme-rgb:243,205,112;
+      --text:#f9fafb;--muted:#aeb7c6;--subtle:#7f8ca3;--line:rgba(var(--theme-rgb),.18);--line-strong:rgba(var(--theme-rgb),.38);
+      --success:#18b981;--success-rgb:24,185,129;--danger:#ef4444;--danger-rgb:239,68,68;--warning:#f59e0b;--warning-rgb:245,158,11;--info:#38bdf8;--info-rgb:56,189,248;
+      --shadow:0 24px 70px rgba(0,0,0,.46);--shadow-soft:0 16px 45px rgba(0,0,0,.30);--max:1240px;--radius:28px;--radius-sm:18px;--safe-bottom:env(safe-area-inset-bottom);
+      --motion-ease:cubic-bezier(.22,1,.36,1);--motion-soft:cubic-bezier(.16,1,.3,1);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;color-scheme:dark}
+    body{margin:0;min-height:100vh;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at top left,rgba(var(--theme-rgb),.17),transparent 34rem),radial-gradient(circle at 88% 8%,rgba(56,189,248,.10),transparent 28rem),radial-gradient(circle at 62% 54%,rgba(24,185,129,.07),transparent 30rem),linear-gradient(180deg,#07080b 0%,#020304 100%);color:var(--text);line-height:1.65;overflow-x:hidden;padding-bottom:var(--safe-bottom)}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);background-size:56px 56px;mask-image:linear-gradient(180deg,rgba(0,0,0,.72),transparent 78%)}
+    body.reduce-motion *,body.reduce-motion *:before,body.reduce-motion *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+    a{color:inherit;text-decoration:none}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.62}.container{width:min(var(--max),calc(100% - 32px));margin-inline:auto}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.muted{color:var(--muted)}.tiny{font-size:.78rem;color:var(--subtle)}
+    .skip-link{position:fixed;left:18px;top:18px;z-index:99999;background:#fff;color:#000;padding:10px 14px;border-radius:999px;transform:translateY(-170%)}.skip-link:focus{transform:translateY(0)}
+    .top-alert{border-bottom:1px solid rgba(var(--theme-rgb),.14);background:linear-gradient(90deg,rgba(26,18,8,.92),rgba(50,34,17,.95),rgba(26,18,8,.92));color:#f7e8c5;font-size:.86rem}.top-alert .container{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0}.top-alert strong{color:#fff}.top-alert .mini-badge{display:inline-flex;align-items:center;gap:7px;font-weight:900;color:#fff}
+    .site-header{position:sticky;top:0;z-index:9000;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);background:rgba(5,6,8,.78);border-bottom:1px solid rgba(255,255,255,.07);transition:background-color .35s var(--motion-ease),box-shadow .35s var(--motion-ease),border-color .35s var(--motion-ease)}
+    .site-header:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(var(--theme-rgb),.34),transparent);opacity:.25}.site-header.is-scrolled{background:rgba(5,6,8,.94);box-shadow:0 18px 55px rgba(0,0,0,.34);border-bottom-color:rgba(var(--theme-rgb),.16)}
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand-mark{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;font-family:"Playfair Display",serif;font-weight:800;color:#17110a;background:linear-gradient(135deg,#fff2c3,var(--gold),#a87527);box-shadow:0 12px 34px rgba(var(--theme-rgb),.22)}.brand-text{display:flex;flex-direction:column;line-height:1.12}.brand-title{font-weight:900;letter-spacing:.02em}.brand-sub{font-size:.76rem;color:var(--muted);font-weight:700}.nav-links{display:flex;align-items:center;gap:8px}.nav-link{display:inline-flex;align-items:center;gap:8px;padding:10px 13px;border-radius:999px;color:#dfe6f4;border:1px solid transparent;font-weight:800;font-size:.86rem}.nav-link:hover,.nav-link:focus-visible{border-color:var(--line);background:rgba(var(--theme-rgb),.08);outline:none}.nav-actions{display:flex;align-items:center;gap:10px}.icon-btn,.btn{border:0;display:inline-flex;align-items:center;justify-content:center;gap:10px;border-radius:999px;font-weight:900;letter-spacing:.01em;min-height:42px}.icon-btn{width:42px;background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.10)}.icon-btn:hover,.icon-btn:focus-visible{border-color:var(--line-strong);background:rgba(var(--theme-rgb),.10);outline:none}.btn{padding:11px 16px;background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.10);box-shadow:none}.btn.primary{color:#17110a;background:linear-gradient(135deg,#fff5cf,var(--gold),#c89338);box-shadow:0 16px 42px rgba(var(--theme-rgb),.20)}.btn.ghost{background:rgba(255,255,255,.045)}.btn.danger{border-color:rgba(var(--danger-rgb),.24);background:rgba(var(--danger-rgb),.10);color:#ffd8d8}.btn:hover,.btn:focus-visible{transform:translateY(-1px);outline:none;filter:brightness(1.05)}
+    .hero{position:relative;padding:54px 0 26px}.hero-grid{display:grid;grid-template-columns:minmax(0,1.1fr) 390px;gap:28px;align-items:stretch}.hero-card,.control-card,.panel,.metric-card,.list-card{border:1px solid rgba(var(--theme-rgb),.16);background:linear-gradient(180deg,rgba(16,23,34,.82),rgba(9,13,20,.86));box-shadow:var(--shadow);border-radius:var(--radius);position:relative;overflow:hidden}.hero-card:before,.control-card:before,.panel:before,.metric-card:before,.list-card:before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(var(--theme-rgb),.28),transparent 52%,rgba(56,189,248,.12));mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;pointer-events:none;opacity:.84}.hero-card{padding:34px;min-height:420px}.eyebrow{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);color:#f9e7b6;background:rgba(var(--theme-rgb),.08);padding:8px 12px;border-radius:999px;font-size:.76rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.hero h1{font-family:"Playfair Display",serif;font-size:clamp(2.45rem,7vw,5.1rem);line-height:.94;margin:18px 0 18px;letter-spacing:-.045em}.hero h1 span{display:block;background:linear-gradient(135deg,#fff,var(--gold) 45%,#fff2c3);-webkit-background-clip:text;background-clip:text;color:transparent}.lead{font-size:1.05rem;color:#cdd5e3;max-width:780px;margin:0 0 26px}.hero-actions{display:flex;gap:12px;flex-wrap:wrap}.hero-foot{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:30px}.hero-mini{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:20px;padding:14px}.hero-mini b{display:block;font-size:1.2rem}.hero-mini span{font-size:.78rem;color:var(--muted);font-weight:700}.orb{position:absolute;border-radius:999px;filter:blur(20px);opacity:.34;pointer-events:none}.orb.one{width:180px;height:180px;right:5%;top:12%;background:rgba(var(--theme-rgb),.35);animation:floaty 9s var(--motion-soft) infinite}.orb.two{width:140px;height:140px;left:22%;bottom:6%;background:rgba(var(--info-rgb),.25);animation:floaty 11s var(--motion-soft) infinite reverse}@keyframes floaty{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(12px,-18px,0) scale(1.05)}}
+    .control-card{padding:24px}.shield-visual{height:178px;border-radius:26px;border:1px solid rgba(255,255,255,.10);background:radial-gradient(circle at 50% 25%,rgba(var(--theme-rgb),.26),transparent 42%),linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.025));display:grid;place-items:center;position:relative;overflow:hidden}.shield-visual:after{content:"";position:absolute;width:170px;height:170px;border-radius:50%;border:1px solid rgba(var(--theme-rgb),.20);animation:pulse 3.7s ease-in-out infinite}.shield-icon{font-size:4.2rem;filter:drop-shadow(0 14px 28px rgba(var(--theme-rgb),.24))}@keyframes pulse{0%,100%{transform:scale(.82);opacity:.46}50%{transform:scale(1.18);opacity:.12}}.secure-state{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}.status-pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 11px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);font-size:.78rem;font-weight:900}.dot{width:9px;height:9px;border-radius:50%;background:var(--warning);box-shadow:0 0 0 5px rgba(var(--warning-rgb),.12)}.dot.ok{background:var(--success);box-shadow:0 0 0 5px rgba(var(--success-rgb),.12)}.dot.bad{background:var(--danger);box-shadow:0 0 0 5px rgba(var(--danger-rgb),.12)}.api-readout{margin-top:18px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.18);border-radius:22px;padding:14px}.api-line{display:flex;justify-content:space-between;gap:12px;font-size:.84rem;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}.api-line:last-child{border-bottom:0}.api-line span:first-child{color:var(--muted)}.api-line b{text-align:right}
+    .section{padding:24px 0}.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:16px}.section-head h2{font-size:clamp(1.4rem,3vw,2.2rem);line-height:1.1;margin:0;font-family:"Playfair Display",serif}.section-head p{margin:6px 0 0;color:var(--muted);max-width:720px}.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.metric-card{padding:20px;min-height:154px}.metric-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.metric-icon{width:46px;height:46px;border-radius:17px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.10);border:1px solid var(--line);font-size:1.25rem}.metric-card h3{margin:16px 0 4px;font-size:1rem}.metric-card p{margin:0;color:var(--muted);font-size:.84rem}.metric-value{margin-top:12px;font-size:1.7rem;font-weight:900;letter-spacing:-.04em}.metric-value.small{font-size:1rem;letter-spacing:0;color:#f7e8c5}.grid-main{display:grid;grid-template-columns:minmax(0,1fr) 378px;gap:18px}.panel{padding:22px}.panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.panel-title h2,.panel-title h3{margin:0;font-size:1.15rem}.action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.action-card{border:1px solid rgba(255,255,255,.09);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));border-radius:24px;padding:18px;min-height:176px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;position:relative;overflow:hidden}.action-card:after{content:"";position:absolute;inset:auto -20% -40% 35%;height:96px;background:radial-gradient(circle,rgba(var(--theme-rgb),.12),transparent 65%);pointer-events:none}.action-card h3{display:flex;align-items:center;gap:10px;margin:0;font-size:1.02rem}.action-card p{margin:7px 0 0;color:var(--muted);font-size:.86rem}.action-card .locked{display:inline-flex;align-items:center;gap:7px;color:#f8dca2;background:rgba(var(--theme-rgb),.08);border:1px solid var(--line);padding:7px 10px;border-radius:999px;font-size:.76rem;font-weight:900;width:max-content}.action-row{display:flex;gap:8px;flex-wrap:wrap}.safe-note{border:1px solid rgba(var(--info-rgb),.18);background:rgba(var(--info-rgb),.07);color:#dff7ff;border-radius:20px;padding:14px;font-size:.86rem}.danger-note{border:1px solid rgba(var(--danger-rgb),.22);background:rgba(var(--danger-rgb),.08);color:#ffe0e0;border-radius:20px;padding:14px;font-size:.86rem}.list{display:grid;gap:10px}.list-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:20px;padding:14px}.list-main{min-width:0}.list-main strong{display:block}.list-main span{display:block;color:var(--muted);font-size:.82rem;overflow:hidden;text-overflow:ellipsis}.tag{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 10px;font-size:.74rem;font-weight:900;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);white-space:nowrap}.tag.ok{color:#cffff0;border-color:rgba(var(--success-rgb),.22);background:rgba(var(--success-rgb),.08)}.tag.warn{color:#ffedc7;border-color:rgba(var(--warning-rgb),.25);background:rgba(var(--warning-rgb),.08)}.tag.bad{color:#ffd9d9;border-color:rgba(var(--danger-rgb),.25);background:rgba(var(--danger-rgb),.08)}.tag.info{color:#dff7ff;border-color:rgba(var(--info-rgb),.22);background:rgba(var(--info-rgb),.08)}
+    .timeline{display:grid;gap:10px}.timeline-item{position:relative;padding:14px 14px 14px 44px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:20px}.timeline-item:before{content:"";position:absolute;left:17px;top:20px;width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 6px rgba(var(--theme-rgb),.10)}.timeline-item strong{display:block}.timeline-item span{display:block;color:var(--muted);font-size:.83rem}.empty-state{border:1px dashed rgba(var(--theme-rgb),.28);background:rgba(var(--theme-rgb),.045);border-radius:22px;padding:22px;text-align:center;color:var(--muted)}.empty-state b{display:block;color:#fff;margin-bottom:4px}.skeleton{position:relative;overflow:hidden;color:transparent!important;background:rgba(255,255,255,.06)!important;border-radius:10px}.skeleton:after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent);animation:shine 1.2s infinite}@keyframes shine{100%{transform:translateX(100%)}}
+    .compliance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.check-card{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:22px;padding:17px}.check-card strong{display:flex;align-items:center;gap:9px;margin-bottom:7px}.check-card p{margin:0;color:var(--muted);font-size:.84rem}.footer{padding:36px 0 42px;color:var(--muted);border-top:1px solid rgba(255,255,255,.07);margin-top:28px}.footer-grid{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}.toast-wrap{position:fixed;right:16px;bottom:16px;z-index:99999;display:grid;gap:10px;width:min(420px,calc(100% - 32px))}.toast{border:1px solid rgba(255,255,255,.10);background:rgba(10,15,22,.92);backdrop-filter:blur(16px);border-radius:18px;padding:13px 14px;box-shadow:var(--shadow-soft);animation:toastIn .28s var(--motion-soft)}@keyframes toastIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}.toast strong{display:block}.toast span{display:block;color:var(--muted);font-size:.83rem}.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--motion-soft),transform .7s var(--motion-soft)}.reveal.in{opacity:1;transform:translateY(0)}
+    @media (max-width:1040px){.hero-grid,.grid-main{grid-template-columns:1fr}.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.control-card{order:-1}.nav-links{display:none}.compliance-grid{grid-template-columns:1fr}.hero-card{min-height:auto}}
+    @media (max-width:680px){.container{width:min(100% - 24px,var(--max))}.top-alert .container{align-items:flex-start;flex-direction:column;gap:4px}.nav{padding:10px 0}.brand-mark{width:40px;height:40px}.brand-sub{display:none}.hero{padding-top:28px}.hero-card,.control-card,.panel{padding:18px;border-radius:22px}.hero h1{font-size:clamp(2.35rem,15vw,3.35rem)}.hero-foot,.grid-4,.action-grid{grid-template-columns:1fr}.section-head{align-items:flex-start;flex-direction:column}.nav-actions .btn span{display:none}.grid-main{gap:14px}.list-item{flex-direction:column}.tag{width:max-content}.hero-actions .btn{width:100%}.btn{width:auto}.footer-grid{display:grid}.shield-visual{height:138px}}
+    @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Lewati ke konten utama</a>
+  <div class="top-alert" role="note">
+    <div class="container">
+      <span><strong>Customer Security</strong> berjalan lewat backend service-role only. Frontend tidak mengakses tabel langsung.</span>
+      <span class="mini-badge"><span class="dot" id="topDot"></span><span id="topState">Memuat status</span></span>
+    </div>
+  </div>
+
+  <header class="site-header" id="siteHeader">
+    <div class="container nav" aria-label="Navigasi utama">
+      <a href="dashboard.html" class="brand" aria-label="Kembali ke dashboard Dirac Group">
+        <span class="brand-mark">D</span>
+        <span class="brand-text"><span class="brand-title">Dirac Group</span><span class="brand-sub">Security Center</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Navigasi halaman">
+        <a class="nav-link" href="#overview">Overview</a>
+        <a class="nav-link" href="#controls">Kontrol</a>
+        <a class="nav-link" href="#sessions">Sesi</a>
+        <a class="nav-link" href="#activity">Aktivitas</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-btn" type="button" id="motionToggle" aria-label="Aktifkan/nonaktifkan animasi">◐</button>
+        <button class="btn ghost" type="button" id="refreshBtn"><span>Refresh</span> ↻</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="container hero-grid">
+        <article class="hero-card reveal">
+          <span class="eyebrow">🛡️ Global-grade account security</span>
+          <h1>Keamanan akun yang <span>rapi, aman, premium.</span></h1>
+          <p class="lead">Halaman ini dibuat sebagai pusat keamanan customer: status koneksi akun, 2FA/A2F, sesi login, aktivitas keamanan, dan permintaan akun. Desainnya siap dipakai, tetapi aksi sensitif tetap dikunci sampai backend write endpoint dan relasi customer-auth benar-benar final.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#controls">Lihat kontrol keamanan</a>
+            <a class="btn ghost" href="dashboard.html">← Kembali ke dashboard</a>
+            <button class="btn danger" type="button" id="logoutBtn">Logout aman</button>
+          </div>
+          <div class="hero-foot" aria-label="Ringkasan kebijakan keamanan">
+            <div class="hero-mini"><b>0</b><span>Akses tabel langsung dari frontend</span></div>
+            <div class="hero-mini"><b>GET</b><span>Endpoint status/overview read-only</span></div>
+            <div class="hero-mini"><b>Locked</b><span>Aksi sensitif belum dibuka</span></div>
+          </div>
+          <span class="orb one"></span><span class="orb two"></span>
+        </article>
+
+        <aside class="control-card reveal" aria-labelledby="securityScoreTitle">
+          <div class="shield-visual" aria-hidden="true"><span class="shield-icon">🛡️</span></div>
+          <div class="secure-state">
+            <div>
+              <h2 id="securityScoreTitle" style="margin:0;font-size:1.25rem">Security posture</h2>
+              <p class="tiny" id="securitySubtitle">Menunggu respons backend.</p>
+            </div>
+            <span class="status-pill" id="mainStatusPill"><span class="dot"></span><span>Checking</span></span>
+          </div>
+          <div class="api-readout" aria-label="Status backend">
+            <div class="api-line"><span>User</span><b id="readoutUser">—</b></div>
+            <div class="api-line"><span>Auth link</span><b id="readoutLink">—</b></div>
+            <div class="api-line"><span>Policy</span><b id="readoutPolicy">—</b></div>
+            <div class="api-line"><span>Direct table</span><b id="readoutDirect">Blocked</b></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Overview keamanan</h2>
+            <p>Data diambil lewat endpoint backend yang sudah ada. Kalau akun belum terhubung ke customer profile, halaman tetap aman dan hanya menampilkan status kosong.</p>
+          </div>
+          <span class="tag info" id="apiModeTag">backend-only</span>
+        </div>
+        <div class="grid-4">
+          <article class="metric-card reveal"><div class="metric-top"><span class="metric-icon">🔐</span><span class="tag warn" id="mfaTag">Belum aktif</span></div><h3>2FA/A2F</h3><p>Status autentikasi dua faktor.</p><div class="metric-value small" id="mfaValue">Menunggu data</div></article>
+          <article class="metric-card reveal"><div class="metric-top"><span class="metric-icon">💻</span><span class="tag info" id="sessionTag">0 sesi</span></div><h3>Sesi aktif</h3><p>Perangkat dan browser yang pernah tercatat.</p><div class="metric-value" id="sessionCount">0</div></article>
+          <article class="metric-card reveal"><div class="metric-top"><span class="metric-icon">⚠️</span><span class="tag ok" id="riskTag">Normal</span></div><h3>Risiko akun</h3><p>Lock, login gagal, dan event berisiko.</p><div class="metric-value small" id="riskValue">Aman</div></article>
+          <article class="metric-card reveal"><div class="metric-top"><span class="metric-icon">📬</span><span class="tag info" id="notifyTag">Default</span></div><h3>Notifikasi</h3><p>Login baru, perangkat baru, dan perubahan password.</p><div class="metric-value small" id="notifyValue">Belum tersedia</div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="controls">
+      <div class="container grid-main">
+        <div class="panel reveal">
+          <div class="panel-title"><h2>Kontrol keamanan</h2><span class="tag warn">Write locked</span></div>
+          <div class="action-grid">
+            <article class="action-card"><div><h3>🔐 Aktifkan 2FA/A2F</h3><p>Siap untuk TOTP/Auth App, email OTP, SMS, atau biometrik setelah backend write endpoint benar-benar aman.</p></div><div class="action-row"><span class="locked">🔒 Belum dibuka</span><button class="btn ghost" type="button" disabled>Aktifkan</button></div></article>
+            <article class="action-card"><div><h3>🧾 Recovery codes</h3><p>Recovery code harus dibuat server-side, di-hash, dan hanya ditampilkan satu kali.</p></div><div class="action-row"><span class="locked">🔒 Server required</span><button class="btn ghost" type="button" disabled>Generate</button></div></article>
+            <article class="action-card"><div><h3>📱 Kelola perangkat</h3><p>Daftar sesi bisa dibaca; revoke session harus menunggu endpoint write khusus yang tidak menyentuh login lama.</p></div><div class="action-row"><span class="locked">👁️ Read-only</span><a class="btn ghost" href="#sessions">Lihat sesi</a></div></article>
+            <article class="action-card"><div><h3>📦 Request akun</h3><p>Export data, deactivate, reactivate, dan review keamanan harus masuk antrean backend, bukan langsung dari frontend.</p></div><div class="action-row"><span class="locked">🔒 Pending API</span><button class="btn ghost" type="button" disabled>Buat request</button></div></article>
+          </div>
+          <div style="height:14px"></div>
+          <div class="safe-note"><strong>Anti-bypass rule:</strong> tombol UI tidak pernah menjadi sumber kebenaran. Semua aksi sensitif wajib divalidasi ulang oleh backend dengan session user, auth link aktif, customer_id valid, rate limit, audit log, dan endpoint write khusus.</div>
+        </div>
+
+        <aside class="panel reveal">
+          <div class="panel-title"><h3>Checklist produksi</h3><span class="tag ok">Guarded</span></div>
+          <div class="list" id="checklist">
+            <div class="list-item"><div class="list-main"><strong>Frontend direct DB access</strong><span>Tidak digunakan di halaman ini.</span></div><span class="tag ok">Blocked</span></div>
+            <div class="list-item"><div class="list-main"><strong>Login/hash lama</strong><span>Tidak diubah, tidak dipanggil ulang selain session check.</span></div><span class="tag ok">Untouched</span></div>
+            <div class="list-item"><div class="list-main"><strong>Write operation</strong><span>Semua tombol write dikunci sampai backend siap.</span></div><span class="tag warn">Locked</span></div>
+            <div class="list-item"><div class="list-main"><strong>API authority</strong><span>Status/overview dari backend health satuan.</span></div><span class="tag info">GET only</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="sessions">
+      <div class="container grid-main">
+        <div class="panel reveal">
+          <div class="panel-title"><h2>Sesi & perangkat</h2><span class="tag info" id="sessionPanelTag">Read-only</span></div>
+          <div class="list" id="sessionsList"><div class="empty-state"><b>Memuat sesi...</b>Mohon tunggu respons backend.</div></div>
+        </div>
+        <aside class="panel reveal">
+          <div class="panel-title"><h3>Status koneksi akun</h3><span class="tag" id="linkPanelTag">Checking</span></div>
+          <div class="danger-note" id="linkWarning">Akun belum diverifikasi oleh endpoint status. Jangan aktifkan fitur write sebelum status ini jelas.</div>
+          <div style="height:12px"></div>
+          <div class="api-readout">
+            <div class="api-line"><span>Linked</span><b id="detailLinked">—</b></div>
+            <div class="api-line"><span>Link status</span><b id="detailLinkStatus">—</b></div>
+            <div class="api-line"><span>Customer ID</span><b id="detailCustomerId">—</b></div>
+            <div class="api-line"><span>Security data</span><b id="detailSecurityData">—</b></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="activity">
+      <div class="container grid-main">
+        <div class="panel reveal">
+          <div class="panel-title"><h2>Aktivitas keamanan</h2><span class="tag info" id="activityCountTag">0 event</span></div>
+          <div class="timeline" id="activityTimeline"><div class="empty-state"><b>Belum ada aktivitas</b>Aktivitas akan muncul setelah backend mulai menulis event keamanan.</div></div>
+        </div>
+        <aside class="panel reveal">
+          <div class="panel-title"><h3>Permintaan akun</h3><span class="tag info" id="requestCountTag">0 request</span></div>
+          <div class="list" id="requestList"><div class="empty-state"><b>Belum ada request</b>Export data, deaktivasi, atau security review belum tersedia.</div></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head reveal"><div><h2>Global production hardening</h2><p>Bagian ini menjelaskan prinsip keamanan halaman. Ini bukan pengganti kontrol server, tetapi membantu mencegah UI salah arah.</p></div></div>
+        <div class="compliance-grid">
+          <article class="check-card reveal"><strong>✅ No secret in browser</strong><p>File ini tidak menyimpan service_role key, token, password, atau recovery code di client.</p></article>
+          <article class="check-card reveal"><strong>✅ Credentials include only</strong><p>Fetch memakai cookie session server dengan <code>credentials: include</code>, bukan localStorage token.</p></article>
+          <article class="check-card reveal"><strong>✅ Safe rendering</strong><p>Data backend dirender lewat <code>textContent</code>, bukan HTML injection.</p></article>
+          <article class="check-card reveal"><strong>✅ Read-only by default</strong><p>Semua kontrol sensitif disabled sampai endpoint write khusus tersedia.</p></article>
+          <article class="check-card reveal"><strong>✅ API failure safe</strong><p>Jika API error/401, halaman masuk ke mode terkunci dan tidak menampilkan data palsu.</p></article>
+          <article class="check-card reveal"><strong>✅ Legacy isolation</strong><p>Halaman baru berdiri sendiri dan tidak mengubah dashboard admin/staff, login, hash, atau A2F lama.</p></article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div><strong>Dirac Group Security Center</strong><br><span>Customer page · backend-only · read-first integration</span></div>
+      <div><span id="yearNow"></span> · Tidak ada akses tabel langsung dari frontend.</div>
+    </div>
+  </footer>
+
+  <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    'use strict';
+
+    const CONFIG = Object.freeze({
+      apiBase: 'https://companyprofilee-expk.vercel.app/api/health',
+      statusAction: 'customer_security_status',
+      overviewAction: 'customer_security_overview',
+      logoutAction: 'domain_logout',
+      loginPage: 'masuk.html',
+      fallbackLoginPage: 'masuk (3).html',
+      dashboardPage: 'dashboard.html',
+      requestTimeoutMs: 15000,
+      refreshCooldownMs: 1200
+    });
+
+    const state = {
+      status: null,
+      overview: null,
+      loading: false,
+      lastRefreshAt: 0,
+      loggedIn: false,
+      linked: false
+    };
+
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+    function setText(selector, value) {
+      const el = typeof selector === 'string' ? $(selector) : selector;
+      if (el) el.textContent = value === null || value === undefined || value === '' ? '—' : String(value);
+    }
+
+    function cleanText(value, fallback = '—') {
+      const text = String(value === null || value === undefined ? '' : value).replace(/[\u0000-\u001f\u007f]/g, '').trim();
+      return text || fallback;
+    }
+
+    function boolLabel(value) { return value ? 'Ya' : 'Tidak'; }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      const date = new Date(value);
+      if (!Number.isFinite(date.getTime())) return '—';
+      try {
+        return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+      } catch (_) {
+        return date.toISOString();
+      }
+    }
+
+    function apiUrl(action) {
+      const url = new URL(CONFIG.apiBase, window.location.origin);
+      url.searchParams.set('action', action);
+      return url.toString();
+    }
+
+    function readLegacyAuthSession() {
+      try {
+        const raw = window.localStorage ? window.localStorage.getItem('dirac_auth_session_v1') : '';
+        const session = raw ? JSON.parse(raw) : null;
+        return session && typeof session === 'object' ? session : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function buildAuthHeaders() {
+      const headers = {
+        'Accept': 'application/json',
+        'X-Dirac-Client': 'customer-security-html-v2'
+      };
+      const session = readLegacyAuthSession();
+      if (session && session.accessToken) headers.Authorization = 'Bearer ' + String(session.accessToken);
+      if (session && session.refreshToken) headers['X-Domain-Refresh'] = String(session.refreshToken);
+      return headers;
+    }
+
+    async function safeFetchJson(action, options = {}) {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), CONFIG.requestTimeoutMs);
+      try {
+        const response = await fetch(apiUrl(action), {
+          method: options.method || 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+          headers: buildAuthHeaders(),
+          signal: controller.signal
+        });
+        const text = await response.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (_) { data = { ok: false, message: text.slice(0, 220) }; }
+        return { ok: response.ok && Boolean(data && data.ok), status: response.status, data };
+      } catch (error) {
+        return { ok: false, status: 0, data: { ok: false, message: error && error.name === 'AbortError' ? 'Request timeout.' : 'Gagal menghubungi server.' } };
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    }
+
+    function setPill(el, type, text) {
+      if (!el) return;
+      const dotClass = type === 'ok' ? 'dot ok' : type === 'bad' ? 'dot bad' : 'dot';
+      el.innerHTML = '';
+      const dot = document.createElement('span'); dot.className = dotClass;
+      const label = document.createElement('span'); label.textContent = text;
+      el.append(dot, label);
+    }
+
+    function toast(title, message) {
+      const wrap = $('#toastWrap');
+      if (!wrap) return;
+      const el = document.createElement('div');
+      el.className = 'toast';
+      const strong = document.createElement('strong'); strong.textContent = cleanText(title, 'Info');
+      const span = document.createElement('span'); span.textContent = cleanText(message, '');
+      el.append(strong, span);
+      wrap.appendChild(el);
+      window.setTimeout(() => el.remove(), 5200);
+    }
+
+    function setLockedMode(message) {
+      state.loggedIn = false;
+      state.linked = false;
+      setPill($('#mainStatusPill'), 'bad', 'Locked');
+      $('#topDot')?.classList.add('bad');
+      setText('#topState', 'Terkunci');
+      setText('#securitySubtitle', message || 'Belum login atau sesi tidak valid.');
+      setText('#readoutUser', 'Belum login');
+      setText('#readoutLink', 'Tidak tersedia');
+      setText('#readoutPolicy', 'Blocked');
+      setText('#detailLinked', 'Tidak');
+      setText('#detailLinkStatus', 'unauthorized');
+      setText('#detailCustomerId', 'Tidak tersedia');
+      setText('#detailSecurityData', 'Tidak tersedia');
+      const warning = $('#linkWarning');
+      if (warning) warning.textContent = message || 'Belum login atau sesi sudah habis. Silakan masuk ulang dari halaman resmi.';
+      renderEmptyData();
+    }
+
+    function setPendingLinkedMode(status) {
+      state.loggedIn = true;
+      state.linked = false;
+      setPill($('#mainStatusPill'), 'warn', 'Pending link');
+      $('#topDot')?.classList.remove('bad','ok');
+      setText('#topState', 'Aman kosong');
+      setText('#securitySubtitle', 'Akun login valid, tetapi belum terhubung ke customer profile.');
+      setText('#readoutUser', status && status.user && status.user.email ? status.user.email : 'User aktif');
+      setText('#readoutLink', status ? cleanText(status.link_status, 'not_linked') : 'not_linked');
+      setText('#readoutPolicy', status && status.policy_ready ? 'Ready' : 'Not ready');
+      setText('#detailLinked', 'Tidak');
+      setText('#detailLinkStatus', status ? cleanText(status.link_status, 'not_linked') : 'not_linked');
+      setText('#detailCustomerId', 'Belum tersedia');
+      setText('#detailSecurityData', 'Belum dibuat');
+      const tag = $('#linkPanelTag');
+      if (tag) { tag.className = 'tag warn'; tag.textContent = 'Pending'; }
+      const warning = $('#linkWarning');
+      if (warning) warning.textContent = 'Akun belum linked ke customer profile. Ini aman: data security tidak dibuat dan UI write tetap terkunci.';
+      renderEmptyData();
+    }
+
+    function setLinkedMode(status) {
+      state.loggedIn = true;
+      state.linked = true;
+      setPill($('#mainStatusPill'), 'ok', 'Linked');
+      $('#topDot')?.classList.remove('bad');
+      $('#topDot')?.classList.add('ok');
+      setText('#topState', 'Backend linked');
+      setText('#securitySubtitle', 'Akun sudah terhubung. Data dibaca lewat backend service-role only.');
+      setText('#readoutUser', status && status.user && status.user.email ? status.user.email : 'User aktif');
+      setText('#readoutLink', cleanText(status && status.link_status, 'active'));
+      setText('#readoutPolicy', status && status.policy_ready ? 'Ready' : 'Not ready');
+      setText('#detailLinked', 'Ya');
+      setText('#detailLinkStatus', cleanText(status && status.link_status, 'active'));
+      setText('#detailCustomerId', status && status.customer_id_available ? 'Tersedia' : 'Tidak diekspos');
+      setText('#detailSecurityData', status && status.security_data_ready ? 'Ready' : 'Menunggu overview');
+      const tag = $('#linkPanelTag');
+      if (tag) { tag.className = 'tag ok'; tag.textContent = 'Linked'; }
+      const warning = $('#linkWarning');
+      if (warning) warning.textContent = 'Akun linked. Tetap gunakan backend sebagai sumber kebenaran untuk semua aksi sensitif.';
+    }
+
+    function renderEmptyData() {
+      setText('#mfaValue', 'Belum tersedia');
+      setText('#sessionCount', '0');
+      setText('#riskValue', 'Aman kosong');
+      setText('#notifyValue', 'Belum tersedia');
+      $('#mfaTag').className = 'tag warn'; setText('#mfaTag', 'Belum aktif');
+      $('#sessionTag').className = 'tag info'; setText('#sessionTag', '0 sesi');
+      $('#riskTag').className = 'tag ok'; setText('#riskTag', 'Normal');
+      $('#notifyTag').className = 'tag info'; setText('#notifyTag', 'Default');
+      renderSessions([]);
+      renderActivity([]);
+      renderRequests([]);
+    }
+
+    function renderOverview(data) {
+      const overview = data && data.overview ? data.overview : data;
+      if (!overview || typeof overview !== 'object') return renderEmptyData();
+      const settings = overview.settings || null;
+      const sessions = Array.isArray(overview.sessions) ? overview.sessions : [];
+      const events = Array.isArray(overview.events) ? overview.events : [];
+      const loginLogs = Array.isArray(overview.login_logs) ? overview.login_logs : [];
+      const requests = Array.isArray(overview.account_requests) ? overview.account_requests : [];
+
+      const mfaEnabled = Boolean(settings && settings.two_factor_enabled);
+      const method = settings && settings.two_factor_method ? settings.two_factor_method : 'none';
+      $('#mfaTag').className = mfaEnabled ? 'tag ok' : 'tag warn';
+      setText('#mfaTag', mfaEnabled ? 'Aktif' : 'Belum aktif');
+      setText('#mfaValue', mfaEnabled ? method.toUpperCase() : 'Belum aktif');
+
+      setText('#sessionCount', String(sessions.length));
+      setText('#sessionTag', `${sessions.length} sesi`);
+      const locked = Boolean(settings && settings.account_locked);
+      const risky = locked || events.some(item => ['critical','high'].includes(String(item.risk_level || '').toLowerCase())) || loginLogs.some(item => String(item.status || '').toLowerCase() === 'failed');
+      $('#riskTag').className = locked ? 'tag bad' : risky ? 'tag warn' : 'tag ok';
+      setText('#riskTag', locked ? 'Locked' : risky ? 'Perlu cek' : 'Normal');
+      setText('#riskValue', locked ? `Locked sampai ${formatDate(settings.locked_until)}` : risky ? 'Ada event yang perlu dicek' : 'Aman');
+
+      const notifyCount = ['notify_new_login','notify_password_change','notify_new_device'].filter(key => settings && settings[key]).length;
+      setText('#notifyTag', settings ? `${notifyCount}/3 aktif` : 'Default');
+      setText('#notifyValue', settings ? `${notifyCount} notifikasi aktif` : 'Belum tersedia');
+
+      renderSessions(sessions);
+      renderActivity([...events, ...loginLogs].sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 20));
+      renderRequests(requests);
+    }
+
+    function renderSessions(items) {
+      const root = $('#sessionsList');
+      if (!root) return;
+      root.innerHTML = '';
+      if (!items || !items.length) {
+        root.appendChild(emptyNode('Belum ada sesi tercatat', 'Sesi akan tampil setelah backend mulai mencatat perangkat customer.'));
+        setText('#sessionPanelTag', 'Read-only');
+        return;
+      }
+      setText('#sessionPanelTag', `${items.length} sesi`);
+      items.forEach(item => {
+        const status = cleanText(item.status, 'unknown').toLowerCase();
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        const main = document.createElement('div'); main.className = 'list-main';
+        const title = document.createElement('strong'); title.textContent = cleanText([item.device_name, item.browser_name, item.operating_system].filter(Boolean).join(' · '), 'Perangkat tidak dikenal');
+        const sub = document.createElement('span'); sub.textContent = `${cleanText([item.city, item.country].filter(Boolean).join(', '), 'Lokasi tidak tersedia')} · terakhir ${formatDate(item.last_seen_at || item.created_at)}`;
+        main.append(title, sub);
+        const tag = document.createElement('span'); tag.className = status === 'active' ? 'tag ok' : status === 'blocked' ? 'tag bad' : 'tag warn'; tag.textContent = status;
+        el.append(main, tag);
+        root.appendChild(el);
+      });
+    }
+
+    function renderActivity(items) {
+      const root = $('#activityTimeline');
+      if (!root) return;
+      root.innerHTML = '';
+      if (!items || !items.length) {
+        root.appendChild(emptyNode('Belum ada aktivitas', 'Aktivitas akan muncul setelah backend mulai menulis event keamanan.'));
+        setText('#activityCountTag', '0 event');
+        return;
+      }
+      setText('#activityCountTag', `${items.length} event`);
+      items.forEach(item => {
+        const el = document.createElement('div'); el.className = 'timeline-item';
+        const title = document.createElement('strong'); title.textContent = cleanText(item.event_type || item.description, 'Security event').replace(/_/g, ' ');
+        const sub = document.createElement('span'); sub.textContent = `${cleanText(item.status || item.risk_level, 'info')} · ${formatDate(item.created_at)}`;
+        el.append(title, sub);
+        root.appendChild(el);
+      });
+    }
+
+    function renderRequests(items) {
+      const root = $('#requestList');
+      if (!root) return;
+      root.innerHTML = '';
+      if (!items || !items.length) {
+        root.appendChild(emptyNode('Belum ada request', 'Export data, deactivate, reactivate, dan security review belum tersedia.'));
+        setText('#requestCountTag', '0 request');
+        return;
+      }
+      setText('#requestCountTag', `${items.length} request`);
+      items.forEach(item => {
+        const el = document.createElement('div'); el.className = 'list-item';
+        const main = document.createElement('div'); main.className = 'list-main';
+        const title = document.createElement('strong'); title.textContent = cleanText(item.request_type, 'account request').replace(/_/g, ' ');
+        const sub = document.createElement('span'); sub.textContent = `${cleanText(item.reason, 'Tanpa catatan')} · ${formatDate(item.created_at)}`;
+        const tag = document.createElement('span');
+        const status = cleanText(item.status, 'pending').toLowerCase();
+        tag.className = status === 'completed' || status === 'approved' ? 'tag ok' : status === 'failed' || status === 'rejected' ? 'tag bad' : 'tag warn';
+        tag.textContent = status;
+        main.append(title, sub); el.append(main, tag); root.appendChild(el);
+      });
+    }
+
+    function emptyNode(title, body) {
+      const el = document.createElement('div'); el.className = 'empty-state';
+      const b = document.createElement('b'); b.textContent = title;
+      const span = document.createElement('span'); span.textContent = body;
+      el.append(b, span);
+      return el;
+    }
+
+    async function refreshSecurity() {
+      const now = Date.now();
+      if (state.loading || now - state.lastRefreshAt < CONFIG.refreshCooldownMs) return;
+      state.loading = true;
+      state.lastRefreshAt = now;
+      setPill($('#mainStatusPill'), 'warn', 'Checking');
+      setText('#topState', 'Memuat status');
+      try {
+        const statusResult = await safeFetchJson(CONFIG.statusAction);
+        if (!statusResult.ok) {
+          const msg = cleanText(statusResult.data && statusResult.data.message, statusResult.status === 401 ? 'Belum login atau sesi sudah habis.' : 'Status API gagal.');
+          if (statusResult.status === 401) setLockedMode(msg); else { setLockedMode(msg); toast('Status API gagal', msg); }
+          return;
+        }
+        state.status = statusResult.data;
+        if (!statusResult.data.linked) {
+          setPendingLinkedMode(statusResult.data);
+          const overviewResult = await safeFetchJson(CONFIG.overviewAction);
+          if (overviewResult.ok && overviewResult.data && overviewResult.data.overview) renderOverview(overviewResult.data.overview);
+          return;
+        }
+        setLinkedMode(statusResult.data);
+        const overviewResult = await safeFetchJson(CONFIG.overviewAction);
+        if (!overviewResult.ok) {
+          toast('Overview belum tersedia', cleanText(overviewResult.data && overviewResult.data.message, 'Gagal membaca overview.'));
+          renderEmptyData();
+          return;
+        }
+        state.overview = overviewResult.data;
+        setText('#detailSecurityData', overviewResult.data.security_data_ready ? 'Ready' : 'Kosong');
+        renderOverview(overviewResult.data.overview);
+      } finally {
+        state.loading = false;
+      }
+    }
+
+    async function logout() {
+      const result = await safeFetchJson(CONFIG.logoutAction, { method: 'POST' });
+      if (result.ok) {
+        toast('Logout berhasil', 'Sesi lokal sudah dibersihkan oleh backend.');
+        window.setTimeout(() => { window.location.href = CONFIG.loginPage; }, 500);
+      } else {
+        toast('Logout tidak selesai', cleanText(result.data && result.data.message, 'Silakan logout dari dashboard lama.'));
+      }
+    }
+
+    function initReveal() {
+      const items = $$('.reveal');
+      if (!('IntersectionObserver' in window)) { items.forEach(el => el.classList.add('in')); return; }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('in'); io.unobserve(entry.target); } });
+      }, { threshold: .12 });
+      items.forEach(el => io.observe(el));
+    }
+
+    function initChrome() {
+      setText('#yearNow', new Date().getFullYear());
+      const header = $('#siteHeader');
+      const onScroll = () => header && header.classList.toggle('is-scrolled', window.scrollY > 12);
+      onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+      $('#refreshBtn')?.addEventListener('click', refreshSecurity);
+      $('#logoutBtn')?.addEventListener('click', logout);
+      $('#motionToggle')?.addEventListener('click', () => {
+        document.body.classList.toggle('reduce-motion');
+        document.documentElement.dataset.motion = document.body.classList.contains('reduce-motion') ? 'reduced' : 'full';
+      });
+      window.addEventListener('pageshow', (event) => { if (event.persisted) refreshSecurity(); });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSecurity(); });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initChrome();
+      initReveal();
+      renderEmptyData();
+      refreshSecurity();
+    });
+  </script>
+</body>
+</html>
