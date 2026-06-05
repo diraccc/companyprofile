@@ -45,6 +45,11 @@
     .safe-note,.danger-note{border:1px solid rgba(56,189,248,.18);background:rgba(56,189,248,.07);color:#dcf7ff;border-radius:16px;padding:11px;font-size:.78rem}.danger-note{border-color:rgba(245,158,11,.22);background:rgba(245,158,11,.08);color:#ffe9bd}.list,.timeline{display:grid;gap:8px}.list-item,.timeline-item{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:16px;padding:11px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.timeline-item{display:block;position:relative;padding-left:35px}.timeline-item:before{content:"";position:absolute;left:14px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 5px rgba(243,205,112,.10)}.list-main strong,.timeline-item strong{display:block;font-size:.86rem}.list-main span,.timeline-item span{display:block;color:var(--muted);font-size:.74rem;overflow:hidden;text-overflow:ellipsis}.tag.ok{color:#cffff0;border-color:rgba(24,185,129,.24);background:rgba(24,185,129,.08)}.tag.warn{color:#ffedc7;border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.08)}.tag.bad{color:#ffd9d9;border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}.tag.info{color:#dff7ff;border-color:rgba(56,189,248,.22);background:rgba(56,189,248,.08)}
     .empty-state{border:1px dashed rgba(243,205,112,.25);background:rgba(243,205,112,.04);border-radius:16px;padding:16px;text-align:center;color:var(--muted);font-size:.8rem}.empty-state b{display:block;color:#fff;margin-bottom:3px}.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.footer{padding:24px 0;color:var(--muted);font-size:.8rem}.footer-grid{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.toast-wrap{position:fixed;right:14px;bottom:14px;z-index:99999;display:grid;gap:10px;width:min(400px,calc(100% - 28px))}.toast{border:1px solid rgba(255,255,255,.10);background:rgba(10,15,22,.94);backdrop-filter:blur(16px);border-radius:16px;padding:12px;box-shadow:var(--shadow);animation:toastIn .25s var(--ease)}.toast strong{display:block}.toast span{display:block;color:var(--muted);font-size:.8rem}@keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
     .reveal{opacity:0;transform:translateY(12px);transition:opacity .45s var(--ease),transform .45s var(--ease)}.reveal.in{opacity:1;transform:translateY(0)}.reduce-motion *{animation:none!important;transition:none!important}
+
+    .btn.is-loading{pointer-events:none;opacity:.72;position:relative;overflow:hidden}.btn.is-loading:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:btnShimmer .9s linear infinite}@keyframes btnShimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+    .list-item.is-new{animation:cardPop .38s var(--ease) both}@keyframes cardPop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .session-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}.session-actions .btn{min-height:30px;padding:6px 9px;font-size:.68rem}.status-card{transition:transform .28s var(--ease),border-color .28s var(--ease)}.status-card:hover{transform:translateY(-2px);border-color:var(--line2)}
+
     @media(max-width:1080px){.dashboard,.section-grid{grid-template-columns:1fr}.status-card{position:relative;top:auto;order:-1}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nav-links{display:none}}
     @media(max-width:680px){.wrap{width:min(100% - 20px,var(--max))}.top-strip .wrap{font-size:.72rem}.nav{min-height:62px}.brand-mark{width:38px;height:38px}.brand-sub{display:none}.nav-actions .btn span{display:none}.hero-compact{grid-template-columns:1fr;padding:16px}.hero-actions{justify-content:flex-start}.hero-actions .btn{width:100%}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.metric{min-height:100px;padding:12px}.metric p{display:none}.section-grid,.details-grid{grid-template-columns:1fr;gap:10px}.action-grid{display:flex;gap:9px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory}.action-card{min-width:220px;scroll-snap-align:start}.status-card,.panel{padding:13px;border-radius:18px}.shield{width:50px;height:50px}.api-line{font-size:.76rem}.footer{padding-bottom:90px}}
   </style>
@@ -124,8 +129,8 @@
         <div class="action-grid">
           <article class="action-card"><div><h3>🔐 2FA/A2F</h3><p>A2F wajib aktif untuk semua akun. Nonaktifkan A2F tidak disediakan demi keamanan.</p></div><div class="action-row"><span class="locked">🔒 Locked</span><button class="btn ghost locked-action" type="button" data-locked-action="A2F wajib aktif">Kelola</button></div></article>
           <article class="action-card"><div><h3>🧾 Recovery codes</h3><p>Harus dibuat server-side, di-hash, dan ditampilkan sekali.</p></div><div class="action-row"><span class="locked">🔒 Server</span><button class="btn ghost locked-action" type="button" data-locked-action="Recovery codes">Generate</button></div></article>
-          <article class="action-card"><div><h3>📱 Perangkat</h3><p>Sesi bisa dibaca. Revoke menunggu endpoint anti-bypass.</p></div><div class="action-row"><span class="locked">👁️ Read</span><a class="btn ghost" href="#sessions">Lihat</a></div></article>
-          <article class="action-card"><div><h3>📦 Request akun</h3><p>Export/deactivate/security review wajib antrean backend.</p></div><div class="action-row"><span class="locked">🔒 Pending</span><button class="btn ghost locked-action" type="button" data-locked-action="Request akun">Request</button></div></article>
+          <article class="action-card"><div><h3>📱 Perangkat</h3><p>Cabut sesi lain memakai guard backend, MFA proof, rate limit, dan audit log.</p></div><div class="action-row"><span class="locked">🛡️ Guarded</span><a class="btn ghost" href="#sessions">Lihat</a><button class="btn ghost" type="button" id="revokeOthersBtn">Logout lain</button></div></article>
+          <article class="action-card"><div><h3>📦 Request akun</h3><p>Export/deactivate/security review wajib antrean backend.</p></div><div class="action-row"><span class="locked">🔒 Pending</span><button class="btn ghost" type="button" id="securityReviewBtn">Request</button></div></article>
         </div>
       </div>
 
@@ -187,6 +192,10 @@
       apiBase: 'https://companyprofilee-expk.vercel.app/api/health',
       statusAction: 'customer_security_status',
       overviewAction: 'customer_security_overview',
+      guardStatusAction: 'customer_security_guard_status',
+      revokeSessionAction: 'customer_security_revoke_session',
+      revokeOtherSessionsAction: 'customer_security_revoke_other_sessions',
+      accountRequestAction: 'customer_security_account_request',
       logoutAction: 'domain_logout',
       loginPage: 'masuk.html',
       fallbackLoginPage: 'masuk (3).html',
@@ -331,25 +340,56 @@
         ' · keys checked: ' + Number(s.keysScanned || 0);
     }
 
-    function buildAuthHeaders() {
+    function readJsonStorage(key) {
+      try {
+        const raw = window.localStorage ? window.localStorage.getItem(key) : '';
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function findMfaProofToken() {
+      const sources = [
+        readJsonStorage('dirac_auth_session_v1'),
+        readJsonStorage('dirac_auth_a2f_v1'),
+        readJsonStorage('dirac_dashboard_gate_v1'),
+        readJsonStorage('dirac_auth_a2f_dashboard_ready_v1')
+      ].filter(Boolean);
+
+      const keys = ['dashboardMfaProofToken', 'mfaProofToken', 'dashboard_mfa_proof', 'mfa_proof', 'proof'];
+      for (const source of sources) {
+        for (const key of keys) {
+          if (source && typeof source[key] === 'string' && source[key].trim()) return source[key].trim();
+        }
+      }
+      return '';
+    }
+
+    function buildAuthHeaders(hasJsonBody = false) {
       const headers = {
         'Accept': 'application/json'
       };
+      if (hasJsonBody) headers['Content-Type'] = 'application/json';
       const session = readLegacyAuthSession();
       if (session && session.accessToken) headers.Authorization = 'Bearer ' + String(session.accessToken);
       if (session && session.refreshToken) headers['X-Domain-Refresh'] = String(session.refreshToken);
+      const mfaProof = findMfaProofToken();
+      if (mfaProof) headers['X-Dirac-MFA-Proof'] = mfaProof;
       return headers;
     }
 
     async function safeFetchJson(action, options = {}) {
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), CONFIG.requestTimeoutMs);
+      const hasBody = options.body !== undefined;
       try {
         const response = await fetch(apiUrl(action), {
           method: options.method || 'GET',
           credentials: 'include',
           cache: 'no-store',
-          headers: buildAuthHeaders(),
+          headers: buildAuthHeaders(hasBody),
+          body: hasBody ? JSON.stringify(options.body) : undefined,
           signal: controller.signal
         });
         const text = await response.text();
@@ -504,15 +544,85 @@
       items.forEach(item => {
         const status = cleanText(item.status, 'unknown').toLowerCase();
         const el = document.createElement('div');
-        el.className = 'list-item';
+        el.className = 'list-item is-new';
         const main = document.createElement('div'); main.className = 'list-main';
         const title = document.createElement('strong'); title.textContent = cleanText([item.device_name, item.browser_name, item.operating_system].filter(Boolean).join(' · '), 'Perangkat tidak dikenal');
         const sub = document.createElement('span'); sub.textContent = `${cleanText([item.city, item.country].filter(Boolean).join(', '), 'Lokasi tidak tersedia')} · terakhir ${formatDate(item.last_seen_at || item.created_at)}`;
         main.append(title, sub);
+
+        const actions = document.createElement('div'); actions.className = 'session-actions';
         const tag = document.createElement('span'); tag.className = status === 'active' ? 'tag ok' : status === 'blocked' ? 'tag bad' : 'tag warn'; tag.textContent = status;
-        el.append(main, tag);
+        actions.appendChild(tag);
+
+        if (status === 'active' && item.id) {
+          const revoke = document.createElement('button');
+          revoke.className = 'btn ghost';
+          revoke.type = 'button';
+          revoke.textContent = 'Cabut';
+          revoke.addEventListener('click', () => revokeSession(item.id, revoke));
+          actions.appendChild(revoke);
+        }
+
+        el.append(main, actions);
         root.appendChild(el);
       });
+    }
+
+    async function revokeSession(sessionId, button) {
+      if (!sessionId) return;
+      if (!window.confirm('Cabut sesi perangkat ini? Aksi ini membutuhkan MFA/re-auth backend.')) return;
+      const oldText = button ? button.textContent : '';
+      if (button) { button.classList.add('is-loading'); button.textContent = 'Memproses'; }
+      const result = await safeFetchJson(CONFIG.revokeSessionAction, {
+        method: 'POST',
+        body: { session_id: sessionId }
+      });
+      if (button) { button.classList.remove('is-loading'); button.textContent = oldText || 'Cabut'; }
+      if (result.ok) {
+        toast('Sesi dicabut', cleanText(result.data && result.data.message, 'Sesi berhasil dicabut.'));
+        await refreshSecurity();
+      } else {
+        toast('Aksi ditolak', cleanText(result.data && result.data.message, 'Aksi membutuhkan MFA/re-auth atau guard backend menolak.'));
+      }
+    }
+
+    async function revokeOtherSessions() {
+      if (!window.confirm('Logout semua perangkat lain? Perangkat saat ini tetap dipertahankan.')) return;
+      const btn = $('#revokeOthersBtn');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.classList.add('is-loading'); btn.textContent = 'Memproses'; }
+      const result = await safeFetchJson(CONFIG.revokeOtherSessionsAction, {
+        method: 'POST',
+        body: { confirm: true }
+      });
+      if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Logout lain'; }
+      if (result.ok) {
+        toast('Sesi lain diproses', cleanText(result.data && result.data.message, 'Sesi perangkat lain diproses.'));
+        await refreshSecurity();
+      } else {
+        toast('Aksi ditolak', cleanText(result.data && result.data.message, 'Aksi membutuhkan MFA/re-auth atau guard backend menolak.'));
+      }
+    }
+
+    async function createSecurityReviewRequest() {
+      if (!window.confirm('Buat request review keamanan akun?')) return;
+      const btn = $('#securityReviewBtn');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.classList.add('is-loading'); btn.textContent = 'Memproses'; }
+      const result = await safeFetchJson(CONFIG.accountRequestAction, {
+        method: 'POST',
+        body: {
+          request_type: 'security_review',
+          reason: 'Customer meminta review keamanan akun dari Security Center.'
+        }
+      });
+      if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Request'; }
+      if (result.ok) {
+        toast('Request dibuat', cleanText(result.data && result.data.message, 'Request keamanan berhasil dibuat.'));
+        await refreshSecurity();
+      } else {
+        toast('Request ditolak', cleanText(result.data && result.data.message, 'Request membutuhkan MFA/re-auth atau guard backend menolak.'));
+      }
     }
 
     function renderActivity(items) {
@@ -628,6 +738,8 @@
       onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
       $('#refreshBtn')?.addEventListener('click', refreshSecurity);
       $('#logoutBtn')?.addEventListener('click', logout);
+      $('#revokeOthersBtn')?.addEventListener('click', revokeOtherSessions);
+      $('#securityReviewBtn')?.addEventListener('click', createSecurityReviewRequest);
       $$('.locked-action').forEach((button) => {
         button.addEventListener('click', () => {
           const actionName = button.getAttribute('data-locked-action') || 'Aksi keamanan';
