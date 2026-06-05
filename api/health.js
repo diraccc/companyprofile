@@ -1851,6 +1851,10 @@ async function customerSecurityStatus(req, res) {
 
     const linkResult = await customerSecurityFetchAuthLink(authUserId);
     if (!linkResult.ok) {
+      if (customerSecurityIsSchemaCacheMissing(linkResult)) {
+        return res.status(200).json(customerSecuritySchemaPendingStatus(user, 'customer_security_status'));
+      }
+
       return res.status(linkResult.status || 500).json({
         ok: false,
         message: 'Gagal membaca status keamanan akun.',
@@ -1913,6 +1917,35 @@ function customerSecuritySafeUpstreamError(data) {
   return String(data.message || data.error || data.detail || 'upstream_error').slice(0, 180);
 }
 
+function customerSecurityIsSchemaCacheMissing(result) {
+  if (!result || Number(result.status) !== 404) return false;
+  const data = result.data;
+  const text = typeof data === 'string'
+    ? data
+    : String((data && (data.message || data.error || data.detail || data.hint || data.code)) || '');
+  return /schema cache|could not find the table|PGRST205|PGRST202/i.test(text);
+}
+
+function customerSecuritySchemaPendingStatus(user, endpoint) {
+  return {
+    ok: true,
+    service: 'dirac-customer-security',
+    endpoint: endpoint || 'customer_security_status',
+    mode: 'service_role_backend_only',
+    user: sanitizeUser(user),
+    linked: false,
+    link_status: 'schema_pending',
+    customer_id_available: false,
+    security_data_ready: false,
+    storage_ready: false,
+    policy_ready: false,
+    direct_frontend_table_access: false,
+    message: 'Backend login valid, tetapi Supabase REST belum mengenali tabel security_customer. Fitur dikunci aman sampai schema REST siap.',
+    next_allowed_phase: 'fix_supabase_rest_schema_cache_or_service_role_visibility',
+    time: new Date().toISOString()
+  };
+}
+
 
 /* ============================================================
    CUSTOMER SECURITY OVERVIEW TAMBAHAN - ISOLATED APPEND ONLY
@@ -1970,6 +2003,13 @@ async function customerSecurityOverview(req, res) {
 
     const linkResult = await customerSecurityFetchAuthLink(authUserId);
     if (!linkResult.ok) {
+      if (customerSecurityIsSchemaCacheMissing(linkResult)) {
+        return res.status(200).json({
+          ...customerSecuritySchemaPendingStatus(user, 'customer_security_overview'),
+          overview: customerSecurityEmptyOverview()
+        });
+      }
+
       return res.status(linkResult.status || 500).json({
         ok: false,
         message: 'Gagal membaca status penghubung akun.',
