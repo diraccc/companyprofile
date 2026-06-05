@@ -282,8 +282,7 @@
 
     function buildAuthHeaders() {
       const headers = {
-        'Accept': 'application/json',
-        'X-Dirac-Client': 'customer-security-html-v2'
+        'Accept': 'application/json'
       };
       const session = readLegacyAuthSession();
       if (session && session.accessToken) headers.Authorization = 'Bearer ' + String(session.accessToken);
