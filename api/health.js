@@ -110,6 +110,8 @@ function setCors(req, res, options = {}) {
           'X-Supabase-Access-Token',
           'X-Domain-Access-Token',
           'X-Dirac-Access-Token',
+          'X-Firebase-ID-Token',
+          'X-Admin-Auth-Provider',
           'X-Dirac-Admin',
           'X-Domain-Refresh',
           'X-Refresh-Token',
@@ -3724,7 +3726,7 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
 /* ============================================================
    ADMIN SECURITY CENTER SUPABASE-ONLY - APPEND ONLY - 2026-06-06
    Guard:
-   - Tidak pakai Firebase ENV / Google cert / Firebase token.
+   - Tidak membutuhkan konfigurasi Firebase tambahan. Jika admin panel lama login Firebase, tokennya diverifikasi backend lalu role tetap dicek di Supabase admin_users.
    - Wajib Supabase access token atau cookie session domain.
    - Backend ambil user dari Supabase Auth /auth/v1/user.
    - Backend cek public.admin_users:
@@ -3814,7 +3816,7 @@ async function requireAdminSecuritySupabaseOwner(req, res, options = {}) {
   if (!user) {
     res.status(401).json({
       ok: false,
-      message: 'Sesi admin Supabase tidak valid. Login ulang.'
+      message: 'Sesi admin tidak valid. Login ulang admin, tunggu dashboard terbuka, lalu buka Security Center lagi.'
     });
     return null;
   }
@@ -3891,7 +3893,28 @@ async function adminSecurityRequireSupabaseUser(req) {
     }).catch(() => null);
 
     if (result && result.ok && result.data && (result.data.id || result.data.email)) {
-      return result.data;
+      return {
+        id: result.data.id || result.data.user_id || '',
+        user_id: result.data.id || result.data.user_id || '',
+        email: result.data.email || '',
+        provider: 'supabase',
+        raw: result.data
+      };
+    }
+  }
+
+  const firebaseToken = adminSecurityGetFirebaseToken(req) || token;
+  if (firebaseToken) {
+    const verified = await adminSecurityVerifyFirebaseIdTokenNoEnv(firebaseToken);
+    if (verified && verified.ok && verified.payload) {
+      const payload = verified.payload;
+      return {
+        id: String(payload.user_id || payload.sub || ''),
+        user_id: String(payload.user_id || payload.sub || ''),
+        email: normalizeAuthEmail(payload.email || ''),
+        provider: 'firebase',
+        raw: payload
+      };
     }
   }
 
@@ -3933,6 +3956,83 @@ function adminSecurityGetSupabaseAccessToken(req) {
   if (cookieToken) return cookieToken;
   return '';
 }
+
+
+function adminSecurityGetFirebaseToken(req) {
+  return String(req.headers && (
+    req.headers['x-firebase-id-token'] ||
+    req.headers['x-admin-firebase-token'] ||
+    ''
+  ) || '').trim();
+}
+
+function adminSecurityFirebaseProjectIdNoEnv() {
+  // Project ID mengikuti konfigurasi Firebase lama yang sudah ada di admin88881.html.
+  // Ini tidak mengubah sistem login lama.
+  return 'dirac-group';
+}
+
+async function adminSecurityVerifyFirebaseIdTokenNoEnv(token) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3) return { ok: false, reason: 'bad_jwt' };
+
+    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+
+    if (header.alg !== 'RS256' || !header.kid) return { ok: false, reason: 'bad_header' };
+
+    const projectId = adminSecurityFirebaseProjectIdNoEnv();
+    const now = Math.floor(Date.now() / 1000);
+
+    if (payload.aud !== projectId) return { ok: false, reason: 'bad_audience' };
+    if (payload.iss !== 'https://securetoken.google.com/' + projectId) return { ok: false, reason: 'bad_issuer' };
+    if (!payload.sub && !payload.user_id) return { ok: false, reason: 'missing_sub' };
+    if (Number(payload.exp || 0) <= now) return { ok: false, reason: 'expired' };
+    if (Number(payload.iat || 0) > now + 300) return { ok: false, reason: 'bad_iat' };
+
+    const certs = await adminSecurityFirebaseCertsNoEnv();
+    const cert = certs && certs[header.kid];
+    if (!cert) return { ok: false, reason: 'missing_cert' };
+
+    const verifier = crypto.createVerify('RSA-SHA256');
+    verifier.update(parts[0] + '.' + parts[1]);
+    verifier.end();
+
+    const ok = verifier.verify(cert, Buffer.from(parts[2], 'base64url'));
+    if (!ok) return { ok: false, reason: 'bad_signature' };
+
+    return { ok: true, payload };
+  } catch (error) {
+    console.error('[admin-security-firebase-token]', adminSecuritySafeErrorSupabase(error));
+    return { ok: false, reason: 'exception' };
+  }
+}
+
+async function adminSecurityFirebaseCertsNoEnv() {
+  const cacheKey = '__DIRAC_ADMIN_SECURITY_FIREBASE_CERTS_NO_ENV__';
+  const cached = globalThis[cacheKey] || { expiresAt: 0, certs: null };
+  globalThis[cacheKey] = cached;
+
+  if (cached.certs && cached.expiresAt > Date.now()) return cached.certs;
+
+  const response = await fetch('https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com', {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  });
+
+  if (!response.ok) throw new Error('Gagal mengambil public certs login admin.');
+
+  const certs = await response.json();
+  const cacheControl = String(response.headers.get('cache-control') || '');
+  const match = cacheControl.match(/max-age=(\d+)/i);
+  const maxAge = match ? Math.max(60, Number(match[1]) || 3600) : 3600;
+
+  cached.certs = certs;
+  cached.expiresAt = Date.now() + maxAge * 1000;
+  return certs;
+}
+
 
 async function adminSecurityFindAdminUserSupabase(userId, email) {
   const select = encodeURIComponent('id,user_id,uid,email,role,verified,status,created_at,updated_at');
