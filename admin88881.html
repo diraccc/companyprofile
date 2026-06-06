@@ -346,6 +346,22 @@
       .menu-toggle{width:42px;height:42px}
     }
 
+
+    /* === Admin Security Center Supabase-only isolated additions v2 === */
+    .admin-sec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0 16px}
+    .admin-sec-card{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:22px;padding:16px;min-height:110px}
+    .admin-sec-card span{display:block;color:var(--muted);font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
+    .admin-sec-card strong{display:block;font-size:1.45rem;line-height:1.05;margin-top:9px;font-variant-numeric:tabular-nums}
+    .admin-sec-card small{color:#bfdbfe;display:block;margin-top:7px}
+    .admin-sec-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 12px}
+    .admin-sec-table .muted{font-size:.82rem}
+    .admin-sec-risk-high{color:#fecaca!important}
+    .admin-sec-risk-medium{color:#fef08a!important}
+    .admin-sec-risk-low{color:#bbf7d0!important}
+    .admin-sec-note{border:1px solid rgba(34,197,94,.32);background:rgba(34,197,94,.08);color:#bbf7d0;border-radius:18px;padding:12px 13px;margin:12px 0}
+    @media(max-width:1040px){.admin-sec-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:700px){.admin-sec-grid{grid-template-columns:1fr}.admin-sec-actions .btn{flex:1 1 auto}}
+
   </style>
   <!-- Custom enhancements for improved UI/UX, accessibility and readability -->
   <style>
@@ -1248,6 +1264,17 @@
             </div>
           </section>
 
+
+          <section class="nav-section" aria-labelledby="navSecurityCenterTitle">
+            <div class="nav-heading"><strong id="navSecurityCenterTitle">Security Center</strong><span>Supabase</span></div>
+            <div class="nav-sub">
+              <button class="nav-btn main" type="button" data-view-target="securitycenter" data-nav-key="security-overview" data-scroll-target="securityCenterOverviewPanel"><b>01</b> Overview</button>
+              <button class="nav-btn sub" type="button" data-view-target="securitycenter" data-nav-key="security-events" data-scroll-target="securityCenterEventsPanel"><b>02</b> Events</button>
+              <button class="nav-btn sub" type="button" data-view-target="securitycenter" data-nav-key="security-blocks" data-scroll-target="securityCenterBlocksPanel"><b>03</b> Blocks</button>
+              <button class="nav-btn sub" type="button" data-view-target="securitycenter" data-nav-key="security-unblock" data-scroll-target="securityCenterUnblockPanel"><b>04</b> Unblock</button>
+            </div>
+          </section>
+
           <section class="nav-section" aria-labelledby="navPengaturanTitle">
             <div class="nav-heading"><strong id="navPengaturanTitle">Pengaturan</strong><span>Sistem</span></div>
             <div class="nav-sub">
@@ -1599,6 +1626,70 @@
             <div class="wide-grid">
               <div class="panel anchor-panel" id="reportCustomerPanel"><span class="view-kicker">Laporan / Customer</span><h3>Laporan Customer</h3><p class="help">Ringkasan pelanggan tetap memakai data pelanggan dan total belanja yang sudah ada di dashboard.</p><div class="compact-list"><div class="compact-item"><strong>Customer aktif</strong><span id="reportCustomerHint">Data pelanggan otomatis diperbarui dari collection customers.</span></div></div></div>
               <div class="panel anchor-panel" id="reportExportPanel"><span class="view-kicker">Laporan / Export</span><h3>Export Laporan &amp; Data</h3><p class="help">Backup JSON sekarang meminta data lengkap dari backend, bukan dari pesanan yang sudah tampil di browser. Fitur ini tidak mengubah login, A2F, atau rules Firebase.</p><div class="row-actions"><button class="btn small good requires-export" id="reportExportJsonBtn" type="button">Backup Backend JSON</button><button class="btn small requires-export" id="reportExportCsvBtn" type="button">Export CSV Produk</button><button class="btn small requires-export" id="reportExportOrdersCsvBtn" type="button">Export CSV Pesanan Tampil</button></div></div>
+            </div>
+          </div>
+        </section>
+
+
+        <section class="admin-view" id="viewSecurityCenter" data-view="securitycenter">
+          <div class="view-grid">
+            <div class="panel anchor-panel" id="securityCenterOverviewPanel">
+              <span class="view-kicker">Security Center / Supabase Guard</span>
+              <div class="section-title">
+                <div>
+                  <h3>Admin Security Center</h3>
+                  <p>Monitoring keamanan customer. Semua data lewat backend <b>/api/health.js</b>, dan role dicek di <b>public.admin_users</b>.</p>
+                </div>
+                <button class="btn small primary" id="adminSecurityRefreshBtn" type="button">Refresh Security</button>
+              </div>
+              <div class="admin-sec-note" id="adminSecurityOwnerNote">Akses backend hanya untuk role owner, super_admin, atau security_admin dengan verified=true dan status aktif.</div>
+              <div class="admin-sec-grid">
+                <div class="admin-sec-card"><span>Recent events</span><strong id="adminSecurityEventsCount">0</strong><small>Sample terbaru</small></div>
+                <div class="admin-sec-card"><span>High risk</span><strong id="adminSecurityHighRiskCount">0</strong><small>Event risiko tinggi</small></div>
+                <div class="admin-sec-card"><span>Active blocks</span><strong id="adminSecurityActiveBlocksCount">0</strong><small>IP/device/customer</small></div>
+                <div class="admin-sec-card"><span>Recovery used</span><strong id="adminSecurityRecoveryUsedCount">0</strong><small>Kode recovery dipakai</small></div>
+              </div>
+              <div class="notice" id="adminSecurityStatus">Security Center belum dimuat.</div>
+            </div>
+
+            <div class="wide-grid">
+              <div class="panel anchor-panel" id="securityCenterEventsPanel">
+                <div class="section-title">
+                  <div><h3>Security Events</h3><p class="help">Event customer security terbaru: recovery, block, MFA, session, dan audit.</p></div>
+                  <button class="btn small" id="adminSecurityLoadEventsBtn" type="button">Muat Events</button>
+                </div>
+                <div class="table-wrap admin-sec-table">
+                  <table class="admin-table">
+                    <thead><tr><th>Waktu</th><th>Customer</th><th>Event</th><th>Risk</th></tr></thead>
+                    <tbody id="adminSecurityEventsRows"><tr><td colspan="4">Belum ada data.</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="panel anchor-panel" id="securityCenterBlocksPanel">
+                <div class="section-title">
+                  <div><h3>Active Blocks</h3><p class="help">Daftar blokir aktif dari security gate/recovery/A2F customer.</p></div>
+                  <button class="btn small" id="adminSecurityLoadBlocksBtn" type="button">Muat Blocks</button>
+                </div>
+                <div class="table-wrap admin-sec-table">
+                  <table class="admin-table">
+                    <thead><tr><th>Customer</th><th>Reason</th><th>Blocked Until</th><th>Aksi</th></tr></thead>
+                    <tbody id="adminSecurityBlocksRows"><tr><td colspan="4">Belum ada block aktif.</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel anchor-panel" id="securityCenterUnblockPanel">
+              <span class="view-kicker">Security Center / Owner Action</span>
+              <div class="section-title">
+                <div><h3>Manual Unblock</h3><p>Masukkan email customer atau customer_id. Aksi ini dicek backend dan dicatat audit log.</p></div>
+              </div>
+              <div class="admin-sec-actions">
+                <input class="input" id="adminSecurityUnblockInput" type="text" placeholder="Email customer atau customer_id">
+                <button class="btn warn" id="adminSecurityUnblockBtn" type="button">Unblock User</button>
+              </div>
+              <div class="notice hidden" id="adminSecurityUnblockNotice"></div>
             </div>
           </div>
         </section>
@@ -5859,7 +5950,7 @@
     function switchView(view, navKey=''){
       const target = view || 'dashboard';
       document.querySelectorAll('.admin-view').forEach(node => node.classList.toggle('active', node.dataset.view === target));
-      const fallback = target === 'pengaturan' ? 'pengaturan-role' : target === 'produk' ? 'produk-list' : target === 'pesanan' ? 'pesanan-list' : target === 'pelanggan' ? 'pelanggan-all' : target === 'laporan' ? 'laporan-sales' : 'dashboard-summary';
+      const fallback = target === 'securitycenter' ? 'security-overview' : target === 'pengaturan' ? 'pengaturan-role' : target === 'produk' ? 'produk-list' : target === 'pesanan' ? 'pesanan-list' : target === 'pelanggan' ? 'pelanggan-all' : target === 'laporan' ? 'laporan-sales' : 'dashboard-summary';
       const activeKey = navKey || fallback;
       document.querySelectorAll('.nav-btn[data-view-target]').forEach(btn => btn.classList.toggle('active', (btn.dataset.navKey || '') === activeKey));
     }
@@ -9198,6 +9289,242 @@
     }catch(error){
       console.warn('DIRAC A2F server lock bridge gagal dipasang:', error);
     }
+
+
+    /* ============================================================
+       Admin Security Center UI Supabase-only v2 - isolated for uploaded admin88881.html
+       Tidak mengubah login/hash/A2F/Firebase/parfum lama.
+       Backend tetap cek public.admin_users.
+       ============================================================ */
+    const ADMIN_SECURITY_API = 'https://companyprofilee-expk.vercel.app/api/health';
+    let adminSecurityLoadedOnce = false;
+
+    function adminSecurityFindSupabaseAccessToken(){
+      const exactKeys = [
+        'dirac_auth_session_v1',
+        'supabase.auth.token',
+        'sb-access-token',
+        'sb_access_token'
+      ];
+
+      for(const key of exactKeys){
+        try{
+          const raw = localStorage.getItem(key);
+          if(!raw) continue;
+          if(raw[0] === '{'){
+            const parsed = JSON.parse(raw);
+            const token =
+              parsed.accessToken ||
+              parsed.access_token ||
+              (parsed.session && parsed.session.access_token) ||
+              (parsed.currentSession && parsed.currentSession.access_token);
+            if(token) return String(token);
+          } else if(raw.length > 40 && raw.split('.').length === 3) {
+            return raw;
+          }
+        }catch(_){}
+      }
+
+      try{
+        for(let i = 0; i < localStorage.length; i++){
+          const key = localStorage.key(i);
+          if(!key || !key.startsWith('sb-')) continue;
+          const raw = localStorage.getItem(key);
+          if(!raw) continue;
+          if(raw[0] === '{'){
+            const parsed = JSON.parse(raw);
+            const token =
+              parsed.access_token ||
+              (parsed.session && parsed.session.access_token) ||
+              (parsed.currentSession && parsed.currentSession.access_token);
+            if(token) return String(token);
+          } else if(raw.length > 40 && raw.split('.').length === 3) {
+            return raw;
+          }
+        }
+      }catch(_){}
+
+      return '';
+    }
+
+    async function adminSecurityApi(action, options = {}){
+      const token = adminSecurityFindSupabaseAccessToken();
+      const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
+      if(token){
+        headers.Authorization = 'Bearer ' + token;
+        headers['X-Supabase-Access-Token'] = token;
+      }
+
+      const response = await fetch(ADMIN_SECURITY_API + '?action=' + encodeURIComponent(action), {
+        method: options.method || 'GET',
+        mode: 'cors',
+        credentials: 'include',
+        cache: 'no-store',
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if(!response.ok || data.ok !== true){
+        throw new Error(data.message || 'Security Center gagal memuat data.');
+      }
+      return data;
+    }
+
+    function adminSecuritySetStatus(message, type=''){
+      const node = document.getElementById('adminSecurityStatus');
+      if(!node) return;
+      node.textContent = message;
+      node.className = 'notice' + (type ? ' ' + type : '');
+    }
+
+    function adminSecurityRiskClass(value){
+      const risk = String(value || '').toLowerCase();
+      if(risk === 'high') return 'admin-sec-risk-high';
+      if(risk === 'medium') return 'admin-sec-risk-medium';
+      return 'admin-sec-risk-low';
+    }
+
+    function adminSecurityDate(value){
+      if(!value) return '-';
+      try{ return new Date(value).toLocaleString('id-ID', { dateStyle:'short', timeStyle:'short' }); }catch(_){ return String(value); }
+    }
+
+    function adminSecurityRenderOverview(data){
+      const overview = data && data.overview ? data.overview : {};
+      const set = (id, value) => {
+        const node = document.getElementById(id);
+        if(node) node.textContent = String(value ?? 0);
+      };
+      set('adminSecurityEventsCount', overview.recent_events || 0);
+      set('adminSecurityHighRiskCount', overview.high_risk_events || 0);
+      set('adminSecurityActiveBlocksCount', overview.active_blocks || 0);
+      set('adminSecurityRecoveryUsedCount', overview.recovery_events_used || 0);
+      adminSecurityRenderEvents(data.recent_events || []);
+      adminSecurityRenderBlocks(data.active_blocks || []);
+      const role = data.admin && data.admin.role ? data.admin.role : 'unknown';
+      adminSecuritySetStatus('Security Center aktif. Supabase role: ' + role + '. Data terakhir: ' + adminSecurityDate(data.time), 'good');
+    }
+
+    function adminSecurityRenderEvents(rows){
+      const body = document.getElementById('adminSecurityEventsRows');
+      if(!body) return;
+      if(!rows || !rows.length){
+        body.innerHTML = '<tr><td colspan="4">Belum ada security events.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(row => {
+        const customer = row.customer_email || row.customer_id || '-';
+        const eventText = [row.event_type || '-', row.status || '', row.description || ''].filter(Boolean).join(' • ');
+        return '<tr>' +
+          '<td data-label="Waktu">' + escapeHtml(adminSecurityDate(row.created_at)) + '</td>' +
+          '<td data-label="Customer"><strong>' + escapeHtml(customer) + '</strong><br><span class="muted">' + escapeHtml(row.device_name || row.browser_name || '-') + '</span></td>' +
+          '<td data-label="Event">' + escapeHtml(eventText) + '</td>' +
+          '<td data-label="Risk"><span class="' + adminSecurityRiskClass(row.risk_level) + '">' + escapeHtml(row.risk_level || '-') + '</span></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function adminSecurityRenderBlocks(rows){
+      const body = document.getElementById('adminSecurityBlocksRows');
+      if(!body) return;
+      if(!rows || !rows.length){
+        body.innerHTML = '<tr><td colspan="4">Tidak ada block aktif.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(row => {
+        const target = row.customer_email || row.customer_id || 'Unknown customer';
+        const unblockValue = row.id || row.customer_id || '';
+        return '<tr>' +
+          '<td data-label="Customer"><strong>' + escapeHtml(target) + '</strong><br><span class="muted">IP ' + escapeHtml(row.ip_hash_hint || '-') + ' • Device ' + escapeHtml(row.device_hash_hint || '-') + '</span></td>' +
+          '<td data-label="Reason">' + escapeHtml([row.reason || '-', row.action || ''].filter(Boolean).join(' • ')) + '</td>' +
+          '<td data-label="Blocked Until">' + escapeHtml(adminSecurityDate(row.blocked_until)) + '</td>' +
+          '<td data-label="Aksi"><button class="btn small warn" type="button" data-admin-security-unblock-block="' + escapeHtml(unblockValue) + '">Unblock</button></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    async function adminSecurityLoadOverview(){
+      adminSecuritySetStatus('Memuat Security Center dari backend Supabase...');
+      const data = await adminSecurityApi('admin_security_overview');
+      adminSecurityRenderOverview(data);
+      adminSecurityLoadedOnce = true;
+    }
+
+    async function adminSecurityLoadEvents(){
+      adminSecuritySetStatus('Memuat security events...');
+      const data = await adminSecurityApi('admin_security_events');
+      adminSecurityRenderEvents(data.events || []);
+      adminSecuritySetStatus('Security events berhasil dimuat.', 'good');
+    }
+
+    async function adminSecurityLoadBlocks(){
+      adminSecuritySetStatus('Memuat active blocks...');
+      const data = await adminSecurityApi('admin_security_blocks');
+      adminSecurityRenderBlocks(data.blocks || []);
+      adminSecuritySetStatus('Active blocks berhasil dimuat.', 'good');
+    }
+
+    async function adminSecurityUnblockTarget(target, fromBlockButton=false){
+      const raw = String(target || '').trim();
+      if(!raw) throw new Error('Isi email customer, customer_id, atau pilih block.');
+
+      const body = {};
+      if(fromBlockButton) body.block_id = raw;
+      else if(raw.includes('@')) body.email = raw;
+      else body.customer_id = raw;
+
+      const proceed = window.confirm('Buka blokir target ini?\n\n' + raw);
+      if(!proceed) return;
+
+      const data = await adminSecurityApi('admin_security_unblock_user', { method:'POST', body });
+      const notice = document.getElementById('adminSecurityUnblockNotice');
+      if(notice){
+        notice.textContent = data.message || 'Unblock selesai.';
+        notice.className = 'notice good';
+      }
+      showToast(data.message || 'Unblock selesai');
+      await adminSecurityLoadOverview();
+    }
+
+    function adminSecurityInitUi(){
+      const refreshBtn = document.getElementById('adminSecurityRefreshBtn');
+      const eventsBtn = document.getElementById('adminSecurityLoadEventsBtn');
+      const blocksBtn = document.getElementById('adminSecurityLoadBlocksBtn');
+      const unblockBtn = document.getElementById('adminSecurityUnblockBtn');
+
+      if(refreshBtn) refreshBtn.addEventListener('click', () => adminSecurityLoadOverview().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')));
+      if(eventsBtn) eventsBtn.addEventListener('click', () => adminSecurityLoadEvents().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')));
+      if(blocksBtn) blocksBtn.addEventListener('click', () => adminSecurityLoadBlocks().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')));
+      if(unblockBtn) unblockBtn.addEventListener('click', () => {
+        const input = document.getElementById('adminSecurityUnblockInput');
+        adminSecurityUnblockTarget(input && input.value || '', false).catch(error => {
+          const notice = document.getElementById('adminSecurityUnblockNotice');
+          if(notice){ notice.textContent = firebaseMessage(error); notice.className = 'notice danger'; }
+        });
+      });
+
+      document.addEventListener('click', event => {
+        const btn = event.target.closest('[data-admin-security-unblock-block]');
+        if(!btn) return;
+        event.preventDefault();
+        adminSecurityUnblockTarget(btn.getAttribute('data-admin-security-unblock-block'), true).catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger'));
+      });
+    }
+
+    const diracSecurityCenterBaseSwitchView = switchView;
+    switchView = function(view, navKey=''){
+      diracSecurityCenterBaseSwitchView(view, navKey);
+      if(view === 'securitycenter' && !adminSecurityLoadedOnce){
+        setTimeout(() => adminSecurityLoadOverview().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')), 80);
+      }
+    };
+
+    adminSecurityInitUi();
+
 </script>
 </body>
 </html>
