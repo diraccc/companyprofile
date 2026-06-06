@@ -2746,7 +2746,8 @@ const CUSTOMER_SECURITY_GUARDED_ACTIONS = new Set([
   'customer_security_revoke_other_sessions',
   'customer_security_account_request',
   'customer_security_recovery_codes_generate',
-  'customer_security_recovery_codes_status'
+  'customer_security_recovery_codes_status',
+  'customer_security_recovery_code_verify'
 ]);
 
 const CUSTOMER_SECURITY_GUARDED_ALIASES = Object.freeze({
@@ -2761,7 +2762,9 @@ const CUSTOMER_SECURITY_GUARDED_ALIASES = Object.freeze({
   'customer-security-recovery-codes-generate': 'customer_security_recovery_codes_generate',
   'customer_security_recovery_codes_generate': 'customer_security_recovery_codes_generate',
   'customer-security-recovery-codes-status': 'customer_security_recovery_codes_status',
-  'customer_security_recovery_codes_status': 'customer_security_recovery_codes_status'
+  'customer_security_recovery_codes_status': 'customer_security_recovery_codes_status',
+  'customer-security-recovery-code-verify': 'customer_security_recovery_code_verify',
+  'customer_security_recovery_code_verify': 'customer_security_recovery_code_verify'
 });
 
 const CUSTOMER_SECURITY_RATE_LIMIT_STORE = globalThis.__DIRAC_CUSTOMER_SECURITY_RATE_LIMIT_STORE__ || new Map();
@@ -2853,6 +2856,11 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
     if (action === 'customer_security_recovery_codes_generate') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
       return customerSecurityGenerateRecoveryCodes(req, res, action);
+    }
+
+    if (action === 'customer_security_recovery_code_verify') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityVerifyRecoveryCode(req, res, action);
     }
 
     return res.status(404).json({ ok: false, message: 'Aksi keamanan tidak ditemukan.' });
@@ -3389,10 +3397,47 @@ function customerSecurityGeneratePlainRecoveryCode() {
   return customerSecurityShuffleRecoveryChars(chars).join('');
 }
 
-function customerSecurityHashRecoveryCode(code, customerId) {
-  return crypto.createHmac('sha256', customerSecurityRecoveryCodeSecret())
-    .update('dirac-customer-recovery-code-v1:' + String(customerId || '') + ':' + String(code || '').toUpperCase())
-    .digest('hex');
+function customerSecurityNormalizeRecoveryCodeInput(code) {
+  return String(code || '').trim();
+}
+
+function customerSecurityRecoveryCodeArgon2Input(code, customerId) {
+  const normalizedCode = customerSecurityNormalizeRecoveryCodeInput(code);
+  return [
+    'dirac-customer-recovery-code-v2-argon2id',
+    String(customerId || ''),
+    normalizedCode,
+    customerSecurityRecoveryCodeSecret()
+  ].join(':');
+}
+
+function customerSecurityGetArgon2() {
+  try {
+    return require('argon2');
+  } catch (error) {
+    const err = new Error('Dependency argon2 belum terpasang. Tambahkan dependency "argon2" di package.json lalu redeploy.');
+    err.statusCode = 500;
+    err.code = 'ARGON2ID_DEPENDENCY_MISSING';
+    throw err;
+  }
+}
+
+async function customerSecurityHashRecoveryCode(code, customerId) {
+  const argon2 = customerSecurityGetArgon2();
+  return await argon2.hash(customerSecurityRecoveryCodeArgon2Input(code, customerId), {
+    type: argon2.argon2id,
+    memoryCost: 19456,
+    timeCost: 3,
+    parallelism: 1,
+    hashLength: 32
+  });
+}
+
+async function customerSecurityVerifyRecoveryCodeHash(code, storedHash, customerId) {
+  const hash = String(storedHash || '');
+  if (!hash.startsWith('$argon2id$')) return false;
+  const argon2 = customerSecurityGetArgon2();
+  return await argon2.verify(hash, customerSecurityRecoveryCodeArgon2Input(code, customerId));
 }
 
 async function customerSecurityRecoveryCodesStatus(req, res, action) {
@@ -3428,16 +3473,21 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action) {
   }).catch(() => null);
 
   const plainCodes = Array.from({ length: count }, () => customerSecurityGeneratePlainRecoveryCode());
-  const rows = plainCodes.map((code, index) => ({
+  const rows = await Promise.all(plainCodes.map(async (code, index) => ({
     customer_id: access.customerId,
-    code_hash: customerSecurityHashRecoveryCode(code, access.customerId),
+    code_hash: await customerSecurityHashRecoveryCode(code, access.customerId),
     code_hint: code.slice(-4),
     batch_id: batchId,
     status: 'active',
     used_at: null,
     revoked_at: null,
-    metadata: { source: 'customer_security_generate_recovery_codes', order: index + 1 }
-  }));
+    metadata: {
+      source: 'customer_security_generate_recovery_codes',
+      order: index + 1,
+      hash_algorithm: 'argon2id',
+      code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH
+    }
+  })));
 
   const created = await supabaseFetch('/rest/v1/security_customer_recovery_codes', { method: 'POST', auth: 'service', prefer: 'return=representation', body: rows });
   if (!created.ok) {
@@ -3454,4 +3504,164 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action) {
   });
 
   return res.status(200).json({ ok: true, message: '3 recovery codes berhasil dibuat. Download file TXT sekarang; kode hanya dikirim sekali.', codes: plainCodes, count: plainCodes.length, code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH, active_code_limit: CUSTOMER_SECURITY_RECOVERY_CODE_COUNT, show_once: true, delivery: 'download_txt_only', recovery_policy_version: '500x3-v2', batch_id: batchId, time: diracNowIso() });
+}
+
+
+
+/* ============================================================
+   RECOVERY CODE VERIFY + ARGON2ID MFA PROOF
+   - Verifikasi recovery code dari masuk.html.
+   - Recovery code hash wajib Argon2id.
+   - Setelah cocok: used_at diisi, status=used, proof MFA dibuat.
+   ============================================================ */
+
+function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_code') {
+  const email = normalizeAuthEmail(user && user.email);
+  const now = Date.now();
+  const maxAgeSeconds = 60 * 60 * 12;
+  const payload = {
+    type: CUSTOMER_MFA_SESSION_TYPE,
+    method,
+    emailHash: customerMfaProfileId(email),
+    verifiedAtMs: now,
+    expiresAtMs: now + maxAgeSeconds * 1000,
+    originHash: customerMfaBindingHash('origin', requestOrigin(req)),
+    uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    recoveryVerified: method === 'recovery_code'
+  };
+  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = signDashboardMfa(payloadBase64, getCustomerMfaSecret());
+  return {
+    token: payloadBase64 + '.' + signature,
+    expiresAtMs: payload.expiresAtMs,
+    verifiedAtMs: payload.verifiedAtMs,
+    maxAgeSeconds
+  };
+}
+
+function customerSecuritySetDashboardMfaCookie(res, proof) {
+  const token = proof && proof.token ? String(proof.token) : '';
+  const maxAge = Math.max(1, Math.floor(Number(proof && proof.maxAgeSeconds || 0)));
+  if (!token || !maxAge) return;
+  res.setHeader('Set-Cookie', [
+    makeCookie(CUSTOMER_MFA_COOKIE, token, { maxAge })
+  ]);
+}
+
+async function customerSecurityVerifyRecoveryCode(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: false,
+    rateLimit: { limit: 3, windowMs: 10 * 60_000 }
+  });
+  if (!access) return;
+
+  const body = await readBody(req);
+  const code = customerSecurityNormalizeRecoveryCodeInput(body.code || body.recovery_code || body.recoveryCode || '');
+
+  if (Array.from(code).length !== CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+    await customerSecurityRegisterFailedVerification(req, action, 'invalid_recovery_code_length', access.customerId);
+    return res.status(400).json({
+      ok: false,
+      message: 'Recovery code tidak valid. Masukkan tepat 500 karakter dari file TXT.'
+    });
+  }
+
+  const path = '/rest/v1/security_customer_recovery_codes?select=' +
+    encodeURIComponent('id,code_hash,used_at,revoked_at,status,batch_id,created_at') +
+    '&customer_id=eq.' + encodeURIComponent(access.customerId) +
+    '&used_at=is.null' +
+    '&revoked_at=is.null' +
+    '&status=eq.active' +
+    '&order=created_at.desc&limit=10';
+
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) {
+    return res.status(500).json({
+      ok: false,
+      message: 'Gagal membaca recovery codes.'
+    });
+  }
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  let matched = null;
+
+  for (const row of rows) {
+    try {
+      const ok = await customerSecurityVerifyRecoveryCodeHash(code, row.code_hash, access.customerId);
+      if (ok) {
+        matched = row;
+        break;
+      }
+    } catch (error) {
+      if (error && error.code === 'ARGON2ID_DEPENDENCY_MISSING') {
+        return res.status(500).json({
+          ok: false,
+          code: 'ARGON2ID_DEPENDENCY_MISSING',
+          message: 'Dependency argon2 belum terpasang di backend.'
+        });
+      }
+      throw error;
+    }
+  }
+
+  if (!matched || !matched.id) {
+    await customerSecurityRegisterFailedVerification(req, action, 'recovery_code_not_matched', access.customerId);
+    return res.status(403).json({
+      ok: false,
+      message: 'Recovery code salah, sudah dipakai, atau sudah expired.'
+    });
+  }
+
+  const now = diracNowIso();
+  const patched = await supabaseFetch('/rest/v1/security_customer_recovery_codes?id=eq.' + encodeURIComponent(matched.id), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      used_at: now,
+      status: 'used',
+      metadata: {
+        source: 'customer_security_recovery_code_verify',
+        used_by_endpoint: action,
+        used_at: now
+      }
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(500).json({
+      ok: false,
+      message: 'Gagal menandai recovery code sebagai used.'
+    });
+  }
+
+  const proof = customerSecurityCreateDashboardMfaToken(req, access.user, 'recovery_code');
+  customerSecuritySetDashboardMfaCookie(res, proof);
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'recovery_code_used',
+    status: 'success',
+    risk_level: 'high',
+    description: 'Customer memakai recovery code untuk verifikasi A2F/MFA.',
+    req,
+    metadata: { action, recovery_code_id: matched.id, batch_id: matched.batch_id || null }
+  });
+
+  return res.status(200).json({
+    ok: true,
+    verified: true,
+    method: 'recovery_code',
+    message: 'Recovery code valid. Akses dashboard diverifikasi.',
+    dashboardSession: {
+      proofToken: proof.token,
+      expiresAtMs: proof.expiresAtMs,
+      verifiedAtMs: proof.verifiedAtMs,
+      method: 'recovery_code'
+    },
+    mfaProofToken: proof.token,
+    dashboardMfaProofToken: proof.token,
+    recovery_code_used: true,
+    time: now
+  });
 }
