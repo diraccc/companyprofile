@@ -849,29 +849,22 @@
       info.innerHTML = '<b>TXT sudah dibuat</b>Recovery codes tidak ditampilkan di website. Buka file TXT yang ter-download, lalu salin hanya isi di antara penanda MULAI SALIN dan SELESAI SALIN.';
       grid.appendChild(info);
       modal.hidden = false;
-      modal.dataset.codes = JSON.stringify(codes || []);
-      modal.dataset.batchId = String(batchId || '');
-      downloadRecoveryCodesTxt(codes || [], batchId || '');
+      lastRecoveryCodesMemory = (codes || []).slice();
+      lastRecoveryCodesBatchId = String(batchId || '');
+      downloadRecoveryCodesTxt(lastRecoveryCodesMemory, lastRecoveryCodesBatchId);
     }
 
     function closeRecoveryModal() {
       const modal = $('#recoveryModal');
       const grid = $('#recoveryCodesGrid');
       if (grid) grid.innerHTML = '';
-      if (modal) { modal.dataset.codes = '[]'; modal.hidden = true; }
+      if (modal) { modal.hidden = true; }
+      lastRecoveryCodesMemory = [];
+      lastRecoveryCodesBatchId = '';
     }
 
-    async function copyRecoveryCodes() {
-      const modal = $('#recoveryModal');
-      let codes = [];
-      try { codes = JSON.parse(modal && modal.dataset.codes || '[]'); } catch (_) {}
-      if (!codes.length) return;
-      try {
-        await navigator.clipboard.writeText(codes.join('\\n'));
-        toast('Recovery codes disalin', 'Simpan di tempat aman. Kode tidak akan ditampilkan ulang.');
-      } catch (_) { toast('Copy gagal', 'Salin manual dari daftar kode yang tampil.'); }
-    }
-
+    let lastRecoveryCodesMemory = [];
+    let lastRecoveryCodesBatchId = '';
 
     function buildRecoveryCodesTxt(codes, batchId) {
       const now = new Date().toISOString();
@@ -913,15 +906,29 @@
     }
 
     function redownloadRecoveryCodes() {
-      const modal = $('#recoveryModal');
-      let codes = [];
-      try { codes = JSON.parse(modal && modal.dataset.codes || '[]'); } catch (_) {}
-      if (!codes.length) {
+      if (!lastRecoveryCodesMemory.length) {
         toast('Tidak ada kode di memori', 'Generate ulang untuk membuat file TXT baru.');
         return;
       }
-      downloadRecoveryCodesTxt(codes, modal && modal.dataset.batchId || '');
+      downloadRecoveryCodesTxt(lastRecoveryCodesMemory, lastRecoveryCodesBatchId);
       toast('TXT di-download ulang', 'Salin kode dari file TXT, bukan dari halaman website.');
+    }
+
+
+    function validateRecoveryCodesResponse(data) {
+      const codes = data && Array.isArray(data.codes) ? data.codes : [];
+      const metaOk =
+        data &&
+        data.count === 3 &&
+        data.code_length === 500 &&
+        data.active_code_limit === 3 &&
+        data.delivery === 'download_txt_only';
+
+      const codesOk =
+        codes.length === 3 &&
+        codes.every((code) => typeof code === 'string' && Array.from(code).length === 500);
+
+      return Boolean(metaOk && codesOk);
     }
 
     async function generateRecoveryCodes() {
@@ -932,10 +939,14 @@
       const requestId = cryptoRandomId('recovery_codes');
       const result = await safeFetchJson(CONFIG.recoveryCodesGenerateAction, {
         method: 'POST',
-        body: { count: 10, idempotency_key: requestId }
+        body: { count: 3, idempotency_key: requestId }
       });
       if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Generate'; }
       if (result.ok && result.data && Array.isArray(result.data.codes)) {
+        if (!validateRecoveryCodesResponse(result.data)) {
+          toast('API recovery lama terdeteksi', 'Deploy API terbaru health-recovery-500x3-strict.zip. Sistem menolak kode yang bukan 3 kode x 500 karakter.');
+          return;
+        }
         openRecoveryModal(result.data.codes, result.data.batch_id || '');
         toast('Recovery codes dibuat', 'File TXT di-download. Salin kode dari penanda MULAI sampai SELESAI.');
         await refreshSecurity();
