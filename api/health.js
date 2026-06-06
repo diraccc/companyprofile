@@ -3882,8 +3882,51 @@ async function requireAdminSecuritySupabaseOwner(req, res, options = {}) {
   };
 }
 
+
+function adminSecurityDecodeJwtPayloadNoVerify(token) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3) return {};
+    return JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+  } catch (_) {
+    return {};
+  }
+}
+
+function adminSecurityTokenLooksFirebase(token) {
+  const payload = adminSecurityDecodeJwtPayloadNoVerify(token);
+  const iss = String(payload.iss || '');
+  return iss.indexOf('https://securetoken.google.com/') === 0;
+}
+
+function adminSecurityTokenLooksSupabase(token) {
+  const payload = adminSecurityDecodeJwtPayloadNoVerify(token);
+  const iss = String(payload.iss || '').toLowerCase();
+  const aud = String(payload.aud || '').toLowerCase();
+  return iss.includes('supabase') || aud === 'authenticated' || aud === 'anon';
+}
+
+
 async function adminSecurityRequireSupabaseUser(req) {
   const token = adminSecurityGetSupabaseAccessToken(req);
+  const firebaseHeaderToken = adminSecurityGetFirebaseToken(req);
+
+  // Kalau token login admin adalah Firebase, jangan kirim ke Supabase /auth/v1/user.
+  // Ini penyebab log 403 sebelumnya.
+  const tokenForFirebase = firebaseHeaderToken || (adminSecurityTokenLooksFirebase(token) ? token : '');
+  if (tokenForFirebase) {
+    const verified = await adminSecurityVerifyFirebaseIdTokenNoEnv(tokenForFirebase);
+    if (verified && verified.ok && verified.payload) {
+      const payload = verified.payload;
+      return {
+        id: String(payload.user_id || payload.sub || ''),
+        user_id: String(payload.user_id || payload.sub || ''),
+        email: normalizeAuthEmail(payload.email || ''),
+        provider: 'firebase',
+        raw: payload
+      };
+    }
+  }
 
   if (token) {
     const result = await supabaseFetch('/auth/v1/user', {
@@ -3899,21 +3942,6 @@ async function adminSecurityRequireSupabaseUser(req) {
         email: result.data.email || '',
         provider: 'supabase',
         raw: result.data
-      };
-    }
-  }
-
-  const firebaseToken = adminSecurityGetFirebaseToken(req) || token;
-  if (firebaseToken) {
-    const verified = await adminSecurityVerifyFirebaseIdTokenNoEnv(firebaseToken);
-    if (verified && verified.ok && verified.payload) {
-      const payload = verified.payload;
-      return {
-        id: String(payload.user_id || payload.sub || ''),
-        user_id: String(payload.user_id || payload.sub || ''),
-        email: normalizeAuthEmail(payload.email || ''),
-        provider: 'firebase',
-        raw: payload
       };
     }
   }
