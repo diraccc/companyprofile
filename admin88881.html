@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-security-center-fetch-fix="same-origin-fallback-v1" data-security-center-cors-fix="token-headers-v1">
+<html lang="id" data-security-center-fetch-fix="same-origin-fallback-v1" data-security-center-cors-fix="token-headers-v1" data-security-center-hybrid-auth="firebase-session-supabase-role-v1" data-security-center-simple-auth="authorization-only-v1">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9351,13 +9351,13 @@
     function adminSecurityFriendlyError(error){
       const raw = String(error && error.message ? error.message : error || '').trim();
       if(/load failed|failed to fetch|networkerror|network request failed/i.test(raw)){
-        return 'API Security Center tidak bisa dihubungi. Deploy /api/health.js terbaru; jika masih gagal, cek CORS header X-Supabase-Access-Token/X-Domain-Access-Token.';
+        return 'API Security Center tidak bisa dihubungi. Pastikan /api/health.js terbaru sudah deploy dan Vercel Ready.';
       }
       if(/404|not found/i.test(raw)){
         return 'Endpoint Security Center belum ditemukan. Deploy /api/health.js terbaru.';
       }
       if(/sesi admin supabase|login ulang|token supabase|401|unauthorized/i.test(raw)){
-        return 'Sesi admin tidak valid. Login ulang, lalu buka Security Center lagi.';
+        return 'Sesi admin tidak valid. Login ulang, selesaikan A2F, lalu buka Security Center lagi.';
       }
       if(/admin_users|terdaftar/i.test(raw)){
         return 'Akun admin belum terdaftar di public.admin_users.';
@@ -9397,15 +9397,19 @@
     }
 
     async function adminSecurityApi(action, options = {}){
-      const token = adminSecurityFindSupabaseAccessToken();
+      let token = adminSecurityFindSupabaseAccessToken();
+      let provider = 'supabase';
+      if(!token && auth.currentUser){
+        token = await auth.currentUser.getIdToken(true);
+        provider = 'firebase';
+      }
+
       const headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       };
       if(token){
         headers.Authorization = 'Bearer ' + token;
-        headers['X-Supabase-Access-Token'] = token;
-        headers['X-Domain-Access-Token'] = token;
       }
 
       try{
