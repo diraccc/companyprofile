@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-effective-theme="dark" data-motion="full">
+<html lang="id" data-effective-theme="dark" data-motion="full" data-a2f-error-fix="friendly-v1">
 <head>
   <meta charset="utf-8">
   <meta name="theme-color" content="#07090d">
@@ -5080,7 +5080,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       setMessage('status', t('verifyHelp'));
     }catch(e){
       state.verifyMode = 'none';
-      setMessage('error', e && e.message ? e.message : t('demoCode'));
+      setMessage('error', a2fFriendlySetupMessage(e));
       setStep(1);
     }finally{
       setBusy(false);
@@ -5089,6 +5089,34 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       setTimeout(function(){ var box = activeVerifyBox(); var first = box && $('.a2f-otp-cell', box); if(first) first.focus({preventScroll:true}); }, 60);
     }
   }
+
+  function a2fFriendlyVerifyMessage(error, remaining) {
+    var raw = String(error && error.message ? error.message : error || '').toLowerCase();
+
+    if (remaining <= 0) return t('locked');
+
+    if (/network|load failed|failed to fetch|timeout|menghubungi server/i.test(raw)) {
+      return 'Gagal menghubungi server. Coba lagi sebentar.';
+    }
+
+    if (/expired|session|login|unauthorized|401|belum login|sesi/i.test(raw)) {
+      return 'Sesi login tidak valid. Silakan login ulang.';
+    }
+
+    if (/rate|too many|429|terlalu banyak/i.test(raw)) {
+      return 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.';
+    }
+
+    return 'Kode A2F salah. Masukkan 6 digit terbaru dari aplikasi Authenticator. Sisa percobaan: ' + remaining + '.';
+  }
+
+  function a2fFriendlySetupMessage(error) {
+    var raw = String(error && error.message ? error.message : error || '').toLowerCase();
+    if (/network|load failed|failed to fetch|timeout/i.test(raw)) return 'Gagal menghubungi server. Coba lagi sebentar.';
+    if (/session|login|unauthorized|401|belum login|sesi/i.test(raw)) return 'Sesi login tidak valid. Silakan login ulang.';
+    return 'A2F belum bisa dimulai. Coba lagi sebentar.';
+  }
+
   async function verifyCode(){
     var box = activeVerifyBox(); var code = syncOtpFromCells(box);
     if(!/^\d{6}$/.test(code)){
@@ -5113,7 +5141,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.recordFailedA2FAttempt(state.attempts,'server_rejected'); }catch(_e){}
       var remaining = Math.max(0, 5 - state.attempts);
       if(box) box.classList.add('is-invalid');
-      setMessage('error', e && e.message ? e.message : (remaining ? t('codeWrong') : t('locked')));
+      setMessage('error', a2fFriendlyVerifyMessage(e, remaining));
     }finally{ setBusy(false); updateActionText(); }
   }
   function b64UrlToArrayBuffer(value){
@@ -6458,6 +6486,20 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     } catch (_) {}
     return true;
   }
+
+  function recoveryFriendlyMessage(raw, data, status){
+    var code = String(data && (data.code || data.error_code || data.reason) || '').toUpperCase();
+    var msg = String(raw || data && data.message || '');
+    if(code === 'RECOVERY_CODE_USED') return 'Recovery code sudah dipakai atau expired.';
+    if(code === 'RECOVERY_CODE_EXPIRED') return 'Recovery code sudah expired. Gunakan kode recovery lain.';
+    if(code === 'RECOVERY_CODE_FORMAT_INVALID') return 'Format recovery code tidak valid. Tempel 1 kode penuh dari file TXT.';
+    if(code === 'SESSION_REQUIRED' || status === 401) return 'Sesi login tidak valid. Silakan login ulang.';
+    if(/used|expired|revoked/i.test(msg)) return 'Recovery code sudah dipakai atau expired.';
+    if(/invalid|wrong|mismatch|not found|argon2|verify|hash|backend|server|rejected|ditolak/i.test(msg)) return 'Recovery code salah, sudah dipakai, atau expired.';
+    if(/load failed|failed to fetch|network/i.test(msg)) return 'Gagal menghubungi server recovery. Coba lagi sebentar.';
+    return msg || 'Recovery code salah, sudah dipakai, atau expired.';
+  }
+
   function playSound(kind){ try{ if(window.DiracSound && window.DiracSound.play) window.DiracSound.play(kind || 'click'); }catch(_){} }
   function showStatus(box, text, ok){
     var status = $('.dirac-recovery-verify-status', box);
@@ -6528,6 +6570,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
         body:JSON.stringify({code:code})
       });
       var data = await res.clone().json().catch(function(){ return null; });
+      window.__diracLastRecoveryVerifyData = data || null;
+      window.__diracLastRecoveryVerifyStatus = res.status || 0;
       if(!res.ok || !data || data.ok !== true || data.verified !== true){
         throw new Error((data && (data.message || data.error || data.code)) || 'Recovery code ditolak.');
       }
@@ -6538,11 +6582,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       setTimeout(function(){ window.location.href = 'dashboard.html'; }, 650);
     }catch(e){
       var raw = e && e.message ? e.message : 'Recovery code gagal diverifikasi.';
-      var friendly = /ARGON2ID|argon2/i.test(raw)
-        ? 'Backend belum siap: dependency argon2 belum terpasang di package.json / belum redeploy.'
-        : /load failed|failed to fetch|network/i.test(raw)
-          ? 'Gagal menghubungi server recovery. Cek Vercel Logs untuk action customer_security_recovery_code_verify.'
-          : raw;
+      var friendly = recoveryFriendlyMessage(raw, window.__diracLastRecoveryVerifyData || null, window.__diracLastRecoveryVerifyStatus || 0);
       showStatus(box, friendly, false);
       playSound('error');
     }finally{
