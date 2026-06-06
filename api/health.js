@@ -470,9 +470,9 @@ async function domainDashboardMe(req, res) {
     dashboard: true,
     user: sanitizeUser(user),
     mfa: {
-      verified: true,
+      active: true,
       method: mfa.method || '',
-      verifiedAtMs: mfa.verifiedAtMs || 0,
+      activeAtMs: mfa.activeAtMs || 0,
       expiresAtMs: mfa.expiresAtMs || 0,
       source: mfa.source || ''
     }
@@ -982,7 +982,7 @@ function verifyCustomerDashboardMfaCookie(req, user) {
   return {
     ok: true,
     method: String(payload.method || ''),
-    verifiedAtMs: Number(payload.verifiedAtMs || 0),
+    activeAtMs: Number(payload.activeAtMs || 0),
     expiresAtMs: Number(payload.expiresAtMs || 0),
     source: proof.source
   };
@@ -1934,7 +1934,7 @@ async function customerSecurityFetchAuthLink(authUserId) {
     'customer_id',
     'link_status',
     'match_confidence',
-    'verified_at'
+    'active_at'
   ].join(',');
 
   const path = `/rest/v1/security_customer_auth_links?select=${encodeURIComponent(select)}&auth_user_id=eq.${encodeURIComponent(authUserId)}&limit=1`;
@@ -2142,7 +2142,7 @@ async function customerSecurityFetchOverviewData(customerId) {
   const settingsResult = await customerSecurityFetchRows(
     'security_customer_settings',
     [
-      'email_verified',
+      'email_active',
       'two_factor_enabled',
       'two_factor_method',
       'notify_new_login',
@@ -2490,8 +2490,8 @@ function customerSecurityBuildActiveAuthLinkBody(customerId, email) {
     email,
     link_status: 'active',
     link_method: 'system_created',
-    match_confidence: 'verified',
-    verified_at: new Date().toISOString()
+    match_confidence: 'active',
+    active_at: new Date().toISOString()
   };
 }
 
@@ -2828,7 +2828,7 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
         customer_id_available: true,
         direct_frontend_table_access: false,
         mfa_required_for_write: true,
-        mfa_verified_now: Boolean(access.mfa && access.mfa.ok),
+        mfa_active_now: Boolean(access.mfa && access.mfa.ok),
         guarded_actions_ready: true,
         rate_limit_mode: 'memory_local_basic',
         write_guard: 'mfa_required',
@@ -2882,7 +2882,7 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
 async function customerSecurityRequireAccess(req, res, options = {}) {
   const user = await requireDomainUser(req, res);
   if (!user) {
-    await customerSecurityRegisterFailedVerification(req, options.action || 'customer_security', 'user_not_verified');
+    await customerSecurityRegisterFailedVerification(req, options.action || 'customer_security', 'user_not_active');
     return null;
   }
 
@@ -3446,7 +3446,7 @@ function customerSecurityRecoveryPublicError(reason) {
   if (clean.includes('used')) {
     return {
       ok: false,
-      verified: false,
+      active: false,
       code: 'RECOVERY_CODE_USED',
       message: 'Recovery code sudah dipakai atau expired.'
     };
@@ -3454,7 +3454,7 @@ function customerSecurityRecoveryPublicError(reason) {
   if (clean.includes('expired') || clean.includes('revoked')) {
     return {
       ok: false,
-      verified: false,
+      active: false,
       code: 'RECOVERY_CODE_EXPIRED',
       message: 'Recovery code sudah expired. Gunakan kode recovery lain.'
     };
@@ -3462,7 +3462,7 @@ function customerSecurityRecoveryPublicError(reason) {
   if (clean.includes('format') || clean.includes('length')) {
     return {
       ok: false,
-      verified: false,
+      active: false,
       code: 'RECOVERY_CODE_FORMAT_INVALID',
       message: 'Format recovery code tidak valid. Tempel 1 kode penuh dari file TXT.'
     };
@@ -3470,14 +3470,14 @@ function customerSecurityRecoveryPublicError(reason) {
   if (clean.includes('mfa') || clean.includes('proof') || clean.includes('session')) {
     return {
       ok: false,
-      verified: false,
+      active: false,
       code: 'SESSION_REQUIRED',
       message: 'Sesi login tidak valid. Silakan login ulang.'
     };
   }
   return {
     ok: false,
-    verified: false,
+    active: false,
     code: 'RECOVERY_CODE_INVALID',
     message: 'Recovery code salah, sudah dipakai, atau expired.'
   };
@@ -3578,7 +3578,7 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
     type: CUSTOMER_MFA_SESSION_TYPE,
     method,
     emailHash: customerMfaProfileId(email),
-    verifiedAtMs: now,
+    activeAtMs: now,
     expiresAtMs: now + maxAgeSeconds * 1000,
     originHash: customerMfaBindingHash('origin', requestOrigin(req)),
     uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
@@ -3589,7 +3589,7 @@ function customerSecurityCreateDashboardMfaToken(req, user, method = 'recovery_c
   return {
     token: payloadBase64 + '.' + signature,
     expiresAtMs: payload.expiresAtMs,
-    verifiedAtMs: payload.verifiedAtMs,
+    activeAtMs: payload.activeAtMs,
     maxAgeSeconds
   };
 }
@@ -3705,13 +3705,13 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
 
   return res.status(200).json({
     ok: true,
-    verified: true,
+    active: true,
     method: 'recovery_code',
     message: 'Recovery code valid. Akses dashboard diverifikasi.',
     dashboardSession: {
       proofToken: proof.token,
       expiresAtMs: proof.expiresAtMs,
-      verifiedAtMs: proof.verifiedAtMs,
+      activeAtMs: proof.activeAtMs,
       method: 'recovery_code'
     },
     mfaProofToken: proof.token,
@@ -3731,8 +3731,8 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
    - Backend ambil user dari Supabase Auth /auth/v1/user.
    - Backend cek public.admin_users:
      role in owner/super_admin/security_admin
-     verified = true
-     status = active/enabled/verified atau kosong.
+     active = true
+     status = active/enabled/active atau kosong.
    - Tidak menyentuh login/hash/A2F/recovery lama.
    ============================================================ */
 
@@ -3873,7 +3873,7 @@ async function requireAdminSecuritySupabaseOwner(req, res, options = {}) {
   return {
     id: String(adminRow.id || ''),
     user_id: userId,
-    uid: String(adminRow.uid || userId || ''),
+    uid: userId,
     email: email || String(adminRow.email || ''),
     role,
     active,
@@ -3915,9 +3915,9 @@ async function adminSecurityRequireSupabaseUser(req) {
   // Ini penyebab log 403 sebelumnya.
   const tokenForFirebase = firebaseHeaderToken || (adminSecurityTokenLooksFirebase(token) ? token : '');
   if (tokenForFirebase) {
-    const verified = await adminSecurityVerifyFirebaseIdTokenNoEnv(tokenForFirebase);
-    if (verified && verified.ok && verified.payload) {
-      const payload = verified.payload;
+    const active = await adminSecurityVerifyFirebaseIdTokenNoEnv(tokenForFirebase);
+    if (active && active.ok && active.payload) {
+      const payload = active.payload;
       return {
         id: String(payload.user_id || payload.sub || ''),
         user_id: String(payload.user_id || payload.sub || ''),
@@ -4063,26 +4063,18 @@ async function adminSecurityFirebaseCertsNoEnv() {
 
 
 async function adminSecurityFindAdminUserSupabase(userId, email) {
-  const select = encodeURIComponent('id,user_id,uid,email,role,active,created_at');
-  const queries = [];
+  // Struktur asli public.admin_users hanya:
+  // id, email, role, active, created_at.
+  // Karena tidak ada user_id/uid/status/active, lookup harus email-only.
+  const cleanEmail = normalizeAuthEmail(email || '');
+  if (!cleanEmail) return null;
 
-  if (customerSecurityLooksLikeUuid(userId)) {
-    queries.push('/rest/v1/admin_users?select=' + select + '&user_id=eq.' + encodeURIComponent(userId) + '&limit=1');
-  }
-  if (userId) {
-    queries.push('/rest/v1/admin_users?select=' + select + '&uid=eq.' + encodeURIComponent(userId) + '&limit=1');
-  }
-  if (email) {
-    queries.push('/rest/v1/admin_users?select=' + select + '&email=ilike.' + encodeURIComponent(email) + '&limit=1');
-  }
+  const select = encodeURIComponent('id,email,role,active,created_at');
+  const path = '/rest/v1/admin_users?select=' + select + '&email=ilike.' + encodeURIComponent(cleanEmail) + '&limit=1';
 
-  for (const path of queries) {
-    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-    const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
-    if (rows[0]) return rows[0];
-  }
-
-  return null;
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
+  return rows[0] || null;
 }
 
 async function adminSecurityOverviewSupabase(req, res, admin) {
