@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" data-security-center-fetch-fix="same-origin-fallback-v1">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9296,7 +9296,8 @@
        Tidak mengubah login/hash/A2F/Firebase/parfum lama.
        Backend tetap cek public.admin_users.
        ============================================================ */
-    const ADMIN_SECURITY_API = 'https://companyprofilee-expk.vercel.app/api/health';
+    const ADMIN_SECURITY_API_PRIMARY = '/api/health';
+    const ADMIN_SECURITY_API_FALLBACK = 'https://companyprofilee-expk.vercel.app/api/health';
     let adminSecurityLoadedOnce = false;
 
     function adminSecurityFindSupabaseAccessToken(){
@@ -9347,6 +9348,54 @@
       return '';
     }
 
+    function adminSecurityFriendlyError(error){
+      const raw = String(error && error.message ? error.message : error || '').trim();
+      if(/load failed|failed to fetch|networkerror|network request failed/i.test(raw)){
+        return 'API Security Center tidak bisa dihubungi. Pastikan /api/health.js sudah dideploy dan Vercel sudah Ready.';
+      }
+      if(/404|not found/i.test(raw)){
+        return 'Endpoint Security Center belum ditemukan. Deploy /api/health.js terbaru.';
+      }
+      if(/sesi admin supabase|login ulang|token supabase|401|unauthorized/i.test(raw)){
+        return 'Sesi admin tidak valid. Login ulang, lalu buka Security Center lagi.';
+      }
+      if(/admin_users|terdaftar/i.test(raw)){
+        return 'Akun admin belum terdaftar di public.admin_users.';
+      }
+      if(/verified|status tidak aktif/i.test(raw)){
+        return 'Admin belum verified atau status tidak aktif di public.admin_users.';
+      }
+      if(/owner|super_admin|security_admin|403|akses/i.test(raw)){
+        return 'Security Center hanya untuk owner, super_admin, atau security_admin.';
+      }
+      return raw || 'Security Center gagal memuat data.';
+    }
+
+    async function adminSecurityFetchJson(apiUrl, action, options, headers){
+      const response = await fetch(apiUrl + '?action=' + encodeURIComponent(action), {
+        method: options.method || 'GET',
+        mode: 'cors',
+        credentials: 'include',
+        cache: 'no-store',
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+
+      const text = await response.text();
+      let data = {};
+      try{ data = text ? JSON.parse(text) : {}; }catch(_){ data = { message: text || '' }; }
+
+      if(!response.ok || data.ok !== true){
+        const msg = data.message || data.error || data.code || ('HTTP ' + response.status);
+        const error = new Error(msg);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
+
+      return data;
+    }
+
     async function adminSecurityApi(action, options = {}){
       const token = adminSecurityFindSupabaseAccessToken();
       const headers = {
@@ -9356,22 +9405,30 @@
       if(token){
         headers.Authorization = 'Bearer ' + token;
         headers['X-Supabase-Access-Token'] = token;
+        headers['X-Domain-Access-Token'] = token;
       }
 
-      const response = await fetch(ADMIN_SECURITY_API + '?action=' + encodeURIComponent(action), {
-        method: options.method || 'GET',
-        mode: 'cors',
-        credentials: 'include',
-        cache: 'no-store',
-        headers,
-        body: options.body ? JSON.stringify(options.body) : undefined
-      });
+      try{
+        return await adminSecurityFetchJson(ADMIN_SECURITY_API_PRIMARY, action, options, headers);
+      }catch(primaryError){
+        const primaryMessage = String(primaryError && primaryError.message || '');
+        const shouldFallback =
+          primaryError && (
+            /load failed|failed to fetch|networkerror|network request failed/i.test(primaryMessage) ||
+            primaryError.status === 404 ||
+            primaryError.status === 405
+          );
 
-      const data = await response.json().catch(() => ({}));
-      if(!response.ok || data.ok !== true){
-        throw new Error(data.message || 'Security Center gagal memuat data.');
+        if(shouldFallback){
+          try{
+            return await adminSecurityFetchJson(ADMIN_SECURITY_API_FALLBACK, action, options, headers);
+          }catch(fallbackError){
+            throw new Error(adminSecurityFriendlyError(fallbackError));
+          }
+        }
+
+        throw new Error(adminSecurityFriendlyError(primaryError));
       }
-      return data;
     }
 
     function adminSecuritySetStatus(message, type=''){
@@ -9496,14 +9553,14 @@
       const blocksBtn = document.getElementById('adminSecurityLoadBlocksBtn');
       const unblockBtn = document.getElementById('adminSecurityUnblockBtn');
 
-      if(refreshBtn) refreshBtn.addEventListener('click', () => adminSecurityLoadOverview().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')));
-      if(eventsBtn) eventsBtn.addEventListener('click', () => adminSecurityLoadEvents().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')));
-      if(blocksBtn) blocksBtn.addEventListener('click', () => adminSecurityLoadBlocks().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')));
+      if(refreshBtn) refreshBtn.addEventListener('click', () => adminSecurityLoadOverview().catch(error => adminSecuritySetStatus(adminSecurityFriendlyError(error), 'danger')));
+      if(eventsBtn) eventsBtn.addEventListener('click', () => adminSecurityLoadEvents().catch(error => adminSecuritySetStatus(adminSecurityFriendlyError(error), 'danger')));
+      if(blocksBtn) blocksBtn.addEventListener('click', () => adminSecurityLoadBlocks().catch(error => adminSecuritySetStatus(adminSecurityFriendlyError(error), 'danger')));
       if(unblockBtn) unblockBtn.addEventListener('click', () => {
         const input = document.getElementById('adminSecurityUnblockInput');
         adminSecurityUnblockTarget(input && input.value || '', false).catch(error => {
           const notice = document.getElementById('adminSecurityUnblockNotice');
-          if(notice){ notice.textContent = firebaseMessage(error); notice.className = 'notice danger'; }
+          if(notice){ notice.textContent = adminSecurityFriendlyError(error); notice.className = 'notice danger'; }
         });
       });
 
@@ -9511,7 +9568,7 @@
         const btn = event.target.closest('[data-admin-security-unblock-block]');
         if(!btn) return;
         event.preventDefault();
-        adminSecurityUnblockTarget(btn.getAttribute('data-admin-security-unblock-block'), true).catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger'));
+        adminSecurityUnblockTarget(btn.getAttribute('data-admin-security-unblock-block'), true).catch(error => adminSecuritySetStatus(adminSecurityFriendlyError(error), 'danger'));
       });
     }
 
@@ -9519,7 +9576,7 @@
     switchView = function(view, navKey=''){
       diracSecurityCenterBaseSwitchView(view, navKey);
       if(view === 'securitycenter' && !adminSecurityLoadedOnce){
-        setTimeout(() => adminSecurityLoadOverview().catch(error => adminSecuritySetStatus(firebaseMessage(error), 'danger')), 80);
+        setTimeout(() => adminSecurityLoadOverview().catch(error => adminSecuritySetStatus(adminSecurityFriendlyError(error), 'danger')), 80);
       }
     };
 
