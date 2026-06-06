@@ -4109,8 +4109,8 @@ async function adminSecurityOverviewSupabase(req, res, admin) {
       recent_events: eventRows.length,
       high_risk_events: eventRows.filter((row) => String(row.risk_level || '').toLowerCase() === 'high').length,
       active_blocks: blockRows.length,
-      recovery_events_generated: eventRows.filter((row) => String(row.event_type || '') === 'recovery_codes_generated').length,
-      recovery_events_used: eventRows.filter((row) => String(row.event_type || '') === 'recovery_code_used').length,
+      recovery_events_generated: recoveryRows.length,
+      recovery_events_used: recoveryRows.filter((row) => row.used_at).length,
       recovery_rows_sampled: recoveryRows.length,
       recovery_unused_sampled: recoveryRows.filter((row) => !row.used_at && !row.revoked_at && String(row.status || '') === 'active').length
     },
