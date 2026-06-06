@@ -3435,6 +3435,54 @@ async function customerSecurityHashRecoveryCode(code, customerId) {
   });
 }
 
+
+function customerSecurityRecoveryPublicError(reason) {
+  const clean = String(reason || 'invalid_recovery_code').toLowerCase();
+  if (clean.includes('used')) {
+    return {
+      ok: false,
+      verified: false,
+      code: 'RECOVERY_CODE_USED',
+      message: 'Recovery code sudah dipakai atau expired.'
+    };
+  }
+  if (clean.includes('expired') || clean.includes('revoked')) {
+    return {
+      ok: false,
+      verified: false,
+      code: 'RECOVERY_CODE_EXPIRED',
+      message: 'Recovery code sudah expired. Gunakan kode recovery lain.'
+    };
+  }
+  if (clean.includes('format') || clean.includes('length')) {
+    return {
+      ok: false,
+      verified: false,
+      code: 'RECOVERY_CODE_FORMAT_INVALID',
+      message: 'Format recovery code tidak valid. Tempel 1 kode penuh dari file TXT.'
+    };
+  }
+  if (clean.includes('mfa') || clean.includes('proof') || clean.includes('session')) {
+    return {
+      ok: false,
+      verified: false,
+      code: 'SESSION_REQUIRED',
+      message: 'Sesi login tidak valid. Silakan login ulang.'
+    };
+  }
+  return {
+    ok: false,
+    verified: false,
+    code: 'RECOVERY_CODE_INVALID',
+    message: 'Recovery code salah, sudah dipakai, atau expired.'
+  };
+}
+
+function customerSecuritySendRecoveryError(res, status, reason) {
+  const payload = customerSecurityRecoveryPublicError(reason);
+  return res.status(status || 400).json(payload);
+}
+
 async function customerSecurityVerifyRecoveryCodeHash(code, storedHash, customerId) {
   const hash = String(storedHash || '');
   if (!hash.startsWith('$argon2id$')) return false;
