@@ -3263,28 +3263,16 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
 #a2fModal .a2f-card[data-a2f-step-index="4"] .a2f-production-grid{display:grid!important;}
 </style>
 
-<style id="dirac-recovery-verify-pnp-css">
-.dirac-recovery-verify-box{margin-top:14px;padding:14px;border-radius:18px;background:#fff7ed;border:1px solid #fed7aa;color:#111827}
-.dirac-recovery-verify-box h3{margin:0 0 6px;font-size:1rem;color:#111827}
-.dirac-recovery-verify-box p{margin:0 0 10px;color:#64748b;font-size:.82rem;line-height:1.45}
-.dirac-recovery-verify-box textarea{width:100%;min-height:120px;border-radius:14px;border:1px solid #fdba74;background:#fff;color:#111827;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;resize:vertical}
-.dirac-recovery-verify-box .dirac-recovery-verify-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.dirac-recovery-verify-box .dirac-recovery-verify-status{margin-top:8px;font-size:.82rem;font-weight:700;color:#9a3412}
-html[data-effective-theme="dark"] .dirac-recovery-verify-box{background:#fff7ed!important;color:#111827!important}
-</style>
-
-
 <style id="dirac-recovery-verify-after-2-fails-css">
+#a2fModal.recovery-open .a2f-actions,
+#a2fModal.recovery-open .a2f-result,
+#a2fModal.recovery-open #a2fErrorMsg,
+#a2fModal.recovery-open #a2fStatusMsg{display:none!important}
 #diracRecoveryVerifyBox.dirac-recovery-verify-box{
-  display:none!important;
-  margin-top:16px!important;
-  padding:16px!important;
-  border-radius:24px!important;
-  background:linear-gradient(180deg,#ffffff,#f8fafc)!important;
-  border:1px solid #dbeafe!important;
+  display:none!important;margin:16px 0 0!important;padding:16px!important;border-radius:24px!important;
+  background:linear-gradient(180deg,#ffffff,#f8fafc)!important;border:1px solid #dbeafe!important;
   box-shadow:0 18px 45px rgba(37,99,235,.10), inset 0 1px 0 rgba(255,255,255,.85)!important;
-  color:#111827!important;
-  animation:diracRecoverySlideIn .32s cubic-bezier(.2,.9,.2,1) both;
+  color:#111827!important;animation:diracRecoverySlideIn .32s cubic-bezier(.2,.9,.2,1) both;
 }
 #diracRecoveryVerifyBox.dirac-recovery-verify-box.is-unlocked{display:block!important}
 #diracRecoveryVerifyBox .dirac-recovery-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
@@ -3316,12 +3304,10 @@ html[data-effective-theme="dark"] .dirac-recovery-verify-box{background:#fff7ed!
 #diracRecoveryVerifyBox .dirac-recovery-warning{
   margin-top:10px;padding:10px 12px;border-radius:16px;background:#eff6ff;border:1px solid #dbeafe;color:#1e3a8a;font-size:.76rem;line-height:1.45;font-weight:700;
 }
-html[data-effective-theme="dark"] #diracRecoveryVerifyBox.dirac-recovery-verify-box{
-  background:linear-gradient(180deg,#0f172a,#111827)!important;border-color:rgba(96,165,250,.34)!important;color:#f8fafc!important;
-}
-html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#f8fafc!important}
-html[data-effective-theme="dark"] #diracRecoveryVerifyBox p{color:#cbd5e1!important}
-html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify-input{background:#020617!important;color:#f8fafc!important;border-color:rgba(96,165,250,.38)!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox.dirac-recovery-verify-box{background:linear-gradient(180deg,#ffffff,#f8fafc)!important;border-color:#dbeafe!important;color:#111827!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#111827!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox p{color:#64748b!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
 @keyframes diracRecoverySlideIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 </style>
 
@@ -6302,6 +6288,24 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 </script>
 
 
+
+<script id="dirac-sound-restore-guard-js">
+(function(){
+  'use strict';
+  function restoreSound(){
+    try{
+      localStorage.setItem('dirac_ui_sound_enabled_v2','true');
+      localStorage.setItem('dirac_ui_sound_enabled_v1','true');
+      if(window.DiracSound && window.DiracSound.setEnabled) window.DiracSound.setEnabled(true);
+    }catch(_){}
+  }
+  function clickSound(){ try{ if(window.DiracSound && window.DiracSound.play) window.DiracSound.play('click'); }catch(_){} }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restoreSound, {once:true});
+  else restoreSound();
+  document.addEventListener('pointerdown', function(){ restoreSound(); clickSound(); }, {capture:true, passive:true});
+})();
+</script>
+
 <script id="dirac-forgot-password-secure-js">
 (function(){
   'use strict';
@@ -6405,6 +6409,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
 
 
+
 <script id="dirac-recovery-code-verify-pnp-js">
 (function(){
   'use strict';
@@ -6414,12 +6419,9 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   var currentFailedA2FAttempts = 0;
 
   function $(sel, root){ return (root || document).querySelector(sel); }
-  function readSession(){
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY) || '{}') || {}; } catch (_) { return {}; }
-  }
-  function writeSession(session){
-    try { localStorage.setItem(AUTH_KEY, JSON.stringify(session || {})); } catch (_) {}
-  }
+  function readSession(){ try { return JSON.parse(localStorage.getItem(AUTH_KEY) || '{}') || {}; } catch (_) { return {}; } }
+  function writeSession(session){ try { localStorage.setItem(AUTH_KEY, JSON.stringify(session || {})); } catch (_) {} }
+  function normalizeRecoveryCodeInput(value){ return String(value || '').replace(/\s+/g,'').trim(); }
   function authHeaders(){
     var session = readSession();
     var headers = {'Accept':'application/json','Content-Type':'application/json'};
@@ -6456,27 +6458,38 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     } catch (_) {}
     return true;
   }
+  function playSound(kind){ try{ if(window.DiracSound && window.DiracSound.play) window.DiracSound.play(kind || 'click'); }catch(_){} }
   function showStatus(box, text, ok){
     var status = $('.dirac-recovery-verify-status', box);
-    if(status){
-      status.textContent = text;
-      status.style.color = ok ? '#15803d' : '#1e40af';
-    }
+    if(status){ status.textContent = text; status.style.color = ok ? '#15803d' : '#1e40af'; }
+  }
+  function setRecoveryMode(open){
+    var modal = document.getElementById('a2fModal');
+    if(modal) modal.classList.toggle('recovery-open', !!open);
+  }
+  function clearBaseA2FError(){
+    try{
+      var result = document.getElementById('a2fResult');
+      if(result){ result.className = 'a2f-result'; result.textContent = ''; }
+      var err = document.getElementById('a2fErrorMsg'); if(err) err.textContent = '';
+      var status = document.getElementById('a2fStatusMsg'); if(status) status.textContent = '';
+    }catch(_){}
   }
   function reveal(reason){
     install();
     var box = document.getElementById('diracRecoveryVerifyBox');
     if(!box) return;
+    clearBaseA2FError();
+    setRecoveryMode(true);
     box.classList.add('is-unlocked');
     box.setAttribute('aria-hidden','false');
-    var statusText = reason === 'two_failed'
-      ? 'Opsi recovery code dibuka otomatis karena kode A2F salah 2x.'
-      : 'Opsi recovery code dibuka.';
-    showStatus(box, statusText, true);
+    showStatus(box, reason === 'two_failed' ? 'Opsi recovery code dibuka otomatis karena kode A2F salah 2x.' : 'Opsi recovery code dibuka.', true);
+    playSound('success');
     try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
   }
   function hide(reason){
     currentFailedA2FAttempts = 0;
+    setRecoveryMode(false);
     var box = document.getElementById('diracRecoveryVerifyBox');
     if(!box) return;
     box.classList.remove('is-unlocked');
@@ -6484,6 +6497,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     var input = $('.dirac-recovery-verify-input', box);
     if(input) input.value = '';
     showStatus(box, '', true);
+    playSound('click');
   }
   function recordFailedA2FAttempt(count, reason){
     currentFailedA2FAttempts = Number(count || currentFailedA2FAttempts + 1);
@@ -6492,14 +6506,18 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
   async function verifyRecoveryCode(box){
     var input = $('.dirac-recovery-verify-input', box);
-    var code = input ? String(input.value || '').trim() : '';
+    var code = normalizeRecoveryCodeInput(input ? input.value : '');
+    if(input && input.value !== code) input.value = code;
     if(Array.from(code).length !== 500){
-      showStatus(box, 'Recovery code harus tepat 500 karakter dari file TXT.', false);
+      showStatus(box, 'Recovery code harus tepat 500 karakter. Spasi/baris baru akan dibersihkan otomatis.', false);
+      playSound('error');
       return;
     }
     var btn = $('.dirac-recovery-verify-submit', box);
     var old = btn && btn.textContent;
     if(btn){ btn.disabled = true; btn.textContent = 'Memverifikasi...'; }
+    showStatus(box, 'Menghubungi server recovery...', true);
+    playSound('loading');
     try{
       var res = await fetch(API_ENDPOINT + '?action=customer_security_recovery_code_verify', {
         method:'POST',
@@ -6511,18 +6529,22 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       });
       var data = await res.clone().json().catch(function(){ return null; });
       if(!res.ok || !data || data.ok !== true || data.verified !== true){
-        throw new Error((data && (data.message || data.error)) || 'Recovery code ditolak.');
+        throw new Error((data && (data.message || data.error || data.code)) || 'Recovery code ditolak.');
       }
       if(!persistProof(data)) throw new Error('Server tidak mengirim MFA proof.');
       showStatus(box, 'Recovery code valid. Membuka dashboard...', true);
+      playSound('success');
       if(input) input.value = '';
       setTimeout(function(){ window.location.href = 'dashboard.html'; }, 650);
     }catch(e){
       var raw = e && e.message ? e.message : 'Recovery code gagal diverifikasi.';
-      var friendly = /load failed|failed to fetch|network/i.test(raw)
-        ? 'Gagal menghubungi server. Pastikan API recovery verify sudah ter-deploy dan dependency argon2 sudah terpasang.'
-        : raw;
+      var friendly = /ARGON2ID|argon2/i.test(raw)
+        ? 'Backend belum siap: dependency argon2 belum terpasang di package.json / belum redeploy.'
+        : /load failed|failed to fetch|network/i.test(raw)
+          ? 'Gagal menghubungi server recovery. Cek Vercel Logs untuk action customer_security_recovery_code_verify.'
+          : raw;
       showStatus(box, friendly, false);
+      playSound('error');
     }finally{
       if(btn){ btn.disabled = false; btn.textContent = old || 'Verifikasi recovery code'; }
     }
@@ -6532,40 +6554,34 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(document.getElementById('diracRecoveryVerifyBox')) return;
     var modal = document.getElementById('a2fModal');
     if(!modal) return;
-    var target = modal.querySelector('.a2f-preview') || modal.querySelector('.a2f-main') || modal.querySelector('.a2f-card') || modal;
+    var preview = document.getElementById('a2fPreview');
+    var result = document.getElementById('a2fResult');
+    var container = preview && preview.parentNode ? preview.parentNode : modal.querySelector('.a2f-card') || modal;
     var box = document.createElement('div');
     box.id = 'diracRecoveryVerifyBox';
     box.className = 'dirac-recovery-verify-box';
     box.setAttribute('aria-hidden','true');
     box.innerHTML =
-      '<div class="dirac-recovery-head">' +
-        '<div class="dirac-recovery-icon">↺</div>' +
-        '<div><h3>Gunakan recovery code</h3><span class="dirac-recovery-kicker">Muncul setelah A2F salah 2x</span></div>' +
-      '</div>' +
-      '<p>Tempel 1 recovery code 500 karakter dari file TXT. Kode hanya bisa dipakai sekali dan setelah dipakai langsung expired.</p>' +
+      '<div class="dirac-recovery-head"><div class="dirac-recovery-icon">↺</div><div><h3>Gunakan recovery code</h3><span class="dirac-recovery-kicker">Muncul otomatis setelah A2F salah 2x</span></div></div>' +
+      '<p>Tempel 1 recovery code 500 karakter dari file TXT. Spasi atau baris baru akan dibersihkan otomatis. Kode hanya bisa dipakai sekali.</p>' +
       '<textarea class="dirac-recovery-verify-input" autocomplete="one-time-code" spellcheck="false" placeholder="Tempel recovery code 500 karakter di sini"></textarea>' +
-      '<div class="dirac-recovery-verify-actions">' +
-        '<button class="btn-primary dirac-recovery-verify-submit" type="button">Verifikasi recovery code</button>' +
-        '<button class="dirac-recovery-hide-btn" type="button">Tutup</button>' +
-      '</div>' +
-      '<div class="dirac-recovery-warning">Jangan bagikan recovery code. Jika valid, kode langsung ditandai used/expired oleh backend.</div>' +
+      '<div class="dirac-recovery-verify-actions"><button class="dirac-recovery-verify-submit" type="button">Verifikasi recovery code</button><button class="dirac-recovery-hide-btn" type="button">Tutup</button></div>' +
+      '<div class="dirac-recovery-warning">Jika valid, backend langsung menandai kode sebagai used/expired. Jangan bagikan recovery code.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
-    target.appendChild(box);
+    if(result && result.parentNode) result.parentNode.insertBefore(box, result);
+    else if(preview && preview.nextSibling) container.insertBefore(box, preview.nextSibling);
+    else container.appendChild(box);
     $('.dirac-recovery-verify-submit', box).addEventListener('click', function(){ verifyRecoveryCode(box); });
     $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide('manual'); });
   }
 
-  window.DiracRecoveryVerifyGate = {
-    install: install,
-    reveal: reveal,
-    hide: hide,
-    recordFailedA2FAttempt: recordFailedA2FAttempt
-  };
+  window.DiracRecoveryVerifyGate = { install: install, reveal: reveal, hide: hide, recordFailedA2FAttempt: recordFailedA2FAttempt };
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
   else install();
 })();
 </script>
+
 
 
 </body>
