@@ -655,7 +655,6 @@
       const requestId = cryptoRandomId('security_review');
       const result = await safeFetchJson(CONFIG.accountRequestAction, {
         method: 'POST',
-        headers: { 'Idempotency-Key': requestId },
         body: {
           request_type: 'security_review',
           reason: 'Customer meminta review keamanan akun dari Security Center.',
@@ -881,7 +880,6 @@
       const requestId = cryptoRandomId('recovery_codes');
       const result = await safeFetchJson(CONFIG.recoveryCodesGenerateAction, {
         method: 'POST',
-        headers: { 'Idempotency-Key': requestId },
         body: { count: 10, idempotency_key: requestId }
       });
       if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Generate'; }
