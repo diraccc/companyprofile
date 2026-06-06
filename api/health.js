@@ -107,6 +107,9 @@ function setCors(req, res, options = {}) {
       ? [
           'Content-Type',
           'Authorization',
+          'X-Supabase-Access-Token',
+          'X-Domain-Access-Token',
+          'X-Dirac-Access-Token',
           'X-Dirac-Admin',
           'X-Domain-Refresh',
           'X-Refresh-Token',
