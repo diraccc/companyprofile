@@ -4770,7 +4770,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       selectedPasskey:'Passkey siap dibuat', selectedAuthenticator:'Authenticator siap diverifikasi', selectedEmail:'Email OTP siap dikirim',
       pillPasskey:'Anti-phishing', pillAuthenticator:'Kode 6 digit', pillEmail:'OTP email',
       beginPasskey:'Menyiapkan passkey...', beginAuthenticator:'Menyiapkan setup key Authenticator...', beginEmail:'Mengirim kode email...',
-      verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Endpoint A2F belum siap. Cek koneksi/server lalu coba lagi.',
+      verifyHelp:'Masukkan kode 6 digit, lalu tekan Lanjutkan.', demoCode:'Kode A2F salah. Cek koneksi/server lalu coba lagi.',
       resendReady:'Kirim ulang kode sekarang', resendWait:'Kirim ulang dalam {s} detik', resendDone:'Setup key baru disiapkan. Salin setup key, lalu masukkan kode dari Authenticator.',
       passkeyNeedsServer:'Passkey membutuhkan HTTPS, dukungan WebAuthn perangkat, dan endpoint /api/2fa/start-step serta /api/2fa/verify-step aktif.',
       passkeyCancel:'Pembuatan passkey dibatalkan atau gagal. A2F belum diaktifkan.', unsupported:'Browser/perangkat ini belum mendukung metode tersebut.',
@@ -4829,6 +4829,8 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     updateActionText();
   }
   function setMessage(type, msg){
+    if(arguments[0] === 'error') msg = diracUserSafeAuthMessage(msg, 'verify');
+
     var status = $('#a2fStatusMsg'), error = $('#a2fErrorMsg'), card = $('#a2fModal .a2f-card');
     if(status){ status.classList.remove('show'); status.textContent = ''; }
     if(error){ error.classList.remove('show'); error.textContent = ''; }
@@ -5055,7 +5057,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         var res = await fetch(urls[i], {method:'POST', mode:'cors', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:credentialMode, cache:'no-store'});
         var data = await res.clone().json().catch(function(){return null;});
         if(res.ok && data && data.ok !== false) return data;
-        var message = data && (data.error || data.message || data.hint || data.details) ? (data.error || data.message || data.hint || data.details) : 'Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.';
+        var message = data && (data.error || data.message || data.hint || data.details) ? (data.error || data.message || data.hint || data.details) : 'Kode A2F salah. Masukkan 6 digit terbaru dari aplikasi Authenticator.';
         var err = new Error(message);
         err.response = data;
         err.status = res.status;
@@ -5064,7 +5066,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         lastError = e;
       }
     }
-    throw lastError || new Error('Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.');
+    throw lastError || new Error('Kode A2F salah. Masukkan 6 digit terbaru dari aplikasi Authenticator.');
   }
   async function beginVerifyStep(resend){
     state.attempts = 0; resetOtpBoxes(); clearResult(); setStep(2); try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.hide('begin_verify'); }catch(_e){}
@@ -5090,8 +5092,35 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     }
   }
 
+
+  function diracUserSafeAuthMessage(message, context) {
+    var raw = String(message || '').trim();
+    var low = raw.toLowerCase();
+
+    if (/endpoint a2f|backend error|backend|server rejected|not verified|verify failed|internal|supabase|vercel|rpc|function|schema|argon2|hash/i.test(raw)) {
+      if (context === 'setup') return sanitized || 'A2F belum bisa dimulai. Coba lagi sebentar.';
+      return 'Kode A2F salah. Masukkan 6 digit terbaru dari aplikasi Authenticator.';
+    }
+
+    if (/network|load failed|failed to fetch|timeout|gagal menghubungi/i.test(raw)) {
+      return 'Gagal menghubungi server. Coba lagi sebentar.';
+    }
+
+    if (/expired|session|login|unauthorized|401|belum login|sesi/i.test(raw)) {
+      return 'Sesi login tidak valid. Silakan login ulang.';
+    }
+
+    if (/rate|too many|429|terlalu banyak/i.test(raw)) {
+      return 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.';
+    }
+
+    return raw || 'Kode A2F salah. Masukkan 6 digit terbaru dari aplikasi Authenticator.';
+  }
+
   function a2fFriendlyVerifyMessage(error, remaining) {
-    var raw = String(error && error.message ? error.message : error || '').toLowerCase();
+    var rawOriginal = String(error && error.message ? error.message : error || '');
+    var sanitized = diracUserSafeAuthMessage(rawOriginal, 'verify');
+    var raw = rawOriginal.toLowerCase();
 
     if (remaining <= 0) return t('locked');
 
@@ -5107,11 +5136,13 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       return 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.';
     }
 
-    return 'Kode A2F salah. Masukkan 6 digit terbaru dari aplikasi Authenticator. Sisa percobaan: ' + remaining + '.';
+    return sanitized.indexOf('Kode A2F salah') === 0 ? sanitized + ' Sisa percobaan: ' + remaining + '.' : sanitized;
   }
 
   function a2fFriendlySetupMessage(error) {
-    var raw = String(error && error.message ? error.message : error || '').toLowerCase();
+    var rawOriginal = String(error && error.message ? error.message : error || '');
+    var sanitized = diracUserSafeAuthMessage(rawOriginal, 'setup');
+    var raw = rawOriginal.toLowerCase();
     if (/network|load failed|failed to fetch|timeout/i.test(raw)) return 'Gagal menghubungi server. Coba lagi sebentar.';
     if (/session|login|unauthorized|401|belum login|sesi/i.test(raw)) return 'Sesi login tidak valid. Silakan login ulang.';
     return 'A2F belum bisa dimulai. Coba lagi sebentar.';
