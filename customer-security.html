@@ -51,6 +51,9 @@
     .session-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}.session-actions .btn{min-height:30px;padding:6px 9px;font-size:.68rem}.status-card{transition:transform .28s var(--ease),border-color .28s var(--ease)}.status-card:hover{transform:translateY(-2px);border-color:var(--line2)}
 
 
+
+    .modal-backdrop{position:fixed;inset:0;z-index:9998;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(14px)}.modal-backdrop[hidden]{display:none}.modal-card{width:min(560px,100%);max-height:min(720px,88vh);overflow:auto;border:1px solid var(--line2);border-radius:24px;background:linear-gradient(180deg,rgba(17,25,39,.98),rgba(6,10,16,.98));box-shadow:0 24px 90px rgba(0,0,0,.65);padding:16px}.recovery-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.recovery-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;text-align:center;font-weight:900;color:#fff7d7;font-size:.84rem}.gate-lock{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:rgba(5,6,8,.88);backdrop-filter:blur(10px);padding:18px;text-align:center}.gate-lock-card{width:min(420px,100%);border:1px solid rgba(239,68,68,.28);background:rgba(17,25,39,.95);border-radius:24px;padding:20px}.gate-lock-card h1{margin:0 0 8px;font-size:1.2rem}.gate-lock-card p{margin:0;color:var(--muted)}
+
     .mobile-action-bar{position:fixed;left:10px;right:10px;bottom:10px;z-index:60;display:none;gap:8px;align-items:center;justify-content:space-between;padding:9px;border:1px solid rgba(255,255,255,.10);border-radius:20px;background:rgba(7,9,13,.84);backdrop-filter:blur(18px);box-shadow:0 18px 50px rgba(0,0,0,.42)}
     .mobile-action-bar .btn{flex:1;min-height:42px;padding:9px 10px;font-size:.76rem}
     .skeleton{position:relative;overflow:hidden;color:transparent!important;background:rgba(255,255,255,.06)!important;border-radius:10px}.skeleton:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);animation:skeletonSweep 1.1s linear infinite}@keyframes skeletonSweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
@@ -134,7 +137,7 @@
         <div class="panel-title"><h2>Kontrol keamanan</h2><span class="tag warn">Write locked</span></div>
         <div class="action-grid">
           <article class="action-card"><div><h3>🔐 2FA/A2F</h3><p>A2F wajib aktif untuk semua akun. Nonaktifkan A2F tidak disediakan demi keamanan.</p></div><div class="action-row"><span class="locked">🔒 Locked</span><button class="btn ghost locked-action" type="button" data-locked-action="A2F wajib aktif">Kelola</button></div></article>
-          <article class="action-card"><div><h3>🧾 Recovery codes</h3><p>Harus dibuat server-side, di-hash, dan ditampilkan sekali.</p></div><div class="action-row"><span class="locked">🔒 Server</span><button class="btn ghost locked-action" type="button" data-locked-action="Recovery codes">Generate</button></div></article>
+          <article class="action-card"><div><h3>🧾 Recovery codes</h3><p>Dibuat server-side, disimpan sebagai hash, dan ditampilkan sekali.</p></div><div class="action-row"><span class="locked">🛡️ MFA</span><button class="btn ghost" type="button" id="recoveryCodesBtn">Generate</button></div></article>
           <article class="action-card"><div><h3>📱 Perangkat</h3><p>Cabut sesi lain memakai guard backend, MFA proof, rate limit, dan audit log.</p></div><div class="action-row"><span class="locked">🛡️ Guarded</span><a class="btn ghost" href="#sessions">Lihat</a><button class="btn ghost" type="button" id="revokeOthersBtn">Logout lain</button></div></article>
           <article class="action-card"><div><h3>📦 Request akun</h3><p>Export/deactivate/security review wajib antrean backend.</p></div><div class="action-row"><span class="locked">🔒 Pending</span><button class="btn ghost" type="button" id="securityReviewBtn">Request</button></div></article>
         </div>
@@ -194,6 +197,21 @@
     </div>
   </footer>
 
+  <div class="modal-backdrop" id="recoveryModal" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="recoveryModalTitle">
+      <div class="panel-title">
+        <h2 id="recoveryModalTitle">Recovery codes</h2>
+        <button class="icon-btn" type="button" id="closeRecoveryModal" aria-label="Tutup">×</button>
+      </div>
+      <p class="tiny">Simpan kode ini sekarang. Kode hanya tampil sekali dan disimpan sebagai hash di backend.</p>
+      <div class="recovery-grid" id="recoveryCodesGrid"></div>
+      <div class="action-row" style="margin-top:12px">
+        <button class="btn primary" type="button" id="copyRecoveryCodesBtn">Copy codes</button>
+        <button class="btn ghost" type="button" id="hideRecoveryCodesBtn">Saya sudah simpan</button>
+      </div>
+    </section>
+  </div>
+
   <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
 
   <script>
@@ -208,6 +226,8 @@
       revokeSessionAction: 'customer_security_revoke_session',
       revokeOtherSessionsAction: 'customer_security_revoke_other_sessions',
       accountRequestAction: 'customer_security_account_request',
+      recoveryCodesStatusAction: 'customer_security_recovery_codes_status',
+      recoveryCodesGenerateAction: 'customer_security_recovery_codes_generate',
       logoutAction: 'domain_logout',
       loginPage: 'masuk.html',
       fallbackLoginPage: 'masuk (3).html',
@@ -769,6 +789,10 @@
       $('#revokeOthersBtn')?.addEventListener('click', revokeOtherSessions);
       $('#mobileRevokeOthersBtn')?.addEventListener('click', revokeOtherSessions);
       $('#securityReviewBtn')?.addEventListener('click', createSecurityReviewRequest);
+      $('#recoveryCodesBtn')?.addEventListener('click', generateRecoveryCodes);
+      $('#closeRecoveryModal')?.addEventListener('click', closeRecoveryModal);
+      $('#hideRecoveryCodesBtn')?.addEventListener('click', closeRecoveryModal);
+      $('#copyRecoveryCodesBtn')?.addEventListener('click', copyRecoveryCodes);
       $$('.locked-action').forEach((button) => {
         button.addEventListener('click', () => {
           const actionName = button.getAttribute('data-locked-action') || 'Aksi keamanan';
@@ -786,6 +810,92 @@
       window.addEventListener('pageshow', (event) => { if (event.persisted) refreshSecurity(); });
       document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSecurity(); });
     }
+
+
+    function redirectToLogin(reason = 'not_verified') {
+      try { sessionStorage.setItem('dirac_security_redirect_reason', reason); } catch (_) {}
+      const overlay = document.createElement('div');
+      overlay.className = 'gate-lock';
+      overlay.innerHTML = '<div class="gate-lock-card"><h1>Sesi tidak valid</h1><p>Mengarahkan ke halaman masuk...</p></div>';
+      document.body.appendChild(overlay);
+      setTimeout(() => { window.location.replace(CONFIG.loginUrl || '/masuk.html'); }, CONFIG.gateRedirectDelayMs || 500);
+    }
+
+    async function runSecurityGate() {
+      const result = await safeFetchJson(CONFIG.guardStatusAction);
+      if (!result.ok || !(result.data && result.data.linked === true && result.data.guarded_actions_ready === true)) {
+        redirectToLogin(result.status === 423 ? 'blocked' : 'backend_not_verified');
+        return false;
+      }
+      return true;
+    }
+
+    async function loadRecoveryCodeStatus() {
+      if (!CONFIG.recoveryCodesStatusAction) return null;
+      const result = await safeFetchJson(CONFIG.recoveryCodesStatusAction);
+      if (result.ok && result.data) {
+        const unused = Number(result.data.unused || 0);
+        if (unused > 0) toast('Recovery codes tersedia', unused + ' kode belum dipakai.');
+      }
+      return result;
+    }
+
+    function openRecoveryModal(codes) {
+      const modal = $('#recoveryModal');
+      const grid = $('#recoveryCodesGrid');
+      if (!modal || !grid) return;
+      grid.innerHTML = '';
+      (codes || []).forEach((code) => {
+        const item = document.createElement('div');
+        item.className = 'recovery-code';
+        item.textContent = String(code || '');
+        grid.appendChild(item);
+      });
+      modal.hidden = false;
+      modal.dataset.codes = JSON.stringify(codes || []);
+    }
+
+    function closeRecoveryModal() {
+      const modal = $('#recoveryModal');
+      const grid = $('#recoveryCodesGrid');
+      if (grid) grid.innerHTML = '';
+      if (modal) { modal.dataset.codes = '[]'; modal.hidden = true; }
+    }
+
+    async function copyRecoveryCodes() {
+      const modal = $('#recoveryModal');
+      let codes = [];
+      try { codes = JSON.parse(modal && modal.dataset.codes || '[]'); } catch (_) {}
+      if (!codes.length) return;
+      try {
+        await navigator.clipboard.writeText(codes.join('\\n'));
+        toast('Recovery codes disalin', 'Simpan di tempat aman. Kode tidak akan ditampilkan ulang.');
+      } catch (_) { toast('Copy gagal', 'Salin manual dari daftar kode yang tampil.'); }
+    }
+
+    async function generateRecoveryCodes() {
+      if (!window.confirm('Generate recovery codes baru? Kode lama akan dicabut. Pastikan MFA/re-auth aktif.')) return;
+      const btn = $('#recoveryCodesBtn');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.classList.add('is-loading'); btn.textContent = 'Memproses'; }
+      const requestId = cryptoRandomId('recovery_codes');
+      const result = await safeFetchJson(CONFIG.recoveryCodesGenerateAction, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': requestId },
+        body: { count: 10, idempotency_key: requestId }
+      });
+      if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Generate'; }
+      if (result.ok && result.data && Array.isArray(result.data.codes)) {
+        openRecoveryModal(result.data.codes);
+        toast('Recovery codes dibuat', 'Kode hanya tampil sekali. Simpan sekarang.');
+        await refreshSecurity();
+      } else {
+        const msg = cleanText(result.data && result.data.message, 'Recovery codes membutuhkan MFA/re-auth atau storage belum siap.');
+        toast('Recovery codes ditolak', msg);
+        if (result.status === 401 || result.status === 423) redirectToLogin(result.status === 423 ? 'blocked' : 'not_verified');
+      }
+    }
+
 
     document.addEventListener('DOMContentLoaded', () => {
       initChrome();
