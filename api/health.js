@@ -78,7 +78,7 @@ module.exports = async function handler(req, res) {
     ok: true,
     service: 'dirac-ai',
     chatEndpoint: '/api/chat',
-    time: new Date().toISOString()
+    time: diracNowIso()
   };
 
   if (isAdminRequest(req) || process.env.AI_PUBLIC_HEALTH_DETAILS === 'true') {
@@ -216,7 +216,7 @@ async function domainHealth(req, res) {
       createOrder: '/api/health?action=create-order',
       getOrders: '/api/health?action=get-orders'
     },
-    time: new Date().toISOString()
+    time: diracNowIso()
   });
 }
 
@@ -1881,7 +1881,7 @@ async function customerSecurityStatus(req, res) {
         ? 'Akun sudah terhubung. Data keamanan dapat dibaca melalui backend service_role-only.'
         : 'Akun belum terhubung ke customer profile. Data keamanan belum dibuat.',
       next_allowed_phase: 'backend_api_service_role_only',
-      time: new Date().toISOString()
+      time: diracNowIso()
     });
   } catch (error) {
     return res.status(500).json({
@@ -1942,7 +1942,7 @@ function customerSecuritySchemaPendingStatus(user, endpoint) {
     direct_frontend_table_access: false,
     message: 'Backend login valid, tetapi Supabase REST belum mengenali tabel security_customer. Fitur dikunci aman sampai schema REST siap.',
     next_allowed_phase: 'fix_supabase_rest_schema_cache_or_service_role_visibility',
-    time: new Date().toISOString()
+    time: diracNowIso()
   };
 }
 
@@ -2036,7 +2036,7 @@ async function customerSecurityOverview(req, res) {
         security_data_ready: false,
         overview: customerSecurityEmptyOverview(),
         message: 'Akun belum terhubung ke customer profile. Data keamanan belum dibuat.',
-        time: new Date().toISOString()
+        time: diracNowIso()
       });
     }
 
@@ -2074,7 +2074,7 @@ async function customerSecurityOverview(req, res) {
       security_data_ready: true,
       overview: overviewResult.data,
       message: 'Overview keamanan akun berhasil dibaca melalui backend.',
-      time: new Date().toISOString()
+      time: diracNowIso()
     });
   } catch (error) {
     return res.status(500).json({
@@ -2733,6 +2733,7 @@ const CUSTOMER_SECURITY_RATE_LIMIT_STORE = globalThis.__DIRAC_CUSTOMER_SECURITY_
 globalThis.__DIRAC_CUSTOMER_SECURITY_RATE_LIMIT_STORE__ = CUSTOMER_SECURITY_RATE_LIMIT_STORE;
 
 module.exports = async function customerSecurityGuardedActionsWrapper(req, res) {
+  diracApplySecurityResponseHeaders(res);
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = customerSecurityGuardedNormalizeAction(rawAction);
 
@@ -2775,8 +2776,11 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
         mfa_required_for_write: true,
         mfa_verified_now: Boolean(access.mfa && access.mfa.ok),
         guarded_actions_ready: true,
+        rate_limit_mode: 'memory_local_basic',
+        write_guard: 'mfa_required',
+        customer_id_source: 'security_customer_auth_links',
         message: 'Guard customer security aktif. Aksi write tetap membutuhkan MFA/re-auth.',
-        time: new Date().toISOString()
+        time: diracNowIso()
       });
     }
 
@@ -2800,7 +2804,7 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
     console.error('[customer-security-guarded-action]', customerSecuritySafeLogError(error));
     return res.status(500).json({
       ok: false,
-      message: 'Aksi keamanan belum dapat diproses.',
+      message: diracSafePublicMessage('Aksi keamanan belum dapat diproses.'),
       source: 'customer_security_guarded_action'
     });
   }
@@ -2981,7 +2985,7 @@ async function customerSecurityRevokeSession(req, res, action) {
     ok: true,
     message: 'Sesi perangkat berhasil dicabut.',
     revoked_session_id: sessionId,
-    time: new Date().toISOString()
+    time: diracNowIso()
   });
 }
 
@@ -3030,7 +3034,7 @@ async function customerSecurityRevokeOtherSessions(req, res, action) {
     ok: true,
     message: rows.length ? 'Semua sesi perangkat lain berhasil dicabut.' : 'Tidak ada sesi perangkat lain yang aktif.',
     revoked_count: rows.length,
-    time: new Date().toISOString()
+    time: diracNowIso()
   });
 }
 
@@ -3047,6 +3051,27 @@ async function customerSecurityCreateAccountRequest(req, res, action) {
   const requestType = String(body.request_type || 'security_review').trim().toLowerCase();
   const safeType = allowed.has(requestType) ? requestType : 'security_review';
   const reason = customerSecuritySanitizeReason(body.reason || 'Customer meminta review keamanan akun.');
+  const idempotencyKey = customerSecuritySanitizeReason(req.headers && (req.headers['idempotency-key'] || req.headers['x-idempotency-key']) || body.idempotency_key || '');
+
+  if (idempotencyKey) {
+    const existingPath = '/rest/v1/security_customer_account_requests?select=' +
+      encodeURIComponent('id,request_type,status,created_at') +
+      '&customer_id=eq.' + encodeURIComponent(access.customerId) +
+      '&request_type=eq.' + encodeURIComponent(safeType) +
+      '&status=in.(pending,processing)' +
+      '&order=created_at.desc&limit=1';
+
+    const existing = await supabaseFetch(existingPath, { method: 'GET', auth: 'service' });
+    if (existing.ok && Array.isArray(existing.data) && existing.data.length) {
+      return res.status(200).json({
+        ok: true,
+        message: 'Request keamanan akun sudah ada dan masih diproses.',
+        request: existing.data[0],
+        idempotent: true,
+        time: diracNowIso()
+      });
+    }
+  }
 
   const created = await supabaseFetch('/rest/v1/security_customer_account_requests', {
     method: 'POST',
@@ -3060,7 +3085,8 @@ async function customerSecurityCreateAccountRequest(req, res, action) {
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       metadata: {
         source: 'customer_security_guarded_action',
-        action
+        action,
+        idempotency_key_present: Boolean(idempotencyKey)
       }
     }]
   });
@@ -3084,7 +3110,7 @@ async function customerSecurityCreateAccountRequest(req, res, action) {
     ok: true,
     message: 'Request keamanan akun berhasil dibuat.',
     request: rows[0] || null,
-    time: new Date().toISOString()
+    time: diracNowIso()
   });
 }
 
@@ -3125,4 +3151,38 @@ async function customerSecurityWriteGuardEvent(customerId, options = {}) {
   } catch (error) {
     console.error('[customer-security-guard-event]', customerSecuritySafeLogError(error));
   }
+}
+
+
+/* ============================================================
+   GLOBAL RESPONSE SECURITY HEADERS - APPEND SAFE
+   Header ini hanya memperkuat response API health.js.
+   Tidak mengubah login/hash/A2F/MFA lama.
+   ============================================================ */
+
+function diracApplySecurityResponseHeaders(res, options = {}) {
+  try {
+    if (!res || !res.setHeader) return;
+
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+
+    if (options.allowCors === false) {
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    }
+  } catch (_) {}
+}
+
+function diracSafePublicMessage(message, fallback = 'Permintaan belum dapat diproses.') {
+  const text = String(message || fallback || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.slice(0, 220) || fallback;
+}
+
+function diracNowIso() {
+  return new Date().toISOString();
 }
