@@ -203,10 +203,10 @@
         <h2 id="recoveryModalTitle">Recovery codes</h2>
         <button class="icon-btn" type="button" id="closeRecoveryModal" aria-label="Tutup">×</button>
       </div>
-      <p class="tiny">Simpan kode ini sekarang. Kode hanya tampil sekali dan disimpan sebagai hash di backend.</p>
+      <p class="tiny">Recovery codes tidak ditampilkan di halaman. File TXT akan di-download otomatis. Buka file itu, lalu salin hanya teks di antara penanda MULAI SALIN dan SELESAI SALIN.</p>
       <div class="recovery-grid" id="recoveryCodesGrid"></div>
       <div class="action-row" style="margin-top:12px">
-        <button class="btn primary" type="button" id="copyRecoveryCodesBtn">Copy codes</button>
+        <button class="btn primary" type="button" id="downloadRecoveryCodesBtn">Download ulang TXT</button>
         <button class="btn ghost" type="button" id="hideRecoveryCodesBtn">Saya sudah simpan</button>
       </div>
     </section>
@@ -791,7 +791,7 @@
       $('#recoveryCodesBtn')?.addEventListener('click', generateRecoveryCodes);
       $('#closeRecoveryModal')?.addEventListener('click', closeRecoveryModal);
       $('#hideRecoveryCodesBtn')?.addEventListener('click', closeRecoveryModal);
-      $('#copyRecoveryCodesBtn')?.addEventListener('click', copyRecoveryCodes);
+      $('#downloadRecoveryCodesBtn')?.addEventListener('click', redownloadRecoveryCodes);
       $$('.locked-action').forEach((button) => {
         button.addEventListener('click', () => {
           const actionName = button.getAttribute('data-locked-action') || 'Aksi keamanan';
@@ -839,19 +839,19 @@
       return result;
     }
 
-    function openRecoveryModal(codes) {
+    function openRecoveryModal(codes, batchId) {
       const modal = $('#recoveryModal');
       const grid = $('#recoveryCodesGrid');
       if (!modal || !grid) return;
       grid.innerHTML = '';
-      (codes || []).forEach((code) => {
-        const item = document.createElement('div');
-        item.className = 'recovery-code';
-        item.textContent = String(code || '');
-        grid.appendChild(item);
-      });
+      const info = document.createElement('div');
+      info.className = 'empty-state';
+      info.innerHTML = '<b>TXT sudah dibuat</b>Recovery codes tidak ditampilkan di website. Buka file TXT yang ter-download, lalu salin hanya isi di antara penanda MULAI SALIN dan SELESAI SALIN.';
+      grid.appendChild(info);
       modal.hidden = false;
       modal.dataset.codes = JSON.stringify(codes || []);
+      modal.dataset.batchId = String(batchId || '');
+      downloadRecoveryCodesTxt(codes || [], batchId || '');
     }
 
     function closeRecoveryModal() {
@@ -872,6 +872,58 @@
       } catch (_) { toast('Copy gagal', 'Salin manual dari daftar kode yang tampil.'); }
     }
 
+
+    function buildRecoveryCodesTxt(codes, batchId) {
+      const now = new Date().toISOString();
+      const lines = [];
+      lines.push('DIRAC GROUP - RECOVERY CODES');
+      lines.push('Dibuat: ' + now);
+      lines.push('Batch ID: ' + (batchId || '-'));
+      lines.push('');
+      lines.push('PENTING:');
+      lines.push('- Ada 3 recovery code aktif.');
+      lines.push('- Setiap kode panjangnya 500 karakter.');
+      lines.push('- Kode hanya boleh dipakai sekali. Setelah dipakai, kode langsung expired.');
+      lines.push('- Jangan salin baris penanda. Salin hanya isi di antara MULAI SALIN dan SELESAI SALIN.');
+      lines.push('- Simpan file ini di tempat aman. Jangan kirim ke siapa pun.');
+      lines.push('');
+      (codes || []).forEach((code, index) => {
+        const no = index + 1;
+        lines.push('===== RECOVERY CODE ' + no + ' - MULAI SALIN DI BAWAH INI =====');
+        lines.push(String(code || ''));
+        lines.push('===== RECOVERY CODE ' + no + ' - SELESAI SALIN DI ATAS INI =====');
+        lines.push('');
+      });
+      return lines.join('\n');
+    }
+
+    function downloadRecoveryCodesTxt(codes, batchId) {
+      const txt = buildRecoveryCodesTxt(codes, batchId);
+      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = 'dirac-recovery-codes-' + stamp + '.txt';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    function redownloadRecoveryCodes() {
+      const modal = $('#recoveryModal');
+      let codes = [];
+      try { codes = JSON.parse(modal && modal.dataset.codes || '[]'); } catch (_) {}
+      if (!codes.length) {
+        toast('Tidak ada kode di memori', 'Generate ulang untuk membuat file TXT baru.');
+        return;
+      }
+      downloadRecoveryCodesTxt(codes, modal && modal.dataset.batchId || '');
+      toast('TXT di-download ulang', 'Salin kode dari file TXT, bukan dari halaman website.');
+    }
+
     async function generateRecoveryCodes() {
       if (!window.confirm('Generate recovery codes baru? Kode lama akan dicabut. Pastikan MFA/re-auth aktif.')) return;
       const btn = $('#recoveryCodesBtn');
@@ -884,8 +936,8 @@
       });
       if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Generate'; }
       if (result.ok && result.data && Array.isArray(result.data.codes)) {
-        openRecoveryModal(result.data.codes);
-        toast('Recovery codes dibuat', 'Kode hanya tampil sekali. Simpan sekarang.');
+        openRecoveryModal(result.data.codes, result.data.batch_id || '');
+        toast('Recovery codes dibuat', 'File TXT di-download. Salin kode dari penanda MULAI sampai SELESAI.');
         await refreshSecurity();
       } else {
         const msg = cleanText(result.data && result.data.message, 'Recovery codes membutuhkan MFA/re-auth atau storage belum siap.');
