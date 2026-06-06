@@ -3273,6 +3273,58 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
 html[data-effective-theme="dark"] .dirac-recovery-verify-box{background:#fff7ed!important;color:#111827!important}
 </style>
 
+
+<style id="dirac-recovery-verify-after-2-fails-css">
+#diracRecoveryVerifyBox.dirac-recovery-verify-box{
+  display:none!important;
+  margin-top:16px!important;
+  padding:16px!important;
+  border-radius:24px!important;
+  background:linear-gradient(180deg,#ffffff,#f8fafc)!important;
+  border:1px solid #dbeafe!important;
+  box-shadow:0 18px 45px rgba(37,99,235,.10), inset 0 1px 0 rgba(255,255,255,.85)!important;
+  color:#111827!important;
+  animation:diracRecoverySlideIn .32s cubic-bezier(.2,.9,.2,1) both;
+}
+#diracRecoveryVerifyBox.dirac-recovery-verify-box.is-unlocked{display:block!important}
+#diracRecoveryVerifyBox .dirac-recovery-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+#diracRecoveryVerifyBox .dirac-recovery-icon{
+  width:42px;height:42px;border-radius:16px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;color:#2563eb;font-weight:950;
+}
+#diracRecoveryVerifyBox h3{margin:0!important;font-size:1.02rem!important;line-height:1.15!important;color:#111827!important;font-weight:900!important}
+#diracRecoveryVerifyBox .dirac-recovery-kicker{display:inline-flex;align-items:center;gap:6px;margin-top:3px;color:#2563eb;font-size:.72rem;font-weight:900}
+#diracRecoveryVerifyBox p{margin:8px 0 12px!important;color:#64748b!important;font-size:.84rem!important;line-height:1.5!important}
+#diracRecoveryVerifyBox .dirac-recovery-verify-input{
+  width:100%!important;min-height:118px!important;border-radius:18px!important;border:1px solid #bfdbfe!important;
+  background:#ffffff!important;color:#111827!important;padding:12px!important;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:.78rem!important;line-height:1.38!important;resize:vertical!important;
+  box-shadow:0 0 0 0 rgba(37,99,235,0)!important;outline:none!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-verify-input:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.12)!important}
+#diracRecoveryVerifyBox .dirac-recovery-verify-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px!important}
+#diracRecoveryVerifyBox .dirac-recovery-verify-submit{
+  min-height:48px!important;border:0!important;border-radius:999px!important;padding:12px 18px!important;
+  background:linear-gradient(135deg,#3b82f6,#2563eb)!important;color:#fff!important;font-weight:950!important;
+  box-shadow:0 16px 34px rgba(37,99,235,.24)!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-hide-btn{
+  min-height:48px!important;border-radius:999px!important;padding:12px 16px!important;
+  border:1px solid #dbeafe!important;background:#fff!important;color:#2563eb!important;font-weight:900!important;
+}
+#diracRecoveryVerifyBox .dirac-recovery-verify-status{margin-top:9px!important;font-size:.82rem!important;font-weight:800!important;color:#1e40af!important;min-height:18px}
+#diracRecoveryVerifyBox .dirac-recovery-warning{
+  margin-top:10px;padding:10px 12px;border-radius:16px;background:#eff6ff;border:1px solid #dbeafe;color:#1e3a8a;font-size:.76rem;line-height:1.45;font-weight:700;
+}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox.dirac-recovery-verify-box{
+  background:linear-gradient(180deg,#0f172a,#111827)!important;border-color:rgba(96,165,250,.34)!important;color:#f8fafc!important;
+}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#f8fafc!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox p{color:#cbd5e1!important}
+html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify-input{background:#020617!important;color:#f8fafc!important;border-color:rgba(96,165,250,.38)!important}
+@keyframes diracRecoverySlideIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -4820,7 +4872,7 @@ html[data-effective-theme="dark"] .dirac-recovery-verify-box{background:#fff7ed!
   }
   function selectMethod(method){
     method = method || 'passkey';
-    state.method = method; state.attempts = 0; state.verified = false; state.verifyMode = 'none'; state.recoveryCodes = [];
+    state.method = method; state.attempts = 0; state.verified = false; state.verifyMode = 'none'; state.recoveryCodes = []; try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.hide('reset'); }catch(_e){}
     clearTimeout(state.timer); clearResult(); setMessage('status', t('chooseStatus'));
     var card = $('#a2fModal .a2f-card');
     if(card){ card.classList.remove('is-verified','is-verified-pulse'); card.setAttribute('data-selected-a2f', method); }
@@ -5029,7 +5081,7 @@ html[data-effective-theme="dark"] .dirac-recovery-verify-box{background:#fff7ed!
     throw lastError || new Error('Endpoint A2F belum siap. Cek Vercel Logs dan Supabase.');
   }
   async function beginVerifyStep(resend){
-    state.attempts = 0; resetOtpBoxes(); clearResult(); setStep(2);
+    state.attempts = 0; resetOtpBoxes(); clearResult(); setStep(2); try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.hide('begin_verify'); }catch(_e){}
     var msg = state.method === 'authenticator' ? t('beginAuthenticator') : t('beginEmail');
     setMessage('status', resend ? t('resendDone') : msg);
     setBusy(true);
@@ -5055,6 +5107,7 @@ html[data-effective-theme="dark"] .dirac-recovery-verify-box{background:#fff7ed!
     var box = activeVerifyBox(); var code = syncOtpFromCells(box);
     if(!/^\d{6}$/.test(code)){
       state.attempts += 1; if(box) box.classList.add('is-invalid');
+      try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.recordFailedA2FAttempt(state.attempts,'invalid_format'); }catch(_e){}
       var left = Math.max(0, 5 - state.attempts);
       setMessage('error', left ? t('codeInvalid',{n:left}) : t('locked'));
       return;
@@ -5071,6 +5124,7 @@ html[data-effective-theme="dark"] .dirac-recovery-verify-box{background:#fff7ed!
       throw new Error('not verified');
     }catch(e){
       state.attempts += 1;
+      try{ if(window.DiracRecoveryVerifyGate) window.DiracRecoveryVerifyGate.recordFailedA2FAttempt(state.attempts,'server_rejected'); }catch(_e){}
       var remaining = Math.max(0, 5 - state.attempts);
       if(box) box.classList.add('is-invalid');
       setMessage('error', e && e.message ? e.message : (remaining ? t('codeWrong') : t('locked')));
@@ -6350,11 +6404,14 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 </script>
 
 
+
 <script id="dirac-recovery-code-verify-pnp-js">
 (function(){
   'use strict';
   var API_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
   var AUTH_KEY = 'dirac_auth_session_v1';
+  var UNLOCK_AFTER_FAILED_A2F = 2;
+  var currentFailedA2FAttempts = 0;
 
   function $(sel, root){ return (root || document).querySelector(sel); }
   function readSession(){
@@ -6403,9 +6460,36 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     var status = $('.dirac-recovery-verify-status', box);
     if(status){
       status.textContent = text;
-      status.style.color = ok ? '#15803d' : '#9a3412';
+      status.style.color = ok ? '#15803d' : '#1e40af';
     }
   }
+  function reveal(reason){
+    install();
+    var box = document.getElementById('diracRecoveryVerifyBox');
+    if(!box) return;
+    box.classList.add('is-unlocked');
+    box.setAttribute('aria-hidden','false');
+    var statusText = reason === 'two_failed'
+      ? 'Opsi recovery code dibuka otomatis karena kode A2F salah 2x.'
+      : 'Opsi recovery code dibuka.';
+    showStatus(box, statusText, true);
+    try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch (_) {}
+  }
+  function hide(reason){
+    currentFailedA2FAttempts = 0;
+    var box = document.getElementById('diracRecoveryVerifyBox');
+    if(!box) return;
+    box.classList.remove('is-unlocked');
+    box.setAttribute('aria-hidden','true');
+    var input = $('.dirac-recovery-verify-input', box);
+    if(input) input.value = '';
+    showStatus(box, '', true);
+  }
+  function recordFailedA2FAttempt(count, reason){
+    currentFailedA2FAttempts = Number(count || currentFailedA2FAttempts + 1);
+    if(currentFailedA2FAttempts >= UNLOCK_AFTER_FAILED_A2F) reveal('two_failed');
+  }
+
   async function verifyRecoveryCode(box){
     var input = $('.dirac-recovery-verify-input', box);
     var code = input ? String(input.value || '').trim() : '';
@@ -6434,34 +6518,55 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       if(input) input.value = '';
       setTimeout(function(){ window.location.href = 'dashboard.html'; }, 650);
     }catch(e){
-      showStatus(box, e && e.message ? e.message : 'Recovery code gagal diverifikasi.', false);
+      var raw = e && e.message ? e.message : 'Recovery code gagal diverifikasi.';
+      var friendly = /load failed|failed to fetch|network/i.test(raw)
+        ? 'Gagal menghubungi server. Pastikan API recovery verify sudah ter-deploy dan dependency argon2 sudah terpasang.'
+        : raw;
+      showStatus(box, friendly, false);
     }finally{
       if(btn){ btn.disabled = false; btn.textContent = old || 'Verifikasi recovery code'; }
     }
   }
+
   function install(){
     if(document.getElementById('diracRecoveryVerifyBox')) return;
     var modal = document.getElementById('a2fModal');
     if(!modal) return;
-    var target = modal.querySelector('.a2f-main') || modal.querySelector('.a2f-card') || modal;
+    var target = modal.querySelector('.a2f-preview') || modal.querySelector('.a2f-main') || modal.querySelector('.a2f-card') || modal;
     var box = document.createElement('div');
     box.id = 'diracRecoveryVerifyBox';
     box.className = 'dirac-recovery-verify-box';
+    box.setAttribute('aria-hidden','true');
     box.innerHTML =
-      '<h3>Gunakan recovery code</h3>' +
+      '<div class="dirac-recovery-head">' +
+        '<div class="dirac-recovery-icon">↺</div>' +
+        '<div><h3>Gunakan recovery code</h3><span class="dirac-recovery-kicker">Muncul setelah A2F salah 2x</span></div>' +
+      '</div>' +
       '<p>Tempel 1 recovery code 500 karakter dari file TXT. Kode hanya bisa dipakai sekali dan setelah dipakai langsung expired.</p>' +
       '<textarea class="dirac-recovery-verify-input" autocomplete="one-time-code" spellcheck="false" placeholder="Tempel recovery code 500 karakter di sini"></textarea>' +
       '<div class="dirac-recovery-verify-actions">' +
         '<button class="btn-primary dirac-recovery-verify-submit" type="button">Verifikasi recovery code</button>' +
+        '<button class="dirac-recovery-hide-btn" type="button">Tutup</button>' +
       '</div>' +
+      '<div class="dirac-recovery-warning">Jangan bagikan recovery code. Jika valid, kode langsung ditandai used/expired oleh backend.</div>' +
       '<div class="dirac-recovery-verify-status" aria-live="polite"></div>';
     target.appendChild(box);
     $('.dirac-recovery-verify-submit', box).addEventListener('click', function(){ verifyRecoveryCode(box); });
+    $('.dirac-recovery-hide-btn', box).addEventListener('click', function(){ hide('manual'); });
   }
+
+  window.DiracRecoveryVerifyGate = {
+    install: install,
+    reveal: reveal,
+    hide: hide,
+    recordFailedA2FAttempt: recordFailedA2FAttempt
+  };
+
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
   else install();
 })();
 </script>
+
 
 </body>
 </html>
