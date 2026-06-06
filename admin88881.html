@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-security-center-fetch-fix="same-origin-fallback-v1">
+<html lang="id" data-security-center-fetch-fix="same-origin-fallback-v1" data-security-center-cors-fix="token-headers-v1">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9351,7 +9351,7 @@
     function adminSecurityFriendlyError(error){
       const raw = String(error && error.message ? error.message : error || '').trim();
       if(/load failed|failed to fetch|networkerror|network request failed/i.test(raw)){
-        return 'API Security Center tidak bisa dihubungi. Pastikan /api/health.js sudah dideploy dan Vercel sudah Ready.';
+        return 'API Security Center tidak bisa dihubungi. Deploy /api/health.js terbaru; jika masih gagal, cek CORS header X-Supabase-Access-Token/X-Domain-Access-Token.';
       }
       if(/404|not found/i.test(raw)){
         return 'Endpoint Security Center belum ditemukan. Deploy /api/health.js terbaru.';
