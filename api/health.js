@@ -3834,14 +3834,19 @@ async function requireAdminSecuritySupabaseOwner(req, res, options = {}) {
   }
 
   const role = String(adminRow.role || '').trim().toLowerCase();
-  const verified = adminRow.verified === true || String(adminRow.verified || '').toLowerCase() === 'true';
+  // Kolom verified tidak wajib, karena sebagian project admin_users tidak memilikinya.
+  // Jika kolom tidak ada, admin tetap divalidasi lewat role + status.
+  const hasVerifiedColumn = Object.prototype.hasOwnProperty.call(adminRow, 'verified');
+  const verified = hasVerifiedColumn
+    ? (adminRow.verified === true || String(adminRow.verified || '').toLowerCase() === 'true')
+    : true;
   const status = String(adminRow.status || '').trim().toLowerCase();
   const activeStatus = !status || status === 'active' || status === 'enabled' || status === 'verified';
 
   if (!verified || !activeStatus) {
     res.status(403).json({
       ok: false,
-      message: 'Admin belum verified atau status tidak aktif.'
+      message: 'Admin status tidak aktif di public.admin_users.'
     });
     return null;
   }
@@ -4063,7 +4068,7 @@ async function adminSecurityFirebaseCertsNoEnv() {
 
 
 async function adminSecurityFindAdminUserSupabase(userId, email) {
-  const select = encodeURIComponent('id,user_id,uid,email,role,verified,status,created_at,updated_at');
+  const select = encodeURIComponent('id,user_id,uid,email,role,status,created_at,updated_at');
   const queries = [];
 
   if (customerSecurityLooksLikeUuid(userId)) {
@@ -4321,7 +4326,7 @@ function adminSecuritySanitizeAdminSupabase(admin) {
     uid: String(admin && admin.uid || ''),
     email: String(admin && admin.email || ''),
     role: String(admin && admin.role || ''),
-    verified: Boolean(admin && admin.verified),
+    verified: admin && Object.prototype.hasOwnProperty.call(admin, 'verified') ? Boolean(admin.verified) : true,
     status: String(admin && admin.status || ''),
     can_write: Boolean(admin && admin.canWrite)
   };
