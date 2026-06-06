@@ -3347,14 +3347,46 @@ function customerSecurityRecoveryCodeSecret() {
   return getCustomerMfaSecret();
 }
 
-function customerSecurityFormatRecoveryCode(raw) {
-  const text = String(raw || '').replace(/[^A-Z0-9]/g, '').slice(0, 20);
-  const chunks = text.match(/.{1,4}/g) || [];
-  return chunks.join('-');
+const CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH = 500;
+const CUSTOMER_SECURITY_RECOVERY_CODE_COUNT = 3;
+const CUSTOMER_SECURITY_RECOVERY_DIGITS = '0123456789';
+const CUSTOMER_SECURITY_RECOVERY_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const CUSTOMER_SECURITY_RECOVERY_SYMBOLS = '!@#$%^&*()-_=+[]{};:,.<>?/|~';
+const CUSTOMER_SECURITY_RECOVERY_SPECIAL_LETTERS = 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝŸàáâãäåæçèéêëìíîïñòóôõöøùúûüýÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĴĵĶķŁłŃńŇňŌōŎŏŐőŒœŔŕŘřŚśŜŝŞşŠšŢţŤťŪūŬŭŮůŰűŲųŴŵŶŷŹźŻżŽž';
+const CUSTOMER_SECURITY_RECOVERY_ALPHABET =
+  CUSTOMER_SECURITY_RECOVERY_DIGITS +
+  CUSTOMER_SECURITY_RECOVERY_LETTERS +
+  CUSTOMER_SECURITY_RECOVERY_SYMBOLS +
+  CUSTOMER_SECURITY_RECOVERY_SPECIAL_LETTERS;
+
+function customerSecurityPickRecoveryChar(charset) {
+  return charset[crypto.randomInt(0, charset.length)];
+}
+
+function customerSecurityShuffleRecoveryChars(chars) {
+  const arr = chars.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, i + 1);
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
 }
 
 function customerSecurityGeneratePlainRecoveryCode() {
-  return customerSecurityFormatRecoveryCode(crypto.randomBytes(15).toString('base64url').toUpperCase());
+  const chars = [
+    customerSecurityPickRecoveryChar(CUSTOMER_SECURITY_RECOVERY_DIGITS),
+    customerSecurityPickRecoveryChar(CUSTOMER_SECURITY_RECOVERY_LETTERS),
+    customerSecurityPickRecoveryChar(CUSTOMER_SECURITY_RECOVERY_SYMBOLS),
+    customerSecurityPickRecoveryChar(CUSTOMER_SECURITY_RECOVERY_SPECIAL_LETTERS)
+  ];
+
+  while (chars.length < CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH) {
+    chars.push(customerSecurityPickRecoveryChar(CUSTOMER_SECURITY_RECOVERY_ALPHABET));
+  }
+
+  return customerSecurityShuffleRecoveryChars(chars).join('');
 }
 
 function customerSecurityHashRecoveryCode(code, customerId) {
@@ -3385,7 +3417,7 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action) {
   if (!access) return;
 
   const body = await readBody(req);
-  const count = Math.min(12, Math.max(8, Math.trunc(Number(body.count || 10))));
+  const count = CUSTOMER_SECURITY_RECOVERY_CODE_COUNT;
   const now = diracNowIso();
   const batchId = customerSecuritySha256('recovery-batch:' + access.customerId + ':' + now + ':' + crypto.randomBytes(16).toString('hex')).slice(0, 32);
 
@@ -3421,5 +3453,5 @@ async function customerSecurityGenerateRecoveryCodes(req, res, action) {
     metadata: { action, count, batch_id: batchId }
   });
 
-  return res.status(200).json({ ok: true, message: 'Recovery codes berhasil dibuat. Simpan sekarang, kode hanya ditampilkan sekali.', codes: plainCodes, count: plainCodes.length, show_once: true, batch_id: batchId, time: diracNowIso() });
+  return res.status(200).json({ ok: true, message: '3 recovery codes berhasil dibuat. Download file TXT sekarang; kode hanya dikirim sekali.', codes: plainCodes, count: plainCodes.length, code_length: CUSTOMER_SECURITY_RECOVERY_CODE_LENGTH, active_code_limit: CUSTOMER_SECURITY_RECOVERY_CODE_COUNT, show_once: true, delivery: 'download_txt_only', batch_id: batchId, time: diracNowIso() });
 }
