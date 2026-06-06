@@ -3719,14 +3719,15 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
 
 
 /* ============================================================
-   ADMIN SECURITY CENTER SUPABASE-ONLY - APPEND ONLY
+   ADMIN SECURITY CENTER SUPABASE-ONLY - APPEND ONLY - 2026-06-06
    Guard:
-   - Wajib Supabase access token / domain session cookie.
-   - Backend ambil user via Supabase Auth.
-   - Backend cek public.admin_users.
-   - role wajib owner/super_admin/security_admin.
-   - verified=true dan status=active.
-   - Tidak menggunakan Firebase ENV / Firebase token.
+   - Tidak pakai Firebase ENV / Google cert / Firebase token.
+   - Wajib Supabase access token atau cookie session domain.
+   - Backend ambil user dari Supabase Auth /auth/v1/user.
+   - Backend cek public.admin_users:
+     role in owner/super_admin/security_admin
+     verified = true
+     status = active/enabled/verified atau kosong.
    - Tidak menyentuh login/hash/A2F/recovery lama.
    ============================================================ */
 
@@ -3776,28 +3777,28 @@ module.exports = async function adminSecurityCenterSupabaseWrapper(req, res) {
 async function adminSecurityHandleActionSupabase(action, req, res) {
   if (action === 'admin_security_overview') {
     if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-    const admin = await requireAdminSecuritySupabaseOwner(req, res, action);
+    const admin = await requireAdminSecuritySupabaseOwner(req, res);
     if (!admin) return;
     return adminSecurityOverviewSupabase(req, res, admin);
   }
 
   if (action === 'admin_security_events') {
     if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-    const admin = await requireAdminSecuritySupabaseOwner(req, res, action);
+    const admin = await requireAdminSecuritySupabaseOwner(req, res);
     if (!admin) return;
     return adminSecurityEventsSupabase(req, res, admin);
   }
 
   if (action === 'admin_security_blocks') {
     if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-    const admin = await requireAdminSecuritySupabaseOwner(req, res, action);
+    const admin = await requireAdminSecuritySupabaseOwner(req, res);
     if (!admin) return;
     return adminSecurityBlocksSupabase(req, res, admin);
   }
 
   if (action === 'admin_security_unblock_user') {
     if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
-    const admin = await requireAdminSecuritySupabaseOwner(req, res, action, { write: true });
+    const admin = await requireAdminSecuritySupabaseOwner(req, res, { write: true });
     if (!admin) return;
     return adminSecurityUnblockUserSupabase(req, res, admin);
   }
@@ -3805,7 +3806,7 @@ async function adminSecurityHandleActionSupabase(action, req, res) {
   return res.status(404).json({ ok: false, message: 'Admin security action tidak ditemukan.' });
 }
 
-async function requireAdminSecuritySupabaseOwner(req, res, action, options = {}) {
+async function requireAdminSecuritySupabaseOwner(req, res, options = {}) {
   const user = await adminSecurityRequireSupabaseUser(req);
   if (!user) {
     res.status(401).json({
@@ -3817,12 +3818,12 @@ async function requireAdminSecuritySupabaseOwner(req, res, action, options = {})
 
   const email = normalizeAuthEmail(user.email || '');
   const userId = String(user.id || user.user_id || '').trim();
+  const adminRow = await adminSecurityFindAdminUserSupabase(userId, email);
 
-  const adminRow = await adminSecurityFindAdminUser(userId, email);
   if (!adminRow) {
     res.status(403).json({
       ok: false,
-      message: 'Akun ini belum terdaftar di admin_users.'
+      message: 'Akun ini belum terdaftar di public.admin_users.'
     });
     return null;
   }
@@ -3840,10 +3841,13 @@ async function requireAdminSecuritySupabaseOwner(req, res, action, options = {})
     return null;
   }
 
-  const allowed = ['owner', 'super_admin', 'security_admin'].includes(role);
-  const readOnlyAllowed = String(process.env.ADMIN_SECURITY_ALLOW_ADMIN_READONLY || '').toLowerCase() === 'true' && role === 'admin';
+  const canWrite = ['owner', 'super_admin', 'security_admin'].includes(role);
+  const canReadOnly = canWrite || (
+    String(process.env.ADMIN_SECURITY_ALLOW_ADMIN_READONLY || '').toLowerCase() === 'true' &&
+    role === 'admin'
+  );
 
-  if (!allowed && !readOnlyAllowed) {
+  if (!canReadOnly) {
     res.status(403).json({
       ok: false,
       message: 'Security Center hanya untuk owner/super_admin/security_admin.',
@@ -3852,7 +3856,7 @@ async function requireAdminSecuritySupabaseOwner(req, res, action, options = {})
     return null;
   }
 
-  if (options.write && !allowed) {
+  if (options.write && !canWrite) {
     res.status(403).json({
       ok: false,
       message: 'Aksi tulis Security Center hanya untuk owner/super_admin/security_admin.'
@@ -3866,23 +3870,26 @@ async function requireAdminSecuritySupabaseOwner(req, res, action, options = {})
     uid: String(adminRow.uid || userId || ''),
     email: email || String(adminRow.email || ''),
     role,
-    canWrite: allowed,
     verified,
     status,
+    canWrite,
     auth_user: user
   };
 }
 
 async function adminSecurityRequireSupabaseUser(req) {
   const token = adminSecurityGetSupabaseAccessToken(req);
+
   if (token) {
     const result = await supabaseFetch('/auth/v1/user', {
       method: 'GET',
-      auth: 'bearer',
-      token
+      auth: 'anon',
+      bearer: token
     }).catch(() => null);
 
-    if (result && result.ok && result.data) return result.data;
+    if (result && result.ok && result.data && (result.data.id || result.data.email)) {
+      return result.data;
+    }
   }
 
   if (typeof requireDomainUser === 'function') {
@@ -3904,23 +3911,39 @@ function adminSecurityGetSupabaseAccessToken(req) {
   const bearer = getBearerToken(req);
   if (bearer) return bearer;
 
-  const refreshHeader = String(req.headers && (req.headers['x-domain-access-token'] || req.headers['x-supabase-access-token'] || req.headers['x-dirac-access-token']) || '').trim();
-  if (refreshHeader) return refreshHeader;
+  const headerToken = String(req.headers && (
+    req.headers['x-domain-access-token'] ||
+    req.headers['x-supabase-access-token'] ||
+    req.headers['x-dirac-access-token']
+  ) || '').trim();
+
+  if (headerToken) return headerToken;
 
   const cookies = parseCookies(req);
-  const cookieToken = String(cookies[ACCESS_COOKIE] || cookies.dirac_domain_session || cookies.sb_access_token || '').trim();
-  if (cookieToken) return cookieToken;
+  const cookieToken = String(
+    cookies[ACCESS_COOKIE] ||
+    cookies.dirac_domain_session ||
+    cookies.sb_access_token ||
+    ''
+  ).trim();
 
+  if (cookieToken) return cookieToken;
   return '';
 }
 
-async function adminSecurityFindAdminUser(userId, email) {
+async function adminSecurityFindAdminUserSupabase(userId, email) {
   const select = encodeURIComponent('id,user_id,uid,email,role,verified,status,created_at,updated_at');
-
   const queries = [];
-  if (customerSecurityLooksLikeUuid(userId)) queries.push('/rest/v1/admin_users?select=' + select + '&user_id=eq.' + encodeURIComponent(userId) + '&limit=1');
-  if (userId) queries.push('/rest/v1/admin_users?select=' + select + '&uid=eq.' + encodeURIComponent(userId) + '&limit=1');
-  if (email) queries.push('/rest/v1/admin_users?select=' + select + '&email=ilike.' + encodeURIComponent(email) + '&limit=1');
+
+  if (customerSecurityLooksLikeUuid(userId)) {
+    queries.push('/rest/v1/admin_users?select=' + select + '&user_id=eq.' + encodeURIComponent(userId) + '&limit=1');
+  }
+  if (userId) {
+    queries.push('/rest/v1/admin_users?select=' + select + '&uid=eq.' + encodeURIComponent(userId) + '&limit=1');
+  }
+  if (email) {
+    queries.push('/rest/v1/admin_users?select=' + select + '&email=ilike.' + encodeURIComponent(email) + '&limit=1');
+  }
 
   for (const path of queries) {
     const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
@@ -3955,20 +3978,16 @@ async function adminSecurityOverviewSupabase(req, res, admin) {
   const blockRows = Array.isArray(blocks.data) ? blocks.data : [];
   const recoveryRows = Array.isArray(recovery.data) ? recovery.data : [];
 
-  const highRisk = eventRows.filter((row) => String(row.risk_level || '').toLowerCase() === 'high').length;
-  const generated = eventRows.filter((row) => String(row.event_type || '') === 'recovery_codes_generated').length;
-  const used = eventRows.filter((row) => String(row.event_type || '') === 'recovery_code_used').length;
-
   return res.status(200).json({
     ok: true,
     admin: adminSecuritySanitizeAdminSupabase(admin),
     storage_ready: Boolean(events.ok || blocks.ok || recovery.ok),
     overview: {
       recent_events: eventRows.length,
-      high_risk_events: highRisk,
+      high_risk_events: eventRows.filter((row) => String(row.risk_level || '').toLowerCase() === 'high').length,
       active_blocks: blockRows.length,
-      recovery_events_generated: generated,
-      recovery_events_used: used,
+      recovery_events_generated: eventRows.filter((row) => String(row.event_type || '') === 'recovery_codes_generated').length,
+      recovery_events_used: eventRows.filter((row) => String(row.event_type || '') === 'recovery_code_used').length,
       recovery_rows_sampled: recoveryRows.length,
       recovery_unused_sampled: recoveryRows.filter((row) => !row.used_at && !row.revoked_at && String(row.status || '') === 'active').length
     },
@@ -3988,6 +4007,7 @@ async function adminSecurityEventsSupabase(req, res, admin) {
 
   const result = await adminSecurityFetchTableSafeSupabase(path);
   const rows = Array.isArray(result.data) ? result.data : [];
+
   return res.status(200).json({
     ok: true,
     admin: adminSecuritySanitizeAdminSupabase(admin),
@@ -4007,6 +4027,7 @@ async function adminSecurityBlocksSupabase(req, res, admin) {
 
   const result = await adminSecurityFetchTableSafeSupabase(path);
   const rows = Array.isArray(result.data) ? result.data : [];
+
   return res.status(200).json({
     ok: true,
     admin: adminSecuritySanitizeAdminSupabase(admin),
