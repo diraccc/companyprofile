@@ -3558,6 +3558,209 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
 }
 </style>
 
+
+
+<style id="dirac-masuk-theme-polish-v3-css">
+/* =========================================================
+   MASUK.HTML THEME POLISH V3
+   - Tambah warna tetap rapi.
+   - Modal tema dibuat compact dan konsisten.
+   - Dot aktif di belakang teks tetap hilang.
+   - Tidak menyentuh login, A2F, recovery, hash, atau endpoint.
+   ========================================================= */
+.theme-modal[data-order-circled-theme="true"]{
+  align-items:center!important;
+  justify-items:center!important;
+  padding:12px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-card{
+  width:min(560px,calc(100vw - 24px))!important;
+  max-height:min(84vh,760px)!important;
+  max-height:min(84dvh,760px)!important;
+  border-radius:24px!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-head{
+  flex:0 0 auto!important;
+  min-height:74px!important;
+  padding:14px 16px 12px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-head h2{
+  font-size:clamp(1.55rem,4.2vw,1.9rem)!important;
+  line-height:1.05!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-close-btn{
+  width:52px!important;
+  height:52px!important;
+  min-width:52px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-content{
+  flex:1 1 auto!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:14px 16px 12px!important;
+  scrollbar-width:thin;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-section{
+  padding:13px 0!important;
+  margin:0!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-section h3{
+  margin:0 0 10px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-choice-grid{
+  gap:8px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-pro-choice{
+  min-height:48px!important;
+  border-radius:16px!important;
+  padding:10px 12px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-pro-choice.active:after,
+.theme-modal[data-order-circled-theme="true"] [data-theme-mode].active:after,
+.theme-modal[data-order-circled-theme="true"] [data-language].active:after,
+.theme-modal[data-order-circled-theme="true"] [data-contrast].active:after,
+.theme-modal[data-order-circled-theme="true"] [data-motion-choice].active:after{
+  content:none!important;
+  display:none!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-pro-choice.active{
+  border-color:rgba(var(--theme-rgb),.78)!important;
+  background:linear-gradient(180deg,rgba(var(--theme-rgb),.14),rgba(255,255,255,.035))!important;
+  box-shadow:0 0 0 1px rgba(var(--theme-rgb),.16) inset,0 12px 26px rgba(var(--theme-rgb),.08)!important;
+}
+.theme-modal[data-order-circled-theme="true"] .custom-theme-section{
+  padding-bottom:12px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .custom-theme-grid,
+#themeModal[data-order-circled-theme="true"] #accentChoices{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:10px!important;
+  max-height:184px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:2px 4px 4px 0!important;
+  scrollbar-width:thin;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-swatch-btn,
+#themeModal[data-order-circled-theme="true"] #accentChoices .theme-swatch-btn{
+  width:100%!important;
+  aspect-ratio:1/1!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:0!important;
+  border-radius:15px!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  background:
+    radial-gradient(circle at 35% 28%,rgba(255,255,255,.48),transparent 32%),
+    linear-gradient(145deg,var(--swatch-a),var(--swatch-b))!important;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.18),inset 0 -7px 12px rgba(0,0,0,.14),0 8px 18px rgba(0,0,0,.16)!important;
+  overflow:hidden!important;
+  position:relative!important;
+  display:block!important;
+  font-size:0!important;
+  color:transparent!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-swatch-btn.active{
+  border-color:rgba(var(--theme-rgb),.92)!important;
+  box-shadow:0 0 0 4px rgba(var(--theme-rgb),.18),inset 0 2px 2px rgba(255,255,255,.20),inset 0 -7px 12px rgba(0,0,0,.16),0 12px 26px rgba(0,0,0,.22)!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-swatch-btn.active:after{
+  content:"✓"!important;
+  position:absolute!important;
+  inset:0!important;
+  display:grid!important;
+  place-items:center!important;
+  color:#07111d!important;
+  font-size:1.12rem!important;
+  font-weight:950!important;
+  text-shadow:0 1px 12px rgba(255,255,255,.60)!important;
+  background:transparent!important;
+  width:auto!important;height:auto!important;border-radius:0!important;box-shadow:none!important;transform:none!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-color-orb,
+.theme-modal[data-order-circled-theme="true"] .theme-color-label,
+#accentChoices .theme-swatch-btn > span:not(.sr-only){
+  display:none!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:5!important;
+  flex:0 0 auto!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:10px!important;
+  padding:12px 16px 16px!important;
+  border-top:1px solid rgba(255,255,255,.08)!important;
+  background:linear-gradient(180deg,rgba(7,11,18,.88),rgba(7,11,18,.98))!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-reset-btn,
+.theme-modal[data-order-circled-theme="true"] .theme-save-btn{
+  min-height:50px!important;
+  border-radius:18px!important;
+  font-size:1rem!important;
+}
+.theme-modal[data-order-circled-theme="true"] .dirac-motion-panel-note{
+  margin-top:9px!important;
+  font-size:.84rem!important;
+  line-height:1.48!important;
+}
+
+@media(max-width:760px){
+  .theme-modal[data-order-circled-theme="true"] .theme-card{
+    width:calc(100vw - 24px)!important;
+    max-height:min(82dvh,740px)!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .theme-content{
+    padding:12px 14px 10px!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .language-grid,
+  .theme-modal[data-order-circled-theme="true"] .contrast-grid,
+  .theme-modal[data-order-circled-theme="true"] .motion-grid{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .theme-mode-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .custom-theme-grid,
+  #themeModal[data-order-circled-theme="true"] #accentChoices{
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:8px!important;
+    max-height:170px!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .theme-actions{
+    grid-template-columns:1fr 1fr!important;
+    padding:10px 14px 14px!important;
+  }
+}
+@media(max-width:430px){
+  .theme-modal[data-order-circled-theme="true"] .theme-card{
+    border-radius:22px!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .theme-close-btn{
+    width:48px!important;height:48px!important;min-width:48px!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .theme-pro-choice{
+    min-height:46px!important;
+    padding:9px 10px!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .custom-theme-grid,
+  #themeModal[data-order-circled-theme="true"] #accentChoices{
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:7px!important;
+    max-height:154px!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .theme-swatch-btn,
+  #themeModal[data-order-circled-theme="true"] #accentChoices .theme-swatch-btn{
+    border-radius:11px!important;
+  }
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -4009,7 +4212,23 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       red:{label:'Red', gold:'#ef4444', gold2:'#dc2626', gold3:'#7f1d1d', rgb:'239,68,68'},
       orange:{label:'Orange', gold:'#f97316', gold2:'#ea580c', gold3:'#7c2d12', rgb:'249,115,22'},
       white:{label:'White', gold:'#f8fafc', gold2:'#cbd5e1', gold3:'#64748b', rgb:'248,250,252'},
-      graphite:{label:'Graphite', gold:'#94a3b8', gold2:'#475569', gold3:'#0f172a', rgb:'148,163,184'}
+      graphite:{label:'Graphite', gold:'#94a3b8', gold2:'#475569', gold3:'#0f172a', rgb:'148,163,184'},
+      midnight:{label:'Midnight', gold:'#0f172a', gold2:'#020617', gold3:'#000000', rgb:'15,23,42'},
+      slate:{label:'Slate', gold:'#64748b', gold2:'#334155', gold3:'#0f172a', rgb:'100,116,139'},
+      silver:{label:'Silver', gold:'#e5e7eb', gold2:'#9ca3af', gold3:'#4b5563', rgb:'229,231,235'},
+      pearl:{label:'Pearl', gold:'#ffffff', gold2:'#e5e7eb', gold3:'#94a3b8', rgb:'255,255,255'},
+      navy:{label:'Navy', gold:'#2563eb', gold2:'#1d4ed8', gold3:'#172554', rgb:'37,99,235'},
+      indigo:{label:'Indigo', gold:'#6366f1', gold2:'#4338ca', gold3:'#312e81', rgb:'99,102,241'},
+      sapphire:{label:'Sapphire', gold:'#0ea5e9', gold2:'#0369a1', gold3:'#0c4a6e', rgb:'14,165,233'},
+      aqua:{label:'Aqua', gold:'#67e8f9', gold2:'#06b6d4', gold3:'#155e75', rgb:'103,232,249'},
+      mint:{label:'Mint', gold:'#6ee7b7', gold2:'#10b981', gold3:'#065f46', rgb:'110,231,183'},
+      forest:{label:'Forest', gold:'#22c55e', gold2:'#15803d', gold3:'#14532d', rgb:'34,197,94'},
+      amber:{label:'Amber', gold:'#fbbf24', gold2:'#d97706', gold3:'#92400e', rgb:'251,191,36'},
+      peach:{label:'Peach', gold:'#fdba74', gold2:'#fb923c', gold3:'#9a3412', rgb:'253,186,116'},
+      coral:{label:'Coral', gold:'#fb7185', gold2:'#f43f5e', gold3:'#9f1239', rgb:'251,113,133'},
+      ruby:{label:'Ruby', gold:'#e11d48', gold2:'#be123c', gold3:'#881337', rgb:'225,29,72'},
+      magenta:{label:'Magenta', gold:'#d946ef', gold2:'#a21caf', gold3:'#701a75', rgb:'217,70,239'},
+      lavender:{label:'Lavender', gold:'#c4b5fd', gold2:'#8b5cf6', gold3:'#5b21b6', rgb:'196,181,253'},
     };
     var I18N = {
       id:{announce:'Packing rapi - konsultasi aroma gratis - checkout langsung via WhatsApp',navProducts:'Produk',navStyle:'Gaya',navBlog:'Blog',navPolicy:'Kebijakan',navFaq:'FAQ',theme:'Tema',returnCatalog:'Katalog',a2fSideSub:'Lapisan proteksi akun',a2fStepChoose:'Pilih metode',a2fStepVerify:'Verifikasi',a2fStepRecover:'Analisis keamanan',a2fStepFinish:'Selesai',a2fRiskKicker:'Status',a2fRiskTitle:'Proteksi belum aktif',a2fRiskText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.',a2fKicker:'Wajib sebelum dashboard',a2fRecommended:'Disarankan',a2fStrong:'Aman',a2fBackup:'Backup',a2fPasskeyMini:'Paling modern dan tahan phishing.',a2fAuthMini:'Cadangan kuat untuk akun.',a2fEmailMini:'Mudah, jangan jadikan metode utama.',a2fPreviewKicker:'Detail metode',a2fSelectedPasskey:'Passkey siap dibuat',a2fSelectedAuth:'Authenticator siap dihubungkan',a2fSelectedEmail:'Email OTP siap dikirim',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Buat passkey di perangkat pelanggan',a2fPasskeyPanelText:'Saat backend WebAuthn dipasang, tombol aktivasi akan memanggil challenge server dan browser membuka Face ID, sidik jari, PIN, atau password manager.',a2fAuthPanelTitle:'Masukkan setup key di aplikasi Authenticator',a2fAuthPanelText:'Salin setup key ke Google Authenticator/Authy, lalu masukkan kode 6 digit sebelum A2F aktif.',a2fEmailPanelTitle:'Kirim kode ke email pelanggan',a2fEmailPanelText:'Untuk produksi, backend mengirim kode sekali pakai, menyimpan hash kode, memberi batas waktu, dan membatasi percobaan verifikasi.',a2fReadyHttps:'Domain aman',a2fReadyApi:'Hook endpoint siap',a2fReadyDb:'Butuh tabel MFA',a2fStart:'Aktifkan pilihan ini',a2fTitle:'Aktifkan A2F',a2fSub:'Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.',a2fNote:'Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, atau authenticator dari server sebelum dashboard dibuka.',a2fPasskey:'Passkey',a2fPasskeyText:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.',a2fEmail:'Email',a2fEmailText:'Gunakan kode keamanan yang dikirim ke email pelanggan.',a2fAuth:'Authenticator',a2fAuthText:'Gunakan aplikasi autentikator seperti Google Authenticator atau Authy.',a2fDone:'Selesai, buka dashboard',eyebrow:'Akses akun Dirac',heroLead:'Masuk lebih cepat,',heroGold:'belanja lebih rapi.',heroText:'Kelola identitas pelanggan, lanjutkan checkout, dan simpan preferensi belanja dengan tampilan yang menyatu dengan katalog Dirac Group.',trust1:'✅ Tampilan konsisten',trust2:'🎨 Tema tersimpan',trust3:'🌐 Multi bahasa',trust4:'💬 Bantuan cepat',mini1Title:'Aman',mini1Text:'Validasi form jelas sebelum dikirim.',mini2Title:'Responsif',mini2Text:'Nyaman di HP, tablet, dan desktop.',mini3Title:'Satu rasa',mini3Text:'Header, tema, AI, WA, dan scroll sama seperti katalog.',loginTitle:'Masuk akun',loginSubtitle:'Gunakan email atau nomor WhatsApp pelanggan.',tabLogin:'Masuk',tabRegister:'Daftar',identifierLabel:'Email / WhatsApp',nameLabel:'Nama lengkap',passwordLabel:'Password',confirmLabel:'Ulangi password',remember:'Ingat perangkat ini',forgot:'Kembali ke beranda',submitLogin:'Masuk sekarang',submitRegister:'Daftar akun',footerText:'Halaman akun premium yang dibuat agar perpindahan dari katalog ke login terasa satu kesatuan.',footerNav:'Navigasi',home:'Beranda',products:'Produk',faq:'FAQ',contact:'Kontak',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Akses halaman utama Dirac Group.',openTheme:'Buka pengaturan tema',drawerFoot:'Menu ini dibuat ringan agar halaman login tetap terasa seperti katalog order.',themeTitle:'Pengaturan Tema',themeSub:'Atur warna, bahasa, dan gerak website.',modeTitle:'Mode Tema',dark:'Gelap',light:'Terang',auto:'Otomatis',colorTitle:'Warna aksen',languageTitle:'Bahasa Tampilan',contrastTitle:'Kontras Tema',contrastOn:'Aktif',contrastOff:'Nonaktif',customThemeTitle:'Kustom Tema',motionTitle:'Gerak Website',motionFull:'Aktif',motionReduced:'Ringan',soundTitle:'Suara Website',soundDesc:'Efek tombol, loading, dan animasi terminal dibuat original dari browser tanpa file audio eksternal.',soundToggleTitle:'Suara aktif',soundToggleDesc:'Tap untuk matikan / hidupkan',resetTheme:'Reset',saveTheme:'Simpan',aiTitle:'Dirac AI',aiSub:'Bantuan cepat untuk halaman akun.',aiWelcome:'Halo! Saya bisa bantu soal login, daftar akun, tema, bahasa, WhatsApp, dan navigasi Dirac Group.',aiChip1:'Cara masuk',aiChip2:'Ganti tema',aiChip3:'Hubungi WA'},
@@ -6902,6 +7121,203 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
 
 
+
+
+
+<script id="dirac-masuk-i18n-polish-v3-js">
+(function(){
+  'use strict';
+  var THEME_KEY = 'dirac_theme_settings_v2';
+  var EN = {announce:'Neat packing - free scent consultation - checkout directly via WhatsApp',navProducts:'Products',navStyle:'Style',navBlog:'Blog',navPolicy:'Policies',navFaq:'FAQ',theme:'Theme',returnCatalog:'Catalog',a2fSideSub:'Account protection layer',a2fStepChoose:'Choose method',a2fStepVerify:'Verify',a2fStepRecover:'Security analysis',a2fStepFinish:'Complete',a2fRiskKicker:'Status',a2fRiskTitle:'Protection not active',a2fRiskText:'The dashboard stays locked until the security method is verified.',a2fKicker:'Required before dashboard',a2fRecommended:'Recommended',a2fStrong:'Strong',a2fBackup:'Backup',a2fPasskeyMini:'Most modern and phishing-resistant.',a2fAuthMini:'Strong backup method.',a2fEmailMini:'Easy, but not the primary method.',a2fPreviewKicker:'Method detail',a2fSelectedPasskey:'Passkey ready to create',a2fSelectedAuth:'Authenticator ready to connect',a2fSelectedEmail:'Email OTP ready to send',a2fLivePasskey:'WebAuthn ready',a2fLiveAuth:'TOTP ready',a2fLiveEmail:'OTP ready',a2fPasskeyPanelTitle:'Create a passkey on the customer device',a2fPasskeyPanelText:'When the WebAuthn backend is connected, activation will request a server challenge and the browser will open Face ID, fingerprint, PIN, or a password manager.',a2fAuthPanelTitle:'Enter the setup key in an authenticator app',a2fAuthPanelText:'Copy the setup key into Google Authenticator/Authy, then enter the 6-digit code before enabling 2FA.',a2fEmailPanelTitle:'Send a code to the customer email',a2fEmailPanelText:'For production, the backend sends a one-time code, stores a code hash, sets expiry, and rate-limits verification attempts.',a2fReadyHttps:'Secure domain',a2fReadyApi:'Endpoint hooks ready',a2fReadyDb:'Needs MFA tables',a2fStart:'Activate selected method',a2fTitle:'Enable 2FA',a2fSub:'Choose an extra security layer so the customer account does not rely on password only.',a2fNote:'This page is prepared as a production UI. For real 2FA, MFA endpoints must verify passkey, email OTP, or authenticator codes on the server before the dashboard opens.',a2fPasskey:'Passkey',a2fPasskeyText:'Use Face ID, fingerprint, PIN, or a supported device key.',a2fEmail:'Email',a2fEmailText:'Use a security code sent to the customer email.',a2fAuth:'Authenticator',a2fAuthText:'Use an authenticator app such as Google Authenticator or Authy.',a2fDone:'Done, open dashboard',eyebrow:'Dirac account access',heroLead:'Sign in faster,',heroGold:'shop more neatly.',heroText:'Manage your customer identity, continue checkout, and save shopping preferences with a look that matches the Dirac Group catalog.',trust1:'✅ Consistent look',trust2:'🎨 Saved theme',trust3:'🌐 Multi-language',trust4:'💬 Quick help',mini1Title:'Secure',mini1Text:'Clear validation before submission.',mini2Title:'Responsive',mini2Text:'Comfortable on phone, tablet, and desktop.',mini3Title:'Unified',mini3Text:'Header, theme, AI, WA, and scroll match the catalog.',loginTitle:'Sign in',loginSubtitle:'Use your customer email or WhatsApp number.',tabLogin:'Sign in',tabRegister:'Register',identifierLabel:'Email / WhatsApp',nameLabel:'Full name',passwordLabel:'Password',confirmLabel:'Repeat password',remember:'Remember this device',forgot:'Back to home',submitLogin:'Sign in now',submitRegister:'Create account',footerText:'A premium account page designed to feel unified with the catalog.',footerNav:'Navigation',home:'Home',products:'Products',faq:'FAQ',contact:'Contact',copyright:'Premium account access.',menuTitle:'Menu',menuSub:'Open the main Dirac Group pages.',openTheme:'Open theme settings',drawerFoot:'This menu stays light so the login page feels like the order catalog.',themeTitle:'Theme Settings',themeSub:'Set color, language, and website motion.',modeTitle:'Theme Mode',dark:'Dark',light:'Light',auto:'Automatic',colorTitle:'Accent color',languageTitle:'Display Language',contrastTitle:'Theme Contrast',contrastOn:'Active',contrastOff:'Inactive',customThemeTitle:'Custom Theme',motionTitle:'Website Motion',motionFull:'Active',motionReduced:'Light',soundTitle:'Website Sound',soundDesc:'Button, loading, and terminal sounds are generated in-browser without external audio files.',soundToggleTitle:'Sound on',soundToggleDesc:'Tap to turn off / on',resetTheme:'Reset',saveTheme:'Save',aiTitle:'Dirac AI',aiSub:'Quick help for the account page.',aiWelcome:'Hello! I can help with login, registration, themes, language, WhatsApp, and Dirac Group navigation.',aiChip1:'How to sign in',aiChip2:'Change theme',aiChip3:'Contact WA'};
+
+  var PACK = {
+    en: EN,
+    zh: {
+      announce:'包装整洁 - 免费香气咨询 - 直接通过 WhatsApp 结账',navProducts:'产品',navStyle:'风格',navBlog:'博客',navPolicy:'政策',navFaq:'常见问题',theme:'主题',returnCatalog:'目录',
+      eyebrow:'Dirac 账户访问',heroLead:'登录更快，',heroGold:'购物更顺畅。',heroText:'管理客户身份，继续结账，并保存购物偏好，界面与 Dirac Group 目录保持一致。',
+      trust1:'✅ 显示一致',trust2:'🎨 主题已保存',trust3:'🌐 多语言',trust4:'💬 快速帮助',
+      mini1Title:'安全',mini1Text:'提交前清晰验证。',mini2Title:'响应式',mini2Text:'适合手机、平板和桌面。',mini3Title:'统一体验',mini3Text:'页眉、主题、AI、WA 和滚动与目录一致。',
+      loginTitle:'登录账号',loginSubtitle:'使用客户邮箱或 WhatsApp 号码。',tabLogin:'登录',tabRegister:'注册',identifierLabel:'邮箱 / WhatsApp',nameLabel:'完整姓名',passwordLabel:'密码',confirmLabel:'重复密码',remember:'记住此设备',forgot:'返回首页',submitLogin:'立即登录',submitRegister:'创建账号',
+      footerText:'高级账户页面，让从目录到登录的体验保持一致。',footerNav:'导航',home:'首页',products:'产品',faq:'常见问题',contact:'联系',copyright:'高级账户访问。',
+      menuTitle:'菜单',menuSub:'打开 Dirac Group 主要页面。',openTheme:'打开主题设置',drawerFoot:'此菜单保持轻量，让登录页像订单目录一样流畅。',
+      themeTitle:'主题设置',themeSub:'设置颜色、语言和网站动效。',modeTitle:'主题模式',dark:'深色',light:'浅色',auto:'自动',colorTitle:'强调色',languageTitle:'显示语言',contrastTitle:'主题对比度',contrastOn:'开启',contrastOff:'关闭',customThemeTitle:'自定义主题',motionTitle:'网站动效',motionFull:'正常',motionReduced:'省电',soundTitle:'网站声音',soundDesc:'按钮、加载和终端音效由浏览器生成，无需外部音频文件。',soundToggleTitle:'声音开启',soundToggleDesc:'点击关闭 / 开启',resetTheme:'重置',saveTheme:'保存',
+      aiTitle:'Dirac AI',aiSub:'账户页面快速帮助。',aiWelcome:'你好！我可以帮助登录、注册、主题、语言、WhatsApp 和导航。',aiChip1:'如何登录',aiChip2:'更改主题',aiChip3:'联系 WA'
+    },
+    ar: {
+      announce:'تغليف مرتب - استشارة عطر مجانية - الدفع مباشرة عبر واتساب',navProducts:'المنتجات',navStyle:'النمط',navBlog:'المدونة',navPolicy:'السياسات',navFaq:'الأسئلة',theme:'السمة',returnCatalog:'الكتالوج',
+      eyebrow:'دخول حساب Dirac',heroLead:'ادخل بسرعة أكبر،',heroGold:'وتسوق براحة أكثر.',heroText:'أدر هوية العميل، تابع الدفع، واحفظ تفضيلات التسوق بتصميم متناسق مع كتالوج Dirac Group.',
+      trust1:'✅ مظهر متناسق',trust2:'🎨 السمة محفوظة',trust3:'🌐 متعدد اللغات',trust4:'💬 مساعدة سريعة',
+      mini1Title:'آمن',mini1Text:'تحقق واضح قبل الإرسال.',mini2Title:'متجاوب',mini2Text:'مريح على الهاتف والجهاز اللوحي والكمبيوتر.',mini3Title:'تجربة موحدة',mini3Text:'الرأس والسمة والذكاء الاصطناعي وواتساب والتمرير مثل الكتالوج.',
+      loginTitle:'تسجيل الدخول',loginSubtitle:'استخدم بريد العميل أو رقم واتساب.',tabLogin:'دخول',tabRegister:'تسجيل',identifierLabel:'البريد / واتساب',nameLabel:'الاسم الكامل',passwordLabel:'كلمة المرور',confirmLabel:'أعد كلمة المرور',remember:'تذكر هذا الجهاز',forgot:'العودة للرئيسية',submitLogin:'ادخل الآن',submitRegister:'إنشاء حساب',
+      footerText:'صفحة حساب مميزة تجعل الانتقال من الكتالوج إلى تسجيل الدخول متناسقاً.',footerNav:'التنقل',home:'الرئيسية',products:'المنتجات',faq:'الأسئلة',contact:'تواصل',copyright:'وصول حساب مميز.',
+      menuTitle:'القائمة',menuSub:'افتح صفحات Dirac Group الرئيسية.',openTheme:'فتح إعدادات السمة',drawerFoot:'القائمة خفيفة ليبقى تسجيل الدخول مثل كتالوج الطلب.',
+      themeTitle:'إعدادات السمة',themeSub:'اضبط اللون واللغة وحركة الموقع.',modeTitle:'وضع السمة',dark:'داكن',light:'فاتح',auto:'تلقائي',colorTitle:'لون التمييز',languageTitle:'لغة العرض',contrastTitle:'تباين السمة',contrastOn:'مفعل',contrastOff:'غير مفعل',customThemeTitle:'سمة مخصصة',motionTitle:'حركة الموقع',motionFull:'عادي',motionReduced:'اقتصادي',soundTitle:'صوت الموقع',soundDesc:'أصوات الأزرار والتحميل تُنشأ داخل المتصفح بدون ملفات صوت خارجية.',soundToggleTitle:'الصوت مفعل',soundToggleDesc:'اضغط للإيقاف / التشغيل',resetTheme:'إعادة ضبط',saveTheme:'حفظ',
+      aiTitle:'Dirac AI',aiSub:'مساعدة سريعة لصفحة الحساب.',aiWelcome:'مرحباً! أساعدك في الدخول، التسجيل، السمة، اللغة، واتساب والتنقل.',aiChip1:'طريقة الدخول',aiChip2:'تغيير السمة',aiChip3:'تواصل WA'
+    },
+    ja: {
+      announce:'丁寧な梱包 - 香り相談無料 - WhatsAppで直接チェックアウト',navProducts:'商品',navStyle:'スタイル',navBlog:'ブログ',navPolicy:'ポリシー',navFaq:'FAQ',theme:'テーマ',returnCatalog:'カタログ',
+      eyebrow:'Diracアカウントアクセス',heroLead:'より速くログイン、',heroGold:'より快適に購入。',heroText:'お客様情報を管理し、チェックアウトを続け、Dirac Groupカタログと統一された画面で購入設定を保存できます。',
+      trust1:'✅ 表示が統一',trust2:'🎨 テーマ保存済み',trust3:'🌐 多言語対応',trust4:'💬 すばやいサポート',
+      mini1Title:'安全',mini1Text:'送信前に分かりやすく確認。',mini2Title:'レスポンシブ',mini2Text:'スマホ、タブレット、PCで快適。',mini3Title:'統一感',mini3Text:'ヘッダー、テーマ、AI、WA、スクロールがカタログと一致。',
+      loginTitle:'ログイン',loginSubtitle:'お客様のメールまたはWhatsApp番号を使用します。',tabLogin:'ログイン',tabRegister:'登録',identifierLabel:'メール / WhatsApp',nameLabel:'氏名',passwordLabel:'パスワード',confirmLabel:'パスワード再入力',remember:'この端末を記憶',forgot:'ホームへ戻る',submitLogin:'今すぐログイン',submitRegister:'アカウント作成',
+      footerText:'カタログからログインまで一体感のあるプレミアムアカウントページです。',footerNav:'ナビゲーション',home:'ホーム',products:'商品',faq:'FAQ',contact:'連絡先',copyright:'プレミアムアカウントアクセス。',
+      menuTitle:'メニュー',menuSub:'Dirac Groupの主要ページを開きます。',openTheme:'テーマ設定を開く',drawerFoot:'ログインページが注文カタログのように感じられる軽量メニューです。',
+      themeTitle:'テーマ設定',themeSub:'色、言語、サイトの動きを設定します。',modeTitle:'テーマモード',dark:'ダーク',light:'ライト',auto:'自動',colorTitle:'アクセントカラー',languageTitle:'表示言語',contrastTitle:'テーマコントラスト',contrastOn:'オン',contrastOff:'オフ',customThemeTitle:'カスタムテーマ',motionTitle:'サイトの動き',motionFull:'通常',motionReduced:'省エネ',soundTitle:'サイト音',soundDesc:'ボタン、読み込み、端末風の音は外部音声なしでブラウザ内生成されます。',soundToggleTitle:'音声オン',soundToggleDesc:'タップでオフ / オン',resetTheme:'リセット',saveTheme:'保存',
+      aiTitle:'Dirac AI',aiSub:'アカウントページのクイックヘルプ。',aiWelcome:'こんにちは。ログイン、登録、テーマ、言語、WhatsApp、ナビをサポートします。',aiChip1:'ログイン方法',aiChip2:'テーマ変更',aiChip3:'WAに連絡'
+    },
+    ko: {
+      announce:'꼼꼼한 포장 - 향 상담 무료 - WhatsApp 바로 결제',navProducts:'상품',navStyle:'스타일',navBlog:'블로그',navPolicy:'정책',navFaq:'FAQ',theme:'테마',returnCatalog:'카탈로그',
+      eyebrow:'Dirac 계정 접근',heroLead:'더 빠르게 로그인하고,',heroGold:'더 편하게 쇼핑하세요.',heroText:'고객 정보를 관리하고 결제를 이어가며 Dirac Group 카탈로그와 어울리는 화면으로 쇼핑 설정을 저장하세요.',
+      trust1:'✅ 일관된 화면',trust2:'🎨 테마 저장됨',trust3:'🌐 다국어',trust4:'💬 빠른 도움',
+      mini1Title:'안전',mini1Text:'제출 전 명확한 확인.',mini2Title:'반응형',mini2Text:'휴대폰, 태블릿, 데스크톱에서 편안함.',mini3Title:'통일감',mini3Text:'헤더, 테마, AI, WA, 스크롤이 카탈로그와 일치합니다.',
+      loginTitle:'로그인',loginSubtitle:'고객 이메일 또는 WhatsApp 번호를 사용하세요.',tabLogin:'로그인',tabRegister:'가입',identifierLabel:'이메일 / WhatsApp',nameLabel:'전체 이름',passwordLabel:'비밀번호',confirmLabel:'비밀번호 다시 입력',remember:'이 기기 기억',forgot:'홈으로 돌아가기',submitLogin:'지금 로그인',submitRegister:'계정 만들기',
+      footerText:'카탈로그에서 로그인까지 하나의 경험처럼 느껴지는 프리미엄 계정 페이지입니다.',footerNav:'탐색',home:'홈',products:'상품',faq:'FAQ',contact:'연락처',copyright:'프리미엄 계정 접근.',
+      menuTitle:'메뉴',menuSub:'Dirac Group 주요 페이지 열기.',openTheme:'테마 설정 열기',drawerFoot:'로그인 페이지가 주문 카탈로그처럼 느껴지도록 가볍게 만든 메뉴입니다.',
+      themeTitle:'테마 설정',themeSub:'색상, 언어, 웹사이트 동작을 설정하세요.',modeTitle:'테마 모드',dark:'다크',light:'라이트',auto:'자동',colorTitle:'강조 색상',languageTitle:'표시 언어',contrastTitle:'테마 대비',contrastOn:'켜짐',contrastOff:'꺼짐',customThemeTitle:'사용자 테마',motionTitle:'웹사이트 동작',motionFull:'일반',motionReduced:'절약',soundTitle:'웹사이트 소리',soundDesc:'버튼, 로딩, 터미널 효과음은 외부 오디오 없이 브라우저에서 생성됩니다.',soundToggleTitle:'소리 켜짐',soundToggleDesc:'탭하여 끄기 / 켜기',resetTheme:'초기화',saveTheme:'저장',
+      aiTitle:'Dirac AI',aiSub:'계정 페이지 빠른 도움.',aiWelcome:'안녕하세요! 로그인, 가입, 테마, 언어, WhatsApp, 탐색을 도와드릴 수 있어요.',aiChip1:'로그인 방법',aiChip2:'테마 변경',aiChip3:'WA 문의'
+    },
+    es: {
+      announce:'Empaque prolijo - consulta de aroma gratis - pago directo por WhatsApp',navProducts:'Productos',navStyle:'Estilo',navBlog:'Blog',navPolicy:'Políticas',navFaq:'FAQ',theme:'Tema',returnCatalog:'Catálogo',
+      eyebrow:'Acceso a cuenta Dirac',heroLead:'Entra más rápido,',heroGold:'compra más cómodo.',heroText:'Gestiona la identidad del cliente, continúa el checkout y guarda preferencias con una interfaz unificada con el catálogo Dirac Group.',
+      trust1:'✅ Vista consistente',trust2:'🎨 Tema guardado',trust3:'🌐 Multiidioma',trust4:'💬 Ayuda rápida',
+      mini1Title:'Seguro',mini1Text:'Validación clara antes de enviar.',mini2Title:'Responsivo',mini2Text:'Cómodo en móvil, tableta y escritorio.',mini3Title:'Unificado',mini3Text:'Header, tema, AI, WA y scroll coinciden con el catálogo.',
+      loginTitle:'Iniciar sesión',loginSubtitle:'Usa el email o número WhatsApp del cliente.',tabLogin:'Entrar',tabRegister:'Registrarse',identifierLabel:'Email / WhatsApp',nameLabel:'Nombre completo',passwordLabel:'Contraseña',confirmLabel:'Repetir contraseña',remember:'Recordar este dispositivo',forgot:'Volver al inicio',submitLogin:'Entrar ahora',submitRegister:'Crear cuenta',
+      footerText:'Página de cuenta premium diseñada para sentirse unificada con el catálogo.',footerNav:'Navegación',home:'Inicio',products:'Productos',faq:'FAQ',contact:'Contacto',copyright:'Acceso de cuenta premium.',
+      menuTitle:'Menú',menuSub:'Abre las páginas principales de Dirac Group.',openTheme:'Abrir ajustes de tema',drawerFoot:'Este menú es ligero para que el login se sienta como el catálogo.',
+      themeTitle:'Ajustes de tema',themeSub:'Configura color, idioma y movimiento del sitio.',modeTitle:'Modo de tema',dark:'Oscuro',light:'Claro',auto:'Automático',colorTitle:'Color de acento',languageTitle:'Idioma de pantalla',contrastTitle:'Contraste del tema',contrastOn:'Activo',contrastOff:'Inactivo',customThemeTitle:'Tema personalizado',motionTitle:'Movimiento del sitio',motionFull:'Normal',motionReduced:'Ahorro',soundTitle:'Sonido del sitio',soundDesc:'Los sonidos se generan en el navegador sin archivos externos.',soundToggleTitle:'Sonido activo',soundToggleDesc:'Toca para apagar / encender',resetTheme:'Restablecer',saveTheme:'Guardar',
+      aiTitle:'Dirac AI',aiSub:'Ayuda rápida para la página de cuenta.',aiWelcome:'¡Hola! Puedo ayudar con login, registro, tema, idioma, WhatsApp y navegación.',aiChip1:'Cómo entrar',aiChip2:'Cambiar tema',aiChip3:'Contactar WA'
+    },
+    fr: {
+      announce:'Emballage soigné - conseil parfum gratuit - paiement direct via WhatsApp',navProducts:'Produits',navStyle:'Style',navBlog:'Blog',navPolicy:'Politiques',navFaq:'FAQ',theme:'Thème',returnCatalog:'Catalogue',
+      eyebrow:'Accès compte Dirac',heroLead:'Connexion plus rapide,',heroGold:'achat plus fluide.',heroText:'Gérez l’identité client, continuez le paiement et enregistrez les préférences avec une interface alignée au catalogue Dirac Group.',
+      trust1:'✅ Affichage cohérent',trust2:'🎨 Thème enregistré',trust3:'🌐 Multilingue',trust4:'💬 Aide rapide',
+      mini1Title:'Sécurisé',mini1Text:'Validation claire avant l’envoi.',mini2Title:'Responsive',mini2Text:'Confortable sur mobile, tablette et ordinateur.',mini3Title:'Unifié',mini3Text:'Header, thème, AI, WA et scroll correspondent au catalogue.',
+      loginTitle:'Connexion',loginSubtitle:'Utilisez l’email ou le numéro WhatsApp du client.',tabLogin:'Connexion',tabRegister:'Inscription',identifierLabel:'Email / WhatsApp',nameLabel:'Nom complet',passwordLabel:'Mot de passe',confirmLabel:'Répéter le mot de passe',remember:'Mémoriser cet appareil',forgot:'Retour à l’accueil',submitLogin:'Se connecter',submitRegister:'Créer un compte',
+      footerText:'Page de compte premium conçue pour rester cohérente avec le catalogue.',footerNav:'Navigation',home:'Accueil',products:'Produits',faq:'FAQ',contact:'Contact',copyright:'Accès compte premium.',
+      menuTitle:'Menu',menuSub:'Ouvrir les pages principales de Dirac Group.',openTheme:'Ouvrir les réglages du thème',drawerFoot:'Ce menu reste léger pour garder l’expérience catalogue.',
+      themeTitle:'Réglages du thème',themeSub:'Réglez la couleur, la langue et le mouvement du site.',modeTitle:'Mode du thème',dark:'Sombre',light:'Clair',auto:'Automatique',colorTitle:'Couleur d’accent',languageTitle:'Langue d’affichage',contrastTitle:'Contraste du thème',contrastOn:'Actif',contrastOff:'Inactif',customThemeTitle:'Thème personnalisé',motionTitle:'Mouvement du site',motionFull:'Normal',motionReduced:'Économie',soundTitle:'Son du site',soundDesc:'Les sons sont générés dans le navigateur sans fichier audio externe.',soundToggleTitle:'Son activé',soundToggleDesc:'Touchez pour désactiver / activer',resetTheme:'Réinitialiser',saveTheme:'Enregistrer',
+      aiTitle:'Dirac AI',aiSub:'Aide rapide pour la page compte.',aiWelcome:'Bonjour ! Je peux aider pour la connexion, l’inscription, le thème, la langue, WhatsApp et la navigation.',aiChip1:'Comment entrer',aiChip2:'Changer le thème',aiChip3:'Contacter WA'
+    }
+  };
+
+  var PLACEHOLDERS = {
+    en:{identifier:'email@example.com / 0878...',fullName:'Dirac Group customer name',password:'Minimum 6 characters',confirmPassword:'Repeat password',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Minimum 12 characters + symbol',forgotConfirmPassword:'Repeat new password',aiInput:'Type a question...',recovery:'Paste the 500-character recovery code here'},
+    zh:{identifier:'email@example.com / 0878...',fullName:'Dirac Group 客户姓名',password:'至少 6 个字符',confirmPassword:'再次输入密码',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'至少 12 个字符 + 符号',forgotConfirmPassword:'重复新密码',aiInput:'输入问题...',recovery:'在此粘贴 500 字符恢复代码'},
+    ar:{identifier:'email@example.com / 0878...',fullName:'اسم عميل Dirac Group',password:'6 أحرف على الأقل',confirmPassword:'أعد كلمة المرور',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'12 حرفاً على الأقل + رمز',forgotConfirmPassword:'أعد كلمة المرور الجديدة',aiInput:'اكتب سؤالاً...',recovery:'الصق رمز الاسترداد المكون من 500 حرف هنا'},
+    ja:{identifier:'email@example.com / 0878...',fullName:'Dirac Groupのお客様名',password:'6文字以上',confirmPassword:'パスワードを再入力',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'12文字以上 + 記号',forgotConfirmPassword:'新しいパスワードを再入力',aiInput:'質問を入力...',recovery:'500文字のリカバリーコードをここに貼り付け'},
+    ko:{identifier:'email@example.com / 0878...',fullName:'Dirac Group 고객 이름',password:'최소 6자',confirmPassword:'비밀번호 다시 입력',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'최소 12자 + 기호',forgotConfirmPassword:'새 비밀번호 다시 입력',aiInput:'질문 입력...',recovery:'500자 복구 코드를 여기에 붙여넣기'},
+    es:{identifier:'email@example.com / 0878...',fullName:'Nombre del cliente Dirac Group',password:'Mínimo 6 caracteres',confirmPassword:'Repetir contraseña',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Mínimo 12 caracteres + símbolo',forgotConfirmPassword:'Repetir nueva contraseña',aiInput:'Escribe una pregunta...',recovery:'Pega aquí el código de recuperación de 500 caracteres'},
+    fr:{identifier:'email@example.com / 0878...',fullName:'Nom du client Dirac Group',password:'Minimum 6 caractères',confirmPassword:'Répéter le mot de passe',forgotEmail:'email@example.com',forgotCode:'12345678',forgotNewPassword:'Minimum 12 caractères + symbole',forgotConfirmPassword:'Répéter le nouveau mot de passe',aiInput:'Écrire une question...',recovery:'Collez ici le code de récupération de 500 caractères'}
+  };
+
+  var TOAST = {
+    en:{lang:'Language saved.',motion:'Motion setting saved.',reset:'Theme reset.'},
+    zh:{lang:'语言已保存。',motion:'动效设置已保存。',reset:'主题已重置。'},
+    ar:{lang:'تم حفظ اللغة.',motion:'تم حفظ إعداد الحركة.',reset:'تمت إعادة ضبط السمة.'},
+    ja:{lang:'言語を保存しました。',motion:'動きの設定を保存しました。',reset:'テーマをリセットしました。'},
+    ko:{lang:'언어가 저장되었습니다.',motion:'동작 설정이 저장되었습니다.',reset:'테마가 초기화되었습니다.'},
+    es:{lang:'Idioma guardado.',motion:'Movimiento guardado.',reset:'Tema restablecido.'},
+    fr:{lang:'Langue enregistrée.',motion:'Mouvement enregistré.',reset:'Thème réinitialisé.'}
+  };
+
+  function $(sel, root){ return (root || document).querySelector(sel); }
+  function $$(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function readSettings(){
+    try{
+      return Object.assign({language:'id'}, JSON.parse(localStorage.getItem(THEME_KEY) || '{}'));
+    }catch(error){ return {language:'id'}; }
+  }
+  function currentLanguage(){
+    var settings = readSettings();
+    var select = $('#languageSelect');
+    var lang = (select && select.value) || settings.language || document.documentElement.getAttribute('lang') || 'id';
+    return PACK[lang] ? lang : (lang === 'id' ? 'id' : 'en');
+  }
+  function modeIsRegister(){
+    var bodyMode = document.body && document.body.getAttribute('data-auth-mode');
+    var hidden = $('#authMode');
+    return bodyMode === 'register' || (hidden && hidden.value === 'register');
+  }
+  function setPlaceholder(id, value){
+    var el = document.getElementById(id);
+    if(el && value) el.setAttribute('placeholder', value);
+  }
+  function applyPolishedI18n(){
+    var lang = currentLanguage();
+    if(lang === 'id') return;
+    var dict = Object.assign({}, EN, PACK[lang] || {});
+    document.documentElement.setAttribute('lang', lang);
+    document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+
+    $$('[data-i18n]').forEach(function(el){
+      if(el.hasAttribute('data-no-i18n')) return;
+      var key = el.getAttribute('data-i18n');
+      if(dict[key]) el.textContent = dict[key];
+    });
+
+    var authTitle = $('#authTitle');
+    var submitBtn = $('#submitBtn');
+    if(authTitle) authTitle.textContent = modeIsRegister() ? (dict.tabRegister || EN.tabRegister) : (dict.loginTitle || EN.loginTitle);
+    if(submitBtn) submitBtn.textContent = modeIsRegister() ? (dict.submitRegister || EN.submitRegister) : (dict.submitLogin || EN.submitLogin);
+
+    var ph = Object.assign({}, PLACEHOLDERS.en, PLACEHOLDERS[lang] || {});
+    setPlaceholder('identifier', ph.identifier);
+    setPlaceholder('fullName', ph.fullName);
+    setPlaceholder('password', ph.password);
+    setPlaceholder('confirmPassword', ph.confirmPassword);
+    setPlaceholder('forgotEmail', ph.forgotEmail);
+    setPlaceholder('forgotCode', ph.forgotCode);
+    setPlaceholder('forgotNewPassword', ph.forgotNewPassword);
+    setPlaceholder('forgotConfirmPassword', ph.forgotConfirmPassword);
+    setPlaceholder('aiInput', ph.aiInput);
+    var recovery = $('.dirac-recovery-verify-input');
+    if(recovery) recovery.setAttribute('placeholder', ph.recovery);
+
+    $$('[data-language]').forEach(function(btn){
+      var active = btn.getAttribute('data-language') === lang;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    var select = $('#languageSelect');
+    if(select) select.value = lang;
+  }
+  function replaceToastText(){
+    var toast = $('#toast');
+    if(!toast) return;
+    var lang = currentLanguage();
+    if(lang === 'id') return;
+    var map = TOAST[lang] || TOAST.en;
+    var raw = String(toast.textContent || '').trim();
+    if(raw === 'Bahasa disimpan.') toast.textContent = map.lang;
+    if(raw === 'Pengaturan gerak disimpan.') toast.textContent = map.motion;
+    if(raw === 'Tema direset.') toast.textContent = map.reset;
+  }
+  function schedule(){
+    setTimeout(applyPolishedI18n, 0);
+    setTimeout(applyPolishedI18n, 80);
+    setTimeout(applyPolishedI18n, 220);
+    setTimeout(replaceToastText, 20);
+    setTimeout(replaceToastText, 120);
+  }
+  document.addEventListener('click', function(event){
+    if(event.target.closest('[data-language]') || event.target.closest('[data-motion-choice]') || event.target.closest('#themeResetBtn') || event.target.closest('#themeSaveBtn') || event.target.closest('#loginTab') || event.target.closest('#registerTab')){
+      schedule();
+    }
+  }, true);
+  document.addEventListener('change', function(event){
+    if(event.target && (event.target.id === 'languageSelect' || event.target.id === 'motionSelect')) schedule();
+  }, true);
+  document.addEventListener('DOMContentLoaded', function(){
+    schedule();
+    var toast = $('#toast');
+    if(toast && window.MutationObserver){
+      new MutationObserver(replaceToastText).observe(toast, {childList:true, characterData:true, subtree:true});
+    }
+  });
+  window.addEventListener('storage', schedule);
+  window.diracPolishI18n = {apply:applyPolishedI18n};
+})();
+</script>
 
 </body>
 </html>
