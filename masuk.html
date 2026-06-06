@@ -3420,6 +3420,144 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
 }
 </style>
 
+
+
+<style id="dirac-masuk-order-circled-v2-fix-css">
+/* =========================================================
+   MASUK.HTML FIX V2
+   1) Kustom Tema dibuat compact seperti order.html: kotak warna polos, tanpa label.
+   2) Titik indikator aktif di belakang teks mode/bahasa/kontras/gerak dihapus.
+   3) Keranjang header dihapus total.
+   Tidak menyentuh login, hash, A2F, recovery, forgot password, endpoint, atau sound.
+   ========================================================= */
+
+/* Hapus keranjang kalau masih ada dari cache/markup lama */
+.site-header[data-order-circled-header="true"] .header-cart,
+.site-header[data-order-circled-header="true"] [data-open-cart],
+.header-cart[data-open-cart]{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+/* Rapikan header setelah cart dihapus: hanya brand + tema */
+.site-header[data-order-circled-header="true"] .nav{
+  grid-template-columns:minmax(0,1fr) auto!important;
+}
+.site-header[data-order-circled-header="true"] .header-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:0!important;
+}
+
+/* Hapus titik/dot aktif di belakang teks yang bikin UI kotor */
+.theme-pro-choice.active:after,
+.theme-modal[data-order-circled-theme="true"] .theme-pro-choice.active:after,
+.theme-modal[data-order-circled-theme="true"] [data-theme-mode].active:after,
+.theme-modal[data-order-circled-theme="true"] [data-language].active:after,
+.theme-modal[data-order-circled-theme="true"] [data-contrast].active:after,
+.theme-modal[data-order-circled-theme="true"] [data-motion-choice].active:after{
+  content:none!important;
+  display:none!important;
+}
+
+/* Tetap kasih state aktif rapi lewat border/glow, bukan titik */
+.theme-modal[data-order-circled-theme="true"] .theme-pro-choice.active{
+  border-color:rgba(var(--theme-rgb),.72)!important;
+  background:linear-gradient(180deg,rgba(var(--theme-rgb),.13),rgba(255,255,255,.035))!important;
+  box-shadow:0 0 0 1px rgba(var(--theme-rgb),.13) inset,0 10px 26px rgba(var(--theme-rgb),.07)!important;
+}
+
+/* Kustom tema: paksa mirip order.html gambar 3, 7 kolom kecil, 2 baris */
+.theme-modal[data-order-circled-theme="true"] .custom-theme-section{
+  padding-bottom:18px!important;
+}
+.theme-modal[data-order-circled-theme="true"] .custom-theme-grid,
+#themeModal[data-order-circled-theme="true"] #accentChoices{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:12px!important;
+  align-items:center!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-swatch-btn,
+#themeModal[data-order-circled-theme="true"] #accentChoices .theme-swatch-btn{
+  width:100%!important;
+  aspect-ratio:1/1!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:0!important;
+  border-radius:16px!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  background:
+    radial-gradient(circle at 35% 28%,rgba(255,255,255,.48),transparent 32%),
+    linear-gradient(145deg,var(--swatch-a),var(--swatch-b))!important;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.18),inset 0 -7px 12px rgba(0,0,0,.14),0 10px 20px rgba(0,0,0,.16)!important;
+  overflow:hidden!important;
+  position:relative!important;
+  display:block!important;
+  font-size:0!important;
+  color:transparent!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-swatch-btn:hover{
+  transform:translateY(-2px)!important;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.20),inset 0 -7px 12px rgba(0,0,0,.16),0 14px 28px rgba(0,0,0,.22)!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-swatch-btn.active{
+  border-color:rgba(var(--theme-rgb),.92)!important;
+  box-shadow:0 0 0 4px rgba(var(--theme-rgb),.18),inset 0 2px 2px rgba(255,255,255,.20),inset 0 -7px 12px rgba(0,0,0,.16),0 14px 28px rgba(0,0,0,.22)!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-swatch-btn.active:after{
+  content:"✓"!important;
+  position:absolute!important;
+  inset:0!important;
+  display:grid!important;
+  place-items:center!important;
+  color:#07111d!important;
+  font-size:1.18rem!important;
+  font-weight:950!important;
+  text-shadow:0 1px 12px rgba(255,255,255,.55)!important;
+  background:transparent!important;
+  width:auto!important;
+  height:auto!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+.theme-modal[data-order-circled-theme="true"] .theme-color-orb,
+.theme-modal[data-order-circled-theme="true"] .theme-color-label{
+  display:none!important;
+}
+
+/* Hapus teks label swatch jika masih muncul dari cache lama */
+#accentChoices .theme-swatch-btn > span:not(.sr-only){
+  display:none!important;
+}
+
+/* Responsive persis konsep order.html: 7 kolom di layar cukup, 4/3 kolom di HP kecil */
+@media(max-width:760px){
+  .site-header[data-order-circled-header="true"] .nav{
+    grid-template-columns:minmax(0,1fr) auto!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .custom-theme-grid,
+  #themeModal[data-order-circled-theme="true"] #accentChoices{
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+}
+@media(max-width:430px){
+  .theme-modal[data-order-circled-theme="true"] .custom-theme-grid,
+  #themeModal[data-order-circled-theme="true"] #accentChoices{
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+  .theme-modal[data-order-circled-theme="true"] .theme-swatch-btn,
+  #themeModal[data-order-circled-theme="true"] #accentChoices .theme-swatch-btn{
+    border-radius:12px!important;
+  }
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -3443,9 +3581,6 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       <div class="header-actions">
         <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">
           <span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span>
-        </button>
-        <button class="header-cart" type="button" data-open-cart aria-label="Buka keranjang katalog Dirac Group">
-          <span aria-hidden="true">🛍️</span><span class="label">Keranjang</span><span class="count-badge" data-cart-count>0</span>
         </button>
       </div>
     </div>
@@ -3941,7 +4076,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         btn.setAttribute('aria-label', p.label);
         btn.style.setProperty('--swatch-a', p.gold);
         btn.style.setProperty('--swatch-b', p.gold2);
-        btn.innerHTML = '<span class="theme-color-orb" aria-hidden="true"></span><span class="theme-color-label">'+p.label+'</span>';
+        btn.innerHTML = '<span class="sr-only">'+p.label+'</span>';
         wrap.appendChild(btn);
       });
     }
@@ -6767,50 +6902,6 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
 
 
-<script id="dirac-order-circled-into-masuk-js">
-(function(){
-  'use strict';
-  function qsa(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
-  function readCartCount(){
-    var keys = ['dirac_cart_v1','diracCart','cart','cartItems'];
-    for(var i=0;i<keys.length;i++){
-      try{
-        var raw = localStorage.getItem(keys[i]);
-        if(!raw) continue;
-        var data = JSON.parse(raw);
-        var items = Array.isArray(data) ? data : (Array.isArray(data.items) ? data.items : []);
-        if(items.length){
-          return items.reduce(function(total,item){ return total + Math.max(1, Number(item.qty || item.quantity || 1) || 1); }, 0);
-        }
-      }catch(error){}
-    }
-    return 0;
-  }
-  function syncHeaderCart(){
-    var count = readCartCount();
-    qsa('[data-cart-count]').forEach(function(el){ el.textContent = String(count); });
-  }
-  function notify(message){
-    if(typeof window.showToast === 'function') window.showToast(message);
-  }
-  document.addEventListener('click', function(event){
-    var btn = event.target.closest && event.target.closest('[data-open-cart]');
-    if(!btn) return;
-    if(typeof window.openCart === 'function'){
-      event.preventDefault();
-      window.openCart();
-      return;
-    }
-    event.preventDefault();
-    notify('Keranjang dibuka dari halaman katalog.');
-    window.location.href = 'https://diracgroup.store/order1.html#produk';
-  }, true);
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncHeaderCart);
-  else syncHeaderCart();
-  window.addEventListener('storage', syncHeaderCart);
-  window.diracLoginHeaderCart = {sync:syncHeaderCart};
-})();
-</script>
 
 </body>
 </html>
