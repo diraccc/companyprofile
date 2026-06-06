@@ -101,10 +101,39 @@ function setCors(req, res, options = {}) {
   if (allowedOrigin) res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, POST, OPTIONS' : 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', options.isDomainAction ? 'Content-Type, X-Dirac-Admin, Authorization, X-Domain-Refresh, X-Refresh-Token, X-Dirac-MFA-Proof, X-Dashboard-MFA-Proof, X-Dirac-Dashboard-MFA' : 'Content-Type, X-Dirac-Admin');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    options.isDomainAction
+      ? [
+          'Content-Type',
+          'Authorization',
+          'X-Dirac-Admin',
+          'X-Domain-Refresh',
+          'X-Refresh-Token',
+          'X-Dirac-MFA-Proof',
+          'X-Dashboard-MFA-Proof',
+          'X-Dirac-Dashboard-MFA',
+          'Idempotency-Key',
+          'X-Idempotency-Key',
+          'X-Dirac-Device-Id',
+          'X-Device-Id',
+          'content-type',
+          'authorization',
+          'x-domain-refresh',
+          'x-refresh-token',
+          'x-dirac-mfa-proof',
+          'x-dashboard-mfa-proof',
+          'x-dirac-dashboard-mfa',
+          'idempotency-key',
+          'x-idempotency-key',
+          'x-dirac-device-id',
+          'x-device-id'
+        ].join(', ')
+      : 'Content-Type, X-Dirac-Admin, content-type, x-dirac-admin'
+  );
   if (options.isDomainAction) {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Expose-Headers', 'X-Domain-Access-Token, X-Domain-Refresh-Token, X-Domain-Token-Refreshed');
+    res.setHeader('Access-Control-Expose-Headers', 'X-Domain-Access-Token, X-Domain-Refresh-Token, X-Domain-Token-Refreshed, Retry-After');
   }
   res.setHeader('Access-Control-Max-Age', '600');
   res.setHeader('Cache-Control', 'no-store');
