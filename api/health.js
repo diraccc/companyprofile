@@ -3715,3 +3715,466 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
     time: now
   });
 }
+
+
+
+/* ============================================================
+   ADMIN SECURITY CENTER SUPABASE-ONLY - APPEND ONLY
+   Guard:
+   - Wajib Supabase access token / domain session cookie.
+   - Backend ambil user via Supabase Auth.
+   - Backend cek public.admin_users.
+   - role wajib owner/super_admin/security_admin.
+   - verified=true dan status=active.
+   - Tidak menggunakan Firebase ENV / Firebase token.
+   - Tidak menyentuh login/hash/A2F/recovery lama.
+   ============================================================ */
+
+const __diracAdminSecuritySupabasePreviousHandler = module.exports;
+
+const ADMIN_SECURITY_ACTIONS_SUPABASE = new Set([
+  'admin_security_overview',
+  'admin_security_events',
+  'admin_security_blocks',
+  'admin_security_unblock_user'
+]);
+
+const ADMIN_SECURITY_ACTION_ALIASES_SUPABASE = Object.freeze({
+  'admin-security-overview': 'admin_security_overview',
+  'admin_security_overview': 'admin_security_overview',
+  'admin-security-events': 'admin_security_events',
+  'admin_security_events': 'admin_security_events',
+  'admin-security-blocks': 'admin_security_blocks',
+  'admin_security_blocks': 'admin_security_blocks',
+  'admin-security-unblock-user': 'admin_security_unblock_user',
+  'admin_security_unblock_user': 'admin_security_unblock_user'
+});
+
+module.exports = async function adminSecurityCenterSupabaseWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = ADMIN_SECURITY_ACTION_ALIASES_SUPABASE[rawAction] || rawAction;
+
+  if (!ADMIN_SECURITY_ACTIONS_SUPABASE.has(action)) {
+    return __diracAdminSecuritySupabasePreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  try {
+    return await adminSecurityHandleActionSupabase(action, req, res);
+  } catch (error) {
+    console.error('[admin-security-supabase]', adminSecuritySafeErrorSupabase(error));
+    return res.status(500).json({
+      ok: false,
+      message: 'Admin Security Center belum dapat diproses.'
+    });
+  }
+};
+
+async function adminSecurityHandleActionSupabase(action, req, res) {
+  if (action === 'admin_security_overview') {
+    if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+    const admin = await requireAdminSecuritySupabaseOwner(req, res, action);
+    if (!admin) return;
+    return adminSecurityOverviewSupabase(req, res, admin);
+  }
+
+  if (action === 'admin_security_events') {
+    if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+    const admin = await requireAdminSecuritySupabaseOwner(req, res, action);
+    if (!admin) return;
+    return adminSecurityEventsSupabase(req, res, admin);
+  }
+
+  if (action === 'admin_security_blocks') {
+    if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+    const admin = await requireAdminSecuritySupabaseOwner(req, res, action);
+    if (!admin) return;
+    return adminSecurityBlocksSupabase(req, res, admin);
+  }
+
+  if (action === 'admin_security_unblock_user') {
+    if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+    const admin = await requireAdminSecuritySupabaseOwner(req, res, action, { write: true });
+    if (!admin) return;
+    return adminSecurityUnblockUserSupabase(req, res, admin);
+  }
+
+  return res.status(404).json({ ok: false, message: 'Admin security action tidak ditemukan.' });
+}
+
+async function requireAdminSecuritySupabaseOwner(req, res, action, options = {}) {
+  const user = await adminSecurityRequireSupabaseUser(req);
+  if (!user) {
+    res.status(401).json({
+      ok: false,
+      message: 'Sesi admin Supabase tidak valid. Login ulang.'
+    });
+    return null;
+  }
+
+  const email = normalizeAuthEmail(user.email || '');
+  const userId = String(user.id || user.user_id || '').trim();
+
+  const adminRow = await adminSecurityFindAdminUser(userId, email);
+  if (!adminRow) {
+    res.status(403).json({
+      ok: false,
+      message: 'Akun ini belum terdaftar di admin_users.'
+    });
+    return null;
+  }
+
+  const role = String(adminRow.role || '').trim().toLowerCase();
+  const verified = adminRow.verified === true || String(adminRow.verified || '').toLowerCase() === 'true';
+  const status = String(adminRow.status || '').trim().toLowerCase();
+  const activeStatus = !status || status === 'active' || status === 'enabled' || status === 'verified';
+
+  if (!verified || !activeStatus) {
+    res.status(403).json({
+      ok: false,
+      message: 'Admin belum verified atau status tidak aktif.'
+    });
+    return null;
+  }
+
+  const allowed = ['owner', 'super_admin', 'security_admin'].includes(role);
+  const readOnlyAllowed = String(process.env.ADMIN_SECURITY_ALLOW_ADMIN_READONLY || '').toLowerCase() === 'true' && role === 'admin';
+
+  if (!allowed && !readOnlyAllowed) {
+    res.status(403).json({
+      ok: false,
+      message: 'Security Center hanya untuk owner/super_admin/security_admin.',
+      role: role || 'none'
+    });
+    return null;
+  }
+
+  if (options.write && !allowed) {
+    res.status(403).json({
+      ok: false,
+      message: 'Aksi tulis Security Center hanya untuk owner/super_admin/security_admin.'
+    });
+    return null;
+  }
+
+  return {
+    id: String(adminRow.id || ''),
+    user_id: userId,
+    uid: String(adminRow.uid || userId || ''),
+    email: email || String(adminRow.email || ''),
+    role,
+    canWrite: allowed,
+    verified,
+    status,
+    auth_user: user
+  };
+}
+
+async function adminSecurityRequireSupabaseUser(req) {
+  const token = adminSecurityGetSupabaseAccessToken(req);
+  if (token) {
+    const result = await supabaseFetch('/auth/v1/user', {
+      method: 'GET',
+      auth: 'bearer',
+      token
+    }).catch(() => null);
+
+    if (result && result.ok && result.data) return result.data;
+  }
+
+  if (typeof requireDomainUser === 'function') {
+    try {
+      const fakeRes = {
+        status: () => ({ json: () => null, end: () => null }),
+        setHeader: () => null,
+        getHeader: () => null
+      };
+      const user = await requireDomainUser(req, fakeRes);
+      if (user) return user;
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+function adminSecurityGetSupabaseAccessToken(req) {
+  const bearer = getBearerToken(req);
+  if (bearer) return bearer;
+
+  const refreshHeader = String(req.headers && (req.headers['x-domain-access-token'] || req.headers['x-supabase-access-token'] || req.headers['x-dirac-access-token']) || '').trim();
+  if (refreshHeader) return refreshHeader;
+
+  const cookies = parseCookies(req);
+  const cookieToken = String(cookies[ACCESS_COOKIE] || cookies.dirac_domain_session || cookies.sb_access_token || '').trim();
+  if (cookieToken) return cookieToken;
+
+  return '';
+}
+
+async function adminSecurityFindAdminUser(userId, email) {
+  const select = encodeURIComponent('id,user_id,uid,email,role,verified,status,created_at,updated_at');
+
+  const queries = [];
+  if (customerSecurityLooksLikeUuid(userId)) queries.push('/rest/v1/admin_users?select=' + select + '&user_id=eq.' + encodeURIComponent(userId) + '&limit=1');
+  if (userId) queries.push('/rest/v1/admin_users?select=' + select + '&uid=eq.' + encodeURIComponent(userId) + '&limit=1');
+  if (email) queries.push('/rest/v1/admin_users?select=' + select + '&email=ilike.' + encodeURIComponent(email) + '&limit=1');
+
+  for (const path of queries) {
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+    const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
+    if (rows[0]) return rows[0];
+  }
+
+  return null;
+}
+
+async function adminSecurityOverviewSupabase(req, res, admin) {
+  const events = await adminSecurityFetchTableSafeSupabase(
+    '/rest/v1/security_customer_events?select=' +
+      encodeURIComponent('id,customer_id,event_type,status,risk_level,description,created_at') +
+      '&order=created_at.desc&limit=50'
+  );
+
+  const blocks = await adminSecurityFetchTableSafeSupabase(
+    '/rest/v1/security_customer_access_blocks?select=' +
+      encodeURIComponent('id,customer_id,reason,action,blocked_until,created_at') +
+      '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString()) +
+      '&order=created_at.desc&limit=50'
+  );
+
+  const recovery = await adminSecurityFetchTableSafeSupabase(
+    '/rest/v1/security_customer_recovery_codes?select=' +
+      encodeURIComponent('id,customer_id,status,used_at,revoked_at,created_at') +
+      '&order=created_at.desc&limit=80'
+  );
+
+  const eventRows = Array.isArray(events.data) ? events.data : [];
+  const blockRows = Array.isArray(blocks.data) ? blocks.data : [];
+  const recoveryRows = Array.isArray(recovery.data) ? recovery.data : [];
+
+  const highRisk = eventRows.filter((row) => String(row.risk_level || '').toLowerCase() === 'high').length;
+  const generated = eventRows.filter((row) => String(row.event_type || '') === 'recovery_codes_generated').length;
+  const used = eventRows.filter((row) => String(row.event_type || '') === 'recovery_code_used').length;
+
+  return res.status(200).json({
+    ok: true,
+    admin: adminSecuritySanitizeAdminSupabase(admin),
+    storage_ready: Boolean(events.ok || blocks.ok || recovery.ok),
+    overview: {
+      recent_events: eventRows.length,
+      high_risk_events: highRisk,
+      active_blocks: blockRows.length,
+      recovery_events_generated: generated,
+      recovery_events_used: used,
+      recovery_rows_sampled: recoveryRows.length,
+      recovery_unused_sampled: recoveryRows.filter((row) => !row.used_at && !row.revoked_at && String(row.status || '') === 'active').length
+    },
+    recent_events: await adminSecurityDecorateEventsSupabase(eventRows.slice(0, 10)),
+    active_blocks: await adminSecurityDecorateBlocksSupabase(blockRows.slice(0, 10)),
+    time: diracNowIso()
+  });
+}
+
+async function adminSecurityEventsSupabase(req, res, admin) {
+  const limit = adminSecurityLimitSupabase(req, 80);
+  const type = String(req.query && req.query.type || '').trim();
+  let path = '/rest/v1/security_customer_events?select=' +
+    encodeURIComponent('id,customer_id,event_type,status,risk_level,description,device_name,browser_name,operating_system,created_at') +
+    '&order=created_at.desc&limit=' + encodeURIComponent(String(limit));
+  if (type) path += '&event_type=eq.' + encodeURIComponent(type);
+
+  const result = await adminSecurityFetchTableSafeSupabase(path);
+  const rows = Array.isArray(result.data) ? result.data : [];
+  return res.status(200).json({
+    ok: true,
+    admin: adminSecuritySanitizeAdminSupabase(admin),
+    storage_ready: result.ok,
+    events: await adminSecurityDecorateEventsSupabase(rows),
+    time: diracNowIso()
+  });
+}
+
+async function adminSecurityBlocksSupabase(req, res, admin) {
+  const limit = adminSecurityLimitSupabase(req, 80);
+  const includeExpired = String(req.query && req.query.include_expired || '').toLowerCase() === 'true';
+  let path = '/rest/v1/security_customer_access_blocks?select=' +
+    encodeURIComponent('id,customer_id,ip_hash,device_hash,reason,action,fail_count,blocked_until,created_at,updated_at') +
+    '&order=created_at.desc&limit=' + encodeURIComponent(String(limit));
+  if (!includeExpired) path += '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString());
+
+  const result = await adminSecurityFetchTableSafeSupabase(path);
+  const rows = Array.isArray(result.data) ? result.data : [];
+  return res.status(200).json({
+    ok: true,
+    admin: adminSecuritySanitizeAdminSupabase(admin),
+    storage_ready: result.ok,
+    blocks: await adminSecurityDecorateBlocksSupabase(rows),
+    time: diracNowIso()
+  });
+}
+
+async function adminSecurityUnblockUserSupabase(req, res, admin) {
+  const body = await readBody(req);
+  const blockId = String(body.block_id || body.blockId || '').trim();
+  const customerIdInput = String(body.customer_id || body.customerId || '').trim();
+  const email = normalizeAuthEmail(body.email || body.customer_email || '');
+
+  let customerId = customerSecurityLooksLikeUuid(customerIdInput) ? customerIdInput : '';
+
+  if (!customerId && email) {
+    const lookup = await adminSecurityFetchTableSafeSupabase('/rest/v1/customers?select=id,email&email=ilike.' + encodeURIComponent(email) + '&limit=1');
+    const rows = Array.isArray(lookup.data) ? lookup.data : [];
+    if (rows[0] && customerSecurityLooksLikeUuid(rows[0].id)) customerId = rows[0].id;
+  }
+
+  let path = '';
+  if (customerSecurityLooksLikeUuid(blockId)) {
+    path = '/rest/v1/security_customer_access_blocks?id=eq.' + encodeURIComponent(blockId) + '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString());
+  } else if (customerSecurityLooksLikeUuid(customerId)) {
+    path = '/rest/v1/security_customer_access_blocks?customer_id=eq.' + encodeURIComponent(customerId) + '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString());
+  } else {
+    return res.status(400).json({
+      ok: false,
+      message: 'Masukkan block_id, customer_id, atau email customer yang valid.'
+    });
+  }
+
+  const patched = await supabaseFetch(path, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      blocked_until: new Date().toISOString(),
+      reason: 'manual_unblock_from_admin_security_center',
+      metadata: {
+        source: 'admin_security_center_supabase',
+        admin_user_id: admin.user_id,
+        admin_email: admin.email,
+        admin_role: admin.role,
+        unblocked_at: diracNowIso()
+      }
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(500).json({
+      ok: false,
+      message: 'Gagal membuka blokir customer.'
+    });
+  }
+
+  const rows = Array.isArray(patched.data) ? patched.data : [];
+
+  if (customerSecurityLooksLikeUuid(customerId)) {
+    await customerSecurityWriteGuardEvent(customerId, {
+      event_type: 'admin_security_unblock',
+      status: 'success',
+      risk_level: 'medium',
+      description: 'Owner membuka blokir customer dari Admin Security Center.',
+      req,
+      metadata: {
+        admin_user_id: admin.user_id,
+        admin_email: admin.email,
+        admin_role: admin.role,
+        affected_rows: rows.length
+      }
+    }).catch(() => null);
+  }
+
+  return res.status(200).json({
+    ok: true,
+    message: rows.length ? 'Blokir berhasil dibuka.' : 'Tidak ada blokir aktif untuk target ini.',
+    affected_rows: rows.length,
+    time: diracNowIso()
+  });
+}
+
+async function adminSecurityFetchTableSafeSupabase(path) {
+  try {
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok) return { ok: false, status: result.status, data: [] };
+    return { ok: true, status: result.status, data: Array.isArray(result.data) ? result.data : [] };
+  } catch (error) {
+    console.error('[admin-security-supabase-fetch]', adminSecuritySafeErrorSupabase(error));
+    return { ok: false, status: 500, data: [] };
+  }
+}
+
+function adminSecurityLimitSupabase(req, fallback) {
+  const raw = Number(req.query && req.query.limit || fallback || 50);
+  if (!Number.isFinite(raw)) return fallback || 50;
+  return Math.max(1, Math.min(Math.trunc(raw), 100));
+}
+
+async function adminSecurityDecorateEventsSupabase(rows) {
+  const emailMap = await adminSecurityCustomerEmailMapSupabase(rows.map((row) => row.customer_id));
+  return rows.map((row) => ({
+    id: row.id,
+    customer_id: row.customer_id || '',
+    customer_email: emailMap[row.customer_id] || '',
+    event_type: String(row.event_type || ''),
+    status: String(row.status || ''),
+    risk_level: String(row.risk_level || ''),
+    description: String(row.description || '').slice(0, 220),
+    device_name: String(row.device_name || ''),
+    browser_name: String(row.browser_name || ''),
+    operating_system: String(row.operating_system || ''),
+    created_at: row.created_at || ''
+  }));
+}
+
+async function adminSecurityDecorateBlocksSupabase(rows) {
+  const emailMap = await adminSecurityCustomerEmailMapSupabase(rows.map((row) => row.customer_id));
+  return rows.map((row) => ({
+    id: row.id,
+    customer_id: row.customer_id || '',
+    customer_email: emailMap[row.customer_id] || '',
+    reason: String(row.reason || ''),
+    action: String(row.action || ''),
+    fail_count: Number(row.fail_count || 0),
+    blocked_until: row.blocked_until || '',
+    created_at: row.created_at || '',
+    updated_at: row.updated_at || '',
+    ip_hash_hint: adminSecurityHashHintSupabase(row.ip_hash),
+    device_hash_hint: adminSecurityHashHintSupabase(row.device_hash),
+    active: row.blocked_until ? new Date(row.blocked_until).getTime() > Date.now() : false
+  }));
+}
+
+async function adminSecurityCustomerEmailMapSupabase(ids) {
+  const unique = Array.from(new Set((ids || []).filter((id) => customerSecurityLooksLikeUuid(id)))).slice(0, 80);
+  if (!unique.length) return {};
+  const path = '/rest/v1/customers?select=' + encodeURIComponent('id,email') + '&id=in.(' + unique.map(encodeURIComponent).join(',') + ')';
+  const result = await adminSecurityFetchTableSafeSupabase(path);
+  const map = {};
+  (Array.isArray(result.data) ? result.data : []).forEach((row) => {
+    if (row && row.id) map[row.id] = String(row.email || '');
+  });
+  return map;
+}
+
+function adminSecurityHashHintSupabase(value) {
+  const text = String(value || '');
+  if (!text) return '';
+  if (text.length <= 16) return text;
+  return text.slice(0, 6) + '…' + text.slice(-6);
+}
+
+function adminSecuritySanitizeAdminSupabase(admin) {
+  return {
+    user_id: String(admin && admin.user_id || ''),
+    uid: String(admin && admin.uid || ''),
+    email: String(admin && admin.email || ''),
+    role: String(admin && admin.role || ''),
+    verified: Boolean(admin && admin.verified),
+    status: String(admin && admin.status || ''),
+    can_write: Boolean(admin && admin.canWrite)
+  };
+}
+
+function adminSecuritySafeErrorSupabase(error) {
+  return String(error && error.message ? error.message : error).slice(0, 180);
+}
