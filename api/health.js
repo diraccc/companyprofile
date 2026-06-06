@@ -2715,7 +2715,9 @@ const CUSTOMER_SECURITY_GUARDED_ACTIONS = new Set([
   'customer_security_guard_status',
   'customer_security_revoke_session',
   'customer_security_revoke_other_sessions',
-  'customer_security_account_request'
+  'customer_security_account_request',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_codes_status'
 ]);
 
 const CUSTOMER_SECURITY_GUARDED_ALIASES = Object.freeze({
@@ -2726,7 +2728,11 @@ const CUSTOMER_SECURITY_GUARDED_ALIASES = Object.freeze({
   'customer-security-revoke-other-sessions': 'customer_security_revoke_other_sessions',
   'customer_security_revoke_other_sessions': 'customer_security_revoke_other_sessions',
   'customer-security-account-request': 'customer_security_account_request',
-  'customer_security_account_request': 'customer_security_account_request'
+  'customer_security_account_request': 'customer_security_account_request',
+  'customer-security-recovery-codes-generate': 'customer_security_recovery_codes_generate',
+  'customer_security_recovery_codes_generate': 'customer_security_recovery_codes_generate',
+  'customer-security-recovery-codes-status': 'customer_security_recovery_codes_status',
+  'customer_security_recovery_codes_status': 'customer_security_recovery_codes_status'
 });
 
 const CUSTOMER_SECURITY_RATE_LIMIT_STORE = globalThis.__DIRAC_CUSTOMER_SECURITY_RATE_LIMIT_STORE__ || new Map();
@@ -2744,6 +2750,17 @@ module.exports = async function customerSecurityGuardedActionsWrapper(req, res) 
   const cors = setCors(req, res, { isDomainAction: true });
   if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
   if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  const block = await customerSecurityCheckAccessBlock(req, action);
+  if (block && block.blocked) {
+    return res.status(423).json({
+      ok: false,
+      code: 'SECURITY_ACCESS_BLOCKED',
+      message: 'Akses keamanan sementara diblokir. Silakan coba lagi beberapa menit.',
+      blocked_until: block.blocked_until,
+      retry_after_seconds: block.retry_after_seconds || 300
+    });
+  }
 
   return customerSecurityHandleGuardedAction(action, req, res);
 };
@@ -2799,6 +2816,16 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
       return customerSecurityCreateAccountRequest(req, res, action);
     }
 
+    if (action === 'customer_security_recovery_codes_status') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      return customerSecurityRecoveryCodesStatus(req, res, action);
+    }
+
+    if (action === 'customer_security_recovery_codes_generate') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityGenerateRecoveryCodes(req, res, action);
+    }
+
     return res.status(404).json({ ok: false, message: 'Aksi keamanan tidak ditemukan.' });
   } catch (error) {
     console.error('[customer-security-guarded-action]', customerSecuritySafeLogError(error));
@@ -2812,10 +2839,14 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
 
 async function customerSecurityRequireAccess(req, res, options = {}) {
   const user = await requireDomainUser(req, res);
-  if (!user) return null;
+  if (!user) {
+    await customerSecurityRegisterFailedVerification(req, options.action || 'customer_security', 'user_not_verified');
+    return null;
+  }
 
   const authUserId = String(user.id || '').trim();
   if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
+    await customerSecurityRegisterFailedVerification(req, options.action || 'customer_security', 'invalid_session');
     res.status(401).json({ ok: false, message: 'Sesi tidak valid.' });
     return null;
   }
@@ -2854,6 +2885,7 @@ async function customerSecurityRequireAccess(req, res, options = {}) {
   const customerId = String(link && link.customer_id || '').trim();
 
   if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
+    await customerSecurityRegisterFailedVerification(req, options.action || 'customer_security', 'auth_link_not_active');
     res.status(403).json({
       ok: false,
       message: 'Akun belum terhubung ke customer profile aktif.',
@@ -2876,6 +2908,7 @@ async function customerSecurityRequireAccess(req, res, options = {}) {
         req,
         metadata: { action: options.action || 'customer_security', reason: 'missing_or_invalid_mfa_proof' }
       });
+      await customerSecurityRegisterFailedVerification(req, options.action || 'customer_security', 'missing_or_invalid_mfa_proof', customerId);
       res.status(403).json({
         ok: false,
         code: 'MFA_REQUIRED',
@@ -3185,4 +3218,179 @@ function diracSafePublicMessage(message, fallback = 'Permintaan belum dapat dipr
 
 function diracNowIso() {
   return new Date().toISOString();
+}
+
+
+
+/* ============================================================
+   CUSTOMER SECURITY ACCESS BLOCK + RECOVERY CODES
+   ============================================================ */
+
+const CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY = globalThis.__DIRAC_CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY__ || new Map();
+globalThis.__DIRAC_CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY__ = CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY;
+const CUSTOMER_SECURITY_ACCESS_BLOCK_SECONDS = 300;
+
+function customerSecurityAccessBlockIdentity(req) {
+  const ip = customerSecurityRequestIp(req) || 'no-ip';
+  const ua = String((req && req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
+  const origin = requestOrigin(req);
+  const deviceHeader = String((req && req.headers && (req.headers['x-dirac-device-id'] || req.headers['x-device-id'])) || '').trim().slice(0, 160);
+  const deviceMaterial = [deviceHeader, ua, origin].filter(Boolean).join('|') || 'unknown-device';
+  return {
+    ip,
+    ua,
+    origin,
+    ip_hash: customerSecuritySha256('security-block-ip-v1:' + ip),
+    device_hash: customerSecuritySha256('security-block-device-v1:' + deviceMaterial)
+  };
+}
+
+async function customerSecurityCheckAccessBlock(req, action) {
+  const identity = customerSecurityAccessBlockIdentity(req);
+  const now = Date.now();
+  const memKey = identity.ip_hash + ':' + identity.device_hash;
+  const memUntil = Number(CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY.get(memKey) || 0);
+  if (memUntil && memUntil > now) {
+    return { blocked: true, blocked_until: new Date(memUntil).toISOString(), retry_after_seconds: Math.ceil((memUntil - now) / 1000), source: 'memory' };
+  }
+  if (memUntil && memUntil <= now) CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY.delete(memKey);
+
+  try {
+    const path = '/rest/v1/security_customer_access_blocks?select=' +
+      encodeURIComponent('id,blocked_until,reason') +
+      '&or=(' +
+      'ip_hash.eq.' + encodeURIComponent(identity.ip_hash) + ',' +
+      'device_hash.eq.' + encodeURIComponent(identity.device_hash) +
+      ')' +
+      '&blocked_until=gt.' + encodeURIComponent(new Date().toISOString()) +
+      '&order=blocked_until.desc&limit=1';
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (result.ok && Array.isArray(result.data) && result.data.length) {
+      const until = new Date(result.data[0].blocked_until).getTime();
+      return { blocked: true, blocked_until: result.data[0].blocked_until, retry_after_seconds: Math.max(1, Math.ceil((until - now) / 1000)), source: 'database' };
+    }
+  } catch (_) {}
+  return { blocked: false };
+}
+
+async function customerSecurityRegisterFailedVerification(req, action, reason, customerId = null) {
+  const identity = customerSecurityAccessBlockIdentity(req);
+  const untilMs = Date.now() + CUSTOMER_SECURITY_ACCESS_BLOCK_SECONDS * 1000;
+  const blockedUntil = new Date(untilMs).toISOString();
+  const memKey = identity.ip_hash + ':' + identity.device_hash;
+  CUSTOMER_SECURITY_ACCESS_BLOCK_MEMORY.set(memKey, untilMs);
+
+  try {
+    await supabaseFetch('/rest/v1/security_customer_access_blocks', {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [{
+        customer_id: customerSecurityLooksLikeUuid(customerId) ? customerId : null,
+        ip_hash: identity.ip_hash,
+        device_hash: identity.device_hash,
+        reason: customerSecuritySanitizeReason(reason || 'security_gate_failed'),
+        action: String(action || 'customer_security').slice(0, 120),
+        fail_count: 1,
+        blocked_until: blockedUntil,
+        metadata: { source: 'customer_security_gate', origin: identity.origin || null, user_agent_hash: customerSecuritySha256('ua:' + identity.ua) }
+      }]
+    });
+  } catch (_) {}
+
+  try {
+    if (customerSecurityLooksLikeUuid(customerId)) {
+      await customerSecurityWriteGuardEvent(customerId, {
+        event_type: 'security_access_blocked',
+        status: 'warning',
+        risk_level: 'high',
+        description: 'Akses customer security diblokir sementara setelah verifikasi backend gagal.',
+        req,
+        metadata: { action, reason, blocked_until: blockedUntil }
+      });
+    }
+  } catch (_) {}
+
+  return { blocked_until: blockedUntil, retry_after_seconds: CUSTOMER_SECURITY_ACCESS_BLOCK_SECONDS };
+}
+
+function customerSecurityRecoveryCodeSecret() {
+  return getCustomerMfaSecret();
+}
+
+function customerSecurityFormatRecoveryCode(raw) {
+  const text = String(raw || '').replace(/[^A-Z0-9]/g, '').slice(0, 20);
+  const chunks = text.match(/.{1,4}/g) || [];
+  return chunks.join('-');
+}
+
+function customerSecurityGeneratePlainRecoveryCode() {
+  return customerSecurityFormatRecoveryCode(crypto.randomBytes(15).toString('base64url').toUpperCase());
+}
+
+function customerSecurityHashRecoveryCode(code, customerId) {
+  return crypto.createHmac('sha256', customerSecurityRecoveryCodeSecret())
+    .update('dirac-customer-recovery-code-v1:' + String(customerId || '') + ':' + String(code || '').toUpperCase())
+    .digest('hex');
+}
+
+async function customerSecurityRecoveryCodesStatus(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: false, rateLimit: { limit: 20, windowMs: 60_000 } });
+  if (!access) return;
+
+  const path = '/rest/v1/security_customer_recovery_codes?select=' + encodeURIComponent('id,created_at,used_at,revoked_at') + '&customer_id=eq.' + encodeURIComponent(access.customerId);
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) {
+    return res.status(200).json({ ok: true, ready: false, total: 0, unused: 0, used: 0, message: 'Recovery codes storage belum siap.', direct_frontend_table_access: false });
+  }
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const activeRows = rows.filter(row => !row.revoked_at);
+  const unused = activeRows.filter(row => !row.used_at).length;
+  const used = activeRows.filter(row => row.used_at).length;
+  return res.status(200).json({ ok: true, ready: true, total: activeRows.length, unused, used, generated: activeRows.length > 0, message: activeRows.length ? 'Recovery codes tersedia.' : 'Recovery codes belum dibuat.', direct_frontend_table_access: false, time: diracNowIso() });
+}
+
+async function customerSecurityGenerateRecoveryCodes(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: true, rateLimit: { limit: 2, windowMs: 10 * 60_000 } });
+  if (!access) return;
+
+  const body = await readBody(req);
+  const count = Math.min(12, Math.max(8, Math.trunc(Number(body.count || 10))));
+  const now = diracNowIso();
+  const batchId = customerSecuritySha256('recovery-batch:' + access.customerId + ':' + now + ':' + crypto.randomBytes(16).toString('hex')).slice(0, 32);
+
+  await supabaseFetch('/rest/v1/security_customer_recovery_codes?customer_id=eq.' + encodeURIComponent(access.customerId) + '&revoked_at=is.null', {
+    method: 'PATCH',
+    auth: 'service',
+    body: { revoked_at: now, revoke_reason: 'rotated' }
+  }).catch(() => null);
+
+  const plainCodes = Array.from({ length: count }, () => customerSecurityGeneratePlainRecoveryCode());
+  const rows = plainCodes.map((code, index) => ({
+    customer_id: access.customerId,
+    code_hash: customerSecurityHashRecoveryCode(code, access.customerId),
+    code_hint: code.slice(-4),
+    batch_id: batchId,
+    status: 'active',
+    used_at: null,
+    revoked_at: null,
+    metadata: { source: 'customer_security_generate_recovery_codes', order: index + 1 }
+  }));
+
+  const created = await supabaseFetch('/rest/v1/security_customer_recovery_codes', { method: 'POST', auth: 'service', prefer: 'return=representation', body: rows });
+  if (!created.ok) {
+    return res.status(500).json({ ok: false, message: 'Gagal membuat recovery codes. Pastikan tabel security_customer_recovery_codes sudah tersedia.' });
+  }
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'recovery_codes_generated',
+    status: 'success',
+    risk_level: 'high',
+    description: 'Customer membuat recovery codes baru. Kode lama dicabut.',
+    req,
+    metadata: { action, count, batch_id: batchId }
+  });
+
+  return res.status(200).json({ ok: true, message: 'Recovery codes berhasil dibuat. Simpan sekarang, kode hanya ditampilkan sekali.', codes: plainCodes, count: plainCodes.length, show_once: true, batch_id: batchId, time: diracNowIso() });
 }
