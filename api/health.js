@@ -3398,7 +3398,9 @@ function customerSecurityGeneratePlainRecoveryCode() {
 }
 
 function customerSecurityNormalizeRecoveryCodeInput(code) {
-  return String(code || '').trim();
+  // Recovery code alphabet intentionally excludes whitespace.
+  // This makes verification tolerant when mobile copy/paste inserts spaces/newlines.
+  return String(code || '').replace(/\s+/g, '').trim();
 }
 
 function customerSecurityRecoveryCodeArgon2Input(code, customerId) {
