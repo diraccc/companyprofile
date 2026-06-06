@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-security-center-fetch-fix="same-origin-fallback-v1" data-security-center-cors-fix="token-headers-v1" data-security-center-hybrid-auth="firebase-session-supabase-role-v1" data-security-center-firebase-first="v1" data-security-center-no-verified="v1" data-security-center-simple-auth="authorization-only-v1" data-security-center-firebase-first="v1">
+<html lang="id" data-security-center-fetch-fix="same-origin-fallback-v1" data-security-center-cors-fix="token-headers-v1" data-security-center-hybrid-auth="firebase-session-supabase-role-v1" data-security-center-firebase-first="v1" data-security-center-no-verified="v1" data-security-center-active-column="v1" data-security-center-simple-auth="authorization-only-v1" data-security-center-firebase-first="v1">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1642,7 +1642,7 @@
                 </div>
                 <button class="btn small primary" id="adminSecurityRefreshBtn" type="button">Refresh Security</button>
               </div>
-              <div class="admin-sec-note" id="adminSecurityOwnerNote">Akses backend hanya untuk role owner, super_admin, atau security_admin dengan status aktif.</div>
+              <div class="admin-sec-note" id="adminSecurityOwnerNote">Akses backend hanya untuk role owner, super_admin, atau security_admin dengan active=true.</div>
               <div class="admin-sec-grid">
                 <div class="admin-sec-card"><span>Recent events</span><strong id="adminSecurityEventsCount">0</strong><small>Sample terbaru</small></div>
                 <div class="admin-sec-card"><span>High risk</span><strong id="adminSecurityHighRiskCount">0</strong><small>Event risiko tinggi</small></div>
