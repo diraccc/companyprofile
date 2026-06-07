@@ -4341,6 +4341,7 @@ function adminSecuritySafeErrorSupabase(error) {
    POST /api/health?action=checkout_order
    POST /api/health?action=parfum_checkout
    POST /api/health?action=public_checkout
+   GET  /api/health?action=checkout_order_hp_test  (khusus test lewat HP, tanpa console)
    ============================================================ */
 
 const __diracPublicCheckoutUnpaidPreviousHandler = module.exports;
@@ -4356,6 +4357,25 @@ module.exports = async function publicCheckoutUnpaidWrapper(req, res) {
   const cors = setCors(req, res, { isDomainAction: true });
   if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
   if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (action === 'checkout_order_hp_test' && req.method === 'GET') {
+    req.body = {
+      name: 'TEST CUSTOMER HP',
+      phone: '081234567890',
+      email: `test.hp.${Date.now()}@example.test`,
+      service_type: 'parfum',
+      product_title: 'TEST PRODUK PARFUM HP',
+      quantity: 1,
+      total: 10000,
+      payment_method: 'Test HP'
+    };
+    try {
+      return await publicCheckoutCreateUnpaidOrder(req, res);
+    } catch (error) {
+      console.error('[public-checkout-hp-test]', publicCheckoutSafeError(error));
+      return res.status(500).json({ ok: false, message: 'Checkout test HP belum dapat diproses.' });
+    }
+  }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
@@ -4382,13 +4402,17 @@ function publicCheckoutNormalizeAction(action) {
     'parfum_checkout': 'checkout_order',
     'parfum-checkout': 'checkout_order',
     'create_checkout_order': 'checkout_order',
-    'create-checkout-order': 'checkout_order'
+    'create-checkout-order': 'checkout_order',
+    'checkout_order_hp_test': 'checkout_order_hp_test',
+    'checkout-order-hp-test': 'checkout_order_hp_test',
+    'hp_checkout_test': 'checkout_order_hp_test',
+    'hp-checkout-test': 'checkout_order_hp_test'
   };
   return aliases[clean] || clean;
 }
 
 function publicCheckoutIsAction(action) {
-  return action === 'checkout_order';
+  return action === 'checkout_order' || action === 'checkout_order_hp_test';
 }
 
 async function publicCheckoutCreateUnpaidOrder(req, res) {
