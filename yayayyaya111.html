@@ -1,0 +1,3343 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DIRAC GROUP - Top Up Game Instan</title>
+  <meta name="description" content="DIRAC GROUP - Top up game cepat, aman, otomatis, dan profesional." />
+
+  <style>
+    :root {
+      --bg: #060915;
+      --bg-2: #090f22;
+      --surface: rgba(14, 22, 46, 0.82);
+      --surface-2: rgba(17, 28, 60, 0.92);
+      --surface-3: rgba(255, 255, 255, 0.055);
+      --border: rgba(255, 255, 255, 0.115);
+      --border-strong: rgba(0, 226, 255, 0.38);
+      --text: #f2f7ff;
+      --muted: #9badc8;
+      --muted-2: #72829e;
+      --primary: #18a8ff;
+      --primary-2: #725bff;
+      --cyan: #00e5ff;
+      --green: #35e5a1;
+      --yellow: #ffd166;
+      --red: #ff5f7a;
+      --purple: #a56bff;
+      --shadow: 0 26px 90px rgba(0, 0, 0, 0.48);
+      --shadow-soft: 0 18px 48px rgba(0, 0, 0, 0.28);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
+      --max: 1200px;
+      --nav-height: 76px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 92px;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 12%, rgba(24, 168, 255, 0.24), transparent 28%),
+        radial-gradient(circle at 82% 8%, rgba(114, 91, 255, 0.28), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(0, 229, 255, 0.11), transparent 36%),
+        linear-gradient(180deg, #060915 0%, #080d1e 48%, #050713 100%);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -3;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.74), transparent 80%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -22%;
+      pointer-events: none;
+      z-index: -2;
+      background:
+        conic-gradient(from 160deg at 50% 50%,
+          rgba(24, 168, 255, 0.10),
+          rgba(114, 91, 255, 0.08),
+          rgba(0, 229, 255, 0.10),
+          rgba(24, 168, 255, 0.10));
+      filter: blur(56px);
+      opacity: 0.64;
+      animation: auraMove 18s linear infinite;
+    }
+
+    @keyframes auraMove {
+      from { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.08); }
+      to { transform: rotate(360deg) scale(1); }
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .container {
+      width: min(var(--max), calc(100% - 32px));
+      margin-inline: auto;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 16px;
+      top: -80px;
+      z-index: 999;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--cyan);
+      color: #00101a;
+      font-weight: 900;
+      transition: top 0.2s ease;
+    }
+
+    .skip-link:focus {
+      top: 14px;
+    }
+
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      min-height: var(--nav-height);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+      background: rgba(6, 9, 21, 0.76);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-inner {
+      min-height: var(--nav-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background:
+        linear-gradient(135deg, rgba(24,168,255,0.98), rgba(114,91,255,0.98)),
+        #13204a;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.14) inset,
+        0 16px 40px rgba(24, 168, 255, 0.25);
+      color: #fff;
+      font-weight: 950;
+      letter-spacing: -0.6px;
+      position: relative;
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      inset: -45%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+      transform: rotate(36deg) translateX(-130%);
+      animation: markShine 5.8s ease-in-out infinite;
+    }
+
+    @keyframes markShine {
+      0%, 64% { transform: rotate(36deg) translateX(-130%); }
+      82%, 100% { transform: rotate(36deg) translateX(130%); }
+    }
+
+    .brand-copy {
+      display: grid;
+      line-height: 1.08;
+    }
+
+    .brand-copy strong {
+      font-size: 1.04rem;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-copy span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 1.6px;
+      font-weight: 850;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-weight: 820;
+      font-size: 0.94rem;
+    }
+
+    .nav-links a {
+      padding: 10px 12px;
+      border-radius: 999px;
+      transition: color 0.18s ease, background 0.18s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.07);
+    }
+
+    .nav-cta {
+      color: white !important;
+      background: linear-gradient(135deg, rgba(24,168,255,0.95), rgba(114,91,255,0.95)) !important;
+      box-shadow: 0 16px 38px rgba(24, 168, 255, 0.22);
+    }
+
+    .menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+    }
+
+    .section {
+      padding: 56px 0;
+    }
+
+    .hero {
+      padding: 78px 0 48px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 229, 255, 0.28);
+      color: #c9f9ff;
+      background: rgba(0, 229, 255, 0.08);
+      font-size: 0.86rem;
+      font-weight: 900;
+      margin-bottom: 18px;
+      box-shadow: 0 0 28px rgba(0, 229, 255, 0.08);
+    }
+
+    .live-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 8px rgba(53, 229, 161, 0.13);
+      flex: 0 0 auto;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.65rem, 6.2vw, 5.65rem);
+      line-height: 0.95;
+      letter-spacing: -3.7px;
+      margin-bottom: 20px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 0%, #aeefff 36%, #8b80ff 78%, #ffffff 100%);
+      background-size: 180% 180%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: textGlow 7s ease-in-out infinite;
+    }
+
+    @keyframes textGlow {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .hero-copy {
+      max-width: 680px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      margin-bottom: 27px;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .btn {
+      min-height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border: 0;
+      outline: 0;
+      cursor: pointer;
+      border-radius: 16px;
+      padding: 13px 18px;
+      color: white;
+      font-weight: 950;
+      text-align: center;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-110%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+      transition: transform 0.55s ease;
+    }
+
+    .btn:hover::before {
+      transform: translateX(110%);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 18px 50px rgba(24, 168, 255, 0.28);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 24px 64px rgba(24, 168, 255, 0.38);
+    }
+
+    .btn-ghost {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(0, 229, 255, 0.44);
+      background: rgba(0, 229, 255, 0.08);
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .btn[disabled] {
+      opacity: 0.68;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 660px;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.045);
+      box-shadow: 0 14px 38px rgba(0,0,0,0.16);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.22rem;
+      line-height: 1.1;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 760;
+    }
+
+    .hero-showcase {
+      position: relative;
+    }
+
+    .showcase-glow {
+      position: absolute;
+      width: 52%;
+      aspect-ratio: 1;
+      right: -4%;
+      top: -10%;
+      border-radius: 50%;
+      background: rgba(0, 229, 255, 0.20);
+      filter: blur(48px);
+      pointer-events: none;
+    }
+
+    .device-card {
+      position: relative;
+      z-index: 1;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background:
+        radial-gradient(circle at 82% 10%, rgba(0, 229, 255, 0.16), transparent 34%),
+        radial-gradient(circle at 0% 100%, rgba(114,91,255,0.16), transparent 36%),
+        rgba(11, 17, 38, 0.84);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      overflow: hidden;
+      transform: translateZ(0);
+    }
+
+    .device-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 6px 14px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 850;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .window-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.24);
+    }
+
+    .premium-panel {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 26px;
+      background: rgba(255,255,255,0.055);
+      overflow: hidden;
+    }
+
+    .panel-banner {
+      min-height: 150px;
+      padding: 18px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      background:
+        linear-gradient(135deg, rgba(24,168,255,0.26), rgba(114,91,255,0.22)),
+        radial-gradient(circle at right top, rgba(0,229,255,0.22), transparent 40%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-banner::before,
+    .panel-banner::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      filter: blur(2px);
+      transform: rotate(-25deg);
+    }
+
+    .panel-banner::before {
+      width: 230px;
+      height: 58px;
+      right: -50px;
+      top: 22px;
+    }
+
+    .panel-banner::after {
+      width: 170px;
+      height: 42px;
+      right: 70px;
+      top: 86px;
+    }
+
+    .panel-banner > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-banner h2 {
+      font-size: 1.36rem;
+      line-height: 1.12;
+      letter-spacing: -0.5px;
+    }
+
+    .panel-banner p {
+      color: #d9f7ff;
+      font-weight: 750;
+      font-size: 0.88rem;
+      margin-top: 5px;
+    }
+
+    .mini-badge {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      color: #07111f;
+      background: rgba(255,255,255,0.88);
+      font-size: 0.78rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .quick-list {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .quick-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px;
+      border-radius: 18px;
+      background: rgba(5, 8, 20, 0.60);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .quick-item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 229, 255, 0.28);
+      background: rgba(0, 229, 255, 0.07);
+    }
+
+    .quick-left {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .game-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      color: #fff;
+      font-weight: 950;
+      background: linear-gradient(135deg, rgba(24,168,255,0.98), rgba(114,91,255,0.95));
+      box-shadow: 0 14px 34px rgba(24,168,255,0.17);
+    }
+
+    .quick-left h3 {
+      font-size: 0.95rem;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quick-left p {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.80rem;
+      font-weight: 720;
+    }
+
+    .quick-price {
+      color: var(--cyan);
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .trust-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .trust-card {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.045);
+      min-height: 80px;
+    }
+
+    .trust-icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(0,229,255,0.11);
+      border: 1px solid rgba(0,229,255,0.18);
+      color: var(--cyan);
+      flex: 0 0 auto;
+    }
+
+    .trust-card strong {
+      display: block;
+      font-size: 0.92rem;
+      line-height: 1.2;
+    }
+
+    .trust-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.79rem;
+      font-weight: 720;
+      margin-top: 2px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .kicker {
+      color: var(--cyan);
+      font-weight: 950;
+      letter-spacing: 1.35px;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+      margin-bottom: 7px;
+    }
+
+    .section-title {
+      font-size: clamp(1.72rem, 3vw, 2.55rem);
+      line-height: 1.08;
+      letter-spacing: -1.15px;
+    }
+
+    .section-desc {
+      max-width: 580px;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap input {
+      padding-left: 44px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .filter-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .filter-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      min-height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.045);
+      font-weight: 900;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .tab-btn:hover,
+    .tab-btn.active {
+      color: var(--text);
+      border-color: rgba(0,229,255,0.34);
+      background: rgba(0,229,255,0.10);
+    }
+
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .game-card {
+      min-height: 210px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 80% 0%, var(--card-glow, rgba(0,229,255,0.14)), transparent 42%),
+        rgba(255,255,255,0.045);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.20s ease, border-color 0.20s ease, background 0.20s ease, box-shadow 0.20s ease;
+    }
+
+    .game-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      background: linear-gradient(135deg, rgba(0,229,255,0.12), transparent 58%);
+      transition: opacity 0.20s ease;
+    }
+
+    .game-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(0,229,255,0.42);
+      box-shadow: 0 22px 58px rgba(0,0,0,0.30);
+    }
+
+    .game-card:hover::before {
+      opacity: 1;
+    }
+
+    .game-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .game-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .game-card .game-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 19px;
+      background: var(--game-gradient, linear-gradient(135deg, var(--primary), var(--primary-2)));
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 26px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: #dffbff;
+      background: rgba(0,229,255,0.11);
+      border: 1px solid rgba(0,229,255,0.18);
+      font-size: 0.72rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .pill.hot {
+      color: #fff1b6;
+      background: rgba(255,209,102,0.11);
+      border-color: rgba(255,209,102,0.20);
+    }
+
+    .game-card h3 {
+      font-size: 1.04rem;
+      line-height: 1.18;
+      margin-bottom: 6px;
+    }
+
+    .game-card p {
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 720;
+    }
+
+    .game-bottom {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .game-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .order-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background:
+        radial-gradient(circle at 86% 0%, rgba(24,168,255,0.12), transparent 34%),
+        rgba(12, 19, 43, 0.80);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 22px 22px 0;
+    }
+
+    .card-head h3 {
+      font-size: 1.18rem;
+      letter-spacing: -0.3px;
+    }
+
+    .subtext {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .card-body {
+      padding: 22px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field.hidden {
+      display: none;
+    }
+
+    label,
+    .label {
+      color: #e6efff;
+      font-size: 0.88rem;
+      font-weight: 900;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 50px;
+      padding: 0 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      outline: none;
+      color: var(--text);
+      background: rgba(5, 8, 20, 0.72);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    input::placeholder {
+      color: rgba(155,173,200,0.68);
+    }
+
+    select {
+      appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position:
+        calc(100% - 20px) 21px,
+        calc(100% - 14px) 21px;
+      background-size: 6px 6px;
+      background-repeat: no-repeat;
+      cursor: pointer;
+    }
+
+    select option {
+      color: #0e1630;
+      background: #f2f7ff;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(0,229,255,0.62);
+      box-shadow: 0 0 0 4px rgba(0,229,255,0.095);
+      background: rgba(5, 8, 20, 0.94);
+    }
+
+    .field.error input,
+    .field.error select {
+      border-color: rgba(255,95,122,0.75);
+      box-shadow: 0 0 0 4px rgba(255,95,122,0.09);
+    }
+
+    .error-text {
+      min-height: 16px;
+      color: #ff9caf;
+      font-size: 0.78rem;
+      font-weight: 780;
+      display: none;
+    }
+
+    .field.error .error-text {
+      display: block;
+    }
+
+    .hint {
+      color: var(--muted-2);
+      font-size: 0.80rem;
+      font-weight: 720;
+      line-height: 1.4;
+    }
+
+    .product-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 11px;
+    }
+
+    .product-option {
+      position: relative;
+      min-width: 0;
+    }
+
+    .product-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .product-label {
+      min-height: 96px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(0,229,255,0.08), transparent 36%),
+        rgba(5, 8, 20, 0.60);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      overflow: hidden;
+    }
+
+    .product-label:hover {
+      transform: translateY(-3px);
+      border-color: rgba(0,229,255,0.38);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.20);
+    }
+
+    .product-option input:checked + .product-label {
+      border-color: rgba(0,229,255,0.78);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(0,229,255,0.18), transparent 42%),
+        rgba(0, 229, 255, 0.09);
+      box-shadow:
+        0 0 0 1px rgba(0,229,255,0.18) inset,
+        0 18px 40px rgba(0,229,255,0.08);
+    }
+
+    .product-name {
+      color: var(--text);
+      font-weight: 950;
+      line-height: 1.2;
+    }
+
+    .product-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .product-price {
+      color: var(--cyan);
+      font-weight: 950;
+    }
+
+    .product-chip {
+      display: inline-flex;
+      min-height: 24px;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 7px;
+      border-radius: 999px;
+      color: #08111e;
+      background: rgba(255,255,255,0.86);
+      font-size: 0.70rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .payment-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .payment-option {
+      position: relative;
+      min-width: 0;
+    }
+
+    .payment-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .payment-card {
+      min-height: 88px;
+      display: grid;
+      align-content: center;
+      gap: 6px;
+      padding: 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(5,8,20,0.60);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-align: center;
+    }
+
+    .payment-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0,229,255,0.36);
+      background: rgba(0,229,255,0.07);
+    }
+
+    .payment-option input:checked + .payment-card {
+      border-color: rgba(0,229,255,0.78);
+      background: rgba(0,229,255,0.10);
+      box-shadow: inset 0 0 0 1px rgba(0,229,255,0.18);
+    }
+
+    .payment-logo {
+      font-size: 1.26rem;
+      line-height: 1;
+    }
+
+    .payment-name {
+      font-weight: 950;
+      font-size: 0.84rem;
+      line-height: 1.2;
+    }
+
+    .payment-caption {
+      color: var(--muted);
+      font-size: 0.70rem;
+      font-weight: 760;
+    }
+
+    .voucher-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    .summary-card {
+      position: sticky;
+      top: calc(var(--nav-height) + 18px);
+      border-color: rgba(0,229,255,0.20);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(0,229,255,0.16), transparent 36%),
+        rgba(13, 21, 47, 0.86);
+    }
+
+    .summary-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 22px 22px 0;
+    }
+
+    .summary-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      color: #b7ffe4;
+      background: rgba(53,229,161,0.11);
+      border: 1px solid rgba(53,229,161,0.22);
+      font-size: 0.76rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .summary-preview {
+      margin-top: 16px;
+      padding: 15px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(5,8,20,0.45);
+    }
+
+    .summary-game-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .summary-game-line .game-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 18px;
+    }
+
+    .summary-game-line h4 {
+      line-height: 1.15;
+      font-size: 1rem;
+    }
+
+    .summary-game-line p {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 720;
+      margin-top: 2px;
+    }
+
+    .summary-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.085);
+    }
+
+    .summary-row:last-child {
+      border-bottom: 0;
+    }
+
+    .summary-row span {
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 0.90rem;
+    }
+
+    .summary-row strong {
+      color: var(--text);
+      text-align: right;
+      font-weight: 950;
+      max-width: 58%;
+      overflow-wrap: anywhere;
+    }
+
+    .price-box {
+      margin-top: 16px;
+      padding: 17px;
+      border-radius: 22px;
+      border: 1px solid rgba(0,229,255,0.22);
+      background:
+        linear-gradient(135deg, rgba(24,168,255,0.18), rgba(114,91,255,0.14)),
+        rgba(255,255,255,0.04);
+    }
+
+    .price-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-weight: 780;
+      font-size: 0.88rem;
+      margin-bottom: 8px;
+    }
+
+    .price-line strong {
+      color: var(--text);
+    }
+
+    .price-total {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 12px;
+      margin-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.11);
+    }
+
+    .price-total span {
+      color: var(--muted);
+      font-weight: 880;
+    }
+
+    .price-total strong {
+      color: var(--cyan);
+      font-size: clamp(1.55rem, 3vw, 2.08rem);
+      line-height: 1.05;
+      text-align: right;
+    }
+
+    .secure-note {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(53,229,161,0.08);
+      border: 1px solid rgba(53,229,161,0.15);
+      color: #caffec;
+      font-size: 0.82rem;
+      font-weight: 760;
+    }
+
+    .secure-note span {
+      color: var(--green);
+      font-weight: 950;
+      flex: 0 0 auto;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .timeline-step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .timeline-dot {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #05101c;
+      background: rgba(255,255,255,0.55);
+      font-size: 0.76rem;
+      font-weight: 950;
+    }
+
+    .timeline-step.active .timeline-dot {
+      background: var(--cyan);
+      box-shadow: 0 0 22px rgba(0,229,255,0.35);
+    }
+
+    .timeline-step.done .timeline-dot {
+      background: var(--green);
+    }
+
+    .timeline-text strong {
+      display: block;
+      font-size: 0.88rem;
+      line-height: 1.2;
+    }
+
+    .timeline-text span {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 720;
+    }
+
+    .status-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .status-result {
+      display: none;
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: rgba(5,8,20,0.55);
+      padding: 16px;
+    }
+
+    .status-result.show {
+      display: block;
+      animation: fadeUp 0.24s ease both;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .order-mini-card {
+      padding: 15px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+      counter-reset: step;
+    }
+
+    .step-card {
+      min-height: 190px;
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(0,229,255,0.09), transparent 38%),
+        rgba(255,255,255,0.045);
+      counter-increment: step;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .step-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0,229,255,0.32);
+    }
+
+    .step-number {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 14px 32px rgba(24,168,255,0.20);
+      font-weight: 950;
+      margin-bottom: 18px;
+    }
+
+    .step-number::before {
+      content: counter(step);
+    }
+
+    .step-card h3 {
+      font-size: 1.02rem;
+      line-height: 1.2;
+      margin-bottom: 7px;
+    }
+
+    .step-card p {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 720;
+    }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .faq-item {
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.045);
+      overflow: hidden;
+    }
+
+    .faq-item summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 17px 18px;
+      font-weight: 950;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-item summary::after {
+      content: "+";
+      color: var(--cyan);
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .faq-item[open] summary::after {
+      content: "−";
+    }
+
+    .faq-item p {
+      color: var(--muted);
+      padding: 0 18px 18px;
+      font-weight: 720;
+      font-size: 0.92rem;
+    }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      background: rgba(5,8,20,0.58);
+      padding: 36px 0;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(3, 0.7fr);
+      gap: 22px;
+    }
+
+    .footer p,
+    .footer a,
+    .footer li {
+      color: var(--muted);
+      font-weight: 720;
+      font-size: 0.88rem;
+    }
+
+    .footer h3,
+    .footer h4 {
+      margin-bottom: 10px;
+    }
+
+    .footer ul {
+      display: grid;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .footer a:hover {
+      color: var(--cyan);
+    }
+
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 26px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted-2);
+      font-size: 0.82rem;
+      font-weight: 720;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 140;
+      transform: translate(-50%, 18px);
+      width: min(540px, calc(100% - 32px));
+      padding: 13px 15px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      background: rgba(12, 19, 43, 0.96);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      font-weight: 820;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.70);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(610px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 30px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(0,229,255,0.15), transparent 38%),
+        #101934;
+      box-shadow: var(--shadow);
+      animation: modalIn 0.24s ease both;
+    }
+
+    @keyframes modalIn {
+      from { transform: translateY(20px) scale(0.98); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 22px 0;
+    }
+
+    .modal-head h2 {
+      font-size: 1.48rem;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    .modal-head p {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 720;
+      margin-top: 5px;
+    }
+
+    .close-btn {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1.24rem;
+      flex: 0 0 auto;
+    }
+
+    .modal-body {
+      padding: 22px;
+    }
+
+    .order-code-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px;
+      border-radius: 20px;
+      border: 1px solid rgba(0,229,255,0.24);
+      background: rgba(0,229,255,0.09);
+      margin-bottom: 14px;
+    }
+
+    .order-code-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 880;
+    }
+
+    .order-code-box strong {
+      color: var(--cyan);
+      font-size: 1.18rem;
+      letter-spacing: 0.7px;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      min-height: 100px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px dashed rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.035);
+      color: var(--muted);
+      font-weight: 780;
+    }
+
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
+      animation: skeleton 1.3s infinite;
+    }
+
+    @keyframes skeleton {
+      to { transform: translateX(100%); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1100px) {
+      .games-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .trust-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .payment-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .steps-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 940px) {
+      :root {
+        --nav-height: 70px;
+      }
+
+      .hero-grid,
+      .order-grid,
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-card {
+        position: static;
+      }
+
+      .nav-links {
+        position: absolute;
+        top: var(--nav-height);
+        left: 16px;
+        right: 16px;
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: rgba(7, 11, 24, 0.97);
+        box-shadow: var(--shadow);
+      }
+
+      .nav-links.show {
+        display: flex;
+      }
+
+      .nav-links a {
+        border-radius: 14px;
+        padding: 11px 12px;
+      }
+
+      .menu-btn {
+        display: inline-flex;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .container {
+        width: min(var(--max), calc(100% - 22px));
+      }
+
+      .hero {
+        padding-top: 44px;
+      }
+
+      .hero h1 {
+        letter-spacing: -1.8px;
+      }
+
+      .hero-stats,
+      .trust-row,
+      .games-grid,
+      .form-grid,
+      .product-list,
+      .payment-grid,
+      .status-card,
+      .steps-grid,
+      .faq-grid,
+      .footer-grid,
+      .voucher-row {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero-actions .btn,
+      .modal-actions .btn {
+        width: 100%;
+      }
+
+      .card,
+      .summary-card,
+      .device-card,
+      .modal {
+        border-radius: 24px;
+      }
+
+      .card-head,
+      .card-body,
+      .summary-top,
+      .modal-head,
+      .modal-body {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .order-code-box {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .order-code-box .btn {
+        width: 100%;
+      }
+
+      .footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#order">Langsung ke form order</a>
+
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="#" class="brand" aria-label="DIRAC GROUP">
+        <div class="brand-mark">DG</div>
+        <div class="brand-copy">
+          <strong>DIRAC GROUP</strong>
+          <span>GAME TOP UP</span>
+        </div>
+      </a>
+
+      <nav class="nav-links" id="navLinks">
+        <a href="#games">Game</a>
+        <a href="#order">Checkout</a>
+        <a href="#cek-status">Cek Status</a>
+        <a href="#cara-order">Cara Order</a>
+        <a href="#faq">FAQ</a>
+        <a class="nav-cta" href="#order">Top Up Sekarang</a>
+      </nav>
+
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Buka menu" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="reveal">
+          <div class="eyebrow"><span class="live-dot"></span> Pembayaran otomatis • Proses cepat • Tracking order</div>
+          <h1><span class="gradient-text">Top Up Game</span><br>Instan Tanpa Ribet.</h1>
+          <p class="hero-copy">
+            Beli diamond, UC, crystal, dan points game favorit dalam satu halaman yang cepat, rapi,
+            dan nyaman digunakan di desktop maupun mobile.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#order">Bayar Sekarang</a>
+            <a class="btn btn-ghost" href="#cek-status">Cek Status Pesanan</a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat">
+              <strong>1–5 Menit</strong>
+              <span>Estimasi proses setelah pembayaran</span>
+            </div>
+            <div class="stat">
+              <strong>24/7</strong>
+              <span>Sistem siap menerima order</span>
+            </div>
+            <div class="stat">
+              <strong>5 Game</strong>
+              <span>Produk populer tersedia</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-showcase reveal">
+          <div class="showcase-glow"></div>
+          <div class="device-card">
+            <div class="device-bar">
+              <div class="window-dots"><span></span><span></span><span></span></div>
+              <span>Secure Checkout</span>
+            </div>
+
+            <div class="premium-panel">
+              <div class="panel-banner">
+                <div>
+                  <h2>Top Up Favorit<br>Lebih Cepat</h2>
+                  <p>Ringkasan transparan sebelum pembayaran.</p>
+                </div>
+                <div class="mini-badge">⚡ Instant</div>
+              </div>
+
+              <div class="quick-list" id="quickList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container trust-row reveal">
+        <div class="trust-card">
+          <div class="trust-icon">🔒</div>
+          <div>
+            <strong>Pembayaran Aman</strong>
+            <span>Checkout dirancang untuk gateway resmi</span>
+          </div>
+        </div>
+        <div class="trust-card">
+          <div class="trust-icon">⚡</div>
+          <div>
+            <strong>Proses Otomatis</strong>
+            <span>Order berjalan setelah pembayaran sukses</span>
+          </div>
+        </div>
+        <div class="trust-card">
+          <div class="trust-icon">📦</div>
+          <div>
+            <strong>Tracking Order</strong>
+            <span>Cek status menggunakan kode pesanan</span>
+          </div>
+        </div>
+        <div class="trust-card">
+          <div class="trust-icon">📱</div>
+          <div>
+            <strong>Mobile Friendly</strong>
+            <span>Nyaman digunakan dari semua perangkat</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="games">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <div class="kicker">Game Tersedia</div>
+            <h2 class="section-title">Pilih game favorit Anda</h2>
+          </div>
+          <p class="section-desc">
+            Gunakan pencarian dan filter untuk memilih game. Klik card game untuk mengisi form checkout secara otomatis.
+          </p>
+        </div>
+
+        <div class="toolbar reveal">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input id="gameSearch" type="search" placeholder="Cari game, contoh: Mobile Legends, Valorant..." autocomplete="off">
+          </div>
+
+          <div class="filter-tabs" role="tablist" aria-label="Filter game">
+            <button class="tab-btn active" type="button" data-filter="Semua">Semua</button>
+            <button class="tab-btn" type="button" data-filter="Mobile">Mobile</button>
+            <button class="tab-btn" type="button" data-filter="PC">PC</button>
+            <button class="tab-btn" type="button" data-filter="Populer">Populer</button>
+          </div>
+        </div>
+
+        <div class="games-grid reveal" id="gameCards"></div>
+      </div>
+    </section>
+
+    <section class="section" id="order">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <div class="kicker">Checkout</div>
+            <h2 class="section-title">Lengkapi data top up</h2>
+          </div>
+          <p class="section-desc">
+            Masukkan data akun dengan benar, pilih nominal, lalu lanjutkan pembayaran.
+          </p>
+        </div>
+
+        <div class="order-grid">
+          <form class="card reveal" id="orderForm" novalidate>
+            <div class="card-head">
+              <h3>Data Pesanan</h3>
+              <p class="subtext">Pastikan User ID, Server, atau Region sesuai dengan akun game Anda.</p>
+            </div>
+
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="field full" data-field="game">
+                  <label for="gameSelect">Pilih Game</label>
+                  <select id="gameSelect" autocomplete="off">
+                    <option value="">Pilih game</option>
+                  </select>
+                  <div class="error-text"></div>
+                </div>
+
+                <div class="field" data-field="userId">
+                  <label for="userId" id="userIdLabel">User ID</label>
+                  <input id="userId" type="text" placeholder="Masukkan User ID" autocomplete="off" inputmode="text">
+                  <div class="hint" id="userHint">Contoh: 123456789</div>
+                  <div class="error-text"></div>
+                </div>
+
+                <div class="field" id="serverField" data-field="serverId">
+                  <label for="serverId" id="serverLabel">Server ID</label>
+                  <input id="serverId" type="text" placeholder="Masukkan Server ID" autocomplete="off" inputmode="text">
+                  <div class="hint" id="serverHint">Contoh: 1234</div>
+                  <div class="error-text"></div>
+                </div>
+
+                <div class="field" data-field="whatsapp">
+                  <label for="whatsapp">Nomor WhatsApp</label>
+                  <input id="whatsapp" type="tel" placeholder="081234567890" autocomplete="off" inputmode="tel">
+                  <div class="error-text"></div>
+                </div>
+
+                <div class="field" data-field="email">
+                  <label for="email">Email Opsional</label>
+                  <input id="email" type="email" placeholder="nama@email.com" autocomplete="off" inputmode="email">
+                  <div class="error-text"></div>
+                </div>
+
+                <div class="field full" data-field="product">
+                  <div class="label">Pilih Nominal</div>
+                  <div class="product-list" id="productList">
+                    <div class="empty-state">Pilih game untuk menampilkan nominal top up.</div>
+                  </div>
+                  <div class="error-text"></div>
+                </div>
+
+                <div class="field full" data-field="payment">
+                  <div class="label">Metode Pembayaran</div>
+                  <div class="payment-grid" id="paymentGrid"></div>
+                  <div class="error-text"></div>
+                </div>
+
+                <div class="field full">
+                  <label for="voucher">Kode Voucher</label>
+                  <div class="voucher-row">
+                    <input id="voucher" type="text" placeholder="Opsional, contoh: DIRAC5" autocomplete="off">
+                    <button class="btn btn-ghost" id="applyVoucherBtn" type="button">Pakai</button>
+                  </div>
+                  <div class="hint" id="voucherHint">Kosongkan jika tidak punya voucher.</div>
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-block" id="checkoutBtn" type="submit" style="margin-top: 18px;">
+                Bayar Sekarang
+              </button>
+            </div>
+          </form>
+
+          <aside class="card summary-card reveal">
+            <div class="summary-top">
+              <div>
+                <h3>Ringkasan Pesanan</h3>
+                <p class="subtext">Periksa kembali sebelum pembayaran.</p>
+              </div>
+              <div class="summary-status"><span class="live-dot"></span> Siap Checkout</div>
+            </div>
+
+            <div class="card-body">
+              <div class="summary-preview">
+                <div class="summary-game-line">
+                  <div class="game-icon" id="summaryIcon">DG</div>
+                  <div>
+                    <h4 id="summaryGame">Belum memilih game</h4>
+                    <p id="summaryProduct">Pilih nominal top up</p>
+                  </div>
+                </div>
+
+                <div class="summary-row">
+                  <span>Data Akun</span>
+                  <strong id="summaryAccount">-</strong>
+                </div>
+                <div class="summary-row">
+                  <span>WhatsApp</span>
+                  <strong id="summaryWhatsapp">-</strong>
+                </div>
+                <div class="summary-row">
+                  <span>Pembayaran</span>
+                  <strong id="summaryPayment">-</strong>
+                </div>
+              </div>
+
+              <div class="price-box">
+                <div class="price-line">
+                  <span>Harga Produk</span>
+                  <strong id="summarySubtotal">Rp 0</strong>
+                </div>
+                <div class="price-line">
+                  <span>Biaya Layanan</span>
+                  <strong id="summaryFee">Rp 0</strong>
+                </div>
+                <div class="price-line">
+                  <span>Diskon</span>
+                  <strong id="summaryDiscount">Rp 0</strong>
+                </div>
+                <div class="price-total">
+                  <span>Total</span>
+                  <strong id="summaryTotal">Rp 0</strong>
+                </div>
+              </div>
+
+              <div class="secure-note">
+                <span>✓</span>
+                <div>Pesanan diproses otomatis setelah pembayaran berhasil. Tidak perlu mengirim bukti pembayaran.</div>
+              </div>
+
+              <div class="timeline" aria-label="Alur status pesanan">
+                <div class="timeline-step done">
+                  <div class="timeline-dot">1</div>
+                  <div class="timeline-text">
+                    <strong>Isi Data</strong>
+                    <span>Lengkapi game, akun, nominal, dan pembayaran.</span>
+                  </div>
+                </div>
+                <div class="timeline-step active">
+                  <div class="timeline-dot">2</div>
+                  <div class="timeline-text">
+                    <strong>Bayar</strong>
+                    <span>Lanjutkan pembayaran melalui metode pilihan.</span>
+                  </div>
+                </div>
+                <div class="timeline-step">
+                  <div class="timeline-dot">3</div>
+                  <div class="timeline-text">
+                    <strong>Diproses</strong>
+                    <span>Top up berjalan otomatis setelah pembayaran sukses.</span>
+                  </div>
+                </div>
+                <div class="timeline-step">
+                  <div class="timeline-dot">4</div>
+                  <div class="timeline-text">
+                    <strong>Selesai</strong>
+                    <span>Produk masuk ke akun game tujuan.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="cek-status">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <div class="kicker">Tracking</div>
+            <h2 class="section-title">Cek status pesanan</h2>
+          </div>
+          <p class="section-desc">
+            Masukkan kode order untuk melihat detail transaksi dan timeline proses.
+          </p>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-body">
+            <div class="status-card">
+              <div class="field">
+                <label for="statusCode">Kode Order</label>
+                <input id="statusCode" type="text" placeholder="Contoh: ORD-2026-AB12" autocomplete="off">
+              </div>
+              <button class="btn btn-primary" id="checkStatusBtn" type="button">Cek Status</button>
+            </div>
+
+            <div class="status-result" id="statusResult"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="cara-order">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <div class="kicker">Cara Order</div>
+            <h2 class="section-title">Alur pembelian otomatis</h2>
+          </div>
+          <p class="section-desc">
+            Alur dibuat ringkas agar pelanggan tidak bingung saat membeli produk digital.
+          </p>
+        </div>
+
+        <div class="steps-grid reveal">
+          <div class="step-card">
+            <div class="step-number"></div>
+            <h3>Pilih Game</h3>
+            <p>Pilih game dari daftar yang tersedia atau gunakan pencarian.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number"></div>
+            <h3>Masukkan Akun</h3>
+            <p>Isi User ID, Server ID, Riot ID, UID, atau Region sesuai game.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number"></div>
+            <h3>Pilih Nominal</h3>
+            <p>Pilih diamond, UC, crystal, points, atau produk populer lainnya.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number"></div>
+            <h3>Bayar Otomatis</h3>
+            <p>Lanjutkan pembayaran melalui metode yang dipilih.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number"></div>
+            <h3>Pesanan Selesai</h3>
+            <p>Produk diproses setelah pembayaran berhasil dan status bisa dicek.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <div class="kicker">FAQ</div>
+            <h2 class="section-title">Pertanyaan umum</h2>
+          </div>
+          <p class="section-desc">
+            Informasi singkat untuk meningkatkan rasa aman pelanggan sebelum checkout.
+          </p>
+        </div>
+
+        <div class="faq-grid reveal">
+          <details class="faq-item" open>
+            <summary>Apakah perlu mengirim bukti pembayaran?</summary>
+            <p>Tidak. Sistem dirancang agar pesanan diproses otomatis setelah pembayaran berhasil melalui payment gateway.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Berapa lama pesanan diproses?</summary>
+            <p>Estimasi proses normal adalah 1–5 menit setelah pembayaran berhasil, tergantung antrean dan respons provider.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Bagaimana jika salah memasukkan User ID?</summary>
+            <p>Pastikan data akun sudah benar sebelum pembayaran. Kesalahan input dapat menyebabkan produk masuk ke akun yang salah.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Apakah semua metode pembayaran aktif?</summary>
+            <p>Metode pembayaran di halaman ini disiapkan untuk integrasi gateway. Anda dapat mengaktifkan metode yang didukung backend.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h3>DIRAC GROUP</h3>
+          <p>Layanan top up game digital dengan tampilan modern, cepat, dan siap dikembangkan ke sistem otomatis.</p>
+        </div>
+        <div>
+          <h4>Layanan</h4>
+          <ul>
+            <li><a href="#games">Daftar Game</a></li>
+            <li><a href="#order">Checkout</a></li>
+            <li><a href="#cek-status">Cek Status</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Bantuan</h4>
+          <ul>
+            <li><a href="#cara-order">Cara Order</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#order">Top Up Sekarang</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Syarat & Ketentuan</a></li>
+            <li><a href="#">Kebijakan Privasi</a></li>
+            <li><a href="#">Disclaimer</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© <span id="year"></span> DIRAC GROUP. All rights reserved.</span>
+        <span>Semua nama game dan merek dagang adalah milik pemilik masing-masing.</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="orderModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="modalTitle">Pesanan Berhasil Dibuat</h2>
+          <p>Silakan lanjutkan pembayaran. Pesanan akan diproses otomatis setelah pembayaran berhasil.</p>
+        </div>
+        <button class="close-btn" id="closeModalBtn" type="button" aria-label="Tutup modal">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="order-code-box">
+          <div>
+            <span>Kode Order</span>
+            <strong id="modalOrderCode">-</strong>
+          </div>
+          <button class="btn btn-ghost" id="copyOrderBtn" type="button">Salin Kode</button>
+        </div>
+
+        <div class="summary-row">
+          <span>Game</span>
+          <strong id="modalGame">-</strong>
+        </div>
+        <div class="summary-row">
+          <span>Akun Tujuan</span>
+          <strong id="modalAccount">-</strong>
+        </div>
+        <div class="summary-row">
+          <span>Produk</span>
+          <strong id="modalProduct">-</strong>
+        </div>
+        <div class="summary-row">
+          <span>Metode Pembayaran</span>
+          <strong id="modalPayment">-</strong>
+        </div>
+        <div class="summary-row">
+          <span>Total Pembayaran</span>
+          <strong id="modalTotal">-</strong>
+        </div>
+        <div class="summary-row">
+          <span>Status</span>
+          <strong style="color: var(--yellow);">Menunggu Pembayaran</strong>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-step done">
+            <div class="timeline-dot">1</div>
+            <div class="timeline-text">
+              <strong>Order Dibuat</strong>
+              <span>Kode order berhasil dibuat.</span>
+            </div>
+          </div>
+          <div class="timeline-step active">
+            <div class="timeline-dot">2</div>
+            <div class="timeline-text">
+              <strong>Menunggu Pembayaran</strong>
+              <span>Lanjutkan pembayaran melalui metode pilihan.</span>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-dot">3</div>
+            <div class="timeline-text">
+              <strong>Diproses Otomatis</strong>
+              <span>Top up berjalan setelah pembayaran sukses.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="paymentButton" type="button">Bayar Sekarang</button>
+          <button class="btn btn-ghost" id="closeModalBtn2" type="button">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // ==========================================================
+    // DIRAC GROUP - SINGLE FILE FRONTEND
+    // Tidak ada secret key, API key, token supplier, atau key payment gateway di file ini.
+    // Integrasi asli harus dilakukan lewat backend/Vercel Function dengan ENV.
+    // Jangan memanggil supplier API langsung dari browser.
+    // ==========================================================
+
+    const productsByGame = {
+      "Mobile Legends": {
+        category: "Mobile",
+        genre: "MOBA",
+        badge: "Populer",
+        accent: "linear-gradient(135deg, #18a8ff, #725bff)",
+        requiresServer: true,
+        userLabel: "User ID",
+        userPlaceholder: "Contoh: 123456789",
+        userHint: "Masukkan User ID Mobile Legends.",
+        serverLabel: "Server ID",
+        serverPlaceholder: "Contoh: 1234",
+        serverHint: "Server ID wajib diisi untuk Mobile Legends.",
+        products: [
+          { id: "ml-86", name: "86 Diamonds", price: 22000, tag: "Populer" },
+          { id: "ml-172", name: "172 Diamonds", price: 43000, tag: "Hemat" },
+          { id: "ml-257", name: "257 Diamonds", price: 64000, tag: "Best Value" },
+          { id: "ml-344", name: "344 Diamonds", price: 85000, tag: "Favorit" },
+          { id: "ml-429", name: "429 Diamonds", price: 106000, tag: "Hemat" },
+          { id: "ml-706", name: "706 Diamonds", price: 171000, tag: "Pro" }
+        ]
+      },
+      "Free Fire": {
+        category: "Mobile",
+        genre: "Battle Royale",
+        badge: "Instant",
+        accent: "linear-gradient(135deg, #ffb703, #fb5607)",
+        requiresServer: false,
+        userLabel: "Player ID",
+        userPlaceholder: "Contoh: 1234567890",
+        userHint: "Masukkan Player ID Free Fire.",
+        products: [
+          { id: "ff-70", name: "70 Diamonds", price: 10000, tag: "Murah" },
+          { id: "ff-140", name: "140 Diamonds", price: 20000, tag: "Populer" },
+          { id: "ff-355", name: "355 Diamonds", price: 50000, tag: "Hemat" },
+          { id: "ff-720", name: "720 Diamonds", price: 100000, tag: "Best Value" },
+          { id: "ff-1450", name: "1450 Diamonds", price: 200000, tag: "Pro" },
+          { id: "ff-member", name: "Membership Mingguan", price: 30000, tag: "Favorit" }
+        ]
+      },
+      "PUBG Mobile": {
+        category: "Mobile",
+        genre: "Battle Royale",
+        badge: "UC",
+        accent: "linear-gradient(135deg, #00b4d8, #0077b6)",
+        requiresServer: false,
+        userLabel: "Character ID",
+        userPlaceholder: "Contoh: 5123456789",
+        userHint: "Masukkan Character ID PUBG Mobile.",
+        products: [
+          { id: "pubg-60", name: "60 UC", price: 15000, tag: "Starter" },
+          { id: "pubg-325", name: "325 UC", price: 75000, tag: "Populer" },
+          { id: "pubg-660", name: "660 UC", price: 150000, tag: "Hemat" },
+          { id: "pubg-1800", name: "1800 UC", price: 390000, tag: "Best Value" },
+          { id: "pubg-3850", name: "3850 UC", price: 780000, tag: "Pro" },
+          { id: "pubg-8100", name: "8100 UC", price: 1560000, tag: "Whale" }
+        ]
+      },
+      "Genshin Impact": {
+        category: "Mobile",
+        genre: "RPG",
+        badge: "RPG",
+        accent: "linear-gradient(135deg, #8ecae6, #9b5de5)",
+        requiresServer: true,
+        userLabel: "UID",
+        userPlaceholder: "Contoh: 800123456",
+        userHint: "Masukkan UID Genshin Impact.",
+        serverLabel: "Server / Region",
+        serverPlaceholder: "Asia / America / Europe / TW-HK-MO",
+        serverHint: "Pilih atau tulis server akun Genshin Impact.",
+        products: [
+          { id: "gi-60", name: "60 Genesis Crystals", price: 16000, tag: "Starter" },
+          { id: "gi-330", name: "330 Genesis Crystals", price: 79000, tag: "Populer" },
+          { id: "gi-1090", name: "1090 Genesis Crystals", price: 249000, tag: "Hemat" },
+          { id: "gi-2240", name: "2240 Genesis Crystals", price: 479000, tag: "Best Value" },
+          { id: "gi-3880", name: "3880 Genesis Crystals", price: 799000, tag: "Pro" },
+          { id: "gi-welkin", name: "Blessing of the Welkin Moon", price: 79000, tag: "Favorit" }
+        ]
+      },
+      "Valorant": {
+        category: "PC",
+        genre: "FPS",
+        badge: "PC",
+        accent: "linear-gradient(135deg, #ff4655, #7b2cbf)",
+        requiresServer: true,
+        userLabel: "Riot ID",
+        userPlaceholder: "Contoh: DiracPlayer",
+        userHint: "Masukkan Riot ID tanpa tagline.",
+        serverLabel: "Tagline / Region",
+        serverPlaceholder: "Contoh: #ID1 atau Region ID",
+        serverHint: "Masukkan tagline atau region sesuai akun Valorant.",
+        products: [
+          { id: "valo-475", name: "475 Valorant Points", price: 55000, tag: "Starter" },
+          { id: "valo-1000", name: "1000 Valorant Points", price: 109000, tag: "Populer" },
+          { id: "valo-2050", name: "2050 Valorant Points", price: 219000, tag: "Hemat" },
+          { id: "valo-3650", name: "3650 Valorant Points", price: 379000, tag: "Best Value" },
+          { id: "valo-5350", name: "5350 Valorant Points", price: 549000, tag: "Pro" },
+          { id: "valo-11000", name: "11000 Valorant Points", price: 1099000, tag: "Whale" }
+        ]
+      }
+    };
+
+    const paymentMethods = [
+      { id: "qris", name: "QRIS", caption: "Scan & Pay", icon: "▦", fee: 1000 },
+      { id: "bca-va", name: "BCA VA", caption: "Virtual Account", icon: "🏦", fee: 2500 },
+      { id: "bri-va", name: "BRI VA", caption: "Virtual Account", icon: "🏦", fee: 2500 },
+      { id: "mandiri-va", name: "Mandiri VA", caption: "Virtual Account", icon: "🏦", fee: 2500 },
+      { id: "dana", name: "DANA", caption: "E-Wallet", icon: "📱", fee: 1500 },
+      { id: "ovo", name: "OVO", caption: "E-Wallet", icon: "📱", fee: 1500 },
+      { id: "gopay", name: "GoPay", caption: "E-Wallet", icon: "📱", fee: 1500 },
+      { id: "shopeepay", name: "ShopeePay", caption: "E-Wallet", icon: "🛒", fee: 1500 }
+    ];
+
+    const gameShortName = {
+      "Mobile Legends": "ML",
+      "Free Fire": "FF",
+      "PUBG Mobile": "PUBG",
+      "Genshin Impact": "GI",
+      "Valorant": "VP"
+    };
+
+    const state = {
+      selectedGame: "",
+      selectedProduct: null,
+      selectedPayment: null,
+      activeFilter: "Semua",
+      voucherCode: "",
+      discount: 0,
+      latestOrder: null
+    };
+
+    const el = {
+      year: document.getElementById("year"),
+      navLinks: document.getElementById("navLinks"),
+      menuBtn: document.getElementById("menuBtn"),
+      quickList: document.getElementById("quickList"),
+      gameCards: document.getElementById("gameCards"),
+      gameSearch: document.getElementById("gameSearch"),
+      tabButtons: document.querySelectorAll(".tab-btn"),
+      orderForm: document.getElementById("orderForm"),
+      gameSelect: document.getElementById("gameSelect"),
+      userId: document.getElementById("userId"),
+      userIdLabel: document.getElementById("userIdLabel"),
+      userHint: document.getElementById("userHint"),
+      serverField: document.getElementById("serverField"),
+      serverId: document.getElementById("serverId"),
+      serverLabel: document.getElementById("serverLabel"),
+      serverHint: document.getElementById("serverHint"),
+      whatsapp: document.getElementById("whatsapp"),
+      email: document.getElementById("email"),
+      productList: document.getElementById("productList"),
+      paymentGrid: document.getElementById("paymentGrid"),
+      voucher: document.getElementById("voucher"),
+      voucherHint: document.getElementById("voucherHint"),
+      applyVoucherBtn: document.getElementById("applyVoucherBtn"),
+      checkoutBtn: document.getElementById("checkoutBtn"),
+      summaryIcon: document.getElementById("summaryIcon"),
+      summaryGame: document.getElementById("summaryGame"),
+      summaryProduct: document.getElementById("summaryProduct"),
+      summaryAccount: document.getElementById("summaryAccount"),
+      summaryWhatsapp: document.getElementById("summaryWhatsapp"),
+      summaryPayment: document.getElementById("summaryPayment"),
+      summarySubtotal: document.getElementById("summarySubtotal"),
+      summaryFee: document.getElementById("summaryFee"),
+      summaryDiscount: document.getElementById("summaryDiscount"),
+      summaryTotal: document.getElementById("summaryTotal"),
+      orderModal: document.getElementById("orderModal"),
+      closeModalBtn: document.getElementById("closeModalBtn"),
+      closeModalBtn2: document.getElementById("closeModalBtn2"),
+      modalOrderCode: document.getElementById("modalOrderCode"),
+      modalGame: document.getElementById("modalGame"),
+      modalAccount: document.getElementById("modalAccount"),
+      modalProduct: document.getElementById("modalProduct"),
+      modalPayment: document.getElementById("modalPayment"),
+      modalTotal: document.getElementById("modalTotal"),
+      copyOrderBtn: document.getElementById("copyOrderBtn"),
+      paymentButton: document.getElementById("paymentButton"),
+      statusCode: document.getElementById("statusCode"),
+      checkStatusBtn: document.getElementById("checkStatusBtn"),
+      statusResult: document.getElementById("statusResult"),
+      toast: document.getElementById("toast")
+    };
+
+    function formatRupiah(value) {
+      return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0
+      }).format(Number(value || 0));
+    }
+
+    function showToast(message) {
+      el.toast.textContent = message;
+      el.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        el.toast.classList.remove("show");
+      }, 2800);
+    }
+
+    function generateOrderCode() {
+      const year = new Date().getFullYear();
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+      return `ORD-${year}-${random}`;
+    }
+
+    function getGameData(gameName) {
+      return productsByGame[gameName] || null;
+    }
+
+    function getPaymentName(paymentId) {
+      const payment = paymentMethods.find((item) => item.id === paymentId);
+      return payment ? payment.name : "";
+    }
+
+    function getPaymentFee() {
+      return state.selectedPayment ? Number(state.selectedPayment.fee || 0) : 0;
+    }
+
+    function getSubtotal() {
+      return state.selectedProduct ? Number(state.selectedProduct.price || 0) : 0;
+    }
+
+    function getTotal() {
+      return Math.max(0, getSubtotal() + getPaymentFee() - Number(state.discount || 0));
+    }
+
+    function getAccountDisplay() {
+      const userId = el.userId.value.trim();
+      const serverId = el.serverId.value.trim();
+
+      if (!userId) return "-";
+      if (!el.serverField.classList.contains("hidden") && serverId) return `${userId} (${serverId})`;
+      return userId;
+    }
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        el.checkoutBtn.disabled = true;
+        el.checkoutBtn.innerHTML = '<span class="spinner"></span> Membuat Pesanan';
+      } else {
+        el.checkoutBtn.disabled = false;
+        el.checkoutBtn.textContent = "Bayar Sekarang";
+      }
+    }
+
+    function clearFieldErrors() {
+      document.querySelectorAll(".field.error").forEach((field) => {
+        field.classList.remove("error");
+        const error = field.querySelector(".error-text");
+        if (error) error.textContent = "";
+      });
+    }
+
+    function setFieldError(fieldName, message) {
+      const field = document.querySelector(`[data-field="${fieldName}"]`);
+      if (!field) return;
+      field.classList.add("error");
+      const error = field.querySelector(".error-text");
+      if (error) error.textContent = message;
+    }
+
+    function focusFirstError() {
+      const firstError = document.querySelector(".field.error");
+      if (!firstError) return;
+      firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+      const input = firstError.querySelector("input, select");
+      if (input) input.focus({ preventScroll: true });
+    }
+
+    function getStoredOrders() {
+      try {
+        return JSON.parse(localStorage.getItem("dirac_orders") || "[]");
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveOrder(orderData) {
+      const orders = getStoredOrders();
+      orders.unshift(orderData);
+      localStorage.setItem("dirac_orders", JSON.stringify(orders.slice(0, 50)));
+    }
+
+    function renderQuickList() {
+      const quickItems = [
+        { game: "Mobile Legends", productIndex: 0 },
+        { game: "Free Fire", productIndex: 1 },
+        { game: "Genshin Impact", productIndex: 5 },
+        { game: "Valorant", productIndex: 0 }
+      ];
+
+      el.quickList.innerHTML = quickItems.map((item) => {
+        const gameData = getGameData(item.game);
+        const product = gameData.products[item.productIndex];
+        return `
+          <div class="quick-item">
+            <div class="quick-left">
+              <div class="game-icon" style="background:${gameData.accent}">${gameShortName[item.game]}</div>
+              <div>
+                <h3>${item.game}</h3>
+                <p>${product.name}</p>
+              </div>
+            </div>
+            <div class="quick-price">${formatRupiah(product.price)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderGameOptions() {
+      Object.keys(productsByGame).forEach((game) => {
+        const option = document.createElement("option");
+        option.value = game;
+        option.textContent = game;
+        el.gameSelect.appendChild(option);
+      });
+    }
+
+    function renderGameCards() {
+      const query = el.gameSearch.value.trim().toLowerCase();
+      const games = Object.keys(productsByGame).filter((game) => {
+        const gameData = getGameData(game);
+        const matchesQuery = !query || game.toLowerCase().includes(query) || gameData.genre.toLowerCase().includes(query);
+        const matchesFilter =
+          state.activeFilter === "Semua" ||
+          gameData.category === state.activeFilter ||
+          gameData.badge === state.activeFilter;
+        return matchesQuery && matchesFilter;
+      });
+
+      if (!games.length) {
+        el.gameCards.innerHTML = '<div class="empty-state">Game tidak ditemukan. Coba kata kunci lain.</div>';
+        return;
+      }
+
+      el.gameCards.innerHTML = games.map((game) => {
+        const gameData = getGameData(game);
+        const firstProduct = gameData.products[0];
+
+        return `
+          <article class="game-card" data-game="${game}" style="--game-gradient:${gameData.accent}; --card-glow: rgba(0,229,255,0.13);">
+            <div>
+              <div class="game-top">
+                <div class="game-icon">${gameShortName[game]}</div>
+                <span class="pill ${gameData.badge === "Populer" ? "hot" : ""}">${gameData.badge}</span>
+              </div>
+            </div>
+            <div class="game-bottom">
+              <div>
+                <h3>${game}</h3>
+                <p>Mulai dari ${formatRupiah(firstProduct.price)}</p>
+              </div>
+              <div class="game-meta">
+                <span class="pill">${gameData.category}</span>
+                <span class="pill">${gameData.genre}</span>
+                <span class="pill">Instant</span>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".game-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          const game = card.dataset.game;
+          el.gameSelect.value = game;
+          handleGameChange(game);
+          document.querySelector("#order").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
+
+    function renderProducts(gameName) {
+      const gameData = getGameData(gameName);
+      state.selectedProduct = null;
+
+      if (!gameData) {
+        el.productList.innerHTML = '<div class="empty-state">Pilih game untuk menampilkan nominal top up.</div>';
+        updateSummary();
+        return;
+      }
+
+      el.productList.innerHTML = gameData.products.map((product) => `
+        <div class="product-option">
+          <input type="radio" name="product" id="${product.id}" value="${product.id}">
+          <label class="product-label" for="${product.id}">
+            <span class="product-name">${product.name}</span>
+            <span class="product-price-row">
+              <span class="product-price">${formatRupiah(product.price)}</span>
+              <span class="product-chip">${product.tag}</span>
+            </span>
+          </label>
+        </div>
+      `).join("");
+
+      document.querySelectorAll('input[name="product"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+          state.selectedProduct = gameData.products.find((product) => product.id === radio.value);
+          clearFieldErrors();
+          updateSummary();
+          saveDraftInput();
+        });
+      });
+
+      updateSummary();
+    }
+
+    function renderPaymentMethods() {
+      el.paymentGrid.innerHTML = paymentMethods.map((method) => `
+        <div class="payment-option">
+          <input type="radio" name="payment" id="pay-${method.id}" value="${method.id}">
+          <label class="payment-card" for="pay-${method.id}">
+            <span class="payment-logo">${method.icon}</span>
+            <span class="payment-name">${method.name}</span>
+            <span class="payment-caption">${method.caption}</span>
+          </label>
+        </div>
+      `).join("");
+
+      document.querySelectorAll('input[name="payment"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+          state.selectedPayment = paymentMethods.find((method) => method.id === radio.value);
+          clearFieldErrors();
+          updateSummary();
+          saveDraftInput();
+        });
+      });
+    }
+
+    function updateDynamicFields(gameName) {
+      const gameData = getGameData(gameName);
+
+      if (!gameData) {
+        el.userIdLabel.textContent = "User ID";
+        el.userId.placeholder = "Masukkan User ID";
+        el.userHint.textContent = "Contoh: 123456789";
+        el.serverField.classList.remove("hidden");
+        el.serverLabel.textContent = "Server ID";
+        el.serverId.placeholder = "Masukkan Server ID";
+        el.serverHint.textContent = "Isi jika game membutuhkan server.";
+        return;
+      }
+
+      el.userIdLabel.textContent = gameData.userLabel;
+      el.userId.placeholder = gameData.userPlaceholder;
+      el.userHint.textContent = gameData.userHint;
+
+      if (gameData.requiresServer) {
+        el.serverField.classList.remove("hidden");
+        el.serverLabel.textContent = gameData.serverLabel || "Server ID";
+        el.serverId.placeholder = gameData.serverPlaceholder || "Masukkan Server ID";
+        el.serverHint.textContent = gameData.serverHint || "Isi server sesuai akun game.";
+      } else {
+        el.serverField.classList.add("hidden");
+        el.serverId.value = "";
+      }
+    }
+
+    function handleGameChange(gameName) {
+      state.selectedGame = gameName;
+      state.discount = 0;
+      state.voucherCode = "";
+      el.voucher.value = "";
+      el.voucherHint.textContent = "Kosongkan jika tidak punya voucher.";
+
+      clearFieldErrors();
+      updateDynamicFields(gameName);
+      renderProducts(gameName);
+      updateSummary();
+      saveDraftInput();
+    }
+
+    function applyVoucher() {
+      const code = el.voucher.value.trim().toUpperCase();
+      const subtotal = getSubtotal();
+
+      if (!code) {
+        state.voucherCode = "";
+        state.discount = 0;
+        el.voucherHint.textContent = "Kosongkan jika tidak punya voucher.";
+        updateSummary();
+        return;
+      }
+
+      if (!subtotal) {
+        showToast("Pilih produk terlebih dahulu sebelum memakai voucher.");
+        return;
+      }
+
+      if (code === "DIRAC5") {
+        state.voucherCode = code;
+        state.discount = Math.min(Math.round(subtotal * 0.05), 15000);
+        el.voucherHint.textContent = `Voucher DIRAC5 aktif. Diskon ${formatRupiah(state.discount)}.`;
+        showToast("Voucher berhasil digunakan.");
+      } else {
+        state.voucherCode = "";
+        state.discount = 0;
+        el.voucherHint.textContent = "Kode voucher tidak tersedia.";
+        showToast("Kode voucher tidak tersedia.");
+      }
+
+      updateSummary();
+      saveDraftInput();
+    }
+
+    function updateSummary() {
+      const gameData = getGameData(state.selectedGame);
+      const account = getAccountDisplay();
+      const subtotal = getSubtotal();
+      const fee = getPaymentFee();
+      const discount = Number(state.discount || 0);
+      const total = getTotal();
+
+      el.summaryIcon.textContent = state.selectedGame ? gameShortName[state.selectedGame] : "DG";
+      el.summaryIcon.style.background = gameData ? gameData.accent : "";
+      el.summaryGame.textContent = state.selectedGame || "Belum memilih game";
+      el.summaryProduct.textContent = state.selectedProduct ? state.selectedProduct.name : "Pilih nominal top up";
+      el.summaryAccount.textContent = account;
+      el.summaryWhatsapp.textContent = el.whatsapp.value.trim() || "-";
+      el.summaryPayment.textContent = state.selectedPayment ? state.selectedPayment.name : "-";
+      el.summarySubtotal.textContent = formatRupiah(subtotal);
+      el.summaryFee.textContent = formatRupiah(fee);
+      el.summaryDiscount.textContent = discount ? `- ${formatRupiah(discount)}` : formatRupiah(0);
+      el.summaryTotal.textContent = formatRupiah(total);
+    }
+
+    function validateOrder() {
+      clearFieldErrors();
+
+      const errors = [];
+      const gameData = getGameData(state.selectedGame);
+      const userId = el.userId.value.trim();
+      const serverId = el.serverId.value.trim();
+      const whatsapp = el.whatsapp.value.trim();
+      const email = el.email.value.trim();
+
+      if (!state.selectedGame) {
+        errors.push(["game", "Pilih game terlebih dahulu."]);
+      }
+
+      if (!userId) {
+        errors.push(["userId", "Data akun wajib diisi."]);
+      }
+
+      if (gameData && gameData.requiresServer && !serverId) {
+        errors.push(["serverId", `${gameData.serverLabel || "Server ID"} wajib diisi.`]);
+      }
+
+      if (!state.selectedProduct) {
+        errors.push(["product", "Pilih nominal top up terlebih dahulu."]);
+      }
+
+      if (!whatsapp) {
+        errors.push(["whatsapp", "Nomor WhatsApp wajib diisi."]);
+      } else if (!/^[0-9+\-\s]{8,18}$/.test(whatsapp)) {
+        errors.push(["whatsapp", "Format nomor WhatsApp belum valid."]);
+      }
+
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errors.push(["email", "Format email belum valid."]);
+      }
+
+      if (!state.selectedPayment) {
+        errors.push(["payment", "Pilih metode pembayaran terlebih dahulu."]);
+      }
+
+      errors.forEach(([field, message]) => setFieldError(field, message));
+
+      if (errors.length) {
+        showToast(errors[0][1]);
+        focusFirstError();
+        return false;
+      }
+
+      return true;
+    }
+
+    function buildOrderData() {
+      const orderCode = generateOrderCode();
+      const gameData = getGameData(state.selectedGame);
+
+      return {
+        orderCode,
+        game: state.selectedGame,
+        category: gameData ? gameData.category : "",
+        userId: el.userId.value.trim(),
+        serverId: el.serverField.classList.contains("hidden") ? "" : el.serverId.value.trim(),
+        accountDisplay: getAccountDisplay(),
+        productId: state.selectedProduct.id,
+        productName: state.selectedProduct.name,
+        subtotal: getSubtotal(),
+        serviceFee: getPaymentFee(),
+        discount: Number(state.discount || 0),
+        totalPayment: getTotal(),
+        voucherCode: state.voucherCode,
+        whatsapp: el.whatsapp.value.trim(),
+        email: el.email.value.trim(),
+        paymentMethod: state.selectedPayment.name,
+        paymentMethodId: state.selectedPayment.id,
+        paymentStatus: "Menunggu Pembayaran",
+        orderStatus: "Menunggu Pembayaran",
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function openOrderModal(orderData) {
+      el.modalOrderCode.textContent = orderData.orderCode;
+      el.modalGame.textContent = orderData.game;
+      el.modalAccount.textContent = orderData.accountDisplay;
+      el.modalProduct.textContent = orderData.productName;
+      el.modalPayment.textContent = orderData.paymentMethod;
+      el.modalTotal.textContent = formatRupiah(orderData.totalPayment);
+      el.orderModal.classList.add("show");
+      el.orderModal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeOrderModal() {
+      el.orderModal.classList.remove("show");
+      el.orderModal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function redirectToPayment(orderData) {
+      // ==========================================================
+      // PLACEHOLDER PAYMENT GATEWAY
+      // Ganti fungsi ini menjadi request ke backend, misalnya:
+      //
+      // fetch("/api/create-payment", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(orderData)
+      // })
+      // .then(res => res.json())
+      // .then(data => window.location.href = data.payment_url);
+      //
+      // Secret key payment gateway tetap di backend/Vercel ENV.
+      // Jangan taruh secret key di HTML.
+      // ==========================================================
+
+      console.log("Payment checkout payload:", orderData);
+      showToast("Checkout siap. Sambungkan tombol ini ke endpoint payment gateway di backend.");
+    }
+
+    function processSupplierApi(orderData) {
+      // ==========================================================
+      // PLACEHOLDER SUPPLIER API
+      // Jalankan dari backend setelah callback pembayaran sukses.
+      // Token supplier tidak boleh berada di browser.
+      // ==========================================================
+
+      console.log("Supplier order payload:", orderData);
+    }
+
+    function handleOrderSubmit(event) {
+      event.preventDefault();
+
+      if (!validateOrder()) return;
+
+      setLoading(true);
+
+      window.setTimeout(() => {
+        const orderData = buildOrderData();
+        state.latestOrder = orderData;
+        saveOrder(orderData);
+        saveDraftInput();
+        setLoading(false);
+        openOrderModal(orderData);
+        processSupplierApi(orderData);
+      }, 650);
+    }
+
+    function renderStatusTimeline(status) {
+      const steps = [
+        { title: "Order Dibuat", desc: "Pesanan berhasil masuk ke sistem." },
+        { title: "Menunggu Pembayaran", desc: "Pembayaran belum terverifikasi." },
+        { title: "Diproses Otomatis", desc: "Top up diproses setelah pembayaran sukses." },
+        { title: "Selesai", desc: "Produk berhasil dikirim ke akun tujuan." }
+      ];
+
+      let activeIndex = 1;
+      if (status === "Diproses") activeIndex = 2;
+      if (status === "Selesai") activeIndex = 3;
+
+      return `
+        <div class="timeline">
+          ${steps.map((step, index) => `
+            <div class="timeline-step ${index < activeIndex ? "done" : index === activeIndex ? "active" : ""}">
+              <div class="timeline-dot">${index + 1}</div>
+              <div class="timeline-text">
+                <strong>${step.title}</strong>
+                <span>${step.desc}</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function checkOrderStatus() {
+      const code = el.statusCode.value.trim().toUpperCase();
+
+      if (!code) {
+        showToast("Masukkan kode order terlebih dahulu.");
+        return;
+      }
+
+      const orders = getStoredOrders();
+      const found = orders.find((order) => order.orderCode.toUpperCase() === code);
+
+      el.statusResult.classList.add("show");
+
+      if (!found) {
+        el.statusResult.innerHTML = `
+          <div class="order-mini-card">
+            <strong style="color: var(--red);">Order tidak ditemukan</strong>
+            <p class="subtext">Periksa kembali kode order yang dimasukkan.</p>
+          </div>
+        `;
+        return;
+      }
+
+      el.statusResult.innerHTML = `
+        <div class="status-grid">
+          <div class="order-mini-card">
+            <div class="summary-row">
+              <span>Kode Order</span>
+              <strong>${found.orderCode}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Game</span>
+              <strong>${found.game}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Akun</span>
+              <strong>${found.accountDisplay}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Produk</span>
+              <strong>${found.productName}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Total</span>
+              <strong>${formatRupiah(found.totalPayment)}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Status</span>
+              <strong style="color: var(--yellow);">${found.orderStatus}</strong>
+            </div>
+          </div>
+
+          <div class="order-mini-card">
+            ${renderStatusTimeline(found.orderStatus)}
+          </div>
+        </div>
+      `;
+    }
+
+    function saveDraftInput() {
+      const draft = {
+        selectedGame: state.selectedGame,
+        userId: el.userId.value.trim(),
+        serverId: el.serverId.value.trim(),
+        whatsapp: el.whatsapp.value.trim(),
+        email: el.email.value.trim(),
+        selectedPaymentId: state.selectedPayment ? state.selectedPayment.id : "",
+        selectedProductId: state.selectedProduct ? state.selectedProduct.id : "",
+        voucherCode: state.voucherCode
+      };
+
+      localStorage.setItem("dirac_draft", JSON.stringify(draft));
+    }
+
+    function loadDraftInput() {
+      try {
+        const draft = JSON.parse(localStorage.getItem("dirac_draft") || "{}");
+        if (!draft || !draft.selectedGame) return;
+
+        if (productsByGame[draft.selectedGame]) {
+          el.gameSelect.value = draft.selectedGame;
+          handleGameChange(draft.selectedGame);
+
+          el.userId.value = draft.userId || "";
+          el.serverId.value = draft.serverId || "";
+          el.whatsapp.value = draft.whatsapp || "";
+          el.email.value = draft.email || "";
+
+          if (draft.selectedProductId) {
+            const productRadio = document.getElementById(draft.selectedProductId);
+            if (productRadio) {
+              productRadio.checked = true;
+              state.selectedProduct = getGameData(draft.selectedGame).products.find((product) => product.id === draft.selectedProductId);
+            }
+          }
+
+          if (draft.selectedPaymentId) {
+            const paymentRadio = document.getElementById(`pay-${draft.selectedPaymentId}`);
+            if (paymentRadio) {
+              paymentRadio.checked = true;
+              state.selectedPayment = paymentMethods.find((method) => method.id === draft.selectedPaymentId);
+            }
+          }
+
+          if (draft.voucherCode) {
+            el.voucher.value = draft.voucherCode;
+            applyVoucher();
+          }
+
+          updateSummary();
+        }
+      } catch (error) {
+        localStorage.removeItem("dirac_draft");
+      }
+    }
+
+    function bindEvents() {
+      el.menuBtn.addEventListener("click", () => {
+        const isOpen = el.navLinks.classList.toggle("show");
+        el.menuBtn.setAttribute("aria-expanded", String(isOpen));
+      });
+
+      document.querySelectorAll(".nav-links a").forEach((link) => {
+        link.addEventListener("click", () => {
+          el.navLinks.classList.remove("show");
+          el.menuBtn.setAttribute("aria-expanded", "false");
+        });
+      });
+
+      el.gameSearch.addEventListener("input", renderGameCards);
+
+      el.tabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          el.tabButtons.forEach((item) => item.classList.remove("active"));
+          button.classList.add("active");
+          state.activeFilter = button.dataset.filter;
+          renderGameCards();
+        });
+      });
+
+      el.gameSelect.addEventListener("change", (event) => handleGameChange(event.target.value));
+
+      [el.userId, el.serverId, el.whatsapp, el.email].forEach((input) => {
+        input.addEventListener("input", () => {
+          clearFieldErrors();
+          updateSummary();
+          saveDraftInput();
+        });
+      });
+
+      el.applyVoucherBtn.addEventListener("click", applyVoucher);
+      el.voucher.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyVoucher();
+        }
+      });
+
+      el.orderForm.addEventListener("submit", handleOrderSubmit);
+
+      el.closeModalBtn.addEventListener("click", closeOrderModal);
+      el.closeModalBtn2.addEventListener("click", closeOrderModal);
+
+      el.orderModal.addEventListener("click", (event) => {
+        if (event.target === el.orderModal) closeOrderModal();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeOrderModal();
+      });
+
+      el.copyOrderBtn.addEventListener("click", async () => {
+        const code = el.modalOrderCode.textContent.trim();
+
+        try {
+          await navigator.clipboard.writeText(code);
+          showToast("Kode order berhasil disalin.");
+        } catch (error) {
+          showToast(`Kode order: ${code}`);
+        }
+      });
+
+      el.paymentButton.addEventListener("click", () => {
+        if (state.latestOrder) {
+          redirectToPayment(state.latestOrder);
+        }
+      });
+
+      el.checkStatusBtn.addEventListener("click", checkOrderStatus);
+      el.statusCode.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") checkOrderStatus();
+      });
+    }
+
+    function initRevealAnimation() {
+      const revealItems = document.querySelectorAll(".reveal");
+
+      if (!("IntersectionObserver" in window)) {
+        revealItems.forEach((item) => item.classList.add("visible"));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+
+      revealItems.forEach((item) => observer.observe(item));
+    }
+
+    function init() {
+      el.year.textContent = new Date().getFullYear();
+      renderQuickList();
+      renderGameOptions();
+      renderPaymentMethods();
+      renderGameCards();
+      bindEvents();
+      loadDraftInput();
+      updateSummary();
+      initRevealAnimation();
+    }
+
+    init();
+  </script>
+</body>
+</html>
