@@ -2137,6 +2137,19 @@ function customerSecurityEmptyOverview() {
 
 async function customerSecurityFetchOverviewData(customerId) {
   const empty = customerSecurityEmptyOverview();
+  const warnings = [];
+
+  function rowsOrEmpty(result, section) {
+    if (!result || !result.ok) {
+      warnings.push({
+        section,
+        status: result && result.status ? result.status : 500,
+        error: customerSecuritySafeUpstreamError(result && result.data)
+      });
+      return [];
+    }
+    return Array.isArray(result.data) ? result.data : [];
+  }
 
   const settingsResult = await customerSecurityFetchRows(
     'security_customer_settings',
@@ -2156,9 +2169,7 @@ async function customerSecurityFetchOverviewData(customerId) {
     customerId,
     'updated_at.desc',
     1
-  );
-
-  if (!settingsResult.ok) return { ok: false, status: settingsResult.status, section: 'settings', data: settingsResult.data };
+  ).catch((error) => ({ ok: false, status: 500, data: { message: String(error && error.message ? error.message : error) } }));
 
   const sessionsResult = await customerSecurityFetchRows(
     'security_customer_sessions',
@@ -2181,9 +2192,7 @@ async function customerSecurityFetchOverviewData(customerId) {
     customerId,
     'last_seen_at.desc',
     10
-  );
-
-  if (!sessionsResult.ok) return { ok: false, status: sessionsResult.status, section: 'sessions', data: sessionsResult.data };
+  ).catch((error) => ({ ok: false, status: 500, data: { message: String(error && error.message ? error.message : error) } }));
 
   const loginLogsResult = await customerSecurityFetchRows(
     'security_customer_login_logs',
@@ -2203,9 +2212,7 @@ async function customerSecurityFetchOverviewData(customerId) {
     customerId,
     'created_at.desc',
     10
-  );
-
-  if (!loginLogsResult.ok) return { ok: false, status: loginLogsResult.status, section: 'login_logs', data: loginLogsResult.data };
+  ).catch((error) => ({ ok: false, status: 500, data: { message: String(error && error.message ? error.message : error) } }));
 
   const eventsResult = await customerSecurityFetchRows(
     'security_customer_events',
@@ -2220,9 +2227,7 @@ async function customerSecurityFetchOverviewData(customerId) {
     customerId,
     'created_at.desc',
     20
-  );
-
-  if (!eventsResult.ok) return { ok: false, status: eventsResult.status, section: 'events', data: eventsResult.data };
+  ).catch((error) => ({ ok: false, status: 500, data: { message: String(error && error.message ? error.message : error) } }));
 
   const requestsResult = await customerSecurityFetchRows(
     'security_customer_account_requests',
@@ -2239,15 +2244,13 @@ async function customerSecurityFetchOverviewData(customerId) {
     customerId,
     'created_at.desc',
     10
-  );
+  ).catch((error) => ({ ok: false, status: 500, data: { message: String(error && error.message ? error.message : error) } }));
 
-  if (!requestsResult.ok) return { ok: false, status: requestsResult.status, section: 'account_requests', data: requestsResult.data };
-
-  const settingsRows = Array.isArray(settingsResult.data) ? settingsResult.data : [];
-  const sessions = Array.isArray(sessionsResult.data) ? sessionsResult.data : [];
-  const loginLogs = Array.isArray(loginLogsResult.data) ? loginLogsResult.data : [];
-  const events = Array.isArray(eventsResult.data) ? eventsResult.data : [];
-  const accountRequests = Array.isArray(requestsResult.data) ? requestsResult.data : [];
+  const settingsRows = rowsOrEmpty(settingsResult, 'settings');
+  const sessions = rowsOrEmpty(sessionsResult, 'sessions');
+  const loginLogs = rowsOrEmpty(loginLogsResult, 'login_logs');
+  const events = rowsOrEmpty(eventsResult, 'events');
+  const accountRequests = rowsOrEmpty(requestsResult, 'account_requests');
 
   return {
     ok: true,
@@ -2262,7 +2265,9 @@ async function customerSecurityFetchOverviewData(customerId) {
         login_logs: loginLogs.length,
         events: events.length,
         account_requests: accountRequests.length
-      }
+      },
+      partial: warnings.length > 0,
+      warnings
     }
   };
 }
@@ -3363,7 +3368,9 @@ const CUSTOMER_SECURITY_RECOVERY_CODE_COUNT = 3;
 const CUSTOMER_SECURITY_RECOVERY_DIGITS = '0123456789';
 const CUSTOMER_SECURITY_RECOVERY_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const CUSTOMER_SECURITY_RECOVERY_SYMBOLS = '!@#$%^&*()-_=+[]{};:,.<>?/|~';
-const CUSTOMER_SECURITY_RECOVERY_SPECIAL_LETTERS = 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝŸàáâãäåæçèéêëìíîïñòóôõöøùúûüýÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĴĵĶķŁłŃńŇňŌōŎŏŐőŒœŔŕŘřŚśŜŝŞşŠšŢţŤťŪūŬŭŮůŰűŲųŴŵŶŷŹźŻżŽž';
+// Recovery code harus ASCII printable karena frontend memvalidasi dengan /^[!-~]{500}$/.
+// Jangan pakai huruf aksen/Unicode di sini; itu membuat generate sukses di backend tetapi ditolak UI.
+const CUSTOMER_SECURITY_RECOVERY_SPECIAL_LETTERS = CUSTOMER_SECURITY_RECOVERY_SYMBOLS;
 const CUSTOMER_SECURITY_RECOVERY_ALPHABET =
   CUSTOMER_SECURITY_RECOVERY_DIGITS +
   CUSTOMER_SECURITY_RECOVERY_LETTERS +
