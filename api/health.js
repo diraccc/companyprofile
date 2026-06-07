@@ -4328,15 +4328,18 @@ function adminSecuritySafeErrorSupabase(error) {
 }
 
 /* ============================================================
-   OWNERSHIP-LOCKED CHECKOUT - ISOLATED APPEND ONLY
-   Tujuan produksi:
-   - Tidak mengubah login lama, hash, A2F/MFA, admin/staff, security center, atau domain router lama.
-   - Mengganti endpoint checkout umum menjadi wajib login + dashboard MFA.
-   - customer_id/order ownership SELALU dari backend auth session + security_customer_auth_links.
-   - Frontend tidak dipercaya untuk customer_id, order_id, payment_status, order_status, paid/completed, atau payment_url.
-   - Payment gateway belum aktif: semua order dibuat pending + unpaid + payment_url null.
-   - Endpoint test HP lama dinonaktifkan default agar tidak bisa membuat order tanpa login.
-   Endpoint terkunci:
+   SESSION-OWNERSHIP LOCKED CHECKOUT - ISOLATED APPEND ONLY
+   Production safety rules:
+   - Login/hash/domain auth functions above are NOT modified.
+   - No frontend customer_id ownership is trusted.
+   - No frontend payment_status/order_status/paid/completed is trusted.
+   - No frontend payment_url is trusted.
+   - Checkout ownership is resolved server-side from authenticated session.
+   - Default checkout only requires a valid backend session; no JS-readable MFA proof required.
+   - If CHECKOUT_REQUIRE_DASHBOARD_MFA=true, dashboard MFA is also required.
+   - Payment gateway is not active here: every created order is pending + unpaid + payment_url null.
+   - Old HP test endpoint is disabled so it cannot create production orders.
+   Endpoint:
    POST /api/health?action=checkout_order
    POST /api/health?action=parfum_checkout
    POST /api/health?action=public_checkout
@@ -4345,14 +4348,14 @@ function adminSecuritySafeErrorSupabase(error) {
    POST /api/health?action=pengembangan_checkout
    ============================================================ */
 
-const __diracOwnershipLockedCheckoutPreviousHandler = module.exports;
+const __diracSessionOwnershipCheckoutPreviousHandler = module.exports;
 
-module.exports = async function ownershipLockedCheckoutWrapper(req, res) {
+module.exports = async function sessionOwnershipCheckoutWrapper(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
-  const action = ownershipCheckoutNormalizeAction(rawAction);
+  const action = sessionOwnershipCheckoutNormalizeAction(rawAction);
 
-  if (!ownershipCheckoutIsAction(action)) {
-    return __diracOwnershipLockedCheckoutPreviousHandler(req, res);
+  if (!sessionOwnershipCheckoutIsAction(action)) {
+    return __diracSessionOwnershipCheckoutPreviousHandler(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
@@ -4371,9 +4374,9 @@ module.exports = async function ownershipLockedCheckoutWrapper(req, res) {
   }
 
   try {
-    return await ownershipCheckoutCreateUnpaidOrder(req, res);
+    return await sessionOwnershipCheckoutCreateUnpaidOrder(req, res);
   } catch (error) {
-    console.error('[ownership-locked-checkout]', ownershipCheckoutSafeError(error));
+    console.error('[session-ownership-checkout]', sessionOwnershipCheckoutSafeError(error));
     return res.status(500).json({
       ok: false,
       message: 'Checkout belum dapat diproses dengan aman.'
@@ -4381,7 +4384,7 @@ module.exports = async function ownershipLockedCheckoutWrapper(req, res) {
   }
 };
 
-function ownershipCheckoutNormalizeAction(action) {
+function sessionOwnershipCheckoutNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
   const aliases = {
     'checkout_order': 'checkout_order',
@@ -4408,13 +4411,14 @@ function ownershipCheckoutNormalizeAction(action) {
   return aliases[clean] || clean;
 }
 
-function ownershipCheckoutIsAction(action) {
+function sessionOwnershipCheckoutIsAction(action) {
   return action === 'checkout_order' || action === 'checkout_order_hp_test';
 }
 
-async function ownershipCheckoutCreateUnpaidOrder(req, res) {
-  const access = await requireDomainDashboardAccess(req, res);
-  if (!access) return;
+async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
+  const requireDashboardMfa = String(process.env.CHECKOUT_REQUIRE_DASHBOARD_MFA || 'false').trim().toLowerCase() === 'true';
+  const access = requireDashboardMfa ? await requireDomainDashboardAccess(req, res) : { user: await requireDomainUser(req, res), mfa: null };
+  if (!access || !access.user) return;
 
   const body = await readBody(req);
   const user = access.user || {};
@@ -4434,29 +4438,18 @@ async function ownershipCheckoutCreateUnpaidOrder(req, res) {
   }
 
   const customerPhone = normalizePhone(body.customer_phone || body.phone || body.whatsapp || body.customer_whatsapp || '');
-  const requestedName = ownershipCheckoutSafeName(body.customer_name || body.name || body.full_name || ownershipCheckoutUserMetadataName(user) || userEmail);
-  const serviceType = ownershipCheckoutNormalizeServiceType(body.service_type || body.service || 'parfum');
-  const quantity = ownershipCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
-  const productTitle = ownershipCheckoutBuildProductTitle(body, serviceType);
-  const total = ownershipCheckoutPositiveMoney(body.total || body.amount || body.subtotal || 0);
+  const requestedName = sessionOwnershipCheckoutSafeName(body.customer_name || body.name || body.full_name || sessionOwnershipCheckoutUserMetadataName(user) || userEmail);
+  const serviceType = sessionOwnershipCheckoutNormalizeServiceType(body.service_type || body.service || 'parfum');
+  const quantity = sessionOwnershipCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
+  const productTitle = sessionOwnershipCheckoutBuildProductTitle(body, serviceType);
+  const frontendQuotedTotal = sessionOwnershipCheckoutPositiveMoney(body.total || body.amount || body.subtotal || 0);
 
-  if (!requestedName) {
-    return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi.' });
-  }
+  if (!requestedName) return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi.' });
+  if (!customerPhone) return res.status(400).json({ ok: false, message: 'Nomor WhatsApp/HP wajib diisi.' });
+  if (!productTitle) return res.status(400).json({ ok: false, message: 'Nama produk/layanan wajib diisi.' });
+  if (!frontendQuotedTotal || frontendQuotedTotal <= 0) return res.status(400).json({ ok: false, message: 'Total pesanan wajib lebih dari 0.' });
 
-  if (!customerPhone) {
-    return res.status(400).json({ ok: false, message: 'Nomor WhatsApp/HP wajib diisi.' });
-  }
-
-  if (!productTitle) {
-    return res.status(400).json({ ok: false, message: 'Nama produk/layanan wajib diisi.' });
-  }
-
-  if (!total || total <= 0) {
-    return res.status(400).json({ ok: false, message: 'Total pesanan wajib lebih dari 0.' });
-  }
-
-  const owner = await ownershipCheckoutResolveCustomerOwner({
+  const owner = await sessionOwnershipCheckoutResolveCustomerOwner({
     authUserId,
     email: userEmail,
     fullName: requestedName,
@@ -4472,8 +4465,8 @@ async function ownershipCheckoutCreateUnpaidOrder(req, res) {
 
   const customer = owner.customer;
   const customerId = String(customer.id || '').trim();
-  const orderCode = ownershipCheckoutGenerateOrderCode();
-  const finalCustomerName = ownershipCheckoutSafeName(customer.name || requestedName || userEmail);
+  const orderCode = sessionOwnershipCheckoutGenerateOrderCode();
+  const finalCustomerName = sessionOwnershipCheckoutSafeName(customer.name || requestedName || userEmail);
   const finalCustomerEmail = normalizeAuthEmail(customer.email || userEmail);
   const finalCustomerPhone = normalizePhone(customer.phone || customerPhone);
 
@@ -4492,8 +4485,8 @@ async function ownershipCheckoutCreateUnpaidOrder(req, res) {
       customer_phone: finalCustomerPhone,
       customer_email: finalCustomerEmail,
       service_type: serviceType,
-      subtotal: total,
-      total: total,
+      subtotal: frontendQuotedTotal,
+      total: frontendQuotedTotal,
       payment_method: 'Belum dipilih',
       payment_status: 'unpaid',
       order_status: 'pending'
@@ -4504,7 +4497,7 @@ async function ownershipCheckoutCreateUnpaidOrder(req, res) {
     return res.status(orderResult.status || 500).json({
       ok: false,
       message: 'Order gagal dibuat.',
-      error: ownershipCheckoutSafeUpstreamError(orderResult.data)
+      error: sessionOwnershipCheckoutSafeUpstreamError(orderResult.data)
     });
   }
 
@@ -4528,7 +4521,7 @@ async function ownershipCheckoutCreateUnpaidOrder(req, res) {
     return res.status(itemResult.status || 500).json({
       ok: false,
       message: 'Order dibuat, tetapi item order gagal dibuat.',
-      error: ownershipCheckoutSafeUpstreamError(itemResult.data)
+      error: sessionOwnershipCheckoutSafeUpstreamError(itemResult.data)
     });
   }
 
@@ -4537,81 +4530,55 @@ async function ownershipCheckoutCreateUnpaidOrder(req, res) {
     message: 'Pesanan berhasil dibuat. Payment gateway belum aktif, status pembayaran masih unpaid.',
     order_id: order.id,
     order_code: order.order_id || orderCode,
-    customer_id: customerId,
-    customer_id_source: owner.source || 'backend_auth_link',
-    ownership_locked: true,
-    payment_protected: true,
     service_type: serviceType,
-    total,
+    total: frontendQuotedTotal,
     currency: 'IDR',
     order_status: 'pending',
     payment_status: 'unpaid',
     payment_url: null,
     payment_gateway_configured: false,
+    ownership_locked: true,
+    payment_protected: true,
+    owner_source: owner.source || 'backend_auth_link',
     frontend_ignored_fields: ['customer_id', 'order_id', 'payment_status', 'order_status', 'paid', 'completed', 'payment_url'],
-    payment_note: 'Nominal ini belum menjadi invoice pembayaran. Payment paid hanya boleh dari backend webhook payment gateway yang valid.',
-    item: {
-      product_title: productTitle,
-      quantity
-    }
+    payment_note: 'Belum membuat invoice pembayaran. Nominal paid/final payment wajib divalidasi ulang oleh backend payment gateway/webhook, bukan frontend.',
+    item: { product_title: productTitle, quantity }
   });
 }
 
-async function ownershipCheckoutResolveCustomerOwner({ authUserId, email, fullName, phone }) {
+async function sessionOwnershipCheckoutResolveCustomerOwner({ authUserId, email, fullName, phone }) {
   const linkResult = await customerSecurityFetchAuthLink(authUserId);
 
   if (!linkResult.ok) {
-    return {
-      ok: false,
-      status: linkResult.status || 500,
-      message: 'Gagal memverifikasi relasi akun dan customer.'
-    };
+    return { ok: false, status: linkResult.status || 500, message: 'Gagal memverifikasi relasi akun dan customer.' };
   }
 
   const linkRows = Array.isArray(linkResult.data) ? linkResult.data : [];
   const link = linkRows[0] || null;
 
   if (link && link.link_status === 'active' && link.customer_id && customerSecurityLooksLikeUuid(link.customer_id)) {
-    const customer = await ownershipCheckoutFetchCustomerById(link.customer_id);
-    if (customer.ok && customer.customer && customer.customer.id) {
-      return { ok: true, customer: customer.customer, source: 'security_customer_auth_links' };
-    }
-    return {
-      ok: false,
-      status: customer.status || 409,
-      message: 'Auth link aktif ditemukan, tetapi data customer tidak valid.'
-    };
+    const customer = await sessionOwnershipCheckoutFetchCustomerById(link.customer_id);
+    if (customer.ok && customer.customer && customer.customer.id) return { ok: true, customer: customer.customer, source: 'security_customer_auth_links' };
+    return { ok: false, status: customer.status || 409, message: 'Auth link aktif ditemukan, tetapi data customer tidak valid.' };
   }
 
-  const customerResult = await ownershipCheckoutFindOrCreateCustomerForAuth({ email, fullName, phone });
+  const customerResult = await sessionOwnershipCheckoutFindOrCreateCustomerForAuth({ email, fullName, phone });
   if (!customerResult.ok || !customerResult.customer || !customerResult.customer.id) {
-    return {
-      ok: false,
-      status: customerResult.status || 500,
-      message: customerResult.message || 'Gagal menyiapkan customer untuk akun login.'
-    };
+    return { ok: false, status: customerResult.status || 500, message: customerResult.message || 'Gagal menyiapkan customer untuk akun login.' };
   }
 
   const linkUpsert = link && link.id
-    ? await ownershipCheckoutActivateAuthLink(authUserId, customerResult.customer.id, email)
-    : await ownershipCheckoutCreateAuthLink(authUserId, customerResult.customer.id, email);
+    ? await sessionOwnershipCheckoutActivateAuthLink(authUserId, customerResult.customer.id, email)
+    : await sessionOwnershipCheckoutCreateAuthLink(authUserId, customerResult.customer.id, email);
 
   if (!linkUpsert.ok) {
-    return {
-      ok: false,
-      status: linkUpsert.status || 500,
-      message: 'Customer berhasil ditemukan, tetapi auth link gagal dikunci.'
-    };
+    return { ok: false, status: linkUpsert.status || 500, message: 'Customer berhasil ditemukan, tetapi auth link gagal dikunci.' };
   }
 
-  return {
-    ok: true,
-    customer: customerResult.customer,
-    source: customerResult.created ? 'backend_created_from_auth_email' : 'backend_matched_auth_email'
-  };
+  return { ok: true, customer: customerResult.customer, source: customerResult.created ? 'backend_created_from_auth_email' : 'backend_matched_auth_email' };
 }
 
-async function ownershipCheckoutFetchCustomerById(customerId) {
+async function sessionOwnershipCheckoutFetchCustomerById(customerId) {
   const select = ['id', 'email', 'name', 'phone'].join(',');
   const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(customerId) + '&limit=1';
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
@@ -4622,77 +4589,46 @@ async function ownershipCheckoutFetchCustomerById(customerId) {
   return { ok: true, customer: row };
 }
 
-async function ownershipCheckoutFindOrCreateCustomerForAuth({ email, fullName, phone }) {
+async function sessionOwnershipCheckoutFindOrCreateCustomerForAuth({ email, fullName, phone }) {
   const existing = await customerSecurityFetchCustomerByEmail(email);
-  if (!existing.ok) {
-    return { ok: false, status: existing.status, message: 'Gagal membaca customer berdasarkan email akun.' };
-  }
+  if (!existing.ok) return { ok: false, status: existing.status, message: 'Gagal membaca customer berdasarkan email akun.' };
 
   const rows = Array.isArray(existing.data) ? existing.data : [];
-  if (rows.length && rows[0] && rows[0].id) {
-    return { ok: true, customer: rows[0], created: false };
-  }
+  if (rows.length && rows[0] && rows[0].id) return { ok: true, customer: rows[0], created: false };
 
-  const body = {
-    name: ownershipCheckoutSafeName(fullName || email),
-    email
-  };
+  const body = { name: sessionOwnershipCheckoutSafeName(fullName || email), email };
   if (phone) body.phone = phone;
 
-  const created = await supabaseFetch('/rest/v1/customers', {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: [body]
-  });
-
-  if (!created.ok) {
-    return { ok: false, status: created.status, message: 'Gagal membuat customer dari akun login.' };
-  }
+  const created = await supabaseFetch('/rest/v1/customers', { method: 'POST', auth: 'service', prefer: 'return=representation', body: [body] });
+  if (!created.ok) return { ok: false, status: created.status, message: 'Gagal membuat customer dari akun login.' };
 
   const createdRows = Array.isArray(created.data) ? created.data : [];
   const row = createdRows[0] || created.data;
   if (!row || !row.id) return { ok: false, status: 500, message: 'Customer dibuat, tetapi ID tidak ditemukan.' };
-
   return { ok: true, customer: row, created: true };
 }
 
-async function ownershipCheckoutActivateAuthLink(authUserId, customerId, email) {
+async function sessionOwnershipCheckoutActivateAuthLink(authUserId, customerId, email) {
   const path = '/rest/v1/security_customer_auth_links?auth_user_id=eq.' + encodeURIComponent(authUserId);
-  return supabaseFetch(path, {
-    method: 'PATCH',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: ownershipCheckoutActiveAuthLinkBody(customerId, email)
-  });
+  return supabaseFetch(path, { method: 'PATCH', auth: 'service', prefer: 'return=representation', body: sessionOwnershipCheckoutActiveAuthLinkBody(customerId, email) });
 }
 
-async function ownershipCheckoutCreateAuthLink(authUserId, customerId, email) {
+async function sessionOwnershipCheckoutCreateAuthLink(authUserId, customerId, email) {
   return supabaseFetch('/rest/v1/security_customer_auth_links', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
-    body: [{
-      auth_user_id: authUserId,
-      ...ownershipCheckoutActiveAuthLinkBody(customerId, email)
-    }]
+    body: [{ auth_user_id: authUserId, ...sessionOwnershipCheckoutActiveAuthLinkBody(customerId, email) }]
   });
 }
 
-function ownershipCheckoutActiveAuthLinkBody(customerId, email) {
-  return {
-    customer_id: customerId,
-    email,
-    link_status: 'active',
-    link_method: 'system_created',
-    match_confidence: 'verified'
-  };
+function sessionOwnershipCheckoutActiveAuthLinkBody(customerId, email) {
+  return { customer_id: customerId, email, link_status: 'active', link_method: 'system_created', match_confidence: 'verified' };
 }
 
-function ownershipCheckoutBuildProductTitle(body, serviceType) {
-  const base = ownershipCheckoutCleanText(body.product_title || body.product || body.item_name || body.service_name || body.package_name || 'Pesanan DiracGroup', 120);
+function sessionOwnershipCheckoutBuildProductTitle(body, serviceType) {
+  const base = sessionOwnershipCheckoutCleanText(body.product_title || body.product || body.item_name || body.service_name || body.package_name || 'Pesanan DiracGroup', 120);
   const details = [];
-
   const detailPairs = [
     ['Game', body.game || body.game_name],
     ['User ID', body.user_id || body.player_id],
@@ -4705,116 +4641,78 @@ function ownershipCheckoutBuildProductTitle(body, serviceType) {
     ['Penerima', body.recipient_name || body.nama_penerima],
     ['Website', body.website_url || body.link_website]
   ];
-
   for (const [label, value] of detailPairs) {
-    const clean = ownershipCheckoutCleanText(value, 70);
+    const clean = sessionOwnershipCheckoutCleanText(value, 70);
     if (clean) details.push(`${label}: ${clean}`);
   }
-
   const combined = details.length ? `${base} | ${details.join(' | ')}` : base;
-  return ownershipCheckoutCleanText(combined, 160) || ownershipCheckoutFallbackTitle(serviceType);
+  return sessionOwnershipCheckoutCleanText(combined, 160) || sessionOwnershipCheckoutFallbackTitle(serviceType);
 }
 
-function ownershipCheckoutFallbackTitle(serviceType) {
+function sessionOwnershipCheckoutFallbackTitle(serviceType) {
   const labels = {
-    parfum: 'Pesanan Parfum',
-    domain: 'Pesanan Domain',
-    jasa_website: 'Jasa Pembuatan Website',
-    pengembangan_website: 'Pengembangan Website',
-    topup_game: 'Top Up Game',
-    isi_pulsa: 'Isi Pulsa',
-    paket_data: 'Paket Data',
-    isi_saldo: 'Isi Saldo',
-    isi_saldo_etoll: 'Isi Saldo E-Toll',
-    transfer_luar_negeri: 'Transfer Luar Negeri'
+    parfum: 'Pesanan Parfum', domain: 'Pesanan Domain', jasa_website: 'Jasa Pembuatan Website', pengembangan_website: 'Pengembangan Website',
+    topup_game: 'Top Up Game', isi_pulsa: 'Isi Pulsa', paket_data: 'Paket Data', isi_saldo: 'Isi Saldo', isi_saldo_etoll: 'Isi Saldo E-Toll', transfer_luar_negeri: 'Transfer Luar Negeri'
   };
   return labels[serviceType] || 'Pesanan DiracGroup';
 }
 
-function ownershipCheckoutNormalizeServiceType(value) {
+function sessionOwnershipCheckoutNormalizeServiceType(value) {
   const clean = String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   const aliases = {
-    parfum: 'parfum',
-    perfume: 'parfum',
-    domain: 'domain',
-    jasa_website: 'jasa_website',
-    jasa_pembuatan_website: 'jasa_website',
-    pembuatan_website: 'jasa_website',
-    website: 'jasa_website',
-    pengembangan: 'pengembangan_website',
-    pengembangan_website: 'pengembangan_website',
-    development: 'pengembangan_website',
-    topup: 'topup_game',
-    top_up: 'topup_game',
-    topup_game: 'topup_game',
-    top_up_game: 'topup_game',
-    game: 'topup_game',
-    isi_pulsa: 'isi_pulsa',
-    pulsa: 'isi_pulsa',
-    paket_data: 'paket_data',
-    data: 'paket_data',
-    isi_saldo: 'isi_saldo',
-    saldo: 'isi_saldo',
-    ewallet: 'isi_saldo',
-    e_wallet: 'isi_saldo',
-    isi_saldo_etoll: 'isi_saldo_etoll',
-    isi_saldo_e_toll: 'isi_saldo_etoll',
-    etoll: 'isi_saldo_etoll',
-    e_toll: 'isi_saldo_etoll',
-    transfer_luar_negeri: 'transfer_luar_negeri',
-    remitansi: 'transfer_luar_negeri',
-    remittance: 'transfer_luar_negeri'
+    parfum: 'parfum', perfume: 'parfum', domain: 'domain',
+    jasa_website: 'jasa_website', jasa_pembuatan_website: 'jasa_website', pembuatan_website: 'jasa_website', website: 'jasa_website',
+    pengembangan: 'pengembangan_website', pengembangan_website: 'pengembangan_website', development: 'pengembangan_website',
+    topup: 'topup_game', top_up: 'topup_game', topup_game: 'topup_game', top_up_game: 'topup_game', game: 'topup_game',
+    isi_pulsa: 'isi_pulsa', pulsa: 'isi_pulsa', paket_data: 'paket_data', data: 'paket_data',
+    isi_saldo: 'isi_saldo', saldo: 'isi_saldo', ewallet: 'isi_saldo', e_wallet: 'isi_saldo',
+    isi_saldo_etoll: 'isi_saldo_etoll', isi_saldo_e_toll: 'isi_saldo_etoll', etoll: 'isi_saldo_etoll', e_toll: 'isi_saldo_etoll',
+    transfer_luar_negeri: 'transfer_luar_negeri', remitansi: 'transfer_luar_negeri', remittance: 'transfer_luar_negeri'
   };
-  const serviceType = aliases[clean] || '';
-  if (!serviceType) return 'parfum';
-  return serviceType;
+  return aliases[clean] || 'parfum';
 }
 
-function ownershipCheckoutUserMetadataName(user) {
+function sessionOwnershipCheckoutUserMetadataName(user) {
   const meta = user && typeof user === 'object' ? (user.user_metadata || user.raw_user_meta_data || {}) : {};
   return meta.full_name || meta.fullName || meta.name || '';
 }
 
-function ownershipCheckoutSafeName(value) {
+function sessionOwnershipCheckoutSafeName(value) {
   const raw = String(value || '').trim();
   const fromEmail = raw.includes('@') ? raw.split('@')[0] : raw;
   const cleaned = fromEmail.replace(/[^a-zA-Z0-9À-ž ._'-]/g, ' ').replace(/\s+/g, ' ').trim();
   return (cleaned || 'Customer DiracGroup').slice(0, 120);
 }
 
-function ownershipCheckoutCleanText(value, maxLength) {
-  return String(value || '')
-    .trim()
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .slice(0, Math.max(1, Number(maxLength || 120)));
+function sessionOwnershipCheckoutCleanText(value, maxLength) {
+  return String(value || '').trim().replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').slice(0, Math.max(1, Number(maxLength || 120)));
 }
 
-function ownershipCheckoutPositiveInteger(value, fallback, max) {
+function sessionOwnershipCheckoutPositiveInteger(value, fallback, max) {
   const number = Math.trunc(Number(value));
   if (!Number.isFinite(number) || number < 1) return fallback || 1;
   return Math.min(number, max || 999);
 }
 
-function ownershipCheckoutPositiveMoney(value) {
+function sessionOwnershipCheckoutPositiveMoney(value) {
   const number = Number(String(value || '').replace(/[^0-9.]/g, ''));
   if (!Number.isFinite(number) || number <= 0) return 0;
   return Math.round(number);
 }
 
-function ownershipCheckoutGenerateOrderCode() {
+function sessionOwnershipCheckoutGenerateOrderCode() {
   const now = new Date();
   const date = now.toISOString().slice(0, 10).replace(/-/g, '');
   const random = crypto.randomBytes(4).toString('hex').toUpperCase();
   return `ORD-${date}-${random}`;
 }
 
-function ownershipCheckoutSafeUpstreamError(data) {
+function sessionOwnershipCheckoutSafeUpstreamError(data) {
   if (!data) return null;
   if (typeof data === 'string') return data.slice(0, 220);
   return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 220);
 }
 
-function ownershipCheckoutSafeError(error) {
+function sessionOwnershipCheckoutSafeError(error) {
   return String(error && error.message ? error.message : error).slice(0, 180);
 }
