@@ -54,6 +54,22 @@
     .game-logo.img-missing{background:rgba(255,255,255,.06)!important}
     .brand-img{object-fit:cover;background:rgba(255,255,255,.08)}
     .brand-img,.mock-brand img,.empty-icon img{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10)}
+
+    /* Dropdown pilih game cepat: dibuat di atas User ID agar user tidak wajib scroll katalog panjang. */
+    .game-select-card{margin-bottom:14px;padding:14px;border:1px solid rgba(92,225,230,.18);border-radius:22px;background:linear-gradient(180deg,rgba(92,225,230,.075),rgba(255,255,255,.03));box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
+    .game-select-card .label{margin-bottom:9px}.game-select{appearance:none;-webkit-appearance:none;padding-right:46px;background:
+      linear-gradient(45deg,transparent 50%,#C7FBFF 50%) right 20px center/7px 7px no-repeat,
+      linear-gradient(135deg,#C7FBFF 50%,transparent 50%) right 14px center/7px 7px no-repeat,
+      rgba(5,7,13,.66)}
+    .game-select:focus{background:
+      linear-gradient(45deg,transparent 50%,#C7FBFF 50%) right 20px center/7px 7px no-repeat,
+      linear-gradient(135deg,#C7FBFF 50%,transparent 50%) right 14px center/7px 7px no-repeat,
+      rgba(8,12,22,.92)}
+    .game-select option{background:#0B1020;color:#F7FAFF}.select-note{margin-top:8px;color:var(--faint);font-size:12px;font-weight:800}
+    .game-logo.no-img,.game-logo.img-missing{background:linear-gradient(145deg,rgba(92,225,230,.22),rgba(124,92,255,.22))!important;color:#EFFFFF!important;font-size:12px!important;letter-spacing:-.035em!important;text-indent:0!important}
+    .game-logo .fallback-initial{display:none!important;position:absolute;inset:0;place-items:center;text-align:center;padding:4px;color:#EFFFFF!important;font-family:var(--display);font-size:12px!important;font-weight:950;line-height:1;letter-spacing:-.04em!important;text-indent:0!important}
+    .game-logo.no-img .fallback-initial,.game-logo.img-missing .fallback-initial{display:grid!important}.game-logo.img-missing img{display:none!important}
+    @media(max-width:720px){.game-select-card{position:relative}.game-picker{max-height:130px;overflow-x:auto}.game-btn{min-width:150px}.metric:nth-child(2) b{font-size:18px}}
   </style>
 </head>
 <body>
@@ -78,7 +94,7 @@
           <div class="hero-badges"><span>✓ QRIS & e-wallet</span><span>✓ Ringkasan realtime</span><span>✓ Status order jelas</span><span>✓ Mobile optimized</span></div>
           <div class="metrics" aria-label="Keunggulan layanan">
             <div class="metric"><b>Realtime</b><span>Cart otomatis</span></div>
-            <div class="metric"><b>5 Game</b><span>Katalog utama</span></div>
+            <div class="metric"><b>40+ Game</b><span>Katalog lengkap</span></div>
             <div class="metric"><b>24/7</b><span>Cek status</span></div>
           </div>
         </div>
@@ -107,7 +123,7 @@
 
     <section class="promo-strip" id="games">
       <div class="wrap promo-card reveal">
-        <div class="promo-main"><b>Katalog dibuat lebih premium</b><span>Game, nominal, dan pembayaran tampil lebih jelas agar user cepat percaya dan cepat checkout.</span></div>
+        <div class="promo-main"><b>Katalog dibuat lebih premium</b><span>Game dari katalog utama, nominal, dan pembayaran tampil lebih jelas agar user cepat percaya dan cepat checkout.</span></div>
         <div class="promo-mini"><span class="promo-ico">⚡</span><div><b>Alur cepat</b><span>4 langkah checkout</span></div></div>
         <div class="promo-mini"><span class="promo-ico">🛡️</span><div><b>Detail jelas</b><span>Total terlihat di awal</span></div></div>
         <div class="promo-mini"><span class="promo-ico">💬</span><div><b>Bantuan</b><span>Footer lebih meyakinkan</span></div></div>
@@ -126,6 +142,11 @@
               <div class="game-picker" id="gamePicker"></div>
               <div class="error" id="eGame">Pilih game terlebih dahulu.</div>
               <div class="divider"></div>
+              <div class="game-select-card">
+                <label class="label" for="gameSelect"><span>Pilih game</span><span class="helper">Semua katalog</span></label>
+                <select class="input game-select" id="gameSelect" aria-label="Pilih game"></select>
+                <div class="select-note">Pilih langsung dari daftar lengkap tanpa harus menggeser/scroll card game.</div>
+              </div>
               <div class="grid2">
                 <div class="field"><label class="label" for="fUID"><span>User ID</span></label><input class="input" id="fUID" autocomplete="off" placeholder="Masukkan User ID" required /><div class="error" id="eUID">User ID wajib diisi.</div></div>
                 <div class="field" id="serverWrap"><label class="label" for="fSrv"><span id="serverLabel">Server</span><span class="helper" id="serverHint">Wajib</span></label><input class="input" id="fSrv" autocomplete="off" placeholder="Masukkan server" /><div class="error" id="eSrv">Server wajib diisi untuk game ini.</div></div>
@@ -211,7 +232,7 @@
     </section>
   </main>
 
-  <footer class="footer"><div class="wrap footergrid"><div><a class="brand" href="#home"><img src="logo 3.webp" class="brand-img" alt="Logo DIRAC GROUP" /><span class="brand-copy"><b>DIRAC GROUP</b><span>Premium game checkout</span></span></a><p style="margin-top:14px">Platform top up game dengan alur checkout ringkas, status order, dan tampilan yang dirancang untuk transaksi mobile.</p><div class="pay-row"><img src="pay1.webp" alt="QRIS" /><img src="pay2.webp" alt="GoPay" /><img src="pay3.webp" alt="OVO" /><img src="pay4.webp" alt="DANA" /><img src="pay5.webp" alt="ShopeePay" /><img src="pay6.webp" alt="Bank" /></div><div class="copyright">© 2026 DIRAC GROUP. All rights reserved.</div></div><div><h4>Produk</h4><a href="#order">Mobile Legends</a><a href="#order">Free Fire</a><a href="#order">PUBG Mobile</a><a href="#order">Genshin Impact</a><a href="#order">Valorant</a></div><div><h4>Transaksi</h4><a href="#order">Buat Pesanan</a><a href="#status">Cek Status</a><a href="#trust">Keamanan</a><a href="#how">Cara Top Up</a></div><div><h4>Bantuan</h4><a href="#policy">Kebijakan Refund</a><a href="#policy">Syarat & Ketentuan</a><a href="#policy">Kebijakan Privasi</a><a href="#status">Butuh Bantuan?</a></div></div></footer>
+  <footer class="footer"><div class="wrap footergrid"><div><a class="brand" href="#home"><img src="logo 3.webp" class="brand-img" alt="Logo DIRAC GROUP" /><span class="brand-copy"><b>DIRAC GROUP</b><span>Premium game checkout</span></span></a><p style="margin-top:14px">Platform top up game dengan alur checkout ringkas, status order, dan tampilan yang dirancang untuk transaksi mobile.</p><div class="pay-row"><img src="pay1.webp" alt="QRIS" /><img src="pay2.webp" alt="GoPay" /><img src="pay3.webp" alt="OVO" /><img src="pay4.webp" alt="DANA" /><img src="pay5.webp" alt="ShopeePay" /><img src="pay6.webp" alt="Bank" /></div><div class="copyright">© 2026 DIRAC GROUP. All rights reserved.</div></div><div><h4>Produk</h4><a href="#order">Mobile Legends</a><a href="#order">Free Fire & FFMAX</a><a href="#order">PUBG Mobile</a><a href="#order">Garena Shell</a><a href="#order">Riot Cash</a><a href="#order">40+ katalog lainnya</a></div><div><h4>Transaksi</h4><a href="#order">Buat Pesanan</a><a href="#status">Cek Status</a><a href="#trust">Keamanan</a><a href="#how">Cara Top Up</a></div><div><h4>Bantuan</h4><a href="#policy">Kebijakan Refund</a><a href="#policy">Syarat & Ketentuan</a><a href="#policy">Kebijakan Privasi</a><a href="#status">Butuh Bantuan?</a></div></div></footer>
 
   <div class="modal" id="modal"><div class="modal-card"><div class="modal-top"><h3>Pesanan dibuat</h3><p>Simpan kode order dan lanjutkan pembayaran sesuai metode yang dipilih.</p><div class="codebox"><b id="mCode">ORD-000</b><button class="copybtn" onclick="copyOrderCode()" type="button">Salin</button></div></div><div class="modal-body"><div class="countdown" id="mCountdown">Berlaku 15:00</div><div class="sum-row"><span>Game</span><span id="mGame">—</span></div><div class="sum-row"><span>User ID</span><span id="mUID">—</span></div><div class="sum-row"><span>Produk</span><span id="mProduct">—</span></div><div class="sum-row"><span>Total</span><span id="mTotal">—</span></div><div class="pay-instruction" id="mInstruction">Instruksi pembayaran akan tampil di sini.</div><div class="modal-actions"><button class="secondary" onclick="closeModal()" type="button">Tutup</button><button class="btn-main" onclick="continuePayment()" type="button">Lanjut Bayar</button></div></div></div></div>
   <div class="toast" id="toast">Info</div>
@@ -234,16 +255,2350 @@ const GAME_ICONS={
   valo:'valo.webp'
 };
 const GAMES={
-  ml:{name:'Mobile Legends',short:'',logo:'',img:GAME_ICONS.ml,currency:'Diamond',needServer:true,serverLabel:'Zone ID',serverHint:'Wajib',products:[
-    {id:'ml_56',name:'56 Diamond',price:15000,badge:'Starter',note:'Top up kecil'}, {id:'ml_257',name:'257 Diamond',price:63000,badge:'Popular',note:'+5 bonus'}, {id:'ml_514',name:'514 Diamond',price:125000,badge:'Value',note:'+8 bonus'}, {id:'ml_878',name:'878 Diamond',price:215000,badge:'Rank Push',note:'Paket besar'}, {id:'ml_1195',name:'1.195 Diamond',price:290000,badge:'Best Value',note:'+20 bonus'}, {id:'ml_wdp',name:'Weekly Diamond Pass',price:29000,badge:'Member',note:'7 hari'}]},
-  ff:{name:'Free Fire',short:'',logo:'',img:GAME_ICONS.ff,currency:'Diamond',needServer:false,products:[
-    {id:'ff_100',name:'100 Diamond',price:15000,badge:'Starter',note:'Top up kecil'}, {id:'ff_310',name:'310 Diamond',price:43000,badge:'Popular',note:'Cepat dipilih'}, {id:'ff_520',name:'520 Diamond',price:72000,badge:'Value',note:'+20 bonus'}, {id:'ff_1060',name:'1.060 Diamond',price:145000,badge:'Best Value',note:'+60 bonus'}, {id:'ff_2180',name:'2.180 Diamond',price:290000,badge:'Pro',note:'+180 bonus'}, {id:'ff_wp',name:'Weekly Pass',price:25000,badge:'Member',note:'7 hari'}]},
-  pubg:{name:'PUBG Mobile',short:'',logo:'',img:GAME_ICONS.pubg,currency:'UC',needServer:false,products:[
-    {id:'pubg_60',name:'60 UC',price:15000,badge:'Starter',note:'Top up kecil'}, {id:'pubg_325',name:'325 UC',price:65000,badge:'Popular',note:'Paket hemat'}, {id:'pubg_660',name:'660 UC',price:130000,badge:'Value',note:'+60 UC'}, {id:'pubg_1800',name:'1.800 UC',price:350000,badge:'Pro',note:'+180 UC'}, {id:'pubg_3850',name:'3.850 UC',price:730000,badge:'Elite',note:'+350 UC'}, {id:'pubg_8100',name:'8.100 UC',price:1500000,badge:'Max',note:'+800 UC'}]},
-  gi:{name:'Genshin Impact',short:'',logo:'',img:GAME_ICONS.gi,currency:'Genesis Crystals',needServer:true,serverLabel:'Server',serverHint:'Asia / America / Europe',products:[
-    {id:'gi_60',name:'60 Crystals',price:15000,badge:'Starter',note:'+60 Primogem'}, {id:'gi_330',name:'330 Crystals',price:77000,badge:'Popular',note:'+330 Primogem'}, {id:'gi_680',name:'680 Crystals',price:152000,badge:'Value',note:'+680 Primogem'}, {id:'gi_1980',name:'1.980 Crystals',price:435000,badge:'Pro',note:'+1.980 Primogem'}, {id:'gi_3280',name:'3.280 Crystals',price:720000,badge:'Elite',note:'+3.280 Primogem'}, {id:'gi_6480',name:'6.480 Crystals',price:1425000,badge:'Max',note:'+6.480 Primogem'}]},
-  valo:{name:'Valorant',short:'',logo:'',img:GAME_ICONS.valo,currency:'Valorant Points',needServer:false,products:[
-    {id:'valo_475',name:'475 VP',price:44000,badge:'Starter',note:'Top up kecil'}, {id:'valo_1000',name:'1.000 VP',price:87000,badge:'Popular',note:'Paket umum'}, {id:'valo_2050',name:'2.050 VP',price:175000,badge:'Value',note:'+50 VP'}, {id:'valo_3650',name:'3.650 VP',price:310000,badge:'Pro',note:'+150 VP'}, {id:'valo_5350',name:'5.350 VP',price:455000,badge:'Elite',note:'+350 VP'}, {id:'valo_11000',name:'11.000 VP',price:905000,badge:'Max',note:'+1.000 VP'}]}
+  "ml": {
+    "name": "Mobile Legends",
+    "short": "",
+    "logo": "",
+    "img": "ml.webp",
+    "currency": "Diamond",
+    "needServer": true,
+    "serverLabel": "Zone ID",
+    "serverHint": "Wajib",
+    "products": [
+      {
+        "id": "ml_56",
+        "name": "56 Diamond",
+        "price": 15000,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "ml_257",
+        "name": "257 Diamond",
+        "price": 63000,
+        "badge": "Popular",
+        "note": "+5 bonus"
+      },
+      {
+        "id": "ml_514",
+        "name": "514 Diamond",
+        "price": 125000,
+        "badge": "Value",
+        "note": "+8 bonus"
+      },
+      {
+        "id": "ml_878",
+        "name": "878 Diamond",
+        "price": 215000,
+        "badge": "Rank Push",
+        "note": "Paket besar"
+      },
+      {
+        "id": "ml_1195",
+        "name": "1.195 Diamond",
+        "price": 290000,
+        "badge": "Best Value",
+        "note": "+20 bonus"
+      },
+      {
+        "id": "ml_wdp",
+        "name": "Weekly Diamond Pass",
+        "price": 29000,
+        "badge": "Member",
+        "note": "7 hari"
+      }
+    ]
+  },
+  "ff": {
+    "name": "Free Fire & FFMAX",
+    "short": "",
+    "logo": "",
+    "img": "ff.webp",
+    "currency": "Diamond",
+    "needServer": false,
+    "products": [
+      {
+        "id": "ff_100",
+        "name": "100 Diamond",
+        "price": 15000,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "ff_310",
+        "name": "310 Diamond",
+        "price": 43000,
+        "badge": "Popular",
+        "note": "Cepat dipilih"
+      },
+      {
+        "id": "ff_520",
+        "name": "520 Diamond",
+        "price": 72000,
+        "badge": "Value",
+        "note": "+20 bonus"
+      },
+      {
+        "id": "ff_1060",
+        "name": "1.060 Diamond",
+        "price": 145000,
+        "badge": "Best Value",
+        "note": "+60 bonus"
+      },
+      {
+        "id": "ff_2180",
+        "name": "2.180 Diamond",
+        "price": 290000,
+        "badge": "Pro",
+        "note": "+180 bonus"
+      },
+      {
+        "id": "ff_wp",
+        "name": "Weekly Pass",
+        "price": 25000,
+        "badge": "Member",
+        "note": "7 hari"
+      }
+    ]
+  },
+  "pubg": {
+    "name": "PUBG Mobile",
+    "short": "",
+    "logo": "",
+    "img": "pubg.webp",
+    "currency": "UC",
+    "needServer": false,
+    "products": [
+      {
+        "id": "pubg_60",
+        "name": "60 UC",
+        "price": 15000,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "pubg_325",
+        "name": "325 UC",
+        "price": 65000,
+        "badge": "Popular",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "pubg_660",
+        "name": "660 UC",
+        "price": 130000,
+        "badge": "Value",
+        "note": "+60 UC"
+      },
+      {
+        "id": "pubg_1800",
+        "name": "1.800 UC",
+        "price": 350000,
+        "badge": "Pro",
+        "note": "+180 UC"
+      },
+      {
+        "id": "pubg_3850",
+        "name": "3.850 UC",
+        "price": 730000,
+        "badge": "Elite",
+        "note": "+350 UC"
+      },
+      {
+        "id": "pubg_8100",
+        "name": "8.100 UC",
+        "price": 1500000,
+        "badge": "Max",
+        "note": "+800 UC"
+      }
+    ]
+  },
+  "gi": {
+    "name": "Genshin Impact",
+    "short": "",
+    "logo": "",
+    "img": "gi.webp",
+    "currency": "Genesis Crystals",
+    "needServer": true,
+    "serverLabel": "Server",
+    "serverHint": "Asia / America / Europe",
+    "products": [
+      {
+        "id": "gi_60",
+        "name": "60 Crystals",
+        "price": 15000,
+        "badge": "Starter",
+        "note": "+60 Primogem"
+      },
+      {
+        "id": "gi_330",
+        "name": "330 Crystals",
+        "price": 77000,
+        "badge": "Popular",
+        "note": "+330 Primogem"
+      },
+      {
+        "id": "gi_680",
+        "name": "680 Crystals",
+        "price": 152000,
+        "badge": "Value",
+        "note": "+680 Primogem"
+      },
+      {
+        "id": "gi_1980",
+        "name": "1.980 Crystals",
+        "price": 435000,
+        "badge": "Pro",
+        "note": "+1.980 Primogem"
+      },
+      {
+        "id": "gi_3280",
+        "name": "3.280 Crystals",
+        "price": 720000,
+        "badge": "Elite",
+        "note": "+3.280 Primogem"
+      },
+      {
+        "id": "gi_6480",
+        "name": "6.480 Crystals",
+        "price": 1425000,
+        "badge": "Max",
+        "note": "+6.480 Primogem"
+      }
+    ]
+  },
+  "valo": {
+    "name": "Valorant",
+    "short": "",
+    "logo": "",
+    "img": "valo.webp",
+    "currency": "Valorant Points",
+    "needServer": false,
+    "products": [
+      {
+        "id": "valo_475",
+        "name": "475 VP",
+        "price": 44000,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "valo_1000",
+        "name": "1.000 VP",
+        "price": 87000,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "valo_2050",
+        "name": "2.050 VP",
+        "price": 175000,
+        "badge": "Value",
+        "note": "+50 VP"
+      },
+      {
+        "id": "valo_3650",
+        "name": "3.650 VP",
+        "price": 310000,
+        "badge": "Pro",
+        "note": "+150 VP"
+      },
+      {
+        "id": "valo_5350",
+        "name": "5.350 VP",
+        "price": 455000,
+        "badge": "Elite",
+        "note": "+350 VP"
+      },
+      {
+        "id": "valo_11000",
+        "name": "11.000 VP",
+        "price": 905000,
+        "badge": "Max",
+        "note": "+1.000 VP"
+      }
+    ]
+  },
+  "garena": {
+    "name": "Voucher Garena Shell",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Shell",
+    "needServer": false,
+    "products": [
+      {
+        "id": "garena_1",
+        "name": "33 Shell",
+        "price": 11000,
+        "badge": "Starter",
+        "note": "Garena Shell"
+      },
+      {
+        "id": "garena_2",
+        "name": "66 Shell",
+        "price": 22000,
+        "badge": "Popular",
+        "note": "Garena Shell"
+      },
+      {
+        "id": "garena_3",
+        "name": "165 Shell",
+        "price": 55000,
+        "badge": "Value",
+        "note": "Garena Shell"
+      },
+      {
+        "id": "garena_4",
+        "name": "330 Shell",
+        "price": 110000,
+        "badge": "Best Value",
+        "note": "Garena Shell"
+      },
+      {
+        "id": "garena_5",
+        "name": "660 Shell",
+        "price": 220000,
+        "badge": "Pro",
+        "note": "Garena Shell"
+      },
+      {
+        "id": "garena_6",
+        "name": "1.000 Shell",
+        "price": 335000,
+        "badge": "Max",
+        "note": "Garena Shell"
+      }
+    ]
+  },
+  "unipin": {
+    "name": "Voucher Unipin",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "unipin_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "unipin_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "unipin_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "unipin_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "unipin_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "unipin_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "googleplay": {
+    "name": "Voucher Google Play",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "googleplay_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "googleplay_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "googleplay_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "googleplay_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "googleplay_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "googleplay_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "razergold": {
+    "name": "Voucher Razer Gold",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "razergold_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "razergold_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "razergold_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "razergold_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "razergold_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "razergold_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "steamwallet": {
+    "name": "Voucher Steam Wallet",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "steamwallet_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "steamwallet_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "steamwallet_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "steamwallet_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "steamwallet_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "steamwallet_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "playstation": {
+    "name": "Voucher Play Station",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "playstation_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playstation_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playstation_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playstation_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playstation_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playstation_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "stumbleguys": {
+    "name": "Voucher Stumble Guys",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Tokens",
+    "needServer": false,
+    "products": [
+      {
+        "id": "stumbleguys_1",
+        "name": "Paket Token 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "stumbleguys_2",
+        "name": "Paket Token 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "stumbleguys_3",
+        "name": "Paket Token 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "stumbleguys_4",
+        "name": "Paket Token 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "stumbleguys_5",
+        "name": "Paket Token 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "stumbleguys_6",
+        "name": "Paket Token 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "roblox": {
+    "name": "Voucher Roblox",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Robux",
+    "needServer": false,
+    "products": [
+      {
+        "id": "roblox_1",
+        "name": "Paket Robux 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "roblox_2",
+        "name": "Paket Robux 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "roblox_3",
+        "name": "Paket Robux 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "roblox_4",
+        "name": "Paket Robux 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "roblox_5",
+        "name": "Paket Robux 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "roblox_6",
+        "name": "Paket Robux 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "pointblank": {
+    "name": "Voucher Point Blank",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Cash",
+    "needServer": false,
+    "products": [
+      {
+        "id": "pointblank_1",
+        "name": "Paket Cash 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "pointblank_2",
+        "name": "Paket Cash 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "pointblank_3",
+        "name": "Paket Cash 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "pointblank_4",
+        "name": "Paket Cash 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "pointblank_5",
+        "name": "Paket Cash 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "pointblank_6",
+        "name": "Paket Cash 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "minecraft": {
+    "name": "Voucher Minecraft",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "minecraft_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "minecraft_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "minecraft_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "minecraft_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "minecraft_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "minecraft_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "blizzard": {
+    "name": "Voucher Blizzard",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Balance",
+    "needServer": false,
+    "products": [
+      {
+        "id": "blizzard_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "blizzard_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "blizzard_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "blizzard_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "blizzard_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "blizzard_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "heroesevolved": {
+    "name": "Voucher Heroes Evolved",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Token",
+    "needServer": false,
+    "products": [
+      {
+        "id": "heroesevolved_1",
+        "name": "Paket Token 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "heroesevolved_2",
+        "name": "Paket Token 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "heroesevolved_3",
+        "name": "Paket Token 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "heroesevolved_4",
+        "name": "Paket Token 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "heroesevolved_5",
+        "name": "Paket Token 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "heroesevolved_6",
+        "name": "Paket Token 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "nintendo": {
+    "name": "Voucher Nintendo",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "nintendo_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "nintendo_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "nintendo_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "nintendo_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "nintendo_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "nintendo_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "fortnite": {
+    "name": "Voucher Fortnite V-Bucks",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "V-Bucks",
+    "needServer": false,
+    "products": [
+      {
+        "id": "fortnite_1",
+        "name": "Paket V-Bucks 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "fortnite_2",
+        "name": "Paket V-Bucks 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "fortnite_3",
+        "name": "Paket V-Bucks 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "fortnite_4",
+        "name": "Paket V-Bucks 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "fortnite_5",
+        "name": "Paket V-Bucks 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "fortnite_6",
+        "name": "Paket V-Bucks 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "eudemons": {
+    "name": "Voucher Eudemons Online",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "EP",
+    "needServer": false,
+    "products": [
+      {
+        "id": "eudemons_1",
+        "name": "Paket EP 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "eudemons_2",
+        "name": "Paket EP 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "eudemons_3",
+        "name": "Paket EP 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "eudemons_4",
+        "name": "Paket EP 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "eudemons_5",
+        "name": "Paket EP 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "eudemons_6",
+        "name": "Paket EP 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "efootball": {
+    "name": "Voucher EFootball",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Coins",
+    "needServer": false,
+    "products": [
+      {
+        "id": "efootball_1",
+        "name": "Paket Coin 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "efootball_2",
+        "name": "Paket Coin 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "efootball_3",
+        "name": "Paket Coin 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "efootball_4",
+        "name": "Paket Coin 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "efootball_5",
+        "name": "Paket Coin 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "efootball_6",
+        "name": "Paket Coin 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "megaxus": {
+    "name": "Voucher Megaxus Mi-Cash",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Mi-Cash",
+    "needServer": false,
+    "products": [
+      {
+        "id": "megaxus_1",
+        "name": "Paket Mi-Cash 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "megaxus_2",
+        "name": "Paket Mi-Cash 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "megaxus_3",
+        "name": "Paket Mi-Cash 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "megaxus_4",
+        "name": "Paket Mi-Cash 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "megaxus_5",
+        "name": "Paket Mi-Cash 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "megaxus_6",
+        "name": "Paket Mi-Cash 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "xbox": {
+    "name": "Voucher Xbox",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "xbox_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "xbox_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "xbox_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "xbox_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "xbox_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "xbox_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "crystalatlan": {
+    "name": "Voucher Crystal Of Atlan",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "crystalatlan_1",
+        "name": "Paket Voucher 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "crystalatlan_2",
+        "name": "Paket Voucher 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "crystalatlan_3",
+        "name": "Paket Voucher 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "crystalatlan_4",
+        "name": "Paket Voucher 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "crystalatlan_5",
+        "name": "Paket Voucher 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "crystalatlan_6",
+        "name": "Paket Voucher 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "karmakoin": {
+    "name": "Voucher Karma Koin",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "karmakoin_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "karmakoin_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "karmakoin_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "karmakoin_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "karmakoin_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "karmakoin_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "playwith": {
+    "name": "Voucher Playwith",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "playwith_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playwith_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playwith_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playwith_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playwith_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "playwith_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "clashofclans": {
+    "name": "Voucher Clash Of Clans",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Gems",
+    "needServer": false,
+    "products": [
+      {
+        "id": "clashofclans_1",
+        "name": "Paket Gems 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "clashofclans_2",
+        "name": "Paket Gems 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "clashofclans_3",
+        "name": "Paket Gems 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "clashofclans_4",
+        "name": "Paket Gems 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "clashofclans_5",
+        "name": "Paket Gems 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "clashofclans_6",
+        "name": "Paket Gems 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "honorofkings": {
+    "name": "Voucher Honor Of Kings",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Tokens",
+    "needServer": false,
+    "products": [
+      {
+        "id": "honorofkings_1",
+        "name": "Paket Token 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "honorofkings_2",
+        "name": "Paket Token 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "honorofkings_3",
+        "name": "Paket Token 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "honorofkings_4",
+        "name": "Paket Token 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "honorofkings_5",
+        "name": "Paket Token 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "honorofkings_6",
+        "name": "Paket Token 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "candycrush": {
+    "name": "Voucher Candy Crush Saga",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Gold Bars",
+    "needServer": false,
+    "products": [
+      {
+        "id": "candycrush_1",
+        "name": "Paket Gold Bar 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "candycrush_2",
+        "name": "Paket Gold Bar 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "candycrush_3",
+        "name": "Paket Gold Bar 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "candycrush_4",
+        "name": "Paket Gold Bar 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "candycrush_5",
+        "name": "Paket Gold Bar 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "candycrush_6",
+        "name": "Paket Gold Bar 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "wavegame": {
+    "name": "Voucher Wave Game",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "wavegame_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "wavegame_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "wavegame_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "wavegame_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "wavegame_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "wavegame_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "dotaautochess": {
+    "name": "Voucher Dota Auto Chess",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Candy",
+    "needServer": false,
+    "products": [
+      {
+        "id": "dotaautochess_1",
+        "name": "Paket Candy 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "dotaautochess_2",
+        "name": "Paket Candy 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "dotaautochess_3",
+        "name": "Paket Candy 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "dotaautochess_4",
+        "name": "Paket Candy 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "dotaautochess_5",
+        "name": "Paket Candy 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "dotaautochess_6",
+        "name": "Paket Candy 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "riotcash": {
+    "name": "Voucher Riot Cash",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Riot Cash",
+    "needServer": false,
+    "products": [
+      {
+        "id": "riotcash_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "riotcash_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "riotcash_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "riotcash_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "riotcash_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "riotcash_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "cherrycredits": {
+    "name": "Voucher Cherry Credits",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Credits",
+    "needServer": false,
+    "products": [
+      {
+        "id": "cherrycredits_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "cherrycredits_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "cherrycredits_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "cherrycredits_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "cherrycredits_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "cherrycredits_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "hbogo": {
+    "name": "Voucher HBO GO",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "hbogo_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "hbogo_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "hbogo_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "hbogo_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "hbogo_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "hbogo_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "gocash": {
+    "name": "Voucher Gocash",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Gocash",
+    "needServer": false,
+    "products": [
+      {
+        "id": "gocash_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "gocash_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "gocash_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "gocash_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "gocash_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "gocash_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  },
+  "codmw": {
+    "name": "Voucher Call Of Duty Modern Warfare",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "CP",
+    "needServer": false,
+    "products": [
+      {
+        "id": "codmw_1",
+        "name": "Paket CP 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "codmw_2",
+        "name": "Paket CP 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "codmw_3",
+        "name": "Paket CP 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "codmw_4",
+        "name": "Paket CP 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "codmw_5",
+        "name": "Paket CP 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "codmw_6",
+        "name": "Paket CP 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "codmobile": {
+    "name": "Voucher Call Of Duty Mobile",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "CP",
+    "needServer": false,
+    "products": [
+      {
+        "id": "codmobile_1",
+        "name": "Paket CP 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "codmobile_2",
+        "name": "Paket CP 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "codmobile_3",
+        "name": "Paket CP 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "codmobile_4",
+        "name": "Paket CP 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "codmobile_5",
+        "name": "Paket CP 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "codmobile_6",
+        "name": "Paket CP 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "reverse1999": {
+    "name": "Voucher Reverse: 1999",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Crystal Drops",
+    "needServer": false,
+    "products": [
+      {
+        "id": "reverse1999_1",
+        "name": "Paket Crystal Drop 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "reverse1999_2",
+        "name": "Paket Crystal Drop 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "reverse1999_3",
+        "name": "Paket Crystal Drop 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "reverse1999_4",
+        "name": "Paket Crystal Drop 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "reverse1999_5",
+        "name": "Paket Crystal Drop 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "reverse1999_6",
+        "name": "Paket Crystal Drop 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "riseofkingdom": {
+    "name": "Voucher Rise Of Kingdom",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Gems",
+    "needServer": false,
+    "products": [
+      {
+        "id": "riseofkingdom_1",
+        "name": "Paket Gems 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "riseofkingdom_2",
+        "name": "Paket Gems 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "riseofkingdom_3",
+        "name": "Paket Gems 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "riseofkingdom_4",
+        "name": "Paket Gems 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "riseofkingdom_5",
+        "name": "Paket Gems 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "riseofkingdom_6",
+        "name": "Paket Gems 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "pokemongo": {
+    "name": "Voucher Pokemon GO",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "PokéCoins",
+    "needServer": false,
+    "products": [
+      {
+        "id": "pokemongo_1",
+        "name": "Paket PokéCoin 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "pokemongo_2",
+        "name": "Paket PokéCoin 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "pokemongo_3",
+        "name": "Paket PokéCoin 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "pokemongo_4",
+        "name": "Paket PokéCoin 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "pokemongo_5",
+        "name": "Paket PokéCoin 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "pokemongo_6",
+        "name": "Paket PokéCoin 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "lastz": {
+    "name": "Voucher Last Z: Survival Shooter",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Credits",
+    "needServer": false,
+    "products": [
+      {
+        "id": "lastz_1",
+        "name": "Paket Credit 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "lastz_2",
+        "name": "Paket Credit 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "lastz_3",
+        "name": "Paket Credit 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "lastz_4",
+        "name": "Paket Credit 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "lastz_5",
+        "name": "Paket Credit 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "lastz_6",
+        "name": "Paket Credit 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "lastwar": {
+    "name": "Voucher Last War Survival",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Credits",
+    "needServer": false,
+    "products": [
+      {
+        "id": "lastwar_1",
+        "name": "Paket Credit 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "lastwar_2",
+        "name": "Paket Credit 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "lastwar_3",
+        "name": "Paket Credit 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "lastwar_4",
+        "name": "Paket Credit 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "lastwar_5",
+        "name": "Paket Credit 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "lastwar_6",
+        "name": "Paket Credit 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "lordsmobile": {
+    "name": "Voucher Lords Mobile",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Diamonds",
+    "needServer": false,
+    "products": [
+      {
+        "id": "lordsmobile_1",
+        "name": "Paket Diamond 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "lordsmobile_2",
+        "name": "Paket Diamond 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "lordsmobile_3",
+        "name": "Paket Diamond 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "lordsmobile_4",
+        "name": "Paket Diamond 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "lordsmobile_5",
+        "name": "Paket Diamond 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "lordsmobile_6",
+        "name": "Paket Diamond 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "arenabreakout": {
+    "name": "Voucher Arena Breakout",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Bonds",
+    "needServer": false,
+    "products": [
+      {
+        "id": "arenabreakout_1",
+        "name": "Paket Bond 10K",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Top up kecil"
+      },
+      {
+        "id": "arenabreakout_2",
+        "name": "Paket Bond 20K",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Paket umum"
+      },
+      {
+        "id": "arenabreakout_3",
+        "name": "Paket Bond 50K",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Paket hemat"
+      },
+      {
+        "id": "arenabreakout_4",
+        "name": "Paket Bond 100K",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Paket besar"
+      },
+      {
+        "id": "arenabreakout_5",
+        "name": "Paket Bond 250K",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Paket pro"
+      },
+      {
+        "id": "arenabreakout_6",
+        "name": "Paket Bond 500K",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Paket max"
+      }
+    ]
+  },
+  "neteasepay": {
+    "name": "Netease Pay",
+    "short": "",
+    "logo": "",
+    "img": "",
+    "currency": "Voucher",
+    "needServer": false,
+    "products": [
+      {
+        "id": "neteasepay_1",
+        "name": "Voucher 10.000",
+        "price": 10500,
+        "badge": "Starter",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "neteasepay_2",
+        "name": "Voucher 20.000",
+        "price": 20500,
+        "badge": "Popular",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "neteasepay_3",
+        "name": "Voucher 50.000",
+        "price": 50500,
+        "badge": "Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "neteasepay_4",
+        "name": "Voucher 100.000",
+        "price": 100500,
+        "badge": "Best Value",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "neteasepay_5",
+        "name": "Voucher 250.000",
+        "price": 250500,
+        "badge": "Pro",
+        "note": "Kode voucher"
+      },
+      {
+        "id": "neteasepay_6",
+        "name": "Voucher 500.000",
+        "price": 500500,
+        "badge": "Max",
+        "note": "Kode voucher"
+      }
+    ]
+  }
 };
 const PAYMENTS=[{id:'qris',name:'QRIS',fee:0,label:'Tanpa admin',img:'pay1.webp'},{id:'gopay',name:'GoPay',fee:1000,label:'+Rp 1.000',img:'pay2.webp'},{id:'ovo',name:'OVO',fee:1000,label:'+Rp 1.000',img:'pay3.webp'},{id:'dana',name:'DANA',fee:1000,label:'+Rp 1.000',img:'pay4.webp'},{id:'spay',name:'ShopeePay',fee:1000,label:'+Rp 1.000',img:'pay5.webp'},{id:'bank',name:'Transfer Bank',fee:2500,label:'+Rp 2.500',img:'pay6.webp'}];
 let S={game:'ml',product:null,payment:null,orders:loadOrders(),current:null,timer:null};
@@ -257,6 +2612,7 @@ function bind(){
   $('hamb').addEventListener('click',()=>$('mobileMenu').classList.toggle('open'));
   document.querySelectorAll('#mobileMenu a').forEach(a=>a.addEventListener('click',()=>$('mobileMenu').classList.remove('open')));
   ['fUID','fSrv','fWA','fEmail'].forEach(id=>$(id).addEventListener('input',()=>{clearError(id);sync()}));
+  if($('gameSelect')) $('gameSelect').addEventListener('change',e=>pickGame(e.target.value));
   $('statusIn').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase());
   $('statusIn').addEventListener('keydown',e=>{if(e.key==='Enter')cekStatus()});
   $('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
@@ -271,17 +2627,29 @@ function installLogoFallbacks(){
   });
 }
 function reveal(){if(!('IntersectionObserver' in window)){document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));return}const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>io.observe(el))}
+function gameInitials(name){
+  const cleaned=String(name||'DG').replace(/^Voucher\s+/i,'').trim();
+  const words=cleaned.split(/\s+/).filter(Boolean);
+  return (words.length===1?words[0].slice(0,3):words.slice(0,2).map(w=>w[0]).join('')).toUpperCase();
+}
 function logoHTML(g){
-  return `<span class="game-logo" role="img" aria-label="${escapeHTML(g.name)}"><img src="${g.img}" alt="${escapeHTML(g.name)}" loading="lazy" decoding="async" onerror="this.parentElement.classList.add('img-missing');this.style.visibility='hidden'"></span>`;
+  const label=escapeHTML(g.name);
+  const init=escapeHTML(gameInitials(g.name));
+  const img=g.img?`<img src="${g.img}" alt="${label}" loading="lazy" decoding="async" onerror="this.parentElement.classList.add('img-missing');this.remove()">`:'';
+  return `<span class="game-logo ${g.img?'':'no-img'}" role="img" aria-label="${label}">${img}<span class="fallback-initial">${init}</span></span>`;
 }
 function setGameLogo(el,g){
-  el.className='game-logo';
+  el.className='game-logo '+(g.img?'':'no-img');
   el.removeAttribute('style');
-  el.innerHTML=`<img src="${g.img}" alt="${escapeHTML(g.name)}" loading="lazy" decoding="async" onerror="this.parentElement.classList.add('img-missing');this.style.visibility='hidden'">`;
+  const label=escapeHTML(g.name);
+  const init=escapeHTML(gameInitials(g.name));
+  const img=g.img?`<img src="${g.img}" alt="${label}" loading="lazy" decoding="async" onerror="this.parentElement.classList.add('img-missing');this.remove()">`:'';
+  el.innerHTML=`${img}<span class="fallback-initial">${init}</span>`;
 }
 function renderQuick(){const picks=[['ml','ml_257'],['ff','ff_520'],['pubg','pubg_660'],['gi','gi_330']];$('quickList').innerHTML=picks.map(([gk,pid])=>{const g=GAMES[gk],p=g.products.find(x=>x.id===pid);return `<button class="quick-row" type="button" onclick="quickPick('${gk}','${pid}')">${logoHTML(g)}<span class="qmain"><b>${g.name}</b><span>${p.name}</span></span><span class="qprice">${rp(p.price)}</span></button>`}).join('')}
-function renderGames(){$('gamePicker').innerHTML=Object.entries(GAMES).map(([k,g])=>`<button class="game-btn ${k===S.game?'active':''}" type="button" aria-pressed="${k===S.game}" onclick="pickGame('${k}')">${logoHTML(g)}<b>${g.name}</b><span>${g.currency}</span></button>`).join('')}
-function renderProducts(){const g=GAMES[S.game];$('products').innerHTML=g.products.map(p=>`<button class="product ${S.product&&S.product.id===p.id?'sel':''} ${/popular|best/i.test(p.badge)?'popular':''}" type="button" aria-pressed="${S.product&&S.product.id===p.id?'true':'false'}" onclick="pickProduct('${p.id}')"><span class="tag">${p.badge}</span><b>${p.name}</b><span>${rp(p.price)}</span><em>${p.note}</em></button>`).join('');updateServerField()}
+function renderGameSelect(){const el=$('gameSelect');if(!el)return;el.innerHTML=Object.entries(GAMES).map(([k,g])=>`<option value="${k}">${escapeHTML(g.name)}</option>`).join('');el.value=S.game;}
+function renderGames(){$('gamePicker').innerHTML=Object.entries(GAMES).map(([k,g])=>`<button class="game-btn ${k===S.game?'active':''}" type="button" aria-pressed="${k===S.game}" onclick="pickGame('${k}')">${logoHTML(g)}<b>${escapeHTML(g.name)}</b><span>${escapeHTML(g.currency)}</span></button>`).join('');renderGameSelect()}
+function renderProducts(){const g=GAMES[S.game];$('products').innerHTML=g.products.map(p=>`<button class="product ${S.product&&S.product.id===p.id?'sel':''} ${/popular|best/i.test(p.badge)?'popular':''}" type="button" aria-pressed="${S.product&&S.product.id===p.id?'true':'false'}" onclick="pickProduct('${p.id}')"><span class="tag">${escapeHTML(p.badge)}</span><b>${escapeHTML(p.name)}</b><span>${rp(p.price)}</span><em>${escapeHTML(p.note)}</em></button>`).join('');updateServerField()}
 function renderPayments(){$('payments').innerHTML=PAYMENTS.map(p=>`<button class="pay ${S.payment&&S.payment.id===p.id?'sel':''}" type="button" aria-pressed="${S.payment&&S.payment.id===p.id?'true':'false'}" onclick="pickPayment('${p.id}')"><img src="${p.img}" alt="${p.name}" /><div><b>${p.name}</b><span>${p.label}</span></div></button>`).join('')}
 function updateServerField(){const g=GAMES[S.game];$('serverWrap').style.display=g.needServer?'grid':'none';$('serverLabel').textContent=g.serverLabel||'Server';$('serverHint').textContent=g.serverHint||'Wajib';$('fSrv').placeholder=g.serverLabel?`Masukkan ${g.serverLabel}`:'Masukkan server'}
 function quickPick(gk,pid){pickGame(gk,false);pickProduct(pid);document.querySelector('#order').scrollIntoView({behavior:'smooth',block:'start'})}
@@ -290,6 +2658,7 @@ function pickProduct(pid){S.product=GAMES[S.game].products.find(p=>p.id===pid);r
 function pickPayment(id){S.payment=PAYMENTS.find(p=>p.id===id);renderPayments();clear('ePay');sync();}
 function subtotal(){return S.product?S.product.price:0} function fee(){return S.payment?S.payment.fee:0} function total(){return subtotal()+fee()}
 function sync(){const g=GAMES[S.game],uid=$('fUID').value.trim(),srv=$('fSrv').value.trim(),wa=$('fWA').value.trim();
+  if($('gameSelect') && $('gameSelect').value!==S.game)$('gameSelect').value=S.game;
   setStep('stGame',!!S.game);setStep('stAccount',!!uid && (!g.needServer||!!srv));setStep('stProduct',!!S.product);setStep('stPay',!!S.payment);
   setGameLogo($('mockLogo'),g);
   $('mockGame').textContent=g.name;
