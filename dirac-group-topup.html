@@ -55,9 +55,9 @@
     .brand-img{object-fit:cover;background:rgba(255,255,255,.08)}
     .brand-img,.mock-brand img,.empty-icon img{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10)}
 
-    /* Dropdown pilih game cepat: dibuat di atas User ID agar user tidak wajib scroll katalog panjang. */
-    .game-select-card{margin-bottom:14px;padding:14px;border:1px solid rgba(92,225,230,.18);border-radius:22px;background:linear-gradient(180deg,rgba(92,225,230,.075),rgba(255,255,255,.03));box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
-    .game-select-card .label{margin-bottom:9px}.game-select{appearance:none;-webkit-appearance:none;padding-right:46px;background:
+    /* Dropdown layanan cepat: dibuat compact dan sejajar 100% dengan field User ID. */
+    .game-select-card{width:100%;margin:0 0 12px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;display:grid;gap:8px}
+    .game-select-card .label{margin-bottom:0}.game-select{appearance:none;-webkit-appearance:none;height:52px;width:100%;padding-right:46px;background:
       linear-gradient(45deg,transparent 50%,#C7FBFF 50%) right 20px center/7px 7px no-repeat,
       linear-gradient(135deg,#C7FBFF 50%,transparent 50%) right 14px center/7px 7px no-repeat,
       rgba(5,7,13,.66)}
@@ -94,7 +94,7 @@
           <div class="hero-badges"><span>✓ QRIS & e-wallet</span><span>✓ Ringkasan realtime</span><span>✓ Status order jelas</span><span>✓ Mobile optimized</span></div>
           <div class="metrics" aria-label="Keunggulan layanan">
             <div class="metric"><b>Realtime</b><span>Cart otomatis</span></div>
-            <div class="metric"><b>40+ Game</b><span>Katalog lengkap</span></div>
+            <div class="metric"><b>Katalog</b><span>Lengkap</span></div>
             <div class="metric"><b>24/7</b><span>Cek status</span></div>
           </div>
         </div>
@@ -142,10 +142,9 @@
               <div class="game-picker" id="gamePicker"></div>
               <div class="error" id="eGame">Pilih game terlebih dahulu.</div>
               <div class="divider"></div>
-              <div class="game-select-card">
-                <label class="label" for="gameSelect"><span>Pilih game</span><span class="helper">Semua katalog</span></label>
-                <select class="input game-select" id="gameSelect" aria-label="Pilih game"></select>
-                <div class="select-note">Pilih langsung dari daftar lengkap tanpa harus menggeser/scroll card game.</div>
+              <div class="game-select-card field">
+                <label class="label" for="serviceSelect"><span>Pilih layanan</span><span class="helper">Kategori</span></label>
+                <select class="input game-select service-select" id="serviceSelect" aria-label="Pilih layanan"></select>
               </div>
               <div class="grid2">
                 <div class="field"><label class="label" for="fUID"><span>User ID</span></label><input class="input" id="fUID" autocomplete="off" placeholder="Masukkan User ID" required /><div class="error" id="eUID">User ID wajib diisi.</div></div>
@@ -174,6 +173,7 @@
               <div class="chosen-game"><div class="game-logo" id="sumLogo"></div><div><b id="sumGame">Mobile Legends</b><span id="sumCurrency">Diamond</span></div></div>
               <div class="sum-row"><span>User ID</span><span id="sumUID">—</span></div>
               <div class="sum-row" id="sumSrvRow"><span>Server</span><span id="sumSrv">—</span></div>
+              <div class="sum-row"><span>Layanan</span><span id="sumService">Top Up Game</span></div>
               <div class="sum-row"><span>Produk</span><span id="sumProduct">—</span></div>
               <div class="sum-row"><span>Pembayaran</span><span id="sumPay">—</span></div>
               <div class="sum-row"><span>WhatsApp</span><span id="sumWA">—</span></div>
@@ -234,7 +234,7 @@
 
   <footer class="footer"><div class="wrap footergrid"><div><a class="brand" href="#home"><img src="logo 3.webp" class="brand-img" alt="Logo DIRAC GROUP" /><span class="brand-copy"><b>DIRAC GROUP</b><span>Premium game checkout</span></span></a><p style="margin-top:14px">Platform top up game dengan alur checkout ringkas, status order, dan tampilan yang dirancang untuk transaksi mobile.</p><div class="pay-row"><img src="pay1.webp" alt="QRIS" /><img src="pay2.webp" alt="GoPay" /><img src="pay3.webp" alt="OVO" /><img src="pay4.webp" alt="DANA" /><img src="pay5.webp" alt="ShopeePay" /><img src="pay6.webp" alt="Bank" /></div><div class="copyright">© 2026 DIRAC GROUP. All rights reserved.</div></div><div><h4>Produk</h4><a href="#order">Mobile Legends</a><a href="#order">Free Fire & FFMAX</a><a href="#order">PUBG Mobile</a><a href="#order">Garena Shell</a><a href="#order">Riot Cash</a><a href="#order">40+ katalog lainnya</a></div><div><h4>Transaksi</h4><a href="#order">Buat Pesanan</a><a href="#status">Cek Status</a><a href="#trust">Keamanan</a><a href="#how">Cara Top Up</a></div><div><h4>Bantuan</h4><a href="#policy">Kebijakan Refund</a><a href="#policy">Syarat & Ketentuan</a><a href="#policy">Kebijakan Privasi</a><a href="#status">Butuh Bantuan?</a></div></div></footer>
 
-  <div class="modal" id="modal"><div class="modal-card"><div class="modal-top"><h3>Pesanan dibuat</h3><p>Simpan kode order dan lanjutkan pembayaran sesuai metode yang dipilih.</p><div class="codebox"><b id="mCode">ORD-000</b><button class="copybtn" onclick="copyOrderCode()" type="button">Salin</button></div></div><div class="modal-body"><div class="countdown" id="mCountdown">Berlaku 15:00</div><div class="sum-row"><span>Game</span><span id="mGame">—</span></div><div class="sum-row"><span>User ID</span><span id="mUID">—</span></div><div class="sum-row"><span>Produk</span><span id="mProduct">—</span></div><div class="sum-row"><span>Total</span><span id="mTotal">—</span></div><div class="pay-instruction" id="mInstruction">Instruksi pembayaran akan tampil di sini.</div><div class="modal-actions"><button class="secondary" onclick="closeModal()" type="button">Tutup</button><button class="btn-main" onclick="continuePayment()" type="button">Lanjut Bayar</button></div></div></div></div>
+  <div class="modal" id="modal"><div class="modal-card"><div class="modal-top"><h3>Pesanan dibuat</h3><p>Simpan kode order dan lanjutkan pembayaran sesuai metode yang dipilih.</p><div class="codebox"><b id="mCode">ORD-000</b><button class="copybtn" onclick="copyOrderCode()" type="button">Salin</button></div></div><div class="modal-body"><div class="countdown" id="mCountdown">Berlaku 15:00</div><div class="sum-row"><span>Layanan</span><span id="mService">—</span></div><div class="sum-row"><span>Game</span><span id="mGame">—</span></div><div class="sum-row"><span>User ID</span><span id="mUID">—</span></div><div class="sum-row"><span>Produk</span><span id="mProduct">—</span></div><div class="sum-row"><span>Total</span><span id="mTotal">—</span></div><div class="pay-instruction" id="mInstruction">Instruksi pembayaran akan tampil di sini.</div><div class="modal-actions"><button class="secondary" onclick="closeModal()" type="button">Tutup</button><button class="btn-main" onclick="continuePayment()" type="button">Lanjut Bayar</button></div></div></div></div>
   <div class="toast" id="toast">Info</div>
   <div class="mobile-cart" id="mobileCart"><div><b id="mbProduct">Pilih nominal</b><span id="mbTotal">Rp 0</span></div><button onclick="goSummary()" type="button">Lanjut</button></div>
 
@@ -254,6 +254,15 @@ const GAME_ICONS={
   gi:'gi.webp',
   valo:'valo.webp'
 };
+const SERVICES=[
+  {id:'topup_game',name:'Top Up Game'},
+  {id:'isi_pulsa',name:'Isi Pulsa'},
+  {id:'paket_data',name:'Paket Data'},
+  {id:'isi_saldo',name:'Isi Saldo'},
+  {id:'isi_saldo_etoll',name:'Isi Saldo E-Toll'},
+  {id:'transfer_luar_negeri',name:'Transfer Luar Negeri'}
+];
+function serviceName(){const s=SERVICES.find(x=>x.id===S.service)||SERVICES[0];return s.name}
 const GAMES={
   "ml": {
     "name": "Mobile Legends",
@@ -310,7 +319,7 @@ const GAMES={
     ]
   },
   "ff": {
-    "name": "Free Fire & FFMAX",
+    "name": "Free Fire",
     "short": "",
     "logo": "",
     "img": "ff.webp",
@@ -2080,7 +2089,7 @@ const GAMES={
     ]
   },
   "codmw": {
-    "name": "Voucher Call Of Duty Modern Warfare",
+    "name": "V.Call Of Duty Modern Warvare",
     "short": "",
     "logo": "",
     "img": "",
@@ -2236,7 +2245,7 @@ const GAMES={
     ]
   },
   "riseofkingdom": {
-    "name": "Voucher Rise Of Kingdom",
+    "name": "voucher Rise Of Kingdom",
     "short": "",
     "logo": "",
     "img": "",
@@ -2340,7 +2349,7 @@ const GAMES={
     ]
   },
   "lastz": {
-    "name": "Voucher Last Z: Survival Shooter",
+    "name": "V.Last Z: Survival Shooter",
     "short": "",
     "logo": "",
     "img": "",
@@ -2598,20 +2607,177 @@ const GAMES={
         "note": "Kode voucher"
       }
     ]
+  },
+  "voucher_pubg": {
+    "name": "Voucher PUBG Mobile",
+    "short": "",
+    "logo": "",
+    "img": "pubg.webp",
+    "currency": "UC",
+    "needServer": false,
+    "products": [
+      {
+        "id": "voucher_pubg_60",
+        "name": "60 UC",
+        "price": 15000,
+        "badge": "Starter",
+        "note": "PUBG Mobile"
+      },
+      {
+        "id": "voucher_pubg_325",
+        "name": "325 UC",
+        "price": 65000,
+        "badge": "Popular",
+        "note": "PUBG Mobile"
+      },
+      {
+        "id": "voucher_pubg_660",
+        "name": "660 UC",
+        "price": 130000,
+        "badge": "Value",
+        "note": "PUBG Mobile"
+      },
+      {
+        "id": "voucher_pubg_1800",
+        "name": "1.800 UC",
+        "price": 350000,
+        "badge": "Pro",
+        "note": "PUBG Mobile"
+      },
+      {
+        "id": "voucher_pubg_3850",
+        "name": "3.850 UC",
+        "price": 730000,
+        "badge": "Elite",
+        "note": "PUBG Mobile"
+      },
+      {
+        "id": "voucher_pubg_8100",
+        "name": "8.100 UC",
+        "price": 1500000,
+        "badge": "Max",
+        "note": "PUBG Mobile"
+      }
+    ]
+  },
+  "voucher_valorant": {
+    "name": "Voucher Valorant",
+    "short": "",
+    "logo": "",
+    "img": "valo.webp",
+    "currency": "Valorant Points",
+    "needServer": false,
+    "products": [
+      {
+        "id": "voucher_valorant_475",
+        "name": "475 VP",
+        "price": 44000,
+        "badge": "Starter",
+        "note": "Valorant"
+      },
+      {
+        "id": "voucher_valorant_1000",
+        "name": "1.000 VP",
+        "price": 87000,
+        "badge": "Popular",
+        "note": "Valorant"
+      },
+      {
+        "id": "voucher_valorant_2050",
+        "name": "2.050 VP",
+        "price": 175000,
+        "badge": "Value",
+        "note": "Valorant"
+      },
+      {
+        "id": "voucher_valorant_3650",
+        "name": "3.650 VP",
+        "price": 310000,
+        "badge": "Pro",
+        "note": "Valorant"
+      },
+      {
+        "id": "voucher_valorant_5350",
+        "name": "5.350 VP",
+        "price": 455000,
+        "badge": "Elite",
+        "note": "Valorant"
+      },
+      {
+        "id": "voucher_valorant_11000",
+        "name": "11.000 VP",
+        "price": 905000,
+        "badge": "Max",
+        "note": "Valorant"
+      }
+    ]
+  },
+  "voucher_freefire_ffmax": {
+    "name": "Voucher Free Fire & FFMAX",
+    "short": "",
+    "logo": "",
+    "img": "ff.webp",
+    "currency": "Diamond",
+    "needServer": false,
+    "products": [
+      {
+        "id": "voucher_freefire_ffmax_100",
+        "name": "100 Diamond",
+        "price": 15000,
+        "badge": "Starter",
+        "note": "Free Fire & FFMAX"
+      },
+      {
+        "id": "voucher_freefire_ffmax_310",
+        "name": "310 Diamond",
+        "price": 43000,
+        "badge": "Popular",
+        "note": "Free Fire & FFMAX"
+      },
+      {
+        "id": "voucher_freefire_ffmax_520",
+        "name": "520 Diamond",
+        "price": 72000,
+        "badge": "Value",
+        "note": "Free Fire & FFMAX"
+      },
+      {
+        "id": "voucher_freefire_ffmax_1060",
+        "name": "1.060 Diamond",
+        "price": 145000,
+        "badge": "Best Value",
+        "note": "Free Fire & FFMAX"
+      },
+      {
+        "id": "voucher_freefire_ffmax_2180",
+        "name": "2.180 Diamond",
+        "price": 290000,
+        "badge": "Pro",
+        "note": "Free Fire & FFMAX"
+      },
+      {
+        "id": "voucher_freefire_ffmax_wp",
+        "name": "Weekly Pass",
+        "price": 25000,
+        "badge": "Member",
+        "note": "Free Fire & FFMAX"
+      }
+    ]
   }
 };
 const PAYMENTS=[{id:'qris',name:'QRIS',fee:0,label:'Tanpa admin',img:'pay1.webp'},{id:'gopay',name:'GoPay',fee:1000,label:'+Rp 1.000',img:'pay2.webp'},{id:'ovo',name:'OVO',fee:1000,label:'+Rp 1.000',img:'pay3.webp'},{id:'dana',name:'DANA',fee:1000,label:'+Rp 1.000',img:'pay4.webp'},{id:'spay',name:'ShopeePay',fee:1000,label:'+Rp 1.000',img:'pay5.webp'},{id:'bank',name:'Transfer Bank',fee:2500,label:'+Rp 2.500',img:'pay6.webp'}];
-let S={game:'ml',product:null,payment:null,orders:loadOrders(),current:null,timer:null};
+let S={service:'topup_game',game:'ml',product:null,payment:null,orders:loadOrders(),current:null,timer:null};
 const $=id=>document.getElementById(id);
 function rp(n){return 'Rp '+Number(n||0).toLocaleString('id-ID')}
 function escapeHTML(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function loadOrders(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]')}catch{return []}}
 function saveOrders(){localStorage.setItem(STORE_KEY,JSON.stringify(S.orders.slice(-30)))}
-function init(){installLogoFallbacks();renderQuick();renderGames();renderProducts();renderPayments();bind();sync();reveal();}
+function init(){installLogoFallbacks();renderServiceSelect();renderQuick();renderGames();renderProducts();renderPayments();bind();sync();reveal();}
 function bind(){
   $('hamb').addEventListener('click',()=>$('mobileMenu').classList.toggle('open'));
   document.querySelectorAll('#mobileMenu a').forEach(a=>a.addEventListener('click',()=>$('mobileMenu').classList.remove('open')));
   ['fUID','fSrv','fWA','fEmail'].forEach(id=>$(id).addEventListener('input',()=>{clearError(id);sync()}));
+  if($('serviceSelect')) $('serviceSelect').addEventListener('change',e=>{S.service=e.target.value||'topup_game';sync()});
   if($('gameSelect')) $('gameSelect').addEventListener('change',e=>pickGame(e.target.value));
   $('statusIn').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase());
   $('statusIn').addEventListener('keydown',e=>{if(e.key==='Enter')cekStatus()});
@@ -2647,8 +2813,9 @@ function setGameLogo(el,g){
   el.innerHTML=`${img}<span class="fallback-initial">${init}</span>`;
 }
 function renderQuick(){const picks=[['ml','ml_257'],['ff','ff_520'],['pubg','pubg_660'],['gi','gi_330']];$('quickList').innerHTML=picks.map(([gk,pid])=>{const g=GAMES[gk],p=g.products.find(x=>x.id===pid);return `<button class="quick-row" type="button" onclick="quickPick('${gk}','${pid}')">${logoHTML(g)}<span class="qmain"><b>${g.name}</b><span>${p.name}</span></span><span class="qprice">${rp(p.price)}</span></button>`}).join('')}
+function renderServiceSelect(){const el=$('serviceSelect');if(!el)return;el.innerHTML=SERVICES.map(s=>`<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('');el.value=S.service||SERVICES[0].id;}
 function renderGameSelect(){const el=$('gameSelect');if(!el)return;el.innerHTML=Object.entries(GAMES).map(([k,g])=>`<option value="${k}">${escapeHTML(g.name)}</option>`).join('');el.value=S.game;}
-function renderGames(){$('gamePicker').innerHTML=Object.entries(GAMES).map(([k,g])=>`<button class="game-btn ${k===S.game?'active':''}" type="button" aria-pressed="${k===S.game}" onclick="pickGame('${k}')">${logoHTML(g)}<b>${escapeHTML(g.name)}</b><span>${escapeHTML(g.currency)}</span></button>`).join('');renderGameSelect()}
+function renderGames(){$('gamePicker').innerHTML=Object.entries(GAMES).map(([k,g])=>`<button class="game-btn ${k===S.game?'active':''}" type="button" aria-pressed="${k===S.game}" aria-label="${escapeHTML(g.name)}" onclick="pickGame('${k}')">${logoHTML(g)}<b>${escapeHTML(g.name)}</b></button>`).join('');renderGameSelect()}
 function renderProducts(){const g=GAMES[S.game];$('products').innerHTML=g.products.map(p=>`<button class="product ${S.product&&S.product.id===p.id?'sel':''} ${/popular|best/i.test(p.badge)?'popular':''}" type="button" aria-pressed="${S.product&&S.product.id===p.id?'true':'false'}" onclick="pickProduct('${p.id}')"><span class="tag">${escapeHTML(p.badge)}</span><b>${escapeHTML(p.name)}</b><span>${rp(p.price)}</span><em>${escapeHTML(p.note)}</em></button>`).join('');updateServerField()}
 function renderPayments(){$('payments').innerHTML=PAYMENTS.map(p=>`<button class="pay ${S.payment&&S.payment.id===p.id?'sel':''}" type="button" aria-pressed="${S.payment&&S.payment.id===p.id?'true':'false'}" onclick="pickPayment('${p.id}')"><img src="${p.img}" alt="${p.name}" /><div><b>${p.name}</b><span>${p.label}</span></div></button>`).join('')}
 function updateServerField(){const g=GAMES[S.game];$('serverWrap').style.display=g.needServer?'grid':'none';$('serverLabel').textContent=g.serverLabel||'Server';$('serverHint').textContent=g.serverHint||'Wajib';$('fSrv').placeholder=g.serverLabel?`Masukkan ${g.serverLabel}`:'Masukkan server'}
@@ -2658,6 +2825,7 @@ function pickProduct(pid){S.product=GAMES[S.game].products.find(p=>p.id===pid);r
 function pickPayment(id){S.payment=PAYMENTS.find(p=>p.id===id);renderPayments();clear('ePay');sync();}
 function subtotal(){return S.product?S.product.price:0} function fee(){return S.payment?S.payment.fee:0} function total(){return subtotal()+fee()}
 function sync(){const g=GAMES[S.game],uid=$('fUID').value.trim(),srv=$('fSrv').value.trim(),wa=$('fWA').value.trim();
+  if($('serviceSelect') && $('serviceSelect').value!==S.service)$('serviceSelect').value=S.service;
   if($('gameSelect') && $('gameSelect').value!==S.game)$('gameSelect').value=S.game;
   setStep('stGame',!!S.game);setStep('stAccount',!!uid && (!g.needServer||!!srv));setStep('stProduct',!!S.product);setStep('stPay',!!S.payment);
   setGameLogo($('mockLogo'),g);
@@ -2676,6 +2844,7 @@ function sync(){const g=GAMES[S.game],uid=$('fUID').value.trim(),srv=$('fSrv').v
     $('sumUID').textContent=uid||'—';
     $('sumSrvRow').style.display=g.needServer?'flex':'none';
     $('sumSrv').textContent=srv||'—';
+    if($('sumService')) $('sumService').textContent=serviceName();
     $('sumProduct').textContent=S.product.name;
     $('sumPay').textContent=S.payment?S.payment.name:'—';
     $('sumWA').textContent=wa||'—';
@@ -2695,8 +2864,8 @@ function setStep(id,on){$(id).classList.toggle('on',!!on)}
 function validate(){let ok=true;const g=GAMES[S.game];clearAllErrors();if(!S.game){show('eGame');ok=false}if(!$('fUID').value.trim()){show('eUID');mark('fUID');ok=false}if(g.needServer&&!$('fSrv').value.trim()){show('eSrv');mark('fSrv');ok=false}if(!S.product){show('eProduct');ok=false}if(!$('fWA').value.trim()){show('eWA');mark('fWA');ok=false}if(!S.payment){show('ePay');ok=false}return ok}
 function show(id){$(id).classList.add('show')} function clear(id){$(id)?.classList.remove('show')} function mark(id){$(id).classList.add('err')} function clearError(id){$(id).classList.remove('err')} function clearAllErrors(){['eGame','eUID','eSrv','eProduct','eWA','ePay'].forEach(clear);['fUID','fSrv','fWA'].forEach(id=>$(id).classList.remove('err'))}
 function genCode(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];const d=new Date();const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `ORD-${y}${m}${day}-${s}`}
-function submitOrder(){if(!validate()){toast('Lengkapi data yang wajib diisi.', 'err');const first=document.querySelector('.err,.error.show');if(first)first.scrollIntoView({behavior:'smooth',block:'center'});return}const btn=$('orderBtn');btn.classList.add('loading');btn.textContent='Membuat pesanan...';setTimeout(()=>{const g=GAMES[S.game];const order={orderCode:genCode(),game:g.name,gameKey:S.game,userId:$('fUID').value.trim(),serverId:$('fSrv').value.trim(),product:S.product.name,productId:S.product.id,price:subtotal(),fee:fee(),total:total(),payment:S.payment.name,paymentId:S.payment.id,whatsapp:$('fWA').value.trim(),email:$('fEmail').value.trim(),status:'Menunggu Pembayaran',createdAt:new Date().toISOString(),expiresAt:Date.now()+15*60*1000};S.orders.unshift(order);S.current=order;saveOrders();btn.classList.remove('loading');btn.textContent='Buat Pesanan';openModal(order);toast('Pesanan berhasil dibuat.', 'ok')},650)}
-function openModal(o){$('mCode').textContent=o.orderCode;$('mGame').textContent=o.game;$('mUID').textContent=o.userId+(o.serverId?` (${o.serverId})`:'');$('mProduct').textContent=o.product;$('mTotal').textContent=rp(o.total);$('mInstruction').innerHTML=`Metode pembayaran: <b style="color:var(--text)">${escapeHTML(o.payment)}</b>. Pastikan nominal yang dibayar sesuai total <b style="color:var(--text)">${rp(o.total)}</b> agar verifikasi berjalan lancar.`;$('modal').classList.add('open');document.body.style.overflow='hidden';startCountdown(o.expiresAt)}
+function submitOrder(){if(!validate()){toast('Lengkapi data yang wajib diisi.', 'err');const first=document.querySelector('.err,.error.show');if(first)first.scrollIntoView({behavior:'smooth',block:'center'});return}const btn=$('orderBtn');btn.classList.add('loading');btn.textContent='Membuat pesanan...';setTimeout(()=>{const g=GAMES[S.game];const order={orderCode:genCode(),service:serviceName(),serviceId:S.service,game:g.name,gameKey:S.game,userId:$('fUID').value.trim(),serverId:$('fSrv').value.trim(),product:S.product.name,productId:S.product.id,price:subtotal(),fee:fee(),total:total(),payment:S.payment.name,paymentId:S.payment.id,whatsapp:$('fWA').value.trim(),email:$('fEmail').value.trim(),status:'Menunggu Pembayaran',createdAt:new Date().toISOString(),expiresAt:Date.now()+15*60*1000};S.orders.unshift(order);S.current=order;saveOrders();btn.classList.remove('loading');btn.textContent='Buat Pesanan';openModal(order);toast('Pesanan berhasil dibuat.', 'ok')},650)}
+function openModal(o){$('mCode').textContent=o.orderCode;if($('mService')) $('mService').textContent=o.service||serviceName();$('mGame').textContent=o.game;$('mUID').textContent=o.userId+(o.serverId?` (${o.serverId})`:'');$('mProduct').textContent=o.product;$('mTotal').textContent=rp(o.total);$('mInstruction').innerHTML=`Metode pembayaran: <b style="color:var(--text)">${escapeHTML(o.payment)}</b>. Pastikan nominal yang dibayar sesuai total <b style="color:var(--text)">${rp(o.total)}</b> agar verifikasi berjalan lancar.`;$('modal').classList.add('open');document.body.style.overflow='hidden';startCountdown(o.expiresAt)}
 function closeModal(){$('modal').classList.remove('open');document.body.style.overflow='';if(S.timer)clearInterval(S.timer)}
 function startCountdown(exp){if(S.timer)clearInterval(S.timer);const tick=()=>{const left=Math.max(0,exp-Date.now());const mm=String(Math.floor(left/60000)).padStart(2,'0');const ss=String(Math.floor((left%60000)/1000)).padStart(2,'0');$('mCountdown').textContent=left?`Berlaku ${mm}:${ss}`:'Waktu pembayaran habis'};tick();S.timer=setInterval(tick,1000)}
 async function copyOrderCode(){try{await navigator.clipboard.writeText($('mCode').textContent);toast('Kode order disalin.', 'ok')}catch{toast('Gagal menyalin kode.', 'err')}}
@@ -2720,6 +2889,7 @@ function cekStatus(){
       <div><b>${escapeHTML(o.game)}</b><span>${escapeHTML(o.product)}</span></div>
     </div>
     <div class="sum-row"><span>Kode Order</span><span>${escapeHTML(o.orderCode)}</span></div>
+    <div class="sum-row"><span>Layanan</span><span>${escapeHTML(o.service || 'Top Up Game')}</span></div>
     <div class="sum-row"><span>User ID</span><span>${escapeHTML(o.userId)}${o.serverId ? ' (' + escapeHTML(o.serverId) + ')' : ''}</span></div>
     <div class="sum-row"><span>Total</span><span>${rp(o.total)}</span></div>
     <div class="sum-row"><span>Metode</span><span>${escapeHTML(o.payment)}</span></div>
