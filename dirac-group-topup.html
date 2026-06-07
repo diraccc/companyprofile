@@ -46,6 +46,24 @@
     @media(max-width:1120px){.hero-grid{grid-template-columns:1fr}.hero-showcase{max-width:720px}.quick-panel{position:relative;right:auto;bottom:auto;width:100%;margin-top:14px}.order-layout{grid-template-columns:1fr}.summary{position:static}.game-picker{grid-template-columns:repeat(3,1fr)}.promo-card{grid-template-columns:1fr 1fr}.trust-grid{grid-template-columns:repeat(2,1fr)}.footergrid{grid-template-columns:1fr 1fr}.policy-mini,.steps-grid{grid-template-columns:1fr}}
     @media(max-width:720px){.wrap{width:min(100% - 28px,1180px)}.nav{height:68px}.navlinks{display:none}.hamb{display:flex}.brand-copy span{display:none}.brand-img{width:42px;height:42px}.hero{padding:36px 0 18px}.hero-grid{gap:20px}h1{font-size:42px}.lead{font-size:15px;line-height:1.7}.hero-actions .btn{width:100%}.hero-badges{gap:8px}.hero-badges span{font-size:11px}.metrics{grid-template-columns:1fr 1fr}.phone-screen{min-height:auto}.quick-row{grid-template-columns:46px 1fr}.qprice{display:none}.secure-strip{grid-template-columns:1fr}.section{padding:38px 0}.sec-head{display:block}.sec-desc{margin-top:10px}.promo-card{grid-template-columns:1fr}.panel{border-radius:25px}.panel-pad{padding:16px}.divider{margin:18px -16px}.stepper{grid-template-columns:repeat(2,1fr)}.game-picker{display:flex;overflow-x:auto;gap:10px;padding-bottom:4px;scroll-snap-type:x mandatory}.game-btn{min-width:145px;scroll-snap-align:start;min-height:112px}.grid2,.products,.payments,.status-form{grid-template-columns:1fr}.products{gap:9px}.product{min-height:auto}.pay{grid-template-columns:72px 1fr;align-items:center;min-height:72px}.pay img{height:42px}.summary-head,.sum-body{padding:16px}.trust-grid,.footergrid{grid-template-columns:1fr}.modal{align-items:end;padding:0}.modal-card{border-radius:28px 28px 0 0}.modal-actions{grid-template-columns:1fr}.toast{left:12px;right:12px;bottom:82px;max-width:none}.mobile-cart{display:flex}}
     @media (prefers-reduced-motion: reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.reveal{opacity:1;transform:none}}
+    /*
+     * Override the default .game-logo styles so that when a background-image
+     * is set (via inline style), it covers the container fully and hides
+     * the default decorative overlay and any text. Without this override,
+     * the gradient backgrounds and clip-path mask defined earlier would
+     * obscure the image logos. These rules ensure the images render as
+     * intended across all instances (.game-btn, .mock-item, summary, quick-list,
+     * status result, etc.).
+     */
+    .game-logo {
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      color: transparent;
+    }
+    .game-logo::before {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -81,7 +99,7 @@
                 <div class="mock-top"><span class="mock-brand"><img src="3.webp" alt="" /> DIRAC</span><span>Online</span></div>
                 <div class="mock-banner"><b>Instant Checkout</b><span>Preview pesanan tampil sebelum order dibuat.</span></div>
                 <div class="mock-lines">
-                  <div class="mock-item"><div class="game-logo g-ml" id="mockLogo">ML</div><div><b id="mockGame">Mobile Legends</b><span id="mockProduct">Pilih nominal favoritmu</span></div></div>
+                  <div class="mock-item"><div class="game-logo" id="mockLogo"></div><div><b id="mockGame">Mobile Legends</b><span id="mockProduct">Pilih nominal favoritmu</span></div></div>
                   <div class="mock-pay"><img src="pay1.webp" id="heroPayImg" alt="QRIS" /><div><b id="mockPay">Metode pembayaran</b><span style="display:block;color:var(--muted);font-size:11px;font-weight:800">Biaya admin dihitung otomatis</span></div></div>
                 </div>
                 <div class="mock-total"><span>Total Bayar</span><b id="mockTotal">Rp 0</b></div>
@@ -142,7 +160,7 @@
             <div class="summary-head"><h3>Ringkasan</h3><span class="status-dot">Siap</span></div>
             <div class="sum-empty" id="sumEmpty"><div class="empty-icon"><img src="3.webp" alt="" /></div><b>Belum ada nominal dipilih.</b><p style="margin-top:8px;color:var(--faint)">Pilih game dan produk untuk melihat total bayar.</p></div>
             <div class="sum-body" id="sumBody">
-              <div class="chosen-game"><div class="game-logo g-ml" id="sumLogo">ML</div><div><b id="sumGame">Mobile Legends</b><span id="sumCurrency">Diamond</span></div></div>
+              <div class="chosen-game"><div class="game-logo" id="sumLogo"></div><div><b id="sumGame">Mobile Legends</b><span id="sumCurrency">Diamond</span></div></div>
               <div class="sum-row"><span>User ID</span><span id="sumUID">—</span></div>
               <div class="sum-row" id="sumSrvRow"><span>Server</span><span id="sumSrv">—</span></div>
               <div class="sum-row"><span>Produk</span><span id="sumProduct">—</span></div>
@@ -213,15 +231,15 @@
 'use strict';
 const STORE_KEY='dirac-orders-v6-premium';
 const GAMES={
-  ml:{name:'Mobile Legends',short:'ML',logo:'g-ml',currency:'Diamond',needServer:true,serverLabel:'Zone ID',serverHint:'Wajib',products:[
+  ml:{name:'Mobile Legends',short:'ML',logo:'g-ml',img:'ml.png',currency:'Diamond',needServer:true,serverLabel:'Zone ID',serverHint:'Wajib',products:[
     {id:'ml_56',name:'56 Diamond',price:15000,badge:'Starter',note:'Top up kecil'}, {id:'ml_257',name:'257 Diamond',price:63000,badge:'Popular',note:'+5 bonus'}, {id:'ml_514',name:'514 Diamond',price:125000,badge:'Value',note:'+8 bonus'}, {id:'ml_878',name:'878 Diamond',price:215000,badge:'Rank Push',note:'Paket besar'}, {id:'ml_1195',name:'1.195 Diamond',price:290000,badge:'Best Value',note:'+20 bonus'}, {id:'ml_wdp',name:'Weekly Diamond Pass',price:29000,badge:'Member',note:'7 hari'}]},
-  ff:{name:'Free Fire',short:'FF',logo:'g-ff',currency:'Diamond',needServer:false,products:[
+  ff:{name:'Free Fire',short:'FF',logo:'g-ff',img:'ff.png',currency:'Diamond',needServer:false,products:[
     {id:'ff_100',name:'100 Diamond',price:15000,badge:'Starter',note:'Top up kecil'}, {id:'ff_310',name:'310 Diamond',price:43000,badge:'Popular',note:'Cepat dipilih'}, {id:'ff_520',name:'520 Diamond',price:72000,badge:'Value',note:'+20 bonus'}, {id:'ff_1060',name:'1.060 Diamond',price:145000,badge:'Best Value',note:'+60 bonus'}, {id:'ff_2180',name:'2.180 Diamond',price:290000,badge:'Pro',note:'+180 bonus'}, {id:'ff_wp',name:'Weekly Pass',price:25000,badge:'Member',note:'7 hari'}]},
-  pubg:{name:'PUBG Mobile',short:'PG',logo:'g-pubg',currency:'UC',needServer:false,products:[
+  pubg:{name:'PUBG Mobile',short:'PG',logo:'g-pubg',img:'pubg.png',currency:'UC',needServer:false,products:[
     {id:'pubg_60',name:'60 UC',price:15000,badge:'Starter',note:'Top up kecil'}, {id:'pubg_325',name:'325 UC',price:65000,badge:'Popular',note:'Paket hemat'}, {id:'pubg_660',name:'660 UC',price:130000,badge:'Value',note:'+60 UC'}, {id:'pubg_1800',name:'1.800 UC',price:350000,badge:'Pro',note:'+180 UC'}, {id:'pubg_3850',name:'3.850 UC',price:730000,badge:'Elite',note:'+350 UC'}, {id:'pubg_8100',name:'8.100 UC',price:1500000,badge:'Max',note:'+800 UC'}]},
-  gi:{name:'Genshin Impact',short:'GI',logo:'g-gi',currency:'Genesis Crystals',needServer:true,serverLabel:'Server',serverHint:'Asia / America / Europe',products:[
+  gi:{name:'Genshin Impact',short:'GI',logo:'g-gi',img:'gi.png',currency:'Genesis Crystals',needServer:true,serverLabel:'Server',serverHint:'Asia / America / Europe',products:[
     {id:'gi_60',name:'60 Crystals',price:15000,badge:'Starter',note:'+60 Primogem'}, {id:'gi_330',name:'330 Crystals',price:77000,badge:'Popular',note:'+330 Primogem'}, {id:'gi_680',name:'680 Crystals',price:152000,badge:'Value',note:'+680 Primogem'}, {id:'gi_1980',name:'1.980 Crystals',price:435000,badge:'Pro',note:'+1.980 Primogem'}, {id:'gi_3280',name:'3.280 Crystals',price:720000,badge:'Elite',note:'+3.280 Primogem'}, {id:'gi_6480',name:'6.480 Crystals',price:1425000,badge:'Max',note:'+6.480 Primogem'}]},
-  valo:{name:'Valorant',short:'VL',logo:'g-valo',currency:'Valorant Points',needServer:false,products:[
+  valo:{name:'Valorant',short:'VL',logo:'g-valo',img:'valo.png',currency:'Valorant Points',needServer:false,products:[
     {id:'valo_475',name:'475 VP',price:44000,badge:'Starter',note:'Top up kecil'}, {id:'valo_1000',name:'1.000 VP',price:87000,badge:'Popular',note:'Paket umum'}, {id:'valo_2050',name:'2.050 VP',price:175000,badge:'Value',note:'+50 VP'}, {id:'valo_3650',name:'3.650 VP',price:310000,badge:'Pro',note:'+150 VP'}, {id:'valo_5350',name:'5.350 VP',price:455000,badge:'Elite',note:'+350 VP'}, {id:'valo_11000',name:'11.000 VP',price:905000,badge:'Max',note:'+1.000 VP'}]}
 };
 const PAYMENTS=[{id:'qris',name:'QRIS',fee:0,label:'Tanpa admin',img:'pay1.webp'},{id:'gopay',name:'GoPay',fee:1000,label:'+Rp 1.000',img:'pay2.webp'},{id:'ovo',name:'OVO',fee:1000,label:'+Rp 1.000',img:'pay3.webp'},{id:'dana',name:'DANA',fee:1000,label:'+Rp 1.000',img:'pay4.webp'},{id:'spay',name:'ShopeePay',fee:1000,label:'+Rp 1.000',img:'pay5.webp'},{id:'bank',name:'Transfer Bank',fee:2500,label:'+Rp 2.500',img:'pay6.webp'}];
@@ -241,7 +259,11 @@ function bind(){
   $('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 }
 function reveal(){if(!('IntersectionObserver' in window)){document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));return}const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>io.observe(el))}
-function logoHTML(g){return `<span class="game-logo ${g.logo}">${g.short}</span>`}
+function logoHTML(g){
+  // Render the game logo as a background image rather than plain text.
+  // Use the provided image path (g.img) to set the background-image inline.
+  return `<span class="game-logo" style="background-image:url('${g.img}')"></span>`;
+}
 function renderQuick(){const picks=[['ml','ml_257'],['ff','ff_520'],['pubg','pubg_660'],['gi','gi_330']];$('quickList').innerHTML=picks.map(([gk,pid])=>{const g=GAMES[gk],p=g.products.find(x=>x.id===pid);return `<button class="quick-row" type="button" onclick="quickPick('${gk}','${pid}')">${logoHTML(g)}<span class="qmain"><b>${g.name}</b><span>${p.name}</span></span><span class="qprice">${rp(p.price)}</span></button>`}).join('')}
 function renderGames(){$('gamePicker').innerHTML=Object.entries(GAMES).map(([k,g])=>`<button class="game-btn ${k===S.game?'active':''}" type="button" aria-pressed="${k===S.game}" onclick="pickGame('${k}')">${logoHTML(g)}<b>${g.name}</b><span>${g.currency}</span></button>`).join('')}
 function renderProducts(){const g=GAMES[S.game];$('products').innerHTML=g.products.map(p=>`<button class="product ${S.product&&S.product.id===p.id?'sel':''} ${/popular|best/i.test(p.badge)?'popular':''}" type="button" aria-pressed="${S.product&&S.product.id===p.id?'true':'false'}" onclick="pickProduct('${p.id}')"><span class="tag">${p.badge}</span><b>${p.name}</b><span>${rp(p.price)}</span><em>${p.note}</em></button>`).join('');updateServerField()}
@@ -254,8 +276,43 @@ function pickPayment(id){S.payment=PAYMENTS.find(p=>p.id===id);renderPayments();
 function subtotal(){return S.product?S.product.price:0} function fee(){return S.payment?S.payment.fee:0} function total(){return subtotal()+fee()}
 function sync(){const g=GAMES[S.game],uid=$('fUID').value.trim(),srv=$('fSrv').value.trim(),wa=$('fWA').value.trim();
   setStep('stGame',!!S.game);setStep('stAccount',!!uid && (!g.needServer||!!srv));setStep('stProduct',!!S.product);setStep('stPay',!!S.payment);
-  $('mockLogo').className=`game-logo ${g.logo}`;$('mockLogo').textContent=g.short;$('mockGame').textContent=g.name;$('mockProduct').textContent=S.product?S.product.name:'Pilih nominal favoritmu';$('mockTotal').textContent=rp(total());$('mockPay').textContent=S.payment?S.payment.name:'Metode pembayaran';$('heroPayImg').src=S.payment?S.payment.img:'pay1.webp';$('heroPayImg').alt=S.payment?S.payment.name:'QRIS';
-  if(S.product){$('sumEmpty').classList.add('hide');$('sumBody').classList.add('show');$('sumLogo').className=`game-logo ${g.logo}`;$('sumLogo').textContent=g.short;$('sumGame').textContent=g.name;$('sumCurrency').textContent=g.currency;$('sumUID').textContent=uid||'—';$('sumSrvRow').style.display=g.needServer?'flex':'none';$('sumSrv').textContent=srv||'—';$('sumProduct').textContent=S.product.name;$('sumPay').textContent=S.payment?S.payment.name:'—';$('sumWA').textContent=wa||'—';$('sumPrice').textContent=rp(subtotal());$('sumFee').textContent=rp(fee());$('sumTotal').textContent=rp(total());$('mbProduct').textContent=S.product.name;$('mbTotal').textContent=rp(total());$('mobileCart').classList.add('show')}else{$('sumEmpty').classList.remove('hide');$('sumBody').classList.remove('show');$('mobileCart').classList.remove('show')}}
+  // Update the mock logo using a background image rather than plain text.
+  $('mockLogo').className='game-logo';
+  $('mockLogo').style.backgroundImage=`url(${g.img})`;
+  $('mockLogo').textContent='';
+  $('mockGame').textContent=g.name;
+  $('mockProduct').textContent=S.product?S.product.name:'Pilih nominal favoritmu';
+  $('mockTotal').textContent=rp(total());
+  $('mockPay').textContent=S.payment?S.payment.name:'Metode pembayaran';
+  $('heroPayImg').src=S.payment?S.payment.img:'pay1.webp';
+  $('heroPayImg').alt=S.payment?S.payment.name:'QRIS';
+  if(S.product){
+    $('sumEmpty').classList.add('hide');
+    $('sumBody').classList.add('show');
+    // Update the summary logo using the game image
+    $('sumLogo').className='game-logo';
+    $('sumLogo').style.backgroundImage=`url(${g.img})`;
+    $('sumLogo').textContent='';
+    $('sumGame').textContent=g.name;
+    $('sumCurrency').textContent=g.currency;
+    $('sumUID').textContent=uid||'—';
+    $('sumSrvRow').style.display=g.needServer?'flex':'none';
+    $('sumSrv').textContent=srv||'—';
+    $('sumProduct').textContent=S.product.name;
+    $('sumPay').textContent=S.payment?S.payment.name:'—';
+    $('sumWA').textContent=wa||'—';
+    $('sumPrice').textContent=rp(subtotal());
+    $('sumFee').textContent=rp(fee());
+    $('sumTotal').textContent=rp(total());
+    $('mbProduct').textContent=S.product.name;
+    $('mbTotal').textContent=rp(total());
+    $('mobileCart').classList.add('show');
+  }else{
+    $('sumEmpty').classList.remove('hide');
+    $('sumBody').classList.remove('show');
+    $('mobileCart').classList.remove('show');
+  }
+}
 function setStep(id,on){$(id).classList.toggle('on',!!on)}
 function validate(){let ok=true;const g=GAMES[S.game];clearAllErrors();if(!S.game){show('eGame');ok=false}if(!$('fUID').value.trim()){show('eUID');mark('fUID');ok=false}if(g.needServer&&!$('fSrv').value.trim()){show('eSrv');mark('fSrv');ok=false}if(!S.product){show('eProduct');ok=false}if(!$('fWA').value.trim()){show('eWA');mark('fWA');ok=false}if(!S.payment){show('ePay');ok=false}return ok}
 function show(id){$(id).classList.add('show')} function clear(id){$(id)?.classList.remove('show')} function mark(id){$(id).classList.add('err')} function clearError(id){$(id).classList.remove('err')} function clearAllErrors(){['eGame','eUID','eSrv','eProduct','eWA','ePay'].forEach(clear);['fUID','fSrv','fWA'].forEach(id=>$(id).classList.remove('err'))}
@@ -266,7 +323,32 @@ function closeModal(){$('modal').classList.remove('open');document.body.style.ov
 function startCountdown(exp){if(S.timer)clearInterval(S.timer);const tick=()=>{const left=Math.max(0,exp-Date.now());const mm=String(Math.floor(left/60000)).padStart(2,'0');const ss=String(Math.floor((left%60000)/1000)).padStart(2,'0');$('mCountdown').textContent=left?`Berlaku ${mm}:${ss}`:'Waktu pembayaran habis'};tick();S.timer=setInterval(tick,1000)}
 async function copyOrderCode(){try{await navigator.clipboard.writeText($('mCode').textContent);toast('Kode order disalin.', 'ok')}catch{toast('Gagal menyalin kode.', 'err')}}
 function continuePayment(){toast('Gateway pembayaran belum aktif di file ini.', 'ok')}
-function cekStatus(){const raw=$('statusIn').value.trim().toUpperCase();const box=$('statusResult');if(!raw){toast('Masukkan kode order.', 'err');return}const o=S.orders.find(x=>x.orderCode===raw);if(!o){box.innerHTML=`<div style="text-align:center;padding:14px"><b>Order tidak ditemukan</b><p style="color:var(--muted);margin-top:6px">Pastikan kode order sudah benar.</p></div>`;box.classList.add('show');return}const g=GAMES[o.gameKey]||GAMES.ml;box.innerHTML=`<div class="chosen-game" style="margin-bottom:10px"><div class="game-logo ${g.logo}">${g.short}</div><div><b>${escapeHTML(o.game)}</b><span>${escapeHTML(o.product)}</span></div></div><div class="sum-row"><span>Kode Order</span><span>${escapeHTML(o.orderCode)}</span></div><div class="sum-row"><span>User ID</span><span>${escapeHTML(o.userId)}${o.serverId?' ('+escapeHTML(o.serverId)+')':''}</span></div><div class="sum-row"><span>Total</span><span>${rp(o.total)}</span></div><div class="sum-row"><span>Metode</span><span>${escapeHTML(o.payment)}</span></div><div class="sum-row"><span>Status</span><span style="color:#FFD8A8">${escapeHTML(o.status)}</span></div>`;box.classList.add('show')}
+function cekStatus(){
+  const raw = $('statusIn').value.trim().toUpperCase();
+  const box = $('statusResult');
+  if(!raw){
+    toast('Masukkan kode order.', 'err');
+    return;
+  }
+  const o = S.orders.find(x => x.orderCode === raw);
+  if(!o){
+    box.innerHTML = `<div style="text-align:center;padding:14px"><b>Order tidak ditemukan</b><p style="color:var(--muted);margin-top:6px">Pastikan kode order sudah benar.</p></div>`;
+    box.classList.add('show');
+    return;
+  }
+  const g = GAMES[o.gameKey] || GAMES.ml;
+  // Use the image-based logo in the status result.
+  box.innerHTML = `<div class="chosen-game" style="margin-bottom:10px">
+      <div class="game-logo" style="background-image:url('${g.img}')"></div>
+      <div><b>${escapeHTML(o.game)}</b><span>${escapeHTML(o.product)}</span></div>
+    </div>
+    <div class="sum-row"><span>Kode Order</span><span>${escapeHTML(o.orderCode)}</span></div>
+    <div class="sum-row"><span>User ID</span><span>${escapeHTML(o.userId)}${o.serverId ? ' (' + escapeHTML(o.serverId) + ')' : ''}</span></div>
+    <div class="sum-row"><span>Total</span><span>${rp(o.total)}</span></div>
+    <div class="sum-row"><span>Metode</span><span>${escapeHTML(o.payment)}</span></div>
+    <div class="sum-row"><span>Status</span><span style="color:#FFD8A8">${escapeHTML(o.status)}</span></div>`;
+  box.classList.add('show');
+}
 function toast(msg,type='info'){const t=$('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),3300)}
 function goSummary(){document.querySelector('#summary').scrollIntoView({behavior:'smooth',block:'center'})}
 document.addEventListener('DOMContentLoaded',init);
