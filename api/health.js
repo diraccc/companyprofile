@@ -1933,8 +1933,7 @@ async function customerSecurityFetchAuthLink(authUserId) {
     'auth_user_id',
     'customer_id',
     'link_status',
-    'match_confidence',
-    'active_at'
+    'match_confidence'
   ].join(',');
 
   const path = `/rest/v1/security_customer_auth_links?select=${encodeURIComponent(select)}&auth_user_id=eq.${encodeURIComponent(authUserId)}&limit=1`;
@@ -2490,8 +2489,7 @@ function customerSecurityBuildActiveAuthLinkBody(customerId, email) {
     email,
     link_status: 'active',
     link_method: 'system_created',
-    match_confidence: 'active',
-    active_at: new Date().toISOString()
+    match_confidence: 'active'
   };
 }
 
