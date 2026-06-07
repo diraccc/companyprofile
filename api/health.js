@@ -4328,53 +4328,42 @@ function adminSecuritySafeErrorSupabase(error) {
 }
 
 /* ============================================================
-   PUBLIC CHECKOUT UNPAID TAMBAHAN - ISOLATED APPEND ONLY
-   Tujuan:
-   - Tidak mengubah login lama, dashboard lama, A2F/MFA, hash, admin/staff, domain/security center.
-   - Menambah endpoint checkout sederhana tanpa payment gateway.
-   - Status selalu unpaid/pending, payment_url null.
-   - Sesuai struktur DB yang sudah berhasil dites:
-     customers(name,email,phone)
-     orders(order_id,customer_id,customer_name,customer_phone,customer_email,service_type,subtotal,total,payment_method,payment_status,order_status)
-     order_items(order_id,product_title,quantity)
-   Endpoint:
+   OWNERSHIP-LOCKED CHECKOUT - ISOLATED APPEND ONLY
+   Tujuan produksi:
+   - Tidak mengubah login lama, hash, A2F/MFA, admin/staff, security center, atau domain router lama.
+   - Mengganti endpoint checkout umum menjadi wajib login + dashboard MFA.
+   - customer_id/order ownership SELALU dari backend auth session + security_customer_auth_links.
+   - Frontend tidak dipercaya untuk customer_id, order_id, payment_status, order_status, paid/completed, atau payment_url.
+   - Payment gateway belum aktif: semua order dibuat pending + unpaid + payment_url null.
+   - Endpoint test HP lama dinonaktifkan default agar tidak bisa membuat order tanpa login.
+   Endpoint terkunci:
    POST /api/health?action=checkout_order
    POST /api/health?action=parfum_checkout
    POST /api/health?action=public_checkout
-   GET  /api/health?action=checkout_order_hp_test  (khusus test lewat HP, tanpa console)
+   POST /api/health?action=layanan_digital_checkout
+   POST /api/health?action=jasa_website_checkout
+   POST /api/health?action=pengembangan_checkout
    ============================================================ */
 
-const __diracPublicCheckoutUnpaidPreviousHandler = module.exports;
+const __diracOwnershipLockedCheckoutPreviousHandler = module.exports;
 
-module.exports = async function publicCheckoutUnpaidWrapper(req, res) {
+module.exports = async function ownershipLockedCheckoutWrapper(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
-  const action = publicCheckoutNormalizeAction(rawAction);
+  const action = ownershipCheckoutNormalizeAction(rawAction);
 
-  if (!publicCheckoutIsAction(action)) {
-    return __diracPublicCheckoutUnpaidPreviousHandler(req, res);
+  if (!ownershipCheckoutIsAction(action)) {
+    return __diracOwnershipLockedCheckoutPreviousHandler(req, res);
   }
 
   const cors = setCors(req, res, { isDomainAction: true });
   if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
   if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
 
-  if (action === 'checkout_order_hp_test' && req.method === 'GET') {
-    req.body = {
-      name: 'TEST CUSTOMER HP',
-      phone: '081234567890',
-      email: `test.hp.${Date.now()}@example.test`,
-      service_type: 'parfum',
-      product_title: 'TEST PRODUK PARFUM HP',
-      quantity: 1,
-      total: 10000,
-      payment_method: 'Test HP'
-    };
-    try {
-      return await publicCheckoutCreateUnpaidOrder(req, res);
-    } catch (error) {
-      console.error('[public-checkout-hp-test]', publicCheckoutSafeError(error));
-      return res.status(500).json({ ok: false, message: 'Checkout test HP belum dapat diproses.' });
-    }
+  if (action === 'checkout_order_hp_test') {
+    return res.status(404).json({
+      ok: false,
+      message: 'Endpoint test checkout HP sudah dinonaktifkan untuk keamanan produksi.'
+    });
   }
 
   if (req.method !== 'POST') {
@@ -4382,17 +4371,17 @@ module.exports = async function publicCheckoutUnpaidWrapper(req, res) {
   }
 
   try {
-    return await publicCheckoutCreateUnpaidOrder(req, res);
+    return await ownershipCheckoutCreateUnpaidOrder(req, res);
   } catch (error) {
-    console.error('[public-checkout-unpaid]', publicCheckoutSafeError(error));
+    console.error('[ownership-locked-checkout]', ownershipCheckoutSafeError(error));
     return res.status(500).json({
       ok: false,
-      message: 'Checkout belum dapat diproses.'
+      message: 'Checkout belum dapat diproses dengan aman.'
     });
   }
 };
 
-function publicCheckoutNormalizeAction(action) {
+function ownershipCheckoutNormalizeAction(action) {
   const clean = String(action || '').trim().toLowerCase();
   const aliases = {
     'checkout_order': 'checkout_order',
@@ -4401,6 +4390,14 @@ function publicCheckoutNormalizeAction(action) {
     'public-checkout': 'checkout_order',
     'parfum_checkout': 'checkout_order',
     'parfum-checkout': 'checkout_order',
+    'digital_checkout': 'checkout_order',
+    'digital-checkout': 'checkout_order',
+    'layanan_digital_checkout': 'checkout_order',
+    'layanan-digital-checkout': 'checkout_order',
+    'jasa_website_checkout': 'checkout_order',
+    'jasa-website-checkout': 'checkout_order',
+    'pengembangan_checkout': 'checkout_order',
+    'pengembangan-checkout': 'checkout_order',
     'create_checkout_order': 'checkout_order',
     'create-checkout-order': 'checkout_order',
     'checkout_order_hp_test': 'checkout_order_hp_test',
@@ -4411,32 +4408,44 @@ function publicCheckoutNormalizeAction(action) {
   return aliases[clean] || clean;
 }
 
-function publicCheckoutIsAction(action) {
+function ownershipCheckoutIsAction(action) {
   return action === 'checkout_order' || action === 'checkout_order_hp_test';
 }
 
-async function publicCheckoutCreateUnpaidOrder(req, res) {
+async function ownershipCheckoutCreateUnpaidOrder(req, res) {
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+
   const body = await readBody(req);
+  const user = access.user || {};
+  const authUserId = String(user.id || '').trim();
+  const userEmail = normalizeAuthEmail(user.email || '');
+  const submittedEmail = normalizeAuthEmail(body.customer_email || body.email || '');
 
-  const customerName = publicCheckoutCleanText(body.customer_name || body.name || body.full_name, 120);
+  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !userEmail || !isValidAuthEmail(userEmail)) {
+    return res.status(401).json({ ok: false, message: 'Sesi login tidak valid.' });
+  }
+
+  if (submittedEmail && submittedEmail !== userEmail) {
+    return res.status(403).json({
+      ok: false,
+      message: 'Email pesanan harus sama dengan akun yang sedang login. Customer ownership tidak boleh diganti dari frontend.'
+    });
+  }
+
   const customerPhone = normalizePhone(body.customer_phone || body.phone || body.whatsapp || body.customer_whatsapp || '');
-  const customerEmail = normalizeAuthEmail(body.customer_email || body.email || '');
-  const productTitle = publicCheckoutCleanText(body.product_title || body.product || body.item_name || body.service_name || 'Pesanan DiracGroup', 160);
-  const serviceType = publicCheckoutNormalizeServiceType(body.service_type || body.service || 'parfum');
-  const quantity = publicCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
-  const total = publicCheckoutPositiveMoney(body.total || body.amount || body.subtotal || 0);
-  const paymentMethod = publicCheckoutCleanText(body.payment_method || 'Transfer Bank', 80);
+  const requestedName = ownershipCheckoutSafeName(body.customer_name || body.name || body.full_name || ownershipCheckoutUserMetadataName(user) || userEmail);
+  const serviceType = ownershipCheckoutNormalizeServiceType(body.service_type || body.service || 'parfum');
+  const quantity = ownershipCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
+  const productTitle = ownershipCheckoutBuildProductTitle(body, serviceType);
+  const total = ownershipCheckoutPositiveMoney(body.total || body.amount || body.subtotal || 0);
 
-  if (!customerName) {
+  if (!requestedName) {
     return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi.' });
   }
 
   if (!customerPhone) {
     return res.status(400).json({ ok: false, message: 'Nomor WhatsApp/HP wajib diisi.' });
-  }
-
-  if (!customerEmail || !isValidAuthEmail(customerEmail)) {
-    return res.status(400).json({ ok: false, message: 'Email pelanggan wajib valid.' });
   }
 
   if (!productTitle) {
@@ -4447,31 +4456,30 @@ async function publicCheckoutCreateUnpaidOrder(req, res) {
     return res.status(400).json({ ok: false, message: 'Total pesanan wajib lebih dari 0.' });
   }
 
-  const customerResult = await supabaseFetch('/rest/v1/customers', {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: [{
-      name: customerName,
-      email: customerEmail,
-      phone: customerPhone
-    }]
+  const owner = await ownershipCheckoutResolveCustomerOwner({
+    authUserId,
+    email: userEmail,
+    fullName: requestedName,
+    phone: customerPhone
   });
 
-  if (!customerResult.ok) {
-    return res.status(customerResult.status || 500).json({
+  if (!owner.ok || !owner.customer || !owner.customer.id) {
+    return res.status(owner.status || 409).json({
       ok: false,
-      message: 'Gagal membuat data pelanggan.',
-      error: publicCheckoutSafeUpstreamError(customerResult.data)
+      message: owner.message || 'Customer ownership belum siap. Login ulang atau hubungi admin.'
     });
   }
 
-  const customer = Array.isArray(customerResult.data) ? customerResult.data[0] : customerResult.data;
-  if (!customer || !customer.id) {
-    return res.status(500).json({ ok: false, message: 'Customer dibuat, tetapi ID customer tidak ditemukan.' });
-  }
+  const customer = owner.customer;
+  const customerId = String(customer.id || '').trim();
+  const orderCode = ownershipCheckoutGenerateOrderCode();
+  const finalCustomerName = ownershipCheckoutSafeName(customer.name || requestedName || userEmail);
+  const finalCustomerEmail = normalizeAuthEmail(customer.email || userEmail);
+  const finalCustomerPhone = normalizePhone(customer.phone || customerPhone);
 
-  const orderCode = publicCheckoutGenerateOrderCode();
+  if (!customerSecurityLooksLikeUuid(customerId)) {
+    return res.status(409).json({ ok: false, message: 'Customer ownership tidak valid.' });
+  }
 
   const orderResult = await supabaseFetch('/rest/v1/orders', {
     method: 'POST',
@@ -4479,14 +4487,14 @@ async function publicCheckoutCreateUnpaidOrder(req, res) {
     prefer: 'return=representation',
     body: [{
       order_id: orderCode,
-      customer_id: customer.id,
-      customer_name: customerName,
-      customer_phone: customerPhone,
-      customer_email: customerEmail,
+      customer_id: customerId,
+      customer_name: finalCustomerName,
+      customer_phone: finalCustomerPhone,
+      customer_email: finalCustomerEmail,
       service_type: serviceType,
       subtotal: total,
       total: total,
-      payment_method: paymentMethod,
+      payment_method: 'Belum dipilih',
       payment_status: 'unpaid',
       order_status: 'pending'
     }]
@@ -4495,8 +4503,8 @@ async function publicCheckoutCreateUnpaidOrder(req, res) {
   if (!orderResult.ok) {
     return res.status(orderResult.status || 500).json({
       ok: false,
-      message: 'Customer dibuat, tetapi order gagal dibuat.',
-      error: publicCheckoutSafeUpstreamError(orderResult.data)
+      message: 'Order gagal dibuat.',
+      error: ownershipCheckoutSafeUpstreamError(orderResult.data)
     });
   }
 
@@ -4520,7 +4528,7 @@ async function publicCheckoutCreateUnpaidOrder(req, res) {
     return res.status(itemResult.status || 500).json({
       ok: false,
       message: 'Order dibuat, tetapi item order gagal dibuat.',
-      error: publicCheckoutSafeUpstreamError(itemResult.data)
+      error: ownershipCheckoutSafeUpstreamError(itemResult.data)
     });
   }
 
@@ -4529,7 +4537,10 @@ async function publicCheckoutCreateUnpaidOrder(req, res) {
     message: 'Pesanan berhasil dibuat. Payment gateway belum aktif, status pembayaran masih unpaid.',
     order_id: order.id,
     order_code: order.order_id || orderCode,
-    customer_id: customer.id,
+    customer_id: customerId,
+    customer_id_source: owner.source || 'backend_auth_link',
+    ownership_locked: true,
+    payment_protected: true,
     service_type: serviceType,
     total,
     currency: 'IDR',
@@ -4537,6 +4548,8 @@ async function publicCheckoutCreateUnpaidOrder(req, res) {
     payment_status: 'unpaid',
     payment_url: null,
     payment_gateway_configured: false,
+    frontend_ignored_fields: ['customer_id', 'order_id', 'payment_status', 'order_status', 'paid', 'completed', 'payment_url'],
+    payment_note: 'Nominal ini belum menjadi invoice pembayaran. Payment paid hanya boleh dari backend webhook payment gateway yang valid.',
     item: {
       product_title: productTitle,
       quantity
@@ -4544,7 +4557,232 @@ async function publicCheckoutCreateUnpaidOrder(req, res) {
   });
 }
 
-function publicCheckoutCleanText(value, maxLength) {
+async function ownershipCheckoutResolveCustomerOwner({ authUserId, email, fullName, phone }) {
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+
+  if (!linkResult.ok) {
+    return {
+      ok: false,
+      status: linkResult.status || 500,
+      message: 'Gagal memverifikasi relasi akun dan customer.'
+    };
+  }
+
+  const linkRows = Array.isArray(linkResult.data) ? linkResult.data : [];
+  const link = linkRows[0] || null;
+
+  if (link && link.link_status === 'active' && link.customer_id && customerSecurityLooksLikeUuid(link.customer_id)) {
+    const customer = await ownershipCheckoutFetchCustomerById(link.customer_id);
+    if (customer.ok && customer.customer && customer.customer.id) {
+      return { ok: true, customer: customer.customer, source: 'security_customer_auth_links' };
+    }
+    return {
+      ok: false,
+      status: customer.status || 409,
+      message: 'Auth link aktif ditemukan, tetapi data customer tidak valid.'
+    };
+  }
+
+  const customerResult = await ownershipCheckoutFindOrCreateCustomerForAuth({ email, fullName, phone });
+  if (!customerResult.ok || !customerResult.customer || !customerResult.customer.id) {
+    return {
+      ok: false,
+      status: customerResult.status || 500,
+      message: customerResult.message || 'Gagal menyiapkan customer untuk akun login.'
+    };
+  }
+
+  const linkUpsert = link && link.id
+    ? await ownershipCheckoutActivateAuthLink(authUserId, customerResult.customer.id, email)
+    : await ownershipCheckoutCreateAuthLink(authUserId, customerResult.customer.id, email);
+
+  if (!linkUpsert.ok) {
+    return {
+      ok: false,
+      status: linkUpsert.status || 500,
+      message: 'Customer berhasil ditemukan, tetapi auth link gagal dikunci.'
+    };
+  }
+
+  return {
+    ok: true,
+    customer: customerResult.customer,
+    source: customerResult.created ? 'backend_created_from_auth_email' : 'backend_matched_auth_email'
+  };
+}
+
+async function ownershipCheckoutFetchCustomerById(customerId) {
+  const select = ['id', 'email', 'name', 'phone'].join(',');
+  const path = '/rest/v1/customers?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(customerId) + '&limit=1';
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status };
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const row = rows[0] || null;
+  if (!row || !row.id) return { ok: false, status: 404 };
+  return { ok: true, customer: row };
+}
+
+async function ownershipCheckoutFindOrCreateCustomerForAuth({ email, fullName, phone }) {
+  const existing = await customerSecurityFetchCustomerByEmail(email);
+  if (!existing.ok) {
+    return { ok: false, status: existing.status, message: 'Gagal membaca customer berdasarkan email akun.' };
+  }
+
+  const rows = Array.isArray(existing.data) ? existing.data : [];
+  if (rows.length && rows[0] && rows[0].id) {
+    return { ok: true, customer: rows[0], created: false };
+  }
+
+  const body = {
+    name: ownershipCheckoutSafeName(fullName || email),
+    email
+  };
+  if (phone) body.phone = phone;
+
+  const created = await supabaseFetch('/rest/v1/customers', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [body]
+  });
+
+  if (!created.ok) {
+    return { ok: false, status: created.status, message: 'Gagal membuat customer dari akun login.' };
+  }
+
+  const createdRows = Array.isArray(created.data) ? created.data : [];
+  const row = createdRows[0] || created.data;
+  if (!row || !row.id) return { ok: false, status: 500, message: 'Customer dibuat, tetapi ID tidak ditemukan.' };
+
+  return { ok: true, customer: row, created: true };
+}
+
+async function ownershipCheckoutActivateAuthLink(authUserId, customerId, email) {
+  const path = '/rest/v1/security_customer_auth_links?auth_user_id=eq.' + encodeURIComponent(authUserId);
+  return supabaseFetch(path, {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: ownershipCheckoutActiveAuthLinkBody(customerId, email)
+  });
+}
+
+async function ownershipCheckoutCreateAuthLink(authUserId, customerId, email) {
+  return supabaseFetch('/rest/v1/security_customer_auth_links', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{
+      auth_user_id: authUserId,
+      ...ownershipCheckoutActiveAuthLinkBody(customerId, email)
+    }]
+  });
+}
+
+function ownershipCheckoutActiveAuthLinkBody(customerId, email) {
+  return {
+    customer_id: customerId,
+    email,
+    link_status: 'active',
+    link_method: 'system_created',
+    match_confidence: 'verified'
+  };
+}
+
+function ownershipCheckoutBuildProductTitle(body, serviceType) {
+  const base = ownershipCheckoutCleanText(body.product_title || body.product || body.item_name || body.service_name || body.package_name || 'Pesanan DiracGroup', 120);
+  const details = [];
+
+  const detailPairs = [
+    ['Game', body.game || body.game_name],
+    ['User ID', body.user_id || body.player_id],
+    ['Zone ID', body.zone_id || body.server_id],
+    ['Provider', body.provider || body.operator],
+    ['Nomor Tujuan', body.target_number || body.nomor_tujuan || body.phone_target],
+    ['Wallet', body.wallet || body.ewallet],
+    ['Kartu', body.card_number || body.nomor_kartu],
+    ['Negara', body.destination_country || body.negara_tujuan],
+    ['Penerima', body.recipient_name || body.nama_penerima],
+    ['Website', body.website_url || body.link_website]
+  ];
+
+  for (const [label, value] of detailPairs) {
+    const clean = ownershipCheckoutCleanText(value, 70);
+    if (clean) details.push(`${label}: ${clean}`);
+  }
+
+  const combined = details.length ? `${base} | ${details.join(' | ')}` : base;
+  return ownershipCheckoutCleanText(combined, 160) || ownershipCheckoutFallbackTitle(serviceType);
+}
+
+function ownershipCheckoutFallbackTitle(serviceType) {
+  const labels = {
+    parfum: 'Pesanan Parfum',
+    domain: 'Pesanan Domain',
+    jasa_website: 'Jasa Pembuatan Website',
+    pengembangan_website: 'Pengembangan Website',
+    topup_game: 'Top Up Game',
+    isi_pulsa: 'Isi Pulsa',
+    paket_data: 'Paket Data',
+    isi_saldo: 'Isi Saldo',
+    isi_saldo_etoll: 'Isi Saldo E-Toll',
+    transfer_luar_negeri: 'Transfer Luar Negeri'
+  };
+  return labels[serviceType] || 'Pesanan DiracGroup';
+}
+
+function ownershipCheckoutNormalizeServiceType(value) {
+  const clean = String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const aliases = {
+    parfum: 'parfum',
+    perfume: 'parfum',
+    domain: 'domain',
+    jasa_website: 'jasa_website',
+    jasa_pembuatan_website: 'jasa_website',
+    pembuatan_website: 'jasa_website',
+    website: 'jasa_website',
+    pengembangan: 'pengembangan_website',
+    pengembangan_website: 'pengembangan_website',
+    development: 'pengembangan_website',
+    topup: 'topup_game',
+    top_up: 'topup_game',
+    topup_game: 'topup_game',
+    top_up_game: 'topup_game',
+    game: 'topup_game',
+    isi_pulsa: 'isi_pulsa',
+    pulsa: 'isi_pulsa',
+    paket_data: 'paket_data',
+    data: 'paket_data',
+    isi_saldo: 'isi_saldo',
+    saldo: 'isi_saldo',
+    ewallet: 'isi_saldo',
+    e_wallet: 'isi_saldo',
+    isi_saldo_etoll: 'isi_saldo_etoll',
+    isi_saldo_e_toll: 'isi_saldo_etoll',
+    etoll: 'isi_saldo_etoll',
+    e_toll: 'isi_saldo_etoll',
+    transfer_luar_negeri: 'transfer_luar_negeri',
+    remitansi: 'transfer_luar_negeri',
+    remittance: 'transfer_luar_negeri'
+  };
+  const serviceType = aliases[clean] || '';
+  if (!serviceType) return 'parfum';
+  return serviceType;
+}
+
+function ownershipCheckoutUserMetadataName(user) {
+  const meta = user && typeof user === 'object' ? (user.user_metadata || user.raw_user_meta_data || {}) : {};
+  return meta.full_name || meta.fullName || meta.name || '';
+}
+
+function ownershipCheckoutSafeName(value) {
+  const raw = String(value || '').trim();
+  const fromEmail = raw.includes('@') ? raw.split('@')[0] : raw;
+  const cleaned = fromEmail.replace(/[^a-zA-Z0-9À-ž ._'-]/g, ' ').replace(/\s+/g, ' ').trim();
+  return (cleaned || 'Customer DiracGroup').slice(0, 120);
+}
+
+function ownershipCheckoutCleanText(value, maxLength) {
   return String(value || '')
     .trim()
     .replace(/[\u0000-\u001F\u007F]/g, ' ')
@@ -4552,48 +4790,31 @@ function publicCheckoutCleanText(value, maxLength) {
     .slice(0, Math.max(1, Number(maxLength || 120)));
 }
 
-function publicCheckoutNormalizeServiceType(value) {
-  const clean = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  const aliases = {
-    parfum: 'parfum',
-    perfume: 'parfum',
-    domain: 'domain',
-    nomor_kosong: 'nomor_kosong',
-    nomor: 'nomor_kosong',
-    jasa_website: 'jasa_website',
-    pembuatan_website: 'jasa_website',
-    website: 'jasa_website',
-    pengembangan_website: 'pengembangan_website',
-    development: 'pengembangan_website'
-  };
-  return aliases[clean] || 'parfum';
-}
-
-function publicCheckoutPositiveInteger(value, fallback, max) {
+function ownershipCheckoutPositiveInteger(value, fallback, max) {
   const number = Math.trunc(Number(value));
   if (!Number.isFinite(number) || number < 1) return fallback || 1;
   return Math.min(number, max || 999);
 }
 
-function publicCheckoutPositiveMoney(value) {
+function ownershipCheckoutPositiveMoney(value) {
   const number = Number(String(value || '').replace(/[^0-9.]/g, ''));
   if (!Number.isFinite(number) || number <= 0) return 0;
   return Math.round(number);
 }
 
-function publicCheckoutGenerateOrderCode() {
+function ownershipCheckoutGenerateOrderCode() {
   const now = new Date();
   const date = now.toISOString().slice(0, 10).replace(/-/g, '');
   const random = crypto.randomBytes(4).toString('hex').toUpperCase();
   return `ORD-${date}-${random}`;
 }
 
-function publicCheckoutSafeUpstreamError(data) {
+function ownershipCheckoutSafeUpstreamError(data) {
   if (!data) return null;
   if (typeof data === 'string') return data.slice(0, 220);
   return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 220);
 }
 
-function publicCheckoutSafeError(error) {
+function ownershipCheckoutSafeError(error) {
   return String(error && error.message ? error.message : error).slice(0, 180);
 }
