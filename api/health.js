@@ -4326,3 +4326,250 @@ function adminSecuritySanitizeAdminSupabase(admin) {
 function adminSecuritySafeErrorSupabase(error) {
   return String(error && error.message ? error.message : error).slice(0, 180);
 }
+
+/* ============================================================
+   PUBLIC CHECKOUT UNPAID TAMBAHAN - ISOLATED APPEND ONLY
+   Tujuan:
+   - Tidak mengubah login lama, dashboard lama, A2F/MFA, hash, admin/staff, domain/security center.
+   - Menambah endpoint checkout sederhana tanpa payment gateway.
+   - Status selalu unpaid/pending, payment_url null.
+   - Sesuai struktur DB yang sudah berhasil dites:
+     customers(name,email,phone)
+     orders(order_id,customer_id,customer_name,customer_phone,customer_email,service_type,subtotal,total,payment_method,payment_status,order_status)
+     order_items(order_id,product_title,quantity)
+   Endpoint:
+   POST /api/health?action=checkout_order
+   POST /api/health?action=parfum_checkout
+   POST /api/health?action=public_checkout
+   ============================================================ */
+
+const __diracPublicCheckoutUnpaidPreviousHandler = module.exports;
+
+module.exports = async function publicCheckoutUnpaidWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = publicCheckoutNormalizeAction(rawAction);
+
+  if (!publicCheckoutIsAction(action)) {
+    return __diracPublicCheckoutUnpaidPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+  }
+
+  try {
+    return await publicCheckoutCreateUnpaidOrder(req, res);
+  } catch (error) {
+    console.error('[public-checkout-unpaid]', publicCheckoutSafeError(error));
+    return res.status(500).json({
+      ok: false,
+      message: 'Checkout belum dapat diproses.'
+    });
+  }
+};
+
+function publicCheckoutNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  const aliases = {
+    'checkout_order': 'checkout_order',
+    'checkout-order': 'checkout_order',
+    'public_checkout': 'checkout_order',
+    'public-checkout': 'checkout_order',
+    'parfum_checkout': 'checkout_order',
+    'parfum-checkout': 'checkout_order',
+    'create_checkout_order': 'checkout_order',
+    'create-checkout-order': 'checkout_order'
+  };
+  return aliases[clean] || clean;
+}
+
+function publicCheckoutIsAction(action) {
+  return action === 'checkout_order';
+}
+
+async function publicCheckoutCreateUnpaidOrder(req, res) {
+  const body = await readBody(req);
+
+  const customerName = publicCheckoutCleanText(body.customer_name || body.name || body.full_name, 120);
+  const customerPhone = normalizePhone(body.customer_phone || body.phone || body.whatsapp || body.customer_whatsapp || '');
+  const customerEmail = normalizeAuthEmail(body.customer_email || body.email || '');
+  const productTitle = publicCheckoutCleanText(body.product_title || body.product || body.item_name || body.service_name || 'Pesanan DiracGroup', 160);
+  const serviceType = publicCheckoutNormalizeServiceType(body.service_type || body.service || 'parfum');
+  const quantity = publicCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
+  const total = publicCheckoutPositiveMoney(body.total || body.amount || body.subtotal || 0);
+  const paymentMethod = publicCheckoutCleanText(body.payment_method || 'Transfer Bank', 80);
+
+  if (!customerName) {
+    return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi.' });
+  }
+
+  if (!customerPhone) {
+    return res.status(400).json({ ok: false, message: 'Nomor WhatsApp/HP wajib diisi.' });
+  }
+
+  if (!customerEmail || !isValidAuthEmail(customerEmail)) {
+    return res.status(400).json({ ok: false, message: 'Email pelanggan wajib valid.' });
+  }
+
+  if (!productTitle) {
+    return res.status(400).json({ ok: false, message: 'Nama produk/layanan wajib diisi.' });
+  }
+
+  if (!total || total <= 0) {
+    return res.status(400).json({ ok: false, message: 'Total pesanan wajib lebih dari 0.' });
+  }
+
+  const customerResult = await supabaseFetch('/rest/v1/customers', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{
+      name: customerName,
+      email: customerEmail,
+      phone: customerPhone
+    }]
+  });
+
+  if (!customerResult.ok) {
+    return res.status(customerResult.status || 500).json({
+      ok: false,
+      message: 'Gagal membuat data pelanggan.',
+      error: publicCheckoutSafeUpstreamError(customerResult.data)
+    });
+  }
+
+  const customer = Array.isArray(customerResult.data) ? customerResult.data[0] : customerResult.data;
+  if (!customer || !customer.id) {
+    return res.status(500).json({ ok: false, message: 'Customer dibuat, tetapi ID customer tidak ditemukan.' });
+  }
+
+  const orderCode = publicCheckoutGenerateOrderCode();
+
+  const orderResult = await supabaseFetch('/rest/v1/orders', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{
+      order_id: orderCode,
+      customer_id: customer.id,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      customer_email: customerEmail,
+      service_type: serviceType,
+      subtotal: total,
+      total: total,
+      payment_method: paymentMethod,
+      payment_status: 'unpaid',
+      order_status: 'pending'
+    }]
+  });
+
+  if (!orderResult.ok) {
+    return res.status(orderResult.status || 500).json({
+      ok: false,
+      message: 'Customer dibuat, tetapi order gagal dibuat.',
+      error: publicCheckoutSafeUpstreamError(orderResult.data)
+    });
+  }
+
+  const order = Array.isArray(orderResult.data) ? orderResult.data[0] : orderResult.data;
+  if (!order || !order.id) {
+    return res.status(500).json({ ok: false, message: 'Order dibuat, tetapi ID order tidak ditemukan.' });
+  }
+
+  const itemResult = await supabaseFetch('/rest/v1/order_items', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [{
+      order_id: order.id,
+      product_title: productTitle,
+      quantity: quantity
+    }]
+  });
+
+  if (!itemResult.ok) {
+    return res.status(itemResult.status || 500).json({
+      ok: false,
+      message: 'Order dibuat, tetapi item order gagal dibuat.',
+      error: publicCheckoutSafeUpstreamError(itemResult.data)
+    });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    message: 'Pesanan berhasil dibuat. Payment gateway belum aktif, status pembayaran masih unpaid.',
+    order_id: order.id,
+    order_code: order.order_id || orderCode,
+    customer_id: customer.id,
+    service_type: serviceType,
+    total,
+    currency: 'IDR',
+    order_status: 'pending',
+    payment_status: 'unpaid',
+    payment_url: null,
+    payment_gateway_configured: false,
+    item: {
+      product_title: productTitle,
+      quantity
+    }
+  });
+}
+
+function publicCheckoutCleanText(value, maxLength) {
+  return String(value || '')
+    .trim()
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .slice(0, Math.max(1, Number(maxLength || 120)));
+}
+
+function publicCheckoutNormalizeServiceType(value) {
+  const clean = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    parfum: 'parfum',
+    perfume: 'parfum',
+    domain: 'domain',
+    nomor_kosong: 'nomor_kosong',
+    nomor: 'nomor_kosong',
+    jasa_website: 'jasa_website',
+    pembuatan_website: 'jasa_website',
+    website: 'jasa_website',
+    pengembangan_website: 'pengembangan_website',
+    development: 'pengembangan_website'
+  };
+  return aliases[clean] || 'parfum';
+}
+
+function publicCheckoutPositiveInteger(value, fallback, max) {
+  const number = Math.trunc(Number(value));
+  if (!Number.isFinite(number) || number < 1) return fallback || 1;
+  return Math.min(number, max || 999);
+}
+
+function publicCheckoutPositiveMoney(value) {
+  const number = Number(String(value || '').replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(number) || number <= 0) return 0;
+  return Math.round(number);
+}
+
+function publicCheckoutGenerateOrderCode() {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
+  return `ORD-${date}-${random}`;
+}
+
+function publicCheckoutSafeUpstreamError(data) {
+  if (!data) return null;
+  if (typeof data === 'string') return data.slice(0, 220);
+  return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 220);
+}
+
+function publicCheckoutSafeError(error) {
+  return String(error && error.message ? error.message : error).slice(0, 180);
+}
