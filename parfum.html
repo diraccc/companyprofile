@@ -4475,30 +4475,149 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   <script id="dirac-product-gate-js">
   (function(){
     'use strict';
-    var AUTH_KEY='dirac_auth_session_v1';
-    var A2F_KEY='dirac_auth_a2f_v1';
-    var A2F_READY_KEY='dirac_auth_a2f_dashboard_ready_v1';
+
+    // Product page gate versi aman:
+    // - tidak membaca credential dari storage browser
+    // - tidak mengirim header auth buatan frontend
+    // - hanya mengandalkan session backend HttpOnly Secure Cookie yang dikirim browser otomatis
     var DOMAIN_AUTH_API='https://companyprofilee-expk.vercel.app/api/health';
-    var DOMAIN_ME_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_dashboard_me';
+    var DOMAIN_ME_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_me';
     var DOMAIN_LOGOUT_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_logout';
     var BACKEND_VERIFICATION_MAX_AGE_MS=2*60*1000;
     var backendVerified=false, backendVerifiedAt=0, backendUser=null, verificationPromise=null;
-    function readJson(k,fallback){try{var raw=localStorage.getItem(k);return raw?JSON.parse(raw):fallback}catch(e){return fallback}}
-    function writeJson(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-    function timestampFresh(value,maxMs){var n=Number(value||0);if(!n&&typeof value==='string')n=Date.parse(value);return Number.isFinite(n)&&n>0&&(Date.now()-n)<maxMs;}
-    function refreshAuthState(){return {session:readJson(AUTH_KEY,{})||{},a2f:readJson(A2F_KEY,{})||{},gate:readJson('dirac_dashboard_gate_v1',{})||{}}}
-    function setGateReason(message){try{var el=document.getElementById('gateReason');if(el)el.textContent=String(message||'Halaman masih terkunci. Login dan verifikasi A2F ulang.');}catch(e){}}
-    function clearBackendVerification(message){backendVerified=false;backendVerifiedAt=0;backendUser=null;if(message)setGateReason(message);document.documentElement.removeAttribute('data-product-unlocked');document.documentElement.setAttribute('data-product-backend','locked');}
-    function authAllowed(){return backendVerified===true&&!!backendUser&&timestampFresh(backendVerifiedAt,BACKEND_VERIFICATION_MAX_AGE_MS);}
-    function sessionHeaders(){var st=refreshAuthState(),s=st.session||{},a=st.a2f||{},g=st.gate||{},h={'Accept':'application/json'};var token=s.accessToken||s.access_token||s.token||s.jwt||s.idToken||s.id_token||s.sessionToken||s.session_token||'';var proof=s.dashboardMfaProofToken||s.mfaProofToken||s.dashboard_mfa_proof||a.dashboardMfaProofToken||a.mfaProofToken||g.dashboardMfaProofToken||'';if(token)h.Authorization='Bearer '+token;if(s.refreshToken||s.refresh_token)h['X-Domain-Refresh']=s.refreshToken||s.refresh_token;if(proof)h['X-Dirac-MFA-Proof']=proof;return h;}
-    function mergeRefreshedTokens(res){try{var s=refreshAuthState().session||{};var access=res.headers.get('X-Domain-Access-Token');var refresh=res.headers.get('X-Domain-Refresh-Token');if(access)s.accessToken=access;if(refresh)s.refreshToken=refresh;if(access||refresh)writeJson(AUTH_KEY,s);}catch(e){}}
-    function markBackendVerified(user){var safeUser=(user&&typeof user==='object')?user:{};if(!(safeUser.id||safeUser.email))return false;backendVerified=true;backendVerifiedAt=Date.now();backendUser=safeUser;try{var s=refreshAuthState().session||{};s.user=safeUser;s.email=safeUser.email||s.email||s.identifier||'';s.identifier=s.email||s.identifier||'';s.serverAuthenticated=true;s.dashboardVerifiedByBackend=true;s.dashboardVerifiedAt=new Date(backendVerifiedAt).toISOString();writeJson(AUTH_KEY,s);}catch(e){}document.documentElement.setAttribute('data-product-backend','verified');return true;}
-    function verifyExistingLoginSession(){if(verificationPromise)return verificationPromise;verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{method:'GET',mode:'cors',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){if(!res.ok){return res.clone().json().catch(function(){return null}).then(function(data){var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses halaman produk. Status '+res.status+'. Login dan A2F ulang.');clearBackendVerification(msg);if(res.status===401||res.status===403||res.status===419){try{localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){}}return false;});}mergeRefreshedTokens(res);return res.json().then(function(data){if(!data||data.ok!==true||!data.user||!(data.user.id||data.user.email)){clearBackendVerification('Respons backend tidak valid. Login dan verifikasi A2F ulang.');return false;}setGateReason('Halaman produk diverifikasi backend. Membuka...');return markBackendVerified(data.user);}).catch(function(){clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');return false;});}).catch(function(){clearBackendVerification('Tidak bisa menghubungi backend dashboard. Cek domain API, CORS, atau koneksi.');return false;}).then(function(ok){verificationPromise=null;return ok===true;},function(){verificationPromise=null;clearBackendVerification();return false;});return verificationPromise;}
-    function lockPage(){document.body.classList.add('gate-locked');document.documentElement.removeAttribute('data-product-unlocked');}
-    function unlockPage(){document.body.classList.remove('gate-locked','gate-checking');document.documentElement.setAttribute('data-product-unlocked','true');}
-    function enforceProductAccess(){document.body.classList.add('gate-locked','gate-checking');verifyExistingLoginSession().then(function(ok){document.body.classList.remove('gate-checking');if(ok&&authAllowed())unlockPage();else lockPage();}).catch(function(){document.body.classList.remove('gate-checking');clearBackendVerification();lockPage();});}
-    window.diracProductGate={enforce:enforceProductAccess,authAllowed:authAllowed,logout:function(){try{fetch(DOMAIN_LOGOUT_ENDPOINT,{method:'POST',mode:'cors',credentials:'include',cache:'no-store',keepalive:true,headers:sessionHeaders()}).catch(function(){})}catch(e){};try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(A2F_KEY);localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){};clearBackendVerification();lockPage();location.href='masuk.html';}};
-    document.addEventListener('DOMContentLoaded',function(){enforceProductAccess();window.addEventListener('storage',function(e){if(e&&/^(dirac_auth_session_v1|dirac_auth_a2f_v1|dirac_auth_a2f_dashboard_ready_v1|dirac_dashboard_gate_v1)$/.test(e.key||''))enforceProductAccess();});document.addEventListener('visibilitychange',function(){if(!document.hidden)enforceProductAccess();});window.addEventListener('pageshow',function(e){if(e.persisted)enforceProductAccess();});setInterval(function(){if(authAllowed())enforceProductAccess();},120000);});
+
+    function timestampFresh(value,maxMs){
+      var n=Number(value||0);
+      return Number.isFinite(n)&&n>0&&(Date.now()-n)<maxMs;
+    }
+
+    function setGateReason(message){
+      try{
+        var el=document.getElementById('gateReason');
+        if(el) el.textContent=String(message||'Halaman masih terkunci. Login ulang dari halaman resmi.');
+      }catch(e){}
+    }
+
+    function clearBackendVerification(message){
+      backendVerified=false;
+      backendVerifiedAt=0;
+      backendUser=null;
+      if(message) setGateReason(message);
+      document.documentElement.removeAttribute('data-product-unlocked');
+      document.documentElement.setAttribute('data-product-backend','locked');
+    }
+
+    function authAllowed(){
+      return backendVerified===true && !!backendUser && timestampFresh(backendVerifiedAt,BACKEND_VERIFICATION_MAX_AGE_MS);
+    }
+
+    function sessionHeaders(){
+      return {'Accept':'application/json'};
+    }
+
+    function markBackendVerified(user){
+      var safeUser=(user&&typeof user==='object')?user:{};
+      if(!(safeUser.id||safeUser.email)) return false;
+      backendVerified=true;
+      backendVerifiedAt=Date.now();
+      backendUser=safeUser;
+      document.documentElement.setAttribute('data-product-backend','verified');
+      return true;
+    }
+
+    function verifyExistingLoginSession(){
+      if(verificationPromise) return verificationPromise;
+
+      verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{
+        method:'GET',
+        mode:'cors',
+        credentials:'include',
+        cache:'no-store',
+        headers:sessionHeaders()
+      }).then(function(res){
+        if(!res.ok){
+          return res.clone().json().catch(function(){return null}).then(function(data){
+            var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses halaman produk. Status '+res.status+'. Login ulang dari halaman resmi.');
+            clearBackendVerification(msg);
+            return false;
+          });
+        }
+
+        return res.json().then(function(data){
+          if(!data||data.ok!==true||!data.user||!(data.user.id||data.user.email)){
+            clearBackendVerification('Respons backend tidak valid. Login ulang dari halaman resmi.');
+            return false;
+          }
+          setGateReason('Halaman produk diverifikasi backend. Membuka...');
+          return markBackendVerified(data.user);
+        }).catch(function(){
+          clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');
+          return false;
+        });
+      }).catch(function(){
+        clearBackendVerification('Tidak bisa menghubungi backend. Cek domain API, CORS, atau koneksi.');
+        return false;
+      }).then(function(ok){
+        verificationPromise=null;
+        return ok===true;
+      },function(){
+        verificationPromise=null;
+        clearBackendVerification();
+        return false;
+      });
+
+      return verificationPromise;
+    }
+
+    function lockPage(){
+      document.body.classList.add('gate-locked');
+      document.documentElement.removeAttribute('data-product-unlocked');
+    }
+
+    function unlockPage(){
+      document.body.classList.remove('gate-locked','gate-checking');
+      document.documentElement.setAttribute('data-product-unlocked','true');
+    }
+
+    function enforceProductAccess(){
+      document.body.classList.add('gate-locked','gate-checking');
+      verifyExistingLoginSession().then(function(ok){
+        document.body.classList.remove('gate-checking');
+        if(ok&&authAllowed()) unlockPage();
+        else lockPage();
+      }).catch(function(){
+        document.body.classList.remove('gate-checking');
+        clearBackendVerification();
+        lockPage();
+      });
+    }
+
+    window.diracProductGate={
+      enforce:enforceProductAccess,
+      authAllowed:authAllowed,
+      logout:function(){
+        try{
+          fetch(DOMAIN_LOGOUT_ENDPOINT,{
+            method:'POST',
+            mode:'cors',
+            credentials:'include',
+            cache:'no-store',
+            keepalive:true,
+            headers:sessionHeaders()
+          }).catch(function(){});
+        }catch(e){}
+        clearBackendVerification();
+        lockPage();
+        location.href='masuk.html';
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded',function(){
+      enforceProductAccess();
+      document.addEventListener('visibilitychange',function(){ if(!document.hidden) enforceProductAccess(); });
+      window.addEventListener('pageshow',function(e){ if(e.persisted) enforceProductAccess(); });
+      setInterval(function(){ if(authAllowed()) enforceProductAccess(); },120000);
+    });
   })();
   </script>
 
@@ -8315,7 +8434,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         renderProducts();
       } catch(error){
         setCheckoutError(error && error.message ? error.message : 'Pesanan belum dapat dibuat. Coba lagi.');
-        showToast('Checkout gagal. Cek koneksi/API.');
+        showToast(error && error.message ? error.message : 'Checkout gagal. Cek koneksi/API.');
       } finally {
         if(btn){
           btn.disabled = false;
@@ -8968,7 +9087,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       }catch(error){
         console.warn('Checkout API gagal:', error);
         if(typeof setCheckoutError === 'function') setCheckoutError(error && error.message ? error.message : 'Pesanan belum dapat dibuat.');
-        if(typeof showToast === 'function') showToast('Checkout gagal. Cek API/koneksi.');
+        if(typeof showToast === 'function') showToast(error && error.message ? error.message : 'Checkout gagal. Cek API/koneksi.');
       }finally{
         btn.disabled = false;
         btn.classList.remove('dirac-checkout-working');
