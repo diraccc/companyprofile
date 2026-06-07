@@ -323,50 +323,87 @@
       return '';
     }
 
+    function getStorageAreas() {
+      const areas = [];
+      try { if (window.localStorage) areas.push({ name: 'localStorage', store: window.localStorage }); } catch (_) {}
+      try { if (window.sessionStorage) areas.push({ name: 'sessionStorage', store: window.sessionStorage }); } catch (_) {}
+      return areas;
+    }
+
     function readLegacyAuthSession() {
-      const summary = { key: '', accessFound: false, refreshFound: false, keysScanned: 0 };
+      const summary = { key: '', accessFound: false, refreshFound: false, keysScanned: 0, storage: '' };
+      const preferredKeys = [
+        'dirac_auth_session_v1',
+        'dirac_domain_session',
+        'sb-auth-token',
+        'supabase.auth.token'
+      ];
+
       try {
-        if (!window.localStorage) return { accessToken: '', refreshToken: '', summary };
+        for (const area of getStorageAreas()) {
+          const allKeys = [];
+          for (let i = 0; i < area.store.length; i += 1) {
+            const key = area.store.key(i);
+            if (key) allKeys.push(key);
+          }
 
-        const preferredKeys = ['dirac_auth_session_v1', 'dirac_domain_session', 'sb-auth-token'];
-        const allKeys = [];
-        for (let i = 0; i < localStorage.length; i += 1) {
-          const key = localStorage.key(i);
-          if (key) allKeys.push(key);
-        }
+          const ordered = Array.from(new Set([
+            ...preferredKeys,
+            ...allKeys.filter(k => /dirac|auth|session|token|supabase|sb-/i.test(k)),
+            ...allKeys
+          ]));
 
-        const ordered = Array.from(new Set([
-          ...preferredKeys,
-          ...allKeys.filter(k => /dirac|auth|session|token|supabase|sb-/i.test(k)),
-          ...allKeys
-        ]));
+          for (const key of ordered) {
+            let raw = '';
+            try { raw = area.store.getItem(key); } catch (_) { raw = ''; }
+            if (!raw) continue;
+            summary.keysScanned += 1;
 
-        for (const key of ordered) {
-          const raw = localStorage.getItem(key);
-          if (!raw) continue;
-          summary.keysScanned += 1;
+            const parsed = safeJsonParse(raw);
+            const target = parsed || raw;
 
-          const parsed = safeJsonParse(raw);
-          const target = parsed || raw;
+            const accessToken = findTokenDeep(target, 'access');
+            const refreshToken = findTokenDeep(target, 'refresh');
 
-          const accessToken = findTokenDeep(target, 'access');
-          const refreshToken = findTokenDeep(target, 'refresh');
-
-          if (accessToken || refreshToken) {
-            summary.key = key;
-            summary.accessFound = Boolean(accessToken);
-            summary.refreshFound = Boolean(refreshToken);
-            return { accessToken, refreshToken, summary };
+            if (accessToken || refreshToken) {
+              summary.key = key;
+              summary.storage = area.name;
+              summary.accessFound = Boolean(accessToken);
+              summary.refreshFound = Boolean(refreshToken);
+              return { accessToken, refreshToken, summary };
+            }
           }
         }
       } catch (_) {}
       return { accessToken: '', refreshToken: '', summary };
     }
 
+    function persistRefreshedTokensFromResponse(response) {
+      try {
+        if (!response || !response.headers) return;
+        const access = String(response.headers.get('X-Domain-Access-Token') || '').trim();
+        const refresh = String(response.headers.get('X-Domain-Refresh-Token') || '').trim();
+        if (!access && !refresh) return;
+
+        const current = readLegacyAuthSession();
+        const key = current && current.summary && current.summary.key ? current.summary.key : 'dirac_auth_session_v1';
+        const storageName = current && current.summary && current.summary.storage ? current.summary.storage : 'localStorage';
+        const store = storageName === 'sessionStorage' ? window.sessionStorage : window.localStorage;
+        if (!store) return;
+
+        const existing = safeJsonParse(store.getItem(key) || '') || {};
+        if (access) existing.accessToken = access;
+        if (refresh) existing.refreshToken = refresh;
+        existing.tokenRefreshedAt = new Date().toISOString();
+        store.setItem(key, JSON.stringify(existing));
+      } catch (_) {}
+    }
+
     function getLocalSessionSummaryText() {
       const found = readLegacyAuthSession();
       const s = found.summary || {};
       return 'Local session: ' + (s.key ? 'ada' : 'tidak ada') +
+        ' · storage: ' + (s.storage || '-') +
         ' · access: ' + (s.accessFound ? 'ada' : 'tidak ada') +
         ' · refresh: ' + (s.refreshFound ? 'ada' : 'tidak ada') +
         ' · keys checked: ' + Number(s.keysScanned || 0);
@@ -429,12 +466,14 @@
       try {
         const response = await fetch(apiUrl(action), {
           method: options.method || 'GET',
+          mode: 'cors',
           credentials: 'include',
           cache: 'no-store',
           headers: buildAuthHeaders(hasBody, options.headers || {}),
           body: hasBody ? JSON.stringify(options.body) : undefined,
           signal: controller.signal
         });
+        persistRefreshedTokensFromResponse(response);
         const text = await response.text();
         let data = null;
         try { data = text ? JSON.parse(text) : null; } catch (_) { data = { ok: false, message: text.slice(0, 220) }; }
@@ -915,6 +954,11 @@
     }
 
 
+    function isSafeRecoveryCodeText(code) {
+      const text = String(code || '');
+      return Array.from(text).length === 500 && /^[!-~]{500}$/.test(text);
+    }
+
     function validateRecoveryCodesResponse(data) {
       const codes = data && Array.isArray(data.codes) ? data.codes : [];
       const metaOk =
@@ -926,7 +970,7 @@
 
       const codesOk =
         codes.length === 3 &&
-        codes.every((code) => typeof code === 'string' && Array.from(code).length === 500);
+        codes.every((code) => typeof code === 'string' && isSafeRecoveryCodeText(code));
 
       return Boolean(metaOk && codesOk);
     }
@@ -944,7 +988,7 @@
       if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Generate'; }
       if (result.ok && result.data && Array.isArray(result.data.codes)) {
         if (!validateRecoveryCodesResponse(result.data)) {
-          toast('API recovery lama terdeteksi', 'Deploy API terbaru health-recovery-500x3-strict.zip. Sistem menolak kode yang bukan 3 kode x 500 karakter.');
+          toast('Format recovery code ditolak', 'Sistem menolak kode yang bukan 3 kode x 500 karakter ASCII aman tanpa spasi/baris baru.');
           return;
         }
         openRecoveryModal(result.data.codes, result.data.batch_id || '');
