@@ -1708,64 +1708,31 @@ function normalizePhone(value) {
   return String(value || '').trim().replace(/[^+\d]/g, '');
 }
 
-function getRequestBodyLimitBytes() {
-  const configured = Number(process.env.MAX_REQUEST_BODY_BYTES || process.env.DOMAIN_MAX_REQUEST_BODY_BYTES || 1024 * 1024);
-  if (!Number.isFinite(configured) || configured < 16 * 1024) return 1024 * 1024;
-  return Math.min(Math.trunc(configured), 2 * 1024 * 1024);
-}
-
-function parseJsonBodySafe(raw) {
-  try {
-    return raw ? JSON.parse(raw) : {};
-  } catch (_) {
-    return {};
-  }
-}
-
 async function readBody(req) {
-  const maxBytes = getRequestBodyLimitBytes();
-
   if (req.body && typeof req.body === 'object') return req.body;
 
   if (typeof req.body === 'string') {
-    if (Buffer.byteLength(req.body, 'utf8') > maxBytes) return {};
-    return parseJsonBodySafe(req.body);
+    try {
+      return JSON.parse(req.body);
+    } catch (_) {
+      return {};
+    }
   }
-
-  const contentLength = Number(req.headers && req.headers['content-length'] ? req.headers['content-length'] : 0);
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) return {};
 
   return await new Promise((resolve) => {
     let raw = '';
-    let totalBytes = 0;
-    let tooLarge = false;
-
     req.on('data', (chunk) => {
-      if (tooLarge) return;
-      totalBytes += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(String(chunk), 'utf8');
-      if (totalBytes > maxBytes) {
-        tooLarge = true;
-        raw = '';
-        return;
-      }
       raw += chunk;
     });
-
     req.on('end', () => {
-      if (tooLarge) return resolve({});
-      return resolve(parseJsonBodySafe(raw));
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch (_) {
+        resolve({});
+      }
     });
-
     req.on('error', () => resolve({}));
   });
-}
-
-function safeDecodeCookieValue(value) {
-  try {
-    return decodeURIComponent(value);
-  } catch (_) {
-    return String(value || '');
-  }
 }
 
 function parseCookies(req) {
@@ -1780,7 +1747,7 @@ function parseCookies(req) {
     }
 
     const key = item.slice(0, index);
-    const value = safeDecodeCookieValue(item.slice(index + 1));
+    const value = decodeURIComponent(item.slice(index + 1));
     cookies[key] = value;
   });
 
