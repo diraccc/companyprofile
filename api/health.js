@@ -4441,13 +4441,25 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
   const requestedName = sessionOwnershipCheckoutSafeName(body.customer_name || body.name || body.full_name || sessionOwnershipCheckoutUserMetadataName(user) || userEmail);
   const serviceType = sessionOwnershipCheckoutNormalizeServiceType(body.service_type || body.service || 'parfum');
   const quantity = sessionOwnershipCheckoutPositiveInteger(body.quantity || body.qty || 1, 1, 999);
-  const productTitle = sessionOwnershipCheckoutBuildProductTitle(body, serviceType);
-  const frontendQuotedTotal = sessionOwnershipCheckoutPositiveMoney(body.total || body.amount || body.subtotal || 0);
+  const requestedProductTitle = sessionOwnershipCheckoutBuildProductTitle(body, serviceType);
 
   if (!requestedName) return res.status(400).json({ ok: false, message: 'Nama pelanggan wajib diisi.' });
   if (!customerPhone) return res.status(400).json({ ok: false, message: 'Nomor WhatsApp/HP wajib diisi.' });
-  if (!productTitle) return res.status(400).json({ ok: false, message: 'Nama produk/layanan wajib diisi.' });
-  if (!frontendQuotedTotal || frontendQuotedTotal <= 0) return res.status(400).json({ ok: false, message: 'Total pesanan wajib lebih dari 0.' });
+  if (!requestedProductTitle) return res.status(400).json({ ok: false, message: 'Nama produk/layanan wajib diisi.' });
+
+  const backendQuote = await sessionOwnershipCheckoutBuildBackendQuote({
+    body,
+    serviceType,
+    requestedProductTitle,
+    quantity
+  });
+
+  if (!backendQuote.ok) {
+    return res.status(backendQuote.status || 400).json({
+      ok: false,
+      message: backendQuote.message || 'Total pesanan belum bisa dikunci oleh backend.'
+    });
+  }
 
   const owner = await sessionOwnershipCheckoutResolveCustomerOwner({
     authUserId,
@@ -4485,8 +4497,8 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
       customer_phone: finalCustomerPhone,
       customer_email: finalCustomerEmail,
       service_type: serviceType,
-      subtotal: frontendQuotedTotal,
-      total: frontendQuotedTotal,
+      subtotal: backendQuote.subtotal,
+      total: backendQuote.total,
       payment_method: 'Belum dipilih',
       payment_status: 'unpaid',
       order_status: 'pending'
@@ -4506,15 +4518,21 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     return res.status(500).json({ ok: false, message: 'Order dibuat, tetapi ID order tidak ditemukan.' });
   }
 
+  const itemBody = {
+    order_id: order.id,
+    product_title: backendQuote.productTitle,
+    quantity: quantity,
+    unit_price: backendQuote.unitPrice,
+    cost_price: backendQuote.costPrice
+  };
+
+  if (backendQuote.productDocId) itemBody.product_doc_id = backendQuote.productDocId;
+
   const itemResult = await supabaseFetch('/rest/v1/order_items', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
-    body: [{
-      order_id: order.id,
-      product_title: productTitle,
-      quantity: quantity
-    }]
+    body: [itemBody]
   });
 
   if (!itemResult.ok) {
@@ -4527,11 +4545,12 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
 
   return res.status(200).json({
     ok: true,
-    message: 'Pesanan berhasil dibuat. Payment gateway belum aktif, status pembayaran masih unpaid.',
+    message: 'Pesanan berhasil dibuat. Nominal dikunci backend dari database, payment gateway belum aktif.',
     order_id: order.id,
     order_code: order.order_id || orderCode,
     service_type: serviceType,
-    total: frontendQuotedTotal,
+    total: backendQuote.total,
+    subtotal: backendQuote.subtotal,
     currency: 'IDR',
     order_status: 'pending',
     payment_status: 'unpaid',
@@ -4539,11 +4558,207 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     payment_gateway_configured: false,
     ownership_locked: true,
     payment_protected: true,
+    price_locked_by_backend: backendQuote.priceLocked,
+    price_source: backendQuote.priceSource,
     owner_source: owner.source || 'backend_auth_link',
-    frontend_ignored_fields: ['customer_id', 'order_id', 'payment_status', 'order_status', 'paid', 'completed', 'payment_url'],
-    payment_note: 'Belum membuat invoice pembayaran. Nominal paid/final payment wajib divalidasi ulang oleh backend payment gateway/webhook, bukan frontend.',
-    item: { product_title: productTitle, quantity }
+    frontend_ignored_fields: ['customer_id', 'order_id', 'payment_status', 'order_status', 'paid', 'completed', 'payment_url', 'total', 'amount', 'subtotal', 'unit_price', 'cost_price'],
+    payment_note: 'Nominal payment gateway wajib memakai total backend ini dan webhook wajib validasi amount == orders.total.',
+    item: {
+      product_doc_id: backendQuote.productDocId || null,
+      product_title: backendQuote.productTitle,
+      quantity,
+      unit_price: backendQuote.unitPrice,
+      cost_price: backendQuote.costPrice,
+      subtotal: backendQuote.subtotal
+    }
   });
+}
+
+async function sessionOwnershipCheckoutBuildBackendQuote({ body, serviceType, requestedProductTitle, quantity }) {
+  const normalizedServiceType = sessionOwnershipCheckoutNormalizeServiceType(serviceType);
+
+  if (normalizedServiceType === 'parfum') {
+    const productResult = await sessionOwnershipCheckoutFindProductForCheckout(body, requestedProductTitle);
+
+    if (!productResult.ok || !productResult.product) {
+      return {
+        ok: false,
+        status: 409,
+        message: productResult.message || 'Produk parfum tidak ditemukan di database products. Checkout dihentikan supaya nominal tidak bisa dipalsukan.'
+      };
+    }
+
+    const product = productResult.product;
+    const unitPrice = sessionOwnershipCheckoutPositiveMoney(product.price || 0);
+    const costPrice = sessionOwnershipCheckoutNonNegativeMoney(product.cost_price || 0);
+    const productDocId = sessionOwnershipCheckoutCleanText(product.doc_id || product.firebase_id || '', 80);
+    const productTitle = sessionOwnershipCheckoutCleanText(product.title || product.name || requestedProductTitle, 160);
+
+    if (!productDocId) {
+      return { ok: false, status: 409, message: 'Produk ditemukan, tetapi doc_id produk kosong. Checkout dihentikan.' };
+    }
+
+    if (!unitPrice || unitPrice <= 0) {
+      return { ok: false, status: 409, message: 'Harga produk di database masih 0/kosong. Checkout dihentikan supaya nominal tidak bisa dipalsukan.' };
+    }
+
+    if (product.is_active === false) {
+      return { ok: false, status: 409, message: 'Produk tidak aktif. Checkout dihentikan.' };
+    }
+
+    const requireReady = String(process.env.CHECKOUT_REQUIRE_PRODUCT_READY || 'false').trim().toLowerCase() === 'true';
+    if (requireReady && product.is_ready === false) {
+      return { ok: false, status: 409, message: 'Produk belum ready. Checkout dihentikan.' };
+    }
+
+    const subtotal = unitPrice * quantity;
+
+    return {
+      ok: true,
+      priceLocked: true,
+      priceSource: 'products.price',
+      productDocId,
+      productTitle,
+      unitPrice,
+      costPrice,
+      subtotal,
+      total: subtotal,
+      product
+    };
+  }
+
+  // Untuk layanan custom/jasa, nominal boleh dibuat sebagai draft unpaid saja.
+  // Payment gateway jangan diaktifkan sebelum totalnya dikunci backend/admin.
+  const frontendQuotedTotal = sessionOwnershipCheckoutPositiveMoney(body.total || body.amount || body.subtotal || 0);
+  if (!frontendQuotedTotal || frontendQuotedTotal <= 0) {
+    return { ok: false, status: 400, message: 'Total layanan custom wajib lebih dari 0.' };
+  }
+
+  return {
+    ok: true,
+    priceLocked: false,
+    priceSource: 'manual_unpaid_quote_no_gateway',
+    productDocId: '',
+    productTitle: requestedProductTitle,
+    unitPrice: frontendQuotedTotal,
+    costPrice: 0,
+    subtotal: frontendQuotedTotal,
+    total: frontendQuotedTotal
+  };
+}
+
+async function sessionOwnershipCheckoutFindProductForCheckout(body, requestedProductTitle) {
+  const idCandidates = sessionOwnershipCheckoutProductIdCandidates(body);
+  const textCandidates = sessionOwnershipCheckoutProductTextCandidates(body, requestedProductTitle);
+  const select = 'doc_id,firebase_id,title,name,price,cost_price,stock,status,is_ready,is_active';
+
+  for (const id of idCandidates) {
+    const path = '/rest/v1/products?select=' + encodeURIComponent(select)
+      + '&or=' + encodeURIComponent(`(doc_id.eq.${id},firebase_id.eq.${id})`)
+      + '&limit=5';
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (result.ok && Array.isArray(result.data) && result.data.length) {
+      return { ok: true, product: result.data[0], match: 'id' };
+    }
+  }
+
+  const listResult = await supabaseFetch('/rest/v1/products?select=' + encodeURIComponent(select) + '&limit=500', {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!listResult.ok) {
+    return { ok: false, status: listResult.status || 500, message: 'Gagal membaca products untuk mengunci harga checkout.' };
+  }
+
+  const products = Array.isArray(listResult.data) ? listResult.data : [];
+  let best = null;
+
+  for (const product of products) {
+    const score = sessionOwnershipCheckoutProductScore(product, idCandidates, textCandidates);
+    if (!best || score > best.score) best = { product, score };
+  }
+
+  if (best && best.score >= 70) {
+    return { ok: true, product: best.product, match: 'title', score: best.score };
+  }
+
+  return { ok: false, status: 404, message: 'Produk parfum tidak cocok dengan database products.' };
+}
+
+function sessionOwnershipCheckoutProductIdCandidates(body) {
+  return Array.from(new Set([
+    body.product_doc_id,
+    body.product_id,
+    body.doc_id,
+    body.product_firebase_id,
+    body.firebase_id,
+    body.productDocId,
+    body.productId,
+    body.firebaseId
+  ].map((value) => sessionOwnershipCheckoutCleanText(value, 80)).filter(Boolean)));
+}
+
+function sessionOwnershipCheckoutProductTextCandidates(body, requestedProductTitle) {
+  const raw = [
+    requestedProductTitle,
+    body.product_title,
+    body.product,
+    body.item_name,
+    body.product_name,
+    body.name,
+    body.title
+  ];
+
+  const out = [];
+  for (const value of raw) {
+    const clean = sessionOwnershipCheckoutNormalizeProductText(value);
+    if (clean) out.push(clean);
+
+    const beforePipe = sessionOwnershipCheckoutNormalizeProductText(String(value || '').split('|')[0]);
+    if (beforePipe) out.push(beforePipe);
+  }
+
+  return Array.from(new Set(out.filter(Boolean)));
+}
+
+function sessionOwnershipCheckoutNormalizeProductText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/^[0-9]+[.)\s-]+/, '')
+    .replace(/\bx\s*[0-9]+\b/g, '')
+    .replace(/[^a-z0-9À-ž]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sessionOwnershipCheckoutProductScore(product, idCandidates, textCandidates) {
+  const docId = String(product && product.doc_id || '').trim();
+  const firebaseId = String(product && product.firebase_id || '').trim();
+  if (idCandidates.includes(docId) || idCandidates.includes(firebaseId)) return 1000;
+
+  const title = sessionOwnershipCheckoutNormalizeProductText([product && product.title, product && product.name].filter(Boolean).join(' '));
+  if (!title) return 0;
+
+  let score = 0;
+  for (const candidate of textCandidates) {
+    if (!candidate) continue;
+    if (candidate === title) score = Math.max(score, 500);
+    else if (title.includes(candidate) || candidate.includes(title)) score = Math.max(score, 220);
+    else {
+      const words = candidate.split(' ').filter((word) => word.length >= 3);
+      const hit = words.filter((word) => title.includes(word)).length;
+      if (words.length) score = Math.max(score, Math.round((hit / words.length) * 150));
+    }
+  }
+
+  return score;
+}
+
+function sessionOwnershipCheckoutNonNegativeMoney(value) {
+  const number = Number(String(value || '').replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.round(number);
 }
 
 async function sessionOwnershipCheckoutResolveCustomerOwner({ authUserId, email, fullName, phone }) {
