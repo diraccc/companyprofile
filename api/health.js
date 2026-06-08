@@ -4716,3 +4716,363 @@ function sessionOwnershipCheckoutSafeUpstreamError(data) {
 function sessionOwnershipCheckoutSafeError(error) {
   return String(error && error.message ? error.message : error).slice(0, 180);
 }
+
+/* ============================================================
+   CUSTOMER MY ORDERS / PESANAN SAYA - ISOLATED APPEND ONLY
+   Tujuan:
+   - Tidak mengubah login/hash/A2F/database.
+   - Menambah endpoint read-only untuk customer melihat pesanan miliknya sendiri.
+   - Backend menentukan owner dari session HttpOnly cookie, bukan dari frontend.
+   - Frontend tidak boleh mengirim customer_id.
+   Endpoint:
+   GET /api/health?action=my_orders
+   GET /api/health?action=pesanan_saya
+   GET /api/health?action=customer_orders
+   ============================================================ */
+
+const __diracMyOrdersPreviousHandler = module.exports;
+
+module.exports = async function myOrdersWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = myOrdersNormalizeAction(rawAction);
+
+  if (!myOrdersIsAction(action)) {
+    return __diracMyOrdersPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+  }
+
+  try {
+    return await myOrdersReadForCurrentCustomer(req, res);
+  } catch (error) {
+    console.error('[my-orders]', myOrdersSafeError(error));
+    return res.status(500).json({
+      ok: false,
+      message: 'Pesanan belum dapat dimuat dengan aman.'
+    });
+  }
+};
+
+function myOrdersNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    my_orders: 'my_orders',
+    pesanan: 'my_orders',
+    pesanan_saya: 'my_orders',
+    customer_orders: 'my_orders',
+    orders_saya: 'my_orders',
+    my_invoices: 'my_orders',
+    invoice_saya: 'my_orders'
+  };
+  return aliases[clean] || clean;
+}
+
+function myOrdersIsAction(action) {
+  return action === 'my_orders';
+}
+
+async function myOrdersReadForCurrentCustomer(req, res) {
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const authUserId = String(user.id || '').trim();
+  const userEmail = normalizeAuthEmail(user.email || '');
+  if (!authUserId || !userEmail || !isValidAuthEmail(userEmail)) {
+    return res.status(401).json({ ok: false, message: 'Sesi login tidak valid.' });
+  }
+
+  const owner = await myOrdersResolveOwner(authUserId, userEmail);
+  if (!owner || !Array.isArray(owner.customerIds) || !owner.customerIds.length) {
+    return res.status(403).json({
+      ok: false,
+      service: 'dirac-my-orders',
+      ownership_locked: true,
+      direct_frontend_table_access: false,
+      frontend_customer_id_ignored: true,
+      message: 'Akun login belum terhubung ke customer profile aktif. Pesanan dikunci aman agar tidak salah owner.'
+    });
+  }
+
+  const genericOrders = await myOrdersFetchGenericOrders(owner, userEmail);
+  const domainOrders = await myOrdersFetchDomainOrders(authUserId, userEmail);
+  const allOrders = [...genericOrders.orders, ...domainOrders.orders]
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+    .slice(0, 120);
+
+  const summary = myOrdersBuildSummary(allOrders);
+
+  return res.status(200).json({
+    ok: true,
+    service: 'dirac-my-orders',
+    user: sanitizeUser(user),
+    ownership_locked: true,
+    direct_frontend_table_access: false,
+    frontend_customer_id_ignored: true,
+    payment_gateway_configured: false,
+    payment_note: 'Payment gateway belum aktif. Order unpaid belum boleh dianggap lunas dan belum boleh diproses sebagai paid.',
+    owner: {
+      customer_id_available: Boolean(owner.customerIds.length),
+      customer_ids_count: owner.customerIds.length,
+      source: owner.sources.join(',') || 'auth_email_only'
+    },
+    summary,
+    orders: allOrders,
+    diagnostics: {
+      generic_orders_ready: genericOrders.ok,
+      domain_orders_ready: domainOrders.ok,
+      generic_orders_error: genericOrders.error || null,
+      domain_orders_error: domainOrders.error || null
+    },
+    time: diracNowIso()
+  });
+}
+
+async function myOrdersResolveOwner(authUserId, userEmail) {
+  const customerIds = new Set();
+  const sources = [];
+
+  try {
+    const link = await customerSecurityFetchAuthLink(authUserId);
+    if (link && link.ok && Array.isArray(link.data)) {
+      link.data.forEach((row) => {
+        if (row && row.link_status === 'active' && customerSecurityLooksLikeUuid(row.customer_id)) {
+          customerIds.add(String(row.customer_id));
+        }
+      });
+      if (customerIds.size) sources.push('security_customer_auth_links.active');
+    }
+  } catch (_) {}
+
+  // Strict ownership mode: customers.email is NOT used as an owner fallback.
+  // Orders are shown only when the authenticated backend session has an active
+  // auth_user_id -> customer_id link. This prevents email-based leakage/misassignment.
+  return {
+    customerIds: Array.from(customerIds),
+    email: userEmail,
+    sources: Array.from(new Set(sources))
+  };
+}
+
+async function myOrdersFetchGenericOrders(owner, userEmail) {
+  const orderMap = new Map();
+  const errors = [];
+  const select = 'id,order_id,customer_id,customer_name,customer_email,customer_phone,service_type,subtotal,total,payment_method,payment_status,order_status,created_at';
+
+  async function addRowsFromPath(path) {
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok) {
+      errors.push(myOrdersSafeUpstreamError(result.data) || `HTTP ${result.status}`);
+      return;
+    }
+    const rows = Array.isArray(result.data) ? result.data : [];
+    rows.forEach((row) => {
+      if (row && row.id) orderMap.set(String(row.id), row);
+    });
+  }
+
+  // Strict ownership mode: do not query orders by customer_email.
+  // Only active backend-resolved customer_id values are used.
+  if (owner.customerIds && owner.customerIds.length) {
+    const ids = owner.customerIds.filter(customerSecurityLooksLikeUuid).map(encodeURIComponent).join(',');
+    if (ids) {
+      await addRowsFromPath('/rest/v1/orders?select=' + encodeURIComponent(select) + '&customer_id=in.(' + ids + ')&order=created_at.desc&limit=80');
+    }
+  }
+
+  const orderRows = Array.from(orderMap.values());
+  const itemMap = await myOrdersFetchOrderItems(orderRows.map((row) => row.id));
+
+  return {
+    ok: errors.length === 0 || orderRows.length > 0,
+    error: errors[0] || '',
+    orders: orderRows.map((row) => myOrdersNormalizeGenericOrder(row, itemMap[String(row.id)] || []))
+  };
+}
+
+async function myOrdersFetchOrderItems(orderIds) {
+  const ids = Array.from(new Set((orderIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 120);
+  const map = {};
+  if (!ids.length) return map;
+  const select = 'id,order_id,product_title,quantity,created_at';
+  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')&order=created_at.asc';
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+  if (!result || !result.ok || !Array.isArray(result.data)) return map;
+  result.data.forEach((item) => {
+    const orderId = String(item && item.order_id || '');
+    if (!orderId) return;
+    if (!map[orderId]) map[orderId] = [];
+    map[orderId].push({
+      id: String(item.id || ''),
+      title: myOrdersCleanText(item.product_title || 'Item pesanan', 180),
+      quantity: myOrdersPositiveInteger(item.quantity || 1, 1, 999),
+      created_at: item.created_at || ''
+    });
+  });
+  return map;
+}
+
+function myOrdersNormalizeGenericOrder(row, items) {
+  const total = myOrdersMoney(row.total ?? row.subtotal ?? 0);
+  const orderCode = myOrdersCleanText(row.order_id || row.id, 80);
+  return {
+    type: 'standard_order',
+    id: String(row.id || ''),
+    order_id: orderCode,
+    invoice_code: orderCode,
+    service_type: myOrdersCleanText(row.service_type || 'order', 80),
+    service_label: myOrdersServiceLabel(row.service_type),
+    customer_name: myOrdersCleanText(row.customer_name || '', 120),
+    customer_email: normalizeAuthEmail(row.customer_email || ''),
+    customer_phone: myOrdersCleanText(row.customer_phone || '', 80),
+    subtotal: myOrdersMoney(row.subtotal ?? total),
+    total,
+    currency: 'IDR',
+    payment_method: myOrdersCleanText(row.payment_method || 'Belum dipilih', 80),
+    payment_status: myOrdersStatus(row.payment_status || 'unpaid'),
+    order_status: myOrdersStatus(row.order_status || 'pending'),
+    payment_url: null,
+    can_pay: false,
+    payment_gateway_configured: false,
+    payment_message: 'Payment gateway belum aktif. Invoice ini belum bisa dibayar otomatis.',
+    created_at: row.created_at || '',
+    items: Array.isArray(items) && items.length ? items : [{ title: 'Item pesanan', quantity: 1 }]
+  };
+}
+
+async function myOrdersFetchDomainOrders(authUserId, userEmail) {
+  const errors = [];
+  const select = 'id,user_id,customer_name,customer_whatsapp,customer_email,owner_email,dns_method,target_platform,total_amount,currency,order_status,payment_status,created_at';
+  const rowsMap = new Map();
+
+  async function add(path) {
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+    if (!result || !result.ok) {
+      errors.push(result ? (myOrdersSafeUpstreamError(result.data) || `HTTP ${result.status}`) : 'request_failed');
+      return;
+    }
+    (Array.isArray(result.data) ? result.data : []).forEach((row) => {
+      if (row && row.id) rowsMap.set(String(row.id), row);
+    });
+  }
+
+  await add('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&user_id=eq.' + encodeURIComponent(authUserId) + '&order=created_at.desc&limit=80');
+  // Strict ownership mode: do not query domain_orders by customer_email fallback.
+
+  const rows = Array.from(rowsMap.values());
+  const itemMap = await myOrdersFetchDomainOrderItems(rows.map((row) => row.id));
+  return {
+    ok: errors.length === 0 || rows.length > 0,
+    error: errors[0] || '',
+    orders: rows.map((row) => myOrdersNormalizeDomainOrder(row, itemMap[String(row.id)] || []))
+  };
+}
+
+async function myOrdersFetchDomainOrderItems(orderIds) {
+  const ids = Array.from(new Set((orderIds || []).filter(customerSecurityLooksLikeUuid))).slice(0, 120);
+  const map = {};
+  if (!ids.length) return map;
+  const select = 'id,order_id,domain_name,extension,years,register_price,renewal_price,subtotal';
+  const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select) + '&order_id=in.(' + ids.map(encodeURIComponent).join(',') + ')';
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
+  if (!result || !result.ok || !Array.isArray(result.data)) return map;
+  result.data.forEach((item) => {
+    const orderId = String(item && item.order_id || '');
+    if (!orderId) return;
+    if (!map[orderId]) map[orderId] = [];
+    map[orderId].push({
+      id: String(item.id || ''),
+      title: myOrdersCleanText(item.domain_name || 'Domain', 180),
+      quantity: myOrdersPositiveInteger(item.years || 1, 1, 10),
+      subtotal: myOrdersMoney(item.subtotal || item.register_price || 0),
+      extension: myOrdersCleanText(item.extension || '', 40)
+    });
+  });
+  return map;
+}
+
+function myOrdersNormalizeDomainOrder(row, items) {
+  const total = myOrdersMoney(row.total_amount || 0);
+  const invoiceCode = 'DOM-' + String(row.id || '').slice(0, 8).toUpperCase();
+  return {
+    type: 'domain_order',
+    id: String(row.id || ''),
+    order_id: String(row.id || ''),
+    invoice_code: invoiceCode,
+    service_type: 'domain',
+    service_label: 'Domain',
+    customer_name: myOrdersCleanText(row.customer_name || '', 120),
+    customer_email: normalizeAuthEmail(row.customer_email || row.owner_email || ''),
+    customer_phone: myOrdersCleanText(row.customer_whatsapp || '', 80),
+    subtotal: total,
+    total,
+    currency: String(row.currency || 'IDR').toUpperCase(),
+    payment_method: 'Belum dipilih',
+    payment_status: myOrdersStatus(row.payment_status || 'unpaid'),
+    order_status: myOrdersStatus(row.order_status || 'pending'),
+    payment_url: null,
+    can_pay: false,
+    payment_gateway_configured: false,
+    payment_message: 'Payment gateway domain belum aktif di halaman ini.',
+    created_at: row.created_at || '',
+    items: Array.isArray(items) && items.length ? items : [{ title: 'Domain order', quantity: 1 }]
+  };
+}
+
+function myOrdersBuildSummary(orders) {
+  const rows = Array.isArray(orders) ? orders : [];
+  return {
+    total_orders: rows.length,
+    unpaid: rows.filter((row) => row.payment_status === 'unpaid').length,
+    paid: rows.filter((row) => row.payment_status === 'paid').length,
+    pending: rows.filter((row) => row.order_status === 'pending' || row.order_status === 'pending_payment').length,
+    processing: rows.filter((row) => row.order_status === 'processing').length,
+    completed: rows.filter((row) => row.order_status === 'completed').length,
+    failed: rows.filter((row) => row.order_status === 'failed' || row.order_status === 'cancelled').length,
+    unpaid_total: rows.filter((row) => row.payment_status === 'unpaid').reduce((sum, row) => sum + myOrdersMoney(row.total || 0), 0)
+  };
+}
+
+function myOrdersServiceLabel(value) {
+  const key = String(value || '').trim().toLowerCase();
+  const labels = {
+    parfum: 'Parfum', domain: 'Domain', jasa_website: 'Jasa Website', pengembangan_website: 'Pengembangan Website',
+    topup_game: 'Top Up Game', isi_pulsa: 'Isi Pulsa', paket_data: 'Paket Data', isi_saldo: 'Isi Saldo', isi_saldo_etoll: 'Isi Saldo E-Toll', transfer_luar_negeri: 'Transfer Luar Negeri'
+  };
+  return labels[key] || myOrdersCleanText(value || 'Pesanan', 80).replace(/_/g, ' ');
+}
+
+function myOrdersStatus(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'unknown';
+}
+
+function myOrdersCleanText(value, maxLength) {
+  return String(value || '').trim().replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').slice(0, Math.max(1, Number(maxLength || 120)));
+}
+
+function myOrdersPositiveInteger(value, fallback, max) {
+  const number = Math.trunc(Number(value));
+  if (!Number.isFinite(number) || number < 1) return fallback || 1;
+  return Math.min(number, max || 999);
+}
+
+function myOrdersMoney(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.round(number);
+}
+
+function myOrdersSafeUpstreamError(data) {
+  if (!data) return '';
+  if (typeof data === 'string') return data.slice(0, 180);
+  return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 180);
+}
+
+function myOrdersSafeError(error) {
+  return String(error && error.message ? error.message : error).slice(0, 180);
+}
