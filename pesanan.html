@@ -214,6 +214,182 @@ body[data-theme-ready="1"] .detail-card:before{
 }
 </style>
 
+
+
+<style id="dirac-pesanan-final-compact-theme-clean-v4">
+/* v4 final: eliminate fixed yellow remnants, restore safe animations on the 3 secure points, and make theme settings compact. */
+:root{
+  --accent-text:var(--gold);
+  --accent-bg:rgba(var(--theme-rgb),.09);
+  --accent-bg-2:rgba(var(--theme-rgb),.14);
+  --accent-line:rgba(var(--theme-rgb),.32);
+  --accent-line-2:rgba(var(--theme-rgb),.46);
+}
+/* Remove hard-coded yellow/orange remnants. All these areas follow the dashboard accent color. */
+.eyebrow,
+.hero-title span,
+.metric span,
+.metric strong,
+.money,
+.detail-top h2,
+.connection-pill,
+.invoice-title h3 strong,
+.payment-box,
+.payment-box h3,
+.payment-box p,
+.chip.warn,
+.chip.info,
+.chip.ok{
+  color:var(--accent-text)!important;
+}
+.chip.warn,
+.chip.info,
+.chip.ok,
+.payment-box,
+.eyebrow,
+.detail-empty,
+.metric,
+.invoice-card,
+.detail-card,
+.panel{
+  border-color:var(--accent-line)!important;
+}
+.chip.warn,
+.chip.info,
+.chip.ok,
+.payment-box,
+.eyebrow{
+  background:var(--accent-bg)!important;
+  box-shadow:0 0 0 1px rgba(var(--theme-rgb),.04) inset!important;
+}
+.payment-box{
+  box-shadow:0 16px 38px rgba(var(--theme-rgb),.08)!important;
+}
+.btn.primary{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 36%,#ffffff 64%),var(--gold),var(--gold2))!important;
+  color:#07111d!important;
+  border-color:transparent!important;
+}
+/* Keep dangerous status red only; everything else follows theme. */
+.chip.bad{color:#ffd9d9!important;border-color:rgba(239,68,68,.30)!important;background:rgba(239,68,68,.08)!important;}
+/* Restore the 3 secure-point animations. They stay lightweight and never hide content. */
+.secure-list{position:relative;}
+.secure-item{
+  opacity:1!important;
+  transform:translate3d(0,0,0);
+  animation:secureItemFloat 3.8s var(--soft) infinite;
+}
+.secure-item:nth-child(1){animation-delay:0s;}
+.secure-item:nth-child(2){animation-delay:.42s;}
+.secure-item:nth-child(3){animation-delay:.84s;}
+.secure-dot{
+  background:var(--gold)!important;
+  border:1px solid rgba(var(--theme-rgb),.58)!important;
+  box-shadow:0 0 0 5px rgba(var(--theme-rgb),.10),0 0 20px rgba(var(--theme-rgb),.20)!important;
+  animation:secureDotPulse 1.9s ease-in-out infinite;
+}
+.secure-item:nth-child(1) .secure-dot{animation-delay:0s;}
+.secure-item:nth-child(2) .secure-dot{animation-delay:.3s;}
+.secure-item:nth-child(3) .secure-dot{animation-delay:.6s;}
+.secure-item b{color:var(--gold)!important;}
+@keyframes secureDotPulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 0 5px rgba(var(--theme-rgb),.10),0 0 20px rgba(var(--theme-rgb),.18)}
+  50%{transform:scale(1.16);box-shadow:0 0 0 9px rgba(var(--theme-rgb),.06),0 0 30px rgba(var(--theme-rgb),.34)}
+}
+@keyframes secureItemFloat{
+  0%,100%{transform:translate3d(0,0,0)}
+  50%{transform:translate3d(2px,-1px,0)}
+}
+/* Theme modal compact redesign: same controls, less scrolling. */
+.theme-card.theme-pro-card{
+  width:min(860px,calc(100vw - 24px))!important;
+  max-height:calc(100dvh - 72px)!important;
+  border-radius:28px!important;
+  overflow:hidden!important;
+}
+.theme-head.theme-pro-head{
+  padding:18px 20px 12px!important;
+  display:flex!important;
+  align-items:center!important;
+}
+.theme-head h2{font-size:clamp(1.25rem,4vw,1.65rem)!important;line-height:1.05!important;}
+.theme-head p{font-size:.82rem!important;line-height:1.35!important;max-width:560px!important;}
+.theme-close-btn{width:46px!important;height:46px!important;min-width:46px!important;}
+.theme-body.theme-content{
+  padding:12px 18px 18px!important;
+  max-height:calc(100dvh - 185px)!important;
+  overflow:auto!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:12px 14px!important;
+  scrollbar-width:thin;
+}
+.theme-section{
+  padding:12px!important;
+  margin:0!important;
+  border:1px solid rgba(var(--theme-rgb),.13)!important;
+  border-radius:20px!important;
+  background:rgba(255,255,255,.025)!important;
+}
+.theme-section h3{font-size:.98rem!important;margin:0 0 9px!important;line-height:1.15!important;}
+.theme-choice-grid,
+.theme-language-grid,
+.theme-contrast-grid,
+.motion-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+.theme-language-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+.theme-pro-choice,
+.theme-choice{
+  min-height:42px!important;
+  border-radius:15px!important;
+  padding:8px 10px!important;
+  font-size:.84rem!important;
+  line-height:1.1!important;
+  gap:7px!important;
+}
+.lang-badge{width:30px!important;height:30px!important;border-radius:10px!important;font-size:.64rem!important;}
+.choice-symbol{font-size:1rem!important;}
+.theme-swatches.custom-theme-grid{
+  display:grid!important;
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+.theme-swatch,.theme-swatch-choice{
+  width:auto!important;
+  height:42px!important;
+  min-height:42px!important;
+  border-radius:14px!important;
+}
+.theme-swatch .swatch,.theme-swatch-choice .swatch{width:100%!important;height:100%!important;border-radius:inherit!important;}
+.theme-section[aria-label="Kustom warna utama"]{grid-column:1/-1!important;}
+/* Make filter controls more usable on mobile. */
+.toolbar .field{border-color:rgba(var(--theme-rgb),.18)!important;}
+.toolbar .field:focus{border-color:var(--gold)!important;}
+@media(max-width:760px){
+  .theme-card.theme-pro-card{width:calc(100vw - 20px)!important;max-height:calc(100dvh - 48px)!important;border-radius:24px!important;}
+  .theme-head.theme-pro-head{padding:16px 16px 10px!important;}
+  .theme-body.theme-content{grid-template-columns:1fr!important;gap:10px!important;padding:10px 14px 14px!important;max-height:calc(100dvh - 158px)!important;}
+  .theme-section{padding:10px!important;border-radius:18px!important;}
+  .theme-language-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .theme-swatches.custom-theme-grid{grid-template-columns:repeat(8,minmax(0,1fr))!important;gap:7px!important;}
+  .theme-swatch,.theme-swatch-choice{height:38px!important;min-height:38px!important;}
+  .theme-pro-choice,.theme-choice{min-height:40px!important;font-size:.8rem!important;}
+}
+@media(max-width:430px){
+  .theme-language-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .theme-swatches.custom-theme-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+  .lang-badge{display:grid!important;}
+}
+@media(prefers-reduced-motion:reduce){
+  .secure-item,.secure-dot{animation:none!important;transform:none!important;}
+}
+html[data-motion="reduced"] .secure-item,
+html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!important;}
+</style>
+
 </head>
 <body class="gate-hardlocked gate-checking">
   <a class="skip-link" href="#main">Lewati ke konten utama</a>
