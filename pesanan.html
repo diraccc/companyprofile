@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="id" data-theme="dark" data-motion="full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07090d">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, private, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:">
+  <title>Pesanan Saya - Dirac Group</title>
+  <meta name="description" content="Halaman pesanan customer Dirac Group yang aman, ownership-locked, backend-only, dan siap payment gateway.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#050608;--panel:#101722;--panel2:#141d2a;--panel3:#192336;--gold:#f3cd70;--gold2:#d6a642;--gold3:#8e6425;
+      --text:#f8fafc;--muted:#aeb7c6;--sub:#7d899e;--ok:#18b981;--bad:#ef4444;--warn:#f59e0b;--info:#38bdf8;
+      --line:rgba(243,205,112,.18);--line2:rgba(243,205,112,.36);--shadow:0 24px 70px rgba(0,0,0,.45);--max:1180px;
+      --ease:cubic-bezier(.22,1,.36,1);--soft:cubic-bezier(.16,1,.3,1);
+    }
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);background:radial-gradient(circle at 10% 0%,rgba(243,205,112,.18),transparent 34rem),radial-gradient(circle at 86% 8%,rgba(56,189,248,.10),transparent 28rem),linear-gradient(180deg,#07090d,#030405 64%,#070a10);overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom)}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(#000,transparent 78%)}
+    a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}.wrap{width:min(var(--max),calc(100% - 28px));margin-inline:auto}.muted{color:var(--muted)}
+    .skip-link{position:absolute;left:-999px;top:10px}.skip-link:focus{left:12px;z-index:99;background:#111927;color:#fff;border:1px solid var(--line2);border-radius:12px;padding:10px}
+    .top-strip{border-bottom:1px solid rgba(255,255,255,.06);background:linear-gradient(90deg,rgba(243,205,112,.11),rgba(56,189,248,.055),rgba(24,185,129,.055))}.top-strip .wrap{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;font-size:.78rem;color:#dbe4f0;font-weight:800}
+    .site-header{position:sticky;top:max(8px,env(safe-area-inset-top));z-index:50;padding-top:10px;background:transparent}.nav{width:min(var(--max),calc(100% - 28px));margin-inline:auto;min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:32px;background:radial-gradient(circle at 12% 0%,rgba(243,205,112,.12),transparent 10rem),linear-gradient(145deg,rgba(9,13,21,.94),rgba(15,22,34,.90));border:1px solid rgba(243,205,112,.22);box-shadow:0 18px 54px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06)}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0;font-weight:900}.brand-mark{width:52px;height:52px;border-radius:18px;display:grid;place-items:center;font-family:"Playfair Display",serif;font-weight:900;color:#17100a;background:linear-gradient(135deg,#fff4c8,var(--gold),var(--gold3));box-shadow:0 12px 28px rgba(243,205,112,.18)}.brand-name{font-family:"Playfair Display",serif;font-size:1.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand-sub{display:block;color:var(--muted);font-size:.72rem;font-family:Poppins;font-weight:800;margin-top:-2px}.nav-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto}
+    .btn,.icon-btn{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.065);color:#fff;border-radius:999px;font-weight:900;min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.22s var(--ease);position:relative;overflow:hidden}.btn{padding:10px 14px}.icon-btn{width:42px}.btn.primary{color:#17100a;background:linear-gradient(135deg,#fff2c3,var(--gold),#bd832c);border:0;box-shadow:0 14px 32px rgba(243,205,112,.18)}.btn.danger{border-color:rgba(239,68,68,.26);background:rgba(239,68,68,.10);color:#ffe2e2}.btn:hover,.icon-btn:hover{transform:translateY(-1px);filter:brightness(1.05)}.btn:disabled{opacity:.50;cursor:not-allowed;transform:none!important;filter:grayscale(.25)}
+    main{padding:18px 0 42px}.hero{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:stretch}.panel,.metric,.invoice-card,.detail-card{position:relative;overflow:hidden;border:1px solid var(--line);background:linear-gradient(180deg,rgba(17,25,39,.88),rgba(8,12,19,.90));border-radius:24px;box-shadow:var(--shadow)}.panel:before,.metric:before,.invoice-card:before,.detail-card:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(243,205,112,.08),transparent 58%);opacity:.72}.panel>*{position:relative;z-index:1}
+    .hero-main{padding:22px}.eyebrow{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(243,205,112,.08);color:#f8e6b7;border-radius:999px;padding:7px 10px;font-weight:900;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}.hero-title{font-family:"Playfair Display",serif;margin:12px 0 8px;font-size:clamp(2rem,5.4vw,4rem);line-height:.96;letter-spacing:-.04em}.hero-title span{color:var(--gold)}.hero-copy{margin:0;color:var(--muted);max-width:740px;font-size:.95rem}.hero-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.secure-box{padding:18px}.secure-box h2{margin:0 0 8px;font-size:1.05rem}.secure-list{display:grid;gap:9px;margin-top:12px}.secure-item{display:flex;gap:9px;align-items:flex-start;color:#dce5f2;font-size:.8rem}.secure-dot{width:10px;height:10px;border-radius:50%;background:var(--ok);margin-top:5px;box-shadow:0 0 0 5px rgba(24,185,129,.11);flex:0 0 auto}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}.metric{padding:15px;min-height:118px}.metric>*{position:relative;z-index:1}.metric h3{margin:0;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;margin-top:8px;font-size:1.55rem;line-height:1;letter-spacing:-.04em}.metric span{display:block;color:#f8e8bf;font-size:.78rem;margin-top:8px;font-weight:800}
+    .toolbar{display:grid;grid-template-columns:1fr 190px 190px auto;gap:10px;margin:14px 0}.field{width:100%;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.06);color:#fff;padding:12px 13px;outline:none;min-height:46px}.field:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(243,205,112,.10)}select.field option{background:#111827;color:#fff}
+    .orders-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}.orders-list{display:grid;gap:12px}.invoice-card{padding:15px;transition:.22s var(--ease)}.invoice-card:hover,.invoice-card.active{transform:translateY(-2px);border-color:var(--line2);box-shadow:0 26px 76px rgba(0,0,0,.48)}.invoice-card>*{position:relative;z-index:1}.invoice-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.invoice-title{min-width:0}.invoice-title h3{margin:0;font-size:1rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.invoice-title p{margin:4px 0 0;color:var(--muted);font-size:.76rem}.chip-row{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);font-size:.72rem;font-weight:900;white-space:nowrap}.chip.ok{color:#cffff0;border-color:rgba(24,185,129,.24);background:rgba(24,185,129,.08)}.chip.warn{color:#ffedc7;border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.08)}.chip.bad{color:#ffd9d9;border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}.chip.info{color:#dff7ff;border-color:rgba(56,189,248,.22);background:rgba(56,189,248,.08)}
+    .invoice-meta{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}.money{font-size:1.22rem;color:#f6d989;font-weight:950;letter-spacing:-.02em}.items-preview{margin-top:8px;color:#cbd5e1;font-size:.82rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.card-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.small{min-height:36px;padding:8px 11px;font-size:.76rem}
+    .detail-card{position:sticky;top:112px;padding:18px}.detail-card>*{position:relative;z-index:1}.detail-empty{text-align:center;color:var(--muted);padding:42px 16px;border:1px dashed rgba(243,205,112,.26);border-radius:20px}.detail-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.detail-top h2{margin:0;font-family:"Playfair Display",serif;color:var(--gold);font-size:1.65rem;line-height:1}.detail-lines{display:grid;gap:8px;margin:14px 0}.detail-line{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:.84rem}.detail-line span:first-child{color:var(--muted)}.detail-line b{text-align:right}.detail-items{display:grid;gap:8px;margin-top:10px}.detail-item{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);border-radius:16px;padding:10px}.detail-item strong{display:block;font-size:.86rem}.detail-item span{display:block;color:var(--muted);font-size:.76rem;margin-top:2px}.payment-box{margin-top:14px;padding:14px;border-radius:20px;border:1px solid rgba(245,158,11,.24);background:rgba(245,158,11,.08);color:#ffe9bd}.payment-box h3{margin:0 0 6px;font-size:.96rem}.payment-box p{margin:0;color:#fbe7bd;font-size:.82rem;line-height:1.55}.detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.detail-actions .full{grid-column:1/-1}
+    .gate{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:rgba(5,6,8,.90);backdrop-filter:blur(12px);padding:18px;text-align:center}.gate[hidden]{display:none}.gate-card{width:min(520px,100%);border:1px solid rgba(243,205,112,.24);background:linear-gradient(180deg,rgba(17,25,39,.96),rgba(8,12,19,.96));border-radius:26px;padding:22px;box-shadow:var(--shadow)}.gate-card h1{margin:8px 0;font-family:"Playfair Display",serif;color:var(--gold);font-size:2rem}.gate-card p{color:var(--muted);margin:0 0 16px}.spinner{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--gold);animation:spin 1s linear infinite;margin:0 auto}@keyframes spin{to{transform:rotate(360deg)}}
+    .empty-state,.error-state{padding:34px;border:1px dashed rgba(243,205,112,.28);background:rgba(243,205,112,.04);border-radius:22px;text-align:center;color:var(--muted)}.empty-state b,.error-state b{display:block;color:#fff;margin-bottom:5px}.error-state{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:#ffd5d5}.toast{position:fixed;left:50%;bottom:20px;z-index:12000;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:rgba(10,13,18,.94);color:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 15px;box-shadow:0 18px 50px rgba(0,0,0,.40);transition:.25s var(--ease);max-width:min(92vw,580px);text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
+    .footer{padding:28px 0;color:#7f8a9c;font-size:.82rem}.footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.08);padding-top:16px}
+    .reveal{opacity:0;transform:translateY(12px);animation:in .55s var(--soft) forwards}.reveal.d1{animation-delay:.06s}.reveal.d2{animation-delay:.12s}.reveal.d3{animation-delay:.18s}@keyframes in{to{opacity:1;transform:none}}
+    @media(max-width:1060px){.hero,.orders-layout{grid-template-columns:1fr}.detail-card{position:relative;top:auto}.metrics{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.toolbar .btn{grid-column:1/-1}}
+    @media(max-width:700px){.wrap{width:min(var(--max),calc(100% - 20px))}.top-strip .wrap{font-size:.72rem;align-items:flex-start}.nav{width:calc(100% - 18px);min-height:70px;border-radius:28px;padding:9px 11px}.brand-mark{width:46px;height:46px;border-radius:16px}.brand-name{font-size:1.05rem}.brand-sub{display:none}.nav-actions .btn span{display:none}.hero-main{padding:18px}.secure-box{padding:14px}.metrics{gap:8px}.metric{padding:12px;min-height:100px}.metric strong{font-size:1.25rem}.toolbar{grid-template-columns:1fr}.invoice-head,.invoice-meta{grid-template-columns:1fr;display:grid}.card-actions{justify-content:flex-start}.detail-actions{grid-template-columns:1fr}.detail-actions .full{grid-column:auto}.invoice-title h3{white-space:normal}.footer{padding-bottom:76px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.reveal{opacity:1;transform:none}}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Lewati ke konten utama</a>
+  <div class="top-strip" role="note">
+    <div class="wrap">
+      <span>Pesanan Saya · ownership dikunci backend · customer_id tidak diambil dari frontend.</span>
+      <span id="connectionLabel">Memuat sesi...</span>
+    </div>
+  </div>
+  <header class="site-header">
+    <nav class="nav" aria-label="Navigasi utama">
+      <a class="brand" href="dashboard.html" aria-label="Kembali ke dashboard">
+        <span class="brand-mark">D</span>
+        <span><span class="brand-name">Dirac Group</span><span class="brand-sub">Pesanan Saya</span></span>
+      </a>
+      <div class="nav-actions">
+        <a class="btn" href="dashboard.html"><span>Dashboard</span>⌂</a>
+        <button class="icon-btn" id="refreshBtn" type="button" aria-label="Refresh pesanan">↻</button>
+        <button class="btn danger" id="logoutBtn" type="button"><span>Logout</span>⎋</button>
+      </div>
+    </nav>
+  </header>
+  <main class="wrap" id="main">
+    <section class="hero">
+      <article class="panel hero-main reveal">
+        <span class="eyebrow">🧾 Invoice Center</span>
+        <h1 class="hero-title">Semua pesanan <span>di satu tempat.</span></h1>
+        <p class="hero-copy">Halaman ini hanya menampilkan pesanan milik akun yang sedang login. Data pemilik pesanan ditentukan oleh backend melalui sesi login, bukan input dari halaman.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="parfum.html">Belanja Parfum</a>
+          <a class="btn" href="layanan-digital.html">Layanan Digital</a>
+          <a class="btn" href="domain.html">Domain</a>
+        </div>
+      </article>
+      <aside class="panel secure-box reveal d1">
+        <h2>Mode aman</h2>
+        <p class="muted" style="margin:0;font-size:.86rem">Tidak ada direct database dari browser. Tidak ada customer_id dari frontend.</p>
+        <div class="secure-list">
+          <div class="secure-item"><span class="secure-dot"></span><span>Session dicek ke backend satu domain: <b>/api/health</b>.</span></div>
+          <div class="secure-item"><span class="secure-dot"></span><span>Payment belum aktif, jadi invoice unpaid belum bisa dianggap lunas.</span></div>
+          <div class="secure-item"><span class="secure-dot"></span><span>Kalau gateway aktif nanti, paid hanya dari webhook valid.</span></div>
+        </div>
+      </aside>
+    </section>
+    <section class="metrics reveal d2" aria-label="Ringkasan pesanan">
+      <article class="metric"><h3>Total invoice</h3><strong id="mTotal">0</strong><span>Semua layanan</span></article>
+      <article class="metric"><h3>Belum dibayar</h3><strong id="mUnpaid">0</strong><span id="mUnpaidTotal">Rp0</span></article>
+      <article class="metric"><h3>Diproses</h3><strong id="mProcessing">0</strong><span>Menunggu admin/supplier</span></article>
+      <article class="metric"><h3>Selesai</h3><strong id="mCompleted">0</strong><span>Order completed</span></article>
+    </section>
+    <section class="toolbar reveal d3" aria-label="Filter pesanan">
+      <input id="searchInput" class="field" type="search" placeholder="Cari kode invoice, produk, layanan...">
+      <select id="statusFilter" class="field" aria-label="Filter status pembayaran">
+        <option value="all">Semua status</option>
+        <option value="unpaid">Belum dibayar</option>
+        <option value="paid">Sudah dibayar</option>
+        <option value="processing">Processing</option>
+        <option value="completed">Selesai</option>
+        <option value="failed">Gagal/Batal</option>
+      </select>
+      <select id="serviceFilter" class="field" aria-label="Filter layanan">
+        <option value="all">Semua layanan</option>
+      </select>
+      <button id="manualRefreshBtn" class="btn primary" type="button">Refresh</button>
+    </section>
+    <section class="orders-layout">
+      <div class="orders-list" id="ordersList" aria-live="polite">
+        <div class="empty-state"><b>Memuat pesanan...</b>Mohon tunggu sebentar.</div>
+      </div>
+      <aside class="detail-card" id="detailPanel" aria-label="Detail invoice">
+        <div class="detail-empty"><b>Pilih invoice</b><br>Detail pembayaran dan item akan muncul di sini.</div>
+      </aside>
+    </section>
+  </main>
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <div class="spinner"></div>
+      <h1>Memeriksa sesi</h1>
+      <p>Backend sedang memastikan pesanan ini benar-benar milik akun kamu.</p>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <footer class="footer"><div class="wrap"><span>Dirac Group · Pesanan Saya</span><span>Backend-only ownership · no frontend customer_id</span></div></footer>
+  <script>
+    'use strict';
+    const API = '/api/health';
+    const LOGIN_PAGE = 'masuk.html';
+    const WHATSAPP_ADMIN = '6281234567890';
+    const state = { orders: [], filtered: [], selectedId: '', loading: false };
+    const $ = (s, r=document) => r.querySelector(s);
+    const fmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
+    function apiUrl(action){ const u = new URL(API, window.location.origin); u.searchParams.set('action', action); return u.toString(); }
+    function clean(v){ return String(v ?? '').replace(/[\u0000-\u001f\u007f]/g,' ').trim(); }
+    function money(v){ const n = Number(v || 0); return Number.isFinite(n) ? fmt.format(n).replace(/\s/g,'') : 'Rp0'; }
+    function dateFmt(v){ if(!v) return '—'; const d = new Date(v); if(!Number.isFinite(d.getTime())) return '—'; try{return new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(_){return d.toISOString()} }
+    function statusLabel(s){ const key=clean(s).toLowerCase(); return ({unpaid:'Belum dibayar',paid:'Sudah dibayar',pending:'Pending',pending_payment:'Menunggu pembayaran',processing:'Diproses',completed:'Selesai',failed:'Gagal',cancelled:'Dibatalkan'})[key] || (key ? key.replace(/_/g,' ') : 'Unknown'); }
+    function statusClass(s){ const key=clean(s).toLowerCase(); if(['paid','completed','success'].includes(key)) return 'ok'; if(['failed','cancelled','expired'].includes(key)) return 'bad'; if(['processing'].includes(key)) return 'info'; return 'warn'; }
+    function toast(msg){ const el=$('#toast'); if(!el) return; el.textContent=msg; el.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('show'),4200); }
+    async function fetchJson(action, options={}){
+      const res = await fetch(apiUrl(action), { method: options.method || 'GET', credentials:'include', cache:'no-store', headers:{Accept:'application/json'}, body: options.body ? JSON.stringify(options.body) : undefined });
+      const txt = await res.text(); let data; try{ data = txt ? JSON.parse(txt) : {}; }catch(_){ data = { ok:false, message: txt.slice(0,220) }; }
+      return { ok: res.ok && !!data.ok, status: res.status, data };
+    }
+    async function loadOrders(){
+      if(state.loading) return; state.loading=true; $('#connectionLabel').textContent='Menghubungi backend...';
+      try{
+        const result = await fetchJson('my_orders');
+        if(!result.ok){
+          if(result.status === 401){ showLocked(result.data && result.data.message ? result.data.message : 'Belum login atau sesi habis.'); return; }
+          renderError(result.data && result.data.message ? result.data.message : 'Gagal memuat pesanan.'); return;
+        }
+        $('#gate').hidden = true; $('#connectionLabel').textContent='Ownership aktif';
+        state.orders = Array.isArray(result.data.orders) ? result.data.orders : [];
+        renderSummary(result.data.summary || {}); buildServiceFilter(state.orders); applyFilters();
+      }catch(e){ renderError('Tidak bisa menghubungi API. Pastikan /api/health aktif di domain ini.'); }
+      finally{ state.loading=false; }
+    }
+    function showLocked(message){
+      const gate=$('#gate'); gate.hidden=false; gate.innerHTML='<div class="gate-card"><h1>Sesi belum valid</h1><p>'+escapeHtml(message || 'Login ulang untuk melihat pesanan.')+'</p><a class="btn primary" href="'+LOGIN_PAGE+'">Login ulang</a></div>';
+      $('#connectionLabel').textContent='Terkunci';
+    }
+    function renderError(message){ $('#gate').hidden=true; $('#ordersList').innerHTML='<div class="error-state"><b>Gagal memuat pesanan</b>'+escapeHtml(message)+'</div>'; $('#connectionLabel').textContent='Error'; }
+    function renderSummary(s){
+      $('#mTotal').textContent = Number(s.total_orders || 0); $('#mUnpaid').textContent = Number(s.unpaid || 0); $('#mProcessing').textContent = Number(s.processing || 0); $('#mCompleted').textContent = Number(s.completed || 0); $('#mUnpaidTotal').textContent = money(s.unpaid_total || 0);
+    }
+    function buildServiceFilter(orders){
+      const sel=$('#serviceFilter'); const current=sel.value || 'all'; const services = Array.from(new Map(orders.map(o => [o.service_type || 'order', o.service_label || o.service_type || 'Pesanan'])).entries()).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
+      sel.innerHTML='<option value="all">Semua layanan</option>' + services.map(([k,v]) => '<option value="'+escapeAttr(k)+'">'+escapeHtml(v)+'</option>').join(''); if([...sel.options].some(o=>o.value===current)) sel.value=current;
+    }
+    function applyFilters(){
+      const q=clean($('#searchInput').value).toLowerCase(); const st=$('#statusFilter').value; const sv=$('#serviceFilter').value;
+      state.filtered = state.orders.filter(o => {
+        const hay = [o.invoice_code,o.order_id,o.service_label,o.service_type,(o.items||[]).map(i=>i.title).join(' ')].join(' ').toLowerCase();
+        const statusMatch = st === 'all' || o.payment_status === st || o.order_status === st || (st === 'failed' && ['failed','cancelled'].includes(o.order_status));
+        const serviceMatch = sv === 'all' || o.service_type === sv;
+        return (!q || hay.includes(q)) && statusMatch && serviceMatch;
+      });
+      renderOrders();
+    }
+    function renderOrders(){
+      const root=$('#ordersList'); root.innerHTML='';
+      if(!state.filtered.length){ root.innerHTML='<div class="empty-state"><b>Belum ada pesanan</b>Invoice yang kamu buat akan muncul di sini setelah checkout.</div>'; renderDetail(null); return; }
+      state.filtered.forEach(o => root.appendChild(orderCard(o)));
+      const selected = state.filtered.find(o => o.id === state.selectedId) || state.filtered[0]; state.selectedId = selected.id; markActive(); renderDetail(selected);
+    }
+    function orderCard(o){
+      const el=document.createElement('article'); el.className='invoice-card'; el.dataset.id=o.id;
+      const itemText=(o.items||[]).map(i => clean(i.title) + ' × ' + Number(i.quantity||1)).join(', ');
+      el.innerHTML='<div class="invoice-head"><div class="invoice-title"><h3>'+escapeHtml(o.invoice_code || o.order_id || 'Invoice')+'</h3><p>'+escapeHtml(o.service_label || 'Pesanan')+' · '+escapeHtml(dateFmt(o.created_at))+'</p></div><div class="money">'+money(o.total)+'</div></div><div class="chip-row"><span class="chip '+statusClass(o.payment_status)+'">Pembayaran: '+escapeHtml(statusLabel(o.payment_status))+'</span><span class="chip '+statusClass(o.order_status)+'">Order: '+escapeHtml(statusLabel(o.order_status))+'</span></div><div class="invoice-meta"><div><div class="items-preview">'+escapeHtml(itemText || 'Item pesanan')+'</div></div><div class="card-actions"><button class="btn small" type="button" data-detail="1">Detail</button><button class="btn small primary" type="button" data-pay="1" disabled>Bayar</button></div></div>';
+      el.addEventListener('click', () => { state.selectedId=o.id; markActive(); renderDetail(o); });
+      el.querySelector('[data-pay]')?.addEventListener('click', ev => { ev.stopPropagation(); toast('Payment gateway belum aktif. Invoice masih unpaid dan belum bisa dibayar otomatis.'); });
+      return el;
+    }
+    function markActive(){ document.querySelectorAll('.invoice-card').forEach(c => c.classList.toggle('active', c.dataset.id === state.selectedId)); }
+    function renderDetail(o){
+      const root=$('#detailPanel');
+      if(!o){ root.innerHTML='<div class="detail-empty"><b>Pilih invoice</b><br>Detail pembayaran dan item akan muncul di sini.</div>'; return; }
+      const items=(o.items||[]).map(i => '<div class="detail-item"><strong>'+escapeHtml(i.title || 'Item')+'</strong><span>Jumlah: '+Number(i.quantity||1)+'</span></div>').join('');
+      const wa = 'https://wa.me/'+WHATSAPP_ADMIN+'?text='+encodeURIComponent('Halo admin Dirac Group, saya mau tanya invoice '+(o.invoice_code || o.order_id)+' total '+money(o.total)+'. Status sekarang '+statusLabel(o.payment_status)+'.');
+      root.innerHTML='<div class="detail-top"><div><h2>'+escapeHtml(o.invoice_code || 'Invoice')+'</h2><p class="muted" style="margin:6px 0 0;font-size:.82rem">'+escapeHtml(o.service_label || 'Pesanan')+'</p></div><span class="chip '+statusClass(o.payment_status)+'">'+escapeHtml(statusLabel(o.payment_status))+'</span></div><div class="detail-lines"><div class="detail-line"><span>Kode order</span><b>'+escapeHtml(o.order_id || o.id)+'</b></div><div class="detail-line"><span>Tanggal</span><b>'+escapeHtml(dateFmt(o.created_at))+'</b></div><div class="detail-line"><span>Status order</span><b>'+escapeHtml(statusLabel(o.order_status))+'</b></div><div class="detail-line"><span>Total</span><b>'+money(o.total)+'</b></div><div class="detail-line"><span>Metode bayar</span><b>'+escapeHtml(o.payment_method || 'Belum dipilih')+'</b></div></div><h3 style="margin:12px 0 8px;font-size:.95rem">Item pesanan</h3><div class="detail-items">'+(items || '<div class="detail-item"><strong>Item belum tersedia</strong></div>')+'</div><div class="payment-box"><h3>Menunggu pembayaran</h3><p>'+escapeHtml(o.payment_message || 'Payment gateway belum aktif. Pesanan belum dibayar dan belum boleh diproses sebagai paid.')+'</p></div><div class="detail-actions"><button class="btn primary" type="button" id="payNow" disabled>Bayar Sekarang</button><a class="btn" href="'+wa+'" target="_blank" rel="noopener">Tanya Admin</a><button class="btn full" type="button" id="copyInvoice">Salin kode invoice</button></div>';
+      $('#payNow')?.addEventListener('click', () => toast('Payment gateway belum aktif. Tombol bayar akan aktif setelah gateway dipasang.'));
+      $('#copyInvoice')?.addEventListener('click', async () => { try{ await navigator.clipboard.writeText(o.invoice_code || o.order_id || o.id); toast('Kode invoice disalin.'); }catch(_){ toast('Kode invoice: '+(o.invoice_code || o.order_id || o.id)); } });
+    }
+    async function logout(){ try{ await fetchJson('domain_logout', {method:'POST'}); }catch(_){} window.location.href=LOGIN_PAGE; }
+    function escapeHtml(v){ return clean(v).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+    function escapeAttr(v){ return escapeHtml(v).replace(/'/g,'&#39;'); }
+    $('#refreshBtn').addEventListener('click', loadOrders); $('#manualRefreshBtn').addEventListener('click', loadOrders); $('#logoutBtn').addEventListener('click', logout); $('#searchInput').addEventListener('input', applyFilters); $('#statusFilter').addEventListener('change', applyFilters); $('#serviceFilter').addEventListener('change', applyFilters);
+    window.addEventListener('pageshow', e => { if(e.persisted) loadOrders(); }); document.addEventListener('visibilitychange', () => { if(!document.hidden) loadOrders(); });
+    loadOrders();
+  </script>
+</body>
+</html>
