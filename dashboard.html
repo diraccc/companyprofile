@@ -333,12 +333,17 @@ html[data-effective-theme="light"] .dirac-3d-backdrop{opacity:.35}.gate-locked .
 html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dirac-3d-stage,html[data-motion="reduced"] [data-dirac-tilt]{animation:none!important;transform:none!important}html[data-motion="reduced"] .dirac-3d-grid,html[data-motion="reduced"] .dirac-3d-orb,html[data-motion="reduced"] .dirac-3d-ring,html[data-motion="reduced"] .dirac-3d-stack,html[data-motion="reduced"] .dirac-3d-cube{animation:none!important} @media(prefers-reduced-motion:reduce){.dirac-3d-grid,.dirac-3d-orb,.dirac-3d-ring,.dirac-3d-stack,.dirac-3d-cube{animation:none!important}.app-welcome-card[data-dirac-tilt],.app-control-card[data-dirac-tilt],.app-metric[data-dirac-tilt],.app-service[data-dirac-tilt],.app-panel[data-dirac-tilt],.app-action[data-dirac-tilt],.app-mini-card[data-dirac-tilt]{transform:none!important}}
 </style>
 
+
+<style id="dirac-dashboard-orders-payment-css">
+.dirac-orders-section{scroll-margin-top:110px}.dirac-payment-warning{border:1px dashed rgba(243,205,112,.34);background:rgba(243,205,112,.075);color:#fff1be;border-radius:22px;padding:13px 15px;font-size:.88rem;line-height:1.55;margin:0 0 14px}.dirac-payment-warning strong{color:#fff}.dirac-order-list{display:grid;gap:12px}.dirac-order-card{border:1px solid rgba(255,255,255,.10);background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028));border-radius:26px;padding:16px;box-shadow:0 18px 42px rgba(0,0,0,.20);overflow:hidden}.dirac-order-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:12px;margin-bottom:12px}.dirac-order-top h3{margin:0;color:#fff;font-size:1.02rem;line-height:1.25}.dirac-order-top small{display:block;color:var(--muted);margin-top:4px}.dirac-order-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#f8e6a7;font-weight:950;overflow-wrap:anywhere}.dirac-order-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.dirac-order-cell{border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.04);border-radius:16px;padding:10px}.dirac-order-cell small{display:block;color:var(--muted);font-size:.68rem;font-weight:850;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}.dirac-order-cell strong{display:block;color:#fff;line-height:1.25;overflow-wrap:anywhere}.dirac-order-total{color:#f8e6a7!important;font-size:1.08rem}.dirac-order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.dirac-order-actions .app-link{min-height:40px}.dirac-pay-pending{border-color:rgba(245,158,11,.32)!important;background:rgba(245,158,11,.12)!important;color:#fff0c7!important}.dirac-pay-paid{border-color:rgba(24,185,129,.32)!important;background:rgba(24,185,129,.12)!important;color:#d1fae5!important}.dirac-pay-failed{border-color:rgba(239,68,68,.32)!important;background:rgba(239,68,68,.12)!important;color:#fee2e2!important}.dirac-disabled-pay{opacity:.68;cursor:not-allowed!important;filter:grayscale(.12)}@media(max-width:900px){.dirac-order-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.dirac-order-top{flex-direction:column}.dirac-order-grid{grid-template-columns:1fr}.dirac-order-actions .app-link{width:100%}}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
   <div class="announcement">
     <div class="container">
       <span data-i18n="announce">Dashboard pelanggan Dirac Group — ringkasan semua layanan dalam satu tempat</span>
-      <a href="order1.html" data-i18n="openCatalog">Buka katalog</a>
+      <a href="parfum.html" data-i18n="openCatalog">Buka katalog</a>
     </div>
   </div>
 
@@ -448,13 +453,25 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
           </div>
           <div class="app-no-results" id="serviceNoResults"><strong>Layanan tidak ditemukan</strong><span>Coba kata kunci lain seperti parfum, domain, invoice, resi, website, atau bantuan.</span></div>
           <div class="app-services" id="serviceGrid">
-            <article class="app-service" data-service-card data-keywords="parfum produk pengiriman pesanan katalog"><div><div class="app-service-head"><span class="app-iconbox">🌸</span><span class="app-chip info">Belum ada pesanan</span></div><h3>Parfum</h3><p>Pantau pembelian parfum, pengiriman, review, dan riwayat pesanan.</p><div class="app-service-tags"><span class="app-tag">Produk utama</span><span class="app-tag">Pengiriman</span></div></div><div class="app-service-foot"><span class="muted">Katalog</span><a class="app-link" href="order1.html">Buka</a></div></article>
+            <article class="app-service" data-service-card data-keywords="parfum produk pengiriman pesanan katalog"><div><div class="app-service-head"><span class="app-iconbox">🌸</span><span class="app-chip info">Belum ada pesanan</span></div><h3>Parfum</h3><p>Pantau pembelian parfum, pengiriman, review, dan riwayat pesanan.</p><div class="app-service-tags"><span class="app-tag">Produk utama</span><span class="app-tag">Pengiriman</span></div></div><div class="app-service-foot"><span class="muted">Katalog</span><a class="app-link" href="parfum.html">Buka</a></div></article>
             <article class="app-service" data-service-card data-keywords="domain renewal expired dns website"><div><div class="app-service-head"><span class="app-iconbox">🌐</span><span class="app-chip info">Belum ada domain</span></div><h3>Domain</h3><p>Lihat domain aktif, masa berlaku, renewal, dan kebutuhan pengelolaan domain.</p><div class="app-service-tags"><span class="app-tag">Digital</span><span class="app-tag">Renewal</span></div></div><div class="app-service-foot"><span class="muted">Admin</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Tanya</a></div></article>
             <article class="app-service" data-service-card data-keywords="project website development revisi desain maintenance"><div><div class="app-service-head"><span class="app-iconbox">💻</span><span class="app-chip info">Belum ada project</span></div><h3>Project Website</h3><p>Pantau pembuatan, pengembangan, revisi, approval, dan maintenance website.</p><div class="app-service-tags"><span class="app-tag">Progress</span><span class="app-tag">Revisi</span></div></div><div class="app-service-foot"><span class="muted">Konsultasi</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Chat</a></div></article>
             <article class="app-service" data-service-card data-keywords="cek resi tracking pengiriman kurir paket"><div><div class="app-service-head"><span class="app-iconbox">🚚</span><span class="app-chip info">Siap dicek</span></div><h3>Cek Resi</h3><p>Lacak paket dan bantu pelanggan mengetahui status pengiriman.</p><div class="app-service-tags"><span class="app-tag">Kurir</span><span class="app-tag">Tracking</span></div></div><div class="app-service-foot"><span class="muted">Pengiriman</span><button class="app-link" type="button" data-open-tracking>Cek</button></div></article>
             <article class="app-service" data-service-card data-keywords="nomor layanan legal masa aktif"><div><div class="app-service-head"><span class="app-iconbox">📱</span><span class="app-chip info">Belum aktif</span></div><h3>Layanan Nomor</h3><p>Lihat layanan nomor legal, masa aktif, invoice, dan bantuan penggunaan.</p><div class="app-service-tags"><span class="app-tag">Legal</span><span class="app-tag">Masa aktif</span></div></div><div class="app-service-foot"><span class="muted">Sesuai aturan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Tanya</a></div></article>
             <article class="app-service" data-service-card data-keywords="invoice tagihan pembayaran bukti transfer kwitansi"><div><div class="app-service-head"><span class="app-iconbox">🧾</span><span class="app-chip ok">Tidak ada tagihan</span></div><h3>Invoice</h3><p>Cek tagihan, status pembayaran, bukti transfer, dan riwayat invoice.</p><div class="app-service-tags"><span class="app-tag">Pembayaran</span><span class="app-tag">Kwitansi</span></div></div><div class="app-service-foot"><span class="muted">Tagihan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Konfirmasi</a></div></article>
             <article class="app-service wide" data-service-card data-keywords="tiket bantuan admin support whatsapp masalah"><div><div class="app-service-head"><span class="app-iconbox">💬</span><span class="app-chip ok">Admin siap</span></div><h3>Tiket Bantuan</h3><p>Hubungi admin untuk kendala parfum, domain, website, pembayaran, pengiriman, dan layanan nomor.</p><div class="app-service-tags"><span class="app-tag">Customer care</span><span class="app-tag">WhatsApp</span><span class="app-tag">Respons normal</span></div></div><div class="app-service-foot"><span class="muted">Bantuan</span><a class="app-link" href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer">Chat admin</a></div></article>
+          </div>
+        </section>
+
+
+        <section class="app-section dirac-orders-section" id="pesanan-saya" aria-labelledby="diracOrdersTitle" data-reveal>
+          <div class="app-section-head">
+            <div><h2 id="diracOrdersTitle">Pesanan Saya</h2><p>Semua invoice pelanggan ditampilkan jelas: belum dibayar, menunggu proses, selesai, atau perlu bantuan admin.</p></div>
+            <span class="app-service-counter" id="diracOrderCounter"><strong>0</strong><small>invoice</small></span>
+          </div>
+          <div class="dirac-payment-warning"><strong>Payment gateway belum aktif.</strong><span> Tombol bayar akan aktif setelah payment gateway resmi dipasang. Status paid/completed tidak pernah diambil dari frontend.</span></div>
+          <div class="dirac-order-list" id="diracOrderList">
+            <div class="app-empty"><span class="app-iconbox">🧾</span><div><strong>Belum ada invoice yang tersimpan</strong><p>Setelah checkout parfum/layanan, invoice pending akan muncul di sini. Jika sudah payment gateway aktif, tombol bayar akan muncul dari backend.</p><a class="app-link" href="parfum.html">Buat invoice parfum</a></div></div>
           </div>
         </section>
 
@@ -465,7 +482,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
           </article>
           <article class="app-panel" aria-labelledby="activityTitle">
             <div class="app-card-title"><div><h2 id="activityTitle">Aktivitas terbaru</h2><p>Riwayat singkat dibuat seperti feed aplikasi agar dashboard tetap bersih.</p></div></div>
-            <div class="app-empty"><span class="app-iconbox">🕘</span><div><strong>Belum ada aktivitas</strong><p>Pesanan baru, pembayaran, update project, dan tiket bantuan akan tercatat setelah pelanggan mulai memakai layanan.</p><a class="app-link" href="order1.html">Mulai dari katalog</a></div></div>
+            <div class="app-empty"><span class="app-iconbox">🕘</span><div><strong>Belum ada aktivitas</strong><p>Pesanan baru, pembayaran, update project, dan tiket bantuan akan tercatat setelah pelanggan mulai memakai layanan.</p><a class="app-link" href="parfum.html">Mulai dari katalog</a></div></div>
           </article>
         </section>
       </div>
@@ -574,14 +591,14 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       <div class="gate-icon">🔒</div>
       <h1 id="gateTitle" data-i18n="gateTitle">Dashboard terkunci</h1>
       <p data-i18n="gateText">Dashboard hanya dapat dibuka setelah login dan verifikasi keamanan dari sistem selesai.</p><p id="gateReason" class="security-backend-note" aria-live="polite">Mengecek sesi login dan A2F backend...</p>
-      <div class="gate-actions"><a class="btn-primary" href="masuk.html" data-i18n="goLogin">Masuk dulu</a><a class="btn-secondary" href="order1.html" data-i18n="viewCatalog">Lihat katalog</a></div><p class="security-backend-note">Dashboard mengikuti sesi login dan A2F yang sudah selesai dari halaman masuk.</p>
+      <div class="gate-actions"><a class="btn-primary" href="masuk.html" data-i18n="goLogin">Masuk dulu</a><a class="btn-secondary" href="parfum.html" data-i18n="viewCatalog">Lihat katalog</a></div><p class="security-backend-note">Dashboard mengikuti sesi login dan A2F yang sudah selesai dari halaman masuk.</p>
     </section>
   </div>
 
   <footer class="footer">
     <div class="container footer-grid">
       <div><h3>Dirac Group</h3><p data-i18n="footerText">Dashboard pelanggan modern untuk ringkasan parfum, domain, website, invoice, pengiriman, dan bantuan.</p></div>
-      <div><h4 data-i18n="footerNav">Navigasi</h4><ul><li><a href="#overview" data-i18n="navDashboard">Dashboard</a></li><li><a href="order1.html" data-i18n="openCatalog">Buka katalog</a></li></ul></div>
+      <div><h4 data-i18n="footerNav">Navigasi</h4><ul><li><a href="#overview" data-i18n="navDashboard">Dashboard</a></li><li><a href="parfum.html" data-i18n="openCatalog">Buka katalog</a></li></ul></div>
       <div><h4 data-i18n="footerHelp">Bantuan</h4><ul><li><a href="https://wa.me/6287892523968" target="_blank" rel="noopener noreferrer" data-i18n="contactAdmin">Hubungi admin</a></li><li><button class="btn-ghost" type="button" data-open-theme data-i18n="theme">Tema</button></li></ul></div>
     </div>
     <div class="container copyright"><span>© <span id="year"></span> Dirac Group.</span><span data-i18n="copyright">Dashboard ringkasan pelanggan.</span></div>
@@ -681,7 +698,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       - The dashboard unlocks only after the backend /api/health?action=domain_dashboard_me returns ok:true, a valid user, and backend A2F session.
       - Network/API/parsing failure is fail-closed: the gate remains locked.
     */
-    var DOMAIN_AUTH_API='https://companyprofilee-expk.vercel.app/api/health';
+    var DOMAIN_AUTH_API='/api/health';
     var DOMAIN_ME_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_dashboard_me';
     var DOMAIN_LOGOUT_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_logout';
     var BACKEND_VERIFICATION_MAX_AGE_MS=2*60*1000;
@@ -1154,6 +1171,96 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
+})();
+</script>
+
+
+<script id="dirac-dashboard-orders-payment-js">
+(function(){
+  'use strict';
+  var INVOICE_KEY='dirac_pending_invoices_v1';
+  function formatIDR(value){
+    var n=Number(value||0);
+    try{return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n).replace(/\s/g,'');}catch(_){return 'Rp'+Math.round(n).toLocaleString('id-ID');}
+  }
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function readLocalInvoices(){
+    try{var a=JSON.parse(localStorage.getItem(INVOICE_KEY)||'[]');return Array.isArray(a)?a:[];}catch(_){return [];}
+  }
+  function statusClass(status){
+    status=String(status||'').toLowerCase();
+    if(status==='paid'||status==='settlement'||status==='success') return 'dirac-pay-paid';
+    if(status==='failed'||status==='expired'||status==='cancelled') return 'dirac-pay-failed';
+    return 'dirac-pay-pending';
+  }
+  function statusText(status){
+    status=String(status||'unpaid').toLowerCase();
+    if(status==='paid') return 'Paid';
+    if(status==='failed') return 'Gagal';
+    if(status==='expired') return 'Expired';
+    return 'Belum dibayar';
+  }
+  function normalizeInvoice(item){
+    item=item||{};
+    return {
+      code:item.code||item.order_code||item.order_id||'ORDER',
+      service_label:item.service_label||item.service_type||'Layanan',
+      product_title:item.product_title||item.title||'Pesanan Dirac Group',
+      total:Number(item.total||item.amount||0),
+      payment_status:item.payment_status||'unpaid',
+      order_status:item.order_status||'pending',
+      payment_url:item.payment_url||null,
+      created_at:item.created_at||new Date().toISOString()
+    };
+  }
+  function renderOrders(list){
+    var root=document.getElementById('diracOrderList');
+    var counter=document.getElementById('diracOrderCounter');
+    if(!root)return;
+    var normalized=(list||[]).map(normalizeInvoice);
+    if(counter){counter.innerHTML='<strong>'+normalized.length+'</strong><small>invoice</small>';}
+    var metric=document.querySelector('.app-metric .app-value');
+    if(metric) metric.textContent=String(normalized.filter(function(x){return String(x.payment_status).toLowerCase()!=='paid';}).length);
+    if(!normalized.length){
+      root.innerHTML='<div class="app-empty"><span class="app-iconbox">🧾</span><div><strong>Belum ada invoice yang tersimpan</strong><p>Checkout akan membuat invoice pending/unpaid. Nanti setelah payment gateway aktif, tombol Bayar Sekarang akan muncul dari backend.</p><a class="app-link" href="parfum.html">Buat invoice parfum</a></div></div>';
+      return;
+    }
+    root.innerHTML=normalized.map(function(o){
+      var payReady=!!o.payment_url;
+      return '<article class="dirac-order-card">'+
+        '<div class="dirac-order-top"><div><h3>'+esc(o.product_title)+'</h3><small>Kode: <span class="dirac-order-code">'+esc(o.code)+'</span></small></div><span class="app-chip '+statusClass(o.payment_status)+'">'+esc(statusText(o.payment_status))+'</span></div>'+
+        '<div class="dirac-order-grid">'+
+          '<div class="dirac-order-cell"><small>Layanan</small><strong>'+esc(o.service_label)+'</strong></div>'+
+          '<div class="dirac-order-cell"><small>Total</small><strong class="dirac-order-total">'+formatIDR(o.total)+'</strong></div>'+
+          '<div class="dirac-order-cell"><small>Status order</small><strong>'+esc(String(o.order_status||'pending'))+'</strong></div>'+
+          '<div class="dirac-order-cell"><small>Dibuat</small><strong>'+esc(new Date(o.created_at).toLocaleString('id-ID'))+'</strong></div>'+
+        '</div>'+
+        '<div class="dirac-order-actions">'+
+          (payReady?'<a class="app-link" href="'+esc(o.payment_url)+'" rel="noopener">Bayar Sekarang</a>':'<button class="app-link dirac-disabled-pay" type="button" disabled>Bayar belum aktif</button>')+
+          '<a class="app-link" target="_blank" rel="noopener noreferrer" href="https://wa.me/6287892523968?text='+encodeURIComponent('Halo admin, saya ingin cek invoice '+o.code)+'">Tanya Admin</a>'+ 
+        '</div>'+
+      '</article>';
+    }).join('');
+  }
+  async function fetchBackendOrders(){
+    var actions=['customer_orders','orders_me','dashboard_orders'];
+    for(var i=0;i<actions.length;i++){
+      try{
+        var r=await fetch('/api/health?action='+actions[i],{method:'GET',credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
+        var d=await r.json().catch(function(){return null;});
+        if(r.ok && d && d.ok && Array.isArray(d.data)) return d.data;
+      }catch(_){ }
+    }
+    return null;
+  }
+  async function init(){
+    var local=readLocalInvoices();
+    renderOrders(local);
+    var backend=await fetchBackendOrders();
+    if(backend && backend.length){renderOrders(backend.concat(local));}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+  window.addEventListener('storage',function(e){if(e.key===INVOICE_KEY) renderOrders(readLocalInvoices());});
 })();
 </script>
 

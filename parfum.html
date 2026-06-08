@@ -3964,6 +3964,39 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 }
 </style>
 
+
+<style id="dirac-invoice-payment-polish-css">
+/* Dirac invoice polish: checkout creates an unpaid invoice, not a fake paid order. */
+.dirac-checkout-invoice-panel{
+  margin:14px 0 0;
+  border:1px solid rgba(24,185,129,.28);
+  background:
+    radial-gradient(circle at 18% 0%,rgba(24,185,129,.18),transparent 18rem),
+    linear-gradient(180deg,rgba(14,38,30,.92),rgba(8,14,19,.92));
+  border-radius:24px;
+  padding:16px;
+  box-shadow:0 18px 48px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.06);
+  color:#eafff5;
+}
+.dirac-checkout-invoice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.dirac-checkout-invoice-head h3{margin:0;color:#d1fae5;font-size:1.05rem;line-height:1.2;font-weight:950;letter-spacing:-.02em}
+.dirac-checkout-invoice-head p{margin:4px 0 0;color:#b8f7da;font-size:.82rem;line-height:1.45}
+.dirac-invoice-badge{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 10px;border:1px solid rgba(245,158,11,.32);background:rgba(245,158,11,.12);color:#fff2cc;font-size:.72rem;font-weight:950;white-space:nowrap}
+.dirac-invoice-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;color:#fff;font-weight:950}
+.dirac-invoice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.dirac-invoice-row{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.045);border-radius:16px;padding:10px 11px;min-width:0}
+.dirac-invoice-row small{display:block;color:#95dac0;font-size:.68rem;font-weight:850;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.dirac-invoice-row strong{display:block;color:#fff;font-size:.9rem;line-height:1.25;overflow-wrap:anywhere}
+.dirac-invoice-total{font-size:1.15rem!important;color:#f8e6a7!important}
+.dirac-invoice-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.dirac-invoice-actions .btn-primary,.dirac-invoice-actions .btn-secondary{width:100%;min-height:44px;padding:10px 12px;text-align:center}
+.dirac-pay-disabled{opacity:.72;cursor:not-allowed!important;filter:grayscale(.14)}
+.dirac-payment-note{border:1px dashed rgba(243,205,112,.34);background:rgba(243,205,112,.075);color:#fff1be;border-radius:16px;padding:10px 12px;font-size:.8rem;line-height:1.45;font-weight:750;margin-top:10px}
+#sendWhatsappBtn.dirac-invoice-created{background:linear-gradient(135deg,#bbf7d0,#22c55e,#16a34a)!important;color:#062012!important;box-shadow:0 16px 40px rgba(34,197,94,.24)!important}
+.cart-footer.dirac-after-invoice{border-color:rgba(24,185,129,.28)!important;background:linear-gradient(180deg,rgba(8,19,16,.88),rgba(5,8,12,.90))!important}
+@media(max-width:520px){.dirac-invoice-grid,.dirac-invoice-actions{grid-template-columns:1fr}.dirac-checkout-invoice-head{flex-direction:column}.dirac-invoice-badge{width:max-content}}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
 
@@ -8245,7 +8278,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       bindCheckoutValidation();
       if(!validateCheckoutForm({focusFirst:true})){
         shakeCheckoutButton();
-        showToast('Lengkapi data wajib sebelum membuat pesanan.');
+        showToast('Lengkapi data wajib sebelum membuat invoice.');
         return;
       }
 
@@ -8257,14 +8290,24 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
           emailField.setAttribute('aria-invalid','true');
           emailField.focus();
         }
-        setCheckoutError('Email wajib valid agar order bisa masuk ke database.');
+        setCheckoutError('Email wajib valid agar invoice bisa dibuat.');
         shakeCheckoutButton();
         return;
       }
 
       const btn = $('#sendWhatsappBtn');
-      const oldText = btn ? btn.textContent : '';
       const t = totals();
+      const cartSnapshot = cart.map(function(item){
+        const p = getProduct(item.id) || {};
+        const qty = Math.max(1, Number(item.qty || 1));
+        return {
+          id: item.id,
+          title: p.title || 'Produk Parfum Dirac',
+          qty: qty,
+          price: Number(p.price || 0),
+          subtotal: Number(p.price || 0) * qty
+        };
+      });
       const payload = {
         name: $('#buyerName').value.trim(),
         phone: $('#buyerPhone').value.trim(),
@@ -8276,13 +8319,14 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         payment_method: $('#paymentMethod').value,
         customer_address: $('#buyerAddress').value.trim(),
         customer_note: $('#buyerNote').value.trim(),
-        source: 'order_page_locked_api_checkout'
+        source: 'parfum_invoice_checkout_one_domain'
       };
 
       if(btn){
         btn.disabled = true;
-        btn.textContent = 'Membuat pesanan...';
+        btn.textContent = 'Membuat invoice...';
         btn.classList.add('dirac-checkout-working');
+        btn.classList.remove('dirac-invoice-created');
       }
 
       try{
@@ -8300,30 +8344,111 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         }
 
         const code = data.order_code || data.order_id || 'ORDER';
-        const successText = 'Pesanan berhasil masuk database. Kode: ' + code + '. Status: pending / unpaid. Payment gateway belum aktif.';
+        const invoice = {
+          code: String(code),
+          order_id: data.order_id || '',
+          service_type: 'parfum',
+          service_label: 'Parfum',
+          customer_name: payload.name,
+          customer_email: payload.email,
+          customer_phone: payload.phone,
+          product_title: payload.product_title,
+          quantity: payload.quantity,
+          total: payload.total,
+          payment_method: payload.payment_method,
+          order_status: data.order_status || 'pending',
+          payment_status: data.payment_status || 'unpaid',
+          payment_url: data.payment_url || null,
+          payment_gateway_configured: Boolean(data.payment_gateway_configured),
+          created_at: new Date().toISOString(),
+          items: cartSnapshot
+        };
+
+        saveDiracPendingInvoice(invoice);
+        renderDiracCheckoutInvoicePanel(invoice);
+
         const box = $('#checkoutError');
         if(box){
-          box.textContent = successText;
+          box.textContent = 'Invoice dibuat. Status pembayaran masih unpaid. Pesanan belum diproses sebelum pembayaran terverifikasi.';
           box.classList.add('show','success');
         }
-        showToast('Pesanan berhasil dibuat: ' + code);
+        showToast('Invoice dibuat: ' + code + ' · menunggu pembayaran');
 
         cart = [];
         activePromo = null;
         saveCart();
         renderCart();
         renderProducts();
+
+        const footer = document.querySelector('.cart-footer');
+        if(footer) footer.classList.add('dirac-after-invoice');
+        if(btn){
+          btn.disabled = true;
+          btn.textContent = 'Invoice dibuat - menunggu pembayaran';
+          btn.classList.add('dirac-invoice-created');
+        }
       } catch(error){
-        setCheckoutError(error && error.message ? error.message : 'Pesanan belum dapat dibuat. Coba lagi.');
+        setCheckoutError(error && error.message ? error.message : 'Invoice belum dapat dibuat. Coba lagi.');
         showToast('Checkout gagal. Cek koneksi/API.');
-      } finally {
         if(btn){
           btn.disabled = false;
-          btn.textContent = oldText || 'Buat Pesanan';
+          btn.textContent = 'Buat Pesanan';
+        }
+      } finally {
+        if(btn){
           btn.classList.remove('dirac-checkout-working');
         }
       }
     }
+
+    function saveDiracPendingInvoice(invoice){
+      try{
+        const key = 'dirac_pending_invoices_v1';
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        const list = Array.isArray(existing) ? existing : [];
+        const filtered = list.filter(function(item){ return String(item && item.code) !== String(invoice.code); });
+        filtered.unshift(invoice);
+        localStorage.setItem(key, JSON.stringify(filtered.slice(0, 30)));
+        localStorage.setItem('dirac_last_invoice_v1', JSON.stringify(invoice));
+      }catch(_){ }
+    }
+
+    function renderDiracCheckoutInvoicePanel(invoice){
+      const modalBody = document.querySelector('#checkoutModal .modal-body') || document.querySelector('.modal-body');
+      const anchor = document.getElementById('checkoutError') || modalBody;
+      if(!modalBody || !anchor) return;
+      let panel = document.getElementById('diracCheckoutInvoicePanel');
+      if(!panel){
+        panel = document.createElement('div');
+        panel.id = 'diracCheckoutInvoicePanel';
+        panel.className = 'dirac-checkout-invoice-panel';
+        anchor.insertAdjacentElement('afterend', panel);
+      }
+      const paymentReady = Boolean(invoice.payment_gateway_configured && invoice.payment_url);
+      panel.innerHTML = `
+        <div class="dirac-checkout-invoice-head">
+          <div>
+            <h3>Invoice berhasil dibuat</h3>
+            <p>Ini belum dibayar. Pesanan baru diproses setelah pembayaran valid dari gateway/admin.</p>
+          </div>
+          <span class="dirac-invoice-badge">⏳ Menunggu pembayaran</span>
+        </div>
+        <div class="dirac-invoice-grid">
+          <div class="dirac-invoice-row"><small>Kode invoice</small><strong class="dirac-invoice-code">${escapeHTML(invoice.code)}</strong></div>
+          <div class="dirac-invoice-row"><small>Status bayar</small><strong>${escapeHTML(String(invoice.payment_status || 'unpaid').toUpperCase())}</strong></div>
+          <div class="dirac-invoice-row"><small>Layanan</small><strong>${escapeHTML(invoice.service_label || 'Parfum')}</strong></div>
+          <div class="dirac-invoice-row"><small>Total</small><strong class="dirac-invoice-total">${formatIDR(invoice.total || 0)}</strong></div>
+          <div class="dirac-invoice-row" style="grid-column:1/-1"><small>Item</small><strong>${escapeHTML(invoice.product_title || 'Pesanan Parfum Dirac')}</strong></div>
+        </div>
+        <div class="dirac-payment-note">Payment gateway belum aktif, jadi tombol bayar belum membuka halaman pembayaran. Data invoice sudah disimpan agar bisa tampil di dashboard pelanggan.</div>
+        <div class="dirac-invoice-actions">
+          <a class="btn-secondary" href="dashboard.html#pesanan-saya">Lihat di Dashboard</a>
+          ${paymentReady ? `<a class="btn-primary" href="${escapeHTML(invoice.payment_url)}" rel="noopener">Bayar Sekarang</a>` : `<button class="btn-primary dirac-pay-disabled" type="button" disabled>Bayar belum aktif</button>`}
+        </div>
+      `;
+      try{ panel.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){ }
+    }
+
 
     function openQuick(id){
       const p = getProduct(id);
@@ -8899,82 +9024,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   }
 
   function installBackendCheckoutCapture(){
-    document.addEventListener('click', async function(event){
-      const btn = event.target && event.target.closest && event.target.closest('#sendWhatsappBtn');
-      if(!btn || btn.dataset.backendHandling === 'true') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-
-      try{
-        if(!cart || !cart.length){ if(typeof showToast === 'function') showToast(diracTranslateCopy('Keranjang kosong.')); return; }
-        if(typeof bindCheckoutValidation === 'function') bindCheckoutValidation();
-        if(typeof validateCheckoutForm === 'function' && !validateCheckoutForm({ focusFirst:true })){
-          if(typeof shakeCheckoutButton === 'function') shakeCheckoutButton();
-          if(typeof showToast === 'function') showToast('Lengkapi data wajib sebelum membuat pesanan.');
-          return;
-        }
-        if(typeof isCheckoutEmailValid === 'function'){
-          const emailEl = document.getElementById('buyerEmail');
-          const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
-          if(!isCheckoutEmailValid(email)){
-            if(emailEl){ emailEl.classList.add('is-invalid'); emailEl.setAttribute('aria-invalid','true'); emailEl.focus(); }
-            if(typeof setCheckoutError === 'function') setCheckoutError('Email wajib valid agar order bisa masuk ke database.');
-            if(typeof shakeCheckoutButton === 'function') shakeCheckoutButton();
-            return;
-          }
-        }
-
-        btn.dataset.backendHandling = 'true';
-        btn.disabled = true;
-        btn.classList.add('dirac-checkout-working');
-        const oldText = btn.textContent;
-        btn.textContent = 'Membuat pesanan...';
-
-        const t = typeof totals === 'function' ? totals() : { total:0 };
-        const payload = {
-          name: cleanText(document.getElementById('buyerName') && document.getElementById('buyerName').value, ''),
-          phone: cleanText(document.getElementById('buyerPhone') && document.getElementById('buyerPhone').value, ''),
-          email: cleanText(document.getElementById('buyerEmail') && document.getElementById('buyerEmail').value, '').toLowerCase(),
-          service_type: 'parfum',
-          product_title: typeof buildApiCheckoutProductTitle === 'function' ? buildApiCheckoutProductTitle() : 'Pesanan Parfum Dirac',
-          quantity: typeof totalQty === 'function' ? totalQty() : 1,
-          total: Math.max(1, Math.round(Number(t.total || 0))),
-          payment_method: cleanText(document.getElementById('paymentMethod') && document.getElementById('paymentMethod').value, 'Transfer Bank'),
-          customer_address: cleanText(document.getElementById('buyerAddress') && document.getElementById('buyerAddress').value, ''),
-          customer_note: cleanText(document.getElementById('buyerNote') && document.getElementById('buyerNote').value, ''),
-          source: 'order_page_locked_api_checkout_capture'
-        };
-
-        const response = await fetch('/api/health?action=checkout_order', {
-          method:'POST',
-          mode:'cors',
-          credentials:'include',
-          cache:'no-store',
-          headers:{'Content-Type':'application/json','Accept':'application/json'},
-          body:JSON.stringify(payload)
-        });
-        const data = await response.json().catch(function(){ return {}; });
-        if(!response.ok || data.ok !== true){
-          throw new Error(data.message || data.error || ('Checkout gagal. HTTP ' + response.status));
-        }
-
-        const code = data.order_code || data.order_id || 'ORDER';
-        const message = 'Pesanan berhasil masuk database. Kode: ' + code + '. Status pending / unpaid. Payment gateway belum aktif.';
-        const box = document.getElementById('checkoutError');
-        if(box){ box.textContent = message; box.classList.add('show','success'); }
-        if(typeof showToast === 'function') showToast('Pesanan berhasil dibuat: ' + code);
-        try{ cart = []; activePromo = null; saveCart(); renderCart(); renderProducts(); }catch(e){}
-        btn.textContent = oldText || 'Buat Pesanan';
-      }catch(error){
-        console.warn('Checkout API gagal:', error);
-        if(typeof setCheckoutError === 'function') setCheckoutError(error && error.message ? error.message : 'Pesanan belum dapat dibuat.');
-        if(typeof showToast === 'function') showToast('Checkout gagal. Cek API/koneksi.');
-      }finally{
-        btn.disabled = false;
-        btn.classList.remove('dirac-checkout-working');
-        delete btn.dataset.backendHandling;
-      }
-    }, true);
+    /* Disabled: checkout is handled by sendWhatsapp() only to prevent duplicate orders and confusing UI. */
   }
 
   function startBackendStorefront(){
