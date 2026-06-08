@@ -3824,7 +3824,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
               <button class="auth-tab" id="registerTab" type="button" role="tab" aria-selected="false" data-mode="register" data-i18n="tabRegister">Daftar</button>
             </div>
 
-            <form id="authForm" class="form-stack" action="https://companyprofilee-expk.vercel.app/api/health?action=domain_login" method="post" novalidate data-endpoint="https://companyprofilee-expk.vercel.app/api/health?action=domain_login">
+            <form id="authForm" class="form-stack" action="/api/health?action=domain_login" method="post" novalidate data-endpoint="/api/health?action=domain_login">
               <input type="hidden" name="mode" id="authMode" value="login">
               <div class="field-group">
                 <label for="identifier" data-i18n="identifierLabel">Email / WhatsApp</label>
@@ -4187,7 +4187,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
   <script>
   (function(){
     'use strict';
-    var API_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
+    var API_ENDPOINT = '/api/health';
     var LOGIN_ENDPOINT = API_ENDPOINT + '?action=domain_login';
     var REGISTER_ENDPOINT = API_ENDPOINT + '?action=domain_register';
     var ME_ENDPOINT = API_ENDPOINT + '?action=domain_me';
@@ -6627,12 +6627,14 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   function play(name){
     unlock();
-    if(name === 'tap') playTap();
-    else if(name === 'loading') playLoading();
-    else if(name === 'success') playSuccess();
-    else if(name === 'finish') playFinish();
-    else if(name === 'type') playType();
-    else if(name === 'error') playError();
+    name = String(name || 'tap').toLowerCase();
+    if(name === 'click' || name === 'button' || name === 'tap') playTap();
+    else if(name === 'loading' || name === 'load') playLoading();
+    else if(name === 'success' || name === 'ok') playSuccess();
+    else if(name === 'finish' || name === 'done' || name === 'complete') playFinish();
+    else if(name === 'type' || name === 'typing' || name === 'key') playType();
+    else if(name === 'error' || name === 'fail' || name === 'danger') playError();
+    else playTap();
   }
   function updateToggle(){
     var btn = $('#diracSoundToggle');
@@ -6751,12 +6753,14 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(terminal) new MutationObserver(inspect).observe(terminal, {childList:true, characterData:true, subtree:true});
   }
   document.addEventListener('pointerdown', function(e){
+    unlock();
     var item = isInteractive(e.target);
     if(!item || item.id === 'diracSoundToggle' || item.closest('#diracSoundToggle')) return;
-    unlock();
     if(item.disabled || item.getAttribute('aria-disabled') === 'true') return;
     playTap();
   }, true);
+  document.addEventListener('touchstart', function(){ unlock(); }, {capture:true, passive:true});
+  document.addEventListener('click', function(){ unlock(); }, true);
   document.addEventListener('keydown', function(e){
     if(e.repeat || (e.key !== 'Enter' && e.key !== ' ')) return;
     var item = isInteractive(e.target);
@@ -6817,8 +6821,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   'use strict';
   function restoreSound(){
     try{
-      localStorage.setItem('dirac_ui_sound_enabled_v2','true');
-      localStorage.setItem('dirac_ui_sound_enabled_v1','true');
+      localStorage.setItem('dirac_ui_sound_enabled_v2','on');
+      localStorage.setItem('dirac_ui_sound_enabled_v1','on');
       if(window.DiracSound && window.DiracSound.setEnabled) window.DiracSound.setEnabled(true);
     }catch(_){}
   }
@@ -6936,7 +6940,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 <script id="dirac-recovery-code-verify-pnp-js">
 (function(){
   'use strict';
-  var API_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
+  var API_ENDPOINT = '/api/health';
   var AUTH_KEY = 'dirac_auth_session_v1';
   var UNLOCK_AFTER_FAILED_A2F = 2;
   var currentFailedA2FAttempts = 0;
