@@ -45,26 +45,52 @@
     @media(max-width:1060px){.hero,.orders-layout{grid-template-columns:1fr}.detail-card{position:relative;top:auto}.metrics{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.toolbar .btn{grid-column:1/-1}}
     @media(max-width:700px){.wrap{width:min(var(--max),calc(100% - 20px))}.top-strip .wrap{font-size:.72rem;align-items:flex-start}.nav{width:calc(100% - 18px);min-height:70px;border-radius:28px;padding:9px 11px}.brand-mark{width:46px;height:46px;border-radius:16px}.brand-name{font-size:1.05rem}.brand-sub{display:none}.nav-actions .btn span{display:none}.hero-main{padding:18px}.secure-box{padding:14px}.metrics{gap:8px}.metric{padding:12px;min-height:100px}.metric strong{font-size:1.25rem}.toolbar{grid-template-columns:1fr}.invoice-head,.invoice-meta{grid-template-columns:1fr;display:grid}.card-actions{justify-content:flex-start}.detail-actions{grid-template-columns:1fr}.detail-actions .full{grid-column:auto}.invoice-title h3{white-space:normal}.footer{padding-bottom:76px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.reveal{opacity:1;transform:none}}
+
+
+    /* HARDLOCK + dashboard-like header polish */
+    body.gate-hardlocked .top-strip,
+    body.gate-hardlocked .site-header,
+    body.gate-hardlocked main,
+    body.gate-hardlocked footer,
+    body.gate-hardlocked .toast,
+    body.gate-hardlocked .menu-overlay{display:none!important;visibility:hidden!important;pointer-events:none!important}
+    body.gate-hardlocked{overflow:hidden!important}
+    body.gate-hardlocked .gate{display:grid!important}
+    .announcement{background:linear-gradient(90deg,#1a1208,#322211,#1a1208);border-bottom:1px solid var(--line);color:#f7e8c5;font-size:.88rem}.announcement .wrap{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:8px 0}.announcement a{font-weight:900;color:var(--gold)}.connection-pill{font-weight:900;color:#d9fbe9}
+    .site-header{position:sticky!important;top:max(8px,env(safe-area-inset-top))!important;z-index:9000!important;padding:10px 0 0!important;background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.site-header .nav{width:min(var(--max),calc(100% - 28px))!important;margin-inline:auto!important;min-height:78px!important;padding:12px 16px!important;border-radius:32px!important;background:radial-gradient(circle at 12% 0%,rgba(243,205,112,.12),transparent 10rem),linear-gradient(145deg,rgba(9,13,21,.94),rgba(15,22,34,.90))!important;border:1px solid rgba(243,205,112,.22)!important;box-shadow:0 18px 54px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06),0 0 0 1px rgba(243,205,112,.07)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important}.site-header.is-scrolled .nav{background:radial-gradient(circle at 12% 0%,rgba(243,205,112,.14),transparent 10rem),linear-gradient(145deg,rgba(8,12,20,.97),rgba(13,19,30,.94))!important;border-color:rgba(243,205,112,.28)!important;box-shadow:0 20px 58px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px rgba(243,205,112,.08)!important}.brand{flex:1 1 auto!important;display:flex!important;align-items:center!important;gap:12px!important;min-width:0!important}.brand-mark{width:56px!important;height:56px!important;border-radius:20px!important;position:relative!important;overflow:hidden!important;background:#fff!important;box-shadow:0 14px 30px rgba(243,205,112,.18)!important}.brand-logo-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;z-index:2}.brand-fallback-text{display:flex;position:absolute;inset:0;z-index:1;align-items:center;justify-content:center;font-family:Poppins,system-ui,sans-serif;font-weight:950;color:#111;background:linear-gradient(135deg,#fff2b6,#d6a642)}.brand-name{font-family:"Playfair Display",serif!important;font-size:1.23rem!important;color:#fff!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}.nav-links{display:flex;align-items:center;gap:6px}.nav-links a{color:#d7deea;font-size:.88rem;padding:9px 12px;border-radius:999px;font-weight:800}.nav-links a:hover,.nav-links a.active{background:rgba(255,255,255,.07);color:#fff}.header-actions{display:flex!important;align-items:center!important;gap:10px!important;flex:0 0 auto!important}.theme-toggle,.menu-toggle{min-width:52px!important;width:52px!important;height:52px!important;border-radius:999px!important;border:1px solid rgba(243,205,112,.24)!important;background:rgba(255,255,255,.065)!important;color:#fff!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;font-weight:950!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18)!important}.theme-toggle:hover,.menu-toggle:hover{transform:translateY(-2px);filter:brightness(1.05);border-color:rgba(243,205,112,.46)!important;background:rgba(243,205,112,.11)!important}.hamburger{width:22px;height:16px;display:grid;gap:5px}.hamburger span{height:2px;border-radius:4px;background:currentColor;display:block;transition:.22s var(--ease)}.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(7px) rotate(45deg)}.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0}.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+    .menu-overlay{position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.68);backdrop-filter:blur(9px);display:grid;place-items:center;padding:18px}.menu-overlay[hidden]{display:none!important}.menu-drawer{width:min(420px,100%);max-height:86vh;overflow:auto;border-radius:30px;background:linear-gradient(180deg,#101722,#050608);border:1px solid var(--line);box-shadow:var(--shadow);padding:20px}.menu-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.menu-head h2{margin:0;font-family:"Playfair Display",serif;color:var(--gold);font-size:1.8rem}.menu-head p{margin:4px 0 0;color:var(--muted);font-size:.84rem}.drawer-links{display:grid;gap:10px;margin:18px 0}.drawer-links a{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;border-radius:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);font-weight:850;color:#eef2f8}.drawer-links a:hover{border-color:var(--line2);background:rgba(243,205,112,.10)}.btn.full{width:100%}
+    .gate{display:grid!important}.gate[hidden]{display:none!important}.gate-card{border-color:rgba(243,205,112,.34)!important}.gate-card .danger-note{margin:12px 0 0;color:#ffd5d5;font-size:.82rem}
+    @media(max-width:760px){.announcement .wrap{font-size:.78rem}.connection-pill{display:none}.site-header .nav{width:calc(100% - 18px)!important;min-height:76px!important;border-radius:32px!important;padding:10px 12px!important;gap:10px!important}.brand-mark{width:52px!important;height:52px!important;border-radius:18px!important}.brand-name{font-size:1.08rem!important;max-width:10rem!important}.nav-links{display:none!important}.theme-toggle,.menu-toggle{width:52px!important;height:52px!important;min-width:52px!important}.home-toggle{display:none!important}}
+    @media(max-width:430px){.site-header .nav{width:calc(100% - 14px)!important;min-height:72px!important;border-radius:30px!important;padding:9px 10px!important}.brand-mark{width:46px!important;height:46px!important;border-radius:16px!important}.brand-name{font-size:1rem!important;max-width:8.6rem!important}.theme-toggle,.menu-toggle{width:46px!important;height:46px!important;min-width:46px!important}}
+
   </style>
 </head>
-<body>
+<body class="gate-hardlocked gate-checking">
   <a class="skip-link" href="#main">Lewati ke konten utama</a>
-  <div class="top-strip" role="note">
+  <div class="top-strip announcement" role="note">
     <div class="wrap">
-      <span>Pesanan Saya · ownership dikunci backend · customer_id tidak diambil dari frontend.</span>
-      <span id="connectionLabel">Memuat sesi...</span>
+      <span>Pesanan Saya Dirac Group — invoice pelanggan, pembayaran, dan status pesanan dalam satu tempat.</span>
+      <a href="parfum.html">Buka katalog</a>
+      <span id="connectionLabel" class="connection-pill">Memuat sesi...</span>
     </div>
   </div>
-  <header class="site-header">
+  <header class="site-header" id="siteHeader">
     <nav class="nav" aria-label="Navigasi utama">
-      <a class="brand" href="dashboard.html" aria-label="Kembali ke dashboard">
-        <span class="brand-mark">D</span>
-        <span><span class="brand-name">Dirac Group</span><span class="brand-sub">Pesanan Saya</span></span>
+      <a class="brand" href="dashboard.html" aria-label="Kembali ke dashboard Dirac Group">
+        <span class="brand-mark" aria-hidden="true">
+          <span class="brand-fallback-text">DG</span>
+          <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'" decoding="async" fetchpriority="high">
+        </span>
+        <span class="brand-name" aria-label="Dirac Group"><span class="brand-typewriter-text">Dirac</span></span>
       </a>
-      <div class="nav-actions">
-        <a class="btn" href="dashboard.html"><span>Dashboard</span>⌂</a>
-        <button class="icon-btn" id="refreshBtn" type="button" aria-label="Refresh pesanan">↻</button>
-        <button class="btn danger" id="logoutBtn" type="button"><span>Logout</span>⎋</button>
+      <nav class="nav-links" aria-label="Navigasi pesanan">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="pesanan.html" class="active">Pesanan</a>
+      </nav>
+      <div class="nav-actions header-actions">
+        <a class="theme-toggle home-toggle" href="dashboard.html" aria-label="Kembali ke dashboard">⌂</a>
+        <button class="theme-toggle" id="refreshBtn" type="button" aria-label="Refresh pesanan">↻</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Buka menu pesanan" aria-haspopup="dialog" aria-controls="menuOverlay" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button>
       </div>
     </nav>
   </header>
@@ -120,6 +146,19 @@
       </aside>
     </section>
   </main>
+  <div class="menu-overlay" id="menuOverlay" hidden>
+    <section class="menu-drawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+      <div class="menu-head"><div><h2 id="menuTitle">Menu Pesanan</h2><p>Semua link tetap aman; data invoice hanya dibaca dari backend.</p></div><button class="icon-btn" id="closeMenuBtn" type="button" aria-label="Tutup menu">×</button></div>
+      <div class="drawer-links">
+        <a href="dashboard.html"><span>Dashboard</span><b>⌂</b></a>
+        <a href="pesanan.html"><span>Pesanan Saya</span><b>🧾</b></a>
+        <a href="parfum.html"><span>Belanja Parfum</span><b>✦</b></a>
+        <a href="layanan-digital.html"><span>Layanan Digital</span><b>▣</b></a>
+        <a href="domain.html"><span>Domain</span><b>◎</b></a>
+      </div>
+      <button class="btn danger full" id="logoutBtn" type="button">Logout</button>
+    </section>
+  </div>
   <div class="gate" id="gate">
     <div class="gate-card">
       <div class="spinner"></div>
@@ -134,7 +173,7 @@
     const API = '/api/health';
     const LOGIN_PAGE = 'masuk.html';
     const WHATSAPP_ADMIN = '6281234567890';
-    const state = { orders: [], filtered: [], selectedId: '', loading: false };
+    const state = { orders: [], filtered: [], selectedId: '', loading: false, verified: false };
     const $ = (s, r=document) => r.querySelector(s);
     const fmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
     function apiUrl(action){ const u = new URL(API, window.location.origin); u.searchParams.set('action', action); return u.toString(); }
@@ -157,6 +196,10 @@
           if(result.status === 401){ showLocked(result.data && result.data.message ? result.data.message : 'Belum login atau sesi habis.'); return; }
           renderError(result.data && result.data.message ? result.data.message : 'Gagal memuat pesanan.'); return;
         }
+        if(!result.data || result.data.ownership_locked !== true){ showLocked('Backend belum mengembalikan ownership lock yang valid.'); return; }
+        state.verified = true;
+        document.body.classList.remove('gate-hardlocked','gate-checking');
+        document.body.classList.add('gate-unlocked');
         $('#gate').hidden = true; $('#connectionLabel').textContent='Ownership aktif';
         state.orders = Array.isArray(result.data.orders) ? result.data.orders : [];
         renderSummary(result.data.summary || {}); buildServiceFilter(state.orders); applyFilters();
@@ -164,10 +207,13 @@
       finally{ state.loading=false; }
     }
     function showLocked(message){
-      const gate=$('#gate'); gate.hidden=false; gate.innerHTML='<div class="gate-card"><h1>Sesi belum valid</h1><p>'+escapeHtml(message || 'Login ulang untuk melihat pesanan.')+'</p><a class="btn primary" href="'+LOGIN_PAGE+'">Login ulang</a></div>';
-      $('#connectionLabel').textContent='Terkunci';
+      state.verified = false;
+      document.body.classList.add('gate-hardlocked');
+      document.body.classList.remove('gate-unlocked');
+      const gate=$('#gate'); gate.hidden=false; gate.innerHTML='<div class="gate-card"><h1>Sesi belum valid</h1><p>'+escapeHtml(message || 'Login ulang untuk melihat pesanan.')+'</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><a class="btn primary" href="'+LOGIN_PAGE+'">Login ulang</a><a class="btn" href="dashboard.html">Dashboard</a></div><div class="danger-note">Konten pesanan tidak dibuka sebelum backend memverifikasi session dan ownership.</div></div>';
+      const label = $('#connectionLabel'); if(label) label.textContent='Terkunci';
     }
-    function renderError(message){ $('#gate').hidden=true; $('#ordersList').innerHTML='<div class="error-state"><b>Gagal memuat pesanan</b>'+escapeHtml(message)+'</div>'; $('#connectionLabel').textContent='Error'; }
+    function renderError(message){ showLocked(message || 'Backend tidak bisa memverifikasi sesi. Halaman tetap dikunci.'); }
     function renderSummary(s){
       $('#mTotal').textContent = Number(s.total_orders || 0); $('#mUnpaid').textContent = Number(s.unpaid || 0); $('#mProcessing').textContent = Number(s.processing || 0); $('#mCompleted').textContent = Number(s.completed || 0); $('#mUnpaidTotal').textContent = money(s.unpaid_total || 0);
     }
@@ -212,7 +258,10 @@
     async function logout(){ try{ await fetchJson('domain_logout', {method:'POST'}); }catch(_){} window.location.href=LOGIN_PAGE; }
     function escapeHtml(v){ return clean(v).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
     function escapeAttr(v){ return escapeHtml(v).replace(/'/g,'&#39;'); }
-    $('#refreshBtn').addEventListener('click', loadOrders); $('#manualRefreshBtn').addEventListener('click', loadOrders); $('#logoutBtn').addEventListener('click', logout); $('#searchInput').addEventListener('input', applyFilters); $('#statusFilter').addEventListener('change', applyFilters); $('#serviceFilter').addEventListener('change', applyFilters);
+    function openMenu(){ const m=$('#menuOverlay'); if(!m) return; m.hidden=false; document.body.classList.add('menu-open'); $('#menuToggle')?.setAttribute('aria-expanded','true'); }
+    function closeMenu(){ const m=$('#menuOverlay'); if(!m) return; m.hidden=true; document.body.classList.remove('menu-open'); $('#menuToggle')?.setAttribute('aria-expanded','false'); }
+    $('#refreshBtn')?.addEventListener('click', loadOrders); $('#manualRefreshBtn')?.addEventListener('click', loadOrders); document.querySelectorAll('#logoutBtn').forEach(btn=>btn.addEventListener('click', logout)); $('#searchInput')?.addEventListener('input', applyFilters); $('#statusFilter')?.addEventListener('change', applyFilters); $('#serviceFilter')?.addEventListener('change', applyFilters); $('#menuToggle')?.addEventListener('click', openMenu); $('#closeMenuBtn')?.addEventListener('click', closeMenu); $('#menuOverlay')?.addEventListener('click', e => { if(e.target && e.target.id === 'menuOverlay') closeMenu(); }); document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMenu(); });
+    window.addEventListener('scroll', () => $('#siteHeader')?.classList.toggle('is-scrolled', window.scrollY > 12), {passive:true});
     window.addEventListener('pageshow', e => { if(e.persisted) loadOrders(); }); document.addEventListener('visibilitychange', () => { if(!document.hidden) loadOrders(); });
     loadOrders();
   </script>
