@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-theme="dark" data-motion="full">
+<html lang="id" data-theme="dark" data-effective-theme="dark" data-motion="full" data-contrast="off">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -63,6 +63,15 @@
     @media(max-width:760px){.announcement .wrap{font-size:.78rem}.connection-pill{display:none}.site-header .nav{width:calc(100% - 18px)!important;min-height:76px!important;border-radius:32px!important;padding:10px 12px!important;gap:10px!important}.brand-mark{width:52px!important;height:52px!important;border-radius:18px!important}.brand-name{font-size:1.08rem!important;max-width:10rem!important}.nav-links{display:none!important}.theme-toggle,.menu-toggle{width:52px!important;height:52px!important;min-width:52px!important}.home-toggle{display:none!important}}
     @media(max-width:430px){.site-header .nav{width:calc(100% - 14px)!important;min-height:72px!important;border-radius:30px!important;padding:9px 10px!important}.brand-mark{width:46px!important;height:46px!important;border-radius:16px!important}.brand-name{font-size:1rem!important;max-width:8.6rem!important}.theme-toggle,.menu-toggle{width:46px!important;height:46px!important;min-width:46px!important}}
 
+
+    /* Dirac Pesanan Theme Sync + Dashboard-like Typewriter v2 */
+    :root{--theme-rgb:243,205,112;--gold-2:var(--gold2);--gold-3:var(--gold3)}
+    .brand-typewriter{display:inline-flex;align-items:center;min-width:10.8ch;max-width:12.6ch;overflow:hidden!important;text-overflow:clip!important;white-space:nowrap!important}.brand-typewriter-text{display:inline-block;white-space:nowrap}.brand-typewriter:after{content:"";flex:0 0 auto;width:.08em;height:.96em;margin-left:.08em;border-radius:999px;background:linear-gradient(180deg,var(--gold),var(--gold2));box-shadow:0 0 12px rgba(var(--theme-rgb),.34);animation:diracBrandCaretBlink .76s steps(1,end) infinite}@keyframes diracBrandCaretBlink{0%,48%{opacity:1}49%,100%{opacity:.18}}
+    .site-header .nav{background:radial-gradient(circle at 12% 0%,rgba(var(--theme-rgb),.12),transparent 10rem),linear-gradient(145deg,rgba(9,13,21,.94),rgba(15,22,34,.90))!important;border-color:rgba(var(--theme-rgb),.22)!important;box-shadow:0 18px 54px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06),0 0 0 1px rgba(var(--theme-rgb),.07)!important}.site-header.is-scrolled .nav{background:radial-gradient(circle at 12% 0%,rgba(var(--theme-rgb),.14),transparent 10rem),linear-gradient(145deg,rgba(8,12,20,.97),rgba(13,19,30,.94))!important;border-color:rgba(var(--theme-rgb),.28)!important;box-shadow:0 20px 58px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px rgba(var(--theme-rgb),.08)!important}.brand-mark{box-shadow:0 14px 30px rgba(var(--theme-rgb),.18)!important}.brand-fallback-text{background:linear-gradient(135deg,#fff2b6,var(--gold2))!important}.theme-toggle,.menu-toggle{border-color:rgba(var(--theme-rgb),.24)!important}.theme-toggle:hover,.menu-toggle:hover{border-color:rgba(var(--theme-rgb),.46)!important;background:rgba(var(--theme-rgb),.11)!important}.hero-title span,.menu-head h2,.gate-card h1{color:var(--gold)!important}.eyebrow,.btn.primary{border-color:rgba(var(--theme-rgb),.28)!important}.btn.primary{background:linear-gradient(135deg,#fff2c0,var(--gold),var(--gold2))!important}.secure-dot{background:var(--ok)!important}
+    .theme-modal{position:fixed;inset:0;z-index:13000;display:grid;place-items:center;padding:18px;background:radial-gradient(circle at 12% 22%,rgba(var(--theme-rgb),.20),transparent 24rem),rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}.theme-modal[hidden]{display:none!important}.theme-card{width:min(760px,calc(100vw - 28px));max-height:min(88vh,790px);overflow:hidden;display:flex;flex-direction:column;border-radius:34px;background:linear-gradient(180deg,rgba(17,24,39,.98),rgba(7,11,18,.98));border:1px solid rgba(var(--theme-rgb),.34);box-shadow:0 28px 88px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.05) inset,0 0 40px rgba(var(--theme-rgb),.12)}.theme-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.08)}.theme-head h2{margin:0;font-size:1.55rem;line-height:1.05;color:#fff;font-weight:950;letter-spacing:-.04em}.theme-head p{margin:6px 0 0;color:var(--muted);font-size:.86rem}.theme-body{overflow:auto;padding:0 24px 18px}.theme-section{padding:18px 0;border-top:1px solid rgba(255,255,255,.08)}.theme-section:first-child{border-top:0}.theme-section h3{margin:0 0 12px;font-size:1.05rem;color:#fff}.theme-grid{display:grid;gap:10px}.theme-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.theme-swatches{grid-template-columns:repeat(7,minmax(0,1fr))}.theme-choice{min-height:54px;border-radius:18px;border:1px solid rgba(255,255,255,.13);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.025));color:#f8fafc;font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px}.theme-choice:hover,.theme-choice.active{border-color:rgba(var(--theme-rgb),.72);background:linear-gradient(180deg,rgba(var(--theme-rgb),.18),rgba(255,255,255,.035));transform:translateY(-1px)}.theme-swatch{aspect-ratio:1/1;min-height:44px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.48),transparent 32%),linear-gradient(145deg,var(--swatch-a),var(--swatch-b));box-shadow:inset 0 2px 2px rgba(255,255,255,.18),inset 0 -7px 12px rgba(0,0,0,.14),0 10px 20px rgba(0,0,0,.16)}.theme-swatch.active{box-shadow:0 0 0 4px rgba(var(--theme-rgb),.18),inset 0 2px 2px rgba(255,255,255,.20),inset 0 -7px 12px rgba(0,0,0,.16),0 14px 28px rgba(0,0,0,.22)}.theme-swatch.active:after{content:"✓";display:grid;place-items:center;color:#07111d;font-weight:950;font-size:1.1rem}.theme-foot{padding:0 24px 22px}.theme-foot .btn{width:100%}body.theme-open{overflow:hidden!important}body.gate-hardlocked .theme-modal{display:none!important}
+    @media(max-width:760px){.brand-typewriter{min-width:9.8ch!important;max-width:10.9ch!important}.theme-swatches{grid-template-columns:repeat(5,minmax(0,1fr))}.theme-card{max-height:calc(100dvh - 72px)}.theme-head{padding:18px}.theme-body{padding:0 18px 14px}.theme-foot{padding:0 18px 18px}}
+    @media(prefers-reduced-motion:reduce){.brand-typewriter:after{animation:none!important}}
+
   </style>
 </head>
 <body class="gate-hardlocked gate-checking">
@@ -81,7 +90,7 @@
           <span class="brand-fallback-text">DG</span>
           <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'" decoding="async" fetchpriority="high">
         </span>
-        <span class="brand-name" aria-label="Dirac Group"><span class="brand-typewriter-text">Dirac</span></span>
+        <span class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n aria-label="Dirac Group"><span class="brand-typewriter-text" aria-hidden="true">Dirac Group</span></span>
       </a>
       <nav class="nav-links" aria-label="Navigasi pesanan">
         <a href="dashboard.html">Dashboard</a>
@@ -89,6 +98,7 @@
       </nav>
       <div class="nav-actions header-actions">
         <a class="theme-toggle home-toggle" href="dashboard.html" aria-label="Kembali ke dashboard">⌂</a>
+        <button class="theme-toggle" id="themeBtn" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">🎨</button>
         <button class="theme-toggle" id="refreshBtn" type="button" aria-label="Refresh pesanan">↻</button>
         <button class="menu-toggle" id="menuToggle" type="button" aria-label="Buka menu pesanan" aria-haspopup="dialog" aria-controls="menuOverlay" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button>
       </div>
@@ -265,5 +275,65 @@
     window.addEventListener('pageshow', e => { if(e.persisted) loadOrders(); }); document.addEventListener('visibilitychange', () => { if(!document.hidden) loadOrders(); });
     loadOrders();
   </script>
+
+  <script id="dirac-pesanan-theme-sync-typewriter-js">
+  (function(){
+    'use strict';
+    var THEME_KEY='dirac_theme_settings_v2';
+    var DEFAULT={mode:'dark',accent:'gold',motion:'full',contrast:'off',language:'id'};
+    var PALETTES={
+      gold:{label:'Royal Gold',gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112',a:'#fff3b0',b:'#b7791f'},
+      champagne:{label:'Champagne',gold:'#ffe9a8',gold2:'#e9c46a',gold3:'#9f6b1f',rgb:'255,233,168',a:'#fff8d8',b:'#c8942f'},
+      bronze:{label:'Bronze',gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122',a:'#f1d4a0',b:'#5b3415'},
+      emerald:{label:'Emerald',gold:'#34d399',gold2:'#10b981',gold3:'#064e3b',rgb:'52,211,153',a:'#9ff7d3',b:'#047857'},
+      jade:{label:'Jade',gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191',a:'#99f6e4',b:'#0f766e'},
+      mint:{label:'Mint',gold:'#6ee7b7',gold2:'#14b8a6',gold3:'#115e59',rgb:'110,231,183',a:'#d1fae5',b:'#0d9488'},
+      cyan:{label:'Cyan',gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240',a:'#a5f3fc',b:'#0369a1'},
+      sky:{label:'Sky Blue',gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248',a:'#bae6fd',b:'#0369a1'},
+      ocean:{label:'Ocean',gold:'#22d3ee',gold2:'#0ea5e9',gold3:'#0c4a6e',rgb:'34,211,238',a:'#67e8f9',b:'#2563eb'},
+      royal:{label:'Royal Blue',gold:'#60a5fa',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'96,165,250',a:'#bfdbfe',b:'#1d4ed8'},
+      indigo:{label:'Indigo',gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241',a:'#c7d2fe',b:'#4338ca'},
+      violet:{label:'Violet',gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246',a:'#ddd6fe',b:'#6d28d9'},
+      amethyst:{label:'Amethyst',gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247',a:'#e9d5ff',b:'#7e22ce'},
+      fuchsia:{label:'Fuchsia',gold:'#e879f9',gold2:'#c026d3',gold3:'#701a75',rgb:'232,121,249',a:'#fbcfe8',b:'#a21caf'},
+      rose:{label:'Rose',gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133',a:'#ffe4e6',b:'#be123c'},
+      orange:{label:'Orange',gold:'#fb923c',gold2:'#f97316',gold3:'#9a3412',rgb:'251,146,60',a:'#ffedd5',b:'#c2410c'}
+    };
+    function $(s,r){return (r||document).querySelector(s)}
+    function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+    function readSettings(){try{return Object.assign({},DEFAULT,JSON.parse(localStorage.getItem(THEME_KEY)||'{}'))}catch(e){return Object.assign({},DEFAULT)}}
+    var settings=readSettings(); if(settings.mode==='light') settings.mode='dark';
+    function writeSettings(){try{localStorage.setItem(THEME_KEY,JSON.stringify(settings))}catch(e){}}
+    function applySettings(skipWrite){
+      var root=document.documentElement, pal=PALETTES[settings.accent]||PALETTES.gold;
+      root.setAttribute('data-effective-theme','dark'); root.setAttribute('data-theme','dark'); root.setAttribute('data-motion',settings.motion||'full'); root.setAttribute('data-contrast',settings.contrast||'off');
+      root.style.setProperty('--gold',pal.gold); root.style.setProperty('--gold2',pal.gold2); root.style.setProperty('--gold3',pal.gold3); root.style.setProperty('--gold-2',pal.gold2); root.style.setProperty('--gold-3',pal.gold3); root.style.setProperty('--theme-rgb',pal.rgb);
+      try{document.querySelector('meta[name="theme-color"]').setAttribute('content','#07090d')}catch(e){}
+      if(!skipWrite) writeSettings(); updateThemeChoices();
+    }
+    function buildSwatches(){var root=$('#accentChoices'); if(!root) return; root.innerHTML=''; Object.keys(PALETTES).forEach(function(key){var p=PALETTES[key], b=document.createElement('button'); b.className='theme-swatch'; b.type='button'; b.setAttribute('data-accent',key); b.setAttribute('aria-label',p.label); b.title=p.label; b.style.setProperty('--swatch-a',p.a); b.style.setProperty('--swatch-b',p.b); b.addEventListener('click',function(){settings.accent=key; applySettings(); toastTheme('Tema '+p.label+' diterapkan.');}); root.appendChild(b);});}
+    function updateThemeChoices(){
+      $$('#themeModal [data-theme-mode]').forEach(function(b){var on=b.getAttribute('data-theme-mode')===(settings.mode||'dark'); b.classList.toggle('active',on); b.setAttribute('aria-pressed',on?'true':'false');});
+      $$('#themeModal [data-motion-choice]').forEach(function(b){var on=b.getAttribute('data-motion-choice')===(settings.motion||'full'); b.classList.toggle('active',on); b.setAttribute('aria-pressed',on?'true':'false');});
+      $$('#themeModal [data-contrast]').forEach(function(b){var on=b.getAttribute('data-contrast')===(settings.contrast||'off'); b.classList.toggle('active',on); b.setAttribute('aria-pressed',on?'true':'false');});
+      $$('#themeModal [data-accent]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-accent')===(settings.accent||'gold'));});
+    }
+    function openTheme(){var m=$('#themeModal'); if(!m) return; m.hidden=false; m.setAttribute('aria-hidden','false'); document.body.classList.add('theme-open'); updateThemeChoices();}
+    function closeTheme(){var m=$('#themeModal'); if(!m) return; m.hidden=true; m.setAttribute('aria-hidden','true'); document.body.classList.remove('theme-open');}
+    function toastTheme(msg){try{if(typeof window.toast==='function') window.toast(msg); else {var t=$('#toast'); if(t){t.textContent=msg;t.classList.add('show');clearTimeout(toastTheme.t);toastTheme.t=setTimeout(function(){t.classList.remove('show')},2200);}}}catch(e){}}
+    function startBrandTypewriter(){var wrap=document.querySelector('[data-brand-typewriter]'); if(!wrap) return; var target=wrap.querySelector('.brand-typewriter-text')||wrap; var words=['Dirac Group','Pesanan Saya']; var wordIndex=0, charIndex=words[0].length, deleting=true, paused=0; target.textContent=words[0]; wrap.setAttribute('aria-label',words[0]); function tick(){var current=words[wordIndex]; if(document.documentElement.getAttribute('data-motion')==='reduced') return; if(paused>0){paused--; return setTimeout(tick,90);} if(deleting){charIndex=Math.max(0,charIndex-1); target.textContent=current.slice(0,charIndex); if(charIndex===0){deleting=false; wordIndex=(wordIndex+1)%words.length; paused=3;}}else{current=words[wordIndex]; charIndex=Math.min(current.length,charIndex+1); target.textContent=current.slice(0,charIndex); if(charIndex===current.length){wrap.setAttribute('aria-label',current); deleting=true; paused=14;}} setTimeout(tick,deleting?70:92);} setTimeout(tick,1050);}
+    function bindTheme(){
+      buildSwatches(); applySettings(true);
+      $$('#themeModal [data-theme-mode]').forEach(function(b){b.addEventListener('click',function(){settings.mode=this.getAttribute('data-theme-mode'); if(settings.mode==='light') settings.mode='dark'; applySettings(); toastTheme('Tema disimpan.');});});
+      $$('#themeModal [data-motion-choice]').forEach(function(b){b.addEventListener('click',function(){settings.motion=this.getAttribute('data-motion-choice'); applySettings(); toastTheme('Pengaturan gerak disimpan.');});});
+      $$('#themeModal [data-contrast]').forEach(function(b){b.addEventListener('click',function(){settings.contrast=this.getAttribute('data-contrast')||'off'; applySettings(); toastTheme('Kontras disimpan.');});});
+      $$('[data-open-theme],#themeBtn').forEach(function(b){b.addEventListener('click',function(e){e.preventDefault(); openTheme();});});
+      $('#closeThemeBtn')?.addEventListener('click',closeTheme); $('#saveThemeBtn')?.addEventListener('click',function(){applySettings(); closeTheme(); toastTheme('Tema tersimpan dan mengikuti dashboard.');}); var modal=$('#themeModal'); if(modal) modal.addEventListener('click',function(e){if(e.target===modal) closeTheme();}); document.addEventListener('keydown',function(e){if(e.key==='Escape') closeTheme();});
+      window.addEventListener('storage',function(e){if(e.key===THEME_KEY){settings=readSettings(); if(settings.mode==='light') settings.mode='dark'; applySettings(true);}});
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){bindTheme(); startBrandTypewriter();}); else {bindTheme(); startBrandTypewriter();}
+  })();
+  </script>
+
 </body>
 </html>
