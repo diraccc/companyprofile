@@ -562,9 +562,32 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
     function dateFmt(v){ if(!v) return '—'; const d = new Date(v); if(!Number.isFinite(d.getTime())) return '—'; try{return new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(_){return d.toISOString()} }
     function statusLabel(s){ const key=clean(s).toLowerCase(); return ({unpaid:'Belum dibayar',paid:'Sudah dibayar',pending:'Pending',pending_payment:'Menunggu pembayaran',processing:'Diproses',completed:'Selesai',failed:'Gagal',cancelled:'Dibatalkan'})[key] || (key ? key.replace(/_/g,' ') : 'Unknown'); }
     function statusClass(s){ const key=clean(s).toLowerCase(); if(['paid','completed','success'].includes(key)) return 'ok'; if(['failed','cancelled','expired'].includes(key)) return 'bad'; if(['processing'].includes(key)) return 'info'; return 'warn'; }
+    function canCreatePayment(o){
+      const payment = clean(o && o.payment_status).toLowerCase();
+      const order = clean(o && o.order_status).toLowerCase();
+      const service = clean(o && o.service_type).toLowerCase().replace(/-/g,'_');
+      const total = Number(o && o.total || 0);
+      return Boolean(o && total > 0 && service === 'parfum' && ['unpaid','pending'].includes(payment) && !['completed','cancelled','failed','expired'].includes(order));
+    }
+    function paymentButtonLabel(o){
+      if(canCreatePayment(o)) return 'Bayar Sekarang';
+      const payment = clean(o && o.payment_status).toLowerCase();
+      if(['paid','success','settled'].includes(payment)) return 'Sudah Dibayar';
+      if(Number(o && o.total || 0) <= 0) return 'Total Belum Siap';
+      if(clean(o && o.service_type).toLowerCase().replace(/-/g,'_') !== 'parfum') return 'Bayar via Admin';
+      return 'Tidak Bisa Dibayar';
+    }
     function toast(msg){ const el=$('#toast'); if(!el) return; el.textContent=msg; el.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('show'),4200); }
     async function fetchJson(action, options={}){
-      const res = await fetch(apiUrl(action), { method: options.method || 'GET', credentials:'include', cache:'no-store', headers:{Accept:'application/json'}, body: options.body ? JSON.stringify(options.body) : undefined });
+      const headers = {Accept:'application/json'};
+      if(options.body) headers['Content-Type'] = 'application/json';
+      const res = await fetch(apiUrl(action), {
+        method: options.method || 'GET',
+        credentials:'include',
+        cache:'no-store',
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
       const txt = await res.text(); let data; try{ data = txt ? JSON.parse(txt) : {}; }catch(_){ data = { ok:false, message: txt.slice(0,220) }; }
       return { ok: res.ok && !!data.ok, status: res.status, data };
     }
@@ -620,9 +643,9 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
     function orderCard(o){
       const el=document.createElement('article'); el.className='invoice-card'; el.dataset.id=o.id;
       const itemText=(o.items||[]).map(i => clean(i.title) + ' × ' + Number(i.quantity||1)).join(', ');
-      el.innerHTML='<div class="invoice-head"><div class="invoice-title"><h3>'+escapeHtml(o.invoice_code || o.order_id || 'Invoice')+'</h3><p>'+escapeHtml(o.service_label || 'Pesanan')+' · '+escapeHtml(dateFmt(o.created_at))+'</p></div><div class="money">'+money(o.total)+'</div></div><div class="chip-row"><span class="chip '+statusClass(o.payment_status)+'">Pembayaran: '+escapeHtml(statusLabel(o.payment_status))+'</span><span class="chip '+statusClass(o.order_status)+'">Order: '+escapeHtml(statusLabel(o.order_status))+'</span></div><div class="invoice-meta"><div><div class="items-preview">'+escapeHtml(itemText || 'Item pesanan')+'</div></div><div class="card-actions"><button class="btn small" type="button" data-detail="1">Detail</button><button class="btn small primary" type="button" data-pay="1" disabled>Bayar</button></div></div>';
+      el.innerHTML='<div class="invoice-head"><div class="invoice-title"><h3>'+escapeHtml(o.invoice_code || o.order_id || 'Invoice')+'</h3><p>'+escapeHtml(o.service_label || 'Pesanan')+' · '+escapeHtml(dateFmt(o.created_at))+'</p></div><div class="money">'+money(o.total)+'</div></div><div class="chip-row"><span class="chip '+statusClass(o.payment_status)+'">Pembayaran: '+escapeHtml(statusLabel(o.payment_status))+'</span><span class="chip '+statusClass(o.order_status)+'">Order: '+escapeHtml(statusLabel(o.order_status))+'</span></div><div class="invoice-meta"><div><div class="items-preview">'+escapeHtml(itemText || 'Item pesanan')+'</div></div><div class="card-actions"><button class="btn small" type="button" data-detail="1">Detail</button><button class="btn small primary" type="button" data-pay="1" '+(canCreatePayment(o)?'':'disabled')+'>'+escapeHtml(paymentButtonLabel(o))+'</button></div></div>';
       el.addEventListener('click', () => { state.selectedId=o.id; markActive(); renderDetail(o); });
-      el.querySelector('[data-pay]')?.addEventListener('click', ev => { ev.stopPropagation(); toast('Payment gateway belum aktif. Invoice masih unpaid dan belum bisa dibayar otomatis.'); });
+      el.querySelector('[data-pay]')?.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); if(canCreatePayment(o)) createPayment(o); });
       return el;
     }
     function markActive(){ document.querySelectorAll('.invoice-card').forEach(c => c.classList.toggle('active', c.dataset.id === state.selectedId)); }
@@ -631,9 +654,35 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
       if(!o){ root.innerHTML='<div class="detail-empty"><b>Pilih invoice</b><br>Detail pembayaran dan item akan muncul di sini.</div>'; return; }
       const items=(o.items||[]).map(i => '<div class="detail-item"><strong>'+escapeHtml(i.title || 'Item')+'</strong><span>Jumlah: '+Number(i.quantity||1)+'</span></div>').join('');
       const wa = 'https://wa.me/'+WHATSAPP_ADMIN+'?text='+encodeURIComponent('Halo admin Dirac Group, saya mau tanya invoice '+(o.invoice_code || o.order_id)+' total '+money(o.total)+'. Status sekarang '+statusLabel(o.payment_status)+'.');
-      root.innerHTML='<div class="detail-top"><div><h2>'+escapeHtml(o.invoice_code || 'Invoice')+'</h2><p class="muted" style="margin:6px 0 0;font-size:.82rem">'+escapeHtml(o.service_label || 'Pesanan')+'</p></div><span class="chip '+statusClass(o.payment_status)+'">'+escapeHtml(statusLabel(o.payment_status))+'</span></div><div class="detail-lines"><div class="detail-line"><span>Kode order</span><b>'+escapeHtml(o.order_id || o.id)+'</b></div><div class="detail-line"><span>Tanggal</span><b>'+escapeHtml(dateFmt(o.created_at))+'</b></div><div class="detail-line"><span>Status order</span><b>'+escapeHtml(statusLabel(o.order_status))+'</b></div><div class="detail-line"><span>Total</span><b>'+money(o.total)+'</b></div><div class="detail-line"><span>Metode bayar</span><b>'+escapeHtml(o.payment_method || 'Belum dipilih')+'</b></div></div><h3 style="margin:12px 0 8px;font-size:.95rem">Item pesanan</h3><div class="detail-items">'+(items || '<div class="detail-item"><strong>Item belum tersedia</strong></div>')+'</div><div class="payment-box"><h3>Menunggu pembayaran</h3><p>'+escapeHtml(o.payment_message || 'Payment gateway belum aktif. Pesanan belum dibayar dan belum boleh diproses sebagai paid.')+'</p></div><div class="detail-actions"><button class="btn primary" type="button" id="payNow" disabled>Bayar Sekarang</button><a class="btn" href="'+wa+'" target="_blank" rel="noopener">Tanya Admin</a><button class="btn full" type="button" id="copyInvoice">Salin kode invoice</button></div>';
-      $('#payNow')?.addEventListener('click', () => toast('Payment gateway belum aktif. Tombol bayar akan aktif setelah gateway dipasang.'));
+      root.innerHTML='<div class="detail-top"><div><h2>'+escapeHtml(o.invoice_code || 'Invoice')+'</h2><p class="muted" style="margin:6px 0 0;font-size:.82rem">'+escapeHtml(o.service_label || 'Pesanan')+'</p></div><span class="chip '+statusClass(o.payment_status)+'">'+escapeHtml(statusLabel(o.payment_status))+'</span></div><div class="detail-lines"><div class="detail-line"><span>Kode order</span><b>'+escapeHtml(o.order_id || o.id)+'</b></div><div class="detail-line"><span>Tanggal</span><b>'+escapeHtml(dateFmt(o.created_at))+'</b></div><div class="detail-line"><span>Status order</span><b>'+escapeHtml(statusLabel(o.order_status))+'</b></div><div class="detail-line"><span>Total</span><b>'+money(o.total)+'</b></div><div class="detail-line"><span>Metode bayar</span><b>'+escapeHtml(o.payment_method || 'Belum dipilih')+'</b></div></div><h3 style="margin:12px 0 8px;font-size:.95rem">Item pesanan</h3><div class="detail-items">'+(items || '<div class="detail-item"><strong>Item belum tersedia</strong></div>')+'</div><div class="payment-box"><h3>Menunggu pembayaran</h3><p>'+escapeHtml(o.payment_message || (canCreatePayment(o) ? 'Tekan Bayar Sekarang. Nominal akan dibuat backend dari database, bukan dari browser.' : 'Pesanan belum bisa dibuatkan payment otomatis. Hubungi admin bila perlu.'))+'</p></div><div class="detail-actions"><button class="btn primary" type="button" id="payNow" '+(canCreatePayment(o)?'':'disabled')+'>'+escapeHtml(paymentButtonLabel(o))+'</button><a class="btn" href="'+wa+'" target="_blank" rel="noopener">Tanya Admin</a><button class="btn full" type="button" id="copyInvoice">Salin kode invoice</button></div>';
       $('#copyInvoice')?.addEventListener('click', async () => { try{ await navigator.clipboard.writeText(o.invoice_code || o.order_id || o.id); toast('Kode invoice disalin.'); }catch(_){ toast('Kode invoice: '+(o.invoice_code || o.order_id || o.id)); } });
+      $('#payNow')?.addEventListener('click', () => { if(canCreatePayment(o)) createPayment(o); });
+    }
+    async function createPayment(order){
+      if(!canCreatePayment(order)){ toast('Invoice ini belum bisa dibayar otomatis.'); return; }
+      const code = order.order_id || order.invoice_code || order.id;
+      const btn = $('#payNow');
+      const oldText = btn ? btn.textContent : '';
+      if(btn){ btn.disabled = true; btn.textContent = 'Membuat payment...'; }
+      try{
+        const result = await fetchJson('create_payment', { method:'POST', body:{ order_id: code } });
+        const data = result.data || {};
+        if(!result.ok || !data.ok){
+          toast(data.message || 'Payment belum bisa dibuat.');
+          if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
+          return;
+        }
+        toast('Payment dibuat. Nominal dikunci dari database.');
+        if(data.payment_url){
+          window.location.href = data.payment_url;
+          return;
+        }
+        await loadOrders();
+        if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
+      }catch(e){
+        toast('Tidak bisa menghubungi API payment.');
+        if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
+      }
     }
     async function logout(){ try{ await fetchJson('domain_logout', {method:'POST'}); }catch(_){} window.location.href=LOGIN_PAGE; }
     function escapeHtml(v){ return clean(v).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
