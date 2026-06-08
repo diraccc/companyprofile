@@ -4475,149 +4475,30 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   <script id="dirac-product-gate-js">
   (function(){
     'use strict';
-
-    // Product page gate versi aman:
-    // - tidak membaca credential dari storage browser
-    // - tidak mengirim header auth buatan frontend
-    // - hanya mengandalkan session backend HttpOnly Secure Cookie yang dikirim browser otomatis
-    var DOMAIN_AUTH_API='https://companyprofilee-expk.vercel.app/api/health';
+    var AUTH_KEY='dirac_auth_session_v1';
+    var A2F_KEY='dirac_auth_a2f_v1';
+    var A2F_READY_KEY='dirac_auth_a2f_dashboard_ready_v1';
+    var DOMAIN_AUTH_API='/api/health';
     var DOMAIN_ME_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_me';
     var DOMAIN_LOGOUT_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_logout';
     var BACKEND_VERIFICATION_MAX_AGE_MS=2*60*1000;
     var backendVerified=false, backendVerifiedAt=0, backendUser=null, verificationPromise=null;
-
-    function timestampFresh(value,maxMs){
-      var n=Number(value||0);
-      return Number.isFinite(n)&&n>0&&(Date.now()-n)<maxMs;
-    }
-
-    function setGateReason(message){
-      try{
-        var el=document.getElementById('gateReason');
-        if(el) el.textContent=String(message||'Halaman masih terkunci. Login ulang dari halaman resmi.');
-      }catch(e){}
-    }
-
-    function clearBackendVerification(message){
-      backendVerified=false;
-      backendVerifiedAt=0;
-      backendUser=null;
-      if(message) setGateReason(message);
-      document.documentElement.removeAttribute('data-product-unlocked');
-      document.documentElement.setAttribute('data-product-backend','locked');
-    }
-
-    function authAllowed(){
-      return backendVerified===true && !!backendUser && timestampFresh(backendVerifiedAt,BACKEND_VERIFICATION_MAX_AGE_MS);
-    }
-
-    function sessionHeaders(){
-      return {'Accept':'application/json'};
-    }
-
-    function markBackendVerified(user){
-      var safeUser=(user&&typeof user==='object')?user:{};
-      if(!(safeUser.id||safeUser.email)) return false;
-      backendVerified=true;
-      backendVerifiedAt=Date.now();
-      backendUser=safeUser;
-      document.documentElement.setAttribute('data-product-backend','verified');
-      return true;
-    }
-
-    function verifyExistingLoginSession(){
-      if(verificationPromise) return verificationPromise;
-
-      verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{
-        method:'GET',
-        mode:'cors',
-        credentials:'include',
-        cache:'no-store',
-        headers:sessionHeaders()
-      }).then(function(res){
-        if(!res.ok){
-          return res.clone().json().catch(function(){return null}).then(function(data){
-            var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses halaman produk. Status '+res.status+'. Login ulang dari halaman resmi.');
-            clearBackendVerification(msg);
-            return false;
-          });
-        }
-
-        return res.json().then(function(data){
-          if(!data||data.ok!==true||!data.user||!(data.user.id||data.user.email)){
-            clearBackendVerification('Respons backend tidak valid. Login ulang dari halaman resmi.');
-            return false;
-          }
-          setGateReason('Halaman produk diverifikasi backend. Membuka...');
-          return markBackendVerified(data.user);
-        }).catch(function(){
-          clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');
-          return false;
-        });
-      }).catch(function(){
-        clearBackendVerification('Tidak bisa menghubungi backend. Cek domain API, CORS, atau koneksi.');
-        return false;
-      }).then(function(ok){
-        verificationPromise=null;
-        return ok===true;
-      },function(){
-        verificationPromise=null;
-        clearBackendVerification();
-        return false;
-      });
-
-      return verificationPromise;
-    }
-
-    function lockPage(){
-      document.body.classList.add('gate-locked');
-      document.documentElement.removeAttribute('data-product-unlocked');
-    }
-
-    function unlockPage(){
-      document.body.classList.remove('gate-locked','gate-checking');
-      document.documentElement.setAttribute('data-product-unlocked','true');
-    }
-
-    function enforceProductAccess(){
-      document.body.classList.add('gate-locked','gate-checking');
-      verifyExistingLoginSession().then(function(ok){
-        document.body.classList.remove('gate-checking');
-        if(ok&&authAllowed()) unlockPage();
-        else lockPage();
-      }).catch(function(){
-        document.body.classList.remove('gate-checking');
-        clearBackendVerification();
-        lockPage();
-      });
-    }
-
-    window.diracProductGate={
-      enforce:enforceProductAccess,
-      authAllowed:authAllowed,
-      logout:function(){
-        try{
-          fetch(DOMAIN_LOGOUT_ENDPOINT,{
-            method:'POST',
-            mode:'cors',
-            credentials:'include',
-            cache:'no-store',
-            keepalive:true,
-            headers:sessionHeaders()
-          }).catch(function(){});
-        }catch(e){}
-        clearBackendVerification();
-        lockPage();
-        location.href='masuk.html';
-      }
-    };
-
-    document.addEventListener('DOMContentLoaded',function(){
-      enforceProductAccess();
-      document.addEventListener('visibilitychange',function(){ if(!document.hidden) enforceProductAccess(); });
-      window.addEventListener('pageshow',function(e){ if(e.persisted) enforceProductAccess(); });
-      setInterval(function(){ if(authAllowed()) enforceProductAccess(); },120000);
-    });
+    function readJson(k,fallback){try{var raw=localStorage.getItem(k);return raw?JSON.parse(raw):fallback}catch(e){return fallback}}
+    function writeJson(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+    function timestampFresh(value,maxMs){var n=Number(value||0);if(!n&&typeof value==='string')n=Date.parse(value);return Number.isFinite(n)&&n>0&&(Date.now()-n)<maxMs;}
+    function refreshAuthState(){return {session:readJson(AUTH_KEY,{})||{},a2f:readJson(A2F_KEY,{})||{},gate:readJson('dirac_dashboard_gate_v1',{})||{}}}
+    function setGateReason(message){try{var el=document.getElementById('gateReason');if(el)el.textContent=String(message||'Halaman masih terkunci. Login dan verifikasi A2F ulang.');}catch(e){}}
+    function clearBackendVerification(message){backendVerified=false;backendVerifiedAt=0;backendUser=null;if(message)setGateReason(message);document.documentElement.removeAttribute('data-product-unlocked');document.documentElement.setAttribute('data-product-backend','locked');}
+    function authAllowed(){return backendVerified===true&&!!backendUser&&timestampFresh(backendVerifiedAt,BACKEND_VERIFICATION_MAX_AGE_MS);}
+    function sessionHeaders(){return {'Accept':'application/json'};}
+    function mergeRefreshedTokens(res){}
+    function markBackendVerified(user){var safeUser=(user&&typeof user==='object')?user:{};if(!(safeUser.id||safeUser.email))return false;backendVerified=true;backendVerifiedAt=Date.now();backendUser=safeUser;try{var s=refreshAuthState().session||{};s.user=safeUser;s.email=safeUser.email||s.email||s.identifier||'';s.identifier=s.email||s.identifier||'';s.serverAuthenticated=true;s.dashboardVerifiedByBackend=true;s.dashboardVerifiedAt=new Date(backendVerifiedAt).toISOString();writeJson(AUTH_KEY,s);}catch(e){}document.documentElement.setAttribute('data-product-backend','verified');return true;}
+    function verifyExistingLoginSession(){if(verificationPromise)return verificationPromise;verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{method:'GET',mode:'cors',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){if(!res.ok){return res.clone().json().catch(function(){return null}).then(function(data){var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses halaman produk. Status '+res.status+'. Login dan A2F ulang.');clearBackendVerification(msg);if(res.status===401||res.status===403||res.status===419){try{localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){}}return false;});}mergeRefreshedTokens(res);return res.json().then(function(data){if(!data||data.ok!==true||!data.user||!(data.user.id||data.user.email)){clearBackendVerification('Respons backend tidak valid. Login dan verifikasi A2F ulang.');return false;}setGateReason('Halaman produk diverifikasi backend. Membuka...');return markBackendVerified(data.user);}).catch(function(){clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');return false;});}).catch(function(){clearBackendVerification('Tidak bisa menghubungi backend dashboard. Cek domain API, CORS, atau koneksi.');return false;}).then(function(ok){verificationPromise=null;return ok===true;},function(){verificationPromise=null;clearBackendVerification();return false;});return verificationPromise;}
+    function lockPage(){document.body.classList.add('gate-locked');document.documentElement.removeAttribute('data-product-unlocked');}
+    function unlockPage(){document.body.classList.remove('gate-locked','gate-checking');document.documentElement.setAttribute('data-product-unlocked','true');}
+    function enforceProductAccess(){document.body.classList.add('gate-locked','gate-checking');verifyExistingLoginSession().then(function(ok){document.body.classList.remove('gate-checking');if(ok&&authAllowed())unlockPage();else lockPage();}).catch(function(){document.body.classList.remove('gate-checking');clearBackendVerification();lockPage();});}
+    window.diracProductGate={enforce:enforceProductAccess,authAllowed:authAllowed,logout:function(){try{fetch(DOMAIN_LOGOUT_ENDPOINT,{method:'POST',mode:'cors',credentials:'include',cache:'no-store',keepalive:true,headers:sessionHeaders()}).catch(function(){})}catch(e){};try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(A2F_KEY);localStorage.removeItem(A2F_READY_KEY);localStorage.removeItem('dirac_dashboard_gate_v1')}catch(e){};clearBackendVerification();lockPage();location.href='masuk.html';}};
+    document.addEventListener('DOMContentLoaded',function(){enforceProductAccess();window.addEventListener('storage',function(e){if(e&&/^(dirac_auth_session_v1|dirac_auth_a2f_v1|dirac_auth_a2f_dashboard_ready_v1|dirac_dashboard_gate_v1)$/.test(e.key||''))enforceProductAccess();});document.addEventListener('visibilitychange',function(){if(!document.hidden)enforceProductAccess();});window.addEventListener('pageshow',function(e){if(e.persisted)enforceProductAccess();});setInterval(function(){if(authAllowed())enforceProductAccess();},120000);});
   })();
   </script>
 
@@ -8405,7 +8286,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       }
 
       try{
-        const response = await fetch('https://companyprofilee-expk.vercel.app/api/health?action=checkout_order', {
+        const response = await fetch('/api/health?action=checkout_order', {
           method: 'POST',
           mode: 'cors',
           credentials: 'include',
@@ -8434,7 +8315,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         renderProducts();
       } catch(error){
         setCheckoutError(error && error.message ? error.message : 'Pesanan belum dapat dibuat. Coba lagi.');
-        showToast(error && error.message ? error.message : 'Checkout gagal. Cek koneksi/API.');
+        showToast('Checkout gagal. Cek koneksi/API.');
       } finally {
         if(btn){
           btn.disabled = false;
@@ -8804,7 +8685,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 
   // Semua aktivitas katalog dan checkout website toko lewat backend.
   // Tidak ada SUPABASE_URL, SUPABASE_ANON_KEY, atau REST Supabase di HTML ini.
-  const DIRAC_BACKEND_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish';
+  const DIRAC_BACKEND_ENDPOINT = '/api/2fa/passkey-auth-finish';
 
   function cleanText(value, fallback){
     const text = String(value ?? '').trim();
@@ -9064,7 +8945,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
           source: 'order_page_locked_api_checkout_capture'
         };
 
-        const response = await fetch('https://companyprofilee-expk.vercel.app/api/health?action=checkout_order', {
+        const response = await fetch('/api/health?action=checkout_order', {
           method:'POST',
           mode:'cors',
           credentials:'include',
@@ -9087,7 +8968,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       }catch(error){
         console.warn('Checkout API gagal:', error);
         if(typeof setCheckoutError === 'function') setCheckoutError(error && error.message ? error.message : 'Pesanan belum dapat dibuat.');
-        if(typeof showToast === 'function') showToast(error && error.message ? error.message : 'Checkout gagal. Cek API/koneksi.');
+        if(typeof showToast === 'function') showToast('Checkout gagal. Cek API/koneksi.');
       }finally{
         btn.disabled = false;
         btn.classList.remove('dirac-checkout-working');
@@ -11453,7 +11334,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
   if(window.__DIRAC_AI_ASSISTANT_INSTALLED__) return;
   window.__DIRAC_AI_ASSISTANT_INSTALLED__ = true;
 
-  const DEFAULT_AI_ENDPOINT = 'https://companyprofilee-ochre.vercel.app/api/chat';
+  const DEFAULT_AI_ENDPOINT = '/api/chat';
   const AI_ENDPOINTS = Array.from(new Set([window.DIRAC_AI_ENDPOINT || DEFAULT_AI_ENDPOINT, DEFAULT_AI_ENDPOINT, '/api/chat'].filter(Boolean)));
   const AI_ENDPOINT = AI_ENDPOINTS[0];
   const ANALYTICS_ENDPOINT = window.DIRAC_AI_ANALYTICS_URL || '';
@@ -13709,6 +13590,92 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     }).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['data-language','label']});
   }
   applyCompleteI18n();
+})();
+</script>
+
+
+<script id="dirac-sound-hard-restore-v5">
+(function(){
+  'use strict';
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var ctx = null;
+  var enabled = true;
+  var last = 0;
+  function setOn(){
+    enabled = true;
+    try{
+      localStorage.setItem('dirac_ui_sound_enabled_v2','on');
+      localStorage.setItem('dirac_ui_sound_enabled_v1','on');
+    }catch(_){ }
+  }
+  function ensure(){
+    if(!AudioCtx || !enabled) return null;
+    try{
+      if(!ctx) ctx = new AudioCtx();
+      if(ctx.state === 'suspended'){
+        var p = ctx.resume();
+        if(p && p.catch) p.catch(function(){});
+      }
+      return ctx;
+    }catch(_){ return null; }
+  }
+  function beep(freq, dur, gain, type){
+    var a = ensure();
+    if(!a) return;
+    try{
+      var t = a.currentTime;
+      var o = a.createOscillator();
+      var g = a.createGain();
+      o.type = type || 'triangle';
+      o.frequency.setValueAtTime(freq || 760, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain || 0.045, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.08));
+      o.connect(g); g.connect(a.destination);
+      o.start(t); o.stop(t + (dur || 0.08) + 0.025);
+    }catch(_){ }
+  }
+  function play(kind){
+    setOn();
+    kind = String(kind || 'click').toLowerCase();
+    if(kind === 'success' || kind === 'ok'){
+      beep(660, .08, .045, 'sine'); setTimeout(function(){beep(990,.11,.04,'triangle');}, 70); return;
+    }
+    if(kind === 'error' || kind === 'fail' || kind === 'danger'){
+      beep(220, .10, .046, 'sawtooth'); setTimeout(function(){beep(150,.12,.035,'triangle');}, 85); return;
+    }
+    if(kind === 'loading' || kind === 'load'){
+      beep(330, .07, .028, 'sine'); setTimeout(function(){beep(520,.08,.026,'sine');}, 80); return;
+    }
+    beep(820, .055, .038, 'triangle');
+  }
+  function shouldTap(t){
+    if(!t || !t.closest) return false;
+    return !!t.closest('button,a,[role="button"],input,select,textarea,.theme-choice,.auth-tab,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.header-cart,.catalog-return');
+  }
+  function tap(e){
+    setOn();
+    ensure();
+    if(e && e.target && !shouldTap(e.target)) return;
+    var n = Date.now();
+    if(n - last < 65) return;
+    last = n;
+    play('click');
+    try{ if(navigator.vibrate) navigator.vibrate(8); }catch(_){ }
+  }
+  var previous = window.DiracSound;
+  window.DiracSound = {
+    play: play,
+    setEnabled: function(v){ enabled = v !== false; try{localStorage.setItem('dirac_ui_sound_enabled_v2', enabled ? 'on' : 'off');}catch(_){ } },
+    isEnabled: function(){ return enabled; },
+    previous: previous || null
+  };
+  document.addEventListener('pointerdown', tap, {capture:true, passive:true});
+  document.addEventListener('touchstart', tap, {capture:true, passive:true});
+  document.addEventListener('click', tap, true);
+  document.addEventListener('keydown', function(e){ if(e && (e.key === 'Enter' || e.key === ' ')) tap(e); }, true);
+  document.addEventListener('submit', function(){ play('loading'); }, true);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setOn, {once:true}); else setOn();
 })();
 </script>
 

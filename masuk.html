@@ -3957,7 +3957,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
           <p class="dirac-motion-panel-note">Mode Hemat mengurangi animasi non-esensial tanpa mengubah login, A2F, recovery, atau tampilan utama.</p>
         </div>
 
-        <div class="theme-section sound-section is-sound-preserved" id="diracSoundThemeSection" hidden>
+        <div class="theme-section sound-section is-sound-preserved" id="diracSoundThemeSection">
           <h3 data-i18n="soundTitle">Suara Website</h3>
           <p class="sound-section-note" data-i18n="soundDesc">Efek tombol, loading, dan animasi terminal dibuat original dari browser tanpa file audio eksternal.</p>
           <button class="theme-pro-choice dirac-theme-sound-toggle" type="button" id="diracSoundToggle" aria-pressed="true">
@@ -4008,7 +4008,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     </section>
   </div>
 
-  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/lock" data-mfa-setup-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/start-step" data-mfa-verify-endpoint="https://companyprofilee-expk.vercel.app/api/2fa/verify-step">
+  <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="/api/2fa/lock" data-mfa-setup-endpoint="/api/2fa/start-step" data-mfa-verify-endpoint="/api/2fa/verify-step">
     <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="authenticator" data-a2f-step-index="1">
       <div class="a2f-shell">
         <aside class="a2f-side" aria-label="Ringkasan keamanan akun">
@@ -7320,6 +7320,92 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   });
   window.addEventListener('storage', schedule);
   window.diracPolishI18n = {apply:applyPolishedI18n};
+})();
+</script>
+
+
+<script id="dirac-sound-hard-restore-v5">
+(function(){
+  'use strict';
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var ctx = null;
+  var enabled = true;
+  var last = 0;
+  function setOn(){
+    enabled = true;
+    try{
+      localStorage.setItem('dirac_ui_sound_enabled_v2','on');
+      localStorage.setItem('dirac_ui_sound_enabled_v1','on');
+    }catch(_){ }
+  }
+  function ensure(){
+    if(!AudioCtx || !enabled) return null;
+    try{
+      if(!ctx) ctx = new AudioCtx();
+      if(ctx.state === 'suspended'){
+        var p = ctx.resume();
+        if(p && p.catch) p.catch(function(){});
+      }
+      return ctx;
+    }catch(_){ return null; }
+  }
+  function beep(freq, dur, gain, type){
+    var a = ensure();
+    if(!a) return;
+    try{
+      var t = a.currentTime;
+      var o = a.createOscillator();
+      var g = a.createGain();
+      o.type = type || 'triangle';
+      o.frequency.setValueAtTime(freq || 760, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain || 0.045, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.08));
+      o.connect(g); g.connect(a.destination);
+      o.start(t); o.stop(t + (dur || 0.08) + 0.025);
+    }catch(_){ }
+  }
+  function play(kind){
+    setOn();
+    kind = String(kind || 'click').toLowerCase();
+    if(kind === 'success' || kind === 'ok'){
+      beep(660, .08, .045, 'sine'); setTimeout(function(){beep(990,.11,.04,'triangle');}, 70); return;
+    }
+    if(kind === 'error' || kind === 'fail' || kind === 'danger'){
+      beep(220, .10, .046, 'sawtooth'); setTimeout(function(){beep(150,.12,.035,'triangle');}, 85); return;
+    }
+    if(kind === 'loading' || kind === 'load'){
+      beep(330, .07, .028, 'sine'); setTimeout(function(){beep(520,.08,.026,'sine');}, 80); return;
+    }
+    beep(820, .055, .038, 'triangle');
+  }
+  function shouldTap(t){
+    if(!t || !t.closest) return false;
+    return !!t.closest('button,a,[role="button"],input,select,textarea,.theme-choice,.auth-tab,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.header-cart,.catalog-return');
+  }
+  function tap(e){
+    setOn();
+    ensure();
+    if(e && e.target && !shouldTap(e.target)) return;
+    var n = Date.now();
+    if(n - last < 65) return;
+    last = n;
+    play('click');
+    try{ if(navigator.vibrate) navigator.vibrate(8); }catch(_){ }
+  }
+  var previous = window.DiracSound;
+  window.DiracSound = {
+    play: play,
+    setEnabled: function(v){ enabled = v !== false; try{localStorage.setItem('dirac_ui_sound_enabled_v2', enabled ? 'on' : 'off');}catch(_){ } },
+    isEnabled: function(){ return enabled; },
+    previous: previous || null
+  };
+  document.addEventListener('pointerdown', tap, {capture:true, passive:true});
+  document.addEventListener('touchstart', tap, {capture:true, passive:true});
+  document.addEventListener('click', tap, true);
+  document.addEventListener('keydown', function(e){ if(e && (e.key === 'Enter' || e.key === ' ')) tap(e); }, true);
+  document.addEventListener('submit', function(){ play('loading'); }, true);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setOn, {once:true}); else setOn();
 })();
 </script>
 
