@@ -5291,3 +5291,564 @@ function myOrdersSafeUpstreamError(data) {
 function myOrdersSafeError(error) {
   return String(error && error.message ? error.message : error).slice(0, 180);
 }
+
+/* ============================================================
+   LOCKED CREATE PAYMENT - APPEND ONLY
+   Tujuan:
+   - Tidak menyentuh login/hash/A2F.
+   - Frontend hanya boleh kirim order_id/order_code.
+   - Nominal gateway selalu dari orders.total di database.
+   - Payment hanya dibuat untuk order milik customer login.
+   - Default hanya mengizinkan parfum; service custom/jasa jangan aktif gateway
+     sebelum totalnya dikunci backend/admin.
+   Endpoint:
+   POST /api/health?action=create_payment
+   POST /api/health?action=create-payment
+   POST /api/health?action=pay_order
+   ============================================================ */
+
+const __diracLockedCreatePaymentPreviousHandler = module.exports;
+
+module.exports = async function lockedCreatePaymentWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = lockedPaymentNormalizeAction(rawAction);
+
+  if (!lockedPaymentIsAction(action)) {
+    return __diracLockedCreatePaymentPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+  }
+
+  try {
+    return await lockedPaymentCreateForOrder(req, res);
+  } catch (error) {
+    console.error('[locked-create-payment]', lockedPaymentSafeError(error));
+    return res.status(error && error.statusCode ? error.statusCode : 500).json({
+      ok: false,
+      message: 'Payment belum dapat dibuat dengan aman.',
+      error: lockedPaymentPublicError(error)
+    });
+  }
+};
+
+function lockedPaymentNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  const aliases = {
+    'create_payment': 'create_payment',
+    'create-payment': 'create_payment',
+    'pay_order': 'create_payment',
+    'pay-order': 'create_payment',
+    'order_payment': 'create_payment',
+    'order-payment': 'create_payment',
+    'create_payment_order': 'create_payment',
+    'create-payment-order': 'create_payment'
+  };
+  return aliases[clean] || clean;
+}
+
+function lockedPaymentIsAction(action) {
+  return action === 'create_payment';
+}
+
+async function lockedPaymentCreateForOrder(req, res) {
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const body = await readBody(req);
+  const requestedOrderId = lockedPaymentCleanText(body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || '', 120);
+
+  if (!requestedOrderId) {
+    return res.status(400).json({ ok: false, message: 'order_id wajib dikirim. Jangan kirim amount/total dari frontend.' });
+  }
+
+  if (body.amount !== undefined || body.total !== undefined || body.payment_status !== undefined || body.paid !== undefined || body.completed !== undefined) {
+    // Tidak langsung reject agar frontend lama tidak patah, tapi semua field ini tetap diabaikan total.
+    console.warn('[locked-create-payment] ignored frontend payment fields', {
+      hasAmount: body.amount !== undefined,
+      hasTotal: body.total !== undefined,
+      hasPaymentStatus: body.payment_status !== undefined,
+      hasPaid: body.paid !== undefined,
+      hasCompleted: body.completed !== undefined
+    });
+  }
+
+  const authUserId = String(user.id || '').trim();
+  const userEmail = normalizeAuthEmail(user.email || '');
+  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !userEmail || !isValidAuthEmail(userEmail)) {
+    return res.status(401).json({ ok: false, message: 'Sesi login tidak valid.' });
+  }
+
+  const owner = await sessionOwnershipCheckoutResolveCustomerOwner({
+    authUserId,
+    email: userEmail,
+    fullName: userEmail,
+    phone: ''
+  });
+
+  if (!owner.ok || !owner.customer || !owner.customer.id) {
+    return res.status(owner.status || 409).json({
+      ok: false,
+      message: owner.message || 'Customer ownership belum siap. Login ulang atau hubungi admin.'
+    });
+  }
+
+  const customer = owner.customer;
+  const customerId = String(customer.id || '').trim();
+  if (!customerSecurityLooksLikeUuid(customerId)) {
+    return res.status(409).json({ ok: false, message: 'Customer ownership tidak valid.' });
+  }
+
+  const order = await lockedPaymentFetchOwnedOrder(requestedOrderId, customerId);
+  if (!order.ok) {
+    return res.status(order.status || 404).json({ ok: false, message: order.message || 'Order tidak ditemukan untuk akun ini.' });
+  }
+
+  const row = order.order;
+  const orderId = String(row.id || '').trim();
+  const orderCode = lockedPaymentCleanText(row.order_id || orderId, 100);
+  const serviceType = lockedPaymentNormalizeServiceType(row.service_type || '');
+  const amount = lockedPaymentMoney(row.total);
+  const paymentStatus = lockedPaymentStatus(row.payment_status || 'unpaid');
+  const orderStatus = lockedPaymentStatus(row.order_status || 'pending');
+
+  if (!customerSecurityLooksLikeUuid(orderId)) {
+    return res.status(409).json({ ok: false, message: 'Order ID database tidak valid.' });
+  }
+
+  if (paymentStatus !== 'unpaid' && paymentStatus !== 'pending') {
+    return res.status(409).json({ ok: false, message: `Order tidak bisa dibayar karena status pembayaran ${paymentStatus}.` });
+  }
+
+  if (amount <= 0) {
+    return res.status(409).json({ ok: false, message: 'Total order 0/kosong. Payment gateway tidak boleh dibuat.' });
+  }
+
+  const allowCustom = String(process.env.PAYMENT_ALLOW_CUSTOM_SERVICE_PAYMENT || 'false').trim().toLowerCase() === 'true';
+  if (serviceType !== 'parfum' && !allowCustom) {
+    return res.status(409).json({
+      ok: false,
+      message: 'Payment gateway otomatis baru diaktifkan untuk parfum. Layanan custom harus dikunci admin/backend dulu.'
+    });
+  }
+
+  const itemCheck = await lockedPaymentValidateOrderItems(orderId, amount, serviceType);
+  if (!itemCheck.ok) {
+    return res.status(itemCheck.status || 409).json({ ok: false, message: itemCheck.message });
+  }
+
+  const existing = await lockedPaymentFindReusableTransaction(orderId, customerId, amount);
+  if (existing.ok && existing.transaction && existing.transaction.payment_url) {
+    return res.status(200).json({
+      ok: true,
+      reused: true,
+      message: 'Payment sudah pernah dibuat untuk order ini. Menggunakan payment URL yang sama.',
+      order_id: orderId,
+      order_code: orderCode,
+      payment_transaction_id: existing.transaction.id,
+      gateway_reference: existing.transaction.gateway_reference || null,
+      amount,
+      currency: String(existing.transaction.currency || 'IDR').toUpperCase(),
+      payment_status: existing.transaction.payment_status || 'unpaid',
+      payment_url: existing.transaction.payment_url,
+      amount_source: 'orders.total.database',
+      ownership_locked: true,
+      frontend_ignored_fields: ['amount', 'total', 'payment_status', 'paid', 'completed', 'customer_id']
+    });
+  }
+
+  const endpoint = lockedPaymentGatewayEndpoint();
+  if (!endpoint) {
+    return res.status(503).json({
+      ok: false,
+      payment_gateway_configured: false,
+      message: 'PAYMENT_CREATE_URL belum disetel. Order sudah aman, tetapi gateway belum bisa membuat payment URL.'
+    });
+  }
+
+  const gatewayName = lockedPaymentGatewayName();
+  const gatewayReference = lockedPaymentGenerateReference(orderCode);
+  const nowIso = diracNowIso();
+
+  const transactionResult = await lockedPaymentInsertTransaction({
+    orderId,
+    customerId,
+    serviceType,
+    gatewayName,
+    gatewayReference,
+    amount,
+    currency: 'IDR',
+    metadata: {
+      order_code: orderCode,
+      order_status: orderStatus,
+      amount_source: 'orders.total.database',
+      item_total: itemCheck.totalItem,
+      create_payment_started_at: nowIso,
+      frontend_amount_ignored: body.amount !== undefined || body.total !== undefined,
+      owner_source: owner.source || 'backend_auth_link'
+    }
+  });
+
+  if (!transactionResult.ok) {
+    return res.status(transactionResult.status || 500).json({
+      ok: false,
+      message: 'Gagal menyimpan transaksi payment.',
+      error: lockedPaymentSafeUpstreamError(transactionResult.data)
+    });
+  }
+
+  const transaction = Array.isArray(transactionResult.data) ? transactionResult.data[0] : transactionResult.data;
+  if (!transaction || !transaction.id) {
+    return res.status(500).json({ ok: false, message: 'Transaksi payment dibuat, tetapi ID tidak ditemukan.' });
+  }
+
+  const gateway = await lockedPaymentCreateGatewayInvoice({
+    endpoint,
+    gatewayName,
+    gatewayReference,
+    transactionId: transaction.id,
+    orderId,
+    orderCode,
+    amount,
+    currency: 'IDR',
+    customer: {
+      name: customer.name || userEmail,
+      email: customer.email || userEmail,
+      phone: customer.phone || ''
+    },
+    items: itemCheck.items,
+    serviceType
+  });
+
+  if (!gateway.ok || !gateway.paymentUrl) {
+    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || 'gateway_create_failed');
+    return res.status(gateway.status || 502).json({
+      ok: false,
+      message: gateway.message || 'Gateway gagal membuat URL pembayaran.',
+      payment_transaction_id: transaction.id,
+      amount,
+      currency: 'IDR'
+    });
+  }
+
+  const patchResult = await lockedPaymentPatchTransactionUrl(transaction.id, gateway.paymentUrl, gateway.invoiceId, gateway.raw);
+  if (!patchResult.ok) {
+    return res.status(patchResult.status || 500).json({
+      ok: false,
+      message: 'Gateway sudah membuat invoice, tetapi payment URL gagal disimpan ke database.',
+      payment_transaction_id: transaction.id,
+      payment_url: gateway.paymentUrl,
+      error: lockedPaymentSafeUpstreamError(patchResult.data)
+    });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    message: 'Payment berhasil dibuat. Nominal dikunci dari database.',
+    order_id: orderId,
+    order_code: orderCode,
+    payment_transaction_id: transaction.id,
+    gateway_reference: gatewayReference,
+    amount,
+    currency: 'IDR',
+    payment_status: 'unpaid',
+    payment_url: gateway.paymentUrl,
+    payment_provider: gateway.provider || gatewayName,
+    invoice_id: gateway.invoiceId || null,
+    amount_source: 'orders.total.database',
+    ownership_locked: true,
+    amount_locked: true,
+    frontend_ignored_fields: ['amount', 'total', 'payment_status', 'paid', 'completed', 'customer_id'],
+    webhook_required_checks: ['signature', 'gateway_event_id_unique', 'amount_equals_orders_total', 'currency_IDR', 'paid_or_settled_status']
+  });
+}
+
+async function lockedPaymentFetchOwnedOrder(inputOrderId, customerId) {
+  const select = ['id', 'order_id', 'customer_id', 'service_type', 'total', 'payment_status', 'order_status', 'created_at'].join(',');
+  const clean = lockedPaymentCleanText(inputOrderId, 120);
+  const filters = [];
+
+  if (customerSecurityLooksLikeUuid(clean)) filters.push(`id.eq.${clean}`);
+  filters.push(`order_id.eq.${clean}`);
+
+  const path = '/rest/v1/orders?select=' + encodeURIComponent(select)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
+    + '&or=' + encodeURIComponent(`(${filters.join(',')})`)
+    + '&limit=1';
+
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca order.' };
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const row = rows[0] || null;
+  if (!row || !row.id) return { ok: false, status: 404, message: 'Order tidak ditemukan atau bukan milik akun ini.' };
+  return { ok: true, order: row };
+}
+
+async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType) {
+  const select = 'id,order_id,product_doc_id,product_title,quantity,unit_price,cost_price';
+  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+
+  if (!result.ok) return { ok: false, status: result.status || 500, message: 'Gagal membaca item order.' };
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  if (!rows.length) return { ok: false, status: 409, message: 'Order tidak punya item. Payment gateway tidak dibuat.' };
+
+  let total = 0;
+  const items = [];
+  for (const row of rows) {
+    const quantity = lockedPaymentPositiveInteger(row.quantity, 0, 9999);
+    const unitPrice = lockedPaymentMoney(row.unit_price);
+    const title = lockedPaymentCleanText(row.product_title || 'Item pesanan', 180);
+
+    if (quantity <= 0) return { ok: false, status: 409, message: 'Ada item dengan quantity tidak valid.' };
+    if (unitPrice <= 0) return { ok: false, status: 409, message: 'Ada item dengan unit_price 0/kosong. Payment gateway tidak dibuat.' };
+    if (serviceType === 'parfum' && !lockedPaymentCleanText(row.product_doc_id || '', 80)) {
+      return { ok: false, status: 409, message: 'Item parfum tidak punya product_doc_id. Payment gateway tidak dibuat.' };
+    }
+
+    const subtotal = quantity * unitPrice;
+    total += subtotal;
+    items.push({
+      id: String(row.id || ''),
+      product_doc_id: lockedPaymentCleanText(row.product_doc_id || '', 80) || null,
+      title,
+      quantity,
+      unit_price: unitPrice,
+      subtotal
+    });
+  }
+
+  if (lockedPaymentMoney(total) !== lockedPaymentMoney(orderTotal)) {
+    return { ok: false, status: 409, message: 'Total order berbeda dengan total item. Payment gateway tidak dibuat.' };
+  }
+
+  return { ok: true, totalItem: total, items };
+}
+
+async function lockedPaymentFindReusableTransaction(orderId, customerId, amount) {
+  const select = 'id,order_id,customer_id,service_type,gateway_name,gateway_reference,payment_status,amount,currency,payment_url,expired_at,created_at';
+  const statuses = ['unpaid', 'pending', 'created'].join(',');
+  const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
+    + '&order_id=eq.' + encodeURIComponent(orderId)
+    + '&customer_id=eq.' + encodeURIComponent(customerId)
+    + '&amount=eq.' + encodeURIComponent(String(amount))
+    + '&payment_status=in.(' + statuses + ')'
+    + '&order=created_at.desc&limit=5';
+
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status };
+
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const now = Date.now();
+  const reusable = rows.find((row) => {
+    if (!row || !row.payment_url) return false;
+    if (!row.expired_at) return true;
+    const expires = new Date(row.expired_at).getTime();
+    return Number.isFinite(expires) && expires > now;
+  });
+
+  return { ok: true, transaction: reusable || null };
+}
+
+async function lockedPaymentInsertTransaction(data) {
+  const body = {
+    customer_id: data.customerId,
+    order_id: data.orderId,
+    service_type: data.serviceType,
+    gateway_name: data.gatewayName,
+    gateway_reference: data.gatewayReference,
+    payment_status: 'unpaid',
+    amount: data.amount,
+    currency: data.currency || 'IDR',
+    metadata: data.metadata || {}
+  };
+
+  return supabaseFetch('/rest/v1/payment_transactions', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [body]
+  });
+}
+
+async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoiceId, raw) {
+  const metadata = {
+    gateway_invoice_id: invoiceId || null,
+    gateway_created_at: diracNowIso(),
+    gateway_raw: raw || null
+  };
+
+  const body = {
+    payment_url: paymentUrl,
+    metadata
+  };
+
+
+  return supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body
+  });
+}
+
+async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error) {
+  return supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+    method: 'PATCH',
+    auth: 'service',
+    body: {
+      metadata: {
+        gateway_failed_at: diracNowIso(),
+        gateway_error: lockedPaymentCleanText(error, 220)
+      }
+    }
+  }).catch(() => null);
+}
+
+async function lockedPaymentCreateGatewayInvoice(input) {
+  const payload = {
+    external_id: input.gatewayReference,
+    reference: input.gatewayReference,
+    payment_transaction_id: input.transactionId,
+    order_id: input.orderId,
+    order_code: input.orderCode,
+    service_type: input.serviceType,
+    amount: input.amount,
+    currency: input.currency || 'IDR',
+    customer: {
+      name: lockedPaymentCleanText(input.customer && input.customer.name || '', 120),
+      email: normalizeAuthEmail(input.customer && input.customer.email || ''),
+      phone: lockedPaymentCleanText(input.customer && input.customer.phone || '', 80)
+    },
+    items: (input.items || []).map((item) => ({
+      name: item.title,
+      product_doc_id: item.product_doc_id || undefined,
+      quantity: item.quantity,
+      price: item.unit_price,
+      subtotal: item.subtotal
+    })),
+    return_url: String(process.env.PAYMENT_RETURN_URL || process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/pesanan.html').trim(),
+    callback_url: String(process.env.PAYMENT_CALLBACK_URL || process.env.DOMAIN_PAYMENT_CALLBACK_URL || '').trim()
+  };
+
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+  const secret = lockedPaymentGatewaySecret();
+  if (secret) headers.Authorization = `Bearer ${secret}`;
+
+  let response;
+  let data;
+  try {
+    response = await fetch(input.endpoint, { method: 'POST', headers, body: JSON.stringify(payload) });
+    data = await parseFetchResponse(response);
+  } catch (error) {
+    return { ok: false, status: 502, message: 'Gateway tidak merespons.', error: lockedPaymentSafeError(error) };
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status || 502,
+      message: getUpstreamMessage(data) || 'Gateway gagal membuat invoice.',
+      error: lockedPaymentSafeUpstreamError(data),
+      raw: data
+    };
+  }
+
+  const paymentUrl = lockedPaymentExtractPaymentUrl(data);
+  const invoiceId = lockedPaymentExtractInvoiceId(data) || input.gatewayReference;
+
+  return {
+    ok: Boolean(paymentUrl),
+    status: paymentUrl ? 200 : 502,
+    message: paymentUrl ? 'ok' : 'Gateway tidak mengembalikan payment_url.',
+    provider: String((data && (data.provider || data.payment_provider || data.gateway_name)) || input.gatewayName || 'payment_gateway'),
+    paymentUrl,
+    invoiceId,
+    raw: data
+  };
+}
+
+function lockedPaymentExtractPaymentUrl(data) {
+  if (!data || typeof data !== 'object') return '';
+  const direct = data.payment_url || data.invoice_url || data.redirect_url || data.checkout_url || data.paymentUrl || data.url;
+  if (direct) return String(direct).trim();
+  const nested = data.data && typeof data.data === 'object'
+    ? (data.data.payment_url || data.data.invoice_url || data.data.redirect_url || data.data.checkout_url || data.data.paymentUrl || data.data.url)
+    : '';
+  return String(nested || '').trim();
+}
+
+function lockedPaymentExtractInvoiceId(data) {
+  if (!data || typeof data !== 'object') return '';
+  const direct = data.invoice_id || data.id || data.external_id || data.reference || data.gateway_reference;
+  if (direct) return String(direct).trim();
+  const nested = data.data && typeof data.data === 'object'
+    ? (data.data.invoice_id || data.data.id || data.data.external_id || data.data.reference || data.data.gateway_reference)
+    : '';
+  return String(nested || '').trim();
+}
+
+function lockedPaymentGatewayEndpoint() {
+  return String(process.env.PAYMENT_CREATE_URL || process.env.ORDER_PAYMENT_CREATE_URL || process.env.DOMAIN_PAYMENT_CREATE_URL || '').trim();
+}
+
+function lockedPaymentGatewaySecret() {
+  return String(process.env.PAYMENT_CREATE_SECRET || process.env.ORDER_PAYMENT_CREATE_SECRET || process.env.DOMAIN_PAYMENT_CREATE_SECRET || '').trim();
+}
+
+function lockedPaymentGatewayName() {
+  return lockedPaymentCleanText(process.env.PAYMENT_GATEWAY_NAME || process.env.DOMAIN_PAYMENT_GATEWAY_NAME || 'payment_gateway', 60) || 'payment_gateway';
+}
+
+function lockedPaymentGenerateReference(orderCode) {
+  const base = lockedPaymentCleanText(orderCode || 'ORDER', 40).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'ORDER';
+  return `PAY-${base}-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+function lockedPaymentNormalizeServiceType(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'unknown';
+}
+
+function lockedPaymentStatus(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'unknown';
+}
+
+function lockedPaymentPositiveInteger(value, fallback, max) {
+  const number = Math.trunc(Number(value));
+  if (!Number.isFinite(number) || number < 1) return fallback || 0;
+  return Math.min(number, max || 9999);
+}
+
+function lockedPaymentMoney(value) {
+  const number = Number(String(value || '').replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.round(number);
+}
+
+function lockedPaymentCleanText(value, maxLength) {
+  return String(value || '').trim().replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').slice(0, Math.max(1, Number(maxLength || 120)));
+}
+
+function lockedPaymentSafeUpstreamError(data) {
+  if (!data) return null;
+  if (typeof data === 'string') return data.slice(0, 220);
+  return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 220);
+}
+
+function lockedPaymentSafeError(error) {
+  return String(error && error.message ? error.message : error).slice(0, 180);
+}
+
+function lockedPaymentPublicError(error) {
+  const text = lockedPaymentSafeError(error);
+  if (!text) return null;
+  if (/secret|token|key|authorization|bearer/i.test(text)) return 'internal_payment_error';
+  return text;
+}
