@@ -6956,9 +6956,14 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(session && session.refreshToken) headers['X-Domain-Refresh'] = session.refreshToken;
     return headers;
   }
+  function hasRecoveryDashboardProof(data){
+    var ds = data && data.dashboardSession ? data.dashboardSession : {};
+    var proofToken = String((ds && (ds.proofToken || ds.token)) || (data && (data.mfaProofToken || data.dashboardMfaProofToken)) || '');
+    return !!(data && data.ok === true && proofToken);
+  }
   function persistProof(data){
     var ds = data && data.dashboardSession ? data.dashboardSession : {};
-    var proofToken = String(ds.proofToken || ds.token || data && (data.mfaProofToken || data.dashboardMfaProofToken) || '');
+    var proofToken = String((ds && (ds.proofToken || ds.token)) || (data && (data.mfaProofToken || data.dashboardMfaProofToken)) || '');
     if(!proofToken) return false;
     var expiresAtMs = Number(ds.expiresAtMs || data.expiresAtMs || 0) || 0;
     var session = readSession();
@@ -7071,7 +7076,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       var data = await res.clone().json().catch(function(){ return null; });
       window.__diracLastRecoveryVerifyData = data || null;
       window.__diracLastRecoveryVerifyStatus = res.status || 0;
-      if(!res.ok || !data || data.ok !== true || data.verified !== true){
+      if(!res.ok || !hasRecoveryDashboardProof(data)){
         throw new Error((data && (data.message || data.error || data.code)) || 'Recovery code ditolak.');
       }
       if(!persistProof(data)) throw new Error('Server tidak mengirim MFA proof.');
