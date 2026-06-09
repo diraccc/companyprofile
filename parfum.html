@@ -8354,7 +8354,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
           customer_phone: payload.phone,
           product_title: payload.product_title,
           quantity: payload.quantity,
-          total: payload.total,
+          total: Number(data.total || data.subtotal || payload.total) || payload.total,
           payment_method: payload.payment_method,
           order_status: data.order_status || 'pending',
           payment_status: data.payment_status || 'unpaid',
