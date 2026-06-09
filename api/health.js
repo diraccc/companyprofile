@@ -524,6 +524,12 @@ async function domainCheckout(req, res) {
   const customerWhatsapp = String(body.customer_whatsapp || '').trim();
   const customerEmail = String(body.customer_email || user.email || '').trim() || null;
   const ownerEmail = String(body.owner_email || customerEmail || '').trim() || null;
+  const authUserId = String(user.id || '').trim();
+  const authEmail = normalizeAuthEmail(user.email || '');
+
+  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !authEmail || !isValidAuthEmail(authEmail)) {
+    return res.status(401).json({ ok: false, message: 'Sesi login tidak valid untuk membuat pesanan domain.' });
+  }
 
   const dnsMethod = body.dns_method || 'managed_by_dirac';
   const nameserver1 = body.nameserver_1 || null;
@@ -540,6 +546,27 @@ async function domainCheckout(req, res) {
   if (!items.length) {
     return res.status(400).json({ ok: false, message: 'Ringkasan domain masih kosong.' });
   }
+
+  const owner = await sessionOwnershipCheckoutResolveCustomerOwner({
+    authUserId,
+    email: authEmail,
+    fullName: customerName || authEmail,
+    phone: customerWhatsapp
+  });
+
+  if (!owner || !owner.ok || !owner.customer || !customerSecurityLooksLikeUuid(owner.customer.id)) {
+    return res.status(owner && owner.status ? owner.status : 403).json({
+      ok: false,
+      message: owner && owner.message
+        ? owner.message
+        : 'Akun login belum terhubung ke customer profile aktif. Checkout domain dihentikan agar tidak salah owner.',
+      ownership_locked: true,
+      frontend_customer_id_ignored: true
+    });
+  }
+
+  const ownerCustomer = owner.customer;
+  const ownerCustomerId = String(ownerCustomer.id || '').trim();
 
   if (items.length > 10) {
     return res.status(400).json({ ok: false, message: 'Maksimal 10 domain per checkout.' });
@@ -639,24 +666,30 @@ async function domainCheckout(req, res) {
 
   const totalAmount = orderItems.reduce((total, item) => total + item.subtotal, 0);
 
+  const primaryDomainName = orderItems.length === 1
+    ? orderItems[0].domain_name
+    : orderItems.map((item) => item.domain_name).join(', ').slice(0, 240);
+
   const orderResult = await supabaseFetch('/rest/v1/domain_orders', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
     body: [{
-      user_id: user.id,
-      customer_name: customerName,
+      customer_id: ownerCustomerId,
+      customer_name: customerName || ownerCustomer.name || authEmail,
       customer_whatsapp: customerWhatsapp,
-      customer_email: customerEmail,
-      owner_email: ownerEmail,
+      customer_email: customerEmail || authEmail,
+      owner_email: ownerEmail || authEmail,
+      domain_name: primaryDomainName,
       dns_method: dnsMethod,
       nameserver_1: nameserver1,
       nameserver_2: nameserver2,
       target_platform: targetPlatform,
       customer_note: customerNote,
-      total_amount: totalAmount,
+      total_price: totalAmount,
       currency: 'IDR',
       order_status: 'pending',
+      status: 'pending',
       payment_status: 'unpaid'
     }]
   });
@@ -719,7 +752,10 @@ async function domainCheckout(req, res) {
       ? 'Pesanan domain berhasil dibuat. Lanjutkan pembayaran otomatis.'
       : 'Pesanan domain berhasil dibuat. Payment gateway belum mengembalikan URL pembayaran.',
     order_id: order.id,
+    customer_id: ownerCustomerId,
+    owner_source: owner.source || 'security_customer_auth_links',
     total_amount: totalAmount,
+    total_price: totalAmount,
     currency: 'IDR',
     payment_status: 'unpaid',
     order_status: 'pending_payment',
@@ -791,9 +827,25 @@ async function domainOrders(req, res) {
   if (!access) return;
 
   const { user } = access;
+  const authUserId = String(user.id || '').trim();
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  const linkRows = linkResult.ok && Array.isArray(linkResult.data) ? linkResult.data : [];
+  const activeCustomerIds = linkRows
+    .filter((row) => row && row.link_status === 'active' && customerSecurityLooksLikeUuid(row.customer_id))
+    .map((row) => String(row.customer_id));
+
+  if (!activeCustomerIds.length) {
+    return res.status(403).json({
+      ok: false,
+      message: 'Akun login belum terhubung ke customer profile aktif. Pesanan domain dikunci aman agar tidak salah owner.',
+      ownership_locked: true,
+      frontend_customer_id_ignored: true
+    });
+  }
 
   const select = [
     'id',
+    'customer_id',
     'created_at',
     'customer_name',
     'customer_whatsapp',
@@ -804,14 +856,16 @@ async function domainOrders(req, res) {
     'nameserver_2',
     'target_platform',
     'customer_note',
-    'total_amount',
+    'domain_name',
+    'total_price',
     'currency',
     'order_status',
     'payment_status',
     'domain_order_items(id,domain_name,extension,years,register_price,renewal_price,subtotal)'
   ].join(',');
 
-  const path = `/rest/v1/domain_orders?select=${encodeURIComponent(select)}&user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc`;
+  const ids = activeCustomerIds.map(encodeURIComponent).join(',');
+  const path = `/rest/v1/domain_orders?select=${encodeURIComponent(select)}&customer_id=in.(${ids})&order=created_at.desc`;
 
   const result = await supabaseFetch(path, {
     method: 'GET',
@@ -5015,7 +5069,7 @@ async function myOrdersReadForCurrentCustomer(req, res) {
   }
 
   const genericOrders = await myOrdersFetchGenericOrders(owner, userEmail);
-  const domainOrders = await myOrdersFetchDomainOrders(authUserId, userEmail);
+  const domainOrders = await myOrdersFetchDomainOrders(owner, userEmail);
   const allOrders = [...genericOrders.orders, ...domainOrders.orders]
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
     .slice(0, 120);
@@ -5150,7 +5204,7 @@ function myOrdersNormalizeGenericOrder(row, items) {
     currency: 'IDR',
     payment_method: myOrdersCleanText(row.payment_method || 'Belum dipilih', 80),
     payment_status: myOrdersStatus(row.payment_status || 'unpaid'),
-    order_status: myOrdersStatus(row.order_status || 'pending'),
+    order_status: myOrdersStatus(row.order_status || row.status || 'pending'),
     payment_url: null,
     can_pay: false,
     payment_gateway_configured: false,
@@ -5160,9 +5214,9 @@ function myOrdersNormalizeGenericOrder(row, items) {
   };
 }
 
-async function myOrdersFetchDomainOrders(authUserId, userEmail) {
+async function myOrdersFetchDomainOrders(owner, userEmail) {
   const errors = [];
-  const select = 'id,user_id,customer_name,customer_whatsapp,customer_email,owner_email,dns_method,target_platform,total_amount,currency,order_status,payment_status,created_at';
+  const select = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,dns_method,target_platform,domain_name,total_price,currency,order_status,status,payment_status,created_at';
   const rowsMap = new Map();
 
   async function add(path) {
@@ -5176,8 +5230,14 @@ async function myOrdersFetchDomainOrders(authUserId, userEmail) {
     });
   }
 
-  await add('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&user_id=eq.' + encodeURIComponent(authUserId) + '&order=created_at.desc&limit=80');
-  // Strict ownership mode: do not query domain_orders by customer_email fallback.
+  // Strict ownership mode: domain_orders are queried only through backend-resolved customer_id links.
+  // Never use frontend customer_id, customer_email, or removed legacy user_id as ownership source.
+  if (owner && Array.isArray(owner.customerIds) && owner.customerIds.length) {
+    const ids = owner.customerIds.filter(customerSecurityLooksLikeUuid).map(encodeURIComponent).join(',');
+    if (ids) {
+      await add('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&customer_id=in.(' + ids + ')&order=created_at.desc&limit=80');
+    }
+  }
 
   const rows = Array.from(rowsMap.values());
   const itemMap = await myOrdersFetchDomainOrderItems(rows.map((row) => row.id));
@@ -5212,8 +5272,11 @@ async function myOrdersFetchDomainOrderItems(orderIds) {
 }
 
 function myOrdersNormalizeDomainOrder(row, items) {
-  const total = myOrdersMoney(row.total_amount || 0);
+  const total = myOrdersMoney(row.total_price ?? row.total_amount ?? 0);
   const invoiceCode = 'DOM-' + String(row.id || '').slice(0, 8).toUpperCase();
+  const normalizedItems = Array.isArray(items) && items.length
+    ? items
+    : (row.domain_name ? [{ title: myOrdersCleanText(row.domain_name, 180), quantity: 1, subtotal: total }] : []);
   return {
     type: 'domain_order',
     id: String(row.id || ''),
@@ -5229,13 +5292,13 @@ function myOrdersNormalizeDomainOrder(row, items) {
     currency: String(row.currency || 'IDR').toUpperCase(),
     payment_method: 'Belum dipilih',
     payment_status: myOrdersStatus(row.payment_status || 'unpaid'),
-    order_status: myOrdersStatus(row.order_status || 'pending'),
+    order_status: myOrdersStatus(row.order_status || row.status || 'pending'),
     payment_url: null,
     can_pay: false,
     payment_gateway_configured: false,
     payment_message: 'Payment gateway domain belum aktif di halaman ini.',
     created_at: row.created_at || '',
-    items: Array.isArray(items) && items.length ? items : [{ title: 'Domain order', quantity: 1 }]
+    items: normalizedItems.length ? normalizedItems : [{ title: 'Domain order', quantity: 1, subtotal: total }]
   };
 }
 
