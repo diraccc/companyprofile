@@ -8302,8 +8302,11 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         const qty = Math.max(1, Number(item.qty || 1));
         return {
           id: item.id,
+          product_id: item.id,
+          product_title: p.title || 'Produk Parfum Dirac',
           title: p.title || 'Produk Parfum Dirac',
           qty: qty,
+          quantity: qty,
           price: Number(p.price || 0),
           subtotal: Number(p.price || 0) * qty
         };
@@ -8316,10 +8319,21 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         product_title: buildApiCheckoutProductTitle(),
         quantity: totalQty(),
         total: Math.max(1, Math.round(Number(t.total || 0))),
+        items: cartSnapshot.map(function(item){
+          return {
+            product_id: item.product_id,
+            product_title: item.product_title,
+            title: item.title,
+            qty: item.qty,
+            quantity: item.quantity,
+            client_price: item.price,
+            client_subtotal: item.subtotal
+          };
+        }),
         payment_method: $('#paymentMethod').value,
         customer_address: $('#buyerAddress').value.trim(),
         customer_note: $('#buyerNote').value.trim(),
-        source: 'parfum_invoice_checkout_one_domain'
+        source: 'parfum_invoice_checkout_multi_item_locked'
       };
 
       if(btn){
@@ -8344,6 +8358,26 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
         }
 
         const code = data.order_code || data.order_id || 'ORDER';
+        const backendItems = Array.isArray(data.items) && data.items.length
+          ? data.items.map(function(item){
+              const qty = Math.max(1, Number(item.quantity || item.qty || 1));
+              const price = Number(item.unit_price || item.price || 0);
+              return {
+                id: item.product_doc_id || item.product_id || item.id || '',
+                product_id: item.product_doc_id || item.product_id || item.id || '',
+                product_title: item.product_title || item.title || 'Produk Parfum Dirac',
+                title: item.product_title || item.title || 'Produk Parfum Dirac',
+                qty: qty,
+                quantity: qty,
+                price: price,
+                subtotal: Number(item.subtotal || (price * qty) || 0)
+              };
+            })
+          : cartSnapshot;
+        const backendProductTitle = backendItems.map(function(item,index){
+          return (index + 1) + '. ' + (item.title || item.product_title || 'Produk') + ' x' + Math.max(1, Number(item.qty || item.quantity || 1));
+        }).join(' | ') || payload.product_title;
+        const backendTotal = Number(data.total || data.total_amount || data.subtotal || payload.total || 0) || payload.total;
         const invoice = {
           code: String(code),
           order_id: data.order_id || '',
@@ -8352,16 +8386,16 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
           customer_name: payload.name,
           customer_email: payload.email,
           customer_phone: payload.phone,
-          product_title: payload.product_title,
-          quantity: payload.quantity,
-          total: Number(data.total || data.subtotal || payload.total) || payload.total,
+          product_title: backendProductTitle,
+          quantity: backendItems.reduce(function(sum,item){ return sum + Math.max(1, Number(item.qty || item.quantity || 1)); }, 0),
+          total: backendTotal,
           payment_method: payload.payment_method,
           order_status: data.order_status || 'pending',
           payment_status: data.payment_status || 'unpaid',
           payment_url: data.payment_url || null,
           payment_gateway_configured: Boolean(data.payment_gateway_configured),
           created_at: new Date().toISOString(),
-          items: cartSnapshot
+          items: backendItems
         };
 
         saveDiracPendingInvoice(invoice);
