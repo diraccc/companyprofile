@@ -770,6 +770,10 @@ async function domainCheckout(req, res) {
 
 
 async function maybeCreateDomainPaymentInvoice(order, orderItems, customer) {
+  if (midtransPaymentIsConfigured()) {
+    return await midtransCreateDomainPaymentInvoice(order, orderItems, customer);
+  }
+
   const endpoint = String(process.env.DOMAIN_PAYMENT_CREATE_URL || '').trim();
   if (!endpoint) return { configured: false, payment_url: null };
 
@@ -789,7 +793,7 @@ async function maybeCreateDomainPaymentInvoice(order, orderItems, customer) {
       subtotal: item.subtotal
     })),
     return_url: String(process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/dashboard.html'),
-    callback_url: String(process.env.DOMAIN_PAYMENT_CALLBACK_URL || '')
+    callback_url: String(process.env.DOMAIN_PAYMENT_CALLBACK_URL || midtransNotificationUrl() || '')
   };
 
   const headers = {
@@ -5526,11 +5530,11 @@ async function lockedPaymentCreateForOrder(req, res) {
   }
 
   const endpoint = lockedPaymentGatewayEndpoint();
-  if (!endpoint) {
+  if (!endpoint && !midtransPaymentIsConfigured()) {
     return res.status(503).json({
       ok: false,
       payment_gateway_configured: false,
-      message: 'PAYMENT_CREATE_URL belum disetel. Order sudah aman, tetapi gateway belum bisa membuat payment URL.'
+      message: 'Payment gateway belum disetel. Isi MIDTRANS_SERVER_KEY untuk Midtrans atau PAYMENT_CREATE_URL untuk gateway eksternal.'
     });
   }
 
@@ -5723,7 +5727,6 @@ async function lockedPaymentFindReusableTransaction(orderId, customerId, amount)
 async function lockedPaymentInsertTransaction(data) {
   const body = {
     customer_id: data.customerId,
-    order_id: data.orderId,
     service_type: data.serviceType,
     gateway_name: data.gatewayName,
     gateway_reference: data.gatewayReference,
@@ -5732,6 +5735,9 @@ async function lockedPaymentInsertTransaction(data) {
     currency: data.currency || 'IDR',
     metadata: data.metadata || {}
   };
+
+  if (data.orderId) body.order_id = data.orderId;
+  if (data.domainOrderId) body.domain_order_id = data.domainOrderId;
 
   return supabaseFetch('/rest/v1/payment_transactions', {
     method: 'POST',
@@ -5776,6 +5782,19 @@ async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error) {
 }
 
 async function lockedPaymentCreateGatewayInvoice(input) {
+  if (midtransPaymentIsConfigured()) {
+    return await midtransCreateSnapPayment(input);
+  }
+
+  if (!input.endpoint) {
+    return {
+      ok: false,
+      status: 503,
+      message: 'Payment gateway belum dikonfigurasi. Isi MIDTRANS_SERVER_KEY atau PAYMENT_CREATE_URL.',
+      error: 'gateway_not_configured'
+    };
+  }
+
   const payload = {
     external_id: input.gatewayReference,
     reference: input.gatewayReference,
@@ -5798,7 +5817,7 @@ async function lockedPaymentCreateGatewayInvoice(input) {
       subtotal: item.subtotal
     })),
     return_url: String(process.env.PAYMENT_RETURN_URL || process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/pesanan.html').trim(),
-    callback_url: String(process.env.PAYMENT_CALLBACK_URL || process.env.DOMAIN_PAYMENT_CALLBACK_URL || '').trim()
+    callback_url: String(process.env.PAYMENT_CALLBACK_URL || process.env.DOMAIN_PAYMENT_CALLBACK_URL || midtransNotificationUrl() || '').trim()
   };
 
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
@@ -5867,7 +5886,8 @@ function lockedPaymentGatewaySecret() {
 }
 
 function lockedPaymentGatewayName() {
-  return lockedPaymentCleanText(process.env.PAYMENT_GATEWAY_NAME || process.env.DOMAIN_PAYMENT_GATEWAY_NAME || 'payment_gateway', 60) || 'payment_gateway';
+  const fallback = midtransPaymentIsConfigured() ? 'midtrans' : 'payment_gateway';
+  return lockedPaymentCleanText(process.env.PAYMENT_GATEWAY_NAME || process.env.DOMAIN_PAYMENT_GATEWAY_NAME || fallback, 60) || fallback;
 }
 
 function lockedPaymentGenerateReference(orderCode) {
@@ -5915,3 +5935,686 @@ function lockedPaymentPublicError(error) {
   if (/secret|token|key|authorization|bearer/i.test(text)) return 'internal_payment_error';
   return text;
 }
+
+/* ============================================================
+   MIDTRANS SNAP + WEBHOOK - APPEND ONLY - 2026-06-10
+   Guard:
+   - Tidak membuat file API baru; tetap memakai /api/health?action=midtrans_webhook.
+   - Tidak menyentuh login/hash/A2F/recovery.
+   - Create Snap memakai nominal yang sudah dikunci backend/database.
+   - Webhook hanya memproses jika signature Midtrans valid, amount cocok,
+     customer/order cocok, dan event idempotent.
+   ============================================================ */
+
+const __diracMidtransPaymentPreviousHandler = module.exports;
+
+module.exports = async function midtransPaymentWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = midtransNormalizeAction(rawAction);
+
+  if (!midtransIsWebhookAction(action) && action !== 'midtrans_health') {
+    return __diracMidtransPaymentPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (action === 'midtrans_health') {
+    return res.status(200).json({
+      ok: true,
+      provider: 'midtrans',
+      snapConfigured: midtransPaymentIsConfigured(),
+      webhook: '/api/health?action=midtrans_webhook',
+      environment: midtransIsProduction() ? 'production' : 'sandbox'
+    });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, message: 'Gunakan POST untuk webhook Midtrans.' });
+  }
+
+  try {
+    return await midtransHandleWebhook(req, res);
+  } catch (error) {
+    console.error('[midtrans-webhook]', lockedPaymentSafeError(error));
+    return res.status(error && error.statusCode ? error.statusCode : 500).json({
+      ok: false,
+      message: 'Webhook Midtrans gagal diproses dengan aman.',
+      error: lockedPaymentPublicError(error)
+    });
+  }
+};
+
+function midtransNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  const aliases = {
+    'midtrans_webhook': 'midtrans_webhook',
+    'midtrans-webhook': 'midtrans_webhook',
+    'midtrans_notification': 'midtrans_webhook',
+    'midtrans-notification': 'midtrans_webhook',
+    'midtrans_callback': 'midtrans_webhook',
+    'midtrans-callback': 'midtrans_webhook',
+    'payment_webhook': 'midtrans_webhook',
+    'payment-webhook': 'midtrans_webhook',
+    'payment_callback': 'midtrans_webhook',
+    'payment-callback': 'midtrans_webhook',
+    'midtrans_health': 'midtrans_health',
+    'midtrans-health': 'midtrans_health'
+  };
+  return aliases[clean] || clean;
+}
+
+function midtransIsWebhookAction(action) {
+  return action === 'midtrans_webhook';
+}
+
+function midtransPaymentIsConfigured() {
+  return Boolean(String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim());
+}
+
+function midtransServerKey() {
+  const key = String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim();
+  if (!key) {
+    const err = new Error('MIDTRANS_SERVER_KEY belum diisi di Environment Variables Vercel.');
+    err.statusCode = 503;
+    throw err;
+  }
+  return key;
+}
+
+function midtransIsProduction() {
+  const raw = String(process.env.MIDTRANS_IS_PRODUCTION || process.env.MIDTRANS_PRODUCTION || 'false').trim().toLowerCase();
+  return raw === 'true' || raw === '1' || raw === 'yes' || raw === 'production';
+}
+
+function midtransSnapBaseUrl() {
+  return midtransIsProduction() ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
+}
+
+function midtransNotificationUrl() {
+  const explicit = String(process.env.MIDTRANS_NOTIFICATION_URL || process.env.PAYMENT_CALLBACK_URL || process.env.DOMAIN_PAYMENT_CALLBACK_URL || '').trim();
+  if (explicit) return explicit;
+  const site = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || 'https://diracgroup.store').trim().replace(/\/$/, '');
+  return site ? `${site}/api/health?action=midtrans_webhook` : '';
+}
+
+function midtransBasicAuthHeader() {
+  return 'Basic ' + Buffer.from(`${midtransServerKey()}:`).toString('base64');
+}
+
+function midtransExpectedSignature(orderId, statusCode, grossAmount) {
+  return crypto
+    .createHash('sha512')
+    .update(`${String(orderId || '')}${String(statusCode || '')}${String(grossAmount || '')}${midtransServerKey()}`)
+    .digest('hex');
+}
+
+function midtransVerifySignature(payload) {
+  const orderId = String(payload && payload.order_id || '').trim();
+  const statusCode = String(payload && payload.status_code || '').trim();
+  const grossAmount = String(payload && payload.gross_amount || '').trim();
+  const signature = String(payload && payload.signature_key || '').trim().toLowerCase();
+  if (!orderId || !statusCode || !grossAmount || !signature) return false;
+  return safeEqual(signature, midtransExpectedSignature(orderId, statusCode, grossAmount));
+}
+
+function midtransMoney(value) {
+  const normalized = String(value || '').replace(/[^0-9.]/g, '');
+  const number = Number(normalized);
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.round(number);
+}
+
+function midtransSafeText(value, maxLength) {
+  return lockedPaymentCleanText(value, maxLength || 160);
+}
+
+function midtransSuccessStatus(payload) {
+  const status = String(payload && payload.transaction_status || '').trim().toLowerCase();
+  const fraud = String(payload && payload.fraud_status || '').trim().toLowerCase();
+  if (status === 'settlement') return true;
+  if (status === 'capture') return !fraud || fraud === 'accept';
+  return false;
+}
+
+function midtransMappedPaymentStatus(payload) {
+  const status = String(payload && payload.transaction_status || '').trim().toLowerCase();
+  const fraud = String(payload && payload.fraud_status || '').trim().toLowerCase();
+  if (status === 'settlement') return 'paid';
+  if (status === 'capture' && (!fraud || fraud === 'accept')) return 'paid';
+  if (status === 'pending') return 'pending';
+  if (status === 'expire') return 'expired';
+  if (status === 'cancel') return 'cancelled';
+  if (status === 'deny' || status === 'failure') return 'failed';
+  if (status === 'refund' || status === 'partial_refund') return 'refunded';
+  return 'pending';
+}
+
+function midtransGatewayEventId(payload) {
+  const tx = midtransSafeText(payload && payload.transaction_id || '', 96);
+  const order = midtransSafeText(payload && payload.order_id || '', 96);
+  const status = midtransSafeText(payload && payload.transaction_status || '', 40);
+  const code = midtransSafeText(payload && payload.status_code || '', 20);
+  const base = tx || order;
+  return `midtrans:${base}:${status || 'unknown'}:${code || '0'}`.slice(0, 220);
+}
+
+function midtransBuildItemDetails(items) {
+  const safeItems = Array.isArray(items) ? items : [];
+  return safeItems.slice(0, 50).map((item, index) => {
+    const quantity = Math.max(1, Math.trunc(Number(item.quantity || item.years || 1)) || 1);
+    const price = midtransMoney(item.unit_price ?? item.price ?? item.register_price ?? item.subtotal);
+    const subtotal = midtransMoney(item.subtotal || (price * quantity));
+    const unitPrice = quantity > 0 ? Math.max(1, Math.round(subtotal / quantity)) : Math.max(1, price);
+    return {
+      id: midtransSafeText(item.product_doc_id || item.domain_name || item.id || `item-${index + 1}`, 50) || `item-${index + 1}`,
+      price: unitPrice,
+      quantity,
+      name: midtransSafeText(item.title || item.name || item.domain_name || 'Item pesanan', 50) || 'Item pesanan'
+    };
+  });
+}
+
+function midtransAdjustItemDetailsToAmount(items, amount) {
+  const target = midtransMoney(amount);
+  const details = midtransBuildItemDetails(items);
+  const total = details.reduce((sum, item) => sum + (midtransMoney(item.price) * Math.max(1, Number(item.quantity || 1))), 0);
+  if (!details.length || total <= 0) {
+    return [{ id: 'order-total', price: target, quantity: 1, name: 'Total pesanan' }];
+  }
+  const diff = target - total;
+  if (diff !== 0) {
+    details.push({ id: 'adjustment', price: diff, quantity: 1, name: 'Penyesuaian total' });
+  }
+  return details;
+}
+
+async function midtransCreateSnapPayment(input) {
+  const amount = midtransMoney(input.amount);
+  if (amount <= 0) {
+    return { ok: false, status: 409, message: 'Nominal Midtrans tidak valid.', error: 'invalid_amount' };
+  }
+
+  const returnUrl = String(process.env.PAYMENT_RETURN_URL || process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/pesanan.html').trim();
+  const payload = {
+    transaction_details: {
+      order_id: String(input.gatewayReference || '').trim(),
+      gross_amount: amount
+    },
+    customer_details: {
+      first_name: midtransSafeText(input.customer && input.customer.name || 'Customer', 120),
+      email: normalizeAuthEmail(input.customer && input.customer.email || ''),
+      phone: midtransSafeText(input.customer && input.customer.phone || '', 40)
+    },
+    item_details: midtransAdjustItemDetailsToAmount(input.items || [], amount),
+    callbacks: {
+      finish: returnUrl
+    },
+    custom_field1: String(input.transactionId || '').slice(0, 255),
+    custom_field2: String(input.orderId || input.domainOrderId || '').slice(0, 255),
+    custom_field3: String(input.serviceType || '').slice(0, 255)
+  };
+
+  const enabledPayments = String(process.env.MIDTRANS_ENABLED_PAYMENTS || '').split(',').map((item) => item.trim()).filter(Boolean);
+  if (enabledPayments.length) payload.enabled_payments = enabledPayments;
+
+  let response;
+  let data;
+  try {
+    response = await fetch(`${midtransSnapBaseUrl()}/snap/v1/transactions`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: midtransBasicAuthHeader()
+      },
+      body: JSON.stringify(payload)
+    });
+    data = await parseFetchResponse(response);
+  } catch (error) {
+    return { ok: false, status: 502, message: 'Midtrans tidak merespons.', error: lockedPaymentSafeError(error) };
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status || 502,
+      message: getUpstreamMessage(data) || 'Midtrans gagal membuat Snap transaction.',
+      error: lockedPaymentSafeUpstreamError(data),
+      raw: data
+    };
+  }
+
+  const token = data && data.token ? String(data.token).trim() : '';
+  const redirectUrl = data && data.redirect_url ? String(data.redirect_url).trim() : '';
+
+  return {
+    ok: Boolean(token && redirectUrl),
+    status: token && redirectUrl ? 200 : 502,
+    message: token && redirectUrl ? 'ok' : 'Midtrans tidak mengembalikan token/redirect_url.',
+    provider: 'midtrans',
+    paymentUrl: redirectUrl,
+    invoiceId: token || input.gatewayReference,
+    raw: {
+      midtrans: data,
+      request: {
+        order_id: payload.transaction_details.order_id,
+        gross_amount: payload.transaction_details.gross_amount,
+        return_url: returnUrl,
+        notification_url: midtransNotificationUrl()
+      }
+    }
+  };
+}
+
+async function midtransCreateDomainPaymentInvoice(order, orderItems, customer) {
+  const domainOrderId = String(order && order.id || '').trim();
+  const customerId = String(order && order.customer_id || '').trim();
+  const amount = midtransMoney(customer && customer.totalAmount || order && (order.total_price || order.total_amount || order.total) || 0);
+
+  if (!customerSecurityLooksLikeUuid(domainOrderId) || !customerSecurityLooksLikeUuid(customerId)) {
+    return { configured: true, payment_url: null, provider: 'midtrans', error: 'domain_order_or_customer_invalid' };
+  }
+  if (amount <= 0) {
+    return { configured: true, payment_url: null, provider: 'midtrans', error: 'domain_amount_invalid' };
+  }
+
+  const orderCode = midtransSafeText(order && (order.order_code || order.order_id) || domainOrderId, 80);
+  const gatewayReference = lockedPaymentGenerateReference(`DOM-${orderCode}`);
+
+  const transactionResult = await lockedPaymentInsertTransaction({
+    domainOrderId,
+    customerId,
+    serviceType: 'domain',
+    gatewayName: 'midtrans',
+    gatewayReference,
+    amount,
+    currency: 'IDR',
+    metadata: {
+      source: 'domain_checkout_midtrans',
+      amount_source: 'domain_orders.total_price.backend',
+      domain_order_id: domainOrderId,
+      order_code: orderCode,
+      create_payment_started_at: diracNowIso()
+    }
+  });
+
+  if (!transactionResult.ok) {
+    const err = new Error('Gagal menyimpan transaksi Midtrans domain.');
+    err.statusCode = transactionResult.status || 500;
+    throw err;
+  }
+
+  const transaction = Array.isArray(transactionResult.data) ? transactionResult.data[0] : transactionResult.data;
+  if (!transaction || !transaction.id) {
+    const err = new Error('Transaksi Midtrans domain dibuat, tetapi ID tidak ditemukan.');
+    err.statusCode = 500;
+    throw err;
+  }
+
+  const gateway = await midtransCreateSnapPayment({
+    gatewayReference,
+    transactionId: transaction.id,
+    domainOrderId,
+    orderId: domainOrderId,
+    orderCode,
+    amount,
+    currency: 'IDR',
+    customer: {
+      name: customer && customer.customerName || order.customer_name || 'Customer',
+      email: customer && customer.customerEmail || order.customer_email || '',
+      phone: customer && customer.customerWhatsapp || order.customer_whatsapp || ''
+    },
+    items: (orderItems || []).map((item) => ({
+      domain_name: item.domain_name,
+      title: item.domain_name,
+      quantity: item.years || 1,
+      price: item.register_price,
+      subtotal: item.subtotal
+    })),
+    serviceType: 'domain'
+  });
+
+  if (!gateway.ok || !gateway.paymentUrl) {
+    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'midtrans_create_failed');
+    return {
+      configured: true,
+      provider: 'midtrans',
+      payment_url: null,
+      invoice_id: gateway.invoiceId || null,
+      payment_transaction_id: transaction.id,
+      gateway_reference: gatewayReference,
+      error: gateway.message || 'Midtrans gagal membuat payment URL.'
+    };
+  }
+
+  const patch = await lockedPaymentPatchTransactionUrl(transaction.id, gateway.paymentUrl, gateway.invoiceId, gateway.raw);
+  if (!patch.ok) {
+    const err = new Error('Midtrans sudah membuat invoice domain, tetapi payment URL gagal disimpan.');
+    err.statusCode = patch.status || 500;
+    throw err;
+  }
+
+  return {
+    configured: true,
+    provider: 'midtrans',
+    payment_url: gateway.paymentUrl,
+    invoice_id: gateway.invoiceId || null,
+    payment_transaction_id: transaction.id,
+    gateway_reference: gatewayReference,
+    raw: gateway.raw
+  };
+}
+
+async function midtransHandleWebhook(req, res) {
+  if (!midtransPaymentIsConfigured()) {
+    return res.status(503).json({ ok: false, message: 'MIDTRANS_SERVER_KEY belum disetel.' });
+  }
+
+  const body = await readBody(req);
+  if (!body || typeof body !== 'object') {
+    return res.status(400).json({ ok: false, message: 'Payload Midtrans tidak valid.' });
+  }
+
+  if (!midtransVerifySignature(body)) {
+    return res.status(403).json({ ok: false, message: 'Signature Midtrans tidak valid.' });
+  }
+
+  const gatewayReference = midtransSafeText(body.order_id || '', 120);
+  const gatewayEventId = midtransGatewayEventId(body);
+  const grossAmount = midtransMoney(body.gross_amount);
+  const mappedStatus = midtransMappedPaymentStatus(body);
+  const success = midtransSuccessStatus(body);
+
+  if (!gatewayReference || !gatewayEventId || grossAmount <= 0) {
+    return res.status(400).json({ ok: false, message: 'Payload Midtrans kurang lengkap.' });
+  }
+
+  const existingEvent = await midtransFetchGatewayEvent(gatewayEventId);
+  if (existingEvent.ok && existingEvent.exists) {
+    return res.status(200).json({ ok: true, duplicate: true, message: 'Webhook Midtrans sudah pernah diproses.', gateway_event_id: gatewayEventId });
+  }
+
+  const txResult = await midtransFetchPaymentTransaction(gatewayReference);
+  if (!txResult.ok) {
+    return res.status(txResult.status || 404).json({ ok: false, message: txResult.message || 'Payment transaction tidak ditemukan.' });
+  }
+
+  const tx = txResult.transaction;
+  const transactionAmount = midtransMoney(tx.amount);
+  if (transactionAmount !== grossAmount) {
+    await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
+      reason: 'amount_mismatch',
+      expected_amount: transactionAmount,
+      gross_amount: grossAmount
+    });
+    return res.status(409).json({ ok: false, message: 'Amount Midtrans tidak cocok dengan transaksi database.' });
+  }
+
+  const ownerCheck = await midtransVerifyTransactionOwnerAndAmount(tx, grossAmount);
+  if (!ownerCheck.ok) {
+    await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
+      reason: ownerCheck.reason || 'owner_or_amount_mismatch'
+    });
+    return res.status(ownerCheck.status || 409).json({ ok: false, message: ownerCheck.message || 'Payment tidak cocok dengan order/customer.' });
+  }
+
+  const eventStatus = success ? 'processed' : 'received';
+  const eventInsert = await midtransInsertGatewayEventSafe(tx.id, gatewayEventId, eventStatus, body, {
+    mapped_payment_status: mappedStatus,
+    success,
+    gateway_reference: gatewayReference
+  });
+
+  if (!eventInsert.ok && !eventInsert.duplicate) {
+    return res.status(eventInsert.status || 500).json({ ok: false, message: 'Gagal menyimpan event webhook Midtrans.' });
+  }
+
+  const txPatch = await midtransPatchPaymentTransaction(tx.id, mappedStatus, body, success);
+  if (!txPatch.ok) {
+    return res.status(txPatch.status || 500).json({ ok: false, message: 'Gagal update payment transaction dari webhook Midtrans.' });
+  }
+
+  let orderPatch = { ok: true, skipped: true };
+  if (success) {
+    orderPatch = await midtransPatchRelatedOrderPaid(tx, body);
+    if (!orderPatch.ok) {
+      return res.status(orderPatch.status || 500).json({ ok: false, message: 'Payment valid, tetapi gagal update status order.' });
+    }
+  }
+
+  return res.status(200).json({
+    ok: true,
+    provider: 'midtrans',
+    gateway_reference: gatewayReference,
+    gateway_event_id: gatewayEventId,
+    payment_transaction_id: tx.id,
+    payment_status: mappedStatus,
+    order_updated: Boolean(success && orderPatch && orderPatch.ok),
+    idempotent: false
+  });
+}
+
+async function midtransFetchPaymentTransaction(gatewayReference) {
+  const select = [
+    'id', 'customer_id', 'order_id', 'domain_order_id', 'service_type', 'gateway_name',
+    'gateway_reference', 'payment_status', 'amount', 'currency', 'payment_url', 'metadata'
+  ].join(',');
+  const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
+    + '&gateway_reference=eq.' + encodeURIComponent(gatewayReference)
+    + '&limit=1';
+
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca payment transaction.' };
+  const rows = Array.isArray(result.data) ? result.data : [];
+  const row = rows[0] || null;
+  if (!row || !row.id) return { ok: false, status: 404, message: 'Payment transaction tidak ditemukan untuk gateway_reference ini.' };
+  return { ok: true, transaction: row };
+}
+
+async function midtransVerifyTransactionOwnerAndAmount(tx, amount) {
+  if (tx.order_id) {
+    const select = 'id,customer_id,total,payment_status,order_status';
+    const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.order_id) + '&limit=1', {
+      method: 'GET',
+      auth: 'service'
+    });
+    if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca order regular.', reason: 'orders_read_failed' };
+    const order = Array.isArray(result.data) ? result.data[0] : null;
+    if (!order || !order.id) return { ok: false, status: 404, message: 'Order regular tidak ditemukan.', reason: 'order_not_found' };
+    if (String(order.customer_id || '') !== String(tx.customer_id || '')) return { ok: false, status: 409, message: 'Customer payment tidak sama dengan customer order.', reason: 'customer_mismatch' };
+    if (midtransMoney(order.total) !== midtransMoney(amount)) return { ok: false, status: 409, message: 'Nominal payment tidak sama dengan total order.', reason: 'amount_mismatch_order_total' };
+    return { ok: true, orderType: 'regular', order };
+  }
+
+  if (tx.domain_order_id) {
+    const select = 'id,customer_id,total_price,payment_status,order_status,status';
+    const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(tx.domain_order_id) + '&limit=1', {
+      method: 'GET',
+      auth: 'service'
+    });
+    if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca domain order.', reason: 'domain_orders_read_failed' };
+    const order = Array.isArray(result.data) ? result.data[0] : null;
+    if (!order || !order.id) return { ok: false, status: 404, message: 'Domain order tidak ditemukan.', reason: 'domain_order_not_found' };
+    if (String(order.customer_id || '') !== String(tx.customer_id || '')) return { ok: false, status: 409, message: 'Customer payment tidak sama dengan customer domain order.', reason: 'customer_mismatch_domain' };
+    if (midtransMoney(order.total_price) !== midtransMoney(amount)) return { ok: false, status: 409, message: 'Nominal payment tidak sama dengan total domain order.', reason: 'amount_mismatch_domain_total' };
+    return { ok: true, orderType: 'domain', order };
+  }
+
+  return { ok: false, status: 409, message: 'Payment transaction tidak punya order_id/domain_order_id.', reason: 'missing_order_reference' };
+}
+
+async function midtransFetchGatewayEvent(gatewayEventId) {
+  const path = '/rest/v1/payment_gateway_events?select=' + encodeURIComponent('id,gateway_event_id')
+    + '&gateway_event_id=eq.' + encodeURIComponent(gatewayEventId)
+    + '&limit=1';
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status };
+  const rows = Array.isArray(result.data) ? result.data : [];
+  return { ok: true, exists: rows.length > 0, event: rows[0] || null };
+}
+
+async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEventId, eventStatus, payload, metadata) {
+  const basePayload = {
+    payment_transaction_id: paymentTransactionId,
+    gateway_event_id: gatewayEventId,
+    event_status: eventStatus,
+    payload,
+    metadata: {
+      provider: 'midtrans',
+      received_at: diracNowIso(),
+      signature_verified: true,
+      ...(metadata || {})
+    }
+  };
+
+  const attempts = [
+    {
+      ...basePayload,
+      gateway_name: 'midtrans',
+      signature_valid: true,
+      received_at: diracNowIso(),
+      processed_at: eventStatus === 'processed' ? diracNowIso() : null
+    },
+    basePayload,
+    {
+      payment_transaction_id: paymentTransactionId,
+      gateway_event_id: gatewayEventId,
+      event_status: eventStatus,
+      payload
+    },
+    {
+      payment_transaction_id: paymentTransactionId,
+      gateway_event_id: gatewayEventId,
+      event_status: eventStatus
+    }
+  ];
+
+  for (const body of attempts) {
+    const result = await supabaseFetch('/rest/v1/payment_gateway_events', {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [body]
+    });
+
+    if (result.ok) return { ok: true, data: result.data };
+
+    const msg = lockedPaymentSafeUpstreamError(result.data).toLowerCase();
+    if (result.status === 409 || msg.includes('duplicate') || msg.includes('unique')) {
+      return { ok: true, duplicate: true, data: result.data };
+    }
+  }
+
+  return { ok: false, status: 500 };
+}
+
+async function midtransPatchPaymentTransaction(transactionId, status, payload, success) {
+  const metadata = {
+    midtrans_last_notification_at: diracNowIso(),
+    midtrans_transaction_id: payload.transaction_id || null,
+    midtrans_transaction_status: payload.transaction_status || null,
+    midtrans_payment_type: payload.payment_type || null,
+    midtrans_fraud_status: payload.fraud_status || null,
+    midtrans_status_code: payload.status_code || null,
+    midtrans_status_message: payload.status_message || null,
+    midtrans_signature_verified: true
+  };
+
+  const body = {
+    payment_status: status,
+    metadata
+  };
+
+  if (success) body.paid_at = payload.settlement_time || diracNowIso();
+
+  const first = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body
+  });
+
+  if (first.ok) return first;
+
+  const fallback = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: { payment_status: status, metadata }
+  });
+
+  return fallback;
+}
+
+async function midtransPatchRelatedOrderPaid(tx, payload) {
+  const paidAt = payload.settlement_time || diracNowIso();
+
+  if (tx.order_id) {
+    const path = '/rest/v1/orders?id=eq.' + encodeURIComponent(tx.order_id);
+    const first = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid',
+        paid_at: paidAt
+      }
+    });
+    if (first.ok) return first;
+    const second = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid'
+      }
+    });
+    if (second.ok) return second;
+    return supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: { payment_status: 'paid' }
+    });
+  }
+
+  if (tx.domain_order_id) {
+    const path = '/rest/v1/domain_orders?id=eq.' + encodeURIComponent(tx.domain_order_id);
+    const first = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid',
+        status: 'paid',
+        paid_at: paidAt
+      }
+    });
+    if (first.ok) return first;
+    const second = await supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: {
+        payment_status: 'paid',
+        order_status: 'paid',
+        status: 'paid'
+      }
+    });
+    if (second.ok) return second;
+    return supabaseFetch(path, {
+      method: 'PATCH',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: { payment_status: 'paid' }
+    });
+  }
+
+  return { ok: false, status: 409 };
+}
+
