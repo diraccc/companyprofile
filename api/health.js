@@ -4576,21 +4576,35 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     return res.status(500).json({ ok: false, message: 'Order dibuat, tetapi ID order tidak ditemukan.' });
   }
 
-  const itemBody = {
-    order_id: order.id,
-    product_title: backendQuote.productTitle,
-    quantity: quantity,
-    unit_price: backendQuote.unitPrice,
-    cost_price: backendQuote.costPrice
-  };
+  const quoteItems = Array.isArray(backendQuote.items) && backendQuote.items.length
+    ? backendQuote.items
+    : [{
+        productDocId: backendQuote.productDocId || '',
+        productTitle: backendQuote.productTitle,
+        quantity,
+        unitPrice: backendQuote.unitPrice,
+        costPrice: backendQuote.costPrice,
+        subtotal: backendQuote.subtotal
+      }];
 
-  if (backendQuote.productDocId) itemBody.product_doc_id = backendQuote.productDocId;
+  const itemBodies = quoteItems.map((item) => {
+    const row = {
+      order_id: order.id,
+      product_title: sessionOwnershipCheckoutCleanText(item.productTitle || backendQuote.productTitle || 'Item pesanan', 180),
+      quantity: sessionOwnershipCheckoutPositiveInteger(item.quantity || 1, 1, 999),
+      unit_price: sessionOwnershipCheckoutPositiveMoney(item.unitPrice || 0),
+      cost_price: sessionOwnershipCheckoutNonNegativeMoney(item.costPrice || 0)
+    };
+    const productDocId = sessionOwnershipCheckoutCleanText(item.productDocId || '', 80);
+    if (productDocId) row.product_doc_id = productDocId;
+    return row;
+  });
 
   const itemResult = await supabaseFetch('/rest/v1/order_items', {
     method: 'POST',
     auth: 'service',
     prefer: 'return=representation',
-    body: [itemBody]
+    body: itemBodies
   });
 
   if (!itemResult.ok) {
@@ -4628,60 +4642,148 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
       unit_price: backendQuote.unitPrice,
       cost_price: backendQuote.costPrice,
       subtotal: backendQuote.subtotal
-    }
+    },
+    items: itemBodies.map((item) => ({
+      product_doc_id: item.product_doc_id || null,
+      product_title: item.product_title,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      cost_price: item.cost_price,
+      subtotal: item.unit_price * item.quantity
+    }))
   });
+}
+
+function sessionOwnershipCheckoutExtractParfumItems(body, requestedProductTitle, fallbackQuantity) {
+  const items = [];
+  const rawItems = Array.isArray(body && body.items) ? body.items : [];
+
+  for (const raw of rawItems) {
+    if (!raw || typeof raw !== 'object') continue;
+    const title = sessionOwnershipCheckoutCleanText(
+      raw.product_title || raw.title || raw.name || raw.product_name || raw.item_name || '',
+      180
+    );
+    const qty = sessionOwnershipCheckoutPositiveInteger(raw.quantity || raw.qty || raw.count || 1, 1, 999);
+    if (!title) continue;
+    items.push({
+      product_doc_id: sessionOwnershipCheckoutCleanText(raw.product_doc_id || raw.doc_id || raw.firebase_id || raw.product_firebase_id || '', 80),
+      product_id: sessionOwnershipCheckoutCleanText(raw.product_id || raw.id || '', 80),
+      product_title: title,
+      title,
+      quantity: qty,
+      qty
+    });
+  }
+
+  if (!items.length) {
+    const summary = sessionOwnershipCheckoutCleanText(requestedProductTitle || '', 1000);
+    if (summary && summary.includes('|')) {
+      summary.split('|').map((part) => part.trim()).filter(Boolean).forEach((part) => {
+        const cleaned = part.replace(/^\d+[.)]\s*/, '').trim();
+        const match = cleaned.match(/^(.*?)\s+x\s*(\d+)\s*$/i);
+        const title = sessionOwnershipCheckoutCleanText(match ? match[1] : cleaned, 180);
+        const qty = sessionOwnershipCheckoutPositiveInteger(match ? match[2] : 1, 1, 999);
+        if (title) items.push({ product_title: title, title, quantity: qty, qty });
+      });
+    }
+  }
+
+  if (!items.length && requestedProductTitle) {
+    const title = sessionOwnershipCheckoutCleanText(requestedProductTitle, 180);
+    const qty = sessionOwnershipCheckoutPositiveInteger(fallbackQuantity || 1, 1, 999);
+    if (title) items.push({ product_title: title, title, quantity: qty, qty });
+  }
+
+  return items.slice(0, 50);
+}
+
+function sessionOwnershipCheckoutBuildParfumQuoteTitle(items) {
+  const lines = (items || []).map((item, index) => {
+    const title = sessionOwnershipCheckoutCleanText(item.productTitle || item.product_title || item.title || 'Produk Parfum', 140);
+    const qty = sessionOwnershipCheckoutPositiveInteger(item.quantity || item.qty || 1, 1, 999);
+    return `${index + 1}. ${title} x${qty}`;
+  });
+  const summary = lines.join(' | ');
+  return summary.length > 480 ? summary.slice(0, 477) + '...' : summary;
 }
 
 async function sessionOwnershipCheckoutBuildBackendQuote({ body, serviceType, requestedProductTitle, quantity }) {
   const normalizedServiceType = sessionOwnershipCheckoutNormalizeServiceType(serviceType);
 
   if (normalizedServiceType === 'parfum') {
-    const productResult = await sessionOwnershipCheckoutFindProductForCheckout(body, requestedProductTitle);
-
-    if (!productResult.ok || !productResult.product) {
-      return {
-        ok: false,
-        status: 409,
-        message: productResult.message || 'Produk parfum tidak ditemukan di database products. Checkout dihentikan supaya nominal tidak bisa dipalsukan.'
-      };
-    }
-
-    const product = productResult.product;
-    const unitPrice = sessionOwnershipCheckoutPositiveMoney(product.price || 0);
-    const costPrice = sessionOwnershipCheckoutNonNegativeMoney(product.cost_price || 0);
-    const productDocId = sessionOwnershipCheckoutCleanText(product.doc_id || product.firebase_id || '', 80);
-    const productTitle = sessionOwnershipCheckoutCleanText(product.title || product.name || requestedProductTitle, 160);
-
-    if (!productDocId) {
-      return { ok: false, status: 409, message: 'Produk ditemukan, tetapi doc_id produk kosong. Checkout dihentikan.' };
-    }
-
-    if (!unitPrice || unitPrice <= 0) {
-      return { ok: false, status: 409, message: 'Harga produk di database masih 0/kosong. Checkout dihentikan supaya nominal tidak bisa dipalsukan.' };
-    }
-
-    if (product.is_active === false) {
-      return { ok: false, status: 409, message: 'Produk tidak aktif. Checkout dihentikan.' };
-    }
-
+    const checkoutItems = sessionOwnershipCheckoutExtractParfumItems(body, requestedProductTitle, quantity);
+    const quoteItems = [];
     const requireReady = String(process.env.CHECKOUT_REQUIRE_PRODUCT_READY || 'false').trim().toLowerCase() === 'true';
-    if (requireReady && product.is_ready === false) {
-      return { ok: false, status: 409, message: 'Produk belum ready. Checkout dihentikan.' };
+
+    if (!checkoutItems.length) {
+      return { ok: false, status: 400, message: 'Item parfum wajib diisi.' };
     }
 
-    const subtotal = unitPrice * quantity;
+    for (const rawItem of checkoutItems) {
+      const itemTitle = sessionOwnershipCheckoutCleanText(rawItem.product_title || rawItem.title || requestedProductTitle, 180);
+      const itemQty = sessionOwnershipCheckoutPositiveInteger(rawItem.quantity || rawItem.qty || 1, 1, 999);
+      const productResult = await sessionOwnershipCheckoutFindProductForCheckout(rawItem, itemTitle);
+
+      if (!productResult.ok || !productResult.product) {
+        return {
+          ok: false,
+          status: 409,
+          message: productResult.message || `Produk parfum "${itemTitle}" tidak ditemukan di database products. Checkout dihentikan supaya nominal tidak bisa dipalsukan.`
+        };
+      }
+
+      const product = productResult.product;
+      const unitPrice = sessionOwnershipCheckoutPositiveMoney(product.price || 0);
+      const costPrice = sessionOwnershipCheckoutNonNegativeMoney(product.cost_price || 0);
+      const productDocId = sessionOwnershipCheckoutCleanText(product.doc_id || product.firebase_id || '', 80);
+      const productTitle = sessionOwnershipCheckoutCleanText(product.title || product.name || itemTitle, 160);
+
+      if (!productDocId) {
+        return { ok: false, status: 409, message: `Produk ${productTitle || itemTitle} ditemukan, tetapi doc_id produk kosong. Checkout dihentikan.` };
+      }
+
+      if (!unitPrice || unitPrice <= 0) {
+        return { ok: false, status: 409, message: `Harga produk ${productTitle || itemTitle} di database masih 0/kosong. Checkout dihentikan supaya nominal tidak bisa dipalsukan.` };
+      }
+
+      if (product.is_active === false) {
+        return { ok: false, status: 409, message: `Produk ${productTitle || itemTitle} tidak aktif. Checkout dihentikan.` };
+      }
+
+      if (requireReady && product.is_ready === false) {
+        return { ok: false, status: 409, message: `Produk ${productTitle || itemTitle} belum ready. Checkout dihentikan.` };
+      }
+
+      quoteItems.push({
+        productDocId,
+        productTitle,
+        quantity: itemQty,
+        unitPrice,
+        costPrice,
+        subtotal: unitPrice * itemQty,
+        product
+      });
+    }
+
+    const subtotal = quoteItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalQty = quoteItems.reduce((sum, item) => sum + item.quantity, 0);
+    const productTitle = sessionOwnershipCheckoutBuildParfumQuoteTitle(quoteItems);
+    const first = quoteItems[0] || {};
 
     return {
       ok: true,
       priceLocked: true,
-      priceSource: 'products.price',
-      productDocId,
+      priceSource: 'products.price.multi_item_server_locked',
+      productDocId: first.productDocId || '',
       productTitle,
-      unitPrice,
-      costPrice,
+      unitPrice: first.unitPrice || 0,
+      costPrice: first.costPrice || 0,
+      quantity: totalQty,
       subtotal,
       total: subtotal,
-      product
+      items: quoteItems,
+      product: first.product || null
     };
   }
 
