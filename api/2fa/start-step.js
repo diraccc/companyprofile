@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const admin = require("firebase-admin");
 const argon2 = require("argon2");
+const nodemailer = require("nodemailer");
 const { createClient } = require("@supabase/supabase-js");
 const { generateRegistrationOptions, generateAuthenticationOptions } = require("@simplewebauthn/server");
 
@@ -542,15 +543,93 @@ async function generateOneTimeRecoveryCodes(reqBody) {
   return codes;
 }
 
-async function sendEmailOtp(code) {
-  const apiKey = process.env.BREVO_API_KEY;
-  const adminEmail = process.env.A2F_ADMIN_EMAIL;
-  const senderEmail = process.env.A2F_SENDER_EMAIL;
+function getStep3EmailTarget() {
+  const email = String(
+    process.env.A2F_STEP3_EMAIL ||
+    process.env.A2F_APPROVAL_EMAIL ||
+    process.env.A2F_ADMIN_EMAIL ||
+    ""
+  ).trim();
+
+  if (!email) {
+    throw new Error("A2F_STEP3_EMAIL/A2F_APPROVAL_EMAIL/A2F_ADMIN_EMAIL belum diset");
+  }
+
+  return email;
+}
+
+function maskEmailForResponse(email) {
+  const text = String(email || "").trim();
+  const at = text.indexOf("@");
+  if (at <= 1) return text ? "***" : "";
+  return `${text.slice(0, 2)}***${text.slice(at)}`;
+}
+
+function getStep3EmailContent(code) {
+  const safeCode = String(code || "").replace(/[^0-9]/g, "");
+  return {
+    subject: "Kode A2F Tahap 3 Dirac Admin",
+    htmlContent: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+        <h2>Kode A2F Tahap 3</h2>
+        <p>Kode verifikasi kamu:</p>
+        <div style="font-size:32px;font-weight:800;letter-spacing:5px;color:#111827">
+          ${safeCode}
+        </div>
+        <p>Kode berlaku 5 menit.</p>
+        <p>Jika kamu tidak login, abaikan email ini.</p>
+      </div>
+    `,
+    textContent: `Kode A2F tahap 3 kamu adalah: ${safeCode}. Kode berlaku 5 menit.`
+  };
+}
+
+function hasSmtpStep3Config() {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+async function sendEmailOtpViaSmtp(code, targetEmail) {
+  const host = String(process.env.SMTP_HOST || "").trim();
+  const port = Number(process.env.SMTP_PORT || 465);
+  const user = String(process.env.SMTP_USER || "").trim();
+  const pass = String(process.env.SMTP_PASS || "");
+  const fromName = String(process.env.SMTP_FROM_NAME || "Dirac Security").trim();
+
+  if (!host || !user || !pass) {
+    throw new Error("ENV SMTP belum lengkap untuk A2F tahap 3");
+  }
+
+  const content = getStep3EmailContent(code);
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass }
+  });
+
+  const result = await transporter.sendMail({
+    from: `"${fromName}" <${user}>`,
+    to: targetEmail,
+    subject: content.subject,
+    text: content.textContent,
+    html: content.htmlContent
+  });
+
+  return {
+    provider: "smtp",
+    messageId: result && result.messageId ? String(result.messageId) : ""
+  };
+}
+
+async function sendEmailOtpViaBrevo(code, targetEmail) {
+  const apiKey = String(process.env.BREVO_API_KEY || "").trim();
+  const senderEmail = String(process.env.A2F_SENDER_EMAIL || process.env.DIRAC_SENDER_EMAIL || "").trim();
+  const senderName = String(process.env.DIRAC_SENDER_NAME || "Dirac Admin").trim();
 
   if (!apiKey) throw new Error("BREVO_API_KEY belum diset");
-  if (!adminEmail) throw new Error("A2F_ADMIN_EMAIL belum diset");
-  if (!senderEmail) throw new Error("A2F_SENDER_EMAIL belum diset");
+  if (!senderEmail) throw new Error("A2F_SENDER_EMAIL atau DIRAC_SENDER_EMAIL belum diset");
 
+  const content = getStep3EmailContent(code);
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -560,38 +639,66 @@ async function sendEmailOtp(code) {
     },
     body: JSON.stringify({
       sender: {
-        name: "Dirac Admin",
+        name: senderName,
         email: senderEmail
       },
       to: [
         {
-          email: adminEmail,
+          email: targetEmail,
           name: "Admin"
         }
       ],
-      subject: "Kode A2F Tahap 3 Dirac Admin",
-      htmlContent: `
-        <div style="font-family:Arial,sans-serif;line-height:1.6">
-          <h2>Kode A2F Tahap 3</h2>
-          <p>Kode verifikasi kamu:</p>
-          <div style="font-size:28px;font-weight:700;letter-spacing:4px">
-            ${code}
-          </div>
-          <p>Kode berlaku 5 menit.</p>
-          <p>Jika kamu tidak login, abaikan email ini.</p>
-        </div>
-      `,
-      textContent: `Kode A2F tahap 3 kamu adalah: ${code}. Kode berlaku 5 menit.`
+      subject: content.subject,
+      htmlContent: content.htmlContent,
+      textContent: content.textContent
     })
   });
 
-  const result = await response.text();
+  const resultText = await response.text();
 
   if (!response.ok) {
-    throw new Error(result || "Gagal kirim email OTP");
+    throw new Error(resultText || "Gagal kirim email OTP via Brevo");
   }
 
-  return result;
+  return {
+    provider: "brevo",
+    response: resultText
+  };
+}
+
+async function sendEmailOtp(code) {
+  const targetEmail = getStep3EmailTarget();
+  const preferredProvider = String(process.env.A2F_STEP3_EMAIL_PROVIDER || "smtp-first").trim().toLowerCase();
+  const errors = [];
+
+  async function trySmtp() {
+    if (!hasSmtpStep3Config()) {
+      throw new Error("SMTP belum dikonfigurasi");
+    }
+    return sendEmailOtpViaSmtp(code, targetEmail);
+  }
+
+  async function tryBrevo() {
+    return sendEmailOtpViaBrevo(code, targetEmail);
+  }
+
+  const providers = preferredProvider === "brevo"
+    ? [tryBrevo, trySmtp]
+    : [trySmtp, tryBrevo];
+
+  for (const provider of providers) {
+    try {
+      const result = await provider();
+      return {
+        ...result,
+        sentTo: maskEmailForResponse(targetEmail)
+      };
+    } catch (error) {
+      errors.push(error && error.message ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`Gagal kirim email A2F tahap 3. Detail: ${errors.join(" | ")}`);
 }
 
 async function sendRecoveryEmailOtp(code, stepNumber) {
@@ -1441,13 +1548,15 @@ module.exports = async function handler(req, res) {
     const sessionId = makeSession(payload, secret);
 
     try {
-      await sendEmailOtp(code);
+      const emailResult = await sendEmailOtp(code);
 
       return res.status(200).json({
         success: true,
         sessionId,
         step: 3,
-        message: "Kode verifikasi berhasil disiapkan"
+        emailProvider: emailResult && emailResult.provider ? emailResult.provider : "unknown",
+        sentTo: emailResult && emailResult.sentTo ? emailResult.sentTo : "",
+        message: "Kode verifikasi berhasil dikirim"
       });
     } catch (error) {
       return res.status(500).json({
