@@ -295,7 +295,7 @@ function isPublicDomainCheckThreat(value) {
   return /[<>{}\[\]"'`;]|(?:--|\/\*|\*\/)/.test(raw);
 }
 
-function checkPublicDomainRateLimit(req, parts) {
+async function checkPublicDomainRateLimit(req, parts) {
   if (isEnvTrue('PUBLIC_DOMAIN_CHECK_RATE_DISABLED')) return { ok: true, retryAfterSeconds: 0 };
 
   const now = Date.now();
@@ -306,7 +306,24 @@ function checkPublicDomainRateLimit(req, parts) {
   const userAgent = String(headers['user-agent'] || '').slice(0, 120);
   const action = 'hostinger_check';
   const key = loginSecurityHash([ip, userAgent, action].join('|'));
-  const current = PUBLIC_DOMAIN_CHECK_RATE_STORE.get(key) || {
+  let current = PUBLIC_DOMAIN_CHECK_RATE_STORE.get(key) || null;
+
+  // PATCH 3G: when LOGIN_SECURITY_PERSIST_TABLE is active, keep public-domain
+  // rate counters in the same isolated backend security table instead of relying
+  // only on serverless memory. No raw domain, cookie, token, or payload is stored.
+  if (!current && LOGIN_SECURITY_PERSIST_TABLE) {
+    const persisted = await readPersistentSecurityJson(`public-domain-check:${key}`);
+    if (persisted && typeof persisted === 'object') {
+      current = {
+        count: Number(persisted.count || 0),
+        windowStartMs: Number(persisted.windowStartMs || persisted.window_start_ms || now),
+        resetAtMs: Number(persisted.resetAtMs || persisted.reset_at_ms || 0),
+        sampleDomain: String(persisted.sampleDomain || persisted.sample_domain || '').slice(0, 120)
+      };
+    }
+  }
+
+  current = current || {
     count: 0,
     windowStartMs: now,
     resetAtMs: now + PUBLIC_DOMAIN_CHECK_WINDOW_MS,
@@ -322,6 +339,14 @@ function checkPublicDomainRateLimit(req, parts) {
 
   current.count = Number(current.count || 0) + 1;
   PUBLIC_DOMAIN_CHECK_RATE_STORE.set(key, current);
+  if (LOGIN_SECURITY_PERSIST_TABLE) {
+    await writePersistentSecurityJson(`public-domain-check:${key}`, {
+      count: Number(current.count || 0),
+      windowStartMs: Number(current.windowStartMs || now),
+      resetAtMs: Number(current.resetAtMs || 0),
+      sampleDomainHash: parts && parts.fullDomain ? loginSecurityHash(String(parts.fullDomain).slice(0, 120)) : ''
+    }, 0, Math.ceil(PUBLIC_DOMAIN_CHECK_WINDOW_MS / 1000) + 60);
+  }
 
   if (current.count > PUBLIC_DOMAIN_CHECK_MAX) {
     return {
@@ -393,7 +418,7 @@ async function hostingerCheckDomain(req, res) {
     return res.status(200).json({ ...cached.payload, cached: true });
   }
 
-  const publicLimit = checkPublicDomainRateLimit(req, parts);
+  const publicLimit = await checkPublicDomainRateLimit(req, parts);
   if (!publicLimit.ok) {
     res.setHeader('Retry-After', String(publicLimit.retryAfterSeconds));
     return res.status(429).json({
@@ -789,6 +814,53 @@ function normalizeLoginSecurityRecord(record, now = Date.now()) {
   };
 }
 
+
+async function readPersistentSecurityJson(securityKey) {
+  const key = String(securityKey || '').trim();
+  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return null;
+
+  try {
+    const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(key)}&limit=1`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
+
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) return null;
+    return row.record_json && typeof row.record_json === 'object' ? row.record_json : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writePersistentSecurityJson(securityKey, record, blockedUntilMs = 0, ttlSeconds = LOGIN_SECURITY_PERSIST_TTL_SECONDS) {
+  const key = String(securityKey || '').trim();
+  if (!LOGIN_SECURITY_PERSIST_TABLE || !key) return false;
+
+  try {
+    const now = Date.now();
+    const safeRecord = record && typeof record === 'object' ? record : {};
+    const expiresAt = new Date(now + Math.max(60, Number(ttlSeconds || 60)) * 1000).toISOString();
+    const payload = [{
+      security_key: key,
+      record_json: safeRecord,
+      blocked_until_ms: Number(blockedUntilMs || 0),
+      updated_at: new Date(now).toISOString(),
+      expires_at: expiresAt
+    }];
+
+    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?on_conflict=security_key`, {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'resolution=merge-duplicates',
+      body: payload
+    });
+    return !!result.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function readPersistentLoginSecurityRecord(identity) {
   if (!LOGIN_SECURITY_PERSIST_TABLE || !identity || !identity.key) return null;
 
@@ -1017,6 +1089,10 @@ async function domainDashboardMe(req, res) {
 }
 
 async function domainMfaStatus(req, res) {
+  if (!isEnvTrue('DOMAIN_MFA_STATUS_DEBUG')) {
+    return res.status(404).json({ ok: false, message: 'Action domain tidak ditemukan.' });
+  }
+
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
   const user = await requireDomainUser(req, res);
@@ -5167,8 +5243,11 @@ function sessionOwnershipCheckoutIsAction(action) {
 }
 
 async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
-  const requireDashboardMfa = String(process.env.CHECKOUT_REQUIRE_DASHBOARD_MFA || 'false').trim().toLowerCase() === 'true';
-  const access = requireDashboardMfa ? await requireDomainDashboardAccess(req, res) : { user: await requireDomainUser(req, res), mfa: null };
+  // PATCH 3G: checkout/order creation is strict backend-only.
+  // A valid login cookie alone is not enough; customer must also have a valid
+  // HttpOnly dashboard MFA cookie. This intentionally ignores the old
+  // CHECKOUT_REQUIRE_DASHBOARD_MFA=false default.
+  const access = await requireDomainDashboardAccess(req, res);
   if (!access || !access.user) return;
 
   const body = await readBody(req);
