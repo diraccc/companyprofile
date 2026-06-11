@@ -2579,21 +2579,49 @@ function parseCookies(req) {
   return cookies;
 }
 
+function normalizeCookieSameSite(value) {
+  const clean = String(value || 'Strict').trim().toLowerCase();
+  if (clean === 'lax') return 'Lax';
+  if (clean === 'none') return 'None';
+  return 'Strict';
+}
+
+function appendSetCookie(res, cookies) {
+  const nextCookies = (Array.isArray(cookies) ? cookies : [cookies]).filter(Boolean);
+  if (!nextCookies.length) return;
+
+  const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null;
+  const previousCookies = Array.isArray(current)
+    ? current
+    : current
+      ? [String(current)]
+      : [];
+
+  res.setHeader('Set-Cookie', previousCookies.concat(nextCookies));
+}
+
 function makeCookie(name, value, options = {}) {
-  const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || 'Lax').trim();
+  // Produksi paling aman: session customer hanya lewat backend-only cookie.
+  // Default dikunci ke SameSite=Strict. Jika alur cross-site benar-benar diperlukan,
+  // DOMAIN_COOKIE_SAMESITE masih bisa diubah lewat ENV tanpa mengubah kode.
+  const sameSite = normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || 'Strict');
+  const secureCookie = sameSite === 'None' || process.env.NODE_ENV !== 'development' || isEnvTrue('DOMAIN_COOKIE_FORCE_SECURE');
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     'Path=/',
-    'HttpOnly',
-    `SameSite=${sameSite}`
+    'HttpOnly'
   ];
 
-  if (sameSite.toLowerCase() === 'none' || process.env.NODE_ENV !== 'development') {
-    parts.push('Secure');
-  }
+  if (secureCookie) parts.push('Secure');
+  parts.push(`SameSite=${sameSite}`);
+  parts.push('Priority=High');
 
   if (options.maxAge !== undefined) {
-    parts.push(`Max-Age=${options.maxAge}`);
+    const maxAge = Math.floor(Number(options.maxAge));
+    parts.push(`Max-Age=${Number.isFinite(maxAge) ? maxAge : 0}`);
+    if (Number.isFinite(maxAge) && maxAge <= 0) {
+      parts.push('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+    }
   }
 
   return parts.join('; ');
@@ -2602,14 +2630,14 @@ function makeCookie(name, value, options = {}) {
 function setSessionCookies(res, session) {
   const maxAge = 60 * 60 * 24 * 7;
 
-  res.setHeader('Set-Cookie', [
+  appendSetCookie(res, [
     makeCookie(ACCESS_COOKIE, session.access_token, { maxAge }),
     makeCookie(REFRESH_COOKIE, session.refresh_token, { maxAge })
   ]);
 }
 
 function clearSessionCookies(res) {
-  res.setHeader('Set-Cookie', [
+  appendSetCookie(res, [
     makeCookie(ACCESS_COOKIE, '', { maxAge: 0 }),
     makeCookie(REFRESH_COOKIE, '', { maxAge: 0 }),
     makeCookie(CUSTOMER_MFA_COOKIE, '', { maxAge: 0 })
@@ -4431,7 +4459,7 @@ function customerSecuritySetDashboardMfaCookie(res, proof) {
   const token = proof && proof.token ? String(proof.token) : '';
   const maxAge = Math.max(1, Math.floor(Number(proof && proof.maxAgeSeconds || 0)));
   if (!token || !maxAge) return;
-  res.setHeader('Set-Cookie', [
+  appendSetCookie(res, [
     makeCookie(CUSTOMER_MFA_COOKIE, token, { maxAge })
   ]);
 }
