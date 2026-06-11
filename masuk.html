@@ -14,6 +14,23 @@
 
   <title>Masuk / Daftar - Dirac Group</title>
   <meta name="description" content="Halaman masuk dan daftar akun Dirac Group dengan tema, bahasa, AI, WhatsApp, dan navigasi yang konsisten dengan katalog order.">
+<!-- Dirac Corporate Webapp Hardening v3: metadata aman, tidak menambah file eksternal, tidak menyentuh script/auth. -->
+<meta name="application-name" content="Dirac Group">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dirac Group">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="color-scheme" content="dark light">
+<meta name="format-detection" content="telephone=no,address=no,email=no">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dirac Group">
+<meta property="og:title" content="Masuk / Daftar - Dirac Group">
+<meta property="og:description" content="Akses akun pelanggan Dirac Group dengan tampilan webapp yang aman, responsif, dan konsisten.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Masuk / Daftar - Dirac Group">
+<meta name="twitter:description" content="Akses akun pelanggan Dirac Group dengan tampilan webapp yang aman, responsif, dan konsisten.">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -4530,8 +4547,147 @@ html[data-motion="reduced"] .dirac-ai-widget{
 }
 </style>
 
+
+<style id="dirac-global-corporate-hardening-v3-css">
+/* =========================================================
+   Dirac Corporate Hardening v3 - Visual/accessibility only.
+   Kunci: tidak menyentuh script, hash, login, endpoint, A2F/MFA,
+   session, cookie, atau contract API. Semua perubahan di blok ini
+   hanya metadata/CSS/skip-link yang aman untuk staging/production review.
+   ========================================================= */
+:root{
+  --dirac-tap-target:48px;
+  --dirac-focus-ring:0 0 0 4px rgba(var(--theme-rgb),.22),0 0 0 1px rgba(var(--theme-rgb),.65) inset;
+  --dirac-card-radius:34px;
+}
+html{font-size:16px;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+body{-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;}
+.skip-to-auth{
+  position:fixed;
+  left:18px;
+  top:18px;
+  z-index:2147483600;
+  transform:translateY(-140%);
+  opacity:0;
+  pointer-events:none;
+  border:1px solid rgba(var(--theme-rgb),.46);
+  border-radius:999px;
+  background:linear-gradient(135deg,#ffe58e,var(--gold-2));
+  color:#111827;
+  padding:12px 16px;
+  min-height:var(--dirac-tap-target);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:950;
+  box-shadow:0 20px 48px rgba(0,0,0,.36);
+}
+.skip-to-auth:focus-visible{transform:translateY(0);opacity:1;pointer-events:auto;outline:none;}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{
+  outline:none!important;
+  box-shadow:var(--dirac-focus-ring)!important;
+}
+:where(button,a,.field,.theme-pro-choice,.theme-swatch-btn,.dirac-float-btn,.ai-trigger,.password-toggle,.forgot-link){
+  -webkit-tap-highlight-color:transparent;
+}
+:where(button,a,.password-toggle,.forgot-link,.theme-pro-choice,.theme-swatch-btn,.dirac-float-btn,.ai-trigger){
+  touch-action:manipulation;
+}
+.field,.auth-submit,.btn-primary,.btn-secondary,.btn-ghost,.catalog-return,.webapp-catalog-return,.theme-toggle,.password-toggle,.forgot-link{
+  min-height:var(--dirac-tap-target);
+}
+.auth-shell{
+  border-radius:var(--dirac-card-radius);
+  overflow:hidden;
+  transform:translateZ(0);
+}
+.auth-card{padding-bottom:clamp(22px,3vw,32px);}
+.auth-card-head{gap:18px;}
+.auth-tabs{position:relative;isolation:isolate;}
+.auth-tab{min-width:0;}
+.form-stack{gap:clamp(13px,1.8vw,16px);}
+.field-group{min-width:0;}
+.field-wrap{min-width:0;}
+.field{letter-spacing:.002em;}
+.field:autofill,
+.field:-webkit-autofill{
+  -webkit-text-fill-color:var(--text);
+  transition:background-color 9999s ease-out 0s;
+  box-shadow:0 0 0 1000px rgba(255,255,255,.06) inset!important;
+}
+html[data-effective-theme="light"] .field:autofill,
+html[data-effective-theme="light"] .field:-webkit-autofill{
+  -webkit-text-fill-color:#151923;
+  box-shadow:0 0 0 1000px rgba(255,255,255,.82) inset!important;
+}
+.status-box{overflow-wrap:anywhere;}
+.auth-note,.mini-card span,.footer p,.footer li,.drawer-foot{overflow-wrap:anywhere;}
+.theme-card,.menu-drawer,.ai-panel,.a2f-card{overscroll-behavior:contain;}
+.theme-content{scrollbar-gutter:stable;}
+.dirac-floating-actions,.dirac-ai-widget{max-width:calc(100vw - 32px);}
+.footer{padding:36px 0 22px;}
+.footer-grid{align-items:start;}
+.footer a:hover,.footer a:focus-visible{text-decoration:underline;text-underline-offset:4px;}
+@supports (height:100dvh){
+  .auth-hero{min-height:calc(100dvh - 132px);}
+  .theme-card.theme-pro-card{max-height:min(88dvh,790px);}
+  .a2f-card{max-height:min(90dvh,800px);}
+}
+@media(max-width:980px){
+  .auth-grid{gap:30px;}
+  .auth-copy p{max-width:620px;}
+}
+@media(max-width:760px){
+  :root{--dirac-card-radius:28px;}
+  .skip-to-auth{left:12px;top:12px;}
+  .auth-hero{padding-top:28px;padding-bottom:54px;}
+  .auth-grid{gap:22px;}
+  .auth-copy h1{margin-top:12px;margin-bottom:12px;}
+  .auth-copy p{font-size:.98rem;line-height:1.58;}
+  .trust-row{gap:8px;margin-top:18px;}
+  .trust-row span{padding:8px 10px;font-size:.84rem;}
+  .auth-card{padding:19px;}
+  .auth-card-head{margin-bottom:14px;}
+  .auth-tabs{margin-top:12px;margin-bottom:16px;}
+  .mini-grid{margin-top:18px;}
+  .footer{padding:30px 0 18px;}
+  .footer-grid{gap:18px;}
+  .copyright{margin-top:18px;}
+}
+@media(max-width:430px){
+  :root{--dirac-tap-target:46px;--dirac-card-radius:24px;}
+  .auth-shell{border-radius:24px;}
+  .auth-card{padding:16px;}
+  .auth-card-head h2{font-size:1.55rem;}
+  .auth-lock{width:40px;height:40px;border-radius:14px;}
+  .auth-copy h1{font-size:clamp(2.25rem,12vw,3.4rem);}
+  .trust-row{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;}
+  .trust-row span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:42px;}
+  .field{padding-left:13px;padding-right:13px;}
+  .password-toggle{right:7px;min-width:40px;}
+  .form-row-clean{gap:8px;}
+  .forgot-link{padding-inline:10px;}
+  .dirac-floating-actions{right:10px;bottom:calc(12px + env(safe-area-inset-bottom));}
+  .dirac-ai-widget{left:10px;bottom:calc(12px + env(safe-area-inset-bottom));}
+  .footer-grid{gap:14px;}
+}
+@media(max-width:360px){
+  .trust-row{grid-template-columns:1fr;}
+  .auth-card{padding:14px;}
+  .auth-card-head{align-items:flex-start;}
+}
+@media(print){
+  .site-header,.dirac-floating-actions,.dirac-ai-widget,.theme-modal,.menu-overlay,.ai-panel-overlay,.a2f-modal,.toast{display:none!important;}
+  body{background:#fff!important;color:#111!important;}
+  .auth-hero{min-height:auto!important;padding:0!important;}
+  .auth-grid{display:block!important;}
+  .auth-shell{box-shadow:none!important;border:1px solid #ddd!important;}
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
+  <a class="skip-to-auth" href="#authForm">Lewati ke form masuk</a>
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
   <header class="site-header" id="siteHeader" data-order-circled-header="true">
     <div class="container nav">
