@@ -241,7 +241,26 @@ const LOGIN_SECURITY_BODY_LIMIT_BYTES = Number.isFinite(LOGIN_SECURITY_BODY_LIMI
   ? Math.max(1024, LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW)
   : 16 * 1024;
 // Optional durable security storage. Default empty = safe in-memory fallback, no new DB writes.
-// To activate later, create a dedicated security table and set LOGIN_SECURITY_PERSIST_TABLE.
+// Redis mode is external storage only; it does not touch Supabase tables, auth, hash, admin, orders, or A2F.
+const LOGIN_SECURITY_STORAGE = String(process.env.LOGIN_SECURITY_STORAGE || '').trim().toLowerCase();
+const LOGIN_SECURITY_REDIS_REST_URL = String(
+  process.env.LOGIN_SECURITY_REDIS_REST_URL ||
+  process.env.UPSTASH_REDIS_REST_URL ||
+  process.env.KV_REST_API_URL ||
+  process.env.STORAGE_REST_API_URL ||
+  process.env.STORAGE_URL ||
+  ''
+).trim();
+const LOGIN_SECURITY_REDIS_REST_TOKEN = String(
+  process.env.LOGIN_SECURITY_REDIS_REST_TOKEN ||
+  process.env.UPSTASH_REDIS_REST_TOKEN ||
+  process.env.KV_REST_API_TOKEN ||
+  process.env.STORAGE_REST_API_TOKEN ||
+  process.env.STORAGE_TOKEN ||
+  ''
+).trim();
+const LOGIN_SECURITY_REDIS_KEY_PREFIX = String(process.env.LOGIN_SECURITY_REDIS_KEY_PREFIX || 'dirac:login-security:v1:').trim() || 'dirac:login-security:v1:';
+// Legacy optional Supabase-table fallback. Leave empty when the owner does not want any database writes.
 const LOGIN_SECURITY_PERSIST_TABLE = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim();
 const LOGIN_SECURITY_PERSIST_TTL_SECONDS = 10 * 365 * 24 * 60 * 60;
 
@@ -772,7 +791,15 @@ function normalizeLoginSecurityRecord(record, now = Date.now()) {
 }
 
 async function readPersistentLoginSecurityRecord(identity) {
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !identity || !identity.key) return null;
+  if (!identity || !identity.key) return null;
+
+  if (shouldUseLoginSecurityRedis()) {
+    const redisRecord = await readRedisLoginSecurityRecord(identity);
+    if (redisRecord) return redisRecord;
+  }
+
+  // Optional legacy table fallback only when explicitly configured.
+  if (!LOGIN_SECURITY_PERSIST_TABLE) return null;
 
   try {
     const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(identity.key)}&limit=1`;
@@ -791,7 +818,16 @@ async function readPersistentLoginSecurityRecord(identity) {
 }
 
 async function writePersistentLoginSecurityRecord(identity, record) {
-  if (!LOGIN_SECURITY_PERSIST_TABLE || !identity || !identity.key) return false;
+  if (!identity || !identity.key) return false;
+
+  if (shouldUseLoginSecurityRedis()) {
+    const redisSaved = await writeRedisLoginSecurityRecord(identity, record);
+    if (redisSaved) return true;
+    // If Redis is temporarily unreachable, do not break login/register. Memory store remains active.
+  }
+
+  // Optional legacy table fallback only when explicitly configured. Leave env empty to avoid database writes.
+  if (!LOGIN_SECURITY_PERSIST_TABLE) return false;
 
   try {
     const now = Date.now();
@@ -814,6 +850,85 @@ async function writePersistentLoginSecurityRecord(identity, record) {
   } catch (_) {
     return false;
   }
+}
+
+function shouldUseLoginSecurityRedis() {
+  if (LOGIN_SECURITY_STORAGE !== 'redis') return false;
+  return !!normalizeLoginSecurityRedisUrl() && !!LOGIN_SECURITY_REDIS_REST_TOKEN;
+}
+
+function normalizeLoginSecurityRedisUrl() {
+  let url = String(LOGIN_SECURITY_REDIS_REST_URL || '').trim();
+  if (!url) return '';
+  if (/^redis:\/\//i.test(url) || /^rediss:\/\//i.test(url)) return '';
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+  return url.replace(/\/+$/, '');
+}
+
+function getLoginSecurityRedisKey(identity) {
+  return LOGIN_SECURITY_REDIS_KEY_PREFIX + String(identity && identity.key || '');
+}
+
+async function readRedisLoginSecurityRecord(identity) {
+  const redisKey = getLoginSecurityRedisKey(identity);
+  if (!redisKey || redisKey === LOGIN_SECURITY_REDIS_KEY_PREFIX) return null;
+
+  try {
+    const data = await upstashRedisCommand(['GET', redisKey]);
+    if (!data || data.result == null) return null;
+    const raw = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (Number(parsed.expiresAtMs || 0) && Number(parsed.expiresAtMs || 0) <= Date.now()) return null;
+    return parsed.record && typeof parsed.record === 'object' ? parsed.record : parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writeRedisLoginSecurityRecord(identity, record) {
+  const redisKey = getLoginSecurityRedisKey(identity);
+  if (!redisKey || redisKey === LOGIN_SECURITY_REDIS_KEY_PREFIX) return false;
+
+  try {
+    const now = Date.now();
+    const normalized = normalizeLoginSecurityRecord(record, now);
+    const payload = {
+      v: 1,
+      record: normalized,
+      blockedUntilMs: Number(normalized.blockedUntilMs || 0),
+      updatedAtMs: now,
+      expiresAtMs: now + LOGIN_SECURITY_PERSIST_TTL_SECONDS * 1000
+    };
+    const data = await upstashRedisCommand([
+      'SET',
+      redisKey,
+      JSON.stringify(payload),
+      'EX',
+      LOGIN_SECURITY_PERSIST_TTL_SECONDS
+    ]);
+    return !!data && data.result === 'OK';
+  } catch (_) {
+    return false;
+  }
+}
+
+async function upstashRedisCommand(command) {
+  const url = normalizeLoginSecurityRedisUrl();
+  if (!url || !LOGIN_SECURITY_REDIS_REST_TOKEN) return null;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LOGIN_SECURITY_REDIS_REST_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(command)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.error) return null;
+  return data;
 }
 
 function loginSecurityHash(value) {
