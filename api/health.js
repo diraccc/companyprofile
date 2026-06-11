@@ -32,10 +32,6 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'domain_hostinger_check': 'hostinger_check',
   'check-domain': 'domain_check',
   'domain_check': 'domain_check',
-  'create-order': 'domain_checkout',
-  'domain_create_order': 'domain_checkout',
-  'get-orders': 'domain_orders',
-  'domain_get_orders': 'domain_orders',
   'domain-login': 'domain_login',
   'domain_login': 'domain_login',
   'login-domain': 'domain_login',
@@ -203,9 +199,7 @@ function normalizeDomainAction(action) {
    /api/health?action=domain_check&domain=contoh.com
    /api/health?action=check-domain&domain=contoh.com
    /api/health?action=domain_checkout
-   /api/health?action=create-order
    /api/health?action=domain_orders
-   /api/health?action=get-orders
    ============================================================ */
 
 const ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || 'dirac_domain_session';
@@ -383,9 +377,7 @@ async function domainHealth(req, res) {
     aliases: {
       health: '/api/health?action=domain-health',
       hostingerCheck: '/api/health?action=hostinger-check&domain=contoh.com',
-      check: '/api/health?action=check-domain&domain=contoh.com',
-      createOrder: '/api/health?action=create-order',
-      getOrders: '/api/health?action=get-orders'
+      check: '/api/health?action=check-domain&domain=contoh.com'
     },
     time: diracNowIso()
   });
@@ -5875,7 +5867,6 @@ function sessionOwnershipCheckoutSafeError(error) {
    Endpoint:
    GET /api/health?action=my_orders
    GET /api/health?action=pesanan_saya
-   GET /api/health?action=customer_orders
    ============================================================ */
 
 const __diracMyOrdersPreviousHandler = module.exports;
@@ -5913,7 +5904,6 @@ function myOrdersNormalizeAction(action) {
     my_orders: 'my_orders',
     pesanan: 'my_orders',
     pesanan_saya: 'my_orders',
-    customer_orders: 'my_orders',
     orders_saya: 'my_orders',
     my_invoices: 'my_orders',
     invoice_saya: 'my_orders'
