@@ -278,63 +278,18 @@
       return url.toString();
     }
 
-    function looksLikeJwt(value) {
-      return /^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$/.test(String(value || '').trim());
-    }
+    function looksLikeJwt(value) { return false; }
 
-    function safeJsonParse(raw) {
-      try { return raw ? JSON.parse(raw) : null; } catch (_) { return null; }
-    }
+    function safeJsonParse(raw) { return null; }
 
-    function findTokenDeep(value, type, depth = 0) {
-      if (!value || depth > 8) return '';
-      if (typeof value === 'string') {
-        const text = value.trim();
-        if (type === 'access' && looksLikeJwt(text)) return text;
-        return '';
-      }
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          const found = findTokenDeep(item, type, depth + 1);
-          if (found) return found;
-        }
-        return '';
-      }
-      if (typeof value !== 'object') return '';
+    function findTokenDeep(value, type, depth = 0) { return ''; }
 
-      const accessKeys = ['accessToken','access_token','access','token','jwt','idToken','id_token'];
-      const refreshKeys = ['refreshToken','refresh_token','refresh'];
-
-      const keys = type === 'access' ? accessKeys : refreshKeys;
-      for (const key of keys) {
-        if (Object.prototype.hasOwnProperty.call(value, key) && typeof value[key] === 'string' && value[key].trim()) {
-          if (type === 'access') {
-            if (key.toLowerCase().includes('refresh')) continue;
-            if (looksLikeJwt(value[key]) || key === 'accessToken' || key === 'access_token' || key === 'jwt' || key === 'token') return value[key].trim();
-          } else {
-            return value[key].trim();
-          }
-        }
-      }
-
-      for (const child of Object.values(value)) {
-        const found = findTokenDeep(child, type, depth + 1);
-        if (found) return found;
-      }
-      return '';
-    }
-
-    function getStorageAreas() {
-      const areas = [];
-      try { if (window.localStorage) areas.push({ name: 'localStorage', store: window.localStorage }); } catch (_) {}
-      try { if (window.sessionStorage) areas.push({ name: 'sessionStorage', store: window.sessionStorage }); } catch (_) {}
-      return areas;
-    }
+    function getStorageAreas() { return []; }
 
     function readLegacyAuthSession() {
-      // PATCH 3A: jangan baca token dari localStorage/sessionStorage.
-      const summary = { key: '', accessFound: false, refreshFound: false, keysScanned: 0, storage: 'backend-only' };
-      return { accessToken: '', refreshToken: '', summary };
+      // PATCH 3F: halaman keamanan customer backend-only. Tidak mencari token auth di storage browser.
+      const summary = { key: '', tokenFound: false, keysScanned: 0, storage: 'backend-only' };
+      return { summary };
     }
 
     function persistRefreshedTokensFromResponse(response) {
@@ -347,8 +302,7 @@
       const s = found.summary || {};
       return 'Local session: ' + (s.key ? 'ada' : 'tidak ada') +
         ' · storage: ' + (s.storage || '-') +
-        ' · access: ' + (s.accessFound ? 'ada' : 'tidak ada') +
-        ' · refresh: ' + (s.refreshFound ? 'ada' : 'tidak ada') +
+        ' · token: ' + (s.tokenFound ? 'ada' : 'tidak ada') +
         ' · keys checked: ' + Number(s.keysScanned || 0);
     }
 

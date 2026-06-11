@@ -4384,10 +4384,10 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     function authEndpointFor(currentMode){
       return currentMode === 'register' ? REGISTER_ENDPOINT : LOGIN_ENDPOINT;
     }
-    function extractAuthTokens(container){
-      // PATCH 3A: backend-only. Token dari response tidak pernah dipakai/ditulis ke frontend.
+    function extractAuthMeta(container){
+      // PATCH 3F: backend-only. Tidak membaca/menyimpan access/refresh token di frontend.
       container = container || {};
-      return { accessToken:'', refreshToken:'', expiresIn: container.expires_in || container.expiresIn || null };
+      return { expiresIn: container.expires_in || container.expiresIn || null, backendOnly: container.backend_only === true };
     }
     function hasOwn(obj, key){
       return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
@@ -4403,13 +4403,9 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       }
       return data;
     }
-    function hasSessionProof(container){
+    function hasBackendOnlySessionMarker(container){
       if(!container || typeof container !== 'object') return false;
-      return !!(
-        container.token || container.accessToken || container.access_token || container.jwt || container.idToken || container.id_token ||
-        container.sessionToken || container.session_token || container.refreshToken || container.refresh_token ||
-        container.sessionId || container.session_id || container.sid || container.user || container.profile || container.account
-      );
+      return container.backend_only === true;
     }
     function isTrustedAuthResponse(data){
       if(!data || typeof data !== 'object') return false;
@@ -4417,7 +4413,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       var container = pickAuthContainer(data) || {};
       // PATCH 3B: A2F UI hanya boleh terbuka jika backend menyatakan login valid
       // DAN ada sesi backend-only. Response register tanpa session/email-confirmation tidak cukup.
-      if((data.twoFactorRequired === true || data.mfaRequired === true || data.require2fa === true) && data.ok === true && data.user) return true;
+      if((data.twoFactorRequired === true || data.mfaRequired === true || data.require2fa === true) && data.ok === true && data.user && container.backend_only === true) return true;
       if(data.ok === true && container.backend_only === true && data.user && data.needs_email_confirmation !== true) return true;
       return false;
     }
@@ -4499,7 +4495,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         showToast('Cek email verifikasi dulu. A2F belum dibuka.');
         return;
       }
-      var tokens = extractAuthTokens(container);
+      var authMeta = extractAuthMeta(container);
       var session = {
         identifier:identifier,
         mode:mode,
@@ -4509,8 +4505,8 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         serverAuthenticated:true,
         authenticated:true,
         authVerifiedAt:new Date().toISOString(),
-        authProof:!!hasSessionProof(container),
-        expiresIn:tokens.expiresIn,
+        authProof:hasBackendOnlySessionMarker(container),
+        expiresIn:authMeta.expiresIn,
         rememberDevice:!!($('#remember') && $('#remember').checked),
         user:(data && data.user) || (container && container.user) || null,
         twoFactorRequired:true,
@@ -6934,12 +6930,11 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   function hasRecoveryDashboardProof(data){
     var ds = data && data.dashboardSession ? data.dashboardSession : {};
-    var proofToken = String((ds && (ds.proofToken || ds.token)) || (data && (data.mfaProofToken || data.dashboardMfaProofToken)) || '');
-    return !!(data && data.ok === true && proofToken);
+    return !!(data && data.ok === true && ds && ds.verified === true && ds.transport === 'httponly-secure-cookie-only');
   }
   function persistProof(data){
     if(!(data && data.ok === true)) return false;
-    window.__DIRAC_BACKEND_MFA_CONTEXT__ = {method:'recovery_code', backendOnly:true, verifiedAt:new Date().toISOString()};
+    window.__DIRAC_BACKEND_MFA_CONTEXT__ = {method:'recovery_code', backendOnly:true, verifiedAt:new Date().toISOString(), transport:'httponly-secure-cookie-only'};
     return true;
   }
 
@@ -7031,7 +7026,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       if(!res.ok || !hasRecoveryDashboardProof(data)){
         throw new Error((data && (data.message || data.error || data.code)) || 'Recovery code ditolak.');
       }
-      if(!persistProof(data)) throw new Error('Server tidak mengirim MFA proof.');
+      if(!persistProof(data)) throw new Error('Server belum mengaktifkan sesi A2F backend.');
       showStatus(box, 'Recovery code valid. Membuka dashboard...', true);
       playSound('success');
       if(input) input.value = '';
