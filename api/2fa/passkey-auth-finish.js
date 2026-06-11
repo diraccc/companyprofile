@@ -74,7 +74,9 @@ function send(res, status, data) {
 }
 
 function isDisabledLegacyPublicStorefrontAction(action) {
-  return action === "publicReadProducts" || action === "publicCreateOrder";
+  // publicReadProducts tetap dipertahankan sebagai read-only catalog compatibility untuk parfum.html.
+  // Yang berbahaya dan tetap dimatikan adalah pembuatan order publik legacy.
+  return action === "publicCreateOrder";
 }
 
 function sendDisabledLegacyPublicStorefrontAction(res, action) {
@@ -83,7 +85,7 @@ function sendDisabledLegacyPublicStorefrontAction(res, action) {
     ok: false,
     disabled: true,
     action,
-    error: "Endpoint publik legacy sudah dinonaktifkan. Gunakan endpoint checkout/produk publik resmi yang divalidasi backend."
+    error: "Endpoint publik legacy order sudah dinonaktifkan. Gunakan endpoint checkout resmi yang divalidasi backend."
   });
 }
 
@@ -794,8 +796,84 @@ function plainDataFromRow(row) {
   });
 }
 
-/* Legacy public storefront handlers removed/disabled.
-   Public order/product actions must not live in admin passkey endpoint. */
+function isDeletedStatus(value) {
+  return ["deleted", "archived", "hidden", "inactive", "draft"].includes(String(value || "").trim().toLowerCase());
+}
+
+function isPublicVisibleProduct(data) {
+  if (!data || typeof data !== "object") return false;
+  if (data.deleted === true || data.archived === true || data.hidden === true) return false;
+  if (isDeletedStatus(data.status)) return false;
+  if (isDeletedStatus(data.publishStatus)) return false;
+  if (isDeletedStatus(data.visibility)) return false;
+  return true;
+}
+
+function stripPrivateCatalogFields(value, depth = 0) {
+  if (depth > 6) return null;
+  if (Array.isArray(value)) return value.slice(0, 200).map((item) => stripPrivateCatalogFields(item, depth + 1));
+  if (!value || typeof value !== "object") return value;
+
+  const blocked = new Set([
+    "secret", "secrets", "token", "tokens", "password", "pin", "otp", "privateKey",
+    "apiKey", "serviceRoleKey", "accessToken", "refreshToken", "authorization",
+    "adminOnly", "adminNote", "adminNotes", "internalNote", "internalNotes",
+    "debug", "raw", "__raw", "_private"
+  ]);
+
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (blocked.has(key)) continue;
+    if (/secret|password|token|private[_-]?key|service[_-]?role|authorization/i.test(key)) continue;
+    out[key] = stripPrivateCatalogFields(item, depth + 1);
+  }
+  return out;
+}
+
+async function handlePublicReadProducts(body) {
+  const supabase = getSupabaseAdmin();
+  const limitRaw = Number(body && body.limit || 5000);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 5000) : 5000;
+
+  const { data, error } = await supabase
+    .from(ADMIN_DOCUMENTS_TABLE)
+    .select("collection, doc_id, data, created_at, updated_at")
+    .eq("collection", "products")
+    .limit(limit);
+
+  if (error) {
+    throw Object.assign(new Error("Gagal membaca produk publik"), { status: 500 });
+  }
+
+  const products = (Array.isArray(data) ? data : [])
+    .map(plainDataFromRow)
+    .filter(isPublicVisibleProduct)
+    .map((product) => stripPrivateCatalogFields(product));
+
+  return {
+    success: true,
+    action: "publicReadProducts",
+    provider: "supabase-backend",
+    products,
+    count: products.length
+  };
+}
+
+async function handlePublicStorefrontReadAction(req, res, body) {
+  const action = String(body.action || "").trim();
+
+  if (action === "publicReadProducts") {
+    return send(res, 200, await handlePublicReadProducts(body));
+  }
+
+  return send(res, 400, {
+    success: false,
+    error: "Action publik tidak didukung: " + action
+  });
+}
+
+/* Legacy public order creation remains removed/disabled.
+   publicReadProducts is read-only and retained for parfum.html catalog compatibility. */
 
 async function fetchAllAdminDocumentsForExport() {
   const supabase = getSupabaseAdmin();
@@ -1099,6 +1177,10 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const action = String(body.action || "").trim();
+
+    if (action === "publicReadProducts") {
+      return await handlePublicStorefrontReadAction(req, res, body);
+    }
 
     if (isDisabledLegacyPublicStorefrontAction(action)) {
       return sendDisabledLegacyPublicStorefrontAction(res, action);
