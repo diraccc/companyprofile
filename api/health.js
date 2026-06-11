@@ -207,6 +207,14 @@ globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ = globalThis.__DIRAC_HOSTINGER_TOKE
 const DOMAIN_PROVIDER_COOLDOWNS = globalThis.__DIRAC_DOMAIN_PROVIDER_COOLDOWNS__ || new Map();
 globalThis.__DIRAC_DOMAIN_PROVIDER_COOLDOWNS__ = DOMAIN_PROVIDER_COOLDOWNS;
 
+
+// Backend-only login SQL injection guard.
+// Isolated in-memory store: does not write password, OTP, token, cookie, or raw payload.
+const LOGIN_SECURITY_GUARD_STORE = globalThis.__DIRAC_LOGIN_SECURITY_GUARD_STORE__ || new Map();
+globalThis.__DIRAC_LOGIN_SECURITY_GUARD_STORE__ = LOGIN_SECURITY_GUARD_STORE;
+const LOGIN_SECURITY_RETRY_AFTER_SECONDS = 30;
+const LOGIN_SECURITY_TEN_YEARS_MS = 10 * 365 * 24 * 60 * 60 * 1000;
+
 async function handleDomainAction(action, req, res) {
   try {
     if (action === 'domain_health') return domainHealth(req, res);
@@ -327,27 +335,25 @@ async function domainLogin(req, res, preloadedBody) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
   const body = preloadedBody || await readBody(req);
-  const email = normalizeAuthEmail(body.email || body.identifier || body.customer_email);
+  const rawEmail = String(body.email || body.identifier || body.customer_email || '');
+  const email = normalizeAuthEmail(rawEmail);
   const password = String(body.password || '');
 
-  if (!email || !password) {
-    return res.status(400).json({ ok: false, message: 'Email dan password wajib diisi.' });
-  }
-
-  if (!isValidAuthEmail(email)) {
-    return res.status(400).json({ ok: false, message: 'Login server memakai email. Masukkan alamat email yang valid.' });
+  const loginGuard = await guardDomainLoginInput(req, res, { rawEmail, email, password });
+  if (!loginGuard.ok) {
+    return res.status(loginGuard.status).json(loginGuard.body);
   }
 
   const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
     method: 'POST',
     auth: 'anon',
-    body: { email, password }
+    body: { email: loginGuard.email, password }
   });
 
   if (!result.ok) {
     return res.status(result.status).json({
       ok: false,
-      message: result.data.error_description || result.data.msg || result.data.message || 'Login gagal.'
+      message: 'Email atau password belum sesuai.'
     });
   }
 
@@ -355,7 +361,10 @@ async function domainLogin(req, res, preloadedBody) {
 
   return res.status(200).json({
     ok: true,
-    message: 'Login berhasil.',
+    message: 'Login berhasil. Silakan lanjutkan verifikasi keamanan.',
+    twoFactorRequired: true,
+    mfaRequired: true,
+    next: 'mfa_required',
     user: sanitizeUser(result.data.user),
     session: {
       access_token: result.data.access_token,
@@ -363,6 +372,265 @@ async function domainLogin(req, res, preloadedBody) {
       expires_in: result.data.expires_in
     }
   });
+}
+
+async function guardDomainLoginInput(req, res, input) {
+  const rawEmail = String(input && input.rawEmail || '');
+  const email = String(input && input.email || '');
+  const password = String(input && input.password || '');
+  const now = Date.now();
+  const identity = getLoginSecurityIdentity(req);
+  const record = LOGIN_SECURITY_GUARD_STORE.get(identity.key) || {
+    count: 0,
+    firstSeenMs: now,
+    lastSeenMs: 0,
+    cooldownUntilMs: 0,
+    blockedUntilMs: 0,
+    incidentCode: ''
+  };
+
+  if (Number(record.blockedUntilMs || 0) > now) {
+    const incident = buildLoginSecurityIncident(req, identity, record, now);
+    return {
+      ok: false,
+      status: 403,
+      body: buildLoginSecurityTenYearBody(incident)
+    };
+  }
+
+  if (Number(record.cooldownUntilMs || 0) > now) {
+    res.setHeader('Retry-After', String(LOGIN_SECURITY_RETRY_AFTER_SECONDS));
+    return {
+      ok: false,
+      status: 429,
+      body: buildLoginSecurityCooldownBody(LOGIN_SECURITY_RETRY_AFTER_SECONDS)
+    };
+  }
+
+  if (!email || !password) {
+    return {
+      ok: false,
+      status: 400,
+      body: { ok: false, message: 'Email atau password belum sesuai.' }
+    };
+  }
+
+  if (isClearDomainLoginSqlInjection(rawEmail)) {
+    const nextCount = Number(record.count || 0) + 1;
+    record.count = nextCount;
+    record.lastSeenMs = now;
+    record.emailFingerprint = loginSecurityHash(rawEmail);
+    record.cooldownUntilMs = nextCount >= 4 ? 0 : now + LOGIN_SECURITY_RETRY_AFTER_SECONDS * 1000;
+    if (!record.incidentCode) record.incidentCode = createLoginSecurityIncidentCode(identity.key, now);
+
+    if (nextCount >= 4) {
+      record.blockedUntilMs = now + LOGIN_SECURITY_TEN_YEARS_MS;
+      LOGIN_SECURITY_GUARD_STORE.set(identity.key, record);
+      const incident = buildLoginSecurityIncident(req, identity, record, now);
+      await notifyLoginSecurityIncidentSafe(incident);
+      return {
+        ok: false,
+        status: 403,
+        body: buildLoginSecurityTenYearBody(incident)
+      };
+    }
+
+    LOGIN_SECURITY_GUARD_STORE.set(identity.key, record);
+    res.setHeader('Retry-After', String(LOGIN_SECURITY_RETRY_AFTER_SECONDS));
+    return {
+      ok: false,
+      status: 429,
+      body: buildLoginSecurityCooldownBody(LOGIN_SECURITY_RETRY_AFTER_SECONDS)
+    };
+  }
+
+  if (!isStrictDomainLoginEmail(email)) {
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        ok: false,
+        code: 'INVALID_EMAIL_FORMAT',
+        message: 'Email belum sesuai.\nGunakan huruf kecil, angka, tanda @, dan titik.\nContoh:\nnama@gmail.com'
+      }
+    };
+  }
+
+  return { ok: true, email };
+}
+
+function isStrictDomainLoginEmail(email) {
+  const value = String(email || '').trim();
+  if (!/^[a-z0-9@.]+$/.test(value)) return false;
+  if ((value.match(/@/g) || []).length !== 1) return false;
+  if (value.startsWith('.') || value.endsWith('.') || value.includes('..')) return false;
+  return /^[a-z0-9]+(?:\.[a-z0-9]+)*@[a-z0-9]+(?:\.[a-z0-9]+)+$/.test(value);
+}
+
+function isClearDomainLoginSqlInjection(value) {
+  const samples = buildLoginSecurityInspectionSamples(value);
+  const highRiskPatterns = [
+    /\bor\s+1\s*=\s*1\b/i,
+    /\band\s+1\s*=\s*1\b/i,
+    /\bunion\s+(?:all\s+)?select\b/i,
+    /\bdrop\s+table\b/i,
+    /\bpg_sleep\s*\(/i,
+    /\bsleep\s*\(/i,
+    /\bbenchmark\s*\(/i,
+    /admin\s*['"`]\s*--/i,
+    /['"`]\s*(?:or|and)\s+['"`]?\w+['"`]?\s*=\s*['"`]?\w+/i,
+    /['"`]\s*--/i,
+    /\/\*/i,
+    /\*\//i,
+    /;\s*(?:select|insert|update|delete|drop|alter|truncate|create)\b/i,
+    /\b(?:information_schema|pg_catalog|sqlite_master)\b/i
+  ];
+  return samples.some((sample) => highRiskPatterns.some((pattern) => pattern.test(sample)));
+}
+
+function buildLoginSecurityInspectionSamples(value) {
+  const raw = String(value || '');
+  const samples = new Set([raw, raw.toLowerCase()]);
+  try {
+    const decoded = decodeURIComponent(raw);
+    samples.add(decoded);
+    samples.add(decoded.toLowerCase());
+  } catch (_) {}
+  return Array.from(samples);
+}
+
+function buildLoginSecurityCooldownBody(seconds) {
+  return {
+    ok: false,
+    code: 'LOGIN_INPUT_BLOCKED',
+    retry_after_seconds: seconds,
+    message: 'Input belum bisa digunakan.\n\nSistem menemukan karakter atau kata yang tidak sesuai pada kolom email.\n\nPastikan email hanya menggunakan huruf kecil, angka, tanda @, dan titik.\n\nContoh:\nnama@gmail.com\n\nSilakan coba lagi dalam 30 detik.'
+  };
+}
+
+function buildLoginSecurityTenYearBody(incident) {
+  return {
+    ok: false,
+    code: 'LOGIN_ACCESS_RESTRICTED',
+    blocked_years: 10,
+    incident_code: incident.incidentCode,
+    message: 'AKSES MASUK DIBATASI\n\nSistem keamanan DiracGroup mendeteksi percobaan berbahaya berulang pada form masuk.\n\nAkses masuk dari perangkat ini telah dibatasi selama 10 tahun karena terindikasi melakukan manipulasi input dan percobaan menerobos sistem keamanan.\n\nData teknis yang berhasil dikumpulkan:\n\n* Kode Insiden: ' + incident.incidentCode + '\n* Waktu Server: ' + incident.serverTime + '\n* Waktu Perangkat: Sesuai waktu perangkat pengguna\n* Halaman: masuk.html\n* Form: Login\n* Endpoint Target: /api/login / /api/health?action=domain_login\n* Jumlah Percobaan: ' + incident.attemptCount + ' kali\n* Jenis Deteksi: SQL Injection / Manipulasi Input\n* Status Risiko: Tinggi\n* Tindakan Sistem: Akses masuk dibatasi selama 10 tahun\n\nData Jaringan:\n\n* IP Address: ' + incident.maskedIp + '\n* Provider / ISP: Sesuai hasil deteksi sistem\n* ASN Jaringan: Sesuai hasil deteksi sistem\n* Lokasi Jaringan: Sesuai hasil analisis jaringan\n* Deteksi VPN / Proxy: Sesuai hasil pemeriksaan sistem\n\nData Perangkat:\n\n* Browser: ' + incident.userAgentSummary + '\n* Bahasa Browser: ' + incident.language + '\n* Zona Waktu: Sesuai perangkat pengguna\n* Device Key: ' + incident.deviceKey + '\n* Session Key: ' + incident.sessionKey + '\n\nAktivitas ini telah dicatat otomatis oleh sistem keamanan DiracGroup.\n\nJika ditemukan unsur penyalahgunaan, penyerangan, manipulasi sistem, atau upaya akses tanpa hak, DiracGroup dapat memproses aktivitas ini sesuai ketentuan yang berlaku.'
+  };
+}
+
+function getLoginSecurityIdentity(req) {
+  const ip = getLoginSecurityIp(req);
+  const userAgent = String(req && req.headers && req.headers['user-agent'] || '').slice(0, 240);
+  const deviceHeader = String(
+    req && req.headers && (
+      req.headers['x-dirac-device-id'] ||
+      req.headers['x-device-id'] ||
+      req.headers['x-vercel-id'] ||
+      ''
+    ) || ''
+  ).slice(0, 180);
+  const base = [ip, userAgent, deviceHeader].join('|');
+  const digest = loginSecurityHash(base);
+  return {
+    ip,
+    userAgent,
+    key: digest,
+    deviceKey: 'DG-DEV-' + digest.slice(0, 6).toUpperCase(),
+    sessionKey: 'DG-SES-' + digest.slice(6, 12).toUpperCase()
+  };
+}
+
+function getLoginSecurityIp(req) {
+  const headers = (req && req.headers) || {};
+  const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || String(headers['x-real-ip'] || req.socket && req.socket.remoteAddress || '').trim() || 'unknown';
+}
+
+function maskLoginSecurityIp(ip) {
+  const value = String(ip || 'unknown').trim();
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(value)) {
+    const parts = value.split('.');
+    return parts[0] + '.xxx.xxx.' + parts[3];
+  }
+  if (value.includes(':')) return value.split(':').slice(0, 2).join(':') + ':xxxx';
+  return 'unknown';
+}
+
+function buildLoginSecurityIncident(req, identity, record, now) {
+  const headers = (req && req.headers) || {};
+  return {
+    incidentCode: record.incidentCode || createLoginSecurityIncidentCode(identity.key, now),
+    attemptCount: Number(record.count || 0),
+    serverTime: formatDiracWibTime(now),
+    maskedIp: maskLoginSecurityIp(identity.ip),
+    userAgentSummary: summarizeLoginSecurityUserAgent(identity.userAgent),
+    language: String(headers['accept-language'] || '').split(',')[0].slice(0, 32) || 'unknown',
+    deviceKey: identity.deviceKey,
+    sessionKey: identity.sessionKey,
+    blockedUntilMs: Number(record.blockedUntilMs || 0)
+  };
+}
+
+function createLoginSecurityIncidentCode(key, now) {
+  return 'DG-SEC-LOGIN-' + loginSecurityHash(String(key || '') + ':' + String(now || Date.now())).slice(0, 6).toUpperCase();
+}
+
+function loginSecurityHash(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function summarizeLoginSecurityUserAgent(userAgent) {
+  const value = String(userAgent || '').slice(0, 120);
+  if (!value) return 'unknown';
+  if (/Chrome/i.test(value) && /Mobile|Android/i.test(value)) return 'Chrome Mobile';
+  if (/Chrome/i.test(value)) return 'Chrome';
+  if (/Safari/i.test(value) && /Mobile|iPhone|iPad/i.test(value)) return 'Mobile Safari';
+  if (/Firefox/i.test(value)) return 'Firefox';
+  if (/Edg/i.test(value)) return 'Microsoft Edge';
+  return value.replace(/[<>]/g, '').slice(0, 80);
+}
+
+function formatDiracWibTime(ms) {
+  try {
+    return new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZoneName: 'short'
+    }).format(new Date(Number(ms || Date.now())));
+  } catch (_) {
+    return new Date(Number(ms || Date.now())).toISOString();
+  }
+}
+
+async function notifyLoginSecurityIncidentSafe(incident) {
+  // Optional webhook only. No password, OTP, token, cookie, secret, or raw payload is sent.
+  const webhookUrl = String(process.env.DIRAC_LOGIN_SECURITY_WEBHOOK_URL || '').trim();
+  if (!webhookUrl) return false;
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'dirac_login_security_incident',
+        incident_code: incident.incidentCode,
+        attempt_count: incident.attemptCount,
+        server_time: incident.serverTime,
+        masked_ip: incident.maskedIp,
+        device_key: incident.deviceKey,
+        session_key: incident.sessionKey,
+        risk: 'high'
+      })
+    });
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 async function domainRegister(req, res, preloadedBody) {
