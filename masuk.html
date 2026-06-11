@@ -4685,6 +4685,233 @@ html[data-effective-theme="light"] .field:-webkit-autofill{
 }
 </style>
 
+
+
+<style id="dirac-corporate-premium-polish-v4-css">
+/* =========================================================
+   Dirac Corporate Premium Polish V4
+   Prinsip: tambah kerapian + micro-animation premium tanpa menghapus elemen.
+   Auth safety: tidak menyentuh script, hash, endpoint, A2F/MFA, session, atau form logic.
+   ========================================================= */
+:root{
+  --dirac-v4-radius-xl:36px;
+  --dirac-v4-radius-lg:28px;
+  --dirac-v4-radius-md:20px;
+  --dirac-v4-ring:0 0 0 4px rgba(var(--theme-rgb),.16),0 0 0 1px rgba(var(--theme-rgb),.48) inset;
+  --dirac-v4-surface:linear-gradient(180deg,rgba(255,255,255,.105),rgba(255,255,255,.038));
+  --dirac-v4-surface-strong:linear-gradient(180deg,rgba(255,255,255,.132),rgba(255,255,255,.052));
+  --dirac-v4-shadow-card:0 30px 90px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.075);
+  --dirac-v4-shadow-soft:0 18px 44px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.06);
+  --dirac-v4-ease:cubic-bezier(.2,.84,.24,1);
+  --dirac-v4-ease-spring:cubic-bezier(.16,1,.3,1);
+}
+html{scroll-padding-top:120px;}
+body{
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+/* Unified premium surfaces */
+.auth-shell,
+.theme-card.theme-pro-card,
+.menu-drawer,
+.ai-panel,
+.a2f-card{
+  border-radius:var(--dirac-v4-radius-xl)!important;
+  box-shadow:var(--dirac-v4-shadow-card)!important;
+}
+.auth-shell{
+  overflow:hidden!important;
+  background:
+    radial-gradient(circle at 50% -12%,rgba(var(--theme-rgb),.22),transparent 18rem),
+    var(--dirac-v4-surface)!important;
+  border-color:rgba(var(--theme-rgb),.24)!important;
+}
+.auth-card{padding:28px!important;}
+.auth-card-head{margin-bottom:18px!important;}
+.auth-card-head h2{letter-spacing:-.035em;}
+.auth-lock{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 14px 28px rgba(var(--theme-rgb),.12);
+  transform:translateZ(0);
+}
+/* Header capsule refinement without removing any existing button */
+.site-header .nav{
+  border-radius:38px!important;
+  box-shadow:0 22px 62px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.085),0 0 0 1px rgba(var(--theme-rgb),.08)!important;
+}
+.brand-mark,.theme-toggle,.catalog-return,.header-cart,.menu-toggle,.icon-btn{
+  transform:translateZ(0);
+}
+.brand-mark{transition:transform .24s var(--dirac-v4-ease),box-shadow .24s var(--dirac-v4-ease)!important;}
+.brand:hover .brand-mark{transform:translateY(-1px) scale(1.012);}
+/* Consistent premium controls */
+.btn-primary,.btn-secondary,.btn-ghost,.catalog-return,.header-cart,.theme-toggle,.menu-toggle,.icon-btn,.auth-tab,.theme-pro-choice,.a2f-method,.ai-chip,.dirac-float-btn,.password-toggle{
+  transition:
+    transform .18s var(--dirac-v4-ease),
+    box-shadow .22s var(--dirac-v4-ease),
+    border-color .22s var(--dirac-v4-ease),
+    background .22s var(--dirac-v4-ease),
+    filter .22s var(--dirac-v4-ease)!important;
+}
+.btn-primary:active,.btn-secondary:active,.btn-ghost:active,.catalog-return:active,.header-cart:active,.theme-toggle:active,.menu-toggle:active,.icon-btn:active,.auth-tab:active,.theme-pro-choice:active,.a2f-method:active,.ai-chip:active,.dirac-float-btn:active,.password-toggle:active{
+  transform:translateY(1px) scale(.985)!important;
+}
+.btn-primary:hover,.header-cart:hover,.catalog-return:hover,.auth-submit:hover{
+  box-shadow:0 18px 44px rgba(var(--theme-rgb),.26),inset 0 1px 0 rgba(255,255,255,.18)!important;
+}
+/* Form polish */
+.form-stack{gap:14px!important;}
+.field-group{gap:8px!important;}
+.field-group label{letter-spacing:-.01em;}
+.field{
+  border-radius:20px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.045))!important;
+  border-color:rgba(255,255,255,.14)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055)!important;
+  transition:border-color .18s var(--dirac-v4-ease),box-shadow .18s var(--dirac-v4-ease),background .18s var(--dirac-v4-ease),transform .18s var(--dirac-v4-ease)!important;
+}
+.field:hover{border-color:rgba(var(--theme-rgb),.28)!important;background:linear-gradient(180deg,rgba(255,255,255,.092),rgba(255,255,255,.052))!important;}
+.field:focus,.field:focus-visible{border-color:rgba(var(--theme-rgb),.82)!important;box-shadow:var(--dirac-v4-ring)!important;transform:translateY(-1px);}
+.password-toggle{
+  height:38px!important;
+  min-width:46px!important;
+  right:7px!important;
+  background:rgba(255,255,255,.10)!important;
+}
+.password-toggle:hover{border-color:rgba(var(--theme-rgb),.42)!important;background:rgba(var(--theme-rgb),.13)!important;}
+.auth-tabs{
+  border-radius:999px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 10px 24px rgba(0,0,0,.12)!important;
+}
+.auth-tab{position:relative;overflow:hidden;}
+.auth-tab:before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.18),transparent 72%);
+  transform:translateX(-130%);opacity:.0;
+}
+.auth-tab:hover:before{animation:diracV4ControlShine .74s var(--dirac-v4-ease) both;}
+.auth-tab.active{box-shadow:0 14px 30px rgba(var(--theme-rgb),.18),inset 0 1px 0 rgba(255,255,255,.22)!important;}
+.auth-submit{min-height:56px!important;border-radius:22px!important;letter-spacing:-.01em;}
+/* Status and validation feel more app-like */
+.status-box.show{animation:diracV4NoticeIn .34s var(--dirac-v4-ease-spring) both;}
+.status-box{border-radius:20px!important;}
+.check input{min-width:18px;min-height:18px;}
+.small-link{position:relative;}
+.small-link:after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:1px;background:currentColor;transform:scaleX(.18);opacity:.35;transform-origin:left;transition:transform .18s var(--dirac-v4-ease),opacity .18s var(--dirac-v4-ease);}
+.small-link:hover:after,.small-link:focus-visible:after{transform:scaleX(1);opacity:.86;}
+/* Hero and cards: existing elements stay, movement becomes more coherent */
+.auth-copy h1{letter-spacing:-.055em;text-wrap:balance;}
+.auth-copy p{text-wrap:pretty;}
+.trust-row span,.mini-card{
+  background:var(--dirac-v4-surface)!important;
+  border-color:rgba(255,255,255,.11)!important;
+  box-shadow:var(--dirac-v4-shadow-soft)!important;
+}
+.trust-row span{transition:transform .2s var(--dirac-v4-ease),border-color .2s var(--dirac-v4-ease),background .2s var(--dirac-v4-ease)!important;}
+.trust-row span:hover{transform:translateY(-2px);border-color:rgba(var(--theme-rgb),.32)!important;background:rgba(var(--theme-rgb),.11)!important;}
+.mini-card{border-radius:22px!important;transition:transform .22s var(--dirac-v4-ease),border-color .22s var(--dirac-v4-ease),box-shadow .22s var(--dirac-v4-ease)!important;}
+.mini-card:hover{transform:translateY(-3px);border-color:rgba(var(--theme-rgb),.30)!important;box-shadow:0 22px 55px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.08)!important;}
+/* Modal/panel refinement while keeping all options visible */
+.theme-content,.menu-drawer,.ai-body,.a2f-card{overscroll-behavior:contain;}
+.theme-pro-choice,.a2f-method,.drawer-links a,.ai-chip{
+  border-radius:22px!important;
+}
+.theme-pro-choice:hover,.a2f-method:hover,.drawer-links a:hover,.ai-chip:hover{
+  transform:translateY(-2px);
+}
+.theme-swatch-btn{transition:transform .2s var(--dirac-v4-ease),box-shadow .22s var(--dirac-v4-ease),border-color .22s var(--dirac-v4-ease),filter .22s var(--dirac-v4-ease)!important;}
+.theme-swatch-btn:hover{filter:saturate(1.05) brightness(1.03);}
+.ai-message{box-shadow:inset 0 1px 0 rgba(255,255,255,.055);}
+.ai-panel.open,.theme-modal.open .theme-card,.menu-overlay.open .menu-drawer,.a2f-modal.open .a2f-card{animation:diracV4PanelIn .38s var(--dirac-v4-ease-spring) both!important;}
+/* Floating controls kept, but visual stacking becomes cleaner */
+.dirac-floating-actions,.dirac-ai-widget{filter:drop-shadow(0 18px 24px rgba(0,0,0,.24));}
+.dirac-float-btn,.ai-trigger{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+.dirac-float-btn:hover,.ai-trigger:hover{transform:translateY(-3px) scale(1.025)!important;}
+/* Footer app-shell finish */
+.footer{background:linear-gradient(180deg,rgba(5,6,8,.98),rgba(2,3,4,1))!important;}
+.footer .container{border-top:1px solid rgba(var(--theme-rgb),.13);padding-top:2px;}
+.footer-grid{align-items:start!important;}
+.footer a{transition:color .18s var(--dirac-v4-ease),text-decoration-color .18s var(--dirac-v4-ease)!important;}
+.footer a:hover{color:var(--gold)!important;}
+/* Keyboard and accessibility consistency */
+:is(a,button,input,select,textarea,[tabindex]):focus-visible{
+  outline:0!important;
+  box-shadow:var(--dirac-v4-ring)!important;
+}
+.skip-to-auth:focus-visible{box-shadow:0 16px 34px rgba(0,0,0,.34),var(--dirac-v4-ring)!important;}
+/* Premium entry layer tied to the existing motion-ready class; no JS changes needed */
+.motion-ready .auth-shell{animation:diracV4CardEnter .72s var(--dirac-v4-ease-spring) .10s both!important;}
+.motion-ready .mini-card{animation:diracV4SoftEnter .58s var(--dirac-v4-ease-spring) both;}
+.motion-ready .mini-card:nth-child(1){animation-delay:.18s;}
+.motion-ready .mini-card:nth-child(2){animation-delay:.24s;}
+.motion-ready .mini-card:nth-child(3){animation-delay:.30s;}
+@keyframes diracV4CardEnter{from{opacity:.78;transform:translateY(18px) scale(.982);filter:blur(.5px)}to{opacity:1;transform:none;filter:none}}
+@keyframes diracV4SoftEnter{from{opacity:.72;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes diracV4ControlShine{0%{transform:translateX(-130%);opacity:0}20%{opacity:.65}100%{transform:translateX(130%);opacity:0}}
+@keyframes diracV4NoticeIn{from{opacity:.76;transform:translateY(7px) scale(.992)}to{opacity:1;transform:none}}
+@keyframes diracV4PanelIn{from{opacity:.78;transform:translateY(18px) scale(.975)}to{opacity:1;transform:none}}
+/* Light mode remains polished, not replaced */
+html[data-effective-theme="light"] .auth-shell,
+html[data-effective-theme="light"] .theme-card.theme-pro-card,
+html[data-effective-theme="light"] .menu-drawer,
+html[data-effective-theme="light"] .ai-panel,
+html[data-effective-theme="light"] .a2f-card,
+html[data-effective-theme="light"] .trust-row span,
+html[data-effective-theme="light"] .mini-card{
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,250,241,.88))!important;
+  box-shadow:0 26px 70px rgba(80,55,18,.16),inset 0 1px 0 rgba(255,255,255,.78)!important;
+}
+html[data-effective-theme="light"] .field{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,255,255,.74))!important;border-color:rgba(15,23,42,.12)!important;}
+html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#fff8ed,#fff2dc)!important;}
+/* Mobile density polish without hiding features */
+@media(max-width:980px){
+  .auth-grid{gap:30px!important;}
+  .auth-copy p{max-width:680px;}
+  .auth-shell{max-width:560px;margin-inline:auto;}
+}
+@media(max-width:760px){
+  .site-header .nav{border-radius:32px!important;}
+  .auth-hero{padding-top:30px!important;}
+  .auth-grid{gap:24px!important;}
+  .auth-copy h1{font-size:clamp(2.35rem,12.2vw,4rem)!important;line-height:.98!important;}
+  .auth-copy p{font-size:.98rem!important;line-height:1.62!important;}
+  .trust-row{gap:8px!important;}
+  .trust-row span{padding:7px 10px!important;font-size:.82rem!important;}
+  .auth-card{padding:22px!important;}
+  .auth-submit{min-height:54px!important;}
+  .mini-grid{gap:10px!important;}
+  .dirac-floating-actions{right:12px!important;bottom:calc(14px + env(safe-area-inset-bottom))!important;}
+  .dirac-ai-widget{left:12px!important;bottom:calc(14px + env(safe-area-inset-bottom))!important;}
+  .footer{padding-bottom:calc(20px + env(safe-area-inset-bottom))!important;}
+}
+@media(max-width:430px){
+  .site-header .nav{border-radius:28px!important;}
+  .auth-card{padding:18px!important;border-radius:28px!important;}
+  .auth-card-head{gap:10px!important;}
+  .auth-card-head h2{font-size:1.58rem!important;}
+  .auth-lock{width:40px!important;height:40px!important;border-radius:15px!important;}
+  .field{min-height:49px!important;border-radius:18px!important;}
+  .auth-tabs{margin:12px 0 16px!important;}
+  .theme-pro-choice,.a2f-method,.drawer-links a,.ai-chip{border-radius:18px!important;}
+  .dirac-float-btn{width:44px!important;height:44px!important;}
+  .ai-trigger{width:52px!important;height:52px!important;}
+}
+/* Motion safety: existing elements remain, animation respects user/browser mode */
+html[data-motion="reduced"] .auth-shell,
+html[data-motion="reduced"] .mini-card,
+html[data-motion="reduced"] .status-box.show,
+html[data-motion="reduced"] .theme-card,
+html[data-motion="reduced"] .menu-drawer,
+html[data-motion="reduced"] .ai-panel,
+html[data-motion="reduced"] .a2f-card{
+  animation:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .auth-shell,.mini-card,.status-box.show,.theme-card,.menu-drawer,.ai-panel,.a2f-card{animation:none!important;}
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <a class="skip-to-auth" href="#authForm">Lewati ke form masuk</a>
