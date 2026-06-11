@@ -73,22 +73,6 @@ function send(res, status, data) {
   return res.status(status).json(data);
 }
 
-function isDisabledLegacyPublicStorefrontAction(action) {
-  // publicReadProducts tetap dipertahankan sebagai read-only catalog compatibility untuk parfum.html.
-  // Yang berbahaya dan tetap dimatikan adalah pembuatan order publik legacy.
-  return action === "publicCreateOrder";
-}
-
-function sendDisabledLegacyPublicStorefrontAction(res, action) {
-  return send(res, 410, {
-    success: false,
-    ok: false,
-    disabled: true,
-    action,
-    error: "Endpoint publik legacy order sudah dinonaktifkan. Gunakan endpoint checkout resmi yang divalidasi backend."
-  });
-}
-
 function safeEqual(a, b) {
   const A = Buffer.from(String(a || ""));
   const B = Buffer.from(String(b || ""));
@@ -809,27 +793,6 @@ function isPublicVisibleProduct(data) {
   return true;
 }
 
-function stripPrivateCatalogFields(value, depth = 0) {
-  if (depth > 6) return null;
-  if (Array.isArray(value)) return value.slice(0, 200).map((item) => stripPrivateCatalogFields(item, depth + 1));
-  if (!value || typeof value !== "object") return value;
-
-  const blocked = new Set([
-    "secret", "secrets", "token", "tokens", "password", "pin", "otp", "privateKey",
-    "apiKey", "serviceRoleKey", "accessToken", "refreshToken", "authorization",
-    "adminOnly", "adminNote", "adminNotes", "internalNote", "internalNotes",
-    "debug", "raw", "__raw", "_private"
-  ]);
-
-  const out = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (blocked.has(key)) continue;
-    if (/secret|password|token|private[_-]?key|service[_-]?role|authorization/i.test(key)) continue;
-    out[key] = stripPrivateCatalogFields(item, depth + 1);
-  }
-  return out;
-}
-
 async function handlePublicReadProducts(body) {
   const supabase = getSupabaseAdmin();
   const limitRaw = Number(body && body.limit || 5000);
@@ -842,13 +805,12 @@ async function handlePublicReadProducts(body) {
     .limit(limit);
 
   if (error) {
-    throw Object.assign(new Error("Gagal membaca produk publik"), { status: 500 });
+    throw Object.assign(new Error("Gagal membaca produk publik: " + error.message), { status: 500 });
   }
 
   const products = (Array.isArray(data) ? data : [])
     .map(plainDataFromRow)
-    .filter(isPublicVisibleProduct)
-    .map((product) => stripPrivateCatalogFields(product));
+    .filter(isPublicVisibleProduct);
 
   return {
     success: true,
@@ -859,11 +821,147 @@ async function handlePublicReadProducts(body) {
   };
 }
 
-async function handlePublicStorefrontReadAction(req, res, body) {
+function cleanPublicString(value, maxLength = 500) {
+  const text = String(value === undefined || value === null ? "" : value)
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .trim();
+  return text.length > maxLength ? text.slice(0, maxLength) : text;
+}
+
+function cleanPublicNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function cleanPublicObject(raw, allowedKeys, maxStringLength = 800) {
+  const input = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const output = {};
+
+  for (const key of allowedKeys) {
+    const value = input[key];
+    if (value === undefined) continue;
+
+    if (typeof value === "number" || typeof value === "boolean") {
+      output[key] = value;
+    } else if (Array.isArray(value)) {
+      output[key] = value.slice(0, 60).map((item) => {
+        if (item && typeof item === "object") return cleanPublicObject(item, ["id", "docId", "productId", "name", "title", "qty", "quantity", "price", "subtotal", "image", "photo", "variant", "sku"], maxStringLength);
+        return cleanPublicString(item, maxStringLength);
+      });
+    } else if (value && typeof value === "object") {
+      output[key] = cleanPublicObject(value, Object.keys(value).slice(0, 60), maxStringLength);
+    } else {
+      output[key] = cleanPublicString(value, maxStringLength);
+    }
+  }
+
+  return output;
+}
+
+function makePublicDocId(prefix) {
+  const now = Date.now();
+  const random = crypto.randomBytes(8).toString("hex");
+  return `${prefix}_${now}_${random}`;
+}
+
+async function upsertRawAdminDocument(collection, docId, data) {
+  const supabase = getSupabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase
+    .from(ADMIN_DOCUMENTS_TABLE)
+    .upsert({
+      collection,
+      doc_id: docId,
+      data: Object.assign({}, data, { docId, id: data.id || docId }),
+      created_at: data.created_at || data.createdAt || nowIso,
+      updated_at: nowIso
+    }, { onConflict: "collection,doc_id" });
+
+  if (error) {
+    throw Object.assign(new Error("Gagal menyimpan data publik ke Supabase: " + error.message), { status: 500 });
+  }
+}
+
+async function handlePublicCreateOrder(body) {
+  const nowIso = new Date().toISOString();
+  const orderInput = body && typeof body.order === "object" ? body.order : body;
+  const customerInput = body && typeof body.customer === "object" ? body.customer : {};
+  const itemsInput = Array.isArray(body && body.items) ? body.items : (Array.isArray(orderInput.items) ? orderInput.items : []);
+
+  const orderId = cleanDocId(orderInput.docId || orderInput.id || orderInput.orderId || makePublicDocId("order"));
+  const customerId = cleanDocId(customerInput.docId || customerInput.id || customerInput.customerId || orderInput.customerId || makePublicDocId("customer"));
+
+  const customer = cleanPublicObject(customerInput, [
+    "id", "docId", "customerId", "name", "fullName", "email", "phone", "whatsapp", "address", "city", "province", "postalCode", "note"
+  ], 900);
+
+  const order = cleanPublicObject(orderInput, [
+    "id", "docId", "orderId", "customerId", "customerName", "customerPhone", "customerEmail", "phone", "email", "address", "city", "province", "postalCode", "items", "subtotal", "shippingCost", "discount", "total", "paymentMethod", "paymentStatus", "orderStatus", "status", "courier", "note", "createdAtMs", "createdAt"
+  ], 1200);
+
+  customer.customerId = customerId;
+  customer.docId = customerId;
+  customer.id = customer.id || customerId;
+  customer.createdAt = customer.createdAt || nowIso;
+  customer.createdAtMs = customer.createdAtMs || Date.now();
+
+  order.orderId = order.orderId || orderId;
+  order.docId = orderId;
+  order.id = order.id || orderId;
+  order.customerId = customerId;
+  order.createdAt = order.createdAt || nowIso;
+  order.createdAtMs = order.createdAtMs || Date.now();
+  order.paymentStatus = order.paymentStatus || "pending";
+  order.orderStatus = order.orderStatus || order.status || "new";
+  order.status = order.status || order.orderStatus;
+
+  const items = itemsInput.slice(0, 80).map((item, index) => {
+    const cleaned = cleanPublicObject(item, [
+      "id", "docId", "productId", "sku", "name", "title", "variant", "qty", "quantity", "price", "subtotal", "image", "photo"
+    ], 600);
+    const itemId = cleanDocId(cleaned.docId || cleaned.id || `${orderId}_item_${index + 1}`);
+    return Object.assign({}, cleaned, {
+      docId: itemId,
+      id: cleaned.id || itemId,
+      orderId,
+      customerId,
+      qty: cleanPublicNumber(cleaned.qty || cleaned.quantity || 1, 1),
+      quantity: cleanPublicNumber(cleaned.quantity || cleaned.qty || 1, 1),
+      price: cleanPublicNumber(cleaned.price, 0),
+      subtotal: cleanPublicNumber(cleaned.subtotal, cleanPublicNumber(cleaned.price, 0) * cleanPublicNumber(cleaned.qty || cleaned.quantity || 1, 1)),
+      createdAt: nowIso,
+      createdAtMs: Date.now()
+    });
+  });
+
+  order.items = items;
+
+  await upsertRawAdminDocument("customers", customerId, customer);
+  await upsertRawAdminDocument("orders", orderId, order);
+
+  for (const item of items) {
+    await upsertRawAdminDocument("order_items", item.docId, item);
+  }
+
+  return {
+    success: true,
+    action: "publicCreateOrder",
+    provider: "supabase-backend",
+    orderId,
+    customerId,
+    itemCount: items.length
+  };
+}
+
+async function handlePublicStorefrontAction(req, res, body) {
   const action = String(body.action || "").trim();
 
   if (action === "publicReadProducts") {
     return send(res, 200, await handlePublicReadProducts(body));
+  }
+
+  if (action === "publicCreateOrder") {
+    return send(res, 200, await handlePublicCreateOrder(body));
   }
 
   return send(res, 400, {
@@ -871,9 +969,6 @@ async function handlePublicStorefrontReadAction(req, res, body) {
     error: "Action publik tidak didukung: " + action
   });
 }
-
-/* Legacy public order creation remains removed/disabled.
-   publicReadProducts is read-only and retained for parfum.html catalog compatibility. */
 
 async function fetchAllAdminDocumentsForExport() {
   const supabase = getSupabaseAdmin();
@@ -1178,12 +1273,8 @@ module.exports = async function handler(req, res) {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const action = String(body.action || "").trim();
 
-    if (action === "publicReadProducts") {
-      return await handlePublicStorefrontReadAction(req, res, body);
-    }
-
-    if (isDisabledLegacyPublicStorefrontAction(action)) {
-      return sendDisabledLegacyPublicStorefrontAction(res, action);
+    if (action === "publicReadProducts" || action === "publicCreateOrder") {
+      return await handlePublicStorefrontAction(req, res, body);
     }
 
     if (action) {
