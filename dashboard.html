@@ -1154,11 +1154,15 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
 <script id="dirac-dashboard-orders-payment-js">
 (function(){
   'use strict';
+  var INVOICE_KEY='dirac_pending_invoices_v1';
   function formatIDR(value){
     var n=Number(value||0);
     try{return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n).replace(/\s/g,'');}catch(_){return 'Rp'+Math.round(n).toLocaleString('id-ID');}
   }
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function readLocalInvoices(){
+    try{var a=JSON.parse(localStorage.getItem(INVOICE_KEY)||'[]');return Array.isArray(a)?a:[];}catch(_){return [];}
+  }
   function statusClass(status){
     status=String(status||'').toLowerCase();
     if(status==='paid'||status==='settlement'||status==='success') return 'dirac-pay-paid';
@@ -1194,7 +1198,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
     var metric=document.querySelector('.app-metric .app-value');
     if(metric) metric.textContent=String(normalized.filter(function(x){return String(x.payment_status).toLowerCase()!=='paid';}).length);
     if(!normalized.length){
-      root.innerHTML='<div class="app-empty"><span class="app-iconbox">🧾</span><div><strong>Belum ada invoice dari backend</strong><p>Pesanan hanya ditampilkan setelah backend memverifikasi session dan ownership. Data localStorage tidak dipakai sebagai sumber invoice.</p><a class="app-link" href="parfum.html">Buat invoice parfum</a></div></div>';
+      root.innerHTML='<div class="app-empty"><span class="app-iconbox">🧾</span><div><strong>Belum ada invoice yang tersimpan</strong><p>Checkout akan membuat invoice pending/unpaid. Nanti setelah payment gateway aktif, tombol Bayar Sekarang akan muncul dari backend.</p><a class="app-link" href="parfum.html">Buat invoice parfum</a></div></div>';
       return;
     }
     root.innerHTML=normalized.map(function(o){
@@ -1215,7 +1219,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
     }).join('');
   }
   async function fetchBackendOrders(){
-    var actions=['my_orders'];
+    var actions=['customer_orders','orders_me','dashboard_orders'];
     for(var i=0;i<actions.length;i++){
       try{
         var r=await fetch('/api/health?action='+actions[i],{method:'GET',credentials:'include',cache:'no-store',headers:{Accept:'application/json'}});
@@ -1226,11 +1230,13 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
     return null;
   }
   async function init(){
-    renderOrders([]);
+    var local=readLocalInvoices();
+    renderOrders(local);
     var backend=await fetchBackendOrders();
-    renderOrders(Array.isArray(backend)?backend:[]);
+    if(backend && backend.length){renderOrders(backend.concat(local));}
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+  window.addEventListener('storage',function(e){if(e.key===INVOICE_KEY) renderOrders(readLocalInvoices());});
 })();
 </script>
 
