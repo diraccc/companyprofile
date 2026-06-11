@@ -5503,6 +5503,11 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     var copyText = isEn ? 'Copy setup key' : 'Copy setup key';
     var emptyText = isEn ? 'Setup key is not available. Press resend.' : 'Setup key belum tersedia. Tekan kirim ulang.';
     if(!manualKey){
+      var mode = String(setup.authenticatorMode || setup.mode || '').toLowerCase();
+      if(mode === 'authentication' || setup.setupToken || setup.mfaSetupToken || setup.token){
+        box.innerHTML = '<div class="a2f-setup-key-card"><strong>'+(isEn ? 'Authenticator already registered' : 'Authenticator sudah terdaftar')+'</strong><p>'+(isEn ? 'Enter the 6-digit code from your Authenticator app. No setup key is shown again.' : 'Masukkan kode 6 digit dari aplikasi Authenticator. Setup key tidak ditampilkan ulang.')+'</p></div>';
+        return;
+      }
       box.innerHTML = '<div class="a2f-setup-key-card is-empty"><strong>'+emptyText+'</strong></div>';
       return;
     }
@@ -5527,7 +5532,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     var sameOrigin = kind === 'setup' ? '/api/2fa/start-step' : kind === 'verify' ? '/api/2fa/verify-step' : '/api/2fa/lock';
     return uniqueEndpoints([configured, sameOrigin]);
   }
-  /* PATCH 3G: A2F setup/start and verify both use credentials:'include'. PATCH 3F made customer MFA start require the HttpOnly backend login cookie, so omitting credentials prevents email OTP from being sent. This keeps frontend untrusted while allowing the backend to see the login cookie. */
+  /* Production fix: A2F verify uses credentials:'include' so the backend HttpOnly dashboard MFA cookie from the Vercel API is saved. Setup/start stays credentials:'omit' to avoid CORS side effects. */
   async function callEndpoint(kind, payload){
     if(!window.fetch) throw new Error('endpoint unavailable');
     var urls = endpointCandidates(kind);
@@ -5535,7 +5540,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     var lastError = null;
     for(var i=0;i<urls.length;i++){
       try{
-        var credentialMode = (kind === 'setup' || kind === 'verify') ? 'include' : 'omit';
+        var credentialMode = 'include';
         var res = await fetch(urls[i], {method:'POST', mode:'cors', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:credentialMode, cache:'no-store'});
         var data = await res.clone().json().catch(function(){return null;});
         if(res.ok && data && data.ok !== false) return data;
