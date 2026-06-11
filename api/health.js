@@ -19,7 +19,8 @@ const DOMAIN_ACTIONS = new Set([
   'domain_logout',
   'domain_check',
   'domain_checkout',
-  'domain_orders'
+  'domain_orders',
+  'domain_mfa_status'
 ]);
 
 const DOMAIN_ACTION_ALIASES = Object.freeze({
@@ -47,7 +48,10 @@ const DOMAIN_ACTION_ALIASES = Object.freeze({
   'dashboard-me': 'domain_dashboard_me',
   'dashboard_me': 'domain_dashboard_me',
   'domain_logout': 'domain_logout',
-  'domain-logout': 'domain_logout'
+  'domain-logout': 'domain_logout',
+  'domain-mfa-status': 'domain_mfa_status',
+  'domain_mfa_status': 'domain_mfa_status',
+  'dashboard-mfa-status': 'domain_mfa_status'
 });
 
 module.exports = async function handler(req, res) {
@@ -266,6 +270,7 @@ async function handleDomainAction(action, req, res) {
     if (action === 'domain_register') return domainRegister(req, res);
     if (action === 'domain_me') return domainMe(req, res);
     if (action === 'domain_dashboard_me') return domainDashboardMe(req, res);
+    if (action === 'domain_mfa_status') return domainMfaStatus(req, res);
     if (action === 'domain_logout') return domainLogout(req, res);
     if (action === 'domain_check') return domainCheck(req, res);
     if (action === 'domain_checkout') return domainCheckout(req, res);
@@ -1011,6 +1016,32 @@ async function domainDashboardMe(req, res) {
   });
 }
 
+async function domainMfaStatus(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const proof = getCustomerDashboardMfaToken(req);
+  const payload = decodeCustomerDashboardMfaToken(proof.token);
+  const mfa = verifyCustomerDashboardMfaCookie(req, user);
+
+  return res.status(200).json({
+    ok: true,
+    login: true,
+    dashboard: mfa.ok === true,
+    mfa: {
+      present: Boolean(proof.token),
+      valid: mfa.ok === true,
+      source: proof.source || '',
+      code: mfa.code || (mfa.ok ? 'mfa_ok' : 'mfa_unknown'),
+      method: mfa.method || (payload && payload.method) || '',
+      expiresAtMs: mfa.expiresAtMs || (payload && Number(payload.expiresAtMs || 0)) || 0,
+      message: mfa.ok ? 'Sesi A2F backend valid.' : (mfa.message || 'Sesi A2F backend belum valid.')
+    }
+  });
+}
+
 async function domainLogout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
@@ -1512,8 +1543,19 @@ function decodeCustomerDashboardMfaToken(token) {
   }
 }
 
+function normalizeDashboardMfaOrigin(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    return new URL(raw).origin;
+  } catch (_) {
+    return raw.replace(/\/+$/, '');
+  }
+}
+
 function requestOrigin(req) {
-  return String((req && req.headers && (req.headers.origin || req.headers.referer)) || '').trim().replace(/\/$/, '');
+  const headers = (req && req.headers) || {};
+  return normalizeDashboardMfaOrigin(headers.origin) || normalizeDashboardMfaOrigin(headers.referer);
 }
 
 function requestUserAgent(req) {
@@ -1544,28 +1586,28 @@ function verifyCustomerDashboardMfaCookie(req, user) {
   const email = normalizeAuthEmail(user && user.email);
 
   if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE) {
-    return { ok: false, message: 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang dari domain resmi.' };
+    return { ok: false, code: proof && proof.token ? 'mfa_cookie_invalid_or_unsigned' : 'mfa_cookie_missing', message: proof && proof.token ? 'Sesi A2F backend tidak valid. Login dan verifikasi A2F ulang dari domain resmi.' : 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang dari domain resmi.' };
   }
 
   if (!payload.expiresAtMs || Date.now() > Number(payload.expiresAtMs)) {
-    return { ok: false, message: 'Sesi A2F backend sudah expired. Login dan verifikasi A2F ulang.' };
+    return { ok: false, code: 'mfa_cookie_expired', message: 'Sesi A2F backend sudah expired. Login dan verifikasi A2F ulang.' };
   }
 
   if (!email || !payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(email))) {
-    return { ok: false, message: 'Sesi A2F backend tidak cocok dengan akun login.' };
+    return { ok: false, code: 'mfa_cookie_user_mismatch', message: 'Sesi A2F backend tidak cocok dengan akun login.' };
   }
 
   if (payload.originHash) {
     const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
     if (!expectedOriginHash || !safeEqual(String(payload.originHash), expectedOriginHash)) {
-      return { ok: false, message: 'Sesi A2F backend tidak cocok dengan origin website ini. Login ulang dari domain resmi.' };
+      return { ok: false, code: 'mfa_cookie_origin_mismatch', message: 'Sesi A2F backend tidak cocok dengan origin website ini. Login ulang dari domain resmi.' };
     }
   }
 
   if (payload.uaHash) {
     const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
     if (!expectedUaHash || !safeEqual(String(payload.uaHash), expectedUaHash)) {
-      return { ok: false, message: 'Sesi A2F backend tidak cocok dengan browser/perangkat ini. Login ulang dari browser yang sama.' };
+      return { ok: false, code: 'mfa_cookie_browser_mismatch', message: 'Sesi A2F backend tidak cocok dengan browser/perangkat ini. Login ulang dari browser yang sama.' };
     }
   }
 
