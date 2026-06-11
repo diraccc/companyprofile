@@ -110,44 +110,57 @@ function setCors(req, res, options = {}) {
   if (allowedOrigin) res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', options.isDomainAction ? 'GET, POST, OPTIONS' : 'GET, OPTIONS');
+
+  const domainAllowedHeaders = [
+    'Content-Type',
+    'Accept',
+    'Idempotency-Key',
+    'X-Idempotency-Key',
+    'content-type',
+    'accept',
+    'idempotency-key',
+    'x-idempotency-key'
+  ];
+
+  // PATCH 3A: backend-only customer auth.
+  // Frontend/customer HTML tidak lagi dipercaya membawa Authorization, refresh token,
+  // atau MFA proof lewat header. Browser hanya mengirim HttpOnly Secure cookie otomatis.
+  if (options.isDomainAction && shouldAcceptFrontendAuthHeaders()) {
+    domainAllowedHeaders.push(
+      'Authorization',
+      'X-Supabase-Access-Token',
+      'X-Domain-Access-Token',
+      'X-Dirac-Access-Token',
+      'X-Firebase-ID-Token',
+      'X-Admin-Auth-Provider',
+      'X-Dirac-Admin',
+      'X-Domain-Refresh',
+      'X-Refresh-Token',
+      'X-Dirac-MFA-Proof',
+      'X-Dashboard-MFA-Proof',
+      'X-Dirac-Dashboard-MFA',
+      'authorization',
+      'x-domain-refresh',
+      'x-refresh-token',
+      'x-dirac-mfa-proof',
+      'x-dashboard-mfa-proof',
+      'x-dirac-dashboard-mfa'
+    );
+  }
+
   res.setHeader(
     'Access-Control-Allow-Headers',
     options.isDomainAction
-      ? [
-          'Content-Type',
-          'Authorization',
-          'X-Supabase-Access-Token',
-          'X-Domain-Access-Token',
-          'X-Dirac-Access-Token',
-          'X-Firebase-ID-Token',
-          'X-Admin-Auth-Provider',
-          'X-Dirac-Admin',
-          'X-Domain-Refresh',
-          'X-Refresh-Token',
-          'X-Dirac-MFA-Proof',
-          'X-Dashboard-MFA-Proof',
-          'X-Dirac-Dashboard-MFA',
-          'Idempotency-Key',
-          'X-Idempotency-Key',
-          'X-Dirac-Device-Id',
-          'X-Device-Id',
-          'content-type',
-          'authorization',
-          'x-domain-refresh',
-          'x-refresh-token',
-          'x-dirac-mfa-proof',
-          'x-dashboard-mfa-proof',
-          'x-dirac-dashboard-mfa',
-          'idempotency-key',
-          'x-idempotency-key',
-          'x-dirac-device-id',
-          'x-device-id'
-        ].join(', ')
+      ? domainAllowedHeaders.join(', ')
       : 'Content-Type, X-Dirac-Admin, content-type, x-dirac-admin'
   );
   if (options.isDomainAction) {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Expose-Headers', 'X-Domain-Access-Token, X-Domain-Refresh-Token, X-Domain-Token-Refreshed, Retry-After');
+    const exposedHeaders = ['X-Domain-Token-Refreshed', 'Retry-After'];
+    if (!shouldHideDomainAuthTokens()) {
+      exposedHeaders.unshift('X-Domain-Access-Token', 'X-Domain-Refresh-Token');
+    }
+    res.setHeader('Access-Control-Expose-Headers', exposedHeaders.join(', '));
   }
   res.setHeader('Access-Control-Max-Age', '600');
   res.setHeader('Cache-Control', 'no-store');
@@ -2298,15 +2311,15 @@ function buildDomainAuthSessionPayload(session) {
 }
 
 function shouldHideDomainAuthTokens() {
-  return isEnvTrue('DOMAIN_HIDE_AUTH_TOKENS') || isEnvTrue('DOMAIN_BACKEND_ONLY_AUTH');
+  // PATCH 3A: customer auth wajib backend-only.
+  // Access/refresh token Supabase tidak boleh dikirim ke JavaScript/frontend.
+  return true;
 }
 
 function shouldAcceptFrontendAuthHeaders() {
-  // Default tetap true agar tidak merusak website lama. Set DOMAIN_BACKEND_ONLY_AUTH=true
-  // atau DOMAIN_DISABLE_FRONTEND_AUTH_HEADERS=true setelah frontend siap backend-only.
-  if (isEnvTrue('DOMAIN_BACKEND_ONLY_AUTH')) return false;
-  if (isEnvTrue('DOMAIN_DISABLE_FRONTEND_AUTH_HEADERS')) return false;
-  return true;
+  // PATCH 3A: jangan percaya Authorization, X-Domain-Refresh, atau MFA proof dari frontend.
+  // Sumber otoritas customer hanya HttpOnly Secure cookie + validasi backend.
+  return false;
 }
 
 function allowPublicHealthDetails(req) {
@@ -2454,7 +2467,7 @@ function parseCookies(req) {
 }
 
 function makeCookie(name, value, options = {}) {
-  const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || (process.env.NODE_ENV === 'development' ? 'Lax' : 'None')).trim();
+  const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || 'Lax').trim();
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     'Path=/',
