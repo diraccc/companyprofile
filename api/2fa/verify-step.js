@@ -3121,6 +3121,172 @@ function diracDecodeCustomerMfaToken(token) {
   return payload;
 }
 
+
+/* =========================================================
+   PATCH 3F - Customer MFA verify must be bound to backend login cookie.
+   The frontend setup token/code is not trusted by itself. Verification only
+   succeeds when the current HttpOnly login cookie belongs to the same user
+   that started the A2F challenge.
+   ========================================================= */
+const DIRAC_DOMAIN_ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || "dirac_domain_session";
+const DIRAC_DOMAIN_REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || "dirac_domain_refresh";
+
+function diracParseRequestCookies(req) {
+  const header = String((req && req.headers && req.headers.cookie) || "");
+  const cookies = {};
+  header.split(";").map((item) => item.trim()).filter(Boolean).forEach((item) => {
+    const index = item.indexOf("=");
+    if (index < 0) {
+      cookies[item] = "";
+      return;
+    }
+    const key = item.slice(0, index);
+    const rawValue = item.slice(index + 1);
+    try {
+      cookies[key] = decodeURIComponent(rawValue);
+    } catch (_) {
+      cookies[key] = rawValue;
+    }
+  });
+  return cookies;
+}
+
+function diracDomainSupabaseUrl() {
+  const url = String(
+    process.env.DOMAIN_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    ""
+  ).trim().replace(/\/$/, "");
+  if (!url) {
+    const err = new Error("ENV Supabase domain belum lengkap. Set DOMAIN_SUPABASE_URL/SUPABASE_URL.");
+    err.statusCode = 500;
+    throw err;
+  }
+  return url;
+}
+
+function diracDomainSupabaseAnonKey() {
+  const key = String(
+    process.env.DOMAIN_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.DOMAIN_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    ""
+  ).trim();
+  if (!key) {
+    const err = new Error("ENV Supabase domain belum lengkap. Set DOMAIN_SUPABASE_ANON_KEY.");
+    err.statusCode = 500;
+    throw err;
+  }
+  return key;
+}
+
+async function diracFetchSupabaseAuth(path, options = {}) {
+  const key = diracDomainSupabaseAnonKey();
+  const headers = {
+    apikey: key,
+    Authorization: `Bearer ${options.bearer || key}`,
+    "Content-Type": "application/json"
+  };
+  const fetchOptions = { method: options.method || "GET", headers };
+  if (options.body !== undefined) fetchOptions.body = JSON.stringify(options.body);
+  const response = await fetch(`${diracDomainSupabaseUrl()}${path}`, fetchOptions);
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) { data = text; }
+  return { ok: response.ok, status: response.status, data };
+}
+
+async function diracReadSupabaseUserFromAccessToken(accessToken) {
+  const token = String(accessToken || "").trim();
+  if (!token) return null;
+  const result = await diracFetchSupabaseAuth("/auth/v1/user", { method: "GET", bearer: token });
+  if (result.ok && result.data && result.data.id) return result.data;
+  return null;
+}
+
+function diracMakeDomainLoginCookie(name, value, options = {}) {
+  const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || "Lax").trim();
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    "Path=/",
+    "HttpOnly",
+    `SameSite=${sameSite}`
+  ];
+  if (sameSite.toLowerCase() === "none" || process.env.NODE_ENV !== "development") parts.push("Secure");
+  if (options.maxAge !== undefined) parts.push(`Max-Age=${Number(options.maxAge) || 0}`);
+  return parts.join("; ");
+}
+
+function diracSetRefreshedDomainLoginCookies(res, session) {
+  const data = session && typeof session === "object" ? session : {};
+  if (!data.access_token || !data.refresh_token) return;
+  const maxAge = 60 * 60 * 24 * 7;
+  diracAppendSetCookie(res, diracMakeDomainLoginCookie(DIRAC_DOMAIN_ACCESS_COOKIE, data.access_token, { maxAge }));
+  diracAppendSetCookie(res, diracMakeDomainLoginCookie(DIRAC_DOMAIN_REFRESH_COOKIE, data.refresh_token, { maxAge }));
+}
+
+async function diracRefreshDomainLoginSession(refreshToken, res) {
+  const token = String(refreshToken || "").trim();
+  if (!token) return null;
+  const result = await diracFetchSupabaseAuth("/auth/v1/token?grant_type=refresh_token", {
+    method: "POST",
+    body: { refresh_token: token }
+  });
+  if (result.ok && result.data && result.data.access_token && result.data.user) {
+    diracSetRefreshedDomainLoginCookies(res, result.data);
+    return result.data.user;
+  }
+  return null;
+}
+
+function diracCustomerLoginUserIdHash(user) {
+  const id = String((user && (user.id || user.sub || user.uid)) || "").trim();
+  if (!id) return "";
+  return hashCode(`dirac-customer-login-user-v1:${id}`, diracGetCustomerMfaSecret());
+}
+
+async function diracRequireLoggedInCustomer(req, res) {
+  const cookies = diracParseRequestCookies(req);
+  const accessToken = String(cookies[DIRAC_DOMAIN_ACCESS_COOKIE] || "").trim();
+  const refreshToken = String(cookies[DIRAC_DOMAIN_REFRESH_COOKIE] || "").trim();
+
+  let user = await diracReadSupabaseUserFromAccessToken(accessToken);
+  if (!user && refreshToken) user = await diracRefreshDomainLoginSession(refreshToken, res);
+
+  if (!user || !user.id || !diracNormalizeEmail(user.email)) {
+    const err = new Error("Belum login atau sesi login backend sudah habis. Login ulang terlebih dahulu.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  return user;
+}
+
+async function diracAssertCustomerMfaRequestMatchesLogin(req, res) {
+  const user = await diracRequireLoggedInCustomer(req, res);
+  const loginEmail = diracAssertEmail(user.email || "");
+  const requestedRaw = req && req.body ? (req.body.identifier || req.body.email || "") : "";
+  const requestedEmail = diracNormalizeEmail(requestedRaw);
+
+  if (requestedEmail && requestedEmail !== loginEmail) {
+    const err = new Error("Email A2F tidak cocok dengan sesi login backend.");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const userIdHash = diracCustomerLoginUserIdHash(user);
+  if (!userIdHash) {
+    const err = new Error("Sesi login backend tidak valid untuk A2F.");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  return { user, email: loginEmail, userIdHash };
+}
+
 function diracBase64UrlToBuffer(value) {
   let input = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
   while (input.length % 4) input += "=";
@@ -3514,9 +3680,19 @@ async function diracHandleConfirmPasswordReset(req, res) {
 async function diracHandleCustomerMfaVerify(req, res) {
   try {
     const method = diracNormalizeMfaMethod(req.body && req.body.method);
-    const email = diracAssertEmail((req.body && (req.body.identifier || req.body.email)) || "");
+    const login = await diracAssertCustomerMfaRequestMatchesLogin(req, res);
+    const email = login.email;
     const setupToken = String((req.body && (req.body.setupToken || req.body.mfaSetupToken || req.body.token)) || "").trim();
     const payload = diracDecodeCustomerMfaToken(setupToken);
+
+    if (!payload.userIdHash || !safeEqual(String(payload.userIdHash || ""), String(login.userIdHash || ""))) {
+      return res.status(401).json({
+        ok: false,
+        success: false,
+        verified: false,
+        error: "Token A2F tidak cocok dengan sesi login backend. Kirim ulang kode dari halaman masuk."
+      });
+    }
 
     if (payload.method !== method || diracNormalizeEmail(payload.email) !== email) {
       return res.status(400).json({
