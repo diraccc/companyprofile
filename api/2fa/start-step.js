@@ -374,6 +374,57 @@ function makeSession(payload, secret) {
   return `${payloadBase64}.${signature}`;
 }
 
+function diracDecodeSignedSession(token, secret) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2) return null;
+  const payloadBase64 = parts[0];
+  const signature = parts[1];
+  const expected = sign(payloadBase64, secret);
+  if (!safeEqual(signature, expected)) return null;
+  try {
+    return JSON.parse(Buffer.from(payloadBase64, "base64url").toString("utf8"));
+  } catch (_) {
+    return null;
+  }
+}
+
+function diracNormalizeRequestOrigin(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try { return new URL(raw).origin; } catch (_) { return raw.replace(/\/+$/, ""); }
+}
+
+function diracRequestOrigin(req) {
+  const headers = (req && req.headers) || {};
+  return diracNormalizeRequestOrigin(headers.origin) || diracNormalizeRequestOrigin(headers.referer);
+}
+
+function diracRequestUserAgent(req) {
+  return String((req && req.headers && req.headers["user-agent"]) || "").trim().slice(0, 512);
+}
+
+function diracMfaBindingHash(kind, value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return hashCode(`dirac-customer-mfa-binding-v2:${kind}:${text}`, diracGetCustomerMfaSecret());
+}
+
+function diracHasValidCustomerMfaCookie(req, email) {
+  const cookies = diracParseRequestCookies(req);
+  const token = String(cookies[DIRAC_CUSTOMER_MFA_COOKIE] || "").trim();
+  if (!token) return false;
+  const payload = diracDecodeSignedSession(token, diracGetCustomerMfaSecret());
+  if (!payload || payload.type !== DIRAC_CUSTOMER_MFA_SESSION_TYPE) return false;
+  if (!payload.expiresAtMs || Date.now() > Number(payload.expiresAtMs)) return false;
+  if (!safeEqual(String(payload.emailHash || ""), diracMfaProfileId(email))) return false;
+
+  // Keep binding strict when a cookie was minted with origin/UA hashes.
+  if (payload.originHash && !safeEqual(String(payload.originHash), diracMfaBindingHash("origin", diracRequestOrigin(req)))) return false;
+  if (payload.uaHash && !safeEqual(String(payload.uaHash), diracMfaBindingHash("ua", diracRequestUserAgent(req)))) return false;
+  return true;
+}
+
+
 function getFirebaseDb() {
   if (!admin.apps.length) {
     const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -846,6 +897,9 @@ const DIRAC_PASSWORD_RESET_TOKEN_TYPE = "dirac-password-reset-v1";
 const DIRAC_PASSWORD_RESET_CODE_DIGITS = 8;
 const DIRAC_PASSWORD_RESET_TTL_MS = Number(process.env.DIRAC_PASSWORD_RESET_TTL_MS || 10 * 60 * 1000);
 const DIRAC_PASSWORD_RESET_EMAIL_SUBJECT = process.env.DIRAC_PASSWORD_RESET_EMAIL_SUBJECT || "Kode reset password Dirac Group";
+const DIRAC_CUSTOMER_MFA_COOKIE = process.env.DIRAC_CUSTOMER_MFA_COOKIE || "dirac_customer_mfa_session";
+const DIRAC_CUSTOMER_MFA_SESSION_TYPE = "dirac-customer-mfa-session-v1";
+const DIRAC_PASSWORD_RESET_CHALLENGE_COLLECTION = process.env.DIRAC_PASSWORD_RESET_CHALLENGE_COLLECTION || "diracPasswordResetChallenges";
 
 function diracGetCustomerMfaSecret() {
   const secret = String(process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || "").trim();
@@ -1324,6 +1378,32 @@ function diracBuildPasswordResetToken(payload) {
   }, diracGetCustomerMfaSecret());
 }
 
+function diracPasswordResetUserIdHash(userId) {
+  return hashCode(`dirac-password-reset-user-v1:${String(userId || "")}`, diracGetCustomerMfaSecret());
+}
+
+async function diracCreatePasswordResetChallenge({ challengeId, email, userId, nonce, codeHash, expiresAtMs, req }) {
+  const db = getFirebaseDb();
+  const now = Date.now();
+  await db.collection(DIRAC_PASSWORD_RESET_CHALLENGE_COLLECTION).doc(String(challengeId)).set({
+    challengeId: String(challengeId),
+    emailHash: diracMfaProfileId(email),
+    userIdHash: diracPasswordResetUserIdHash(userId),
+    nonce: String(nonce || ""),
+    codeHash: String(codeHash || ""),
+    attempts: 0,
+    maxAttempts: 5,
+    lockedUntilMs: 0,
+    usedAtMs: 0,
+    createdAtMs: now,
+    expiresAtMs: Number(expiresAtMs || 0),
+    ipHash: hashCode(`ip:${String((req && req.headers && (req.headers["x-forwarded-for"] || req.headers["x-real-ip"])) || "").split(",")[0].trim()}`, diracGetCustomerMfaSecret()),
+    uaHash: diracMfaBindingHash("ua", diracRequestUserAgent(req)),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: false });
+}
+
+
 async function diracSendPasswordResetEmail(email, code) {
   const safeEmail = diracAssertEmail(email);
   const safeCode = String(code || "").replace(/\D+/g, "");
@@ -1367,13 +1447,27 @@ async function diracHandlePasswordResetRequest(req, res) {
 
     const now = Date.now();
     const nonce = diracRandomId(24);
+    const challengeId = diracRandomId(24);
     const code = diracRandomDigitCode(DIRAC_PASSWORD_RESET_CODE_DIGITS);
     const expiresAtMs = now + DIRAC_PASSWORD_RESET_TTL_MS;
+    const codeHash = diracHashPasswordResetCode({ email, userId: user.id, code, nonce });
+
+    await diracCreatePasswordResetChallenge({
+      challengeId,
+      email,
+      userId: user.id,
+      nonce,
+      codeHash,
+      expiresAtMs,
+      req
+    });
+
     const resetToken = diracBuildPasswordResetToken({
       email,
       userId: String(user.id),
+      userIdHash: diracPasswordResetUserIdHash(user.id),
+      challengeId,
       nonce,
-      codeHash: diracHashPasswordResetCode({ email, userId: user.id, code, nonce }),
       expiresAtMs
     });
 
@@ -1534,6 +1628,44 @@ async function diracHandleCustomerMfaStart(req, res) {
     }
 
     if (method === "authenticator") {
+      const profile = await diracReadCustomerMfaProfile(email);
+      const hasExistingAuthenticator = Boolean(profile && profile.enabled === true && profile.totpSecretEncrypted);
+
+      if (hasExistingAuthenticator) {
+        const setupToken = diracBuildCustomerMfaToken({
+          method,
+          email,
+          userIdHash,
+          nonce,
+          expiresAtMs: now + DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS,
+          purpose: "authenticator-authentication-login-mfa"
+        });
+
+        return res.status(200).json({
+          ok: true,
+          success: true,
+          method,
+          authenticatorMode: "authentication",
+          setupToken,
+          mfaSetupToken: setupToken,
+          token: setupToken,
+          expiresAtMs: now + DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS,
+          ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS / 1000),
+          message: "Masukkan kode Authenticator dari perangkat yang sudah terdaftar."
+        });
+      }
+
+      if (!diracHasValidCustomerMfaCookie(req, email)) {
+        return res.status(409).json({
+          ok: false,
+          success: false,
+          code: "AUTHENTICATOR_SETUP_REQUIRES_EMAIL_OTP",
+          method,
+          needsEmailOtpFirst: true,
+          message: "Setup Authenticator pertama wajib setelah verifikasi email OTP pada sesi login backend yang sama. Pilih metode Email dulu."
+        });
+      }
+
       const totpSecret = diracBase32Encode(crypto.randomBytes(DIRAC_CUSTOMER_MFA_TOTP_BYTES));
       const setupToken = diracBuildCustomerMfaToken({
         method,
@@ -1549,6 +1681,7 @@ async function diracHandleCustomerMfaStart(req, res) {
         ok: true,
         success: true,
         method,
+        authenticatorMode: "registration",
         setupToken,
         mfaSetupToken: setupToken,
         token: setupToken,
@@ -1557,7 +1690,7 @@ async function diracHandleCustomerMfaStart(req, res) {
         otpAuthUrl: diracBuildOtpAuthUrl({ email, secret: totpSecret }),
         expiresAtMs: now + DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS,
         ttlSeconds: Math.floor(DIRAC_CUSTOMER_MFA_TOKEN_TTL_MS / 1000),
-        message: action === "resend" ? "Setup key Authenticator baru sudah disiapkan." : "Setup key Authenticator berhasil disiapkan."
+        message: action === "resend" ? "Setup key Authenticator baru sudah disiapkan." : "Setup key Authenticator berhasil disiapkan setelah email OTP valid."
       });
     }
 

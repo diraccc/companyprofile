@@ -3026,6 +3026,12 @@ const DIRAC_CUSTOMER_MFA_SESSION_TYPE = "dirac-customer-mfa-session-v1";
 const DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS = Number(process.env.DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS || 6 * 60 * 60 * 1000);
 const DIRAC_PASSWORD_RESET_TOKEN_TYPE = "dirac-password-reset-v1";
 const DIRAC_PASSWORD_RESET_CODE_DIGITS = 8;
+const DIRAC_CUSTOMER_MFA_ATTEMPT_COLLECTION = process.env.DIRAC_CUSTOMER_MFA_ATTEMPT_COLLECTION || "diracCustomerMfaVerifyAttempts";
+const DIRAC_CUSTOMER_MFA_MAX_FAILED = Math.max(3, Number(process.env.DIRAC_CUSTOMER_MFA_MAX_FAILED || 5));
+const DIRAC_CUSTOMER_MFA_LOCK_MS = Math.max(60 * 1000, Number(process.env.DIRAC_CUSTOMER_MFA_LOCK_MS || 10 * 60 * 1000));
+const DIRAC_PASSWORD_RESET_CHALLENGE_COLLECTION = process.env.DIRAC_PASSWORD_RESET_CHALLENGE_COLLECTION || "diracPasswordResetChallenges";
+const DIRAC_PASSWORD_RESET_MAX_FAILED = Math.max(3, Number(process.env.DIRAC_PASSWORD_RESET_MAX_FAILED || 5));
+const DIRAC_PASSWORD_RESET_LOCK_MS = Math.max(5 * 60 * 1000, Number(process.env.DIRAC_PASSWORD_RESET_LOCK_MS || 60 * 60 * 1000));
 
 function diracGetCustomerMfaSecret() {
   const secret = String(process.env.DIRAC_MFA_SECRET || process.env.A2F_SECRET || "").trim();
@@ -3287,6 +3293,77 @@ async function diracAssertCustomerMfaRequestMatchesLogin(req, res) {
   return { user, email: loginEmail, userIdHash };
 }
 
+function diracClientIpHash(req) {
+  const headers = (req && req.headers) || {};
+  const ip = String(headers["x-forwarded-for"] || headers["x-real-ip"] || "").split(",")[0].trim();
+  return hashCode(`ip:${ip}`, diracGetCustomerMfaSecret());
+}
+
+function diracMfaAttemptDocId({ userIdHash, email, method }) {
+  return hashCode([
+    "dirac-customer-mfa-attempt-v1",
+    String(userIdHash || ""),
+    diracNormalizeEmail(email),
+    String(method || "")
+  ].join(":"), diracGetCustomerMfaSecret());
+}
+
+async function diracReadCustomerMfaAttempt({ login, method }) {
+  const db = getFirebaseDb();
+  const docId = diracMfaAttemptDocId({ userIdHash: login.userIdHash, email: login.email, method });
+  const ref = db.collection(DIRAC_CUSTOMER_MFA_ATTEMPT_COLLECTION).doc(docId);
+  const snap = await ref.get();
+  return { ref, data: snap.exists ? (snap.data() || {}) : {} };
+}
+
+async function diracAssertCustomerMfaAttemptAllowed({ login, method }) {
+  const { data } = await diracReadCustomerMfaAttempt({ login, method });
+  const lockedUntilMs = Number(data.lockedUntilMs || 0);
+  if (lockedUntilMs > Date.now()) {
+    const err = new Error("Terlalu banyak kode A2F salah. Coba lagi setelah jeda keamanan selesai.");
+    err.statusCode = 429;
+    err.retryAfterSeconds = Math.max(1, Math.ceil((lockedUntilMs - Date.now()) / 1000));
+    throw err;
+  }
+}
+
+async function diracRecordCustomerMfaFailure({ req, login, method }) {
+  const now = Date.now();
+  const { ref, data } = await diracReadCustomerMfaAttempt({ login, method });
+  const failedCount = Number(data.failedCount || 0) + 1;
+  const lockedUntilMs = failedCount >= DIRAC_CUSTOMER_MFA_MAX_FAILED ? now + DIRAC_CUSTOMER_MFA_LOCK_MS : 0;
+  const payload = {
+    emailHash: diracMfaProfileId(login.email),
+    userIdHash: String(login.userIdHash || ""),
+    method: String(method || ""),
+    failedCount,
+    maxFailed: DIRAC_CUSTOMER_MFA_MAX_FAILED,
+    lockedUntilMs,
+    lastFailedAtMs: now,
+    ipHash: diracClientIpHash(req),
+    uaHash: diracMfaBindingHash("ua", diracRequestUserAgent(req)),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+  await ref.set(payload, { merge: true });
+  return {
+    failedCount,
+    attemptsRemaining: Math.max(0, DIRAC_CUSTOMER_MFA_MAX_FAILED - failedCount),
+    lockedUntilMs,
+    retryAfterSeconds: lockedUntilMs > now ? Math.max(1, Math.ceil((lockedUntilMs - now) / 1000)) : 0
+  };
+}
+
+async function diracClearCustomerMfaFailures({ login, method }) {
+  const { ref } = await diracReadCustomerMfaAttempt({ login, method });
+  await ref.set({
+    failedCount: 0,
+    lockedUntilMs: 0,
+    clearedAtMs: Date.now(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+
 function diracBase64UrlToBuffer(value) {
   let input = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
   while (input.length % 4) input += "=";
@@ -3394,7 +3471,58 @@ function diracSetCustomerMfaDashboardCookie(req, res, { email, method }) {
   return session;
 }
 
-async function diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo, passkeyAuthenticationInfo }) {
+function diracTotpEncryptionKey() {
+  return crypto.createHash("sha256").update(`dirac-customer-totp-secret-v1:${diracGetCustomerMfaSecret()}`).digest();
+}
+
+function diracEncryptTotpSecret(secret) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", diracTotpEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(String(secret || ""), "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return {
+    v: 1,
+    alg: "aes-256-gcm",
+    iv: iv.toString("base64url"),
+    tag: tag.toString("base64url"),
+    data: encrypted.toString("base64url")
+  };
+}
+
+function diracDecryptTotpSecret(payload) {
+  const row = payload && typeof payload === "object" ? payload : {};
+  if (row.v !== 1 || row.alg !== "aes-256-gcm" || !row.iv || !row.tag || !row.data) {
+    const err = new Error("Authenticator belum tersimpan aman untuk akun ini. Setup ulang setelah email OTP.");
+    err.statusCode = 409;
+    throw err;
+  }
+  const decipher = crypto.createDecipheriv("aes-256-gcm", diracTotpEncryptionKey(), Buffer.from(String(row.iv), "base64url"));
+  decipher.setAuthTag(Buffer.from(String(row.tag), "base64url"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(String(row.data), "base64url")),
+    decipher.final()
+  ]).toString("utf8");
+}
+
+async function diracReadCustomerMfaProfile(email) {
+  const db = getFirebaseDb();
+  const snap = await db.collection(DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION).doc(diracMfaProfileId(email)).get();
+  if (!snap.exists) return null;
+  return { id: snap.id, ...(snap.data() || {}) };
+}
+
+async function diracGetStoredTotpSecret(email) {
+  const profile = await diracReadCustomerMfaProfile(email);
+  if (!profile || profile.enabled !== true || !profile.totpSecretEncrypted) {
+    const err = new Error("Authenticator belum terdaftar untuk akun ini. Verifikasi email OTP dulu untuk setup Authenticator.");
+    err.statusCode = 409;
+    throw err;
+  }
+  return diracDecryptTotpSecret(profile.totpSecretEncrypted);
+}
+
+
+async function diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo, passkeyAuthenticationInfo, totpSecret }) {
   const db = getFirebaseDb();
   const profileRef = db.collection(DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION).doc(diracMfaProfileId(email));
   const now = Date.now();
@@ -3433,6 +3561,12 @@ async function diracPersistVerifiedCustomerMfa({ email, method, credential, pass
     const info = passkeyAuthenticationInfo || {};
     if (Number.isFinite(Number(info.newCounter))) payload.passkeyCounter = Number(info.newCounter);
     payload.passkeyLastAuthenticatedAtMs = now;
+  }
+
+  if (method === "authenticator" && totpSecret) {
+    payload.totpSecretEncrypted = diracEncryptTotpSecret(totpSecret);
+    payload.totpSecretVersion = 1;
+    payload.totpRegisteredAtMs = now;
   }
 
   await profileRef.set(payload, { merge: true });
@@ -3568,6 +3702,78 @@ function diracDecodePasswordResetToken(token) {
   return payload;
 }
 
+
+function diracPasswordResetUserIdHash(userId) {
+  return hashCode(`dirac-password-reset-user-v1:${String(userId || "")}`, diracGetCustomerMfaSecret());
+}
+
+async function diracReadPasswordResetChallenge(challengeId) {
+  const id = String(challengeId || "").trim();
+  if (!id) {
+    const err = new Error("Challenge reset tidak ada. Kirim kode reset lagi.");
+    err.statusCode = 400;
+    throw err;
+  }
+  const db = getFirebaseDb();
+  const ref = db.collection(DIRAC_PASSWORD_RESET_CHALLENGE_COLLECTION).doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    const err = new Error("Challenge reset tidak ditemukan atau sudah hangus. Kirim kode reset lagi.");
+    err.statusCode = 410;
+    throw err;
+  }
+  return { ref, data: snap.data() || {} };
+}
+
+async function diracAssertPasswordResetChallengeReady({ payload, email }) {
+  const { ref, data } = await diracReadPasswordResetChallenge(payload.challengeId);
+  const now = Date.now();
+  if (data.usedAtMs) {
+    const err = new Error("Kode reset sudah dipakai. Kirim kode reset baru.");
+    err.statusCode = 410;
+    throw err;
+  }
+  if (Number(data.expiresAtMs || 0) <= now || Number(payload.expiresAtMs || 0) <= now) {
+    const err = new Error("Kode reset sudah expired. Kirim kode reset lagi.");
+    err.statusCode = 410;
+    throw err;
+  }
+  if (Number(data.lockedUntilMs || 0) > now) {
+    const err = new Error("Reset password terkunci sementara karena kode salah berulang.");
+    err.statusCode = 429;
+    err.retryAfterSeconds = Math.max(1, Math.ceil((Number(data.lockedUntilMs || 0) - now) / 1000));
+    throw err;
+  }
+  if (!safeEqual(String(data.emailHash || ""), diracMfaProfileId(email))) {
+    const err = new Error("Challenge reset tidak sesuai dengan email akun.");
+    err.statusCode = 403;
+    throw err;
+  }
+  if (!safeEqual(String(data.userIdHash || ""), diracPasswordResetUserIdHash(payload.userId))) {
+    const err = new Error("Challenge reset tidak sesuai dengan user akun.");
+    err.statusCode = 403;
+    throw err;
+  }
+  return { ref, data };
+}
+
+async function diracRecordPasswordResetFailure(ref, data) {
+  const now = Date.now();
+  const attempts = Number(data.attempts || 0) + 1;
+  const lockedUntilMs = attempts >= DIRAC_PASSWORD_RESET_MAX_FAILED ? now + DIRAC_PASSWORD_RESET_LOCK_MS : 0;
+  await ref.set({
+    attempts,
+    maxAttempts: DIRAC_PASSWORD_RESET_MAX_FAILED,
+    lockedUntilMs,
+    lastFailedAtMs: now,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  const err = new Error(lockedUntilMs ? "Kode reset salah berulang. Reset password terkunci sementara." : "Kode reset salah.");
+  err.statusCode = lockedUntilMs ? 429 : 401;
+  err.retryAfterSeconds = lockedUntilMs ? Math.max(1, Math.ceil((lockedUntilMs - now) / 1000)) : 0;
+  throw err;
+}
+
 function diracValidateNewPassword(password, email) {
   const pass = String(password || "");
   const normalizedEmail = diracNormalizeEmail(email);
@@ -3635,18 +3841,29 @@ async function diracHandleConfirmPasswordReset(req, res) {
       throw err;
     }
 
+    if (!payload.challengeId) {
+      const err = new Error("Token reset lama tidak lagi diterima. Kirim kode reset baru.");
+      err.statusCode = 410;
+      throw err;
+    }
+
+    const challenge = await diracAssertPasswordResetChallengeReady({ payload, email });
     const expectedHash = diracHashPasswordResetCode({
       email,
       userId: payload.userId,
       code,
-      nonce: payload.nonce
+      nonce: challenge.data.nonce || payload.nonce
     });
 
-    if (!safeEqual(expectedHash, String(payload.codeHash || ""))) {
-      const err = new Error("Kode reset salah.");
-      err.statusCode = 401;
-      throw err;
+    if (!safeEqual(expectedHash, String(challenge.data.codeHash || ""))) {
+      await diracRecordPasswordResetFailure(challenge.ref, challenge.data);
     }
+
+    await challenge.ref.set({
+      usedAtMs: Date.now(),
+      attempts: Number(challenge.data.attempts || 0),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
 
     const supabase = getDomainSupabaseAdmin();
     const { data, error } = await supabase.auth.admin.updateUserById(String(payload.userId), {
@@ -3667,11 +3884,13 @@ async function diracHandleConfirmPasswordReset(req, res) {
       message: "Password berhasil diganti. Silakan login memakai password baru."
     });
   } catch (error) {
+    if (error && error.retryAfterSeconds) res.setHeader("Retry-After", String(error.retryAfterSeconds));
     return res.status(error.statusCode || error.status || 500).json({
       ok: false,
       success: false,
       updated: false,
       provider: "supabase",
+      retryAfterSeconds: error && error.retryAfterSeconds ? error.retryAfterSeconds : 0,
       error: error.message || "Reset password gagal."
     });
   }
@@ -3703,8 +3922,11 @@ async function diracHandleCustomerMfaVerify(req, res) {
       });
     }
 
+    await diracAssertCustomerMfaAttemptAllowed({ login, method });
+
     let verified = false;
     let credential = null;
+    let verifiedTotpSecret = "";
 
     if (method === "email") {
       const code = String((req.body && req.body.code) || "").replace(/\D+/g, "");
@@ -3713,7 +3935,16 @@ async function diracHandleCustomerMfaVerify(req, res) {
         String(payload.codeHash || "")
       );
     } else if (method === "authenticator") {
-      verified = diracVerifyTotpCode(payload.totpSecret, req.body && req.body.code);
+      if (payload.purpose === "authenticator-authentication-login-mfa") {
+        verifiedTotpSecret = await diracGetStoredTotpSecret(email);
+      } else if (payload.purpose === "authenticator-setup-login-mfa" && payload.totpSecret) {
+        verifiedTotpSecret = String(payload.totpSecret || "");
+      } else {
+        const err = new Error("Token Authenticator tidak valid. Mulai ulang verifikasi A2F.");
+        err.statusCode = 400;
+        throw err;
+      }
+      verified = diracVerifyTotpCode(verifiedTotpSecret, req.body && req.body.code);
     } else {
       credential = req.body && req.body.credential;
       const passkeyResult = await diracVerifyPasskeyCredential({ payload, credential, email });
@@ -3723,15 +3954,28 @@ async function diracHandleCustomerMfaVerify(req, res) {
     }
 
     if (!verified) {
-      return res.status(401).json({
+      const failure = await diracRecordCustomerMfaFailure({ req, login, method });
+      if (failure.retryAfterSeconds) res.setHeader("Retry-After", String(failure.retryAfterSeconds));
+      return res.status(failure.lockedUntilMs ? 429 : 401).json({
         ok: false,
         success: false,
         verified: false,
-        error: "Kode/verifikasi A2F salah."
+        attemptsRemaining: failure.attemptsRemaining,
+        retryAfterSeconds: failure.retryAfterSeconds,
+        error: failure.lockedUntilMs ? "Terlalu banyak kode A2F salah. Coba lagi nanti." : "Kode/verifikasi A2F salah."
       });
     }
 
-    const recoveryCodes = await diracPersistVerifiedCustomerMfa({ email, method, credential, passkeyRegistrationInfo: req.__diracPasskeyRegistrationInfo, passkeyAuthenticationInfo: req.__diracPasskeyAuthenticationInfo });
+    await diracClearCustomerMfaFailures({ login, method });
+
+    const recoveryCodes = await diracPersistVerifiedCustomerMfa({
+      email,
+      method,
+      credential,
+      passkeyRegistrationInfo: req.__diracPasskeyRegistrationInfo,
+      passkeyAuthenticationInfo: req.__diracPasskeyAuthenticationInfo,
+      totpSecret: payload.purpose === "authenticator-setup-login-mfa" ? verifiedTotpSecret : ""
+    });
     const dashboardSession = diracSetCustomerMfaDashboardCookie(req, res, { email, method });
 
     return res.status(200).json({
@@ -3748,6 +3992,7 @@ async function diracHandleCustomerMfaVerify(req, res) {
       message: "A2F berhasil diverifikasi oleh backend."
     });
   } catch (error) {
+    if (error && error.retryAfterSeconds) res.setHeader("Retry-After", String(error.retryAfterSeconds));
     return res.status(error.statusCode || 500).json({
       ok: false,
       success: false,
