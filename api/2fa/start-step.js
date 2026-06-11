@@ -1559,7 +1559,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const secret = getA2fSecret();
+  const secret = getA2fSecretForRecoveryCodeGeneration();
   const code = crypto.randomInt(100000, 999999).toString();
 
   const payload = {
