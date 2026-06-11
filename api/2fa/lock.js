@@ -4,10 +4,35 @@ const admin = require("firebase-admin");
 const LOCK_1_MS = 60 * 1000;
 const LOCK_2_MS = 30 * 60 * 1000;
 
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+function getAllowedOrigins() {
+  const fromEnv = String(process.env.A2F_ALLOWED_ORIGINS || process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return fromEnv.length ? fromEnv : [
+    "https://diracgroup.store",
+    "https://www.diracgroup.store",
+    "https://companyprofilee-expk.vercel.app",
+    "https://companyprofilee-ochre.vercel.app"
+  ];
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  return getAllowedOrigins().includes(origin);
+}
+
+function setCors(req, res) {
+  const origin = String((req && req.headers && req.headers.origin) || "");
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "https://diracgroup.store");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-reset-secret");
+  res.setHeader("Cache-Control", "no-store");
+  return isAllowedOrigin(origin);
 }
 
 function safeEqual(a, b) {

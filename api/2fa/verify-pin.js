@@ -228,10 +228,35 @@ async function sendWrongCodeResponse(res, reason) {
 }
 
 
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+function getAllowedOrigins() {
+  const fromEnv = String(process.env.A2F_ALLOWED_ORIGINS || process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return fromEnv.length ? fromEnv : [
+    "https://diracgroup.store",
+    "https://www.diracgroup.store",
+    "https://companyprofilee-expk.vercel.app",
+    "https://companyprofilee-ochre.vercel.app"
+  ];
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  return getAllowedOrigins().includes(origin);
+}
+
+function setCors(req, res) {
+  const origin = String((req && req.headers && req.headers.origin) || "");
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "https://diracgroup.store");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "no-store");
+  return isAllowedOrigin(origin);
 }
 
 function safeEqual(a, b) {
@@ -244,9 +269,10 @@ function safeEqual(a, b) {
 }
 
 module.exports = async function handler(req, res) {
-  setCors(res);
+  const corsOk = setCors(req, res);
 
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method === "OPTIONS") return res.status(corsOk ? 200 : 403).end();
+  if (!corsOk) return res.status(403).json({ success: false, error: "Origin tidak diizinkan" });
 
   if (req.method !== "POST") {
     return res.status(405).json({

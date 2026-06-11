@@ -30,22 +30,43 @@ const ALLOWED_UPLOAD_PREFIXES = String(process.env.ADMIN_ALLOWED_UPLOAD_PREFIXES
   .map((value) => value.trim())
   .filter(Boolean);
 
-function setCors(req, res) {
-  const origin = String(req.headers.origin || "");
-  const allowed = String(process.env.ALLOWED_ORIGINS || "")
+function getAllowedOrigins() {
+  const fromEnv = String(process.env.A2F_ALLOWED_ORIGINS || process.env.ALLOWED_ORIGINS || "")
     .split(",")
-    .map((value) => value.trim())
+    .map((item) => item.trim())
     .filter(Boolean);
+  return fromEnv.length ? fromEnv : [
+    "https://diracgroup.store",
+    "https://www.diracgroup.store",
+    "https://companyprofilee-expk.vercel.app",
+    "https://companyprofilee-ochre.vercel.app"
+  ];
+}
 
-  if (!allowed.length || allowed.includes("*") || allowed.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  return getAllowedOrigins().includes(origin);
+}
+
+function setCors(req, res) {
+  const origin = String((req && req.headers && req.headers.origin) || "");
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "https://diracgroup.store");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
   }
-
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Cache-Control", "no-store");
+  return isAllowedOrigin(origin);
+}
+
+function getA2fSecret() {
+  const secret = String(process.env.A2F_SECRET || "").trim();
+  if (!secret || secret === "rahasia-test" || secret.length < 32) {
+    throw Object.assign(new Error("A2F_SECRET production wajib diset minimal 32 karakter acak."), { status: 500 });
+  }
+  return secret;
 }
 
 function send(res, status, data) {
@@ -84,7 +105,7 @@ function base64urlToBuffer(value) {
 }
 
 function parseSession(session) {
-  const secret = process.env.A2F_SECRET || "rahasia-test";
+  const secret = getA2fSecret();
   const [payloadBase64, signature] = String(session || "").split(".");
 
   if (!payloadBase64 || !signature) {
