@@ -729,14 +729,8 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       return {'Accept':'application/json'};
     }
     function mergeRefreshedTokens(res){
-      try{
-        var s=refreshAuthState().session||{};
-        var access=res.headers.get('X-Domain-Access-Token');
-        var refresh=res.headers.get('X-Domain-Refresh-Token');
-        if(access)s.accessToken=access;
-        if(refresh)s.refreshToken=refresh;
-        if(access||refresh)writeJson(AUTH_KEY,s);
-      }catch(e){}
+      // PATCH 3A: backend-only. Token refresh header tidak dibaca/ditulis ke frontend.
+      return;
     }
     function markBackendVerified(user){
       var safeUser=(user&&typeof user==='object')?user:{};
@@ -744,17 +738,8 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       backendVerified=true;
       backendVerifiedAt=Date.now();
       backendUser=safeUser;
-      try{
-        var st=refreshAuthState(), s=st.session||{};
-        s.user=safeUser;
-        s.email=safeUser.email||s.email||s.identifier||'';
-        s.identifier=s.email||s.identifier||'';
-        s.serverAuthenticated=true;
-        s.dashboardVerifiedByBackend=true;
-        s.dashboardVerifiedAt=new Date(backendVerifiedAt).toISOString();
-        s.lastAccessAt=s.dashboardVerifiedAt;
-        writeJson(AUTH_KEY,s);
-      }catch(e){}
+      // PATCH 3A: status dashboard tidak ditulis ke localStorage sebagai bukti akses.
+      // Setiap akses tetap diverifikasi ulang ke backend via HttpOnly cookie.
       document.documentElement.setAttribute('data-dashboard-backend','verified');
       return true;
     }
@@ -1255,5 +1240,26 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
 })();
 </script>
 
+<script id="dirac-backend-only-auth-storage-purge-js">
+(function(){
+  'use strict';
+  // PATCH 3A: hapus sisa token/auth lama di browser. Theme, bahasa, cart, dan UI non-auth tidak disentuh.
+  var keys = [
+    'dirac_auth_session_v1',
+    'dirac_auth_a2f_v1',
+    'dirac_auth_a2f_dashboard_ready_v1',
+    'dirac_dashboard_gate_v1',
+    'dirac_domain_session',
+    'sb-auth-token',
+    'supabase.auth.token'
+  ];
+  function purge(store){
+    if(!store) return;
+    keys.forEach(function(key){ try{ store.removeItem(key); }catch(_){ } });
+  }
+  try{ purge(window.localStorage); }catch(_){ }
+  try{ purge(window.sessionStorage); }catch(_){ }
+})();
+</script>
 </body>
 </html>

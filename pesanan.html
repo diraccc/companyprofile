@@ -756,5 +756,26 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
   })();
   </script>
 
+<script id="dirac-backend-only-auth-storage-purge-js">
+(function(){
+  'use strict';
+  // PATCH 3A: hapus sisa token/auth lama di browser. Theme, bahasa, cart, dan UI non-auth tidak disentuh.
+  var keys = [
+    'dirac_auth_session_v1',
+    'dirac_auth_a2f_v1',
+    'dirac_auth_a2f_dashboard_ready_v1',
+    'dirac_dashboard_gate_v1',
+    'dirac_domain_session',
+    'sb-auth-token',
+    'supabase.auth.token'
+  ];
+  function purge(store){
+    if(!store) return;
+    keys.forEach(function(key){ try{ store.removeItem(key); }catch(_){ } });
+  }
+  try{ purge(window.localStorage); }catch(_){ }
+  try{ purge(window.sessionStorage); }catch(_){ }
+})();
+</script>
 </body>
 </html>

@@ -332,72 +332,14 @@
     }
 
     function readLegacyAuthSession() {
-      const summary = { key: '', accessFound: false, refreshFound: false, keysScanned: 0, storage: '' };
-      const preferredKeys = [
-        'dirac_auth_session_v1',
-        'dirac_domain_session',
-        'sb-auth-token',
-        'supabase.auth.token'
-      ];
-
-      try {
-        for (const area of getStorageAreas()) {
-          const allKeys = [];
-          for (let i = 0; i < area.store.length; i += 1) {
-            const key = area.store.key(i);
-            if (key) allKeys.push(key);
-          }
-
-          const ordered = Array.from(new Set([
-            ...preferredKeys,
-            ...allKeys.filter(k => /dirac|auth|session|token|supabase|sb-/i.test(k)),
-            ...allKeys
-          ]));
-
-          for (const key of ordered) {
-            let raw = '';
-            try { raw = area.store.getItem(key); } catch (_) { raw = ''; }
-            if (!raw) continue;
-            summary.keysScanned += 1;
-
-            const parsed = safeJsonParse(raw);
-            const target = parsed || raw;
-
-            const accessToken = findTokenDeep(target, 'access');
-            const refreshToken = findTokenDeep(target, 'refresh');
-
-            if (accessToken || refreshToken) {
-              summary.key = key;
-              summary.storage = area.name;
-              summary.accessFound = Boolean(accessToken);
-              summary.refreshFound = Boolean(refreshToken);
-              return { accessToken, refreshToken, summary };
-            }
-          }
-        }
-      } catch (_) {}
+      // PATCH 3A: jangan baca token dari localStorage/sessionStorage.
+      const summary = { key: '', accessFound: false, refreshFound: false, keysScanned: 0, storage: 'backend-only' };
       return { accessToken: '', refreshToken: '', summary };
     }
 
     function persistRefreshedTokensFromResponse(response) {
-      try {
-        if (!response || !response.headers) return;
-        const access = String(response.headers.get('X-Domain-Access-Token') || '').trim();
-        const refresh = String(response.headers.get('X-Domain-Refresh-Token') || '').trim();
-        if (!access && !refresh) return;
-
-        const current = readLegacyAuthSession();
-        const key = current && current.summary && current.summary.key ? current.summary.key : 'dirac_auth_session_v1';
-        const storageName = current && current.summary && current.summary.storage ? current.summary.storage : 'localStorage';
-        const store = storageName === 'sessionStorage' ? window.sessionStorage : window.localStorage;
-        if (!store) return;
-
-        const existing = safeJsonParse(store.getItem(key) || '') || {};
-        if (access) existing.accessToken = access;
-        if (refresh) existing.refreshToken = refresh;
-        existing.tokenRefreshedAt = new Date().toISOString();
-        store.setItem(key, JSON.stringify(existing));
-      } catch (_) {}
+      // PATCH 3A: token response tidak pernah disimpan ke browser.
+      return;
     }
 
     function getLocalSessionSummaryText() {
@@ -420,19 +362,7 @@
     }
 
     function findMfaProofToken() {
-      const sources = [
-        readJsonStorage('dirac_auth_session_v1'),
-        readJsonStorage('dirac_auth_a2f_v1'),
-        readJsonStorage('dirac_dashboard_gate_v1'),
-        readJsonStorage('dirac_auth_a2f_dashboard_ready_v1')
-      ].filter(Boolean);
-
-      const keys = ['dashboardMfaProofToken', 'mfaProofToken', 'dashboard_mfa_proof', 'mfa_proof', 'proof'];
-      for (const source of sources) {
-        for (const key of keys) {
-          if (source && typeof source[key] === 'string' && source[key].trim()) return source[key].trim();
-        }
-      }
+      // PATCH 3A: MFA proof tidak boleh dikirim dari frontend; backend membaca HttpOnly cookie.
       return '';
     }
 
@@ -447,15 +377,8 @@
     }
 
     function buildAuthHeaders(hasJsonBody = false, extraHeaders = {}) {
-      const headers = {
-        'Accept': 'application/json'
-      };
+      const headers = { 'Accept': 'application/json' };
       if (hasJsonBody) headers['Content-Type'] = 'application/json';
-      const session = readLegacyAuthSession();
-      if (session && session.accessToken) headers.Authorization = 'Bearer ' + String(session.accessToken);
-      if (session && session.refreshToken) headers['X-Domain-Refresh'] = String(session.refreshToken);
-      const mfaProof = findMfaProofToken();
-      if (mfaProof) headers['X-Dirac-MFA-Proof'] = mfaProof;
       Object.assign(headers, extraHeaders || {});
       return headers;
     }
@@ -1158,5 +1081,26 @@
 })();
 </script>
 
+<script id="dirac-backend-only-auth-storage-purge-js">
+(function(){
+  'use strict';
+  // PATCH 3A: hapus sisa token/auth lama di browser. Theme, bahasa, cart, dan UI non-auth tidak disentuh.
+  var keys = [
+    'dirac_auth_session_v1',
+    'dirac_auth_a2f_v1',
+    'dirac_auth_a2f_dashboard_ready_v1',
+    'dirac_dashboard_gate_v1',
+    'dirac_domain_session',
+    'sb-auth-token',
+    'supabase.auth.token'
+  ];
+  function purge(store){
+    if(!store) return;
+    keys.forEach(function(key){ try{ store.removeItem(key); }catch(_){ } });
+  }
+  try{ purge(window.localStorage); }catch(_){ }
+  try{ purge(window.sessionStorage); }catch(_){ }
+})();
+</script>
 </body>
 </html>
