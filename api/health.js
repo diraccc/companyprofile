@@ -4466,13 +4466,12 @@ async function customerSecurityVerifyRecoveryCode(req, res, action) {
     method: 'recovery_code',
     message: 'Recovery code valid. Akses dashboard diverifikasi.',
     dashboardSession: {
-      proofToken: proof.token,
+      verified: true,
       expiresAtMs: proof.expiresAtMs,
       activeAtMs: proof.activeAtMs,
-      method: 'recovery_code'
+      method: 'recovery_code',
+      transport: 'httponly-secure-cookie-only'
     },
-    mfaProofToken: proof.token,
-    dashboardMfaProofToken: proof.token,
     recovery_code_used: true,
     time: now
   });
