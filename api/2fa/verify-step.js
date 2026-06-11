@@ -3021,6 +3021,7 @@ const DIRAC_CUSTOMER_MFA_RECOVERY_COUNT = Number(process.env.DIRAC_CUSTOMER_MFA_
 const DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION = process.env.DIRAC_CUSTOMER_MFA_RECOVERY_COLLECTION || "diracCustomerMfaProfiles";
 const DIRAC_CUSTOMER_MFA_RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const DIRAC_CUSTOMER_MFA_COOKIE = process.env.DIRAC_CUSTOMER_MFA_COOKIE || "dirac_customer_mfa_session";
+// PATCH 3C: customer dashboard MFA proof is stored only as HttpOnly Secure cookie. No frontend proof token is returned.
 const DIRAC_CUSTOMER_MFA_SESSION_TYPE = "dirac-customer-mfa-session-v1";
 const DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS = Number(process.env.DIRAC_CUSTOMER_MFA_DASHBOARD_TTL_MS || 6 * 60 * 60 * 1000);
 const DIRAC_PASSWORD_RESET_TOKEN_TYPE = "dirac-password-reset-v1";
@@ -3553,9 +3554,7 @@ async function diracHandleCustomerMfaVerify(req, res) {
       dashboardSession: {
         verified: true,
         expiresAtMs: dashboardSession.expiresAtMs,
-        proofToken: dashboardSession.token,
-        proofHeader: "X-Dirac-MFA-Proof",
-        transport: "httponly-cookie-with-signed-header-fallback"
+        transport: "httponly-secure-cookie-only"
       },
       message: "A2F berhasil diverifikasi oleh backend."
     });
