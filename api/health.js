@@ -65,7 +65,16 @@ module.exports = async function handler(req, res) {
   }
 
   if (isLegacyAuthPost) {
-    const legacyBody = await readBody(req);
+    let legacyBody;
+    try {
+      legacyBody = await readLimitedJsonBody(req, LOGIN_SECURITY_BODY_LIMIT_BYTES);
+    } catch (error) {
+      return res.status(error.statusCode || 400).json({
+        ok: false,
+        code: error.code || 'LOGIN_REQUEST_INVALID',
+        message: error.publicMessage || 'Request login tidak valid.'
+      });
+    }
     const legacyMode = String(legacyBody.mode || legacyBody.action || '').trim().toLowerCase();
     if (legacyMode === 'login' || legacyMode === 'domain_login') return domainLogin(req, res, legacyBody);
     if (legacyMode === 'register' || legacyMode === 'signup' || legacyMode === 'domain_register') return domainRegister(req, res, legacyBody);
@@ -81,7 +90,7 @@ module.exports = async function handler(req, res) {
     time: diracNowIso()
   };
 
-  if (isAdminRequest(req) || process.env.AI_PUBLIC_HEALTH_DETAILS === 'true') {
+  if (isAdminRequest(req) || allowPublicHealthDetails(req)) {
     payload.providers = {
       gemini: Boolean(process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY_1),
       groq: Boolean(process.env.GROQ_API_KEY || process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY_1),
@@ -207,6 +216,19 @@ globalThis.__DIRAC_HOSTINGER_TOKEN_POINTER__ = globalThis.__DIRAC_HOSTINGER_TOKE
 const DOMAIN_PROVIDER_COOLDOWNS = globalThis.__DIRAC_DOMAIN_PROVIDER_COOLDOWNS__ || new Map();
 globalThis.__DIRAC_DOMAIN_PROVIDER_COOLDOWNS__ = DOMAIN_PROVIDER_COOLDOWNS;
 
+// Public domain-check abuse guard. In-memory by default so normal website flow is not disturbed.
+// This protects the public hostinger-check/domain availability endpoint from Termux/API spam.
+const PUBLIC_DOMAIN_CHECK_RATE_STORE = globalThis.__DIRAC_PUBLIC_DOMAIN_CHECK_RATE_STORE__ || new Map();
+globalThis.__DIRAC_PUBLIC_DOMAIN_CHECK_RATE_STORE__ = PUBLIC_DOMAIN_CHECK_RATE_STORE;
+const PUBLIC_DOMAIN_CHECK_WINDOW_MS_RAW = Number(process.env.PUBLIC_DOMAIN_CHECK_RATE_WINDOW_MS || 60 * 1000);
+const PUBLIC_DOMAIN_CHECK_WINDOW_MS = Number.isFinite(PUBLIC_DOMAIN_CHECK_WINDOW_MS_RAW)
+  ? Math.max(10 * 1000, PUBLIC_DOMAIN_CHECK_WINDOW_MS_RAW)
+  : 60 * 1000;
+const PUBLIC_DOMAIN_CHECK_MAX_RAW = Number(process.env.PUBLIC_DOMAIN_CHECK_RATE_MAX || 45);
+const PUBLIC_DOMAIN_CHECK_MAX = Number.isFinite(PUBLIC_DOMAIN_CHECK_MAX_RAW)
+  ? Math.max(5, PUBLIC_DOMAIN_CHECK_MAX_RAW)
+  : 45;
+
 
 // Backend-only login SQL injection guard.
 // Isolated in-memory store: does not write password, OTP, token, cookie, or raw payload.
@@ -214,6 +236,14 @@ const LOGIN_SECURITY_GUARD_STORE = globalThis.__DIRAC_LOGIN_SECURITY_GUARD_STORE
 globalThis.__DIRAC_LOGIN_SECURITY_GUARD_STORE__ = LOGIN_SECURITY_GUARD_STORE;
 const LOGIN_SECURITY_RETRY_AFTER_SECONDS = 30;
 const LOGIN_SECURITY_TEN_YEARS_MS = 10 * 365 * 24 * 60 * 60 * 1000;
+const LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW = Number(process.env.LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024);
+const LOGIN_SECURITY_BODY_LIMIT_BYTES = Number.isFinite(LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW)
+  ? Math.max(1024, LOGIN_SECURITY_BODY_LIMIT_BYTES_RAW)
+  : 16 * 1024;
+// Optional durable security storage. Default empty = safe in-memory fallback, no new DB writes.
+// To activate later, create a dedicated security table and set LOGIN_SECURITY_PERSIST_TABLE.
+const LOGIN_SECURITY_PERSIST_TABLE = String(process.env.LOGIN_SECURITY_PERSIST_TABLE || '').trim();
+const LOGIN_SECURITY_PERSIST_TTL_SECONDS = 10 * 365 * 24 * 60 * 60;
 
 async function handleDomainAction(action, req, res) {
   try {
@@ -235,6 +265,62 @@ async function handleDomainAction(action, req, res) {
       message: 'Terjadi kesalahan pada domain router.',
       error: String(error && error.message ? error.message : error)
     });
+  }
+}
+
+
+function isPublicDomainCheckThreat(value) {
+  const raw = String(value || '');
+  if (!raw) return false;
+  if (raw.length > 253) return true;
+  if (isClearDomainLoginSqlInjection(raw)) return true;
+  return /[<>{}\[\]"'`;]|(?:--|\/\*|\*\/)/.test(raw);
+}
+
+function checkPublicDomainRateLimit(req, parts) {
+  if (isEnvTrue('PUBLIC_DOMAIN_CHECK_RATE_DISABLED')) return { ok: true, retryAfterSeconds: 0 };
+
+  const now = Date.now();
+  cleanupPublicDomainRateStore(now);
+
+  const headers = (req && req.headers) || {};
+  const ip = getLoginSecurityIp(req);
+  const userAgent = String(headers['user-agent'] || '').slice(0, 120);
+  const action = 'hostinger_check';
+  const key = loginSecurityHash([ip, userAgent, action].join('|'));
+  const current = PUBLIC_DOMAIN_CHECK_RATE_STORE.get(key) || {
+    count: 0,
+    windowStartMs: now,
+    resetAtMs: now + PUBLIC_DOMAIN_CHECK_WINDOW_MS,
+    sampleDomain: parts && parts.fullDomain ? String(parts.fullDomain).slice(0, 120) : ''
+  };
+
+  if (now > Number(current.resetAtMs || 0)) {
+    current.count = 0;
+    current.windowStartMs = now;
+    current.resetAtMs = now + PUBLIC_DOMAIN_CHECK_WINDOW_MS;
+    current.sampleDomain = parts && parts.fullDomain ? String(parts.fullDomain).slice(0, 120) : '';
+  }
+
+  current.count = Number(current.count || 0) + 1;
+  PUBLIC_DOMAIN_CHECK_RATE_STORE.set(key, current);
+
+  if (current.count > PUBLIC_DOMAIN_CHECK_MAX) {
+    return {
+      ok: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((Number(current.resetAtMs || now) - now) / 1000))
+    };
+  }
+
+  return { ok: true, retryAfterSeconds: 0 };
+}
+
+function cleanupPublicDomainRateStore(now = Date.now()) {
+  if (PUBLIC_DOMAIN_CHECK_RATE_STORE.size < 5000) return;
+  for (const [key, value] of PUBLIC_DOMAIN_CHECK_RATE_STORE.entries()) {
+    if (Number(value && value.resetAtMs || 0) <= now) {
+      PUBLIC_DOMAIN_CHECK_RATE_STORE.delete(key);
+    }
   }
 }
 
@@ -265,7 +351,16 @@ async function domainHealth(req, res) {
 async function hostingerCheckDomain(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
 
-  const domain = normalizeDomain(req.query && req.query.domain);
+  const rawDomainInput = String(req.query && req.query.domain || '');
+  if (isPublicDomainCheckThreat(rawDomainInput)) {
+    return res.status(400).json({
+      ok: false,
+      code: 'DOMAIN_INPUT_REJECTED',
+      message: 'Domain tidak valid. Gunakan format seperti namabrand.com'
+    });
+  }
+
+  const domain = normalizeDomain(rawDomainInput);
   const parts = splitDomainForHostinger(domain);
 
   if (!parts) {
@@ -278,6 +373,17 @@ async function hostingerCheckDomain(req, res) {
 
   if (cached && cached.expiresAt > Date.now()) {
     return res.status(200).json({ ...cached.payload, cached: true });
+  }
+
+  const publicLimit = checkPublicDomainRateLimit(req, parts);
+  if (!publicLimit.ok) {
+    res.setHeader('Retry-After', String(publicLimit.retryAfterSeconds));
+    return res.status(429).json({
+      ok: false,
+      code: 'DOMAIN_CHECK_RATE_LIMITED',
+      retry_after_seconds: publicLimit.retryAfterSeconds,
+      message: 'Terlalu banyak permintaan cek domain. Silakan coba lagi sebentar lagi.'
+    });
   }
 
   const check = await checkDomainWithProviders(parts);
@@ -334,12 +440,28 @@ async function hostingerCheckDomain(req, res) {
 async function domainLogin(req, res, preloadedBody) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  const body = preloadedBody || await readBody(req);
+  let body;
+  try {
+    body = preloadedBody || await readLimitedJsonBody(req, LOGIN_SECURITY_BODY_LIMIT_BYTES);
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({
+      ok: false,
+      code: error.code || 'LOGIN_REQUEST_INVALID',
+      message: error.publicMessage || 'Request login tidak valid.'
+    });
+  }
   const rawEmail = String(body.email || body.identifier || body.customer_email || '');
   const email = normalizeAuthEmail(rawEmail);
   const password = String(body.password || '');
 
-  const loginGuard = await guardDomainLoginInput(req, res, { rawEmail, email, password });
+  const loginGuard = await guardDomainLoginInput(req, res, {
+    rawEmail,
+    email,
+    password,
+    action: 'domain_login',
+    form: 'Login',
+    endpoint: '/api/health?action=domain_login'
+  });
   if (!loginGuard.ok) {
     return res.status(loginGuard.status).json(loginGuard.body);
   }
@@ -366,11 +488,7 @@ async function domainLogin(req, res, preloadedBody) {
     mfaRequired: true,
     next: 'mfa_required',
     user: sanitizeUser(result.data.user),
-    session: {
-      access_token: result.data.access_token,
-      refresh_token: result.data.refresh_token,
-      expires_in: result.data.expires_in
-    }
+    session: buildDomainAuthSessionPayload(result.data)
   });
 }
 
@@ -378,19 +496,15 @@ async function guardDomainLoginInput(req, res, input) {
   const rawEmail = String(input && input.rawEmail || '');
   const email = String(input && input.email || '');
   const password = String(input && input.password || '');
+  const action = String(input && input.action || 'domain_login');
+  const form = String(input && input.form || (action === 'domain_register' ? 'Register' : 'Login'));
+  const endpoint = String(input && input.endpoint || `/api/health?action=${action}`);
   const now = Date.now();
-  const identity = getLoginSecurityIdentity(req);
-  const record = LOGIN_SECURITY_GUARD_STORE.get(identity.key) || {
-    count: 0,
-    firstSeenMs: now,
-    lastSeenMs: 0,
-    cooldownUntilMs: 0,
-    blockedUntilMs: 0,
-    incidentCode: ''
-  };
+  const identity = getLoginSecurityIdentity(req, action);
+  const record = await getLoginSecurityRecord(identity, now);
 
   if (Number(record.blockedUntilMs || 0) > now) {
-    const incident = buildLoginSecurityIncident(req, identity, record, now);
+    const incident = buildLoginSecurityIncident(req, identity, record, now, { form, endpoint });
     return {
       ok: false,
       status: 403,
@@ -411,22 +525,25 @@ async function guardDomainLoginInput(req, res, input) {
     return {
       ok: false,
       status: 400,
-      body: { ok: false, message: 'Email atau password belum sesuai.' }
+      body: { ok: false, message: action === 'domain_register' ? 'Email dan password wajib diisi.' : 'Email atau password belum sesuai.' }
     };
   }
 
-  if (isClearDomainLoginSqlInjection(rawEmail)) {
+  const threat = detectDomainAuthThreat({ rawEmail, password });
+  if (threat.detected) {
     const nextCount = Number(record.count || 0) + 1;
     record.count = nextCount;
     record.lastSeenMs = now;
     record.emailFingerprint = loginSecurityHash(rawEmail);
+    record.threatField = threat.field;
+    record.threatKind = threat.kind;
     record.cooldownUntilMs = nextCount >= 4 ? 0 : now + LOGIN_SECURITY_RETRY_AFTER_SECONDS * 1000;
     if (!record.incidentCode) record.incidentCode = createLoginSecurityIncidentCode(identity.key, now);
 
     if (nextCount >= 4) {
       record.blockedUntilMs = now + LOGIN_SECURITY_TEN_YEARS_MS;
-      LOGIN_SECURITY_GUARD_STORE.set(identity.key, record);
-      const incident = buildLoginSecurityIncident(req, identity, record, now);
+      await saveLoginSecurityRecord(identity, record);
+      const incident = buildLoginSecurityIncident(req, identity, record, now, { form, endpoint });
       await notifyLoginSecurityIncidentSafe(incident);
       return {
         ok: false,
@@ -435,7 +552,7 @@ async function guardDomainLoginInput(req, res, input) {
       };
     }
 
-    LOGIN_SECURITY_GUARD_STORE.set(identity.key, record);
+    await saveLoginSecurityRecord(identity, record);
     res.setHeader('Retry-After', String(LOGIN_SECURITY_RETRY_AFTER_SECONDS));
     return {
       ok: false,
@@ -457,6 +574,23 @@ async function guardDomainLoginInput(req, res, input) {
   }
 
   return { ok: true, email };
+}
+
+function detectDomainAuthThreat(input) {
+  const rawEmail = String(input && input.rawEmail || '');
+  const password = String(input && input.password || '');
+
+  if (isClearDomainLoginSqlInjection(rawEmail)) {
+    return { detected: true, field: 'email', kind: 'sql_injection' };
+  }
+
+  // Password tetap boleh memakai simbol biasa. Deteksi ini hanya untuk pola SQL injection yang sangat jelas.
+  // Nilai password tidak pernah dicatat, tidak pernah dikirim ke webhook, dan tidak pernah ditampilkan ulang.
+  if (isClearDomainLoginSqlInjection(password)) {
+    return { detected: true, field: 'password', kind: 'sql_injection' };
+  }
+
+  return { detected: false, field: '', kind: '' };
 }
 
 function isStrictDomainLoginEmail(email) {
@@ -490,13 +624,23 @@ function isClearDomainLoginSqlInjection(value) {
 
 function buildLoginSecurityInspectionSamples(value) {
   const raw = String(value || '');
-  const samples = new Set([raw, raw.toLowerCase()]);
-  try {
-    const decoded = decodeURIComponent(raw);
-    samples.add(decoded);
-    samples.add(decoded.toLowerCase());
-  } catch (_) {}
-  return Array.from(samples);
+  const plusAsSpace = raw.replace(/\+/g, ' ');
+  const samples = new Set([raw, raw.toLowerCase(), plusAsSpace, plusAsSpace.toLowerCase()]);
+  let current = raw;
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      samples.add(decoded);
+      samples.add(decoded.toLowerCase());
+      samples.add(decoded.replace(/\+/g, ' '));
+      samples.add(decoded.replace(/\+/g, ' ').toLowerCase());
+      if (decoded === current) break;
+      current = decoded;
+    } catch (_) {
+      break;
+    }
+  }
+  return Array.from(samples).map((sample) => String(sample).slice(0, 2000));
 }
 
 function buildLoginSecurityCooldownBody(seconds) {
@@ -504,7 +648,7 @@ function buildLoginSecurityCooldownBody(seconds) {
     ok: false,
     code: 'LOGIN_INPUT_BLOCKED',
     retry_after_seconds: seconds,
-    message: 'Input belum bisa digunakan.\n\nSistem menemukan karakter atau kata yang tidak sesuai pada kolom email.\n\nPastikan email hanya menggunakan huruf kecil, angka, tanda @, dan titik.\n\nContoh:\nnama@gmail.com\n\nSilakan coba lagi dalam 30 detik.'
+    message: 'Input belum bisa digunakan.\n\nSistem menemukan karakter atau kata yang tidak sesuai pada form masuk.\n\nPastikan email hanya menggunakan huruf kecil, angka, tanda @, dan titik.\n\nContoh:\nnama@gmail.com\n\nSilakan coba lagi dalam 30 detik.'
   };
 }
 
@@ -514,26 +658,26 @@ function buildLoginSecurityTenYearBody(incident) {
     code: 'LOGIN_ACCESS_RESTRICTED',
     blocked_years: 10,
     incident_code: incident.incidentCode,
-    message: 'AKSES MASUK DIBATASI\n\nSistem keamanan DiracGroup mendeteksi percobaan berbahaya berulang pada form masuk.\n\nAkses masuk dari perangkat ini telah dibatasi selama 10 tahun karena terindikasi melakukan manipulasi input dan percobaan menerobos sistem keamanan.\n\nData teknis yang berhasil dikumpulkan:\n\n* Kode Insiden: ' + incident.incidentCode + '\n* Waktu Server: ' + incident.serverTime + '\n* Waktu Perangkat: Sesuai waktu perangkat pengguna\n* Halaman: masuk.html\n* Form: Login\n* Endpoint Target: /api/login / /api/health?action=domain_login\n* Jumlah Percobaan: ' + incident.attemptCount + ' kali\n* Jenis Deteksi: SQL Injection / Manipulasi Input\n* Status Risiko: Tinggi\n* Tindakan Sistem: Akses masuk dibatasi selama 10 tahun\n\nData Jaringan:\n\n* IP Address: ' + incident.maskedIp + '\n* Provider / ISP: Sesuai hasil deteksi sistem\n* ASN Jaringan: Sesuai hasil deteksi sistem\n* Lokasi Jaringan: Sesuai hasil analisis jaringan\n* Deteksi VPN / Proxy: Sesuai hasil pemeriksaan sistem\n\nData Perangkat:\n\n* Browser: ' + incident.userAgentSummary + '\n* Bahasa Browser: ' + incident.language + '\n* Zona Waktu: Sesuai perangkat pengguna\n* Device Key: ' + incident.deviceKey + '\n* Session Key: ' + incident.sessionKey + '\n\nAktivitas ini telah dicatat otomatis oleh sistem keamanan DiracGroup.\n\nJika ditemukan unsur penyalahgunaan, penyerangan, manipulasi sistem, atau upaya akses tanpa hak, DiracGroup dapat memproses aktivitas ini sesuai ketentuan yang berlaku.'
+    message: 'AKSES MASUK DIBATASI\n\nSistem keamanan DiracGroup mendeteksi percobaan berbahaya berulang pada form masuk.\n\nAkses masuk dari perangkat ini telah dibatasi selama 10 tahun karena terindikasi melakukan manipulasi input dan percobaan menerobos sistem keamanan.\n\nData teknis yang berhasil dikumpulkan:\n\n* Kode Insiden: ' + incident.incidentCode + '\n* Waktu Server: ' + incident.serverTime + '\n* Waktu Perangkat: Sesuai waktu perangkat pengguna\n* Halaman: masuk.html\n* Form: ' + incident.form + '\n* Endpoint Target: ' + incident.endpoint + '\n* Jumlah Percobaan: ' + incident.attemptCount + ' kali\n* Jenis Deteksi: SQL Injection / Manipulasi Input\n* Status Risiko: Tinggi\n* Tindakan Sistem: Akses masuk dibatasi selama 10 tahun\n\nData Jaringan:\n\n* IP Address: ' + incident.maskedIp + '\n* Provider / ISP: Sesuai hasil deteksi sistem\n* ASN Jaringan: Sesuai hasil deteksi sistem\n* Lokasi Jaringan: Sesuai hasil analisis jaringan\n* Deteksi VPN / Proxy: Sesuai hasil pemeriksaan sistem\n\nData Perangkat:\n\n* Browser: ' + incident.userAgentSummary + '\n* Bahasa Browser: ' + incident.language + '\n* Zona Waktu: Sesuai perangkat pengguna\n* Device Key: ' + incident.deviceKey + '\n* Session Key: ' + incident.sessionKey + '\n\nAktivitas ini telah dicatat otomatis oleh sistem keamanan DiracGroup.\n\nJika ditemukan unsur penyalahgunaan, penyerangan, manipulasi sistem, atau upaya akses tanpa hak, DiracGroup dapat memproses aktivitas ini sesuai ketentuan yang berlaku.'
   };
 }
 
-function getLoginSecurityIdentity(req) {
+function getLoginSecurityIdentity(req, actionName) {
   const ip = getLoginSecurityIp(req);
   const userAgent = String(req && req.headers && req.headers['user-agent'] || '').slice(0, 240);
-  const deviceHeader = String(
-    req && req.headers && (
-      req.headers['x-dirac-device-id'] ||
-      req.headers['x-device-id'] ||
-      req.headers['x-vercel-id'] ||
-      ''
-    ) || ''
-  ).slice(0, 180);
-  const base = [ip, userAgent, deviceHeader].join('|');
+  const method = String(req && req.method || '').toUpperCase();
+  const action = String(actionName || req && req.query && req.query.action || '').trim().slice(0, 80);
+  const path = String(req && req.url || '/api/health').split('?')[0].slice(0, 160);
+
+  // Tidak memakai X-Device-Id/X-Dirac-Device-Id sebagai kunci utama karena header frontend bisa dimanipulasi.
+  const base = [ip, userAgent, method, path, action].join('|');
   const digest = loginSecurityHash(base);
   return {
     ip,
     userAgent,
+    method,
+    path,
+    action,
     key: digest,
     deviceKey: 'DG-DEV-' + digest.slice(0, 6).toUpperCase(),
     sessionKey: 'DG-SES-' + digest.slice(6, 12).toUpperCase()
@@ -556,7 +700,7 @@ function maskLoginSecurityIp(ip) {
   return 'unknown';
 }
 
-function buildLoginSecurityIncident(req, identity, record, now) {
+function buildLoginSecurityIncident(req, identity, record, now, meta = {}) {
   const headers = (req && req.headers) || {};
   return {
     incidentCode: record.incidentCode || createLoginSecurityIncidentCode(identity.key, now),
@@ -567,12 +711,109 @@ function buildLoginSecurityIncident(req, identity, record, now) {
     language: String(headers['accept-language'] || '').split(',')[0].slice(0, 32) || 'unknown',
     deviceKey: identity.deviceKey,
     sessionKey: identity.sessionKey,
+    form: String(meta.form || 'Login').replace(/[<>]/g, '').slice(0, 40),
+    endpoint: String(meta.endpoint || '/api/health?action=domain_login').replace(/[<>]/g, '').slice(0, 120),
     blockedUntilMs: Number(record.blockedUntilMs || 0)
   };
 }
 
 function createLoginSecurityIncidentCode(key, now) {
   return 'DG-SEC-LOGIN-' + loginSecurityHash(String(key || '') + ':' + String(now || Date.now())).slice(0, 6).toUpperCase();
+}
+
+
+async function getLoginSecurityRecord(identity, now = Date.now()) {
+  const key = identity && identity.key;
+  const memory = key ? LOGIN_SECURITY_GUARD_STORE.get(key) : null;
+  if (memory) return normalizeLoginSecurityRecord(memory, now);
+
+  const persisted = await readPersistentLoginSecurityRecord(identity);
+  if (persisted) {
+    const normalized = normalizeLoginSecurityRecord(persisted, now);
+    LOGIN_SECURITY_GUARD_STORE.set(key, normalized);
+    return normalized;
+  }
+
+  return createEmptyLoginSecurityRecord(now);
+}
+
+async function saveLoginSecurityRecord(identity, record) {
+  const key = identity && identity.key;
+  const normalized = normalizeLoginSecurityRecord(record, Date.now());
+  if (key) LOGIN_SECURITY_GUARD_STORE.set(key, normalized);
+  await writePersistentLoginSecurityRecord(identity, normalized);
+  return normalized;
+}
+
+function createEmptyLoginSecurityRecord(now = Date.now()) {
+  return {
+    count: 0,
+    firstSeenMs: now,
+    lastSeenMs: 0,
+    cooldownUntilMs: 0,
+    blockedUntilMs: 0,
+    incidentCode: ''
+  };
+}
+
+function normalizeLoginSecurityRecord(record, now = Date.now()) {
+  const row = record && typeof record === 'object' ? record : {};
+  return {
+    count: Number(row.count || row.attempt_count || 0),
+    firstSeenMs: Number(row.firstSeenMs || row.first_seen_ms || now),
+    lastSeenMs: Number(row.lastSeenMs || row.last_seen_ms || 0),
+    cooldownUntilMs: Number(row.cooldownUntilMs || row.cooldown_until_ms || 0),
+    blockedUntilMs: Number(row.blockedUntilMs || row.blocked_until_ms || 0),
+    incidentCode: String(row.incidentCode || row.incident_code || ''),
+    emailFingerprint: String(row.emailFingerprint || row.email_fingerprint || ''),
+    threatField: String(row.threatField || row.threat_field || ''),
+    threatKind: String(row.threatKind || row.threat_kind || '')
+  };
+}
+
+async function readPersistentLoginSecurityRecord(identity) {
+  if (!LOGIN_SECURITY_PERSIST_TABLE || !identity || !identity.key) return null;
+
+  try {
+    const path = `/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?select=security_key,record_json,blocked_until_ms,expires_at&security_key=eq.${encodeURIComponent(identity.key)}&limit=1`;
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result.ok || !Array.isArray(result.data) || !result.data.length) return null;
+
+    const row = result.data[0] || {};
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) return null;
+
+    if (row.record_json && typeof row.record_json === 'object') return row.record_json;
+    return row;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writePersistentLoginSecurityRecord(identity, record) {
+  if (!LOGIN_SECURITY_PERSIST_TABLE || !identity || !identity.key) return false;
+
+  try {
+    const now = Date.now();
+    const expiresAt = new Date(now + LOGIN_SECURITY_PERSIST_TTL_SECONDS * 1000).toISOString();
+    const payload = [{
+      security_key: identity.key,
+      record_json: normalizeLoginSecurityRecord(record, now),
+      blocked_until_ms: Number(record && record.blockedUntilMs || 0),
+      updated_at: new Date(now).toISOString(),
+      expires_at: expiresAt
+    }];
+
+    const result = await supabaseFetch(`/rest/v1/${encodeURIComponent(LOGIN_SECURITY_PERSIST_TABLE)}?on_conflict=security_key`, {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'resolution=merge-duplicates',
+      body: payload
+    });
+    return !!result.ok;
+  } catch (_) {
+    return false;
+  }
 }
 
 function loginSecurityHash(value) {
@@ -636,18 +877,32 @@ async function notifyLoginSecurityIncidentSafe(incident) {
 async function domainRegister(req, res, preloadedBody) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
-  const body = preloadedBody || await readBody(req);
-  const email = normalizeAuthEmail(body.email || body.identifier || body.customer_email);
+  let body;
+  try {
+    body = preloadedBody || await readLimitedJsonBody(req, LOGIN_SECURITY_BODY_LIMIT_BYTES);
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({
+      ok: false,
+      code: error.code || 'REGISTER_REQUEST_INVALID',
+      message: error.publicMessage || 'Request pendaftaran tidak valid.'
+    });
+  }
+  const rawEmail = String(body.email || body.identifier || body.customer_email || '');
+  const email = normalizeAuthEmail(rawEmail);
   const password = String(body.password || '');
   const fullName = String(body.full_name || body.fullName || body.name || '').trim();
   const whatsapp = normalizePhone(body.whatsapp || body.phone || body.customer_whatsapp || '');
 
-  if (!email || !password) {
-    return res.status(400).json({ ok: false, message: 'Email dan password wajib diisi.' });
-  }
-
-  if (!isValidAuthEmail(email)) {
-    return res.status(400).json({ ok: false, message: 'Pendaftaran server memakai email. Masukkan alamat email yang valid.' });
+  const registerGuard = await guardDomainLoginInput(req, res, {
+    rawEmail,
+    email,
+    password,
+    action: 'domain_register',
+    form: 'Register',
+    endpoint: '/api/health?action=domain_register'
+  });
+  if (!registerGuard.ok) {
+    return res.status(registerGuard.status).json(registerGuard.body);
   }
 
   if (password.length < 6) {
@@ -688,11 +943,7 @@ async function domainRegister(req, res, preloadedBody) {
       : 'Akun berhasil dibuat. Silakan cek email verifikasi jika diperlukan.',
     needs_email_confirmation: !result.data.access_token,
     user: sanitizeUser(result.data.user),
-    session: result.data.access_token ? {
-      access_token: result.data.access_token,
-      refresh_token: result.data.refresh_token,
-      expires_in: result.data.expires_in
-    } : null
+    session: buildDomainAuthSessionPayload(result.data)
   });
 }
 
@@ -1160,8 +1411,11 @@ async function domainOrders(req, res) {
 
 async function requireDomainUser(req, res) {
   const cookies = parseCookies(req);
-  const headerToken = getBearerToken(req);
-  const headerRefreshToken = String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
+  const acceptFrontendAuthHeaders = shouldAcceptFrontendAuthHeaders();
+  const headerToken = acceptFrontendAuthHeaders ? getBearerToken(req) : '';
+  const headerRefreshToken = acceptFrontendAuthHeaders
+    ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
+    : '';
 
   const accessToken = headerToken || cookies[ACCESS_COOKIE];
   const refreshToken = headerRefreshToken || cookies[REFRESH_COOKIE];
@@ -1187,8 +1441,10 @@ async function requireDomainUser(req, res) {
 
     if (refreshResult.ok && refreshResult.data && refreshResult.data.access_token) {
       setSessionCookies(res, refreshResult.data);
-      res.setHeader('X-Domain-Access-Token', refreshResult.data.access_token);
-      res.setHeader('X-Domain-Refresh-Token', refreshResult.data.refresh_token);
+      if (!shouldHideDomainAuthTokens()) {
+        res.setHeader('X-Domain-Access-Token', refreshResult.data.access_token);
+        res.setHeader('X-Domain-Refresh-Token', refreshResult.data.refresh_token);
+      }
       res.setHeader('X-Domain-Token-Refreshed', 'true');
       return refreshResult.data.user;
     }
@@ -2022,6 +2278,48 @@ async function supabaseFetch(path, options = {}) {
   };
 }
 
+
+function buildDomainAuthSessionPayload(session) {
+  const data = session && typeof session === 'object' ? session : {};
+  if (!data.access_token) return null;
+
+  if (shouldHideDomainAuthTokens()) {
+    return {
+      expires_in: data.expires_in || null,
+      backend_only: true
+    };
+  }
+
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_in: data.expires_in
+  };
+}
+
+function shouldHideDomainAuthTokens() {
+  return isEnvTrue('DOMAIN_HIDE_AUTH_TOKENS') || isEnvTrue('DOMAIN_BACKEND_ONLY_AUTH');
+}
+
+function shouldAcceptFrontendAuthHeaders() {
+  // Default tetap true agar tidak merusak website lama. Set DOMAIN_BACKEND_ONLY_AUTH=true
+  // atau DOMAIN_DISABLE_FRONTEND_AUTH_HEADERS=true setelah frontend siap backend-only.
+  if (isEnvTrue('DOMAIN_BACKEND_ONLY_AUTH')) return false;
+  if (isEnvTrue('DOMAIN_DISABLE_FRONTEND_AUTH_HEADERS')) return false;
+  return true;
+}
+
+function allowPublicHealthDetails(req) {
+  if (process.env.AI_PUBLIC_HEALTH_DETAILS !== 'true') return false;
+  // Di production, detail provider hanya boleh admin. Ini mencegah bocor informasi kecil dari public health.
+  if (process.env.NODE_ENV === 'production' && !isAdminRequest(req)) return false;
+  return true;
+}
+
+function isEnvTrue(name) {
+  return String(process.env[name] || '').trim().toLowerCase() === 'true';
+}
+
 function normalizeAuthEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -2032,6 +2330,81 @@ function isValidAuthEmail(value) {
 
 function normalizePhone(value) {
   return String(value || '').trim().replace(/[^+\d]/g, '');
+}
+
+async function readLimitedJsonBody(req, limitBytes = LOGIN_SECURITY_BODY_LIMIT_BYTES) {
+  const limit = Math.max(1024, Number(limitBytes || LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024));
+
+  if (req.body && typeof req.body === 'object') {
+    const approxBytes = Buffer.byteLength(JSON.stringify(req.body), 'utf8');
+    if (approxBytes > limit) {
+      const err = new Error('LOGIN_BODY_TOO_LARGE');
+      err.statusCode = 413;
+      err.code = 'LOGIN_BODY_TOO_LARGE';
+      err.publicMessage = 'Request terlalu besar. Silakan ulangi dengan input yang lebih ringkas.';
+      throw err;
+    }
+    return req.body;
+  }
+
+  if (typeof req.body === 'string') {
+    if (Buffer.byteLength(req.body, 'utf8') > limit) {
+      const err = new Error('LOGIN_BODY_TOO_LARGE');
+      err.statusCode = 413;
+      err.code = 'LOGIN_BODY_TOO_LARGE';
+      err.publicMessage = 'Request terlalu besar. Silakan ulangi dengan input yang lebih ringkas.';
+      throw err;
+    }
+    try {
+      return JSON.parse(req.body || '{}');
+    } catch (_) {
+      const err = new Error('LOGIN_BODY_INVALID_JSON');
+      err.statusCode = 400;
+      err.code = 'LOGIN_BODY_INVALID_JSON';
+      err.publicMessage = 'Request login tidak valid.';
+      throw err;
+    }
+  }
+
+  return await new Promise((resolve, reject) => {
+    let raw = '';
+    let rejected = false;
+
+    req.on('data', (chunk) => {
+      if (rejected) return;
+      raw += chunk;
+      if (Buffer.byteLength(raw, 'utf8') > limit) {
+        rejected = true;
+        const err = new Error('LOGIN_BODY_TOO_LARGE');
+        err.statusCode = 413;
+        err.code = 'LOGIN_BODY_TOO_LARGE';
+        err.publicMessage = 'Request terlalu besar. Silakan ulangi dengan input yang lebih ringkas.';
+        reject(err);
+        if (typeof req.destroy === 'function') req.destroy();
+      }
+    });
+
+    req.on('end', () => {
+      if (rejected) return;
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch (_) {
+        const err = new Error('LOGIN_BODY_INVALID_JSON');
+        err.statusCode = 400;
+        err.code = 'LOGIN_BODY_INVALID_JSON';
+        err.publicMessage = 'Request login tidak valid.';
+        reject(err);
+      }
+    });
+    req.on('error', () => {
+      if (rejected) return;
+      const err = new Error('LOGIN_BODY_READ_FAILED');
+      err.statusCode = 400;
+      err.code = 'LOGIN_BODY_READ_FAILED';
+      err.publicMessage = 'Request login tidak valid.';
+      reject(err);
+    });
+  });
 }
 
 async function readBody(req) {
