@@ -18,6 +18,8 @@ function getAllowedOrigins() {
 }
 
 function isAllowedOrigin(origin) {
+  // Browser-origin requests must come from the allowlist. Server-to-server requests
+  // without Origin are allowed only for the read-only check/status action below.
   if (!origin) return true;
   return getAllowedOrigins().includes(origin);
 }
@@ -320,10 +322,17 @@ function getResetSecretInput(req, data) {
 }
 
 module.exports = async function handler(req, res) {
-  setCors(res);
+  const corsOk = setCors(req, res);
 
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    return res.status(corsOk ? 200 : 403).end();
+  }
+
+  if (!corsOk) {
+    return res.status(403).json({
+      success: false,
+      error: "Origin tidak diizinkan"
+    });
   }
 
   if (req.method !== "POST" && req.method !== "GET") {
@@ -336,7 +345,9 @@ module.exports = async function handler(req, res) {
   try {
     const data = getRequestData(req);
     const { action } = data || {};
-    const normalizedAction = String(action || "check").trim().toLowerCase();
+    let normalizedAction = String(action || "check").trim().toLowerCase();
+
+    if (normalizedAction === "status") normalizedAction = "check";
 
     if (normalizedAction === "check") {
       const state = await checkLock();
@@ -352,54 +363,23 @@ module.exports = async function handler(req, res) {
       return res.status(200).json(state);
     }
 
-    if (normalizedAction === "fail") {
-      const state = await recordFailure();
-
-      if (state.permanentBan) {
-        return res.status(403).json(state);
-      }
-
-      if (state.locked) {
-        return res.status(423).json(state);
-      }
-
-      return res.status(401).json(state);
-    }
-
-    if (
-      normalizedAction === "timeout" ||
-      normalizedAction === "timeout-lock" ||
-      normalizedAction === "timeout_lock"
-    ) {
-      const state = await recordTimeoutBlock(data || {});
-
-      return res.status(403).json(state);
-    }
-
-    if (normalizedAction === "reset") {
-      const resetSecret = String(process.env.RESET_A2F_SECRET || "");
-      const inputSecret = getResetSecretInput(req, data);
-
-      if (!resetSecret || !safeEqual(inputSecret, resetSecret)) {
-        return res.status(403).json({
-          success: false,
-          error: "Secret reset A2F salah atau belum diset"
-        });
-      }
-
-      const state = await resetLock();
-
-      return res.status(200).json(state);
+    if (normalizedAction === "fail" || normalizedAction === "timeout" || normalizedAction === "timeout-lock" || normalizedAction === "timeout_lock" || normalizedAction === "reset") {
+      return res.status(403).json({
+        success: false,
+        locked: false,
+        disabled: true,
+        error: "Action perubahan lockout dinonaktifkan di endpoint publik ini. Gunakan flow A2F resmi/internal yang sudah tervalidasi."
+      });
     }
 
     return res.status(400).json({
       success: false,
-      error: "Action tidak valid. Pakai check, fail, timeout, timeout-lock, atau reset."
+      error: "Action tidak valid. Endpoint publik ini hanya menerima check atau status."
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      error: error.message || "Server lock A2F error"
+      error: "Server lock A2F error"
     });
   }
 };
