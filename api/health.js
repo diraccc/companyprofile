@@ -1529,18 +1529,13 @@ function customerMfaBindingHash(kind, value) {
 function getCustomerDashboardMfaToken(req) {
   const cookies = parseCookies(req);
   const cookieToken = String(cookies[CUSTOMER_MFA_COOKIE] || '').trim();
-  if (cookieToken) return { token: cookieToken, source: 'cookie' };
+  if (cookieToken) return { token: cookieToken, source: 'http_only_cookie' };
 
-  const headerToken = String(
-    (req && req.headers && (
-      req.headers['x-dirac-mfa-proof'] ||
-      req.headers['x-dashboard-mfa-proof'] ||
-      req.headers['x-dirac-dashboard-mfa']
-    )) || ''
-  ).trim();
-  if (headerToken) return { token: headerToken, source: 'signed-header' };
-
-  return { token: '', source: 'missing' };
+  // PATCH 3B: full backend customer auth.
+  // MFA proof dari header frontend sengaja ditolak. JavaScript tidak boleh membawa
+  // X-Dirac-MFA-Proof / X-Dashboard-MFA-Proof / X-Dirac-Dashboard-MFA.
+  // Satu-satunya sumber yang diterima adalah HttpOnly Secure cookie dari backend.
+  return { token: '', source: 'missing_http_only_cookie' };
 }
 
 function verifyCustomerDashboardMfaCookie(req, user) {
@@ -1549,7 +1544,7 @@ function verifyCustomerDashboardMfaCookie(req, user) {
   const email = normalizeAuthEmail(user && user.email);
 
   if (!payload || payload.type !== CUSTOMER_MFA_SESSION_TYPE) {
-    return { ok: false, message: 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang. Jika browser memblokir third-party cookie, paket v2 memakai proof header bertanda tangan.' };
+    return { ok: false, message: 'Sesi A2F backend tidak ditemukan. Login dan verifikasi A2F ulang dari domain resmi.' };
   }
 
   if (!payload.expiresAtMs || Date.now() > Number(payload.expiresAtMs)) {
@@ -2587,8 +2582,9 @@ async function customerSecurityStatus(req, res) {
   }
 
   try {
-    const user = await requireDomainUser(req, res);
-    if (!user) return;
+    const access = await requireDomainDashboardAccess(req, res);
+    if (!access) return;
+    const user = access.user;
 
     const authUserId = String(user.id || '').trim();
     if (!authUserId) {
@@ -2738,8 +2734,9 @@ async function customerSecurityOverview(req, res) {
   }
 
   try {
-    const user = await requireDomainUser(req, res);
-    if (!user) return;
+    const access = await requireDomainDashboardAccess(req, res);
+    if (!access) return;
+    const user = access.user;
 
     const authUserId = String(user.id || '').trim();
     if (!authUserId) {
@@ -3528,7 +3525,7 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
       if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
       const access = await customerSecurityRequireAccess(req, res, {
         action,
-        requireMfa: false,
+        requireMfa: true,
         rateLimit: { limit: 60, windowMs: 60_000 }
       });
       if (!access) return;
@@ -3542,13 +3539,14 @@ async function customerSecurityHandleGuardedAction(action, req, res) {
         link_status: 'active',
         customer_id_available: true,
         direct_frontend_table_access: false,
+        mfa_required_for_page: true,
         mfa_required_for_write: true,
         mfa_active_now: Boolean(access.mfa && access.mfa.ok),
         guarded_actions_ready: true,
         rate_limit_mode: 'memory_local_basic',
         write_guard: 'mfa_required',
         customer_id_source: 'security_customer_auth_links',
-        message: 'Guard customer security aktif. Aksi write tetap membutuhkan MFA/re-auth.',
+        message: 'Guard customer security aktif. Halaman dan aksi write sama-sama membutuhkan A2F backend.',
         time: diracNowIso()
       });
     }
@@ -4213,7 +4211,7 @@ async function customerSecurityVerifyRecoveryCodeHash(code, storedHash, customer
 }
 
 async function customerSecurityRecoveryCodesStatus(req, res, action) {
-  const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: false, rateLimit: { limit: 20, windowMs: 60_000 } });
+  const access = await customerSecurityRequireAccess(req, res, { action, requireMfa: true, rateLimit: { limit: 20, windowMs: 60_000 } });
   if (!access) return;
 
   const path = '/rest/v1/security_customer_recovery_codes?select=' + encodeURIComponent('id,created_at,used_at,revoked_at') + '&customer_id=eq.' + encodeURIComponent(access.customerId);
@@ -5281,6 +5279,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     order_status: 'pending',
     payment_status: 'unpaid',
     payment_url: null,
+    dashboard_mfa_required: true,
     payment_gateway_configured: false,
     ownership_locked: true,
     payment_protected: true,
@@ -5807,8 +5806,9 @@ function myOrdersIsAction(action) {
 }
 
 async function myOrdersReadForCurrentCustomer(req, res) {
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+  const user = access.user;
 
   const authUserId = String(user.id || '').trim();
   const userEmail = normalizeAuthEmail(user.email || '');
@@ -5839,6 +5839,8 @@ async function myOrdersReadForCurrentCustomer(req, res) {
   return res.status(200).json({
     ok: true,
     service: 'dirac-my-orders',
+    dashboard_mfa_required: true,
+    dashboard_mfa_source: access.mfa && access.mfa.source || '',
     user: sanitizeUser(user),
     ownership_locked: true,
     direct_frontend_table_access: false,
@@ -6180,8 +6182,9 @@ function lockedPaymentIsAction(action) {
 }
 
 async function lockedPaymentCreateForOrder(req, res) {
-  const user = await requireDomainUser(req, res);
-  if (!user) return;
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+  const user = access.user;
 
   const body = await readBody(req);
   const requestedOrderId = lockedPaymentCleanText(body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || '', 120);
