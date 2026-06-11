@@ -3156,7 +3156,9 @@ function diracAppendSetCookie(res, cookie) {
 }
 
 function diracMakeCookie(name, value, options = {}) {
-  const sameSite = String(process.env.DIRAC_CUSTOMER_MFA_COOKIE_SAMESITE || (process.env.NODE_ENV === "development" ? "Lax" : "None")).trim();
+  // PATCH 3D: default Lax lebih ketat dan lebih stabil untuk same-origin Safari/Chrome.
+  // Env DIRAC_CUSTOMER_MFA_COOKIE_SAMESITE tetap bisa override jika benar-benar dibutuhkan.
+  const sameSite = String(process.env.DIRAC_CUSTOMER_MFA_COOKIE_SAMESITE || "Lax").trim();
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     "Path=/",
@@ -3175,8 +3177,19 @@ function diracMfaBindingHash(kind, value) {
   return hashCode(`dirac-customer-mfa-binding-v2:${kind}:${text}`, diracGetCustomerMfaSecret());
 }
 
+function diracNormalizeRequestOrigin(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    return new URL(raw).origin;
+  } catch (_) {
+    return raw.replace(/\/+$/, "");
+  }
+}
+
 function diracRequestOrigin(req) {
-  return String((req && req.headers && (req.headers.origin || req.headers.referer)) || "").trim().replace(/\/$/, "");
+  const headers = (req && req.headers) || {};
+  return diracNormalizeRequestOrigin(headers.origin) || diracNormalizeRequestOrigin(headers.referer);
 }
 
 function diracRequestUserAgent(req) {
