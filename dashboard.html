@@ -694,11 +694,11 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       Production access rule:
       - LocalStorage/A2F UI markers are kept only for compatibility with the existing login flow.
       - They are never accepted as proof to unlock this dashboard.
-      - The dashboard unlocks after the backend /api/health?action=domain_me returns ok:true and a valid user via same-domain HttpOnly session cookie.
+      - The dashboard unlocks only after /api/health?action=domain_dashboard_me returns ok:true plus dashboard:true via backend HttpOnly session + backend A2F cookie.
       - Network/API/parsing failure is fail-closed: the gate remains locked.
     */
     var DOMAIN_AUTH_API='/api/health';
-    var DOMAIN_ME_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_me';
+    var DOMAIN_ME_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_dashboard_me';
     var DOMAIN_LOGOUT_ENDPOINT=DOMAIN_AUTH_API+'?action=domain_logout';
     var BACKEND_VERIFICATION_MAX_AGE_MS=2*60*1000;
     var backendVerified=false;
@@ -756,11 +756,11 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
         }
         mergeRefreshedTokens(res);
         return res.json().then(function(data){
-          if(!data||data.ok!==true||!data.user||!(data.user.id||data.user.email)){
-            clearBackendVerification('Respons backend tidak valid. Login ulang.');
+          if(!data||data.ok!==true||data.dashboard!==true||!data.user||!(data.user.id||data.user.email)){
+            clearBackendVerification('Respons backend dashboard/A2F tidak valid. Login dan verifikasi A2F ulang.');
             return false;
           }
-          setGateReason('Dashboard diverifikasi backend. Membuka...');
+          setGateReason('Dashboard dan A2F diverifikasi backend. Membuka...');
           return markBackendVerified(data.user);
         }).catch(function(){
           clearBackendVerification('Respons backend tidak bisa dibaca. Cek deploy API dan CORS.');

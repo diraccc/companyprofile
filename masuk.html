@@ -4414,12 +4414,11 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     function isTrustedAuthResponse(data){
       if(!data || typeof data !== 'object') return false;
       if(data.health || data.status === 'ok' || data.status === 'healthy' || data.service === 'health') return false;
-      if(data.twoFactorRequired === true || data.mfaRequired === true || data.require2fa === true) return true;
-      var container = pickAuthContainer(data);
-      var successFlag = data.authenticated === true || data.isAuthenticated === true || data.authorized === true || data.login === true || data.loggedIn === true || data.success === true || data.registered === true || data.created === true || data.accountCreated === true || data.ok === true;
-      var containerFlag = container && (container.authenticated === true || container.authorized === true || container.login === true || container.loggedIn === true || container.success === true || container.ok === true || container.registered === true || container.created === true);
-      if((successFlag || containerFlag) && hasSessionProof(container)) return true;
-      if(hasSessionProof(data)) return true;
+      var container = pickAuthContainer(data) || {};
+      // PATCH 3B: A2F UI hanya boleh terbuka jika backend menyatakan login valid
+      // DAN ada sesi backend-only. Response register tanpa session/email-confirmation tidak cukup.
+      if((data.twoFactorRequired === true || data.mfaRequired === true || data.require2fa === true) && data.ok === true && data.user) return true;
+      if(data.ok === true && container.backend_only === true && data.user && data.needs_email_confirmation !== true) return true;
       return false;
     }
     function isServerAuthenticatedSession(session){
@@ -4494,6 +4493,12 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         return;
       }
       var container = pickAuthContainer(data) || {};
+      if(data && data.needs_email_confirmation === true){
+        clearPendingAuth();
+        status('success','Akun berhasil dibuat. Silakan cek email verifikasi sebelum login dan A2F.');
+        showToast('Cek email verifikasi dulu. A2F belum dibuka.');
+        return;
+      }
       var tokens = extractAuthTokens(container);
       var session = {
         identifier:identifier,

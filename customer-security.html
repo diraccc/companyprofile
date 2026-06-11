@@ -220,7 +220,7 @@
 
     const CONFIG = Object.freeze({
       apiBase: '/api/health',
-      meAction: 'domain_me',
+      meAction: 'domain_dashboard_me',
       statusAction: 'customer_security_status',
       overviewAction: 'customer_security_overview',
       guardStatusAction: 'customer_security_guard_status',
@@ -713,15 +713,15 @@
       state.loggedIn = true;
       state.linked = false;
       const userLabel = cleanText(
-        (meCheck && meCheck.userLabel) || getUserLabelFromStatusData(statusResult && statusResult.data) || 'Login terdeteksi',
-        'Login terdeteksi'
+        (meCheck && meCheck.userLabel) || getUserLabelFromStatusData(statusResult && statusResult.data) || 'Dashboard/A2F terdeteksi',
+        'Dashboard/A2F terdeteksi'
       );
       const apiStatus = statusResult && Number(statusResult.status || 0) ? 'HTTP ' + Number(statusResult.status || 0) : 'API tidak merespons';
       setPill($('#mainStatusPill'), 'warn', 'Security API');
       $('#topDot')?.classList.remove('bad');
       $('#topDot')?.classList.add('warn');
       setText('#topState', 'Login terbaca');
-      setText('#securitySubtitle', cleanText(message, 'Login terbaca, tetapi status keamanan akun belum bisa dibaca.') + ' · ' + getLocalSessionSummaryText());
+      setText('#securitySubtitle', cleanText(message, 'Dashboard/A2F terbaca, tetapi status keamanan akun belum bisa dibaca.') + ' · ' + getLocalSessionSummaryText());
       setText('#readoutUser', userLabel);
       setText('#readoutLink', 'Belum terbaca');
       setText('#readoutPolicy', 'Blocked');
@@ -730,7 +730,7 @@
       setText('#detailSecurityData', 'Belum terbaca');
       setText('#detailDirectAccess', 'Tetap diblokir');
       renderEmptyData();
-      toast('Login terbaca', 'Token/session login ada, tetapi customer security API belum mengembalikan status valid.');
+      toast('Login terbaca', 'Sesi dashboard/A2F terbaca, tetapi customer security API belum mengembalikan status valid.');
     }
 
     async function refreshSecurity() {
@@ -846,8 +846,8 @@
 
     async function runSecurityGate() {
       const result = await safeFetchJson(CONFIG.guardStatusAction);
-      if (!result.ok || !(result.data && result.data.linked === true && result.data.guarded_actions_ready === true)) {
-        redirectToLogin(result.status === 423 ? 'blocked' : 'backend_not_verified');
+      if (!result.ok || !(result.data && result.data.linked === true && result.data.guarded_actions_ready === true && result.data.mfa_active_now === true)) {
+        redirectToLogin(result.status === 423 ? 'blocked' : 'backend_mfa_not_verified');
         return false;
       }
       return true;
@@ -987,11 +987,12 @@
     }
 
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       initChrome();
       initReveal();
       renderEmptyData();
-      refreshSecurity();
+      const allowed = await runSecurityGate();
+      if (allowed) refreshSecurity();
     });
   
   </script>
