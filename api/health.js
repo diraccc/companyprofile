@@ -7977,6 +7977,19 @@ async function diracEmailA2FStart(req, res) {
   const email = normalizeAuthEmail(user.email);
   if (!isValidAuthEmail(email)) return res.status(400).json({ ok: false, message: 'Email akun tidak valid.' });
 
+  const owner = await diracPasskeyA2FResolveOwner(user, email);
+  if (!owner.ok) {
+    return res.status(owner.status || 409).json({ ok: false, message: owner.message || 'Akun belum siap untuk A2F email.' });
+  }
+  const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
+  if (!Array.isArray(activePasskeys) || activePasskeys.length < 1) {
+    return res.status(403).json({
+      ok: false,
+      code: 'PASSKEY_REQUIRED_FIRST',
+      message: 'Email A2F hanya boleh dipakai setelah Passkey aktif di database.'
+    });
+  }
+
   diracEmailA2FCleanup();
   const code = diracEmailA2FGenerateCode();
   const setupToken = crypto.randomBytes(32).toString('base64url');
@@ -8801,3 +8814,76 @@ async function diracPasskeyA2FVerify(req, res) {
 }
 
 
+
+
+/* ============================================================
+   DIRAC PASSKEY DB STATUS FOR EMAIL BACKUP UNLOCK v1
+   - Read-only status endpoint for masuk.html.
+   - Does not expose credential_id / credential_json.
+   - Lets UI unlock Email backup only when domain_passkeys has active row.
+   ============================================================ */
+
+const __diracPasskeyDbStatusPreviousHandler = module.exports;
+const DIRAC_PASSKEY_DB_STATUS_ACTIONS = new Set([
+  'dirac_mfa_passkey_status',
+  'domain_mfa_passkey_status',
+  'dirac_passkey_status',
+  'domain_passkey_status'
+]);
+
+module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  if (!DIRAC_PASSKEY_DB_STATUS_ACTIONS.has(rawAction)) {
+    return __diracPasskeyDbStatusPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  try {
+    const user = await requireDomainUser(req, res);
+    if (!user) return;
+
+    const email = normalizeAuthEmail(user.email);
+    if (!isValidAuthEmail(email)) {
+      return res.status(400).json({ ok: false, active: false, method: 'passkey', message: 'Email akun tidak valid.' });
+    }
+
+    const owner = await diracPasskeyA2FResolveOwner(user, email);
+    if (!owner.ok) {
+      return res.status(owner.status || 409).json({
+        ok: false,
+        active: false,
+        method: 'passkey',
+        message: owner.message || 'Akun belum siap untuk cek status Passkey.'
+      });
+    }
+
+    const rows = await diracPasskeyA2FListActivePasskeys(owner);
+    const count = Array.isArray(rows) ? rows.length : 0;
+    return res.status(200).json({
+      ok: true,
+      method: 'passkey',
+      active: count > 0,
+      passkey_active: count > 0,
+      has_passkey: count > 0,
+      passkey_count: count,
+      owner_bound: true,
+      owner_source: owner.source || '',
+      customer_id_present: Boolean(owner.customerId),
+      email_present: Boolean(owner.email),
+      message: count > 0
+        ? 'Passkey aktif ditemukan di database. Email A2F boleh dipakai sebagai cadangan.'
+        : 'Passkey aktif belum ditemukan. Buat Passkey dulu sebelum memakai Email A2F.'
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      active: false,
+      method: 'passkey',
+      message: 'Status Passkey belum bisa dicek. Coba login ulang lalu ulangi.'
+    });
+  }
+};
