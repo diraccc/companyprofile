@@ -5039,7 +5039,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   </div>
 
   <div class="a2f-modal" id="a2fModal" aria-hidden="true" data-mfa-status-endpoint="/api/2fa/lock" data-mfa-setup-endpoint="/api/2fa/start-step" data-mfa-verify-endpoint="/api/2fa/verify-step">
-    <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="authenticator" data-a2f-step-index="1">
+    <section class="a2f-card" role="dialog" aria-modal="true" aria-labelledby="a2fTitle" aria-describedby="a2fSub" tabindex="-1" data-selected-a2f="passkey" data-a2f-step-index="1">
       <div class="a2f-shell">
         <aside class="a2f-side" aria-label="Ringkasan keamanan akun">
           <div class="a2f-mini-brand">
@@ -5074,13 +5074,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
           <p class="a2f-note" data-i18n="a2fNote">Halaman ini sudah disiapkan sebagai UI produksi. Untuk A2F real, endpoint MFA harus memverifikasi passkey, OTP email, atau authenticator dari server sebelum dashboard dibuka.</p>
 
           <div class="a2f-methods" aria-label="Pilihan metode A2F">
-            <button class="a2f-method" type="button" data-a2f-select="passkey" aria-pressed="false">
+            <button class="a2f-method active" type="button" data-a2f-select="passkey" aria-pressed="true">
               <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">🔑</span><em data-i18n="a2fRecommended">Direkomendasikan</em></span>
               <strong data-i18n="a2fPasskey">Passkey</strong>
               <span data-i18n="a2fPasskeyText">Face ID, sidik jari, PIN, atau kunci perangkat.</span>
               <small data-i18n="a2fPasskeyMini">Paling modern dan tahan phishing.</small>
             </button>
-            <button class="a2f-method active" type="button" data-a2f-select="authenticator" aria-pressed="true">
+            <button class="a2f-method" type="button" data-a2f-select="authenticator" aria-pressed="false">
               <span class="a2f-method-top"><span class="a2f-method-icon" aria-hidden="true">📲</span><em data-i18n="a2fStrong">Aman</em></span>
               <strong data-i18n="a2fAuth">Authenticator</strong>
               <span data-i18n="a2fAuthText">Gunakan kode 6 digit dari aplikasi autentikator.</span>
@@ -5133,7 +5133,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 
           <div class="a2f-result" id="a2fResult" role="status" aria-live="polite"></div>
           <div class="a2f-actions">
-            <button class="btn-secondary" type="button" id="a2fStartBtn" data-a2f-method="authenticator" data-i18n="a2fStart">Aktifkan pilihan ini</button>
+            <button class="btn-secondary" type="button" id="a2fStartBtn" data-a2f-method="passkey" data-i18n="a2fStart">Aktifkan pilihan ini</button>
             <button class="btn-primary a2f-done-btn" type="button" id="a2fDoneBtn" disabled data-i18n="a2fDone">Selesai, buka dashboard</button>
           </div>
         </div>
@@ -5740,7 +5740,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       var pill = $('#a2fLivePill'); if(pill) pill.textContent = data.pill[lang] || data.pill.id;
     }
     function resetA2FModal(){
-      try{ if(typeof state === 'object'){ state.method = 'authenticator'; state.setupToken = ''; state.setupKey = ''; state.setupKeyRevealEmailVerified = false; state.verifyMode = 'none'; state.verified = false; state.attempts = 0; } }catch(e){}
+      try{ if(typeof state === 'object'){ state.method = 'passkey'; state.setupToken = ''; state.setupKey = ''; state.setupKeyRevealEmailVerified = false; state.verifyMode = 'none'; state.verified = false; state.attempts = 0; } }catch(e){}
       var result = $('#a2fResult');
       if(result){ result.className = 'a2f-result'; result.textContent = ''; }
       var setupBox = $('#a2fAuthenticatorSetup');
@@ -5750,13 +5750,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       var start = $('#a2fStartBtn');
       if(start){ start.disabled = false; start.setAttribute('data-a2f-method','authenticator'); }
       var card = $('#a2fModal .a2f-card');
-      if(card){ card.classList.remove('is-verified'); card.setAttribute('data-selected-a2f','authenticator'); }
+      if(card){ card.classList.remove('is-verified'); card.setAttribute('data-selected-a2f','passkey'); }
       $$('#a2fModal [data-a2f-method]').forEach(function(btn){ btn.classList.remove('active'); btn.disabled = false; });
-      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === 'authenticator'; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.disabled = false; });
+      $$('#a2fModal [data-a2f-select]').forEach(function(btn){ var on = btn.getAttribute('data-a2f-select') === 'passkey'; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.disabled = false; });
       $$('#a2fModal [data-a2f-panel]').forEach(function(panel){ panel.classList.toggle('active', panel.getAttribute('data-a2f-panel') === 'authenticator'); });
       $$('#a2fModal .a2f-step').forEach(function(step){ step.classList.remove('is-done','is-current'); });
       var first = $('#a2fModal [data-a2f-step="choose"]'); if(first) first.classList.add('is-current');
-      syncA2FPreview('authenticator');
+      syncA2FPreview('passkey');
       setA2FStep(1);
     }
     function activateA2F(method, detail){
@@ -6484,7 +6484,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   function ready(fn){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn);else fn()}
   function lang(){return document.documentElement.lang === 'en' ? 'en' : 'id'}
   function reducedMotion(){return document.documentElement.getAttribute('data-motion') === 'reduced' || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)}
-  var state = {method:'authenticator', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], setupToken:'', setupKey:'', setupKeyRevealEmailVerified:false, timer:null, seconds:0, attempts:0, lastFocus:null};
+  var state = {method:'passkey', step:1, busy:false, verified:false, verifyMode:'none', recoveryCodes:[], setupToken:'', setupKey:'', setupKeyRevealEmailVerified:false, timer:null, seconds:0, attempts:0, lastFocus:null};
   var copy = {
     id:{
       note:'<strong>A2F / Verifikasi 2 Langkah wajib sebelum dashboard.</strong> Pilih metode, lakukan verifikasi, lalu simpan recovery code. Sistem tidak akan menandai A2F produksi aktif sebelum challenge atau OTP benar-benar terverifikasi.',
@@ -7356,7 +7356,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     /* Customer login tidak menampilkan recovery code. Backend tetap memverifikasi A2F sebelum dashboard. */
     var actions = $('.a2f-actions', modal);
     if(actions && !$('#a2fSwitchAccountBtn', modal)) actions.insertAdjacentHTML('afterbegin','<button class="btn-secondary a2f-switch-account" type="button" id="a2fSwitchAccountBtn">'+t('switchAccount')+'</button>');
-    selectMethod('authenticator');
+    selectMethod('passkey');
   }
   function bind(){
     var modal = $('#a2fModal'); if(!modal || modal.getAttribute('data-a2f-p13-bound') === 'true') return;
@@ -9350,5 +9350,123 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 })();
 </script>
 
+<style id="dirac-passkey-only-cleanup-css">
+/* Passkey-only mandatory setup cleanup */
+#a2fModal [data-a2f-select="authenticator"],
+#a2fModal [data-a2f-select="email"],
+#a2fModal [data-a2f-panel="authenticator"],
+#a2fModal [data-a2f-panel="email"],
+#a2fModal .a2f-production-grid,
+#a2fModal #a2fPreview{
+  display:none !important;
+}
+#a2fModal .a2f-methods{
+  grid-template-columns:1fr !important;
+  margin:14px 0 18px !important;
+}
+#a2fModal [data-a2f-select="passkey"]{
+  position:relative !important;
+  display:grid !important;
+  grid-template-columns:84px minmax(0,1fr) !important;
+  align-items:start !important;
+  gap:14px !important;
+  min-height:auto !important;
+  padding:18px 18px 18px 18px !important;
+  border-radius:28px !important;
+}
+#a2fModal [data-a2f-select="passkey"] .a2f-method-top{
+  position:static !important;
+  grid-column:1 !important;
+  grid-row:1 / span 3 !important;
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  margin:0 !important;
+}
+#a2fModal [data-a2f-select="passkey"] .a2f-method-top em{
+  display:none !important;
+}
+#a2fModal [data-a2f-select="passkey"] .a2f-method-icon{
+  width:72px !important;
+  height:72px !important;
+  border-radius:22px !important;
+  font-size:1.9rem !important;
+}
+#a2fModal [data-a2f-select="passkey"] strong{
+  display:block !important;
+  margin:0 0 6px 0 !important;
+  padding-right:40px !important;
+  font-size:1.05rem !important;
+  line-height:1.18 !important;
+}
+#a2fModal [data-a2f-select="passkey"] span:not(.a2f-method-icon):not(.a2f-method-top){
+  display:block !important;
+  font-size:.84rem !important;
+  line-height:1.5 !important;
+}
+#a2fModal [data-a2f-select="passkey"] small{
+  display:block !important;
+  margin-top:8px !important;
+  font-size:.76rem !important;
+  line-height:1.4 !important;
+}
+#a2fModal [data-a2f-select="passkey"].active:after{
+  right:16px !important;
+  top:16px !important;
+}
+@media(max-width:540px){
+  #a2fModal [data-a2f-select="passkey"]{
+    grid-template-columns:76px minmax(0,1fr) !important;
+    gap:12px !important;
+    padding:16px !important;
+    border-radius:24px !important;
+  }
+  #a2fModal [data-a2f-select="passkey"] .a2f-method-icon{
+    width:64px !important;
+    height:64px !important;
+    border-radius:20px !important;
+    font-size:1.7rem !important;
+  }
+  #a2fModal [data-a2f-select="passkey"] strong{
+    font-size:1rem !important;
+  }
+}
+</style>
+<script id="dirac-passkey-only-cleanup-js">
+(function(){
+  'use strict';
+  function $(sel, root){ return (root || document).querySelector(sel); }
+  function $$(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  function apply(){
+    var modal = $('#a2fModal');
+    if(!modal) return;
+    ['authenticator','email'].forEach(function(method){
+      $$("[data-a2f-select=\""+method+"\"]", modal).forEach(function(el){ el.remove(); });
+      $$("[data-a2f-panel=\""+method+"\"]", modal).forEach(function(el){ el.remove(); });
+    });
+    var title = $('#a2fTitle', modal); if(title) title.textContent = 'Gunakan passkey';
+    var sub = $('#a2fSub', modal); if(sub) sub.textContent = 'Passkey wajib disiapkan saat pendaftaran pertama sebelum dashboard dibuka.';
+    var note = $('.a2f-note', modal); if(note) note.textContent = 'Passkey wajib diaktifkan terlebih dahulu. Setelah passkey berhasil dibuat atau diverifikasi, barulah dashboard bisa dibuka.';
+    var pass = $('[data-a2f-select="passkey"]', modal);
+    if(pass){
+      pass.classList.add('active');
+      pass.setAttribute('aria-pressed','true');
+      pass.setAttribute('aria-checked','true');
+      pass.tabIndex = 0;
+      var t = $('strong', pass); if(t) t.textContent = 'Gunakan passkey';
+      var d = pass.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)');
+      if(d) d.textContent = 'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.';
+      var s = $('small', pass); if(s) s.textContent = 'Wajib diselesaikan sebelum dashboard.';
+    }
+    var start = $('#a2fStartBtn', modal);
+    if(start){
+      start.setAttribute('data-a2f-method','passkey');
+      start.innerHTML = '<span class="a2f-loading-dot" aria-hidden="true"></span><span class="a2f-start-label">Gunakan passkey sekarang</span>';
+    }
+  }
+  ready(apply);
+})();
+</script>
 </body>
 </html>
