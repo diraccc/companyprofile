@@ -7737,58 +7737,59 @@ async function midtransFetchGatewayEvent(gatewayEventId) {
 }
 
 async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEventId, eventStatus, payload, metadata) {
-  const basePayload = {
+  const nowIso = diracNowIso();
+  const safeStatus = ['received', 'processed', 'failed'].includes(String(eventStatus || '').toLowerCase())
+    ? String(eventStatus || '').toLowerCase()
+    : 'received';
+
+  const eventType = midtransSafeText(
+    payload && (payload.transaction_status || payload.status_message || payload.payment_type) || 'midtrans_notification',
+    120
+  ) || 'midtrans_notification';
+
+  // IMPORTANT:
+  // Tabel production public.payment_gateway_events hanya memiliki kolom:
+  // payment_transaction_id, gateway_name, gateway_event_id, event_type,
+  // event_status, raw_payload, processed_at, error_message.
+  // Jangan insert kolom lama: payload, metadata, signature_valid, received_at.
+  const body = {
     payment_transaction_id: paymentTransactionId,
+    gateway_name: 'midtrans',
     gateway_event_id: gatewayEventId,
-    event_status: eventStatus,
-    payload,
-    metadata: {
-      provider: 'midtrans',
-      received_at: diracNowIso(),
-      signature_verified: true,
-      ...(metadata || {})
-    }
+    event_type: eventType,
+    event_status: safeStatus,
+    raw_payload: {
+      ...(payload && typeof payload === 'object' ? payload : { value: payload }),
+      _dirac: {
+        provider: 'midtrans',
+        received_at: nowIso,
+        signature_verified: true,
+        gateway_event_id: gatewayEventId,
+        payment_transaction_id: paymentTransactionId,
+        ...(metadata && typeof metadata === 'object' ? metadata : {})
+      }
+    },
+    processed_at: safeStatus === 'processed' || safeStatus === 'failed' ? nowIso : null,
+    error_message: safeStatus === 'failed'
+      ? midtransSafeText(metadata && (metadata.reason || metadata.error || metadata.message) || 'midtrans_event_failed', 500)
+      : null
   };
 
-  const attempts = [
-    {
-      ...basePayload,
-      gateway_name: 'midtrans',
-      signature_valid: true,
-      received_at: diracNowIso(),
-      processed_at: eventStatus === 'processed' ? diracNowIso() : null
-    },
-    basePayload,
-    {
-      payment_transaction_id: paymentTransactionId,
-      gateway_event_id: gatewayEventId,
-      event_status: eventStatus,
-      payload
-    },
-    {
-      payment_transaction_id: paymentTransactionId,
-      gateway_event_id: gatewayEventId,
-      event_status: eventStatus
-    }
-  ];
+  const result = await supabaseFetch('/rest/v1/payment_gateway_events', {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: [body]
+  });
 
-  for (const body of attempts) {
-    const result = await supabaseFetch('/rest/v1/payment_gateway_events', {
-      method: 'POST',
-      auth: 'service',
-      prefer: 'return=representation',
-      body: [body]
-    });
+  if (result.ok) return { ok: true, data: result.data };
 
-    if (result.ok) return { ok: true, data: result.data };
-
-    const msg = lockedPaymentSafeUpstreamError(result.data).toLowerCase();
-    if (result.status === 409 || msg.includes('duplicate') || msg.includes('unique')) {
-      return { ok: true, duplicate: true, data: result.data };
-    }
+  const msg = lockedPaymentSafeUpstreamError(result.data).toLowerCase();
+  if (result.status === 409 || msg.includes('duplicate') || msg.includes('unique')) {
+    return { ok: true, duplicate: true, data: result.data };
   }
 
-  return { ok: false, status: 500 };
+  return { ok: false, status: result.status || 500, error: result.data };
 }
 
 async function midtransPatchPaymentTransaction(transactionId, status, payload, success) {
@@ -8917,42 +8918,13 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
       return res.status(400).json({ ok: false, active: false, method: 'passkey', message: 'Email akun tidak valid.' });
     }
 
-    // Primary status check: domain_passkeys.email must match the currently logged-in account email.
-    // This is read-only and does not expose credential_id/credential_json.
-    const directSelect = 'id,user_id,email,is_active,created_at,last_used_at';
-    const directPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(directSelect)
-      + '&is_active=eq.true&email=eq.' + encodeURIComponent(email)
-      + '&order=created_at.desc&limit=20';
-    const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' }).catch(() => null);
-    const directRows = directResult && directResult.ok && Array.isArray(directResult.data) ? directResult.data : [];
-    if (directRows.length > 0) {
-      return res.status(200).json({
-        ok: true,
-        method: 'passkey',
-        active: true,
-        passkey_active: true,
-        has_passkey: true,
-        passkey_count: directRows.length,
-        owner_bound: true,
-        owner_source: 'domain_passkeys.email',
-        customer_id_present: Boolean(directRows[0] && directRows[0].user_id),
-        email_present: true,
-        message: 'Passkey aktif ditemukan di database. Email A2F boleh dipakai sebagai cadangan.'
-      });
-    }
-
     const owner = await diracPasskeyA2FResolveOwner(user, email);
     if (!owner.ok) {
-      return res.status(200).json({
-        ok: true,
+      return res.status(owner.status || 409).json({
+        ok: false,
         active: false,
         method: 'passkey',
-        passkey_active: false,
-        has_passkey: false,
-        passkey_count: 0,
-        owner_bound: false,
-        owner_source: 'not_resolved',
-        message: 'Passkey aktif belum ditemukan untuk email login ini.'
+        message: owner.message || 'Akun belum siap untuk cek status Passkey.'
       });
     }
 
