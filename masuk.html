@@ -6571,41 +6571,36 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   'use strict';
 
   /* =========================================================
-     Dirac UI Sound Feedback FIX v9
-     Fokus perubahan: hanya memperbaiki efek suara tombol/UI.
+     Dirac UI Sound Feedback NEW EFFECT v10
+     Fokus perubahan: membuat mesin efek suara klik baru dari nol.
      Tidak mengubah endpoint, login, register, hash, token, cookie, A2F/MFA,
      dashboard, checkout, order, atau keamanan backend.
      ========================================================= */
 
   var STORAGE_KEY = 'dirac_ui_sound_enabled_v3';
   var LEGACY_STORAGE_KEY = 'dirac_ui_sound_enabled_v1';
-  var PATCH_KEY = 'dirac_ui_sound_fix_v9_applied';
+  var PATCH_KEY = 'dirac_ui_sound_new_click_effect_v10_applied';
   var USER_OFF_KEY = 'dirac_ui_sound_user_off_v1';
   var AudioCtx = window.AudioContext || window.webkitAudioContext;
   var ctx = null;
   var master = null;
   var compressor = null;
   var enabled = readEnabled();
-  var unlocked = false;
-  var unlockPromise = null;
-  var fallbackCache = {};
-  var fallbackAudio = null;
-  var lastGestureAt = 0;
-  var lastPlayAt = Object.create ? Object.create(null) : {};
-  var lastInputAt = 0;
+  var last = {};
   var typeStep = 0;
+  var wavCache = {};
+  var primed = false;
 
   function $(selector, root){ return (root || document).querySelector(selector); }
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
   function nowMs(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
-  function clamp(value, min, max){ return Math.max(min, Math.min(max, value)); }
+  function clamp(value, min, max){ value = Number(value); if(!isFinite(value)) value = min; return Math.max(min, Math.min(max, value)); }
 
   function readEnabled(){
     try{
-      var firstPatch = localStorage.getItem(PATCH_KEY) !== '1';
-      if(firstPatch){
-        /* FIX v9: reset paksa ke ON satu kali agar browser yang pernah menyimpan
-           status off dari patch lama tidak membuat efek klik terlihat hilang. */
+      if(localStorage.getItem(PATCH_KEY) !== '1'){
+        /* v10: reset ON satu kali supaya status OFF dari eksperimen/fix lama
+           tidak membuat efek klik baru terlihat tetap hilang. */
         localStorage.setItem(STORAGE_KEY, 'on');
         localStorage.setItem(LEGACY_STORAGE_KEY, 'on');
         localStorage.removeItem(USER_OFF_KEY);
@@ -6631,22 +6626,21 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     }catch(_){ }
   }
 
-  function createContext(){
-    if(ctx || !AudioCtx) return ctx;
+  function ensureContext(){
+    if(ctx) return ctx;
+    if(!AudioCtx) return null;
     try{
-      try{ ctx = new AudioCtx({ latencyHint:'interactive' }); }
+      try{ ctx = new AudioCtx({latencyHint:'interactive'}); }
       catch(_){ ctx = new AudioCtx(); }
-
       master = ctx.createGain();
-      master.gain.value = 1.0;
-
+      master.gain.value = 0.92;
       if(ctx.createDynamicsCompressor){
         compressor = ctx.createDynamicsCompressor();
-        compressor.threshold.value = -22;
-        compressor.knee.value = 18;
-        compressor.ratio.value = 8;
-        compressor.attack.value = 0.003;
-        compressor.release.value = 0.18;
+        compressor.threshold.value = -18;
+        compressor.knee.value = 20;
+        compressor.ratio.value = 7;
+        compressor.attack.value = 0.002;
+        compressor.release.value = 0.16;
         master.connect(compressor);
         compressor.connect(ctx.destination);
       }else{
@@ -6660,166 +6654,112 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     return ctx;
   }
 
-  function primeContext(audio){
-    if(!audio || unlocked) return;
-    unlocked = true;
+  function unlockAudio(){
+    if(!enabled) return null;
+    var audio = ensureContext();
+    if(!audio) return null;
     try{
-      var g = audio.createGain();
-      g.gain.value = 0.00001;
-      g.connect(master || audio.destination);
-      var o = audio.createOscillator();
-      o.type = 'sine';
-      o.frequency.value = 1;
-      o.connect(g);
-      o.start(audio.currentTime);
-      o.stop(audio.currentTime + 0.018);
-    }catch(_){ }
-  }
-
-  function unlockAudio(callback){
-    if(!enabled){ if(callback) callback(null); return null; }
-    var audio = createContext();
-    if(!audio){ if(callback) callback(null); return null; }
-
-    function done(){
-      primeContext(audio);
-      if(callback) callback(audio);
-      return audio;
-    }
-
-    try{
-      if(audio.state === 'suspended' && audio.resume){
-        unlockPromise = audio.resume();
-        if(unlockPromise && typeof unlockPromise.then === 'function'){
-          unlockPromise.then(done).catch(function(){ done(); });
-          return unlockPromise;
-        }
+      if(audio.state === 'suspended' && audio.resume) audio.resume().catch(function(){});
+      if(!primed){
+        primed = true;
+        var g = audio.createGain();
+        var o = audio.createOscillator();
+        g.gain.value = 0.00001;
+        o.frequency.value = 32;
+        o.connect(g);
+        g.connect(master || audio.destination);
+        o.start(audio.currentTime);
+        o.stop(audio.currentTime + 0.025);
       }
-      return done();
-    }catch(_){
-      return done();
-    }
+    }catch(_){ }
+    return audio;
   }
 
-  function connectToOutput(node){
+  function connect(node){
     try{ node.connect(master || (ctx && ctx.destination)); return true; }
     catch(_){ return false; }
   }
 
-  function beep(freq, duration, gainValue, type, delay, endFreq){
-    var audio = createContext();
-    if(!audio || !enabled) return false;
-    try{
-      var t = audio.currentTime + (delay || 0.006);
-      var o = audio.createOscillator();
-      var g = audio.createGain();
-      o.type = type || 'triangle';
-      o.frequency.setValueAtTime(Math.max(1, Number(freq) || 760), t);
-      if(endFreq && o.frequency.exponentialRampToValueAtTime){
-        o.frequency.exponentialRampToValueAtTime(Math.max(1, Number(endFreq) || freq), t + duration);
-      }
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(clamp(Number(gainValue) || 0.045, 0.001, 0.13), t + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-      o.connect(g);
-      if(!connectToOutput(g)) return false;
-      o.start(t);
-      o.stop(t + duration + 0.035);
-      return true;
-    }catch(_){
-      return false;
-    }
-  }
-
-  function noise(duration, gainValue, delay){
-    var audio = createContext();
-    if(!audio || !enabled || !audio.createBufferSource) return false;
-    try{
-      var length = Math.max(1, Math.floor(audio.sampleRate * duration));
-      var buffer = audio.createBuffer(1, length, audio.sampleRate);
-      var data = buffer.getChannelData(0);
-      for(var i = 0; i < length; i += 1){
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 1.9);
-      }
-      var source = audio.createBufferSource();
-      source.buffer = buffer;
-      var filter = audio.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 1450;
-      filter.Q.value = 0.72;
-      var g = audio.createGain();
-      var t = audio.currentTime + (delay || 0.006);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(clamp(Number(gainValue) || 0.018, 0.001, 0.08), t + 0.016);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-      source.connect(filter);
-      filter.connect(g);
-      if(!connectToOutput(g)) return false;
-      source.start(t);
-      source.stop(t + duration + 0.03);
-      return true;
-    }catch(_){
-      return false;
-    }
-  }
-
-  function shouldThrottle(kind, ms){
-    var n = nowMs();
-    var last = Number(lastPlayAt[kind] || 0);
-    if(n - last < ms) return true;
-    lastPlayAt[kind] = n;
+  function throttle(key, ms){
+    var t = nowMs();
+    var prev = Number(last[key] || 0);
+    if(t - prev < ms) return true;
+    last[key] = t;
     return false;
   }
 
-  function playNow(kind){
-    if(!enabled) return false;
-    kind = String(kind || 'click').toLowerCase();
-    var ok = false;
+  function tone(freq, duration, gainValue, type, delay, endFreq){
+    var audio = ensureContext();
+    if(!audio || !enabled) return false;
+    try{
+      var t = audio.currentTime + (delay || 0.001);
+      var osc = audio.createOscillator();
+      var gain = audio.createGain();
+      osc.type = type || 'triangle';
+      osc.frequency.setValueAtTime(Math.max(1, Number(freq) || 700), t);
+      if(endFreq && osc.frequency.exponentialRampToValueAtTime){
+        osc.frequency.exponentialRampToValueAtTime(Math.max(1, Number(endFreq) || freq), t + duration);
+      }
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(clamp(gainValue, 0.001, 0.22), t + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      osc.connect(gain);
+      if(!connect(gain)) return false;
+      osc.start(t);
+      osc.stop(t + duration + 0.025);
+      return true;
+    }catch(_){ return false; }
+  }
 
-    if(kind === 'click' || kind === 'button' || kind === 'tap'){
-      if(shouldThrottle('click', 72)) return true;
-      ok = beep(930, 0.085, 0.125, 'triangle', 0.002, 1240);
-    }else if(kind === 'loading' || kind === 'load'){
-      if(shouldThrottle('loading', 260)) return true;
-      ok = noise(0.16, 0.024, 0.002);
-      ok = beep(330, 0.085, 0.036, 'sine', 0.018, 520) || ok;
-      ok = beep(540, 0.080, 0.030, 'sine', 0.100, 720) || ok;
-    }else if(kind === 'success' || kind === 'ok'){
-      if(shouldThrottle('success', 420)) return true;
-      ok = beep(523.25, 0.090, 0.062, 'sine', 0.003) || ok;
-      ok = beep(659.25, 0.105, 0.055, 'sine', 0.075) || ok;
-      ok = beep(987.77, 0.145, 0.050, 'triangle', 0.155) || ok;
-    }else if(kind === 'finish' || kind === 'done' || kind === 'complete'){
-      if(shouldThrottle('finish', 650)) return true;
-      ok = noise(0.18, 0.023, 0.002) || ok;
-      ok = beep(392, 0.105, 0.052, 'sine', 0.025, 784) || ok;
-      ok = beep(1046.5, 0.155, 0.050, 'triangle', 0.150) || ok;
-    }else if(kind === 'error' || kind === 'fail' || kind === 'danger'){
-      if(shouldThrottle('error', 420)) return true;
-      ok = beep(240, 0.100, 0.060, 'sawtooth', 0.003, 180) || ok;
-      ok = beep(150, 0.130, 0.045, 'triangle', 0.090) || ok;
-    }else if(kind === 'type' || kind === 'typing' || kind === 'key'){
-      var n = nowMs();
-      if(n - lastInputAt < 22) return true;
-      lastInputAt = n;
-      typeStep = (typeStep + 1) % 8;
-      var freqs = [1180, 1320, 1480, 1620, 1760, 1520, 1240, 1400];
-      ok = beep(freqs[typeStep], 0.017, 0.010, typeStep % 2 ? 'square' : 'triangle', 0.002, 780);
-    }else{
-      ok = playNow('click');
-    }
-
-    if(ok){ try{ if(navigator.vibrate && (kind === 'click' || kind === 'tap')) navigator.vibrate(7); }catch(_){ } }
-    return ok;
+  function clickNoise(duration, gainValue, delay){
+    var audio = ensureContext();
+    if(!audio || !enabled || !audio.createBufferSource) return false;
+    try{
+      var length = Math.max(32, Math.floor(audio.sampleRate * duration));
+      var buffer = audio.createBuffer(1, length, audio.sampleRate);
+      var data = buffer.getChannelData(0);
+      for(var i = 0; i < length; i += 1){
+        var env = Math.pow(1 - (i / length), 2.15);
+        data[i] = (Math.random() * 2 - 1) * env;
+      }
+      var src = audio.createBufferSource();
+      var filter = audio.createBiquadFilter();
+      var gain = audio.createGain();
+      var t = audio.currentTime + (delay || 0.001);
+      src.buffer = buffer;
+      filter.type = 'highpass';
+      filter.frequency.value = 900;
+      filter.Q.value = 0.7;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(clamp(gainValue, 0.001, 0.14), t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      src.connect(filter);
+      filter.connect(gain);
+      if(!connect(gain)) return false;
+      src.start(t);
+      src.stop(t + duration + 0.02);
+      return true;
+    }catch(_){ return false; }
   }
 
   function writeAscii(view, offset, text){ for(var i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i)); }
-  function buildFallbackWav(freq, duration, volume){
+
+  function makeWav(kind){
     if(!window.btoa) return '';
-    var rate = 8000;
-    var samples = Math.max(160, Math.floor(rate * duration));
-    var buffer = new ArrayBuffer(44 + samples * 2);
-    var view = new DataView(buffer);
+    kind = String(kind || 'click').toLowerCase();
+    var profile = {
+      click:   {duration:0.115, volume:0.82, base:760, sweep:1340, noise:0.22},
+      type:    {duration:0.035, volume:0.34, base:1220, sweep:980, noise:0.04},
+      loading: {duration:0.170, volume:0.56, base:360, sweep:620, noise:0.08},
+      success: {duration:0.210, volume:0.58, base:620, sweep:1040, noise:0.05},
+      finish:  {duration:0.260, volume:0.62, base:520, sweep:1180, noise:0.07},
+      error:   {duration:0.190, volume:0.60, base:230, sweep:155, noise:0.16}
+    };
+    var p = profile[kind] || profile.click;
+    var rate = 16000;
+    var samples = Math.max(240, Math.floor(rate * p.duration));
+    var bytes = new Uint8Array(44 + samples * 2);
+    var view = new DataView(bytes.buffer);
     writeAscii(view, 0, 'RIFF');
     view.setUint32(4, 36 + samples * 2, true);
     writeAscii(view, 8, 'WAVE');
@@ -6834,102 +6774,101 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     writeAscii(view, 36, 'data');
     view.setUint32(40, samples * 2, true);
     for(var i = 0; i < samples; i += 1){
-      var fade = Math.pow(1 - i / samples, 1.4) * Math.min(1, i / 18);
-      var sample = Math.sin(2 * Math.PI * freq * i / rate) * fade * volume;
-      view.setInt16(44 + i * 2, Math.max(-32767, Math.min(32767, sample * 32767)), true);
+      var x = i / samples;
+      var env = Math.min(1, i / 24) * Math.pow(1 - x, 1.65);
+      var freq = p.base + (p.sweep - p.base) * x;
+      var sine = Math.sin(2 * Math.PI * freq * i / rate);
+      var square = sine >= 0 ? 1 : -1;
+      var noise = (Math.random() * 2 - 1) * p.noise;
+      var sample = ((sine * 0.66) + (square * 0.22) + noise) * env * p.volume;
+      view.setInt16(44 + i * 2, Math.max(-32760, Math.min(32760, sample * 32760)), true);
     }
-    var binary = '';
-    var bytes = new Uint8Array(buffer);
-    for(var j = 0; j < bytes.length; j += 1) binary += String.fromCharCode(bytes[j]);
-    return 'data:audio/wav;base64,' + btoa(binary);
+    var chunk = '';
+    for(var j = 0; j < bytes.length; j += 1) chunk += String.fromCharCode(bytes[j]);
+    return 'data:audio/wav;base64,' + btoa(chunk);
   }
 
-  function fallback(kind){
+  function fallbackAudio(kind){
     if(!enabled || typeof Audio === 'undefined') return false;
     try{
-      kind = String(kind || 'click').toLowerCase();
-      var key = /error|fail|danger/.test(kind) ? 'error' : (/success|ok|finish|done|complete/.test(kind) ? 'success' : (/loading|load/.test(kind) ? 'loading' : 'click'));
-      if(!fallbackCache[key]){
-        var map = {click:[940,0.090,0.92], loading:[420,0.130,0.62], success:[760,0.160,0.70], error:[185,0.150,0.68]};
-        fallbackCache[key] = buildFallbackWav(map[key][0], map[key][1], map[key][2]);
-      }
-      if(!fallbackCache[key]) return false;
-
-      /* FIX v9: pakai Audio baru setiap play agar tap cepat tidak membatalkan
-         suara sebelumnya. Ini juga menjadi jalur cadangan bila WebAudio ditunda. */
-      var audio = new Audio(fallbackCache[key]);
+      var key = normalizeKind(kind);
+      if(!wavCache[key]) wavCache[key] = makeWav(key);
+      if(!wavCache[key]) return false;
+      var audio = new Audio(wavCache[key]);
       audio.preload = 'auto';
       audio.muted = false;
       audio.volume = 1;
-      fallbackAudio = audio;
-      var p = audio.play();
-      if(p && p.catch) p.catch(function(){});
-      setTimeout(function(){ try{ audio.pause(); audio.src = ''; }catch(_){ } }, 900);
+      var promise = audio.play();
+      if(promise && promise.catch) promise.catch(function(){});
+      setTimeout(function(){ try{ audio.pause(); audio.removeAttribute('src'); audio.load(); }catch(_){ } }, 900);
       return true;
     }catch(_){ return false; }
   }
 
-  function play(kind){
-    if(!enabled) return false;
+  function normalizeKind(kind){
     kind = String(kind || 'click').toLowerCase();
-
-    var audio = createContext();
-    var played = false;
-    var allowImmediateFallback = !(/type|typing|key/.test(kind));
-    var fallbackStarted = false;
-
-    /*
-       FIX v9: dua jalur suara dipicu langsung saat gesture masih aktif.
-       1) HTMLAudio data-URI fallback dibuat dan dimainkan segera.
-       2) WebAudio oscillator tetap dijadwalkan/resume.
-       Ini mengatasi Chrome/Safari mobile yang kadang menunda resume WebAudio
-       atau browser yang masih menyimpan state sound off dari patch lama.
-    */
-    if(allowImmediateFallback) fallbackStarted = fallback(kind);
-
-    try{
-      if(audio && audio.state === 'suspended' && audio.resume){
-        played = playNow(kind);
-        var resumeResult = audio.resume();
-        if(resumeResult && typeof resumeResult.then === 'function'){
-          resumeResult.then(function(){
-            primeContext(audio);
-            if(!played) played = playNow(kind);
-            if(!played && !fallbackStarted) fallback(kind);
-          }).catch(function(){
-            if(!fallbackStarted) fallback(kind);
-          });
-        }else{
-          primeContext(audio);
-          if(!played) played = playNow(kind);
-          if(!played && !fallbackStarted) fallback(kind);
-        }
-        return true;
-      }
-    }catch(_){
-      if(!fallbackStarted) fallback(kind);
-      return true;
-    }
-
-    unlockAudio(function(){
-      played = playNow(kind);
-      if(!played && !fallbackStarted) fallback(kind);
-    });
-    return true;
+    if(/type|typing|key/.test(kind)) return 'type';
+    if(/load|loading|wait|process/.test(kind)) return 'loading';
+    if(/success|ok|verified|valid/.test(kind)) return 'success';
+    if(/finish|done|complete|ready/.test(kind)) return 'finish';
+    if(/error|fail|danger|invalid/.test(kind)) return 'error';
+    return 'click';
   }
 
-  function updateToggle(){
-    var btn = $('#diracSoundToggle');
-    if(!btn) return;
-    var icon = $('.dirac-theme-sound-icon', btn);
-    var title = $('.dirac-theme-sound-copy strong', btn);
-    var desc = $('.dirac-theme-sound-copy small', btn);
-    if(icon) icon.textContent = enabled ? '🔊' : '🔇';
-    if(title) title.textContent = enabled ? 'Suara aktif' : 'Suara mati';
-    if(desc) desc.textContent = enabled ? 'Efek suara tombol aktif. Pastikan volume perangkat tidak mute.' : 'Semua efek suara website dimatikan.';
-    btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    btn.setAttribute('aria-label', enabled ? 'Matikan suara tombol website' : 'Aktifkan suara tombol website');
-    btn.title = enabled ? 'Suara website aktif' : 'Suara website mati';
+  function playWeb(kind){
+    kind = normalizeKind(kind);
+    if(kind === 'click'){
+      if(throttle('click', 58)) return true;
+      var ok = clickNoise(0.035, 0.072, 0.001);
+      ok = tone(620, 0.052, 0.155, 'square', 0.002, 1180) || ok;
+      ok = tone(1480, 0.040, 0.060, 'triangle', 0.022, 980) || ok;
+      return ok;
+    }
+    if(kind === 'type'){
+      if(throttle('type', 24)) return true;
+      typeStep = (typeStep + 1) % 6;
+      var freqs = [980, 1110, 1240, 1360, 1180, 1020];
+      return tone(freqs[typeStep], 0.020, 0.020, 'triangle', 0.001, freqs[typeStep] * 0.72);
+    }
+    if(kind === 'loading'){
+      if(throttle('loading', 240)) return true;
+      var okLoad = clickNoise(0.070, 0.028, 0.001);
+      okLoad = tone(330, 0.090, 0.060, 'sine', 0.014, 560) || okLoad;
+      okLoad = tone(520, 0.090, 0.046, 'sine', 0.095, 760) || okLoad;
+      return okLoad;
+    }
+    if(kind === 'success'){
+      if(throttle('success', 360)) return true;
+      var okSuccess = tone(520, 0.090, 0.075, 'triangle', 0.001, 650);
+      okSuccess = tone(780, 0.105, 0.070, 'triangle', 0.080, 1040) || okSuccess;
+      return okSuccess;
+    }
+    if(kind === 'finish'){
+      if(throttle('finish', 520)) return true;
+      var okFinish = tone(440, 0.085, 0.072, 'sine', 0.001, 660);
+      okFinish = tone(880, 0.105, 0.068, 'triangle', 0.082, 1320) || okFinish;
+      okFinish = clickNoise(0.080, 0.035, 0.155) || okFinish;
+      return okFinish;
+    }
+    if(kind === 'error'){
+      if(throttle('error', 360)) return true;
+      var okError = tone(240, 0.090, 0.074, 'sawtooth', 0.001, 170);
+      okError = tone(165, 0.115, 0.054, 'triangle', 0.080, 130) || okError;
+      return okError;
+    }
+    return playWeb('click');
+  }
+
+  function play(kind){
+    if(!enabled) return false;
+    kind = normalizeKind(kind);
+    unlockAudio();
+    var ok = playWeb(kind);
+    /* Jalur cadangan: selalu dinyalakan untuk click/loading/success/error.
+       Untuk typing tidak dipakai agar tidak terlalu ramai. */
+    if(kind !== 'type') fallbackAudio(kind);
+    try{ if(kind === 'click' && navigator.vibrate) navigator.vibrate(8); }catch(_){ }
+    return ok;
   }
 
   function toast(message){
@@ -6941,28 +6880,42 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     toast._timer = setTimeout(function(){ box.classList.remove('show'); }, 2100);
   }
 
+  function updateToggle(){
+    var btn = $('#diracSoundToggle');
+    if(!btn) return;
+    var icon = $('.dirac-theme-sound-icon', btn);
+    var title = $('.dirac-theme-sound-copy strong', btn);
+    var desc = $('.dirac-theme-sound-copy small', btn);
+    if(icon) icon.textContent = enabled ? '🔊' : '🔇';
+    if(title) title.textContent = enabled ? 'Suara aktif' : 'Suara mati';
+    if(desc) desc.textContent = enabled ? 'Efek klik baru aktif. Coba tap tombol ini atau tombol login.' : 'Semua efek suara website dimatikan.';
+    btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    btn.setAttribute('aria-label', enabled ? 'Matikan suara tombol website' : 'Aktifkan suara tombol website');
+    btn.title = enabled ? 'Suara website aktif' : 'Suara website mati';
+  }
+
   function bindToggle(){
     var btn = $('#diracSoundToggle');
-    if(!btn || btn.__diracSoundRepairBound) return;
-    btn.__diracSoundRepairBound = true;
+    if(!btn || btn.__diracSoundNewV10Bound) return;
+    btn.__diracSoundNewV10Bound = true;
     btn.addEventListener('click', function(){
       enabled = !enabled;
       saveEnabled();
       updateToggle();
-      if(enabled){ play('success'); toast('Suara website aktif.'); }
+      if(enabled){ unlockAudio(); play('success'); toast('Suara website aktif.'); }
       else{ toast('Suara website dimatikan.'); }
     });
     updateToggle();
   }
 
-  function isDisabled(el){
-    return !!(el && (el.disabled || el.getAttribute('aria-disabled') === 'true' || el.classList && el.classList.contains('is-disabled')));
+  function disabled(el){
+    return !!(el && (el.disabled || el.getAttribute('aria-disabled') === 'true' || (el.classList && el.classList.contains('is-disabled'))));
   }
 
   function interactiveFrom(target){
     var el = target && target.nodeType === 1 ? target : (target && target.parentElement);
     if(!el || !el.closest) return null;
-    var direct = el.closest('button,a,label,summary,[role="button"],[tabindex],input[type="button"],input[type="submit"],input[type="checkbox"],input[type="radio"],select,.auth-tab,.ai-chip,.theme-pro-choice,.choice,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.theme-toggle,.menu-toggle,.catalog-return,.header-cart,[onclick],[data-action],[data-mode],[data-theme],[data-lang],[data-scroll],[data-a2f-method],[data-a2f-select]');
+    var direct = el.closest('button,a,label,summary,[role="button"],[tabindex],input[type="button"],input[type="submit"],input[type="checkbox"],input[type="radio"],select,.auth-tab,.ai-chip,.theme-pro-choice,.choice,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.theme-toggle,.menu-toggle,.catalog-return,.header-cart,.password-toggle,[onclick],[data-action],[data-mode],[data-theme],[data-language],[data-lang],[data-scroll],[data-a2f-method],[data-a2f-select],[data-close-theme],[data-close-menu],[data-close-ai]');
     if(direct) return direct;
     var walk = el;
     for(var i = 0; walk && walk !== document.body && i < 5; i += 1, walk = walk.parentElement){
@@ -6977,17 +6930,15 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   function gesture(event){
     unlockAudio();
     var item = interactiveFrom(event && event.target);
-    if(!item || isDisabled(item)) return;
-    var n = nowMs();
-    if(n - lastGestureAt < 95) return;
-    lastGestureAt = n;
+    if(!item || disabled(item)) return;
+    if(throttle('gesture', 52)) return;
     play('click');
   }
 
   function keyboard(event){
     if(!event || event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return;
     var item = interactiveFrom(event.target);
-    if(!item || isDisabled(item)) return;
+    if(!item || disabled(item)) return;
     play('click');
   }
 
@@ -7010,21 +6961,18 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
 
   function bindDocumentEvents(){
-    if(document.__diracSoundRepairEventsBound) return;
-    document.__diracSoundRepairEventsBound = true;
+    if(document.__diracSoundNewV10EventsBound) return;
+    document.__diracSoundNewV10EventsBound = true;
     document.addEventListener('pointerdown', gesture, {capture:true, passive:true});
-    document.addEventListener('pointerup', function(e){ unlockAudio(); if(nowMs() - lastGestureAt > 180) gesture(e); }, {capture:true, passive:true});
     document.addEventListener('touchstart', gesture, {capture:true, passive:true});
-    document.addEventListener('touchend', function(e){ unlockAudio(); if(!window.PointerEvent || nowMs() - lastGestureAt > 180) gesture(e); }, {capture:true, passive:true});
     document.addEventListener('mousedown', function(e){ if(!window.PointerEvent) gesture(e); }, true);
-    document.addEventListener('click', function(e){ if(nowMs() - lastGestureAt > 140) gesture(e); }, true);
+    document.addEventListener('click', function(e){ if(throttle('clickFallback', 70)) return; gesture(e); }, true);
     document.addEventListener('keydown', keyboard, true);
     document.addEventListener('focusin', function(e){ if(e && e.target && e.target.matches && e.target.matches('input,select,textarea')) play('click'); }, true);
     document.addEventListener('input', function(e){ if(e && e.target && e.target.matches && e.target.matches('input[type="text"],input[type="email"],input[type="password"],textarea')) play('type'); }, true);
     document.addEventListener('submit', function(e){
       if(e.target && e.target.matches && e.target.matches('#authForm')){
-        if(authFormLooksValid(e.target)) play('loading');
-        else play('error');
+        play(authFormLooksValid(e.target) ? 'loading' : 'error');
       }else{
         play('loading');
       }
@@ -7034,8 +6982,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
   function observeStatusBox(){
     var box = $('#statusBox');
-    if(!box || !window.MutationObserver || box.__diracSoundRepairObserved) return;
-    box.__diracSoundRepairObserved = true;
+    if(!box || !window.MutationObserver || box.__diracSoundNewV10Observed) return;
+    box.__diracSoundNewV10Observed = true;
     var lastSignature = '';
     new MutationObserver(function(){
       if(!box.classList.contains('show')) return;
@@ -7050,8 +6998,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   function observeA2F(){
     if(!window.MutationObserver) return;
     var result = $('#a2fResult');
-    if(result && !result.__diracSoundRepairObserved){
-      result.__diracSoundRepairObserved = true;
+    if(result && !result.__diracSoundNewV10Observed){
+      result.__diracSoundNewV10Observed = true;
       var lastResult = '';
       new MutationObserver(function(){
         if(!result.classList.contains('show')) return;
@@ -7062,8 +7010,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       }).observe(result, {attributes:true, childList:true, characterData:true, subtree:true, attributeFilter:['class']});
     }
     var card = $('#a2fModal .a2f-card');
-    if(card && !card.__diracSoundRepairObserved){
-      card.__diracSoundRepairObserved = true;
+    if(card && !card.__diracSoundNewV10Observed){
+      card.__diracSoundNewV10Observed = true;
       var wasVerified = card.classList.contains('is-verified');
       var wasError = card.classList.contains('is-error');
       new MutationObserver(function(){
@@ -7076,8 +7024,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       }).observe(card, {attributes:true, attributeFilter:['class','data-a2f-step-index','data-a2f-busy']});
     }
     var done = $('#a2fDoneBtn');
-    if(done && !done.__diracSoundRepairObserved){
-      done.__diracSoundRepairObserved = true;
+    if(done && !done.__diracSoundNewV10Observed){
+      done.__diracSoundNewV10Observed = true;
       var wasDisabled = done.disabled;
       new MutationObserver(function(){
         if(wasDisabled && !done.disabled) play('success');
@@ -7088,19 +7036,18 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
   function observeFinalLaunch(){
     var overlay = $('#a2fLaunchOverlay');
-    if(!overlay || !window.MutationObserver || overlay.__diracSoundRepairObserved) return;
-    overlay.__diracSoundRepairObserved = true;
+    if(!overlay || !window.MutationObserver || overlay.__diracSoundNewV10Observed) return;
+    overlay.__diracSoundNewV10Observed = true;
     var pill = $('#a2fLaunchPill');
     var terminal = $('#a2fLaunchTerminal');
     var wasShowing = false;
     var completed = false;
-    function readLaunchText(){ return ((pill && pill.textContent) || '') + ' ' + ((terminal && terminal.textContent) || ''); }
+    function text(){ return ((pill && pill.textContent) || '') + ' ' + ((terminal && terminal.textContent) || ''); }
     function inspect(){
       var showing = overlay.classList.contains('show') || document.body.classList.contains('a2f-launching');
       if(showing && !wasShowing){ completed = false; play('loading'); }
-      var text = readLaunchText().toUpperCase();
-      var isComplete = showing && /(READY|AMAN|DONE|SELESAI|COMPLETE|\[OK\])/.test(text);
-      if(isComplete && !completed){ completed = true; play('finish'); }
+      var done = showing && /(READY|AMAN|DONE|SELESAI|COMPLETE|\[OK\])/.test(text().toUpperCase());
+      if(done && !completed){ completed = true; play('finish'); }
       if(!showing && wasShowing && !completed){ completed = true; play('finish'); }
       wasShowing = showing;
     }
@@ -7123,11 +7070,12 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     unlock: unlockAudio,
     setEnabled: function(value){ enabled = value !== false; saveEnabled(); updateToggle(); if(enabled) unlockAudio(); },
     isEnabled: function(){ return enabled; },
-    version: 'fix-v9'
+    version: 'new-click-effect-v10'
   };
 
   ready(init);
 })();
+
 </script>
 
 
