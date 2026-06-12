@@ -4429,11 +4429,11 @@ html[data-motion="reduced"] .auth-submit:before{
               <input type="hidden" name="mode" id="authMode" value="login">
               <div class="field-group">
                 <label for="identifier" data-i18n="identifierLabel">Email</label>
-                <input class="field" id="identifier" name="identifier" type="text" inputmode="email" autocomplete="username" placeholder="nama@gmail.com" required>
+                <input class="field dirac-safe-identity-input" id="identifier" name="identifier" type="email" inputmode="email" autocomplete="username" maxlength="120" pattern="[a-z0-9.@]+" title="Hanya boleh huruf a-z, angka 0-9, titik (.) dan @" autocapitalize="none" spellcheck="false" data-security-allow="a-z0-9.@" placeholder="nama@gmail.com" required>
               </div>
               <div class="field-group is-register-only is-hidden">
                 <label for="fullName" data-i18n="nameLabel">Nama lengkap</label>
-                <input class="field" id="fullName" name="fullName" type="text" autocomplete="name" placeholder="Nama pelanggan Dirac Group">
+                <input class="field dirac-safe-name-input" id="fullName" name="fullName" type="text" inputmode="text" autocomplete="name" maxlength="120" pattern="[a-z0-9.@]+" title="Hanya boleh huruf a-z, angka 0-9, titik (.) dan @" autocapitalize="none" spellcheck="false" data-security-allow="a-z0-9.@" placeholder="Nama pelanggan Dirac Group">
               </div>
               <div class="field-group">
                 <label for="password" data-i18n="passwordLabel">Password</label>
@@ -4587,7 +4587,7 @@ html[data-motion="reduced"] .auth-submit:before{
       <p class="forgot-note">Reset password dibuat ketat: kode 8 digit dikirim ke email, token hanya berlaku singkat, percobaan dibatasi, dan hash kode disimpan dengan Argon2id di backend.</p>
       <div class="field-group">
         <label for="forgotEmail">Email akun</label>
-        <input class="field" id="forgotEmail" type="email" autocomplete="email" placeholder="email@contoh.com">
+        <input class="field dirac-safe-email-input" id="forgotEmail" type="email" inputmode="email" autocomplete="email" maxlength="120" pattern="[a-z0-9.@]+" title="Hanya boleh huruf a-z, angka 0-9, titik (.) dan @" autocapitalize="none" spellcheck="false" data-security-allow="a-z0-9.@" placeholder="email@contoh.com">
       </div>
       <button class="btn-primary" type="button" id="forgotRequestBtn">Kirim kode reset</button>
       <div class="forgot-step" id="forgotVerifyBox" hidden>
@@ -8201,5 +8201,123 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   try{ purge(window.sessionStorage); }catch(_){ }
 })();
 </script>
+<script id="dirac-html-only-input-security-guard-js">
+(function(){
+  'use strict';
+  /*
+   * Dirac HTML-only input hardening layer.
+   * Scope sengaja dibatasi ke field identitas (email/nama) dan reset email.
+   * Tidak mengubah endpoint, fetch, password, session, hash, A2F, atau alur login utama.
+   */
+  var MAX_LEN = 120;
+  var SAFE_CHARS = /^[a-z0-9.@]*$/;
+  var SAFE_EMAIL = /^[a-z0-9]+(?:\.[a-z0-9]+)*@[a-z0-9]+(?:\.[a-z0-9]+)+$/;
+  var SQLI_META = /(?:--|#|;|'|"|`|\\|\/\*|\*\/|\b(?:or|and)\b\s*\d+\s*=\s*\d+|\bunion\s+select\b|\bdrop\s+table\b|\binformation_schema\b|\bpg_sleep\s*\(|\bsleep\s*\(|\bbenchmark\s*\()/i;
+
+  function byId(id){ return document.getElementById(id); }
+  function asText(value){ return String(value == null ? '' : value); }
+  function lower(value){ return asText(value).toLowerCase(); }
+  function clean(value){ return lower(value).replace(/[^a-z0-9.@]/g, '').slice(0, MAX_LEN); }
+  function hasBlockedRaw(value){ return SQLI_META.test(asText(value)) || !SAFE_CHARS.test(lower(value)); }
+  function isSafeEmail(value){ value = clean(value); return SAFE_CHARS.test(value) && SAFE_EMAIL.test(value); }
+  function isSafeName(value){ value = clean(value); return value.length >= 3 && SAFE_CHARS.test(value); }
+  function modeIsRegister(){
+    var hidden = byId('authMode');
+    var bodyMode = document.body && document.body.getAttribute('data-auth-mode');
+    return bodyMode === 'register' || (hidden && hidden.value === 'register');
+  }
+  function setStatus(type, message){
+    var box = byId('statusBox') || byId('forgotStatus');
+    if(!box) return;
+    box.className = 'status-box show ' + type;
+    box.textContent = message;
+  }
+  function mark(el, blocked, message){
+    if(!el) return;
+    el.setAttribute('data-security-blocked', blocked ? '1' : '0');
+    el.setCustomValidity(blocked ? message : '');
+  }
+  function secureField(el, kind){
+    if(!el) return '';
+    var raw = asText(el.value);
+    var wasBlocked = hasBlockedRaw(raw) || el.getAttribute('data-security-blocked') === '1' && hasBlockedRaw(el.getAttribute('data-security-raw') || '');
+    var next = clean(raw);
+    el.setAttribute('data-security-raw', raw.slice(0, 180));
+    if(el.value !== next) el.value = next;
+    var invalid = kind === 'email' ? (next && !isSafeEmail(next)) : (next && !isSafeName(next));
+    mark(el, wasBlocked || !!invalid, wasBlocked ? 'Input diblokir. Hanya boleh a-z, 0-9, titik (.) dan @.' : (invalid ? 'Format belum valid.' : ''));
+    return next;
+  }
+  function allowBeforeInput(event){
+    var el = event.target;
+    if(!el || !el.matches || !el.matches('#identifier,#fullName,#forgotEmail')) return;
+    if(event.inputType && event.inputType.indexOf('delete') === 0) return;
+    if(typeof event.data !== 'string' || event.data === '') return;
+    var safe = clean(event.data);
+    if(event.data.toLowerCase() !== safe || hasBlockedRaw(event.data)){
+      event.preventDefault();
+      mark(el, true, 'Input diblokir. Hanya boleh a-z, 0-9, titik (.) dan @.');
+      try{ if(typeof el.reportValidity === 'function') el.reportValidity(); }catch(_e){}
+    }
+  }
+  function installField(id, kind){
+    var el = byId(id);
+    if(!el) return;
+    el.setAttribute('maxlength', String(MAX_LEN));
+    el.setAttribute('pattern', '[a-z0-9.@]+');
+    el.setAttribute('title', 'Hanya boleh huruf a-z, angka 0-9, titik (.) dan @');
+    el.setAttribute('autocapitalize', 'none');
+    el.setAttribute('spellcheck', 'false');
+    el.setAttribute('data-security-allow', 'a-z0-9.@');
+    el.addEventListener('beforeinput', allowBeforeInput, true);
+    el.addEventListener('input', function(){ secureField(el, kind); }, true);
+    el.addEventListener('paste', function(){ window.setTimeout(function(){ secureField(el, kind); }, 0); }, true);
+    el.addEventListener('blur', function(){ secureField(el, kind); }, true);
+    secureField(el, kind);
+  }
+  function block(event, message){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setStatus('error', message);
+  }
+  function verifyAuthSubmit(event){
+    var form = event.target;
+    if(!form || form.id !== 'authForm') return;
+    var identifier = byId('identifier');
+    var name = byId('fullName');
+    var email = secureField(identifier, 'email');
+    var fullName = secureField(name, 'name');
+    if(!isSafeEmail(email) || (identifier && identifier.getAttribute('data-security-blocked') === '1')){
+      block(event, 'Email ditolak. Gunakan hanya huruf a-z, angka 0-9, titik (.) dan @. Contoh: nama@gmail.com');
+      return;
+    }
+    if(modeIsRegister() && (!isSafeName(fullName) || (name && name.getAttribute('data-security-blocked') === '1'))){
+      block(event, 'Nama ditolak. Gunakan hanya huruf a-z, angka 0-9, titik (.) dan @, minimal 3 karakter.');
+    }
+  }
+  function verifyForgotAction(event){
+    var trigger = event.target && event.target.closest ? event.target.closest('#forgotRequestBtn,#forgotConfirmBtn,#resendVerificationBtn') : null;
+    if(!trigger) return;
+    var forgot = byId('forgotEmail');
+    var identifier = byId('identifier');
+    var email = secureField(forgot || identifier, 'email');
+    if(!isSafeEmail(email) || ((forgot || identifier) && (forgot || identifier).getAttribute('data-security-blocked') === '1')){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var box = byId('forgotStatus') || byId('statusBox');
+      if(box){ box.className = 'status-box show error'; box.textContent = 'Email ditolak. Gunakan hanya huruf a-z, angka 0-9, titik (.) dan @.'; }
+    }
+  }
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  ready(function(){
+    installField('identifier', 'email');
+    installField('fullName', 'name');
+    installField('forgotEmail', 'email');
+    document.addEventListener('submit', verifyAuthSubmit, true);
+    document.addEventListener('click', verifyForgotAction, true);
+  });
+})();
+</script>
+
 </body>
 </html>
