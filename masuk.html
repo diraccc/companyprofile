@@ -3846,10 +3846,218 @@ html[data-effective-theme="light"] .brand-typewriter-text{
 }
 </style>
 
+
+
+<style id="dirac-masuk-dashboard-header-precision-20260612-css">
+/* =========================================================
+   MASUK.HTML HEADER PRESISI DASHBOARD
+   Scope visual header saja: menyamakan ukuran, lebar, tinggi,
+   radius, spacing, dan font header dengan dashboard.html.
+   Tidak mengubah form login, hash, endpoint, script login, A2F,
+   recovery, cookie/session, atau sistem autentikasi.
+   ========================================================= */
+.site-header[data-dashboard-header-exact="true"]{
+  position:sticky!important;
+  top:max(8px,env(safe-area-inset-top))!important;
+  z-index:9000!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  padding:10px 0 0!important;
+  pointer-events:none!important;
+}
+.site-header[data-dashboard-header-exact="true"]:after{display:none!important}
+.site-header[data-dashboard-header-exact="true"] .container.nav{
+  width:min(var(--max),calc(100% - 28px))!important;
+  margin-inline:auto!important;
+  min-height:82px!important;
+  padding:12px 16px!important;
+  border-radius:34px!important;
+  background:radial-gradient(circle at 14% 0%,rgba(var(--theme-rgb),.13),transparent 10rem),linear-gradient(145deg,rgba(7,12,19,.94),rgba(12,20,31,.88))!important;
+  border:1px solid rgba(var(--theme-rgb),.25)!important;
+  box-shadow:0 18px 54px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px rgba(var(--theme-rgb),.07)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  pointer-events:auto!important;
+}
+.site-header[data-dashboard-header-exact="true"].is-scrolled{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.site-header[data-dashboard-header-exact="true"].is-scrolled .container.nav{
+  min-height:76px!important;
+  padding:10px 16px!important;
+  background:radial-gradient(circle at 14% 0%,rgba(var(--theme-rgb),.14),transparent 10rem),linear-gradient(145deg,rgba(6,10,17,.97),rgba(10,17,28,.94))!important;
+  border-color:rgba(var(--theme-rgb),.32)!important;
+}
+.site-header[data-dashboard-header-exact="true"] .brand{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  gap:14px!important;
+  pointer-events:auto!important;
+}
+.site-header[data-dashboard-header-exact="true"] .brand-mark{
+  width:62px!important;
+  height:62px!important;
+  border-radius:22px!important;
+  box-shadow:0 14px 30px rgba(var(--theme-rgb),.18)!important;
+}
+.site-header[data-dashboard-header-exact="true"] .brand-name{
+  font-family:"Playfair Display",serif!important;
+  font-size:clamp(1.1rem,2.6vw,1.38rem)!important;
+  font-weight:700!important;
+  letter-spacing:-.035em!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+}
+.site-header[data-dashboard-header-exact="true"] .brand-typewriter{
+  min-width:10.8ch!important;
+  max-width:12.6ch!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+.site-header[data-dashboard-header-exact="true"] .brand-typewriter-text{
+  min-width:0!important;
+  display:inline-block!important;
+  white-space:nowrap!important;
+}
+.site-header[data-dashboard-header-exact="true"] .nav-links{
+  gap:6px!important;
+}
+.site-header[data-dashboard-header-exact="true"] .nav-links a{
+  font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
+  font-size:.92rem!important;
+  padding:9px 12px!important;
+  border-radius:999px!important;
+}
+.site-header[data-dashboard-header-exact="true"] .header-actions{
+  gap:12px!important;
+  flex:0 0 auto!important;
+  pointer-events:auto!important;
+}
+.site-header[data-dashboard-header-exact="true"] .theme-toggle,
+.site-header[data-dashboard-header-exact="true"] .menu-toggle{
+  width:58px!important;
+  height:58px!important;
+  min-width:58px!important;
+  border-radius:999px!important;
+  padding:0!important;
+  background:rgba(255,255,255,.055)!important;
+  color:#fff!important;
+  border:1px solid rgba(var(--theme-rgb),.24)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18)!important;
+  pointer-events:auto!important;
+}
+.site-header[data-dashboard-header-exact="true"] .theme-toggle .label{display:none!important}
+.site-header[data-dashboard-header-exact="true"] .theme-toggle:hover,
+.site-header[data-dashboard-header-exact="true"] .menu-toggle:hover{
+  background:rgba(var(--theme-rgb),.13)!important;
+  border-color:rgba(var(--theme-rgb),.52)!important;
+}
+html[data-effective-theme="light"] .site-header[data-dashboard-header-exact="true"] .container.nav{
+  background:radial-gradient(circle at 14% 0%,rgba(var(--theme-rgb),.12),transparent 10rem),linear-gradient(145deg,rgba(255,255,255,.96),rgba(244,247,251,.92))!important;
+  border-color:rgba(var(--theme-rgb),.27)!important;
+  box-shadow:0 18px 46px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.72),0 0 0 1px rgba(var(--theme-rgb),.08)!important;
+}
+html[data-effective-theme="light"] .site-header[data-dashboard-header-exact="true"] .theme-toggle,
+html[data-effective-theme="light"] .site-header[data-dashboard-header-exact="true"] .menu-toggle{
+  color:#151923!important;
+  background:rgba(255,255,255,.86)!important;
+}
+body.modal-open > .site-header[data-dashboard-header-exact="true"],
+body.menu-open > .site-header[data-dashboard-header-exact="true"],
+body.ai-open > .site-header[data-dashboard-header-exact="true"],
+body:has(#themeModal.open) > .site-header[data-dashboard-header-exact="true"],
+body:has(#menuOverlay.open) > .site-header[data-dashboard-header-exact="true"],
+body:has(#aiOverlay.open) > .site-header[data-dashboard-header-exact="true"]{
+  z-index:0!important;
+  pointer-events:none!important;
+}
+body.modal-open > .site-header[data-dashboard-header-exact="true"] .container.nav,
+body.menu-open > .site-header[data-dashboard-header-exact="true"] .container.nav,
+body.ai-open > .site-header[data-dashboard-header-exact="true"] .container.nav,
+body:has(#themeModal.open) > .site-header[data-dashboard-header-exact="true"] .container.nav,
+body:has(#menuOverlay.open) > .site-header[data-dashboard-header-exact="true"] .container.nav,
+body:has(#aiOverlay.open) > .site-header[data-dashboard-header-exact="true"] .container.nav{
+  pointer-events:none!important;
+}
+@media(max-width:760px){
+  .site-header[data-dashboard-header-exact="true"]{padding-top:8px!important}
+  .site-header[data-dashboard-header-exact="true"] .container.nav{
+    width:calc(100% - 18px)!important;
+    min-height:76px!important;
+    border-radius:32px!important;
+    padding:10px 12px!important;
+    gap:10px!important;
+  }
+  .site-header[data-dashboard-header-exact="true"] .brand-mark{
+    width:52px!important;
+    height:52px!important;
+    border-radius:18px!important;
+  }
+  .site-header[data-dashboard-header-exact="true"] .brand-name{
+    font-size:1.08rem!important;
+    max-width:10rem!important;
+  }
+  .site-header[data-dashboard-header-exact="true"] .theme-toggle,
+  .site-header[data-dashboard-header-exact="true"] .menu-toggle{
+    width:50px!important;
+    height:50px!important;
+    min-width:50px!important;
+  }
+}
+@media(max-width:430px){
+  .site-header[data-dashboard-header-exact="true"] .container.nav{
+    width:calc(100% - 14px)!important;
+    min-height:72px!important;
+    border-radius:30px!important;
+    padding:9px 10px!important;
+    gap:8px!important;
+  }
+  .site-header[data-dashboard-header-exact="true"] .brand{gap:10px!important}
+  .site-header[data-dashboard-header-exact="true"] .brand-mark{
+    width:46px!important;
+    height:46px!important;
+    border-radius:16px!important;
+  }
+  .site-header[data-dashboard-header-exact="true"] .brand-name{
+    font-size:1rem!important;
+    max-width:8.6rem!important;
+  }
+  .site-header[data-dashboard-header-exact="true"] .brand-typewriter{
+    min-width:9.8ch!important;
+    max-width:10.9ch!important;
+  }
+  .site-header[data-dashboard-header-exact="true"] .brand-name{max-width:10.9ch!important}
+  .site-header[data-dashboard-header-exact="true"] .theme-toggle,
+  .site-header[data-dashboard-header-exact="true"] .menu-toggle{
+    width:46px!important;
+    height:46px!important;
+    min-width:46px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .site-header[data-dashboard-header-exact="true"] *,
+  .site-header[data-dashboard-header-exact="true"] *:before,
+  .site-header[data-dashboard-header-exact="true"] *:after{
+    animation:none!important;
+    transition:none!important;
+  }
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
-  <header class="site-header" id="siteHeader" data-order-circled-header="true">
+  <header class="site-header" id="siteHeader" data-order-circled-header="true" data-dashboard-header-exact="true">
     <div class="container nav">
       <a class="brand" href="https://diracgroup.store/" aria-label="Dirac Group Beranda">
         <span class="brand-mark" aria-hidden="true">
