@@ -4423,7 +4423,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     function authErrorMessage(){
       return mode === 'login'
         ? 'Email atau password belum sesuai. A2F tidak akan dibuka sebelum login benar.'
-        : 'Pendaftaran belum dikonfirmasi server. A2F tidak akan dibuka sebelum akun valid.';
+        : 'Pendaftaran ditolak. Email ini sudah terdaftar atau belum bisa dibuat ulang. Silakan masuk, gunakan lupa password, atau gunakan email lain.';
     }
     function collectAuthStrings(value, out, depth){
       out = out || [];
@@ -4483,23 +4483,23 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       for(var i = 0; i < duplicateFlagKeys.length; i += 1){
         var flag = firstDefinedAuthValue(data, [duplicateFlagKeys[i]]);
         if(flag === true || flag === 1 || flag === 'true' || flag === 'exists' || flag === 'duplicate'){
-          return 'Email ini sudah terdaftar. Silakan masuk memakai email tersebut, kirim ulang verifikasi jika belum aktif, atau gunakan email lain.';
+          return 'Email ini sudah terdaftar. Silakan masuk, gunakan lupa password jika tidak ingat kata sandi, atau gunakan email lain.';
         }
       }
       var joined = collectAuthStrings(data, []).join(' ').toLowerCase();
       if(/(email|user|account|akun|identity|identitas).{0,48}(already|exist|exists|registered|taken|duplicate|duplikat|terdaftar|digunakan|sudah ada|sudah dipakai)|(?:already|exist|exists|registered|taken|duplicate|duplikat|terdaftar|digunakan|sudah ada|sudah dipakai).{0,48}(email|user|account|akun|identity|identitas)|user_already_exists|email_exists|identity_already_exists|duplicate key/i.test(joined)){
-        return 'Email ini sudah terdaftar. Silakan masuk memakai email tersebut, kirim ulang verifikasi jika belum aktif, atau gunakan email lain.';
+        return 'Email ini sudah terdaftar. Silakan masuk, gunakan lupa password jika tidak ingat kata sandi, atau gunakan email lain.';
       }
       var user = getRegisterUser(data);
       if(data.needs_email_confirmation === true && user && Array.isArray(user.identities) && user.identities.length === 0){
-        return 'Email ini sudah terdaftar atau sudah pernah didaftarkan. Silakan masuk memakai email tersebut, kirim ulang verifikasi jika belum aktif, atau gunakan email lain.';
+        return 'Email ini sudah terdaftar. Silakan masuk, gunakan lupa password jika tidak ingat kata sandi, atau gunakan email lain.';
       }
       return '';
     }
     function unverifiedRegisterConfirmationMessage(data){
       if(mode !== 'register' || !data || data.needs_email_confirmation !== true) return '';
       if(hasNewRegistrationProof(data)) return '';
-      return 'Pendaftaran belum bisa dipastikan sebagai akun baru. Jika email sudah pernah didaftarkan, silakan masuk atau kirim ulang verifikasi. Jika ingin membuat akun baru, gunakan email lain.';
+      return 'Email ini sudah terdaftar. Silakan masuk, gunakan lupa password jika tidak ingat kata sandi, atau gunakan email lain.';
     }
     async function submitAuth(event){
       event.preventDefault();
@@ -4557,7 +4557,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       }catch(postErr){
         clearPendingAuth();
         status('error', postErr && postErr.message ? postErr.message : authErrorMessage());
-        showToast(mode === 'register' ? 'Pendaftaran belum berhasil. A2F tetap terkunci.' : 'Login ditolak. A2F tetap terkunci.');
+        showToast(mode === 'register' ? 'Pendaftaran ditolak. A2F tetap terkunci.' : 'Login ditolak. A2F tetap terkunci.');
       }finally{
         btn.disabled = false; btn.textContent = old;
       }
@@ -4581,7 +4581,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         clearPendingAuth();
         if(!hasNewRegistrationProof(data)){
           status('error', unverifiedRegisterConfirmationMessage(data));
-          showToast('Pendaftaran belum dipastikan. A2F tetap terkunci.');
+          showToast('Email sudah terdaftar. A2F tetap terkunci.');
           return;
         }
         status('success','Akun baru berhasil dibuat. Silakan cek email verifikasi sebelum login dan A2F.');
