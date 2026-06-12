@@ -15,10 +15,10 @@
       --bg-soft:#0b1018;
       --panel:#101722;
       --panel-2:#141d2a;
-      --gold:#f3cd70;
-      --gold-2:#d6a642;
-      --gold-3:#8e6425;
-      --theme-rgb:243,205,112;
+      --gold:#38bdf8;
+      --gold-2:#0284c7;
+      --gold-3:#075985;
+      --theme-rgb:56,189,248;
       --text:#f9fafb;
       --muted:#aeb7c6;
       --line:rgba(var(--theme-rgb),.18);
@@ -3761,6 +3761,91 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
 }
 </style>
 
+
+
+<style id="dirac-default-theme-blue-serif-v12-css">
+/* =========================================================
+   Dirac Default Theme Blue + Brand Serif v12
+   Fokus revisi:
+   1) warna DEFAULT website saat dibuka diganti dari gold/kuning ke biru/cyan;
+   2) font tulisan ketik-hapus brand dibuat serif seperti "Masuk akun";
+   3) tidak mengubah login, hash, endpoint, cookie/session, atau A2F.
+   ========================================================= */
+:root{
+  --gold:#38bdf8;
+  --gold-2:#0284c7;
+  --gold-3:#075985;
+  --theme-rgb:56,189,248;
+  --dirac-accent-pale:#d7f7ff;
+  --dirac-accent-soft:#7dd3fc;
+}
+.brand-name.brand-typewriter,
+.brand-typewriter,
+.brand-typewriter-text,
+.brand-typewriter[data-phrase="auth"] .brand-typewriter-text,
+.brand-typewriter[data-phrase="brand"] .brand-typewriter-text,
+html[data-effective-theme="light"] .brand-name.brand-typewriter,
+html[data-effective-theme="light"] .brand-typewriter-text{
+  font-family:"Playfair Display",Georgia,"Times New Roman",serif!important;
+  font-weight:700!important;
+  letter-spacing:-.035em!important;
+  filter:none!important;
+}
+.brand-typewriter-text{
+  background:none!important;
+}
+.brand-typewriter:after{
+  background:linear-gradient(180deg,var(--dirac-accent-soft),var(--gold))!important;
+  box-shadow:0 0 14px rgba(var(--theme-rgb),.52)!important;
+}
+.btn-primary,
+.auth-tab.active,
+.header-cart,
+.theme-save-btn{
+  background:linear-gradient(135deg,var(--dirac-accent-pale) 0%,var(--gold) 52%,var(--gold-2) 100%)!important;
+  color:#06111d!important;
+  box-shadow:0 16px 36px rgba(var(--theme-rgb),.22)!important;
+}
+.site-header[data-order-circled-header="true"] .header-cart{
+  background:linear-gradient(135deg,var(--gold),var(--gold-2))!important;
+  color:#06111d!important;
+}
+.brand-fallback-text{
+  background:linear-gradient(135deg,var(--dirac-accent-pale),var(--gold-2))!important;
+}
+.toast.show:after,
+.toast:after{
+  background:linear-gradient(90deg,var(--gold),var(--dirac-accent-pale),var(--gold-2))!important;
+}
+.eyebrow,
+.btn-ghost,
+.drawer-foot,
+.ai-message.bot,
+.a2f-note{
+  color:#d7f7ff!important;
+}
+.field:focus{
+  border-color:var(--gold)!important;
+  box-shadow:0 0 0 4px rgba(var(--theme-rgb),.14)!important;
+}
+.check input{accent-color:var(--gold)!important}
+@media(max-width:760px){
+  .brand-name.brand-typewriter,
+  .brand-typewriter,
+  .brand-typewriter-text{
+    font-size:clamp(1.18rem,4.8vw,1.62rem)!important;
+    line-height:1.02!important;
+  }
+}
+@media(max-width:430px){
+  .brand-name.brand-typewriter,
+  .brand-typewriter,
+  .brand-typewriter-text{
+    font-size:clamp(1.08rem,5.1vw,1.42rem)!important;
+  }
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -4192,9 +4277,10 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     var REGISTER_ENDPOINT = API_ENDPOINT + '?action=domain_register';
     var ME_ENDPOINT = API_ENDPOINT + '?action=domain_me';
     var THEME_KEY = 'dirac_theme_settings_v2';
+    var THEME_MIGRATION_KEY = 'dirac_default_accent_blue_v12';
     var AUTH_KEY = 'dirac_auth_session_v1';
     var A2F_KEY = 'dirac_auth_a2f_v1';
-    var DEFAULT_SETTINGS = {mode:'dark', accent:'gold', language:'id', motion:'full', contrast:'off'};
+    var DEFAULT_SETTINGS = {mode:'dark', accent:'sky', language:'id', motion:'full', contrast:'off'};
     var PALETTES = {
       gold:{label:'Gold', gold:'#f3cd70', gold2:'#d6a642', gold3:'#8e6425', rgb:'243,205,112'},
       champagne:{label:'Champagne', gold:'#fde68a', gold2:'#f59e0b', gold3:'#92400e', rgb:'253,230,138'},
@@ -4247,13 +4333,21 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
     var mode = 'login';
 
     function readSettings(){
-      try{return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(THEME_KEY) || '{}'));}catch(e){return Object.assign({}, DEFAULT_SETTINGS);}
+      try{
+        var saved = JSON.parse(localStorage.getItem(THEME_KEY) || '{}');
+        if(!localStorage.getItem(THEME_MIGRATION_KEY) && (!saved.accent || saved.accent === 'gold')){
+          saved.accent = 'sky';
+          localStorage.setItem(THEME_KEY, JSON.stringify(saved));
+          localStorage.setItem(THEME_MIGRATION_KEY, '1');
+        }
+        return Object.assign({}, DEFAULT_SETTINGS, saved);
+      }catch(e){return Object.assign({}, DEFAULT_SETTINGS);}
     }
     function saveSettings(){
       try{localStorage.setItem(THEME_KEY, JSON.stringify(settings));}catch(e){}
     }
     function applySettings(){
-      var p = PALETTES[settings.accent] || PALETTES.gold;
+      var p = PALETTES[settings.accent] || PALETTES.sky;
       doc.style.setProperty('--gold', p.gold);
       doc.style.setProperty('--gold-2', p.gold2);
       doc.style.setProperty('--gold-3', p.gold3);
