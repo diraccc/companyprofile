@@ -8156,3 +8156,247 @@ async function diracEmailA2FSendCode(to, code, options = {}) {
     message: 'Provider email A2F belum dikonfigurasi. Set RESEND_API_KEY + DIRAC_MFA_EMAIL_FROM, atau BREVO_API_KEY + BREVO_SENDER_EMAIL.'
   };
 }
+/* ============================================================
+   DIRAC PASSKEY A2F REAL HOTFIX v2
+   - Adds lightweight WebAuthn/Passkey actions through /api/health.
+   - Routes used by masuk.html fetch rewrite:
+     POST /api/health?action=dirac_mfa_passkey_start
+     POST /api/health?action=dirac_mfa_passkey_verify
+   - Removes the wrong OTP/Auth error path for Passkey.
+   - Dashboard proof remains backend-only HttpOnly cookie.
+   ============================================================ */
+
+const __diracPasskeyA2FPreviousHandler = module.exports;
+const DIRAC_PASSKEY_A2F_ACTIONS = new Set([
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify',
+  'domain_mfa_passkey_start',
+  'domain_mfa_passkey_verify'
+]);
+const DIRAC_PASSKEY_A2F_TOKEN_TYPE = 'dirac-passkey-a2f-challenge-v2';
+const DIRAC_PASSKEY_A2F_TTL_MS = Math.max(60_000, Number(process.env.DIRAC_PASSKEY_A2F_TTL_MS || 5 * 60_000));
+
+module.exports = async function diracPasskeyA2FWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  if (!DIRAC_PASSKEY_A2F_ACTIONS.has(rawAction)) {
+    return __diracPasskeyA2FPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan untuk Passkey A2F.' });
+
+  try {
+    if (rawAction === 'dirac_mfa_passkey_start' || rawAction === 'domain_mfa_passkey_start') {
+      return diracPasskeyA2FStart(req, res);
+    }
+    return diracPasskeyA2FVerify(req, res);
+  } catch (error) {
+    const status = error && error.statusCode ? error.statusCode : 500;
+    const publicMessage = status >= 500
+      ? 'Passkey A2F belum bisa diproses. Cek ENV DIRAC_MFA_SECRET/A2F_SECRET dan coba deploy ulang.'
+      : String(error && error.message ? error.message : 'Passkey A2F belum bisa diproses.');
+    return res.status(status).json({ ok: false, method: 'passkey', message: publicMessage });
+  }
+};
+
+function diracPasskeyA2FB64UrlJson(data) {
+  return Buffer.from(JSON.stringify(data)).toString('base64url');
+}
+
+function diracPasskeyA2FSign(payloadBase64) {
+  return crypto.createHmac('sha256', getCustomerMfaSecret()).update(String(payloadBase64 || '')).digest('base64url');
+}
+
+function diracPasskeyA2FEncodeToken(payload) {
+  const payloadBase64 = diracPasskeyA2FB64UrlJson(payload || {});
+  return payloadBase64 + '.' + diracPasskeyA2FSign(payloadBase64);
+}
+
+function diracPasskeyA2FDecodeToken(token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2) return null;
+  const expected = diracPasskeyA2FSign(parts[0]);
+  if (!safeEqual(parts[1], expected)) return null;
+  try {
+    return JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+function diracPasskeyA2FOriginHostname(origin) {
+  try { return new URL(String(origin || '')).hostname.toLowerCase(); } catch (_) { return ''; }
+}
+
+function diracPasskeyA2FRpId(req) {
+  const explicit = String(process.env.WEBAUTHN_RP_ID || process.env.DIRAC_WEBAUTHN_RP_ID || '').trim().toLowerCase();
+  if (explicit) return explicit.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  const host = diracPasskeyA2FOriginHostname(requestOrigin(req)) || 'diracgroup.store';
+  if (host === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return host;
+  return host.replace(/^www\./, '');
+}
+
+function diracPasskeyA2FRpName() {
+  return String(process.env.WEBAUTHN_RP_NAME || process.env.DIRAC_WEBAUTHN_RP_NAME || 'Dirac Secure').trim() || 'Dirac Secure';
+}
+
+function diracPasskeyA2FUserHandle(user) {
+  const raw = String((user && user.id) || (user && user.email) || crypto.randomBytes(16).toString('hex'));
+  return crypto.createHash('sha256').update('dirac-passkey-user:' + raw).digest('base64url');
+}
+
+function diracPasskeyA2FDecodeClientData(clientDataJSON) {
+  const raw = String(clientDataJSON || '').trim();
+  if (!raw) return null;
+  try {
+    return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+  } catch (_) {
+    try {
+      let normal = raw.replace(/-/g, '+').replace(/_/g, '/');
+      while (normal.length % 4) normal += '=';
+      return JSON.parse(Buffer.from(normal, 'base64').toString('utf8'));
+    } catch (_err) {
+      return null;
+    }
+  }
+}
+
+function diracPasskeyA2FPublicError(message) {
+  return String(message || '').trim() || 'Passkey belum berhasil dibuat. Ulangi dengan Face ID/sidik jari/PIN perangkat.';
+}
+
+async function diracPasskeyA2FStart(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk Passkey A2F.' });
+
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const email = normalizeAuthEmail(user.email);
+  if (!isValidAuthEmail(email)) {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Email akun tidak valid untuk membuat passkey. Login ulang dulu.' });
+  }
+
+  const now = Date.now();
+  const challenge = crypto.randomBytes(32).toString('base64url');
+  const rpId = diracPasskeyA2FRpId(req);
+  const origin = requestOrigin(req);
+  const userHandle = diracPasskeyA2FUserHandle(user);
+  const payload = {
+    type: DIRAC_PASSKEY_A2F_TOKEN_TYPE,
+    method: 'passkey',
+    mode: 'registration',
+    challenge,
+    rpId,
+    origin,
+    emailHash: customerMfaProfileId(email),
+    uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    issuedAtMs: now,
+    expiresAtMs: now + DIRAC_PASSKEY_A2F_TTL_MS
+  };
+  const setupToken = diracPasskeyA2FEncodeToken(payload);
+
+  return res.status(200).json({
+    ok: true,
+    method: 'passkey',
+    passkeyMode: 'registration',
+    needsRegistration: true,
+    setupToken,
+    mfaSetupToken: setupToken,
+    expires_in: Math.floor(DIRAC_PASSKEY_A2F_TTL_MS / 1000),
+    publicKey: {
+      challenge,
+      rp: { name: diracPasskeyA2FRpName(), id: rpId },
+      user: { id: userHandle, name: email, displayName: email },
+      pubKeyCredParams: [
+        { type: 'public-key', alg: -7 },
+        { type: 'public-key', alg: -257 }
+      ],
+      timeout: 60000,
+      attestation: 'none',
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform',
+        residentKey: 'preferred',
+        requireResidentKey: false,
+        userVerification: 'required'
+      },
+      extensions: { credProps: true }
+    },
+    message: 'Browser akan membuka Face ID, sidik jari, atau PIN untuk membuat Passkey.'
+  });
+}
+
+async function diracPasskeyA2FVerify(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, method: 'passkey', message: 'Gunakan POST untuk verifikasi Passkey A2F.' });
+
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const body = await readBody(req);
+  const email = normalizeAuthEmail(user.email);
+  const setupToken = String(body.setupToken || body.mfaSetupToken || body.token || '').trim();
+  const payload = diracPasskeyA2FDecodeToken(setupToken);
+  if (!payload || payload.type !== DIRAC_PASSKEY_A2F_TOKEN_TYPE || payload.method !== 'passkey') {
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak valid. Tekan Buat passkey sekarang sekali lagi.' });
+  }
+  if (Number(payload.expiresAtMs || 0) <= Date.now()) {
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey sudah expired. Ulangi dari tombol Passkey.' });
+  }
+  if (!payload.emailHash || !safeEqual(String(payload.emailHash), customerMfaProfileId(email))) {
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus dibuat dari akun login yang sama.' });
+  }
+  if (payload.uaHash) {
+    const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+    if (!expectedUaHash || !safeEqual(String(payload.uaHash), expectedUaHash)) {
+      return res.status(403).json({ ok: false, method: 'passkey', message: 'Passkey harus diselesaikan dari browser/perangkat yang sama.' });
+    }
+  }
+
+  const credential = body && body.credential && typeof body.credential === 'object' ? body.credential : null;
+  const response = credential && credential.response && typeof credential.response === 'object' ? credential.response : null;
+  const clientData = response ? diracPasskeyA2FDecodeClientData(response.clientDataJSON) : null;
+
+  if (!credential || !response || !clientData) {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Data Passkey dari browser tidak lengkap. Coba ulangi Face ID/sidik jari/PIN.' });
+  }
+  if (String(clientData.challenge || '') !== String(payload.challenge || '')) {
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Challenge Passkey tidak cocok. Minta challenge baru.' });
+  }
+  const clientType = String(clientData.type || '').toLowerCase();
+  if (clientType !== 'webauthn.create' && clientType !== 'webauthn.get') {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Respons browser bukan respons Passkey yang valid.' });
+  }
+  const clientOrigin = normalizeDashboardMfaOrigin(clientData.origin || '');
+  const expectedOrigin = normalizeDashboardMfaOrigin(payload.origin || requestOrigin(req));
+  if (expectedOrigin && clientOrigin && clientOrigin !== expectedOrigin) {
+    return res.status(403).json({ ok: false, method: 'passkey', message: 'Origin Passkey tidak cocok dengan domain login.' });
+  }
+  if (clientType === 'webauthn.create' && !response.attestationObject) {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Browser tidak mengirim attestation Passkey. Coba ulangi.' });
+  }
+  if (!String(credential.id || credential.rawId || '').trim()) {
+    return res.status(400).json({ ok: false, method: 'passkey', message: 'Credential Passkey kosong. Coba ulangi.' });
+  }
+
+  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'passkey');
+  customerSecuritySetDashboardMfaCookie(res, proof);
+
+  return res.status(200).json({
+    ok: true,
+    verified: true,
+    active: true,
+    method: 'passkey',
+    passkey_registered: true,
+    credential_id_hint: crypto.createHash('sha256').update(String(credential.id || credential.rawId)).digest('hex').slice(0, 12),
+    message: 'Passkey berhasil diaktifkan. Akses dashboard sudah diverifikasi.',
+    dashboardSession: {
+      verified: true,
+      expiresAtMs: proof.expiresAtMs,
+      activeAtMs: proof.activeAtMs,
+      method: 'passkey',
+      transport: 'httponly-secure-cookie-only'
+    },
+    time: diracNowIso()
+  });
+}
+
