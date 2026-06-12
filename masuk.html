@@ -4054,6 +4054,243 @@ body:has(#aiOverlay.open) > .site-header[data-dashboard-header-exact="true"] .co
 }
 </style>
 
+
+
+<style id="dirac-animasi-premium-tidak-alay-20260612-css">
+/* =========================================================
+   DIRAC PREMIUM MICRO-ANIMATION ADD-ON
+   Additive CSS only. Tidak mengubah script login, hash,
+   endpoint, form, A2F, cookie/session, atau alur autentikasi.
+   Motion dibuat halus, kecil, dan tidak alay.
+   ========================================================= */
+:root{
+  --dirac-premium-fast:180ms;
+  --dirac-premium-mid:340ms;
+  --dirac-premium-enter:560ms;
+  --dirac-premium-long:12s;
+}
+
+/* 1) Header scroll morph lebih halus + entrance premium */
+.site-header[data-dashboard-header-exact="true"] .container.nav{
+  position:relative!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  will-change:min-height,padding,background,border-color,box-shadow,border-radius,transform,filter!important;
+  transition:
+    min-height var(--dirac-premium-mid) var(--motion-ease),
+    padding var(--dirac-premium-mid) var(--motion-ease),
+    background var(--dirac-premium-mid) var(--motion-ease),
+    border-color var(--dirac-premium-mid) var(--motion-ease),
+    box-shadow var(--dirac-premium-mid) var(--motion-ease),
+    border-radius var(--dirac-premium-mid) var(--motion-ease),
+    transform var(--dirac-premium-mid) var(--motion-ease),
+    filter var(--dirac-premium-mid) var(--motion-ease)!important;
+}
+body.motion-page-ready .site-header[data-dashboard-header-exact="true"] .container.nav{
+  animation:diracPremiumHeaderEnter var(--dirac-premium-enter) var(--motion-soft) both;
+}
+@keyframes diracPremiumHeaderEnter{
+  from{opacity:0;transform:translateY(-8px) scale(.985);filter:blur(.5px)}
+  to{opacity:1;transform:none;filter:none}
+}
+
+/* 2) Ambient sheen tipis di header, lambat dan tidak mengganggu klik */
+.site-header[data-dashboard-header-exact="true"] .container.nav:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(110deg,transparent 0%,transparent 35%,rgba(255,255,255,.052) 48%,rgba(var(--theme-rgb),.075) 52%,transparent 66%,transparent 100%);
+  transform:translateX(-130%);
+  animation:diracPremiumHeaderSheen var(--dirac-premium-long) ease-in-out 1.2s infinite;
+}
+@keyframes diracPremiumHeaderSheen{
+  0%,58%{transform:translateX(-130%);opacity:0}
+  66%{opacity:.72}
+  84%,100%{transform:translateX(130%);opacity:0}
+}
+.site-header[data-dashboard-header-exact="true"] .brand,
+.site-header[data-dashboard-header-exact="true"] .nav-links,
+.site-header[data-dashboard-header-exact="true"] .header-actions{
+  position:relative!important;
+  z-index:1!important;
+}
+
+/* 3) Nav hover premium: naik kecil, glow tipis, tanpa blink */
+.site-header[data-dashboard-header-exact="true"] .nav-links a{
+  will-change:transform,background-color,box-shadow,color!important;
+  transition:
+    background-color 240ms var(--motion-ease),
+    color 240ms var(--motion-ease),
+    transform 240ms var(--motion-ease),
+    box-shadow 240ms var(--motion-ease),
+    border-color 240ms var(--motion-ease)!important;
+}
+.site-header[data-dashboard-header-exact="true"] .nav-links a:hover,
+.site-header[data-dashboard-header-exact="true"] .nav-links a:focus-visible{
+  transform:translateY(-1px)!important;
+  box-shadow:0 8px 22px rgba(var(--theme-rgb),.10)!important;
+}
+.site-header[data-dashboard-header-exact="true"] .nav-links a:active{
+  transform:translateY(0) scale(.985)!important;
+}
+
+/* 4) Tombol tema: feedback klik ringan, tidak rotate berlebihan */
+.site-header[data-dashboard-header-exact="true"] .theme-toggle{
+  will-change:transform,box-shadow,border-color,background-color!important;
+  transition:
+    transform 220ms var(--motion-ease),
+    background-color 220ms var(--motion-ease),
+    border-color 220ms var(--motion-ease),
+    box-shadow 220ms var(--motion-ease),
+    filter 220ms var(--motion-ease)!important;
+}
+.site-header[data-dashboard-header-exact="true"] .theme-toggle:active{
+  transform:scale(.96) rotate(-2deg)!important;
+}
+body.modal-open .site-header[data-dashboard-header-exact="true"] .theme-toggle,
+body:has(#themeModal.open) .site-header[data-dashboard-header-exact="true"] .theme-toggle{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 30px rgba(0,0,0,.22),0 0 26px rgba(var(--theme-rgb),.16)!important;
+}
+
+/* 5) Tab Masuk/Daftar: perpindahan indikator dibuat lebih smooth */
+.auth-tabs{
+  will-change:transform,box-shadow!important;
+}
+.auth-tabs:before{
+  will-change:transform,background,box-shadow!important;
+  transition:
+    transform 420ms var(--motion-soft),
+    background 420ms var(--motion-ease),
+    box-shadow 420ms var(--motion-ease)!important;
+}
+.auth-tab{
+  transition:
+    color 240ms var(--motion-ease),
+    transform 220ms var(--motion-ease),
+    filter 220ms var(--motion-ease)!important;
+}
+.auth-tab:active{transform:scale(.985)!important}
+.auth-tab.active{filter:drop-shadow(0 4px 10px rgba(0,0,0,.10))!important}
+
+/* 6) Field focus micro-interaction, tetap stabil saat mengetik */
+.field-wrap{transition:transform 220ms var(--motion-ease),filter 220ms var(--motion-ease)!important}
+.field-group:focus-within .field-wrap{transform:translateY(-1px)!important}
+.field:focus{
+  box-shadow:0 0 0 4px rgba(var(--theme-rgb),.12),0 12px 28px rgba(0,0,0,.10)!important;
+}
+.password-toggle{
+  transition:
+    transform 180ms var(--motion-ease),
+    background-color 180ms var(--motion-ease),
+    border-color 180ms var(--motion-ease),
+    box-shadow 180ms var(--motion-ease),
+    filter 180ms var(--motion-ease)!important;
+}
+.password-toggle:hover{filter:brightness(1.08)!important;box-shadow:0 8px 18px rgba(0,0,0,.16)!important}
+.password-toggle:active{transform:translateY(-50%) scale(.94)!important}
+
+/* 7) Submit button: shimmer hover halus, loading lama tetap dipakai */
+.auth-submit{
+  overflow:hidden!important;
+  isolation:isolate!important;
+}
+.auth-submit:not(.is-loading):not(:disabled):before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:linear-gradient(110deg,transparent 18%,rgba(255,255,255,.24) 48%,transparent 78%);
+  transform:translateX(-130%);
+  opacity:0;
+}
+.auth-submit:not(.is-loading):not(:disabled):hover:before{
+  opacity:1;
+  animation:diracPremiumSubmitSheen 900ms var(--motion-soft) both;
+}
+@keyframes diracPremiumSubmitSheen{to{transform:translateX(130%);opacity:0}}
+
+/* 8) Drawer/menu dan theme choice masuk bertahap, CSS only */
+.menu-overlay.open .drawer-links a,
+.menu-overlay.open .drawer-links button{
+  animation:diracPremiumDrawerItemIn 420ms var(--motion-soft) both;
+}
+.menu-overlay.open .drawer-links > *:nth-child(1){animation-delay:40ms}
+.menu-overlay.open .drawer-links > *:nth-child(2){animation-delay:80ms}
+.menu-overlay.open .drawer-links > *:nth-child(3){animation-delay:120ms}
+.menu-overlay.open .drawer-links > *:nth-child(4){animation-delay:160ms}
+.menu-overlay.open .drawer-links > *:nth-child(5){animation-delay:200ms}
+.menu-overlay.open .drawer-links > *:nth-child(6){animation-delay:240ms}
+.menu-overlay.open .drawer-links > *:nth-child(7){animation-delay:280ms}
+@keyframes diracPremiumDrawerItemIn{
+  from{opacity:0;transform:translateX(10px);filter:blur(.35px)}
+  to{opacity:1;transform:none;filter:none}
+}
+.theme-modal.open .theme-pro-choice,
+.theme-modal.open .choice{
+  animation:diracPremiumChoiceIn 390ms var(--motion-soft) both;
+}
+.theme-modal.open .theme-pro-choice:nth-child(1),.theme-modal.open .choice:nth-child(1){animation-delay:30ms}
+.theme-modal.open .theme-pro-choice:nth-child(2),.theme-modal.open .choice:nth-child(2){animation-delay:60ms}
+.theme-modal.open .theme-pro-choice:nth-child(3),.theme-modal.open .choice:nth-child(3){animation-delay:90ms}
+.theme-modal.open .theme-pro-choice:nth-child(4),.theme-modal.open .choice:nth-child(4){animation-delay:120ms}
+@keyframes diracPremiumChoiceIn{
+  from{opacity:0;transform:translateY(8px) scale(.985)}
+  to{opacity:1;transform:none}
+}
+
+/* 9) Floating buttons entrance dipertajam sedikit tanpa menghapus breathing lama */
+.dirac-ai-widget .ai-trigger,
+.dirac-floating-actions .dirac-float-btn{
+  will-change:transform,opacity,box-shadow!important;
+}
+body.motion-page-ready .dirac-ai-widget .ai-trigger{animation:diracPremiumFloatIn 520ms var(--motion-soft) 40ms both!important}
+body.motion-page-ready .dirac-floating-actions .dirac-float-wa,
+body.motion-page-ready .dirac-floating-actions .dirac-float-whatsapp{animation:diracPremiumFloatIn 520ms var(--motion-soft) 150ms both,waQuietBreathe 4.4s ease-in-out 760ms infinite!important}
+body.motion-page-ready .dirac-floating-actions .dirac-float-top{animation:diracPremiumFloatIn 520ms var(--motion-soft) 230ms both!important}
+@keyframes diracPremiumFloatIn{
+  from{opacity:0;transform:translateY(10px) scale(.94);filter:blur(.35px)}
+  to{opacity:1;transform:none;filter:none}
+}
+
+/* 10) Guard motion accessibility */
+@media(prefers-reduced-motion:reduce){
+  .site-header[data-dashboard-header-exact="true"] .container.nav,
+  .site-header[data-dashboard-header-exact="true"] .container.nav:before,
+  .auth-tabs:before,
+  .menu-overlay.open .drawer-links a,
+  .menu-overlay.open .drawer-links button,
+  .theme-modal.open .theme-pro-choice,
+  .theme-modal.open .choice,
+  .dirac-ai-widget .ai-trigger,
+  .dirac-floating-actions .dirac-float-btn,
+  .auth-submit:before{
+    animation:none!important;
+    transition:none!important;
+    transform:none!important;
+    filter:none!important;
+  }
+}
+html[data-motion="reduced"] .site-header[data-dashboard-header-exact="true"] .container.nav,
+html[data-motion="reduced"] .site-header[data-dashboard-header-exact="true"] .container.nav:before,
+html[data-motion="reduced"] .auth-tabs:before,
+html[data-motion="reduced"] .menu-overlay.open .drawer-links a,
+html[data-motion="reduced"] .menu-overlay.open .drawer-links button,
+html[data-motion="reduced"] .theme-modal.open .theme-pro-choice,
+html[data-motion="reduced"] .theme-modal.open .choice,
+html[data-motion="reduced"] .dirac-ai-widget .ai-trigger,
+html[data-motion="reduced"] .dirac-floating-actions .dirac-float-btn,
+html[data-motion="reduced"] .auth-submit:before{
+  animation:none!important;
+  transition:none!important;
+  transform:none!important;
+  filter:none!important;
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
