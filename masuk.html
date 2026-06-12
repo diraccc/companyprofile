@@ -8985,11 +8985,23 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 (function(){
   'use strict';
   /*
-   * Authenticator backup setup UI.
-   * Session/token/auth data is not stored in localStorage/sessionStorage.
-   * Server must set/read HttpOnly Secure SameSite cookies; fetch uses credentials:'include'.
+   * Authenticator first-registration-only setup UI.
+   * Tujuan:
+   * - QR/setup secret Authenticator hanya boleh ditampilkan pada flow daftar pertama kali.
+   * - Setelah QR/setup secret pernah ditampilkan di halaman ini, tidak bisa ditampilkan ulang.
+   * - Login ulang/A2F biasa hanya boleh verifikasi kode, bukan setup ulang.
+   * - Tidak menyimpan token/session/secret ke localStorage/sessionStorage.
+   * - Browser hanya mengirim cookie HttpOnly dari backend via credentials:'include'.
    */
-  var runtime = { setupToken:'', started:false, verified:false, qrShown:false };
+  var runtime = {
+    setupToken:'',
+    started:false,
+    verified:false,
+    qrShown:false,
+    secretDisplayConsumed:false,
+    blocked:false
+  };
+
   function $(sel, root){ return (root || document).querySelector(sel); }
   function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
   function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
@@ -8997,6 +9009,13 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   function cleanDigits(value){ return String(value || '').replace(/\D/g,'').slice(0,6); }
   function modal(){ return $('#a2fModal'); }
   function panel(){ return $('#a2fModal [data-a2f-panel="authenticator"] .a2f-panel-copy'); }
+  function session(){
+    try{
+      return (window.__DIRAC_BACKEND_AUTH_CONTEXT__ && typeof window.__DIRAC_BACKEND_AUTH_CONTEXT__ === 'object')
+        ? window.__DIRAC_BACKEND_AUTH_CONTEXT__
+        : {};
+    }catch(_e){ return {}; }
+  }
   function endpoint(kind){
     var m = modal();
     var attr = kind === 'verify' ? 'data-mfa-verify-endpoint' : 'data-mfa-setup-endpoint';
@@ -9004,9 +9023,31 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     return (m && m.getAttribute(attr)) || fallback;
   }
   function identifier(){
-    try{ if(window.__DIRAC_BACKEND_AUTH_CONTEXT__ && window.__DIRAC_BACKEND_AUTH_CONTEXT__.identifier) return String(window.__DIRAC_BACKEND_AUTH_CONTEXT__.identifier).trim(); }catch(_e){}
+    var s = session();
+    if(s && s.identifier) return String(s.identifier).trim();
     var input = $('#identifier');
     return input && input.value ? String(input.value).trim() : '';
+  }
+  function isServerAuthed(){
+    var s = session();
+    return !!(s && s.serverAuthenticated === true && s.authenticated === true && s.authVerifiedAt && s.identifier);
+  }
+  function isFirstRegisterSetupContext(){
+    var s = session();
+    if(!isServerAuthed()) return false;
+    var mode = String(s.mode || '').toLowerCase();
+    var explicit =
+      s.firstRegister === true ||
+      s.isFirstRegistration === true ||
+      s.registrationFirstSetup === true ||
+      s.firstRegistrationSetup === true ||
+      s.newAccount === true ||
+      s.new_user === true ||
+      s.newUser === true;
+    return mode === 'register' || explicit;
+  }
+  function canShowSetupSecret(){
+    return isFirstRegisterSetupContext() && runtime.secretDisplayConsumed !== true && runtime.verified !== true;
   }
   function status(message, kind){
     var el = $('#diracAuthenticatorSetupStatus');
@@ -9015,8 +9056,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     el.textContent = message;
   }
   function safePayload(data){
-    if(!data || typeof data !== 'object') return {};
-    return data;
+    return (data && typeof data === 'object') ? data : {};
   }
   function qrSource(data){
     data = safePayload(data);
@@ -9032,42 +9072,145 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   function setupToken(data){
     data = safePayload(data);
-    return String(data.setupToken || data.mfaSetupToken || data.token || data.setup_token || '').trim();
+    return String(data.setupToken || data.mfaSetupToken || data.setup_token || '').trim();
+  }
+  function alreadyConfigured(data){
+    data = safePayload(data);
+    return data.authenticatorEnabled === true ||
+      data.authenticator_enabled === true ||
+      data.totpEnabled === true ||
+      data.totp_enabled === true ||
+      data.alreadyConfigured === true ||
+      data.already_configured === true ||
+      data.setupAlreadyUsed === true ||
+      data.setup_already_used === true ||
+      data.secretAlreadyShown === true ||
+      data.secret_already_shown === true;
+  }
+  function blankQr(message, submessage, kind){
+    var box = $('#diracAuthenticatorQrBox');
+    if(!box) return;
+    runtime.qrShown = false;
+    box.innerHTML =
+      '<div class="dirac-authenticator-qr-placeholder">'+
+        '<b aria-hidden="true">'+(kind === 'locked' ? '🔒' : '📲')+'</b>'+
+        '<strong>'+message+'</strong>'+
+        '<span>'+submessage+'</span>'+
+      '</div>';
+  }
+  function lockSetup(message){
+    runtime.blocked = true;
+    runtime.setupToken = '';
+    var card = $('#diracAuthenticatorSetupCard');
+    if(card){
+      card.setAttribute('data-dirac-authenticator-lock','true');
+      card.classList.add('is-setup-locked');
+    }
+    var start = $('#diracAuthenticatorStartSetup');
+    if(start) start.disabled = true;
+    blankQr(
+      text('Setup key dikunci', 'Setup key locked'),
+      message || text('Setup Authenticator hanya muncul 1x saat pengguna daftar pertama kali.', 'Authenticator setup appears only once during the user’s first registration.'),
+      'locked'
+    );
+    status(message || text('Setup Authenticator hanya tersedia 1x saat daftar pertama kali.', 'Authenticator setup is available only once during first registration.'), 'error');
   }
   function renderQr(data){
     var box = $('#diracAuthenticatorQrBox');
     if(!box) return;
-    var src = qrSource(data);
-    var otp = otpauthUrl(data);
-    runtime.qrShown = !!src || !!otp;
-    if(src){
-      box.innerHTML = '<img alt="QR Authenticator" src="' + src.replace(/"/g,'&quot;') + '">';
+    data = safePayload(data);
+
+    if(!canShowSetupSecret()){
+      lockSetup(text('Setup key/QR tidak ditampilkan di login ulang. Gunakan Authenticator yang sudah aktif atau passkey.', 'Setup key/QR is not shown on later logins. Use the active Authenticator or passkey.'));
       return;
     }
-    box.innerHTML = '<div class="dirac-authenticator-qr-placeholder"><b aria-hidden="true">📲</b><strong>' + text('QR menunggu backend', 'Waiting for backend QR') + '</strong><span>' + text('Saat endpoint setup mengirim QR/otpauth, QR akan tampil di sini. Rahasia tidak disimpan di browser.', 'When the setup endpoint returns QR/otpauth, it appears here. Secrets are not stored in browser storage.') + '</span></div>';
+
+    if(alreadyConfigured(data)){
+      runtime.secretDisplayConsumed = true;
+      lockSetup(text('Authenticator sudah aktif atau setup key sebelumnya sudah pernah ditampilkan. Setup tidak bisa dibuka ulang dari halaman ini.', 'Authenticator is already active or the setup key was already shown. Setup cannot be opened again from this page.'));
+      return;
+    }
+
+    var src = qrSource(data);
+    var otp = otpauthUrl(data);
+
+    if(src){
+      runtime.secretDisplayConsumed = true;
+      runtime.qrShown = true;
+      box.innerHTML = '<img alt="QR Authenticator sekali tampil" src="' + src.replace(/"/g,'&quot;') + '">';
+      var start = $('#diracAuthenticatorStartSetup');
+      if(start) start.disabled = true;
+      var card = $('#diracAuthenticatorSetupCard');
+      if(card) card.setAttribute('data-dirac-secret-shown-once','true');
+      return;
+    }
+
+    if(otp){
+      // Jangan tampilkan otpauth/setup key mentah di DOM. Secret dianggap sudah dikirim backend,
+      // sehingga permintaan ulang diblokir agar aturan satu-kali-tampil tetap ketat.
+      runtime.secretDisplayConsumed = true;
+      lockSetup(text('Backend mengirim setup key mentah, tetapi halaman ini tidak menampilkannya. Kirim qrDataUrl dari backend agar user bisa scan tanpa melihat secret mentah.', 'Backend returned a raw setup key, but this page does not display it. Send qrDataUrl from backend so the user can scan without seeing the raw secret.'));
+      return;
+    }
+
+    blankQr(
+      text('QR menunggu backend', 'Waiting for backend QR'),
+      text('Endpoint setup harus mengirim qrDataUrl hanya pada pendaftaran pertama. Setup key mentah tidak ditampilkan.', 'The setup endpoint must return qrDataUrl only during first registration. Raw setup keys are not displayed.'),
+      ''
+    );
   }
-  function ensureCard(){
-    var p = panel(); if(!p || $('#diracAuthenticatorSetupCard', p)) return;
-    var card = document.createElement('div');
-    card.className = 'dirac-authenticator-setup-card';
-    card.id = 'diracAuthenticatorSetupCard';
-    card.setAttribute('data-no-i18n','');
-    card.innerHTML = ''+
+  function cardMarkupAllowed(){
+    return ''+
       '<div class="dirac-authenticator-setup-head">'+
-        '<div><strong>'+text('Tambahkan Authenticator sebagai cadangan','Add Authenticator as backup')+'</strong><span>'+text('Gunakan setelah passkey aktif, terutama saat perangkat utama hilang atau Face ID/PIN bermasalah.','Use this after passkey is active, especially if your main device is lost or Face ID/PIN has issues.')+'</span></div>'+
-        '<em class="dirac-authenticator-setup-badge">'+text('Cadangan opsional','Optional backup')+'</em>'+
+        '<div><strong>'+text('Setup Authenticator satu kali','One-time Authenticator setup')+'</strong><span>'+text('Hanya muncul saat pengguna daftar pertama kali. Setelah QR tampil, setup key tidak bisa dibuka ulang dari halaman login.','Shown only during the user’s first registration. After the QR appears, the setup key cannot be reopened from the login page.')+'</span></div>'+
+        '<em class="dirac-authenticator-setup-badge">'+text('1x saat daftar','First registration only')+'</em>'+
       '</div>'+
       '<div class="dirac-authenticator-setup-grid">'+
-        '<div class="dirac-authenticator-qr-box" id="diracAuthenticatorQrBox"><div class="dirac-authenticator-qr-placeholder"><b aria-hidden="true">📲</b><strong>'+text('Siapkan aplikasi Authenticator','Prepare Authenticator app')+'</strong><span>'+text('Tekan mulai, lalu scan QR yang dikirim server.','Press start, then scan the QR sent by the server.')+'</span></div></div>'+
+        '<div class="dirac-authenticator-qr-box" id="diracAuthenticatorQrBox"><div class="dirac-authenticator-qr-placeholder"><b aria-hidden="true">📲</b><strong>'+text('Siapkan aplikasi Authenticator','Prepare Authenticator app')+'</strong><span>'+text('Tekan mulai hanya saat daftar pertama kali, lalu scan QR dari server.','Press start only during first registration, then scan the server QR.')+'</span></div></div>'+
         '<div class="dirac-authenticator-setup-body">'+
-          '<ol class="dirac-authenticator-steps"><li>'+text('Buka Google Authenticator/Authy/Microsoft Authenticator.','Open Google Authenticator/Authy/Microsoft Authenticator.')+'</li><li>'+text('Scan QR dari server atau gunakan setup key jika server mengizinkan.','Scan the server QR or use the setup key if the server allows it.')+'</li><li>'+text('Masukkan kode 6 digit terbaru untuk mengaktifkan.','Enter the latest 6-digit code to activate it.')+'</li></ol>'+
-          '<button type="button" class="dirac-authenticator-start-btn" id="diracAuthenticatorStartSetup">'+text('Mulai setup Authenticator','Start Authenticator setup')+'</button>'+
+          '<ol class="dirac-authenticator-steps"><li>'+text('Buka Google Authenticator/Authy/Microsoft Authenticator.','Open Google Authenticator/Authy/Microsoft Authenticator.')+'</li><li>'+text('Scan QR yang tampil satu kali. Setup key mentah tidak ditampilkan.','Scan the QR that appears once. Raw setup keys are not displayed.')+'</li><li>'+text('Masukkan kode 6 digit terbaru untuk mengaktifkan.','Enter the latest 6-digit code to activate it.')+'</li></ol>'+
+          '<button type="button" class="dirac-authenticator-start-btn" id="diracAuthenticatorStartSetup">'+text('Mulai setup Authenticator 1x','Start one-time Authenticator setup')+'</button>'+
           '<div class="dirac-authenticator-setup-code"><input class="dirac-authenticator-code-input" id="diracAuthenticatorCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" aria-label="Kode Authenticator 6 digit"><button type="button" class="dirac-authenticator-verify-btn" id="diracAuthenticatorVerifySetup">'+text('Verifikasi','Verify')+'</button></div>'+
-          '<div class="dirac-authenticator-secret-safe">'+text('Tidak menyimpan session/token di browser. Setup token hanya di memori halaman ini; cookie sesi harus HttpOnly dari backend.','No session/token is saved in browser storage. Setup token is kept only in page memory; session cookies must be HttpOnly from backend.')+'</div>'+
+          '<div class="dirac-authenticator-secret-safe">'+text('Tidak menyimpan session/token/secret di browser. Setup token hanya di memori halaman; sesi wajib HttpOnly cookie dari backend.','No session/token/secret is saved in browser storage. Setup token is kept only in page memory; session must use HttpOnly cookies from backend.')+'</div>'+
           '<div class="dirac-authenticator-status" id="diracAuthenticatorSetupStatus">'+text('Belum dimulai.','Not started yet.')+'</div>'+
         '</div>'+
       '</div>';
-    p.appendChild(card);
+  }
+  function cardMarkupLocked(){
+    return ''+
+      '<div class="dirac-authenticator-setup-head">'+
+        '<div><strong>'+text('Setup Authenticator dikunci','Authenticator setup locked')+'</strong><span>'+text('Setup key/QR hanya boleh muncul 1x saat pengguna daftar pertama kali. Untuk login ulang, gunakan passkey atau kode Authenticator yang sudah aktif.','Setup key/QR may appear only once during first registration. For later logins, use passkey or the active Authenticator code.')+'</span></div>'+
+        '<em class="dirac-authenticator-setup-badge">'+text('Tidak tampil ulang','No repeat display')+'</em>'+
+      '</div>'+
+      '<div class="dirac-authenticator-setup-grid">'+
+        '<div class="dirac-authenticator-qr-box" id="diracAuthenticatorQrBox"><div class="dirac-authenticator-qr-placeholder"><b aria-hidden="true">🔒</b><strong>'+text('Setup key tidak tersedia','Setup key unavailable')+'</strong><span>'+text('Halaman ini tidak menampilkan QR/setup key di luar pendaftaran pertama.','This page does not show QR/setup key outside first registration.')+'</span></div></div>'+
+        '<div class="dirac-authenticator-setup-body">'+
+          '<ol class="dirac-authenticator-steps"><li>'+text('Gunakan passkey sebagai metode utama.','Use passkey as the primary method.')+'</li><li>'+text('Gunakan kode Authenticator hanya jika sudah pernah diaktifkan.','Use Authenticator code only if it has already been enabled.')+'</li><li>'+text('Setup ulang harus lewat backend/Security Center dengan verifikasi ulang.','Re-setup must go through backend/Security Center with re-verification.')+'</li></ol>'+
+          '<button type="button" class="dirac-authenticator-start-btn" id="diracAuthenticatorStartSetup" disabled>'+text('Setup hanya saat daftar pertama','Setup only during first registration')+'</button>'+
+          '<div class="dirac-authenticator-status is-error" id="diracAuthenticatorSetupStatus">'+text('Setup key/QR tidak ditampilkan di sesi ini.','Setup key/QR is not shown in this session.')+'</div>'+
+        '</div>'+
+      '</div>';
+  }
+  function ensureCard(){
+    var p = panel();
+    if(!p) return;
+    var card = $('#diracAuthenticatorSetupCard', p);
+    if(!card){
+      card = document.createElement('div');
+      card.className = 'dirac-authenticator-setup-card';
+      card.id = 'diracAuthenticatorSetupCard';
+      card.setAttribute('data-no-i18n','');
+      p.appendChild(card);
+    }
+    var allowed = isFirstRegisterSetupContext() && runtime.verified !== true && runtime.secretDisplayConsumed !== true;
+    card.setAttribute('data-dirac-first-register-only','true');
+    card.setAttribute('data-dirac-authenticator-setup-context', allowed ? 'first-register' : 'locked');
+    card.classList.toggle('is-setup-locked', !allowed);
+    var desired = allowed ? 'allowed' : 'locked';
+    if(card.getAttribute('data-rendered-state') !== desired){
+      card.innerHTML = allowed ? cardMarkupAllowed() : cardMarkupLocked();
+      card.setAttribute('data-rendered-state', desired);
+    }
   }
   async function post(kind, body){
     var res = await fetch(endpoint(kind), {
@@ -9086,23 +9229,44 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   async function beginSetup(){
     var btn = $('#diracAuthenticatorStartSetup');
+    if(!canShowSetupSecret()){
+      lockSetup(text('Setup key/QR hanya boleh dibuka 1x saat daftar pertama kali. Login ulang tidak boleh menampilkan setup key.', 'Setup key/QR may open only once during first registration. Later logins must not show setup keys.'));
+      return;
+    }
     try{
       if(btn) btn.disabled = true;
-      status(text('Menghubungi server setup Authenticator...','Contacting Authenticator setup server...'));
-      var data = await post('setup', { method:'authenticator', action:'setup', setupType:'backup_authenticator', identifier:identifier() });
+      status(text('Menghubungi server setup Authenticator satu-kali...','Contacting one-time Authenticator setup server...'));
+      var data = await post('setup', {
+        method:'authenticator',
+        action:'setup_first_registration',
+        setupType:'first_registration_authenticator',
+        firstRegistrationOnly:true,
+        oneTimeSecretDisplay:true,
+        identifier:identifier()
+      });
       runtime.setupToken = setupToken(data);
       runtime.started = true;
       renderQr(data);
-      status(runtime.qrShown ? text('Scan QR, lalu masukkan kode 6 digit terbaru.','Scan the QR, then enter the latest 6-digit code.') : text('Server belum mengirim QR. Pastikan endpoint setup mengirim qrDataUrl/otpauthUrl.','Server has not returned a QR yet. Ensure the setup endpoint returns qrDataUrl/otpauthUrl.'), runtime.qrShown ? '' : 'error');
-      var code = $('#diracAuthenticatorCode'); if(code) code.focus({preventScroll:true});
+      status(runtime.qrShown ? text('Scan QR sekarang. QR/setup key tidak akan dibuka ulang dari halaman ini.','Scan the QR now. QR/setup key will not be reopened from this page.') : text('Server belum mengirim QR aman. Pastikan backend mengirim qrDataUrl hanya untuk pendaftaran pertama.','Server has not returned a safe QR. Ensure backend returns qrDataUrl only for first registration.'), runtime.qrShown ? '' : 'error');
+      var code = $('#diracAuthenticatorCode'); if(code && runtime.qrShown) code.focus({preventScroll:true});
     }catch(e){
       status((e && e.message) ? e.message : text('Setup Authenticator belum bisa dimulai.','Authenticator setup could not start.'), 'error');
-    }finally{ if(btn) btn.disabled = false; }
+    }finally{
+      if(btn && runtime.secretDisplayConsumed !== true && runtime.verified !== true) btn.disabled = !canShowSetupSecret();
+    }
   }
   async function verifySetup(){
+    if(!isFirstRegisterSetupContext()){
+      lockSetup(text('Verifikasi setup hanya berlaku saat pendaftaran pertama.','Setup verification is valid only during first registration.'));
+      return;
+    }
     var input = $('#diracAuthenticatorCode');
     var code = cleanDigits(input && input.value);
     if(input) input.value = code;
+    if(!runtime.started || !runtime.setupToken){
+      status(text('Mulai setup dan scan QR terlebih dahulu.','Start setup and scan the QR first.'), 'error');
+      return;
+    }
     if(!/^\d{6}$/.test(code)){
       status(text('Kode harus 6 digit angka.','Code must be 6 digits.'), 'error');
       return;
@@ -9111,11 +9275,22 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     try{
       if(btn) btn.disabled = true;
       status(text('Memverifikasi kode dengan server...','Verifying code with server...'));
-      var data = await post('verify', { method:'authenticator', action:'verify_setup', setupType:'backup_authenticator', identifier:identifier(), code:code, setupToken:runtime.setupToken });
+      var data = await post('verify', {
+        method:'authenticator',
+        action:'verify_first_registration_setup',
+        setupType:'first_registration_authenticator',
+        firstRegistrationOnly:true,
+        identifier:identifier(),
+        code:code,
+        setupToken:runtime.setupToken
+      });
       runtime.verified = !!(data.ok !== false);
-      status(text('Authenticator aktif sebagai metode cadangan.','Authenticator is active as a backup method.'), 'ok');
+      runtime.setupToken = '';
+      status(text('Authenticator aktif sebagai metode cadangan. Setup key tidak bisa dibuka ulang.','Authenticator is active as a backup method. Setup key cannot be reopened.'), 'ok');
       var method = $('#a2fModal [data-a2f-select="authenticator"] small');
       if(method) method.textContent = text('Aktif sebagai cadangan akun.','Active as account backup.');
+      var start = $('#diracAuthenticatorStartSetup');
+      if(start) start.disabled = true;
     }catch(e){
       status((e && e.message) ? e.message : text('Kode belum cocok. Coba kode terbaru.','Code does not match. Try the latest code.'), 'error');
     }finally{ if(btn) btn.disabled = false; }
@@ -9123,20 +9298,29 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   function patchCopy(){
     var m = modal(); if(!m) return;
     var method = $('[data-a2f-select="authenticator"]', m);
+    var allowed = isFirstRegisterSetupContext();
     if(method){
-      var em = method.querySelector('em'); if(em) em.textContent = text('Cadangan','Backup');
-      var strong = method.querySelector('strong'); if(strong) strong.textContent = text('Authenticator cadangan','Backup Authenticator');
-      var small = method.querySelector('small'); if(small && !/aktif|active/i.test(small.textContent || '')) small.textContent = text('Opsional setelah passkey aktif.','Optional after passkey is active.');
+      var em = method.querySelector('em'); if(em) em.textContent = allowed ? text('Daftar 1x','First setup') : text('Cadangan','Backup');
+      var strong = method.querySelector('strong'); if(strong) strong.textContent = allowed ? text('Setup Authenticator 1x','One-time Authenticator setup') : text('Authenticator cadangan','Backup Authenticator');
+      var small = method.querySelector('small'); if(small && !/aktif|active/i.test(small.textContent || '')) small.textContent = allowed ? text('Setup key hanya tampil sekali.','Setup key appears only once.') : text('Gunakan kode yang sudah aktif.','Use an already active code.');
     }
     var p = panel();
     if(p){
-      var h3 = p.querySelector('h3'); if(h3) h3.textContent = text('Setup Authenticator cadangan','Set up backup Authenticator');
-      var txt = p.querySelector('p'); if(txt) txt.textContent = text('Scan QR dari server, lalu verifikasi kode 6 digit. Rahasia TOTP hanya boleh tampil saat setup, tidak saat login ulang.','Scan the server QR, then verify the 6-digit code. TOTP secrets may appear only during setup, never during later login.');
+      var h3 = p.querySelector('h3'); if(h3) h3.textContent = allowed ? text('Setup Authenticator daftar pertama','First-registration Authenticator setup') : text('Gunakan Authenticator','Use Authenticator');
+      var txt = p.querySelector('p'); if(txt) txt.textContent = allowed ? text('Scan QR satu kali dari server, lalu verifikasi kode 6 digit. Rahasia TOTP tidak tampil ulang.','Scan the one-time server QR, then verify the 6-digit code. TOTP secrets are not shown again.') : text('Masukkan kode 6 digit dari Authenticator yang sudah aktif. Setup key/QR tidak ditampilkan saat login ulang.','Enter the 6-digit code from an already active Authenticator. Setup key/QR is not shown during later logins.');
+    }
+  }
+  function purgeForbiddenSecretDom(){
+    if(isFirstRegisterSetupContext() && runtime.qrShown === true) return;
+    var box = $('#diracAuthenticatorQrBox');
+    if(box && (box.querySelector('img') || /otpauth:\/\//i.test(box.innerHTML || ''))){
+      blankQr(text('Setup key dikunci','Setup key locked'), text('QR/setup key hanya boleh tampil satu kali saat daftar pertama.','QR/setup key may appear only once during first registration.'), 'locked');
     }
   }
   function install(){
     patchCopy();
     ensureCard();
+    purgeForbiddenSecretDom();
     var code = $('#diracAuthenticatorCode');
     if(code && !code.__diracAuthSetupBound){
       code.__diracAuthSetupBound = true;
