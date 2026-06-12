@@ -4456,6 +4456,99 @@ html[data-effective-theme="light"] .site-header .brand-typewriter-text{
 }
 </style>
 
+
+<style id="dirac-a2f-passkey-used-note-fix-css">
+/* =========================================================
+   Dirac A2F Passkey + Note Mobile Precision Patch
+   Scope: visual A2F only. Tidak menyentuh login, hash, endpoint,
+   password, cookie, atau proses autentikasi.
+   ========================================================= */
+#a2fModal .a2f-note{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:start!important;
+  gap:10px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  color:#334155!important;
+  background:#f8fafc!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:18px!important;
+  padding:14px 15px!important;
+  margin:0 0 16px!important;
+  font-size:.88rem!important;
+  line-height:1.5!important;
+  letter-spacing:0!important;
+  overflow:hidden!important;
+  box-shadow:none!important;
+}
+#a2fModal .a2f-note:before{content:""!important;display:none!important;}
+#a2fModal .a2f-note-icon{
+  width:28px!important;
+  height:28px!important;
+  min-width:28px!important;
+  border-radius:999px!important;
+  display:grid!important;
+  place-items:center!important;
+  background:#eff6ff!important;
+  border:1px solid #bfdbfe!important;
+  color:#2563eb!important;
+  font-weight:900!important;
+  font-size:.95rem!important;
+  line-height:1!important;
+}
+#a2fModal .a2f-note-content{
+  display:block!important;
+  min-width:0!important;
+  max-width:100%!important;
+  color:#475569!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+#a2fModal .a2f-note-content strong,
+#a2fModal .a2f-note strong{
+  display:block!important;
+  margin:0 0 5px!important;
+  color:#1d4ed8!important;
+  font-weight:850!important;
+  line-height:1.25!important;
+}
+#a2fModal .a2f-method[data-a2f-select="passkey"] strong,
+#a2fModal [data-a2f-panel="passkey"] .a2f-panel-copy h3,
+#a2fModal #a2fSelectedTitle[data-dirac-passkey-used-copy="true"]{
+  letter-spacing:-.02em!important;
+}
+#a2fModal [data-a2f-panel="passkey"] .a2f-panel-copy p{
+  overflow-wrap:anywhere!important;
+}
+@media(max-width:620px){
+  #a2fModal .a2f-note{
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+    padding:13px 14px!important;
+    border-radius:18px!important;
+    font-size:.84rem!important;
+    line-height:1.48!important;
+    margin-bottom:12px!important;
+  }
+  #a2fModal .a2f-note-icon{
+    width:26px!important;
+    height:26px!important;
+    min-width:26px!important;
+    font-size:.88rem!important;
+  }
+  #a2fModal .a2f-note-content strong,
+  #a2fModal .a2f-note strong{
+    margin-bottom:6px!important;
+    font-size:.9rem!important;
+  }
+}
+@media(max-width:390px){
+  #a2fModal .a2f-note{font-size:.8rem!important;padding:12px!important;}
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -8499,6 +8592,148 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     installField('forgotEmail', 'email');
     document.addEventListener('submit', verifyAuthSubmit, true);
     document.addEventListener('click', verifyForgotAction, true);
+  });
+})();
+</script>
+
+
+<script id="dirac-a2f-passkey-used-note-session-guard-js">
+(function(){
+  'use strict';
+  /*
+   * Final A2F UI patch.
+   * - Mengubah copy passkey menjadi netral/aktif: tidak lagi selalu "Buat passkey".
+   * - Merapikan note A2F agar tidak terbelah dua kolom di mobile.
+   * - Menjaga auth/session tetap backend-only: token/session tidak ditulis ke localStorage/sessionStorage.
+   * Tidak mengubah fetch login, endpoint, password, cookie, hash, atau WebAuthn flow lama.
+   */
+  var PASSKEY_COPY = {
+    id:{
+      title:'Passkey siap digunakan',
+      panelTitle:'Gunakan passkey akun Anda',
+      panelText:'Jika passkey sudah dibuat, browser akan membuka Face ID, sidik jari, PIN, atau password manager untuk verifikasi. Jika belum ada passkey di server, sistem tetap dapat meminta pendaftaran perangkat sekali saja.',
+      start:'Gunakan passkey sekarang',
+      live:'Passkey aktif',
+      statusExisting:'Memverifikasi passkey yang sudah tersimpan...'
+    },
+    en:{
+      title:'Passkey ready to use',
+      panelTitle:'Use your account passkey',
+      panelText:'If a passkey already exists, the browser opens Face ID, fingerprint, PIN, or your password manager for verification. If the server has no passkey yet, it can still ask to register this device once.',
+      start:'Use passkey now',
+      live:'Passkey active',
+      statusExisting:'Verifying saved passkey...'
+    }
+  };
+  function $(selector, root){ return (root || document).querySelector(selector); }
+  function $$(selector, root){ return Array.prototype.slice.call((root || document).querySelectorAll(selector)); }
+  function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
+  function txt(key){ return (PASSKEY_COPY[lang()] || PASSKEY_COPY.id)[key] || PASSKEY_COPY.id[key] || key; }
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  function normalizeNote(){
+    var note = $('#a2fModal .a2f-note');
+    if(!note || note.getAttribute('data-dirac-note-normalized') === 'true') return;
+    var html = note.innerHTML || note.textContent || '';
+    html = html.replace(/^\s*<span class="a2f-note-icon"[^>]*>[\s\S]*?<\/span>\s*/i,'').replace(/^\s*<span class="a2f-note-content"[^>]*>([\s\S]*?)<\/span>\s*$/i,'$1');
+    note.innerHTML = '<span class="a2f-note-icon" aria-hidden="true">ⓘ</span><span class="a2f-note-content">' + html + '</span>';
+    note.setAttribute('data-dirac-note-normalized','true');
+    note.setAttribute('data-no-i18n','');
+  }
+  function replaceUnsafePasskeyWords(value){
+    return String(value || '')
+      .replace(/Buat passkey sekarang/g, txt('start'))
+      .replace(/Create passkey now/g, txt('start'))
+      .replace(/Passkey siap dibuat/g, txt('title'))
+      .replace(/Passkey ready to create/g, txt('title'))
+      .replace(/Buat passkey di perangkat pelanggan/g, txt('panelTitle'))
+      .replace(/Create passkey on customer device/g, txt('panelTitle'));
+  }
+  function patchPasskeyCopy(){
+    var modal = $('#a2fModal'); if(!modal) return;
+    var method = $('[data-a2f-select="passkey"]', modal);
+    if(method){
+      var title = $('strong', method); if(title) title.textContent = lang() === 'en' ? 'Use passkey' : 'Gunakan passkey';
+      var desc = method.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)');
+      if(desc) desc.textContent = lang() === 'en' ? 'Use Face ID, fingerprint, PIN, or a supported device key.' : 'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat yang didukung.';
+    }
+    var selectedTitle = $('#a2fSelectedTitle', modal);
+    if(selectedTitle && /Passkey|passkey/i.test(selectedTitle.textContent || '')){
+      selectedTitle.textContent = txt('title');
+      selectedTitle.setAttribute('data-dirac-passkey-used-copy','true');
+    }
+    var pill = $('#a2fLivePill', modal);
+    if(pill && /WebAuthn|Passkey|Anti-phishing|Phishing/i.test(pill.textContent || '')) pill.textContent = txt('live');
+    var panel = $('[data-a2f-panel="passkey"] .a2f-panel-copy', modal);
+    if(panel){
+      var h3 = $('h3', panel); if(h3) h3.textContent = txt('panelTitle');
+      var p = $('p', panel); if(p) p.textContent = txt('panelText');
+    }
+    var start = $('#a2fStartBtn', modal);
+    if(start){
+      var active = $('[data-a2f-select].active', modal);
+      var activeMethod = active ? active.getAttribute('data-a2f-select') : start.getAttribute('data-a2f-method');
+      if(activeMethod === 'passkey' || /passkey/i.test(start.textContent || '')){
+        var label = $('.a2f-start-label', start);
+        if(label) label.textContent = txt('start');
+        else start.textContent = replaceUnsafePasskeyWords(start.textContent || txt('start'));
+        start.setAttribute('data-a2f-method','passkey');
+      }
+    }
+  }
+  function patchMessages(){
+    var modal = $('#a2fModal'); if(!modal) return;
+    ['#a2fResult','#a2fStatusMsg'].forEach(function(sel){
+      var el = $(sel, modal);
+      if(el && el.textContent) el.textContent = replaceUnsafePasskeyWords(el.textContent);
+    });
+  }
+  function purgeSensitiveStorage(){
+    var keys = [
+      'dirac_auth_session_v1','dirac_auth_a2f_v1','dirac_auth_a2f_dashboard_ready_v1','dirac_dashboard_gate_v1','dirac_domain_session','dirac_domain_refresh','dirac_customer_mfa_session','sb-auth-token','supabase.auth.token'
+    ];
+    [window.localStorage, window.sessionStorage].forEach(function(store){
+      if(!store) return;
+      keys.forEach(function(key){ try{ store.removeItem(key); }catch(_e){} });
+    });
+  }
+  function installSensitiveStorageGuard(){
+    var blocked = /(?:auth|session|token|mfa|a2f|dashboard_gate|domain_session|domain_refresh|supabase)/i;
+    [window.localStorage, window.sessionStorage].forEach(function(store){
+      if(!store || store.__diracHttpOnlyGuardInstalled) return;
+      try{
+        var rawSetItem = store.setItem.bind(store);
+        store.setItem = function(key, value){
+          if(blocked.test(String(key || ''))){
+            try{ store.removeItem(key); }catch(_e){}
+            return undefined;
+          }
+          return rawSetItem(key, value);
+        };
+        Object.defineProperty(store, '__diracHttpOnlyGuardInstalled', {value:true, configurable:false});
+      }catch(_e){}
+    });
+  }
+  function patchAll(){
+    purgeSensitiveStorage();
+    normalizeNote();
+    patchPasskeyCopy();
+    patchMessages();
+  }
+  ready(function(){
+    installSensitiveStorageGuard();
+    patchAll();
+    var modal = $('#a2fModal');
+    if(modal && window.MutationObserver){
+      var queued = false;
+      new MutationObserver(function(){
+        if(queued) return;
+        queued = true;
+        requestAnimationFrame(function(){ queued = false; patchAll(); });
+      }).observe(modal, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class','data-a2f-step-index','data-a2f-method','disabled']});
+    }
+    if(window.MutationObserver){
+      new MutationObserver(patchAll).observe(document.documentElement, {attributes:true, attributeFilter:['lang']});
+    }
   });
 })();
 </script>
