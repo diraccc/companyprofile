@@ -4549,8 +4549,250 @@ html[data-effective-theme="light"] .site-header .brand-typewriter-text{
 }
 </style>
 
+
+
+<style id="dirac-authenticator-setup-backup-css">
+/* =========================================================
+   Dirac Authenticator Backup Setup Patch v1
+   Scope: UI setup Authenticator sebagai metode cadangan.
+   Tidak mengubah login, hash, endpoint existing, password, passkey,
+   cookie, WebAuthn, atau flow A2F lama.
+   ========================================================= */
+#a2fModal [data-a2f-panel="authenticator"] .dirac-authenticator-setup-card{
+  margin:14px 0 0!important;
+  padding:14px!important;
+  border-radius:22px!important;
+  border:1px solid rgba(var(--theme-rgb),.24)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 34px rgba(0,0,0,.16)!important;
+  color:#f8fafc!important;
+}
+#a2fModal .dirac-authenticator-setup-head{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin-bottom:12px!important;
+}
+#a2fModal .dirac-authenticator-setup-head strong{
+  display:block!important;
+  color:#fff!important;
+  font-size:1rem!important;
+  line-height:1.22!important;
+  letter-spacing:-.02em!important;
+}
+#a2fModal .dirac-authenticator-setup-head span{
+  display:block!important;
+  color:#cbd5e1!important;
+  margin-top:3px!important;
+  font-size:.82rem!important;
+  line-height:1.45!important;
+}
+#a2fModal .dirac-authenticator-setup-badge{
+  flex:0 0 auto!important;
+  border-radius:999px!important;
+  padding:7px 10px!important;
+  background:rgba(56,189,248,.13)!important;
+  border:1px solid rgba(56,189,248,.28)!important;
+  color:#dff7ff!important;
+  font-size:.72rem!important;
+  font-weight:950!important;
+  letter-spacing:.045em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+#a2fModal .dirac-authenticator-setup-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;
+  gap:12px!important;
+  align-items:stretch!important;
+}
+#a2fModal .dirac-authenticator-qr-box{
+  min-height:178px!important;
+  border-radius:20px!important;
+  border:1px dashed rgba(148,163,184,.42)!important;
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px),
+    linear-gradient(0deg,rgba(255,255,255,.035) 1px,transparent 1px),
+    rgba(15,23,42,.72)!important;
+  background-size:18px 18px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:14px!important;
+  text-align:center!important;
+  overflow:hidden!important;
+}
+#a2fModal .dirac-authenticator-qr-box img{
+  max-width:156px!important;
+  width:100%!important;
+  height:auto!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  padding:8px!important;
+  box-shadow:0 16px 34px rgba(0,0,0,.24)!important;
+}
+#a2fModal .dirac-authenticator-qr-placeholder{
+  display:grid!important;
+  gap:7px!important;
+  justify-items:center!important;
+  color:#cbd5e1!important;
+  font-size:.78rem!important;
+  line-height:1.45!important;
+}
+#a2fModal .dirac-authenticator-qr-placeholder b{
+  width:54px!important;
+  height:54px!important;
+  border-radius:18px!important;
+  display:grid!important;
+  place-items:center!important;
+  background:rgba(var(--theme-rgb),.13)!important;
+  border:1px solid rgba(var(--theme-rgb),.26)!important;
+  font-size:1.45rem!important;
+}
+#a2fModal .dirac-authenticator-setup-body{
+  display:grid!important;
+  gap:10px!important;
+  min-width:0!important;
+}
+#a2fModal .dirac-authenticator-steps{
+  margin:0!important;
+  padding:0!important;
+  list-style:none!important;
+  display:grid!important;
+  gap:7px!important;
+  color:#dbeafe!important;
+  font-size:.82rem!important;
+  line-height:1.42!important;
+}
+#a2fModal .dirac-authenticator-steps li{
+  display:flex!important;
+  gap:8px!important;
+  align-items:flex-start!important;
+}
+#a2fModal .dirac-authenticator-steps li:before{
+  content:"✓"!important;
+  flex:0 0 auto!important;
+  color:#38bdf8!important;
+  font-weight:950!important;
+}
+#a2fModal .dirac-authenticator-setup-code{
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  gap:8px!important;
+  align-items:center!important;
+}
+#a2fModal .dirac-authenticator-code-input{
+  width:100%!important;
+  min-height:48px!important;
+  border-radius:16px!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  background:rgba(255,255,255,.075)!important;
+  color:#fff!important;
+  outline:0!important;
+  padding:12px 13px!important;
+  text-align:center!important;
+  letter-spacing:.28em!important;
+  font-weight:950!important;
+  font-variant-numeric:tabular-nums!important;
+}
+#a2fModal .dirac-authenticator-code-input:focus{
+  border-color:rgba(var(--theme-rgb),.70)!important;
+  box-shadow:0 0 0 4px rgba(var(--theme-rgb),.12)!important;
+}
+#a2fModal .dirac-authenticator-verify-btn,
+#a2fModal .dirac-authenticator-start-btn{
+  min-height:48px!important;
+  border:0!important;
+  border-radius:999px!important;
+  padding:11px 14px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  font-size:.85rem!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+}
+#a2fModal .dirac-authenticator-start-btn{
+  width:100%!important;
+  margin-top:2px!important;
+  background:linear-gradient(135deg,#dff7ff,#38bdf8 52%,#0ea5e9)!important;
+  color:#06111d!important;
+  box-shadow:0 14px 28px rgba(56,189,248,.16)!important;
+}
+#a2fModal .dirac-authenticator-verify-btn{
+  background:rgba(255,255,255,.10)!important;
+  border:1px solid rgba(var(--theme-rgb),.24)!important;
+  color:#f8fafc!important;
+}
+#a2fModal .dirac-authenticator-status{
+  min-height:20px!important;
+  color:#cbd5e1!important;
+  font-size:.8rem!important;
+  line-height:1.45!important;
+}
+#a2fModal .dirac-authenticator-status.is-ok{color:#bbf7d0!important;}
+#a2fModal .dirac-authenticator-status.is-error{color:#fecaca!important;}
+#a2fModal .dirac-authenticator-secret-safe{
+  padding:10px 11px!important;
+  border-radius:16px!important;
+  border:1px solid rgba(34,197,94,.24)!important;
+  background:rgba(34,197,94,.08)!important;
+  color:#dcfce7!important;
+  font-size:.78rem!important;
+  line-height:1.45!important;
+}
+html[data-effective-theme="light"] #a2fModal [data-a2f-panel="authenticator"] .dirac-authenticator-setup-card{
+  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(248,250,252,.74))!important;
+  border-color:rgba(var(--theme-rgb),.26)!important;
+  color:#111827!important;
+}
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-setup-head strong{color:#111827!important;}
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-setup-head span,
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-steps,
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-status{color:#475569!important;}
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-qr-box{background:#f8fafc!important;border-color:#cbd5e1!important;}
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-code-input{background:#fff!important;color:#111827!important;border-color:#cbd5e1!important;}
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-verify-btn{background:#fff!important;color:#0f172a!important;border-color:#cbd5e1!important;}
+html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{color:#166534!important;background:#dcfce7!important;border-color:#86efac!important;}
+@media(max-width:700px){
+  #a2fModal .dirac-authenticator-setup-head{flex-direction:column!important;}
+  #a2fModal .dirac-authenticator-setup-badge{align-self:flex-start!important;}
+  #a2fModal .dirac-authenticator-setup-grid{grid-template-columns:1fr!important;}
+  #a2fModal .dirac-authenticator-qr-box{min-height:150px!important;}
+  #a2fModal .dirac-authenticator-setup-code{grid-template-columns:1fr!important;}
+  #a2fModal .dirac-authenticator-verify-btn{width:100%!important;}
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
+
+<script id="dirac-httponly-early-storage-guard-js">
+(function(){
+  'use strict';
+  /* Early HttpOnly guard: auth/session/token/MFA data must never be saved in browser storage. */
+  var blocked = /(?:auth|session|token|mfa|a2f|dashboard_gate|domain_session|domain_refresh|customer_mfa|supabase|passkey|webauthn|totp|otp_secret)/i;
+  function install(store){
+    if(!store || store.__diracEarlyHttpOnlyGuardInstalled) return;
+    try{
+      var rawSetItem = store.setItem.bind(store);
+      var rawGetItem = store.getItem.bind(store);
+      store.setItem = function(key, value){
+        if(blocked.test(String(key || ''))){ try{ store.removeItem(key); }catch(_e){} return undefined; }
+        return rawSetItem(key, value);
+      };
+      store.getItem = function(key){
+        if(blocked.test(String(key || ''))){ try{ store.removeItem(key); }catch(_e){} return null; }
+        return rawGetItem(key);
+      };
+      Object.defineProperty(store, '__diracEarlyHttpOnlyGuardInstalled', {value:true, configurable:false});
+    }catch(_e){}
+  }
+  try{ install(window.localStorage); install(window.sessionStorage); }catch(_e){}
+})();
+</script>
+
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
   <header class="site-header" id="siteHeader" data-order-circled-header="true" data-dashboard-header-exact="true">
     <div class="container nav">
@@ -8733,6 +8975,192 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     }
     if(window.MutationObserver){
       new MutationObserver(patchAll).observe(document.documentElement, {attributes:true, attributeFilter:['lang']});
+    }
+  });
+})();
+</script>
+
+
+<script id="dirac-authenticator-backup-setup-js">
+(function(){
+  'use strict';
+  /*
+   * Authenticator backup setup UI.
+   * Session/token/auth data is not stored in localStorage/sessionStorage.
+   * Server must set/read HttpOnly Secure SameSite cookies; fetch uses credentials:'include'.
+   */
+  var runtime = { setupToken:'', started:false, verified:false, qrShown:false };
+  function $(sel, root){ return (root || document).querySelector(sel); }
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
+  function text(id, en){ return lang() === 'en' ? en : id; }
+  function cleanDigits(value){ return String(value || '').replace(/\D/g,'').slice(0,6); }
+  function modal(){ return $('#a2fModal'); }
+  function panel(){ return $('#a2fModal [data-a2f-panel="authenticator"] .a2f-panel-copy'); }
+  function endpoint(kind){
+    var m = modal();
+    var attr = kind === 'verify' ? 'data-mfa-verify-endpoint' : 'data-mfa-setup-endpoint';
+    var fallback = kind === 'verify' ? '/api/2fa/verify-step' : '/api/2fa/start-step';
+    return (m && m.getAttribute(attr)) || fallback;
+  }
+  function identifier(){
+    try{ if(window.__DIRAC_BACKEND_AUTH_CONTEXT__ && window.__DIRAC_BACKEND_AUTH_CONTEXT__.identifier) return String(window.__DIRAC_BACKEND_AUTH_CONTEXT__.identifier).trim(); }catch(_e){}
+    var input = $('#identifier');
+    return input && input.value ? String(input.value).trim() : '';
+  }
+  function status(message, kind){
+    var el = $('#diracAuthenticatorSetupStatus');
+    if(!el) return;
+    el.className = 'dirac-authenticator-status' + (kind ? ' is-' + kind : '');
+    el.textContent = message;
+  }
+  function safePayload(data){
+    if(!data || typeof data !== 'object') return {};
+    return data;
+  }
+  function qrSource(data){
+    data = safePayload(data);
+    var src = data.qrDataUrl || data.qr_data_url || data.qrImage || data.qr_image || data.qrCode || data.qr_code || data.qrData || data.qr_data || '';
+    if(src && /^data:image\//i.test(String(src))) return String(src);
+    if(src && /^https:\/\//i.test(String(src))) return String(src);
+    return '';
+  }
+  function otpauthUrl(data){
+    data = safePayload(data);
+    var url = data.otpauthUrl || data.otpauth_url || data.otpAuthUrl || data.otp_auth_url || '';
+    return /^otpauth:\/\//i.test(String(url)) ? String(url) : '';
+  }
+  function setupToken(data){
+    data = safePayload(data);
+    return String(data.setupToken || data.mfaSetupToken || data.token || data.setup_token || '').trim();
+  }
+  function renderQr(data){
+    var box = $('#diracAuthenticatorQrBox');
+    if(!box) return;
+    var src = qrSource(data);
+    var otp = otpauthUrl(data);
+    runtime.qrShown = !!src || !!otp;
+    if(src){
+      box.innerHTML = '<img alt="QR Authenticator" src="' + src.replace(/"/g,'&quot;') + '">';
+      return;
+    }
+    box.innerHTML = '<div class="dirac-authenticator-qr-placeholder"><b aria-hidden="true">📲</b><strong>' + text('QR menunggu backend', 'Waiting for backend QR') + '</strong><span>' + text('Saat endpoint setup mengirim QR/otpauth, QR akan tampil di sini. Rahasia tidak disimpan di browser.', 'When the setup endpoint returns QR/otpauth, it appears here. Secrets are not stored in browser storage.') + '</span></div>';
+  }
+  function ensureCard(){
+    var p = panel(); if(!p || $('#diracAuthenticatorSetupCard', p)) return;
+    var card = document.createElement('div');
+    card.className = 'dirac-authenticator-setup-card';
+    card.id = 'diracAuthenticatorSetupCard';
+    card.setAttribute('data-no-i18n','');
+    card.innerHTML = ''+
+      '<div class="dirac-authenticator-setup-head">'+
+        '<div><strong>'+text('Tambahkan Authenticator sebagai cadangan','Add Authenticator as backup')+'</strong><span>'+text('Gunakan setelah passkey aktif, terutama saat perangkat utama hilang atau Face ID/PIN bermasalah.','Use this after passkey is active, especially if your main device is lost or Face ID/PIN has issues.')+'</span></div>'+
+        '<em class="dirac-authenticator-setup-badge">'+text('Cadangan opsional','Optional backup')+'</em>'+
+      '</div>'+
+      '<div class="dirac-authenticator-setup-grid">'+
+        '<div class="dirac-authenticator-qr-box" id="diracAuthenticatorQrBox"><div class="dirac-authenticator-qr-placeholder"><b aria-hidden="true">📲</b><strong>'+text('Siapkan aplikasi Authenticator','Prepare Authenticator app')+'</strong><span>'+text('Tekan mulai, lalu scan QR yang dikirim server.','Press start, then scan the QR sent by the server.')+'</span></div></div>'+
+        '<div class="dirac-authenticator-setup-body">'+
+          '<ol class="dirac-authenticator-steps"><li>'+text('Buka Google Authenticator/Authy/Microsoft Authenticator.','Open Google Authenticator/Authy/Microsoft Authenticator.')+'</li><li>'+text('Scan QR dari server atau gunakan setup key jika server mengizinkan.','Scan the server QR or use the setup key if the server allows it.')+'</li><li>'+text('Masukkan kode 6 digit terbaru untuk mengaktifkan.','Enter the latest 6-digit code to activate it.')+'</li></ol>'+
+          '<button type="button" class="dirac-authenticator-start-btn" id="diracAuthenticatorStartSetup">'+text('Mulai setup Authenticator','Start Authenticator setup')+'</button>'+
+          '<div class="dirac-authenticator-setup-code"><input class="dirac-authenticator-code-input" id="diracAuthenticatorCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" aria-label="Kode Authenticator 6 digit"><button type="button" class="dirac-authenticator-verify-btn" id="diracAuthenticatorVerifySetup">'+text('Verifikasi','Verify')+'</button></div>'+
+          '<div class="dirac-authenticator-secret-safe">'+text('Tidak menyimpan session/token di browser. Setup token hanya di memori halaman ini; cookie sesi harus HttpOnly dari backend.','No session/token is saved in browser storage. Setup token is kept only in page memory; session cookies must be HttpOnly from backend.')+'</div>'+
+          '<div class="dirac-authenticator-status" id="diracAuthenticatorSetupStatus">'+text('Belum dimulai.','Not started yet.')+'</div>'+
+        '</div>'+
+      '</div>';
+    p.appendChild(card);
+  }
+  async function post(kind, body){
+    var res = await fetch(endpoint(kind), {
+      method:'POST',
+      mode:'cors',
+      cache:'no-store',
+      credentials:'include',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(body || {})
+    });
+    var data = await res.clone().json().catch(function(){ return {}; });
+    if(!res.ok || (data && data.ok === false)){
+      throw new Error((data && (data.message || data.error || data.hint)) || text('Request Authenticator gagal.','Authenticator request failed.'));
+    }
+    return data || {};
+  }
+  async function beginSetup(){
+    var btn = $('#diracAuthenticatorStartSetup');
+    try{
+      if(btn) btn.disabled = true;
+      status(text('Menghubungi server setup Authenticator...','Contacting Authenticator setup server...'));
+      var data = await post('setup', { method:'authenticator', action:'setup', setupType:'backup_authenticator', identifier:identifier() });
+      runtime.setupToken = setupToken(data);
+      runtime.started = true;
+      renderQr(data);
+      status(runtime.qrShown ? text('Scan QR, lalu masukkan kode 6 digit terbaru.','Scan the QR, then enter the latest 6-digit code.') : text('Server belum mengirim QR. Pastikan endpoint setup mengirim qrDataUrl/otpauthUrl.','Server has not returned a QR yet. Ensure the setup endpoint returns qrDataUrl/otpauthUrl.'), runtime.qrShown ? '' : 'error');
+      var code = $('#diracAuthenticatorCode'); if(code) code.focus({preventScroll:true});
+    }catch(e){
+      status((e && e.message) ? e.message : text('Setup Authenticator belum bisa dimulai.','Authenticator setup could not start.'), 'error');
+    }finally{ if(btn) btn.disabled = false; }
+  }
+  async function verifySetup(){
+    var input = $('#diracAuthenticatorCode');
+    var code = cleanDigits(input && input.value);
+    if(input) input.value = code;
+    if(!/^\d{6}$/.test(code)){
+      status(text('Kode harus 6 digit angka.','Code must be 6 digits.'), 'error');
+      return;
+    }
+    var btn = $('#diracAuthenticatorVerifySetup');
+    try{
+      if(btn) btn.disabled = true;
+      status(text('Memverifikasi kode dengan server...','Verifying code with server...'));
+      var data = await post('verify', { method:'authenticator', action:'verify_setup', setupType:'backup_authenticator', identifier:identifier(), code:code, setupToken:runtime.setupToken });
+      runtime.verified = !!(data.ok !== false);
+      status(text('Authenticator aktif sebagai metode cadangan.','Authenticator is active as a backup method.'), 'ok');
+      var method = $('#a2fModal [data-a2f-select="authenticator"] small');
+      if(method) method.textContent = text('Aktif sebagai cadangan akun.','Active as account backup.');
+    }catch(e){
+      status((e && e.message) ? e.message : text('Kode belum cocok. Coba kode terbaru.','Code does not match. Try the latest code.'), 'error');
+    }finally{ if(btn) btn.disabled = false; }
+  }
+  function patchCopy(){
+    var m = modal(); if(!m) return;
+    var method = $('[data-a2f-select="authenticator"]', m);
+    if(method){
+      var em = method.querySelector('em'); if(em) em.textContent = text('Cadangan','Backup');
+      var strong = method.querySelector('strong'); if(strong) strong.textContent = text('Authenticator cadangan','Backup Authenticator');
+      var small = method.querySelector('small'); if(small && !/aktif|active/i.test(small.textContent || '')) small.textContent = text('Opsional setelah passkey aktif.','Optional after passkey is active.');
+    }
+    var p = panel();
+    if(p){
+      var h3 = p.querySelector('h3'); if(h3) h3.textContent = text('Setup Authenticator cadangan','Set up backup Authenticator');
+      var txt = p.querySelector('p'); if(txt) txt.textContent = text('Scan QR dari server, lalu verifikasi kode 6 digit. Rahasia TOTP hanya boleh tampil saat setup, tidak saat login ulang.','Scan the server QR, then verify the 6-digit code. TOTP secrets may appear only during setup, never during later login.');
+    }
+  }
+  function install(){
+    patchCopy();
+    ensureCard();
+    var code = $('#diracAuthenticatorCode');
+    if(code && !code.__diracAuthSetupBound){
+      code.__diracAuthSetupBound = true;
+      code.addEventListener('input', function(){ this.value = cleanDigits(this.value); }, true);
+      code.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); verifySetup(); } }, true);
+    }
+    var start = $('#diracAuthenticatorStartSetup');
+    if(start && !start.__diracAuthSetupBound){ start.__diracAuthSetupBound = true; start.addEventListener('click', beginSetup, true); }
+    var verify = $('#diracAuthenticatorVerifySetup');
+    if(verify && !verify.__diracAuthSetupBound){ verify.__diracAuthSetupBound = true; verify.addEventListener('click', verifySetup, true); }
+  }
+  ready(function(){
+    install();
+    var m = modal();
+    if(m && window.MutationObserver){
+      var queued = false;
+      new MutationObserver(function(){
+        if(queued) return;
+        queued = true;
+        requestAnimationFrame(function(){ queued = false; install(); });
+      }).observe(m, {subtree:true, childList:true, attributes:true, attributeFilter:['class','data-selected-a2f']});
+    }
+    if(window.MutationObserver){
+      new MutationObserver(install).observe(document.documentElement, {attributes:true, attributeFilter:['lang','data-effective-theme']});
     }
   });
 })();
