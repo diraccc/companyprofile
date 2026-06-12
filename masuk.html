@@ -6571,15 +6571,16 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   'use strict';
 
   /* =========================================================
-     Dirac UI Sound Feedback FIX v8
+     Dirac UI Sound Feedback FIX v9
      Fokus perubahan: hanya memperbaiki efek suara tombol/UI.
      Tidak mengubah endpoint, login, register, hash, token, cookie, A2F/MFA,
      dashboard, checkout, order, atau keamanan backend.
      ========================================================= */
 
-  var STORAGE_KEY = 'dirac_ui_sound_enabled_v2';
+  var STORAGE_KEY = 'dirac_ui_sound_enabled_v3';
   var LEGACY_STORAGE_KEY = 'dirac_ui_sound_enabled_v1';
-  var PATCH_KEY = 'dirac_ui_sound_fix_v8_applied';
+  var PATCH_KEY = 'dirac_ui_sound_fix_v9_applied';
+  var USER_OFF_KEY = 'dirac_ui_sound_user_off_v1';
   var AudioCtx = window.AudioContext || window.webkitAudioContext;
   var ctx = null;
   var master = null;
@@ -6603,11 +6604,15 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     try{
       var firstPatch = localStorage.getItem(PATCH_KEY) !== '1';
       if(firstPatch){
+        /* FIX v9: reset paksa ke ON satu kali agar browser yang pernah menyimpan
+           status off dari patch lama tidak membuat efek klik terlihat hilang. */
         localStorage.setItem(STORAGE_KEY, 'on');
         localStorage.setItem(LEGACY_STORAGE_KEY, 'on');
+        localStorage.removeItem(USER_OFF_KEY);
         localStorage.setItem(PATCH_KEY, '1');
         return true;
       }
+      if(localStorage.getItem(USER_OFF_KEY) === '1') return false;
       var saved = localStorage.getItem(STORAGE_KEY);
       if(saved === 'on' || saved === 'off') return saved !== 'off';
       var legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -6620,6 +6625,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     try{
       localStorage.setItem(STORAGE_KEY, enabled ? 'on' : 'off');
       localStorage.setItem(LEGACY_STORAGE_KEY, enabled ? 'on' : 'off');
+      if(enabled) localStorage.removeItem(USER_OFF_KEY);
+      else localStorage.setItem(USER_OFF_KEY, '1');
       localStorage.setItem(PATCH_KEY, '1');
     }catch(_){ }
   }
@@ -6631,7 +6638,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       catch(_){ ctx = new AudioCtx(); }
 
       master = ctx.createGain();
-      master.gain.value = 0.92;
+      master.gain.value = 1.0;
 
       if(ctx.createDynamicsCompressor){
         compressor = ctx.createDynamicsCompressor();
@@ -6771,7 +6778,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
     if(kind === 'click' || kind === 'button' || kind === 'tap'){
       if(shouldThrottle('click', 72)) return true;
-      ok = beep(860, 0.055, 0.060, 'triangle', 0.003, 1120);
+      ok = beep(930, 0.085, 0.125, 'triangle', 0.002, 1240);
     }else if(kind === 'loading' || kind === 'load'){
       if(shouldThrottle('loading', 260)) return true;
       ok = noise(0.16, 0.024, 0.002);
@@ -6843,33 +6850,43 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
       kind = String(kind || 'click').toLowerCase();
       var key = /error|fail|danger/.test(kind) ? 'error' : (/success|ok|finish|done|complete/.test(kind) ? 'success' : (/loading|load/.test(kind) ? 'loading' : 'click'));
       if(!fallbackCache[key]){
-        var map = {click:[880,0.065,0.50], loading:[420,0.110,0.40], success:[720,0.140,0.48], error:[190,0.130,0.46]};
+        var map = {click:[940,0.090,0.92], loading:[420,0.130,0.62], success:[760,0.160,0.70], error:[185,0.150,0.68]};
         fallbackCache[key] = buildFallbackWav(map[key][0], map[key][1], map[key][2]);
       }
       if(!fallbackCache[key]) return false;
-      if(!fallbackAudio) fallbackAudio = new Audio();
-      fallbackAudio.pause();
-      fallbackAudio.currentTime = 0;
-      fallbackAudio.src = fallbackCache[key];
-      fallbackAudio.volume = 0.92;
-      var p = fallbackAudio.play();
+
+      /* FIX v9: pakai Audio baru setiap play agar tap cepat tidak membatalkan
+         suara sebelumnya. Ini juga menjadi jalur cadangan bila WebAudio ditunda. */
+      var audio = new Audio(fallbackCache[key]);
+      audio.preload = 'auto';
+      audio.muted = false;
+      audio.volume = 1;
+      fallbackAudio = audio;
+      var p = audio.play();
       if(p && p.catch) p.catch(function(){});
+      setTimeout(function(){ try{ audio.pause(); audio.src = ''; }catch(_){ } }, 900);
       return true;
     }catch(_){ return false; }
   }
 
   function play(kind){
     if(!enabled) return false;
+    kind = String(kind || 'click').toLowerCase();
 
     var audio = createContext();
     var played = false;
+    var allowImmediateFallback = !(/type|typing|key/.test(kind));
+    var fallbackStarted = false;
 
     /*
-       FIX v8: suara klik harus dijadwalkan saat gesture masih aktif.
-       Pada beberapa browser mobile, menunggu audio.resume().then(...) membuat
-       suara pertama hilang karena halaman/link sudah berpindah atau user-gesture
-       sudah selesai. Karena itu beep dicoba langsung, lalu resume tetap dijalankan.
+       FIX v9: dua jalur suara dipicu langsung saat gesture masih aktif.
+       1) HTMLAudio data-URI fallback dibuat dan dimainkan segera.
+       2) WebAudio oscillator tetap dijadwalkan/resume.
+       Ini mengatasi Chrome/Safari mobile yang kadang menunda resume WebAudio
+       atau browser yang masih menyimpan state sound off dari patch lama.
     */
+    if(allowImmediateFallback) fallbackStarted = fallback(kind);
+
     try{
       if(audio && audio.state === 'suspended' && audio.resume){
         played = playNow(kind);
@@ -6878,25 +6895,25 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
           resumeResult.then(function(){
             primeContext(audio);
             if(!played) played = playNow(kind);
-            if(!played) fallback(kind);
+            if(!played && !fallbackStarted) fallback(kind);
           }).catch(function(){
-            if(!played) fallback(kind);
+            if(!fallbackStarted) fallback(kind);
           });
         }else{
           primeContext(audio);
           if(!played) played = playNow(kind);
-          if(!played) fallback(kind);
+          if(!played && !fallbackStarted) fallback(kind);
         }
         return true;
       }
     }catch(_){
-      if(!played) fallback(kind);
+      if(!fallbackStarted) fallback(kind);
       return true;
     }
 
     unlockAudio(function(){
       played = playNow(kind);
-      if(!played) fallback(kind);
+      if(!played && !fallbackStarted) fallback(kind);
     });
     return true;
   }
@@ -6943,8 +6960,18 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
 
   function interactiveFrom(target){
-    if(!target || !target.closest) return null;
-    return target.closest('button,a,[role="button"],input[type="button"],input[type="submit"],input[type="checkbox"],input[type="radio"],select,.auth-tab,.ai-chip,.theme-pro-choice,.choice,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.theme-toggle,.menu-toggle,.catalog-return,.header-cart,[data-a2f-method],[data-a2f-select]');
+    var el = target && target.nodeType === 1 ? target : (target && target.parentElement);
+    if(!el || !el.closest) return null;
+    var direct = el.closest('button,a,label,summary,[role="button"],[tabindex],input[type="button"],input[type="submit"],input[type="checkbox"],input[type="radio"],select,.auth-tab,.ai-chip,.theme-pro-choice,.choice,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.theme-toggle,.menu-toggle,.catalog-return,.header-cart,[onclick],[data-action],[data-mode],[data-theme],[data-lang],[data-scroll],[data-a2f-method],[data-a2f-select]');
+    if(direct) return direct;
+    var walk = el;
+    for(var i = 0; walk && walk !== document.body && i < 5; i += 1, walk = walk.parentElement){
+      try{
+        var style = window.getComputedStyle ? window.getComputedStyle(walk) : null;
+        if(style && style.cursor === 'pointer') return walk;
+      }catch(_){ }
+    }
+    return null;
   }
 
   function gesture(event){
@@ -6986,8 +7013,9 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(document.__diracSoundRepairEventsBound) return;
     document.__diracSoundRepairEventsBound = true;
     document.addEventListener('pointerdown', gesture, {capture:true, passive:true});
+    document.addEventListener('pointerup', function(e){ unlockAudio(); if(nowMs() - lastGestureAt > 180) gesture(e); }, {capture:true, passive:true});
     document.addEventListener('touchstart', gesture, {capture:true, passive:true});
-    document.addEventListener('touchend', function(e){ unlockAudio(); if(!window.PointerEvent) gesture(e); }, {capture:true, passive:true});
+    document.addEventListener('touchend', function(e){ unlockAudio(); if(!window.PointerEvent || nowMs() - lastGestureAt > 180) gesture(e); }, {capture:true, passive:true});
     document.addEventListener('mousedown', function(e){ if(!window.PointerEvent) gesture(e); }, true);
     document.addEventListener('click', function(e){ if(nowMs() - lastGestureAt > 140) gesture(e); }, true);
     document.addEventListener('keydown', keyboard, true);
@@ -7095,7 +7123,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     unlock: unlockAudio,
     setEnabled: function(value){ enabled = value !== false; saveEnabled(); updateToggle(); if(enabled) unlockAudio(); },
     isEnabled: function(){ return enabled; },
-    version: 'fix-v8'
+    version: 'fix-v9'
   };
 
   ready(init);
