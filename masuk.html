@@ -4362,6 +4362,100 @@ html[data-motion="reduced"] .auth-submit:before{
   }
 }
 </style>
+
+
+<style id="dirac-header-reactbits-typewriter-final-css">
+/* =========================================================
+   Header React Bits style typewriter final
+   Target: teks header Masuk / Daftar + Dirac Group saja.
+   Tidak menyentuh form login, endpoint, hash, session, password, A2F.
+   ========================================================= */
+.site-header .brand-name.brand-typewriter,
+.site-header[data-order-circled-header="true"] .brand-name.brand-typewriter,
+.site-header[data-dashboard-header-exact="true"] .brand-typewriter{
+  display:inline-flex!important;
+  align-items:baseline!important;
+  justify-content:flex-start!important;
+  gap:0!important;
+  min-width:clamp(12.8ch, 22vw, 20ch)!important;
+  max-width:min(21ch, calc(100vw - 178px))!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  line-height:1.08!important;
+  font-family:"Playfair Display",serif!important;
+  font-weight:700!important;
+  letter-spacing:-.025em!important;
+  color:#ffffff!important;
+}
+.site-header .brand-typewriter-text{
+  display:inline-block!important;
+  min-width:0!important;
+  white-space:pre!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  color:inherit!important;
+  filter:none!important;
+  letter-spacing:inherit!important;
+}
+.site-header .brand-typewriter:after,
+.site-header[data-order-circled-header="true"] .brand-typewriter:after,
+.site-header[data-dashboard-header-exact="true"] .brand-typewriter:after{
+  content:"_"!important;
+  display:inline-block!important;
+  width:auto!important;
+  height:auto!important;
+  margin-left:.075em!important;
+  transform:translateY(.03em)!important;
+  background:none!important;
+  border:0!important;
+  border-radius:0!important;
+  font:inherit!important;
+  font-weight:800!important;
+  line-height:1!important;
+  color:currentColor!important;
+  opacity:.74!important;
+  box-shadow:none!important;
+  animation:diracReactBitsCursorBlink .82s steps(1,end) infinite!important;
+}
+.site-header .brand-typewriter[data-typing-state="pause"]:after{opacity:.74!important;}
+.site-header .brand-typewriter[data-phrase="auth"] .brand-typewriter-text,
+.site-header .brand-typewriter[data-phrase="brand"] .brand-typewriter-text{
+  color:inherit!important;
+  filter:none!important;
+  letter-spacing:inherit!important;
+}
+@keyframes diracReactBitsCursorBlink{
+  0%,54%{opacity:.74}
+  55%,100%{opacity:.12}
+}
+html[data-effective-theme="light"] .site-header .brand-name.brand-typewriter,
+html[data-effective-theme="light"] .site-header .brand-typewriter-text{
+  color:#151923!important;
+}
+@media(max-width:760px){
+  .site-header .brand-name.brand-typewriter,
+  .site-header[data-order-circled-header="true"] .brand-name.brand-typewriter,
+  .site-header[data-dashboard-header-exact="true"] .brand-typewriter{
+    min-width:clamp(9.8ch, 30vw, 15.5ch)!important;
+    max-width:calc(100vw - 156px)!important;
+    font-size:1.02rem!important;
+  }
+}
+@media(max-width:430px){
+  .site-header .brand-name.brand-typewriter,
+  .site-header[data-order-circled-header="true"] .brand-name.brand-typewriter,
+  .site-header[data-dashboard-header-exact="true"] .brand-typewriter{
+    min-width:8.6ch!important;
+    max-width:calc(100vw - 146px)!important;
+    font-size:.96rem!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .site-header .brand-typewriter:after{animation:none!important;opacity:.55!important;}
+}
+</style>
+
 </head>
 <body data-auth-mode="login">
   <!-- Dirac edit: announcement removed, hamburger removed, order.html header capsule + brand typewriter applied. -->
@@ -5622,120 +5716,210 @@ html[data-motion="reduced"] .auth-submit:before{
 <script id="dirac-brand-typewriter-js">
 (function(){
   'use strict';
-  var BRAND_TEXT = 'Dirac Group';
+
   var target = document.querySelector('[data-brand-typewriter] .brand-typewriter-text');
   if(!target) return;
+
   var wrapper = target.closest('[data-brand-typewriter]');
   var timer = null;
-  var phraseKind = 'brand';
-  var index = 0;
+  var phraseIndex = 0;
+  var charIndex = 0;
   var deleting = false;
   var lastAuthPhrase = '';
-  var speed = {type:84, authType:72, erase:46, pauseBrand:1180, pauseAuth:1320, gap:260};
 
-  function reduceMotion(){
-    try{
-      return (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || document.documentElement.getAttribute('data-motion') === 'reduced';
-    }catch(error){ return false; }
+  /* Timing dibuat mengikuti pola React Bits Text Type: type -> pause -> delete -> next. */
+  var timing = {
+    firstDelay: 320,
+    type: 62,
+    typeJitter: 26,
+    erase: 34,
+    pause: 1040,
+    emptyGap: 235,
+    hiddenRetry: 700
+  };
+
+  function isEnglish(){
+    return String(document.documentElement.lang || '').toLowerCase().slice(0,2) === 'en';
   }
-  function textOf(selector, fallback){
+
+  function readText(selector, fallback){
     var el = document.querySelector(selector);
-    var text = el ? String(el.textContent || '').replace(/\s+/g,' ').trim() : '';
-    return text || fallback;
+    var value = el ? String(el.textContent || '').replace(/\s+/g,' ').trim() : '';
+    return value || fallback;
   }
+
   function getAuthPhrase(){
-    var login = textOf('#loginTab', document.documentElement.lang === 'en' ? 'Sign in' : 'Masuk');
-    var register = textOf('#registerTab', document.documentElement.lang === 'en' ? 'Register' : 'Daftar');
+    var login = readText('#loginTab', isEnglish() ? 'Sign in' : 'Masuk');
+    var register = readText('#registerTab', isEnglish() ? 'Register' : 'Daftar');
     return login + ' / ' + register;
   }
-  function getPhrase(){
-    return phraseKind === 'brand' ? BRAND_TEXT : getAuthPhrase();
+
+  function getPhrases(){
+    return [getAuthPhrase(), 'Dirac Group'];
   }
-  function setWrapperState(state){
+
+  function currentPhrase(){
+    var phrases = getPhrases();
+    if(phraseIndex >= phrases.length) phraseIndex = 0;
+    return phrases[phraseIndex] || 'Dirac Group';
+  }
+
+  function prefersReducedMotion(){
+    try{
+      return (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ||
+        document.documentElement.getAttribute('data-motion') === 'reduced';
+    }catch(error){ return false; }
+  }
+
+  function setState(state){
     if(!wrapper) return;
-    wrapper.setAttribute('data-phrase', phraseKind);
+    wrapper.setAttribute('data-phrase', phraseIndex === 0 ? 'auth' : 'brand');
     wrapper.setAttribute('data-typing-state', state || (deleting ? 'deleting' : 'typing'));
-    wrapper.setAttribute('aria-label', getPhrase());
-    wrapper.setAttribute('data-no-i18n','');
+    wrapper.setAttribute('aria-label', currentPhrase());
+    wrapper.setAttribute('data-no-i18n', '');
   }
-  function render(){
-    var phrase = getPhrase();
-    if(index > phrase.length) index = phrase.length;
-    target.textContent = phrase.slice(0, index);
-    target.setAttribute('aria-hidden','true');
-    setWrapperState(deleting ? 'deleting' : 'typing');
+
+  function render(state){
+    var phrase = currentPhrase();
+    if(charIndex > phrase.length) charIndex = phrase.length;
+    if(charIndex < 0) charIndex = 0;
+    target.textContent = phrase.slice(0, charIndex);
+    target.setAttribute('aria-hidden', 'true');
+    setState(state);
   }
-  function clearTimer(){ if(timer){ window.clearTimeout(timer); timer = null; } }
-  function schedule(delay){ clearTimer(); timer = window.setTimeout(tick, delay); }
-  function switchPhrase(){
-    phraseKind = phraseKind === 'brand' ? 'auth' : 'brand';
-    if(phraseKind === 'auth') lastAuthPhrase = getAuthPhrase();
-    index = 0;
+
+  function clearTimer(){
+    if(timer){ window.clearTimeout(timer); timer = null; }
+  }
+
+  function schedule(delay){
+    clearTimer();
+    timer = window.setTimeout(tick, delay);
+  }
+
+  function typeDelayForChar(ch){
+    var extra = 0;
+    if(ch === ' ') extra += 28;
+    if(ch === '/') extra += 44;
+    if(ch === '.') extra += 30;
+    return timing.type + extra + Math.floor(Math.random() * timing.typeJitter);
+  }
+
+  function nextPhrase(){
+    var phrases = getPhrases();
+    phraseIndex = (phraseIndex + 1) % phrases.length;
+    charIndex = 0;
     deleting = false;
-    render();
-    schedule(speed.gap);
+    render('typing');
+    schedule(timing.emptyGap);
   }
+
   function tick(){
     timer = null;
-    if(document.hidden){ schedule(700); return; }
-    if(reduceMotion()){
-      phraseKind = 'brand'; index = BRAND_TEXT.length; deleting = false; render(); setWrapperState('pause'); return;
+
+    if(document.hidden){
+      schedule(timing.hiddenRetry);
+      return;
     }
-    var phrase = getPhrase();
-    if(!deleting){
-      index = Math.min(phrase.length, index + 1);
-      render();
-      if(index >= phrase.length){
-        setWrapperState('pause');
-        deleting = true;
-        schedule(phraseKind === 'brand' ? speed.pauseBrand : speed.pauseAuth);
-      }else{
-        var nextDelay = phraseKind === 'auth' ? speed.authType : speed.type;
-        if(/[\s\/]/.test(phrase.charAt(Math.max(0,index-1)))) nextDelay += 34;
-        schedule(nextDelay);
-      }
-    }else{
-      index = Math.max(0, index - 1);
-      render();
-      if(index <= 0) switchPhrase();
-      else schedule(speed.erase);
-    }
-  }
-  function restartAuthPhraseIfNeeded(){
-    var next = getAuthPhrase();
-    if(next === lastAuthPhrase) return;
-    lastAuthPhrase = next;
-    if(phraseKind === 'auth'){
-      index = 0;
+
+    if(prefersReducedMotion()){
+      phraseIndex = 0;
+      charIndex = currentPhrase().length;
       deleting = false;
-      target.textContent = '';
-      setWrapperState('typing');
-      schedule(140);
+      render('pause');
+      return;
     }
+
+    var phrase = currentPhrase();
+
+    if(!deleting){
+      charIndex += 1;
+      if(charIndex >= phrase.length){
+        charIndex = phrase.length;
+        render('pause');
+        deleting = true;
+        schedule(timing.pause);
+        return;
+      }
+      render('typing');
+      schedule(typeDelayForChar(phrase.charAt(charIndex - 1)));
+      return;
+    }
+
+    charIndex -= 1;
+    if(charIndex <= 0){
+      charIndex = 0;
+      render('deleting');
+      nextPhrase();
+      return;
+    }
+    render('deleting');
+    schedule(timing.erase);
   }
-  function watchLanguage(){
+
+  function restartForLanguageChange(){
+    var auth = getAuthPhrase();
+    if(auth === lastAuthPhrase) return;
+    lastAuthPhrase = auth;
+    phraseIndex = 0;
+    charIndex = 0;
+    deleting = false;
+    render('typing');
+    schedule(140);
+  }
+
+  function watchTextSources(){
     var login = document.querySelector('#loginTab');
     var register = document.querySelector('#registerTab');
     var debounce = null;
-    var onChange = function(){ window.clearTimeout(debounce); debounce = window.setTimeout(restartAuthPhraseIfNeeded, 80); };
-    if(window.MutationObserver){
-      [login, register].forEach(function(el){ if(el) new MutationObserver(onChange).observe(el, {childList:true,characterData:true,subtree:true}); });
-      new MutationObserver(onChange).observe(document.documentElement, {attributes:true,attributeFilter:['lang','dir','data-motion']});
+    function onChange(){
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(restartForLanguageChange, 90);
     }
-    ['change','click'].forEach(function(evt){ document.addEventListener(evt, function(e){ if(e.target && (e.target.matches('#languageSelect') || e.target.closest('[data-language]'))) onChange(); }, true); });
+    if(window.MutationObserver){
+      [login, register].forEach(function(el){
+        if(el) new MutationObserver(onChange).observe(el, {childList:true, characterData:true, subtree:true});
+      });
+      new MutationObserver(onChange).observe(document.documentElement, {
+        attributes:true,
+        attributeFilter:['lang','dir','data-motion']
+      });
+    }
+    document.addEventListener('click', function(event){
+      if(event.target && (event.target.matches('#languageSelect') || event.target.closest('[data-language]'))) onChange();
+    }, true);
   }
+
   function start(){
-    if(wrapper){ wrapper.setAttribute('data-phrase','brand'); wrapper.setAttribute('data-typing-state','typing'); wrapper.setAttribute('data-no-i18n',''); }
     lastAuthPhrase = getAuthPhrase();
-    target.textContent = '';
-    index = 0;
+    phraseIndex = 0;
+    charIndex = 0;
     deleting = false;
-    watchLanguage();
-    schedule(360);
+    target.textContent = '';
+    setState('typing');
+    watchTextSources();
+    schedule(timing.firstDelay);
   }
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden && !timer) schedule(180); });
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();
-  window.__diracBrandTypewriterState = function(){ return {phraseKind:phraseKind, phrase:getPhrase(), index:index, deleting:deleting, authPhrase:getAuthPhrase()}; };
+
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && !timer) schedule(180);
+  });
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', start, {once:true});
+  }else{
+    start();
+  }
+
+  window.__diracBrandTypewriterState = function(){
+    return {
+      phrase: currentPhrase(),
+      phraseIndex: phraseIndex,
+      charIndex: charIndex,
+      deleting: deleting,
+      authPhrase: getAuthPhrase()
+    };
+  };
 })();
 </script>
 
