@@ -4292,16 +4292,17 @@ html[data-motion="reduced"] .auth-submit:before{
 </style>
 
 
-<style id="dirac-header-posisi-tengah-presisi-20260612-css">
+<style id="dirac-header-posisi-tinggi-presisi-20260612-css">
 /* =========================================================
    DIRAC HEADER POSITION REFINE - 2026-06-12
    Scope CSS visual header saja.
    Body, script, login, hash, A2F, endpoint, cookie/session tidak diubah.
-   Tujuan: capsule header turun sedikit dan isi tetap center presisi.
+   Tujuan: capsule header dinaikkan, tidak memakai env(safe-area-inset-top)
+   sebagai offset besar, dan isi header tetap center presisi.
    ========================================================= */
 .site-header[data-dashboard-header-exact="true"]{
-  top:max(18px, calc(env(safe-area-inset-top) + 10px))!important;
-  padding-top:18px!important;
+  top:0!important;
+  padding-top:6px!important;
 }
 .site-header[data-dashboard-header-exact="true"] .container.nav{
   align-items:center!important;
@@ -4328,13 +4329,13 @@ html[data-motion="reduced"] .auth-submit:before{
 }
 @media(max-width:760px){
   .site-header[data-dashboard-header-exact="true"]{
-    top:max(20px, calc(env(safe-area-inset-top) + 12px))!important;
-    padding-top:18px!important;
+    top:0!important;
+    padding-top:6px!important;
   }
   .site-header[data-dashboard-header-exact="true"] .container.nav{
-    width:calc(100% - 22px)!important;
-    min-height:78px!important;
-    padding:11px 14px!important;
+    width:calc(100% - 18px)!important;
+    min-height:76px!important;
+    padding:10px 12px!important;
     border-radius:32px!important;
     align-items:center!important;
   }
@@ -4345,13 +4346,13 @@ html[data-motion="reduced"] .auth-submit:before{
 }
 @media(max-width:430px){
   .site-header[data-dashboard-header-exact="true"]{
-    top:max(20px, calc(env(safe-area-inset-top) + 12px))!important;
-    padding-top:18px!important;
+    top:0!important;
+    padding-top:6px!important;
   }
   .site-header[data-dashboard-header-exact="true"] .container.nav{
-    width:calc(100% - 18px)!important;
-    min-height:74px!important;
-    padding:10px 12px!important;
+    width:calc(100% - 14px)!important;
+    min-height:72px!important;
+    padding:9px 10px!important;
     border-radius:30px!important;
     gap:8px!important;
   }
