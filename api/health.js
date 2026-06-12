@@ -1009,6 +1009,14 @@ async function domainRegister(req, res, preloadedBody) {
   const signupBody = { email, password };
   if (Object.keys(userData).length) signupBody.data = userData;
 
+  // Register duplicate check v2:
+  // cek backend-only memakai service role sebelum signup.
+  // Tidak menyentuh domainLogin(), hash, A2F/MFA, cookie, token, dashboard, checkout, atau order.
+  const existingAuthUser = await findSupabaseAuthUserByEmail(email);
+  if (existingAuthUser && existingAuthUser.exists === true) {
+    return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+  }
+
   const result = await supabaseFetch('/auth/v1/signup', {
     method: 'POST',
     auth: 'anon',
@@ -1036,12 +1044,10 @@ async function domainRegister(req, res, preloadedBody) {
   }
 
   if (!hasSupabaseRegisterNewAccountEvidence(signupData)) {
-    return res.status(502).json({
-      ok: false,
-      code: 'REGISTER_RESULT_NOT_CONFIRMED',
-      needs_email_confirmation: false,
-      message: 'Pendaftaran belum bisa dipastikan sebagai akun baru. Silakan coba lagi, atau gunakan email lain jika email ini sudah pernah didaftarkan.'
-    });
+    // Supabase kadang menyamarkan signup email lama sebagai respons tidak jelas.
+    // Untuk halaman customer, jangan tampilkan pesan ambigu dan jangan klaim akun baru dibuat.
+    // Treat as already registered agar user diarahkan masuk / lupa password / email lain.
+    return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
   }
 
   if (signupData.access_token && signupData.refresh_token) {
@@ -1069,6 +1075,39 @@ function buildDomainRegisterDuplicateEmailBody() {
     next: 'login_or_reset_password',
     message: 'Email ini sudah terdaftar. Silakan masuk, atau gunakan lupa password jika tidak ingat kata sandi.'
   };
+}
+
+
+async function findSupabaseAuthUserByEmail(email) {
+  const normalizedEmail = normalizeAuthEmail(email);
+  if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { exists: false, checked: false };
+
+  try {
+    const result = await supabaseFetch(`/auth/v1/admin/users?email=${encodeURIComponent(normalizedEmail)}`, {
+      method: 'GET',
+      auth: 'service'
+    });
+
+    if (!result.ok || !result.data) return { exists: false, checked: false };
+
+    const data = result.data;
+    const candidates = [];
+    if (Array.isArray(data)) candidates.push(...data);
+    if (Array.isArray(data.users)) candidates.push(...data.users);
+    if (data.user && typeof data.user === 'object') candidates.push(data.user);
+
+    const exists = candidates.some((user) => {
+      if (!user || typeof user !== 'object') return false;
+      const userEmail = normalizeAuthEmail(user.email || user.email_address || '');
+      return userEmail === normalizedEmail;
+    });
+
+    return { exists, checked: true };
+  } catch (_) {
+    // Pre-check hanya penguat deteksi duplikat. Jika admin endpoint tidak tersedia,
+    // signup tetap berjalan dan tetap difilter oleh response checks di bawah.
+    return { exists: false, checked: false };
+  }
 }
 
 function isSupabaseRegisterDuplicateEmailError(data) {
