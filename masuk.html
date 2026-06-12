@@ -9621,15 +9621,34 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(status){ status.textContent = message; status.classList.add('show'); }
   }
   function passkeyIsBackendActive(){
+    // Dashboard tidak boleh percaya localStorage. Status Passkey hanya dari memori runtime
+    // yang diisi oleh backend /api/health?action=dirac_mfa_passkey_status atau hasil verify.
     try{
       var ctx = window.__DIRAC_BACKEND_MFA_CONTEXT__ || {};
       if(ctx && ctx.active === true && String(ctx.method || '').toLowerCase() === 'passkey') return true;
     }catch(_e){}
     try{
-      var s = JSON.parse(localStorage.getItem('dirac_auth_session_v1') || '{}');
-      if(s && /server_verified/i.test(String(s.twoFactorStatus || '')) && String(s.twoFactorMethod || '').toLowerCase() === 'passkey') return true;
+      var status = window.__DIRAC_PASSKEY_BACKEND_STATUS__ || {};
+      if(status && status.registered === true && status.backup_email_allowed === true) return true;
     }catch(_e){}
     return false;
+  }
+  function refreshPasskeyBackendStatus(){
+    if(!window.fetch || window.__DIRAC_PASSKEY_STATUS_LOADING__) return;
+    window.__DIRAC_PASSKEY_STATUS_LOADING__ = true;
+    fetch('/api/health?action=dirac_mfa_passkey_status', {method:'GET', credentials:'include', cache:'no-store', headers:{'Accept':'application/json'}})
+      .then(function(res){ return res && res.ok ? res.json() : null; })
+      .then(function(data){
+        if(data && data.ok){
+          window.__DIRAC_PASSKEY_BACKEND_STATUS__ = data;
+          if(data.registered === true){
+            applyCopy();
+            setStatus(lang() === 'en' ? 'Passkey is already active. Email backup is available.' : 'Passkey sudah aktif. Kode email cadangan bisa dipakai.');
+          }
+        }
+      })
+      .catch(function(){})
+      .finally(function(){ window.__DIRAC_PASSKEY_STATUS_LOADING__ = false; });
   }
   function removeAuthenticator(){
     $$('#a2fModal [data-a2f-select="authenticator"], #a2fModal [data-a2f-panel="authenticator"], #a2fModal #a2fAuthenticatorSetup, #a2fModal .a2f-auth-setup, #a2fModal .dirac-authenticator-setup-card').forEach(function(el){
@@ -9692,16 +9711,20 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   ready(function(){
     applyCopy();
+    refreshPasskeyBackendStatus();
     setTimeout(applyCopy, 60);
     setTimeout(applyCopy, 350);
     document.addEventListener('click', function(e){
       var email = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="email"]') : null;
       if(email && !passkeyIsBackendActive()){
-        e.preventDefault();
-        e.stopPropagation();
-        if(e.stopImmediatePropagation) e.stopImmediatePropagation();
-        selectPasskey(true);
-        return false;
+        refreshPasskeyBackendStatus();
+        if(!passkeyIsBackendActive()){
+          e.preventDefault();
+          e.stopPropagation();
+          if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+          selectPasskey(true);
+          return false;
+        }
       }
     }, true);
     var modal = $('#a2fModal');
@@ -9873,131 +9896,6 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       }).observe(modal, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class','style','disabled','data-selected-a2f','data-a2f-step-index','data-a2f-method']});
     }
     if(window.MutationObserver){ new MutationObserver(applyCopy).observe(document.documentElement, {attributes:true, attributeFilter:['lang']}); }
-  });
-})();
-</script>
-
-
-
-<style id="dirac-toast-rapi-final-css">
-/* Toast/notification final polish: ringkas, tidak menutup tombol, dan enak dibaca di mobile. */
-.toast{
-  position:fixed!important;
-  top:calc(env(safe-area-inset-top,0px) + 12px)!important;
-  bottom:auto!important;
-  left:50%!important;
-  right:auto!important;
-  width:auto!important;
-  min-width:0!important;
-  max-width:min(430px,calc(100vw - 28px))!important;
-  transform:translate(-50%,-14px)!important;
-  padding:12px 15px 12px 44px!important;
-  border-radius:18px!important;
-  background:rgba(255,255,255,.97)!important;
-  color:#111827!important;
-  border:1px solid rgba(37,99,235,.18)!important;
-  box-shadow:0 18px 45px rgba(15,23,42,.18),0 0 0 1px rgba(255,255,255,.55) inset!important;
-  white-space:normal!important;
-  overflow:hidden!important;
-  text-overflow:clip!important;
-  text-align:left!important;
-  font-size:14px!important;
-  line-height:1.38!important;
-  font-weight:800!important;
-  letter-spacing:-.01em!important;
-  backdrop-filter:blur(18px)!important;
-  -webkit-backdrop-filter:blur(18px)!important;
-}
-.toast.show{
-  opacity:1!important;
-  transform:translate(-50%,0)!important;
-}
-.toast:before{
-  content:"🔐";
-  position:absolute;
-  left:14px;
-  top:50%;
-  transform:translateY(-50%);
-  width:22px;
-  height:22px;
-  display:grid;
-  place-items:center;
-  border-radius:10px;
-  background:rgba(37,99,235,.10);
-  font-size:13px;
-}
-.toast:after{
-  content:""!important;
-  position:absolute!important;
-  left:0!important;
-  right:auto!important;
-  bottom:0!important;
-  top:auto!important;
-  width:100%!important;
-  height:3px!important;
-  background:linear-gradient(90deg,#2563eb,#60a5fa,#93c5fd)!important;
-  transform-origin:left center!important;
-}
-html[data-effective-theme="dark"] .toast{
-  background:rgba(15,23,42,.95)!important;
-  color:#f8fafc!important;
-  border-color:rgba(147,197,253,.24)!important;
-  box-shadow:0 18px 45px rgba(0,0,0,.34),0 0 0 1px rgba(255,255,255,.06) inset!important;
-}
-html[data-effective-theme="dark"] .toast:before{
-  background:rgba(96,165,250,.16)!important;
-}
-@media(max-width:760px){
-  .toast{
-    top:calc(env(safe-area-inset-top,0px) + 10px)!important;
-    max-width:calc(100vw - 24px)!important;
-    padding:11px 14px 11px 42px!important;
-    border-radius:17px!important;
-    font-size:13.5px!important;
-    line-height:1.34!important;
-  }
-}
-</style>
-
-<script id="dirac-toast-rapi-final-js">
-(function(){
-  'use strict';
-  function $(s,r){ return (r || document).querySelector(s); }
-  function tidyToastText(raw){
-    var text = String(raw || '').replace(/\s+/g,' ').trim();
-    if(!text) return text;
-    if(/Email hanya cadangan.*login pertama.*Passkey/i.test(text) || /Email hanya cadangan.*mengaktifkan Passkey dulu/i.test(text)){
-      return 'Aktifkan Passkey dulu. Email cadangan setelah aktif.';
-    }
-    if(/Login pertama wajib.*Passkey.*Email/i.test(text)){
-      return 'Login pertama wajib aktifkan Passkey dulu.';
-    }
-    if(/Passkey belum berhasil dibuat/i.test(text)){
-      return 'Passkey belum dibuat. Setujui Face ID, sidik jari, atau PIN perangkat.';
-    }
-    return text;
-  }
-  function applyToastText(){
-    var box = $('#toast');
-    if(!box) return;
-    var next = tidyToastText(box.textContent);
-    if(next && next !== box.textContent) box.textContent = next;
-  }
-  function ready(fn){
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
-    else fn();
-  }
-  ready(function(){
-    var box = $('#toast');
-    if(!box) return;
-    applyToastText();
-    if(window.MutationObserver){
-      new MutationObserver(applyToastText).observe(box, {childList:true, characterData:true, subtree:true});
-    }
-    document.addEventListener('click', function(e){
-      var email = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="email"]') : null;
-      if(email){ setTimeout(applyToastText, 0); setTimeout(applyToastText, 40); }
-    }, true);
   });
 })();
 </script>
