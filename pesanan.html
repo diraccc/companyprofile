@@ -438,8 +438,8 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
         <p class="muted" style="margin:0;font-size:.86rem">Tidak ada direct database dari browser. Tidak ada customer_id dari frontend.</p>
         <div class="secure-list">
           <div class="secure-item"><span class="secure-dot"></span><span>Session dicek ke backend satu domain: <b>/api/health</b>.</span></div>
-          <div class="secure-item"><span class="secure-dot"></span><span>Payment Midtrans aktif dari backend untuk semua layanan yang sudah punya total database.</span></div>
-          <div class="secure-item"><span class="secure-dot"></span><span>Status paid hanya dari webhook Midtrans valid, bukan dari browser.</span></div>
+          <div class="secure-item"><span class="secure-dot"></span><span>Payment aktif via Midtrans Sandbox/Production dari backend.</span></div>
+          <div class="secure-item"><span class="secure-dot"></span><span>Paid hanya dari webhook Midtrans valid, bukan dari frontend.</span></div>
         </div>
       </aside>
     </section>
@@ -566,8 +566,12 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
       const payment = clean(o && o.payment_status).toLowerCase();
       const order = clean(o && o.order_status).toLowerCase();
       const total = Number(o && o.total || 0);
-      const backendGate = (o && o.can_pay === false) ? false : true;
-      return Boolean(o && backendGate && total > 0 && ['unpaid','pending','pending_payment','created','belum_bayar','menunggu_pembayaran'].includes(payment) && !['completed','cancelled','failed','expired'].includes(order));
+      if(!o || !(total > 0)) return false;
+      if(['paid','success','settled'].includes(payment)) return false;
+      if(['completed','cancelled','failed','expired'].includes(order)) return false;
+      if(o.can_pay === true) return true;
+      // UI fallback: semua layanan boleh meminta payment, tetapi backend tetap penentu akhir.
+      return ['unpaid','pending','pending_payment'].includes(payment);
     }
     function paymentButtonLabel(o){
       if(canCreatePayment(o)) return 'Bayar Sekarang';
@@ -653,7 +657,7 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
       if(!o){ root.innerHTML='<div class="detail-empty"><b>Pilih invoice</b><br>Detail pembayaran dan item akan muncul di sini.</div>'; return; }
       const items=(o.items||[]).map(i => '<div class="detail-item"><strong>'+escapeHtml(i.title || 'Item')+'</strong><span>Jumlah: '+Number(i.quantity||1)+'</span></div>').join('');
       const wa = 'https://wa.me/'+WHATSAPP_ADMIN+'?text='+encodeURIComponent('Halo admin Dirac Group, saya mau tanya invoice '+(o.invoice_code || o.order_id)+' total '+money(o.total)+'. Status sekarang '+statusLabel(o.payment_status)+'.');
-      root.innerHTML='<div class="detail-top"><div><h2>'+escapeHtml(o.invoice_code || 'Invoice')+'</h2><p class="muted" style="margin:6px 0 0;font-size:.82rem">'+escapeHtml(o.service_label || 'Pesanan')+'</p></div><span class="chip '+statusClass(o.payment_status)+'">'+escapeHtml(statusLabel(o.payment_status))+'</span></div><div class="detail-lines"><div class="detail-line"><span>Kode order</span><b>'+escapeHtml(o.order_id || o.id)+'</b></div><div class="detail-line"><span>Tanggal</span><b>'+escapeHtml(dateFmt(o.created_at))+'</b></div><div class="detail-line"><span>Status order</span><b>'+escapeHtml(statusLabel(o.order_status))+'</b></div><div class="detail-line"><span>Total</span><b>'+money(o.total)+'</b></div><div class="detail-line"><span>Metode bayar</span><b>'+escapeHtml(o.payment_method || 'Belum dipilih')+'</b></div></div><h3 style="margin:12px 0 8px;font-size:.95rem">Item pesanan</h3><div class="detail-items">'+(items || '<div class="detail-item"><strong>Item belum tersedia</strong></div>')+'</div><div class="payment-box"><h3>Menunggu pembayaran</h3><p>'+escapeHtml(o.payment_message || (canCreatePayment(o) ? 'Tekan Bayar Sekarang. Nominal akan dibuat backend dari database, bukan dari browser.' : 'Invoice ini belum memenuhi syarat payment otomatis. Pastikan total sudah ada dan status belum dibayar.'))+'</p></div><div class="detail-actions"><button class="btn primary" type="button" id="payNow" '+(canCreatePayment(o)?'':'disabled')+'>'+escapeHtml(paymentButtonLabel(o))+'</button><a class="btn" href="'+wa+'" target="_blank" rel="noopener">Tanya Admin</a><button class="btn full" type="button" id="copyInvoice">Salin kode invoice</button></div>';
+      root.innerHTML='<div class="detail-top"><div><h2>'+escapeHtml(o.invoice_code || 'Invoice')+'</h2><p class="muted" style="margin:6px 0 0;font-size:.82rem">'+escapeHtml(o.service_label || 'Pesanan')+'</p></div><span class="chip '+statusClass(o.payment_status)+'">'+escapeHtml(statusLabel(o.payment_status))+'</span></div><div class="detail-lines"><div class="detail-line"><span>Kode order</span><b>'+escapeHtml(o.order_id || o.id)+'</b></div><div class="detail-line"><span>Tanggal</span><b>'+escapeHtml(dateFmt(o.created_at))+'</b></div><div class="detail-line"><span>Status order</span><b>'+escapeHtml(statusLabel(o.order_status))+'</b></div><div class="detail-line"><span>Total</span><b>'+money(o.total)+'</b></div><div class="detail-line"><span>Metode bayar</span><b>'+escapeHtml(o.payment_method || 'Belum dipilih')+'</b></div></div><h3 style="margin:12px 0 8px;font-size:.95rem">Item pesanan</h3><div class="detail-items">'+(items || '<div class="detail-item"><strong>Item belum tersedia</strong></div>')+'</div><div class="payment-box"><h3>Menunggu pembayaran</h3><p>'+escapeHtml(o.payment_message || (canCreatePayment(o) ? 'Tekan Bayar Sekarang. Nominal akan dibuat backend dari database, bukan dari browser.' : 'Pesanan belum bisa dibuatkan payment otomatis. Hubungi admin bila perlu.'))+'</p></div><div class="detail-actions"><button class="btn primary" type="button" id="payNow" '+(canCreatePayment(o)?'':'disabled')+'>'+escapeHtml(paymentButtonLabel(o))+'</button><a class="btn" href="'+wa+'" target="_blank" rel="noopener">Tanya Admin</a><button class="btn full" type="button" id="copyInvoice">Salin kode invoice</button></div>';
       $('#copyInvoice')?.addEventListener('click', async () => { try{ await navigator.clipboard.writeText(o.invoice_code || o.order_id || o.id); toast('Kode invoice disalin.'); }catch(_){ toast('Kode invoice: '+(o.invoice_code || o.order_id || o.id)); } });
       $('#payNow')?.addEventListener('click', () => { if(canCreatePayment(o)) createPayment(o); });
     }
