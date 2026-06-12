@@ -1028,6 +1028,51 @@ async function domainRegister(req, res, preloadedBody) {
       return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
     }
 
+    // PATCH REGISTER EMAIL DELIVERY RECOVERY v1:
+    // Jika Supabase gagal mengirim confirmation email, jangan langsung menampilkan error mentah
+    // "Error sending confirmation email" ke customer. Backend mencoba recovery aman memakai
+    // service role: akun baru tetap dibuat/di-confirm tanpa mengirim email, lalu sesi hanya
+    // dikunci lewat HttpOnly cookie. domainLogin(), cookie helper, A2F/MFA, checkout, dan order
+    // tidak disentuh.
+    if (isSupabaseRegisterEmailDeliveryError(result.data)) {
+      const recovered = await recoverDomainRegisterFromSupabaseEmailDeliveryFailure({
+        email,
+        password,
+        userData
+      });
+
+      if (recovered && recovered.duplicate === true) {
+        return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+      }
+
+      if (recovered && recovered.ok === true) {
+        const recoveredSession = recovered.session && typeof recovered.session === 'object' ? recovered.session : {};
+        if (recoveredSession.access_token && recoveredSession.refresh_token) {
+          setSessionCookies(res, recoveredSession);
+        }
+
+        return res.status(200).json({
+          ok: true,
+          code: 'REGISTER_CREATED_EMAIL_DELIVERY_RECOVERED',
+          message: recoveredSession.access_token
+            ? 'Akun berhasil dibuat dan login otomatis. Silakan lanjutkan setup keamanan akun.'
+            : 'Akun berhasil dibuat. Silakan masuk lalu lanjutkan setup keamanan akun.',
+          needs_email_confirmation: false,
+          email_delivery_recovered: true,
+          first_register_setup_required: true,
+          next: 'security_setup_required',
+          user: sanitizeUser(recovered.user || recoveredSession.user),
+          session: buildDomainAuthSessionPayload(recoveredSession)
+        });
+      }
+
+      return res.status(recovered && recovered.status ? recovered.status : 502).json({
+        ok: false,
+        code: 'REGISTER_EMAIL_DELIVERY_FAILED',
+        message: 'Pendaftaran belum bisa diselesaikan karena layanan email verifikasi sedang bermasalah. Silakan coba lagi sebentar lagi.'
+      });
+    }
+
     return res.status(result.status).json({
       ok: false,
       message: result.data.error_description || result.data.msg || result.data.message || 'Pendaftaran gagal.'
@@ -1075,6 +1120,211 @@ function buildDomainRegisterDuplicateEmailBody() {
     next: 'login_or_reset_password',
     message: 'Email ini sudah terdaftar. Silakan masuk, atau gunakan lupa password jika tidak ingat kata sandi.'
   };
+}
+
+
+function isSupabaseRegisterEmailDeliveryError(data) {
+  const fields = [];
+  if (typeof data === 'string') fields.push(data);
+  if (data && typeof data === 'object') {
+    fields.push(
+      data.error,
+      data.error_code,
+      data.code,
+      data.msg,
+      data.message,
+      data.error_description,
+      data.detail
+    );
+  }
+
+  const text = fields
+    .filter((item) => item !== undefined && item !== null)
+    .map((item) => String(item).toLowerCase())
+    .join(' | ');
+
+  if (!text) return false;
+
+  return /error\s+sending\s+confirmation\s+email/i.test(text)
+    || /confirmation\s+email/i.test(text)
+    || /email.*(?:send|sending|sent|delivery|deliver|smtp|mailer|mailgun|sendgrid|resend|brevo|ses).*?(?:error|failed|fail|invalid|rejected)/i.test(text)
+    || /(?:send|sending|delivery|deliver|smtp|mailer|mailgun|sendgrid|resend|brevo|ses).*?email.*?(?:error|failed|fail|invalid|rejected)/i.test(text);
+}
+
+async function recoverDomainRegisterFromSupabaseEmailDeliveryFailure(input) {
+  const email = normalizeAuthEmail(input && input.email);
+  const password = String(input && input.password || '');
+  const userData = input && input.userData && typeof input.userData === 'object' ? input.userData : {};
+
+  if (!email || !isStrictDomainLoginEmail(email) || !password) {
+    return { ok: false, status: 400 };
+  }
+
+  // 1) Jika Supabase sudah sempat membuat user sebelum email gagal dikirim,
+  //    jangan buat user kedua. Recovery hanya boleh untuk user baru yang
+  //    created_at sangat dekat dengan request ini dan belum pernah confirmed.
+  const existing = await getSupabaseAuthUserByEmail(email);
+  if (existing && existing.user) {
+    if (!isSupabaseAuthUserSafeRecentUnconfirmed(existing.user)) {
+      return { ok: false, duplicate: true, status: 409 };
+    }
+
+    const confirmed = await confirmRecentSupabaseAuthUser(existing.user);
+    if (!confirmed.ok) {
+      return { ok: false, status: confirmed.status || 502 };
+    }
+
+    const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
+    if (!login.ok) {
+      return {
+        ok: true,
+        user: confirmed.user || existing.user,
+        session: null,
+        recovered_from: 'recent_unconfirmed_user'
+      };
+    }
+
+    return {
+      ok: true,
+      user: login.session && login.session.user ? login.session.user : (confirmed.user || existing.user),
+      session: login.session,
+      recovered_from: 'recent_unconfirmed_user'
+    };
+  }
+
+  // 2) Jika tidak ada user yang tercipta, buat akun lewat Admin API tanpa
+  //    mengirim confirmation email. Ini backend-only dan tetap tidak membuka token
+  //    ke JavaScript karena response session diproses oleh buildDomainAuthSessionPayload().
+  const createBody = {
+    email,
+    password,
+    email_confirm: true
+  };
+
+  if (Object.keys(userData).length) {
+    createBody.user_metadata = userData;
+  }
+
+  const created = await supabaseFetch('/auth/v1/admin/users', {
+    method: 'POST',
+    auth: 'service',
+    body: createBody
+  });
+
+  if (!created.ok) {
+    if (isSupabaseRegisterDuplicateEmailError(created.data)) {
+      return { ok: false, duplicate: true, status: 409 };
+    }
+
+    return {
+      ok: false,
+      status: created.status || 502,
+      error: created.data || null
+    };
+  }
+
+  const login = await loginSupabaseAuthUserAfterRegisterRecovery(email, password);
+  if (!login.ok) {
+    return {
+      ok: true,
+      user: normalizeSupabaseAdminUser(created.data),
+      session: null,
+      recovered_from: 'admin_create_confirmed_user'
+    };
+  }
+
+  return {
+    ok: true,
+    user: login.session && login.session.user ? login.session.user : normalizeSupabaseAdminUser(created.data),
+    session: login.session,
+    recovered_from: 'admin_create_confirmed_user'
+  };
+}
+
+async function getSupabaseAuthUserByEmail(email) {
+  const normalizedEmail = normalizeAuthEmail(email);
+  if (!normalizedEmail || !isStrictDomainLoginEmail(normalizedEmail)) return { user: null, checked: false };
+
+  try {
+    const result = await supabaseFetch(`/auth/v1/admin/users?email=${encodeURIComponent(normalizedEmail)}`, {
+      method: 'GET',
+      auth: 'service'
+    });
+
+    if (!result.ok || !result.data) return { user: null, checked: false };
+
+    const data = result.data;
+    const candidates = [];
+    if (Array.isArray(data)) candidates.push(...data);
+    if (Array.isArray(data.users)) candidates.push(...data.users);
+    if (data.user && typeof data.user === 'object') candidates.push(data.user);
+
+    const user = candidates.find((item) => {
+      if (!item || typeof item !== 'object') return false;
+      const userEmail = normalizeAuthEmail(item.email || item.email_address || '');
+      return userEmail === normalizedEmail;
+    }) || null;
+
+    return { user, checked: true };
+  } catch (_) {
+    return { user: null, checked: false };
+  }
+}
+
+function normalizeSupabaseAdminUser(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.user && typeof data.user === 'object') return data.user;
+  return data;
+}
+
+function isSupabaseAuthUserSafeRecentUnconfirmed(user) {
+  if (!user || typeof user !== 'object') return false;
+
+  const confirmedAt = user.confirmed_at || user.email_confirmed_at || '';
+  if (confirmedAt) return false;
+
+  const createdAtMs = Date.parse(user.created_at || user.createdAt || '');
+  if (!Number.isFinite(createdAtMs)) return false;
+
+  const ageMs = Math.abs(Date.now() - createdAtMs);
+  const maxRecoveryAgeMs = Math.max(60 * 1000, Number(process.env.DOMAIN_REGISTER_EMAIL_RECOVERY_MAX_AGE_MS || 10 * 60 * 1000));
+  return ageMs <= maxRecoveryAgeMs;
+}
+
+async function confirmRecentSupabaseAuthUser(user) {
+  const userId = String(user && user.id || '').trim();
+  if (!userId) return { ok: false, status: 400 };
+
+  const result = await supabaseFetch(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    auth: 'service',
+    body: {
+      email_confirm: true
+    }
+  });
+
+  if (!result.ok) {
+    return { ok: false, status: result.status || 502, error: result.data || null };
+  }
+
+  return { ok: true, user: normalizeSupabaseAdminUser(result.data) || user };
+}
+
+async function loginSupabaseAuthUserAfterRegisterRecovery(email, password) {
+  const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    auth: 'anon',
+    body: {
+      email: normalizeAuthEmail(email),
+      password: String(password || '')
+    }
+  });
+
+  if (!result.ok || !result.data || !result.data.access_token) {
+    return { ok: false, status: result.status || 401, error: result.data || null };
+  }
+
+  return { ok: true, session: result.data };
 }
 
 
