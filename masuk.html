@@ -6571,7 +6571,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   'use strict';
 
   /* =========================================================
-     Dirac UI Sound Feedback FIX v7
+     Dirac UI Sound Feedback FIX v8
      Fokus perubahan: hanya memperbaiki efek suara tombol/UI.
      Tidak mengubah endpoint, login, register, hash, token, cookie, A2F/MFA,
      dashboard, checkout, order, atau keamanan backend.
@@ -6579,7 +6579,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
   var STORAGE_KEY = 'dirac_ui_sound_enabled_v2';
   var LEGACY_STORAGE_KEY = 'dirac_ui_sound_enabled_v1';
-  var PATCH_KEY = 'dirac_ui_sound_fix_v7_applied';
+  var PATCH_KEY = 'dirac_ui_sound_fix_v8_applied';
   var AudioCtx = window.AudioContext || window.webkitAudioContext;
   var ctx = null;
   var master = null;
@@ -6860,7 +6860,40 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
   function play(kind){
     if(!enabled) return false;
+
+    var audio = createContext();
     var played = false;
+
+    /*
+       FIX v8: suara klik harus dijadwalkan saat gesture masih aktif.
+       Pada beberapa browser mobile, menunggu audio.resume().then(...) membuat
+       suara pertama hilang karena halaman/link sudah berpindah atau user-gesture
+       sudah selesai. Karena itu beep dicoba langsung, lalu resume tetap dijalankan.
+    */
+    try{
+      if(audio && audio.state === 'suspended' && audio.resume){
+        played = playNow(kind);
+        var resumeResult = audio.resume();
+        if(resumeResult && typeof resumeResult.then === 'function'){
+          resumeResult.then(function(){
+            primeContext(audio);
+            if(!played) played = playNow(kind);
+            if(!played) fallback(kind);
+          }).catch(function(){
+            if(!played) fallback(kind);
+          });
+        }else{
+          primeContext(audio);
+          if(!played) played = playNow(kind);
+          if(!played) fallback(kind);
+        }
+        return true;
+      }
+    }catch(_){
+      if(!played) fallback(kind);
+      return true;
+    }
+
     unlockAudio(function(){
       played = playNow(kind);
       if(!played) fallback(kind);
@@ -7062,7 +7095,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     unlock: unlockAudio,
     setEnabled: function(value){ enabled = value !== false; saveEnabled(); updateToggle(); if(enabled) unlockAudio(); },
     isEnabled: function(){ return enabled; },
-    version: 'fix-v7'
+    version: 'fix-v8'
   };
 
   ready(init);
