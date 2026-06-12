@@ -4425,6 +4425,82 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         ? 'Email atau password belum sesuai. A2F tidak akan dibuka sebelum login benar.'
         : 'Pendaftaran belum dikonfirmasi server. A2F tidak akan dibuka sebelum akun valid.';
     }
+    function collectAuthStrings(value, out, depth){
+      out = out || [];
+      depth = depth || 0;
+      if(depth > 5 || value == null) return out;
+      if(typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'){
+        out.push(String(value));
+        return out;
+      }
+      if(Array.isArray(value)){
+        value.slice(0, 30).forEach(function(item){ collectAuthStrings(item, out, depth + 1); });
+        return out;
+      }
+      if(typeof value === 'object'){
+        Object.keys(value).slice(0, 60).forEach(function(key){
+          out.push(String(key));
+          collectAuthStrings(value[key], out, depth + 1);
+        });
+      }
+      return out;
+    }
+    function firstDefinedAuthValue(data, keys){
+      var found;
+      function walk(value, depth){
+        if(found !== undefined || depth > 5 || !value || typeof value !== 'object') return;
+        Object.keys(value).slice(0, 80).some(function(key){
+          var lower = String(key).toLowerCase();
+          if(keys.indexOf(lower) !== -1){ found = value[key]; return true; }
+          walk(value[key], depth + 1);
+          return found !== undefined;
+        });
+      }
+      walk(data, 0);
+      return found;
+    }
+    function getRegisterUser(data){
+      var container = pickAuthContainer(data) || {};
+      return (data && data.user) || (container && container.user) || (data && data.data && data.data.user) || null;
+    }
+    function hasNewRegistrationProof(data){
+      if(!data || typeof data !== 'object') return false;
+      var directProofKeys = ['created','account_created','user_created','registration_created','identity_created','new_user','is_new_user','inserted','email_confirmation_sent'];
+      for(var i = 0; i < directProofKeys.length; i += 1){
+        var proof = firstDefinedAuthValue(data, [directProofKeys[i]]);
+        if(proof === true || proof === 1 || proof === 'true' || proof === 'created' || proof === 'inserted') return true;
+      }
+      var user = getRegisterUser(data);
+      if(user && Array.isArray(user.identities)) return user.identities.length > 0;
+      if(user && Array.isArray(user.identity_data)) return user.identity_data.length > 0;
+      var identity = firstDefinedAuthValue(data, ['identity','created_identity','new_identity']);
+      if(identity && typeof identity === 'object') return true;
+      return false;
+    }
+    function registerDuplicateEmailMessage(data){
+      if(mode !== 'register' || !data || typeof data !== 'object') return '';
+      var duplicateFlagKeys = ['already_registered','already_exists','email_exists','user_exists','identity_exists','duplicate_email','duplicate','account_exists','registered_before'];
+      for(var i = 0; i < duplicateFlagKeys.length; i += 1){
+        var flag = firstDefinedAuthValue(data, [duplicateFlagKeys[i]]);
+        if(flag === true || flag === 1 || flag === 'true' || flag === 'exists' || flag === 'duplicate'){
+          return 'Email ini sudah terdaftar. Silakan masuk memakai email tersebut, kirim ulang verifikasi jika belum aktif, atau gunakan email lain.';
+        }
+      }
+      var joined = collectAuthStrings(data, []).join(' ').toLowerCase();
+      if(/(email|user|account|akun|identity|identitas).{0,48}(already|exist|exists|registered|taken|duplicate|duplikat|terdaftar|digunakan|sudah ada|sudah dipakai)|(?:already|exist|exists|registered|taken|duplicate|duplikat|terdaftar|digunakan|sudah ada|sudah dipakai).{0,48}(email|user|account|akun|identity|identitas)|user_already_exists|email_exists|identity_already_exists|duplicate key/i.test(joined)){
+        return 'Email ini sudah terdaftar. Silakan masuk memakai email tersebut, kirim ulang verifikasi jika belum aktif, atau gunakan email lain.';
+      }
+      var user = getRegisterUser(data);
+      if(data.needs_email_confirmation === true && user && Array.isArray(user.identities) && user.identities.length === 0){
+        return 'Email ini sudah terdaftar atau sudah pernah didaftarkan. Silakan masuk memakai email tersebut, kirim ulang verifikasi jika belum aktif, atau gunakan email lain.';
+      }
+      return '';
+    }
+    function unverifiedRegisterConfirmationMessage(data){
+      if(mode !== 'register' || !data || data.needs_email_confirmation !== true) return '';
+      if(hasNewRegistrationProof(data)) return '';
+      return 'Pendaftaran belum bisa dipastikan sebagai akun baru. Jika email sudah pernah didaftarkan, silakan masuk atau kirim ulang verifikasi. Jika ingin membuat akun baru, gunakan email lain.';
+    }
     async function submitAuth(event){
       event.preventDefault();
       var identifierInput = $('#identifier');
@@ -4469,6 +4545,11 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
           cache:'no-store'
         });
         var data = await response.clone().json().catch(function(){return null;});
+        var duplicateRegisterMessage = registerDuplicateEmailMessage(data);
+        var uncertainRegisterMessage = duplicateRegisterMessage ? '' : unverifiedRegisterConfirmationMessage(data);
+        if(duplicateRegisterMessage || uncertainRegisterMessage){
+          throw new Error(duplicateRegisterMessage || uncertainRegisterMessage);
+        }
         if(!response.ok || !isTrustedAuthResponse(data)){
           throw new Error(data && data.message ? data.message : authErrorMessage());
         }
@@ -4476,7 +4557,7 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
       }catch(postErr){
         clearPendingAuth();
         status('error', postErr && postErr.message ? postErr.message : authErrorMessage());
-        showToast('Login ditolak. A2F tetap terkunci.');
+        showToast(mode === 'register' ? 'Pendaftaran belum berhasil. A2F tetap terkunci.' : 'Login ditolak. A2F tetap terkunci.');
       }finally{
         btn.disabled = false; btn.textContent = old;
       }
@@ -4489,9 +4570,21 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
         return;
       }
       var container = pickAuthContainer(data) || {};
+      var duplicateRegisterMessage = registerDuplicateEmailMessage(data);
+      if(duplicateRegisterMessage){
+        clearPendingAuth();
+        status('error', duplicateRegisterMessage);
+        showToast('Email sudah terdaftar. A2F tetap terkunci.');
+        return;
+      }
       if(data && data.needs_email_confirmation === true){
         clearPendingAuth();
-        status('success','Akun berhasil dibuat. Silakan cek email verifikasi sebelum login dan A2F.');
+        if(!hasNewRegistrationProof(data)){
+          status('error', unverifiedRegisterConfirmationMessage(data));
+          showToast('Pendaftaran belum dipastikan. A2F tetap terkunci.');
+          return;
+        }
+        status('success','Akun baru berhasil dibuat. Silakan cek email verifikasi sebelum login dan A2F.');
         showToast('Cek email verifikasi dulu. A2F belum dibuka.');
         return;
       }
