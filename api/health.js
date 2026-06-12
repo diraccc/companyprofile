@@ -6823,11 +6823,14 @@ async function lockedPaymentCreateForOrder(req, res) {
   }
 
   const endpoint = lockedPaymentGatewayEndpoint();
-  if (!endpoint && !midtransPaymentIsConfigured()) {
+  const midtransReady = midtransPaymentIsConfigured();
+  if (!endpoint && !midtransReady) {
     return res.status(503).json({
       ok: false,
       payment_gateway_configured: false,
-      message: 'Payment gateway belum disetel. Isi MIDTRANS_SERVER_KEY untuk Midtrans atau PAYMENT_CREATE_URL untuk gateway eksternal.'
+      midtrans_server_key_detected: false,
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      message: 'Payment gateway belum terbaca oleh backend create_payment. Pastikan MIDTRANS_SERVER_KEY atau MIDTRANS_SANDBOX_SERVER_KEY ada di ENV Production Vercel lalu redeploy.'
     });
   }
 
@@ -7245,7 +7248,7 @@ module.exports = async function midtransPaymentWrapper(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = midtransNormalizeAction(rawAction);
 
-  if (!midtransIsWebhookAction(action) && action !== 'midtrans_health') {
+  if (!midtransIsWebhookAction(action) && action !== 'midtrans_health' && action !== 'payment_config_status') {
     return __diracMidtransPaymentPreviousHandler(req, res);
   }
 
@@ -7259,7 +7262,26 @@ module.exports = async function midtransPaymentWrapper(req, res) {
       provider: 'midtrans',
       snapConfigured: midtransPaymentIsConfigured(),
       webhook: '/api/health?action=midtrans_webhook',
-      environment: midtransIsProduction() ? 'production' : 'sandbox'
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      serverKeySource: midtransResolvedServerKeySource() || null
+    });
+  }
+
+  if (action === 'payment_config_status') {
+    return res.status(200).json({
+      ok: true,
+      provider: 'midtrans',
+      createPaymentConfigured: midtransPaymentIsConfigured(),
+      snapConfigured: midtransPaymentIsConfigured(),
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      serverKeySource: midtransResolvedServerKeySource() || null,
+      clientKeyPresent: Boolean(midtransEnvValue('NEXT_PUBLIC_MIDTRANS_CLIENT_KEY','MIDTRANS_CLIENT_KEY')),
+      gatewayName: lockedPaymentGatewayName(),
+      externalGatewayEndpointConfigured: Boolean(lockedPaymentGatewayEndpoint()),
+      webhook: '/api/health?action=midtrans_webhook',
+      message: midtransPaymentIsConfigured()
+        ? 'Create payment Midtrans sudah membaca Server Key backend.'
+        : 'Create payment belum membaca Server Key backend. Cek Environment Vercel Production dan redeploy.'
     });
   }
 
@@ -7293,7 +7315,11 @@ function midtransNormalizeAction(action) {
     'payment_callback': 'midtrans_webhook',
     'payment-callback': 'midtrans_webhook',
     'midtrans_health': 'midtrans_health',
-    'midtrans-health': 'midtrans_health'
+    'midtrans-health': 'midtrans_health',
+    'payment_config_status': 'payment_config_status',
+    'payment-config-status': 'payment_config_status',
+    'payment_gateway_status': 'payment_config_status',
+    'payment-gateway-status': 'payment_config_status'
   };
   return aliases[clean] || clean;
 }
@@ -7302,14 +7328,69 @@ function midtransIsWebhookAction(action) {
   return action === 'midtrans_webhook';
 }
 
+function midtransEnvValue(...names) {
+  for (const name of names) {
+    const key = String(name || '').trim();
+    if (!key) continue;
+    let value = String(process.env[key] || '').trim();
+    value = value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+    if ((value.startsWith('\"') && value.endsWith('\"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1).trim();
+    }
+    if (value) return value;
+  }
+  return '';
+}
+
+function midtransResolvedServerKeySource() {
+  const sandboxSources = [
+    'MIDTRANS_SANDBOX_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_SANDBOX',
+    'MIDTRANS_SANDBOX_KEY',
+    'MIDTRANS_SANDBOX_SERVER'
+  ];
+  const productionSources = [
+    'MIDTRANS_PRODUCTION_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_PRODUCTION',
+    'MIDTRANS_PRODUCTION_KEY',
+    'MIDTRANS_PRODUCTION_SERVER'
+  ];
+  const sources = midtransIsProduction() ? productionSources : sandboxSources;
+  for (const source of sources) {
+    if (midtransEnvValue(source)) return source;
+  }
+  return '';
+}
+
+function midtransResolvedServerKey() {
+  const sandboxSources = [
+    'MIDTRANS_SANDBOX_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_SANDBOX',
+    'MIDTRANS_SANDBOX_KEY',
+    'MIDTRANS_SANDBOX_SERVER'
+  ];
+  const productionSources = [
+    'MIDTRANS_PRODUCTION_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_PRODUCTION',
+    'MIDTRANS_PRODUCTION_KEY',
+    'MIDTRANS_PRODUCTION_SERVER'
+  ];
+  const sources = midtransIsProduction() ? productionSources : sandboxSources;
+  return midtransEnvValue(...sources);
+}
+
 function midtransPaymentIsConfigured() {
-  return Boolean(String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim());
+  return Boolean(midtransResolvedServerKey());
 }
 
 function midtransServerKey() {
-  const key = String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim();
+  const key = midtransResolvedServerKey();
   if (!key) {
-    const err = new Error('MIDTRANS_SERVER_KEY belum diisi di Environment Variables Vercel.');
+    const err = new Error('MIDTRANS_SERVER_KEY belum diisi/kebaca di Environment Variables Vercel untuk backend.');
     err.statusCode = 503;
     throw err;
   }
