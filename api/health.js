@@ -5566,7 +5566,7 @@ function adminSecuritySafeErrorSupabase(error) {
    - Checkout ownership is resolved server-side from authenticated session.
    - Default checkout only requires a valid backend session; no JS-readable MFA proof required.
    - If CHECKOUT_REQUIRE_DASHBOARD_MFA=true, dashboard MFA is also required.
-   - Checkout still creates unpaid orders; payment is created later from Pesanan Saya via backend-only create_payment.
+   - Payment gateway is not active here: every created order is pending + unpaid + payment_url null.
    - Old HP test endpoint is disabled so it cannot create production orders.
    Endpoint:
    POST /api/health?action=checkout_order
@@ -5791,7 +5791,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
 
   return res.status(200).json({
     ok: true,
-    message: 'Pesanan berhasil dibuat. Bayar dari Pesanan Saya; payment gateway dibuat backend dari total database.',
+    message: 'Pesanan berhasil dibuat. Nominal dikunci backend dari database, payment gateway belum aktif.',
     order_id: order.id,
     order_code: order.order_id || orderCode,
     service_type: serviceType,
@@ -5802,8 +5802,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     payment_status: 'unpaid',
     payment_url: null,
     dashboard_mfa_required: true,
-    payment_gateway_configured: Boolean((typeof midtransPaymentIsConfigured === 'function' && midtransPaymentIsConfigured()) || lockedPaymentGatewayEndpoint()),
-    pay_from_pesanan_saya: true,
+    payment_gateway_configured: false,
     ownership_locked: true,
     payment_protected: true,
     price_locked_by_backend: backendQuote.priceLocked,
@@ -6358,6 +6357,7 @@ async function myOrdersReadForCurrentCustomer(req, res) {
     .slice(0, 120);
 
   const summary = myOrdersBuildSummary(allOrders);
+  const paymentGatewayConfigured = Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint());
 
   return res.status(200).json({
     ok: true,
@@ -6368,8 +6368,10 @@ async function myOrdersReadForCurrentCustomer(req, res) {
     ownership_locked: true,
     direct_frontend_table_access: false,
     frontend_customer_id_ignored: true,
-    payment_gateway_configured: Boolean((typeof midtransPaymentIsConfigured === 'function' && midtransPaymentIsConfigured()) || lockedPaymentGatewayEndpoint()),
-    payment_note: 'Payment gateway aktif lewat Pesanan Saya. Semua nominal tetap diambil backend dari database dan paid hanya dari webhook valid.',
+    payment_gateway_configured: paymentGatewayConfigured,
+    payment_note: paymentGatewayConfigured
+      ? 'Payment gateway Sandbox/Production aktif dari backend. Order unpaid bisa dibuatkan payment melalui tombol Bayar Sekarang.'
+      : 'Payment gateway belum aktif. Order unpaid belum boleh dianggap lunas dan belum boleh diproses sebagai paid.',
     owner: {
       customer_id_available: Boolean(owner.customerIds.length),
       customer_ids_count: owner.customerIds.length,
@@ -6474,11 +6476,15 @@ async function myOrdersFetchOrderItems(orderIds) {
 function myOrdersNormalizeGenericOrder(row, items) {
   const total = myOrdersMoney(row.total ?? row.subtotal ?? 0);
   const orderCode = myOrdersCleanText(row.order_id || row.id, 80);
+  const paymentGatewayConfigured = Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint());
   const paymentStatus = myOrdersStatus(row.payment_status || 'unpaid');
   const orderStatus = myOrdersStatus(row.order_status || row.status || 'pending');
-  const gatewayConfigured = Boolean((typeof midtransPaymentIsConfigured === 'function' && midtransPaymentIsConfigured()) || lockedPaymentGatewayEndpoint());
-  const terminalOrder = ['completed', 'cancelled', 'failed', 'expired'].includes(orderStatus);
-  const payable = gatewayConfigured && total > 0 && ['unpaid', 'pending', 'pending_payment', 'created', 'belum_bayar', 'menunggu_pembayaran'].includes(paymentStatus) && !terminalOrder;
+  const canPay = Boolean(
+    paymentGatewayConfigured &&
+    total > 0 &&
+    ['unpaid', 'pending', 'pending_payment'].includes(paymentStatus) &&
+    !['paid', 'success', 'settled', 'completed', 'cancelled', 'failed', 'expired'].includes(orderStatus)
+  );
   return {
     type: 'standard_order',
     id: String(row.id || ''),
@@ -6496,11 +6502,11 @@ function myOrdersNormalizeGenericOrder(row, items) {
     payment_status: paymentStatus,
     order_status: orderStatus,
     payment_url: null,
-    can_pay: payable,
-    payment_gateway_configured: gatewayConfigured,
-    payment_message: payable
-      ? 'Payment gateway aktif. Tekan Bayar Sekarang; nominal diambil backend dari database.'
-      : (gatewayConfigured ? 'Invoice ini belum memenuhi syarat pembayaran otomatis.' : 'Payment gateway belum dikonfigurasi.'),
+    can_pay: canPay,
+    payment_gateway_configured: paymentGatewayConfigured,
+    payment_message: canPay
+      ? 'Tekan Bayar Sekarang. Payment dibuat backend memakai nominal database, bukan nominal dari browser.'
+      : (paymentGatewayConfigured ? 'Invoice ini belum memenuhi syarat bayar otomatis.' : 'Payment gateway belum dikonfigurasi di backend.'),
     created_at: row.created_at || '',
     items: Array.isArray(items) && items.length ? items : [{ title: 'Item pesanan', quantity: 1 }]
   };
@@ -6569,11 +6575,6 @@ function myOrdersNormalizeDomainOrder(row, items) {
   const normalizedItems = Array.isArray(items) && items.length
     ? items
     : (row.domain_name ? [{ title: myOrdersCleanText(row.domain_name, 180), quantity: 1, subtotal: total }] : []);
-  const paymentStatus = myOrdersStatus(row.payment_status || 'unpaid');
-  const orderStatus = myOrdersStatus(row.order_status || row.status || 'pending');
-  const gatewayConfigured = Boolean((typeof midtransPaymentIsConfigured === 'function' && midtransPaymentIsConfigured()) || lockedPaymentGatewayEndpoint());
-  const terminalOrder = ['completed', 'cancelled', 'failed', 'expired'].includes(orderStatus);
-  const payable = gatewayConfigured && total > 0 && ['unpaid', 'pending', 'pending_payment', 'created', 'belum_bayar', 'menunggu_pembayaran'].includes(paymentStatus) && !terminalOrder;
   return {
     type: 'domain_order',
     id: String(row.id || ''),
@@ -6588,14 +6589,14 @@ function myOrdersNormalizeDomainOrder(row, items) {
     total,
     currency: String(row.currency || 'IDR').toUpperCase(),
     payment_method: 'Belum dipilih',
-    payment_status: paymentStatus,
-    order_status: orderStatus,
+    payment_status: myOrdersStatus(row.payment_status || 'unpaid'),
+    order_status: myOrdersStatus(row.order_status || row.status || 'pending'),
     payment_url: null,
-    can_pay: payable,
-    payment_gateway_configured: gatewayConfigured,
-    payment_message: payable
-      ? 'Payment gateway aktif. Tekan Bayar Sekarang; nominal domain diambil backend dari database.'
-      : (gatewayConfigured ? 'Invoice domain ini belum memenuhi syarat pembayaran otomatis.' : 'Payment gateway belum dikonfigurasi.'),
+    can_pay: Boolean((midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint()) && total > 0 && ['unpaid','pending','pending_payment'].includes(myOrdersStatus(row.payment_status || 'unpaid')) && !['paid','success','settled','completed','cancelled','failed','expired'].includes(myOrdersStatus(row.order_status || row.status || 'pending'))),
+    payment_gateway_configured: Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint()),
+    payment_message: Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint())
+      ? 'Tekan Bayar Sekarang. Payment domain dibuat backend memakai total database.'
+      : 'Payment gateway belum dikonfigurasi di backend.',
     created_at: row.created_at || '',
     items: normalizedItems.length ? normalizedItems : [{ title: 'Domain order', quantity: 1, subtotal: total }]
   };
@@ -6773,21 +6774,18 @@ async function lockedPaymentCreateForOrder(req, res) {
   }
 
   const row = order.order;
-  const isDomainOrder = String(order.orderType || row.__dirac_order_type || '').toLowerCase() === 'domain';
   const orderId = String(row.id || '').trim();
-  const orderCode = isDomainOrder
-    ? lockedPaymentCleanText(row.order_code || row.order_id || ('DOM-' + orderId.slice(0, 8).toUpperCase()), 100)
-    : lockedPaymentCleanText(row.order_id || orderId, 100);
-  const serviceType = isDomainOrder ? 'domain' : lockedPaymentNormalizeServiceType(row.service_type || '');
-  const amount = lockedPaymentMoney(isDomainOrder ? row.total_price : row.total);
+  const orderCode = lockedPaymentCleanText(row.order_id || orderId, 100);
+  const serviceType = lockedPaymentNormalizeServiceType(row.service_type || '');
+  const amount = lockedPaymentMoney(row.total);
   const paymentStatus = lockedPaymentStatus(row.payment_status || 'unpaid');
-  const orderStatus = lockedPaymentStatus(row.order_status || row.status || 'pending');
+  const orderStatus = lockedPaymentStatus(row.order_status || 'pending');
 
   if (!customerSecurityLooksLikeUuid(orderId)) {
     return res.status(409).json({ ok: false, message: 'Order ID database tidak valid.' });
   }
 
-  if (!['unpaid', 'pending', 'pending_payment', 'created', 'belum_bayar', 'menunggu_pembayaran'].includes(paymentStatus)) {
+  if (paymentStatus !== 'unpaid' && paymentStatus !== 'pending') {
     return res.status(409).json({ ok: false, message: `Order tidak bisa dibayar karena status pembayaran ${paymentStatus}.` });
   }
 
@@ -6795,12 +6793,16 @@ async function lockedPaymentCreateForOrder(req, res) {
     return res.status(409).json({ ok: false, message: 'Total order 0/kosong. Payment gateway tidak boleh dibuat.' });
   }
 
-  const itemCheck = await lockedPaymentValidatePayableOrderItems(orderId, amount, serviceType, isDomainOrder);
+  // Semua jenis layanan boleh dibuatkan payment dari Pesanan Saya selama order milik customer login,
+  // payment_status masih unpaid/pending, total > 0, dan total item cocok dengan total order database.
+  // Frontend tetap tidak dipercaya: amount/customer/status dari browser diabaikan.
+
+  const itemCheck = await lockedPaymentValidateOrderItems(orderId, amount, serviceType);
   if (!itemCheck.ok) {
     return res.status(itemCheck.status || 409).json({ ok: false, message: itemCheck.message });
   }
 
-  const existing = await lockedPaymentFindReusableTransaction(isDomainOrder ? '' : orderId, customerId, amount, isDomainOrder ? orderId : '');
+  const existing = await lockedPaymentFindReusableTransaction(orderId, customerId, amount);
   if (existing.ok && existing.transaction && existing.transaction.payment_url) {
     return res.status(200).json({
       ok: true,
@@ -6814,7 +6816,7 @@ async function lockedPaymentCreateForOrder(req, res) {
       currency: String(existing.transaction.currency || 'IDR').toUpperCase(),
       payment_status: existing.transaction.payment_status || 'unpaid',
       payment_url: existing.transaction.payment_url,
-      amount_source: isDomainOrder ? 'domain_orders.total_price.database' : 'orders.total.database',
+      amount_source: 'orders.total.database',
       ownership_locked: true,
       frontend_ignored_fields: ['amount', 'total', 'payment_status', 'paid', 'completed', 'customer_id']
     });
@@ -6834,8 +6836,7 @@ async function lockedPaymentCreateForOrder(req, res) {
   const nowIso = diracNowIso();
 
   const transactionResult = await lockedPaymentInsertTransaction({
-    orderId: isDomainOrder ? '' : orderId,
-    domainOrderId: isDomainOrder ? orderId : '',
+    orderId,
     customerId,
     serviceType,
     gatewayName,
@@ -6845,8 +6846,7 @@ async function lockedPaymentCreateForOrder(req, res) {
     metadata: {
       order_code: orderCode,
       order_status: orderStatus,
-      amount_source: isDomainOrder ? 'domain_orders.total_price.database' : 'orders.total.database',
-      order_type: isDomainOrder ? 'domain_order' : 'standard_order',
+      amount_source: 'orders.total.database',
       item_total: itemCheck.totalItem,
       create_payment_started_at: nowIso,
       frontend_amount_ignored: body.amount !== undefined || body.total !== undefined,
@@ -6920,31 +6920,19 @@ async function lockedPaymentCreateForOrder(req, res) {
     payment_url: gateway.paymentUrl,
     payment_provider: gateway.provider || gatewayName,
     invoice_id: gateway.invoiceId || null,
-    amount_source: isDomainOrder ? 'domain_orders.total_price.database' : 'orders.total.database',
+    amount_source: 'orders.total.database',
     ownership_locked: true,
     amount_locked: true,
     frontend_ignored_fields: ['amount', 'total', 'payment_status', 'paid', 'completed', 'customer_id'],
-    webhook_required_checks: ['signature', 'gateway_event_id_unique', 'amount_equals_database_total', 'customer_owner_match', 'currency_IDR', 'paid_or_settled_status']
+    webhook_required_checks: ['signature', 'gateway_event_id_unique', 'amount_equals_orders_total', 'currency_IDR', 'paid_or_settled_status']
   });
 }
 
 async function lockedPaymentFetchOwnedOrder(inputOrderId, customerId) {
-  const clean = lockedPaymentCleanText(inputOrderId, 120);
-  const standard = await lockedPaymentFetchOwnedStandardOrder(clean, customerId);
-  if (standard.ok) return standard;
-
-  const domain = await lockedPaymentFetchOwnedDomainOrder(clean, customerId);
-  if (domain.ok) return domain;
-
-  if (standard.status && standard.status !== 404) return standard;
-  if (domain.status && domain.status !== 404) return domain;
-  return { ok: false, status: 404, message: 'Order tidak ditemukan atau bukan milik akun ini.' };
-}
-
-async function lockedPaymentFetchOwnedStandardOrder(inputOrderId, customerId) {
   const select = ['id', 'order_id', 'customer_id', 'service_type', 'total', 'payment_status', 'order_status', 'created_at'].join(',');
   const clean = lockedPaymentCleanText(inputOrderId, 120);
   const filters = [];
+
   if (customerSecurityLooksLikeUuid(clean)) filters.push(`id.eq.${clean}`);
   filters.push(`order_id.eq.${clean}`);
 
@@ -6959,75 +6947,7 @@ async function lockedPaymentFetchOwnedStandardOrder(inputOrderId, customerId) {
   const rows = Array.isArray(result.data) ? result.data : [];
   const row = rows[0] || null;
   if (!row || !row.id) return { ok: false, status: 404, message: 'Order tidak ditemukan atau bukan milik akun ini.' };
-  row.__dirac_order_type = 'standard';
-  return { ok: true, order: row, orderType: 'standard' };
-}
-
-async function lockedPaymentFetchOwnedDomainOrder(inputOrderId, customerId) {
-  const select = ['id', 'customer_id', 'domain_name', 'total_price', 'payment_status', 'order_status', 'status', 'created_at'].join(',');
-  const clean = lockedPaymentCleanText(inputOrderId, 120);
-  const filters = [];
-  if (customerSecurityLooksLikeUuid(clean)) filters.push(`id.eq.${clean}`);
-
-  if (!filters.length) return { ok: false, status: 404, message: 'Domain order tidak ditemukan atau bukan milik akun ini.' };
-
-  const path = '/rest/v1/domain_orders?select=' + encodeURIComponent(select)
-    + '&customer_id=eq.' + encodeURIComponent(customerId)
-    + '&or=' + encodeURIComponent(`(${filters.join(',')})`)
-    + '&limit=1';
-
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result.ok) return { ok: false, status: result.status, message: 'Gagal membaca domain order.' };
-
-  const rows = Array.isArray(result.data) ? result.data : [];
-  const row = rows[0] || null;
-  if (!row || !row.id) return { ok: false, status: 404, message: 'Domain order tidak ditemukan atau bukan milik akun ini.' };
-  row.__dirac_order_type = 'domain';
-  row.order_code = 'DOM-' + String(row.id || '').slice(0, 8).toUpperCase();
-  return { ok: true, order: row, orderType: 'domain' };
-}
-
-async function lockedPaymentValidatePayableOrderItems(orderId, orderTotal, serviceType, isDomainOrder) {
-  if (isDomainOrder) return lockedPaymentValidateDomainOrderItems(orderId, orderTotal);
-  return lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType);
-}
-
-async function lockedPaymentValidateDomainOrderItems(orderId, orderTotal) {
-  const select = 'id,order_id,domain_name,extension,years,register_price,renewal_price,subtotal';
-  const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-
-  if (!result.ok) return { ok: false, status: result.status || 500, message: 'Gagal membaca item domain order.' };
-
-  const rows = Array.isArray(result.data) ? result.data : [];
-  if (!rows.length) return { ok: false, status: 409, message: 'Domain order tidak punya item. Payment gateway tidak dibuat.' };
-
-  let total = 0;
-  const items = [];
-  for (const row of rows) {
-    const years = lockedPaymentPositiveInteger(row.years || 1, 1, 10);
-    const subtotal = lockedPaymentMoney(row.subtotal || row.register_price || 0);
-    const domainName = lockedPaymentCleanText(row.domain_name || 'Domain', 180);
-
-    if (!domainName) return { ok: false, status: 409, message: 'Ada item domain tanpa nama domain.' };
-    if (subtotal <= 0) return { ok: false, status: 409, message: 'Ada item domain dengan subtotal 0/kosong. Payment gateway tidak dibuat.' };
-
-    total += subtotal;
-    items.push({
-      id: String(row.id || ''),
-      product_doc_id: null,
-      title: domainName,
-      quantity: years,
-      unit_price: Math.max(1, Math.round(subtotal / years)),
-      subtotal
-    });
-  }
-
-  if (lockedPaymentMoney(total) !== lockedPaymentMoney(orderTotal)) {
-    return { ok: false, status: 409, message: 'Total domain order berbeda dengan total item domain. Payment gateway tidak dibuat.' };
-  }
-
-  return { ok: true, totalItem: total, items };
+  return { ok: true, order: row };
 }
 
 async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType) {
@@ -7072,17 +6992,15 @@ async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType)
   return { ok: true, totalItem: total, items };
 }
 
-async function lockedPaymentFindReusableTransaction(orderId, customerId, amount, domainOrderId = '') {
-  const select = 'id,order_id,domain_order_id,customer_id,service_type,gateway_name,gateway_reference,payment_status,amount,currency,payment_url,expired_at';
+async function lockedPaymentFindReusableTransaction(orderId, customerId, amount) {
+  const select = 'id,order_id,customer_id,service_type,gateway_name,gateway_reference,payment_status,amount,currency,payment_url,expired_at,created_at';
   const statuses = ['unpaid', 'pending', 'created'].join(',');
-  const orderColumn = domainOrderId ? 'domain_order_id' : 'order_id';
-  const orderValue = domainOrderId || orderId;
   const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
-    + '&' + orderColumn + '=eq.' + encodeURIComponent(orderValue)
+    + '&order_id=eq.' + encodeURIComponent(orderId)
     + '&customer_id=eq.' + encodeURIComponent(customerId)
     + '&amount=eq.' + encodeURIComponent(String(amount))
     + '&payment_status=in.(' + statuses + ')'
-    + '&limit=5';
+    + '&order=created_at.desc&limit=5';
 
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
   if (!result.ok) return { ok: false, status: result.status };
@@ -7831,47 +7749,58 @@ async function midtransFetchGatewayEvent(gatewayEventId) {
 }
 
 async function midtransInsertGatewayEventSafe(paymentTransactionId, gatewayEventId, eventStatus, payload, metadata) {
-  const safePayload = payload && typeof payload === 'object' ? payload : {};
-  const safeMeta = metadata && typeof metadata === 'object' ? metadata : {};
-  const eventType = midtransSafeText(
-    safePayload.transaction_status || safePayload.payment_type || safePayload.status_message || 'notification',
-    80
-  ) || 'notification';
-
-  const body = {
+  const basePayload = {
     payment_transaction_id: paymentTransactionId,
-    gateway_name: 'midtrans',
-    gateway_event_id: gatewayEventId || null,
-    event_type: eventType,
-    event_status: eventStatus || 'received',
-    raw_payload: {
-      ...safePayload,
-      _dirac: {
-        provider: 'midtrans',
-        received_at: diracNowIso(),
-        signature_verified: true,
-        ...safeMeta
-      }
-    },
-    processed_at: eventStatus === 'processed' ? diracNowIso() : null,
-    error_message: eventStatus === 'failed' ? midtransSafeText(safeMeta.reason || safeMeta.error || 'webhook_failed', 220) : null
+    gateway_event_id: gatewayEventId,
+    event_status: eventStatus,
+    payload,
+    metadata: {
+      provider: 'midtrans',
+      received_at: diracNowIso(),
+      signature_verified: true,
+      ...(metadata || {})
+    }
   };
 
-  const result = await supabaseFetch('/rest/v1/payment_gateway_events', {
-    method: 'POST',
-    auth: 'service',
-    prefer: 'return=representation',
-    body: [body]
-  });
+  const attempts = [
+    {
+      ...basePayload,
+      gateway_name: 'midtrans',
+      signature_valid: true,
+      received_at: diracNowIso(),
+      processed_at: eventStatus === 'processed' ? diracNowIso() : null
+    },
+    basePayload,
+    {
+      payment_transaction_id: paymentTransactionId,
+      gateway_event_id: gatewayEventId,
+      event_status: eventStatus,
+      payload
+    },
+    {
+      payment_transaction_id: paymentTransactionId,
+      gateway_event_id: gatewayEventId,
+      event_status: eventStatus
+    }
+  ];
 
-  if (result.ok) return { ok: true, data: result.data };
+  for (const body of attempts) {
+    const result = await supabaseFetch('/rest/v1/payment_gateway_events', {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [body]
+    });
 
-  const msg = lockedPaymentSafeUpstreamError(result.data).toLowerCase();
-  if (result.status === 409 || msg.includes('duplicate') || msg.includes('unique')) {
-    return { ok: true, duplicate: true, data: result.data };
+    if (result.ok) return { ok: true, data: result.data };
+
+    const msg = lockedPaymentSafeUpstreamError(result.data).toLowerCase();
+    if (result.status === 409 || msg.includes('duplicate') || msg.includes('unique')) {
+      return { ok: true, duplicate: true, data: result.data };
+    }
   }
 
-  return { ok: false, status: result.status || 500, data: result.data };
+  return { ok: false, status: 500 };
 }
 
 async function midtransPatchPaymentTransaction(transactionId, status, payload, success) {
@@ -7938,16 +7867,6 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
       }
     });
     if (second.ok) return second;
-    const third = await supabaseFetch(path, {
-      method: 'PATCH',
-      auth: 'service',
-      prefer: 'return=representation',
-      body: {
-        payment_status: 'paid',
-        order_status: 'processing'
-      }
-    });
-    if (third.ok) return third;
     return supabaseFetch(path, {
       method: 'PATCH',
       auth: 'service',
@@ -7981,17 +7900,6 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
       }
     });
     if (second.ok) return second;
-    const third = await supabaseFetch(path, {
-      method: 'PATCH',
-      auth: 'service',
-      prefer: 'return=representation',
-      body: {
-        payment_status: 'paid',
-        order_status: 'processing',
-        status: 'processing'
-      }
-    });
-    if (third.ok) return third;
     return supabaseFetch(path, {
       method: 'PATCH',
       auth: 'service',
