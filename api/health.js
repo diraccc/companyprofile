@@ -7968,6 +7968,76 @@ function diracEmailA2FGenerateCode() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
 
+
+async function diracEmailA2FHasActivePasskeyForUser(user, email) {
+  const cleanEmail = normalizeAuthEmail(email || (user && user.email));
+  if (!isValidAuthEmail(cleanEmail)) {
+    return { ok: false, status: 400, message: 'Email akun tidak valid.' };
+  }
+
+  const seen = new Set();
+  const rows = [];
+  const select = 'id,user_id,email,is_active,created_at,last_used_at';
+  const addRows = (list) => {
+    for (const row of (Array.isArray(list) ? list : [])) {
+      if (!row || row.is_active !== true) continue;
+      const key = String(row.id || row.user_id || row.email || '');
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+  };
+  const fetchPasskeyRows = async (filter) => {
+    if (!filter) return;
+    const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&is_active=eq.true&' + filter + '&order=created_at.desc&limit=10';
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (result && result.ok) addRows(result.data);
+  };
+
+  // Utama: cocokkan email login dengan domain_passkeys.email.
+  await fetchPasskeyRows('email=eq.' + encodeURIComponent(cleanEmail));
+
+  // Cadangan aman: kalau requireDomainUser mengembalikan id customer langsung.
+  const userId = String(user && user.id || '').trim();
+  if (userId && typeof customerSecurityLooksLikeUuid === 'function' && customerSecurityLooksLikeUuid(userId)) {
+    await fetchPasskeyRows('user_id=eq.' + encodeURIComponent(userId));
+  }
+
+  // Cadangan aman: kalau akun auth terhubung ke customers lewat security_customer_auth_links.
+  try {
+    if (typeof customerSecurityFetchAuthLink === 'function' && userId) {
+      const linkResult = await customerSecurityFetchAuthLink(userId).catch(() => null);
+      const linkRows = Array.isArray(linkResult && linkResult.data) ? linkResult.data : [];
+      for (const link of linkRows) {
+        const cid = String(link && link.customer_id || '').trim();
+        if (link && link.link_status === 'active' && customerSecurityLooksLikeUuid(cid)) {
+          await fetchPasskeyRows('user_id=eq.' + encodeURIComponent(cid));
+        }
+      }
+    }
+  } catch (_) {}
+
+  // Cadangan final: pakai resolver Passkey yang sudah ada, tapi jangan jadikan gagal fatal.
+  try {
+    if (typeof diracPasskeyA2FResolveOwner === 'function' && typeof diracPasskeyA2FListActivePasskeys === 'function') {
+      const owner = await diracPasskeyA2FResolveOwner(user, cleanEmail).catch(() => null);
+      if (owner && owner.ok) {
+        const ownerRows = await diracPasskeyA2FListActivePasskeys(owner).catch(() => []);
+        addRows(ownerRows);
+      }
+    }
+  } catch (_) {}
+
+  if (rows.length > 0) {
+    return { ok: true, count: rows.length };
+  }
+  return {
+    ok: false,
+    status: 403,
+    message: 'Passkey aktif belum ditemukan untuk email akun ini. Login ulang lalu coba lagi.'
+  };
+}
+
 async function diracEmailA2FStart(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
 
@@ -7977,16 +8047,12 @@ async function diracEmailA2FStart(req, res) {
   const email = normalizeAuthEmail(user.email);
   if (!isValidAuthEmail(email)) return res.status(400).json({ ok: false, message: 'Email akun tidak valid.' });
 
-  const owner = await diracPasskeyA2FResolveOwner(user, email);
-  if (!owner.ok) {
-    return res.status(owner.status || 409).json({ ok: false, message: owner.message || 'Akun belum siap untuk A2F email.' });
-  }
-  const activePasskeys = await diracPasskeyA2FListActivePasskeys(owner);
-  if (!Array.isArray(activePasskeys) || activePasskeys.length < 1) {
-    return res.status(403).json({
+  const passkeyGate = await diracEmailA2FHasActivePasskeyForUser(user, email);
+  if (!passkeyGate.ok) {
+    return res.status(passkeyGate.status || 403).json({
       ok: false,
       code: 'PASSKEY_REQUIRED_FIRST',
-      message: 'Email A2F hanya boleh dipakai setelah Passkey aktif di database.'
+      message: passkeyGate.message || 'Email A2F hanya boleh dipakai setelah Passkey aktif di database.'
     });
   }
 
