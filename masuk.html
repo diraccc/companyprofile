@@ -9621,34 +9621,15 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(status){ status.textContent = message; status.classList.add('show'); }
   }
   function passkeyIsBackendActive(){
-    // Dashboard tidak boleh percaya localStorage. Status Passkey hanya dari memori runtime
-    // yang diisi oleh backend /api/health?action=dirac_mfa_passkey_status atau hasil verify.
     try{
       var ctx = window.__DIRAC_BACKEND_MFA_CONTEXT__ || {};
       if(ctx && ctx.active === true && String(ctx.method || '').toLowerCase() === 'passkey') return true;
     }catch(_e){}
     try{
-      var status = window.__DIRAC_PASSKEY_BACKEND_STATUS__ || {};
-      if(status && status.registered === true && status.backup_email_allowed === true) return true;
+      var s = JSON.parse(localStorage.getItem('dirac_auth_session_v1') || '{}');
+      if(s && /server_verified/i.test(String(s.twoFactorStatus || '')) && String(s.twoFactorMethod || '').toLowerCase() === 'passkey') return true;
     }catch(_e){}
     return false;
-  }
-  function refreshPasskeyBackendStatus(){
-    if(!window.fetch || window.__DIRAC_PASSKEY_STATUS_LOADING__) return;
-    window.__DIRAC_PASSKEY_STATUS_LOADING__ = true;
-    fetch('/api/health?action=dirac_mfa_passkey_status', {method:'GET', credentials:'include', cache:'no-store', headers:{'Accept':'application/json'}})
-      .then(function(res){ return res && res.ok ? res.json() : null; })
-      .then(function(data){
-        if(data && data.ok){
-          window.__DIRAC_PASSKEY_BACKEND_STATUS__ = data;
-          if(data.registered === true){
-            applyCopy();
-            setStatus(lang() === 'en' ? 'Passkey is already active. Email backup is available.' : 'Passkey sudah aktif. Kode email cadangan bisa dipakai.');
-          }
-        }
-      })
-      .catch(function(){})
-      .finally(function(){ window.__DIRAC_PASSKEY_STATUS_LOADING__ = false; });
   }
   function removeAuthenticator(){
     $$('#a2fModal [data-a2f-select="authenticator"], #a2fModal [data-a2f-panel="authenticator"], #a2fModal #a2fAuthenticatorSetup, #a2fModal .a2f-auth-setup, #a2fModal .dirac-authenticator-setup-card').forEach(function(el){
@@ -9711,20 +9692,16 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   ready(function(){
     applyCopy();
-    refreshPasskeyBackendStatus();
     setTimeout(applyCopy, 60);
     setTimeout(applyCopy, 350);
     document.addEventListener('click', function(e){
       var email = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="email"]') : null;
       if(email && !passkeyIsBackendActive()){
-        refreshPasskeyBackendStatus();
-        if(!passkeyIsBackendActive()){
-          e.preventDefault();
-          e.stopPropagation();
-          if(e.stopImmediatePropagation) e.stopImmediatePropagation();
-          selectPasskey(true);
-          return false;
-        }
+        e.preventDefault();
+        e.stopPropagation();
+        if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+        selectPasskey(true);
+        return false;
       }
     }, true);
     var modal = $('#a2fModal');
@@ -9896,6 +9873,113 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       }).observe(modal, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class','style','disabled','data-selected-a2f','data-a2f-step-index','data-a2f-method']});
     }
     if(window.MutationObserver){ new MutationObserver(applyCopy).observe(document.documentElement, {attributes:true, attributeFilter:['lang']}); }
+  });
+})();
+</script>
+
+
+<script id="dirac-passkey-db-email-unlock-js">
+(function(){
+  'use strict';
+  function $(s,r){ return (r || document).querySelector(s); }
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
+  function markPasskeyActive(source){
+    window.__DIRAC_PASSKEY_DB_ACTIVE__ = true;
+    var prev = window.__DIRAC_BACKEND_MFA_CONTEXT__ && typeof window.__DIRAC_BACKEND_MFA_CONTEXT__ === 'object'
+      ? window.__DIRAC_BACKEND_MFA_CONTEXT__
+      : {};
+    window.__DIRAC_BACKEND_MFA_CONTEXT__ = Object.assign({}, prev, {
+      active: true,
+      method: 'passkey',
+      passkey_active: true,
+      source: source || 'domain_passkeys'
+    });
+    unlockEmailBackup();
+  }
+  function unlockEmailBackup(){
+    var modal = $('#a2fModal');
+    if(!modal) return;
+    var email = $('[data-a2f-select="email"]', modal);
+    if(email){
+      email.hidden = false;
+      email.disabled = false;
+      email.style.display = '';
+      email.style.pointerEvents = '';
+      email.removeAttribute('aria-disabled');
+      email.setAttribute('aria-disabled','false');
+      var strong = $('strong', email); if(strong) strong.textContent = lang() === 'en' ? 'Email backup code' : 'Kode email cadangan';
+      var desc = email.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)');
+      if(desc) desc.textContent = lang() === 'en' ? 'Passkey is active. Email code can be used as backup.' : 'Passkey sudah aktif. Kode email bisa dipakai sebagai cadangan.';
+      var mini = $('small', email); if(mini) mini.textContent = lang() === 'en' ? 'Backup method is available.' : 'Metode cadangan sudah tersedia.';
+    }
+    var note = $('.a2f-note', modal);
+    if(note){
+      note.textContent = lang() === 'en'
+        ? 'Passkey is active in the database. You may use Passkey or Email backup.'
+        : 'Passkey sudah aktif di database. Kamu bisa memakai Passkey atau Email cadangan.';
+      note.setAttribute('data-no-i18n','');
+    }
+  }
+  function checkPasskeyStatus(){
+    return fetch('/api/health?action=dirac_mfa_passkey_status', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    }).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json().catch(function(){ return null; });
+    }).then(function(data){
+      if(data && (data.active === true || data.passkey_active === true || data.has_passkey === true || Number(data.passkey_count || 0) > 0)){
+        markPasskeyActive('domain_passkeys_status');
+      }
+      return data;
+    }).catch(function(){ return null; });
+  }
+  if(window.fetch && !window.__diracPasskeyDbEmailUnlockFetchInstalled){
+    window.__diracPasskeyDbEmailUnlockFetchInstalled = true;
+    var previousFetch = window.fetch.bind(window);
+    window.fetch = function(input, init){
+      return previousFetch(input, init).then(function(response){
+        try{
+          var raw = typeof input === 'string' ? input : (input && input.url) || '';
+          var url = raw ? new URL(raw, window.location.href) : null;
+          if(url && /action=(dirac_mfa_passkey_verify|domain_mfa_passkey_verify)/i.test(url.search)){
+            response.clone().json().then(function(data){
+              if(data && data.ok === true && (data.active === true || data.passkey_registered === true || data.database_saved === true)){
+                markPasskeyActive('passkey_verify_response');
+              }
+            }).catch(function(){});
+          }
+        }catch(_e){}
+        return response;
+      });
+    };
+  }
+  ready(function(){
+    checkPasskeyStatus();
+    setTimeout(checkPasskeyStatus, 450);
+    setTimeout(checkPasskeyStatus, 1400);
+    var modal = $('#a2fModal');
+    if(modal && window.MutationObserver){
+      var queued = false;
+      new MutationObserver(function(){
+        if(queued) return;
+        queued = true;
+        requestAnimationFrame(function(){
+          queued = false;
+          if(window.__DIRAC_PASSKEY_DB_ACTIVE__ === true) unlockEmailBackup();
+          else checkPasskeyStatus();
+        });
+      }).observe(modal, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden','disabled','data-a2f-step-index','data-selected-a2f']});
+    }
+    document.addEventListener('click', function(e){
+      var email = e.target && e.target.closest ? e.target.closest('#a2fModal [data-a2f-select="email"]') : null;
+      if(email && window.__DIRAC_PASSKEY_DB_ACTIVE__ !== true){
+        checkPasskeyStatus();
+      }
+    }, true);
   });
 })();
 </script>
