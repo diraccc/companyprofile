@@ -1016,25 +1016,110 @@ async function domainRegister(req, res, preloadedBody) {
   });
 
   if (!result.ok) {
+    if (isSupabaseRegisterDuplicateEmailError(result.data)) {
+      return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+    }
+
     return res.status(result.status).json({
       ok: false,
       message: result.data.error_description || result.data.msg || result.data.message || 'Pendaftaran gagal.'
     });
   }
 
-  if (result.data.access_token && result.data.refresh_token) {
-    setSessionCookies(res, result.data);
+  const signupData = result.data && typeof result.data === 'object' ? result.data : {};
+
+  // Supabase Auth dengan email confirmation aktif dapat mengembalikan HTTP 200
+  // untuk email yang sudah terdaftar, tetapi user.identities kosong.
+  // Kondisi ini tidak boleh ditampilkan sebagai akun baru berhasil dibuat.
+  if (isSupabaseRegisterExistingAccountResponse(signupData)) {
+    return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
+  }
+
+  if (!hasSupabaseRegisterNewAccountEvidence(signupData)) {
+    return res.status(502).json({
+      ok: false,
+      code: 'REGISTER_RESULT_NOT_CONFIRMED',
+      needs_email_confirmation: false,
+      message: 'Pendaftaran belum bisa dipastikan sebagai akun baru. Silakan coba lagi, atau gunakan email lain jika email ini sudah pernah didaftarkan.'
+    });
+  }
+
+  if (signupData.access_token && signupData.refresh_token) {
+    setSessionCookies(res, signupData);
   }
 
   return res.status(200).json({
     ok: true,
-    message: result.data.access_token
+    message: signupData.access_token
       ? 'Akun berhasil dibuat dan login otomatis.'
       : 'Akun berhasil dibuat. Silakan cek email verifikasi jika diperlukan.',
-    needs_email_confirmation: !result.data.access_token,
-    user: sanitizeUser(result.data.user),
-    session: buildDomainAuthSessionPayload(result.data)
+    needs_email_confirmation: !signupData.access_token,
+    user: sanitizeUser(signupData.user),
+    session: buildDomainAuthSessionPayload(signupData)
   });
+}
+
+function buildDomainRegisterDuplicateEmailBody() {
+  return {
+    ok: false,
+    code: 'EMAIL_ALREADY_REGISTERED',
+    already_registered: true,
+    email_already_registered: true,
+    needs_email_confirmation: false,
+    next: 'login_or_reset_password',
+    message: 'Email ini sudah terdaftar. Silakan masuk, atau gunakan lupa password jika tidak ingat kata sandi.'
+  };
+}
+
+function isSupabaseRegisterDuplicateEmailError(data) {
+  const fields = [];
+  if (typeof data === 'string') fields.push(data);
+  if (data && typeof data === 'object') {
+    fields.push(
+      data.error,
+      data.error_code,
+      data.code,
+      data.msg,
+      data.message,
+      data.error_description,
+      data.detail
+    );
+  }
+
+  const text = fields
+    .filter((item) => item !== undefined && item !== null)
+    .map((item) => String(item).toLowerCase())
+    .join(' | ');
+
+  if (!text) return false;
+  return /(?:user|email|account|akun).*?(?:already|exists|registered|terdaftar|dipakai|digunakan)/i.test(text)
+    || /(?:already|exists|registered|duplicate|terdaftar).*?(?:user|email|account|akun)/i.test(text)
+    || /email_exists|user_already_exists|duplicate_email|email_already_registered/i.test(text);
+}
+
+function isSupabaseRegisterExistingAccountResponse(data) {
+  const user = data && typeof data === 'object' && data.user && typeof data.user === 'object'
+    ? data.user
+    : null;
+  if (!user) return false;
+
+  // Sinyal resmi yang umum muncul pada signUp email lama saat confirmation aktif.
+  if (Array.isArray(user.identities) && user.identities.length === 0) return true;
+
+  return false;
+}
+
+function hasSupabaseRegisterNewAccountEvidence(data) {
+  if (!data || typeof data !== 'object') return false;
+  if (data.access_token && data.refresh_token) return true;
+
+  const user = data.user && typeof data.user === 'object' ? data.user : null;
+  if (!user || !user.id) return false;
+
+  if (Array.isArray(user.identities)) return user.identities.length > 0;
+
+  // Kompatibilitas untuk respons Supabase Auth lama yang tidak selalu menyertakan identities.
+  return Boolean(user.email || user.created_at || user.aud === 'authenticated');
 }
 
 async function domainMe(req, res) {
