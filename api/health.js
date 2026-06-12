@@ -7899,3 +7899,260 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
   return { ok: false, status: 409 };
 }
 
+
+/* ============================================================
+   DIRAC EMAIL A2F RESTORE PATCH v1
+   - Adds backend email-code 2FA actions for masuk.html restore patch.
+   - Routes:
+     POST /api/health?action=dirac_mfa_email_start
+     POST /api/health?action=dirac_mfa_email_verify
+   - Passkey/Auth flow stays on the existing /api/2fa endpoints.
+   - Dashboard proof is still HttpOnly cookie only.
+   ============================================================ */
+
+const __diracEmailA2FPreviousHandler = module.exports;
+const DIRAC_EMAIL_A2F_ACTIONS = new Set([
+  'dirac_mfa_email_start',
+  'dirac_mfa_email_verify',
+  'domain_mfa_email_start',
+  'domain_mfa_email_verify'
+]);
+const DIRAC_EMAIL_A2F_STORE = globalThis.__DIRAC_EMAIL_A2F_STORE__ || new Map();
+globalThis.__DIRAC_EMAIL_A2F_STORE__ = DIRAC_EMAIL_A2F_STORE;
+const DIRAC_EMAIL_A2F_TTL_MS = Math.max(60_000, Number(process.env.DIRAC_EMAIL_A2F_TTL_MS || 5 * 60_000));
+const DIRAC_EMAIL_A2F_MAX_ATTEMPTS = Math.max(3, Number(process.env.DIRAC_EMAIL_A2F_MAX_ATTEMPTS || 5));
+
+module.exports = async function diracEmailA2FRestoreWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  if (!DIRAC_EMAIL_A2F_ACTIONS.has(rawAction)) {
+    return __diracEmailA2FPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  try {
+    if (rawAction === 'dirac_mfa_email_start' || rawAction === 'domain_mfa_email_start') {
+      return diracEmailA2FStart(req, res);
+    }
+    return diracEmailA2FVerify(req, res);
+  } catch (error) {
+    return res.status(error && error.statusCode ? error.statusCode : 500).json({
+      ok: false,
+      message: 'Verifikasi A2F email belum bisa diproses. Silakan coba lagi sebentar lagi.'
+    });
+  }
+};
+
+function diracEmailA2FCleanup(now = Date.now()) {
+  if (DIRAC_EMAIL_A2F_STORE.size < 1000) return;
+  for (const [key, row] of DIRAC_EMAIL_A2F_STORE.entries()) {
+    if (!row || Number(row.expiresAtMs || 0) <= now) DIRAC_EMAIL_A2F_STORE.delete(key);
+  }
+}
+
+function diracEmailA2FHash(value) {
+  return crypto.createHmac('sha256', getCustomerMfaSecret()).update(String(value || '')).digest('hex');
+}
+
+function diracEmailA2FMaskEmail(email) {
+  const value = normalizeAuthEmail(email);
+  const parts = value.split('@');
+  if (parts.length !== 2) return 'e••••@mail';
+  const name = parts[0] || 'e';
+  return `${name.slice(0, 1)}••••${name.length > 4 ? name.slice(-2) : ''}@${parts[1]}`;
+}
+
+function diracEmailA2FGenerateCode() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+async function diracEmailA2FStart(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const email = normalizeAuthEmail(user.email);
+  if (!isValidAuthEmail(email)) return res.status(400).json({ ok: false, message: 'Email akun tidak valid.' });
+
+  diracEmailA2FCleanup();
+  const code = diracEmailA2FGenerateCode();
+  const setupToken = crypto.randomBytes(32).toString('base64url');
+  const now = Date.now();
+  const record = {
+    codeHash: diracEmailA2FHash(`email-a2f-code:${email}:${setupToken}:${code}`),
+    emailHash: customerMfaProfileId(email),
+    originHash: customerMfaBindingHash('origin', requestOrigin(req)),
+    uaHash: customerMfaBindingHash('ua', requestUserAgent(req)),
+    expiresAtMs: now + DIRAC_EMAIL_A2F_TTL_MS,
+    attempts: 0,
+    createdAtMs: now
+  };
+
+  const delivered = await diracEmailA2FSendCode(email, code, {
+    ttlMinutes: Math.max(1, Math.ceil(DIRAC_EMAIL_A2F_TTL_MS / 60_000)),
+    user
+  });
+
+  if (!delivered.ok) {
+    return res.status(delivered.status || 503).json({
+      ok: false,
+      code: delivered.code || 'EMAIL_A2F_DELIVERY_NOT_READY',
+      message: delivered.message || 'Layanan email A2F belum siap. Set RESEND_API_KEY dan DIRAC_MFA_EMAIL_FROM di environment.'
+    });
+  }
+
+  DIRAC_EMAIL_A2F_STORE.set(setupToken, record);
+
+  return res.status(200).json({
+    ok: true,
+    method: 'email',
+    setupToken,
+    mfaSetupToken: setupToken,
+    expires_in: Math.floor(DIRAC_EMAIL_A2F_TTL_MS / 1000),
+    masked_email: diracEmailA2FMaskEmail(email),
+    message: `Kode A2F sudah dikirim ke ${diracEmailA2FMaskEmail(email)}.`
+  });
+}
+
+async function diracEmailA2FVerify(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+
+  const user = await requireDomainUser(req, res);
+  if (!user) return;
+
+  const body = await readBody(req);
+  const email = normalizeAuthEmail(user.email);
+  const setupToken = String(body.setupToken || body.mfaSetupToken || body.token || '').trim();
+  const code = String(body.code || body.otp || body.email_code || '').replace(/\D/g, '').slice(0, 6);
+
+  if (!setupToken || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ ok: false, message: 'Masukkan kode email 6 digit terbaru.' });
+  }
+
+  const record = DIRAC_EMAIL_A2F_STORE.get(setupToken);
+  if (!record) return res.status(403).json({ ok: false, message: 'Kode email sudah expired. Kirim ulang kode.' });
+
+  const now = Date.now();
+  if (Number(record.expiresAtMs || 0) <= now) {
+    DIRAC_EMAIL_A2F_STORE.delete(setupToken);
+    return res.status(403).json({ ok: false, message: 'Kode email sudah expired. Kirim ulang kode.' });
+  }
+
+  if (!record.emailHash || !safeEqual(String(record.emailHash), customerMfaProfileId(email))) {
+    DIRAC_EMAIL_A2F_STORE.delete(setupToken);
+    return res.status(403).json({ ok: false, message: 'Kode email tidak cocok dengan akun login.' });
+  }
+
+  if (record.originHash) {
+    const expectedOriginHash = customerMfaBindingHash('origin', requestOrigin(req));
+    if (!expectedOriginHash || !safeEqual(String(record.originHash), expectedOriginHash)) {
+      return res.status(403).json({ ok: false, message: 'Kode email harus diverifikasi dari origin yang sama.' });
+    }
+  }
+
+  if (record.uaHash) {
+    const expectedUaHash = customerMfaBindingHash('ua', requestUserAgent(req));
+    if (!expectedUaHash || !safeEqual(String(record.uaHash), expectedUaHash)) {
+      return res.status(403).json({ ok: false, message: 'Kode email harus diverifikasi dari perangkat/browser yang sama.' });
+    }
+  }
+
+  record.attempts = Number(record.attempts || 0) + 1;
+  if (record.attempts > DIRAC_EMAIL_A2F_MAX_ATTEMPTS) {
+    DIRAC_EMAIL_A2F_STORE.delete(setupToken);
+    return res.status(429).json({ ok: false, message: 'Terlalu banyak percobaan. Kirim ulang kode email.' });
+  }
+
+  const expectedHash = diracEmailA2FHash(`email-a2f-code:${email}:${setupToken}:${code}`);
+  if (!safeEqual(String(record.codeHash || ''), expectedHash)) {
+    DIRAC_EMAIL_A2F_STORE.set(setupToken, record);
+    return res.status(403).json({ ok: false, message: 'Kode email belum cocok. Masukkan 6 digit terbaru dari email.' });
+  }
+
+  DIRAC_EMAIL_A2F_STORE.delete(setupToken);
+  const proof = customerSecurityCreateDashboardMfaToken(req, user, 'email');
+  customerSecuritySetDashboardMfaCookie(res, proof);
+
+  return res.status(200).json({
+    ok: true,
+    verified: true,
+    active: true,
+    method: 'email',
+    message: 'Kode email valid. Akses dashboard sudah diverifikasi.',
+    dashboardSession: {
+      verified: true,
+      expiresAtMs: proof.expiresAtMs,
+      activeAtMs: proof.activeAtMs,
+      method: 'email',
+      transport: 'httponly-secure-cookie-only'
+    },
+    time: diracNowIso()
+  });
+}
+
+async function diracEmailA2FSendCode(to, code, options = {}) {
+  const ttlMinutes = Number(options.ttlMinutes || 5);
+  const from = String(process.env.DIRAC_MFA_EMAIL_FROM || process.env.DIRAC_EMAIL_FROM || process.env.RESEND_FROM || 'Dirac Secure <no-reply@diracgroup.store>').trim();
+  const subject = 'Kode A2F Dirac Secure';
+  const text = `Kode A2F Dirac Secure Anda: ${code}\n\nKode berlaku ${ttlMinutes} menit. Jangan berikan kode ini kepada siapa pun.`;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
+      <h2 style="margin:0 0 12px">Kode A2F Dirac Secure</h2>
+      <p>Masukkan kode berikut untuk melanjutkan ke dashboard:</p>
+      <div style="font-size:30px;font-weight:800;letter-spacing:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:14px 18px;width:max-content">${code}</div>
+      <p>Kode berlaku ${ttlMinutes} menit. Jangan berikan kode ini kepada siapa pun.</p>
+    </div>`;
+
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ from, to, subject, text, html })
+      });
+      if (response.ok) return { ok: true, provider: 'resend' };
+      return { ok: false, status: 502, code: 'RESEND_DELIVERY_FAILED', message: 'Gagal mengirim kode email A2F dari Resend.' };
+    } catch (_) {
+      return { ok: false, status: 502, code: 'RESEND_DELIVERY_FAILED', message: 'Gagal menghubungi layanan email A2F.' };
+    }
+  }
+
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const senderEmail = String(process.env.BREVO_SENDER_EMAIL || process.env.DIRAC_MFA_SENDER_EMAIL || '').trim();
+      const senderName = String(process.env.BREVO_SENDER_NAME || 'Dirac Secure').trim();
+      if (!senderEmail) return { ok: false, status: 503, code: 'BREVO_SENDER_MISSING', message: 'BREVO_SENDER_EMAIL belum diatur.' };
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({ sender: { name: senderName, email: senderEmail }, to: [{ email: to }], subject, htmlContent: html, textContent: text })
+      });
+      if (response.ok) return { ok: true, provider: 'brevo' };
+      return { ok: false, status: 502, code: 'BREVO_DELIVERY_FAILED', message: 'Gagal mengirim kode email A2F dari Brevo.' };
+    } catch (_) {
+      return { ok: false, status: 502, code: 'BREVO_DELIVERY_FAILED', message: 'Gagal menghubungi layanan email A2F.' };
+    }
+  }
+
+  if (process.env.NODE_ENV !== 'production' && isEnvTrue('DIRAC_DEV_EMAIL_A2F_ECHO')) {
+    console.log('[DEV-EMAIL-A2F]', { to, code, ttlMinutes });
+    return { ok: true, provider: 'dev_echo' };
+  }
+
+  return {
+    ok: false,
+    status: 503,
+    code: 'EMAIL_PROVIDER_NOT_CONFIGURED',
+    message: 'Provider email A2F belum dikonfigurasi. Set RESEND_API_KEY + DIRAC_MFA_EMAIL_FROM, atau BREVO_API_KEY + BREVO_SENDER_EMAIL.'
+  };
+}
