@@ -9718,5 +9718,164 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 })();
 </script>
 
+
+<style id="dirac-passkey-100-fix-css">
+/* Passkey 100% hotfix: jangan tampilkan error OTP/Auth saat pengguna sedang bikin Passkey. */
+#a2fModal[data-dirac-passkey-busy="true"] #a2fErrorMsg.show{
+  border-color:rgba(37,99,235,.24)!important;
+  background:rgba(37,99,235,.07)!important;
+  color:#1e3a8a!important;
+}
+html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2fErrorMsg.show{
+  color:#dbeafe!important;
+}
+#a2fModal .a2f-result.show[data-dirac-passkey-result="true"]{
+  border-color:rgba(37,99,235,.28)!important;
+}
+</style>
+
+<script id="dirac-passkey-100-fix-js">
+(function(){
+  'use strict';
+  function $(s,r){ return (r || document).querySelector(s); }
+  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
+  function lang(){ return document.documentElement.lang === 'en' ? 'en' : 'id'; }
+  function parseBody(init){
+    try{
+      var body = init && init.body;
+      if(!body || typeof body !== 'string') return null;
+      return JSON.parse(body);
+    }catch(_){ return null; }
+  }
+  function isPasskeyPayload(init){
+    var data = parseBody(init);
+    return !!(data && String(data.method || '').toLowerCase() === 'passkey');
+  }
+  function rewritePasskeyFetch(input, init){
+    try{
+      if(!isPasskeyPayload(init)) return input;
+      var raw = typeof input === 'string' ? input : (input && input.url) || '';
+      if(!raw) return input;
+      var url = new URL(raw, window.location.href);
+      if(/\/api\/2fa\/start-step\/?$/i.test(url.pathname)) return new URL('/api/health?action=dirac_mfa_passkey_start', window.location.origin).href;
+      if(/\/api\/2fa\/verify-step\/?$/i.test(url.pathname)) return new URL('/api/health?action=dirac_mfa_passkey_verify', window.location.origin).href;
+    }catch(_){ }
+    return input;
+  }
+  if(window.fetch && !window.__diracPasskeyA2F100FetchInstalled){
+    window.__diracPasskeyA2F100FetchInstalled = true;
+    var previousFetch = window.fetch.bind(window);
+    window.fetch = function(input, init){
+      return previousFetch(rewritePasskeyFetch(input, init), init);
+    };
+  }
+  function clearWrongOtpError(){
+    var modal = $('#a2fModal');
+    var err = $('#a2fErrorMsg');
+    var result = $('#a2fResult');
+    if(modal) modal.setAttribute('data-dirac-passkey-busy','true');
+    if(err && /kode\s+a2f|authenticator|otp|6\s*digit/i.test(err.textContent || '')){
+      err.classList.remove('show');
+      err.textContent = '';
+    }
+    if(result && /kode\s+a2f|authenticator|otp|6\s*digit/i.test(result.textContent || '')){
+      result.className = 'a2f-result';
+      result.textContent = '';
+    }
+  }
+  function friendlyPasskeyErrorText(raw){
+    raw = String(raw || '').trim();
+    var low = raw.toLowerCase();
+    if(!raw || /kode\s+a2f|authenticator|otp|6\s*digit|not verified|server menolak|endpoint|404|405|failed to fetch|load failed/i.test(raw)){
+      return lang() === 'en'
+        ? 'Passkey was not created yet. Tap Create passkey now, then complete Face ID, fingerprint, or device PIN.'
+        : 'Passkey belum berhasil dibuat. Tekan Buat passkey sekarang, lalu selesaikan Face ID, sidik jari, atau PIN perangkat.';
+    }
+    if(/rp id|relying party|origin|securityerror|domain/i.test(low)){
+      return lang() === 'en'
+        ? 'Passkey failed because RP ID/origin does not match. Set WEBAUTHN_RP_ID=diracgroup.store and deploy again.'
+        : 'Passkey gagal karena RP ID/origin tidak cocok. Set WEBAUTHN_RP_ID=diracgroup.store lalu deploy ulang.';
+    }
+    if(/notallowederror|cancel|abort|timeout|dibatalkan/i.test(low)){
+      return lang() === 'en'
+        ? 'Passkey was cancelled. Try again and approve Face ID, fingerprint, or device PIN.'
+        : 'Passkey dibatalkan. Coba lagi dan setujui Face ID, sidik jari, atau PIN perangkat.';
+    }
+    if(/not supported|unsupported|belum mendukung/i.test(low)){
+      return lang() === 'en'
+        ? 'This browser/device does not support Passkey. Use Safari/Chrome updated with screen lock enabled.'
+        : 'Browser/perangkat ini belum mendukung Passkey. Pakai Safari/Chrome terbaru dan aktifkan kunci layar.';
+    }
+    return raw;
+  }
+  function patchErrorMessage(){
+    var modal = $('#a2fModal');
+    if(!modal) return;
+    var card = $('.a2f-card', modal);
+    var selected = card && card.getAttribute('data-selected-a2f') === 'passkey';
+    var active = $('[data-a2f-select="passkey"].active', modal);
+    if(!selected && !active) return;
+    var err = $('#a2fErrorMsg');
+    if(err && err.classList.contains('show') && err.textContent){
+      var next = friendlyPasskeyErrorText(err.textContent);
+      if(next !== err.textContent) err.textContent = next;
+    }
+    var result = $('#a2fResult');
+    if(result && result.classList.contains('show') && result.textContent){
+      var fixed = friendlyPasskeyErrorText(result.textContent);
+      if(fixed !== result.textContent){
+        result.textContent = fixed;
+        result.setAttribute('data-dirac-passkey-result','true');
+      }
+    }
+  }
+  function applyCopy(){
+    var modal = $('#a2fModal'); if(!modal) return;
+    var pass = $('[data-a2f-select="passkey"]', modal);
+    if(pass){
+      var strong = $('strong', pass); if(strong) strong.textContent = 'Passkey';
+      var desc = pass.querySelector('span:not(.a2f-method-icon):not(.a2f-method-top)');
+      if(desc) desc.textContent = lang() === 'en' ? 'Use Face ID, fingerprint, PIN, or device key.' : 'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat.';
+      var mini = $('small', pass); if(mini) mini.textContent = lang() === 'en' ? 'Mandatory before dashboard.' : 'Wajib sebelum dashboard.';
+    }
+    var note = $('.a2f-note', modal);
+    if(note){
+      note.textContent = lang() === 'en'
+        ? 'First sign-in must create a Passkey. Email is only a backup after Passkey is active.'
+        : 'Login pertama wajib membuat Passkey. Email hanya cadangan setelah Passkey aktif.';
+      note.setAttribute('data-no-i18n','');
+    }
+    var start = $('#a2fStartBtn', modal);
+    var activePass = $('[data-a2f-select="passkey"].active', modal);
+    if(start && activePass){
+      start.setAttribute('data-a2f-method','passkey');
+      if(!start.disabled && !/Buat passkey|Create passkey/i.test(start.textContent || '')){
+        start.innerHTML = '<span class="a2f-loading-dot" aria-hidden="true"></span><span class="a2f-start-label">'+(lang() === 'en' ? 'Create passkey now' : 'Buat passkey sekarang')+'</span>';
+      }
+    }
+    patchErrorMessage();
+  }
+  ready(function(){
+    applyCopy();
+    setTimeout(applyCopy, 80);
+    setTimeout(applyCopy, 450);
+    document.addEventListener('click', function(e){
+      var passStart = e.target && e.target.closest ? e.target.closest('#a2fStartBtn[data-a2f-method="passkey"], #a2fModal [data-a2f-select="passkey"]') : null;
+      if(passStart) clearWrongOtpError();
+    }, true);
+    var modal = $('#a2fModal');
+    if(modal && window.MutationObserver){
+      var queued = false;
+      new MutationObserver(function(){
+        if(queued) return;
+        queued = true;
+        requestAnimationFrame(function(){ queued = false; applyCopy(); });
+      }).observe(modal, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class','style','disabled','data-selected-a2f','data-a2f-step-index','data-a2f-method']});
+    }
+    if(window.MutationObserver){ new MutationObserver(applyCopy).observe(document.documentElement, {attributes:true, attributeFilter:['lang']}); }
+  });
+})();
+</script>
+
 </body>
 </html>
