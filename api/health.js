@@ -9031,13 +9031,42 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
       return res.status(400).json({ ok: false, active: false, method: 'passkey', message: 'Email akun tidak valid.' });
     }
 
+    // Primary status check: domain_passkeys.email must match the currently logged-in account email.
+    // This is read-only and does not expose credential_id/credential_json.
+    const directSelect = 'id,user_id,email,is_active,created_at,last_used_at';
+    const directPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(directSelect)
+      + '&is_active=eq.true&email=eq.' + encodeURIComponent(email)
+      + '&order=created_at.desc&limit=20';
+    const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' }).catch(() => null);
+    const directRows = directResult && directResult.ok && Array.isArray(directResult.data) ? directResult.data : [];
+    if (directRows.length > 0) {
+      return res.status(200).json({
+        ok: true,
+        method: 'passkey',
+        active: true,
+        passkey_active: true,
+        has_passkey: true,
+        passkey_count: directRows.length,
+        owner_bound: true,
+        owner_source: 'domain_passkeys.email',
+        customer_id_present: Boolean(directRows[0] && directRows[0].user_id),
+        email_present: true,
+        message: 'Passkey aktif ditemukan di database. Email A2F boleh dipakai sebagai cadangan.'
+      });
+    }
+
     const owner = await diracPasskeyA2FResolveOwner(user, email);
     if (!owner.ok) {
-      return res.status(owner.status || 409).json({
-        ok: false,
+      return res.status(200).json({
+        ok: true,
         active: false,
         method: 'passkey',
-        message: owner.message || 'Akun belum siap untuk cek status Passkey.'
+        passkey_active: false,
+        has_passkey: false,
+        passkey_count: 0,
+        owner_bound: false,
+        owner_source: 'not_resolved',
+        message: 'Passkey aktif belum ditemukan untuk email login ini.'
       });
     }
 
