@@ -1132,7 +1132,7 @@ const DIRAC_DOMAIN_ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || "dirac_d
 const DIRAC_DOMAIN_REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || "dirac_domain_refresh";
 
 function diracParseRequestCookies(req) {
-  const header = String((req && req.headers && req.headers.cookie) || "");
+  const header = String((req && req.headers && (req.headers.cookie || req.headers.Cookie)) || "");
   const cookies = {};
   header.split(";").map((item) => item.trim()).filter(Boolean).forEach((item) => {
     const index = item.indexOf("=");
@@ -1215,25 +1215,133 @@ function diracAppendSetCookieHeader(res, cookie) {
   return res.setHeader("Set-Cookie", list);
 }
 
+function diracNormalizeCookieDomain(value) {
+  const clean = String(value || "").trim().toLowerCase().replace(/^\./, "");
+  if (!clean || /^(none|false|off|host-only|host_only)$/i.test(clean)) return "";
+  if (/^localhost$|^127\.|^0\.0\.0\.0$/.test(clean)) return "";
+  return clean;
+}
+
+function diracDomainCookieCandidates() {
+  const out = [];
+  const add = (value) => {
+    const domain = diracNormalizeCookieDomain(value);
+    if (domain && !out.includes(domain)) out.push(domain);
+  };
+  add(process.env.DOMAIN_COOKIE_DOMAIN);
+  add(process.env.DOMAIN_SITE_URL ? (() => { try { return new URL(process.env.DOMAIN_SITE_URL).hostname; } catch (_) { return ""; } })() : "");
+  add(process.env.SITE_URL ? (() => { try { return new URL(process.env.SITE_URL).hostname; } catch (_) { return ""; } })() : "");
+  add("diracgroup.store");
+  return out;
+}
+
 function diracMakeDomainLoginCookie(name, value, options = {}) {
-  const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || "Lax").trim();
+  const rawSameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || "Lax").trim().toLowerCase();
+  const sameSite = rawSameSite === "strict" ? "Strict" : rawSameSite === "none" ? "None" : "Lax";
   const parts = [
-    `${name}=${encodeURIComponent(value)}`,
+    `${name}=${encodeURIComponent(value || "")}`,
     "Path=/",
     "HttpOnly",
     `SameSite=${sameSite}`
   ];
   if (sameSite.toLowerCase() === "none" || process.env.NODE_ENV !== "development") parts.push("Secure");
-  if (options.maxAge !== undefined) parts.push(`Max-Age=${Number(options.maxAge) || 0}`);
+  parts.push("Priority=High");
+  const cookieDomain = Object.prototype.hasOwnProperty.call(options, "domain") ? diracNormalizeCookieDomain(options.domain) : diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  if (cookieDomain) parts.push(`Domain=${cookieDomain}`);
+  if (options.maxAge !== undefined) {
+    const maxAge = Number(options.maxAge) || 0;
+    parts.push(`Max-Age=${maxAge}`);
+    if (maxAge <= 0) parts.push("Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+  }
   return parts.join("; ");
+}
+
+function diracMakeDomainLoginCookieVariants(name, value, options = {}) {
+  const cookies = [];
+  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  cookies.push(diracMakeDomainLoginCookie(name, value, Object.assign({}, options, { domain: preferred || "" })));
+  diracDomainCookieCandidates().forEach((domain) => {
+    if (domain !== preferred) cookies.push(diracMakeDomainLoginCookie(name, value, Object.assign({}, options, { domain })));
+  });
+  return cookies;
+}
+
+const DIRAC_DOMAIN_COOKIE_CHUNK_SIZE = 3400;
+const DIRAC_DOMAIN_COOKIE_MAX_CHUNKS = 12;
+
+function diracMakeClearDomainLoginTokenCookieChunks(name) {
+  const cookies = [];
+  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  for (let index = 0; index < DIRAC_DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+    cookies.push(diracMakeDomainLoginCookie(`${name}__${index}`, "", { maxAge: 0, domain: preferred || "" }));
+  }
+  return cookies;
+}
+
+function diracMakeClearDomainLoginTokenCookieSet(name) {
+  return [
+    ...diracMakeDomainLoginCookieVariants(name, "", { maxAge: 0 }),
+    ...diracMakeClearDomainLoginTokenCookieChunks(name)
+  ];
+}
+
+function diracMakeDomainLoginTokenCookieSet(name, value, options = {}) {
+  const token = String(value || "");
+  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  const cookies = [...diracMakeDomainLoginCookieVariants(name, "", { maxAge: 0 })];
+  if (!token) return cookies;
+  if (token.length <= DIRAC_DOMAIN_COOKIE_CHUNK_SIZE) {
+    cookies.push(diracMakeDomainLoginCookie(name, token, Object.assign({}, options, { domain: preferred || "" })));
+    return cookies;
+  }
+  cookies.push(...diracMakeClearDomainLoginTokenCookieChunks(name));
+  const chunks = [];
+  for (let index = 0; index < token.length; index += DIRAC_DOMAIN_COOKIE_CHUNK_SIZE) {
+    chunks.push(token.slice(index, index + DIRAC_DOMAIN_COOKIE_CHUNK_SIZE));
+  }
+  if (chunks.length > DIRAC_DOMAIN_COOKIE_MAX_CHUNKS) return cookies;
+  cookies.push(diracMakeDomainLoginCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: preferred || "" })));
+  chunks.forEach((chunk, index) => {
+    cookies.push(diracMakeDomainLoginCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: preferred || "" })));
+  });
+  return cookies;
+}
+
+function diracReadDomainLoginCookieToken(cookies, name) {
+  const jar = cookies && typeof cookies === "object" ? cookies : {};
+  const marker = String(jar[name] || "");
+  const chunkMatch = marker.match(/^__chunked_(\d+)$/);
+  if (chunkMatch) {
+    const count = Math.max(0, Math.min(DIRAC_DOMAIN_COOKIE_MAX_CHUNKS, Number(chunkMatch[1]) || 0));
+    let token = "";
+    for (let index = 0; index < count; index += 1) {
+      const chunk = jar[`${name}__${index}`];
+      if (!chunk) return "";
+      token += String(chunk);
+    }
+    return token;
+  }
+  if (marker) return marker;
+  if (jar[`${name}__0`]) {
+    let token = "";
+    for (let index = 0; index < DIRAC_DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const chunk = jar[`${name}__${index}`];
+      if (!chunk) break;
+      token += String(chunk);
+    }
+    return token;
+  }
+  return "";
 }
 
 function diracSetRefreshedDomainLoginCookies(res, session) {
   const data = session && typeof session === "object" ? session : {};
   if (!data.access_token || !data.refresh_token) return;
   const maxAge = 60 * 60 * 24 * 7;
-  diracAppendSetCookieHeader(res, diracMakeDomainLoginCookie(DIRAC_DOMAIN_ACCESS_COOKIE, data.access_token, { maxAge }));
-  diracAppendSetCookieHeader(res, diracMakeDomainLoginCookie(DIRAC_DOMAIN_REFRESH_COOKIE, data.refresh_token, { maxAge }));
+  [
+    ...diracMakeDomainLoginTokenCookieSet(DIRAC_DOMAIN_ACCESS_COOKIE, data.access_token, { maxAge }),
+    ...diracMakeDomainLoginTokenCookieSet(DIRAC_DOMAIN_REFRESH_COOKIE, data.refresh_token, { maxAge })
+  ].forEach((cookie) => diracAppendSetCookieHeader(res, cookie));
 }
 
 async function diracRefreshDomainLoginSession(refreshToken, res) {
@@ -1256,16 +1364,115 @@ function diracCustomerLoginUserIdHash(user) {
   return hashCode(`dirac-customer-login-user-v1:${id}`, diracGetCustomerMfaSecret());
 }
 
+function diracRequestBaseUrl(req) {
+  const headers = (req && req.headers) || {};
+  const origin = String(headers.origin || '').trim();
+  if (origin && /^https?:\/\//i.test(origin)) return origin.replace(/\/+$/, '');
+
+  const host = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim();
+  const proto = String(headers['x-forwarded-proto'] || '').split(',')[0].trim() || (host && !/^localhost(?::|$)|^127\./i.test(host) ? 'https' : 'http');
+  if (host) return `${proto}://${host}`.replace(/\/+$/, '');
+
+  const site = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || 'https://diracgroup.store').trim();
+  return site.replace(/\/+$/, '');
+}
+
+function diracUniqueBaseUrls(values) {
+  const out = [];
+  (Array.isArray(values) ? values : [values]).forEach((value) => {
+    const raw = String(value || '').trim();
+    if (!raw || !/^https?:\/\//i.test(raw)) return;
+    const clean = raw.replace(/\/+$/, '');
+    if (!out.includes(clean)) out.push(clean);
+  });
+  return out;
+}
+
+function diracDomainMeBaseUrlCandidates(req) {
+  const headers = (req && req.headers) || {};
+  const origin = String(headers.origin || '').trim();
+  const host = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim();
+  const proto = String(headers['x-forwarded-proto'] || '').split(',')[0].trim() || 'https';
+  const site = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || '').trim();
+  return diracUniqueBaseUrls([
+    diracRequestBaseUrl(req),
+    origin,
+    host ? `${proto}://${host}` : '',
+    site,
+    'https://diracgroup.store',
+    'https://www.diracgroup.store'
+  ]);
+}
+
+function diracAppendSetCookieFromHeader(res, setCookieValue) {
+  const raw = String(setCookieValue || '').trim();
+  if (!raw) return;
+  if (/dirac_domain_session|dirac_domain_refresh|dirac_customer_mfa_session/i.test(raw)) {
+    diracAppendSetCookieHeader(res, raw);
+  }
+}
+
+function diracMaybeForwardDomainMeCookies(response, res) {
+  if (!response || !response.headers || !res) return;
+  try {
+    if (typeof response.headers.getSetCookie === 'function') {
+      response.headers.getSetCookie().forEach((item) => diracAppendSetCookieFromHeader(res, item));
+      return;
+    }
+  } catch (_) {}
+  try {
+    const single = response.headers.get('set-cookie');
+    if (single) diracAppendSetCookieFromHeader(res, single);
+  } catch (_) {}
+}
+
+async function diracReadLoggedInCustomerViaHealth(req, res) {
+  const headers = (req && req.headers) || {};
+  const cookieHeader = String(headers.cookie || headers.Cookie || '').trim();
+  if (!cookieHeader) return null;
+
+  const bases = diracDomainMeBaseUrlCandidates(req);
+  if (!bases.length) return null;
+
+  for (const base of bases) {
+    try {
+      const response = await fetch(`${base}/api/health?action=domain_me`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Cookie: cookieHeader,
+          'User-Agent': String(headers['user-agent'] || headers['User-Agent'] || 'Dirac-A2F-Backend-Session-Check'),
+          'X-Dirac-A2F-Session-Check': '1'
+        }
+      });
+      diracMaybeForwardDomainMeCookies(response, res);
+      const data = await response.json().catch(() => null);
+      const user = data && data.ok !== false && data.user && typeof data.user === 'object' ? data.user : null;
+      if (response.ok && user && user.id && diracNormalizeEmail(user.email)) return user;
+    } catch (_) {
+      // Coba kandidat base URL berikutnya. Tidak bocorkan detail internal ke user.
+    }
+  }
+  return null;
+}
+
 async function diracRequireLoggedInCustomer(req, res) {
   const cookies = diracParseRequestCookies(req);
-  const accessToken = String(cookies[DIRAC_DOMAIN_ACCESS_COOKIE] || "").trim();
-  const refreshToken = String(cookies[DIRAC_DOMAIN_REFRESH_COOKIE] || "").trim();
+  const accessToken = String(diracReadDomainLoginCookieToken(cookies, DIRAC_DOMAIN_ACCESS_COOKIE) || '').trim();
+  const refreshToken = String(diracReadDomainLoginCookieToken(cookies, DIRAC_DOMAIN_REFRESH_COOKIE) || '').trim();
 
   let user = await diracReadSupabaseUserFromAccessToken(accessToken);
   if (!user && refreshToken) user = await diracRefreshDomainLoginSession(refreshToken, res);
 
+  // PATCH v4: health?action=domain_me sudah terbukti ok:true di browser.
+  // Jika validasi lokal A2F gagal karena ENV/anon-key/cookie parser route berbeda,
+  // pakai domain_me sebagai sumber kebenaran backend dengan Cookie header yang sama.
   if (!user || !user.id || !diracNormalizeEmail(user.email)) {
-    const err = new Error("Belum login atau sesi login backend sudah habis. Login ulang terlebih dahulu.");
+    user = await diracReadLoggedInCustomerViaHealth(req, res);
+  }
+
+  if (!user || !user.id || !diracNormalizeEmail(user.email)) {
+    const err = new Error('Belum login atau sesi login backend sudah habis. Login ulang terlebih dahulu.');
     err.statusCode = 401;
     throw err;
   }
