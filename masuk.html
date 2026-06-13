@@ -6820,7 +6820,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var low = raw.toLowerCase();
 
     if (/endpoint a2f|backend error|backend|server rejected|not verified|verify failed|internal|supabase|vercel|rpc|function|schema|argon2|hash/i.test(raw)) {
-      if (context === 'setup') return sanitized || 'A2F belum bisa dimulai. Coba lagi sebentar.';
+      if (context === 'setup') return 'A2F belum bisa dimulai. Coba lagi sebentar.';
       return 'Kode A2F salah. Masukkan kode 6 digit terbaru.';
     }
 
@@ -9515,15 +9515,13 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     }catch(_){ return null; }
   }
   function rewriteEmailMfaFetch(input, init){
-    try{
-      var data = parseBody(init);
-      if(!data || String(data.method || '').toLowerCase() !== 'email') return input;
-      var raw = typeof input === 'string' ? input : (input && input.url) || '';
-      if(!raw) return input;
-      var url = new URL(raw, window.location.href);
-      if(/\/api\/2fa\/start-step\/?$/i.test(url.pathname)) return new URL('/api/health?action=dirac_mfa_email_start', window.location.origin).href;
-      if(/\/api\/2fa\/verify-step\/?$/i.test(url.pathname)) return new URL('/api/health?action=dirac_mfa_email_verify', window.location.origin).href;
-    }catch(_){ }
+    /*
+     * Root fix:
+     * Email A2F must stay on the existing working endpoints:
+     *   /api/2fa/start-step
+     *   /api/2fa/verify-step
+     * Do NOT redirect Email to /api/health. Passkey keeps its separate health bridge below.
+     */
     return input;
   }
   if(nativeFetch && !window.__diracEmailA2FFetchRestoreInstalled){
@@ -9621,37 +9619,10 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     if(status){ status.textContent = message; status.classList.add('show'); }
   }
   function passkeyIsBackendActive(){
-    // ROOTFIX v7:
-    // Script pengunci Email sebelumnya hanya percaya konteks MFA lama.
-    // Padahal status Passkey aktif sudah dibaca backend lewat /api/health?action=dirac_mfa_passkey_status
-    // dan disimpan sebagai window.__DIRAC_PASSKEY_DB_ACTIVE__ oleh script dirac-passkey-db-email-unlock-js.
-    // Jangan pakai localStorage sebagai sumber utama; localStorage hanya fallback kompatibilitas lama.
-    try{
-      if(window.__DIRAC_PASSKEY_DB_ACTIVE__ === true) return true;
-    }catch(_e){}
+    try{ if(window.__DIRAC_PASSKEY_DB_ACTIVE__ === true) return true; }catch(_e){}
     try{
       var ctx = window.__DIRAC_BACKEND_MFA_CONTEXT__ || {};
-      if(ctx && (
-        (ctx.active === true && String(ctx.method || '').toLowerCase() === 'passkey') ||
-        ctx.passkey_active === true ||
-        ctx.has_passkey === true ||
-        ctx.email_backup_available === true ||
-        ctx.emailBackupAvailable === true ||
-        Number(ctx.passkey_count || ctx.passkeyCount || 0) > 0
-      )) return true;
-    }catch(_e){}
-    try{
-      var auth = window.__DIRAC_BACKEND_AUTH_CONTEXT__ || {};
-      var boot = auth && (auth.mfaBootstrap || auth.mfa_bootstrap || auth.mfa || {});
-      if(boot && (
-        boot.passkeyActive === true ||
-        boot.passkey_active === true ||
-        boot.hasPasskey === true ||
-        boot.has_passkey === true ||
-        boot.emailBackupAvailable === true ||
-        boot.email_backup_available === true ||
-        Number(boot.passkeyCount || boot.passkey_count || 0) > 0
-      )) return true;
+      if(ctx && ctx.active === true && (String(ctx.method || '').toLowerCase() === 'passkey' || ctx.passkey_active === true)) return true;
     }catch(_e){}
     try{
       var s = JSON.parse(localStorage.getItem('dirac_auth_session_v1') || '{}');
@@ -9720,9 +9691,6 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   }
   ready(function(){
     applyCopy();
-    document.addEventListener('dirac:passkey-db-active', function(){
-      try{ applyCopy(); }catch(_e){}
-    });
     setTimeout(applyCopy, 60);
     setTimeout(applyCopy, 350);
     document.addEventListener('click', function(e){
@@ -9924,14 +9892,8 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       active: true,
       method: 'passkey',
       passkey_active: true,
-      has_passkey: true,
-      email_backup_available: true,
-      emailBackupAvailable: true,
       source: source || 'domain_passkeys'
     });
-    try{
-      document.dispatchEvent(new CustomEvent('dirac:passkey-db-active', { detail:{ source: source || 'domain_passkeys' } }));
-    }catch(_e){}
     unlockEmailBackup();
   }
   function unlockEmailBackup(){
