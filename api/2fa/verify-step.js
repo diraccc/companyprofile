@@ -3263,16 +3263,81 @@ function diracMakeDomainLoginCookieVariants(name, value, options = {}) {
   return cookies;
 }
 
+const DIRAC_DOMAIN_COOKIE_CHUNK_SIZE = 3400;
+const DIRAC_DOMAIN_COOKIE_MAX_CHUNKS = 12;
+
+function diracMakeClearDomainLoginTokenCookieChunks(name) {
+  const cookies = [];
+  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  for (let index = 0; index < DIRAC_DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+    cookies.push(diracMakeDomainLoginCookie(`${name}__${index}`, "", { maxAge: 0, domain: preferred || "" }));
+  }
+  return cookies;
+}
+
+function diracMakeClearDomainLoginTokenCookieSet(name) {
+  return [
+    ...diracMakeDomainLoginCookieVariants(name, "", { maxAge: 0 }),
+    ...diracMakeClearDomainLoginTokenCookieChunks(name)
+  ];
+}
+
+function diracMakeDomainLoginTokenCookieSet(name, value, options = {}) {
+  const token = String(value || "");
+  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  const cookies = [...diracMakeDomainLoginCookieVariants(name, "", { maxAge: 0 })];
+  if (!token) return cookies;
+  if (token.length <= DIRAC_DOMAIN_COOKIE_CHUNK_SIZE) {
+    cookies.push(diracMakeDomainLoginCookie(name, token, Object.assign({}, options, { domain: preferred || "" })));
+    return cookies;
+  }
+  cookies.push(...diracMakeClearDomainLoginTokenCookieChunks(name));
+  const chunks = [];
+  for (let index = 0; index < token.length; index += DIRAC_DOMAIN_COOKIE_CHUNK_SIZE) {
+    chunks.push(token.slice(index, index + DIRAC_DOMAIN_COOKIE_CHUNK_SIZE));
+  }
+  if (chunks.length > DIRAC_DOMAIN_COOKIE_MAX_CHUNKS) return cookies;
+  cookies.push(diracMakeDomainLoginCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: preferred || "" })));
+  chunks.forEach((chunk, index) => {
+    cookies.push(diracMakeDomainLoginCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: preferred || "" })));
+  });
+  return cookies;
+}
+
+function diracReadDomainLoginCookieToken(cookies, name) {
+  const jar = cookies && typeof cookies === "object" ? cookies : {};
+  const marker = String(jar[name] || "");
+  const chunkMatch = marker.match(/^__chunked_(\d+)$/);
+  if (chunkMatch) {
+    const count = Math.max(0, Math.min(DIRAC_DOMAIN_COOKIE_MAX_CHUNKS, Number(chunkMatch[1]) || 0));
+    let token = "";
+    for (let index = 0; index < count; index += 1) {
+      const chunk = jar[`${name}__${index}`];
+      if (!chunk) return "";
+      token += String(chunk);
+    }
+    return token;
+  }
+  if (marker) return marker;
+  if (jar[`${name}__0`]) {
+    let token = "";
+    for (let index = 0; index < DIRAC_DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const chunk = jar[`${name}__${index}`];
+      if (!chunk) break;
+      token += String(chunk);
+    }
+    return token;
+  }
+  return "";
+}
+
 function diracSetRefreshedDomainLoginCookies(res, session) {
   const data = session && typeof session === "object" ? session : {};
   if (!data.access_token || !data.refresh_token) return;
   const maxAge = 60 * 60 * 24 * 7;
-  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
   [
-    ...diracMakeDomainLoginCookieVariants(DIRAC_DOMAIN_ACCESS_COOKIE, "", { maxAge: 0 }),
-    ...diracMakeDomainLoginCookieVariants(DIRAC_DOMAIN_REFRESH_COOKIE, "", { maxAge: 0 }),
-    diracMakeDomainLoginCookie(DIRAC_DOMAIN_ACCESS_COOKIE, data.access_token, { maxAge, domain: preferred || "" }),
-    diracMakeDomainLoginCookie(DIRAC_DOMAIN_REFRESH_COOKIE, data.refresh_token, { maxAge, domain: preferred || "" })
+    ...diracMakeDomainLoginTokenCookieSet(DIRAC_DOMAIN_ACCESS_COOKIE, data.access_token, { maxAge }),
+    ...diracMakeDomainLoginTokenCookieSet(DIRAC_DOMAIN_REFRESH_COOKIE, data.refresh_token, { maxAge })
   ].forEach((cookie) => diracAppendSetCookie(res, cookie));
 }
 
@@ -3298,8 +3363,8 @@ function diracCustomerLoginUserIdHash(user) {
 
 async function diracRequireLoggedInCustomer(req, res) {
   const cookies = diracParseRequestCookies(req);
-  const accessToken = String(cookies[DIRAC_DOMAIN_ACCESS_COOKIE] || "").trim();
-  const refreshToken = String(cookies[DIRAC_DOMAIN_REFRESH_COOKIE] || "").trim();
+  const accessToken = String(diracReadDomainLoginCookieToken(cookies, DIRAC_DOMAIN_ACCESS_COOKIE) || "").trim();
+  const refreshToken = String(diracReadDomainLoginCookieToken(cookies, DIRAC_DOMAIN_REFRESH_COOKIE) || "").trim();
 
   let user = await diracReadSupabaseUserFromAccessToken(accessToken);
   if (!user && refreshToken) user = await diracRefreshDomainLoginSession(refreshToken, res);
