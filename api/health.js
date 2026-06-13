@@ -522,6 +522,15 @@ async function domainLogin(req, res, preloadedBody) {
     });
   }
 
+  if (!hasValidDomainSessionTokens(result.data)) {
+    clearSessionCookies(res);
+    return res.status(502).json({
+      ok: false,
+      code: 'LOGIN_SESSION_TOKEN_MISSING',
+      message: 'Login berhasil di server autentikasi, tetapi token sesi tidak diterima backend. Silakan coba login ulang.'
+    });
+  }
+
   setSessionCookies(res, result.data);
 
   return res.status(200).json({
@@ -1095,16 +1104,19 @@ async function domainRegister(req, res, preloadedBody) {
     return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
   }
 
-  if (signupData.access_token && signupData.refresh_token) {
+  const signupHasSession = hasValidDomainSessionTokens(signupData);
+  if (signupHasSession) {
     setSessionCookies(res, signupData);
+  } else {
+    clearSessionCookies(res);
   }
 
   return res.status(200).json({
     ok: true,
-    message: signupData.access_token
+    message: signupHasSession
       ? 'Akun berhasil dibuat dan login otomatis.'
       : 'Akun berhasil dibuat. Silakan cek email verifikasi jika diperlukan.',
-    needs_email_confirmation: !signupData.access_token,
+    needs_email_confirmation: !signupHasSession,
     user: sanitizeUser(signupData.user),
     session: buildDomainAuthSessionPayload(signupData)
   });
@@ -1934,13 +1946,18 @@ async function requireDomainUser(req, res) {
     });
 
     if (refreshResult.ok && refreshResult.data && refreshResult.data.access_token) {
-      setSessionCookies(res, refreshResult.data);
-      if (!shouldHideDomainAuthTokens()) {
-        res.setHeader('X-Domain-Access-Token', refreshResult.data.access_token);
-        res.setHeader('X-Domain-Refresh-Token', refreshResult.data.refresh_token);
+      const refreshedSession = Object.assign({}, refreshResult.data, {
+        refresh_token: refreshResult.data.refresh_token || refreshToken
+      });
+      if (hasValidDomainSessionTokens(refreshedSession)) {
+        setSessionCookies(res, refreshedSession);
+        if (!shouldHideDomainAuthTokens()) {
+          res.setHeader('X-Domain-Access-Token', refreshedSession.access_token);
+          res.setHeader('X-Domain-Refresh-Token', refreshedSession.refresh_token);
+        }
+        res.setHeader('X-Domain-Token-Refreshed', 'true');
+        return refreshedSession.user || refreshResult.data.user;
       }
-      res.setHeader('X-Domain-Token-Refreshed', 'true');
-      return refreshResult.data.user;
     }
   }
 
@@ -2779,6 +2796,18 @@ async function supabaseFetch(path, options = {}) {
 }
 
 
+function hasValidDomainSessionTokens(session) {
+  const data = session && typeof session === 'object' ? session : {};
+  return Boolean(
+    data.access_token &&
+    typeof data.access_token === 'string' &&
+    data.access_token.length > 20 &&
+    data.refresh_token &&
+    typeof data.refresh_token === 'string' &&
+    data.refresh_token.length > 10
+  );
+}
+
 function buildDomainAuthSessionPayload(session) {
   const data = session && typeof session === 'object' ? session : {};
   if (!data.access_token) return null;
@@ -2960,20 +2989,26 @@ function normalizeCookieSameSite(value) {
   return 'Lax';
 }
 
-function resolveDomainCookieDomain() {
-  const explicit = String(process.env.DOMAIN_COOKIE_DOMAIN || process.env.DIRAC_COOKIE_DOMAIN || '').trim();
-  if (/^(none|false|host-only|host_only)$/i.test(explicit)) return '';
-  if (explicit) return explicit.replace(/^\./, '').toLowerCase();
+function normalizeCookieDomain(value) {
+  const clean = String(value || '').trim().toLowerCase().replace(/^\./, '');
+  if (!clean || /^(none|false|off|host-only|host_only)$/i.test(clean)) return '';
+  if (/^localhost$|^127\.|^0\.0\.0\.0$/.test(clean)) return '';
+  return clean;
+}
 
-  const siteUrl = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || '').trim();
-  try {
-    const host = siteUrl ? new URL(siteUrl).hostname.toLowerCase().replace(/^www\./, '') : '';
-    if (host && !/^localhost$|^127\.|^0\.0\.0\.0$|\.vercel\.app$/i.test(host)) return host;
-  } catch (_) {}
+function getDomainCookieDomainCandidates() {
+  const candidates = [];
+  const add = (value) => {
+    const domain = normalizeCookieDomain(value);
+    if (domain && !candidates.includes(domain)) candidates.push(domain);
+  };
 
-  // Production fallback for the live customer domain. Keeps localhost/preview host-only.
-  if (process.env.NODE_ENV === 'production') return 'diracgroup.store';
-  return '';
+  add(process.env.DOMAIN_COOKIE_DOMAIN);
+  add(process.env.DOMAIN_SITE_URL ? (() => { try { return new URL(process.env.DOMAIN_SITE_URL).hostname; } catch (_) { return ''; } })() : '');
+  add(process.env.SITE_URL ? (() => { try { return new URL(process.env.SITE_URL).hostname; } catch (_) { return ''; } })() : '');
+  add('diracgroup.store');
+
+  return candidates;
 }
 
 function appendSetCookie(res, cookies) {
@@ -2991,19 +3026,20 @@ function appendSetCookie(res, cookies) {
 }
 
 function makeCookie(name, value, options = {}) {
-  // Produksi paling aman: session customer hanya lewat backend-only cookie.
-  // Default dikunci ke SameSite=Strict. Jika alur cross-site benar-benar diperlukan,
-  // DOMAIN_COOKIE_SAMESITE masih bisa diubah lewat ENV tanpa mengubah kode.
-  const sameSite = normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || 'Strict');
+  // Produksi paling aman: token customer hanya lewat backend-only cookie.
+  // Default Lax agar alur POST login -> domain_me -> A2F berjalan stabil di browser HP.
+  const sameSite = normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || 'Lax');
   const secureCookie = sameSite === 'None' || process.env.NODE_ENV !== 'development' || isEnvTrue('DOMAIN_COOKIE_FORCE_SECURE');
   const parts = [
-    `${name}=${encodeURIComponent(value)}`,
+    `${name}=${encodeURIComponent(value || '')}`,
     'Path=/',
     'HttpOnly'
   ];
 
   if (secureCookie) parts.push('Secure');
-  const cookieDomain = resolveDomainCookieDomain();
+  const cookieDomain = Object.prototype.hasOwnProperty.call(options, 'domain')
+    ? normalizeCookieDomain(options.domain)
+    : normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
   if (cookieDomain) parts.push(`Domain=${cookieDomain}`);
   parts.push(`SameSite=${sameSite}`);
   parts.push('Priority=High');
@@ -3019,20 +3055,51 @@ function makeCookie(name, value, options = {}) {
   return parts.join('; ');
 }
 
-function setSessionCookies(res, session) {
-  const maxAge = 60 * 60 * 24 * 7;
+function makeCookieVariants(name, value, options = {}) {
+  const cookies = [];
+  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
 
+  // Canonical cookie: host-only by default. Kalau ENV DOMAIN_COOKIE_DOMAIN diisi,
+  // canonical mengikuti domain tersebut. Ini tidak membuka akses JS karena tetap HttpOnly.
+  cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: domainPreference || '' })));
+
+  // Compatibility cookie domain untuk membersihkan/menyamakan sisa cookie lama
+  // dari patch sebelumnya yang mungkin memakai Domain=diracgroup.store.
+  getDomainCookieDomainCandidates().forEach((domain) => {
+    if (domain !== domainPreference) {
+      cookies.push(makeCookie(name, value, Object.assign({}, options, { domain })));
+    }
+  });
+
+  return cookies;
+}
+
+function makeClearCookieVariants(name) {
+  return makeCookieVariants(name, '', { maxAge: 0 });
+}
+
+function setSessionCookies(res, session) {
+  if (!hasValidDomainSessionTokens(session)) {
+    clearSessionCookies(res);
+    return false;
+  }
+
+  const maxAge = 60 * 60 * 24 * 7;
+  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
   appendSetCookie(res, [
-    makeCookie(ACCESS_COOKIE, session.access_token, { maxAge }),
-    makeCookie(REFRESH_COOKIE, session.refresh_token, { maxAge })
+    ...makeClearCookieVariants(ACCESS_COOKIE),
+    ...makeClearCookieVariants(REFRESH_COOKIE),
+    makeCookie(ACCESS_COOKIE, session.access_token, { maxAge, domain: domainPreference || '' }),
+    makeCookie(REFRESH_COOKIE, session.refresh_token, { maxAge, domain: domainPreference || '' })
   ]);
+  return true;
 }
 
 function clearSessionCookies(res) {
   appendSetCookie(res, [
-    makeCookie(ACCESS_COOKIE, '', { maxAge: 0 }),
-    makeCookie(REFRESH_COOKIE, '', { maxAge: 0 }),
-    makeCookie(CUSTOMER_MFA_COOKIE, '', { maxAge: 0 })
+    ...makeClearCookieVariants(ACCESS_COOKIE),
+    ...makeClearCookieVariants(REFRESH_COOKIE),
+    ...makeClearCookieVariants(CUSTOMER_MFA_COOKIE)
   ]);
 }
 
