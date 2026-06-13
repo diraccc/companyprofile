@@ -553,7 +553,7 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
     const API = '/api/health';
     const LOGIN_PAGE = 'masuk.html';
     const WHATSAPP_ADMIN = '6281234567890';
-    const state = { orders: [], filtered: [], selectedId: '', loading: false, verified: false };
+    const state = { orders: [], filtered: [], selectedId: '', loading: false, verified: false, loggingOut: false };
     const $ = (s, r=document) => r.querySelector(s);
     const fmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
     function apiUrl(action){ const u = new URL(API, window.location.origin); u.searchParams.set('action', action); return u.toString(); }
@@ -606,6 +606,7 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
       return { ok: res.ok && !!data.ok, status: res.status, data };
     }
     async function loadOrders(){
+      if(state.loggingOut) return;
       if(state.loading) return; state.loading=true; $('#connectionLabel').textContent='Menghubungi backend...';
       try{
         const result = await fetchJson('my_orders');
@@ -673,6 +674,7 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
       $('#payNow')?.addEventListener('click', () => { if(canCreatePayment(o)) createPayment(o); });
     }
     async function createPayment(order){
+      if(state.loggingOut) return;
       if(!canCreatePayment(order)){ toast('Invoice ini belum bisa dibayar otomatis.'); return; }
       const existingUrl = clean(order && order.payment_url);
       if(existingUrl){
@@ -713,14 +715,36 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
         if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
       }
     }
-    async function logout(){ try{ await fetchJson('domain_logout', {method:'POST'}); }catch(_){} window.location.href=LOGIN_PAGE; }
+    function logout(event){
+      if(event && typeof event.preventDefault === 'function') event.preventDefault();
+      if(state.loggingOut) return;
+      state.loggingOut = true;
+      state.loading = false;
+      try{ closeMenu(); }catch(_){}
+      try{ toast('Logout...'); }catch(_){}
+      try{
+        fetch(apiUrl('domain_logout'), {
+          method:'POST',
+          credentials:'include',
+          cache:'no-store',
+          keepalive:true,
+          headers:{Accept:'application/json'}
+        }).catch(function(){});
+      }catch(_){}
+      try{
+        document.querySelectorAll('button,a,input,select').forEach(function(el){
+          if(el && el.id !== 'logoutBtn') el.setAttribute('aria-disabled','true');
+        });
+      }catch(_){}
+      setTimeout(function(){ window.location.replace(LOGIN_PAGE + '?logout=1&t=' + Date.now()); }, 180);
+    }
     function escapeHtml(v){ return clean(v).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
     function escapeAttr(v){ return escapeHtml(v).replace(/'/g,'&#39;'); }
     function openMenu(){ const m=$('#menuOverlay'); if(!m) return; m.hidden=false; document.body.classList.add('menu-open'); $('#menuToggle')?.setAttribute('aria-expanded','true'); }
     function closeMenu(){ const m=$('#menuOverlay'); if(!m) return; m.hidden=true; document.body.classList.remove('menu-open'); $('#menuToggle')?.setAttribute('aria-expanded','false'); }
     $('#refreshBtn')?.addEventListener('click', loadOrders); $('#manualRefreshBtn')?.addEventListener('click', loadOrders); document.querySelectorAll('#logoutBtn').forEach(btn=>btn.addEventListener('click', logout)); $('#searchInput')?.addEventListener('input', applyFilters); $('#statusFilter')?.addEventListener('change', applyFilters); $('#serviceFilter')?.addEventListener('change', applyFilters); $('#menuToggle')?.addEventListener('click', openMenu); $('#closeMenuBtn')?.addEventListener('click', closeMenu); $('#menuOverlay')?.addEventListener('click', e => { if(e.target && e.target.id === 'menuOverlay') closeMenu(); }); document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMenu(); });
     window.addEventListener('scroll', () => $('#siteHeader')?.classList.toggle('is-scrolled', window.scrollY > 12), {passive:true});
-    window.addEventListener('pageshow', e => { if(e.persisted) loadOrders(); }); document.addEventListener('visibilitychange', () => { if(!document.hidden) loadOrders(); });
+    window.addEventListener('pageshow', e => { if(!state.loggingOut && e.persisted) loadOrders(); }); document.addEventListener('visibilitychange', () => { if(!state.loggingOut && !document.hidden) loadOrders(); });
     loadOrders();
   </script>
 
