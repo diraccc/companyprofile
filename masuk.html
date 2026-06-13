@@ -5447,6 +5447,27 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     function isServerAuthenticatedSession(session){
       return !!(session && session.serverAuthenticated === true && session.authVerifiedAt && session.identifier);
     }
+    async function verifyFreshBackendCookieSession(expectedIdentifier){
+      var expected = normalizeLoginEmail(expectedIdentifier || '');
+      var res = await fetch(ME_ENDPOINT, {
+        method:'GET',
+        mode:'same-origin',
+        headers:{'Accept':'application/json'},
+        credentials:'include',
+        cache:'no-store'
+      });
+      var data = await res.clone().json().catch(function(){ return null; });
+      if(!res.ok || !data || data.ok === false || !data.user){
+        clearPendingAuth();
+        throw new Error('Login berhasil di server, tetapi cookie HttpOnly belum tersimpan di browser. A2F tidak dibuka agar tidak muncul sesi login tidak valid. Hapus cache website, pastikan domain tetap https://diracgroup.store, lalu login ulang.');
+      }
+      var email = normalizeLoginEmail((data.user && data.user.email) || '');
+      if(expected && email && expected !== email){
+        clearPendingAuth();
+        throw new Error('Cookie login berbeda dengan email yang dimasukkan. Silakan logout, hapus data website, lalu login ulang.');
+      }
+      return data;
+    }
     function authErrorMessage(){
       return mode === 'login'
         ? 'Email atau password belum sesuai. A2F tidak akan dibuka sebelum login benar.'
@@ -5565,7 +5586,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       try{
         var response = await fetch(endpoint, {
           method:'POST',
-          mode:'cors',
+          mode:'same-origin',
           headers:{'Content-Type':'application/json','Accept':'application/json'},
           body:JSON.stringify(Object.assign({}, payload, {password:password})),
           credentials:'include',
@@ -5580,6 +5601,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         if(!response.ok || !isTrustedAuthResponse(data)){
           throw new Error(data && data.message ? data.message : authErrorMessage());
         }
+        await verifyFreshBackendCookieSession(identifier);
         finishAuth(identifier, data, endpoint);
       }catch(postErr){
         clearPendingAuth();
@@ -5659,7 +5681,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       try{
         var res = await fetch(ME_ENDPOINT, {
           method:'GET',
-          mode:'cors',
+          mode:'same-origin',
           headers:authHeadersFromSession(session),
           credentials:'include',
           cache:'no-store'
