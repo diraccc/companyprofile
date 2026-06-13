@@ -522,15 +522,6 @@ async function domainLogin(req, res, preloadedBody) {
     });
   }
 
-  if (!hasValidDomainSessionTokens(result.data)) {
-    clearSessionCookies(res);
-    return res.status(502).json({
-      ok: false,
-      code: 'LOGIN_SESSION_TOKEN_MISSING',
-      message: 'Login berhasil di server autentikasi, tetapi token sesi tidak diterima backend. Silakan coba login ulang.'
-    });
-  }
-
   setSessionCookies(res, result.data);
 
   return res.status(200).json({
@@ -1104,19 +1095,16 @@ async function domainRegister(req, res, preloadedBody) {
     return res.status(409).json(buildDomainRegisterDuplicateEmailBody());
   }
 
-  const signupHasSession = hasValidDomainSessionTokens(signupData);
-  if (signupHasSession) {
+  if (signupData.access_token && signupData.refresh_token) {
     setSessionCookies(res, signupData);
-  } else {
-    clearSessionCookies(res);
   }
 
   return res.status(200).json({
     ok: true,
-    message: signupHasSession
+    message: signupData.access_token
       ? 'Akun berhasil dibuat dan login otomatis.'
       : 'Akun berhasil dibuat. Silakan cek email verifikasi jika diperlukan.',
-    needs_email_confirmation: !signupHasSession,
+    needs_email_confirmation: !signupData.access_token,
     user: sanitizeUser(signupData.user),
     session: buildDomainAuthSessionPayload(signupData)
   });
@@ -1923,8 +1911,8 @@ async function requireDomainUser(req, res) {
     ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
     : '';
 
-  const accessToken = headerToken || readCookieToken(cookies, ACCESS_COOKIE);
-  const refreshToken = headerRefreshToken || readCookieToken(cookies, REFRESH_COOKIE);
+  const accessToken = headerToken || cookies[ACCESS_COOKIE];
+  const refreshToken = headerRefreshToken || cookies[REFRESH_COOKIE];
 
   if (accessToken) {
     const userResult = await supabaseFetch('/auth/v1/user', {
@@ -1946,18 +1934,13 @@ async function requireDomainUser(req, res) {
     });
 
     if (refreshResult.ok && refreshResult.data && refreshResult.data.access_token) {
-      const refreshedSession = Object.assign({}, refreshResult.data, {
-        refresh_token: refreshResult.data.refresh_token || refreshToken
-      });
-      if (hasValidDomainSessionTokens(refreshedSession)) {
-        setSessionCookies(res, refreshedSession);
-        if (!shouldHideDomainAuthTokens()) {
-          res.setHeader('X-Domain-Access-Token', refreshedSession.access_token);
-          res.setHeader('X-Domain-Refresh-Token', refreshedSession.refresh_token);
-        }
-        res.setHeader('X-Domain-Token-Refreshed', 'true');
-        return refreshedSession.user || refreshResult.data.user;
+      setSessionCookies(res, refreshResult.data);
+      if (!shouldHideDomainAuthTokens()) {
+        res.setHeader('X-Domain-Access-Token', refreshResult.data.access_token);
+        res.setHeader('X-Domain-Refresh-Token', refreshResult.data.refresh_token);
       }
+      res.setHeader('X-Domain-Token-Refreshed', 'true');
+      return refreshResult.data.user;
     }
   }
 
@@ -2796,18 +2779,6 @@ async function supabaseFetch(path, options = {}) {
 }
 
 
-function hasValidDomainSessionTokens(session) {
-  const data = session && typeof session === 'object' ? session : {};
-  return Boolean(
-    data.access_token &&
-    typeof data.access_token === 'string' &&
-    data.access_token.length > 20 &&
-    data.refresh_token &&
-    typeof data.refresh_token === 'string' &&
-    data.refresh_token.length > 10
-  );
-}
-
 function buildDomainAuthSessionPayload(session) {
   const data = session && typeof session === 'object' ? session : {};
   if (!data.access_token) return null;
@@ -2983,32 +2954,10 @@ function parseCookies(req) {
 }
 
 function normalizeCookieSameSite(value) {
-  const clean = String(value || 'Lax').trim().toLowerCase();
-  if (clean === 'strict') return 'Strict';
+  const clean = String(value || 'Strict').trim().toLowerCase();
+  if (clean === 'lax') return 'Lax';
   if (clean === 'none') return 'None';
-  return 'Lax';
-}
-
-function normalizeCookieDomain(value) {
-  const clean = String(value || '').trim().toLowerCase().replace(/^\./, '');
-  if (!clean || /^(none|false|off|host-only|host_only)$/i.test(clean)) return '';
-  if (/^localhost$|^127\.|^0\.0\.0\.0$/.test(clean)) return '';
-  return clean;
-}
-
-function getDomainCookieDomainCandidates() {
-  const candidates = [];
-  const add = (value) => {
-    const domain = normalizeCookieDomain(value);
-    if (domain && !candidates.includes(domain)) candidates.push(domain);
-  };
-
-  add(process.env.DOMAIN_COOKIE_DOMAIN);
-  add(process.env.DOMAIN_SITE_URL ? (() => { try { return new URL(process.env.DOMAIN_SITE_URL).hostname; } catch (_) { return ''; } })() : '');
-  add(process.env.SITE_URL ? (() => { try { return new URL(process.env.SITE_URL).hostname; } catch (_) { return ''; } })() : '');
-  add('diracgroup.store');
-
-  return candidates;
+  return 'Strict';
 }
 
 function appendSetCookie(res, cookies) {
@@ -3026,21 +2975,18 @@ function appendSetCookie(res, cookies) {
 }
 
 function makeCookie(name, value, options = {}) {
-  // Produksi paling aman: token customer hanya lewat backend-only cookie.
-  // Default Lax agar alur POST login -> domain_me -> A2F berjalan stabil di browser HP.
-  const sameSite = normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || 'Lax');
+  // Produksi paling aman: session customer hanya lewat backend-only cookie.
+  // Default dikunci ke SameSite=Strict. Jika alur cross-site benar-benar diperlukan,
+  // DOMAIN_COOKIE_SAMESITE masih bisa diubah lewat ENV tanpa mengubah kode.
+  const sameSite = normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || 'Strict');
   const secureCookie = sameSite === 'None' || process.env.NODE_ENV !== 'development' || isEnvTrue('DOMAIN_COOKIE_FORCE_SECURE');
   const parts = [
-    `${name}=${encodeURIComponent(value || '')}`,
+    `${name}=${encodeURIComponent(value)}`,
     'Path=/',
     'HttpOnly'
   ];
 
   if (secureCookie) parts.push('Secure');
-  const cookieDomain = Object.prototype.hasOwnProperty.call(options, 'domain')
-    ? normalizeCookieDomain(options.domain)
-    : normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
-  if (cookieDomain) parts.push(`Domain=${cookieDomain}`);
   parts.push(`SameSite=${sameSite}`);
   parts.push('Priority=High');
 
@@ -3055,130 +3001,20 @@ function makeCookie(name, value, options = {}) {
   return parts.join('; ');
 }
 
-const DOMAIN_COOKIE_CHUNK_SIZE = 3400;
-const DOMAIN_COOKIE_MAX_CHUNKS = 12;
-
-function makeTokenCookieSet(name, value, options = {}) {
-  const token = String(value || '');
-  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
-  const cookies = [...makeCookieVariants(name, '', { maxAge: 0 })];
-
-  if (!token) return cookies;
-
-  if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
-    cookies.push(makeCookie(name, token, Object.assign({}, options, { domain: domainPreference || '' })));
-    return cookies;
-  }
-
-  // Token besar dapat ditolak browser jika dipaksa masuk 1 cookie. Pecah hanya token aktual,
-  // tetapi jangan kirim puluhan clear-cookie varian domain agar header tidak membengkak.
-  cookies.push(...makeClearTokenCookieChunks(name));
-
-  const chunks = [];
-  for (let index = 0; index < token.length; index += DOMAIN_COOKIE_CHUNK_SIZE) {
-    chunks.push(token.slice(index, index + DOMAIN_COOKIE_CHUNK_SIZE));
-  }
-
-  if (chunks.length > DOMAIN_COOKIE_MAX_CHUNKS) {
-    return cookies;
-  }
-
-  cookies.push(makeCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: domainPreference || '' })));
-  chunks.forEach((chunk, index) => {
-    cookies.push(makeCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: domainPreference || '' })));
-  });
-  return cookies;
-}
-
-function makeClearTokenCookieChunks(name) {
-  const cookies = [];
-  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
-  for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
-    cookies.push(makeCookie(`${name}__${index}`, '', { maxAge: 0, domain: domainPreference || '' }));
-  }
-  return cookies;
-}
-
-function makeClearTokenCookieSet(name) {
-  return [
-    ...makeCookieVariants(name, '', { maxAge: 0 }),
-    ...makeClearTokenCookieChunks(name)
-  ];
-}
-
-function readCookieToken(cookies, name) {
-  const jar = cookies && typeof cookies === 'object' ? cookies : {};
-  const marker = String(jar[name] || '');
-  const chunkMatch = marker.match(/^__chunked_(\d+)$/);
-  if (chunkMatch) {
-    const count = Math.max(0, Math.min(DOMAIN_COOKIE_MAX_CHUNKS, Number(chunkMatch[1]) || 0));
-    let token = '';
-    for (let index = 0; index < count; index += 1) {
-      const chunk = jar[`${name}__${index}`];
-      if (!chunk) return '';
-      token += String(chunk);
-    }
-    return token;
-  }
-
-  if (marker) return marker;
-
-  // Recovery untuk browser/proxy yang menghilangkan marker utama tapi masih mengirim chunks.
-  if (jar[`${name}__0`]) {
-    let token = '';
-    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
-      const chunk = jar[`${name}__${index}`];
-      if (!chunk) break;
-      token += String(chunk);
-    }
-    return token;
-  }
-
-  return '';
-}
-
-function makeCookieVariants(name, value, options = {}) {
-  const cookies = [];
-  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
-
-  // Canonical cookie: host-only by default. Kalau ENV DOMAIN_COOKIE_DOMAIN diisi,
-  // canonical mengikuti domain tersebut. Ini tidak membuka akses JS karena tetap HttpOnly.
-  cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: domainPreference || '' })));
-
-  // Compatibility cookie domain untuk membersihkan/menyamakan sisa cookie lama
-  // dari patch sebelumnya yang mungkin memakai Domain=diracgroup.store.
-  getDomainCookieDomainCandidates().forEach((domain) => {
-    if (domain !== domainPreference) {
-      cookies.push(makeCookie(name, value, Object.assign({}, options, { domain })));
-    }
-  });
-
-  return cookies;
-}
-
-function makeClearCookieVariants(name) {
-  return makeCookieVariants(name, '', { maxAge: 0 });
-}
-
 function setSessionCookies(res, session) {
-  if (!hasValidDomainSessionTokens(session)) {
-    clearSessionCookies(res);
-    return false;
-  }
-
   const maxAge = 60 * 60 * 24 * 7;
+
   appendSetCookie(res, [
-    ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
-    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge })
+    makeCookie(ACCESS_COOKIE, session.access_token, { maxAge }),
+    makeCookie(REFRESH_COOKIE, session.refresh_token, { maxAge })
   ]);
-  return true;
 }
 
 function clearSessionCookies(res) {
   appendSetCookie(res, [
-    ...makeClearTokenCookieSet(ACCESS_COOKIE),
-    ...makeClearTokenCookieSet(REFRESH_COOKIE),
-    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE)
+    makeCookie(ACCESS_COOKIE, '', { maxAge: 0 }),
+    makeCookie(REFRESH_COOKIE, '', { maxAge: 0 }),
+    makeCookie(CUSTOMER_MFA_COOKIE, '', { maxAge: 0 })
   ]);
 }
 
@@ -9146,725 +8982,3 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
     });
   }
 };
-
-/* ============================================================
-   UNIVERSAL PAYMENT GATEWAY FOR PESANAN.HTML - APPEND ONLY
-   Scope:
-   - Payment gateway only.
-   - Login, hash, endpoint auth, dashboard MFA/A2F, cookies, and security guards are not modified.
-   - Frontend may only identify the order; amount stays locked from database.
-   - Supports regular orders table and domain_orders table from pesanan.html.
-   - No invoice/localStorage source is trusted.
-   ============================================================ */
-
-const __diracUniversalPesananPaymentPreviousHandler = module.exports;
-const DIRAC_UNIVERSAL_PESANAN_PAYMENT_ACTIONS = new Set(['create_payment', 'my_orders']);
-
-module.exports = async function diracUniversalPesananPaymentWrapper(req, res) {
-  const rawAction = String((req.query && req.query.action) || '').trim();
-  const action = diracUniversalPesananPaymentNormalizeAction(rawAction);
-
-  if (!DIRAC_UNIVERSAL_PESANAN_PAYMENT_ACTIONS.has(action)) {
-    return __diracUniversalPesananPaymentPreviousHandler(req, res);
-  }
-
-  const cors = setCors(req, res, { isDomainAction: true });
-  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
-  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
-
-  try {
-    if (action === 'my_orders') {
-      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-      return await diracUniversalPesananReadOrders(req, res);
-    }
-
-    if (action === 'create_payment') {
-      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
-      return await diracUniversalPesananCreatePayment(req, res);
-    }
-  } catch (error) {
-    console.error('[universal-pesanan-payment]', lockedPaymentSafeError(error));
-    return res.status(error && error.statusCode ? error.statusCode : 500).json({
-      ok: false,
-      message: 'Payment belum dapat diproses dengan aman.',
-      error: lockedPaymentPublicError(error)
-    });
-  }
-
-  return __diracUniversalPesananPaymentPreviousHandler(req, res);
-};
-
-function diracUniversalPesananPaymentNormalizeAction(action) {
-  const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  const aliases = {
-    create_payment: 'create_payment',
-    create_payment_order: 'create_payment',
-    pay_order: 'create_payment',
-    order_payment: 'create_payment',
-    bayar_pesanan: 'create_payment',
-    checkout_payment: 'create_payment',
-    my_orders: 'my_orders',
-    pesanan: 'my_orders',
-    pesanan_saya: 'my_orders',
-    customer_orders: 'my_orders',
-    orders_saya: 'my_orders',
-    my_invoices: 'my_orders',
-    invoice_saya: 'my_orders'
-  };
-  return aliases[clean] || clean;
-}
-
-function diracUniversalPesananGatewayConfigured() {
-  return Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint());
-}
-
-async function diracUniversalPesananReadOrders(req, res) {
-  const access = await requireDomainDashboardAccess(req, res);
-  if (!access) return;
-  const user = access.user || {};
-
-  const authUserId = String(user.id || '').trim();
-  const userEmail = normalizeAuthEmail(user.email || '');
-  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !userEmail || !isValidAuthEmail(userEmail)) {
-    return res.status(401).json({ ok: false, message: 'Sesi login tidak valid.' });
-  }
-
-  const owner = await myOrdersResolveOwner(authUserId, userEmail);
-  if (!owner || !Array.isArray(owner.customerIds) || !owner.customerIds.length) {
-    return res.status(403).json({
-      ok: false,
-      service: 'dirac-my-orders',
-      ownership_locked: true,
-      direct_frontend_table_access: false,
-      frontend_customer_id_ignored: true,
-      message: 'Akun login belum terhubung ke customer profile aktif. Pesanan dikunci aman agar tidak salah owner.'
-    });
-  }
-
-  const genericOrders = await myOrdersFetchGenericOrders(owner, userEmail);
-  const domainOrders = await myOrdersFetchDomainOrders(owner, userEmail);
-  const allOrders = [...genericOrders.orders, ...domainOrders.orders]
-    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-    .slice(0, 120);
-
-  const decoratedOrders = await diracUniversalPesananDecorateOrders(allOrders);
-  const summary = myOrdersBuildSummary(decoratedOrders);
-  const gatewayConfigured = diracUniversalPesananGatewayConfigured();
-
-  return res.status(200).json({
-    ok: true,
-    service: 'dirac-my-orders',
-    dashboard_mfa_required: true,
-    dashboard_mfa_source: access.mfa && access.mfa.source || '',
-    user: sanitizeUser(user),
-    ownership_locked: true,
-    direct_frontend_table_access: false,
-    frontend_customer_id_ignored: true,
-    payment_gateway_configured: gatewayConfigured,
-    payment_note: gatewayConfigured
-      ? 'Payment gateway aktif. Semua invoice eligible dibuatkan payment dari nominal database, bukan dari browser.'
-      : 'Payment gateway belum aktif. Isi MIDTRANS_SERVER_KEY atau PAYMENT_CREATE_URL di backend.',
-    owner: {
-      customer_id_available: Boolean(owner.customerIds.length),
-      customer_ids_count: owner.customerIds.length,
-      source: owner.sources.join(',') || 'auth_email_only'
-    },
-    summary,
-    orders: decoratedOrders,
-    diagnostics: {
-      generic_orders_ready: genericOrders.ok,
-      domain_orders_ready: domainOrders.ok,
-      generic_orders_error: genericOrders.error || null,
-      domain_orders_error: domainOrders.error || null,
-      payment_gateway_ready: gatewayConfigured
-    },
-    time: diracNowIso()
-  });
-}
-
-async function diracUniversalPesananDecorateOrders(orders) {
-  const rows = Array.isArray(orders) ? orders : [];
-  const txMap = await diracUniversalPesananFetchReusableTransactionsForOrders(rows);
-  const gatewayConfigured = diracUniversalPesananGatewayConfigured();
-
-  return rows.map((order) => {
-    const copy = { ...order };
-    const key = diracUniversalPesananOrderTxKey(copy);
-    const tx = key ? txMap.get(key) : null;
-    const canPay = gatewayConfigured && diracUniversalPesananOrderCanPay(copy);
-
-    if (tx && tx.payment_url) {
-      copy.payment_url = String(tx.payment_url);
-      copy.payment_transaction_id = tx.id || null;
-      copy.gateway_reference = tx.gateway_reference || null;
-      copy.payment_provider = tx.gateway_name || null;
-      copy.payment_gateway_configured = gatewayConfigured;
-      copy.can_pay = diracUniversalPesananOrderCanPay(copy);
-      copy.payment_message = 'Payment sudah tersedia. Tekan tombol untuk melanjutkan pembayaran.';
-      return copy;
-    }
-
-    copy.payment_url = copy.payment_url || null;
-    copy.payment_gateway_configured = gatewayConfigured;
-    copy.can_pay = canPay;
-    copy.payment_message = canPay
-      ? 'Tekan Bayar Sekarang. Backend akan membuat payment memakai total database, bukan nominal dari browser.'
-      : (gatewayConfigured
-        ? 'Invoice ini belum eligible untuk payment otomatis.'
-        : 'Payment gateway belum aktif di backend.');
-    return copy;
-  });
-}
-
-function diracUniversalPesananOrderTxKey(order) {
-  if (!order || !order.id) return '';
-  if (order.type === 'domain_order' || order.service_type === 'domain') return 'domain:' + String(order.id);
-  return 'regular:' + String(order.id);
-}
-
-async function diracUniversalPesananFetchReusableTransactionsForOrders(orders) {
-  const map = new Map();
-  const regularIds = [];
-  const domainIds = [];
-
-  (Array.isArray(orders) ? orders : []).forEach((order) => {
-    if (!order || !customerSecurityLooksLikeUuid(order.id)) return;
-    if (order.type === 'domain_order' || order.service_type === 'domain') domainIds.push(String(order.id));
-    else regularIds.push(String(order.id));
-  });
-
-  await diracUniversalPesananFillTxMap(map, 'regular', regularIds);
-  await diracUniversalPesananFillTxMap(map, 'domain', domainIds);
-  return map;
-}
-
-async function diracUniversalPesananFillTxMap(map, type, ids) {
-  const cleanIds = Array.from(new Set((ids || []).filter(customerSecurityLooksLikeUuid))).slice(0, 120);
-  if (!cleanIds.length) return;
-  const column = type === 'domain' ? 'domain_order_id' : 'order_id';
-  const select = 'id,order_id,domain_order_id,gateway_name,gateway_reference,payment_status,amount,currency,payment_url,expired_at,created_at';
-  const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
-    + '&' + column + '=in.(' + cleanIds.map(encodeURIComponent).join(',') + ')'
-    + '&order=created_at.desc&limit=240';
-
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  if (!result || !result.ok || !Array.isArray(result.data)) return;
-
-  const now = Date.now();
-  result.data.forEach((tx) => {
-    if (!tx || !tx.payment_url) return;
-    if (tx.expired_at) {
-      const expires = new Date(tx.expired_at).getTime();
-      if (Number.isFinite(expires) && expires <= now) return;
-    }
-    const id = type === 'domain' ? tx.domain_order_id : tx.order_id;
-    if (!id) return;
-    const key = type + ':' + String(id);
-    if (!map.has(key)) map.set(key, tx);
-  });
-}
-
-async function diracUniversalPesananCreatePayment(req, res) {
-  const access = await requireDomainDashboardAccess(req, res);
-  if (!access) return;
-  const user = access.user || {};
-  const body = await readBody(req);
-
-  const requestedOrderId = lockedPaymentCleanText(
-    body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || body.invoiceCode || body.id || '',
-    140
-  );
-  const requestedType = diracUniversalPesananNormalizeRequestedType(body.order_type || body.orderType || body.type || body.service_type || body.serviceType || '');
-
-  if (!requestedOrderId) {
-    return res.status(400).json({ ok: false, message: 'order_id wajib dikirim. Nominal tidak boleh dikirim dari frontend.' });
-  }
-
-  if (
-    body.amount !== undefined ||
-    body.total !== undefined ||
-    body.subtotal !== undefined ||
-    body.payment_status !== undefined ||
-    body.order_status !== undefined ||
-    body.paid !== undefined ||
-    body.completed !== undefined ||
-    body.payment_url !== undefined
-  ) {
-    console.warn('[universal-pesanan-payment] ignored frontend payment fields', {
-      hasAmount: body.amount !== undefined,
-      hasTotal: body.total !== undefined,
-      hasSubtotal: body.subtotal !== undefined,
-      hasPaymentStatus: body.payment_status !== undefined,
-      hasOrderStatus: body.order_status !== undefined,
-      hasPaid: body.paid !== undefined,
-      hasCompleted: body.completed !== undefined,
-      hasPaymentUrl: body.payment_url !== undefined
-    });
-  }
-
-  const authUserId = String(user.id || '').trim();
-  const userEmail = normalizeAuthEmail(user.email || '');
-  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId) || !userEmail || !isValidAuthEmail(userEmail)) {
-    return res.status(401).json({ ok: false, message: 'Sesi login tidak valid.' });
-  }
-
-  const owner = await sessionOwnershipCheckoutResolveCustomerOwner({
-    authUserId,
-    email: userEmail,
-    fullName: userEmail,
-    phone: ''
-  });
-
-  if (!owner.ok || !owner.customer || !owner.customer.id) {
-    return res.status(owner.status || 409).json({
-      ok: false,
-      message: owner.message || 'Customer ownership belum siap. Login ulang atau hubungi admin.'
-    });
-  }
-
-  const customer = owner.customer;
-  const customerId = String(customer.id || '').trim();
-  if (!customerSecurityLooksLikeUuid(customerId)) {
-    return res.status(409).json({ ok: false, message: 'Customer ownership tidak valid.' });
-  }
-
-  const lookup = await diracUniversalPesananFindOwnedOrder(requestedOrderId, requestedType, customerId);
-  if (!lookup.ok) {
-    return res.status(lookup.status || 404).json({ ok: false, message: lookup.message || 'Order tidak ditemukan untuk akun ini.' });
-  }
-
-  const paymentInput = await diracUniversalPesananBuildPaymentInput(lookup, customer, userEmail);
-  if (!paymentInput.ok) {
-    return res.status(paymentInput.status || 409).json({ ok: false, message: paymentInput.message || 'Order belum bisa dibuatkan payment.' });
-  }
-
-  const gatewayConfigured = diracUniversalPesananGatewayConfigured();
-  if (!gatewayConfigured) {
-    return res.status(503).json({
-      ok: false,
-      payment_gateway_configured: false,
-      message: 'Payment gateway belum disetel. Isi MIDTRANS_SERVER_KEY untuk Midtrans sandbox/production atau PAYMENT_CREATE_URL untuk gateway eksternal.'
-    });
-  }
-
-  const existing = await diracUniversalPesananFindReusableTransaction({
-    kind: paymentInput.kind,
-    orderId: paymentInput.orderId,
-    domainOrderId: paymentInput.domainOrderId,
-    customerId,
-    amount: paymentInput.amount
-  });
-
-  if (existing.ok && existing.transaction && existing.transaction.payment_url) {
-    return res.status(200).json({
-      ok: true,
-      reused: true,
-      message: 'Payment sudah pernah dibuat untuk order ini. Menggunakan payment URL yang sama.',
-      order_kind: paymentInput.kind,
-      order_id: paymentInput.orderRefId,
-      order_code: paymentInput.orderCode,
-      service_type: paymentInput.serviceType,
-      payment_transaction_id: existing.transaction.id,
-      gateway_reference: existing.transaction.gateway_reference || null,
-      amount: paymentInput.amount,
-      currency: String(existing.transaction.currency || 'IDR').toUpperCase(),
-      payment_status: existing.transaction.payment_status || 'unpaid',
-      payment_url: existing.transaction.payment_url,
-      payment_provider: existing.transaction.gateway_name || null,
-      amount_source: paymentInput.amountSource,
-      ownership_locked: true,
-      amount_locked: true,
-      frontend_ignored_fields: ['amount', 'total', 'subtotal', 'payment_status', 'order_status', 'paid', 'completed', 'payment_url', 'customer_id']
-    });
-  }
-
-  const gatewayName = lockedPaymentGatewayName();
-  const gatewayReference = lockedPaymentGenerateReference(`${paymentInput.referencePrefix}-${paymentInput.orderCode}`);
-  const transactionResult = await lockedPaymentInsertTransaction({
-    orderId: paymentInput.kind === 'regular' ? paymentInput.orderId : null,
-    domainOrderId: paymentInput.kind === 'domain' ? paymentInput.domainOrderId : null,
-    customerId,
-    serviceType: paymentInput.serviceType,
-    gatewayName,
-    gatewayReference,
-    amount: paymentInput.amount,
-    currency: 'IDR',
-    metadata: {
-      order_kind: paymentInput.kind,
-      order_code: paymentInput.orderCode,
-      amount_source: paymentInput.amountSource,
-      item_total: paymentInput.itemTotal,
-      create_payment_started_at: diracNowIso(),
-      frontend_amount_ignored: true,
-      frontend_invoice_storage_trusted: false,
-      owner_source: owner.source || 'backend_auth_link'
-    }
-  });
-
-  if (!transactionResult.ok) {
-    return res.status(transactionResult.status || 500).json({
-      ok: false,
-      message: 'Gagal menyimpan transaksi payment.',
-      error: lockedPaymentSafeUpstreamError(transactionResult.data)
-    });
-  }
-
-  const transaction = Array.isArray(transactionResult.data) ? transactionResult.data[0] : transactionResult.data;
-  if (!transaction || !transaction.id) {
-    return res.status(500).json({ ok: false, message: 'Transaksi payment dibuat, tetapi ID tidak ditemukan.' });
-  }
-
-  const gateway = await lockedPaymentCreateGatewayInvoice({
-    endpoint: lockedPaymentGatewayEndpoint(),
-    gatewayName,
-    gatewayReference,
-    transactionId: transaction.id,
-    orderId: paymentInput.orderRefId,
-    domainOrderId: paymentInput.domainOrderId || undefined,
-    orderCode: paymentInput.orderCode,
-    amount: paymentInput.amount,
-    currency: 'IDR',
-    customer: paymentInput.customer,
-    items: paymentInput.items,
-    serviceType: paymentInput.serviceType
-  });
-
-  if (!gateway.ok || !gateway.paymentUrl) {
-    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'gateway_create_failed');
-    return res.status(gateway.status || 502).json({
-      ok: false,
-      message: gateway.message || 'Gateway gagal membuat URL pembayaran.',
-      payment_transaction_id: transaction.id,
-      amount: paymentInput.amount,
-      currency: 'IDR'
-    });
-  }
-
-  const patchResult = await lockedPaymentPatchTransactionUrl(transaction.id, gateway.paymentUrl, gateway.invoiceId, gateway.raw);
-  if (!patchResult.ok) {
-    return res.status(patchResult.status || 500).json({
-      ok: false,
-      message: 'Gateway sudah membuat invoice, tetapi payment URL gagal disimpan ke database.',
-      payment_transaction_id: transaction.id,
-      payment_url: gateway.paymentUrl,
-      error: lockedPaymentSafeUpstreamError(patchResult.data)
-    });
-  }
-
-  return res.status(200).json({
-    ok: true,
-    message: 'Payment berhasil dibuat. Nominal dikunci dari database.',
-    order_kind: paymentInput.kind,
-    order_id: paymentInput.orderRefId,
-    order_code: paymentInput.orderCode,
-    service_type: paymentInput.serviceType,
-    payment_transaction_id: transaction.id,
-    gateway_reference: gatewayReference,
-    amount: paymentInput.amount,
-    currency: 'IDR',
-    payment_status: 'unpaid',
-    payment_url: gateway.paymentUrl,
-    payment_provider: gateway.provider || gatewayName,
-    invoice_id: gateway.invoiceId || null,
-    amount_source: paymentInput.amountSource,
-    ownership_locked: true,
-    amount_locked: true,
-    frontend_invoice_storage_trusted: false,
-    frontend_ignored_fields: ['amount', 'total', 'subtotal', 'payment_status', 'order_status', 'paid', 'completed', 'payment_url', 'customer_id'],
-    webhook_required_checks: ['signature', 'gateway_event_id_unique', 'amount_equals_database_total', 'currency_IDR', 'paid_or_settled_status']
-  });
-}
-
-function diracUniversalPesananNormalizeRequestedType(value) {
-  const clean = String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  if (clean === 'domain' || clean === 'domain_order' || clean === 'domain_orders') return 'domain';
-  if (clean === 'regular' || clean === 'standard' || clean === 'standard_order' || clean === 'orders') return 'regular';
-  return '';
-}
-
-async function diracUniversalPesananFindOwnedOrder(inputOrderId, requestedType, customerId) {
-  const attempts = requestedType === 'domain'
-    ? ['domain', 'regular']
-    : requestedType === 'regular'
-      ? ['regular', 'domain']
-      : ['regular', 'domain'];
-
-  let last = null;
-  for (const type of attempts) {
-    const result = type === 'domain'
-      ? await diracUniversalPesananFetchOwnedDomainOrder(inputOrderId, customerId)
-      : await diracUniversalPesananFetchOwnedRegularOrder(inputOrderId, customerId);
-    if (result.ok) return result;
-    last = result;
-  }
-  return last || { ok: false, status: 404, message: 'Order tidak ditemukan.' };
-}
-
-async function diracUniversalPesananFetchOwnedRegularOrder(inputOrderId, customerId) {
-  const clean = lockedPaymentCleanText(inputOrderId, 140);
-  const filters = [];
-  if (customerSecurityLooksLikeUuid(clean)) filters.push(`id.eq.${clean}`);
-  if (clean) filters.push(`order_id.eq.${clean}`);
-
-  if (!filters.length) return { ok: false, status: 400, message: 'Order ID regular tidak valid.' };
-
-  const select = 'id,order_id,customer_id,customer_name,customer_email,customer_phone,service_type,subtotal,total,payment_method,payment_status,order_status,created_at';
-  const path = '/rest/v1/orders?select=' + encodeURIComponent(select)
-    + '&customer_id=eq.' + encodeURIComponent(customerId)
-    + '&or=' + encodeURIComponent(`(${filters.join(',')})`)
-    + '&limit=1';
-
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result.ok) return { ok: false, status: result.status || 500, message: 'Gagal membaca order regular.' };
-  const row = Array.isArray(result.data) ? result.data[0] : null;
-  if (!row || !row.id) return { ok: false, status: 404, message: 'Order regular tidak ditemukan atau bukan milik akun ini.' };
-  return { ok: true, kind: 'regular', order: row };
-}
-
-async function diracUniversalPesananFetchOwnedDomainOrder(inputOrderId, customerId) {
-  const clean = lockedPaymentCleanText(inputOrderId, 140);
-  const candidate = clean.replace(/^DOM-/i, '');
-  const filters = [];
-
-  if (customerSecurityLooksLikeUuid(clean)) filters.push(`id.eq.${clean}`);
-  if (customerSecurityLooksLikeUuid(candidate)) filters.push(`id.eq.${candidate}`);
-
-  if (!filters.length && /^DOM-[A-F0-9]{8}$/i.test(clean)) {
-    const prefix = clean.slice(4).toLowerCase();
-    const select = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,domain_name,total_price,currency,order_status,status,payment_status,created_at';
-    const listPath = '/rest/v1/domain_orders?select=' + encodeURIComponent(select)
-      + '&customer_id=eq.' + encodeURIComponent(customerId)
-      + '&order=created_at.desc&limit=100';
-    const listResult = await supabaseFetch(listPath, { method: 'GET', auth: 'service' });
-    if (!listResult.ok) return { ok: false, status: listResult.status || 500, message: 'Gagal membaca domain order.' };
-    const row = (Array.isArray(listResult.data) ? listResult.data : []).find((item) => String(item && item.id || '').toLowerCase().startsWith(prefix));
-    if (!row || !row.id) return { ok: false, status: 404, message: 'Domain order tidak ditemukan atau bukan milik akun ini.' };
-    return { ok: true, kind: 'domain', order: row };
-  }
-
-  if (!filters.length) return { ok: false, status: 400, message: 'Order ID domain tidak valid.' };
-
-  const select = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,domain_name,total_price,currency,order_status,status,payment_status,created_at';
-  const path = '/rest/v1/domain_orders?select=' + encodeURIComponent(select)
-    + '&customer_id=eq.' + encodeURIComponent(customerId)
-    + '&or=' + encodeURIComponent(`(${filters.join(',')})`)
-    + '&limit=1';
-
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
-  if (!result.ok) return { ok: false, status: result.status || 500, message: 'Gagal membaca domain order.' };
-  const row = Array.isArray(result.data) ? result.data[0] : null;
-  if (!row || !row.id) return { ok: false, status: 404, message: 'Domain order tidak ditemukan atau bukan milik akun ini.' };
-  return { ok: true, kind: 'domain', order: row };
-}
-
-async function diracUniversalPesananBuildPaymentInput(lookup, customer, userEmail) {
-  if (!lookup || !lookup.ok || !lookup.order) return { ok: false, status: 404, message: 'Order tidak ditemukan.' };
-  if (lookup.kind === 'domain') return diracUniversalPesananBuildDomainPaymentInput(lookup.order, customer, userEmail);
-  return diracUniversalPesananBuildRegularPaymentInput(lookup.order, customer, userEmail);
-}
-
-async function diracUniversalPesananBuildRegularPaymentInput(order, customer, userEmail) {
-  const orderId = String(order.id || '').trim();
-  const orderCode = lockedPaymentCleanText(order.order_id || orderId, 100);
-  const serviceType = lockedPaymentNormalizeServiceType(order.service_type || 'order');
-  const amount = lockedPaymentMoney(order.total ?? order.subtotal ?? 0);
-  const paymentStatus = lockedPaymentStatus(order.payment_status || 'unpaid');
-  const orderStatus = lockedPaymentStatus(order.order_status || 'pending');
-
-  if (!customerSecurityLooksLikeUuid(orderId)) return { ok: false, status: 409, message: 'Order ID database tidak valid.' };
-  if (!diracUniversalPesananCanPayByStatus(paymentStatus, orderStatus, amount)) {
-    return { ok: false, status: 409, message: `Order belum bisa dibayar. Status pembayaran: ${paymentStatus}, status order: ${orderStatus}.` };
-  }
-
-  const itemPack = await diracUniversalPesananFetchRegularItems(orderId, amount, serviceType);
-  return {
-    ok: true,
-    kind: 'regular',
-    orderId,
-    domainOrderId: null,
-    orderRefId: orderId,
-    orderCode,
-    referencePrefix: 'ORD',
-    serviceType,
-    amount,
-    amountSource: 'orders.total.database',
-    itemTotal: itemPack.totalItem,
-    customer: {
-      name: lockedPaymentCleanText(order.customer_name || customer.name || userEmail, 120),
-      email: normalizeAuthEmail(order.customer_email || customer.email || userEmail),
-      phone: lockedPaymentCleanText(order.customer_phone || customer.phone || '', 80)
-    },
-    items: itemPack.items
-  };
-}
-
-async function diracUniversalPesananBuildDomainPaymentInput(order, customer, userEmail) {
-  const domainOrderId = String(order.id || '').trim();
-  const orderCode = lockedPaymentCleanText(order.id || domainOrderId, 100);
-  const amount = lockedPaymentMoney(order.total_price || 0);
-  const paymentStatus = lockedPaymentStatus(order.payment_status || 'unpaid');
-  const orderStatus = lockedPaymentStatus(order.order_status || order.status || 'pending');
-
-  if (!customerSecurityLooksLikeUuid(domainOrderId)) return { ok: false, status: 409, message: 'Domain order ID database tidak valid.' };
-  if (!diracUniversalPesananCanPayByStatus(paymentStatus, orderStatus, amount)) {
-    return { ok: false, status: 409, message: `Domain order belum bisa dibayar. Status pembayaran: ${paymentStatus}, status order: ${orderStatus}.` };
-  }
-
-  const itemPack = await diracUniversalPesananFetchDomainItems(domainOrderId, amount, order.domain_name);
-  return {
-    ok: true,
-    kind: 'domain',
-    orderId: null,
-    domainOrderId,
-    orderRefId: domainOrderId,
-    orderCode: 'DOM-' + domainOrderId.slice(0, 8).toUpperCase(),
-    referencePrefix: 'DOM',
-    serviceType: 'domain',
-    amount,
-    amountSource: 'domain_orders.total_price.database',
-    itemTotal: itemPack.totalItem,
-    customer: {
-      name: lockedPaymentCleanText(order.customer_name || customer.name || userEmail, 120),
-      email: normalizeAuthEmail(order.customer_email || order.owner_email || customer.email || userEmail),
-      phone: lockedPaymentCleanText(order.customer_whatsapp || customer.phone || '', 80)
-    },
-    items: itemPack.items
-  };
-}
-
-async function diracUniversalPesananFetchRegularItems(orderId, amount, serviceType) {
-  const select = 'id,order_id,product_doc_id,product_title,quantity,unit_price,cost_price';
-  const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
-  const items = [];
-  let total = 0;
-
-  rows.forEach((row, index) => {
-    const quantity = lockedPaymentPositiveInteger(row && row.quantity, 1, 9999);
-    const unitPrice = lockedPaymentMoney(row && row.unit_price);
-    const title = lockedPaymentCleanText(row && row.product_title || myOrdersServiceLabel(serviceType) || 'Item pesanan', 180);
-    if (!title || quantity <= 0 || unitPrice <= 0) return;
-    const subtotal = quantity * unitPrice;
-    total += subtotal;
-    items.push({
-      id: String(row.id || `item-${index + 1}`),
-      product_doc_id: lockedPaymentCleanText(row.product_doc_id || '', 80) || null,
-      title,
-      quantity,
-      unit_price: unitPrice,
-      subtotal
-    });
-  });
-
-  if (!items.length || lockedPaymentMoney(total) !== lockedPaymentMoney(amount)) {
-    return {
-      items: [{
-        id: 'order-total',
-        product_doc_id: null,
-        title: myOrdersServiceLabel(serviceType) || 'Total pesanan',
-        quantity: 1,
-        unit_price: amount,
-        subtotal: amount
-      }],
-      totalItem: amount
-    };
-  }
-
-  return { items, totalItem: total };
-}
-
-async function diracUniversalPesananFetchDomainItems(domainOrderId, amount, fallbackDomainName) {
-  const select = 'id,order_id,domain_name,extension,years,register_price,subtotal';
-  const path = '/rest/v1/domain_order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(domainOrderId);
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
-  const items = [];
-  let total = 0;
-
-  rows.forEach((row, index) => {
-    const quantity = lockedPaymentPositiveInteger(row && row.years, 1, 10);
-    const subtotal = lockedPaymentMoney(row && (row.subtotal || row.register_price));
-    const unitPrice = quantity > 0 ? Math.max(1, Math.round(subtotal / quantity)) : subtotal;
-    const title = lockedPaymentCleanText(row && row.domain_name || fallbackDomainName || 'Domain order', 180);
-    if (!title || quantity <= 0 || unitPrice <= 0) return;
-    total += unitPrice * quantity;
-    items.push({
-      id: String(row.id || `domain-${index + 1}`),
-      domain_name: title,
-      title,
-      quantity,
-      unit_price: unitPrice,
-      price: unitPrice,
-      subtotal: unitPrice * quantity
-    });
-  });
-
-  if (!items.length || lockedPaymentMoney(total) !== lockedPaymentMoney(amount)) {
-    const title = lockedPaymentCleanText(fallbackDomainName || 'Domain order', 180);
-    return {
-      items: [{
-        id: 'domain-total',
-        domain_name: title,
-        title,
-        quantity: 1,
-        unit_price: amount,
-        price: amount,
-        subtotal: amount
-      }],
-      totalItem: amount
-    };
-  }
-
-  return { items, totalItem: total };
-}
-
-function diracUniversalPesananCanPayByStatus(paymentStatus, orderStatus, amount) {
-  const pay = lockedPaymentStatus(paymentStatus);
-  const order = lockedPaymentStatus(orderStatus);
-  if (lockedPaymentMoney(amount) <= 0) return false;
-  if (['paid', 'success', 'settled', 'settlement', 'capture', 'refunded'].includes(pay)) return false;
-  if (['completed', 'cancelled', 'canceled', 'failed', 'expired', 'refunded'].includes(order)) return false;
-  return ['unpaid', 'pending', 'pending_payment', 'created', 'unknown'].includes(pay) || !pay;
-}
-
-function diracUniversalPesananOrderCanPay(order) {
-  if (!order) return false;
-  return diracUniversalPesananCanPayByStatus(order.payment_status, order.order_status, order.total);
-}
-
-async function diracUniversalPesananFindReusableTransaction(input) {
-  const customerId = String(input && input.customerId || '').trim();
-  const amount = lockedPaymentMoney(input && input.amount);
-  const isDomain = input && input.kind === 'domain';
-  const orderId = String(isDomain ? input.domainOrderId : input.orderId || '').trim();
-
-  if (!customerSecurityLooksLikeUuid(customerId) || !customerSecurityLooksLikeUuid(orderId) || amount <= 0) {
-    return { ok: true, transaction: null };
-  }
-
-  const column = isDomain ? 'domain_order_id' : 'order_id';
-  const select = 'id,order_id,domain_order_id,customer_id,service_type,gateway_name,gateway_reference,payment_status,amount,currency,payment_url,expired_at,created_at';
-  const statuses = ['unpaid', 'pending', 'created'].join(',');
-  const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
-    + '&' + column + '=eq.' + encodeURIComponent(orderId)
-    + '&customer_id=eq.' + encodeURIComponent(customerId)
-    + '&amount=eq.' + encodeURIComponent(String(amount))
-    + '&payment_status=in.(' + statuses + ')'
-    + '&order=created_at.desc&limit=8';
-
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
-  if (!result || !result.ok) return { ok: false, status: result && result.status || 500 };
-
-  const rows = Array.isArray(result.data) ? result.data : [];
-  const now = Date.now();
-  const reusable = rows.find((row) => {
-    if (!row || !row.payment_url) return false;
-    if (!row.expired_at) return true;
-    const expires = new Date(row.expired_at).getTime();
-    return Number.isFinite(expires) && expires > now;
-  });
-
-  return { ok: true, transaction: reusable || null };
-}
-
