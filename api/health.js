@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-debug-v9';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
@@ -7216,6 +7217,7 @@ async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoi
   const metadata = {
     gateway_invoice_id: invoiceId || null,
     gateway_created_at: diracNowIso(),
+    gateway_debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH,
     gateway_raw: raw || null
   };
 
@@ -7236,6 +7238,7 @@ async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoi
 async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error, raw) {
   const metadata = {
     gateway_failed_at: diracNowIso(),
+    gateway_debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH,
     gateway_error: lockedPaymentCleanText(error, 500) || 'gateway_create_failed'
   };
 
@@ -7248,6 +7251,7 @@ async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error, r
   }
 
   const safeRaw = lockedPaymentSafeMetadataRaw(raw);
+  metadata.gateway_raw_present = safeRaw !== null;
   if (safeRaw !== null) metadata.gateway_raw = safeRaw;
 
   return supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
@@ -7477,7 +7481,8 @@ module.exports = async function midtransPaymentWrapper(req, res) {
       provider: 'midtrans',
       snapConfigured: midtransPaymentIsConfigured(),
       webhook: '/api/health?action=midtrans_webhook',
-      environment: midtransIsProduction() ? 'production' : 'sandbox'
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      debugPatch: DIRAC_MIDTRANS_DEBUG_PATCH
     });
   }
 
@@ -7684,7 +7689,26 @@ async function midtransCreateSnapPayment(input) {
     });
     data = await parseFetchResponse(response);
   } catch (error) {
-    return { ok: false, status: 502, message: 'Midtrans tidak merespons.', error: lockedPaymentSafeError(error) };
+    const safeError = lockedPaymentSafeError(error) || 'midtrans_fetch_failed';
+    return {
+      ok: false,
+      status: 502,
+      message: 'Midtrans tidak merespons.',
+      error: safeError,
+      raw: {
+        provider: 'midtrans',
+        http_status: 0,
+        error: safeError,
+        request: {
+          order_id: payload.transaction_details.order_id,
+          gross_amount: payload.transaction_details.gross_amount,
+          enabled_payments: payload.enabled_payments || null,
+          return_url: returnUrl,
+          notification_url: midtransNotificationUrl(),
+          snap_base_url: midtransSnapBaseUrl()
+        }
+      }
+    };
   }
 
   if (!response.ok) {
@@ -7702,7 +7726,9 @@ async function midtransCreateSnapPayment(input) {
           gross_amount: payload.transaction_details.gross_amount,
           enabled_payments: payload.enabled_payments || null,
           return_url: returnUrl,
-          notification_url: midtransNotificationUrl()
+          notification_url: midtransNotificationUrl(),
+          snap_base_url: midtransSnapBaseUrl(),
+          debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH
         }
       }
     };
@@ -7724,7 +7750,9 @@ async function midtransCreateSnapPayment(input) {
         order_id: payload.transaction_details.order_id,
         gross_amount: payload.transaction_details.gross_amount,
         return_url: returnUrl,
-        notification_url: midtransNotificationUrl()
+        notification_url: midtransNotificationUrl(),
+        snap_base_url: midtransSnapBaseUrl(),
+        debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH
       }
     }
   };
