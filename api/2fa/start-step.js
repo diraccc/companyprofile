@@ -1215,15 +1215,32 @@ function diracAppendSetCookieHeader(res, cookie) {
   return res.setHeader("Set-Cookie", list);
 }
 
+function diracResolveDomainCookieDomain() {
+  const explicit = String(process.env.DOMAIN_COOKIE_DOMAIN || process.env.DIRAC_COOKIE_DOMAIN || "").trim();
+  if (/^(none|false|host-only|host_only)$/i.test(explicit)) return "";
+  if (explicit) return explicit.replace(/^\./, "").toLowerCase();
+
+  const siteUrl = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || "").trim();
+  try {
+    const host = siteUrl ? new URL(siteUrl).hostname.toLowerCase().replace(/^www\./, "") : "";
+    if (host && !/^localhost$|^127\.|^0\.0\.0\.0$|\.vercel\.app$/i.test(host)) return host;
+  } catch (_) {}
+
+  if (process.env.NODE_ENV === "production") return "diracgroup.store";
+  return "";
+}
+
 function diracMakeDomainLoginCookie(name, value, options = {}) {
   const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || "Lax").trim();
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     "Path=/",
-    "HttpOnly",
-    `SameSite=${sameSite}`
+    "HttpOnly"
   ];
   if (sameSite.toLowerCase() === "none" || process.env.NODE_ENV !== "development") parts.push("Secure");
+  const cookieDomain = diracResolveDomainCookieDomain();
+  if (cookieDomain) parts.push(`Domain=${cookieDomain}`);
+  parts.push(`SameSite=${sameSite}`);
   if (options.maxAge !== undefined) parts.push(`Max-Age=${Number(options.maxAge) || 0}`);
   return parts.join("; ");
 }
