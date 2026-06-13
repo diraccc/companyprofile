@@ -524,6 +524,16 @@ async function domainLogin(req, res, preloadedBody) {
 
   setSessionCookies(res, result.data);
 
+  // PASSKEY LOGIN ROOTFIX v5:
+  // Setelah password valid, backend langsung mengecek domain_passkeys lewat SERVICE ROLE.
+  // Ini tidak mengubah hash/login utama; hanya mengirim status boolean non-rahasia ke masuk.html
+  // agar Email backup tidak salah dikunci ketika Passkey sudah tersimpan di database.
+  const passkeyBootstrap = await diracLoginPasskeyBootstrapStatus(loginGuard.email).catch(() => ({
+    active: false,
+    passkey_count: 0,
+    source: 'bootstrap_error'
+  }));
+
   return res.status(200).json({
     ok: true,
     message: 'Login berhasil. Silakan lanjutkan verifikasi keamanan.',
@@ -531,7 +541,18 @@ async function domainLogin(req, res, preloadedBody) {
     mfaRequired: true,
     next: 'mfa_required',
     user: sanitizeUser(result.data.user),
-    session: buildDomainAuthSessionPayload(result.data)
+    session: buildDomainAuthSessionPayload(result.data),
+    mfaBootstrap: {
+      method: 'passkey',
+      passkeyActive: passkeyBootstrap.active === true,
+      passkey_active: passkeyBootstrap.active === true,
+      hasPasskey: passkeyBootstrap.active === true,
+      has_passkey: passkeyBootstrap.active === true,
+      emailBackupAvailable: passkeyBootstrap.active === true,
+      email_backup_available: passkeyBootstrap.active === true,
+      passkeyCount: Number(passkeyBootstrap.passkey_count || 0),
+      source: passkeyBootstrap.source || 'domain_passkeys_login_bootstrap'
+    }
   });
 }
 
@@ -6357,6 +6378,7 @@ async function myOrdersReadForCurrentCustomer(req, res) {
     .slice(0, 120);
 
   const summary = myOrdersBuildSummary(allOrders);
+  const paymentGatewayConfigured = Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint());
 
   return res.status(200).json({
     ok: true,
@@ -6367,8 +6389,10 @@ async function myOrdersReadForCurrentCustomer(req, res) {
     ownership_locked: true,
     direct_frontend_table_access: false,
     frontend_customer_id_ignored: true,
-    payment_gateway_configured: false,
-    payment_note: 'Payment gateway belum aktif. Order unpaid belum boleh dianggap lunas dan belum boleh diproses sebagai paid.',
+    payment_gateway_configured: paymentGatewayConfigured,
+    payment_note: paymentGatewayConfigured
+      ? 'Payment gateway Sandbox/Production aktif dari backend. Order unpaid bisa dibuatkan payment melalui tombol Bayar Sekarang.'
+      : 'Payment gateway belum aktif. Order unpaid belum boleh dianggap lunas dan belum boleh diproses sebagai paid.',
     owner: {
       customer_id_available: Boolean(owner.customerIds.length),
       customer_ids_count: owner.customerIds.length,
@@ -6473,6 +6497,15 @@ async function myOrdersFetchOrderItems(orderIds) {
 function myOrdersNormalizeGenericOrder(row, items) {
   const total = myOrdersMoney(row.total ?? row.subtotal ?? 0);
   const orderCode = myOrdersCleanText(row.order_id || row.id, 80);
+  const paymentGatewayConfigured = Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint());
+  const paymentStatus = myOrdersStatus(row.payment_status || 'unpaid');
+  const orderStatus = myOrdersStatus(row.order_status || row.status || 'pending');
+  const canPay = Boolean(
+    paymentGatewayConfigured &&
+    total > 0 &&
+    ['unpaid', 'pending', 'pending_payment'].includes(paymentStatus) &&
+    !['paid', 'success', 'settled', 'completed', 'cancelled', 'failed', 'expired'].includes(orderStatus)
+  );
   return {
     type: 'standard_order',
     id: String(row.id || ''),
@@ -6487,12 +6520,14 @@ function myOrdersNormalizeGenericOrder(row, items) {
     total,
     currency: 'IDR',
     payment_method: myOrdersCleanText(row.payment_method || 'Belum dipilih', 80),
-    payment_status: myOrdersStatus(row.payment_status || 'unpaid'),
-    order_status: myOrdersStatus(row.order_status || row.status || 'pending'),
+    payment_status: paymentStatus,
+    order_status: orderStatus,
     payment_url: null,
-    can_pay: false,
-    payment_gateway_configured: false,
-    payment_message: 'Payment gateway belum aktif. Invoice ini belum bisa dibayar otomatis.',
+    can_pay: canPay,
+    payment_gateway_configured: paymentGatewayConfigured,
+    payment_message: canPay
+      ? 'Tekan Bayar Sekarang. Payment dibuat backend memakai nominal database, bukan nominal dari browser.'
+      : (paymentGatewayConfigured ? 'Invoice ini belum memenuhi syarat bayar otomatis.' : 'Payment gateway belum dikonfigurasi di backend.'),
     created_at: row.created_at || '',
     items: Array.isArray(items) && items.length ? items : [{ title: 'Item pesanan', quantity: 1 }]
   };
@@ -6578,9 +6613,11 @@ function myOrdersNormalizeDomainOrder(row, items) {
     payment_status: myOrdersStatus(row.payment_status || 'unpaid'),
     order_status: myOrdersStatus(row.order_status || row.status || 'pending'),
     payment_url: null,
-    can_pay: false,
-    payment_gateway_configured: false,
-    payment_message: 'Payment gateway domain belum aktif di halaman ini.',
+    can_pay: Boolean((midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint()) && total > 0 && ['unpaid','pending','pending_payment'].includes(myOrdersStatus(row.payment_status || 'unpaid')) && !['paid','success','settled','completed','cancelled','failed','expired'].includes(myOrdersStatus(row.order_status || row.status || 'pending'))),
+    payment_gateway_configured: Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint()),
+    payment_message: Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint())
+      ? 'Tekan Bayar Sekarang. Payment domain dibuat backend memakai total database.'
+      : 'Payment gateway belum dikonfigurasi di backend.',
     created_at: row.created_at || '',
     items: normalizedItems.length ? normalizedItems : [{ title: 'Domain order', quantity: 1, subtotal: total }]
   };
@@ -6777,13 +6814,9 @@ async function lockedPaymentCreateForOrder(req, res) {
     return res.status(409).json({ ok: false, message: 'Total order 0/kosong. Payment gateway tidak boleh dibuat.' });
   }
 
-  const allowCustom = String(process.env.PAYMENT_ALLOW_CUSTOM_SERVICE_PAYMENT || 'false').trim().toLowerCase() === 'true';
-  if (serviceType !== 'parfum' && !allowCustom) {
-    return res.status(409).json({
-      ok: false,
-      message: 'Payment gateway otomatis baru diaktifkan untuk parfum. Layanan custom harus dikunci admin/backend dulu.'
-    });
-  }
+  // Semua jenis layanan boleh dibuatkan payment dari Pesanan Saya selama order milik customer login,
+  // payment_status masih unpaid/pending, total > 0, dan total item cocok dengan total order database.
+  // Frontend tetap tidak dipercaya: amount/customer/status dari browser diabaikan.
 
   const itemCheck = await lockedPaymentValidateOrderItems(orderId, amount, serviceType);
   if (!itemCheck.ok) {
@@ -6811,11 +6844,14 @@ async function lockedPaymentCreateForOrder(req, res) {
   }
 
   const endpoint = lockedPaymentGatewayEndpoint();
-  if (!endpoint && !midtransPaymentIsConfigured()) {
+  const midtransReady = midtransPaymentIsConfigured();
+  if (!endpoint && !midtransReady) {
     return res.status(503).json({
       ok: false,
       payment_gateway_configured: false,
-      message: 'Payment gateway belum disetel. Isi MIDTRANS_SERVER_KEY untuk Midtrans atau PAYMENT_CREATE_URL untuk gateway eksternal.'
+      midtrans_server_key_detected: false,
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      message: 'Payment gateway belum terbaca oleh backend create_payment. Pastikan MIDTRANS_SERVER_KEY atau MIDTRANS_SANDBOX_SERVER_KEY ada di ENV Production Vercel lalu redeploy.'
     });
   }
 
@@ -7233,7 +7269,7 @@ module.exports = async function midtransPaymentWrapper(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = midtransNormalizeAction(rawAction);
 
-  if (!midtransIsWebhookAction(action) && action !== 'midtrans_health') {
+  if (!midtransIsWebhookAction(action) && action !== 'midtrans_health' && action !== 'payment_config_status') {
     return __diracMidtransPaymentPreviousHandler(req, res);
   }
 
@@ -7247,7 +7283,26 @@ module.exports = async function midtransPaymentWrapper(req, res) {
       provider: 'midtrans',
       snapConfigured: midtransPaymentIsConfigured(),
       webhook: '/api/health?action=midtrans_webhook',
-      environment: midtransIsProduction() ? 'production' : 'sandbox'
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      serverKeySource: midtransResolvedServerKeySource() || null
+    });
+  }
+
+  if (action === 'payment_config_status') {
+    return res.status(200).json({
+      ok: true,
+      provider: 'midtrans',
+      createPaymentConfigured: midtransPaymentIsConfigured(),
+      snapConfigured: midtransPaymentIsConfigured(),
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      serverKeySource: midtransResolvedServerKeySource() || null,
+      clientKeyPresent: Boolean(midtransEnvValue('NEXT_PUBLIC_MIDTRANS_CLIENT_KEY','MIDTRANS_CLIENT_KEY')),
+      gatewayName: lockedPaymentGatewayName(),
+      externalGatewayEndpointConfigured: Boolean(lockedPaymentGatewayEndpoint()),
+      webhook: '/api/health?action=midtrans_webhook',
+      message: midtransPaymentIsConfigured()
+        ? 'Create payment Midtrans sudah membaca Server Key backend.'
+        : 'Create payment belum membaca Server Key backend. Cek Environment Vercel Production dan redeploy.'
     });
   }
 
@@ -7281,7 +7336,11 @@ function midtransNormalizeAction(action) {
     'payment_callback': 'midtrans_webhook',
     'payment-callback': 'midtrans_webhook',
     'midtrans_health': 'midtrans_health',
-    'midtrans-health': 'midtrans_health'
+    'midtrans-health': 'midtrans_health',
+    'payment_config_status': 'payment_config_status',
+    'payment-config-status': 'payment_config_status',
+    'payment_gateway_status': 'payment_config_status',
+    'payment-gateway-status': 'payment_config_status'
   };
   return aliases[clean] || clean;
 }
@@ -7290,14 +7349,69 @@ function midtransIsWebhookAction(action) {
   return action === 'midtrans_webhook';
 }
 
+function midtransEnvValue(...names) {
+  for (const name of names) {
+    const key = String(name || '').trim();
+    if (!key) continue;
+    let value = String(process.env[key] || '').trim();
+    value = value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+    if ((value.startsWith('\"') && value.endsWith('\"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1).trim();
+    }
+    if (value) return value;
+  }
+  return '';
+}
+
+function midtransResolvedServerKeySource() {
+  const sandboxSources = [
+    'MIDTRANS_SANDBOX_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_SANDBOX',
+    'MIDTRANS_SANDBOX_KEY',
+    'MIDTRANS_SANDBOX_SERVER'
+  ];
+  const productionSources = [
+    'MIDTRANS_PRODUCTION_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_PRODUCTION',
+    'MIDTRANS_PRODUCTION_KEY',
+    'MIDTRANS_PRODUCTION_SERVER'
+  ];
+  const sources = midtransIsProduction() ? productionSources : sandboxSources;
+  for (const source of sources) {
+    if (midtransEnvValue(source)) return source;
+  }
+  return '';
+}
+
+function midtransResolvedServerKey() {
+  const sandboxSources = [
+    'MIDTRANS_SANDBOX_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_SANDBOX',
+    'MIDTRANS_SANDBOX_KEY',
+    'MIDTRANS_SANDBOX_SERVER'
+  ];
+  const productionSources = [
+    'MIDTRANS_PRODUCTION_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY',
+    'MIDTRANS_SERVER_KEY_PRODUCTION',
+    'MIDTRANS_PRODUCTION_KEY',
+    'MIDTRANS_PRODUCTION_SERVER'
+  ];
+  const sources = midtransIsProduction() ? productionSources : sandboxSources;
+  return midtransEnvValue(...sources);
+}
+
 function midtransPaymentIsConfigured() {
-  return Boolean(String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim());
+  return Boolean(midtransResolvedServerKey());
 }
 
 function midtransServerKey() {
-  const key = String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim();
+  const key = midtransResolvedServerKey();
   if (!key) {
-    const err = new Error('MIDTRANS_SERVER_KEY belum diisi di Environment Variables Vercel.');
+    const err = new Error('MIDTRANS_SERVER_KEY belum diisi/kebaca di Environment Variables Vercel untuk backend.');
     err.statusCode = 503;
     throw err;
   }
@@ -8917,42 +9031,13 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
       return res.status(400).json({ ok: false, active: false, method: 'passkey', message: 'Email akun tidak valid.' });
     }
 
-    // Primary status check: domain_passkeys.email must match the currently logged-in account email.
-    // This is read-only and does not expose credential_id/credential_json.
-    const directSelect = 'id,user_id,email,is_active,created_at,last_used_at';
-    const directPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(directSelect)
-      + '&is_active=eq.true&email=eq.' + encodeURIComponent(email)
-      + '&order=created_at.desc&limit=20';
-    const directResult = await supabaseFetch(directPath, { method: 'GET', auth: 'service' }).catch(() => null);
-    const directRows = directResult && directResult.ok && Array.isArray(directResult.data) ? directResult.data : [];
-    if (directRows.length > 0) {
-      return res.status(200).json({
-        ok: true,
-        method: 'passkey',
-        active: true,
-        passkey_active: true,
-        has_passkey: true,
-        passkey_count: directRows.length,
-        owner_bound: true,
-        owner_source: 'domain_passkeys.email',
-        customer_id_present: Boolean(directRows[0] && directRows[0].user_id),
-        email_present: true,
-        message: 'Passkey aktif ditemukan di database. Email A2F boleh dipakai sebagai cadangan.'
-      });
-    }
-
     const owner = await diracPasskeyA2FResolveOwner(user, email);
     if (!owner.ok) {
-      return res.status(200).json({
-        ok: true,
+      return res.status(owner.status || 409).json({
+        ok: false,
         active: false,
         method: 'passkey',
-        passkey_active: false,
-        has_passkey: false,
-        passkey_count: 0,
-        owner_bound: false,
-        owner_source: 'not_resolved',
-        message: 'Passkey aktif belum ditemukan untuk email login ini.'
+        message: owner.message || 'Akun belum siap untuk cek status Passkey.'
       });
     }
 
@@ -8982,3 +9067,75 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
     });
   }
 };
+
+
+/* ============================================================
+   PASSKEY LOGIN BOOTSTRAP STATUS v5
+   - Backend-only read with Supabase service role.
+   - Does not expose credential_id / credential_json.
+   - Used only to tell masuk.html whether Email backup may be shown.
+   ============================================================ */
+async function diracLoginPasskeyBootstrapStatus(email) {
+  const cleanEmail = normalizeAuthEmail(email || '');
+  if (!cleanEmail || !isValidAuthEmail(cleanEmail)) {
+    return { active: false, passkey_count: 0, source: 'invalid_email' };
+  }
+
+  const selectPasskey = 'id,user_id,email,is_active,created_at,last_used_at';
+  const rows = [];
+  const seen = new Set();
+
+  async function addRowsFromPath(path, source) {
+    const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+    if (!result || !result.ok || !Array.isArray(result.data)) return;
+    for (const row of result.data) {
+      if (!row || row.is_active !== true) continue;
+      const key = String(row.id || row.user_id || row.email || '');
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push(Object.assign({ __source: source }, row));
+    }
+  }
+
+  const emailEqPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(selectPasskey)
+    + '&is_active=eq.true&email=eq.' + encodeURIComponent(cleanEmail)
+    + '&order=created_at.desc&limit=20';
+  await addRowsFromPath(emailEqPath, 'domain_passkeys.email.eq');
+
+  const emailIlikePath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(selectPasskey)
+    + '&is_active=eq.true&email=ilike.' + encodeURIComponent(cleanEmail)
+    + '&order=created_at.desc&limit=20';
+  await addRowsFromPath(emailIlikePath, 'domain_passkeys.email.ilike');
+
+  // Cadangan: di sistem ini domain_passkeys.user_id mengarah ke customers.id.
+  // Jadi kalau email di domain_passkeys kosong/berbeda kapitalisasi, cari customer dulu.
+  if (!rows.length) {
+    const customerSelect = 'id,email';
+    const customersPath = '/rest/v1/customers?select=' + encodeURIComponent(customerSelect)
+      + '&email=ilike.' + encodeURIComponent(cleanEmail)
+      + '&limit=10';
+    const customerResult = await supabaseFetch(customersPath, { method: 'GET', auth: 'service' });
+    const customers = customerResult && customerResult.ok && Array.isArray(customerResult.data) ? customerResult.data : [];
+    for (const customer of customers) {
+      const cid = String(customer && customer.id || '').trim();
+      if (!cid) continue;
+      const byCustomerPath = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(selectPasskey)
+        + '&is_active=eq.true&user_id=eq.' + encodeURIComponent(cid)
+        + '&order=created_at.desc&limit=20';
+      await addRowsFromPath(byCustomerPath, 'domain_passkeys.user_id.customer_id');
+    }
+  }
+
+  // Final safety: jangan aktif kalau row email ada tetapi jelas milik email lain dan tidak via customer id.
+  const safeRows = rows.filter((row) => {
+    const rowEmail = normalizeAuthEmail(row && row.email || '');
+    if (!rowEmail) return true;
+    return rowEmail === cleanEmail;
+  });
+
+  return {
+    active: safeRows.length > 0,
+    passkey_count: safeRows.length,
+    source: safeRows.length ? (safeRows[0].__source || 'domain_passkeys') : 'not_found'
+  };
+}
