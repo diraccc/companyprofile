@@ -5447,27 +5447,6 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     function isServerAuthenticatedSession(session){
       return !!(session && session.serverAuthenticated === true && session.authVerifiedAt && session.identifier);
     }
-    async function verifyFreshBackendCookieSession(expectedIdentifier){
-      var expected = normalizeLoginEmail(expectedIdentifier || '');
-      var res = await fetch(ME_ENDPOINT, {
-        method:'GET',
-        mode:'same-origin',
-        headers:{'Accept':'application/json'},
-        credentials:'include',
-        cache:'no-store'
-      });
-      var data = await res.clone().json().catch(function(){ return null; });
-      if(!res.ok || !data || data.ok === false || !data.user){
-        clearPendingAuth();
-        throw new Error('Login berhasil di server, tetapi cookie HttpOnly belum tersimpan di browser. A2F tidak dibuka agar tidak muncul sesi login tidak valid. Hapus cache website, pastikan domain tetap https://diracgroup.store, lalu login ulang.');
-      }
-      var email = normalizeLoginEmail((data.user && data.user.email) || '');
-      if(expected && email && expected !== email){
-        clearPendingAuth();
-        throw new Error('Cookie login berbeda dengan email yang dimasukkan. Silakan logout, hapus data website, lalu login ulang.');
-      }
-      return data;
-    }
     function authErrorMessage(){
       return mode === 'login'
         ? 'Email atau password belum sesuai. A2F tidak akan dibuka sebelum login benar.'
@@ -5601,8 +5580,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         if(!response.ok || !isTrustedAuthResponse(data)){
           throw new Error(data && data.message ? data.message : authErrorMessage());
         }
-        await verifyFreshBackendCookieSession(identifier);
-        finishAuth(identifier, data, endpoint);
+        await finishAuth(identifier, data, endpoint);
       }catch(postErr){
         clearPendingAuth();
         status('error', postErr && postErr.message ? postErr.message : authErrorMessage());
@@ -5611,7 +5589,38 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         btn.disabled = false; btn.textContent = old;
       }
     }
-    function finishAuth(identifier, data, endpoint){
+    async function verifyBackendCookieSession(identifier){
+      var lastMessage = '';
+      for(var attempt = 0; attempt < 4; attempt += 1){
+        if(attempt > 0){
+          await new Promise(function(resolve){ setTimeout(resolve, 180 + attempt * 220); });
+        }
+        try{
+          var res = await fetch(ME_ENDPOINT, {
+            method:'GET',
+            mode:'same-origin',
+            headers:{'Accept':'application/json'},
+            credentials:'include',
+            cache:'no-store'
+          });
+          var data = await res.clone().json().catch(function(){return null;});
+          if(res.ok && data && data.ok !== false && data.user){
+            var email = String((data.user && data.user.email) || identifier || '').trim().toLowerCase();
+            if(!identifier || !email || email === String(identifier || '').trim().toLowerCase()){
+              return {ok:true, user:data.user, data:data};
+            }
+            lastMessage = 'Cookie login terbaca, tetapi email sesi tidak cocok. Silakan logout lalu login ulang.';
+          }else{
+            lastMessage = data && data.message ? data.message : 'Cookie login belum terbaca.';
+          }
+        }catch(e){
+          lastMessage = e && e.message ? e.message : 'Cookie login belum terbaca.';
+        }
+      }
+      return {ok:false, message:lastMessage || 'Cookie login belum terbaca.'};
+    }
+
+    async function finishAuth(identifier, data, endpoint){
       if(!isTrustedAuthResponse(data)){
         clearPendingAuth();
         status('error', authErrorMessage());
@@ -5637,6 +5646,13 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         showToast('Cek email verifikasi dulu. A2F belum dibuka.');
         return;
       }
+      var verifiedCookie = await verifyBackendCookieSession(identifier);
+      if(!verifiedCookie.ok){
+        clearPendingAuth();
+        status('error','Login berhasil di server, tetapi cookie HttpOnly belum terbaca oleh backend. A2F tidak dibuka. Hapus data website untuk diracgroup.store lalu login ulang. Detail: ' + (verifiedCookie.message || 'domain_me masih gagal.'));
+        showToast('Cookie login belum valid. A2F tetap dikunci.');
+        return;
+      }
       var authMeta = extractAuthMeta(container);
       var session = {
         identifier:identifier,
@@ -5650,7 +5666,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         authProof:hasBackendOnlySessionMarker(container),
         expiresIn:authMeta.expiresIn,
         rememberDevice:!!($('#remember') && $('#remember').checked),
-        user:(data && data.user) || (container && container.user) || null,
+        user:verifiedCookie.user || (data && data.user) || (container && container.user) || null,
         twoFactorRequired:true,
         twoFactorStatus:'pending'
       };
@@ -6797,7 +6813,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     for(var i=0;i<urls.length;i++){
       try{
         var credentialMode = 'include';
-        var res = await fetch(urls[i], {method:'POST', mode:'cors', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:credentialMode, cache:'no-store'});
+        var res = await fetch(urls[i], {method:'POST', mode:'same-origin', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:credentialMode, cache:'no-store'});
         var data = await res.clone().json().catch(function(){return null;});
         if(data && !a2fAuthenticatorSecretRevealAuthorized(data)) a2fStripAuthenticatorSecrets(data);
         if(res.ok && data && data.ok !== false) return data;
