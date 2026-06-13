@@ -2954,10 +2954,26 @@ function parseCookies(req) {
 }
 
 function normalizeCookieSameSite(value) {
-  const clean = String(value || 'Strict').trim().toLowerCase();
-  if (clean === 'lax') return 'Lax';
+  const clean = String(value || 'Lax').trim().toLowerCase();
+  if (clean === 'strict') return 'Strict';
   if (clean === 'none') return 'None';
-  return 'Strict';
+  return 'Lax';
+}
+
+function resolveDomainCookieDomain() {
+  const explicit = String(process.env.DOMAIN_COOKIE_DOMAIN || process.env.DIRAC_COOKIE_DOMAIN || '').trim();
+  if (/^(none|false|host-only|host_only)$/i.test(explicit)) return '';
+  if (explicit) return explicit.replace(/^\./, '').toLowerCase();
+
+  const siteUrl = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || '').trim();
+  try {
+    const host = siteUrl ? new URL(siteUrl).hostname.toLowerCase().replace(/^www\./, '') : '';
+    if (host && !/^localhost$|^127\.|^0\.0\.0\.0$|\.vercel\.app$/i.test(host)) return host;
+  } catch (_) {}
+
+  // Production fallback for the live customer domain. Keeps localhost/preview host-only.
+  if (process.env.NODE_ENV === 'production') return 'diracgroup.store';
+  return '';
 }
 
 function appendSetCookie(res, cookies) {
@@ -2987,6 +3003,8 @@ function makeCookie(name, value, options = {}) {
   ];
 
   if (secureCookie) parts.push('Secure');
+  const cookieDomain = resolveDomainCookieDomain();
+  if (cookieDomain) parts.push(`Domain=${cookieDomain}`);
   parts.push(`SameSite=${sameSite}`);
   parts.push('Priority=High');
 
