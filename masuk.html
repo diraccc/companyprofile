@@ -5213,6 +5213,9 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var THEME_MIGRATION_KEY = 'dirac_default_accent_blue_v12';
     var AUTH_KEY = 'dirac_auth_session_v1';
     var A2F_KEY = 'dirac_auth_a2f_v1';
+    var authSubmitInFlight = false;
+    var a2fCookieGate = {allowed:false, identifier:'', verifiedAt:0, nonce:0};
+    var A2F_COOKIE_GATE_TTL_MS = 2 * 60 * 1000;
     var DEFAULT_SETTINGS = {mode:'dark', accent:'sky', language:'id', motion:'full', contrast:'off'};
     var PALETTES = {
       gold:{label:'Gold', gold:'#f3cd70', gold2:'#d6a642', gold3:'#8e6425', rgb:'243,205,112'},
@@ -5328,10 +5331,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     function openModal(id){
       var el = $(id); if(!el) return;
-      if(id === '#a2fModal' && !isServerAuthenticatedSession(readAuthSession())){
-        closeModal('#a2fModal');
-        status('error','Login belum tervalidasi dari server. A2F tidak dibuka sebelum email dan password benar.');
-        showToast('A2F dikunci sampai login server berhasil.');
+      if(id === '#a2fModal' && !isA2FOpenAllowed()){
+        hardCloseA2FModal('open-blocked');
+        status('error','Login belum tervalidasi dari cookie backend. A2F tetap dikunci sampai /api/health?action=domain_me menghasilkan ok:true.');
+        showToast('A2F dikunci sampai cookie login valid.');
         return;
       }
       el.classList.add('open'); el.setAttribute('aria-hidden','false'); document.body.classList.add(id==='#menuOverlay'?'menu-open':id==='#aiOverlay'?'ai-open':'modal-open');
@@ -5357,6 +5360,69 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     function status(type, msg){
       var box = $('#statusBox'); box.className = 'status-box show ' + type; box.textContent = msg;
+    }
+    function normalizeGateIdentifier(value){
+      return String(value || '').trim().toLowerCase();
+    }
+    function hardCloseA2FModal(reason){
+      var modal = $('#a2fModal');
+      if(modal){
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden','true');
+        modal.setAttribute('data-cookie-gate-reason', String(reason || 'blocked'));
+      }
+      if(document.body) document.body.classList.remove('modal-open');
+    }
+    function lockA2FGate(reason){
+      a2fCookieGate.allowed = false;
+      a2fCookieGate.identifier = '';
+      a2fCookieGate.verifiedAt = 0;
+      a2fCookieGate.nonce += 1;
+      try{ window.__DIRAC_A2F_FORCE_LOCKED__ = true; }catch(_e){}
+      try{ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = {}; }catch(_e){}
+      hardCloseA2FModal(reason || 'locked');
+    }
+    function unlockA2FGate(identifier, user){
+      var clean = normalizeGateIdentifier(identifier || (user && user.email) || '');
+      a2fCookieGate.allowed = true;
+      a2fCookieGate.identifier = clean;
+      a2fCookieGate.verifiedAt = Date.now();
+      a2fCookieGate.nonce += 1;
+      try{ window.__DIRAC_A2F_FORCE_LOCKED__ = false; }catch(_e){}
+      return a2fCookieGate;
+    }
+    function isA2FOpenAllowed(){
+      var session = readAuthSession();
+      if(!isServerAuthenticatedSession(session)) return false;
+      if(!a2fCookieGate.allowed || !a2fCookieGate.verifiedAt) return false;
+      if(Date.now() - Number(a2fCookieGate.verifiedAt || 0) > A2F_COOKIE_GATE_TTL_MS) return false;
+      var sEmail = normalizeGateIdentifier(session.identifier || session.email || (session.user && session.user.email) || '');
+      var gEmail = normalizeGateIdentifier(a2fCookieGate.identifier || '');
+      if(sEmail && gEmail && sEmail !== gEmail) return false;
+      return true;
+    }
+    function installA2FModalHardGate(){
+      var modal = $('#a2fModal');
+      if(!modal || modal.__diracA2FHardGateInstalled) return;
+      modal.__diracA2FHardGateInstalled = true;
+      var enforce = function(){
+        if(modal.classList.contains('open') && !isA2FOpenAllowed()){
+          hardCloseA2FModal('observer-blocked');
+          status('error','A2F ditutup otomatis karena cookie login backend belum valid. Login ulang sampai domain_me ok:true.');
+          showToast('A2F ditutup: cookie login belum valid.');
+        }
+      };
+      if(window.MutationObserver){
+        new MutationObserver(enforce).observe(modal, {attributes:true, attributeFilter:['class','aria-hidden']});
+      }
+      modal.addEventListener('click', function(event){
+        if(!isA2FOpenAllowed()){
+          event.preventDefault();
+          event.stopPropagation();
+          enforce();
+        }
+      }, true);
+      enforce();
     }
     function updateModeCopy(){
       var dict = Object.assign({}, I18N.id, I18N[settings.language] || {});
@@ -5403,7 +5469,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     function clearPendingAuth(){
       try{localStorage.removeItem(AUTH_KEY);}catch(e){}
       try{localStorage.removeItem(A2F_KEY);}catch(e){}
-      closeModal('#a2fModal');
+      lockA2FGate('pending-auth-cleared');
     }
     function isEmailIdentifier(value){
       return isValidIdentifier(value);
@@ -5530,6 +5596,10 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     async function submitAuth(event){
       event.preventDefault();
+      if(authSubmitInFlight){
+        showToast('Login sedang diproses. Tunggu hasil validasi cookie.');
+        return;
+      }
       var identifierInput = $('#identifier');
       var rawIdentifier = identifierInput ? String(identifierInput.value || '') : '';
       var identifierBlocked = identifierInput && identifierInput.getAttribute('data-security-blocked') === '1';
@@ -5551,6 +5621,8 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       if(password.length < 6){ status('error','Password minimal 6 karakter.'); return; }
       if(mode === 'register' && password !== confirm){ status('error','Konfirmasi password belum sama.'); return; }
       var btn = $('#submitBtn');
+      authSubmitInFlight = true;
+      lockA2FGate('new-login-attempt');
       btn.disabled = true; var old = btn.textContent; btn.textContent = mode === 'register' ? 'Memvalidasi pendaftaran...' : 'Memvalidasi login...';
       var endpoint = authEndpointFor(mode);
       var payload = {
@@ -5565,7 +5637,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       try{
         var response = await fetch(endpoint, {
           method:'POST',
-          mode:'cors',
+          mode:'same-origin',
           headers:{'Content-Type':'application/json','Accept':'application/json'},
           body:JSON.stringify(Object.assign({}, payload, {password:password})),
           credentials:'include',
@@ -5580,16 +5652,48 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         if(!response.ok || !isTrustedAuthResponse(data)){
           throw new Error(data && data.message ? data.message : authErrorMessage());
         }
-        finishAuth(identifier, data, endpoint);
+        await finishAuth(identifier, data, endpoint);
       }catch(postErr){
         clearPendingAuth();
         status('error', postErr && postErr.message ? postErr.message : authErrorMessage());
         showToast(mode === 'register' ? 'Pendaftaran ditolak. A2F tetap terkunci.' : 'Login ditolak. A2F tetap terkunci.');
       }finally{
+        authSubmitInFlight = false;
         btn.disabled = false; btn.textContent = old;
       }
     }
-    function finishAuth(identifier, data, endpoint){
+    async function verifyBackendCookieSession(identifier){
+      var lastMessage = '';
+      for(var attempt = 0; attempt < 4; attempt += 1){
+        if(attempt > 0){
+          await new Promise(function(resolve){ setTimeout(resolve, 180 + attempt * 220); });
+        }
+        try{
+          var res = await fetch(ME_ENDPOINT, {
+            method:'GET',
+            mode:'same-origin',
+            headers:{'Accept':'application/json'},
+            credentials:'include',
+            cache:'no-store'
+          });
+          var data = await res.clone().json().catch(function(){return null;});
+          if(res.ok && data && data.ok !== false && data.user){
+            var email = String((data.user && data.user.email) || identifier || '').trim().toLowerCase();
+            if(!identifier || !email || email === String(identifier || '').trim().toLowerCase()){
+              return {ok:true, user:data.user, data:data};
+            }
+            lastMessage = 'Cookie login terbaca, tetapi email sesi tidak cocok. Silakan logout lalu login ulang.';
+          }else{
+            lastMessage = data && data.message ? data.message : 'Cookie login belum terbaca.';
+          }
+        }catch(e){
+          lastMessage = e && e.message ? e.message : 'Cookie login belum terbaca.';
+        }
+      }
+      return {ok:false, message:lastMessage || 'Cookie login belum terbaca.'};
+    }
+
+    async function finishAuth(identifier, data, endpoint){
       if(!isTrustedAuthResponse(data)){
         clearPendingAuth();
         status('error', authErrorMessage());
@@ -5615,6 +5719,14 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         showToast('Cek email verifikasi dulu. A2F belum dibuka.');
         return;
       }
+      var verifiedCookie = await verifyBackendCookieSession(identifier);
+      if(!verifiedCookie.ok){
+        clearPendingAuth();
+        status('error','Login berhasil di server, tetapi cookie HttpOnly belum terbaca oleh backend. A2F tidak dibuka. Hapus data website untuk diracgroup.store lalu login ulang. Detail: ' + (verifiedCookie.message || 'domain_me masih gagal.'));
+        showToast('Cookie login belum valid. A2F tetap dikunci.');
+        return;
+      }
+      unlockA2FGate(identifier, verifiedCookie.user);
       var authMeta = extractAuthMeta(container);
       var session = {
         identifier:identifier,
@@ -5628,7 +5740,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         authProof:hasBackendOnlySessionMarker(container),
         expiresIn:authMeta.expiresIn,
         rememberDevice:!!($('#remember') && $('#remember').checked),
-        user:(data && data.user) || (container && container.user) || null,
+        user:verifiedCookie.user || (data && data.user) || (container && container.user) || null,
         twoFactorRequired:true,
         twoFactorStatus:'pending'
       };
@@ -5636,6 +5748,11 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       status('success', mode === 'login' ? 'Login valid. Aktifkan A2F untuk melanjutkan keamanan akun.' : 'Akun valid. Aktifkan A2F untuk mengamankan akun baru.');
       showToast(mode === 'login' ? 'Login valid. Pilih A2F.' : 'Akun valid. Pilih A2F.');
       resetA2FModal();
+      if(!isA2FOpenAllowed()){
+        clearPendingAuth();
+        status('error','Cookie login berubah sebelum A2F dibuka. Silakan login ulang.');
+        return;
+      }
       openModal('#a2fModal');
     }
     function readAuthSession(){
@@ -5659,7 +5776,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       try{
         var res = await fetch(ME_ENDPOINT, {
           method:'GET',
-          mode:'cors',
+          mode:'same-origin',
           headers:authHeadersFromSession(session),
           credentials:'include',
           cache:'no-store'
@@ -5678,6 +5795,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
         session.twoFactorStatus = 'pending';
         session.autoBackendVerified = true;
         session.autoBackendVerifiedAt = session.authVerifiedAt;
+        unlockA2FGate(session.identifier, user);
         writeAuthSession(session);
         var input = $('#identifier'); if(input && session.identifier) input.value = session.identifier;
         status('success','Sesi perangkat dikenali. Backend berhasil verifikasi otomatis. Lanjutkan A2F.');
@@ -5775,6 +5893,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 
     document.addEventListener('DOMContentLoaded', function(){
       document.body.classList.add('motion-ready');
+      installA2FModalHardGate();
       buildAccentChoices(); applySettings(); updateModeCopy();
       $('#year').textContent = new Date().getFullYear();
       $('#authForm').action = authEndpointFor(mode); $('#authForm').setAttribute('data-endpoint', authEndpointFor(mode));
@@ -6775,7 +6894,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     for(var i=0;i<urls.length;i++){
       try{
         var credentialMode = 'include';
-        var res = await fetch(urls[i], {method:'POST', mode:'cors', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:credentialMode, cache:'no-store'});
+        var res = await fetch(urls[i], {method:'POST', mode:'same-origin', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload || {}), credentials:credentialMode, cache:'no-store'});
         var data = await res.clone().json().catch(function(){return null;});
         if(data && !a2fAuthenticatorSecretRevealAuthorized(data)) a2fStripAuthenticatorSecrets(data);
         if(res.ok && data && data.ok !== false) return data;
@@ -6982,6 +7101,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   }
 
   function startFlow(){
+    try{ if(window.__DIRAC_A2F_FORCE_LOCKED__ === true){ return; } }catch(_e){}
     if(state.busy) return;
     if(state.method === 'passkey') startPasskey();
     else if(state.step === 2) verifyCode();
