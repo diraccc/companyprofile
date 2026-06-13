@@ -1923,8 +1923,8 @@ async function requireDomainUser(req, res) {
     ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
     : '';
 
-  const accessToken = headerToken || cookies[ACCESS_COOKIE];
-  const refreshToken = headerRefreshToken || cookies[REFRESH_COOKIE];
+  const accessToken = headerToken || readCookieToken(cookies, ACCESS_COOKIE);
+  const refreshToken = headerRefreshToken || readCookieToken(cookies, REFRESH_COOKIE);
 
   if (accessToken) {
     const userResult = await supabaseFetch('/auth/v1/user', {
@@ -3055,6 +3055,88 @@ function makeCookie(name, value, options = {}) {
   return parts.join('; ');
 }
 
+const DOMAIN_COOKIE_CHUNK_SIZE = 3400;
+const DOMAIN_COOKIE_MAX_CHUNKS = 12;
+
+function makeTokenCookieSet(name, value, options = {}) {
+  const token = String(value || '');
+  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
+  const cookies = [...makeCookieVariants(name, '', { maxAge: 0 })];
+
+  if (!token) return cookies;
+
+  if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
+    cookies.push(makeCookie(name, token, Object.assign({}, options, { domain: domainPreference || '' })));
+    return cookies;
+  }
+
+  // Token besar dapat ditolak browser jika dipaksa masuk 1 cookie. Pecah hanya token aktual,
+  // tetapi jangan kirim puluhan clear-cookie varian domain agar header tidak membengkak.
+  cookies.push(...makeClearTokenCookieChunks(name));
+
+  const chunks = [];
+  for (let index = 0; index < token.length; index += DOMAIN_COOKIE_CHUNK_SIZE) {
+    chunks.push(token.slice(index, index + DOMAIN_COOKIE_CHUNK_SIZE));
+  }
+
+  if (chunks.length > DOMAIN_COOKIE_MAX_CHUNKS) {
+    return cookies;
+  }
+
+  cookies.push(makeCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: domainPreference || '' })));
+  chunks.forEach((chunk, index) => {
+    cookies.push(makeCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: domainPreference || '' })));
+  });
+  return cookies;
+}
+
+function makeClearTokenCookieChunks(name) {
+  const cookies = [];
+  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
+  for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+    cookies.push(makeCookie(`${name}__${index}`, '', { maxAge: 0, domain: domainPreference || '' }));
+  }
+  return cookies;
+}
+
+function makeClearTokenCookieSet(name) {
+  return [
+    ...makeCookieVariants(name, '', { maxAge: 0 }),
+    ...makeClearTokenCookieChunks(name)
+  ];
+}
+
+function readCookieToken(cookies, name) {
+  const jar = cookies && typeof cookies === 'object' ? cookies : {};
+  const marker = String(jar[name] || '');
+  const chunkMatch = marker.match(/^__chunked_(\d+)$/);
+  if (chunkMatch) {
+    const count = Math.max(0, Math.min(DOMAIN_COOKIE_MAX_CHUNKS, Number(chunkMatch[1]) || 0));
+    let token = '';
+    for (let index = 0; index < count; index += 1) {
+      const chunk = jar[`${name}__${index}`];
+      if (!chunk) return '';
+      token += String(chunk);
+    }
+    return token;
+  }
+
+  if (marker) return marker;
+
+  // Recovery untuk browser/proxy yang menghilangkan marker utama tapi masih mengirim chunks.
+  if (jar[`${name}__0`]) {
+    let token = '';
+    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const chunk = jar[`${name}__${index}`];
+      if (!chunk) break;
+      token += String(chunk);
+    }
+    return token;
+  }
+
+  return '';
+}
+
 function makeCookieVariants(name, value, options = {}) {
   const cookies = [];
   const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
@@ -3085,21 +3167,18 @@ function setSessionCookies(res, session) {
   }
 
   const maxAge = 60 * 60 * 24 * 7;
-  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
   appendSetCookie(res, [
-    ...makeClearCookieVariants(ACCESS_COOKIE),
-    ...makeClearCookieVariants(REFRESH_COOKIE),
-    makeCookie(ACCESS_COOKIE, session.access_token, { maxAge, domain: domainPreference || '' }),
-    makeCookie(REFRESH_COOKIE, session.refresh_token, { maxAge, domain: domainPreference || '' })
+    ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
+    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge })
   ]);
   return true;
 }
 
 function clearSessionCookies(res) {
   appendSetCookie(res, [
-    ...makeClearCookieVariants(ACCESS_COOKIE),
-    ...makeClearCookieVariants(REFRESH_COOKIE),
-    ...makeClearCookieVariants(CUSTOMER_MFA_COOKIE)
+    ...makeClearTokenCookieSet(ACCESS_COOKIE),
+    ...makeClearTokenCookieSet(REFRESH_COOKIE),
+    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE)
   ]);
 }
 
