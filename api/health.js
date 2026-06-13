@@ -9868,3 +9868,280 @@ async function diracUniversalPesananFindReusableTransaction(input) {
   return { ok: true, transaction: reusable || null };
 }
 
+/* ============================================================
+   DIRAC LOGIN COOKIE HARDENING v7
+   Scope: health.js only. Keeps HttpOnly + Secure. Does not touch
+   login endpoint name, A2F endpoint name, password hash, SQL guard,
+   database schema, or payment logic.
+
+   Why this exists:
+   - cookie_test can pass while login cookie still fails when browser
+     sends duplicate host/domain cookies or stale chunk cookies.
+   - domain_me must try every safe cookie candidate before declaring
+     "Belum login".
+   ============================================================ */
+
+function parseCookies(req) {
+  const header = req && req.headers && req.headers.cookie ? String(req.headers.cookie) : '';
+  const cookies = {};
+  const multi = {};
+
+  header.split(';').map((item) => item.trim()).filter(Boolean).forEach((item) => {
+    const index = item.indexOf('=');
+    const rawKey = index === -1 ? item : item.slice(0, index);
+    const rawValue = index === -1 ? '' : item.slice(index + 1);
+    const key = String(rawKey || '').trim();
+    if (!key) return;
+
+    let value = rawValue;
+    try {
+      value = decodeURIComponent(rawValue);
+    } catch (_) {
+      value = rawValue;
+    }
+
+    if (!multi[key]) multi[key] = [];
+    multi[key].push(String(value || ''));
+
+    // Keep the first visible value for old code compatibility.
+    // readCookieTokenCandidates() uses multi so duplicate cookies are not lost.
+    if (!Object.prototype.hasOwnProperty.call(cookies, key)) {
+      cookies[key] = String(value || '');
+    }
+  });
+
+  Object.defineProperty(cookies, '__multi', {
+    value: multi,
+    enumerable: false,
+    configurable: true
+  });
+
+  return cookies;
+}
+
+function uniqueCookieValues(values) {
+  const out = [];
+  (Array.isArray(values) ? values : [values]).forEach((value) => {
+    const clean = String(value || '').trim();
+    if (clean && !out.includes(clean)) out.push(clean);
+  });
+  return out;
+}
+
+function getCookieValueList(cookies, name) {
+  const jar = cookies && typeof cookies === 'object' ? cookies : {};
+  const multi = jar.__multi && typeof jar.__multi === 'object' ? jar.__multi : {};
+  const list = [];
+  if (Object.prototype.hasOwnProperty.call(jar, name)) list.push(jar[name]);
+  if (Array.isArray(multi[name])) list.push(...multi[name]);
+  return uniqueCookieValues(list);
+}
+
+function getBestCookieChunk(cookies, chunkName) {
+  const values = getCookieValueList(cookies, chunkName);
+  if (!values.length) return '';
+  // Pick the longest non-empty chunk because stale empty/deleted cookies may coexist.
+  return values.sort((a, b) => String(b || '').length - String(a || '').length)[0] || '';
+}
+
+function assembleCookieChunks(cookies, name, count) {
+  const safeCount = Math.max(0, Math.min(DOMAIN_COOKIE_MAX_CHUNKS, Number(count || 0)));
+  if (!safeCount) return '';
+  let token = '';
+  for (let index = 0; index < safeCount; index += 1) {
+    const chunk = getBestCookieChunk(cookies, `${name}__${index}`);
+    if (!chunk) return '';
+    token += String(chunk);
+  }
+  return token;
+}
+
+function readCookieTokenCandidates(cookies, name) {
+  const tokens = [];
+  const markers = getCookieValueList(cookies, name);
+
+  markers.forEach((marker) => {
+    const value = String(marker || '').trim();
+    if (!value) return;
+    const chunkMatch = value.match(/^__chunked_(\d+)$/);
+    if (chunkMatch) {
+      const assembled = assembleCookieChunks(cookies, name, Number(chunkMatch[1] || 0));
+      if (assembled) tokens.push(assembled);
+      return;
+    }
+    tokens.push(value);
+  });
+
+  // Recovery if marker cookie is absent/overwritten but chunks are still present.
+  if (getBestCookieChunk(cookies, `${name}__0`)) {
+    let token = '';
+    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      const chunk = getBestCookieChunk(cookies, `${name}__${index}`);
+      if (!chunk) break;
+      token += String(chunk);
+    }
+    if (token) tokens.push(token);
+  }
+
+  return uniqueCookieValues(tokens)
+    .filter((token) => token.length > 10)
+    .sort((a, b) => {
+      // Prefer JWT-shaped access tokens when present, otherwise prefer longer token.
+      const aj = /^eyJ/i.test(a) ? 1 : 0;
+      const bj = /^eyJ/i.test(b) ? 1 : 0;
+      if (aj !== bj) return bj - aj;
+      return b.length - a.length;
+    });
+}
+
+function readCookieToken(cookies, name) {
+  return readCookieTokenCandidates(cookies, name)[0] || '';
+}
+
+function makeCookieVariants(name, value, options = {}) {
+  const cookies = [];
+  const seen = new Set();
+  const push = (domain) => {
+    const normalizedDomain = normalizeCookieDomain(domain || '');
+    const key = normalizedDomain || '__host_only__';
+    if (seen.has(key)) return;
+    seen.add(key);
+    cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: normalizedDomain })));
+  };
+
+  // Host-only first for the exact active host.
+  push('');
+
+  // Domain cookie also set/cleared for compatibility with earlier patches and www/root moves.
+  getDomainCookieDomainCandidates().forEach((domain) => push(domain));
+
+  return cookies;
+}
+
+function makeTokenCookieSet(name, value, options = {}) {
+  const token = String(value || '');
+  const cookies = [];
+
+  // Clear only the base cookie before setting a new base/marker cookie.
+  // Chunk cleanup is only needed when we actually write chunks, or on logout.
+  cookies.push(...makeCookieVariants(name, '', { maxAge: 0 }));
+
+  if (!token) return cookies;
+
+  if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
+    cookies.push(...makeCookieVariants(name, token, options));
+    return cookies;
+  }
+
+  cookies.push(...makeClearTokenCookieChunks(name));
+
+  const chunks = [];
+  for (let index = 0; index < token.length; index += DOMAIN_COOKIE_CHUNK_SIZE) {
+    chunks.push(token.slice(index, index + DOMAIN_COOKIE_CHUNK_SIZE));
+  }
+
+  if (chunks.length > DOMAIN_COOKIE_MAX_CHUNKS) {
+    return cookies;
+  }
+
+  cookies.push(...makeCookieVariants(name, `__chunked_${chunks.length}`, options));
+  chunks.forEach((chunk, index) => {
+    cookies.push(...makeCookieVariants(`${name}__${index}`, chunk, options));
+  });
+  return cookies;
+}
+
+function makeClearTokenCookieChunks(name) {
+  const cookies = [];
+  for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+    cookies.push(...makeCookieVariants(`${name}__${index}`, '', { maxAge: 0 }));
+  }
+  return cookies;
+}
+
+function makeClearTokenCookieSet(name) {
+  return [
+    ...makeCookieVariants(name, '', { maxAge: 0 }),
+    ...makeClearTokenCookieChunks(name)
+  ];
+}
+
+function setSessionCookies(res, session) {
+  if (!hasValidDomainSessionTokens(session)) {
+    clearSessionCookies(res);
+    return false;
+  }
+
+  const maxAge = 60 * 60 * 24 * 7;
+  appendSetCookie(res, [
+    ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
+    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge })
+  ]);
+  return true;
+}
+
+function clearSessionCookies(res) {
+  appendSetCookie(res, [
+    ...makeClearTokenCookieSet(ACCESS_COOKIE),
+    ...makeClearTokenCookieSet(REFRESH_COOKIE),
+    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE)
+  ]);
+}
+
+async function requireDomainUser(req, res) {
+  const cookies = parseCookies(req);
+  const acceptFrontendAuthHeaders = shouldAcceptFrontendAuthHeaders();
+  const headerToken = acceptFrontendAuthHeaders ? getBearerToken(req) : '';
+  const headerRefreshToken = acceptFrontendAuthHeaders
+    ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
+    : '';
+
+  const accessTokens = uniqueCookieValues([
+    headerToken,
+    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+  ]);
+  const refreshTokens = uniqueCookieValues([
+    headerRefreshToken,
+    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE)
+  ]);
+
+  for (const accessToken of accessTokens) {
+    const userResult = await supabaseFetch('/auth/v1/user', {
+      method: 'GET',
+      auth: 'anon',
+      bearer: accessToken
+    });
+
+    if (userResult.ok && userResult.data && userResult.data.id) {
+      return userResult.data;
+    }
+  }
+
+  for (const refreshToken of refreshTokens) {
+    const refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      auth: 'anon',
+      body: { refresh_token: refreshToken }
+    });
+
+    if (refreshResult.ok && refreshResult.data && refreshResult.data.access_token) {
+      const refreshedSession = Object.assign({}, refreshResult.data, {
+        refresh_token: refreshResult.data.refresh_token || refreshToken
+      });
+      if (hasValidDomainSessionTokens(refreshedSession)) {
+        setSessionCookies(res, refreshedSession);
+        if (!shouldHideDomainAuthTokens()) {
+          res.setHeader('X-Domain-Access-Token', refreshedSession.access_token);
+          res.setHeader('X-Domain-Refresh-Token', refreshedSession.refresh_token);
+        }
+        res.setHeader('X-Domain-Token-Refreshed', 'true');
+        return refreshedSession.user || refreshResult.data.user;
+      }
+    }
+  }
+
+  clearSessionCookies(res);
+  res.status(401).json({ ok: false, message: 'Belum login atau sesi sudah habis.' });
+  return null;
+}
+
