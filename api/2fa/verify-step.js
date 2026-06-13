@@ -3213,42 +3213,67 @@ async function diracReadSupabaseUserFromAccessToken(accessToken) {
   return null;
 }
 
-function diracResolveDomainCookieDomain() {
-  const explicit = String(process.env.DOMAIN_COOKIE_DOMAIN || process.env.DIRAC_COOKIE_DOMAIN || "").trim();
-  if (/^(none|false|host-only|host_only)$/i.test(explicit)) return "";
-  if (explicit) return explicit.replace(/^\./, "").toLowerCase();
+function diracNormalizeCookieDomain(value) {
+  const clean = String(value || "").trim().toLowerCase().replace(/^\./, "");
+  if (!clean || /^(none|false|off|host-only|host_only)$/i.test(clean)) return "";
+  if (/^localhost$|^127\.|^0\.0\.0\.0$/.test(clean)) return "";
+  return clean;
+}
 
-  const siteUrl = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || "").trim();
-  try {
-    const host = siteUrl ? new URL(siteUrl).hostname.toLowerCase().replace(/^www\./, "") : "";
-    if (host && !/^localhost$|^127\.|^0\.0\.0\.0$|\.vercel\.app$/i.test(host)) return host;
-  } catch (_) {}
-
-  if (process.env.NODE_ENV === "production") return "diracgroup.store";
-  return "";
+function diracDomainCookieCandidates() {
+  const out = [];
+  const add = (value) => {
+    const domain = diracNormalizeCookieDomain(value);
+    if (domain && !out.includes(domain)) out.push(domain);
+  };
+  add(process.env.DOMAIN_COOKIE_DOMAIN);
+  add(process.env.DOMAIN_SITE_URL ? (() => { try { return new URL(process.env.DOMAIN_SITE_URL).hostname; } catch (_) { return ""; } })() : "");
+  add(process.env.SITE_URL ? (() => { try { return new URL(process.env.SITE_URL).hostname; } catch (_) { return ""; } })() : "");
+  add("diracgroup.store");
+  return out;
 }
 
 function diracMakeDomainLoginCookie(name, value, options = {}) {
-  const sameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || "Lax").trim();
+  const rawSameSite = String(process.env.DOMAIN_COOKIE_SAMESITE || "Lax").trim().toLowerCase();
+  const sameSite = rawSameSite === "strict" ? "Strict" : rawSameSite === "none" ? "None" : "Lax";
   const parts = [
-    `${name}=${encodeURIComponent(value)}`,
+    `${name}=${encodeURIComponent(value || "")}`,
     "Path=/",
-    "HttpOnly"
+    "HttpOnly",
+    `SameSite=${sameSite}`
   ];
   if (sameSite.toLowerCase() === "none" || process.env.NODE_ENV !== "development") parts.push("Secure");
-  const cookieDomain = diracResolveDomainCookieDomain();
+  const cookieDomain = Object.prototype.hasOwnProperty.call(options, "domain") ? diracNormalizeCookieDomain(options.domain) : diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
   if (cookieDomain) parts.push(`Domain=${cookieDomain}`);
-  parts.push(`SameSite=${sameSite}`);
-  if (options.maxAge !== undefined) parts.push(`Max-Age=${Number(options.maxAge) || 0}`);
+  if (options.maxAge !== undefined) {
+    const maxAge = Number(options.maxAge) || 0;
+    parts.push(`Max-Age=${maxAge}`);
+    if (maxAge <= 0) parts.push("Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+  }
   return parts.join("; ");
+}
+
+function diracMakeDomainLoginCookieVariants(name, value, options = {}) {
+  const cookies = [];
+  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  cookies.push(diracMakeDomainLoginCookie(name, value, Object.assign({}, options, { domain: preferred || "" })));
+  diracDomainCookieCandidates().forEach((domain) => {
+    if (domain !== preferred) cookies.push(diracMakeDomainLoginCookie(name, value, Object.assign({}, options, { domain })));
+  });
+  return cookies;
 }
 
 function diracSetRefreshedDomainLoginCookies(res, session) {
   const data = session && typeof session === "object" ? session : {};
   if (!data.access_token || !data.refresh_token) return;
   const maxAge = 60 * 60 * 24 * 7;
-  diracAppendSetCookie(res, diracMakeDomainLoginCookie(DIRAC_DOMAIN_ACCESS_COOKIE, data.access_token, { maxAge }));
-  diracAppendSetCookie(res, diracMakeDomainLoginCookie(DIRAC_DOMAIN_REFRESH_COOKIE, data.refresh_token, { maxAge }));
+  const preferred = diracNormalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || "");
+  [
+    ...diracMakeDomainLoginCookieVariants(DIRAC_DOMAIN_ACCESS_COOKIE, "", { maxAge: 0 }),
+    ...diracMakeDomainLoginCookieVariants(DIRAC_DOMAIN_REFRESH_COOKIE, "", { maxAge: 0 }),
+    diracMakeDomainLoginCookie(DIRAC_DOMAIN_ACCESS_COOKIE, data.access_token, { maxAge, domain: preferred || "" }),
+    diracMakeDomainLoginCookie(DIRAC_DOMAIN_REFRESH_COOKIE, data.refresh_token, { maxAge, domain: preferred || "" })
+  ].forEach((cookie) => diracAppendSetCookie(res, cookie));
 }
 
 async function diracRefreshDomainLoginSession(refreshToken, res) {
