@@ -6804,7 +6804,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     var sameOrigin = kind === 'setup' ? '/api/2fa/start-step' : kind === 'verify' ? '/api/2fa/verify-step' : '/api/2fa/lock';
     return uniqueEndpoints([configured, sameOrigin]);
   }
-  /* Production fix: A2F verify uses credentials:'include' so the backend HttpOnly dashboard MFA cookie from the Vercel API is saved. Setup/start stays credentials:'omit' to avoid CORS side effects. */
+  /* V6: A2F start dan verify wajib credentials:'include' agar HttpOnly Secure login cookie ikut terkirim. */
   async function callEndpoint(kind, payload){
     if(!window.fetch) throw new Error('endpoint unavailable');
     var urls = endpointCandidates(kind);
@@ -9789,14 +9789,12 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     return !!(data && String(data.method || '').toLowerCase() === 'passkey');
   }
   function rewritePasskeyFetch(input, init){
-    try{
-      if(!isPasskeyPayload(init)) return input;
-      var raw = typeof input === 'string' ? input : (input && input.url) || '';
-      if(!raw) return input;
-      var url = new URL(raw, window.location.href);
-      if(/\/api\/2fa\/start-step\/?$/i.test(url.pathname)) return new URL('/api/health?action=dirac_mfa_passkey_start', window.location.origin).href;
-      if(/\/api\/2fa\/verify-step\/?$/i.test(url.pathname)) return new URL('/api/health?action=dirac_mfa_passkey_verify', window.location.origin).href;
-    }catch(_){ }
+    /*
+       V6 safety: jangan rewrite endpoint A2F customer ke /api/health?action=...
+       Masuk.html harus tetap memakai endpoint A2F resmi yang sudah ada:
+       /api/2fa/start-step dan /api/2fa/verify-step.
+       HttpOnly Secure cookie tetap dikirim oleh browser lewat credentials:'include'.
+    */
     return input;
   }
   if(window.fetch && !window.__diracPasskeyA2F100FetchInstalled){
