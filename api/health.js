@@ -9046,3 +9046,104 @@ module.exports = async function diracPasskeyDbStatusWrapper(req, res) {
     });
   }
 };
+
+
+/* ============================================================
+   DIRAC PASSKEY STATUS RESCUE v4
+   Tujuan: memulihkan A2F login tanpa mengubah start-step.js / verify-step.js.
+   - Health.js hanya membaca domain_passkeys milik email sesi login.
+   - Kalau domain_passkeys aktif, masuk.html boleh membuka Email backup.
+   - Tidak mengubah hash password, login utama, tabel, RLS, atau payment flow.
+   ============================================================ */
+
+const __diracPasskeyStatusRescuePreviousHandler = module.exports;
+const DIRAC_PASSKEY_STATUS_RESCUE_ACTIONS = new Set([
+  'dirac_mfa_passkey_status',
+  'domain_mfa_passkey_status',
+  'dirac_passkey_status',
+  'domain_passkey_status'
+]);
+
+module.exports = async function diracPasskeyStatusRescueWrapper(req, res) {
+  const rawAction = String((req && req.query && req.query.action) || '').trim();
+  if (!DIRAC_PASSKEY_STATUS_RESCUE_ACTIONS.has(rawAction)) {
+    return __diracPasskeyStatusRescuePreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, active: false, message: 'Origin tidak diizinkan.' });
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ ok: false, active: false, message: 'Gunakan GET.' });
+  }
+
+  try {
+    const user = await requireDomainUser(req, res);
+    if (!user) return;
+
+    const email = normalizeAuthEmail(user.email || '');
+    if (!isValidAuthEmail(email)) {
+      return res.status(400).json({
+        ok: false,
+        method: 'passkey',
+        active: false,
+        passkey_active: false,
+        has_passkey: false,
+        passkey_count: 0,
+        message: 'Email sesi login tidak valid. Login ulang dulu.'
+      });
+    }
+
+    const select = 'id,user_id,email,is_active,created_at,last_used_at';
+    const seen = new Set();
+    const rows = [];
+
+    async function collect(filter) {
+      if (!filter) return;
+      const path = '/rest/v1/domain_passkeys?select=' + encodeURIComponent(select) + '&is_active=eq.true&' + filter + '&order=created_at.desc&limit=20';
+      const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+      if (!result || !result.ok) return;
+      for (const row of (Array.isArray(result.data) ? result.data : [])) {
+        if (!row || row.is_active !== true) continue;
+        const rowEmail = normalizeAuthEmail(row.email || '');
+        // Rescue ini sengaja ketat ke email sesi login supaya tidak membuka A2F akun lain.
+        if (rowEmail !== email) continue;
+        const key = String(row.id || row.user_id || row.email || '');
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        rows.push(row);
+      }
+    }
+
+    await collect('email=eq.' + encodeURIComponent(email));
+    // Cadangan untuk perbedaan kapitalisasi email di data lama.
+    await collect('email=ilike.' + encodeURIComponent(email));
+
+    const count = rows.length;
+    return res.status(200).json({
+      ok: true,
+      method: 'passkey',
+      active: count > 0,
+      passkey_active: count > 0,
+      has_passkey: count > 0,
+      passkey_count: count,
+      source: 'domain_passkeys_email_session_rescue_v4',
+      owner_bound: count > 0,
+      email_present: true,
+      customer_id_present: rows.some((row) => Boolean(row && row.user_id)),
+      message: count > 0
+        ? 'Passkey aktif ditemukan di domain_passkeys untuk email sesi login. Email backup boleh dipakai.'
+        : 'Passkey aktif belum ditemukan untuk email sesi login.'
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      method: 'passkey',
+      active: false,
+      passkey_active: false,
+      has_passkey: false,
+      passkey_count: 0,
+      message: 'Status Passkey gagal dicek dari backend.'
+    });
+  }
+};
