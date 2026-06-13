@@ -1773,6 +1773,9 @@ async function domainCheckout(req, res) {
     payment_status: 'unpaid',
     order_status: 'pending_payment',
     payment_url: payment && payment.payment_url ? payment.payment_url : null,
+    snap_token: payment && payment.snap_token ? payment.snap_token : null,
+    midtrans_token: payment && payment.snap_token ? payment.snap_token : null,
+    midtrans_snap_js_url: payment && payment.snap_js_url ? payment.snap_js_url : null,
     invoice_id: payment && payment.invoice_id ? payment.invoice_id : null,
     payment_provider: payment && payment.provider ? payment.provider : null,
     payment_gateway_configured: Boolean(payment && payment.configured),
@@ -6804,6 +6807,9 @@ async function lockedPaymentCreateForOrder(req, res) {
       currency: String(existing.transaction.currency || 'IDR').toUpperCase(),
       payment_status: existing.transaction.payment_status || 'unpaid',
       payment_url: existing.transaction.payment_url,
+      snap_token: lockedPaymentExtractReusableSnapToken(existing.transaction),
+      midtrans_token: lockedPaymentExtractReusableSnapToken(existing.transaction),
+      midtrans_snap_js_url: lockedPaymentExtractReusableSnapToken(existing.transaction) ? midtransSnapJsUrl() : null,
       amount_source: 'orders.total.database',
       ownership_locked: true,
       frontend_ignored_fields: ['amount', 'total', 'payment_status', 'paid', 'completed', 'customer_id']
@@ -6906,6 +6912,9 @@ async function lockedPaymentCreateForOrder(req, res) {
     currency: 'IDR',
     payment_status: 'unpaid',
     payment_url: gateway.paymentUrl,
+    snap_token: gateway.snapToken || null,
+    midtrans_token: gateway.snapToken || null,
+    midtrans_snap_js_url: gateway.snapToken ? (gateway.snapJsUrl || midtransSnapJsUrl()) : null,
     payment_provider: gateway.provider || gatewayName,
     invoice_id: gateway.invoiceId || null,
     amount_source: 'orders.total.database',
@@ -6981,7 +6990,7 @@ async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType)
 }
 
 async function lockedPaymentFindReusableTransaction(orderId, customerId, amount) {
-  const select = 'id,order_id,customer_id,service_type,gateway_name,gateway_reference,payment_status,amount,currency,payment_url,expired_at,created_at';
+  const select = 'id,order_id,customer_id,service_type,gateway_name,gateway_reference,payment_status,amount,currency,payment_url,expired_at,created_at,metadata';
   const statuses = ['unpaid', 'pending', 'created'].join(',');
   const path = '/rest/v1/payment_transactions?select=' + encodeURIComponent(select)
     + '&order_id=eq.' + encodeURIComponent(orderId)
@@ -7158,6 +7167,14 @@ function lockedPaymentExtractInvoiceId(data) {
   return String(nested || '').trim();
 }
 
+function lockedPaymentExtractReusableSnapToken(transaction) {
+  if (!transaction || typeof transaction !== 'object') return null;
+  if (String(transaction.gateway_name || '').toLowerCase() !== 'midtrans') return null;
+  const meta = transaction.metadata && typeof transaction.metadata === 'object' ? transaction.metadata : {};
+  const token = meta.gateway_invoice_id || meta.snap_token || meta.midtrans_token || meta.invoice_id || '';
+  return token ? String(token).trim() : null;
+}
+
 function lockedPaymentGatewayEndpoint() {
   return String(process.env.PAYMENT_CREATE_URL || process.env.ORDER_PAYMENT_CREATE_URL || process.env.DOMAIN_PAYMENT_CREATE_URL || '').trim();
 }
@@ -7233,7 +7250,7 @@ module.exports = async function midtransPaymentWrapper(req, res) {
   const rawAction = String((req.query && req.query.action) || '').trim();
   const action = midtransNormalizeAction(rawAction);
 
-  if (!midtransIsWebhookAction(action) && action !== 'midtrans_health') {
+  if (!midtransIsWebhookAction(action) && action !== 'midtrans_health' && action !== 'midtrans_client_config') {
     return __diracMidtransPaymentPreviousHandler(req, res);
   }
 
@@ -7247,8 +7264,15 @@ module.exports = async function midtransPaymentWrapper(req, res) {
       provider: 'midtrans',
       snapConfigured: midtransPaymentIsConfigured(),
       webhook: '/api/health?action=midtrans_webhook',
-      environment: midtransIsProduction() ? 'production' : 'sandbox'
+      clientConfig: '/api/health?action=midtrans_client_config',
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      clientKeyConfigured: Boolean(midtransClientKeySafe())
     });
+  }
+
+  if (action === 'midtrans_client_config') {
+    if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+    return res.status(200).json(midtransPublicClientConfig());
   }
 
   if (req.method !== 'POST') {
@@ -7281,7 +7305,13 @@ function midtransNormalizeAction(action) {
     'payment_callback': 'midtrans_webhook',
     'payment-callback': 'midtrans_webhook',
     'midtrans_health': 'midtrans_health',
-    'midtrans-health': 'midtrans_health'
+    'midtrans-health': 'midtrans_health',
+    'midtrans_client_config': 'midtrans_client_config',
+    'midtrans-client-config': 'midtrans_client_config',
+    'midtrans_config': 'midtrans_client_config',
+    'midtrans-config': 'midtrans_client_config',
+    'payment_client_config': 'midtrans_client_config',
+    'payment-client-config': 'midtrans_client_config'
   };
   return aliases[clean] || clean;
 }
@@ -7311,6 +7341,32 @@ function midtransIsProduction() {
 
 function midtransSnapBaseUrl() {
   return midtransIsProduction() ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
+}
+
+function midtransSnapJsUrl() {
+  return `${midtransSnapBaseUrl()}/snap/snap.js`;
+}
+
+function midtransClientKeySafe() {
+  return String(process.env.MIDTRANS_CLIENT_KEY || process.env.MIDTRANS_SANDBOX_CLIENT_KEY || '').trim();
+}
+
+function midtransPublicClientConfig() {
+  const clientKey = midtransClientKeySafe();
+  return {
+    ok: true,
+    provider: 'midtrans',
+    environment: midtransIsProduction() ? 'production' : 'sandbox',
+    sandbox: !midtransIsProduction(),
+    snap_js_url: midtransSnapJsUrl(),
+    client_key: clientKey || null,
+    client_key_configured: Boolean(clientKey),
+    create_payment_endpoint: '/api/health?action=create_payment',
+    webhook_endpoint: '/api/health?action=midtrans_webhook',
+    note: clientKey
+      ? 'Client Key aman dipakai di frontend. Server Key tetap hanya dibaca backend.'
+      : 'MIDTRANS_CLIENT_KEY belum diisi. Frontend masih bisa redirect memakai payment_url, tetapi Snap popup membutuhkan Client Key.'
+  };
 }
 
 function midtransNotificationUrl() {
@@ -7476,6 +7532,9 @@ async function midtransCreateSnapPayment(input) {
     message: token && redirectUrl ? 'ok' : 'Midtrans tidak mengembalikan token/redirect_url.',
     provider: 'midtrans',
     paymentUrl: redirectUrl,
+    redirectUrl,
+    snapToken: token,
+    snapJsUrl: midtransSnapJsUrl(),
     invoiceId: token || input.gatewayReference,
     raw: {
       midtrans: data,
@@ -7563,6 +7622,9 @@ async function midtransCreateDomainPaymentInvoice(order, orderItems, customer) {
       configured: true,
       provider: 'midtrans',
       payment_url: null,
+      snap_token: gateway.snapToken || null,
+      midtrans_token: gateway.snapToken || null,
+      snap_js_url: gateway.snapJsUrl || midtransSnapJsUrl(),
       invoice_id: gateway.invoiceId || null,
       payment_transaction_id: transaction.id,
       gateway_reference: gatewayReference,
@@ -7581,6 +7643,9 @@ async function midtransCreateDomainPaymentInvoice(order, orderItems, customer) {
     configured: true,
     provider: 'midtrans',
     payment_url: gateway.paymentUrl,
+    snap_token: gateway.snapToken || null,
+    midtrans_token: gateway.snapToken || null,
+    snap_js_url: gateway.snapJsUrl || midtransSnapJsUrl(),
     invoice_id: gateway.invoiceId || null,
     payment_transaction_id: transaction.id,
     gateway_reference: gatewayReference,
