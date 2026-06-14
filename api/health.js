@@ -1,7 +1,8 @@
 'use strict';
 
 const crypto = require('crypto');
-const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-keysource-v10';
+const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-dashboard-key-accept-v11';
+const DIRAC_IPAYMU_PATCH = 'ipaymu-redirect-v12';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
@@ -1796,6 +1797,10 @@ async function domainCheckout(req, res) {
 
 
 async function maybeCreateDomainPaymentInvoice(order, orderItems, customer) {
+  if (ipaymuPaymentIsConfigured()) {
+    return await ipaymuCreateDomainPaymentInvoice(order, orderItems, customer);
+  }
+
   if (midtransPaymentIsConfigured()) {
     return await midtransCreateDomainPaymentInvoice(order, orderItems, customer);
   }
@@ -6996,11 +7001,11 @@ async function lockedPaymentCreateForOrder(req, res) {
   }
 
   const endpoint = lockedPaymentGatewayEndpoint();
-  if (!endpoint && !midtransPaymentIsConfigured()) {
+  if (!endpoint && !ipaymuPaymentIsConfigured() && !midtransPaymentIsConfigured()) {
     return res.status(503).json({
       ok: false,
       payment_gateway_configured: false,
-      message: 'Payment gateway belum disetel. Isi MIDTRANS_SERVER_KEY untuk Midtrans atau PAYMENT_CREATE_URL untuk gateway eksternal.'
+      message: 'Payment gateway belum disetel. Isi IPAYMU_API_KEY + IPAYMU_VA untuk iPaymu, MIDTRANS_SERVER_KEY untuk Midtrans, atau PAYMENT_CREATE_URL untuk gateway eksternal.'
     });
   }
 
@@ -7217,7 +7222,7 @@ async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoi
   const metadata = {
     gateway_invoice_id: invoiceId || null,
     gateway_created_at: diracNowIso(),
-    gateway_debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH,
+    gateway_debug_patch: lockedPaymentResolveGatewayDebugPatch(raw),
     gateway_raw: raw || null
   };
 
@@ -7238,7 +7243,7 @@ async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoi
 async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error, raw) {
   const metadata = {
     gateway_failed_at: diracNowIso(),
-    gateway_debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH,
+    gateway_debug_patch: lockedPaymentResolveGatewayDebugPatch(raw),
     gateway_error: lockedPaymentCleanText(error, 500) || 'gateway_create_failed'
   };
 
@@ -7292,6 +7297,10 @@ function lockedPaymentSafeMetadataRaw(value, depth = 0) {
 }
 
 async function lockedPaymentCreateGatewayInvoice(input) {
+  if (ipaymuPaymentIsConfigured()) {
+    return await ipaymuCreateRedirectPayment(input);
+  }
+
   if (midtransPaymentIsConfigured()) {
     return await midtransCreateSnapPayment(input);
   }
@@ -7300,7 +7309,7 @@ async function lockedPaymentCreateGatewayInvoice(input) {
     return {
       ok: false,
       status: 503,
-      message: 'Payment gateway belum dikonfigurasi. Isi MIDTRANS_SERVER_KEY atau PAYMENT_CREATE_URL.',
+      message: 'Payment gateway belum dikonfigurasi. Isi IPAYMU_API_KEY + IPAYMU_VA, MIDTRANS_SERVER_KEY, atau PAYMENT_CREATE_URL.',
       error: 'gateway_not_configured'
     };
   }
@@ -7396,8 +7405,17 @@ function lockedPaymentGatewaySecret() {
 }
 
 function lockedPaymentGatewayName() {
-  const fallback = midtransPaymentIsConfigured() ? 'midtrans' : 'payment_gateway';
+  const fallback = ipaymuPaymentIsConfigured() ? 'ipaymu' : (midtransPaymentIsConfigured() ? 'midtrans' : 'payment_gateway');
   return lockedPaymentCleanText(process.env.PAYMENT_GATEWAY_NAME || process.env.DOMAIN_PAYMENT_GATEWAY_NAME || fallback, 60) || fallback;
+}
+
+function lockedPaymentResolveGatewayDebugPatch(raw) {
+  const provider = String(raw && (raw.provider || raw.gateway || raw.payment_provider) || '').trim().toLowerCase();
+  if (provider === 'ipaymu') return DIRAC_IPAYMU_PATCH;
+  if (provider === 'midtrans') return DIRAC_MIDTRANS_DEBUG_PATCH;
+  const debugPatch = String(raw && raw.debugPatch || '').trim();
+  if (debugPatch) return debugPatch.slice(0, 80);
+  return DIRAC_MIDTRANS_DEBUG_PATCH;
 }
 
 function lockedPaymentGenerateReference(orderCode) {
@@ -7494,6 +7512,8 @@ module.exports = async function midtransPaymentWrapper(req, res) {
         clientKeyPresent: Boolean(String(process.env.MIDTRANS_CLIENT_KEY || process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '').trim()),
         expectedPrefix: midtransIsProduction() ? 'Mid-server-' : 'SB-Mid-server-',
         prefixMatchesEnvironment: selectedKey.prefixMatchesEnvironment,
+        dashboardKeyAccepted: selectedKey.dashboardKeyAccepted,
+        prefixPolicy: 'warning_only_use_key_exactly_from_midtrans_dashboard',
         valueHasOuterWhitespace: selectedKey.valueHasOuterWhitespace
       }
     });
@@ -7542,9 +7562,10 @@ function midtransPaymentIsConfigured() {
   return midtransSelectedServerKeyInfo().configured;
 }
 
-// PATCH v10: pilih key sesuai environment lebih dulu.
-// Sandbox harus memprioritaskan MIDTRANS_SANDBOX_SERVER_KEY agar MIDTRANS_SERVER_KEY lama
-// tidak diam-diam menimpa key sandbox. Production tetap memakai MIDTRANS_SERVER_KEY.
+// PATCH v11: pilih key sesuai environment lebih dulu, tetapi jangan menolak key hanya
+// karena prefix. Pada sebagian dashboard sandbox, Midtrans dapat menampilkan Server Key
+// dengan prefix Mid-server-. Sumber kebenaran adalah Access Keys dashboard Midtrans,
+// bukan prefix yang kita tebak. Prefix hanya ditampilkan sebagai warning/debug.
 function midtransSelectedServerKeyInfo() {
   const production = midtransIsProduction();
   const genericRaw = String(process.env.MIDTRANS_SERVER_KEY || '');
@@ -7578,6 +7599,7 @@ function midtransSelectedServerKeyInfo() {
     length: raw.length,
     sha256_12: raw ? crypto.createHash('sha256').update(raw).digest('hex').slice(0, 12) : '',
     prefixMatchesEnvironment: Boolean(raw && raw.startsWith(expectedPrefix)),
+    dashboardKeyAccepted: Boolean(raw && /^(SB-Mid-server-|Mid-server-)/.test(raw)),
     valueHasOuterWhitespace: Boolean(originalRaw && originalRaw !== originalRaw.trim())
   };
 }
@@ -7590,8 +7612,8 @@ function midtransServerKey() {
     err.statusCode = 503;
     throw err;
   }
-  if (!selected.prefixMatchesEnvironment) {
-    const err = new Error(`Midtrans Server Key tidak cocok dengan environment ${midtransIsProduction() ? 'production' : 'sandbox'}. Gunakan ${midtransIsProduction() ? 'Mid-server-' : 'SB-Mid-server-'} sebagai prefix Server Key.`);
+  if (!selected.dashboardKeyAccepted) {
+    const err = new Error('Midtrans Server Key tidak memakai format Server Key yang dikenal. Copy ulang Server Key dari Midtrans Dashboard > Settings > Access Keys, jangan Client Key.');
     err.statusCode = 503;
     throw err;
   }
@@ -8227,6 +8249,740 @@ async function midtransPatchRelatedOrderPaid(tx, payload) {
   return { ok: false, status: 409 };
 }
 
+
+
+/* ============================================================
+   IPAYMU REDIRECT PAYMENT + WEBHOOK - APPEND ONLY - v12
+   Guard:
+   - Tidak menyentuh login/hash/A2F/recovery.
+   - iPaymu dipilih dulu jika IPAYMU_API_KEY + IPAYMU_VA tersedia.
+   - Payment URL dibuat memakai total backend/database.
+   - Webhook memvalidasi gateway_reference + amount database + event idempotent.
+   ============================================================ */
+
+const __diracIpaymuPaymentPreviousHandler = module.exports;
+
+module.exports = async function ipaymuPaymentWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = ipaymuNormalizeAction(rawAction);
+
+  if (action !== 'ipaymu_health' && action !== 'ipaymu_webhook') {
+    return __diracIpaymuPaymentPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (action === 'ipaymu_health') {
+    const info = ipaymuSelectedCredentialInfo();
+    return res.status(200).json({
+      ok: true,
+      provider: 'ipaymu',
+      redirectConfigured: info.configured,
+      webhook: '/api/health?action=ipaymu_webhook',
+      environment: ipaymuIsProduction() ? 'production' : 'sandbox',
+      baseUrl: ipaymuBaseUrl(),
+      debugPatch: DIRAC_IPAYMU_PATCH,
+      keyDebug: {
+        apiKeySource: info.apiKeySource,
+        vaSource: info.vaSource,
+        apiKeyPresent: Boolean(info.apiKey),
+        vaPresent: Boolean(info.va),
+        apiKeyLength: info.apiKey.length,
+        vaLength: info.va.length,
+        apiKeySha256_12: info.apiKey ? crypto.createHash('sha256').update(info.apiKey).digest('hex').slice(0, 12) : '',
+        vaSha256_12: info.va ? crypto.createHash('sha256').update(info.va).digest('hex').slice(0, 12) : '',
+        valueHasOuterWhitespace: info.valueHasOuterWhitespace,
+        notifyTokenConfigured: Boolean(ipaymuWebhookToken())
+      }
+    });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, message: 'Gunakan POST untuk webhook iPaymu.' });
+  }
+
+  try {
+    return await ipaymuHandleWebhook(req, res);
+  } catch (error) {
+    console.error('[ipaymu-webhook]', lockedPaymentSafeError(error));
+    return res.status(error && error.statusCode ? error.statusCode : 500).json({
+      ok: false,
+      message: 'Webhook iPaymu gagal diproses dengan aman.',
+      error: lockedPaymentPublicError(error)
+    });
+  }
+};
+
+function ipaymuNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    ipaymu_health: 'ipaymu_health',
+    ipaymu_status: 'ipaymu_health',
+    ipaymu_webhook: 'ipaymu_webhook',
+    ipaymu_callback: 'ipaymu_webhook',
+    ipaymu_notify: 'ipaymu_webhook',
+    ipaymu_notification: 'ipaymu_webhook',
+    payment_ipaymu_webhook: 'ipaymu_webhook'
+  };
+  return aliases[clean] || clean;
+}
+
+function ipaymuIsProduction() {
+  const raw = String(process.env.IPAYMU_IS_PRODUCTION || process.env.IPAYMU_PRODUCTION || 'false').trim().toLowerCase();
+  return raw === 'true' || raw === '1' || raw === 'yes' || raw === 'production' || raw === 'live';
+}
+
+function ipaymuSelectedCredentialInfo() {
+  const production = ipaymuIsProduction();
+  const candidates = production
+    ? {
+        apiKey: [
+          ['IPAYMU_API_KEY', process.env.IPAYMU_API_KEY],
+          ['IPAYMU_PRODUCTION_API_KEY', process.env.IPAYMU_PRODUCTION_API_KEY],
+          ['IPAYMU_LIVE_API_KEY', process.env.IPAYMU_LIVE_API_KEY],
+          ['IPAYMU_SECRET_KEY', process.env.IPAYMU_SECRET_KEY],
+          ['IPAYMU_KEY', process.env.IPAYMU_KEY]
+        ],
+        va: [
+          ['IPAYMU_VA', process.env.IPAYMU_VA],
+          ['IPAYMU_PRODUCTION_VA', process.env.IPAYMU_PRODUCTION_VA],
+          ['IPAYMU_LIVE_VA', process.env.IPAYMU_LIVE_VA],
+          ['IPAYMU_VA_NUMBER', process.env.IPAYMU_VA_NUMBER],
+          ['IPAYMU_ACCOUNT', process.env.IPAYMU_ACCOUNT]
+        ]
+      }
+    : {
+        apiKey: [
+          ['IPAYMU_SANDBOX_API_KEY', process.env.IPAYMU_SANDBOX_API_KEY],
+          ['IPAYMU_API_KEY', process.env.IPAYMU_API_KEY],
+          ['IPAYMU_SECRET_KEY', process.env.IPAYMU_SECRET_KEY],
+          ['IPAYMU_KEY', process.env.IPAYMU_KEY]
+        ],
+        va: [
+          ['IPAYMU_SANDBOX_VA', process.env.IPAYMU_SANDBOX_VA],
+          ['IPAYMU_VA', process.env.IPAYMU_VA],
+          ['IPAYMU_VA_NUMBER', process.env.IPAYMU_VA_NUMBER],
+          ['IPAYMU_ACCOUNT', process.env.IPAYMU_ACCOUNT]
+        ]
+      };
+
+  const api = ipaymuPickEnvValue(candidates.apiKey);
+  const va = ipaymuPickEnvValue(candidates.va);
+  return {
+    configured: Boolean(api.value && va.value),
+    apiKey: api.value,
+    va: va.value,
+    apiKeySource: api.source || 'missing',
+    vaSource: va.source || 'missing',
+    valueHasOuterWhitespace: Boolean(api.hasOuterWhitespace || va.hasOuterWhitespace)
+  };
+}
+
+function ipaymuPickEnvValue(entries) {
+  for (const [source, rawValue] of entries) {
+    const raw = String(rawValue || '');
+    const value = raw.trim();
+    if (value) return { source, value, hasOuterWhitespace: raw !== value };
+  }
+  return { source: '', value: '', hasOuterWhitespace: false };
+}
+
+function ipaymuPaymentIsConfigured() {
+  return ipaymuSelectedCredentialInfo().configured;
+}
+
+function ipaymuCredentials() {
+  const info = ipaymuSelectedCredentialInfo();
+  if (!info.configured) {
+    const err = new Error('IPAYMU_API_KEY dan IPAYMU_VA belum diisi di Environment Variables Vercel. Ambil dari menu Integrasi iPaymu.');
+    err.statusCode = 503;
+    throw err;
+  }
+  return info;
+}
+
+function ipaymuBaseUrl() {
+  const explicit = String(process.env.IPAYMU_BASE_URL || '').trim().replace(/\/$/, '');
+  if (explicit) return explicit;
+  return ipaymuIsProduction() ? 'https://my.ipaymu.com' : 'https://sandbox.ipaymu.com';
+}
+
+function ipaymuPaymentEndpoint() {
+  return `${ipaymuBaseUrl()}/api/v2/payment`;
+}
+
+function ipaymuReturnUrl() {
+  return String(process.env.IPAYMU_RETURN_URL || process.env.PAYMENT_RETURN_URL || process.env.DOMAIN_PAYMENT_RETURN_URL || process.env.DOMAIN_SITE_URL || 'https://diracgroup.store/pesanan.html').trim();
+}
+
+function ipaymuCancelUrl() {
+  return String(process.env.IPAYMU_CANCEL_URL || process.env.PAYMENT_CANCEL_URL || ipaymuReturnUrl()).trim();
+}
+
+function ipaymuWebhookToken() {
+  return String(process.env.IPAYMU_WEBHOOK_TOKEN || process.env.IPAYMU_NOTIFY_TOKEN || process.env.IPAYMU_CALLBACK_TOKEN || '').trim();
+}
+
+function ipaymuNotificationUrl() {
+  const explicit = String(process.env.IPAYMU_NOTIFY_URL || process.env.IPAYMU_NOTIFICATION_URL || '').trim();
+  let url = explicit;
+  if (!url) {
+    const site = String(process.env.DOMAIN_SITE_URL || process.env.SITE_URL || 'https://diracgroup.store').trim().replace(/\/$/, '');
+    url = site ? `${site}/api/health?action=ipaymu_webhook` : '';
+  }
+  const token = ipaymuWebhookToken();
+  if (url && token && !/[?&]token=/.test(url)) {
+    url += (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+  }
+  return url;
+}
+
+function ipaymuTimestamp(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).formatToParts(date).reduce((acc, part) => {
+    if (part.type !== 'literal') acc[part.type] = part.value;
+    return acc;
+  }, {});
+  return `${parts.year}${parts.month}${parts.day}${parts.hour}${parts.minute}${parts.second}`;
+}
+
+function ipaymuSignRequest(method, va, apiKey, bodyJson) {
+  const requestBodyHash = crypto.createHash('sha256').update(String(bodyJson || '')).digest('hex').toLowerCase();
+  const stringToSign = `${String(method || 'POST').toUpperCase()}:${va}:${requestBodyHash}:${apiKey}`;
+  return crypto.createHmac('sha256', apiKey).update(stringToSign).digest('hex');
+}
+
+function ipaymuMoney(value) {
+  return lockedPaymentMoney(value);
+}
+
+function ipaymuSafeText(value, maxLength) {
+  return lockedPaymentCleanText(value, maxLength || 160);
+}
+
+function ipaymuBuildItems(items, amount) {
+  const target = ipaymuMoney(amount);
+  const rows = Array.isArray(items) ? items : [];
+  const mapped = rows.map((item, index) => {
+    const qty = lockedPaymentPositiveInteger(item.quantity || item.qty || item.years || 1, 1, 9999);
+    const subtotal = ipaymuMoney(item.subtotal || 0);
+    const basePrice = ipaymuMoney(item.unit_price ?? item.price ?? item.register_price ?? (qty > 0 ? Math.round(subtotal / qty) : subtotal));
+    const price = Math.max(1, basePrice || (subtotal > 0 ? Math.round(subtotal / qty) : target));
+    return {
+      product: ipaymuSafeText(item.title || item.name || item.domain_name || `Item ${index + 1}`, 180) || `Item ${index + 1}`,
+      qty,
+      price,
+      description: ipaymuSafeText(item.description || item.domain_name || item.product_doc_id || '', 180)
+    };
+  }).filter((item) => item.qty > 0 && item.price > 0);
+
+  if (!mapped.length) {
+    return [{ product: 'Total pesanan', qty: 1, price: target, description: 'Total pesanan' }];
+  }
+
+  const total = mapped.reduce((sum, item) => sum + (ipaymuMoney(item.price) * item.qty), 0);
+  const diff = target - total;
+  if (diff !== 0) mapped.push({ product: 'Penyesuaian total', qty: 1, price: diff, description: 'Penyesuaian total invoice' });
+  return mapped;
+}
+
+async function ipaymuCreateRedirectPayment(input) {
+  const amount = ipaymuMoney(input && input.amount);
+  if (amount <= 0) {
+    return { ok: false, status: 409, message: 'Nominal iPaymu tidak valid.', error: 'invalid_amount' };
+  }
+
+  const credentials = ipaymuCredentials();
+  const items = ipaymuBuildItems(input && input.items || [], amount);
+  const customer = input && input.customer || {};
+  const payload = {
+    product: items.map((item) => item.product),
+    qty: items.map((item) => item.qty),
+    price: items.map((item) => item.price),
+    description: items.map((item) => item.description || item.product),
+    returnUrl: ipaymuReturnUrl(),
+    cancelUrl: ipaymuCancelUrl(),
+    notifyUrl: ipaymuNotificationUrl(),
+    referenceId: String(input && input.gatewayReference || '').trim(),
+    buyerName: ipaymuSafeText(customer.name || 'Customer', 120),
+    buyerEmail: normalizeAuthEmail(customer.email || ''),
+    buyerPhone: ipaymuSafeText(customer.phone || '', 40),
+    expired: Math.max(1, Math.min(168, Number(process.env.IPAYMU_EXPIRED_HOURS || 24))),
+    expiredType: 'hours'
+  };
+
+  const paymentMethod = ipaymuSafeText(process.env.IPAYMU_PAYMENT_METHOD || '', 40);
+  const paymentChannel = ipaymuSafeText(process.env.IPAYMU_PAYMENT_CHANNEL || '', 40);
+  if (paymentMethod) payload.paymentMethod = paymentMethod;
+  if (paymentChannel) payload.paymentChannel = paymentChannel;
+
+  const bodyJson = JSON.stringify(payload);
+  const timestamp = ipaymuTimestamp();
+  const signature = ipaymuSignRequest('POST', credentials.va, credentials.apiKey, bodyJson);
+
+  let response;
+  let data;
+  try {
+    response = await fetch(ipaymuPaymentEndpoint(), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        va: credentials.va,
+        signature,
+        timestamp
+      },
+      body: bodyJson
+    });
+    data = await parseFetchResponse(response);
+  } catch (error) {
+    const safeError = lockedPaymentSafeError(error) || 'ipaymu_fetch_failed';
+    return {
+      ok: false,
+      status: 502,
+      message: 'iPaymu tidak merespons.',
+      error: safeError,
+      raw: {
+        provider: 'ipaymu',
+        http_status: 0,
+        error: safeError,
+        request: ipaymuSafeRequest(payload),
+        endpoint: ipaymuPaymentEndpoint(),
+        debugPatch: DIRAC_IPAYMU_PATCH
+      }
+    };
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status || 502,
+      message: getUpstreamMessage(data) || 'iPaymu gagal membuat payment redirect.',
+      error: lockedPaymentSafeUpstreamError(data),
+      raw: {
+        provider: 'ipaymu',
+        http_status: response.status || 0,
+        ipaymu: data || null,
+        request: ipaymuSafeRequest(payload),
+        endpoint: ipaymuPaymentEndpoint(),
+        debugPatch: DIRAC_IPAYMU_PATCH
+      }
+    };
+  }
+
+  const paymentUrl = ipaymuExtractPaymentUrl(data);
+  const invoiceId = ipaymuExtractInvoiceId(data) || payload.referenceId;
+  return {
+    ok: Boolean(paymentUrl),
+    status: paymentUrl ? 200 : 502,
+    message: paymentUrl ? 'ok' : 'iPaymu tidak mengembalikan URL pembayaran.',
+    provider: 'ipaymu',
+    paymentUrl,
+    invoiceId,
+    raw: {
+      provider: 'ipaymu',
+      ipaymu: data || null,
+      request: ipaymuSafeRequest(payload),
+      endpoint: ipaymuPaymentEndpoint(),
+      debugPatch: DIRAC_IPAYMU_PATCH
+    }
+  };
+}
+
+function ipaymuSafeRequest(payload) {
+  return {
+    referenceId: payload && payload.referenceId || null,
+    product: payload && payload.product || [],
+    qty: payload && payload.qty || [],
+    price: payload && payload.price || [],
+    returnUrl: payload && payload.returnUrl || '',
+    cancelUrl: payload && payload.cancelUrl || '',
+    notifyUrl: payload && payload.notifyUrl ? '[configured]' : '',
+    paymentMethod: payload && payload.paymentMethod || null,
+    paymentChannel: payload && payload.paymentChannel || null,
+    expired: payload && payload.expired || null,
+    expiredType: payload && payload.expiredType || null,
+    debugPatch: DIRAC_IPAYMU_PATCH
+  };
+}
+
+function ipaymuExtractData(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.Data && typeof data.Data === 'object') return data.Data;
+  if (data.data && typeof data.data === 'object') return data.data;
+  return data;
+}
+
+function ipaymuExtractPaymentUrl(data) {
+  const row = ipaymuExtractData(data);
+  if (!row || typeof row !== 'object') return '';
+  return String(row.Url || row.url || row.PaymentUrl || row.paymentUrl || row.payment_url || row.RedirectUrl || row.redirect_url || '').trim();
+}
+
+function ipaymuExtractInvoiceId(data) {
+  const row = ipaymuExtractData(data);
+  if (!row || typeof row !== 'object') return '';
+  return String(row.SessionID || row.SessionId || row.sessionID || row.sessionId || row.session_id || row.TransactionId || row.TransactionID || row.TrxID || row.trx_id || row.id || '').trim();
+}
+
+async function ipaymuCreateDomainPaymentInvoice(order, orderItems, customer) {
+  const domainOrderId = String(order && order.id || '').trim();
+  const customerId = String(order && order.customer_id || '').trim();
+  const amount = ipaymuMoney(customer && customer.totalAmount || order && (order.total_price || order.total_amount || order.total) || 0);
+
+  if (!customerSecurityLooksLikeUuid(domainOrderId) || !customerSecurityLooksLikeUuid(customerId)) {
+    return { configured: true, payment_url: null, provider: 'ipaymu', error: 'domain_order_or_customer_invalid' };
+  }
+  if (amount <= 0) {
+    return { configured: true, payment_url: null, provider: 'ipaymu', error: 'domain_amount_invalid' };
+  }
+
+  const orderCode = ipaymuSafeText(order && (order.order_code || order.order_id) || domainOrderId, 80);
+  const gatewayReference = lockedPaymentGenerateReference(`DOM-${orderCode}`);
+
+  const transactionResult = await lockedPaymentInsertTransaction({
+    domainOrderId,
+    customerId,
+    serviceType: 'domain',
+    gatewayName: 'ipaymu',
+    gatewayReference,
+    amount,
+    currency: 'IDR',
+    metadata: {
+      source: 'domain_checkout_ipaymu',
+      amount_source: 'domain_orders.total_price.backend',
+      domain_order_id: domainOrderId,
+      order_code: orderCode,
+      debugPatch: DIRAC_IPAYMU_PATCH,
+      create_payment_started_at: diracNowIso()
+    }
+  });
+
+  if (!transactionResult.ok) {
+    const err = new Error('Gagal menyimpan transaksi iPaymu domain.');
+    err.statusCode = transactionResult.status || 500;
+    throw err;
+  }
+
+  const transaction = Array.isArray(transactionResult.data) ? transactionResult.data[0] : transactionResult.data;
+  if (!transaction || !transaction.id) {
+    const err = new Error('Transaksi iPaymu domain dibuat, tetapi ID tidak ditemukan.');
+    err.statusCode = 500;
+    throw err;
+  }
+
+  const gateway = await ipaymuCreateRedirectPayment({
+    gatewayReference,
+    transactionId: transaction.id,
+    domainOrderId,
+    orderId: domainOrderId,
+    orderCode,
+    amount,
+    currency: 'IDR',
+    customer: {
+      name: customer && customer.customerName || order.customer_name || 'Customer',
+      email: customer && customer.customerEmail || order.customer_email || '',
+      phone: customer && customer.customerWhatsapp || order.customer_whatsapp || ''
+    },
+    items: (orderItems || []).map((item) => ({
+      domain_name: item.domain_name,
+      title: item.domain_name,
+      quantity: item.years || 1,
+      price: item.register_price,
+      subtotal: item.subtotal
+    })),
+    serviceType: 'domain'
+  });
+
+  if (!gateway.ok || !gateway.paymentUrl) {
+    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'ipaymu_create_failed', gateway.raw || null);
+    return {
+      configured: true,
+      provider: 'ipaymu',
+      payment_url: null,
+      invoice_id: gateway.invoiceId || null,
+      payment_transaction_id: transaction.id,
+      gateway_reference: gatewayReference,
+      error: gateway.message || 'iPaymu gagal membuat payment URL.'
+    };
+  }
+
+  const patch = await lockedPaymentPatchTransactionUrl(transaction.id, gateway.paymentUrl, gateway.invoiceId, gateway.raw);
+  if (!patch.ok) {
+    const err = new Error('iPaymu sudah membuat invoice domain, tetapi payment URL gagal disimpan.');
+    err.statusCode = patch.status || 500;
+    throw err;
+  }
+
+  return {
+    configured: true,
+    provider: 'ipaymu',
+    payment_url: gateway.paymentUrl,
+    invoice_id: gateway.invoiceId || null,
+    payment_transaction_id: transaction.id,
+    gateway_reference: gatewayReference,
+    raw: gateway.raw
+  };
+}
+
+async function ipaymuReadWebhookBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  if (typeof req.body === 'string') return ipaymuParseWebhookRaw(req.body);
+  return await new Promise((resolve) => {
+    let raw = '';
+    req.on('data', (chunk) => { raw += chunk; });
+    req.on('end', () => resolve(ipaymuParseWebhookRaw(raw)));
+    req.on('error', () => resolve({}));
+  });
+}
+
+function ipaymuParseWebhookRaw(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return {};
+  try { return JSON.parse(text); } catch (_) {}
+  try { return Object.fromEntries(new URLSearchParams(text)); } catch (_) {}
+  return {};
+}
+
+function ipaymuWebhookTokenValid(req, body) {
+  const expected = ipaymuWebhookToken();
+  if (!expected) return true;
+  const headers = req && req.headers || {};
+  const given = String(
+    (req.query && (req.query.token || req.query.ipaymu_token || req.query.webhook_token)) ||
+    (body && (body.token || body.ipaymu_token || body.webhook_token)) ||
+    headers['x-ipaymu-token'] ||
+    headers['x-webhook-token'] ||
+    ''
+  ).trim();
+  return Boolean(given && safeEqual(given, expected));
+}
+
+async function ipaymuHandleWebhook(req, res) {
+  if (!ipaymuPaymentIsConfigured()) {
+    return res.status(503).json({ ok: false, message: 'IPAYMU_API_KEY dan IPAYMU_VA belum disetel.' });
+  }
+
+  const body = await ipaymuReadWebhookBody(req);
+  if (!body || typeof body !== 'object') {
+    return res.status(400).json({ ok: false, message: 'Payload iPaymu tidak valid.' });
+  }
+
+  if (!ipaymuWebhookTokenValid(req, body)) {
+    return res.status(403).json({ ok: false, message: 'Token webhook iPaymu tidak valid.' });
+  }
+
+  const gatewayReference = ipaymuGatewayReferenceFromPayload(body);
+  const amount = ipaymuWebhookAmount(body);
+  const statusRaw = ipaymuWebhookStatusRaw(body);
+  const mappedStatus = ipaymuMappedPaymentStatus(statusRaw);
+  const success = ipaymuSuccessStatus(statusRaw);
+  const gatewayEventId = ipaymuGatewayEventId(body, gatewayReference, mappedStatus);
+
+  if (!gatewayReference || !gatewayEventId) {
+    return res.status(400).json({ ok: false, message: 'Payload iPaymu kurang referenceId/gateway_reference.' });
+  }
+
+  const existingEvent = await ipaymuFetchGatewayEvent(gatewayEventId);
+  if (existingEvent.ok && existingEvent.exists) {
+    return res.status(200).json({ ok: true, duplicate: true, message: 'Webhook iPaymu sudah pernah diproses.', gateway_event_id: gatewayEventId });
+  }
+
+  const txResult = await midtransFetchPaymentTransaction(gatewayReference);
+  if (!txResult.ok) {
+    return res.status(txResult.status || 404).json({ ok: false, message: txResult.message || 'Payment transaction tidak ditemukan.' });
+  }
+
+  const tx = txResult.transaction;
+  const transactionAmount = ipaymuMoney(tx.amount);
+  if (amount > 0 && transactionAmount !== amount) {
+    await ipaymuInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, {
+      reason: 'amount_mismatch',
+      expected_amount: transactionAmount,
+      received_amount: amount
+    });
+    return res.status(409).json({ ok: false, message: 'Amount iPaymu tidak cocok dengan transaksi database.' });
+  }
+
+  const ownerCheck = await midtransVerifyTransactionOwnerAndAmount(tx, transactionAmount);
+  if (!ownerCheck.ok) {
+    await ipaymuInsertGatewayEventSafe(tx.id, gatewayEventId, 'failed', body, { reason: ownerCheck.reason || 'owner_or_amount_mismatch' });
+    return res.status(ownerCheck.status || 409).json({ ok: false, message: ownerCheck.message || 'Payment tidak cocok dengan order/customer.' });
+  }
+
+  const eventInsert = await ipaymuInsertGatewayEventSafe(tx.id, gatewayEventId, success ? 'processed' : 'received', body, {
+    mapped_payment_status: mappedStatus,
+    success,
+    gateway_reference: gatewayReference,
+    webhook_token_verified: Boolean(ipaymuWebhookToken())
+  });
+
+  if (!eventInsert.ok && !eventInsert.duplicate) {
+    return res.status(eventInsert.status || 500).json({ ok: false, message: 'Gagal menyimpan event webhook iPaymu.' });
+  }
+
+  const txPatch = await ipaymuPatchPaymentTransaction(tx.id, mappedStatus, body, success);
+  if (!txPatch.ok) {
+    return res.status(txPatch.status || 500).json({ ok: false, message: 'Gagal update payment transaction dari webhook iPaymu.' });
+  }
+
+  let orderPatch = { ok: true, skipped: true };
+  if (success) {
+    orderPatch = await midtransPatchRelatedOrderPaid(tx, { settlement_time: body.settlement_time || body.paid_at || body.updated_at || diracNowIso() });
+    if (!orderPatch.ok) {
+      return res.status(orderPatch.status || 500).json({ ok: false, message: 'Payment valid, tetapi gagal update status order.' });
+    }
+  }
+
+  return res.status(200).json({
+    ok: true,
+    provider: 'ipaymu',
+    gateway_reference: gatewayReference,
+    gateway_event_id: gatewayEventId,
+    payment_transaction_id: tx.id,
+    payment_status: mappedStatus,
+    order_updated: Boolean(success && orderPatch && orderPatch.ok),
+    idempotent: false
+  });
+}
+
+function ipaymuGatewayReferenceFromPayload(payload) {
+  return ipaymuSafeText(
+    payload && (
+      payload.referenceId || payload.reference_id || payload.reference || payload.gateway_reference ||
+      payload.order_id || payload.id_order || payload.invoice_id || payload.merchant_ref || ''
+    ),
+    140
+  );
+}
+
+function ipaymuWebhookAmount(payload) {
+  return ipaymuMoney(payload && (payload.amount || payload.total || payload.nominal || payload.price || payload.gross_amount || payload.transaction_amount || 0));
+}
+
+function ipaymuWebhookStatusRaw(payload) {
+  return String(payload && (payload.status || payload.Status || payload.payment_status || payload.order_status || payload.transaction_status || payload.status_code || payload.Message || payload.message || '') || '').trim();
+}
+
+function ipaymuSuccessStatus(value) {
+  const clean = String(value || '').trim().toLowerCase();
+  return ['1', '00', '000', '200', 'paid', 'success', 'successful', 'berhasil', 'completed', 'complete', 'settlement', 'settled'].includes(clean);
+}
+
+function ipaymuMappedPaymentStatus(value) {
+  const clean = String(value || '').trim().toLowerCase();
+  if (ipaymuSuccessStatus(clean)) return 'paid';
+  if (['pending', 'process', 'processing', 'unpaid', 'waiting', 'menunggu', '0'].includes(clean)) return 'pending';
+  if (['expired', 'expire', 'kedaluwarsa'].includes(clean)) return 'expired';
+  if (['cancel', 'cancelled', 'canceled', 'batal'].includes(clean)) return 'cancelled';
+  if (['failed', 'failure', 'gagal', 'deny', 'denied', 'error'].includes(clean)) return 'failed';
+  return 'pending';
+}
+
+function ipaymuGatewayEventId(payload, gatewayReference, status) {
+  const trx = ipaymuSafeText(payload && (payload.trx_id || payload.trxId || payload.transaction_id || payload.sid || payload.sessionID || payload.session_id || payload.id || ''), 120);
+  const ref = ipaymuSafeText(gatewayReference || '', 140);
+  const amount = ipaymuWebhookAmount(payload) || 0;
+  return `ipaymu:${trx || ref}:${status || 'unknown'}:${amount}`.slice(0, 220);
+}
+
+async function ipaymuFetchGatewayEvent(gatewayEventId) {
+  const path = '/rest/v1/payment_gateway_events?select=' + encodeURIComponent('id,gateway_event_id')
+    + '&gateway_event_id=eq.' + encodeURIComponent(gatewayEventId)
+    + '&limit=1';
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  if (!result.ok) return { ok: false, status: result.status };
+  const rows = Array.isArray(result.data) ? result.data : [];
+  return { ok: true, exists: rows.length > 0, event: rows[0] || null };
+}
+
+async function ipaymuInsertGatewayEventSafe(paymentTransactionId, gatewayEventId, eventStatus, payload, metadata) {
+  const basePayload = {
+    payment_transaction_id: paymentTransactionId,
+    gateway_event_id: gatewayEventId,
+    event_status: eventStatus,
+    payload,
+    metadata: {
+      provider: 'ipaymu',
+      received_at: diracNowIso(),
+      debugPatch: DIRAC_IPAYMU_PATCH,
+      ...(metadata || {})
+    }
+  };
+
+  const attempts = [
+    {
+      ...basePayload,
+      gateway_name: 'ipaymu',
+      signature_valid: Boolean(ipaymuWebhookToken()),
+      received_at: diracNowIso(),
+      processed_at: eventStatus === 'processed' ? diracNowIso() : null
+    },
+    basePayload,
+    {
+      payment_transaction_id: paymentTransactionId,
+      gateway_event_id: gatewayEventId,
+      event_status: eventStatus,
+      payload
+    },
+    {
+      payment_transaction_id: paymentTransactionId,
+      gateway_event_id: gatewayEventId,
+      event_status: eventStatus
+    }
+  ];
+
+  for (const body of attempts) {
+    const result = await supabaseFetch('/rest/v1/payment_gateway_events', {
+      method: 'POST',
+      auth: 'service',
+      prefer: 'return=representation',
+      body: [body]
+    });
+    if (result.ok) return { ok: true, data: result.data };
+    const msg = lockedPaymentSafeUpstreamError(result.data).toLowerCase();
+    if (result.status === 409 || msg.includes('duplicate') || msg.includes('unique')) {
+      return { ok: true, duplicate: true, data: result.data };
+    }
+  }
+
+  return { ok: false, status: 500 };
+}
+
+async function ipaymuPatchPaymentTransaction(transactionId, status, payload, success) {
+  const metadata = {
+    ipaymu_last_notification_at: diracNowIso(),
+    ipaymu_status: ipaymuWebhookStatusRaw(payload),
+    ipaymu_transaction_id: payload && (payload.trx_id || payload.trxId || payload.transaction_id || payload.sid || payload.sessionID || payload.session_id || payload.id) || null,
+    ipaymu_reference_id: ipaymuGatewayReferenceFromPayload(payload) || null,
+    ipaymu_webhook_token_verified: Boolean(ipaymuWebhookToken()),
+    debugPatch: DIRAC_IPAYMU_PATCH
+  };
+
+  const body = { payment_status: status, metadata };
+  if (success) body.paid_at = payload && (payload.settlement_time || payload.paid_at || payload.updated_at) || diracNowIso();
+
+  const first = await supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body
+  });
+  if (first.ok) return first;
+
+  return supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: { payment_status: status, metadata }
+  });
+}
 
 /* ============================================================
    DIRAC EMAIL A2F RESTORE PATCH v1
@@ -9379,7 +10135,7 @@ function diracUniversalPesananPaymentNormalizeAction(action) {
 }
 
 function diracUniversalPesananGatewayConfigured() {
-  return Boolean(midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint());
+  return Boolean(ipaymuPaymentIsConfigured() || midtransPaymentIsConfigured() || lockedPaymentGatewayEndpoint());
 }
 
 async function diracUniversalPesananReadOrders(req, res) {
@@ -9427,7 +10183,7 @@ async function diracUniversalPesananReadOrders(req, res) {
     payment_gateway_configured: gatewayConfigured,
     payment_note: gatewayConfigured
       ? 'Payment gateway aktif. Semua invoice eligible dibuatkan payment dari nominal database, bukan dari browser.'
-      : 'Payment gateway belum aktif. Isi MIDTRANS_SERVER_KEY atau PAYMENT_CREATE_URL di backend.',
+      : 'Payment gateway belum aktif. Isi IPAYMU_API_KEY + IPAYMU_VA, MIDTRANS_SERVER_KEY, atau PAYMENT_CREATE_URL di backend.',
     owner: {
       customer_id_available: Boolean(owner.customerIds.length),
       customer_ids_count: owner.customerIds.length,
@@ -9607,7 +10363,7 @@ async function diracUniversalPesananCreatePayment(req, res) {
     return res.status(503).json({
       ok: false,
       payment_gateway_configured: false,
-      message: 'Payment gateway belum disetel. Isi MIDTRANS_SERVER_KEY untuk Midtrans sandbox/production atau PAYMENT_CREATE_URL untuk gateway eksternal.'
+      message: 'Payment gateway belum disetel. Isi IPAYMU_API_KEY + IPAYMU_VA untuk iPaymu, MIDTRANS_SERVER_KEY untuk Midtrans, atau PAYMENT_CREATE_URL untuk gateway eksternal.'
     });
   }
 
