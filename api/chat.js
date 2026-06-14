@@ -3430,7 +3430,7 @@ async function chatOrderMailBuildContextFromPayment(tx, provider) {
 }
 
 async function chatOrderMailBuildRegularContextFromOrderId(orderId, provider, tx, paidAt) {
-  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,service_type,subtotal,total,payment_status,order_status,status,created_at';
+  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,service_type,subtotal,total,payment_status,order_status,created_at';
   const result = await chatOrderMailSupabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(orderId) + '&limit=1', { method: 'GET' })
     .catch((error) => ({ ok: false, status: 500, data: { message: chatOrderMailSafeError(error) } }));
 
@@ -4032,7 +4032,7 @@ function chatOrderMailUpstreamMessage(data) {
      /api/chat?action=order_mail_supabase_webhook
    ============================================================ */
 
-const DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH = 'chat-order-mail-auto-paid-v2';
+const DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH = 'chat-order-mail-auto-paid-v3-status-fix';
 const __diracChatOrderMailAutoPreviousHandler = module.exports;
 const DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE = globalThis.__DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE__ || new Map();
 globalThis.__DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE__ = DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE;
@@ -4180,6 +4180,9 @@ function chatOrderMailAutoExtractPaidWebhookInput(body, req) {
 
 function chatOrderMailAutoBuildResendInput(table, record, payload) {
   const cleanTable = String(table || '').toLowerCase();
+  const isPaymentTable = /payment_transactions?|transactions?|payments?/i.test(cleanTable);
+  const isDomainOrderTable = /domain_orders?|domain_order/i.test(cleanTable);
+  const isRegularOrderTable = /^orders?$|regular_orders?|service_orders?/i.test(cleanTable);
   const id = chatOrderMailCleanText(record && record.id || '', 120);
   const provider = chatOrderMailCleanText(record && (record.provider || record.payment_provider) || payload && payload.provider || 'supabase_db_webhook_auto_paid', 60);
   const gatewayReference = chatOrderMailCleanText(
@@ -4199,21 +4202,23 @@ function chatOrderMailAutoBuildResendInput(table, record, payload) {
     provider,
     payment_transaction_id: '',
     gateway_reference: gatewayReference,
-    order_id: chatOrderMailCleanText(record && (record.order_id || record.orderId) || '', 120),
-    domain_order_id: chatOrderMailCleanText(record && (record.domain_order_id || record.domainOrderId) || '', 120)
+    // Untuk table public.orders, kolom order_id berisi kode publik ORD-..., bukan UUID.
+    // Endpoint resend harus mencari orders.id, jadi pakai record.id khusus table orders.
+    order_id: isRegularOrderTable ? id : chatOrderMailCleanText(record && (record.order_id || record.orderId) || '', 120),
+    domain_order_id: isDomainOrderTable ? id : chatOrderMailCleanText(record && (record.domain_order_id || record.domainOrderId) || '', 120)
   };
 
-  if (/payment_transactions?|transactions?|payments?/i.test(cleanTable)) {
+  if (isPaymentTable) {
     input.payment_transaction_id = id || chatOrderMailCleanText(record && (record.payment_transaction_id || record.transaction_id || record.tx_id) || '', 120);
     return input;
   }
 
-  if (/domain_orders?|domain_order/i.test(cleanTable)) {
+  if (isDomainOrderTable) {
     input.domain_order_id = input.domain_order_id || id;
     return input;
   }
 
-  if (/^orders?$|regular_orders?|service_orders?/i.test(cleanTable)) {
+  if (isRegularOrderTable) {
     input.order_id = input.order_id || id;
     return input;
   }
