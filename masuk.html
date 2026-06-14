@@ -5591,15 +5591,15 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
     }
     async function verifyBackendCookieSession(identifier){
       var lastMessage = '';
-      for(var attempt = 0; attempt < 4; attempt += 1){
-        if(attempt > 0){
-          await new Promise(function(resolve){ setTimeout(resolve, 180 + attempt * 220); });
-        }
+      for(var attempt = 0; attempt < 8; attempt += 1){
+        // LOGOUT->LOGIN FIX: beri waktu browser HP/Safari menyimpan Set-Cookie baru.
+        // Sebelumnya hanya 4 percobaan cepat; setelah logout cookie clear + cookie baru kadang belum siap.
+        await new Promise(function(resolve){ setTimeout(resolve, attempt === 0 ? 160 : 260 + attempt * 320); });
         try{
-          var res = await fetch(ME_ENDPOINT, {
+          var res = await fetch(ME_ENDPOINT + '&_ts=' + Date.now() + '_' + attempt, {
             method:'GET',
             mode:'same-origin',
-            headers:{'Accept':'application/json'},
+            headers:{'Accept':'application/json','X-Dirac-Session-Check':'login-cookie-after-auth'},
             credentials:'include',
             cache:'no-store'
           });
@@ -5649,7 +5649,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       var verifiedCookie = await verifyBackendCookieSession(identifier);
       if(!verifiedCookie.ok){
         clearPendingAuth();
-        status('error','Login berhasil di server, tetapi cookie HttpOnly belum terbaca oleh backend. A2F tidak dibuka. Hapus data website untuk diracgroup.store lalu login ulang. Detail: ' + (verifiedCookie.message || 'domain_me masih gagal.'));
+        status('error','Login berhasil di server, tetapi sesi HttpOnly belum terbaca oleh backend setelah beberapa percobaan. A2F tidak dibuka agar aman. Cek: backend health.js sudah versi cookie fix, login/logout memakai domain yang sama, dan semua fetch auth memakai credentials include. Detail: ' + (verifiedCookie.message || 'domain_me masih gagal.'));
         showToast('Cookie login belum valid. A2F tetap dikunci.');
         return;
       }
@@ -10016,6 +10016,97 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
       }
     }, true);
   });
+})();
+</script>
+
+
+<script id="dirac-logout-login-cookie-hardening-final-js">
+(function(){
+  'use strict';
+  /*
+    FIX FINAL LOGIN SETELAH LOGOUT
+    - Semua request auth/A2F tetap membawa cookie HttpOnly.
+    - Jika endpoint API tidak sengaja menjadi absolute cross-origin, mode same-origin diubah ke cors agar tidak langsung diblok browser.
+    - Tidak menyimpan token di localStorage/sessionStorage.
+    - Tidak mengubah password, payload login, desain, atau endpoint utama.
+  */
+  if(window.__DIRAC_LOGOUT_LOGIN_COOKIE_HARDENING_FINAL__) return;
+  window.__DIRAC_LOGOUT_LOGIN_COOKIE_HARDENING_FINAL__ = true;
+
+  var AUTH_PATH_RE = /\/api\/(?:health|2fa\/start-step|2fa\/verify-step)(?:\?|$|\/)/i;
+  var AUTH_ACTION_RE = /action=(?:domain_login|domain_register|domain_me|domain_dashboard_me|domain_logout|domain_mfa_status|dirac_mfa_passkey_status|customer_security_recovery_code_verify)\b/i;
+  var SAFE_CROSS_ORIGIN = {
+    'diracgroup.store': true,
+    'www.diracgroup.store': true,
+    'companyprofilee-ochre.vercel.app': true,
+    'companyprofilee-expk.vercel.app': true
+  };
+
+  function urlOf(input){
+    try{
+      if(typeof input === 'string') return new URL(input, window.location.href);
+      if(input && input.url) return new URL(input.url, window.location.href);
+    }catch(_e){}
+    return null;
+  }
+
+  function shouldHarden(url){
+    if(!url) return false;
+    var full = url.pathname + url.search;
+    return AUTH_PATH_RE.test(full) || AUTH_ACTION_RE.test(url.search || '');
+  }
+
+  function isSafeApiHost(url){
+    if(!url) return false;
+    if(url.origin === window.location.origin) return true;
+    return SAFE_CROSS_ORIGIN[url.hostname] === true;
+  }
+
+  function cloneInit(input, init){
+    var out = {};
+    if(input && typeof Request !== 'undefined' && input instanceof Request){
+      try{
+        out.method = input.method;
+        out.headers = input.headers;
+        out.credentials = input.credentials;
+        out.cache = input.cache;
+        out.mode = input.mode;
+      }catch(_e){}
+    }
+    if(init && typeof init === 'object'){
+      Object.keys(init).forEach(function(k){ out[k] = init[k]; });
+    }
+    return out;
+  }
+
+  if(window.fetch){
+    var nativeFetch = window.fetch.bind(window);
+    window.fetch = function(input, init){
+      var url = urlOf(input);
+      if(shouldHarden(url) && isSafeApiHost(url)){
+        var next = cloneInit(input, init);
+        if(next.credentials !== 'omit') next.credentials = 'include';
+        next.cache = next.cache || 'no-store';
+        var crossOrigin = url && url.origin !== window.location.origin;
+        if(crossOrigin && (!next.mode || next.mode === 'same-origin')) next.mode = 'cors';
+        if(!next.headers) next.headers = {};
+        try{
+          var h = new Headers(next.headers);
+          if(!h.has('Accept')) h.set('Accept','application/json');
+          next.headers = h;
+        }catch(_e){}
+        return nativeFetch(input, next);
+      }
+      return nativeFetch(input, init);
+    };
+  }
+
+  window.DiracAuthCookieDebug = {
+    version:'logout-login-cookie-hardening-final-v1',
+    sameOrigin: window.location.origin,
+    authCookieTransport:'HttpOnly Secure cookie via credentials include',
+    note:'Cookie HttpOnly tidak bisa dibaca JavaScript; validasi benar dilakukan lewat /api/health?action=domain_me.'
+  };
 })();
 </script>
 
