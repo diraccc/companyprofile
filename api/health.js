@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-dashboard-key-accept-v11';
 const DIRAC_IPAYMU_PATCH = 'ipaymu-redirect-v12';
+const DIRAC_COOKIE_SESSION_PATCH = 'cookie-signed-session-v16';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
@@ -213,7 +214,9 @@ function normalizeDomainAction(action) {
 const ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || 'dirac_domain_session';
 const REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || 'dirac_domain_refresh';
 const CUSTOMER_MFA_COOKIE = process.env.DIRAC_CUSTOMER_MFA_COOKIE || 'dirac_customer_mfa_session';
+const DOMAIN_SIGNED_SESSION_COOKIE = process.env.DOMAIN_SIGNED_SESSION_COOKIE || 'dirac_domain_signed_session';
 const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
+const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
 
 
 const HOSTINGER_API_BASE = 'https://developers.hostinger.com';
@@ -375,6 +378,8 @@ async function domainHealth(req, res) {
   return res.status(200).json({
     ok: true,
     service: 'dirac-domain',
+    debugPatch: DIRAC_COOKIE_SESSION_PATCH,
+    signedSessionCookie: DOMAIN_SIGNED_SESSION_COOKIE,
     message: 'Domain API aktif.',
     endpoints: {
       check: '/api/health?action=domain_check&domain=contoh.com',
@@ -1977,6 +1982,12 @@ async function requireDomainUser(req, res) {
     }
   }
 
+  const signedSessionUser = await readSignedDomainSessionUser(cookies);
+  if (signedSessionUser && signedSessionUser.id) {
+    res.setHeader('X-Domain-Signed-Session', 'true');
+    return signedSessionUser;
+  }
+
   clearSessionCookies(res);
   res.status(401).json({ ok: false, message: 'Belum login atau sesi sudah habis.' });
   return null;
@@ -3115,21 +3126,52 @@ function makeCookie(name, value, options = {}) {
 const DOMAIN_COOKIE_CHUNK_SIZE = 3400;
 const DOMAIN_COOKIE_MAX_CHUNKS = 12;
 
+function getCompactCookieDomainsForSession() {
+  const domains = [];
+  const add = (value) => {
+    const domain = normalizeCookieDomain(value);
+    const key = domain || '__host_only__';
+    if (domains.some((item) => (item || '__host_only__') === key)) return;
+    domains.push(domain);
+  };
+
+  // Host-only harus utama agar diracgroup.store langsung membaca cookie hasil login/register.
+  add('');
+  add(process.env.DOMAIN_COOKIE_DOMAIN);
+  add('diracgroup.store');
+  return domains;
+}
+
+function makeCompactClearCookie(name) {
+  return getCompactCookieDomainsForSession().map((domain) => makeCookie(name, '', { maxAge: 0, domain }));
+}
+
+function makeCompactClearTokenCookieChunks(name) {
+  const cookies = [];
+  getCompactCookieDomainsForSession().forEach((domain) => {
+    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+      cookies.push(makeCookie(`${name}__${index}`, '', { maxAge: 0, domain }));
+    }
+  });
+  return cookies;
+}
+
 function makeTokenCookieSet(name, value, options = {}) {
   const token = String(value || '');
-  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
-  const cookies = [...makeCookieVariants(name, '', { maxAge: 0 })];
+  const cookies = [
+    ...makeCompactClearCookie(name),
+    ...makeCompactClearTokenCookieChunks(name)
+  ];
 
   if (!token) return cookies;
 
+  // Jangan set token ke banyak domain sekaligus. Di iOS/Safari dan beberapa edge runtime,
+  // Set-Cookie yang terlalu banyak dapat membuat cookie session Supabase tidak tersimpan.
+  // Actual session canonical hanya host-only; domain legacy hanya dibersihkan.
   if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
-    cookies.push(...makeCookieVariants(name, token, options));
+    cookies.push(makeCookie(name, token, Object.assign({}, options, { domain: '' })));
     return cookies;
   }
-
-  // Token besar dapat ditolak browser jika dipaksa masuk 1 cookie. Pecah hanya token aktual,
-  // tetapi jangan kirim puluhan clear-cookie varian domain agar header tidak membengkak.
-  cookies.push(...makeClearTokenCookieChunks(name));
 
   const chunks = [];
   for (let index = 0; index < token.length; index += DOMAIN_COOKIE_CHUNK_SIZE) {
@@ -3140,26 +3182,21 @@ function makeTokenCookieSet(name, value, options = {}) {
     return cookies;
   }
 
-  cookies.push(makeCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: domainPreference || '' })));
+  cookies.push(makeCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: '' })));
   chunks.forEach((chunk, index) => {
-    cookies.push(makeCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: domainPreference || '' })));
+    cookies.push(makeCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: '' })));
   });
   return cookies;
 }
 
 function makeClearTokenCookieChunks(name) {
-  const cookies = [];
-  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
-  for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
-    cookies.push(makeCookie(`${name}__${index}`, '', { maxAge: 0, domain: domainPreference || '' }));
-  }
-  return cookies;
+  return makeCompactClearTokenCookieChunks(name);
 }
 
 function makeClearTokenCookieSet(name) {
   return [
-    ...makeCookieVariants(name, '', { maxAge: 0 }),
-    ...makeClearTokenCookieChunks(name)
+    ...makeCompactClearCookie(name),
+    ...makeCompactClearTokenCookieChunks(name)
   ];
 }
 
@@ -3261,7 +3298,8 @@ function setSessionCookies(res, session) {
   const maxAge = 60 * 60 * 24 * 7;
   appendSetCookie(res, [
     ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
-    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge })
+    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge }),
+    ...makeSignedDomainSessionCookieSet(session, { maxAge })
   ]);
   return true;
 }
@@ -3270,8 +3308,116 @@ function clearSessionCookies(res) {
   appendSetCookie(res, [
     ...makeClearTokenCookieSet(ACCESS_COOKIE),
     ...makeClearTokenCookieSet(REFRESH_COOKIE),
-    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE)
+    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE),
+    ...makeClearTokenCookieSet(DOMAIN_SIGNED_SESSION_COOKIE)
   ]);
+}
+
+function base64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+function parseBase64UrlJson(value) {
+  try {
+    return JSON.parse(Buffer.from(String(value || ''), 'base64url').toString('utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+function decodeJwtPayloadUnsafe(token) {
+  const parts = String(token || '').split('.');
+  if (parts.length < 2) return null;
+  return parseBase64UrlJson(parts[1]);
+}
+
+function getDomainSignedSessionSecret() {
+  return String(
+    process.env.DOMAIN_SESSION_SIGNING_SECRET ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_JWT_SECRET ||
+    process.env.AI_ADMIN_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    ''
+  ).trim();
+}
+
+function extractUserForSignedDomainSession(session) {
+  const sessionObj = session && typeof session === 'object' ? session : {};
+  const user = sessionObj.user && typeof sessionObj.user === 'object' ? sessionObj.user : {};
+  const jwt = decodeJwtPayloadUnsafe(sessionObj.access_token);
+  const id = String(user.id || user.sub || (jwt && (jwt.sub || jwt.user_id)) || '').trim();
+  const email = normalizeAuthEmail(user.email || (jwt && jwt.email) || '');
+  if (!id || !email) return null;
+  return { id, email };
+}
+
+function signDomainSessionPayload(payload) {
+  const secret = getDomainSignedSessionSecret();
+  if (!secret) return '';
+  const body = base64UrlJson(payload);
+  const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+
+function verifyDomainSessionCookieValue(value) {
+  const secret = getDomainSignedSessionSecret();
+  if (!secret) return null;
+  const raw = String(value || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2) return null;
+  const [body, sig] = parts;
+  const expected = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+  if (!safeEqual(sig, expected)) return null;
+  const payload = parseBase64UrlJson(body);
+  if (!payload || payload.typ !== DOMAIN_SIGNED_SESSION_TYPE) return null;
+  const exp = Number(payload.exp || 0);
+  if (!Number.isFinite(exp) || exp <= Math.floor(Date.now() / 1000)) return null;
+  const id = String(payload.uid || payload.id || '').trim();
+  const email = normalizeAuthEmail(payload.email || '');
+  if (!id || !email) return null;
+  return { id, email, exp };
+}
+
+function makeSignedDomainSessionCookieSet(session, options = {}) {
+  const user = extractUserForSignedDomainSession(session);
+  const maxAge = Math.max(60, Math.floor(Number(options.maxAge || 60 * 60 * 24 * 7)));
+  const cookies = [
+    ...makeCompactClearCookie(DOMAIN_SIGNED_SESSION_COOKIE),
+    ...makeCompactClearTokenCookieChunks(DOMAIN_SIGNED_SESSION_COOKIE)
+  ];
+  if (!user) return cookies;
+
+  const now = Math.floor(Date.now() / 1000);
+  const value = signDomainSessionPayload({
+    typ: DOMAIN_SIGNED_SESSION_TYPE,
+    uid: user.id,
+    email: user.email,
+    iat: now,
+    exp: now + maxAge,
+    nonce: crypto.randomBytes(12).toString('base64url')
+  });
+  if (!value) return cookies;
+
+  cookies.push(makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, { maxAge, domain: '' }));
+  return cookies;
+}
+
+async function readSignedDomainSessionUser(cookies) {
+  const values = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
+  for (const value of values) {
+    const payload = verifyDomainSessionCookieValue(value);
+    if (!payload) continue;
+
+    const checked = await getSupabaseAuthUserByEmail(payload.email);
+    if (checked && checked.user) {
+      const user = normalizeSupabaseAdminUser(checked.user);
+      if (user && String(user.id || '') === payload.id) {
+        return user;
+      }
+    }
+  }
+  return null;
 }
 
 function normalizeDomain(value) {
