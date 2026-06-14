@@ -500,9 +500,26 @@ async function domainLogin(req, res, preloadedBody) {
       message: error.publicMessage || 'Request login tidak valid.'
     });
   }
-  const rawEmail = String(body.email || body.identifier || body.customer_email || '');
+  const rawEmail = String(
+    body.email ||
+    body.identifier ||
+    body.customer_email ||
+    body.customerEmail ||
+    body.login_email ||
+    body.loginEmail ||
+    ''
+  );
   const email = normalizeAuthEmail(rawEmail);
-  const password = String(body.password || '');
+  const password = String(
+    body.password ||
+    body.customer_password ||
+    body.customerPassword ||
+    body.login_password ||
+    body.loginPassword ||
+    body.pass ||
+    body.pw ||
+    ''
+  );
 
   const loginGuard = await guardDomainLoginInput(req, res, {
     rawEmail,
@@ -515,6 +532,8 @@ async function domainLogin(req, res, preloadedBody) {
   if (!loginGuard.ok) {
     return res.status(loginGuard.status).json(loginGuard.body);
   }
+
+  clearSessionCookies(res);
 
   const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
     method: 'POST',
@@ -993,9 +1012,26 @@ async function domainRegister(req, res, preloadedBody) {
       message: error.publicMessage || 'Request pendaftaran tidak valid.'
     });
   }
-  const rawEmail = String(body.email || body.identifier || body.customer_email || '');
+  const rawEmail = String(
+    body.email ||
+    body.identifier ||
+    body.customer_email ||
+    body.customerEmail ||
+    body.login_email ||
+    body.loginEmail ||
+    ''
+  );
   const email = normalizeAuthEmail(rawEmail);
-  const password = String(body.password || '');
+  const password = String(
+    body.password ||
+    body.customer_password ||
+    body.customerPassword ||
+    body.login_password ||
+    body.loginPassword ||
+    body.pass ||
+    body.pw ||
+    ''
+  );
   const fullName = String(body.full_name || body.fullName || body.name || '').trim();
   const whatsapp = normalizePhone(body.whatsapp || body.phone || body.customer_whatsapp || '');
 
