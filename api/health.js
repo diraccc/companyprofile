@@ -1932,10 +1932,12 @@ async function requireDomainUser(req, res) {
     ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
     : '';
 
-  const accessToken = headerToken || readCookieToken(cookies, ACCESS_COOKIE);
-  const refreshToken = headerRefreshToken || readCookieToken(cookies, REFRESH_COOKIE);
+  const accessTokens = uniqueNonEmptyStrings([
+    headerToken,
+    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+  ]);
 
-  if (accessToken) {
+  for (const accessToken of accessTokens) {
     const userResult = await supabaseFetch('/auth/v1/user', {
       method: 'GET',
       auth: 'anon',
@@ -1947,7 +1949,12 @@ async function requireDomainUser(req, res) {
     }
   }
 
-  if (refreshToken) {
+  const refreshTokens = uniqueNonEmptyStrings([
+    headerRefreshToken,
+    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE)
+  ]);
+
+  for (const refreshToken of refreshTokens) {
     const refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
       method: 'POST',
       auth: 'anon',
@@ -2996,15 +3003,36 @@ function parseCookies(req) {
   const header = req.headers && req.headers.cookie ? req.headers.cookie : '';
   const cookies = {};
 
+  Object.defineProperty(cookies, '__all', {
+    value: {},
+    enumerable: false,
+    configurable: false,
+    writable: true
+  });
+
   header.split(';').map((item) => item.trim()).filter(Boolean).forEach((item) => {
     const index = item.indexOf('=');
     if (index === -1) {
+      if (!cookies.__all[item]) cookies.__all[item] = [];
+      cookies.__all[item].push('');
       cookies[item] = '';
       return;
     }
 
     const key = item.slice(0, index);
-    const value = decodeURIComponent(item.slice(index + 1));
+    let value = item.slice(index + 1);
+    try {
+      value = decodeURIComponent(value);
+    } catch (_) {
+      value = String(value || '');
+    }
+
+    if (!cookies.__all[key]) cookies.__all[key] = [];
+    cookies.__all[key].push(value);
+
+    // Tetap simpan bentuk lama untuk kompatibilitas fungsi lain.
+    // Kalau browser mengirim cookie dobel dari host/domain berbeda, nilai terakhir tetap legacy,
+    // sedangkan requireDomainUser akan mencoba semua kandidat lewat __all.
     cookies[key] = value;
   });
 
@@ -3095,7 +3123,7 @@ function makeTokenCookieSet(name, value, options = {}) {
   if (!token) return cookies;
 
   if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
-    cookies.push(makeCookie(name, token, Object.assign({}, options, { domain: domainPreference || '' })));
+    cookies.push(...makeCookieVariants(name, token, options));
     return cookies;
   }
 
@@ -3135,9 +3163,30 @@ function makeClearTokenCookieSet(name) {
   ];
 }
 
-function readCookieToken(cookies, name) {
+function uniqueNonEmptyStrings(values) {
+  const seen = new Set();
+  const output = [];
+  (Array.isArray(values) ? values : [values]).forEach((value) => {
+    const clean = String(value || '').trim();
+    if (!clean || seen.has(clean)) return;
+    seen.add(clean);
+    output.push(clean);
+  });
+  return output;
+}
+
+function getCookieAllValues(cookies, name) {
   const jar = cookies && typeof cookies === 'object' ? cookies : {};
-  const marker = String(jar[name] || '');
+  const all = jar.__all && typeof jar.__all === 'object' && Array.isArray(jar.__all[name])
+    ? jar.__all[name]
+    : [];
+  const values = all.length ? all.slice() : [jar[name]];
+  return uniqueNonEmptyStrings(values).reverse();
+}
+
+function readCookieTokenFromMarker(cookies, name, markerValue) {
+  const jar = cookies && typeof cookies === 'object' ? cookies : {};
+  const marker = String(markerValue || '');
   const chunkMatch = marker.match(/^__chunked_(\d+)$/);
   if (chunkMatch) {
     const count = Math.max(0, Math.min(DOMAIN_COOKIE_MAX_CHUNKS, Number(chunkMatch[1]) || 0));
@@ -3166,21 +3215,35 @@ function readCookieToken(cookies, name) {
   return '';
 }
 
+function readCookieTokenCandidates(cookies, name) {
+  const markers = getCookieAllValues(cookies, name);
+  const candidates = markers.map((marker) => readCookieTokenFromMarker(cookies, name, marker));
+  candidates.push(readCookieTokenFromMarker(cookies, name, cookies && cookies[name]));
+  return uniqueNonEmptyStrings(candidates);
+}
+
+function readCookieToken(cookies, name) {
+  return readCookieTokenCandidates(cookies, name)[0] || '';
+}
+
 function makeCookieVariants(name, value, options = {}) {
   const cookies = [];
-  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
+  const usedDomains = new Set();
+  const addCookie = (domain) => {
+    const normalized = normalizeCookieDomain(domain || '');
+    const key = normalized || '__host_only__';
+    if (usedDomains.has(key)) return;
+    usedDomains.add(key);
+    cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: normalized })));
+  };
 
-  // Canonical cookie: host-only by default. Kalau ENV DOMAIN_COOKIE_DOMAIN diisi,
-  // canonical mengikuti domain tersebut. Ini tidak membuka akses JS karena tetap HttpOnly.
-  cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: domainPreference || '' })));
+  // Canonical utama selalu host-only agar login/register di apex diracgroup.store langsung terbaca
+  // walaupun ENV DOMAIN_COOKIE_DOMAIN lama pernah terisi subdomain/wrong domain.
+  addCookie('');
+  addCookie(process.env.DOMAIN_COOKIE_DOMAIN);
 
-  // Compatibility cookie domain untuk membersihkan/menyamakan sisa cookie lama
-  // dari patch sebelumnya yang mungkin memakai Domain=diracgroup.store.
-  getDomainCookieDomainCandidates().forEach((domain) => {
-    if (domain !== domainPreference) {
-      cookies.push(makeCookie(name, value, Object.assign({}, options, { domain })));
-    }
-  });
+  // Compatibility cookie domain untuk membersihkan/menyamakan sisa cookie lama dari host/domain lain.
+  getDomainCookieDomainCandidates().forEach((domain) => addCookie(domain));
 
   return cookies;
 }
