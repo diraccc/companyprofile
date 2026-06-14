@@ -11470,7 +11470,9 @@ function orderMailBuildNewOrderMessages(data) {
     'Rincian:',
     itemsText,
     '',
-    'Bantuan: support@diracgroup.store',
+    'Lihat pesanan: https://diracgroup.store/pesanan.html',
+    'Hubungi support: support@diracgroup.store',
+    'Butuh bantuan WhatsApp: https://wa.me/6287892523968',
     'Dirac Group'
   ].filter((line) => line !== '').join('\n');
 
@@ -11506,11 +11508,7 @@ function orderMailBuildNewOrderMessages(data) {
     ${productCardsHtml}
     <h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Rincian pesanan</h3>
     ${itemsHtml}
-    <div style="margin-top:22px">
-      <a href="${orderMailEscapeHtml(orderUrl)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 18px;border-radius:10px">Lihat pesanan</a>
-      <a href="mailto:support@diracgroup.store" style="display:inline-block;background:#eef2ff;color:#1e3a8a;text-decoration:none;font-size:14px;font-weight:700;padding:12px 18px;border-radius:10px;margin-left:8px">Hubungi support</a>
-    </div>
-  `, { badge: paid ? 'PAID' : 'ORDER', total });
+  `, { badge: paid ? 'PAID' : 'ORDER', total, showActions: true, showPromoImage: true });
 
   const ownerHtml = orderMailHtmlShell(ownerSubject, `
     <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#334155">${orderMailEscapeHtml(ownerIntro)}</p>
@@ -11529,7 +11527,7 @@ function orderMailBuildNewOrderMessages(data) {
     ${productCardsHtml}
     <h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Rincian pesanan</h3>
     ${itemsHtml}
-  `, { badge: paid ? 'PAID' : 'OWNER', total });
+  `, { badge: paid ? 'PAID' : 'OWNER', total, showActions: false, showPromoImage: false });
 
   return { customerSubject, ownerSubject, customerText, ownerText, customerHtml, ownerHtml };
 }
@@ -11550,15 +11548,87 @@ function orderMailDefaultProductImageUrl() {
   return orderMailAssetUrl(process.env.ORDER_EMAIL_DEFAULT_PRODUCT_IMAGE_URL || '');
 }
 function orderMailOrderUrl(orderCode) {
-  const base = orderMailAssetBaseUrl();
-  const code = encodeURIComponent(String(orderCode || '').trim());
-  return orderMailCleanUrl(process.env.ORDER_EMAIL_ORDER_URL || (base + '/pesanan.html' + (code ? '?order=' + code : ''))) || base;
+  // EMAIL TEMPLATE ONLY: link "Lihat pesanan" wajib selalu ke halaman pesanan resmi.
+  // Tidak memakai query, payment URL, localStorage, atau data frontend.
+  return 'https://diracgroup.store/pesanan.html';
 }
 function orderMailHtmlShell(title, body, options = {}) {
   const badge = orderMailEscapeHtml(options.badge || 'PAID');
   const total = orderMailEscapeHtml(options.total || '');
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${orderMailEscapeHtml(title)}</title></head><body style="margin:0;padding:0;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#eef2f7;margin:0;padding:24px 0"><tr><td align="center" style="padding:0 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ef;box-shadow:0 8px 30px rgba(15,23,42,.08)"><tr><td style="background:#0f172a;padding:28px 32px;background-image:linear-gradient(135deg,#0f172a,#1d4ed8)"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td valign="top" style="color:#ffffff"><div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#bfdbfe;margin-bottom:10px">Dirac Group</div><div style="font-size:27px;line-height:1.25;font-weight:800;color:#ffffff">${orderMailEscapeHtml(title)}</div>${total ? `<div style="margin-top:12px;font-size:14px;color:#dbeafe">Total pembayaran: <strong style="color:#ffffff">${total}</strong></div>` : ''}</td><td valign="top" align="right" style="padding-left:12px"><span style="display:inline-block;background:#dcfce7;color:#166534;font-size:12px;font-weight:800;padding:8px 14px;border-radius:999px;white-space:nowrap">${badge}</span></td></tr></table></td></tr><tr><td style="padding:28px 32px">${body}</td></tr><tr><td style="background:#0f172a;padding:24px 32px;text-align:center;color:#cbd5e1;font-size:13px;line-height:1.8">Email ini dikirim otomatis oleh sistem Dirac Group.<br>Butuh bantuan? Hubungi <a href="mailto:support@diracgroup.store" style="color:#93c5fd;text-decoration:none;font-weight:700">support@diracgroup.store</a><br><br>© 2026 Dirac Group. All rights reserved.</td></tr></table></td></tr></table></body></html>`;
+  const orderUrl = 'https://diracgroup.store/pesanan.html';
+  const supportEmail = 'support@diracgroup.store';
+  const whatsappUrl = 'https://wa.me/6287892523968';
+  const promoImage = 'https://diracgroup.store/email.webp';
+  const showActions = options.showActions !== false;
+  const showPromoImage = options.showPromoImage !== false;
+  const actionsHtml = showActions ? `
+        <div style="margin-top:24px;text-align:left">
+          <a href="${orderMailEscapeHtml(orderUrl)}" style="display:inline-block;background:#2563eb;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0">Lihat pesanan</a>
+          <a href="mailto:${supportEmail}" style="display:inline-block;background:#eef2ff;color:#1e3a8a!important;-webkit-text-fill-color:#1e3a8a!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0">Hubungi support</a>
+          <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;background:#22c55e;color:#06230f!important;-webkit-text-fill-color:#06230f!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 0 8px 0">Butuh bantuan</a>
+        </div>` : '';
+  const promoHtml = showPromoImage ? `
+      <tr>
+        <td style="padding:0 32px 26px;background:#ffffff">
+          <a href="${orderMailEscapeHtml(orderUrl)}" style="text-decoration:none;border:0">
+            <img src="${orderMailEscapeHtml(promoImage)}" width="616" alt="Dirac Group" style="display:block;width:100%;max-width:616px;height:auto;border:0;border-radius:14px;background:#f8fafc;outline:none;text-decoration:none">
+          </a>
+        </td>
+      </tr>` : '';
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>${orderMailEscapeHtml(title)}</title>
+</head>
+<body style="margin:0!important;padding:0!important;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#eef2f7;margin:0;padding:24px 0">
+    <tr>
+      <td align="center" style="padding:0 12px">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ef;box-shadow:0 8px 30px rgba(15,23,42,.08)">
+          <tr>
+            <td bgcolor="#0b3dd9" style="background:#0b3dd9;padding:30px 32px;background-image:linear-gradient(135deg,#081f5f 0%,#1d4ed8 58%,#0ea5e9 100%)">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td valign="top" style="color:#ffffff!important">
+                    <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#dbeafe!important;-webkit-text-fill-color:#dbeafe!important;margin-bottom:10px;font-weight:800">DIRAC GROUP</div>
+                    <div style="font-size:28px;line-height:1.22;font-weight:900;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-shadow:0 2px 4px rgba(0,0,0,.48);mso-line-height-rule:exactly">${orderMailEscapeHtml(title)}</div>
+                    ${total ? `<div style="margin-top:12px;font-size:15px;line-height:1.5;color:#e0f2fe!important;-webkit-text-fill-color:#e0f2fe!important">Total pembayaran: <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${total}</strong></div>` : ''}
+                  </td>
+                  <td valign="top" align="right" style="padding-left:12px">
+                    <span style="display:inline-block;background:#dcfce7;color:#166534!important;-webkit-text-fill-color:#166534!important;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;white-space:nowrap">${badge}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px;background:#ffffff;color:#0f172a">
+              ${body}
+              ${actionsHtml}
+            </td>
+          </tr>
+          ${promoHtml}
+          <tr>
+            <td style="background:#e8eeff;padding:24px 32px;text-align:center;color:#475569!important;-webkit-text-fill-color:#475569!important;font-size:14px;line-height:1.8">
+              Email ini dikirim otomatis oleh sistem Dirac Group.<br>
+              Hubungi support hanya ke <a href="mailto:${supportEmail}" style="color:#2563eb!important;-webkit-text-fill-color:#2563eb!important;text-decoration:none;font-weight:900">${supportEmail}</a><br>
+              <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;margin-top:12px;background:#22c55e;color:#06230f!important;-webkit-text-fill-color:#06230f!important;text-decoration:none;font-size:14px;font-weight:900;padding:12px 18px;border-radius:10px">Butuh bantuan</a><br><br>
+              © 2026 Dirac Group. All rights reserved.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
+
 function orderMailInfoTable(rows) {
   const body = (rows || []).map(([key, value]) => `<tr><td style="padding:13px 16px;border-bottom:1px solid #e5e7eb;color:#64748b;width:42%;font-size:14px">${orderMailEscapeHtml(key)}</td><td style="padding:13px 16px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-size:14px;font-weight:700">${orderMailEscapeHtml(value)}</td></tr>`).join('');
   return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#f8fafc">${body}</table>`;
