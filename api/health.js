@@ -500,26 +500,9 @@ async function domainLogin(req, res, preloadedBody) {
       message: error.publicMessage || 'Request login tidak valid.'
     });
   }
-  const rawEmail = String(
-    body.email ||
-    body.identifier ||
-    body.customer_email ||
-    body.customerEmail ||
-    body.login_email ||
-    body.loginEmail ||
-    ''
-  );
+  const rawEmail = String(body.email || body.identifier || body.customer_email || '');
   const email = normalizeAuthEmail(rawEmail);
-  const password = String(
-    body.password ||
-    body.customer_password ||
-    body.customerPassword ||
-    body.login_password ||
-    body.loginPassword ||
-    body.pass ||
-    body.pw ||
-    ''
-  );
+  const password = String(body.password || '');
 
   const loginGuard = await guardDomainLoginInput(req, res, {
     rawEmail,
@@ -532,8 +515,6 @@ async function domainLogin(req, res, preloadedBody) {
   if (!loginGuard.ok) {
     return res.status(loginGuard.status).json(loginGuard.body);
   }
-
-  clearSessionCookies(res);
 
   const result = await supabaseFetch('/auth/v1/token?grant_type=password', {
     method: 'POST',
@@ -1012,26 +993,9 @@ async function domainRegister(req, res, preloadedBody) {
       message: error.publicMessage || 'Request pendaftaran tidak valid.'
     });
   }
-  const rawEmail = String(
-    body.email ||
-    body.identifier ||
-    body.customer_email ||
-    body.customerEmail ||
-    body.login_email ||
-    body.loginEmail ||
-    ''
-  );
+  const rawEmail = String(body.email || body.identifier || body.customer_email || '');
   const email = normalizeAuthEmail(rawEmail);
-  const password = String(
-    body.password ||
-    body.customer_password ||
-    body.customerPassword ||
-    body.login_password ||
-    body.loginPassword ||
-    body.pass ||
-    body.pw ||
-    ''
-  );
+  const password = String(body.password || '');
   const fullName = String(body.full_name || body.fullName || body.name || '').trim();
   const whatsapp = normalizePhone(body.whatsapp || body.phone || body.customer_whatsapp || '');
 
@@ -3131,8 +3095,9 @@ function appendSetCookie(res, cookies) {
 
 function makeCookie(name, value, options = {}) {
   // Produksi paling aman: token customer hanya lewat backend-only cookie.
-  // Default Lax agar alur POST login -> domain_me -> A2F berjalan stabil di browser HP.
-  const sameSite = normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || 'Lax');
+  // Default None agar cookie tetap dikirim saat frontend dan API beda origin
+  // (misal diracgroup.store -> *.vercel.app). Untuk dev HTTP lokal, set env DOMAIN_COOKIE_SAMESITE=Lax.
+  const sameSite = normalizeCookieSameSite(process.env.DOMAIN_COOKIE_SAMESITE || 'None');
   const secureCookie = sameSite === 'None' || process.env.NODE_ENV !== 'development' || isEnvTrue('DOMAIN_COOKIE_FORCE_SECURE');
   const parts = [
     `${name}=${encodeURIComponent(value || '')}`,
@@ -3194,16 +3159,15 @@ function makeCompactClearTokenCookieChunks(name) {
 
 function makeTokenCookieSet(name, value, options = {}) {
   const token = String(value || '');
-  const cookies = [
-    ...makeCompactClearCookie(name),
-    ...makeCompactClearTokenCookieChunks(name)
-  ];
+  const cookies = [];
 
   if (!token) return cookies;
 
-  // Jangan set token ke banyak domain sekaligus. Di iOS/Safari dan beberapa edge runtime,
-  // Set-Cookie yang terlalu banyak dapat membuat cookie session Supabase tidak tersimpan.
-  // Actual session canonical hanya host-only; domain legacy hanya dibersihkan.
+  // FIX: jangan kirim puluhan Set-Cookie clear saat login.
+  // Sebelumnya login mengirim clear cookie untuk host-only + domain + semua chunk,
+  // lalu baru mengirim cookie sesi baru. Di mobile Safari / edge proxy / Vercel,
+  // header Set-Cookie yang terlalu banyak bisa membuat cookie sesi baru tidak tersimpan.
+  // Clear besar tetap dilakukan hanya di logout melalui makeClearTokenCookieSet().
   if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
     cookies.push(makeCookie(name, token, Object.assign({}, options, { domain: '' })));
     return cookies;
@@ -3418,10 +3382,7 @@ function verifyDomainSessionCookieValue(value) {
 function makeSignedDomainSessionCookieSet(session, options = {}) {
   const user = extractUserForSignedDomainSession(session);
   const maxAge = Math.max(60, Math.floor(Number(options.maxAge || 60 * 60 * 24 * 7)));
-  const cookies = [
-    ...makeCompactClearCookie(DOMAIN_SIGNED_SESSION_COOKIE),
-    ...makeCompactClearTokenCookieChunks(DOMAIN_SIGNED_SESSION_COOKIE)
-  ];
+  const cookies = [];
   if (!user) return cookies;
 
   const now = Math.floor(Date.now() / 1000);
@@ -10925,30 +10886,23 @@ async function diracUniversalPesananFetchRegularItems(orderId, amount, serviceTy
   const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
   const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch(() => null);
   const rows = result && result.ok && Array.isArray(result.data) ? result.data : [];
-  const productsById = await diracUniversalPesananFetchProductsForOrderItems(rows);
   const items = [];
   let total = 0;
 
   rows.forEach((row, index) => {
-    const productKey = lockedPaymentCleanText(row && row.product_doc_id || '', 120);
-    const product = productsById.get(productKey) || {};
     const quantity = lockedPaymentPositiveInteger(row && row.quantity, 1, 9999);
     const unitPrice = lockedPaymentMoney(row && row.unit_price);
-    const title = lockedPaymentCleanText(row && row.product_title || product.title || product.name || myOrdersServiceLabel(serviceType) || 'Item pesanan', 180);
+    const title = lockedPaymentCleanText(row && row.product_title || myOrdersServiceLabel(serviceType) || 'Item pesanan', 180);
     if (!title || quantity <= 0 || unitPrice <= 0) return;
     const subtotal = quantity * unitPrice;
     total += subtotal;
     items.push({
       id: String(row.id || `item-${index + 1}`),
-      product_doc_id: productKey || null,
+      product_doc_id: lockedPaymentCleanText(row.product_doc_id || '', 80) || null,
       title,
       quantity,
       unit_price: unitPrice,
-      subtotal,
-      image_url: orderMailAssetUrl(product.image_url || product.img || ''),
-      description: orderMailCleanText(product.description || product.notes || product.long_description || product.category || '', 220),
-      category: orderMailCleanText(product.category || '', 80),
-      fragrance_type: orderMailCleanText(product.fragrance_type || '', 80)
+      subtotal
     });
   });
 
@@ -10960,37 +10914,13 @@ async function diracUniversalPesananFetchRegularItems(orderId, amount, serviceTy
         title: myOrdersServiceLabel(serviceType) || 'Total pesanan',
         quantity: 1,
         unit_price: amount,
-        subtotal: amount,
-        image_url: orderMailDefaultProductImageUrl(),
-        description: ''
+        subtotal: amount
       }],
       totalItem: amount
     };
   }
 
   return { items, totalItem: total };
-}
-
-async function diracUniversalPesananFetchProductsForOrderItems(rows) {
-  const ids = Array.from(new Set((rows || [])
-    .map((row) => lockedPaymentCleanText(row && row.product_doc_id || '', 120))
-    .filter(Boolean))).slice(0, 30);
-  const productsById = new Map();
-  for (const id of ids) {
-    const result = await supabaseFetch(
-      '/rest/v1/products?select=' + encodeURIComponent('doc_id,firebase_id,title,name,img,image_url,description,notes,long_description,category,fragrance_type') +
-      '&or=' + encodeURIComponent('(doc_id.eq.' + id + ',firebase_id.eq.' + id + ')') +
-      '&limit=1',
-      { method: 'GET', auth: 'service' }
-    ).catch(() => null);
-    const product = result && result.ok && Array.isArray(result.data) ? result.data[0] : null;
-    if (product) {
-      if (product.doc_id) productsById.set(lockedPaymentCleanText(product.doc_id, 120), product);
-      if (product.firebase_id) productsById.set(lockedPaymentCleanText(product.firebase_id, 120), product);
-      productsById.set(id, product);
-    }
-  }
-  return productsById;
 }
 
 async function diracUniversalPesananFetchDomainItems(domainOrderId, amount, fallbackDomainName) {
@@ -11098,7 +11028,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    - Owner/store email uses ORDER_OWNER_* ENV.
    ============================================================ */
 
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v15-email-template';
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v14';
 const __diracOrderMailPreviousHandler = module.exports;
 
 module.exports = async function diracOrderMailWrapper(req, res) {
@@ -11459,10 +11389,7 @@ function orderMailNormalizeOrderInput(input) {
       quantity: orderMailPositiveInt(item && (item.quantity || item.qty || item.years) || 1, 1, 9999),
       unit_price: orderMailMoney(item && (item.unit_price ?? item.price ?? item.register_price ?? 0)),
       subtotal: orderMailMoney(item && (item.subtotal ?? 0)),
-      description: orderMailCleanText(item && (item.description || item.notes || item.extension || item.product_doc_id) || '', 220),
-      image_url: orderMailAssetUrl(item && (item.image_url || item.image || item.img) || ''),
-      category: orderMailCleanText(item && item.category || '', 80),
-      fragrance_type: orderMailCleanText(item && item.fragrance_type || '', 80)
+      description: orderMailCleanText(item && (item.description || item.extension || item.product_doc_id) || '', 180)
     })).filter((item) => item.title)
   };
 }
@@ -11471,12 +11398,11 @@ function orderMailBuildNewOrderMessages(data) {
   const serviceLabel = orderMailServiceLabel(data.order.service_type || data.kind);
   const total = orderMailFormatCurrency(data.order.total, data.order.currency);
   const created = orderMailFormatDate(data.order.created_at);
-  const itemsText = orderMailItemsText(data.items, data.order.currency);
-  const itemsHtml = orderMailItemsHtml(data.items, data.order.currency);
-  const productCardsHtml = orderMailProductCardsHtml(data.items, data.order.currency);
+  const itemsText = orderMailItemsText(data.items);
+  const itemsHtml = orderMailItemsHtml(data.items);
   const paymentLine = data.payment.url ? `\nLink pembayaran: ${data.payment.url}` : '';
   const paymentHtml = data.payment.url
-    ? `<p style="margin:18px 0 0"><a href="${orderMailEscapeHtml(data.payment.url)}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700">Buka Link Pembayaran</a></p>`
+    ? `<p><a href="${orderMailEscapeHtml(data.payment.url)}" style="display:inline-block;padding:10px 14px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px">Buka Link Pembayaran</a></p>`
     : '';
 
   const paid = ['paid', 'success', 'settled', 'settlement', 'capture'].includes(String(data.order.payment_status || '').toLowerCase());
@@ -11487,13 +11413,12 @@ function orderMailBuildNewOrderMessages(data) {
     ? `Pembayaran berhasil ${data.order.code} - ${serviceLabel}`
     : `Order baru ${data.order.code} - ${serviceLabel}`;
   const customerIntro = paid
-    ? 'Pembayaran kamu sudah berhasil kami terima. Berikut invoice dan rincian pesanan kamu.'
-    : 'Pesanan kamu sudah kami terima. Berikut rincian pesanan dan informasi pembayaran kamu.';
+    ? 'Pembayaran kamu sudah berhasil kami terima. Berikut invoice/rincian pesanan kamu.'
+    : 'Pesanan kamu sudah kami terima.';
   const ownerIntro = paid
     ? 'Ada pembayaran order yang sudah berhasil dan valid dari webhook payment gateway.'
     : 'Ada order baru masuk.';
   const statusLabel = paid ? 'paid / sudah dibayar' : data.order.payment_status;
-  const orderUrl = orderMailOrderUrl(data.order.code);
 
   const customerText = [
     `Halo ${data.customer.name || 'Customer'},`,
@@ -11509,7 +11434,7 @@ function orderMailBuildNewOrderMessages(data) {
     'Rincian:',
     itemsText,
     '',
-    'Bantuan: support@diracgroup.store',
+    'Terima kasih,',
     'Dirac Group'
   ].filter((line) => line !== '').join('\n');
 
@@ -11531,28 +11456,23 @@ function orderMailBuildNewOrderMessages(data) {
   ].filter((line) => line !== '').join('\n');
 
   const customerHtml = orderMailHtmlShell(customerSubject, `
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#334155">Halo <strong>${orderMailEscapeHtml(data.customer.name || 'Customer')}</strong>,</p>
-    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#334155">${orderMailEscapeHtml(customerIntro)}</p>
+    <p>Halo ${orderMailEscapeHtml(data.customer.name || 'Customer')},</p>
+    <p>${orderMailEscapeHtml(customerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Layanan', serviceLabel],
       ['Total', total],
       ['Status', statusLabel],
-      ['Waktu pembayaran', created],
-      ['Referensi pembayaran', data.payment.invoice_id || '-']
+      ['Waktu pembayaran', created]
     ])}
     ${paymentHtml}
-    ${productCardsHtml}
-    <h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Rincian pesanan</h3>
+    <h3>Rincian</h3>
     ${itemsHtml}
-    <div style="margin-top:22px">
-      <a href="${orderMailEscapeHtml(orderUrl)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 18px;border-radius:10px">Lihat pesanan</a>
-      <a href="mailto:support@diracgroup.store" style="display:inline-block;background:#eef2ff;color:#1e3a8a;text-decoration:none;font-size:14px;font-weight:700;padding:12px 18px;border-radius:10px;margin-left:8px">Hubungi support</a>
-    </div>
-  `, { badge: paid ? 'PAID' : 'ORDER', total });
+    <p>Terima kasih,<br>Dirac Group</p>
+  `);
 
   const ownerHtml = orderMailHtmlShell(ownerSubject, `
-    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#334155">${orderMailEscapeHtml(ownerIntro)}</p>
+    <p>${orderMailEscapeHtml(ownerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Jenis', serviceLabel],
@@ -11561,71 +11481,41 @@ function orderMailBuildNewOrderMessages(data) {
       ['HP/WA', data.customer.phone || '-'],
       ['Total', total],
       ['Status bayar', statusLabel],
-      ['Waktu pembayaran', created],
-      ['Referensi pembayaran', data.payment.invoice_id || '-']
+      ['Waktu pembayaran', created]
     ])}
     ${paymentHtml}
-    ${productCardsHtml}
-    <h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Rincian pesanan</h3>
+    <h3>Rincian</h3>
     ${itemsHtml}
-  `, { badge: paid ? 'PAID' : 'OWNER', total });
+  `);
 
   return { customerSubject, ownerSubject, customerText, ownerText, customerHtml, ownerHtml };
 }
 
-function orderMailAssetBaseUrl() {
-  return String(process.env.ORDER_EMAIL_ASSET_BASE_URL || process.env.DOMAIN_SITE_URL || process.env.SITE_URL || SITE_URL || 'https://diracgroup.store').trim().replace(/\/+$/, '');
+function orderMailHtmlShell(title, body) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${orderMailEscapeHtml(title)}</title></head><body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827"><div style="max-width:640px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:14px;padding:22px;border:1px solid #e5e7eb"><h2 style="margin:0 0 16px">${orderMailEscapeHtml(title)}</h2>${body}</div><p style="font-size:12px;color:#6b7280;margin-top:12px">Email otomatis dari sistem Dirac Group.</p></div></body></html>`;
 }
-function orderMailAssetUrl(value) {
-  const raw = String(value || '').trim();
-  if (!raw || raw.length > 600) return '';
-  if (/^https?:\/\//i.test(raw)) return orderMailCleanUrl(raw);
-  if (/^\/\//.test(raw)) return orderMailCleanUrl('https:' + raw);
-  const base = orderMailAssetBaseUrl();
-  const path = raw.startsWith('/') ? raw : '/' + raw;
-  return orderMailCleanUrl(base + path);
-}
-function orderMailDefaultProductImageUrl() {
-  return orderMailAssetUrl(process.env.ORDER_EMAIL_DEFAULT_PRODUCT_IMAGE_URL || '');
-}
-function orderMailOrderUrl(orderCode) {
-  const base = orderMailAssetBaseUrl();
-  const code = encodeURIComponent(String(orderCode || '').trim());
-  return orderMailCleanUrl(process.env.ORDER_EMAIL_ORDER_URL || (base + '/pesanan.html' + (code ? '?order=' + code : ''))) || base;
-}
-function orderMailHtmlShell(title, body, options = {}) {
-  const badge = orderMailEscapeHtml(options.badge || 'PAID');
-  const total = orderMailEscapeHtml(options.total || '');
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${orderMailEscapeHtml(title)}</title></head><body style="margin:0;padding:0;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#eef2f7;margin:0;padding:24px 0"><tr><td align="center" style="padding:0 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ef;box-shadow:0 8px 30px rgba(15,23,42,.08)"><tr><td style="background:#0f172a;padding:28px 32px;background-image:linear-gradient(135deg,#0f172a,#1d4ed8)"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td valign="top" style="color:#ffffff"><div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#bfdbfe;margin-bottom:10px">Dirac Group</div><div style="font-size:27px;line-height:1.25;font-weight:800;color:#ffffff">${orderMailEscapeHtml(title)}</div>${total ? `<div style="margin-top:12px;font-size:14px;color:#dbeafe">Total pembayaran: <strong style="color:#ffffff">${total}</strong></div>` : ''}</td><td valign="top" align="right" style="padding-left:12px"><span style="display:inline-block;background:#dcfce7;color:#166534;font-size:12px;font-weight:800;padding:8px 14px;border-radius:999px;white-space:nowrap">${badge}</span></td></tr></table></td></tr><tr><td style="padding:28px 32px">${body}</td></tr><tr><td style="background:#0f172a;padding:24px 32px;text-align:center;color:#cbd5e1;font-size:13px;line-height:1.8">Email ini dikirim otomatis oleh sistem Dirac Group.<br>Butuh bantuan? Hubungi <a href="mailto:support@diracgroup.store" style="color:#93c5fd;text-decoration:none;font-weight:700">support@diracgroup.store</a><br><br>© 2026 Dirac Group. All rights reserved.</td></tr></table></td></tr></table></body></html>`;
-}
+
 function orderMailInfoTable(rows) {
-  const body = (rows || []).map(([key, value]) => `<tr><td style="padding:13px 16px;border-bottom:1px solid #e5e7eb;color:#64748b;width:42%;font-size:14px">${orderMailEscapeHtml(key)}</td><td style="padding:13px 16px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-size:14px;font-weight:700">${orderMailEscapeHtml(value)}</td></tr>`).join('');
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#f8fafc">${body}</table>`;
+  const body = (rows || []).map(([key, value]) => `
+    <tr><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:160px">${orderMailEscapeHtml(key)}</td><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">${orderMailEscapeHtml(value)}</td></tr>`).join('');
+  return `<table style="border-collapse:collapse;width:100%;margin:12px 0;border:1px solid #e5e7eb">${body}</table>`;
 }
-function orderMailItemsText(items, currency = 'IDR') {
+
+function orderMailItemsText(items) {
   const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
   return rows.map((item, index) => {
     const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
-    return `${index + 1}. ${item.title} x${item.quantity} - ${orderMailFormatCurrency(subtotal, currency)}`;
+    return `${index + 1}. ${item.title} x${item.quantity} - ${orderMailFormatCurrency(subtotal, 'IDR')}`;
   }).join('\n');
 }
-function orderMailItemsHtml(items, currency = 'IDR') {
+
+function orderMailItemsHtml(items) {
   const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
   const body = rows.map((item, index) => {
     const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
-    return `<tr><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;color:#334155;font-size:14px">${index + 1}</td><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-size:14px;font-weight:700">${orderMailEscapeHtml(item.title)}${item.description ? `<div style="font-size:12px;font-weight:400;color:#64748b;margin-top:4px;line-height:1.5">${orderMailEscapeHtml(item.description)}</div>` : ''}</td><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;text-align:center;color:#334155;font-size:14px">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;text-align:right;color:#0f172a;font-size:14px;font-weight:800">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, currency))}</td></tr>`;
+    return `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb">${index + 1}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb">${orderMailEscapeHtml(item.title)}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, 'IDR'))}</td></tr>`;
   }).join('');
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#ffffff"><thead><tr><th style="padding:12px 14px;text-align:left;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">#</th><th style="padding:12px 14px;text-align:left;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Item</th><th style="padding:12px 14px;text-align:center;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Qty</th><th style="padding:12px 14px;text-align:right;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
-}
-function orderMailProductCardsHtml(items, currency = 'IDR') {
-  const rows = (Array.isArray(items) ? items : []).filter((item) => item && (item.image_url || item.title)).slice(0, 3);
-  if (!rows.length) return '';
-  const cards = rows.map((item) => {
-    const image = orderMailAssetUrl(item.image_url || item.img || '') || orderMailDefaultProductImageUrl();
-    const amount = orderMailFormatCurrency(item.subtotal || ((item.unit_price || 0) * (item.quantity || 1)), currency);
-    return `<tr><td style="padding:18px;border-bottom:1px solid #e5e7eb"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>${image ? `<td width="128" valign="top" style="padding-right:16px"><img src="${orderMailEscapeHtml(image)}" width="112" alt="${orderMailEscapeHtml(item.title || 'Produk')}" style="display:block;width:112px;max-width:112px;height:auto;border-radius:14px;border:1px solid #e5e7eb;background:#f8fafc"></td>` : ''}<td valign="top"><div style="font-size:16px;line-height:1.45;font-weight:800;color:#0f172a;margin-bottom:6px">${orderMailEscapeHtml(item.title || 'Item pesanan')}</div>${item.description ? `<div style="font-size:13px;line-height:1.6;color:#64748b;margin-bottom:10px">${orderMailEscapeHtml(item.description)}</div>` : ''}<div style="font-size:13px;color:#64748b">Qty <strong style="color:#0f172a">${orderMailEscapeHtml(item.quantity || 1)}</strong> · Subtotal <strong style="color:#0f172a">${orderMailEscapeHtml(amount)}</strong></div></td></tr></table></td></tr>`;
-  }).join('');
-  return `<h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Produk yang dibeli</h3><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#ffffff">${cards}</table>`;
+  return `<table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb"><thead><tr><th style="padding:8px;text-align:left;background:#f9fafb">#</th><th style="padding:8px;text-align:left;background:#f9fafb">Item</th><th style="padding:8px;text-align:center;background:#f9fafb">Qty</th><th style="padding:8px;text-align:right;background:#f9fafb">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
 async function orderMailSendViaSmtpSafe(config, message) {
