@@ -10034,7 +10034,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
   window.__DIRAC_LOGOUT_LOGIN_COOKIE_HARDENING_FINAL__ = true;
 
   var AUTH_PATH_RE = /\/api\/(?:health|2fa\/start-step|2fa\/verify-step)(?:\?|$|\/)/i;
-  var AUTH_ACTION_RE = /action=(?:domain_login|domain_register|domain_me|domain_dashboard_me|domain_logout|domain_mfa_status|dirac_mfa_passkey_status|customer_security_recovery_code_verify)\b/i;
+  var AUTH_ACTION_RE = /action=(?:domain_login|domain_register|domain_me|domain_dashboard_me|domain_logout|domain_mfa_status|dirac_mfa_passkey_start|dirac_mfa_passkey_verify|domain_mfa_passkey_start|domain_mfa_passkey_verify|dirac_mfa_passkey_status|domain_mfa_passkey_status|customer_security_recovery_code_verify)\b/i;
   var SAFE_CROSS_ORIGIN = {
     'diracgroup.store': true,
     'www.diracgroup.store': true,
@@ -10106,6 +10106,96 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     sameOrigin: window.location.origin,
     authCookieTransport:'HttpOnly Secure cookie via credentials include',
     note:'Cookie HttpOnly tidak bisa dibaca JavaScript; validasi benar dilakukan lewat /api/health?action=domain_me.'
+  };
+})();
+</script>
+
+
+<script id="dirac-passkey-health-endpoint-final-fix-js">
+(function(){
+  'use strict';
+  /*
+    FINAL FIX A2F PASSKEY:
+    - Email/Authenticator tetap memakai endpoint resmi /api/2fa/start-step dan /api/2fa/verify-step.
+    - Payload Passkey saja dialihkan ke backend yang memang tersedia di /api/health:
+        start  -> /api/health?action=dirac_mfa_passkey_start
+        verify -> /api/health?action=dirac_mfa_passkey_verify
+    - Cookie HttpOnly tetap dikirim lewat credentials:'include'.
+    - Tidak menyimpan token/session di JavaScript storage.
+  */
+  if(window.__DIRAC_PASSKEY_HEALTH_ENDPOINT_FINAL_FIX__) return;
+  window.__DIRAC_PASSKEY_HEALTH_ENDPOINT_FINAL_FIX__ = true;
+
+  function parsePayload(init){
+    try{
+      var body = init && init.body;
+      if(!body || typeof body !== 'string') return null;
+      return JSON.parse(body);
+    }catch(_e){ return null; }
+  }
+
+  function isPasskeyPayload(init){
+    var payload = parsePayload(init);
+    return !!(payload && String(payload.method || '').toLowerCase() === 'passkey');
+  }
+
+  function toUrl(input){
+    try{
+      if(typeof input === 'string') return new URL(input, window.location.href);
+      if(input && input.url) return new URL(input.url, window.location.href);
+    }catch(_e){}
+    return null;
+  }
+
+  function isLegacyA2FEndpoint(url){
+    if(!url) return false;
+    return /\/api\/2fa\/(start-step|verify-step)$/i.test(url.pathname || '');
+  }
+
+  function passkeyHealthEndpoint(url){
+    var path = url && String(url.pathname || '').toLowerCase();
+    var verify = /\/api\/2fa\/verify-step$/i.test(path || '');
+    return verify
+      ? '/api/health?action=dirac_mfa_passkey_verify'
+      : '/api/health?action=dirac_mfa_passkey_start';
+  }
+
+  function cloneInit(init){
+    var next = {};
+    if(init && typeof init === 'object'){
+      Object.keys(init).forEach(function(key){ next[key] = init[key]; });
+    }
+    next.method = next.method || 'POST';
+    next.credentials = 'include';
+    next.cache = 'no-store';
+    if(!next.mode || next.mode === 'same-origin') next.mode = 'same-origin';
+    try{
+      var headers = new Headers(next.headers || {});
+      if(!headers.has('Content-Type')) headers.set('Content-Type','application/json');
+      if(!headers.has('Accept')) headers.set('Accept','application/json');
+      next.headers = headers;
+    }catch(_e){
+      next.headers = Object.assign({'Content-Type':'application/json','Accept':'application/json'}, next.headers || {});
+    }
+    return next;
+  }
+
+  if(window.fetch){
+    var previousFetch = window.fetch.bind(window);
+    window.fetch = function(input, init){
+      var url = toUrl(input);
+      if(isLegacyA2FEndpoint(url) && isPasskeyPayload(init)){
+        return previousFetch(passkeyHealthEndpoint(url), cloneInit(init));
+      }
+      return previousFetch(input, init);
+    };
+  }
+
+  window.DiracPasskeyEndpointDebug = {
+    version:'passkey-health-endpoint-final-v1',
+    passkeyStart:'/api/health?action=dirac_mfa_passkey_start',
+    passkeyVerify:'/api/health?action=dirac_mfa_passkey_verify',
+    emailAndAuthenticator:'unchanged /api/2fa endpoints'
   };
 })();
 </script>
