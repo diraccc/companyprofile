@@ -1773,38 +1773,7 @@ async function domainCheckout(req, res) {
     };
   }
 
-  const orderMailNotification = await orderMailNotifyNewOrderSafe({
-    source: 'domain_checkout',
-    kind: 'domain',
-    order: {
-      id: order.id,
-      code: String(order.order_code || order.order_id || order.id || '').trim() || String(order.id || ''),
-      service_type: 'domain',
-      total: totalAmount,
-      subtotal: totalAmount,
-      currency: 'IDR',
-      order_status: 'pending_payment',
-      payment_status: 'unpaid',
-      created_at: order.created_at || diracNowIso()
-    },
-    customer: {
-      name: customerName || ownerCustomer.name || authEmail,
-      email: customerEmail || authEmail,
-      phone: customerWhatsapp
-    },
-    items: orderItems.map((item) => ({
-      title: item.domain_name,
-      quantity: item.years || 1,
-      unit_price: item.register_price,
-      subtotal: item.subtotal,
-      description: item.extension
-    })),
-    payment: {
-      url: payment && payment.payment_url ? payment.payment_url : null,
-      provider: payment && payment.provider ? payment.provider : null,
-      invoice_id: payment && payment.invoice_id ? payment.invoice_id : null
-    }
-  });
+  const orderMailNotification = orderMailPendingPaymentSkipSummary('domain_checkout');
 
   return res.status(200).json({
     ok: true,
@@ -6013,33 +5982,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     });
   }
 
-  const orderMailNotification = await orderMailNotifyNewOrderSafe({
-    source: 'checkout_order',
-    kind: 'regular',
-    order: {
-      id: order.id,
-      code: order.order_id || orderCode,
-      service_type: serviceType,
-      total: backendQuote.total,
-      subtotal: backendQuote.subtotal,
-      currency: 'IDR',
-      order_status: 'pending',
-      payment_status: 'unpaid',
-      created_at: order.created_at || diracNowIso()
-    },
-    customer: {
-      name: finalCustomerName,
-      email: finalCustomerEmail,
-      phone: finalCustomerPhone
-    },
-    items: itemBodies.map((item) => ({
-      title: item.product_title,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      subtotal: item.unit_price * item.quantity
-    })),
-    payment: { url: null, provider: null }
-  });
+  const orderMailNotification = orderMailPendingPaymentSkipSummary('checkout_order');
 
   return res.status(200).json({
     ok: true,
@@ -8071,11 +8014,18 @@ async function midtransHandleWebhook(req, res) {
   }
 
   let orderPatch = { ok: true, skipped: true };
+  let orderMailNotification = orderMailPaidWebhookSkipSummary('midtrans', 'not_paid_status');
   if (success) {
     orderPatch = await midtransPatchRelatedOrderPaid(tx, body);
     if (!orderPatch.ok) {
       return res.status(orderPatch.status || 500).json({ ok: false, message: 'Payment valid, tetapi gagal update status order.' });
     }
+    orderMailNotification = await orderMailNotifyPaidOrderFromPaymentSafe({
+      provider: 'midtrans',
+      tx,
+      webhookPayload: body,
+      paidAt: body.settlement_time || diracNowIso()
+    });
   }
 
   return res.status(200).json({
@@ -8086,6 +8036,7 @@ async function midtransHandleWebhook(req, res) {
     payment_transaction_id: tx.id,
     payment_status: mappedStatus,
     order_updated: Boolean(success && orderPatch && orderPatch.ok),
+    order_mail_notification: orderMailNotification,
     idempotent: false
   });
 }
@@ -8896,11 +8847,19 @@ async function ipaymuHandleWebhook(req, res) {
   }
 
   let orderPatch = { ok: true, skipped: true };
+  let orderMailNotification = orderMailPaidWebhookSkipSummary('ipaymu', 'not_paid_status');
   if (success) {
-    orderPatch = await midtransPatchRelatedOrderPaid(tx, { settlement_time: body.settlement_time || body.paid_at || body.updated_at || diracNowIso() });
+    const paidAt = body.settlement_time || body.paid_at || body.updated_at || diracNowIso();
+    orderPatch = await midtransPatchRelatedOrderPaid(tx, { settlement_time: paidAt });
     if (!orderPatch.ok) {
       return res.status(orderPatch.status || 500).json({ ok: false, message: 'Payment valid, tetapi gagal update status order.' });
     }
+    orderMailNotification = await orderMailNotifyPaidOrderFromPaymentSafe({
+      provider: 'ipaymu',
+      tx,
+      webhookPayload: body,
+      paidAt
+    });
   }
 
   return res.status(200).json({
@@ -8911,6 +8870,7 @@ async function ipaymuHandleWebhook(req, res) {
     payment_transaction_id: tx.id,
     payment_status: mappedStatus,
     order_updated: Boolean(success && orderPatch && orderPatch.ok),
+    order_mail_notification: orderMailNotification,
     idempotent: false
   });
 }
@@ -10862,7 +10822,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    - Owner/store email uses ORDER_OWNER_* ENV.
    ============================================================ */
 
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v13';
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v14';
 const __diracOrderMailPreviousHandler = module.exports;
 
 module.exports = async function diracOrderMailWrapper(req, res) {
@@ -10887,6 +10847,185 @@ module.exports = async function diracOrderMailWrapper(req, res) {
     note: 'Endpoint ini hanya mengecek ENV ORDER_CUSTOMER_* dan ORDER_OWNER_*. Secret/app password tidak ditampilkan.'
   });
 };
+
+
+function orderMailPendingPaymentSkipSummary(source) {
+  return {
+    ok: true,
+    attempted: false,
+    skipped: true,
+    reason: 'email_sent_only_after_paid_webhook',
+    source: orderMailCleanText(source || 'checkout', 80),
+    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: true, reason: 'wait_paid_webhook', error: null },
+    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: true, reason: 'wait_paid_webhook', error: null }
+  };
+}
+
+function orderMailPaidWebhookSkipSummary(provider, reason) {
+  return {
+    ok: true,
+    attempted: false,
+    skipped: true,
+    reason: orderMailCleanText(reason || 'not_paid_status', 120),
+    provider: orderMailCleanText(provider || 'payment_gateway', 40),
+    paid_webhook_only: true,
+    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: true, error: null },
+    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: true, error: null }
+  };
+}
+
+async function orderMailNotifyPaidOrderFromPaymentSafe(input) {
+  const provider = orderMailCleanText(input && input.provider || 'payment_gateway', 40);
+  const tx = input && input.tx && typeof input.tx === 'object' ? input.tx : null;
+  const paidAt = orderMailCleanText(input && input.paidAt || diracNowIso(), 80);
+
+  try {
+    if (!tx || !tx.id) return orderMailPaidWebhookSkipSummary(provider, 'payment_transaction_missing');
+
+    const context = await orderMailBuildPaidInvoiceContextFromBackend(tx, provider, paidAt);
+    if (!context.ok) {
+      const skipped = orderMailPaidWebhookSkipSummary(provider, context.reason || 'paid_order_context_missing');
+      skipped.ok = context.soft !== false;
+      skipped.error = context.message || null;
+      return skipped;
+    }
+
+    const notify = await orderMailNotifyNewOrderSafe(context.mail);
+    notify.provider = provider;
+    notify.paid_webhook_only = true;
+    notify.payment_transaction_id = orderMailCleanText(tx.id || '', 120);
+    notify.gateway_reference = orderMailCleanText(tx.gateway_reference || '', 140);
+    return notify;
+  } catch (error) {
+    const failed = orderMailPaidWebhookSkipSummary(provider, 'paid_invoice_email_failed');
+    failed.ok = false;
+    failed.error = orderMailSafeError(error);
+    return failed;
+  }
+}
+
+async function orderMailBuildPaidInvoiceContextFromBackend(tx, provider, paidAt) {
+  if (tx.order_id) return orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt);
+  if (tx.domain_order_id) return orderMailBuildPaidDomainInvoiceContext(tx, provider, paidAt);
+  return { ok: false, reason: 'missing_order_reference', message: 'Payment transaction tidak punya order_id/domain_order_id.' };
+}
+
+async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
+  const orderId = String(tx.order_id || '').trim();
+  if (!orderId) return { ok: false, reason: 'regular_order_id_missing' };
+
+  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,service_type,subtotal,total,payment_status,order_status,created_at';
+  const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(orderId) + '&limit=1', {
+    method: 'GET',
+    auth: 'service'
+  }).catch((error) => ({ ok: false, status: 500, data: { message: orderMailSafeError(error) } }));
+
+  if (!result.ok) return { ok: false, reason: 'regular_order_read_failed', message: lockedPaymentSafeUpstreamError(result.data) };
+  const order = Array.isArray(result.data) ? result.data[0] : null;
+  if (!order || !order.id) return { ok: false, reason: 'regular_order_not_found' };
+
+  const amount = orderMailMoney(tx.amount || order.total || order.subtotal || 0);
+  const serviceType = orderMailCleanText(order.service_type || tx.service_type || 'order', 80);
+  const itemPack = await diracUniversalPesananFetchRegularItems(order.id, amount, serviceType).catch(() => ({ items: [], totalItem: 0 }));
+  const customerFallback = await orderMailFetchCustomerFallback(order.customer_id);
+  const customerEmail = orderMailNormalizeEmail(order.customer_email || customerFallback.email || '');
+
+  return {
+    ok: true,
+    mail: {
+      source: provider + '_paid_webhook',
+      kind: 'paid_invoice',
+      order: {
+        id: order.id,
+        code: order.order_id || order.id,
+        service_type: serviceType,
+        total: amount,
+        subtotal: orderMailMoney(order.subtotal || amount),
+        currency: String(tx.currency || 'IDR').toUpperCase(),
+        order_status: 'paid',
+        payment_status: 'paid',
+        created_at: paidAt || order.created_at || diracNowIso()
+      },
+      customer: {
+        name: order.customer_name || customerFallback.name || 'Customer',
+        email: customerEmail,
+        phone: order.customer_phone || customerFallback.phone || ''
+      },
+      items: Array.isArray(itemPack.items) && itemPack.items.length ? itemPack.items : [{ title: serviceType, quantity: 1, unit_price: amount, subtotal: amount }],
+      payment: {
+        url: '',
+        provider,
+        invoice_id: tx.gateway_reference || tx.id || ''
+      }
+    }
+  };
+}
+
+async function orderMailBuildPaidDomainInvoiceContext(tx, provider, paidAt) {
+  const domainOrderId = String(tx.domain_order_id || '').trim();
+  if (!domainOrderId) return { ok: false, reason: 'domain_order_id_missing' };
+
+  const select = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,domain_name,total_price,currency,order_status,status,payment_status,created_at';
+  const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(domainOrderId) + '&limit=1', {
+    method: 'GET',
+    auth: 'service'
+  }).catch((error) => ({ ok: false, status: 500, data: { message: orderMailSafeError(error) } }));
+
+  if (!result.ok) return { ok: false, reason: 'domain_order_read_failed', message: lockedPaymentSafeUpstreamError(result.data) };
+  const order = Array.isArray(result.data) ? result.data[0] : null;
+  if (!order || !order.id) return { ok: false, reason: 'domain_order_not_found' };
+
+  const amount = orderMailMoney(tx.amount || order.total_price || 0);
+  const itemPack = await diracUniversalPesananFetchDomainItems(order.id, amount, order.domain_name).catch(() => ({ items: [], totalItem: 0 }));
+  const customerFallback = await orderMailFetchCustomerFallback(order.customer_id);
+  const customerEmail = orderMailNormalizeEmail(order.customer_email || order.owner_email || customerFallback.email || '');
+
+  return {
+    ok: true,
+    mail: {
+      source: provider + '_paid_webhook',
+      kind: 'paid_invoice',
+      order: {
+        id: order.id,
+        code: 'DOM-' + String(order.id || '').slice(0, 8).toUpperCase(),
+        service_type: 'domain',
+        total: amount,
+        subtotal: amount,
+        currency: String(order.currency || tx.currency || 'IDR').toUpperCase(),
+        order_status: 'paid',
+        payment_status: 'paid',
+        created_at: paidAt || order.created_at || diracNowIso()
+      },
+      customer: {
+        name: order.customer_name || customerFallback.name || 'Customer',
+        email: customerEmail,
+        phone: order.customer_whatsapp || customerFallback.phone || ''
+      },
+      items: Array.isArray(itemPack.items) && itemPack.items.length ? itemPack.items : [{ title: order.domain_name || 'Domain order', quantity: 1, unit_price: amount, subtotal: amount }],
+      payment: {
+        url: '',
+        provider,
+        invoice_id: tx.gateway_reference || tx.id || ''
+      }
+    }
+  };
+}
+
+async function orderMailFetchCustomerFallback(customerId) {
+  const id = String(customerId || '').trim();
+  if (!id || !customerSecurityLooksLikeUuid(id)) return { name: '', email: '', phone: '' };
+  const result = await supabaseFetch('/rest/v1/customers?select=' + encodeURIComponent('id,name,email,phone') + '&id=eq.' + encodeURIComponent(id) + '&limit=1', {
+    method: 'GET',
+    auth: 'service'
+  }).catch(() => null);
+  if (!result || !result.ok || !Array.isArray(result.data) || !result.data.length) return { name: '', email: '', phone: '' };
+  const row = result.data[0] || {};
+  return {
+    name: orderMailCleanText(row.name || '', 120),
+    email: orderMailNormalizeEmail(row.email || ''),
+    phone: orderMailCleanText(row.phone || '', 80)
+  };
+}
 
 async function orderMailNotifyNewOrderSafe(input) {
   const summary = {
@@ -11060,18 +11199,30 @@ function orderMailBuildNewOrderMessages(data) {
     ? `<p><a href="${orderMailEscapeHtml(data.payment.url)}" style="display:inline-block;padding:10px 14px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px">Buka Link Pembayaran</a></p>`
     : '';
 
-  const customerSubject = `Pesanan ${data.order.code} diterima - Dirac Group`;
-  const ownerSubject = `Order baru ${data.order.code} - ${serviceLabel}`;
+  const paid = ['paid', 'success', 'settled', 'settlement', 'capture'].includes(String(data.order.payment_status || '').toLowerCase());
+  const customerSubject = paid
+    ? `Invoice ${data.order.code} sudah dibayar - Dirac Group`
+    : `Pesanan ${data.order.code} diterima - Dirac Group`;
+  const ownerSubject = paid
+    ? `Pembayaran berhasil ${data.order.code} - ${serviceLabel}`
+    : `Order baru ${data.order.code} - ${serviceLabel}`;
+  const customerIntro = paid
+    ? 'Pembayaran kamu sudah berhasil kami terima. Berikut invoice/rincian pesanan kamu.'
+    : 'Pesanan kamu sudah kami terima.';
+  const ownerIntro = paid
+    ? 'Ada pembayaran order yang sudah berhasil dan valid dari webhook payment gateway.'
+    : 'Ada order baru masuk.';
+  const statusLabel = paid ? 'paid / sudah dibayar' : data.order.payment_status;
 
   const customerText = [
     `Halo ${data.customer.name || 'Customer'},`,
     '',
-    'Pesanan kamu sudah kami terima.',
+    customerIntro,
     `Kode pesanan: ${data.order.code}`,
     `Layanan: ${serviceLabel}`,
     `Total: ${total}`,
-    `Status: ${data.order.payment_status}`,
-    `Waktu: ${created}`,
+    `Status: ${statusLabel}`,
+    `Waktu pembayaran: ${created}`,
     paymentLine.trim(),
     '',
     'Rincian:',
@@ -11082,7 +11233,7 @@ function orderMailBuildNewOrderMessages(data) {
   ].filter((line) => line !== '').join('\n');
 
   const ownerText = [
-    'Ada order baru masuk.',
+    ownerIntro,
     '',
     `Kode pesanan: ${data.order.code}`,
     `Jenis: ${serviceLabel}`,
@@ -11090,8 +11241,8 @@ function orderMailBuildNewOrderMessages(data) {
     `Email: ${data.customer.email || '-'}`,
     `HP/WA: ${data.customer.phone || '-'}`,
     `Total: ${total}`,
-    `Status bayar: ${data.order.payment_status}`,
-    `Waktu: ${created}`,
+    `Status bayar: ${statusLabel}`,
+    `Waktu pembayaran: ${created}`,
     paymentLine.trim(),
     '',
     'Rincian:',
@@ -11100,13 +11251,13 @@ function orderMailBuildNewOrderMessages(data) {
 
   const customerHtml = orderMailHtmlShell(customerSubject, `
     <p>Halo ${orderMailEscapeHtml(data.customer.name || 'Customer')},</p>
-    <p>Pesanan kamu sudah kami terima.</p>
+    <p>${orderMailEscapeHtml(customerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Layanan', serviceLabel],
       ['Total', total],
-      ['Status', data.order.payment_status],
-      ['Waktu', created]
+      ['Status', statusLabel],
+      ['Waktu pembayaran', created]
     ])}
     ${paymentHtml}
     <h3>Rincian</h3>
@@ -11115,7 +11266,7 @@ function orderMailBuildNewOrderMessages(data) {
   `);
 
   const ownerHtml = orderMailHtmlShell(ownerSubject, `
-    <p>Ada order baru masuk.</p>
+    <p>${orderMailEscapeHtml(ownerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Jenis', serviceLabel],
@@ -11123,8 +11274,8 @@ function orderMailBuildNewOrderMessages(data) {
       ['Email', data.customer.email || '-'],
       ['HP/WA', data.customer.phone || '-'],
       ['Total', total],
-      ['Status bayar', data.order.payment_status],
-      ['Waktu', created]
+      ['Status bayar', statusLabel],
+      ['Waktu pembayaran', created]
     ])}
     ${paymentHtml}
     <h3>Rincian</h3>
