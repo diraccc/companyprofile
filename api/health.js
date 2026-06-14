@@ -3,7 +3,6 @@
 const crypto = require('crypto');
 const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-dashboard-key-accept-v11';
 const DIRAC_IPAYMU_PATCH = 'ipaymu-redirect-v12';
-const DIRAC_COOKIE_SESSION_PATCH = 'cookie-signed-session-v16';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
@@ -214,9 +213,7 @@ function normalizeDomainAction(action) {
 const ACCESS_COOKIE = process.env.DOMAIN_SESSION_COOKIE || 'dirac_domain_session';
 const REFRESH_COOKIE = process.env.DOMAIN_REFRESH_COOKIE || 'dirac_domain_refresh';
 const CUSTOMER_MFA_COOKIE = process.env.DIRAC_CUSTOMER_MFA_COOKIE || 'dirac_customer_mfa_session';
-const DOMAIN_SIGNED_SESSION_COOKIE = process.env.DOMAIN_SIGNED_SESSION_COOKIE || 'dirac_domain_signed_session';
 const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
-const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
 
 
 const HOSTINGER_API_BASE = 'https://developers.hostinger.com';
@@ -378,8 +375,6 @@ async function domainHealth(req, res) {
   return res.status(200).json({
     ok: true,
     service: 'dirac-domain',
-    debugPatch: DIRAC_COOKIE_SESSION_PATCH,
-    signedSessionCookie: DOMAIN_SIGNED_SESSION_COOKIE,
     message: 'Domain API aktif.',
     endpoints: {
       check: '/api/health?action=domain_check&domain=contoh.com',
@@ -1778,8 +1773,6 @@ async function domainCheckout(req, res) {
     };
   }
 
-  const orderMailNotification = orderMailPendingPaymentSkipSummary('domain_checkout');
-
   return res.status(200).json({
     ok: true,
     message: payment && payment.payment_url
@@ -1798,7 +1791,6 @@ async function domainCheckout(req, res) {
     payment_provider: payment && payment.provider ? payment.provider : null,
     payment_gateway_configured: Boolean(payment && payment.configured),
     payment_error: payment && payment.error ? payment.error : null,
-    order_mail_notification: orderMailNotification,
     items: orderItems
   });
 }
@@ -1937,12 +1929,10 @@ async function requireDomainUser(req, res) {
     ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
     : '';
 
-  const accessTokens = uniqueNonEmptyStrings([
-    headerToken,
-    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
-  ]);
+  const accessToken = headerToken || readCookieToken(cookies, ACCESS_COOKIE);
+  const refreshToken = headerRefreshToken || readCookieToken(cookies, REFRESH_COOKIE);
 
-  for (const accessToken of accessTokens) {
+  if (accessToken) {
     const userResult = await supabaseFetch('/auth/v1/user', {
       method: 'GET',
       auth: 'anon',
@@ -1954,12 +1944,7 @@ async function requireDomainUser(req, res) {
     }
   }
 
-  const refreshTokens = uniqueNonEmptyStrings([
-    headerRefreshToken,
-    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE)
-  ]);
-
-  for (const refreshToken of refreshTokens) {
+  if (refreshToken) {
     const refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
       method: 'POST',
       auth: 'anon',
@@ -1980,12 +1965,6 @@ async function requireDomainUser(req, res) {
         return refreshedSession.user || refreshResult.data.user;
       }
     }
-  }
-
-  const signedSessionUser = await readSignedDomainSessionUser(cookies);
-  if (signedSessionUser && signedSessionUser.id) {
-    res.setHeader('X-Domain-Signed-Session', 'true');
-    return signedSessionUser;
   }
 
   clearSessionCookies(res);
@@ -3014,36 +2993,15 @@ function parseCookies(req) {
   const header = req.headers && req.headers.cookie ? req.headers.cookie : '';
   const cookies = {};
 
-  Object.defineProperty(cookies, '__all', {
-    value: {},
-    enumerable: false,
-    configurable: false,
-    writable: true
-  });
-
   header.split(';').map((item) => item.trim()).filter(Boolean).forEach((item) => {
     const index = item.indexOf('=');
     if (index === -1) {
-      if (!cookies.__all[item]) cookies.__all[item] = [];
-      cookies.__all[item].push('');
       cookies[item] = '';
       return;
     }
 
     const key = item.slice(0, index);
-    let value = item.slice(index + 1);
-    try {
-      value = decodeURIComponent(value);
-    } catch (_) {
-      value = String(value || '');
-    }
-
-    if (!cookies.__all[key]) cookies.__all[key] = [];
-    cookies.__all[key].push(value);
-
-    // Tetap simpan bentuk lama untuk kompatibilitas fungsi lain.
-    // Kalau browser mengirim cookie dobel dari host/domain berbeda, nilai terakhir tetap legacy,
-    // sedangkan requireDomainUser akan mencoba semua kandidat lewat __all.
+    const value = decodeURIComponent(item.slice(index + 1));
     cookies[key] = value;
   });
 
@@ -3126,52 +3084,21 @@ function makeCookie(name, value, options = {}) {
 const DOMAIN_COOKIE_CHUNK_SIZE = 3400;
 const DOMAIN_COOKIE_MAX_CHUNKS = 12;
 
-function getCompactCookieDomainsForSession() {
-  const domains = [];
-  const add = (value) => {
-    const domain = normalizeCookieDomain(value);
-    const key = domain || '__host_only__';
-    if (domains.some((item) => (item || '__host_only__') === key)) return;
-    domains.push(domain);
-  };
-
-  // Host-only harus utama agar diracgroup.store langsung membaca cookie hasil login/register.
-  add('');
-  add(process.env.DOMAIN_COOKIE_DOMAIN);
-  add('diracgroup.store');
-  return domains;
-}
-
-function makeCompactClearCookie(name) {
-  return getCompactCookieDomainsForSession().map((domain) => makeCookie(name, '', { maxAge: 0, domain }));
-}
-
-function makeCompactClearTokenCookieChunks(name) {
-  const cookies = [];
-  getCompactCookieDomainsForSession().forEach((domain) => {
-    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
-      cookies.push(makeCookie(`${name}__${index}`, '', { maxAge: 0, domain }));
-    }
-  });
-  return cookies;
-}
-
 function makeTokenCookieSet(name, value, options = {}) {
   const token = String(value || '');
-  const cookies = [
-    ...makeCompactClearCookie(name),
-    ...makeCompactClearTokenCookieChunks(name)
-  ];
+  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
+  const cookies = [...makeCookieVariants(name, '', { maxAge: 0 })];
 
   if (!token) return cookies;
 
-  // Jangan set token ke banyak domain sekaligus. Di iOS/Safari dan beberapa edge runtime,
-  // Set-Cookie yang terlalu banyak dapat membuat cookie session Supabase tidak tersimpan.
-  // Actual session canonical hanya host-only; domain legacy hanya dibersihkan.
   if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
-    cookies.push(makeCookie(name, token, Object.assign({}, options, { domain: '' })));
+    cookies.push(makeCookie(name, token, Object.assign({}, options, { domain: domainPreference || '' })));
     return cookies;
   }
+
+  // Token besar dapat ditolak browser jika dipaksa masuk 1 cookie. Pecah hanya token aktual,
+  // tetapi jangan kirim puluhan clear-cookie varian domain agar header tidak membengkak.
+  cookies.push(...makeClearTokenCookieChunks(name));
 
   const chunks = [];
   for (let index = 0; index < token.length; index += DOMAIN_COOKIE_CHUNK_SIZE) {
@@ -3182,48 +3109,32 @@ function makeTokenCookieSet(name, value, options = {}) {
     return cookies;
   }
 
-  cookies.push(makeCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: '' })));
+  cookies.push(makeCookie(name, `__chunked_${chunks.length}`, Object.assign({}, options, { domain: domainPreference || '' })));
   chunks.forEach((chunk, index) => {
-    cookies.push(makeCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: '' })));
+    cookies.push(makeCookie(`${name}__${index}`, chunk, Object.assign({}, options, { domain: domainPreference || '' })));
   });
   return cookies;
 }
 
 function makeClearTokenCookieChunks(name) {
-  return makeCompactClearTokenCookieChunks(name);
+  const cookies = [];
+  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
+  for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
+    cookies.push(makeCookie(`${name}__${index}`, '', { maxAge: 0, domain: domainPreference || '' }));
+  }
+  return cookies;
 }
 
 function makeClearTokenCookieSet(name) {
   return [
-    ...makeCompactClearCookie(name),
-    ...makeCompactClearTokenCookieChunks(name)
+    ...makeCookieVariants(name, '', { maxAge: 0 }),
+    ...makeClearTokenCookieChunks(name)
   ];
 }
 
-function uniqueNonEmptyStrings(values) {
-  const seen = new Set();
-  const output = [];
-  (Array.isArray(values) ? values : [values]).forEach((value) => {
-    const clean = String(value || '').trim();
-    if (!clean || seen.has(clean)) return;
-    seen.add(clean);
-    output.push(clean);
-  });
-  return output;
-}
-
-function getCookieAllValues(cookies, name) {
+function readCookieToken(cookies, name) {
   const jar = cookies && typeof cookies === 'object' ? cookies : {};
-  const all = jar.__all && typeof jar.__all === 'object' && Array.isArray(jar.__all[name])
-    ? jar.__all[name]
-    : [];
-  const values = all.length ? all.slice() : [jar[name]];
-  return uniqueNonEmptyStrings(values).reverse();
-}
-
-function readCookieTokenFromMarker(cookies, name, markerValue) {
-  const jar = cookies && typeof cookies === 'object' ? cookies : {};
-  const marker = String(markerValue || '');
+  const marker = String(jar[name] || '');
   const chunkMatch = marker.match(/^__chunked_(\d+)$/);
   if (chunkMatch) {
     const count = Math.max(0, Math.min(DOMAIN_COOKIE_MAX_CHUNKS, Number(chunkMatch[1]) || 0));
@@ -3252,35 +3163,21 @@ function readCookieTokenFromMarker(cookies, name, markerValue) {
   return '';
 }
 
-function readCookieTokenCandidates(cookies, name) {
-  const markers = getCookieAllValues(cookies, name);
-  const candidates = markers.map((marker) => readCookieTokenFromMarker(cookies, name, marker));
-  candidates.push(readCookieTokenFromMarker(cookies, name, cookies && cookies[name]));
-  return uniqueNonEmptyStrings(candidates);
-}
-
-function readCookieToken(cookies, name) {
-  return readCookieTokenCandidates(cookies, name)[0] || '';
-}
-
 function makeCookieVariants(name, value, options = {}) {
   const cookies = [];
-  const usedDomains = new Set();
-  const addCookie = (domain) => {
-    const normalized = normalizeCookieDomain(domain || '');
-    const key = normalized || '__host_only__';
-    if (usedDomains.has(key)) return;
-    usedDomains.add(key);
-    cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: normalized })));
-  };
+  const domainPreference = normalizeCookieDomain(process.env.DOMAIN_COOKIE_DOMAIN || '');
 
-  // Canonical utama selalu host-only agar login/register di apex diracgroup.store langsung terbaca
-  // walaupun ENV DOMAIN_COOKIE_DOMAIN lama pernah terisi subdomain/wrong domain.
-  addCookie('');
-  addCookie(process.env.DOMAIN_COOKIE_DOMAIN);
+  // Canonical cookie: host-only by default. Kalau ENV DOMAIN_COOKIE_DOMAIN diisi,
+  // canonical mengikuti domain tersebut. Ini tidak membuka akses JS karena tetap HttpOnly.
+  cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: domainPreference || '' })));
 
-  // Compatibility cookie domain untuk membersihkan/menyamakan sisa cookie lama dari host/domain lain.
-  getDomainCookieDomainCandidates().forEach((domain) => addCookie(domain));
+  // Compatibility cookie domain untuk membersihkan/menyamakan sisa cookie lama
+  // dari patch sebelumnya yang mungkin memakai Domain=diracgroup.store.
+  getDomainCookieDomainCandidates().forEach((domain) => {
+    if (domain !== domainPreference) {
+      cookies.push(makeCookie(name, value, Object.assign({}, options, { domain })));
+    }
+  });
 
   return cookies;
 }
@@ -3298,8 +3195,7 @@ function setSessionCookies(res, session) {
   const maxAge = 60 * 60 * 24 * 7;
   appendSetCookie(res, [
     ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
-    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge }),
-    ...makeSignedDomainSessionCookieSet(session, { maxAge })
+    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge })
   ]);
   return true;
 }
@@ -3308,116 +3204,8 @@ function clearSessionCookies(res) {
   appendSetCookie(res, [
     ...makeClearTokenCookieSet(ACCESS_COOKIE),
     ...makeClearTokenCookieSet(REFRESH_COOKIE),
-    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE),
-    ...makeClearTokenCookieSet(DOMAIN_SIGNED_SESSION_COOKIE)
+    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE)
   ]);
-}
-
-function base64UrlJson(value) {
-  return Buffer.from(JSON.stringify(value)).toString('base64url');
-}
-
-function parseBase64UrlJson(value) {
-  try {
-    return JSON.parse(Buffer.from(String(value || ''), 'base64url').toString('utf8'));
-  } catch (_) {
-    return null;
-  }
-}
-
-function decodeJwtPayloadUnsafe(token) {
-  const parts = String(token || '').split('.');
-  if (parts.length < 2) return null;
-  return parseBase64UrlJson(parts[1]);
-}
-
-function getDomainSignedSessionSecret() {
-  return String(
-    process.env.DOMAIN_SESSION_SIGNING_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_JWT_SECRET ||
-    process.env.AI_ADMIN_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    ''
-  ).trim();
-}
-
-function extractUserForSignedDomainSession(session) {
-  const sessionObj = session && typeof session === 'object' ? session : {};
-  const user = sessionObj.user && typeof sessionObj.user === 'object' ? sessionObj.user : {};
-  const jwt = decodeJwtPayloadUnsafe(sessionObj.access_token);
-  const id = String(user.id || user.sub || (jwt && (jwt.sub || jwt.user_id)) || '').trim();
-  const email = normalizeAuthEmail(user.email || (jwt && jwt.email) || '');
-  if (!id || !email) return null;
-  return { id, email };
-}
-
-function signDomainSessionPayload(payload) {
-  const secret = getDomainSignedSessionSecret();
-  if (!secret) return '';
-  const body = base64UrlJson(payload);
-  const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
-  return `${body}.${sig}`;
-}
-
-function verifyDomainSessionCookieValue(value) {
-  const secret = getDomainSignedSessionSecret();
-  if (!secret) return null;
-  const raw = String(value || '').trim();
-  const parts = raw.split('.');
-  if (parts.length !== 2) return null;
-  const [body, sig] = parts;
-  const expected = crypto.createHmac('sha256', secret).update(body).digest('base64url');
-  if (!safeEqual(sig, expected)) return null;
-  const payload = parseBase64UrlJson(body);
-  if (!payload || payload.typ !== DOMAIN_SIGNED_SESSION_TYPE) return null;
-  const exp = Number(payload.exp || 0);
-  if (!Number.isFinite(exp) || exp <= Math.floor(Date.now() / 1000)) return null;
-  const id = String(payload.uid || payload.id || '').trim();
-  const email = normalizeAuthEmail(payload.email || '');
-  if (!id || !email) return null;
-  return { id, email, exp };
-}
-
-function makeSignedDomainSessionCookieSet(session, options = {}) {
-  const user = extractUserForSignedDomainSession(session);
-  const maxAge = Math.max(60, Math.floor(Number(options.maxAge || 60 * 60 * 24 * 7)));
-  const cookies = [
-    ...makeCompactClearCookie(DOMAIN_SIGNED_SESSION_COOKIE),
-    ...makeCompactClearTokenCookieChunks(DOMAIN_SIGNED_SESSION_COOKIE)
-  ];
-  if (!user) return cookies;
-
-  const now = Math.floor(Date.now() / 1000);
-  const value = signDomainSessionPayload({
-    typ: DOMAIN_SIGNED_SESSION_TYPE,
-    uid: user.id,
-    email: user.email,
-    iat: now,
-    exp: now + maxAge,
-    nonce: crypto.randomBytes(12).toString('base64url')
-  });
-  if (!value) return cookies;
-
-  cookies.push(makeCookie(DOMAIN_SIGNED_SESSION_COOKIE, value, { maxAge, domain: '' }));
-  return cookies;
-}
-
-async function readSignedDomainSessionUser(cookies) {
-  const values = readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE);
-  for (const value of values) {
-    const payload = verifyDomainSessionCookieValue(value);
-    if (!payload) continue;
-
-    const checked = await getSupabaseAuthUserByEmail(payload.email);
-    if (checked && checked.user) {
-      const user = normalizeSupabaseAdminUser(checked.user);
-      if (user && String(user.id || '') === payload.id) {
-        return user;
-      }
-    }
-  }
-  return null;
 }
 
 function normalizeDomain(value) {
@@ -6191,8 +5979,6 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     });
   }
 
-  const orderMailNotification = orderMailPendingPaymentSkipSummary('checkout_order');
-
   return res.status(200).json({
     ok: true,
     message: 'Pesanan berhasil dibuat. Nominal dikunci backend dari database, payment gateway belum aktif.',
@@ -6207,7 +5993,6 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     payment_url: null,
     dashboard_mfa_required: true,
     payment_gateway_configured: false,
-    order_mail_notification: orderMailNotification,
     ownership_locked: true,
     payment_protected: true,
     price_locked_by_backend: backendQuote.priceLocked,
@@ -8223,18 +8008,11 @@ async function midtransHandleWebhook(req, res) {
   }
 
   let orderPatch = { ok: true, skipped: true };
-  let orderMailNotification = orderMailPaidWebhookSkipSummary('midtrans', 'not_paid_status');
   if (success) {
     orderPatch = await midtransPatchRelatedOrderPaid(tx, body);
     if (!orderPatch.ok) {
       return res.status(orderPatch.status || 500).json({ ok: false, message: 'Payment valid, tetapi gagal update status order.' });
     }
-    orderMailNotification = await orderMailNotifyPaidOrderFromPaymentSafe({
-      provider: 'midtrans',
-      tx,
-      webhookPayload: body,
-      paidAt: body.settlement_time || diracNowIso()
-    });
   }
 
   return res.status(200).json({
@@ -8245,7 +8023,6 @@ async function midtransHandleWebhook(req, res) {
     payment_transaction_id: tx.id,
     payment_status: mappedStatus,
     order_updated: Boolean(success && orderPatch && orderPatch.ok),
-    order_mail_notification: orderMailNotification,
     idempotent: false
   });
 }
@@ -9056,19 +8833,11 @@ async function ipaymuHandleWebhook(req, res) {
   }
 
   let orderPatch = { ok: true, skipped: true };
-  let orderMailNotification = orderMailPaidWebhookSkipSummary('ipaymu', 'not_paid_status');
   if (success) {
-    const paidAt = body.settlement_time || body.paid_at || body.updated_at || diracNowIso();
-    orderPatch = await midtransPatchRelatedOrderPaid(tx, { settlement_time: paidAt });
+    orderPatch = await midtransPatchRelatedOrderPaid(tx, { settlement_time: body.settlement_time || body.paid_at || body.updated_at || diracNowIso() });
     if (!orderPatch.ok) {
       return res.status(orderPatch.status || 500).json({ ok: false, message: 'Payment valid, tetapi gagal update status order.' });
     }
-    orderMailNotification = await orderMailNotifyPaidOrderFromPaymentSafe({
-      provider: 'ipaymu',
-      tx,
-      webhookPayload: body,
-      paidAt
-    });
   }
 
   return res.status(200).json({
@@ -9079,7 +8848,6 @@ async function ipaymuHandleWebhook(req, res) {
     payment_transaction_id: tx.id,
     payment_status: mappedStatus,
     order_updated: Boolean(success && orderPatch && orderPatch.ok),
-    order_mail_notification: orderMailNotification,
     idempotent: false
   });
 }
@@ -11020,742 +10788,3 @@ async function diracUniversalPesananFindReusableTransaction(input) {
   return { ok: true, transaction: reusable || null };
 }
 
-
-/* ============================================================
-   ORDER EMAIL NOTIFICATION - APPEND ONLY - v13
-   Scope:
-   - Order notification email only.
-   - Does not read or modify SMTP_USER/SMTP_PASS used by admin panel.
-   - Does not touch login/hash/A2F/passkey/cookies/payment security.
-   - Customer email uses ORDER_CUSTOMER_* ENV.
-   - Owner/store email uses ORDER_OWNER_* ENV.
-   ============================================================ */
-
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v14';
-const __diracOrderMailPreviousHandler = module.exports;
-
-module.exports = async function diracOrderMailWrapper(req, res) {
-  const rawAction = String((req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  if (rawAction !== 'order_mail_health' && rawAction !== 'order_email_health') {
-    return __diracOrderMailPreviousHandler(req, res);
-  }
-
-  const cors = setCors(req, res, { isDomainAction: true });
-  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
-  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
-  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
-
-  return res.status(200).json({
-    ok: true,
-    service: 'dirac-order-mail',
-    debugPatch: DIRAC_ORDER_MAIL_PATCH,
-    customer: orderMailPublicConfigInfo('customer'),
-    owner: orderMailPublicConfigInfo('owner'),
-    adminPanelSmtpUntouched: true,
-    adminPanelEnvNamesIgnored: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS'],
-    note: 'Endpoint ini hanya mengecek ENV ORDER_CUSTOMER_* dan ORDER_OWNER_*. Secret/app password tidak ditampilkan.'
-  });
-};
-
-
-function orderMailPendingPaymentSkipSummary(source) {
-  return {
-    ok: true,
-    attempted: false,
-    skipped: true,
-    reason: 'email_sent_only_after_paid_webhook',
-    source: orderMailCleanText(source || 'checkout', 80),
-    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: true, reason: 'wait_paid_webhook', error: null },
-    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: true, reason: 'wait_paid_webhook', error: null }
-  };
-}
-
-function orderMailPaidWebhookSkipSummary(provider, reason) {
-  return {
-    ok: true,
-    attempted: false,
-    skipped: true,
-    reason: orderMailCleanText(reason || 'not_paid_status', 120),
-    provider: orderMailCleanText(provider || 'payment_gateway', 40),
-    paid_webhook_only: true,
-    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: true, error: null },
-    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: true, error: null }
-  };
-}
-
-async function orderMailNotifyPaidOrderFromPaymentSafe(input) {
-  const provider = orderMailCleanText(input && input.provider || 'payment_gateway', 40);
-  const tx = input && input.tx && typeof input.tx === 'object' ? input.tx : null;
-  const paidAt = orderMailCleanText(input && input.paidAt || diracNowIso(), 80);
-
-  try {
-    if (!tx || !tx.id) return orderMailPaidWebhookSkipSummary(provider, 'payment_transaction_missing');
-
-    const context = await orderMailBuildPaidInvoiceContextFromBackend(tx, provider, paidAt);
-    if (!context.ok) {
-      const skipped = orderMailPaidWebhookSkipSummary(provider, context.reason || 'paid_order_context_missing');
-      skipped.ok = context.soft !== false;
-      skipped.error = context.message || null;
-      return skipped;
-    }
-
-    const notify = await orderMailNotifyNewOrderSafe(context.mail);
-    notify.provider = provider;
-    notify.paid_webhook_only = true;
-    notify.payment_transaction_id = orderMailCleanText(tx.id || '', 120);
-    notify.gateway_reference = orderMailCleanText(tx.gateway_reference || '', 140);
-    return notify;
-  } catch (error) {
-    const failed = orderMailPaidWebhookSkipSummary(provider, 'paid_invoice_email_failed');
-    failed.ok = false;
-    failed.error = orderMailSafeError(error);
-    return failed;
-  }
-}
-
-async function orderMailBuildPaidInvoiceContextFromBackend(tx, provider, paidAt) {
-  if (tx.order_id) return orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt);
-  if (tx.domain_order_id) return orderMailBuildPaidDomainInvoiceContext(tx, provider, paidAt);
-  return { ok: false, reason: 'missing_order_reference', message: 'Payment transaction tidak punya order_id/domain_order_id.' };
-}
-
-async function orderMailBuildPaidRegularInvoiceContext(tx, provider, paidAt) {
-  const orderId = String(tx.order_id || '').trim();
-  if (!orderId) return { ok: false, reason: 'regular_order_id_missing' };
-
-  const select = 'id,order_id,customer_id,customer_name,customer_phone,customer_email,service_type,subtotal,total,payment_status,order_status,created_at';
-  const result = await supabaseFetch('/rest/v1/orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(orderId) + '&limit=1', {
-    method: 'GET',
-    auth: 'service'
-  }).catch((error) => ({ ok: false, status: 500, data: { message: orderMailSafeError(error) } }));
-
-  if (!result.ok) return { ok: false, reason: 'regular_order_read_failed', message: lockedPaymentSafeUpstreamError(result.data) };
-  const order = Array.isArray(result.data) ? result.data[0] : null;
-  if (!order || !order.id) return { ok: false, reason: 'regular_order_not_found' };
-
-  const amount = orderMailMoney(tx.amount || order.total || order.subtotal || 0);
-  const serviceType = orderMailCleanText(order.service_type || tx.service_type || 'order', 80);
-  const itemPack = await diracUniversalPesananFetchRegularItems(order.id, amount, serviceType).catch(() => ({ items: [], totalItem: 0 }));
-  const customerFallback = await orderMailFetchCustomerFallback(order.customer_id);
-  const customerEmail = orderMailNormalizeEmail(order.customer_email || customerFallback.email || '');
-
-  return {
-    ok: true,
-    mail: {
-      source: provider + '_paid_webhook',
-      kind: 'paid_invoice',
-      order: {
-        id: order.id,
-        code: order.order_id || order.id,
-        service_type: serviceType,
-        total: amount,
-        subtotal: orderMailMoney(order.subtotal || amount),
-        currency: String(tx.currency || 'IDR').toUpperCase(),
-        order_status: 'paid',
-        payment_status: 'paid',
-        created_at: paidAt || order.created_at || diracNowIso()
-      },
-      customer: {
-        name: order.customer_name || customerFallback.name || 'Customer',
-        email: customerEmail,
-        phone: order.customer_phone || customerFallback.phone || ''
-      },
-      items: Array.isArray(itemPack.items) && itemPack.items.length ? itemPack.items : [{ title: serviceType, quantity: 1, unit_price: amount, subtotal: amount }],
-      payment: {
-        url: '',
-        provider,
-        invoice_id: tx.gateway_reference || tx.id || ''
-      }
-    }
-  };
-}
-
-async function orderMailBuildPaidDomainInvoiceContext(tx, provider, paidAt) {
-  const domainOrderId = String(tx.domain_order_id || '').trim();
-  if (!domainOrderId) return { ok: false, reason: 'domain_order_id_missing' };
-
-  const select = 'id,customer_id,customer_name,customer_whatsapp,customer_email,owner_email,domain_name,total_price,currency,order_status,status,payment_status,created_at';
-  const result = await supabaseFetch('/rest/v1/domain_orders?select=' + encodeURIComponent(select) + '&id=eq.' + encodeURIComponent(domainOrderId) + '&limit=1', {
-    method: 'GET',
-    auth: 'service'
-  }).catch((error) => ({ ok: false, status: 500, data: { message: orderMailSafeError(error) } }));
-
-  if (!result.ok) return { ok: false, reason: 'domain_order_read_failed', message: lockedPaymentSafeUpstreamError(result.data) };
-  const order = Array.isArray(result.data) ? result.data[0] : null;
-  if (!order || !order.id) return { ok: false, reason: 'domain_order_not_found' };
-
-  const amount = orderMailMoney(tx.amount || order.total_price || 0);
-  const itemPack = await diracUniversalPesananFetchDomainItems(order.id, amount, order.domain_name).catch(() => ({ items: [], totalItem: 0 }));
-  const customerFallback = await orderMailFetchCustomerFallback(order.customer_id);
-  const customerEmail = orderMailNormalizeEmail(order.customer_email || order.owner_email || customerFallback.email || '');
-
-  return {
-    ok: true,
-    mail: {
-      source: provider + '_paid_webhook',
-      kind: 'paid_invoice',
-      order: {
-        id: order.id,
-        code: 'DOM-' + String(order.id || '').slice(0, 8).toUpperCase(),
-        service_type: 'domain',
-        total: amount,
-        subtotal: amount,
-        currency: String(order.currency || tx.currency || 'IDR').toUpperCase(),
-        order_status: 'paid',
-        payment_status: 'paid',
-        created_at: paidAt || order.created_at || diracNowIso()
-      },
-      customer: {
-        name: order.customer_name || customerFallback.name || 'Customer',
-        email: customerEmail,
-        phone: order.customer_whatsapp || customerFallback.phone || ''
-      },
-      items: Array.isArray(itemPack.items) && itemPack.items.length ? itemPack.items : [{ title: order.domain_name || 'Domain order', quantity: 1, unit_price: amount, subtotal: amount }],
-      payment: {
-        url: '',
-        provider,
-        invoice_id: tx.gateway_reference || tx.id || ''
-      }
-    }
-  };
-}
-
-async function orderMailFetchCustomerFallback(customerId) {
-  const id = String(customerId || '').trim();
-  if (!id || !customerSecurityLooksLikeUuid(id)) return { name: '', email: '', phone: '' };
-  const result = await supabaseFetch('/rest/v1/customers?select=' + encodeURIComponent('id,name,email,phone') + '&id=eq.' + encodeURIComponent(id) + '&limit=1', {
-    method: 'GET',
-    auth: 'service'
-  }).catch(() => null);
-  if (!result || !result.ok || !Array.isArray(result.data) || !result.data.length) return { name: '', email: '', phone: '' };
-  const row = result.data[0] || {};
-  return {
-    name: orderMailCleanText(row.name || '', 120),
-    email: orderMailNormalizeEmail(row.email || ''),
-    phone: orderMailCleanText(row.phone || '', 80)
-  };
-}
-
-async function orderMailNotifyNewOrderSafe(input) {
-  const summary = {
-    ok: true,
-    debugPatch: DIRAC_ORDER_MAIL_PATCH,
-    attempted: false,
-    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: false, error: null },
-    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: false, error: null }
-  };
-
-  try {
-    const order = orderMailNormalizeOrderInput(input);
-    const messages = orderMailBuildNewOrderMessages(order);
-
-    if (summary.customer.enabled && summary.customer.configured && order.customer.email) {
-      summary.attempted = true;
-      const customerConfig = orderMailSmtpConfig('customer');
-      const customerResult = await orderMailSendViaSmtpSafe(customerConfig, {
-        to: [order.customer.email],
-        subject: messages.customerSubject,
-        text: messages.customerText,
-        html: messages.customerHtml,
-        fromName: customerConfig.fromName,
-        fromEmail: customerConfig.fromEmail
-      });
-      summary.customer.sent = Boolean(customerResult.ok);
-      summary.customer.error = customerResult.ok ? null : customerResult.error;
-    } else {
-      summary.customer.skipped = true;
-      summary.customer.reason = !summary.customer.enabled
-        ? 'disabled'
-        : (!summary.customer.configured ? 'smtp_not_configured' : 'customer_email_missing');
-    }
-
-    if (summary.owner.enabled && summary.owner.configured && orderMailSmtpConfig('owner').recipients.length) {
-      summary.attempted = true;
-      const ownerConfig = orderMailSmtpConfig('owner');
-      const ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
-        to: ownerConfig.recipients,
-        subject: messages.ownerSubject,
-        text: messages.ownerText,
-        html: messages.ownerHtml,
-        fromName: ownerConfig.fromName,
-        fromEmail: ownerConfig.fromEmail
-      });
-      summary.owner.sent = Boolean(ownerResult.ok);
-      summary.owner.error = ownerResult.ok ? null : ownerResult.error;
-      summary.owner.recipient_count = ownerConfig.recipients.length;
-    } else {
-      summary.owner.skipped = true;
-      summary.owner.reason = !summary.owner.enabled
-        ? 'disabled'
-        : (!summary.owner.configured ? 'smtp_not_configured' : 'owner_email_missing');
-    }
-  } catch (error) {
-    summary.ok = false;
-    summary.error = orderMailSafeError(error);
-  }
-
-  return summary;
-}
-
-function orderMailCustomerEnabled() {
-  return orderMailEnvTrue(process.env.ORDER_CUSTOMER_EMAIL_ENABLED, false);
-}
-
-function orderMailOwnerEnabled() {
-  return orderMailEnvTrue(process.env.ORDER_OWNER_EMAIL_ENABLED, false);
-}
-
-function orderMailEnvTrue(value, fallback) {
-  if (value === undefined || value === null || value === '') return Boolean(fallback);
-  const clean = String(value).trim().toLowerCase();
-  return clean === 'true' || clean === '1' || clean === 'yes' || clean === 'on' || clean === 'enabled';
-}
-
-function orderMailSmtpConfig(kind) {
-  const prefix = kind === 'owner' ? 'ORDER_OWNER' : 'ORDER_CUSTOMER';
-  const host = String(process.env[`${prefix}_SMTP_HOST`] || '').trim();
-  const port = Math.trunc(Number(process.env[`${prefix}_SMTP_PORT`] || 465));
-  const secure = orderMailEnvTrue(process.env[`${prefix}_SMTP_SECURE`], true);
-  const user = String(process.env[`${prefix}_SMTP_USER`] || '').trim();
-  const pass = String(process.env[`${prefix}_SMTP_PASS`] || '').trim().replace(/\s+/g, '');
-  const fromName = orderMailCleanText(process.env[`${prefix}_FROM_NAME`] || 'Dirac Group', 80);
-  const fromEmail = orderMailNormalizeEmail(process.env[`${prefix}_FROM_EMAIL`] || user);
-  const recipients = kind === 'owner' ? orderMailParseEmailList(process.env.ORDER_OWNER_EMAIL || '') : [];
-
-  return {
-    kind,
-    host,
-    port: Number.isFinite(port) && port > 0 ? port : 465,
-    secure,
-    user,
-    pass,
-    fromName,
-    fromEmail,
-    recipients,
-    configured: Boolean(host && user && pass && fromEmail)
-  };
-}
-
-function orderMailPublicConfigInfo(kind) {
-  const config = orderMailSmtpConfig(kind);
-  const enabled = kind === 'owner' ? orderMailOwnerEnabled() : orderMailCustomerEnabled();
-  return {
-    enabled,
-    configured: config.configured,
-    host: config.host || null,
-    port: config.port || null,
-    secure: config.secure,
-    userPresent: Boolean(config.user),
-    passPresent: Boolean(config.pass),
-    fromEmailPresent: Boolean(config.fromEmail),
-    ownerRecipientCount: kind === 'owner' ? config.recipients.length : undefined
-  };
-}
-
-function orderMailNormalizeOrderInput(input) {
-  const row = input && typeof input === 'object' ? input : {};
-  const order = row.order && typeof row.order === 'object' ? row.order : {};
-  const customer = row.customer && typeof row.customer === 'object' ? row.customer : {};
-  const payment = row.payment && typeof row.payment === 'object' ? row.payment : {};
-  const items = Array.isArray(row.items) ? row.items : [];
-
-  const code = orderMailCleanText(order.code || order.order_code || order.order_id || order.id || 'ORDER', 120);
-  const total = orderMailMoney(order.total ?? order.total_price ?? order.amount ?? order.subtotal ?? 0);
-  const currency = orderMailCleanText(order.currency || 'IDR', 12).toUpperCase() || 'IDR';
-
-  return {
-    source: orderMailCleanText(row.source || 'checkout_order', 60),
-    kind: orderMailCleanText(row.kind || order.kind || order.service_type || 'regular', 40),
-    order: {
-      id: orderMailCleanText(order.id || '', 120),
-      code,
-      service_type: orderMailCleanText(order.service_type || row.kind || 'order', 80),
-      total,
-      subtotal: orderMailMoney(order.subtotal ?? total),
-      currency,
-      order_status: orderMailCleanText(order.order_status || 'pending', 40),
-      payment_status: orderMailCleanText(order.payment_status || 'unpaid', 40),
-      created_at: orderMailCleanText(order.created_at || diracNowIso(), 60)
-    },
-    customer: {
-      name: orderMailCleanText(customer.name || customer.customer_name || 'Customer', 120),
-      email: orderMailNormalizeEmail(customer.email || customer.customer_email || ''),
-      phone: orderMailCleanText(customer.phone || customer.whatsapp || customer.customer_phone || customer.customer_whatsapp || '', 80)
-    },
-    payment: {
-      url: orderMailCleanUrl(payment.url || payment.payment_url || ''),
-      provider: orderMailCleanText(payment.provider || payment.payment_provider || '', 60),
-      invoice_id: orderMailCleanText(payment.invoice_id || payment.id || '', 120)
-    },
-    items: items.slice(0, 30).map((item, index) => ({
-      title: orderMailCleanText(item && (item.title || item.product_title || item.name || item.domain_name) || `Item ${index + 1}`, 180),
-      quantity: orderMailPositiveInt(item && (item.quantity || item.qty || item.years) || 1, 1, 9999),
-      unit_price: orderMailMoney(item && (item.unit_price ?? item.price ?? item.register_price ?? 0)),
-      subtotal: orderMailMoney(item && (item.subtotal ?? 0)),
-      description: orderMailCleanText(item && (item.description || item.extension || item.product_doc_id) || '', 180)
-    })).filter((item) => item.title)
-  };
-}
-
-function orderMailBuildNewOrderMessages(data) {
-  const serviceLabel = orderMailServiceLabel(data.order.service_type || data.kind);
-  const total = orderMailFormatCurrency(data.order.total, data.order.currency);
-  const created = orderMailFormatDate(data.order.created_at);
-  const itemsText = orderMailItemsText(data.items);
-  const itemsHtml = orderMailItemsHtml(data.items);
-  const paymentLine = data.payment.url ? `\nLink pembayaran: ${data.payment.url}` : '';
-  const paymentHtml = data.payment.url
-    ? `<p><a href="${orderMailEscapeHtml(data.payment.url)}" style="display:inline-block;padding:10px 14px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px">Buka Link Pembayaran</a></p>`
-    : '';
-
-  const paid = ['paid', 'success', 'settled', 'settlement', 'capture'].includes(String(data.order.payment_status || '').toLowerCase());
-  const customerSubject = paid
-    ? `Invoice ${data.order.code} sudah dibayar - Dirac Group`
-    : `Pesanan ${data.order.code} diterima - Dirac Group`;
-  const ownerSubject = paid
-    ? `Pembayaran berhasil ${data.order.code} - ${serviceLabel}`
-    : `Order baru ${data.order.code} - ${serviceLabel}`;
-  const customerIntro = paid
-    ? 'Pembayaran kamu sudah berhasil kami terima. Berikut invoice/rincian pesanan kamu.'
-    : 'Pesanan kamu sudah kami terima.';
-  const ownerIntro = paid
-    ? 'Ada pembayaran order yang sudah berhasil dan valid dari webhook payment gateway.'
-    : 'Ada order baru masuk.';
-  const statusLabel = paid ? 'paid / sudah dibayar' : data.order.payment_status;
-
-  const customerText = [
-    `Halo ${data.customer.name || 'Customer'},`,
-    '',
-    customerIntro,
-    `Kode pesanan: ${data.order.code}`,
-    `Layanan: ${serviceLabel}`,
-    `Total: ${total}`,
-    `Status: ${statusLabel}`,
-    `Waktu pembayaran: ${created}`,
-    paymentLine.trim(),
-    '',
-    'Rincian:',
-    itemsText,
-    '',
-    'Terima kasih,',
-    'Dirac Group'
-  ].filter((line) => line !== '').join('\n');
-
-  const ownerText = [
-    ownerIntro,
-    '',
-    `Kode pesanan: ${data.order.code}`,
-    `Jenis: ${serviceLabel}`,
-    `Customer: ${data.customer.name || '-'}`,
-    `Email: ${data.customer.email || '-'}`,
-    `HP/WA: ${data.customer.phone || '-'}`,
-    `Total: ${total}`,
-    `Status bayar: ${statusLabel}`,
-    `Waktu pembayaran: ${created}`,
-    paymentLine.trim(),
-    '',
-    'Rincian:',
-    itemsText
-  ].filter((line) => line !== '').join('\n');
-
-  const customerHtml = orderMailHtmlShell(customerSubject, `
-    <p>Halo ${orderMailEscapeHtml(data.customer.name || 'Customer')},</p>
-    <p>${orderMailEscapeHtml(customerIntro)}</p>
-    ${orderMailInfoTable([
-      ['Kode pesanan', data.order.code],
-      ['Layanan', serviceLabel],
-      ['Total', total],
-      ['Status', statusLabel],
-      ['Waktu pembayaran', created]
-    ])}
-    ${paymentHtml}
-    <h3>Rincian</h3>
-    ${itemsHtml}
-    <p>Terima kasih,<br>Dirac Group</p>
-  `);
-
-  const ownerHtml = orderMailHtmlShell(ownerSubject, `
-    <p>${orderMailEscapeHtml(ownerIntro)}</p>
-    ${orderMailInfoTable([
-      ['Kode pesanan', data.order.code],
-      ['Jenis', serviceLabel],
-      ['Customer', data.customer.name || '-'],
-      ['Email', data.customer.email || '-'],
-      ['HP/WA', data.customer.phone || '-'],
-      ['Total', total],
-      ['Status bayar', statusLabel],
-      ['Waktu pembayaran', created]
-    ])}
-    ${paymentHtml}
-    <h3>Rincian</h3>
-    ${itemsHtml}
-  `);
-
-  return { customerSubject, ownerSubject, customerText, ownerText, customerHtml, ownerHtml };
-}
-
-function orderMailHtmlShell(title, body) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${orderMailEscapeHtml(title)}</title></head><body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827"><div style="max-width:640px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:14px;padding:22px;border:1px solid #e5e7eb"><h2 style="margin:0 0 16px">${orderMailEscapeHtml(title)}</h2>${body}</div><p style="font-size:12px;color:#6b7280;margin-top:12px">Email otomatis dari sistem Dirac Group.</p></div></body></html>`;
-}
-
-function orderMailInfoTable(rows) {
-  const body = (rows || []).map(([key, value]) => `
-    <tr><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:160px">${orderMailEscapeHtml(key)}</td><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">${orderMailEscapeHtml(value)}</td></tr>`).join('');
-  return `<table style="border-collapse:collapse;width:100%;margin:12px 0;border:1px solid #e5e7eb">${body}</table>`;
-}
-
-function orderMailItemsText(items) {
-  const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
-  return rows.map((item, index) => {
-    const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
-    return `${index + 1}. ${item.title} x${item.quantity} - ${orderMailFormatCurrency(subtotal, 'IDR')}`;
-  }).join('\n');
-}
-
-function orderMailItemsHtml(items) {
-  const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
-  const body = rows.map((item, index) => {
-    const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
-    return `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb">${index + 1}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb">${orderMailEscapeHtml(item.title)}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, 'IDR'))}</td></tr>`;
-  }).join('');
-  return `<table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb"><thead><tr><th style="padding:8px;text-align:left;background:#f9fafb">#</th><th style="padding:8px;text-align:left;background:#f9fafb">Item</th><th style="padding:8px;text-align:center;background:#f9fafb">Qty</th><th style="padding:8px;text-align:right;background:#f9fafb">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
-}
-
-async function orderMailSendViaSmtpSafe(config, message) {
-  try {
-    return await orderMailSendViaSmtp(config, message);
-  } catch (error) {
-    return { ok: false, error: orderMailSafeError(error) };
-  }
-}
-
-async function orderMailSendViaSmtp(config, message) {
-  if (!config || !config.configured) return { ok: false, error: 'smtp_not_configured' };
-  const recipients = Array.from(new Set((message.to || []).map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
-  if (!recipients.length) return { ok: false, error: 'recipient_missing' };
-
-  const tls = require('tls');
-  const net = require('net');
-  const host = config.host;
-  const port = config.port || (config.secure ? 465 : 587);
-  const timeoutMs = Math.max(3000, Math.min(20000, Number(process.env.ORDER_SMTP_TIMEOUT_MS || 9000)));
-
-  return await new Promise((resolve, reject) => {
-    let socket;
-    let buffer = '';
-    let settled = false;
-    let timer;
-
-    const cleanup = () => {
-      clearTimeout(timer);
-      if (socket) {
-        socket.removeAllListeners();
-        try { socket.end(); } catch (_) {}
-        try { socket.destroy(); } catch (_) {}
-      }
-    };
-    const fail = (error) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(error instanceof Error ? error : new Error(String(error || 'smtp_failed')));
-    };
-    const done = (value) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(value);
-    };
-    const resetTimer = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fail(new Error('smtp_timeout')), timeoutMs);
-    };
-    const readResponse = () => new Promise((resolveRead) => {
-      const wait = () => {
-        const lines = buffer.split(/\r?\n/);
-        for (let i = 0; i < lines.length; i += 1) {
-          if (/^\d{3} /.test(lines[i])) {
-            const responseLines = lines.slice(0, i + 1);
-            buffer = lines.slice(i + 1).join('\n');
-            return resolveRead({ code: Number(lines[i].slice(0, 3)), text: responseLines.join('\n') });
-          }
-        }
-        setTimeout(wait, 10);
-      };
-      wait();
-    });
-    const command = async (line, expected) => {
-      resetTimer();
-      socket.write(line + '\r\n');
-      const response = await readResponse();
-      const expectedList = Array.isArray(expected) ? expected : [expected];
-      if (!expectedList.includes(response.code)) {
-        throw new Error(`smtp_${response.code}_${orderMailCleanText(response.text, 120)}`);
-      }
-      return response;
-    };
-
-    const run = async () => {
-      resetTimer();
-      socket = config.secure
-        ? tls.connect({ host, port, servername: host, rejectUnauthorized: true })
-        : net.connect({ host, port });
-      socket.setEncoding('utf8');
-      socket.on('error', fail);
-      socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
-      await new Promise((resolveConnect) => socket.once(config.secure ? 'secureConnect' : 'connect', resolveConnect));
-      const greet = await readResponse();
-      if (greet.code !== 220) throw new Error(`smtp_greeting_${greet.code}`);
-      await command('EHLO diracgroup.store', 250);
-      if (!config.secure) {
-        await command('STARTTLS', 220);
-        socket.removeAllListeners('data');
-        socket.removeAllListeners('error');
-        buffer = '';
-        socket = tls.connect({ socket, servername: host, rejectUnauthorized: true });
-        socket.setEncoding('utf8');
-        socket.on('error', fail);
-        socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
-        await new Promise((resolveSecure) => socket.once('secureConnect', resolveSecure));
-        await command('EHLO diracgroup.store', 250);
-      }
-      await command('AUTH PLAIN ' + Buffer.from(`\u0000${config.user}\u0000${config.pass}`).toString('base64'), 235);
-      await command(`MAIL FROM:<${config.fromEmail}>`, 250);
-      for (const recipient of recipients) await command(`RCPT TO:<${recipient}>`, [250, 251]);
-      await command('DATA', 354);
-      socket.write(orderMailBuildMimeMessage({ ...message, to: recipients, fromName: message.fromName || config.fromName, fromEmail: message.fromEmail || config.fromEmail }) + '\r\n.\r\n');
-      const dataResponse = await readResponse();
-      if (dataResponse.code !== 250) throw new Error(`smtp_data_${dataResponse.code}_${orderMailCleanText(dataResponse.text, 120)}`);
-      try { await command('QUIT', 221); } catch (_) {}
-      done({ ok: true, recipient_count: recipients.length });
-    };
-
-    run().catch(fail);
-  });
-}
-
-function orderMailBuildMimeMessage(message) {
-  const boundary = 'DIRAC_' + crypto.randomBytes(12).toString('hex');
-  const from = `${orderMailHeaderName(message.fromName || 'Dirac Group')} <${orderMailNormalizeEmail(message.fromEmail || '')}>`;
-  const to = (message.to || []).map((email) => `<${orderMailNormalizeEmail(email)}>`).join(', ');
-  const subject = orderMailHeaderName(message.subject || 'Dirac Group Order');
-  const msgId = `<${Date.now()}.${crypto.randomBytes(8).toString('hex')}@diracgroup.store>`;
-  const text = orderMailBase64Body(message.text || '');
-  const html = orderMailBase64Body(message.html || '<p>Dirac Group</p>');
-
-  return [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    `Date: ${new Date().toUTCString()}`,
-    `Message-ID: ${msgId}`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    text,
-    `--${boundary}`,
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    html,
-    `--${boundary}--`,
-    ''
-  ].join('\r\n');
-}
-
-function orderMailHeaderName(value) {
-  const text = orderMailCleanText(value, 160).replace(/[\r\n]+/g, ' ');
-  if (/^[\x20-\x7E]*$/.test(text)) return text;
-  return '=?UTF-8?B?' + Buffer.from(text, 'utf8').toString('base64') + '?=';
-}
-
-function orderMailBase64Body(value) {
-  return Buffer.from(String(value || ''), 'utf8').toString('base64').replace(/.{1,76}/g, '$&\r\n').trim();
-}
-
-function orderMailParseEmailList(value) {
-  return Array.from(new Set(String(value || '').split(/[;,\s]+/).map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
-}
-
-function orderMailNormalizeEmail(value) {
-  const email = String(value || '').trim().toLowerCase();
-  if (!email || email.length > 254) return '';
-  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) return '';
-  return email;
-}
-
-function orderMailCleanUrl(value) {
-  const url = String(value || '').trim();
-  if (!/^https:\/\//i.test(url)) return '';
-  return url.slice(0, 1000);
-}
-
-function orderMailCleanText(value, maxLength) {
-  return String(value || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, Math.max(1, Number(maxLength || 120)));
-}
-
-function orderMailEscapeHtml(value) {
-  return String(value === undefined || value === null ? '' : value).replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[char]));
-}
-
-function orderMailMoney(value) {
-  const number = Number(String(value || 0).replace(/[^0-9.]/g, ''));
-  if (!Number.isFinite(number) || number < 0) return 0;
-  return Math.round(number);
-}
-
-function orderMailPositiveInt(value, fallback, max) {
-  const number = Math.trunc(Number(value));
-  if (!Number.isFinite(number) || number < 1) return fallback || 1;
-  return Math.min(number, max || 9999);
-}
-
-function orderMailFormatCurrency(value, currency) {
-  const amount = orderMailMoney(value);
-  const cur = orderMailCleanText(currency || 'IDR', 12).toUpperCase() || 'IDR';
-  try {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(amount);
-  } catch (_) {
-    return `${cur} ${amount.toLocaleString('id-ID')}`;
-  }
-}
-
-function orderMailFormatDate(value) {
-  const date = new Date(value || Date.now());
-  try {
-    return new Intl.DateTimeFormat('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-      timeZoneName: 'short'
-    }).format(Number.isFinite(date.getTime()) ? date : new Date());
-  } catch (_) {
-    return (Number.isFinite(date.getTime()) ? date : new Date()).toISOString();
-  }
-}
-
-function orderMailServiceLabel(value) {
-  const clean = orderMailCleanText(value, 80).toLowerCase();
-  if (clean === 'parfum') return 'Parfum';
-  if (clean === 'domain') return 'Domain';
-  if (clean.includes('website')) return 'Jasa Website';
-  if (clean.includes('digital')) return 'Layanan Digital';
-  if (clean.includes('pengembangan')) return 'Pengembangan Website';
-  return clean ? clean.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) : 'Order';
-}
-
-function orderMailSafeError(error) {
-  const message = String(error && error.message ? error.message : error || 'email_error');
-  if (/password|pass|secret|token|authorization|apikey|api_key/i.test(message)) return 'email_internal_error';
-  return orderMailCleanText(message, 160);
-}
