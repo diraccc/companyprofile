@@ -344,6 +344,135 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
 .announcement{display:none!important;}
 </style>
 
+<!-- DIRAC PROTECTED PAGE LOCK ONLY START -->
+<style id="dirac-protected-page-lock-only-css">
+  html[data-dirac-protected-lock="checking"] body,
+  html[data-dirac-protected-lock="redirecting"] body{overflow:hidden!important}
+  html[data-dirac-protected-lock="checking"] body > *:not(#diracProtectedLockOverlay),
+  html[data-dirac-protected-lock="redirecting"] body > *:not(#diracProtectedLockOverlay){visibility:hidden!important;pointer-events:none!important}
+  #diracProtectedLockOverlay{display:none;position:fixed;inset:0;z-index:2147483647;place-items:center;padding:18px;background:radial-gradient(circle at 18% 0%,rgba(56,189,248,.22),transparent 30rem),linear-gradient(180deg,#07090d,#020304);color:#f8fafc;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;text-align:center}
+  html[data-dirac-protected-lock="checking"] #diracProtectedLockOverlay,
+  html[data-dirac-protected-lock="redirecting"] #diracProtectedLockOverlay{display:grid!important}
+  #diracProtectedLockOverlay .dirac-lock-card{width:min(460px,100%);border:1px solid rgba(56,189,248,.26);border-radius:26px;background:linear-gradient(180deg,rgba(17,25,39,.94),rgba(8,12,19,.96));box-shadow:0 24px 70px rgba(0,0,0,.45);padding:22px}
+  #diracProtectedLockOverlay .dirac-lock-icon{width:52px;height:52px;margin:0 auto 12px;border-radius:18px;display:grid;place-items:center;background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.24);font-size:1.45rem}
+  #diracProtectedLockOverlay h1{margin:0 0 6px;font-size:1.25rem;line-height:1.25}
+  #diracProtectedLockOverlay p{margin:0;color:#aeb7c6;font-size:.92rem;line-height:1.55}
+</style>
+<script id="dirac-protected-page-lock-only-js">
+(function(){
+  'use strict';
+  if (window.__DIRAC_PROTECTED_LOCK_ONLY_V1__) return;
+  window.__DIRAC_PROTECTED_LOCK_ONLY_V1__ = true;
+
+  var VERIFY_ENDPOINT = '/api/health?action=domain_dashboard_me';
+  var LOGIN_PAGE = '/masuk.html';
+  var VERIFY_TIMEOUT_MS = 9000;
+  var VERIFY_MIN_INTERVAL_MS = 350;
+  var verifying = false;
+  var lastVerifyAt = 0;
+  var redirecting = false;
+
+  function setLockState(state){
+    try{ document.documentElement.setAttribute('data-dirac-protected-lock', state); }catch(_){}
+  }
+
+  function clearLockState(){
+    try{ document.documentElement.removeAttribute('data-dirac-protected-lock'); }catch(_){}
+  }
+
+  function cacheBust(url){
+    var sep = String(url).indexOf('?') === -1 ? '?' : '&';
+    return String(url) + sep + '_plock=' + Date.now();
+  }
+
+  function ensureOverlay(){
+    if (!document.body || document.getElementById('diracProtectedLockOverlay')) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'diracProtectedLockOverlay';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<div class="dirac-lock-card"><div class="dirac-lock-icon">🔐</div><h1>Memeriksa sesi</h1><p>Halaman ini dikunci sampai sesi login valid.</p></div>';
+    document.body.appendChild(overlay);
+  }
+
+  function redirectToLogin(reason){
+    if (redirecting) return;
+    redirecting = true;
+    setLockState('redirecting');
+    ensureOverlay();
+    try{ sessionStorage.setItem('dirac_protected_redirect_reason', String(reason || 'session_invalid')); }catch(_){}
+    var target = LOGIN_PAGE + '?locked=1&t=' + Date.now();
+    try{ window.location.replace(target); }catch(_){ window.location.href = target; }
+  }
+
+  function responseAllowsAccess(data){
+    return !!(data && data.ok === true && data.dashboard === true);
+  }
+
+  async function verifyProtectedSession(reason){
+    if (redirecting) return false;
+    var now = Date.now();
+    if (verifying || (now - lastVerifyAt) < VERIFY_MIN_INTERVAL_MS) return false;
+    verifying = true;
+    lastVerifyAt = now;
+    setLockState('checking');
+    ensureOverlay();
+    var controller = null;
+    var timer = null;
+    try{
+      if (typeof AbortController !== 'undefined') {
+        controller = new AbortController();
+        timer = setTimeout(function(){ try{ controller.abort(); }catch(_){} }, VERIFY_TIMEOUT_MS);
+      }
+      var response = await fetch(cacheBust(VERIFY_ENDPOINT), {
+        method: 'GET',
+        mode: 'same-origin',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+        signal: controller ? controller.signal : undefined
+      });
+      if (timer) clearTimeout(timer);
+      var text = await response.text();
+      var data = {};
+      try{ data = text ? JSON.parse(text) : {}; }catch(_){ data = { ok:false }; }
+      if (!response.ok || !responseAllowsAccess(data)) {
+        redirectToLogin((data && (data.code || data.message)) || reason || 'session_invalid');
+        return false;
+      }
+      clearLockState();
+      return true;
+    }catch(_){
+      if (timer) clearTimeout(timer);
+      redirectToLogin(reason || 'session_check_failed');
+      return false;
+    }finally{
+      verifying = false;
+    }
+  }
+
+  setLockState('checking');
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ ensureOverlay(); verifyProtectedSession('dom_ready'); }, { once:true });
+  } else {
+    ensureOverlay();
+    verifyProtectedSession('initial');
+  }
+
+  window.addEventListener('pageshow', function(){
+    setLockState('checking');
+    ensureOverlay();
+    verifyProtectedSession('pageshow');
+  });
+  window.addEventListener('pagehide', function(){ setLockState('checking'); });
+  window.addEventListener('focus', function(){ verifyProtectedSession('focus'); });
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden) setLockState('checking');
+    else verifyProtectedSession('visible');
+  });
+})();
+</script>
+<!-- DIRAC PROTECTED PAGE LOCK ONLY END -->
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
