@@ -1773,6 +1773,39 @@ async function domainCheckout(req, res) {
     };
   }
 
+  const orderMailNotification = await orderMailNotifyNewOrderSafe({
+    source: 'domain_checkout',
+    kind: 'domain',
+    order: {
+      id: order.id,
+      code: String(order.order_code || order.order_id || order.id || '').trim() || String(order.id || ''),
+      service_type: 'domain',
+      total: totalAmount,
+      subtotal: totalAmount,
+      currency: 'IDR',
+      order_status: 'pending_payment',
+      payment_status: 'unpaid',
+      created_at: order.created_at || diracNowIso()
+    },
+    customer: {
+      name: customerName || ownerCustomer.name || authEmail,
+      email: customerEmail || authEmail,
+      phone: customerWhatsapp
+    },
+    items: orderItems.map((item) => ({
+      title: item.domain_name,
+      quantity: item.years || 1,
+      unit_price: item.register_price,
+      subtotal: item.subtotal,
+      description: item.extension
+    })),
+    payment: {
+      url: payment && payment.payment_url ? payment.payment_url : null,
+      provider: payment && payment.provider ? payment.provider : null,
+      invoice_id: payment && payment.invoice_id ? payment.invoice_id : null
+    }
+  });
+
   return res.status(200).json({
     ok: true,
     message: payment && payment.payment_url
@@ -1791,6 +1824,7 @@ async function domainCheckout(req, res) {
     payment_provider: payment && payment.provider ? payment.provider : null,
     payment_gateway_configured: Boolean(payment && payment.configured),
     payment_error: payment && payment.error ? payment.error : null,
+    order_mail_notification: orderMailNotification,
     items: orderItems
   });
 }
@@ -5979,6 +6013,34 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     });
   }
 
+  const orderMailNotification = await orderMailNotifyNewOrderSafe({
+    source: 'checkout_order',
+    kind: 'regular',
+    order: {
+      id: order.id,
+      code: order.order_id || orderCode,
+      service_type: serviceType,
+      total: backendQuote.total,
+      subtotal: backendQuote.subtotal,
+      currency: 'IDR',
+      order_status: 'pending',
+      payment_status: 'unpaid',
+      created_at: order.created_at || diracNowIso()
+    },
+    customer: {
+      name: finalCustomerName,
+      email: finalCustomerEmail,
+      phone: finalCustomerPhone
+    },
+    items: itemBodies.map((item) => ({
+      title: item.product_title,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      subtotal: item.unit_price * item.quantity
+    })),
+    payment: { url: null, provider: null }
+  });
+
   return res.status(200).json({
     ok: true,
     message: 'Pesanan berhasil dibuat. Nominal dikunci backend dari database, payment gateway belum aktif.',
@@ -5993,6 +6055,7 @@ async function sessionOwnershipCheckoutCreateUnpaidOrder(req, res) {
     payment_url: null,
     dashboard_mfa_required: true,
     payment_gateway_configured: false,
+    order_mail_notification: orderMailNotification,
     ownership_locked: true,
     payment_protected: true,
     price_locked_by_backend: backendQuote.priceLocked,
@@ -10788,3 +10851,551 @@ async function diracUniversalPesananFindReusableTransaction(input) {
   return { ok: true, transaction: reusable || null };
 }
 
+
+/* ============================================================
+   ORDER EMAIL NOTIFICATION - APPEND ONLY - v13
+   Scope:
+   - Order notification email only.
+   - Does not read or modify SMTP_USER/SMTP_PASS used by admin panel.
+   - Does not touch login/hash/A2F/passkey/cookies/payment security.
+   - Customer email uses ORDER_CUSTOMER_* ENV.
+   - Owner/store email uses ORDER_OWNER_* ENV.
+   ============================================================ */
+
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v13';
+const __diracOrderMailPreviousHandler = module.exports;
+
+module.exports = async function diracOrderMailWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (rawAction !== 'order_mail_health' && rawAction !== 'order_email_health') {
+    return __diracOrderMailPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+
+  return res.status(200).json({
+    ok: true,
+    service: 'dirac-order-mail',
+    debugPatch: DIRAC_ORDER_MAIL_PATCH,
+    customer: orderMailPublicConfigInfo('customer'),
+    owner: orderMailPublicConfigInfo('owner'),
+    adminPanelSmtpUntouched: true,
+    adminPanelEnvNamesIgnored: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASS'],
+    note: 'Endpoint ini hanya mengecek ENV ORDER_CUSTOMER_* dan ORDER_OWNER_*. Secret/app password tidak ditampilkan.'
+  });
+};
+
+async function orderMailNotifyNewOrderSafe(input) {
+  const summary = {
+    ok: true,
+    debugPatch: DIRAC_ORDER_MAIL_PATCH,
+    attempted: false,
+    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: false, error: null },
+    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: false, error: null }
+  };
+
+  try {
+    const order = orderMailNormalizeOrderInput(input);
+    const messages = orderMailBuildNewOrderMessages(order);
+
+    if (summary.customer.enabled && summary.customer.configured && order.customer.email) {
+      summary.attempted = true;
+      const customerConfig = orderMailSmtpConfig('customer');
+      const customerResult = await orderMailSendViaSmtpSafe(customerConfig, {
+        to: [order.customer.email],
+        subject: messages.customerSubject,
+        text: messages.customerText,
+        html: messages.customerHtml,
+        fromName: customerConfig.fromName,
+        fromEmail: customerConfig.fromEmail
+      });
+      summary.customer.sent = Boolean(customerResult.ok);
+      summary.customer.error = customerResult.ok ? null : customerResult.error;
+    } else {
+      summary.customer.skipped = true;
+      summary.customer.reason = !summary.customer.enabled
+        ? 'disabled'
+        : (!summary.customer.configured ? 'smtp_not_configured' : 'customer_email_missing');
+    }
+
+    if (summary.owner.enabled && summary.owner.configured && orderMailSmtpConfig('owner').recipients.length) {
+      summary.attempted = true;
+      const ownerConfig = orderMailSmtpConfig('owner');
+      const ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
+        to: ownerConfig.recipients,
+        subject: messages.ownerSubject,
+        text: messages.ownerText,
+        html: messages.ownerHtml,
+        fromName: ownerConfig.fromName,
+        fromEmail: ownerConfig.fromEmail
+      });
+      summary.owner.sent = Boolean(ownerResult.ok);
+      summary.owner.error = ownerResult.ok ? null : ownerResult.error;
+      summary.owner.recipient_count = ownerConfig.recipients.length;
+    } else {
+      summary.owner.skipped = true;
+      summary.owner.reason = !summary.owner.enabled
+        ? 'disabled'
+        : (!summary.owner.configured ? 'smtp_not_configured' : 'owner_email_missing');
+    }
+  } catch (error) {
+    summary.ok = false;
+    summary.error = orderMailSafeError(error);
+  }
+
+  return summary;
+}
+
+function orderMailCustomerEnabled() {
+  return orderMailEnvTrue(process.env.ORDER_CUSTOMER_EMAIL_ENABLED, false);
+}
+
+function orderMailOwnerEnabled() {
+  return orderMailEnvTrue(process.env.ORDER_OWNER_EMAIL_ENABLED, false);
+}
+
+function orderMailEnvTrue(value, fallback) {
+  if (value === undefined || value === null || value === '') return Boolean(fallback);
+  const clean = String(value).trim().toLowerCase();
+  return clean === 'true' || clean === '1' || clean === 'yes' || clean === 'on' || clean === 'enabled';
+}
+
+function orderMailSmtpConfig(kind) {
+  const prefix = kind === 'owner' ? 'ORDER_OWNER' : 'ORDER_CUSTOMER';
+  const host = String(process.env[`${prefix}_SMTP_HOST`] || '').trim();
+  const port = Math.trunc(Number(process.env[`${prefix}_SMTP_PORT`] || 465));
+  const secure = orderMailEnvTrue(process.env[`${prefix}_SMTP_SECURE`], true);
+  const user = String(process.env[`${prefix}_SMTP_USER`] || '').trim();
+  const pass = String(process.env[`${prefix}_SMTP_PASS`] || '').trim().replace(/\s+/g, '');
+  const fromName = orderMailCleanText(process.env[`${prefix}_FROM_NAME`] || 'Dirac Group', 80);
+  const fromEmail = orderMailNormalizeEmail(process.env[`${prefix}_FROM_EMAIL`] || user);
+  const recipients = kind === 'owner' ? orderMailParseEmailList(process.env.ORDER_OWNER_EMAIL || '') : [];
+
+  return {
+    kind,
+    host,
+    port: Number.isFinite(port) && port > 0 ? port : 465,
+    secure,
+    user,
+    pass,
+    fromName,
+    fromEmail,
+    recipients,
+    configured: Boolean(host && user && pass && fromEmail)
+  };
+}
+
+function orderMailPublicConfigInfo(kind) {
+  const config = orderMailSmtpConfig(kind);
+  const enabled = kind === 'owner' ? orderMailOwnerEnabled() : orderMailCustomerEnabled();
+  return {
+    enabled,
+    configured: config.configured,
+    host: config.host || null,
+    port: config.port || null,
+    secure: config.secure,
+    userPresent: Boolean(config.user),
+    passPresent: Boolean(config.pass),
+    fromEmailPresent: Boolean(config.fromEmail),
+    ownerRecipientCount: kind === 'owner' ? config.recipients.length : undefined
+  };
+}
+
+function orderMailNormalizeOrderInput(input) {
+  const row = input && typeof input === 'object' ? input : {};
+  const order = row.order && typeof row.order === 'object' ? row.order : {};
+  const customer = row.customer && typeof row.customer === 'object' ? row.customer : {};
+  const payment = row.payment && typeof row.payment === 'object' ? row.payment : {};
+  const items = Array.isArray(row.items) ? row.items : [];
+
+  const code = orderMailCleanText(order.code || order.order_code || order.order_id || order.id || 'ORDER', 120);
+  const total = orderMailMoney(order.total ?? order.total_price ?? order.amount ?? order.subtotal ?? 0);
+  const currency = orderMailCleanText(order.currency || 'IDR', 12).toUpperCase() || 'IDR';
+
+  return {
+    source: orderMailCleanText(row.source || 'checkout_order', 60),
+    kind: orderMailCleanText(row.kind || order.kind || order.service_type || 'regular', 40),
+    order: {
+      id: orderMailCleanText(order.id || '', 120),
+      code,
+      service_type: orderMailCleanText(order.service_type || row.kind || 'order', 80),
+      total,
+      subtotal: orderMailMoney(order.subtotal ?? total),
+      currency,
+      order_status: orderMailCleanText(order.order_status || 'pending', 40),
+      payment_status: orderMailCleanText(order.payment_status || 'unpaid', 40),
+      created_at: orderMailCleanText(order.created_at || diracNowIso(), 60)
+    },
+    customer: {
+      name: orderMailCleanText(customer.name || customer.customer_name || 'Customer', 120),
+      email: orderMailNormalizeEmail(customer.email || customer.customer_email || ''),
+      phone: orderMailCleanText(customer.phone || customer.whatsapp || customer.customer_phone || customer.customer_whatsapp || '', 80)
+    },
+    payment: {
+      url: orderMailCleanUrl(payment.url || payment.payment_url || ''),
+      provider: orderMailCleanText(payment.provider || payment.payment_provider || '', 60),
+      invoice_id: orderMailCleanText(payment.invoice_id || payment.id || '', 120)
+    },
+    items: items.slice(0, 30).map((item, index) => ({
+      title: orderMailCleanText(item && (item.title || item.product_title || item.name || item.domain_name) || `Item ${index + 1}`, 180),
+      quantity: orderMailPositiveInt(item && (item.quantity || item.qty || item.years) || 1, 1, 9999),
+      unit_price: orderMailMoney(item && (item.unit_price ?? item.price ?? item.register_price ?? 0)),
+      subtotal: orderMailMoney(item && (item.subtotal ?? 0)),
+      description: orderMailCleanText(item && (item.description || item.extension || item.product_doc_id) || '', 180)
+    })).filter((item) => item.title)
+  };
+}
+
+function orderMailBuildNewOrderMessages(data) {
+  const serviceLabel = orderMailServiceLabel(data.order.service_type || data.kind);
+  const total = orderMailFormatCurrency(data.order.total, data.order.currency);
+  const created = orderMailFormatDate(data.order.created_at);
+  const itemsText = orderMailItemsText(data.items);
+  const itemsHtml = orderMailItemsHtml(data.items);
+  const paymentLine = data.payment.url ? `\nLink pembayaran: ${data.payment.url}` : '';
+  const paymentHtml = data.payment.url
+    ? `<p><a href="${orderMailEscapeHtml(data.payment.url)}" style="display:inline-block;padding:10px 14px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px">Buka Link Pembayaran</a></p>`
+    : '';
+
+  const customerSubject = `Pesanan ${data.order.code} diterima - Dirac Group`;
+  const ownerSubject = `Order baru ${data.order.code} - ${serviceLabel}`;
+
+  const customerText = [
+    `Halo ${data.customer.name || 'Customer'},`,
+    '',
+    'Pesanan kamu sudah kami terima.',
+    `Kode pesanan: ${data.order.code}`,
+    `Layanan: ${serviceLabel}`,
+    `Total: ${total}`,
+    `Status: ${data.order.payment_status}`,
+    `Waktu: ${created}`,
+    paymentLine.trim(),
+    '',
+    'Rincian:',
+    itemsText,
+    '',
+    'Terima kasih,',
+    'Dirac Group'
+  ].filter((line) => line !== '').join('\n');
+
+  const ownerText = [
+    'Ada order baru masuk.',
+    '',
+    `Kode pesanan: ${data.order.code}`,
+    `Jenis: ${serviceLabel}`,
+    `Customer: ${data.customer.name || '-'}`,
+    `Email: ${data.customer.email || '-'}`,
+    `HP/WA: ${data.customer.phone || '-'}`,
+    `Total: ${total}`,
+    `Status bayar: ${data.order.payment_status}`,
+    `Waktu: ${created}`,
+    paymentLine.trim(),
+    '',
+    'Rincian:',
+    itemsText
+  ].filter((line) => line !== '').join('\n');
+
+  const customerHtml = orderMailHtmlShell(customerSubject, `
+    <p>Halo ${orderMailEscapeHtml(data.customer.name || 'Customer')},</p>
+    <p>Pesanan kamu sudah kami terima.</p>
+    ${orderMailInfoTable([
+      ['Kode pesanan', data.order.code],
+      ['Layanan', serviceLabel],
+      ['Total', total],
+      ['Status', data.order.payment_status],
+      ['Waktu', created]
+    ])}
+    ${paymentHtml}
+    <h3>Rincian</h3>
+    ${itemsHtml}
+    <p>Terima kasih,<br>Dirac Group</p>
+  `);
+
+  const ownerHtml = orderMailHtmlShell(ownerSubject, `
+    <p>Ada order baru masuk.</p>
+    ${orderMailInfoTable([
+      ['Kode pesanan', data.order.code],
+      ['Jenis', serviceLabel],
+      ['Customer', data.customer.name || '-'],
+      ['Email', data.customer.email || '-'],
+      ['HP/WA', data.customer.phone || '-'],
+      ['Total', total],
+      ['Status bayar', data.order.payment_status],
+      ['Waktu', created]
+    ])}
+    ${paymentHtml}
+    <h3>Rincian</h3>
+    ${itemsHtml}
+  `);
+
+  return { customerSubject, ownerSubject, customerText, ownerText, customerHtml, ownerHtml };
+}
+
+function orderMailHtmlShell(title, body) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${orderMailEscapeHtml(title)}</title></head><body style="margin:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827"><div style="max-width:640px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:14px;padding:22px;border:1px solid #e5e7eb"><h2 style="margin:0 0 16px">${orderMailEscapeHtml(title)}</h2>${body}</div><p style="font-size:12px;color:#6b7280;margin-top:12px">Email otomatis dari sistem Dirac Group.</p></div></body></html>`;
+}
+
+function orderMailInfoTable(rows) {
+  const body = (rows || []).map(([key, value]) => `
+    <tr><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:160px">${orderMailEscapeHtml(key)}</td><td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">${orderMailEscapeHtml(value)}</td></tr>`).join('');
+  return `<table style="border-collapse:collapse;width:100%;margin:12px 0;border:1px solid #e5e7eb">${body}</table>`;
+}
+
+function orderMailItemsText(items) {
+  const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
+  return rows.map((item, index) => {
+    const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
+    return `${index + 1}. ${item.title} x${item.quantity} - ${orderMailFormatCurrency(subtotal, 'IDR')}`;
+  }).join('\n');
+}
+
+function orderMailItemsHtml(items) {
+  const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
+  const body = rows.map((item, index) => {
+    const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
+    return `<tr><td style="padding:8px;border-bottom:1px solid #e5e7eb">${index + 1}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb">${orderMailEscapeHtml(item.title)}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, 'IDR'))}</td></tr>`;
+  }).join('');
+  return `<table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb"><thead><tr><th style="padding:8px;text-align:left;background:#f9fafb">#</th><th style="padding:8px;text-align:left;background:#f9fafb">Item</th><th style="padding:8px;text-align:center;background:#f9fafb">Qty</th><th style="padding:8px;text-align:right;background:#f9fafb">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+async function orderMailSendViaSmtpSafe(config, message) {
+  try {
+    return await orderMailSendViaSmtp(config, message);
+  } catch (error) {
+    return { ok: false, error: orderMailSafeError(error) };
+  }
+}
+
+async function orderMailSendViaSmtp(config, message) {
+  if (!config || !config.configured) return { ok: false, error: 'smtp_not_configured' };
+  const recipients = Array.from(new Set((message.to || []).map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
+  if (!recipients.length) return { ok: false, error: 'recipient_missing' };
+
+  const tls = require('tls');
+  const net = require('net');
+  const host = config.host;
+  const port = config.port || (config.secure ? 465 : 587);
+  const timeoutMs = Math.max(3000, Math.min(20000, Number(process.env.ORDER_SMTP_TIMEOUT_MS || 9000)));
+
+  return await new Promise((resolve, reject) => {
+    let socket;
+    let buffer = '';
+    let settled = false;
+    let timer;
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      if (socket) {
+        socket.removeAllListeners();
+        try { socket.end(); } catch (_) {}
+        try { socket.destroy(); } catch (_) {}
+      }
+    };
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error instanceof Error ? error : new Error(String(error || 'smtp_failed')));
+    };
+    const done = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fail(new Error('smtp_timeout')), timeoutMs);
+    };
+    const readResponse = () => new Promise((resolveRead) => {
+      const wait = () => {
+        const lines = buffer.split(/\r?\n/);
+        for (let i = 0; i < lines.length; i += 1) {
+          if (/^\d{3} /.test(lines[i])) {
+            const responseLines = lines.slice(0, i + 1);
+            buffer = lines.slice(i + 1).join('\n');
+            return resolveRead({ code: Number(lines[i].slice(0, 3)), text: responseLines.join('\n') });
+          }
+        }
+        setTimeout(wait, 10);
+      };
+      wait();
+    });
+    const command = async (line, expected) => {
+      resetTimer();
+      socket.write(line + '\r\n');
+      const response = await readResponse();
+      const expectedList = Array.isArray(expected) ? expected : [expected];
+      if (!expectedList.includes(response.code)) {
+        throw new Error(`smtp_${response.code}_${orderMailCleanText(response.text, 120)}`);
+      }
+      return response;
+    };
+
+    const run = async () => {
+      resetTimer();
+      socket = config.secure
+        ? tls.connect({ host, port, servername: host, rejectUnauthorized: true })
+        : net.connect({ host, port });
+      socket.setEncoding('utf8');
+      socket.on('error', fail);
+      socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
+      await new Promise((resolveConnect) => socket.once(config.secure ? 'secureConnect' : 'connect', resolveConnect));
+      const greet = await readResponse();
+      if (greet.code !== 220) throw new Error(`smtp_greeting_${greet.code}`);
+      await command('EHLO diracgroup.store', 250);
+      if (!config.secure) {
+        await command('STARTTLS', 220);
+        socket.removeAllListeners('data');
+        socket.removeAllListeners('error');
+        buffer = '';
+        socket = tls.connect({ socket, servername: host, rejectUnauthorized: true });
+        socket.setEncoding('utf8');
+        socket.on('error', fail);
+        socket.on('data', (chunk) => { buffer += chunk.toString('utf8'); });
+        await new Promise((resolveSecure) => socket.once('secureConnect', resolveSecure));
+        await command('EHLO diracgroup.store', 250);
+      }
+      await command('AUTH PLAIN ' + Buffer.from(`\u0000${config.user}\u0000${config.pass}`).toString('base64'), 235);
+      await command(`MAIL FROM:<${config.fromEmail}>`, 250);
+      for (const recipient of recipients) await command(`RCPT TO:<${recipient}>`, [250, 251]);
+      await command('DATA', 354);
+      socket.write(orderMailBuildMimeMessage({ ...message, to: recipients, fromName: message.fromName || config.fromName, fromEmail: message.fromEmail || config.fromEmail }) + '\r\n.\r\n');
+      const dataResponse = await readResponse();
+      if (dataResponse.code !== 250) throw new Error(`smtp_data_${dataResponse.code}_${orderMailCleanText(dataResponse.text, 120)}`);
+      try { await command('QUIT', 221); } catch (_) {}
+      done({ ok: true, recipient_count: recipients.length });
+    };
+
+    run().catch(fail);
+  });
+}
+
+function orderMailBuildMimeMessage(message) {
+  const boundary = 'DIRAC_' + crypto.randomBytes(12).toString('hex');
+  const from = `${orderMailHeaderName(message.fromName || 'Dirac Group')} <${orderMailNormalizeEmail(message.fromEmail || '')}>`;
+  const to = (message.to || []).map((email) => `<${orderMailNormalizeEmail(email)}>`).join(', ');
+  const subject = orderMailHeaderName(message.subject || 'Dirac Group Order');
+  const msgId = `<${Date.now()}.${crypto.randomBytes(8).toString('hex')}@diracgroup.store>`;
+  const text = orderMailBase64Body(message.text || '');
+  const html = orderMailBase64Body(message.html || '<p>Dirac Group</p>');
+
+  return [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: ${msgId}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    text,
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    html,
+    `--${boundary}--`,
+    ''
+  ].join('\r\n');
+}
+
+function orderMailHeaderName(value) {
+  const text = orderMailCleanText(value, 160).replace(/[\r\n]+/g, ' ');
+  if (/^[\x20-\x7E]*$/.test(text)) return text;
+  return '=?UTF-8?B?' + Buffer.from(text, 'utf8').toString('base64') + '?=';
+}
+
+function orderMailBase64Body(value) {
+  return Buffer.from(String(value || ''), 'utf8').toString('base64').replace(/.{1,76}/g, '$&\r\n').trim();
+}
+
+function orderMailParseEmailList(value) {
+  return Array.from(new Set(String(value || '').split(/[;,\s]+/).map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
+}
+
+function orderMailNormalizeEmail(value) {
+  const email = String(value || '').trim().toLowerCase();
+  if (!email || email.length > 254) return '';
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) return '';
+  return email;
+}
+
+function orderMailCleanUrl(value) {
+  const url = String(value || '').trim();
+  if (!/^https:\/\//i.test(url)) return '';
+  return url.slice(0, 1000);
+}
+
+function orderMailCleanText(value, maxLength) {
+  return String(value || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, Math.max(1, Number(maxLength || 120)));
+}
+
+function orderMailEscapeHtml(value) {
+  return String(value === undefined || value === null ? '' : value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function orderMailMoney(value) {
+  const number = Number(String(value || 0).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.round(number);
+}
+
+function orderMailPositiveInt(value, fallback, max) {
+  const number = Math.trunc(Number(value));
+  if (!Number.isFinite(number) || number < 1) return fallback || 1;
+  return Math.min(number, max || 9999);
+}
+
+function orderMailFormatCurrency(value, currency) {
+  const amount = orderMailMoney(value);
+  const cur = orderMailCleanText(currency || 'IDR', 12).toUpperCase() || 'IDR';
+  try {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(amount);
+  } catch (_) {
+    return `${cur} ${amount.toLocaleString('id-ID')}`;
+  }
+}
+
+function orderMailFormatDate(value) {
+  const date = new Date(value || Date.now());
+  try {
+    return new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+      timeZoneName: 'short'
+    }).format(Number.isFinite(date.getTime()) ? date : new Date());
+  } catch (_) {
+    return (Number.isFinite(date.getTime()) ? date : new Date()).toISOString();
+  }
+}
+
+function orderMailServiceLabel(value) {
+  const clean = orderMailCleanText(value, 80).toLowerCase();
+  if (clean === 'parfum') return 'Parfum';
+  if (clean === 'domain') return 'Domain';
+  if (clean.includes('website')) return 'Jasa Website';
+  if (clean.includes('digital')) return 'Layanan Digital';
+  if (clean.includes('pengembangan')) return 'Pengembangan Website';
+  return clean ? clean.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) : 'Order';
+}
+
+function orderMailSafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'email_error');
+  if (/password|pass|secret|token|authorization|apikey|api_key/i.test(message)) return 'email_internal_error';
+  return orderMailCleanText(message, 160);
+}
