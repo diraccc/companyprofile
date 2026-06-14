@@ -4017,3 +4017,258 @@ function chatOrderMailUpstreamMessage(data) {
   if (typeof data === 'object') return String(data.message || data.error || data.error_description || data.detail || data.hint || data.code || '').slice(0, 220);
   return '';
 }
+
+
+/* ============================================================
+   DIRAC CHAT ORDER MAIL AUTO PAID WEBHOOK - APPEND ONLY - v2
+   Scope:
+   - Tetap terpisah dari health.js.
+   - Tidak mengubah endpoint chat lama.
+   - Tidak mengubah manual resend v1.
+   - Menerima Supabase Database Webhook ketika order berubah menjadi paid,
+     lalu memanggil resend email paid yang sudah ada di file ini.
+   - Endpoint utama:
+     /api/chat?action=order_mail_auto_paid
+     /api/chat?action=order_mail_supabase_webhook
+   ============================================================ */
+
+const DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH = 'chat-order-mail-auto-paid-v2';
+const __diracChatOrderMailAutoPreviousHandler = module.exports;
+const DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE = globalThis.__DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE__ || new Map();
+globalThis.__DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE__ = DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE;
+
+module.exports = async function diracChatOrderMailAutoPaidWrapper(req, res) {
+  const rawAction = String((req.query && req.query.action) || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const autoActions = new Set([
+    'order_mail_auto_paid',
+    'order_email_auto_paid',
+    'order_mail_supabase_webhook',
+    'order_email_supabase_webhook',
+    'order_mail_db_webhook',
+    'order_email_db_webhook'
+  ]);
+
+  if (!autoActions.has(rawAction)) {
+    return __diracChatOrderMailAutoPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res);
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Dirac-Session, X-Dirac-Admin, X-Order-Mail-Secret, X-Dirac-Order-Mail-Secret');
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, service: 'dirac-chat-order-mail-auto-paid', debugPatch: DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH, message: 'Gunakan POST dari Supabase Database Webhook.' });
+  }
+
+  const auth = chatOrderMailAuthorize(req);
+  if (!auth.ok) {
+    return res.status(auth.status).json({
+      ok: false,
+      service: 'dirac-chat-order-mail-auto-paid',
+      debugPatch: DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH,
+      code: auth.code,
+      message: auth.message
+    });
+  }
+
+  try {
+    const body = await chatOrderMailReadJsonBody(req);
+    const extracted = chatOrderMailAutoExtractPaidWebhookInput(body, req);
+
+    if (!extracted.ok) {
+      return res.status(extracted.status || 200).json({
+        ok: true,
+        service: 'dirac-chat-order-mail-auto-paid',
+        debugPatch: DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH,
+        skipped: true,
+        reason: extracted.reason || 'webhook_ignored',
+        message: extracted.message || 'Webhook diterima, tetapi tidak memenuhi kondisi paid baru.'
+      });
+    }
+
+    const dupe = chatOrderMailAutoDedupeCheck(extracted.input);
+    if (!dupe.ok) {
+      return res.status(200).json({
+        ok: true,
+        service: 'dirac-chat-order-mail-auto-paid',
+        debugPatch: DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH,
+        skipped: true,
+        reason: 'duplicate_auto_webhook_memory',
+        dedupe_key: dupe.key,
+        message: 'Webhook paid ini sudah diproses pada runtime ini, jadi email tidak dikirim dobel.'
+      });
+    }
+
+    const result = await chatOrderMailResendPaid(Object.assign({}, extracted.input, {
+      provider: extracted.input.provider || 'supabase_db_webhook_auto_paid'
+    }));
+
+    return res.status(result.ok ? 200 : (result.status || 409)).json(Object.assign({}, result, {
+      source: 'supabase_database_webhook_auto_paid_separate_chat_js',
+      autoWebhook: true,
+      autoDebugPatch: DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH,
+      healthJsUntouched: true,
+      supabaseWebhook: extracted.meta
+    }));
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      service: 'dirac-chat-order-mail-auto-paid',
+      debugPatch: DIRAC_CHAT_ORDER_MAIL_AUTO_PATCH,
+      message: 'Gagal memproses auto email paid dari database webhook.',
+      error: chatOrderMailSafeError(error)
+    });
+  }
+};
+
+function chatOrderMailAutoExtractPaidWebhookInput(body, req) {
+  const payload = body && typeof body === 'object' ? body : {};
+  const record = chatOrderMailAutoFirstObject(
+    payload.record,
+    payload.new,
+    payload.new_record,
+    payload.data && payload.data.record,
+    payload.data && payload.data.new,
+    payload.payload && payload.payload.record,
+    payload.payload && payload.payload.new
+  );
+  const oldRecord = chatOrderMailAutoFirstObject(
+    payload.old_record,
+    payload.old,
+    payload.previous,
+    payload.data && payload.data.old_record,
+    payload.data && payload.data.old,
+    payload.payload && payload.payload.old_record,
+    payload.payload && payload.payload.old
+  );
+
+  if (!record) {
+    return { ok: false, reason: 'record_missing', message: 'Payload webhook tidak berisi record order/payment.' };
+  }
+
+  const table = chatOrderMailCleanText(payload.table || payload.table_name || payload.relation || payload.source_table || '', 80).toLowerCase();
+  const eventType = chatOrderMailCleanText(payload.type || payload.eventType || payload.event || payload.operation || '', 40).toUpperCase();
+  const force = chatOrderMailEnvTrue(process.env.ORDER_MAIL_AUTO_FORCE_ALREADY_PAID_UPDATE, false) || String(req && req.query && req.query.force || '').trim() === '1';
+  const recordPaid = chatOrderMailAutoRecordLooksPaid(record);
+  const oldPaid = chatOrderMailAutoRecordLooksPaid(oldRecord);
+
+  if (!recordPaid) {
+    return { ok: false, reason: 'record_not_paid', message: 'Record webhook belum berstatus paid/success.' };
+  }
+
+  if (oldPaid && !force) {
+    return { ok: false, reason: 'old_record_already_paid', message: 'Order sudah paid sebelumnya, jadi auto email tidak dikirim ulang agar tidak dobel.' };
+  }
+
+  const input = chatOrderMailAutoBuildResendInput(table, record, payload);
+  if (!input.payment_transaction_id && !input.gateway_reference && !input.order_id && !input.domain_order_id) {
+    return { ok: false, reason: 'order_id_missing', message: 'Record webhook paid tidak punya id/order_id/domain_order_id/gateway_reference.' };
+  }
+
+  return {
+    ok: true,
+    input,
+    meta: {
+      table: table || 'unknown',
+      eventType: eventType || 'unknown',
+      recordPaid: true,
+      oldPaid: Boolean(oldPaid),
+      force: Boolean(force)
+    }
+  };
+}
+
+function chatOrderMailAutoBuildResendInput(table, record, payload) {
+  const cleanTable = String(table || '').toLowerCase();
+  const id = chatOrderMailCleanText(record && record.id || '', 120);
+  const provider = chatOrderMailCleanText(record && (record.provider || record.payment_provider) || payload && payload.provider || 'supabase_db_webhook_auto_paid', 60);
+  const gatewayReference = chatOrderMailCleanText(
+    record && (
+      record.gateway_reference ||
+      record.reference ||
+      record.reference_id ||
+      record.referenceId ||
+      record.invoice_id ||
+      record.payment_reference ||
+      record.transaction_reference
+    ) || '',
+    160
+  );
+
+  const input = {
+    provider,
+    payment_transaction_id: '',
+    gateway_reference: gatewayReference,
+    order_id: chatOrderMailCleanText(record && (record.order_id || record.orderId) || '', 120),
+    domain_order_id: chatOrderMailCleanText(record && (record.domain_order_id || record.domainOrderId) || '', 120)
+  };
+
+  if (/payment_transactions?|transactions?|payments?/i.test(cleanTable)) {
+    input.payment_transaction_id = id || chatOrderMailCleanText(record && (record.payment_transaction_id || record.transaction_id || record.tx_id) || '', 120);
+    return input;
+  }
+
+  if (/domain_orders?|domain_order/i.test(cleanTable)) {
+    input.domain_order_id = input.domain_order_id || id;
+    return input;
+  }
+
+  if (/^orders?$|regular_orders?|service_orders?/i.test(cleanTable)) {
+    input.order_id = input.order_id || id;
+    return input;
+  }
+
+  // Fallback aman: infer dari nama kolom yang ada di record.
+  if (input.domain_order_id) return input;
+  if (input.order_id) return input;
+  if (id && (record && (record.domain_name || record.customer_whatsapp || record.total_price))) input.domain_order_id = id;
+  else if (id) input.order_id = id;
+  return input;
+}
+
+function chatOrderMailAutoRecordLooksPaid(record) {
+  if (!record || typeof record !== 'object') return false;
+  const fields = [
+    record.payment_status,
+    record.status,
+    record.order_status,
+    record.paid_status,
+    record.transaction_status,
+    record.paymentStatus,
+    record.orderStatus,
+    record.transactionStatus
+  ];
+  return fields.some((value) => chatOrderMailIsPaidStatus(value));
+}
+
+function chatOrderMailAutoFirstObject() {
+  for (let i = 0; i < arguments.length; i += 1) {
+    const value = arguments[i];
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  }
+  return null;
+}
+
+function chatOrderMailAutoDedupeCheck(input) {
+  const ttlMinutes = Math.max(1, Math.min(1440, Number(process.env.ORDER_MAIL_AUTO_DEDUPE_MINUTES || 360)));
+  const ttlMs = ttlMinutes * 60 * 1000;
+  const now = Date.now();
+  if (DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE.size > 1000) {
+    for (const [key, value] of DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE.entries()) {
+      if (Number(value || 0) <= now) DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE.delete(key);
+    }
+  }
+
+  const key = [
+    input && input.payment_transaction_id || '',
+    input && input.gateway_reference || '',
+    input && input.domain_order_id || '',
+    input && input.order_id || ''
+  ].map((item) => String(item || '').trim()).filter(Boolean).join('|');
+
+  if (!key) return { ok: true, key: '' };
+  const expiresAt = Number(DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE.get(key) || 0);
+  if (expiresAt > now) return { ok: false, key };
+  DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE.set(key, now + ttlMs);
+  return { ok: true, key };
+}
