@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const DIRAC_MIDTRANS_DEBUG_PATCH = 'midtrans-keysource-v10';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://diracgroup.store',
@@ -2750,7 +2751,27 @@ function formatCurrency(value, currency = 'IDR') {
 function getUpstreamMessage(data) {
   if (!data) return '';
   if (typeof data === 'string') return data.slice(0, 220);
-  return String(data.error || data.message || data.detail || data.title || '').slice(0, 220);
+  if (Array.isArray(data)) return data.map((item) => getUpstreamMessage(item)).filter(Boolean).join(' | ').slice(0, 220);
+  if (typeof data === 'object') {
+    const validation = Array.isArray(data.validation_messages) ? data.validation_messages.join(' | ') : '';
+    const messages = Array.isArray(data.messages) ? data.messages.join(' | ') : '';
+    const errors = Array.isArray(data.errors) ? data.errors.map((item) => getUpstreamMessage(item)).filter(Boolean).join(' | ') : '';
+    return String(
+      data.status_message ||
+      data.statusMessage ||
+      data.message ||
+      data.error ||
+      data.error_description ||
+      data.detail ||
+      data.hint ||
+      data.title ||
+      validation ||
+      messages ||
+      errors ||
+      ''
+    ).slice(0, 220);
+  }
+  return '';
 }
 
 async function supabaseFetch(path, options = {}) {
@@ -7038,7 +7059,7 @@ async function lockedPaymentCreateForOrder(req, res) {
   });
 
   if (!gateway.ok || !gateway.paymentUrl) {
-    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || 'gateway_create_failed');
+    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || 'gateway_create_failed', gateway.raw || null);
     return res.status(gateway.status || 502).json({
       ok: false,
       message: gateway.message || 'Gateway gagal membuat URL pembayaran.',
@@ -7196,6 +7217,7 @@ async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoi
   const metadata = {
     gateway_invoice_id: invoiceId || null,
     gateway_created_at: diracNowIso(),
+    gateway_debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH,
     gateway_raw: raw || null
   };
 
@@ -7213,17 +7235,60 @@ async function lockedPaymentPatchTransactionUrl(transactionId, paymentUrl, invoi
   });
 }
 
-async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error) {
+async function lockedPaymentMarkTransactionGatewayFailed(transactionId, error, raw) {
+  const metadata = {
+    gateway_failed_at: diracNowIso(),
+    gateway_debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH,
+    gateway_error: lockedPaymentCleanText(error, 500) || 'gateway_create_failed'
+  };
+
+  const upstreamMessage = getUpstreamMessage(raw) || lockedPaymentSafeUpstreamError(raw);
+  if (upstreamMessage) metadata.gateway_response = lockedPaymentCleanText(upstreamMessage, 1000);
+
+  if (raw && typeof raw === 'object') {
+    const status = raw.http_status || raw.status || raw.status_code || raw.statusCode || raw.status_message || raw.statusMessage || '';
+    if (status) metadata.gateway_status = lockedPaymentCleanText(status, 120);
+  }
+
+  const safeRaw = lockedPaymentSafeMetadataRaw(raw);
+  metadata.gateway_raw_present = safeRaw !== null;
+  if (safeRaw !== null) metadata.gateway_raw = safeRaw;
+
   return supabaseFetch('/rest/v1/payment_transactions?id=eq.' + encodeURIComponent(transactionId), {
     method: 'PATCH',
     auth: 'service',
-    body: {
-      metadata: {
-        gateway_failed_at: diracNowIso(),
-        gateway_error: lockedPaymentCleanText(error, 220)
-      }
-    }
+    body: { metadata }
   }).catch(() => null);
+}
+
+function lockedPaymentSafeMetadataRaw(value, depth = 0) {
+  if (value === undefined || value === null) return null;
+  if (depth > 4) return '[depth_limited]';
+
+  if (typeof value === 'string') return value.slice(0, 2000);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+
+  if (Array.isArray(value)) {
+    return value.slice(0, 20).map((item) => lockedPaymentSafeMetadataRaw(item, depth + 1));
+  }
+
+  if (typeof value === 'object') {
+    const out = {};
+    let count = 0;
+    for (const [key, item] of Object.entries(value)) {
+      if (count >= 40) break;
+      const safeKey = String(key || '').slice(0, 80);
+      if (/authorization|server_key|client_key|secret|token|password|apikey|api_key|bearer/i.test(safeKey)) {
+        out[safeKey] = '[redacted]';
+      } else {
+        out[safeKey] = lockedPaymentSafeMetadataRaw(item, depth + 1);
+      }
+      count += 1;
+    }
+    return out;
+  }
+
+  return String(value).slice(0, 500);
 }
 
 async function lockedPaymentCreateGatewayInvoice(input) {
@@ -7367,7 +7432,12 @@ function lockedPaymentCleanText(value, maxLength) {
 function lockedPaymentSafeUpstreamError(data) {
   if (!data) return null;
   if (typeof data === 'string') return data.slice(0, 220);
-  return String(data.message || data.error || data.detail || data.hint || 'upstream_error').slice(0, 220);
+  const message = getUpstreamMessage(data);
+  if (message) return message.slice(0, 220);
+  if (data && typeof data === 'object' && (data.status_code || data.status || data.http_status)) {
+    return String(data.status_message || data.status_code || data.status || data.http_status || 'upstream_error').slice(0, 220);
+  }
+  return 'upstream_error';
 }
 
 function lockedPaymentSafeError(error) {
@@ -7406,12 +7476,26 @@ module.exports = async function midtransPaymentWrapper(req, res) {
   if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
 
   if (action === 'midtrans_health') {
+    const selectedKey = midtransSelectedServerKeyInfo();
     return res.status(200).json({
       ok: true,
       provider: 'midtrans',
-      snapConfigured: midtransPaymentIsConfigured(),
+      snapConfigured: selectedKey.configured,
       webhook: '/api/health?action=midtrans_webhook',
-      environment: midtransIsProduction() ? 'production' : 'sandbox'
+      environment: midtransIsProduction() ? 'production' : 'sandbox',
+      debugPatch: DIRAC_MIDTRANS_DEBUG_PATCH,
+      keyDebug: {
+        selectedSource: selectedKey.source,
+        prefix: selectedKey.prefix,
+        length: selectedKey.length,
+        sha256_12: selectedKey.sha256_12,
+        sandboxServerKeyPresent: Boolean(String(process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim()),
+        genericServerKeyPresent: Boolean(String(process.env.MIDTRANS_SERVER_KEY || '').trim()),
+        clientKeyPresent: Boolean(String(process.env.MIDTRANS_CLIENT_KEY || process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '').trim()),
+        expectedPrefix: midtransIsProduction() ? 'Mid-server-' : 'SB-Mid-server-',
+        prefixMatchesEnvironment: selectedKey.prefixMatchesEnvironment,
+        valueHasOuterWhitespace: selectedKey.valueHasOuterWhitespace
+      }
     });
   }
 
@@ -7455,13 +7539,59 @@ function midtransIsWebhookAction(action) {
 }
 
 function midtransPaymentIsConfigured() {
-  return Boolean(String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim());
+  return midtransSelectedServerKeyInfo().configured;
+}
+
+// PATCH v10: pilih key sesuai environment lebih dulu.
+// Sandbox harus memprioritaskan MIDTRANS_SANDBOX_SERVER_KEY agar MIDTRANS_SERVER_KEY lama
+// tidak diam-diam menimpa key sandbox. Production tetap memakai MIDTRANS_SERVER_KEY.
+function midtransSelectedServerKeyInfo() {
+  const production = midtransIsProduction();
+  const genericRaw = String(process.env.MIDTRANS_SERVER_KEY || '');
+  const sandboxRaw = String(process.env.MIDTRANS_SANDBOX_SERVER_KEY || '');
+  const generic = genericRaw.trim();
+  const sandbox = sandboxRaw.trim();
+
+  let source = '';
+  let raw = '';
+  if (production) {
+    source = generic ? 'MIDTRANS_SERVER_KEY' : (sandbox ? 'MIDTRANS_SANDBOX_SERVER_KEY_FALLBACK' : '');
+    raw = generic || sandbox;
+  } else {
+    source = sandbox ? 'MIDTRANS_SANDBOX_SERVER_KEY' : (generic ? 'MIDTRANS_SERVER_KEY_FALLBACK' : '');
+    raw = sandbox || generic;
+  }
+
+  const prefix = raw.startsWith('SB-Mid-server-')
+    ? 'SB-Mid-server-'
+    : (raw.startsWith('Mid-server-') ? 'Mid-server-' : (raw ? raw.slice(0, Math.min(14, raw.length)) : ''));
+  const expectedPrefix = production ? 'Mid-server-' : 'SB-Mid-server-';
+  const originalRaw = source === 'MIDTRANS_SANDBOX_SERVER_KEY' || source === 'MIDTRANS_SANDBOX_SERVER_KEY_FALLBACK'
+    ? sandboxRaw
+    : genericRaw;
+
+  return {
+    configured: Boolean(raw),
+    key: raw,
+    source: source || 'missing',
+    prefix,
+    length: raw.length,
+    sha256_12: raw ? crypto.createHash('sha256').update(raw).digest('hex').slice(0, 12) : '',
+    prefixMatchesEnvironment: Boolean(raw && raw.startsWith(expectedPrefix)),
+    valueHasOuterWhitespace: Boolean(originalRaw && originalRaw !== originalRaw.trim())
+  };
 }
 
 function midtransServerKey() {
-  const key = String(process.env.MIDTRANS_SERVER_KEY || process.env.MIDTRANS_SANDBOX_SERVER_KEY || '').trim();
+  const selected = midtransSelectedServerKeyInfo();
+  const key = selected.key;
   if (!key) {
-    const err = new Error('MIDTRANS_SERVER_KEY belum diisi di Environment Variables Vercel.');
+    const err = new Error('MIDTRANS_SERVER_KEY / MIDTRANS_SANDBOX_SERVER_KEY belum diisi di Environment Variables Vercel.');
+    err.statusCode = 503;
+    throw err;
+  }
+  if (!selected.prefixMatchesEnvironment) {
+    const err = new Error(`Midtrans Server Key tidak cocok dengan environment ${midtransIsProduction() ? 'production' : 'sandbox'}. Gunakan ${midtransIsProduction() ? 'Mid-server-' : 'SB-Mid-server-'} sebagai prefix Server Key.`);
     err.statusCode = 503;
     throw err;
   }
@@ -7618,7 +7748,26 @@ async function midtransCreateSnapPayment(input) {
     });
     data = await parseFetchResponse(response);
   } catch (error) {
-    return { ok: false, status: 502, message: 'Midtrans tidak merespons.', error: lockedPaymentSafeError(error) };
+    const safeError = lockedPaymentSafeError(error) || 'midtrans_fetch_failed';
+    return {
+      ok: false,
+      status: 502,
+      message: 'Midtrans tidak merespons.',
+      error: safeError,
+      raw: {
+        provider: 'midtrans',
+        http_status: 0,
+        error: safeError,
+        request: {
+          order_id: payload.transaction_details.order_id,
+          gross_amount: payload.transaction_details.gross_amount,
+          enabled_payments: payload.enabled_payments || null,
+          return_url: returnUrl,
+          notification_url: midtransNotificationUrl(),
+          snap_base_url: midtransSnapBaseUrl()
+        }
+      }
+    };
   }
 
   if (!response.ok) {
@@ -7627,7 +7776,20 @@ async function midtransCreateSnapPayment(input) {
       status: response.status || 502,
       message: getUpstreamMessage(data) || 'Midtrans gagal membuat Snap transaction.',
       error: lockedPaymentSafeUpstreamError(data),
-      raw: data
+      raw: {
+        provider: 'midtrans',
+        http_status: response.status || 0,
+        midtrans: data || null,
+        request: {
+          order_id: payload.transaction_details.order_id,
+          gross_amount: payload.transaction_details.gross_amount,
+          enabled_payments: payload.enabled_payments || null,
+          return_url: returnUrl,
+          notification_url: midtransNotificationUrl(),
+          snap_base_url: midtransSnapBaseUrl(),
+          debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH
+        }
+      }
     };
   }
 
@@ -7647,7 +7809,9 @@ async function midtransCreateSnapPayment(input) {
         order_id: payload.transaction_details.order_id,
         gross_amount: payload.transaction_details.gross_amount,
         return_url: returnUrl,
-        notification_url: midtransNotificationUrl()
+        notification_url: midtransNotificationUrl(),
+        snap_base_url: midtransSnapBaseUrl(),
+        debug_patch: DIRAC_MIDTRANS_DEBUG_PATCH
       }
     }
   };
@@ -7722,7 +7886,7 @@ async function midtransCreateDomainPaymentInvoice(order, orderItems, customer) {
   });
 
   if (!gateway.ok || !gateway.paymentUrl) {
-    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'midtrans_create_failed');
+    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'midtrans_create_failed', gateway.raw || null);
     return {
       configured: true,
       provider: 'midtrans',
@@ -9530,7 +9694,7 @@ async function diracUniversalPesananCreatePayment(req, res) {
   });
 
   if (!gateway.ok || !gateway.paymentUrl) {
-    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'gateway_create_failed');
+    await lockedPaymentMarkTransactionGatewayFailed(transaction.id, gateway.error || gateway.message || 'gateway_create_failed', gateway.raw || null);
     return res.status(gateway.status || 502).json({
       ok: false,
       message: gateway.message || 'Gateway gagal membuat URL pembayaran.',
@@ -9866,282 +10030,5 @@ async function diracUniversalPesananFindReusableTransaction(input) {
   });
 
   return { ok: true, transaction: reusable || null };
-}
-
-/* ============================================================
-   DIRAC LOGIN COOKIE HARDENING v7
-   Scope: health.js only. Keeps HttpOnly + Secure. Does not touch
-   login endpoint name, A2F endpoint name, password hash, SQL guard,
-   database schema, or payment logic.
-
-   Why this exists:
-   - cookie_test can pass while login cookie still fails when browser
-     sends duplicate host/domain cookies or stale chunk cookies.
-   - domain_me must try every safe cookie candidate before declaring
-     "Belum login".
-   ============================================================ */
-
-function parseCookies(req) {
-  const header = req && req.headers && req.headers.cookie ? String(req.headers.cookie) : '';
-  const cookies = {};
-  const multi = {};
-
-  header.split(';').map((item) => item.trim()).filter(Boolean).forEach((item) => {
-    const index = item.indexOf('=');
-    const rawKey = index === -1 ? item : item.slice(0, index);
-    const rawValue = index === -1 ? '' : item.slice(index + 1);
-    const key = String(rawKey || '').trim();
-    if (!key) return;
-
-    let value = rawValue;
-    try {
-      value = decodeURIComponent(rawValue);
-    } catch (_) {
-      value = rawValue;
-    }
-
-    if (!multi[key]) multi[key] = [];
-    multi[key].push(String(value || ''));
-
-    // Keep the first visible value for old code compatibility.
-    // readCookieTokenCandidates() uses multi so duplicate cookies are not lost.
-    if (!Object.prototype.hasOwnProperty.call(cookies, key)) {
-      cookies[key] = String(value || '');
-    }
-  });
-
-  Object.defineProperty(cookies, '__multi', {
-    value: multi,
-    enumerable: false,
-    configurable: true
-  });
-
-  return cookies;
-}
-
-function uniqueCookieValues(values) {
-  const out = [];
-  (Array.isArray(values) ? values : [values]).forEach((value) => {
-    const clean = String(value || '').trim();
-    if (clean && !out.includes(clean)) out.push(clean);
-  });
-  return out;
-}
-
-function getCookieValueList(cookies, name) {
-  const jar = cookies && typeof cookies === 'object' ? cookies : {};
-  const multi = jar.__multi && typeof jar.__multi === 'object' ? jar.__multi : {};
-  const list = [];
-  if (Object.prototype.hasOwnProperty.call(jar, name)) list.push(jar[name]);
-  if (Array.isArray(multi[name])) list.push(...multi[name]);
-  return uniqueCookieValues(list);
-}
-
-function getBestCookieChunk(cookies, chunkName) {
-  const values = getCookieValueList(cookies, chunkName);
-  if (!values.length) return '';
-  // Pick the longest non-empty chunk because stale empty/deleted cookies may coexist.
-  return values.sort((a, b) => String(b || '').length - String(a || '').length)[0] || '';
-}
-
-function assembleCookieChunks(cookies, name, count) {
-  const safeCount = Math.max(0, Math.min(DOMAIN_COOKIE_MAX_CHUNKS, Number(count || 0)));
-  if (!safeCount) return '';
-  let token = '';
-  for (let index = 0; index < safeCount; index += 1) {
-    const chunk = getBestCookieChunk(cookies, `${name}__${index}`);
-    if (!chunk) return '';
-    token += String(chunk);
-  }
-  return token;
-}
-
-function readCookieTokenCandidates(cookies, name) {
-  const tokens = [];
-  const markers = getCookieValueList(cookies, name);
-
-  markers.forEach((marker) => {
-    const value = String(marker || '').trim();
-    if (!value) return;
-    const chunkMatch = value.match(/^__chunked_(\d+)$/);
-    if (chunkMatch) {
-      const assembled = assembleCookieChunks(cookies, name, Number(chunkMatch[1] || 0));
-      if (assembled) tokens.push(assembled);
-      return;
-    }
-    tokens.push(value);
-  });
-
-  // Recovery if marker cookie is absent/overwritten but chunks are still present.
-  if (getBestCookieChunk(cookies, `${name}__0`)) {
-    let token = '';
-    for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
-      const chunk = getBestCookieChunk(cookies, `${name}__${index}`);
-      if (!chunk) break;
-      token += String(chunk);
-    }
-    if (token) tokens.push(token);
-  }
-
-  return uniqueCookieValues(tokens)
-    .filter((token) => token.length > 10)
-    .sort((a, b) => {
-      // Prefer JWT-shaped access tokens when present, otherwise prefer longer token.
-      const aj = /^eyJ/i.test(a) ? 1 : 0;
-      const bj = /^eyJ/i.test(b) ? 1 : 0;
-      if (aj !== bj) return bj - aj;
-      return b.length - a.length;
-    });
-}
-
-function readCookieToken(cookies, name) {
-  return readCookieTokenCandidates(cookies, name)[0] || '';
-}
-
-function makeCookieVariants(name, value, options = {}) {
-  const cookies = [];
-  const seen = new Set();
-  const push = (domain) => {
-    const normalizedDomain = normalizeCookieDomain(domain || '');
-    const key = normalizedDomain || '__host_only__';
-    if (seen.has(key)) return;
-    seen.add(key);
-    cookies.push(makeCookie(name, value, Object.assign({}, options, { domain: normalizedDomain })));
-  };
-
-  // Host-only first for the exact active host.
-  push('');
-
-  // Domain cookie also set/cleared for compatibility with earlier patches and www/root moves.
-  getDomainCookieDomainCandidates().forEach((domain) => push(domain));
-
-  return cookies;
-}
-
-function makeTokenCookieSet(name, value, options = {}) {
-  const token = String(value || '');
-  const cookies = [];
-
-  // Clear only the base cookie before setting a new base/marker cookie.
-  // Chunk cleanup is only needed when we actually write chunks, or on logout.
-  cookies.push(...makeCookieVariants(name, '', { maxAge: 0 }));
-
-  if (!token) return cookies;
-
-  if (token.length <= DOMAIN_COOKIE_CHUNK_SIZE) {
-    cookies.push(...makeCookieVariants(name, token, options));
-    return cookies;
-  }
-
-  cookies.push(...makeClearTokenCookieChunks(name));
-
-  const chunks = [];
-  for (let index = 0; index < token.length; index += DOMAIN_COOKIE_CHUNK_SIZE) {
-    chunks.push(token.slice(index, index + DOMAIN_COOKIE_CHUNK_SIZE));
-  }
-
-  if (chunks.length > DOMAIN_COOKIE_MAX_CHUNKS) {
-    return cookies;
-  }
-
-  cookies.push(...makeCookieVariants(name, `__chunked_${chunks.length}`, options));
-  chunks.forEach((chunk, index) => {
-    cookies.push(...makeCookieVariants(`${name}__${index}`, chunk, options));
-  });
-  return cookies;
-}
-
-function makeClearTokenCookieChunks(name) {
-  const cookies = [];
-  for (let index = 0; index < DOMAIN_COOKIE_MAX_CHUNKS; index += 1) {
-    cookies.push(...makeCookieVariants(`${name}__${index}`, '', { maxAge: 0 }));
-  }
-  return cookies;
-}
-
-function makeClearTokenCookieSet(name) {
-  return [
-    ...makeCookieVariants(name, '', { maxAge: 0 }),
-    ...makeClearTokenCookieChunks(name)
-  ];
-}
-
-function setSessionCookies(res, session) {
-  if (!hasValidDomainSessionTokens(session)) {
-    clearSessionCookies(res);
-    return false;
-  }
-
-  const maxAge = 60 * 60 * 24 * 7;
-  appendSetCookie(res, [
-    ...makeTokenCookieSet(ACCESS_COOKIE, session.access_token, { maxAge }),
-    ...makeTokenCookieSet(REFRESH_COOKIE, session.refresh_token, { maxAge })
-  ]);
-  return true;
-}
-
-function clearSessionCookies(res) {
-  appendSetCookie(res, [
-    ...makeClearTokenCookieSet(ACCESS_COOKIE),
-    ...makeClearTokenCookieSet(REFRESH_COOKIE),
-    ...makeClearTokenCookieSet(CUSTOMER_MFA_COOKIE)
-  ]);
-}
-
-async function requireDomainUser(req, res) {
-  const cookies = parseCookies(req);
-  const acceptFrontendAuthHeaders = shouldAcceptFrontendAuthHeaders();
-  const headerToken = acceptFrontendAuthHeaders ? getBearerToken(req) : '';
-  const headerRefreshToken = acceptFrontendAuthHeaders
-    ? String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim()
-    : '';
-
-  const accessTokens = uniqueCookieValues([
-    headerToken,
-    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
-  ]);
-  const refreshTokens = uniqueCookieValues([
-    headerRefreshToken,
-    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE)
-  ]);
-
-  for (const accessToken of accessTokens) {
-    const userResult = await supabaseFetch('/auth/v1/user', {
-      method: 'GET',
-      auth: 'anon',
-      bearer: accessToken
-    });
-
-    if (userResult.ok && userResult.data && userResult.data.id) {
-      return userResult.data;
-    }
-  }
-
-  for (const refreshToken of refreshTokens) {
-    const refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
-      method: 'POST',
-      auth: 'anon',
-      body: { refresh_token: refreshToken }
-    });
-
-    if (refreshResult.ok && refreshResult.data && refreshResult.data.access_token) {
-      const refreshedSession = Object.assign({}, refreshResult.data, {
-        refresh_token: refreshResult.data.refresh_token || refreshToken
-      });
-      if (hasValidDomainSessionTokens(refreshedSession)) {
-        setSessionCookies(res, refreshedSession);
-        if (!shouldHideDomainAuthTokens()) {
-          res.setHeader('X-Domain-Access-Token', refreshedSession.access_token);
-          res.setHeader('X-Domain-Refresh-Token', refreshedSession.refresh_token);
-        }
-        res.setHeader('X-Domain-Token-Refreshed', 'true');
-        return refreshedSession.user || refreshResult.data.user;
-      }
-    }
-  }
-
-  clearSessionCookies(res);
-  res.status(401).json({ ok: false, message: 'Belum login atau sesi sudah habis.' });
-  return null;
 }
 
