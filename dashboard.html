@@ -512,6 +512,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
         <a class="drawer-menu-item" href="notifikasi.html"><span class="drawer-menu-icon" aria-hidden="true">🔔</span><span><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span><b>›</b></a>
         <a class="drawer-menu-item" href="profil.html"><span class="drawer-menu-icon" aria-hidden="true">👤</span><span><strong>Profil</strong><small>Data pelanggan</small></span><b>›</b></a>
         <a class="drawer-menu-item" href="keamanan.html"><span class="drawer-menu-icon" aria-hidden="true">🔐</span><span><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span><b>›</b></a>
+        <button class="drawer-menu-item logout-drawer-btn" id="logoutBtn" type="button" data-dirac-logout><span class="drawer-menu-icon" aria-hidden="true">↪</span><span><strong data-i18n="logout">Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span><b>×</b></button>
       </div>
       <div class="drawer-foot" data-i18n="menuFoot">Menu mengikuti struktur dashboard pelanggan lengkap: transaksi, parfum, domain, website, invoice, bantuan, profil, dan keamanan.</div>
     </aside>
@@ -696,6 +697,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
     var backendVerifiedAt=0;
     var backendUser=null;
     var verificationPromise=null;
+    var dashboardLoggingOut=false;
     var gateLastReason='Mengecek sesi login backend satu domain...';
     var CUSTOMER_DASHBOARD_PAGE=/^(dashboard|pesanan|detail-pesanan|parfum|detail-parfum|domain|detail-domain|project-website|detail-project|invoice|detail-invoice|layanan-nomor|tiket-bantuan|detail-tiket|notifikasi|profil|keamanan)\.html$/i;
 
@@ -719,6 +721,51 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       // Browser sends the HttpOnly Secure Cookie automatically with credentials:'include'.
       return {'Accept':'application/json'};
     }
+    function withCacheBust(url){
+      var sep=String(url||'').indexOf('?')===-1?'?':'&';
+      return String(url||'')+sep+'_t='+Date.now();
+    }
+    function delay(ms){
+      return new Promise(function(resolve){setTimeout(resolve,ms);});
+    }
+    function purgeAuthClientStorage(){
+      var keys=[
+        'dirac_auth_session_v1','dirac_auth_a2f_v1','dirac_auth_a2f_dashboard_ready_v1',
+        'dirac_dashboard_gate_v1','dirac_domain_session','dirac_domain_refresh',
+        'dirac_customer_mfa_session','sb-auth-token','supabase.auth.token'
+      ];
+      [window.localStorage,window.sessionStorage].forEach(function(store){
+        if(!store) return;
+        keys.forEach(function(key){try{store.removeItem(key);}catch(e){}});
+      });
+      try{window.__DIRAC_BACKEND_AUTH_CONTEXT__={};}catch(e){}
+    }
+    function disablePageDuringLogout(){
+      try{
+        document.body.classList.add('gate-locked','gate-checking');
+        document.querySelectorAll('button,a,input,select,textarea').forEach(function(el){
+          if(!el) return;
+          if(el.id==='logoutBtn') el.setAttribute('disabled','disabled');
+          else el.setAttribute('aria-disabled','true');
+        });
+      }catch(e){}
+    }
+    function logoutRedirectUrl(){
+      return 'masuk.html?logout=1&t='+Date.now();
+    }
+    function postBackendLogout(){
+      return Promise.race([
+        fetch(withCacheBust(DOMAIN_LOGOUT_ENDPOINT),{
+          method:'POST',
+          mode:'same-origin',
+          credentials:'include',
+          cache:'no-store',
+          keepalive:true,
+          headers:sessionHeaders()
+        }).catch(function(){return null;}),
+        delay(1800).then(function(){return null;})
+      ]);
+    }
     function mergeRefreshedTokens(res){
       // PATCH 3A: backend-only. Token refresh header tidak dibaca/ditulis ke frontend.
       return;
@@ -734,8 +781,9 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       return true;
     }
     function verifyExistingLoginSession(){
+      if(dashboardLoggingOut) return Promise.resolve(false);
       if(verificationPromise) return verificationPromise;
-      verificationPromise=fetch(DOMAIN_ME_ENDPOINT,{method:'GET',mode:'cors',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){
+      verificationPromise=fetch(withCacheBust(DOMAIN_ME_ENDPOINT),{method:'GET',mode:'same-origin',credentials:'include',cache:'no-store',headers:sessionHeaders()}).then(function(res){
         if(!res.ok){
           return res.clone().json().catch(function(){return null;}).then(function(data){
             var msg=(data&&(data.message||data.error||data.hint))||('Backend menolak akses dashboard. Status '+res.status+'. Login ulang.');
@@ -779,6 +827,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       hydrateProfile();
     }
     function enforceDashboardAccess(){
+      if(dashboardLoggingOut) return;
       document.body.classList.add('gate-locked','gate-checking');
       verifyExistingLoginSession().then(function(ok){
         document.body.classList.remove('gate-checking');
@@ -809,6 +858,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       if(!a) return;
       var raw=a.getAttribute('href')||'';
       if(!isSensitiveDashboardHref(raw)) return;
+      if(dashboardLoggingOut) return;
       if(authAllowed()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -816,11 +866,19 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       enforceDashboardAccess();
       showToast('Dashboard wajib diverifikasi backend sebelum halaman pelanggan dibuka.');
     }
-    function doLogout(){
-      try{fetch(DOMAIN_LOGOUT_ENDPOINT,{method:'POST',mode:'cors',credentials:'include',cache:'no-store',keepalive:true,headers:sessionHeaders()}).catch(function(){});}catch(e){}
-      clearBackendVerification();
-      showToast(langDict().loggedOut);
-      setTimeout(function(){location.href='masuk.html'},650);
+    async function doLogout(event){
+      if(event&&typeof event.preventDefault==='function') event.preventDefault();
+      if(dashboardLoggingOut) return;
+      dashboardLoggingOut=true;
+      clearBackendVerification('Logout sedang diproses. Membersihkan sesi backend...');
+      purgeAuthClientStorage();
+      disablePageDuringLogout();
+      try{closeModal('#menuOverlay');}catch(e){}
+      try{showToast(langDict().loggedOut||'Logout...');}catch(e){}
+      try{await postBackendLogout();}catch(e){}
+      purgeAuthClientStorage();
+      await delay(220);
+      try{window.location.replace(logoutRedirectUrl());}catch(e){window.location.href=logoutRedirectUrl();}
     }
     function bindReveal(){ if(!('IntersectionObserver' in window)){ $$('[data-reveal]').forEach(function(el){el.classList.add('is-visible')}); return;} var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('is-visible'); io.unobserve(e.target);}})},{threshold:.12}); $$('[data-reveal]').forEach(function(el){io.observe(el)}); }
     function wire(){
@@ -841,7 +899,7 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
       var accents=$('#accentChoices'); if(accents) accents.addEventListener('click',function(e){var b=e.target.closest('[data-accent]'); if(!b) return; settings.accent=b.getAttribute('data-accent'); applySettings(); showToast(langDict().themeSaved);});
       var reset=$('#themeResetBtn'); if(reset) reset.addEventListener('click',function(){settings=Object.assign({},DEFAULT_SETTINGS); applySettings(); showToast(langDict().themeReset);});
       var top=$('#scrollTopBtn'); if(top) top.addEventListener('click',function(){window.scrollTo({top:0,behavior:settings.motion==='reduced'?'auto':'smooth'})});
-      var logout=$('#logoutBtn'); if(logout) logout.addEventListener('click',doLogout);
+      $$('#logoutBtn,[data-dirac-logout]').forEach(function(logout){logout.addEventListener('click',doLogout);});
       $$('[data-action-toast]').forEach(function(el){el.addEventListener('click',function(){showToast(this.getAttribute('data-action-toast'))})});
       var trackingForm=$('#trackingForm'); if(trackingForm) trackingForm.addEventListener('submit',function(e){e.preventDefault(); var number=($('#trackingNumber')&&$('#trackingNumber').value||'').trim(); var courier=($('#trackingCourier')&&$('#trackingCourier').value||'').trim(); if(!number){showToast(langDict().trackingFill); return;} var result=$('#trackingResult'); if(result){result.classList.add('show'); result.classList.add('is-ready'); result.textContent=''; var strong=document.createElement('strong'); strong.textContent=number+(courier?' · '+courier:''); var p=document.createElement('p'); p.textContent=langDict().trackingReady; result.appendChild(strong); result.appendChild(p);} showToast(langDict().trackingReady);});
       document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal('#themeModal');closeModal('#menuOverlay');closeModal('#trackingModal')}});

@@ -715,28 +715,63 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
         if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
       }
     }
-    function logout(event){
-      if(event && typeof event.preventDefault === 'function') event.preventDefault();
-      if(state.loggingOut) return;
-      state.loggingOut = true;
-      state.loading = false;
-      try{ closeMenu(); }catch(_){}
-      try{ toast('Logout...'); }catch(_){}
+    function withCacheBust(url){
+      const sep = String(url || '').includes('?') ? '&' : '?';
+      return String(url || '') + sep + '_t=' + Date.now();
+    }
+    function delay(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+    function purgeAuthClientStorage(){
+      const keys = [
+        'dirac_auth_session_v1','dirac_auth_a2f_v1','dirac_auth_a2f_dashboard_ready_v1',
+        'dirac_dashboard_gate_v1','dirac_domain_session','dirac_domain_refresh',
+        'dirac_customer_mfa_session','sb-auth-token','supabase.auth.token'
+      ];
+      [window.localStorage, window.sessionStorage].forEach(store => {
+        if(!store) return;
+        keys.forEach(key => { try{ store.removeItem(key); }catch(_){} });
+      });
+      try{ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = {}; }catch(_){}
+    }
+    function disablePageDuringLogout(){
       try{
-        fetch(apiUrl('domain_logout'), {
+        document.body.classList.add('gate-hardlocked');
+        document.querySelectorAll('button,a,input,select').forEach(function(el){
+          if(!el) return;
+          if(el.id === 'logoutBtn') el.setAttribute('disabled','disabled');
+          else el.setAttribute('aria-disabled','true');
+        });
+      }catch(_){}
+    }
+    function loginRedirectUrl(){
+      return LOGIN_PAGE + '?logout=1&t=' + Date.now();
+    }
+    function postBackendLogout(){
+      return Promise.race([
+        fetch(withCacheBust(apiUrl('domain_logout')), {
           method:'POST',
+          mode:'same-origin',
           credentials:'include',
           cache:'no-store',
           keepalive:true,
           headers:{Accept:'application/json'}
-        }).catch(function(){});
-      }catch(_){}
-      try{
-        document.querySelectorAll('button,a,input,select').forEach(function(el){
-          if(el && el.id !== 'logoutBtn') el.setAttribute('aria-disabled','true');
-        });
-      }catch(_){}
-      setTimeout(function(){ window.location.replace(LOGIN_PAGE + '?logout=1&t=' + Date.now()); }, 180);
+        }).catch(function(){ return null; }),
+        delay(1800).then(function(){ return null; })
+      ]);
+    }
+    async function logout(event){
+      if(event && typeof event.preventDefault === 'function') event.preventDefault();
+      if(state.loggingOut) return;
+      state.loggingOut = true;
+      state.loading = false;
+      state.verified = false;
+      try{ closeMenu(); }catch(_){}
+      try{ toast('Logout...'); }catch(_){}
+      purgeAuthClientStorage();
+      disablePageDuringLogout();
+      try{ await postBackendLogout(); }catch(_){}
+      purgeAuthClientStorage();
+      await delay(220);
+      try{ window.location.replace(loginRedirectUrl()); }catch(_){ window.location.href = loginRedirectUrl(); }
     }
     function escapeHtml(v){ return clean(v).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
     function escapeAttr(v){ return escapeHtml(v).replace(/'/g,'&#39;'); }
@@ -819,6 +854,8 @@ html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!
     'dirac_auth_a2f_dashboard_ready_v1',
     'dirac_dashboard_gate_v1',
     'dirac_domain_session',
+    'dirac_domain_refresh',
+    'dirac_customer_mfa_session',
     'sb-auth-token',
     'supabase.auth.token'
   ];
