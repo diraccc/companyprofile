@@ -13951,8 +13951,9 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   }
 
   function ensureActivitySeed(){
-    var existing = getStoreNumber(ACTIVITY_KEY, 0);
-    if(!existing) markActivity();
+    // SAFE V2: selalu reset seed saat halaman protected benar-benar dimuat.
+    // Idle lintas close/reopen dikunci oleh backend/database, bukan localStorage lama.
+    markActivity();
   }
 
   function isIdleExpired(){
@@ -14017,6 +14018,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 
       if(!ok){
         purgeClientAuthStorage();
+        removeStore(ACTIVITY_KEY);
         setStore(LOGOUT_STAMP_KEY, now());
         setLocked(true);
         replaceToLogin(res && res.status ? 'session' + res.status : (reason || 'session'));
@@ -14028,6 +14030,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       setChecking(false);
     }catch(_){
       purgeClientAuthStorage();
+      removeStore(ACTIVITY_KEY);
       setStore(LOGOUT_STAMP_KEY, now());
       setLocked(true);
       replaceToLogin(reason || 'network');
