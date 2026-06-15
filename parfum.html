@@ -4003,8 +4003,8 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 
 
 <style id="dirac-protected-page-session-lock-css">
-/* DIRAC IMAGE SEQUENCE PROTECTED LOADER FIX V10
-   Visual-only: image sequence sq1.png-sq96.png. Background full hitam.
+/* DIRAC IMAGE SEQUENCE PROTECTED LOADER FIX V11
+   Visual-only: image sequence sq1.png-sq150.png. Background full hitam.
    Logo awal transparan, lalu frame sequence membentuk logo melalui garis.
    Tidak mengubah hash, login, A2F, session, payment, webhook, atau backend auth logic. */
 #diracProtectedLockOverlay{
@@ -4103,7 +4103,7 @@ body.dirac-protected-locked main{
 
 <style id="dirac-logo-line-shine-native-loader-fix-v5">
 /* Native gate image sequence fallback V10.
-   Visual-only: loader memakai sq1.png-sq96.png, background full hitam, tanpa logo melayang. */
+   Visual-only: loader memakai sq1.png-sq150.png, background full hitam, tanpa logo melayang. */
 body.gate-checking .security-gate,
 body.gate-locked .security-gate,
 body.gate-hardlocked .security-gate,
@@ -14296,14 +14296,17 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 </script>
 
 <script id="dirac-image-sequence-loader-js">
-/* DIRAC V10 image sequence loader only.
+/* DIRAC V11 image sequence loader + audio only.
    Tidak menyentuh hash, login, A2F, session, backend auth, checkout, webhook, atau payment logic. */
 (function(){
   'use strict';
-  var FRAME_COUNT = 96;
-  var FRAME_MS = 2320;
+  var FRAME_COUNT = 150;
+  var FRAME_MS = 5000;
+  var AUDIO_SRC = 'loader-sound.m4a';
+  var AUDIO_FALLBACK_SRC = 'loader-sound.mp3';
   var frames = [];
   var cache = [];
+  var audio = null;
   var running = false;
   var playedForActiveGate = false;
   var rafId = 0;
@@ -14318,6 +14321,43 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
       im.src = frames[i];
       cache.push(im);
     }
+  }
+
+
+  function ensureAudio(){
+    if(audio) return audio;
+    audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 0.62;
+    audio.src = AUDIO_SRC;
+    audio.addEventListener('error', function(){
+      try{
+        if(audio && audio.getAttribute('data-fallback') !== '1'){
+          audio.setAttribute('data-fallback', '1');
+          audio.src = AUDIO_FALLBACK_SRC;
+        }
+      }catch(_){ }
+    }, {once:true});
+    return audio;
+  }
+
+  function playAudio(){
+    try{
+      var a = ensureAudio();
+      a.pause();
+      a.currentTime = 0;
+      var p = a.play();
+      if(p && typeof p.catch === 'function') p.catch(function(){});
+    }catch(_){ }
+  }
+
+  function stopAudio(reset){
+    try{
+      if(audio){
+        audio.pause();
+        if(reset) audio.currentTime = 0;
+      }
+    }catch(_){ }
   }
 
   function isActive(){
@@ -14368,6 +14408,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   function stop(){
     if(rafId){ cancelAnimationFrame(rafId); rafId = 0; }
     running = false;
+    stopAudio(true);
   }
 
   function play(){
@@ -14375,6 +14416,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     if(!applyFrame(0)) return;
     running = true;
     playedForActiveGate = true;
+    playAudio();
     var start = 0;
     function step(ts){
       if(!isActive()){
