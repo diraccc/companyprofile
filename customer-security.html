@@ -496,10 +496,15 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
 }
 </style>
 
-<style id="dirac-ultra-session-loader-v6">
-/* DIRAC ULTRA SESSION LOADER V6
-   Scope visual loader cek sesi saja. Tidak mengubah hash, login, endpoint, payment, webhook, atau backend auth. */
-:root{--dirac-session-logo-size:clamp(260px,30vw,310px);--dirac-session-logo-radius:54px;}
+<style id="dirac-ultra-session-loader-v7">
+/* DIRAC ULTRA SESSION LOADER V7
+   Security Scanner Glow + official contact note. Visual loader/contact only.
+   Hash, login, endpoint, payment, webhook, and backend auth logic are untouched. */
+:root{
+  --dirac-session-logo-size:clamp(260px,30vw,310px);
+  --dirac-session-logo-radius:54px;
+  --dirac-session-contact-max:min(92vw,660px);
+}
 #diracProtectedLockOverlay,
 .security-gate,
 .gate{
@@ -509,33 +514,117 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
   -webkit-backdrop-filter:none!important;
   color:#f9fafb!important;
 }
-#diracProtectedLockOverlay .dirac-protected-logo-only,
-body.gate-checking .security-gate .gate-icon,
-body.gate-checking .gate:not([hidden]) .gate-card:before{
-  width:var(--dirac-session-logo-size)!important;
-  height:var(--dirac-session-logo-size)!important;
-  border-radius:var(--dirac-session-logo-radius)!important;
-  filter:drop-shadow(0 0 34px rgba(96,165,250,.68)) drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.22))!important;
-}
-#diracProtectedLockOverlay .dirac-protected-logo-only::after,
-body.gate-checking .security-gate .gate-icon::after{
-  border-radius:var(--dirac-session-logo-radius)!important;
-}
-body.gate-checking .gate:not([hidden]) .gate-card:after{
-  width:var(--dirac-session-logo-size)!important;
-  height:var(--dirac-session-logo-size)!important;
-  margin-left:calc(var(--dirac-session-logo-size) / -2)!important;
-  border-radius:var(--dirac-session-logo-radius)!important;
-}
 #diracProtectedLockOverlay .dirac-protected-lock-card,
 body.gate-checking .security-gate .gate-card,
 body.gate-checking .gate:not([hidden]) .gate-card{
+  position:relative!important;
   display:grid!important;
   place-items:center!important;
   gap:14px!important;
   text-align:center!important;
+  overflow:visible!important;
+  isolation:isolate!important;
+}
+#diracProtectedLockOverlay .dirac-protected-logo-only,
+body.gate-checking .security-gate .gate-icon,
+body.gate-checking .gate:not([hidden]) .gate-card:before{
+  position:relative!important;
+  isolation:isolate!important;
+  width:var(--dirac-session-logo-size)!important;
+  height:var(--dirac-session-logo-size)!important;
+  border-radius:var(--dirac-session-logo-radius)!important;
+  border:0!important;
+  box-shadow:
+    0 0 0 1px rgba(96,165,250,.05),
+    0 0 42px rgba(37,99,235,.22),
+    0 0 88px rgba(15,47,110,.22)!important;
+  filter:
+    drop-shadow(0 0 18px rgba(59,130,246,.48))
+    drop-shadow(0 0 46px rgba(20,58,150,.26))
+    drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.16))!important;
+  transform:none!important;
+  animation:none!important;
+  overflow:visible!important;
+}
+#diracProtectedLockOverlay .dirac-protected-logo-only img{
+  position:relative!important;
+  z-index:1!important;
+}
+#diracProtectedLockOverlay .dirac-protected-logo-only::before,
+body.gate-checking .security-gate .gate-icon::before{
+  content:""!important;
+  position:absolute!important;
+  inset:-44px!important;
+  z-index:-1!important;
+  pointer-events:none!important;
+  display:block!important;
+  border-radius:50%!important;
+  background:
+    conic-gradient(from 0deg,
+      transparent 0deg,
+      rgba(37,99,235,.10) 42deg,
+      rgba(59,130,246,.55) 82deg,
+      rgba(var(--theme-rgb,243,205,112),.45) 118deg,
+      transparent 168deg,
+      transparent 360deg),
+    radial-gradient(circle,
+      rgba(37,99,235,.30) 0%,
+      rgba(14,44,116,.20) 34%,
+      rgba(var(--theme-rgb,243,205,112),.085) 56%,
+      transparent 74%);
+  -webkit-mask:radial-gradient(circle,transparent 0 53%,#000 55% 62%,transparent 66% 100%);
+  mask:radial-gradient(circle,transparent 0 53%,#000 55% 62%,transparent 66% 100%);
+  filter:drop-shadow(0 0 18px rgba(59,130,246,.38));
+  opacity:.86!important;
+  animation:diracSecurityOrbit 7.8s linear infinite!important;
+}
+#diracProtectedLockOverlay .dirac-protected-logo-only::after,
+body.gate-checking .security-gate .gate-icon::after,
+body.gate-checking .gate:not([hidden]) .gate-card:after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:2!important;
+  pointer-events:none!important;
+  display:block!important;
+  border-radius:var(--dirac-session-logo-radius)!important;
+  background:
+    linear-gradient(180deg,transparent 0%,transparent 16%,rgba(147,197,253,.14) 24%,rgba(243,205,112,.88) 28%,rgba(59,130,246,.70) 31%,rgba(255,255,255,.50) 33%,transparent 42%,transparent 100%),
+    linear-gradient(115deg,transparent 0%,transparent 36%,rgba(59,130,246,.12) 43%,rgba(147,197,253,.92) 49%,rgba(255,255,255,.76) 51%,rgba(37,99,235,.82) 55%,rgba(37,99,235,.16) 62%,transparent 70%,transparent 100%)!important;
+  background-size:100% 220%,260% 100%!important;
+  background-position:0 -130%,-160% 0!important;
+  -webkit-mask-image:url("dirac-security.png")!important;
+  mask-image:url("dirac-security.png")!important;
+  -webkit-mask-repeat:no-repeat!important;
+  mask-repeat:no-repeat!important;
+  -webkit-mask-position:center!important;
+  mask-position:center!important;
+  -webkit-mask-size:contain!important;
+  mask-size:contain!important;
+  mix-blend-mode:screen!important;
+  filter:drop-shadow(0 0 15px rgba(96,165,250,.62))!important;
+  animation:diracSecurityScan 3.35s ease-in-out infinite,diracNativeLogoLineShine 2.15s ease-in-out infinite!important;
+  opacity:.88!important;
+}
+body.gate-checking .gate:not([hidden]) .gate-card:after{
+  left:50%!important;
+  top:0!important;
+  width:var(--dirac-session-logo-size)!important;
+  height:var(--dirac-session-logo-size)!important;
+  margin-left:calc(var(--dirac-session-logo-size) / -2)!important;
+}
+body.gate-checking .security-gate .gate-card:after{
+  content:none!important;
+  display:none!important;
+}
+body.gate-checking .security-gate .gate-card h1,
+body.gate-checking .security-gate .gate-actions,
+body.gate-checking .security-gate .security-backend-note{
+  display:none!important;
+  content:none!important;
 }
 #diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title,
+body.gate-checking .security-gate .gate-card > .dirac-session-title,
 body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title{
   display:inline-block!important;
   content:none!important;
@@ -556,6 +645,7 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title{
   animation:diracSessionTextFlow 2.35s ease-in-out infinite,diracSessionTextFloat 3s ease-in-out infinite!important;
 }
 #diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title:after,
+body.gate-checking .security-gate .gate-card > .dirac-session-title:after,
 body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title:after{
   content:"";
   display:inline-block;
@@ -564,41 +654,92 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title:after{
   -webkit-text-fill-color:#fff;
   animation:diracSessionDots 1.2s steps(4,end) infinite;
 }
-body.gate-checking .security-gate .gate-card:after{
-  content:"Mengecek Sesi Pelanggan"!important;
-  position:static!important;
-  left:auto!important;
-  top:auto!important;
-  width:auto!important;
-  height:auto!important;
-  margin:2px auto 0!important;
-  display:inline-block!important;
-  color:#ffffff!important;
+#diracProtectedLockOverlay .dirac-session-contact-note,
+body.gate-checking .security-gate .gate-card .dirac-session-contact-note,
+body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note{
+  display:block!important;
+  width:var(--dirac-session-contact-max)!important;
+  max-width:var(--dirac-session-contact-max)!important;
+  margin:0 auto!important;
+  padding:9px 12px!important;
+  border-radius:18px!important;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.18)!important;
+  background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(37,99,235,.045),rgba(var(--theme-rgb,243,205,112),.035))!important;
+  color:rgba(226,232,240,.72)!important;
   font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
-  font-size:clamp(1.05rem,2.7vw,1.42rem)!important;
-  line-height:1.2!important;
+  font-size:clamp(.70rem,1.85vw,.84rem)!important;
+  line-height:1.55!important;
+  font-weight:700!important;
+  letter-spacing:.01em!important;
+  text-transform:none!important;
+  -webkit-text-fill-color:rgba(226,232,240,.72)!important;
+  box-shadow:0 12px 32px rgba(0,0,0,.20)!important;
+}
+#diracProtectedLockOverlay .dirac-session-contact-note a,
+body.gate-checking .security-gate .gate-card .dirac-session-contact-note a,
+body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note a{
+  color:#f3cd70!important;
   font-weight:900!important;
-  letter-spacing:.06em!important;
-  text-transform:uppercase!important;
-  background:linear-gradient(90deg,#ffffff 0%,#f3cd70 32%,#93c5fd 54%,#ffffff 78%)!important;
-  background-size:220% 100%!important;
-  -webkit-background-clip:text!important;
-  background-clip:text!important;
-  -webkit-text-fill-color:transparent!important;
-  -webkit-mask-image:none!important;
-  mask-image:none!important;
-  mix-blend-mode:normal!important;
-  filter:drop-shadow(0 0 18px rgba(96,165,250,.25))!important;
-  animation:diracSessionTextFlow 2.35s ease-in-out infinite,diracSessionTextFloat 3s ease-in-out infinite!important;
+  text-decoration:none!important;
+  -webkit-text-fill-color:#f3cd70!important;
+}
+.dirac-official-contact-line,
+.dirac-official-contact-note{
+  color:var(--muted,#aeb7c6)!important;
+  line-height:1.65!important;
+}
+.dirac-official-contact-line a,
+.dirac-official-contact-note a,
+.dirac-footer-contact a{
+  color:var(--gold,#f3cd70)!important;
+  font-weight:900!important;
+  text-decoration:none!important;
+}
+.dirac-footer-contact{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:8px 14px!important;
+  align-items:center!important;
+  color:var(--muted,#aeb7c6)!important;
+  line-height:1.65!important;
+}
+@keyframes diracSecurityOrbit{to{transform:rotate(360deg)}}
+@keyframes diracSecurityScan{
+  0%{background-position:0 -140%,-170% 0;opacity:.18;}
+  16%{opacity:.92;}
+  58%{background-position:0 120%,170% 0;opacity:.95;}
+  100%{background-position:0 120%,170% 0;opacity:.18;}
+}
+@keyframes diracNativeLogoLineShine{
+  0%{background-position:0 -140%,-170% 0;opacity:.18;}
+  18%{opacity:.96;}
+  58%{background-position:0 120%,170% 0;opacity:.96;}
+  100%{background-position:0 120%,170% 0;opacity:.18;}
 }
 @keyframes diracSessionTextFlow{0%,100%{background-position:0% 50%;opacity:.86}50%{background-position:100% 50%;opacity:1}}
 @keyframes diracSessionTextFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes diracSessionDots{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}
-@media(max-width:520px){:root{--dirac-session-logo-size:240px;--dirac-session-logo-radius:48px;}}
+@media(max-width:520px){
+  :root{--dirac-session-logo-size:240px;--dirac-session-logo-radius:48px;}
+  #diracProtectedLockOverlay .dirac-session-contact-note,
+  body.gate-checking .security-gate .gate-card .dirac-session-contact-note,
+  body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note{padding:8px 10px!important;}
+}
+@media(max-width:380px){:root{--dirac-session-logo-size:220px;--dirac-session-logo-radius:44px;}}
 @media(prefers-reduced-motion:reduce){
+  #diracProtectedLockOverlay .dirac-protected-logo-only::before,
+  body.gate-checking .security-gate .gate-icon::before,
+  #diracProtectedLockOverlay .dirac-protected-logo-only::after,
+  body.gate-checking .security-gate .gate-icon::after,
+  body.gate-checking .gate:not([hidden]) .gate-card:after,
   #diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title,
-  body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title,
-  body.gate-checking .security-gate .gate-card:after{animation:none!important;background-position:50% 50%!important;}
+  body.gate-checking .security-gate .gate-card > .dirac-session-title,
+  body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title{
+    animation:none!important;
+    opacity:.84!important;
+    background-position:50% 50%!important;
+    transform:none!important;
+  }
 }
 </style>
 </head>
@@ -1697,6 +1838,7 @@ body.gate-checking .security-gate .gate-card:after{
       '<div class="dirac-protected-lock-card">' +
         '<div class="dirac-protected-logo-only" aria-hidden="true"><img src="dirac-security.png" alt="" decoding="async"></div>' +
         '<strong class="dirac-session-title" aria-live="polite">Mengecek Sesi Pelanggan</strong>' +
+        '<p class="dirac-session-contact-note">Gangguan layanan: <a href="mailto:support@diracgroup.store">support@diracgroup.store</a> · Indikasi penipuan: <a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></p>' +
       '</div>';
     if(document.body) document.body.appendChild(overlay);
   }
