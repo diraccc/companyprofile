@@ -303,6 +303,80 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
 }
 </style>
 
+
+
+<style id="dirac-video-loader-v13-css">
+/* DIRAC V13 SAFE VIDEO LOADER
+   Fix patah-patah: image sequence sq diganti video MP4 native browser.
+   Visual-only. Tidak mengubah hash, login, A2F, session, backend, checkout, webhook, atau payment logic. */
+#diracProtectedLockOverlay,
+body.gate-checking .security-gate,
+body.gate-locked .security-gate,
+body.gate-hardlocked .security-gate,
+body.gate-checking .gate:not([hidden]),
+body.gate-locked .gate:not([hidden]),
+body.gate-hardlocked .gate:not([hidden]){
+  background:#000!important;
+  background-image:none!important;
+}
+#diracProtectedLockOverlay .dirac-protected-logo-only img,
+body.gate-checking .dirac-session-logo-card img,
+body.gate-locked .dirac-session-logo-card img,
+body.gate-hardlocked .dirac-session-logo-card img,
+body.gate-checking .security-gate .gate-card > img,
+body.gate-locked .security-gate .gate-card > img,
+body.gate-hardlocked .security-gate .gate-card > img,
+body.gate-checking .gate:not([hidden]) .gate-card > img,
+body.gate-locked .gate:not([hidden]) .gate-card > img,
+body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+}
+.dirac-loader-video-wrap{
+  width:min(382px,86vw);
+  height:min(372px,84vw);
+  margin:0 auto;
+  display:none;
+  place-items:center;
+  background:#000!important;
+  overflow:hidden!important;
+  border:0!important;
+  box-shadow:none!important;
+  transform:translate3d(0,0,0);
+  backface-visibility:hidden;
+}
+#diracProtectedLockOverlay .dirac-protected-logo-only .dirac-loader-video-wrap{
+  width:100%;
+  height:100%;
+  display:grid!important;
+}
+body.gate-checking .security-gate .gate-card .dirac-loader-video-wrap,
+body.gate-locked .security-gate .gate-card .dirac-loader-video-wrap,
+body.gate-hardlocked .security-gate .gate-card .dirac-loader-video-wrap,
+body.gate-checking .gate:not([hidden]) .gate-card .dirac-loader-video-wrap,
+body.gate-locked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap,
+body.gate-hardlocked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap{
+  display:grid!important;
+}
+.dirac-loader-video{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
+  background:#000!important;
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  transform:translate3d(0,0,0);
+  backface-visibility:hidden;
+  filter:drop-shadow(0 0 8px rgba(59,130,246,.18));
+}
+@media(max-width:520px){
+  .dirac-loader-video-wrap{width:min(360px,88vw);height:min(350px,86vw);}
+}
+</style>
+
 </head>
 <body>
   <a href="#main" class="skip-link">Lewati ke konten utama</a>
@@ -1586,37 +1660,16 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
 </script>
 
 <script id="dirac-image-sequence-loader-js">
-/* DIRAC V12 SAFE image sequence loader.
-   Tujuan: mencegah crash dengan menghapus bulk-preload 150 gambar, audio autoplay,
-   MutationObserver subtree berat, dan interval polling cepat.
+/* DIRAC V13 SAFE VIDEO LOADER.
+   Image sequence sq1-sq150 di-nonaktifkan karena masih patah-patah di mobile.
+   Sekarang loader memakai loader-5s.mp4 native <video> supaya decode lebih halus dan ringan.
+   Audio autoplay dimatikan/muted demi stabilitas iPhone/Safari.
    Tidak menyentuh hash, login, A2F, session, backend auth, checkout, webhook, atau payment logic. */
 (function(){
   'use strict';
-  var FRAME_COUNT = 150;
-  var DURATION_MS = 5000;
-  var FRAME_PREFIX = 'sq';
-  var FRAME_EXT = '.png';
-  var FINAL_LOGO = 'dirac-security.png';
-  var running = false;
-  var played = false;
-  var rafId = 0;
-  var loaded = Object.create(null);
-  var failedCount = 0;
-
-  function frameSrc(n){ return FRAME_PREFIX + n + FRAME_EXT; }
-
-  function lazyWarm(start, count){
-    try{
-      var end = Math.min(FRAME_COUNT, start + count - 1);
-      for(var i = Math.max(1, start); i <= end; i++){
-        if(loaded[i]) continue;
-        loaded[i] = 1;
-        var im = new Image();
-        im.decoding = 'async';
-        im.src = frameSrc(i);
-      }
-    }catch(_){ }
-  }
+  var VIDEO_SRC = 'loader-5s.mp4?v=13';
+  var wasActive = false;
+  var bootChecks = 0;
 
   function isVisible(el){
     if(!el) return false;
@@ -1645,81 +1698,90 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
     return false;
   }
 
-  function targets(){
-    var q = '#diracProtectedLockOverlay .dirac-protected-logo-only img,' +
-            '.gate:not([hidden]) .dirac-session-logo-card img,' +
-            '.gate:not([hidden]) .gate-card > img,' +
-            '.security-gate .gate-card > img';
-    var out = [];
+  function makeVideo(){
+    var v = document.createElement('video');
+    v.className = 'dirac-loader-video';
+    v.src = VIDEO_SRC;
+    v.preload = 'auto';
+    v.autoplay = true;
+    v.muted = true;
+    v.defaultMuted = true;
+    v.loop = false;
+    v.controls = false;
+    v.playsInline = true;
+    v.setAttribute('muted', '');
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.setAttribute('aria-hidden', 'true');
+    try{ v.disablePictureInPicture = true; }catch(_){}
+    v.addEventListener('ended', function(){
+      try{ v.pause(); }catch(_){}
+    }, {passive:true});
+    return v;
+  }
+
+  function ensureIn(parent){
+    if(!parent) return null;
+    var wrap = null;
     try{
-      var nodes = document.querySelectorAll(q);
-      for(var i=0;i<nodes.length;i++){
-        if(nodes[i] && nodes[i].tagName === 'IMG') out.push(nodes[i]);
+      for(var c = parent.firstElementChild; c; c = c.nextElementSibling){
+        if(c.classList && c.classList.contains('dirac-loader-video-wrap')){ wrap = c; break; }
       }
-    }catch(_){ }
-    return out;
-  }
-
-  function applyFrame(n){
-    var list = targets();
-    if(!list.length) return false;
-    n = Math.max(1, Math.min(FRAME_COUNT, n|0));
-    var src = failedCount > 8 ? FINAL_LOGO : frameSrc(n);
-    for(var i=0;i<list.length;i++){
-      var img = list[i];
-      if(img.getAttribute('data-dirac-seq-safe') !== '1'){
-        img.setAttribute('data-dirac-seq-safe','1');
-        img.addEventListener('error', function(){ failedCount++; try{ this.src = FINAL_LOGO; }catch(_){ } }, {passive:true});
-      }
-      if(img.getAttribute('src') !== src) img.setAttribute('src', src);
-      img.style.opacity = '1';
-    }
-    document.documentElement.classList.add('dirac-seq-ready');
-    return true;
-  }
-
-  function stop(){
-    if(rafId){ cancelAnimationFrame(rafId); rafId = 0; }
-    running = false;
-  }
-
-  function play(){
-    if(running || played || !isActive()) return;
-    if(!applyFrame(1)) return;
-    running = true;
-    played = true;
-    lazyWarm(1, 12);
-
-    var start = performance && performance.now ? performance.now() : Date.now();
-    function step(now){
-      if(!isActive()){
-        stop();
-        played = false;
-        return;
-      }
-      var t = Math.min(1, ((now || Date.now()) - start) / DURATION_MS);
-      var eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
-      var frame = Math.max(1, Math.min(FRAME_COUNT, Math.floor(eased * (FRAME_COUNT - 1)) + 1));
-      applyFrame(frame);
-      lazyWarm(frame + 1, 6);
-      if(t < 1){
-        rafId = requestAnimationFrame(step);
+    }catch(_){}
+    if(!wrap){
+      wrap = document.createElement('div');
+      wrap.className = 'dirac-loader-video-wrap';
+      wrap.appendChild(makeVideo());
+      if(parent.classList && parent.classList.contains('dirac-protected-logo-only')){
+        parent.appendChild(wrap);
       }else{
-        applyFrame(FRAME_COUNT);
-        running = false;
-        rafId = 0;
+        parent.insertBefore(wrap, parent.firstChild);
       }
     }
-    rafId = requestAnimationFrame(step);
+    return wrap.querySelector('video');
+  }
+
+  function ensureVideos(){
+    var videos = [];
+    var overlayTarget = document.querySelector('#diracProtectedLockOverlay .dirac-protected-logo-only');
+    var v = ensureIn(overlayTarget);
+    if(v) videos.push(v);
+
+    var cards = document.querySelectorAll('.security-gate .gate-card, .gate:not([hidden]) .gate-card');
+    for(var i=0;i<cards.length;i++){
+      var gv = ensureIn(cards[i]);
+      if(gv) videos.push(gv);
+    }
+    return videos;
+  }
+
+  function playVideo(v, reset){
+    if(!v) return;
+    try{
+      if(reset){
+        try{ v.currentTime = 0; }catch(_){}
+      }
+      var p = v.play();
+      if(p && p.catch) p.catch(function(){});
+    }catch(_){}
+  }
+
+  function pauseVideo(v){
+    try{ v.pause(); }catch(_){}
   }
 
   function check(){
-    if(isActive()){
-      play();
+    var active = isActive();
+    if(active){
+      var videos = ensureVideos();
+      document.documentElement.classList.add('dirac-video-ready');
+      for(var i=0;i<videos.length;i++) playVideo(videos[i], !wasActive);
+      wasActive = true;
     }else{
-      stop();
-      played = false;
-      document.documentElement.classList.remove('dirac-seq-ready');
+      var existing = document.querySelectorAll('.dirac-loader-video');
+      for(var j=0;j<existing.length;j++) pauseVideo(existing[j]);
+      document.documentElement.classList.remove('dirac-video-ready');
+      wasActive = false;
     }
   }
 
@@ -1727,11 +1789,16 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
     check();
     try{
       if(document.body){
-        new MutationObserver(check).observe(document.body, {attributes:true, attributeFilter:['class']});
+        new MutationObserver(check).observe(document.body, {attributes:true, childList:true, attributeFilter:['class']});
       }
-    }catch(_){ }
+    }catch(_){}
     window.addEventListener('pageshow', check, {passive:true});
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); }, {passive:true});
+    var timer = setInterval(function(){
+      bootChecks++;
+      check();
+      if(bootChecks >= 8) clearInterval(timer);
+    }, 250);
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
