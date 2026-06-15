@@ -64,7 +64,7 @@
   </style>
 
 <style id="dirac-protected-page-session-lock-css">
-/* DIRAC IMAGE SEQUENCE PROTECTED LOADER FIX V11
+/* DIRAC IMAGE SEQUENCE PROTECTED LOADER FIX V12 SAFE
    Visual-only: image sequence sq1.png-sq150.png. Background full hitam.
    Logo awal transparan, lalu frame sequence membentuk logo melalui garis.
    Tidak mengubah hash, login, A2F, session, payment, webhook, atau backend auth logic. */
@@ -112,7 +112,7 @@
   background:transparent!important;
   overflow:visible!important;
   transform:translate3d(0,0,0);
-  will-change:contents,transform;
+  will-change:transform;
 }
 #diracProtectedLockOverlay .dirac-protected-logo-only::before,
 #diracProtectedLockOverlay .dirac-protected-logo-only::after{
@@ -137,7 +137,7 @@
   filter:drop-shadow(0 0 10px rgba(59,130,246,.24));
   image-rendering:auto;
   backface-visibility:hidden;
-  will-change:contents,opacity;
+  will-change:opacity;
 }
 html.dirac-seq-ready #diracProtectedLockOverlay .dirac-protected-logo-only img{
   opacity:1!important;
@@ -163,7 +163,7 @@ body.dirac-protected-locked main{
 
 
 <style id="dirac-logo-line-shine-native-loader-fix-v5">
-/* Native gate image sequence fallback V10.
+/* Native gate image sequence fallback V12 SAFE.
    Visual-only: loader memakai sq1.png-sq150.png, background full hitam, tanpa logo melayang. */
 body.gate-checking .security-gate,
 body.gate-locked .security-gate,
@@ -1586,68 +1586,44 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
 </script>
 
 <script id="dirac-image-sequence-loader-js">
-/* DIRAC V11 image sequence loader + audio only.
+/* DIRAC V12 SAFE image sequence loader.
+   Tujuan: mencegah crash dengan menghapus bulk-preload 150 gambar, audio autoplay,
+   MutationObserver subtree berat, dan interval polling cepat.
    Tidak menyentuh hash, login, A2F, session, backend auth, checkout, webhook, atau payment logic. */
 (function(){
   'use strict';
   var FRAME_COUNT = 150;
-  var FRAME_MS = 5000;
-  var AUDIO_SRC = 'loader-sound.m4a';
-  var AUDIO_FALLBACK_SRC = 'loader-sound.mp3';
-  var frames = [];
-  var cache = [];
-  var audio = null;
+  var DURATION_MS = 5000;
+  var FRAME_PREFIX = 'sq';
+  var FRAME_EXT = '.png';
+  var FINAL_LOGO = 'dirac-security.png';
   var running = false;
-  var playedForActiveGate = false;
+  var played = false;
   var rafId = 0;
+  var loaded = Object.create(null);
+  var failedCount = 0;
 
-  for(var i=1;i<=FRAME_COUNT;i++) frames.push('sq' + i + '.png');
+  function frameSrc(n){ return FRAME_PREFIX + n + FRAME_EXT; }
 
-  function preloadFrames(){
-    for(var i=0;i<frames.length;i++){
-      var im = new Image();
-      im.decoding = 'async';
-      im.loading = 'eager';
-      im.src = frames[i];
-      cache.push(im);
-    }
-  }
-
-
-  function ensureAudio(){
-    if(audio) return audio;
-    audio = new Audio();
-    audio.preload = 'auto';
-    audio.volume = 0.62;
-    audio.src = AUDIO_SRC;
-    audio.addEventListener('error', function(){
-      try{
-        if(audio && audio.getAttribute('data-fallback') !== '1'){
-          audio.setAttribute('data-fallback', '1');
-          audio.src = AUDIO_FALLBACK_SRC;
-        }
-      }catch(_){ }
-    }, {once:true});
-    return audio;
-  }
-
-  function playAudio(){
+  function lazyWarm(start, count){
     try{
-      var a = ensureAudio();
-      a.pause();
-      a.currentTime = 0;
-      var p = a.play();
-      if(p && typeof p.catch === 'function') p.catch(function(){});
-    }catch(_){ }
-  }
-
-  function stopAudio(reset){
-    try{
-      if(audio){
-        audio.pause();
-        if(reset) audio.currentTime = 0;
+      var end = Math.min(FRAME_COUNT, start + count - 1);
+      for(var i = Math.max(1, start); i <= end; i++){
+        if(loaded[i]) continue;
+        loaded[i] = 1;
+        var im = new Image();
+        im.decoding = 'async';
+        im.src = frameSrc(i);
       }
     }catch(_){ }
+  }
+
+  function isVisible(el){
+    if(!el) return false;
+    if(el.hidden) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if(cs && (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0)) return false;
+    return true;
   }
 
   function isActive(){
@@ -1658,36 +1634,43 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
        body.classList.contains('gate-checking') ||
        body.classList.contains('gate-locked') ||
        body.classList.contains('gate-hardlocked')) return true;
-    var gate = document.querySelector('.gate:not([hidden]), .security-gate');
-    if(gate){
-      var cs = window.getComputedStyle ? window.getComputedStyle(gate) : null;
-      if(cs && cs.display !== 'none' && cs.visibility !== 'hidden') return true;
-    }
+
     var overlay = document.getElementById('diracProtectedLockOverlay');
-    if(overlay){
-      var os = window.getComputedStyle ? window.getComputedStyle(overlay) : null;
-      if(os && os.display !== 'none' && os.visibility !== 'hidden') return true;
+    if(isVisible(overlay)) return true;
+
+    var gates = document.querySelectorAll('.gate:not([hidden]), .security-gate');
+    for(var i=0;i<gates.length;i++){
+      if(isVisible(gates[i])) return true;
     }
     return false;
   }
 
   function targets(){
-    return Array.prototype.slice.call(document.querySelectorAll(
-      '#diracProtectedLockOverlay .dirac-protected-logo-only img,' +
-      '.gate:not([hidden]) .dirac-session-logo-card img,' +
-      '.gate:not([hidden]) .gate-card > img,' +
-      '.security-gate .gate-card > img'
-    )).filter(function(img){ return img && img.tagName === 'IMG'; });
+    var q = '#diracProtectedLockOverlay .dirac-protected-logo-only img,' +
+            '.gate:not([hidden]) .dirac-session-logo-card img,' +
+            '.gate:not([hidden]) .gate-card > img,' +
+            '.security-gate .gate-card > img';
+    var out = [];
+    try{
+      var nodes = document.querySelectorAll(q);
+      for(var i=0;i<nodes.length;i++){
+        if(nodes[i] && nodes[i].tagName === 'IMG') out.push(nodes[i]);
+      }
+    }catch(_){ }
+    return out;
   }
 
-  function applyFrame(index){
-    var src = frames[Math.max(0, Math.min(FRAME_COUNT - 1, index|0))];
+  function applyFrame(n){
     var list = targets();
     if(!list.length) return false;
+    n = Math.max(1, Math.min(FRAME_COUNT, n|0));
+    var src = failedCount > 8 ? FINAL_LOGO : frameSrc(n);
     for(var i=0;i<list.length;i++){
       var img = list[i];
-      img.decoding = 'async';
-      img.loading = 'eager';
+      if(img.getAttribute('data-dirac-seq-safe') !== '1'){
+        img.setAttribute('data-dirac-seq-safe','1');
+        img.addEventListener('error', function(){ failedCount++; try{ this.src = FINAL_LOGO; }catch(_){ } }, {passive:true});
+      }
       if(img.getAttribute('src') !== src) img.setAttribute('src', src);
       img.style.opacity = '1';
     }
@@ -1698,31 +1681,31 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
   function stop(){
     if(rafId){ cancelAnimationFrame(rafId); rafId = 0; }
     running = false;
-    stopAudio(true);
   }
 
   function play(){
-    if(running || !isActive()) return;
-    if(!applyFrame(0)) return;
+    if(running || played || !isActive()) return;
+    if(!applyFrame(1)) return;
     running = true;
-    playedForActiveGate = true;
-    playAudio();
-    var start = 0;
-    function step(ts){
+    played = true;
+    lazyWarm(1, 12);
+
+    var start = performance && performance.now ? performance.now() : Date.now();
+    function step(now){
       if(!isActive()){
         stop();
-        playedForActiveGate = false;
+        played = false;
         return;
       }
-      if(!start) start = ts;
-      var progress = Math.min(1, (ts - start) / FRAME_MS);
-      var eased = progress < 0.5 ? (2 * progress * progress) : (1 - Math.pow(-2 * progress + 2, 2) / 2);
-      var frameIndex = Math.min(FRAME_COUNT - 1, Math.floor(eased * (FRAME_COUNT - 1)));
-      applyFrame(frameIndex);
-      if(progress < 1){
+      var t = Math.min(1, ((now || Date.now()) - start) / DURATION_MS);
+      var eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+      var frame = Math.max(1, Math.min(FRAME_COUNT, Math.floor(eased * (FRAME_COUNT - 1)) + 1));
+      applyFrame(frame);
+      lazyWarm(frame + 1, 6);
+      if(t < 1){
         rafId = requestAnimationFrame(step);
       }else{
-        applyFrame(FRAME_COUNT - 1);
+        applyFrame(FRAME_COUNT);
         running = false;
         rafId = 0;
       }
@@ -1732,26 +1715,23 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
 
   function check(){
     if(isActive()){
-      if(!playedForActiveGate) play();
-      else if(!running) applyFrame(FRAME_COUNT - 1);
+      play();
     }else{
       stop();
-      playedForActiveGate = false;
-      applyFrame(0);
+      played = false;
+      document.documentElement.classList.remove('dirac-seq-ready');
     }
   }
 
   function boot(){
-    preloadFrames();
-    applyFrame(0);
     check();
     try{
-      var observer = new MutationObserver(check);
-      observer.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','hidden','style']});
+      if(document.body){
+        new MutationObserver(check).observe(document.body, {attributes:true, attributeFilter:['class']});
+      }
     }catch(_){ }
     window.addEventListener('pageshow', check, {passive:true});
-    document.addEventListener('visibilitychange', check, {passive:true});
-    setInterval(check, 220);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); }, {passive:true});
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
