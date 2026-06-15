@@ -1,67 +1,204 @@
 <!doctype html>
 <html lang="id" data-theme="dark" data-motion="full" data-build="customer-security-compact-v4">
 <head>
-
-<!-- DIRAC PATCH: global storage guard + synced color/language + improved session loader -->
-<style id="dirac-session-check-loader-ultra-v6">
-html body.gate-checking,
-html body.dirac-protected-checking,
-html body.dirac-protected-locked{background:#000!important;}
-html body.gate-checking .security-gate,
-html body.gate-locked.gate-checking .security-gate,
-html body.gate-checking .gate,
-html body.gate-hardlocked.gate-checking .gate,
-html #diracProtectedLockOverlay{background:#000!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
-html body.gate-checking .security-gate .gate-card,
-html body.gate-checking .gate:not([hidden]) .gate-card,
-html #diracProtectedLockOverlay .dirac-protected-lock-card{position:relative!important;display:grid!important;place-items:center!important;overflow:visible!important;}
-html body.gate-checking .security-gate .gate-icon,
-html body.gate-checking .gate:not([hidden]) .gate-card:before,
-html #diracProtectedLockOverlay .dirac-protected-logo-only{width:260px!important;height:260px!important;border-radius:58px!important;filter:drop-shadow(0 0 34px rgba(var(--theme-rgb,243,205,112),.58))!important;}
-html body.gate-checking .security-gate .gate-icon::after,
-html body.gate-checking .gate:not([hidden]) .gate-card:after,
-html #diracProtectedLockOverlay .dirac-protected-logo-only::after{width:260px!important;height:260px!important;margin-left:-130px!important;filter:drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.75))!important;}
-html body.gate-checking .security-gate .gate-card::after,
-html #diracProtectedLockOverlay .dirac-protected-lock-card::after{content:"Mengecek Sesi Pelanggan"!important;display:block!important;margin-top:24px!important;color:#fff!important;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;font-weight:900!important;font-size:clamp(1.02rem,3.6vw,1.42rem)!important;letter-spacing:.08em!important;text-transform:uppercase!important;text-align:center!important;background:linear-gradient(90deg,#ffffff,#f7df9d,var(--gold,#f3cd70),#ffffff)!important;background-size:260% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;animation:diracSessionTextGlowV6 2.2s ease-in-out infinite!important;text-shadow:0 0 18px rgba(var(--theme-rgb,243,205,112),.20)!important;}
-html body.gate-checking .gate:not([hidden])::after{content:"Mengecek Sesi Pelanggan"!important;position:absolute!important;left:50%!important;top:calc(50% + 166px)!important;transform:translateX(-50%)!important;display:block!important;width:min(92vw,560px)!important;color:#fff!important;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;font-weight:900!important;font-size:clamp(1.02rem,3.6vw,1.42rem)!important;letter-spacing:.08em!important;text-transform:uppercase!important;text-align:center!important;background:linear-gradient(90deg,#ffffff,#f7df9d,var(--gold,#f3cd70),#ffffff)!important;background-size:260% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;animation:diracSessionTextGlowV6 2.2s ease-in-out infinite!important;z-index:2147483001!important;pointer-events:none!important;}
-@keyframes diracSessionTextGlowV6{0%{background-position:0% 50%;opacity:.72;filter:drop-shadow(0 0 0 rgba(var(--theme-rgb,243,205,112),0));}50%{background-position:100% 50%;opacity:1;filter:drop-shadow(0 0 12px rgba(var(--theme-rgb,243,205,112),.36));}100%{background-position:0% 50%;opacity:.72;filter:drop-shadow(0 0 0 rgba(var(--theme-rgb,243,205,112),0));}}
-@media(max-width:520px){html body.gate-checking .security-gate .gate-icon,html body.gate-checking .gate:not([hidden]) .gate-card:before,html #diracProtectedLockOverlay .dirac-protected-logo-only{width:230px!important;height:230px!important;border-radius:52px!important;}html body.gate-checking .security-gate .gate-icon::after,html body.gate-checking .gate:not([hidden]) .gate-card:after,html #diracProtectedLockOverlay .dirac-protected-logo-only::after{width:230px!important;height:230px!important;margin-left:-115px!important;}html body.gate-checking .gate:not([hidden])::after{top:calc(50% + 148px)!important;}}
-@media(prefers-reduced-motion:reduce){html body.gate-checking .security-gate .gate-card::after,html body.gate-checking .gate:not([hidden])::after,html #diracProtectedLockOverlay .dirac-protected-lock-card::after{animation:none!important;opacity:1!important;}}
-</style>
-<script id="dirac-global-color-language-storage-v6">
+<script id="dirac-global-pref-storage-guard-v1">
 (function(){
   'use strict';
-  var THEME_KEY='dirac_theme_settings_v2';
-  var LANG_KEY='dirac_language_v1';
-  var allowed={}; allowed[THEME_KEY]=true; allowed[LANG_KEY]=true;
-  var PALETTES={
-    gold:['#f3cd70','#d6a642','#8e6425','243,205,112'],champagne:['#ffe9a8','#e9c46a','#9f6b1f','255,233,168'],sand:['#d6b076','#b88943','#6b4a23','214,176,118'],bronze:['#d6b27a','#9a6b2f','#4a2b12','214,178,122'],blue:['#4f83ff','#2563eb','#1e3a8a','79,131,255'],sky:['#38bdf8','#0284c7','#075985','56,189,248'],cyan:['#38c7f0','#0891b2','#164e63','56,199,240'],ocean:['#0ea5e9','#0369a1','#0c4a6e','14,165,233'],royal:['#60a5fa','#2563eb','#1e3a8a','96,165,250'],sapphire:['#4f83ff','#2563eb','#1e3a8a','79,131,255'],indigo:['#6366f1','#4f46e5','#312e81','99,102,241'],purple:['#7c3aed','#5b21b6','#35126d','124,58,237'],violet:['#8b5cf6','#7c3aed','#4c1d95','139,92,246'],amethyst:['#a855f7','#9333ea','#581c87','168,85,247'],lavender:['#b095ff','#8b5cf6','#4c1d95','176,149,255'],magenta:['#d946ef','#a21caf','#701a75','217,70,239'],fuchsia:['#e879f9','#c026d3','#701a75','232,121,249'],pink:['#ec4899','#be185d','#7f123d','236,72,153'],rose:['#fb7185','#e11d48','#881337','251,113,133'],ruby:['#f43f5e','#e11d48','#881337','244,63,94'],red:['#ef4444','#dc2626','#7f1d1d','239,68,68'],coral:['#fb7185','#f97316','#9a3412','251,113,133'],sunset:['#fb923c','#f43f5e','#7f1d1d','251,146,60'],orange:['#fb6a3d','#ea580c','#7c2d12','251,106,61'],amber:['#f59e0b','#d97706','#78350f','245,158,11'],lime:['#a3e635','#65a30d','#365314','163,230,53'],green:['#34d399','#059669','#065f46','52,211,153'],emerald:['#34d399','#10b981','#064e3b','52,211,153'],mint:['#6ee7b7','#14b8a6','#115e59','110,231,183'],jade:['#2dd4bf','#0f766e','#134e4a','45,212,191'],teal:['#0f8b8d','#0f766e','#134e4a','15,139,141'],aqua:['#22d3ee','#0891b2','#164e63','34,211,238'],graphite:['#94a3b8','#64748b','#334155','148,163,184'],slate:['#64748b','#334155','#0f172a','100,116,139'],coffee:['#c08457','#92400e','#451a03','192,132,87'],copper:['#c08457','#9a5f36','#5c341f','192,132,87'],mocha:['#a16207','#854d0e','#422006','161,98,7'],espresso:['#92400e','#78350f','#431407','146,64,14'],pearl:['#f8fafc','#cbd5e1','#64748b','248,250,252'],neon:['#22c55e','#16a34a','#14532d','34,197,94']
+  if(window.__DIRAC_GLOBAL_PREF_STORAGE_GUARD_V1__) return;
+  window.__DIRAC_GLOBAL_PREF_STORAGE_GUARD_V1__ = true;
+
+  var ACCENT_KEY = 'dirac_global_accent_v1';
+  var LANGUAGE_KEY = 'dirac_global_language_v1';
+  var LEGACY_THEME_KEYS = {'dirac_theme_settings_v1':true,'dirac_theme_settings_v2':true};
+  var LEGACY_LANGUAGE_KEYS = {'dirac_language_v1':true};
+  var ALLOWED_REAL_KEYS = {};
+  ALLOWED_REAL_KEYS[ACCENT_KEY] = true;
+  ALLOWED_REAL_KEYS[LANGUAGE_KEY] = true;
+
+  var PALETTES = {
+    gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},
+    champagne:{gold:'#ffe9a8',gold2:'#e9c46a',gold3:'#9f6b1f',rgb:'255,233,168'},
+    bronze:{gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122'},
+    emerald:{gold:'#34d399',gold2:'#10b981',gold3:'#064e3b',rgb:'52,211,153'},
+    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
+    mint:{gold:'#6ee7b7',gold2:'#14b8a6',gold3:'#115e59',rgb:'110,231,183'},
+    cyan:{gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240'},
+    sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'},
+    ocean:{gold:'#22d3ee',gold2:'#0ea5e9',gold3:'#0c4a6e',rgb:'34,211,238'},
+    royal:{gold:'#60a5fa',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'96,165,250'},
+    sapphire:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
+    indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'},
+    violet:{gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246'},
+    amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'},
+    lavender:{gold:'#b095ff',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'176,149,255'},
+    magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'},
+    fuchsia:{gold:'#e879f9',gold2:'#c026d3',gold3:'#701a75',rgb:'232,121,249'},
+    pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},
+    rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'},
+    ruby:{gold:'#f43f5e',gold2:'#e11d48',gold3:'#881337',rgb:'244,63,94'},
+    red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},
+    coral:{gold:'#fb7185',gold2:'#f97316',gold3:'#9a3412',rgb:'251,113,133'},
+    sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'},
+    orange:{gold:'#fb6a3d',gold2:'#ea580c',gold3:'#7c2d12',rgb:'251,106,61'},
+    amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'},
+    lime:{gold:'#a3e635',gold2:'#65a30d',gold3:'#365314',rgb:'163,230,53'},
+    neon:{gold:'#22c55e',gold2:'#16a34a',gold3:'#14532d',rgb:'34,197,94'},
+    graphite:{gold:'#94a3b8',gold2:'#64748b',gold3:'#334155',rgb:'148,163,184'},
+    coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}
   };
-  function parse(raw){try{return raw?JSON.parse(raw):{};}catch(_){return {};}}
-  function localGet(k){try{return window.localStorage.getItem(k);}catch(_){return null;}}
-  function localSet(k,v){try{window.localStorage.setItem(k,v);}catch(_){}}
-  function cleanLocal(){try{for(var i=window.localStorage.length-1;i>=0;i--){var k=window.localStorage.key(i);if(k&&!allowed[k]) window.localStorage.removeItem(k);}}catch(_){}}
-  try{var legacy=localGet('dirac_theme_settings_v2'); if(legacy&&!localGet(THEME_KEY)) localSet(THEME_KEY,legacy);}catch(_){ }
-  try{if(window.Storage&&Storage.prototype&&!Storage.prototype.__diracColorLanguageGuardV6){var ns=Storage.prototype.setItem,ng=Storage.prototype.getItem,nr=Storage.prototype.removeItem;Storage.prototype.setItem=function(key,value){if(this===window.localStorage&&!allowed[String(key)]) return; return ns.apply(this,arguments);};Storage.prototype.getItem=function(key){if(this===window.localStorage&&!allowed[String(key)]) return null; return ng.apply(this,arguments);};Storage.prototype.removeItem=function(key){return nr.apply(this,arguments);};Object.defineProperty(Storage.prototype,'__diracColorLanguageGuardV6',{value:true});}}catch(_){ }
-  cleanLocal();
-  function normalizeLang(lang){lang=String(lang||'id').toLowerCase();return /^(id|en|zh|ar|ja|ko|es|fr)$/.test(lang)?lang:'id';}
-  function normalizeRgb(rgb){rgb=String(rgb||'').replace(/rgba?\(|\)|\s/g,'');var parts=rgb.split(',').slice(0,3).map(function(x){return Math.max(0,Math.min(255,parseInt(x,10)||0));});return parts.length===3?parts.join(','):'243,205,112';}
-  function read(){var s=parse(localGet(THEME_KEY));var lang=normalizeLang(localGet(LANG_KEY)||s.language||document.documentElement.getAttribute('data-language')||document.documentElement.lang||'id');var accent=String(s.accent||document.documentElement.getAttribute('data-theme-accent')||'gold');var p=s.gold&&s.gold2&&s.rgb?[s.gold,s.gold2,s.gold3||s.gold2,normalizeRgb(s.rgb)]:(PALETTES[accent]||PALETTES.gold);return {accent:accent,language:lang,gold:p[0],gold2:p[1],gold3:p[2],rgb:p[3]};}
-  function currentPalette(accent){var cs=null;try{cs=getComputedStyle(document.documentElement);}catch(_){ }var gold=cs?(cs.getPropertyValue('--gold')||'').trim():'';var gold2=cs?(cs.getPropertyValue('--gold-2')||cs.getPropertyValue('--gold2')||'').trim():'';var gold3=cs?(cs.getPropertyValue('--gold-3')||cs.getPropertyValue('--gold3')||'').trim():'';var rgb=cs?(cs.getPropertyValue('--theme-rgb')||'').trim():'';var p=PALETTES[accent]||PALETTES.gold;return {gold:gold||p[0],gold2:gold2||p[1],gold3:gold3||p[2],rgb:normalizeRgb(rgb||p[3])};}
-  function write(patch){var prev=read();var next={accent:patch&&patch.accent?String(patch.accent):prev.accent,language:normalizeLang(patch&&patch.language?patch.language:prev.language)};var pal=currentPalette(next.accent);if(patch&&patch.gold&&patch.gold2&&patch.rgb) pal={gold:patch.gold,gold2:patch.gold2,gold3:patch.gold3||patch.gold2,rgb:normalizeRgb(patch.rgb)};localSet(THEME_KEY,JSON.stringify({accent:next.accent,gold:pal.gold,gold2:pal.gold2,gold3:pal.gold3,rgb:pal.rgb}));localSet(LANG_KEY,next.language);cleanLocal();apply();return read();}
-  function apply(){var s=read(),root=document.documentElement;root.lang=s.language==='zh'?'zh-CN':s.language;root.dir=s.language==='ar'?'rtl':'ltr';root.setAttribute('data-language',s.language);root.setAttribute('data-theme-accent',s.accent);root.style.setProperty('--gold',s.gold);root.style.setProperty('--gold2',s.gold2);root.style.setProperty('--gold3',s.gold3);root.style.setProperty('--gold-2',s.gold2);root.style.setProperty('--gold-3',s.gold3);root.style.setProperty('--theme-rgb',s.rgb);root.style.setProperty('--line','rgba('+s.rgb+',.18)');root.style.setProperty('--line2','rgba('+s.rgb+',.36)');root.style.setProperty('--line-strong','rgba('+s.rgb+',.36)');}
-  function capture(event){var t=event&&event.target&&event.target.closest?event.target.closest('[data-accent],[data-theme-accent-option],[data-language],[data-language-option],#themeResetBtn'):null;if(!t)return;setTimeout(function(){var patch={};if(t.id==='themeResetBtn'){patch.accent='gold';}if(t.hasAttribute('data-accent')) patch.accent=t.getAttribute('data-accent');if(t.hasAttribute('data-theme-accent-option')) patch.accent=t.getAttribute('data-theme-accent-option');if(t.hasAttribute('data-language')) patch.language=t.getAttribute('data-language');if(t.hasAttribute('data-language-option')) patch.language=t.getAttribute('data-language-option');if(patch.accent||patch.language) write(patch);},0);}
-  window.DiracGlobalPrefs={read:read,write:write,apply:apply,clean:cleanLocal,themeKey:THEME_KEY,languageKey:LANG_KEY};
-  apply();
-  document.addEventListener('click',capture,true);
-  window.addEventListener('storage',function(e){if(!e||e.key===THEME_KEY||e.key===LANG_KEY) apply();});
-  window.addEventListener('pageshow',function(){cleanLocal();apply();setTimeout(apply,0);});
-  document.addEventListener('visibilitychange',function(){if(!document.hidden){cleanLocal();apply();}});
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){cleanLocal();apply();setTimeout(apply,0);setTimeout(apply,120);}); else {cleanLocal();apply();setTimeout(apply,0);setTimeout(apply,120);}
+  var LANG_META = {
+    id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},
+    ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}
+  };
+
+  var storage = null;
+  try{ storage = window.localStorage || null; }catch(_){ storage = null; }
+  var proto = window.Storage && window.Storage.prototype;
+  if(!storage || !proto) return;
+
+  var nativeGet = proto.getItem;
+  var nativeSet = proto.setItem;
+  var nativeRemove = proto.removeItem;
+  var nativeClear = proto.clear;
+  var nativeKey = proto.key;
+
+  function safeGet(key){ try{ return nativeGet.call(storage, key); }catch(_){ return null; } }
+  function safeSet(key, value){ try{ nativeSet.call(storage, key, String(value)); }catch(_){} }
+  function safeRemove(key){ try{ nativeRemove.call(storage, key); }catch(_){} }
+  function validAccent(value){ value = String(value || '').trim(); return PALETTES[value] ? value : 'gold'; }
+  function validLanguage(value){ value = String(value || '').trim(); return LANG_META[value] ? value : 'id'; }
+  function readJson(raw){ try{ return raw ? JSON.parse(raw) : null; }catch(_){ return null; } }
+  function legacyPrefs(){
+    var out = {};
+    ['dirac_theme_settings_v2','dirac_theme_settings_v1'].forEach(function(key){
+      var data = readJson(safeGet(key));
+      if(data && typeof data === 'object'){
+        if(data.accent && !out.accent) out.accent = validAccent(data.accent);
+        if(data.language && !out.language) out.language = validLanguage(data.language);
+      }
+    });
+    var oldLang = safeGet('dirac_language_v1');
+    if(oldLang && !out.language) out.language = validLanguage(oldLang);
+    return out;
+  }
+  function getAccent(){ return validAccent(safeGet(ACCENT_KEY) || legacyPrefs().accent || 'gold'); }
+  function getLanguage(){ return validLanguage(safeGet(LANGUAGE_KEY) || legacyPrefs().language || 'id'); }
+  function filteredThemeJson(){ return JSON.stringify({mode:'dark',accent:getAccent(),language:getLanguage(),motion:'full',contrast:'off'}); }
+  function purgeDisallowed(){
+    try{
+      var keys = [];
+      for(var i=0;i<storage.length;i++){
+        var k = nativeKey.call(storage, i);
+        if(k) keys.push(k);
+      }
+      keys.forEach(function(k){ if(!ALLOWED_REAL_KEYS[k]) safeRemove(k); });
+    }catch(_){ }
+  }
+  function migrateOnce(){
+    var lp = legacyPrefs();
+    if(!safeGet(ACCENT_KEY)) safeSet(ACCENT_KEY, validAccent(lp.accent || 'gold'));
+    if(!safeGet(LANGUAGE_KEY)) safeSet(LANGUAGE_KEY, validLanguage(lp.language || 'id'));
+    purgeDisallowed();
+  }
+  function prefs(){ return {mode:'dark',accent:getAccent(),language:getLanguage(),motion:'full',contrast:'off'}; }
+  function notify(source){
+    var detail = prefs();
+    detail.source = source || 'storage';
+    try{ window.dispatchEvent(new CustomEvent('dirac:global-prefs-change',{detail:detail})); }catch(_){ }
+  }
+  function applyPrefs(){
+    var p = prefs();
+    var pal = PALETTES[p.accent] || PALETTES.gold;
+    var meta = LANG_META[p.language] || LANG_META.id;
+    var root = document.documentElement;
+    if(!root) return;
+    root.lang = meta.htmlLang || p.language;
+    root.dir = meta.dir || 'ltr';
+    root.setAttribute('data-language', p.language);
+    root.setAttribute('data-effective-theme','dark');
+    root.setAttribute('data-theme','dark');
+    root.style.setProperty('--gold', pal.gold);
+    root.style.setProperty('--gold2', pal.gold2);
+    root.style.setProperty('--gold3', pal.gold3);
+    root.style.setProperty('--gold-2', pal.gold2);
+    root.style.setProperty('--gold-3', pal.gold3);
+    root.style.setProperty('--theme-rgb', pal.rgb);
+    root.style.setProperty('--line','rgba('+pal.rgb+',.18)');
+    root.style.setProperty('--line2','rgba('+pal.rgb+',.36)');
+    root.style.setProperty('--line-strong','rgba('+pal.rgb+',.38)');
+    try{ var metaTheme = document.querySelector('meta[name="theme-color"]'); if(metaTheme) metaTheme.setAttribute('content','#07090d'); }catch(_){ }
+    try{
+      document.querySelectorAll('[data-accent]').forEach(function(el){
+        var on = el.getAttribute('data-accent') === p.accent;
+        el.classList.toggle('active', on); el.classList.toggle('is-selected', on); el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-language]').forEach(function(el){
+        var on = el.getAttribute('data-language') === p.language;
+        el.classList.toggle('active', on); el.classList.toggle('is-selected', on); el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }catch(_){ }
+  }
+
+  migrateOnce();
+  applyPrefs();
+
+  proto.getItem = function(key){
+    key = String(key);
+    if(this !== storage) return nativeGet.apply(this, arguments);
+    if(key === ACCENT_KEY || key === LANGUAGE_KEY) return nativeGet.call(storage, key);
+    if(LEGACY_THEME_KEYS[key]) return filteredThemeJson();
+    if(LEGACY_LANGUAGE_KEYS[key]) return getLanguage();
+    return null;
+  };
+  proto.setItem = function(key, value){
+    key = String(key);
+    if(this !== storage) return nativeSet.apply(this, arguments);
+    if(key === ACCENT_KEY){ safeSet(ACCENT_KEY, validAccent(value)); purgeDisallowed(); applyPrefs(); notify('accent'); return; }
+    if(key === LANGUAGE_KEY){ safeSet(LANGUAGE_KEY, validLanguage(value)); purgeDisallowed(); applyPrefs(); notify('language'); return; }
+    if(LEGACY_LANGUAGE_KEYS[key]){ safeSet(LANGUAGE_KEY, validLanguage(value)); purgeDisallowed(); applyPrefs(); notify('language'); return; }
+    if(LEGACY_THEME_KEYS[key]){
+      var data = readJson(String(value || '')) || {};
+      if(data.accent) safeSet(ACCENT_KEY, validAccent(data.accent));
+      if(data.language) safeSet(LANGUAGE_KEY, validLanguage(data.language));
+      purgeDisallowed(); applyPrefs(); notify('theme'); return;
+    }
+    purgeDisallowed();
+  };
+  proto.removeItem = function(key){
+    key = String(key);
+    if(this !== storage) return nativeRemove.apply(this, arguments);
+    if(key === ACCENT_KEY){ safeRemove(ACCENT_KEY); applyPrefs(); notify('accent-reset'); return; }
+    if(key === LANGUAGE_KEY){ safeRemove(LANGUAGE_KEY); applyPrefs(); notify('language-reset'); return; }
+    if(LEGACY_LANGUAGE_KEYS[key]){ safeRemove(LANGUAGE_KEY); applyPrefs(); notify('language-reset'); return; }
+    if(LEGACY_THEME_KEYS[key]){ safeRemove(ACCENT_KEY); safeRemove(LANGUAGE_KEY); applyPrefs(); notify('theme-reset'); return; }
+    safeRemove(key); purgeDisallowed();
+  };
+  proto.clear = function(){
+    if(this !== storage) return nativeClear.apply(this, arguments);
+    safeRemove(ACCENT_KEY); safeRemove(LANGUAGE_KEY); applyPrefs(); notify('clear');
+  };
+
+  window.diracGetGlobalPrefs = prefs;
+  window.diracApplyGlobalPrefs = applyPrefs;
+  window.diracSetGlobalAccent = function(accent){ storage.setItem(ACCENT_KEY, validAccent(accent)); };
+  window.diracSetGlobalLanguage = function(language){ storage.setItem(LANGUAGE_KEY, validLanguage(language)); };
+
+  document.addEventListener('click', function(e){
+    var target = e.target && e.target.closest ? e.target.closest('[data-accent],[data-language]') : null;
+    if(!target) return;
+    var accent = target.getAttribute('data-accent');
+    var language = target.getAttribute('data-language');
+    if(accent) storage.setItem(ACCENT_KEY, accent);
+    if(language) storage.setItem(LANGUAGE_KEY, language);
+  }, true);
+  window.addEventListener('storage', function(e){
+    if(e && e.storageArea === storage && (e.key === ACCENT_KEY || e.key === LANGUAGE_KEY)){
+      applyPrefs(); notify('storage');
+    }
+  });
+  document.addEventListener('DOMContentLoaded', function(){ applyPrefs(); purgeDisallowed(); });
 })();
 </script>
-<!-- /DIRAC PATCH -->
-
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07090d">
@@ -359,298 +496,111 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
 }
 </style>
 
-
-
-<!-- DIRAC PATCH V7: polished mobile session-check loader, single centered logo, animated text. Auth/hash/login logic untouched. -->
-<style id="dirac-session-loader-polish-v7">
-html body.gate-checking,
-html body.dirac-protected-checking,
-html body.dirac-protected-locked,
-html body.gate-locked.gate-checking,
-html body.gate-hardlocked.gate-checking{
+<style id="dirac-ultra-session-loader-v6">
+/* DIRAC ULTRA SESSION LOADER V6
+   Scope visual loader cek sesi saja. Tidak mengubah hash, login, endpoint, payment, webhook, atau backend auth. */
+:root{--dirac-session-logo-size:clamp(260px,30vw,310px);--dirac-session-logo-radius:54px;}
+#diracProtectedLockOverlay,
+.security-gate,
+.gate{
   background:#000!important;
   background-image:none!important;
-}
-html body.gate-checking .security-gate,
-html body.gate-locked.gate-checking .security-gate,
-html body.gate-checking .gate,
-html body.gate-hardlocked.gate-checking .gate,
-html #diracProtectedLockOverlay{
-  position:fixed!important;
-  inset:0!important;
-  z-index:2147483000!important;
-  display:grid!important;
-  place-items:center!important;
-  align-content:center!important;
-  justify-content:center!important;
-  width:100vw!important;
-  min-height:100svh!important;
-  min-height:100dvh!important;
-  padding:calc(18px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom))!important;
-  overflow:hidden!important;
-  background:#000!important;
-  background-image:
-    radial-gradient(circle at 50% 41%,rgba(59,130,246,.18),transparent min(44vw,280px)),
-    radial-gradient(circle at 50% 47%,rgba(var(--theme-rgb,243,205,112),.10),transparent min(56vw,360px)),
-    linear-gradient(#000,#000)!important;
   backdrop-filter:none!important;
   -webkit-backdrop-filter:none!important;
-  color:#fff!important;
+  color:#f9fafb!important;
 }
-html body.gate-checking .security-gate::before,
-html body.gate-checking .gate:not([hidden])::before,
-html #diracProtectedLockOverlay::before{
-  content:""!important;
-  position:absolute!important;
-  left:50%!important;
-  top:50%!important;
-  width:min(72vw,420px)!important;
-  height:min(72vw,420px)!important;
-  transform:translate(-50%,-50%)!important;
-  border-radius:999px!important;
-  background:radial-gradient(circle,rgba(59,130,246,.20),rgba(59,130,246,.08) 38%,transparent 70%)!important;
-  filter:blur(12px)!important;
-  opacity:.82!important;
-  pointer-events:none!important;
-  animation:diracLoaderAuraV7 3.6s ease-in-out infinite!important;
+#diracProtectedLockOverlay .dirac-protected-logo-only,
+body.gate-checking .security-gate .gate-icon,
+body.gate-checking .gate:not([hidden]) .gate-card:before{
+  width:var(--dirac-session-logo-size)!important;
+  height:var(--dirac-session-logo-size)!important;
+  border-radius:var(--dirac-session-logo-radius)!important;
+  filter:drop-shadow(0 0 34px rgba(96,165,250,.68)) drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.22))!important;
 }
-html body.gate-checking .security-gate .gate-card,
-html body.gate-checking .gate:not([hidden]) .gate-card,
-html #diracProtectedLockOverlay .dirac-protected-lock-card{
-  position:relative!important;
-  z-index:2!important;
-  width:min(92vw,430px)!important;
-  max-width:430px!important;
-  min-width:0!important;
-  margin:0 auto!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  background-image:none!important;
-  box-shadow:none!important;
-  overflow:visible!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:26px!important;
+#diracProtectedLockOverlay .dirac-protected-logo-only::after,
+body.gate-checking .security-gate .gate-icon::after{
+  border-radius:var(--dirac-session-logo-radius)!important;
+}
+body.gate-checking .gate:not([hidden]) .gate-card:after{
+  width:var(--dirac-session-logo-size)!important;
+  height:var(--dirac-session-logo-size)!important;
+  margin-left:calc(var(--dirac-session-logo-size) / -2)!important;
+  border-radius:var(--dirac-session-logo-radius)!important;
+}
+#diracProtectedLockOverlay .dirac-protected-lock-card,
+body.gate-checking .security-gate .gate-card,
+body.gate-checking .gate:not([hidden]) .gate-card{
+  display:grid!important;
+  place-items:center!important;
+  gap:14px!important;
   text-align:center!important;
 }
-html body.gate-checking .security-gate .gate-card h1,
-html body.gate-checking .security-gate .gate-card p,
-html body.gate-checking .security-gate .gate-actions,
-html body.gate-checking .security-gate .security-backend-note,
-html #diracProtectedLockOverlay strong,
-html #diracProtectedLockOverlay p,
-html #diracProtectedLockOverlay .dirac-protected-lock-icon{
-  display:none!important;
-  visibility:hidden!important;
-}
-html body.gate-checking .gate:not([hidden]) .gate-card > :not(img){
-  display:none!important;
-  visibility:hidden!important;
-}
-html body.gate-checking .gate:not([hidden]) .gate-card::before,
-html body.gate-checking .gate:not([hidden]) .gate-card::after,
-html #diracProtectedLockOverlay .dirac-protected-logo-only::before,
-html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
+#diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title,
+body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title{
+  display:inline-block!important;
   content:none!important;
-  display:none!important;
-  animation:none!important;
-}
-html body.gate-checking .security-gate .gate-icon,
-html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
-html #diracProtectedLockOverlay .dirac-protected-logo-only{
-  position:relative!important;
-  isolation:isolate!important;
-  width:min(76vw,330px)!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  margin:0 auto!important;
-  border:0!important;
-  border-radius:28px!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  filter:drop-shadow(0 0 20px rgba(59,130,246,.46)) drop-shadow(0 0 38px rgba(var(--theme-rgb,243,205,112),.13))!important;
-  transform:translateZ(0)!important;
-  animation:diracLogoBreathV7 3.2s ease-in-out infinite!important;
-  overflow:visible!important;
-}
-html body.gate-checking .security-gate .gate-icon{
-  aspect-ratio:1/1!important;
-  min-height:min(76vw,330px)!important;
-  font-size:0!important;
-  color:transparent!important;
-  background:url("dirac-security.png") center/contain no-repeat!important;
-}
-html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card > img,
-html #diracProtectedLockOverlay .dirac-protected-logo-only > img{
-  display:block!important;
-  visibility:visible!important;
-  position:relative!important;
-  z-index:1!important;
-  width:100%!important;
-  max-width:100%!important;
-  height:auto!important;
-  max-height:260px!important;
-  object-fit:contain!important;
-  object-position:center!important;
-  margin:0 auto!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  opacity:1!important;
-  transform:none!important;
-  animation:none!important;
-}
-html body.gate-checking .security-gate .gate-icon::before,
-html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::before,
-html #diracProtectedLockOverlay .dirac-protected-lock-card::before{
-  content:""!important;
-  position:absolute!important;
-  z-index:3!important;
-  left:-28%!important;
-  top:0!important;
-  width:44%!important;
-  height:100%!important;
-  border-radius:999px!important;
-  pointer-events:none!important;
-  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.08) 18%,rgba(147,197,253,.70) 45%,rgba(255,255,255,.34) 55%,transparent 86%)!important;
-  filter:blur(5px) drop-shadow(0 0 14px rgba(96,165,250,.62))!important;
-  mix-blend-mode:screen!important;
-  transform:skewX(-14deg) translateX(-180%)!important;
-  animation:diracLogoSoftSweepV7 2.35s ease-in-out infinite!important;
-}
-html body.gate-checking .security-gate .gate-card::after,
-html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
-html body.gate-checking .gate:not([hidden])::after{
-  content:"Mengecek Sesi Pelanggan"!important;
-  position:relative!important;
-  z-index:3!important;
-  left:auto!important;
-  top:auto!important;
-  right:auto!important;
-  bottom:auto!important;
-  transform:none!important;
-  display:block!important;
-  width:min(92vw,620px)!important;
-  margin:28px auto 0!important;
-  padding:0 4px!important;
-  color:#fff!important;
+  margin:2px auto 0!important;
+  color:#ffffff!important;
   font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
-  font-weight:900!important;
-  font-size:clamp(1rem,4.2vw,1.42rem)!important;
+  font-size:clamp(1.05rem,2.7vw,1.42rem)!important;
   line-height:1.2!important;
-  letter-spacing:.12em!important;
+  font-weight:900!important;
+  letter-spacing:.06em!important;
   text-transform:uppercase!important;
-  text-align:center!important;
-  white-space:normal!important;
-  overflow:visible!important;
-  background:linear-gradient(90deg,#ffffff 0%,#dbeafe 18%,#93c5fd 36%,#f7df9d 54%,var(--gold,#f3cd70) 68%,#ffffff 86%,#dbeafe 100%)!important;
-  background-size:260% 100%!important;
+  background:linear-gradient(90deg,#ffffff 0%,#f3cd70 32%,#93c5fd 54%,#ffffff 78%)!important;
+  background-size:220% 100%!important;
   -webkit-background-clip:text!important;
   background-clip:text!important;
   -webkit-text-fill-color:transparent!important;
-  filter:drop-shadow(0 0 11px rgba(59,130,246,.30)) drop-shadow(0 0 16px rgba(var(--theme-rgb,243,205,112),.18))!important;
-  animation:diracTextMoveV7 1.85s linear infinite,diracTextFloatV7 2.6s ease-in-out infinite!important;
-  pointer-events:none!important;
+  text-shadow:0 0 24px rgba(96,165,250,.30)!important;
+  animation:diracSessionTextFlow 2.35s ease-in-out infinite,diracSessionTextFloat 3s ease-in-out infinite!important;
 }
-html body.gate-checking .security-gate .gate-card::after,
-html #diracProtectedLockOverlay .dirac-protected-lock-card::after{
-  margin-top:0!important;
+#diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title:after,
+body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title:after{
+  content:"";
+  display:inline-block;
+  width:1.35em;
+  text-align:left;
+  -webkit-text-fill-color:#fff;
+  animation:diracSessionDots 1.2s steps(4,end) infinite;
 }
-html body.gate-checking .gate:not([hidden]){
-  grid-template-rows:auto auto!important;
-  gap:0!important;
-}
-@keyframes diracLoaderAuraV7{
-  0%,100%{opacity:.56;transform:translate(-50%,-50%) scale(.92)}
-  50%{opacity:.96;transform:translate(-50%,-50%) scale(1.06)}
-}
-@keyframes diracLogoBreathV7{
-  0%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 18px rgba(59,130,246,.38)) drop-shadow(0 0 34px rgba(var(--theme-rgb,243,205,112),.10))}
-  50%{transform:translateY(-4px) scale(1.012);filter:drop-shadow(0 0 24px rgba(59,130,246,.58)) drop-shadow(0 0 48px rgba(var(--theme-rgb,243,205,112),.18))}
-}
-@keyframes diracLogoSoftSweepV7{
-  0%,38%{transform:skewX(-14deg) translateX(-190%);opacity:0}
-  48%{opacity:.88}
-  72%{transform:skewX(-14deg) translateX(285%);opacity:.66}
-  100%{transform:skewX(-14deg) translateX(285%);opacity:0}
-}
-@keyframes diracTextMoveV7{
-  0%{background-position:0% 50%}
-  100%{background-position:260% 50%}
-}
-@keyframes diracTextFloatV7{
-  0%,100%{opacity:.82;letter-spacing:.105em;transform:translateY(0)}
-  50%{opacity:1;letter-spacing:.135em;transform:translateY(-3px)}
-}
-@media(max-width:520px){
-  html body.gate-checking .security-gate,
-  html body.gate-checking .gate,
-  html #diracProtectedLockOverlay{padding-left:16px!important;padding-right:16px!important;}
-  html body.gate-checking .security-gate .gate-card,
-  html body.gate-checking .gate:not([hidden]) .gate-card,
-  html #diracProtectedLockOverlay .dirac-protected-lock-card{width:min(94vw,370px)!important;max-width:370px!important;gap:22px!important;}
-  html body.gate-checking .security-gate .gate-icon,
-  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
-  html #diracProtectedLockOverlay .dirac-protected-logo-only{width:min(78vw,300px)!important;border-radius:24px!important;}
-  html body.gate-checking .security-gate .gate-icon{min-height:min(78vw,300px)!important;}
-  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card > img,
-  html #diracProtectedLockOverlay .dirac-protected-logo-only > img{max-height:235px!important;}
-  html body.gate-checking .security-gate .gate-card::after,
-  html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
-  html body.gate-checking .gate:not([hidden])::after{font-size:clamp(.96rem,4.5vw,1.18rem)!important;letter-spacing:.10em!important;width:min(94vw,560px)!important;margin-top:24px!important;}
-  html body.gate-checking .security-gate .gate-card::after,
-  html #diracProtectedLockOverlay .dirac-protected-lock-card::after{margin-top:0!important;}
-}
-@media(max-width:380px){
-  html body.gate-checking .security-gate .gate-icon,
-  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
-  html #diracProtectedLockOverlay .dirac-protected-logo-only{width:min(80vw,270px)!important;}
-  html body.gate-checking .security-gate .gate-icon{min-height:min(80vw,270px)!important;}
-  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card > img,
-  html #diracProtectedLockOverlay .dirac-protected-logo-only > img{max-height:220px!important;}
-  html body.gate-checking .security-gate .gate-card::after,
-  html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
-  html body.gate-checking .gate:not([hidden])::after{font-size:.90rem!important;letter-spacing:.075em!important;}
-}
-
-/* Extra safety: no duplicate logo overlays. Logo stays single; only the text/whole logo breathes. */
-html body.gate-checking .security-gate .gate-icon::before,
-html body.gate-checking .security-gate .gate-icon::after,
-html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::before,
-html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::after,
-html #diracProtectedLockOverlay .dirac-protected-logo-only::before,
-html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
-  content:none!important;
-  display:none!important;
-  visibility:hidden!important;
-  opacity:0!important;
-  animation:none!important;
-  background:none!important;
+body.gate-checking .security-gate .gate-card:after{
+  content:"Mengecek Sesi Pelanggan"!important;
+  position:static!important;
+  left:auto!important;
+  top:auto!important;
+  width:auto!important;
+  height:auto!important;
+  margin:2px auto 0!important;
+  display:inline-block!important;
+  color:#ffffff!important;
+  font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
+  font-size:clamp(1.05rem,2.7vw,1.42rem)!important;
+  line-height:1.2!important;
+  font-weight:900!important;
+  letter-spacing:.06em!important;
+  text-transform:uppercase!important;
+  background:linear-gradient(90deg,#ffffff 0%,#f3cd70 32%,#93c5fd 54%,#ffffff 78%)!important;
+  background-size:220% 100%!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
   -webkit-mask-image:none!important;
   mask-image:none!important;
+  mix-blend-mode:normal!important;
+  filter:drop-shadow(0 0 18px rgba(96,165,250,.25))!important;
+  animation:diracSessionTextFlow 2.35s ease-in-out infinite,diracSessionTextFloat 3s ease-in-out infinite!important;
 }
-
+@keyframes diracSessionTextFlow{0%,100%{background-position:0% 50%;opacity:.86}50%{background-position:100% 50%;opacity:1}}
+@keyframes diracSessionTextFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes diracSessionDots{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}
+@media(max-width:520px){:root{--dirac-session-logo-size:240px;--dirac-session-logo-radius:48px;}}
 @media(prefers-reduced-motion:reduce){
-  html body.gate-checking .security-gate::before,
-  html body.gate-checking .gate:not([hidden])::before,
-  html #diracProtectedLockOverlay::before,
-  html body.gate-checking .security-gate .gate-icon,
-  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
-  html #diracProtectedLockOverlay .dirac-protected-logo-only,
-  html body.gate-checking .security-gate .gate-icon::before,
-  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::before,
-  html #diracProtectedLockOverlay .dirac-protected-lock-card::before,
-  html body.gate-checking .security-gate .gate-card::after,
-  html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
-  html body.gate-checking .gate:not([hidden])::after{animation:none!important;transform:none!important;opacity:1!important;}
+  #diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title,
+  body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title,
+  body.gate-checking .security-gate .gate-card:after{animation:none!important;background-position:50% 50%!important;}
 }
 </style>
-
 </head>
 <body>
   <a href="#main" class="skip-link">Lewati ke konten utama</a>
@@ -897,7 +847,7 @@ html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
 
     function readJsonStorage(key) {
       try {
-        const raw = ''; // localStorage disabled except global color/language
+        const raw = window.localStorage ? window.localStorage.getItem(key) : '';
         return raw ? JSON.parse(raw) : null;
       } catch (_) {
         return null;
@@ -1550,8 +1500,8 @@ html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
   function setOn(){
     enabled = true;
     try{
-      sessionStorage.setItem('dirac_ui_sound_enabled_v2','on');
-      sessionStorage.setItem('dirac_ui_sound_enabled_v1','on');
+      localStorage.setItem('dirac_ui_sound_enabled_v2','on');
+      localStorage.setItem('dirac_ui_sound_enabled_v1','on');
     }catch(_){ }
   }
   function ensure(){
@@ -1612,7 +1562,7 @@ html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
   var previous = window.DiracSound;
   window.DiracSound = {
     play: play,
-    setEnabled: function(v){ enabled = v !== false; try{sessionStorage.setItem('dirac_ui_sound_enabled_v2', enabled ? 'on' : 'off');}catch(_){ } },
+    setEnabled: function(v){ enabled = v !== false; try{localStorage.setItem('dirac_ui_sound_enabled_v2', enabled ? 'on' : 'off');}catch(_){ } },
     isEnabled: function(){ return enabled; },
     previous: previous || null
   };
@@ -1674,6 +1624,7 @@ html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
   var loggingOut = false;
   var checking = false;
   var checkTimer = 0;
+  var volatileStore = Object.create(null);
 
   function now(){
     return Date.now ? Date.now() : new Date().getTime();
@@ -1685,12 +1636,12 @@ html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
   }
 
   function setStore(key, value){
-    try{ window.sessionStorage.setItem(key, String(value)); }catch(_){}
+    try{ volatileStore[String(key)] = String(value); }catch(_){}
   }
 
   function getStoreNumber(key, fallback){
     try{
-      var raw = window.sessionStorage.getItem(key);
+      var raw = volatileStore[String(key)];
       var n = Number(raw);
       return Number.isFinite(n) && n > 0 ? n : fallback;
     }catch(_){
@@ -1699,7 +1650,7 @@ html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
   }
 
   function removeStore(key){
-    try{ window.sessionStorage.removeItem(key); }catch(_){}
+    try{ delete volatileStore[String(key)]; }catch(_){}
   }
 
   function purgeClientAuthStorage(){
@@ -1745,6 +1696,7 @@ html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
     overlay.innerHTML =
       '<div class="dirac-protected-lock-card">' +
         '<div class="dirac-protected-logo-only" aria-hidden="true"><img src="dirac-security.png" alt="" decoding="async"></div>' +
+        '<strong class="dirac-session-title" aria-live="polite">Mengecek Sesi Pelanggan</strong>' +
       '</div>';
     if(document.body) document.body.appendChild(overlay);
   }
