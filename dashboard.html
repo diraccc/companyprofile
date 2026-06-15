@@ -641,6 +641,298 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
 }
 </style>
 
+
+
+<!-- DIRAC PATCH V7: polished mobile session-check loader, single centered logo, animated text. Auth/hash/login logic untouched. -->
+<style id="dirac-session-loader-polish-v7">
+html body.gate-checking,
+html body.dirac-protected-checking,
+html body.dirac-protected-locked,
+html body.gate-locked.gate-checking,
+html body.gate-hardlocked.gate-checking{
+  background:#000!important;
+  background-image:none!important;
+}
+html body.gate-checking .security-gate,
+html body.gate-locked.gate-checking .security-gate,
+html body.gate-checking .gate,
+html body.gate-hardlocked.gate-checking .gate,
+html #diracProtectedLockOverlay{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483000!important;
+  display:grid!important;
+  place-items:center!important;
+  align-content:center!important;
+  justify-content:center!important;
+  width:100vw!important;
+  min-height:100svh!important;
+  min-height:100dvh!important;
+  padding:calc(18px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom))!important;
+  overflow:hidden!important;
+  background:#000!important;
+  background-image:
+    radial-gradient(circle at 50% 41%,rgba(59,130,246,.18),transparent min(44vw,280px)),
+    radial-gradient(circle at 50% 47%,rgba(var(--theme-rgb,243,205,112),.10),transparent min(56vw,360px)),
+    linear-gradient(#000,#000)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  color:#fff!important;
+}
+html body.gate-checking .security-gate::before,
+html body.gate-checking .gate:not([hidden])::before,
+html #diracProtectedLockOverlay::before{
+  content:""!important;
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:min(72vw,420px)!important;
+  height:min(72vw,420px)!important;
+  transform:translate(-50%,-50%)!important;
+  border-radius:999px!important;
+  background:radial-gradient(circle,rgba(59,130,246,.20),rgba(59,130,246,.08) 38%,transparent 70%)!important;
+  filter:blur(12px)!important;
+  opacity:.82!important;
+  pointer-events:none!important;
+  animation:diracLoaderAuraV7 3.6s ease-in-out infinite!important;
+}
+html body.gate-checking .security-gate .gate-card,
+html body.gate-checking .gate:not([hidden]) .gate-card,
+html #diracProtectedLockOverlay .dirac-protected-lock-card{
+  position:relative!important;
+  z-index:2!important;
+  width:min(92vw,430px)!important;
+  max-width:430px!important;
+  min-width:0!important;
+  margin:0 auto!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:26px!important;
+  text-align:center!important;
+}
+html body.gate-checking .security-gate .gate-card h1,
+html body.gate-checking .security-gate .gate-card p,
+html body.gate-checking .security-gate .gate-actions,
+html body.gate-checking .security-gate .security-backend-note,
+html #diracProtectedLockOverlay strong,
+html #diracProtectedLockOverlay p,
+html #diracProtectedLockOverlay .dirac-protected-lock-icon{
+  display:none!important;
+  visibility:hidden!important;
+}
+html body.gate-checking .gate:not([hidden]) .gate-card > :not(img){
+  display:none!important;
+  visibility:hidden!important;
+}
+html body.gate-checking .gate:not([hidden]) .gate-card::before,
+html body.gate-checking .gate:not([hidden]) .gate-card::after,
+html #diracProtectedLockOverlay .dirac-protected-logo-only::before,
+html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
+  content:none!important;
+  display:none!important;
+  animation:none!important;
+}
+html body.gate-checking .security-gate .gate-icon,
+html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
+html #diracProtectedLockOverlay .dirac-protected-logo-only{
+  position:relative!important;
+  isolation:isolate!important;
+  width:min(76vw,330px)!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0 auto!important;
+  border:0!important;
+  border-radius:28px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  filter:drop-shadow(0 0 20px rgba(59,130,246,.46)) drop-shadow(0 0 38px rgba(var(--theme-rgb,243,205,112),.13))!important;
+  transform:translateZ(0)!important;
+  animation:diracLogoBreathV7 3.2s ease-in-out infinite!important;
+  overflow:visible!important;
+}
+html body.gate-checking .security-gate .gate-icon{
+  aspect-ratio:1/1!important;
+  min-height:min(76vw,330px)!important;
+  font-size:0!important;
+  color:transparent!important;
+  background:url("dirac-security.png") center/contain no-repeat!important;
+}
+html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card > img,
+html #diracProtectedLockOverlay .dirac-protected-logo-only > img{
+  display:block!important;
+  visibility:visible!important;
+  position:relative!important;
+  z-index:1!important;
+  width:100%!important;
+  max-width:100%!important;
+  height:auto!important;
+  max-height:260px!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  margin:0 auto!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  opacity:1!important;
+  transform:none!important;
+  animation:none!important;
+}
+html body.gate-checking .security-gate .gate-icon::before,
+html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::before,
+html #diracProtectedLockOverlay .dirac-protected-lock-card::before{
+  content:""!important;
+  position:absolute!important;
+  z-index:3!important;
+  left:-28%!important;
+  top:0!important;
+  width:44%!important;
+  height:100%!important;
+  border-radius:999px!important;
+  pointer-events:none!important;
+  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.08) 18%,rgba(147,197,253,.70) 45%,rgba(255,255,255,.34) 55%,transparent 86%)!important;
+  filter:blur(5px) drop-shadow(0 0 14px rgba(96,165,250,.62))!important;
+  mix-blend-mode:screen!important;
+  transform:skewX(-14deg) translateX(-180%)!important;
+  animation:diracLogoSoftSweepV7 2.35s ease-in-out infinite!important;
+}
+html body.gate-checking .security-gate .gate-card::after,
+html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
+html body.gate-checking .gate:not([hidden])::after{
+  content:"Mengecek Sesi Pelanggan"!important;
+  position:relative!important;
+  z-index:3!important;
+  left:auto!important;
+  top:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  transform:none!important;
+  display:block!important;
+  width:min(92vw,620px)!important;
+  margin:28px auto 0!important;
+  padding:0 4px!important;
+  color:#fff!important;
+  font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
+  font-weight:900!important;
+  font-size:clamp(1rem,4.2vw,1.42rem)!important;
+  line-height:1.2!important;
+  letter-spacing:.12em!important;
+  text-transform:uppercase!important;
+  text-align:center!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  background:linear-gradient(90deg,#ffffff 0%,#dbeafe 18%,#93c5fd 36%,#f7df9d 54%,var(--gold,#f3cd70) 68%,#ffffff 86%,#dbeafe 100%)!important;
+  background-size:260% 100%!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
+  filter:drop-shadow(0 0 11px rgba(59,130,246,.30)) drop-shadow(0 0 16px rgba(var(--theme-rgb,243,205,112),.18))!important;
+  animation:diracTextMoveV7 1.85s linear infinite,diracTextFloatV7 2.6s ease-in-out infinite!important;
+  pointer-events:none!important;
+}
+html body.gate-checking .security-gate .gate-card::after,
+html #diracProtectedLockOverlay .dirac-protected-lock-card::after{
+  margin-top:0!important;
+}
+html body.gate-checking .gate:not([hidden]){
+  grid-template-rows:auto auto!important;
+  gap:0!important;
+}
+@keyframes diracLoaderAuraV7{
+  0%,100%{opacity:.56;transform:translate(-50%,-50%) scale(.92)}
+  50%{opacity:.96;transform:translate(-50%,-50%) scale(1.06)}
+}
+@keyframes diracLogoBreathV7{
+  0%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 18px rgba(59,130,246,.38)) drop-shadow(0 0 34px rgba(var(--theme-rgb,243,205,112),.10))}
+  50%{transform:translateY(-4px) scale(1.012);filter:drop-shadow(0 0 24px rgba(59,130,246,.58)) drop-shadow(0 0 48px rgba(var(--theme-rgb,243,205,112),.18))}
+}
+@keyframes diracLogoSoftSweepV7{
+  0%,38%{transform:skewX(-14deg) translateX(-190%);opacity:0}
+  48%{opacity:.88}
+  72%{transform:skewX(-14deg) translateX(285%);opacity:.66}
+  100%{transform:skewX(-14deg) translateX(285%);opacity:0}
+}
+@keyframes diracTextMoveV7{
+  0%{background-position:0% 50%}
+  100%{background-position:260% 50%}
+}
+@keyframes diracTextFloatV7{
+  0%,100%{opacity:.82;letter-spacing:.105em;transform:translateY(0)}
+  50%{opacity:1;letter-spacing:.135em;transform:translateY(-3px)}
+}
+@media(max-width:520px){
+  html body.gate-checking .security-gate,
+  html body.gate-checking .gate,
+  html #diracProtectedLockOverlay{padding-left:16px!important;padding-right:16px!important;}
+  html body.gate-checking .security-gate .gate-card,
+  html body.gate-checking .gate:not([hidden]) .gate-card,
+  html #diracProtectedLockOverlay .dirac-protected-lock-card{width:min(94vw,370px)!important;max-width:370px!important;gap:22px!important;}
+  html body.gate-checking .security-gate .gate-icon,
+  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
+  html #diracProtectedLockOverlay .dirac-protected-logo-only{width:min(78vw,300px)!important;border-radius:24px!important;}
+  html body.gate-checking .security-gate .gate-icon{min-height:min(78vw,300px)!important;}
+  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card > img,
+  html #diracProtectedLockOverlay .dirac-protected-logo-only > img{max-height:235px!important;}
+  html body.gate-checking .security-gate .gate-card::after,
+  html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
+  html body.gate-checking .gate:not([hidden])::after{font-size:clamp(.96rem,4.5vw,1.18rem)!important;letter-spacing:.10em!important;width:min(94vw,560px)!important;margin-top:24px!important;}
+  html body.gate-checking .security-gate .gate-card::after,
+  html #diracProtectedLockOverlay .dirac-protected-lock-card::after{margin-top:0!important;}
+}
+@media(max-width:380px){
+  html body.gate-checking .security-gate .gate-icon,
+  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
+  html #diracProtectedLockOverlay .dirac-protected-logo-only{width:min(80vw,270px)!important;}
+  html body.gate-checking .security-gate .gate-icon{min-height:min(80vw,270px)!important;}
+  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card > img,
+  html #diracProtectedLockOverlay .dirac-protected-logo-only > img{max-height:220px!important;}
+  html body.gate-checking .security-gate .gate-card::after,
+  html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
+  html body.gate-checking .gate:not([hidden])::after{font-size:.90rem!important;letter-spacing:.075em!important;}
+}
+
+/* Extra safety: no duplicate logo overlays. Logo stays single; only the text/whole logo breathes. */
+html body.gate-checking .security-gate .gate-icon::before,
+html body.gate-checking .security-gate .gate-icon::after,
+html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::before,
+html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::after,
+html #diracProtectedLockOverlay .dirac-protected-logo-only::before,
+html #diracProtectedLockOverlay .dirac-protected-logo-only::after{
+  content:none!important;
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  animation:none!important;
+  background:none!important;
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
+}
+
+@media(prefers-reduced-motion:reduce){
+  html body.gate-checking .security-gate::before,
+  html body.gate-checking .gate:not([hidden])::before,
+  html #diracProtectedLockOverlay::before,
+  html body.gate-checking .security-gate .gate-icon,
+  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card,
+  html #diracProtectedLockOverlay .dirac-protected-logo-only,
+  html body.gate-checking .security-gate .gate-icon::before,
+  html body.gate-checking .gate:not([hidden]) .dirac-session-logo-card::before,
+  html #diracProtectedLockOverlay .dirac-protected-lock-card::before,
+  html body.gate-checking .security-gate .gate-card::after,
+  html #diracProtectedLockOverlay .dirac-protected-lock-card::after,
+  html body.gate-checking .gate:not([hidden])::after{animation:none!important;transform:none!important;opacity:1!important;}
+}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
