@@ -824,251 +824,190 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
 }
 </style>
 
-<style id="dirac-ultra-session-loader-v7">
-/* DIRAC ULTRA SESSION LOADER V7
-   Security Scanner Glow + official contact note. Visual loader/contact only.
-   Hash, login, endpoint, payment, webhook, and backend auth logic are untouched. */
+<style id="dirac-final-session-loader-v10">
+/* DIRAC FINAL SESSION LOADER V10
+   Scope: visual session loader + protected-page minimum display only.
+   Tidak menyentuh login, hash password, payment gateway, webhook, atau email template. */
 :root{
-  --dirac-session-logo-size:clamp(260px,30vw,310px);
-  --dirac-session-logo-radius:54px;
-  --dirac-session-contact-max:min(92vw,660px);
+  --dirac-final-accent-rgb:var(--theme-rgb,243,205,112);
+  --dirac-final-accent:rgb(var(--dirac-final-accent-rgb));
+  --dirac-final-blue:#2f5cff;
+  --dirac-final-blue-soft:#4f8cff;
+  --dirac-final-text:#f8fafc;
+  --dirac-final-muted:#aeb7c6;
+  --dirac-final-ease:cubic-bezier(.22,1,.36,1);
 }
 #diracProtectedLockOverlay,
-.security-gate,
-.gate{
-  background:#000!important;
-  background-image:none!important;
+body.gate-checking .security-gate,
+body.gate-checking .gate{
+  background:
+    radial-gradient(circle at 50% 40%,rgba(31,75,160,.105),transparent 18.5rem),
+    radial-gradient(circle at 50% 52%,rgba(5,18,39,.22),transparent 24rem),
+    #000!important;
+  color:var(--dirac-final-text)!important;
   backdrop-filter:none!important;
   -webkit-backdrop-filter:none!important;
-  color:#f9fafb!important;
+}
+#diracProtectedLockOverlay::before,
+body.gate-checking .security-gate::before,
+body.gate-checking .gate::before{
+  content:""!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  opacity:.115!important;
+  background-image:
+    radial-gradient(circle at 18% 22%,rgba(255,255,255,.20) 0 1px,transparent 1.6px),
+    radial-gradient(circle at 74% 38%,rgba(79,140,255,.18) 0 1px,transparent 1.7px),
+    radial-gradient(circle at 44% 76%,rgba(var(--dirac-final-accent-rgb),.13) 0 1px,transparent 1.7px)!important;
+  background-size:88px 88px,132px 132px,156px 156px!important;
+  animation:diracFinalBgGrainFloat 12s ease-in-out infinite alternate!important;
+  mix-blend-mode:screen!important;
 }
 #diracProtectedLockOverlay .dirac-protected-lock-card,
 body.gate-checking .security-gate .gate-card,
-body.gate-checking .gate:not([hidden]) .gate-card{
+body.gate-checking .gate .gate-card{
   position:relative!important;
-  display:grid!important;
-  place-items:center!important;
-  gap:14px!important;
+  z-index:1!important;
+  width:min(100%,760px)!important;
+  max-width:760px!important;
+  min-height:auto!important;
+  padding:0!important;
+  margin:auto!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
   text-align:center!important;
   overflow:visible!important;
   isolation:isolate!important;
 }
-#diracProtectedLockOverlay .dirac-protected-logo-only,
-body.gate-checking .security-gate .gate-icon,
-body.gate-checking .gate:not([hidden]) .gate-card:before{
-  position:relative!important;
-  isolation:isolate!important;
-  width:var(--dirac-session-logo-size)!important;
-  height:var(--dirac-session-logo-size)!important;
-  border-radius:var(--dirac-session-logo-radius)!important;
-  border:0!important;
-  box-shadow:
-    0 0 0 1px rgba(96,165,250,.05),
-    0 0 42px rgba(37,99,235,.22),
-    0 0 88px rgba(15,47,110,.22)!important;
-  filter:
-    drop-shadow(0 0 18px rgba(59,130,246,.48))
-    drop-shadow(0 0 46px rgba(20,58,150,.26))
-    drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.16))!important;
-  transform:none!important;
-  animation:none!important;
-  overflow:visible!important;
-}
-#diracProtectedLockOverlay .dirac-protected-logo-only img{
-  position:relative!important;
-  z-index:1!important;
-}
-#diracProtectedLockOverlay .dirac-protected-logo-only::before,
-body.gate-checking .security-gate .gate-icon::before{
-  content:""!important;
-  position:absolute!important;
-  inset:-44px!important;
-  z-index:-1!important;
-  pointer-events:none!important;
-  display:block!important;
-  border-radius:50%!important;
-  background:
-    conic-gradient(from 0deg,
-      transparent 0deg,
-      rgba(37,99,235,.10) 42deg,
-      rgba(59,130,246,.55) 82deg,
-      rgba(var(--theme-rgb,243,205,112),.45) 118deg,
-      transparent 168deg,
-      transparent 360deg),
-    radial-gradient(circle,
-      rgba(37,99,235,.30) 0%,
-      rgba(14,44,116,.20) 34%,
-      rgba(var(--theme-rgb,243,205,112),.085) 56%,
-      transparent 74%);
-  -webkit-mask:radial-gradient(circle,transparent 0 53%,#000 55% 62%,transparent 66% 100%);
-  mask:radial-gradient(circle,transparent 0 53%,#000 55% 62%,transparent 66% 100%);
-  filter:drop-shadow(0 0 18px rgba(59,130,246,.38));
-  opacity:.86!important;
-  animation:diracSecurityOrbit 7.8s linear infinite!important;
-}
-#diracProtectedLockOverlay .dirac-protected-logo-only::after,
-body.gate-checking .security-gate .gate-icon::after,
-body.gate-checking .gate:not([hidden]) .gate-card:after{
-  content:""!important;
-  position:absolute!important;
-  inset:0!important;
-  z-index:2!important;
-  pointer-events:none!important;
-  display:block!important;
-  border-radius:var(--dirac-session-logo-radius)!important;
-  background:
-    linear-gradient(180deg,transparent 0%,transparent 16%,rgba(147,197,253,.14) 24%,rgba(243,205,112,.88) 28%,rgba(59,130,246,.70) 31%,rgba(255,255,255,.50) 33%,transparent 42%,transparent 100%),
-    linear-gradient(115deg,transparent 0%,transparent 36%,rgba(59,130,246,.12) 43%,rgba(147,197,253,.92) 49%,rgba(255,255,255,.76) 51%,rgba(37,99,235,.82) 55%,rgba(37,99,235,.16) 62%,transparent 70%,transparent 100%)!important;
-  background-size:100% 220%,260% 100%!important;
-  background-position:0 -130%,-160% 0!important;
-  -webkit-mask-image:url("dirac-security.png")!important;
-  mask-image:url("dirac-security.png")!important;
-  -webkit-mask-repeat:no-repeat!important;
-  mask-repeat:no-repeat!important;
-  -webkit-mask-position:center!important;
-  mask-position:center!important;
-  -webkit-mask-size:contain!important;
-  mask-size:contain!important;
-  mix-blend-mode:screen!important;
-  filter:drop-shadow(0 0 15px rgba(96,165,250,.62))!important;
-  animation:diracSecurityScan 3.35s ease-in-out infinite,diracNativeLogoLineShine 2.15s ease-in-out infinite!important;
-  opacity:.88!important;
-}
-body.gate-checking .gate:not([hidden]) .gate-card:after{
-  left:50%!important;
-  top:0!important;
-  width:var(--dirac-session-logo-size)!important;
-  height:var(--dirac-session-logo-size)!important;
-  margin-left:calc(var(--dirac-session-logo-size) / -2)!important;
-}
-body.gate-checking .security-gate .gate-card:after{
+body.gate-checking .security-gate .gate-card > :not(.dirac-final-session-loader),
+body.gate-checking .gate .gate-card > :not(.dirac-final-session-loader),
+body.gate-checking .security-gate .gate-card::before,
+body.gate-checking .security-gate .gate-card::after,
+body.gate-checking .gate .gate-card::before,
+body.gate-checking .gate .gate-card::after,
+body.gate-checking .gate:not([hidden]) .gate-card::before,
+body.gate-checking .gate:not([hidden]) .gate-card::after{
   content:none!important;
   display:none!important;
 }
-body.gate-checking .security-gate .gate-card h1,
-body.gate-checking .security-gate .gate-actions,
-body.gate-checking .security-gate .security-backend-note{
+body:not(.gate-checking) .security-gate .dirac-final-session-loader,
+body:not(.gate-checking) .gate .dirac-final-session-loader{
   display:none!important;
-  content:none!important;
 }
-#diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title,
-body.gate-checking .security-gate .gate-card > .dirac-session-title,
-body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title{
-  display:inline-block!important;
-  content:none!important;
-  margin:2px auto 0!important;
-  color:#ffffff!important;
-  font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
-  font-size:clamp(1.05rem,2.7vw,1.42rem)!important;
-  line-height:1.2!important;
-  font-weight:900!important;
-  letter-spacing:.06em!important;
-  text-transform:uppercase!important;
-  background:linear-gradient(90deg,#ffffff 0%,#f3cd70 32%,#93c5fd 54%,#ffffff 78%)!important;
-  background-size:220% 100%!important;
-  -webkit-background-clip:text!important;
-  background-clip:text!important;
-  -webkit-text-fill-color:transparent!important;
-  text-shadow:0 0 24px rgba(96,165,250,.30)!important;
-  animation:diracSessionTextFlow 2.35s ease-in-out infinite,diracSessionTextFloat 3s ease-in-out infinite!important;
-}
-#diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title:after,
-body.gate-checking .security-gate .gate-card > .dirac-session-title:after,
-body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title:after{
-  content:"";
-  display:inline-block;
-  width:1.35em;
-  text-align:left;
-  -webkit-text-fill-color:#fff;
-  animation:diracSessionDots 1.2s steps(4,end) infinite;
-}
-#diracProtectedLockOverlay .dirac-session-contact-note,
-body.gate-checking .security-gate .gate-card .dirac-session-contact-note,
-body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note{
-  display:block!important;
-  width:var(--dirac-session-contact-max)!important;
-  max-width:var(--dirac-session-contact-max)!important;
-  margin:0 auto!important;
-  padding:9px 12px!important;
-  border-radius:18px!important;
-  border:1px solid rgba(var(--theme-rgb,243,205,112),.18)!important;
-  background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(37,99,235,.045),rgba(var(--theme-rgb,243,205,112),.035))!important;
-  color:rgba(226,232,240,.72)!important;
-  font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
-  font-size:clamp(.70rem,1.85vw,.84rem)!important;
-  line-height:1.55!important;
-  font-weight:700!important;
-  letter-spacing:.01em!important;
-  text-transform:none!important;
-  -webkit-text-fill-color:rgba(226,232,240,.72)!important;
-  box-shadow:0 12px 32px rgba(0,0,0,.20)!important;
-}
-#diracProtectedLockOverlay .dirac-session-contact-note a,
-body.gate-checking .security-gate .gate-card .dirac-session-contact-note a,
-body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note a{
-  color:#f3cd70!important;
-  font-weight:900!important;
-  text-decoration:none!important;
-  -webkit-text-fill-color:#f3cd70!important;
-}
-.dirac-official-contact-line,
-.dirac-official-contact-note{
-  color:var(--muted,#aeb7c6)!important;
-  line-height:1.65!important;
-}
-.dirac-official-contact-line a,
-.dirac-official-contact-note a,
-.dirac-footer-contact a{
-  color:var(--gold,#f3cd70)!important;
-  font-weight:900!important;
-  text-decoration:none!important;
-}
-.dirac-footer-contact{
+#diracProtectedLockOverlay .dirac-final-session-loader,
+body.gate-checking .security-gate .dirac-final-session-loader,
+body.gate-checking .gate .dirac-final-session-loader{
+  width:min(100%,760px)!important;
   display:flex!important;
-  flex-wrap:wrap!important;
-  gap:8px 14px!important;
+  flex-direction:column!important;
   align-items:center!important;
-  color:var(--muted,#aeb7c6)!important;
-  line-height:1.65!important;
+  justify-content:center!important;
+  gap:clamp(10px,1.35vh,15px)!important;
+  transform:translateY(-4.2vh)!important;
+  isolation:isolate!important;
+  font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;
 }
-@keyframes diracSecurityOrbit{to{transform:rotate(360deg)}}
-@keyframes diracSecurityScan{
-  0%{background-position:0 -140%,-170% 0;opacity:.18;}
-  16%{opacity:.92;}
-  58%{background-position:0 120%,170% 0;opacity:.95;}
-  100%{background-position:0 120%,170% 0;opacity:.18;}
+.dirac-final-logo-stage{
+  position:relative!important;
+  width:min(70vw,390px)!important;
+  aspect-ratio:600/585!important;
+  height:auto!important;
+  display:grid!important;
+  place-items:center!important;
+  isolation:isolate!important;
+  margin-bottom:clamp(-4px,-.4vh,-2px)!important;
+  animation:diracFinalStageFloat 6.8s ease-in-out infinite!important;
 }
-@keyframes diracNativeLogoLineShine{
-  0%{background-position:0 -140%,-170% 0;opacity:.18;}
-  18%{opacity:.96;}
-  58%{background-position:0 120%,170% 0;opacity:.96;}
-  100%{background-position:0 120%,170% 0;opacity:.18;}
+.dirac-final-logo-stage::before{
+  content:""!important;
+  position:absolute!important;
+  inset:-12%!important;
+  z-index:-4!important;
+  border-radius:50%!important;
+  background:radial-gradient(circle,rgba(48,94,255,.22) 0%,rgba(21,63,151,.15) 34%,rgba(var(--dirac-final-accent-rgb),.04) 54%,transparent 72%)!important;
+  filter:blur(19px)!important;
+  opacity:.60!important;
+  animation:diracFinalHaloBreath 6.2s ease-in-out infinite!important;
 }
-@keyframes diracSessionTextFlow{0%,100%{background-position:0% 50%;opacity:.86}50%{background-position:100% 50%;opacity:1}}
-@keyframes diracSessionTextFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@keyframes diracSessionDots{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}
-@media(max-width:520px){
-  :root{--dirac-session-logo-size:240px;--dirac-session-logo-radius:48px;}
-  #diracProtectedLockOverlay .dirac-session-contact-note,
-  body.gate-checking .security-gate .gate-card .dirac-session-contact-note,
-  body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note{padding:8px 10px!important;}
+.dirac-final-logo-stage::after{
+  content:""!important;
+  position:absolute!important;
+  inset:-5%!important;
+  z-index:-3!important;
+  border-radius:50%!important;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(74,139,255,.06) 58deg,rgba(74,139,255,.33) 84deg,rgba(var(--dirac-final-accent-rgb),.24) 100deg,rgba(255,255,255,.13) 109deg,transparent 136deg,transparent 360deg)!important;
+  -webkit-mask:radial-gradient(circle,transparent 59.8%,#000 61.1%,#000 62.15%,transparent 63.2%)!important;
+  mask:radial-gradient(circle,transparent 59.8%,#000 61.1%,#000 62.15%,transparent 63.2%)!important;
+  opacity:.46!important;
+  filter:drop-shadow(0 0 9px rgba(55,119,255,.18))!important;
+  animation:diracFinalRingRotate 10.5s linear infinite!important;
 }
-@media(max-width:380px){:root{--dirac-session-logo-size:220px;--dirac-session-logo-radius:44px;}}
-@media(prefers-reduced-motion:reduce){
-  #diracProtectedLockOverlay .dirac-protected-logo-only::before,
-  body.gate-checking .security-gate .gate-icon::before,
-  #diracProtectedLockOverlay .dirac-protected-logo-only::after,
-  body.gate-checking .security-gate .gate-icon::after,
-  body.gate-checking .gate:not([hidden]) .gate-card:after,
-  #diracProtectedLockOverlay .dirac-protected-lock-card .dirac-session-title,
-  body.gate-checking .security-gate .gate-card > .dirac-session-title,
-  body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-title{
-    animation:none!important;
-    opacity:.84!important;
-    background-position:50% 50%!important;
-    transform:none!important;
-  }
-}
+.dirac-final-logo-halo-edge{position:absolute!important;inset:10%!important;z-index:-2!important;border-radius:50%!important;background:radial-gradient(circle,transparent 57%,rgba(65,123,255,.075) 63%,transparent 72%)!important;filter:blur(8px)!important;opacity:.44!important;animation:diracFinalEdgePulse 5.6s ease-in-out infinite!important;pointer-events:none!important;}
+.dirac-final-scan-glass{position:absolute!important;inset:8% 9%!important;z-index:1!important;border-radius:32px!important;overflow:hidden!important;pointer-events:none!important;mix-blend-mode:screen!important;-webkit-mask:linear-gradient(180deg,transparent 2%,#000 18%,#000 84%,transparent 98%)!important;mask:linear-gradient(180deg,transparent 2%,#000 18%,#000 84%,transparent 98%)!important;}
+.dirac-final-scan-glass::before{content:""!important;position:absolute!important;left:-18%!important;right:-18%!important;height:28%!important;top:-36%!important;background:linear-gradient(180deg,transparent 0%,rgba(58,128,255,.035) 20%,rgba(92,173,255,.11) 48%,rgba(var(--dirac-final-accent-rgb),.08) 54%,rgba(92,173,255,.07) 62%,transparent 100%)!important;filter:blur(8px)!important;animation:diracFinalScanGlassDown 3.45s cubic-bezier(.45,0,.18,1) infinite!important;}
+.dirac-final-scan-line{position:absolute!important;left:8%!important;right:8%!important;top:10%!important;height:2px!important;z-index:3!important;border-radius:999px!important;background:linear-gradient(90deg,transparent,rgba(96,165,250,.22),rgba(var(--dirac-final-accent-rgb),.82),rgba(86,154,255,.56),transparent)!important;box-shadow:0 0 10px rgba(83,150,255,.46),0 0 22px rgba(64,120,255,.28),0 0 18px rgba(var(--dirac-final-accent-rgb),.14)!important;opacity:0!important;mix-blend-mode:screen!important;animation:diracFinalScanDown 3.45s cubic-bezier(.45,0,.18,1) infinite!important;pointer-events:none!important;}
+.dirac-final-scan-line::before{content:""!important;position:absolute!important;left:13%!important;right:13%!important;top:-2px!important;height:6px!important;border-radius:999px!important;background:linear-gradient(90deg,transparent,rgba(119,184,255,.20),rgba(var(--dirac-final-accent-rgb),.22),transparent)!important;filter:blur(3px)!important;}
+.dirac-final-scan-line::after{content:""!important;position:absolute!important;left:24%!important;right:24%!important;top:-16px!important;height:34px!important;background:linear-gradient(180deg,transparent,rgba(58,128,255,.095),rgba(var(--dirac-final-accent-rgb),.04),transparent)!important;filter:blur(7px)!important;}
+.dirac-final-logo-img{width:100%!important;height:auto!important;display:block!important;object-fit:contain!important;filter:drop-shadow(0 0 10px rgba(46,94,255,.22)) drop-shadow(0 0 22px rgba(10,43,119,.14))!important;transform:translateZ(0)!important;user-select:none!important;-webkit-user-drag:none!important;animation:diracFinalLogoDepthPremium 6.8s ease-in-out infinite,diracFinalLogoScanImpact 3.45s cubic-bezier(.45,0,.18,1) infinite!important;}
+.dirac-final-session-title{margin:0!important;max-width:min(94vw,730px)!important;text-align:center!important;font-size:clamp(1.00rem,4.08vw,1.58rem)!important;line-height:1.15!important;letter-spacing:.048em!important;text-transform:uppercase!important;font-weight:900!important;color:#fff!important;background:linear-gradient(105deg,#ffffff 0%,#ffffff 30%,rgba(var(--dirac-final-accent-rgb),.88) 45%,rgb(var(--dirac-final-accent-rgb)) 53%,#ffffff 68%,#d9e0ea 100%)!important;background-size:230% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;text-shadow:0 7px 20px rgba(0,0,0,.46)!important;animation:diracFinalTitleShimmer 5.2s ease-in-out infinite!important;}
+.dirac-final-dots{display:inline-block!important;min-width:1.4em!important;-webkit-text-fill-color:#fff!important;color:#fff!important;animation:diracFinalDotsPulse 1.25s ease-in-out infinite!important;}
+.dirac-final-progress-track{width:min(58vw,360px)!important;height:2px!important;margin:clamp(-1px,.05vh,2px) auto 0!important;position:relative!important;overflow:hidden!important;border-radius:999px!important;background:linear-gradient(90deg,transparent,rgba(80,145,255,.20),rgba(var(--dirac-final-accent-rgb),.16),transparent)!important;box-shadow:0 0 18px rgba(64,120,255,.12)!important;}
+.dirac-final-progress-track::before{content:""!important;position:absolute!important;inset:0!important;width:42%!important;border-radius:999px!important;background:linear-gradient(90deg,transparent,rgba(86,154,255,.80),rgba(var(--dirac-final-accent-rgb),.86),transparent)!important;box-shadow:0 0 14px rgba(92,165,255,.40),0 0 18px rgba(var(--dirac-final-accent-rgb),.14)!important;animation:diracFinalProgressSweep 1.45s cubic-bezier(.42,0,.18,1) infinite!important;}
+.dirac-final-live-status{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;margin:clamp(4px,.8vh,8px) auto 0!important;color:rgba(226,235,248,.78)!important;font-size:clamp(.72rem,2.45vw,.86rem)!important;font-weight:900!important;letter-spacing:.096em!important;text-transform:uppercase!important;text-align:center!important;text-shadow:0 0 10px rgba(92,165,255,.16),0 0 18px rgba(var(--dirac-final-accent-rgb),.08)!important;animation:diracFinalReadableStatusGlow 2.35s ease-in-out infinite!important;}
+.dirac-final-live-status::before{content:""!important;width:7px!important;height:7px!important;border-radius:50%!important;background:rgb(var(--dirac-final-accent-rgb))!important;box-shadow:0 0 11px rgba(var(--dirac-final-accent-rgb),.54),0 0 18px rgba(78,148,255,.24)!important;animation:diracFinalStatusDotBlink .88s ease-in-out infinite!important;flex:0 0 auto!important;}
+.dirac-final-crypto-strip{min-height:22px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;margin:clamp(0px,.18vh,3px) auto 0!important;padding:5px 14px 4px!important;border-radius:999px!important;border:1px solid rgba(86,154,255,.105)!important;background:linear-gradient(90deg,transparent,rgba(9,21,38,.22),transparent)!important;color:rgba(207,220,242,.62)!important;font-size:clamp(.60rem,2vw,.73rem)!important;line-height:1!important;font-weight:900!important;letter-spacing:.18em!important;text-transform:uppercase!important;user-select:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 0 18px rgba(74,139,255,.045)!important;}
+.dirac-final-crypto-strip span{position:relative!important;opacity:.46!important;text-shadow:0 0 10px rgba(92,165,255,.26),0 0 16px rgba(var(--dirac-final-accent-rgb),.08)!important;animation:diracFinalCryptoStep45 4.5s linear infinite!important;}
+.dirac-final-crypto-strip span:nth-child(1){animation-delay:0s!important}.dirac-final-crypto-strip span:nth-child(2){animation-delay:1.125s!important}.dirac-final-crypto-strip span:nth-child(3){animation-delay:2.25s!important}.dirac-final-crypto-strip span:nth-child(4){animation-delay:3.375s!important}.dirac-final-crypto-strip span:not(:last-child)::after{content:"•"!important;margin-left:8px!important;color:rgba(var(--dirac-final-accent-rgb),.44)!important;text-shadow:0 0 8px rgba(var(--dirac-final-accent-rgb),.10)!important;}
+.dirac-final-secure-check-pulse{width:22px!important;height:22px!important;margin:clamp(1px,.24vh,4px) auto 0!important;border-radius:50%!important;display:grid!important;place-items:center!important;color:rgba(var(--dirac-final-accent-rgb),.48)!important;border:1px solid rgba(var(--dirac-final-accent-rgb),.105)!important;background:rgba(7,14,25,.18)!important;box-shadow:0 0 14px rgba(74,139,255,.055),inset 0 1px 0 rgba(255,255,255,.025)!important;font-size:11px!important;font-weight:900!important;animation:diracFinalSecureCheckPulse 2.9s ease-in-out infinite!important;}
+.dirac-final-contact-note{width:min(90vw,620px)!important;display:grid!important;grid-template-columns:1fr!important;gap:7px!important;margin-top:clamp(8px,1.05vh,13px)!important;opacity:0!important;transform:translateY(7px)!important;animation:diracFinalNoticeFadeIn .82s var(--dirac-final-ease) .72s forwards!important;}
+.dirac-final-notice-line{min-height:39px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;flex-wrap:wrap!important;text-align:center!important;padding:7px 14px!important;border-radius:999px!important;border:1px solid rgba(88,146,255,.13)!important;background:linear-gradient(180deg,rgba(8,16,30,.34),rgba(4,9,18,.27))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.028),0 10px 22px rgba(0,0,0,.16)!important;color:rgba(226,232,240,.58)!important;font-size:clamp(.72rem,2.45vw,.86rem)!important;font-weight:760!important;letter-spacing:-.018em!important;position:relative!important;overflow:hidden!important;}
+.dirac-final-notice-line::after{content:""!important;position:absolute!important;inset:0!important;border-radius:inherit!important;pointer-events:none!important;border:1px solid rgba(var(--dirac-final-accent-rgb),.035)!important;opacity:.42!important;}
+.dirac-final-notice-icon{width:18px!important;height:18px!important;border-radius:50%!important;display:inline-grid!important;place-items:center!important;flex:0 0 auto!important;color:rgba(var(--dirac-final-accent-rgb),.78)!important;border:1px solid rgba(var(--dirac-final-accent-rgb),.14)!important;background:rgba(var(--dirac-final-accent-rgb),.045)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;font-size:10px!important;font-weight:900!important;line-height:1!important;}
+.dirac-final-notice-line:nth-child(2) .dirac-final-notice-icon{color:rgba(121,181,255,.80)!important;border-color:rgba(121,181,255,.14)!important;background:rgba(75,139,255,.045)!important;}
+.dirac-final-notice-label{color:rgba(226,232,240,.62)!important;white-space:nowrap!important;font-weight:800!important;position:relative!important;z-index:1!important;}
+.dirac-final-notice-line a{position:relative!important;z-index:1!important;color:rgba(var(--dirac-final-accent-rgb),.86)!important;text-decoration:none!important;font-weight:900!important;letter-spacing:-.026em!important;white-space:nowrap!important;text-shadow:none!important;}
+.dirac-final-scanner-orbit{position:absolute!important;inset:-5%!important;z-index:-1!important;border-radius:50%!important;pointer-events:none!important;animation:diracFinalScannerDotOrbit 4.8s linear infinite!important;}
+.dirac-final-scanner-orbit span{position:absolute!important;left:50%!important;top:-1px!important;width:8px!important;height:8px!important;border-radius:50%!important;transform:translateX(-50%)!important;background:radial-gradient(circle,#fff 0%,rgb(var(--dirac-final-accent-rgb)) 26%,#5aa7ff 58%,transparent 76%)!important;box-shadow:0 0 10px rgba(94,170,255,.72),0 0 18px rgba(var(--dirac-final-accent-rgb),.34),0 0 30px rgba(54,112,255,.20)!important;opacity:.86!important;}
+.dirac-final-scan-pulse-core{position:absolute!important;inset:15%!important;z-index:-1!important;border-radius:50%!important;pointer-events:none!important;background:radial-gradient(circle,rgba(72,137,255,.19) 0%,rgba(var(--dirac-final-accent-rgb),.06) 37%,transparent 68%)!important;filter:blur(13px)!important;opacity:.22!important;animation:diracFinalScanPulseCore 3.45s cubic-bezier(.45,0,.18,1) infinite!important;}
+.dirac-final-particle-field{position:absolute!important;inset:-10%!important;z-index:2!important;pointer-events:none!important;overflow:visible!important;border-radius:50%!important;-webkit-mask:radial-gradient(circle,#000 0 72%,transparent 82%)!important;mask:radial-gradient(circle,#000 0 72%,transparent 82%)!important;}
+.dirac-final-particle-field span{position:absolute!important;width:3px!important;height:3px!important;border-radius:50%!important;background:rgba(105,172,255,.78)!important;box-shadow:0 0 9px rgba(92,165,255,.60)!important;opacity:0!important;animation:diracFinalParticleTwinkle 4.6s ease-in-out infinite!important;}
+.dirac-final-particle-field span:nth-child(2n){background:rgba(var(--dirac-final-accent-rgb),.66)!important;box-shadow:0 0 8px rgba(var(--dirac-final-accent-rgb),.42)!important}.dirac-final-particle-field span:nth-child(1){left:13%!important;top:29%!important;animation-delay:.15s!important}.dirac-final-particle-field span:nth-child(2){left:24%!important;top:12%!important;animation-delay:1.1s!important}.dirac-final-particle-field span:nth-child(3){right:18%!important;top:23%!important;animation-delay:.65s!important}.dirac-final-particle-field span:nth-child(4){right:9%!important;top:48%!important;animation-delay:1.65s!important}.dirac-final-particle-field span:nth-child(5){right:25%!important;bottom:14%!important;animation-delay:2.25s!important}.dirac-final-particle-field span:nth-child(6){left:18%!important;bottom:24%!important;animation-delay:2.9s!important}.dirac-final-particle-field span:nth-child(7){left:8%!important;top:55%!important;animation-delay:3.35s!important}.dirac-final-particle-field span:nth-child(8){right:35%!important;top:8%!important;animation-delay:3.85s!important}.dirac-final-particle-field span:nth-child(9){left:42%!important;bottom:5%!important;animation-delay:1.95s!important}.dirac-final-particle-field span:nth-child(10){right:7%!important;bottom:34%!important;animation-delay:.95s!important}
+.dirac-final-data-orbit{position:absolute!important;pointer-events:none!important;border-radius:50%!important;z-index:-2!important;opacity:.32!important;filter:drop-shadow(0 0 8px rgba(70,135,255,.13))!important;background:conic-gradient(from 0deg,transparent 0deg,rgba(74,139,255,.00) 36deg,rgba(74,139,255,.20) 54deg,rgba(var(--dirac-final-accent-rgb),.135) 68deg,rgba(255,255,255,.07) 74deg,transparent 92deg,transparent 360deg)!important;-webkit-mask:radial-gradient(circle,transparent 62.4%,#000 63.25%,#000 63.85%,transparent 64.65%)!important;mask:radial-gradient(circle,transparent 62.4%,#000 63.25%,#000 63.85%,transparent 64.65%)!important;}
+.dirac-final-data-orbit.one{inset:-9.5%!important;animation:diracFinalDataOrbitSlow 16s linear infinite!important}.dirac-final-data-orbit.two{inset:-14%!important;opacity:.22!important;transform:rotate(42deg)!important;animation:diracFinalDataOrbitReverse 21s linear infinite!important;background:conic-gradient(from 42deg,transparent 0deg,rgba(var(--dirac-final-accent-rgb),.00) 122deg,rgba(var(--dirac-final-accent-rgb),.105) 142deg,rgba(77,148,255,.15) 154deg,transparent 178deg,transparent 360deg)!important;-webkit-mask:radial-gradient(circle,transparent 65.8%,#000 66.45%,#000 66.95%,transparent 67.75%)!important;mask:radial-gradient(circle,transparent 65.8%,#000 66.45%,#000 66.95%,transparent 67.75%)!important}
+.dirac-final-logo-edge-light{position:absolute!important;inset:1.6% 2.6%!important;z-index:4!important;pointer-events:none!important;border-radius:28px!important;opacity:0!important;mix-blend-mode:screen!important;background:linear-gradient(180deg,transparent 0%,rgba(255,255,255,.00) 24%,rgba(111,180,255,.12) 42%,rgba(var(--dirac-final-accent-rgb),.15) 50%,rgba(111,180,255,.10) 58%,rgba(255,255,255,.00) 76%,transparent 100%)!important;filter:blur(4px)!important;-webkit-mask:radial-gradient(ellipse at center,transparent 42%,#000 64%,transparent 74%)!important;mask:radial-gradient(ellipse at center,transparent 42%,#000 64%,transparent 74%)!important;animation:diracFinalEdgeLightPass 3.45s cubic-bezier(.45,0,.18,1) infinite!important;}
+@keyframes diracFinalNoticeFadeIn{from{opacity:0;transform:translateY(7px);filter:blur(2px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes diracFinalBgGrainFloat{0%{transform:translate3d(0,0,0);opacity:.09}100%{transform:translate3d(10px,-12px,0);opacity:.14}}
+@keyframes diracFinalScannerDotOrbit{to{transform:rotate(360deg)}}
+@keyframes diracFinalScanPulseCore{0%,18%,100%{opacity:.18;transform:scale(.96)}37%{opacity:.54;transform:scale(1.045)}58%{opacity:.36;transform:scale(1.018)}}
+@keyframes diracFinalParticleTwinkle{0%,100%{opacity:0;transform:translateY(0) scale(.65)}20%{opacity:.72;transform:translateY(-3px) scale(1)}52%{opacity:.34;transform:translateY(-9px) scale(.82)}74%{opacity:0;transform:translateY(-14px) scale(.55)}}
+@keyframes diracFinalProgressSweep{0%{transform:translateX(-120%);opacity:0}15%{opacity:1}78%{opacity:.94}100%{transform:translateX(260%);opacity:0}}
+@keyframes diracFinalReadableStatusGlow{0%,100%{opacity:.78;filter:brightness(1)}50%{opacity:.96;filter:brightness(1.12)}}
+@keyframes diracFinalStatusDotBlink{0%,100%{opacity:.38;transform:scale(.82)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes diracFinalCryptoStep45{0%,100%{opacity:.38;color:rgba(207,220,242,.50);transform:translateY(0) scale(1);letter-spacing:.18em}4%{opacity:.92;color:rgba(246,249,255,.92);transform:translateY(-.5px) scale(1.012);text-shadow:0 0 12px rgba(92,165,255,.42),0 0 18px rgba(var(--dirac-final-accent-rgb),.16)}10%{opacity:1;color:rgba(var(--dirac-final-accent-rgb),.86);transform:translateY(-.5px) scale(1.018)}17%{opacity:.74;color:rgba(236,244,255,.78);transform:translateY(0) scale(1.004)}25%,92%{opacity:.38;color:rgba(207,220,242,.50);transform:translateY(0) scale(1)}}
+@keyframes diracFinalSecureCheckPulse{0%,62%,100%{opacity:.28;transform:scale(.94)}74%{opacity:.70;transform:scale(1.04);box-shadow:0 0 18px rgba(var(--dirac-final-accent-rgb),.14),0 0 22px rgba(74,139,255,.10)}86%{opacity:.40;transform:scale(.98)}}
+@keyframes diracFinalDataOrbitSlow{to{transform:rotate(360deg)}}
+@keyframes diracFinalDataOrbitReverse{to{transform:rotate(-318deg)}}
+@keyframes diracFinalEdgeLightPass{0%,12%,100%{opacity:0;transform:translateY(-10%) scaleX(.94)}27%{opacity:.16;transform:translateY(-2%) scaleX(1)}42%{opacity:.46;transform:translateY(0%) scaleX(1.02)}58%{opacity:.22;transform:translateY(4%) scaleX(1)}74%{opacity:0;transform:translateY(10%) scaleX(.96)}}
+@keyframes diracFinalLogoDepthPremium{0%,100%{transform:translateZ(0) translateY(0) scale(1)}50%{transform:translateZ(0) translateY(-1px) scale(1.002)}}
+@keyframes diracFinalLogoScanImpact{0%,22%,100%{filter:drop-shadow(0 0 10px rgba(46,94,255,.22)) drop-shadow(0 0 22px rgba(10,43,119,.14))}40%{filter:drop-shadow(0 0 13px rgba(96,165,250,.35)) drop-shadow(0 0 28px rgba(var(--dirac-final-accent-rgb),.10)) drop-shadow(0 14px 24px rgba(0,0,0,.20))}56%{filter:drop-shadow(0 0 12px rgba(75,139,255,.28)) drop-shadow(0 0 25px rgba(10,43,119,.16))}}
+@keyframes diracFinalStageFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes diracFinalHaloBreath{0%,100%{opacity:.42;transform:scale(.98)}50%{opacity:.66;transform:scale(1.018)}}
+@keyframes diracFinalEdgePulse{0%,100%{opacity:.28;transform:scale(.99)}50%{opacity:.50;transform:scale(1.018)}}
+@keyframes diracFinalRingRotate{to{transform:rotate(360deg)}}
+@keyframes diracFinalScanDown{0%{top:10%;opacity:0;transform:scaleX(.86)}13%{opacity:.84;transform:scaleX(1)}56%{opacity:.72;transform:scaleX(1.015)}74%{opacity:.20}100%{top:88%;opacity:0;transform:scaleX(.90)}}
+@keyframes diracFinalScanGlassDown{0%{top:-36%;opacity:0}13%{opacity:.76}57%{opacity:.52}80%{opacity:.08}100%{top:108%;opacity:0}}
+@keyframes diracFinalTitleShimmer{0%,44%{background-position:0% 50%}72%,100%{background-position:100% 50%}}
+@keyframes diracFinalDotsPulse{0%,100%{opacity:.42;transform:translateY(0)}50%{opacity:1;transform:translateY(-1px)}}
+@media(max-width:520px){#diracProtectedLockOverlay .dirac-final-session-loader,body.gate-checking .security-gate .dirac-final-session-loader,body.gate-checking .gate .dirac-final-session-loader{transform:translateY(-4.8vh)!important;gap:11px!important}.dirac-final-logo-stage{width:min(72vw,365px)!important}.dirac-final-session-title{letter-spacing:.045em!important}.dirac-final-contact-note{width:min(92vw,650px)!important;gap:7px!important}.dirac-final-notice-line{min-height:44px!important;padding:8px 13px!important}.dirac-final-progress-track{width:min(66vw,330px)!important}.dirac-final-live-status{letter-spacing:.075em!important}}
+@media(max-height:720px){#diracProtectedLockOverlay .dirac-final-session-loader,body.gate-checking .security-gate .dirac-final-session-loader,body.gate-checking .gate .dirac-final-session-loader{transform:translateY(-2.4vh)!important;gap:8px!important}.dirac-final-logo-stage{width:min(61vw,330px)!important}.dirac-final-contact-note{gap:6px!important;margin-top:1px!important}.dirac-final-notice-line{min-height:40px!important;padding:7px 12px!important}.dirac-final-progress-track{width:min(55vw,300px)!important}.dirac-final-live-status{font-size:.68rem!important;margin-top:2px!important}}
+@media(prefers-reduced-motion:reduce){.dirac-final-session-loader *,.dirac-final-session-loader *::before,.dirac-final-session-loader *::after,#diracProtectedLockOverlay::before,body.gate-checking .security-gate::before,body.gate-checking .gate::before{animation:none!important;transition:none!important}.dirac-final-session-title{background-position:52% 50%!important}.dirac-final-scan-line{opacity:.42!important;top:50%!important}.dirac-final-scan-glass::before{opacity:.28!important;top:38%!important}.dirac-final-progress-track::before{transform:translateX(72%)!important;opacity:.72!important}}
 </style>
 </head>
 <body class="gate-hardlocked gate-checking">
@@ -1220,10 +1159,30 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note 
   </div>
 
   <div class="gate" id="gate" aria-label="Memverifikasi sesi">
-    <div class="gate-card dirac-session-logo-card" aria-hidden="true">
-      <img src="dirac-security.png" alt="" decoding="async">
-      <strong class="dirac-session-title">Mengecek Sesi Pelanggan</strong>
-      <p class="dirac-session-contact-note">Gangguan layanan: <a href="mailto:support@diracgroup.store">support@diracgroup.store</a> · Indikasi penipuan: <a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></p>
+    <div class="gate-card dirac-session-logo-card" role="status" aria-live="polite">
+      <div class="dirac-final-session-loader" aria-label="Mengecek Sesi Pelanggan">
+        <div class="dirac-final-logo-stage" aria-hidden="true">
+          <div class="dirac-final-data-orbit one"></div>
+          <div class="dirac-final-data-orbit two"></div>
+          <div class="dirac-final-logo-halo-edge"></div>
+          <div class="dirac-final-scan-glass"></div>
+          <div class="dirac-final-scan-line"></div>
+          <div class="dirac-final-scan-pulse-core"></div>
+          <div class="dirac-final-scanner-orbit"><span></span></div>
+          <div class="dirac-final-logo-edge-light"></div>
+          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <img class="dirac-final-logo-img" src="dirac-security.png" alt="" decoding="async" loading="eager">
+        </div>
+        <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>
+        <div class="dirac-final-progress-track" aria-hidden="true"></div>
+        <div class="dirac-final-live-status">Verifikasi keamanan sedang berjalan</div>
+        <div class="dirac-final-crypto-strip" aria-hidden="true"><span>AUTH</span><span>TOKEN</span><span>SESSION</span><span>VERIFIED</span></div>
+        <div class="dirac-final-secure-check-pulse" aria-hidden="true">✓</div>
+        <section class="dirac-final-contact-note" aria-label="Kontak resmi Dirac Group">
+          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">i</span><span class="dirac-final-notice-label">Gangguan layanan</span><a href="mailto:support@diracgroup.store">support@diracgroup.store</a></div>
+          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">!</span><span class="dirac-final-notice-label">Indikasi penipuan</span><a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></div>
+        </section>
+      </div>
     </div>
   </div>
   <div class="toast" id="toast"></div>
@@ -1573,6 +1532,8 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note 
   var LOGOUT_ENDPOINT = API_BASE + '?action=domain_logout';
   var IDLE_LIMIT_MS = 2 * 60 * 1000;
   var CHECK_INTERVAL_MS = 5000;
+  var DIRAC_MIN_SESSION_LOADER_MS = 4500;
+  var diracSessionLoaderStartedAt = 0;
   var ACTIVITY_KEY = 'dirac_protected_last_activity_v1';
   var LOGOUT_STAMP_KEY = 'dirac_protected_last_logout_v1';
   var loggingOut = false;
@@ -1587,6 +1548,13 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note 
   function withCacheBust(url){
     var sep = String(url || '').indexOf('?') === -1 ? '?' : '&';
     return String(url || '') + sep + '_t=' + now();
+  }
+
+  function waitDiracMinimumSessionLoader(){
+    var elapsed = now() - Number(diracSessionLoaderStartedAt || 0);
+    var remain = DIRAC_MIN_SESSION_LOADER_MS - elapsed;
+    if(remain <= 0) return Promise.resolve();
+    return new Promise(function(resolve){ setTimeout(resolve, remain); });
   }
 
   function setStore(key, value){
@@ -1649,9 +1617,29 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note 
     overlay.setAttribute('aria-live', 'polite');
     overlay.innerHTML =
       '<div class="dirac-protected-lock-card">' +
-        '<div class="dirac-protected-logo-only" aria-hidden="true"><img src="dirac-security.png" alt="" decoding="async"></div>' +
-        '<strong class="dirac-session-title" aria-live="polite">Mengecek Sesi Pelanggan</strong>' +
-        '<p class="dirac-session-contact-note">Gangguan layanan: <a href="mailto:support@diracgroup.store">support@diracgroup.store</a> · Indikasi penipuan: <a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></p>' +
+        '<div class="dirac-final-session-loader" aria-label="Mengecek Sesi Pelanggan">' +
+        '        <div class="dirac-final-logo-stage" aria-hidden="true">' +
+        '          <div class="dirac-final-data-orbit one"></div>' +
+        '          <div class="dirac-final-data-orbit two"></div>' +
+        '          <div class="dirac-final-logo-halo-edge"></div>' +
+        '          <div class="dirac-final-scan-glass"></div>' +
+        '          <div class="dirac-final-scan-line"></div>' +
+        '          <div class="dirac-final-scan-pulse-core"></div>' +
+        '          <div class="dirac-final-scanner-orbit"><span></span></div>' +
+        '          <div class="dirac-final-logo-edge-light"></div>' +
+        '          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
+        '          <img class="dirac-final-logo-img" src="dirac-security.png" alt="" decoding="async" loading="eager">' +
+        '        </div>' +
+        '        <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>' +
+        '        <div class="dirac-final-progress-track" aria-hidden="true"></div>' +
+        '        <div class="dirac-final-live-status">Verifikasi keamanan sedang berjalan</div>' +
+        '        <div class="dirac-final-crypto-strip" aria-hidden="true"><span>AUTH</span><span>TOKEN</span><span>SESSION</span><span>VERIFIED</span></div>' +
+        '        <div class="dirac-final-secure-check-pulse" aria-hidden="true">✓</div>' +
+        '        <section class="dirac-final-contact-note" aria-label="Kontak resmi Dirac Group">' +
+        '          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">i</span><span class="dirac-final-notice-label">Gangguan layanan</span><a href="mailto:support@diracgroup.store">support@diracgroup.store</a></div>' +
+        '          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">!</span><span class="dirac-final-notice-label">Indikasi penipuan</span><a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></div>' +
+        '        </section>' +
+        '      </div>' +
       '</div>';
     if(document.body) document.body.appendChild(overlay);
   }
@@ -1721,6 +1709,7 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note 
     }
 
     checking = true;
+    diracSessionLoaderStartedAt = now();
     setChecking(true);
     setLocked(false);
 
@@ -1748,6 +1737,7 @@ body.gate-checking .gate:not([hidden]) .gate-card > .dirac-session-contact-note 
         return;
       }
 
+      await waitDiracMinimumSessionLoader();
       document.documentElement.setAttribute('data-dirac-protected-session', 'verified');
       setLocked(false);
       setChecking(false);
