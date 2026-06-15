@@ -12096,3 +12096,177 @@ function orderMailSafeError(error) {
   if (/password|pass|secret|token|authorization|apikey|api_key/i.test(message)) return 'email_internal_error';
   return orderMailCleanText(message, 160);
 }
+
+
+/* ============================================================
+   DIRAC SENSITIVE POST ORIGIN GUARD - APPEND ONLY v1
+   Tujuan:
+   - Menambah pagar CSRF ringan untuk POST sensitif tanpa mengubah isi handler.
+   - domain_logout dilindungi di outer wrapper, tetapi logic logout/cookie/A2F lama
+     tetap utuh: revoke session tetap best-effort, clearSessionCookies tetap asli.
+   - Login, hash password, MFA/A2F core, email template, webhook payment gateway,
+     dan cookie helper tidak disentuh.
+   - Browser normal tetap aman: Origin valid diterima; jika Origin tidak dikirim,
+     Referer valid diterima; jika dua-duanya tidak ada, default fail-open agar
+     logout mobile/Safari/keepalive tidak rusak. Bisa dibuat ketat via ENV:
+     DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER=true
+   ============================================================ */
+
+const DIRAC_SENSITIVE_POST_ORIGIN_GUARD_PATCH = 'sensitive-post-origin-guard-v1';
+const __diracSensitivePostOriginGuardPreviousHandler = module.exports;
+
+const DIRAC_SENSITIVE_POST_ORIGIN_ACTIONS = new Set([
+  'domain_logout',
+  'domain_checkout',
+  'checkout_order',
+  'create_payment',
+  'customer_security_revoke_session',
+  'customer_security_revoke_other_sessions',
+  'customer_security_account_request',
+  'customer_security_recovery_codes_generate',
+  'customer_security_recovery_code_verify',
+  'dirac_mfa_email_start',
+  'dirac_mfa_email_verify',
+  'dirac_mfa_passkey_start',
+  'dirac_mfa_passkey_verify'
+]);
+
+module.exports = async function diracSensitivePostOriginGuardWrapper(req, res) {
+  const method = String((req && req.method) || '').toUpperCase();
+  const rawAction = String((req && req.query && req.query.action) || '').trim();
+  const action = diracSensitivePostOriginNormalizeAction(rawAction);
+
+  if (method === 'POST' && DIRAC_SENSITIVE_POST_ORIGIN_ACTIONS.has(action)) {
+    const guard = diracSensitivePostOriginCheck(req, action);
+    if (!guard.ok) {
+      try {
+        if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+      } catch (_) {}
+      try { res.setHeader('Cache-Control', 'no-store'); } catch (_) {}
+      try { res.setHeader('X-Content-Type-Options', 'nosniff'); } catch (_) {}
+      return res.status(403).json({
+        ok: false,
+        code: guard.code || 'SENSITIVE_POST_ORIGIN_BLOCKED',
+        message: 'Permintaan ditolak karena asal request tidak valid.',
+        source: 'sensitive_post_origin_guard'
+      });
+    }
+  }
+
+  return __diracSensitivePostOriginGuardPreviousHandler(req, res);
+};
+
+function diracSensitivePostOriginNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    domain_logout: 'domain_logout',
+    logout_domain: 'domain_logout',
+    domain_checkout: 'domain_checkout',
+    domain_create_order: 'domain_checkout',
+    create_order: 'domain_checkout',
+    checkout_order: 'checkout_order',
+    public_checkout: 'checkout_order',
+    parfum_checkout: 'checkout_order',
+    digital_checkout: 'checkout_order',
+    layanan_digital_checkout: 'checkout_order',
+    jasa_website_checkout: 'checkout_order',
+    pengembangan_checkout: 'checkout_order',
+    create_checkout_order: 'checkout_order',
+    create_payment: 'create_payment',
+    create_payment_order: 'create_payment',
+    pay_order: 'create_payment',
+    order_payment: 'create_payment',
+    checkout_payment: 'create_payment',
+    bayar_pesanan: 'create_payment',
+    customer_security_revoke_session: 'customer_security_revoke_session',
+    customer_security_revoke_other_sessions: 'customer_security_revoke_other_sessions',
+    customer_security_account_request: 'customer_security_account_request',
+    customer_security_recovery_codes_generate: 'customer_security_recovery_codes_generate',
+    customer_security_recovery_code_verify: 'customer_security_recovery_code_verify',
+    dirac_mfa_email_start: 'dirac_mfa_email_start',
+    domain_mfa_email_start: 'dirac_mfa_email_start',
+    dirac_mfa_email_verify: 'dirac_mfa_email_verify',
+    domain_mfa_email_verify: 'dirac_mfa_email_verify',
+    dirac_mfa_passkey_start: 'dirac_mfa_passkey_start',
+    domain_mfa_passkey_start: 'dirac_mfa_passkey_start',
+    dirac_mfa_passkey_verify: 'dirac_mfa_passkey_verify',
+    domain_mfa_passkey_verify: 'dirac_mfa_passkey_verify'
+  };
+  return aliases[clean] || clean;
+}
+
+function diracSensitivePostOriginCheck(req, action) {
+  if (isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_GUARD_DISABLED')) {
+    return { ok: true, source: 'guard_disabled' };
+  }
+
+  const scopedDisabledKey = 'DIRAC_SENSITIVE_POST_ORIGIN_GUARD_DISABLED_' + String(action || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  if (isEnvTrue(scopedDisabledKey)) {
+    return { ok: true, source: 'scope_guard_disabled' };
+  }
+
+  const headers = (req && req.headers) || {};
+  const secFetchSite = String(headers['sec-fetch-site'] || headers['Sec-Fetch-Site'] || '').trim().toLowerCase();
+  if (secFetchSite === 'cross-site') {
+    return { ok: false, code: 'SENSITIVE_POST_CROSS_SITE_BLOCKED', source: 'sec_fetch_site' };
+  }
+
+  const originHeader = String(headers.origin || headers.Origin || '').trim();
+  const refererHeader = String(headers.referer || headers.referrer || headers.Referer || headers.Referrer || '').trim();
+  const allowedOrigins = diracSensitivePostAllowedOrigins();
+
+  if (originHeader) {
+    const origin = diracSensitivePostNormalizeOrigin(originHeader);
+    return origin && allowedOrigins.has(origin)
+      ? { ok: true, source: 'origin', origin }
+      : { ok: false, code: 'SENSITIVE_POST_ORIGIN_BLOCKED', source: 'origin' };
+  }
+
+  if (refererHeader) {
+    const refererOrigin = diracSensitivePostNormalizeOrigin(refererHeader);
+    return refererOrigin && allowedOrigins.has(refererOrigin)
+      ? { ok: true, source: 'referer', origin: refererOrigin }
+      : { ok: false, code: 'SENSITIVE_POST_REFERER_BLOCKED', source: 'referer' };
+  }
+
+  if (isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER')) {
+    return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'missing_origin_referer' };
+  }
+
+  return { ok: true, source: 'missing_origin_fail_open' };
+}
+
+function diracSensitivePostAllowedOrigins() {
+  const values = [];
+  try {
+    if (typeof getAllowedOrigins === 'function') values.push(...getAllowedOrigins());
+  } catch (_) {}
+
+  values.push(
+    process.env.SITE_URL,
+    process.env.DOMAIN_SITE_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+    'https://diracgroup.store',
+    'https://www.diracgroup.store'
+  );
+
+  return new Set(values.map(diracSensitivePostNormalizeOrigin).filter(Boolean));
+}
+
+function diracSensitivePostNormalizeOrigin(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.toLowerCase() === 'null') return '';
+
+  let candidate = raw;
+  if (/^[a-z0-9.-]+(?::\d+)?$/i.test(candidate)) candidate = 'https://' + candidate;
+
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'https:' && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(url.origin)) return '';
+    return url.origin.toLowerCase();
+  } catch (_) {
+    return '';
+  }
+}
