@@ -218,6 +218,16 @@ const DOMAIN_SIGNED_SESSION_COOKIE = process.env.DOMAIN_SIGNED_SESSION_COOKIE ||
 const CUSTOMER_MFA_SESSION_TYPE = 'dirac-customer-mfa-session-v1';
 const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
 
+// PATCH: database-backed protected-page lock.
+// Default 2 menit sesuai permintaan: kalau user tidak aktif/menutup browser lalu kembali setelah timeout,
+// backend menolak sesi berdasarkan security_customer_sessions.last_seen_at, bukan hanya guard HTML.
+const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW = Number(process.env.DOMAIN_PROTECTED_IDLE_TIMEOUT_MS || 2 * 60 * 1000);
+const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS = Number.isFinite(DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
+  ? Math.max(15 * 1000, DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
+  : 2 * 60 * 1000;
+const DOMAIN_PROTECTED_SESSION_TABLE = 'security_customer_sessions';
+const DOMAIN_PROTECTED_SESSION_REVOKE_REASON = 'protected_idle_timeout_2m';
+
 
 const HOSTINGER_API_BASE = 'https://developers.hostinger.com';
 const HOSTINGER_CHECK_CACHE = new Map();
@@ -1456,7 +1466,336 @@ async function requireDomainDashboardAccess(req, res) {
     return null;
   }
 
-  return { user, mfa };
+  const dbSession = await requireDomainProtectedDatabaseSession(req, res, user);
+  if (!dbSession) return null;
+
+  return { user, mfa, dbSession };
+}
+
+
+async function requireDomainProtectedDatabaseSession(req, res, user) {
+  const checked = await checkAndTouchDomainProtectedDatabaseSession(req, user, {
+    createIfMissing: true,
+    touch: true,
+    source: 'domain_dashboard_me'
+  });
+
+  if (checked.ok) return checked;
+
+  if (checked.clearCookies) clearSessionCookies(res);
+
+  const status = checked.status || (checked.code === 'PROTECTED_SESSION_IDLE_TIMEOUT' ? 401 : 403);
+  return res.status(status).json({
+    ok: false,
+    dashboard: false,
+    code: checked.code || 'PROTECTED_SESSION_LOCKED',
+    message: checked.message || 'Sesi protected sudah dikunci database. Silakan login ulang.',
+    idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS,
+    source: 'database_protected_lock'
+  });
+}
+
+async function checkAndTouchDomainProtectedDatabaseSession(req, user, options = {}) {
+  const authUserId = String(user && user.id || '').trim();
+  if (!authUserId || !customerSecurityLooksLikeUuid(authUserId)) {
+    return {
+      ok: false,
+      status: 401,
+      code: 'INVALID_AUTH_USER',
+      clearCookies: true,
+      message: 'Sesi login tidak valid. Silakan login ulang.'
+    };
+  }
+
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  if (!linkResult.ok) {
+    return {
+      ok: false,
+      status: customerSecurityIsSchemaCacheMissing(linkResult) ? 503 : 500,
+      code: 'AUTH_LINK_CHECK_FAILED',
+      clearCookies: false,
+      message: 'Database lock belum dapat memverifikasi customer session.'
+    };
+  }
+
+  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const customerId = String(link && link.customer_id || '').trim();
+  if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'CUSTOMER_LINK_INACTIVE',
+      clearCookies: true,
+      message: 'Akun login belum terhubung ke customer profile aktif.'
+    };
+  }
+
+  const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+  if (!fingerprint || !fingerprint.session_token_hash) {
+    return {
+      ok: false,
+      status: 401,
+      code: 'SESSION_FINGERPRINT_MISSING',
+      clearCookies: true,
+      message: 'Fingerprint sesi tidak valid. Silakan login ulang.'
+    };
+  }
+
+  const select = [
+    'id',
+    'status',
+    'last_seen_at',
+    'expires_at',
+    'revoked_at',
+    'revoke_reason',
+    'session_token_hash'
+  ].join(',');
+
+  const readPath = '/rest/v1/' + DOMAIN_PROTECTED_SESSION_TABLE + '?select=' +
+    encodeURIComponent(select) +
+    '&customer_id=eq.' + encodeURIComponent(customerId) +
+    '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash) +
+    '&limit=1';
+
+  const found = await supabaseFetch(readPath, { method: 'GET', auth: 'service' });
+  if (!found.ok) {
+    return {
+      ok: false,
+      status: customerSecurityIsSchemaCacheMissing(found) ? 503 : 500,
+      code: 'PROTECTED_SESSION_READ_FAILED',
+      clearCookies: false,
+      message: 'Gagal membaca database session protected.'
+    };
+  }
+
+  const rows = Array.isArray(found.data) ? found.data : [];
+  const row = rows[0] || null;
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+
+  if (row && row.id) {
+    const status = String(row.status || '').trim().toLowerCase();
+    const revoked = Boolean(row.revoked_at) || status === 'revoked';
+    const expiresAtMs = Date.parse(row.expires_at || '');
+    const expired = Number.isFinite(expiresAtMs) && expiresAtMs <= nowMs;
+    const lastSeenMs = Date.parse(row.last_seen_at || '');
+    const hasLastSeen = Number.isFinite(lastSeenMs) && lastSeenMs > 0;
+    const idleMs = hasLastSeen ? nowMs - lastSeenMs : 0;
+    const idleExpired = hasLastSeen && idleMs >= DOMAIN_PROTECTED_IDLE_TIMEOUT_MS;
+
+    if (revoked || expired || idleExpired) {
+      const reason = revoked
+        ? String(row.revoke_reason || 'session_revoked')
+        : (expired ? 'session_expired' : DOMAIN_PROTECTED_SESSION_REVOKE_REASON);
+
+      await supabaseFetch('/rest/v1/' + DOMAIN_PROTECTED_SESSION_TABLE + '?id=eq.' + encodeURIComponent(row.id), {
+        method: 'PATCH',
+        auth: 'service',
+        prefer: 'return=minimal',
+        body: {
+          status: 'revoked',
+          revoked_at: row.revoked_at || nowIso,
+          revoke_reason: reason
+        }
+      }).catch(() => null);
+
+      await customerSecurityWriteGuardEvent(customerId, {
+        event_type: 'session_revoked',
+        status: 'warning',
+        risk_level: idleExpired ? 'medium' : 'low',
+        description: idleExpired
+          ? 'Sesi protected otomatis dikunci database karena idle lebih dari batas aman.'
+          : 'Sesi protected ditolak karena revoked/expired.',
+        req,
+        metadata: {
+          source: options.source || 'domain_dashboard_me',
+          reason,
+          idle_ms: idleExpired ? idleMs : 0,
+          idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS
+        }
+      }).catch(() => null);
+
+      return {
+        ok: false,
+        status: 401,
+        code: idleExpired ? 'PROTECTED_SESSION_IDLE_TIMEOUT' : 'PROTECTED_SESSION_REVOKED',
+        clearCookies: true,
+        customerId,
+        sessionId: row.id,
+        message: idleExpired
+          ? 'Sesi dikunci database karena tidak aktif lebih dari 2 menit. Silakan login ulang.'
+          : 'Sesi sudah dicabut/expired. Silakan login ulang.'
+      };
+    }
+
+    const updateBody = {
+      device_id: fingerprint.device_id,
+      device_name: fingerprint.device_name,
+      browser_name: fingerprint.browser_name,
+      operating_system: fingerprint.operating_system,
+      user_agent: fingerprint.user_agent,
+      ip_address: fingerprint.ip_address || null,
+      status: 'active',
+      last_seen_at: nowIso,
+      expires_at: fingerprint.expires_at,
+      revoke_reason: null
+    };
+
+    if (options.touch !== false) {
+      const patched = await supabaseFetch('/rest/v1/' + DOMAIN_PROTECTED_SESSION_TABLE + '?id=eq.' + encodeURIComponent(row.id), {
+        method: 'PATCH',
+        auth: 'service',
+        prefer: 'return=minimal',
+        body: updateBody
+      });
+      if (!patched.ok) {
+        return {
+          ok: false,
+          status: 500,
+          code: 'PROTECTED_SESSION_TOUCH_FAILED',
+          clearCookies: false,
+          message: 'Gagal memperbarui database session protected.'
+        };
+      }
+    }
+
+    return {
+      ok: true,
+      created: false,
+      customerId,
+      sessionId: row.id,
+      idleMs,
+      idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS
+    };
+  }
+
+  if (options.createIfMissing === false) {
+    return {
+      ok: false,
+      status: 401,
+      code: 'PROTECTED_SESSION_NOT_REGISTERED',
+      clearCookies: true,
+      customerId,
+      message: 'Sesi belum terdaftar di database. Silakan login ulang.'
+    };
+  }
+
+  const createBody = [{
+    customer_id: customerId,
+    session_token_hash: fingerprint.session_token_hash,
+    device_id: fingerprint.device_id,
+    device_name: fingerprint.device_name,
+    browser_name: fingerprint.browser_name,
+    operating_system: fingerprint.operating_system,
+    user_agent: fingerprint.user_agent,
+    ip_address: fingerprint.ip_address || null,
+    status: 'active',
+    trusted_device: false,
+    last_seen_at: nowIso,
+    expires_at: fingerprint.expires_at,
+    metadata: {
+      source: options.source || 'domain_dashboard_me',
+      database_protected_lock: true,
+      idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS
+    }
+  }];
+
+  const created = await supabaseFetch('/rest/v1/' + DOMAIN_PROTECTED_SESSION_TABLE, {
+    method: 'POST',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: createBody
+  });
+
+  if (!created.ok) {
+    return {
+      ok: false,
+      status: 500,
+      code: 'PROTECTED_SESSION_CREATE_FAILED',
+      clearCookies: false,
+      message: 'Gagal membuat database session protected.'
+    };
+  }
+
+  const createdRows = Array.isArray(created.data) ? created.data : [];
+  const sessionId = createdRows[0] && createdRows[0].id ? createdRows[0].id : null;
+
+  await customerSecurityWriteSessionTelemetry(customerId, fingerprint).catch(() => null);
+
+  return {
+    ok: true,
+    created: true,
+    customerId,
+    sessionId,
+    idleMs: 0,
+    idle_timeout_ms: DOMAIN_PROTECTED_IDLE_TIMEOUT_MS
+  };
+}
+
+async function revokeCurrentDomainProtectedDatabaseSession(req, reason) {
+  const user = await getDomainUserForLogoutDatabaseLock(req);
+  if (!user || !user.id) return { ok: false, reason: 'no_user' };
+
+  const authUserId = String(user.id || '').trim();
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  if (!linkResult.ok) return { ok: false, reason: 'auth_link_read_failed', status: linkResult.status };
+
+  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const customerId = String(link && link.customer_id || '').trim();
+  if (!link || link.link_status !== 'active' || !customerSecurityLooksLikeUuid(customerId)) {
+    return { ok: false, reason: 'auth_link_inactive' };
+  }
+
+  const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
+  if (!fingerprint || !fingerprint.session_token_hash) return { ok: false, reason: 'missing_fingerprint' };
+
+  const nowIso = new Date().toISOString();
+  const patched = await supabaseFetch('/rest/v1/' + DOMAIN_PROTECTED_SESSION_TABLE + '?customer_id=eq.' +
+    encodeURIComponent(customerId) +
+    '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      status: 'revoked',
+      revoked_at: nowIso,
+      revoke_reason: String(reason || 'manual_logout').slice(0, 80)
+    }
+  });
+
+  if (!patched.ok) return { ok: false, reason: 'session_revoke_failed', status: patched.status };
+
+  await customerSecurityWriteGuardEvent(customerId, {
+    event_type: 'session_revoked',
+    status: 'success',
+    risk_level: 'low',
+    description: 'Current protected session dicabut saat logout.',
+    req,
+    metadata: { source: 'domain_logout', reason: String(reason || 'manual_logout').slice(0, 80) }
+  }).catch(() => null);
+
+  return { ok: true };
+}
+
+async function getDomainUserForLogoutDatabaseLock(req) {
+  const cookies = parseCookies(req);
+  const accessTokens = uniqueNonEmptyStrings([
+    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE)
+  ]);
+
+  for (const accessToken of accessTokens) {
+    const userResult = await supabaseFetch('/auth/v1/user', {
+      method: 'GET',
+      auth: 'anon',
+      bearer: accessToken
+    });
+    if (userResult.ok && userResult.data && userResult.data.id) return userResult.data;
+  }
+
+  const signedSessionUser = await readSignedDomainSessionUser(cookies);
+  if (signedSessionUser && signedSessionUser.id) return signedSessionUser;
+
+  return null;
 }
 
 async function domainDashboardMe(req, res) {
@@ -1513,6 +1852,10 @@ async function domainMfaStatus(req, res) {
 
 async function domainLogout(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+
+  // PATCH: logout tidak hanya membersihkan cookie browser.
+  // Current device/session juga dicabut di database agar Safari back/cache dan cookie lama tidak bisa membuka protected page lagi.
+  await revokeCurrentDomainProtectedDatabaseSession(req, 'manual_logout').catch(() => null);
 
   clearSessionCookies(res);
 
@@ -4180,7 +4523,9 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
     const fingerprint = customerSecurityBuildSessionFingerprint(req, customerId);
     if (!fingerprint || !fingerprint.session_token_hash) return { ok: false, reason: 'missing_session_fingerprint' };
 
-    const path = '/rest/v1/security_customer_sessions?select=id,status&customer_id=eq.' +
+    const path = '/rest/v1/security_customer_sessions?select=' +
+      encodeURIComponent('id,status,revoked_at,expires_at') +
+      '&customer_id=eq.' +
       encodeURIComponent(customerId) +
       '&session_token_hash=eq.' +
       encodeURIComponent(fingerprint.session_token_hash) +
@@ -4205,7 +4550,16 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
     };
 
     if (rows.length && rows[0] && rows[0].id) {
-      const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(rows[0].id), {
+      const currentRow = rows[0];
+      const expiredAtMs = Date.parse(currentRow.expires_at || '');
+      if (currentRow.revoked_at || String(currentRow.status || '').toLowerCase() === 'revoked') {
+        return { ok: false, reason: 'session_revoked', session_id: currentRow.id };
+      }
+      if (Number.isFinite(expiredAtMs) && expiredAtMs <= Date.now()) {
+        return { ok: false, reason: 'session_expired', session_id: currentRow.id };
+      }
+
+      const patched = await supabaseFetch('/rest/v1/security_customer_sessions?id=eq.' + encodeURIComponent(currentRow.id), {
         method: 'PATCH',
         auth: 'service',
         prefer: 'return=representation',
@@ -4213,7 +4567,7 @@ async function customerSecurityTouchCurrentSession(req, customerId) {
       });
 
       if (!patched.ok) return { ok: false, reason: 'session_update_failed', status: patched.status };
-      return { ok: true, created: false, session_id: rows[0].id };
+      return { ok: true, created: false, session_id: currentRow.id };
     }
 
     const created = await supabaseFetch('/rest/v1/security_customer_sessions', {
@@ -4248,7 +4602,13 @@ function customerSecurityBuildSessionFingerprint(req, customerId) {
   const cookies = parseCookies(req);
   const headerToken = getBearerToken(req);
   const headerRefreshToken = String((req.headers && (req.headers['x-domain-refresh'] || req.headers['x-refresh-token'])) || '').trim();
-  const tokenMaterial = headerToken || cookies[ACCESS_COOKIE] || headerRefreshToken || cookies[REFRESH_COOKIE] || '';
+  const tokenMaterial = uniqueNonEmptyStrings([
+    headerToken,
+    ...readCookieTokenCandidates(cookies, ACCESS_COOKIE),
+    headerRefreshToken,
+    ...readCookieTokenCandidates(cookies, REFRESH_COOKIE),
+    ...readCookieTokenCandidates(cookies, DOMAIN_SIGNED_SESSION_COOKIE)
+  ])[0] || '';
 
   const userAgent = String((req.headers && req.headers['user-agent']) || '').trim().slice(0, 512);
   const ip = customerSecurityRequestIp(req);
