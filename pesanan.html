@@ -633,10 +633,10 @@ html.dirac-seq-ready body.gate-hardlocked .gate:not([hidden]) .gate-card > img{
 
 
 
-<style id="dirac-video-loader-v13-css">
-/* DIRAC V13 SAFE VIDEO LOADER
-   Fix patah-patah: image sequence sq diganti video MP4 native browser.
-   Visual-only. Tidak mengubah hash, login, A2F, session, backend, checkout, webhook, atau payment logic. */
+<style id="dirac-video-loader-v14-css">
+/* DIRAC V14 VIDEO LOADER + BACKSOUND + HOLD UNTIL FINISH
+   Visual-only. Menunggu video 5 detik selesai sebelum halaman protected/navigasi internal dilanjutkan.
+   Tidak mengubah hash, login, A2F, session, backend, checkout, webhook, atau payment logic. */
 #diracProtectedLockOverlay,
 body.gate-checking .security-gate,
 body.gate-locked .security-gate,
@@ -646,6 +646,25 @@ body.gate-locked .gate:not([hidden]),
 body.gate-hardlocked .gate:not([hidden]){
   background:#000!important;
   background-image:none!important;
+}
+html.dirac-loader-holding,
+html.dirac-loader-holding body{
+  overflow:hidden!important;
+  touch-action:none!important;
+}
+html.dirac-loader-holding #diracProtectedLockOverlay{
+  display:grid!important;
+  background:#000!important;
+  background-image:none!important;
+  pointer-events:auto!important;
+}
+html.dirac-loader-holding body main,
+html.dirac-loader-holding body .site-header,
+html.dirac-loader-holding body .footer,
+html.dirac-loader-holding body .announcement,
+html.dirac-loader-holding body .dirac-floating-actions{
+  pointer-events:none!important;
+  user-select:none!important;
 }
 #diracProtectedLockOverlay .dirac-protected-logo-only img,
 body.gate-checking .dirac-session-logo-card img,
@@ -700,6 +719,7 @@ body.gate-hardlocked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap{
   backface-visibility:hidden;
   filter:drop-shadow(0 0 8px rgba(59,130,246,.18));
 }
+.dirac-loader-audio{display:none!important;width:0!important;height:0!important;opacity:0!important;visibility:hidden!important;}
 @media(max-width:520px){
   .dirac-loader-video-wrap{width:min(360px,88vw);height:min(350px,86vw);}
 }
@@ -1469,16 +1489,25 @@ body.gate-hardlocked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap{
 </script>
 
 <script id="dirac-image-sequence-loader-js">
-/* DIRAC V13 SAFE VIDEO LOADER.
-   Image sequence sq1-sq150 di-nonaktifkan karena masih patah-patah di mobile.
-   Sekarang loader memakai loader-5s.mp4 native <video> supaya decode lebih halus dan ringan.
-   Audio autoplay dimatikan/muted demi stabilitas iPhone/Safari.
-   Tidak menyentuh hash, login, A2F, session, backend auth, checkout, webhook, atau payment logic. */
+/* DIRAC V14 SAFE VIDEO LOADER WITH BACKSOUND + HOLD.
+   - Image sequence dinonaktifkan agar tidak patah-patah di HP.
+   - Video loader diputar native <video>.
+   - Backsound diputar lewat <audio> saat browser mengizinkan.
+   - Navigasi internal protected ditahan sampai video 5 detik selesai.
+   - Jika sesi ditolak, redirect masuk.html tetap mengikuti script auth/backend lama.
+   - Tidak menyentuh hash, login, A2F, session, backend auth, checkout, webhook, atau payment logic. */
 (function(){
   'use strict';
-  var VIDEO_SRC = 'loader-5s.mp4?v=13';
+  var VIDEO_SRC = 'loader-5s.mp4?v=14';
+  var AUDIO_M4A = 'loader-sound.m4a?v=14';
+  var AUDIO_MP3 = 'loader-sound.mp3?v=14';
+  var FALLBACK_MS = 5400;
   var wasActive = false;
   var bootChecks = 0;
+  var holding = false;
+  var pendingTarget = '';
+  var holdTimer = 0;
+  var finishing = false;
 
   function isVisible(el){
     if(!el) return false;
@@ -1498,13 +1527,27 @@ body.gate-hardlocked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap{
        body.classList.contains('gate-hardlocked')) return true;
 
     var overlay = document.getElementById('diracProtectedLockOverlay');
-    if(isVisible(overlay)) return true;
+    if(isVisible(overlay) &&
+       !document.documentElement.classList.contains('dirac-loader-holding') &&
+       !document.documentElement.classList.contains('dirac-loader-release-ready')) return true;
 
     var gates = document.querySelectorAll('.gate:not([hidden]), .security-gate');
     for(var i=0;i<gates.length;i++){
       if(isVisible(gates[i])) return true;
     }
     return false;
+  }
+
+  function ensureOverlay(){
+    var overlay = document.getElementById('diracProtectedLockOverlay');
+    if(overlay) return overlay;
+    if(!document.body) return null;
+    overlay = document.createElement('div');
+    overlay.id = 'diracProtectedLockOverlay';
+    overlay.setAttribute('aria-hidden','true');
+    overlay.innerHTML = '<div class="dirac-protected-lock-card"><div class="dirac-protected-logo-only"><img src="dirac-security.png" alt="Dirac Security"></div></div>';
+    document.body.appendChild(overlay);
+    return overlay;
   }
 
   function makeVideo(){
@@ -1522,21 +1565,41 @@ body.gate-hardlocked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap{
     v.setAttribute('playsinline', '');
     v.setAttribute('webkit-playsinline', '');
     v.setAttribute('aria-hidden', 'true');
-    try{ v.disablePictureInPicture = true; }catch(_){}
-    v.addEventListener('ended', function(){
-      try{ v.pause(); }catch(_){}
-    }, {passive:true});
+    try{ v.disablePictureInPicture = true; }catch(_){ }
+    v.addEventListener('ended', function(){ finishHold(false); }, {passive:true});
     return v;
+  }
+
+  function makeAudio(){
+    var a = document.createElement('audio');
+    a.className = 'dirac-loader-audio';
+    a.preload = 'auto';
+    a.controls = false;
+    a.loop = false;
+    a.setAttribute('aria-hidden','true');
+    var s1 = document.createElement('source');
+    s1.src = AUDIO_M4A;
+    s1.type = 'audio/mp4';
+    var s2 = document.createElement('source');
+    s2.src = AUDIO_MP3;
+    s2.type = 'audio/mpeg';
+    a.appendChild(s1);
+    a.appendChild(s2);
+    return a;
+  }
+
+  function ensureAudio(){
+    var a = document.querySelector('.dirac-loader-audio');
+    if(a) return a;
+    if(!document.body) return null;
+    a = makeAudio();
+    document.body.appendChild(a);
+    return a;
   }
 
   function ensureIn(parent){
     if(!parent) return null;
-    var wrap = null;
-    try{
-      for(var c = parent.firstElementChild; c; c = c.nextElementSibling){
-        if(c.classList && c.classList.contains('dirac-loader-video-wrap')){ wrap = c; break; }
-      }
-    }catch(_){}
+    var wrap = parent.querySelector(':scope > .dirac-loader-video-wrap');
     if(!wrap){
       wrap = document.createElement('div');
       wrap.className = 'dirac-loader-video-wrap';
@@ -1551,6 +1614,7 @@ body.gate-hardlocked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap{
   }
 
   function ensureVideos(){
+    ensureOverlay();
     var videos = [];
     var overlayTarget = document.querySelector('#diracProtectedLockOverlay .dirac-protected-logo-only');
     var v = ensureIn(overlayTarget);
@@ -1564,43 +1628,151 @@ body.gate-hardlocked .gate:not([hidden]) .gate-card .dirac-loader-video-wrap{
     return videos;
   }
 
-  function playVideo(v, reset){
-    if(!v) return;
-    try{
-      if(reset){
-        try{ v.currentTime = 0; }catch(_){}
-      }
-      var p = v.play();
-      if(p && p.catch) p.catch(function(){});
-    }catch(_){}
+  function resetMedia(){
+    var videos = document.querySelectorAll('.dirac-loader-video');
+    for(var i=0;i<videos.length;i++){
+      try{ videos[i].pause(); videos[i].currentTime = 0; }catch(_){ }
+    }
+    var audio = document.querySelector('.dirac-loader-audio');
+    if(audio){ try{ audio.pause(); audio.currentTime = 0; }catch(_){ } }
   }
 
-  function pauseVideo(v){
-    try{ v.pause(); }catch(_){}
+  function playMedia(reset){
+    var videos = ensureVideos();
+    var audio = ensureAudio();
+    document.documentElement.classList.add('dirac-video-ready');
+    for(var i=0;i<videos.length;i++){
+      try{
+        if(reset){ try{ videos[i].currentTime = 0; }catch(_){ } }
+        var p = videos[i].play();
+        if(p && p.catch) p.catch(function(){ });
+      }catch(_){ }
+    }
+    if(audio){
+      try{
+        audio.volume = 1;
+        if(reset){ try{ audio.currentTime = 0; }catch(_){ } }
+        var ap = audio.play();
+        if(ap && ap.catch) ap.catch(function(){
+          /* Browser mobile dapat memblokir audio autoplay. Video tetap jalan tanpa crash. */
+        });
+      }catch(_){ }
+    }
+    return videos;
+  }
+
+  function startHold(targetUrl){
+    if(targetUrl) pendingTarget = targetUrl;
+    if(holding){
+      playMedia(false);
+      return;
+    }
+    holding = true;
+    finishing = false;
+    document.documentElement.classList.remove('dirac-loader-release-ready');
+    document.documentElement.classList.add('dirac-loader-holding');
+    playMedia(true);
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(function(){ finishHold(true); }, FALLBACK_MS);
+  }
+
+  function finishHold(fromTimeout){
+    if(!holding || finishing) return;
+    finishing = true;
+    clearTimeout(holdTimer);
+    var target = pendingTarget;
+    pendingTarget = '';
+
+    if(target){
+      resetMedia();
+      document.documentElement.classList.remove('dirac-loader-holding');
+      document.documentElement.classList.add('dirac-loader-release-ready');
+      try{ window.location.href = target; }catch(_){ location.assign(target); }
+      return;
+    }
+
+    if(isActive() && fromTimeout){
+      /* Backend/session gate masih aktif. Jangan tampilkan halaman dulu. */
+      holding = false;
+      finishing = false;
+      document.documentElement.classList.remove('dirac-loader-holding');
+      return;
+    }
+
+    resetMedia();
+    document.documentElement.classList.remove('dirac-loader-holding');
+    document.documentElement.classList.add('dirac-loader-release-ready');
+    holding = false;
+    finishing = false;
+    setTimeout(function(){
+      document.documentElement.classList.remove('dirac-loader-release-ready');
+      check();
+    }, 120);
+  }
+
+  function pauseWhenIdle(){
+    if(holding) return;
+    var existing = document.querySelectorAll('.dirac-loader-video');
+    for(var j=0;j<existing.length;j++){
+      try{ existing[j].pause(); }catch(_){ }
+    }
+    var audio = document.querySelector('.dirac-loader-audio');
+    if(audio){ try{ audio.pause(); audio.currentTime = 0; }catch(_){ } }
+    document.documentElement.classList.remove('dirac-video-ready');
+    wasActive = false;
   }
 
   function check(){
     var active = isActive();
     if(active){
-      var videos = ensureVideos();
-      document.documentElement.classList.add('dirac-video-ready');
-      for(var i=0;i<videos.length;i++) playVideo(videos[i], !wasActive);
+      ensureVideos();
+      if(!wasActive && !holding) startHold('');
+      else playMedia(false);
       wasActive = true;
     }else{
-      var existing = document.querySelectorAll('.dirac-loader-video');
-      for(var j=0;j<existing.length;j++) pauseVideo(existing[j]);
-      document.documentElement.classList.remove('dirac-video-ready');
-      wasActive = false;
+      pauseWhenIdle();
     }
   }
 
+  function isProtectedInternalUrl(url){
+    if(!url) return false;
+    var u;
+    try{ u = new URL(url, location.href); }catch(_){ return false; }
+    if(u.origin !== location.origin) return false;
+    var p = u.pathname.split('/').pop().toLowerCase();
+    if(!p && (u.pathname === '/' || u.pathname === '')) p = 'dashboard.html';
+    if(p === 'masuk.html' || p === 'masuk (3).html') return false;
+    return /^(dashboard|pesanan|parfum|customer-security)\.html$/i.test(p);
+  }
+
+  function setupNavigationHold(){
+    document.addEventListener('click', function(ev){
+      if(ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+      var a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
+      if(!a) return;
+      if(a.target && a.target !== '_self') return;
+      if(a.hasAttribute('download')) return;
+      var raw = a.getAttribute('href') || '';
+      if(!raw || raw.charAt(0) === '#' || /^\s*(javascript|mailto|tel):/i.test(raw)) return;
+      if(!isProtectedInternalUrl(raw)) return;
+      var u;
+      try{ u = new URL(raw, location.href); }catch(_){ return; }
+      if(u.href === location.href) return;
+      ev.preventDefault();
+      startHold(u.href);
+    }, true);
+  }
+
   function boot(){
+    ensureOverlay();
+    ensureAudio();
+    setupNavigationHold();
     check();
     try{
       if(document.body){
         new MutationObserver(check).observe(document.body, {attributes:true, childList:true, attributeFilter:['class']});
       }
-    }catch(_){}
+    }catch(_){ }
     window.addEventListener('pageshow', check, {passive:true});
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); }, {passive:true});
     var timer = setInterval(function(){
