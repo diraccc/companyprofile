@@ -346,8 +346,9 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
 
 
 <style id="dirac-protected-page-session-lock-css">
-/* DIRAC LOGO-ONLY PROTECTED LOADER FIX V4
+/* DIRAC LOGO LINE-SHINE PROTECTED LOADER FIX V5
    Scope: tampilan loader/verifikasi halaman protected saja.
+   Logo tetap diam; animasi hanya cahaya di garis/bentuk logo via PNG mask.
    Tidak mengubah login, A2F, payment gateway, webhook, hash, atau backend auth logic. */
 #diracProtectedLockOverlay{
   position:fixed;
@@ -373,20 +374,60 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
   text-align:center;
 }
 #diracProtectedLockOverlay .dirac-protected-logo-only{
-  width:220px;
-  height:220px;
+  position:relative;
+  isolation:isolate;
+  width:230px;
+  height:230px;
   display:grid;
   place-items:center;
-  border-radius:48px;
-  background:radial-gradient(circle at 50% 45%,rgba(37,99,235,.12),transparent 68%);
+  border-radius:50px;
+  background:radial-gradient(circle at 50% 45%,rgba(37,99,235,.13),transparent 70%);
   filter:drop-shadow(0 0 28px rgba(37,99,235,.55));
-  animation:diracLogoOnlyPulse 1.35s ease-in-out infinite;
+  overflow:visible;
+  transform:none!important;
+  animation:none!important;
 }
 #diracProtectedLockOverlay .dirac-protected-logo-only img{
+  position:relative;
+  z-index:1;
   width:100%;
   height:100%;
   object-fit:contain;
   display:block;
+  transform:none!important;
+  animation:none!important;
+}
+#diracProtectedLockOverlay .dirac-protected-logo-only::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 36%,
+    rgba(59,130,246,.12) 43%,
+    rgba(147,197,253,.95) 49%,
+    rgba(255,255,255,.82) 51%,
+    rgba(37,99,235,.90) 55%,
+    rgba(37,99,235,.18) 62%,
+    transparent 70%,
+    transparent 100%
+  );
+  background-size:260% 100%;
+  background-position:-160% 0;
+  -webkit-mask-image:url("dirac-security.png");
+  mask-image:url("dirac-security.png");
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:contain;
+  mask-size:contain;
+  mix-blend-mode:screen;
+  filter:drop-shadow(0 0 12px rgba(96,165,250,.70));
+  animation:diracLogoLineShine 1.55s ease-in-out infinite;
 }
 #diracProtectedLockOverlay strong,
 #diracProtectedLockOverlay p,
@@ -402,21 +443,23 @@ body.dirac-protected-locked main{
   pointer-events:none!important;
   user-select:none!important;
 }
-@keyframes diracLogoOnlyPulse{
-  0%,100%{transform:scale(.985);opacity:.78;filter:drop-shadow(0 0 18px rgba(37,99,235,.35));}
-  50%{transform:scale(1.035);opacity:1;filter:drop-shadow(0 0 34px rgba(59,130,246,.72));}
+@keyframes diracLogoLineShine{
+  0%{background-position:-170% 0;opacity:.15;}
+  18%{opacity:1;}
+  58%{background-position:170% 0;opacity:1;}
+  100%{background-position:170% 0;opacity:.15;}
 }
 @media(max-width:520px){
-  #diracProtectedLockOverlay .dirac-protected-logo-only{width:200px;height:200px;border-radius:44px;}
+  #diracProtectedLockOverlay .dirac-protected-logo-only{width:210px;height:210px;border-radius:46px;}
 }
 @media(prefers-reduced-motion:reduce){
-  #diracProtectedLockOverlay .dirac-protected-logo-only{animation:none!important;opacity:1;}
+  #diracProtectedLockOverlay .dirac-protected-logo-only::after{animation:none!important;opacity:.70;}
 }
 </style>
 
 
-<style id="dirac-logo-only-native-loader-fix-v4">
-/* Logo-only loader untuk gate bawaan halaman. Tidak mengubah auth logic. */
+<style id="dirac-logo-line-shine-native-loader-fix-v5">
+/* Native gate loader fallback V5: logo tetap diam, animasi hanya cahaya di garis logo. Tidak mengubah auth logic. */
 body.gate-checking .security-gate .gate-card{
   width:auto!important;
   min-width:0!important;
@@ -426,58 +469,114 @@ body.gate-checking .security-gate .gate-card{
   padding:0!important;
 }
 body.gate-checking .security-gate .gate-icon{
-  width:220px!important;
-  height:220px!important;
+  position:relative!important;
+  isolation:isolate!important;
+  width:230px!important;
+  height:230px!important;
   margin:0 auto!important;
   border:0!important;
-  border-radius:48px!important;
+  border-radius:50px!important;
   background:url("dirac-security.png") center/contain no-repeat!important;
   box-shadow:none!important;
   font-size:0!important;
   filter:drop-shadow(0 0 28px rgba(37,99,235,.55))!important;
-  animation:diracNativeLogoPulse 1.35s ease-in-out infinite!important;
+  transform:none!important;
+  animation:none!important;
+  overflow:visible!important;
+}
+body.gate-checking .security-gate .gate-icon::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:2!important;
+  pointer-events:none!important;
+  display:block!important;
+  background:linear-gradient(115deg,transparent 0%,transparent 36%,rgba(59,130,246,.12) 43%,rgba(147,197,253,.95) 49%,rgba(255,255,255,.82) 51%,rgba(37,99,235,.90) 55%,rgba(37,99,235,.18) 62%,transparent 70%,transparent 100%)!important;
+  background-size:260% 100%!important;
+  background-position:-160% 0!important;
+  -webkit-mask-image:url("dirac-security.png")!important;
+  mask-image:url("dirac-security.png")!important;
+  -webkit-mask-repeat:no-repeat!important;
+  mask-repeat:no-repeat!important;
+  -webkit-mask-position:center!important;
+  mask-position:center!important;
+  -webkit-mask-size:contain!important;
+  mask-size:contain!important;
+  mix-blend-mode:screen!important;
+  filter:drop-shadow(0 0 12px rgba(96,165,250,.70))!important;
+  animation:diracNativeLogoLineShine 1.55s ease-in-out infinite!important;
 }
 body.gate-checking .security-gate .gate-card h1,
 body.gate-checking .security-gate .gate-card p,
 body.gate-checking .security-gate .gate-actions,
-body.gate-checking .security-gate .security-backend-note,
-body.gate-checking .security-gate .gate-card:after{
+body.gate-checking .security-gate .security-backend-note{
   display:none!important;
   content:none!important;
 }
 body.gate-checking .gate:not([hidden]) .gate-card{
+  position:relative!important;
   width:auto!important;
   min-width:0!important;
   border:0!important;
   background:transparent!important;
   box-shadow:none!important;
   padding:0!important;
+  overflow:visible!important;
 }
 body.gate-checking .gate:not([hidden]) .gate-card > *{
   display:none!important;
 }
 body.gate-checking .gate:not([hidden]) .gate-card:before{
   content:"";
-  width:220px;
-  height:220px;
+  width:230px;
+  height:230px;
   display:block;
   margin:0 auto;
-  border-radius:48px;
+  border-radius:50px;
   background:url("dirac-security.png") center/contain no-repeat;
   filter:drop-shadow(0 0 28px rgba(37,99,235,.55));
-  animation:diracNativeLogoPulse 1.35s ease-in-out infinite;
+  transform:none!important;
+  animation:none!important;
 }
-@keyframes diracNativeLogoPulse{
-  0%,100%{transform:scale(.985);opacity:.78;filter:drop-shadow(0 0 18px rgba(37,99,235,.35));}
-  50%{transform:scale(1.035);opacity:1;filter:drop-shadow(0 0 34px rgba(59,130,246,.72));}
+body.gate-checking .gate:not([hidden]) .gate-card:after{
+  content:""!important;
+  position:absolute!important;
+  left:50%!important;
+  top:0!important;
+  width:230px!important;
+  height:230px!important;
+  margin-left:-115px!important;
+  pointer-events:none!important;
+  display:block!important;
+  background:linear-gradient(115deg,transparent 0%,transparent 36%,rgba(59,130,246,.12) 43%,rgba(147,197,253,.95) 49%,rgba(255,255,255,.82) 51%,rgba(37,99,235,.90) 55%,rgba(37,99,235,.18) 62%,transparent 70%,transparent 100%)!important;
+  background-size:260% 100%!important;
+  background-position:-160% 0!important;
+  -webkit-mask-image:url("dirac-security.png")!important;
+  mask-image:url("dirac-security.png")!important;
+  -webkit-mask-repeat:no-repeat!important;
+  mask-repeat:no-repeat!important;
+  -webkit-mask-position:center!important;
+  mask-position:center!important;
+  -webkit-mask-size:contain!important;
+  mask-size:contain!important;
+  mix-blend-mode:screen!important;
+  filter:drop-shadow(0 0 12px rgba(96,165,250,.70))!important;
+  animation:diracNativeLogoLineShine 1.55s ease-in-out infinite!important;
+}
+@keyframes diracNativeLogoLineShine{
+  0%{background-position:-170% 0;opacity:.15;}
+  18%{opacity:1;}
+  58%{background-position:170% 0;opacity:1;}
+  100%{background-position:170% 0;opacity:.15;}
 }
 @media(max-width:520px){
   body.gate-checking .security-gate .gate-icon,
-  body.gate-checking .gate:not([hidden]) .gate-card:before{width:200px;height:200px;border-radius:44px;}
+  body.gate-checking .gate:not([hidden]) .gate-card:before{width:210px!important;height:210px!important;border-radius:46px!important;}
+  body.gate-checking .gate:not([hidden]) .gate-card:after{width:210px!important;height:210px!important;margin-left:-105px!important;}
 }
 @media(prefers-reduced-motion:reduce){
-  body.gate-checking .security-gate .gate-icon,
-  body.gate-checking .gate:not([hidden]) .gate-card:before{animation:none!important;opacity:1;}
+  body.gate-checking .security-gate .gate-icon::after,
+  body.gate-checking .gate:not([hidden]) .gate-card:after{animation:none!important;opacity:.70!important;}
 }
 </style>
 
