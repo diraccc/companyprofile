@@ -344,67 +344,294 @@ html[data-motion="reduced"] .dirac-3d-backdrop,html[data-motion="reduced"] .dira
 .announcement{display:none!important;}
 </style>
 
-
-<style id="dirac-protected-page-session-lock-css">
-/* DIRAC PROTECTED LOCK PATCH
-   Scope: protected-page lock only. Does not change login, A2F, payment, webhook, hash, or backend auth logic. */
-#diracProtectedLockOverlay{
+<!-- DIRAC VERIFY ONCE + LOGO LOADER PATCH: protected pages only. Asset expected at ./dirac-security.png -->
+<style id="dirac-verify-once-logo-loader-css">
+/* DIRAC VERIFY ONCE + LOGO LOADER PATCH
+   Scope: protected-page verification UI/dedup only.
+   Does not change login, A2F, payment gateway, webhook, hash, checkout, order, or backend logic.
+   Logo asset path is root-relative-to-page: dirac-security.png, placed beside index.html and these HTML files.
+*/
+#diracUnifiedVerifyOverlay{
   position:fixed;
   inset:0;
-  z-index:2147483000;
+  z-index:2147483600;
   display:none;
   place-items:center;
-  padding:18px;
+  padding:22px;
   background:
-    radial-gradient(circle at 16% 0%,rgba(243,205,112,.20),transparent 34rem),
-    radial-gradient(circle at 86% 8%,rgba(56,189,248,.12),transparent 28rem),
-    linear-gradient(180deg,#07090d,#020304);
-  color:#f9fafb;
+    radial-gradient(circle at 50% 34%,rgba(37,99,235,.20),transparent 22rem),
+    radial-gradient(circle at 20% 0%,rgba(59,130,246,.14),transparent 28rem),
+    linear-gradient(180deg,#050608 0%,#02040a 100%);
+  color:#f8fafc;
   font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;
 }
-#diracProtectedLockOverlay .dirac-protected-lock-card{
-  width:min(520px,100%);
-  border-radius:28px;
-  border:1px solid rgba(243,205,112,.28);
-  background:linear-gradient(180deg,rgba(255,255,255,.095),rgba(255,255,255,.04));
-  box-shadow:0 24px 70px rgba(0,0,0,.45);
-  padding:24px;
+body.dirac-unified-verify-on #diracUnifiedVerifyOverlay{display:grid!important;}
+body.dirac-unified-verify-on .security-gate,
+body.dirac-unified-verify-on .gate-lock,
+body.dirac-unified-verify-on #diracProtectedLockOverlay{display:none!important;}
+#diracUnifiedVerifyOverlay .dirac-unified-verify-card{
+  width:min(440px,calc(100vw - 36px));
+  display:grid;
+  justify-items:center;
+  gap:16px;
   text-align:center;
 }
-#diracProtectedLockOverlay .dirac-protected-lock-icon{
-  width:64px;
-  height:64px;
-  margin:0 auto 12px;
-  border-radius:22px;
+#diracUnifiedVerifyOverlay .dirac-unified-logo-wrap{
+  position:relative;
+  width:188px;
+  height:188px;
   display:grid;
   place-items:center;
-  background:rgba(243,205,112,.14);
-  border:1px solid rgba(243,205,112,.28);
-  font-size:1.8rem;
+  border-radius:38px;
+  isolation:isolate;
+  filter:drop-shadow(0 0 22px rgba(37,99,235,.40));
 }
-#diracProtectedLockOverlay strong{
+#diracUnifiedVerifyOverlay .dirac-unified-logo-wrap:before{
+  content:"";
+  position:absolute;
+  inset:12px;
+  z-index:-2;
+  border-radius:42px;
+  background:radial-gradient(circle,rgba(37,99,235,.18),transparent 68%);
+  box-shadow:0 0 48px rgba(37,99,235,.22);
+}
+#diracUnifiedVerifyOverlay .dirac-unified-logo-base,
+#diracUnifiedVerifyOverlay .dirac-unified-logo-light{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+#diracUnifiedVerifyOverlay .dirac-unified-logo-base{
+  z-index:1;
+  filter:drop-shadow(0 0 9px rgba(37,99,235,.42)) drop-shadow(0 0 20px rgba(37,99,235,.18));
+}
+#diracUnifiedVerifyOverlay .dirac-unified-logo-light{
+  z-index:2;
+  pointer-events:none;
+  background:linear-gradient(115deg,
+    transparent 0%,
+    transparent 34%,
+    rgba(37,99,235,.18) 42%,
+    rgba(96,165,250,.96) 49%,
+    rgba(239,246,255,1) 51%,
+    rgba(59,130,246,.96) 55%,
+    rgba(37,99,235,.22) 62%,
+    transparent 72%,
+    transparent 100%);
+  background-size:235% 100%;
+  background-position:-135% 0;
+  -webkit-mask-image:url("dirac-security.png");
+  -webkit-mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  -webkit-mask-size:contain;
+  mask-image:url("dirac-security.png");
+  mask-repeat:no-repeat;
+  mask-position:center;
+  mask-size:contain;
+  mix-blend-mode:screen;
+  filter:drop-shadow(0 0 11px rgba(96,165,250,.90)) drop-shadow(0 0 22px rgba(37,99,235,.44));
+  animation:diracUnifiedLineGlow 1.55s cubic-bezier(.4,0,.2,1) infinite;
+}
+#diracUnifiedVerifyOverlay .dirac-unified-progress{
+  width:min(260px,72vw);
+  height:3px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(148,163,184,.18);
+  box-shadow:0 0 18px rgba(37,99,235,.16);
+}
+#diracUnifiedVerifyOverlay .dirac-unified-progress:before{
+  content:"";
   display:block;
-  color:#f3cd70;
-  font-size:1.25rem;
-  line-height:1.25;
-  margin-bottom:8px;
+  width:42%;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,transparent,rgba(96,165,250,.98),rgba(239,246,255,.98),rgba(37,99,235,.92),transparent);
+  animation:diracUnifiedProgress 1.08s ease-in-out infinite;
 }
-#diracProtectedLockOverlay p{
+#diracUnifiedVerifyOverlay .dirac-unified-title{
   margin:0;
-  color:#cbd5e1;
-  line-height:1.6;
+  color:#dbeafe;
+  font-size:.94rem;
+  line-height:1.45;
+  font-weight:900;
+  letter-spacing:.025em;
+  text-shadow:0 0 18px rgba(59,130,246,.36);
 }
-body.dirac-protected-checking #diracProtectedLockOverlay,
-body.dirac-protected-locked #diracProtectedLockOverlay{
-  display:grid!important;
+#diracUnifiedVerifyOverlay .dirac-unified-subtitle{
+  margin:-8px 0 0;
+  color:#93c5fd;
+  font-size:.78rem;
+  font-weight:750;
+  opacity:.86;
 }
-body.dirac-protected-checking main,
-body.dirac-protected-locked main{
-  pointer-events:none!important;
-  user-select:none!important;
+@keyframes diracUnifiedLineGlow{
+  0%{background-position:-135% 0;opacity:.55;}
+  18%{opacity:1;}
+  62%{background-position:135% 0;opacity:1;}
+  100%{background-position:135% 0;opacity:.55;}
+}
+@keyframes diracUnifiedProgress{
+  0%{transform:translateX(-120%);}
+  100%{transform:translateX(260%);}
+}
+@media(max-width:520px){
+  #diracUnifiedVerifyOverlay .dirac-unified-logo-wrap{width:164px;height:164px;}
+  #diracUnifiedVerifyOverlay .dirac-unified-title{font-size:.88rem;}
+}
+@media(prefers-reduced-motion:reduce){
+  #diracUnifiedVerifyOverlay .dirac-unified-logo-light,
+  #diracUnifiedVerifyOverlay .dirac-unified-progress:before{animation:none!important;}
 }
 </style>
+<script id="dirac-verify-once-logo-loader-js">
+(function(){
+  'use strict';
+  if(window.__DIRAC_VERIFY_ONCE_LOGO_LOADER_V3__) return;
+  window.__DIRAC_VERIFY_ONCE_LOGO_LOADER_V3__ = true;
 
+  var LOGO_SRC = 'dirac-security.png';
+  var VERIFY_ACTIONS = {
+    domain_dashboard_me: true,
+    customer_security_guard_status: true
+  };
+  var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+  var inFlight = Object.create(null);
+  var recent = Object.create(null);
+  var activeVerifyCount = 0;
+  var firstVerifyUiDone = false;
+  var hideTimer = 0;
+  var RECENT_CACHE_MS = 1800;
+
+  function now(){ return Date.now ? Date.now() : new Date().getTime(); }
+
+  function actionFromInput(input){
+    var raw = '';
+    try{
+      if(typeof input === 'string') raw = input;
+      else if(input && typeof input.url === 'string') raw = input.url;
+      else if(input && input.href) raw = input.href;
+      if(!raw) return '';
+      var url = new URL(raw, window.location.href);
+      if(url.pathname.indexOf('/api/health') === -1) return '';
+      return String(url.searchParams.get('action') || '').trim();
+    }catch(_){
+      return '';
+    }
+  }
+
+  function methodFrom(input, init){
+    return String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+  }
+
+  function isBodyless(input, init){
+    if(init && init.body != null) return false;
+    try{ if(input && input.bodyUsed) return false; }catch(_){ }
+    return true;
+  }
+
+  function verifyKey(input, init){
+    var action = actionFromInput(input);
+    if(!VERIFY_ACTIONS[action]) return '';
+    var method = methodFrom(input, init);
+    if(method !== 'GET' && method !== 'HEAD') return '';
+    if(!isBodyless(input, init)) return '';
+    return method + ':' + action;
+  }
+
+  function ensureOverlay(){
+    if(!document.body) return null;
+    var overlay = document.getElementById('diracUnifiedVerifyOverlay');
+    if(overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'diracUnifiedVerifyOverlay';
+    overlay.setAttribute('role','status');
+    overlay.setAttribute('aria-live','polite');
+    overlay.setAttribute('aria-label','Memverifikasi sesi pelanggan');
+    overlay.innerHTML = '' +
+      '<div class="dirac-unified-verify-card">' +
+        '<div class="dirac-unified-logo-wrap" aria-hidden="true">' +
+          '<img class="dirac-unified-logo-base" src="' + LOGO_SRC + '" alt="">' +
+          '<span class="dirac-unified-logo-light"></span>' +
+        '</div>' +
+        '<div class="dirac-unified-progress" aria-hidden="true"></div>' +
+        '<p class="dirac-unified-title">Memverifikasi sesi pelanggan...</p>' +
+        '<p class="dirac-unified-subtitle">Dirac Security</p>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function showVerifyUi(){
+    if(firstVerifyUiDone) return;
+    if(hideTimer){ clearTimeout(hideTimer); hideTimer = 0; }
+    ensureOverlay();
+    if(document.body) document.body.classList.add('dirac-unified-verify-on');
+  }
+
+  function hideVerifyUi(){
+    if(activeVerifyCount > 0) return;
+    firstVerifyUiDone = true;
+    if(hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(function(){
+      if(document.body) document.body.classList.remove('dirac-unified-verify-on');
+      try{ document.documentElement.setAttribute('data-dirac-verify-once','done'); }catch(_){ }
+    }, 160);
+  }
+
+  function cloneOrSelf(response){
+    try{ return response && response.clone ? response.clone() : response; }catch(_){ return response; }
+  }
+
+  if(nativeFetch){
+    window.fetch = function(input, init){
+      var key = verifyKey(input, init);
+      if(!key) return nativeFetch(input, init);
+
+      var stamp = now();
+      var cached = recent[key];
+      if(cached && cached.expires > stamp && cached.response){
+        return Promise.resolve(cloneOrSelf(cached.response));
+      }
+
+      if(inFlight[key]){
+        return inFlight[key].then(function(response){ return cloneOrSelf(response); });
+      }
+
+      activeVerifyCount += 1;
+      showVerifyUi();
+
+      var promise = nativeFetch(input, init).then(function(response){
+        try{
+          recent[key] = { response: cloneOrSelf(response), expires: now() + RECENT_CACHE_MS };
+        }catch(_){ }
+        return response;
+      });
+
+      inFlight[key] = promise;
+
+      return promise.then(function(response){
+        return cloneOrSelf(response);
+      }, function(error){
+        throw error;
+      }).finally(function(){
+        delete inFlight[key];
+        activeVerifyCount = Math.max(0, activeVerifyCount - 1);
+        hideVerifyUi();
+      });
+    };
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ensureOverlay, { once:true });
+  }else{
+    ensureOverlay();
+  }
+})();
+</script>
+<!-- /DIRAC VERIFY ONCE + LOGO LOADER PATCH -->
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
@@ -1340,301 +1567,5 @@ body.dirac-protected-locked main{
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
 })();
 </script>
-
-
-
-<script id="dirac-protected-page-session-lock-js">
-(function(){
-  'use strict';
-
-  /*
-    DIRAC PROTECTED LOCK PATCH
-    Tujuan:
-    - halaman protected tidak bisa muncul lagi dari Safari/Browser Back Forward Cache setelah logout;
-    - tab/browser yang dibuka ulang wajib cek sesi backend lagi;
-    - user tidak aktif 2 menit otomatis logout dan redirect ke masuk.html.
-    Batas:
-    - tidak mengubah login, A2F, payment gateway, webhook, hash, atau backend health.js;
-    - tidak membaca/menulis token untuk membuka akses;
-    - verifikasi akses tetap lewat backend HttpOnly cookie: /api/health?action=domain_dashboard_me.
-  */
-
-  var LOGIN_PAGE = 'masuk.html';
-  var API_BASE = '/api/health';
-  var VERIFY_ENDPOINT = API_BASE + '?action=domain_dashboard_me';
-  var LOGOUT_ENDPOINT = API_BASE + '?action=domain_logout';
-  var IDLE_LIMIT_MS = 2 * 60 * 1000;
-  var CHECK_INTERVAL_MS = 5000;
-  var ACTIVITY_KEY = 'dirac_protected_last_activity_v1';
-  var LOGOUT_STAMP_KEY = 'dirac_protected_last_logout_v1';
-  var loggingOut = false;
-  var checking = false;
-  var checkTimer = 0;
-
-  function now(){
-    return Date.now ? Date.now() : new Date().getTime();
-  }
-
-  function withCacheBust(url){
-    var sep = String(url || '').indexOf('?') === -1 ? '?' : '&';
-    return String(url || '') + sep + '_t=' + now();
-  }
-
-  function setStore(key, value){
-    try{ window.localStorage.setItem(key, String(value)); }catch(_){}
-  }
-
-  function getStoreNumber(key, fallback){
-    try{
-      var raw = window.localStorage.getItem(key);
-      var n = Number(raw);
-      return Number.isFinite(n) && n > 0 ? n : fallback;
-    }catch(_){
-      return fallback;
-    }
-  }
-
-  function removeStore(key){
-    try{ window.localStorage.removeItem(key); }catch(_){}
-  }
-
-  function purgeClientAuthStorage(){
-    var keys = [
-      'dirac_auth_session_v1',
-      'dirac_auth_a2f_v1',
-      'dirac_auth_a2f_dashboard_ready_v1',
-      'dirac_dashboard_gate_v1',
-      'dirac_domain_session',
-      'dirac_domain_refresh',
-      'dirac_customer_mfa_session',
-      'sb-auth-token',
-      'supabase.auth.token'
-    ];
-    [window.localStorage, window.sessionStorage].forEach(function(store){
-      if(!store) return;
-      keys.forEach(function(key){
-        try{ store.removeItem(key); }catch(_){}
-      });
-    });
-    try{ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = {}; }catch(_){}
-  }
-
-  function loginUrl(reason){
-    var clean = encodeURIComponent(String(reason || 'locked').replace(/[^a-z0-9_-]/gi, '').slice(0, 32) || 'locked');
-    return LOGIN_PAGE + '?protected=1&reason=' + clean + '&t=' + now();
-  }
-
-  function replaceToLogin(reason){
-    try{
-      window.location.replace(loginUrl(reason));
-    }catch(_){
-      window.location.href = loginUrl(reason);
-    }
-  }
-
-  function ensureOverlay(){
-    if(document.getElementById('diracProtectedLockOverlay')) return;
-    var overlay = document.createElement('div');
-    overlay.id = 'diracProtectedLockOverlay';
-    overlay.setAttribute('role', 'status');
-    overlay.setAttribute('aria-live', 'polite');
-    overlay.innerHTML =
-      '<div class="dirac-protected-lock-card">' +
-        '<div class="dirac-protected-lock-icon" aria-hidden="true">🔒</div>' +
-        '<strong>Memverifikasi sesi pelanggan</strong>' +
-        '<p>Halaman protected sedang dicek ulang melalui backend. Jika sesi habis, kamu akan diarahkan ke halaman masuk.</p>' +
-      '</div>';
-    if(document.body) document.body.appendChild(overlay);
-  }
-
-  function setChecking(on){
-    ensureOverlay();
-    if(!document.body) return;
-    document.body.classList.toggle('dirac-protected-checking', !!on);
-  }
-
-  function setLocked(on){
-    ensureOverlay();
-    if(!document.body) return;
-    document.body.classList.toggle('dirac-protected-locked', !!on);
-  }
-
-  function markActivity(){
-    if(loggingOut) return;
-    setStore(ACTIVITY_KEY, now());
-  }
-
-  function ensureActivitySeed(){
-    // SAFE V2: selalu reset seed saat halaman protected benar-benar dimuat.
-    // Idle lintas close/reopen dikunci oleh backend/database, bukan localStorage lama.
-    markActivity();
-  }
-
-  function isIdleExpired(){
-    var last = getStoreNumber(ACTIVITY_KEY, now());
-    return (now() - last) >= IDLE_LIMIT_MS;
-  }
-
-  async function postBackendLogout(){
-    try{
-      await Promise.race([
-        fetch(withCacheBust(LOGOUT_ENDPOINT), {
-          method: 'POST',
-          mode: 'same-origin',
-          credentials: 'include',
-          cache: 'no-store',
-          keepalive: true,
-          headers: { 'Accept': 'application/json' }
-        }).catch(function(){ return null; }),
-        new Promise(function(resolve){ setTimeout(resolve, 1800); })
-      ]);
-    }catch(_){}
-  }
-
-  async function forceLogout(reason){
-    if(loggingOut) return;
-    loggingOut = true;
-    setChecking(false);
-    setLocked(true);
-    purgeClientAuthStorage();
-    setStore(LOGOUT_STAMP_KEY, now());
-    await postBackendLogout();
-    purgeClientAuthStorage();
-    removeStore(ACTIVITY_KEY);
-    replaceToLogin(reason || 'logout');
-  }
-
-  async function verifyBackendSession(reason){
-    if(loggingOut || checking) return;
-    if(isIdleExpired()){
-      await forceLogout('idle');
-      return;
-    }
-
-    checking = true;
-    setChecking(true);
-    setLocked(false);
-
-    try{
-      var res = await fetch(withCacheBust(VERIFY_ENDPOINT), {
-        method: 'GET',
-        mode: 'same-origin',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      var data = null;
-      try{ data = await res.clone().json(); }catch(_){ data = null; }
-
-      var user = data && data.user;
-      var ok = !!(res.ok && data && data.ok === true && data.dashboard === true && user && (user.id || user.email));
-
-      if(!ok){
-        purgeClientAuthStorage();
-        removeStore(ACTIVITY_KEY);
-        setStore(LOGOUT_STAMP_KEY, now());
-        setLocked(true);
-        replaceToLogin(res && res.status ? 'session' + res.status : (reason || 'session'));
-        return;
-      }
-
-      document.documentElement.setAttribute('data-dirac-protected-session', 'verified');
-      setLocked(false);
-      setChecking(false);
-    }catch(_){
-      purgeClientAuthStorage();
-      removeStore(ACTIVITY_KEY);
-      setStore(LOGOUT_STAMP_KEY, now());
-      setLocked(true);
-      replaceToLogin(reason || 'network');
-    }finally{
-      checking = false;
-      setChecking(false);
-    }
-  }
-
-  function bindActivityWatch(){
-    ['click','pointerdown','keydown','scroll','touchstart'].forEach(function(eventName){
-      window.addEventListener(eventName, markActivity, { passive:true, capture:true });
-    });
-  }
-
-  function bindLogoutCapture(){
-    document.addEventListener('click', function(event){
-      var target = event.target && event.target.closest ? event.target.closest('#logoutBtn,#mobileLogoutBtn,[data-dirac-logout]') : null;
-      if(!target) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if(event.stopImmediatePropagation) event.stopImmediatePropagation();
-      forceLogout('manual');
-    }, true);
-  }
-
-  function bindLifecycleWatch(){
-    window.addEventListener('pageshow', function(){
-      verifyBackendSession('pageshow');
-    });
-
-    window.addEventListener('focus', function(){
-      verifyBackendSession('focus');
-    });
-
-    document.addEventListener('visibilitychange', function(){
-      if(document.hidden){
-        setStore(ACTIVITY_KEY, getStoreNumber(ACTIVITY_KEY, now()));
-        try{
-          if(document.body) document.body.classList.add('dirac-protected-checking');
-        }catch(_){}
-        return;
-      }
-      verifyBackendSession('visible');
-    });
-
-    window.addEventListener('pagehide', function(){
-      try{
-        if(document.body) document.body.classList.add('dirac-protected-checking');
-      }catch(_){}
-    });
-
-    window.addEventListener('storage', function(event){
-      if(!event) return;
-      if(event.key === LOGOUT_STAMP_KEY && event.newValue){
-        replaceToLogin('logout');
-      }
-      if(event.key === ACTIVITY_KEY && isIdleExpired()){
-        forceLogout('idle');
-      }
-    });
-  }
-
-  function startIdleTimer(){
-    clearInterval(checkTimer);
-    checkTimer = setInterval(function(){
-      if(loggingOut) return;
-      if(isIdleExpired()){
-        forceLogout('idle');
-      }
-    }, CHECK_INTERVAL_MS);
-  }
-
-  function init(){
-    ensureOverlay();
-    ensureActivitySeed();
-    bindActivityWatch();
-    bindLogoutCapture();
-    bindLifecycleWatch();
-    startIdleTimer();
-    verifyBackendSession('load');
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init, { once:true });
-  }else{
-    init();
-  }
-})();
-</script>
-
 </body>
 </html>
