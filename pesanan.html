@@ -1,6 +1,67 @@
 <!doctype html>
 <html lang="id" data-theme="dark" data-effective-theme="dark" data-motion="full" data-contrast="off">
 <head>
+
+<!-- DIRAC PATCH: global storage guard + synced color/language + improved session loader -->
+<style id="dirac-session-check-loader-ultra-v6">
+html body.gate-checking,
+html body.dirac-protected-checking,
+html body.dirac-protected-locked{background:#000!important;}
+html body.gate-checking .security-gate,
+html body.gate-locked.gate-checking .security-gate,
+html body.gate-checking .gate,
+html body.gate-hardlocked.gate-checking .gate,
+html #diracProtectedLockOverlay{background:#000!important;background-image:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+html body.gate-checking .security-gate .gate-card,
+html body.gate-checking .gate:not([hidden]) .gate-card,
+html #diracProtectedLockOverlay .dirac-protected-lock-card{position:relative!important;display:grid!important;place-items:center!important;overflow:visible!important;}
+html body.gate-checking .security-gate .gate-icon,
+html body.gate-checking .gate:not([hidden]) .gate-card:before,
+html #diracProtectedLockOverlay .dirac-protected-logo-only{width:260px!important;height:260px!important;border-radius:58px!important;filter:drop-shadow(0 0 34px rgba(var(--theme-rgb,243,205,112),.58))!important;}
+html body.gate-checking .security-gate .gate-icon::after,
+html body.gate-checking .gate:not([hidden]) .gate-card:after,
+html #diracProtectedLockOverlay .dirac-protected-logo-only::after{width:260px!important;height:260px!important;margin-left:-130px!important;filter:drop-shadow(0 0 18px rgba(var(--theme-rgb,243,205,112),.75))!important;}
+html body.gate-checking .security-gate .gate-card::after,
+html #diracProtectedLockOverlay .dirac-protected-lock-card::after{content:"Mengecek Sesi Pelanggan"!important;display:block!important;margin-top:24px!important;color:#fff!important;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;font-weight:900!important;font-size:clamp(1.02rem,3.6vw,1.42rem)!important;letter-spacing:.08em!important;text-transform:uppercase!important;text-align:center!important;background:linear-gradient(90deg,#ffffff,#f7df9d,var(--gold,#f3cd70),#ffffff)!important;background-size:260% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;animation:diracSessionTextGlowV6 2.2s ease-in-out infinite!important;text-shadow:0 0 18px rgba(var(--theme-rgb,243,205,112),.20)!important;}
+html body.gate-checking .gate:not([hidden])::after{content:"Mengecek Sesi Pelanggan"!important;position:absolute!important;left:50%!important;top:calc(50% + 166px)!important;transform:translateX(-50%)!important;display:block!important;width:min(92vw,560px)!important;color:#fff!important;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif!important;font-weight:900!important;font-size:clamp(1.02rem,3.6vw,1.42rem)!important;letter-spacing:.08em!important;text-transform:uppercase!important;text-align:center!important;background:linear-gradient(90deg,#ffffff,#f7df9d,var(--gold,#f3cd70),#ffffff)!important;background-size:260% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;animation:diracSessionTextGlowV6 2.2s ease-in-out infinite!important;z-index:2147483001!important;pointer-events:none!important;}
+@keyframes diracSessionTextGlowV6{0%{background-position:0% 50%;opacity:.72;filter:drop-shadow(0 0 0 rgba(var(--theme-rgb,243,205,112),0));}50%{background-position:100% 50%;opacity:1;filter:drop-shadow(0 0 12px rgba(var(--theme-rgb,243,205,112),.36));}100%{background-position:0% 50%;opacity:.72;filter:drop-shadow(0 0 0 rgba(var(--theme-rgb,243,205,112),0));}}
+@media(max-width:520px){html body.gate-checking .security-gate .gate-icon,html body.gate-checking .gate:not([hidden]) .gate-card:before,html #diracProtectedLockOverlay .dirac-protected-logo-only{width:230px!important;height:230px!important;border-radius:52px!important;}html body.gate-checking .security-gate .gate-icon::after,html body.gate-checking .gate:not([hidden]) .gate-card:after,html #diracProtectedLockOverlay .dirac-protected-logo-only::after{width:230px!important;height:230px!important;margin-left:-115px!important;}html body.gate-checking .gate:not([hidden])::after{top:calc(50% + 148px)!important;}}
+@media(prefers-reduced-motion:reduce){html body.gate-checking .security-gate .gate-card::after,html body.gate-checking .gate:not([hidden])::after,html #diracProtectedLockOverlay .dirac-protected-lock-card::after{animation:none!important;opacity:1!important;}}
+</style>
+<script id="dirac-global-color-language-storage-v6">
+(function(){
+  'use strict';
+  var THEME_KEY='dirac_theme_settings_v2';
+  var LANG_KEY='dirac_language_v1';
+  var allowed={}; allowed[THEME_KEY]=true; allowed[LANG_KEY]=true;
+  var PALETTES={
+    gold:['#f3cd70','#d6a642','#8e6425','243,205,112'],champagne:['#ffe9a8','#e9c46a','#9f6b1f','255,233,168'],sand:['#d6b076','#b88943','#6b4a23','214,176,118'],bronze:['#d6b27a','#9a6b2f','#4a2b12','214,178,122'],blue:['#4f83ff','#2563eb','#1e3a8a','79,131,255'],sky:['#38bdf8','#0284c7','#075985','56,189,248'],cyan:['#38c7f0','#0891b2','#164e63','56,199,240'],ocean:['#0ea5e9','#0369a1','#0c4a6e','14,165,233'],royal:['#60a5fa','#2563eb','#1e3a8a','96,165,250'],sapphire:['#4f83ff','#2563eb','#1e3a8a','79,131,255'],indigo:['#6366f1','#4f46e5','#312e81','99,102,241'],purple:['#7c3aed','#5b21b6','#35126d','124,58,237'],violet:['#8b5cf6','#7c3aed','#4c1d95','139,92,246'],amethyst:['#a855f7','#9333ea','#581c87','168,85,247'],lavender:['#b095ff','#8b5cf6','#4c1d95','176,149,255'],magenta:['#d946ef','#a21caf','#701a75','217,70,239'],fuchsia:['#e879f9','#c026d3','#701a75','232,121,249'],pink:['#ec4899','#be185d','#7f123d','236,72,153'],rose:['#fb7185','#e11d48','#881337','251,113,133'],ruby:['#f43f5e','#e11d48','#881337','244,63,94'],red:['#ef4444','#dc2626','#7f1d1d','239,68,68'],coral:['#fb7185','#f97316','#9a3412','251,113,133'],sunset:['#fb923c','#f43f5e','#7f1d1d','251,146,60'],orange:['#fb6a3d','#ea580c','#7c2d12','251,106,61'],amber:['#f59e0b','#d97706','#78350f','245,158,11'],lime:['#a3e635','#65a30d','#365314','163,230,53'],green:['#34d399','#059669','#065f46','52,211,153'],emerald:['#34d399','#10b981','#064e3b','52,211,153'],mint:['#6ee7b7','#14b8a6','#115e59','110,231,183'],jade:['#2dd4bf','#0f766e','#134e4a','45,212,191'],teal:['#0f8b8d','#0f766e','#134e4a','15,139,141'],aqua:['#22d3ee','#0891b2','#164e63','34,211,238'],graphite:['#94a3b8','#64748b','#334155','148,163,184'],slate:['#64748b','#334155','#0f172a','100,116,139'],coffee:['#c08457','#92400e','#451a03','192,132,87'],copper:['#c08457','#9a5f36','#5c341f','192,132,87'],mocha:['#a16207','#854d0e','#422006','161,98,7'],espresso:['#92400e','#78350f','#431407','146,64,14'],pearl:['#f8fafc','#cbd5e1','#64748b','248,250,252'],neon:['#22c55e','#16a34a','#14532d','34,197,94']
+  };
+  function parse(raw){try{return raw?JSON.parse(raw):{};}catch(_){return {};}}
+  function localGet(k){try{return window.localStorage.getItem(k);}catch(_){return null;}}
+  function localSet(k,v){try{window.localStorage.setItem(k,v);}catch(_){}}
+  function cleanLocal(){try{for(var i=window.localStorage.length-1;i>=0;i--){var k=window.localStorage.key(i);if(k&&!allowed[k]) window.localStorage.removeItem(k);}}catch(_){}}
+  try{var legacy=localGet('dirac_theme_settings_v2'); if(legacy&&!localGet(THEME_KEY)) localSet(THEME_KEY,legacy);}catch(_){ }
+  try{if(window.Storage&&Storage.prototype&&!Storage.prototype.__diracColorLanguageGuardV6){var ns=Storage.prototype.setItem,ng=Storage.prototype.getItem,nr=Storage.prototype.removeItem;Storage.prototype.setItem=function(key,value){if(this===window.localStorage&&!allowed[String(key)]) return; return ns.apply(this,arguments);};Storage.prototype.getItem=function(key){if(this===window.localStorage&&!allowed[String(key)]) return null; return ng.apply(this,arguments);};Storage.prototype.removeItem=function(key){return nr.apply(this,arguments);};Object.defineProperty(Storage.prototype,'__diracColorLanguageGuardV6',{value:true});}}catch(_){ }
+  cleanLocal();
+  function normalizeLang(lang){lang=String(lang||'id').toLowerCase();return /^(id|en|zh|ar|ja|ko|es|fr)$/.test(lang)?lang:'id';}
+  function normalizeRgb(rgb){rgb=String(rgb||'').replace(/rgba?\(|\)|\s/g,'');var parts=rgb.split(',').slice(0,3).map(function(x){return Math.max(0,Math.min(255,parseInt(x,10)||0));});return parts.length===3?parts.join(','):'243,205,112';}
+  function read(){var s=parse(localGet(THEME_KEY));var lang=normalizeLang(localGet(LANG_KEY)||s.language||document.documentElement.getAttribute('data-language')||document.documentElement.lang||'id');var accent=String(s.accent||document.documentElement.getAttribute('data-theme-accent')||'gold');var p=s.gold&&s.gold2&&s.rgb?[s.gold,s.gold2,s.gold3||s.gold2,normalizeRgb(s.rgb)]:(PALETTES[accent]||PALETTES.gold);return {accent:accent,language:lang,gold:p[0],gold2:p[1],gold3:p[2],rgb:p[3]};}
+  function currentPalette(accent){var cs=null;try{cs=getComputedStyle(document.documentElement);}catch(_){ }var gold=cs?(cs.getPropertyValue('--gold')||'').trim():'';var gold2=cs?(cs.getPropertyValue('--gold-2')||cs.getPropertyValue('--gold2')||'').trim():'';var gold3=cs?(cs.getPropertyValue('--gold-3')||cs.getPropertyValue('--gold3')||'').trim():'';var rgb=cs?(cs.getPropertyValue('--theme-rgb')||'').trim():'';var p=PALETTES[accent]||PALETTES.gold;return {gold:gold||p[0],gold2:gold2||p[1],gold3:gold3||p[2],rgb:normalizeRgb(rgb||p[3])};}
+  function write(patch){var prev=read();var next={accent:patch&&patch.accent?String(patch.accent):prev.accent,language:normalizeLang(patch&&patch.language?patch.language:prev.language)};var pal=currentPalette(next.accent);if(patch&&patch.gold&&patch.gold2&&patch.rgb) pal={gold:patch.gold,gold2:patch.gold2,gold3:patch.gold3||patch.gold2,rgb:normalizeRgb(patch.rgb)};localSet(THEME_KEY,JSON.stringify({accent:next.accent,gold:pal.gold,gold2:pal.gold2,gold3:pal.gold3,rgb:pal.rgb}));localSet(LANG_KEY,next.language);cleanLocal();apply();return read();}
+  function apply(){var s=read(),root=document.documentElement;root.lang=s.language==='zh'?'zh-CN':s.language;root.dir=s.language==='ar'?'rtl':'ltr';root.setAttribute('data-language',s.language);root.setAttribute('data-theme-accent',s.accent);root.style.setProperty('--gold',s.gold);root.style.setProperty('--gold2',s.gold2);root.style.setProperty('--gold3',s.gold3);root.style.setProperty('--gold-2',s.gold2);root.style.setProperty('--gold-3',s.gold3);root.style.setProperty('--theme-rgb',s.rgb);root.style.setProperty('--line','rgba('+s.rgb+',.18)');root.style.setProperty('--line2','rgba('+s.rgb+',.36)');root.style.setProperty('--line-strong','rgba('+s.rgb+',.36)');}
+  function capture(event){var t=event&&event.target&&event.target.closest?event.target.closest('[data-accent],[data-theme-accent-option],[data-language],[data-language-option],#themeResetBtn'):null;if(!t)return;setTimeout(function(){var patch={};if(t.id==='themeResetBtn'){patch.accent='gold';}if(t.hasAttribute('data-accent')) patch.accent=t.getAttribute('data-accent');if(t.hasAttribute('data-theme-accent-option')) patch.accent=t.getAttribute('data-theme-accent-option');if(t.hasAttribute('data-language')) patch.language=t.getAttribute('data-language');if(t.hasAttribute('data-language-option')) patch.language=t.getAttribute('data-language-option');if(patch.accent||patch.language) write(patch);},0);}
+  window.DiracGlobalPrefs={read:read,write:write,apply:apply,clean:cleanLocal,themeKey:THEME_KEY,languageKey:LANG_KEY};
+  apply();
+  document.addEventListener('click',capture,true);
+  window.addEventListener('storage',function(e){if(!e||e.key===THEME_KEY||e.key===LANG_KEY) apply();});
+  window.addEventListener('pageshow',function(){cleanLocal();apply();setTimeout(apply,0);});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden){cleanLocal();apply();}});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){cleanLocal();apply();setTimeout(apply,0);setTimeout(apply,120);}); else {cleanLocal();apply();setTimeout(apply,0);setTimeout(apply,120);}
+})();
+</script>
+<!-- /DIRAC PATCH -->
+
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07090d">
@@ -1044,8 +1105,8 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
     var LANG_META={id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
     var $=function(s,r){return (r||document).querySelector(s)};
     var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
-    function readJson(k,fallback){try{var raw=localStorage.getItem(k);return raw?JSON.parse(raw):fallback}catch(e){return fallback}}
-    function writeJson(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+    function readJson(k,fallback){try{if(window.DiracGlobalPrefs&&typeof window.DiracGlobalPrefs.read==='function'){var g=window.DiracGlobalPrefs.read();return Object.assign({},fallback||{},{accent:g.accent||'gold',language:g.language||'id'});}var raw=localStorage.getItem(k);var data=raw?JSON.parse(raw):{};var lang=localStorage.getItem('dirac_language_v1')||data.language;return Object.assign({},fallback||{},data,{language:lang||((fallback||{}).language)});}catch(e){return fallback}}
+    function writeJson(k,v){try{if(window.DiracGlobalPrefs&&typeof window.DiracGlobalPrefs.write==='function'){window.DiracGlobalPrefs.write({accent:v&&v.accent,language:v&&v.language});return;}localStorage.setItem(k,JSON.stringify({accent:v&&v.accent||'gold'}));localStorage.setItem('dirac_language_v1',v&&v.language||'id');}catch(e){}}
     var settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id';
     function toastTheme(msg){try{if(typeof window.toast==='function') window.toast(msg); else {var t=$('#toast'); if(t){t.textContent=msg;t.classList.add('show');clearTimeout(toastTheme.t);toastTheme.t=setTimeout(function(){t.classList.remove('show')},2200);}}}catch(e){}}
     function buildAccentChoices(){var wrap=$('#accentChoices'); if(!wrap || wrap.dataset.built==='1') return; wrap.dataset.built='1'; Object.keys(PALETTES).forEach(function(key){var p=PALETTES[key]; var b=document.createElement('button'); b.className='choice theme-swatch-choice theme-swatch'; b.type='button'; b.setAttribute('data-accent',key); b.setAttribute('aria-label',p.label); b.setAttribute('title',p.label); b.style.setProperty('--swatch',p.swatch); var sw=document.createElement('span'); sw.className='swatch'; sw.setAttribute('aria-hidden','true'); b.appendChild(sw); wrap.appendChild(b);});}
@@ -1070,7 +1131,7 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
       document.addEventListener('click',function(e){var opener=e.target.closest('[data-open-theme],#themeBtn'); if(opener){openTheme(e);return;} var close=e.target.closest('[data-close-theme],#closeThemeBtn'); if(close){e.preventDefault();closeTheme();return;} var mode=e.target.closest('#themeModal [data-theme-mode]'); if(mode){settings.mode=mode.getAttribute('data-theme-mode'); if(settings.mode==='light') settings.mode='dark'; applySettings(); toastTheme('Tema disimpan.'); return;} var lang=e.target.closest('#themeModal [data-language]'); if(lang){settings.language=lang.getAttribute('data-language')||'id'; applySettings(); toastTheme('Bahasa disimpan.'); return;} var motion=e.target.closest('#themeModal [data-motion-choice]'); if(motion){settings.motion=motion.getAttribute('data-motion-choice')||'full'; applySettings(); toastTheme('Pengaturan gerak disimpan.'); return;} var contrast=e.target.closest('#themeModal [data-contrast]'); if(contrast){settings.contrast=contrast.getAttribute('data-contrast')||'off'; applySettings(); toastTheme('Kontras disimpan.'); return;} var accent=e.target.closest('#themeModal [data-accent]'); if(accent){settings.accent=accent.getAttribute('data-accent')||'gold'; applySettings(); var pal=PALETTES[settings.accent]||PALETTES.gold; toastTheme('Tema '+pal.label+' diterapkan.'); return;} },true);
       var modal=$('#themeModal'); if(modal) modal.addEventListener('click',function(e){if(e.target===modal) closeTheme();});
       document.addEventListener('keydown',function(e){if(e.key==='Escape') closeTheme();});
-      window.addEventListener('storage',function(e){if(e.key===THEME_KEY){settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);}});
+      window.addEventListener('storage',function(e){if(e.key===THEME_KEY||e.key==='dirac_language_v1'){settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);}});
       window.addEventListener('pageshow',function(){settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);});
       document.addEventListener('visibilitychange',function(){if(!document.hidden){settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);}});
     }
@@ -1141,12 +1202,12 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
   }
 
   function setStore(key, value){
-    try{ window.localStorage.setItem(key, String(value)); }catch(_){}
+    try{ window.sessionStorage.setItem(key, String(value)); }catch(_){}
   }
 
   function getStoreNumber(key, fallback){
     try{
-      var raw = window.localStorage.getItem(key);
+      var raw = window.sessionStorage.getItem(key);
       var n = Number(raw);
       return Number.isFinite(n) && n > 0 ? n : fallback;
     }catch(_){
@@ -1155,7 +1216,7 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
   }
 
   function removeStore(key){
-    try{ window.localStorage.removeItem(key); }catch(_){}
+    try{ window.sessionStorage.removeItem(key); }catch(_){}
   }
 
   function purgeClientAuthStorage(){
