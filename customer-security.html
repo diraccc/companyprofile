@@ -17,39 +17,63 @@
 
   var PALETTES = {
     gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},
-    champagne:{gold:'#ffe9a8',gold2:'#e9c46a',gold3:'#9f6b1f',rgb:'255,233,168'},
-    bronze:{gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122'},
-    emerald:{gold:'#34d399',gold2:'#10b981',gold3:'#064e3b',rgb:'52,211,153'},
-    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
-    mint:{gold:'#6ee7b7',gold2:'#14b8a6',gold3:'#115e59',rgb:'110,231,183'},
-    cyan:{gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240'},
+    champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'},
+    sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'},
+    blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
     sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'},
-    ocean:{gold:'#22d3ee',gold2:'#0ea5e9',gold3:'#0c4a6e',rgb:'34,211,238'},
-    royal:{gold:'#60a5fa',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'96,165,250'},
-    sapphire:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
     indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'},
-    violet:{gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246'},
-    amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'},
-    lavender:{gold:'#b095ff',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'176,149,255'},
-    magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'},
-    fuchsia:{gold:'#e879f9',gold2:'#c026d3',gold3:'#701a75',rgb:'232,121,249'},
+    purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'},
+    violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'},
+    lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'},
+    fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'},
     pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},
     rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'},
-    ruby:{gold:'#f43f5e',gold2:'#e11d48',gold3:'#881337',rgb:'244,63,94'},
     red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},
-    coral:{gold:'#fb7185',gold2:'#f97316',gold3:'#9a3412',rgb:'251,113,133'},
-    sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'},
-    orange:{gold:'#fb6a3d',gold2:'#ea580c',gold3:'#7c2d12',rgb:'251,106,61'},
+    coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'},
+    orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'},
+    peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'},
     amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'},
-    lime:{gold:'#a3e635',gold2:'#65a30d',gold3:'#365314',rgb:'163,230,53'},
-    neon:{gold:'#22c55e',gold2:'#16a34a',gold3:'#14532d',rgb:'34,197,94'},
-    graphite:{gold:'#94a3b8',gold2:'#64748b',gold3:'#334155',rgb:'148,163,184'},
-    coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}
+    lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'},
+    lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'},
+    green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'},
+    emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'},
+    mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'},
+    teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'},
+    aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'},
+    cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'},
+    copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'},
+    ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'},
+    wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'},
+    burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'},
+    maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'},
+    blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'},
+    salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'},
+    sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'},
+    tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'},
+    apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'},
+    honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'},
+    olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'},
+    forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'},
+    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
+    seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'},
+    lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'},
+    turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'},
+    ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'},
+    royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'},
+    navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'},
+    sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'},
+    periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'},
+    lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'},
+    orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'},
+    plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'},
+    neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'},
+    graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'},
+    slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'},
+    pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'},
+    mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'},
+    espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
   };
-  var LANG_META = {
-    id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},
-    ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}
-  };
+  var LANG_META = {id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
 
   var storage = null;
   try{ storage = window.localStorage || null; }catch(_){ storage = null; }
@@ -1123,7 +1147,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
 
   <script>
-
+(function(){
     'use strict';
 
     const CONFIG = Object.freeze({
@@ -1144,6 +1168,127 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       requestTimeoutMs: 15000,
       refreshCooldownMs: 1200
     });
+
+
+
+    var LOGIN_PAGE = CONFIG.loginPage || 'masuk.html';
+    var VERIFY_ENDPOINT = CONFIG.apiBase + '?action=' + (CONFIG.meAction || 'domain_dashboard_me');
+    var LOGOUT_ENDPOINT = CONFIG.apiBase + '?action=' + (CONFIG.logoutAction || 'domain_logout');
+    var IDLE_LIMIT_MS = 2 * 60 * 1000;
+    var CHECK_INTERVAL_MS = 5000;
+    var DIRAC_MIN_SESSION_LOADER_MS = 4500;
+    var diracSessionLoaderStartedAt = 0;
+    var ACTIVITY_KEY = 'dirac_protected_last_activity_v1';
+    var LOGOUT_STAMP_KEY = 'dirac_protected_last_logout_v1';
+    var loggingOut = false;
+    var checking = false;
+    var checkTimer = 0;
+    var volatileStore = Object.create(null);
+
+    function now(){
+      return Date.now ? Date.now() : new Date().getTime();
+    }
+
+    function withCacheBust(url){
+      var sep = String(url || '').indexOf('?') === -1 ? '?' : '&';
+      return String(url || '') + sep + '_t=' + now();
+    }
+
+    function waitDiracMinimumSessionLoader(){
+      var elapsed = now() - Number(diracSessionLoaderStartedAt || 0);
+      var remain = DIRAC_MIN_SESSION_LOADER_MS - elapsed;
+      if(remain <= 0) return Promise.resolve();
+      return new Promise(function(resolve){ setTimeout(resolve, remain); });
+    }
+
+    function setStore(key, value){
+      try{ volatileStore[String(key)] = String(value); }catch(_){ }
+    }
+
+    function getStoreNumber(key, fallback){
+      try{
+        var raw = volatileStore[String(key)];
+        var n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : fallback;
+      }catch(_){
+        return fallback;
+      }
+    }
+
+    function removeStore(key){
+      try{ delete volatileStore[String(key)]; }catch(_){ }
+    }
+
+    function purgeClientAuthStorage(){
+      var keys = [
+        'dirac_auth_session_v1',
+        'dirac_auth_a2f_v1',
+        'dirac_auth_a2f_dashboard_ready_v1',
+        'dirac_dashboard_gate_v1',
+        'dirac_domain_session',
+        'dirac_domain_refresh',
+        'dirac_customer_mfa_session',
+        'sb-auth-token',
+        'supabase.auth.token'
+      ];
+      [window.localStorage, window.sessionStorage].forEach(function(store){
+        if(!store) return;
+        keys.forEach(function(key){
+          try{ store.removeItem(key); }catch(_){ }
+        });
+      });
+      try{ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = {}; }catch(_){ }
+    }
+
+    function loginUrl(reason){
+      var clean = encodeURIComponent(String(reason || 'locked').replace(/[^a-z0-9_-]/gi, '').slice(0, 32) || 'locked');
+      return LOGIN_PAGE + '?protected=1&reason=' + clean + '&t=' + now();
+    }
+
+    function replaceToLogin(reason){
+      try{ redirectToLogin(reason || 'locked'); }catch(_){ }
+      var target = loginUrl(reason || 'locked');
+      window.setTimeout(function(){
+        try{ window.location.replace(target); }
+        catch(_){ window.location.href = target; }
+      }, 500);
+    }
+
+    function ensureOverlay(){
+      if(document.getElementById('diracProtectedLockOverlay')) return;
+      var overlay = document.createElement('div');
+      overlay.id = 'diracProtectedLockOverlay';
+      overlay.setAttribute('role', 'status');
+      overlay.setAttribute('aria-live', 'polite');
+      overlay.innerHTML =
+        '<div class="dirac-protected-lock-card">' +
+        '<div class="dirac-final-session-loader" aria-label="Mengecek Sesi Pelanggan">' +
+        '        <div class="dirac-final-logo-stage" aria-hidden="true">' +
+        '          <div class="dirac-final-data-orbit one"></div>' +
+        '          <div class="dirac-final-data-orbit two"></div>' +
+        '          <div class="dirac-final-logo-halo-edge"></div>' +
+        '          <div class="dirac-final-scan-glass"></div>' +
+        '          <div class="dirac-final-scan-line"></div>' +
+        '          <div class="dirac-final-scan-pulse-core"></div>' +
+        '          <div class="dirac-final-scanner-orbit"><span></span></div>' +
+        '          <div class="dirac-final-logo-edge-light"></div>' +
+        '          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
+        '          <img class="dirac-final-logo-img" src="dirac-security.png" alt="Dirac Security" decoding="async" loading="eager">' +
+        '        </div>' +
+        '        <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>' +
+        '        <div class="dirac-final-progress-track" aria-hidden="true"></div>' +
+        '        <div class="dirac-final-live-status">Verifikasi keamanan sedang berjalan</div>' +
+        '        <div class="dirac-final-crypto-strip" aria-hidden="true"><span>AUTH</span><span>TOKEN</span><span>SESSION</span><span>VERIFIED</span></div>' +
+        '        <div class="dirac-final-secure-check-pulse" aria-hidden="true">✓</div>' +
+        '        <section class="dirac-final-contact-note" aria-label="Kontak resmi Dirac Group">' +
+        '          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">i</span><span class="dirac-final-notice-label">Gangguan layanan</span><a href="mailto:support@diracgroup.store">support@diracgroup.store</a></div>' +
+        '          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">!</span><span class="dirac-final-notice-label">Indikasi penipuan</span><a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></div>' +
+        '        </section>' +
+        '        <div class="dirac-final-tiny-status">DIRAC SECURITY CHECK</div>' +
+        '      </div>' +
+        '</div>';
+      if(document.body) document.body.appendChild(overlay);
+    }
 
     const state = {
       status: null,
@@ -1215,12 +1360,8 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     }
 
     function readJsonStorage(key) {
-      try {
-        const raw = window.localStorage ? window.localStorage.getItem(key) : '';
-        return raw ? JSON.parse(raw) : null;
-      } catch (_) {
-        return null;
-      }
+      // Backend-only security page: no auth/session data is read from localStorage.
+      return null;
     }
 
     function findMfaProofToken() {
@@ -1701,377 +1842,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       try { sessionStorage.setItem('dirac_security_redirect_reason', reason); } catch (_) {}
       const overlay = document.createElement('div');
       overlay.className = 'gate-lock';
-      overlay.innerHTML = '<div class="gate-lock-card"><h1>Sesi tidak valid</h1><p>Mengarahkan ke halaman masuk...</p></div>';
-      document.body.appendChild(overlay);
-      setTimeout(() => { window.location.replace(CONFIG.loginUrl || '/masuk.html'); }, CONFIG.gateRedirectDelayMs || 500);
-    }
-
-    async function runSecurityGate() {
-      const result = await safeFetchJson(CONFIG.guardStatusAction);
-      if (!result.ok || !(result.data && result.data.linked === true && result.data.guarded_actions_ready === true && result.data.mfa_active_now === true)) {
-        redirectToLogin(result.status === 423 ? 'blocked' : 'backend_mfa_not_verified');
-        return false;
-      }
-      return true;
-    }
-
-    async function loadRecoveryCodeStatus() {
-      if (!CONFIG.recoveryCodesStatusAction) return null;
-      const result = await safeFetchJson(CONFIG.recoveryCodesStatusAction);
-      if (result.ok && result.data) {
-        const unused = Number(result.data.unused || 0);
-        if (unused > 0) toast('Recovery codes tersedia', unused + ' kode belum dipakai.');
-      }
-      return result;
-    }
-
-    function openRecoveryModal(codes, batchId) {
-      const modal = $('#recoveryModal');
-      const grid = $('#recoveryCodesGrid');
-      if (!modal || !grid) return;
-      grid.innerHTML = '';
-      const info = document.createElement('div');
-      info.className = 'empty-state';
-      info.innerHTML = '<b>TXT sudah dibuat</b>Recovery codes tidak ditampilkan di website. Buka file TXT yang ter-download, lalu salin hanya isi di antara penanda MULAI SALIN dan SELESAI SALIN.';
-      grid.appendChild(info);
-      modal.hidden = false;
-      lastRecoveryCodesMemory = (codes || []).slice();
-      lastRecoveryCodesBatchId = String(batchId || '');
-      downloadRecoveryCodesTxt(lastRecoveryCodesMemory, lastRecoveryCodesBatchId);
-    }
-
-    function closeRecoveryModal() {
-      const modal = $('#recoveryModal');
-      const grid = $('#recoveryCodesGrid');
-      if (grid) grid.innerHTML = '';
-      if (modal) { modal.hidden = true; }
-      lastRecoveryCodesMemory = [];
-      lastRecoveryCodesBatchId = '';
-    }
-
-    let lastRecoveryCodesMemory = [];
-    let lastRecoveryCodesBatchId = '';
-
-    function buildRecoveryCodesTxt(codes, batchId) {
-      const now = new Date().toISOString();
-      const lines = [];
-      lines.push('DIRAC GROUP - RECOVERY CODES');
-      lines.push('Dibuat: ' + now);
-      lines.push('Batch ID: ' + (batchId || '-'));
-      lines.push('');
-      lines.push('PENTING:');
-      lines.push('- Ada 3 recovery code aktif.');
-      lines.push('- Setiap kode panjangnya 500 karakter.');
-      lines.push('- Kode hanya boleh dipakai sekali. Setelah dipakai, kode langsung expired.');
-      lines.push('- Jangan salin baris penanda. Salin hanya isi di antara MULAI SALIN dan SELESAI SALIN.');
-      lines.push('- Simpan file ini di tempat aman. Jangan kirim ke siapa pun.');
-      lines.push('');
-      (codes || []).forEach((code, index) => {
-        const no = index + 1;
-        lines.push('===== RECOVERY CODE ' + no + ' - MULAI SALIN DI BAWAH INI =====');
-        lines.push(String(code || ''));
-        lines.push('===== RECOVERY CODE ' + no + ' - SELESAI SALIN DI ATAS INI =====');
-        lines.push('');
-      });
-      return lines.join('\n');
-    }
-
-    function downloadRecoveryCodesTxt(codes, batchId) {
-      const txt = buildRecoveryCodesTxt(codes, batchId);
-      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-      a.href = url;
-      a.download = 'dirac-recovery-codes-' + stamp + '.txt';
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-    }
-
-    function redownloadRecoveryCodes() {
-      if (!lastRecoveryCodesMemory.length) {
-        toast('Tidak ada kode di memori', 'Generate ulang untuk membuat file TXT baru.');
-        return;
-      }
-      downloadRecoveryCodesTxt(lastRecoveryCodesMemory, lastRecoveryCodesBatchId);
-      toast('TXT di-download ulang', 'Salin kode dari file TXT, bukan dari halaman website.');
-    }
-
-
-    function isSafeRecoveryCodeText(code) {
-      const text = String(code || '');
-      return Array.from(text).length === 500 && /^[!-~]{500}$/.test(text);
-    }
-
-    function validateRecoveryCodesResponse(data) {
-      const codes = data && Array.isArray(data.codes) ? data.codes : [];
-      const metaOk =
-        data &&
-        data.count === 3 &&
-        data.code_length === 500 &&
-        data.active_code_limit === 3 &&
-        data.delivery === 'download_txt_only';
-
-      const codesOk =
-        codes.length === 3 &&
-        codes.every((code) => typeof code === 'string' && isSafeRecoveryCodeText(code));
-
-      return Boolean(metaOk && codesOk);
-    }
-
-    async function generateRecoveryCodes() {
-      if (!window.confirm('Generate recovery codes baru? Kode lama akan dicabut. Pastikan MFA/re-auth aktif.')) return;
-      const btn = $('#recoveryCodesBtn');
-      const oldText = btn ? btn.textContent : '';
-      if (btn) { btn.classList.add('is-loading'); btn.textContent = 'Memproses'; }
-      const requestId = cryptoRandomId('recovery_codes');
-      const result = await safeFetchJson(CONFIG.recoveryCodesGenerateAction, {
-        method: 'POST',
-        body: { count: 3, idempotency_key: requestId }
-      });
-      if (btn) { btn.classList.remove('is-loading'); btn.textContent = oldText || 'Generate'; }
-      if (result.ok && result.data && Array.isArray(result.data.codes)) {
-        if (!validateRecoveryCodesResponse(result.data)) {
-          toast('Format recovery code ditolak', 'Sistem menolak kode yang bukan 3 kode x 500 karakter ASCII aman tanpa spasi/baris baru.');
-          return;
-        }
-        openRecoveryModal(result.data.codes, result.data.batch_id || '');
-        toast('Recovery codes dibuat', 'File TXT di-download. Salin kode dari penanda MULAI sampai SELESAI.');
-        await refreshSecurity();
-      } else {
-        const msg = cleanText(result.data && result.data.message, 'Recovery codes membutuhkan MFA/re-auth atau storage belum siap.');
-        toast('Recovery codes ditolak', msg);
-        if (result.status === 401 || result.status === 423) redirectToLogin(result.status === 423 ? 'blocked' : 'not_verified');
-      }
-    }
-
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      initChrome();
-      initReveal();
-      renderEmptyData();
-      const allowed = await runSecurityGate();
-      if (allowed) refreshSecurity();
-    });
-  
-  </script>
-
-<script id="dirac-sound-hard-restore-v5">
-(function(){
-  'use strict';
-  var AudioCtx = window.AudioContext || window.webkitAudioContext;
-  var ctx = null;
-  var enabled = true;
-  var last = 0;
-  function setOn(){
-    enabled = true;
-    try{
-      /* sound preference is session-only; no localStorage except language/accent */
-      /* legacy sound localStorage disabled */
-    }catch(_){ }
-  }
-  function ensure(){
-    if(!AudioCtx || !enabled) return null;
-    try{
-      if(!ctx) ctx = new AudioCtx();
-      if(ctx.state === 'suspended'){
-        var p = ctx.resume();
-        if(p && p.catch) p.catch(function(){});
-      }
-      return ctx;
-    }catch(_){ return null; }
-  }
-  function beep(freq, dur, gain, type){
-    var a = ensure();
-    if(!a) return;
-    try{
-      var t = a.currentTime;
-      var o = a.createOscillator();
-      var g = a.createGain();
-      o.type = type || 'triangle';
-      o.frequency.setValueAtTime(freq || 760, t);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(gain || 0.045, t + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.08));
-      o.connect(g); g.connect(a.destination);
-      o.start(t); o.stop(t + (dur || 0.08) + 0.025);
-    }catch(_){ }
-  }
-  function play(kind){
-    setOn();
-    kind = String(kind || 'click').toLowerCase();
-    if(kind === 'success' || kind === 'ok'){
-      beep(660, .08, .045, 'sine'); setTimeout(function(){beep(990,.11,.04,'triangle');}, 70); return;
-    }
-    if(kind === 'error' || kind === 'fail' || kind === 'danger'){
-      beep(220, .10, .046, 'sawtooth'); setTimeout(function(){beep(150,.12,.035,'triangle');}, 85); return;
-    }
-    if(kind === 'loading' || kind === 'load'){
-      beep(330, .07, .028, 'sine'); setTimeout(function(){beep(520,.08,.026,'sine');}, 80); return;
-    }
-    beep(820, .055, .038, 'triangle');
-  }
-  function shouldTap(t){
-    if(!t || !t.closest) return false;
-    return !!t.closest('button,a,[role="button"],input,select,textarea,.theme-choice,.auth-tab,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.header-cart,.catalog-return');
-  }
-  function tap(e){
-    setOn();
-    ensure();
-    if(e && e.target && !shouldTap(e.target)) return;
-    var n = Date.now();
-    if(n - last < 65) return;
-    last = n;
-    play('click');
-    try{ if(navigator.vibrate) navigator.vibrate(8); }catch(_){ }
-  }
-  var previous = window.DiracSound;
-  window.DiracSound = {
-    play: play,
-    setEnabled: function(v){ enabled = v !== false; /* sound preference is intentionally not persisted */ },
-    isEnabled: function(){ return enabled; },
-    previous: previous || null
-  };
-  document.addEventListener('pointerdown', tap, {capture:true, passive:true});
-  document.addEventListener('touchstart', tap, {capture:true, passive:true});
-  document.addEventListener('click', tap, true);
-  document.addEventListener('keydown', function(e){ if(e && (e.key === 'Enter' || e.key === ' ')) tap(e); }, true);
-  document.addEventListener('submit', function(){ play('loading'); }, true);
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setOn, {once:true}); else setOn();
-})();
-</script>
-
-<script id="dirac-backend-only-auth-storage-purge-js">
-(function(){
-  'use strict';
-  // PATCH 3A: hapus sisa token/auth lama di browser. Theme, bahasa, cart, dan UI non-auth tidak disentuh.
-  var keys = [
-    'dirac_auth_session_v1',
-    'dirac_auth_a2f_v1',
-    'dirac_auth_a2f_dashboard_ready_v1',
-    'dirac_dashboard_gate_v1',
-    'dirac_domain_session',
-    'sb-auth-token',
-    'supabase.auth.token'
-  ];
-  function purge(store){
-    if(!store) return;
-    keys.forEach(function(key){ try{ store.removeItem(key); }catch(_){ } });
-  }
-  try{ purge(window.localStorage); }catch(_){ }
-  try{ purge(window.sessionStorage); }catch(_){ }
-})();
-</script>
-
-<script id="dirac-protected-page-session-lock-js">
-(function(){
-  'use strict';
-
-  /*
-    DIRAC PROTECTED LOCK PATCH
-    Tujuan:
-    - halaman protected tidak bisa muncul lagi dari Safari/Browser Back Forward Cache setelah logout;
-    - tab/browser yang dibuka ulang wajib cek sesi backend lagi;
-    - user tidak aktif 2 menit otomatis logout dan redirect ke masuk.html.
-    Batas:
-    - tidak mengubah login, A2F, payment gateway, webhook, hash, atau backend health.js;
-    - tidak membaca/menulis token untuk membuka akses;
-    - verifikasi akses tetap lewat backend HttpOnly cookie: /api/health?action=domain_dashboard_me.
-  */
-
-  var LOGIN_PAGE = 'masuk.html';
-  var API_BASE = '/api/health';
-  var VERIFY_ENDPOINT = API_BASE + '?action=domain_dashboard_me';
-  var LOGOUT_ENDPOINT = API_BASE + '?action=domain_logout';
-  var IDLE_LIMIT_MS = 2 * 60 * 1000;
-  var CHECK_INTERVAL_MS = 5000;
-  var DIRAC_MIN_SESSION_LOADER_MS = 4500;
-  var diracSessionLoaderStartedAt = 0;
-  var ACTIVITY_KEY = 'dirac_protected_last_activity_v1';
-  var LOGOUT_STAMP_KEY = 'dirac_protected_last_logout_v1';
-  var loggingOut = false;
-  var checking = false;
-  var checkTimer = 0;
-  var volatileStore = Object.create(null);
-
-  function now(){
-    return Date.now ? Date.now() : new Date().getTime();
-  }
-
-  function withCacheBust(url){
-    var sep = String(url || '').indexOf('?') === -1 ? '?' : '&';
-    return String(url || '') + sep + '_t=' + now();
-  }
-
-  function waitDiracMinimumSessionLoader(){
-    var elapsed = now() - Number(diracSessionLoaderStartedAt || 0);
-    var remain = DIRAC_MIN_SESSION_LOADER_MS - elapsed;
-    if(remain <= 0) return Promise.resolve();
-    return new Promise(function(resolve){ setTimeout(resolve, remain); });
-  }
-
-  function setStore(key, value){
-    try{ volatileStore[String(key)] = String(value); }catch(_){}
-  }
-
-  function getStoreNumber(key, fallback){
-    try{
-      var raw = volatileStore[String(key)];
-      var n = Number(raw);
-      return Number.isFinite(n) && n > 0 ? n : fallback;
-    }catch(_){
-      return fallback;
-    }
-  }
-
-  function removeStore(key){
-    try{ delete volatileStore[String(key)]; }catch(_){}
-  }
-
-  function purgeClientAuthStorage(){
-    var keys = [
-      'dirac_auth_session_v1',
-      'dirac_auth_a2f_v1',
-      'dirac_auth_a2f_dashboard_ready_v1',
-      'dirac_dashboard_gate_v1',
-      'dirac_domain_session',
-      'dirac_domain_refresh',
-      'dirac_customer_mfa_session',
-      'sb-auth-token',
-      'supabase.auth.token'
-    ];
-    [window.localStorage, window.sessionStorage].forEach(function(store){
-      if(!store) return;
-      keys.forEach(function(key){
-        try{ store.removeItem(key); }catch(_){}
-      });
-    });
-    try{ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = {}; }catch(_){}
-  }
-
-  function loginUrl(reason){
-    var clean = encodeURIComponent(String(reason || 'locked').replace(/[^a-z0-9_-]/gi, '').slice(0, 32) || 'locked');
-    return LOGIN_PAGE + '?protected=1&reason=' + clean + '&t=' + now();
-  }
-
-  function replaceToLogin(reason){
-    try{
-      window.location.replace(loginUrl(reason));
-    }catch(_){
-      window.location.href = loginUrl(reason);
-    }
-  }
-
-  function ensureOverlay(){
-    if(document.getElementById('diracProtectedLockOverlay')) return;
-    var overlay = document.createElement('div');
-    overlay.id = 'diracProtectedLockOverlay';
-    overlay.setAttribute('role', 'status');
-    overlay.setAttribute('aria-live', 'polite');
-    overlay.innerHTML =
+      overlay.innerHTML =
       '<div class="dirac-protected-lock-card">' +
       '<div class="dirac-final-session-loader" aria-label="Mengecek Sesi Pelanggan">' +
       '        <div class="dirac-final-logo-stage" aria-hidden="true">' +

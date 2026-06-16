@@ -17,39 +17,63 @@
 
   var PALETTES = {
     gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},
-    champagne:{gold:'#ffe9a8',gold2:'#e9c46a',gold3:'#9f6b1f',rgb:'255,233,168'},
-    bronze:{gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122'},
-    emerald:{gold:'#34d399',gold2:'#10b981',gold3:'#064e3b',rgb:'52,211,153'},
-    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
-    mint:{gold:'#6ee7b7',gold2:'#14b8a6',gold3:'#115e59',rgb:'110,231,183'},
-    cyan:{gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240'},
+    champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'},
+    sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'},
+    blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
     sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'},
-    ocean:{gold:'#22d3ee',gold2:'#0ea5e9',gold3:'#0c4a6e',rgb:'34,211,238'},
-    royal:{gold:'#60a5fa',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'96,165,250'},
-    sapphire:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
     indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'},
-    violet:{gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246'},
-    amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'},
-    lavender:{gold:'#b095ff',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'176,149,255'},
-    magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'},
-    fuchsia:{gold:'#e879f9',gold2:'#c026d3',gold3:'#701a75',rgb:'232,121,249'},
+    purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'},
+    violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'},
+    lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'},
+    fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'},
     pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},
     rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'},
-    ruby:{gold:'#f43f5e',gold2:'#e11d48',gold3:'#881337',rgb:'244,63,94'},
     red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},
-    coral:{gold:'#fb7185',gold2:'#f97316',gold3:'#9a3412',rgb:'251,113,133'},
-    sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'},
-    orange:{gold:'#fb6a3d',gold2:'#ea580c',gold3:'#7c2d12',rgb:'251,106,61'},
+    coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'},
+    orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'},
+    peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'},
     amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'},
-    lime:{gold:'#a3e635',gold2:'#65a30d',gold3:'#365314',rgb:'163,230,53'},
-    neon:{gold:'#22c55e',gold2:'#16a34a',gold3:'#14532d',rgb:'34,197,94'},
-    graphite:{gold:'#94a3b8',gold2:'#64748b',gold3:'#334155',rgb:'148,163,184'},
-    coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}
+    lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'},
+    lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'},
+    green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'},
+    emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'},
+    mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'},
+    teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'},
+    aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'},
+    cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'},
+    copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'},
+    ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'},
+    wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'},
+    burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'},
+    maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'},
+    blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'},
+    salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'},
+    sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'},
+    tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'},
+    apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'},
+    honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'},
+    olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'},
+    forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'},
+    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
+    seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'},
+    lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'},
+    turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'},
+    ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'},
+    royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'},
+    navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'},
+    sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'},
+    periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'},
+    lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'},
+    orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'},
+    plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'},
+    neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'},
+    graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'},
+    slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'},
+    pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'},
+    mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'},
+    espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
   };
-  var LANG_META = {
-    id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},
-    ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}
-  };
+  var LANG_META = {id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
 
   var storage = null;
   try{ storage = window.localStorage || null; }catch(_){ storage = null; }
@@ -1716,32 +1740,69 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   <script id="dirac-pesanan-theme-sync-typewriter-js">
   (function(){
     'use strict';
-    var THEME_KEY='dirac_theme_settings_v2';
     var DEFAULT_SETTINGS={mode:'dark',accent:'gold',language:'id',motion:'full',contrast:'off'};
     var PALETTES={
-      gold:{label:'Royal Gold',gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112',swatch:'linear-gradient(145deg,#fff3b0,#f3cd70 48%,#b7791f)'},
-      champagne:{label:'Champagne',gold:'#ffe9a8',gold2:'#e9c46a',gold3:'#9f6b1f',rgb:'255,233,168',swatch:'linear-gradient(145deg,#fff8d8,#ffe9a8 45%,#c8942f)'},
-      bronze:{label:'Bronze',gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122',swatch:'linear-gradient(145deg,#f1d4a0,#b78343 52%,#5b3415)'},
-      emerald:{label:'Emerald',gold:'#34d399',gold2:'#10b981',gold3:'#064e3b',rgb:'52,211,153',swatch:'linear-gradient(145deg,#9ff7d3,#34d399 48%,#047857)'},
-      jade:{label:'Jade',gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191',swatch:'linear-gradient(145deg,#99f6e4,#2dd4bf 48%,#0f766e)'},
-      mint:{label:'Mint',gold:'#6ee7b7',gold2:'#14b8a6',gold3:'#115e59',rgb:'110,231,183',swatch:'linear-gradient(145deg,#d1fae5,#6ee7b7 48%,#0d9488)'},
-      cyan:{label:'Cyan',gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240',swatch:'linear-gradient(145deg,#a5f3fc,#38c7f0 48%,#0369a1)'},
-      sky:{label:'Sky Blue',gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248',swatch:'linear-gradient(145deg,#bae6fd,#38bdf8 48%,#0369a1)'},
-      ocean:{label:'Ocean',gold:'#22d3ee',gold2:'#0ea5e9',gold3:'#0c4a6e',rgb:'34,211,238',swatch:'linear-gradient(145deg,#67e8f9,#0ea5e9 52%,#2563eb)'},
-      royal:{label:'Royal Blue',gold:'#60a5fa',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'96,165,250',swatch:'linear-gradient(145deg,#bfdbfe,#60a5fa 48%,#1d4ed8)'},
-      indigo:{label:'Indigo',gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241',swatch:'linear-gradient(145deg,#c7d2fe,#6366f1 48%,#4338ca)'},
-      violet:{label:'Violet',gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246',swatch:'linear-gradient(145deg,#ddd6fe,#8b5cf6 48%,#6d28d9)'},
-      amethyst:{label:'Amethyst',gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247',swatch:'linear-gradient(145deg,#e9d5ff,#a855f7 48%,#7e22ce)'},
-      fuchsia:{label:'Fuchsia',gold:'#e879f9',gold2:'#c026d3',gold3:'#701a75',rgb:'232,121,249',swatch:'linear-gradient(145deg,#fbcfe8,#e879f9 48%,#a21caf)'},
-      rose:{label:'Rose',gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133',swatch:'linear-gradient(145deg,#ffe4e6,#fb7185 48%,#be123c)'},
-      orange:{label:'Orange',gold:'#fb923c',gold2:'#f97316',gold3:'#9a3412',rgb:'251,146,60',swatch:'linear-gradient(145deg,#ffedd5,#fb923c 48%,#c2410c)'}
+      gold:{label:'Gold',gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112',swatch:'linear-gradient(145deg,#f3cd70,#d6a642 50%,#8e6425)'},
+      champagne:{label:'Champagne',gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138',swatch:'linear-gradient(145deg,#fde68a,#f59e0b 50%,#92400e)'},
+      sand:{label:'Sand',gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118',swatch:'linear-gradient(145deg,#d6b076,#b88943 50%,#6b4a23)'},
+      blue:{label:'Blue',gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255',swatch:'linear-gradient(145deg,#4f83ff,#2563eb 50%,#1e3a8a)'},
+      sky:{label:'Sky',gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248',swatch:'linear-gradient(145deg,#38bdf8,#0284c7 50%,#075985)'},
+      indigo:{label:'Indigo',gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241',swatch:'linear-gradient(145deg,#6366f1,#4f46e5 50%,#312e81)'},
+      purple:{label:'Purple',gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237',swatch:'linear-gradient(145deg,#7c3aed,#5b21b6 50%,#35126d)'},
+      violet:{label:'Violet',gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246',swatch:'linear-gradient(145deg,#8b5cf6,#6d28d9 50%,#432076)'},
+      lilac:{label:'Lilac',gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250',swatch:'linear-gradient(145deg,#a78bfa,#8b5cf6 50%,#4c1d95)'},
+      fuchsia:{label:'Fuchsia',gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239',swatch:'linear-gradient(145deg,#d946ef,#c026d3 50%,#701a75)'},
+      pink:{label:'Pink',gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153',swatch:'linear-gradient(145deg,#ec4899,#be185d 50%,#7f123d)'},
+      rose:{label:'Rose',gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133',swatch:'linear-gradient(145deg,#fb7185,#e11d48 50%,#881337)'},
+      red:{label:'Red',gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68',swatch:'linear-gradient(145deg,#ef4444,#dc2626 50%,#7f1d1d)'},
+      coral:{label:'Coral',gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74',swatch:'linear-gradient(145deg,#fb6a4a,#ea3d25 50%,#8f1d16)'},
+      orange:{label:'Orange',gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22',swatch:'linear-gradient(145deg,#f97316,#ea580c 50%,#7c2d12)'},
+      peach:{label:'Peach',gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116',swatch:'linear-gradient(145deg,#fdba74,#f97316 50%,#9a3412)'},
+      amber:{label:'Amber',gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11',swatch:'linear-gradient(145deg,#f59e0b,#d97706 50%,#78350f)'},
+      lemon:{label:'Lemon',gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21',swatch:'linear-gradient(145deg,#facc15,#ca8a04 50%,#713f12)'},
+      lime:{label:'Lime',gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22',swatch:'linear-gradient(145deg,#84cc16,#65a30d 50%,#365314)'},
+      green:{label:'Green',gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153',swatch:'linear-gradient(145deg,#34d399,#059669 50%,#065f46)'},
+      emerald:{label:'Emerald',gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129',swatch:'linear-gradient(145deg,#10b981,#047857 50%,#064e3b)'},
+      mint:{label:'Mint',gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191',swatch:'linear-gradient(145deg,#2dd4bf,#0d9488 50%,#134e4a)'},
+      teal:{label:'Teal',gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141',swatch:'linear-gradient(145deg,#0f8b8d,#0f766e 50%,#134e4a)'},
+      aqua:{label:'Aqua',gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238',swatch:'linear-gradient(145deg,#22d3ee,#0891b2 50%,#164e63)'},
+      cyan:{label:'Cyan',gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229',swatch:'linear-gradient(145deg,#67dce5,#36c2cc 50%,#176b73)'},
+      copper:{label:'Copper',gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87',swatch:'linear-gradient(145deg,#c08457,#9a5f36 50%,#5c341f)'},
+      ruby:{label:'Ruby',gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72',swatch:'linear-gradient(145deg,#e11d48,#be123c 50%,#4c0519)'},
+      wine:{label:'Wine',gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57',swatch:'linear-gradient(145deg,#9f1239,#881337 50%,#4c0519)'},
+      burgundy:{label:'Burgundy',gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29',swatch:'linear-gradient(145deg,#7f1d1d,#5f1212 50%,#2f0909)'},
+      maroon:{label:'Maroon',gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28',swatch:'linear-gradient(145deg,#b91c1c,#7f1d1d 50%,#450a0a)'},
+      blush:{label:'Blush',gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212',swatch:'linear-gradient(145deg,#f9a8d4,#ec4899 50%,#831843)'},
+      salmon:{label:'Salmon',gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133',swatch:'linear-gradient(145deg,#fb7185,#f43f5e 50%,#9f1239)'},
+      sunset:{label:'Sunset',gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60',swatch:'linear-gradient(145deg,#fb923c,#f43f5e 50%,#7f1d1d)'},
+      tangerine:{label:'Tangerine',gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22',swatch:'linear-gradient(145deg,#f97316,#c2410c 50%,#7c2d12)'},
+      apricot:{label:'Apricot',gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116',swatch:'linear-gradient(145deg,#fdba74,#fb923c 50%,#9a3412)'},
+      honey:{label:'Honey',gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36',swatch:'linear-gradient(145deg,#fbbf24,#d97706 50%,#78350f)'},
+      olive:{label:'Olive',gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58',swatch:'linear-gradient(145deg,#a3a33a,#71717a 50%,#3f3f1f)'},
+      forest:{label:'Forest',gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94',swatch:'linear-gradient(145deg,#22c55e,#15803d 50%,#052e16)'},
+      jade:{label:'Jade',gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191',swatch:'linear-gradient(145deg,#2dd4bf,#0f766e 50%,#134e4a)'},
+      seafoam:{label:'Seafoam',gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212',swatch:'linear-gradient(145deg,#5eead4,#14b8a6 50%,#134e4a)'},
+      lagoon:{label:'Lagoon',gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212',swatch:'linear-gradient(145deg,#06b6d4,#0e7490 50%,#164e63)'},
+      turquoise:{label:'Turquoise',gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191',swatch:'linear-gradient(145deg,#2dd4bf,#0891b2 50%,#164e63)'},
+      ocean:{label:'Ocean',gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233',swatch:'linear-gradient(145deg,#0ea5e9,#0369a1 50%,#0c4a6e)'},
+      royal:{label:'Royal',gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235',swatch:'linear-gradient(145deg,#2563eb,#1d4ed8 50%,#1e3a8a)'},
+      navy:{label:'Navy',gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175',swatch:'linear-gradient(145deg,#1e40af,#1e3a8a 50%,#111827)'},
+      sapphire:{label:'Sapphire',gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246',swatch:'linear-gradient(145deg,#3b82f6,#1d4ed8 50%,#172554)'},
+      periwinkle:{label:'Periwinkle',gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248',swatch:'linear-gradient(145deg,#818cf8,#6366f1 50%,#312e81)'},
+      lavender:{label:'Lavender',gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253',swatch:'linear-gradient(145deg,#c4b5fd,#8b5cf6 50%,#4c1d95)'},
+      orchid:{label:'Orchid',gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252',swatch:'linear-gradient(145deg,#c084fc,#a855f7 50%,#581c87)'},
+      plum:{label:'Plum',gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175',swatch:'linear-gradient(145deg,#a21caf,#86198f 50%,#4a044e)'},
+      neon:{label:'Neon',gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94',swatch:'linear-gradient(145deg,#22c55e,#a3e635 50%,#365314)'},
+      graphite:{label:'Graphite',gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184',swatch:'linear-gradient(145deg,#94a3b8,#475569 50%,#0f172a)'},
+      slate:{label:'Slate',gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139',swatch:'linear-gradient(145deg,#64748b,#334155 50%,#0f172a)'},
+      pearl:{label:'Pearl',gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252',swatch:'linear-gradient(145deg,#f8fafc,#cbd5e1 50%,#64748b)'},
+      mocha:{label:'Mocha',gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7',swatch:'linear-gradient(145deg,#a16207,#854d0e 50%,#422006)'},
+      espresso:{label:'Espresso',gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14',swatch:'linear-gradient(145deg,#92400e,#78350f 50%,#431407)'}
     };
-    var LANG_META={id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
+    var LANG_META={id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-Hans',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
     var $=function(s,r){return (r||document).querySelector(s)};
     var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
-    function readJson(k,fallback){try{var raw=localStorage.getItem(k);return raw?JSON.parse(raw):fallback}catch(e){return fallback}}
-    function writeJson(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-    var settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id';
+    var settings=Object.assign({},DEFAULT_SETTINGS,(window.diracGetGlobalPrefs?window.diracGetGlobalPrefs():{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id';
     function toastTheme(msg){try{if(typeof window.toast==='function') window.toast(msg); else {var t=$('#toast'); if(t){t.textContent=msg;t.classList.add('show');clearTimeout(toastTheme.t);toastTheme.t=setTimeout(function(){t.classList.remove('show')},2200);}}}catch(e){}}
     function buildAccentChoices(){var wrap=$('#accentChoices'); if(!wrap || wrap.dataset.built==='1') return; wrap.dataset.built='1'; Object.keys(PALETTES).forEach(function(key){var p=PALETTES[key]; var b=document.createElement('button'); b.className='choice theme-swatch-choice theme-swatch'; b.type='button'; b.setAttribute('data-accent',key); b.setAttribute('aria-label',p.label); b.setAttribute('title',p.label); b.style.setProperty('--swatch',p.swatch); var sw=document.createElement('span'); sw.className='swatch'; sw.setAttribute('aria-hidden','true'); b.appendChild(sw); wrap.appendChild(b);});}
     function updateThemeChoices(){function mark(b,on){b.classList.toggle('active',!!on);b.classList.toggle('is-selected',!!on);b.setAttribute('aria-pressed',on?'true':'false');}
@@ -1757,7 +1818,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       root.style.setProperty('--gold',pal.gold); root.style.setProperty('--gold2',pal.gold2); root.style.setProperty('--gold3',pal.gold3); root.style.setProperty('--gold-2',pal.gold2); root.style.setProperty('--gold-3',pal.gold3); root.style.setProperty('--theme-rgb',pal.rgb); root.style.setProperty('--line','rgba('+pal.rgb+',.18)'); root.style.setProperty('--line2','rgba('+pal.rgb+',.36)');
       document.body && document.body.setAttribute('data-theme-ready','1');
       try{document.querySelector('meta[name="theme-color"]').setAttribute('content','#07090d')}catch(e){}
-      if(!skipWrite) writeJson(THEME_KEY,settings); updateThemeChoices();
+      if(!skipWrite){try{if(window.diracSetGlobalAccent) window.diracSetGlobalAccent(settings.accent); if(window.diracSetGlobalLanguage) window.diracSetGlobalLanguage(settings.language);}catch(e){}} updateThemeChoices();
     }
     function openTheme(e){ if(e){e.preventDefault();e.stopPropagation();} var m=$('#themeModal'); if(!m) return; m.hidden=false; m.classList.add('open'); m.setAttribute('aria-hidden','false'); document.body.classList.add('theme-open'); buildAccentChoices(); updateThemeChoices(); setTimeout(function(){var f=m.querySelector('button'); if(f) f.focus({preventScroll:true});},20); }
     function closeTheme(){ var m=$('#themeModal'); if(!m) return; m.hidden=true; m.classList.remove('open'); m.setAttribute('aria-hidden','true'); document.body.classList.remove('theme-open'); }
@@ -1767,9 +1828,8 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       document.addEventListener('click',function(e){var opener=e.target.closest('[data-open-theme],#themeBtn'); if(opener){openTheme(e);return;} var close=e.target.closest('[data-close-theme],#closeThemeBtn'); if(close){e.preventDefault();closeTheme();return;} var mode=e.target.closest('#themeModal [data-theme-mode]'); if(mode){settings.mode=mode.getAttribute('data-theme-mode'); if(settings.mode==='light') settings.mode='dark'; applySettings(); toastTheme('Tema disimpan.'); return;} var lang=e.target.closest('#themeModal [data-language]'); if(lang){settings.language=lang.getAttribute('data-language')||'id'; applySettings(); toastTheme('Bahasa disimpan.'); return;} var motion=e.target.closest('#themeModal [data-motion-choice]'); if(motion){settings.motion=motion.getAttribute('data-motion-choice')||'full'; applySettings(); toastTheme('Pengaturan gerak disimpan.'); return;} var contrast=e.target.closest('#themeModal [data-contrast]'); if(contrast){settings.contrast=contrast.getAttribute('data-contrast')||'off'; applySettings(); toastTheme('Kontras disimpan.'); return;} var accent=e.target.closest('#themeModal [data-accent]'); if(accent){settings.accent=accent.getAttribute('data-accent')||'gold'; applySettings(); var pal=PALETTES[settings.accent]||PALETTES.gold; toastTheme('Tema '+pal.label+' diterapkan.'); return;} },true);
       var modal=$('#themeModal'); if(modal) modal.addEventListener('click',function(e){if(e.target===modal) closeTheme();});
       document.addEventListener('keydown',function(e){if(e.key==='Escape') closeTheme();});
-      window.addEventListener('storage',function(e){if(e.key===THEME_KEY){settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);}});
-      window.addEventListener('pageshow',function(){settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);});
-      document.addEventListener('visibilitychange',function(){if(!document.hidden){settings=Object.assign({},DEFAULT_SETTINGS,readJson(THEME_KEY,{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);}});
+      window.addEventListener('pageshow',function(){settings=Object.assign({},DEFAULT_SETTINGS,(window.diracGetGlobalPrefs?window.diracGetGlobalPrefs():{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);});
+      document.addEventListener('visibilitychange',function(){if(!document.hidden){settings=Object.assign({},DEFAULT_SETTINGS,(window.diracGetGlobalPrefs?window.diracGetGlobalPrefs():{})); if(settings.mode==='light') settings.mode='dark'; if(!LANG_META[settings.language]) settings.language='id'; applySettings(true);}});
     }
     function startBrandTypewriter(){var wrap=document.querySelector('[data-brand-typewriter]'); if(!wrap) return; var target=wrap.querySelector('.brand-typewriter-text')||wrap; var words=['Dirac Group','Pesanan Saya']; var wordIndex=0, charIndex=words[0].length, deleting=true, paused=0; target.textContent=words[0]; wrap.setAttribute('aria-label',words[0]); function tick(){var current=words[wordIndex]; if(document.documentElement.getAttribute('data-motion')==='reduced'){target.textContent='Pesanan Saya';wrap.setAttribute('aria-label','Pesanan Saya');return;} if(paused>0){paused--; return setTimeout(tick,90);} if(deleting){charIndex=Math.max(0,charIndex-1); target.textContent=current.slice(0,charIndex); if(charIndex===0){deleting=false; wordIndex=(wordIndex+1)%words.length; paused=3;}}else{current=words[wordIndex]; charIndex=Math.min(current.length,charIndex+1); target.textContent=current.slice(0,charIndex); if(charIndex===current.length){wrap.setAttribute('aria-label',current); deleting=true; paused=14;}} setTimeout(tick,deleting?70:92);} setTimeout(tick,1050);}
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){bindTheme(); startBrandTypewriter();}); else {bindTheme(); startBrandTypewriter();}
