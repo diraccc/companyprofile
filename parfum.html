@@ -4448,6 +4448,11 @@ body.gate-checking .gate:not([hidden]) .gate-card:after{
   --dirac-final-muted:#aeb7c6;
   --dirac-final-ease:cubic-bezier(.22,1,.36,1);
 }
+body.gate-checking,
+body.dirac-protected-checking,
+body.dirac-protected-locked{
+  overflow:hidden!important;
+}
 #diracProtectedLockOverlay,
 body.gate-checking .security-gate,
 body.gate-checking .gate{
@@ -4620,6 +4625,158 @@ body.gate-checking .gate .dirac-final-session-loader{
 @media(max-height:720px){#diracProtectedLockOverlay .dirac-final-session-loader,body.gate-checking .security-gate .dirac-final-session-loader,body.gate-checking .gate .dirac-final-session-loader{transform:translateY(-2.4vh)!important;gap:8px!important}.dirac-final-logo-stage{width:min(61vw,330px)!important}.dirac-final-contact-note{gap:6px!important;margin-top:1px!important}.dirac-final-notice-line{min-height:40px!important;padding:7px 12px!important}.dirac-final-progress-track{width:min(55vw,300px)!important}.dirac-final-live-status{font-size:.68rem!important;margin-top:2px!important}}
 @media(prefers-reduced-motion:reduce){.dirac-final-session-loader *,.dirac-final-session-loader *::before,.dirac-final-session-loader *::after,#diracProtectedLockOverlay::before,body.gate-checking .security-gate::before,body.gate-checking .gate::before{animation:none!important;transition:none!important}.dirac-final-session-title{background-position:52% 50%!important}.dirac-final-scan-line{opacity:.42!important;top:50%!important}.dirac-final-scan-glass::before{opacity:.28!important;top:38%!important}.dirac-final-progress-track::before{transform:translateX(72%)!important;opacity:.72!important}}
 </style>
+
+<style id="dirac-final-session-loader-v11-visible-fix">
+/* DIRAC FINAL SESSION LOADER V11 VISIBLE FIX
+   Scope: memperbaiki tampilan loader final saja: scan lebih jelas, partikel lebih terlihat,
+   notice email selalu masuk viewport HP, warna tetap ikut tema.
+   Tidak menyentuh login, hash, A2F backend, payment gateway, webhook, atau email template. */
+#diracProtectedLockOverlay,
+body.gate-checking .security-gate,
+body.gate-checking .gate{
+  width:100vw!important;
+  min-height:100vh!important;
+  min-height:100svh!important;
+  min-height:100dvh!important;
+  max-height:100vh!important;
+  max-height:100svh!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  place-items:center!important;
+  padding:clamp(12px,2.4vh,22px)!important;
+}
+#diracProtectedLockOverlay .dirac-protected-lock-card,
+body.gate-checking .security-gate .gate-card,
+body.gate-checking .gate .gate-card{
+  width:min(100%,760px)!important;
+  height:auto!important;
+  max-height:calc(100dvh - 24px)!important;
+  overflow:visible!important;
+}
+#diracProtectedLockOverlay .dirac-final-session-loader,
+body.gate-checking .security-gate .dirac-final-session-loader,
+body.gate-checking .gate .dirac-final-session-loader{
+  width:min(100%,760px)!important;
+  max-height:calc(100dvh - 24px)!important;
+  gap:clamp(7px,1.05vh,12px)!important;
+  transform:translateY(-1.8vh)!important;
+}
+.dirac-final-logo-stage{
+  width:min(62vw,342px)!important;
+  margin-bottom:clamp(-8px,-.9vh,-4px)!important;
+}
+.dirac-final-scan-glass{
+  z-index:7!important;
+  inset:4% 6%!important;
+  border-radius:36px!important;
+  opacity:1!important;
+}
+.dirac-final-scan-glass::before{
+  height:38%!important;
+  background:linear-gradient(180deg,transparent 0%,rgba(58,128,255,.055) 18%,rgba(111,190,255,.20) 45%,rgba(var(--dirac-final-accent-rgb),.14) 53%,rgba(93,169,255,.12) 64%,transparent 100%)!important;
+  filter:blur(7px)!important;
+  animation:diracFinalScanGlassDownV11 3.45s cubic-bezier(.45,0,.18,1) infinite!important;
+}
+.dirac-final-scan-glass::after{
+  content:""!important;
+  position:absolute!important;
+  left:4%!important;
+  right:4%!important;
+  height:16%!important;
+  top:-18%!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.075),rgba(91,175,255,.16),rgba(var(--dirac-final-accent-rgb),.09),transparent)!important;
+  filter:blur(10px)!important;
+  opacity:0!important;
+  animation:diracFinalScanVeilDownV11 3.45s cubic-bezier(.45,0,.18,1) infinite!important;
+}
+.dirac-final-scan-line{
+  z-index:10!important;
+  left:4%!important;
+  right:4%!important;
+  height:3px!important;
+  background:linear-gradient(90deg,transparent,rgba(96,165,250,.32),rgba(255,255,255,.90),rgba(var(--dirac-final-accent-rgb),.82),rgba(86,154,255,.66),transparent)!important;
+  box-shadow:0 0 12px rgba(105,185,255,.68),0 0 24px rgba(64,120,255,.42),0 0 22px rgba(var(--dirac-final-accent-rgb),.18)!important;
+  animation:diracFinalScanDownV11 3.45s cubic-bezier(.45,0,.18,1) infinite!important;
+}
+.dirac-final-scan-line::before{height:8px!important;top:-3px!important;filter:blur(4px)!important;background:linear-gradient(90deg,transparent,rgba(119,184,255,.26),rgba(var(--dirac-final-accent-rgb),.24),transparent)!important;}
+.dirac-final-scan-line::after{height:42px!important;top:-20px!important;filter:blur(9px)!important;background:linear-gradient(180deg,transparent,rgba(58,128,255,.14),rgba(var(--dirac-final-accent-rgb),.055),transparent)!important;}
+.dirac-final-particle-field{
+  inset:-16%!important;
+  z-index:8!important;
+  opacity:1!important;
+  -webkit-mask:none!important;
+  mask:none!important;
+}
+.dirac-final-particle-field span{
+  width:4px!important;
+  height:4px!important;
+  opacity:0!important;
+  background:rgba(102,190,255,.90)!important;
+  box-shadow:0 0 10px rgba(102,190,255,.78),0 0 22px rgba(64,120,255,.25)!important;
+  animation:diracFinalParticleTwinkleV11 3.9s ease-in-out infinite!important;
+}
+.dirac-final-particle-field span:nth-child(2n){background:rgba(var(--dirac-final-accent-rgb),.78)!important;box-shadow:0 0 9px rgba(var(--dirac-final-accent-rgb),.54),0 0 18px rgba(var(--dirac-final-accent-rgb),.16)!important;}
+.dirac-final-particle-field span:nth-child(11){left:31%!important;top:5%!important;animation-delay:.42s!important}.dirac-final-particle-field span:nth-child(12){right:31%!important;top:12%!important;animation-delay:1.32s!important}.dirac-final-particle-field span:nth-child(13){left:4%!important;top:39%!important;animation-delay:2.05s!important}.dirac-final-particle-field span:nth-child(14){right:4%!important;top:61%!important;animation-delay:2.55s!important}.dirac-final-particle-field span:nth-child(15){left:30%!important;bottom:2%!important;animation-delay:3.05s!important}.dirac-final-particle-field span:nth-child(16){right:20%!important;bottom:22%!important;animation-delay:.88s!important}.dirac-final-particle-field span:nth-child(17){left:52%!important;top:1%!important;animation-delay:1.88s!important}.dirac-final-particle-field span:nth-child(18){right:43%!important;bottom:7%!important;animation-delay:3.45s!important}
+.dirac-final-contact-note{
+  display:grid!important;
+  opacity:1!important;
+  visibility:visible!important;
+  transform:none!important;
+  filter:none!important;
+  margin-top:clamp(4px,.6vh,8px)!important;
+  animation:none!important;
+}
+.dirac-final-notice-line{
+  min-height:clamp(34px,5.2vh,42px)!important;
+  padding:clamp(5px,.9vh,8px) clamp(10px,2.6vw,14px)!important;
+  font-size:clamp(.65rem,2.15vw,.82rem)!important;
+  border-color:rgba(88,146,255,.18)!important;
+  background:linear-gradient(180deg,rgba(8,16,30,.42),rgba(4,9,18,.31))!important;
+}
+.dirac-final-progress-track{margin-top:clamp(-3px,-.25vh,0px)!important;}
+.dirac-final-live-status{font-size:clamp(.66rem,2.25vw,.78rem)!important;margin-top:clamp(0px,.25vh,2px)!important;}
+.dirac-final-crypto-strip{font-size:clamp(.56rem,1.88vw,.70rem)!important;padding:4px 12px 3px!important;min-height:20px!important;}
+.dirac-final-secure-check-pulse{width:22px!important;height:22px!important;margin-top:clamp(0px,.24vh,3px)!important;}
+@keyframes diracFinalScanDownV11{0%{top:4%;opacity:0;transform:scaleX(.86)}10%{opacity:1;transform:scaleX(1)}55%{opacity:.94;transform:scaleX(1.02)}78%{opacity:.26}100%{top:91%;opacity:0;transform:scaleX(.90)}}
+@keyframes diracFinalScanGlassDownV11{0%{top:-42%;opacity:0}10%{opacity:.88}56%{opacity:.66}80%{opacity:.13}100%{top:112%;opacity:0}}
+@keyframes diracFinalScanVeilDownV11{0%{top:-18%;opacity:0}14%{opacity:.68}54%{opacity:.44}76%{opacity:.10}100%{top:104%;opacity:0}}
+@keyframes diracFinalParticleTwinkleV11{0%,100%{opacity:0;transform:translateY(0) scale(.62)}18%{opacity:.98;transform:translateY(-3px) scale(1)}54%{opacity:.50;transform:translateY(-9px) scale(.84)}76%{opacity:0;transform:translateY(-15px) scale(.58)}}
+@media(max-width:520px){
+  #diracProtectedLockOverlay .dirac-final-session-loader,
+  body.gate-checking .security-gate .dirac-final-session-loader,
+  body.gate-checking .gate .dirac-final-session-loader{transform:translateY(-2.7vh)!important;gap:8px!important;}
+  .dirac-final-logo-stage{width:min(60vw,295px)!important;}
+  .dirac-final-session-title{font-size:clamp(.94rem,3.78vw,1.34rem)!important;letter-spacing:.036em!important;}
+  .dirac-final-contact-note{width:min(93vw,650px)!important;gap:6px!important;margin-top:4px!important;}
+  .dirac-final-notice-line{min-height:35px!important;padding:6px 11px!important;font-size:clamp(.64rem,2.35vw,.76rem)!important;gap:6px!important;}
+  .dirac-final-notice-icon{width:18px!important;height:18px!important;font-size:.58rem!important;}
+  .dirac-final-progress-track{width:min(58vw,300px)!important;}
+}
+@media(max-height:740px){
+  #diracProtectedLockOverlay .dirac-final-session-loader,
+  body.gate-checking .security-gate .dirac-final-session-loader,
+  body.gate-checking .gate .dirac-final-session-loader{transform:translateY(-2.2vh)!important;gap:7px!important;}
+  .dirac-final-logo-stage{width:min(56vw,270px)!important;}
+  .dirac-final-session-title{font-size:clamp(.90rem,3.55vw,1.24rem)!important;}
+  .dirac-final-progress-track{width:min(54vw,285px)!important;height:2px!important;}
+  .dirac-final-live-status{font-size:clamp(.62rem,2.0vw,.72rem)!important;letter-spacing:.065em!important;}
+  .dirac-final-crypto-strip{font-size:clamp(.52rem,1.65vw,.64rem)!important;min-height:18px!important;padding:3px 10px!important;}
+  .dirac-final-secure-check-pulse{width:19px!important;height:19px!important;font-size:.74rem!important;}
+  .dirac-final-contact-note{gap:5px!important;margin-top:3px!important;}
+  .dirac-final-notice-line{min-height:32px!important;padding:5px 10px!important;font-size:clamp(.60rem,2.08vw,.72rem)!important;}
+}
+@media(max-height:640px){
+  #diracProtectedLockOverlay .dirac-final-session-loader,
+  body.gate-checking .security-gate .dirac-final-session-loader,
+  body.gate-checking .gate .dirac-final-session-loader{transform:translateY(-1.2vh)!important;gap:5px!important;}
+  .dirac-final-logo-stage{width:min(50vw,230px)!important;}
+  .dirac-final-contact-note{gap:4px!important;}
+  .dirac-final-notice-line{min-height:29px!important;padding:4px 9px!important;}
+}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
 
@@ -4994,7 +5151,7 @@ body.gate-checking .gate .dirac-final-session-loader{
           <div class="dirac-final-scan-pulse-core"></div>
           <div class="dirac-final-scanner-orbit"><span></span></div>
           <div class="dirac-final-logo-edge-light"></div>
-          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
           <img class="dirac-final-logo-img" src="dirac-security.png" alt="" decoding="async" loading="eager">
         </div>
         <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>
@@ -14526,7 +14683,7 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
         '          <div class="dirac-final-scan-pulse-core"></div>' +
         '          <div class="dirac-final-scanner-orbit"><span></span></div>' +
         '          <div class="dirac-final-logo-edge-light"></div>' +
-        '          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
+        '          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
         '          <img class="dirac-final-logo-img" src="dirac-security.png" alt="" decoding="async" loading="eager">' +
         '        </div>' +
         '        <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>' +
