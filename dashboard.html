@@ -2714,5 +2714,238 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   document.addEventListener('DOMContentLoaded', function(){ try{ refresh(window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : {}); }catch(_){ } });
 })();
 </script>
+
+<script id="dirac-final-autoapply-theme-i18n-fix-v2">
+(function(){
+  'use strict';
+  if(window.__DIRAC_FINAL_AUTOAPPLY_THEME_I18N_FIX_V2__) return;
+  window.__DIRAC_FINAL_AUTOAPPLY_THEME_I18N_FIX_V2__ = true;
+
+  var THEME_KEY = 'dirac_theme_settings_v2';
+  var LANGS = {id:true,en:true,zh:true,ar:true,ja:true,ko:true,es:true,fr:true};
+  var DEFAULT_THEME = {mode:'dark',accent:'sky',language:'id',motion:'full',contrast:'off',currency:'IDR'};
+  function normLang(v){
+    v = String(v || 'id').toLowerCase();
+    if(v.indexOf('zh') === 0) return 'zh';
+    if(v.indexOf('ar') === 0) return 'ar';
+    if(v.indexOf('ja') === 0) return 'ja';
+    if(v.indexOf('ko') === 0) return 'ko';
+    if(v.indexOf('es') === 0) return 'es';
+    if(v.indexOf('fr') === 0) return 'fr';
+    if(v.indexOf('en') === 0) return 'en';
+    return LANGS[v] ? v : 'id';
+  }
+  function readPrefs(){
+    try{ if(window.diracGetGlobalPrefs) return window.diracGetGlobalPrefs() || DEFAULT_THEME; }catch(_){ }
+    try{ return Object.assign({}, DEFAULT_THEME, JSON.parse(localStorage.getItem(THEME_KEY) || '{}') || {}); }catch(_){ return DEFAULT_THEME; }
+  }
+  function currentLang(){
+    var p = readPrefs();
+    return normLang((p && p.language) || document.documentElement.getAttribute('data-language') || document.documentElement.lang || 'id');
+  }
+  function getTheme(){ return Object.assign({}, DEFAULT_THEME, readPrefs() || {}); }
+  function saveTheme(patch){
+    patch = patch || {};
+    try{
+      if(window.diracSetGlobalTheme){ window.diracSetGlobalTheme(patch); return; }
+      var next = Object.assign({}, getTheme(), patch);
+      localStorage.setItem(THEME_KEY, JSON.stringify(next));
+      if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs();
+      window.dispatchEvent(new CustomEvent('dirac:global-prefs-change',{detail:Object.assign({}, next, {source:'round2-autoapply'})}));
+    }catch(_){ }
+  }
+  function addStyle(){
+    if(document.getElementById('dirac-final-theme-action-hide-style-v2')) return;
+    var st = document.createElement('style');
+    st.id = 'dirac-final-theme-action-hide-style-v2';
+    st.textContent = '#themeModal .theme-actions,.theme-modal .theme-actions{display:none!important;visibility:hidden!important;pointer-events:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}#themeModal #themeResetBtn,#themeModal #themeSaveBtn,#themeModal .theme-reset,#themeModal .theme-save,#themeModal .theme-reset-btn,#themeModal .theme-save-btn{display:none!important;visibility:hidden!important;pointer-events:none!important}';
+    (document.head || document.documentElement).appendChild(st);
+  }
+  function disableThemeActions(){
+    addStyle();
+    Array.prototype.slice.call(document.querySelectorAll('#themeModal .theme-actions,.theme-modal .theme-actions')).forEach(function(el){
+      el.hidden = true;
+      el.setAttribute('aria-hidden','true');
+      el.setAttribute('data-autoapply-disabled','true');
+      el.style.display = 'none';
+    });
+    Array.prototype.slice.call(document.querySelectorAll('#themeModal #themeResetBtn,#themeModal #themeSaveBtn,#themeModal .theme-reset,#themeModal .theme-save,#themeModal .theme-reset-btn,#themeModal .theme-save-btn')).forEach(function(btn){
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled','true');
+      btn.setAttribute('tabindex','-1');
+      btn.setAttribute('data-autoapply-disabled','true');
+      btn.style.display = 'none';
+    });
+  }
+  function patchFromControl(target){
+    if(!target || !target.getAttribute) return null;
+    var patch = {};
+    if(target.hasAttribute('data-theme-mode-option')) patch.mode = target.getAttribute('data-theme-mode-option');
+    if(target.hasAttribute('data-theme-mode')) patch.mode = target.getAttribute('data-theme-mode');
+    if(target.hasAttribute('data-theme-contrast-option')) patch.contrast = target.getAttribute('data-theme-contrast-option');
+    if(target.hasAttribute('data-contrast')) patch.contrast = target.getAttribute('data-contrast');
+    if(target.hasAttribute('data-theme-accent-option')) patch.accent = target.getAttribute('data-theme-accent-option');
+    if(target.hasAttribute('data-accent')) patch.accent = target.getAttribute('data-accent');
+    if(target.hasAttribute('data-language-option')) patch.language = target.getAttribute('data-language-option');
+    else if(target.hasAttribute('data-language')) patch.language = target.getAttribute('data-language');
+    if(target.hasAttribute('data-motion-choice')) patch.motion = target.getAttribute('data-motion-choice');
+    if(target.hasAttribute('data-currency-option')) patch.currency = target.getAttribute('data-currency-option');
+    if(target.hasAttribute('data-currency')) patch.currency = target.getAttribute('data-currency');
+    return Object.keys(patch).length ? patch : null;
+  }
+  function syncSelectedControls(){
+    var p = getTheme();
+    function sel(selector, attr, value){
+      Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function(el){
+        var on = String(el.getAttribute(attr) || '').toLowerCase() === String(value || '').toLowerCase();
+        el.classList.toggle('active', on);
+        el.classList.toggle('is-selected', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    sel('[data-theme-mode-option]','data-theme-mode-option',p.mode); sel('[data-theme-mode]','data-theme-mode',p.mode);
+    sel('[data-theme-contrast-option]','data-theme-contrast-option',p.contrast); sel('[data-contrast]','data-contrast',p.contrast);
+    sel('[data-theme-accent-option]','data-theme-accent-option',p.accent); sel('[data-accent]','data-accent',p.accent);
+    sel('[data-language-option]','data-language-option',p.language); sel('button[data-language],[role="button"][data-language]','data-language',p.language);
+    sel('[data-motion-choice]','data-motion-choice',p.motion);
+    sel('[data-currency-option]','data-currency-option',p.currency); sel('[data-currency]','data-currency',p.currency);
+    var ls = document.getElementById('languageSelect'); if(ls) ls.value = p.language;
+    var ms = document.getElementById('motionSelect'); if(ms) ms.value = p.motion;
+    var cs = document.getElementById('currencySelect'); if(cs) cs.value = p.currency;
+  }
+
+  var C = {
+    id:{
+      sideSub:'Lapisan proteksi akun', step:function(n){return 'Langkah '+n+' dari 4';}, choose:'Pilih metode', verify:'Verifikasi', recover:'Analisis keamanan', finish:'Selesai',
+      riskKicker:'Status', riskTitle:'Proteksi belum aktif', riskText:'Dashboard tetap terkunci sampai metode keamanan diverifikasi.', activeTitle:'Proteksi aktif', activeText:'Akun sekarang memiliki lapisan keamanan tambahan.',
+      kicker:'Wajib sebelum dashboard', title:'Aktifkan A2F', sub:'Pilih lapisan keamanan tambahan agar akun pelanggan tidak hanya bergantung pada password.',
+      note:'Login pertama wajib membuat Passkey. Email hanya cadangan setelah Passkey aktif.', recommended:'Direkomendasikan', backup:'Cadangan',
+      passTitle:'Passkey', passDesc:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat kompatibel.', passMini:'Paling modern dan tahan phishing.',
+      emailTitle:'Email', emailDesc:'Gunakan kode keamanan yang dikirim ke email pelanggan.', emailMini:'Mudah, tetapi bukan metode utama.',
+      preview:'Detail metode', selectedPass:'Passkey siap dibuat', livePass:'Anti-phishing', passPanelTitle:'Buat passkey di perangkat pelanggan', passPanelText:'Setelah WebAuthn tersambung ke backend, aktivasi memanggil challenge server dan browser membuka Face ID, sidik jari, PIN, atau pengelola password.',
+      pass1:'Pastikan perangkat pribadi sedang digunakan', pass2:'Browser akan membuka konfirmasi keamanan perangkat', pass3:'Tidak perlu mengingat kode tambahan setelah aktif',
+      trust1k:'PRIVASI', trust1:'Domain aman', trust2k:'KODE', trust2:'Hook endpoint siap', trust3k:'CADANGAN', trust3:'Butuh tabel MFA',
+      chooseStatus:'Pilih metode keamanan yang paling nyaman. Passkey direkomendasikan untuk perangkat pribadi.', doneStatus:'Analisis keamanan selesai. Tekan Selesai untuk membuka dashboard.', tryText:'Bukan metode yang Anda mau?', tryBtn:'Coba cara lain', start:'Aktifkan pilihan ini', create:'Buat passkey sekarang', done:'Selesai, buka dashboard', activeMsg:'A2F aktif menggunakan Passkey. Tampilan sudah siap; untuk produksi, backend tetap memverifikasi kode/challenge asli.',
+      launchCheck:'CEK SISTEM', launchSync:'SINKRON', launchVerify:'VALIDASI', launchReady:'AMAN', launchProcess:'MEMPROSES', launchFinal:'FINALISASI', launchDone:'SELESAI', launchTerminal:'TERMINAL MESIN', launchStep1:'Validasi A2F', launchStep1Sub:'Verifikasi tanda tangan keamanan', launchStep2:'Sinkronisasi dashboard', launchStep2Sub:'Menyiapkan akses pelanggan', ipLabel:'IP PENGGUNA', detecting:'mendeteksi...', protected:'dilindungi server', launchRun:'Menjalankan verifikasi keamanan cepat...', launchDoneStatus:'Pemeriksaan sistem selesai. Mengalihkan...', preparing:'Menyiapkan dashboard...'
+    },
+    en:{sideSub:'Account protection layer',step:function(n){return 'Step '+n+' of 4';},choose:'Choose method',verify:'Verify',recover:'Security analysis',finish:'Done',riskKicker:'Status',riskTitle:'Protection not active',riskText:'The dashboard stays locked until the security method is verified.',activeTitle:'Protection active',activeText:'The account now has an extra security layer.',kicker:'Required before dashboard',title:'Enable 2FA',sub:'Choose an extra security layer so the customer account does not rely on password only.',note:'First sign-in must create a Passkey. Email is only a backup after Passkey is active.',recommended:'Recommended',backup:'Backup',passTitle:'Passkey',passDesc:'Use Face ID, fingerprint, PIN, or a compatible device key.',passMini:'Most modern and phishing-resistant.',emailTitle:'Email',emailDesc:'Use a security code sent to the customer email.',emailMini:'Simple, but not the primary method.',preview:'Method detail',selectedPass:'Passkey ready to create',livePass:'Phishing-resistant',passPanelTitle:'Create a passkey on the customer device',passPanelText:'After WebAuthn is connected to the backend, activation calls the server challenge and the browser opens Face ID, fingerprint, PIN, or a password manager.',pass1:'Make sure you are using a personal device',pass2:'The browser will open the device security confirmation',pass3:'No extra code to remember after setup',trust1k:'PRIVACY',trust1:'Secure domain',trust2k:'CODE',trust2:'Endpoint hooks ready',trust3k:'BACKUP',trust3:'Needs MFA tables',chooseStatus:'Choose the most comfortable security method. Passkey is recommended for personal devices.',doneStatus:'Security analysis complete. Press Done to open the dashboard.',tryText:'Not the method you want?',tryBtn:'Try another way',start:'Activate selected method',create:'Create passkey now',done:'Done, open dashboard',activeMsg:'2FA is active with Passkey. The UI is ready; in production, the backend still verifies the real code/challenge.',launchCheck:'SYSTEM CHECK',launchSync:'SYNC',launchVerify:'VERIFY',launchReady:'READY',launchProcess:'PROCESSING',launchFinal:'FINALIZING',launchDone:'DONE',launchTerminal:'ENGINE TERMINAL',launchStep1:'2FA validation',launchStep1Sub:'Checking security signature',launchStep2:'Dashboard synchronization',launchStep2Sub:'Preparing customer access',ipLabel:'USER IP',detecting:'detecting...',protected:'protected by server',launchRun:'Running fast security verification...',launchDoneStatus:'Security check complete. Redirecting...',preparing:'Preparing dashboard...'},
+    zh:{sideSub:'账户保护层',step:function(n){return '第 '+n+' 步，共 4 步';},choose:'选择方法',verify:'验证',recover:'安全分析',finish:'完成',riskKicker:'状态',riskTitle:'保护尚未启用',riskText:'安全方法验证前，仪表板保持锁定。',activeTitle:'保护已启用',activeText:'账户现在拥有额外安全层。',kicker:'进入仪表板前必需',title:'启用 2FA',sub:'选择额外安全层，避免客户账户只依赖密码。',note:'首次登录必须创建 Passkey。Passkey 启用后，邮箱仅作为备用。',recommended:'推荐',backup:'备用',passTitle:'Passkey',passDesc:'使用 Face ID、指纹、PIN 或兼容设备密钥。',passMini:'最现代，并且抗钓鱼。',emailTitle:'邮箱',emailDesc:'使用发送到客户邮箱的安全代码。',emailMini:'简单，但不作为主要方式。',preview:'方法详情',selectedPass:'Passkey 可创建',livePass:'抗钓鱼',passPanelTitle:'在客户设备上创建 Passkey',passPanelText:'WebAuthn 连接到后端后，激活会调用服务器 challenge，浏览器将打开 Face ID、指纹、PIN 或密码管理器。',pass1:'确认正在使用个人设备',pass2:'浏览器会打开设备安全确认',pass3:'启用后无需记住额外代码',trust1k:'隐私',trust1:'安全域名',trust2k:'代码',trust2:'端点钩子就绪',trust3k:'备用',trust3:'需要 MFA 表',chooseStatus:'选择最舒适的安全方法。个人设备推荐使用 Passkey。',doneStatus:'安全分析完成。点击完成打开仪表板。',tryText:'不是想要的方法？',tryBtn:'尝试其他方式',start:'启用所选方法',create:'立即创建 Passkey',done:'完成，打开仪表板',activeMsg:'A2F 已通过 Passkey 启用。界面已准备好；生产环境仍由后端验证真实代码/challenge。',launchCheck:'系统检查',launchSync:'同步',launchVerify:'验证',launchReady:'就绪',launchProcess:'处理中',launchFinal:'收尾中',launchDone:'完成',launchTerminal:'引擎终端',launchStep1:'2FA 验证',launchStep1Sub:'检查安全签名',launchStep2:'仪表板同步',launchStep2Sub:'准备客户访问',ipLabel:'用户 IP',detecting:'检测中...',protected:'由服务器保护',launchRun:'正在运行快速安全验证...',launchDoneStatus:'安全检查完成。正在跳转...',preparing:'正在准备仪表板...'},
+    ar:{sideSub:'طبقة حماية الحساب',step:function(n){return 'الخطوة '+n+' من 4';},choose:'اختر الطريقة',verify:'تحقق',recover:'تحليل الأمان',finish:'تم',riskKicker:'الحالة',riskTitle:'الحماية غير مفعلة',riskText:'تبقى لوحة التحكم مقفلة حتى يتم التحقق من طريقة الأمان.',activeTitle:'الحماية مفعلة',activeText:'أصبح للحساب طبقة أمان إضافية.',kicker:'مطلوب قبل لوحة التحكم',title:'تفعيل 2FA',sub:'اختر طبقة أمان إضافية حتى لا يعتمد حساب العميل على كلمة المرور فقط.',note:'يجب إنشاء Passkey عند أول تسجيل دخول. البريد يكون احتياطياً فقط بعد تفعيل Passkey.',recommended:'موصى به',backup:'احتياطي',passTitle:'Passkey',passDesc:'استخدم Face ID أو البصمة أو PIN أو مفتاح جهاز متوافق.',passMini:'الأحدث والأكثر مقاومة للتصيد.',emailTitle:'البريد',emailDesc:'استخدم رمز أمان مرسلاً إلى بريد العميل.',emailMini:'سهل، لكنه ليس الطريقة الأساسية.',preview:'تفاصيل الطريقة',selectedPass:'Passkey جاهز للإنشاء',livePass:'مقاوم للتصيد',passPanelTitle:'إنشاء Passkey على جهاز العميل',passPanelText:'بعد توصيل WebAuthn بالخلفية، يستدعي التفعيل challenge الخادم ويفتح المتصفح Face ID أو البصمة أو PIN أو مدير كلمات المرور.',pass1:'تأكد من استخدام جهاز شخصي',pass2:'سيفتح المتصفح تأكيد أمان الجهاز',pass3:'لا حاجة لتذكر رمز إضافي بعد التفعيل',trust1k:'الخصوصية',trust1:'نطاق آمن',trust2k:'الكود',trust2:'endpoint hooks جاهزة',trust3k:'احتياطي',trust3:'يتطلب جداول MFA',chooseStatus:'اختر طريقة الأمان الأنسب. يوصى بـ Passkey للأجهزة الشخصية.',doneStatus:'اكتمل تحليل الأمان. اضغط تم لفتح لوحة التحكم.',tryText:'ليست هذه الطريقة التي تريدها؟',tryBtn:'جرّب طريقة أخرى',start:'فعّل الطريقة المختارة',create:'أنشئ Passkey الآن',done:'تم، افتح لوحة التحكم',activeMsg:'A2F مفعل باستخدام Passkey. الواجهة جاهزة؛ وفي الإنتاج يظل الخادم يتحقق من الكود/challenge الحقيقي.',launchCheck:'فحص النظام',launchSync:'مزامنة',launchVerify:'تحقق',launchReady:'جاهز',launchProcess:'قيد المعالجة',launchFinal:'إنهاء',launchDone:'تم',launchTerminal:'طرفية المحرك',launchStep1:'تحقق 2FA',launchStep1Sub:'فحص توقيع الأمان',launchStep2:'مزامنة لوحة التحكم',launchStep2Sub:'تجهيز وصول العميل',ipLabel:'IP المستخدم',detecting:'جارٍ الكشف...',protected:'محمي بواسطة الخادم',launchRun:'تشغيل تحقق أمان سريع...',launchDoneStatus:'اكتمل فحص الأمان. جارٍ التحويل...',preparing:'تجهيز لوحة التحكم...'},
+    ja:{sideSub:'アカウント保護レイヤー',step:function(n){return '4ステップ中 '+n;},choose:'方法を選択',verify:'確認',recover:'セキュリティ分析',finish:'完了',riskKicker:'状態',riskTitle:'保護は未有効',riskText:'セキュリティ方法が確認されるまでダッシュボードはロックされます。',activeTitle:'保護が有効',activeText:'アカウントに追加の保護レイヤーがあります。',kicker:'ダッシュボード前に必須',title:'2FAを有効化',sub:'顧客アカウントがパスワードだけに依存しないよう追加の保護を選択します。',note:'初回ログインでは Passkey 作成が必須です。メールは Passkey 有効後のバックアップです。',recommended:'おすすめ',backup:'バックアップ',passTitle:'Passkey',passDesc:'Face ID、指紋、PIN、または対応デバイスキーを使用します。',passMini:'最も新しくフィッシングに強い方式。',emailTitle:'メール',emailDesc:'顧客メールへ送信されたセキュリティコードを使用します。',emailMini:'簡単ですが主な方法ではありません。',preview:'方法の詳細',selectedPass:'Passkey作成準備完了',livePass:'フィッシング耐性',passPanelTitle:'顧客端末で Passkey を作成',passPanelText:'WebAuthn がバックエンドに接続されると、認証はサーバー challenge を呼び出し、ブラウザが Face ID、指紋、PIN、またはパスワードマネージャーを開きます。',pass1:'個人端末を使用していることを確認',pass2:'ブラウザがデバイスの安全確認を開きます',pass3:'有効化後に追加コードを覚える必要はありません',trust1k:'プライバシー',trust1:'安全なドメイン',trust2k:'コード',trust2:'エンドポイント連携準備完了',trust3k:'バックアップ',trust3:'MFAテーブルが必要',chooseStatus:'最も使いやすいセキュリティ方法を選択してください。個人端末には Passkey がおすすめです。',doneStatus:'セキュリティ分析が完了しました。完了を押してダッシュボードを開きます。',tryText:'希望の方法ではありませんか？',tryBtn:'別の方法を試す',start:'選択した方法を有効化',create:'今すぐ Passkey を作成',done:'完了、ダッシュボードを開く',activeMsg:'A2F は Passkey で有効です。UI は準備済みです。本番ではバックエンドが実際のコード/challengeを確認します。',launchCheck:'システム確認',launchSync:'同期',launchVerify:'確認',launchReady:'準備完了',launchProcess:'処理中',launchFinal:'最終処理',launchDone:'完了',launchTerminal:'エンジンターミナル',launchStep1:'2FA検証',launchStep1Sub:'セキュリティ署名を確認中',launchStep2:'ダッシュボード同期',launchStep2Sub:'顧客アクセスを準備中',ipLabel:'ユーザー IP',detecting:'検出中...',protected:'サーバーで保護',launchRun:'高速セキュリティ確認中...',launchDoneStatus:'セキュリティ確認完了。リダイレクト中...',preparing:'ダッシュボード準備中...'},
+    ko:{sideSub:'계정 보호 레이어',step:function(n){return '4단계 중 '+n+'단계';},choose:'방법 선택',verify:'인증',recover:'보안 분석',finish:'완료',riskKicker:'상태',riskTitle:'보호가 활성화되지 않음',riskText:'보안 방법이 확인될 때까지 대시보드는 잠긴 상태입니다.',activeTitle:'보호 활성화됨',activeText:'계정에 추가 보안 레이어가 적용되었습니다.',kicker:'대시보드 전에 필요',title:'2FA 활성화',sub:'고객 계정이 비밀번호만 의존하지 않도록 추가 보안 레이어를 선택하세요.',note:'첫 로그인에서는 Passkey 생성이 필수입니다. 이메일은 Passkey 활성화 후 백업입니다.',recommended:'추천',backup:'백업',passTitle:'Passkey',passDesc:'Face ID, 지문, PIN 또는 호환 기기 키를 사용하세요.',passMini:'가장 현대적이고 피싱에 강합니다.',emailTitle:'이메일',emailDesc:'고객 이메일로 전송된 보안 코드를 사용하세요.',emailMini:'간단하지만 기본 방법은 아닙니다.',preview:'방법 상세',selectedPass:'Passkey 생성 준비 완료',livePass:'피싱 방지',passPanelTitle:'고객 기기에서 Passkey 생성',passPanelText:'WebAuthn이 백엔드에 연결되면 활성화가 서버 challenge를 호출하고 브라우저가 Face ID, 지문, PIN 또는 비밀번호 관리자를 엽니다.',pass1:'개인 기기를 사용 중인지 확인하세요',pass2:'브라우저가 기기 보안 확인을 엽니다',pass3:'활성화 후 추가 코드를 기억할 필요가 없습니다',trust1k:'개인정보',trust1:'보안 도메인',trust2k:'코드',trust2:'엔드포인트 훅 준비됨',trust3k:'백업',trust3:'MFA 테이블 필요',chooseStatus:'가장 편한 보안 방법을 선택하세요. 개인 기기에는 Passkey를 권장합니다.',doneStatus:'보안 분석이 완료되었습니다. 완료를 눌러 대시보드를 여세요.',tryText:'원하는 방법이 아닌가요?',tryBtn:'다른 방법 시도',start:'선택한 방법 활성화',create:'지금 Passkey 생성',done:'완료, 대시보드 열기',activeMsg:'A2F가 Passkey로 활성화되었습니다. UI는 준비되었으며 운영에서는 백엔드가 실제 코드/challenge를 확인합니다.',launchCheck:'시스템 점검',launchSync:'동기화',launchVerify:'검증',launchReady:'준비됨',launchProcess:'처리 중',launchFinal:'마무리 중',launchDone:'완료',launchTerminal:'엔진 터미널',launchStep1:'2FA 검증',launchStep1Sub:'보안 서명 확인 중',launchStep2:'대시보드 동기화',launchStep2Sub:'고객 접근 준비 중',ipLabel:'사용자 IP',detecting:'감지 중...',protected:'서버가 보호 중',launchRun:'빠른 보안 검증 실행 중...',launchDoneStatus:'보안 점검 완료. 이동 중...',preparing:'대시보드 준비 중...'},
+    es:{sideSub:'Capa de protección de cuenta',step:function(n){return 'Paso '+n+' de 4';},choose:'Elegir método',verify:'Verificar',recover:'Análisis de seguridad',finish:'Completo',riskKicker:'Estado',riskTitle:'Protección no activa',riskText:'El panel permanece bloqueado hasta verificar el método de seguridad.',activeTitle:'Protección activa',activeText:'La cuenta ya tiene una capa extra de seguridad.',kicker:'Requerido antes del panel',title:'Activar 2FA',sub:'Elige una capa extra para que la cuenta no dependa solo de contraseña.',note:'El primer inicio debe crear una Passkey. El email queda solo como respaldo después de activar Passkey.',recommended:'Recomendado',backup:'Respaldo',passTitle:'Passkey',passDesc:'Usa Face ID, huella, PIN o clave de dispositivo compatible.',passMini:'Más moderno y resistente al phishing.',emailTitle:'Email',emailDesc:'Usa un código de seguridad enviado al email del cliente.',emailMini:'Simple, pero no como método principal.',preview:'Detalle del método',selectedPass:'Passkey lista para crear',livePass:'Antiphishing',passPanelTitle:'Crear Passkey en el dispositivo del cliente',passPanelText:'Cuando WebAuthn esté conectado al backend, la activación llama al challenge del servidor y el navegador abre Face ID, huella, PIN o gestor de contraseñas.',pass1:'Asegúrate de usar un dispositivo personal',pass2:'El navegador abrirá la confirmación de seguridad del dispositivo',pass3:'No hay que recordar códigos extra tras activar',trust1k:'PRIVACIDAD',trust1:'Dominio seguro',trust2k:'CÓDIGO',trust2:'Hooks de endpoint listos',trust3k:'RESPALDO',trust3:'Necesita tablas MFA',chooseStatus:'Elige el método de seguridad más cómodo. Passkey se recomienda para dispositivos personales.',doneStatus:'Análisis de seguridad completo. Pulsa Completo para abrir el panel.',tryText:'¿No es el método que quieres?',tryBtn:'Probar otra forma',start:'Activar método elegido',create:'Crear Passkey ahora',done:'Completo, abrir panel',activeMsg:'A2F activo con Passkey. La interfaz está lista; en producción el backend sigue verificando el código/challenge real.',launchCheck:'REVISIÓN DEL SISTEMA',launchSync:'SINCRONIZAR',launchVerify:'VERIFICAR',launchReady:'LISTO',launchProcess:'PROCESANDO',launchFinal:'FINALIZANDO',launchDone:'COMPLETO',launchTerminal:'TERMINAL DEL MOTOR',launchStep1:'Validación 2FA',launchStep1Sub:'Verificando firma de seguridad',launchStep2:'Sincronización del panel',launchStep2Sub:'Preparando acceso del cliente',ipLabel:'IP USUARIO',detecting:'detectando...',protected:'protegido por servidor',launchRun:'Ejecutando verificación rápida...',launchDoneStatus:'Revisión de seguridad completa. Redirigiendo...',preparing:'Preparando panel...'},
+    fr:{sideSub:'Couche de protection du compte',step:function(n){return 'Étape '+n+' sur 4';},choose:'Choisir la méthode',verify:'Vérifier',recover:'Analyse de sécurité',finish:'Terminé',riskKicker:'Statut',riskTitle:'Protection non active',riskText:'Le tableau de bord reste verrouillé jusqu’à la vérification de la méthode de sécurité.',activeTitle:'Protection active',activeText:'Le compte dispose maintenant d’une couche de sécurité supplémentaire.',kicker:'Requis avant le tableau de bord',title:'Activer la 2FA',sub:'Choisissez une couche de sécurité supplémentaire pour ne pas dépendre uniquement du mot de passe.',note:'La première connexion doit créer une Passkey. L’email sert uniquement de secours après activation de la Passkey.',recommended:'Recommandé',backup:'Sauvegarde',passTitle:'Passkey',passDesc:'Utilisez Face ID, empreinte, PIN ou clé d’appareil compatible.',passMini:'Le plus moderne et résistant au phishing.',emailTitle:'Email',emailDesc:'Utilisez un code de sécurité envoyé à l’email client.',emailMini:'Simple, mais pas comme méthode principale.',preview:'Détail de la méthode',selectedPass:'Passkey prête à créer',livePass:'Anti-phishing',passPanelTitle:'Créer une Passkey sur l’appareil client',passPanelText:'Une fois WebAuthn connecté au backend, l’activation appelle le challenge serveur et le navigateur ouvre Face ID, empreinte, PIN ou gestionnaire de mots de passe.',pass1:'Assurez-vous d’utiliser un appareil personnel',pass2:'Le navigateur ouvrira la confirmation de sécurité de l’appareil',pass3:'Aucun code supplémentaire à retenir après activation',trust1k:'CONFIDENTIALITÉ',trust1:'Domaine sécurisé',trust2k:'CODE',trust2:'Hooks endpoint prêts',trust3k:'SECOURS',trust3:'Nécessite des tables MFA',chooseStatus:'Choisissez la méthode de sécurité la plus confortable. Passkey est recommandée pour les appareils personnels.',doneStatus:'Analyse de sécurité terminée. Appuyez sur Terminé pour ouvrir le tableau de bord.',tryText:'Ce n’est pas la méthode voulue ?',tryBtn:'Essayer une autre méthode',start:'Activer la méthode choisie',create:'Créer la Passkey maintenant',done:'Terminé, ouvrir le tableau de bord',activeMsg:'A2F actif avec Passkey. L’interface est prête ; en production, le backend vérifie toujours le vrai code/challenge.',launchCheck:'VÉRIFICATION SYSTÈME',launchSync:'SYNCHRONISER',launchVerify:'VÉRIFIER',launchReady:'PRÊT',launchProcess:'TRAITEMENT',launchFinal:'FINALISATION',launchDone:'TERMINÉ',launchTerminal:'TERMINAL MOTEUR',launchStep1:'Validation 2FA',launchStep1Sub:'Vérification de la signature de sécurité',launchStep2:'Synchronisation du tableau de bord',launchStep2Sub:'Préparation de l’accès client',ipLabel:'IP UTILISATEUR',detecting:'détection...',protected:'protégé par serveur',launchRun:'Vérification de sécurité rapide...',launchDoneStatus:'Vérification terminée. Redirection...',preparing:'Préparation du tableau...'}
+  };
+  function copy(){ return C[currentLang()] || C.id; }
+  function setText(el, txt){ if(el && typeof txt === 'string' && el.textContent !== txt) el.textContent = txt; }
+  function setSelector(sel, txt, root){ setText((root || document).querySelector(sel), txt); }
+  function setFirstText(parent, txt){
+    if(!parent) return;
+    for(var i=0;i<parent.childNodes.length;i++){ var n=parent.childNodes[i]; if(n.nodeType===3){ if(n.nodeValue !== txt) n.nodeValue = txt; return; } }
+    parent.insertBefore(document.createTextNode(txt), parent.firstChild || null);
+  }
+  function methodActive(method){ var el = document.querySelector('#a2fModal [data-a2f-select="'+method+'"]'); return !!(el && el.classList.contains('active')); }
+  function patchA2F(){
+    var modal = document.getElementById('a2fModal'); if(!modal) return;
+    var c = copy();
+    var card = modal.querySelector('.a2f-card');
+    var stepIndex = Math.max(1, Math.min(4, parseInt(card && card.getAttribute('data-a2f-step-index') || '1',10) || 1));
+    setSelector('.a2f-mini-brand small', c.sideSub, modal);
+    setSelector('#a2fStepIndicator', c.step(stepIndex), modal);
+    setSelector('[data-a2f-step="choose"] strong', c.choose, modal);
+    setSelector('[data-a2f-step="verify"] strong', c.verify, modal);
+    setSelector('[data-a2f-step="recover"] strong', c.recover, modal);
+    setSelector('[data-a2f-step="finish"] strong', c.finish, modal);
+    setSelector('.a2f-risk-kicker', c.riskKicker, modal);
+    var active = card && (card.classList.contains('is-verified') || stepIndex >= 4);
+    setSelector('.a2f-risk-card strong', active ? c.activeTitle : c.riskTitle, modal);
+    setSelector('.a2f-risk-card p', active ? c.activeText : c.riskText, modal);
+    setSelector('.a2f-kicker', c.kicker, modal); setSelector('#a2fTitle', c.title, modal); setSelector('#a2fSub', c.sub, modal); setSelector('.a2f-note', c.note, modal);
+    var pass = modal.querySelector('[data-a2f-select="passkey"]');
+    if(pass){ setText(pass.querySelector('em'), c.recommended); setText(pass.querySelector('strong'), c.passTitle); var spans=pass.querySelectorAll(':scope > span'); if(spans[1]) setText(spans[1], c.passDesc); setText(pass.querySelector('small'), c.passMini); }
+    var email = modal.querySelector('[data-a2f-select="email"]');
+    if(email){ setText(email.querySelector('em'), c.backup); setText(email.querySelector('strong'), c.emailTitle); var espans=email.querySelectorAll(':scope > span'); if(espans[1]) setText(espans[1], c.emailDesc); setText(email.querySelector('small'), c.emailMini); }
+    setSelector('.a2f-preview-head [data-i18n="a2fPreviewKicker"], .a2f-preview-head span:first-child', c.preview, modal);
+    setSelector('#a2fSelectedTitle', c.selectedPass, modal); setSelector('#a2fLivePill', c.livePass, modal);
+    setSelector('[data-a2f-panel="passkey"] .a2f-panel-copy h3', c.passPanelTitle, modal);
+    setSelector('[data-a2f-panel="passkey"] .a2f-panel-copy p', c.passPanelText, modal);
+    setSelector('[data-a2f-ux="pass1"]', c.pass1, modal); setSelector('[data-a2f-ux="pass2"]', c.pass2, modal); setSelector('[data-a2f-ux="pass3"]', c.pass3, modal);
+    setSelector('[data-a2f-ux="tryText"]', c.tryText, modal); setSelector('#a2fTryOtherBtn,[data-a2f-ux="tryBtn"]', c.tryBtn, modal);
+    var prod = modal.querySelectorAll('.a2f-production-grid div');
+    if(prod[0]){ setText(prod[0].querySelector('span'), c.trust1k); setText(prod[0].querySelector('strong'), c.trust1); }
+    if(prod[1]){ setText(prod[1].querySelector('span'), c.trust2k); setText(prod[1].querySelector('strong'), c.trust2); }
+    if(prod[2]){ setText(prod[2].querySelector('span'), c.trust3k); setText(prod[2].querySelector('strong'), c.trust3); }
+    var status = modal.querySelector('#a2fStatusMsg'); if(status && status.textContent){ if(stepIndex>=4 || /Analisis|Security|Analyse|安全分析|보안|análisis/i.test(status.textContent)) setText(status,c.doneStatus); else setText(status,c.chooseStatus); }
+    var result = modal.querySelector('#a2fResult'); if(result && result.textContent && /A2F|2FA|Passkey|challenge|backend|produksi|production/i.test(result.textContent)) setText(result,c.activeMsg);
+    var start = modal.querySelector('#a2fStartBtn'); if(start && !start.disabled){ setText(start, methodActive('passkey') ? c.create : c.start); }
+    var done = modal.querySelector('#a2fDoneBtn'); if(done){ setText(done, c.done); }
+  }
+  function trLine(text){
+    var l = currentLang(), c = copy();
+    text = String(text || '');
+    if(l === 'id') return text;
+    var pairs = [
+      ['[KERNEL] Mengunci kanal login sementara...','[KERNEL] '+({en:'Locking temporary login channel...',zh:'锁定临时登录通道...',ar:'قفل قناة الدخول المؤقتة...',ja:'一時ログインチャネルをロック中...',ko:'임시 로그인 채널 잠금 중...',es:'Bloqueando canal temporal de login...',fr:'Verrouillage du canal de connexion temporaire...'})[l]],
+      ['[TOKEN] Membaca token A2F terenkripsi lokal...','[TOKEN] '+({en:'Reading local encrypted A2F token...',zh:'读取本地加密 A2F 令牌...',ar:'قراءة رمز A2F المحلي المشفر...',ja:'ローカル暗号化A2Fトークン読込中...',ko:'로컬 암호화 A2F 토큰 읽는 중...',es:'Leyendo token A2F local cifrado...',fr:'Lecture du token A2F local chiffré...'})[l]],
+      ['[DEVICE] Membuat hash fingerprint browser...','[DEVICE] '+({en:'Creating browser fingerprint hash...',zh:'创建浏览器指纹哈希...',ar:'إنشاء هاش بصمة المتصفح...',ja:'ブラウザ指紋ハッシュを作成中...',ko:'브라우저 핑거프린트 해시 생성 중...',es:'Creando hash de huella del navegador...',fr:'Création du hash d’empreinte navigateur...'})[l]],
+      ['[CLOCK] Sinkron jam keamanan perangkat...','[CLOCK] '+({en:'Synchronizing device security clock...',zh:'同步设备安全时间...',ar:'مزامنة ساعة أمان الجهاز...',ja:'端末セキュリティ時刻を同期中...',ko:'기기 보안 시간 동기화 중...',es:'Sincronizando reloj de seguridad...',fr:'Synchronisation de l’horloge de sécurité...'})[l]],
+      ['[IP] Mendeteksi IP pengguna terlindungi...','[IP] '+({en:'Resolving protected user IP...',zh:'检测受保护用户 IP...',ar:'تحديد IP المستخدم المحمي...',ja:'保護されたユーザーIPを検出中...',ko:'보호된 사용자 IP 확인 중...',es:'Detectando IP protegida del usuario...',fr:'Détection de l’IP utilisateur protégée...'})[l]],
+      ['[AUTH] Mencocokkan blok tanda tangan TOTP...','[AUTH] '+({en:'Matching TOTP signature block...',zh:'匹配 TOTP 签名块...',ar:'مطابقة كتلة توقيع TOTP...',ja:'TOTP署名ブロック照合中...',ko:'TOTP 서명 블록 일치 확인 중...',es:'Comparando bloque de firma TOTP...',fr:'Correspondance du bloc de signature TOTP...'})[l]],
+      ['[AUTH] Membuat challenge nonce sekali pakai...','[AUTH] '+({en:'Creating one-time challenge nonce...',zh:'创建一次性 challenge nonce...',ar:'إنشاء nonce تحدي لمرة واحدة...',ja:'ワンタイムchallenge nonceを作成中...',ko:'일회용 challenge nonce 생성 중...',es:'Creando nonce de challenge único...',fr:'Création du nonce challenge à usage unique...'})[l]],
+      ['[MFA] Memvalidasi nonce anti-replay...','[MFA] '+({en:'Validating anti-replay nonce...',zh:'验证防重放 nonce...',ar:'التحقق من nonce ضد الإعادة...',ja:'アンチリプレイnonceを検証中...',ko:'안티 리플레이 nonce 검증 중...',es:'Validando nonce anti-replay...',fr:'Validation du nonce anti-rejeu...'})[l]],
+      ['[VAULT] Membuka vault session terenkripsi...','[VAULT] '+({en:'Opening encrypted session vault...',zh:'打开加密会话 vault...',ar:'فتح خزنة الجلسة المشفرة...',ja:'暗号化セッションvaultを開いています...',ko:'암호화 세션 vault 여는 중...',es:'Abriendo vault de sesión cifrada...',fr:'Ouverture du vault de session chiffré...'})[l]],
+      ['[CACHE] Membersihkan cache login lama...','[CACHE] '+({en:'Cleaning old login cache...',zh:'清理旧登录缓存...',ar:'تنظيف كاش الدخول القديم...',ja:'古いログインキャッシュを削除中...',ko:'오래된 로그인 캐시 정리 중...',es:'Limpiando caché de login anterior...',fr:'Nettoyage de l’ancien cache login...'})[l]],
+      ['[ROUTE] Memilih rute dashboard terlindungi...','[ROUTE] '+({en:'Selecting protected dashboard route...',zh:'选择受保护仪表板路由...',ar:'اختيار مسار لوحة التحكم المحمي...',ja:'保護ダッシュボードルートを選択中...',ko:'보호된 대시보드 경로 선택 중...',es:'Seleccionando ruta protegida del panel...',fr:'Sélection de la route dashboard protégée...'})[l]],
+      ['[TLS] Mengikat kanal HTTPS aktif...','[TLS] '+({en:'Binding active HTTPS channel...',zh:'绑定活动 HTTPS 通道...',ar:'ربط قناة HTTPS النشطة...',ja:'有効なHTTPSチャネルにバインド中...',ko:'활성 HTTPS 채널 바인딩 중...',es:'Vinculando canal HTTPS activo...',fr:'Liaison du canal HTTPS actif...'})[l]],
+      ['[COOKIE] Mengecek mode SameSite session...','[COOKIE] '+({en:'Checking SameSite session mode...',zh:'检查 SameSite 会话模式...',ar:'فحص وضع جلسة SameSite...',ja:'SameSiteセッションモード確認中...',ko:'SameSite 세션 모드 확인 중...',es:'Verificando modo SameSite...',fr:'Vérification du mode SameSite...'})[l]],
+      ['[STORE] Menyiapkan marker dashboard-ready...','[STORE] '+({en:'Preparing dashboard-ready marker...',zh:'准备 dashboard-ready 标记...',ar:'تجهيز علامة جاهزية لوحة التحكم...',ja:'dashboard-readyマーカー準備中...',ko:'대시보드 준비 마커 준비 중...',es:'Preparando marcador dashboard-ready...',fr:'Préparation du marqueur dashboard-ready...'})[l]],
+      ['[ACL] Memuat cakupan akses pelanggan...','[ACL] '+({en:'Loading customer access scope...',zh:'加载客户访问范围...',ar:'تحميل نطاق وصول العميل...',ja:'顧客アクセス範囲を読込中...',ko:'고객 접근 범위 로드 중...',es:'Cargando alcance de acceso...',fr:'Chargement du périmètre d’accès...'})[l]],
+      ['[POLICY] Menjalankan aturan akses aman...','[POLICY] '+({en:'Running secure access policy...',zh:'运行安全访问策略...',ar:'تشغيل سياسة الوصول الآمن...',ja:'安全アクセスポリシー実行中...',ko:'보안 접근 정책 실행 중...',es:'Ejecutando política de acceso seguro...',fr:'Exécution de la politique d’accès sécurisé...'})[l]],
+      ['[GUARD] Gerbang anti-replay aktif...','[GUARD] '+({en:'Anti-replay gate active...',zh:'防重放网关已启用...',ar:'بوابة منع الإعادة نشطة...',ja:'アンチリプレイゲート有効...',ko:'안티 리플레이 게이트 활성...',es:'Puerta anti-replay activa...',fr:'Passerelle anti-rejeu active...'})[l]],
+      ['[SYNC] Menyinkronkan panel dashboard...','[SYNC] '+({en:'Synchronizing dashboard panel...',zh:'同步仪表板面板...',ar:'مزامنة لوحة التحكم...',ja:'ダッシュボードパネル同期中...',ko:'대시보드 패널 동기화 중...',es:'Sincronizando panel...',fr:'Synchronisation du tableau...'})[l]],
+      ['[SYNC] Menyalin state A2F ke gate...','[SYNC] '+({en:'Copying A2F state to gate...',zh:'复制 A2F 状态到网关...',ar:'نسخ حالة A2F إلى البوابة...',ja:'A2F状態をゲートへコピー中...',ko:'A2F 상태를 게이트로 복사 중...',es:'Copiando estado A2F a la puerta...',fr:'Copie de l’état A2F vers la passerelle...'})[l]],
+      ['[SCAN] Mengecek handoff DOM aman...','[SCAN] '+({en:'Checking safe DOM handoff...',zh:'检查安全 DOM 交接...',ar:'فحص تسليم DOM الآمن...',ja:'安全なDOMハンドオフを確認中...',ko:'안전한 DOM 핸드오프 확인 중...',es:'Comprobando handoff DOM seguro...',fr:'Vérification du handoff DOM sécurisé...'})[l]],
+      ['[UI] Mengunci kontrol double-submit...','[UI] '+({en:'Locking double-submit control...',zh:'锁定重复提交控制...',ar:'قفل تحكم الإرسال المكرر...',ja:'二重送信制御をロック中...',ko:'중복 제출 제어 잠금 중...',es:'Bloqueando control double-submit...',fr:'Verrouillage du contrôle double-submit...'})[l]],
+      ['[API] Kanal fallback endpoint siap...','[API] '+({en:'Fallback endpoint channel ready...',zh:'备用端点通道就绪...',ar:'قناة endpoint الاحتياطية جاهزة...',ja:'フォールバックendpointチャネル準備完了...',ko:'fallback endpoint 채널 준비됨...',es:'Canal fallback endpoint listo...',fr:'Canal fallback endpoint prêt...'})[l]],
+      ['[OK] Semua pemeriksaan selesai...','[OK] '+({en:'All checks complete...',zh:'所有检查完成...',ar:'اكتملت كل الفحوصات...',ja:'すべての確認完了...',ko:'모든 점검 완료...',es:'Todas las comprobaciones completas...',fr:'Toutes les vérifications sont terminées...'})[l]],
+      ['[OPEN] Membuka dashboard Dirac...','[OPEN] '+({en:'Opening Dirac dashboard...',zh:'打开 Dirac 仪表板...',ar:'فتح لوحة Dirac...',ja:'Diracダッシュボードを開いています...',ko:'Dirac 대시보드 여는 중...',es:'Abriendo panel Dirac...',fr:'Ouverture du tableau Dirac...'})[l]]
+    ];
+    if(text.indexOf('[BOOT] Menyalakan bridge dashboard aman') === 0){ return '[BOOT] '+({en:'Starting secure dashboard bridge',zh:'启动安全仪表板桥接',ar:'تشغيل جسر لوحة التحكم الآمن',ja:'安全ダッシュボードブリッジ起動中',ko:'보안 대시보드 브리지 시작 중',es:'Iniciando puente seguro del panel',fr:'Démarrage du pont sécurisé du tableau'})[l] + text.replace('[BOOT] Menyalakan bridge dashboard aman',''); }
+    if(text.indexOf('[TRACE] Target session:') === 0){ return '[TRACE] '+({en:'Session target: ',zh:'会话目标：',ar:'هدف الجلسة: ',ja:'セッション対象: ',ko:'세션 대상: ',es:'Sesión objetivo: ',fr:'Session cible : '})[l] + text.split(':').slice(1).join(':').trim(); }
+    if(text.indexOf('[IP] IP pengguna:') === 0){ return '[IP] '+c.ipLabel+': '+text.split(':').slice(1).join(':').trim(); }
+    for(var i=0;i<pairs.length;i++){ if(text === pairs[i][0]) return pairs[i][1] || text; }
+    return text;
+  }
+  function patchLaunch(){
+    var overlay = document.getElementById('a2fLaunchOverlay'); if(!overlay) return;
+    var c = copy();
+    var st1 = overlay.querySelector('[data-launch-step="1"] span'); if(st1){ setFirstText(st1,c.launchStep1); setText(st1.querySelector('small'),c.launchStep1Sub); }
+    var st2 = overlay.querySelector('[data-launch-step="2"] span'); if(st2){ setFirstText(st2,c.launchStep2); setText(st2.querySelector('small'),c.launchStep2Sub); }
+    var h = overlay.querySelectorAll('.a2f-engine-head span'); if(h[0]) setText(h[0], c.launchTerminal); if(h[1]){ var raw=h[1].textContent; if(/FINAL|FINALIS|终|نهاء|최종|最終/i.test(raw)) setText(h[1],c.launchFinal); else if(/DONE|SELESAI|TERM|完成|تم|완료|完了|COMPLETO/i.test(raw)) setText(h[1],c.launchDone); else setText(h[1],c.launchProcess); }
+    var pill = overlay.querySelector('#a2fLaunchPill'); if(pill){ var pv=pill.textContent; if(/VERIFY|VALIDASI|VÉR|验证|تحقق|検証|검증|VERIFICAR/i.test(pv)) setText(pill,c.launchVerify); else if(/READY|AMAN|PRÊT|就绪|جاهز|준비|LISTO/i.test(pv)) setText(pill,c.launchReady); else if(/SYNC|SINKRON|同步|مزامنة|同期|동기|SINCRON/i.test(pv)) setText(pill,c.launchSync); else setText(pill,c.launchCheck); }
+    var ipLabel = overlay.querySelector('#a2fLaunchIpRow span'); if(ipLabel) setText(ipLabel,c.ipLabel);
+    var ip = overlay.querySelector('#a2fLaunchIp'); if(ip && /mendeteksi|detect|détection|检测|كشف|検出|감지/i.test(ip.textContent)) setText(ip,c.detecting); if(ip && /dilindungi|protected|protégé/i.test(ip.textContent)) setText(ip,c.protected);
+    var status = overlay.querySelector('#a2fLaunchStatus'); if(status){ if(/selesai|complete|termin|redir|mengalih/i.test(status.textContent)) setText(status,c.launchDoneStatus); else if(/menyiapkan dashboard|preparing/i.test(status.textContent)) setText(status,c.preparing); else setText(status,c.launchRun); }
+    Array.prototype.slice.call(overlay.querySelectorAll('#a2fLaunchTerminal .a2f-terminal-line')).forEach(function(line){ var next = trLine(line.textContent); if(next !== line.textContent) line.textContent = next; });
+  }
+  function patchAll(){ disableThemeActions(); syncSelectedControls(); patchA2F(); patchLaunch(); }
+  function schedule(){ setTimeout(patchAll,0); setTimeout(patchAll,60); setTimeout(patchAll,220); setTimeout(patchAll,620); setTimeout(patchAll,1400); }
+  document.addEventListener('click', function(e){
+    var blocked = e.target && e.target.closest && e.target.closest('#themeModal #themeResetBtn,#themeModal #themeSaveBtn,#themeModal .theme-reset,#themeModal .theme-save,#themeModal .theme-reset-btn,#themeModal .theme-save-btn');
+    if(blocked){ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); return false; }
+    var target = e.target && e.target.closest ? e.target.closest('[data-theme-mode-option],[data-theme-mode],[data-theme-contrast-option],[data-contrast],[data-theme-accent-option],[data-accent],[data-language-option],button[data-language],[role="button"][data-language],[data-motion-choice],[data-currency-option],[data-currency]') : null;
+    var patch = patchFromControl(target);
+    if(patch){ saveTheme(patch); schedule(); }
+  }, true);
+  document.addEventListener('change', function(e){ var el=e.target, patch={}; if(!el) return; if(el.id==='languageSelect') patch.language=el.value; if(el.id==='motionSelect') patch.motion=el.value; if(el.id==='currencySelect') patch.currency=el.value; if(Object.keys(patch).length){ saveTheme(patch); schedule(); } }, true);
+  window.addEventListener('dirac:global-prefs-change', schedule);
+  window.addEventListener('storage', function(e){ if(!e || e.key === THEME_KEY) schedule(); });
+  document.addEventListener('DOMContentLoaded', schedule);
+  window.addEventListener('pageshow', schedule);
+  if(window.MutationObserver){ new MutationObserver(function(){ if(window.__dirac_final_patch_timer) clearTimeout(window.__dirac_final_patch_timer); window.__dirac_final_patch_timer = setTimeout(patchAll, 35); }).observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style','data-a2f-step-index','data-selected-a2f','data-language','lang','data-theme','data-effective-theme']}); }
+  schedule();
+})();
+</script>
+
 </body>
 </html>
