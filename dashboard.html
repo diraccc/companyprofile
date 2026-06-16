@@ -1199,6 +1199,28 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       .dirac-final-scanner-orbit,.dirac-final-scan-pulse-core,.dirac-final-particle-field,.dirac-final-progress-track::before,.dirac-final-live-status::before,#diracProtectedLockOverlay::before,.dirac-final-data-orbit,.dirac-final-logo-edge-light,.dirac-final-crypto-strip span,.dirac-final-secure-check-pulse,.dirac-final-logo-img{animation:none!important}
       .dirac-final-progress-track::before{transform:translateX(72%);opacity:.72}
     }
+
+
+    /* Dirac video hero space: vd1.mp4. */
+    .dirac-video-hero{position:relative;margin:18px 0;isolation:isolate}
+    .dirac-video-frame{position:relative;min-height:clamp(248px,38vw,438px);border-radius:32px;overflow:hidden;border:1px solid rgba(var(--theme-rgb),.24);background:linear-gradient(135deg,rgba(10,12,18,.94),rgba(var(--theme-rgb),.10),rgba(4,5,7,.96));box-shadow:0 24px 70px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.075)}
+    .dirac-video-frame:before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(circle at 78% 38%,rgba(var(--theme-rgb),.18),transparent 34%),linear-gradient(90deg,rgba(4,5,7,.72) 0%,rgba(4,5,7,.38) 42%,rgba(4,5,7,.08) 74%,rgba(4,5,7,.34) 100%)}
+    .dirac-video-frame:after{content:"";position:absolute;inset:1px;z-index:4;pointer-events:none;border-radius:31px;border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 0 42px rgba(var(--theme-rgb),.09)}
+    .dirac-hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#050608;transform:translateZ(0);filter:saturate(1.04) contrast(1.02);z-index:1}
+    .dirac-video-shade{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.16) 72%,rgba(0,0,0,.38)),linear-gradient(115deg,rgba(255,255,255,.06),transparent 22%,transparent 66%,rgba(var(--theme-rgb),.08));mix-blend-mode:normal}
+    .dirac-video-copy{position:relative;z-index:5;max-width:min(560px,62%);padding:30px;min-height:inherit;display:flex;flex-direction:column;justify-content:center;text-shadow:0 18px 38px rgba(0,0,0,.38)}
+    .dirac-video-copy .eyebrow{width:max-content;max-width:100%;background:rgba(8,10,14,.48);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .dirac-video-copy h2{font-family:"Playfair Display",serif;color:#fff;font-size:clamp(2.05rem,5vw,4.65rem);line-height:.92;letter-spacing:-.05em;margin:16px 0 12px;text-wrap:balance}.dirac-video-copy h2 span{color:var(--gold)}
+    .dirac-video-copy p{margin:0;color:#e7edf7;line-height:1.72;max-width:520px;font-size:clamp(.96rem,1.5vw,1.08rem)}
+    .dirac-video-sound-btn,.dirac-video-play-btn{position:absolute;z-index:6;right:18px;border:1px solid rgba(255,255,255,.14);background:rgba(9,12,18,.70);color:#fff;border-radius:999px;min-height:46px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:900;box-shadow:0 16px 34px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:.22s var(--motion-ease)}
+    .dirac-video-sound-btn{top:18px}.dirac-video-play-btn{bottom:18px;background:linear-gradient(135deg,#ffe58e,var(--gold-2) 58%,var(--gold-3));color:#1a1208;border-color:rgba(var(--theme-rgb),.38)}
+    .dirac-video-sound-btn:hover,.dirac-video-play-btn:hover{transform:translateY(-2px);filter:brightness(1.04)}
+    .dirac-video-sound-btn[aria-pressed="false"]{background:rgba(9,12,18,.78);color:#d7deea}.dirac-video-sound-btn span:first-child{font-size:1.05rem;line-height:1}
+    html[data-effective-theme="light"] .dirac-video-frame{background:linear-gradient(135deg,#fff7ec,rgba(var(--theme-rgb),.16),#fff);border-color:rgba(var(--theme-rgb),.26);box-shadow:0 24px 70px rgba(80,55,18,.16),inset 0 1px 0 rgba(255,255,255,.60)}
+    html[data-effective-theme="light"] .dirac-video-frame:before{background:radial-gradient(circle at 78% 38%,rgba(var(--theme-rgb),.18),transparent 34%),linear-gradient(90deg,rgba(255,250,241,.70) 0%,rgba(255,250,241,.36) 42%,rgba(255,250,241,.08) 74%,rgba(255,250,241,.28) 100%)}
+    @media(max-width:760px){.dirac-video-hero{margin:14px 0}.dirac-video-frame{min-height:310px;border-radius:24px}.dirac-video-frame:after{border-radius:23px}.dirac-video-copy{max-width:100%;padding:22px;justify-content:flex-end;background:linear-gradient(180deg,rgba(5,6,8,.04),rgba(5,6,8,.38) 48%,rgba(5,6,8,.76));}.dirac-video-copy h2{font-size:2.38rem}.dirac-video-copy p{font-size:.92rem;max-width:92%}.dirac-video-sound-btn{top:14px;right:14px;min-height:42px;padding:0 12px}.dirac-video-sound-btn [data-sound-label]{display:none}.dirac-video-play-btn{right:14px;bottom:14px;min-height:42px}}
+    @media(max-width:430px){.dirac-video-frame{min-height:292px}.dirac-video-copy{padding:18px}.dirac-video-copy h2{font-size:2.05rem}.dirac-video-copy p{font-size:.88rem}.dirac-video-play-btn{left:14px;right:auto}}
+
 </style>
 
 </head>
@@ -1240,6 +1262,24 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
           <div class="app-toolbar-actions">
             <label class="app-search" for="serviceSearch"><span aria-hidden="true">⌕</span><input id="serviceSearch" type="search" autocomplete="off" placeholder="Cari layanan, invoice, resi..." data-i18n-placeholder="searchPlaceholder"></label>
             <span class="app-date-pill" id="todayDate">Hari ini</span>
+          </div>
+        </section>
+
+
+
+        <section class="dirac-video-hero" data-reveal aria-labelledby="diracVideoHeroTitle">
+          <div class="dirac-video-frame">
+            <video id="diracHeroVideo" class="dirac-hero-video" src="vd1.mp4" autoplay loop playsinline preload="auto" aria-label="Video 3D layanan Dirac Group"></video>
+            <div class="dirac-video-shade" aria-hidden="true"></div>
+            <div class="dirac-video-copy">
+              <span class="eyebrow">Video 3D Layanan</span>
+              <h2 id="diracVideoHeroTitle">Semua Layanan <span>Dalam Satu Dashboard</span></h2>
+              <p>Parfum, domain, top up game, e-wallet, e-toll, dan website dalam satu dashboard pelanggan.</p>
+            </div>
+            <button class="dirac-video-sound-btn" id="diracVideoSoundBtn" type="button" aria-pressed="true" aria-label="Nonaktifkan suara video">
+              <span data-sound-icon aria-hidden="true">🔊</span><span data-sound-label>Suara aktif</span>
+            </button>
+            <button class="dirac-video-play-btn" id="diracVideoPlayBtn" type="button" hidden>Putar video + suara</button>
           </div>
         </section>
 
@@ -2714,5 +2754,55 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   document.addEventListener('DOMContentLoaded', function(){ try{ refresh(window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : {}); }catch(_){ } });
 })();
 </script>
+
+
+<script id="dirac-video-hero-vd1-js">
+(function(){
+  'use strict';
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+  ready(function(){
+    var video = document.getElementById('diracHeroVideo');
+    var soundBtn = document.getElementById('diracVideoSoundBtn');
+    var playBtn = document.getElementById('diracVideoPlayBtn');
+    if(!video || !soundBtn) return;
+    var icon = soundBtn.querySelector('[data-sound-icon]');
+    var label = soundBtn.querySelector('[data-sound-label]');
+    function setSound(active){
+      active = !!active;
+      try{ video.muted = !active; video.defaultMuted = !active; video.volume = active ? 1 : 0; }catch(_){ }
+      soundBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      soundBtn.setAttribute('aria-label', active ? 'Nonaktifkan suara video' : 'Aktifkan suara video');
+      if(icon) icon.textContent = active ? '🔊' : '🔇';
+      if(label) label.textContent = active ? 'Suara aktif' : 'Suara mati';
+    }
+    function requestPlay(){
+      try{
+        var attempt = video.play && video.play();
+        if(attempt && typeof attempt.then === 'function'){
+          attempt.then(function(){ if(playBtn) playBtn.hidden = true; }).catch(function(){ if(playBtn) playBtn.hidden = false; });
+        }
+      }catch(_){ if(playBtn) playBtn.hidden = false; }
+    }
+    setSound(true);
+    video.addEventListener('loadedmetadata', function(){ setSound(!video.muted); }, {once:true});
+    soundBtn.addEventListener('click', function(){
+      var nextActive = soundBtn.getAttribute('aria-pressed') !== 'true';
+      setSound(nextActive);
+      requestPlay();
+    });
+    if(playBtn){
+      playBtn.addEventListener('click', function(){
+        setSound(true);
+        requestPlay();
+      });
+    }
+    requestPlay();
+  });
+})();
+</script>
+
 </body>
 </html>
