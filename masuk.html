@@ -365,10 +365,6 @@
     @media(max-width:430px){.container{width:min(var(--max),calc(100% - 22px))}.nav{gap:8px}.brand-name{max-width:7.2rem}.header-actions{gap:6px}.theme-toggle,.menu-toggle{width:42px;height:42px;min-width:42px}.brand-mark{width:44px;height:44px;border-radius:15px}.auth-card{padding:17px}.auth-tabs{grid-template-columns:1fr}.form-row{align-items:flex-start;flex-direction:column}.choice-grid,.choice-grid.colors{grid-template-columns:1fr}.ai-panel{width:calc(100vw - 24px);margin-bottom:72px}.auth-card-head{align-items:center}.auth-lock{width:42px;height:42px;border-radius:15px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.motion-ready .auth-copy .eyebrow,.motion-ready .auth-copy h1,.motion-ready .auth-copy p,.motion-ready .auth-copy .trust-row,.motion-ready .auth-shell{opacity:1!important;transform:none!important}}
 
-    /* =========================================================
-       Login Revision: Theme modal v2 + compact auth switch
-       Only visual/theme UI changes. Login endpoint and login flow are preserved.
-       ========================================================= */
     .auth-tabs{
       grid-template-columns:repeat(2,minmax(0,1fr))!important;
       gap:6px;
@@ -609,16 +605,11 @@
       .custom-theme-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
     }
 
-  </style>
+</style>
 
 
 <style id="dirac-header-capsule-redesign-css">
-/* =========================================================
-   Dirac Header Capsule Redesign v1
-   Tujuan: ubah tampilan header mobile/desktop agar lebih rounded,
-   premium, dan tidak terasa kotak/persegi panjang.
-   Fungsi SEMUA tombol tetap sama (tema, cart, navigasi, sticky).
-   ========================================================= */
+
 .site-header{
   top:max(8px, env(safe-area-inset-top));
   padding:12px 0 0;
@@ -831,15 +822,10 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
   background:
     radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb),.14), transparent 10rem),
     linear-gradient(145deg, rgba(255,255,255,.98), rgba(239,244,249,.94))!important;
-}
-</style>
+}</style>
 
 <style id="dirac-header-click-fix-css">
-/* =========================================================
-   Dirac Header Click Fix v2
-   Tujuan: area header tetap berbentuk capsule, tetapi semua tombol/link
-   di dalamnya benar-benar bisa ditap/klik di mobile Safari/Chrome.
-   ========================================================= */
+
 .site-header{
   z-index:2147483000!important;
   pointer-events:none!important;
@@ -916,11 +902,10 @@ html[data-effective-theme="light"] .site-header.is-scrolled .nav{
     min-width:74px!important;
     justify-content:center!important;
   }
-}
-</style>
+}</style>
 
 <style id="dirac-login-overlay-header-safety-css">
-/* Header capsule safety for this login page: prevents the floating header from covering Theme/Menu/AI overlays. */
+
 body.modal-open > .site-header,
 body.menu-open > .site-header,
 body.ai-open > .site-header,
@@ -948,11 +933,10 @@ body:has(#aiOverlay.open) > .site-header{
     transform:none!important;
     filter:none!important;
   }
-}
-</style>
+}</style>
 
 <style id="dirac-brand-typewriter-css">
-/* Brand typewriter loop - safe, visual only, no catalog/cart logic touched. */
+
 .brand-typewriter{
   display:inline-flex;
   align-items:center;
@@ -987,15 +971,11 @@ body:has(#aiOverlay.open) > .site-header{
 }
 @media(prefers-reduced-motion:reduce){
   .brand-typewriter:after{animation:none;opacity:.75}
-}
-</style>
+}</style>
 
 
 <style id="dirac-revisi-a2f-catalog-css">
-/* =========================================================
-   Revisi akun Dirac: tombol katalog, warna tema berlabel,
-   flow A2F setelah login/daftar, dan cleanup Back to Home.
-   ========================================================= */
+
 .catalog-return{
   min-height:58px;
   padding:0 18px;
@@ -1116,16 +1096,12 @@ html[data-effective-theme="light"] .theme-color-label{color:#151923}
   .a2f-methods{grid-template-columns:1fr;gap:10px}.a2f-method{min-height:118px}.a2f-hero{align-items:center}.a2f-badge{width:52px;height:52px;border-radius:19px}
 }
 @media(max-width:430px){.catalog-return{width:46px!important;height:46px!important;min-width:46px!important}.custom-theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.a2f-card{padding:18px;width:calc(100vw - 22px)}.a2f-actions .btn-secondary,.a2f-actions .btn-primary{width:100%;justify-content:center}}
-@media(prefers-reduced-motion:reduce){.catalog-return:before{transition:none!important}.a2f-card{animation:none!important}}
-</style>
+@media(prefers-reduced-motion:reduce){.catalog-return:before{transition:none!important}.a2f-card{animation:none!important}}</style>
 
 
 
 <style id="dirac-premium-motion-revisi-css">
-/* =========================================================
-   Dirac Premium Motion Revisi v3
-   Fokus: motion modern, halus, aman, dan tidak mengubah logic login/A2F.
-   ========================================================= */
+
 :root{
   --dirac-fast:180ms;
   --dirac-mid:360ms;
@@ -1239,15 +1215,11 @@ html[data-motion="reduced"] .auth-hero:before,
 html[data-motion="reduced"] .auth-hero:after,
 html[data-motion="reduced"] .motion-reveal,
 html[data-motion="reduced"] body.motion-page-ready .motion-reveal,
-html[data-motion="reduced"] .toast.show:after{animation:none!important;transition-duration:1ms!important;filter:none!important;transform:none!important}
-</style>
+html[data-motion="reduced"] .toast.show:after{animation:none!important;transition-duration:1ms!important;filter:none!important;transform:none!important}</style>
 
 
 <style id="dirac-production-a2f-and-brand-css">
-/* =========================================================
-   Dirac Production Polish v1
-   Fokus: header brand corporate putih permanen + A2F wizard siap integrasi backend.
-   ========================================================= */
+
 .brand-name,
 .brand-typewriter,
 .brand-typewriter-text,
@@ -1293,12 +1265,11 @@ html[data-effective-theme="light"] .brand-typewriter-text{
 html[data-effective-theme="light"] .a2f-card{background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(245,248,252,.98))!important;color:#151923!important;}html[data-effective-theme="light"] .a2f-side{background:linear-gradient(180deg,rgba(var(--theme-rgb),.14),rgba(255,255,255,.72))!important;border-right-color:rgba(15,23,42,.08)}html[data-effective-theme="light"] .a2f-hero h2,html[data-effective-theme="light"] .a2f-preview-head strong,html[data-effective-theme="light"] .a2f-panel-copy h3,html[data-effective-theme="light"] .a2f-risk-card strong{color:#111827!important}html[data-effective-theme="light"] .a2f-note,html[data-effective-theme="light"] .a2f-panel-copy p,html[data-effective-theme="light"] .a2f-method span:not(.a2f-method-icon):not(.a2f-method-top){color:#475569!important}html[data-effective-theme="light"] .a2f-method,html[data-effective-theme="light"] .a2f-preview,html[data-effective-theme="light"] .a2f-production-grid div,html[data-effective-theme="light"] .a2f-risk-card{background:rgba(255,255,255,.74)!important;border-color:rgba(15,23,42,.09)!important}html[data-effective-theme="light"] .a2f-production-grid strong{color:#1f2937!important}
 @media(max-width:920px){.a2f-shell{grid-template-columns:1fr}.a2f-side{display:none}.a2f-main{max-height:calc(92dvh - 0px);padding:22px}.a2f-card{border-radius:32px!important}.a2f-methods{grid-template-columns:1fr!important}.a2f-method{min-height:130px!important}.a2f-panel{grid-template-columns:118px 1fr}.a2f-device-visual,.a2f-mail-visual,.a2f-qr-visual{height:112px}.a2f-production-grid{grid-template-columns:1fr 1fr 1fr}}
 @media(max-width:540px){.a2f-modal{padding:9px!important;align-items:start!important;padding-top:max(10px,env(safe-area-inset-top))!important}.a2f-card{width:calc(100vw - 18px)!important;max-height:calc(100dvh - 18px)!important;border-radius:28px!important}.a2f-main{padding:18px;max-height:calc(100dvh - 18px)}.a2f-hero{align-items:center!important}.a2f-badge{width:52px!important;height:52px!important;border-radius:18px!important}.a2f-note{font-size:.8rem!important}.a2f-panel{grid-template-columns:1fr}.a2f-device-visual,.a2f-mail-visual,.a2f-qr-visual{height:100px}.a2f-preview-head{display:grid}.a2f-live-pill{width:max-content}.a2f-production-grid{grid-template-columns:1fr}.a2f-actions{display:grid!important;grid-template-columns:1fr!important}.a2f-actions .btn-secondary,.a2f-actions .btn-primary{width:100%;justify-content:center}.a2f-method-top em{font-size:.62rem}.brand-typewriter{max-width:calc(100vw - 168px)!important}}
-@media(prefers-reduced-motion:reduce){.a2f-panel.active,.a2f-card,.a2f-method{animation:none!important;transition:none!important}}
-</style>
+@media(prefers-reduced-motion:reduce){.a2f-panel.active,.a2f-card,.a2f-method{animation:none!important;transition:none!important}}</style>
 
 
 <style id="dirac-email-input-crash-fix-css">
-/* Fix input email crash: root theme attributes must not behave like clickable controls; keep form stable during typing. */
+
 html[data-contrast]{pointer-events:auto;}
 .field{backface-visibility:hidden;-webkit-backface-visibility:hidden;}
 .field:focus{transform:none!important;}
@@ -1306,16 +1277,11 @@ html[data-contrast]{pointer-events:auto;}
 @media(max-width:760px){
   .auth-hero{overflow:visible;}
   .field{font-size:16px;}
-}
-</style>
+}</style>
 
 
 <style id="dirac-a2f-clean-ux-upgrade-css">
-/* =========================================================
-   Dirac A2F Clean UX Upgrade v1
-   Tujuan: A2F terasa lebih normal, polos, jelas, dan aman seperti
-   flow 2-step verification modern, tanpa mengubah fungsi login lama.
-   ========================================================= */
+
 :root{
   --a2f-surface:#ffffff;
   --a2f-surface-soft:#f8fafc;
@@ -1601,15 +1567,11 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 }
 @media(prefers-reduced-motion:reduce){
   .a2f-result,.a2f-panel.active,.a2f-card,.a2f-method{animation:none!important;transition:none!important}
-}
-</style>
+}</style>
 
 
 <style id="dirac-a2f-step-logo-revision-css">
-/* =========================================================
-   A2F Logo + Animated Stepper Revision
-   Scope: hanya modal #a2fModal. Tidak menyentuh login/register/theme.
-   ========================================================= */
+
 #a2fModal .a2f-mini-brand{
   align-items:center!important;
   margin-bottom:12px!important;
@@ -1788,23 +1750,19 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
     top:20px!important;
   }
 }
-/* Recovery code dummy DG-* disembunyikan dulu sampai backend/setup recovery code real siap. */
+
 #a2fModal .a2f-recovery-preview{
   display:none!important;
 }
 @media(prefers-reduced-motion:reduce){
   #a2fModal .a2f-step.is-current span{animation:none!important}
   #a2fModal .a2f-steps:after{transition:none!important}
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-a2f-priority-1-3-final-css">
-/* =========================================================
-   Dirac A2F Priority 1-3 Final Hardening
-   Scope: hanya #a2fModal. Additive override; tidak menghapus login/theme/header lama.
-   ========================================================= */
+
 #a2fModal .a2f-methods[role="radiogroup"]{position:relative;}
 #a2fModal .a2f-method[role="radio"]{cursor:pointer;}
 #a2fModal .a2f-method[aria-checked="true"]{border-color:#2563eb!important;background:#f8fbff!important;box-shadow:0 0 0 1px #60a5fa inset!important;}
@@ -1862,19 +1820,17 @@ html[data-effective-theme="dark"] .a2f-main{background:#fff!important;color:#111
 @media(prefers-reduced-motion:reduce){
   #a2fModal .a2f-error-msg.show,#a2fModal .a2f-card.is-error .a2f-preview,#a2fModal .a2f-card.is-verified-pulse{animation:none!important;}
   #a2fModal .a2f-loading-dot{animation:none!important;}
-}
-</style>
+}</style>
 
 
 <style id="dirac-a2f-public-setup-css">
 .a2f-auth-setup{margin-top:12px;padding:12px;border:1px solid #e2e8f0;background:#fff;border-radius:16px;color:#111827}
 .a2f-auth-setup img{display:block}
-html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;border-color:#e2e8f0}
-</style>
+html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;border-color:#e2e8f0}</style>
 
 
 <style id="dirac-a2f-noqr-setupkey-final-css">
-/* Final A2F Authenticator UX: tanpa QR, rahasia TOTP tidak pernah tampil di login. */
+
 #a2fModal [data-a2f-panel="authenticator"]{
   grid-template-columns:1fr!important;
 }
@@ -1952,12 +1908,11 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
 @media(max-width:620px){
   #a2fModal .a2f-setup-key-head{align-items:flex-start!important;flex-direction:column!important}
   #a2fModal .a2f-setup-copy-btn{width:100%!important;justify-content:center!important}
-}
-</style>
+}</style>
 
 
 <style id="dirac-a2f-finish-button-and-launch-animation-css">
-/* Final revision: keep Selesai button reachable on mobile and add dashboard launch animation before closing A2F. */
+
 #a2fModal .a2f-main{
   scroll-padding-bottom:calc(132px + env(safe-area-inset-bottom,0px))!important;
 }
@@ -2025,13 +1980,12 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
 .a2f-launch-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px 12px;border-bottom:1px solid #e2e8f0;background:#fff}
 .a2f-launch-title{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.03em}.a2f-launch-title span{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:#eef6ff;color:#2563eb;border:1px solid #bfdbfe}.a2f-launch-pill{border:1px solid #fde68a;background:#fef3c7;color:#92400e;border-radius:999px;padding:6px 10px;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;animation:diracLaunchPulse 1s ease-in-out infinite}.a2f-launch-body{padding:14px;display:grid;gap:12px}.a2f-launch-steps{display:grid;grid-template-columns:1fr;gap:8px}.a2f-launch-step{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;border:2px solid #111827;background:#fff;padding:10px;border-radius:12px;box-shadow:3px 3px 0 #111827;opacity:.58;transform:translateY(4px);transition:.35s cubic-bezier(.16,1,.3,1)}.a2f-launch-step b{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:#facc15;color:#111827;border:2px solid #111827;font-size:.86rem}.a2f-launch-step span{font-weight:900;font-size:.86rem;line-height:1.22}.a2f-launch-step small{display:block;margin-top:2px;color:#475569;font-weight:700}.a2f-launch-step.active{opacity:1;transform:none;background:#fefce8}.a2f-launch-step.done{opacity:1;transform:none;background:#ecfdf5}.a2f-launch-step.done b{background:#22c55e;color:#052e16}.a2f-engine{border:2px solid #111827;background:#fff;border-radius:12px;overflow:hidden;box-shadow:4px 4px 0 #111827}.a2f-engine-head{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:2px solid #111827;font-size:.76rem;font-weight:950}.a2f-engine-head span:first-child:before{content:'>_ ';color:#2563eb}.a2f-engine-head span:last-child{background:#facc15;border:2px solid #111827;border-radius:7px;padding:3px 7px;animation:diracLaunchPulse .9s ease-in-out infinite}.a2f-terminal{min-height:118px;background:#020617;color:#bfdbfe;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.72rem;line-height:1.55;padding:14px;position:relative;overflow:hidden}.a2f-terminal:after{content:'';position:absolute;left:0;right:0;top:0;height:100%;background:repeating-linear-gradient(180deg,transparent 0 9px,rgba(255,255,255,.035) 10px 11px);pointer-events:none}.a2f-terminal-line{opacity:0;transform:translateY(6px);transition:.26s ease}.a2f-terminal-line.show{opacity:1;transform:none}.a2f-terminal-line.ok{color:#86efac}.a2f-terminal-line.warn{color:#fef08a}.a2f-map{border:2px solid #111827;border-radius:12px;overflow:hidden;background:#ccfbf1;box-shadow:4px 4px 0 #111827}.a2f-map-head{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;font-size:.62rem;font-weight:950;border-bottom:2px solid #111827}.a2f-map-head span:first-child{background:#34d399;border:2px solid #111827;border-radius:5px;padding:3px 6px}.a2f-map-visual{height:116px;position:relative;background:radial-gradient(circle at 18% 24%,#fff 0 10px,transparent 11px),radial-gradient(circle at 64% 38%,#fff 0 16px,transparent 17px),radial-gradient(circle at 44% 72%,#fff 0 14px,transparent 15px),linear-gradient(135deg,#cffafe,#a7f3d0)}.a2f-map-node{position:absolute;width:10px;height:10px;border-radius:999px;background:#16a34a;border:2px solid #052e16;box-shadow:0 0 0 0 rgba(22,163,74,.45);animation:diracMapPing 1.1s ease-in-out infinite}.a2f-map-node.n1{left:20%;top:34%}.a2f-map-node.n2{left:55%;top:48%;animation-delay:.15s}.a2f-map-node.n3{left:78%;top:24%;animation-delay:.3s}.a2f-map-route{position:absolute;left:22%;top:38%;width:54%;height:2px;background:repeating-linear-gradient(90deg,#0f172a 0 8px,transparent 8px 14px);transform:rotate(7deg);transform-origin:left center}.a2f-launch-progress{height:9px;border-radius:999px;background:#e2e8f0;overflow:hidden;border:1px solid #cbd5e1}.a2f-launch-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e);border-radius:999px;transition:width .46s cubic-bezier(.16,1,.3,1)}.a2f-launch-status{text-align:center;font-weight:900;color:#0f766e;font-size:.92rem;min-height:1.25em}@keyframes diracLaunchFade{from{opacity:0}to{opacity:1}}@keyframes diracLaunchCard{from{opacity:.3;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}@keyframes diracLaunchPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.08)}}@keyframes diracMapPing{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}50%{box-shadow:0 0 0 10px rgba(22,163,74,0)}}
 @media(max-width:420px){.a2f-launch-card{border-radius:24px}.a2f-launch-body{padding:12px}.a2f-terminal{font-size:.66rem;min-height:104px}.a2f-map-visual{height:96px}.a2f-launch-step span{font-size:.8rem}}
-@media(prefers-reduced-motion:reduce){.a2f-launch-overlay.show,.a2f-launch-card,.a2f-launch-pill,.a2f-engine-head span:last-child,.a2f-map-node{animation:none!important}.a2f-terminal-line{opacity:1!important;transform:none!important}}
-</style>
+@media(prefers-reduced-motion:reduce){.a2f-launch-overlay.show,.a2f-launch-card,.a2f-launch-pill,.a2f-engine-head span:last-child,.a2f-map-node{animation:none!important}.a2f-terminal-line{opacity:1!important;transform:none!important}}</style>
 
 
 
 <style id="dirac-a2f-final-reachability-and-5sec-dashboard-css">
-/* Final hotfix: keep the Selesai button safely above mobile browser bars and make the dashboard launch flow 5 seconds. */
+
 #a2fModal .a2f-card{
   padding-bottom:0!important;
 }
@@ -2141,13 +2095,12 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
 .a2f-launch-pill{
   min-width:94px!important;
   text-align:center!important;
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-a2f-no-floating-actions-final-css">
-/* Final correction: action buttons must live in the normal modal flow, not float over content. */
+
 #a2fModal .a2f-card{
   overflow:hidden!important;
 }
@@ -2232,18 +2185,12 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   #a2fModal .a2f-actions .btn-secondary,
   #a2fModal .a2f-actions .btn-primary{min-height:56px!important;font-size:.96rem!important;}
   #a2fModal .a2f-actions .a2f-done-btn{min-height:62px!important;font-size:1.04rem!important;}
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-a2f-two-button-arrow-final-css">
-/* =========================================================
-   Revisi final tombol A2F
-   - "Gunakan akun lain" dijadikan tombol ikon panah dengan fungsi yang sama.
-   - Area aksi hanya menampilkan 2 tombol: ikon akun lain + tombol aksi utama.
-   - Tombol aksi bawah dibuat aman dari browser bar dan tetap mudah ditap.
-   ========================================================= */
+
 #a2fModal .a2f-actions{
   display:grid!important;
   grid-template-columns:58px minmax(0,1fr)!important;
@@ -2407,16 +2354,12 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   #a2fModal .a2f-switch-account{
     transition:none!important;
   }
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-a2f-mobile-presisi-dashboard-fix-css">
-/* =========================================================
-   Mobile precision fix + dashboard gate compatibility
-   Scope: #a2fModal only. Existing login/register/theme/cart logic untouched.
-   ========================================================= */
+
 :root{
   --a2f-vh:100dvh;
   --a2f-vv-bottom:0px;
@@ -2683,18 +2626,12 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   #a2fModal .a2f-switch-account{width:48px!important;min-width:48px!important;max-width:48px!important;height:48px!important;min-height:48px!important;}
   #a2fModal #a2fStartBtn,
   #a2fModal #a2fDoneBtn{min-height:48px!important;font-size:.84rem!important;}
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-a2f-12s-keyboard-final-css">
-/* =========================================================
-   Revisi final: A2F 12 detik + IP pengguna + keyboard mobile fix.
-   Penyebab bug keyboard sebelumnya: tombol aksi memakai campuran fixed/sticky
-   dengan svh/dvh dan visualViewport bottom, sehingga ketika keyboard muncul
-   iOS/Safari ikut menggulir body dan bar aksi meloncat ke area yang salah.
-   ========================================================= */
+
 :root{
   --a2f-vv-top:0px;
   --a2f-keyboard-gap:0px;
@@ -2832,12 +2769,11 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   .a2f-map-visual{height:78px!important}
   .a2f-launch-ip{padding:7px 9px!important}
   .a2f-launch-ip strong{font-size:.66rem!important}
-}
-</style>
+}</style>
 
 
 <style id="dirac-a2f-launch-center-safety-css">
-/* Launch overlay safety: force centered card on narrow mobile screens. */
+
 .a2f-launch-overlay.show{
   display:flex!important;
   align-items:center!important;
@@ -2853,12 +2789,11 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
 }
 @media(max-width:430px){
   .a2f-launch-card{width:calc(100vw - 24px)!important;max-width:calc(100vw - 24px)!important;}
-}
-</style>
+}</style>
 
 
 <style id="dirac-a2f-launch-viewport-zfix-css">
-/* Launch overlay must cover capsule header and center inside the actual visual viewport. */
+
 .a2f-launch-overlay{
   z-index:2147483600!important;
   top:var(--a2f-vv-top,0px)!important;
@@ -2866,12 +2801,11 @@ html[data-effective-theme="dark"] .a2f-auth-setup{background:#fff;color:#111827;
   height:var(--a2f-vh,100svh)!important;
   max-height:var(--a2f-vh,100svh)!important;
 }
-body.a2f-launching > .site-header{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
-</style>
+body.a2f-launching > .site-header{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}</style>
 
 
 <style id="dirac-a2f-launch-card-fit-css">
-/* Keep 12-second launch card fully visible on small mobile screens. */
+
 .a2f-launch-card{
   max-height:calc(var(--a2f-vh,100svh) - 36px)!important;
   overflow:auto!important;
@@ -2879,16 +2813,11 @@ body.a2f-launching > .site-header{opacity:0!important;visibility:hidden!importan
 }
 @media(max-width:430px){
   .a2f-launch-card{max-height:calc(var(--a2f-vh,100svh) - 24px)!important;}
-}
-</style>
+}</style>
 
 
 <style id="dirac-revisi-sound-a2f-typing-css">
-/* =========================================================
-   Revisi user: sound toggle pindah ke tema, A2F mobile dirapikan,
-   terminal 12 detik tanpa teks berulang.
-   Additive override only; tidak mengubah endpoint/login flow.
-   ========================================================= */
+
 .sound-section-note{
   margin:0 0 12px!important;
   color:var(--muted)!important;
@@ -3042,13 +2971,12 @@ html[data-effective-theme="light"] .dirac-theme-sound-toggle[aria-pressed="false
   animation:diracTerminalCaretBlink .58s steps(1,end) infinite;
 }
 @keyframes diracTerminalCaretBlink{0%,50%{opacity:.75}51%,100%{opacity:.12}}
-@media(prefers-reduced-motion:reduce){.a2f-terminal-line.is-typing:after{animation:none!important;opacity:.35!important}}
-</style>
+@media(prefers-reduced-motion:reduce){.a2f-terminal-line.is-typing:after{animation:none!important;opacity:.35!important}}</style>
 
 
 
 <style id="dirac-final-login-revisi-20260603-css">
-/* Revisi ultra final: tap emoji password stabil, double-tap zoom dicegah, resend verification tidak tampil di login, dan terminal A2F lebih ramai/cepat. Visual only; login/hash/API flow tidak diubah. */
+
 html,body{touch-action:manipulation;overscroll-behavior-x:none;}
 button,a,.password-toggle,.auth-tab,.btn-primary,.btn-secondary{touch-action:manipulation;}
 .field-wrap .field{padding-right:84px!important;font-size:16px!important;}
@@ -3082,8 +3010,7 @@ body[data-auth-mode="login"] .dirac-resend-verification,
   .field-wrap .field{padding-right:84px!important;font-size:16px!important;}
   .password-toggle{width:64px!important;min-width:64px!important;height:48px!important;right:4px!important;}
   .a2f-terminal{min-height:182px!important;font-size:.56rem!important;line-height:1.25!important;padding:8px!important;}
-}
-</style>
+}</style>
 
 <style id="dirac-forgot-password-secure-css">
   .dirac-auth-row-secure{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important}
@@ -3097,18 +3024,12 @@ body[data-auth-mode="login"] .dirac-resend-verification,
   .forgot-close{position:absolute;right:16px;top:14px;width:40px;height:40px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:24px;cursor:pointer}
   .forgot-kicker{display:inline-flex;border:1px solid rgba(var(--theme-rgb),.32);background:rgba(var(--theme-rgb),.10);border-radius:999px;padding:7px 11px;color:var(--gold);font-weight:950;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em}
   .forgot-card h2{margin:12px 0 8px;color:#fff;font-size:1.6rem}.forgot-note{margin:0 0 16px;color:#cbd5e1;line-height:1.55}.forgot-step{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.10)}
-  .forgot-card .btn-primary{width:100%;justify-content:center;margin-top:10px}.forgot-card .status-box{margin-top:14px}
-</style>
+  .forgot-card .btn-primary{width:100%;justify-content:center;margin-top:10px}.forgot-card .status-box{margin-top:14px}</style>
 
 
 
 <style id="dirac-ultra-rapi-safe-polish-20260603-css">
-/* =========================================================
-   Dirac Login Ultra Rapi Safe Polish - 2026-06-03
-   Visual-only layer. Tidak mengubah HTML form, endpoint, hash,
-   token, script login, script daftar, script lupa password, atau A2F logic.
-   Tujuan: membuat halaman lebih rapi, fokus, konsisten, dan lega.
-   ========================================================= */
+
 :root{
   --clean-space-xs:8px;
   --clean-space-sm:12px;
@@ -3130,7 +3051,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   outline-offset:3px!important;
 }
 
-/* Header dibuat lebih tenang tanpa menghilangkan fungsi tombol/link. */
 .site-header{top:max(10px,env(safe-area-inset-top));padding-top:8px;}
 .site-header .nav{
   min-height:74px!important;
@@ -3163,7 +3083,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .catalog-return{padding:0 15px!important;font-size:.91rem!important;}
 .theme-toggle{width:48px!important;min-width:48px!important;padding:0!important;}
 
-/* Area hero difokuskan ke form, dekorasi tetap ada tetapi lebih rapi. */
 .auth-hero{
   min-height:calc(100svh - 98px)!important;
   padding:42px 0 58px!important;
@@ -3202,7 +3121,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .mini-card strong{font-size:.88rem!important;}
 .mini-card span{font-size:.74rem!important;}
 
-/* Form dibuat lebih bersih, konsisten, dan menjadi fokus utama. */
 .auth-shell{
   max-width:438px!important;
   justify-self:end;
@@ -3250,7 +3168,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .auth-submit{min-height:50px!important;margin-top:2px!important;border-radius:999px!important;font-size:.94rem!important;}
 .status-box{border-radius:16px!important;margin-top:11px!important;}
 
-/* Modal tema dirapikan supaya terasa seperti panel pengaturan, bukan halaman baru. */
 .theme-modal{padding:20px!important;}
 .theme-card.theme-pro-card{
   width:min(700px,calc(100vw - 40px))!important;
@@ -3272,7 +3189,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .theme-actions{padding:0 24px 22px!important;gap:12px!important;}
 .theme-reset-btn,.theme-save-btn{min-height:56px!important;border-radius:18px!important;font-size:.98rem!important;}
 
-/* A2F tetap berfungsi, tetapi tampilan teknis dibuat lebih tenang. */
 .a2f-modal{padding:18px!important;}
 .a2f-card{
   width:min(700px,100%)!important;
@@ -3292,7 +3208,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .a2f-actions .btn-primary,.a2f-actions .btn-secondary{min-height:48px!important;}
 .a2f-terminal{border-radius:18px!important;}
 
-/* Floating actions tidak lagi berebut perhatian dengan form. */
 .dirac-floating-actions{right:16px!important;bottom:calc(16px + env(safe-area-inset-bottom))!important;gap:8px!important;}
 .dirac-float-btn{width:46px!important;height:46px!important;}
 .dirac-float-top{display:none!important;}
@@ -3302,14 +3217,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(hover:hover){.ai-trigger:hover{opacity:1;transform:translateY(-2px)!important;}}
 .toast{bottom:18px!important;border-radius:18px!important;}
 
-/* Footer dibuat lebih kompak dan menyatu dengan halaman. */
 .footer{padding:34px 0 24px!important;background:linear-gradient(180deg,#050608,#030405)!important;}
 .footer-grid{gap:22px!important;grid-template-columns:1.25fr .85fr 1fr!important;}
 .footer h3,.footer h4{margin-bottom:8px!important;}
 .footer p,.footer a,.footer li{font-size:.88rem!important;line-height:1.72!important;}
 .copyright{margin-top:20px!important;padding-top:14px!important;font-size:.82rem!important;}
 
-/* Light mode polish. */
 html[data-effective-theme="light"] .auth-shell,
 html[data-effective-theme="light"] .theme-card.theme-pro-card,
 html[data-effective-theme="light"] .a2f-card,
@@ -3394,13 +3307,12 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
 }
 @media(prefers-reduced-motion:reduce){
   .auth-hero:after,.dirac-float-wa,.brand-typewriter:after{animation:none!important;}
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-customer-a2f-no-recovery-css">
-/* Customer login A2F: recovery code tidak ditampilkan di halaman publik. */
+
 #a2fModal #a2fRecoveryBox,
 #a2fModal #a2fRecoveryCodes,
 #a2fModal #a2fCopyRecoveryBtn,
@@ -3408,8 +3320,7 @@ html[data-effective-theme="light"] .footer{background:linear-gradient(180deg,#ff
 #a2fModal .a2f-recovery-toolbar,
 #a2fModal .a2f-recovery-consent{display:none!important;}
 #a2fModal .a2f-card[data-a2f-step-index="3"] .a2f-production-grid,
-#a2fModal .a2f-card[data-a2f-step-index="4"] .a2f-production-grid{display:grid!important;}
-</style>
+#a2fModal .a2f-card[data-a2f-step-index="4"] .a2f-production-grid{display:grid!important;}</style>
 
 <style id="dirac-recovery-verify-after-2-fails-css">
 #a2fModal.recovery-open .a2f-actions,
@@ -3456,17 +3367,12 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox.dirac-recovery-verify-
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox h3{color:#111827!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox p{color:#64748b!important}
 html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify-input{background:#ffffff!important;color:#111827!important;border-color:#bfdbfe!important}
-@keyframes diracRecoverySlideIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-</style>
+@keyframes diracRecoverySlideIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
 
 
 
 <style id="dirac-order-circled-into-masuk-css">
-/* =========================================================
-   ORDER.HTML CIRCLED SYSTEM -> MASUK.HTML
-   Scope: header capsule, theme modal, cart badge, color swatches, motion controls.
-   Tidak menyentuh login, hash, A2F, recovery, endpoint, atau password flow.
-   ========================================================= */
+
 .site-header[data-order-circled-header="true"]{
   top:max(8px, env(safe-area-inset-top));
   padding:12px 0 0;
@@ -3565,21 +3471,12 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
 }
 @media(prefers-reduced-motion:reduce){
   .theme-modal[data-order-circled-theme="true"] *, .site-header[data-order-circled-header="true"] *{animation:none!important;transition:none!important}
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-masuk-order-circled-v2-fix-css">
-/* =========================================================
-   MASUK.HTML FIX V2
-   1) Kustom Tema dibuat compact seperti order.html: kotak warna polos, tanpa label.
-   2) Titik indikator aktif di belakang teks mode/bahasa/kontras/gerak dihapus.
-   3) Keranjang header dihapus total.
-   Tidak menyentuh login, hash, A2F, recovery, forgot password, endpoint, atau sound.
-   ========================================================= */
 
-/* Hapus keranjang kalau masih ada dari cache/markup lama */
 .site-header[data-order-circled-header="true"] .header-cart,
 .site-header[data-order-circled-header="true"] [data-open-cart],
 .header-cart[data-open-cart]{
@@ -3588,7 +3485,6 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
   pointer-events:none!important;
 }
 
-/* Rapikan header setelah cart dihapus: hanya brand + tema */
 .site-header[data-order-circled-header="true"] .nav{
   grid-template-columns:minmax(0,1fr) auto!important;
 }
@@ -3599,7 +3495,6 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
   gap:0!important;
 }
 
-/* Hapus titik/dot aktif di belakang teks yang bikin UI kotor */
 .theme-pro-choice.active:after,
 .theme-modal[data-order-circled-theme="true"] .theme-pro-choice.active:after,
 .theme-modal[data-order-circled-theme="true"] [data-theme-mode].active:after,
@@ -3610,14 +3505,12 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
   display:none!important;
 }
 
-/* Tetap kasih state aktif rapi lewat border/glow, bukan titik */
 .theme-modal[data-order-circled-theme="true"] .theme-pro-choice.active{
   border-color:rgba(var(--theme-rgb),.72)!important;
   background:linear-gradient(180deg,rgba(var(--theme-rgb),.13),rgba(255,255,255,.035))!important;
   box-shadow:0 0 0 1px rgba(var(--theme-rgb),.13) inset,0 10px 26px rgba(var(--theme-rgb),.07)!important;
 }
 
-/* Kustom tema: paksa mirip order.html gambar 3, 7 kolom kecil, 2 baris */
 .theme-modal[data-order-circled-theme="true"] .custom-theme-section{
   padding-bottom:18px!important;
 }
@@ -3677,12 +3570,10 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
   display:none!important;
 }
 
-/* Hapus teks label swatch jika masih muncul dari cache lama */
 #accentChoices .theme-swatch-btn > span:not(.sr-only){
   display:none!important;
 }
 
-/* Responsive persis konsep order.html: 7 kolom di layar cukup, 4/3 kolom di HP kecil */
 @media(max-width:760px){
   .site-header[data-order-circled-header="true"] .nav{
     grid-template-columns:minmax(0,1fr) auto!important;
@@ -3703,19 +3594,12 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
   #themeModal[data-order-circled-theme="true"] #accentChoices .theme-swatch-btn{
     border-radius:12px!important;
   }
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-masuk-theme-polish-v3-css">
-/* =========================================================
-   MASUK.HTML THEME POLISH V3
-   - Tambah warna tetap rapi.
-   - Modal tema dibuat compact dan konsisten.
-   - Dot aktif di belakang teks tetap hilang.
-   - Tidak menyentuh login, A2F, recovery, hash, atau endpoint.
-   ========================================================= */
+
 .theme-modal[data-order-circled-theme="true"]{
   align-items:center!important;
   justify-items:center!important;
@@ -3906,19 +3790,12 @@ html[data-effective-theme="dark"] #diracRecoveryVerifyBox .dirac-recovery-verify
   #themeModal[data-order-circled-theme="true"] #accentChoices .theme-swatch-btn{
     border-radius:11px!important;
   }
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-default-theme-blue-serif-v12-css">
-/* =========================================================
-   Dirac Default Theme Blue + Brand Serif v12
-   Fokus revisi:
-   1) warna DEFAULT website saat dibuka diganti dari gold/kuning ke biru/cyan;
-   2) font tulisan ketik-hapus brand dibuat serif seperti "Masuk akun";
-   3) tidak mengubah login, hash, endpoint, cookie/session, atau A2F.
-   ========================================================= */
+
 :root{
   --gold:#38bdf8;
   --gold-2:#0284c7;
@@ -3991,19 +3868,12 @@ html[data-effective-theme="light"] .brand-typewriter-text{
   .brand-typewriter-text{
     font-size:clamp(1.08rem,5.1vw,1.42rem)!important;
   }
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-masuk-dashboard-header-precision-20260612-css">
-/* =========================================================
-   MASUK.HTML HEADER PRESISI DASHBOARD
-   Scope visual header saja: menyamakan ukuran, lebar, tinggi,
-   radius, spacing, dan font header dengan dashboard.html.
-   Tidak mengubah form login, hash, endpoint, script login, A2F,
-   recovery, cookie/session, atau sistem autentikasi.
-   ========================================================= */
+
 .site-header[data-dashboard-header-exact="true"]{
   position:sticky!important;
   top:max(8px,env(safe-area-inset-top))!important;
@@ -4199,18 +4069,12 @@ body:has(#aiOverlay.open) > .site-header[data-dashboard-header-exact="true"] .co
     animation:none!important;
     transition:none!important;
   }
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-animasi-premium-tidak-alay-20260612-css">
-/* =========================================================
-   DIRAC PREMIUM MICRO-ANIMATION ADD-ON
-   Additive CSS only. Tidak mengubah script login, hash,
-   endpoint, form, A2F, cookie/session, atau alur autentikasi.
-   Motion dibuat halus, kecil, dan tidak alay.
-   ========================================================= */
+
 :root{
   --dirac-premium-fast:180ms;
   --dirac-premium-mid:340ms;
@@ -4218,7 +4082,6 @@ body:has(#aiOverlay.open) > .site-header[data-dashboard-header-exact="true"] .co
   --dirac-premium-long:12s;
 }
 
-/* 1) Header scroll morph lebih halus + entrance premium */
 .site-header[data-dashboard-header-exact="true"] .container.nav{
   position:relative!important;
   overflow:hidden!important;
@@ -4242,7 +4105,6 @@ body.motion-page-ready .site-header[data-dashboard-header-exact="true"] .contain
   to{opacity:1;transform:none;filter:none}
 }
 
-/* 2) Ambient sheen tipis di header, lambat dan tidak mengganggu klik */
 .site-header[data-dashboard-header-exact="true"] .container.nav:before{
   content:"";
   position:absolute;
@@ -4266,7 +4128,6 @@ body.motion-page-ready .site-header[data-dashboard-header-exact="true"] .contain
   z-index:1!important;
 }
 
-/* 3) Nav hover premium: naik kecil, glow tipis, tanpa blink */
 .site-header[data-dashboard-header-exact="true"] .nav-links a{
   will-change:transform,background-color,box-shadow,color!important;
   transition:
@@ -4285,7 +4146,6 @@ body.motion-page-ready .site-header[data-dashboard-header-exact="true"] .contain
   transform:translateY(0) scale(.985)!important;
 }
 
-/* 4) Tombol tema: feedback klik ringan, tidak rotate berlebihan */
 .site-header[data-dashboard-header-exact="true"] .theme-toggle{
   will-change:transform,box-shadow,border-color,background-color!important;
   transition:
@@ -4303,7 +4163,6 @@ body:has(#themeModal.open) .site-header[data-dashboard-header-exact="true"] .the
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 30px rgba(0,0,0,.22),0 0 26px rgba(var(--theme-rgb),.16)!important;
 }
 
-/* 5) Tab Masuk/Daftar: perpindahan indikator dibuat lebih smooth */
 .auth-tabs{
   will-change:transform,box-shadow!important;
 }
@@ -4323,7 +4182,6 @@ body:has(#themeModal.open) .site-header[data-dashboard-header-exact="true"] .the
 .auth-tab:active{transform:scale(.985)!important}
 .auth-tab.active{filter:drop-shadow(0 4px 10px rgba(0,0,0,.10))!important}
 
-/* 6) Field focus micro-interaction, tetap stabil saat mengetik */
 .field-wrap{transition:transform 220ms var(--motion-ease),filter 220ms var(--motion-ease)!important}
 .field-group:focus-within .field-wrap{transform:translateY(-1px)!important}
 .field:focus{
@@ -4340,7 +4198,6 @@ body:has(#themeModal.open) .site-header[data-dashboard-header-exact="true"] .the
 .password-toggle:hover{filter:brightness(1.08)!important;box-shadow:0 8px 18px rgba(0,0,0,.16)!important}
 .password-toggle:active{transform:translateY(-50%) scale(.94)!important}
 
-/* 7) Submit button: shimmer hover halus, loading lama tetap dipakai */
 .auth-submit{
   overflow:hidden!important;
   isolation:isolate!important;
@@ -4361,7 +4218,6 @@ body:has(#themeModal.open) .site-header[data-dashboard-header-exact="true"] .the
 }
 @keyframes diracPremiumSubmitSheen{to{transform:translateX(130%);opacity:0}}
 
-/* 8) Drawer/menu dan theme choice masuk bertahap, CSS only */
 .menu-overlay.open .drawer-links a,
 .menu-overlay.open .drawer-links button{
   animation:diracPremiumDrawerItemIn 420ms var(--motion-soft) both;
@@ -4390,7 +4246,6 @@ body:has(#themeModal.open) .site-header[data-dashboard-header-exact="true"] .the
   to{opacity:1;transform:none}
 }
 
-/* 9) Floating buttons entrance dipertajam sedikit tanpa menghapus breathing lama */
 .dirac-ai-widget .ai-trigger,
 .dirac-floating-actions .dirac-float-btn{
   will-change:transform,opacity,box-shadow!important;
@@ -4404,7 +4259,6 @@ body.motion-page-ready .dirac-floating-actions .dirac-float-top{animation:diracP
   to{opacity:1;transform:none;filter:none}
 }
 
-/* 10) Guard motion accessibility */
 @media(prefers-reduced-motion:reduce){
   .site-header[data-dashboard-header-exact="true"] .container.nav,
   .site-header[data-dashboard-header-exact="true"] .container.nav:before,
@@ -4436,18 +4290,11 @@ html[data-motion="reduced"] .auth-submit:before{
   transition:none!important;
   transform:none!important;
   filter:none!important;
-}
-</style>
+}</style>
 
 
 <style id="dirac-header-posisi-tinggi-presisi-20260612-css">
-/* =========================================================
-   DIRAC HEADER POSITION REFINE - 2026-06-12
-   Scope CSS visual header saja.
-   Body, script, login, hash, A2F, endpoint, cookie/session tidak diubah.
-   Tujuan: capsule header dinaikkan, tidak memakai env(safe-area-inset-top)
-   sebagai offset besar, dan isi header tetap center presisi.
-   ========================================================= */
+
 .site-header[data-dashboard-header-exact="true"]{
   top:0!important;
   padding-top:6px!important;
@@ -4508,16 +4355,11 @@ html[data-motion="reduced"] .auth-submit:before{
   .site-header[data-dashboard-header-exact="true"] .header-actions{
     min-height:48px!important;
   }
-}
-</style>
+}</style>
 
 
 <style id="dirac-header-reactbits-typewriter-final-css">
-/* =========================================================
-   Header React Bits style typewriter final
-   Target: teks header Masuk / Daftar + Dirac Group saja.
-   Tidak menyentuh form login, endpoint, hash, session, password, A2F.
-   ========================================================= */
+
 .site-header .brand-name.brand-typewriter,
 .site-header[data-order-circled-header="true"] .brand-name.brand-typewriter,
 .site-header[data-dashboard-header-exact="true"] .brand-typewriter{
@@ -4601,16 +4443,11 @@ html[data-effective-theme="light"] .site-header .brand-typewriter-text{
 }
 @media(prefers-reduced-motion:reduce){
   .site-header .brand-typewriter:after{animation:none!important;opacity:.55!important;}
-}
-</style>
+}</style>
 
 
 <style id="dirac-a2f-passkey-used-note-fix-css">
-/* =========================================================
-   Dirac A2F Passkey + Note Mobile Precision Patch
-   Scope: visual A2F only. Tidak menyentuh login, hash, endpoint,
-   password, cookie, atau proses autentikasi.
-   ========================================================= */
+
 #a2fModal .a2f-note{
   display:grid!important;
   grid-template-columns:auto minmax(0,1fr)!important;
@@ -4694,18 +4531,12 @@ html[data-effective-theme="light"] .site-header .brand-typewriter-text{
 }
 @media(max-width:390px){
   #a2fModal .a2f-note{font-size:.8rem!important;padding:12px!important;}
-}
-</style>
+}</style>
 
 
 
 <style id="dirac-authenticator-setup-backup-css">
-/* =========================================================
-   Dirac Authenticator Backup Setup Patch v1
-   Scope: UI setup Authenticator sebagai metode cadangan.
-   Tidak mengubah login, hash, endpoint existing, password, passkey,
-   cookie, WebAuthn, atau flow A2F lama.
-   ========================================================= */
+
 #a2fModal [data-a2f-panel="authenticator"] .dirac-authenticator-setup-card{
   margin:14px 0 0!important;
   padding:14px!important;
@@ -4910,8 +4741,34 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
   #a2fModal .dirac-authenticator-qr-box{min-height:150px!important;}
   #a2fModal .dirac-authenticator-setup-code{grid-template-columns:1fr!important;}
   #a2fModal .dirac-authenticator-verify-btn{width:100%!important;}
+}</style>
+
+
+
+<style id="dirac-safe-performance-optimization-v1">
+
+@supports (content-visibility:auto){
+  .footer{content-visibility:auto;contain-intrinsic-size:auto 360px;}
 }
-</style>
+.auth-shell,.theme-card,.ai-panel,.menu-drawer{
+  contain:paint;
+}
+.brand-logo-img,.a2f-brand-logo,.brand-mark{
+  backface-visibility:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.field,.btn-primary,.btn-secondary,.btn-ghost,.theme-pro-choice,.theme-swatch-btn,.dirac-float-btn,.ai-trigger{
+  -webkit-tap-highlight-color:transparent;
+}
+img{
+  color:transparent;
+}
+@media(max-width:760px){
+  .auth-shell,.theme-card,.ai-panel,.menu-drawer{contain:layout paint;}
+}
+@media(prefers-reduced-data:reduce){
+  .auth-hero:after,.dirac-float-wa{animation:none!important;}
+}</style>
 
 </head>
 <body data-auth-mode="login">
@@ -7819,11 +7676,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
 
 
 <style id="dirac-ui-sound-feedback-css">
-/* =========================================================
-   Dirac UI Sound Feedback v3
-   Efek suara original dari Web Audio API: click, loading, terminal cyber-tick,
-   tidak mengambil audio TikTok/JJ, dan tidak mengubah flow login/A2F lama.
-   ========================================================= */
+
 .dirac-sound-toggle{
   position:fixed;
   left:84px;
@@ -7866,8 +7719,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 @media(max-width:430px){
   .dirac-sound-toggle{left:72px;bottom:calc(18px + env(safe-area-inset-bottom));width:40px;height:40px;font-size:.96rem}
 }
-@media(prefers-reduced-motion:reduce){.dirac-sound-toggle{transition:none!important}}
-</style>
+@media(prefers-reduced-motion:reduce){.dirac-sound-toggle{transition:none!important}}</style>
 
 <script id="dirac-ui-sound-feedback-js">
 (function(){
@@ -9526,10 +9378,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
 
 <style id="dirac-a2f-passkey-email-restore-final-css">
-/* =========================================================
-   Final hotfix: rapikan Passkey + kembalikan metode Email A2F.
-   Scope hanya #a2fModal. Tidak mengubah login/register/password.
-   ========================================================= */
+
 #a2fModal [data-a2f-select="email"],
 #a2fModal [data-a2f-select="authenticator"]{
   display:grid!important;
@@ -9683,8 +9532,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   #a2fModal .a2f-method-top{width:46px!important;}
   #a2fModal .a2f-method-icon{width:40px!important;height:40px!important;min-width:40px!important;}
   #a2fModal .a2f-method strong{font-size:.96rem!important;padding-right:30px!important;}
-}
-</style>
+}</style>
 
 <script id="dirac-a2f-email-restore-final-js">
 (function(){
@@ -9764,7 +9612,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
 
 <style id="dirac-passkey-email-only-final-css">
-/* Final user correction: tampilkan hanya Passkey + Email, hilangkan Authenticator dari UI pelanggan. */
+
 #a2fModal [data-a2f-select="authenticator"],
 #a2fModal [data-a2f-panel="authenticator"],
 #a2fModal #a2fAuthenticatorSetup,
@@ -9784,8 +9632,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 @media(max-width:920px){
   #a2fModal .a2f-methods{grid-template-columns:1fr!important;}
   #a2fModal .a2f-panel.active{grid-template-columns:1fr!important;}
-}
-</style>
+}</style>
 
 <script id="dirac-passkey-email-only-final-js">
 (function(){
@@ -9905,7 +9752,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
 
 
 <style id="dirac-passkey-100-fix-css">
-/* Passkey 100% hotfix: jangan tampilkan error OTP/Auth saat pengguna sedang bikin Passkey. */
+
 #a2fModal[data-dirac-passkey-busy="true"] #a2fErrorMsg.show{
   border-color:rgba(37,99,235,.24)!important;
   background:rgba(37,99,235,.07)!important;
@@ -9916,8 +9763,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 }
 #a2fModal .a2f-result.show[data-dirac-passkey-result="true"]{
   border-color:rgba(37,99,235,.28)!important;
-}
-</style>
+}</style>
 
 <script id="dirac-passkey-100-fix-js">
 (function(){
@@ -10443,8 +10289,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
 
 <style id="dirac-theme-autosave-no-actions-v5">
   #themeModal .theme-actions{display:none!important;visibility:hidden!important;pointer-events:none!important;height:0!important;min-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;}
-  #themeModal .theme-reset-btn,#themeModal .theme-save-btn{display:none!important;visibility:hidden!important;pointer-events:none!important;}
-</style>
+  #themeModal .theme-reset-btn,#themeModal .theme-save-btn{display:none!important;visibility:hidden!important;pointer-events:none!important;}</style>
 <script id="dirac-theme-autosave-i18n-hardening-v5">
 (function(){
   'use strict';
@@ -10651,6 +10496,83 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
     }).observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['lang','data-language','data-a2f-step-index','class','hidden','style','aria-hidden']});
   }
   schedule(document.body);
+})();
+</script>
+
+
+
+<script id="dirac-safe-performance-optimization-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_SAFE_PERFORMANCE_OPTIMIZATION_V1__) return;
+  window.__DIRAC_SAFE_PERFORMANCE_OPTIMIZATION_V1__ = true;
+
+  function safe(fn){ try{ fn(); }catch(_e){} }
+  function setAttr(el,name,value){ if(el && !el.hasAttribute(name)) el.setAttribute(name,value); }
+
+  function optimizeDom(){
+    safe(function(){
+      var form = document.getElementById('authForm');
+      if(form) setAttr(form,'accept-charset','UTF-8');
+
+      var identifier = document.getElementById('identifier');
+      if(identifier){
+        setAttr(identifier,'enterkeyhint','next');
+        setAttr(identifier,'autocorrect','off');
+      }
+      var fullName = document.getElementById('fullName');
+      if(fullName){
+        setAttr(fullName,'enterkeyhint','next');
+        setAttr(fullName,'autocorrect','off');
+      }
+      var password = document.getElementById('password');
+      if(password) setAttr(password,'enterkeyhint','done');
+      var confirmPassword = document.getElementById('confirmPassword');
+      if(confirmPassword) setAttr(confirmPassword,'enterkeyhint','done');
+
+      Array.prototype.slice.call(document.images || []).forEach(function(img){
+        setAttr(img,'decoding','async');
+        if(!img.classList.contains('brand-logo-img') && !img.classList.contains('a2f-brand-logo')){
+          setAttr(img,'loading','lazy');
+        }
+      });
+    });
+  }
+
+  function bindRafScrollState(){
+    safe(function(){
+      var header = document.getElementById('siteHeader');
+      var floats = document.querySelector('.dirac-floating-actions');
+      if((!header && !floats) || window.__DIRAC_SAFE_SCROLL_STATE_V1__) return;
+      window.__DIRAC_SAFE_SCROLL_STATE_V1__ = true;
+      var ticking = false;
+      function apply(){
+        ticking = false;
+        var y = window.scrollY || document.documentElement.scrollTop || 0;
+        if(header) header.classList.toggle('is-scrolled', y > 10);
+        if(floats) floats.classList.toggle('is-scroll-ready', y > 220);
+      }
+      function onScroll(){
+        if(ticking) return;
+        ticking = true;
+        (window.requestAnimationFrame || function(cb){ return setTimeout(cb,16); })(apply);
+      }
+      window.addEventListener('scroll', onScroll, {passive:true});
+      window.addEventListener('resize', onScroll, {passive:true});
+      apply();
+    });
+  }
+
+  function idle(fn){
+    if('requestIdleCallback' in window){ window.requestIdleCallback(fn, {timeout:700}); }
+    else { setTimeout(fn, 80); }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ optimizeDom(); bindRafScrollState(); idle(optimizeDom); }, {once:true});
+  }else{
+    optimizeDom(); bindRafScrollState(); idle(optimizeDom);
+  }
 })();
 </script>
 
