@@ -10440,5 +10440,172 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
   schedule(document.body);
 })();
 </script>
+
+
+<script id="dirac-a2f-multilang-no-i18n-hotfix-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_A2F_MULTILANG_NO_I18N_HOTFIX_V1__) return;
+  window.__DIRAC_A2F_MULTILANG_NO_I18N_HOTFIX_V1__ = true;
+
+  var LANGS = {id:true,en:true,zh:true,ar:true,ja:true,ko:true,es:true,fr:true};
+  var COPY = {
+    step1:{id:'Langkah 1 dari 4',en:'Step 1 of 4',zh:'第 1 步，共 4 步',ar:'الخطوة 1 من 4',ja:'4ステップ中1',ko:'4단계 중 1단계',es:'Paso 1 de 4',fr:'Étape 1 sur 4'},
+    step2:{id:'Langkah 2 dari 4',en:'Step 2 of 4',zh:'第 2 步，共 4 步',ar:'الخطوة 2 من 4',ja:'4ステップ中2',ko:'4단계 중 2단계',es:'Paso 2 de 4',fr:'Étape 2 sur 4'},
+    step3:{id:'Langkah 3 dari 4',en:'Step 3 of 4',zh:'第 3 步，共 4 步',ar:'الخطوة 3 من 4',ja:'4ステップ中3',ko:'4단계 중 3단계',es:'Paso 3 de 4',fr:'Étape 3 sur 4'},
+    step4:{id:'Langkah 4 dari 4',en:'Step 4 of 4',zh:'第 4 步，共 4 步',ar:'الخطوة 4 من 4',ja:'4ステップ中4',ko:'4단계 중 4단계',es:'Paso 4 de 4',fr:'Étape 4 sur 4'},
+    firstPasskeyNote:{id:'Login pertama wajib membuat Passkey. Email hanya cadangan setelah Passkey aktif.',en:'First sign-in must create a Passkey. Email is only a backup after Passkey is active.',zh:'首次登录必须创建 Passkey。Passkey 启用后，邮箱仅作为备用。',ar:'عند أول تسجيل دخول يجب إنشاء Passkey. البريد الإلكتروني يكون احتياطياً فقط بعد تفعيل Passkey.',ja:'初回ログインではPasskeyの作成が必要です。メールはPasskey有効化後のバックアップです。',ko:'첫 로그인에서는 Passkey를 만들어야 합니다. 이메일은 Passkey 활성화 후 백업으로만 사용됩니다.',es:'En el primer inicio de sesión debes crear una Passkey. El email solo será respaldo después de activarla.',fr:'La première connexion doit créer une Passkey. L’email sert uniquement de sauvegarde après activation.'},
+    passkeyDbNote:{id:'Passkey sudah aktif di database. Kamu bisa memakai Passkey atau Email cadangan.',en:'Passkey is active in the database. You may use Passkey or Email backup.',zh:'Passkey 已在数据库中启用。你可以使用 Passkey 或邮箱备用方式。',ar:'تم تفعيل Passkey في قاعدة البيانات. يمكنك استخدام Passkey أو البريد الإلكتروني الاحتياطي.',ja:'Passkeyはデータベースで有効です。Passkeyまたはメールバックアップを使用できます。',ko:'Passkey가 데이터베이스에서 활성화되었습니다. Passkey 또는 이메일 백업을 사용할 수 있습니다.',es:'La Passkey está activa en la base de datos. Puedes usar Passkey o email de respaldo.',fr:'La Passkey est active dans la base de données. Vous pouvez utiliser Passkey ou l’email de secours.'},
+    emailRestoreNote:{id:'Pilih Passkey atau Email. Untuk login pertama, Passkey wajib diaktifkan lebih dulu. Email hanya menjadi metode cadangan setelah Passkey siap.',en:'Choose Passkey or Email. On the first sign-in, Passkey must be enabled first. Email is only a backup method after Passkey is ready.',zh:'选择 Passkey 或邮箱。首次登录必须先启用 Passkey；邮箱仅在 Passkey 就绪后作为备用方法。',ar:'اختر Passkey أو البريد الإلكتروني. في أول تسجيل دخول يجب تفعيل Passkey أولاً. البريد الإلكتروني يصبح طريقة احتياطية فقط بعد جاهزية Passkey.',ja:'Passkeyまたはメールを選択してください。初回ログインでは先にPasskeyを有効化する必要があります。メールはPasskey準備後のバックアップ方法です。',ko:'Passkey 또는 이메일을 선택하세요. 첫 로그인에서는 Passkey를 먼저 활성화해야 합니다. 이메일은 Passkey 준비 후 백업 방법입니다.',es:'Elige Passkey o Email. En el primer inicio de sesión, primero debe activarse Passkey. El email solo será método de respaldo cuando Passkey esté listo.',fr:'Choisissez Passkey ou Email. Lors de la première connexion, Passkey doit être activée d’abord. L’email devient seulement une méthode de secours après.'},
+    chooseStatus:{id:'Pilih metode keamanan yang paling nyaman. Passkey direkomendasikan untuk perangkat pribadi.',en:'Choose the security method that feels safest. Passkey is recommended for personal devices.',zh:'请选择最适合你的安全方法。Passkey 推荐用于个人设备。',ar:'اختر طريقة الأمان الأكثر راحة. يُوصى باستخدام Passkey للأجهزة الشخصية.',ja:'最も使いやすいセキュリティ方法を選択してください。個人用デバイスにはPasskeyをおすすめします。',ko:'가장 편한 보안 방법을 선택하세요. 개인 기기에는 Passkey를 권장합니다.',es:'Elige el método de seguridad más cómodo. Passkey se recomienda para dispositivos personales.',fr:'Choisissez la méthode de sécurité la plus confortable. Passkey est recommandée pour les appareils personnels.'},
+    tryText:{id:'Bukan metode yang Anda mau?',en:'Not the method you want?',zh:'不是你想要的方法？',ar:'ليست هذه الطريقة التي تريدها؟',ja:'希望する方法ではありませんか？',ko:'원하는 방법이 아닌가요?',es:'¿No es el método que quieres?',fr:'Ce n’est pas la méthode souhaitée ?'},
+    tryBtn:{id:'Coba cara lain',en:'Try another way',zh:'试试其他方式',ar:'جرّب طريقة أخرى',ja:'別の方法を試す',ko:'다른 방법 시도',es:'Probar otra forma',fr:'Essayer une autre méthode'},
+    pass1:{id:'Pastikan perangkat pribadi sedang digunakan',en:'Make sure you are using your personal device',zh:'确认正在使用私人设备',ar:'تأكد من استخدام جهازك الشخصي',ja:'個人用デバイスを使用していることを確認',ko:'개인 기기를 사용 중인지 확인하세요',es:'Asegúrate de usar tu dispositivo personal',fr:'Assurez-vous d’utiliser votre appareil personnel'},
+    pass2:{id:'Browser akan membuka konfirmasi keamanan perangkat',en:'The browser opens device security confirmation',zh:'浏览器会打开设备安全确认',ar:'سيفتح المتصفح تأكيد أمان الجهاز',ja:'ブラウザがデバイスのセキュリティ確認を開きます',ko:'브라우저가 기기 보안 확인을 엽니다',es:'El navegador abrirá la confirmación de seguridad del dispositivo',fr:'Le navigateur ouvrira la confirmation de sécurité de l’appareil'},
+    pass3:{id:'Tidak perlu mengingat kode tambahan setelah aktif',en:'No extra code to remember after setup',zh:'启用后无需记住额外代码',ar:'لن تحتاج إلى تذكر رمز إضافي بعد التفعيل',ja:'有効化後に追加コードを覚える必要はありません',ko:'활성화 후 추가 코드를 기억할 필요가 없습니다',es:'No necesitas recordar códigos adicionales después de activar',fr:'Aucun code supplémentaire à mémoriser après activation'},
+    analysisDonePress:{id:'Analisis keamanan selesai. Tekan Selesai untuk membuka dashboard.',en:'Security analysis complete. Press Done to open dashboard.',zh:'安全分析完成。点击完成以打开仪表板。',ar:'اكتمل تحليل الأمان. اضغط تم لفتح لوحة التحكم.',ja:'セキュリティ分析が完了しました。完了を押してダッシュボードを開きます。',ko:'보안 분석이 완료되었습니다. 완료를 눌러 대시보드를 여세요.',es:'Análisis de seguridad completado. Pulsa Listo para abrir el panel.',fr:'Analyse de sécurité terminée. Appuyez sur Terminé pour ouvrir le tableau de bord.'},
+    analysisDoneOpen:{id:'Analisis keamanan selesai. Dashboard bisa dibuka.',en:'Security analysis complete. Dashboard can be opened.',zh:'安全分析完成。可以打开仪表板。',ar:'اكتمل تحليل الأمان. يمكن فتح لوحة التحكم.',ja:'セキュリティ分析が完了しました。ダッシュボードを開けます。',ko:'보안 분석이 완료되었습니다. 대시보드를 열 수 있습니다.',es:'Análisis de seguridad completado. El panel se puede abrir.',fr:'Analyse de sécurité terminée. Le tableau de bord peut être ouvert.'},
+    backendVerified:{id:'A2F berhasil diverifikasi backend. Kode recovery tidak ditampilkan di login pelanggan.',en:'2FA verified by backend. No recovery code is shown on customer login.',zh:'2FA 已由后端验证。客户登录页不会显示恢复代码。',ar:'تم التحقق من 2FA عبر الخلفية. لا يظهر رمز الاسترداد في دخول العميل.',ja:'2FAはバックエンドで検証されました。顧客ログインにリカバリーコードは表示されません。',ko:'2FA가 백엔드에서 검증되었습니다. 고객 로그인에는 복구 코드가 표시되지 않습니다.',es:'2FA verificado por backend. No se muestra código de recuperación en el login del cliente.',fr:'2FA vérifiée par le backend. Aucun code de récupération n’est affiché à la connexion client.'},
+    uiVerified:{id:'Flow UI terverifikasi',en:'UI flow verified',zh:'界面流程已验证',ar:'تم التحقق من مسار الواجهة',ja:'UIフロー確認済み',ko:'UI 흐름 검증됨',es:'Flujo UI verificado',fr:'Flux UI vérifié'},
+    serverRequired:{id:'Verifikasi server tetap wajib sebelum rilis produksi.',en:'Server verification is still required before production release.',zh:'生产发布前仍必须进行服务器验证。',ar:'لا يزال تحقق الخادم مطلوباً قبل إصدار الإنتاج.',ja:'本番リリース前にはサーバー検証が引き続き必要です。',ko:'운영 배포 전에는 서버 검증이 여전히 필요합니다.',es:'La verificación del servidor sigue siendo obligatoria antes de producción.',fr:'La vérification serveur reste obligatoire avant la mise en production.'},
+    protectionActive:{id:'Proteksi aktif',en:'Protection active',zh:'保护已启用',ar:'الحماية مفعلة',ja:'保護が有効',ko:'보호 활성화됨',es:'Protección activa',fr:'Protection active'},
+    protectionReady:{id:'Proteksi siap',en:'Protection ready',zh:'保护就绪',ar:'الحماية جاهزة',ja:'保護準備完了',ko:'보호 준비됨',es:'Protección lista',fr:'Protection prête'},
+    accountExtraStep:{id:'Akun sekarang punya langkah keamanan tambahan.',en:'The account now has an extra sign-in step.',zh:'账户现在已有额外登录步骤。',ar:'أصبح لدى الحساب خطوة دخول أمنية إضافية.',ja:'アカウントに追加のサインイン手順が設定されました。',ko:'계정에 추가 로그인 단계가 생겼습니다.',es:'La cuenta ahora tiene un paso adicional de inicio de sesión.',fr:'Le compte dispose maintenant d’une étape de connexion supplémentaire.'},
+    passkeyRequiredTitle:{id:'Passkey wajib diaktifkan dulu',en:'Passkey must be enabled first',zh:'必须先启用 Passkey',ar:'يجب تفعيل Passkey أولاً',ja:'先にPasskeyを有効化してください',ko:'먼저 Passkey를 활성화해야 합니다',es:'Primero debes activar Passkey',fr:'Passkey doit être activée d’abord'},
+    requiredFirst:{id:'Wajib pertama',en:'Required first',zh:'第一步必需',ar:'مطلوب أولاً',ja:'最初に必須',ko:'먼저 필요',es:'Obligatorio primero',fr:'Requis en premier'},
+    createPasskey:{id:'Buat passkey sekarang',en:'Create passkey now',zh:'立即创建 Passkey',ar:'أنشئ Passkey الآن',ja:'今すぐPasskeyを作成',ko:'지금 Passkey 만들기',es:'Crear Passkey ahora',fr:'Créer une Passkey maintenant'},
+    checkingSystem:{id:'Mengecek sistem...',en:'Checking system...',zh:'正在检查系统...',ar:'جارٍ فحص النظام...',ja:'システム確認中...',ko:'시스템 확인 중...',es:'Revisando sistema...',fr:'Vérification du système...'},
+    doneOpen:{id:'Selesai, buka dashboard',en:'Done, open dashboard',zh:'完成，打开仪表板',ar:'تم، افتح لوحة التحكم',ja:'完了、ダッシュボードを開く',ko:'완료, 대시보드 열기',es:'Listo, abrir panel',fr:'Terminé, ouvrir le tableau de bord'},
+    finish:{id:'Selesai',en:'Done',zh:'完成',ar:'تم',ja:'完了',ko:'완료',es:'Listo',fr:'Terminé'},
+    mandatoryDash:{id:'Wajib sebelum dashboard.',en:'Mandatory before dashboard.',zh:'进入仪表板前必需。',ar:'إلزامي قبل لوحة التحكم.',ja:'ダッシュボード前に必須。',ko:'대시보드 전에 필수입니다.',es:'Obligatorio antes del panel.',fr:'Obligatoire avant le tableau de bord.'},
+    passkeyDesc:{id:'Gunakan Face ID, sidik jari, PIN, atau kunci perangkat.',en:'Use Face ID, fingerprint, PIN, or device key.',zh:'使用 Face ID、指纹、PIN 或设备密钥。',ar:'استخدم Face ID أو البصمة أو PIN أو مفتاح الجهاز.',ja:'Face ID、指紋、PIN、またはデバイスキーを使用します。',ko:'Face ID, 지문, PIN 또는 기기 키를 사용하세요.',es:'Usa Face ID, huella, PIN o clave del dispositivo.',fr:'Utilisez Face ID, empreinte, PIN ou clé d’appareil.'},
+    emailBackupTitle:{id:'Kode email cadangan',en:'Email backup code',zh:'邮箱备用代码',ar:'رمز البريد الاحتياطي',ja:'メールバックアップコード',ko:'이메일 백업 코드',es:'Código de email de respaldo',fr:'Code email de secours'},
+    emailAfterPasskey:{id:'Dipakai setelah Passkey aktif.',en:'Available after Passkey is enabled.',zh:'Passkey 启用后可用。',ar:'متاح بعد تفعيل Passkey.',ja:'Passkey有効化後に利用できます。',ko:'Passkey 활성화 후 사용할 수 있습니다.',es:'Disponible después de activar Passkey.',fr:'Disponible après activation de Passkey.'},
+    emailFirstRedirect:{id:'Login pertama otomatis diarahkan ke Passkey.',en:'First sign-in redirects to Passkey.',zh:'首次登录会自动转到 Passkey。',ar:'أول تسجيل دخول يوجّه تلقائياً إلى Passkey.',ja:'初回ログインはPasskeyへ自動的に誘導されます。',ko:'첫 로그인은 자동으로 Passkey로 이동합니다.',es:'El primer inicio redirige a Passkey.',fr:'La première connexion redirige vers Passkey.'},
+    passkeyActiveEmailDesc:{id:'Passkey sudah aktif. Kode email bisa dipakai sebagai cadangan.',en:'Passkey is active. Email code can be used as backup.',zh:'Passkey 已启用。邮箱代码可作为备用。',ar:'Passkey مفعّل. يمكن استخدام رمز البريد كاحتياط.',ja:'Passkeyは有効です。メールコードをバックアップとして使用できます。',ko:'Passkey가 활성화되었습니다. 이메일 코드를 백업으로 사용할 수 있습니다.',es:'Passkey está activa. El código por email puede usarse como respaldo.',fr:'Passkey est active. Le code email peut servir de secours.'},
+    backupAvailable:{id:'Metode cadangan sudah tersedia.',en:'Backup method is available.',zh:'备用方法已可用。',ar:'طريقة الاحتياط متاحة.',ja:'バックアップ方法が利用可能です。',ko:'백업 방법을 사용할 수 있습니다.',es:'Método de respaldo disponible.',fr:'La méthode de secours est disponible.'},
+    methodOptions:{id:'Pilihan metode 2FA',en:'2FA method options',zh:'2FA 方法选项',ar:'خيارات طريقة 2FA',ja:'2FA方法オプション',ko:'2FA 방법 옵션',es:'Opciones de método 2FA',fr:'Options de méthode 2FA'},
+    codeSix:{id:'Kode verifikasi enam digit',en:'Six digit verification code',zh:'六位验证码',ar:'رمز تحقق من ستة أرقام',ja:'6桁確認コード',ko:'6자리 인증 코드',es:'Código de verificación de seis dígitos',fr:'Code de vérification à six chiffres'}
+  };
+
+  var EXACT = {};
+  function norm(s){ return String(s == null ? '' : s).replace(/\s+/g,' ').trim(); }
+  Object.keys(COPY).forEach(function(key){
+    var row = COPY[key];
+    Object.keys(row).forEach(function(l){ var v = norm(row[l]); if(v) EXACT[v] = key; });
+  });
+  function lang(){
+    var v = 'id';
+    try{ if(window.diracGetGlobalPrefs) v = window.diracGetGlobalPrefs().language || v; }catch(_e){}
+    try{ v = document.documentElement.getAttribute('data-language') || v; }catch(_e){}
+    try{ v = document.documentElement.lang || v; }catch(_e){}
+    v = String(v || 'id').toLowerCase();
+    if(v.indexOf('zh') === 0) return 'zh';
+    return LANGS[v] ? v : 'id';
+  }
+  function tr(key){ var row = COPY[key] || {}; var l = lang(); return row[l] || row.en || row.id || ''; }
+  function methodLabel(value){
+    var raw = norm(value);
+    if(/authenticator|autentikator|المصادقة|認証|인증|autenticador/i.test(raw)) return lang()==='id' ? 'Authenticator' : 'Authenticator';
+    if(/email|e-mail|correo|courriel|البريد|メール|이메일|邮箱/i.test(raw)) return lang()==='zh' ? '邮箱' : (lang()==='ar' ? 'البريد الإلكتروني' : (lang()==='ja' ? 'メール' : (lang()==='ko' ? '이메일' : 'Email')));
+    return 'Passkey';
+  }
+  function interpolate(key, vars){
+    var out = tr(key);
+    Object.keys(vars || {}).forEach(function(k){ out = out.replace(new RegExp('\\{'+k+'\\}','g'), vars[k]); });
+    return out;
+  }
+  COPY.enabledWith = {id:'A2F aktif menggunakan {method}. Tampilan sudah siap; untuk produksi, backend tetap memverifikasi kode/challenge asli.',en:'2FA enabled with {method}. UI is ready; in production, the backend still verifies the real code/challenge.',zh:'已使用 {method} 启用 2FA。界面已就绪；生产环境仍由后端验证真实代码/挑战。',ar:'تم تفعيل 2FA باستخدام {method}. الواجهة جاهزة؛ في الإنتاج يظل backend يتحقق من الرمز/التحدي الحقيقي.',ja:'{method}で2FAが有効です。UIは準備済みです。本番ではバックエンドが実際のコード/チャレンジを検証します。',ko:'{method}(으)로 2FA가 활성화되었습니다. UI는 준비되었으며 운영에서는 백엔드가 실제 코드/챌린지를 검증합니다.',es:'2FA activado con {method}. La interfaz está lista; en producción el backend sigue verificando el código/challenge real.',fr:'2FA activée avec {method}. L’interface est prête ; en production, le backend vérifie toujours le vrai code/challenge.'};
+  COPY.serverWith = {id:'A2F berhasil diverifikasi oleh server menggunakan {method}. Simpan recovery code sebelum selesai.',en:'2FA was verified by the server with {method}. Save the recovery codes before finishing.',zh:'服务器已使用 {method} 验证 2FA。完成前请保存恢复代码。',ar:'تحقق الخادم من 2FA باستخدام {method}. احفظ رموز الاسترداد قبل الإنهاء.',ja:'サーバーが{method}で2FAを検証しました。完了前にリカバリーコードを保存してください。',ko:'서버가 {method}(으)로 2FA를 검증했습니다. 완료하기 전에 복구 코드를 저장하세요.',es:'El servidor verificó 2FA con {method}. Guarda los códigos de recuperación antes de finalizar.',fr:'Le serveur a vérifié la 2FA avec {method}. Enregistrez les codes de récupération avant de terminer.'};
+
+  function escapeRe(s){ return String(s || '').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function fromMethodTemplate(s, key){
+    var row = COPY[key] || {};
+    var langs = Object.keys(row);
+    for(var i=0;i<langs.length;i++){
+      var template = norm(row[langs[i]] || '');
+      var parts = template.split('{method}');
+      if(parts.length !== 2) continue;
+      var re = new RegExp('^' + escapeRe(parts[0]) + '(.+?)' + escapeRe(parts[1]) + '$', 'i');
+      var m = s.match(re);
+      if(m) return interpolate(key, {method:methodLabel(m[1])});
+    }
+    return null;
+  }
+  function dynamicTranslate(text){
+    var s = norm(text), m, templated;
+    var key = EXACT[s];
+    if(key) return tr(key);
+    templated = fromMethodTemplate(s, 'enabledWith') || fromMethodTemplate(s, 'serverWith');
+    if(templated) return templated;
+    m = s.match(/^(?:A2F aktif menggunakan|2FA enabled with)\s+(.+?)(?:\.\s*(?:Tampilan sudah siap|UI is ready).*)$/i);
+    if(m) return interpolate('enabledWith', {method:methodLabel(m[1])});
+    m = s.match(/^(?:A2F berhasil diverifikasi oleh server menggunakan|2FA was verified by the server with)\s+(.+?)(?:\.\s*(?:Simpan recovery code|Save the recovery).*)$/i);
+    if(m) return interpolate('serverWith', {method:methodLabel(m[1])});
+    return null;
+  }
+  function replaceTextNode(node){
+    if(!node || node.nodeType !== 3) return;
+    var parent = node.parentElement;
+    if(!parent || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|SVG|PATH)$/i.test(parent.tagName || '')) return;
+    var raw = node.data || '';
+    var core = norm(raw);
+    if(!core) return;
+    var next = dynamicTranslate(core);
+    if(!next || next === core) return;
+    var leading = (raw.match(/^\s*/) || [''])[0];
+    var trailing = (raw.match(/\s*$/) || [''])[0];
+    node.data = leading + next + trailing;
+  }
+  function walkText(root){
+    root = root || document.getElementById('a2fModal');
+    if(!root) return;
+    if(root.nodeType === 3){ replaceTextNode(root); return; }
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode:function(n){
+      var p = n.parentElement;
+      return (!p || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|SVG|PATH)$/i.test(p.tagName || '')) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+    }});
+    var nodes = [];
+    while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(replaceTextNode);
+  }
+  function set(el, key){ if(el){ var v = tr(key); if(v && norm(el.textContent) !== v) el.textContent = v; } }
+  function setAttr(el, attr, key){ if(el){ var v = tr(key); if(v && el.getAttribute(attr) !== v) el.setAttribute(attr, v); } }
+  function directApply(){
+    var modal = document.getElementById('a2fModal'); if(!modal) return;
+    var card = modal.querySelector('.a2f-card');
+    var step = parseInt(card && card.getAttribute('data-a2f-step-index') || '1', 10) || 1;
+    set(modal.querySelector('#a2fStepIndicator'), 'step' + Math.max(1, Math.min(4, step)));
+    var ux = {pass1:'pass1',pass2:'pass2',pass3:'pass3',tryText:'tryText',tryBtn:'tryBtn'};
+    Object.keys(ux).forEach(function(k){ set(modal.querySelector('[data-a2f-ux="'+k+'"]'), ux[k]); });
+    setAttr(modal.querySelector('.a2f-methods'), 'aria-label', 'methodOptions');
+    Array.prototype.slice.call(modal.querySelectorAll('.a2f-otp-grid')).forEach(function(el){ setAttr(el, 'aria-label', 'codeSix'); });
+    walkText(modal);
+  }
+  var queued = false;
+  function schedule(){
+    if(queued) return;
+    queued = true;
+    setTimeout(function(){ queued = false; directApply(); }, 0);
+    setTimeout(directApply, 80);
+    setTimeout(directApply, 260);
+    setTimeout(directApply, 700);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule, {once:true}); else schedule();
+  window.addEventListener('dirac:global-prefs-change', schedule);
+  document.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('#a2fModal,[data-language],[data-language-option],#languageSelect')) schedule(); }, true);
+  document.addEventListener('change', function(e){ if(e.target && (e.target.id === 'languageSelect' || (e.target.closest && e.target.closest('#a2fModal')))) schedule(); }, true);
+  if(window.MutationObserver){
+    var mo = new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var t = muts[i].target;
+        if((t && t.id === 'a2fModal') || (t && t.closest && t.closest('#a2fModal')) || t === document.documentElement){ schedule(); break; }
+      }
+    });
+    mo.observe(document.documentElement, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['lang','data-language','class','data-a2f-step-index','data-selected-a2f','disabled','aria-label']});
+  }
+})();
+</script>
+
 </body>
 </html>
