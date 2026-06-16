@@ -9403,23 +9403,25 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     }
 
     document.addEventListener('click', event => {
-      const currencyBtn = event.target.closest('[data-currency-option]');
+      const target = event.target && event.target.closest ? event.target : null;
+      if(!target) return;
+      const currencyBtn = target.closest('[data-currency-option]');
       if(currencyBtn){ event.preventDefault(); setDiracCurrency(currencyBtn.dataset.currencyOption); return; }
-      const add = event.target.closest('[data-add]');
+      const add = target.closest('[data-add]');
       if(add) addToCart(add.dataset.add);
-      const quick = event.target.closest('[data-quick]');
+      const quick = target.closest('[data-quick]');
       if(quick) openQuick(quick.dataset.quick);
-      const inc = event.target.closest('[data-inc]');
+      const inc = target.closest('[data-inc]');
       if(inc) setQty(inc.dataset.inc, getQty(inc.dataset.inc)+1);
-      const dec = event.target.closest('[data-dec]');
+      const dec = target.closest('[data-dec]');
       if(dec) setQty(dec.dataset.dec, getQty(dec.dataset.dec)-1);
-      const remove = event.target.closest('[data-remove]');
+      const remove = target.closest('[data-remove]');
       if(remove) removeItem(remove.dataset.remove);
-      if(event.target.closest('[data-open-cart]')) openCart();
-      if(event.target.closest('[data-close-cart]')) closeCart();
-      if(event.target === $('#cartOverlay')) closeCart();
-      if(event.target.closest('[data-close-modal]') || event.target.closest('[data-close-quick]')) closeModal();
-      const faqBtn = event.target.closest('.faq-q');
+      if(target.closest('[data-open-cart]')) openCart();
+      if(target.closest('[data-close-cart]')) closeCart();
+      if(target === $('#cartOverlay')) closeCart();
+      if(target.closest('[data-close-modal]') || target.closest('[data-close-quick]')) closeModal();
+      const faqBtn = target.closest('.faq-q');
       if(faqBtn) faqBtn.parentElement.classList.toggle('open');
     });
 
@@ -9607,7 +9609,8 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       }
 
       document.addEventListener('click', event => {
-        const addButton = event.target.closest('[data-add]');
+        const target = event.target && event.target.closest ? event.target : null;
+        const addButton = target ? target.closest('[data-add]') : null;
         if(addButton && !addButton.disabled){
           addButton.classList.add('btn-adding');
           flyToCart(addButton);
@@ -10399,23 +10402,25 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   }
 
   document.addEventListener('click', function(event){
-    if(event.target.closest('[data-open-theme]')){
+    var target = event.target && event.target.closest ? event.target : null;
+    if(!target) return;
+    if(target.closest('[data-open-theme]')){
       event.preventDefault();
       openThemeModal();
       return;
     }
-    if(event.target.closest('[data-close-theme]')){
+    if(target.closest('[data-close-theme]')){
       event.preventDefault();
       closeThemeModal(true);
       return;
     }
     var modal = document.getElementById('themeModal');
-    if(modal && event.target === modal){ closeThemeModal(true); return; }
-    var modeBtn = event.target.closest('[data-theme-mode-option]');
+    if(modal && target === modal){ closeThemeModal(true); return; }
+    var modeBtn = target.closest('[data-theme-mode-option]');
     if(modeBtn){ updateDraft({mode:modeBtn.dataset.themeModeOption}); return; }
-    var contrastBtn = event.target.closest('[data-theme-contrast-option]');
+    var contrastBtn = target.closest('[data-theme-contrast-option]');
     if(contrastBtn){ updateDraft({contrast:contrastBtn.dataset.themeContrastOption}); return; }
-    var accentBtn = event.target.closest('[data-theme-accent-option]');
+    var accentBtn = target.closest('[data-theme-accent-option]');
     if(accentBtn){ updateDraft({accent:accentBtn.dataset.themeAccentOption}); return; }
   });
   document.addEventListener('keydown', function(event){
@@ -10682,7 +10687,8 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   applyLanguage(currentLanguage, {persist:false});
   observeTranslations();
   window.diracLanguage = {
-    apply:function(lang){ applyLanguage(lang, {persist:true}); },
+    apply:function(lang, options){ applyLanguage(lang, {persist:!(options && options.persist === false)}); },
+    applySilent:function(lang){ applyLanguage(lang, {persist:false}); },
     read:function(){ return currentLanguage; },
     list:function(){ return Object.keys(LANGUAGES); },
     translate:function(text, lang){ return translateValue(text, lang || currentLanguage, TEXT); }
@@ -11159,7 +11165,8 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       new MutationObserver(function(){ refreshCartMotion(); }).observe(cartItems,{childList:true,subtree:true});
     }
     document.addEventListener('click', function(event){
-      var qtyBtn = event.target.closest('[data-inc],[data-dec]');
+      var target = event.target && event.target.closest ? event.target : null;
+      var qtyBtn = target ? target.closest('[data-inc],[data-dec]') : null;
       if(qtyBtn){
         var ctrl = qtyBtn.closest('.qty-control');
         if(ctrl && !reduceMotion){ ctrl.classList.remove('dirac-qty-pulse'); void ctrl.offsetWidth; ctrl.classList.add('dirac-qty-pulse'); }
@@ -14016,8 +14023,10 @@ function staticGeneralAnswerLocal(text) {
   input.addEventListener('input', function(){ input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
   qsa('[data-dirac-ai-prompt]').forEach(function(btn){ btn.addEventListener('click', function(){ setOpen(true); handleSend(btn.getAttribute('data-dirac-ai-prompt') || ''); }); });
   messagesEl.addEventListener('click', function(event){
-    const detailBtn = event.target.closest('[data-dirac-ai-detail]');
-    const addBtn = event.target.closest('[data-dirac-ai-add]');
+    const target = event.target && event.target.closest ? event.target : null;
+    if(!target) return;
+    const detailBtn = target.closest('[data-dirac-ai-detail]');
+    const addBtn = target.closest('[data-dirac-ai-add]');
     if(detailBtn){
       const id = detailBtn.getAttribute('data-dirac-ai-detail');
       try{
@@ -14972,10 +14981,14 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 <script id="dirac-parfum-global-pref-sync-v1">
 (function(){
   'use strict';
+  var running = false;
   window.addEventListener('dirac:global-prefs-change', function(){
+    if(running) return;
+    running = true;
     try{ if(typeof window.diracApplyThemeSettings === 'function') window.diracApplyThemeSettings(); }catch(_){ }
     try{ if(typeof window.diracApplyLanguage === 'function') window.diracApplyLanguage(); }catch(_){ }
     try{ if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs(); }catch(_){ }
+    running = false;
   });
 })();
 </script>
@@ -14984,16 +14997,38 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   'use strict';
   if(window.__DIRAC_GLOBAL_PREF_LIVE_REFRESH_V2__) return;
   window.__DIRAC_GLOBAL_PREF_LIVE_REFRESH_V2__ = true;
+
+  var refreshing = false;
+  var refreshTimer = 0;
+
+  function applyLanguageWithoutSaving(language){
+    if(!language || !window.diracLanguage) return;
+    try{
+      if(typeof window.diracLanguage.applySilent === 'function'){
+        window.diracLanguage.applySilent(language);
+      }
+    }catch(_){ }
+  }
+
   function refresh(detail){
+    if(refreshing) return;
+    refreshing = true;
     try{ if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs(); }catch(_){ }
-    try{ if(detail && detail.language && window.diracLanguage && typeof window.diracLanguage.apply === 'function') window.diracLanguage.apply(detail.language); }catch(_){ }
+    try{ if(detail && detail.language) applyLanguageWithoutSaving(detail.language); }catch(_){ }
     try{ if(typeof window.diracApplyThemeSettings === 'function') window.diracApplyThemeSettings(); }catch(_){ }
     try{ if(typeof window.diracApplyLanguage === 'function') window.diracApplyLanguage(); }catch(_){ }
     try{ if(typeof renderProducts === 'function') renderProducts({keepFilterLimit:true}); }catch(_){ }
     try{ if(typeof renderCart === 'function') renderCart(); }catch(_){ }
+    refreshing = false;
   }
-  window.addEventListener('dirac:global-prefs-change', function(e){ refresh(e && e.detail || {}); });
-  document.addEventListener('DOMContentLoaded', function(){ try{ refresh(window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : {}); }catch(_){ } });
+
+  function scheduleRefresh(detail){
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(function(){ refresh(detail || {}); }, 0);
+  }
+
+  window.addEventListener('dirac:global-prefs-change', function(e){ scheduleRefresh(e && e.detail || {}); });
+  document.addEventListener('DOMContentLoaded', function(){ try{ scheduleRefresh(window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : {}); }catch(_){ } }, {once:true});
 })();
 </script>
 <script id="dirac-parfum-i18n-complete-final-v4">
@@ -15066,7 +15101,25 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   document.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('[data-language],[data-language-option],#languageSelect')) schedule(document.body); }, true);
   document.addEventListener('change', function(e){ if(e.target && e.target.id === 'languageSelect') schedule(document.body); }, true);
   if(window.MutationObserver){
-    new MutationObserver(function(muts){ var l = normLang(lang()); muts.forEach(function(m){ Array.prototype.slice.call(m.addedNodes||[]).forEach(function(n){ apply(n); }); if(m.type==='attributes') applyAttrs(m.target,l); }); }).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['placeholder','aria-label','title','data-language','lang']});
+    var observerPending = false;
+    var pendingNodes = [];
+    var pendingAttrs = [];
+    new MutationObserver(function(muts){
+      muts.forEach(function(m){
+        Array.prototype.slice.call(m.addedNodes||[]).forEach(function(n){ pendingNodes.push(n); });
+        if(m.type==='attributes' && m.target) pendingAttrs.push(m.target);
+      });
+      if(observerPending) return;
+      observerPending = true;
+      (window.requestAnimationFrame || window.setTimeout)(function(){
+        observerPending = false;
+        var l = normLang(lang());
+        var nodes = pendingNodes.splice(0, pendingNodes.length);
+        var attrs = pendingAttrs.splice(0, pendingAttrs.length);
+        nodes.slice(0,60).forEach(function(n){ apply(n); });
+        attrs.slice(0,80).forEach(function(n){ applyAttrs(n,l); });
+      },0);
+    }).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['placeholder','aria-label','title','data-language','lang']});
   }
   schedule(document.body);
 })();

@@ -5444,7 +5444,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       $('#motionSelect').value = settings.motion;
       $$('#themeModal [data-theme-mode]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-theme-mode') === settings.mode);});
       $$('#accentChoices [data-accent]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-accent') === settings.accent);});
-      $$('[data-language]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-language') === settings.language);});
+      $$('#themeModal button[data-language], #themeModal [role="button"][data-language], #themeModal [data-language-option]').forEach(function(btn){btn.classList.toggle('active', (btn.getAttribute('data-language-option') || btn.getAttribute('data-language')) === settings.language);});
       $$('[data-motion-choice]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-motion-choice') === settings.motion);});
       $$('#themeModal [data-contrast]').forEach(function(btn){btn.classList.toggle('active', btn.getAttribute('data-contrast') === (settings.contrast || 'off'));});
       translate(settings.language);
@@ -5980,7 +5980,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       $('#accentChoices').addEventListener('click', function(e){ var btn = e.target.closest('[data-accent]'); if(!btn) return; settings.accent = btn.getAttribute('data-accent'); applySettings(); });
       $('#languageSelect').addEventListener('change', function(){ settings.language = this.value; applySettings(); showToast('Bahasa disimpan.'); });
       $('#motionSelect').addEventListener('change', function(){ settings.motion = this.value; applySettings(); showToast('Pengaturan gerak disimpan.'); });
-      $$('[data-language]').forEach(function(btn){btn.addEventListener('click', function(){ settings.language = this.getAttribute('data-language'); applySettings(); showToast('Bahasa disimpan.'); });});
+      $$('#themeModal button[data-language], #themeModal [role="button"][data-language], #themeModal [data-language-option]').forEach(function(btn){btn.addEventListener('click', function(){ settings.language = this.getAttribute('data-language-option') || this.getAttribute('data-language'); applySettings(); showToast('Bahasa disimpan.'); });});
       $$('[data-motion-choice]').forEach(function(btn){btn.addEventListener('click', function(){ settings.motion = this.getAttribute('data-motion-choice'); applySettings(); showToast('Pengaturan gerak disimpan.'); });});
       $$('#themeModal [data-contrast]').forEach(function(btn){btn.addEventListener('click', function(){ settings.contrast = this.getAttribute('data-contrast'); applySettings(); showToast(settings.contrast === 'on' ? 'Kontras tema aktif.' : 'Kontras tema nonaktif.'); });});
       $('#themeResetBtn').addEventListener('click', function(){ settings = Object.assign({}, DEFAULT_SETTINGS); applySettings(); showToast('Tema direset.'); });
@@ -6395,7 +6395,7 @@ html[data-effective-theme="light"] #a2fModal .dirac-authenticator-secret-safe{co
       });
     }
     document.addEventListener('click', function(event){
-      if(event.target && (event.target.matches('#languageSelect') || event.target.closest('[data-language]'))) onChange();
+      if(event.target && (event.target.matches('#languageSelect') || event.target.closest('#themeModal button[data-language], #themeModal [role="button"][data-language], #themeModal [data-language-option]'))) onChange();
     }, true);
   }
 
@@ -8218,7 +8218,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
   function interactiveFrom(target){
     var el = target && target.nodeType === 1 ? target : (target && target.parentElement);
     if(!el || !el.closest) return null;
-    var direct = el.closest('button,a,label,summary,[role="button"],[tabindex],input[type="button"],input[type="submit"],input[type="checkbox"],input[type="radio"],select,.auth-tab,.ai-chip,.theme-pro-choice,.choice,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.theme-toggle,.menu-toggle,.catalog-return,.header-cart,.password-toggle,[onclick],[data-action],[data-mode],[data-theme],[data-language],[data-lang],[data-scroll],[data-a2f-method],[data-a2f-select],[data-close-theme],[data-close-menu],[data-close-ai]');
+    var direct = el.closest('button,a,label,summary,[role="button"],[tabindex],input[type="button"],input[type="submit"],input[type="checkbox"],input[type="radio"],select,.auth-tab,.ai-chip,.theme-pro-choice,.choice,.btn-primary,.btn-secondary,.btn-ghost,.icon-btn,.theme-toggle,.menu-toggle,.catalog-return,.header-cart,.password-toggle,[onclick],[data-action],[data-mode],[data-theme],button[data-language],[role="button"][data-language],[data-language-option],[data-lang],[data-scroll],[data-a2f-method],[data-a2f-select],[data-close-theme],[data-close-menu],[data-close-ai]');
     if(direct) return direct;
     var walk = el;
     for(var i = 0; walk && walk !== document.body && i < 5; i += 1, walk = walk.parentElement){
@@ -8815,8 +8815,8 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     var recovery = $('.dirac-recovery-verify-input');
     if(recovery) recovery.setAttribute('placeholder', ph.recovery);
 
-    $$('[data-language]').forEach(function(btn){
-      var active = btn.getAttribute('data-language') === lang;
+    $$('#themeModal button[data-language], #themeModal [role="button"][data-language], #themeModal [data-language-option]').forEach(function(btn){
+      var active = (btn.getAttribute('data-language-option') || btn.getAttribute('data-language')) === lang;
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
@@ -8842,7 +8842,7 @@ html[data-effective-theme="light"] .dirac-sound-toggle{
     setTimeout(replaceToastText, 120);
   }
   document.addEventListener('click', function(event){
-    if(event.target.closest('[data-language]') || event.target.closest('[data-motion-choice]') || event.target.closest('#themeResetBtn') || event.target.closest('#themeSaveBtn') || event.target.closest('#loginTab') || event.target.closest('#registerTab')){
+    if(event.target.closest('#themeModal button[data-language], #themeModal [role="button"][data-language], #themeModal [data-language-option]') || event.target.closest('[data-motion-choice]') || event.target.closest('#themeResetBtn') || event.target.closest('#themeSaveBtn') || event.target.closest('#loginTab') || event.target.closest('#registerTab')){
       schedule();
     }
   }, true);
@@ -10432,7 +10432,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
   function schedule(root){ setTimeout(function(){apply(root);},0); setTimeout(function(){apply(root);},80); setTimeout(function(){apply(root);},240); }
   document.addEventListener('DOMContentLoaded', function(){ schedule(document.body); });
   window.addEventListener('dirac:global-prefs-change', function(){ schedule(document.body); });
-  document.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('[data-language],[data-language-option],#languageSelect')) schedule(document.body); }, true);
+  document.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('#themeModal button[data-language], #themeModal [role="button"][data-language], #themeModal [data-language-option], #languageSelect')) schedule(document.body); }, true);
   document.addEventListener('change', function(e){ if(e.target && e.target.id === 'languageSelect') schedule(document.body); }, true);
   if(window.MutationObserver){
     new MutationObserver(function(muts){ var l = normLang(lang()); muts.forEach(function(m){ Array.prototype.slice.call(m.addedNodes||[]).forEach(function(n){ apply(n); }); if(m.type==='attributes') applyAttrs(m.target,l); }); }).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['placeholder','aria-label','title','data-language','lang']});
@@ -10593,7 +10593,7 @@ html[data-effective-theme="dark"] #a2fModal[data-dirac-passkey-busy="true"] #a2f
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule, {once:true}); else schedule();
   window.addEventListener('dirac:global-prefs-change', schedule);
-  document.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('#a2fModal,[data-language],[data-language-option],#languageSelect')) schedule(); }, true);
+  document.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('#a2fModal, #themeModal button[data-language], #themeModal [role="button"][data-language], #themeModal [data-language-option], #languageSelect')) schedule(); }, true);
   document.addEventListener('change', function(e){ if(e.target && (e.target.id === 'languageSelect' || (e.target.closest && e.target.closest('#a2fModal')))) schedule(); }, true);
   if(window.MutationObserver){
     var mo = new MutationObserver(function(muts){
