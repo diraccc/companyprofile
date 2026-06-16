@@ -2587,5 +2587,169 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
 })();
 </script>
 
+<script id="dirac-complete-language-sync-v2">
+(function(){
+  'use strict';
+  if(window.__DIRAC_COMPLETE_LANGUAGE_SYNC_V2__) return;
+  window.__DIRAC_COMPLETE_LANGUAGE_SYNC_V2__ = true;
+
+  var LANGUAGE_KEY = 'dirac_global_language_v1';
+  var LANG_META = {
+    id:{htmlLang:'id',dir:'ltr'}, en:{htmlLang:'en',dir:'ltr'}, zh:{htmlLang:'zh-Hans',dir:'ltr'}, ar:{htmlLang:'ar',dir:'rtl'},
+    ja:{htmlLang:'ja',dir:'ltr'}, ko:{htmlLang:'ko',dir:'ltr'}, es:{htmlLang:'es',dir:'ltr'}, fr:{htmlLang:'fr',dir:'ltr'}
+  };
+  var COPY = {"html":{"en":"html"},"Dashboard - Dirac Group":{"en":"Dashboard - Dirac Group"},"Pesanan Saya - Dirac Group":{"en":"My Orders - Dirac Group"},"Keamanan Akun - Dirac Group":{"en":"Account Security - Dirac Group"},"Dirac Group":{"en":"Dirac Group"},"DG":{"en":"DG"},"DP":{"en":"DP"},"D":{"en":"D"},"Online":{"en":"Online"},"0":{"en":"0"},"1":{"en":"1"},"2":{"en":"2"},"3":{"en":"3"},"7":{"en":"7"},"ID":{"en":"ID"},"EN":{"en":"EN"},"中":{"en":"中"},"ع":{"en":"ع"},"日":{"en":"日"},"한":{"en":"한"},"ES":{"en":"ES"},"FR":{"en":"FR"},"Indonesia":{"en":"Indonesia"},"English":{"en":"English"},"中文":{"en":"中文"},"العربية":{"en":"العربية"},"日本語":{"en":"日本語"},"한국어":{"en":"한국어"},"Español":{"en":"Español"},"Français":{"en":"Français"},"AUTH":{"en":"AUTH"},"TOKEN":{"en":"TOKEN"},"SESSION":{"en":"SESSION"},"VERIFIED":{"en":"VERIFIED"},"i":{"en":"i"},"support@diracgroup.store":{"en":"support@diracgroup.store"},"founder@diracgroup.store":{"en":"founder@diracgroup.store"},"DIRAC SECURITY CHECK":{"en":"DIRAC SECURITY CHECK"},"/api/health":{"en":"/api/health"},"Rp0":{"en":"Rp0"},"JNE":{"en":"JNE"},"J&T":{"en":"J&T"},"SiCepat":{"en":"SiCepat"},"Anteraja":{"en":"Anteraja"},"Pos Indonesia":{"en":"Pos Indonesia"},"TIKI":{"en":"TIKI"},"Shopee Express":{"en":"Shopee Express"},"Lion Parcel":{"en":"Lion Parcel"},"Ninja Express":{"en":"Ninja Express"},"WhatsApp":{"en":"WhatsApp"},"Midtrans Sandbox/Production":{"en":"Midtrans Sandbox/Production"},"Dashboard":{"en":"Dashboard"},"Tema":{"en":"Theme"},"Client Area":{"en":"Client Area"},"Pelanggan":{"en":"Customer"},"Ringkasan cepat untuk layanan parfum, domain, project website, invoice, pengiriman, layanan nomor, dan bantuan admin.":{"en":"Quick summary for perfume, domain, website project, invoice, shipping, number service, and admin support."},"Hari ini":{"en":"Today"},"Dashboard pelanggan":{"en":"Customer dashboard"},"Selamat datang,":{"en":"Welcome,"},"Semua layanan utama disusun seperti dashboard full stack: status penting di atas, ringkasan angka yang padat, kartu layanan rapi, lalu notifikasi dan aktivitas terbaru. Gunakan menu atau kartu layanan untuk membuka fitur yang dibutuhkan.":{"en":"All main services are arranged like a full-stack dashboard: important status at the top, compact number summaries, clean service cards, then latest notifications and activity. Use the menu or service cards to open the feature you need."},"Status akun":{"en":"Account status"},"Aktif":{"en":"On"},"Tagihan":{"en":"Bills"},"Tidak ada tertunda":{"en":"No pending items"},"Bantuan":{"en":"Support"},"Admin tersedia":{"en":"Admin available"},"Pusat perhatian":{"en":"Attention center"},"Hal yang perlu ditindaklanjuti tampil di panel ini agar pelanggan tidak melewatkan informasi penting tanpa perlu tombol tambahan yang mengganggu layout.":{"en":"Items that need follow-up appear in this panel so customers do not miss important information without extra buttons that disturb the layout."},"Invoice":{"en":"Invoice"},"Tidak ada tagihan yang perlu dibayar.":{"en":"No bills need to be paid."},"Aman":{"en":"Safe"},"Domain":{"en":"Domain"},"Belum ada domain yang mendekati masa expired.":{"en":"No domains are close to expiration yet."},"Project website":{"en":"Website project"},"Tidak ada approval yang menunggu persetujuan.":{"en":"No approvals are waiting for confirmation."},"Info":{"en":"Info"},"Tiket bantuan":{"en":"Support ticket"},"Tidak ada tiket yang menunggu balasan.":{"en":"No tickets are waiting for a reply."},"Ringkasan layanan":{"en":"Service summary"},"Angka penting dibuat ringkas seperti dashboard aplikasi, tanpa tabel besar dan tanpa istilah teknis yang membingungkan pelanggan.":{"en":"Important numbers are summarized like an app dashboard, without large tables or technical terms that confuse customers."},"Data kosong tetap aman":{"en":"Empty data remains safe"},"Pesanan aktif":{"en":"Active orders"},"Belum ada pesanan parfum atau layanan yang sedang diproses.":{"en":"No perfume orders or services are being processed yet."},"Memuat ringkasan":{"en":"Loading summary"},"Pengiriman":{"en":"Shipping"},"Belum ada paket yang sedang dalam perjalanan.":{"en":"No packages are currently in transit."},"Domain aktif":{"en":"Active domains"},"Domain pelanggan akan muncul setelah layanan domain dibuat.":{"en":"Customer domains will appear after a domain service is created."},"Progress website akan tampil ketika project berjalan.":{"en":"Website progress will appear when the project is running."},"Perlu perhatian":{"en":"Needs attention"},"Status penting":{"en":"Important status"},"Bagian ini menonjolkan hal yang biasanya membutuhkan tindakan pelanggan.":{"en":"This section highlights items that usually require customer action."},"Tidak ada invoice tertunda.":{"en":"No pending invoices."},"Beres":{"en":"Done"},"Masa aktif domain":{"en":"Domain active period"},"Belum ada domain yang hampir expired.":{"en":"No domains are close to expiring yet."},"Approval website":{"en":"Website approval"},"Belum ada desain atau website final yang menunggu persetujuan.":{"en":"No final design or website is waiting for approval."},"Kosong":{"en":"Empty"},"Alur layanan":{"en":"Service flow"},"Cara dashboard bekerja":{"en":"How the dashboard works"},"Informasi akan masuk ke ringkasan saat pelanggan mulai menggunakan layanan.":{"en":"Information will enter the summary when customers start using the services."},"Order atau layanan dibuat":{"en":"Order or service is created"},"Parfum, domain, website, invoice, dan layanan nomor masuk sebagai ringkasan.":{"en":"Perfume, domain, website, invoice, and number services are summarized."},"Status diperbarui":{"en":"Status is updated"},"Pengiriman, tagihan, project, dan tiket tampil dalam bentuk status pendek.":{"en":"Shipping, bills, projects, and tickets appear as short status updates."},"Pelanggan ambil tindakan":{"en":"Customer takes action"},"Buka menu layanan, cek status, atau hubungi admin dari menu dashboard.":{"en":"Open the service menu, check status, or contact admin from the dashboard menu."},"Layanan pelanggan":{"en":"Customer services"},"Menu dan kartu layanan dibuat seragam, padat, dan berfungsi sebagai pintu masuk ke layanan utama pelanggan.":{"en":"The menu and service cards are consistent, compact, and serve as entry points to the main customer services."},"layanan":{"en":"services"},"Layanan tidak ditemukan":{"en":"Service not found"},"Coba kata kunci lain seperti parfum, domain, invoice, resi, website, atau bantuan.":{"en":"Try another keyword such as perfume, domain, invoice, tracking number, website, or support."},"Belum ada pesanan":{"en":"No orders yet"},"Parfum":{"en":"Perfume"},"Pantau pembelian parfum, pengiriman, review, dan riwayat pesanan.":{"en":"Monitor perfume purchases, shipping, reviews, and order history."},"Produk utama":{"en":"Main products"},"Katalog":{"en":"Catalog"},"Buka":{"en":"Open"},"Belum ada domain":{"en":"No domains yet"},"Lihat domain aktif, masa berlaku, renewal, dan kebutuhan pengelolaan domain.":{"en":"View active domains, validity period, renewal, and domain-management needs."},"Digital":{"en":"Digital"},"Renewal":{"en":"Renewal"},"Admin":{"en":"Admin"},"Tanya":{"en":"Ask"},"Belum ada project":{"en":"No projects yet"},"Project Website":{"en":"Website Project"},"Pantau pembuatan, pengembangan, revisi, approval, dan maintenance website.":{"en":"Monitor website creation, development, revisions, approval, and maintenance."},"Progress":{"en":"Progress"},"Revisi":{"en":"Revision"},"Konsultasi":{"en":"Consultation"},"Chat":{"en":"Chat"},"Siap dicek":{"en":"Ready to check"},"Cek Resi":{"en":"Track Shipment"},"Lacak paket dan bantu pelanggan mengetahui status pengiriman.":{"en":"Track packages and help customers see delivery status."},"Kurir":{"en":"Courier"},"Tracking":{"en":"Tracking"},"Cek":{"en":"Check"},"Belum aktif":{"en":"Not active yet"},"Layanan Nomor":{"en":"Number Service"},"Lihat layanan nomor legal, masa aktif, invoice, dan bantuan penggunaan.":{"en":"View legal number services, active period, invoices, and usage support."},"Legal":{"en":"Legal"},"Masa aktif":{"en":"Active period"},"Sesuai aturan":{"en":"Compliant"},"Tidak ada tagihan":{"en":"No bills"},"Cek tagihan, status pembayaran, bukti transfer, dan riwayat invoice.":{"en":"Check bills, payment status, transfer proof, and invoice history."},"Pembayaran":{"en":"Payment"},"Kwitansi":{"en":"Receipt"},"Konfirmasi":{"en":"Confirm"},"Admin siap":{"en":"Admin ready"},"Tiket Bantuan":{"en":"Support Ticket"},"Hubungi admin untuk kendala parfum, domain, website, pembayaran, pengiriman, dan layanan nomor.":{"en":"Contact admin for perfume, domain, website, payment, shipping, and number-service issues."},"Customer care":{"en":"Customer care"},"Respons normal":{"en":"Normal response"},"Chat admin":{"en":"Chat admin"},"Pesanan Saya":{"en":"My Orders"},"Semua invoice pelanggan ditampilkan jelas: belum dibayar, menunggu proses, selesai, atau perlu bantuan admin.":{"en":"All customer invoices are shown clearly: unpaid, awaiting process, completed, or needing admin help."},"invoice":{"en":"invoice"},"Payment gateway belum aktif.":{"en":"Payment gateway is not active yet."},"Tombol bayar akan aktif setelah payment gateway resmi dipasang. Status paid/completed tidak pernah diambil dari frontend.":{"en":"The pay button will activate after the official payment gateway is installed. Paid/completed status is never taken from the frontend."},"Belum ada invoice dari backend":{"en":"No invoices from backend yet"},"Setelah checkout parfum/layanan, invoice pending akan muncul di sini dari backend. Jika sudah payment gateway aktif, tombol bayar akan muncul dari backend.":{"en":"After perfume/service checkout, pending invoices will appear here from the backend. When the payment gateway is active, the pay button will appear from the backend."},"Buat invoice parfum":{"en":"Create perfume invoice"},"Notifikasi terbaru":{"en":"Latest notifications"},"Pemberitahuan penting tentang invoice, pengiriman, domain, project, dan balasan admin.":{"en":"Important notices about invoices, shipping, domains, projects, and admin replies."},"Belum ada notifikasi terbaru":{"en":"No latest notifications"},"Jika ada tagihan, paket dikirim, domain hampir expired, atau project menunggu approval, informasinya muncul di sini.":{"en":"If there is a bill, a shipped package, a domain near expiration, or a project waiting for approval, the information appears here."},"Butuh bantuan?":{"en":"Need help?"},"Aktivitas terbaru":{"en":"Latest activity"},"Riwayat singkat dibuat seperti feed aplikasi agar dashboard tetap bersih.":{"en":"A short history is shown like an app feed to keep the dashboard clean."},"Belum ada aktivitas":{"en":"No activity yet"},"Pesanan baru, pembayaran, update project, dan tiket bantuan akan tercatat setelah pelanggan mulai memakai layanan.":{"en":"New orders, payments, project updates, and support tickets will be recorded after customers start using the services."},"Mulai dari katalog":{"en":"Start from catalog"},"Menu Dashboard":{"en":"Dashboard Menu"},"Navigasi utama pelanggan.":{"en":"Main customer navigation."},"Ringkasan semua layanan pelanggan":{"en":"Summary of all customer services"},"Semua transaksi pelanggan":{"en":"All customer transactions"},"Detail Pesanan":{"en":"Order Detail"},"Detail satu order":{"en":"Single order detail"},"Riwayat pembelian parfum":{"en":"Perfume purchase history"},"Detail Parfum":{"en":"Perfume Detail"},"Detail pengiriman parfum":{"en":"Perfume shipping detail"},"Domain Saya":{"en":"My Domains"},"Daftar domain pelanggan":{"en":"Customer domain list"},"Detail Domain":{"en":"Domain Detail"},"Kelola domain, DNS, nameserver":{"en":"Manage domain, DNS, nameserver"},"Daftar project website":{"en":"Website project list"},"Detail Project":{"en":"Project Detail"},"Progress, revisi, file, approval":{"en":"Progress, revisions, files, approval"},"Lacak pengiriman":{"en":"Track shipping"},"Kelola layanan nomor":{"en":"Manage number services"},"Semua tagihan":{"en":"All bills"},"Detail Invoice":{"en":"Invoice Detail"},"Detail pembayaran":{"en":"Payment detail"},"Daftar komplain/bantuan":{"en":"Complaint/support list"},"Detail Tiket":{"en":"Ticket Detail"},"Percakapan support":{"en":"Support conversation"},"Notifikasi":{"en":"Notifications"},"Semua pemberitahuan":{"en":"All notifications"},"Profil":{"en":"Profile"},"Data pelanggan":{"en":"Customer data"},"Keamanan":{"en":"Security"},"Password, verifikasi, riwayat login":{"en":"Password, verification, login history"},"Keluar":{"en":"Logout"},"Sesi backend dan cookie HttpOnly dibersihkan":{"en":"Backend session and HttpOnly cookies are cleared"},"Menu mengikuti struktur dashboard pelanggan lengkap: transaksi, parfum, domain, website, invoice, bantuan, profil, dan keamanan.":{"en":"The menu follows the complete customer dashboard structure: transactions, perfume, domain, website, invoice, support, profile, and security."},"Masukkan nomor resi untuk menyiapkan pengecekan pengiriman.":{"en":"Enter the tracking number to prepare shipping checking."},"Pilih kurir":{"en":"Choose courier"},"Resi siap dicek.":{"en":"Tracking number is ready to check."},"Untuk tracking realtime, kirim nomor resi ke admin agar bisa dibantu pengecekan.":{"en":"For real-time tracking, send the tracking number to admin for checking assistance."},"Batal":{"en":"Cancel"},"Cek sekarang":{"en":"Check now"},"Pengaturan Tema":{"en":"Theme Settings"},"Mode Tema":{"en":"Theme Mode"},"Gelap":{"en":"Dark"},"Otomatis":{"en":"Automatic"},"Bahasa Tampilan":{"en":"Display Language"},"Kontras Tema":{"en":"Theme Contrast"},"Nonaktif":{"en":"Off"},"Kustom Tema":{"en":"Custom Theme"},"Gerak Website":{"en":"Website Motion"},"Full animasi":{"en":"Full animation"},"Gerak ringan":{"en":"Reduced motion"},"Mengecek Sesi Pelanggan":{"en":"Checking Customer Session"},"Verifikasi keamanan sedang berjalan":{"en":"Security verification is running"},"Gangguan layanan":{"en":"Service issue"},"Indikasi penipuan":{"en":"Fraud indication"},"Dashboard terkunci":{"en":"Dashboard locked"},"Dashboard hanya dapat dibuka setelah login valid dari sistem selesai.":{"en":"The dashboard can only be opened after a valid system login is complete."},"Masuk dulu":{"en":"Login first"},"Lihat katalog":{"en":"View catalog"},"Dashboard mengikuti sesi login backend satu domain dari masuk.html.":{"en":"The dashboard follows the same-domain backend login session from masuk.html."},"Dashboard pelanggan modern untuk ringkasan parfum, domain, website, invoice, pengiriman, dan bantuan.":{"en":"Modern customer dashboard for perfume, domain, website, invoice, shipping, and support summaries."},"Navigasi":{"en":"Navigation"},"Buka katalog":{"en":"Open catalog"},"Hubungi admin":{"en":"Contact admin"},"Dirac Group.":{"en":"Dirac Group."},"Dashboard ringkasan pelanggan.":{"en":"Customer summary dashboard."},"Lewati ke konten utama":{"en":"Skip to main content"},"Pesanan Saya Dirac Group — invoice pelanggan, pembayaran, dan status pesanan dalam satu tempat.":{"en":"My Orders Dirac Group — customer invoices, payments, and order status in one place."},"Memuat sesi...":{"en":"Loading session..."},"Pesanan":{"en":"Orders"},"🧾 Invoice Center":{"en":"🧾 Invoice Center"},"Semua pesanan":{"en":"All orders"},"di satu tempat.":{"en":"in one place."},"Halaman ini hanya menampilkan pesanan milik akun yang sedang login. Data pemilik pesanan ditentukan oleh backend melalui sesi login, bukan input dari halaman.":{"en":"This page only shows orders owned by the currently logged-in account. Order ownership is determined by the backend through the login session, not by page input."},"Belanja Parfum":{"en":"Shop Perfume"},"Layanan Digital":{"en":"Digital Services"},"Mode aman":{"en":"Safe mode"},"Tidak ada direct database dari browser. Tidak ada customer_id dari frontend.":{"en":"No direct database access from the browser. No customer_id from the frontend."},"Session dicek ke backend satu domain:":{"en":"Session is checked through the same-domain backend:"},"Payment aktif via Midtrans Sandbox/Production dari backend.":{"en":"Payment is active via Midtrans Sandbox/Production from the backend."},"Paid hanya dari webhook Midtrans valid, bukan dari frontend.":{"en":"Paid status only comes from a valid Midtrans webhook, not from the frontend."},"Total invoice":{"en":"Total invoices"},"Semua layanan":{"en":"All services"},"Belum dibayar":{"en":"Unpaid"},"Diproses":{"en":"Processing"},"Menunggu admin/supplier":{"en":"Waiting for admin/supplier"},"Selesai":{"en":"Completed"},"Order completed":{"en":"Order completed"},"Semua status":{"en":"All statuses"},"Sudah dibayar":{"en":"Paid"},"Processing":{"en":"Processing"},"Gagal/Batal":{"en":"Failed/Cancelled"},"Refresh":{"en":"Refresh"},"Memuat pesanan...":{"en":"Loading orders..."},"Mohon tunggu sebentar.":{"en":"Please wait a moment."},"Pilih invoice":{"en":"Select an invoice"},"Detail pembayaran dan item akan muncul di sini.":{"en":"Payment details and items will appear here."},"Menu Pesanan":{"en":"Orders Menu"},"Semua link tetap aman; data invoice hanya dibaca dari backend.":{"en":"All links remain secure; invoice data is read only from the backend."},"Logout":{"en":"Logout"},"Fitur tema dibuat mengikuti dashboard: warna, bahasa, kontras, dan gerak website.":{"en":"Theme features follow the dashboard: color, language, contrast, and website motion."},"Dirac Group · Pesanan Saya":{"en":"Dirac Group · My Orders"},"Backend-only ownership · no frontend customer_id":{"en":"Backend-only ownership · no frontend customer_id"},"Customer Security":{"en":"Customer Security"},"· backend-only, direct table tetap diblokir.":{"en":"· backend-only, direct table remains blocked."},"Memuat status":{"en":"Loading status"},"Security Center":{"en":"Security Center"},"Kontrol":{"en":"Controls"},"Sesi":{"en":"Sessions"},"Aktivitas":{"en":"Activity"},"🛡️ Account security":{"en":"🛡️ Account security"},"Semua status penting":{"en":"All important statuses"},"langsung terlihat.":{"en":"visible immediately."},"Halaman ini dibuat compact: tidak perlu scroll panjang untuk melihat status akun, link customer, data keamanan, dan kontrol utama.":{"en":"This page is compact: no long scrolling is needed to see account status, customer link, security data, and main controls."},"← Dashboard":{"en":"← Dashboard"},"2FA/A2F":{"en":"2FA/A2F"},"Status autentikasi dua faktor.":{"en":"Two-factor authentication status."},"Menunggu data":{"en":"Waiting for data"},"0 sesi":{"en":"0 sessions"},"Sesi aktif":{"en":"Active sessions"},"Perangkat dan browser tercatat.":{"en":"Devices and browsers are recorded."},"Normal":{"en":"Normal"},"Risiko akun":{"en":"Account risk"},"Lock, gagal login, dan event berisiko.":{"en":"Locks, failed logins, and risky events."},"Default":{"en":"Default"},"Login baru dan perubahan keamanan.":{"en":"New logins and security changes."},"Belum tersedia":{"en":"Not available yet"},"Security posture":{"en":"Security posture"},"Menunggu respons backend.":{"en":"Waiting for backend response."},"Checking":{"en":"Checking"},"User":{"en":"User"},"Auth link":{"en":"Auth link"},"Policy":{"en":"Policy"},"Direct table":{"en":"Direct table"},"Blocked":{"en":"Blocked"},"Kontrol keamanan":{"en":"Security controls"},"Write locked":{"en":"Write locked"},"🔐 2FA/A2F":{"en":"🔐 2FA/A2F"},"A2F wajib aktif untuk semua akun. Nonaktifkan A2F tidak disediakan demi keamanan.":{"en":"A2F must stay active for all accounts. Disabling A2F is not provided for security."},"🔒 Locked":{"en":"🔒 Locked"},"Kelola":{"en":"Manage"},"🧾 Recovery codes":{"en":"🧾 Recovery codes"},"Dibuat server-side, disimpan sebagai hash, dan ditampilkan sekali.":{"en":"Generated server-side, stored as a hash, and shown once."},"🛡️ MFA":{"en":"🛡️ MFA"},"Generate":{"en":"Generate"},"📱 Perangkat":{"en":"📱 Devices"},"Cabut sesi lain memakai guard backend, MFA proof, rate limit, dan audit log.":{"en":"Revoke other sessions using backend guard, MFA proof, rate limit, and audit log."},"🛡️ Guarded":{"en":"🛡️ Guarded"},"Lihat":{"en":"View"},"Logout lain":{"en":"Logout others"},"📦 Request akun":{"en":"📦 Account request"},"Export/deactivate/security review wajib antrean backend.":{"en":"Export/deactivate/security review must use a backend queue."},"🔒 Pending":{"en":"🔒 Pending"},"Request":{"en":"Request"},"Status koneksi akun":{"en":"Account connection status"},"Akun belum diverifikasi oleh endpoint status. Jangan aktifkan fitur write sebelum status jelas.":{"en":"The account has not been verified by the status endpoint. Do not enable write features before the status is clear."},"Linked":{"en":"Linked"},"Link status":{"en":"Link status"},"Customer ID":{"en":"Customer ID"},"Security data":{"en":"Security data"},"Sesi & perangkat":{"en":"Sessions & devices"},"Read-only":{"en":"Read-only"},"Mohon tunggu respons backend.":{"en":"Please wait for the backend response."},"Aktivitas keamanan":{"en":"Security activity"},"0 event":{"en":"0 events"},"Aktivitas akan muncul setelah backend menulis event.":{"en":"Activity will appear after the backend writes events."},"Permintaan akun":{"en":"Account requests"},"0 request":{"en":"0 requests"},"Belum ada request":{"en":"No requests yet"},"Export data, deaktivasi, atau review keamanan belum tersedia.":{"en":"Data export, deactivation, or security review is not available yet."},"Anti-bypass rule":{"en":"Anti-bypass rule"},"Guarded":{"en":"Guarded"},"UI bukan sumber kebenaran.":{"en":"The UI is not the source of truth."},"Semua aksi sensitif tetap wajib divalidasi backend dengan session user, auth link aktif, customer_id valid, MFA/re-auth, rate limit, dan audit log.":{"en":"All sensitive actions must still be validated by the backend with user session, active auth link, valid customer_id, MFA/re-auth, rate limit, and audit log."},"Direct DB access":{"en":"Direct DB access"},"Tidak digunakan di halaman ini.":{"en":"Not used on this page."},"Login/hash lama":{"en":"Old login/hash"},"Tidak diubah.":{"en":"Not changed."},"Untouched":{"en":"Untouched"},"Write operation":{"en":"Write operation"},"Dikunci sampai API khusus siap.":{"en":"Locked until a dedicated API is ready."},"Locked":{"en":"Locked"},"Dirac Group Security Center":{"en":"Dirac Group Security Center"},"Compact UI · backend-only · read-first integration":{"en":"Compact UI · backend-only · read-first integration"},"· Direct table access tetap diblokir.":{"en":"· Direct table access remains blocked."},"Recovery codes":{"en":"Recovery codes"},"Recovery codes tidak ditampilkan di halaman. File TXT akan di-download otomatis. Buka file itu, lalu salin hanya teks di antara penanda MULAI SALIN dan SELESAI SALIN.":{"en":"Recovery codes are not displayed on the page. The TXT file will download automatically. Open that file, then copy only the text between the START COPY and FINISH COPY markers."},"Download ulang TXT":{"en":"Download TXT again"},"Saya sudah simpan":{"en":"I have saved it"},"Dirac Group Dashboard":{"en":"Dirac Group Dashboard"},"Navigasi utama":{"en":"Main navigation"},"Buka pengaturan tema":{"en":"Open theme settings"},"Buka menu dashboard":{"en":"Open dashboard menu"},"Toolbar dashboard pelanggan":{"en":"Customer dashboard toolbar"},"Cari layanan, invoice, resi...":{"en":"Search services, invoices, tracking numbers..."},"Status singkat":{"en":"Short status"},"Ringkasan angka layanan":{"en":"Service number summary"},"Jumlah layanan pelanggan":{"en":"Number of customer services"},"Tutup menu":{"en":"Close menu"},"Daftar menu dashboard pelanggan":{"en":"Customer dashboard menu list"},"Tutup cek resi":{"en":"Close tracking check"},"Masukkan nomor resi":{"en":"Enter tracking number"},"Tutup pengaturan tema":{"en":"Close theme settings"},"Mode tema":{"en":"Theme mode"},"Bahasa tampilan":{"en":"Display language"},"Pilihan bahasa website":{"en":"Website language options"},"Kontras tema":{"en":"Theme contrast"},"Kustom warna utama":{"en":"Custom main color"},"Pilihan warna utama":{"en":"Main color options"},"Gerak website":{"en":"Website motion"},"Tombol bantuan dan kembali ke atas":{"en":"Help and back-to-top button"},"Scroll ke atas":{"en":"Scroll to top"},"Chat WhatsApp Dirac Group":{"en":"Chat WhatsApp Dirac Group"},"Dirac Security":{"en":"Dirac Security"},"Kontak resmi Dirac Group":{"en":"Official Dirac Group contact"},"Navigasi pesanan":{"en":"Orders navigation"},"Kembali ke dashboard Dirac Group":{"en":"Back to Dirac Group dashboard"},"Kembali ke dashboard":{"en":"Back to dashboard"},"Refresh pesanan":{"en":"Refresh orders"},"Buka menu pesanan":{"en":"Open orders menu"},"Ringkasan pesanan":{"en":"Order summary"},"Filter pesanan":{"en":"Order filter"},"Cari kode invoice, produk, layanan...":{"en":"Search invoice code, product, service..."},"Filter status pembayaran":{"en":"Payment status filter"},"Filter layanan":{"en":"Service filter"},"Detail invoice":{"en":"Invoice detail"},"Memverifikasi sesi":{"en":"Verifying session"},"Navigasi halaman":{"en":"Page navigation"},"Aktif/nonaktif animasi":{"en":"Enable/disable animation"},"Status backend":{"en":"Backend status"},"Aksi cepat keamanan":{"en":"Quick security actions"},"Tutup":{"en":"Close"}};
+  var ORIGINAL_TITLE = document.title || '';
+  var applying = false;
+  var observer = null;
+
+  function supported(lang){ return Object.prototype.hasOwnProperty.call(LANG_META, String(lang || '')); }
+  function currentLang(){
+    try{
+      var p = window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : null;
+      var lang = p && p.language ? p.language : localStorage.getItem(LANGUAGE_KEY);
+      return supported(lang) ? lang : 'id';
+    }catch(_){ return 'id'; }
+  }
+  function compact(value){ return String(value == null ? '' : value).replace(/\s+/g,' ').trim(); }
+  function preserve(original, translated){
+    original = String(original == null ? '' : original);
+    var leading = (original.match(/^\s*/) || [''])[0];
+    var trailing = (original.match(/\s*$/) || [''])[0];
+    return leading + translated + trailing;
+  }
+  function translatedValue(idText, lang){
+    var key = compact(idText);
+    if(!key) return idText;
+    if(lang === 'id') return key;
+    var row = COPY[key];
+    if(!row) return key;
+    return row[lang] || row.en || key;
+  }
+  function originalFromAny(value){
+    var text = compact(value);
+    if(!text) return text;
+    if(COPY[text]) return text;
+    var keys = Object.keys(COPY);
+    for(var i=0;i<keys.length;i++){
+      var row = COPY[keys[i]] || {};
+      for(var lang in row){ if(Object.prototype.hasOwnProperty.call(row, lang) && compact(row[lang]) === text) return keys[i]; }
+    }
+    return text;
+  }
+  function shouldSkipElement(el){
+    if(!el) return true;
+    if(el.closest && el.closest('[data-no-i18n]')) return true;
+    var tag = el.tagName || '';
+    return /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|SVG|PATH|CODE|PRE)$/i.test(tag);
+  }
+  function translateTextNode(node, lang){
+    var parent = node && node.parentElement;
+    if(!parent || shouldSkipElement(parent)) return;
+    if(typeof node.__diracCompleteI18nOriginal !== 'string') node.__diracCompleteI18nOriginal = originalFromAny(node.nodeValue);
+    var original = node.__diracCompleteI18nOriginal;
+    var next = translatedValue(original, lang);
+    if(compact(node.nodeValue) !== compact(next)) node.nodeValue = preserve(node.nodeValue, next);
+  }
+  function translateText(root, lang){
+    var scope = root || document.body;
+    if(!scope) return;
+    if(scope.nodeType === 3){ translateTextNode(scope, lang); return; }
+    if(scope.nodeType !== 1 && scope.nodeType !== 9 && scope.nodeType !== 11) return;
+    if(scope.nodeType === 1 && shouldSkipElement(scope)) return;
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode:function(node){
+        if(!compact(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        return (node.parentElement && !shouldSkipElement(node.parentElement)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var nodes = [], node;
+    while((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(function(n){ translateTextNode(n, lang); });
+  }
+  function translateAttributes(root, lang){
+    var scope = root && root.nodeType === 1 ? root : document;
+    var nodes = [];
+    if(scope.querySelectorAll){
+      nodes = Array.prototype.slice.call(scope.querySelectorAll('[placeholder],[aria-label],[title],[alt]'));
+      if(scope.matches && scope.matches('[placeholder],[aria-label],[title],[alt]')) nodes.unshift(scope);
+    }
+    nodes.forEach(function(el){
+      if(shouldSkipElement(el)) return;
+      ['placeholder','aria-label','title','alt'].forEach(function(attr){
+        if(!el.hasAttribute || !el.hasAttribute(attr)) return;
+        var prop = '__diracCompleteI18nOriginal_' + attr;
+        if(typeof el[prop] !== 'string') el[prop] = originalFromAny(el.getAttribute(attr));
+        var next = translatedValue(el[prop], lang);
+        if(el.getAttribute(attr) !== next) el.setAttribute(attr, next);
+      });
+    });
+  }
+  function applyLanguage(lang){
+    lang = supported(lang) ? lang : 'id';
+    applying = true;
+    var meta = LANG_META[lang] || LANG_META.id;
+    document.documentElement.lang = meta.htmlLang || lang;
+    document.documentElement.dir = meta.dir || 'ltr';
+    document.documentElement.setAttribute('data-language', lang);
+    document.title = lang === 'id' ? ORIGINAL_TITLE : translatedValue(ORIGINAL_TITLE, lang);
+    translateText(document.body, lang);
+    translateAttributes(document, lang);
+    Array.prototype.slice.call(document.querySelectorAll('[data-language],[data-language-option]')).forEach(function(btn){
+      var value = btn.getAttribute('data-language') || btn.getAttribute('data-language-option');
+      var active = value === lang;
+      btn.classList.toggle('active', active);
+      btn.classList.toggle('is-selected', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    applying = false;
+  }
+  function scheduleApply(lang){
+    lang = supported(lang) ? lang : currentLang();
+    setTimeout(function(){ applyLanguage(lang); }, 0);
+    setTimeout(function(){ applyLanguage(lang); }, 80);
+    setTimeout(function(){ applyLanguage(lang); }, 260);
+  }
+  function observe(){
+    if(observer || !('MutationObserver' in window) || !document.body) return;
+    observer = new MutationObserver(function(mutations){
+      if(applying) return;
+      var lang = currentLang();
+      requestAnimationFrame(function(){
+        if(applying) return;
+        applying = true;
+        mutations.forEach(function(mutation){
+          if(mutation.type === 'childList'){
+            Array.prototype.slice.call(mutation.addedNodes || []).forEach(function(node){ translateText(node, lang); translateAttributes(node, lang); });
+          }else if(mutation.type === 'attributes'){
+            translateAttributes(mutation.target, lang);
+          }else if(mutation.type === 'characterData'){
+            translateTextNode(mutation.target, lang);
+          }
+        });
+        applying = false;
+      });
+    });
+    observer.observe(document.body,{subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['placeholder','aria-label','title','alt']});
+  }
+
+  document.addEventListener('click', function(event){
+    var btn = event.target && event.target.closest ? event.target.closest('[data-language],[data-language-option]') : null;
+    if(!btn) return;
+    var lang = btn.getAttribute('data-language') || btn.getAttribute('data-language-option') || 'id';
+    scheduleApply(lang);
+  }, true);
+  window.addEventListener('dirac:global-prefs-change', function(event){
+    var lang = event && event.detail && event.detail.language ? event.detail.language : currentLang();
+    scheduleApply(lang);
+  });
+  window.addEventListener('storage', function(event){ if(event && event.key === LANGUAGE_KEY) scheduleApply(event.newValue || currentLang()); });
+  window.addEventListener('pageshow', function(){ scheduleApply(currentLang()); });
+  document.addEventListener('DOMContentLoaded', function(){ scheduleApply(currentLang()); observe(); });
+  if(document.readyState !== 'loading'){ scheduleApply(currentLang()); observe(); }
+
+  window.diracCompleteLanguageSync = {apply:applyLanguage, read:currentLang, translate:function(text, lang){return translatedValue(text, lang || currentLang());}};
+})();
+</script>
 </body>
 </html>
