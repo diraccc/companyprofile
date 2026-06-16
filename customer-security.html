@@ -17,61 +17,34 @@
 
   var PALETTES = {
     gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},
-    champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'},
-    sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'},
-    blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
+    champagne:{gold:'#ffe9a8',gold2:'#e9c46a',gold3:'#9f6b1f',rgb:'255,233,168'},
+    bronze:{gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122'},
+    emerald:{gold:'#34d399',gold2:'#10b981',gold3:'#064e3b',rgb:'52,211,153'},
+    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
+    mint:{gold:'#6ee7b7',gold2:'#14b8a6',gold3:'#115e59',rgb:'110,231,183'},
+    cyan:{gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240'},
     sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'},
+    ocean:{gold:'#22d3ee',gold2:'#0ea5e9',gold3:'#0c4a6e',rgb:'34,211,238'},
+    royal:{gold:'#60a5fa',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'96,165,250'},
+    sapphire:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
     indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'},
-    purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'},
-    violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'},
-    lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'},
-    fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'},
+    violet:{gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246'},
+    amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'},
+    lavender:{gold:'#b095ff',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'176,149,255'},
+    magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'},
+    fuchsia:{gold:'#e879f9',gold2:'#c026d3',gold3:'#701a75',rgb:'232,121,249'},
     pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},
     rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'},
+    ruby:{gold:'#f43f5e',gold2:'#e11d48',gold3:'#881337',rgb:'244,63,94'},
     red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},
-    coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'},
-    orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'},
-    peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'},
-    amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'},
-    lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'},
-    lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'},
-    green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'},
-    emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'},
-    mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'},
-    teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'},
-    aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'},
-    cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'},
-    copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'},
-    ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'},
-    wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'},
-    burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'},
-    maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'},
-    blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'},
-    salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'},
+    coral:{gold:'#fb7185',gold2:'#f97316',gold3:'#9a3412',rgb:'251,113,133'},
     sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'},
-    tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'},
-    apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'},
-    honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'},
-    olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'},
-    forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'},
-    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
-    seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'},
-    lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'},
-    turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'},
-    ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'},
-    royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'},
-    navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'},
-    sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'},
-    periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'},
-    lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'},
-    orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'},
-    plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'},
-    neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'},
-    graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'},
-    slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'},
-    pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'},
-    mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'},
-    espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
+    orange:{gold:'#fb6a3d',gold2:'#ea580c',gold3:'#7c2d12',rgb:'251,106,61'},
+    amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'},
+    lime:{gold:'#a3e635',gold2:'#65a30d',gold3:'#365314',rgb:'163,230,53'},
+    neon:{gold:'#22c55e',gold2:'#16a34a',gold3:'#14532d',rgb:'34,197,94'},
+    graphite:{gold:'#94a3b8',gold2:'#64748b',gold3:'#334155',rgb:'148,163,184'},
+    coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}
   };
   var LANG_META = {
     id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},
@@ -1229,8 +1202,12 @@ body.gate-checking .gate .dirac-final-contact-note a{
     }
 
     function readJsonStorage(key) {
-      // LocalStorage dinonaktifkan untuk data auth/security; hanya warna dan bahasa global yang boleh persist lewat guard.
-      return null;
+      try {
+        const raw = window.localStorage ? window.localStorage.getItem(key) : '';
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
     }
 
     function findMfaProofToken() {
@@ -1878,6 +1855,10 @@ body.gate-checking .gate .dirac-final-contact-note a{
   var last = 0;
   function setOn(){
     enabled = true;
+    try{
+      localStorage.setItem('dirac_ui_sound_enabled_v2','on');
+      localStorage.setItem('dirac_ui_sound_enabled_v1','on');
+    }catch(_){ }
   }
   function ensure(){
     if(!AudioCtx || !enabled) return null;
@@ -1937,7 +1918,7 @@ body.gate-checking .gate .dirac-final-contact-note a{
   var previous = window.DiracSound;
   window.DiracSound = {
     play: play,
-    setEnabled: function(v){ enabled = v !== false; },
+    setEnabled: function(v){ enabled = v !== false; try{localStorage.setItem('dirac_ui_sound_enabled_v2', enabled ? 'on' : 'off');}catch(_){ } },
     isEnabled: function(){ return enabled; },
     previous: previous || null
   };
@@ -2458,5 +2439,161 @@ body.gate-checking .gate .dirac-final-contact-note a{
   window.diracCompleteLanguageSync = {apply:applyLanguage, read:currentLang, translate:function(text, lang){return translatedValue(text, lang || currentLang());}, force:function(){scheduleApply(currentLang());}};
 })();
 </script>
+
+<script id="dirac-button-language-sync-v4">
+(function(){
+  'use strict';
+  if(window.__DIRAC_BUTTON_LANGUAGE_SYNC_V4__) return;
+  window.__DIRAC_BUTTON_LANGUAGE_SYNC_V4__ = true;
+
+  var LANGUAGE_KEY = 'dirac_global_language_v1';
+  var LANG_META = {
+    id:{htmlLang:'id',dir:'ltr'}, en:{htmlLang:'en',dir:'ltr'}, zh:{htmlLang:'zh-Hans',dir:'ltr'}, ar:{htmlLang:'ar',dir:'rtl'},
+    ja:{htmlLang:'ja',dir:'ltr'}, ko:{htmlLang:'ko',dir:'ltr'}, es:{htmlLang:'es',dir:'ltr'}, fr:{htmlLang:'fr',dir:'ltr'}
+  };
+  var BTN_COPY = {"Tema":{"en":"Theme","zh":"主题","ar":"السمة","ja":"テーマ","ko":"테마","es":"Tema","fr":"Thème"},"🎨 Tema":{"en":"🎨 Theme","zh":"🎨 主题","ar":"🎨 السمة","ja":"🎨 テーマ","ko":"🎨 테마","es":"🎨 Tema","fr":"🎨 Thème"},"Buka menu dashboard":{"en":"Open dashboard menu","zh":"打开仪表板菜单","ar":"افتح قائمة لوحة التحكم","ja":"ダッシュボードメニューを開く","ko":"대시보드 메뉴 열기","es":"Abrir menú del panel","fr":"Ouvrir le menu du tableau de bord"},"Buka menu pesanan":{"en":"Open orders menu","zh":"打开订单菜单","ar":"افتح قائمة الطلبات","ja":"注文メニューを開く","ko":"주문 메뉴 열기","es":"Abrir menú de pedidos","fr":"Ouvrir le menu des commandes"},"Cek":{"en":"Check","zh":"检查","ar":"تحقق","ja":"確認","ko":"확인","es":"Verificar","fr":"Vérifier"},"Cek Resi":{"en":"Check Tracking","zh":"查询运单","ar":"تحقق من التتبع","ja":"配送番号を確認","ko":"운송장 조회","es":"Consultar guía","fr":"Vérifier le suivi"},"Lacak pengiriman":{"en":"Track shipment","zh":"追踪配送","ar":"تتبع الشحنة","ja":"配送を追跡","ko":"배송 추적","es":"Rastrear envío","fr":"Suivre l’envoi"},"📦 Cek Resi Lacak pengiriman ›":{"en":"📦 Check Tracking Track shipment ›","zh":"📦 查询运单 追踪配送 ›","ar":"📦 تحقق من التتبع تتبع الشحنة ›","ja":"📦 配送番号を確認 配送を追跡 ›","ko":"📦 운송장 조회 배송 추적 ›","es":"📦 Consultar guía Rastrear envío ›","fr":"📦 Vérifier le suivi Suivre l’envoi ›"},"Keluar":{"en":"Log out","zh":"退出","ar":"تسجيل الخروج","ja":"ログアウト","ko":"로그아웃","es":"Cerrar sesión","fr":"Déconnexion"},"Keluar Sesi backend dan cookie HttpOnly dibersihkan":{"en":"Log out Backend session and HttpOnly cookies are cleared","zh":"退出 后端会话和 HttpOnly Cookie 已清除","ar":"تسجيل الخروج يتم مسح جلسة الخادم وملفات HttpOnly","ja":"ログアウト バックエンドセッションと HttpOnly Cookie を消去","ko":"로그아웃 백엔드 세션 및 HttpOnly 쿠키 정리","es":"Cerrar sesión Se limpian la sesión backend y las cookies HttpOnly","fr":"Déconnexion La session backend et les cookies HttpOnly sont nettoyés"},"↪ Keluar Sesi backend dan cookie HttpOnly dibersihkan ×":{"en":"↪ Log out Backend session and HttpOnly cookies are cleared ×","zh":"↪ 退出 后端会话和 HttpOnly Cookie 已清除 ×","ar":"↪ تسجيل الخروج يتم مسح جلسة الخادم وملفات HttpOnly ×","ja":"↪ ログアウト バックエンドセッションと HttpOnly Cookie を消去 ×","ko":"↪ 로그아웃 백엔드 세션 및 HttpOnly 쿠키 정리 ×","es":"↪ Cerrar sesión Se limpian la sesión backend y las cookies HttpOnly ×","fr":"↪ Déconnexion La session backend et les cookies HttpOnly sont nettoyés ×"},"Batal":{"en":"Cancel","zh":"取消","ar":"إلغاء","ja":"キャンセル","ko":"취소","es":"Cancelar","fr":"Annuler"},"Cek sekarang":{"en":"Check now","zh":"立即检查","ar":"تحقق الآن","ja":"今すぐ確認","ko":"지금 확인","es":"Verificar ahora","fr":"Vérifier maintenant"},"Masuk dulu":{"en":"Log in first","zh":"请先登录","ar":"سجّل الدخول أولاً","ja":"先にログイン","ko":"먼저 로그인","es":"Inicia sesión primero","fr":"Connectez-vous d’abord"},"Lihat katalog":{"en":"View catalog","zh":"查看目录","ar":"عرض الكتالوج","ja":"カタログを見る","ko":"카탈로그 보기","es":"Ver catálogo","fr":"Voir le catalogue"},"Belanja Parfum":{"en":"Shop Perfume","zh":"购买香水","ar":"تسوق العطور","ja":"香水を購入","ko":"향수 쇼핑","es":"Comprar perfume","fr":"Acheter parfum"},"Layanan Digital":{"en":"Digital Services","zh":"数字服务","ar":"الخدمات الرقمية","ja":"デジタルサービス","ko":"디지털 서비스","es":"Servicios digitales","fr":"Services numériques"},"Domain":{"en":"Domain","zh":"域名","ar":"النطاق","ja":"ドメイン","ko":"도메인","es":"Dominio","fr":"Domaine"},"Refresh":{"en":"Refresh","zh":"刷新","ar":"تحديث","ja":"更新","ko":"새로고침","es":"Actualizar","fr":"Actualiser"},"Refresh ↻":{"en":"Refresh ↻","zh":"刷新 ↻","ar":"تحديث ↻","ja":"更新 ↻","ko":"새로고침 ↻","es":"Actualizar ↻","fr":"Actualiser ↻"},"Logout":{"en":"Logout","zh":"退出登录","ar":"تسجيل الخروج","ja":"ログアウト","ko":"로그아웃","es":"Cerrar sesión","fr":"Déconnexion"},"Logout lain":{"en":"Logout others","zh":"退出其他会话","ar":"تسجيل خروج الأجهزة الأخرى","ja":"他のセッションをログアウト","ko":"다른 세션 로그아웃","es":"Cerrar otras sesiones","fr":"Déconnecter les autres"},"Kelola":{"en":"Manage","zh":"管理","ar":"إدارة","ja":"管理","ko":"관리","es":"Gestionar","fr":"Gérer"},"Generate":{"en":"Generate","zh":"生成","ar":"إنشاء","ja":"生成","ko":"생성","es":"Generar","fr":"Générer"},"Lihat":{"en":"View","zh":"查看","ar":"عرض","ja":"表示","ko":"보기","es":"Ver","fr":"Voir"},"Request":{"en":"Request","zh":"请求","ar":"طلب","ja":"リクエスト","ko":"요청","es":"Solicitar","fr":"Demander"},"Cabut":{"en":"Revoke","zh":"撤销","ar":"إلغاء الجلسة","ja":"取り消す","ko":"해제","es":"Revocar","fr":"Révoquer"},"Memproses":{"en":"Processing","zh":"处理中","ar":"جارٍ المعالجة","ja":"処理中","ko":"처리 중","es":"Procesando","fr":"Traitement"},"Download ulang TXT":{"en":"Download TXT again","zh":"重新下载 TXT","ar":"تنزيل TXT مرة أخرى","ja":"TXTを再ダウンロード","ko":"TXT 다시 다운로드","es":"Descargar TXT otra vez","fr":"Télécharger à nouveau le TXT"},"Saya sudah simpan":{"en":"I have saved it","zh":"我已保存","ar":"لقد حفظته","ja":"保存しました","ko":"저장했습니다","es":"Ya lo guardé","fr":"Je l’ai enregistré"},"☾ Gelap":{"en":"☾ Dark","zh":"☾ 深色","ar":"☾ داكن","ja":"☾ ダーク","ko":"☾ 다크","es":"☾ Oscuro","fr":"☾ Sombre"},"Gelap":{"en":"Dark","zh":"深色","ar":"داكن","ja":"ダーク","ko":"다크","es":"Oscuro","fr":"Sombre"},"⚙ Otomatis":{"en":"⚙ Automatic","zh":"⚙ 自动","ar":"⚙ تلقائي","ja":"⚙ 自動","ko":"⚙ 자동","es":"⚙ Automático","fr":"⚙ Automatique"},"Otomatis":{"en":"Automatic","zh":"自动","ar":"تلقائي","ja":"自動","ko":"자동","es":"Automático","fr":"Automatique"},"◐ Aktif":{"en":"◐ Active","zh":"◐ 开启","ar":"◐ مفعّل","ja":"◐ 有効","ko":"◐ 활성","es":"◐ Activo","fr":"◐ Actif"},"Aktif":{"en":"Active","zh":"开启","ar":"مفعّل","ja":"有効","ko":"활성","es":"Activo","fr":"Actif"},"◌ Nonaktif":{"en":"◌ Inactive","zh":"◌ 关闭","ar":"◌ غير مفعّل","ja":"◌ 無効","ko":"◌ 비활성","es":"◌ Inactivo","fr":"◌ Inactif"},"Nonaktif":{"en":"Inactive","zh":"关闭","ar":"غير مفعّل","ja":"無効","ko":"비활성","es":"Inactivo","fr":"Inactif"},"✨ Full animasi":{"en":"✨ Full animation","zh":"✨ 完整动画","ar":"✨ حركة كاملة","ja":"✨ フルアニメーション","ko":"✨ 전체 애니메이션","es":"✨ Animación completa","fr":"✨ Animation complète"},"Full animasi":{"en":"Full animation","zh":"完整动画","ar":"حركة كاملة","ja":"フルアニメーション","ko":"전체 애니메이션","es":"Animación completa","fr":"Animation complète"},"🪶 Gerak ringan":{"en":"🪶 Light motion","zh":"🪶 轻量动画","ar":"🪶 حركة خفيفة","ja":"🪶 軽い動き","ko":"🪶 가벼운 움직임","es":"🪶 Movimiento ligero","fr":"🪶 Mouvement léger"},"Gerak ringan":{"en":"Light motion","zh":"轻量动画","ar":"حركة خفيفة","ja":"軽い動き","ko":"가벼운 움직임","es":"Movimiento ligero","fr":"Mouvement léger"},"Semua status":{"en":"All statuses","zh":"所有状态","ar":"كل الحالات","ja":"すべてのステータス","ko":"모든 상태","es":"Todos los estados","fr":"Tous les statuts"},"Belum dibayar":{"en":"Unpaid","zh":"未支付","ar":"غير مدفوع","ja":"未払い","ko":"미결제","es":"Sin pagar","fr":"Non payé"},"Sudah dibayar":{"en":"Paid","zh":"已支付","ar":"مدفوع","ja":"支払い済み","ko":"결제 완료","es":"Pagado","fr":"Payé"},"Sudah Dibayar":{"en":"Paid","zh":"已支付","ar":"مدفوع","ja":"支払い済み","ko":"결제 완료","es":"Pagado","fr":"Payé"},"Processing":{"en":"Processing","zh":"处理中","ar":"قيد المعالجة","ja":"処理中","ko":"처리 중","es":"En proceso","fr":"En traitement"},"Selesai":{"en":"Completed","zh":"完成","ar":"مكتمل","ja":"完了","ko":"완료","es":"Completado","fr":"Terminé"},"Gagal/Batal":{"en":"Failed/Cancelled","zh":"失败/取消","ar":"فشل/ملغى","ja":"失敗/キャンセル","ko":"실패/취소","es":"Fallido/Cancelado","fr":"Échec/Annulé"},"Semua layanan":{"en":"All services","zh":"所有服务","ar":"كل الخدمات","ja":"すべてのサービス","ko":"모든 서비스","es":"Todos los servicios","fr":"Tous les services"},"Detail":{"en":"Details","zh":"详情","ar":"التفاصيل","ja":"詳細","ko":"상세","es":"Detalle","fr":"Détail"},"Lanjutkan Pembayaran":{"en":"Continue Payment","zh":"继续支付","ar":"متابعة الدفع","ja":"支払いを続ける","ko":"결제 계속하기","es":"Continuar pago","fr":"Continuer le paiement"},"Bayar Sekarang":{"en":"Pay Now","zh":"立即支付","ar":"ادفع الآن","ja":"今すぐ支払う","ko":"지금 결제","es":"Pagar ahora","fr":"Payer maintenant"},"Bayar sekarang":{"en":"Pay now","zh":"立即支付","ar":"ادفع الآن","ja":"今すぐ支払う","ko":"지금 결제","es":"Pagar ahora","fr":"Payer maintenant"},"Bayar belum aktif":{"en":"Payment not active yet","zh":"支付尚未启用","ar":"الدفع غير مفعل بعد","ja":"支払いはまだ有効ではありません","ko":"결제가 아직 활성화되지 않음","es":"Pago aún no activo","fr":"Paiement pas encore actif"},"Total Belum Siap":{"en":"Total Not Ready","zh":"总额尚未准备好","ar":"الإجمالي غير جاهز","ja":"合計が未確定","ko":"총액 준비 안 됨","es":"Total no listo","fr":"Total non prêt"},"Belum Bisa Dibayar":{"en":"Cannot Be Paid Yet","zh":"暂时无法支付","ar":"لا يمكن الدفع بعد","ja":"まだ支払えません","ko":"아직 결제 불가","es":"Aún no se puede pagar","fr":"Paiement pas encore possible"},"Membuat payment...":{"en":"Creating payment...","zh":"正在创建支付...","ar":"جارٍ إنشاء الدفع...","ja":"支払いを作成中...","ko":"결제 생성 중...","es":"Creando pago...","fr":"Création du paiement..."},"Tanya Admin":{"en":"Ask Admin","zh":"咨询管理员","ar":"اسأل الإدارة","ja":"管理者に問い合わせ","ko":"관리자에게 문의","es":"Preguntar al admin","fr":"Demander à l’admin"},"Salin kode invoice":{"en":"Copy invoice code","zh":"复制发票代码","ar":"نسخ رمز الفاتورة","ja":"請求書コードをコピー","ko":"인보이스 코드 복사","es":"Copiar código de factura","fr":"Copier le code de facture"},"Buat invoice parfum":{"en":"Create perfume invoice","zh":"创建香水发票","ar":"إنشاء فاتورة عطر","ja":"香水の請求書を作成","ko":"향수 인보이스 만들기","es":"Crear factura de perfume","fr":"Créer une facture parfum"},"Pilih invoice":{"en":"Select invoice","zh":"选择发票","ar":"اختر الفاتورة","ja":"請求書を選択","ko":"인보이스 선택","es":"Seleccionar factura","fr":"Sélectionner une facture"},"Masukkan nomor resi":{"en":"Enter tracking number","zh":"输入运单号","ar":"أدخل رقم التتبع","ja":"追跡番号を入力","ko":"운송장 번호 입력","es":"Ingresa número de guía","fr":"Saisir le numéro de suivi"},"Pilih kurir":{"en":"Choose courier","zh":"选择快递","ar":"اختر شركة الشحن","ja":"配送業者を選択","ko":"택배사 선택","es":"Elegir mensajería","fr":"Choisir le transporteur"},"Cari layanan, invoice, resi...":{"en":"Search services, invoices, tracking...","zh":"搜索服务、发票、运单...","ar":"ابحث عن الخدمات والفواتير والتتبع...","ja":"サービス・請求書・配送番号を検索...","ko":"서비스, 인보이스, 운송장 검색...","es":"Buscar servicios, facturas, guías...","fr":"Rechercher services, factures, suivis..."},"Cari kode invoice, produk, layanan...":{"en":"Search invoice code, product, service...","zh":"搜索发票代码、产品、服务...","ar":"ابحث عن رمز الفاتورة أو المنتج أو الخدمة...","ja":"請求書コード・商品・サービスを検索...","ko":"인보이스 코드, 상품, 서비스 검색...","es":"Buscar código de factura, producto, servicio...","fr":"Rechercher code facture, produit, service..."},"ID Indonesia":{"en":"ID Indonesian","zh":"ID 印尼语","ar":"ID الإندونيسية","ja":"ID インドネシア語","ko":"ID 인도네시아어","es":"ID Indonesio","fr":"ID Indonésien"},"EN English":{"en":"EN English","zh":"EN 英语","ar":"EN الإنجليزية","ja":"EN 英語","ko":"EN 영어","es":"EN Inglés","fr":"EN Anglais"},"中 中文":{"en":"中 Chinese","zh":"中 中文","ar":"中 الصينية","ja":"中 中国語","ko":"中 중국어","es":"中 Chino","fr":"中 Chinois"},"ع العربية":{"en":"ع Arabic","zh":"ع 阿拉伯语","ar":"ع العربية","ja":"ع アラビア語","ko":"ع 아랍어","es":"ع Árabe","fr":"ع Arabe"},"日 日本語":{"en":"日 Japanese","zh":"日 日语","ar":"日 اليابانية","ja":"日 日本語","ko":"日 일본어","es":"日 Japonés","fr":"日 Japonais"},"한 한국어":{"en":"한 Korean","zh":"한 韩语","ar":"한 الكورية","ja":"한 韓国語","ko":"한 한국어","es":"한 Coreano","fr":"한 Coréen"},"ES Español":{"en":"ES Spanish","zh":"ES 西班牙语","ar":"ES الإسبانية","ja":"ES スペイン語","ko":"ES 스페인어","es":"ES Español","fr":"ES Espagnol"},"FR Français":{"en":"FR French","zh":"FR 法语","ar":"FR الفرنسية","ja":"FR フランス語","ko":"FR 프랑스어","es":"FR Francés","fr":"FR Français"},"Buka":{"en":"Open","zh":"打开","ar":"فتح","ja":"開く","ko":"열기","es":"Abrir","fr":"Ouvrir"},"Tanya":{"en":"Ask","zh":"询问","ar":"اسأل","ja":"問い合わせ","ko":"문의","es":"Preguntar","fr":"Demander"},"Chat":{"en":"Chat","zh":"聊天","ar":"دردشة","ja":"チャット","ko":"채팅","es":"Chat","fr":"Chat"},"Konfirmasi":{"en":"Confirm","zh":"确认","ar":"تأكيد","ja":"確認","ko":"확인","es":"Confirmar","fr":"Confirmer"},"Chat admin":{"en":"Chat admin","zh":"联系管理员","ar":"دردشة مع الإدارة","ja":"管理者とチャット","ko":"관리자 채팅","es":"Chat con admin","fr":"Chat admin"},"Butuh bantuan?":{"en":"Need help?","zh":"需要帮助？","ar":"هل تحتاج مساعدة؟","ja":"お困りですか？","ko":"도움이 필요하신가요?","es":"¿Necesitas ayuda?","fr":"Besoin d’aide ?"},"Mulai dari katalog":{"en":"Start from catalog","zh":"从目录开始","ar":"ابدأ من الكتالوج","ja":"カタログから開始","ko":"카탈로그에서 시작","es":"Empezar desde catálogo","fr":"Commencer par le catalogue"},"← Dashboard":{"en":"← Dashboard","zh":"← 仪表板","ar":"← لوحة التحكم","ja":"← ダッシュボード","ko":"← 대시보드","es":"← Panel","fr":"← Tableau de bord"},"Dashboard":{"en":"Dashboard","zh":"仪表板","ar":"لوحة التحكم","ja":"ダッシュボード","ko":"대시보드","es":"Panel","fr":"Tableau de bord"},"Ringkasan semua layanan pelanggan":{"en":"Summary of all customer services","zh":"所有客户服务摘要","ar":"ملخص كل خدمات العملاء","ja":"すべての顧客サービス概要","ko":"모든 고객 서비스 요약","es":"Resumen de todos los servicios del cliente","fr":"Résumé de tous les services client"},"Pesanan Saya":{"en":"My Orders","zh":"我的订单","ar":"طلباتي","ja":"注文履歴","ko":"내 주문","es":"Mis pedidos","fr":"Mes commandes"},"Semua transaksi pelanggan":{"en":"All customer transactions","zh":"所有客户交易","ar":"كل معاملات العميل","ja":"すべての顧客取引","ko":"모든 고객 거래","es":"Todas las transacciones del cliente","fr":"Toutes les transactions client"},"Detail Pesanan":{"en":"Order Details","zh":"订单详情","ar":"تفاصيل الطلب","ja":"注文詳細","ko":"주문 상세","es":"Detalle del pedido","fr":"Détail de commande"},"Detail satu order":{"en":"Details for one order","zh":"单个订单详情","ar":"تفاصيل طلب واحد","ja":"1件の注文詳細","ko":"단일 주문 상세","es":"Detalle de un pedido","fr":"Détail d’une commande"},"Parfum":{"en":"Perfume","zh":"香水","ar":"العطور","ja":"香水","ko":"향수","es":"Perfume","fr":"Parfum"},"Riwayat pembelian parfum":{"en":"Perfume purchase history","zh":"香水购买历史","ar":"سجل شراء العطور","ja":"香水購入履歴","ko":"향수 구매 내역","es":"Historial de compras de perfume","fr":"Historique d’achat parfum"},"Detail Parfum":{"en":"Perfume Details","zh":"香水详情","ar":"تفاصيل العطر","ja":"香水詳細","ko":"향수 상세","es":"Detalle del perfume","fr":"Détail parfum"},"Detail pengiriman parfum":{"en":"Perfume delivery details","zh":"香水配送详情","ar":"تفاصيل توصيل العطر","ja":"香水配送詳細","ko":"향수 배송 상세","es":"Detalle de envío del perfume","fr":"Détail de livraison parfum"},"Domain Saya":{"en":"My Domains","zh":"我的域名","ar":"نطاقاتي","ja":"マイドメイン","ko":"내 도메인","es":"Mis dominios","fr":"Mes domaines"},"Daftar domain pelanggan":{"en":"Customer domain list","zh":"客户域名列表","ar":"قائمة نطاقات العميل","ja":"顧客ドメイン一覧","ko":"고객 도메인 목록","es":"Lista de dominios del cliente","fr":"Liste des domaines client"},"Detail Domain":{"en":"Domain Details","zh":"域名详情","ar":"تفاصيل النطاق","ja":"ドメイン詳細","ko":"도메인 상세","es":"Detalle de dominio","fr":"Détail domaine"},"Kelola domain, DNS, nameserver":{"en":"Manage domain, DNS, nameserver","zh":"管理域名、DNS、名称服务器","ar":"إدارة النطاق و DNS و nameserver","ja":"ドメイン・DNS・ネームサーバー管理","ko":"도메인, DNS, 네임서버 관리","es":"Gestionar dominio, DNS y nameserver","fr":"Gérer domaine, DNS, nameserver"},"Project Website":{"en":"Website Project","zh":"网站项目","ar":"مشروع الموقع","ja":"Webサイトプロジェクト","ko":"웹사이트 프로젝트","es":"Proyecto web","fr":"Projet website"},"Daftar project website":{"en":"Website project list","zh":"网站项目列表","ar":"قائمة مشاريع المواقع","ja":"Webサイトプロジェクト一覧","ko":"웹사이트 프로젝트 목록","es":"Lista de proyectos web","fr":"Liste des projets web"},"Detail Project":{"en":"Project Details","zh":"项目详情","ar":"تفاصيل المشروع","ja":"プロジェクト詳細","ko":"프로젝트 상세","es":"Detalle del proyecto","fr":"Détail projet"},"Progress, revisi, file, approval":{"en":"Progress, revisions, files, approvals","zh":"进度、修改、文件、审批","ar":"التقدم، المراجعات، الملفات، الموافقات","ja":"進捗・修正・ファイル・承認","ko":"진행, 수정, 파일, 승인","es":"Progreso, revisiones, archivos, aprobaciones","fr":"Progression, révisions, fichiers, validations"},"Layanan Nomor":{"en":"Number Services","zh":"号码服务","ar":"خدمات الأرقام","ja":"番号サービス","ko":"번호 서비스","es":"Servicios de número","fr":"Services de numéro"},"Kelola layanan nomor":{"en":"Manage number services","zh":"管理号码服务","ar":"إدارة خدمات الأرقام","ja":"番号サービスを管理","ko":"번호 서비스 관리","es":"Gestionar servicios de número","fr":"Gérer les services de numéro"},"Invoice":{"en":"Invoice","zh":"发票","ar":"الفاتورة","ja":"請求書","ko":"인보이스","es":"Factura","fr":"Facture"},"Semua tagihan":{"en":"All bills","zh":"所有账单","ar":"كل الفواتير","ja":"すべての請求","ko":"모든 청구서","es":"Todas las facturas","fr":"Toutes les factures"},"Detail Invoice":{"en":"Invoice Details","zh":"发票详情","ar":"تفاصيل الفاتورة","ja":"請求書詳細","ko":"인보이스 상세","es":"Detalle de factura","fr":"Détail facture"},"Detail pembayaran":{"en":"Payment details","zh":"支付详情","ar":"تفاصيل الدفع","ja":"支払い詳細","ko":"결제 상세","es":"Detalle de pago","fr":"Détail du paiement"},"Tiket Bantuan":{"en":"Support Tickets","zh":"支持工单","ar":"تذاكر الدعم","ja":"サポートチケット","ko":"지원 티켓","es":"Tickets de ayuda","fr":"Tickets d’aide"},"Daftar komplain/bantuan":{"en":"Complaint/support list","zh":"投诉/支持列表","ar":"قائمة الشكاوى/الدعم","ja":"苦情/サポート一覧","ko":"불만/지원 목록","es":"Lista de quejas/ayuda","fr":"Liste réclamations/aide"},"Detail Tiket":{"en":"Ticket Details","zh":"工单详情","ar":"تفاصيل التذكرة","ja":"チケット詳細","ko":"티켓 상세","es":"Detalle del ticket","fr":"Détail ticket"},"Percakapan support":{"en":"Support conversation","zh":"支持对话","ar":"محادثة الدعم","ja":"サポート会話","ko":"지원 대화","es":"Conversación de soporte","fr":"Conversation support"},"Notifikasi":{"en":"Notifications","zh":"通知","ar":"الإشعارات","ja":"通知","ko":"알림","es":"Notificaciones","fr":"Notifications"},"Semua pemberitahuan":{"en":"All notifications","zh":"所有通知","ar":"كل الإشعارات","ja":"すべての通知","ko":"모든 알림","es":"Todas las notificaciones","fr":"Toutes les notifications"},"Profil":{"en":"Profile","zh":"资料","ar":"الملف الشخصي","ja":"プロフィール","ko":"프로필","es":"Perfil","fr":"Profil"},"Data pelanggan":{"en":"Customer data","zh":"客户数据","ar":"بيانات العميل","ja":"顧客データ","ko":"고객 데이터","es":"Datos del cliente","fr":"Données client"},"Keamanan":{"en":"Security","zh":"安全","ar":"الأمان","ja":"セキュリティ","ko":"보안","es":"Seguridad","fr":"Sécurité"},"Password, verifikasi, riwayat login":{"en":"Password, verification, login history","zh":"密码、验证、登录历史","ar":"كلمة المرور، التحقق، سجل الدخول","ja":"パスワード・認証・ログイン履歴","ko":"비밀번호, 인증, 로그인 기록","es":"Contraseña, verificación, historial de login","fr":"Mot de passe, vérification, historique de connexion"}};
+  var reverse = {};
+  var sortedKeys = Object.keys(BTN_COPY).sort(function(a,b){ return b.length - a.length; });
+  sortedKeys.forEach(function(key){
+    var row = BTN_COPY[key] || {};
+    Object.keys(row).forEach(function(lang){
+      var value = compact(row[lang]);
+      if(value && !reverse[value]) reverse[value] = key;
+    });
+  });
+
+  function compact(value){ return String(value == null ? '' : value).replace(/\s+/g,' ').trim(); }
+  function supported(lang){ return Object.prototype.hasOwnProperty.call(LANG_META, String(lang || '')); }
+  function readLang(){
+    try{
+      var p = window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : null;
+      var lang = p && p.language ? p.language : localStorage.getItem(LANGUAGE_KEY);
+      return supported(lang) ? lang : 'id';
+    }catch(_){ return 'id'; }
+  }
+  function preserveWhitespace(original, translated){
+    original = String(original == null ? '' : original);
+    var leading = (original.match(/^\s*/) || [''])[0];
+    var trailing = (original.match(/\s*$/) || [''])[0];
+    return leading + translated + trailing;
+  }
+  function toOriginal(value){
+    var text = compact(value);
+    if(!text) return text;
+    if(BTN_COPY[text]) return text;
+    if(reverse[text]) return reverse[text];
+    var out = text;
+    Object.keys(reverse).sort(function(a,b){ return b.length - a.length; }).forEach(function(translated){
+      if(translated && out.indexOf(translated) !== -1) out = out.split(translated).join(reverse[translated]);
+    });
+    return out;
+  }
+  function translateText(value, lang){
+    var original = compact(value);
+    if(!original) return original;
+    if(lang === 'id') return original;
+    var exact = BTN_COPY[original];
+    if(exact && exact[lang]) return exact[lang];
+    var out = original;
+    sortedKeys.forEach(function(key){
+      if(!key || key.length < 2 || out.indexOf(key) === -1) return;
+      var row = BTN_COPY[key];
+      var next = row && (row[lang] || row.en);
+      if(next && next !== key) out = out.split(key).join(next);
+    });
+    if(out !== original) return out;
+    try{
+      if(window.diracCompleteLanguageSync && typeof window.diracCompleteLanguageSync.translate === 'function'){
+        var fallback = window.diracCompleteLanguageSync.translate(original, lang);
+        if(fallback && compact(fallback) !== original) return fallback;
+      }
+    }catch(_){ }
+    return original;
+  }
+  function shouldSkip(el){
+    if(!el || !el.tagName) return true;
+    if(el.closest && el.closest('[data-no-i18n]')) return true;
+    return /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|SVG|PATH|CODE|PRE)$/i.test(el.tagName);
+  }
+  function isInteractive(el){
+    if(!el || !el.matches) return false;
+    return el.matches('button,[role="button"],input[type="button"],input[type="submit"],input[type="reset"],option,a.btn,a[class*="btn"],a.app-link,a.drawer-menu-item,.theme-choice,.choice,.app-link,.drawer-menu-item,.dirac-float-btn,[data-pay],[data-detail]');
+  }
+  function nearestInteractive(node){
+    var el = node && (node.nodeType === 1 ? node : node.parentElement);
+    return el && el.closest ? el.closest('button,[role="button"],input,option,a.btn,a[class*="btn"],a.app-link,a.drawer-menu-item,.theme-choice,.choice,.app-link,.drawer-menu-item,.dirac-float-btn,[data-pay],[data-detail]') : null;
+  }
+  function translateTextNode(node, lang){
+    if(!node || node.nodeType !== 3 || !compact(node.nodeValue)) return;
+    var holder = nearestInteractive(node);
+    if(!holder || shouldSkip(holder)) return;
+    if(typeof node.__diracBtnI18nOriginal !== 'string') node.__diracBtnI18nOriginal = toOriginal(node.nodeValue);
+    var next = translateText(node.__diracBtnI18nOriginal, lang);
+    if(compact(node.nodeValue) !== compact(next)) node.nodeValue = preserveWhitespace(node.nodeValue, next);
+  }
+  function translateElement(el, lang){
+    if(!el || shouldSkip(el)) return;
+    if(isInteractive(el)){
+      var attrs = ['value','placeholder','aria-label','title','alt','data-label','data-title','data-tooltip'];
+      attrs.forEach(function(attr){
+        if(!el.hasAttribute || !el.hasAttribute(attr)) return;
+        var prop = '__diracBtnI18nOriginal_' + attr;
+        if(typeof el[prop] !== 'string') el[prop] = toOriginal(el.getAttribute(attr));
+        var next = translateText(el[prop], lang);
+        if(el.getAttribute(attr) !== next) el.setAttribute(attr, next);
+      });
+    }
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode:function(node){
+        if(!compact(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        return nearestInteractive(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var nodes = [], n;
+    while((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function(node){ translateTextNode(node, lang); });
+  }
+  function apply(lang){
+    lang = supported(lang) ? lang : readLang();
+    var meta = LANG_META[lang] || LANG_META.id;
+    try{
+      document.documentElement.lang = meta.htmlLang || lang;
+      document.documentElement.dir = meta.dir || 'ltr';
+      document.documentElement.setAttribute('data-language', lang);
+    }catch(_){ }
+    Array.prototype.slice.call(document.querySelectorAll('button,[role="button"],input,option,a.btn,a[class*="btn"],a.app-link,a.drawer-menu-item,.theme-choice,.choice,.app-link,.drawer-menu-item,.dirac-float-btn,[data-pay],[data-detail]')).forEach(function(el){ translateElement(el, lang); });
+  }
+  function schedule(lang){
+    lang = supported(lang) ? lang : readLang();
+    [0,40,120,300,800,1600,2800].forEach(function(ms){ setTimeout(function(){ apply(lang); }, ms); });
+  }
+  var observer = null;
+  function observe(){
+    if(observer || !document.body || !('MutationObserver' in window)) return;
+    observer = new MutationObserver(function(mutations){
+      var lang = readLang();
+      requestAnimationFrame(function(){
+        mutations.forEach(function(m){
+          if(m.type === 'childList') Array.prototype.slice.call(m.addedNodes || []).forEach(function(node){ if(node.nodeType === 1) translateElement(node, lang); else if(node.nodeType === 3) translateTextNode(node, lang); });
+          if(m.type === 'characterData') translateTextNode(m.target, lang);
+          if(m.type === 'attributes') translateElement(m.target, lang);
+        });
+      });
+    });
+    observer.observe(document.body,{subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['value','placeholder','aria-label','title','alt','data-label','data-title','data-tooltip']});
+  }
+  document.addEventListener('click', function(event){
+    var btn = event.target && event.target.closest ? event.target.closest('[data-language],[data-language-option]') : null;
+    if(btn) schedule(btn.getAttribute('data-language') || btn.getAttribute('data-language-option') || readLang());
+  }, true);
+  window.addEventListener('dirac:global-prefs-change', function(event){ schedule(event && event.detail && event.detail.language ? event.detail.language : readLang()); });
+  window.addEventListener('storage', function(event){ if(event && event.key === LANGUAGE_KEY) schedule(event.newValue || readLang()); });
+  window.addEventListener('pageshow', function(){ schedule(readLang()); });
+  document.addEventListener('DOMContentLoaded', function(){ schedule(readLang()); observe(); });
+  if(document.readyState !== 'loading'){ schedule(readLang()); observe(); }
+  window.diracButtonLanguageSync = {apply:apply, force:function(){schedule(readLang());}, translate:translateText, original:toOriginal};
+})();
+</script>
+
 </body>
 </html>
