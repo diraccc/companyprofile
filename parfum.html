@@ -1,205 +1,154 @@
 <!doctype html>
 <html lang="id">
 <head>
-<script id="dirac-global-pref-storage-guard-v1">
+<script id="dirac-global-pref-storage-guard-v2">
 (function(){
   'use strict';
-  if(window.__DIRAC_GLOBAL_PREF_STORAGE_GUARD_V1__) return;
-  window.__DIRAC_GLOBAL_PREF_STORAGE_GUARD_V1__ = true;
+  if(window.__DIRAC_GLOBAL_PREF_STORAGE_GUARD_V2__) return;
+  window.__DIRAC_GLOBAL_PREF_STORAGE_GUARD_V2__ = true;
 
+  var THEME_KEY = 'dirac_theme_settings_v2';
+  var LEGACY_THEME_KEYS = {'dirac_theme_settings_v1':true};
   var ACCENT_KEY = 'dirac_global_accent_v1';
   var LANGUAGE_KEY = 'dirac_global_language_v1';
-  var LEGACY_THEME_KEYS = {'dirac_theme_settings_v1':true,'dirac_theme_settings_v2':true};
   var LEGACY_LANGUAGE_KEYS = {'dirac_language_v1':true};
-  var ALLOWED_REAL_KEYS = {};
-  ALLOWED_REAL_KEYS[ACCENT_KEY] = true;
-  ALLOWED_REAL_KEYS[LANGUAGE_KEY] = true;
+  var CURRENCY_KEY = 'dirac_currency_v1';
+  var MOTION_KEY = 'dirac_motion_mode_v1';
+  var ALLOWED_REAL_KEYS = {}; ALLOWED_REAL_KEYS[THEME_KEY] = true;
 
   var PALETTES = {
-    gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'},
-    champagne:{gold:'#ffe9a8',gold2:'#e9c46a',gold3:'#9f6b1f',rgb:'255,233,168'},
-    bronze:{gold:'#d6b27a',gold2:'#9a6b2f',gold3:'#4a2b12',rgb:'214,178,122'},
-    emerald:{gold:'#34d399',gold2:'#10b981',gold3:'#064e3b',rgb:'52,211,153'},
-    jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'},
-    mint:{gold:'#6ee7b7',gold2:'#14b8a6',gold3:'#115e59',rgb:'110,231,183'},
-    cyan:{gold:'#38c7f0',gold2:'#0891b2',gold3:'#164e63',rgb:'56,199,240'},
-    sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'},
-    ocean:{gold:'#22d3ee',gold2:'#0ea5e9',gold3:'#0c4a6e',rgb:'34,211,238'},
-    royal:{gold:'#60a5fa',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'96,165,250'},
-    sapphire:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'},
-    indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'},
-    violet:{gold:'#8b5cf6',gold2:'#7c3aed',gold3:'#4c1d95',rgb:'139,92,246'},
-    amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'},
-    lavender:{gold:'#b095ff',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'176,149,255'},
-    magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'},
-    fuchsia:{gold:'#e879f9',gold2:'#c026d3',gold3:'#701a75',rgb:'232,121,249'},
-    pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'},
-    rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'},
-    ruby:{gold:'#f43f5e',gold2:'#e11d48',gold3:'#881337',rgb:'244,63,94'},
-    red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'},
-    coral:{gold:'#fb7185',gold2:'#f97316',gold3:'#9a3412',rgb:'251,113,133'},
-    sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'},
-    orange:{gold:'#fb6a3d',gold2:'#ea580c',gold3:'#7c2d12',rgb:'251,106,61'},
-    amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'},
-    lime:{gold:'#a3e635',gold2:'#65a30d',gold3:'#365314',rgb:'163,230,53'},
-    neon:{gold:'#22c55e',gold2:'#16a34a',gold3:'#14532d',rgb:'34,197,94'},
-    graphite:{gold:'#94a3b8',gold2:'#64748b',gold3:'#334155',rgb:'148,163,184'},
-    coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}
+    gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'}, champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'}, sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'}, bronze:{gold:'#d97706',gold2:'#92400e',gold3:'#451a03',rgb:'217,119,6'}, blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'}, sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'}, indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'}, purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'}, violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'}, lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'}, amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'}, lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'}, magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'}, fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'}, pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'}, rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'}, red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'}, coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'}, orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'}, peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'}, amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'}, lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'}, lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'}, neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'}, green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'}, emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'}, forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'}, mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'}, jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'}, seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'}, teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'}, aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'}, cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'}, lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'}, turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'}, ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'}, royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'}, navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'}, sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'}, periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'}, orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'}, plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'}, copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'}, coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}, ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'}, wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'}, burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'}, maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'}, blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'}, salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'}, sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'}, tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'}, apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'}, honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'}, olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'}, graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}, slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'}, pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, white:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'}, midnight:{gold:'#0f172a',gold2:'#020617',gold3:'#000000',rgb:'15,23,42'}, mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'}, espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
   };
-  var LANG_META = {
-    id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},
-    ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}
-  };
+  var LANG_META = {id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
+  var CURRENCIES = {IDR:true,USD:true,EUR:true,SGD:true,MYR:true,SAR:true,AED:true,JPY:true,KRW:true,CNY:true,AUD:true,GBP:true};
+  var DEFAULTS = {mode:'dark',accent:'sky',language:'id',motion:'full',contrast:'off',currency:'IDR'};
 
-  var storage = null;
-  try{ storage = window.localStorage || null; }catch(_){ storage = null; }
+  var storage = null; try{ storage = window.localStorage || null; }catch(_){ storage = null; }
   var proto = window.Storage && window.Storage.prototype;
   if(!storage || !proto) return;
-
-  var nativeGet = proto.getItem;
-  var nativeSet = proto.setItem;
-  var nativeRemove = proto.removeItem;
-  var nativeClear = proto.clear;
-  var nativeKey = proto.key;
-
-  function safeGet(key){ try{ return nativeGet.call(storage, key); }catch(_){ return null; } }
-  function safeSet(key, value){ try{ nativeSet.call(storage, key, String(value)); }catch(_){} }
-  function safeRemove(key){ try{ nativeRemove.call(storage, key); }catch(_){} }
-  function validAccent(value){ value = String(value || '').trim(); return PALETTES[value] ? value : 'gold'; }
-  function validLanguage(value){ value = String(value || '').trim(); return LANG_META[value] ? value : 'id'; }
+  var nativeGet = proto.getItem, nativeSet = proto.setItem, nativeRemove = proto.removeItem, nativeClear = proto.clear, nativeKey = proto.key;
+  function safeGet(k){ try{ return nativeGet.call(storage,k); }catch(_){ return null; } }
+  function safeSet(k,v){ try{ nativeSet.call(storage,k,String(v)); }catch(_){} }
+  function safeRemove(k){ try{ nativeRemove.call(storage,k); }catch(_){} }
   function readJson(raw){ try{ return raw ? JSON.parse(raw) : null; }catch(_){ return null; } }
-  function legacyPrefs(){
-    var out = {};
-    ['dirac_theme_settings_v2','dirac_theme_settings_v1'].forEach(function(key){
-      var data = readJson(safeGet(key));
-      if(data && typeof data === 'object'){
-        if(data.accent && !out.accent) out.accent = validAccent(data.accent);
-        if(data.language && !out.language) out.language = validLanguage(data.language);
-      }
-    });
-    var oldLang = safeGet('dirac_language_v1');
-    if(oldLang && !out.language) out.language = validLanguage(oldLang);
-    return out;
+  function validAccent(v){ v = String(v || '').trim(); return PALETTES[v] ? v : DEFAULTS.accent; }
+  function validLanguage(v){ v = String(v || '').trim(); return LANG_META[v] ? v : DEFAULTS.language; }
+  function validMode(v){ v = String(v || '').trim(); return /^(dark|light|auto)$/.test(v) ? v : DEFAULTS.mode; }
+  function validMotion(v){ v = String(v || '').trim(); return /^(full|reduced|none|normal|hemat)$/.test(v) ? v : DEFAULTS.motion; }
+  function validContrast(v){ v = String(v || '').trim(); return /^(on|off)$/.test(v) ? v : DEFAULTS.contrast; }
+  function validCurrency(v){ v = String(v || '').trim().toUpperCase(); return CURRENCIES[v] ? v : DEFAULTS.currency; }
+  function sanitize(obj){
+    obj = obj && typeof obj === 'object' ? obj : {};
+    return {mode:validMode(obj.mode),accent:validAccent(obj.accent),language:validLanguage(obj.language),motion:validMotion(obj.motion),contrast:validContrast(obj.contrast),currency:validCurrency(obj.currency)};
   }
-  function getAccent(){ return validAccent(safeGet(ACCENT_KEY) || legacyPrefs().accent || 'gold'); }
-  function getLanguage(){ return validLanguage(safeGet(LANGUAGE_KEY) || legacyPrefs().language || 'id'); }
-  function filteredThemeJson(){ return JSON.stringify({mode:'dark',accent:getAccent(),language:getLanguage(),motion:'full',contrast:'off'}); }
+  function readTheme(){ return sanitize(Object.assign({}, DEFAULTS, readJson(safeGet(THEME_KEY)) || {})); }
+  function writeTheme(p){ safeSet(THEME_KEY, JSON.stringify(sanitize(Object.assign({}, readTheme(), p || {})))); }
   function purgeDisallowed(){
     try{
       var keys = [];
-      for(var i=0;i<storage.length;i++){
-        var k = nativeKey.call(storage, i);
-        if(k) keys.push(k);
-      }
+      for(var i=0;i<storage.length;i++){ var k = nativeKey.call(storage,i); if(k) keys.push(k); }
       keys.forEach(function(k){ if(!ALLOWED_REAL_KEYS[k]) safeRemove(k); });
     }catch(_){ }
   }
   function migrateOnce(){
-    var lp = legacyPrefs();
-    if(!safeGet(ACCENT_KEY)) safeSet(ACCENT_KEY, validAccent(lp.accent || 'gold'));
-    if(!safeGet(LANGUAGE_KEY)) safeSet(LANGUAGE_KEY, validLanguage(lp.language || 'id'));
+    var current = readJson(safeGet(THEME_KEY)) || {};
+    ['dirac_theme_settings_v2','dirac_theme_settings_v1'].forEach(function(k){
+      var data = readJson(safeGet(k));
+      if(data && typeof data === 'object') current = Object.assign({}, current, data);
+    });
+    var acc = safeGet(ACCENT_KEY); if(acc) current.accent = acc;
+    var lang = safeGet(LANGUAGE_KEY) || safeGet('dirac_language_v1'); if(lang) current.language = lang;
+    var currency = safeGet(CURRENCY_KEY); if(currency) current.currency = currency;
+    var motion = safeGet(MOTION_KEY); if(motion) current.motion = motion;
+    writeTheme(current);
     purgeDisallowed();
   }
-  function prefs(){ return {mode:'dark',accent:getAccent(),language:getLanguage(),motion:'full',contrast:'off'}; }
-  function notify(source){
-    var detail = prefs();
-    detail.source = source || 'storage';
-    try{ window.dispatchEvent(new CustomEvent('dirac:global-prefs-change',{detail:detail})); }catch(_){ }
-  }
+  function prefs(){ return readTheme(); }
+  function emit(source){ try{ var detail = prefs(); detail.source = source || 'theme'; window.dispatchEvent(new CustomEvent('dirac:global-prefs-change',{detail:detail})); }catch(_){ } }
   function applyPrefs(){
-    var p = prefs();
-    var pal = PALETTES[p.accent] || PALETTES.gold;
-    var meta = LANG_META[p.language] || LANG_META.id;
-    var root = document.documentElement;
-    if(!root) return;
-    root.lang = meta.htmlLang || p.language;
-    root.dir = meta.dir || 'ltr';
-    root.setAttribute('data-language', p.language);
-    root.setAttribute('data-effective-theme','dark');
-    root.setAttribute('data-theme','dark');
-    root.style.setProperty('--gold', pal.gold);
-    root.style.setProperty('--gold2', pal.gold2);
-    root.style.setProperty('--gold3', pal.gold3);
-    root.style.setProperty('--gold-2', pal.gold2);
-    root.style.setProperty('--gold-3', pal.gold3);
-    root.style.setProperty('--theme-rgb', pal.rgb);
-    root.style.setProperty('--line','rgba('+pal.rgb+',.18)');
-    root.style.setProperty('--line2','rgba('+pal.rgb+',.36)');
-    root.style.setProperty('--line-strong','rgba('+pal.rgb+',.38)');
-    try{ var metaTheme = document.querySelector('meta[name="theme-color"]'); if(metaTheme) metaTheme.setAttribute('content','#07090d'); }catch(_){ }
+    var p = prefs(), pal = PALETTES[p.accent] || PALETTES[DEFAULTS.accent], meta = LANG_META[p.language] || LANG_META.id;
+    var root = document.documentElement; if(!root) return;
+    var effective = p.mode === 'auto' ? ((window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark') : p.mode;
+    root.lang = meta.htmlLang || p.language; root.dir = meta.dir || 'ltr';
+    root.setAttribute('data-language', p.language); root.setAttribute('data-theme', p.mode); root.setAttribute('data-theme-mode', p.mode); root.setAttribute('data-effective-theme', effective); root.setAttribute('data-motion', p.motion); root.setAttribute('data-contrast', p.contrast);
+    root.style.setProperty('--gold', pal.gold); root.style.setProperty('--gold2', pal.gold2); root.style.setProperty('--gold3', pal.gold3); root.style.setProperty('--gold-2', pal.gold2); root.style.setProperty('--gold-3', pal.gold3); root.style.setProperty('--theme-rgb', pal.rgb); root.style.setProperty('--line','rgba('+pal.rgb+',.18)'); root.style.setProperty('--line2','rgba('+pal.rgb+',.36)'); root.style.setProperty('--line-strong','rgba('+pal.rgb+',.38)');
+    try{ var mt = document.querySelector('meta[name="theme-color"]'); if(mt) mt.setAttribute('content', effective === 'light' ? '#f8fafc' : '#07090d'); }catch(_){ }
     try{
-      document.querySelectorAll('[data-accent]').forEach(function(el){
-        var on = el.getAttribute('data-accent') === p.accent;
-        el.classList.toggle('active', on); el.classList.toggle('is-selected', on); el.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
-      document.querySelectorAll('[data-language]').forEach(function(el){
-        var on = el.getAttribute('data-language') === p.language;
-        el.classList.toggle('active', on); el.classList.toggle('is-selected', on); el.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
+      Array.prototype.slice.call(document.querySelectorAll('[data-accent]')).forEach(function(el){ var on = el.getAttribute('data-accent') === p.accent; el.classList.toggle('active',on); el.classList.toggle('is-selected',on); el.setAttribute('aria-pressed',on?'true':'false'); });
+      Array.prototype.slice.call(document.querySelectorAll('button[data-language],[role="button"][data-language],[data-language-option]')).forEach(function(el){ var v = el.getAttribute('data-language-option') || el.getAttribute('data-language'); var on = v === p.language; el.classList.toggle('active',on); el.classList.toggle('is-selected',on); el.setAttribute('aria-pressed',on?'true':'false'); });
+      Array.prototype.slice.call(document.querySelectorAll('[data-theme-mode]')).forEach(function(el){ var on = el.getAttribute('data-theme-mode') === p.mode; el.classList.toggle('active',on); el.classList.toggle('is-selected',on); el.setAttribute('aria-pressed',on?'true':'false'); });
+      Array.prototype.slice.call(document.querySelectorAll('[data-motion-choice]')).forEach(function(el){ var on = el.getAttribute('data-motion-choice') === p.motion; el.classList.toggle('active',on); el.classList.toggle('is-selected',on); el.setAttribute('aria-pressed',on?'true':'false'); });
+      Array.prototype.slice.call(document.querySelectorAll('[data-contrast]')).forEach(function(el){ var on = el.getAttribute('data-contrast') === p.contrast; el.classList.toggle('active',on); el.classList.toggle('is-selected',on); el.setAttribute('aria-pressed',on?'true':'false'); });
+      var ls = document.getElementById('languageSelect'); if(ls) ls.value = p.language;
+      var ms = document.getElementById('motionSelect'); if(ms) ms.value = p.motion;
+      var cs = document.getElementById('currencySelect'); if(cs) cs.value = p.currency;
     }catch(_){ }
   }
 
-  migrateOnce();
-  applyPrefs();
-
+  migrateOnce(); applyPrefs();
   proto.getItem = function(key){
     key = String(key);
     if(this !== storage) return nativeGet.apply(this, arguments);
-    if(key === ACCENT_KEY || key === LANGUAGE_KEY) return nativeGet.call(storage, key);
-    if(LEGACY_THEME_KEYS[key]) return filteredThemeJson();
-    if(LEGACY_LANGUAGE_KEYS[key]) return getLanguage();
+    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]) return JSON.stringify(prefs());
+    if(key === ACCENT_KEY) return prefs().accent;
+    if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]) return prefs().language;
+    if(key === CURRENCY_KEY) return prefs().currency;
+    if(key === MOTION_KEY) return prefs().motion;
     return null;
   };
   proto.setItem = function(key, value){
     key = String(key);
     if(this !== storage) return nativeSet.apply(this, arguments);
-    if(key === ACCENT_KEY){ safeSet(ACCENT_KEY, validAccent(value)); purgeDisallowed(); applyPrefs(); notify('accent'); return; }
-    if(key === LANGUAGE_KEY){ safeSet(LANGUAGE_KEY, validLanguage(value)); purgeDisallowed(); applyPrefs(); notify('language'); return; }
-    if(LEGACY_LANGUAGE_KEYS[key]){ safeSet(LANGUAGE_KEY, validLanguage(value)); purgeDisallowed(); applyPrefs(); notify('language'); return; }
-    if(LEGACY_THEME_KEYS[key]){
-      var data = readJson(String(value || '')) || {};
-      if(data.accent) safeSet(ACCENT_KEY, validAccent(data.accent));
-      if(data.language) safeSet(LANGUAGE_KEY, validLanguage(data.language));
-      purgeDisallowed(); applyPrefs(); notify('theme'); return;
-    }
-    purgeDisallowed();
+    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]){ var data = readJson(String(value || '')) || {}; writeTheme(data); purgeDisallowed(); applyPrefs(); emit('theme'); return; }
+    if(key === ACCENT_KEY){ writeTheme({accent:value}); purgeDisallowed(); applyPrefs(); emit('accent'); return; }
+    if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]){ writeTheme({language:value}); purgeDisallowed(); applyPrefs(); emit('language'); return; }
+    if(key === CURRENCY_KEY){ writeTheme({currency:value}); purgeDisallowed(); applyPrefs(); emit('currency'); return; }
+    if(key === MOTION_KEY){ writeTheme({motion:value}); purgeDisallowed(); applyPrefs(); emit('motion'); return; }
+    purgeDisallowed(); return undefined;
   };
   proto.removeItem = function(key){
     key = String(key);
     if(this !== storage) return nativeRemove.apply(this, arguments);
-    if(key === ACCENT_KEY){ safeRemove(ACCENT_KEY); applyPrefs(); notify('accent-reset'); return; }
-    if(key === LANGUAGE_KEY){ safeRemove(LANGUAGE_KEY); applyPrefs(); notify('language-reset'); return; }
-    if(LEGACY_LANGUAGE_KEYS[key]){ safeRemove(LANGUAGE_KEY); applyPrefs(); notify('language-reset'); return; }
-    if(LEGACY_THEME_KEYS[key]){ safeRemove(ACCENT_KEY); safeRemove(LANGUAGE_KEY); applyPrefs(); notify('theme-reset'); return; }
-    safeRemove(key); purgeDisallowed();
+    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]){ safeRemove(THEME_KEY); writeTheme(DEFAULTS); applyPrefs(); emit('theme-reset'); return; }
+    if(key === ACCENT_KEY){ writeTheme({accent:DEFAULTS.accent}); applyPrefs(); emit('accent-reset'); return; }
+    if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]){ writeTheme({language:DEFAULTS.language}); applyPrefs(); emit('language-reset'); return; }
+    if(key === CURRENCY_KEY){ writeTheme({currency:DEFAULTS.currency}); applyPrefs(); emit('currency-reset'); return; }
+    if(key === MOTION_KEY){ writeTheme({motion:DEFAULTS.motion}); applyPrefs(); emit('motion-reset'); return; }
+    safeRemove(key); purgeDisallowed(); return;
   };
-  proto.clear = function(){
-    if(this !== storage) return nativeClear.apply(this, arguments);
-    safeRemove(ACCENT_KEY); safeRemove(LANGUAGE_KEY); applyPrefs(); notify('clear');
-  };
+  proto.clear = function(){ if(this !== storage) return nativeClear.apply(this, arguments); safeRemove(THEME_KEY); writeTheme(DEFAULTS); applyPrefs(); emit('clear'); };
 
   window.diracGetGlobalPrefs = prefs;
   window.diracApplyGlobalPrefs = applyPrefs;
-  window.diracSetGlobalAccent = function(accent){ storage.setItem(ACCENT_KEY, validAccent(accent)); };
-  window.diracSetGlobalLanguage = function(language){ storage.setItem(LANGUAGE_KEY, validLanguage(language)); };
+  window.diracSetGlobalAccent = function(accent){ storage.setItem(ACCENT_KEY, accent); };
+  window.diracSetGlobalLanguage = function(language){ storage.setItem(LANGUAGE_KEY, language); };
+  window.diracSetGlobalTheme = function(patch){ storage.setItem(THEME_KEY, JSON.stringify(Object.assign({}, prefs(), patch || {}))); };
 
   document.addEventListener('click', function(e){
-    var target = e.target && e.target.closest ? e.target.closest('[data-accent],[data-language]') : null;
-    if(!target) return;
-    var accent = target.getAttribute('data-accent');
-    var language = target.getAttribute('data-language');
-    if(accent) storage.setItem(ACCENT_KEY, accent);
-    if(language) storage.setItem(LANGUAGE_KEY, language);
+    var target = e.target && e.target.closest ? e.target.closest('[data-accent],button[data-language],[role="button"][data-language],[data-language-option],[data-theme-mode],[data-motion-choice],[data-contrast],[data-currency]') : null;
+    if(!target || target === document.documentElement) return;
+    var patch = {};
+    if(target.hasAttribute('data-accent')) patch.accent = target.getAttribute('data-accent');
+    if(target.hasAttribute('data-language-option')) patch.language = target.getAttribute('data-language-option');
+    else if(target.hasAttribute('data-language')) patch.language = target.getAttribute('data-language');
+    if(target.hasAttribute('data-theme-mode')) patch.mode = target.getAttribute('data-theme-mode');
+    if(target.hasAttribute('data-motion-choice')) patch.motion = target.getAttribute('data-motion-choice');
+    if(target.hasAttribute('data-contrast')) patch.contrast = target.getAttribute('data-contrast');
+    if(target.hasAttribute('data-currency')) patch.currency = target.getAttribute('data-currency');
+    if(Object.keys(patch).length) { writeTheme(patch); purgeDisallowed(); applyPrefs(); emit('click'); }
   }, true);
-  window.addEventListener('storage', function(e){
-    if(e && e.storageArea === storage && (e.key === ACCENT_KEY || e.key === LANGUAGE_KEY)){
-      applyPrefs(); notify('storage');
-    }
-  });
+  document.addEventListener('change', function(e){
+    var el = e.target; if(!el) return; var patch = {};
+    if(el.id === 'languageSelect') patch.language = el.value;
+    if(el.id === 'motionSelect') patch.motion = el.value;
+    if(el.id === 'currencySelect') patch.currency = el.value;
+    if(Object.keys(patch).length){ writeTheme(patch); purgeDisallowed(); applyPrefs(); emit('change'); }
+  }, true);
+  window.addEventListener('storage', function(e){ if(e && e.storageArea === storage && e.key === THEME_KEY){ applyPrefs(); emit('storage'); } });
   document.addEventListener('DOMContentLoaded', function(){ applyPrefs(); purgeDisallowed(); });
 })();
 </script>
-  <meta charset="utf-8">
+<meta charset="utf-8">
 <meta name="theme-color" content="#07090d">
   <meta name="viewport" content="width=device-width, initial-scale=1">  <!-- DIRAC PROTECTED LOCK PATCH: prevent Safari/browser cached protected pages -->
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, private, max-age=0">
@@ -5230,7 +5179,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
         <span class="eyebrow">FAQ</span>
         <h2 class="section-title">Pertanyaan umum</h2>
         <div class="faq-grid text-left">
-          <div class="faq-item"><button class="faq-q" type="button">Apakah keranjang tersimpan? <span>+</span></button><div class="faq-a">Ya. Produk disimpan di localStorage browser, jadi tidak hilang saat halaman direfresh.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button">Apakah keranjang tersimpan? <span>+</span></button><div class="faq-a">Keranjang berjalan selama sesi halaman. Setelah checkout, pesanan masuk database dan admin tetap mengonfirmasi pesanan.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Bagaimana checkout dilakukan? <span>+</span></button><div class="faq-a">Setelah isi data checkout, sistem membuat pesan WhatsApp otomatis berisi daftar produk, total, ongkir, promo, dan alamat.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Apakah ada promo? <span>+</span></button><div class="faq-a">Gunakan kode DIRAC3 di keranjang. Diskon 3% berlaku untuk produk reguler, sedangkan koleksi Niche dan produk dengan harga Rp1.000.000 ke atas mendapatkan diskon 1%. Sistem menghitung potongan otomatis per produk.</div></div>
           <div class="faq-item"><button class="faq-q" type="button">Apakah bisa untuk reseller? <span>+</span></button><div class="faq-a">Bisa. Gunakan checkout WhatsApp untuk konfirmasi stok dan harga reseller sebelum pembayaran.</div></div>
@@ -8091,10 +8040,47 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       'Detail Produk': {en:'Product Details', zh:'产品详情', ar:'تفاصيل المنتج', ja:'商品詳細', ko:'제품 상세', es:'Detalle del producto', fr:'Détails du produit'},
       'Produk tidak ditemukan. Silakan muat ulang halaman atau hubungi admin.': {en:'Product not found. Please reload the page or contact admin.', zh:'未找到产品。请刷新页面或联系管理员。', ar:'لم يتم العثور على المنتج. يرجى إعادة تحميل الصفحة أو التواصل مع الإدارة.', ja:'商品が見つかりません。ページを再読み込みするか管理者へお問い合わせください。', ko:'제품을 찾을 수 없습니다. 페이지를 새로고침하거나 관리자에게 문의하세요.', es:'Producto no encontrado. Recarga la página o contacta al admin.', fr:'Produit introuvable. Rechargez la page ou contactez l’admin.'},
       'Detail produk gagal dimuat. Silakan tutup dan coba lagi.': {en:'Product details failed to load. Please close and try again.', zh:'产品详情加载失败。请关闭后重试。', ar:'تعذر تحميل تفاصيل المنتج. يرجى الإغلاق والمحاولة مرة أخرى.', ja:'商品詳細を読み込めませんでした。閉じてもう一度お試しください。', ko:'제품 상세 정보를 불러오지 못했습니다. 닫은 후 다시 시도하세요.', es:'No se pudo cargar el detalle del producto. Cierra e inténtalo de nuevo.', fr:'Impossible de charger les détails du produit. Fermez puis réessayez.'},
-      'Detail produk belum tersedia. Silakan tanya admin untuk konfirmasi stok dan aroma.': {en:'Product details are not available yet. Please ask admin to confirm stock and scent.', zh:'产品详情暂不可用。请咨询管理员确认库存和香气。', ar:'تفاصيل المنتج غير متاحة حالياً. يرجى سؤال الإدارة لتأكيد المخزون والرائحة.', ja:'商品詳細はまだ利用できません。在庫と香りは管理者へご確認ください。', ko:'제품 상세 정보가 아직 없습니다. 재고와 향은 관리자에게 확인해 주세요.', es:'El detalle del producto aún no está disponible. Consulta al admin para confirmar stock y aroma.', fr:'Les détails du produit ne sont pas encore disponibles. Demandez à l’admin de confirmer le stock et le parfum.'}
+      'Detail produk belum tersedia. Silakan tanya admin untuk konfirmasi stok dan aroma.': {en:'Product details are not available yet. Please ask admin to confirm stock and scent.', zh:'产品详情暂不可用。请咨询管理员确认库存和香气。', ar:'تفاصيل المنتج غير متاحة حالياً. يرجى سؤال الإدارة لتأكيد المخزون والرائحة.', ja:'商品詳細はまだ利用できません。在庫と香りは管理者へご確認ください。', ko:'제품 상세 정보가 아직 없습니다. 재고와 향은 관리자에게 확인해 주세요.', es:'El detalle del producto aún no está disponible. Consulta al admin para confirmar stock y aroma.', fr:'Les détails du produit ne sont pas encore disponibles. Demandez à l’admin de confirmer le stock et le parfum.'},
+      'Lengkapi data wajib sebelum membuat invoice.': {en:'Complete the required data before creating the invoice.', zh:'创建发票前请填写必填信息。', ar:'أكمل البيانات المطلوبة قبل إنشاء الفاتورة.', ja:'請求書を作成する前に必須情報を入力してください。', ko:'인보이스 생성 전에 필수 정보를 입력하세요.', es:'Completa los datos obligatorios antes de crear la factura.', fr:'Complétez les informations obligatoires avant de créer la facture.'},
+      'Email wajib valid agar invoice bisa dibuat.': {en:'A valid email is required to create the invoice.', zh:'需要有效邮箱才能创建发票。', ar:'يلزم بريد إلكتروني صالح لإنشاء الفاتورة.', ja:'請求書を作成するには有効なメールアドレスが必要です。', ko:'인보이스를 생성하려면 유효한 이메일이 필요합니다.', es:'Se requiere un email válido para crear la factura.', fr:'Un e-mail valide est requis pour créer la facture.'},
+      'Invoice dibuat. Status pembayaran masih unpaid. Pesanan belum diproses sebelum pembayaran terverifikasi.': {en:'Invoice created. Payment status is still unpaid. The order will not be processed until payment is verified.', zh:'发票已创建。付款状态仍为未付款。付款验证前订单不会处理。', ar:'تم إنشاء الفاتورة. حالة الدفع لا تزال غير مدفوعة. لن تتم معالجة الطلب قبل التحقق من الدفع.', ja:'請求書が作成されました。支払い状況は未払いです。支払い確認後に注文が処理されます。', ko:'인보이스가 생성되었습니다. 결제 상태는 아직 미결제입니다. 결제가 확인되기 전에는 주문이 처리되지 않습니다.', es:'Factura creada. El estado de pago sigue sin pagar. El pedido no se procesará hasta verificar el pago.', fr:'Facture créée. Le paiement est toujours impayé. La commande ne sera traitée qu’après vérification du paiement.'},
+      'Invoice dibuat': {en:'Invoice created', zh:'发票已创建', ar:'تم إنشاء الفاتورة', ja:'請求書を作成しました', ko:'인보이스 생성됨', es:'Factura creada', fr:'Facture créée'},
+      'menunggu pembayaran': {en:'waiting for payment', zh:'等待付款', ar:'بانتظار الدفع', ja:'支払い待ち', ko:'결제 대기 중', es:'esperando pago', fr:'en attente de paiement'},
+      'Invoice dibuat - menunggu pembayaran': {en:'Invoice created - waiting for payment', zh:'发票已创建 - 等待付款', ar:'تم إنشاء الفاتورة - بانتظار الدفع', ja:'請求書作成済み - 支払い待ち', ko:'인보이스 생성됨 - 결제 대기 중', es:'Factura creada - esperando pago', fr:'Facture créée - en attente de paiement'},
+      'Invoice belum dapat dibuat. Coba lagi.': {en:'The invoice could not be created yet. Please try again.', zh:'暂时无法创建发票。请重试。', ar:'تعذر إنشاء الفاتورة الآن. حاول مرة أخرى.', ja:'まだ請求書を作成できません。もう一度お試しください。', ko:'아직 인보이스를 생성할 수 없습니다. 다시 시도해 주세요.', es:'Aún no se puede crear la factura. Inténtalo de nuevo.', fr:'La facture ne peut pas encore être créée. Réessayez.'},
+      'Checkout gagal. Cek koneksi/API.': {en:'Checkout failed. Check your connection/API.', zh:'结账失败。请检查连接/API。', ar:'فشل إنشاء الطلب. تحقق من الاتصال/API.', ja:'チェックアウトに失敗しました。接続/APIを確認してください。', ko:'체크아웃에 실패했습니다. 연결/API를 확인하세요.', es:'Falló el checkout. Revisa la conexión/API.', fr:'Échec du checkout. Vérifiez la connexion/API.'},
+      'Invoice berhasil dibuat': {en:'Invoice created successfully', zh:'发票创建成功', ar:'تم إنشاء الفاتورة بنجاح', ja:'請求書が正常に作成されました', ko:'인보이스가 성공적으로 생성되었습니다', es:'Factura creada correctamente', fr:'Facture créée avec succès'},
+      'Ini belum dibayar. Pesanan baru diproses setelah pembayaran valid dari gateway/admin.': {en:'This has not been paid yet. The order will be processed only after a valid payment from the gateway/admin.', zh:'此发票尚未付款。只有网关/管理员确认付款有效后才会处理订单。', ar:'لم يتم الدفع بعد. ستتم معالجة الطلب فقط بعد اعتماد الدفع من البوابة/الإدارة.', ja:'まだ未払いです。ゲートウェイ/管理者による有効な支払い確認後にのみ注文が処理されます。', ko:'아직 결제되지 않았습니다. 게이트웨이/관리자가 유효한 결제를 확인한 후에만 주문이 처리됩니다.', es:'Esto aún no está pagado. El pedido se procesará solo después de un pago válido del gateway/admin.', fr:'Ce n’est pas encore payé. La commande sera traitée uniquement après un paiement valide via la passerelle/l’admin.'},
+      'Menunggu pembayaran': {en:'Waiting for payment', zh:'等待付款', ar:'بانتظار الدفع', ja:'支払い待ち', ko:'결제 대기 중', es:'Esperando pago', fr:'En attente de paiement'},
+      'Kode invoice': {en:'Invoice code', zh:'发票代码', ar:'رمز الفاتورة', ja:'請求書コード', ko:'인보이스 코드', es:'Código de factura', fr:'Code facture'},
+      'Status bayar': {en:'Payment status', zh:'付款状态', ar:'حالة الدفع', ja:'支払い状況', ko:'결제 상태', es:'Estado de pago', fr:'Statut de paiement'},
+      'Layanan': {en:'Service', zh:'服务', ar:'الخدمة', ja:'サービス', ko:'서비스', es:'Servicio', fr:'Service'},
+      'Total': {en:'Total', zh:'总计', ar:'الإجمالي', ja:'合計', ko:'합계', es:'Total', fr:'Total'},
+      'Item': {en:'Item', zh:'商品', ar:'العنصر', ja:'アイテム', ko:'항목', es:'Artículo', fr:'Article'},
+      'Parfum': {en:'Perfume', zh:'香水', ar:'عطر', ja:'香水', ko:'향수', es:'Perfume', fr:'Parfum'},
+      'Pesanan Parfum Dirac': {en:'Dirac perfume order', zh:'Dirac 香水订单', ar:'طلب عطر Dirac', ja:'Dirac香水注文', ko:'Dirac 향수 주문', es:'Pedido de perfume Dirac', fr:'Commande parfum Dirac'},
+      'Payment gateway belum aktif, jadi tombol bayar belum membuka halaman pembayaran. Data invoice sudah disimpan agar bisa tampil di dashboard pelanggan.': {en:'The payment gateway is not active yet, so the payment button does not open a payment page. The invoice data has been saved so it can appear in the customer dashboard.', zh:'支付网关尚未启用，因此付款按钮不会打开付款页面。发票数据已保存，可显示在客户仪表板中。', ar:'بوابة الدفع غير مفعلة بعد، لذلك زر الدفع لا يفتح صفحة دفع. تم حفظ بيانات الفاتورة لتظهر في لوحة العميل.', ja:'決済ゲートウェイはまだ有効ではないため、支払いボタンは決済ページを開きません。請求書データは顧客ダッシュボードに表示できるよう保存されています。', ko:'결제 게이트웨이가 아직 활성화되지 않아 결제 버튼이 결제 페이지를 열지 않습니다. 인보이스 데이터는 고객 대시보드에 표시되도록 저장되었습니다.', es:'La pasarela de pago aún no está activa, por eso el botón de pago no abre la página de pago. Los datos de la factura se guardaron para mostrarse en el panel del cliente.', fr:'La passerelle de paiement n’est pas encore active, donc le bouton de paiement n’ouvre pas de page de paiement. Les données de facture ont été enregistrées pour s’afficher dans le tableau de bord client.'},
+      'Lihat di Dashboard': {en:'View in Dashboard', zh:'在仪表板查看', ar:'عرض في لوحة التحكم', ja:'ダッシュボードで見る', ko:'대시보드에서 보기', es:'Ver en el panel', fr:'Voir dans le tableau de bord'},
+      'Bayar Sekarang': {en:'Pay Now', zh:'立即付款', ar:'ادفع الآن', ja:'今すぐ支払う', ko:'지금 결제', es:'Pagar ahora', fr:'Payer maintenant'},
+      'Bayar belum aktif': {en:'Payment not active yet', zh:'付款尚未启用', ar:'الدفع غير مفعل بعد', ja:'支払いはまだ有効ではありません', ko:'결제가 아직 활성화되지 않음', es:'Pago aún no activo', fr:'Paiement pas encore actif'},
+      'UNPAID': {en:'UNPAID', zh:'未付款', ar:'غير مدفوع', ja:'未払い', ko:'미결제', es:'SIN PAGAR', fr:'IMPAYÉ'},
+      'PAID': {en:'PAID', zh:'已付款', ar:'مدفوع', ja:'支払い済み', ko:'결제 완료', es:'PAGADO', fr:'PAYÉ'},
+      'PENDING': {en:'PENDING', zh:'待处理', ar:'معلق', ja:'保留中', ko:'대기 중', es:'PENDIENTE', fr:'EN ATTENTE'},
+      'FAILED': {en:'FAILED', zh:'失败', ar:'فشل', ja:'失敗', ko:'실패', es:'FALLIDO', fr:'ÉCHOUÉ'},
+      'EXPIRED': {en:'EXPIRED', zh:'已过期', ar:'منتهي', ja:'期限切れ', ko:'만료됨', es:'VENCIDO', fr:'EXPIRÉ'}
     });
 
     function diracCurrentLanguage(){
+      try{
+        if(window.diracGetGlobalPrefs){
+          const fromGlobalPrefs = window.diracGetGlobalPrefs().language;
+          if(DIRAC_SUPPORTED_LANGUAGES.includes(fromGlobalPrefs)) return fromGlobalPrefs;
+        }
+      }catch(error){}
+      try{
+        const fromDocument = document.documentElement.getAttribute('data-language') || '';
+        if(DIRAC_SUPPORTED_LANGUAGES.includes(fromDocument)) return fromDocument;
+      }catch(error){}
       try{
         if(window.diracLanguage && typeof window.diracLanguage.read === 'function'){
           const fromApi = window.diracLanguage.read();
@@ -9087,9 +9073,11 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     function setCheckoutError(message){
       const error = $('#checkoutError');
       if(!error) return;
+      const rawMessage = String(message || '');
       error.classList.remove('success');
-      error.textContent = message || '';
-      error.classList.toggle('show', !!message);
+      error.dataset.diracCheckoutErrorSource = rawMessage;
+      error.textContent = rawMessage ? diracTranslateCopy(rawMessage) : '';
+      error.classList.toggle('show', !!rawMessage);
     }
 
     function shakeCheckoutButton(){
@@ -9213,7 +9201,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       bindCheckoutValidation();
       if(!validateCheckoutForm({focusFirst:true})){
         shakeCheckoutButton();
-        showToast('Lengkapi data wajib sebelum membuat invoice.');
+        showToast(diracTranslateCopy('Lengkapi data wajib sebelum membuat invoice.'));
         return;
       }
 
@@ -9338,10 +9326,12 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
 
         const box = $('#checkoutError');
         if(box){
-          box.textContent = 'Invoice dibuat. Status pembayaran masih unpaid. Pesanan belum diproses sebelum pembayaran terverifikasi.';
+          const invoiceSuccessMessage = 'Invoice dibuat. Status pembayaran masih unpaid. Pesanan belum diproses sebelum pembayaran terverifikasi.';
+          box.dataset.diracCheckoutErrorSource = invoiceSuccessMessage;
+          box.textContent = diracTranslateCopy(invoiceSuccessMessage);
           box.classList.add('show','success');
         }
-        showToast('Invoice dibuat: ' + code + ' · menunggu pembayaran');
+        showToast(diracTranslateCopy('Invoice dibuat') + ': ' + code + ' · ' + diracTranslateCopy('menunggu pembayaran'));
 
         cart = [];
         activePromo = null;
@@ -9353,15 +9343,15 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
         if(footer) footer.classList.add('dirac-after-invoice');
         if(btn){
           btn.disabled = true;
-          btn.textContent = 'Invoice dibuat - menunggu pembayaran';
+          btn.textContent = diracTranslateCopy('Invoice dibuat - menunggu pembayaran');
           btn.classList.add('dirac-invoice-created');
         }
       } catch(error){
         setCheckoutError(error && error.message ? error.message : 'Invoice belum dapat dibuat. Coba lagi.');
-        showToast('Checkout gagal. Cek koneksi/API.');
+        showToast(diracTranslateCopy('Checkout gagal. Cek koneksi/API.'));
         if(btn){
           btn.disabled = false;
-          btn.textContent = 'Buat Pesanan';
+          btn.textContent = diracTranslateCopy('Buat Pesanan');
         }
       } finally {
         if(btn){
@@ -9382,10 +9372,17 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       }catch(_){ }
     }
 
-    function renderDiracCheckoutInvoicePanel(invoice){
+    function diracTranslatedPaymentStatus(status){
+      return diracTranslateCopy(String(status || 'unpaid').toUpperCase());
+    }
+
+    function renderDiracCheckoutInvoicePanel(invoice, options){
       const modalBody = document.querySelector('#checkoutModal .modal-body') || document.querySelector('.modal-body');
       const anchor = document.getElementById('checkoutError') || modalBody;
-      if(!modalBody || !anchor) return;
+      if(!modalBody || !anchor || !invoice) return;
+      window.diracLastCheckoutInvoice = invoice;
+      const silent = Boolean(options && options.silent);
+      const tr = function(source){ return diracTranslateCopy(source); };
       let panel = document.getElementById('diracCheckoutInvoicePanel');
       if(!panel){
         panel = document.createElement('div');
@@ -9394,28 +9391,30 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
         anchor.insertAdjacentElement('afterend', panel);
       }
       const paymentReady = Boolean(invoice.payment_gateway_configured && invoice.payment_url);
+      const serviceLabel = invoice.service_label === 'Parfum' ? tr('Parfum') : (invoice.service_label || tr('Parfum'));
+      const itemTitle = invoice.product_title || tr('Pesanan Parfum Dirac');
       panel.innerHTML = `
         <div class="dirac-checkout-invoice-head">
           <div>
-            <h3>Invoice berhasil dibuat</h3>
-            <p>Ini belum dibayar. Pesanan baru diproses setelah pembayaran valid dari gateway/admin.</p>
+            <h3>${escapeHTML(tr('Invoice berhasil dibuat'))}</h3>
+            <p>${escapeHTML(tr('Ini belum dibayar. Pesanan baru diproses setelah pembayaran valid dari gateway/admin.'))}</p>
           </div>
-          <span class="dirac-invoice-badge">⏳ Menunggu pembayaran</span>
+          <span class="dirac-invoice-badge">⏳ ${escapeHTML(tr('Menunggu pembayaran'))}</span>
         </div>
         <div class="dirac-invoice-grid">
-          <div class="dirac-invoice-row"><small>Kode invoice</small><strong class="dirac-invoice-code">${escapeHTML(invoice.code)}</strong></div>
-          <div class="dirac-invoice-row"><small>Status bayar</small><strong>${escapeHTML(String(invoice.payment_status || 'unpaid').toUpperCase())}</strong></div>
-          <div class="dirac-invoice-row"><small>Layanan</small><strong>${escapeHTML(invoice.service_label || 'Parfum')}</strong></div>
-          <div class="dirac-invoice-row"><small>Total</small><strong class="dirac-invoice-total">${formatIDR(invoice.total || 0)}</strong></div>
-          <div class="dirac-invoice-row" style="grid-column:1/-1"><small>Item</small><strong>${escapeHTML(invoice.product_title || 'Pesanan Parfum Dirac')}</strong></div>
+          <div class="dirac-invoice-row"><small>${escapeHTML(tr('Kode invoice'))}</small><strong class="dirac-invoice-code">${escapeHTML(invoice.code)}</strong></div>
+          <div class="dirac-invoice-row"><small>${escapeHTML(tr('Status bayar'))}</small><strong>${escapeHTML(diracTranslatedPaymentStatus(invoice.payment_status))}</strong></div>
+          <div class="dirac-invoice-row"><small>${escapeHTML(tr('Layanan'))}</small><strong>${escapeHTML(serviceLabel)}</strong></div>
+          <div class="dirac-invoice-row"><small>${escapeHTML(tr('Total'))}</small><strong class="dirac-invoice-total">${formatIDR(invoice.total || 0)}</strong></div>
+          <div class="dirac-invoice-row" style="grid-column:1/-1"><small>${escapeHTML(tr('Item'))}</small><strong>${escapeHTML(itemTitle)}</strong></div>
         </div>
-        <div class="dirac-payment-note">Payment gateway belum aktif, jadi tombol bayar belum membuka halaman pembayaran. Data invoice sudah disimpan agar bisa tampil di dashboard pelanggan.</div>
+        <div class="dirac-payment-note">${escapeHTML(tr('Payment gateway belum aktif, jadi tombol bayar belum membuka halaman pembayaran. Data invoice sudah disimpan agar bisa tampil di dashboard pelanggan.'))}</div>
         <div class="dirac-invoice-actions">
-          <a class="btn-secondary" href="dashboard.html#pesanan-saya">Lihat di Dashboard</a>
-          ${paymentReady ? `<a class="btn-primary" href="${escapeHTML(invoice.payment_url)}" rel="noopener">Bayar Sekarang</a>` : `<button class="btn-primary dirac-pay-disabled" type="button" disabled>Bayar belum aktif</button>`}
+          <a class="btn-secondary" href="dashboard.html#pesanan-saya">${escapeHTML(tr('Lihat di Dashboard'))}</a>
+          ${paymentReady ? `<a class="btn-primary" href="${escapeHTML(invoice.payment_url)}" rel="noopener">${escapeHTML(tr('Bayar Sekarang'))}</a>` : `<button class="btn-primary dirac-pay-disabled" type="button" disabled>${escapeHTML(tr('Bayar belum aktif'))}</button>`}
         </div>
       `;
-      try{ panel.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){ }
+      if(!silent){ try{ panel.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){ } }
     }
 
 
@@ -10729,6 +10728,16 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     applyLanguage(lang, {persist:true});
     if(typeof showToast === 'function') showToast(translateValue('Bahasa berhasil diubah.', lang, TEXT));
   });
+  document.addEventListener('change', function(event){
+    var el = event.target;
+    if(!el || el.id !== 'languageSelect') return;
+    var lang = el.value || 'id';
+    if(isSupported(lang)) applyLanguage(lang, {persist:true});
+  }, true);
+  window.addEventListener('dirac:global-prefs-change', function(event){
+    var lang = event && event.detail && event.detail.language;
+    if(isSupported(lang)) applyLanguage(lang, {persist:false});
+  });
   currentLanguage = readLanguage();
   applyLanguage(currentLanguage, {persist:false});
   observeTranslations();
@@ -10753,6 +10762,23 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     }catch(error){}
     try{ if(typeof updateStickyCheckout === 'function') updateStickyCheckout(); }catch(error){}
     try{
+      var checkoutError = document.getElementById('checkoutError');
+      if(checkoutError && checkoutError.dataset && checkoutError.dataset.diracCheckoutErrorSource && typeof diracTranslateCopy === 'function'){
+        checkoutError.textContent = diracTranslateCopy(checkoutError.dataset.diracCheckoutErrorSource);
+      }
+    }catch(error){}
+    try{
+      if(document.getElementById('diracCheckoutInvoicePanel') && window.diracLastCheckoutInvoice && typeof renderDiracCheckoutInvoicePanel === 'function'){
+        renderDiracCheckoutInvoicePanel(window.diracLastCheckoutInvoice, {silent:true});
+      }
+    }catch(error){}
+    try{
+      var invoiceButton = document.getElementById('sendWhatsappBtn');
+      if(invoiceButton && invoiceButton.classList && invoiceButton.classList.contains('dirac-invoice-created') && typeof diracTranslateCopy === 'function'){
+        invoiceButton.textContent = diracTranslateCopy('Invoice dibuat - menunggu pembayaran');
+      }
+    }catch(error){}
+    try{
       var progress = document.getElementById('diracCheckoutProgress');
       if(progress && window.diracLanguage && typeof window.diracLanguage.apply === 'function'){
         var lang = window.diracLanguage.read ? window.diracLanguage.read() : 'id';
@@ -10762,12 +10788,18 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       }
     }catch(error){}
   }
+  function scheduleDynamicLanguageRefresh(){
+    setTimeout(refreshDynamicLanguage, 40);
+    setTimeout(refreshDynamicLanguage, 220);
+    setTimeout(refreshDynamicLanguage, 520);
+  }
   document.addEventListener('click', function(event){
-    if(event.target && event.target.closest && event.target.closest('[data-language-option]')){
-      setTimeout(refreshDynamicLanguage, 40);
-      setTimeout(refreshDynamicLanguage, 220);
-    }
+    if(event.target && event.target.closest && event.target.closest('[data-language-option]')) scheduleDynamicLanguageRefresh();
   }, false);
+  document.addEventListener('change', function(event){
+    if(event.target && event.target.id === 'languageSelect') scheduleDynamicLanguageRefresh();
+  }, true);
+  window.addEventListener('dirac:global-prefs-change', scheduleDynamicLanguageRefresh);
   window.addEventListener('pageshow', function(){ setTimeout(refreshDynamicLanguage, 160); });
 })();
 </script>
@@ -15028,6 +15060,98 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     try{ if(typeof window.diracApplyLanguage === 'function') window.diracApplyLanguage(); }catch(_){ }
     try{ if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs(); }catch(_){ }
   });
+})();
+</script>
+<script id="dirac-global-pref-live-refresh-v2">
+(function(){
+  'use strict';
+  if(window.__DIRAC_GLOBAL_PREF_LIVE_REFRESH_V2__) return;
+  window.__DIRAC_GLOBAL_PREF_LIVE_REFRESH_V2__ = true;
+  function refresh(detail){
+    try{ if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs(); }catch(_){ }
+    try{ if(detail && detail.language && window.diracLanguage && typeof window.diracLanguage.apply === 'function') window.diracLanguage.apply(detail.language); }catch(_){ }
+    try{ if(typeof window.diracApplyThemeSettings === 'function') window.diracApplyThemeSettings(); }catch(_){ }
+    try{ if(typeof window.diracApplyLanguage === 'function') window.diracApplyLanguage(); }catch(_){ }
+    try{ if(typeof renderProducts === 'function') renderProducts({keepFilterLimit:true}); }catch(_){ }
+    try{ if(typeof renderCart === 'function') renderCart(); }catch(_){ }
+  }
+  window.addEventListener('dirac:global-prefs-change', function(e){ refresh(e && e.detail || {}); });
+  document.addEventListener('DOMContentLoaded', function(){ try{ refresh(window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : {}); }catch(_){ } });
+})();
+</script>
+<script id="dirac-parfum-i18n-complete-final-v4">
+(function(){
+  'use strict';
+  var KEY_COPY = {};
+  var TEXT_COPY = {"Packing rapi - konsultasi aroma gratis - checkout masuk database": {"en": "Neat packing - free scent consultation - checkout saved to database", "zh": "包装整齐 - 免费香味咨询 - 结账写入数据库", "ar": "تغليف مرتب - استشارة عطر مجانية - الطلب يدخل قاعدة البيانات", "ja": "丁寧な梱包 - 香り相談無料 - 注文はデータベースへ保存", "ko": "깔끔한 포장 - 무료 향 상담 - 주문은 데이터베이스 저장", "es": "Empaque cuidado - consulta gratis - pedido guardado en base de datos", "fr": "Emballage soigné - conseil gratuit - commande enregistrée en base"}, "Cek Resi": {"en": "Track shipment", "zh": "查询物流", "ar": "تتبع الشحنة", "ja": "配送追跡", "ko": "배송 조회", "es": "Rastrear envío", "fr": "Suivre l’envoi"}, "Cek resi": {"en": "Track shipment", "zh": "查询物流", "ar": "تتبع الشحنة", "ja": "配送追跡", "ko": "배송 조회", "es": "Rastrear envío", "fr": "Suivre l’envoi"}, "Isi data berikut agar pesanan masuk ke database dan tampil di admin panel. Payment gateway belum aktif, jadi status tetap unpaid.": {"en": "Fill in the data below so the order enters the database and appears in the admin panel. The payment gateway is not active yet, so the status stays unpaid.", "zh": "填写以下资料，让订单进入数据库并显示在管理面板。支付网关尚未启用，因此状态保持未付款。", "ar": "املأ البيانات التالية حتى يدخل الطلب قاعدة البيانات ويظهر في لوحة الإدارة. بوابة الدفع غير مفعلة بعد، لذلك تبقى الحالة غير مدفوعة.", "ja": "以下の情報を入力すると注文がデータベースに入り、管理画面に表示されます。決済ゲートウェイは未有効のため、ステータスは未払いのままです。", "ko": "아래 정보를 입력하면 주문이 데이터베이스에 저장되고 관리자 패널에 표시됩니다. 결제 게이트웨이는 아직 활성화되지 않아 상태는 unpaid로 유지됩니다.", "es": "Completa los datos para que el pedido entre en la base de datos y aparezca en el panel admin. La pasarela de pago aún no está activa, por eso el estado queda unpaid.", "fr": "Renseignez les données pour enregistrer la commande en base et l’afficher dans l’admin. La passerelle de paiement n’est pas encore active, le statut reste unpaid."}, "nama lengkap, nomor WhatsApp, email, dan alamat lengkap.": {"en": "full name, WhatsApp number, email, and full address.", "zh": "完整姓名、WhatsApp 号码、邮箱和完整地址。", "ar": "الاسم الكامل، رقم واتساب، البريد الإلكتروني، والعنوان الكامل.", "ja": "氏名、WhatsApp番号、メール、完全な住所。", "ko": "전체 이름, WhatsApp 번호, 이메일, 전체 주소.", "es": "nombre completo, número de WhatsApp, email y dirección completa.", "fr": "nom complet, numéro WhatsApp, email et adresse complète."}, "Buat Pesanan": {"en": "Create Order", "zh": "创建订单", "ar": "إنشاء الطلب", "ja": "注文を作成", "ko": "주문 생성", "es": "Crear pedido", "fr": "Créer la commande"}, "Mengecek Sesi Pelanggan": {"en": "Checking Customer Session", "zh": "正在检查客户会话", "ar": "فحص جلسة العميل", "ja": "顧客セッション確認中", "ko": "고객 세션 확인 중", "es": "Verificando sesión del cliente", "fr": "Vérification de la session client"}, "Verifikasi keamanan sedang berjalan": {"en": "Security verification is running", "zh": "安全验证正在进行", "ar": "التحقق الأمني جارٍ", "ja": "セキュリティ確認中", "ko": "보안 인증 진행 중", "es": "Verificación de seguridad en curso", "fr": "Vérification de sécurité en cours"}, "Gangguan layanan": {"en": "Service issue", "zh": "服务故障", "ar": "مشكلة خدمة", "ja": "サービス障害", "ko": "서비스 문제", "es": "Problema de servicio", "fr": "Incident de service"}, "Gangguan layanan:": {"en": "Service issue:", "zh": "服务故障：", "ar": "مشكلة خدمة:", "ja": "サービス障害：", "ko": "서비스 문제:", "es": "Problema de servicio:", "fr": "Incident de service :"}, "Indikasi penipuan": {"en": "Fraud indication", "zh": "诈骗迹象", "ar": "مؤشر احتيال", "ja": "詐欺の疑い", "ko": "사기 의심", "es": "Indicio de fraude", "fr": "Indice de fraude"}, "Indikasi penipuan:": {"en": "Fraud indication:", "zh": "诈骗迹象：", "ar": "مؤشر احتيال:", "ja": "詐欺の疑い：", "ko": "사기 의심:", "es": "Indicio de fraude:", "fr": "Indice de fraude :"}, "DIRAC SECURITY CHECK": {"en": "DIRAC SECURITY CHECK", "zh": "DIRAC 安全检查", "ar": "فحص أمان DIRAC", "ja": "DIRAC セキュリティチェック", "ko": "DIRAC 보안 확인", "es": "CONTROL DE SEGURIDAD DIRAC", "fr": "VÉRIFICATION SÉCURITÉ DIRAC"}, "Halaman produk terkunci": {"en": "Product page locked", "zh": "产品页面已锁定", "ar": "صفحة المنتجات مقفلة", "ja": "商品ページはロック中", "ko": "제품 페이지 잠김", "es": "Página de productos bloqueada", "fr": "Page produits verrouillée"}, "Halaman katalog pelanggan hanya dapat dibuka setelah login dan verifikasi keamanan dari dashboard selesai.": {"en": "The customer catalog page can only open after login and dashboard security verification are complete.", "zh": "客户目录页面只能在登录并完成仪表板安全验证后打开。", "ar": "لا يمكن فتح صفحة كتالوج العميل إلا بعد إكمال تسجيل الدخول والتحقق الأمني من لوحة التحكم.", "ja": "顧客カタログページは、ログインとダッシュボードのセキュリティ確認完了後にのみ開けます。", "ko": "고객 카탈로그 페이지는 로그인과 대시보드 보안 확인 완료 후에만 열립니다.", "es": "El catálogo del cliente solo se abre después del login y la verificación de seguridad del panel.", "fr": "Le catalogue client s’ouvre seulement après connexion et vérification sécurité depuis le tableau de bord."}, "Masuk dulu": {"en": "Sign in first", "zh": "请先登录", "ar": "سجّل الدخول أولاً", "ja": "先にログイン", "ko": "먼저 로그인", "es": "Inicia sesión primero", "fr": "Connectez-vous d’abord"}, "Kembali ke Dashboard": {"en": "Back to Dashboard", "zh": "返回仪表板", "ar": "العودة إلى لوحة التحكم", "ja": "ダッシュボードへ戻る", "ko": "대시보드로 돌아가기", "es": "Volver al panel", "fr": "Retour au tableau de bord"}, "Gate ini mengikuti sesi login dari sistem dashboard. Tidak membuka tabel Supabase langsung ke frontend.": {"en": "This gate follows the login session from the dashboard system. It does not expose Supabase tables directly to the frontend.", "zh": "此网关跟随仪表板系统的登录会话，不会把 Supabase 表直接暴露到前端。", "ar": "هذه البوابة تتبع جلسة الدخول من نظام لوحة التحكم ولا تفتح جداول Supabase مباشرة للواجهة.", "ja": "このゲートはダッシュボードシステムのログインセッションに従います。Supabaseテーブルをフロントエンドへ直接公開しません。", "ko": "이 게이트는 대시보드 시스템의 로그인 세션을 따르며 Supabase 테이블을 프론트엔드에 직접 노출하지 않습니다.", "es": "Esta puerta sigue la sesión del dashboard. No expone tablas Supabase directamente al frontend.", "fr": "Cette porte suit la session du tableau de bord et n’expose pas les tables Supabase directement au frontend."}, "Dirac AI Assistant": {"en": "Dirac AI Assistant", "zh": "Dirac AI 助手", "ar": "مساعد Dirac AI", "ja": "Dirac AIアシスタント", "ko": "Dirac AI 어시스턴트", "es": "Asistente Dirac AI", "fr": "Assistant Dirac AI"}, "Ngobrol umum, pelajaran, rekomendasi parfum, checkout, dan cek resi.": {"en": "General chat, lessons, perfume recommendations, checkout, and shipment tracking.", "zh": "通用聊天、学习、香水推荐、结账和物流查询。", "ar": "دردشة عامة، دروس، توصيات عطور، طلب، وتتبع الشحنة.", "ja": "一般チャット、学習、香水おすすめ、チェックアウト、配送追跡。", "ko": "일반 대화, 학습, 향수 추천, 체크아웃, 배송 조회.", "es": "Chat general, aprendizaje, recomendaciones, checkout y rastreo.", "fr": "Discussion générale, apprentissage, recommandations parfum, commande et suivi."}, "Ngobrol": {"en": "Chat", "zh": "聊天", "ar": "دردشة", "ja": "チャット", "ko": "채팅", "es": "Chat", "fr": "Chat"}, "Contoh detail": {"en": "Detailed example", "zh": "详细示例", "ar": "مثال تفصيلي", "ja": "詳細例", "ko": "상세 예시", "es": "Ejemplo detallado", "fr": "Exemple détaillé"}, "Lokal 200": {"en": "Local 200", "zh": "本地 200", "ar": "محلي 200", "ja": "ローカル 200", "ko": "로컬 200", "es": "Local 200", "fr": "Local 200"}, "Compare": {"en": "Compare", "zh": "比较", "ar": "قارن", "ja": "比較", "ko": "비교", "es": "Comparar", "fr": "Comparer"}, "Website": {"en": "Website", "zh": "网站", "ar": "الموقع", "ja": "ウェブサイト", "ko": "웹사이트", "es": "Sitio web", "fr": "Site web"}, "Keranjang berjalan selama sesi halaman. Setelah checkout, pesanan masuk database dan admin tetap mengonfirmasi pesanan.": {"en": "The cart runs during the page session. After checkout, the order enters the database and the admin still confirms it.", "zh": "购物车在当前页面会话中运行。结账后，订单进入数据库并由管理员确认。", "ar": "تعمل السلة أثناء جلسة الصفحة. بعد الطلب يدخل الطلب قاعدة البيانات ويؤكده المسؤول.", "ja": "カートはページセッション中に動作します。チェックアウト後、注文はデータベースへ入り、管理者が確認します。", "ko": "장바구니는 페이지 세션 동안 작동합니다. 체크아웃 후 주문은 데이터베이스에 저장되고 관리자가 확인합니다.", "es": "El carrito funciona durante la sesión de la página. Tras checkout, el pedido entra en la base de datos y el admin lo confirma.", "fr": "Le panier fonctionne pendant la session de page. Après commande, elle est enregistrée en base et confirmée par l’admin."}, "Sidoarjo, Indonesia": {"en": "Sidoarjo, Indonesia", "zh": "印度尼西亚，Sidoarjo", "ar": "سيدوارجو، إندونيسيا", "ja": "インドネシア・シドアルジョ", "ko": "인도네시아 시도아르조", "es": "Sidoarjo, Indonesia", "fr": "Sidoarjo, Indonésie"}, "© 2026 Dirac Group. All rights reserved.": {"en": "© 2026 Dirac Group. All rights reserved.", "zh": "© 2026 Dirac Group。保留所有权利。", "ar": "© 2026 Dirac Group. جميع الحقوق محفوظة.", "ja": "© 2026 Dirac Group. All rights reserved.", "ko": "© 2026 Dirac Group. All rights reserved.", "es": "© 2026 Dirac Group. Todos los derechos reservados.", "fr": "© 2026 Dirac Group. Tous droits réservés."}, "Rupiah": {"en": "Rupiah", "zh": "印尼盾", "ar": "روبية", "ja": "ルピア", "ko": "루피아", "es": "Rupia", "fr": "Roupie"}, "US Dollar": {"en": "US Dollar", "zh": "美元", "ar": "دولار أمريكي", "ja": "米ドル", "ko": "미국 달러", "es": "Dólar estadounidense", "fr": "Dollar américain"}, "Euro": {"en": "Euro", "zh": "欧元", "ar": "يورو", "ja": "ユーロ", "ko": "유로", "es": "Euro", "fr": "Euro"}, "Singapore": {"en": "Singapore", "zh": "新加坡", "ar": "سنغافورة", "ja": "シンガポール", "ko": "싱가포르", "es": "Singapur", "fr": "Singapour"}, "Ringgit": {"en": "Ringgit", "zh": "林吉特", "ar": "رينغيت", "ja": "リンギット", "ko": "링깃", "es": "Ringgit", "fr": "Ringgit"}, "Riyal": {"en": "Riyal", "zh": "里亚尔", "ar": "ريال", "ja": "リヤル", "ko": "리얄", "es": "Riyal", "fr": "Riyal"}, "Dirham": {"en": "Dirham", "zh": "迪拉姆", "ar": "درهم", "ja": "ディルハム", "ko": "디르함", "es": "Dírham", "fr": "Dirham"}, "Yen": {"en": "Yen", "zh": "日元", "ar": "ين", "ja": "円", "ko": "엔", "es": "Yen", "fr": "Yen"}, "Won": {"en": "Won", "zh": "韩元", "ar": "وون", "ja": "ウォン", "ko": "원", "es": "Won", "fr": "Won"}, "Yuan": {"en": "Yuan", "zh": "人民币", "ar": "يوان", "ja": "元", "ko": "위안", "es": "Yuan", "fr": "Yuan"}, "Australian": {"en": "Australian", "zh": "澳元", "ar": "أسترالي", "ja": "オーストラリアドル", "ko": "호주 달러", "es": "Australiano", "fr": "Australien"}, "Pound": {"en": "Pound", "zh": "英镑", "ar": "جنيه", "ja": "ポンド", "ko": "파운드", "es": "Libra", "fr": "Livre"}};
+  var ATTR_COPY = {};
+  var LANGS = {id:true,en:true,zh:true,ar:true,ja:true,ko:true,es:true,fr:true};
+  function lang(){
+    try{ if(window.diracGetGlobalPrefs) return window.diracGetGlobalPrefs().language || 'id'; }catch(_){}
+    try{ if(window.diracLanguage && typeof window.diracLanguage.read === 'function') return window.diracLanguage.read() || 'id'; }catch(_){}
+    return document.documentElement.getAttribute('data-language') || document.documentElement.lang || 'id';
+  }
+  function normLang(value){ value=String(value||'id').toLowerCase(); if(value.indexOf('zh')===0) return 'zh'; return LANGS[value] ? value : 'id'; }
+  function pick(map, source, l){
+    source = String(source == null ? '' : source).trim(); if(!source) return null;
+    var row = map[source]; if(!row) return null;
+    if(l === 'id') return source;
+    return row[l] || row.en || source;
+  }
+  function skip(el){ return !el || (el.closest && el.closest('[data-no-i18n]')) || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|SVG|PATH)$/i.test(el.tagName||''); }
+  function applyKeys(l){
+    Array.prototype.slice.call(document.querySelectorAll('[data-i18n]')).forEach(function(el){
+      if(skip(el)) return;
+      var key = el.getAttribute('data-i18n');
+      var row = KEY_COPY[key];
+      if(!row) return;
+      var text = l === 'id' ? (row.id || el.getAttribute('data-i18n-id') || el.textContent) : (row[l] || row.en || row.id || el.textContent);
+      if(typeof text === 'string' && el.textContent !== text) el.textContent = text;
+    });
+  }
+  function nodeSource(node){
+    if(typeof node.__diracI18nOriginalText === 'string') return node.__diracI18nOriginalText;
+    if(typeof node.__diracSupplementOriginalText !== 'string') node.__diracSupplementOriginalText = node.data;
+    return node.__diracSupplementOriginalText;
+  }
+  function translateTextNode(node,l){
+    if(!node || !node.parentElement || skip(node.parentElement)) return;
+    var source = nodeSource(node);
+    var next = pick(TEXT_COPY, source, l);
+    if(next != null && node.data !== next) node.data = next;
+  }
+  function applyTexts(root,l){
+    var scope = root || document.body; if(!scope) return;
+    if(scope.nodeType === 3){ translateTextNode(scope,l); return; }
+    if(scope.nodeType !== 1 && scope.nodeType !== 9 && scope.nodeType !== 11) return;
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {acceptNode:function(n){ return (!n.parentElement || skip(n.parentElement)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }});
+    var nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode); nodes.forEach(function(n){ translateTextNode(n,l); });
+  }
+  function applyAttrs(root,l){
+    var scope = root && root.nodeType === 1 ? root : document;
+    var nodes = [];
+    if(scope.querySelectorAll){ nodes = Array.prototype.slice.call(scope.querySelectorAll('[placeholder],[aria-label],[title]')); if(scope.matches && scope.matches('[placeholder],[aria-label],[title]')) nodes.unshift(scope); }
+    nodes.forEach(function(el){
+      if(skip(el)) return;
+      ['placeholder','aria-label','title'].forEach(function(attr){
+        if(!el.hasAttribute || !el.hasAttribute(attr)) return;
+        var prop='__diracSupplementOriginal_'+attr;
+        if(typeof el[prop] !== 'string') el[prop] = el.getAttribute(attr) || '';
+        var next = pick(ATTR_COPY, el[prop], l) || pick(TEXT_COPY, el[prop], l);
+        if(next != null && el.getAttribute(attr) !== next) el.setAttribute(attr,next);
+      });
+    });
+  }
+  function apply(root){ var l = normLang(lang()); applyKeys(l); applyTexts(root || document.body,l); applyAttrs(root || document,l); }
+  function schedule(root){ setTimeout(function(){apply(root);},0); setTimeout(function(){apply(root);},80); setTimeout(function(){apply(root);},240); }
+  document.addEventListener('DOMContentLoaded', function(){ schedule(document.body); });
+  window.addEventListener('dirac:global-prefs-change', function(){ schedule(document.body); });
+  document.addEventListener('click', function(e){ if(e.target && e.target.closest && e.target.closest('[data-language],[data-language-option],#languageSelect')) schedule(document.body); }, true);
+  document.addEventListener('change', function(e){ if(e.target && e.target.id === 'languageSelect') schedule(document.body); }, true);
+  if(window.MutationObserver){
+    new MutationObserver(function(muts){ var l = normLang(lang()); muts.forEach(function(m){ Array.prototype.slice.call(m.addedNodes||[]).forEach(function(n){ apply(n); }); if(m.type==='attributes') applyAttrs(m.target,l); }); }).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['placeholder','aria-label','title','data-language','lang']});
+  }
+  schedule(document.body);
 })();
 </script>
 </body>
