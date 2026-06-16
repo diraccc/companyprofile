@@ -1202,20 +1202,23 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
 
     /* Dirac video hero space: vd1.mp4 only, no auth/payment/security logic touched. */
     .dirac-video-hero{position:relative;margin:18px 0 22px;isolation:isolate}
-    .dirac-video-frame{position:relative;width:100%;aspect-ratio:910/512;border-radius:32px;overflow:hidden;border:1px solid rgba(var(--theme-rgb),.24);background:#050608;box-shadow:0 24px 70px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.075)}
-    .dirac-video-frame:after{content:"";position:absolute;inset:1px;z-index:4;pointer-events:none;border-radius:31px;border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 0 38px rgba(var(--theme-rgb),.08)}
-    .dirac-hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain!important;background:#050608;transform:translateZ(0);filter:saturate(1.03) contrast(1.01);z-index:1}
-    .dirac-video-info{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:0 2px}
-    .dirac-video-desc{margin:0;max-width:790px;color:var(--muted);font-size:.92rem;line-height:1.55}
+    .dirac-video-frame{position:relative;width:100%;aspect-ratio:910/512;border-radius:32px;overflow:hidden;border:1px solid rgba(var(--theme-rgb),.24);background:linear-gradient(135deg,#050608,#071017);box-shadow:0 24px 70px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.075);line-height:0;contain:paint}
+    .dirac-video-frame:after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;border-radius:inherit;border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 0 34px rgba(var(--theme-rgb),.07)}
+    .dirac-hero-video{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill!important;border-radius:inherit;background:transparent;transform:translateZ(0);filter:saturate(1.03) contrast(1.01);z-index:1}
+    .dirac-hero-video::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none!important;opacity:0!important;pointer-events:none!important}
+    .dirac-video-info{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;margin-top:12px;padding:16px 18px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028));border:1px solid rgba(var(--theme-rgb),.22);box-shadow:0 18px 42px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06);overflow:hidden}
+    .dirac-video-info:before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(115deg,rgba(255,255,255,.045),transparent 28%,transparent 70%,rgba(var(--theme-rgb),.055));opacity:.85}
+    .dirac-video-info:after{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--theme-rgb),.40),transparent);opacity:.85;pointer-events:none}
+    .dirac-video-desc{position:relative;z-index:1;margin:0;max-width:790px;color:var(--muted);font-size:.92rem;line-height:1.55}
     .dirac-video-desc strong{color:#fff;font-weight:900}
     .dirac-video-sound-btn{position:relative;z-index:1;flex:0 0 auto;border:1px solid rgba(255,255,255,.14);background:rgba(9,12,18,.72);color:#fff;border-radius:999px;min-width:112px;height:46px;padding:0 15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:900;box-shadow:0 16px 34px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:.22s var(--motion-ease)}
     .dirac-video-sound-btn:hover{transform:translateY(-2px);filter:brightness(1.04)}
     .dirac-video-sound-btn[aria-pressed="false"]{background:rgba(9,12,18,.78);color:#d7deea}
     .dirac-video-sound-btn span:first-child{font-size:1.18rem;line-height:1}.dirac-video-btn-text{font-size:.86rem;letter-spacing:.02em}
     html[data-effective-theme="light"] .dirac-video-frame{background:#050608;border-color:rgba(var(--theme-rgb),.26);box-shadow:0 24px 70px rgba(80,55,18,.16),inset 0 1px 0 rgba(255,255,255,.30)}
-    @media(max-width:760px){.dirac-video-hero{margin:16px 0 20px}.dirac-video-frame{border-radius:24px}.dirac-video-frame:after{border-radius:23px}.dirac-video-info{align-items:flex-start}.dirac-video-desc{font-size:.86rem}.dirac-video-sound-btn{height:44px;min-width:98px;padding:0 12px}}
-    @media(max-width:430px){.dirac-video-frame{border-radius:22px}.dirac-video-frame:after{border-radius:21px}.dirac-video-info{gap:10px}.dirac-video-btn-text{font-size:.8rem}.dirac-video-sound-btn{min-width:90px}}
-
+    html[data-effective-theme="light"] .dirac-video-info{background:rgba(255,250,241,.92);border-color:rgba(var(--theme-rgb),.28);box-shadow:0 18px 42px rgba(80,55,18,.16),inset 0 1px 0 rgba(255,255,255,.58)}
+    @media(max-width:760px){.dirac-video-hero{margin:16px 0 20px}.dirac-video-frame{border-radius:24px}.dirac-video-info{border-radius:24px;padding:15px;align-items:flex-start}.dirac-video-desc{font-size:.86rem}.dirac-video-sound-btn{height:44px;min-width:98px;padding:0 12px}}
+    @media(max-width:430px){.dirac-video-frame{border-radius:22px}.dirac-video-info{gap:10px;border-radius:22px;padding:14px}.dirac-video-btn-text{font-size:.8rem}.dirac-video-sound-btn{min-width:90px}}
 
 </style>
 
@@ -1263,9 +1266,9 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
 
         <section class="dirac-video-hero" data-reveal aria-label="Video 3D layanan Dirac Group">
           <div class="dirac-video-frame" aria-label="Preview video 3D layanan Dirac Group">
-            <video id="diracHeroVideo" class="dirac-hero-video" src="vd1.mp4" autoplay loop playsinline preload="auto" aria-label="Video 3D layanan Dirac Group"></video>
+            <video id="diracHeroVideo" class="dirac-hero-video" src="vd1.mp4" autoplay loop playsinline webkit-playsinline preload="auto" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" aria-label="Video 3D layanan Dirac Group"></video>
           </div>
-          <div class="dirac-video-info">
+          <div class="dirac-video-info" aria-label="Keterangan video 3D layanan Dirac Group">
             <p class="dirac-video-desc"><strong>Video 3D layanan Dirac Group</strong> menampilkan rangkuman layanan parfum, domain, top up game, e-wallet, e-toll, dan jasa website dalam satu dashboard.</p>
             <button class="dirac-video-sound-btn" id="diracVideoSoundBtn" type="button" aria-pressed="true" aria-label="Mute video">
               <span data-sound-icon aria-hidden="true">🔊</span><span class="dirac-video-btn-text" data-sound-label>Mute</span>
@@ -1273,8 +1276,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
           </div>
         </section>
 
-
-        <section class="app-hero" aria-labelledby="dashboardWelcome">
+<section class="app-hero" aria-labelledby="dashboardWelcome">
           <article class="app-welcome-card dirac-3d-hero-card" data-reveal>
             <div class="app-welcome-copy">
               <span class="eyebrow">Dashboard pelanggan</span>
@@ -2747,6 +2749,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
 </script>
 
 
+
 <script id="dirac-video-hero-vd1-js">
 (function(){
   'use strict';
@@ -2785,6 +2788,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   });
 })();
 </script>
+
 
 </body>
 </html>
