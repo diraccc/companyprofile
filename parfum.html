@@ -15071,5 +15071,265 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   schedule(document.body);
 })();
 </script>
+
+<script id="dirac-parfum-checkout-i18n-hardfix-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_PARFUM_CHECKOUT_I18N_HARDFIX_V1__) return;
+  window.__DIRAC_PARFUM_CHECKOUT_I18N_HARDFIX_V1__ = true;
+
+  var LANGS = {id:true,en:true,zh:true,ar:true,ja:true,ko:true,es:true,fr:true};
+  var TRANSLATIONS = {
+    "Buat Pesanan": {en:"Create Order",zh:"创建订单",ar:"إنشاء الطلب",ja:"注文を作成",ko:"주문 생성",es:"Crear pedido",fr:"Créer la commande"},
+    "Membuat invoice...": {en:"Creating invoice...",zh:"正在创建发票...",ar:"جارٍ إنشاء الفاتورة...",ja:"インボイスを作成中...",ko:"인보이스 생성 중...",es:"Creando factura...",fr:"Création de la facture..."},
+    "Invoice dibuat. Status pembayaran masih unpaid. Pesanan belum diproses sebelum pembayaran terverifikasi.": {en:"Invoice created. Payment status is still unpaid. The order will not be processed until payment is verified.",zh:"发票已创建。付款状态仍为未付款。付款验证前订单不会处理。",ar:"تم إنشاء الفاتورة. حالة الدفع لا تزال غير مدفوعة. لن تتم معالجة الطلب قبل التحقق من الدفع.",ja:"インボイスを作成しました。支払い状況は未払いです。支払い確認前は注文は処理されません。",ko:"인보이스가 생성되었습니다. 결제 상태는 아직 미결제입니다. 결제가 확인되기 전까지 주문은 처리되지 않습니다.",es:"Factura creada. El estado de pago sigue sin pagar. El pedido no se procesará hasta verificar el pago.",fr:"Facture créée. Le statut de paiement est toujours impayé. La commande ne sera pas traitée avant vérification du paiement."},
+    "Invoice berhasil dibuat": {en:"Invoice created successfully",zh:"发票创建成功",ar:"تم إنشاء الفاتورة بنجاح",ja:"インボイス作成完了",ko:"인보이스가 성공적으로 생성되었습니다",es:"Factura creada correctamente",fr:"Facture créée avec succès"},
+    "Ini belum dibayar. Pesanan baru diproses setelah pembayaran valid dari gateway/admin.": {en:"This has not been paid yet. The order will be processed only after a valid payment from the gateway/admin.",zh:"此订单尚未付款。只有在网关/管理员确认有效付款后才会处理。",ar:"لم يتم الدفع بعد. ستتم معالجة الطلب فقط بعد دفع صالح من البوابة/الإدارة.",ja:"まだ支払いは完了していません。ゲートウェイ/管理者による有効な支払い確認後に処理されます。",ko:"아직 결제되지 않았습니다. 게이트웨이/관리자의 유효한 결제 확인 후 주문이 처리됩니다.",es:"Aún no está pagado. El pedido se procesará solo después de un pago válido desde la pasarela/admin.",fr:"Ce n’est pas encore payé. La commande sera traitée après validation du paiement par la passerelle/l’admin."},
+    "Menunggu pembayaran": {en:"Waiting for payment",zh:"等待付款",ar:"بانتظار الدفع",ja:"支払い待ち",ko:"결제 대기 중",es:"Esperando pago",fr:"En attente de paiement"},
+    "⏳ Menunggu pembayaran": {en:"⏳ Waiting for payment",zh:"⏳ 等待付款",ar:"⏳ بانتظار الدفع",ja:"⏳ 支払い待ち",ko:"⏳ 결제 대기 중",es:"⏳ Esperando pago",fr:"⏳ En attente de paiement"},
+    "Kode invoice": {en:"Invoice code",zh:"发票代码",ar:"رمز الفاتورة",ja:"インボイスコード",ko:"인보이스 코드",es:"Código de factura",fr:"Code facture"},
+    "KODE INVOICE": {en:"INVOICE CODE",zh:"发票代码",ar:"رمز الفاتورة",ja:"インボイスコード",ko:"인보이스 코드",es:"CÓDIGO DE FACTURA",fr:"CODE FACTURE"},
+    "Status bayar": {en:"Payment status",zh:"付款状态",ar:"حالة الدفع",ja:"支払い状況",ko:"결제 상태",es:"Estado de pago",fr:"Statut de paiement"},
+    "STATUS BAYAR": {en:"PAYMENT STATUS",zh:"付款状态",ar:"حالة الدفع",ja:"支払い状況",ko:"결제 상태",es:"ESTADO DE PAGO",fr:"STATUT DE PAIEMENT"},
+    "Layanan": {en:"Service",zh:"服务",ar:"الخدمة",ja:"サービス",ko:"서비스",es:"Servicio",fr:"Service"},
+    "LAYANAN": {en:"SERVICE",zh:"服务",ar:"الخدمة",ja:"サービス",ko:"서비스",es:"SERVICIO",fr:"SERVICE"},
+    "Total": {en:"Total",zh:"合计",ar:"الإجمالي",ja:"合計",ko:"합계",es:"Total",fr:"Total"},
+    "Item": {en:"Item",zh:"商品",ar:"العنصر",ja:"商品",ko:"항목",es:"Artículo",fr:"Article"},
+    "ITEM": {en:"ITEM",zh:"商品",ar:"العنصر",ja:"商品",ko:"항목",es:"ARTÍCULO",fr:"ARTICLE"},
+    "Payment gateway belum aktif, jadi tombol bayar belum membuka halaman pembayaran. Data invoice sudah disimpan agar bisa tampil di dashboard pelanggan.": {en:"The payment gateway is not active yet, so the pay button does not open a payment page. Invoice data has been saved so it can appear in the customer dashboard.",zh:"支付网关尚未启用，因此支付按钮不会打开付款页面。发票数据已保存，可显示在客户仪表板中。",ar:"بوابة الدفع غير مفعلة بعد، لذلك لا يفتح زر الدفع صفحة الدفع. تم حفظ بيانات الفاتورة حتى تظهر في لوحة العميل.",ja:"決済ゲートウェイはまだ有効ではないため、支払いボタンは決済ページを開きません。インボイスデータは顧客ダッシュボードに表示できるよう保存されています。",ko:"결제 게이트웨이가 아직 활성화되지 않아 결제 버튼이 결제 페이지를 열지 않습니다. 인보이스 데이터는 고객 대시보드에 표시될 수 있도록 저장되었습니다.",es:"La pasarela de pago aún no está activa, por eso el botón de pago no abre una página de pago. Los datos de la factura se han guardado para mostrarse en el panel del cliente.",fr:"La passerelle de paiement n’est pas encore active, le bouton payer n’ouvre donc pas de page de paiement. Les données de facture sont enregistrées pour apparaître dans le tableau de bord client."},
+    "Lihat di Dashboard": {en:"View in Dashboard",zh:"在仪表板中查看",ar:"عرض في لوحة التحكم",ja:"ダッシュボードで見る",ko:"대시보드에서 보기",es:"Ver en el panel",fr:"Voir dans le tableau de bord"},
+    "Bayar Sekarang": {en:"Pay Now",zh:"立即付款",ar:"ادفع الآن",ja:"今すぐ支払う",ko:"지금 결제",es:"Pagar ahora",fr:"Payer maintenant"},
+    "Bayar belum aktif": {en:"Payment not active yet",zh:"付款尚未启用",ar:"الدفع غير مفعل بعد",ja:"支払いは未有効",ko:"결제 아직 비활성",es:"Pago aún no activo",fr:"Paiement pas encore actif"},
+    "Invoice dibuat - menunggu pembayaran": {en:"Invoice created - waiting for payment",zh:"发票已创建 - 等待付款",ar:"تم إنشاء الفاتورة - بانتظار الدفع",ja:"インボイス作成済み - 支払い待ち",ko:"인보이스 생성됨 - 결제 대기 중",es:"Factura creada - esperando pago",fr:"Facture créée - en attente de paiement"},
+    "Invoice belum dapat dibuat. Coba lagi.": {en:"The invoice could not be created. Please try again.",zh:"无法创建发票。请重试。",ar:"تعذر إنشاء الفاتورة. حاول مرة أخرى.",ja:"インボイスを作成できませんでした。もう一度お試しください。",ko:"인보이스를 생성할 수 없습니다. 다시 시도하세요.",es:"No se pudo crear la factura. Inténtalo de nuevo.",fr:"La facture n’a pas pu être créée. Réessayez."},
+    "Checkout gagal. Cek koneksi/API.": {en:"Checkout failed. Check the connection/API.",zh:"结账失败。请检查连接/API。",ar:"فشل إتمام الطلب. تحقق من الاتصال/API.",ja:"チェックアウトに失敗しました。接続/APIを確認してください。",ko:"체크아웃 실패. 연결/API를 확인하세요.",es:"Checkout fallido. Revisa la conexión/API.",fr:"Échec de la commande. Vérifiez la connexion/API."},
+    "Parfum": {en:"Perfume",zh:"香水",ar:"عطر",ja:"香水",ko:"향수",es:"Perfume",fr:"Parfum"},
+    "UNPAID": {en:"UNPAID",zh:"未付款",ar:"غير مدفوع",ja:"未払い",ko:"미결제",es:"SIN PAGAR",fr:"IMPAYÉ"},
+    "unpaid": {en:"unpaid",zh:"未付款",ar:"غير مدفوع",ja:"未払い",ko:"미결제",es:"sin pagar",fr:"impayé"},
+    "Belum Bayar": {en:"Unpaid",zh:"未付款",ar:"غير مدفوع",ja:"未払い",ko:"미결제",es:"Sin pagar",fr:"Impayé"},
+    "PENDING": {en:"PENDING",zh:"待处理",ar:"قيد الانتظار",ja:"保留中",ko:"대기 중",es:"PENDIENTE",fr:"EN ATTENTE"},
+    "pending": {en:"pending",zh:"待处理",ar:"قيد الانتظار",ja:"保留中",ko:"대기 중",es:"pendiente",fr:"en attente"},
+    "PAID": {en:"PAID",zh:"已付款",ar:"مدفوع",ja:"支払い済み",ko:"결제 완료",es:"PAGADO",fr:"PAYÉ"},
+    "paid": {en:"paid",zh:"已付款",ar:"مدفوع",ja:"支払い済み",ko:"결제 완료",es:"pagado",fr:"payé"},
+    "Lihat": {en:"View",zh:"查看",ar:"عرض",ja:"見る",ko:"보기",es:"Ver",fr:"Voir"},
+    "Transfer Bank": {en:"Bank Transfer",zh:"银行转账",ar:"تحويل بنكي",ja:"銀行振込",ko:"은행 이체",es:"Transferencia bancaria",fr:"Virement bancaire"},
+    "COD / Bayar di tempat": {en:"COD / Pay on delivery",zh:"货到付款",ar:"الدفع عند الاستلام",ja:"代金引換 / 受取時払い",ko:"착불 / 현장 결제",es:"Contra entrega",fr:"Paiement à la livraison"},
+    "Konfirmasi dulu via WA": {en:"Confirm first via WhatsApp",zh:"先通过 WhatsApp 确认",ar:"تأكيد أولاً عبر واتساب",ja:"まずWhatsAppで確認",ko:"WhatsApp으로 먼저 확인",es:"Confirmar primero por WhatsApp",fr:"Confirmer d’abord via WhatsApp"},
+    "Catatan pesanan (opsional)": {en:"Order note (optional)",zh:"订单备注（可选）",ar:"ملاحظة الطلب (اختياري)",ja:"注文メモ（任意）",ko:"주문 메모 (선택)",es:"Nota del pedido (opcional)",fr:"Note de commande (facultatif)"}
+  };
+
+  var REVERSE = {};
+  Object.keys(TRANSLATIONS).forEach(function(source){
+    REVERSE[source] = source;
+    var row = TRANSLATIONS[source] || {};
+    Object.keys(row).forEach(function(code){ if(row[code]) REVERSE[String(row[code]).trim()] = source; });
+  });
+
+  function normLang(value){
+    value = String(value || 'id').toLowerCase();
+    if(value.indexOf('zh') === 0) return 'zh';
+    if(value.indexOf('en') === 0) return 'en';
+    if(value.indexOf('ja') === 0) return 'ja';
+    if(value.indexOf('ko') === 0) return 'ko';
+    if(value.indexOf('ar') === 0) return 'ar';
+    if(value.indexOf('es') === 0) return 'es';
+    if(value.indexOf('fr') === 0) return 'fr';
+    return LANGS[value] ? value : 'id';
+  }
+  function getLang(){
+    try{ if(window.diracGetGlobalPrefs) return normLang(window.diracGetGlobalPrefs().language); }catch(_){ }
+    try{ if(window.diracLanguage && typeof window.diracLanguage.read === 'function') return normLang(window.diracLanguage.read()); }catch(_){ }
+    try{ return normLang(document.documentElement.getAttribute('data-language') || document.documentElement.lang || 'id'); }catch(_){ }
+    return 'id';
+  }
+  function preserveWhitespace(original, translated){
+    var lead = String(original || '').match(/^\s*/)[0] || '';
+    var tail = String(original || '').match(/\s*$/)[0] || '';
+    return lead + translated + tail;
+  }
+  function patternSource(text){
+    var m = text.match(/^Invoice dibuat:\s*(.+?)\s*·\s*menunggu pembayaran$/i);
+    if(m) return {type:'invoiceToast', code:m[1]};
+    return null;
+  }
+  function translatePattern(pattern, lang){
+    if(!pattern) return null;
+    if(pattern.type === 'invoiceToast'){
+      var map = {
+        en:'Invoice created: ' + pattern.code + ' · waiting for payment',
+        zh:'发票已创建: ' + pattern.code + ' · 等待付款',
+        ar:'تم إنشاء الفاتورة: ' + pattern.code + ' · بانتظار الدفع',
+        ja:'インボイス作成済み: ' + pattern.code + ' · 支払い待ち',
+        ko:'인보이스 생성됨: ' + pattern.code + ' · 결제 대기 중',
+        es:'Factura creada: ' + pattern.code + ' · esperando pago',
+        fr:'Facture créée : ' + pattern.code + ' · en attente de paiement'
+      };
+      return lang === 'id' ? ('Invoice dibuat: ' + pattern.code + ' · menunggu pembayaran') : (map[lang] || map.en);
+    }
+    return null;
+  }
+  function sourceOf(text){
+    var trimmed = String(text || '').trim();
+    if(!trimmed) return null;
+    if(REVERSE[trimmed]) return REVERSE[trimmed];
+    var p = patternSource(trimmed);
+    return p || null;
+  }
+  function tr(text, lang){
+    lang = normLang(lang || getLang());
+    var original = String(text == null ? '' : text);
+    var trimmed = original.trim();
+    if(!trimmed) return original;
+    var source = sourceOf(trimmed);
+    if(source && typeof source === 'object'){
+      var nextPattern = translatePattern(source, lang);
+      return nextPattern == null ? original : preserveWhitespace(original, nextPattern);
+    }
+    source = source || trimmed;
+    if(lang === 'id') return preserveWhitespace(original, source);
+    var row = TRANSLATIONS[source];
+    if(row && (row[lang] || row.en)) return preserveWhitespace(original, row[lang] || row.en);
+    return original;
+  }
+  function skipElement(el){
+    if(!el || !el.tagName) return true;
+    if(el.closest && el.closest('[data-no-i18n]')) return true;
+    return /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|SVG|PATH|INPUT|TEXTAREA)$/i.test(el.tagName);
+  }
+  function setSource(el, source){
+    if(!el || !source || !el.setAttribute) return;
+    if(!el.getAttribute('data-dirac-i18n-source')) el.setAttribute('data-dirac-i18n-source', source);
+  }
+  function markKnownNodes(root){
+    var scope = root && root.nodeType === 1 ? root : document;
+    if(!scope.querySelectorAll) return;
+    var pairs = [
+      ['#diracCheckoutInvoicePanel .dirac-checkout-invoice-head h3','Invoice berhasil dibuat'],
+      ['#diracCheckoutInvoicePanel .dirac-checkout-invoice-head p','Ini belum dibayar. Pesanan baru diproses setelah pembayaran valid dari gateway/admin.'],
+      ['#diracCheckoutInvoicePanel .dirac-invoice-badge','⏳ Menunggu pembayaran'],
+      ['#diracCheckoutInvoicePanel .dirac-payment-note','Payment gateway belum aktif, jadi tombol bayar belum membuka halaman pembayaran. Data invoice sudah disimpan agar bisa tampil di dashboard pelanggan.'],
+      ['#diracCheckoutInvoicePanel .dirac-invoice-actions a.btn-secondary','Lihat di Dashboard'],
+      ['#diracCheckoutInvoicePanel .dirac-invoice-actions a.btn-primary','Bayar Sekarang'],
+      ['#diracCheckoutInvoicePanel .dirac-invoice-actions button.dirac-pay-disabled','Bayar belum aktif'],
+      ['#diracCheckoutSticky [data-sticky-send-wa]','Buat Pesanan']
+    ];
+    pairs.forEach(function(pair){ Array.prototype.slice.call(scope.querySelectorAll(pair[0])).forEach(function(el){ setSource(el, pair[1]); }); });
+    var sendBtn = scope.querySelector ? (scope.querySelector('#sendWhatsappBtn') || document.querySelector('#sendWhatsappBtn')) : document.querySelector('#sendWhatsappBtn');
+    if(sendBtn){
+      var sendSource = sourceOf(sendBtn.textContent || '');
+      if(!sendSource || typeof sendSource !== 'string') sendSource = sendBtn.classList.contains('dirac-invoice-created') ? 'Invoice dibuat - menunggu pembayaran' : 'Buat Pesanan';
+      sendBtn.setAttribute('data-dirac-i18n-source', sendSource);
+    }
+    var checkoutError = scope.querySelector ? (scope.querySelector('#checkoutError') || document.querySelector('#checkoutError')) : document.querySelector('#checkoutError');
+    if(checkoutError){
+      var errorSource = sourceOf(checkoutError.textContent || '');
+      if(errorSource && typeof errorSource === 'string') checkoutError.setAttribute('data-dirac-i18n-source', errorSource);
+    }
+    Array.prototype.slice.call(scope.querySelectorAll('#diracCheckoutInvoicePanel .dirac-invoice-row small')).forEach(function(el){
+      var src = sourceOf(el.textContent || '');
+      if(src && typeof src === 'string') setSource(el, src);
+    });
+    Array.prototype.slice.call(scope.querySelectorAll('#diracCheckoutInvoicePanel .dirac-invoice-row strong')).forEach(function(el){
+      var src = sourceOf(el.textContent || '');
+      if(src && typeof src === 'string') setSource(el, src);
+    });
+    Array.prototype.slice.call(scope.querySelectorAll('option')).forEach(function(el){
+      var src = sourceOf(el.textContent || '');
+      if(src && typeof src === 'string') setSource(el, src);
+    });
+  }
+  function translateTextNode(node, lang){
+    if(!node || !node.parentElement || skipElement(node.parentElement)) return;
+    var parent = node.parentElement;
+    var explicit = parent.getAttribute && parent.getAttribute('data-dirac-i18n-source');
+    var detected = sourceOf(node.data || '');
+    if(detected && typeof detected === 'string' && detected !== explicit){
+      parent.setAttribute('data-dirac-i18n-source', detected);
+      explicit = detected;
+    }
+    var source = explicit || detected;
+    if(!source) return;
+    if(typeof source === 'string' && !explicit) setSource(parent, source);
+    var next = typeof source === 'object' ? translatePattern(source, lang) : tr(source, lang);
+    if(next != null && node.data !== preserveWhitespace(node.data, String(next).trim())) node.data = preserveWhitespace(node.data, String(next).trim());
+  }
+  function translateAttrs(root, lang){
+    var scope = root && root.nodeType === 1 ? root : document;
+    if(!scope.querySelectorAll) return;
+    var nodes = Array.prototype.slice.call(scope.querySelectorAll('[placeholder],[aria-label],[title]'));
+    if(scope.matches && scope.matches('[placeholder],[aria-label],[title]')) nodes.unshift(scope);
+    nodes.forEach(function(el){
+      if(skipElement(el)) return;
+      ['placeholder','aria-label','title'].forEach(function(attr){
+        if(!el.hasAttribute || !el.hasAttribute(attr)) return;
+        var val = el.getAttribute(attr) || '';
+        var source = el.getAttribute('data-dirac-i18n-' + attr) || sourceOf(val);
+        if(!source) return;
+        if(typeof source === 'string' && !el.getAttribute('data-dirac-i18n-' + attr)) el.setAttribute('data-dirac-i18n-' + attr, source);
+        var next = typeof source === 'object' ? translatePattern(source, lang) : tr(source, lang);
+        if(next != null && val !== next) el.setAttribute(attr, next);
+      });
+    });
+  }
+  function translateTree(root){
+    var lang = getLang();
+    markKnownNodes(root || document);
+    translateAttrs(root || document, lang);
+    var scope = root || document.body || document;
+    if(scope.nodeType === 3){ translateTextNode(scope, lang); return; }
+    if(scope.nodeType !== 1 && scope.nodeType !== 9 && scope.nodeType !== 11) return;
+    var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode:function(node){ return (!node.parentElement || skipElement(node.parentElement)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
+    });
+    var nodes = [];
+    while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function(node){ translateTextNode(node, lang); });
+  }
+  function schedule(root){
+    [0,60,180,420,900].forEach(function(delay){ setTimeout(function(){ try{ translateTree(root || document.body || document); }catch(_){ } }, delay); });
+  }
+
+  try{
+    if(window.diracLanguage && typeof window.diracLanguage.translate === 'function' && !window.diracLanguage.__checkoutHardfixWrapped){
+      var baseTranslate = window.diracLanguage.translate.bind(window.diracLanguage);
+      window.diracLanguage.translate = function(text, lang){
+        var next = tr(text, normLang(lang || getLang()));
+        if(String(next) !== String(text)) return next;
+        return baseTranslate(text, lang);
+      };
+      window.diracLanguage.__checkoutHardfixWrapped = true;
+    }
+  }catch(_){ }
+  window.diracCheckoutI18nTranslate = tr;
+  window.diracApplyCheckoutI18n = function(root){ translateTree(root || document.body || document); };
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ schedule(document.body); }, {once:true});
+  else schedule(document.body);
+  window.addEventListener('dirac:global-prefs-change', function(){ schedule(document.body); });
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.closest && e.target.closest('[data-language],[data-language-option],#languageSelect,#sendWhatsappBtn,[data-sticky-send-wa]')) schedule(document.body);
+  }, true);
+  document.addEventListener('change', function(e){ if(e.target && (e.target.id === 'languageSelect' || e.target.id === 'paymentMethod')) schedule(document.body); }, true);
+  if(window.MutationObserver){
+    var busy = false;
+    new MutationObserver(function(mutations){
+      if(busy) return;
+      busy = true;
+      requestAnimationFrame(function(){
+        try{
+          mutations.forEach(function(m){
+            if(m.type === 'childList') Array.prototype.slice.call(m.addedNodes || []).forEach(function(n){ translateTree(n); });
+            else if(m.type === 'characterData') translateTextNode(m.target, getLang());
+            else if(m.type === 'attributes') translateAttrs(m.target, getLang());
+          });
+          translateTree(document.body || document);
+        }catch(_){ }
+        busy = false;
+      });
+    }).observe(document.documentElement, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['placeholder','aria-label','title','data-language','lang','data-dirac-i18n-source']});
+  }
+})();
+</script>
+
 </body>
 </html>
