@@ -7499,33 +7499,46 @@ async function lockedPaymentFetchOwnedOrder(inputOrderId, customerId) {
 }
 
 async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType) {
+  const amount = lockedPaymentMoney(orderTotal);
+  const fallback = (reason) => lockedPaymentBuildFallbackOrderItem(amount, serviceType, reason);
+
   const select = 'id,order_id,product_doc_id,product_title,quantity,unit_price,cost_price';
   const path = '/rest/v1/order_items?select=' + encodeURIComponent(select) + '&order_id=eq.' + encodeURIComponent(orderId);
-  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' });
+  const result = await supabaseFetch(path, { method: 'GET', auth: 'service' }).catch((error) => ({
+    ok: false,
+    status: 500,
+    data: { message: String(error && error.message ? error.message : error) }
+  }));
 
-  if (!result.ok) return { ok: false, status: result.status || 500, message: 'Gagal membaca item order.' };
+  // PATCH payment-items-fallback-v1:
+  // Jika schema order_items berbeda/kolom belum lengkap/kosong, jangan hentikan payment.
+  // Amount tetap dikunci dari orders.total database; frontend amount tetap diabaikan.
+  // Midtrans tetap membutuhkan item_details, maka dipakai 1 item aman berbasis total database.
+  if (!result.ok) {
+    console.warn('[locked-create-payment] order_items read fallback', {
+      status: result.status || 0,
+      reason: lockedPaymentSafeUpstreamError(result.data) || 'order_items_read_failed'
+    });
+    return fallback('order_items_read_failed');
+  }
 
   const rows = Array.isArray(result.data) ? result.data : [];
-  if (!rows.length) return { ok: false, status: 409, message: 'Order tidak punya item. Payment gateway tidak dibuat.' };
+  if (!rows.length) return fallback('order_items_empty');
 
   let total = 0;
   const items = [];
   for (const row of rows) {
-    const quantity = lockedPaymentPositiveInteger(row.quantity, 0, 9999);
-    const unitPrice = lockedPaymentMoney(row.unit_price);
-    const title = lockedPaymentCleanText(row.product_title || 'Item pesanan', 180);
+    const quantity = lockedPaymentPositiveInteger(row && row.quantity, 0, 9999);
+    const unitPrice = lockedPaymentMoney(row && row.unit_price);
+    const title = lockedPaymentCleanText(row && row.product_title || 'Item pesanan', 180);
 
-    if (quantity <= 0) return { ok: false, status: 409, message: 'Ada item dengan quantity tidak valid.' };
-    if (unitPrice <= 0) return { ok: false, status: 409, message: 'Ada item dengan unit_price 0/kosong. Payment gateway tidak dibuat.' };
-    if (serviceType === 'parfum' && !lockedPaymentCleanText(row.product_doc_id || '', 80)) {
-      return { ok: false, status: 409, message: 'Item parfum tidak punya product_doc_id. Payment gateway tidak dibuat.' };
-    }
+    if (quantity <= 0 || unitPrice <= 0 || !title) continue;
 
     const subtotal = quantity * unitPrice;
     total += subtotal;
     items.push({
-      id: String(row.id || ''),
-      product_doc_id: lockedPaymentCleanText(row.product_doc_id || '', 80) || null,
+      id: String(row && row.id || ''),
+      product_doc_id: lockedPaymentCleanText(row && row.product_doc_id || '', 80) || null,
       title,
       quantity,
       unit_price: unitPrice,
@@ -7533,11 +7546,40 @@ async function lockedPaymentValidateOrderItems(orderId, orderTotal, serviceType)
     });
   }
 
-  if (lockedPaymentMoney(total) !== lockedPaymentMoney(orderTotal)) {
-    return { ok: false, status: 409, message: 'Total order berbeda dengan total item. Payment gateway tidak dibuat.' };
+  if (!items.length) return fallback('order_items_invalid_or_incomplete');
+
+  if (lockedPaymentMoney(total) !== amount) {
+    return fallback('order_items_total_mismatch');
   }
 
   return { ok: true, totalItem: total, items };
+}
+
+function lockedPaymentBuildFallbackOrderItem(amount, serviceType, reason) {
+  const safeAmount = lockedPaymentMoney(amount);
+  if (safeAmount <= 0) {
+    return { ok: false, status: 409, message: 'Total order 0/kosong. Payment gateway tidak boleh dibuat.' };
+  }
+
+  const label = typeof myOrdersServiceLabel === 'function'
+    ? myOrdersServiceLabel(serviceType)
+    : '';
+  const title = lockedPaymentCleanText(label || serviceType || 'Total pesanan', 180) || 'Total pesanan';
+
+  return {
+    ok: true,
+    totalItem: safeAmount,
+    fallback_item: true,
+    fallback_reason: lockedPaymentCleanText(reason || 'database_total_fallback', 80),
+    items: [{
+      id: 'order-total',
+      product_doc_id: null,
+      title,
+      quantity: 1,
+      unit_price: safeAmount,
+      subtotal: safeAmount
+    }]
+  };
 }
 
 async function lockedPaymentFindReusableTransaction(orderId, customerId, amount) {
