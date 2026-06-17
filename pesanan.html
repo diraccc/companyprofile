@@ -1440,8 +1440,31 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     function dateFmt(v){ if(!v) return '—'; const d = new Date(v); if(!Number.isFinite(d.getTime())) return '—'; try{return new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(_){return d.toISOString()} }
     function statusLabel(s){ const key=clean(s).toLowerCase(); return ({unpaid:'Belum dibayar',paid:'Sudah dibayar',pending:'Pending',pending_payment:'Menunggu pembayaran',processing:'Diproses',completed:'Selesai',failed:'Gagal',cancelled:'Dibatalkan'})[key] || (key ? key.replace(/_/g,' ') : 'Unknown'); }
     function statusClass(s){ const key=clean(s).toLowerCase(); if(['paid','completed','success'].includes(key)) return 'ok'; if(['failed','cancelled','expired'].includes(key)) return 'bad'; if(['processing'].includes(key)) return 'info'; return 'warn'; }
+    // Payment request identity hardening v2:
+    // kirim ID database sebagai identitas utama agar backend tidak salah membaca kode invoice tampilan.
+    // Nominal, status, customer_id, dan payment_url tetap tidak pernah dikirim dari frontend.
+    function paymentOrderDatabaseId(o){
+      return clean(o && o.id);
+    }
+    function paymentOrderVisibleCode(o){
+      return clean(o && (o.invoice_code || o.order_code || o.order_id || o.id));
+    }
     function paymentOrderCode(o){
-      return clean(o && (o.order_id || o.order_code || o.id || o.invoice_code));
+      return paymentOrderDatabaseId(o) || paymentOrderVisibleCode(o);
+    }
+    function paymentRequestBody(order, type, code){
+      const databaseId = paymentOrderDatabaseId(order);
+      const visibleCode = paymentOrderVisibleCode(order);
+      const canonical = databaseId || code || visibleCode;
+      return {
+        order_id: canonical,
+        orderId: canonical,
+        id: databaseId || canonical,
+        order_code: visibleCode || canonical,
+        invoice_code: visibleCode || canonical,
+        order_type: type,
+        service_type: clean(order && order.service_type)
+      };
     }
     function paymentOrderType(o){
       const type = clean(o && (o.type || o.order_type || '')).toLowerCase();
@@ -1570,11 +1593,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       try{
         const result = await fetchJson('create_payment', {
           method:'POST',
-          body:{
-            order_id: code,
-            order_type: type,
-            service_type: clean(order && order.service_type)
-          }
+          body: paymentRequestBody(order, type, code)
         });
         const data = result.data || {};
         if(!result.ok || !data.ok){
