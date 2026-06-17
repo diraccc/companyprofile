@@ -10604,7 +10604,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    - Owner/store email uses ORDER_OWNER_* ENV.
    ============================================================ */
 
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v22-gray-bg-full-white-text-email-only';
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v23-wib-display-datefix-email-only';
 const __diracOrderMailPreviousHandler = module.exports;
 
 module.exports = async function diracOrderMailWrapper(req, res) {
@@ -11419,7 +11419,7 @@ function orderMailFormatCurrency(value, currency) {
 }
 
 function orderMailFormatDate(value) {
-  const date = new Date(value || Date.now());
+  const date = orderMailParseWibDisplayDate(value);
   try {
     return new Intl.DateTimeFormat('id-ID', {
       timeZone: 'Asia/Jakarta',
@@ -11430,6 +11430,37 @@ function orderMailFormatDate(value) {
   } catch (_) {
     return (Number.isFinite(date.getTime()) ? date : new Date()).toISOString();
   }
+}
+
+function orderMailParseWibDisplayDate(value) {
+  if (value === undefined || value === null || value === '') return new Date();
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value : new Date();
+  if (typeof value === 'number') {
+    const numericDate = new Date(value);
+    return Number.isFinite(numericDate.getTime()) ? numericDate : new Date();
+  }
+
+  const raw = String(value || '').trim();
+  if (!raw) return new Date();
+
+  // Midtrans settlement_time is commonly sent as "YYYY-MM-DD HH:mm:ss" in WIB
+  // without a timezone suffix. Do not parse it as UTC, because that shifts
+  // 17 Jun 20:23 WIB into 18 Jun 03:23 WIB in the invoice email.
+  const hasExplicitTimezone = /(z|[+-]\d{2}:?\d{2})$/i.test(raw);
+  const localDateTimeMatch = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?(?:\.\d{1,6})?)$/);
+  if (localDateTimeMatch && !hasExplicitTimezone) {
+    const parsedWib = new Date(`${localDateTimeMatch[1]}T${localDateTimeMatch[2]}+07:00`);
+    return Number.isFinite(parsedWib.getTime()) ? parsedWib : new Date();
+  }
+
+  const localDateOnlyMatch = raw.match(/^(\d{4}-\d{2}-\d{2})$/);
+  if (localDateOnlyMatch && !hasExplicitTimezone) {
+    const parsedWibDate = new Date(`${localDateOnlyMatch[1]}T00:00:00+07:00`);
+    return Number.isFinite(parsedWibDate.getTime()) ? parsedWibDate : new Date();
+  }
+
+  const parsed = new Date(raw);
+  return Number.isFinite(parsed.getTime()) ? parsed : new Date();
 }
 
 function orderMailServiceLabel(value) {
