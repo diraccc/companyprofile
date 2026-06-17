@@ -7775,8 +7775,13 @@ function lockedPaymentResolveGatewayDebugPatch(raw) {
 }
 
 function lockedPaymentGenerateReference(orderCode) {
-  const base = lockedPaymentCleanText(orderCode || 'ORDER', 40).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || 'ORDER';
-  return `PAY-${base}-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  // PATCH midtrans-order-id-short-v3:
+  // Midtrans Snap sensitif terhadap panjang transaction_details.order_id.
+  // Format lama dapat >50 karakter, sehingga Midtrans mengembalikan HTTP 400.
+  const base = lockedPaymentCleanText(orderCode || 'ORDER', 80).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20) || 'ORDER';
+  const ts = Date.now().toString(36).toUpperCase();
+  const rnd = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `PAY-${base}-${ts}-${rnd}`.slice(0, 48);
 }
 
 function lockedPaymentNormalizeServiceType(value) {
