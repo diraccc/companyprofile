@@ -221,11 +221,11 @@ const DOMAIN_SIGNED_SESSION_TYPE = 'dirac-domain-signed-session-v1';
 // SAFE V2: database-backed protected-page lock, fail-safe.
 // Login/hash/A2F/payment/webhook tidak diubah. Jika database session belum siap/schema berbeda,
 // dashboard tidak diblokir. Blokir hanya saat row database jelas revoked/expired/idle.
-const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW = Number(process.env.DOMAIN_PROTECTED_IDLE_TIMEOUT_MS || 2 * 60 * 1000);
+const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW = Number(process.env.DOMAIN_PROTECTED_IDLE_TIMEOUT_MS || 5 * 60 * 1000);
 const DOMAIN_PROTECTED_IDLE_TIMEOUT_MS = Number.isFinite(DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
   ? Math.max(15 * 1000, DOMAIN_PROTECTED_IDLE_TIMEOUT_MS_RAW)
-  : 2 * 60 * 1000;
-const DOMAIN_PROTECTED_SESSION_REVOKE_REASON = 'protected_idle_timeout_2m';
+  : 5 * 60 * 1000;
+const DOMAIN_PROTECTED_SESSION_REVOKE_REASON = 'protected_idle_timeout_5m';
 
 
 const HOSTINGER_API_BASE = 'https://developers.hostinger.com';
@@ -1584,7 +1584,7 @@ async function checkDomainProtectedDatabaseSessionLockSafe(req, user) {
       customerId,
       sessionId: row.id,
       message: idleExpired
-        ? 'Sesi dikunci database karena tidak aktif lebih dari 2 menit. Silakan login ulang.'
+        ? 'Sesi dikunci database karena tidak aktif lebih dari 5 menit. Silakan login ulang.'
         : 'Sesi sudah dicabut/expired. Silakan login ulang.'
     };
   }
