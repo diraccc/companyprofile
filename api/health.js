@@ -10604,7 +10604,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    - Owner/store email uses ORDER_OWNER_* ENV.
    ============================================================ */
 
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v15-email-template';
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v16-owner-fallback';
 const __diracOrderMailPreviousHandler = module.exports;
 
 module.exports = async function diracOrderMailWrapper(req, res) {
@@ -10845,7 +10845,7 @@ async function orderMailNotifyNewOrderSafe(input) {
     if (summary.owner.enabled && summary.owner.configured && orderMailSmtpConfig('owner').recipients.length) {
       summary.attempted = true;
       const ownerConfig = orderMailSmtpConfig('owner');
-      const ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
+      let ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
         to: ownerConfig.recipients,
         subject: messages.ownerSubject,
         text: messages.ownerText,
@@ -10853,6 +10853,27 @@ async function orderMailNotifyNewOrderSafe(input) {
         fromName: ownerConfig.fromName,
         fromEmail: ownerConfig.fromEmail
       });
+
+      // PATCH owner-mail-fallback-v4:
+      // Jika SMTP owner gagal, kirim ulang email owner memakai SMTP customer yang sudah terbukti bisa mengirim.
+      // Recipient owner tetap ORDER_OWNER_EMAIL; template dan data order tidak diubah.
+      summary.owner.primary_provider = ownerConfig.host || '';
+      if (!ownerResult.ok && orderMailSmtpConfig('customer').configured) {
+        const customerConfig = orderMailSmtpConfig('customer');
+        const fallbackResult = await orderMailSendViaSmtpSafe(customerConfig, {
+          to: ownerConfig.recipients,
+          subject: messages.ownerSubject,
+          text: messages.ownerText,
+          html: messages.ownerHtml,
+          fromName: customerConfig.fromName,
+          fromEmail: customerConfig.fromEmail
+        });
+        summary.owner.primary_error = ownerResult.error || null;
+        summary.owner.fallback_used = true;
+        summary.owner.fallback_provider = customerConfig.host || '';
+        ownerResult = fallbackResult;
+      }
+
       summary.owner.sent = Boolean(ownerResult.ok);
       summary.owner.error = ownerResult.ok ? null : ownerResult.error;
       summary.owner.recipient_count = ownerConfig.recipients.length;
