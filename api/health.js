@@ -10604,7 +10604,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    - Owner/store email uses ORDER_OWNER_* ENV.
    ============================================================ */
 
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v16-owner-fallback';
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v17-owner-delivery-template-clarity';
 const __diracOrderMailPreviousHandler = module.exports;
 
 module.exports = async function diracOrderMailWrapper(req, res) {
@@ -10810,12 +10810,26 @@ async function orderMailFetchCustomerFallback(customerId) {
 }
 
 async function orderMailNotifyNewOrderSafe(input) {
+  const customerConfig = orderMailSmtpConfig('customer');
+  const ownerConfig = orderMailSmtpConfig('owner');
+  const ownerRecipients = Array.from(new Set(ownerConfig.recipients.map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
+  const ownerFallbackAvailable = customerConfig.configured;
+  const ownerDeliverable = Boolean(ownerRecipients.length && (ownerConfig.configured || ownerFallbackAvailable));
+
   const summary = {
     ok: true,
     debugPatch: DIRAC_ORDER_MAIL_PATCH,
     attempted: false,
-    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: false, error: null },
-    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: false, error: null }
+    customer: { enabled: orderMailCustomerEnabled(), configured: customerConfig.configured, sent: false, skipped: false, error: null },
+    owner: {
+      enabled: orderMailOwnerEnabled(),
+      configured: ownerDeliverable,
+      owner_smtp_configured: ownerConfig.configured,
+      fallback_smtp_configured: ownerFallbackAvailable,
+      sent: false,
+      skipped: false,
+      error: null
+    }
   };
 
   try {
@@ -10824,7 +10838,6 @@ async function orderMailNotifyNewOrderSafe(input) {
 
     if (summary.customer.enabled && summary.customer.configured && order.customer.email) {
       summary.attempted = true;
-      const customerConfig = orderMailSmtpConfig('customer');
       const customerResult = await orderMailSendViaSmtpSafe(customerConfig, {
         to: [order.customer.email],
         subject: messages.customerSubject,
@@ -10842,26 +10855,29 @@ async function orderMailNotifyNewOrderSafe(input) {
         : (!summary.customer.configured ? 'smtp_not_configured' : 'customer_email_missing');
     }
 
-    if (summary.owner.enabled && summary.owner.configured && orderMailSmtpConfig('owner').recipients.length) {
+    if (summary.owner.enabled && ownerRecipients.length && (ownerConfig.configured || ownerFallbackAvailable)) {
       summary.attempted = true;
-      const ownerConfig = orderMailSmtpConfig('owner');
-      let ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
-        to: ownerConfig.recipients,
-        subject: messages.ownerSubject,
-        text: messages.ownerText,
-        html: messages.ownerHtml,
-        fromName: ownerConfig.fromName,
-        fromEmail: ownerConfig.fromEmail
-      });
-
-      // PATCH owner-mail-fallback-v4:
-      // Jika SMTP owner gagal, kirim ulang email owner memakai SMTP customer yang sudah terbukti bisa mengirim.
-      // Recipient owner tetap ORDER_OWNER_EMAIL; template dan data order tidak diubah.
+      summary.owner.recipient_count = ownerRecipients.length;
       summary.owner.primary_provider = ownerConfig.host || '';
-      if (!ownerResult.ok && orderMailSmtpConfig('customer').configured) {
-        const customerConfig = orderMailSmtpConfig('customer');
+
+      let ownerResult = { ok: false, error: 'owner_smtp_not_configured' };
+      if (ownerConfig.configured) {
+        ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
+          to: ownerRecipients,
+          subject: messages.ownerSubject,
+          text: messages.ownerText,
+          html: messages.ownerHtml,
+          fromName: ownerConfig.fromName,
+          fromEmail: ownerConfig.fromEmail
+        });
+      }
+
+      // PATCH owner-mail-fallback-v5:
+      // Jika SMTP owner gagal atau tidak disetel, email owner tetap dicoba lewat SMTP customer.
+      // Recipient tetap ORDER_OWNER_EMAIL. Tidak menyentuh login/hash/A2F/payment/security.
+      if (!ownerResult.ok && ownerFallbackAvailable) {
         const fallbackResult = await orderMailSendViaSmtpSafe(customerConfig, {
-          to: ownerConfig.recipients,
+          to: ownerRecipients,
           subject: messages.ownerSubject,
           text: messages.ownerText,
           html: messages.ownerHtml,
@@ -10872,16 +10888,18 @@ async function orderMailNotifyNewOrderSafe(input) {
         summary.owner.fallback_used = true;
         summary.owner.fallback_provider = customerConfig.host || '';
         ownerResult = fallbackResult;
+      } else {
+        summary.owner.fallback_used = false;
       }
 
       summary.owner.sent = Boolean(ownerResult.ok);
       summary.owner.error = ownerResult.ok ? null : ownerResult.error;
-      summary.owner.recipient_count = ownerConfig.recipients.length;
     } else {
       summary.owner.skipped = true;
       summary.owner.reason = !summary.owner.enabled
         ? 'disabled'
-        : (!summary.owner.configured ? 'smtp_not_configured' : 'owner_email_missing');
+        : (!ownerRecipients.length ? 'owner_email_missing' : 'smtp_not_configured');
+      summary.owner.recipient_count = ownerRecipients.length;
     }
   } catch (error) {
     summary.ok = false;
@@ -11099,7 +11117,8 @@ function orderMailBuildNewOrderMessages(data) {
 }
 
 function orderMailAssetBaseUrl() {
-  return String(process.env.ORDER_EMAIL_ASSET_BASE_URL || process.env.DOMAIN_SITE_URL || process.env.SITE_URL || SITE_URL || 'https://diracgroup.store').trim().replace(/\/+$/, '');
+  const legacySiteUrl = typeof SITE_URL !== 'undefined' ? SITE_URL : '';
+  return String(process.env.ORDER_EMAIL_ASSET_BASE_URL || process.env.DOMAIN_SITE_URL || process.env.SITE_URL || legacySiteUrl || 'https://diracgroup.store').trim().replace(/\/+$/, '');
 }
 function orderMailAssetUrl(value) {
   const raw = String(value || '').trim();
@@ -11147,26 +11166,32 @@ function orderMailHtmlShell(title, body, options = {}) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
+  <meta name="color-scheme" content="only light">
+  <meta name="supported-color-schemes" content="only light">
   <title>${orderMailEscapeHtml(title)}</title>
 </head>
-<body style="margin:0!important;padding:0!important;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#eef2f7;margin:0;padding:24px 0">
+<body bgcolor="#eef2f7" style="margin:0!important;padding:0!important;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;margin:0;padding:24px 0">
     <tr>
       <td align="center" style="padding:0 12px">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ef;box-shadow:0 8px 30px rgba(15,23,42,.08)">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="max-width:680px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ef;box-shadow:0 8px 30px rgba(15,23,42,.08)">
           <tr>
-            <td bgcolor="#0b3dd9" style="background:#0b3dd9;padding:30px 32px;background-image:linear-gradient(135deg,#081f5f 0%,#1d4ed8 58%,#0ea5e9 100%)">
+            <td bgcolor="#06194f" style="background:#06194f;padding:28px 30px;background-image:linear-gradient(135deg,#06194f 0%,#0b3dd9 62%,#0ea5e9 100%)">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td valign="top" style="color:#ffffff!important">
-                    <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#dbeafe!important;-webkit-text-fill-color:#dbeafe!important;margin-bottom:10px;font-weight:800">DIRAC GROUP</div>
-                    <div style="font-size:28px;line-height:1.22;font-weight:900;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-shadow:0 2px 4px rgba(0,0,0,.48);mso-line-height-rule:exactly">${orderMailEscapeHtml(title)}</div>
-                    ${total ? `<div style="margin-top:12px;font-size:15px;line-height:1.5;color:#e0f2fe!important;-webkit-text-fill-color:#e0f2fe!important">Total pembayaran: <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${total}</strong></div>` : ''}
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#071a52" style="background:#071a52;border-radius:14px;border:1px solid rgba(255,255,255,.22)">
+                      <tr>
+                        <td style="padding:18px 20px;color:#ffffff!important">
+                          <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#bfdbfe!important;-webkit-text-fill-color:#bfdbfe!important;margin-bottom:10px;font-weight:800"><font color="#bfdbfe">DIRAC GROUP</font></div>
+                          <div style="font-size:30px;line-height:1.25;font-weight:900;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-shadow:0 2px 4px rgba(0,0,0,.55);mso-line-height-rule:exactly"><font color="#ffffff">${orderMailEscapeHtml(title)}</font></div>
+                          ${total ? `<div style="margin-top:13px;font-size:16px;line-height:1.55;color:#e0f2fe!important;-webkit-text-fill-color:#e0f2fe!important"><font color="#e0f2fe">Total pembayaran: <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important"><font color="#ffffff">${total}</font></strong></font></div>` : ''}
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                   <td valign="top" align="right" style="padding-left:12px">
-                    <span style="display:inline-block;background:#dcfce7;color:#166534!important;-webkit-text-fill-color:#166534!important;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;white-space:nowrap">${badge}</span>
+                    <span style="display:inline-block;background:#dcfce7;color:#14532d!important;-webkit-text-fill-color:#14532d!important;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;white-space:nowrap"><font color="#14532d">${badge}</font></span>
                   </td>
                 </tr>
               </table>
@@ -11196,8 +11221,8 @@ function orderMailHtmlShell(title, body, options = {}) {
 }
 
 function orderMailInfoTable(rows) {
-  const body = (rows || []).map(([key, value]) => `<tr><td style="padding:13px 16px;border-bottom:1px solid #e5e7eb;color:#64748b;width:42%;font-size:14px">${orderMailEscapeHtml(key)}</td><td style="padding:13px 16px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-size:14px;font-weight:700">${orderMailEscapeHtml(value)}</td></tr>`).join('');
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#f8fafc">${body}</table>`;
+  const body = (rows || []).map(([key, value]) => `<tr><td bgcolor="#f8fafc" style="padding:13px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc;color:#475569!important;-webkit-text-fill-color:#475569!important;width:42%;font-size:14px;line-height:1.45"><font color="#475569">${orderMailEscapeHtml(key)}</font></td><td bgcolor="#ffffff" style="padding:13px 16px;border-bottom:1px solid #e5e7eb;background:#ffffff;color:#0f172a!important;-webkit-text-fill-color:#0f172a!important;font-size:14px;font-weight:800;line-height:1.45"><font color="#0f172a">${orderMailEscapeHtml(value)}</font></td></tr>`).join('');
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#ffffff">${body}</table>`;
 }
 function orderMailItemsText(items, currency = 'IDR') {
   const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
