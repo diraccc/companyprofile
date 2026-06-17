@@ -10604,7 +10604,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    - Owner/store email uses ORDER_OWNER_* ENV.
    ============================================================ */
 
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v17-owner-delivery-template-clarity';
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v18-dark-email-bg-owner-direct';
 const __diracOrderMailPreviousHandler = module.exports;
 
 module.exports = async function diracOrderMailWrapper(req, res) {
@@ -10810,26 +10810,12 @@ async function orderMailFetchCustomerFallback(customerId) {
 }
 
 async function orderMailNotifyNewOrderSafe(input) {
-  const customerConfig = orderMailSmtpConfig('customer');
-  const ownerConfig = orderMailSmtpConfig('owner');
-  const ownerRecipients = Array.from(new Set(ownerConfig.recipients.map(orderMailNormalizeEmail).filter(Boolean))).slice(0, 50);
-  const ownerFallbackAvailable = customerConfig.configured;
-  const ownerDeliverable = Boolean(ownerRecipients.length && (ownerConfig.configured || ownerFallbackAvailable));
-
   const summary = {
     ok: true,
     debugPatch: DIRAC_ORDER_MAIL_PATCH,
     attempted: false,
-    customer: { enabled: orderMailCustomerEnabled(), configured: customerConfig.configured, sent: false, skipped: false, error: null },
-    owner: {
-      enabled: orderMailOwnerEnabled(),
-      configured: ownerDeliverable,
-      owner_smtp_configured: ownerConfig.configured,
-      fallback_smtp_configured: ownerFallbackAvailable,
-      sent: false,
-      skipped: false,
-      error: null
-    }
+    customer: { enabled: orderMailCustomerEnabled(), configured: orderMailSmtpConfig('customer').configured, sent: false, skipped: false, error: null },
+    owner: { enabled: orderMailOwnerEnabled(), configured: orderMailSmtpConfig('owner').configured, sent: false, skipped: false, error: null }
   };
 
   try {
@@ -10838,6 +10824,7 @@ async function orderMailNotifyNewOrderSafe(input) {
 
     if (summary.customer.enabled && summary.customer.configured && order.customer.email) {
       summary.attempted = true;
+      const customerConfig = orderMailSmtpConfig('customer');
       const customerResult = await orderMailSendViaSmtpSafe(customerConfig, {
         to: [order.customer.email],
         subject: messages.customerSubject,
@@ -10855,51 +10842,25 @@ async function orderMailNotifyNewOrderSafe(input) {
         : (!summary.customer.configured ? 'smtp_not_configured' : 'customer_email_missing');
     }
 
-    if (summary.owner.enabled && ownerRecipients.length && (ownerConfig.configured || ownerFallbackAvailable)) {
+    if (summary.owner.enabled && summary.owner.configured && orderMailSmtpConfig('owner').recipients.length) {
       summary.attempted = true;
-      summary.owner.recipient_count = ownerRecipients.length;
-      summary.owner.primary_provider = ownerConfig.host || '';
-
-      let ownerResult = { ok: false, error: 'owner_smtp_not_configured' };
-      if (ownerConfig.configured) {
-        ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
-          to: ownerRecipients,
-          subject: messages.ownerSubject,
-          text: messages.ownerText,
-          html: messages.ownerHtml,
-          fromName: ownerConfig.fromName,
-          fromEmail: ownerConfig.fromEmail
-        });
-      }
-
-      // PATCH owner-mail-fallback-v5:
-      // Jika SMTP owner gagal atau tidak disetel, email owner tetap dicoba lewat SMTP customer.
-      // Recipient tetap ORDER_OWNER_EMAIL. Tidak menyentuh login/hash/A2F/payment/security.
-      if (!ownerResult.ok && ownerFallbackAvailable) {
-        const fallbackResult = await orderMailSendViaSmtpSafe(customerConfig, {
-          to: ownerRecipients,
-          subject: messages.ownerSubject,
-          text: messages.ownerText,
-          html: messages.ownerHtml,
-          fromName: customerConfig.fromName,
-          fromEmail: customerConfig.fromEmail
-        });
-        summary.owner.primary_error = ownerResult.error || null;
-        summary.owner.fallback_used = true;
-        summary.owner.fallback_provider = customerConfig.host || '';
-        ownerResult = fallbackResult;
-      } else {
-        summary.owner.fallback_used = false;
-      }
-
+      const ownerConfig = orderMailSmtpConfig('owner');
+      const ownerResult = await orderMailSendViaSmtpSafe(ownerConfig, {
+        to: ownerConfig.recipients,
+        subject: messages.ownerSubject,
+        text: messages.ownerText,
+        html: messages.ownerHtml,
+        fromName: ownerConfig.fromName,
+        fromEmail: ownerConfig.fromEmail
+      });
       summary.owner.sent = Boolean(ownerResult.ok);
       summary.owner.error = ownerResult.ok ? null : ownerResult.error;
+      summary.owner.recipient_count = ownerConfig.recipients.length;
     } else {
       summary.owner.skipped = true;
       summary.owner.reason = !summary.owner.enabled
         ? 'disabled'
-        : (!ownerRecipients.length ? 'owner_email_missing' : 'smtp_not_configured');
-      summary.owner.recipient_count = ownerRecipients.length;
+        : (!summary.owner.configured ? 'smtp_not_configured' : 'owner_email_missing');
     }
   } catch (error) {
     summary.ok = false;
@@ -11078,8 +11039,8 @@ function orderMailBuildNewOrderMessages(data) {
   ].filter((line) => line !== '').join('\n');
 
   const customerHtml = orderMailHtmlShell(customerSubject, `
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#334155">Halo <strong>${orderMailEscapeHtml(data.customer.name || 'Customer')}</strong>,</p>
-    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#334155">${orderMailEscapeHtml(customerIntro)}</p>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#cbd5e1">Halo <strong>${orderMailEscapeHtml(data.customer.name || 'Customer')}</strong>,</p>
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#cbd5e1">${orderMailEscapeHtml(customerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Layanan', serviceLabel],
@@ -11090,12 +11051,12 @@ function orderMailBuildNewOrderMessages(data) {
     ])}
     ${paymentHtml}
     ${productCardsHtml}
-    <h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Rincian pesanan</h3>
+    <h3 style="margin:22px 0 12px;font-size:16px;color:#f8fafc">Rincian pesanan</h3>
     ${itemsHtml}
   `, { badge: paid ? 'PAID' : 'ORDER', total, showActions: true, showPromoImage: true });
 
   const ownerHtml = orderMailHtmlShell(ownerSubject, `
-    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#334155">${orderMailEscapeHtml(ownerIntro)}</p>
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#cbd5e1">${orderMailEscapeHtml(ownerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Jenis', serviceLabel],
@@ -11109,7 +11070,7 @@ function orderMailBuildNewOrderMessages(data) {
     ])}
     ${paymentHtml}
     ${productCardsHtml}
-    <h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Rincian pesanan</h3>
+    <h3 style="margin:22px 0 12px;font-size:16px;color:#f8fafc">Rincian pesanan</h3>
     ${itemsHtml}
   `, { badge: paid ? 'PAID' : 'OWNER', total, showActions: false, showPromoImage: false });
 
@@ -11117,8 +11078,7 @@ function orderMailBuildNewOrderMessages(data) {
 }
 
 function orderMailAssetBaseUrl() {
-  const legacySiteUrl = typeof SITE_URL !== 'undefined' ? SITE_URL : '';
-  return String(process.env.ORDER_EMAIL_ASSET_BASE_URL || process.env.DOMAIN_SITE_URL || process.env.SITE_URL || legacySiteUrl || 'https://diracgroup.store').trim().replace(/\/+$/, '');
+  return String(process.env.ORDER_EMAIL_ASSET_BASE_URL || process.env.DOMAIN_SITE_URL || process.env.SITE_URL || SITE_URL || 'https://diracgroup.store').trim().replace(/\/+$/, '');
 }
 function orderMailAssetUrl(value) {
   const raw = String(value || '').trim();
@@ -11148,15 +11108,15 @@ function orderMailHtmlShell(title, body, options = {}) {
   const showPromoImage = options.showPromoImage !== false;
   const actionsHtml = showActions ? `
         <div style="margin-top:24px;text-align:left">
-          <a href="${orderMailEscapeHtml(orderUrl)}" style="display:inline-block;background:#2563eb;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0">Lihat pesanan</a>
-          <a href="mailto:${supportEmail}" style="display:inline-block;background:#eef2ff;color:#1e3a8a!important;-webkit-text-fill-color:#1e3a8a!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0">Hubungi support</a>
-          <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;background:#22c55e;color:#06230f!important;-webkit-text-fill-color:#06230f!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 0 8px 0">Butuh bantuan</a>
+          <a href="${orderMailEscapeHtml(orderUrl)}" style="display:inline-block;background:#38bdf8;color:#04111f!important;-webkit-text-fill-color:#04111f!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0">Lihat pesanan</a>
+          <a href="mailto:${supportEmail}" style="display:inline-block;background:#182235;color:#e5e7eb!important;-webkit-text-fill-color:#e5e7eb!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0;border:1px solid #334155">Hubungi support</a>
+          <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;background:#22c55e;color:#04130a!important;-webkit-text-fill-color:#04130a!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 0 8px 0">Butuh bantuan</a>
         </div>` : '';
   const promoHtml = showPromoImage ? `
       <tr>
-        <td style="padding:0 32px 26px;background:#ffffff">
+        <td style="padding:0 32px 26px;background:#0b1220">
           <a href="${orderMailEscapeHtml(orderUrl)}" style="text-decoration:none;border:0">
-            <img src="${orderMailEscapeHtml(promoImage)}" width="616" alt="Dirac Group" style="display:block;width:100%;max-width:616px;height:auto;border:0;border-radius:14px;background:#f8fafc;outline:none;text-decoration:none">
+            <img src="${orderMailEscapeHtml(promoImage)}" width="616" alt="Dirac Group" style="display:block;width:100%;max-width:616px;height:auto;border:0;border-radius:14px;background:#111827;outline:none;text-decoration:none;box-shadow:0 12px 28px rgba(0,0,0,.30)">
           </a>
         </td>
       </tr>` : '';
@@ -11166,49 +11126,43 @@ function orderMailHtmlShell(title, body, options = {}) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="only light">
-  <meta name="supported-color-schemes" content="only light">
+  <meta name="color-scheme" content="dark light">
+  <meta name="supported-color-schemes" content="dark light">
   <title>${orderMailEscapeHtml(title)}</title>
 </head>
-<body bgcolor="#eef2f7" style="margin:0!important;padding:0!important;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;margin:0;padding:24px 0">
+<body style="margin:0!important;padding:0!important;background:#070b16;font-family:Arial,Helvetica,sans-serif;color:#e5e7eb">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#070b16;background-image:linear-gradient(180deg,#070b16 0%,#101827 100%);margin:0;padding:24px 0">
     <tr>
       <td align="center" style="padding:0 12px">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="max-width:680px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ef;box-shadow:0 8px 30px rgba(15,23,42,.08)">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#0b1220;border-radius:18px;overflow:hidden;border:1px solid #26324a;box-shadow:0 18px 46px rgba(0,0,0,.42)">
           <tr>
-            <td bgcolor="#06194f" style="background:#06194f;padding:28px 30px;background-image:linear-gradient(135deg,#06194f 0%,#0b3dd9 62%,#0ea5e9 100%)">
+            <td bgcolor="#0f1b3d" style="background:#0f1b3d;padding:30px 32px;background-image:linear-gradient(135deg,#050816 0%,#111d3d 46%,#0b6b8f 100%)">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td valign="top" style="color:#ffffff!important">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#071a52" style="background:#071a52;border-radius:14px;border:1px solid rgba(255,255,255,.22)">
-                      <tr>
-                        <td style="padding:18px 20px;color:#ffffff!important">
-                          <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#bfdbfe!important;-webkit-text-fill-color:#bfdbfe!important;margin-bottom:10px;font-weight:800"><font color="#bfdbfe">DIRAC GROUP</font></div>
-                          <div style="font-size:30px;line-height:1.25;font-weight:900;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-shadow:0 2px 4px rgba(0,0,0,.55);mso-line-height-rule:exactly"><font color="#ffffff">${orderMailEscapeHtml(title)}</font></div>
-                          ${total ? `<div style="margin-top:13px;font-size:16px;line-height:1.55;color:#e0f2fe!important;-webkit-text-fill-color:#e0f2fe!important"><font color="#e0f2fe">Total pembayaran: <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important"><font color="#ffffff">${total}</font></strong></font></div>` : ''}
-                        </td>
-                      </tr>
-                    </table>
+                    <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#93c5fd!important;-webkit-text-fill-color:#93c5fd!important;margin-bottom:10px;font-weight:800">DIRAC GROUP</div>
+                    <div style="font-size:28px;line-height:1.22;font-weight:900;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-shadow:0 2px 8px rgba(0,0,0,.58);mso-line-height-rule:exactly">${orderMailEscapeHtml(title)}</div>
+                    ${total ? `<div style="margin-top:12px;font-size:15px;line-height:1.5;color:#bae6fd!important;-webkit-text-fill-color:#bae6fd!important">Total pembayaran: <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${total}</strong></div>` : ''}
                   </td>
                   <td valign="top" align="right" style="padding-left:12px">
-                    <span style="display:inline-block;background:#dcfce7;color:#14532d!important;-webkit-text-fill-color:#14532d!important;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;white-space:nowrap"><font color="#14532d">${badge}</font></span>
+                    <span style="display:inline-block;background:#dcfce7;color:#14532d!important;-webkit-text-fill-color:#14532d!important;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;white-space:nowrap;box-shadow:0 6px 18px rgba(34,197,94,.22)">${badge}</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td style="padding:28px 32px;background:#ffffff;color:#0f172a">
+            <td style="padding:28px 32px;background:#0b1220;color:#e5e7eb">
               ${body}
               ${actionsHtml}
             </td>
           </tr>
           ${promoHtml}
           <tr>
-            <td style="background:#e8eeff;padding:24px 32px;text-align:center;color:#475569!important;-webkit-text-fill-color:#475569!important;font-size:14px;line-height:1.8">
+            <td style="background:#070b16;padding:24px 32px;text-align:center;color:#94a3b8!important;-webkit-text-fill-color:#94a3b8!important;font-size:14px;line-height:1.8;border-top:1px solid #1f2a44">
               Email ini dikirim otomatis oleh sistem Dirac Group.<br>
-              Hubungi support hanya ke <a href="mailto:${supportEmail}" style="color:#2563eb!important;-webkit-text-fill-color:#2563eb!important;text-decoration:none;font-weight:900">${supportEmail}</a><br>
-              <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;margin-top:12px;background:#22c55e;color:#06230f!important;-webkit-text-fill-color:#06230f!important;text-decoration:none;font-size:14px;font-weight:900;padding:12px 18px;border-radius:10px">Butuh bantuan</a><br><br>
+              Hubungi support hanya ke <a href="mailto:${supportEmail}" style="color:#38bdf8!important;-webkit-text-fill-color:#38bdf8!important;text-decoration:none;font-weight:900">${supportEmail}</a><br>
+              <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;margin-top:12px;background:#22c55e;color:#04130a!important;-webkit-text-fill-color:#04130a!important;text-decoration:none;font-size:14px;font-weight:900;padding:12px 18px;border-radius:10px">Butuh bantuan</a><br><br>
               © 2026 Dirac Group. All rights reserved.
             </td>
           </tr>
@@ -11219,10 +11173,9 @@ function orderMailHtmlShell(title, body, options = {}) {
 </body>
 </html>`;
 }
-
 function orderMailInfoTable(rows) {
-  const body = (rows || []).map(([key, value]) => `<tr><td bgcolor="#f8fafc" style="padding:13px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc;color:#475569!important;-webkit-text-fill-color:#475569!important;width:42%;font-size:14px;line-height:1.45"><font color="#475569">${orderMailEscapeHtml(key)}</font></td><td bgcolor="#ffffff" style="padding:13px 16px;border-bottom:1px solid #e5e7eb;background:#ffffff;color:#0f172a!important;-webkit-text-fill-color:#0f172a!important;font-size:14px;font-weight:800;line-height:1.45"><font color="#0f172a">${orderMailEscapeHtml(value)}</font></td></tr>`).join('');
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#ffffff">${body}</table>`;
+  const body = (rows || []).map(([key, value]) => `<tr><td style="padding:13px 16px;border-bottom:1px solid #26324a;color:#94a3b8;width:42%;font-size:14px;background:#111827">${orderMailEscapeHtml(key)}</td><td style="padding:13px 16px;border-bottom:1px solid #26324a;color:#f8fafc;font-size:14px;font-weight:700;background:#0f172a">${orderMailEscapeHtml(value)}</td></tr>`).join('');
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #26324a;border-radius:14px;overflow:hidden;background:#0f172a">${body}</table>`;
 }
 function orderMailItemsText(items, currency = 'IDR') {
   const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
@@ -11235,9 +11188,9 @@ function orderMailItemsHtml(items, currency = 'IDR') {
   const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
   const body = rows.map((item, index) => {
     const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
-    return `<tr><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;color:#334155;font-size:14px">${index + 1}</td><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;color:#0f172a;font-size:14px;font-weight:700">${orderMailEscapeHtml(item.title)}${item.description ? `<div style="font-size:12px;font-weight:400;color:#64748b;margin-top:4px;line-height:1.5">${orderMailEscapeHtml(item.description)}</div>` : ''}</td><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;text-align:center;color:#334155;font-size:14px">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:12px 14px;border-bottom:1px solid #e5e7eb;text-align:right;color:#0f172a;font-size:14px;font-weight:800">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, currency))}</td></tr>`;
+    return `<tr><td style="padding:12px 14px;border-bottom:1px solid #26324a;color:#cbd5e1;font-size:14px;background:#0f172a">${index + 1}</td><td style="padding:12px 14px;border-bottom:1px solid #26324a;color:#f8fafc;font-size:14px;font-weight:700;background:#0f172a">${orderMailEscapeHtml(item.title)}${item.description ? `<div style="font-size:12px;font-weight:400;color:#94a3b8;margin-top:4px;line-height:1.5">${orderMailEscapeHtml(item.description)}</div>` : ''}</td><td style="padding:12px 14px;border-bottom:1px solid #26324a;text-align:center;color:#cbd5e1;font-size:14px;background:#0f172a">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:12px 14px;border-bottom:1px solid #26324a;text-align:right;color:#f8fafc;font-size:14px;font-weight:800;background:#0f172a">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, currency))}</td></tr>`;
   }).join('');
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#ffffff"><thead><tr><th style="padding:12px 14px;text-align:left;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">#</th><th style="padding:12px 14px;text-align:left;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Item</th><th style="padding:12px 14px;text-align:center;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Qty</th><th style="padding:12px 14px;text-align:right;background:#f1f5f9;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #26324a;border-radius:14px;overflow:hidden;background:#0f172a"><thead><tr><th style="padding:12px 14px;text-align:left;background:#111827;color:#93c5fd;font-size:12px;text-transform:uppercase;letter-spacing:.04em">#</th><th style="padding:12px 14px;text-align:left;background:#111827;color:#93c5fd;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Item</th><th style="padding:12px 14px;text-align:center;background:#111827;color:#93c5fd;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Qty</th><th style="padding:12px 14px;text-align:right;background:#111827;color:#93c5fd;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function orderMailProductCardsHtml(items, currency = 'IDR') {
   const rows = (Array.isArray(items) ? items : []).filter((item) => item && (item.image_url || item.title)).slice(0, 3);
@@ -11245,11 +11198,10 @@ function orderMailProductCardsHtml(items, currency = 'IDR') {
   const cards = rows.map((item) => {
     const image = orderMailAssetUrl(item.image_url || item.img || '') || orderMailDefaultProductImageUrl();
     const amount = orderMailFormatCurrency(item.subtotal || ((item.unit_price || 0) * (item.quantity || 1)), currency);
-    return `<tr><td style="padding:18px;border-bottom:1px solid #e5e7eb"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>${image ? `<td width="128" valign="top" style="padding-right:16px"><img src="${orderMailEscapeHtml(image)}" width="112" alt="${orderMailEscapeHtml(item.title || 'Produk')}" style="display:block;width:112px;max-width:112px;height:auto;border-radius:14px;border:1px solid #e5e7eb;background:#f8fafc"></td>` : ''}<td valign="top"><div style="font-size:16px;line-height:1.45;font-weight:800;color:#0f172a;margin-bottom:6px">${orderMailEscapeHtml(item.title || 'Item pesanan')}</div>${item.description ? `<div style="font-size:13px;line-height:1.6;color:#64748b;margin-bottom:10px">${orderMailEscapeHtml(item.description)}</div>` : ''}<div style="font-size:13px;color:#64748b">Qty <strong style="color:#0f172a">${orderMailEscapeHtml(item.quantity || 1)}</strong> · Subtotal <strong style="color:#0f172a">${orderMailEscapeHtml(amount)}</strong></div></td></tr></table></td></tr>`;
+    return `<tr><td style="padding:18px;border-bottom:1px solid #26324a;background:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>${image ? `<td width="128" valign="top" style="padding-right:16px"><img src="${orderMailEscapeHtml(image)}" width="112" alt="${orderMailEscapeHtml(item.title || 'Produk')}" style="display:block;width:112px;max-width:112px;height:auto;border-radius:14px;border:1px solid #334155;background:#111827"></td>` : ''}<td valign="top"><div style="font-size:16px;line-height:1.45;font-weight:800;color:#f8fafc;margin-bottom:6px">${orderMailEscapeHtml(item.title || 'Item pesanan')}</div>${item.description ? `<div style="font-size:13px;line-height:1.6;color:#94a3b8;margin-bottom:10px">${orderMailEscapeHtml(item.description)}</div>` : ''}<div style="font-size:13px;color:#94a3b8">Qty <strong style="color:#f8fafc">${orderMailEscapeHtml(item.quantity || 1)}</strong> · Subtotal <strong style="color:#f8fafc">${orderMailEscapeHtml(amount)}</strong></div></td></tr></table></td></tr>`;
   }).join('');
-  return `<h3 style="margin:22px 0 12px;font-size:16px;color:#0f172a">Produk yang dibeli</h3><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#ffffff">${cards}</table>`;
+  return `<h3 style="margin:22px 0 12px;font-size:16px;color:#f8fafc">Produk yang dibeli</h3><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #26324a;border-radius:14px;overflow:hidden;background:#0f172a">${cards}</table>`;
 }
-
 async function orderMailSendViaSmtpSafe(config, message) {
   try {
     return await orderMailSendViaSmtp(config, message);
