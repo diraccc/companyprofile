@@ -1434,7 +1434,17 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     const state = { orders: [], filtered: [], selectedId: '', loading: false, verified: false, loggingOut: false };
     const $ = (s, r=document) => r.querySelector(s);
     const fmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
-    function apiUrl(action){ const u = new URL(API, window.location.origin); u.searchParams.set('action', action); return u.toString(); }
+    function apiUrl(action, params){
+      const u = new URL(API, window.location.origin);
+      u.searchParams.set('action', action);
+      if(params && typeof params === 'object'){
+        Object.keys(params).forEach(function(key){
+          const value = params[key];
+          if(value !== undefined && value !== null && String(value).trim() !== '') u.searchParams.set(key, String(value));
+        });
+      }
+      return u.toString();
+    }
     function clean(v){ return String(v ?? '').replace(/[\u0000-\u001f\u007f]/g,' ').trim(); }
     function money(v){ const n = Number(v || 0); return Number.isFinite(n) ? fmt.format(n).replace(/\s/g,'') : 'Rp0'; }
     function dateFmt(v){ if(!v) return '—'; const d = new Date(v); if(!Number.isFinite(d.getTime())) return '—'; try{return new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(_){return d.toISOString()} }
@@ -1496,7 +1506,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     async function fetchJson(action, options={}){
       const headers = {Accept:'application/json'};
       if(options.body) headers['Content-Type'] = 'application/json';
-      const res = await fetch(apiUrl(action), {
+      const res = await fetch(apiUrl(action, options.query), {
         method: options.method || 'GET',
         credentials:'include',
         cache:'no-store',
@@ -1591,9 +1601,19 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       if(!code){ toast('Kode order tidak ditemukan. Muat ulang halaman pesanan.'); return; }
       if(btn){ btn.disabled = true; btn.textContent = 'Membuat payment...'; }
       try{
+        const paymentPayload = paymentRequestBody(order, type, code);
         const result = await fetchJson('create_payment', {
           method:'POST',
-          body: paymentRequestBody(order, type, code)
+          query:{
+            order_id: paymentPayload.order_id,
+            orderId: paymentPayload.orderId,
+            id: paymentPayload.id,
+            order_code: paymentPayload.order_code,
+            invoice_code: paymentPayload.invoice_code,
+            order_type: paymentPayload.order_type,
+            service_type: paymentPayload.service_type
+          },
+          body: paymentPayload
         });
         const data = result.data || {};
         if(!result.ok || !data.ok){
