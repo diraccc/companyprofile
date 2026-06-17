@@ -1903,7 +1903,7 @@ body.gate-checking .gate .dirac-final-contact-note a{
     Tujuan:
     - halaman protected tidak bisa muncul lagi dari Safari/Browser Back Forward Cache setelah logout;
     - tab/browser yang dibuka ulang wajib cek sesi backend lagi;
-    - user tidak aktif 2 menit otomatis logout dan redirect ke masuk.html.
+    - user tidak aktif 5 menit otomatis dikunci dan diarahkan ke masuk.html.
     Batas:
     - tidak mengubah login, A2F, payment gateway, webhook, hash, atau backend health.js;
     - tidak membaca/menulis token untuk membuka akses;
@@ -1914,8 +1914,9 @@ body.gate-checking .gate .dirac-final-contact-note a{
   var API_BASE = '/api/health';
   var VERIFY_ENDPOINT = API_BASE + '?action=domain_dashboard_me';
   var LOGOUT_ENDPOINT = API_BASE + '?action=domain_logout';
-  var IDLE_LIMIT_MS = 2 * 60 * 1000;
+  var IDLE_LIMIT_MS = 5 * 60 * 1000;
   var CHECK_INTERVAL_MS = 5000;
+  var ACTIVITY_BACKEND_SYNC_MIN_MS = 55 * 1000;
   var DIRAC_MIN_SESSION_LOADER_MS = 4500;
   var diracSessionLoaderStartedAt = 0;
   var ACTIVITY_KEY = 'dirac_protected_last_activity_v1';
@@ -1923,6 +1924,8 @@ body.gate-checking .gate .dirac-final-contact-note a{
   var loggingOut = false;
   var checking = false;
   var checkTimer = 0;
+  var activitySyncTimer = 0;
+  var lastBackendActivitySyncMs = 0;
   var volatileStore = Object.create(null);
 
   function now(){
@@ -2043,6 +2046,85 @@ body.gate-checking .gate .dirac-final-contact-note a{
   function markActivity(){
     if(loggingOut) return;
     setStore(ACTIVITY_KEY, now());
+    queueBackendSessionTouchFromActivity();
+  }
+
+  function isAllowedSecureContext(){
+    try{
+      var host = String(window.location && window.location.hostname || '').toLowerCase();
+      if(window.location && window.location.protocol === 'https:') return true;
+      return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    }catch(_){
+      return false;
+    }
+  }
+
+  function isVerifiedPage(){
+    try{
+      return document.documentElement.getAttribute('data-dirac-protected-session') === 'verified';
+    }catch(_){
+      return false;
+    }
+  }
+
+  function isStrictVerifiedSessionPayload(data){
+    var user = data && data.user;
+    var mfa = data && data.mfa;
+    return !!(
+      data &&
+      data.ok === true &&
+      data.dashboard === true &&
+      user &&
+      (user.id || user.email) &&
+      mfa &&
+      mfa.active === true
+    );
+  }
+
+  function queueBackendSessionTouchFromActivity(){
+    if(loggingOut || checking) return;
+    if(!isVerifiedPage()) return;
+    var at = now();
+    if((at - Number(lastBackendActivitySyncMs || 0)) < ACTIVITY_BACKEND_SYNC_MIN_MS) return;
+    if(activitySyncTimer) return;
+    activitySyncTimer = setTimeout(function(){
+      activitySyncTimer = 0;
+      touchBackendSessionFromActivity();
+    }, 300);
+  }
+
+  async function touchBackendSessionFromActivity(){
+    if(loggingOut || checking) return;
+    if(!isAllowedSecureContext()){
+      purgeClientAuthStorage();
+      removeStore(ACTIVITY_KEY);
+      setLocked(true);
+      replaceToLogin('https');
+      return;
+    }
+    try{
+      var res = await fetch(withCacheBust(VERIFY_ENDPOINT), {
+        method: 'GET',
+        mode: 'same-origin',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      var data = null;
+      try{ data = await res.clone().json(); }catch(_){ data = null; }
+      if(!(res.ok && isStrictVerifiedSessionPayload(data))){
+        purgeClientAuthStorage();
+        removeStore(ACTIVITY_KEY);
+        setStore(LOGOUT_STAMP_KEY, now());
+        setLocked(true);
+        replaceToLogin(res && res.status ? 'session' + res.status : 'session');
+        return;
+      }
+      lastBackendActivitySyncMs = now();
+    }catch(_){
+      // Koneksi aktivitas yang gagal tidak langsung logout agar scroll normal tidak terganggu.
+      // Validasi ketat tetap berjalan pada load/focus/pageshow/visible dan saat timer idle.
+    }
   }
 
   function ensureActivitySeed(){
@@ -2091,6 +2173,13 @@ body.gate-checking .gate .dirac-final-contact-note a{
       await forceLogout('idle');
       return;
     }
+    if(!isAllowedSecureContext()){
+      purgeClientAuthStorage();
+      removeStore(ACTIVITY_KEY);
+      setLocked(true);
+      replaceToLogin('https');
+      return;
+    }
 
     checking = true;
     diracSessionLoaderStartedAt = now();
@@ -2110,7 +2199,7 @@ body.gate-checking .gate .dirac-final-contact-note a{
       try{ data = await res.clone().json(); }catch(_){ data = null; }
 
       var user = data && data.user;
-      var ok = !!(res.ok && data && data.ok === true && data.dashboard === true && user && (user.id || user.email));
+      var ok = !!(res.ok && isStrictVerifiedSessionPayload(data));
 
       if(!ok){
         purgeClientAuthStorage();
@@ -2123,6 +2212,7 @@ body.gate-checking .gate .dirac-final-contact-note a{
 
       await waitDiracMinimumSessionLoader();
       document.documentElement.setAttribute('data-dirac-protected-session', 'verified');
+      lastBackendActivitySyncMs = now();
       setLocked(false);
       setChecking(false);
     }catch(_){
@@ -2138,7 +2228,7 @@ body.gate-checking .gate .dirac-final-contact-note a{
   }
 
   function bindActivityWatch(){
-    ['click','pointerdown','keydown','scroll','touchstart'].forEach(function(eventName){
+    ['click','pointerdown','pointermove','mousemove','keydown','scroll','wheel','touchstart','touchmove'].forEach(function(eventName){
       window.addEventListener(eventName, markActivity, { passive:true, capture:true });
     });
   }
@@ -2173,6 +2263,8 @@ body.gate-checking .gate .dirac-final-contact-note a{
 
     window.addEventListener('pagehide', function(){
       setChecking(false);
+      setLocked(true);
+      try{ document.documentElement.removeAttribute('data-dirac-protected-session'); }catch(_){}
     });
 
     window.addEventListener('storage', function(event){
@@ -2198,6 +2290,8 @@ body.gate-checking .gate .dirac-final-contact-note a{
 
   function init(){
     ensureOverlay();
+    setLocked(true);
+    setChecking(true);
     ensureActivitySeed();
     bindActivityWatch();
     bindLogoutCapture();
