@@ -7268,7 +7268,13 @@ async function lockedPaymentCreateForOrder(req, res) {
   const user = access.user;
 
   const body = await readBody(req);
-  const requestedOrderId = lockedPaymentCleanText(body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || '', 120);
+  const query = (req && req.query) || {};
+  const requestedOrderId = lockedPaymentCleanText(
+    body.order_id || body.orderId || body.id || body.order_code || body.orderCode || body.invoice_code ||
+    query.order_id || query.orderId || query.id || query.order_code || query.orderCode || query.invoice_code ||
+    '',
+    120
+  );
 
   if (!requestedOrderId) {
     return res.status(400).json({ ok: false, message: 'order_id wajib dikirim. Jangan kirim amount/total dari frontend.' });
@@ -10045,12 +10051,19 @@ async function diracUniversalPesananCreatePayment(req, res) {
   if (!access) return;
   const user = access.user || {};
   const body = await readBody(req);
+  const query = (req && req.query) || {};
 
   const requestedOrderId = lockedPaymentCleanText(
-    body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || body.invoiceCode || body.id || '',
+    body.order_id || body.orderId || body.order_code || body.orderCode || body.invoice_code || body.invoiceCode || body.id ||
+    query.order_id || query.orderId || query.order_code || query.orderCode || query.invoice_code || query.invoiceCode || query.id ||
+    '',
     140
   );
-  const requestedType = diracUniversalPesananNormalizeRequestedType(body.order_type || body.orderType || body.type || body.service_type || body.serviceType || '');
+  const requestedType = diracUniversalPesananNormalizeRequestedType(
+    body.order_type || body.orderType || body.type || body.service_type || body.serviceType ||
+    query.order_type || query.orderType || query.type || query.service_type || query.serviceType ||
+    ''
+  );
 
   if (!requestedOrderId) {
     return res.status(400).json({ ok: false, message: 'order_id wajib dikirim. Nominal tidak boleh dikirim dari frontend.' });
