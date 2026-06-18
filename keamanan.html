@@ -919,31 +919,432 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     }
 </style>
 
+<style id="dirac-security-dashboard-header-exact-v1">
+/* Dashboard header exact transplant for keamanan.html. Visual/header/menu/theme only. */
+:root{--gold-2:var(--gold2,#d6a642);--gold-3:var(--gold3,#8e6425);--motion-ease:cubic-bezier(.22,1,.36,1);--motion-soft:cubic-bezier(.16,1,.3,1);--safe-bottom:env(safe-area-inset-bottom);}
+body.menu-open,body.modal-open{overflow:hidden!important}
+.container{width:min(1240px,calc(100% - 32px));margin-inline:auto}
+.announcement{background:linear-gradient(90deg,#1a1208,#322211,#1a1208);border-bottom:1px solid var(--line);color:#f7e8c5;font-size:.88rem}.announcement .container{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:8px 0}.announcement a{font-weight:900;color:var(--gold)}
+    .site-header{position:sticky;top:0;z-index:9000;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);background:rgba(5,6,8,.78);border-bottom:1px solid rgba(255,255,255,.07);transition:background-color .35s var(--motion-ease),box-shadow .35s var(--motion-ease),border-color .35s var(--motion-ease)}
+    .site-header:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(var(--theme-rgb),.34),transparent);opacity:.20;transition:opacity .35s var(--motion-ease)}
+    .site-header.is-scrolled{background:rgba(5,6,8,.94);box-shadow:0 18px 55px rgba(0,0,0,.34);border-bottom-color:rgba(var(--theme-rgb),.16)}.site-header.is-scrolled:after{opacity:.64}.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;transition:padding .35s var(--motion-ease)}.site-header.is-scrolled .nav{padding:9px 0}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.02em;min-width:0}.brand-mark{width:64px;height:64px;border-radius:18px;position:relative;overflow:hidden;flex:0 0 auto;display:grid;place-items:center;color:#111;font-weight:900;background:#fff;box-shadow:0 10px 28px rgba(var(--theme-rgb),.22);border:1px solid rgba(255,255,255,.18);transition:.35s var(--motion-ease)}.site-header.is-scrolled .brand-mark{width:50px;height:50px;border-radius:15px}.brand-mark img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;z-index:2}.brand-fallback-text{display:flex;position:absolute;inset:0;z-index:1;align-items:center;justify-content:center;font-weight:900;font-size:1.45rem;line-height:1;color:#111;background:linear-gradient(135deg,#fff2b6,var(--gold-2))}.brand-name{font-family:"Playfair Display",serif;font-size:1.25rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:filter .35s var(--motion-ease)}.site-header.is-scrolled .brand-name{filter:drop-shadow(0 0 8px rgba(var(--theme-rgb),.18))}
+    .nav-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}.nav-links a{color:#d7deea;font-size:.92rem;padding:9px 12px;border-radius:999px;transition:.2s var(--motion-ease)}.nav-links a:hover,.nav-links a.active{background:rgba(255,255,255,.07);color:#fff}.header-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+    .btn-primary,.btn-secondary,.btn-ghost,.theme-toggle,.menu-toggle,.icon-btn{border:0;border-radius:999px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:9px;transition:.22s var(--motion-ease);position:relative;overflow:hidden;isolation:isolate}.btn-primary{background:linear-gradient(135deg,#ffe58e,var(--gold-2) 55%,var(--gold-3));color:#1a1208;padding:12px 18px;box-shadow:0 16px 36px rgba(var(--theme-rgb),.22)}.btn-secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.12);padding:12px 18px}.btn-ghost{background:transparent;color:#f7e8c5;border:1px solid var(--line);padding:11px 15px}.btn-primary:hover,.btn-secondary:hover,.btn-ghost:hover,.theme-toggle:hover,.menu-toggle:hover,.icon-btn:hover{transform:translateY(-2px);filter:brightness(1.05)}.btn-primary:disabled,.btn-secondary:disabled,.btn-ghost:disabled{opacity:.48;cursor:not-allowed;transform:none!important;filter:grayscale(.35)}
+    .theme-toggle,.menu-toggle,.icon-btn{min-width:50px;height:50px;padding:0 14px;background:rgba(255,255,255,.065);color:#fff;border:1px solid rgba(var(--theme-rgb),.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18)}.theme-toggle .label,.menu-toggle .label{font-size:.9rem}.menu-toggle{min-width:50px;width:50px;padding:0}.hamburger{width:20px;height:14px;display:grid;gap:4px}.hamburger span{height:2px;border-radius:4px;background:currentColor;display:block;transition:.22s var(--motion-ease)}.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(6px) rotate(45deg)}.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0}.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+    
+.brand-typewriter{display:inline-flex;align-items:center;min-width:10.8ch!important;max-width:12.6ch!important;overflow:hidden!important;text-overflow:clip!important;white-space:nowrap!important}
+.brand-typewriter-text{min-width:0!important;display:inline-block!important;white-space:nowrap!important}
+.brand-typewriter:after{content:"";flex:0 0 auto;width:.08em;height:.96em;margin-left:.08em;border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 70%,#fff 30%),var(--gold-2));opacity:.72;animation:brandCaretBlink 1.1s steps(2,end) infinite}
+@keyframes brandCaretBlink{0%,49%{opacity:.72}50%,100%{opacity:0}}
+/* Dashboard theme modal sizing and theme swatches */
+.theme-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.64);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;padding:18px;place-items:center}
+.theme-modal.open{display:grid!important}
+.theme-card{width:min(690px,calc(100vw - 36px));max-height:min(88vh,780px);overflow:auto;border-radius:30px;background:linear-gradient(180deg,#101722,#07090d);border:1px solid var(--line);box-shadow:var(--shadow);padding:22px;animation:modalIn .34s var(--motion-soft) both}
+@keyframes modalIn{from{transform:translateY(16px) scale(.965);opacity:.82}to{transform:none;opacity:1}}
+.theme-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.theme-head h2{font-family:"Playfair Display",serif;color:var(--gold);font-size:1.8rem;line-height:1;margin:0}
+.theme-section{margin:18px 0;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}.theme-section:first-of-type{border-top:0;padding-top:0}.theme-section h3{font-size:.95rem;margin:0 0 10px;color:#fff}.theme-section p{margin:0 0 12px;color:var(--muted);font-size:.84rem}
+.theme-choice-grid,.theme-mode-grid,.theme-contrast-grid,.theme-motion-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.theme-language-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.theme-swatches{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.choice{min-height:48px;border-radius:17px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.055);color:#fff;font-weight:850;padding:10px 12px;display:flex;align-items:center;justify-content:center;gap:9px;transition:.2s var(--motion-ease)}.choice:hover,.choice.active,.choice.is-selected{border-color:var(--line-strong);background:rgba(var(--theme-rgb),.13);transform:translateY(-1px)}.swatch{width:18px;height:18px;border-radius:999px;box-shadow:0 0 0 2px rgba(255,255,255,.16) inset;background:var(--swatch)}
+.theme-swatch-choice{background:var(--swatch)!important;position:relative;overflow:hidden;border-radius:16px!important;min-height:44px!important}.theme-swatch-choice .swatch{position:absolute!important;inset:0!important;background:var(--swatch)!important;border-radius:inherit!important}.theme-swatch-choice:before{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.30),transparent 35%),linear-gradient(135deg,rgba(255,255,255,.22),transparent 50%)}.theme-swatch-choice.active,.theme-swatch-choice.is-selected{box-shadow:inset 0 0 0 4px rgba(255,255,255,.34),0 0 0 3px rgba(var(--theme-rgb),.28),0 18px 36px rgba(0,0,0,.32)!important}.theme-swatch-choice.active:after,.theme-swatch-choice.is-selected:after{content:"✓";position:relative;z-index:2;display:grid;place-items:center;color:#fff!important;text-shadow:0 3px 12px rgba(0,0,0,.55)!important;font-weight:900}
+html[data-effective-theme="light"] .site-header{background:rgba(255,250,241,.92);color:var(--text);border-color:rgba(var(--theme-rgb),.28)}html[data-effective-theme="light"] .brand-name{color:#151923}html[data-effective-theme="light"] .nav-links a{color:#526071}html[data-effective-theme="light"] .theme-toggle,html[data-effective-theme="light"] .menu-toggle,html[data-effective-theme="light"] .choice{background:rgba(255,255,255,.72);color:#151923;border-color:rgba(15,23,42,.10)}
+@media(max-width:1120px){.nav-links{display:none}}
+@media(max-width:760px){.brand-mark{width:56px;height:56px;border-radius:16px}.brand-name{font-size:1.08rem}.theme-toggle{width:48px;height:48px;min-width:48px;padding:0}.theme-toggle .label{display:none}.menu-toggle{width:48px;height:48px;min-width:48px}.choice-grid,.choice-grid.colors{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.container{width:min(1240px,calc(100% - 22px))}.nav{gap:8px}.header-actions{gap:6px}.theme-toggle,.menu-toggle{width:42px;height:42px;min-width:42px}.brand-mark{width:44px;height:44px;border-radius:15px}.brand-typewriter{min-width:9.8ch!important;max-width:10.9ch!important}.brand-name{max-width:10.9ch!important}.theme-language-grid,.theme-swatches{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.brand-typewriter:after{animation:none!important}}
+</style>
+<style id="dirac-ultra-menu-theme-safe-v1">
+/* Dirac Ultra Menu - theme-safe, scoped to #menuOverlay only. */
+#menuOverlay.dirac-ultra-menu{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:none;
+  place-items:center;
+  padding:14px;
+  background:rgba(0,0,0,.68);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+  opacity:1;
+  transition:opacity .34s cubic-bezier(.16,1,.3,1);
+}
+#menuOverlay.dirac-ultra-menu.open{display:grid;}
+#menuOverlay.dirac-ultra-menu[aria-hidden="true"]{pointer-events:none;}
+#menuOverlay.dirac-ultra-menu.du-drag-fading{transition:none;}
+#menuOverlay.dirac-ultra-menu *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+#menuOverlay.dirac-ultra-menu a{color:inherit;text-decoration:none;}
+#menuOverlay.dirac-ultra-menu button,
+#menuOverlay.dirac-ultra-menu input{font:inherit;}
+#menuOverlay.dirac-ultra-menu button{cursor:pointer;}
+#menuOverlay.dirac-ultra-menu svg{display:block;}
+#menuOverlay.dirac-ultra-menu .du-menu{
+  --du-accent:var(--gold,#f3cd70);
+  --du-accent-2:var(--gold-2,#d6a642);
+  --du-accent-3:var(--gold-3,#8e6425);
+  --du-rgb:var(--theme-rgb,243,205,112);
+  --du-text:#f8fafc;
+  --du-muted:#aeb7c6;
+  --du-muted-2:#738195;
+  --du-card:rgba(255,255,255,.052);
+  --du-card-hover:rgba(255,255,255,.086);
+  --du-line:rgba(var(--du-rgb),.20);
+  --du-line-soft:rgba(255,255,255,.075);
+  position:relative;
+  width:min(440px,100%);
+  max-height:calc(100dvh - 28px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:34px;
+  color:var(--du-text);
+  background:
+    radial-gradient(circle at 18% 0,rgba(var(--du-rgb),.17),transparent 245px),
+    radial-gradient(circle at 90% 8%,rgba(255,255,255,.055),transparent 235px),
+    linear-gradient(180deg,rgba(15,23,42,.992),rgba(5,8,14,.998));
+  border:1px solid rgba(var(--du-rgb),.22);
+  box-shadow:0 48px 170px rgba(0,0,0,.84),inset 0 1px 0 rgba(255,255,255,.075);
+  transform-origin:bottom center;
+  animation:duSheetIn .46s cubic-bezier(.16,1,.3,1) both;
+  will-change:transform;
+}
+#menuOverlay.dirac-ultra-menu .du-menu::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  pointer-events:none;
+  border-radius:inherit;
+  padding:1px;
+  background:linear-gradient(135deg,rgba(255,255,255,.20),transparent 32%,rgba(var(--du-rgb),.28),transparent 70%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  opacity:.64;
+}
+#menuOverlay.dirac-ultra-menu .du-menu::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(115deg,transparent 0%,transparent 32%,rgba(255,255,255,.052) 45%,transparent 58%,transparent 100%);
+  transform:translateX(-130%);
+  animation:duShellShine 6.8s ease-in-out infinite;
+  opacity:.58;
+}
+#menuOverlay.dirac-ultra-menu .du-menu.is-dragging{transition:none;}
+@keyframes duSheetIn{from{opacity:0;transform:translateY(32px) scale(.95);filter:blur(12px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes duShellShine{0%,58%{transform:translateX(-130%)}80%,100%{transform:translateX(130%)}}
+#menuOverlay.dirac-ultra-menu .du-top{
+  position:relative;
+  z-index:2;
+  padding:14px 16px 12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0));
+}
+#menuOverlay.dirac-ultra-menu .du-handle{
+  width:44px;
+  height:5px;
+  border-radius:999px;
+  background:rgba(255,255,255,.16);
+  margin:0 auto 13px;
+  position:relative;
+  overflow:hidden;
+  touch-action:none;
+}
+#menuOverlay.dirac-ultra-menu .du-handle::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);
+  animation:duHandleShine 2.8s ease-in-out infinite;
+}
+@keyframes duHandleShine{0%,45%{transform:translateX(-100%)}70%,100%{transform:translateX(100%)}}
+#menuOverlay.dirac-ultra-menu .du-top-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;}
+#menuOverlay.dirac-ultra-menu .du-brand{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:linear-gradient(135deg,#fff,var(--du-accent));
+  color:#101828;
+  font-size:.9rem;
+  font-weight:950;
+  letter-spacing:-.06em;
+  box-shadow:0 14px 30px rgba(var(--du-rgb),.16);
+  animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .03s both;
+}
+#menuOverlay.dirac-ultra-menu .du-brand{overflow:hidden;background:rgba(255,255,255,.96);border:1px solid rgba(var(--du-rgb),.28);color:transparent;font-size:0;letter-spacing:0;}
+#menuOverlay.dirac-ultra-menu .du-brand-logo{width:100%;height:100%;display:block;object-fit:contain;object-position:center;padding:6px;background:transparent;}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-brand{background:rgba(255,255,255,.98);border-color:rgba(var(--du-rgb),.32);}
+#menuOverlay.dirac-ultra-menu .du-title{min-width:0;animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .06s both;}
+#menuOverlay.dirac-ultra-menu .du-title strong{display:block;font-size:1rem;line-height:1.12;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-title small{display:block;margin-top:4px;color:var(--du-muted);font-size:.73rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-close{
+  width:42px;
+  height:42px;
+  border-radius:16px;
+  border:1px solid rgba(var(--du-rgb),.20);
+  background:rgba(255,255,255,.052);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  transition:.22s cubic-bezier(.16,1,.3,1);
+  animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .09s both;
+}
+#menuOverlay.dirac-ultra-menu .du-close:hover{background:rgba(255,255,255,.09);transform:translateY(-1px) rotate(4deg)}
+#menuOverlay.dirac-ultra-menu .du-close:active{transform:scale(.96)}
+#menuOverlay.dirac-ultra-menu .du-close svg{width:20px;height:20px;}
+#menuOverlay.dirac-ultra-menu .du-search{
+  margin-top:12px;
+  height:48px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:10px;
+  padding:0 14px;
+  border-radius:18px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.09);
+  color:var(--du-muted-2);
+  transition:.22s cubic-bezier(.16,1,.3,1);
+  animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .12s both;
+}
+#menuOverlay.dirac-ultra-menu .du-search:focus-within{border-color:rgba(var(--du-rgb),.35);background:rgba(255,255,255,.055);box-shadow:0 0 0 4px rgba(var(--du-rgb),.09)}
+#menuOverlay.dirac-ultra-menu .du-search svg{width:18px;height:18px;}
+#menuOverlay.dirac-ultra-menu .du-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#fff;font-size:.88rem;}
+#menuOverlay.dirac-ultra-menu .du-search input::placeholder{color:#738195;}
+#menuOverlay.dirac-ultra-menu .du-clear{width:28px;height:28px;display:none;place-items:center;border:0;border-radius:10px;background:rgba(255,255,255,.065);color:#cbd5e1;}
+#menuOverlay.dirac-ultra-menu .du-clear.show{display:grid;}
+#menuOverlay.dirac-ultra-menu .du-scroll-line{position:absolute;left:0;right:0;bottom:-1px;height:1px;background:rgba(255,255,255,.04);}
+#menuOverlay.dirac-ultra-menu .du-scroll-line span{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--du-accent),rgba(255,255,255,.55));box-shadow:0 0 16px rgba(var(--du-rgb),.55);transition:width .12s linear;}
+#menuOverlay.dirac-ultra-menu .du-body{overflow:auto;padding:14px 15px 15px;scrollbar-width:none;scroll-behavior:smooth;}
+#menuOverlay.dirac-ultra-menu .du-body::-webkit-scrollbar{width:0;height:0;}
+#menuOverlay.dirac-ultra-menu .du-group{margin-top:16px;animation:duItemIn .5s cubic-bezier(.16,1,.3,1) both;}
+#menuOverlay.dirac-ultra-menu .du-group:nth-of-type(1){animation-delay:.10s;}
+#menuOverlay.dirac-ultra-menu .du-group:nth-of-type(2){animation-delay:.16s;}
+#menuOverlay.dirac-ultra-menu .du-group:nth-of-type(3){animation-delay:.22s;}
+#menuOverlay.dirac-ultra-menu .du-group:first-child{margin-top:0;}
+@keyframes duItemIn{from{opacity:0;transform:translateY(14px);filter:blur(5px)}to{opacity:1;transform:none;filter:blur(0)}}
+#menuOverlay.dirac-ultra-menu .du-group-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 3px;margin-bottom:9px;}
+#menuOverlay.dirac-ultra-menu .du-group-title strong{color:#e5e7eb;font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;}
+#menuOverlay.dirac-ultra-menu .du-group-title span{color:var(--du-muted-2);font-size:.7rem;}
+#menuOverlay.dirac-ultra-menu .du-stack{display:grid;gap:9px;}
+#menuOverlay.dirac-ultra-menu .du-card{
+  width:100%;
+  position:relative;
+  overflow:hidden;
+  min-height:80px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:13px;
+  padding:12px 13px;
+  border-radius:23px;
+  background:var(--du-card);
+  border:1px solid transparent;
+  color:var(--du-text);
+  text-align:left;
+  transition:.24s cubic-bezier(.16,1,.3,1);
+  isolation:isolate;
+  animation:duCardIn .48s cubic-bezier(.16,1,.3,1) both;
+  animation-delay:calc(var(--i,1) * 28ms);
+  outline:0;
+}
+#menuOverlay.dirac-ultra-menu button.du-card{font:inherit;}
+@keyframes duCardIn{from{opacity:0;transform:translateY(16px) scale(.98);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+#menuOverlay.dirac-ultra-menu .du-card::before{content:"";position:absolute;inset:0;opacity:0;background:linear-gradient(135deg,rgba(var(--du-rgb),.12),transparent 54%);transition:.24s ease;z-index:0;}
+#menuOverlay.dirac-ultra-menu .du-card::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at var(--x,50%) var(--y,50%),rgba(255,255,255,.13),transparent 34%);opacity:0;transition:.22s ease;pointer-events:none;z-index:0;}
+#menuOverlay.dirac-ultra-menu .du-card:hover,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active{transform:translateY(-1px);background:var(--du-card-hover);border-color:rgba(var(--du-rgb),.20);}
+#menuOverlay.dirac-ultra-menu .du-card:hover::before,
+#menuOverlay.dirac-ultra-menu .du-card:hover::after,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible::before,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible::after,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active::before,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active::after{opacity:1;}
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active{box-shadow:0 0 0 4px rgba(var(--du-rgb),.09);}
+#menuOverlay.dirac-ultra-menu .du-card:active{transform:scale(.985);}
+#menuOverlay.dirac-ultra-menu .du-icon{position:relative;z-index:1;width:46px;height:46px;display:grid;place-items:center;border-radius:17px;background:rgba(255,255,255,.055);color:var(--du-accent);transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuOverlay.dirac-ultra-menu .du-card:hover .du-icon,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible .du-icon,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active .du-icon{transform:scale(1.04);background:rgba(var(--du-rgb),.13);}
+#menuOverlay.dirac-ultra-menu .du-icon svg{width:20px;height:20px;}
+#menuOverlay.dirac-ultra-menu .du-copy{position:relative;z-index:1;min-width:0;}
+#menuOverlay.dirac-ultra-menu .du-copy strong{display:block;font-size:.94rem;line-height:1.18;letter-spacing:-.018em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-copy small{display:block;margin-top:6px;color:var(--du-muted);font-size:.76rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-arrow{position:relative;z-index:1;display:grid;place-items:center;color:#64748b;transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuOverlay.dirac-ultra-menu .du-card:hover .du-arrow,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible .du-arrow,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active .du-arrow{color:var(--du-accent);transform:translateX(2px);}
+#menuOverlay.dirac-ultra-menu .du-arrow svg{width:20px;height:20px;}
+#menuOverlay.dirac-ultra-menu .du-ripple{position:absolute;width:20px;height:20px;border-radius:999px;background:rgba(255,255,255,.22);transform:translate(-50%,-50%) scale(0);animation:duRipple .58s ease-out forwards;pointer-events:none;z-index:0;}
+@keyframes duRipple{to{transform:translate(-50%,-50%) scale(18);opacity:0}}
+#menuOverlay.dirac-ultra-menu .du-empty{display:none;padding:26px 10px 10px;text-align:center;color:var(--du-muted);font-size:.88rem;animation:duItemIn .28s cubic-bezier(.16,1,.3,1) both;}
+#menuOverlay.dirac-ultra-menu .du-footer{padding:13px 15px calc(13px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid rgba(255,255,255,.06);background:rgba(5,8,14,.96);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn{position:relative;overflow:hidden;height:48px;border-radius:17px;font-weight:850;transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn.secondary{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);color:#fff;}
+#menuOverlay.dirac-ultra-menu .du-footer-btn.primary{border:0;background:linear-gradient(135deg,var(--du-accent),var(--du-accent-2));color:#111827;box-shadow:0 14px 34px rgba(var(--du-rgb),.22);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);transition:.42s ease;}
+#menuOverlay.dirac-ultra-menu .du-footer-btn:hover{transform:translateY(-1px);filter:brightness(1.05);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn:hover::after{transform:translateX(100%);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn:active{transform:scale(.975);}
+#menuOverlay.dirac-ultra-menu .du-toast{position:absolute;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);z-index:5;display:none;padding:11px 14px;border-radius:999px;background:rgba(15,23,42,.94);border:1px solid rgba(var(--du-rgb),.20);color:#fff;font-size:.78rem;font-weight:800;box-shadow:0 18px 48px rgba(0,0,0,.38);white-space:nowrap;}
+#menuOverlay.dirac-ultra-menu .du-toast.show{display:block;animation:duToastIn .28s cubic-bezier(.16,1,.3,1) both;}
+@keyframes duToastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-menu{
+  --du-text:#151923;
+  --du-muted:#526071;
+  --du-muted-2:#64748b;
+  --du-card:rgba(255,255,255,.72);
+  --du-card-hover:rgba(255,255,255,.92);
+  background:radial-gradient(circle at 18% 0,rgba(var(--du-rgb),.16),transparent 245px),linear-gradient(180deg,rgba(255,250,241,.98),rgba(255,246,232,.96));
+  box-shadow:0 48px 150px rgba(80,55,18,.24),inset 0 1px 0 rgba(255,255,255,.85);
+}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-top,
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-footer{background:rgba(255,250,241,.72);}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-search input{color:#151923;}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-close,
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-footer-btn.secondary{color:#151923;background:rgba(255,255,255,.72);}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-group-title strong{color:#151923;}
+@media(max-width:480px){
+  #menuOverlay.dirac-ultra-menu{padding:0;place-items:end center;}
+  #menuOverlay.dirac-ultra-menu .du-menu{width:100%;max-height:calc(100dvh - 10px);border-radius:30px 30px 0 0;border-bottom:0;}
+}
+@media(max-width:360px){
+  #menuOverlay.dirac-ultra-menu .du-brand{width:40px;height:40px;border-radius:15px;}
+  #menuOverlay.dirac-ultra-menu .du-title strong{font-size:.95rem;}
+  #menuOverlay.dirac-ultra-menu .du-title small{font-size:.7rem;}
+  #menuOverlay.dirac-ultra-menu .du-card{min-height:78px;border-radius:22px;}
+  #menuOverlay.dirac-ultra-menu .du-icon{width:44px;height:44px;border-radius:16px;}
+  #menuOverlay.dirac-ultra-menu .du-copy strong{font-size:.9rem;}
+  #menuOverlay.dirac-ultra-menu .du-copy small{font-size:.72rem;}
+}
+html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *,
+html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::before,
+html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+@media(prefers-reduced-motion:reduce){
+  #menuOverlay.dirac-ultra-menu *,
+  #menuOverlay.dirac-ultra-menu *::before,
+  #menuOverlay.dirac-ultra-menu *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+}
+</style>
+<style id="dirac-menu-search-fixed-height-v6-style">
+/* DIRAC MENU SEARCH FIX v6 - clean/no-leak build */
+html.du-menu-lock,
+body.du-menu-lock{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  -webkit-overflow-scrolling:auto!important;
+}
+body.du-menu-lock{
+  position:fixed!important;
+  width:100%!important;
+  left:0!important;
+  right:0!important;
+}
+#menuOverlay.dirac-ultra-menu{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:var(--du-stable-vh,100dvh)!important;
+  min-height:var(--du-stable-vh,100dvh)!important;
+  max-height:var(--du-stable-vh,100dvh)!important;
+  overflow:hidden!important;
+  overscroll-behavior:contain!important;
+  touch-action:none!important;
+  align-items:end!important;
+  justify-items:center!important;
+  z-index:99999!important;
+}
+#menuOverlay.dirac-ultra-menu .du-menu{
+  height:calc(var(--du-stable-vh,100dvh) - 10px)!important;
+  min-height:calc(var(--du-stable-vh,100dvh) - 10px)!important;
+  max-height:calc(var(--du-stable-vh,100dvh) - 10px)!important;
+  width:min(440px,100%)!important;
+  max-width:100vw!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  contain:layout paint;
+  transform:translate3d(0,0,0);
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+#menuOverlay.dirac-ultra-menu .du-top,
+#menuOverlay.dirac-ultra-menu .du-footer{
+  flex:0 0 auto!important;
+}
+#menuOverlay.dirac-ultra-menu .du-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y!important;
+}
+#menuOverlay.dirac-ultra-menu .du-search{
+  touch-action:manipulation!important;
+}
+#menuOverlay.dirac-ultra-menu #diracUltraMenuSearch{
+  font-size:16px!important;
+  line-height:1.35!important;
+  min-height:24px!important;
+  -webkit-text-size-adjust:100%!important;
+  text-size-adjust:100%!important;
+  touch-action:manipulation!important;
+}
+#menuOverlay.dirac-ultra-menu.du-input-focused .du-menu,
+#menuOverlay.dirac-ultra-menu .du-menu.is-dragging{
+  will-change:transform;
+}
+@media(max-width:480px){
+  #menuOverlay.dirac-ultra-menu{
+    padding:0!important;
+    place-items:end center!important;
+  }
+  #menuOverlay.dirac-ultra-menu .du-menu{
+    width:100%!important;
+    border-radius:30px 30px 0 0!important;
+    border-bottom:0!important;
+  }
+}
+@supports(height:100svh){
+  #menuOverlay.dirac-ultra-menu{
+    height:var(--du-stable-vh,100svh)!important;
+    min-height:var(--du-stable-vh,100svh)!important;
+    max-height:var(--du-stable-vh,100svh)!important;
+  }
+  #menuOverlay.dirac-ultra-menu .du-menu{
+    height:calc(var(--du-stable-vh,100svh) - 10px)!important;
+    min-height:calc(var(--du-stable-vh,100svh) - 10px)!important;
+    max-height:calc(var(--du-stable-vh,100svh) - 10px)!important;
+  }
+}
+</style>
 </head>
 <body>
   <a href="#main" class="skip-link">Lewati ke konten utama</a>
-
-  <div class="top-strip" role="note">
-    <div class="wrap">
-      <span><strong>Customer Security</strong> · backend-only, direct table tetap diblokir.</span>
-      <span class="mini-badge"><span class="dot" id="topDot"></span><span id="topState">Memuat status</span></span>
-    </div>
-  </div>
-
   <header class="site-header" id="siteHeader">
-    <div class="wrap nav" aria-label="Navigasi utama">
-      <a href="dashboard.html" class="brand" aria-label="Kembali ke dashboard Dirac Group">
-        <span class="brand-mark">D</span>
-        <span><span class="brand-title">Dirac Group</span><span class="brand-sub">Security Center</span></span>
+    <div class="container nav">
+      <a class="brand" href="dashboard.html" aria-label="Dirac Group Keamanan">
+        <span class="brand-mark" aria-hidden="true">
+          <span class="brand-fallback-text">DP</span>
+          <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='flex'" decoding="async" fetchpriority="high">
+        </span>
+        <span class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n aria-label="Dirac Group"><span class="brand-typewriter-text" aria-hidden="true">Dirac Group</span></span>
       </a>
-      <nav class="nav-links" aria-label="Navigasi halaman">
-        <a class="nav-link" href="#controls">Kontrol</a>
-        <a class="nav-link" href="#sessions">Sesi</a>
-        <a class="nav-link" href="#activity">Aktivitas</a>
+      <nav class="nav-links" aria-label="Navigasi utama">
+        <a href="#overview" class="active" data-nav-link data-i18n="navSecurity">Keamanan</a>
       </nav>
-      <div class="nav-actions">
-        <button class="icon-btn" type="button" id="motionToggle" aria-label="Aktif/nonaktif animasi">◐</button>
-        <button class="btn ghost" type="button" id="refreshBtn"><span>Refresh</span> ↻</button>
+      <div class="header-actions">
+        <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema"><span aria-hidden="true">🎨</span><span class="label" data-i18n="theme">Tema</span></button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Buka menu keamanan" aria-haspopup="dialog" aria-controls="menuOverlay" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button>
       </div>
     </div>
   </header>
@@ -1040,6 +1441,200 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       </div>
     </section>
   </main>
+
+  <div class="theme-modal" id="themeModal" aria-hidden="true">
+    <div class="theme-card theme-pro-card" role="dialog" aria-modal="true" aria-labelledby="themeTitle" tabindex="-1">
+      <div class="theme-head theme-pro-head">
+        <h2 id="themeTitle" data-i18n="themeTitle">Pengaturan Tema</h2>
+        <button class="icon-btn theme-close-btn" type="button" data-close-theme aria-label="Tutup pengaturan tema">×</button>
+      </div>
+      <div class="theme-body theme-content">
+        <section class="theme-section" aria-label="Mode tema">
+          <h3 data-i18n="modeTitle">Mode Tema</h3>
+          <div class="theme-choice-grid theme-mode-grid">
+            <button class="choice theme-choice theme-pro-choice" type="button" data-theme-mode="dark" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">☾</span><span data-i18n="dark">Gelap</span></button>
+            <button class="choice theme-choice theme-pro-choice" type="button" data-theme-mode="auto" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">⚙</span><span data-i18n="auto">Otomatis</span></button>
+          </div>
+        </section>
+        <section class="theme-section" aria-label="Bahasa tampilan">
+          <h3 data-i18n="languageTitle">Bahasa Tampilan</h3>
+          <div class="theme-language-grid language-grid" id="themeLanguageOptions" aria-label="Pilihan bahasa website" data-no-i18n>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="id" aria-pressed="false"><span class="lang-badge" aria-hidden="true">ID</span><span>Indonesia</span></button>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="en" aria-pressed="false"><span class="lang-badge" aria-hidden="true">EN</span><span>English</span></button>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="zh" aria-pressed="false"><span class="lang-badge" aria-hidden="true">中</span><span>中文</span></button>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="ar" aria-pressed="false"><span class="lang-badge" aria-hidden="true">ع</span><span>العربية</span></button>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="ja" aria-pressed="false"><span class="lang-badge" aria-hidden="true">日</span><span>日本語</span></button>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="ko" aria-pressed="false"><span class="lang-badge" aria-hidden="true">한</span><span>한국어</span></button>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="es" aria-pressed="false"><span class="lang-badge" aria-hidden="true">ES</span><span>Español</span></button>
+            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="fr" aria-pressed="false"><span class="lang-badge" aria-hidden="true">FR</span><span>Français</span></button>
+          </div>
+        </section>
+        <section class="theme-section" aria-label="Kontras tema">
+          <h3 data-i18n="contrastTitle">Kontras Tema</h3>
+          <div class="theme-contrast-grid contrast-grid">
+            <button class="choice theme-choice theme-pro-choice" type="button" data-contrast="on" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">◐</span><span data-i18n="contrastOn">Aktif</span></button>
+            <button class="choice theme-choice theme-pro-choice" type="button" data-contrast="off" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">◌</span><span data-i18n="contrastOff">Nonaktif</span></button>
+          </div>
+        </section>
+        <section class="theme-section" aria-label="Kustom warna utama">
+          <h3 data-i18n="accentTitle">Kustom Tema</h3>
+          <div class="theme-swatches custom-theme-grid" id="accentChoices" aria-label="Pilihan warna utama"></div>
+        </section>
+        <section class="theme-section" aria-label="Gerak website">
+          <h3 data-i18n="motionTitle">Gerak Website</h3>
+          <div class="theme-contrast-grid motion-grid">
+            <button class="choice theme-choice theme-pro-choice" type="button" data-motion-choice="full" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">✨</span><span data-i18n="motionFull">Full animasi</span></button>
+            <button class="choice theme-choice theme-pro-choice" type="button" data-motion-choice="reduced" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">🪶</span><span data-i18n="motionReduced">Gerak ringan</span></button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="menu-overlay dirac-ultra-menu" id="menuOverlay" aria-hidden="true">
+    <aside class="du-menu" id="diracUltraMenu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
+      <header class="du-top">
+        <div class="du-handle" id="diracUltraMenuHandle" aria-hidden="true"></div>
+        <div class="du-top-row">
+          <div class="du-brand" aria-hidden="true"><img class="du-brand-logo" src="logo 3.webp" alt="" loading="eager" decoding="async"></div>
+          <div class="du-title">
+            <strong id="menuTitle" data-i18n="menuTitle">Menu Keamanan</strong>
+            <small data-i18n="menuSub">Navigasi halaman keamanan dan layanan pelanggan.</small>
+          </div>
+          <button class="du-close" type="button" aria-label="Tutup menu" data-close-menu>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <label class="du-search" aria-label="Cari menu keamanan">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <input id="diracUltraMenuSearch" type="search" placeholder="Cari menu..." autocomplete="off">
+          <button class="du-clear" id="diracUltraMenuClear" type="button" aria-label="Hapus pencarian">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </button>
+        </label>
+        <div class="du-scroll-line" aria-hidden="true"><span id="diracUltraMenuProgress"></span></div>
+      </header>
+      <main class="du-body" id="diracUltraMenuBody">
+        <section class="du-group" data-du-group>
+          <div class="du-group-title"><strong>Ekosistem Dirac</strong><span>Menu utama</span></div>
+          <div class="du-stack">
+            <a class="du-card du-searchable" style="--i:1" href="dashboard.html" data-keyword="dashboard ringkasan semua layanan pelanggan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+              <span class="du-copy"><strong>Dashboard</strong><small>Ringkasan semua layanan pelanggan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:2" href="parfum.html" data-keyword="parfum riwayat pembelian parfum">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"/><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
+              <span class="du-copy"><strong>Parfum</strong><small>Riwayat pembelian parfum</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:3" href="domain.html" data-keyword="domain saya daftar domain pelanggan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:4" href="project-website.html" data-keyword="project website daftar project website">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <button class="du-card du-searchable" style="--i:5" type="button" data-open-tracking data-keyword="cek resi lacak pengiriman">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
+              <span class="du-copy"><strong>Cek Resi</strong><small>Lacak pengiriman</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </button>
+            <a class="du-card du-searchable" style="--i:6" href="layanan-nomor.html" data-keyword="layanan nomor kelola layanan nomor">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Layanan Nomor</strong><small>Kelola layanan nomor</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+          </div>
+        </section>
+        <section class="du-group" data-du-group>
+          <div class="du-group-title"><strong>Transaksi & Detail</strong><span>Riwayat & tagihan</span></div>
+          <div class="du-stack">
+            <a class="du-card du-searchable" style="--i:7" href="pesanan.html" data-keyword="pesanan saya semua transaksi pelanggan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Pesanan Saya</strong><small>Semua transaksi pelanggan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:8" href="detail-pesanan.html" data-keyword="detail pesanan detail satu order">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Detail Pesanan</strong><small>Detail satu order</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:9" href="detail-parfum.html" data-keyword="detail parfum detail pengiriman parfum">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
+              <span class="du-copy"><strong>Detail Parfum</strong><small>Detail pengiriman parfum</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:10" href="detail-domain.html" data-keyword="detail domain kelola domain, dns, nameserver">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.5 2.5-2-2 2.5-2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+              <span class="du-copy"><strong>Detail Domain</strong><small>Kelola domain, DNS, nameserver</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:11" href="detail-project.html" data-keyword="detail project progress, revisi, file, approval">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span class="du-copy"><strong>Detail Project</strong><small>Progress, revisi, file, approval</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:12" href="invoice.html" data-keyword="invoice semua tagihan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:13" href="detail-invoice.html" data-keyword="detail invoice detail pembayaran">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Detail Invoice</strong><small>Detail pembayaran</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+          </div>
+        </section>
+        <section class="du-group" data-du-group>
+          <div class="du-group-title"><strong>Akun & Bantuan</strong><span>Keamanan</span></div>
+          <div class="du-stack">
+            <a class="du-card du-searchable" style="--i:14" href="tiket-bantuan.html" data-keyword="tiket bantuan daftar komplain dan bantuan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Tiket Bantuan</strong><small>Daftar komplain dan bantuan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:15" href="detail-tiket.html" data-keyword="detail tiket percakapan support">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Detail Tiket</strong><small>Percakapan support</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:16" href="notifikasi.html" data-keyword="notifikasi semua pemberitahuan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:17" href="profil.html" data-keyword="profil data pelanggan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Profil</strong><small>Data pelanggan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a class="du-card du-searchable" style="--i:18" href="keamanan.html" data-keyword="keamanan password, verifikasi, riwayat login">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 14v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span class="du-copy"><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <button class="du-card du-searchable logout-drawer-btn" style="--i:19" type="button" id="menuLogoutBtn" data-dirac-logout data-keyword="keluar sesi backend dan cookie httponly dibersihkan">
+              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 12H3m0 0 4-4m-4 4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span class="du-copy"><strong>Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span>
+              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </button>
+          </div>
+        </section>
+        <div class="du-empty" id="diracUltraMenuEmpty">Menu tidak ditemukan.</div>
+      </main>
+      <footer class="du-footer">
+        <button class="du-footer-btn secondary" type="button" data-close-menu>Tutup</button>
+        <button class="du-footer-btn primary" type="button" onclick="location.href='https://wa.me/6287892523968'">Admin</button>
+      </footer>
+      <div class="du-toast" id="diracUltraMenuToast" aria-live="polite">Menu dibuka</div>
+    </aside>
+  </div>
+
 
   <div class="mobile-action-bar" aria-label="Aksi cepat keamanan">
     <button class="btn ghost" type="button" id="mobileRefreshBtn">Refresh</button>
@@ -2081,136 +2676,17 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     }
   }
 
-  function normalizeBackendSessionPayload(raw){
-    var root = raw && typeof raw === 'object' ? raw : {};
-    var payload = root.data && typeof root.data === 'object' ? root.data : root;
-    return { root: root, payload: payload };
-  }
-
-  function truthyFlag(value){
-    return value === true || value === 1 || value === '1' || String(value || '').toLowerCase() === 'true' || String(value || '').toLowerCase() === 'valid' || String(value || '').toLowerCase() === 'verified' || String(value || '').toLowerCase() === 'active';
-  }
-
-  function falseyFlag(value){
-    return value === false || value === 0 || value === '0' || String(value || '').toLowerCase() === 'false' || String(value || '').toLowerCase() === 'invalid' || String(value || '').toLowerCase() === 'expired' || String(value || '').toLowerCase() === 'inactive';
-  }
-
-  function firstEmailFrom(){
-    for(var i=0;i<arguments.length;i++){
-      var value = arguments[i];
-      if(value == null) continue;
-      value = String(value).trim().toLowerCase();
-      if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return value;
-    }
-    return '';
-  }
-
-  function emailsAreConsistent(list){
-    var first = '';
-    for(var i=0;i<list.length;i++){
-      var value = list[i];
-      if(value == null || value === '') continue;
-      value = String(value).trim().toLowerCase();
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) continue;
-      if(!first) first = value;
-      else if(value !== first) return false;
-    }
-    return !!first;
-  }
-
-  function pickUser(payload){
-    return (payload && payload.user) || (payload && payload.customer) || (payload && payload.account) || (payload && payload.profile) || null;
-  }
-
-  function pickMfa(payload, user){
-    return (payload && (payload.mfa || payload.a2f || payload.two_factor || payload.twoFactor || payload.two_factor_auth)) || (user && (user.mfa || user.a2f || user.two_factor || user.twoFactor)) || null;
-  }
-
-  function hasExplicitFalseCookie(payload){
-    var session = payload && (payload.session || payload.cookie || payload.auth || payload.backend_session || payload.backendSession) || {};
-    var values = [
-      payload && payload.httpOnlyCookie,
-      payload && payload.httponly_cookie,
-      payload && payload.http_only_cookie,
-      payload && payload.cookie_valid,
-      payload && payload.session_cookie,
-      payload && payload.session_valid,
-      session && session.httpOnly,
-      session && session.http_only,
-      session && session.cookie,
-      session && session.cookie_valid,
-      session && session.valid,
-      session && session.active
-    ];
-    return values.some(falseyFlag);
-  }
-
-  function hasHttpOnlyCookieProof(payload, responseOk){
-    var session = payload && (payload.session || payload.cookie || payload.auth || payload.backend_session || payload.backendSession) || {};
-    var values = [
-      payload && payload.httpOnlyCookie,
-      payload && payload.httponly_cookie,
-      payload && payload.http_only_cookie,
-      payload && payload.cookie_valid,
-      payload && payload.session_cookie,
-      payload && payload.session_valid,
-      session && session.httpOnly,
-      session && session.http_only,
-      session && session.cookie,
-      session && session.cookie_valid,
-      session && session.valid,
-      session && session.active
-    ];
-    if(values.some(truthyFlag)) return true;
-    // HttpOnly tidak dapat dibaca langsung oleh frontend. Jika endpoint protected berhasil
-    // dengan credentials:'include' dan user backend valid, respons itu menjadi bukti cookie sesi.
-    return responseOk === true && !hasExplicitFalseCookie(payload);
-  }
-
-  function isMfaTrue(mfa, payload, user){
-    var values = [
-      mfa && mfa.active,
-      mfa && mfa.enabled,
-      mfa && mfa.verified,
-      mfa && mfa.valid,
-      payload && payload.mfa_active,
-      payload && payload.a2f_active,
-      payload && payload.two_factor_active,
-      user && user.mfa_active,
-      user && user.a2f_active,
-      user && user.two_factor_active
-    ];
-    return values.some(truthyFlag) && !values.some(falseyFlag);
-  }
-
-  function isStrictVerifiedSessionPayload(raw, responseOk){
-    var box = normalizeBackendSessionPayload(raw);
-    var root = box.root;
-    var payload = box.payload;
-    var user = pickUser(payload);
-    var mfa = pickMfa(payload, user);
-    var okRoot = root && root.ok;
-    var okPayload = payload && payload.ok;
-    var dashboardFlag = payload && payload.dashboard;
-    var loginFlag = payload && (payload.login || payload.logged_in || payload.authenticated || payload.session_valid);
-    var backendOk = responseOk === true && (truthyFlag(okRoot) || truthyFlag(okPayload) || truthyFlag(dashboardFlag) || truthyFlag(loginFlag));
-    var userEmail = firstEmailFrom(user && user.email, user && user.customer_email, user && user.mail);
-    var emailOk = emailsAreConsistent([
-      userEmail,
-      payload && payload.email,
-      payload && payload.customer_email,
-      payload && payload.session && payload.session.email,
-      payload && payload.auth && payload.auth.email,
-      mfa && mfa.email,
-      mfa && mfa.customer_email
-    ]);
+  function isStrictVerifiedSessionPayload(data){
+    var user = data && data.user;
+    var mfa = data && data.mfa;
     return !!(
-      backendOk &&
+      data &&
+      data.ok === true &&
+      data.dashboard === true &&
       user &&
-      (user.id || user.customer_id || userEmail) &&
-      emailOk &&
-      isMfaTrue(mfa, payload, user) &&
-      hasHttpOnlyCookieProof(payload, responseOk)
+      (user.id || user.email) &&
+      mfa &&
+      mfa.active === true
     );
   }
 
@@ -2245,7 +2721,7 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       });
       var data = null;
       try{ data = await res.clone().json(); }catch(_){ data = null; }
-      if(!(res.ok && isStrictVerifiedSessionPayload(data, res.ok))){
+      if(!(res.ok && isStrictVerifiedSessionPayload(data))){
         purgeClientAuthStorage();
         removeStore(ACTIVITY_KEY);
         setStore(LOGOUT_STAMP_KEY, now());
@@ -2331,7 +2807,8 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       var data = null;
       try{ data = await res.clone().json(); }catch(_){ data = null; }
 
-      var ok = !!(res.ok && isStrictVerifiedSessionPayload(data, res.ok));
+      var user = data && data.user;
+      var ok = !!(res.ok && isStrictVerifiedSessionPayload(data));
 
       if(!ok){
         purgeClientAuthStorage();
@@ -2634,6 +3111,492 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   }
   window.addEventListener('dirac:global-prefs-change', function(e){ refresh(e && e.detail || {}); });
   document.addEventListener('DOMContentLoaded', function(){ try{ refresh(window.diracGetGlobalPrefs ? window.diracGetGlobalPrefs() : {}); }catch(_){ } });
+})();
+</script>
+
+<script id="dirac-ultra-menu-behavior-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__) return;
+  window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+
+  ready(function(){
+    var overlay = document.getElementById('menuOverlay');
+    var menu = document.getElementById('diracUltraMenu');
+    var menuToggle = document.getElementById('menuToggle');
+    var input = document.getElementById('diracUltraMenuSearch');
+    var clearBtn = document.getElementById('diracUltraMenuClear');
+    var emptyState = document.getElementById('diracUltraMenuEmpty');
+    var toast = document.getElementById('diracUltraMenuToast');
+    var cards = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay .du-searchable'));
+    var groups = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay [data-du-group]'));
+    var handle = document.getElementById('diracUltraMenuHandle');
+    var menuBody = document.getElementById('diracUltraMenuBody');
+    var progress = document.getElementById('diracUltraMenuProgress');
+    if(!overlay || !menu || !input || !clearBtn || !emptyState || !menuBody || !progress) return;
+
+    var startY = 0;
+    var currentY = 0;
+    var dragging = false;
+    var keyboardIndex = -1;
+
+    function vibrate(ms){
+      try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){ }
+    }
+
+    function showToast(text){
+      if(!toast) return;
+      toast.textContent = text || 'Menu dibuka';
+      toast.classList.add('show');
+      clearTimeout(window.__diracUltraMenuToastTimer);
+      window.__diracUltraMenuToastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1300);
+    }
+
+    function visibleCards(){
+      return cards.filter(function(card){ return card.style.display !== 'none'; });
+    }
+
+    function clearKeyboardActive(){
+      cards.forEach(function(card){ card.classList.remove('is-keyboard-active'); });
+    }
+
+    function setKeyboardActive(index){
+      var list = visibleCards();
+      if(!list.length) return;
+      keyboardIndex = Math.max(0, Math.min(index, list.length - 1));
+      clearKeyboardActive();
+      var active = list[keyboardIndex];
+      active.classList.add('is-keyboard-active');
+      try{ active.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(_){ active.scrollIntoView(false); }
+    }
+
+    function closeMenuUltra(){
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.style.opacity = '';
+      document.body.classList.remove('menu-open','modal-open');
+      if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
+      menu.style.transform = '';
+      menu.classList.remove('is-dragging');
+      clearKeyboardActive();
+      keyboardIndex = -1;
+      input.value = '';
+      updateMenu();
+      vibrate(8);
+    }
+
+    function updateScrollProgress(){
+      var max = menuBody.scrollHeight - menuBody.clientHeight;
+      var value = max <= 0 ? 0 : (menuBody.scrollTop / max) * 100;
+      progress.style.width = value + '%';
+    }
+
+    function updateMenu(){
+      var query = (input.value || '').trim().toLowerCase();
+      var visibleCount = 0;
+      cards.forEach(function(card){
+        var haystack = (card.textContent + ' ' + (card.getAttribute('data-keyword') || '')).toLowerCase();
+        var matched = !query || haystack.indexOf(query) !== -1;
+        card.style.display = matched ? '' : 'none';
+        if(matched) visibleCount++;
+      });
+      groups.forEach(function(group){
+        var hasVisible = Array.prototype.slice.call(group.querySelectorAll('.du-searchable')).some(function(card){ return card.style.display !== 'none'; });
+        group.style.display = hasVisible ? '' : 'none';
+      });
+      clearKeyboardActive();
+      keyboardIndex = -1;
+      clearBtn.classList.toggle('show', query.length > 0);
+      emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+      updateScrollProgress();
+    }
+
+    cards.forEach(function(card){
+      card.addEventListener('pointermove', function(e){
+        var rect = card.getBoundingClientRect();
+        card.style.setProperty('--x', (e.clientX - rect.left) + 'px');
+        card.style.setProperty('--y', (e.clientY - rect.top) + 'px');
+      });
+      card.addEventListener('click', function(e){
+        var ripple = document.createElement('span');
+        var rect = card.getBoundingClientRect();
+        ripple.className = 'du-ripple';
+        ripple.style.left = (e.clientX - rect.left) + 'px';
+        ripple.style.top = (e.clientY - rect.top) + 'px';
+        card.appendChild(ripple);
+        vibrate(7);
+        setTimeout(function(){ if(ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 620);
+      });
+    });
+
+    function dragStart(e){
+      dragging = true;
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      currentY = 0;
+      menu.classList.add('is-dragging');
+      overlay.classList.add('du-drag-fading');
+    }
+    function dragMove(e){
+      if(!dragging) return;
+      var y = e.touches ? e.touches[0].clientY : e.clientY;
+      currentY = Math.max(0, y - startY);
+      if(currentY > 0){
+        var scale = Math.max(.96, 1 - currentY / 1800);
+        menu.style.transform = 'translateY(' + currentY + 'px) scale(' + scale + ')';
+        overlay.style.opacity = String(Math.max(.45, 1 - currentY / 260));
+      }
+    }
+    function dragEnd(){
+      if(!dragging) return;
+      dragging = false;
+      menu.classList.remove('is-dragging');
+      overlay.classList.remove('du-drag-fading');
+      overlay.style.opacity = '';
+      if(currentY > 90){ closeMenuUltra(); return; }
+      menu.style.transform = '';
+    }
+
+    if(handle){
+      handle.addEventListener('mousedown', dragStart);
+      handle.addEventListener('touchstart', dragStart, {passive:true});
+      window.addEventListener('mousemove', dragMove);
+      window.addEventListener('touchmove', dragMove, {passive:true});
+      window.addEventListener('mouseup', dragEnd);
+      window.addEventListener('touchend', dragEnd);
+    }
+
+    menuBody.addEventListener('scroll', updateScrollProgress, {passive:true});
+    input.addEventListener('input', updateMenu);
+    clearBtn.addEventListener('click', function(){ input.value = ''; input.focus(); updateMenu(); });
+
+    var observer = new MutationObserver(function(mutations){
+      mutations.forEach(function(mutation){
+        if(mutation.attributeName === 'class'){
+          if(overlay.classList.contains('open')){
+            setTimeout(function(){ updateScrollProgress(); showToast('Menu dibuka'); vibrate(12); }, 60);
+          }
+        }
+      });
+    });
+    observer.observe(overlay, {attributes:true});
+
+    document.addEventListener('keydown', function(e){
+      var menuOpen = overlay.classList.contains('open');
+      if(!menuOpen) return;
+      if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        setKeyboardActive(keyboardIndex + 1);
+      }
+      if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        var count = visibleCards().length;
+        setKeyboardActive(keyboardIndex <= 0 ? count - 1 : keyboardIndex - 1);
+      }
+      if(e.key === 'Enter' && keyboardIndex >= 0){
+        var active = visibleCards()[keyboardIndex];
+        if(active) active.click();
+      }
+    });
+
+    updateMenu();
+  });
+})();
+</script>
+<script id="dirac-menu-search-fixed-height-v6">
+(function(){
+  'use strict';
+  if(window.__DIRAC_MENU_SEARCH_FIXED_HEIGHT_V6_CLEAN__) return;
+  window.__DIRAC_MENU_SEARCH_FIXED_HEIGHT_V6_CLEAN__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+  function fireInput(el){
+    if(!el) return;
+    try{ el.dispatchEvent(new Event('input', {bubbles:true})); }
+    catch(_){ try{ var ev=document.createEvent('Event'); ev.initEvent('input',true,true); el.dispatchEvent(ev); }catch(__){} }
+  }
+  function closest(el, selector){ return el && el.closest ? el.closest(selector) : null; }
+
+  ready(function(){
+    var overlay = document.getElementById('menuOverlay');
+    var menu = document.getElementById('diracUltraMenu');
+    var toggle = document.getElementById('menuToggle');
+    var input = document.getElementById('diracUltraMenuSearch');
+    var clearBtn = document.getElementById('diracUltraMenuClear');
+    var body = document.getElementById('diracUltraMenuBody');
+    var progress = document.getElementById('diracUltraMenuProgress');
+    if(!overlay || !menu || !toggle || !input) return;
+
+    var locked = false;
+    var savedY = 0;
+    var savedBody = null;
+    var savedHtml = null;
+    var lastFocus = null;
+    var closeTimer = 0;
+    var stableHeight = 0;
+
+    function viewportHeight(){
+      var htmlH = document.documentElement.clientHeight || 0;
+      var innerH = window.innerHeight || 0;
+      var vvH = window.visualViewport && window.visualViewport.height ? window.visualViewport.height : 0;
+      var h = Math.max(htmlH, innerH, vvH, stableHeight || 0);
+      if(!h || h < 520) h = Math.max(innerH, htmlH, 720);
+      return Math.round(h);
+    }
+    function setStableViewport(force){
+      if(force || !stableHeight) stableHeight = viewportHeight();
+      try{ overlay.style.setProperty('--du-stable-vh', stableHeight + 'px'); }catch(_){ }
+      try{ menu.style.minHeight = 'calc(var(--du-stable-vh) - 10px)'; }catch(_){ }
+    }
+    function updateProgress(){
+      if(!body || !progress) return;
+      try{
+        var max = body.scrollHeight - body.clientHeight;
+        progress.style.width = (max <= 0 ? 0 : (body.scrollTop / max) * 100) + '%';
+      }catch(_){ }
+    }
+    function lock(){
+      if(locked) return;
+      locked = true;
+      savedY = window.scrollY || window.pageYOffset || 0;
+      stableHeight = 0;
+      setStableViewport(true);
+      savedHtml = {overflow:document.documentElement.style.overflow};
+      savedBody = {
+        position:document.body.style.position,
+        top:document.body.style.top,
+        left:document.body.style.left,
+        right:document.body.style.right,
+        width:document.body.style.width,
+        overflow:document.body.style.overflow
+      };
+      document.documentElement.classList.add('du-menu-lock');
+      document.body.classList.add('du-menu-lock');
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = '-' + savedY + 'px';
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+    }
+    function unlock(){
+      if(!locked) return;
+      locked = false;
+      document.documentElement.classList.remove('du-menu-lock');
+      document.body.classList.remove('du-menu-lock');
+      if(savedHtml) document.documentElement.style.overflow = savedHtml.overflow || '';
+      if(savedBody){
+        document.body.style.position = savedBody.position || '';
+        document.body.style.top = savedBody.top || '';
+        document.body.style.left = savedBody.left || '';
+        document.body.style.right = savedBody.right || '';
+        document.body.style.width = savedBody.width || '';
+        document.body.style.overflow = savedBody.overflow || '';
+      }
+      try{ window.scrollTo(0, savedY); }catch(_){ }
+      stableHeight = 0;
+    }
+    function openMenuStable(){
+      clearTimeout(closeTimer);
+      lastFocus = document.activeElement;
+      lock();
+      overlay.hidden = false;
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('menu-open','modal-open');
+      toggle.setAttribute('aria-expanded','true');
+      menu.style.transform = '';
+      menu.classList.remove('is-dragging');
+      try{ if(body) body.scrollTop = 0; }catch(_){ }
+      fireInput(input);
+      setStableViewport(false);
+      updateProgress();
+      setTimeout(function(){
+        setStableViewport(false);
+        try{ menu.setAttribute('tabindex','-1'); menu.focus({preventScroll:true}); }catch(_){ }
+        updateProgress();
+      }, 40);
+    }
+    function closeMenuStable(){
+      clearTimeout(closeTimer);
+      overlay.classList.remove('open','du-input-focused','du-drag-fading');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.style.opacity = '';
+      document.body.classList.remove('menu-open','modal-open');
+      toggle.setAttribute('aria-expanded','false');
+      menu.style.transform = '';
+      menu.classList.remove('is-dragging');
+      input.value = '';
+      fireInput(input);
+      unlock();
+      closeTimer = setTimeout(function(){ if(!overlay.classList.contains('open')) overlay.hidden = true; }, 180);
+      try{ if(lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }catch(_){ }
+    }
+
+    window.__diracOpenStableMenu = openMenuStable;
+    window.__diracCloseStableMenu = closeMenuStable;
+
+    document.addEventListener('click', function(e){
+      var target = e.target;
+      if(!target || !target.closest) return;
+      if(closest(target, '#menuToggle')){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        if(overlay.classList.contains('open')) closeMenuStable(); else openMenuStable();
+        return;
+      }
+      if(closest(target, '#diracUltraMenuClear')){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        input.value = '';
+        fireInput(input);
+        setStableViewport(false);
+        try{ input.focus({preventScroll:true}); }catch(_){ try{ input.focus(); }catch(__){} }
+        updateProgress();
+        return;
+      }
+      if(!overlay.classList.contains('open')) return;
+      if(target === overlay || closest(target, '[data-close-menu]')){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        closeMenuStable();
+        return;
+      }
+      var tracking = closest(target, '[data-open-tracking]');
+      if(tracking){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        closeMenuStable();
+        window.location.href = 'cekresi.html';
+        return;
+      }
+      var link = closest(target, 'a[href]');
+      if(link && overlay.contains(link) && !link.hasAttribute('data-keep-menu-open')) closeMenuStable();
+    }, true);
+
+    input.addEventListener('focus', function(){ overlay.classList.add('du-input-focused'); setStableViewport(false); }, {passive:true});
+    input.addEventListener('blur', function(){ overlay.classList.remove('du-input-focused'); setStableViewport(false); }, {passive:true});
+    input.addEventListener('input', function(){ setStableViewport(false); updateProgress(); }, {passive:true});
+    if(body) body.addEventListener('scroll', updateProgress, {passive:true});
+    document.addEventListener('keydown', function(e){
+      if(!overlay.classList.contains('open')) return;
+      if(e.key === 'Escape'){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); closeMenuStable();
+      }
+    }, true);
+    window.addEventListener('orientationchange', function(){
+      if(overlay.classList.contains('open')) setTimeout(function(){ stableHeight = 0; setStableViewport(true); }, 180);
+    }, {passive:true});
+    try{
+      new MutationObserver(function(){
+        if(overlay.classList.contains('open')){
+          if(!locked) lock();
+          setStableViewport(false);
+          updateProgress();
+        }else{
+          unlock();
+        }
+      }).observe(overlay, {attributes:true, attributeFilter:['class','hidden','aria-hidden']});
+    }catch(_){ }
+    setStableViewport(true);
+  });
+})();
+</script>
+<script id="dirac-security-header-theme-bridge-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_SECURITY_HEADER_THEME_BRIDGE_V1__) return;
+  window.__DIRAC_SECURITY_HEADER_THEME_BRIDGE_V1__ = true;
+  var LANGUAGE_KEY='dirac_global_language_v1';
+  var COPY={
+    navSecurity:{id:'Keamanan',en:'Security',zh:'安全',ar:'الأمان',ja:'セキュリティ',ko:'보안',es:'Seguridad',fr:'Sécurité'},
+    theme:{id:'Tema',en:'Theme',zh:'主题',ar:'المظهر',ja:'テーマ',ko:'테마',es:'Tema',fr:'Thème'},
+    themeTitle:{id:'Pengaturan Tema',en:'Theme Settings',zh:'主题设置',ar:'إعدادات المظهر',ja:'テーマ設定',ko:'테마 설정',es:'Ajustes de tema',fr:'Réglages du thème'},
+    modeTitle:{id:'Mode Tema',en:'Theme Mode',zh:'主题模式',ar:'وضع المظهر',ja:'テーマモード',ko:'테마 모드',es:'Modo de tema',fr:'Mode du thème'},
+    dark:{id:'Gelap',en:'Dark',zh:'深色',ar:'داكن',ja:'ダーク',ko:'다크',es:'Oscuro',fr:'Sombre'},
+    auto:{id:'Otomatis',en:'Auto',zh:'自动',ar:'تلقائي',ja:'自動',ko:'자동',es:'Automático',fr:'Auto'},
+    languageTitle:{id:'Bahasa Tampilan',en:'Display Language',zh:'显示语言',ar:'لغة العرض',ja:'表示言語',ko:'표시 언어',es:'Idioma de pantalla',fr:'Langue d’affichage'},
+    contrastTitle:{id:'Kontras Tema',en:'Theme Contrast',zh:'主题对比度',ar:'تباين المظهر',ja:'テーマのコントラスト',ko:'테마 대비',es:'Contraste del tema',fr:'Contraste du thème'},
+    contrastOn:{id:'Aktif',en:'On',zh:'开启',ar:'مفعل',ja:'オン',ko:'켜짐',es:'Activo',fr:'Actif'},
+    contrastOff:{id:'Nonaktif',en:'Off',zh:'关闭',ar:'غير مفعل',ja:'オフ',ko:'꺼짐',es:'Inactivo',fr:'Inactif'},
+    accentTitle:{id:'Kustom Tema',en:'Custom Theme',zh:'自定义主题',ar:'تخصيص المظهر',ja:'カスタムテーマ',ko:'사용자 지정 테마',es:'Tema personalizado',fr:'Thème personnalisé'},
+    motionTitle:{id:'Mode Gerak',en:'Motion Mode',zh:'动效模式',ar:'وضع الحركة',ja:'モーション設定',ko:'모션 모드',es:'Modo de movimiento',fr:'Mode animation'},
+    motionFull:{id:'Full animasi',en:'Full animation',zh:'完整动画',ar:'حركة كاملة',ja:'フルアニメーション',ko:'전체 애니메이션',es:'Animación completa',fr:'Animation complète'},
+    motionReduced:{id:'Gerak ringan',en:'Reduced motion',zh:'减少动画',ar:'حركة خفيفة',ja:'軽い動き',ko:'동작 줄이기',es:'Movimiento reducido',fr:'Mouvement réduit'},
+    menuTitle:{id:'Menu Keamanan',en:'Security Menu',zh:'安全菜单',ar:'قائمة الأمان',ja:'セキュリティメニュー',ko:'보안 메뉴',es:'Menú de seguridad',fr:'Menu sécurité'},
+    menuSub:{id:'Navigasi halaman keamanan dan layanan pelanggan.',en:'Security page and customer service navigation.',zh:'安全页面和客户服务导航。',ar:'تنقل صفحة الأمان وخدمات العملاء.',ja:'セキュリティページと顧客サービスのナビゲーション。',ko:'보안 페이지 및 고객 서비스 탐색.',es:'Navegación de seguridad y servicios del cliente.',fr:'Navigation sécurité et services client.'},
+    searchMenu:{id:'Cari menu...',en:'Search menu...',zh:'搜索菜单...',ar:'ابحث في القائمة...',ja:'メニューを検索...',ko:'메뉴 검색...',es:'Buscar menú...',fr:'Rechercher dans le menu...'}
+  };
+  function lang(){try{var p=window.diracGetGlobalPrefs?window.diracGetGlobalPrefs():null;var v=(p&&p.language)||localStorage.getItem(LANGUAGE_KEY)||document.documentElement.getAttribute('data-language')||'id';return COPY.navSecurity[v]?v:'id';}catch(_){return'id';}}
+  function t(key){var row=COPY[key]||{};var l=lang();return row[l]||row.en||row.id||key;}
+  function applyHeaderCopy(){
+    document.querySelectorAll('[data-i18n]').forEach(function(el){var key=el.getAttribute('data-i18n'); if(COPY[key]) el.textContent=t(key);});
+    var menuSearch=document.getElementById('diracUltraMenuSearch'); if(menuSearch) menuSearch.placeholder=t('searchMenu');
+    var themeBtn=document.querySelector('[data-open-theme]'); if(themeBtn) themeBtn.setAttribute('aria-label',t('themeTitle'));
+    var menuTitle=document.getElementById('menuTitle'); if(menuTitle) menuTitle.textContent=t('menuTitle');
+  }
+  function openModal(sel){var el=document.querySelector(sel); if(!el) return; el.classList.add('open'); el.setAttribute('aria-hidden','false'); document.body.classList.add('modal-open'); setTimeout(function(){var focus=el.querySelector('[data-close-theme],button,a,input,select,textarea,[tabindex]:not([tabindex="-1"])'); if(focus) try{focus.focus({preventScroll:true});}catch(_){focus.focus();}},40);}
+  function closeModal(sel){var el=document.querySelector(sel); if(!el) return; el.classList.remove('open'); el.setAttribute('aria-hidden','true'); if(!document.querySelector('.theme-modal.open,.menu-overlay.open')) document.body.classList.remove('modal-open');}
+  function ready(fn){if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn,{once:true}); else fn();}
+  ready(function(){
+    applyHeaderCopy();
+    window.addEventListener('dirac:global-prefs-change',applyHeaderCopy,false);
+    window.addEventListener('storage',function(e){if(e && e.key===LANGUAGE_KEY) applyHeaderCopy();},false);
+    document.querySelectorAll('[data-open-theme]').forEach(function(btn){btn.addEventListener('click',function(e){e.preventDefault(); closeModal('#menuOverlay'); openModal('#themeModal');});});
+    document.querySelectorAll('[data-close-theme]').forEach(function(btn){btn.addEventListener('click',function(e){e.preventDefault(); closeModal('#themeModal');});});
+    var theme=document.getElementById('themeModal');
+    if(theme){theme.addEventListener('click',function(e){if(e.target===theme) closeModal('#themeModal');});}
+    window.addEventListener('scroll',function(){var header=document.getElementById('siteHeader'); if(header) header.classList.toggle('is-scrolled',(window.scrollY||0)>8);},{passive:true});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape') closeModal('#themeModal');});
+    try{ if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs(); }catch(_){}
+  });
+})();
+</script>
+<script id="dirac-security-brand-typewriter-js">
+(function(){
+  'use strict';
+  if(window.__DIRAC_SECURITY_BRAND_TYPEWRITER_JS__) return;
+  window.__DIRAC_SECURITY_BRAND_TYPEWRITER_JS__ = true;
+  function startBrandTypewriter(){
+    var wrap=document.querySelector('[data-brand-typewriter]');
+    if(!wrap) return;
+    var target=wrap.querySelector('.brand-typewriter-text')||wrap;
+    var baseWords=['Dirac Group','Keamanan'];
+    var labelMap={Keamanan:{id:'Keamanan',en:'Security',zh:'安全',ar:'الأمان',ja:'セキュリティ',ko:'보안',es:'Seguridad',fr:'Sécurité'}};
+    function getLang(){try{var p=window.diracGetGlobalPrefs?window.diracGetGlobalPrefs():null;var lang=(p&&p.language)||localStorage.getItem('dirac_global_language_v1')||document.documentElement.getAttribute('data-language')||'id';return labelMap.Keamanan[lang]?lang:'id';}catch(_){return'id';}}
+    function word(base){if(base==='Dirac Group') return 'Dirac Group'; var row=labelMap[base]||{}; return row[getLang()]||row.en||base;}
+    var wordIndex=0;
+    var charIndex=word(baseWords[0]).length;
+    var deleting=true;
+    var paused=0;
+    target.textContent=word(baseWords[0]);
+    wrap.setAttribute('aria-label',word(baseWords[0]));
+    function resetShown(){var current=word(baseWords[wordIndex]); charIndex=Math.min(charIndex,current.length); target.textContent=current.slice(0,charIndex); wrap.setAttribute('aria-label',current);}
+    window.addEventListener('dirac:global-prefs-change',function(){resetShown();},false);
+    window.addEventListener('storage',function(e){if(e&&e.key==='dirac_global_language_v1') resetShown();},false);
+    function tick(){
+      var current=word(baseWords[wordIndex]);
+      if(paused>0){paused--; return setTimeout(tick,90);}
+      if(deleting){
+        charIndex=Math.max(0,charIndex-1);
+        target.textContent=current.slice(0,charIndex);
+        if(charIndex===0){deleting=false; wordIndex=(wordIndex+1)%baseWords.length; paused=3;}
+      }else{
+        current=word(baseWords[wordIndex]);
+        charIndex=Math.min(current.length,charIndex+1);
+        target.textContent=current.slice(0,charIndex);
+        if(charIndex===current.length){wrap.setAttribute('aria-label',current); deleting=true; paused=14;}
+      }
+      setTimeout(tick,deleting?70:92);
+    }
+    setTimeout(tick,1050);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',startBrandTypewriter,{once:true});
+  else startBrandTypewriter();
 })();
 </script>
 </body>
