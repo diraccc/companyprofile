@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" data-theme="dark" data-motion="full" data-build="customer-security-dashboard-sync-v5-prod-hardening-v1">
+<html lang="id" data-theme="dark" data-motion="full" data-build="customer-security-dashboard-sync-v5">
 <head>
 <script id="dirac-global-pref-storage-guard-v2">
 (function(){
@@ -15,6 +15,17 @@
   var CURRENCY_KEY = 'dirac_currency_v1';
   var MOTION_KEY = 'dirac_motion_mode_v1';
   var ALLOWED_REAL_KEYS = {}; ALLOWED_REAL_KEYS[THEME_KEY] = true;
+  var PROTECTED_AUTH_REMOVAL_KEYS = {
+    dirac_auth_session_v1:true,
+    dirac_auth_a2f_v1:true,
+    dirac_auth_a2f_dashboard_ready_v1:true,
+    dirac_dashboard_gate_v1:true,
+    dirac_domain_session:true,
+    dirac_domain_refresh:true,
+    dirac_customer_mfa_session:true,
+    'sb-auth-token':true,
+    'supabase.auth.token':true
+  };
 
   var PALETTES = {
     gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'}, champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'}, sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'}, bronze:{gold:'#d97706',gold2:'#92400e',gold3:'#451a03',rgb:'217,119,6'}, blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'}, sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'}, indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'}, purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'}, violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'}, lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'}, amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'}, lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'}, magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'}, fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'}, pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'}, rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'}, red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'}, coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'}, orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'}, peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'}, amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'}, lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'}, lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'}, neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'}, green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'}, emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'}, forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'}, mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'}, jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'}, seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'}, teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'}, aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'}, cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'}, lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'}, turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'}, ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'}, royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'}, navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'}, sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'}, periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'}, orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'}, plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'}, copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'}, coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}, ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'}, wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'}, burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'}, maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'}, blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'}, salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'}, sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'}, tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'}, apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'}, honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'}, olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'}, graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}, slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'}, pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, white:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'}, midnight:{gold:'#0f172a',gold2:'#020617',gold3:'#000000',rgb:'15,23,42'}, mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'}, espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
@@ -44,11 +55,10 @@
   function readTheme(){ return sanitize(Object.assign({}, DEFAULTS, readJson(safeGet(THEME_KEY)) || {})); }
   function writeTheme(p){ safeSet(THEME_KEY, JSON.stringify(sanitize(Object.assign({}, readTheme(), p || {})))); }
   function purgeDisallowed(){
-    try{
-      var keys = [];
-      for(var i=0;i<storage.length;i++){ var k = nativeKey.call(storage,i); if(k) keys.push(k); }
-      keys.forEach(function(k){ if(!ALLOWED_REAL_KEYS[k]) safeRemove(k); });
-    }catch(_){ }
+    /* Production-safe guard:
+       keep this page unable to read/write unrelated localStorage keys, but do not delete
+       keys that may belong to dashboard, login, A2F, payment, perfume, or other modules. */
+    return;
   }
   function migrateOnce(){
     var current = readJson(safeGet(THEME_KEY)) || {};
@@ -114,7 +124,8 @@
     if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]){ writeTheme({language:DEFAULTS.language}); applyPrefs(); emit('language-reset'); return; }
     if(key === CURRENCY_KEY){ writeTheme({currency:DEFAULTS.currency}); applyPrefs(); emit('currency-reset'); return; }
     if(key === MOTION_KEY){ writeTheme({motion:DEFAULTS.motion}); applyPrefs(); emit('motion-reset'); return; }
-    safeRemove(key); purgeDisallowed(); return;
+    if(PROTECTED_AUTH_REMOVAL_KEYS[key]){ safeRemove(key); return; }
+    return;
   };
   proto.clear = function(){ if(this !== storage) return nativeClear.apply(this, arguments); safeRemove(THEME_KEY); writeTheme(DEFAULTS); applyPrefs(); emit('clear'); };
 
@@ -150,9 +161,6 @@
 </script>
 <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="format-detection" content="telephone=no,email=no,address=no">
-  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
-  <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
   <meta name="theme-color" content="#07090d">
   <meta name="color-scheme" content="dark">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -160,9 +168,16 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'report-sample'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:; upgrade-insecure-requests; block-all-mixed-content">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-elem 'self' 'unsafe-inline'; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://diracgroup.store https://www.diracgroup.store; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; child-src 'self' blob:; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:">
+  <!-- DIRAC GLOBAL PRODUCTION HEADER NOTE:
+       Keep this HTML visual/UI unchanged. For production, also set these as real HTTP response headers:
+       Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff,
+       Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy, and Cache-Control: no-store.
+       frame-ancestors only has full clickjacking value when sent from the server header, not only from meta. -->
   <title>Keamanan Akun - Dirac Group</title>
   <meta name="description" content="Dashboard keamanan akun customer Dirac Group yang compact, aman, dan backend-only.">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
+  <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1379,39 +1394,7 @@ main.wrap{padding-top:24px!important;}
   .dashboard .status-card{order:2!important;grid-column:1/-1!important;position:relative!important;top:auto!important;}
   .dashboard .quick-grid{order:3!important;grid-column:1/-1!important;width:100%!important;}
 }
-</style>
-
-
-<style id="dirac-production-hardening-css-v1">
-/* Production hardening v1: aksesibilitas, performa, mobile stability, privacy indexing. Tidak mengubah login/hash/API/payment/A2F/backend flow. */
-:root{
-  --dirac-focus-ring:0 0 0 4px rgba(var(--theme-rgb),.22),0 0 0 2px rgba(var(--theme-rgb),.82);
-  --dirac-safe-top:env(safe-area-inset-top,0px);
-  --dirac-safe-bottom:env(safe-area-inset-bottom,0px);
-}
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:112px;overscroll-behavior-x:none;color-scheme:dark light}
-body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overscroll-behavior-y:contain;min-width:320px}
-body.modal-open,body.menu-open{overscroll-behavior:none!important}
-a,button,[role="button"],input,select,textarea{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible,[tabindex]:not([tabindex="-1"]):focus-visible{outline:0!important;box-shadow:var(--dirac-focus-ring)!important}
-.skip-link:focus{left:14px!important;top:max(12px,var(--dirac-safe-top))!important;z-index:20050!important}
-img{height:auto;max-width:100%}.brand-mark img,.du-brand-logo{object-fit:contain}
-.api-line,.list-item,.panel-title,.metric-top,.shield-row{min-width:0}.api-line b,.list-main strong,.list-main span,.brand-name,.brand-typewriter{overflow-wrap:anywhere;word-break:normal}.api-line b{text-align:right}
-.brand-typewriter{display:inline-block;white-space:nowrap;min-width:10.8ch;max-width:min(38vw,14.8rem);vertical-align:bottom;overflow:hidden;text-overflow:clip}.brand-typewriter::after{content:"";display:inline-block;width:.08em;height:.9em;margin-left:.12em;background:currentColor;border-radius:2px;vertical-align:-.06em;animation:diracCaretBlink 1.15s steps(1,end) infinite}@keyframes diracCaretBlink{0%,48%{opacity:1}49%,100%{opacity:.18}}
-.site-header .container.nav,.theme-card.theme-pro-card,.menu-shell,.du-panel{backface-visibility:hidden;transform:translateZ(0)}
-.action-grid,.theme-content,.du-list{-webkit-overflow-scrolling:touch;scrollbar-gutter:stable both-edges}.custom-theme-grid{contain:layout style}.theme-swatch-choice{isolation:isolate}
 .mobile-action-bar{display:none!important;visibility:hidden!important;pointer-events:none!important}
-html[data-effective-theme="light"] body{background:radial-gradient(circle at top left,rgba(var(--theme-rgb),.13),transparent 34rem),radial-gradient(circle at 85% 12%,rgba(var(--theme-rgb),.10),transparent 26rem),linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%);color:#101827}
-html[data-effective-theme="light"] .panel,html[data-effective-theme="light"] .status-card,html[data-effective-theme="light"] .metric,html[data-effective-theme="light"] .action-card{background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(245,248,252,.91))!important;color:#101827!important;border-color:rgba(var(--theme-rgb),.25)!important;box-shadow:0 18px 50px rgba(15,23,42,.13)!important}
-html[data-effective-theme="light"] .hero-copy,html[data-effective-theme="light"] .tiny,html[data-effective-theme="light"] .metric p,html[data-effective-theme="light"] .action-card p,html[data-effective-theme="light"] .api-line span{color:#526071!important}
-html[data-contrast="on"]{--muted:#e5e7eb;--sub:#d1d5db}html[data-contrast="on"] .panel,html[data-contrast="on"] .status-card,html[data-contrast="on"] .metric,html[data-contrast="on"] .action-card{border-color:rgba(var(--theme-rgb),.62)!important}html[data-contrast="on"] .tiny,html[data-contrast="on"] .hero-copy,html[data-contrast="on"] .metric p,html[data-contrast="on"] .action-card p{color:#f3f4f6!important}
-html[dir="rtl"] .brand,html[dir="rtl"] .panel-title,html[dir="rtl"] .shield-row{direction:rtl;text-align:right}html[dir="rtl"] .api-line{direction:rtl}html[dir="rtl"] .api-line b{text-align:left}html[dir="rtl"] .brand-typewriter::after{margin-left:0;margin-right:.12em}
-@media(max-width:680px){html{scroll-padding-top:100px}main.wrap{padding-top:12px!important}.dashboard{gap:12px!important}.panel.hero-compact{margin-top:2px!important}.site-header .container.nav{max-width:calc(100vw - 14px)!important}.header-actions{gap:8px!important}.brand-typewriter{max-width:min(40vw,9.6rem)}.hero-actions .btn{min-height:52px}.api-line{gap:10px}.api-line b{font-size:.88rem}.action-grid{scroll-padding-inline:10px}.action-card{min-width:min(236px,78vw)!important}}
-@media(max-width:380px){.site-header .container.nav{width:calc(100vw - 10px)!important;min-height:68px!important;padding:8px!important;gap:6px!important;border-radius:27px!important}.brand{gap:8px!important}.brand-mark{width:42px!important;height:42px!important;border-radius:14px!important}.theme-toggle,.menu-toggle{width:42px!important;height:42px!important;min-width:42px!important}.brand-typewriter{font-size:.96rem!important;max-width:7.9rem!important;min-width:8.7ch}.theme-card.theme-pro-card{width:calc(100vw - 14px)!important}.api-line{font-size:.72rem!important}.hero-title{font-size:clamp(1.48rem,10vw,2rem)!important}.custom-theme-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
-@media(min-width:681px){.details-grid .panel.reveal{content-visibility:auto;contain-intrinsic-size:1px 420px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}.brand-typewriter::after{animation:none!important}}
-html[data-motion="reduced"] *,html[data-motion="none"] *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}html[data-motion="reduced"] .brand-typewriter::after,html[data-motion="none"] .brand-typewriter::after{animation:none!important}
-@supports not (backdrop-filter:blur(18px)){.site-header .container.nav,.theme-modal,.menu-overlay{background:rgba(7,10,17,.98)!important}}
 </style>
 
 </head>
@@ -1833,6 +1816,19 @@ html[data-motion="reduced"] *,html[data-motion="none"] *{animation-duration:.001
       refreshCooldownMs: 1200
     });
 
+    const ALLOWED_API_ACTIONS = Object.freeze({
+      domain_dashboard_me: true,
+      customer_security_status: true,
+      customer_security_overview: true,
+      customer_security_guard_status: true,
+      customer_security_revoke_session: true,
+      customer_security_revoke_other_sessions: true,
+      customer_security_account_request: true,
+      customer_security_recovery_codes_status: true,
+      customer_security_recovery_codes_generate: true,
+      domain_logout: true
+    });
+
     const state = {
       status: null,
       overview: null,
@@ -1869,6 +1865,8 @@ html[data-motion="reduced"] *,html[data-motion="none"] *{animation-duration:.001
     }
 
     function apiUrl(action) {
+      action = String(action || '').trim();
+      if (!ALLOWED_API_ACTIONS[action]) throw new Error('Blocked API action.');
       const url = new URL(CONFIG.apiBase, window.location.origin);
       url.searchParams.set('action', action);
       return url.toString();
@@ -1923,7 +1921,11 @@ html[data-motion="reduced"] *,html[data-motion="none"] *{animation-duration:.001
     }
 
     function buildAuthHeaders(hasJsonBody = false, extraHeaders = {}) {
-      const headers = { 'Accept': 'application/json' };
+      const headers = {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Dirac-Client': 'customer-security-dashboard'
+      };
       if (hasJsonBody) headers['Content-Type'] = 'application/json';
       Object.assign(headers, extraHeaders || {});
       return headers;
@@ -1941,10 +1943,14 @@ html[data-motion="reduced"] *,html[data-motion="none"] *{animation-duration:.001
           cache: 'no-store',
           headers: buildAuthHeaders(hasBody, options.headers || {}),
           body: hasBody ? JSON.stringify(options.body) : undefined,
-          signal: controller.signal
+          signal: controller.signal,
+          referrerPolicy: 'strict-origin-when-cross-origin'
         });
         persistRefreshedTokensFromResponse(response);
         const text = await response.text();
+        if (text && text.length > 1048576) {
+          return { ok: false, status: response.status, data: { ok: false, message: 'Respons server terlalu besar.' } };
+        }
         let data = null;
         try { data = text ? JSON.parse(text) : null; } catch (_) { data = { ok: false, message: text.slice(0, 220) }; }
         return { ok: response.ok && Boolean(data && data.ok), status: response.status, data };
@@ -3812,79 +3818,5 @@ html[data-motion="reduced"] *,html[data-motion="none"] *{animation-duration:.001
   window.addEventListener('storage', function(e){ if(e && e.key === LANGUAGE_KEY) refreshDynamicSecurityWord(); }, false);
 })();
 </script>
-
-<script id="dirac-production-hardening-js-v1">
-(function(){
-  'use strict';
-  if(window.__DIRAC_PRODUCTION_HARDENING_V1__) return;
-  window.__DIRAC_PRODUCTION_HARDENING_V1__ = true;
-  var IMPORTANT_IDS = ['logoutBtn','menuLogoutBtn','revokeOthersBtn','recoveryCodesBtn','securityReviewBtn','themeModal','menuOverlay','mainStatusPill','readoutUser','readoutLink','readoutPolicy','readoutDirect','sessionCount','sessionsList','activityTimeline'];
-  function ready(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true}); else fn(); }
-  function qsa(sel, root){ try{return Array.prototype.slice.call((root||document).querySelectorAll(sel));}catch(_){return[];} }
-  function setIfMissing(el, name, value){ try{ if(el && !el.hasAttribute(name)) el.setAttribute(name, value); }catch(_){} }
-  function hardenLinks(){
-    qsa('a[target="_blank"]').forEach(function(a){
-      var rel = (a.getAttribute('rel') || '').toLowerCase().split(/\s+/).filter(Boolean);
-      ['noopener','noreferrer'].forEach(function(v){ if(rel.indexOf(v) < 0) rel.push(v); });
-      a.setAttribute('rel', rel.join(' '));
-    });
-  }
-  function hardenButtons(){
-    qsa('button').forEach(function(btn){ setIfMissing(btn, 'type', 'button'); });
-    qsa('.theme-toggle').forEach(function(btn){ setIfMissing(btn, 'aria-label', 'Buka pengaturan tema'); });
-    qsa('.menu-toggle').forEach(function(btn){ setIfMissing(btn, 'aria-label', 'Buka menu keamanan'); });
-    qsa('[data-close-theme],[data-close-menu],#closeRecoveryModal').forEach(function(btn){ setIfMissing(btn, 'aria-label', 'Tutup'); });
-  }
-  function hardenImages(){
-    qsa('img').forEach(function(img){
-      setIfMissing(img, 'decoding', 'async');
-      if(!img.closest('.brand-mark') && !img.closest('.du-brand')) setIfMissing(img, 'loading', 'lazy');
-      if(!img.closest('.brand-mark') && !img.closest('.du-brand')) setIfMissing(img, 'fetchpriority', 'low');
-    });
-  }
-  function hardenDialogs(){
-    var theme = document.getElementById('themeModal');
-    var menu = document.getElementById('menuOverlay');
-    if(theme){ setIfMissing(theme, 'aria-hidden', 'true'); }
-    qsa('.theme-card[role="dialog"],.du-panel[role="dialog"],.recovery-modal [role="dialog"]').forEach(function(d){ setIfMissing(d, 'aria-modal', 'true'); });
-    var observerTarget = document.body;
-    if(observerTarget && 'MutationObserver' in window){
-      var lastFocus = null;
-      document.addEventListener('click', function(e){ lastFocus = e.target && e.target.closest ? e.target.closest('button,a,input,select,textarea,[tabindex]:not([tabindex="-1"])') : null; }, true);
-      var obs = new MutationObserver(function(){
-        [theme, menu].forEach(function(modal){
-          if(!modal) return;
-          var open = modal.classList.contains('open');
-          modal.setAttribute('aria-hidden', open ? 'false' : 'true');
-          if(open){
-            var focusable = modal.querySelector('button,a,input,select,textarea,[tabindex]:not([tabindex="-1"])');
-            if(focusable && !modal.contains(document.activeElement)) { try{ focusable.focus({preventScroll:true}); }catch(_){ try{ focusable.focus(); }catch(__){} } }
-          }else if(lastFocus && document.contains(lastFocus) && (document.activeElement === document.body || !document.activeElement)){ try{ lastFocus.focus({preventScroll:true}); }catch(_){} }
-        });
-      });
-      obs.observe(observerTarget,{attributes:true,subtree:true,attributeFilter:['class','aria-hidden']});
-    }
-  }
-  function selfCheck(){
-    var missing = IMPORTANT_IDS.filter(function(id){ return !document.getElementById(id); });
-    var duplicateIds = [];
-    try{
-      var seen = Object.create(null);
-      qsa('[id]').forEach(function(el){ var id=el.id; if(seen[id]) duplicateIds.push(id); else seen[id]=1; });
-    }catch(_){}
-    var result = {ok: missing.length === 0, missingIds: missing, duplicateIds: duplicateIds, timestamp: new Date().toISOString()};
-    try{ document.documentElement.setAttribute('data-dirac-selfcheck', result.ok ? 'pass' : 'attention'); }catch(_){}
-    return result;
-  }
-  ready(function(){
-    try{ document.documentElement.classList.add('js-ready','dirac-prod-hardening'); }catch(_){}
-    hardenLinks(); hardenButtons(); hardenImages(); hardenDialogs();
-    window.diracSecuritySelfCheck = selfCheck;
-    selfCheck();
-    window.setTimeout(function(){ try{ if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs(); }catch(_){} selfCheck(); }, 250);
-  });
-})();
-</script>
-
 </body>
 </html>
