@@ -5239,41 +5239,58 @@ body.menu-open #menuOverlay.dirac-ultra-menu.open{display:grid!important}
   #menuToggle .hamburger{width:21px!important;height:16px!important}
 }
 </style>
-
-
-
-<style id="dirac-menu-search-ios-stability-fix-v4">
-/* Stability patch: mencegah Safari/iOS auto-zoom dan viewport bergeser saat search menu dipakai. */
+<style id="dirac-menu-search-fixed-height-v6">
+/*
+  DIRAC MENU SEARCH FIX v6
+  Root cause: ketika search menyisakan sedikit item, tinggi bottom-sheet ikut menyusut,
+  sehingga terlihat seperti halaman bergerak sendiri. Patch ini menjaga tinggi sheet tetap stabil.
+*/
 html.du-menu-lock,
 body.du-menu-lock{
   overflow:hidden!important;
   overscroll-behavior:none!important;
 }
 body.du-menu-lock{
-  position:fixed!important;
   width:100%!important;
   left:0!important;
   right:0!important;
 }
 #menuOverlay.dirac-ultra-menu{
   width:100vw!important;
-  height:var(--du-stable-vh,100vh)!important;
-  min-height:var(--du-stable-vh,100vh)!important;
-  max-height:var(--du-stable-vh,100vh)!important;
+  height:var(--du-stable-vh,100svh)!important;
+  min-height:var(--du-stable-vh,100svh)!important;
+  max-height:var(--du-stable-vh,100svh)!important;
   overflow:hidden!important;
   overscroll-behavior:contain!important;
-  touch-action:none;
+  touch-action:none!important;
+  align-items:end!important;
+  justify-items:center!important;
 }
 #menuOverlay.dirac-ultra-menu .du-menu{
-  max-height:calc(var(--du-stable-vh,100vh) - 10px)!important;
+  height:calc(var(--du-stable-vh,100svh) - 10px)!important;
+  min-height:calc(var(--du-stable-vh,100svh) - 10px)!important;
+  max-height:calc(var(--du-stable-vh,100svh) - 10px)!important;
+  width:min(440px,100%)!important;
   max-width:100vw!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
   contain:layout paint;
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
+  transform:translate3d(0,0,0);
+}
+#menuOverlay.dirac-ultra-menu .du-top,
+#menuOverlay.dirac-ultra-menu .du-footer{
+  flex:0 0 auto!important;
 }
 #menuOverlay.dirac-ultra-menu .du-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
   overscroll-behavior:contain!important;
   -webkit-overflow-scrolling:touch;
+  touch-action:pan-y!important;
 }
 #menuOverlay.dirac-ultra-menu .du-search{
   touch-action:manipulation!important;
@@ -5286,15 +5303,34 @@ body.du-menu-lock{
   text-size-adjust:100%!important;
   touch-action:manipulation!important;
 }
-#menuOverlay.dirac-ultra-menu.du-input-focused .du-menu{
-  transform:translate3d(0,0,0)!important;
+#menuOverlay.dirac-ultra-menu.du-input-focused .du-menu,
+#menuOverlay.dirac-ultra-menu .du-menu.is-dragging{
+  will-change:transform;
 }
 @media(max-width:480px){
-  #menuOverlay.dirac-ultra-menu.open{place-items:end center!important;}
-  #menuOverlay.dirac-ultra-menu .du-menu{width:100%!important;}
+  #menuOverlay.dirac-ultra-menu{
+    padding:0!important;
+    place-items:end center!important;
+  }
+  #menuOverlay.dirac-ultra-menu .du-menu{
+    width:100%!important;
+    border-radius:30px 30px 0 0!important;
+    border-bottom:0!important;
+  }
+}
+@supports(height:100dvh){
+  #menuOverlay.dirac-ultra-menu{
+    height:var(--du-stable-vh,100dvh)!important;
+    min-height:var(--du-stable-vh,100dvh)!important;
+    max-height:var(--du-stable-vh,100dvh)!important;
+  }
+  #menuOverlay.dirac-ultra-menu .du-menu{
+    height:calc(var(--du-stable-vh,100dvh) - 10px)!important;
+    min-height:calc(var(--du-stable-vh,100dvh) - 10px)!important;
+    max-height:calc(var(--du-stable-vh,100dvh) - 10px)!important;
+  }
 }
 </style>
-
 </head>
 <body class="gate-locked gate-checking">
 
@@ -16245,5 +16281,200 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
 })();
 </script>
 
+<script id="dirac-menu-search-fixed-height-v6">
+(function(){
+  'use strict';
+  if(window.__DIRAC_MENU_SEARCH_FIXED_HEIGHT_V6__) return;
+  window.__DIRAC_MENU_SEARCH_FIXED_HEIGHT_V6__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+  function fireInput(el){
+    if(!el) return;
+    try{ el.dispatchEvent(new Event('input', {bubbles:true})); }
+    catch(_){ try{ var ev=document.createEvent('Event'); ev.initEvent('input',true,true); el.dispatchEvent(ev); }catch(__){} }
+  }
+  function closest(el, selector){ return el && el.closest ? el.closest(selector) : null; }
+
+  ready(function(){
+    var overlay = document.getElementById('menuOverlay');
+    var menu = document.getElementById('diracUltraMenu');
+    var toggle = document.getElementById('menuToggle');
+    var input = document.getElementById('diracUltraMenuSearch');
+    var clearBtn = document.getElementById('diracUltraMenuClear');
+    var body = document.getElementById('diracUltraMenuBody');
+    var progress = document.getElementById('diracUltraMenuProgress');
+    if(!overlay || !menu || !toggle || !input) return;
+
+    var locked = false;
+    var savedY = 0;
+    var savedBody = null;
+    var savedHtml = null;
+    var lastFocus = null;
+    var closeTimer = 0;
+
+    function viewportHeight(){
+      var vv = window.visualViewport;
+      var h = vv && vv.height ? vv.height : (window.innerHeight || document.documentElement.clientHeight || 0);
+      if(!h || h < 420) h = window.innerHeight || document.documentElement.clientHeight || 720;
+      return Math.max(420, Math.round(h));
+    }
+    function setStableViewport(){
+      try{ overlay.style.setProperty('--du-stable-vh', viewportHeight() + 'px'); }catch(_){ }
+      try{ menu.style.minHeight = 'calc(var(--du-stable-vh) - 10px)'; }catch(_){ }
+    }
+    function updateProgress(){
+      if(!body || !progress) return;
+      try{
+        var max = body.scrollHeight - body.clientHeight;
+        progress.style.width = (max <= 0 ? 0 : (body.scrollTop / max) * 100) + '%';
+      }catch(_){ }
+    }
+    function lock(){
+      if(locked) return;
+      locked = true;
+      savedY = window.scrollY || window.pageYOffset || 0;
+      savedHtml = {overflow:document.documentElement.style.overflow};
+      savedBody = {
+        position:document.body.style.position,
+        top:document.body.style.top,
+        left:document.body.style.left,
+        right:document.body.style.right,
+        width:document.body.style.width,
+        overflow:document.body.style.overflow
+      };
+      document.documentElement.classList.add('du-menu-lock');
+      document.body.classList.add('du-menu-lock');
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = '-' + savedY + 'px';
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      setStableViewport();
+    }
+    function unlock(){
+      if(!locked) return;
+      locked = false;
+      document.documentElement.classList.remove('du-menu-lock');
+      document.body.classList.remove('du-menu-lock');
+      if(savedHtml) document.documentElement.style.overflow = savedHtml.overflow || '';
+      if(savedBody){
+        document.body.style.position = savedBody.position || '';
+        document.body.style.top = savedBody.top || '';
+        document.body.style.left = savedBody.left || '';
+        document.body.style.right = savedBody.right || '';
+        document.body.style.width = savedBody.width || '';
+        document.body.style.overflow = savedBody.overflow || '';
+      }
+      try{ window.scrollTo(0, savedY); }catch(_){ }
+    }
+    function openMenuStable(){
+      clearTimeout(closeTimer);
+      lastFocus = document.activeElement;
+      lock();
+      overlay.hidden = false;
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('menu-open','modal-open');
+      toggle.setAttribute('aria-expanded','true');
+      menu.style.transform = '';
+      menu.classList.remove('is-dragging');
+      try{ if(body) body.scrollTop = 0; }catch(_){ }
+      fireInput(input);
+      setStableViewport();
+      updateProgress();
+      setTimeout(function(){
+        setStableViewport();
+        try{ menu.setAttribute('tabindex','-1'); menu.focus({preventScroll:true}); }catch(_){ }
+        updateProgress();
+      }, 40);
+    }
+    function closeMenuStable(){
+      clearTimeout(closeTimer);
+      overlay.classList.remove('open','du-input-focused','du-drag-fading');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.style.opacity = '';
+      document.body.classList.remove('menu-open','modal-open');
+      toggle.setAttribute('aria-expanded','false');
+      menu.style.transform = '';
+      menu.classList.remove('is-dragging');
+      input.value = '';
+      fireInput(input);
+      unlock();
+      closeTimer = setTimeout(function(){ if(!overlay.classList.contains('open')) overlay.hidden = true; }, 180);
+      try{ if(lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true}); }catch(_){ }
+    }
+
+    window.__diracOpenStableMenu = openMenuStable;
+    window.__diracCloseStableMenu = closeMenuStable;
+
+    document.addEventListener('click', function(e){
+      var target = e.target;
+      if(!target || !target.closest) return;
+      if(closest(target, '#menuToggle')){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        if(overlay.classList.contains('open')) closeMenuStable(); else openMenuStable();
+        return;
+      }
+      if(closest(target, '#diracUltraMenuClear')){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        input.value = '';
+        fireInput(input);
+        setStableViewport();
+        try{ input.focus({preventScroll:true}); }catch(_){ try{ input.focus(); }catch(__){} }
+        updateProgress();
+        return;
+      }
+      if(!overlay.classList.contains('open')) return;
+      if(target === overlay || closest(target, '[data-close-menu]')){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        closeMenuStable();
+        return;
+      }
+      var tracking = closest(target, '[data-open-tracking]');
+      if(tracking){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        closeMenuStable();
+        window.location.href = 'cekresi.html';
+        return;
+      }
+      var link = closest(target, 'a[href]');
+      if(link && overlay.contains(link) && !link.hasAttribute('data-keep-menu-open')) closeMenuStable();
+    }, true);
+
+    input.addEventListener('focus', function(){ overlay.classList.add('du-input-focused'); setStableViewport(); }, {passive:true});
+    input.addEventListener('blur', function(){ overlay.classList.remove('du-input-focused'); setStableViewport(); }, {passive:true});
+    input.addEventListener('input', function(){ setStableViewport(); updateProgress(); }, {passive:true});
+    if(body) body.addEventListener('scroll', updateProgress, {passive:true});
+    document.addEventListener('keydown', function(e){
+      if(!overlay.classList.contains('open')) return;
+      if(e.key === 'Escape'){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); closeMenuStable();
+      }
+    }, true);
+    window.addEventListener('resize', function(){ if(overlay.classList.contains('open')) setStableViewport(); }, {passive:true});
+    window.addEventListener('orientationchange', function(){ if(overlay.classList.contains('open')) setTimeout(setStableViewport, 180); }, {passive:true});
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', function(){ if(overlay.classList.contains('open')) setStableViewport(); }, {passive:true});
+      window.visualViewport.addEventListener('scroll', function(){ if(overlay.classList.contains('open')) setStableViewport(); }, {passive:true});
+    }
+    try{
+      new MutationObserver(function(){
+        if(overlay.classList.contains('open')){
+          setStableViewport();
+          updateProgress();
+        }else{
+          unlock();
+        }
+      }).observe(overlay, {attributes:true, attributeFilter:['class','hidden','aria-hidden']});
+    }catch(_){ }
+    setStableViewport();
+  });
+})();
+</script>
 </body>
 </html>
