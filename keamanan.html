@@ -1864,6 +1864,53 @@ main.wrap{padding-top:24px!important;}
       }
     }
 
+    function cleanKey(value, fallback = 'unknown') {
+      const text = cleanText(value, fallback).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+      return text || fallback;
+    }
+
+    function limitedObjectArray(value, limit = 100) {
+      return Array.isArray(value) ? value.filter(item => item && typeof item === 'object').slice(0, limit) : [];
+    }
+
+    function safeInternalPage(value, fallback = 'masuk.html') {
+      const raw = String(value || fallback || '').trim();
+      const allowed = {
+        'masuk.html': true,
+        '/masuk.html': true,
+        'masuk (3).html': true,
+        '/masuk (3).html': true,
+        'dashboard.html': true,
+        '/dashboard.html': true,
+        'cekresi.html': true,
+        '/cekresi.html': true
+      };
+      try {
+        const parsed = new URL(raw, window.location.origin);
+        if (parsed.origin !== window.location.origin) return fallback;
+        const name = decodeURIComponent(parsed.pathname.split('/').pop() || fallback);
+        const query = parsed.search || '';
+        const candidate = name + query;
+        if (allowed[name] || allowed['/' + name]) return candidate;
+      } catch (_) {}
+      return fallback;
+    }
+
+    function initSecurityPolicyWatch() {
+      if (window.__DIRAC_SECURITY_POLICY_WATCH_V1__) return;
+      window.__DIRAC_SECURITY_POLICY_WATCH_V1__ = true;
+      try {
+        window.addEventListener('securitypolicyviolation', event => {
+          const detail = {
+            directive: cleanText(event.violatedDirective || event.effectiveDirective, 'csp'),
+            blocked: cleanText(event.blockedURI, 'blocked'),
+            source: cleanText(event.sourceFile, 'source')
+          };
+          if (window.console && console.warn) console.warn('Dirac CSP violation blocked', detail);
+        });
+      } catch (_) {}
+    }
+
     function apiUrl(action) {
       action = String(action || '').trim();
       if (!ALLOWED_API_ACTIONS[action]) throw new Error('Blocked API action.');
@@ -2060,11 +2107,11 @@ main.wrap{padding-top:24px!important;}
     function renderOverview(data) {
       const overview = data && data.overview ? data.overview : data;
       if (!overview || typeof overview !== 'object') return renderEmptyData();
-      const settings = overview.settings || null;
-      const sessions = Array.isArray(overview.sessions) ? overview.sessions : [];
-      const events = Array.isArray(overview.events) ? overview.events : [];
-      const loginLogs = Array.isArray(overview.login_logs) ? overview.login_logs : [];
-      const requests = Array.isArray(overview.account_requests) ? overview.account_requests : [];
+      const settings = overview.settings && typeof overview.settings === 'object' ? overview.settings : null;
+      const sessions = limitedObjectArray(overview.sessions, 100);
+      const events = limitedObjectArray(overview.events, 100);
+      const loginLogs = limitedObjectArray(overview.login_logs, 100);
+      const requests = limitedObjectArray(overview.account_requests, 100);
 
       const mfaEnabled = Boolean(settings && settings.two_factor_enabled);
       const method = settings && settings.two_factor_method ? settings.two_factor_method : 'none';
@@ -2100,7 +2147,7 @@ main.wrap{padding-top:24px!important;}
       }
       setText('#sessionPanelTag', `${items.length} sesi`);
       items.forEach(item => {
-        const status = cleanText(item.status, 'unknown').toLowerCase();
+        const status = cleanKey(item.status, 'unknown');
         const el = document.createElement('div');
         el.className = 'list-item is-new';
         const main = document.createElement('div'); main.className = 'list-main';
@@ -2220,7 +2267,7 @@ main.wrap{padding-top:24px!important;}
         const title = document.createElement('strong'); title.textContent = cleanText(item.request_type, 'account request').replace(/_/g, ' ');
         const sub = document.createElement('span'); sub.textContent = `${cleanText(item.reason, 'Tanpa catatan')} · ${formatDate(item.created_at)}`;
         const tag = document.createElement('span');
-        const status = cleanText(item.status, 'pending').toLowerCase();
+        const status = cleanKey(item.status, 'pending');
         tag.className = status === 'completed' || status === 'approved' ? 'tag ok' : status === 'failed' || status === 'rejected' ? 'tag bad' : 'tag warn';
         tag.textContent = status;
         main.append(title, sub); el.append(main, tag); root.appendChild(el);
@@ -2337,7 +2384,7 @@ main.wrap{padding-top:24px!important;}
       const result = await safeFetchJson(CONFIG.logoutAction, { method: 'POST' });
       if (result.ok) {
         toast('Logout berhasil', 'Sesi lokal sudah dibersihkan oleh backend.');
-        window.setTimeout(() => { window.location.href = CONFIG.loginPage; }, 500);
+        window.setTimeout(() => { window.location.href = safeInternalPage(CONFIG.loginPage, 'masuk.html'); }, 500);
       } else {
         toast('Logout tidak selesai', cleanText(result.data && result.data.message, 'Silakan logout dari dashboard lama.'));
       }
@@ -2391,9 +2438,16 @@ main.wrap{padding-top:24px!important;}
       try { sessionStorage.setItem('dirac_security_redirect_reason', reason); } catch (_) {}
       const overlay = document.createElement('div');
       overlay.className = 'gate-lock';
-      overlay.innerHTML = '<div class="gate-lock-card"><h1>Sesi tidak valid</h1><p>Mengarahkan ke halaman masuk...</p></div>';
+      const card = document.createElement('div');
+      card.className = 'gate-lock-card';
+      const title = document.createElement('h1');
+      title.textContent = 'Sesi tidak valid';
+      const text = document.createElement('p');
+      text.textContent = 'Mengarahkan ke halaman masuk...';
+      card.append(title, text);
+      overlay.appendChild(card);
       document.body.appendChild(overlay);
-      setTimeout(() => { window.location.replace(CONFIG.loginUrl || '/masuk.html'); }, CONFIG.gateRedirectDelayMs || 500);
+      setTimeout(() => { window.location.replace(safeInternalPage(CONFIG.loginUrl || CONFIG.loginPage || '/masuk.html', 'masuk.html')); }, CONFIG.gateRedirectDelayMs || 500);
     }
 
     async function runSecurityGate() {
@@ -2422,7 +2476,10 @@ main.wrap{padding-top:24px!important;}
       grid.innerHTML = '';
       const info = document.createElement('div');
       info.className = 'empty-state';
-      info.innerHTML = '<b>TXT sudah dibuat</b>Recovery codes tidak ditampilkan di website. Buka file TXT yang ter-download, lalu salin hanya isi di antara penanda MULAI SALIN dan SELESAI SALIN.';
+      const infoTitle = document.createElement('b');
+      infoTitle.textContent = 'TXT sudah dibuat';
+      info.appendChild(infoTitle);
+      info.appendChild(document.createTextNode('Recovery codes tidak ditampilkan di website. Buka file TXT yang ter-download, lalu salin hanya isi di antara penanda MULAI SALIN dan SELESAI SALIN.'));
       grid.appendChild(info);
       modal.hidden = false;
       lastRecoveryCodesMemory = (codes || []).slice();
@@ -2540,6 +2597,7 @@ main.wrap{padding-top:24px!important;}
 
 
     document.addEventListener('DOMContentLoaded', async () => {
+      initSecurityPolicyWatch();
       initChrome();
       initReveal();
       renderEmptyData();
