@@ -1180,11 +1180,9 @@ body.dirac-dashboard-menu-open .site-header{
 
 
 <style id="dirac-revisi-customer-security-clean-v2">
-/* Revisi user: hapus bar atas, hapus popup bawah, logo header pakai logo 3.webp, dan hilangkan kontak popup pada loading sesi. */
+/* Revisi user: hapus bar atas dan popup bawah saja. Kontak resmi di loading sesi tetap aktif. */
 .top-strip,
-.mobile-action-bar,
-.dirac-final-contact-note,
-.dirac-final-notice-line{
+.mobile-action-bar{
   display:none!important;
   visibility:hidden!important;
   opacity:0!important;
@@ -1215,27 +1213,269 @@ body.dirac-dashboard-menu-open .site-header{
 @media(max-width:680px){.footer{padding-bottom:24px!important}}
 </style>
 
+
+
+<style id="dirac-revisi-3-security-final-fix">
+/* Revisi 3: loading security dibuat konsisten, tanpa merah kiri atas, email notice aktif, header compact seperti halaman lain. */
+body.gate-checking,
+body.dirac-protected-checking,
+body.dirac-protected-locked{
+  background:#000!important;
+}
+#diracProtectedLockOverlay,
+body.gate-checking .security-gate,
+body.gate-checking .gate{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  min-height:100dvh!important;
+  z-index:2147483000!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:clamp(18px,4vw,34px)!important;
+  overflow:hidden!important;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(14,165,233,.145),transparent 19rem),
+    radial-gradient(circle at 50% 54%,rgba(4,18,39,.55),transparent 25rem),
+    linear-gradient(180deg,#02050b 0%,#000 100%)!important;
+  color:#f8fafc!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+#diracProtectedLockOverlay::before,
+body.gate-checking .security-gate::before,
+body.gate-checking .gate::before{
+  content:""!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  opacity:.13!important;
+  background-image:
+    radial-gradient(circle at 18% 22%,rgba(148,211,255,.22) 0 1px,transparent 1.7px),
+    radial-gradient(circle at 74% 38%,rgba(79,140,255,.20) 0 1px,transparent 1.7px),
+    radial-gradient(circle at 44% 76%,rgba(45,212,191,.16) 0 1px,transparent 1.7px)!important;
+  background-size:88px 88px,132px 132px,156px 156px!important;
+  mix-blend-mode:screen!important;
+}
+#diracProtectedLockOverlay .dirac-final-session-loader,
+body.gate-checking .security-gate .dirac-final-session-loader,
+body.gate-checking .gate .dirac-final-session-loader{
+  width:min(100%,760px)!important;
+  max-height:calc(100dvh - 34px)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:clamp(9px,1.05vh,13px)!important;
+  transform:translateY(-3.8vh)!important;
+  overflow:visible!important;
+  --dirac-final-accent-rgb:45,212,191!important;
+  --dirac-final-accent:rgb(45,212,191)!important;
+}
+#diracProtectedLockOverlay .dirac-final-logo-stage,
+body.gate-checking .security-gate .dirac-final-logo-stage,
+body.gate-checking .gate .dirac-final-logo-stage{
+  width:min(66vw,365px)!important;
+  aspect-ratio:600/585!important;
+  margin-bottom:clamp(-2px,-.2vh,0px)!important;
+}
+#diracProtectedLockOverlay .dirac-final-contact-note,
+body.gate-checking .security-gate .dirac-final-contact-note,
+body.gate-checking .gate .dirac-final-contact-note{
+  position:relative!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  transform:none!important;
+  width:min(92vw,650px)!important;
+  max-width:650px!important;
+  display:grid!important;
+  visibility:visible!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+  margin:clamp(9px,1.1vh,14px) auto 0!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+  animation:diracFinalNoticeOfficialIn .72s cubic-bezier(.22,1,.36,1) .28s both!important;
+}
+#diracProtectedLockOverlay .dirac-final-notice-line,
+body.gate-checking .security-gate .dirac-final-notice-line,
+body.gate-checking .gate .dirac-final-notice-line{
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  min-height:40px!important;
+  padding:8px 14px!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,rgba(4,13,27,.92),rgba(2,8,18,.88))!important;
+  border:1px solid rgba(93,171,255,.24)!important;
+  box-shadow:0 12px 32px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.055),0 0 20px rgba(45,212,191,.045)!important;
+  color:#cfd7e3!important;
+  font-size:clamp(.71rem,2.55vw,.88rem)!important;
+  line-height:1.2!important;
+  font-weight:800!important;
+  letter-spacing:-.01em!important;
+  text-align:center!important;
+  pointer-events:auto!important;
+}
+#diracProtectedLockOverlay .dirac-final-notice-icon,
+body.gate-checking .security-gate .dirac-final-notice-icon,
+body.gate-checking .gate .dirac-final-notice-icon{
+  display:inline-grid!important;
+  place-items:center!important;
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  border-radius:999px!important;
+  color:#07101d!important;
+  background:rgb(45,212,191)!important;
+  font-weight:1000!important;
+  font-size:.68rem!important;
+}
+#diracProtectedLockOverlay .dirac-final-contact-note a,
+body.gate-checking .security-gate .dirac-final-contact-note a,
+body.gate-checking .gate .dirac-final-contact-note a{
+  color:rgb(45,212,191)!important;
+  font-weight:950!important;
+  text-decoration:none!important;
+  white-space:nowrap!important;
+}
+.site-header{
+  position:sticky!important;
+  top:max(8px,env(safe-area-inset-top))!important;
+  z-index:9000!important;
+  padding:10px 0 0!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.site-header .nav{
+  width:min(var(--max),calc(100% - 28px))!important;
+  margin-inline:auto!important;
+  min-height:78px!important;
+  padding:12px 16px!important;
+  border-radius:32px!important;
+  background:radial-gradient(circle at 12% 0%,rgba(var(--theme-rgb),.12),transparent 10rem),linear-gradient(145deg,rgba(9,13,21,.94),rgba(15,22,34,.90))!important;
+  border:1px solid rgba(var(--theme-rgb),.22)!important;
+  box-shadow:0 18px 54px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06),0 0 0 1px rgba(var(--theme-rgb),.07)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+.site-header .brand{
+  flex:1 1 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+  min-width:0!important;
+}
+.site-header .brand-mark{
+  width:56px!important;
+  height:56px!important;
+  min-width:56px!important;
+  border-radius:20px!important;
+  position:relative!important;
+  overflow:hidden!important;
+  background:#fff!important;
+  box-shadow:0 14px 30px rgba(var(--theme-rgb),.18)!important;
+}
+.site-header .brand-logo-img{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  background:#fff!important;
+  z-index:2!important;
+  padding:0!important;
+  transform:none!important;
+}
+.site-header .brand-fallback-text{
+  display:grid;
+  position:absolute!important;
+  inset:0!important;
+  z-index:1!important;
+  place-items:center!important;
+  font-family:Poppins,system-ui,sans-serif!important;
+  font-weight:950!important;
+  color:#111!important;
+  background:linear-gradient(135deg,#fff2b6,var(--gold2))!important;
+}
+.site-header .brand-copy{min-width:0!important;display:block!important;}
+.site-header .brand-title{font-weight:950!important;font-size:1.16rem!important;color:#fff!important;line-height:1.05!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+.site-header .brand-sub{display:block!important;color:var(--muted)!important;font-size:.72rem!important;font-weight:800!important;margin-top:4px!important;}
+.site-header .nav-links{display:none!important;}
+.site-header .header-actions{display:flex!important;align-items:center!important;gap:10px!important;flex:0 0 auto!important;}
+.site-header .theme-toggle,
+.site-header .menu-toggle{
+  min-width:52px!important;
+  width:52px!important;
+  height:52px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(var(--theme-rgb),.24)!important;
+  background:rgba(255,255,255,.065)!important;
+  color:#fff!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-weight:950!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18)!important;
+  padding:0!important;
+}
+.site-header .hamburger{width:22px!important;height:16px!important;display:grid!important;gap:5px!important;}
+.site-header .hamburger span{height:2px!important;border-radius:4px!important;background:currentColor!important;display:block!important;}
+@media(max-width:760px){
+  .site-header .nav{width:calc(100% - 18px)!important;min-height:76px!important;border-radius:32px!important;padding:10px 12px!important;gap:10px!important;}
+  .site-header .brand-mark{width:52px!important;height:52px!important;min-width:52px!important;border-radius:18px!important;}
+  .site-header .brand-title{font-size:1.08rem!important;}
+  .site-header .brand-sub{display:none!important;}
+  .site-header .theme-toggle,.site-header .menu-toggle{width:52px!important;height:52px!important;min-width:52px!important;}
+}
+@media(max-width:430px){
+  .site-header .nav{width:calc(100% - 14px)!important;min-height:72px!important;border-radius:30px!important;padding:9px 10px!important;}
+  .site-header .brand-mark{width:46px!important;height:46px!important;min-width:46px!important;border-radius:16px!important;}
+  .site-header .brand-title{font-size:1rem!important;max-width:9.4rem!important;}
+  .site-header .theme-toggle,.site-header .menu-toggle{width:46px!important;height:46px!important;min-width:46px!important;}
+}
+@media(max-height:740px){
+  #diracProtectedLockOverlay .dirac-final-session-loader,
+  body.gate-checking .security-gate .dirac-final-session-loader,
+  body.gate-checking .gate .dirac-final-session-loader{transform:translateY(-3.2vh)!important;gap:7px!important;}
+  #diracProtectedLockOverlay .dirac-final-logo-stage,
+  body.gate-checking .security-gate .dirac-final-logo-stage,
+  body.gate-checking .gate .dirac-final-logo-stage{width:min(58vw,302px)!important;}
+  #diracProtectedLockOverlay .dirac-final-notice-line,
+  body.gate-checking .security-gate .dirac-final-notice-line,
+  body.gate-checking .gate .dirac-final-notice-line{min-height:37px!important;padding:6px 11px!important;}
+}
+</style>
+
 </head>
 <body>
   <a href="#main" class="skip-link">Lewati ke konten utama</a>
 <header class="site-header" id="siteHeader">
-    <div class="wrap nav" aria-label="Navigasi utama">
+    <nav class="nav" aria-label="Navigasi utama">
       <a href="dashboard.html" class="brand" aria-label="Kembali ke dashboard Dirac Group">
-        <span class="brand-mark" aria-hidden="true"><span class="brand-fallback-text">D</span><img class="brand-logo-img" src="logo 3.webp" alt="" loading="eager" decoding="async" fetchpriority="high" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='grid'"></span>
-        <span><span class="brand-title">Dirac Group</span><span class="brand-sub">Security Center</span></span>
+        <span class="brand-mark" aria-hidden="true">
+          <span class="brand-fallback-text">D</span>
+          <img class="brand-logo-img" src="logo 3.webp" alt="" loading="eager" decoding="async" fetchpriority="high" onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none';this.previousElementSibling.style.display='grid'">
+        </span>
+        <span class="brand-copy"><span class="brand-title">Dirac Group</span><span class="brand-sub">Security Center</span></span>
       </a>
-      <nav class="nav-links" aria-label="Navigasi halaman">
-        <a class="nav-link" href="#controls">Kontrol</a>
-        <a class="nav-link" href="#sessions">Sesi</a>
-        <a class="nav-link" href="#activity">Aktivitas</a>
-      </nav>
-      <div class="nav-actions">
-        <button class="icon-btn" type="button" id="motionToggle" aria-label="Aktif/nonaktif animasi">◐</button>
-        <button class="btn ghost" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">🎨 <span>Tema</span></button>
-        <button class="btn ghost dirac-dashboard-menu-trigger" type="button" data-open-dirac-dashboard-menu aria-haspopup="dialog" aria-controls="diracDashboardMenuHost" aria-expanded="false" aria-label="Buka menu dashboard">☰ <span>Menu</span></button>
-        <button class="btn ghost" type="button" id="refreshBtn"><span>Refresh</span> ↻</button>
+      <div class="nav-actions header-actions">
+        <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">🎨</button>
+        <button class="theme-toggle" type="button" id="refreshBtn" aria-label="Refresh keamanan">↻</button>
+        <button class="menu-toggle dirac-dashboard-menu-trigger" type="button" data-open-dirac-dashboard-menu aria-label="Buka menu dashboard" aria-haspopup="dialog" aria-controls="diracDashboardMenuHost" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button>
       </div>
-    </div>
+    </nav>
   </header>
 
   <main id="main" class="wrap">
