@@ -1371,6 +1371,9 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
   box-shadow:0 14px 30px rgba(var(--du-rgb),.16);
   animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .03s both;
 }
+#menuOverlay.dirac-ultra-menu .du-brand{overflow:hidden;background:rgba(255,255,255,.96);border:1px solid rgba(var(--du-rgb),.28);color:transparent;font-size:0;letter-spacing:0;}
+#menuOverlay.dirac-ultra-menu .du-brand-logo{width:100%;height:100%;display:block;object-fit:contain;object-position:center;padding:6px;background:transparent;}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-brand{background:rgba(255,255,255,.98);border-color:rgba(var(--du-rgb),.32);}
 #menuOverlay.dirac-ultra-menu .du-title{min-width:0;animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .06s both;}
 #menuOverlay.dirac-ultra-menu .du-title strong{display:block;font-size:1rem;line-height:1.12;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #menuOverlay.dirac-ultra-menu .du-title small{display:block;margin-top:4px;color:var(--du-muted);font-size:.73rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1707,7 +1710,7 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
       <header class="du-top">
         <div class="du-handle" id="diracUltraMenuHandle" aria-hidden="true"></div>
         <div class="du-top-row">
-          <div class="du-brand" aria-hidden="true">DG</div>
+          <div class="du-brand" aria-hidden="true"><img class="du-brand-logo" src="logo 3.webp" alt="" loading="eager" decoding="async"></div>
           <div class="du-title">
             <strong id="menuTitle" data-i18n="menuTitle">Menu Dashboard</strong>
             <small data-i18n="menuSub">Navigasi utama pelanggan.</small>
