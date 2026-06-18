@@ -149,7 +149,8 @@
 })();
 </script>
 <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="canonical" href="https://diracgroup.store/customer-security">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07090d">
   <meta name="color-scheme" content="dark">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -905,352 +906,9 @@ body.gate-checking .gate .dirac-final-contact-note a{
   body.gate-checking .gate .dirac-final-crypto-strip{font-size:.60rem!important;min-height:25px!important;}
 }
 </style>
-
-
-
-
-<style id="dirac-shared-menu-toggle-style-v1">
-/* Shared menu toggle only; scoped to #menuToggle to avoid touching protected app logic. */
-#menuToggle.menu-toggle{
-  border:1px solid rgba(var(--theme-rgb,243,205,112),.24);
-  background:rgba(255,255,255,.065);
-  color:#fff;
-  border-radius:999px;
-  min-width:44px;
-  width:44px;
-  height:44px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:0;
-  font-weight:950;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18);
-  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1),background .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1);
-}
-#menuToggle.menu-toggle:hover{transform:translateY(-2px);filter:brightness(1.05);border-color:rgba(var(--theme-rgb,243,205,112),.46);background:rgba(var(--theme-rgb,243,205,112),.11);}
-#menuToggle.menu-toggle .hamburger{width:22px;height:16px;display:grid;gap:5px;}
-#menuToggle.menu-toggle .hamburger span{height:2px;border-radius:4px;background:currentColor;display:block;transition:.22s cubic-bezier(.16,1,.3,1);}
-#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(7px) rotate(45deg);}
-#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0;}
-#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
-html[data-effective-theme="light"] #menuToggle.menu-toggle{background:rgba(255,255,255,.78);color:#171923;border-color:rgba(15,23,42,.10);}
-@media(max-width:560px){#menuToggle.menu-toggle{width:40px;min-width:40px;height:40px;}}
-</style>
-
-<style id="customer-security-menu-theme-safe-patch-v1">
-/* Customer Security: header buttons for theme/menu. Does not touch auth, payment, A2F, hash, or backend code. */
-.nav-actions .theme-open-btn,
-.nav-actions .menu-toggle{
-  border:1px solid rgba(var(--theme-rgb,243,205,112),.24);
-  background:rgba(255,255,255,.055);
-  color:#fff;
-  border-radius:999px;
-  font-weight:900;
-  min-height:40px;
-  min-width:40px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  cursor:pointer;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 22px rgba(0,0,0,.16);
-  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1),background .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1);
-}
-.nav-actions .theme-open-btn:hover,
-.nav-actions .menu-toggle:hover{
-  transform:translateY(-1px);
-  filter:brightness(1.05);
-  background:rgba(var(--theme-rgb,243,205,112),.10);
-  border-color:rgba(var(--theme-rgb,243,205,112),.38);
-}
-.nav-actions .menu-toggle{width:40px;padding:0;}
-.nav-actions .hamburger{width:18px;height:14px;display:grid;gap:4px;}
-.nav-actions .hamburger span{height:2px;border-radius:4px;background:currentColor;display:block;transition:.22s cubic-bezier(.16,1,.3,1);}
-.nav-actions .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(6px) rotate(45deg);}
-.nav-actions .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0;}
-.nav-actions .menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
-html[data-effective-theme="light"] .nav-actions .theme-open-btn,
-html[data-effective-theme="light"] .nav-actions .menu-toggle{background:rgba(255,255,255,.78);color:#171923;border-color:rgba(15,23,42,.10);}
-@media(max-width:560px){
-  .nav-actions{gap:6px;}
-  .nav-actions .theme-open-btn,
-  .nav-actions .menu-toggle{width:38px;min-width:38px;min-height:38px;padding:0;}
-}
-
-/* Parfum-style theme modal ported to Customer Security. */
-.theme-modal{
-  position:fixed;
-  inset:0;
-  z-index:11500;
-  display:none;
-  place-items:center;
-  padding:18px;
-  background:rgba(0,0,0,.68);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-}
-.theme-modal.open{display:grid;}
-.theme-card{
-  width:min(620px,100%);
-  max-height:92vh;
-  overflow:auto;
-  border-radius:30px;
-  background:linear-gradient(180deg,#121b27,#080b10);
-  border:1px solid var(--line,rgba(var(--theme-rgb,243,205,112),.18));
-  box-shadow:var(--shadow,0 24px 70px rgba(0,0,0,.45));
-  color:var(--text,#f8fafc);
-}
-.theme-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:22px 24px 10px;}
-.theme-head h2{margin:0;font-family:"Playfair Display",serif;font-size:1.85rem;color:#fff;}
-.theme-body{padding:0 24px 24px;}
-.theme-section{padding:22px 0;border-bottom:1px solid rgba(255,255,255,.08);}
-.theme-section:last-of-type{border-bottom:0;}
-.theme-section h3{margin:0 0 3px;color:#fff;font-size:1.12rem;letter-spacing:.01em;}
-.theme-section p{margin:0 0 18px;color:#8d98aa;font-size:.94rem;}
-.theme-choice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.theme-contrast-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-.theme-language-grid,
-.theme-currency-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-.theme-choice{
-  min-height:72px;
-  border-radius:22px;
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(6,10,16,.82);
-  color:#e8edf5;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  gap:6px;
-  font-weight:850;
-  text-align:center;
-  padding:10px;
-  transition:transform .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1),background .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1);
-}
-.theme-choice span:first-child{font-weight:950;}
-.theme-choice small{color:#9ca3af;font-size:.72rem;}
-.theme-choice:hover{transform:translateY(-2px);border-color:rgba(var(--theme-rgb,243,205,112),.44);background:rgba(var(--theme-rgb,243,205,112),.10);}
-.theme-choice.is-selected,
-.theme-choice.active{border-color:rgba(var(--theme-rgb,243,205,112),.72);background:rgba(var(--theme-rgb,243,205,112),.16);box-shadow:0 0 0 4px rgba(var(--theme-rgb,243,205,112),.075);}
-.theme-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;}
-.theme-swatch{
-  width:100%;
-  aspect-ratio:1;
-  min-height:42px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.12);
-  background:var(--swatch,#f3cd70);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 10px 24px rgba(0,0,0,.20);
-  transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s cubic-bezier(.16,1,.3,1),outline-color .22s cubic-bezier(.16,1,.3,1);
-}
-.theme-swatch:hover{transform:translateY(-2px) scale(1.02);}
-.theme-swatch.is-selected,
-.theme-swatch.active{outline:3px solid rgba(var(--theme-rgb,243,205,112),.48);outline-offset:3px;}
-.theme-currency-note{font-size:.82rem!important;line-height:1.55;color:#8d98aa!important;margin-top:14px!important;}
-.theme-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:6px;}
-.theme-reset,
-.theme-save{
-  min-height:48px;
-  border:0;
-  border-radius:18px;
-  font-weight:900;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  position:relative;
-  overflow:hidden;
-  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1);
-}
-.theme-reset{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.12);}
-.theme-save{background:linear-gradient(135deg,var(--gold,#f3cd70),var(--gold-2,#d6a642));color:#17120a;}
-.theme-save:hover,
-.theme-reset:hover{transform:translateY(-2px);filter:brightness(1.04);}
-body.modal-open{overflow:hidden;}
-html[data-effective-theme="light"] .theme-card{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(245,248,252,.96));color:#171923;border-color:rgba(var(--theme-rgb,243,205,112),.28);}
-html[data-effective-theme="light"] .theme-head h2,
-html[data-effective-theme="light"] .theme-section h3{color:#171923;}
-html[data-effective-theme="light"] .theme-section p,
-html[data-effective-theme="light"] .theme-currency-note{color:#667085!important;}
-html[data-effective-theme="light"] .theme-choice{color:#171923;background:rgba(255,255,255,.82);border-color:rgba(32,37,49,.12);}
-html[data-effective-theme="light"] .theme-reset{color:#171923;background:rgba(255,255,255,.76);border-color:rgba(32,37,49,.12);}
-@media(max-width:560px){
-  .theme-modal{padding:10px;place-items:end center;}
-  .theme-card{width:100%;max-height:92dvh;border-radius:30px 30px 0 0;}
-  .theme-head{padding:20px 18px 8px;}
-  .theme-body{padding:0 18px calc(18px + env(safe-area-inset-bottom));}
-  .theme-choice-grid{grid-template-columns:1fr 1fr 1fr;}
-  .theme-language-grid,
-  .theme-currency-grid{grid-template-columns:repeat(2,1fr);}
-  .theme-swatches{grid-template-columns:repeat(6,1fr);}
-}
-</style>
-
-
-
-<style id="dirac-minimal-modern-menu-v1">
-/* Dirac Minimal Modern Menu - scoped, safe replacement. */
-#menuOverlay.dirac-menu-overlay{
-  --dm-bg:#02040a;
-  --dm-panel:#070b12;
-  --dm-card:rgba(255,255,255,.05);
-  --dm-card-hover:rgba(255,255,255,.08);
-  --dm-text:#f8fafc;
-  --dm-muted:#9ca3af;
-  --dm-muted-2:#64748b;
-  --dm-accent:#ff2d55;
-  --dm-accent-2:#c5163f;
-  --dm-accent-soft:rgba(255,45,85,.12);
-  --dm-accent-line:rgba(255,45,85,.32);
-  --dm-line:rgba(255,255,255,.09);
-  --dm-line-soft:rgba(255,255,255,.055);
-  --dm-shadow:0 48px 170px rgba(0,0,0,.84);
-  --dm-safe-bottom:env(safe-area-inset-bottom);
-  position:fixed;
-  inset:0;
-  z-index:10000;
-  display:grid!important;
-  place-items:center;
-  padding:14px;
-  background:rgba(0,0,0,.68);
-  backdrop-filter:blur(22px);
-  -webkit-backdrop-filter:blur(22px);
-  opacity:0;
-  visibility:hidden;
-  pointer-events:none;
-  transition:opacity .34s cubic-bezier(.16,1,.3,1),visibility .34s cubic-bezier(.16,1,.3,1);
-  color:var(--dm-text);
-}
-#menuOverlay.dirac-menu-overlay[hidden]{display:none!important;}
-#menuOverlay.dirac-menu-overlay.open:not(.is-hidden){
-  opacity:1;
-  visibility:visible;
-  pointer-events:auto;
-}
-#menuOverlay.dirac-menu-overlay,
-#menuOverlay.dirac-menu-overlay *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-#menuOverlay.dirac-menu-overlay a{color:inherit;text-decoration:none;}
-#menuOverlay.dirac-menu-overlay button,
-#menuOverlay.dirac-menu-overlay input{font:inherit;}
-#menuOverlay.dirac-menu-overlay button{cursor:pointer;}
-#menuOverlay.dirac-menu-overlay svg{display:block;}
-#menuOverlay.dirac-menu-overlay .bg-orb{
-  position:absolute;
-  width:330px;
-  height:330px;
-  border-radius:999px;
-  pointer-events:none;
-  filter:blur(30px);
-  opacity:.25;
-  z-index:0;
-  animation:dmOrbMove 10s ease-in-out infinite;
-}
-#menuOverlay.dirac-menu-overlay .bg-orb.one{left:-125px;top:-115px;background:rgba(255,45,85,.58);}
-#menuOverlay.dirac-menu-overlay .bg-orb.two{right:-145px;top:48px;background:rgba(80,110,255,.42);animation-delay:-4.4s;}
-#menuOverlay.dirac-menu-overlay .bg-orb.three{left:30%;bottom:-190px;background:rgba(255,45,85,.22);animation-delay:-7s;}
-@keyframes dmOrbMove{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(22px,24px,0) scale(1.08);}}
-#menuOverlay.dirac-menu-overlay .dirac-menu{
-  position:relative;
-  width:min(440px,100%);
-  max-height:calc(100dvh - 28px);
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  border-radius:34px;
-  background:radial-gradient(circle at 18% 0%,rgba(255,45,85,.15),transparent 245px),radial-gradient(circle at 90% 8%,rgba(90,120,255,.09),transparent 235px),linear-gradient(180deg,rgba(15,23,42,.992),rgba(5,8,14,.998));
-  border:1px solid rgba(255,255,255,.11);
-  box-shadow:var(--dm-shadow),inset 0 1px 0 rgba(255,255,255,.075);
-  transform-origin:bottom center;
-  animation:dmMenuEnter .44s cubic-bezier(.16,1,.3,1) both;
-  color:var(--dm-text);
-}
-#menuOverlay.dirac-menu-overlay .dirac-menu::before{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  pointer-events:none;
-  border-radius:inherit;
-  padding:1px;
-  background:linear-gradient(135deg,rgba(255,255,255,.20),transparent 32%,rgba(255,45,85,.22),transparent 70%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask-composite:exclude;
-  opacity:.58;
-}
-@keyframes dmMenuEnter{from{opacity:0;transform:translateY(30px) scale(.95);filter:blur(12px);}to{opacity:1;transform:none;filter:blur(0);}}
-#menuOverlay.dirac-menu-overlay .menu-top{position:relative;z-index:2;padding:16px 18px 13px;border-bottom:1px solid var(--dm-line-soft);background:rgba(5,8,14,.36);}
-#menuOverlay.dirac-menu-overlay .menu-handle{width:42px;height:5px;border-radius:999px;background:rgba(255,255,255,.16);margin:0 auto 14px;position:relative;overflow:hidden;}
-#menuOverlay.dirac-menu-overlay .menu-handle::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);animation:dmHandleShine 2.9s ease-in-out infinite;}
-@keyframes dmHandleShine{0%,45%{transform:translateX(-100%);}70%,100%{transform:translateX(100%);}}
-#menuOverlay.dirac-menu-overlay .top-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
-#menuOverlay.dirac-menu-overlay .menu-label{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;color:#ff9aae;background:var(--dm-accent-soft);border:1px solid var(--dm-accent-line);font-size:.72rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;animation:dmItemIn .46s cubic-bezier(.16,1,.3,1) .03s both;}
-#menuOverlay.dirac-menu-overlay .menu-label::before{content:"";width:7px;height:7px;border-radius:999px;background:var(--dm-accent);box-shadow:0 0 18px rgba(255,45,85,.8);}
-#menuOverlay.dirac-menu-overlay .close-menu{width:44px;height:44px;border-radius:16px;border:1px solid var(--dm-line);background:rgba(255,255,255,.052);color:#fff;display:grid;place-items:center;transition:.22s cubic-bezier(.16,1,.3,1);}
-#menuOverlay.dirac-menu-overlay .close-menu:hover{background:rgba(255,255,255,.09);transform:translateY(-1px) rotate(4deg);}
-#menuOverlay.dirac-menu-overlay .close-menu:active{transform:scale(.96);}
-#menuOverlay.dirac-menu-overlay .close-menu svg{width:20px;height:20px;}
-#menuOverlay.dirac-menu-overlay .search-box{margin-top:12px;height:50px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:0 14px;border-radius:19px;background:rgba(255,255,255,.04);border:1px solid var(--dm-line);color:var(--dm-muted-2);transition:.22s cubic-bezier(.16,1,.3,1);animation:dmItemIn .46s cubic-bezier(.16,1,.3,1) .08s both;}
-#menuOverlay.dirac-menu-overlay .search-box:focus-within{border-color:var(--dm-accent-line);background:rgba(255,255,255,.055);box-shadow:0 0 0 4px rgba(255,45,85,.075);}
-#menuOverlay.dirac-menu-overlay .search-box svg{width:18px;height:18px;}
-#menuOverlay.dirac-menu-overlay .search-box input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#fff;font-size:.9rem;}
-#menuOverlay.dirac-menu-overlay .search-box input::placeholder{color:#64748b;}
-#menuOverlay.dirac-menu-overlay .clear-search{width:28px;height:28px;display:none;place-items:center;border:0;border-radius:10px;background:rgba(255,255,255,.065);color:#cbd5e1;}
-#menuOverlay.dirac-menu-overlay .clear-search.show{display:grid;}
-#menuOverlay.dirac-menu-overlay .menu-body{overflow:auto;padding:15px;scrollbar-width:none;scroll-behavior:smooth;}
-#menuOverlay.dirac-menu-overlay .menu-body::-webkit-scrollbar{width:0;height:0;}
-#menuOverlay.dirac-menu-overlay .menu-group{margin-top:17px;animation:dmItemIn .5s cubic-bezier(.16,1,.3,1) both;}
-#menuOverlay.dirac-menu-overlay .menu-group:nth-of-type(1){animation-delay:.10s;}
-#menuOverlay.dirac-menu-overlay .menu-group:nth-of-type(2){animation-delay:.16s;}
-#menuOverlay.dirac-menu-overlay .menu-group:nth-of-type(3){animation-delay:.22s;}
-@keyframes dmItemIn{from{opacity:0;transform:translateY(14px);filter:blur(5px);}to{opacity:1;transform:none;filter:blur(0);}}
-#menuOverlay.dirac-menu-overlay .menu-group:first-child{margin-top:0;}
-#menuOverlay.dirac-menu-overlay .group-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 3px;margin-bottom:9px;}
-#menuOverlay.dirac-menu-overlay .group-title strong{color:#e5e7eb;font-size:.71rem;letter-spacing:.09em;text-transform:uppercase;}
-#menuOverlay.dirac-menu-overlay .group-title span{color:var(--dm-muted-2);font-size:.71rem;}
-#menuOverlay.dirac-menu-overlay .list-stack{display:grid;gap:10px;}
-#menuOverlay.dirac-menu-overlay .list-card{position:relative;overflow:hidden;min-height:84px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:13px 14px;border-radius:25px;background:var(--dm-card);border:1px solid transparent;transition:.24s cubic-bezier(.16,1,.3,1);isolation:isolate;animation:dmCardIn .48s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,1) * 38ms);color:var(--dm-text);text-align:left;}
-@keyframes dmCardIn{from{opacity:0;transform:translateY(16px) scale(.98);filter:blur(6px);}to{opacity:1;transform:none;filter:blur(0);}}
-#menuOverlay.dirac-menu-overlay .list-card::before{content:"";position:absolute;inset:0;opacity:0;background:linear-gradient(135deg,rgba(255,45,85,.105),transparent 54%);transition:.24s ease;z-index:0;}
-#menuOverlay.dirac-menu-overlay .list-card::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at var(--x,50%) var(--y,50%),rgba(255,255,255,.13),transparent 34%);opacity:0;transition:.22s ease;pointer-events:none;z-index:0;}
-#menuOverlay.dirac-menu-overlay .list-card:hover{transform:translateY(-1px);background:var(--dm-card-hover);border-color:var(--dm-line);}
-#menuOverlay.dirac-menu-overlay .list-card:hover::before,
-#menuOverlay.dirac-menu-overlay .list-card:hover::after{opacity:1;}
-#menuOverlay.dirac-menu-overlay .list-card:active{transform:scale(.985);}
-#menuOverlay.dirac-menu-overlay .list-icon{position:relative;z-index:1;width:48px;height:48px;display:grid;place-items:center;border-radius:18px;background:rgba(255,255,255,.055);color:var(--dm-accent);transition:.22s cubic-bezier(.16,1,.3,1);}
-#menuOverlay.dirac-menu-overlay .list-card:hover .list-icon{transform:scale(1.04);background:rgba(255,45,85,.13);}
-#menuOverlay.dirac-menu-overlay .list-icon svg{width:21px;height:21px;}
-#menuOverlay.dirac-menu-overlay .list-copy{position:relative;z-index:1;min-width:0;}
-#menuOverlay.dirac-menu-overlay .list-copy strong{display:block;font-size:.96rem;line-height:1.18;letter-spacing:-.018em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;}
-#menuOverlay.dirac-menu-overlay .list-copy small{display:block;margin-top:6px;color:var(--dm-muted);font-size:.78rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-#menuOverlay.dirac-menu-overlay .list-arrow{position:relative;z-index:1;display:grid;place-items:center;color:#64748b;transition:.22s cubic-bezier(.16,1,.3,1);}
-#menuOverlay.dirac-menu-overlay .list-card:hover .list-arrow{color:#ff9aae;transform:translateX(2px);}
-#menuOverlay.dirac-menu-overlay .list-arrow svg{width:20px;height:20px;}
-#menuOverlay.dirac-menu-overlay .ripple{position:absolute;width:20px;height:20px;border-radius:999px;background:rgba(255,255,255,.22);transform:translate(-50%,-50%) scale(0);animation:dmRipple .58s ease-out forwards;pointer-events:none;z-index:0;}
-@keyframes dmRipple{to{transform:translate(-50%,-50%) scale(18);opacity:0;}}
-#menuOverlay.dirac-menu-overlay .empty-state{display:none;padding:26px 10px 10px;text-align:center;color:var(--dm-muted);font-size:.88rem;animation:dmItemIn .28s cubic-bezier(.16,1,.3,1) both;}
-#menuOverlay.dirac-menu-overlay .menu-footer{padding:13px 15px calc(13px + var(--dm-safe-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--dm-line-soft);background:rgba(5,8,14,.96);}
-#menuOverlay.dirac-menu-overlay .footer-btn{position:relative;overflow:hidden;height:48px;border-radius:17px;font-weight:850;transition:.22s cubic-bezier(.16,1,.3,1);}
-#menuOverlay.dirac-menu-overlay .footer-btn.secondary{border:1px solid var(--dm-line);background:rgba(255,255,255,.045);color:#fff;}
-#menuOverlay.dirac-menu-overlay .footer-btn.primary{border:0;background:linear-gradient(135deg,var(--dm-accent),var(--dm-accent-2));color:#fff;box-shadow:0 14px 34px rgba(255,45,85,.22);}
-#menuOverlay.dirac-menu-overlay .footer-btn::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);transition:.42s ease;}
-#menuOverlay.dirac-menu-overlay .footer-btn:hover{transform:translateY(-1px);filter:brightness(1.05);}
-#menuOverlay.dirac-menu-overlay .footer-btn:hover::after{transform:translateX(100%);}
-#menuOverlay.dirac-menu-overlay .footer-btn:active{transform:scale(.975);}
-#diracOpenMenuBtn.open-menu-btn{display:none;position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9998;height:52px;padding:0 20px;border:0;border-radius:999px;color:#fff;font-weight:850;background:linear-gradient(135deg,#ff2d55,#c5163f);box-shadow:0 16px 42px rgba(255,45,85,.24);}
-#diracOpenMenuBtn.open-menu-btn.show{display:inline-flex;align-items:center;justify-content:center;gap:9px;}
-#diracMenuToast.toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);z-index:10001;display:none;padding:11px 14px;border-radius:999px;background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.09);color:#fff;font-size:.78rem;font-weight:800;box-shadow:0 18px 48px rgba(0,0,0,.38);}
-#diracMenuToast.toast.show{display:block;animation:dmToastIn .28s cubic-bezier(.16,1,.3,1) both;}
-@keyframes dmToastIn{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
-@media(max-width:480px){#menuOverlay.dirac-menu-overlay{padding:0;place-items:end center;}#menuOverlay.dirac-menu-overlay .dirac-menu{width:100%;max-height:calc(100dvh - 10px);border-radius:30px 30px 0 0;border-bottom:0;}}
-@media(max-width:360px){#menuOverlay.dirac-menu-overlay .list-card{min-height:80px;border-radius:22px;}#menuOverlay.dirac-menu-overlay .list-icon{width:44px;height:44px;border-radius:16px;}#menuOverlay.dirac-menu-overlay .list-copy strong{font-size:.9rem;}#menuOverlay.dirac-menu-overlay .list-copy small{font-size:.72rem;}}
-@media(prefers-reduced-motion:reduce){#menuOverlay.dirac-menu-overlay *,#menuOverlay.dirac-menu-overlay *::before,#menuOverlay.dirac-menu-overlay *::after,#diracOpenMenuBtn,#diracMenuToast{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
-</style>
-
-
-
-<style id="customer-security-theme-open-button-v1">
-#siteHeader .theme-toggle{
-  border:1px solid var(--line-strong,rgba(255,255,255,.16));
+<style id="dirac-customer-theme-ui-css">
+.theme-toggle{
+  border:1px solid var(--line-strong);
   border-radius:999px;
   background:rgba(255,255,255,.07);
   color:#fff;
@@ -1264,11 +922,240 @@ html[data-effective-theme="light"] .theme-reset{color:#171923;background:rgba(25
   box-shadow:0 12px 30px rgba(0,0,0,.20);
   transition:transform .22s ease,background .22s ease,border-color .22s ease,box-shadow .22s ease;
 }
-#siteHeader .theme-toggle:hover{transform:translateY(-2px);background:rgba(var(--theme-rgb,243,205,112),.12);border-color:rgba(var(--theme-rgb,243,205,112),.56)}
-html[data-effective-theme="light"] #siteHeader .theme-toggle{color:#171923;background:rgba(255,255,255,.78)}
-@media(max-width:560px){#siteHeader .theme-toggle .label{display:none;}#siteHeader .theme-toggle{width:44px;min-width:44px;padding:0;}}
-</style>
+.theme-toggle:hover{transform:translateY(-2px);background:rgba(var(--theme-rgb),.12);border-color:rgba(var(--theme-rgb),.56)}
+html[data-effective-theme="light"] .theme-toggle{color:#171923;background:rgba(255,255,255,.78)}
+.theme-modal{
+  position:fixed;
+  inset:0;
+  z-index:11500;
+  display:none;
+  place-items:center;
+  padding:18px;
+  background:rgba(0,0,0,.68);
+  backdrop-filter:blur(8px);
+}
+.theme-modal.open{display:grid}
+.theme-card{
+  width:min(620px,100%);
+  max-height:92vh;
+  overflow:auto;
+  border-radius:30px;
+  background:linear-gradient(180deg,#121b27,#080b10);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+}
+.theme-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  padding:22px 24px 10px;
+}
+.theme-head h2{
+  margin:0;
+  font-family:"Playfair Display",serif;
+  font-size:1.85rem;
+  color:#fff;
+}
+.theme-body{padding:0 24px 24px}
+.theme-section{padding:22px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.theme-section:last-of-type{border-bottom:0}
+.theme-section h3{margin:0 0 3px;color:#fff;font-size:1.12rem;letter-spacing:.01em}
+.theme-section p{margin:0 0 18px;color:#8d98aa;font-size:.94rem}
+html[data-effective-theme="light"] .theme-section{border-color:rgba(32,37,49,.10)}
+html[data-effective-theme="light"] .theme-section h3{color:#171923}
+.theme-choice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.theme-contrast-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.theme-choice{
+  min-height:72px;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(6,10,16,.82);
+  color:#e8edf5;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-weight:850;
+  font-size:1rem;
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease,background .22s ease;
+}
+.theme-choice span:first-child{font-size:1.25rem;line-height:1}
+.theme-choice:hover{transform:translateY(-2px);border-color:rgba(var(--theme-rgb),.42)}
+.theme-choice.is-selected{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(var(--theme-rgb),.16),0 16px 34px rgba(0,0,0,.18);
+  background:rgba(var(--theme-rgb),.10);
+  color:#fff;
+}
+html[data-effective-theme="light"] .theme-choice.is-selected{color:#171923;background:rgba(var(--theme-rgb),.16)}
+.theme-swatches{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.theme-swatch{
+  width:42px;
+  height:70px;
+  border:0;
+  border-radius:10px;
+  background:var(--swatch);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 10px 24px rgba(0,0,0,.18);
+  position:relative;
+  transition:transform .22s ease,box-shadow .22s ease,width .22s ease;
+}
+.theme-swatch:hover{transform:translateY(-2px)}
+.theme-swatch.is-selected{
+  width:88px;
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.35),0 0 0 3px rgba(var(--theme-rgb),.34),0 14px 32px rgba(0,0,0,.24);
+}
+.theme-swatch.is-selected:after{
+  content:"✓";
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-size:2rem;
+  font-weight:900;
+  text-shadow:0 2px 8px rgba(0,0,0,.38);
+}
+.theme-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-top:12px}
+.theme-reset,.theme-save{
+  border:0;
+  border-radius:999px;
+  min-height:56px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  color:#fff;
+  font-weight:900;
+  font-size:1.05rem;
+  box-shadow:0 14px 32px rgba(0,0,0,.23);
+  transition:transform .22s ease,filter .22s ease;
+}
+.theme-reset{background:linear-gradient(135deg,#f05252,#dc2626)}
+.theme-save{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 50%,#fff 50%),var(--gold-2));color:#11120e}
+.theme-reset:hover,.theme-save:hover{transform:translateY(-2px);filter:brightness(1.04)}
 
+.theme-currency-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.theme-currency-option{
+  min-height:66px;
+  flex-direction:column;
+  gap:2px;
+  padding:10px 8px;
+  line-height:1.15;
+}
+.theme-currency-option span:first-child{font-size:1.04rem;letter-spacing:.04em}
+.theme-currency-option small{font-size:.68rem;color:#9aa5b7;font-weight:750;letter-spacing:.01em}
+.theme-currency-option.is-selected small{color:color-mix(in srgb,var(--gold) 45%,#fff 55%)}
+.theme-currency-note{
+  margin:12px 0 0!important;
+  padding:10px 12px;
+  border-radius:16px;
+  background:rgba(var(--theme-rgb),.08);
+  border:1px solid rgba(var(--theme-rgb),.18);
+  color:#aeb7c6!important;
+  font-size:.82rem!important;
+  line-height:1.45;
+}
+html[data-effective-theme="light"] .theme-currency-note{color:#526071!important;background:rgba(var(--theme-rgb),.10)}
+@media(max-width:760px){
+  .theme-currency-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .theme-currency-option{min-height:60px;font-size:.88rem}
+}
+@media(max-width:430px){.theme-currency-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+@media(max-width:760px){
+  .theme-toggle{min-width:44px;width:44px;height:44px;padding:0;border-radius:999px}
+  .theme-toggle .label{display:none}
+  .header-actions{gap:8px}
+  .theme-modal{align-items:end;padding:0;background:rgba(0,0,0,.58)}
+  .theme-card{width:100%;max-height:88vh;border-radius:28px 28px 0 0;border-inline:0;border-bottom:0}
+  .theme-head{padding:20px 20px 8px}.theme-body{padding:0 20px 22px}
+  .theme-head h2{font-size:1.65rem}.theme-choice-grid{grid-template-columns:1fr 1fr 1fr;gap:10px}.theme-choice{min-height:66px;font-size:.92rem}.theme-swatch{width:36px;height:62px}.theme-swatch.is-selected{width:76px}.theme-actions{gap:10px}.theme-reset,.theme-save{min-height:52px;font-size:.98rem}
+}
+@media(max-width:430px){
+  .theme-choice-grid{grid-template-columns:1fr}.theme-choice{min-height:58px}.theme-contrast-grid{grid-template-columns:1fr}.theme-swatches{gap:7px}.theme-swatch{width:33px;height:58px}.theme-swatch.is-selected{width:68px}.theme-actions{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  .theme-toggle,.theme-choice,.theme-swatch,.theme-reset,.theme-save{transition:none!important}.theme-toggle:hover,.theme-choice:hover,.theme-swatch:hover,.theme-reset:hover,.theme-save:hover{transform:none!important}
+}
+
+
+/* =========================================================
+   Dirac Language Selector
+   Compact language choices inside theme settings modal.
+   ========================================================= */
+.theme-language-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+.theme-lang-option{
+  min-height:54px!important;
+  border-radius:18px!important;
+  justify-content:flex-start!important;
+  padding:0 13px!important;
+  font-size:.9rem!important;
+}
+.theme-lang-option span:first-child{
+  width:30px!important;
+  height:30px!important;
+  border-radius:10px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  font-size:.72rem!important;
+  font-weight:950!important;
+  letter-spacing:-.02em!important;
+  background:rgba(255,255,255,.08)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important;
+  flex:0 0 auto!important;
+}
+.theme-lang-option.is-selected{
+  position:relative!important;
+  padding-right:32px!important;
+}
+.theme-lang-option.is-selected:after{
+  content:"";
+  position:absolute;
+  right:13px;
+  top:50%;
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:var(--gold);
+  box-shadow:0 0 16px rgba(var(--theme-rgb),.75);
+  transform:translateY(-50%);
+}
+html[dir="rtl"] body{direction:rtl}
+html[dir="rtl"] .brand,
+html[dir="rtl"] .nav,
+html[dir="rtl"] .header-actions,
+html[dir="rtl"] .hero-actions,
+html[dir="rtl"] .trust-row,
+html[dir="rtl"] .product-actions,
+html[dir="rtl"] .cart-head,
+html[dir="rtl"] .cart-row,
+html[dir="rtl"] .theme-head,
+html[dir="rtl"] .theme-choice,
+html[dir="rtl"] .theme-actions,
+html[dir="rtl"] .modal-actions{direction:rtl}
+html[dir="rtl"] .theme-lang-option{justify-content:flex-start!important;text-align:right!important;padding-left:32px!important;padding-right:13px!important}
+html[dir="rtl"] .theme-lang-option.is-selected:after{right:auto;left:13px}
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select{direction:rtl;text-align:right}
+@media(max-width:760px){
+  .theme-language-grid{gap:8px!important}
+  .theme-lang-option{min-height:48px!important;border-radius:15px!important;padding:0 10px!important;font-size:.82rem!important;gap:7px!important}
+  .theme-lang-option span:first-child{width:26px!important;height:26px!important;border-radius:8px!important;font-size:.64rem!important}
+}
+@media(max-width:360px){.theme-language-grid{grid-template-columns:1fr!important}}
+@media(prefers-reduced-motion:reduce){.theme-lang-option{transition:none!important}}
+
+</style>
 </head>
 <body>
   <a href="#main" class="skip-link">Lewati ke konten utama</a>
@@ -1292,11 +1179,10 @@ html[data-effective-theme="light"] #siteHeader .theme-toggle{color:#171923;backg
         <a class="nav-link" href="#activity">Aktivitas</a>
       </nav>
       <div class="nav-actions">
+        <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema"><span aria-hidden="true">🎨</span><span>Tema</span></button>
+        <button class="icon-btn" type="button" data-open-dashboard-menu aria-label="Buka menu dashboard" aria-haspopup="dialog" aria-controls="diracDashboardMenuMount">☰</button>
         <button class="icon-btn" type="button" id="motionToggle" aria-label="Aktif/nonaktif animasi">◐</button>
-        <button class="theme-toggle" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema"><span aria-hidden="true">🎨</span><span class="label">Tema</span></button>
         <button class="btn ghost" type="button" id="refreshBtn"><span>Refresh</span> ↻</button>
-      
-        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Buka menu navigasi" aria-haspopup="dialog" aria-controls="menuOverlay" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button>
       </div>
     </div>
   </header>
@@ -1399,6 +1285,84 @@ html[data-effective-theme="light"] #siteHeader .theme-toggle{color:#171923;backg
     <button class="btn ghost" type="button" id="mobileRevokeOthersBtn">Logout lain</button>
     <button class="btn danger" type="button" id="mobileLogoutBtn">Logout</button>
   </div>
+
+
+  <div class="theme-modal" id="themeModal" aria-hidden="true">
+    <div class="theme-card" role="dialog" aria-modal="true" aria-labelledby="themeTitle">
+      <div class="theme-head">
+        <h2 id="themeTitle">Pengaturan Tema</h2>
+        <button class="icon-btn" type="button" data-close-theme aria-label="Tutup pengaturan tema">×</button>
+      </div>
+      <div class="theme-body">
+        <section class="theme-section" aria-label="Mode tema">
+          <h3>Mode Tema</h3>
+          <p>Pilih mode tema</p>
+          <div class="theme-choice-grid">
+            <button class="theme-choice" type="button" data-theme-mode-option="light" aria-pressed="false"><span aria-hidden="true">☼</span><span>Light</span></button>
+            <button class="theme-choice" type="button" data-theme-mode-option="dark" aria-pressed="false"><span aria-hidden="true">☾</span><span>Dark</span></button>
+            <button class="theme-choice" type="button" data-theme-mode-option="auto" aria-pressed="false"><span aria-hidden="true">⚙</span><span>Auto</span></button>
+          </div>
+        </section>
+
+        <section class="theme-section" aria-label="Pilihan bahasa tampilan">
+          <h3>Bahasa Tampilan</h3>
+          <p>Pilih bahasa website</p>
+          <div class="theme-language-grid" id="themeLanguageOptions" aria-label="Pilihan bahasa website" data-no-i18n>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="id" aria-pressed="false"><span aria-hidden="true">ID</span><span>Indonesia</span></button>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="en" aria-pressed="false"><span aria-hidden="true">EN</span><span>English</span></button>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="zh" aria-pressed="false"><span aria-hidden="true">中</span><span>中文</span></button>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="ar" aria-pressed="false"><span aria-hidden="true">ع</span><span>العربية</span></button>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="ja" aria-pressed="false"><span aria-hidden="true">日</span><span>日本語</span></button>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="ko" aria-pressed="false"><span aria-hidden="true">한</span><span>한국어</span></button>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="es" aria-pressed="false"><span aria-hidden="true">ES</span><span>Español</span></button>
+            <button class="theme-choice theme-lang-option" type="button" data-language-option="fr" aria-pressed="false"><span aria-hidden="true">FR</span><span>Français</span></button>
+          </div>
+        </section>
+
+        <section class="theme-section" aria-label="Kontras tema">
+          <h3>Kontras Tema</h3>
+          <p>Pilih kontras tema</p>
+          <div class="theme-contrast-grid">
+            <button class="theme-choice" type="button" data-theme-contrast-option="on" aria-pressed="false"><span aria-hidden="true">◐</span><span>On</span></button>
+            <button class="theme-choice" type="button" data-theme-contrast-option="off" aria-pressed="false"><span aria-hidden="true">◌</span><span>Off</span></button>
+          </div>
+        </section>
+
+        <section class="theme-section" aria-label="Kustom warna utama">
+          <h3>Kustom Tema</h3>
+          <p>Pilih warna utama Anda</p>
+          <div class="theme-swatches" id="themeSwatches" aria-label="Pilihan warna utama"></div>
+        </section>
+
+        <section class="theme-section" aria-label="Pilihan mata uang katalog">
+          <h3>Mata Uang</h3>
+          <p>Pilih mata uang katalog</p>
+          <div class="theme-currency-grid" id="themeCurrencyOptions" aria-label="Pilihan mata uang katalog" data-no-i18n>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="IDR" aria-pressed="false"><span>IDR</span><small>Rupiah</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="USD" aria-pressed="false"><span>USD</span><small>US Dollar</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="EUR" aria-pressed="false"><span>EUR</span><small>Euro</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="SGD" aria-pressed="false"><span>SGD</span><small>Singapore</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="MYR" aria-pressed="false"><span>MYR</span><small>Ringgit</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="SAR" aria-pressed="false"><span>SAR</span><small>Riyal</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="AED" aria-pressed="false"><span>AED</span><small>Dirham</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="JPY" aria-pressed="false"><span>JPY</span><small>Yen</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="KRW" aria-pressed="false"><span>KRW</span><small>Won</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="CNY" aria-pressed="false"><span>CNY</span><small>Yuan</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="AUD" aria-pressed="false"><span>AUD</span><small>Australian</small></button>
+            <button class="theme-choice theme-currency-option" type="button" data-currency-option="GBP" aria-pressed="false"><span>GBP</span><small>Pound</small></button>
+          </div>
+          <p class="theme-currency-note">Harga display, cart, detail produk, ongkir, promo, quiz, dan checkout akan mengikuti pilihan ini. Konversi mata uang bersifat estimasi katalog. Admin tetap mengonfirmasi total final melalui WhatsApp.</p>
+        </section>
+
+        <div class="theme-actions">
+          <button class="theme-reset" type="button" id="themeResetBtn"><span aria-hidden="true">↻</span><span>Reset</span></button>
+          <button class="theme-save" type="button" id="themeSaveBtn"><span aria-hidden="true">▣</span><span>Simpan</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <footer class="footer">
     <div class="wrap footer-grid">
@@ -2871,532 +2835,300 @@ html[data-effective-theme="light"] #siteHeader .theme-toggle{color:#171923;backg
 })();
 </script>
 
-
-<div aria-hidden="true" class="menu-overlay dirac-menu-overlay is-hidden" id="menuOverlay" hidden>
-  <div class="bg-orb one" aria-hidden="true"></div>
-  <div class="bg-orb two" aria-hidden="true"></div>
-  <div class="bg-orb three" aria-hidden="true"></div>
-
-  <aside class="dirac-menu" role="dialog" aria-label="Menu Dashboard" aria-modal="true" tabindex="-1">
-    <header class="menu-top">
-      <div class="menu-handle"></div>
-
-      <div class="top-row">
-        <span class="menu-label">Menu Dashboard</span>
-
-        <button class="close-menu" type="button" aria-label="Tutup menu" data-close-menu>
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-
-      <label class="search-box">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-        </svg>
-
-        <input id="menuSearch" type="search" placeholder="Cari menu..." autocomplete="off">
-
-        <button class="clear-search" id="clearSearch" type="button" aria-label="Hapus pencarian">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </label>
-    </header>
-
-    <main class="menu-body">
-      <section class="menu-group" data-group>
-        <div class="group-title">
-          <strong>Ekosistem Dirac</strong>
-          <span>Semua rata</span>
-        </div>
-
-        <div class="list-stack">
-          <a class="list-card menu-searchable" style="--i:1" href="dashboard.html" data-keyword="dashboard ringkasan beranda akun pelanggan">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
-            <span class="list-copy"><strong>Dashboard</strong><small>Ringkasan akun pelanggan Dirac</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:2" href="layanan-digital.html" data-keyword="layanan digital top up game e wallet e toll pulsa paket data transfer luar negeri">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7Z" stroke="currentColor" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Pusat Digital</strong><small>Top up, e-wallet, pulsa, dan paket data</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:3" href="aplikasi-premium.html" data-keyword="aplikasi premium netflix spotify canva capcut youtube viu vidio disney vpn akun premium">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M9 8h6M9 12h6M9 16h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Aplikasi Premium</strong><small>Akun dan langganan aplikasi premium</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:4" href="cek-resi.html" data-keyword="website cek resi tracking pengiriman kurir paket">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-            <span class="list-copy"><strong>Website Cek Resi</strong><small>Lacak paket dan status pengiriman</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:5" href="live-chat.html" data-keyword="live chat website chat admin support bantuan pelanggan pesan langsung">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Live Chat Website</strong><small>Chat langsung untuk pengunjung website</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:6" href="parfum.html" data-keyword="parfum produk pembelian riwayat">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"/><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-            <span class="list-copy"><strong>Parfum</strong><small>Riwayat pembelian parfum</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-        </div>
-      </section>
-
-      <section class="menu-group" data-group>
-        <div class="group-title">
-          <strong>Transaksi</strong>
-          <span>Riwayat &amp; tagihan</span>
-        </div>
-
-        <div class="list-stack">
-          <a class="list-card menu-searchable" style="--i:7" href="pesanan.html" data-keyword="pesanan saya order transaksi pelanggan riwayat">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Pesanan Saya</strong><small>Riwayat transaksi pelanggan</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:8" href="invoice.html" data-keyword="invoice tagihan pembayaran status bayar">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Invoice</strong><small>Tagihan dan status pembayaran</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-        </div>
-      </section>
-
-      <section class="menu-group" data-group>
-        <div class="group-title">
-          <strong>Akun &amp; Website</strong>
-          <span>Pengaturan</span>
-        </div>
-
-        <div class="list-stack">
-          <a class="list-card menu-searchable" style="--i:9" href="domain.html" data-keyword="domain saya website dns">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:10" href="project-website.html" data-keyword="project website progres revisi approval">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Project Website</strong><small>Progress, revisi, dan approval</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:11" href="profil.html" data-keyword="profil akun pelanggan data diri">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Profil</strong><small>Data akun pelanggan</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:12" href="https://diracgroup.store/customer-security" data-keyword="keamanan password a2f verifikasi sesi login customer security diracgroup store customer-security">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 14v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Keamanan</strong><small>Password, verifikasi, dan sesi akun</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-
-          <a class="list-card menu-searchable" style="--i:13" href="notifikasi.html" data-keyword="notifikasi pemberitahuan update akun transaksi">
-            <span class="list-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-            <span class="list-copy"><strong>Notifikasi</strong><small>Update akun dan transaksi</small></span>
-            <span class="list-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </a>
-        </div>
-      </section>
-
-      <div class="empty-state" id="emptyState">Menu tidak ditemukan.</div>
-    </main>
-
-    <footer class="menu-footer">
-      <button class="footer-btn secondary" type="button" data-close-menu>Tutup</button>
-      <button class="footer-btn primary" type="button" onclick="location.href='https://wa.me/6280000000000'">Admin</button>
-    </footer>
-  </aside>
-</div>
-
-<button class="open-menu-btn" id="diracOpenMenuBtn" type="button">Buka Menu</button>
-<div class="toast" id="diracMenuToast">Menu dibuka</div>
-
-
-<script id="dirac-minimal-modern-menu-behavior-v1">
-(function(){
-  'use strict';
-  if(window.__DIRAC_MINIMAL_MODERN_MENU_BEHAVIOR_V1__) return;
-  window.__DIRAC_MINIMAL_MODERN_MENU_BEHAVIOR_V1__ = true;
-
-  function ready(fn){
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
-    else fn();
-  }
-
-  ready(function(){
-    const overlay = document.getElementById('menuOverlay');
-    const openBtn = document.getElementById('diracOpenMenuBtn');
-    const menuToggle = document.getElementById('menuToggle');
-    const closeButtons = document.querySelectorAll('[data-close-menu]');
-    const input = document.getElementById('menuSearch');
-    const clearBtn = document.getElementById('clearSearch');
-    const emptyState = document.getElementById('emptyState');
-    const toast = document.getElementById('diracMenuToast');
-    if(!overlay || !input || !clearBtn || !emptyState) return;
-
-    const items = Array.from(overlay.querySelectorAll('.menu-searchable'));
-    const groups = Array.from(overlay.querySelectorAll('[data-group]'));
-    const listCards = Array.from(overlay.querySelectorAll('.list-card'));
-    const hasHeaderToggle = !!menuToggle;
-
-    function showToast(text){
-      if(!toast) return;
-      toast.textContent = text;
-      toast.classList.add('show');
-      clearTimeout(window.__diracMinimalMenuToastTimer);
-      window.__diracMinimalMenuToastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1400);
+  <script id="dirac-customer-theme-modal-js">
+  (function(){
+    'use strict';
+    var DEFAULT_SETTINGS = {mode:'dark',accent:'sky',language:'id',motion:'full',contrast:'off',currency:'IDR'};
+    var PALETTES = {
+      gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'}, champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'}, sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'}, bronze:{gold:'#d97706',gold2:'#92400e',gold3:'#451a03',rgb:'217,119,6'}, blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'}, sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'}, indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'}, purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'}, violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'}, lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'}, amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'}, lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'}, magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'}, fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'}, pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'}, rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'}, red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'}, coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'}, orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'}, peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'}, amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'}, lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'}, lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'}, neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'}, green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'}, emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'}, forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'}, mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'}, jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'}, seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'}, teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'}, aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'}, cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'}, lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'}, turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'}, ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'}, royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'}, navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'}, sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'}, periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'}, orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'}, plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'}, copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'}, coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}, ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'}, wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'}, burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'}, maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'}, blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'}, salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'}, sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'}, tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'}, apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'}, honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'}, olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'}, graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}, slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'}, pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, white:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'}, midnight:{gold:'#0f172a',gold2:'#020617',gold3:'#000000',rgb:'15,23,42'}, mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'}, espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
+    };
+    var themeDraft = null;
+    function normalizeKey(v){ return String(v || '').trim(); }
+    function sanitizeSettings(input){
+      input = input && typeof input === 'object' ? input : {};
+      var mode = /^(light|dark|auto)$/.test(normalizeKey(input.mode)) ? normalizeKey(input.mode) : DEFAULT_SETTINGS.mode;
+      var accent = PALETTES[normalizeKey(input.accent)] ? normalizeKey(input.accent) : DEFAULT_SETTINGS.accent;
+      var language = /^(id|en|zh|ar|ja|ko|es|fr)$/.test(normalizeKey(input.language)) ? normalizeKey(input.language) : DEFAULT_SETTINGS.language;
+      var motion = /^(full|reduced|none|normal|hemat)$/.test(normalizeKey(input.motion)) ? normalizeKey(input.motion) : DEFAULT_SETTINGS.motion;
+      var contrast = /^(on|off)$/.test(normalizeKey(input.contrast)) ? normalizeKey(input.contrast) : DEFAULT_SETTINGS.contrast;
+      var currency = /^(IDR|USD|EUR|SGD|MYR|SAR|AED|JPY|KRW|CNY|AUD|GBP)$/.test(normalizeKey(input.currency).toUpperCase()) ? normalizeKey(input.currency).toUpperCase() : DEFAULT_SETTINGS.currency;
+      return {mode:mode,accent:accent,language:language,motion:motion,contrast:contrast,currency:currency};
     }
-
-    function openMenu(){
-      overlay.hidden = false;
-      overlay.classList.remove('is-hidden');
-      overlay.classList.add('open');
-      overlay.setAttribute('aria-hidden','false');
-      if(openBtn) openBtn.classList.remove('show');
-      document.body.classList.add('menu-open','modal-open');
-      document.body.style.overflow = 'hidden';
-      if(menuToggle) menuToggle.setAttribute('aria-expanded','true');
-      setTimeout(function(){
-        try{ input.focus({preventScroll:true}); }catch(_){ input.focus(); }
-        showToast('Menu dibuka');
-      },120);
+    function readSettings(){
+      try{ if(window.diracGetGlobalPrefs) return sanitizeSettings(window.diracGetGlobalPrefs()); }catch(_){}
+      try{ return sanitizeSettings(JSON.parse(localStorage.getItem('dirac_theme_settings_v2') || '{}')); }catch(_){ return sanitizeSettings(DEFAULT_SETTINGS); }
     }
-
-    function closeMenu(){
-      overlay.classList.add('is-hidden');
-      overlay.classList.remove('open');
-      overlay.setAttribute('aria-hidden','true');
-      overlay.style.opacity = '';
-      document.body.classList.remove('menu-open','modal-open');
-      document.body.style.overflow = '';
-      if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
-      input.value = '';
-      updateMenu();
-      window.setTimeout(function(){ if(overlay.classList.contains('is-hidden')) overlay.hidden = true; }, 360);
-      if(openBtn && !hasHeaderToggle) openBtn.classList.add('show');
+    function writeSettings(settings){
+      settings = sanitizeSettings(settings);
+      try{ if(window.diracSetGlobalTheme) window.diracSetGlobalTheme(settings); else localStorage.setItem('dirac_theme_settings_v2', JSON.stringify(settings)); }catch(_){}
+      try{ if(window.diracApplyGlobalPrefs) window.diracApplyGlobalPrefs(); }catch(_){}
+      updateControls(settings);
     }
-
-    function updateMenu(){
-      const query = input.value.trim().toLowerCase();
-      let visibleCount = 0;
-      items.forEach(function(item){
-        const haystack = (item.textContent + ' ' + (item.dataset.keyword || '')).toLowerCase();
-        const matched = !query || haystack.includes(query);
-        item.style.display = matched ? '' : 'none';
-        if(matched) visibleCount++;
+    function titleCase(s){ return String(s || '').replace(/[-_]+/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}); }
+    function buildSwatches(){
+      var wrap = document.getElementById('themeAccentOptions');
+      if(!wrap || wrap.dataset.built === '1') return;
+      wrap.innerHTML = '';
+      Object.keys(PALETTES).forEach(function(key){
+        var p = PALETTES[key];
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'theme-swatch';
+        btn.setAttribute('data-theme-accent-option', key);
+        btn.setAttribute('aria-label', titleCase(key));
+        btn.setAttribute('aria-pressed', 'false');
+        btn.style.setProperty('--swatch','linear-gradient(145deg,' + p.gold + ',' + p.gold2 + ' 50%,' + p.gold3 + ')');
+        wrap.appendChild(btn);
       });
-      groups.forEach(function(group){
-        const visibleItem = Array.from(group.querySelectorAll('.menu-searchable')).some(function(item){ return item.style.display !== 'none'; });
-        group.style.display = visibleItem ? '' : 'none';
-      });
-      clearBtn.classList.toggle('show', query.length > 0);
-      emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+      wrap.dataset.built = '1';
     }
-
-    listCards.forEach(function(card){
-      card.addEventListener('pointermove',function(e){
-        const rect = card.getBoundingClientRect();
-        card.style.setProperty('--x',(e.clientX - rect.left) + 'px');
-        card.style.setProperty('--y',(e.clientY - rect.top) + 'px');
+    function updateControls(settings){
+      settings = sanitizeSettings(settings || readSettings());
+      document.querySelectorAll('[data-theme-mode-option]').forEach(function(btn){
+        var on = btn.getAttribute('data-theme-mode-option') === settings.mode;
+        btn.classList.toggle('is-selected', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
-      card.addEventListener('click',function(e){
-        const ripple = document.createElement('span');
-        const rect = card.getBoundingClientRect();
-        ripple.className = 'ripple';
-        ripple.style.left = (e.clientX - rect.left) + 'px';
-        ripple.style.top = (e.clientY - rect.top) + 'px';
-        card.appendChild(ripple);
-        setTimeout(function(){ ripple.remove(); },620);
+      document.querySelectorAll('[data-language-option]').forEach(function(btn){
+        var on = btn.getAttribute('data-language-option') === settings.language;
+        btn.classList.toggle('is-selected', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
-    });
-
-    closeButtons.forEach(function(btn){ btn.addEventListener('click', closeMenu); });
-    if(openBtn) openBtn.addEventListener('click', openMenu);
-    if(menuToggle){
-      menuToggle.addEventListener('click', function(e){
-        e.preventDefault();
-        if(overlay.classList.contains('open')) closeMenu();
-        else openMenu();
+      document.querySelectorAll('[data-theme-contrast-option]').forEach(function(btn){
+        var on = btn.getAttribute('data-theme-contrast-option') === settings.contrast;
+        btn.classList.toggle('is-selected', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
-    }else if(openBtn){
-      openBtn.classList.add('show');
+      document.querySelectorAll('[data-theme-accent-option]').forEach(function(btn){
+        var on = btn.getAttribute('data-theme-accent-option') === settings.accent;
+        btn.classList.toggle('is-selected', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-currency-option]').forEach(function(btn){
+        var on = btn.getAttribute('data-currency-option') === settings.currency;
+        btn.classList.toggle('is-selected', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
     }
-
-    input.addEventListener('input', updateMenu);
-    clearBtn.addEventListener('click',function(){ input.value = ''; input.focus(); updateMenu(); });
-    overlay.addEventListener('click',function(e){ if(e.target === overlay) closeMenu(); });
-    document.addEventListener('keydown',function(e){
-      if(e.key === 'Escape' && overlay.classList.contains('open')) closeMenu();
-      if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === 'k'){
-        e.preventDefault();
-        if(!overlay.classList.contains('open')) openMenu();
-        else input.focus();
-      }
-    });
-
-    window.diracOpenMenu = openMenu;
-    window.diracCloseMenu = closeMenu;
-    updateMenu();
-  });
-})();
-</script>
-
-
-<div aria-hidden="true" class="theme-modal" id="themeModal">
-<div aria-labelledby="themeTitle" aria-modal="true" class="theme-card" role="dialog">
-<div class="theme-head">
-<h2 id="themeTitle">Pengaturan Tema</h2>
-<button aria-label="Tutup pengaturan tema" class="icon-btn" data-close-theme="" type="button">×</button>
-</div>
-<div class="theme-body">
-<section aria-label="Mode tema" class="theme-section">
-<h3>Mode Tema</h3>
-<p>Pilih mode tema</p>
-<div class="theme-choice-grid">
-<button aria-pressed="false" class="theme-choice" data-theme-mode="light" data-theme-mode-option="light" type="button"><span aria-hidden="true">☼</span><span>Light</span></button>
-<button aria-pressed="false" class="theme-choice" data-theme-mode="dark" data-theme-mode-option="dark" type="button"><span aria-hidden="true">☾</span><span>Dark</span></button>
-<button aria-pressed="false" class="theme-choice" data-theme-mode="auto" data-theme-mode-option="auto" type="button"><span aria-hidden="true">⚙</span><span>Auto</span></button>
-</div>
-</section>
-<section aria-label="Pilihan bahasa tampilan" class="theme-section">
-<h3>Bahasa Tampilan</h3>
-<p>Pilih bahasa website</p>
-<div aria-label="Pilihan bahasa website" class="theme-language-grid" data-no-i18n="" id="themeLanguageOptions">
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="id" type="button"><span aria-hidden="true">ID</span><span>Indonesia</span></button>
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="en" type="button"><span aria-hidden="true">EN</span><span>English</span></button>
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="zh" type="button"><span aria-hidden="true">中</span><span>中文</span></button>
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="ar" type="button"><span aria-hidden="true">ع</span><span>العربية</span></button>
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="ja" type="button"><span aria-hidden="true">日</span><span>日本語</span></button>
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="ko" type="button"><span aria-hidden="true">한</span><span>한국어</span></button>
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="es" type="button"><span aria-hidden="true">ES</span><span>Español</span></button>
-<button aria-pressed="false" class="theme-choice theme-lang-option" data-language-option="fr" type="button"><span aria-hidden="true">FR</span><span>Français</span></button>
-</div>
-</section>
-<section aria-label="Kontras tema" class="theme-section">
-<h3>Kontras Tema</h3>
-<p>Pilih kontras tema</p>
-<div class="theme-contrast-grid">
-<button aria-pressed="false" class="theme-choice" data-contrast="on" data-theme-contrast-option="on" type="button"><span aria-hidden="true">◐</span><span>On</span></button>
-<button aria-pressed="false" class="theme-choice" data-contrast="off" data-theme-contrast-option="off" type="button"><span aria-hidden="true">◌</span><span>Off</span></button>
-</div>
-</section>
-<section aria-label="Kustom warna utama" class="theme-section">
-<h3>Kustom Tema</h3>
-<p>Pilih warna utama Anda</p>
-<div aria-label="Pilihan warna utama" class="theme-swatches" id="themeSwatches"></div>
-</section>
-<section aria-label="Pilihan mata uang katalog" class="theme-section">
-<h3>Mata Uang</h3>
-<p>Pilih mata uang katalog</p>
-<div aria-label="Pilihan mata uang katalog" class="theme-currency-grid" data-no-i18n="" id="themeCurrencyOptions">
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="IDR" data-currency-option="IDR" type="button"><span>IDR</span><small>Rupiah</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="USD" data-currency-option="USD" type="button"><span>USD</span><small>US Dollar</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="EUR" data-currency-option="EUR" type="button"><span>EUR</span><small>Euro</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="SGD" data-currency-option="SGD" type="button"><span>SGD</span><small>Singapore</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="MYR" data-currency-option="MYR" type="button"><span>MYR</span><small>Ringgit</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="SAR" data-currency-option="SAR" type="button"><span>SAR</span><small>Riyal</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="AED" data-currency-option="AED" type="button"><span>AED</span><small>Dirham</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="JPY" data-currency-option="JPY" type="button"><span>JPY</span><small>Yen</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="KRW" data-currency-option="KRW" type="button"><span>KRW</span><small>Won</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="CNY" data-currency-option="CNY" type="button"><span>CNY</span><small>Yuan</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="AUD" data-currency-option="AUD" type="button"><span>AUD</span><small>Australian</small></button>
-<button aria-pressed="false" class="theme-choice theme-currency-option" data-currency="GBP" data-currency-option="GBP" type="button"><span>GBP</span><small>Pound</small></button>
-</div>
-<p class="theme-currency-note">Harga display, cart, detail produk, ongkir, promo, quiz, dan checkout akan mengikuti pilihan ini. Konversi mata uang bersifat estimasi katalog. Admin tetap mengonfirmasi total final melalui WhatsApp.</p>
-</section>
-<div class="theme-actions">
-<button class="theme-reset" id="themeResetBtn" type="button"><span aria-hidden="true">↻</span><span>Reset</span></button>
-<button class="theme-save" id="themeSaveBtn" type="button"><span aria-hidden="true">▣</span><span>Simpan</span></button>
-</div>
-</div>
-</div>
-</div>
-
-
-
-
-
-<script id="customer-security-theme-modal-bridge-v1">
-(function(){
-  'use strict';
-  if(window.__CUSTOMER_SECURITY_THEME_MODAL_BRIDGE_V1__) return;
-  window.__CUSTOMER_SECURITY_THEME_MODAL_BRIDGE_V1__ = true;
-
-  var DEFAULT_PREFS = {mode:'dark',accent:'sky',language:'id',motion:'full',contrast:'off',currency:'IDR'};
-  var THEME_PALETTES = {
-    gold:{label:'Gold', gold:'#f3cd70', gold2:'#d6a642', gold3:'#8e6425', rgb:'243,205,112'},
-    champagne:{label:'Champagne', gold:'#fde68a', gold2:'#f59e0b', gold3:'#92400e', rgb:'253,230,138'},
-    sand:{label:'Sand', gold:'#d6b076', gold2:'#b88943', gold3:'#6b4a23', rgb:'214,176,118'},
-    blue:{label:'Blue', gold:'#4f83ff', gold2:'#2563eb', gold3:'#1e3a8a', rgb:'79,131,255'},
-    sky:{label:'Sky', gold:'#38bdf8', gold2:'#0284c7', gold3:'#075985', rgb:'56,189,248'},
-    indigo:{label:'Indigo', gold:'#6366f1', gold2:'#4f46e5', gold3:'#312e81', rgb:'99,102,241'},
-    purple:{label:'Purple', gold:'#7c3aed', gold2:'#5b21b6', gold3:'#35126d', rgb:'124,58,237'},
-    violet:{label:'Violet', gold:'#8b5cf6', gold2:'#6d28d9', gold3:'#432076', rgb:'139,92,246'},
-    lilac:{label:'Lilac', gold:'#a78bfa', gold2:'#8b5cf6', gold3:'#4c1d95', rgb:'167,139,250'},
-    fuchsia:{label:'Fuchsia', gold:'#d946ef', gold2:'#c026d3', gold3:'#701a75', rgb:'217,70,239'},
-    pink:{label:'Pink', gold:'#ec4899', gold2:'#be185d', gold3:'#7f123d', rgb:'236,72,153'},
-    rose:{label:'Rose', gold:'#fb7185', gold2:'#e11d48', gold3:'#881337', rgb:'251,113,133'},
-    red:{label:'Red', gold:'#ef4444', gold2:'#dc2626', gold3:'#7f1d1d', rgb:'239,68,68'},
-    coral:{label:'Coral', gold:'#fb6a4a', gold2:'#ea3d25', gold3:'#8f1d16', rgb:'251,106,74'},
-    orange:{label:'Orange', gold:'#f97316', gold2:'#ea580c', gold3:'#7c2d12', rgb:'249,115,22'},
-    peach:{label:'Peach', gold:'#fdba74', gold2:'#f97316', gold3:'#9a3412', rgb:'253,186,116'},
-    amber:{label:'Amber', gold:'#f59e0b', gold2:'#d97706', gold3:'#78350f', rgb:'245,158,11'},
-    lemon:{label:'Lemon', gold:'#facc15', gold2:'#ca8a04', gold3:'#713f12', rgb:'250,204,21'},
-    lime:{label:'Lime', gold:'#84cc16', gold2:'#65a30d', gold3:'#365314', rgb:'132,204,22'},
-    green:{label:'Green', gold:'#34d399', gold2:'#059669', gold3:'#065f46', rgb:'52,211,153'},
-    emerald:{label:'Emerald', gold:'#10b981', gold2:'#047857', gold3:'#064e3b', rgb:'16,185,129'},
-    mint:{label:'Mint', gold:'#2dd4bf', gold2:'#0d9488', gold3:'#134e4a', rgb:'45,212,191'},
-    teal:{label:'Teal', gold:'#0f8b8d', gold2:'#0f766e', gold3:'#134e4a', rgb:'15,139,141'},
-    aqua:{label:'Aqua', gold:'#22d3ee', gold2:'#0891b2', gold3:'#164e63', rgb:'34,211,238'},
-    cyan:{label:'Cyan', gold:'#67dce5', gold2:'#36c2cc', gold3:'#176b73', rgb:'103,220,229'},
-    copper:{label:'Copper', gold:'#c08457', gold2:'#9a5f36', gold3:'#5c341f', rgb:'192,132,87'},
-    ruby:{label:'Ruby', gold:'#e11d48', gold2:'#be123c', gold3:'#4c0519', rgb:'225,29,72'},
-    wine:{label:'Wine', gold:'#9f1239', gold2:'#881337', gold3:'#4c0519', rgb:'159,18,57'},
-    burgundy:{label:'Burgundy', gold:'#7f1d1d', gold2:'#5f1212', gold3:'#2f0909', rgb:'127,29,29'},
-    maroon:{label:'Maroon', gold:'#b91c1c', gold2:'#7f1d1d', gold3:'#450a0a', rgb:'185,28,28'},
-    blush:{label:'Blush', gold:'#f9a8d4', gold2:'#ec4899', gold3:'#831843', rgb:'249,168,212'},
-    salmon:{label:'Salmon', gold:'#fb7185', gold2:'#f43f5e', gold3:'#9f1239', rgb:'251,113,133'},
-    sunset:{label:'Sunset', gold:'#fb923c', gold2:'#f43f5e', gold3:'#7f1d1d', rgb:'251,146,60'},
-    tangerine:{label:'Tangerine', gold:'#f97316', gold2:'#c2410c', gold3:'#7c2d12', rgb:'249,115,22'},
-    apricot:{label:'Apricot', gold:'#fdba74', gold2:'#fb923c', gold3:'#9a3412', rgb:'253,186,116'},
-    honey:{label:'Honey', gold:'#fbbf24', gold2:'#d97706', gold3:'#78350f', rgb:'251,191,36'},
-    olive:{label:'Olive', gold:'#a3a33a', gold2:'#71717a', gold3:'#3f3f1f', rgb:'163,163,58'},
-    forest:{label:'Forest', gold:'#22c55e', gold2:'#15803d', gold3:'#052e16', rgb:'34,197,94'},
-    jade:{label:'Jade', gold:'#2dd4bf', gold2:'#0f766e', gold3:'#134e4a', rgb:'45,212,191'},
-    seafoam:{label:'Seafoam', gold:'#5eead4', gold2:'#14b8a6', gold3:'#134e4a', rgb:'94,234,212'},
-    lagoon:{label:'Lagoon', gold:'#06b6d4', gold2:'#0e7490', gold3:'#164e63', rgb:'6,182,212'},
-    turquoise:{label:'Turquoise', gold:'#2dd4bf', gold2:'#0891b2', gold3:'#164e63', rgb:'45,212,191'},
-    ocean:{label:'Ocean', gold:'#0ea5e9', gold2:'#0369a1', gold3:'#0c4a6e', rgb:'14,165,233'},
-    royal:{label:'Royal', gold:'#2563eb', gold2:'#1d4ed8', gold3:'#1e3a8a', rgb:'37,99,235'},
-    navy:{label:'Navy', gold:'#1e40af', gold2:'#1e3a8a', gold3:'#111827', rgb:'30,64,175'},
-    sapphire:{label:'Sapphire', gold:'#3b82f6', gold2:'#1d4ed8', gold3:'#172554', rgb:'59,130,246'},
-    periwinkle:{label:'Periwinkle', gold:'#818cf8', gold2:'#6366f1', gold3:'#312e81', rgb:'129,140,248'},
-    lavender:{label:'Lavender', gold:'#c4b5fd', gold2:'#8b5cf6', gold3:'#4c1d95', rgb:'196,181,253'},
-    orchid:{label:'Orchid', gold:'#c084fc', gold2:'#a855f7', gold3:'#581c87', rgb:'192,132,252'},
-    plum:{label:'Plum', gold:'#a21caf', gold2:'#86198f', gold3:'#4a044e', rgb:'162,28,175'},
-    neon:{label:'Neon', gold:'#22c55e', gold2:'#a3e635', gold3:'#365314', rgb:'34,197,94'},
-    graphite:{label:'Graphite', gold:'#94a3b8', gold2:'#475569', gold3:'#0f172a', rgb:'148,163,184'},
-    slate:{label:'Slate', gold:'#64748b', gold2:'#334155', gold3:'#0f172a', rgb:'100,116,139'},
-    pearl:{label:'Pearl', gold:'#f8fafc', gold2:'#cbd5e1', gold3:'#64748b', rgb:'248,250,252'},
-    mocha:{label:'Mocha', gold:'#a16207', gold2:'#854d0e', gold3:'#422006', rgb:'161,98,7'},
-    espresso:{label:'Espresso', gold:'#92400e', gold2:'#78350f', gold3:'#431407', rgb:'146,64,14'}
-  };
-
-  function ready(fn){
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
-    else fn();
-  }
-  function getPrefs(){
-    try{
-      if(typeof window.diracGetGlobalPrefs === 'function') return Object.assign({}, DEFAULT_PREFS, window.diracGetGlobalPrefs() || {});
-      return Object.assign({}, DEFAULT_PREFS, JSON.parse(localStorage.getItem('dirac_theme_settings_v2') || '{}'));
-    }catch(_){ return Object.assign({}, DEFAULT_PREFS); }
-  }
-  function setPrefs(patch){
-    try{
-      var current = getPrefs();
-      var next = Object.assign({}, current, patch || {});
-      if(typeof window.diracSetGlobalTheme === 'function') window.diracSetGlobalTheme(next);
-      else localStorage.setItem('dirac_theme_settings_v2', JSON.stringify(next));
-      if(typeof window.diracApplyGlobalPrefs === 'function') window.diracApplyGlobalPrefs();
-      window.dispatchEvent(new CustomEvent('dirac:global-prefs-change', {detail:Object.assign({}, next, {source:'customer-security-theme-modal'})}));
-    }catch(_){}
-    updateControls();
-  }
-  function buildSwatches(){
-    var wrap = document.getElementById('themeSwatches');
-    if(!wrap || wrap.dataset.built === 'true') return;
-    wrap.dataset.built = 'true';
-    wrap.innerHTML = Object.keys(THEME_PALETTES).map(function(key){
-      var p = THEME_PALETTES[key] || {};
-      var color = p.gold || '#f3cd70';
-      var label = p.label || key;
-      return '<button class="theme-swatch" type="button" data-theme-accent-option="'+ key +'" data-accent="'+ key +'" aria-label="Pilih warna '+ label +'" aria-pressed="false" style="--swatch:'+ color +'"></button>';
-    }).join('');
-  }
-  function setPressed(selector, getter){
-    var prefs = getPrefs();
-    Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function(el){
-      var selected = getter(el) === true;
-      el.classList.toggle('is-selected', selected);
-      el.classList.toggle('active', selected);
-      el.setAttribute('aria-pressed', selected ? 'true' : 'false');
-    });
-  }
-  function updateControls(){
-    buildSwatches();
-    var prefs = getPrefs();
-    setPressed('[data-theme-mode-option]', function(el){ return el.getAttribute('data-theme-mode-option') === prefs.mode; });
-    setPressed('[data-theme-contrast-option]', function(el){ return el.getAttribute('data-theme-contrast-option') === prefs.contrast; });
-    setPressed('[data-theme-accent-option]', function(el){ return el.getAttribute('data-theme-accent-option') === prefs.accent; });
-    setPressed('[data-language-option]', function(el){ return el.getAttribute('data-language-option') === prefs.language; });
-    setPressed('[data-currency-option]', function(el){ return el.getAttribute('data-currency-option') === prefs.currency; });
-  }
-  function openTheme(){
-    var modal = document.getElementById('themeModal');
-    if(!modal) return;
-    buildSwatches();
-    updateControls();
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden','false');
-    document.body.classList.add('modal-open');
-    var first = modal.querySelector('.is-selected') || modal.querySelector('button');
-    if(first) setTimeout(function(){ try{ first.focus(); }catch(_){} }, 30);
-  }
-  function closeTheme(){
-    var modal = document.getElementById('themeModal');
-    if(!modal) return;
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden','true');
-    document.body.classList.remove('modal-open');
-  }
-  function resetTheme(){
-    setPrefs(DEFAULT_PREFS);
-  }
-  ready(function(){
-    var modal = document.getElementById('themeModal');
-    if(!modal) return;
-    buildSwatches();
-    updateControls();
+    function preview(settings){
+      settings = sanitizeSettings(settings);
+      try{ if(window.diracSetGlobalTheme) window.diracSetGlobalTheme(settings); }catch(_){}
+      updateControls(settings);
+    }
+    function openTheme(e){
+      if(e){ e.preventDefault(); e.stopPropagation(); }
+      var modal = document.getElementById('themeModal');
+      if(!modal) return;
+      buildSwatches();
+      themeDraft = sanitizeSettings(readSettings());
+      updateControls(themeDraft);
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+      document.body.classList.add('modal-open');
+      var first = modal.querySelector('[data-theme-mode-option].is-selected') || modal.querySelector('button');
+      if(first) setTimeout(function(){ try{ first.focus({preventScroll:true}); }catch(_){ first.focus(); } },30);
+    }
+    function closeTheme(revert){
+      var modal = document.getElementById('themeModal');
+      if(!modal) return;
+      if(revert) preview(readSettings());
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      document.body.classList.remove('modal-open');
+    }
+    function patchDraft(partial){
+      themeDraft = sanitizeSettings(Object.assign({}, themeDraft || readSettings(), partial || {}));
+      preview(themeDraft);
+    }
     document.addEventListener('click', function(e){
-      var openBtn = e.target && e.target.closest ? e.target.closest('[data-open-theme]') : null;
-      if(openBtn){ e.preventDefault(); openTheme(); return; }
-      var closeBtn = e.target && e.target.closest ? e.target.closest('[data-close-theme]') : null;
-      if(closeBtn){ e.preventDefault(); closeTheme(); return; }
-      if(e.target === modal){ closeTheme(); return; }
-      var target = e.target && e.target.closest ? e.target.closest('[data-theme-mode-option],[data-theme-contrast-option],[data-theme-accent-option],[data-language-option],[data-currency-option],#themeSaveBtn,#themeResetBtn') : null;
-      if(!target) return;
-      if(target.id === 'themeSaveBtn'){ e.preventDefault(); updateControls(); closeTheme(); return; }
-      if(target.id === 'themeResetBtn'){ e.preventDefault(); resetTheme(); return; }
-      var patch = {};
-      if(target.hasAttribute('data-theme-mode-option')) patch.mode = target.getAttribute('data-theme-mode-option');
-      if(target.hasAttribute('data-theme-contrast-option')) patch.contrast = target.getAttribute('data-theme-contrast-option');
-      if(target.hasAttribute('data-theme-accent-option')) patch.accent = target.getAttribute('data-theme-accent-option');
-      if(target.hasAttribute('data-language-option')) patch.language = target.getAttribute('data-language-option');
-      if(target.hasAttribute('data-currency-option')) patch.currency = target.getAttribute('data-currency-option');
-      if(Object.keys(patch).length){ e.preventDefault(); setPrefs(patch); }
-    }, true);
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape' && modal.classList.contains('open')) closeTheme();
+      var open = e.target && e.target.closest ? e.target.closest('[data-open-theme]') : null;
+      if(open) return openTheme(e);
+      var close = e.target && e.target.closest ? e.target.closest('[data-close-theme]') : null;
+      if(close) return closeTheme(true);
+      var modal = document.getElementById('themeModal');
+      if(modal && e.target === modal) return closeTheme(true);
+      var mode = e.target && e.target.closest ? e.target.closest('[data-theme-mode-option]') : null;
+      if(mode) return patchDraft({mode:mode.getAttribute('data-theme-mode-option')});
+      var lang = e.target && e.target.closest ? e.target.closest('[data-language-option]') : null;
+      if(lang) return patchDraft({language:lang.getAttribute('data-language-option')});
+      var contrast = e.target && e.target.closest ? e.target.closest('[data-theme-contrast-option]') : null;
+      if(contrast) return patchDraft({contrast:contrast.getAttribute('data-theme-contrast-option')});
+      var accent = e.target && e.target.closest ? e.target.closest('[data-theme-accent-option]') : null;
+      if(accent) return patchDraft({accent:accent.getAttribute('data-theme-accent-option')});
+      var currency = e.target && e.target.closest ? e.target.closest('[data-currency-option]') : null;
+      if(currency) return patchDraft({currency:currency.getAttribute('data-currency-option')});
+      var reset = e.target && e.target.closest ? e.target.closest('#themeResetBtn') : null;
+      if(reset){ themeDraft = sanitizeSettings(DEFAULT_SETTINGS); preview(themeDraft); return; }
+      var save = e.target && e.target.closest ? e.target.closest('#themeSaveBtn') : null;
+      if(save){ writeSettings(themeDraft || readSettings()); closeTheme(false); return; }
     });
-    window.addEventListener('dirac:global-prefs-change', updateControls);
-  });
-})();
-</script>
-
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeTheme(true); });
+    window.addEventListener('dirac:global-prefs-change', function(e){ updateControls((e && e.detail) || readSettings()); });
+    document.addEventListener('DOMContentLoaded', function(){ buildSwatches(); updateControls(readSettings()); });
+    if(document.readyState !== 'loading'){ buildSwatches(); updateControls(readSettings()); }
+  })();
+  </script>
+  
+  <script id="dirac-dashboard-menu-component-js">
+  (function(){
+    'use strict';
+    var TAG = 'dirac-dashboard-menu';
+    if(!window.customElements) return;
+    if(!customElements.get(TAG)){
+      customElements.define(TAG, class DiracDashboardMenu extends HTMLElement{
+        connectedCallback(){
+          if(this.shadowRoot) return;
+          var root = this.attachShadow({mode:'open'});
+          var MENU_CSS = ":host{\n  position:fixed;\n  inset:0;\n  z-index:2147483600;\n  pointer-events:none;\n  display:block;\n  contain:layout style;\n}\n:host .dirac-overlay,\n:host .open-menu,\n:host .toast{\n  pointer-events:auto;\n}\n\n:host{\n  --bg:#02040a;\n  --sheet:#070b12;\n  --card:rgba(255,255,255,.052);\n  --cardHover:rgba(255,255,255,.086);\n  --text:#f8fafc;\n  --muted:#a1a1aa;\n  --muted2:#64748b;\n  --accent:#ff2d55;\n  --accent2:#c5163f;\n  --accentSoft:rgba(255,45,85,.12);\n  --accentLine:rgba(255,45,85,.32);\n  --line:rgba(255,255,255,.09);\n  --lineSoft:rgba(255,255,255,.055);\n  --shadow:0 48px 170px rgba(0,0,0,.84);\n  --safeBottom:env(safe-area-inset-bottom);\n}\n\n*{\n  box-sizing:border-box;\n  -webkit-tap-highlight-color:transparent;\n}\n\nhtml,\nbody{\n  margin:0;\n  min-height:100%;\n  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;\n  background:#02040a;\n  color:var(--text);\n}\n\nbody{\n  min-height:100dvh;\n  display:grid;\n  place-items:center;\n  padding:14px;\n  overflow:hidden;\n  background:\n    radial-gradient(circle at 0 0,rgba(255,45,85,.18),transparent 340px),\n    radial-gradient(circle at 100% 0,rgba(88,111,255,.11),transparent 310px),\n    linear-gradient(180deg,#070a11 0%,#020307 100%);\n}\n\na{\n  color:inherit;\n  text-decoration:none;\n}\n\nbutton,\ninput{\n  font:inherit;\n}\n\nbutton{\n  cursor:pointer;\n}\n\nsvg{\n  display:block;\n}\n\n.orb{\n  position:fixed;\n  width:330px;\n  height:330px;\n  border-radius:999px;\n  pointer-events:none;\n  filter:blur(30px);\n  opacity:.24;\n  z-index:0;\n  animation:orbMove 10s ease-in-out infinite;\n}\n\n.orb.one{\n  left:-130px;\n  top:-120px;\n  background:rgba(255,45,85,.58);\n}\n\n.orb.two{\n  right:-150px;\n  top:44px;\n  background:rgba(80,110,255,.42);\n  animation-delay:-4s;\n}\n\n.orb.three{\n  left:30%;\n  bottom:-190px;\n  background:rgba(255,45,85,.22);\n  animation-delay:-7s;\n}\n\n@keyframes orbMove{\n  0%,100%{transform:translate3d(0,0,0) scale(1);}\n  50%{transform:translate3d(22px,24px,0) scale(1.08);}\n}\n\n/* overlay */\n\n.dirac-overlay{\n  position:fixed;\n  inset:0;\n  z-index:9999;\n  display:grid;\n  place-items:center;\n  padding:14px;\n  background:rgba(0,0,0,.68);\n  backdrop-filter:blur(22px);\n  -webkit-backdrop-filter:blur(22px);\n  opacity:1;\n  transition:opacity .34s cubic-bezier(.16,1,.3,1);\n}\n\n.dirac-overlay.is-hidden{\n  opacity:0;\n  pointer-events:none;\n}\n\n/* sheet */\n\n.dirac-menu{\n  position:relative;\n  width:min(440px,100%);\n  max-height:calc(100dvh - 28px);\n  display:flex;\n  flex-direction:column;\n  overflow:hidden;\n  border-radius:34px;\n  background:\n    radial-gradient(circle at 18% 0,rgba(255,45,85,.15),transparent 245px),\n    radial-gradient(circle at 90% 8%,rgba(90,120,255,.09),transparent 235px),\n    linear-gradient(180deg,rgba(15,23,42,.992),rgba(5,8,14,.998));\n  border:1px solid rgba(255,255,255,.11);\n  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.075);\n  transform-origin:bottom center;\n  animation:sheetIn .46s cubic-bezier(.16,1,.3,1) both;\n  will-change:transform;\n}\n\n.dirac-menu::before{\n  content:\"\";\n  position:absolute;\n  inset:-1px;\n  pointer-events:none;\n  border-radius:inherit;\n  padding:1px;\n  background:linear-gradient(135deg,rgba(255,255,255,.20),transparent 32%,rgba(255,45,85,.22),transparent 70%);\n  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);\n  -webkit-mask-composite:xor;\n  mask-composite:exclude;\n  opacity:.58;\n}\n\n.dirac-menu.is-dragging{\n  transition:none;\n}\n\n@keyframes sheetIn{\n  from{\n    opacity:0;\n    transform:translateY(32px) scale(.95);\n    filter:blur(12px);\n  }\n  to{\n    opacity:1;\n    transform:none;\n    filter:blur(0);\n  }\n}\n\n/* top compact */\n\n.menu-top{\n  position:relative;\n  z-index:2;\n  padding:14px 16px 12px;\n  border-bottom:1px solid var(--lineSoft);\n  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0));\n}\n\n.handle{\n  width:44px;\n  height:5px;\n  border-radius:999px;\n  background:rgba(255,255,255,.16);\n  margin:0 auto 13px;\n  position:relative;\n  overflow:hidden;\n  touch-action:none;\n}\n\n.handle::after{\n  content:\"\";\n  position:absolute;\n  inset:0;\n  transform:translateX(-100%);\n  background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);\n  animation:handleShine 2.8s ease-in-out infinite;\n}\n\n@keyframes handleShine{\n  0%,45%{transform:translateX(-100%);}\n  70%,100%{transform:translateX(100%);}\n}\n\n.top-row{\n  display:grid;\n  grid-template-columns:auto 1fr auto;\n  align-items:center;\n  gap:11px;\n}\n\n.brand{\n  width:42px;\n  height:42px;\n  display:grid;\n  place-items:center;\n  border-radius:16px;\n  background:#fff;\n  color:#101828;\n  font-size:.9rem;\n  font-weight:950;\n  letter-spacing:-.06em;\n  box-shadow:0 14px 30px rgba(255,255,255,.08);\n  animation:itemIn .42s cubic-bezier(.16,1,.3,1) .03s both;\n}\n\n.title{\n  min-width:0;\n  animation:itemIn .42s cubic-bezier(.16,1,.3,1) .06s both;\n}\n\n.title strong{\n  display:block;\n  font-size:1rem;\n  line-height:1.12;\n  letter-spacing:-.025em;\n  white-space:nowrap;\n  overflow:hidden;\n  text-overflow:ellipsis;\n}\n\n.title small{\n  display:block;\n  margin-top:4px;\n  color:var(--muted);\n  font-size:.73rem;\n  line-height:1.25;\n  white-space:nowrap;\n  overflow:hidden;\n  text-overflow:ellipsis;\n}\n\n.close{\n  width:42px;\n  height:42px;\n  border-radius:16px;\n  border:1px solid var(--line);\n  background:rgba(255,255,255,.052);\n  color:#fff;\n  display:grid;\n  place-items:center;\n  transition:.22s cubic-bezier(.16,1,.3,1);\n  animation:itemIn .42s cubic-bezier(.16,1,.3,1) .09s both;\n}\n\n.close:hover{\n  background:rgba(255,255,255,.09);\n  transform:translateY(-1px) rotate(4deg);\n}\n\n.close:active{\n  transform:scale(.96);\n}\n\n.close svg{\n  width:20px;\n  height:20px;\n}\n\n/* search */\n\n.search{\n  margin-top:12px;\n  height:48px;\n  display:grid;\n  grid-template-columns:auto 1fr auto;\n  align-items:center;\n  gap:10px;\n  padding:0 14px;\n  border-radius:18px;\n  background:rgba(255,255,255,.04);\n  border:1px solid var(--line);\n  color:var(--muted2);\n  transition:.22s cubic-bezier(.16,1,.3,1);\n  animation:itemIn .42s cubic-bezier(.16,1,.3,1) .12s both;\n}\n\n.search:focus-within{\n  border-color:var(--accentLine);\n  background:rgba(255,255,255,.055);\n  box-shadow:0 0 0 4px rgba(255,45,85,.075);\n}\n\n.search svg{\n  width:18px;\n  height:18px;\n}\n\n.search input{\n  width:100%;\n  min-width:0;\n  border:0;\n  outline:0;\n  background:transparent;\n  color:#fff;\n  font-size:.88rem;\n}\n\n.search input::placeholder{\n  color:#64748b;\n}\n\n.clear{\n  width:28px;\n  height:28px;\n  display:none;\n  place-items:center;\n  border:0;\n  border-radius:10px;\n  background:rgba(255,255,255,.065);\n  color:#cbd5e1;\n}\n\n.clear.show{\n  display:grid;\n}\n\n/* scroll progress */\n\n.scroll-line{\n  position:absolute;\n  left:0;\n  right:0;\n  bottom:-1px;\n  height:1px;\n  background:rgba(255,255,255,.04);\n}\n\n.scroll-line span{\n  display:block;\n  height:100%;\n  width:0%;\n  background:linear-gradient(90deg,var(--accent),rgba(255,255,255,.55));\n  box-shadow:0 0 16px rgba(255,45,85,.5);\n  transition:width .12s linear;\n}\n\n/* body */\n\n.menu-body{\n  overflow:auto;\n  padding:14px 15px 15px;\n  scrollbar-width:none;\n  scroll-behavior:smooth;\n}\n\n.menu-body::-webkit-scrollbar{\n  width:0;\n  height:0;\n}\n\n.group{\n  margin-top:16px;\n  animation:itemIn .5s cubic-bezier(.16,1,.3,1) both;\n}\n\n.group:nth-of-type(1){animation-delay:.10s;}\n.group:nth-of-type(2){animation-delay:.16s;}\n.group:nth-of-type(3){animation-delay:.22s;}\n\n.group:first-child{\n  margin-top:0;\n}\n\n@keyframes itemIn{\n  from{\n    opacity:0;\n    transform:translateY(14px);\n    filter:blur(5px);\n  }\n  to{\n    opacity:1;\n    transform:none;\n    filter:blur(0);\n  }\n}\n\n.group-title{\n  display:flex;\n  align-items:center;\n  justify-content:space-between;\n  gap:12px;\n  padding:0 3px;\n  margin-bottom:9px;\n}\n\n.group-title strong{\n  color:#e5e7eb;\n  font-size:.7rem;\n  letter-spacing:.09em;\n  text-transform:uppercase;\n}\n\n.group-title span{\n  color:var(--muted2);\n  font-size:.7rem;\n}\n\n/* cards */\n\n.stack{\n  display:grid;\n  gap:9px;\n}\n\n.card{\n  position:relative;\n  overflow:hidden;\n  min-height:80px;\n  display:grid;\n  grid-template-columns:auto 1fr auto;\n  align-items:center;\n  gap:13px;\n  padding:12px 13px;\n  border-radius:23px;\n  background:var(--card);\n  border:1px solid transparent;\n  transition:.24s cubic-bezier(.16,1,.3,1);\n  isolation:isolate;\n  animation:cardIn .48s cubic-bezier(.16,1,.3,1) both;\n  animation-delay:calc(var(--i,1) * 34ms);\n  outline:0;\n}\n\n@keyframes cardIn{\n  from{\n    opacity:0;\n    transform:translateY(16px) scale(.98);\n    filter:blur(6px);\n  }\n  to{\n    opacity:1;\n    transform:none;\n    filter:blur(0);\n  }\n}\n\n.card::before{\n  content:\"\";\n  position:absolute;\n  inset:0;\n  opacity:0;\n  background:linear-gradient(135deg,rgba(255,45,85,.105),transparent 54%);\n  transition:.24s ease;\n  z-index:0;\n}\n\n.card::after{\n  content:\"\";\n  position:absolute;\n  inset:0;\n  background:radial-gradient(circle at var(--x,50%) var(--y,50%),rgba(255,255,255,.13),transparent 34%);\n  opacity:0;\n  transition:.22s ease;\n  pointer-events:none;\n  z-index:0;\n}\n\n.card:hover,\n.card:focus-visible{\n  transform:translateY(-1px);\n  background:var(--cardHover);\n  border-color:var(--line);\n}\n\n.card:hover::before,\n.card:hover::after,\n.card:focus-visible::before,\n.card:focus-visible::after{\n  opacity:1;\n}\n\n.card:focus-visible{\n  box-shadow:0 0 0 4px rgba(255,45,85,.075);\n}\n\n.card:active{\n  transform:scale(.985);\n}\n\n.icon{\n  position:relative;\n  z-index:1;\n  width:46px;\n  height:46px;\n  display:grid;\n  place-items:center;\n  border-radius:17px;\n  background:rgba(255,255,255,.055);\n  color:var(--accent);\n  transition:.22s cubic-bezier(.16,1,.3,1);\n}\n\n.card:hover .icon,\n.card:focus-visible .icon{\n  transform:scale(1.04);\n  background:rgba(255,45,85,.13);\n}\n\n.icon svg{\n  width:20px;\n  height:20px;\n}\n\n.copy{\n  position:relative;\n  z-index:1;\n  min-width:0;\n}\n\n.copy strong{\n  display:block;\n  font-size:.94rem;\n  line-height:1.18;\n  letter-spacing:-.018em;\n  white-space:nowrap;\n  overflow:hidden;\n  text-overflow:ellipsis;\n}\n\n.copy small{\n  display:block;\n  margin-top:6px;\n  color:var(--muted);\n  font-size:.76rem;\n  line-height:1.3;\n  white-space:nowrap;\n  overflow:hidden;\n  text-overflow:ellipsis;\n}\n\n.arrow{\n  position:relative;\n  z-index:1;\n  display:grid;\n  place-items:center;\n  color:#64748b;\n  transition:.22s cubic-bezier(.16,1,.3,1);\n}\n\n.card:hover .arrow,\n.card:focus-visible .arrow{\n  color:#ff9aae;\n  transform:translateX(2px);\n}\n\n.arrow svg{\n  width:20px;\n  height:20px;\n}\n\n.ripple{\n  position:absolute;\n  width:20px;\n  height:20px;\n  border-radius:999px;\n  background:rgba(255,255,255,.22);\n  transform:translate(-50%,-50%) scale(0);\n  animation:ripple .58s ease-out forwards;\n  pointer-events:none;\n  z-index:0;\n}\n\n@keyframes ripple{\n  to{\n    transform:translate(-50%,-50%) scale(18);\n    opacity:0;\n  }\n}\n\n.empty{\n  display:none;\n  padding:26px 10px 10px;\n  text-align:center;\n  color:var(--muted);\n  font-size:.88rem;\n  animation:itemIn .28s cubic-bezier(.16,1,.3,1) both;\n}\n\n/* footer */\n\n.footer{\n  padding:13px 15px calc(13px + var(--safeBottom));\n  display:grid;\n  grid-template-columns:1fr 1fr;\n  gap:10px;\n  border-top:1px solid var(--lineSoft);\n  background:rgba(5,8,14,.96);\n}\n\n.footer-btn{\n  position:relative;\n  overflow:hidden;\n  height:48px;\n  border-radius:17px;\n  font-weight:850;\n  transition:.22s cubic-bezier(.16,1,.3,1);\n}\n\n.footer-btn.secondary{\n  border:1px solid var(--line);\n  background:rgba(255,255,255,.045);\n  color:#fff;\n}\n\n.footer-btn.primary{\n  border:0;\n  background:linear-gradient(135deg,var(--accent),var(--accent2));\n  color:#fff;\n  box-shadow:0 14px 34px rgba(255,45,85,.22);\n}\n\n.footer-btn::after{\n  content:\"\";\n  position:absolute;\n  inset:0;\n  transform:translateX(-100%);\n  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);\n  transition:.42s ease;\n}\n\n.footer-btn:hover{\n  transform:translateY(-1px);\n  filter:brightness(1.05);\n}\n\n.footer-btn:hover::after{\n  transform:translateX(100%);\n}\n\n.footer-btn:active{\n  transform:scale(.975);\n}\n\n/* reopen + toast */\n\n.open-menu{\n  display:none;\n  position:fixed;\n  left:50%;\n  bottom:calc(22px + var(--safeBottom));\n  transform:translateX(-50%);\n  z-index:9998;\n  height:52px;\n  padding:0 20px;\n  border:0;\n  border-radius:999px;\n  color:#fff;\n  font-weight:850;\n  background:linear-gradient(135deg,var(--accent),var(--accent2));\n  box-shadow:0 16px 42px rgba(255,45,85,.24);\n  animation:openBtnIn .3s cubic-bezier(.16,1,.3,1) both;\n}\n\n.open-menu.show{\n  display:inline-flex;\n  align-items:center;\n  justify-content:center;\n  gap:9px;\n}\n\n@keyframes openBtnIn{\n  from{\n    opacity:0;\n    transform:translateX(-50%) translateY(12px);\n  }\n  to{\n    opacity:1;\n    transform:translateX(-50%) translateY(0);\n  }\n}\n\n.toast{\n  position:fixed;\n  left:50%;\n  bottom:calc(88px + var(--safeBottom));\n  transform:translateX(-50%) translateY(10px);\n  z-index:10000;\n  display:none;\n  padding:11px 14px;\n  border-radius:999px;\n  background:rgba(15,23,42,.92);\n  border:1px solid var(--line);\n  color:#fff;\n  font-size:.78rem;\n  font-weight:800;\n  box-shadow:0 18px 48px rgba(0,0,0,.38);\n}\n\n.toast.show{\n  display:block;\n  animation:toastIn .28s cubic-bezier(.16,1,.3,1) both;\n}\n\n@keyframes toastIn{\n  from{\n    opacity:0;\n    transform:translateX(-50%) translateY(10px);\n  }\n  to{\n    opacity:1;\n    transform:translateX(-50%) translateY(0);\n  }\n}\n\n/* mobile */\n\n@media(max-width:480px){\n  body{\n    padding:0;\n    place-items:end center;\n  }\n\n  .dirac-overlay{\n    padding:0;\n    place-items:end center;\n  }\n\n  .dirac-menu{\n    width:100%;\n    max-height:calc(100dvh - 10px);\n    border-radius:30px 30px 0 0;\n    border-bottom:0;\n  }\n}\n\n@media(max-width:360px){\n  .brand{\n    width:40px;\n    height:40px;\n    border-radius:15px;\n  }\n\n  .title strong{\n    font-size:.95rem;\n  }\n\n  .title small{\n    font-size:.7rem;\n  }\n\n  .card{\n    min-height:78px;\n    border-radius:22px;\n  }\n\n  .icon{\n    width:44px;\n    height:44px;\n    border-radius:16px;\n  }\n\n  .copy strong{\n    font-size:.9rem;\n  }\n\n  .copy small{\n    font-size:.72rem;\n  }\n}\n\n@media(prefers-reduced-motion:reduce){\n  *,\n  *::before,\n  *::after{\n    animation:none!important;\n    transition:none!important;\n    scroll-behavior:auto!important;\n  }\n}\n";
+          var MENU_HTML = "\n<div class=\"dirac-overlay is-hidden\" id=\"diracOverlay\">\n<div class=\"orb one\"></div>\n<div class=\"orb two\"></div>\n<div class=\"orb three\"></div>\n  <aside class=\"dirac-menu\" id=\"diracMenu\" role=\"dialog\" aria-label=\"Menu Dashboard\">\n\n    <header class=\"menu-top\">\n      <div class=\"handle\" id=\"dragHandle\"></div>\n\n      <div class=\"top-row\">\n        <div class=\"brand\">DG</div>\n\n        <div class=\"title\">\n          <strong>Menu Dashboard</strong>\n          <small>Akses cepat layanan Dirac Group</small>\n        </div>\n\n        <button class=\"close\" type=\"button\" aria-label=\"Tutup menu\" data-close>\n          <svg viewBox=\"0 0 24 24\" fill=\"none\">\n            <path d=\"M6 6l12 12M18 6 6 18\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>\n          </svg>\n        </button>\n      </div>\n\n      <label class=\"search\">\n        <svg viewBox=\"0 0 24 24\" fill=\"none\">\n          <path d=\"M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>\n        </svg>\n\n        <input id=\"menuSearch\" type=\"search\" placeholder=\"Cari menu...\" autocomplete=\"off\">\n\n        <button class=\"clear\" id=\"clearSearch\" type=\"button\" aria-label=\"Hapus pencarian\">\n          <svg viewBox=\"0 0 24 24\" fill=\"none\">\n            <path d=\"M7 7l10 10M17 7 7 17\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>\n          </svg>\n        </button>\n      </label>\n\n      <div class=\"scroll-line\"><span id=\"scrollProgress\"></span></div>\n    </header>\n\n    <main class=\"menu-body\" id=\"menuBody\">\n\n      <section class=\"group\" data-group>\n        <div class=\"group-title\">\n          <strong>Ekosistem Dirac</strong>\n          <span>Semua rata</span>\n        </div>\n\n        <div class=\"stack\">\n\n          <a class=\"card searchable\" style=\"--i:1\" href=\"dashboard.html\" data-keyword=\"dashboard ringkasan beranda akun pelanggan\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Dashboard</strong>\n              <small>Ringkasan akun pelanggan Dirac</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:2\" href=\"layanan-digital.html\" data-keyword=\"layanan digital top up game e wallet e toll pulsa paket data transfer luar negeri\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n                <path d=\"M8 12h8M12 8v8\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Pusat Digital</strong>\n              <small>Top up, e-wallet, pulsa, dan paket data</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:3\" href=\"aplikasi-premium.html\" data-keyword=\"aplikasi premium netflix spotify canva capcut youtube viu vidio disney vpn akun premium\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n                <path d=\"M9 8h6M9 12h6M9 16h3\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Aplikasi Premium</strong>\n              <small>Akun dan langganan aplikasi premium</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:4\" href=\"cek-resi.html\" data-keyword=\"website cek resi tracking pengiriman kurir paket\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n                <path d=\"M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Website Cek Resi</strong>\n              <small>Lacak paket dan status pengiriman</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:5\" href=\"live-chat.html\" data-keyword=\"live chat website chat admin support bantuan pelanggan pesan langsung\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n                <path d=\"M8 10h8M8 13h5\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Live Chat Website</strong>\n              <small>Chat langsung untuk pengunjung website</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:6\" href=\"parfum.html\" data-keyword=\"parfum produk pembelian riwayat\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n                <path d=\"M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Parfum</strong>\n              <small>Riwayat pembelian parfum</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n        </div>\n      </section>\n\n      <section class=\"group\" data-group>\n        <div class=\"group-title\">\n          <strong>Transaksi</strong>\n          <span>Riwayat & tagihan</span>\n        </div>\n\n        <div class=\"stack\">\n\n          <a class=\"card searchable\" style=\"--i:7\" href=\"pesanan.html\" data-keyword=\"pesanan saya order transaksi pelanggan riwayat\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n                <path d=\"M8 9h8M8 13h6\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Pesanan Saya</strong>\n              <small>Riwayat transaksi pelanggan</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:8\" href=\"invoice.html\" data-keyword=\"invoice tagihan pembayaran status bayar\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M4 7h16v10H4V7Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n                <path d=\"M7 11h4M7 15h2M15 15h2\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Invoice</strong>\n              <small>Tagihan dan status pembayaran</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n        </div>\n      </section>\n\n      <section class=\"group\" data-group>\n        <div class=\"group-title\">\n          <strong>Akun & Website</strong>\n          <span>Pengaturan</span>\n        </div>\n\n        <div class=\"stack\">\n\n          <a class=\"card searchable\" style=\"--i:9\" href=\"domain.html\" data-keyword=\"domain saya website dns\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n                <path d=\"M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Domain Saya</strong>\n              <small>Daftar domain pelanggan</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:10\" href=\"project-website.html\" data-keyword=\"project website progres revisi approval\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M4 5h16v11H4V5Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n                <path d=\"M8 20h8M10 16v4M14 16v4\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Project Website</strong>\n              <small>Progress, revisi, dan approval</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:11\" href=\"profil.html\" data-keyword=\"profil akun pelanggan data diri\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Profil</strong>\n              <small>Data akun pelanggan</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:12\" href=\"https://diracgroup.store/customer-security\" data-keyword=\"keamanan password a2f verifikasi sesi login\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M7 10V8a5 5 0 0 1 10 0v2\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n                <path d=\"M6 10h12v10H6V10Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n                <path d=\"M12 14v2\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Keamanan</strong>\n              <small>Password, verifikasi, dan sesi akun</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n          <a class=\"card searchable\" style=\"--i:13\" href=\"notifikasi.html\" data-keyword=\"notifikasi pemberitahuan update akun transaksi\">\n            <span class=\"icon\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"round\"/>\n                <path d=\"M10 21h4\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/>\n              </svg>\n            </span>\n            <span class=\"copy\">\n              <strong>Notifikasi</strong>\n              <small>Update akun dan transaksi</small>\n            </span>\n            <span class=\"arrow\">\n              <svg viewBox=\"0 0 24 24\" fill=\"none\">\n                <path d=\"m9 6 6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n              </svg>\n            </span>\n          </a>\n\n        </div>\n      </section>\n\n      <div class=\"empty\" id=\"emptyState\">\n        Menu tidak ditemukan.\n      </div>\n\n    </main>\n\n    <footer class=\"footer\">\n      <button class=\"footer-btn secondary\" type=\"button\" data-close>Tutup</button>\n      <button class=\"footer-btn primary\" type=\"button\" onclick=\"location.href='https://wa.me/6280000000000'\">Admin</button>\n    </footer>\n\n  </aside>\n</div>\n\n<button class=\"open-menu show\" id=\"openMenuBtn\" type=\"button\">Buka Menu</button>\n<div class=\"toast\" id=\"toast\">Menu dibuka</div>";
+          root.innerHTML = '<style>' + MENU_CSS + '</style>' + MENU_HTML;
+          var overlay = root.getElementById('diracOverlay');
+          var menu = root.getElementById('diracMenu');
+          var openBtn = root.getElementById('openMenuBtn');
+          var closeButtons = root.querySelectorAll('[data-close]');
+          var input = root.getElementById('menuSearch');
+          var clearBtn = root.getElementById('clearSearch');
+          var emptyState = root.getElementById('emptyState');
+          var toast = root.getElementById('toast');
+          var items = Array.from(root.querySelectorAll('.searchable'));
+          var groups = Array.from(root.querySelectorAll('[data-group]'));
+          var cards = Array.from(root.querySelectorAll('.card'));
+          var handle = root.getElementById('dragHandle');
+          var menuBody = root.getElementById('menuBody');
+          var scrollProgress = root.getElementById('scrollProgress');
+          var startY = 0, currentY = 0, dragging = false;
+          function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){} }
+          function showToast(text){
+            if(!toast) return;
+            toast.textContent = text;
+            toast.classList.add('show');
+            clearTimeout(window.__diracDashboardMenuToastTimer);
+            window.__diracDashboardMenuToastTimer = setTimeout(function(){ toast.classList.remove('show'); },1300);
+          }
+          function updateScrollProgress(){
+            if(!menuBody || !scrollProgress) return;
+            var max = menuBody.scrollHeight - menuBody.clientHeight;
+            var progress = max <= 0 ? 0 : (menuBody.scrollTop / max) * 100;
+            scrollProgress.style.width = progress + '%';
+          }
+          function updateMenu(){
+            if(!input) return;
+            var query = input.value.trim().toLowerCase();
+            var visibleCount = 0;
+            items.forEach(function(item){
+              var haystack = (item.textContent + ' ' + (item.dataset.keyword || '')).toLowerCase();
+              var matched = !query || haystack.includes(query);
+              item.style.display = matched ? '' : 'none';
+              if(matched) visibleCount++;
+            });
+            groups.forEach(function(group){
+              var visibleItem = Array.from(group.querySelectorAll('.searchable')).some(function(item){
+                return item.style.display !== 'none';
+              });
+              group.style.display = visibleItem ? '' : 'none';
+            });
+            if(clearBtn) clearBtn.classList.toggle('show', query.length > 0);
+            if(emptyState) emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+            updateScrollProgress();
+          }
+          function openMenu(){
+            if(!overlay || !openBtn) return;
+            overlay.classList.remove('is-hidden');
+            openBtn.classList.remove('show');
+            document.body.classList.add('dirac-dashboard-menu-open');
+            document.body.style.overflow = 'hidden';
+            setTimeout(function(){
+              try{ if(input) input.focus({preventScroll:true}); }catch(_){ if(input) input.focus(); }
+              showToast('Menu dibuka');
+              vibrate(12);
+            },120);
+          }
+          function closeMenu(){
+            if(!overlay || !openBtn) return;
+            overlay.classList.add('is-hidden');
+            openBtn.classList.add('show');
+            document.body.classList.remove('dirac-dashboard-menu-open');
+            document.body.style.overflow = '';
+            if(menu){ menu.style.transform = ''; menu.classList.remove('is-dragging'); }
+            if(input) input.value = '';
+            updateMenu();
+            vibrate(8);
+          }
+          window.diracOpenDashboardMenu = openMenu;
+          window.diracCloseDashboardMenu = closeMenu;
+          cards.forEach(function(card){
+            card.addEventListener('pointermove', function(e){
+              var rect = card.getBoundingClientRect();
+              card.style.setProperty('--x', (e.clientX - rect.left) + 'px');
+              card.style.setProperty('--y', (e.clientY - rect.top) + 'px');
+            });
+            card.addEventListener('click', function(e){
+              var ripple = document.createElement('span');
+              var rect = card.getBoundingClientRect();
+              ripple.className = 'ripple';
+              ripple.style.left = (e.clientX - rect.left) + 'px';
+              ripple.style.top = (e.clientY - rect.top) + 'px';
+              card.appendChild(ripple);
+              vibrate(7);
+              setTimeout(function(){ ripple.remove(); },620);
+            });
+          });
+          function dragStart(e){
+            dragging = true;
+            startY = e.touches ? e.touches[0].clientY : e.clientY;
+            currentY = 0;
+            if(menu) menu.classList.add('is-dragging');
+          }
+          function dragMove(e){
+            if(!dragging || !menu || !overlay) return;
+            var y = e.touches ? e.touches[0].clientY : e.clientY;
+            currentY = Math.max(0, y - startY);
+            if(currentY > 0){
+              var scale = Math.max(.96, 1 - currentY / 1800);
+              menu.style.transform = 'translateY(' + currentY + 'px) scale(' + scale + ')';
+              overlay.style.opacity = String(Math.max(.45, 1 - currentY / 260));
+            }
+          }
+          function dragEnd(){
+            if(!dragging || !menu || !overlay) return;
+            dragging = false;
+            menu.classList.remove('is-dragging');
+            overlay.style.opacity = '';
+            if(currentY > 90){ closeMenu(); return; }
+            menu.style.transform = '';
+          }
+          if(handle){
+            handle.addEventListener('mousedown', dragStart);
+            handle.addEventListener('touchstart', dragStart, {passive:true});
+          }
+          window.addEventListener('mousemove', dragMove);
+          window.addEventListener('touchmove', dragMove, {passive:true});
+          window.addEventListener('mouseup', dragEnd);
+          window.addEventListener('touchend', dragEnd);
+          closeButtons.forEach(function(btn){ btn.addEventListener('click', closeMenu); });
+          if(openBtn) openBtn.addEventListener('click', openMenu);
+          if(menuBody) menuBody.addEventListener('scroll', updateScrollProgress, {passive:true});
+          if(input) input.addEventListener('input', updateMenu);
+          if(clearBtn) clearBtn.addEventListener('click', function(){ input.value = ''; input.focus(); updateMenu(); });
+          if(overlay) overlay.addEventListener('click', function(e){ if(e.target === overlay) closeMenu(); });
+          document.addEventListener('click', function(e){
+            var trigger = e.target && e.target.closest ? e.target.closest('[data-open-dashboard-menu],[data-dirac-menu-open],#menuToggle') : null;
+            if(trigger){
+              e.preventDefault();
+              e.stopPropagation();
+              openMenu();
+            }
+          }, true);
+          document.addEventListener('keydown', function(e){
+            if(e.key === 'Escape' && overlay && !overlay.classList.contains('is-hidden')) closeMenu();
+            if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){
+              e.preventDefault();
+              if(overlay && overlay.classList.contains('is-hidden')) openMenu();
+              else if(input) input.focus();
+            }
+          });
+          updateMenu();
+          updateScrollProgress();
+        }
+      });
+    }
+  })();
+  </script>
+  <dirac-dashboard-menu id="diracDashboardMenuMount" aria-hidden="false"></dirac-dashboard-menu>
 </body>
 </html>
