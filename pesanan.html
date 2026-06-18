@@ -1531,13 +1531,7 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 </head>
 <body class="gate-hardlocked gate-checking">
   <a class="skip-link" href="#main">Lewati ke konten utama</a>
-  <div class="top-strip announcement" role="note">
-    <div class="wrap">
-      <span>Pesanan Saya Dirac Group — invoice pelanggan, pembayaran, dan status pesanan dalam satu tempat.</span>
-      <a href="parfum.html">Buka katalog</a>
-      <span id="connectionLabel" class="connection-pill">Memuat sesi...</span>
-    </div>
-  </div>
+  <span id="connectionLabel" hidden aria-live="polite">Memuat sesi...</span>
   <header class="site-header" id="siteHeader">
     <nav class="nav" aria-label="Navigasi utama">
       <a class="brand" href="dashboard.html" aria-label="Kembali ke dashboard Dirac Group">
@@ -2316,7 +2310,7 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
       $('#menuToggle')?.setAttribute('aria-expanded','false');
       setTimeout(()=>{ if(!m.classList.contains('open')) m.hidden=true; }, 180);
     }
-    $('#refreshBtn')?.addEventListener('click', loadOrders); $('#manualRefreshBtn')?.addEventListener('click', loadOrders); document.querySelectorAll('#logoutBtn').forEach(btn=>btn.addEventListener('click', logout)); $('#searchInput')?.addEventListener('input', applyFilters); $('#statusFilter')?.addEventListener('change', applyFilters); $('#serviceFilter')?.addEventListener('change', applyFilters); $('#menuToggle')?.addEventListener('click', openMenu); $('#closeMenuBtn')?.addEventListener('click', closeMenu); document.querySelectorAll('[data-close-menu]').forEach(btn=>btn.addEventListener('click', closeMenu)); document.querySelectorAll('[data-open-tracking]').forEach(btn=>btn.addEventListener('click', e => { e.preventDefault(); closeMenu(); toast('Cek resi tersedia dari dashboard.'); setTimeout(() => { window.location.href = 'dashboard.html'; }, 180); })); $('#menuOverlay')?.addEventListener('click', e => { if(e.target && e.target.id === 'menuOverlay') closeMenu(); }); document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMenu(); });
+    $('#refreshBtn')?.addEventListener('click', loadOrders); $('#manualRefreshBtn')?.addEventListener('click', loadOrders); document.querySelectorAll('#logoutBtn').forEach(btn=>btn.addEventListener('click', logout)); $('#searchInput')?.addEventListener('input', applyFilters); $('#statusFilter')?.addEventListener('change', applyFilters); $('#serviceFilter')?.addEventListener('change', applyFilters); $('#menuToggle')?.addEventListener('click', openMenu); $('#closeMenuBtn')?.addEventListener('click', closeMenu); document.querySelectorAll('[data-close-menu]').forEach(btn=>btn.addEventListener('click', closeMenu)); $('#menuOverlay')?.addEventListener('click', e => { if(e.target && e.target.id === 'menuOverlay') closeMenu(); }); document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMenu(); });
     window.addEventListener('scroll', () => $('#siteHeader')?.classList.toggle('is-scrolled', window.scrollY > 12), {passive:true});
     window.addEventListener('pageshow', e => { if(!state.loggingOut && e.persisted) loadOrders(); }); document.addEventListener('visibilitychange', () => { if(!state.loggingOut && !document.hidden) loadOrders(); });
     loadOrders();
