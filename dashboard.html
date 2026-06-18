@@ -1248,7 +1248,6 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
 </style>
 
 
-
 <style id="dirac-ultra-menu-theme-safe-v1">
 /* Dirac Ultra Menu - theme-safe, scoped to #menuOverlay only. */
 #menuOverlay.dirac-ultra-menu{
@@ -1529,6 +1528,35 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 }
 </style>
 
+<style id="dirac-shared-menu-toggle-style-v1">
+/* Shared menu toggle only; scoped to #menuToggle to avoid touching protected app logic. */
+#menuToggle.menu-toggle{
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.24);
+  background:rgba(255,255,255,.065);
+  color:#fff;
+  border-radius:999px;
+  min-width:44px;
+  width:44px;
+  height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  font-weight:950;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18);
+  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1),background .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1);
+}
+#menuToggle.menu-toggle:hover{transform:translateY(-2px);filter:brightness(1.05);border-color:rgba(var(--theme-rgb,243,205,112),.46);background:rgba(var(--theme-rgb,243,205,112),.11);}
+#menuToggle.menu-toggle .hamburger{width:22px;height:16px;display:grid;gap:5px;}
+#menuToggle.menu-toggle .hamburger span{height:2px;border-radius:4px;background:currentColor;display:block;transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0;}
+#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+html[data-effective-theme="light"] #menuToggle.menu-toggle{background:rgba(255,255,255,.78);color:#171923;border-color:rgba(15,23,42,.10);}
+@media(max-width:560px){#menuToggle.menu-toggle{width:40px;min-width:40px;height:40px;}}
+</style>
+
+
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
@@ -1705,345 +1733,6 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 
 
   
-  <div class="menu-overlay dirac-ultra-menu" id="menuOverlay" aria-hidden="true">
-    <aside class="du-menu" id="diracUltraMenu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
-      <header class="du-top">
-        <div class="du-handle" id="diracUltraMenuHandle" aria-hidden="true"></div>
-        <div class="du-top-row">
-          <div class="du-brand" aria-hidden="true"><img class="du-brand-logo" src="logo 3.webp" alt="" loading="eager" decoding="async"></div>
-          <div class="du-title">
-            <strong id="menuTitle" data-i18n="menuTitle">Menu Dashboard</strong>
-            <small data-i18n="menuSub">Navigasi utama pelanggan.</small>
-          </div>
-          <button class="du-close" type="button" aria-label="Tutup menu" data-close-menu>
-            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-        <label class="du-search" aria-label="Cari menu dashboard">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          <input id="diracUltraMenuSearch" type="search" placeholder="Cari menu..." autocomplete="off">
-          <button class="du-clear" id="diracUltraMenuClear" type="button" aria-label="Hapus pencarian">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          </button>
-        </label>
-        <div class="du-scroll-line" aria-hidden="true"><span id="diracUltraMenuProgress"></span></div>
-      </header>
-      <main class="du-body" id="diracUltraMenuBody">
-        <section class="du-group" data-du-group>
-          <div class="du-group-title"><strong>Ekosistem Dirac</strong><span>Menu utama</span></div>
-          <div class="du-stack">
-            <a class="du-card du-searchable" style="--i:1" href="#overview" data-close-menu data-keyword="dashboard ringkasan semua layanan pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Dashboard</strong><small>Ringkasan semua layanan pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:2" href="parfum.html" data-keyword="parfum riwayat pembelian parfum">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"/><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-              <span class="du-copy"><strong>Parfum</strong><small>Riwayat pembelian parfum</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:3" href="domain.html" data-keyword="domain saya daftar domain pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:4" href="project-website.html" data-keyword="project website daftar project website">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <button class="du-card du-searchable" style="--i:5" type="button" data-open-tracking data-keyword="cek resi lacak pengiriman">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-              <span class="du-copy"><strong>Cek Resi</strong><small>Lacak pengiriman</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </button>
-            <a class="du-card du-searchable" style="--i:6" href="layanan-nomor.html" data-keyword="layanan nomor kelola layanan nomor">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Layanan Nomor</strong><small>Kelola layanan nomor</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-          </div>
-        </section>
-        <section class="du-group" data-du-group>
-          <div class="du-group-title"><strong>Transaksi & Detail</strong><span>Riwayat & tagihan</span></div>
-          <div class="du-stack">
-            <a class="du-card du-searchable" style="--i:7" href="pesanan.html" data-keyword="pesanan saya semua transaksi pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Pesanan Saya</strong><small>Semua transaksi pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:8" href="detail-pesanan.html" data-keyword="detail pesanan detail satu order">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Pesanan</strong><small>Detail satu order</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:9" href="detail-parfum.html" data-keyword="detail parfum detail pengiriman parfum">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-              <span class="du-copy"><strong>Detail Parfum</strong><small>Detail pengiriman parfum</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:10" href="detail-domain.html" data-keyword="detail domain kelola domain, dns, nameserver">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.5 2.5-2-2 2.5-2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Domain</strong><small>Kelola domain, DNS, nameserver</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:11" href="detail-project.html" data-keyword="detail project progress, revisi, file, approval">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Project</strong><small>Progress, revisi, file, approval</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:12" href="invoice.html" data-keyword="invoice semua tagihan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:13" href="detail-invoice.html" data-keyword="detail invoice detail pembayaran">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Invoice</strong><small>Detail pembayaran</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-          </div>
-        </section>
-        <section class="du-group" data-du-group>
-          <div class="du-group-title"><strong>Akun & Bantuan</strong><span>Keamanan</span></div>
-          <div class="du-stack">
-            <a class="du-card du-searchable" style="--i:14" href="tiket-bantuan.html" data-keyword="tiket bantuan daftar komplain dan bantuan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Tiket Bantuan</strong><small>Daftar komplain dan bantuan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:15" href="detail-tiket.html" data-keyword="detail tiket percakapan support">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Tiket</strong><small>Percakapan support</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:16" href="notifikasi.html" data-keyword="notifikasi semua pemberitahuan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:17" href="profil.html" data-keyword="profil data pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Profil</strong><small>Data pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable" style="--i:18" href="keamanan.html" data-keyword="keamanan password, verifikasi, riwayat login">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 14v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <button class="du-card du-searchable logout-drawer-btn" style="--i:19" type="button"  id="logoutBtn" data-dirac-logout data-keyword="keluar sesi backend dan cookie httponly dibersihkan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 12H3m0 0 4-4m-4 4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </button>
-          </div>
-        </section>
-        <div class="du-empty" id="diracUltraMenuEmpty">Menu tidak ditemukan.</div>
-      </main>
-      <footer class="du-footer">
-        <button class="du-footer-btn secondary" type="button" data-close-menu>Tutup</button>
-        <button class="du-footer-btn primary" type="button" onclick="location.href='https://wa.me/6280000000000'">Admin</button>
-      </footer>
-      <div class="du-toast" id="diracUltraMenuToast" aria-live="polite">Menu dibuka</div>
-    </aside>
-  </div>
-
-
-<script id="dirac-ultra-menu-behavior-v1">
-(function(){
-  'use strict';
-  if(window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__) return;
-  window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__ = true;
-
-  function ready(fn){
-    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
-    else fn();
-  }
-
-  ready(function(){
-    var overlay = document.getElementById('menuOverlay');
-    var menu = document.getElementById('diracUltraMenu');
-    var menuToggle = document.getElementById('menuToggle');
-    var input = document.getElementById('diracUltraMenuSearch');
-    var clearBtn = document.getElementById('diracUltraMenuClear');
-    var emptyState = document.getElementById('diracUltraMenuEmpty');
-    var toast = document.getElementById('diracUltraMenuToast');
-    var cards = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay .du-searchable'));
-    var groups = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay [data-du-group]'));
-    var handle = document.getElementById('diracUltraMenuHandle');
-    var menuBody = document.getElementById('diracUltraMenuBody');
-    var progress = document.getElementById('diracUltraMenuProgress');
-    if(!overlay || !menu || !input || !clearBtn || !emptyState || !menuBody || !progress) return;
-
-    var startY = 0;
-    var currentY = 0;
-    var dragging = false;
-    var keyboardIndex = -1;
-
-    function vibrate(ms){
-      try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){ }
-    }
-
-    function showToast(text){
-      if(!toast) return;
-      toast.textContent = text || 'Menu dibuka';
-      toast.classList.add('show');
-      clearTimeout(window.__diracUltraMenuToastTimer);
-      window.__diracUltraMenuToastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1300);
-    }
-
-    function visibleCards(){
-      return cards.filter(function(card){ return card.style.display !== 'none'; });
-    }
-
-    function clearKeyboardActive(){
-      cards.forEach(function(card){ card.classList.remove('is-keyboard-active'); });
-    }
-
-    function setKeyboardActive(index){
-      var list = visibleCards();
-      if(!list.length) return;
-      keyboardIndex = Math.max(0, Math.min(index, list.length - 1));
-      clearKeyboardActive();
-      var active = list[keyboardIndex];
-      active.classList.add('is-keyboard-active');
-      try{ active.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(_){ active.scrollIntoView(false); }
-    }
-
-    function closeMenuUltra(){
-      overlay.classList.remove('open');
-      overlay.setAttribute('aria-hidden','true');
-      overlay.style.opacity = '';
-      document.body.classList.remove('menu-open','modal-open');
-      if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
-      menu.style.transform = '';
-      menu.classList.remove('is-dragging');
-      clearKeyboardActive();
-      keyboardIndex = -1;
-      input.value = '';
-      updateMenu();
-      vibrate(8);
-    }
-
-    function updateScrollProgress(){
-      var max = menuBody.scrollHeight - menuBody.clientHeight;
-      var value = max <= 0 ? 0 : (menuBody.scrollTop / max) * 100;
-      progress.style.width = value + '%';
-    }
-
-    function updateMenu(){
-      var query = (input.value || '').trim().toLowerCase();
-      var visibleCount = 0;
-      cards.forEach(function(card){
-        var haystack = (card.textContent + ' ' + (card.getAttribute('data-keyword') || '')).toLowerCase();
-        var matched = !query || haystack.indexOf(query) !== -1;
-        card.style.display = matched ? '' : 'none';
-        if(matched) visibleCount++;
-      });
-      groups.forEach(function(group){
-        var hasVisible = Array.prototype.slice.call(group.querySelectorAll('.du-searchable')).some(function(card){ return card.style.display !== 'none'; });
-        group.style.display = hasVisible ? '' : 'none';
-      });
-      clearKeyboardActive();
-      keyboardIndex = -1;
-      clearBtn.classList.toggle('show', query.length > 0);
-      emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
-      updateScrollProgress();
-    }
-
-    cards.forEach(function(card){
-      card.addEventListener('pointermove', function(e){
-        var rect = card.getBoundingClientRect();
-        card.style.setProperty('--x', (e.clientX - rect.left) + 'px');
-        card.style.setProperty('--y', (e.clientY - rect.top) + 'px');
-      });
-      card.addEventListener('click', function(e){
-        var ripple = document.createElement('span');
-        var rect = card.getBoundingClientRect();
-        ripple.className = 'du-ripple';
-        ripple.style.left = (e.clientX - rect.left) + 'px';
-        ripple.style.top = (e.clientY - rect.top) + 'px';
-        card.appendChild(ripple);
-        vibrate(7);
-        setTimeout(function(){ if(ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 620);
-      });
-    });
-
-    function dragStart(e){
-      dragging = true;
-      startY = e.touches ? e.touches[0].clientY : e.clientY;
-      currentY = 0;
-      menu.classList.add('is-dragging');
-      overlay.classList.add('du-drag-fading');
-    }
-    function dragMove(e){
-      if(!dragging) return;
-      var y = e.touches ? e.touches[0].clientY : e.clientY;
-      currentY = Math.max(0, y - startY);
-      if(currentY > 0){
-        var scale = Math.max(.96, 1 - currentY / 1800);
-        menu.style.transform = 'translateY(' + currentY + 'px) scale(' + scale + ')';
-        overlay.style.opacity = String(Math.max(.45, 1 - currentY / 260));
-      }
-    }
-    function dragEnd(){
-      if(!dragging) return;
-      dragging = false;
-      menu.classList.remove('is-dragging');
-      overlay.classList.remove('du-drag-fading');
-      overlay.style.opacity = '';
-      if(currentY > 90){ closeMenuUltra(); return; }
-      menu.style.transform = '';
-    }
-
-    if(handle){
-      handle.addEventListener('mousedown', dragStart);
-      handle.addEventListener('touchstart', dragStart, {passive:true});
-      window.addEventListener('mousemove', dragMove);
-      window.addEventListener('touchmove', dragMove, {passive:true});
-      window.addEventListener('mouseup', dragEnd);
-      window.addEventListener('touchend', dragEnd);
-    }
-
-    menuBody.addEventListener('scroll', updateScrollProgress, {passive:true});
-    input.addEventListener('input', updateMenu);
-    clearBtn.addEventListener('click', function(){ input.value = ''; input.focus(); updateMenu(); });
-
-    var observer = new MutationObserver(function(mutations){
-      mutations.forEach(function(mutation){
-        if(mutation.attributeName === 'class'){
-          if(overlay.classList.contains('open')){
-            setTimeout(function(){ updateScrollProgress(); showToast('Menu dibuka'); vibrate(12); }, 60);
-          }
-        }
-      });
-    });
-    observer.observe(overlay, {attributes:true});
-
-    document.addEventListener('keydown', function(e){
-      var menuOpen = overlay.classList.contains('open');
-      if(!menuOpen) return;
-      if(e.key === 'ArrowDown'){
-        e.preventDefault();
-        setKeyboardActive(keyboardIndex + 1);
-      }
-      if(e.key === 'ArrowUp'){
-        e.preventDefault();
-        var count = visibleCards().length;
-        setKeyboardActive(keyboardIndex <= 0 ? count - 1 : keyboardIndex - 1);
-      }
-      if(e.key === 'Enter' && keyboardIndex >= 0){
-        var active = visibleCards()[keyboardIndex];
-        if(active) active.click();
-      }
-    });
-
-    updateMenu();
-  });
-})();
-</script>
-
 
   <div class="theme-modal pro-modal" id="trackingModal" aria-hidden="true">
     <section class="pro-modal-card" role="dialog" aria-modal="true" aria-labelledby="trackingTitle" tabindex="-1">
@@ -3516,6 +3205,416 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
     });
     document.addEventListener('pointerdown', requestPlay, {once:true, passive:true});
     requestPlay();
+  });
+})();
+</script>
+
+
+
+<div aria-hidden="true" class="menu-overlay dirac-ultra-menu" id="menuOverlay">
+<aside aria-labelledby="menuTitle" aria-modal="true" class="du-menu" id="diracUltraMenu" role="dialog" tabindex="-1">
+<header class="du-top">
+<div aria-hidden="true" class="du-handle" id="diracUltraMenuHandle"></div>
+<div class="du-top-row">
+<div aria-hidden="true" class="du-brand"><img alt="Dirac Group" class="du-brand-logo" decoding="async" loading="eager" src="logo 3.webp"/></div>
+<div class="du-title">
+<strong data-i18n="menuTitle" id="menuTitle">Menu Dashboard</strong>
+<small data-i18n="menuSub">Navigasi utama pelanggan.</small>
+</div>
+<button aria-label="Tutup menu" class="du-close" data-close-menu="" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"></path></svg>
+</button>
+</div>
+<label aria-label="Cari menu dashboard" class="du-search">
+<svg fill="none" viewbox="0 0 24 24"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+<input autocomplete="off" id="diracUltraMenuSearch" placeholder="Cari menu..." type="search"/>
+<button aria-label="Hapus pencarian" class="du-clear" id="diracUltraMenuClear" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+</button>
+</label>
+<div aria-hidden="true" class="du-scroll-line"><span id="diracUltraMenuProgress"></span></div>
+</header>
+<main class="du-body" id="diracUltraMenuBody">
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Ekosistem Dirac</strong><span>Menu utama</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable" data-keyword="dashboard ringkasan semua layanan pelanggan" href="dashboard.html" style="--i:1">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Dashboard</strong><small>Ringkasan semua layanan pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="parfum riwayat pembelian parfum" href="parfum.html" style="--i:2">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"></path><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Parfum</strong><small>Riwayat pembelian parfum</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="domain saya daftar domain pelanggan" href="domain.html" style="--i:3">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"></path><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="project website daftar project website" href="project-website.html" style="--i:4">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<button class="du-card du-searchable" data-keyword="cek resi lacak pengiriman" data-open-tracking="" style="--i:5" type="button">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Cek Resi</strong><small>Lacak pengiriman</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</button>
+<a class="du-card du-searchable" data-keyword="layanan nomor kelola layanan nomor" href="layanan-nomor.html" style="--i:6">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"></path><path d="M10 18h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Layanan Nomor</strong><small>Kelola layanan nomor</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Transaksi &amp; Detail</strong><span>Riwayat &amp; tagihan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable" data-keyword="pesanan saya semua transaksi pelanggan" href="pesanan.html" style="--i:7">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Pesanan Saya</strong><small>Semua transaksi pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail pesanan detail satu order" href="detail-pesanan.html" style="--i:8">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Pesanan</strong><small>Detail satu order</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail parfum detail pengiriman parfum" href="detail-parfum.html" style="--i:9">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Parfum</strong><small>Detail pengiriman parfum</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail domain kelola domain, dns, nameserver" href="detail-domain.html" style="--i:10">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.5 2.5-2-2 2.5-2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Domain</strong><small>Kelola domain, DNS, nameserver</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail project progress, revisi, file, approval" href="detail-project.html" style="--i:11">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+<span class="du-copy"><strong>Detail Project</strong><small>Progress, revisi, file, approval</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="invoice semua tagihan" href="invoice.html" style="--i:12">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail invoice detail pembayaran" href="detail-invoice.html" style="--i:13">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Invoice</strong><small>Detail pembayaran</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Akun &amp; Bantuan</strong><span>Keamanan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable" data-keyword="tiket bantuan daftar komplain dan bantuan" href="tiket-bantuan.html" style="--i:14">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Tiket Bantuan</strong><small>Daftar komplain dan bantuan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail tiket percakapan support" href="detail-tiket.html" style="--i:15">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Tiket</strong><small>Percakapan support</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="notifikasi semua pemberitahuan" href="notifikasi.html" style="--i:16">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M10 21h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="profil data pelanggan" href="profil.html" style="--i:17">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Profil</strong><small>Data pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="keamanan password, verifikasi, riwayat login customer security keamanan akun verifikasi login" href="/customer-security" style="--i:18">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M12 14v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<button class="du-card du-searchable logout-drawer-btn" data-dirac-logout="" data-keyword="keluar sesi backend dan cookie httponly dibersihkan" id="logoutBtn" style="--i:19" type="button">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M15 12H3m0 0 4-4m-4 4 4 4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</button>
+</div>
+</section>
+<div class="du-empty" id="diracUltraMenuEmpty">Menu tidak ditemukan.</div>
+</main>
+<footer class="du-footer">
+<button class="du-footer-btn secondary" data-close-menu="" type="button">Tutup</button>
+<button class="du-footer-btn primary" onclick="location.href='https://wa.me/6280000000000'" type="button">Admin</button>
+</footer>
+<div aria-live="polite" class="du-toast" id="diracUltraMenuToast">Menu dibuka</div>
+</aside>
+</div>
+
+<script id="dirac-ultra-menu-behavior-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__) return;
+  window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+
+  ready(function(){
+    var overlay = document.getElementById('menuOverlay');
+    var menu = document.getElementById('diracUltraMenu');
+    var menuToggle = document.getElementById('menuToggle');
+    var input = document.getElementById('diracUltraMenuSearch');
+    var clearBtn = document.getElementById('diracUltraMenuClear');
+    var emptyState = document.getElementById('diracUltraMenuEmpty');
+    var toast = document.getElementById('diracUltraMenuToast');
+    var cards = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay .du-searchable'));
+    var groups = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay [data-du-group]'));
+    var handle = document.getElementById('diracUltraMenuHandle');
+    var menuBody = document.getElementById('diracUltraMenuBody');
+    var progress = document.getElementById('diracUltraMenuProgress');
+    if(!overlay || !menu || !input || !clearBtn || !emptyState || !menuBody || !progress) return;
+
+    var startY = 0;
+    var currentY = 0;
+    var dragging = false;
+    var keyboardIndex = -1;
+
+    function vibrate(ms){
+      try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){ }
+    }
+
+    function showToast(text){
+      if(!toast) return;
+      toast.textContent = text || 'Menu dibuka';
+      toast.classList.add('show');
+      clearTimeout(window.__diracUltraMenuToastTimer);
+      window.__diracUltraMenuToastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1300);
+    }
+
+    function visibleCards(){
+      return cards.filter(function(card){ return card.style.display !== 'none'; });
+    }
+
+    function clearKeyboardActive(){
+      cards.forEach(function(card){ card.classList.remove('is-keyboard-active'); });
+    }
+
+    function setKeyboardActive(index){
+      var list = visibleCards();
+      if(!list.length) return;
+      keyboardIndex = Math.max(0, Math.min(index, list.length - 1));
+      clearKeyboardActive();
+      var active = list[keyboardIndex];
+      active.classList.add('is-keyboard-active');
+      try{ active.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(_){ active.scrollIntoView(false); }
+    }
+
+    function closeMenuUltra(){
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.style.opacity = '';
+      document.body.classList.remove('menu-open','modal-open');
+      if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
+      menu.style.transform = '';
+      menu.classList.remove('is-dragging');
+      clearKeyboardActive();
+      keyboardIndex = -1;
+      input.value = '';
+      updateMenu();
+      vibrate(8);
+    }
+
+    function updateScrollProgress(){
+      var max = menuBody.scrollHeight - menuBody.clientHeight;
+      var value = max <= 0 ? 0 : (menuBody.scrollTop / max) * 100;
+      progress.style.width = value + '%';
+    }
+
+    function updateMenu(){
+      var query = (input.value || '').trim().toLowerCase();
+      var visibleCount = 0;
+      cards.forEach(function(card){
+        var haystack = (card.textContent + ' ' + (card.getAttribute('data-keyword') || '')).toLowerCase();
+        var matched = !query || haystack.indexOf(query) !== -1;
+        card.style.display = matched ? '' : 'none';
+        if(matched) visibleCount++;
+      });
+      groups.forEach(function(group){
+        var hasVisible = Array.prototype.slice.call(group.querySelectorAll('.du-searchable')).some(function(card){ return card.style.display !== 'none'; });
+        group.style.display = hasVisible ? '' : 'none';
+      });
+      clearKeyboardActive();
+      keyboardIndex = -1;
+      clearBtn.classList.toggle('show', query.length > 0);
+      emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+      updateScrollProgress();
+    }
+
+    cards.forEach(function(card){
+      card.addEventListener('pointermove', function(e){
+        var rect = card.getBoundingClientRect();
+        card.style.setProperty('--x', (e.clientX - rect.left) + 'px');
+        card.style.setProperty('--y', (e.clientY - rect.top) + 'px');
+      });
+      card.addEventListener('click', function(e){
+        var ripple = document.createElement('span');
+        var rect = card.getBoundingClientRect();
+        ripple.className = 'du-ripple';
+        ripple.style.left = (e.clientX - rect.left) + 'px';
+        ripple.style.top = (e.clientY - rect.top) + 'px';
+        card.appendChild(ripple);
+        vibrate(7);
+        setTimeout(function(){ if(ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 620);
+      });
+    });
+
+    function dragStart(e){
+      dragging = true;
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      currentY = 0;
+      menu.classList.add('is-dragging');
+      overlay.classList.add('du-drag-fading');
+    }
+    function dragMove(e){
+      if(!dragging) return;
+      var y = e.touches ? e.touches[0].clientY : e.clientY;
+      currentY = Math.max(0, y - startY);
+      if(currentY > 0){
+        var scale = Math.max(.96, 1 - currentY / 1800);
+        menu.style.transform = 'translateY(' + currentY + 'px) scale(' + scale + ')';
+        overlay.style.opacity = String(Math.max(.45, 1 - currentY / 260));
+      }
+    }
+    function dragEnd(){
+      if(!dragging) return;
+      dragging = false;
+      menu.classList.remove('is-dragging');
+      overlay.classList.remove('du-drag-fading');
+      overlay.style.opacity = '';
+      if(currentY > 90){ closeMenuUltra(); return; }
+      menu.style.transform = '';
+    }
+
+    if(handle){
+      handle.addEventListener('mousedown', dragStart);
+      handle.addEventListener('touchstart', dragStart, {passive:true});
+      window.addEventListener('mousemove', dragMove);
+      window.addEventListener('touchmove', dragMove, {passive:true});
+      window.addEventListener('mouseup', dragEnd);
+      window.addEventListener('touchend', dragEnd);
+    }
+
+    menuBody.addEventListener('scroll', updateScrollProgress, {passive:true});
+    input.addEventListener('input', updateMenu);
+    clearBtn.addEventListener('click', function(){ input.value = ''; input.focus(); updateMenu(); });
+
+    var observer = new MutationObserver(function(mutations){
+      mutations.forEach(function(mutation){
+        if(mutation.attributeName === 'class'){
+          if(overlay.classList.contains('open')){
+            setTimeout(function(){ updateScrollProgress(); showToast('Menu dibuka'); vibrate(12); }, 60);
+          }
+        }
+      });
+    });
+    observer.observe(overlay, {attributes:true});
+
+    document.addEventListener('keydown', function(e){
+      var menuOpen = overlay.classList.contains('open');
+      if(!menuOpen) return;
+      if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        setKeyboardActive(keyboardIndex + 1);
+      }
+      if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        var count = visibleCards().length;
+        setKeyboardActive(keyboardIndex <= 0 ? count - 1 : keyboardIndex - 1);
+      }
+      if(e.key === 'Enter' && keyboardIndex >= 0){
+        var active = visibleCards()[keyboardIndex];
+        if(active) active.click();
+      }
+    });
+
+    updateMenu();
+  });
+})();
+</script>
+
+<script id="dirac-ultra-menu-open-bridge-v2">
+(function(){
+  'use strict';
+  if(window.__DIRAC_ULTRA_MENU_OPEN_BRIDGE_V2__) return;
+  window.__DIRAC_ULTRA_MENU_OPEN_BRIDGE_V2__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+
+  ready(function(){
+    var overlay = document.getElementById('menuOverlay');
+    var toggle = document.getElementById('menuToggle');
+    if(!overlay) return;
+
+    function openMenu(){
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('menu-open','modal-open');
+      if(toggle) toggle.setAttribute('aria-expanded','true');
+      setTimeout(function(){
+        var focus = overlay.querySelector('input,button,a,[tabindex]');
+        if(focus && focus.focus) try{ focus.focus({preventScroll:true}); }catch(_){ focus.focus(); }
+      },20);
+    }
+
+    function closeMenu(){
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.style.opacity = '';
+      document.body.classList.remove('menu-open','modal-open');
+      if(toggle) toggle.setAttribute('aria-expanded','false');
+    }
+
+    if(toggle && !toggle.dataset.diracUltraMenuBridgeBound){
+      toggle.dataset.diracUltraMenuBridgeBound = 'true';
+      toggle.addEventListener('click', function(e){
+        e.preventDefault();
+        if(overlay.classList.contains('open')) closeMenu();
+        else openMenu();
+      });
+    }
+
+    Array.prototype.slice.call(document.querySelectorAll('[data-close-menu]')).forEach(function(btn){
+      if(btn.dataset.diracUltraMenuCloseBound) return;
+      btn.dataset.diracUltraMenuCloseBound = 'true';
+      btn.addEventListener('click', function(){ closeMenu(); });
+    });
+
+    if(!overlay.dataset.diracUltraMenuOverlayBound){
+      overlay.dataset.diracUltraMenuOverlayBound = 'true';
+      overlay.addEventListener('click', function(e){ if(e.target === overlay) closeMenu(); });
+    }
+
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && overlay.classList.contains('open')) closeMenu();
+      if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === 'k'){
+        e.preventDefault();
+        if(!overlay.classList.contains('open')) openMenu();
+        else {
+          var input = document.getElementById('diracUltraMenuSearch');
+          if(input) input.focus();
+        }
+      }
+    });
   });
 })();
 </script>

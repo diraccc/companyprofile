@@ -4858,6 +4858,316 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
     }
 </style>
 
+
+<style id="dirac-ultra-menu-theme-safe-v1">
+/* Dirac Ultra Menu - theme-safe, scoped to #menuOverlay only. */
+#menuOverlay.dirac-ultra-menu{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:none;
+  place-items:center;
+  padding:14px;
+  background:rgba(0,0,0,.68);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+  opacity:1;
+  transition:opacity .34s cubic-bezier(.16,1,.3,1);
+}
+#menuOverlay.dirac-ultra-menu.open{display:grid;}
+#menuOverlay.dirac-ultra-menu[aria-hidden="true"]{pointer-events:none;}
+#menuOverlay.dirac-ultra-menu.du-drag-fading{transition:none;}
+#menuOverlay.dirac-ultra-menu *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+#menuOverlay.dirac-ultra-menu a{color:inherit;text-decoration:none;}
+#menuOverlay.dirac-ultra-menu button,
+#menuOverlay.dirac-ultra-menu input{font:inherit;}
+#menuOverlay.dirac-ultra-menu button{cursor:pointer;}
+#menuOverlay.dirac-ultra-menu svg{display:block;}
+#menuOverlay.dirac-ultra-menu .du-menu{
+  --du-accent:var(--gold,#f3cd70);
+  --du-accent-2:var(--gold-2,#d6a642);
+  --du-accent-3:var(--gold-3,#8e6425);
+  --du-rgb:var(--theme-rgb,243,205,112);
+  --du-text:#f8fafc;
+  --du-muted:#aeb7c6;
+  --du-muted-2:#738195;
+  --du-card:rgba(255,255,255,.052);
+  --du-card-hover:rgba(255,255,255,.086);
+  --du-line:rgba(var(--du-rgb),.20);
+  --du-line-soft:rgba(255,255,255,.075);
+  position:relative;
+  width:min(440px,100%);
+  max-height:calc(100dvh - 28px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:34px;
+  color:var(--du-text);
+  background:
+    radial-gradient(circle at 18% 0,rgba(var(--du-rgb),.17),transparent 245px),
+    radial-gradient(circle at 90% 8%,rgba(255,255,255,.055),transparent 235px),
+    linear-gradient(180deg,rgba(15,23,42,.992),rgba(5,8,14,.998));
+  border:1px solid rgba(var(--du-rgb),.22);
+  box-shadow:0 48px 170px rgba(0,0,0,.84),inset 0 1px 0 rgba(255,255,255,.075);
+  transform-origin:bottom center;
+  animation:duSheetIn .46s cubic-bezier(.16,1,.3,1) both;
+  will-change:transform;
+}
+#menuOverlay.dirac-ultra-menu .du-menu::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  pointer-events:none;
+  border-radius:inherit;
+  padding:1px;
+  background:linear-gradient(135deg,rgba(255,255,255,.20),transparent 32%,rgba(var(--du-rgb),.28),transparent 70%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  opacity:.64;
+}
+#menuOverlay.dirac-ultra-menu .du-menu::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(115deg,transparent 0%,transparent 32%,rgba(255,255,255,.052) 45%,transparent 58%,transparent 100%);
+  transform:translateX(-130%);
+  animation:duShellShine 6.8s ease-in-out infinite;
+  opacity:.58;
+}
+#menuOverlay.dirac-ultra-menu .du-menu.is-dragging{transition:none;}
+@keyframes duSheetIn{from{opacity:0;transform:translateY(32px) scale(.95);filter:blur(12px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes duShellShine{0%,58%{transform:translateX(-130%)}80%,100%{transform:translateX(130%)}}
+#menuOverlay.dirac-ultra-menu .du-top{
+  position:relative;
+  z-index:2;
+  padding:14px 16px 12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0));
+}
+#menuOverlay.dirac-ultra-menu .du-handle{
+  width:44px;
+  height:5px;
+  border-radius:999px;
+  background:rgba(255,255,255,.16);
+  margin:0 auto 13px;
+  position:relative;
+  overflow:hidden;
+  touch-action:none;
+}
+#menuOverlay.dirac-ultra-menu .du-handle::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);
+  animation:duHandleShine 2.8s ease-in-out infinite;
+}
+@keyframes duHandleShine{0%,45%{transform:translateX(-100%)}70%,100%{transform:translateX(100%)}}
+#menuOverlay.dirac-ultra-menu .du-top-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;}
+#menuOverlay.dirac-ultra-menu .du-brand{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:linear-gradient(135deg,#fff,var(--du-accent));
+  color:#101828;
+  font-size:.9rem;
+  font-weight:950;
+  letter-spacing:-.06em;
+  box-shadow:0 14px 30px rgba(var(--du-rgb),.16);
+  animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .03s both;
+}
+#menuOverlay.dirac-ultra-menu .du-brand{overflow:hidden;background:rgba(255,255,255,.96);border:1px solid rgba(var(--du-rgb),.28);color:transparent;font-size:0;letter-spacing:0;}
+#menuOverlay.dirac-ultra-menu .du-brand-logo{width:100%;height:100%;display:block;object-fit:contain;object-position:center;padding:6px;background:transparent;}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-brand{background:rgba(255,255,255,.98);border-color:rgba(var(--du-rgb),.32);}
+#menuOverlay.dirac-ultra-menu .du-title{min-width:0;animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .06s both;}
+#menuOverlay.dirac-ultra-menu .du-title strong{display:block;font-size:1rem;line-height:1.12;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-title small{display:block;margin-top:4px;color:var(--du-muted);font-size:.73rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-close{
+  width:42px;
+  height:42px;
+  border-radius:16px;
+  border:1px solid rgba(var(--du-rgb),.20);
+  background:rgba(255,255,255,.052);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  transition:.22s cubic-bezier(.16,1,.3,1);
+  animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .09s both;
+}
+#menuOverlay.dirac-ultra-menu .du-close:hover{background:rgba(255,255,255,.09);transform:translateY(-1px) rotate(4deg)}
+#menuOverlay.dirac-ultra-menu .du-close:active{transform:scale(.96)}
+#menuOverlay.dirac-ultra-menu .du-close svg{width:20px;height:20px;}
+#menuOverlay.dirac-ultra-menu .du-search{
+  margin-top:12px;
+  height:48px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:10px;
+  padding:0 14px;
+  border-radius:18px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.09);
+  color:var(--du-muted-2);
+  transition:.22s cubic-bezier(.16,1,.3,1);
+  animation:duItemIn .42s cubic-bezier(.16,1,.3,1) .12s both;
+}
+#menuOverlay.dirac-ultra-menu .du-search:focus-within{border-color:rgba(var(--du-rgb),.35);background:rgba(255,255,255,.055);box-shadow:0 0 0 4px rgba(var(--du-rgb),.09)}
+#menuOverlay.dirac-ultra-menu .du-search svg{width:18px;height:18px;}
+#menuOverlay.dirac-ultra-menu .du-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#fff;font-size:.88rem;}
+#menuOverlay.dirac-ultra-menu .du-search input::placeholder{color:#738195;}
+#menuOverlay.dirac-ultra-menu .du-clear{width:28px;height:28px;display:none;place-items:center;border:0;border-radius:10px;background:rgba(255,255,255,.065);color:#cbd5e1;}
+#menuOverlay.dirac-ultra-menu .du-clear.show{display:grid;}
+#menuOverlay.dirac-ultra-menu .du-scroll-line{position:absolute;left:0;right:0;bottom:-1px;height:1px;background:rgba(255,255,255,.04);}
+#menuOverlay.dirac-ultra-menu .du-scroll-line span{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--du-accent),rgba(255,255,255,.55));box-shadow:0 0 16px rgba(var(--du-rgb),.55);transition:width .12s linear;}
+#menuOverlay.dirac-ultra-menu .du-body{overflow:auto;padding:14px 15px 15px;scrollbar-width:none;scroll-behavior:smooth;}
+#menuOverlay.dirac-ultra-menu .du-body::-webkit-scrollbar{width:0;height:0;}
+#menuOverlay.dirac-ultra-menu .du-group{margin-top:16px;animation:duItemIn .5s cubic-bezier(.16,1,.3,1) both;}
+#menuOverlay.dirac-ultra-menu .du-group:nth-of-type(1){animation-delay:.10s;}
+#menuOverlay.dirac-ultra-menu .du-group:nth-of-type(2){animation-delay:.16s;}
+#menuOverlay.dirac-ultra-menu .du-group:nth-of-type(3){animation-delay:.22s;}
+#menuOverlay.dirac-ultra-menu .du-group:first-child{margin-top:0;}
+@keyframes duItemIn{from{opacity:0;transform:translateY(14px);filter:blur(5px)}to{opacity:1;transform:none;filter:blur(0)}}
+#menuOverlay.dirac-ultra-menu .du-group-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 3px;margin-bottom:9px;}
+#menuOverlay.dirac-ultra-menu .du-group-title strong{color:#e5e7eb;font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;}
+#menuOverlay.dirac-ultra-menu .du-group-title span{color:var(--du-muted-2);font-size:.7rem;}
+#menuOverlay.dirac-ultra-menu .du-stack{display:grid;gap:9px;}
+#menuOverlay.dirac-ultra-menu .du-card{
+  width:100%;
+  position:relative;
+  overflow:hidden;
+  min-height:80px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:13px;
+  padding:12px 13px;
+  border-radius:23px;
+  background:var(--du-card);
+  border:1px solid transparent;
+  color:var(--du-text);
+  text-align:left;
+  transition:.24s cubic-bezier(.16,1,.3,1);
+  isolation:isolate;
+  animation:duCardIn .48s cubic-bezier(.16,1,.3,1) both;
+  animation-delay:calc(var(--i,1) * 28ms);
+  outline:0;
+}
+#menuOverlay.dirac-ultra-menu button.du-card{font:inherit;}
+@keyframes duCardIn{from{opacity:0;transform:translateY(16px) scale(.98);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+#menuOverlay.dirac-ultra-menu .du-card::before{content:"";position:absolute;inset:0;opacity:0;background:linear-gradient(135deg,rgba(var(--du-rgb),.12),transparent 54%);transition:.24s ease;z-index:0;}
+#menuOverlay.dirac-ultra-menu .du-card::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at var(--x,50%) var(--y,50%),rgba(255,255,255,.13),transparent 34%);opacity:0;transition:.22s ease;pointer-events:none;z-index:0;}
+#menuOverlay.dirac-ultra-menu .du-card:hover,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active{transform:translateY(-1px);background:var(--du-card-hover);border-color:rgba(var(--du-rgb),.20);}
+#menuOverlay.dirac-ultra-menu .du-card:hover::before,
+#menuOverlay.dirac-ultra-menu .du-card:hover::after,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible::before,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible::after,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active::before,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active::after{opacity:1;}
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active{box-shadow:0 0 0 4px rgba(var(--du-rgb),.09);}
+#menuOverlay.dirac-ultra-menu .du-card:active{transform:scale(.985);}
+#menuOverlay.dirac-ultra-menu .du-icon{position:relative;z-index:1;width:46px;height:46px;display:grid;place-items:center;border-radius:17px;background:rgba(255,255,255,.055);color:var(--du-accent);transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuOverlay.dirac-ultra-menu .du-card:hover .du-icon,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible .du-icon,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active .du-icon{transform:scale(1.04);background:rgba(var(--du-rgb),.13);}
+#menuOverlay.dirac-ultra-menu .du-icon svg{width:20px;height:20px;}
+#menuOverlay.dirac-ultra-menu .du-copy{position:relative;z-index:1;min-width:0;}
+#menuOverlay.dirac-ultra-menu .du-copy strong{display:block;font-size:.94rem;line-height:1.18;letter-spacing:-.018em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-copy small{display:block;margin-top:6px;color:var(--du-muted);font-size:.76rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#menuOverlay.dirac-ultra-menu .du-arrow{position:relative;z-index:1;display:grid;place-items:center;color:#64748b;transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuOverlay.dirac-ultra-menu .du-card:hover .du-arrow,
+#menuOverlay.dirac-ultra-menu .du-card:focus-visible .du-arrow,
+#menuOverlay.dirac-ultra-menu .du-card.is-keyboard-active .du-arrow{color:var(--du-accent);transform:translateX(2px);}
+#menuOverlay.dirac-ultra-menu .du-arrow svg{width:20px;height:20px;}
+#menuOverlay.dirac-ultra-menu .du-ripple{position:absolute;width:20px;height:20px;border-radius:999px;background:rgba(255,255,255,.22);transform:translate(-50%,-50%) scale(0);animation:duRipple .58s ease-out forwards;pointer-events:none;z-index:0;}
+@keyframes duRipple{to{transform:translate(-50%,-50%) scale(18);opacity:0}}
+#menuOverlay.dirac-ultra-menu .du-empty{display:none;padding:26px 10px 10px;text-align:center;color:var(--du-muted);font-size:.88rem;animation:duItemIn .28s cubic-bezier(.16,1,.3,1) both;}
+#menuOverlay.dirac-ultra-menu .du-footer{padding:13px 15px calc(13px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid rgba(255,255,255,.06);background:rgba(5,8,14,.96);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn{position:relative;overflow:hidden;height:48px;border-radius:17px;font-weight:850;transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn.secondary{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);color:#fff;}
+#menuOverlay.dirac-ultra-menu .du-footer-btn.primary{border:0;background:linear-gradient(135deg,var(--du-accent),var(--du-accent-2));color:#111827;box-shadow:0 14px 34px rgba(var(--du-rgb),.22);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);transition:.42s ease;}
+#menuOverlay.dirac-ultra-menu .du-footer-btn:hover{transform:translateY(-1px);filter:brightness(1.05);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn:hover::after{transform:translateX(100%);}
+#menuOverlay.dirac-ultra-menu .du-footer-btn:active{transform:scale(.975);}
+#menuOverlay.dirac-ultra-menu .du-toast{position:absolute;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);z-index:5;display:none;padding:11px 14px;border-radius:999px;background:rgba(15,23,42,.94);border:1px solid rgba(var(--du-rgb),.20);color:#fff;font-size:.78rem;font-weight:800;box-shadow:0 18px 48px rgba(0,0,0,.38);white-space:nowrap;}
+#menuOverlay.dirac-ultra-menu .du-toast.show{display:block;animation:duToastIn .28s cubic-bezier(.16,1,.3,1) both;}
+@keyframes duToastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-menu{
+  --du-text:#151923;
+  --du-muted:#526071;
+  --du-muted-2:#64748b;
+  --du-card:rgba(255,255,255,.72);
+  --du-card-hover:rgba(255,255,255,.92);
+  background:radial-gradient(circle at 18% 0,rgba(var(--du-rgb),.16),transparent 245px),linear-gradient(180deg,rgba(255,250,241,.98),rgba(255,246,232,.96));
+  box-shadow:0 48px 150px rgba(80,55,18,.24),inset 0 1px 0 rgba(255,255,255,.85);
+}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-top,
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-footer{background:rgba(255,250,241,.72);}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-search input{color:#151923;}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-close,
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-footer-btn.secondary{color:#151923;background:rgba(255,255,255,.72);}
+html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-group-title strong{color:#151923;}
+@media(max-width:480px){
+  #menuOverlay.dirac-ultra-menu{padding:0;place-items:end center;}
+  #menuOverlay.dirac-ultra-menu .du-menu{width:100%;max-height:calc(100dvh - 10px);border-radius:30px 30px 0 0;border-bottom:0;}
+}
+@media(max-width:360px){
+  #menuOverlay.dirac-ultra-menu .du-brand{width:40px;height:40px;border-radius:15px;}
+  #menuOverlay.dirac-ultra-menu .du-title strong{font-size:.95rem;}
+  #menuOverlay.dirac-ultra-menu .du-title small{font-size:.7rem;}
+  #menuOverlay.dirac-ultra-menu .du-card{min-height:78px;border-radius:22px;}
+  #menuOverlay.dirac-ultra-menu .du-icon{width:44px;height:44px;border-radius:16px;}
+  #menuOverlay.dirac-ultra-menu .du-copy strong{font-size:.9rem;}
+  #menuOverlay.dirac-ultra-menu .du-copy small{font-size:.72rem;}
+}
+html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *,
+html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::before,
+html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+@media(prefers-reduced-motion:reduce){
+  #menuOverlay.dirac-ultra-menu *,
+  #menuOverlay.dirac-ultra-menu *::before,
+  #menuOverlay.dirac-ultra-menu *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+}
+</style>
+
+<style id="dirac-shared-menu-toggle-style-v1">
+/* Shared menu toggle only; scoped to #menuToggle to avoid touching protected app logic. */
+#menuToggle.menu-toggle{
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.24);
+  background:rgba(255,255,255,.065);
+  color:#fff;
+  border-radius:999px;
+  min-width:44px;
+  width:44px;
+  height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  font-weight:950;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 24px rgba(0,0,0,.18);
+  transition:transform .22s cubic-bezier(.16,1,.3,1),filter .22s cubic-bezier(.16,1,.3,1),background .22s cubic-bezier(.16,1,.3,1),border-color .22s cubic-bezier(.16,1,.3,1);
+}
+#menuToggle.menu-toggle:hover{transform:translateY(-2px);filter:brightness(1.05);border-color:rgba(var(--theme-rgb,243,205,112),.46);background:rgba(var(--theme-rgb,243,205,112),.11);}
+#menuToggle.menu-toggle .hamburger{width:22px;height:16px;display:grid;gap:5px;}
+#menuToggle.menu-toggle .hamburger span{height:2px;border-radius:4px;background:currentColor;display:block;transition:.22s cubic-bezier(.16,1,.3,1);}
+#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(2){opacity:0;}
+#menuToggle.menu-toggle[aria-expanded="true"] .hamburger span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+html[data-effective-theme="light"] #menuToggle.menu-toggle{background:rgba(255,255,255,.78);color:#171923;border-color:rgba(15,23,42,.10);}
+@media(max-width:560px){#menuToggle.menu-toggle{width:40px;min-width:40px;height:40px;}}
+</style>
+
+
 </head>
 <body class="gate-locked gate-checking">
 
@@ -4934,6 +5244,8 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
         <button class="header-cart" type="button" data-open-cart>
           <span>🛍️</span><span class="label">Keranjang</span><span class="count-badge" data-cart-count>0</span>
         </button>
+      
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Buka menu navigasi" aria-haspopup="dialog" aria-controls="menuOverlay" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button>
       </div>
     </div>
   </header>
@@ -15218,5 +15530,415 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
   schedule(document.body);
 })();
 </script>
+
+<div aria-hidden="true" class="menu-overlay dirac-ultra-menu" id="menuOverlay">
+<aside aria-labelledby="menuTitle" aria-modal="true" class="du-menu" id="diracUltraMenu" role="dialog" tabindex="-1">
+<header class="du-top">
+<div aria-hidden="true" class="du-handle" id="diracUltraMenuHandle"></div>
+<div class="du-top-row">
+<div aria-hidden="true" class="du-brand"><img alt="Dirac Group" class="du-brand-logo" decoding="async" loading="eager" src="logo 3.webp"/></div>
+<div class="du-title">
+<strong data-i18n="menuTitle" id="menuTitle">Menu Dashboard</strong>
+<small data-i18n="menuSub">Navigasi utama pelanggan.</small>
+</div>
+<button aria-label="Tutup menu" class="du-close" data-close-menu="" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"></path></svg>
+</button>
+</div>
+<label aria-label="Cari menu dashboard" class="du-search">
+<svg fill="none" viewbox="0 0 24 24"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+<input autocomplete="off" id="diracUltraMenuSearch" placeholder="Cari menu..." type="search"/>
+<button aria-label="Hapus pencarian" class="du-clear" id="diracUltraMenuClear" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+</button>
+</label>
+<div aria-hidden="true" class="du-scroll-line"><span id="diracUltraMenuProgress"></span></div>
+</header>
+<main class="du-body" id="diracUltraMenuBody">
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Ekosistem Dirac</strong><span>Menu utama</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable" data-keyword="dashboard ringkasan semua layanan pelanggan" href="dashboard.html" style="--i:1">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Dashboard</strong><small>Ringkasan semua layanan pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="parfum riwayat pembelian parfum" href="parfum.html" style="--i:2">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"></path><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Parfum</strong><small>Riwayat pembelian parfum</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="domain saya daftar domain pelanggan" href="domain.html" style="--i:3">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"></path><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="project website daftar project website" href="project-website.html" style="--i:4">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<button class="du-card du-searchable" data-keyword="cek resi lacak pengiriman" data-open-tracking="" style="--i:5" type="button">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Cek Resi</strong><small>Lacak pengiriman</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</button>
+<a class="du-card du-searchable" data-keyword="layanan nomor kelola layanan nomor" href="layanan-nomor.html" style="--i:6">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"></path><path d="M10 18h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Layanan Nomor</strong><small>Kelola layanan nomor</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Transaksi &amp; Detail</strong><span>Riwayat &amp; tagihan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable" data-keyword="pesanan saya semua transaksi pelanggan" href="pesanan.html" style="--i:7">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Pesanan Saya</strong><small>Semua transaksi pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail pesanan detail satu order" href="detail-pesanan.html" style="--i:8">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Pesanan</strong><small>Detail satu order</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail parfum detail pengiriman parfum" href="detail-parfum.html" style="--i:9">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Parfum</strong><small>Detail pengiriman parfum</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail domain kelola domain, dns, nameserver" href="detail-domain.html" style="--i:10">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.5 2.5-2-2 2.5-2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Domain</strong><small>Kelola domain, DNS, nameserver</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail project progress, revisi, file, approval" href="detail-project.html" style="--i:11">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+<span class="du-copy"><strong>Detail Project</strong><small>Progress, revisi, file, approval</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="invoice semua tagihan" href="invoice.html" style="--i:12">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail invoice detail pembayaran" href="detail-invoice.html" style="--i:13">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Invoice</strong><small>Detail pembayaran</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Akun &amp; Bantuan</strong><span>Keamanan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable" data-keyword="tiket bantuan daftar komplain dan bantuan" href="tiket-bantuan.html" style="--i:14">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Tiket Bantuan</strong><small>Daftar komplain dan bantuan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="detail tiket percakapan support" href="detail-tiket.html" style="--i:15">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Tiket</strong><small>Percakapan support</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="notifikasi semua pemberitahuan" href="notifikasi.html" style="--i:16">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M10 21h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="profil data pelanggan" href="profil.html" style="--i:17">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Profil</strong><small>Data pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable" data-keyword="keamanan password, verifikasi, riwayat login customer security keamanan akun verifikasi login" href="/customer-security" style="--i:18">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M12 14v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<button class="du-card du-searchable logout-drawer-btn" data-dirac-logout="" data-keyword="keluar sesi backend dan cookie httponly dibersihkan" id="logoutBtn" style="--i:19" type="button">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M15 12H3m0 0 4-4m-4 4 4 4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</button>
+</div>
+</section>
+<div class="du-empty" id="diracUltraMenuEmpty">Menu tidak ditemukan.</div>
+</main>
+<footer class="du-footer">
+<button class="du-footer-btn secondary" data-close-menu="" type="button">Tutup</button>
+<button class="du-footer-btn primary" onclick="location.href='https://wa.me/6280000000000'" type="button">Admin</button>
+</footer>
+<div aria-live="polite" class="du-toast" id="diracUltraMenuToast">Menu dibuka</div>
+</aside>
+</div>
+
+<script id="dirac-ultra-menu-behavior-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__) return;
+  window.__DIRAC_ULTRA_MENU_BEHAVIOR_V1__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+
+  ready(function(){
+    var overlay = document.getElementById('menuOverlay');
+    var menu = document.getElementById('diracUltraMenu');
+    var menuToggle = document.getElementById('menuToggle');
+    var input = document.getElementById('diracUltraMenuSearch');
+    var clearBtn = document.getElementById('diracUltraMenuClear');
+    var emptyState = document.getElementById('diracUltraMenuEmpty');
+    var toast = document.getElementById('diracUltraMenuToast');
+    var cards = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay .du-searchable'));
+    var groups = Array.prototype.slice.call(document.querySelectorAll('#menuOverlay [data-du-group]'));
+    var handle = document.getElementById('diracUltraMenuHandle');
+    var menuBody = document.getElementById('diracUltraMenuBody');
+    var progress = document.getElementById('diracUltraMenuProgress');
+    if(!overlay || !menu || !input || !clearBtn || !emptyState || !menuBody || !progress) return;
+
+    var startY = 0;
+    var currentY = 0;
+    var dragging = false;
+    var keyboardIndex = -1;
+
+    function vibrate(ms){
+      try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){ }
+    }
+
+    function showToast(text){
+      if(!toast) return;
+      toast.textContent = text || 'Menu dibuka';
+      toast.classList.add('show');
+      clearTimeout(window.__diracUltraMenuToastTimer);
+      window.__diracUltraMenuToastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1300);
+    }
+
+    function visibleCards(){
+      return cards.filter(function(card){ return card.style.display !== 'none'; });
+    }
+
+    function clearKeyboardActive(){
+      cards.forEach(function(card){ card.classList.remove('is-keyboard-active'); });
+    }
+
+    function setKeyboardActive(index){
+      var list = visibleCards();
+      if(!list.length) return;
+      keyboardIndex = Math.max(0, Math.min(index, list.length - 1));
+      clearKeyboardActive();
+      var active = list[keyboardIndex];
+      active.classList.add('is-keyboard-active');
+      try{ active.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(_){ active.scrollIntoView(false); }
+    }
+
+    function closeMenuUltra(){
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.style.opacity = '';
+      document.body.classList.remove('menu-open','modal-open');
+      if(menuToggle) menuToggle.setAttribute('aria-expanded','false');
+      menu.style.transform = '';
+      menu.classList.remove('is-dragging');
+      clearKeyboardActive();
+      keyboardIndex = -1;
+      input.value = '';
+      updateMenu();
+      vibrate(8);
+    }
+
+    function updateScrollProgress(){
+      var max = menuBody.scrollHeight - menuBody.clientHeight;
+      var value = max <= 0 ? 0 : (menuBody.scrollTop / max) * 100;
+      progress.style.width = value + '%';
+    }
+
+    function updateMenu(){
+      var query = (input.value || '').trim().toLowerCase();
+      var visibleCount = 0;
+      cards.forEach(function(card){
+        var haystack = (card.textContent + ' ' + (card.getAttribute('data-keyword') || '')).toLowerCase();
+        var matched = !query || haystack.indexOf(query) !== -1;
+        card.style.display = matched ? '' : 'none';
+        if(matched) visibleCount++;
+      });
+      groups.forEach(function(group){
+        var hasVisible = Array.prototype.slice.call(group.querySelectorAll('.du-searchable')).some(function(card){ return card.style.display !== 'none'; });
+        group.style.display = hasVisible ? '' : 'none';
+      });
+      clearKeyboardActive();
+      keyboardIndex = -1;
+      clearBtn.classList.toggle('show', query.length > 0);
+      emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+      updateScrollProgress();
+    }
+
+    cards.forEach(function(card){
+      card.addEventListener('pointermove', function(e){
+        var rect = card.getBoundingClientRect();
+        card.style.setProperty('--x', (e.clientX - rect.left) + 'px');
+        card.style.setProperty('--y', (e.clientY - rect.top) + 'px');
+      });
+      card.addEventListener('click', function(e){
+        var ripple = document.createElement('span');
+        var rect = card.getBoundingClientRect();
+        ripple.className = 'du-ripple';
+        ripple.style.left = (e.clientX - rect.left) + 'px';
+        ripple.style.top = (e.clientY - rect.top) + 'px';
+        card.appendChild(ripple);
+        vibrate(7);
+        setTimeout(function(){ if(ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 620);
+      });
+    });
+
+    function dragStart(e){
+      dragging = true;
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      currentY = 0;
+      menu.classList.add('is-dragging');
+      overlay.classList.add('du-drag-fading');
+    }
+    function dragMove(e){
+      if(!dragging) return;
+      var y = e.touches ? e.touches[0].clientY : e.clientY;
+      currentY = Math.max(0, y - startY);
+      if(currentY > 0){
+        var scale = Math.max(.96, 1 - currentY / 1800);
+        menu.style.transform = 'translateY(' + currentY + 'px) scale(' + scale + ')';
+        overlay.style.opacity = String(Math.max(.45, 1 - currentY / 260));
+      }
+    }
+    function dragEnd(){
+      if(!dragging) return;
+      dragging = false;
+      menu.classList.remove('is-dragging');
+      overlay.classList.remove('du-drag-fading');
+      overlay.style.opacity = '';
+      if(currentY > 90){ closeMenuUltra(); return; }
+      menu.style.transform = '';
+    }
+
+    if(handle){
+      handle.addEventListener('mousedown', dragStart);
+      handle.addEventListener('touchstart', dragStart, {passive:true});
+      window.addEventListener('mousemove', dragMove);
+      window.addEventListener('touchmove', dragMove, {passive:true});
+      window.addEventListener('mouseup', dragEnd);
+      window.addEventListener('touchend', dragEnd);
+    }
+
+    menuBody.addEventListener('scroll', updateScrollProgress, {passive:true});
+    input.addEventListener('input', updateMenu);
+    clearBtn.addEventListener('click', function(){ input.value = ''; input.focus(); updateMenu(); });
+
+    var observer = new MutationObserver(function(mutations){
+      mutations.forEach(function(mutation){
+        if(mutation.attributeName === 'class'){
+          if(overlay.classList.contains('open')){
+            setTimeout(function(){ updateScrollProgress(); showToast('Menu dibuka'); vibrate(12); }, 60);
+          }
+        }
+      });
+    });
+    observer.observe(overlay, {attributes:true});
+
+    document.addEventListener('keydown', function(e){
+      var menuOpen = overlay.classList.contains('open');
+      if(!menuOpen) return;
+      if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        setKeyboardActive(keyboardIndex + 1);
+      }
+      if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        var count = visibleCards().length;
+        setKeyboardActive(keyboardIndex <= 0 ? count - 1 : keyboardIndex - 1);
+      }
+      if(e.key === 'Enter' && keyboardIndex >= 0){
+        var active = visibleCards()[keyboardIndex];
+        if(active) active.click();
+      }
+    });
+
+    updateMenu();
+  });
+})();
+</script>
+
+<script id="dirac-ultra-menu-open-bridge-v2">
+(function(){
+  'use strict';
+  if(window.__DIRAC_ULTRA_MENU_OPEN_BRIDGE_V2__) return;
+  window.__DIRAC_ULTRA_MENU_OPEN_BRIDGE_V2__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+
+  ready(function(){
+    var overlay = document.getElementById('menuOverlay');
+    var toggle = document.getElementById('menuToggle');
+    if(!overlay) return;
+
+    function openMenu(){
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('menu-open','modal-open');
+      if(toggle) toggle.setAttribute('aria-expanded','true');
+      setTimeout(function(){
+        var focus = overlay.querySelector('input,button,a,[tabindex]');
+        if(focus && focus.focus) try{ focus.focus({preventScroll:true}); }catch(_){ focus.focus(); }
+      },20);
+    }
+
+    function closeMenu(){
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden','true');
+      overlay.style.opacity = '';
+      document.body.classList.remove('menu-open','modal-open');
+      if(toggle) toggle.setAttribute('aria-expanded','false');
+    }
+
+    if(toggle && !toggle.dataset.diracUltraMenuBridgeBound){
+      toggle.dataset.diracUltraMenuBridgeBound = 'true';
+      toggle.addEventListener('click', function(e){
+        e.preventDefault();
+        if(overlay.classList.contains('open')) closeMenu();
+        else openMenu();
+      });
+    }
+
+    Array.prototype.slice.call(document.querySelectorAll('[data-close-menu]')).forEach(function(btn){
+      if(btn.dataset.diracUltraMenuCloseBound) return;
+      btn.dataset.diracUltraMenuCloseBound = 'true';
+      btn.addEventListener('click', function(){ closeMenu(); });
+    });
+
+    if(!overlay.dataset.diracUltraMenuOverlayBound){
+      overlay.dataset.diracUltraMenuOverlayBound = 'true';
+      overlay.addEventListener('click', function(e){ if(e.target === overlay) closeMenu(); });
+    }
+
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && overlay.classList.contains('open')) closeMenu();
+      if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === 'k'){
+        e.preventDefault();
+        if(!overlay.classList.contains('open')) openMenu();
+        else {
+          var input = document.getElementById('diracUltraMenuSearch');
+          if(input) input.focus();
+        }
+      }
+    });
+  });
+})();
+</script>
+
+
 </body>
 </html>
