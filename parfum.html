@@ -5148,6 +5148,98 @@ body > .announcement{display:none!important;visibility:hidden!important;pointer-
 html[data-effective-theme="light"] .site-header{background:rgba(255,250,241,.88)!important;border-bottom-color:rgba(var(--theme-rgb),.22)!important}html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-menu{color:#111827!important;background:radial-gradient(circle at 18% 0,rgba(var(--theme-rgb),.13),transparent 245px),linear-gradient(180deg,rgba(255,255,255,.985),rgba(248,250,252,.99))!important;box-shadow:0 48px 150px rgba(80,55,18,.28),inset 0 1px 0 rgba(255,255,255,.76)!important}html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-card{background:rgba(255,255,255,.74)!important;color:#172033!important;border-color:rgba(15,23,42,.08)!important}html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-card:hover{background:rgba(var(--theme-rgb),.10)!important;border-color:rgba(var(--theme-rgb),.34)!important}html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-title small,html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-copy small,html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-group-title span{color:#526071!important}html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-search{background:rgba(255,255,255,.78)!important;color:#64748b!important;border-color:rgba(var(--theme-rgb),.24)!important}html[data-effective-theme="light"] #menuOverlay.dirac-ultra-menu .du-search input{color:#111827!important}
 </style>
 
+
+<style id="dirac-final-menu-visibility-ai-remove-patch-v1">
+/* Final patch: restore dashboard-style hamburger menu and remove visible AI floating widget. */
+.dirac-ai-widget,
+#diracAiWidget,
+#diracAiPanel,
+#diracAiToggle{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+.site-header{z-index:9000!important}
+.site-header .nav{position:relative!important;z-index:9001!important}
+.site-header .header-actions{display:flex!important;align-items:center!important;gap:10px!important;flex:0 0 auto!important;min-width:max-content!important}
+.site-header .menu-toggle,
+#menuToggle{
+  width:52px!important;
+  min-width:52px!important;
+  height:52px!important;
+  min-height:52px!important;
+  padding:0!important;
+  border-radius:999px!important;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.32)!important;
+  background:rgba(255,255,255,.065)!important;
+  color:#fff!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  flex:0 0 auto!important;
+  opacity:1!important;
+  visibility:visible!important;
+  pointer-events:auto!important;
+  position:relative!important;
+  z-index:9500!important;
+  overflow:hidden!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 24px rgba(0,0,0,.22)!important;
+  transform:none;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:transparent!important;
+}
+#menuToggle:hover{
+  border-color:rgba(var(--theme-rgb,243,205,112),.56)!important;
+  background:rgba(var(--theme-rgb,243,205,112),.12)!important;
+  transform:translateY(-2px)!important;
+}
+#menuToggle .hamburger{
+  width:24px!important;
+  height:18px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:space-between!important;
+  align-items:stretch!important;
+  gap:0!important;
+  position:relative!important;
+  color:inherit!important;
+  pointer-events:none!important;
+}
+#menuToggle .hamburger > span{
+  display:block!important;
+  width:100%!important;
+  height:2.5px!important;
+  min-height:2.5px!important;
+  border-radius:999px!important;
+  background:currentColor!important;
+  opacity:1!important;
+  visibility:visible!important;
+  transform-origin:center!important;
+  transition:transform .22s cubic-bezier(.22,1,.36,1),opacity .18s ease,width .22s ease!important;
+  box-shadow:0 0 10px rgba(var(--theme-rgb,243,205,112),.18)!important;
+}
+#menuToggle .hamburger > span:nth-child(2){width:82%!important;margin-left:auto!important}
+#menuToggle[aria-expanded="true"] .hamburger > span:nth-child(1){transform:translateY(7.75px) rotate(45deg)!important}
+#menuToggle[aria-expanded="true"] .hamburger > span:nth-child(2){opacity:0!important;transform:scaleX(.25)!important}
+#menuToggle[aria-expanded="true"] .hamburger > span:nth-child(3){transform:translateY(-7.75px) rotate(-45deg)!important}
+#menuOverlay.dirac-ultra-menu{
+  z-index:2147483000!important;
+}
+#menuOverlay.dirac-ultra-menu.open{display:grid!important}
+#menuOverlay.dirac-ultra-menu[hidden]:not(.open){display:none!important}
+body.menu-open #menuOverlay.dirac-ultra-menu.open{display:grid!important}
+@media(max-width:760px){
+  .site-header .header-actions{gap:8px!important}
+  .site-header .menu-toggle,#menuToggle{width:52px!important;min-width:52px!important;height:52px!important;min-height:52px!important}
+  #menuToggle .hamburger{width:23px!important;height:17px!important}
+}
+@media(max-width:430px){
+  .site-header .header-actions{gap:6px!important}
+  .site-header .menu-toggle,#menuToggle{width:46px!important;min-width:46px!important;height:46px!important;min-height:46px!important}
+  #menuToggle .hamburger{width:21px!important;height:16px!important}
+}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
 
@@ -12684,7 +12776,7 @@ html[data-effective-theme="light"] .dirac-quiz-reasons span{color:#172033;backgr
 </script>
 
 
-<div class="dirac-ai-widget notranslate" id="diracAiWidget" translate="no">
+<div class="dirac-ai-widget notranslate" id="diracAiWidget" translate="no" hidden aria-hidden="true" style="display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;">
   <button class="dirac-ai-toggle" id="diracAiToggle" type="button" aria-label="Buka AI Assistant Dirac Group" aria-controls="diracAiPanel" aria-expanded="false">
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3.5l1.72 4.78L18.5 10l-4.78 1.72L12 16.5l-1.72-4.78L5.5 10l4.78-1.72L12 3.5z"></path>
@@ -15905,9 +15997,9 @@ html[data-effective-theme="light"] #themeModal .theme-actions{background:linear-
     'Semua pemberitahuan':{en:'All notifications',zh:'所有通知',ar:'جميع الإشعارات',ja:'すべての通知',ko:'모든 알림',es:'Todas las notificaciones',fr:'Toutes les notifications'},
     'Profil':{en:'Profile',zh:'个人资料',ar:'الملف الشخصي',ja:'プロフィール',ko:'프로필',es:'Perfil',fr:'Profil'},
     'Data pelanggan':{en:'Customer data',zh:'客户数据',ar:'بيانات العميل',ja:'顧客データ',ko:'고객 데이터',es:'Datos del cliente',fr:'Données client'},
-    'Password dan sesi perangkat':{en:'Password and device access',zh:'密码和设备会话',ar:'كلمة المرور وجلسات الأجهزة',ja:'パスワードと端末セッション',ko:'비밀번호 및 기기 세션',es:'Contraseña y sesiones de dispositivo',fr:'Mot de passe et accès appareil'},
+    'Password dan sesi perangkat':{en:'Password and device sessions',zh:'密码和设备会话',ar:'كلمة المرور وجلسات الأجهزة',ja:'パスワードと端末セッション',ko:'비밀번호 및 기기 세션',es:'Contraseña y sesiones de dispositivo',fr:'Mot de passe et sessions appareil'},
     'Keluar':{en:'Logout',zh:'退出登录',ar:'تسجيل الخروج',ja:'ログアウト',ko:'로그아웃',es:'Salir',fr:'Déconnexion'},
-    'Akhiri sesi akun':{en:'End account access',zh:'结束账户会话',ar:'إنهاء جلسة الحساب',ja:'アカウントセッションを終了',ko:'계정 세션 종료',es:'Finalizar sesión de cuenta',fr:'Terminer l’accès au compte'}
+    'Akhiri sesi akun':{en:'End account session',zh:'结束账户会话',ar:'إنهاء جلسة الحساب',ja:'アカウントセッションを終了',ko:'계정 세션 종료',es:'Finalizar sesión de cuenta',fr:'Terminer la session du compte'}
   };
   function getLang(){
     try{ if(window.diracGetGlobalPrefs) return window.diracGetGlobalPrefs().language || 'id'; }catch(_){ }
