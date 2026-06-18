@@ -241,7 +241,66 @@
     body[data-theme-ready="1"] .top-strip,body[data-theme-ready="1"] .site-header .nav{border-color:rgba(var(--theme-rgb),.24)!important}body[data-theme-ready="1"] .panel,body[data-theme-ready="1"] .metric,body[data-theme-ready="1"] .invoice-card,body[data-theme-ready="1"] .detail-card{border-color:rgba(var(--theme-rgb),.18)!important}body[data-theme-ready="1"] .panel:before,body[data-theme-ready="1"] .metric:before,body[data-theme-ready="1"] .invoice-card:before,body[data-theme-ready="1"] .detail-card:before{background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(var(--theme-rgb),.08),transparent 58%)!important}body[data-theme-ready="1"] .eyebrow,body[data-theme-ready="1"] .payment-box,body[data-theme-ready="1"] .empty-state{border-color:rgba(var(--theme-rgb),.24)!important;background:rgba(var(--theme-rgb),.08)!important}body[data-theme-ready="1"] .field:focus{border-color:var(--gold)!important;box-shadow:0 0 0 4px rgba(var(--theme-rgb),.10)!important}body[data-theme-ready="1"] .secure-dot{background:var(--ok)!important}
     @media(max-width:760px){.theme-card.theme-pro-card{width:calc(100vw - 34px)!important}.theme-body.theme-content{padding:14px 18px 20px!important}.theme-head.theme-pro-head{padding:20px 18px 12px!important}.theme-choice-grid,.theme-language-grid,.theme-contrast-grid{grid-template-columns:1fr!important}.brand-typewriter{min-width:9.8ch!important;max-width:10.9ch!important}.theme-swatch,.theme-swatch-choice{height:62px!important;min-height:62px!important}}
 
-  </style>
+  
+
+/* TRANSPARENT HEADER PATCH - make top/header/nav glassy like dashboard reference */
+.top-strip,
+.announcement{
+  background:transparent !important;
+  border-bottom-color:transparent !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+.site-header{
+  background:transparent !important;
+  border:0 !important;
+  border-bottom-color:transparent !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+.nav,
+.site-header .nav{
+  background:
+    radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb,243,205,112),.10), transparent 10rem),
+    linear-gradient(135deg, rgba(7,10,16,.44), rgba(10,16,26,.24)) !important;
+  backdrop-filter:blur(22px) saturate(135%) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(135%) !important;
+  border:1px solid rgba(var(--theme-rgb,243,205,112),.18) !important;
+  box-shadow:
+    0 14px 42px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 0 0 1px rgba(255,255,255,.02) !important;
+}
+.site-header.is-scrolled .nav,
+.site-header.is-scrolled.nav,
+.site-header.is-scrolled .nav{
+  background:
+    radial-gradient(circle at 12% 0%, rgba(var(--theme-rgb,243,205,112),.12), transparent 10rem),
+    linear-gradient(135deg, rgba(7,10,16,.56), rgba(10,16,26,.32)) !important;
+  border-color:rgba(var(--theme-rgb,243,205,112),.22) !important;
+  box-shadow:
+    0 16px 46px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 0 0 1px rgba(255,255,255,.02) !important;
+}
+.brand-mark,
+.site-header .brand-mark{
+  overflow:hidden !important;
+  background:#fff !important;
+}
+.brand-logo-img,
+.brand-mark img{
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  object-position:center !important;
+  background:#fff !important;
+  display:block !important;
+}
+
+</style>
 
 
 <style id="dirac-pesanan-no-yellow-order-font-polish-v3">
