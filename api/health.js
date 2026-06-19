@@ -12075,7 +12075,7 @@ function customerSecurityFeaturePolicy() {
   return [
     {
       title: 'Sumber fitur baru',
-      message: 'Semua fitur baru dibaca melalui /api/health.',
+      message: 'Semua fitur baru dibaca melalui backend keamanan.',
       status: 'Siap',
       statusClass: 'ok'
     },
@@ -12089,6 +12089,309 @@ function customerSecurityFeaturePolicy() {
       title: 'Login, hash, payment, email, A2F',
       message: 'Tidak diubah oleh modul fitur baru.',
       status: 'Tidak diubah',
+      statusClass: 'ok'
+    }
+  ];
+}
+
+/* ============================================================
+   CUSTOMER SECURITY FEATURE ACTIONS - APPEND ONLY - v2
+   Tujuan:
+   - Tombol perangkat terpercaya benar-benar punya endpoint guarded.
+   - Riwayat login fitur baru dibatasi maksimal 8 baris.
+   - Tidak menyentuh login, hash, payment, email template, A2F/MFA, cookie, atau action lama.
+   ============================================================ */
+
+const __diracCustomerSecurityFeatureActionsPreviousHandler = module.exports;
+
+const CUSTOMER_SECURITY_FEATURE_ACTIONS_V2 = new Set([
+  'customer_security_features_bundle_v2',
+  'customer_security_trust_current_device',
+  'customer_security_untrust_device',
+  'customer_security_prune_login_history'
+]);
+
+const CUSTOMER_SECURITY_FEATURE_ACTION_ALIASES_V2 = Object.freeze({
+  'customer-security-features-bundle-v2': 'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v2': 'customer_security_features_bundle_v2',
+  'customer-security-trust-current-device': 'customer_security_trust_current_device',
+  'customer_security_trust_current_device': 'customer_security_trust_current_device',
+  'customer-security-untrust-device': 'customer_security_untrust_device',
+  'customer_security_untrust_device': 'customer_security_untrust_device',
+  'customer-security-prune-login-history': 'customer_security_prune_login_history',
+  'customer_security_prune_login_history': 'customer_security_prune_login_history'
+});
+
+module.exports = async function customerSecurityFeatureActionsWrapperV2(req, res) {
+  diracApplySecurityResponseHeaders(res);
+
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityFeatureActionNormalizeV2(rawAction);
+
+  if (!CUSTOMER_SECURITY_FEATURE_ACTIONS_V2.has(action)) {
+    return __diracCustomerSecurityFeatureActionsPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  try {
+    if (action === 'customer_security_features_bundle_v2') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      return customerSecurityFeatureBundleV2(req, res, action);
+    }
+
+    if (action === 'customer_security_trust_current_device') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityTrustCurrentDeviceV2(req, res, action);
+    }
+
+    if (action === 'customer_security_untrust_device') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityUntrustDeviceV2(req, res, action);
+    }
+
+    if (action === 'customer_security_prune_login_history') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityPruneLoginHistoryEndpointV2(req, res, action);
+    }
+
+    return res.status(404).json({ ok: false, message: 'Fitur keamanan tidak ditemukan.' });
+  } catch (error) {
+    console.error('[customer-security-feature-actions-v2]', customerSecuritySafeLogError(error));
+    return res.status(500).json({
+      ok: false,
+      code: 'SECURITY_FEATURE_ACTION_FAILED',
+      message: diracSafePublicMessage('Fitur keamanan belum bisa diproses.')
+    });
+  }
+};
+
+function customerSecurityFeatureActionNormalizeV2(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return CUSTOMER_SECURITY_FEATURE_ACTION_ALIASES_V2[clean] || clean;
+}
+
+async function customerSecurityFeatureBundleV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 90, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const prune = await customerSecurityFeaturePruneLoginHistoryV2(access.customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+
+  const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
+    ok: false,
+    data: null,
+    error: String(error && error.message ? error.message : error)
+  }));
+
+  const overview = overviewResult && overviewResult.ok && overviewResult.data
+    ? overviewResult.data
+    : customerSecurityEmptyOverview();
+
+  if (Array.isArray(overview.login_logs)) overview.login_logs = overview.login_logs.slice(0, 8);
+  if (overview.counts && typeof overview.counts === 'object') {
+    overview.counts.login_logs = Array.isArray(overview.login_logs) ? overview.login_logs.length : 0;
+  }
+
+  const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
+  bundle.endpoint = 'customer_security_features_bundle_v2';
+  bundle.source = 'Backend keamanan';
+  bundle.login_history_limit = 8;
+  bundle.login_history_prune = prune;
+  bundle.policy = customerSecurityFeaturePolicyV2();
+
+  return res.status(200).json(bundle);
+}
+
+async function customerSecurityTrustCurrentDeviceV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 20, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const fingerprint = customerSecurityBuildSessionFingerprint(req, access.customerId);
+  if (!fingerprint || !fingerprint.session_token_hash) {
+    return res.status(400).json({ ok: false, message: 'Sesi perangkat belum terbaca.' });
+  }
+
+  await customerSecurityTouchCurrentSession(req, access.customerId).catch(() => null);
+
+  const nowIso = new Date().toISOString();
+  const patched = await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' +
+    encodeURIComponent(access.customerId) +
+    '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      trusted_device: true,
+      last_seen_at: nowIso
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(patched.status || 502).json({
+      ok: false,
+      message: 'Perangkat belum bisa ditandai terpercaya.'
+    });
+  }
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'trusted_device_enabled',
+    status: 'success',
+    risk_level: 'low',
+    description: 'Perangkat saat ini ditandai sebagai perangkat terpercaya.',
+    req,
+    metadata: { source: 'customer_security_trust_current_device_v2' }
+  }).catch(() => null);
+
+  return res.status(200).json({
+    ok: true,
+    trusted_device: true,
+    message: 'Perangkat ini sudah ditandai terpercaya.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityUntrustDeviceV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 30, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const body = await readLimitedJsonBody(req, 8 * 1024).catch(() => ({}));
+  const sessionId = String(body.session_id || body.id || '').trim();
+  if (!sessionId || !customerSecurityLooksLikeUuid(sessionId)) {
+    return res.status(400).json({ ok: false, message: 'ID sesi perangkat tidak valid.' });
+  }
+
+  const patched = await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' +
+    encodeURIComponent(access.customerId) +
+    '&id=eq.' + encodeURIComponent(sessionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body: {
+      trusted_device: false
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(patched.status || 502).json({
+      ok: false,
+      message: 'Kepercayaan perangkat belum bisa dihapus.'
+    });
+  }
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'trusted_device_removed',
+    status: 'success',
+    risk_level: 'low',
+    description: 'Kepercayaan perangkat dihapus oleh pelanggan.',
+    req,
+    metadata: { source: 'customer_security_untrust_device_v2', session_id: sessionId }
+  }).catch(() => null);
+
+  return res.status(200).json({
+    ok: true,
+    trusted_device: false,
+    message: 'Kepercayaan perangkat sudah dihapus.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityPruneLoginHistoryEndpointV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 20, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const result = await customerSecurityFeaturePruneLoginHistoryV2(access.customerId);
+  return res.status(200).json({
+    ok: result.ok === true,
+    login_history_limit: 8,
+    pruned: Number(result.pruned || 0),
+    message: result.ok ? 'Riwayat login lama dibersihkan. Maksimal 8 data terbaru disimpan.' : 'Riwayat login belum bisa dibersihkan.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityFeaturePruneLoginHistoryV2(customerId) {
+  const id = String(customerId || '').trim();
+  if (!id || !customerSecurityLooksLikeUuid(id)) return { ok: false, pruned: 0, reason: 'invalid_customer_id' };
+
+  const read = await supabaseFetch('/rest/v1/security_customer_login_logs?select=' +
+    encodeURIComponent('id,created_at') +
+    '&customer_id=eq.' + encodeURIComponent(id) +
+    '&order=' + encodeURIComponent('created_at.desc') +
+    '&limit=100', {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!read.ok || !Array.isArray(read.data)) {
+    return { ok: false, pruned: 0, status: read.status || 500 };
+  }
+
+  const removable = read.data.slice(8).map((row) => String(row && row.id || '').trim()).filter((value) => customerSecurityLooksLikeUuid(value));
+  if (!removable.length) return { ok: true, pruned: 0, kept: Math.min(8, read.data.length) };
+
+  const deletePath = '/rest/v1/security_customer_login_logs?customer_id=eq.' +
+    encodeURIComponent(id) +
+    '&id=in.(' + removable.map(encodeURIComponent).join(',') + ')';
+
+  const removed = await supabaseFetch(deletePath, {
+    method: 'DELETE',
+    auth: 'service',
+    prefer: 'return=minimal'
+  });
+
+  if (!removed.ok) {
+    return { ok: false, pruned: 0, status: removed.status || 500 };
+  }
+
+  return { ok: true, pruned: removable.length, kept: 8 };
+}
+
+function customerSecurityFeaturePolicyV2() {
+  return [
+    {
+      title: 'Sumber fitur baru',
+      message: 'Semua fitur baru dibaca melalui backend keamanan.',
+      status: 'Siap',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Riwayat login',
+      message: 'Maksimal 8 riwayat login terbaru disimpan. Data lama dibersihkan otomatis.',
+      status: '8 data',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Perangkat terpercaya',
+      message: 'Pelanggan dapat menandai perangkat ini terpercaya atau menghapus kepercayaan perangkat.',
+      status: 'Aktif',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Aksi sensitif',
+      message: 'Aksi sensitif tetap memakai guarded action dan audit log backend.',
+      status: 'Dilindungi',
       statusClass: 'ok'
     }
   ];
