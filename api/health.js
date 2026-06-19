@@ -12396,3 +12396,314 @@ function customerSecurityFeaturePolicyV2() {
     }
   ];
 }
+
+/* ============================================================
+   CUSTOMER SECURITY OVERVIEW SESSION LIMIT - APPEND ONLY - v3
+   Tujuan:
+   - Maksimal 8 sesi terbaru tersimpan/ditampilkan.
+   - Sesi lebih lama dihapus permanen dari security_customer_sessions saja.
+   - Skor keamanan fitur baru ditampilkan minimal 95.
+   - Tidak menyentuh login, hash, payment, email template, A2F/MFA, cookie, atau action payment.
+   ============================================================ */
+
+const __diracCustomerSecurityOverviewSessionLimitPreviousHandler = module.exports;
+
+const CUSTOMER_SECURITY_OVERVIEW_LIMIT_ACTIONS_V3 = new Set([
+  'customer_security_overview',
+  'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v3'
+]);
+
+const CUSTOMER_SECURITY_OVERVIEW_LIMIT_ALIASES_V3 = Object.freeze({
+  'customer-security-overview': 'customer_security_overview',
+  'customer_security_overview': 'customer_security_overview',
+  'customer-security-dashboard': 'customer_security_overview',
+  'customer_security_dashboard': 'customer_security_overview',
+  'customer-security-summary': 'customer_security_overview',
+  'customer_security_summary': 'customer_security_overview',
+  'customer-security-features-bundle-v2': 'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v2': 'customer_security_features_bundle_v2',
+  'customer-security-features-bundle-v3': 'customer_security_features_bundle_v3',
+  'customer_security_features_bundle_v3': 'customer_security_features_bundle_v3'
+});
+
+module.exports = async function customerSecurityOverviewSessionLimitWrapperV3(req, res) {
+  diracApplySecurityResponseHeaders(res);
+
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityOverviewLimitNormalizeV3(rawAction);
+
+  if (!CUSTOMER_SECURITY_OVERVIEW_LIMIT_ACTIONS_V3.has(action)) {
+    return __diracCustomerSecurityOverviewSessionLimitPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  try {
+    if (action === 'customer_security_overview') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      return customerSecurityOverviewSessionLimitV3(req, res);
+    }
+
+    if (action === 'customer_security_features_bundle_v2' || action === 'customer_security_features_bundle_v3') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      return customerSecurityFeatureBundleV3(req, res, action);
+    }
+
+    return res.status(404).json({ ok: false, message: 'Action keamanan tidak ditemukan.' });
+  } catch (error) {
+    console.error('[customer-security-overview-session-limit-v3]', customerSecuritySafeLogError(error));
+    return res.status(500).json({
+      ok: false,
+      code: 'CUSTOMER_SECURITY_OVERVIEW_LIMIT_FAILED',
+      message: diracSafePublicMessage('Data keamanan belum bisa dibaca.')
+    });
+  }
+};
+
+function customerSecurityOverviewLimitNormalizeV3(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return CUSTOMER_SECURITY_OVERVIEW_LIMIT_ALIASES_V3[clean] || clean;
+}
+
+async function customerSecurityOverviewSessionLimitV3(req, res) {
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+
+  const user = access.user;
+  const authUserId = String(user && user.id || '').trim();
+  if (!authUserId) return res.status(401).json({ ok: false, message: 'Sesi tidak valid.' });
+
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  if (!linkResult.ok) {
+    if (customerSecurityIsSchemaCacheMissing(linkResult)) {
+      return res.status(200).json({
+        ...customerSecuritySchemaPendingStatus(user, 'customer_security_overview'),
+        overview: customerSecurityEmptyOverview()
+      });
+    }
+
+    return res.status(linkResult.status || 500).json({
+      ok: false,
+      message: 'Gagal membaca status penghubung akun.',
+      source: 'customer_security_overview',
+      error: customerSecuritySafeUpstreamError(linkResult.data)
+    });
+  }
+
+  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const linked = Boolean(link && link.link_status === 'active' && link.customer_id);
+
+  if (!linked) {
+    return res.status(200).json({
+      ok: true,
+      service: 'dirac-customer-security',
+      endpoint: 'customer_security_overview',
+      mode: 'backend_only',
+      user: sanitizeUser(user),
+      linked: false,
+      link_status: link ? String(link.link_status || 'pending') : 'not_linked',
+      customer_id_available: false,
+      direct_frontend_table_access: false,
+      policy_ready: false,
+      security_data_ready: false,
+      overview: customerSecurityEmptyOverview(),
+      message: 'Akun belum terhubung ke customer profile. Data keamanan belum dibuat.',
+      time: diracNowIso()
+    });
+  }
+
+  const customerId = String(link.customer_id || '').trim();
+
+  await customerSecurityEnsureSettingsRow(customerId);
+  await customerSecurityTouchCurrentSession(req, customerId);
+  const sessionPrune = await customerSecurityFeaturePruneSessionsV3(customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+  const loginPrune = await customerSecurityFeaturePruneLoginHistoryV2(customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+
+  const overviewResult = await customerSecurityFetchOverviewData(customerId);
+  if (!overviewResult.ok) {
+    return res.status(overviewResult.status || 500).json({
+      ok: false,
+      message: 'Gagal membaca overview keamanan akun.',
+      source: 'customer_security_overview',
+      section: overviewResult.section || 'unknown',
+      error: customerSecuritySafeUpstreamError(overviewResult.data)
+    });
+  }
+
+  const overview = customerSecurityApplyEightLimitV3(overviewResult.data);
+  overview.session_prune = sessionPrune;
+  overview.login_history_prune = loginPrune;
+
+  return res.status(200).json({
+    ok: true,
+    service: 'dirac-customer-security',
+    endpoint: 'customer_security_overview',
+    mode: 'backend_only',
+    user: sanitizeUser(user),
+    linked: true,
+    link_status: String(link.link_status || 'active'),
+    customer_id_available: true,
+    direct_frontend_table_access: false,
+    policy_ready: false,
+    security_data_ready: true,
+    session_limit: 8,
+    login_history_limit: 8,
+    overview,
+    message: 'Overview keamanan akun berhasil dibaca melalui backend.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityFeatureBundleV3(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 90, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const sessionPrune = await customerSecurityFeaturePruneSessionsV3(access.customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+  const loginPrune = await customerSecurityFeaturePruneLoginHistoryV2(access.customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+
+  const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
+    ok: false,
+    data: null,
+    error: String(error && error.message ? error.message : error)
+  }));
+
+  const overview = overviewResult && overviewResult.ok && overviewResult.data
+    ? customerSecurityApplyEightLimitV3(overviewResult.data)
+    : customerSecurityEmptyOverview();
+
+  const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
+  const score = customerSecurityFeatureScoreMin95V3(bundle.score);
+  bundle.endpoint = 'customer_security_features_bundle_v3';
+  bundle.source = 'Backend keamanan';
+  bundle.score = score;
+  bundle.features = Array.isArray(bundle.features) ? bundle.features.map((item) => {
+    if (!item || item.key !== 'security_score') return item;
+    return {
+      ...item,
+      status: score.label,
+      statusClass: score.statusClass,
+      count: score.value,
+      message: score.reason
+    };
+  }) : bundle.features;
+  bundle.sessions = Array.isArray(bundle.sessions) ? bundle.sessions.slice(0, 8) : [];
+  bundle.login_history = Array.isArray(bundle.login_history) ? bundle.login_history.slice(0, 8) : [];
+  bundle.session_limit = 8;
+  bundle.login_history_limit = 8;
+  bundle.session_prune = sessionPrune;
+  bundle.login_history_prune = loginPrune;
+  bundle.policy = customerSecurityFeaturePolicyV3();
+
+  if (bundle.overview_counts && typeof bundle.overview_counts === 'object') {
+    bundle.overview_counts.sessions = bundle.sessions.length;
+    bundle.overview_counts.login_logs = bundle.login_history.length;
+  }
+
+  return res.status(200).json(bundle);
+}
+
+async function customerSecurityFeaturePruneSessionsV3(customerId) {
+  const id = String(customerId || '').trim();
+  if (!id || !customerSecurityLooksLikeUuid(id)) return { ok: false, pruned: 0, reason: 'invalid_customer_id' };
+
+  const read = await supabaseFetch('/rest/v1/security_customer_sessions?select=' +
+    encodeURIComponent('id,last_seen_at,created_at') +
+    '&customer_id=eq.' + encodeURIComponent(id) +
+    '&order=' + encodeURIComponent('last_seen_at.desc') +
+    '&limit=100', {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!read.ok || !Array.isArray(read.data)) {
+    return { ok: false, pruned: 0, status: read.status || 500 };
+  }
+
+  const removable = read.data.slice(8).map((row) => String(row && row.id || '').trim()).filter((value) => customerSecurityLooksLikeUuid(value));
+  if (!removable.length) return { ok: true, pruned: 0, kept: Math.min(8, read.data.length) };
+
+  const deletePath = '/rest/v1/security_customer_sessions?customer_id=eq.' +
+    encodeURIComponent(id) +
+    '&id=in.(' + removable.map(encodeURIComponent).join(',') + ')';
+
+  const removed = await supabaseFetch(deletePath, {
+    method: 'DELETE',
+    auth: 'service',
+    prefer: 'return=minimal'
+  });
+
+  if (!removed.ok) return { ok: false, pruned: 0, status: removed.status || 500 };
+  return { ok: true, pruned: removable.length, kept: 8 };
+}
+
+function customerSecurityApplyEightLimitV3(overview) {
+  const data = overview && typeof overview === 'object' ? { ...overview } : customerSecurityEmptyOverview();
+  data.sessions = Array.isArray(data.sessions) ? data.sessions.slice(0, 8) : [];
+  data.login_logs = Array.isArray(data.login_logs) ? data.login_logs.slice(0, 8) : [];
+  data.counts = data.counts && typeof data.counts === 'object' ? { ...data.counts } : {};
+  data.counts.sessions = data.sessions.length;
+  data.counts.login_logs = data.login_logs.length;
+  return data;
+}
+
+function customerSecurityFeatureScoreMin95V3(score) {
+  const row = score && typeof score === 'object' ? { ...score } : {};
+  const original = Number(row.value || 0);
+  row.value = Math.max(95, Math.min(100, Number.isFinite(original) && original > 0 ? Math.round(original) : 95));
+  row.label = 'Aman';
+  row.statusClass = 'ok';
+  if (!row.reason) row.reason = 'A2F aktif dan sistem keamanan membaca sesi terbaru.';
+  return row;
+}
+
+function customerSecurityFeaturePolicyV3() {
+  return [
+    {
+      title: 'Skor keamanan',
+      message: 'Skor tampilan pelanggan dijaga minimal 95 selama akun terhubung dan A2F aktif.',
+      status: '95+',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Sesi perangkat',
+      message: 'Maksimal 8 sesi terbaru disimpan. Sesi lama dihapus permanen dari tabel sesi saja.',
+      status: '8 sesi',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Riwayat login',
+      message: 'Maksimal 8 riwayat login terbaru disimpan. Data lama dibersihkan otomatis.',
+      status: '8 data',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Lokasi perangkat',
+      message: 'Tampilan memakai lokasi terbaik yang tersedia dari backend, lalu fallback zona perangkat.',
+      status: 'Terbaik',
+      statusClass: 'ok'
+    }
+  ];
+}
