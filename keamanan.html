@@ -100,9 +100,11 @@
   proto.getItem = function(key){
     key = String(key);
     if(this !== storage) return nativeGet.apply(this, arguments);
-    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]){ var p = prefs(); return JSON.stringify({accent:p.accent,language:p.language}); }
+    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]) return JSON.stringify(prefs());
     if(key === ACCENT_KEY) return prefs().accent;
     if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]) return prefs().language;
+    if(key === CURRENCY_KEY) return prefs().currency;
+    if(key === MOTION_KEY) return prefs().motion;
     return null;
   };
   proto.setItem = function(key, value){
@@ -166,7 +168,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)">
-  <meta http-equiv="Content-Security-Policy" content="default-src &#x27;self&#x27;; script-src &#x27;self&#x27; &#x27;sha512-1ixTlwDLb6IXfMPrpVc1+SLNEbnNd4TzKtaa4v/MAX57le7zusr+2Q4FQvb8ELb1iC5nr3sxcUc3GfcrCxnZAA==&#x27; &#x27;sha512-PvvcD7jAfOKSo99fLYkaA/+YroOZkwzE44QyZWymd9CR/0Sv8DC9mkuAO7O9U/icYhZakjKtLgbwFurQDA4jbw==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-LUVLPsAbZebhNt0DMXad384s6103eebT+kHwqwr3BZiSTyMqol1A9erOWOfneSMEQjMllc2REjSJ3LeFtYaB9g==&#x27; &#x27;sha512-9GQUGpLKw7Ili3kb/dr3U2XkSvGNwcUNm09Cj8GuwuaxMIg+Xa9b6OBOUtB0/JFJOJ7CZHz0yVNv80UUKzmt8w==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-elem &#x27;self&#x27; &#x27;sha512-1ixTlwDLb6IXfMPrpVc1+SLNEbnNd4TzKtaa4v/MAX57le7zusr+2Q4FQvb8ELb1iC5nr3sxcUc3GfcrCxnZAA==&#x27; &#x27;sha512-PvvcD7jAfOKSo99fLYkaA/+YroOZkwzE44QyZWymd9CR/0Sv8DC9mkuAO7O9U/icYhZakjKtLgbwFurQDA4jbw==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-LUVLPsAbZebhNt0DMXad384s6103eebT+kHwqwr3BZiSTyMqol1A9erOWOfneSMEQjMllc2REjSJ3LeFtYaB9g==&#x27; &#x27;sha512-9GQUGpLKw7Ili3kb/dr3U2XkSvGNwcUNm09Cj8GuwuaxMIg+Xa9b6OBOUtB0/JFJOJ7CZHz0yVNv80UUKzmt8w==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-attr &#x27;none&#x27;; style-src &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-elem &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-attr &#x27;none&#x27;; font-src &#x27;self&#x27; https://fonts.gstatic.com data:; img-src &#x27;self&#x27; data: https: blob:; connect-src &#x27;self&#x27; https://diracgroup.store https://www.diracgroup.store; object-src &#x27;none&#x27;; base-uri &#x27;self&#x27;; form-action &#x27;self&#x27;; frame-src &#x27;none&#x27;; child-src &#x27;self&#x27; blob:; frame-ancestors &#x27;none&#x27;; worker-src &#x27;self&#x27; blob:; manifest-src &#x27;self&#x27;; media-src &#x27;self&#x27; data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src &#x27;self&#x27;; script-src &#x27 &#x27 &#x27;sha512-2zcvSlCWgHb6dLb32Syc3/6phTFbDXtcdSX9kOpibcla24ujLSIb3FZHlh+0XbTLXCjOLLryiW4ApdFZNgBEWg==&#x27; &#x27;sha512-PvvcD7jAfOKSo99fLYkaA/+YroOZkwzE44QyZWymd9CR/0Sv8DC9mkuAO7O9U/icYhZakjKtLgbwFurQDA4jbw==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-LUVLPsAbZebhNt0DMXad384s6103eebT+kHwqwr3BZiSTyMqol1A9erOWOfneSMEQjMllc2REjSJ3LeFtYaB9g==&#x27; &#x27;sha512-9GQUGpLKw7Ili3kb/dr3U2XkSvGNwcUNm09Cj8GuwuaxMIg+Xa9b6OBOUtB0/JFJOJ7CZHz0yVNv80UUKzmt8w==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27; &#x27;sha512-1XDV7a/+38RpztsdcCfyIMZIhqfZY+B7Pihpbcv5brkgXm9P+ovmzr5AY495oJXn6hpUaSR9lvQ22gT/W62+gQ==&#x27;;sha512-84A6ny9KwFH5b6rqfo6EaGqf7EoAx/wqp8ZG+6bena/TCUozNNXmUrAoojjWgF3PMATEEupuY1GJwWD4R9WR7Q==&#x27;;self&#x27; &#x27;sha512-mNpg/KCuBq6BchPBr7DeorfyUfLhKSC+18WJB0aKtTSzF17arXGR5QP+VmdPwidZYIea8bhkqL5kxWwmaRTM2A==&#x27; &#x27;sha512-JvUCOpwn8UhGXFuH9R/m5krX8rDO6KTUe2Nwwh/0cCfSLhEEmDuuiZjCx51hkjctb88p9eI8ZP1cAg9pDs8uNg==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-MimukslXEckswvmeYDx53Tk/eK9bA8mHNvUngp4MBdeBCGPRmP6DYp2qRzoAdV8o0VpHzCn+PuOU66JEM57Pqg==&#x27; &#x27;sha512-kmNnWjEYZonBGCsW24DrH8g0zVKeX3sjSn2jHYJJtWZE+BO6dLoSYg8d+TpzJdaY3WYSCDTVmjiBTzfifkEiuw==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-elem &#x27 &#x27;sha512-2zcvSlCWgHb6dLb32Syc3/6phTFbDXtcdSX9kOpibcla24ujLSIb3FZHlh+0XbTLXCjOLLryiW4ApdFZNgBEWg==&#x27; &#x27;sha512-PvvcD7jAfOKSo99fLYkaA/+YroOZkwzE44QyZWymd9CR/0Sv8DC9mkuAO7O9U/icYhZakjKtLgbwFurQDA4jbw==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-LUVLPsAbZebhNt0DMXad384s6103eebT+kHwqwr3BZiSTyMqol1A9erOWOfneSMEQjMllc2REjSJ3LeFtYaB9g==&#x27; &#x27;sha512-9GQUGpLKw7Ili3kb/dr3U2XkSvGNwcUNm09Cj8GuwuaxMIg+Xa9b6OBOUtB0/JFJOJ7CZHz0yVNv80UUKzmt8w==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27; &#x27;sha512-1XDV7a/+38RpztsdcCfyIMZIhqfZY+B7Pihpbcv5brkgXm9P+ovmzr5AY495oJXn6hpUaSR9lvQ22gT/W62+gQ==&#x27;;self&#x27; &#x27;sha512-mNpg/KCuBq6BchPBr7DeorfyUfLhKSC+18WJB0aKtTSzF17arXGR5QP+VmdPwidZYIea8bhkqL5kxWwmaRTM2A==&#x27; &#x27;sha512-JvUCOpwn8UhGXFuH9R/m5krX8rDO6KTUe2Nwwh/0cCfSLhEEmDuuiZjCx51hkjctb88p9eI8ZP1cAg9pDs8uNg==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-MimukslXEckswvmeYDx53Tk/eK9bA8mHNvUngp4MBdeBCGPRmP6DYp2qRzoAdV8o0VpHzCn+PuOU66JEM57Pqg==&#x27; &#x27;sha512-kmNnWjEYZonBGCsW24DrH8g0zVKeX3sjSn2jHYJJtWZE+BO6dLoSYg8d+TpzJdaY3WYSCDTVmjiBTzfifkEiuw==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-attr &#x27;none&#x27;; style-src &#x27 &#x27 &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27; &#x27;sha512-Q1VeLDu5XF2iod1BfqKbI+txF/QbL525i7aj2HJCyUB5GdULY1uAIiYiYTJOazURkAxn4WyL6lCxciNHj5ixPQ==&#x27;;sha512-WW5SygBn0sej3Z9R5uFFWeqpLW2m/GNt7ZycHCjpzviylxCwi5hbrf7OKehKnDunk0eZkJ23pQYcj/9JOTmqnQ==&#x27;;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-elem &#x27 &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27; &#x27;sha512-Q1VeLDu5XF2iod1BfqKbI+txF/QbL525i7aj2HJCyUB5GdULY1uAIiYiYTJOazURkAxn4WyL6lCxciNHj5ixPQ==&#x27;;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-attr &#x27;none&#x27;; font-src &#x27;self&#x27; https://fonts.gstatic.com data:; img-src &#x27;self&#x27; data: https: blob:; connect-src &#x27;self&#x27; https://diracgroup.store https://www.diracgroup.store; object-src &#x27;none&#x27;; base-uri &#x27;self&#x27;; form-action &#x27;self&#x27;; frame-src &#x27;none&#x27;; child-src &#x27;self&#x27; blob:; frame-ancestors &#x27;none&#x27;; worker-src &#x27;self&#x27; blob:; manifest-src &#x27;self&#x27;; media-src &#x27;self&#x27; data:">
   <!-- DIRAC STRICT STORAGE + GATE NOTE:
        localStorage hanya untuk dirac_global_accent_v1 dan dirac_global_language_v1.
        Halaman hanya dibuka setelah backend memvalidasi login + A2F aktif + HttpOnly Secure cookie melalui credentials:include.
@@ -5662,6 +5664,368 @@ html[data-motion="off"] *{
     document.addEventListener('change',function(){ setTimeout(function(){ scan(document.body); },80); },true);
     setTimeout(function(){ scan(document.body); },250);
     setTimeout(function(){ scan(document.body); },1000);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
+})();
+</script>
+
+<style id="dirac-not-me-button-polish-v3">
+.btn.not-me,
+button.not-me{
+  width:auto;
+  max-width:100%;
+  min-width:128px;
+  min-height:38px;
+  padding:9px 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border-radius:999px;
+  white-space:nowrap;
+  text-align:center;
+  line-height:1.05;
+  letter-spacing:-.01em;
+  flex:0 0 auto;
+}
+.session-actions .btn.not-me,
+.has-not-me .btn.not-me,
+.dsf-modal-body .btn.not-me{
+  font-size:.72rem;
+  font-weight:900;
+}
+.has-not-me .session-actions{
+  align-items:flex-start;
+}
+@media(max-width:680px){
+  .list-item.has-not-me,
+  .timeline-item.has-not-me{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+  .list-item.has-not-me .session-actions,
+  .timeline-item.has-not-me .session-actions{
+    width:100%;
+    justify-content:flex-start;
+    align-items:center;
+    gap:8px;
+  }
+  .list-item.has-not-me .session-actions .tag,
+  .timeline-item.has-not-me .session-actions .tag{
+    min-height:34px;
+  }
+  .list-item.has-not-me .session-actions .btn,
+  .timeline-item.has-not-me .session-actions .btn{
+    min-height:36px;
+  }
+  .list-item.has-not-me .session-actions .btn.not-me,
+  .timeline-item.has-not-me .session-actions .btn.not-me,
+  .dsf-modal-body .btn.not-me{
+    min-width:138px;
+    padding:10px 15px;
+    white-space:nowrap;
+    word-break:keep-all;
+    overflow-wrap:normal;
+  }
+  html[data-language="zh"] .btn.not-me,
+  html[lang^="zh"] .btn.not-me,
+  html[data-language="ja"] .btn.not-me,
+  html[lang^="ja"] .btn.not-me,
+  html[data-language="ko"] .btn.not-me,
+  html[lang^="ko"] .btn.not-me{
+    min-width:104px;
+    letter-spacing:.02em;
+  }
+}
+</style>
+<script id="dirac-static-text-dynamic-final-v3">
+(function(){
+  'use strict';
+  if(window.__DIRAC_STATIC_TEXT_DYNAMIC_FINAL_V3__) return;
+  window.__DIRAC_STATIC_TEXT_DYNAMIC_FINAL_V3__ = true;
+
+  var LANGS = {id:1,en:1,zh:1,ar:1,ja:1,ko:1,es:1,fr:1};
+  var DICT = {
+    'Alasan risiko':{en:'Risk reason',zh:'风险原因',ar:'سبب الخطر',ja:'リスク理由',ko:'위험 사유',es:'Motivo del riesgo',fr:'Raison du risque'},
+    'Alasan':{en:'Reason',zh:'原因',ar:'السبب',ja:'理由',ko:'사유',es:'Razón',fr:'Raison'},
+    'Penyebab':{en:'Reason',zh:'原因',ar:'السبب',ja:'理由',ko:'사유',es:'Razón',fr:'Raison'},
+    'Pengguna':{en:'User',zh:'用户',ar:'المستخدم',ja:'ユーザー',ko:'사용자',es:'Usuario',fr:'Utilisateur'},
+    'Koneksi akun':{en:'Account connection',zh:'账户连接',ar:'اتصال الحساب',ja:'アカウント接続',ko:'계정 연결',es:'Conexión de cuenta',fr:'Connexion du compte'},
+    'Aturan':{en:'Rules',zh:'规则',ar:'القواعد',ja:'ルール',ko:'규칙',es:'Reglas',fr:'Règles'},
+    'Akses langsung':{en:'Direct access',zh:'直接访问',ar:'الوصول المباشر',ja:'直接アクセス',ko:'직접 접근',es:'Acceso directo',fr:'Accès direct'},
+    'Kondisi keamanan':{en:'Security condition',zh:'安全状态',ar:'حالة الأمان',ja:'セキュリティ状態',ko:'보안 상태',es:'Condición de seguridad',fr:'État de sécurité'},
+    'Status keamanan':{en:'Security status',zh:'安全状态',ar:'حالة الأمان',ja:'セキュリティ状態',ko:'보안 상태',es:'Estado de seguridad',fr:'État de sécurité'},
+    'Keamanan':{en:'Security',zh:'安全',ar:'الأمان',ja:'セキュリティ',ko:'보안',es:'Seguridad',fr:'Sécurité'},
+    'Akun sudah terhubung. Data dibaca lewat sistem yang aman.':{en:'The account is connected. Data is read through a secure system.',zh:'账户已连接。数据通过安全系统读取。',ar:'الحساب متصل. تتم قراءة البيانات عبر نظام آمن.',ja:'アカウントは接続済みです。データは安全なシステム経由で読み取られます。',ko:'계정이 연결되었습니다. 데이터는 안전한 시스템을 통해 읽습니다.',es:'La cuenta está conectada. Los datos se leen mediante un sistema seguro.',fr:'Le compte est connecté. Les données sont lues via un système sécurisé.'},
+    'Akun terhubung. Tetap gunakan sistem sebagai sumber kebenaran untuk semua aksi penting.':{en:'Account connected. Keep using the system as the source of truth for all important actions.',zh:'账户已连接。所有重要操作仍以系统作为可信来源。',ar:'الحساب متصل. استمر في استخدام النظام كمصدر موثوق لكل الإجراءات المهمة.',ja:'アカウントは接続済みです。重要な操作は常にシステムを正としてください。',ko:'계정이 연결되었습니다. 모든 중요 작업은 시스템을 기준으로 사용하세요.',es:'Cuenta conectada. Usa el sistema como fuente de verdad para todas las acciones importantes.',fr:'Compte connecté. Utilisez le système comme source de vérité pour toutes les actions importantes.'},
+    'Data dibaca dari backend keamanan.':{en:'Data is read from the security backend.',zh:'数据来自安全后端。',ar:'تتم قراءة البيانات من خلفية الأمان.',ja:'データはセキュリティバックエンドから読み取られます。',ko:'데이터는 보안 백엔드에서 읽습니다.',es:'Los datos se leen desde el backend de seguridad.',fr:'Les données sont lues depuis le backend de sécurité.'},
+    'Backend keamanan':{en:'Security backend',zh:'安全后端',ar:'خلفية الأمان',ja:'セキュリティバックエンド',ko:'보안 백엔드',es:'Backend de seguridad',fr:'Backend de sécurité'},
+    'Sistem keamanan':{en:'Security system',zh:'安全系统',ar:'نظام الأمان',ja:'セキュリティシステム',ko:'보안 시스템',es:'Sistema de seguridad',fr:'Système de sécurité'},
+    'Data sumber':{en:'Data source',zh:'数据来源',ar:'مصدر البيانات',ja:'データソース',ko:'데이터 출처',es:'Fuente de datos',fr:'Source des données'},
+    'Sumber data':{en:'Data source',zh:'数据来源',ar:'مصدر البيانات',ja:'データソース',ko:'데이터 출처',es:'Fuente de datos',fr:'Source des données'},
+    'Sumber':{en:'Source',zh:'来源',ar:'المصدر',ja:'ソース',ko:'출처',es:'Fuente',fr:'Source'},
+    'Status':{en:'Status',zh:'状态',ar:'الحالة',ja:'ステータス',ko:'상태',es:'Estado',fr:'Statut'},
+    'Device':{id:'Perangkat',en:'Device',zh:'设备',ar:'الجهاز',ja:'デバイス',ko:'기기',es:'Dispositivo',fr:'Appareil'},
+    'Perangkat':{en:'Device',zh:'设备',ar:'الجهاز',ja:'デバイス',ko:'기기',es:'Dispositivo',fr:'Appareil'},
+    'Browser':{id:'Browser',en:'Browser',zh:'浏览器',ar:'المتصفح',ja:'ブラウザ',ko:'브라우저',es:'Navegador',fr:'Navigateur'},
+    'OS':{id:'OS',en:'OS',zh:'系统',ar:'النظام',ja:'OS',ko:'OS',es:'Sistema',fr:'OS'},
+    'Lokasi':{en:'Location',zh:'位置',ar:'الموقع',ja:'場所',ko:'위치',es:'Ubicación',fr:'Lieu'},
+    'Lokasi terbaik':{en:'Best location',zh:'最佳位置',ar:'أفضل موقع',ja:'最適な場所',ko:'최적 위치',es:'Mejor ubicación',fr:'Meilleure localisation'},
+    'Lokasi terbaik: perangkat aktif':{en:'Best location: active device',zh:'最佳位置：活动设备',ar:'أفضل موقع: الجهاز النشط',ja:'最適な場所: アクティブデバイス',ko:'최적 위치: 활성 기기',es:'Mejor ubicación: dispositivo activo',fr:'Meilleure localisation : appareil actif'},
+    'Terakhir aktif':{en:'Last active',zh:'最后活跃',ar:'آخر نشاط',ja:'最終アクティブ',ko:'마지막 활동',es:'Última actividad',fr:'Dernière activité'},
+    'Terakhir dilihat':{en:'Last seen',zh:'最后在线',ar:'آخر ظهور',ja:'最終確認',ko:'마지막 확인',es:'Última vez visto',fr:'Dernière activité'},
+    'terakhir':{en:'last',zh:'最后',ar:'آخر',ja:'最終',ko:'마지막',es:'última vez',fr:'dernière activité'},
+    'Aktif':{en:'Active',zh:'活跃',ar:'نشط',ja:'有効',ko:'활성',es:'Activo',fr:'Actif'},
+    'aktif':{en:'active',zh:'活跃',ar:'نشط',ja:'有効',ko:'활성',es:'activo',fr:'actif'},
+    'active':{id:'aktif',en:'active',zh:'活跃',ar:'نشط',ja:'有効',ko:'활성',es:'activo',fr:'actif'},
+    'revoked':{id:'dicabut',en:'revoked',zh:'已撤销',ar:'مسحوبة',ja:'取り消し済み',ko:'해제됨',es:'revocado',fr:'révoqué'},
+    'dicabut':{en:'revoked',zh:'已撤销',ar:'مسحوبة',ja:'取り消し済み',ko:'해제됨',es:'revocado',fr:'révoqué'},
+    'Dicabut':{en:'Revoked',zh:'已撤销',ar:'مسحوبة',ja:'取り消し済み',ko:'해제됨',es:'Revocado',fr:'Révoqué'},
+    'Diblokir':{en:'Blocked',zh:'已阻止',ar:'محظور',ja:'ブロック済み',ko:'차단됨',es:'Bloqueado',fr:'Bloqué'},
+    'diblokir':{en:'blocked',zh:'已阻止',ar:'محظور',ja:'ブロック済み',ko:'차단됨',es:'bloqueado',fr:'bloqué'},
+    'blocked':{id:'diblokir',en:'blocked',zh:'已阻止',ar:'محظور',ja:'ブロック済み',ko:'차단됨',es:'bloqueado',fr:'bloqué'},
+    'Terhubung':{en:'Connected',zh:'已连接',ar:'متصل',ja:'接続済み',ko:'연결됨',es:'Conectado',fr:'Connecté'},
+    'active_account':{id:'active',en:'active',zh:'活跃',ar:'نشط',ja:'有効',ko:'활성',es:'activa',fr:'actif'},
+    'Belum siap':{en:'Not ready',zh:'尚未就绪',ar:'غير جاهز',ja:'未準備',ko:'아직 준비 안 됨',es:'No listo',fr:'Pas prêt'},
+    'Belum tersedia':{en:'Not available yet',zh:'尚不可用',ar:'غير متاح بعد',ja:'まだ利用できません',ko:'아직 사용할 수 없음',es:'Aún no disponible',fr:'Pas encore disponible'},
+    'Menunggu data':{en:'Waiting for data',zh:'等待数据',ar:'بانتظار البيانات',ja:'データ待機中',ko:'데이터 대기 중',es:'Esperando datos',fr:'En attente de données'},
+    'Aman':{en:'Safe',zh:'安全',ar:'آمن',ja:'安全',ko:'안전',es:'Seguro',fr:'Sûr'},
+    'Normal':{en:'Normal',zh:'正常',ar:'طبيعي',ja:'正常',ko:'정상',es:'Normal',fr:'Normal'},
+    'Selalu aktif':{en:'Always active',zh:'始终启用',ar:'نشط دائماً',ja:'常に有効',ko:'항상 활성',es:'Siempre activo',fr:'Toujours actif'},
+    'Dilindungi sistem':{en:'Protected by system',zh:'受系统保护',ar:'محمي بواسطة النظام',ja:'システムで保護',ko:'시스템 보호됨',es:'Protegido por el sistema',fr:'Protégé par le système'},
+    'Bawaan':{en:'Default',zh:'默认',ar:'افتراضي',ja:'デフォルト',ko:'기본값',es:'Predeterminado',fr:'Par défaut'},
+    'Notifikasi aktif':{en:'Active notifications',zh:'活跃通知',ar:'إشعارات نشطة',ja:'有効な通知',ko:'활성 알림',es:'Notificaciones activas',fr:'Notifications actives'},
+    'Sesi aktif':{en:'Active sessions',zh:'活跃会话',ar:'الجلسات النشطة',ja:'アクティブセッション',ko:'활성 세션',es:'Sesiones activas',fr:'Sessions actives'},
+    'Sesi dan perangkat':{en:'Sessions and devices',zh:'会话和设备',ar:'الجلسات والأجهزة',ja:'セッションとデバイス',ko:'세션 및 기기',es:'Sesiones y dispositivos',fr:'Sessions et appareils'},
+    'Sesi perangkat':{en:'Device sessions',zh:'设备会话',ar:'جلسات الأجهزة',ja:'デバイスセッション',ko:'기기 세션',es:'Sesiones de dispositivo',fr:'Sessions d’appareil'},
+    'Riwayat login':{en:'Login history',zh:'登录历史',ar:'سجل الدخول',ja:'ログイン履歴',ko:'로그인 기록',es:'Historial de inicio',fr:'Historique de connexion'},
+    'Riwayat login lengkap':{en:'Full login history',zh:'完整登录历史',ar:'سجل الدخول الكامل',ja:'完全なログイン履歴',ko:'전체 로그인 기록',es:'Historial completo de inicio',fr:'Historique complet de connexion'},
+    'Login berhasil':{en:'Login successful',zh:'登录成功',ar:'تم تسجيل الدخول بنجاح',ja:'ログイン成功',ko:'로그인 성공',es:'Inicio correcto',fr:'Connexion réussie'},
+    'berhasil masuk':{en:'login successful',zh:'登录成功',ar:'تم تسجيل الدخول بنجاح',ja:'ログイン成功',ko:'로그인 성공',es:'inicio correcto',fr:'connexion réussie'},
+    'Sukses':{en:'Success',zh:'成功',ar:'نجاح',ja:'成功',ko:'성공',es:'Éxito',fr:'Succès'},
+    'Berhasil':{en:'Success',zh:'成功',ar:'نجاح',ja:'成功',ko:'성공',es:'Correcto',fr:'Réussi'},
+    'Baca saja':{en:'Read only',zh:'只读',ar:'قراءة فقط',ja:'読み取り専用',ko:'읽기 전용',es:'Solo lectura',fr:'Lecture seule'},
+    'Baca backend':{en:'Read backend',zh:'读取后端',ar:'قراءة الخلفية',ja:'バックエンドを読み取り',ko:'백엔드 읽기',es:'Leer backend',fr:'Lire le backend'},
+    'Lihat':{en:'View',zh:'查看',ar:'عرض',ja:'表示',ko:'보기',es:'Ver',fr:'Voir'},
+    'Cabut':{en:'Revoke',zh:'撤销',ar:'سحب',ja:'取り消す',ko:'해제',es:'Revocar',fr:'Révoquer'},
+    'Ini bukan saya':{en:'This is not me',zh:'这不是我',ar:'هذا ليس أنا',ja:'これは私ではありません',ko:'내가 아닙니다',es:'No fui yo',fr:'Ce n’est pas moi'},
+    'Terkunci':{en:'Locked',zh:'已锁定',ar:'مقفول',ja:'ロック済み',ko:'잠김',es:'Bloqueado',fr:'Verrouillé'},
+    'Siap':{en:'Ready',zh:'就绪',ar:'جاهز',ja:'準備完了',ko:'준비됨',es:'Listo',fr:'Prêt'},
+    'Terbaik':{en:'Best',zh:'最佳',ar:'الأفضل',ja:'最適',ko:'최적',es:'Mejor',fr:'Meilleur'},
+    'Skor keamanan':{en:'Security score',zh:'安全评分',ar:'درجة الأمان',ja:'セキュリティスコア',ko:'보안 점수',es:'Puntuación de seguridad',fr:'Score de sécurité'},
+    'Security score':{id:'Skor keamanan',en:'Security score',zh:'安全评分',ar:'درجة الأمان',ja:'セキュリティスコア',ko:'보안 점수',es:'Puntuación de seguridad',fr:'Score de sécurité'},
+    'Pelacak permintaan':{en:'Request tracker',zh:'请求跟踪器',ar:'متتبع الطلبات',ja:'リクエストトラッカー',ko:'요청 추적기',es:'Rastreador de solicitudes',fr:'Suivi des demandes'},
+    'Permintaan akun':{en:'Account request',zh:'账户请求',ar:'طلب الحساب',ja:'アカウント申請',ko:'계정 요청',es:'Solicitud de cuenta',fr:'Demande de compte'},
+    'Keluar':{en:'Logout',zh:'退出',ar:'خروج',ja:'ログアウト',ko:'로그아웃',es:'Salir',fr:'Déconnexion'}
+  };
+  Object.keys(DICT).forEach(function(k){ if(!DICT[k].id) DICT[k].id=k; });
+
+  var reverse = Object.create(null);
+  function norm(v){ return String(v == null ? '' : v).replace(/\s+/g,' ').trim(); }
+  Object.keys(DICT).forEach(function(k){
+    reverse[norm(k)] = k;
+    var row = DICT[k];
+    Object.keys(row).forEach(function(l){ reverse[norm(row[l])] = k; });
+  });
+
+  function activeLang(){
+    var l='id';
+    try{ if(window.diracGetGlobalPrefs){ var p=window.diracGetGlobalPrefs(); if(p && p.language) l=p.language; } }catch(_){ }
+    if(!l) l = document.documentElement.getAttribute('data-language') || document.documentElement.lang || 'id';
+    l = String(l || 'id').toLowerCase();
+    if(l.indexOf('zh')===0) return 'zh';
+    if(l.indexOf('ar')===0) return 'ar';
+    if(l.indexOf('ja')===0) return 'ja';
+    if(l.indexOf('ko')===0) return 'ko';
+    if(l.indexOf('es')===0) return 'es';
+    if(l.indexOf('fr')===0) return 'fr';
+    if(l.indexOf('en')===0) return 'en';
+    return LANGS[l] ? l : 'id';
+  }
+  function T(key,l){ var row=DICT[key]; return row ? (row[l] || row.id || key) : key; }
+  function countSession(n,l){
+    n=String(n);
+    if(l==='zh') return n+' 个会话';
+    if(l==='ar') return n+' جلسات';
+    if(l==='ja') return n+' セッション';
+    if(l==='ko') return '세션 '+n+'개';
+    if(l==='es') return n+' sesiones';
+    if(l==='fr') return n+' session'+(Number(n)===1?'':'s');
+    if(l==='en') return n+' session'+(Number(n)===1?'':'s');
+    return n+' sesi';
+  }
+  function countData(n,l){
+    n=String(n);
+    if(l==='zh') return n+' 条数据';
+    if(l==='ar') return n+' بيانات';
+    if(l==='ja') return n+' 件のデータ';
+    if(l==='ko') return '데이터 '+n+'개';
+    if(l==='es') return n+' datos';
+    if(l==='fr') return n+' donnée'+(Number(n)===1?'':'s');
+    if(l==='en') return n+' data';
+    return n+' data';
+  }
+  function countRequest(n,l){
+    n=String(n);
+    if(l==='zh') return n+' 个请求';
+    if(l==='ar') return n+' طلبات';
+    if(l==='ja') return n+' 件のリクエスト';
+    if(l==='ko') return '요청 '+n+'개';
+    if(l==='es') return n+' solicitudes';
+    if(l==='fr') return n+' demande'+(Number(n)===1?'':'s');
+    if(l==='en') return n+' request'+(Number(n)===1?'':'s');
+    return n+' permintaan';
+  }
+  function riskReason(oldSessions, requests, l){
+    oldSessions=String(oldSessions); requests=String(requests);
+    if(l==='zh') return '系统强制保持 A2F 启用。已撤销 '+oldSessions+' 个旧会话。'+requests+' 个账户请求正在处理。';
+    if(l==='ar') return 'يحافظ النظام على تفعيل A2F. تم سحب '+oldSessions+' جلسات قديمة. تتم معالجة '+requests+' طلبات حساب.';
+    if(l==='ja') return 'システムが A2F を有効に保っています。古いセッション '+oldSessions+' 件は取り消し済みです。アカウント申請 '+requests+' 件を処理中です。';
+    if(l==='ko') return '시스템이 A2F 활성 상태를 유지합니다. 오래된 세션 '+oldSessions+'개가 해제되었습니다. 계정 요청 '+requests+'개가 처리 중입니다.';
+    if(l==='es') return 'El sistema mantiene A2F activo. Se revocaron '+oldSessions+' sesiones antiguas. '+requests+' solicitudes de cuenta están en proceso.';
+    if(l==='fr') return 'Le système maintient A2F actif. '+oldSessions+' anciennes sessions ont été révoquées. '+requests+' demandes de compte sont en cours de traitement.';
+    if(l==='en') return 'The system keeps A2F active. '+oldSessions+' old sessions have been revoked. '+requests+' account requests are being processed.';
+    return 'A2F wajib dijaga aktif oleh sistem. '+oldSessions+' sesi lama sudah dicabut. '+requests+' permintaan akun sedang diproses.';
+  }
+  function translatePattern(s,l){
+    var n=norm(s), m;
+    m=n.match(/^A2F wajib dijaga aktif oleh sistem\.\s*(\d+)\s+sesi lama sudah dicabut\.\s*(\d+)\s+permintaan akun sedang diproses\.?$/i); if(m) return riskReason(m[1],m[2],l);
+    m=n.match(/^The system keeps A2F active\.\s*(\d+)\s+old sessions have been revoked\.\s*(\d+)\s+account requests are being processed\.?$/i); if(m) return riskReason(m[1],m[2],l);
+    m=n.match(/^系统强制保持 A2F 启用。已撤销\s*(\d+)\s*个旧会话。\s*(\d+)\s*个账户请求正在处理。?$/); if(m) return riskReason(m[1],m[2],l);
+    m=n.match(/^Aman:\s*backend tidak mengirim sinyal risiko tinggi\.?$/i); if(m){
+      if(l==='zh') return '安全：后端没有发送高风险信号。';
+      if(l==='ar') return 'آمن: لم يرسل الخلفي إشارة خطر عالية.';
+      if(l==='ja') return '安全: バックエンドから高リスク信号は送信されていません。';
+      if(l==='ko') return '안전: 백엔드가 고위험 신호를 보내지 않았습니다.';
+      if(l==='es') return 'Seguro: el backend no envió señales de alto riesgo.';
+      if(l==='fr') return 'Sûr : le backend n’a envoyé aucun signal de risque élevé.';
+      if(l==='en') return 'Safe: the backend did not send a high-risk signal.';
+      return 'Aman: backend tidak mengirim sinyal risiko tinggi.';
+    }
+    m=n.match(/^(\d+)\s+(?:sesi|sessions?|会话|个会话)$/i); if(m) return countSession(m[1],l);
+    m=n.match(/^(\d+)\s+(?:data|条数据|datos|données?)$/i); if(m) return countData(m[1],l);
+    m=n.match(/^(\d+)\s+(?:permintaan|requests?|solicitudes|demandes?)$/i); if(m) return countRequest(m[1],l);
+    m=n.match(/^(\d+)\s+permintaan akun terbaca\.?$/i);
+    if(m){
+      if(l==='zh') return '已读取 '+m[1]+' 个账户请求。';
+      if(l==='en') return m[1]+' account request'+(Number(m[1])===1?'':'s')+' read.';
+      if(l==='ar') return 'تمت قراءة '+m[1]+' طلبات حساب.';
+      if(l==='ja') return 'アカウント申請 '+m[1]+' 件を読み取りました。';
+      if(l==='ko') return '계정 요청 '+m[1]+'개를 읽었습니다.';
+      if(l==='es') return 'Se leyeron '+m[1]+' solicitudes de cuenta.';
+      if(l==='fr') return m[1]+' demande'+(Number(m[1])===1?'':'s')+' de compte lue'+(Number(m[1])===1?'':'s')+'.';
+      return m[1]+' permintaan akun terbaca.';
+    }
+    m=n.match(/^Device:\s*(.+)$/i); if(m) return T('Perangkat',l)+': '+m[1];
+    m=n.match(/^设备:\s*(.+)$/); if(m) return T('Perangkat',l)+': '+m[1];
+    m=n.match(/^Browser:\s*(.+)$/i); if(m) return T('Browser',l)+': '+m[1];
+    m=n.match(/^浏览器:\s*(.+)$/); if(m) return T('Browser',l)+': '+m[1];
+    m=n.match(/^OS:\s*(.+)$/i); if(m) return T('OS',l)+': '+m[1];
+    m=n.match(/^系统:\s*(.+)$/); if(m) return T('OS',l)+': '+m[1];
+    m=n.match(/^Lokasi:\s*(.+)$/i); if(m) return T('Lokasi',l)+': '+translateFragments(m[1],l);
+    m=n.match(/^位置:\s*(.+)$/); if(m) return T('Lokasi',l)+': '+translateFragments(m[1],l);
+    m=n.match(/^Lokasi terbaik:\s*(.+)$/i); if(m) return T('Lokasi terbaik',l)+': '+m[1];
+    m=n.match(/^最佳位置[:：]\s*(.+)$/); if(m) return T('Lokasi terbaik',l)+': '+m[1];
+    m=n.match(/^Terakhir aktif:\s*(.+)$/i); if(m) return T('Terakhir aktif',l)+': '+m[1];
+    m=n.match(/^最后活跃[:：]\s*(.+)$/); if(m) return T('Terakhir aktif',l)+': '+m[1];
+    m=n.match(/^(.+?)\s+·\s+terakhir\s+(.+)$/i); if(m) return translateFragments(m[1],l)+' · '+T('terakhir',l)+' '+m[2];
+    m=n.match(/^(.+?)\s+·\s+最后\s+(.+)$/); if(m) return translateFragments(m[1],l)+' · '+T('terakhir',l)+' '+m[2];
+    m=n.match(/^(.+?)\s+·\s+最后在线[:：]?\s*(.+)$/); if(m) return translateFragments(m[1],l)+' · '+T('Terakhir dilihat',l)+': '+m[2];
+    return null;
+  }
+  function translateFragments(text,l){
+    var out = String(text == null ? '' : text), changed=false;
+    var keys = ['Alasan risiko','Akses langsung','Koneksi akun','Aturan','Belum siap','Belum tersedia','Pengguna','Kondisi keamanan','Status keamanan','Data dibaca dari backend keamanan.','Backend keamanan','Sistem keamanan','Data sumber','Sumber data','Sumber','Status','Device','Perangkat','Browser','OS','Lokasi terbaik: perangkat aktif','Lokasi terbaik','Lokasi','Terakhir aktif','Terakhir dilihat','terakhir','Aktif','active','revoked','dicabut','Dicabut','Diblokir','diblokir','blocked','Terhubung','Aman','Normal','Selalu aktif','Dilindungi sistem','Bawaan','Sesi aktif','Sesi dan perangkat','Sesi perangkat','Riwayat login lengkap','Riwayat login','Login berhasil','berhasil masuk','Sukses','Berhasil','Baca saja','Baca backend','Lihat','Cabut','Ini bukan saya','Terkunci','Siap','Terbaik','Skor keamanan','Security score','Pelacak permintaan','Permintaan akun','Keluar'];
+    keys.forEach(function(k){
+      var row = DICT[k]; if(!row) return;
+      var target = T(k,l);
+      Object.keys(row).concat(['id']).forEach(function(langKey){
+        var v = row[langKey];
+        if(!v || v === target) return;
+        v = String(v);
+        if(v.length < 2) return;
+        if(out.indexOf(v) !== -1){ out = out.split(v).join(target); changed = true; }
+      });
+      if(k !== target && out.indexOf(k) !== -1){ out = out.split(k).join(target); changed = true; }
+    });
+    return changed ? out : text;
+  }
+  function translateText(text,l){
+    if(!text || !norm(text)) return text;
+    var leading = text.match(/^\s*/)[0], trailing = text.match(/\s*$/)[0];
+    var core = text.slice(leading.length, text.length - trailing.length);
+    var n = norm(core);
+    var key = reverse[n];
+    var out = key ? T(key,l) : null;
+    if(!out) out = translatePattern(core,l);
+    if(!out) out = translateFragments(core,l);
+    if(!out || out === core) return text;
+    return leading + out + trailing;
+  }
+  function skipNode(node){
+    var p = node.nodeType === 3 ? node.parentElement : node;
+    while(p && p !== document.body){
+      var tag=(p.tagName||'').toLowerCase();
+      if(tag==='script'||tag==='style'||tag==='noscript'||tag==='code'||tag==='pre'||tag==='textarea'||tag==='input') return true;
+      if(p.hasAttribute && (p.hasAttribute('data-no-i18n') || p.hasAttribute('data-dynamic-text-ignore'))) return true;
+      p=p.parentElement;
+    }
+    return false;
+  }
+  function markNotMeButtons(l){
+    var labels = ['Ini bukan saya','This is not me','这不是我','هذا ليس أنا','これは私ではありません','내가 아닙니다','No fui yo','Ce n’est pas moi'];
+    Array.prototype.forEach.call(document.querySelectorAll('button, .btn'), function(btn){
+      var txt = norm(btn.textContent);
+      var isNotMe = btn.classList && btn.classList.contains('not-me');
+      if(!isNotMe){ for(var i=0;i<labels.length;i++){ if(txt === labels[i]){ isNotMe=true; break; } } }
+      if(!isNotMe) return;
+      if(btn.classList) btn.classList.add('not-me');
+      btn.textContent = T('Ini bukan saya',l);
+      btn.setAttribute('aria-label', T('Ini bukan saya',l));
+      var card = btn.closest ? btn.closest('.list-item,.timeline-item,.action-card,.dsf-modal-card,.panel') : null;
+      if(card && card.classList) card.classList.add('has-not-me');
+    });
+  }
+  var busy=false;
+  function scan(root){
+    if(busy || !document.body) return;
+    busy=true;
+    try{
+      var l = activeLang();
+      var scope = root && root.nodeType === 1 ? root : document.body;
+      var walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {acceptNode:function(n){return skipNode(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});
+      var nodes=[], n;
+      while((n = walker.nextNode())) nodes.push(n);
+      nodes.forEach(function(node){ var next=translateText(node.nodeValue,l); if(next !== node.nodeValue) node.nodeValue = next; });
+      Array.prototype.forEach.call(scope.querySelectorAll ? scope.querySelectorAll('[aria-label],[title],[placeholder]') : [], function(el){
+        if(skipNode(el)) return;
+        ['aria-label','title','placeholder'].forEach(function(a){
+          if(!el.hasAttribute(a)) return;
+          var old=el.getAttribute(a), next=translateText(old,l);
+          if(next !== old) el.setAttribute(a,next);
+        });
+      });
+      markNotMeButtons(l);
+    }catch(_){
+    }finally{ busy=false; }
+  }
+  var timer=0;
+  function schedule(root){ clearTimeout(timer); timer=setTimeout(function(){scan(root||document.body);}, 25); }
+  function init(){
+    scan(document.body);
+    try{
+      var mo = new MutationObserver(function(muts){
+        var root=document.body;
+        for(var i=0;i<muts.length;i++){ if(muts[i].target && muts[i].target.nodeType===1){ root=muts[i].target; break; } }
+        schedule(root);
+      });
+      mo.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','title','placeholder','class']});
+    }catch(_){ }
+    window.addEventListener('dirac:global-prefs-change',function(){schedule(document.body);});
+    document.addEventListener('click',function(){setTimeout(function(){scan(document.body);},80);},true);
+    document.addEventListener('change',function(){setTimeout(function(){scan(document.body);},80);},true);
+    [120,400,900,1600,2600].forEach(function(ms){setTimeout(function(){scan(document.body);},ms);});
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
 })();
