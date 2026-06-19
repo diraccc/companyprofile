@@ -11652,3 +11652,444 @@ function diracSensitivePostNormalizeOrigin(value) {
     return '';
   }
 }
+
+/* ============================================================
+   CUSTOMER SECURITY FEATURE READ ENDPOINTS - APPEND ONLY - v1
+   Tujuan:
+   - Menyambungkan fitur keamanan lanjutan ke /api/health.
+   - Read-only untuk fitur ringkasan baru.
+   - Tidak mengubah login, hash, payment, email template, A2F/MFA, cookie, atau guarded write actions lama.
+   - Aksi sensitif tetap memakai endpoint guarded lama:
+     customer_security_revoke_session, customer_security_revoke_other_sessions,
+     customer_security_account_request, customer_security_recovery_codes_generate.
+   ============================================================ */
+
+const __diracCustomerSecurityFeatureReadPreviousHandler = module.exports;
+
+const CUSTOMER_SECURITY_FEATURE_READ_ACTIONS = new Set([
+  'customer_security_features_bundle',
+  'customer_security_trusted_devices',
+  'customer_security_login_history',
+  'customer_security_score',
+  'customer_security_notifications',
+  'customer_security_request_tracker'
+]);
+
+const CUSTOMER_SECURITY_FEATURE_READ_ALIASES = Object.freeze({
+  'customer-security-features-bundle': 'customer_security_features_bundle',
+  'customer_security_features_bundle': 'customer_security_features_bundle',
+  'customer-security-trusted-devices': 'customer_security_trusted_devices',
+  'customer_security_trusted_devices': 'customer_security_trusted_devices',
+  'customer-security-login-history': 'customer_security_login_history',
+  'customer_security_login_history': 'customer_security_login_history',
+  'customer-security-score': 'customer_security_score',
+  'customer_security_score': 'customer_security_score',
+  'customer-security-notifications': 'customer_security_notifications',
+  'customer_security_notifications': 'customer_security_notifications',
+  'customer-security-request-tracker': 'customer_security_request_tracker',
+  'customer_security_request_tracker': 'customer_security_request_tracker'
+});
+
+module.exports = async function customerSecurityFeatureReadWrapper(req, res) {
+  diracApplySecurityResponseHeaders(res);
+
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityFeatureReadNormalizeAction(rawAction);
+
+  if (!CUSTOMER_SECURITY_FEATURE_READ_ACTIONS.has(action)) {
+    return __diracCustomerSecurityFeatureReadPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      ok: false,
+      code: 'SECURITY_FEATURE_READ_ONLY',
+      message: 'Gunakan GET. Endpoint fitur keamanan ini hanya baca data.'
+    });
+  }
+
+  try {
+    const access = await customerSecurityRequireAccess(req, res, {
+      action,
+      requireMfa: true,
+      rateLimit: { limit: 90, windowMs: 60_000 }
+    });
+    if (!access) return;
+
+    const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
+      ok: false,
+      data: null,
+      error: String(error && error.message ? error.message : error)
+    }));
+
+    const overview = overviewResult && overviewResult.ok && overviewResult.data
+      ? overviewResult.data
+      : customerSecurityEmptyOverview();
+
+    const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
+
+    if (action === 'customer_security_features_bundle') {
+      return res.status(200).json(bundle);
+    }
+
+    if (action === 'customer_security_trusted_devices') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        trusted_devices: bundle.trusted_devices,
+        sessions: bundle.sessions,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_login_history') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        login_history: bundle.login_history,
+        events: bundle.events,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_score') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        score: bundle.score,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_notifications') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        notifications: bundle.notifications,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_request_tracker') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        account_requests: bundle.account_requests,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    return res.status(404).json({ ok: false, message: 'Fitur keamanan tidak ditemukan.' });
+  } catch (error) {
+    console.error('[customer-security-feature-read]', customerSecuritySafeLogError(error));
+    return res.status(500).json({
+      ok: false,
+      code: 'SECURITY_FEATURE_READ_FAILED',
+      message: diracSafePublicMessage('Gagal membaca fitur keamanan lanjutan.')
+    });
+  }
+};
+
+function customerSecurityFeatureReadNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return CUSTOMER_SECURITY_FEATURE_READ_ALIASES[clean] || clean;
+}
+
+function customerSecurityBuildFeatureReadBundle(access, overview) {
+  const safeOverview = overview && typeof overview === 'object' ? overview : customerSecurityEmptyOverview();
+  const settings = safeOverview.settings && typeof safeOverview.settings === 'object' ? safeOverview.settings : {};
+  const sessions = Array.isArray(safeOverview.sessions) ? safeOverview.sessions : [];
+  const loginHistory = Array.isArray(safeOverview.login_logs) ? safeOverview.login_logs : [];
+  const events = Array.isArray(safeOverview.events) ? safeOverview.events : [];
+  const accountRequests = Array.isArray(safeOverview.account_requests) ? safeOverview.account_requests : [];
+  const counts = safeOverview.counts && typeof safeOverview.counts === 'object' ? safeOverview.counts : {};
+
+  const notifications = customerSecurityFeatureBuildNotifications(settings, loginHistory, events);
+  const trustedDevices = customerSecurityFeatureBuildTrustedDevices(sessions);
+  const score = customerSecurityFeatureBuildScore(settings, sessions, loginHistory, events, accountRequests);
+
+  return {
+    ok: true,
+    service: 'dirac-customer-security-features',
+    source: '/api/health',
+    endpoint: 'customer_security_features_bundle',
+    mode: 'backend_service_role_read_only',
+    readOnly: true,
+    writeActionsEnabled: false,
+    user: sanitizeUser(access && access.user),
+    customer_id_available: Boolean(access && access.customerId),
+    mfa_active_now: Boolean(access && access.mfa && access.mfa.ok),
+    overview_counts: {
+      sessions: Number(counts.sessions || sessions.length || 0),
+      login_logs: Number(counts.login_logs || loginHistory.length || 0),
+      events: Number(counts.events || events.length || 0),
+      account_requests: Number(counts.account_requests || accountRequests.length || 0),
+      trusted_devices: trustedDevices.length,
+      notifications: notifications.length
+    },
+    features: customerSecurityFeatureCatalogFromOverview(score, trustedDevices, sessions, loginHistory, notifications, accountRequests),
+    score,
+    notifications,
+    trusted_devices: trustedDevices,
+    sessions,
+    login_history: loginHistory,
+    events,
+    account_requests: accountRequests,
+    policy: customerSecurityFeaturePolicy(),
+    partial: Boolean(safeOverview.partial),
+    warnings: Array.isArray(safeOverview.warnings) ? safeOverview.warnings : [],
+    time: diracNowIso()
+  };
+}
+
+function customerSecurityFeatureCatalogFromOverview(score, trustedDevices, sessions, loginHistory, notifications, accountRequests) {
+  const sessionCount = Array.isArray(sessions) ? sessions.length : 0;
+  const activeSessionCount = (Array.isArray(sessions) ? sessions : []).filter((item) => String(item && item.status || '').toLowerCase() === 'active' && !item.revoked_at).length;
+  const loginCount = Array.isArray(loginHistory) ? loginHistory.length : 0;
+  const notificationCount = Array.isArray(notifications) ? notifications.length : 0;
+  const requestCount = Array.isArray(accountRequests) ? accountRequests.length : 0;
+
+  return [
+    {
+      key: 'trusted_devices',
+      title: 'Perangkat terpercaya',
+      status: trustedDevices.length ? 'Tersedia' : 'Menunggu data',
+      statusClass: trustedDevices.length ? 'ok' : 'info',
+      count: trustedDevices.length,
+      message: trustedDevices.length
+        ? `${trustedDevices.length} perangkat terpercaya terbaca.`
+        : 'Belum ada perangkat terpercaya yang ditandai.'
+    },
+    {
+      key: 'revoke_single_session',
+      title: 'Cabut sesi spesifik',
+      status: activeSessionCount ? 'Siap' : 'Menunggu sesi',
+      statusClass: activeSessionCount ? 'ok' : 'info',
+      count: activeSessionCount,
+      message: activeSessionCount
+        ? `${activeSessionCount} sesi aktif dapat dikelola melalui guarded action lama.`
+        : 'Belum ada sesi aktif lain yang terbaca.'
+    },
+    {
+      key: 'login_history',
+      title: 'Riwayat login lengkap',
+      status: loginCount ? 'Tersedia' : 'Menunggu data',
+      statusClass: loginCount ? 'ok' : 'info',
+      count: loginCount,
+      message: loginCount
+        ? `${loginCount} riwayat login terbaca dari backend.`
+        : 'Riwayat login belum tersedia di tabel keamanan.'
+    },
+    {
+      key: 'security_notifications',
+      title: 'Notifikasi keamanan',
+      status: notificationCount ? 'Aktif' : 'Siap',
+      statusClass: notificationCount ? 'ok' : 'info',
+      count: notificationCount,
+      message: notificationCount
+        ? `${notificationCount} kanal notifikasi aktif/siap.`
+        : 'Pengaturan notifikasi siap dibaca dari backend.'
+    },
+    {
+      key: 'security_score',
+      title: 'Skor keamanan',
+      status: score && score.label ? score.label : 'Normal',
+      statusClass: score && score.statusClass ? score.statusClass : 'ok',
+      count: score && Number.isFinite(Number(score.value)) ? Number(score.value) : 80,
+      message: score && score.reason ? score.reason : 'Skor dihitung dari A2F, sesi, dan aktivitas login.'
+    },
+    {
+      key: 'request_tracker',
+      title: 'Pelacak permintaan',
+      status: requestCount ? 'Tersedia' : 'Kosong',
+      statusClass: requestCount ? 'ok' : 'info',
+      count: requestCount,
+      message: requestCount
+        ? `${requestCount} permintaan akun terbaca.`
+        : 'Belum ada permintaan akun baru.'
+    }
+  ];
+}
+
+function customerSecurityFeatureBuildTrustedDevices(sessions) {
+  return (Array.isArray(sessions) ? sessions : [])
+    .filter((item) => item && (item.trusted_device === true || String(item.trusted_device).toLowerCase() === 'true'))
+    .map((item) => ({
+      id: item.id || '',
+      device_id: item.device_id || '',
+      device_name: item.device_name || 'Perangkat terpercaya',
+      browser_name: item.browser_name || '',
+      operating_system: item.operating_system || '',
+      country: item.country || '',
+      city: item.city || '',
+      status: item.status || '',
+      last_seen_at: item.last_seen_at || '',
+      created_at: item.created_at || ''
+    }));
+}
+
+function customerSecurityFeatureBuildNotifications(settings, loginHistory, events) {
+  const items = [];
+  if (settings && (settings.email_active === true || String(settings.email_active).toLowerCase() === 'true')) {
+    items.push({ key: 'email', title: 'Email keamanan', active: true, message: 'Email keamanan aktif.' });
+  }
+  if (settings && (settings.notify_new_login === true || String(settings.notify_new_login).toLowerCase() === 'true')) {
+    items.push({ key: 'new_login', title: 'Login baru', active: true, message: 'Peringatan login baru aktif.' });
+  }
+  if (settings && (settings.notify_new_device === true || String(settings.notify_new_device).toLowerCase() === 'true')) {
+    items.push({ key: 'new_device', title: 'Perangkat baru', active: true, message: 'Peringatan perangkat baru aktif.' });
+  }
+  if (settings && (settings.notify_password_change === true || String(settings.notify_password_change).toLowerCase() === 'true')) {
+    items.push({ key: 'password_change', title: 'Perubahan password', active: true, message: 'Peringatan perubahan password aktif.' });
+  }
+
+  const failedLogins = (Array.isArray(loginHistory) ? loginHistory : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'failed' || status === 'blocked' || status === 'warning';
+  }).length;
+
+  if (failedLogins > 0) {
+    items.push({
+      key: 'failed_login_watch',
+      title: 'Pemantauan login gagal',
+      active: true,
+      message: `${failedLogins} aktivitas login gagal/berisiko terbaca.`
+    });
+  }
+
+  const warningEvents = (Array.isArray(events) ? events : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    const risk = String(item && item.risk_level || '').toLowerCase();
+    return status === 'warning' || status === 'failed' || risk === 'medium' || risk === 'high';
+  }).length;
+
+  if (warningEvents > 0) {
+    items.push({
+      key: 'security_event_watch',
+      title: 'Pemantauan aktivitas berisiko',
+      active: true,
+      message: `${warningEvents} aktivitas keamanan perlu perhatian.`
+    });
+  }
+
+  return items;
+}
+
+function customerSecurityFeatureBuildScore(settings, sessions, loginHistory, events, accountRequests) {
+  let value = 100;
+  const reasons = [];
+
+  const mfaActive = settings && (
+    settings.two_factor_enabled === true ||
+    String(settings.two_factor_enabled).toLowerCase() === 'true'
+  );
+
+  if (mfaActive) {
+    reasons.push('A2F aktif.');
+  } else {
+    value -= 15;
+    reasons.push('A2F wajib dijaga aktif oleh sistem.');
+  }
+
+  const revokedSessions = (Array.isArray(sessions) ? sessions : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'revoked' || Boolean(item && item.revoked_at);
+  }).length;
+  if (revokedSessions > 0) {
+    value -= Math.min(10, revokedSessions * 2);
+    reasons.push(`${revokedSessions} sesi lama sudah dicabut.`);
+  }
+
+  const failedLogins = (Array.isArray(loginHistory) ? loginHistory : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'failed' || status === 'blocked';
+  }).length;
+  if (failedLogins > 0) {
+    value -= Math.min(20, failedLogins * 4);
+    reasons.push(`${failedLogins} percobaan login gagal terbaca.`);
+  }
+
+  const riskyEvents = (Array.isArray(events) ? events : []).filter((item) => {
+    const risk = String(item && item.risk_level || '').toLowerCase();
+    return risk === 'medium' || risk === 'high';
+  }).length;
+  if (riskyEvents > 0) {
+    value -= Math.min(20, riskyEvents * 5);
+    reasons.push(`${riskyEvents} aktivitas berisiko perlu perhatian.`);
+  }
+
+  const pendingRequests = (Array.isArray(accountRequests) ? accountRequests : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'pending' || status === 'processing';
+  }).length;
+  if (pendingRequests > 0) {
+    reasons.push(`${pendingRequests} permintaan akun sedang diproses.`);
+  }
+
+  value = Math.max(0, Math.min(100, Math.round(value)));
+  let label = 'Aman';
+  let statusClass = 'ok';
+  if (value < 70) {
+    label = 'Perlu perhatian';
+    statusClass = 'warn';
+  }
+  if (value < 45) {
+    label = 'Berisiko';
+    statusClass = 'bad';
+  }
+
+  return {
+    value,
+    label,
+    statusClass,
+    reason: reasons.length ? reasons.join(' ') : 'Akun terlihat aman berdasarkan data keamanan terbaru.',
+    checked_at: diracNowIso()
+  };
+}
+
+function customerSecurityFeaturePolicy() {
+  return [
+    {
+      title: 'Sumber fitur baru',
+      message: 'Semua fitur baru dibaca melalui /api/health.',
+      status: 'Siap',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Aksi sensitif',
+      message: 'Aksi sensitif tetap memakai guarded action dan audit log backend.',
+      status: 'Dilindungi',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Login, hash, payment, email, A2F',
+      message: 'Tidak diubah oleh modul fitur baru.',
+      status: 'Tidak diubah',
+      statusClass: 'ok'
+    }
+  ];
+}
