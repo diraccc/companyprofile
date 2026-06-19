@@ -15,7 +15,7 @@
   var LEGACY_LANGUAGE_KEYS = {'dirac_language_v1':true};
   var CURRENCY_KEY = 'dirac_currency_v1';
   var MOTION_KEY = 'dirac_motion_mode_v1';
-  var ALLOWED_REAL_KEYS = {}; ALLOWED_REAL_KEYS[THEME_KEY] = true;
+  var ALLOWED_REAL_KEYS = {}; ALLOWED_REAL_KEYS[ACCENT_KEY] = true; ALLOWED_REAL_KEYS[LANGUAGE_KEY] = true;
 
   var PALETTES = {
     gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'}, champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'}, sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'}, bronze:{gold:'#d97706',gold2:'#92400e',gold3:'#451a03',rgb:'217,119,6'}, blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'}, sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'}, indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'}, purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'}, violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'}, lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'}, amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'}, lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'}, magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'}, fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'}, pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'}, rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'}, red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'}, coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'}, orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'}, peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'}, amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'}, lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'}, lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'}, neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'}, green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'}, emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'}, forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'}, mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'}, jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'}, seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'}, teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'}, aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'}, cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'}, lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'}, turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'}, ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'}, royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'}, navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'}, sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'}, periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'}, orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'}, plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'}, copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'}, coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}, ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'}, wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'}, burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'}, maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'}, blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'}, salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'}, sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'}, tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'}, apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'}, honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'}, olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'}, graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}, slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'}, pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, white:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'}, midnight:{gold:'#0f172a',gold2:'#020617',gold3:'#000000',rgb:'15,23,42'}, mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'}, espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
@@ -48,13 +48,14 @@
     return {accent:p.accent,language:p.language};
   }
   function readTheme(){
-    var stored = readJson(safeGet(THEME_KEY)) || {};
+    var stored = {accent:safeGet(ACCENT_KEY),language:safeGet(LANGUAGE_KEY)};
     memoryPrefs = sanitize(Object.assign({}, DEFAULTS, memoryPrefs || {}, stored));
     return memoryPrefs;
   }
   function writeTheme(p){
     memoryPrefs = sanitize(Object.assign({}, readTheme(), p || {}));
-    safeSet(THEME_KEY, JSON.stringify(persistedVisualPrefs(memoryPrefs)));
+    safeSet(ACCENT_KEY, memoryPrefs.accent);
+    safeSet(LANGUAGE_KEY, memoryPrefs.language);
   }
   function purgeDisallowed(){
     try{
@@ -132,7 +133,7 @@
     if(key === MOTION_KEY){ writeTheme({motion:DEFAULTS.motion}); applyPrefs(); emit('motion-reset'); return; }
     safeRemove(key); purgeDisallowed(); return;
   };
-  proto.clear = function(){ if(this !== storage) return nativeClear.apply(this, arguments); safeRemove(THEME_KEY); writeTheme(DEFAULTS); applyPrefs(); emit('clear'); };
+  proto.clear = function(){ if(this !== storage) return nativeClear.apply(this, arguments); safeRemove(ACCENT_KEY); safeRemove(LANGUAGE_KEY); writeTheme(DEFAULTS); applyPrefs(); emit('clear'); };
 
   window.diracGetGlobalPrefs = prefs;
   window.diracApplyGlobalPrefs = applyPrefs;
@@ -173,7 +174,7 @@
 <meta content="no-cache" http-equiv="Pragma"/>
 <meta content="0" http-equiv="Expires"/>
 <meta content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)" http-equiv="Permissions-Policy"/>
-<meta content="default-src 'self'; script-src 'self' 'sha512-Rleo3ZzSy6k/3J+8GjW8H2zUFBhJQMFgLKgoybl7VX6pwy4R2Zjrcu5mH8MIYsDEtXEBZk2xrNKDNhmsw4i4sw==' 'sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==' 'sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==' 'sha512-eVf8g0zRpFYHvoSuaBoojE1GKl3PigPlYAaEeVI+J/bUCrqTvjUuyqzqps+2tjZK6W2WqkWz62FjUnhKkXFvFA==' 'sha512-A45ke6cSC2gTPK+Y1ZBt8+//IBwIwmWlfhD6eaFrmg9szoVYNScHPKbzf5/+cK5/cXQQLifSyBKv7Yn32qpxYA==' 'sha512-F5xPbNFCPp3zeL7WLfqh0jZk/zebg9dyMjlT2ZLbTYuYqkU3H3kygtdAwIdJJCKP4irwz3gfZI+9CF+fZH1tXA==' 'sha512-kmNnWjEYZonBGCsW24DrH8g0zVKeX3sjSn2jHYJJtWZE+BO6dLoSYg8d+TpzJdaY3WYSCDTVmjiBTzfifkEiuw==' 'sha512-SvlfZmbibdNQe1uS+f9veLvLLc23hWKMC7THQI5N77mGa6RQRhwxj6QfstB1dMqqI7GMOYobt6lFmRZs2CFCrw==' 'sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==' 'sha512-iRqKebBbwS76y2L++lcXxKR2wZ16nj+rV6RhdnX0+sO7fku0XSPL2qEJ+Zsr/W6CGKMpTtUKOfGUKIDdex3Viw=='; script-src-attr 'none'; style-src 'self' 'sha512-Nj1q1kdkbO3vDTndvOC1XV5icUCUokxPkcPx8ttrMZ1OPranPT1/fa5ht1/aKY0VE9LUqW5mRU3NO7pa1dtI4w==' 'sha512-mANDbcNALCpXkXinhjR2Z9SZ5iRj3Qc0uJp1JyzB491u9zOJPr5R7zHlduhQGB4Y8G6tIHuZHA4rrhTCkflAAg==' 'sha512-rz8iOdE/xK0L+eaTfqG1WvcPWye0jjuFt8AsvPsFGqdD8De2TezwaTrKIvMQ4Ab4lziRBvJ6qA0EchuCDqthcw==' 'sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==' 'sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==' 'sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==' 'sha512-UikwNfjQvLPkNI5xWdhJzDJ3+JBqFwkJ4kIbUEf7hQnmaIm4qJzXeFsGW+iWDiWdSo/c5TAMPnHEItiWgOjV9A==' https://fonts.googleapis.com; style-src-attr 'none'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="default-src 'self'; script-src 'self' 'sha512-l5XaottdL9UgesJk/1X7uIoRO6DMy8OHZo0JbbSNTQWyE+va7y/ZN3TKdqNJSMYvqBNYFwT2z6bzQtpb1QRI/w==' 'sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==' 'sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==' 'sha512-CFNsvqxoBYpZ/NJmiS8BqgB0ZftP3bGKmvfthLxt52FcLwVuArqrgcIAyllFQIEcWlTEiezJmGbjt7rIPEXfcA==' 'sha512-A45ke6cSC2gTPK+Y1ZBt8+//IBwIwmWlfhD6eaFrmg9szoVYNScHPKbzf5/+cK5/cXQQLifSyBKv7Yn32qpxYA==' 'sha512-F5xPbNFCPp3zeL7WLfqh0jZk/zebg9dyMjlT2ZLbTYuYqkU3H3kygtdAwIdJJCKP4irwz3gfZI+9CF+fZH1tXA==' 'sha512-0/E1r8c4m8RAfLJQmYHFmITfKnR4ApWyibrw3KoRHzm0fAJ4ZhBXF9NPQYn8YUvSlBbgddkL/B/FghVYrizjKQ==' 'sha512-SvlfZmbibdNQe1uS+f9veLvLLc23hWKMC7THQI5N77mGa6RQRhwxj6QfstB1dMqqI7GMOYobt6lFmRZs2CFCrw==' 'sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==' 'sha512-iRqKebBbwS76y2L++lcXxKR2wZ16nj+rV6RhdnX0+sO7fku0XSPL2qEJ+Zsr/W6CGKMpTtUKOfGUKIDdex3Viw=='; script-src-attr 'none'; style-src 'self' 'sha512-Nj1q1kdkbO3vDTndvOC1XV5icUCUokxPkcPx8ttrMZ1OPranPT1/fa5ht1/aKY0VE9LUqW5mRU3NO7pa1dtI4w==' 'sha512-mANDbcNALCpXkXinhjR2Z9SZ5iRj3Qc0uJp1JyzB491u9zOJPr5R7zHlduhQGB4Y8G6tIHuZHA4rrhTCkflAAg==' 'sha512-rz8iOdE/xK0L+eaTfqG1WvcPWye0jjuFt8AsvPsFGqdD8De2TezwaTrKIvMQ4Ab4lziRBvJ6qA0EchuCDqthcw==' 'sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==' 'sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==' 'sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==' 'sha512-UikwNfjQvLPkNI5xWdhJzDJ3+JBqFwkJ4kIbUEf7hQnmaIm4qJzXeFsGW+iWDiWdSo/c5TAMPnHEItiWgOjV9A==' https://fonts.googleapis.com; style-src-attr 'none'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:; upgrade-insecure-requests; trusted-types dirac-default; require-trusted-types-for 'script'" http-equiv="Content-Security-Policy"/>
 <title>Pesanan Saya - Dirac Group</title>
 <meta content="Halaman pesanan customer Dirac Group yang aman, ownership-locked, backend-only, dan siap payment gateway." name="description"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -2337,6 +2338,15 @@ body.du-menu-lock{
     const state = { orders: [], filtered: [], selectedId: '', loading: false, verified: false, strictVerified: false, sessionEmail: '', loggingOut: false };
     const $ = (s, r=document) => r.querySelector(s);
     const fmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
+    const PAYMENT_HOST_SUFFIX_ALLOWLIST = [
+      '.midtrans.com','.veritrans.co.id','.xendit.co','.xendit.com','.stripe.com','.paypal.com','.ipaymu.com',
+      '.duitku.com','.doku.com','.tripay.co.id','.nicepay.co.id','.flip.id','.paylabs.co.id','.oyindonesia.com',
+      '.gopay.co.id','.dana.id','.linkaja.id','.shopeepay.co.id'
+    ];
+    const PAYMENT_HOST_EXACT_ALLOWLIST = [
+      'midtrans.com','veritrans.co.id','xendit.co','xendit.com','stripe.com','paypal.com','ipaymu.com','duitku.com','doku.com',
+      'tripay.co.id','nicepay.co.id','flip.id','paylabs.co.id','oyindonesia.com','gopay.co.id','dana.id','linkaja.id','shopeepay.co.id'
+    ];
     function apiUrl(action, params){
       const u = new URL(API, window.location.origin);
       u.searchParams.set('action', action);
@@ -2351,33 +2361,26 @@ body.du-menu-lock{
     function clean(v){ return String(v ?? '').replace(/[\u0000-\u001f\u007f]/g,' ').trim(); }
     function money(v){ const n = Number(v || 0); return Number.isFinite(n) ? fmt.format(n).replace(/\s/g,'') : 'Rp0'; }
     function dateFmt(v){ if(!v) return '—'; const d = new Date(v); if(!Number.isFinite(d.getTime())) return '—'; try{return new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short'}).format(d)}catch(_){return d.toISOString()} }
-    function statusLabel(s){ const key=clean(s).toLowerCase(); return ({unpaid:'Belum dibayar',paid:'Sudah dibayar',pending:'Pending',pending_payment:'Menunggu pembayaran',processing:'Diproses',completed:'Selesai',failed:'Gagal',cancelled:'Dibatalkan'})[key] || (key ? key.replace(/_/g,' ') : 'Unknown'); }
-    function statusClass(s){ const key=clean(s).toLowerCase(); if(['paid','completed','success'].includes(key)) return 'ok'; if(['failed','cancelled','expired'].includes(key)) return 'bad'; if(['processing'].includes(key)) return 'info'; return 'warn'; }
+    function statusLabel(s){ const key=clean(s).toLowerCase(); return ({unpaid:'Belum dibayar',paid:'Sudah dibayar',pending:'Pending',pending_payment:'Menunggu pembayaran',processing:'Diproses',completed:'Selesai',failed:'Gagal',cancelled:'Dibatalkan',canceled:'Dibatalkan',expired:'Kedaluwarsa',success:'Sukses',settlement:'Sudah dibayar',settled:'Sudah dibayar',capture:'Sudah dibayar',refunded:'Refund'})[key] || (key ? key.replace(/_/g,' ') : 'Unknown'); }
+    function statusClass(s){ const key=clean(s).toLowerCase(); if(['paid','completed','success','settled','settlement','capture'].includes(key)) return 'ok'; if(['failed','cancelled','canceled','expired','refunded'].includes(key)) return 'bad'; if(['processing'].includes(key)) return 'info'; return 'warn'; }
+    function clearNode(node){ if(!node) return; if(typeof node.replaceChildren === 'function') node.replaceChildren(); else while(node.firstChild) node.removeChild(node.firstChild); }
+    function makeEl(tag, className, text){ const node = document.createElement(tag); if(className) node.className = className; if(text !== undefined && text !== null) node.textContent = String(text); return node; }
+    function add(parent){ for(let i=1;i<arguments.length;i++){ const child = arguments[i]; if(child === undefined || child === null) continue; if(Array.isArray(child)) child.forEach(c=>add(parent,c)); else parent.appendChild(typeof child === 'string' ? document.createTextNode(child) : child); } return parent; }
+    function setAttrs(node, attrs){ Object.keys(attrs || {}).forEach(function(key){ const value = attrs[key]; if(value === false || value === null || value === undefined) return; if(value === true) node.setAttribute(key, key); else node.setAttribute(key, String(value)); }); return node; }
+    function makeButton(label, className, attrs){ const btn = makeEl('button', className || 'btn', label); btn.type = 'button'; setAttrs(btn, attrs || {}); return btn; }
+    function makeLink(label, className, href, attrs){ const a = makeEl('a', className || 'btn', label); a.href = href; setAttrs(a, attrs || {}); return a; }
+    function makeChip(prefix, value){ const span = makeEl('span', 'chip ' + statusClass(value), prefix ? prefix + ': ' + statusLabel(value) : statusLabel(value)); return span; }
     // Payment request identity hardening v2:
     // kirim ID database sebagai identitas utama agar backend tidak salah membaca kode invoice tampilan.
     // Nominal, status, customer_id, dan payment_url tetap tidak pernah dikirim dari frontend.
-    function paymentOrderDatabaseId(o){
-      return clean(o && o.id);
-    }
-    function paymentOrderVisibleCode(o){
-      return clean(o && (o.invoice_code || o.order_code || o.order_id || o.id));
-    }
-    function paymentOrderCode(o){
-      return paymentOrderDatabaseId(o) || paymentOrderVisibleCode(o);
-    }
+    function paymentOrderDatabaseId(o){ return clean(o && o.id); }
+    function paymentOrderVisibleCode(o){ return clean(o && (o.invoice_code || o.order_code || o.order_id || o.id)); }
+    function paymentOrderCode(o){ return paymentOrderDatabaseId(o) || paymentOrderVisibleCode(o); }
     function paymentRequestBody(order, type, code){
       const databaseId = paymentOrderDatabaseId(order);
       const visibleCode = paymentOrderVisibleCode(order);
       const canonical = databaseId || code || visibleCode;
-      return {
-        order_id: canonical,
-        orderId: canonical,
-        id: databaseId || canonical,
-        order_code: visibleCode || canonical,
-        invoice_code: visibleCode || canonical,
-        order_type: type,
-        service_type: clean(order && order.service_type)
-      };
+      return { order_id: canonical, orderId: canonical, id: databaseId || canonical, order_code: visibleCode || canonical, invoice_code: visibleCode || canonical, order_type: type, service_type: clean(order && order.service_type) };
     }
     function paymentOrderType(o){
       const type = clean(o && (o.type || o.order_type || '')).toLowerCase();
@@ -2409,22 +2412,13 @@ body.du-menu-lock{
     async function fetchJson(action, options={}){
       const headers = {Accept:'application/json'};
       if(options.body) headers['Content-Type'] = 'application/json';
-      const res = await fetch(apiUrl(action, options.query), {
-        method: options.method || 'GET',
-        credentials:'include',
-        cache:'no-store',
-        headers,
-        body: options.body ? JSON.stringify(options.body) : undefined
-      });
+      const res = await fetch(apiUrl(action, options.query), { method: options.method || 'GET', credentials:'include', cache:'no-store', headers, body: options.body ? JSON.stringify(options.body) : undefined });
       const txt = await res.text(); let data; try{ data = txt ? JSON.parse(txt) : {}; }catch(_){ data = { ok:false, message: txt.slice(0,220) }; }
       return { ok: res.ok && !!data.ok, status: res.status, data };
     }
     function normalizeEmail(value){ return clean(value).toLowerCase(); }
     function isFrontendSecureContext(){
-      try{
-        const host = String(window.location.hostname || '').toLowerCase();
-        return window.location.protocol === 'https:' || host === 'localhost' || host === '127.0.0.1' || host === '::1';
-      }catch(_){ return false; }
+      try{ const host = String(window.location.hostname || '').toLowerCase(); return window.location.protocol === 'https:' || host === 'localhost' || host === '127.0.0.1' || host === '::1'; }catch(_){ return false; }
     }
     function strictAccessPayloadOk(data){
       const user = data && data.user;
@@ -2447,10 +2441,7 @@ body.du-menu-lock{
       try{ window.__DIRAC_VERIFIED_CUSTOMER_EMAIL__ = state.sessionEmail; }catch(_){ }
       return true;
     }
-    function addEmail(list, value){
-      const email = normalizeEmail(value);
-      if(email && !list.includes(email)) list.push(email);
-    }
+    function addEmail(list, value){ const email = normalizeEmail(value); if(email && !list.includes(email)) list.push(email); }
     function collectEmailsFromObject(obj){
       const list = [];
       if(!obj || typeof obj !== 'object') return list;
@@ -2467,11 +2458,17 @@ body.du-menu-lock{
       const orders = Array.isArray(payload && payload.orders) ? payload.orders : [];
       orders.forEach(order => collectEmailsFromObject(order).forEach(email => addEmail(emails, email)));
       const mismatch = emails.filter(email => email !== expected);
-      if(mismatch.length){
-        showLocked('Email sesi dan email pesanan tidak sama. Halaman dikunci demi keamanan pembayaran.');
-        return false;
-      }
+      if(mismatch.length){ showLocked('Email sesi dan email pesanan tidak sama. Halaman dikunci demi keamanan pembayaran.'); return false; }
       return true;
+    }
+    function isAllowedPaymentHost(url){
+      try{
+        const host = String(url.hostname || '').toLowerCase();
+        const currentHost = String(window.location.hostname || '').toLowerCase();
+        if(host === currentHost) return true;
+        if(PAYMENT_HOST_EXACT_ALLOWLIST.includes(host)) return true;
+        return PAYMENT_HOST_SUFFIX_ALLOWLIST.some(function(suffix){ return host.endsWith(suffix); });
+      }catch(_){ return false; }
     }
     function safePaymentHref(raw){
       const value = clean(raw);
@@ -2481,18 +2478,21 @@ body.du-menu-lock{
         const host = String(window.location.hostname || '').toLowerCase();
         const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
         if(url.protocol !== 'https:' && !(local && url.protocol === 'http:')) return '';
+        if(!isAllowedPaymentHost(url)) return '';
         return url.href;
       }catch(_){ return ''; }
     }
     function openPaymentHref(raw){
       const href = safePaymentHref(raw);
-      if(!href){ toast('URL payment tidak valid.'); return false; }
-      window.location.href = href;
+      if(!href){ toast('URL payment tidak valid atau bukan gateway resmi.'); return false; }
+      window.location.assign(href);
       return true;
     }
     async function loadOrders(){
       if(state.loggingOut) return;
-      if(state.loading) return; state.loading=true; $('#connectionLabel').textContent='Menghubungi backend...';
+      if(state.loading) return;
+      state.loading=true;
+      const label = $('#connectionLabel'); if(label) label.textContent='Menghubungi backend...';
       try{
         const accessOk = await verifyStrictAccess();
         if(!accessOk) return;
@@ -2506,7 +2506,8 @@ body.du-menu-lock{
         state.verified = true;
         document.body.classList.remove('gate-hardlocked','gate-checking');
         document.body.classList.add('gate-unlocked');
-        $('#gate').hidden = true; $('#connectionLabel').textContent='Ownership aktif';
+        const gate = $('#gate'); if(gate) gate.hidden = true;
+        if(label) label.textContent='Ownership aktif';
         state.orders = Array.isArray(result.data.orders) ? result.data.orders : [];
         renderSummary(result.data.summary || {}); buildServiceFilter(state.orders); applyFilters();
       }catch(e){ renderError('Tidak bisa menghubungi API. Pastikan /api/health aktif di domain ini.'); }
@@ -2516,63 +2517,122 @@ body.du-menu-lock{
       state.verified = false;
       state.strictVerified = false;
       state.sessionEmail = '';
-      document.body.classList.remove('gate-checking');
+      document.body.classList.remove('gate-checking','gate-unlocked');
       document.body.classList.add('gate-hardlocked');
-      document.body.classList.remove('gate-unlocked');
-      const gate=$('#gate'); gate.hidden=false; gate.innerHTML='<div class="gate-card"><h1>Sesi belum valid</h1><p>'+escapeHtml(message || 'Login ulang untuk melihat pesanan.')+'</p><div class="gate-actions"><a class="btn primary" href="'+LOGIN_PAGE+'">Login ulang</a><a class="btn" href="dashboard.html">Dashboard</a></div><div class="danger-note">Konten pesanan tidak dibuka sebelum backend memverifikasi session dan ownership.</div></div>';
-      const label = $('#connectionLabel'); if(label) label.textContent='Terkunci';
+      const gate=$('#gate');
+      if(gate){
+        gate.hidden=false;
+        clearNode(gate);
+        const card = makeEl('div','gate-card');
+        add(card, makeEl('h1', '', 'Sesi belum valid'), makeEl('p','', message || 'Login ulang untuk melihat pesanan.'));
+        const actions = makeEl('div','gate-actions');
+        add(actions, makeLink('Login ulang','btn primary', LOGIN_PAGE), makeLink('Dashboard','btn','dashboard.html'));
+        add(card, actions, makeEl('div','danger-note','Konten pesanan tidak dibuka sebelum backend memverifikasi session dan ownership.'));
+        gate.appendChild(card);
+      }
+      const conn = $('#connectionLabel'); if(conn) conn.textContent='Terkunci';
     }
     function renderError(message){ showLocked(message || 'Backend tidak bisa memverifikasi sesi. Halaman tetap dikunci.'); }
     function renderSummary(s){
-      $('#mTotal').textContent = Number(s.total_orders || 0); $('#mUnpaid').textContent = Number(s.unpaid || 0); $('#mProcessing').textContent = Number(s.processing || 0); $('#mCompleted').textContent = Number(s.completed || 0); $('#mUnpaidTotal').textContent = money(s.unpaid_total || 0);
+      const total=$('#mTotal'), unpaid=$('#mUnpaid'), processing=$('#mProcessing'), completed=$('#mCompleted'), unpaidTotal=$('#mUnpaidTotal');
+      if(total) total.textContent = Number(s.total_orders || 0);
+      if(unpaid) unpaid.textContent = Number(s.unpaid || 0);
+      if(processing) processing.textContent = Number(s.processing || 0);
+      if(completed) completed.textContent = Number(s.completed || 0);
+      if(unpaidTotal) unpaidTotal.textContent = money(s.unpaid_total || 0);
     }
     function buildServiceFilter(orders){
-      const sel=$('#serviceFilter'); const current=sel.value || 'all'; const services = Array.from(new Map(orders.map(o => [o.service_type || 'order', o.service_label || o.service_type || 'Pesanan'])).entries()).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
-      sel.innerHTML='<option value="all">Semua layanan</option>' + services.map(([k,v]) => '<option value="'+escapeAttr(k)+'">'+escapeHtml(v)+'</option>').join(''); if([...sel.options].some(o=>o.value===current)) sel.value=current;
+      const sel=$('#serviceFilter'); if(!sel) return;
+      const current=sel.value || 'all';
+      const services = Array.from(new Map(orders.map(o => [o.service_type || 'order', o.service_label || o.service_type || 'Pesanan'])).entries()).sort((a,b)=>String(a[1]).localeCompare(String(b[1])));
+      clearNode(sel);
+      const all = document.createElement('option'); all.value='all'; all.textContent='Semua layanan'; sel.appendChild(all);
+      services.forEach(function(pair){ const opt = document.createElement('option'); opt.value = clean(pair[0]); opt.textContent = clean(pair[1]) || 'Pesanan'; sel.appendChild(opt); });
+      if(Array.from(sel.options).some(o=>o.value===current)) sel.value=current;
     }
     function applyFilters(){
-      const q=clean($('#searchInput').value).toLowerCase(); const st=$('#statusFilter').value; const sv=$('#serviceFilter').value;
+      const input=$('#searchInput'), statusSel=$('#statusFilter'), serviceSel=$('#serviceFilter');
+      const q=clean(input && input.value).toLowerCase(); const st=statusSel ? statusSel.value : 'all'; const sv=serviceSel ? serviceSel.value : 'all';
       state.filtered = state.orders.filter(o => {
         const hay = [o.invoice_code,o.order_id,o.service_label,o.service_type,(o.items||[]).map(i=>i.title).join(' ')].join(' ').toLowerCase();
-        const statusMatch = st === 'all' || o.payment_status === st || o.order_status === st || (st === 'failed' && ['failed','cancelled'].includes(o.order_status));
+        const statusMatch = st === 'all' || o.payment_status === st || o.order_status === st || (st === 'failed' && ['failed','cancelled','canceled'].includes(o.order_status));
         const serviceMatch = sv === 'all' || o.service_type === sv;
         return (!q || hay.includes(q)) && statusMatch && serviceMatch;
       });
       renderOrders();
     }
     function renderOrders(){
-      const root=$('#ordersList'); root.innerHTML='';
-      if(!state.filtered.length){ root.innerHTML='<div class="empty-state"><b>Belum ada pesanan</b>Invoice yang kamu buat akan muncul di sini setelah checkout.</div>'; renderDetail(null); return; }
+      const root=$('#ordersList'); if(!root) return;
+      clearNode(root);
+      if(!state.filtered.length){
+        const empty = makeEl('div','empty-state');
+        add(empty, makeEl('b','', 'Belum ada pesanan'), document.createTextNode('Invoice yang kamu buat akan muncul di sini setelah checkout.'));
+        root.appendChild(empty);
+        renderDetail(null);
+        return;
+      }
       state.filtered.forEach(o => root.appendChild(orderCard(o)));
       const selected = state.filtered.find(o => o.id === state.selectedId) || state.filtered[0]; state.selectedId = selected.id; markActive(); renderDetail(selected);
     }
     function orderCard(o){
-      const el=document.createElement('article'); el.className='invoice-card'; el.dataset.id=o.id;
+      const card=document.createElement('article'); card.className='invoice-card'; card.dataset.id=o.id;
       const itemText=(o.items||[]).map(i => clean(i.title) + ' × ' + Number(i.quantity||1)).join(', ');
-      el.innerHTML='<div class="invoice-head"><div class="invoice-title"><h3>'+escapeHtml(o.invoice_code || o.order_id || 'Invoice')+'</h3><p>'+escapeHtml(o.service_label || 'Pesanan')+' · '+escapeHtml(dateFmt(o.created_at))+'</p></div><div class="money">'+money(o.total)+'</div></div><div class="chip-row"><span class="chip '+statusClass(o.payment_status)+'">Pembayaran: '+escapeHtml(statusLabel(o.payment_status))+'</span><span class="chip '+statusClass(o.order_status)+'">Order: '+escapeHtml(statusLabel(o.order_status))+'</span></div><div class="invoice-meta"><div><div class="items-preview">'+escapeHtml(itemText || 'Item pesanan')+'</div></div><div class="card-actions"><button class="btn small" type="button" data-detail="1">Detail</button><button class="btn small primary" type="button" data-pay="1" '+(canCreatePayment(o)?'':'disabled')+'>'+escapeHtml(paymentButtonLabel(o))+'</button></div></div>';
-      el.addEventListener('click', () => { state.selectedId=o.id; markActive(); renderDetail(o); });
-      el.querySelector('[data-pay]')?.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); if(canCreatePayment(o)) createPayment(o); });
-      return el;
+      const head = makeEl('div','invoice-head');
+      const title = makeEl('div','invoice-title');
+      add(title, makeEl('h3','', o.invoice_code || o.order_id || 'Invoice'), makeEl('p','', (o.service_label || 'Pesanan') + ' · ' + dateFmt(o.created_at)));
+      add(head, title, makeEl('div','money', money(o.total)));
+      const chips = makeEl('div','chip-row'); add(chips, makeChip('Pembayaran', o.payment_status), makeChip('Order', o.order_status));
+      const meta = makeEl('div','invoice-meta');
+      const previewWrap = makeEl('div'); add(previewWrap, makeEl('div','items-preview', itemText || 'Item pesanan'));
+      const actions = makeEl('div','card-actions');
+      const detailBtn = makeButton('Detail','btn small', {'data-detail':'1'});
+      const payBtn = makeButton(paymentButtonLabel(o),'btn small primary', {'data-pay':'1'});
+      if(!canCreatePayment(o)) payBtn.disabled = true;
+      add(actions, detailBtn, payBtn); add(meta, previewWrap, actions); add(card, head, chips, meta);
+      card.addEventListener('click', () => { state.selectedId=o.id; markActive(); renderDetail(o); });
+      payBtn.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); if(canCreatePayment(o)) createPayment(o); });
+      return card;
     }
     function markActive(){ document.querySelectorAll('.invoice-card').forEach(c => c.classList.toggle('active', c.dataset.id === state.selectedId)); }
     function renderDetail(o){
-      const root=$('#detailPanel');
-      if(!o){ root.innerHTML='<div class="detail-empty"><b>Pilih invoice</b><br>Detail pembayaran dan item akan muncul di sini.</div>'; return; }
-      const items=(o.items||[]).map(i => '<div class="detail-item"><strong>'+escapeHtml(i.title || 'Item')+'</strong><span>Jumlah: '+Number(i.quantity||1)+'</span></div>').join('');
+      const root=$('#detailPanel'); if(!root) return;
+      clearNode(root);
+      if(!o){
+        const empty = makeEl('div','detail-empty'); add(empty, makeEl('b','', 'Pilih invoice'), document.createElement('br'), document.createTextNode('Detail pembayaran dan item akan muncul di sini.'));
+        root.appendChild(empty); return;
+      }
+      const top = makeEl('div','detail-top');
+      const topText = makeEl('div'); add(topText, makeEl('h2','', o.invoice_code || 'Invoice'), makeEl('p','muted detail-service-label', o.service_label || 'Pesanan'));
+      add(top, topText, makeEl('span','chip ' + statusClass(o.payment_status), statusLabel(o.payment_status)));
+      const lines = makeEl('div','detail-lines');
+      [['Kode order', o.order_id || o.id], ['Tanggal', dateFmt(o.created_at)], ['Status order', statusLabel(o.order_status)], ['Total', money(o.total)], ['Metode bayar', o.payment_method || 'Belum dipilih']].forEach(function(pair){
+        const line = makeEl('div','detail-line'); add(line, makeEl('span','', pair[0]), makeEl('b','', pair[1])); lines.appendChild(line);
+      });
+      const itemsTitle = makeEl('h3','detail-items-title','Item pesanan');
+      const itemsWrap = makeEl('div','detail-items');
+      const items = Array.isArray(o.items) ? o.items : [];
+      if(items.length){
+        items.forEach(function(item){ const it = makeEl('div','detail-item'); add(it, makeEl('strong','', item.title || 'Item'), makeEl('span','', 'Jumlah: ' + Number(item.quantity||1))); itemsWrap.appendChild(it); });
+      }else{
+        const it = makeEl('div','detail-item'); add(it, makeEl('strong','', 'Item belum tersedia')); itemsWrap.appendChild(it);
+      }
+      const paymentBox = makeEl('div','payment-box');
+      add(paymentBox, makeEl('h3','', 'Menunggu pembayaran'), makeEl('p','', o.payment_message || (canCreatePayment(o) ? 'Tekan Bayar Sekarang. Semua layanan yang eligible dibuatkan payment oleh backend memakai nominal database, bukan dari browser.' : 'Pesanan belum bisa dibuatkan payment otomatis. Hubungi admin bila perlu.')));
+      const detailActions = makeEl('div','detail-actions');
+      const payNow = makeButton(paymentButtonLabel(o),'btn primary', {id:'payNow'}); if(!canCreatePayment(o)) payNow.disabled = true;
       const wa = 'https://wa.me/'+WHATSAPP_ADMIN+'?text='+encodeURIComponent('Halo admin Dirac Group, saya mau tanya invoice '+(o.invoice_code || o.order_id)+' total '+money(o.total)+'. Status sekarang '+statusLabel(o.payment_status)+'.');
-      root.innerHTML='<div class="detail-top"><div><h2>'+escapeHtml(o.invoice_code || 'Invoice')+'</h2><p class="muted detail-service-label">'+escapeHtml(o.service_label || 'Pesanan')+'</p></div><span class="chip '+statusClass(o.payment_status)+'">'+escapeHtml(statusLabel(o.payment_status))+'</span></div><div class="detail-lines"><div class="detail-line"><span>Kode order</span><b>'+escapeHtml(o.order_id || o.id)+'</b></div><div class="detail-line"><span>Tanggal</span><b>'+escapeHtml(dateFmt(o.created_at))+'</b></div><div class="detail-line"><span>Status order</span><b>'+escapeHtml(statusLabel(o.order_status))+'</b></div><div class="detail-line"><span>Total</span><b>'+money(o.total)+'</b></div><div class="detail-line"><span>Metode bayar</span><b>'+escapeHtml(o.payment_method || 'Belum dipilih')+'</b></div></div><h3 class="detail-items-title">Item pesanan</h3><div class="detail-items">'+(items || '<div class="detail-item"><strong>Item belum tersedia</strong></div>')+'</div><div class="payment-box"><h3>Menunggu pembayaran</h3><p>'+escapeHtml(o.payment_message || (canCreatePayment(o) ? 'Tekan Bayar Sekarang. Semua layanan yang eligible dibuatkan payment oleh backend memakai nominal database, bukan dari browser.' : 'Pesanan belum bisa dibuatkan payment otomatis. Hubungi admin bila perlu.'))+'</p></div><div class="detail-actions"><button class="btn primary" type="button" id="payNow" '+(canCreatePayment(o)?'':'disabled')+'>'+escapeHtml(paymentButtonLabel(o))+'</button><a class="btn" href="'+wa+'" target="_blank" rel="noopener">Tanya Admin</a><button class="btn full" type="button" id="copyInvoice">Salin kode invoice</button></div>';
-      $('#copyInvoice')?.addEventListener('click', async () => { try{ await navigator.clipboard.writeText(o.invoice_code || o.order_id || o.id); toast('Kode invoice disalin.'); }catch(_){ toast('Kode invoice: '+(o.invoice_code || o.order_id || o.id)); } });
-      $('#payNow')?.addEventListener('click', () => { if(canCreatePayment(o)) createPayment(o); });
+      const admin = makeLink('Tanya Admin','btn',wa,{target:'_blank',rel:'noopener'});
+      const copy = makeButton('Salin kode invoice','btn full',{id:'copyInvoice'});
+      add(detailActions, payNow, admin, copy);
+      add(root, top, lines, itemsTitle, itemsWrap, paymentBox, detailActions);
+      copy.addEventListener('click', async () => { try{ await navigator.clipboard.writeText(o.invoice_code || o.order_id || o.id); toast('Kode invoice disalin.'); }catch(_){ toast('Kode invoice: '+(o.invoice_code || o.order_id || o.id)); } });
+      payNow.addEventListener('click', () => { if(canCreatePayment(o)) createPayment(o); });
     }
     async function createPayment(order){
       if(state.loggingOut) return;
       if(!canCreatePayment(order)){ toast('Invoice ini belum bisa dibayar otomatis.'); return; }
       const existingUrl = clean(order && order.payment_url);
-      if(existingUrl){
-        toast('Membuka payment yang sudah dibuat.');
-        if(openPaymentHref(existingUrl)) return;
-        return;
-      }
+      if(existingUrl){ toast('Membuka payment yang sudah dibuat.'); if(openPaymentHref(existingUrl)) return; return; }
       const code = paymentOrderCode(order);
       const type = paymentOrderType(order);
       const btn = $('#payNow');
@@ -2581,76 +2641,29 @@ body.du-menu-lock{
       if(btn){ btn.disabled = true; btn.textContent = 'Membuat payment...'; }
       try{
         const paymentPayload = paymentRequestBody(order, type, code);
-        const result = await fetchJson('create_payment', {
-          method:'POST',
-          query:{
-            order_id: paymentPayload.order_id,
-            orderId: paymentPayload.orderId,
-            id: paymentPayload.id,
-            order_code: paymentPayload.order_code,
-            invoice_code: paymentPayload.invoice_code,
-            order_type: paymentPayload.order_type,
-            service_type: paymentPayload.service_type
-          },
-          body: paymentPayload
-        });
+        const result = await fetchJson('create_payment', { method:'POST', query:{ order_id: paymentPayload.order_id, orderId: paymentPayload.orderId, id: paymentPayload.id, order_code: paymentPayload.order_code, invoice_code: paymentPayload.invoice_code, order_type: paymentPayload.order_type, service_type: paymentPayload.service_type }, body: paymentPayload });
         const data = result.data || {};
-        if(!result.ok || !data.ok){
-          toast(data.message || 'Payment belum bisa dibuat.');
-          if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
-          return;
-        }
+        if(!result.ok || !data.ok){ toast(data.message || 'Payment belum bisa dibuat.'); if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; } return; }
         toast(data.reused ? 'Payment lama dibuka kembali.' : 'Payment dibuat. Nominal dikunci dari database.');
-        if(data.payment_url){
-          if(openPaymentHref(data.payment_url)) return;
-        }
+        if(data.payment_url){ if(openPaymentHref(data.payment_url)) return; }
         await loadOrders();
         if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
-      }catch(e){
-        toast('Tidak bisa menghubungi API payment.');
-        if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
-      }
+      }catch(e){ toast('Tidak bisa menghubungi API payment.'); if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; } }
     }
-    function withCacheBust(url){
-      const sep = String(url || '').includes('?') ? '&' : '?';
-      return String(url || '') + sep + '_t=' + Date.now();
-    }
+    function withCacheBust(url){ const sep = String(url || '').includes('?') ? '&' : '?'; return String(url || '') + sep + '_t=' + Date.now(); }
     function delay(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
     function purgeAuthClientStorage(){
-      const keys = [
-        'dirac_auth_session_v1','dirac_auth_a2f_v1','dirac_auth_a2f_dashboard_ready_v1',
-        'dirac_dashboard_gate_v1','dirac_domain_session','dirac_domain_refresh',
-        'dirac_customer_mfa_session','sb-auth-token','supabase.auth.token'
-      ];
-      [window.localStorage, window.sessionStorage].forEach(store => {
-        if(!store) return;
-        keys.forEach(key => { try{ store.removeItem(key); }catch(_){} });
-      });
+      const keys = ['dirac_auth_session_v1','dirac_auth_a2f_v1','dirac_auth_a2f_dashboard_ready_v1','dirac_dashboard_gate_v1','dirac_domain_session','dirac_domain_refresh','dirac_customer_mfa_session','sb-auth-token','supabase.auth.token'];
+      [window.localStorage, window.sessionStorage].forEach(store => { if(!store) return; keys.forEach(key => { try{ store.removeItem(key); }catch(_){} }); });
       try{ window.__DIRAC_BACKEND_AUTH_CONTEXT__ = {}; }catch(_){}
     }
     function disablePageDuringLogout(){
-      try{
-        document.body.classList.add('gate-hardlocked');
-        document.querySelectorAll('button,a,input,select').forEach(function(el){
-          if(!el) return;
-          if(el.id === 'logoutBtn') el.setAttribute('disabled','disabled');
-          else el.setAttribute('aria-disabled','true');
-        });
-      }catch(_){}
+      try{ document.body.classList.add('gate-hardlocked'); document.querySelectorAll('button,a,input,select').forEach(function(node){ if(!node) return; if(node.id === 'logoutBtn') node.setAttribute('disabled','disabled'); else node.setAttribute('aria-disabled','true'); }); }catch(_){}
     }
-    function loginRedirectUrl(){
-      return LOGIN_PAGE + '?logout=1&t=' + Date.now();
-    }
+    function loginRedirectUrl(){ return LOGIN_PAGE + '?logout=1&t=' + Date.now(); }
     function postBackendLogout(){
       return Promise.race([
-        fetch(withCacheBust(apiUrl('domain_logout')), {
-          method:'POST',
-          mode:'same-origin',
-          credentials:'include',
-          cache:'no-store',
-          keepalive:true,
-          headers:{Accept:'application/json'}
-        }).catch(function(){ return null; }),
+        fetch(withCacheBust(apiUrl('domain_logout')), { method:'POST', mode:'same-origin', credentials:'include', cache:'no-store', keepalive:true, headers:{Accept:'application/json'} }).catch(function(){ return null; }),
         delay(1800).then(function(){ return null; })
       ]);
     }
@@ -2669,23 +2682,14 @@ body.du-menu-lock{
       await delay(220);
       try{ window.location.replace(loginRedirectUrl()); }catch(_){ window.location.href = loginRedirectUrl(); }
     }
-    function escapeHtml(v){ return clean(v).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
-    function escapeAttr(v){ return escapeHtml(v).replace(/'/g,'&#39;'); }
     function openMenu(){
       const m=$('#menuOverlay'); if(!m) return;
-      m.hidden=false;
-      m.classList.add('open');
-      m.setAttribute('aria-hidden','false');
-      document.body.classList.add('menu-open');
-      $('#menuToggle')?.setAttribute('aria-expanded','true');
+      m.hidden=false; m.classList.add('open'); m.setAttribute('aria-hidden','false'); document.body.classList.add('menu-open'); $('#menuToggle')?.setAttribute('aria-expanded','true');
       setTimeout(()=>{ const focus=m.querySelector('#diracUltraMenuSearch,button,a,[tabindex]'); if(focus) try{ focus.focus({preventScroll:true}); }catch(_){ focus.focus(); } }, 20);
     }
     function closeMenu(){
       const m=$('#menuOverlay'); if(!m) return;
-      m.classList.remove('open');
-      m.setAttribute('aria-hidden','true');
-      document.body.classList.remove('menu-open');
-      $('#menuToggle')?.setAttribute('aria-expanded','false');
+      m.classList.remove('open'); m.setAttribute('aria-hidden','true'); document.body.classList.remove('menu-open'); $('#menuToggle')?.setAttribute('aria-expanded','false');
       setTimeout(()=>{ if(!m.classList.contains('open')) m.hidden=true; }, 180);
     }
     $('#refreshBtn')?.addEventListener('click', loadOrders); $('#manualRefreshBtn')?.addEventListener('click', loadOrders); document.querySelectorAll('#logoutBtn').forEach(btn=>btn.addEventListener('click', logout)); $('#searchInput')?.addEventListener('input', applyFilters); $('#statusFilter')?.addEventListener('change', applyFilters); $('#serviceFilter')?.addEventListener('change', applyFilters); $('#menuToggle')?.addEventListener('click', openMenu); $('#closeMenuBtn')?.addEventListener('click', closeMenu); document.querySelectorAll('[data-close-menu]').forEach(btn=>btn.addEventListener('click', closeMenu)); $('#menuOverlay')?.addEventListener('click', e => { if(e.target && e.target.id === 'menuOverlay') closeMenu(); }); document.addEventListener('keydown', e => { if(e.key === 'Escape') closeMenu(); });
@@ -2918,37 +2922,82 @@ body.du-menu-lock{
 
   function ensureOverlay(){
     if(document.getElementById('diracProtectedLockOverlay')) return;
+    function make(tag, className, text){
+      var node = document.createElement(tag);
+      if(className) node.className = className;
+      if(text !== undefined && text !== null) node.textContent = String(text);
+      return node;
+    }
+    function append(parent){
+      for(var i=1;i<arguments.length;i++){
+        var child = arguments[i];
+        if(child === undefined || child === null) continue;
+        parent.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+      }
+      return parent;
+    }
     var overlay = document.createElement('div');
     overlay.id = 'diracProtectedLockOverlay';
     overlay.setAttribute('role', 'status');
     overlay.setAttribute('aria-live', 'polite');
-    overlay.innerHTML =
-      '<div class="dirac-protected-lock-card">' +
-      '<div class="dirac-final-session-loader" aria-label="Mengecek Sesi Pelanggan">' +
-      '        <div class="dirac-final-logo-stage" aria-hidden="true">' +
-      '          <div class="dirac-final-data-orbit one"></div>' +
-      '          <div class="dirac-final-data-orbit two"></div>' +
-      '          <div class="dirac-final-logo-halo-edge"></div>' +
-      '          <div class="dirac-final-scan-glass"></div>' +
-      '          <div class="dirac-final-scan-line"></div>' +
-      '          <div class="dirac-final-scan-pulse-core"></div>' +
-      '          <div class="dirac-final-scanner-orbit"><span></span></div>' +
-      '          <div class="dirac-final-logo-edge-light"></div>' +
-      '          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
-      '          <img class="dirac-final-logo-img" src="dirac-security.png" alt="Dirac Security" decoding="async" loading="eager">' +
-      '        </div>' +
-      '        <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>' +
-      '        <div class="dirac-final-progress-track" aria-hidden="true"></div>' +
-      '        <div class="dirac-final-live-status">Verifikasi keamanan sedang berjalan</div>' +
-      '        <div class="dirac-final-crypto-strip" aria-hidden="true"><span>AUTH</span><span>TOKEN</span><span>SESSION</span><span>VERIFIED</span></div>' +
-      '        <div class="dirac-final-secure-check-pulse" aria-hidden="true">✓</div>' +
-      '        <section class="dirac-final-contact-note" aria-label="Kontak resmi Dirac Group">' +
-      '          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">i</span><span class="dirac-final-notice-label">Gangguan layanan</span><a href="mailto:support@diracgroup.store">support@diracgroup.store</a></div>' +
-      '          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">!</span><span class="dirac-final-notice-label">Indikasi penipuan</span><a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></div>' +
-      '        </section>' +
-      '        <div class="dirac-final-tiny-status">DIRAC SECURITY CHECK</div>' +
-      '      </div>' +
-      '</div>';
+    var card = make('div','dirac-protected-lock-card');
+    var loader = make('div','dirac-final-session-loader');
+    loader.setAttribute('aria-label','Mengecek Sesi Pelanggan');
+    var stage = make('div','dirac-final-logo-stage');
+    stage.setAttribute('aria-hidden','true');
+    append(stage,
+      make('div','dirac-final-data-orbit one'),
+      make('div','dirac-final-data-orbit two'),
+      make('div','dirac-final-logo-halo-edge'),
+      make('div','dirac-final-scan-glass'),
+      make('div','dirac-final-scan-line'),
+      make('div','dirac-final-scan-pulse-core')
+    );
+    var orbit = make('div','dirac-final-scanner-orbit');
+    orbit.appendChild(document.createElement('span'));
+    append(stage, orbit, make('div','dirac-final-logo-edge-light'));
+    var particles = make('div','dirac-final-particle-field');
+    particles.setAttribute('aria-hidden','true');
+    for(var p=0;p<10;p++) particles.appendChild(document.createElement('span'));
+    var logo = document.createElement('img');
+    logo.className = 'dirac-final-logo-img';
+    logo.src = 'dirac-security.png';
+    logo.alt = 'Dirac Security';
+    logo.decoding = 'async';
+    logo.loading = 'eager';
+    append(stage, particles, logo);
+    var title = make('h1','dirac-final-session-title','Mengecek Sesi Pelanggan');
+    title.appendChild(make('span','dirac-final-dots','...'));
+    var crypto = make('div','dirac-final-crypto-strip');
+    crypto.setAttribute('aria-hidden','true');
+    ['AUTH','TOKEN','SESSION','VERIFIED'].forEach(function(text){ crypto.appendChild(make('span','',text)); });
+    var contact = make('section','dirac-final-contact-note');
+    contact.setAttribute('aria-label','Kontak resmi Dirac Group');
+    function notice(icon,label,email){
+      var row = make('div','dirac-final-notice-line');
+      var iconEl = make('span','dirac-final-notice-icon',icon); iconEl.setAttribute('aria-hidden','true');
+      var labelEl = make('span','dirac-final-notice-label',label);
+      var link = make('a','',email); link.href = 'mailto:' + email;
+      append(row, iconEl, labelEl, link);
+      return row;
+    }
+    append(contact, notice('i','Gangguan layanan','support@diracgroup.store'), notice('!','Indikasi penipuan','founder@diracgroup.store'));
+    append(loader,
+      stage,
+      title,
+      make('div','dirac-final-progress-track'),
+      make('div','dirac-final-live-status','Verifikasi keamanan sedang berjalan'),
+      crypto,
+      make('div','dirac-final-secure-check-pulse','✓'),
+      contact,
+      make('div','dirac-final-tiny-status','DIRAC SECURITY CHECK')
+    );
+    var progress = loader.querySelector('.dirac-final-progress-track');
+    if(progress) progress.setAttribute('aria-hidden','true');
+    var pulse = loader.querySelector('.dirac-final-secure-check-pulse');
+    if(pulse) pulse.setAttribute('aria-hidden','true');
+    card.appendChild(loader);
+    overlay.appendChild(card);
     if(document.body) document.body.appendChild(overlay);
   }
 
