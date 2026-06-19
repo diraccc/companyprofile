@@ -1,5 +1,6 @@
-<!doctype html>
-<html lang="id" data-theme="dark" data-effective-theme="dark" data-motion="full" data-contrast="off">
+<!DOCTYPE html>
+
+<html data-contrast="off" data-effective-theme="dark" data-motion="full" data-theme="dark" lang="id">
 <head>
 <script id="dirac-global-pref-storage-guard-v2">
 (function(){
@@ -41,8 +42,20 @@
     obj = obj && typeof obj === 'object' ? obj : {};
     return {mode:validMode(obj.mode),accent:validAccent(obj.accent),language:validLanguage(obj.language),motion:validMotion(obj.motion),contrast:validContrast(obj.contrast),currency:validCurrency(obj.currency)};
   }
-  function readTheme(){ return sanitize(Object.assign({}, DEFAULTS, readJson(safeGet(THEME_KEY)) || {})); }
-  function writeTheme(p){ safeSet(THEME_KEY, JSON.stringify(sanitize(Object.assign({}, readTheme(), p || {})))); }
+  var memoryPrefs = sanitize(DEFAULTS);
+  function persistedVisualPrefs(obj){
+    var p = sanitize(obj);
+    return {accent:p.accent,language:p.language};
+  }
+  function readTheme(){
+    var stored = readJson(safeGet(THEME_KEY)) || {};
+    memoryPrefs = sanitize(Object.assign({}, DEFAULTS, memoryPrefs || {}, stored));
+    return memoryPrefs;
+  }
+  function writeTheme(p){
+    memoryPrefs = sanitize(Object.assign({}, readTheme(), p || {}));
+    safeSet(THEME_KEY, JSON.stringify(persistedVisualPrefs(memoryPrefs)));
+  }
   function purgeDisallowed(){
     try{
       var keys = [];
@@ -98,7 +111,10 @@
   };
   proto.setItem = function(key, value){
     key = String(key);
-    if(this !== storage) return nativeSet.apply(this, arguments);
+    if(this !== storage){
+      try{ if(this === window.sessionStorage) return undefined; }catch(_){ }
+      return nativeSet.apply(this, arguments);
+    }
     if(key === THEME_KEY || LEGACY_THEME_KEYS[key]){ var data = readJson(String(value || '')) || {}; writeTheme(data); purgeDisallowed(); applyPrefs(); emit('theme'); return; }
     if(key === ACCENT_KEY){ writeTheme({accent:value}); purgeDisallowed(); applyPrefs(); emit('accent'); return; }
     if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]){ writeTheme({language:value}); purgeDisallowed(); applyPrefs(); emit('language'); return; }
@@ -148,22 +164,22 @@
   document.addEventListener('DOMContentLoaded', function(){ applyPrefs(); purgeDisallowed(); });
 })();
 </script>
-<meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#07090d">
-  <meta name="color-scheme" content="dark">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, private, max-age=0">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha512-l+IwaNieZyBApwX5Xc+sObORx523xiWfRFXcwbUuqngFkupM/P/Ifzvd1AG0DBnKU6Yra+BanWbX4cT8YSw5CA==' 'sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==' 'sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==' 'sha512-LhJdptW02L7Ger3yjWz2utlhQGC87IM6vHKQKfhPOs6+PX0QkymQiH3tq7sxWwb5JBFFVq1VmesKlLPVbPLe+g==' 'sha512-A45ke6cSC2gTPK+Y1ZBt8+//IBwIwmWlfhD6eaFrmg9szoVYNScHPKbzf5/+cK5/cXQQLifSyBKv7Yn32qpxYA==' 'sha512-F5xPbNFCPp3zeL7WLfqh0jZk/zebg9dyMjlT2ZLbTYuYqkU3H3kygtdAwIdJJCKP4irwz3gfZI+9CF+fZH1tXA==' 'sha512-kmNnWjEYZonBGCsW24DrH8g0zVKeX3sjSn2jHYJJtWZE+BO6dLoSYg8d+TpzJdaY3WYSCDTVmjiBTzfifkEiuw==' 'sha512-SvlfZmbibdNQe1uS+f9veLvLLc23hWKMC7THQI5N77mGa6RQRhwxj6QfstB1dMqqI7GMOYobt6lFmRZs2CFCrw==' 'sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==' 'sha512-iRqKebBbwS76y2L++lcXxKR2wZ16nj+rV6RhdnX0+sO7fku0XSPL2qEJ+Zsr/W6CGKMpTtUKOfGUKIDdex3Viw=='; script-src-attr 'none'; style-src 'self' https://fonts.googleapis.com 'sha512-Nj1q1kdkbO3vDTndvOC1XV5icUCUokxPkcPx8ttrMZ1OPranPT1/fa5ht1/aKY0VE9LUqW5mRU3NO7pa1dtI4w==' 'sha512-mANDbcNALCpXkXinhjR2Z9SZ5iRj3Qc0uJp1JyzB491u9zOJPr5R7zHlduhQGB4Y8G6tIHuZHA4rrhTCkflAAg==' 'sha512-rz8iOdE/xK0L+eaTfqG1WvcPWye0jjuFt8AsvPsFGqdD8De2TezwaTrKIvMQ4Ab4lziRBvJ6qA0EchuCDqthcw==' 'sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==' 'sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==' 'sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==' 'sha512-UikwNfjQvLPkNI5xWdhJzDJ3+JBqFwkJ4kIbUEf7hQnmaIm4qJzXeFsGW+iWDiWdSo/c5TAMPnHEItiWgOjV9A=='; style-src-attr 'none'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:">
-  <title>Pesanan Saya - Dirac Group</title>
-  <meta name="description" content="Halaman pesanan customer Dirac Group yang aman, ownership-locked, backend-only, dan siap payment gateway.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta content="#07090d" name="theme-color"/>
+<meta content="dark" name="color-scheme"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
+<meta content="no-store, no-cache, must-revalidate, private, max-age=0" http-equiv="Cache-Control"/>
+<meta content="no-cache" http-equiv="Pragma"/>
+<meta content="0" http-equiv="Expires"/>
+<meta content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)" http-equiv="Permissions-Policy"/>
+<meta content="default-src 'self'; script-src 'self' 'sha512-Rleo3ZzSy6k/3J+8GjW8H2zUFBhJQMFgLKgoybl7VX6pwy4R2Zjrcu5mH8MIYsDEtXEBZk2xrNKDNhmsw4i4sw==' 'sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==' 'sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==' 'sha512-eVf8g0zRpFYHvoSuaBoojE1GKl3PigPlYAaEeVI+J/bUCrqTvjUuyqzqps+2tjZK6W2WqkWz62FjUnhKkXFvFA==' 'sha512-A45ke6cSC2gTPK+Y1ZBt8+//IBwIwmWlfhD6eaFrmg9szoVYNScHPKbzf5/+cK5/cXQQLifSyBKv7Yn32qpxYA==' 'sha512-F5xPbNFCPp3zeL7WLfqh0jZk/zebg9dyMjlT2ZLbTYuYqkU3H3kygtdAwIdJJCKP4irwz3gfZI+9CF+fZH1tXA==' 'sha512-kmNnWjEYZonBGCsW24DrH8g0zVKeX3sjSn2jHYJJtWZE+BO6dLoSYg8d+TpzJdaY3WYSCDTVmjiBTzfifkEiuw==' 'sha512-SvlfZmbibdNQe1uS+f9veLvLLc23hWKMC7THQI5N77mGa6RQRhwxj6QfstB1dMqqI7GMOYobt6lFmRZs2CFCrw==' 'sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==' 'sha512-iRqKebBbwS76y2L++lcXxKR2wZ16nj+rV6RhdnX0+sO7fku0XSPL2qEJ+Zsr/W6CGKMpTtUKOfGUKIDdex3Viw=='; script-src-attr 'none'; style-src 'self' 'sha512-Nj1q1kdkbO3vDTndvOC1XV5icUCUokxPkcPx8ttrMZ1OPranPT1/fa5ht1/aKY0VE9LUqW5mRU3NO7pa1dtI4w==' 'sha512-mANDbcNALCpXkXinhjR2Z9SZ5iRj3Qc0uJp1JyzB491u9zOJPr5R7zHlduhQGB4Y8G6tIHuZHA4rrhTCkflAAg==' 'sha512-rz8iOdE/xK0L+eaTfqG1WvcPWye0jjuFt8AsvPsFGqdD8De2TezwaTrKIvMQ4Ab4lziRBvJ6qA0EchuCDqthcw==' 'sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==' 'sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==' 'sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==' 'sha512-UikwNfjQvLPkNI5xWdhJzDJ3+JBqFwkJ4kIbUEf7hQnmaIm4qJzXeFsGW+iWDiWdSo/c5TAMPnHEItiWgOjV9A==' https://fonts.googleapis.com; style-src-attr 'none'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' data:; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<title>Pesanan Saya - Dirac Group</title>
+<meta content="Halaman pesanan customer Dirac Group yang aman, ownership-locked, backend-only, dan siap payment gateway." name="description"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&amp;family=Poppins:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<style>
     :root{
       --bg:#050608;--panel:#101722;--panel2:#141d2a;--panel3:#192336;--gold:#f3cd70;--gold2:#d6a642;--gold3:#8e6425;
       --text:#f8fafc;--muted:#aeb7c6;--sub:#7d899e;--ok:#18b981;--bad:#ef4444;--warn:#f59e0b;--info:#38bdf8;
@@ -242,8 +258,6 @@
     @media(max-width:760px){.theme-card.theme-pro-card{width:calc(100vw - 34px)!important}.theme-body.theme-content{padding:14px 18px 20px!important}.theme-head.theme-pro-head{padding:20px 18px 12px!important}.theme-choice-grid,.theme-language-grid,.theme-contrast-grid{grid-template-columns:1fr!important}.brand-typewriter{min-width:9.8ch!important;max-width:10.9ch!important}.theme-swatch,.theme-swatch-choice{height:62px!important;min-height:62px!important}}
 
   </style>
-
-
 <style id="dirac-pesanan-no-yellow-order-font-polish-v3">
 /* Final visual polish: all invoice/status accents follow dashboard theme color, and order code typography is cleaned. */
 :root{
@@ -360,9 +374,6 @@ body[data-theme-ready="1"] .detail-card:before{
   .detail-line b{max-width:62%!important;}
 }
 </style>
-
-
-
 <style id="dirac-pesanan-final-compact-theme-clean-v4">
 /* v4 final: eliminate fixed yellow remnants, restore safe animations on the 3 secure points, and make theme settings compact. */
 :root{
@@ -536,8 +547,6 @@ body[data-theme-ready="1"] .detail-card:before{
 html[data-motion="reduced"] .secure-item,
 html[data-motion="reduced"] .secure-dot{animation:none!important;transform:none!important;}
 </style>
-
-
 <style id="dirac-final-session-loader-protected-css">
 /* DIRAC FINAL SESSION LOADER — protected pages only.
    Visual loader replaced with the saved final design. Session/hash/login/payment/email logic is not changed. */
@@ -1246,9 +1255,6 @@ body.gate-checking .dirac-final-notice-icon{color:var(--dirac-session-gold)!impo
       .dirac-final-progress-track::before{transform:translateX(72%);opacity:.72}
     }
 </style>
-
-
-
 <style id="dirac-ultra-menu-theme-safe-v1">
 /* Dirac Ultra Menu - theme-safe, scoped to #menuOverlay only. */
 #menuOverlay.dirac-ultra-menu{
@@ -1820,7 +1826,6 @@ body.du-menu-lock{
   });
 })();
 </script>
-
 <style id="dirac-csp-inline-replacement-css-v1">
 /* CSP-safe replacements for former inline style attributes. */
 .secure-copy{margin:0;font-size:.86rem}
@@ -1830,229 +1835,226 @@ body.du-menu-lock{
 .brand-fallback-text.is-hidden,.brand-logo-img.is-hidden{display:none!important}
 .du-i-1{--i:1}.du-i-2{--i:2}.du-i-3{--i:3}.du-i-4{--i:4}.du-i-5{--i:5}.du-i-6{--i:6}.du-i-7{--i:7}.du-i-8{--i:8}.du-i-9{--i:9}.du-i-10{--i:10}.du-i-11{--i:11}.du-i-12{--i:12}.du-i-13{--i:13}.du-i-14{--i:14}.du-i-15{--i:15}.du-i-16{--i:16}.du-i-17{--i:17}.du-i-18{--i:18}.du-i-19{--i:19}
 </style>
-
 </head>
 <body class="gate-hardlocked gate-checking">
-  <a class="skip-link" href="#main">Lewati ke konten utama</a>
-  <span id="connectionLabel" hidden aria-live="polite">Memuat sesi...</span>
-  <header class="site-header" id="siteHeader">
-    <nav class="nav" aria-label="Navigasi utama">
-      <a class="brand" href="dashboard.html" aria-label="Kembali ke dashboard Dirac Group">
-        <span class="brand-mark" aria-hidden="true">
-          <span class="brand-fallback-text">DG</span>
-          <img class="brand-logo-img" src="logo1.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
-        </span>
-        <span class="brand-name brand-typewriter" data-brand-typewriter data-no-i18n aria-label="Dirac Group"><span class="brand-typewriter-text" aria-hidden="true">Dirac Group</span></span>
-      </a>
-      <nav class="nav-links" aria-label="Navigasi pesanan">
-        <a href="dashboard.html">Dashboard</a>
-        <a href="pesanan.html" class="active">Pesanan</a>
-      </nav>
-      <div class="nav-actions header-actions">
-        <a class="theme-toggle home-toggle" href="dashboard.html" aria-label="Kembali ke dashboard">⌂</a>
-        <button class="theme-toggle" id="themeBtn" type="button" data-open-theme aria-haspopup="dialog" aria-controls="themeModal" aria-label="Buka pengaturan tema">🎨</button>
-        <button class="theme-toggle" id="refreshBtn" type="button" aria-label="Refresh pesanan">↻</button>
-        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Buka menu pesanan" aria-haspopup="dialog" aria-controls="menuOverlay" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button>
-      </div>
-    </nav>
-  </header>
-  <main class="wrap" id="main">
-    <section class="hero">
-      <article class="panel hero-main reveal">
-        <span class="eyebrow">🧾 Invoice Center</span>
-        <h1 class="hero-title">Semua pesanan <span>di satu tempat.</span></h1>
-        <p class="hero-copy">Halaman ini hanya menampilkan pesanan milik akun yang sedang login. Data pemilik pesanan ditentukan oleh backend melalui sesi login, bukan input dari halaman.</p>
-        <div class="hero-actions">
-          <a class="btn primary" href="parfum.html">Belanja Parfum</a>
-          <a class="btn" href="layanan-digital.html">Layanan Digital</a>
-          <a class="btn" href="domain.html">Domain</a>
-        </div>
-      </article>
-      <aside class="panel secure-box reveal d1">
-        <h2>Mode aman</h2>
-        <p class="muted secure-copy">Tidak ada direct database dari browser. Tidak ada customer_id dari frontend.</p>
-        <div class="secure-list">
-          <div class="secure-item"><span class="secure-dot"></span><span>Session dicek ke backend satu domain: <b>/api/health</b>.</span></div>
-          <div class="secure-item"><span class="secure-dot"></span><span>Payment aktif via Midtrans Sandbox/Production dari backend.</span></div>
-          <div class="secure-item"><span class="secure-dot"></span><span>Paid hanya dari webhook Midtrans valid, bukan dari frontend.</span></div>
-        </div>
-      </aside>
-    </section>
-    <section class="metrics reveal d2" aria-label="Ringkasan pesanan">
-      <article class="metric"><h3>Total invoice</h3><strong id="mTotal">0</strong><span>Semua layanan</span></article>
-      <article class="metric"><h3>Belum dibayar</h3><strong id="mUnpaid">0</strong><span id="mUnpaidTotal">Rp0</span></article>
-      <article class="metric"><h3>Diproses</h3><strong id="mProcessing">0</strong><span>Menunggu admin/supplier</span></article>
-      <article class="metric"><h3>Selesai</h3><strong id="mCompleted">0</strong><span>Order completed</span></article>
-    </section>
-    <section class="toolbar reveal d3" aria-label="Filter pesanan">
-      <input id="searchInput" class="field" type="search" placeholder="Cari kode invoice, produk, layanan...">
-      <select id="statusFilter" class="field" aria-label="Filter status pembayaran">
-        <option value="all">Semua status</option>
-        <option value="unpaid">Belum dibayar</option>
-        <option value="paid">Sudah dibayar</option>
-        <option value="processing">Processing</option>
-        <option value="completed">Selesai</option>
-        <option value="failed">Gagal/Batal</option>
-      </select>
-      <select id="serviceFilter" class="field" aria-label="Filter layanan">
-        <option value="all">Semua layanan</option>
-      </select>
-      <button id="manualRefreshBtn" class="btn primary" type="button">Refresh</button>
-    </section>
-    <section class="orders-layout">
-      <div class="orders-list" id="ordersList" aria-live="polite">
-        <div class="empty-state"><b>Memuat pesanan...</b>Mohon tunggu sebentar.</div>
-      </div>
-      <aside class="detail-card" id="detailPanel" aria-label="Detail invoice">
-        <div class="detail-empty"><b>Pilih invoice</b><br>Detail pembayaran dan item akan muncul di sini.</div>
-      </aside>
-    </section>
-  </main>
-  <div class="menu-overlay dirac-ultra-menu" id="menuOverlay" aria-hidden="true" hidden>
-    <aside class="du-menu" id="diracUltraMenu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
-      <header class="du-top">
-        <div class="du-handle" id="diracUltraMenuHandle" aria-hidden="true"></div>
-        <div class="du-top-row">
-          <div class="du-brand" aria-hidden="true"><img class="du-brand-logo" src="logo 3.webp" alt="" loading="eager" decoding="async"></div>
-          <div class="du-title">
-            <strong id="menuTitle" data-i18n="menuTitle">Menu Dashboard</strong>
-            <small data-i18n="menuSub">Navigasi utama pelanggan.</small>
-          </div>
-          <button class="du-close" type="button" aria-label="Tutup menu" data-close-menu>
-            <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-        <label class="du-search" aria-label="Cari menu dashboard">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          <input id="diracUltraMenuSearch" type="search" placeholder="Cari menu..." autocomplete="off">
-          <button class="du-clear" id="diracUltraMenuClear" type="button" aria-label="Hapus pencarian">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          </button>
-        </label>
-        <div class="du-scroll-line" aria-hidden="true"><span id="diracUltraMenuProgress"></span></div>
-      </header>
-      <main class="du-body" id="diracUltraMenuBody">
-        <section class="du-group" data-du-group>
-          <div class="du-group-title"><strong>Ekosistem Dirac</strong><span>Menu utama</span></div>
-          <div class="du-stack">
-            <a class="du-card du-searchable du-i-1" href="dashboard.html" data-keyword="dashboard ringkasan semua layanan pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Dashboard</strong><small>Ringkasan semua layanan pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-2" href="parfum.html" data-keyword="parfum riwayat pembelian parfum">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"/><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-              <span class="du-copy"><strong>Parfum</strong><small>Riwayat pembelian parfum</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-3" href="domain.html" data-keyword="domain saya daftar domain pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-4" href="project-website.html" data-keyword="project website daftar project website">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <button class="du-card du-searchable du-i-5" type="button" data-open-tracking data-keyword="cek resi lacak pengiriman">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-              <span class="du-copy"><strong>Cek Resi</strong><small>Lacak pengiriman</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </button>
-            <a class="du-card du-searchable du-i-6" href="layanan-nomor.html" data-keyword="layanan nomor kelola layanan nomor">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Layanan Nomor</strong><small>Kelola layanan nomor</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-          </div>
-        </section>
-        <section class="du-group" data-du-group>
-          <div class="du-group-title"><strong>Transaksi & Detail</strong><span>Riwayat & tagihan</span></div>
-          <div class="du-stack">
-            <a class="du-card du-searchable du-i-7" href="pesanan.html" data-keyword="pesanan saya semua transaksi pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Pesanan Saya</strong><small>Semua transaksi pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-8" href="detail-pesanan.html" data-keyword="detail pesanan detail satu order">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Pesanan</strong><small>Detail satu order</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-9" href="detail-parfum.html" data-keyword="detail parfum detail pengiriman parfum">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"/></svg></span>
-              <span class="du-copy"><strong>Detail Parfum</strong><small>Detail pengiriman parfum</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-10" href="detail-domain.html" data-keyword="detail domain kelola domain, dns, nameserver">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.5 2.5-2-2 2.5-2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Domain</strong><small>Kelola domain, DNS, nameserver</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-11" href="detail-project.html" data-keyword="detail project progress, revisi, file, approval">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Project</strong><small>Progress, revisi, file, approval</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-12" href="invoice.html" data-keyword="invoice semua tagihan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-13" href="detail-invoice.html" data-keyword="detail invoice detail pembayaran">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Invoice</strong><small>Detail pembayaran</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-          </div>
-        </section>
-        <section class="du-group" data-du-group>
-          <div class="du-group-title"><strong>Akun & Bantuan</strong><span>Keamanan</span></div>
-          <div class="du-stack">
-            <a class="du-card du-searchable du-i-14" href="tiket-bantuan.html" data-keyword="tiket bantuan daftar komplain dan bantuan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Tiket Bantuan</strong><small>Daftar komplain dan bantuan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-15" href="detail-tiket.html" data-keyword="detail tiket percakapan support">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Detail Tiket</strong><small>Percakapan support</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-16" href="notifikasi.html" data-keyword="notifikasi semua pemberitahuan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-17" href="profil.html" data-keyword="profil data pelanggan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Profil</strong><small>Data pelanggan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <a class="du-card du-searchable du-i-18" href="keamanan.html" data-keyword="keamanan password, verifikasi, riwayat login">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 14v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <span class="du-copy"><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </a>
-            <button class="du-card du-searchable logout-drawer-btn du-i-19" type="button"  id="logoutBtn" data-dirac-logout data-keyword="keluar sesi backend dan cookie httponly dibersihkan">
-              <span class="du-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 12H3m0 0 4-4m-4 4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span class="du-copy"><strong>Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span>
-              <span class="du-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            </button>
-          </div>
-        </section>
-        <div class="du-empty" id="diracUltraMenuEmpty">Menu tidak ditemukan.</div>
-      </main>
-      <footer class="du-footer">
-        <button class="du-footer-btn secondary" type="button" data-close-menu>Tutup</button>
-        <button class="du-footer-btn primary" type="button" id="duFooterAdminBtn">Admin</button>
-      </footer>
-      <div class="du-toast" id="diracUltraMenuToast" aria-live="polite">Menu dibuka</div>
-    </aside>
-  </div>
-
-
+<a class="skip-link" href="#main">Lewati ke konten utama</a>
+<span aria-live="polite" hidden="" id="connectionLabel">Memuat sesi...</span>
+<header class="site-header" id="siteHeader">
+<nav aria-label="Navigasi utama" class="nav">
+<a aria-label="Kembali ke dashboard Dirac Group" class="brand" href="dashboard.html">
+<span aria-hidden="true" class="brand-mark">
+<span class="brand-fallback-text">DG</span>
+<img alt="" class="brand-logo-img" decoding="async" fetchpriority="high" loading="eager" src="logo1.webp"/>
+</span>
+<span aria-label="Dirac Group" class="brand-name brand-typewriter" data-brand-typewriter="" data-no-i18n=""><span aria-hidden="true" class="brand-typewriter-text">Dirac Group</span></span>
+</a>
+<nav aria-label="Navigasi pesanan" class="nav-links">
+<a href="dashboard.html">Dashboard</a>
+<a class="active" href="pesanan.html">Pesanan</a>
+</nav>
+<div class="nav-actions header-actions">
+<a aria-label="Kembali ke dashboard" class="theme-toggle home-toggle" href="dashboard.html">⌂</a>
+<button aria-controls="themeModal" aria-haspopup="dialog" aria-label="Buka pengaturan tema" class="theme-toggle" data-open-theme="" id="themeBtn" type="button">🎨</button>
+<button aria-label="Refresh pesanan" class="theme-toggle" id="refreshBtn" type="button">↻</button>
+<button aria-controls="menuOverlay" aria-expanded="false" aria-haspopup="dialog" aria-label="Buka menu pesanan" class="menu-toggle" id="menuToggle" type="button"><span aria-hidden="true" class="hamburger"><span></span><span></span><span></span></span></button>
+</div>
+</nav>
+</header>
+<main class="wrap" id="main">
+<section class="hero">
+<article class="panel hero-main reveal">
+<span class="eyebrow">🧾 Invoice Center</span>
+<h1 class="hero-title">Semua pesanan <span>di satu tempat.</span></h1>
+<p class="hero-copy">Halaman ini hanya menampilkan pesanan milik akun yang sedang login. Data pemilik pesanan ditentukan oleh backend melalui sesi login, bukan input dari halaman.</p>
+<div class="hero-actions">
+<a class="btn primary" href="parfum.html">Belanja Parfum</a>
+<a class="btn" href="layanan-digital.html">Layanan Digital</a>
+<a class="btn" href="domain.html">Domain</a>
+</div>
+</article>
+<aside class="panel secure-box reveal d1">
+<h2>Mode aman</h2>
+<p class="muted secure-copy">Tidak ada direct database dari browser. Tidak ada customer_id dari frontend.</p>
+<div class="secure-list">
+<div class="secure-item"><span class="secure-dot"></span><span>Session dicek ke backend satu domain: <b>/api/health</b>.</span></div>
+<div class="secure-item"><span class="secure-dot"></span><span>Payment aktif via Midtrans Sandbox/Production dari backend.</span></div>
+<div class="secure-item"><span class="secure-dot"></span><span>Paid hanya dari webhook Midtrans valid, bukan dari frontend.</span></div>
+</div>
+</aside>
+</section>
+<section aria-label="Ringkasan pesanan" class="metrics reveal d2">
+<article class="metric"><h3>Total invoice</h3><strong id="mTotal">0</strong><span>Semua layanan</span></article>
+<article class="metric"><h3>Belum dibayar</h3><strong id="mUnpaid">0</strong><span id="mUnpaidTotal">Rp0</span></article>
+<article class="metric"><h3>Diproses</h3><strong id="mProcessing">0</strong><span>Menunggu admin/supplier</span></article>
+<article class="metric"><h3>Selesai</h3><strong id="mCompleted">0</strong><span>Order completed</span></article>
+</section>
+<section aria-label="Filter pesanan" class="toolbar reveal d3">
+<input class="field" id="searchInput" placeholder="Cari kode invoice, produk, layanan..." type="search"/>
+<select aria-label="Filter status pembayaran" class="field" id="statusFilter">
+<option value="all">Semua status</option>
+<option value="unpaid">Belum dibayar</option>
+<option value="paid">Sudah dibayar</option>
+<option value="processing">Processing</option>
+<option value="completed">Selesai</option>
+<option value="failed">Gagal/Batal</option>
+</select>
+<select aria-label="Filter layanan" class="field" id="serviceFilter">
+<option value="all">Semua layanan</option>
+</select>
+<button class="btn primary" id="manualRefreshBtn" type="button">Refresh</button>
+</section>
+<section class="orders-layout">
+<div aria-live="polite" class="orders-list" id="ordersList">
+<div class="empty-state"><b>Memuat pesanan...</b>Mohon tunggu sebentar.</div>
+</div>
+<aside aria-label="Detail invoice" class="detail-card" id="detailPanel">
+<div class="detail-empty"><b>Pilih invoice</b><br/>Detail pembayaran dan item akan muncul di sini.</div>
+</aside>
+</section>
+</main>
+<div aria-hidden="true" class="menu-overlay dirac-ultra-menu" hidden="" id="menuOverlay">
+<aside aria-labelledby="menuTitle" aria-modal="true" class="du-menu" id="diracUltraMenu" role="dialog" tabindex="-1">
+<header class="du-top">
+<div aria-hidden="true" class="du-handle" id="diracUltraMenuHandle"></div>
+<div class="du-top-row">
+<div aria-hidden="true" class="du-brand"><img alt="" class="du-brand-logo" decoding="async" loading="eager" src="logo 3.webp"/></div>
+<div class="du-title">
+<strong data-i18n="menuTitle" id="menuTitle">Menu Dashboard</strong>
+<small data-i18n="menuSub">Navigasi utama pelanggan.</small>
+</div>
+<button aria-label="Tutup menu" class="du-close" data-close-menu="" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"></path></svg>
+</button>
+</div>
+<label aria-label="Cari menu dashboard" class="du-search">
+<svg fill="none" viewbox="0 0 24 24"><path d="M11 19a8 8 0 1 1 5.29-14.01A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+<input autocomplete="off" id="diracUltraMenuSearch" placeholder="Cari menu..." type="search"/>
+<button aria-label="Hapus pencarian" class="du-clear" id="diracUltraMenuClear" type="button">
+<svg fill="none" viewbox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" stroke="currentColor" stroke-linecap="round" stroke-width="2.2"></path></svg>
+</button>
+</label>
+<div aria-hidden="true" class="du-scroll-line"><span id="diracUltraMenuProgress"></span></div>
+</header>
+<main class="du-body" id="diracUltraMenuBody">
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Ekosistem Dirac</strong><span>Menu utama</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable du-i-1" data-keyword="dashboard ringkasan semua layanan pelanggan" href="dashboard.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Dashboard</strong><small>Ringkasan semua layanan pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-2" data-keyword="parfum riwayat pembelian parfum" href="parfum.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21s6-4.2 6-10a6 6 0 0 0-12 0c0 5.8 6 10 6 10Z" stroke="currentColor" stroke-width="2"></path><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Parfum</strong><small>Riwayat pembelian parfum</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-3" data-keyword="domain saya daftar domain pelanggan" href="domain.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"></path><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.2 2.4 3.2 5.4 3.2 9S14.2 18.6 12 21c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3Z" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Domain Saya</strong><small>Daftar domain pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-4" data-keyword="project website daftar project website" href="project-website.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 5h16v11H4V5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 20h8M10 16v4M14 16v4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Project Website</strong><small>Daftar project website</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<button class="du-card du-searchable du-i-5" data-keyword="cek resi lacak pengiriman" data-open-tracking="" type="button">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Cek Resi</strong><small>Lacak pengiriman</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</button>
+<a class="du-card du-searchable du-i-6" data-keyword="layanan nomor kelola layanan nomor" href="layanan-nomor.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"></path><path d="M10 18h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Layanan Nomor</strong><small>Kelola layanan nomor</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Transaksi &amp; Detail</strong><span>Riwayat &amp; tagihan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable du-i-7" data-keyword="pesanan saya semua transaksi pelanggan" href="pesanan.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2-3-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 9h8M8 13h6" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Pesanan Saya</strong><small>Semua transaksi pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-8" data-keyword="detail pesanan detail satu order" href="detail-pesanan.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Pesanan</strong><small>Detail satu order</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-9" data-keyword="detail parfum detail pengiriman parfum" href="detail-parfum.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M3 7h11v10H3V7ZM14 11h3l4 4v2h-7v-6Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Parfum</strong><small>Detail pengiriman parfum</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-10" data-keyword="detail domain kelola domain, dns, nameserver" href="detail-domain.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.5 2.5-2-2 2.5-2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Domain</strong><small>Kelola domain, DNS, nameserver</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-11" data-keyword="detail project progress, revisi, file, approval" href="detail-project.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+<span class="du-copy"><strong>Detail Project</strong><small>Progress, revisi, file, approval</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-12" data-keyword="invoice semua tagihan" href="invoice.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-13" data-keyword="detail invoice detail pembayaran" href="detail-invoice.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M14 3v5h5M9 13h6M9 17h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Invoice</strong><small>Detail pembayaran</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+</div>
+</section>
+<section class="du-group" data-du-group="">
+<div class="du-group-title"><strong>Akun &amp; Bantuan</strong><span>Keamanan</span></div>
+<div class="du-stack">
+<a class="du-card du-searchable du-i-14" data-keyword="tiket bantuan daftar komplain dan bantuan" href="tiket-bantuan.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Tiket Bantuan</strong><small>Daftar komplain dan bantuan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-15" data-keyword="detail tiket percakapan support" href="detail-tiket.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M8 10h8M8 13h5" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Detail Tiket</strong><small>Percakapan support</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-16" data-keyword="notifikasi semua pemberitahuan" href="notifikasi.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M18 9a6 6 0 1 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M10 21h4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Notifikasi</strong><small>Semua pemberitahuan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-17" data-keyword="profil data pelanggan" href="profil.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Profil</strong><small>Data pelanggan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<a class="du-card du-searchable du-i-18" data-keyword="keamanan password, verifikasi, riwayat login" href="keamanan.html">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M6 10h12v10H6V10Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M12 14v2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Keamanan</strong><small>Password, verifikasi, riwayat login</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</a>
+<button class="du-card du-searchable logout-drawer-btn du-i-19" data-dirac-logout="" data-keyword="keluar sesi backend dan cookie httponly dibersihkan" id="logoutBtn" type="button">
+<span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path><path d="M15 12H3m0 0 4-4m-4 4 4 4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span>
+<span class="du-copy"><strong>Keluar</strong><small>Sesi backend dan cookie HttpOnly dibersihkan</small></span>
+<span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
+</button>
+</div>
+</section>
+<div class="du-empty" id="diracUltraMenuEmpty">Menu tidak ditemukan.</div>
+</main>
+<footer class="du-footer">
+<button class="du-footer-btn secondary" data-close-menu="" type="button">Tutup</button>
+<button class="du-footer-btn primary" id="duFooterAdminBtn" type="button">Admin</button>
+</footer>
+<div aria-live="polite" class="du-toast" id="diracUltraMenuToast">Menu dibuka</div>
+</aside>
+</div>
 <script id="dirac-ultra-menu-behavior-v1">
 (function(){
   'use strict';
@@ -2246,95 +2248,93 @@ body.du-menu-lock{
   });
 })();
 </script>
-
-  <div class="theme-modal" id="themeModal" aria-hidden="true" hidden>
-    <div class="theme-card theme-pro-card" role="dialog" aria-modal="true" aria-labelledby="themeTitle" tabindex="-1">
-      <div class="theme-head theme-pro-head">
-        <div>
-          <h2 id="themeTitle">Pengaturan Tema</h2>
-          <p>Fitur tema dibuat mengikuti dashboard: warna, bahasa, kontras, dan gerak website.</p>
-        </div>
-        <button class="icon-btn theme-close-btn" type="button" data-close-theme id="closeThemeBtn" aria-label="Tutup pengaturan tema">×</button>
-      </div>
-      <div class="theme-body theme-content">
-        <section class="theme-section" aria-label="Mode tema">
-          <h3>Mode Tema</h3>
-          <div class="theme-choice-grid theme-mode-grid">
-            <button class="choice theme-choice theme-pro-choice" type="button" data-theme-mode="dark" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">☾</span><span>Gelap</span></button>
-            <button class="choice theme-choice theme-pro-choice" type="button" data-theme-mode="auto" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">⚙</span><span>Otomatis</span></button>
-          </div>
-        </section>
-        <section class="theme-section" aria-label="Bahasa tampilan">
-          <h3>Bahasa Tampilan</h3>
-          <div class="theme-language-grid language-grid" id="themeLanguageOptions" aria-label="Pilihan bahasa website" data-no-i18n>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="id" aria-pressed="false"><span class="lang-badge" aria-hidden="true">ID</span><span>Indonesia</span></button>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="en" aria-pressed="false"><span class="lang-badge" aria-hidden="true">EN</span><span>English</span></button>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="zh" aria-pressed="false"><span class="lang-badge" aria-hidden="true">中</span><span>中文</span></button>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="ar" aria-pressed="false"><span class="lang-badge" aria-hidden="true">ع</span><span>العربية</span></button>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="ja" aria-pressed="false"><span class="lang-badge" aria-hidden="true">日</span><span>日本語</span></button>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="ko" aria-pressed="false"><span class="lang-badge" aria-hidden="true">한</span><span>한국어</span></button>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="es" aria-pressed="false"><span class="lang-badge" aria-hidden="true">ES</span><span>Español</span></button>
-            <button class="choice theme-choice theme-pro-choice lang-choice" type="button" data-language="fr" aria-pressed="false"><span class="lang-badge" aria-hidden="true">FR</span><span>Français</span></button>
-          </div>
-        </section>
-        <section class="theme-section" aria-label="Kontras tema">
-          <h3>Kontras Tema</h3>
-          <div class="theme-contrast-grid contrast-grid">
-            <button class="choice theme-choice theme-pro-choice" type="button" data-contrast="on" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">◐</span><span>Aktif</span></button>
-            <button class="choice theme-choice theme-pro-choice" type="button" data-contrast="off" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">◌</span><span>Nonaktif</span></button>
-          </div>
-        </section>
-        <section class="theme-section" aria-label="Kustom warna utama">
-          <h3>Kustom Tema</h3>
-          <div class="theme-swatches custom-theme-grid" id="accentChoices" aria-label="Pilihan warna utama"></div>
-        </section>
-        <section class="theme-section" aria-label="Gerak website">
-          <h3>Gerak Website</h3>
-          <div class="theme-contrast-grid motion-grid">
-            <button class="choice theme-choice theme-pro-choice" type="button" data-motion-choice="full" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">✨</span><span>Full animasi</span></button>
-            <button class="choice theme-choice theme-pro-choice" type="button" data-motion-choice="reduced" aria-pressed="false"><span class="choice-symbol" aria-hidden="true">🪶</span><span>Gerak ringan</span></button>
-          </div>
-        </section>
-      </div>
-    </div>
-  </div>
-
-  <div class="gate" id="gate" aria-label="Memverifikasi sesi">
-    <div class="gate-card dirac-session-logo-card" role="status" aria-live="polite">
-      <div class="dirac-final-session-loader" aria-label="Mengecek Sesi Pelanggan">
-        <div class="dirac-final-logo-stage" aria-hidden="true">
-          <div class="dirac-final-data-orbit one"></div>
-          <div class="dirac-final-data-orbit two"></div>
-          <div class="dirac-final-logo-halo-edge"></div>
-          <div class="dirac-final-scan-glass"></div>
-          <div class="dirac-final-scan-line"></div>
-          <div class="dirac-final-scan-pulse-core"></div>
-          <div class="dirac-final-scanner-orbit"><span></span></div>
-          <div class="dirac-final-logo-edge-light"></div>
-          <div class="dirac-final-particle-field" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <img class="dirac-final-logo-img" src="dirac-security.png" alt="Dirac Security" decoding="async" loading="eager">
-        </div>
-        <h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>
-        <div class="dirac-final-progress-track" aria-hidden="true"></div>
-        <div class="dirac-final-live-status">Verifikasi keamanan sedang berjalan</div>
-        <div class="dirac-final-crypto-strip" aria-hidden="true"><span>AUTH</span><span>TOKEN</span><span>SESSION</span><span>VERIFIED</span></div>
-        <div class="dirac-final-secure-check-pulse" aria-hidden="true">✓</div>
-        <section class="dirac-final-contact-note" aria-label="Kontak resmi Dirac Group">
-          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">i</span><span class="dirac-final-notice-label">Gangguan layanan</span><a href="mailto:support@diracgroup.store">support@diracgroup.store</a></div>
-          <div class="dirac-final-notice-line"><span class="dirac-final-notice-icon" aria-hidden="true">!</span><span class="dirac-final-notice-label">Indikasi penipuan</span><a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></div>
-        </section>
-        <div class="dirac-final-tiny-status">DIRAC SECURITY CHECK</div>
-      </div>
-    </div>
-  </div>
-  <div class="toast" id="toast"></div>
-  <footer class="footer"><div class="wrap"><span>Dirac Group · Pesanan Saya</span><span>Backend-only ownership · no frontend customer_id</span></div></footer>
-  <script>
+<div aria-hidden="true" class="theme-modal" hidden="" id="themeModal">
+<div aria-labelledby="themeTitle" aria-modal="true" class="theme-card theme-pro-card" role="dialog" tabindex="-1">
+<div class="theme-head theme-pro-head">
+<div>
+<h2 id="themeTitle">Pengaturan Tema</h2>
+<p>Fitur tema dibuat mengikuti dashboard: warna, bahasa, kontras, dan gerak website.</p>
+</div>
+<button aria-label="Tutup pengaturan tema" class="icon-btn theme-close-btn" data-close-theme="" id="closeThemeBtn" type="button">×</button>
+</div>
+<div class="theme-body theme-content">
+<section aria-label="Mode tema" class="theme-section">
+<h3>Mode Tema</h3>
+<div class="theme-choice-grid theme-mode-grid">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="dark" type="button"><span aria-hidden="true" class="choice-symbol">☾</span><span>Gelap</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-theme-mode="auto" type="button"><span aria-hidden="true" class="choice-symbol">⚙</span><span>Otomatis</span></button>
+</div>
+</section>
+<section aria-label="Bahasa tampilan" class="theme-section">
+<h3>Bahasa Tampilan</h3>
+<div aria-label="Pilihan bahasa website" class="theme-language-grid language-grid" data-no-i18n="" id="themeLanguageOptions">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="id" type="button"><span aria-hidden="true" class="lang-badge">ID</span><span>Indonesia</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="en" type="button"><span aria-hidden="true" class="lang-badge">EN</span><span>English</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="zh" type="button"><span aria-hidden="true" class="lang-badge">中</span><span>中文</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ar" type="button"><span aria-hidden="true" class="lang-badge">ع</span><span>العربية</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ja" type="button"><span aria-hidden="true" class="lang-badge">日</span><span>日本語</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="ko" type="button"><span aria-hidden="true" class="lang-badge">한</span><span>한국어</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="es" type="button"><span aria-hidden="true" class="lang-badge">ES</span><span>Español</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice lang-choice" data-language="fr" type="button"><span aria-hidden="true" class="lang-badge">FR</span><span>Français</span></button>
+</div>
+</section>
+<section aria-label="Kontras tema" class="theme-section">
+<h3>Kontras Tema</h3>
+<div class="theme-contrast-grid contrast-grid">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="on" type="button"><span aria-hidden="true" class="choice-symbol">◐</span><span>Aktif</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-contrast="off" type="button"><span aria-hidden="true" class="choice-symbol">◌</span><span>Nonaktif</span></button>
+</div>
+</section>
+<section aria-label="Kustom warna utama" class="theme-section">
+<h3>Kustom Tema</h3>
+<div aria-label="Pilihan warna utama" class="theme-swatches custom-theme-grid" id="accentChoices"></div>
+</section>
+<section aria-label="Gerak website" class="theme-section">
+<h3>Gerak Website</h3>
+<div class="theme-contrast-grid motion-grid">
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="full" type="button"><span aria-hidden="true" class="choice-symbol">✨</span><span>Full animasi</span></button>
+<button aria-pressed="false" class="choice theme-choice theme-pro-choice" data-motion-choice="reduced" type="button"><span aria-hidden="true" class="choice-symbol">🪶</span><span>Gerak ringan</span></button>
+</div>
+</section>
+</div>
+</div>
+</div>
+<div aria-label="Memverifikasi sesi" class="gate" id="gate">
+<div aria-live="polite" class="gate-card dirac-session-logo-card" role="status">
+<div aria-label="Mengecek Sesi Pelanggan" class="dirac-final-session-loader">
+<div aria-hidden="true" class="dirac-final-logo-stage">
+<div class="dirac-final-data-orbit one"></div>
+<div class="dirac-final-data-orbit two"></div>
+<div class="dirac-final-logo-halo-edge"></div>
+<div class="dirac-final-scan-glass"></div>
+<div class="dirac-final-scan-line"></div>
+<div class="dirac-final-scan-pulse-core"></div>
+<div class="dirac-final-scanner-orbit"><span></span></div>
+<div class="dirac-final-logo-edge-light"></div>
+<div aria-hidden="true" class="dirac-final-particle-field"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<img alt="Dirac Security" class="dirac-final-logo-img" decoding="async" loading="eager" src="dirac-security.png"/>
+</div>
+<h1 class="dirac-final-session-title">Mengecek Sesi Pelanggan<span class="dirac-final-dots">...</span></h1>
+<div aria-hidden="true" class="dirac-final-progress-track"></div>
+<div class="dirac-final-live-status">Verifikasi keamanan sedang berjalan</div>
+<div aria-hidden="true" class="dirac-final-crypto-strip"><span>AUTH</span><span>TOKEN</span><span>SESSION</span><span>VERIFIED</span></div>
+<div aria-hidden="true" class="dirac-final-secure-check-pulse">✓</div>
+<section aria-label="Kontak resmi Dirac Group" class="dirac-final-contact-note">
+<div class="dirac-final-notice-line"><span aria-hidden="true" class="dirac-final-notice-icon">i</span><span class="dirac-final-notice-label">Gangguan layanan</span><a href="mailto:support@diracgroup.store">support@diracgroup.store</a></div>
+<div class="dirac-final-notice-line"><span aria-hidden="true" class="dirac-final-notice-icon">!</span><span class="dirac-final-notice-label">Indikasi penipuan</span><a href="mailto:founder@diracgroup.store">founder@diracgroup.store</a></div>
+</section>
+<div class="dirac-final-tiny-status">DIRAC SECURITY CHECK</div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<footer class="footer"><div class="wrap"><span>Dirac Group · Pesanan Saya</span><span>Backend-only ownership · no frontend customer_id</span></div></footer>
+<script>
     'use strict';
     const API = '/api/health';
     const LOGIN_PAGE = 'masuk.html';
     const WHATSAPP_ADMIN = '6281234567890';
-    const state = { orders: [], filtered: [], selectedId: '', loading: false, verified: false, loggingOut: false };
+    const state = { orders: [], filtered: [], selectedId: '', loading: false, verified: false, strictVerified: false, sessionEmail: '', loggingOut: false };
     const $ = (s, r=document) => r.querySelector(s);
     const fmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
     function apiUrl(action, params){
@@ -2419,16 +2419,90 @@ body.du-menu-lock{
       const txt = await res.text(); let data; try{ data = txt ? JSON.parse(txt) : {}; }catch(_){ data = { ok:false, message: txt.slice(0,220) }; }
       return { ok: res.ok && !!data.ok, status: res.status, data };
     }
+    function normalizeEmail(value){ return clean(value).toLowerCase(); }
+    function isFrontendSecureContext(){
+      try{
+        const host = String(window.location.hostname || '').toLowerCase();
+        return window.location.protocol === 'https:' || host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      }catch(_){ return false; }
+    }
+    function strictAccessPayloadOk(data){
+      const user = data && data.user;
+      const mfa = data && data.mfa;
+      const email = normalizeEmail(user && user.email);
+      return !!(data && data.ok === true && data.dashboard === true && user && (user.id || email) && email && mfa && mfa.active === true);
+    }
+    async function verifyStrictAccess(){
+      if(!isFrontendSecureContext()){ showLocked('Halaman pesanan wajib dibuka melalui HTTPS agar cookie Secure dapat dipakai.'); return false; }
+      const result = await fetchJson('domain_dashboard_me');
+      const data = result.data || {};
+      if(!(result.ok && strictAccessPayloadOk(data))){
+        state.strictVerified = false;
+        state.sessionEmail = '';
+        showLocked('Login, A2F, dan sesi pelanggan belum valid.');
+        return false;
+      }
+      state.strictVerified = true;
+      state.sessionEmail = normalizeEmail(data.user && data.user.email);
+      try{ window.__DIRAC_VERIFIED_CUSTOMER_EMAIL__ = state.sessionEmail; }catch(_){ }
+      return true;
+    }
+    function addEmail(list, value){
+      const email = normalizeEmail(value);
+      if(email && !list.includes(email)) list.push(email);
+    }
+    function collectEmailsFromObject(obj){
+      const list = [];
+      if(!obj || typeof obj !== 'object') return list;
+      ['email','user_email','customer_email','owner_email','account_email','billing_email','payer_email'].forEach(key => addEmail(list, obj[key]));
+      if(obj.user && typeof obj.user === 'object') addEmail(list, obj.user.email);
+      if(obj.customer && typeof obj.customer === 'object') addEmail(list, obj.customer.email);
+      if(obj.owner && typeof obj.owner === 'object') addEmail(list, obj.owner.email);
+      return list;
+    }
+    function assertEmailConsistency(payload){
+      const expected = normalizeEmail(state.sessionEmail);
+      if(!expected) return false;
+      const emails = collectEmailsFromObject(payload);
+      const orders = Array.isArray(payload && payload.orders) ? payload.orders : [];
+      orders.forEach(order => collectEmailsFromObject(order).forEach(email => addEmail(emails, email)));
+      const mismatch = emails.filter(email => email !== expected);
+      if(mismatch.length){
+        showLocked('Email sesi dan email pesanan tidak sama. Halaman dikunci demi keamanan pembayaran.');
+        return false;
+      }
+      return true;
+    }
+    function safePaymentHref(raw){
+      const value = clean(raw);
+      if(!value) return '';
+      try{
+        const url = new URL(value, window.location.origin);
+        const host = String(window.location.hostname || '').toLowerCase();
+        const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+        if(url.protocol !== 'https:' && !(local && url.protocol === 'http:')) return '';
+        return url.href;
+      }catch(_){ return ''; }
+    }
+    function openPaymentHref(raw){
+      const href = safePaymentHref(raw);
+      if(!href){ toast('URL payment tidak valid.'); return false; }
+      window.location.href = href;
+      return true;
+    }
     async function loadOrders(){
       if(state.loggingOut) return;
       if(state.loading) return; state.loading=true; $('#connectionLabel').textContent='Menghubungi backend...';
       try{
+        const accessOk = await verifyStrictAccess();
+        if(!accessOk) return;
         const result = await fetchJson('my_orders');
         if(!result.ok){
           if(result.status === 401){ showLocked(result.data && result.data.message ? result.data.message : 'Belum login atau sesi habis.'); return; }
           renderError(result.data && result.data.message ? result.data.message : 'Gagal memuat pesanan.'); return;
         }
         if(!result.data || result.data.ownership_locked !== true){ showLocked('Backend belum mengembalikan ownership lock yang valid.'); return; }
+        if(!assertEmailConsistency(result.data)) return;
         state.verified = true;
         document.body.classList.remove('gate-hardlocked','gate-checking');
         document.body.classList.add('gate-unlocked');
@@ -2440,6 +2514,8 @@ body.du-menu-lock{
     }
     function showLocked(message){
       state.verified = false;
+      state.strictVerified = false;
+      state.sessionEmail = '';
       document.body.classList.remove('gate-checking');
       document.body.classList.add('gate-hardlocked');
       document.body.classList.remove('gate-unlocked');
@@ -2494,7 +2570,7 @@ body.du-menu-lock{
       const existingUrl = clean(order && order.payment_url);
       if(existingUrl){
         toast('Membuka payment yang sudah dibuat.');
-        window.location.href = existingUrl;
+        if(openPaymentHref(existingUrl)) return;
         return;
       }
       const code = paymentOrderCode(order);
@@ -2526,8 +2602,7 @@ body.du-menu-lock{
         }
         toast(data.reused ? 'Payment lama dibuka kembali.' : 'Payment dibuat. Nominal dikunci dari database.');
         if(data.payment_url){
-          window.location.href = data.payment_url;
-          return;
+          if(openPaymentHref(data.payment_url)) return;
         }
         await loadOrders();
         if(btn){ btn.disabled = false; btn.textContent = oldText || 'Bayar Sekarang'; }
@@ -2618,8 +2693,7 @@ body.du-menu-lock{
     window.addEventListener('pageshow', e => { if(!state.loggingOut && e.persisted) loadOrders(); }); document.addEventListener('visibilitychange', () => { if(!state.loggingOut && !document.hidden) loadOrders(); });
     loadOrders();
   </script>
-
-  <script id="dirac-pesanan-theme-sync-typewriter-js">
+<script id="dirac-pesanan-theme-sync-typewriter-js">
   (function(){
     'use strict';
     var DEFAULT_SETTINGS={mode:'dark',accent:'gold',language:'id',motion:'full',contrast:'off'};
@@ -2717,7 +2791,6 @@ body.du-menu-lock{
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){bindTheme(); startBrandTypewriter();}); else {bindTheme(); startBrandTypewriter();}
   })();
   </script>
-
 <script id="dirac-backend-only-auth-storage-purge-js">
 (function(){
   'use strict';
@@ -2741,7 +2814,6 @@ body.du-menu-lock{
   try{ purge(window.sessionStorage); }catch(_){ }
 })();
 </script>
-
 <script id="dirac-protected-page-session-lock-js">
 (function(){
   'use strict';
@@ -3156,7 +3228,6 @@ body.du-menu-lock{
   }
 })();
 </script>
-
 <script id="dirac-complete-language-sync-v3">
 (function(){
   'use strict';
@@ -3389,6 +3460,5 @@ body.du-menu-lock{
   });
 })();
 </script>
-
 </body>
 </html>
