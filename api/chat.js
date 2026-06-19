@@ -4277,3 +4277,236 @@ function chatOrderMailAutoDedupeCheck(input) {
   DIRAC_CHAT_ORDER_MAIL_AUTO_DEDUPE.set(key, now + ttlMs);
   return { ok: true, key };
 }
+
+
+/* ============================================================
+   DIRAC SECURITY FEATURES BRIDGE - APPEND ONLY - v1
+   Scope:
+   - Menambah endpoint read-only untuk UI fitur keamanan lanjutan.
+   - Tidak mengubah endpoint chat lama.
+   - Tidak mengubah resend email, payment gateway, webhook, login, hash, A2F/MFA, atau health.js.
+   - Semua aksi write tetap dikunci sampai backend security khusus siap.
+   ============================================================ */
+
+const DIRAC_SECURITY_FEATURES_BRIDGE_VERSION = 'dirac-security-features-bridge-v1-read-only';
+const __diracSecurityFeaturesPreviousHandler = module.exports;
+const DIRAC_SECURITY_FEATURES_ACTIONS = Object.freeze({
+  security_features_health: true,
+  security_features_catalog: true,
+  security_features_policy: true,
+  security_features_bundle: true
+});
+
+module.exports = async function diracSecurityFeaturesBridgeWrapper(req, res) {
+  const action = String(req && req.query && req.query.action || '').trim();
+  if (!DIRAC_SECURITY_FEATURES_ACTIONS[action]) {
+    return __diracSecurityFeaturesPreviousHandler(req, res);
+  }
+
+  try {
+    if (typeof setCors === 'function') setCors(req, res);
+    if (res && typeof res.setHeader === 'function') {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    if (req && req.method === 'OPTIONS') return res.status(200).end();
+    if (req && req.method && req.method !== 'GET') {
+      return diracSecurityFeaturesJson(res, 405, {
+        ok: false,
+        service: 'dirac-security-features-bridge',
+        code: 'METHOD_NOT_ALLOWED',
+        message: 'Fitur keamanan ini hanya menyediakan endpoint baca. Aksi tulis tetap dikunci.'
+      });
+    }
+
+    const bundle = diracSecurityFeaturesBundle();
+    if (action === 'security_features_health') {
+      return diracSecurityFeaturesJson(res, 200, {
+        ok: true,
+        service: bundle.service,
+        version: bundle.version,
+        mode: bundle.mode,
+        readOnly: true,
+        writeActionsEnabled: false,
+        time: new Date().toISOString()
+      });
+    }
+    if (action === 'security_features_catalog') {
+      return diracSecurityFeaturesJson(res, 200, {
+        ok: true,
+        service: bundle.service,
+        version: bundle.version,
+        features: bundle.features,
+        time: bundle.time
+      });
+    }
+    if (action === 'security_features_policy') {
+      return diracSecurityFeaturesJson(res, 200, {
+        ok: true,
+        service: bundle.service,
+        version: bundle.version,
+        policy: bundle.policy,
+        checklist: bundle.checklist,
+        time: bundle.time
+      });
+    }
+    return diracSecurityFeaturesJson(res, 200, bundle);
+  } catch (error) {
+    return diracSecurityFeaturesJson(res, 500, {
+      ok: false,
+      service: 'dirac-security-features-bridge',
+      code: 'SECURITY_FEATURES_BRIDGE_ERROR',
+      message: 'Modul fitur keamanan gagal dibaca secara aman.',
+      error: DEBUG_ERRORS ? String(error && error.message || error).slice(0, 220) : undefined
+    });
+  }
+};
+
+function diracSecurityFeaturesJson(res, status, payload) {
+  if (!res || typeof res.status !== 'function') return payload;
+  return res.status(status).json(payload);
+}
+
+function diracSecurityFeaturesBundle() {
+  const time = new Date().toISOString();
+  const features = diracSecurityFeaturesCatalog();
+  return {
+    ok: true,
+    service: 'dirac-security-features-bridge',
+    version: DIRAC_SECURITY_FEATURES_BRIDGE_VERSION,
+    mode: 'read-only-locked-actions',
+    source: '/api/chat',
+    mountedOn: [
+      '/api/chat?action=security_features_health',
+      '/api/chat?action=security_features_catalog',
+      '/api/chat?action=security_features_policy',
+      '/api/chat?action=security_features_bundle'
+    ],
+    readOnly: true,
+    writeActionsEnabled: false,
+    htmlRootId: 'diracSecurityFeatureRoot',
+    doesNotTouch: {
+      login: true,
+      authHash: true,
+      paymentGateway: true,
+      emailTemplate: true,
+      a2fMfaCore: true,
+      healthJs: true,
+      existingChatEndpoint: true,
+      orderMailEndpoint: true
+    },
+    policy: diracSecurityFeaturesPolicy(),
+    checklist: diracSecurityFeaturesChecklist(),
+    features,
+    summary: {
+      total: features.length,
+      readyForUi: features.filter((item) => item.uiReady).length,
+      lockedWriteActions: features.filter((item) => item.locked).length,
+      backendRequired: features.filter((item) => item.requiresBackend).length
+    },
+    time
+  };
+}
+
+function diracSecurityFeaturesCatalog() {
+  return [
+    {
+      key: 'trusted_devices',
+      icon: '🧩',
+      title: 'Perangkat terpercaya',
+      description: 'Lihat perangkat yang dianggap aman dan hapus kepercayaan jika perlu.',
+      status: 'locked_backend',
+      statusLabel: 'Butuh backend',
+      uiReady: true,
+      locked: true,
+      requiresBackend: true,
+      recommendedEndpoint: '/api/health?action=customer_security_trusted_devices',
+      protection: ['backend session', 'MFA/re-auth', 'audit log']
+    },
+    {
+      key: 'revoke_single_session',
+      icon: '📱',
+      title: 'Cabut sesi spesifik',
+      description: 'Pilih satu sesi atau perangkat tertentu untuk dicabut melalui backend.',
+      status: 'locked_backend',
+      statusLabel: 'Butuh backend',
+      uiReady: true,
+      locked: true,
+      requiresBackend: true,
+      recommendedEndpoint: '/api/health?action=customer_security_revoke_session',
+      protection: ['session ownership', 'rate limit', 'audit log']
+    },
+    {
+      key: 'login_history',
+      icon: '🕘',
+      title: 'Riwayat login lengkap',
+      description: 'Tampilkan login berhasil, gagal, lokasi perkiraan, dan perangkat.',
+      status: 'display_ready',
+      statusLabel: 'Siap tampilan',
+      uiReady: true,
+      locked: false,
+      requiresBackend: true,
+      recommendedEndpoint: '/api/health?action=customer_security_login_history',
+      protection: ['read-only', 'privacy filter', 'no raw token']
+    },
+    {
+      key: 'security_notifications',
+      icon: '📬',
+      title: 'Notifikasi keamanan',
+      description: 'Siapkan peringatan login baru, perangkat baru, dan aktivitas berisiko.',
+      status: 'locked_backend',
+      statusLabel: 'Butuh backend',
+      uiReady: true,
+      locked: true,
+      requiresBackend: true,
+      recommendedEndpoint: '/api/health?action=customer_security_notification_settings',
+      protection: ['verified email/phone', 'template safe', 'audit log']
+    },
+    {
+      key: 'security_score',
+      icon: '🛡️',
+      title: 'Skor keamanan',
+      description: 'Jelaskan alasan akun aman, normal, atau butuh perhatian.',
+      status: 'display_ready',
+      statusLabel: 'Siap tampilan',
+      uiReady: true,
+      locked: false,
+      requiresBackend: true,
+      recommendedEndpoint: '/api/health?action=customer_security_score',
+      protection: ['server-calculated', 'read-only', 'no client trust']
+    },
+    {
+      key: 'request_tracker',
+      icon: '📦',
+      title: 'Pelacak permintaan',
+      description: 'Pantau ekspor data, nonaktif akun, dan pemeriksaan keamanan.',
+      status: 'display_ready',
+      statusLabel: 'Siap tampilan',
+      uiReady: true,
+      locked: false,
+      requiresBackend: true,
+      recommendedEndpoint: '/api/health?action=customer_security_account_requests',
+      protection: ['ownership check', 'read-only list', 'audit log']
+    }
+  ];
+}
+
+function diracSecurityFeaturesPolicy() {
+  return [
+    'Login, hash, payment gateway, email template, dan A2F/MFA inti tidak diubah.',
+    'Modul tidak menyimpan token login di browser.',
+    'Aksi tulis seperti cabut sesi, recovery code, ekspor data, dan nonaktif akun tetap wajib memakai backend re-auth, MFA, rate limit, dan audit log.',
+    'Endpoint ini hanya memberi katalog fitur aman untuk UI dan tidak membuka akses database langsung.'
+  ];
+}
+
+function diracSecurityFeaturesChecklist() {
+  return [
+    { key: 'isolated_module', label: 'Modul terpisah dari JS lama', ok: true },
+    { key: 'read_only_bridge', label: 'Bridge API hanya baca', ok: true },
+    { key: 'write_locked', label: 'Aksi berbahaya tetap terkunci', ok: true },
+    { key: 'no_frontend_token', label: 'Tidak memakai token frontend', ok: true },
+    { key: 'backend_required', label: 'Fitur asli tetap butuh backend', ok: true }
+  ];
+}
