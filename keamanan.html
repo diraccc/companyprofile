@@ -14,7 +14,7 @@
   var LEGACY_LANGUAGE_KEYS = {'dirac_language_v1':true};
   var CURRENCY_KEY = 'dirac_currency_v1';
   var MOTION_KEY = 'dirac_motion_mode_v1';
-  var ALLOWED_REAL_KEYS = {}; ALLOWED_REAL_KEYS[THEME_KEY] = true;
+  var ALLOWED_REAL_KEYS = {}; ALLOWED_REAL_KEYS[ACCENT_KEY] = true; ALLOWED_REAL_KEYS[LANGUAGE_KEY] = true;
 
   var PALETTES = {
     gold:{gold:'#f3cd70',gold2:'#d6a642',gold3:'#8e6425',rgb:'243,205,112'}, champagne:{gold:'#fde68a',gold2:'#f59e0b',gold3:'#92400e',rgb:'253,230,138'}, sand:{gold:'#d6b076',gold2:'#b88943',gold3:'#6b4a23',rgb:'214,176,118'}, bronze:{gold:'#d97706',gold2:'#92400e',gold3:'#451a03',rgb:'217,119,6'}, blue:{gold:'#4f83ff',gold2:'#2563eb',gold3:'#1e3a8a',rgb:'79,131,255'}, sky:{gold:'#38bdf8',gold2:'#0284c7',gold3:'#075985',rgb:'56,189,248'}, indigo:{gold:'#6366f1',gold2:'#4f46e5',gold3:'#312e81',rgb:'99,102,241'}, purple:{gold:'#7c3aed',gold2:'#5b21b6',gold3:'#35126d',rgb:'124,58,237'}, violet:{gold:'#8b5cf6',gold2:'#6d28d9',gold3:'#432076',rgb:'139,92,246'}, lilac:{gold:'#a78bfa',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'167,139,250'}, amethyst:{gold:'#a855f7',gold2:'#9333ea',gold3:'#581c87',rgb:'168,85,247'}, lavender:{gold:'#c4b5fd',gold2:'#8b5cf6',gold3:'#4c1d95',rgb:'196,181,253'}, magenta:{gold:'#d946ef',gold2:'#a21caf',gold3:'#701a75',rgb:'217,70,239'}, fuchsia:{gold:'#d946ef',gold2:'#c026d3',gold3:'#701a75',rgb:'217,70,239'}, pink:{gold:'#ec4899',gold2:'#be185d',gold3:'#7f123d',rgb:'236,72,153'}, rose:{gold:'#fb7185',gold2:'#e11d48',gold3:'#881337',rgb:'251,113,133'}, red:{gold:'#ef4444',gold2:'#dc2626',gold3:'#7f1d1d',rgb:'239,68,68'}, coral:{gold:'#fb6a4a',gold2:'#ea3d25',gold3:'#8f1d16',rgb:'251,106,74'}, orange:{gold:'#f97316',gold2:'#ea580c',gold3:'#7c2d12',rgb:'249,115,22'}, peach:{gold:'#fdba74',gold2:'#f97316',gold3:'#9a3412',rgb:'253,186,116'}, amber:{gold:'#f59e0b',gold2:'#d97706',gold3:'#78350f',rgb:'245,158,11'}, lemon:{gold:'#facc15',gold2:'#ca8a04',gold3:'#713f12',rgb:'250,204,21'}, lime:{gold:'#84cc16',gold2:'#65a30d',gold3:'#365314',rgb:'132,204,22'}, neon:{gold:'#22c55e',gold2:'#a3e635',gold3:'#365314',rgb:'34,197,94'}, green:{gold:'#34d399',gold2:'#059669',gold3:'#065f46',rgb:'52,211,153'}, emerald:{gold:'#10b981',gold2:'#047857',gold3:'#064e3b',rgb:'16,185,129'}, forest:{gold:'#22c55e',gold2:'#15803d',gold3:'#052e16',rgb:'34,197,94'}, mint:{gold:'#2dd4bf',gold2:'#0d9488',gold3:'#134e4a',rgb:'45,212,191'}, jade:{gold:'#2dd4bf',gold2:'#0f766e',gold3:'#134e4a',rgb:'45,212,191'}, seafoam:{gold:'#5eead4',gold2:'#14b8a6',gold3:'#134e4a',rgb:'94,234,212'}, teal:{gold:'#0f8b8d',gold2:'#0f766e',gold3:'#134e4a',rgb:'15,139,141'}, aqua:{gold:'#22d3ee',gold2:'#0891b2',gold3:'#164e63',rgb:'34,211,238'}, cyan:{gold:'#67dce5',gold2:'#36c2cc',gold3:'#176b73',rgb:'103,220,229'}, lagoon:{gold:'#06b6d4',gold2:'#0e7490',gold3:'#164e63',rgb:'6,182,212'}, turquoise:{gold:'#2dd4bf',gold2:'#0891b2',gold3:'#164e63',rgb:'45,212,191'}, ocean:{gold:'#0ea5e9',gold2:'#0369a1',gold3:'#0c4a6e',rgb:'14,165,233'}, royal:{gold:'#2563eb',gold2:'#1d4ed8',gold3:'#1e3a8a',rgb:'37,99,235'}, navy:{gold:'#1e40af',gold2:'#1e3a8a',gold3:'#111827',rgb:'30,64,175'}, sapphire:{gold:'#3b82f6',gold2:'#1d4ed8',gold3:'#172554',rgb:'59,130,246'}, periwinkle:{gold:'#818cf8',gold2:'#6366f1',gold3:'#312e81',rgb:'129,140,248'}, orchid:{gold:'#c084fc',gold2:'#a855f7',gold3:'#581c87',rgb:'192,132,252'}, plum:{gold:'#a21caf',gold2:'#86198f',gold3:'#4a044e',rgb:'162,28,175'}, copper:{gold:'#c08457',gold2:'#9a5f36',gold3:'#5c341f',rgb:'192,132,87'}, coffee:{gold:'#c08457',gold2:'#92400e',gold3:'#451a03',rgb:'192,132,87'}, ruby:{gold:'#e11d48',gold2:'#be123c',gold3:'#4c0519',rgb:'225,29,72'}, wine:{gold:'#9f1239',gold2:'#881337',gold3:'#4c0519',rgb:'159,18,57'}, burgundy:{gold:'#7f1d1d',gold2:'#5f1212',gold3:'#2f0909',rgb:'127,29,29'}, maroon:{gold:'#b91c1c',gold2:'#7f1d1d',gold3:'#450a0a',rgb:'185,28,28'}, blush:{gold:'#f9a8d4',gold2:'#ec4899',gold3:'#831843',rgb:'249,168,212'}, salmon:{gold:'#fb7185',gold2:'#f43f5e',gold3:'#9f1239',rgb:'251,113,133'}, sunset:{gold:'#fb923c',gold2:'#f43f5e',gold3:'#7f1d1d',rgb:'251,146,60'}, tangerine:{gold:'#f97316',gold2:'#c2410c',gold3:'#7c2d12',rgb:'249,115,22'}, apricot:{gold:'#fdba74',gold2:'#fb923c',gold3:'#9a3412',rgb:'253,186,116'}, honey:{gold:'#fbbf24',gold2:'#d97706',gold3:'#78350f',rgb:'251,191,36'}, olive:{gold:'#a3a33a',gold2:'#71717a',gold3:'#3f3f1f',rgb:'163,163,58'}, graphite:{gold:'#94a3b8',gold2:'#475569',gold3:'#0f172a',rgb:'148,163,184'}, slate:{gold:'#64748b',gold2:'#334155',gold3:'#0f172a',rgb:'100,116,139'}, pearl:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, white:{gold:'#f8fafc',gold2:'#cbd5e1',gold3:'#64748b',rgb:'248,250,252'}, silver:{gold:'#e5e7eb',gold2:'#9ca3af',gold3:'#4b5563',rgb:'229,231,235'}, midnight:{gold:'#0f172a',gold2:'#020617',gold3:'#000000',rgb:'15,23,42'}, mocha:{gold:'#a16207',gold2:'#854d0e',gold3:'#422006',rgb:'161,98,7'}, espresso:{gold:'#92400e',gold2:'#78350f',gold3:'#431407',rgb:'146,64,14'}
@@ -22,6 +22,7 @@
   var LANG_META = {id:{htmlLang:'id',dir:'ltr'},en:{htmlLang:'en',dir:'ltr'},zh:{htmlLang:'zh-CN',dir:'ltr'},ar:{htmlLang:'ar',dir:'rtl'},ja:{htmlLang:'ja',dir:'ltr'},ko:{htmlLang:'ko',dir:'ltr'},es:{htmlLang:'es',dir:'ltr'},fr:{htmlLang:'fr',dir:'ltr'}};
   var CURRENCIES = {IDR:true,USD:true,EUR:true,SGD:true,MYR:true,SAR:true,AED:true,JPY:true,KRW:true,CNY:true,AUD:true,GBP:true};
   var DEFAULTS = {mode:'dark',accent:'sky',language:'id',motion:'full',contrast:'off',currency:'IDR'};
+  var memoryPrefs = {};
 
   var storage = null; try{ storage = window.localStorage || null; }catch(_){ storage = null; }
   var proto = window.Storage && window.Storage.prototype;
@@ -41,13 +42,26 @@
     obj = obj && typeof obj === 'object' ? obj : {};
     return {mode:validMode(obj.mode),accent:validAccent(obj.accent),language:validLanguage(obj.language),motion:validMotion(obj.motion),contrast:validContrast(obj.contrast),currency:validCurrency(obj.currency)};
   }
-  function readTheme(){ return sanitize(Object.assign({}, DEFAULTS, readJson(safeGet(THEME_KEY)) || {})); }
-  function writeTheme(p){ safeSet(THEME_KEY, JSON.stringify(sanitize(Object.assign({}, readTheme(), p || {})))); }
+  function readTheme(){
+    var stored = {accent:safeGet(ACCENT_KEY),language:safeGet(LANGUAGE_KEY) || safeGet('dirac_language_v1')};
+    return sanitize(Object.assign({}, DEFAULTS, memoryPrefs || {}, stored));
+  }
+  function writeTheme(p){
+    var next = sanitize(Object.assign({}, readTheme(), p || {}));
+    memoryPrefs = Object.assign({}, next);
+    safeSet(ACCENT_KEY, next.accent);
+    safeSet(LANGUAGE_KEY, next.language);
+  }
   function purgeDisallowed(){
-    /* Production-safe guard:
-       keep this page unable to read/write unrelated localStorage keys, but do not delete
-       keys that may belong to dashboard, login, A2F, payment, perfume, or other modules. */
-    return;
+    /* STRICT CUSTOMER SECURITY STORAGE:
+       localStorage is allowed only for UI accent color and language.
+       Auth, A2F, session, payment, email, customer, cart, token, and security data are never persisted here. */
+    try{
+      for(var i = storage.length - 1; i >= 0; i--){
+        var k = nativeKey.call(storage, i);
+        if(k && !ALLOWED_REAL_KEYS[k]) nativeRemove.call(storage, k);
+      }
+    }catch(_){ }
   }
   function migrateOnce(){
     var current = readJson(safeGet(THEME_KEY)) || {};
@@ -57,8 +71,6 @@
     });
     var acc = safeGet(ACCENT_KEY); if(acc) current.accent = acc;
     var lang = safeGet(LANGUAGE_KEY) || safeGet('dirac_language_v1'); if(lang) current.language = lang;
-    var currency = safeGet(CURRENCY_KEY); if(currency) current.currency = currency;
-    var motion = safeGet(MOTION_KEY); if(motion) current.motion = motion;
     writeTheme(current);
     purgeDisallowed();
   }
@@ -88,11 +100,9 @@
   proto.getItem = function(key){
     key = String(key);
     if(this !== storage) return nativeGet.apply(this, arguments);
-    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]) return JSON.stringify(prefs());
+    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]){ var p = prefs(); return JSON.stringify({accent:p.accent,language:p.language}); }
     if(key === ACCENT_KEY) return prefs().accent;
     if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]) return prefs().language;
-    if(key === CURRENCY_KEY) return prefs().currency;
-    if(key === MOTION_KEY) return prefs().motion;
     return null;
   };
   proto.setItem = function(key, value){
@@ -108,14 +118,14 @@
   proto.removeItem = function(key){
     key = String(key);
     if(this !== storage) return nativeRemove.apply(this, arguments);
-    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]){ safeRemove(THEME_KEY); writeTheme(DEFAULTS); applyPrefs(); emit('theme-reset'); return; }
+    if(key === THEME_KEY || LEGACY_THEME_KEYS[key]){ memoryPrefs = {}; safeRemove(ACCENT_KEY); safeRemove(LANGUAGE_KEY); purgeDisallowed(); applyPrefs(); emit('theme-reset'); return; }
     if(key === ACCENT_KEY){ writeTheme({accent:DEFAULTS.accent}); applyPrefs(); emit('accent-reset'); return; }
     if(key === LANGUAGE_KEY || LEGACY_LANGUAGE_KEYS[key]){ writeTheme({language:DEFAULTS.language}); applyPrefs(); emit('language-reset'); return; }
     if(key === CURRENCY_KEY){ writeTheme({currency:DEFAULTS.currency}); applyPrefs(); emit('currency-reset'); return; }
     if(key === MOTION_KEY){ writeTheme({motion:DEFAULTS.motion}); applyPrefs(); emit('motion-reset'); return; }
     return;
   };
-  proto.clear = function(){ if(this !== storage) return nativeClear.apply(this, arguments); safeRemove(THEME_KEY); writeTheme(DEFAULTS); applyPrefs(); emit('clear'); };
+  proto.clear = function(){ if(this !== storage) return nativeClear.apply(this, arguments); memoryPrefs = {}; safeRemove(ACCENT_KEY); safeRemove(LANGUAGE_KEY); purgeDisallowed(); applyPrefs(); emit('clear'); };
 
   window.diracGetGlobalPrefs = prefs;
   window.diracApplyGlobalPrefs = applyPrefs;
@@ -156,7 +166,11 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), fullscreen=(self)">
-  <meta http-equiv="Content-Security-Policy" content="default-src &#x27;self&#x27;; script-src &#x27;self&#x27; &#x27;sha512-mNpg/KCuBq6BchPBr7DeorfyUfLhKSC+18WJB0aKtTSzF17arXGR5QP+VmdPwidZYIea8bhkqL5kxWwmaRTM2A==&#x27; &#x27;sha512-JvUCOpwn8UhGXFuH9R/m5krX8rDO6KTUe2Nwwh/0cCfSLhEEmDuuiZjCx51hkjctb88p9eI8ZP1cAg9pDs8uNg==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-MimukslXEckswvmeYDx53Tk/eK9bA8mHNvUngp4MBdeBCGPRmP6DYp2qRzoAdV8o0VpHzCn+PuOU66JEM57Pqg==&#x27; &#x27;sha512-kmNnWjEYZonBGCsW24DrH8g0zVKeX3sjSn2jHYJJtWZE+BO6dLoSYg8d+TpzJdaY3WYSCDTVmjiBTzfifkEiuw==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-elem &#x27;self&#x27; &#x27;sha512-mNpg/KCuBq6BchPBr7DeorfyUfLhKSC+18WJB0aKtTSzF17arXGR5QP+VmdPwidZYIea8bhkqL5kxWwmaRTM2A==&#x27; &#x27;sha512-JvUCOpwn8UhGXFuH9R/m5krX8rDO6KTUe2Nwwh/0cCfSLhEEmDuuiZjCx51hkjctb88p9eI8ZP1cAg9pDs8uNg==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-MimukslXEckswvmeYDx53Tk/eK9bA8mHNvUngp4MBdeBCGPRmP6DYp2qRzoAdV8o0VpHzCn+PuOU66JEM57Pqg==&#x27; &#x27;sha512-kmNnWjEYZonBGCsW24DrH8g0zVKeX3sjSn2jHYJJtWZE+BO6dLoSYg8d+TpzJdaY3WYSCDTVmjiBTzfifkEiuw==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-attr &#x27;none&#x27;; style-src &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-elem &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-attr &#x27;none&#x27;; font-src &#x27;self&#x27; https://fonts.gstatic.com data:; img-src &#x27;self&#x27; data: https: blob:; connect-src &#x27;self&#x27; https://diracgroup.store https://www.diracgroup.store; object-src &#x27;none&#x27;; base-uri &#x27;self&#x27;; form-action &#x27;self&#x27;; frame-src &#x27;none&#x27;; child-src &#x27;self&#x27; blob:; frame-ancestors &#x27;none&#x27;; worker-src &#x27;self&#x27; blob:; manifest-src &#x27;self&#x27;; media-src &#x27;self&#x27; data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src &#x27;self&#x27;; script-src &#x27;self&#x27; &#x27;sha512-1ixTlwDLb6IXfMPrpVc1+SLNEbnNd4TzKtaa4v/MAX57le7zusr+2Q4FQvb8ELb1iC5nr3sxcUc3GfcrCxnZAA==&#x27; &#x27;sha512-PvvcD7jAfOKSo99fLYkaA/+YroOZkwzE44QyZWymd9CR/0Sv8DC9mkuAO7O9U/icYhZakjKtLgbwFurQDA4jbw==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-LUVLPsAbZebhNt0DMXad384s6103eebT+kHwqwr3BZiSTyMqol1A9erOWOfneSMEQjMllc2REjSJ3LeFtYaB9g==&#x27; &#x27;sha512-9GQUGpLKw7Ili3kb/dr3U2XkSvGNwcUNm09Cj8GuwuaxMIg+Xa9b6OBOUtB0/JFJOJ7CZHz0yVNv80UUKzmt8w==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-elem &#x27;self&#x27; &#x27;sha512-1ixTlwDLb6IXfMPrpVc1+SLNEbnNd4TzKtaa4v/MAX57le7zusr+2Q4FQvb8ELb1iC5nr3sxcUc3GfcrCxnZAA==&#x27; &#x27;sha512-PvvcD7jAfOKSo99fLYkaA/+YroOZkwzE44QyZWymd9CR/0Sv8DC9mkuAO7O9U/icYhZakjKtLgbwFurQDA4jbw==&#x27; &#x27;sha512-6LbI18bzjDZfAMht/DcbIRhhzcGJ0TL69/nc5SSMt0QHhhjLwOSOUsoOrT56dPUusoKXHGaakWUDmQJOpAAsWw==&#x27; &#x27;sha512-LUVLPsAbZebhNt0DMXad384s6103eebT+kHwqwr3BZiSTyMqol1A9erOWOfneSMEQjMllc2REjSJ3LeFtYaB9g==&#x27; &#x27;sha512-9GQUGpLKw7Ili3kb/dr3U2XkSvGNwcUNm09Cj8GuwuaxMIg+Xa9b6OBOUtB0/JFJOJ7CZHz0yVNv80UUKzmt8w==&#x27; &#x27;sha512-iFIQhxATVAjsDysE9wIpH+D4nj+biFuLqjGsbCo1+r/W0BRjRLxXLfaQczNXxHvjfSnVqai8kH6HNNKCe+5ggA==&#x27; &#x27;sha512-2UCaz2I8HFzjxwr0EoNBWNCW7vbEMdv8AtWqNJY+P/52EJHcb94jtxMrZioP3YEfsUvko4p4U6mYvNvY6Mg9DQ==&#x27; &#x27;sha512-aSbJo8bEB7S91jbdQ+bBgjPBY+jOyoo6HV/Nt7Z8+YVvjbKQ8uS5J/ggl8u5G3dzdJ8DtfNSrg+QHBlbgYLEmA==&#x27; &#x27;sha512-ca1dPfWw4OnCP2yajr5Avfd3/TiGvK8c05ftDOzC9R38O6WABmZK0CGywrnVdOovIqaSXli39A8Ey2I6PqbNcg==&#x27; &#x27;sha512-MUL5O65pSr/wmxPdBbLOY67fFvQqp8GgRtEYFZcaAOqocKumc3ZzMb29IIujcEjAeSucha4xkL3zQaANyrryAA==&#x27; &#x27;sha512-9floGwMk3aV8nZeIa7GWdm/RdorZYFR9sxtcsh1dBQOIf4mVjI3T/xJcKrDCFFVKutFZU/eD2BZcDWjsXBp27w==&#x27; &#x27;sha512-6vKUB+ZCXCzjJOcngbK05QUJAaLtTpKgHT3nE0khdHhIISmFTlBllyn4XRMlGt6l9H8Z/3IN/DXdflsUCXjC7A==&#x27; &#x27;sha512-Fkn4eV+ajtOPSHBy+riI5yqyTIhcB0FkJBtIYAnt0gECps2Sjq3+/UyurvTgq5sdywYe0nY963BwYjmZ6KeJFA==&#x27; &#x27;sha512-cXsy6yMtAzDcHhmRsoQktr+NMzGMm7AVawhL7dm8ZhbCi3XUMKPUOJMLO6V8/yVxxBPhvKTDhDCRUz+gTczPAA==&#x27; &#x27;sha512-KRGNj+VSMIfCOgp759SIopuVf3V45yKhAGv13XgFgRY5ygt0oc9mulYHHCfM1mJb09bBRd3n/qH7RFmJ9wfieQ==&#x27;; script-src-attr &#x27;none&#x27;; style-src &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-elem &#x27;self&#x27; https://fonts.googleapis.com &#x27;sha512-VNEngmKMWZTFzMkTLL8G0lEFNcuy3l4xFBnmzZHAY9OOmbWtFOso7KLxEhMHioIH2fia0jgMu8f5NghRXrcZIw==&#x27; &#x27;sha512-QWKdm+XA6y6KZSP721Kiumbk5Ojt5bwfH/vh0BPSJiCzvigv+6ZUFTDaHSRAr/ssmXKLIJlJ4KH2/08cvStJGQ==&#x27; &#x27;sha512-YwsvdttvUdSesxhmjqrQcsFB+resVEqGqMVhKb8Lm9CB3JKdY7fL5I9aYZndA9MtiKzreYsTkHdy4qslXil/2A==&#x27; &#x27;sha512-mVofPsREGRyLD8kx4K16tlClpBidE1kkp1RRpnIM20nAeFv29WqC3auu3g7ei+WTYV+OokDhfU+agrSSXRxJXw==&#x27; &#x27;sha512-MyZ9NoEjFiqKEeHtOE0bkpYxA1FnA+3CfmRF7IrFojZS5t5Imktkh5hyB2pErOEz2cqOBQHgxXBu2v9OQ9VRjQ==&#x27; &#x27;sha512-yrendHlFT7fmkBWmLFUc2g/UwRVJtIkzQVXdnKx+8ybH/ur66A+gqIdokWmBpN7PnA7T5Cj9JgqyFtAvXd8skA==&#x27; &#x27;sha512-zJdE7jn4Zja99u//L33m46+HZvcgmBMFPOUEV/B6dvHvskxvOOSej3HyG9hlYa3KihYZKZjYJZa5LSWjc/8Haw==&#x27; &#x27;sha512-dDWZQ+omXvW27t52FapeU5UFjXqSCTHxBZpPGC2ztEP9NUXwXfRCoxUmCb+IR48NSu/IpvqXz4TSAvtHnPqVFQ==&#x27; &#x27;sha512-Y3qfAQ4qXVmZHvKJ32zhV1ee0XyH2xw4S5+gF5kutbNKF6ui31AGAWlV3LKlGUVyKc0mEpD02b/5G5mz7U20CA==&#x27; &#x27;sha512-W9ttnxbX8qgNMfTTqWQ5IZ/4agFnoYYJoTmvzQ903K54roAmOAguY8a6eVLEUkt4IZLGMVgc6oNDeivaV2UblA==&#x27; &#x27;sha512-8d1/SrmKu2gi3MEPu4Lb5U7EvGGHpjMvZLkBHyJh94365E7RgevL+vNjiX6cDPupz1c95X2VQgeEgn+BFjc/6g==&#x27; &#x27;sha512-BNt3/LwPTPIF7bOPx/IJ7iAkLDhbZyJgD0ckDKtqyo0NHgyZdz1Qk69Fl0RmkqbAxRuv7v9k3lcN0HtaULVWlQ==&#x27; &#x27;sha512-jSzDtLwIgkmWjxT2rXeLNKAN9zMRLnZYn1H7Vw7IIzIzjjvgDwBSHbWT329vS6T4bPaNCfzKGo0TSGxytQsEPQ==&#x27; &#x27;sha512-kxGq6Ij3n0NyNrqwPUIyufrVBv5rJ6rqzB19sxbNIei2+yXvnk1Fa55nIx7bggoHjM8GRsh6C2lKzh7HIZF1+w==&#x27;; style-src-attr &#x27;none&#x27;; font-src &#x27;self&#x27; https://fonts.gstatic.com data:; img-src &#x27;self&#x27; data: https: blob:; connect-src &#x27;self&#x27; https://diracgroup.store https://www.diracgroup.store; object-src &#x27;none&#x27;; base-uri &#x27;self&#x27;; form-action &#x27;self&#x27;; frame-src &#x27;none&#x27;; child-src &#x27;self&#x27; blob:; frame-ancestors &#x27;none&#x27;; worker-src &#x27;self&#x27; blob:; manifest-src &#x27;self&#x27;; media-src &#x27;self&#x27; data:">
+  <!-- DIRAC STRICT STORAGE + GATE NOTE:
+       localStorage hanya untuk dirac_global_accent_v1 dan dirac_global_language_v1.
+       Halaman hanya dibuka setelah backend memvalidasi login + A2F aktif + HttpOnly Secure cookie melalui credentials:include.
+       Frontend tidak membaca cookie HttpOnly dan tidak menyimpan auth/session/token di storage. -->
   <!-- DIRAC GLOBAL PRODUCTION HEADER NOTE:
        Keep this HTML visual/UI unchanged. For production, also set these as real HTTP response headers:
        Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff,
@@ -3219,7 +3233,7 @@ html[data-motion="off"] *{
 
 
     function redirectToLogin(reason = 'not_verified') {
-      try { sessionStorage.setItem('dirac_security_redirect_reason', reason); } catch (_) {}
+      // No sessionStorage/localStorage marker is written. Backend HttpOnly Secure cookie is the only auth source.
       const overlay = document.createElement('div');
       overlay.className = 'gate-lock';
       const card = document.createElement('div');
@@ -3234,10 +3248,25 @@ html[data-motion="off"] *{
       setTimeout(() => { window.location.replace(safeInternalPage(CONFIG.loginUrl || CONFIG.loginPage || '/masuk.html', 'masuk.html')); }, CONFIG.gateRedirectDelayMs || 500);
     }
 
+    function hasStrictCustomerSecurityGate(data) {
+      if (!data || typeof data !== 'object') return false;
+      const loginOk = data.login_valid === true || data.logged_in === true || data.authenticated === true || data.session_valid === true || Boolean(data.user);
+      const a2fOk = data.mfa_active_now === true || data.a2f_active === true || data.mfa_active === true || (data.mfa && data.mfa.active === true);
+      const cookieOk = data.cookie_http_only_secure === true || data.httponly_cookie_secure === true || data.http_only_secure_cookie === true || data.secure_httponly_cookie === true || data.backend_http_only_secure_cookie === true || data.session_cookie_http_only_secure === true || data.cookie_mode === 'httponly_secure' || data.cookie_mode === 'http_only_secure' || (data.cookie_http_only === true && data.cookie_secure === true) || (data.cookie_httponly === true && data.cookie_secure === true) || (data.session_cookie_http_only === true && data.session_cookie_secure === true) || (data.cookie && (data.cookie.httpOnly === true || data.cookie.httponly === true || data.cookie.http_only === true) && data.cookie.secure === true);
+      return Boolean(loginOk && a2fOk && cookieOk && data.linked === true && data.guarded_actions_ready === true && isSecureContextForGate());
+    }
+
+    function isSecureContextForGate() {
+      try {
+        const host = String(window.location && window.location.hostname || '').toLowerCase();
+        return (window.location && window.location.protocol === 'https:') || host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      } catch (_) { return false; }
+    }
+
     async function runSecurityGate() {
       const result = await safeFetchJson(CONFIG.guardStatusAction);
-      if (!result.ok || !(result.data && result.data.linked === true && result.data.guarded_actions_ready === true && result.data.mfa_active_now === true)) {
-        redirectToLogin(result.status === 423 ? 'blocked' : 'backend_mfa_not_verified');
+      if (!result.ok || !hasStrictCustomerSecurityGate(result.data)) {
+        redirectToLogin(result.status === 423 ? 'blocked' : 'login_a2f_cookie_required');
         return false;
       }
       return true;
@@ -3476,7 +3505,7 @@ html[data-motion="off"] *{
 <script id="dirac-backend-only-auth-storage-purge-js">
 (function(){
   'use strict';
-  // PATCH 3A: hapus sisa token/auth lama di browser. Theme, bahasa, cart, dan UI non-auth tidak disentuh.
+  // PATCH STRICT: hapus sisa token/auth lama. localStorage hanya boleh menyisakan warna dan bahasa.
   var keys = [
     'dirac_auth_session_v1',
     'dirac_auth_a2f_v1',
@@ -3669,6 +3698,32 @@ html[data-motion="off"] *{
     }
   }
 
+  function hasBackendHttpOnlySecureCookieProof(data){
+    /* Browser JS cannot read an HttpOnly cookie by design.
+       This strict gate only trusts backend proof returned after fetch(credentials:'include'). */
+    var cookie = data && (data.cookie || data.session_cookie || data.auth_cookie || data.security_cookie || data.backend_cookie);
+    var transport = String((data && (data.auth_transport || data.session_transport || data.cookie_transport || data.session_source)) || '').toLowerCase();
+    return !!(
+      data &&
+      (
+        data.cookie_http_only_secure === true ||
+        data.httponly_cookie_secure === true ||
+        data.http_only_secure_cookie === true ||
+        data.secure_httponly_cookie === true ||
+        data.backend_http_only_secure_cookie === true ||
+        data.session_cookie_http_only_secure === true ||
+        data.cookie_mode === 'httponly_secure' ||
+        data.cookie_mode === 'http_only_secure' ||
+        transport === 'httponly_secure_cookie' ||
+        transport === 'http_only_secure_cookie' ||
+        (data.cookie_http_only === true && data.cookie_secure === true) ||
+        (data.cookie_httponly === true && data.cookie_secure === true) ||
+        (data.session_cookie_http_only === true && data.session_cookie_secure === true) ||
+        (cookie && (cookie.httpOnly === true || cookie.httponly === true || cookie.http_only === true) && cookie.secure === true)
+      )
+    );
+  }
+
   function isStrictVerifiedSessionPayload(data){
     var user = data && data.user;
     var mfa = data && data.mfa;
@@ -3679,7 +3734,9 @@ html[data-motion="off"] *{
       user &&
       (user.id || user.email) &&
       mfa &&
-      mfa.active === true
+      mfa.active === true &&
+      isAllowedSecureContext() &&
+      hasBackendHttpOnlySecureCookieProof(data)
     );
   }
 
