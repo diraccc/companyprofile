@@ -1541,6 +1541,36 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 .dashboard-notification-row strong{display:block;color:#fff;font-size:.9rem}.dashboard-notification-row small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}
 @media(max-width:760px){.dashboard-notification-row{grid-template-columns:38px 1fr}.dashboard-notification-row .app-chip{grid-column:2}}
 </style>
+
+<style id="dirac-global-product-polish-css">
+/* Global product polish: cosmetic and readability only. No login, hash, A2F, payment, cookie, or gateway logic changed. */
+.app-suite .app-panel,.app-suite .app-service,.app-suite .app-metric{border-radius:28px}
+.app-suite .app-card-title h2{letter-spacing:-.035em}
+.app-suite .app-card-title p,.app-suite .app-service p,.app-suite .app-metric p{line-height:1.5}
+.app-suite .app-link,.du-footer-btn{min-height:48px}
+.app-suite .app-chip{cursor:default;user-select:none}
+.app-suite .app-load-note{min-height:20px}
+.app-suite .app-service-foot .muted{font-size:.84rem}
+.dashboard-notification-row{min-height:86px}
+#dashboardNotificationList .app-empty{min-height:0}
+.du-card{min-height:96px}.du-copy small{line-height:1.32}
+@media(max-width:760px){
+  .app-suite .app-page-title h1{font-size:clamp(2.05rem,11vw,3.4rem)}
+  .app-suite .app-page-title p,.app-suite .app-card-title p{font-size:.96rem}
+  .dirac-video-hero{margin-top:12px}
+  .dirac-video-frame{max-height:280px}
+  .dirac-security-marquee-card{padding:10px 0}
+  .app-suite .app-service,.app-suite .app-panel{padding:20px}
+  .app-suite .app-service p{font-size:.98rem}
+  .app-service-tags{gap:8px}
+  .app-suite .app-link{width:100%;justify-content:center}
+  .dirac-floating-actions{right:14px;bottom:calc(82px + env(safe-area-inset-bottom))}
+}
+@media(max-width:430px){
+  .du-footer{gap:10px}.du-footer-btn{min-height:54px}
+  .du-card{min-height:92px}.du-icon{width:54px;height:54px}.du-copy strong{font-size:1.02rem}
+}
+</style>
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
@@ -1645,8 +1675,8 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
             <span class="app-muted-action" id="dashboardSyncState" aria-live="polite">Sinkron backend</span>
           </div>
           <div class="app-metrics" aria-label="Ringkasan angka layanan">
-            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🛍️</span><strong class="app-value" data-app-count="0" data-dashboard-count="orders" aria-live="polite">0</strong></div><h3>Pesanan aktif</h3><p>Belum ada pesanan parfum atau layanan yang sedang diproses.</p><div class="app-load-note"><span class="app-skeleton" style="width:72px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
-            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🚚</span><strong class="app-value" data-app-count="0" data-dashboard-count="shipments" aria-live="polite">0</strong></div><h3>Pengiriman</h3><p>Belum ada paket yang sedang dalam perjalanan.</p><div class="app-load-note"><span class="app-skeleton" style="width:74px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
+            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🛍️</span><strong class="app-value" data-app-count="0" data-dashboard-count="orders" aria-live="polite">…</strong></div><h3>Pesanan aktif</h3><p>Memuat pesanan aktif dari backend.</p><div class="app-load-note"><span class="app-skeleton" style="width:72px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
+            <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🚚</span><strong class="app-value" data-app-count="0" data-dashboard-count="shipments" aria-live="polite">…</strong></div><h3>Pengiriman</h3><p>Memuat data pengiriman dari backend.</p><div class="app-load-note"><span class="app-skeleton" style="width:74px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
             <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">🌐</span><strong class="app-value" data-app-count="0" data-dashboard-count="domains" aria-live="polite">0</strong></div><h3>Domain aktif</h3><p>Domain pelanggan akan muncul setelah layanan domain dibuat.</p><div class="app-load-note"><span class="app-skeleton" style="width:76px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
             <article class="app-metric"><div><div class="app-metric-top"><span class="app-iconbox">💻</span><strong class="app-value" data-app-count="0" data-dashboard-count="projects" aria-live="polite">0</strong></div><h3>Project website</h3><p>Progress website akan tampil ketika project berjalan.</p><div class="app-load-note"><span class="app-skeleton" style="width:70px"></span>Memuat ringkasan</div></div><div class="app-progress"><i style="--w:10%"></i></div></article>
           </div>
@@ -1682,7 +1712,7 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
             <article class="app-service" data-dashboard-service="domain" data-service-card data-keywords="domain renewal expired dns website"><div><div class="app-service-head"><span class="app-iconbox">🌐</span><span class="app-chip info">Belum ada domain</span></div><h3>Domain</h3><p>Lihat domain aktif, masa berlaku, renewal, dan kebutuhan pengelolaan domain.</p><div class="app-service-tags"><span class="app-tag">Digital</span><span class="app-tag">Renewal</span></div></div><div class="app-service-foot"><span class="muted">Admin</span><a class="app-link" href="domain.html">Kelola</a></div></article>
             <article class="app-service" data-dashboard-service="project" data-service-card data-keywords="project website development revisi desain maintenance"><div><div class="app-service-head"><span class="app-iconbox">💻</span><span class="app-chip info">Belum ada project</span></div><h3>Project Website</h3><p>Pantau pembuatan, pengembangan, revisi, approval, dan maintenance website.</p><div class="app-service-tags"><span class="app-tag">Progress</span><span class="app-tag">Revisi</span></div></div><div class="app-service-foot"><span class="muted">Konsultasi</span><a class="app-link" href="project-website.html">Buka</a></div></article>
             <article class="app-service" data-service-card data-keywords="cek resi tracking pengiriman kurir paket"><div><div class="app-service-head"><span class="app-iconbox">🚚</span><span class="app-chip info">Siap dicek</span></div><h3>Cek Resi</h3><p>Lacak paket dan bantu pelanggan mengetahui status pengiriman.</p><div class="app-service-tags"><span class="app-tag">Kurir</span><span class="app-tag">Tracking</span></div></div><div class="app-service-foot"><span class="muted">Pengiriman</span><button class="app-link" type="button" data-open-tracking>Cek</button></div></article>
-            <article class="app-service" data-dashboard-service="invoice" data-service-card data-keywords="invoice tagihan pembayaran bukti transfer kwitansi"><div><div class="app-service-head"><span class="app-iconbox">🧾</span><span class="app-chip wait" data-dashboard-invoice-chip>Memuat</span></div><h3>Invoice</h3><p>Cek tagihan, status pembayaran, bukti transfer, dan riwayat invoice.</p><div class="app-service-tags"><span class="app-tag">Pembayaran</span><span class="app-tag">Kwitansi</span></div></div><div class="app-service-foot"><span class="muted">Tagihan</span><a class="app-link" href="pesanan.html">Buka</a></div></article>
+            <article class="app-service" data-dashboard-service="invoice" data-service-card data-keywords="invoice tagihan pembayaran bukti transfer kwitansi"><div><div class="app-service-head"><span class="app-iconbox">🧾</span><span class="app-chip wait" data-dashboard-invoice-chip>Memuat</span></div><h3>Invoice</h3><p>Cek tagihan dan status pembayaran di halaman pesanan.</p><div class="app-service-tags"><span class="app-tag">Pembayaran</span><span class="app-tag">Kwitansi</span></div></div><div class="app-service-foot"><span class="muted">Tagihan</span><a class="app-link" href="pesanan.html">Buka pesanan</a></div></article>
             <article class="app-service wide" data-service-card data-keywords="tiket bantuan admin support masalah"><div><div class="app-service-head"><span class="app-iconbox">💬</span><span class="app-chip ok">Admin siap</span></div><h3>Tiket Bantuan</h3><p>Buka halaman tiket bantuan untuk kendala parfum, domain, website, pembayaran, dan pengiriman.</p><div class="app-service-tags"><span class="app-tag">Customer care</span><span class="app-tag">Tiket</span><span class="app-tag">Respons normal</span></div></div><div class="app-service-foot"><span class="muted">Bantuan</span><a class="app-link" href="tiket-bantuan.html">Buka tiket</a></div></article>
           </div>
         </section>
@@ -1779,9 +1809,9 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 <span class="du-copy"><strong>Detail Project</strong><small>Progres, revisi, file, persetujuan</small></span>
 <span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
 </a>
-<a class="du-card du-searchable" data-keyword="invoice semua tagihan" data-menu-i="10" href="pesanan.html">
+<a class="du-card du-searchable" data-keyword="invoice semua tagihan pesanan" data-menu-i="10" href="pesanan.html">
 <span class="du-icon"><svg fill="none" viewbox="0 0 24 24"><path d="M4 7h16v10H4V7Z" stroke="currentColor" stroke-linejoin="round" stroke-width="2"></path><path d="M7 11h4M7 15h2M15 15h2" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg></span>
-<span class="du-copy"><strong>Invoice</strong><small>Semua tagihan</small></span>
+<span class="du-copy"><strong>Invoice</strong><small>Tagihan di halaman pesanan</small></span>
 <span class="du-arrow"><svg fill="none" viewbox="0 0 24 24"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path></svg></span>
 </a>
 </div>
@@ -1825,7 +1855,7 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 </main>
 <footer class="du-footer">
 <button class="du-footer-btn secondary" data-close-menu="" type="button">Tutup</button>
-<button class="du-footer-btn primary" onclick="location.href='tiket-bantuan.html'" type="button">Admin</button>
+<a class="du-footer-btn primary" href="tiket-bantuan.html">Admin</a>
 </footer>
 <div aria-live="polite" class="du-toast" id="diracUltraMenuToast">Menu dibuka</div>
 </aside>
@@ -2656,13 +2686,14 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
     return hasPositiveAmount(item)&&!/(cancel|batal|failed|gagal|expired|refund)/.test(s);
   }
   function dueInvoiceCount(invoices,orders,summary){
+    /* Safe backend read only. Explicit zero from summary must not hide unpaid invoice/order rows. */
     var explicit=firstNumber(summary,['due_invoices','pending_invoices','unpaid_invoices','invoice_due_count','invoice_pending_count','invoice_unpaid_count','tagihan_tertunda','tagihan_belum_dibayar','unpaid_count','pending_bills']);
-    if(explicit!==null) return Math.max(0,parseInt(explicit,10)||0);
     var source=[];
     if(Array.isArray(invoices)&&invoices.length) source=source.concat(invoices);
     if(Array.isArray(orders)&&orders.length) source=source.concat(orders);
-    if(!source.length) return 0;
-    return source.filter(isDueInvoice).length;
+    var derived=source.length?source.filter(isDueInvoice).length:0;
+    if(explicit!==null) return Math.max(0,parseInt(explicit,10)||0,derived);
+    return derived;
   }
   function openTicketCount(tickets,summary){
     var explicit=firstNumber(summary,['open_tickets','ticket_open_count','pending_tickets','tickets_pending','tiket_terbuka','tiket_pending']);
@@ -2697,15 +2728,15 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
     txt($('#miniBillingStatus'),due>0?(due+' tertunda'):'Tidak ada tertunda');
     setChip($('[data-dashboard-attention-chip="invoice"]'),due>0?(due+' tagihan'):'Aman',due>0?'wait':'ok');
     txt($('[data-dashboard-attention-note="invoice"]'),due>0?('Ada '+due+' tagihan dari backend yang perlu dicek di halaman invoice.'):'Tidak ada tagihan tertunda dari backend.');
-    setChip($('[data-dashboard-status-chip="invoice"]'),due>0?(due+' tagihan'):'Beres',due>0?'wait':'ok');
+    setChip($('[data-dashboard-status-chip="invoice"]'),due>0?(due+' tagihan'):'Tidak ada',due>0?'wait':'ok');
     txt($('[data-dashboard-status-note="invoice"]'),due>0?('Ada '+due+' invoice tertunda. Buka halaman pesanan untuk detail tagihan.'):'Tidak ada invoice tertunda dari backend.');
     setChip($('[data-dashboard-attention-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');
     txt($('[data-dashboard-attention-note="domain"]'),counts.domains>0?('Ada '+counts.domains+' domain aktif pada akun ini.'):'Belum ada domain yang mendekati expired.');
     setChip($('[data-dashboard-status-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');
     txt($('[data-dashboard-status-note="domain"]'),counts.domains>0?('Ada '+counts.domains+' domain aktif dari backend.'):'Belum ada domain yang hampir expired.');
-    setChip($('[data-dashboard-attention-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Kosong',counts.projects>0?'info':'info');
+    setChip($('[data-dashboard-attention-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Tidak ada',counts.projects>0?'info':'ok');
     txt($('[data-dashboard-attention-note="project"]'),counts.projects>0?('Ada '+counts.projects+' project website yang sedang berjalan.'):'Tidak ada approval website yang menunggu.');
-    setChip($('[data-dashboard-status-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Kosong',counts.projects>0?'info':'info');
+    setChip($('[data-dashboard-status-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Tidak ada',counts.projects>0?'info':'ok');
     txt($('[data-dashboard-status-note="project"]'),counts.projects>0?('Ada '+counts.projects+' project website aktif dari backend.'):'Belum ada desain atau website final yang menunggu persetujuan.');
     setChip($('[data-dashboard-attention-chip="ticket"]'),counts.tickets>0?(counts.tickets+' tiket'):'Aman',counts.tickets>0?'wait':'ok');
     txt($('[data-dashboard-attention-note="ticket"]'),counts.tickets>0?('Ada '+counts.tickets+' tiket bantuan terbuka.'):'Tidak ada tiket yang menunggu balasan.');
@@ -2828,6 +2859,9 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
     updateServiceStatuses(counts);
     var connected=!!(summaryResp||ordersResp||invoicesResp||shipmentsResp||domainsResp||projectsResp||ticketsResp||notificationsResp);
     renderNotifications(notifications,counts,connected);
+    if(!connected){
+      $$('.app-load-note').forEach(function(note){txt(note,'Backend belum merespons. Coba refresh.');});
+    }
     setSync(connected?'Sinkron backend':'Backend belum mengirim ringkasan',connected?'ready':'warning');
     window.diracDashboardSummary={counts:counts,orders:orders.length,invoices:invoices.length,shipments:shipments.length,domains:domains.length,projects:projects.length,tickets:tickets.length,notifications:notifications.length,source:{summary:summaryResp&&summaryResp.url,orders:ordersResp&&ordersResp.url,invoices:invoicesResp&&invoicesResp.url,shipments:shipmentsResp&&shipmentsResp.url,domains:domainsResp&&domainsResp.url,projects:projectsResp&&projectsResp.url,tickets:ticketsResp&&ticketsResp.url,notifications:notificationsResp&&notificationsResp.url}};
   }
@@ -2885,7 +2919,7 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
   'use strict';
   var SECURITY_VERSION='dirac-dashboard-client-hardening-v21-backend-verified-2026-06-04';
   var ALLOWED_HOSTS={};
-  [location.hostname,'diracgroup.store','www.diracgroup.store','wa.me','api.tiket.com'].forEach(function(h){if(h) ALLOWED_HOSTS[String(h).toLowerCase()]=true;});
+  [location.hostname,'diracgroup.store','www.diracgroup.store','api.tiket.com'].forEach(function(h){if(h) ALLOWED_HOSTS[String(h).toLowerCase()]=true;});
   var BLOCKED_PROTOCOLS=/^(javascript|data|vbscript|file):$/i;
   var lastSubmitAt={};
   function setText(el,value){if(el) el.textContent=String(value==null?'':value)}
