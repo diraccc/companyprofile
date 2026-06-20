@@ -8531,9 +8531,15 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 (function(){
   'use strict';
 
-  // Semua aktivitas katalog dan checkout website toko lewat backend.
-  // Tidak ada SUPABASE_URL, SUPABASE_ANON_KEY, atau REST Supabase di HTML ini.
-  const DIRAC_BACKEND_ENDPOINT = 'https://companyprofilee-expk.vercel.app/api/health';
+  // Katalog dan checkout tetap lewat Vercel backend yang menyimpan service role key.
+  // Service role key TIDAK ditaruh di HTML/browser.
+  const DIRAC_BACKEND_ENDPOINTS = Array.from(new Set([
+    window.DIRAC_BACKEND_ENDPOINT,
+    'https://companyprofilee-expk.vercel.app/api/storefront',
+    'https://companyprofilee-expk.vercel.app/api/products',
+    'https://companyprofilee-expk.vercel.app/api/orders',
+    'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish'
+  ].filter(Boolean)));
 
   function cleanText(value, fallback){
     const text = String(value ?? '').trim();
@@ -8552,20 +8558,75 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     return true;
   }
 
-  function backendPost(payload){
-    return fetch(DIRAC_BACKEND_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'omit',
-      cache: 'no-store',
-      body: JSON.stringify(payload || {})
-    }).then(async function(response){
-      const data = await response.json().catch(function(){ return null; });
-      if(!response.ok || !data || data.success === false){
-        throw new Error((data && (data.error || data.message)) || ('Backend HTTP ' + response.status));
+  async function parseBackendResponse(response){
+    const text = await response.text().catch(function(){ return ''; });
+    let data = null;
+    try{ data = text ? JSON.parse(text) : null; }catch(error){ data = { raw:text }; }
+    if(!response.ok){
+      throw new Error((data && (data.error || data.message)) || ('HTTP ' + response.status));
+    }
+    return data;
+  }
+
+  async function backendPost(payload){
+    let lastError = null;
+    for(const endpoint of DIRAC_BACKEND_ENDPOINTS){
+      try{
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'omit',
+          cache: 'no-store',
+          body: JSON.stringify(payload || {})
+        });
+        const data = await parseBackendResponse(response);
+        if(data && data.success === false){
+          throw new Error(data.error || data.message || 'Backend success=false');
+        }
+        return data;
+      }catch(error){
+        lastError = error;
       }
-      return data;
-    });
+    }
+    throw lastError || new Error('Semua endpoint backend gagal.');
+  }
+
+  async function backendGet(action, params){
+    let lastError = null;
+    for(const endpoint of DIRAC_BACKEND_ENDPOINTS){
+      try{
+        const url = new URL(endpoint, window.location.href);
+        url.searchParams.set('action', action);
+        Object.entries(params || {}).forEach(function(entry){
+          if(entry[1] !== undefined && entry[1] !== null) url.searchParams.set(entry[0], entry[1]);
+        });
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          credentials: 'omit',
+          cache: 'no-store'
+        });
+        const data = await parseBackendResponse(response);
+        if(data && data.success === false){
+          throw new Error(data.error || data.message || 'Backend success=false');
+        }
+        return data;
+      }catch(error){
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('Semua endpoint backend gagal.');
+  }
+
+  function pickProductList(data){
+    if(Array.isArray(data)) return data;
+    if(!data || typeof data !== 'object') return [];
+    if(Array.isArray(data.products)) return data.products;
+    if(Array.isArray(data.data)) return data.data;
+    if(Array.isArray(data.items)) return data.items;
+    if(data.result && Array.isArray(data.result.products)) return data.result.products;
+    if(data.result && Array.isArray(data.result.data)) return data.result.data;
+    if(data.payload && Array.isArray(data.payload.products)) return data.payload.products;
+    return [];
   }
 
   function normalizeBackendProduct(row, index){
@@ -8625,21 +8686,23 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     try{ if(typeof renderProducts === 'function') renderProducts({ keepFilterLimit:true }); }catch(error){}
     try{ if(typeof renderCart === 'function') renderCart(); }catch(error){}
     try{ if(typeof refreshDiracCurrencyStaticText === 'function') refreshDiracCurrencyStaticText(document.body || document); }catch(error){}
-    try{ if(typeof showToast === 'function') showToast('Katalog backend aktif: ' + count + ' produk.'); }catch(error){}
+    try{ if(typeof showToast === 'function') showToast('Katalog database aktif: ' + count + ' produk.'); }catch(error){}
   }
 
   async function backendFetchProducts(){
-    const data = await backendPost({
-      action: 'publicReadProducts',
-      limit: 5000
-    });
+    let data;
+    try{
+      data = await backendPost({ action: 'publicReadProducts', limit: 5000 });
+    }catch(error){
+      data = await backendGet('publicReadProducts', { limit: 5000 });
+    }
 
-    const list = Array.isArray(data.products) ? data.products : [];
+    const list = pickProductList(data);
     const next = list.map(normalizeBackendProduct).filter(function(item){
       return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
     });
 
-    if(!next.length) throw new Error('Produk backend kosong. Fallback katalog lokal tetap dipakai.');
+    if(!next.length) throw new Error('Produk database kosong atau response backend tidak berisi products/data/items.');
 
     products = next;
     window.diracBackendProductsLoaded = true;
@@ -8702,7 +8765,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       email: '',
       address: snap.address,
       note: snap.note,
-      source: 'order1.html',
+      source: 'order.html',
       createdAt: snap.now,
       createdAtMs: Date.now()
     };
@@ -8729,7 +8792,7 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       status: 'Menunggu Konfirmasi',
       courier: typeof diracShippingLabel === 'function' ? diracShippingLabel(shippingMode) : String(shippingMode || ''),
       note: snap.note,
-      source: 'order1.html',
+      source: 'order.html',
       createdAt: snap.now,
       createdAtMs: Date.now()
     };
@@ -8741,8 +8804,8 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       items: snap.items
     });
 
-    window.diracLastBackendOrderId = data.orderId || snap.orderId;
-    return data.orderId || snap.orderId;
+    window.diracLastBackendOrderId = data && (data.orderId || data.order_id) || snap.orderId;
+    return window.diracLastBackendOrderId;
   }
 
   function installBackendCheckoutCapture(){
@@ -8768,10 +8831,10 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 
         try{
           await saveCheckoutToBackend(text);
-          if(typeof showToast === 'function') showToast('Pesanan tersimpan lewat backend. WhatsApp dibuka.');
+          if(typeof showToast === 'function') showToast('Pesanan tersimpan ke database. WhatsApp dibuka.');
         }catch(error){
           console.warn('Backend order insert gagal, WhatsApp tetap dibuka:', error);
-          if(typeof showToast === 'function') showToast('WhatsApp dibuka. Backend belum tersimpan: ' + (error.message || error));
+          if(typeof showToast === 'function') showToast('WhatsApp dibuka. Database belum tersimpan: ' + (error.message || error));
         }
 
         window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
@@ -8786,8 +8849,8 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   function startBackendStorefront(){
     installBackendCheckoutCapture();
     backendFetchProducts().catch(function(error){
-      console.warn('Gagal memuat katalog lewat backend:', error);
-      try{ if(typeof showToast === 'function') showToast('Backend belum terbaca, katalog lokal tetap dipakai.'); }catch(e){}
+      console.warn('Gagal memuat katalog lewat backend Vercel:', error);
+      try{ if(typeof showToast === 'function') showToast('Database belum terbaca dari Vercel, katalog lokal tetap dipakai.'); }catch(e){}
     });
   }
 
