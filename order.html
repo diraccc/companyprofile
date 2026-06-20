@@ -8531,14 +8531,14 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 (function(){
   'use strict';
 
-  // Katalog dan checkout tetap lewat Vercel backend yang menyimpan service role key.
-  // Service role key TIDAK ditaruh di HTML/browser.
+  // Katalog + checkout tetap lewat backend Vercel.
+  // Service role key tetap di Vercel/server, TIDAK ditaruh di HTML.
+  // Prioritas pertama: endpoint same-origin supaya tidak kena CORS jika halaman dan API ada di domain yang sama.
   const DIRAC_BACKEND_ENDPOINTS = Array.from(new Set([
     window.DIRAC_BACKEND_ENDPOINT,
-    'https://companyprofilee-expk.vercel.app/api/storefront',
-    'https://companyprofilee-expk.vercel.app/api/products',
-    'https://companyprofilee-expk.vercel.app/api/orders',
-    'https://companyprofilee-expk.vercel.app/api/2fa/passkey-auth-finish'
+    window.DIRAC_STORE_ENDPOINT,
+    '/api/health',
+    'https://companyprofilee-expk.vercel.app/api/health'
   ].filter(Boolean)));
 
   function cleanText(value, fallback){
@@ -8558,104 +8558,111 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     return true;
   }
 
-  async function parseBackendResponse(response){
+  function withTimeout(promise, ms){
+    return new Promise(function(resolve, reject){
+      const timer = setTimeout(function(){ reject(new Error('timeout')); }, ms || 9000);
+      Promise.resolve(promise).then(function(value){ clearTimeout(timer); resolve(value); }, function(error){ clearTimeout(timer); reject(error); });
+    });
+  }
+
+  async function parseResponse(response){
     const text = await response.text().catch(function(){ return ''; });
     let data = null;
     try{ data = text ? JSON.parse(text) : null; }catch(error){ data = { raw:text }; }
     if(!response.ok){
       throw new Error((data && (data.error || data.message)) || ('HTTP ' + response.status));
     }
+    if(data && data.success === false){
+      throw new Error(data.error || data.message || 'success=false');
+    }
+    if(data && data.ok === false){
+      throw new Error(data.error || data.message || 'ok=false');
+    }
     return data;
   }
 
-  async function backendPost(payload){
-    let lastError = null;
-    for(const endpoint of DIRAC_BACKEND_ENDPOINTS){
-      try{
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'omit',
-          cache: 'no-store',
-          body: JSON.stringify(payload || {})
-        });
-        const data = await parseBackendResponse(response);
-        if(data && data.success === false){
-          throw new Error(data.error || data.message || 'Backend success=false');
-        }
-        return data;
-      }catch(error){
-        lastError = error;
-      }
-    }
-    throw lastError || new Error('Semua endpoint backend gagal.');
+  function endpointUrl(endpoint, params){
+    const url = new URL(endpoint, window.location.href);
+    Object.entries(params || {}).forEach(function(entry){
+      if(entry[1] !== undefined && entry[1] !== null) url.searchParams.set(entry[0], entry[1]);
+    });
+    return url.toString();
   }
 
-  async function backendGet(action, params){
-    let lastError = null;
-    for(const endpoint of DIRAC_BACKEND_ENDPOINTS){
-      try{
-        const url = new URL(endpoint, window.location.href);
-        url.searchParams.set('action', action);
-        Object.entries(params || {}).forEach(function(entry){
-          if(entry[1] !== undefined && entry[1] !== null) url.searchParams.set(entry[0], entry[1]);
-        });
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          credentials: 'omit',
-          cache: 'no-store'
-        });
-        const data = await parseBackendResponse(response);
-        if(data && data.success === false){
-          throw new Error(data.error || data.message || 'Backend success=false');
-        }
-        return data;
-      }catch(error){
-        lastError = error;
-      }
+  async function requestJson(endpoint, method, payload, params){
+    const opt = {
+      method: method,
+      credentials: 'omit',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', 'Accept':'application/json' }
+    };
+    if(method !== 'GET') opt.body = JSON.stringify(payload || {});
+    return parseResponse(await withTimeout(fetch(endpointUrl(endpoint, params), opt), 9000));
+  }
+
+  function unwrap(value){
+    if(!value) return value;
+    if(typeof value === 'string'){
+      try{ return JSON.parse(value); }catch(e){ return value; }
     }
-    throw lastError || new Error('Semua endpoint backend gagal.');
+    return value;
   }
 
   function pickProductList(data){
+    data = unwrap(data);
     if(Array.isArray(data)) return data;
     if(!data || typeof data !== 'object') return [];
-    if(Array.isArray(data.products)) return data.products;
-    if(Array.isArray(data.data)) return data.data;
-    if(Array.isArray(data.items)) return data.items;
-    if(data.result && Array.isArray(data.result.products)) return data.result.products;
-    if(data.result && Array.isArray(data.result.data)) return data.result.data;
-    if(data.payload && Array.isArray(data.payload.products)) return data.payload.products;
+
+    const candidates = [
+      data.products,
+      data.data,
+      data.items,
+      data.rows,
+      data.list,
+      data.records,
+      data.result,
+      data.payload,
+      data.body,
+      data.response
+    ].map(unwrap);
+
+    for(const c of candidates){
+      if(Array.isArray(c)) return c;
+      if(c && typeof c === 'object'){
+        const nested = [c.products, c.data, c.items, c.rows, c.list, c.records].map(unwrap);
+        for(const n of nested){ if(Array.isArray(n)) return n; }
+      }
+    }
     return [];
   }
 
   function normalizeBackendProduct(row, index){
     row = row || {};
-    const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.id || String(index + 1).padStart(3, '0'));
+    const docId = cleanText(row.doc_id || row.docId || row.firebase_id || row.firebaseId || row.product_id || row.productId || row.id || String(index + 1).padStart(3, '0'));
     const numericId = toNumber(row.product_id || row.productId || row.sort_order || row.sortOrder || row.firebase_id || row.firebaseId || row.id || docId, index + 1);
-    const stock = toNumber(row.stock || row.stok, 1);
-    const status = cleanText(row.status || row.publishStatus || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
-    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl, '');
+    const stock = toNumber(row.stock || row.stok || row.qty || row.quantity, 1);
+    const status = cleanText(row.status || row.publish_status || row.publishStatus || (stock <= 0 ? 'sold' : 'ready'), 'ready').toLowerCase();
+    const image = cleanText(row.img || row.image || row.image_url || row.imageUrl || row.foto || row.photo_url || row.photoUrl || row.thumbnail || row.thumbnailUrl || row.cover, '');
 
     return {
       id: numericId || (index + 1),
       docId: docId,
       supabaseDocId: docId,
       firebaseId: cleanText(row.firebase_id || row.firebaseId || ''),
-      title: cleanText(row.title || row.name || row.nama || 'Produk Tanpa Nama'),
-      name: cleanText(row.name || row.title || row.nama || 'Produk Tanpa Nama'),
-      category: cleanText(row.category || row.kategori || 'Lokal'),
-      brand: cleanText(row.brand || row.merek || ''),
-      price: Math.max(0, Math.round(toNumber(row.price || row.harga, 0))),
+      title: cleanText(row.title || row.name || row.nama || row.product_name || row.productName || 'Produk Tanpa Nama'),
+      name: cleanText(row.name || row.title || row.nama || row.product_name || row.productName || 'Produk Tanpa Nama'),
+      category: cleanText(row.category || row.kategori || row.category_name || row.categoryName || 'Lokal'),
+      brand: cleanText(row.brand || row.merek || row.brand_name || row.brandName || ''),
+      price: Math.max(0, Math.round(toNumber(row.price || row.harga || row.amount || row.total, 0))),
       img: image,
-      desc: cleanText(row.desc || row.description || row.deskripsi || ''),
+      desc: cleanText(row.desc || row.description || row.deskripsi || row.short_description || row.shortDescription || ''),
       notes: cleanText(row.notes || row.catatan || ''),
       longDesc: cleanText(row.long_desc || row.longDesc || row.long_description || row.deskripsi_panjang || row.description || row.desc || ''),
-      status: status === 'hidden' || status === 'nonaktif' || status === 'inactive' || status === 'draft' || status === 'archived' || status === 'deleted' ? 'hidden' : (status === 'sold' || status === 'habis' ? 'sold' : 'ready'),
+      status: status === 'hidden' || status === 'nonaktif' || status === 'inactive' || status === 'draft' || status === 'archived' || status === 'deleted' ? 'hidden' : (status === 'sold' || status === 'habis' || stock <= 0 ? 'sold' : 'ready'),
       stock: Math.max(0, Math.round(stock)),
-      soldCount: Math.max(0, Math.round(toNumber(row.sold_count || row.soldCount || row['ter' + 'jual'], 0))),
+      soldCount: Math.max(0, Math.round(toNumber(row.sold_count || row.soldCount || row.terjual || row.sold, 0))),
       rating: Math.max(0, Math.min(5, toNumber(row.rating, 0))),
-      reviewCount: Math.max(0, Math.round(toNumber(row.review_count || row.reviewCount, 0))),
+      reviewCount: Math.max(0, Math.round(toNumber(row.review_count || row.reviewCount || row.reviews, 0))),
       isTopSeller: row.is_top_seller === true || row.isTopSeller === true || String(row.badge || '').toLowerCase().includes('top')
     };
   }
@@ -8680,35 +8687,59 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
     }
   }
 
-  function refreshCatalogAfterBackend(count){
+  function refreshCatalogAfterBackend(count, endpoint){
     try{ if(typeof loadCart === 'function') loadCart(); }catch(error){}
     try{ if(typeof renderCategoryOptions === 'function') renderCategoryOptions(); }catch(error){}
     try{ if(typeof renderProducts === 'function') renderProducts({ keepFilterLimit:true }); }catch(error){}
     try{ if(typeof renderCart === 'function') renderCart(); }catch(error){}
     try{ if(typeof refreshDiracCurrencyStaticText === 'function') refreshDiracCurrencyStaticText(document.body || document); }catch(error){}
+    window.diracBackendProductsLoaded = true;
+    window.diracBackendProductCount = count;
+    window.diracBackendEndpointActive = endpoint;
     try{ if(typeof showToast === 'function') showToast('Katalog database aktif: ' + count + ' produk.'); }catch(error){}
   }
 
-  async function backendFetchProducts(){
-    let data;
-    try{
-      data = await backendPost({ action: 'publicReadProducts', limit: 5000 });
-    }catch(error){
-      data = await backendGet('publicReadProducts', { limit: 5000 });
+  async function fetchProductsFromEndpoint(endpoint){
+    const attempts = [
+      function(){ return requestJson(endpoint, 'POST', { action:'publicReadProducts', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'POST', { action:'products', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'POST', { type:'products', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'POST', { resource:'products', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'GET', null, { action:'publicReadProducts', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'GET', null, { action:'products', limit:5000 }); },
+      function(){ return requestJson(endpoint, 'GET', null, { limit:5000 }); }
+    ];
+    let last = null;
+    for(const run of attempts){
+      try{
+        const data = await run();
+        const list = pickProductList(data);
+        if(list.length) return { data:data, list:list };
+        last = new Error('response tidak berisi array produk');
+      }catch(error){ last = error; }
     }
+    throw last || new Error('endpoint gagal');
+  }
 
-    const list = pickProductList(data);
-    const next = list.map(normalizeBackendProduct).filter(function(item){
-      return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
-    });
-
-    if(!next.length) throw new Error('Produk database kosong atau response backend tidak berisi products/data/items.');
-
-    products = next;
-    window.diracBackendProductsLoaded = true;
-    window.diracBackendProductCount = next.length;
-    enrichBackendProducts();
-    refreshCatalogAfterBackend(next.length);
+  async function backendFetchProducts(){
+    const errors = [];
+    for(const endpoint of DIRAC_BACKEND_ENDPOINTS){
+      try{
+        const result = await fetchProductsFromEndpoint(endpoint);
+        const next = result.list.map(normalizeBackendProduct).filter(function(item){
+          return item && item.title && item.price >= 0 && item.status !== 'hidden' && boolActive(item);
+        });
+        if(!next.length) throw new Error('produk kosong setelah normalisasi');
+        products = next;
+        enrichBackendProducts();
+        refreshCatalogAfterBackend(next.length, endpoint);
+        return;
+      }catch(error){
+        errors.push(endpoint + ' => ' + (error && error.message ? error.message : error));
+      }
+    }
+    window.diracBackendErrors = errors;
+    throw new Error(errors.slice(0, 5).join(' | '));
   }
 
   function slug(value, fallback){
@@ -8753,59 +8784,30 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
 
   async function saveCheckoutToBackend(orderText){
     const snap = buildCheckoutSnapshot(orderText);
-
     const customerPayload = {
-      docId: snap.customerDocId,
-      id: snap.customerDocId,
-      customerId: snap.customerDocId,
-      name: snap.name,
-      fullName: snap.name,
-      phone: snap.phone,
-      whatsapp: snap.phone,
-      email: '',
-      address: snap.address,
-      note: snap.note,
-      source: 'order.html',
-      createdAt: snap.now,
-      createdAtMs: Date.now()
+      docId: snap.customerDocId, id: snap.customerDocId, customerId: snap.customerDocId,
+      name: snap.name, fullName: snap.name, phone: snap.phone, whatsapp: snap.phone,
+      email: '', address: snap.address, note: snap.note, source: 'order.html', createdAt: snap.now, createdAtMs: Date.now()
     };
-
     const orderPayload = {
-      docId: snap.orderDocId,
-      id: snap.orderDocId,
-      orderId: snap.orderId,
-      customerId: snap.customerDocId,
-      customerName: snap.name,
-      customerPhone: snap.phone,
-      customerEmail: '',
-      phone: snap.phone,
-      email: '',
-      address: snap.address,
-      items: snap.items,
-      subtotal: Number(snap.t.sub || 0),
-      shippingCost: Number(snap.t.shipping || 0),
-      discount: Number(snap.t.discount || 0),
-      total: Number(snap.t.total || 0),
-      paymentMethod: snap.payment,
-      paymentStatus: 'Belum Bayar',
-      orderStatus: 'Menunggu Konfirmasi',
-      status: 'Menunggu Konfirmasi',
+      docId: snap.orderDocId, id: snap.orderDocId, orderId: snap.orderId,
+      customerId: snap.customerDocId, customerName: snap.name, customerPhone: snap.phone,
+      customerEmail: '', phone: snap.phone, email: '', address: snap.address, items: snap.items,
+      subtotal: Number(snap.t.sub || 0), shippingCost: Number(snap.t.shipping || 0), discount: Number(snap.t.discount || 0), total: Number(snap.t.total || 0),
+      paymentMethod: snap.payment, paymentStatus: 'Belum Bayar', orderStatus: 'Menunggu Konfirmasi', status: 'Menunggu Konfirmasi',
       courier: typeof diracShippingLabel === 'function' ? diracShippingLabel(shippingMode) : String(shippingMode || ''),
-      note: snap.note,
-      source: 'order.html',
-      createdAt: snap.now,
-      createdAtMs: Date.now()
+      note: snap.note, source: 'order.html', createdAt: snap.now, createdAtMs: Date.now()
     };
 
-    const data = await backendPost({
-      action: 'publicCreateOrder',
-      customer: customerPayload,
-      order: orderPayload,
-      items: snap.items
-    });
-
-    window.diracLastBackendOrderId = data && (data.orderId || data.order_id) || snap.orderId;
-    return window.diracLastBackendOrderId;
+    let last = null;
+    for(const endpoint of DIRAC_BACKEND_ENDPOINTS){
+      try{
+        const data = await requestJson(endpoint, 'POST', { action:'publicCreateOrder', customer:customerPayload, order:orderPayload, items:snap.items });
+        window.diracLastBackendOrderId = data && (data.orderId || data.order_id || data.id) || snap.orderId;
+        return window.diracLastBackendOrderId;
+      }catch(error){ last = error; }
+    }
+    throw last || new Error('gagal simpan order');
   }
 
   function installBackendCheckoutCapture(){
@@ -8814,7 +8816,6 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
       if(!btn || btn.dataset.backendHandling === 'true') return;
       event.preventDefault();
       event.stopImmediatePropagation();
-
       try{
         if(!cart || !cart.length){ if(typeof showToast === 'function') showToast(diracTranslateCopy('Keranjang kosong.')); return; }
         if(typeof bindCheckoutValidation === 'function') bindCheckoutValidation();
@@ -8823,20 +8824,17 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
           if(typeof showToast === 'function') showToast(diracTranslateCopy('Lengkapi data wajib sebelum kirim ke WhatsApp.'));
           return;
         }
-
         const text = typeof buildOrderText === 'function' ? buildOrderText() : '';
         btn.dataset.backendHandling = 'true';
         btn.disabled = true;
         btn.classList.add('dirac-checkout-working');
-
         try{
           await saveCheckoutToBackend(text);
           if(typeof showToast === 'function') showToast('Pesanan tersimpan ke database. WhatsApp dibuka.');
         }catch(error){
-          console.warn('Backend order insert gagal, WhatsApp tetap dibuka:', error);
-          if(typeof showToast === 'function') showToast('WhatsApp dibuka. Database belum tersimpan: ' + (error.message || error));
+          console.warn('Database order insert gagal, WhatsApp tetap dibuka:', error);
+          if(typeof showToast === 'function') showToast('WhatsApp dibuka. Database belum tersimpan.');
         }
-
         window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
       }finally{
         btn.disabled = false;
@@ -8849,8 +8847,8 @@ html[data-effective-theme="light"] #diracPreNotice.is-open .dirac-pre-notice-car
   function startBackendStorefront(){
     installBackendCheckoutCapture();
     backendFetchProducts().catch(function(error){
-      console.warn('Gagal memuat katalog lewat backend Vercel:', error);
-      try{ if(typeof showToast === 'function') showToast('Database belum terbaca dari Vercel, katalog lokal tetap dipakai.'); }catch(e){}
+      console.warn('Gagal memuat katalog database lewat Vercel:', error, window.diracBackendErrors || []);
+      try{ if(typeof showToast === 'function') showToast('Database belum terbaca dari /api/health.'); }catch(e){}
     });
   }
 
