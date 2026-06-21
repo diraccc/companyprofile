@@ -1544,9 +1544,8 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 
 <style id="dirac-service-search-live-results-css">
 /* Dashboard search repair: visual-only. Tidak menyentuh login, hash, A2F, cookie, payment gateway, atau backend write action. */
-.app-search-results{display:none;position:relative;z-index:40;margin-top:10px;border:1px solid rgba(var(--theme-rgb),.22);background:linear-gradient(180deg,rgba(15,23,42,.96),rgba(8,12,19,.94));border-radius:20px;padding:8px;box-shadow:0 18px 44px rgba(0,0,0,.28);}
+.app-search-results{display:none;margin-top:10px;border:1px solid rgba(var(--theme-rgb),.22);background:linear-gradient(180deg,rgba(15,23,42,.96),rgba(8,12,19,.94));border-radius:20px;padding:8px;box-shadow:0 18px 44px rgba(0,0,0,.28);}
 .app-search-results.show{display:grid;gap:7px;}
-.app-welcome-card.search-open{overflow:visible!important;}
 .app-search-result{width:100%;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.055);color:#eef6ff;border-radius:16px;padding:10px 11px;display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;text-align:left;font-weight:900;transition:.18s var(--motion-ease);}
 .app-search-result:hover,.app-search-result:focus-visible{outline:0;border-color:var(--line-strong);background:rgba(var(--theme-rgb),.13);transform:translateY(-1px);}
 .app-search-result small{display:block;color:var(--muted);font-weight:700;margin-top:1px;font-size:.74rem;line-height:1.35;}
@@ -1554,6 +1553,17 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 .app-service.is-search-hidden{display:none!important;}
 .app-service.is-search-match{border-color:rgba(var(--theme-rgb),.38)!important;box-shadow:0 22px 54px rgba(0,0,0,.30),0 0 0 1px rgba(var(--theme-rgb),.08) inset!important;}
 @media(max-width:760px){.app-search-results{border-radius:18px}.app-search-result{grid-template-columns:30px 1fr auto;padding:9px 10px}}
+</style>
+
+<style id="dirac-dashboard-owner-tagihan-float-fix-css">
+/* Safe UX patch: turunkan tombol ↑ dan ? sedikit di mobile tanpa menyentuh login, hash, A2F, payment, email, atau keamanan. */
+@media(max-width:760px){
+  .dirac-floating-actions{bottom:calc(56px + env(safe-area-inset-bottom))!important;right:14px!important;gap:10px!important}
+  .dirac-float-btn{width:50px!important;height:50px!important}
+}
+@media(max-width:430px){
+  .dirac-floating-actions{bottom:calc(52px + env(safe-area-inset-bottom))!important;right:12px!important}
+}
 </style>
 </head>
 <body class="gate-locked gate-checking">
@@ -2510,24 +2520,13 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
       wrap.classList.toggle('offline',!online);
       setText(text,online?'Online':'Offline');
     }
-    var SERVICE_SEARCH_FALLBACKS=[
-      {label:'Domain Saya',desc:'Daftar dan masa aktif domain pelanggan',href:'domain.html',icon:'🌐',keywords:'domain renewal dns hosting'},
-      {label:'Project Website',desc:'Pantau progress website dan approval',href:'project-website.html',icon:'💻',keywords:'project website revisi approval maintenance'},
-      {label:'Cek Resi',desc:'Lacak pengiriman parfum atau paket',href:'detail-parfum.html',icon:'🚚',keywords:'resi pengiriman paket tracking'},
-      {label:'Parfum',desc:'Lihat katalog parfum',href:'parfum.html',icon:'🛍️',keywords:'parfum perfume katalog produk utama belanja'},
-      {label:'Invoice',desc:'Tagihan dan pembayaran di halaman pesanan',href:'pesanan.html',icon:'🧾',keywords:'invoice tagihan bayar pembayaran unpaid pending pesanan parfum'},
-      {label:'Pesanan Saya',desc:'Semua transaksi pelanggan',href:'pesanan.html',icon:'📋',keywords:'pesanan order transaksi invoice'},
-      {label:'Tiket Bantuan',desc:'Buka bantuan admin',href:'tiket-bantuan.html',icon:'💬',keywords:'tiket bantuan admin support chat'},
-      {label:'Profil',desc:'Kelola data akun pelanggan',href:'profil.html',icon:'👤',keywords:'profil akun customer pelanggan'},
-      {label:'Pengaturan',desc:'Tema, bahasa, dan preferensi dashboard',href:'pengaturan.html',icon:'⚙️',keywords:'pengaturan setting tema bahasa warna'}
-    ];
     function normalizeSearch(v){
       return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
     }
     function searchUrlForCard(card){
       var link=card&&card.querySelector?card.querySelector('a[href],button[data-open-tracking]'):null;
       if(!link) return '#';
-      if(link.hasAttribute('data-open-tracking')) return 'detail-parfum.html';
+      if(link.hasAttribute('data-open-tracking')) return 'cekresi.html';
       return link.getAttribute('href')||'#';
     }
     function searchLabelForCard(card){
@@ -2551,65 +2550,40 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
       return box;
     }
     function escapeMini(v){return String(v==null?'':v).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
-    function cardToResult(card){return {label:searchLabelForCard(card),desc:searchDescForCard(card),href:searchUrlForCard(card),icon:(card.querySelector('.app-iconbox')||{}).textContent||'•',card:card};}
-    function fallbackMatches(tokens){
-      if(!tokens.length) return [];
-      return SERVICE_SEARCH_FALLBACKS.filter(function(item){
-        var hay=normalizeSearch([item.label,item.desc,item.href,item.keywords].join(' '));
-        return tokens.every(function(t){return hay.indexOf(t)>-1;});
-      });
-    }
-    function dedupeResults(results){
-      var seen=Object.create(null), out=[];
-      results.forEach(function(item){
-        var key=normalizeSearch((item.href||'')+' '+(item.label||''));
-        if(seen[key]) return;
-        seen[key]=true; out.push(item);
-      });
-      return out;
-    }
-    function renderSearchResults(results,q,input){
+    function renderSearchResults(matches,q,input){
       var box=ensureSearchResults(input);
-      var card=input&&input.closest?input.closest('.app-welcome-card'):null;
       if(!box) return;
       box.innerHTML='';
-      if(!q){box.classList.remove('show'); if(card) card.classList.remove('search-open'); return;}
-      if(!results.length){
-        var empty=document.createElement('div');
-        empty.className='app-search-result';
-        empty.innerHTML='<span>⌕</span><span>Tidak ada hasil<small>Coba kata: invoice, pesanan, parfum, domain, resi, project.</small></span><span class="go">•</span>';
-        box.appendChild(empty);
-      }else{
-        results.slice(0,7).forEach(function(item){
-          var a=document.createElement('a');
-          a.className='app-search-result';
-          a.href=item.href||'#';
-          a.innerHTML='<span>'+escapeMini(item.icon||'•')+'</span><span>'+escapeMini(item.label||'Layanan')+'<small>'+escapeMini(item.desc||'Buka halaman terkait')+'</small></span><span class="go">›</span>';
-          box.appendChild(a);
-        });
-      }
-      box.classList.add('show');
-      if(card) card.classList.add('search-open');
+      if(!q){box.classList.remove('show'); return;}
+      matches.slice(0,6).forEach(function(card){
+        var href=searchUrlForCard(card);
+        var a=document.createElement('a');
+        a.className='app-search-result';
+        a.href=href;
+        var icon=(card.querySelector('.app-iconbox')||{}).textContent||'•';
+        a.innerHTML='<span>'+escapeMini(icon)+'</span><span>'+escapeMini(searchLabelForCard(card))+'<small>'+escapeMini(searchDescForCard(card))+'</small></span><span class="go">›</span>';
+        box.appendChild(a);
+      });
+      box.classList.toggle('show',matches.length>0);
     }
     function filterServices(){
       var input=$('#serviceSearch'), cards=$$('[data-service-card]'), empty=$('#serviceNoResults'), count=$('#serviceCount');
-      if(!input) return;
+      if(!input||!cards.length) return;
       var q=normalizeSearch(input.value);
       var tokens=q?q.split(/\s+/).filter(Boolean):[];
-      var shown=0, matchedCards=[], results=[];
+      var shown=0, matches=[];
       cards.forEach(function(card){
         var hay=normalizeSearch(card.textContent+' '+(card.getAttribute('data-keywords')||''));
         var ok=!tokens.length||tokens.every(function(t){return hay.indexOf(t)>-1;});
         card.classList.toggle('is-search-hidden',!ok);
         card.classList.toggle('is-search-match',!!q&&ok);
         card.hidden=!ok;
-        if(ok){shown++; matchedCards.push(card); if(q) results.push(cardToResult(card));}
+        if(ok){shown++; matches.push(card);}
       });
-      if(q) results=dedupeResults(results.concat(fallbackMatches(tokens)));
       if(empty) empty.classList.toggle('show',shown===0&&!!q);
       if(count){var strong=count.querySelector('strong'), small=count.querySelector('small'); if(strong){setText(strong,shown); if(small) setText(small,'layanan');} else {setText(count,shown+' layanan');}}
-      renderSearchResults(results,q,input);
-      window.__diracServiceSearchMatches=results;
+      renderSearchResults(matches,q,input);
+      window.__diracServiceSearchMatches=matches;
     }
     document.addEventListener('DOMContentLoaded',function(){
       updateDate();
@@ -2623,8 +2597,7 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
           if(e.key!=='Enter') return;
           var matches=window.__diracServiceSearchMatches||[];
           if(!matches.length) return;
-          var first=matches[0]||{};
-          var href=first.href||(first.card?searchUrlForCard(first.card):'#');
+          var href=searchUrlForCard(matches[0]);
           if(href&&href!=='#'){
             e.preventDefault();
             window.location.href=href;
@@ -2643,38 +2616,34 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 <script id="dirac-dashboard-backend-summary-sync-js">
 (function(){
   'use strict';
-  /* Dashboard-only read sync. Tidak mengubah login, hash, A2F, cookie, payment gateway, email template, atau status pembayaran. */
+  /* Dashboard-only read sync. Owner-aware. Tidak mengubah login, hash, A2F, cookie, payment gateway, email template, atau status pembayaran. */
   var ENDPOINTS={
-    summary:['/api/health?action=dashboard_summary','/api/health?action=customer_summary','/api/health?action=dashboard','/api/dashboard/summary'],
-    orders:['/api/health?action=my_orders','/api/health?action=customer_orders','/api/health?action=pesanan_saya','/api/health?action=domain_orders','/api/orders'],
-    invoices:['/api/health?action=my_invoices','/api/health?action=customer_invoices','/api/health?action=invoices','/api/health?action=invoice_saya','/api/health?action=my_bills','/api/invoices','/api/invoice'],
-    shipments:['/api/health?action=my_shipments','/api/health?action=customer_shipments','/api/health?action=pengiriman_saya','/api/shipments'],
-    domains:['/api/health?action=my_domains','/api/health?action=customer_domains','/api/domains'],
-    projects:['/api/health?action=my_projects','/api/health?action=customer_projects','/api/projects'],
-    tickets:['/api/health?action=my_tickets','/api/health?action=customer_tickets','/api/health?action=tiket_bantuan','/api/tickets'],
-    notifications:['/api/health?action=my_notifications','/api/health?action=customer_notifications','/api/health?action=notifications','/api/health?action=notifikasi','/api/notifications']
+    me:['/api/health?action=domain_dashboard_me'],
+    summary:['/api/health?action=dashboard_summary','/api/health?action=customer_summary'],
+    orders:['/api/health?action=my_orders','/api/health?action=pesanan_saya'],
+    invoices:['/api/health?action=my_invoices','/api/health?action=invoice_saya','/api/health?action=my_bills'],
+    shipments:['/api/health?action=my_shipments','/api/health?action=pengiriman_saya'],
+    domains:['/api/health?action=my_domains'],
+    projects:['/api/health?action=my_projects'],
+    tickets:['/api/health?action=my_tickets','/api/health?action=tiket_bantuan'],
+    notifications:['/api/health?action=my_notifications','/api/health?action=notifikasi']
   };
   function $(s,r){return (r||document).querySelector(s)}
-  function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
   function txt(el,v){if(el) el.textContent=String(v==null?'':v)}
   function lower(v){return String(v==null?'':v).toLowerCase().trim()}
+  function clean(v){return String(v==null?'':v).trim()}
+  function norm(v){return lower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9@._-]+/g,'_').replace(/^_+|_+$/g,'')}
   function get(obj,key){return obj&&Object.prototype.hasOwnProperty.call(obj,key)?obj[key]:undefined}
+  function nested(obj,path){var cur=obj,parts=String(path).split('.');for(var i=0;i<parts.length;i++){if(!cur||typeof cur!=='object') return undefined;cur=cur[parts[i]];}return cur;}
   function numberValue(v){
     if(v===null||v===undefined||v==='') return null;
     if(typeof v==='number') return Number.isFinite(v)?v:null;
-    var raw=String(v).trim();
-    if(!raw) return null;
-    var cleaned=raw.replace(/[^0-9,.-]/g,'');
-    if(!cleaned) return null;
-    if(cleaned.indexOf(',')>-1&&cleaned.indexOf('.')>-1){
-      cleaned=cleaned.replace(/\./g,'').replace(',', '.');
-    }else if(cleaned.indexOf(',')>-1){
-      cleaned=cleaned.replace(',', '.');
-    }else if(/\.\d{3}(\D|$)/.test(cleaned)||/^\d{1,3}(\.\d{3})+$/.test(cleaned)){
-      cleaned=cleaned.replace(/\./g,'');
-    }
-    var n=Number(cleaned);
-    return Number.isFinite(n)?n:null;
+    var raw=String(v).trim(); if(!raw) return null;
+    var cleaned=raw.replace(/[^0-9,.-]/g,''); if(!cleaned) return null;
+    if(cleaned.indexOf(',')>-1&&cleaned.indexOf('.')>-1){cleaned=cleaned.replace(/\./g,'').replace(',', '.');}
+    else if(cleaned.indexOf(',')>-1){cleaned=cleaned.replace(',', '.');}
+    else if(/\.\d{3}(\D|$)/.test(cleaned)||/^\d{1,3}(\.\d{3})+$/.test(cleaned)){cleaned=cleaned.replace(/\./g,'');}
+    var n=Number(cleaned); return Number.isFinite(n)?n:null;
   }
   function boolFalse(v){return v===false||v===0||lower(v)==='false'||lower(v)==='0'||lower(v)==='no'}
   function boolTrue(v){return v===true||v===1||lower(v)==='true'||lower(v)==='1'||lower(v)==='yes'}
@@ -2698,10 +2667,15 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
     }
     return null;
   }
+  function currentUserFrom(data){var root=payloadRoot(data)||data||{};var user=(data&&data.user)||(root&&root.user)||(root&&root.customer)||(root&&root.profile)||null;return user&&typeof user==='object'&&(user.id||user.email||user.customer_id||user.user_id)?user:null;}
+  function userTokens(user){var tokens=[];if(!user||typeof user!=='object') return tokens;['id','user_id','customer_id','pelanggan_id','account_id','uid','email','customer_email','user_email','phone','whatsapp'].forEach(function(k){var v=nested(user,k);if(v!==undefined&&v!==null&&clean(v)!=='') tokens.push(norm(v));});return tokens.filter(Boolean);}
+  function ownerTokens(item){var keys=['user_id','customer_id','pelanggan_id','account_id','owner_id','uid','buyer_id','profile_id','email','customer_email','user_email','buyer_email','phone','whatsapp','customer.id','customer.email','user.id','user.email','buyer.id','buyer.email','profile.id','profile.email'];var tokens=[];if(!item||typeof item!=='object') return tokens;keys.forEach(function(k){var v=nested(item,k);if(v!==undefined&&v!==null&&clean(v)!=='') tokens.push(norm(v));});return tokens.filter(Boolean);}
+  function rootOwnerTokens(data){var root=payloadRoot(data)||data||{};var keys=['user_id','customer_id','pelanggan_id','account_id','owner_id','uid','id','email','customer_email','user_email','phone','whatsapp','user.id','user.email','customer.id','customer.email','profile.id','profile.email'];var tokens=[];if(!root||typeof root!=='object') return tokens;keys.forEach(function(k){var v=nested(root,k);if(v!==undefined&&v!==null&&clean(v)!=='') tokens.push(norm(v));});return tokens.filter(Boolean);}
+  function rootMatchesUser(data,user){var u=userTokens(user),r=rootOwnerTokens(data);if(!u.length||!r.length) return false;return r.some(function(v){return u.indexOf(v)>-1;});}
+  function filterOwner(list,user,sourceIsMine,rootData){if(!Array.isArray(list)||!list.length) return [];var u=userTokens(user);if(!u.length) return [];var withOwner=list.filter(function(item){return ownerTokens(item).length>0;});if(!withOwner.length) return (sourceIsMine&&rootMatchesUser(rootData,user))?list:[];return list.filter(function(item){var owns=ownerTokens(item);if(!owns.length) return sourceIsMine&&rootMatchesUser(rootData,user);return owns.some(function(v){return u.indexOf(v)>-1;});});}
   function extractArray(data,names){
     if(Array.isArray(data)) return data;
-    var root=payloadRoot(data);
-    if(Array.isArray(root)) return root;
+    var root=payloadRoot(data); if(Array.isArray(root)) return root;
     if(!root||typeof root!=='object') return [];
     for(var i=0;i<names.length;i++){
       var v=get(root,names[i]);
@@ -2731,288 +2705,95 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
     return [];
   }
   function firstNumber(data,names){
-    var root=payloadRoot(data);
-    if(!root||typeof root!=='object') return null;
+    var root=payloadRoot(data); if(!root||typeof root!=='object') return null;
     var containers=[root,root.summary,root.counts,root.metrics,root.totals,root.dashboard,root.invoice,root.invoices,root.billing,root.notifications,root.notifikasi];
     for(var c=0;c<containers.length;c++){
-      var box=containers[c];
-      if(!box||typeof box!=='object'||Array.isArray(box)) continue;
-      for(var i=0;i<names.length;i++){
-        var direct=numberValue(get(box,names[i]));
-        if(direct!==null) return direct;
-      }
+      var box=containers[c]; if(!box||typeof box!=='object'||Array.isArray(box)) continue;
+      for(var i=0;i<names.length;i++){var direct=numberValue(get(box,names[i])); if(direct!==null) return direct;}
     }
     return null;
   }
-  function activeOrderCount(list){
-    if(!Array.isArray(list)||!list.length) return 0;
-    var active=list.filter(function(order){
-      var status=lower(order.order_status||order.fulfillment_status||order.status||order.payment_status||order.invoice_status);
-      return !/(complete|completed|selesai|done|cancel|batal|failed|gagal|expired|refund)/.test(status);
-    }).length;
-    return active || list.length;
-  }
-  function shipmentCount(orders,shipments){
-    if(Array.isArray(shipments)&&shipments.length) return shipments.filter(function(s){
-      var status=lower(s.status||s.shipment_status||s.delivery_status);
-      return !/(delivered|terkirim|complete|completed|selesai|cancel|batal|failed|gagal)/.test(status);
-    }).length || shipments.length;
-    if(!Array.isArray(orders)) return 0;
-    return orders.filter(function(o){
-      return !!(o.tracking_number||o.resi||o.awb||o.airwaybill||o.courier_tracking||o.shipment_status||o.delivery_status);
-    }).length;
-  }
-  function countActive(list,statusKeys){
-    if(!Array.isArray(list)||!list.length) return 0;
-    return list.filter(function(item){
-      var s='';
-      for(var i=0;i<statusKeys.length;i++){s=lower(item[statusKeys[i]]); if(s) break;}
-      return !/(expired|nonaktif|inactive|cancel|batal|failed|gagal|complete|completed|selesai)/.test(s);
-    }).length || list.length;
-  }
-  function getStatus(item){return lower(item&&(
-    item.invoice_status||item.billing_status||item.payment_status||item.paymentStatus||item.status_pembayaran||item.status_tagihan||item.status||item.order_status||item.fulfillment_status
-  ));}
-  function hasPositiveAmount(item){
-    if(!item||typeof item!=='object') return false;
-    var keys=['amount_due','due_amount','unpaid_amount','remaining_amount','balance','sisa_tagihan','tagihan','total_due','grand_total','total','amount','total_price','order_total','subtotal','price','harga','nominal','total_payment','payment_amount','gross_amount','bill_amount','invoice_amount'];
-    for(var i=0;i<keys.length;i++){var n=numberValue(item[keys[i]]); if(n!==null&&n>0) return true;}
-    return false;
-  }
-  function normalizeStatusToken(v){
-    return lower(v).replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-  }
-  function statusFrom(item,keys){
-    if(!item||typeof item!=='object') return '';
-    for(var i=0;i<keys.length;i++){
-      var v=item[keys[i]];
-      if(v!==undefined&&v!==null&&String(v).trim()!=='') return normalizeStatusToken(v);
-    }
-    return '';
-  }
-  function isPaidStatusKey(key){
-    return ['paid','lunas','settled','settlement','success','sukses','capture','completed_payment','payment_success'].indexOf(key)>-1;
-  }
-  function isFinalBadStatusKey(key){
-    return ['failed','gagal','cancel','canceled','cancelled','batal','expired','expire','refund','refunded','deny','denied','void','closed_failed'].indexOf(key)>-1;
-  }
-  function isPendingPaymentStatusKey(key){
-    return ['unpaid','not_paid','belum_dibayar','belum_lunas','menunggu_pembayaran','menunggu_bayar','pending_payment','pending','awaiting_payment','waiting_payment','waiting_for_payment','waiting','awaiting','created','new','open','due','tertunda','tagihan','unsettled','unconfirmed'].indexOf(key)>-1;
-  }
+  function activeOrderCount(list){if(!Array.isArray(list)||!list.length) return 0;var active=list.filter(function(order){var status=lower(order.order_status||order.fulfillment_status||order.status||order.payment_status||order.invoice_status);return !/(complete|completed|selesai|done|cancel|batal|failed|gagal|expired|refund)/.test(status);}).length;return active||list.length;}
+  function shipmentCount(orders,shipments){if(Array.isArray(shipments)&&shipments.length) return shipments.filter(function(s){var status=lower(s.status||s.shipment_status||s.delivery_status);return !/(delivered|terkirim|complete|completed|selesai|cancel|batal|failed|gagal)/.test(status);}).length||shipments.length;if(!Array.isArray(orders)) return 0;return orders.filter(function(o){return !!(o.tracking_number||o.resi||o.awb||o.airwaybill||o.courier_tracking||o.shipment_status||o.delivery_status);}).length;}
+  function countActive(list,statusKeys){if(!Array.isArray(list)||!list.length) return 0;return list.filter(function(item){var s='';for(var i=0;i<statusKeys.length;i++){s=lower(item[statusKeys[i]]); if(s) break;}return !/(expired|nonaktif|inactive|cancel|batal|failed|gagal|complete|completed|selesai)/.test(s);}).length||list.length;}
+  function hasPositiveAmount(item){if(!item||typeof item!=='object') return false;var keys=['amount_due','due_amount','unpaid_amount','remaining_amount','balance','sisa_tagihan','tagihan','total_due','grand_total','total','amount','total_price','order_total','subtotal','price','harga','nominal','total_payment','payment_amount','gross_amount','bill_amount','invoice_amount'];for(var i=0;i<keys.length;i++){var n=numberValue(item[keys[i]]);if(n!==null&&n>0) return true;}return false;}
+  function statusKey(v){return lower(v).replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')}
+  function firstStatus(item,keys){if(!item||typeof item!=='object') return '';for(var i=0;i<keys.length;i++){var v=nested(item,keys[i]);if(v!==undefined&&v!==null&&clean(v)!=='') return statusKey(v);}return '';}
+  function isPaidStatus(k){return ['paid','lunas','settled','settlement','success','sukses','capture','completed_payment','payment_success','refunded'].indexOf(k)>-1}
+  function isBadStatus(k){return ['failed','gagal','cancel','canceled','cancelled','batal','expired','expire','refund','refunded','deny','denied','void','closed_failed'].indexOf(k)>-1}
+  function isPendingPayment(k){return ['unpaid','not_paid','belum_dibayar','belum_lunas','menunggu_pembayaran','menunggu_bayar','pending_payment','pending','awaiting_payment','waiting_payment','waiting_for_payment','waiting','awaiting','created','new','open','due','tertunda','tagihan','unsettled','unconfirmed','unknown',''].indexOf(k)>-1}
   function isDueInvoice(item){
     if(!item||typeof item!=='object') return false;
-    if(boolTrue(item.is_paid)||boolTrue(item.paid)||boolTrue(item.payment_completed)) return false;
+    var payment=firstStatus(item,['payment_status','paymentStatus','status_pembayaran','billing_status','invoice_status','status_tagihan']);
+    var invoice=firstStatus(item,['invoice_status','billing_status','status_tagihan']);
+    var order=firstStatus(item,['order_status','fulfillment_status','status_order','status']);
+    if(isPaidStatus(payment)||isPaidStatus(invoice)||boolTrue(item.is_paid)||boolTrue(item.paid)||boolTrue(item.payment_completed)) return false;
+    if(isBadStatus(payment)||isBadStatus(invoice)||isBadStatus(order)) return false;
+    if(item.payment_url||item.invoice_url||item.can_pay===true) return hasPositiveAmount(item)||isPendingPayment(payment)||boolFalse(item.is_paid)||boolFalse(item.paid);
     if(boolFalse(item.is_paid)||boolFalse(item.paid)||boolFalse(item.payment_completed)) return true;
-
-    var payment=statusFrom(item,['payment_status','paymentStatus','status_pembayaran','billing_status','invoice_status','status_tagihan']);
-    var invoice=statusFrom(item,['invoice_status','billing_status','status_tagihan']);
-    var order=statusFrom(item,['order_status','fulfillment_status','status_order','status']);
-
-    if(isPaidStatusKey(payment)||isPaidStatusKey(invoice)) return false;
-    if(isFinalBadStatusKey(payment)||isFinalBadStatusKey(invoice)) return false;
-    if(isPendingPaymentStatusKey(payment)||isPendingPaymentStatusKey(invoice)) return true;
-
-    if(isFinalBadStatusKey(order)) return false;
-    if(isPendingPaymentStatusKey(order)&&!isPaidStatusKey(payment)&&!isPaidStatusKey(invoice)) return true;
-
-    /* Penting: jangan pakai regex paid biasa karena kata unpaid mengandung paid. */
-    var raw=lower([item.payment_status,item.paymentStatus,item.status_pembayaran,item.invoice_status,item.billing_status,item.status_tagihan,item.status,item.order_status,item.fulfillment_status,item.status_order,item.service_type,item.order_type,item.product_type,item.category].join(' '));
-    if(/(^|[^a-z])(unpaid|not paid|belum dibayar|belum lunas|menunggu pembayaran|menunggu bayar|pending payment|awaiting payment|waiting payment|waiting for payment|tertunda|tagihan|unsettled|unconfirmed)([^a-z]|$)/.test(raw)) return true;
-    if(/(^|[^a-z])(paid|lunas|settled|settlement|success|sukses)([^a-z]|$)/.test(raw)) return false;
-
-    return hasPositiveAmount(item);
+    if(isPendingPayment(payment)) return true;
+    if(!payment&&isPendingPayment(order)&&!isPaidStatus(payment)) return hasPositiveAmount(item);
+    var raw=lower([item.payment_status,item.paymentStatus,item.status_pembayaran,item.invoice_status,item.billing_status,item.status_tagihan,item.status,item.order_status,item.fulfillment_status,item.status_order].join(' '));
+    return /(^|[^a-z])(unpaid|not paid|belum dibayar|belum lunas|menunggu pembayaran|menunggu bayar|pending payment|awaiting payment|waiting payment|waiting for payment|tertunda|unsettled|unconfirmed)([^a-z]|$)/.test(raw)&&!isPaidStatus(payment)&&!isPaidStatus(invoice);
   }
-  function dueInvoiceCount(invoices,orders,summary){
-    var source=[];
-    if(Array.isArray(invoices)&&invoices.length) source=source.concat(invoices);
-    if(Array.isArray(orders)&&orders.length) source=source.concat(orders);
-    var calculated=source.length?source.filter(isDueInvoice).length:0;
-    var explicit=firstNumber(summary,['due_invoices','pending_invoices','unpaid_invoices','invoice_due_count','invoice_pending_count','invoice_unpaid_count','tagihan_tertunda','tagihan_belum_dibayar','unpaid_count','pending_bills','belum_dibayar','unpaid','pending_payment_count','pending_payment','unpaid_total_count','unpaid_order_count','orders_unpaid','order_unpaid_count','pesanan_belum_dibayar','perfume_unpaid','parfum_belum_dibayar']);
-    if(explicit!==null){
-      explicit=Math.max(0,parseInt(explicit,10)||0);
-      return Math.max(explicit,calculated);
-    }
-    return calculated;
-  }
-  function openTicketCount(tickets,summary){
-    var explicit=firstNumber(summary,['open_tickets','ticket_open_count','pending_tickets','tickets_pending','tiket_terbuka','tiket_pending']);
-    if(explicit!==null) return Math.max(0,parseInt(explicit,10)||0);
-    return countActive(tickets,['status','ticket_status','support_status']);
-  }
-  function setMetric(key,value,filledText,emptyText){
-    value=Math.max(0,parseInt(value||0,10)||0);
-    var el=$('[data-dashboard-count="'+key+'"]');
-    if(!el) return;
-    txt(el,value);
-    el.setAttribute('data-app-count',String(value));
-    var card=el.closest('.app-metric');
-    if(card){
-      var p=card.querySelector('p');
-      var note=card.querySelector('.app-load-note');
-      var bar=card.querySelector('.app-progress i');
-      if(p) txt(p,value>0?filledText(value):emptyText);
-      if(note) txt(note,value>0?'Tersambung ke backend':'Data backend belum tersedia');
-      if(bar) bar.style.setProperty('--w',Math.min(100,Math.max(12,value*24))+'%');
-      card.classList.toggle('has-backend-data',value>0);
-    }
-  }
-  function setChip(el,text,kind){
-    if(!el) return;
-    txt(el,text);
-    el.classList.remove('ok','wait','danger','info');
-    el.classList.add(kind||'info');
-  }
-  function updateAttention(counts){
-    var due=counts.invoices||0;
-    txt($('#miniBillingStatus'),due>0?(due+' tagihan belum dibayar'):'Tidak ada tagihan tertunda');
-    setChip($('[data-dashboard-attention-chip="invoice"]'),due>0?(due+' tagihan'):'Aman',due>0?'wait':'ok');
-    txt($('[data-dashboard-attention-note="invoice"]'),due>0?('Ada '+due+' tagihan belum dibayar. Buka pesanan untuk bayar atau cek detail.'):'Tidak ada tagihan tertunda dari backend. Buka pesanan untuk cek ulang.');
-    setChip($('[data-dashboard-status-chip="invoice"]'),due>0?(due+' tagihan'):'Beres',due>0?'wait':'ok');
-    txt($('[data-dashboard-status-note="invoice"]'),due>0?('Ada '+due+' invoice tertunda. Buka halaman pesanan untuk detail.'):'Tidak ada invoice tertunda dari backend. Buka pesanan untuk cek ulang.');
-    setChip($('[data-dashboard-attention-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');
-    txt($('[data-dashboard-attention-note="domain"]'),counts.domains>0?('Ada '+counts.domains+' domain aktif pada akun ini.'):'Belum ada domain yang mendekati expired.');
-    setChip($('[data-dashboard-status-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');
-    txt($('[data-dashboard-status-note="domain"]'),counts.domains>0?('Ada '+counts.domains+' domain aktif dari backend.'):'Belum ada domain yang hampir expired.');
-    setChip($('[data-dashboard-attention-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Kosong',counts.projects>0?'info':'info');
-    txt($('[data-dashboard-attention-note="project"]'),counts.projects>0?('Ada '+counts.projects+' project website yang sedang berjalan.'):'Tidak ada approval website yang menunggu.');
-    setChip($('[data-dashboard-status-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Kosong',counts.projects>0?'info':'info');
-    txt($('[data-dashboard-status-note="project"]'),counts.projects>0?('Ada '+counts.projects+' project website aktif dari backend.'):'Belum ada desain atau website final yang menunggu persetujuan.');
-    setChip($('[data-dashboard-attention-chip="ticket"]'),counts.tickets>0?(counts.tickets+' tiket'):'Aman',counts.tickets>0?'wait':'ok');
-    txt($('[data-dashboard-attention-note="ticket"]'),counts.tickets>0?('Ada '+counts.tickets+' tiket bantuan terbuka.'):'Tidak ada tiket yang menunggu balasan.');
-  }
-  function updateServiceStatuses(counts){
-    var perfume=$('[data-dashboard-service="parfum"] .app-chip');
-    if(perfume) setChip(perfume,counts.orders>0?(counts.orders+' pesanan'):'Belum ada pesanan',counts.orders>0?'info':'info');
-    var tracking=$('[data-service-card][data-keywords*="cek resi"] .app-chip');
-    if(tracking) setChip(tracking,counts.shipments>0?(counts.shipments+' dikirim'):'Siap dicek',counts.shipments>0?'info':'info');
-    var domain=$('[data-dashboard-service="domain"] .app-chip');
-    if(domain) setChip(domain,counts.domains>0?(counts.domains+' aktif'):'Belum ada domain',counts.domains>0?'info':'info');
-    var project=$('[data-dashboard-service="project"] .app-chip');
-    if(project) setChip(project,counts.projects>0?(counts.projects+' berjalan'):'Belum ada project',counts.projects>0?'info':'info');
-    var invoice=$('[data-dashboard-invoice-chip]');
-    if(invoice) setChip(invoice,counts.invoices>0?(counts.invoices+' belum dibayar'):'Tidak ada tagihan',counts.invoices>0?'wait':'ok');
-  }
-  function iconForType(type){
-    type=lower(type);
-    if(/invoice|tagihan|payment|bayar/.test(type)) return '🧾';
-    if(/ship|kirim|resi|paket/.test(type)) return '🚚';
-    if(/domain/.test(type)) return '🌐';
-    if(/project|website|approval/.test(type)) return '💻';
-    if(/ticket|tiket|support|bantuan/.test(type)) return '💬';
-    return '🔔';
-  }
-  function linkForType(type){
-    type=lower(type);
-    if(/invoice|tagihan|payment|bayar/.test(type)) return 'pesanan.html';
-    if(/ship|kirim|resi|paket/.test(type)) return 'detail-parfum.html';
-    if(/domain/.test(type)) return 'domain.html';
-    if(/project|website|approval/.test(type)) return 'project-website.html';
-    if(/ticket|tiket|support|bantuan/.test(type)) return 'tiket-bantuan.html';
-    return 'notifikasi.html';
-  }
-  function normalizeNotification(item){
-    item=item&&typeof item==='object'?item:{};
-    var type=item.type||item.category||item.kind||item.module||item.source||'';
-    var title=item.title||item.judul||item.subject||item.name||item.message_title||'Notifikasi';
-    var body=item.body||item.text||item.message||item.description||item.keterangan||item.note||'';
-    var status=item.status||item.priority||item.level||'Info';
-    var href=item.url||item.link||item.href||linkForType(type||title);
-    return {type:type,title:title,body:body,status:status,href:href,icon:iconForType(type||title)};
-  }
-  function buildDerivedNotifications(counts){
-    var out=[];
-    if(counts.invoices>0) out.push({type:'invoice',title:'Tagihan perlu dicek',body:'Ada '+counts.invoices+' tagihan dari backend. Buka halaman pesanan untuk detail.',status:'Perlu dicek',href:'pesanan.html',icon:'🧾'});
-    if(counts.shipments>0) out.push({type:'shipment',title:'Pengiriman berjalan',body:'Ada '+counts.shipments+' pengiriman yang bisa dipantau.',status:'Pengiriman',href:'detail-parfum.html',icon:'🚚'});
-    if(counts.domains>0) out.push({type:'domain',title:'Domain aktif',body:'Ada '+counts.domains+' domain aktif pada akun ini.',status:'Domain',href:'domain.html',icon:'🌐'});
-    if(counts.projects>0) out.push({type:'project',title:'Project website aktif',body:'Ada '+counts.projects+' project website yang sedang berjalan.',status:'Project',href:'project-website.html',icon:'💻'});
-    if(counts.tickets>0) out.push({type:'ticket',title:'Tiket bantuan terbuka',body:'Ada '+counts.tickets+' tiket bantuan yang perlu dipantau.',status:'Tiket',href:'tiket-bantuan.html',icon:'💬'});
-    return out;
-  }
-  function renderNotifications(raw,counts,connected){
-    var host=$('#dashboardNotificationList');
-    if(!host) return;
-    var list=(Array.isArray(raw)?raw:[]).map(normalizeNotification).filter(function(n){return n.title||n.body;});
-    if(!list.length) list=buildDerivedNotifications(counts);
-    host.innerHTML='';
-    if(!list.length){
-      var empty=document.createElement('div');
-      empty.className='app-empty';
-      empty.setAttribute('data-dashboard-notification-empty','');
-      empty.innerHTML='<span class="app-iconbox">🔔</span><div><strong>Belum ada notifikasi terbaru</strong><p>'+(connected?'Backend tidak mengirim pemberitahuan baru. Tagihan, pengiriman, domain, project, dan tiket akan muncul otomatis jika tersedia.':'Backend belum mengirim data notifikasi. Buka halaman notifikasi untuk detail lengkap.')+'</p><a class="app-link" href="notifikasi.html">Buka halaman notifikasi</a></div>';
-      host.appendChild(empty);
-      return;
-    }
-    list.slice(0,5).forEach(function(n){
-      var a=document.createElement('a');
-      a.className='dashboard-notification-row';
-      a.href=n.href||'notifikasi.html';
-      var title=String(n.title||'Notifikasi').replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});
-      var body=String(n.body||'Buka halaman terkait untuk detail.').replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});
-      var status=String(n.status||'Info').replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});
-      a.innerHTML='<span class="app-alert-icon">'+(n.icon||'🔔')+'</span><div><strong>'+title+'</strong><small>'+body+'</small></div><span class="app-chip info">'+status+'</span>';
-      host.appendChild(a);
-    });
-  }
+  function itemKey(item,index){if(!item||typeof item!=='object') return 'row_'+index;var fields=['invoice_code','invoice_id','order_id','order_code','kode_invoice','kode_order','payment_id','transaction_id','snap_token'];for(var i=0;i<fields.length;i++){var v=nested(item,fields[i]);if(v!==undefined&&v!==null&&clean(v)!=='') return fields[i]+':'+norm(v);}var amount=numberValue(item.total||item.grand_total||item.amount||item.total_price||item.nominal)||0;var created=clean(item.created_at||item.date||item.tanggal||item.invoice_date).slice(0,10);var service=norm(item.service_type||item.service_label||item.product_name||item.name||item.title);return 'fallback:'+service+':'+amount+':'+created;}
+  function dedupeDueItems(list){var seen=Object.create(null),out=[];(Array.isArray(list)?list:[]).forEach(function(item,idx){if(!isDueInvoice(item)) return;var keys=[];['invoice_code','invoice_id','order_id','order_code','kode_invoice','kode_order','payment_id','transaction_id','snap_token'].forEach(function(k){var v=nested(item,k);if(v!==undefined&&v!==null&&clean(v)!=='') keys.push(k+':'+norm(v));});if(!keys.length) keys=[itemKey(item,idx)];var exists=keys.some(function(k){return seen[k];});if(exists) return;keys.forEach(function(k){seen[k]=true;});out.push(item);});return out;}
+  function dueInvoiceCount(invoices,orders,invoiceRoot,orderRoot,currentUser){var orderDue=dedupeDueItems(Array.isArray(orders)?orders:[]);if(orderDue.length) return orderDue.length;var invoiceDue=dedupeDueItems(Array.isArray(invoices)?invoices:[]);if(invoiceDue.length) return invoiceDue.length;var explicit=null;if(rootMatchesUser(orderRoot,currentUser)) explicit=firstNumber(orderRoot,['unpaid_orders','orders_unpaid','pesanan_belum_dibayar','order_unpaid_count','parfum_belum_dibayar']);if(explicit===null&&rootMatchesUser(invoiceRoot,currentUser)) explicit=firstNumber(invoiceRoot,['due_invoices','pending_invoices','unpaid_invoices','invoice_due_count','invoice_pending_count','invoice_unpaid_count','tagihan_tertunda','tagihan_belum_dibayar','unpaid_count','pending_bills','belum_dibayar','pending_payment_count','unpaid_total_count','parfum_belum_dibayar']);return Math.max(0,parseInt(explicit||0,10)||0);}
+  function openTicketCount(tickets,summary){var explicit=firstNumber(summary,['open_tickets','ticket_open_count','pending_tickets','tickets_pending','tiket_terbuka','tiket_pending']);if(explicit!==null) return Math.max(0,parseInt(explicit,10)||0);return countActive(tickets,['status','ticket_status','support_status']);}
+  function setMetric(key,value,filledText,emptyText){value=Math.max(0,parseInt(value||0,10)||0);var el=$('[data-dashboard-count="'+key+'"]');if(!el) return;txt(el,value);el.setAttribute('data-app-count',String(value));var card=el.closest('.app-metric');if(card){var p=card.querySelector('p');var note=card.querySelector('.app-load-note');var bar=card.querySelector('.app-progress i');if(p) txt(p,value>0?filledText(value):emptyText);if(note) txt(note,value>0?'Tersambung ke backend akun':'Data akun belum tersedia');if(bar) bar.style.setProperty('--w',Math.min(100,Math.max(12,value*24))+'%');card.classList.toggle('has-backend-data',value>0);}}
+  function setChip(el,text,kind){if(!el) return;txt(el,text);el.classList.remove('ok','wait','danger','info');el.classList.add(kind||'info');}
+  function updateAttention(counts){var due=counts.invoices||0;txt($('#miniBillingStatus'),due>0?'Ada tagihan belum dibayar':'Tidak ada tagihan tertunda');setChip($('[data-dashboard-attention-chip="invoice"]'),due>0?'Perlu dibayar':'Aman',due>0?'wait':'ok');txt($('[data-dashboard-attention-note="invoice"]'),due>0?'Ada tagihan milik akun ini. Buka pesanan untuk bayar atau cek detail.':'Tidak ada tagihan tertunda milik akun ini.');setChip($('[data-dashboard-status-chip="invoice"]'),due>0?'Perlu dibayar':'Tidak ada',due>0?'wait':'ok');txt($('[data-dashboard-status-note="invoice"]'),due>0?'Ada invoice tertunda milik akun ini. Buka halaman pesanan untuk detail.':'Tidak ada invoice tertunda milik akun ini.');setChip($('[data-dashboard-attention-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');txt($('[data-dashboard-attention-note="domain"]'),counts.domains>0?('Ada '+counts.domains+' domain aktif pada akun ini.'):'Belum ada domain yang mendekati expired.');setChip($('[data-dashboard-status-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');txt($('[data-dashboard-status-note="domain"]'),counts.domains>0?('Ada '+counts.domains+' domain aktif dari backend akun.'):'Belum ada domain yang hampir expired.');setChip($('[data-dashboard-attention-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Kosong',counts.projects>0?'info':'info');txt($('[data-dashboard-attention-note="project"]'),counts.projects>0?('Ada '+counts.projects+' project website yang sedang berjalan.'):'Tidak ada approval website yang menunggu.');setChip($('[data-dashboard-status-chip="project"]'),counts.projects>0?(counts.projects+' project'):'Kosong',counts.projects>0?'info':'info');txt($('[data-dashboard-status-note="project"]'),counts.projects>0?('Ada '+counts.projects+' project website aktif dari backend akun.'):'Belum ada desain atau website final yang menunggu persetujuan.');setChip($('[data-dashboard-attention-chip="ticket"]'),counts.tickets>0?(counts.tickets+' tiket'):'Aman',counts.tickets>0?'wait':'ok');txt($('[data-dashboard-attention-note="ticket"]'),counts.tickets>0?('Ada '+counts.tickets+' tiket bantuan terbuka.'):'Tidak ada tiket yang menunggu balasan.');}
+  function updateServiceStatuses(counts){var perfume=$('[data-dashboard-service="parfum"] .app-chip');if(perfume) setChip(perfume,counts.orders>0?(counts.orders+' pesanan'):'Belum ada pesanan',counts.orders>0?'info':'info');var tracking=$('[data-service-card][data-keywords*="cek resi"] .app-chip');if(tracking) setChip(tracking,counts.shipments>0?(counts.shipments+' dikirim'):'Siap dicek',counts.shipments>0?'info':'info');var domain=$('[data-dashboard-service="domain"] .app-chip');if(domain) setChip(domain,counts.domains>0?(counts.domains+' aktif'):'Belum ada domain',counts.domains>0?'info':'info');var project=$('[data-dashboard-service="project"] .app-chip');if(project) setChip(project,counts.projects>0?(counts.projects+' berjalan'):'Belum ada project',counts.projects>0?'info':'info');var invoice=$('[data-dashboard-invoice-chip]');if(invoice) setChip(invoice,counts.invoices>0?'Tagihan belum dibayar':'Tidak ada tagihan',counts.invoices>0?'wait':'ok');}
+  function iconForType(type){type=lower(type);if(/invoice|tagihan|payment|bayar/.test(type)) return '🧾';if(/ship|kirim|resi|paket/.test(type)) return '🚚';if(/domain/.test(type)) return '🌐';if(/project|website|approval/.test(type)) return '💻';if(/ticket|tiket|support|bantuan/.test(type)) return '💬';return '🔔';}
+  function linkForType(type){type=lower(type);if(/invoice|tagihan|payment|bayar/.test(type)) return 'pesanan.html';if(/ship|kirim|resi|paket/.test(type)) return 'detail-parfum.html';if(/domain/.test(type)) return 'domain.html';if(/project|website|approval/.test(type)) return 'project-website.html';if(/ticket|tiket|support|bantuan/.test(type)) return 'tiket-bantuan.html';return 'notifikasi.html';}
+  function normalizeNotification(item){item=item&&typeof item==='object'?item:{};var type=item.type||item.category||item.kind||item.module||item.source||'';var title=item.title||item.judul||item.subject||item.name||item.message_title||'Notifikasi';var body=item.body||item.text||item.message||item.description||item.keterangan||item.note||'';var status=item.status||item.priority||item.level||'Info';var href=item.url||item.link||item.href||linkForType(type||title);return {type:type,title:title,body:body,status:status,href:href,icon:iconForType(type||title)};}
+  function buildDerivedNotifications(counts){var out=[];if(counts.invoices>0) out.push({type:'invoice',title:'Tagihan perlu dicek',body:'Ada tagihan milik akun ini. Buka halaman pesanan untuk detail.',status:'Perlu dicek',href:'pesanan.html',icon:'🧾'});if(counts.shipments>0) out.push({type:'shipment',title:'Pengiriman berjalan',body:'Ada '+counts.shipments+' pengiriman yang bisa dipantau.',status:'Pengiriman',href:'detail-parfum.html',icon:'🚚'});if(counts.domains>0) out.push({type:'domain',title:'Domain aktif',body:'Ada '+counts.domains+' domain aktif pada akun ini.',status:'Domain',href:'domain.html',icon:'🌐'});if(counts.projects>0) out.push({type:'project',title:'Project website aktif',body:'Ada '+counts.projects+' project website yang sedang berjalan.',status:'Project',href:'project-website.html',icon:'💻'});if(counts.tickets>0) out.push({type:'ticket',title:'Tiket bantuan terbuka',body:'Ada '+counts.tickets+' tiket bantuan yang perlu dipantau.',status:'Tiket',href:'tiket-bantuan.html',icon:'💬'});return out;}
+  function esc(v){return String(v==null?'':v).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];});}
+  function renderNotifications(raw,counts,connected){var host=$('#dashboardNotificationList');if(!host) return;var list=(Array.isArray(raw)?raw:[]).map(normalizeNotification).filter(function(n){return n.title||n.body;});if(!list.length) list=buildDerivedNotifications(counts);host.innerHTML='';if(!list.length){var empty=document.createElement('div');empty.className='app-empty';empty.setAttribute('data-dashboard-notification-empty','');empty.innerHTML='<span class="app-iconbox">🔔</span><div><strong>Belum ada notifikasi terbaru</strong><p>'+(connected?'Backend akun tidak mengirim pemberitahuan baru. Tagihan, pengiriman, domain, project, dan tiket akan muncul otomatis jika tersedia.':'Backend belum mengirim data notifikasi. Buka halaman notifikasi untuk detail lengkap.')+'</p><a class="app-link" href="notifikasi.html">Buka halaman notifikasi</a></div>';host.appendChild(empty);return;}list.slice(0,5).forEach(function(n){var a=document.createElement('a');a.className='dashboard-notification-row';a.href=n.href||'notifikasi.html';a.innerHTML='<span class="app-alert-icon">'+esc(n.icon||'🔔')+'</span><div><strong>'+esc(n.title||'Notifikasi')+'</strong><small>'+esc(n.body||'Buka halaman terkait untuk detail.')+'</small></div><span class="app-chip info">'+esc(n.status||'Info')+'</span>';host.appendChild(a);});}
   async function refreshDashboardSummary(){
-    setSync('Mengecek backend','loading');
+    setSync('Mengecek backend akun','loading');
+    var meResp=await fetchFirst(ENDPOINTS.me);
+    var currentUser=currentUserFrom(meResp&&meResp.data);
+    if(!currentUser){setSync('Sesi akun belum terverifikasi','warning');return;}
+    var ordersResp=await fetchFirst(ENDPOINTS.orders);
+    var orderRoot=ordersResp&&ordersResp.data;
+    var orders=filterOwner(extractArray(orderRoot,['orders','pesanan','invoices','data','items','rows']),currentUser,true,orderRoot);
+    var invoicesResp=await fetchFirst(ENDPOINTS.invoices);
+    var invoiceRoot=invoicesResp&&invoicesResp.data;
+    var invoices=filterOwner(extractArray(invoiceRoot,['invoices','invoice','bills','tagihan','orders','pesanan','data','items','rows']),currentUser,true,invoiceRoot);
     var summaryResp=await fetchFirst(ENDPOINTS.summary);
     var summary=summaryResp?summaryResp.data:null;
-    var ordersResp=null;
-    var orders=extractArray(summary,['orders','pesanan','invoices']);
-    if(!orders.length){ordersResp=await fetchFirst(ENDPOINTS.orders); orders=extractArray(ordersResp&&ordersResp.data,['orders','pesanan','invoices','data','items','rows']);}
-    var invoicesResp=null;
-    var invoices=extractArray(summary,['invoices','invoice','bills','tagihan']);
-    if(!invoices.length){invoicesResp=await fetchFirst(ENDPOINTS.invoices); invoices=extractArray(invoicesResp&&invoicesResp.data,['invoices','invoice','bills','tagihan','data','items','rows']);}
-    var shipmentsResp=null;
-    var shipments=extractArray(summary,['shipments','pengiriman','deliveries']);
-    if(!shipments.length){shipmentsResp=await fetchFirst(ENDPOINTS.shipments); shipments=extractArray(shipmentsResp&&shipmentsResp.data,['shipments','pengiriman','deliveries','data','items','rows']);}
-    var domainsResp=null;
-    var domains=extractArray(summary,['domains','domain']);
-    if(!domains.length){domainsResp=await fetchFirst(ENDPOINTS.domains); domains=extractArray(domainsResp&&domainsResp.data,['domains','domain','data','items','rows']);}
-    var projectsResp=null;
-    var projects=extractArray(summary,['projects','project','websites']);
-    if(!projects.length){projectsResp=await fetchFirst(ENDPOINTS.projects); projects=extractArray(projectsResp&&projectsResp.data,['projects','project','websites','data','items','rows']);}
-    var ticketsResp=null;
-    var tickets=extractArray(summary,['tickets','tiket','support_tickets']);
-    if(!tickets.length){ticketsResp=await fetchFirst(ENDPOINTS.tickets); tickets=extractArray(ticketsResp&&ticketsResp.data,['tickets','tiket','support_tickets','data','items','rows']);}
-    var notificationsResp=null;
-    var notifications=extractArray(summary,['notifications','notifikasi','alerts','pemberitahuan']);
-    if(!notifications.length){notificationsResp=await fetchFirst(ENDPOINTS.notifications); notifications=extractArray(notificationsResp&&notificationsResp.data,['notifications','notifikasi','alerts','pemberitahuan','data','items','rows']);}
-    var counts={
-      orders:firstNumber(summary,['active_orders','orders_active','pesanan_aktif','active_order_count','orders_count','total_orders','order_count']),
-      shipments:firstNumber(summary,['active_shipments','shipments_active','pengiriman_aktif','shipment_count','shipments_count','delivery_count']),
-      domains:firstNumber(summary,['active_domains','domains_active','domain_aktif','domain_count','domains_count','total_domains']),
-      projects:firstNumber(summary,['active_projects','projects_active','project_aktif','project_count','projects_count','website_project_count']),
-      invoices:dueInvoiceCount(invoices,orders,summary),
-      tickets:openTicketCount(tickets,summary)
-    };
+    var shipmentsResp=await fetchFirst(ENDPOINTS.shipments);
+    var shipments=filterOwner(extractArray(shipmentsResp&&shipmentsResp.data,['shipments','pengiriman','deliveries','data','items','rows']),currentUser,true,shipmentsResp&&shipmentsResp.data);
+    var domainsResp=await fetchFirst(ENDPOINTS.domains);
+    var domains=filterOwner(extractArray(domainsResp&&domainsResp.data,['domains','domain','data','items','rows']),currentUser,true,domainsResp&&domainsResp.data);
+    var projectsResp=await fetchFirst(ENDPOINTS.projects);
+    var projects=filterOwner(extractArray(projectsResp&&projectsResp.data,['projects','project','websites','data','items','rows']),currentUser,true,projectsResp&&projectsResp.data);
+    var ticketsResp=await fetchFirst(ENDPOINTS.tickets);
+    var tickets=filterOwner(extractArray(ticketsResp&&ticketsResp.data,['tickets','tiket','support_tickets','data','items','rows']),currentUser,true,ticketsResp&&ticketsResp.data);
+    var notificationsResp=await fetchFirst(ENDPOINTS.notifications);
+    var notifications=filterOwner(extractArray(notificationsResp&&notificationsResp.data,['notifications','notifikasi','alerts','pemberitahuan','data','items','rows']),currentUser,true,notificationsResp&&notificationsResp.data);
+    var counts={orders:firstNumber(orderRoot,['active_orders','orders_active','pesanan_aktif','active_order_count','orders_count','total_orders','order_count']),shipments:firstNumber(shipmentsResp&&shipmentsResp.data,['active_shipments','shipments_active','pengiriman_aktif','shipment_count','shipments_count','delivery_count']),domains:firstNumber(domainsResp&&domainsResp.data,['active_domains','domains_active','domain_aktif','domain_count','domains_count','total_domains']),projects:firstNumber(projectsResp&&projectsResp.data,['active_projects','projects_active','project_aktif','project_count','projects_count','website_project_count']),invoices:dueInvoiceCount(invoices,orders,invoiceRoot,orderRoot,currentUser),tickets:openTicketCount(tickets,ticketsResp&&ticketsResp.data)};
     if(counts.orders===null) counts.orders=activeOrderCount(orders);
-    if(counts.invoices===0&&Array.isArray(orders)&&orders.length){
-      var dueFromOrders=orders.filter(isDueInvoice).length;
-      if(dueFromOrders>0) counts.invoices=dueFromOrders;
-    }
-    if(counts.invoices===0&&counts.orders>0&&!invoices.length&&(!Array.isArray(orders)||!orders.length)){
-      counts.invoices=firstNumber(summary,['unpaid','pending_payment','belum_dibayar','unpaid_orders','orders_unpaid','pesanan_belum_dibayar'])||0;
-    }
     if(counts.shipments===null) counts.shipments=shipmentCount(orders,shipments);
     if(counts.domains===null) counts.domains=countActive(domains,['status','domain_status','renewal_status']);
     if(counts.projects===null) counts.projects=countActive(projects,['status','project_status','website_status']);
-    setMetric('orders',counts.orders,function(n){return 'Ada '+n+' pesanan dari backend yang perlu dipantau.'},'Belum ada pesanan aktif dari backend.');
-    setMetric('shipments',counts.shipments,function(n){return 'Ada '+n+' pengiriman yang bisa dipantau.'},'Belum ada paket yang sedang dalam perjalanan.');
-    setMetric('domains',counts.domains,function(n){return 'Ada '+n+' domain aktif pada akun ini.'},'Belum ada domain aktif dari backend.');
-    setMetric('projects',counts.projects,function(n){return 'Ada '+n+' project website yang sedang berjalan.'},'Belum ada project website berjalan.');
-    updateAttention(counts);
-    updateServiceStatuses(counts);
-    var connected=!!(summaryResp||ordersResp||invoicesResp||shipmentsResp||domainsResp||projectsResp||ticketsResp||notificationsResp);
+    setMetric('orders',counts.orders,function(n){return 'Ada '+n+' pesanan akun ini yang perlu dipantau.'},'Belum ada pesanan aktif pada akun ini.');
+    setMetric('shipments',counts.shipments,function(n){return 'Ada '+n+' pengiriman akun ini yang bisa dipantau.'},'Belum ada paket yang sedang dalam perjalanan.');
+    setMetric('domains',counts.domains,function(n){return 'Ada '+n+' domain aktif pada akun ini.'},'Belum ada domain aktif dari backend akun.');
+    setMetric('projects',counts.projects,function(n){return 'Ada '+n+' project website pada akun ini.'},'Belum ada project website berjalan.');
+    updateAttention(counts);updateServiceStatuses(counts);
+    var connected=!!(ordersResp||invoicesResp||shipmentsResp||domainsResp||projectsResp||ticketsResp||notificationsResp||summaryResp);
     renderNotifications(notifications,counts,connected);
-    setSync(connected?'Sinkron backend':'Backend belum mengirim ringkasan',connected?'ready':'warning');
-    window.diracDashboardSummary={counts:counts,orders:orders.length,invoices:invoices.length,shipments:shipments.length,domains:domains.length,projects:projects.length,tickets:tickets.length,notifications:notifications.length,source:{summary:summaryResp&&summaryResp.url,orders:ordersResp&&ordersResp.url,invoices:invoicesResp&&invoicesResp.url,shipments:shipmentsResp&&shipmentsResp.url,domains:domainsResp&&domainsResp.url,projects:projectsResp&&projectsResp.url,tickets:ticketsResp&&ticketsResp.url,notifications:notificationsResp&&notificationsResp.url}};
+    setSync(connected?'Sinkron akun backend':'Backend akun belum mengirim ringkasan',connected?'ready':'warning');
+    window.diracDashboardSummary={user:{id:currentUser.id||currentUser.user_id||currentUser.customer_id||null,email:currentUser.email||currentUser.customer_email||currentUser.user_email||null},counts:counts,orders:orders.length,invoices:invoices.length,shipments:shipments.length,domains:domains.length,projects:projects.length,tickets:tickets.length,notifications:notifications.length,dueKeys:dedupeDueItems([].concat(orders,invoices)).map(function(x,i){return itemKey(x,i);}),source:{me:meResp&&meResp.url,summary:summaryResp&&summaryResp.url,orders:ordersResp&&ordersResp.url,invoices:invoicesResp&&invoicesResp.url,shipments:shipmentsResp&&shipmentsResp.url,domains:domainsResp&&domainsResp.url,projects:projectsResp&&projectsResp.url,tickets:ticketsResp&&ticketsResp.url,notifications:notificationsResp&&notificationsResp.url}};
   }
   window.diracDashboardRefreshSummary=refreshDashboardSummary;
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(refreshDashboardSummary,520);},{once:true});
-  else setTimeout(refreshDashboardSummary,520);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(refreshDashboardSummary,720);},{once:true});
+  else setTimeout(refreshDashboardSummary,720);
 })();
 </script>
+
 
 <script id="dirac-dashboard-brand-typewriter-js">
 (function(){
