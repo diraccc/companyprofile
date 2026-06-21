@@ -1652,6 +1652,33 @@ html[data-motion="reduced"] .dirac-video-frame.is-video-loading:before,html[data
 @media(prefers-reduced-motion:reduce){.dirac-video-frame.is-video-loading:before,.dirac-refresh-data.is-loading:before,#dashboardSyncState[data-sync-mode="loading"]:before,.motion-ready .dirac-video-hero,.motion-ready .dirac-security-marquee,.motion-ready .app-hero,.motion-ready .dirac-account-sync-section,.motion-ready .app-section,.motion-ready .app-dashboard-grid,.motion-ready .app-updates{animation:none!important;transform:none!important;filter:none!important}}
 </style>
 
+
+<style id="dirac-dashboard-service-search-fix-v1">
+.app-toolbar-actions{position:relative}
+.dirac-service-search-results{order:3;flex:1 0 100%;width:100%;display:none;margin-top:8px;border:1px solid rgba(var(--theme-rgb),.20);background:linear-gradient(180deg,rgba(12,18,28,.96),rgba(5,8,13,.92));border-radius:22px;padding:10px;box-shadow:0 18px 42px rgba(0,0,0,.32);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);overflow:hidden}
+.dirac-service-search-results.show{display:grid;gap:8px;animation:diracSearchDrop .18s var(--motion-ease) both}
+.dirac-service-search-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:.76rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase;padding:1px 3px 4px}
+.dirac-service-search-close{border:0;background:rgba(255,255,255,.06);color:#fff;border-radius:999px;width:30px;height:30px;display:grid;place-items:center;font-weight:900;line-height:1}
+.dirac-service-search-list{display:grid;gap:7px}
+.dirac-service-search-item{width:100%;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.052);color:#fff;border-radius:17px;padding:11px 12px;display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;text-align:left;transition:.18s var(--motion-ease)}
+.dirac-service-search-item:hover,.dirac-service-search-item:focus-visible{border-color:var(--line-strong);background:rgba(var(--theme-rgb),.11);transform:translateY(-1px);outline:0}
+.dirac-service-search-item i{width:34px;height:34px;border-radius:13px;display:grid;place-items:center;background:rgba(var(--theme-rgb),.12);border:1px solid var(--line);font-style:normal}
+.dirac-service-search-item strong{display:block;color:#fff;font-size:.91rem;line-height:1.2}
+.dirac-service-search-item small{display:block;color:var(--muted);font-size:.74rem;line-height:1.35;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(58vw,360px)}
+.dirac-service-search-item span{color:#f9e7b6;font-size:.74rem;font-weight:900;border:1px solid var(--line);background:rgba(var(--theme-rgb),.10);padding:6px 9px;border-radius:999px;white-space:nowrap}
+.dirac-service-search-empty{display:none;border:1px dashed rgba(var(--theme-rgb),.28);background:rgba(var(--theme-rgb),.07);border-radius:17px;padding:12px;color:var(--muted);font-size:.86rem;text-align:center}
+.dirac-service-search-results.is-empty .dirac-service-search-empty{display:block}
+.dirac-service-search-results.is-empty .dirac-service-search-list{display:none}
+.app-service.dirac-search-hidden{display:none!important}
+.app-service.dirac-search-match{border-color:var(--line-strong)!important;box-shadow:0 20px 46px rgba(0,0,0,.28),0 0 0 1px rgba(var(--theme-rgb),.10) inset}
+@keyframes diracSearchDrop{from{opacity:0;transform:translateY(-6px) scale(.99)}to{opacity:1;transform:none}}
+html[data-effective-theme="light"] .dirac-service-search-results{background:rgba(255,250,241,.96);border-color:rgba(var(--theme-rgb),.24);box-shadow:0 18px 42px rgba(80,55,18,.14)}
+html[data-effective-theme="light"] .dirac-service-search-item{background:rgba(255,255,255,.70);color:#151923;border-color:rgba(15,23,42,.10)}
+html[data-effective-theme="light"] .dirac-service-search-item strong{color:#151923}
+@media(max-width:760px){.dirac-service-search-results{margin-top:0;border-radius:20px;padding:9px}.dirac-service-search-item{grid-template-columns:32px 1fr auto;padding:10px}.dirac-service-search-item small{max-width:48vw}.dirac-service-search-item span{padding:5px 8px}}
+@media(prefers-reduced-motion:reduce){.dirac-service-search-results.show{animation:none}.dirac-service-search-item{transition:none}}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
@@ -1729,11 +1756,6 @@ html[data-motion="reduced"] .dirac-video-frame.is-video-loading:before,html[data
               <span class="eyebrow">Dashboard pelanggan</span>
               <h2 id="dashboardWelcome">Selamat datang, <span id="displayName">Pelanggan</span></h2>
               <p>Semua layanan utama disusun seperti dashboard full stack: status penting di atas, ringkasan angka yang padat, kartu layanan rapi, lalu notifikasi terbaru. Gunakan menu atau kartu layanan untuk membuka fitur yang dibutuhkan.</p>
-              <div class="app-primary-row dirac-welcome-actions" aria-label="Aksi cepat dashboard penyambut">
-                <a class="btn-primary" href="pesanan.html" data-dirac-i18n="welcomeActionBills">Lihat Tagihan</a>
-                <a class="btn-secondary" href="#servicesTitle" data-dirac-i18n="welcomeActionServices">Cek Layanan</a>
-                <a class="btn-ghost" href="tiket-bantuan.html" data-dirac-i18n="welcomeActionAdmin">Hubungi Admin</a>
-              </div>
             </div>
             <div class="app-mini-status" aria-label="Status singkat">
               <div class="app-mini-card"><small>Status akun</small><strong><span class="dot"></span>Aktif</strong></div>
@@ -4349,6 +4371,145 @@ body.du-menu-lock{
   function init(){applyLocalI18n(); watchCounts(); bindRefreshUi(); bindVideoState(); addEmptyHints(); setTimeout(bindRefreshUi,900);}
   window.addEventListener('dirac:global-prefs-change',function(){setFade(); setTimeout(function(){applyLocalI18n();},40); setTimeout(bindRefreshUi,120);});
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+})();
+</script>
+
+
+<script id="dirac-dashboard-service-search-fix-v1">
+(function(){
+  'use strict';
+  if(window.__DIRAC_DASHBOARD_SERVICE_SEARCH_FIX_V1__) return;
+  window.__DIRAC_DASHBOARD_SERVICE_SEARCH_FIX_V1__ = true;
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
+  function $(s,r){return (r||document).querySelector(s)}
+  function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+  function clean(v){return String(v == null ? '' : v).replace(/\s+/g,' ').trim()}
+  function norm(v){return clean(v).toLowerCase()}
+  function firstLink(card){return card ? card.querySelector('a[href],button[data-open-tracking],button.app-link') : null}
+  function resultUrl(card){
+    var el = firstLink(card);
+    if(!el) return '';
+    if(el.tagName === 'A') return el.getAttribute('href') || '';
+    if(el.hasAttribute('data-open-tracking')) return 'cekresi.html';
+    return '';
+  }
+  function cardData(card){
+    var title = clean((card.querySelector('h3')||{}).textContent || 'Layanan');
+    var desc = clean((card.querySelector('p')||{}).textContent || card.getAttribute('data-keywords') || '');
+    var icon = clean((card.querySelector('.app-iconbox')||{}).textContent || '•');
+    var haystack = norm(card.textContent + ' ' + (card.getAttribute('data-keywords') || '') + ' ' + resultUrl(card));
+    return {card:card,title:title,desc:desc,icon:icon,haystack:haystack,url:resultUrl(card)};
+  }
+  function toast(msg){
+    try{ if(typeof window.showToast === 'function'){ window.showToast(msg); return; } }catch(_){ }
+    var t = document.getElementById('toast');
+    if(t){ t.textContent = msg; t.classList.add('show'); clearTimeout(t.__diracT); t.__diracT=setTimeout(function(){t.classList.remove('show')},1600); }
+  }
+  function openCard(row){
+    if(!row || !row.card) return;
+    var url = row.url || '';
+    if(url && url.charAt(0) !== '#'){
+      window.location.href = url;
+      return;
+    }
+    try{ row.card.scrollIntoView({behavior:'smooth',block:'center'}); }catch(_){ row.card.scrollIntoView(); }
+    row.card.classList.add('dirac-search-match');
+    setTimeout(function(){ row.card.classList.remove('dirac-search-match'); },1200);
+  }
+  function buildPanel(input){
+    var toolbar = input.closest('.app-toolbar-actions') || input.parentNode;
+    var old = document.getElementById('serviceSearchResults');
+    if(old) return old;
+    var panel = document.createElement('div');
+    panel.id = 'serviceSearchResults';
+    panel.className = 'dirac-service-search-results';
+    panel.setAttribute('role','region');
+    panel.setAttribute('aria-live','polite');
+    panel.innerHTML = '<div class="dirac-service-search-head"><span id="serviceSearchSummary">Hasil pencarian</span><button class="dirac-service-search-close" type="button" aria-label="Tutup hasil pencarian">×</button></div><div class="dirac-service-search-list" role="listbox"></div><div class="dirac-service-search-empty">Layanan tidak ditemukan. Coba kata kunci parfum, domain, invoice, resi, website, atau bantuan.</div>';
+    toolbar.appendChild(panel);
+    var close = panel.querySelector('.dirac-service-search-close');
+    if(close){ close.addEventListener('click', function(){ input.value=''; input.dispatchEvent(new Event('input',{bubbles:true})); input.focus({preventScroll:true}); }); }
+    return panel;
+  }
+  ready(function(){
+    var input = document.getElementById('serviceSearch');
+    var serviceGrid = document.getElementById('serviceGrid');
+    var cards = $$('[data-service-card]');
+    if(!input || !cards.length) return;
+    var panel = buildPanel(input);
+    var list = panel.querySelector('.dirac-service-search-list');
+    var summary = document.getElementById('serviceSearchSummary');
+    var empty = document.getElementById('serviceNoResults');
+    var count = document.getElementById('serviceCount');
+    var rows = cards.map(cardData);
+    var lastQuery = '';
+
+    function setCount(n){
+      if(!count) return;
+      var strong = count.querySelector('strong');
+      var small = count.querySelector('small');
+      if(strong) strong.textContent = String(n);
+      if(small) small.textContent = 'layanan';
+      if(!strong) count.textContent = n + ' layanan';
+    }
+    function render(){
+      rows = $$('[data-service-card]').map(cardData);
+      var q = norm(input.value);
+      lastQuery = q;
+      var matches = rows.filter(function(row){ return !q || row.haystack.indexOf(q) !== -1; });
+      rows.forEach(function(row){
+        var ok = !q || row.haystack.indexOf(q) !== -1;
+        row.card.classList.toggle('dirac-search-hidden', !ok);
+        row.card.style.display = ok ? '' : 'none';
+        row.card.classList.toggle('dirac-search-match', !!q && ok);
+      });
+      setCount(matches.length);
+      if(empty) empty.classList.toggle('show', !!q && matches.length === 0);
+      panel.classList.toggle('show', !!q);
+      panel.classList.toggle('is-empty', !!q && matches.length === 0);
+      if(summary) summary.textContent = matches.length ? ('Ditemukan ' + matches.length + ' layanan') : 'Tidak ada hasil';
+      if(list){
+        list.innerHTML = '';
+        matches.slice(0,6).forEach(function(row,idx){
+          if(!q) return;
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'dirac-service-search-item';
+          btn.setAttribute('role','option');
+          btn.setAttribute('aria-label','Buka ' + row.title);
+          btn.innerHTML = '<i aria-hidden="true"></i><div><strong></strong><small></small></div><span>Buka</span>';
+          btn.querySelector('i').textContent = row.icon || '•';
+          btn.querySelector('strong').textContent = row.title;
+          btn.querySelector('small').textContent = row.desc || row.url || 'Layanan Dirac Group';
+          btn.addEventListener('click', function(){ openCard(row); });
+          list.appendChild(btn);
+        });
+      }
+    }
+    input.addEventListener('input', render, {passive:true});
+    input.addEventListener('search', render, {passive:true});
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){
+        var q = norm(input.value);
+        if(!q) return;
+        var match = rows.filter(function(row){ return row.haystack.indexOf(q) !== -1; })[0];
+        if(match){ e.preventDefault(); openCard(match); }
+        else { toast('Layanan tidak ditemukan.'); }
+      }
+      if(e.key === 'Escape'){
+        input.value = '';
+        render();
+      }
+    });
+    try{
+      new MutationObserver(function(){ render(); }).observe(serviceGrid || document.body, {childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['data-keywords','class']});
+    }catch(_){ }
+    setTimeout(render, 80);
+  });
 })();
 </script>
 
