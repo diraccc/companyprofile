@@ -12850,17 +12850,32 @@ function diracUltraInstallSafeJsonInterceptor(res) {
   } catch (_) {}
 }
 
-function diracUltraRedactPayload(payload, depth = 0) {
+function diracUltraRedactPayload(payload, depth = 0, parentKey = '') {
   if (depth > 10) return '[redacted-depth]';
   if (payload === null || payload === undefined) return payload;
-  if (typeof payload === 'string') return diracUltraRedactString(payload);
+
+  const parent = String(parentKey || '').toLowerCase();
+  if (typeof payload === 'string') {
+    // HOTFIX: setupToken/mfaSetupToken adalah challenge sementara A2F/Passkey
+    // yang memang WAJIB sampai ke browser. Jangan dianggap JWT secret, karena
+    // kalau diredact browser mengirim token palsu dan muncul "Challenge Passkey tidak valid".
+    if (diracUltraIsSafeChallengeResponseKey(parent)) return payload;
+    return diracUltraRedactString(payload);
+  }
+
   if (typeof payload !== 'object') return payload;
-  if (Array.isArray(payload)) return payload.map((item) => diracUltraRedactPayload(item, depth + 1));
+  if (Array.isArray(payload)) return payload.map((item) => diracUltraRedactPayload(item, depth + 1, parentKey));
 
   const out = {};
   for (const [key, value] of Object.entries(payload)) {
     const cleanKey = String(key || '');
     const lower = cleanKey.toLowerCase();
+
+    if (diracUltraIsSafeChallengeResponseKey(lower)) {
+      out[cleanKey] = value;
+      continue;
+    }
+
     if (/password|passwd|pwd|secret|service_role|service-key|apikey|api_key|authorization|access_token|refresh_token|id_token|set-cookie|raw_cookie|cookie_header|signature_key|server_key|private_key|client_secret|smtp_pass|smtp_password/i.test(lower)) {
       out[cleanKey] = '[redacted]';
       continue;
@@ -12869,9 +12884,20 @@ function diracUltraRedactPayload(payload, depth = 0) {
       out[cleanKey] = '[redacted]';
       continue;
     }
-    out[cleanKey] = diracUltraRedactPayload(value, depth + 1);
+    out[cleanKey] = diracUltraRedactPayload(value, depth + 1, cleanKey);
   }
   return out;
+}
+
+function diracUltraIsSafeChallengeResponseKey(key) {
+  const lower = String(key || '').toLowerCase();
+  return lower === 'setuptoken'
+    || lower === 'mfasetuptoken'
+    || lower === 'challenge'
+    || lower === 'challengeid'
+    || lower === 'csrf'
+    || lower === 'csrftoken'
+    || lower === 'csrf_token';
 }
 
 function diracUltraRedactString(value) {
