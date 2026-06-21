@@ -1615,6 +1615,43 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
 @media(max-width:430px){.dirac-account-sync-section{margin:12px 0 0}.dirac-account-sync-card{padding:14px;border-radius:22px}.dirac-account-sync-copy p{font-size:.84rem}.dirac-owner-pill,.dirac-refresh-data{font-size:.86rem;min-height:44px}}
 </style>
 
+
+
+<style id="dirac-welcome-premium-polish-v1">
+/* Dashboard penyambut polish only. Tidak mengubah login, hash, A2F, payment gateway, email template, cookie, session, endpoint write, atau backend security guard. */
+:root{--dirac-soft-rise:translate3d(0,10px,0)}
+.dirac-video-frame.is-video-loading:before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;background:linear-gradient(110deg,rgba(255,255,255,.035) 0%,rgba(var(--theme-rgb),.13) 34%,rgba(255,255,255,.045) 55%,rgba(255,255,255,.025) 100%);background-size:230% 100%;animation:diracPremiumShimmer 1.55s linear infinite;opacity:.88}
+.dirac-video-frame.is-video-error:before{content:"Video belum termuat";position:absolute;inset:0;z-index:4;display:grid;place-items:center;border-radius:inherit;background:linear-gradient(135deg,rgba(5,6,8,.78),rgba(15,23,42,.74));color:#f9e7b6;font-weight:900;letter-spacing:.01em;line-height:1.25;text-align:center;padding:18px}
+.dirac-video-frame.is-video-ready:before{opacity:0;animation:none}
+@keyframes diracPremiumShimmer{0%{background-position:160% 0}100%{background-position:-80% 0}}
+.dirac-welcome-actions{margin-top:18px;align-items:center}
+.dirac-welcome-actions .btn-primary,.dirac-welcome-actions .btn-secondary,.dirac-welcome-actions .btn-ghost{min-height:46px;padding:11px 16px;box-shadow:0 14px 32px rgba(0,0,0,.22)}
+.dirac-welcome-actions .btn-primary:active,.dirac-welcome-actions .btn-secondary:active,.dirac-welcome-actions .btn-ghost:active,.app-service:active,.app-metric:active,.app-mini-card:active,.app-alert:active,.app-list-row:active{transform:scale(.985)!important}
+.dirac-refresh-data{position:relative;overflow:hidden;isolation:isolate}
+.dirac-refresh-data.is-loading{color:#f9e7b6!important;border-color:rgba(var(--theme-rgb),.42)!important;background:rgba(var(--theme-rgb),.15)!important;pointer-events:none}
+.dirac-refresh-data.is-loading:before{content:"";width:15px;height:15px;border-radius:999px;border:2px solid rgba(255,255,255,.28);border-top-color:currentColor;display:inline-block;animation:diracSpin .72s linear infinite;flex:0 0 auto}
+.dirac-account-sync-card.is-syncing{border-color:rgba(var(--theme-rgb),.42)!important;box-shadow:0 26px 68px rgba(0,0,0,.34),0 0 0 1px rgba(var(--theme-rgb),.12) inset!important}
+#dashboardSyncState[data-sync-mode="loading"]:before{content:"";width:8px;height:8px;border-radius:999px;background:var(--warning);box-shadow:0 0 0 0 rgba(245,158,11,.48);display:inline-block;margin-right:7px;animation:diracSyncPulse 1.25s ease-in-out infinite;vertical-align:middle}
+@keyframes diracSpin{to{transform:rotate(360deg)}}
+@keyframes diracSyncPulse{70%{box-shadow:0 0 0 9px rgba(245,158,11,0)}100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}}
+.app-value.dirac-counting,#miniBillingStatus.dirac-counting{font-variant-numeric:tabular-nums;letter-spacing:.005em}
+.app-metric.is-just-updated,.app-mini-card.is-just-updated,.app-alert.is-just-updated,.app-list-row.is-just-updated{animation:diracUpdatedGlow 1.05s var(--motion-ease) both}
+@keyframes diracUpdatedGlow{0%{box-shadow:0 0 0 0 rgba(var(--theme-rgb),.0),0 18px 48px rgba(0,0,0,.24)}35%{box-shadow:0 0 0 4px rgba(var(--theme-rgb),.13),0 26px 60px rgba(0,0,0,.32)}100%{box-shadow:0 18px 48px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.052)}}
+html.dirac-i18n-swap .app-welcome-copy,html.dirac-i18n-swap .dirac-video-info,html.dirac-i18n-swap .app-mini-status,html.dirac-i18n-swap .app-control-card,html.dirac-i18n-swap .dirac-account-sync-card,html.dirac-i18n-swap .app-section-head,html.dirac-i18n-swap .app-service,html.dirac-i18n-swap .app-panel{animation:diracTextSwap .32s ease both}
+@keyframes diracTextSwap{0%{opacity:.56;filter:blur(1px);transform:translate3d(0,3px,0)}100%{opacity:1;filter:none;transform:none}}
+.motion-ready .dirac-video-hero,.motion-ready .dirac-security-marquee,.motion-ready .app-hero,.motion-ready .dirac-account-sync-section,.motion-ready .app-section,.motion-ready .app-dashboard-grid,.motion-ready .app-updates{animation:diracWelcomeRise .58s var(--motion-soft) both;animation-delay:var(--dirac-enter-delay,0ms)}
+.motion-ready .dirac-security-marquee{--dirac-enter-delay:45ms}.motion-ready .app-hero{--dirac-enter-delay:90ms}.motion-ready .dirac-account-sync-section{--dirac-enter-delay:130ms}.motion-ready .app-section{--dirac-enter-delay:165ms}.motion-ready .app-dashboard-grid{--dirac-enter-delay:205ms}.motion-ready .app-updates{--dirac-enter-delay:245ms}
+@keyframes diracWelcomeRise{from{opacity:.001;filter:blur(4px);transform:translate3d(0,18px,0) scale(.992)}to{opacity:1;filter:none;transform:none}}
+.dirac-security-marquee-card{opacity:.88;padding-top:12px!important;padding-bottom:12px!important}.dirac-security-track-logo{animation-duration:112s!important}.dirac-security-track-text{animation-duration:132s!important}.dirac-security-chip{font-size:.84rem!important;min-height:36px!important;padding:7px 12px!important}
+.app-service,.app-metric,.app-mini-card,.app-alert,.app-list-row,.dashboard-notification-row{touch-action:manipulation;transition:transform .22s var(--motion-ease),border-color .22s var(--motion-ease),box-shadow .22s var(--motion-ease),background-color .22s var(--motion-ease)}
+.app-service:hover,.app-metric:hover,.app-mini-card:hover,.app-alert:hover,.app-list-row:hover,.dashboard-notification-row:hover{transform:translateY(-3px);border-color:rgba(var(--theme-rgb),.28);box-shadow:0 22px 54px rgba(0,0,0,.30),0 0 0 1px rgba(var(--theme-rgb),.06) inset}
+.dirac-empty-soft{display:none;margin-top:10px;border:1px dashed rgba(var(--theme-rgb),.25);border-radius:18px;padding:12px 14px;background:rgba(var(--theme-rgb),.055);color:var(--muted);font-size:.84rem;line-height:1.45}.dirac-empty-soft.is-visible{display:block}
+html[data-effective-theme="light"] .dirac-video-frame.is-video-error:before{background:linear-gradient(135deg,rgba(255,250,241,.88),rgba(255,246,232,.80));color:#3b2b16}
+@media(max-width:760px){.dirac-welcome-actions{display:grid;grid-template-columns:1fr;gap:9px}.dirac-welcome-actions .btn-primary,.dirac-welcome-actions .btn-secondary,.dirac-welcome-actions .btn-ghost{width:100%;min-height:44px}.dirac-security-marquee-card{padding-top:10px!important;padding-bottom:10px!important}.dirac-security-chip{font-size:.78rem!important;min-height:34px!important}.motion-ready .dirac-video-hero,.motion-ready .dirac-security-marquee,.motion-ready .app-hero,.motion-ready .dirac-account-sync-section,.motion-ready .app-section,.motion-ready .app-dashboard-grid,.motion-ready .app-updates{animation-duration:.44s}}
+html[data-motion="reduced"] .dirac-video-frame.is-video-loading:before,html[data-motion="reduced"] .dirac-refresh-data.is-loading:before,html[data-motion="reduced"] #dashboardSyncState[data-sync-mode="loading"]:before,html[data-motion="reduced"] .motion-ready .dirac-video-hero,html[data-motion="reduced"] .motion-ready .dirac-security-marquee,html[data-motion="reduced"] .motion-ready .app-hero,html[data-motion="reduced"] .motion-ready .dirac-account-sync-section,html[data-motion="reduced"] .motion-ready .app-section,html[data-motion="reduced"] .motion-ready .app-dashboard-grid,html[data-motion="reduced"] .motion-ready .app-updates{animation:none!important;transform:none!important;filter:none!important}
+@media(prefers-reduced-motion:reduce){.dirac-video-frame.is-video-loading:before,.dirac-refresh-data.is-loading:before,#dashboardSyncState[data-sync-mode="loading"]:before,.motion-ready .dirac-video-hero,.motion-ready .dirac-security-marquee,.motion-ready .app-hero,.motion-ready .dirac-account-sync-section,.motion-ready .app-section,.motion-ready .app-dashboard-grid,.motion-ready .app-updates{animation:none!important;transform:none!important;filter:none!important}}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
@@ -1692,6 +1729,11 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
               <span class="eyebrow">Dashboard pelanggan</span>
               <h2 id="dashboardWelcome">Selamat datang, <span id="displayName">Pelanggan</span></h2>
               <p>Semua layanan utama disusun seperti dashboard full stack: status penting di atas, ringkasan angka yang padat, kartu layanan rapi, lalu notifikasi terbaru. Gunakan menu atau kartu layanan untuk membuka fitur yang dibutuhkan.</p>
+              <div class="app-primary-row dirac-welcome-actions" aria-label="Aksi cepat dashboard penyambut">
+                <a class="btn-primary" href="pesanan.html" data-dirac-i18n="welcomeActionBills">Lihat Tagihan</a>
+                <a class="btn-secondary" href="#servicesTitle" data-dirac-i18n="welcomeActionServices">Cek Layanan</a>
+                <a class="btn-ghost" href="tiket-bantuan.html" data-dirac-i18n="welcomeActionAdmin">Hubungi Admin</a>
+              </div>
             </div>
             <div class="app-mini-status" aria-label="Status singkat">
               <div class="app-mini-card"><small>Status akun</small><strong><span class="dot"></span>Aktif</strong></div>
@@ -4227,5 +4269,88 @@ body.du-menu-lock{
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
 })();
 </script>
+
+
+<script id="dirac-welcome-premium-polish-js-v1">
+(function(){
+  'use strict';
+  var MAP={
+    welcomeActionBills:{id:'Lihat Tagihan',en:'View Bills',zh:'查看账单',ar:'عرض الفواتير',ja:'請求を確認',ko:'청구서 보기',es:'Ver facturas',fr:'Voir les factures'},
+    welcomeActionServices:{id:'Cek Layanan',en:'Check Services',zh:'查看服务',ar:'فحص الخدمات',ja:'サービス確認',ko:'서비스 확인',es:'Ver servicios',fr:'Vérifier les services'},
+    welcomeActionAdmin:{id:'Hubungi Admin',en:'Contact Admin',zh:'联系管理员',ar:'تواصل مع المسؤول',ja:'管理者に連絡',ko:'관리자 문의',es:'Contactar admin',fr:'Contacter admin'},
+    syncing:{id:'Menyinkronkan...',en:'Syncing...',zh:'正在同步...',ar:'جارٍ المزامنة...',ja:'同期中...',ko:'동기화 중...',es:'Sincronizando...',fr:'Synchronisation...'},
+    refreshData:{id:'Refresh data',en:'Refresh data',zh:'刷新数据',ar:'تحديث البيانات',ja:'データを更新',ko:'데이터 새로고침',es:'Actualizar datos',fr:'Actualiser les données'},
+    videoLoading:{id:'Video belum termuat',en:'Video is still loading',zh:'视频仍在加载',ar:'الفيديو قيد التحميل',ja:'動画を読み込み中',ko:'동영상 로딩 중',es:'El video se está cargando',fr:'La vidéo charge encore'},
+    noData:{id:'Data akan tampil otomatis saat backend mengirim ringkasan.',en:'Data will appear automatically when the backend sends a summary.',zh:'后端发送摘要后，数据会自动显示。',ar:'ستظهر البيانات تلقائيًا عندما ترسل الخلفية الملخص.',ja:'バックエンドが概要を送信するとデータが自動表示されます。',ko:'백엔드가 요약을 보내면 데이터가 자동으로 표시됩니다.',es:'Los datos aparecerán automáticamente cuando el backend envíe el resumen.',fr:'Les données apparaîtront automatiquement quand le backend enverra le résumé.'}
+  };
+  function $(s,r){return (r||document).querySelector(s)}
+  function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+  function lang(){try{var p=window.diracGetGlobalPrefs&&window.diracGetGlobalPrefs();var v=(p&&p.language)||localStorage.getItem('dirac_global_language_v1')||document.documentElement.getAttribute('data-language')||'id';return MAP.welcomeActionBills[v]?v:'id';}catch(_){return'id'}}
+  function tr(key){var row=MAP[key]||{};var l=lang();return row[l]||row.id||row.en||key}
+  function text(el,value){if(!el) return; var raw=String(value==null?'':value); try{if(window.diracCompleteLanguageSync&&typeof window.diracCompleteLanguageSync.translate==='function'){raw=window.diracCompleteLanguageSync.translate(raw);}}catch(_){ } el.textContent=raw;}
+  function applyLocalI18n(){ $$('[data-dirac-i18n]').forEach(function(el){var key=el.getAttribute('data-dirac-i18n'); if(key) text(el,tr(key));}); }
+  function setFade(){document.documentElement.classList.add('dirac-i18n-swap'); clearTimeout(setFade.t); setFade.t=setTimeout(function(){document.documentElement.classList.remove('dirac-i18n-swap');},360);}
+  function animateNumber(el,target,duration){
+    if(!el) return;
+    target=Math.max(0,parseInt(target,10)||0);
+    var from=parseInt(el.getAttribute('data-dirac-last-count')||el.textContent||'0',10); if(!isFinite(from)) from=0;
+    if(from===target){el.setAttribute('data-dirac-last-count',String(target));return;}
+    var start=performance.now(); duration=duration||680; el.classList.add('dirac-counting');
+    function step(now){var t=Math.min(1,(now-start)/duration); var eased=1-Math.pow(1-t,3); var val=Math.round(from+(target-from)*eased); el.textContent=String(val); if(t<1) requestAnimationFrame(step); else {el.textContent=String(target); el.setAttribute('data-dirac-last-count',String(target)); el.classList.remove('dirac-counting'); var card=el.closest('.app-metric'); if(card){card.classList.add('is-just-updated'); setTimeout(function(){card.classList.remove('is-just-updated');},1100);}}}
+    requestAnimationFrame(step);
+  }
+  function animateLeadingNumber(el,raw){
+    if(!el) return;
+    var str=String(raw==null?el.textContent:raw);
+    var m=str.match(/^(\s*)(\d+)([\s\S]*)$/); if(!m){el.setAttribute('data-dirac-mini-text',str); return;}
+    var target=parseInt(m[2],10)||0;
+    var from=parseInt(el.getAttribute('data-dirac-last-mini')||'0',10)||0;
+    if(from===target){el.setAttribute('data-dirac-last-mini',String(target)); return;}
+    var prefix=m[1], suffix=m[3], start=performance.now(), duration=620; el.classList.add('dirac-counting');
+    function step(now){var t=Math.min(1,(now-start)/duration); var eased=1-Math.pow(1-t,3); var val=Math.round(from+(target-from)*eased); el.textContent=prefix+val+suffix; if(t<1) requestAnimationFrame(step); else {el.textContent=prefix+target+suffix; el.setAttribute('data-dirac-last-mini',String(target)); el.classList.remove('dirac-counting'); var card=el.closest('.app-mini-card'); if(card){card.classList.add('is-just-updated'); setTimeout(function(){card.classList.remove('is-just-updated');},1100);}}}
+    requestAnimationFrame(step);
+  }
+  function watchCounts(){
+    $$('[data-dashboard-count]').forEach(function(el){ if(el.__diracCountWatch) return; el.__diracCountWatch=true; el.setAttribute('data-dirac-last-count',String(parseInt(el.textContent||'0',10)||0)); var obs=new MutationObserver(function(){ if(el.__diracAnimating) return; var n=parseInt(el.textContent||'0',10); if(isFinite(n)){ el.__diracAnimating=true; animateNumber(el,n,680); setTimeout(function(){el.__diracAnimating=false;},750); }}); obs.observe(el,{childList:true,characterData:true,subtree:true}); });
+    var mini=$('#miniBillingStatus');
+    if(mini&&!mini.__diracMiniWatch){ mini.__diracMiniWatch=true; var obs2=new MutationObserver(function(){ if(mini.__diracAnimating) return; var raw=mini.textContent; if(/^\s*\d+/.test(raw)){ mini.__diracAnimating=true; animateLeadingNumber(mini,raw); setTimeout(function(){mini.__diracAnimating=false;},720); } }); obs2.observe(mini,{childList:true,characterData:true,subtree:true}); }
+  }
+  function bindRefreshUi(){
+    var btn=$('#dashboardRefreshButton'); var card=$('.dirac-account-sync-card');
+    if(!btn||btn.__diracPremiumRefresh) return; btn.__diracPremiumRefresh=true;
+    function setLoading(on){ btn.classList.toggle('is-loading',!!on); if(card) card.classList.toggle('is-syncing',!!on); if(on) text(btn,tr('syncing')); else text(btn,tr('refreshData')); }
+    var original=window.diracDashboardRefreshSummary;
+    if(typeof original==='function'&&!original.__diracPremiumWrapped){
+      var wrapped=function(){ setLoading(true); try{return Promise.resolve(original.apply(this,arguments)).catch(function(err){throw err;}).finally(function(){setTimeout(function(){setLoading(false);},260);});}catch(err){setLoading(false); throw err;}};
+      wrapped.__diracPremiumWrapped=true; window.diracDashboardRefreshSummary=wrapped;
+    }
+    btn.addEventListener('click',function(){ setLoading(true); setTimeout(function(){ if(!btn.disabled) setLoading(false); },1400); },true);
+  }
+  function bindVideoState(){
+    var video=$('#diracHeroVideo'); var frame=video&&video.closest('.dirac-video-frame'); if(!video||!frame||frame.__diracVideoState) return; frame.__diracVideoState=true;
+    frame.classList.add('is-video-loading'); frame.classList.remove('is-video-ready','is-video-error');
+    function ready(){frame.classList.remove('is-video-loading','is-video-error'); frame.classList.add('is-video-ready');}
+    function error(){frame.classList.remove('is-video-loading','is-video-ready'); frame.classList.add('is-video-error'); frame.setAttribute('data-video-error',tr('videoLoading'));}
+    if(video.readyState>=2) ready();
+    video.addEventListener('loadeddata',ready,{once:true}); video.addEventListener('canplay',ready,{once:true}); video.addEventListener('error',error,{once:true}); setTimeout(function(){if(video.readyState<2) frame.classList.add('is-video-loading');},350);
+  }
+  function addEmptyHints(){
+    var sections=[['[data-dashboard-service="domain"]','domain'],['[data-dashboard-service="project"]','project'],['[data-dashboard-service="invoice"]','invoice']];
+    sections.forEach(function(row){
+      var card=$(row[0]); if(!card) return;
+      var div=card.querySelector('.dirac-empty-soft');
+      if(!div){div=document.createElement('div'); div.className='dirac-empty-soft'; card.appendChild(div);}
+      text(div,tr('noData'));
+      function toggle(){var chip=card.querySelector('.app-chip'); var raw=(chip&&chip.textContent||'').toLowerCase(); var empty=/belum|tidak ada|no |no$|暂无|没有|sin |aucune|まだ|없음|ليس|لا توجد/.test(raw); div.classList.toggle('is-visible',empty);}
+      toggle();
+      if(!card.__diracEmptyHintWatch){card.__diracEmptyHintWatch=true; var chip=card.querySelector('.app-chip'); if(chip){new MutationObserver(toggle).observe(chip,{childList:true,characterData:true,subtree:true});}}
+    });
+  }
+  function init(){applyLocalI18n(); watchCounts(); bindRefreshUi(); bindVideoState(); addEmptyHints(); setTimeout(bindRefreshUi,900);}
+  window.addEventListener('dirac:global-prefs-change',function(){setFade(); setTimeout(function(){applyLocalI18n();},40); setTimeout(bindRefreshUi,120);});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+})();
+</script>
+
 </body>
 </html>
