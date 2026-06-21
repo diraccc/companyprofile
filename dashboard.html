@@ -1604,6 +1604,17 @@ html[data-motion="reduced"] #menuOverlay.dirac-ultra-menu *::after{animation:non
 }
 html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app-service{transition:none!important}
 </style>
+
+
+<style id="dirac-dashboard-separate-owner-card-fix-css">
+/* Owner/backend panel is now its own card, not squeezed below Bantuan. */
+.dirac-account-sync-section{margin:14px 0 0;position:relative;z-index:1}
+.dirac-account-sync-card{position:relative;overflow:hidden;border-radius:26px;border:1px solid rgba(var(--theme-rgb),.24);background:linear-gradient(180deg,rgba(255,255,255,.074),rgba(255,255,255,.030));box-shadow:0 18px 48px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.052);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px;display:grid;grid-template-columns:minmax(0,.82fr) minmax(320px,1.18fr);gap:14px;align-items:center}
+.dirac-account-sync-card:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(var(--theme-rgb),.08),transparent 42%,rgba(255,255,255,.035));opacity:.82}.dirac-account-sync-card>*{position:relative;z-index:1}.dirac-account-sync-copy h2{font-family:"Playfair Display",serif;color:var(--gold);font-size:clamp(1.55rem,3.7vw,2.35rem);line-height:1;margin:10px 0 6px}.dirac-account-sync-copy p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.55}.dirac-account-sync-panel{display:grid;grid-template-columns:1fr;gap:10px}.dirac-owner-pill,.dirac-refresh-data{min-height:48px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.052);color:#eef2f8;padding:11px 14px;font-weight:900;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.25;word-break:break-word}.dirac-owner-pill strong{font-weight:950;color:#fff}.dirac-refresh-data{background:rgba(var(--theme-rgb),.10);border-color:rgba(var(--theme-rgb),.28);color:#f9e7b6;cursor:pointer;transition:.22s var(--motion-ease)}.dirac-refresh-data:hover{transform:translateY(-1px);border-color:rgba(var(--theme-rgb),.46);background:rgba(var(--theme-rgb),.16)}.dirac-refresh-data:disabled{opacity:.6;cursor:not-allowed;transform:none}.dirac-account-sync-card.is-waiting .dirac-owner-pill{color:#aeb7c6}.dirac-account-sync-card.has-owner{border-color:rgba(var(--theme-rgb),.34);box-shadow:0 22px 56px rgba(0,0,0,.30),0 0 0 1px rgba(var(--theme-rgb),.06) inset}
+@media(max-width:860px){.dirac-account-sync-card{grid-template-columns:1fr;padding:16px;border-radius:24px}.dirac-account-sync-copy h2{font-size:1.8rem}.dirac-owner-pill,.dirac-refresh-data{min-height:46px;border-radius:17px;padding:10px 12px;font-size:.9rem}}
+@media(max-width:430px){.dirac-account-sync-section{margin:12px 0 0}.dirac-account-sync-card{padding:14px;border-radius:22px}.dirac-account-sync-copy p{font-size:.84rem}.dirac-owner-pill,.dirac-refresh-data{font-size:.86rem;min-height:44px}}
+</style>
+
 </head>
 <body class="gate-locked gate-checking">
   <header class="site-header" id="siteHeader">
@@ -1687,12 +1698,6 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
               <div class="app-mini-card" data-dashboard-mini="billing"><small>Tagihan</small><strong id="miniBillingStatus">Memuat backend</strong></div>
               <div class="app-mini-card"><small>Bantuan</small><strong>Admin tersedia</strong></div>
             </div>
-            <div class="dirac-account-sync-panel" aria-label="Identitas dashboard dari backend">
-              <span class="dirac-owner-pill">Dashboard <strong id="dashboardOwnerName">Menunggu backend</strong></span>
-              <span class="dirac-owner-pill" id="dashboardOwnerIdWrap" hidden>ID <strong id="dashboardOwnerId"></strong></span>
-              <span class="dirac-owner-pill" id="dashboardLastSync">Sinkron backend</span>
-              <button class="dirac-refresh-data" id="dashboardRefreshButton" type="button">Refresh</button>
-            </div>
           </article>
 
           <aside class="app-control-card" data-reveal style="--reveal-delay:80ms" aria-labelledby="focusTodayTitle">
@@ -1706,6 +1711,23 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
               <div class="app-alert" data-dashboard-attention="ticket"><span class="app-alert-icon">💬</span><div><strong>Tiket bantuan</strong><small data-dashboard-attention-note="ticket">Memuat tiket bantuan.</small></div><span class="app-chip ok" data-dashboard-attention-chip="ticket">Aman</span></div>
             </div>
           </aside>
+        </section>
+
+        <section class="dirac-account-sync-section" data-reveal aria-label="Identitas dashboard dari backend">
+          <article class="dirac-account-sync-card">
+            <div class="dirac-account-sync-copy">
+              <span class="eyebrow">Backend</span>
+              <h2>Identitas dashboard</h2>
+              <p>Data akun, tagihan, dan waktu sinkron ditampilkan dari backend sesi aktif.</p>
+            </div>
+            <div class="dirac-account-sync-panel" aria-label="Identitas dashboard dari backend">
+              <span class="dirac-owner-pill">Dashboard milik <strong id="dashboardOwnerName">Menunggu backend</strong></span>
+              <span class="dirac-owner-pill" id="dashboardOwnerIdWrap" hidden>ID <strong id="dashboardOwnerId"></strong></span>
+              <span class="dirac-owner-pill" id="dashboardLastSync">Sinkron backend</span>
+              <span class="dirac-owner-pill" id="dashboardSourceState" hidden>Sumber: <strong id="dashboardSourceName"></strong></span>
+              <button class="dirac-refresh-data" id="dashboardRefreshButton" type="button">Refresh data</button>
+            </div>
+          </article>
         </section>
 
         <section class="app-section" aria-labelledby="summaryTitle" data-reveal>
@@ -2406,6 +2428,7 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
       backendVerified=true;
       backendVerifiedAt=Date.now();
       backendUser=safeUser;
+      try{ window.__DIRAC_DASHBOARD_BACKEND_USER__ = safeUser; }catch(_e){}
       // Status dashboard hanya disimpan di memori halaman dan selalu diverifikasi ulang ke backend via HttpOnly cookie.
       document.documentElement.setAttribute('data-dashboard-backend','verified');
       return true;
@@ -2613,7 +2636,17 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
   function txt(el,v){if(el) el.textContent=String(v==null?'':v)}
   function lower(v){return String(v==null?'':v).toLowerCase().trim()}
   function get(obj,key){return obj&&Object.prototype.hasOwnProperty.call(obj,key)?obj[key]:undefined}
-  function numberValue(v){var n=Number(v);return Number.isFinite(n)?n:null}
+  function numberValue(v){
+    if(v===null||v===undefined||v==='') return null;
+    if(typeof v==='number') return Number.isFinite(v)?v:null;
+    var raw=String(v).trim();
+    var n=Number(raw);
+    if(Number.isFinite(n)) return n;
+    var digits=raw.replace(/[^0-9-]/g,'');
+    if(!digits||digits==='-') return null;
+    n=Number(digits);
+    return Number.isFinite(n)?n:null;
+  }
   function boolFalse(v){return v===false||v===0||lower(v)==='false'||lower(v)==='0'||lower(v)==='no'}
   function boolTrue(v){return v===true||v===1||lower(v)==='true'||lower(v)==='1'||lower(v)==='yes'}
   function setSync(text,mode){var el=$('#dashboardSyncState'); if(!el) return; txt(el,text); el.dataset.syncMode=mode||'ready';}
@@ -2711,27 +2744,70 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
   ));}
   function hasPositiveAmount(item){
     if(!item||typeof item!=='object') return false;
-    var keys=['amount_due','due_amount','unpaid_amount','remaining_amount','balance','sisa_tagihan','tagihan','total_due','grand_total','total','amount'];
+    var keys=['amount_due','due_amount','unpaid_amount','remaining_amount','balance','sisa_tagihan','tagihan','total_due','grand_total','total','amount','nominal','harga_total','total_harga'];
     for(var i=0;i<keys.length;i++){var n=numberValue(item[keys[i]]); if(n!==null&&n>0) return true;}
     return false;
   }
+  function normToken(v){return lower(v).replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');}
+  function firstStatus(item,keys){
+    if(!item||typeof item!=='object') return '';
+    for(var i=0;i<keys.length;i++){
+      var v=item[keys[i]];
+      if(v!==undefined&&v!==null&&String(v).trim()!=='') return normToken(v);
+    }
+    return '';
+  }
+  function joinedStatuses(item){
+    if(!item||typeof item!=='object') return '';
+    var parts=[
+      item.payment_status,item.paymentStatus,item.status_pembayaran,item.billing_status,item.invoice_status,item.status_tagihan,
+      item.order_status,item.fulfillment_status,item.status_order,item.status,item.midtrans_status,item.transaction_status
+    ];
+    try{ if(item.payment&&typeof item.payment==='object') parts.push(item.payment.status,item.payment.payment_status,item.payment.transaction_status); }catch(_e){}
+    try{ if(item.invoice&&typeof item.invoice==='object') parts.push(item.invoice.status,item.invoice.invoice_status,item.invoice.billing_status); }catch(_e){}
+    return lower(parts.filter(function(v){return v!==undefined&&v!==null&&String(v).trim()!=='';}).join(' '));
+  }
+  function isPaidToken(key){return ['paid','lunas','settled','settlement','success','sukses','capture','completed','complete','selesai'].indexOf(key)>-1;}
+  function isBadToken(key){return ['failed','gagal','cancel','canceled','cancelled','batal','expired','expire','refund','refunded','deny','denied'].indexOf(key)>-1;}
+  function isDueToken(key){return ['unpaid','not_paid','belum_dibayar','belum_bayar','menunggu_pembayaran','menunggu_bayar','pending_payment','pending','awaiting_payment','waiting_payment','waiting_for_payment','created','open','due','tertunda','tagihan','invoice'].indexOf(key)>-1;}
   function isDueInvoice(item){
     if(!item||typeof item!=='object') return false;
     if(boolTrue(item.is_paid)||boolTrue(item.paid)||boolTrue(item.payment_completed)||boolTrue(item.completed)) return false;
     if(boolFalse(item.is_paid)||boolFalse(item.paid)||boolFalse(item.payment_completed)) return true;
-    var s=getStatus(item);
-    if(/(paid|lunas|settled|success|sukses|complete|completed|selesai)/.test(s)) return false;
-    if(/(unpaid|belum|pending|menunggu|awaiting|waiting|tagihan|due|open|tertunda|not_paid|paylater|invoice)/.test(s)) return true;
-    return hasPositiveAmount(item)&&!/(cancel|batal|failed|gagal|expired|refund)/.test(s);
+    var payment=firstStatus(item,['payment_status','paymentStatus','status_pembayaran','billing_status','invoice_status','status_tagihan','transaction_status','midtrans_status']);
+    var invoice=firstStatus(item,['invoice_status','billing_status','status_tagihan']);
+    var order=firstStatus(item,['order_status','fulfillment_status','status_order','status']);
+    var raw=joinedStatuses(item);
+    /* Check due words first so "unpaid" is never misread as "paid". */
+    if(isDueToken(payment)||isDueToken(invoice)||/(^|[^a-z])(unpaid|not paid|belum dibayar|belum bayar|menunggu pembayaran|menunggu bayar|pending payment|awaiting payment|waiting payment|waiting for payment|tertunda|tagihan|invoice due)([^a-z]|$)/.test(raw)) return true;
+    if(isPaidToken(payment)||isPaidToken(invoice)||/(^|[^a-z])(paid|lunas|settled|settlement|success|sukses|capture)([^a-z]|$)/.test(raw)) return false;
+    if(isBadToken(payment)||isBadToken(invoice)||isBadToken(order)) return false;
+    if(isDueToken(order)) return hasPositiveAmount(item);
+    return hasPositiveAmount(item);
+  }
+  function dueKey(item){
+    if(!item||typeof item!=='object') return '';
+    return String(item.id||item.order_id||item.orderId||item.invoice_id||item.invoiceId||item.order_code||item.invoice_code||item.code||item.kode||item.reference||'').trim();
   }
   function dueInvoiceCount(invoices,orders,summary){
-    var explicit=firstNumber(summary,['due_invoices','pending_invoices','unpaid_invoices','invoice_due_count','invoice_pending_count','invoice_unpaid_count','tagihan_tertunda','tagihan_belum_dibayar','unpaid_count','pending_bills']);
-    if(explicit!==null) return Math.max(0,parseInt(explicit,10)||0);
     var source=[];
     if(Array.isArray(invoices)&&invoices.length) source=source.concat(invoices);
     if(Array.isArray(orders)&&orders.length) source=source.concat(orders);
-    if(!source.length) return 0;
-    return source.filter(isDueInvoice).length;
+    var seen={};
+    var calculated=0;
+    source.forEach(function(item,idx){
+      if(!isDueInvoice(item)) return;
+      var k=dueKey(item)||('__idx_'+idx);
+      if(seen[k]) return;
+      seen[k]=true;
+      calculated++;
+    });
+    var explicit=firstNumber(summary,['due_invoices','pending_invoices','unpaid_invoices','invoice_due_count','invoice_pending_count','invoice_unpaid_count','tagihan_tertunda','tagihan_belum_dibayar','unpaid_count','pending_bills','belum_dibayar','unpaid','pending_payment_count']);
+    if(explicit!==null){
+      explicit=Math.max(0,parseInt(explicit,10)||0);
+      return Math.max(explicit,calculated);
+    }
+    return calculated;
   }
   function openTicketCount(tickets,summary){
     var explicit=firstNumber(summary,['open_tickets','ticket_open_count','pending_tickets','tickets_pending','tiket_terbuka','tiket_pending']);
@@ -2763,11 +2839,11 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
   }
   function updateAttention(counts){
     var due=counts.invoices||0;
-    txt($('#miniBillingStatus'),due>0?(due+' tertunda'):'Tidak ada tertunda');
+    txt($('#miniBillingStatus'),due>0?(due+' tagihan belum dibayar'):'Tidak ada tagihan tertunda');
     setChip($('[data-dashboard-attention-chip="invoice"]'),due>0?(due+' tagihan'):'Aman',due>0?'wait':'ok');
-    txt($('[data-dashboard-attention-note="invoice"]'),due>0?('Ada '+due+' tagihan dari backend yang perlu dicek di halaman invoice.'):'Tidak ada tagihan tertunda dari backend.');
+    txt($('[data-dashboard-attention-note="invoice"]'),due>0?('Ada '+due+' tagihan dari backend yang perlu dicek di halaman pesanan.'):'Tidak ada tagihan tertunda dari backend.');
     setChip($('[data-dashboard-status-chip="invoice"]'),due>0?(due+' tagihan'):'Beres',due>0?'wait':'ok');
-    txt($('[data-dashboard-status-note="invoice"]'),due>0?('Ada '+due+' invoice tertunda. Buka halaman invoice untuk detail.'):'Tidak ada invoice tertunda dari backend.');
+    txt($('[data-dashboard-status-note="invoice"]'),due>0?('Ada '+due+' invoice tertunda. Buka halaman pesanan untuk detail.'):'Tidak ada invoice tertunda dari backend.');
     setChip($('[data-dashboard-attention-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');
     txt($('[data-dashboard-attention-note="domain"]'),counts.domains>0?('Ada '+counts.domains+' domain aktif pada akun ini.'):'Belum ada domain yang mendekati expired.');
     setChip($('[data-dashboard-status-chip="domain"]'),counts.domains>0?(counts.domains+' aktif'):'Aman',counts.domains>0?'info':'ok');
@@ -2802,7 +2878,7 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
   }
   function linkForType(type){
     type=lower(type);
-    if(/invoice|tagihan|payment|bayar/.test(type)) return 'invoice.html';
+    if(/invoice|tagihan|payment|bayar/.test(type)) return 'pesanan.html';
     if(/ship|kirim|resi|paket/.test(type)) return 'detail-parfum.html';
     if(/domain/.test(type)) return 'domain.html';
     if(/project|website|approval/.test(type)) return 'project-website.html';
@@ -2820,7 +2896,7 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
   }
   function buildDerivedNotifications(counts){
     var out=[];
-    if(counts.invoices>0) out.push({type:'invoice',title:'Tagihan perlu dicek',body:'Ada '+counts.invoices+' tagihan dari backend. Buka halaman invoice untuk detail.',status:'Perlu dicek',href:'invoice.html',icon:'🧾'});
+    if(counts.invoices>0) out.push({type:'invoice',title:'Tagihan perlu dicek',body:'Ada '+counts.invoices+' tagihan dari backend. Buka halaman pesanan untuk detail.',status:'Perlu dicek',href:'pesanan.html',icon:'🧾'});
     if(counts.shipments>0) out.push({type:'shipment',title:'Pengiriman berjalan',body:'Ada '+counts.shipments+' pengiriman yang bisa dipantau.',status:'Pengiriman',href:'detail-parfum.html',icon:'🚚'});
     if(counts.domains>0) out.push({type:'domain',title:'Domain aktif',body:'Ada '+counts.domains+' domain aktif pada akun ini.',status:'Domain',href:'domain.html',icon:'🌐'});
     if(counts.projects>0) out.push({type:'project',title:'Project website aktif',body:'Ada '+counts.projects+' project website yang sedang berjalan.',status:'Project',href:'project-website.html',icon:'💻'});
@@ -2898,7 +2974,7 @@ html[data-motion="reduced"] .dirac-refresh-data,html[data-motion="reduced"] .app
     var connected=!!(summaryResp||ordersResp||invoicesResp||shipmentsResp||domainsResp||projectsResp||ticketsResp||notificationsResp);
     renderNotifications(notifications,counts,connected);
     setSync(connected?'Sinkron backend':'Backend belum mengirim ringkasan',connected?'ready':'warning');
-    window.diracDashboardSummary={counts:counts,orders:orders.length,invoices:invoices.length,shipments:shipments.length,domains:domains.length,projects:projects.length,tickets:tickets.length,notifications:notifications.length,source:{summary:summaryResp&&summaryResp.url,orders:ordersResp&&ordersResp.url,invoices:invoicesResp&&invoicesResp.url,shipments:shipmentsResp&&shipmentsResp.url,domains:domainsResp&&domainsResp.url,projects:projectsResp&&projectsResp.url,tickets:ticketsResp&&ticketsResp.url,notifications:notificationsResp&&notificationsResp.url}};
+    window.diracDashboardSummary={counts:counts,orders:orders.length,invoices:invoices.length,shipments:shipments.length,domains:domains.length,projects:projects.length,tickets:tickets.length,notifications:notifications.length,user:(window.__DIRAC_DASHBOARD_BACKEND_USER__||null),source:{summary:summaryResp&&summaryResp.url,orders:ordersResp&&ordersResp.url,invoices:invoicesResp&&invoicesResp.url,shipments:shipmentsResp&&shipmentsResp.url,domains:domainsResp&&domainsResp.url,projects:projectsResp&&projectsResp.url,tickets:ticketsResp&&ticketsResp.url,notifications:notificationsResp&&notificationsResp.url}};
   }
   window.diracDashboardRefreshSummary=refreshDashboardSummary;
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(refreshDashboardSummary,520);},{once:true});
@@ -4087,19 +4163,33 @@ body.du-menu-lock{
   function text(el,v){if(el) el.textContent=String(v==null?'':v)}
   function clean(v){return String(v==null?'':v).trim()}
   function maskEmail(v){v=clean(v);var m=v.match(/^([^@]{1,})(@.+)$/);if(!m) return '';var name=m[1];return (name.length<=2?name[0]+'*':name.slice(0,2)+'***')+m[2];}
-  function getUser(){var s=window.diracDashboardSummary||{};return (s.user&&typeof s.user==='object')?s.user:{};}
+  function getUser(){
+    var s=window.diracDashboardSummary||{};
+    if(s.user&&typeof s.user==='object') return s.user;
+    if(window.__DIRAC_DASHBOARD_BACKEND_USER__&&typeof window.__DIRAC_DASHBOARD_BACKEND_USER__==='object') return window.__DIRAC_DASHBOARD_BACKEND_USER__;
+    return {};
+  }
   function nowLabel(){try{return new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date());}catch(_){return new Date().toLocaleTimeString();}}
   function render(){
     var user=getUser();
     var email=clean(user.email||user.customer_email||user.user_email);
     var id=clean(user.id||user.customer_id||user.user_id||user.account_id||'');
     var name=clean(user.name||user.full_name||user.username||user.display_name||'');
-    var display=name || maskEmail(email) || (($('#displayName')&&clean($('#displayName').textContent)&&clean($('#displayName').textContent)!=='Pelanggan')?clean($('#displayName').textContent):'Menunggu backend');
+    var display=name || maskEmail(email) || 'Menunggu backend';
     text($('#dashboardOwnerName'),display);
+    var card=$('.dirac-account-sync-card');
+    if(card){card.classList.toggle('has-owner',display!=='Menunggu backend');card.classList.toggle('is-waiting',display==='Menunggu backend');}
     var idWrap=$('#dashboardOwnerIdWrap');
     if(id){text($('#dashboardOwnerId'),id.length>22?id.slice(0,22):id); if(idWrap) idWrap.hidden=false;}
     else if(idWrap){idWrap.hidden=true;}
-    if(window.diracDashboardSummary){text($('#dashboardLastSync'),'Sinkron: '+nowLabel());}
+    if(window.diracDashboardSummary||Object.keys(user).length){text($('#dashboardLastSync'),'Sinkron backend: '+nowLabel());}
+    var sourceWrap=$('#dashboardSourceState');
+    if(sourceWrap){
+      var sourceName=$('#dashboardSourceName');
+      if(Object.keys(user).length){ text(sourceName,'domain_dashboard_me'); sourceWrap.hidden=false; }
+      else if(window.diracDashboardSummary){ text(sourceName,'dashboard_summary'); sourceWrap.hidden=false; }
+      else sourceWrap.hidden=true;
+    }
   }
   function bind(){
     var btn=$('#dashboardRefreshButton');
