@@ -161,7 +161,7 @@
 <meta content="noindex,nofollow,noarchive,nosnippet,noimageindex" name="yandex"/>
 <meta content="noindex,nofollow,noarchive,nosnippet,noimageindex" name="baiduspider"/>
 <meta content="telephone=no,email=no,address=no" name="format-detection"/>
-<meta content="no-referrer" name="referrer"/>
+<meta content="strict-origin-when-cross-origin" name="referrer"/>
 <meta content="no-store, no-cache, must-revalidate, private, max-age=0" http-equiv="Cache-Control"/>
 <meta content="no-cache" http-equiv="Pragma"/>
 <meta content="0" http-equiv="Expires"/>
@@ -1746,7 +1746,7 @@ html[data-motion="reduced"] .dirac-video-frame.is-video-loading:before,html[data
 </div>
 <div aria-label="Identitas dashboard dari backend" class="dirac-account-sync-panel">
 <span class="dirac-owner-pill">Dashboard milik <strong id="dashboardOwnerName">Menunggu backend</strong></span>
-<span class="dirac-owner-pill" hidden="" id="dashboardOwnerIdWrap" title="ID backend dari database sesi login aktif">ID backend <strong id="dashboardOwnerId"></strong></span>
+<span class="dirac-owner-pill" hidden="" id="dashboardOwnerIdWrap">ID <strong id="dashboardOwnerId"></strong></span>
 <span class="dirac-owner-pill" id="dashboardLastSync">Sinkron backend</span>
 <span class="dirac-owner-pill" hidden="" id="dashboardSourceState">Sumber: <strong id="dashboardSourceName"></strong></span>
 <button class="dirac-refresh-data" id="dashboardRefreshButton" type="button">Refresh data</button>
@@ -2138,7 +2138,7 @@ html[data-motion="reduced"] .dirac-video-frame.is-video-loading:before,html[data
 <section aria-labelledby="trackingTitle" aria-modal="true" class="pro-modal-card" role="dialog" tabindex="-1">
 <div class="theme-head"><div><h2 data-i18n="trackingTitle" id="trackingTitle">Cek Resi</h2><p data-i18n="trackingSub">Masukkan nomor resi untuk menyiapkan pengecekan pengiriman.</p></div><button aria-label="Tutup cek resi" class="icon-btn" data-close-tracking="" type="button">×</button></div>
 <form class="tracking-form" id="trackingForm" method="get" action="#trackingResult" autocomplete="off" accept-charset="UTF-8" novalidate>
-<input autocomplete="off" class="field" data-i18n-placeholder="trackingPlaceholder" id="trackingNumber" name="trackingNumber" placeholder="Masukkan nomor resi" type="text" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="search" maxlength="80" minlength="1" pattern="[A-Za-z0-9._/-]{1,80}" title="Nomor resi hanya boleh huruf, angka, titik, garis miring, underscore, dan tanda hubung.">
+<input autocomplete="off" class="field" data-i18n-placeholder="trackingPlaceholder" id="trackingNumber" name="trackingNumber" placeholder="Masukkan nomor resi" type="text"/ autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="search" maxlength="80" minlength="1" pattern="[A-Za-z0-9._/-]{1,80}" title="Nomor resi hanya boleh huruf, angka, titik, garis miring, underscore, dan tanda hubung.">
 <select aria-label="Pilih kurir" class="field" id="trackingCourier" name="trackingCourier">
 <option value="">Pilih kurir</option><option>JNE</option><option>J&amp;T</option><option>SiCepat</option><option>Anteraja</option><option>Pos Indonesia</option><option>TIKI</option><option>Shopee Express</option><option>Lion Parcel</option><option>Ninja Express</option><option>Wahana</option>
 </select>
