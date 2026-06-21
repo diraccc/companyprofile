@@ -12707,3 +12707,462 @@ function customerSecurityFeaturePolicyV3() {
     }
   ];
 }
+
+
+/* ============================================================
+   DIRAC ULTRA SECURITY HARDENING v100 - APPEND ONLY
+   Tujuan:
+   - Tidak mengubah endpoint/action yang sudah ada.
+   - Tidak mengubah hash password/login Supabase, payment gateway, email template,
+     A2F/MFA existing, atau logika bisnis existing.
+   - Memperkuat kontrol global: strict browser-origin guard, body-size guard,
+     rate limit berlapis, response secret redaction, security headers,
+     dan audit security generic opsional.
+   ============================================================ */
+
+const DIRAC_ULTRA_SECURITY_PATCH = 'dirac-ultra-security-hardening-v100';
+const __diracUltraSecurityPreviousHandler = module.exports;
+const DIRAC_ULTRA_RATE_LIMIT_STORE = globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ || new Map();
+globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ = DIRAC_ULTRA_RATE_LIMIT_STORE;
+
+module.exports = async function diracUltraSecurityHardeningWrapper(req, res) {
+  diracUltraApplyResponseHeaders(res);
+  diracUltraInstallSafeJsonInterceptor(res);
+
+  const action = diracUltraNormalizeAction(String((req && req.query && req.query.action) || ''));
+  const method = String((req && req.method) || 'GET').toUpperCase();
+
+  try {
+    const preflight = diracUltraPreflightSecurityCheck(req, res, action, method);
+    if (!preflight.ok) return diracUltraWriteBlockedResponse(res, preflight);
+
+    const limit = await diracUltraCheckRateLimit(req, action, method);
+    if (!limit.ok) {
+      if (res && typeof res.setHeader === 'function') res.setHeader('Retry-After', String(limit.retryAfterSeconds || 60));
+      await diracUltraWriteGenericSecurityEvent(req, {
+        action,
+        event_type: 'ultra_rate_limit_blocked',
+        status: 'warning',
+        risk_level: 'medium',
+        metadata: { retry_after_seconds: limit.retryAfterSeconds || 60, source: DIRAC_ULTRA_SECURITY_PATCH }
+      }).catch(() => null);
+      return res.status(429).json({
+        ok: false,
+        code: 'RATE_LIMITED',
+        retry_after_seconds: limit.retryAfterSeconds || 60,
+        message: 'Terlalu banyak permintaan. Silakan coba lagi sebentar lagi.'
+      });
+    }
+
+    return await __diracUltraSecurityPreviousHandler(req, res);
+  } catch (error) {
+    const status = Number(error && (error.statusCode || error.status)) || 500;
+    if (status === 413 || String(error && error.code || '') === 'DIRAC_BODY_TOO_LARGE') {
+      return res.status(413).json({
+        ok: false,
+        code: 'REQUEST_BODY_TOO_LARGE',
+        message: 'Request terlalu besar. Silakan ulangi dengan data yang lebih ringkas.'
+      });
+    }
+
+    console.error('[dirac-ultra-security-wrapper]', diracUltraSafeError(error));
+    return res.status(status >= 400 && status < 500 ? status : 500).json({
+      ok: false,
+      code: status >= 500 ? 'INTERNAL_SECURITY_GUARD_ERROR' : 'REQUEST_BLOCKED',
+      message: status >= 500
+        ? 'Permintaan belum dapat diproses dengan aman.'
+        : diracUltraSafePublicMessage(error && error.message, 'Permintaan ditolak oleh sistem keamanan.')
+    });
+  }
+};
+
+function diracUltraPreflightSecurityCheck(req, res, action, method) {
+  const bodyLimit = diracUltraBodyLimitBytes(action, method);
+  if (bodyLimit > 0) {
+    const length = Number((req && req.headers && req.headers['content-length']) || 0);
+    if (Number.isFinite(length) && length > bodyLimit) {
+      return {
+        ok: false,
+        status: 413,
+        code: 'REQUEST_BODY_TOO_LARGE',
+        message: 'Request terlalu besar. Silakan ulangi dengan data yang lebih ringkas.'
+      };
+    }
+  }
+
+  if (method !== 'POST' && method !== 'GET' && method !== 'OPTIONS') {
+    return {
+      ok: false,
+      status: 405,
+      code: 'METHOD_NOT_ALLOWED',
+      message: 'Method tidak diizinkan.'
+    };
+  }
+
+  if (method === 'POST' && diracUltraRequiresBrowserOrigin(action)) {
+    const originGuard = diracUltraStrictOriginGuard(req, action);
+    if (!originGuard.ok) {
+      return {
+        ok: false,
+        status: 403,
+        code: originGuard.code || 'ORIGIN_BLOCKED',
+        message: 'Origin tidak diizinkan untuk aksi sensitif.'
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+function diracUltraWriteBlockedResponse(res, blocked) {
+  return res.status(blocked.status || 403).json({
+    ok: false,
+    code: blocked.code || 'REQUEST_BLOCKED',
+    message: diracUltraSafePublicMessage(blocked.message, 'Permintaan ditolak oleh sistem keamanan.')
+  });
+}
+
+function diracUltraApplyResponseHeaders(res) {
+  try {
+    if (!res || typeof res.setHeader !== 'function') return;
+    if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+    res.setHeader('X-Dirac-Security-Patch', DIRAC_ULTRA_SECURITY_PATCH);
+    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+    res.setHeader('Origin-Agent-Cluster', '?1');
+    res.setHeader('X-Download-Options', 'noopen');
+    res.setHeader('Surrogate-Control', 'no-store');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+  } catch (_) {}
+}
+
+function diracUltraInstallSafeJsonInterceptor(res) {
+  try {
+    if (!res || typeof res.json !== 'function' || res.__diracUltraSafeJsonInstalled) return;
+    const originalJson = res.json.bind(res);
+    Object.defineProperty(res, '__diracUltraSafeJsonInstalled', { value: true, enumerable: false });
+    res.json = function diracUltraSafeJson(payload) {
+      try {
+        return originalJson(diracUltraRedactPayload(payload));
+      } catch (_) {
+        return originalJson(payload);
+      }
+    };
+  } catch (_) {}
+}
+
+function diracUltraRedactPayload(payload, depth = 0) {
+  if (depth > 10) return '[redacted-depth]';
+  if (payload === null || payload === undefined) return payload;
+  if (typeof payload === 'string') return diracUltraRedactString(payload);
+  if (typeof payload !== 'object') return payload;
+  if (Array.isArray(payload)) return payload.map((item) => diracUltraRedactPayload(item, depth + 1));
+
+  const out = {};
+  for (const [key, value] of Object.entries(payload)) {
+    const cleanKey = String(key || '');
+    const lower = cleanKey.toLowerCase();
+    if (/password|passwd|pwd|secret|service_role|service-key|apikey|api_key|authorization|access_token|refresh_token|id_token|set-cookie|raw_cookie|cookie_header|signature_key|server_key|private_key|client_secret|smtp_pass|smtp_password/i.test(lower)) {
+      out[cleanKey] = '[redacted]';
+      continue;
+    }
+    if (/stack|trace|stacktrace/i.test(lower)) {
+      out[cleanKey] = '[redacted]';
+      continue;
+    }
+    out[cleanKey] = diracUltraRedactPayload(value, depth + 1);
+  }
+  return out;
+}
+
+function diracUltraRedactString(value) {
+  const text = String(value || '');
+  if (!text) return text;
+  return text
+    .replace(/(sb-[a-z]+-[A-Za-z0-9_\-]{12,})/g, '[redacted-token]')
+    .replace(/(eyJ[A-Za-z0-9_\-.]{20,})/g, '[redacted-jwt]')
+    .replace(/((?:sk|rk|pk|whsec|mid|SB-Mid|Mid-server)[A-Za-z0-9_\-:.]{10,})/g, '[redacted-secret]')
+    .slice(0, 5000);
+}
+
+function diracUltraNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    'domain_health': 'domain_health',
+    'hostinger_check': 'hostinger_check',
+    'domain_hostinger_check': 'hostinger_check',
+    'check_domain': 'domain_check',
+    'domain_check': 'domain_check',
+    'create_order': 'domain_checkout',
+    'domain_create_order': 'domain_checkout',
+    'domain_checkout': 'domain_checkout',
+    'get_orders': 'domain_orders',
+    'domain_get_orders': 'domain_orders',
+    'domain_orders': 'domain_orders',
+    'domain_login': 'domain_login',
+    'login_domain': 'domain_login',
+    'domain_register': 'domain_register',
+    'register_domain': 'domain_register',
+    'domain_logout': 'domain_logout',
+    'domain_me': 'domain_me',
+    'domain_dashboard_me': 'domain_dashboard_me',
+    'dashboard_me': 'domain_dashboard_me',
+    'domain_mfa_status': 'domain_mfa_status',
+    'dashboard_mfa_status': 'domain_mfa_status',
+    'create_payment': 'create_payment',
+    'pay_order': 'create_payment',
+    'order_payment': 'create_payment',
+    'midtrans_webhook': 'midtrans_webhook',
+    'midtrans_notification': 'midtrans_webhook',
+    'midtrans_callback': 'midtrans_webhook',
+    'payment_webhook': 'midtrans_webhook',
+    'payment_callback': 'midtrans_webhook',
+    'midtrans_health': 'midtrans_health',
+    'ipaymu_webhook': 'ipaymu_webhook',
+    'ipaymu_callback': 'ipaymu_webhook',
+    'ipaymu_notification': 'ipaymu_webhook',
+    'ipaymu_health': 'ipaymu_health',
+    'dirac_mfa_passkey_start': 'dirac_mfa_passkey_start',
+    'domain_mfa_passkey_start': 'dirac_mfa_passkey_start',
+    'dirac_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
+    'domain_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
+    'dirac_mfa_email_start': 'dirac_mfa_email_start',
+    'domain_mfa_email_start': 'dirac_mfa_email_start',
+    'dirac_mfa_email_verify': 'dirac_mfa_email_verify',
+    'domain_mfa_email_verify': 'dirac_mfa_email_verify'
+  };
+  return aliases[clean] || clean;
+}
+
+function diracUltraBodyLimitBytes(action, method) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase())) return 0;
+  if (diracUltraIsWebhookAction(action)) return diracUltraBytesFromEnv('DIRAC_WEBHOOK_BODY_LIMIT_BYTES', 512 * 1024);
+  if (/passkey/.test(action)) return diracUltraBytesFromEnv('DIRAC_PASSKEY_BODY_LIMIT_BYTES', 512 * 1024);
+  if (/email|mfa|recovery|security/.test(action)) return diracUltraBytesFromEnv('DIRAC_SECURITY_BODY_LIMIT_BYTES', 128 * 1024);
+  if (/login|register/.test(action)) return Math.max(1024, Number(LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024));
+  if (/payment|checkout|order|invoice/.test(action)) return diracUltraBytesFromEnv('DIRAC_PAYMENT_BODY_LIMIT_BYTES', 128 * 1024);
+  return diracUltraBytesFromEnv('DIRAC_DEFAULT_BODY_LIMIT_BYTES', 128 * 1024);
+}
+
+function diracUltraBytesFromEnv(name, fallback) {
+  const value = Number(process.env[name] || fallback);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(1024, Math.min(value, 2 * 1024 * 1024));
+}
+
+function diracUltraIsWebhookAction(action) {
+  return ['midtrans_webhook', 'ipaymu_webhook'].includes(String(action || ''));
+}
+
+function diracUltraRequiresBrowserOrigin(action) {
+  if (diracUltraIsWebhookAction(action)) return false;
+  if (isEnvTrue('DIRAC_ULTRA_ORIGIN_GUARD_DISABLED')) return false;
+  return true;
+}
+
+function diracUltraStrictOriginGuard(req, action) {
+  if (typeof diracSensitivePostOriginCheck === 'function') {
+    const guard = diracSensitivePostOriginCheck(req, action);
+    if (!guard || !guard.ok) return guard || { ok: false, code: 'ORIGIN_BLOCKED' };
+    if (guard.source === 'missing_origin_fail_open') {
+      if (isEnvTrue('DIRAC_ULTRA_ALLOW_MISSING_ORIGIN')) return guard;
+      if (process.env.NODE_ENV !== 'production') return guard;
+      return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'ultra_missing_origin_block' };
+    }
+    return guard;
+  }
+  return { ok: true, source: 'origin_guard_unavailable' };
+}
+
+// Override existing sensitive POST origin checker only at the missing-header branch.
+// Existing allowed-origin and referer logic stays untouched.
+try {
+  const __diracUltraOriginalSensitiveOriginCheck = typeof diracSensitivePostOriginCheck === 'function' ? diracSensitivePostOriginCheck : null;
+  if (__diracUltraOriginalSensitiveOriginCheck) {
+    diracSensitivePostOriginCheck = function diracSensitivePostOriginCheckUltra(req, action) {
+      const guard = __diracUltraOriginalSensitiveOriginCheck(req, action);
+      if (guard && guard.ok && guard.source === 'missing_origin_fail_open') {
+        if (isEnvTrue('DIRAC_ULTRA_ALLOW_MISSING_ORIGIN')) return guard;
+        if (process.env.NODE_ENV === 'production' || isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER')) {
+          return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'ultra_missing_origin_block' };
+        }
+      }
+      return guard;
+    };
+  }
+} catch (_) {}
+
+// Override generic body reader with a safe byte limit. Function names and endpoints are not changed.
+try {
+  const __diracUltraOriginalReadBody = typeof readBody === 'function' ? readBody : null;
+  if (__diracUltraOriginalReadBody) {
+    readBody = async function readBodyUltraLimited(req) {
+      const action = diracUltraNormalizeAction(String((req && req.query && req.query.action) || ''));
+      const method = String((req && req.method) || 'POST').toUpperCase();
+      const limit = diracUltraBodyLimitBytes(action, method) || diracUltraBytesFromEnv('DIRAC_DEFAULT_BODY_LIMIT_BYTES', 128 * 1024);
+
+      if (req && req.body && typeof req.body === 'object') {
+        const approxBytes = Buffer.byteLength(JSON.stringify(req.body), 'utf8');
+        if (approxBytes > limit) throw diracUltraBodyTooLargeError(limit);
+        return req.body;
+      }
+
+      if (req && typeof req.body === 'string') {
+        if (Buffer.byteLength(req.body, 'utf8') > limit) throw diracUltraBodyTooLargeError(limit);
+        try { return JSON.parse(req.body || '{}'); } catch (_) { return {}; }
+      }
+
+      return await new Promise((resolve, reject) => {
+        let raw = '';
+        let stopped = false;
+        req.on('data', (chunk) => {
+          if (stopped) return;
+          raw += chunk;
+          if (Buffer.byteLength(raw, 'utf8') > limit) {
+            stopped = true;
+            if (typeof req.destroy === 'function') req.destroy();
+            reject(diracUltraBodyTooLargeError(limit));
+          }
+        });
+        req.on('end', () => {
+          if (stopped) return;
+          try { resolve(raw ? JSON.parse(raw) : {}); } catch (_) { resolve({}); }
+        });
+        req.on('error', () => {
+          if (stopped) return;
+          resolve({});
+        });
+      });
+    };
+  }
+} catch (_) {}
+
+function diracUltraBodyTooLargeError(limit) {
+  const error = new Error('REQUEST_BODY_TOO_LARGE');
+  error.statusCode = 413;
+  error.code = 'DIRAC_BODY_TOO_LARGE';
+  error.limit = limit;
+  return error;
+}
+
+async function diracUltraCheckRateLimit(req, action, method) {
+  if (isEnvTrue('DIRAC_ULTRA_RATE_LIMIT_DISABLED')) return { ok: true };
+  if (String(method || '').toUpperCase() === 'OPTIONS') return { ok: true };
+
+  const config = diracUltraRateLimitConfig(action, method);
+  if (config.limit <= 0) return { ok: true };
+
+  const now = Date.now();
+  diracUltraRateLimitCleanup(now);
+
+  const key = diracUltraRateLimitKey(req, action, method);
+  let row = DIRAC_ULTRA_RATE_LIMIT_STORE.get(key) || null;
+  if (!row) {
+    row = { count: 0, resetAtMs: now + config.windowMs, firstSeenMs: now };
+  }
+  if (now > Number(row.resetAtMs || 0)) {
+    row = { count: 0, resetAtMs: now + config.windowMs, firstSeenMs: now };
+  }
+  row.count = Number(row.count || 0) + 1;
+  DIRAC_ULTRA_RATE_LIMIT_STORE.set(key, row);
+
+  if (row.count > config.limit) {
+    return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((row.resetAtMs - now) / 1000)) };
+  }
+
+  if (isEnvTrue('DIRAC_ULTRA_PERSISTENT_RATE_LIMIT') && LOGIN_SECURITY_PERSIST_TABLE && typeof readPersistentSecurityJson === 'function') {
+    const persistedKey = 'ultra-rate:' + key;
+    const persisted = await readPersistentSecurityJson(persistedKey).catch(() => null);
+    const pNow = Date.now();
+    let pRow = persisted && typeof persisted === 'object' ? persisted : { count: 0, resetAtMs: pNow + config.windowMs };
+    if (pNow > Number(pRow.resetAtMs || 0)) pRow = { count: 0, resetAtMs: pNow + config.windowMs };
+    pRow.count = Number(pRow.count || 0) + 1;
+    await writePersistentSecurityJson(persistedKey, pRow, 0, Math.ceil(config.windowMs / 1000) + 60).catch(() => false);
+    if (pRow.count > config.limit) {
+      return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((Number(pRow.resetAtMs || pNow) - pNow) / 1000)) };
+    }
+  }
+
+  return { ok: true };
+}
+
+function diracUltraRateLimitConfig(action, method) {
+  const m = String(method || '').toUpperCase();
+  const a = String(action || '').toLowerCase();
+  if (diracUltraIsWebhookAction(a)) return { limit: 240, windowMs: 60 * 1000 };
+  if (a === 'domain_login' || a === 'domain_register' || (!a && m === 'POST')) return { limit: 24, windowMs: 60 * 1000 };
+  if (/mfa|passkey|recovery|security/.test(a) && m === 'POST') return { limit: 30, windowMs: 60 * 1000 };
+  if (/payment|checkout|invoice|order/.test(a) && m === 'POST') return { limit: 36, windowMs: 60 * 1000 };
+  if (a === 'hostinger_check' || a === 'domain_check') return { limit: 75, windowMs: 60 * 1000 };
+  if (m === 'POST') return { limit: 90, windowMs: 60 * 1000 };
+  return { limit: 240, windowMs: 60 * 1000 };
+}
+
+function diracUltraRateLimitKey(req, action, method) {
+  const ip = typeof getLoginSecurityIp === 'function' ? getLoginSecurityIp(req) : ((req && req.headers && req.headers['x-forwarded-for']) || 'unknown');
+  const ua = String((req && req.headers && req.headers['user-agent']) || '').slice(0, 160);
+  const base = [String(method || 'GET'), String(action || 'no_action'), String(ip || 'unknown'), ua].join('|');
+  return typeof loginSecurityHash === 'function'
+    ? loginSecurityHash(base)
+    : crypto.createHash('sha256').update(base).digest('hex');
+}
+
+function diracUltraRateLimitCleanup(now = Date.now()) {
+  if (DIRAC_ULTRA_RATE_LIMIT_STORE.size < 8000) return;
+  for (const [key, value] of DIRAC_ULTRA_RATE_LIMIT_STORE.entries()) {
+    if (Number(value && value.resetAtMs || 0) <= now) DIRAC_ULTRA_RATE_LIMIT_STORE.delete(key);
+    if (DIRAC_ULTRA_RATE_LIMIT_STORE.size <= 5000) break;
+  }
+}
+
+async function diracUltraWriteGenericSecurityEvent(req, options = {}) {
+  if (!isEnvTrue('DIRAC_ULTRA_GENERIC_SECURITY_EVENT')) return false;
+  if (!LOGIN_SECURITY_PERSIST_TABLE || typeof writePersistentSecurityJson !== 'function') return false;
+  const action = String(options.action || '').slice(0, 80);
+  const keyBase = [Date.now(), action, Math.random().toString(36).slice(2)].join(':');
+  const key = 'ultra-event:' + (typeof loginSecurityHash === 'function' ? loginSecurityHash(keyBase) : crypto.createHash('sha256').update(keyBase).digest('hex'));
+  const headers = (req && req.headers) || {};
+  return writePersistentSecurityJson(key, {
+    event_type: options.event_type || 'ultra_security_event',
+    status: options.status || 'info',
+    risk_level: options.risk_level || 'low',
+    action,
+    method: String((req && req.method) || '').toUpperCase(),
+    ip_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(getLoginSecurityIp(req) || '')) : '',
+    user_agent_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(headers['user-agent'] || '').slice(0, 240)) : '',
+    created_at: new Date().toISOString(),
+    metadata: options.metadata && typeof options.metadata === 'object' ? options.metadata : {}
+  }, 0, 30 * 24 * 60 * 60).catch(() => false);
+}
+
+function diracUltraSafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'unknown_error');
+  const code = String(error && error.code || '');
+  return { code: code.slice(0, 80), message: diracUltraRedactString(message).slice(0, 300) };
+}
+
+function diracUltraSafePublicMessage(message, fallback = 'Permintaan belum dapat diproses.') {
+  const text = String(message || fallback || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
+  return diracUltraRedactString(text).slice(0, 220) || fallback;
+}
+
+// Optional signed-session hardening: stays compatible by default.
+// Enable DOMAIN_SIGNED_SESSION_STRICT_VERSION=true only after DB session_version is available.
+try {
+  const __diracUltraOriginalVerifySignedSession = typeof verifyDomainSessionCookieValue === 'function' ? verifyDomainSessionCookieValue : null;
+  if (__diracUltraOriginalVerifySignedSession) {
+    verifyDomainSessionCookieValue = function verifyDomainSessionCookieValueUltra(value) {
+      const payload = __diracUltraOriginalVerifySignedSession(value);
+      if (!payload) return null;
+      if (isEnvTrue('DOMAIN_SIGNED_SESSION_DISABLE_FALLBACK')) return null;
+      if (isEnvTrue('DOMAIN_SIGNED_SESSION_STRICT_VERSION')) {
+        const raw = String(value || '').trim();
+        const body = raw.split('.')[0] || '';
+        const full = parseBase64UrlJson(body);
+        const version = String(full && (full.session_version || full.sv) || '').trim();
+        if (!version) return null;
+        return { ...payload, session_version: version };
+      }
+      return payload;
+    };
+  }
+} catch (_) {}
