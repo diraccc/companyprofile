@@ -6,7 +6,7 @@
   <title>TopUpVerse 3D Premium - Top Up Game, E-Wallet, E-Toll</title>
   <meta name="description" content="Frontend 3D premium satu file HTML untuk website top up game, e-wallet, e-toll, pulsa, paket data, token PLN, dan produk digital." />
   <meta name="theme-color" content="#050816" />
-  <meta name="x-build" content="mobile-fullstack-v3" />
+  <meta name="x-build" content="mobile-fullstack-v3-3d-touch-upgrade" />
   <link rel="icon" href="data:," />
 
   <style>
@@ -2863,6 +2863,149 @@
       100% { transform: translateZ(230px) rotateX(342deg) rotateY(392deg); }
     }
 
+
+    /* ==========================================================
+       3D TOUCH UPGRADE ONLY
+       Lebih terasa 3D, responsif saat disentuh, tetap ringan di HP.
+       ========================================================== */
+    .scene,
+    .phone3d,
+    .float-object,
+    .tilt-card,
+    .carousel-card,
+    .fan-card-html,
+    .holo-stack,
+    .real-3d-stage,
+    .real-phone,
+    .real-card-3d,
+    .real-cube {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
+
+    .scene.touch-active {
+      filter: saturate(1.12) contrast(1.04);
+    }
+
+    .scene.touch-active .phone3d {
+      box-shadow:
+        0 58px 120px rgba(0,0,0,0.56),
+        0 0 120px rgba(56,189,248,0.36),
+        inset 0 0 30px rgba(255,255,255,0.05);
+    }
+
+    .scene.touch-active .orbit,
+    .scene.touch-active .energy-line {
+      animation-duration: 8s;
+      opacity: 0.95;
+    }
+
+    .scene.touch-active .float-object {
+      filter: saturate(1.18) brightness(1.08);
+    }
+
+    .scene-touch-burst,
+    .real-touch-ripple {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(103,232,249,0.85);
+      background: radial-gradient(circle, rgba(103,232,249,0.36), transparent 62%);
+      box-shadow: 0 0 28px rgba(56,189,248,0.62);
+      pointer-events: none;
+      transform: translate(-50%, -50%) translateZ(280px) scale(0.25);
+      animation: touchBurst3D 620ms ease-out forwards;
+      z-index: 50;
+    }
+
+    .tilt-card.active3d {
+      box-shadow:
+        0 38px 100px rgba(56,189,248,0.18),
+        0 18px 55px rgba(0,0,0,0.28);
+    }
+
+    .tilt-card.active3d .product-icon,
+    .tilt-card.active3d .carousel-icon,
+    .tilt-card.active3d .step-num {
+      transform: translateZ(68px) scale(1.07);
+    }
+
+    .tilt-card.active3d .product-title,
+    .tilt-card.active3d h3 {
+      transform: translateZ(58px);
+    }
+
+    .tilt-card.active3d .product-desc,
+    .tilt-card.active3d p {
+      transform: translateZ(46px);
+    }
+
+    .tilt-card.active3d .price,
+    .tilt-card.active3d .product-action {
+      transform: translateZ(64px);
+    }
+
+    .holo-stack.dragging-3d {
+      filter: saturate(1.16) brightness(1.08);
+    }
+
+    .holo-stack.dragging-3d .holo-card {
+      box-shadow: 0 30px 88px rgba(56,189,248,0.17), 0 24px 70px rgba(0,0,0,0.30);
+    }
+
+    @media (max-width: 720px) {
+      .real-3d-stage {
+        --real-rx: 10deg;
+        --real-ry: -14deg;
+        --real-z: 0px;
+        --real-scale: 1;
+        transform: rotateX(var(--real-rx)) rotateY(var(--real-ry)) translateZ(var(--real-z)) scale(var(--real-scale)) !important;
+        transition: transform 0.12s ease-out, filter 0.18s ease-out !important;
+      }
+
+      .real-3d-stage.is-touching {
+        --real-z: 18px;
+        --real-scale: 1.025;
+        filter: saturate(1.18) brightness(1.08) !important;
+      }
+
+      .real-3d-stage.is-touching .real-phone {
+        box-shadow:
+          0 38px 88px rgba(0,0,0,0.48),
+          0 0 88px rgba(56,189,248,0.32) !important;
+        animation-duration: 2.9s !important;
+      }
+
+      .real-3d-stage.is-touching .real-card-3d {
+        animation-duration: 2.35s !important;
+        box-shadow: 0 28px 72px rgba(56,189,248,0.19), 0 22px 58px rgba(0,0,0,0.36) !important;
+      }
+
+      .real-3d-stage.is-touching .real-cube {
+        animation-duration: 2.4s !important;
+      }
+
+      .real-touch-ripple {
+        transform: translate(-50%, -50%) translateZ(280px) scale(0.25);
+      }
+    }
+
+    @keyframes touchBurst3D {
+      0% {
+        opacity: 0.95;
+        transform: translate(-50%, -50%) translateZ(280px) scale(0.25);
+      }
+      72% {
+        opacity: 0.42;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateZ(280px) scale(5.2);
+      }
+    }
+
   </style>
 </head>
 
@@ -4110,21 +4253,44 @@
     });
 
     function setupSceneTouch() {
+      if (!mainScene || mainScene.dataset.touch3dReady === "1") return;
+      mainScene.dataset.touch3dReady = "1";
+
       let dragging = false;
       let rect = null;
-      let targetRotX = 0;
-      let targetRotY = 0;
-      let currentRotX = 0;
-      let currentRotY = 0;
+      let targetRotX = 5;
+      let targetRotY = -8;
+      let currentRotX = 5;
+      let currentRotY = -8;
+      let velocityX = 0;
+      let velocityY = 0;
+      let lastX = 0;
+      let lastY = 0;
+      let downAt = 0;
+      let rafStarted = false;
 
-      function setTarget(clientX, clientY, strength = 28) {
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function addSceneBurst(clientX, clientY) {
+        if (!rect) rect = mainScene.getBoundingClientRect();
+        const burst = document.createElement("span");
+        burst.className = "scene-touch-burst";
+        burst.style.left = (clientX - rect.left) + "px";
+        burst.style.top = (clientY - rect.top) + "px";
+        mainScene.appendChild(burst);
+        setTimeout(() => burst.remove(), 700);
+      }
+
+      function setTarget(clientX, clientY, strength = 46) {
         rect = rect || mainScene.getBoundingClientRect();
         const x = clientX - rect.left;
         const y = clientY - rect.top;
         const px = (x / rect.width) - 0.5;
         const py = (y / rect.height) - 0.5;
-        targetRotY = px * strength;
-        targetRotX = py * -strength;
+        targetRotY = clamp(px * strength, -32, 32);
+        targetRotX = clamp(py * -strength, -26, 26);
         particlePointer.x = clientX;
         particlePointer.y = clientY;
         particlePointer.active = true;
@@ -4133,64 +4299,109 @@
       mainScene.addEventListener("pointerdown", (e) => {
         dragging = true;
         rect = mainScene.getBoundingClientRect();
-        mainScene.classList.add("dragging");
+        downAt = Date.now();
+        lastX = e.clientX;
+        lastY = e.clientY;
+        velocityX = 0;
+        velocityY = 0;
+        mainScene.classList.add("dragging", "touch-active");
         mainScene.setPointerCapture(e.pointerId);
-        setTarget(e.clientX, e.clientY, 36);
+        setTarget(e.clientX, e.clientY, 54);
+        addSceneBurst(e.clientX, e.clientY);
       });
 
       mainScene.addEventListener("pointermove", (e) => {
         if (!dragging) return;
         e.preventDefault();
-        setTarget(e.clientX, e.clientY, 40);
+        velocityX = (e.clientX - lastX) * 0.28;
+        velocityY = (e.clientY - lastY) * 0.24;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        setTarget(e.clientX, e.clientY, 58);
       });
 
-      mainScene.addEventListener("pointerup", (e) => {
+      function stopScene(e) {
+        if (!dragging) return;
         dragging = false;
         rect = null;
-        mainScene.classList.remove("dragging");
-        if (mainScene.hasPointerCapture(e.pointerId)) mainScene.releasePointerCapture(e.pointerId);
+        mainScene.classList.remove("dragging", "touch-active");
+        if (e && mainScene.hasPointerCapture(e.pointerId)) mainScene.releasePointerCapture(e.pointerId);
         particlePointer.active = false;
-        targetRotX = 0;
-        targetRotY = 0;
-      });
 
-      mainScene.addEventListener("pointercancel", () => {
-        dragging = false;
-        rect = null;
-        mainScene.classList.remove("dragging");
-        particlePointer.active = false;
-        targetRotX = 0;
-        targetRotY = 0;
-      });
+        if (Date.now() - downAt < 260) {
+          targetRotX += clamp(velocityY, -8, 8);
+          targetRotY += clamp(velocityX, -8, 8);
+        }
+      }
 
+      mainScene.addEventListener("pointerup", stopScene);
+      mainScene.addEventListener("pointercancel", stopScene);
       mainScene.addEventListener("pointerleave", () => {
         if (!dragging) {
           particlePointer.active = false;
-          targetRotX = 0;
-          targetRotY = 0;
+          targetRotX = 5;
+          targetRotY = -8;
         }
       });
 
       function animate() {
         if (!dragging) {
           const scrollEffect = Math.min(window.scrollY / 420, 1);
-          targetRotX += (((scrollEffect * 8) - targetRotX) * 0.035);
-          targetRotY += (((scrollEffect * -12) - targetRotY) * 0.035);
+          const idleX = 5 + Math.sin(Date.now() * 0.0011) * 2.2 + scrollEffect * 4;
+          const idleY = -8 + Math.cos(Date.now() * 0.0009) * 3.5 - scrollEffect * 8;
+          targetRotX += (idleX - targetRotX) * 0.035;
+          targetRotY += (idleY - targetRotY) * 0.035;
+          velocityX *= 0.92;
+          velocityY *= 0.92;
         }
 
-        currentRotX += (targetRotX - currentRotX) * 0.1;
-        currentRotY += (targetRotY - currentRotY) * 0.1;
-        mainScene.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg)`;
+        currentRotX += (targetRotX - currentRotX) * 0.115;
+        currentRotY += (targetRotY - currentRotY) * 0.115;
+        mainScene.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) translateZ(${dragging ? 18 : 0}px)`;
         requestAnimationFrame(animate);
       }
 
-      animate();
+      if (!rafStarted) {
+        rafStarted = true;
+        animate();
+      }
     }
 
     function setupTilt3D() {
       $$(".tilt-card").forEach(card => {
+        if (card.dataset.tilt3dReady === "1") return;
+        card.dataset.tilt3dReady = "1";
+
         let active = false;
         let rect = null;
+        let targetX = 0;
+        let targetY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let targetLift = 0;
+        let currentLift = 0;
+        let raf = 0;
+
+        function clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
+        }
+
+        function apply() {
+          currentX += (targetX - currentX) * 0.18;
+          currentY += (targetY - currentY) * 0.18;
+          currentLift += (targetLift - currentLift) * 0.18;
+          card.style.transform = `perspective(1050px) rotateX(${currentX}deg) rotateY(${currentY}deg) translateY(${-currentLift}px) translateZ(${currentLift * 1.4}px) scale(${1 + currentLift * 0.002})`;
+
+          if (Math.abs(targetX - currentX) > 0.02 || Math.abs(targetY - currentY) > 0.02 || Math.abs(targetLift - currentLift) > 0.02 || active) {
+            raf = requestAnimationFrame(apply);
+          } else {
+            raf = 0;
+          }
+        }
+
+        function startRaf() {
+          if (!raf) raf = requestAnimationFrame(apply);
+        }
 
         function update(clientX, clientY, strong = false) {
           rect = rect || card.getBoundingClientRect();
@@ -4198,71 +4409,111 @@
           const y = clientY - rect.top;
           const px = (x / rect.width) - 0.5;
           const py = (y / rect.height) - 0.5;
-          const power = strong ? 17 : 12;
-          const rotY = px * power;
-          const rotX = py * -power;
+          const power = strong ? 24 : 17;
+
+          targetY = clamp(px * power, -20, 20);
+          targetX = clamp(py * -power, -18, 18);
+          targetLift = strong ? 12 : 8;
 
           card.classList.add("active3d");
-          card.style.transform = `perspective(950px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-8px) scale(1.015)`;
           card.style.setProperty("--shine-x", `${x - rect.width / 2}px`);
           card.style.setProperty("--shine-y", `${y - rect.height / 2}px`);
           card.style.setProperty("--card-mx", `${x}px`);
           card.style.setProperty("--card-my", `${y}px`);
+          startRaf();
         }
 
-        function reset() {
+        function reset(e) {
           active = false;
           rect = null;
+          targetX = 0;
+          targetY = 0;
+          targetLift = 0;
           card.classList.remove("active3d");
-          card.style.transform = "perspective(950px) rotateX(0deg) rotateY(0deg) translateY(0) scale(1)";
+          if (e && card.hasPointerCapture && card.hasPointerCapture(e.pointerId)) card.releasePointerCapture(e.pointerId);
+          startRaf();
         }
 
         card.addEventListener("pointerdown", (e) => {
           active = true;
           rect = card.getBoundingClientRect();
+          if (card.setPointerCapture) card.setPointerCapture(e.pointerId);
           update(e.clientX, e.clientY, true);
         });
 
         card.addEventListener("pointermove", (e) => {
           if (e.pointerType === "mouse" || active) update(e.clientX, e.clientY, active);
-        });
+        }, { passive: true });
 
         card.addEventListener("pointerup", reset);
         card.addEventListener("pointercancel", reset);
-        card.addEventListener("pointerleave", reset);
+        card.addEventListener("pointerleave", (e) => {
+          if (e.pointerType === "mouse") reset(e);
+        });
       });
     }
 
     function setupHoloDrag() {
       const holo = $("#holoStack");
+      if (!holo || holo.dataset.holo3dReady === "1") return;
+      holo.dataset.holo3dReady = "1";
+
       let dragging = false;
       let startX = 0;
-      let rot = 0;
-      let base = 0;
+      let startY = 0;
+      let rotY = 0;
+      let rotX = 12;
+      let baseY = 0;
+      let baseX = 12;
+      let targetY = 0;
+      let targetX = 12;
+      let raf = 0;
+
+      function tick() {
+        rotY += (targetY - rotY) * 0.14;
+        rotX += (targetX - rotX) * 0.14;
+        holo.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+        if (dragging || Math.abs(targetY - rotY) > 0.03 || Math.abs(targetX - rotX) > 0.03) {
+          raf = requestAnimationFrame(tick);
+        } else {
+          raf = 0;
+        }
+      }
+
+      function startTick() {
+        if (!raf) raf = requestAnimationFrame(tick);
+      }
 
       holo.addEventListener("pointerdown", (e) => {
         dragging = true;
         startX = e.clientX;
+        startY = e.clientY;
+        baseY = targetY;
+        baseX = targetX;
+        holo.classList.add("dragging-3d");
         holo.style.animationPlayState = "paused";
         holo.setPointerCapture(e.pointerId);
+        startTick();
       });
 
       holo.addEventListener("pointermove", (e) => {
         if (!dragging) return;
         e.preventDefault();
-        rot = base + (e.clientX - startX) * 0.8;
-        holo.style.transform = `rotateX(12deg) rotateY(${rot}deg)`;
+        targetY = baseY + (e.clientX - startX) * 0.92;
+        targetX = Math.max(-20, Math.min(24, baseX - (e.clientY - startY) * 0.34));
+        startTick();
       });
 
-      holo.addEventListener("pointerup", (e) => {
+      function stop(e) {
+        if (!dragging) return;
         dragging = false;
-        base = rot;
-        if (holo.hasPointerCapture(e.pointerId)) holo.releasePointerCapture(e.pointerId);
-      });
+        holo.classList.remove("dragging-3d");
+        if (e && holo.hasPointerCapture(e.pointerId)) holo.releasePointerCapture(e.pointerId);
+        startTick();
+      }
 
-      holo.addEventListener("pointercancel", () => {
-        dragging = false;
-      });
+      holo.addEventListener("pointerup", stop);
+      holo.addEventListener("pointercancel", stop);
     }
 
     function setupReveal() {
@@ -4469,31 +4720,60 @@
         var targetY = -14;
         var currentX = 10;
         var currentY = -14;
+        var velocityX = 0;
+        var velocityY = 0;
+        var lastX = 0;
+        var lastY = 0;
+
+        function clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
+        }
+
+        function addRipple(clientX, clientY) {
+          rect = rect || stage.getBoundingClientRect();
+          var ripple = document.createElement("span");
+          ripple.className = "real-touch-ripple";
+          ripple.style.left = (clientX - rect.left) + "px";
+          ripple.style.top = (clientY - rect.top) + "px";
+          stage.appendChild(ripple);
+          setTimeout(function () { ripple.remove(); }, 700);
+        }
 
         function setFromPointer(clientX, clientY) {
           rect = rect || stage.getBoundingClientRect();
           var px = (clientX - rect.left) / rect.width - 0.5;
           var py = (clientY - rect.top) / rect.height - 0.5;
-          targetY = px * 34;
-          targetX = py * -28;
+          targetY = clamp(-14 + px * 44 + velocityX, -34, 34);
+          targetX = clamp(10 + py * -36 + velocityY, -24, 30);
         }
 
         stage.addEventListener("pointerdown", function (event) {
           dragging = true;
           rect = stage.getBoundingClientRect();
+          lastX = event.clientX;
+          lastY = event.clientY;
+          velocityX = 0;
+          velocityY = 0;
+          stage.classList.add("is-touching");
           stage.setPointerCapture(event.pointerId);
           setFromPointer(event.clientX, event.clientY);
+          addRipple(event.clientX, event.clientY);
         });
 
         stage.addEventListener("pointermove", function (event) {
           if (!dragging) return;
           event.preventDefault();
+          velocityX = (event.clientX - lastX) * 0.22;
+          velocityY = (event.clientY - lastY) * -0.18;
+          lastX = event.clientX;
+          lastY = event.clientY;
           setFromPointer(event.clientX, event.clientY);
         });
 
         function stop(event) {
           dragging = false;
           rect = null;
+          stage.classList.remove("is-touching");
           if (event && stage.hasPointerCapture(event.pointerId)) {
             stage.releasePointerCapture(event.pointerId);
           }
@@ -4505,9 +4785,16 @@
         stage.addEventListener("pointercancel", stop);
 
         function tick() {
-          currentX += (targetX - currentX) * 0.12;
-          currentY += (targetY - currentY) * 0.12;
-          stage.style.transform = "rotateX(" + currentX + "deg) rotateY(" + currentY + "deg)";
+          if (!dragging) {
+            targetX = 10 + Math.sin(Date.now() * 0.0010) * 2.2;
+            targetY = -14 + Math.cos(Date.now() * 0.0012) * 3.4;
+            velocityX *= 0.9;
+            velocityY *= 0.9;
+          }
+          currentX += (targetX - currentX) * 0.13;
+          currentY += (targetY - currentY) * 0.13;
+          stage.style.setProperty("--real-rx", currentX + "deg");
+          stage.style.setProperty("--real-ry", currentY + "deg");
           requestAnimationFrame(tick);
         }
 
