@@ -7,6 +7,7 @@
   <title>TopUpVerse 3D Pro - Top Up Game, E-Wallet, E-Toll</title>
   <meta name="description" content="Frontend 3D interaktif untuk website top up game, e-wallet, e-toll, pulsa, token PLN, dan produk digital. Satu file HTML siap GitHub Pages." />
   <meta name="theme-color" content="#050816" />
+  <link rel="icon" href="data:," />
 
   <style>
     :root {
@@ -1365,6 +1366,412 @@
       transform: translateY(0) scale(1);
     }
 
+
+    .premium-carousel {
+      position: relative;
+      min-height: 430px;
+      display: grid;
+      place-items: center;
+      perspective: 1200px;
+      overflow: hidden;
+      border-radius: 36px;
+      border: 1px solid var(--stroke);
+      background:
+        radial-gradient(circle at 50% 30%, rgba(56,189,248,0.16), transparent 36%),
+        radial-gradient(circle at 70% 62%, rgba(168,85,247,0.12), transparent 34%),
+        rgba(255,255,255,0.058);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 28px 96px rgba(0,0,0,0.26);
+      touch-action: pan-y;
+    }
+
+    .premium-carousel::before {
+      content: "";
+      position: absolute;
+      inset: auto 12% 32px 12%;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(56,189,248,0.12);
+      filter: blur(22px);
+    }
+
+    .carousel-stage {
+      position: relative;
+      width: min(900px, 100%);
+      height: 332px;
+      transform-style: preserve-3d;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .carousel-card {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 236px;
+      min-height: 252px;
+      padding: 22px;
+      border-radius: 29px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.16), transparent 36%),
+        linear-gradient(145deg, rgba(255,255,255,0.13), rgba(255,255,255,0.064));
+      backdrop-filter: blur(15px);
+      box-shadow: 0 30px 90px rgba(0,0,0,0.28);
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(.2,.8,.2,1), opacity 0.35s ease, filter 0.35s ease;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .carousel-card::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      background: linear-gradient(130deg, rgba(56,189,248,0.34), transparent 34%, rgba(168,85,247,0.3), transparent 72%);
+      opacity: 0;
+      transition: 0.25s;
+      pointer-events: none;
+    }
+
+    .carousel-card.active::before {
+      opacity: 1;
+    }
+
+    .carousel-card::after {
+      content: "";
+      position: absolute;
+      inset: -90px;
+      background: radial-gradient(circle, rgba(255,255,255,0.16), transparent 36%);
+      opacity: 0;
+      transition: 0.25s;
+      pointer-events: none;
+    }
+
+    .carousel-card.active::after {
+      opacity: 1;
+    }
+
+    .carousel-icon {
+      position: relative;
+      z-index: 2;
+      width: 70px;
+      height: 70px;
+      display: grid;
+      place-items: center;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.11);
+      border: 1px solid rgba(255,255,255,0.13);
+      font-size: 34px;
+      transform: translateZ(45px);
+    }
+
+    .carousel-card h3 {
+      position: relative;
+      z-index: 2;
+      margin-top: 18px;
+      font-size: 21px;
+      transform: translateZ(38px);
+    }
+
+    .carousel-card p {
+      position: relative;
+      z-index: 2;
+      margin-top: 8px;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.55;
+      transform: translateZ(30px);
+    }
+
+    .carousel-price {
+      position: relative;
+      z-index: 2;
+      margin-top: 16px;
+      color: #bae6fd;
+      font-weight: 900;
+      transform: translateZ(42px);
+    }
+
+    .carousel-actions {
+      position: absolute;
+      left: 50%;
+      bottom: 22px;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateX(-50%);
+    }
+
+    .round-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--stroke);
+      color: white;
+      background: rgba(255,255,255,0.09);
+      backdrop-filter: blur(12px);
+      font-weight: 900;
+      transition: 0.2s;
+    }
+
+    .round-btn:hover,
+    .round-btn:active {
+      background: var(--cyan);
+      color: var(--dark);
+      transform: translateY(-2px);
+    }
+
+    .carousel-dots {
+      display: flex;
+      gap: 7px;
+      padding: 0 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.35);
+      transition: 0.25s;
+    }
+
+    .dot.active {
+      width: 22px;
+      background: var(--cyan);
+      box-shadow: 0 0 16px rgba(56,189,248,0.75);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9500;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(2,6,23,0.76);
+      backdrop-filter: blur(12px);
+    }
+
+    .modal.show {
+      display: grid;
+    }
+
+    .transaction-loader {
+      width: min(92vw, 520px);
+      border-radius: 34px;
+      border: 1px solid var(--stroke);
+      background:
+        radial-gradient(circle at top, rgba(56,189,248,0.16), transparent 38%),
+        rgba(7, 11, 29, 0.96);
+      box-shadow: 0 30px 100px rgba(0,0,0,0.45);
+      padding: 26px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .loader-core {
+      position: relative;
+      width: 118px;
+      height: 118px;
+      margin: 4px auto 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56,189,248,0.22), transparent 68%);
+    }
+
+    .loader-core::before,
+    .loader-core::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--cyan);
+      border-right-color: rgba(168,85,247,0.85);
+      animation: loaderSpin 1.1s linear infinite;
+    }
+
+    .loader-core::after {
+      inset: 14px;
+      border-top-color: rgba(250,204,21,0.9);
+      border-right-color: transparent;
+      animation-duration: 1.7s;
+      animation-direction: reverse;
+    }
+
+    .loader-diamond {
+      width: 44px;
+      height: 44px;
+      z-index: 2;
+      border-radius: 10px;
+      transform: rotate(45deg);
+      background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(103,232,249,0.72), rgba(37,99,235,0.78));
+      border: 1px solid rgba(255,255,255,0.62);
+      box-shadow: 0 0 34px rgba(56,189,248,0.72), inset 0 0 20px rgba(255,255,255,0.34);
+    }
+
+    .loader-title {
+      font-size: 23px;
+      font-weight: 900;
+      letter-spacing: -0.4px;
+    }
+
+    .loader-sub {
+      margin-top: 8px;
+      color: var(--soft);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .loader-steps {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+      text-align: left;
+    }
+
+    .loader-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 17px;
+      color: var(--soft);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .loader-step .check {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--dark);
+      background: rgba(255,255,255,0.18);
+      font-size: 12px;
+    }
+
+    .loader-step.done {
+      color: #bbf7d0;
+      border-color: rgba(34,197,94,0.24);
+      background: rgba(34,197,94,0.11);
+    }
+
+    .loader-step.done .check {
+      background: var(--green);
+    }
+
+    .invoice-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top right, rgba(56,189,248,0.15), transparent 34%),
+        rgba(2,6,23,0.74);
+      border: 1px solid rgba(255,255,255,0.13);
+    }
+
+    .invoice-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+      animation: scanCard 2.4s ease-in-out infinite;
+    }
+
+    .invoice-layout {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 140px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .invoice-meta {
+      margin-top: 14px;
+      display: grid;
+      gap: 8px;
+      color: #dbeafe;
+      font-size: 14px;
+    }
+
+    .invoice-meta span {
+      color: var(--soft);
+    }
+
+    .qr-fake {
+      width: 140px;
+      height: 140px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.9) 8px, transparent 8px) 0 0 / 20px 20px,
+        linear-gradient(rgba(255,255,255,0.9) 8px, transparent 8px) 0 0 / 20px 20px,
+        radial-gradient(circle at 20% 20%, #fff 0 13px, transparent 14px),
+        radial-gradient(circle at 80% 20%, #fff 0 13px, transparent 14px),
+        radial-gradient(circle at 20% 80%, #fff 0 13px, transparent 14px),
+        #020617;
+      box-shadow: 0 0 34px rgba(56,189,248,0.12);
+      opacity: 0.93;
+    }
+
+    .timeline {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .timeline-step {
+      padding: 11px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.065);
+      color: var(--soft);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .timeline-step.done {
+      color: #bbf7d0;
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.22);
+    }
+
+    @keyframes loaderSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes scanCard {
+      0%, 100% { transform: translateX(-100%); opacity: 0.2; }
+      50% { transform: translateX(100%); opacity: 1; }
+    }
+
+    @media (max-width: 900px) {
+      .invoice-layout { grid-template-columns: 1fr; }
+      .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 580px) {
+      .premium-carousel { min-height: 390px; }
+      .carousel-stage { height: 300px; }
+      .carousel-card { width: 216px; min-height: 235px; }
+      .timeline { grid-template-columns: 1fr; }
+      .qr-fake { width: 126px; height: 126px; }
+    }
+
     @keyframes pageSweep {
       0%, 72%, 100% {
         transform: translateX(-120%);
@@ -1736,6 +2143,7 @@
       </a>
 
       <nav class="nav-links">
+        <a href="#premium">Premium</a>
         <a href="#produk">Produk</a>
         <a href="#showcase">Animasi</a>
         <a href="#cara">Cara Order</a>
@@ -1748,6 +2156,7 @@
     </header>
 
     <div class="mobile-menu" id="mobileMenu">
+      <a href="#premium">Premium</a>
       <a href="#produk">Produk</a>
       <a href="#showcase">Animasi</a>
       <a href="#cara">Cara Order</a>
@@ -1843,6 +2252,26 @@
           </div>
 
           <div class="scene-hint">Sentuh lalu geser objek 3D</div>
+        </div>
+      </section>
+
+
+      <section class="section reveal" id="premium">
+        <div class="section-head">
+          <p class="section-kicker">PRODUK POPULER</p>
+          <h2>Carousel 3D agar website terasa lebih niat</h2>
+          <p class="section-sub">
+            Swipe di HP atau tekan tombol panah. Produk aktif bisa langsung dipilih ke form checkout.
+          </p>
+        </div>
+
+        <div class="premium-carousel" id="carouselWrap">
+          <div class="carousel-stage" id="carouselStage"></div>
+          <div class="carousel-actions">
+            <button class="round-btn" id="prevCarousel" type="button" aria-label="Produk sebelumnya">‹</button>
+            <div class="carousel-dots" id="carouselDots"></div>
+            <button class="round-btn" id="nextCarousel" type="button" aria-label="Produk berikutnya">›</button>
+          </div>
         </div>
       </section>
 
@@ -2081,6 +2510,7 @@
 
     <footer>
       <div class="footer-links">
+        <a href="#premium">Premium</a>
         <a href="#produk">Produk</a>
         <a href="#showcase">Animasi</a>
         <a href="#checkout">Top Up</a>
@@ -2088,6 +2518,21 @@
       </div>
       <p>© 2026 TopUpVerse 3D Pro. Satu file HTML siap upload ke GitHub Pages.</p>
     </footer>
+  </div>
+
+
+  <div class="modal" id="transactionModal" aria-hidden="true">
+    <div class="transaction-loader">
+      <div class="loader-core"><div class="loader-diamond"></div></div>
+      <div class="loader-title" id="loaderTitle">Membuat invoice</div>
+      <div class="loader-sub">Sistem sedang menjalankan simulasi transaksi. Pada versi produksi, proses ini dilakukan oleh backend.</div>
+      <div class="loader-steps">
+        <div class="loader-step" data-loader-step="0"><span class="check">1</span>Validasi data tujuan</div>
+        <div class="loader-step" data-loader-step="1"><span class="check">2</span>Mengecek produk dan nominal</div>
+        <div class="loader-step" data-loader-step="2"><span class="check">3</span>Membuat invoice pembayaran</div>
+        <div class="loader-step" data-loader-step="3"><span class="check">4</span>Menyiapkan status transaksi</div>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -2135,6 +2580,7 @@
 
     let selectedProduct = null;
     let selectedNominal = 0;
+    let carouselIndex = 0;
     let particlePointer = { x: window.innerWidth / 2, y: window.innerHeight / 2, active: false };
 
     const $ = (selector) => document.querySelector(selector);
@@ -2157,6 +2603,12 @@
     const menuBtn = $("#menuBtn");
     const mobileMenu = $("#mobileMenu");
     const progress = $("#progress");
+    const carouselStage = $("#carouselStage");
+    const carouselDots = $("#carouselDots");
+    const carouselWrap = $("#carouselWrap");
+    const prevCarousel = $("#prevCarousel");
+    const nextCarousel = $("#nextCarousel");
+    const transactionModal = $("#transactionModal");
 
     function formatRupiah(value) {
       return new Intl.NumberFormat("id-ID", {
@@ -2188,6 +2640,109 @@
 
       setupTilt3D();
       setupProductClick();
+    }
+
+
+    function renderCarousel() {
+      if (!carouselStage || !carouselDots) return;
+      const featured = products.slice(0, 10);
+      carouselStage.innerHTML = featured.map((product, index) => `
+        <article class="carousel-card" data-carousel-id="${product.id}" data-index="${index}">
+          <div class="carousel-icon">${product.icon}</div>
+          <h3>${product.name}</h3>
+          <p>${product.desc}</p>
+          <div class="carousel-price">Mulai ${formatRupiah(product.basePrice)}</div>
+        </article>
+      `).join("");
+
+      carouselDots.innerHTML = featured.map((_, index) => `<span class="dot" data-dot="${index}"></span>`).join("");
+      updateCarousel();
+
+      $$(".carousel-card").forEach(card => {
+        card.addEventListener("click", () => {
+          const index = Number(card.getAttribute("data-index"));
+          const id = card.getAttribute("data-carousel-id");
+          if (index === carouselIndex) {
+            chooseProduct(id, true);
+          } else {
+            carouselIndex = index;
+            updateCarousel();
+          }
+        });
+      });
+
+      $$(".dot").forEach(dot => {
+        dot.addEventListener("click", () => {
+          carouselIndex = Number(dot.getAttribute("data-dot"));
+          updateCarousel();
+        });
+      });
+    }
+
+    function updateCarousel() {
+      const cards = $$(".carousel-card");
+      const total = cards.length;
+      if (!total) return;
+
+      cards.forEach((card, index) => {
+        let offset = index - carouselIndex;
+        if (offset > total / 2) offset -= total;
+        if (offset < -total / 2) offset += total;
+
+        const abs = Math.abs(offset);
+        const x = offset * 132;
+        const z = 220 - abs * 74;
+        const y = abs * 10;
+        const rotY = offset * -18;
+        const scale = Math.max(0.72, 1 - abs * 0.08);
+        const opacity = abs > 4 ? 0 : Math.max(0.22, 1 - abs * 0.18);
+        const blur = abs > 2 ? 2 : 0;
+
+        card.classList.toggle("active", offset === 0);
+        card.style.transform = `translate(-50%, -50%) translateX(${x}px) translateY(${y}px) translateZ(${z}px) rotateY(${rotY}deg) scale(${scale})`;
+        card.style.opacity = opacity;
+        card.style.filter = `blur(${blur}px)`;
+        card.style.zIndex = String(100 - abs);
+      });
+
+      $$(".dot").forEach((dot, index) => dot.classList.toggle("active", index === carouselIndex));
+    }
+
+    function moveCarousel(direction) {
+      const total = Math.min(products.length, 10);
+      carouselIndex = (carouselIndex + direction + total) % total;
+      updateCarousel();
+    }
+
+    function setupCarouselDrag() {
+      if (!carouselWrap) return;
+      let dragging = false;
+      let startX = 0;
+      let moved = 0;
+
+      carouselWrap.addEventListener("pointerdown", (e) => {
+        if (e.target.closest(".round-btn, .dot")) return;
+        dragging = true;
+        startX = e.clientX;
+        moved = 0;
+        carouselWrap.setPointerCapture(e.pointerId);
+      });
+
+      carouselWrap.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        moved = e.clientX - startX;
+      });
+
+      carouselWrap.addEventListener("pointerup", (e) => {
+        if (!dragging) return;
+        dragging = false;
+        if (carouselWrap.hasPointerCapture(e.pointerId)) carouselWrap.releasePointerCapture(e.pointerId);
+        if (Math.abs(moved) > 42) moveCarousel(moved < 0 ? 1 : -1);
+      });
+
+      carouselWrap.addEventListener("pointercancel", () => {
+        dragging = false;
+      });
     }
 
     function setupProductClick() {
@@ -2285,46 +2840,92 @@
       return data.find(item => item.invoice.toLowerCase() === code.toLowerCase());
     }
 
+    function getTimeline(status) {
+      const lower = status.toLowerCase();
+      const paid = lower.includes("lunas") || lower.includes("selesai");
+      const done = lower.includes("selesai");
+      return `
+        <div class="timeline">
+          <div class="timeline-step done">Invoice</div>
+          <div class="timeline-step ${paid ? "done" : ""}">Pembayaran</div>
+          <div class="timeline-step ${paid ? "done" : ""}">Diproses</div>
+          <div class="timeline-step ${done ? "done" : ""}">Selesai</div>
+        </div>
+      `;
+    }
+
     function createInvoiceCard(order) {
       return `
         <div class="invoice-card">
-          <p>Kode Invoice</p>
-          <div class="invoice-code">${order.invoice}</div>
-          <br />
-          <p><b>Produk:</b> ${order.productName}</p>
-          <p><b>Kategori:</b> ${categoryNames[order.category]}</p>
-          <p><b>Tujuan:</b> ${order.customer}</p>
-          <p><b>Metode Bayar:</b> ${order.payment}</p>
-          <p><b>Total:</b> ${formatRupiah(order.total)}</p>
-          <p><b>Status:</b> ${order.status}</p>
-          <p><b>Waktu:</b> ${order.createdAt}</p>
-
+          <div class="invoice-layout">
+            <div>
+              <p>Kode Invoice</p>
+              <div class="invoice-code">${order.invoice}</div>
+              <div class="invoice-meta">
+                <p><span>Produk:</span> <b>${order.productName}</b></p>
+                <p><span>Kategori:</span> <b>${categoryNames[order.category]}</b></p>
+                <p><span>Tujuan:</span> <b>${order.customer}</b></p>
+                <p><span>Metode Bayar:</span> <b>${order.payment}</b></p>
+                <p><span>Total:</span> <b>${formatRupiah(order.total)}</b></p>
+                <p><span>Status:</span> <b>${order.status}</b></p>
+                <p><span>Waktu:</span> <b>${order.createdAt}</b></p>
+              </div>
+            </div>
+            <div class="qr-fake" aria-label="QRIS placeholder"></div>
+          </div>
+          ${getTimeline(order.status)}
           <div class="invoice-actions">
-            <button class="small-btn" onclick="copyInvoice('${order.invoice}')">Salin Invoice</button>
-            <button class="small-btn" onclick="simulatePaid('${order.invoice}')">Simulasi Lunas</button>
+            <button class="small-btn" onclick="copyInvoice('${order.invoice}')" type="button">Salin Invoice</button>
+            <button class="small-btn" onclick="simulatePaid('${order.invoice}')" type="button">Simulasi Lunas</button>
+            <button class="small-btn" onclick="simulateDone('${order.invoice}')" type="button">Simulasi Selesai</button>
           </div>
         </div>
       `;
     }
 
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-999px";
+      document.body.appendChild(ta);
+      ta.select();
+
+      try {
+        document.execCommand("copy");
+        showToast("Invoice berhasil disalin");
+      } catch (err) {
+        showToast("Tidak bisa menyalin otomatis");
+      }
+
+      document.body.removeChild(ta);
+    }
+
     function copyInvoice(code) {
-      navigator.clipboard.writeText(code)
-        .then(() => showToast("Invoice berhasil disalin"))
-        .catch(() => showToast("Gagal menyalin invoice"));
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code)
+          .then(() => showToast("Invoice berhasil disalin"))
+          .catch(() => fallbackCopy(code));
+      } else {
+        fallbackCopy(code);
+      }
+    }
+
+    function updateInvoiceStatus(code, status) {
+      const data = JSON.parse(localStorage.getItem("topupverse_invoices") || "[]");
+      const updated = data.map(item => item.invoice === code ? { ...item, status } : item);
+      localStorage.setItem("topupverse_invoices", JSON.stringify(updated));
+      checkInvoice(code);
     }
 
     function simulatePaid(code) {
-      const data = JSON.parse(localStorage.getItem("topupverse_invoices") || "[]");
-      const updated = data.map(item => {
-        if (item.invoice === code) {
-          return { ...item, status: "Pembayaran Lunas - Pesanan Diproses" };
-        }
-        return item;
-      });
-
-      localStorage.setItem("topupverse_invoices", JSON.stringify(updated));
+      updateInvoiceStatus(code, "Pembayaran Lunas - Pesanan Diproses");
       showToast("Status invoice disimulasikan lunas");
-      checkInvoice(code);
+    }
+
+    function simulateDone(code) {
+      updateInvoiceStatus(code, "Selesai - Produk Berhasil Dikirim");
+      showToast("Status invoice disimulasikan selesai");
     }
 
     async function createOrderToBackend(payload) {
@@ -2341,6 +2942,37 @@
         return await res.json();
       */
       return null;
+    }
+
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function runTransactionAnimation() {
+      if (!transactionModal) return;
+      transactionModal.classList.add("show");
+      transactionModal.setAttribute("aria-hidden", "false");
+      const steps = $$(".loader-step");
+      steps.forEach(step => step.classList.remove("done"));
+
+      const titles = [
+        "Validasi data tujuan",
+        "Mengecek produk dan nominal",
+        "Membuat invoice pembayaran",
+        "Menyiapkan status transaksi"
+      ];
+
+      for (let i = 0; i < steps.length; i++) {
+        $("#loaderTitle").textContent = titles[i];
+        await sleep(230);
+        steps[i].classList.add("done");
+        await sleep(220);
+      }
+
+      await sleep(150);
+      transactionModal.classList.remove("show");
+      transactionModal.setAttribute("aria-hidden", "true");
     }
 
     orderForm.addEventListener("submit", async (e) => {
@@ -2366,6 +2998,8 @@
       };
 
       try {
+        await runTransactionAnimation();
+
         if (API_BASE_URL) {
           await createOrderToBackend(payload);
         }
@@ -2417,6 +3051,10 @@
     invoiceInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") checkInvoice();
     });
+
+
+    if (prevCarousel) prevCarousel.addEventListener("click", () => moveCarousel(-1));
+    if (nextCarousel) nextCarousel.addEventListener("click", () => moveCarousel(1));
 
     categorySelect.addEventListener("change", () => {
       const category = categorySelect.value;
@@ -2759,8 +3397,10 @@
       window.addEventListener("resize", resize);
     }
 
+    renderCarousel();
     renderProducts("all");
     chooseProduct("mlbb", false);
+    setupCarouselDrag();
     setupSceneTouch();
     setupHoloDrag();
     setupReveal();
@@ -2772,6 +3412,8 @@
 
     window.copyInvoice = copyInvoice;
     window.simulatePaid = simulatePaid;
+    window.simulateDone = simulateDone;
+    window.moveCarousel = moveCarousel;
   </script>
 </body>
 </html>
