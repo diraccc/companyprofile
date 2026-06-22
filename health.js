@@ -10604,7 +10604,7 @@ async function diracUniversalPesananFindReusableTransaction(input) {
    - Owner/store email uses ORDER_OWNER_* ENV.
    ============================================================ */
 
-const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v19-all-dark-white-text-owner-direct';
+const DIRAC_ORDER_MAIL_PATCH = 'order-mail-v23-wib-display-datefix-email-only';
 const __diracOrderMailPreviousHandler = module.exports;
 
 module.exports = async function diracOrderMailWrapper(req, res) {
@@ -10982,7 +10982,7 @@ function orderMailBuildNewOrderMessages(data) {
   const productCardsHtml = orderMailProductCardsHtml(data.items, data.order.currency);
   const paymentLine = data.payment.url ? `\nLink pembayaran: ${data.payment.url}` : '';
   const paymentHtml = data.payment.url
-    ? `<p style="margin:18px 0 0"><a href="${orderMailEscapeHtml(data.payment.url)}" style="display:inline-block;padding:12px 18px;background:#111827;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;border:1px solid #334155">Buka Link Pembayaran</a></p>`
+    ? `<p style="margin:18px 0 0"><a href="${orderMailEscapeHtml(data.payment.url)}" style="display:inline-block;padding:12px 18px;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;border:1px solid #4b5563">Buka Link Pembayaran</a></p>`
     : '';
 
   const paid = ['paid', 'success', 'settled', 'settlement', 'capture'].includes(String(data.order.payment_status || '').toLowerCase());
@@ -11039,8 +11039,8 @@ function orderMailBuildNewOrderMessages(data) {
   ].filter((line) => line !== '').join('\n');
 
   const customerHtml = orderMailHtmlShell(customerSubject, `
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#ffffff!important">Halo <strong>${orderMailEscapeHtml(data.customer.name || 'Customer')}</strong>,</p>
-    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#ffffff!important">${orderMailEscapeHtml(customerIntro)}</p>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">Halo <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${orderMailEscapeHtml(data.customer.name || 'Customer')}</strong>,</p>
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${orderMailEscapeHtml(customerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Layanan', serviceLabel],
@@ -11051,12 +11051,12 @@ function orderMailBuildNewOrderMessages(data) {
     ])}
     ${paymentHtml}
     ${productCardsHtml}
-    <h3 style="margin:22px 0 12px;font-size:16px;color:#ffffff!important">Rincian pesanan</h3>
+    <h3 style="margin:22px 0 12px;font-size:16px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">Rincian pesanan</h3>
     ${itemsHtml}
   `, { badge: paid ? 'PAID' : 'ORDER', total, showActions: true, showPromoImage: true });
 
   const ownerHtml = orderMailHtmlShell(ownerSubject, `
-    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#ffffff!important">${orderMailEscapeHtml(ownerIntro)}</p>
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${orderMailEscapeHtml(ownerIntro)}</p>
     ${orderMailInfoTable([
       ['Kode pesanan', data.order.code],
       ['Jenis', serviceLabel],
@@ -11070,7 +11070,7 @@ function orderMailBuildNewOrderMessages(data) {
     ])}
     ${paymentHtml}
     ${productCardsHtml}
-    <h3 style="margin:22px 0 12px;font-size:16px;color:#ffffff!important">Rincian pesanan</h3>
+    <h3 style="margin:22px 0 12px;font-size:16px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">Rincian pesanan</h3>
     ${itemsHtml}
   `, { badge: paid ? 'PAID' : 'OWNER', total, showActions: false, showPromoImage: false });
 
@@ -11107,16 +11107,16 @@ function orderMailHtmlShell(title, body, options = {}) {
   const showActions = options.showActions !== false;
   const showPromoImage = options.showPromoImage !== false;
   const actionsHtml = showActions ? `
-        <div style="margin-top:24px;text-align:left;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-          <a href="${orderMailEscapeHtml(orderUrl)}" style="display:inline-block;background:#111827;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0;border:1px solid #334155">Lihat pesanan</a>
-          <a href="mailto:${supportEmail}" style="display:inline-block;background:#111827;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0;border:1px solid #334155">Hubungi support</a>
-          <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;background:#0f3b24;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 0 8px 0;border:1px solid #166534">Butuh bantuan</a>
+        <div style="margin-top:24px;text-align:left;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+          <a href="${orderMailEscapeHtml(orderUrl)}" style="display:inline-block;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0;border:1px solid #4b5563">Lihat pesanan</a>
+          <a href="mailto:${supportEmail}" style="display:inline-block;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 8px 8px 0;border:1px solid #4b5563">Hubungi support</a>
+          <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;background:#0f3b24;background-color:#0f3b24;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;text-decoration:none;font-size:14px;font-weight:900;padding:13px 18px;border-radius:10px;margin:0 0 8px 0;border:1px solid #166534">Butuh bantuan</a>
         </div>` : '';
   const promoHtml = showPromoImage ? `
       <tr>
-        <td style="padding:0 32px 26px;background:#171b22;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-          <a href="${orderMailEscapeHtml(orderUrl)}" style="text-decoration:none;border:0;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-            <img src="${orderMailEscapeHtml(promoImage)}" width="616" alt="Dirac Group" style="display:block;width:100%;max-width:616px;height:auto;border:0;border-radius:14px;background:#111827;outline:none;text-decoration:none;box-shadow:0 12px 28px rgba(0,0,0,.42)">
+        <td bgcolor="#2b2f36" style="padding:0 32px 26px;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+          <a href="${orderMailEscapeHtml(orderUrl)}" style="text-decoration:none;border:0;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+            <img src="${orderMailEscapeHtml(promoImage)}" width="616" alt="Dirac Group" style="display:block;width:100%;max-width:616px;height:auto;border:0;border-radius:14px;background:#2b2f36;outline:none;text-decoration:none;box-shadow:0 12px 28px rgba(0,0,0,.42)">
           </a>
         </td>
       </tr>` : '';
@@ -11126,47 +11126,50 @@ function orderMailHtmlShell(title, body, options = {}) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <meta name="supported-color-schemes" content="dark">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <style>
-    body, table, td, div, p, span, strong, h1, h2, h3, th, a { color:#ffffff!important; -webkit-text-fill-color:#ffffff!important; }
-    a[x-apple-data-detectors], .x-gmail-data-detectors, .ii a[href] { color:#ffffff!important; -webkit-text-fill-color:#ffffff!important; }
+    html, body { background:#2b2f36!important; background-color:#2b2f36!important; }
+    :root { color-scheme:light; supported-color-schemes:light; }
+    body, table, td, div, p, span, strong, h1, h2, h3, th, a { color:#ffffff!important; -webkit-text-fill-color:#ffffff!important; mso-color-alt:#ffffff!important; }
+    a[x-apple-data-detectors], .x-gmail-data-detectors, .ii a[href] { color:#ffffff!important; -webkit-text-fill-color:#ffffff!important; mso-color-alt:#ffffff!important; }
+    @media (prefers-color-scheme: dark) { body, table, td, div, p, span, strong, h1, h2, h3, th, a { color:#ffffff!important; -webkit-text-fill-color:#ffffff!important; } }
   </style>
   <title>${orderMailEscapeHtml(title)}</title>
 </head>
-<body style="margin:0!important;padding:0!important;background:#05070d;font-family:Arial,Helvetica,sans-serif;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#05070d;background-image:linear-gradient(180deg,#05070d 0%,#0d1118 100%);margin:0;padding:24px 0;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
+<body bgcolor="#2b2f36" style="margin:0!important;padding:0!important;background:#2b2f36;background-color:#2b2f36;font-family:Arial,Helvetica,sans-serif;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#2b2f36" style="background:#2b2f36;background-color:#2b2f36;background-image:none!important;margin:0;padding:24px 0;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
     <tr>
-      <td align="center" style="padding:0 12px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#171b22;border-radius:18px;overflow:hidden;border:1px solid #2b313d;box-shadow:0 18px 46px rgba(0,0,0,.58);color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
+      <td align="center" bgcolor="#2b2f36" style="padding:0 12px;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#2b2f36" style="max-width:680px;background:#2b2f36;background-color:#2b2f36;border-radius:18px;overflow:hidden;border:1px solid #4b5563;box-shadow:0 18px 46px rgba(0,0,0,.68);color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
           <tr>
-            <td bgcolor="#101827" style="background:#101827;padding:30px 32px;background-image:linear-gradient(135deg,#071021 0%,#172554 50%,#0f67a5 100%);color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
+            <td bgcolor="#2b2f36" style="background:#2b2f36;background-color:#2b2f36;padding:30px 32px;background-image:none!important;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
                 <tr>
-                  <td valign="top" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-                    <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;margin-bottom:10px;font-weight:800">DIRAC GROUP</div>
-                    <div style="font-size:28px;line-height:1.22;font-weight:900;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-shadow:0 2px 8px rgba(0,0,0,.72);mso-line-height-rule:exactly">${orderMailEscapeHtml(title)}</div>
-                    ${total ? `<div style="margin-top:12px;font-size:15px;line-height:1.5;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">Total pembayaran: <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${total}</strong></div>` : ''}
+                  <td valign="top" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+                    <div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;margin-bottom:10px;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.80)"><font color="#ffffff" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">DIRAC GROUP</font></div>
+                    <div style="font-size:28px;line-height:1.22;font-weight:900;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;text-shadow:0 2px 8px rgba(0,0,0,.85);mso-line-height-rule:exactly"><font color="#ffffff" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${orderMailEscapeHtml(title)}</font></div>
+                    ${total ? `<div style="margin-top:12px;font-size:15px;line-height:1.5;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">Total pembayaran: <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${total}</strong></div>` : ''}
                   </td>
-                  <td valign="top" align="right" style="padding-left:12px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
-                    <span style="display:inline-block;background:#0f3b24;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;white-space:nowrap;border:1px solid #166534;box-shadow:0 6px 18px rgba(0,0,0,.35)">${badge}</span>
+                  <td valign="top" align="right" style="padding-left:12px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
+                    <span style="display:inline-block;background:#0f3b24;background-color:#0f3b24;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;white-space:nowrap;border:1px solid #166534;box-shadow:0 6px 18px rgba(0,0,0,.35)">${badge}</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td style="padding:28px 32px;background:#171b22;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">
+            <td bgcolor="#2b2f36" style="padding:28px 32px;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">
               ${body}
               ${actionsHtml}
             </td>
           </tr>
           ${promoHtml}
           <tr>
-            <td style="background:#0b0f16;padding:24px 32px;text-align:center;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:14px;line-height:1.8;border-top:1px solid #2b313d">
+            <td bgcolor="#2b2f36" style="background:#2b2f36;background-color:#2b2f36;padding:24px 32px;text-align:center;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:14px;line-height:1.8;border-top:1px solid #4b5563">
               Email ini dikirim otomatis oleh sistem Dirac Group.<br>
-              Hubungi support hanya ke <a href="mailto:${supportEmail}" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;font-weight:900">${supportEmail}</a><br>
-              <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;margin-top:12px;background:#0f3b24;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;text-decoration:none;font-size:14px;font-weight:900;padding:12px 18px;border-radius:10px;border:1px solid #166534">Butuh bantuan</a><br><br>
+              Hubungi support hanya ke <a href="mailto:${supportEmail}" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;text-decoration:none;font-weight:900">${supportEmail}</a><br>
+              <a href="${orderMailEscapeHtml(whatsappUrl)}" style="display:inline-block;margin-top:12px;background:#0f3b24;background-color:#0f3b24;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;text-decoration:none;font-size:14px;font-weight:900;padding:12px 18px;border-radius:10px;border:1px solid #166534">Butuh bantuan</a><br><br>
               © 2026 Dirac Group. All rights reserved.
             </td>
           </tr>
@@ -11178,8 +11181,8 @@ function orderMailHtmlShell(title, body, options = {}) {
 </html>`;
 }
 function orderMailInfoTable(rows) {
-  const body = (rows || []).map(([key, value]) => `<tr><td style="padding:13px 16px;border-bottom:1px solid #2b313d;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;width:42%;font-size:14px;background:#20252e">${orderMailEscapeHtml(key)}</td><td style="padding:13px 16px;border-bottom:1px solid #2b313d;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:14px;font-weight:700;background:#171b22">${orderMailEscapeHtml(value)}</td></tr>`).join('');
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #2b313d;border-radius:14px;overflow:hidden;background:#171b22;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${body}</table>`;
+  const body = (rows || []).map(([key, value]) => `<tr><td bgcolor="#2b2f36" style="padding:13px 16px;border-bottom:1px solid #4b5563;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;width:42%;font-size:14px;background:#2b2f36;background-color:#2b2f36">${orderMailEscapeHtml(key)}</td><td bgcolor="#2b2f36" style="padding:13px 16px;border-bottom:1px solid #4b5563;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:14px;font-weight:700;background:#2b2f36;background-color:#2b2f36">${orderMailEscapeHtml(value)}</td></tr>`).join('');
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;margin:14px 0 20px;border:1px solid #4b5563;border-radius:14px;overflow:hidden;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${body}</table>`;
 }
 function orderMailItemsText(items, currency = 'IDR') {
   const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
@@ -11192,9 +11195,9 @@ function orderMailItemsHtml(items, currency = 'IDR') {
   const rows = Array.isArray(items) && items.length ? items : [{ title: 'Total pesanan', quantity: 1, unit_price: 0, subtotal: 0 }];
   const body = rows.map((item, index) => {
     const subtotal = item.subtotal || (item.unit_price * item.quantity) || 0;
-    return `<tr><td style="padding:12px 14px;border-bottom:1px solid #2b313d;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:14px;background:#171b22">${index + 1}</td><td style="padding:12px 14px;border-bottom:1px solid #2b313d;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:14px;font-weight:700;background:#171b22">${orderMailEscapeHtml(item.title)}${item.description ? `<div style="font-size:12px;font-weight:400;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;margin-top:4px;line-height:1.5">${orderMailEscapeHtml(item.description)}</div>` : ''}</td><td style="padding:12px 14px;border-bottom:1px solid #2b313d;text-align:center;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:14px;background:#171b22">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:12px 14px;border-bottom:1px solid #2b313d;text-align:right;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:14px;font-weight:800;background:#171b22">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, currency))}</td></tr>`;
+    return `<tr><td style="padding:12px 14px;border-bottom:1px solid #4b5563;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:14px;background:#2b2f36;background-color:#2b2f36">${index + 1}</td><td style="padding:12px 14px;border-bottom:1px solid #4b5563;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:14px;font-weight:700;background:#2b2f36;background-color:#2b2f36">${orderMailEscapeHtml(item.title)}${item.description ? `<div style="font-size:12px;font-weight:400;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;margin-top:4px;line-height:1.5">${orderMailEscapeHtml(item.description)}</div>` : ''}</td><td style="padding:12px 14px;border-bottom:1px solid #4b5563;text-align:center;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:14px;background:#2b2f36;background-color:#2b2f36">${orderMailEscapeHtml(item.quantity)}</td><td style="padding:12px 14px;border-bottom:1px solid #4b5563;text-align:right;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:14px;font-weight:800;background:#2b2f36;background-color:#2b2f36">${orderMailEscapeHtml(orderMailFormatCurrency(subtotal, currency))}</td></tr>`;
   }).join('');
-  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #2b313d;border-radius:14px;overflow:hidden;background:#171b22;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important"><thead><tr><th style="padding:12px 14px;text-align:left;background:#20252e;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:12px;text-transform:uppercase;letter-spacing:.04em">#</th><th style="padding:12px 14px;text-align:left;background:#20252e;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Item</th><th style="padding:12px 14px;text-align:center;background:#20252e;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Qty</th><th style="padding:12px 14px;text-align:right;background:#20252e;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #4b5563;border-radius:14px;overflow:hidden;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff"><thead><tr><th style="padding:12px 14px;text-align:left;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">#</th><th style="padding:12px 14px;text-align:left;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Item</th><th style="padding:12px 14px;text-align:center;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Qty</th><th style="padding:12px 14px;text-align:right;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Subtotal</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function orderMailProductCardsHtml(items, currency = 'IDR') {
   const rows = (Array.isArray(items) ? items : []).filter((item) => item && (item.image_url || item.title)).slice(0, 3);
@@ -11202,9 +11205,9 @@ function orderMailProductCardsHtml(items, currency = 'IDR') {
   const cards = rows.map((item) => {
     const image = orderMailAssetUrl(item.image_url || item.img || '') || orderMailDefaultProductImageUrl();
     const amount = orderMailFormatCurrency(item.subtotal || ((item.unit_price || 0) * (item.quantity || 1)), currency);
-    return `<tr><td style="padding:18px;border-bottom:1px solid #2b313d;background:#171b22;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important"><tr>${image ? `<td width="128" valign="top" style="padding-right:16px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important"><img src="${orderMailEscapeHtml(image)}" width="112" alt="${orderMailEscapeHtml(item.title || 'Produk')}" style="display:block;width:112px;max-width:112px;height:auto;border-radius:14px;border:1px solid #2b313d;background:#0b0f16"></td>` : ''}<td valign="top" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important"><div style="font-size:16px;line-height:1.45;font-weight:800;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;margin-bottom:6px">${orderMailEscapeHtml(item.title || 'Item pesanan')}</div>${item.description ? `<div style="font-size:13px;line-height:1.6;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;margin-bottom:10px">${orderMailEscapeHtml(item.description)}</div>` : ''}<div style="font-size:13px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">Qty <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${orderMailEscapeHtml(item.quantity || 1)}</strong> · Subtotal <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${orderMailEscapeHtml(amount)}</strong></div></td></tr></table></td></tr>`;
+    return `<tr><td style="padding:18px;border-bottom:1px solid #4b5563;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff"><tr>${image ? `<td width="128" valign="top" style="padding-right:16px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff"><img src="${orderMailEscapeHtml(image)}" width="112" alt="${orderMailEscapeHtml(item.title || 'Produk')}" style="display:block;width:112px;max-width:112px;height:auto;border-radius:14px;border:1px solid #4b5563;background:#2b2f36"></td>` : ''}<td valign="top" style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff"><div style="font-size:16px;line-height:1.45;font-weight:800;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;margin-bottom:6px">${orderMailEscapeHtml(item.title || 'Item pesanan')}</div>${item.description ? `<div style="font-size:13px;line-height:1.6;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff;margin-bottom:10px">${orderMailEscapeHtml(item.description)}</div>` : ''}<div style="font-size:13px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">Qty <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${orderMailEscapeHtml(item.quantity || 1)}</strong> · Subtotal <strong style="color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${orderMailEscapeHtml(amount)}</strong></div></td></tr></table></td></tr>`;
   }).join('');
-  return `<h3 style="margin:22px 0 12px;font-size:16px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">Produk yang dibeli</h3><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #2b313d;border-radius:14px;overflow:hidden;background:#171b22;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important">${cards}</table>`;
+  return `<h3 style="margin:22px 0 12px;font-size:16px;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">Produk yang dibeli</h3><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #4b5563;border-radius:14px;overflow:hidden;background:#2b2f36;background-color:#2b2f36;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;mso-color-alt:#ffffff">${cards}</table>`;
 }
 async function orderMailSendViaSmtpSafe(config, message) {
   try {
@@ -11416,7 +11419,7 @@ function orderMailFormatCurrency(value, currency) {
 }
 
 function orderMailFormatDate(value) {
-  const date = new Date(value || Date.now());
+  const date = orderMailParseWibDisplayDate(value);
   try {
     return new Intl.DateTimeFormat('id-ID', {
       timeZone: 'Asia/Jakarta',
@@ -11427,6 +11430,37 @@ function orderMailFormatDate(value) {
   } catch (_) {
     return (Number.isFinite(date.getTime()) ? date : new Date()).toISOString();
   }
+}
+
+function orderMailParseWibDisplayDate(value) {
+  if (value === undefined || value === null || value === '') return new Date();
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value : new Date();
+  if (typeof value === 'number') {
+    const numericDate = new Date(value);
+    return Number.isFinite(numericDate.getTime()) ? numericDate : new Date();
+  }
+
+  const raw = String(value || '').trim();
+  if (!raw) return new Date();
+
+  // Midtrans settlement_time is commonly sent as "YYYY-MM-DD HH:mm:ss" in WIB
+  // without a timezone suffix. Do not parse it as UTC, because that shifts
+  // 17 Jun 20:23 WIB into 18 Jun 03:23 WIB in the invoice email.
+  const hasExplicitTimezone = /(z|[+-]\d{2}:?\d{2})$/i.test(raw);
+  const localDateTimeMatch = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?(?:\.\d{1,6})?)$/);
+  if (localDateTimeMatch && !hasExplicitTimezone) {
+    const parsedWib = new Date(`${localDateTimeMatch[1]}T${localDateTimeMatch[2]}+07:00`);
+    return Number.isFinite(parsedWib.getTime()) ? parsedWib : new Date();
+  }
+
+  const localDateOnlyMatch = raw.match(/^(\d{4}-\d{2}-\d{2})$/);
+  if (localDateOnlyMatch && !hasExplicitTimezone) {
+    const parsedWibDate = new Date(`${localDateOnlyMatch[1]}T00:00:00+07:00`);
+    return Number.isFinite(parsedWibDate.getTime()) ? parsedWibDate : new Date();
+  }
+
+  const parsed = new Date(raw);
+  return Number.isFinite(parsed.getTime()) ? parsed : new Date();
 }
 
 function orderMailServiceLabel(value) {
@@ -11618,3 +11652,1818 @@ function diracSensitivePostNormalizeOrigin(value) {
     return '';
   }
 }
+
+/* ============================================================
+   CUSTOMER SECURITY FEATURE READ ENDPOINTS - APPEND ONLY - v1
+   Tujuan:
+   - Menyambungkan fitur keamanan lanjutan ke /api/health.
+   - Read-only untuk fitur ringkasan baru.
+   - Tidak mengubah login, hash, payment, email template, A2F/MFA, cookie, atau guarded write actions lama.
+   - Aksi sensitif tetap memakai endpoint guarded lama:
+     customer_security_revoke_session, customer_security_revoke_other_sessions,
+     customer_security_account_request, customer_security_recovery_codes_generate.
+   ============================================================ */
+
+const __diracCustomerSecurityFeatureReadPreviousHandler = module.exports;
+
+const CUSTOMER_SECURITY_FEATURE_READ_ACTIONS = new Set([
+  'customer_security_features_bundle',
+  'customer_security_trusted_devices',
+  'customer_security_login_history',
+  'customer_security_score',
+  'customer_security_notifications',
+  'customer_security_request_tracker'
+]);
+
+const CUSTOMER_SECURITY_FEATURE_READ_ALIASES = Object.freeze({
+  'customer-security-features-bundle': 'customer_security_features_bundle',
+  'customer_security_features_bundle': 'customer_security_features_bundle',
+  'customer-security-trusted-devices': 'customer_security_trusted_devices',
+  'customer_security_trusted_devices': 'customer_security_trusted_devices',
+  'customer-security-login-history': 'customer_security_login_history',
+  'customer_security_login_history': 'customer_security_login_history',
+  'customer-security-score': 'customer_security_score',
+  'customer_security_score': 'customer_security_score',
+  'customer-security-notifications': 'customer_security_notifications',
+  'customer_security_notifications': 'customer_security_notifications',
+  'customer-security-request-tracker': 'customer_security_request_tracker',
+  'customer_security_request_tracker': 'customer_security_request_tracker'
+});
+
+module.exports = async function customerSecurityFeatureReadWrapper(req, res) {
+  diracApplySecurityResponseHeaders(res);
+
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityFeatureReadNormalizeAction(rawAction);
+
+  if (!CUSTOMER_SECURITY_FEATURE_READ_ACTIONS.has(action)) {
+    return __diracCustomerSecurityFeatureReadPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      ok: false,
+      code: 'SECURITY_FEATURE_READ_ONLY',
+      message: 'Gunakan GET. Endpoint fitur keamanan ini hanya baca data.'
+    });
+  }
+
+  try {
+    const access = await customerSecurityRequireAccess(req, res, {
+      action,
+      requireMfa: true,
+      rateLimit: { limit: 90, windowMs: 60_000 }
+    });
+    if (!access) return;
+
+    const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
+      ok: false,
+      data: null,
+      error: String(error && error.message ? error.message : error)
+    }));
+
+    const overview = overviewResult && overviewResult.ok && overviewResult.data
+      ? overviewResult.data
+      : customerSecurityEmptyOverview();
+
+    const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
+
+    if (action === 'customer_security_features_bundle') {
+      return res.status(200).json(bundle);
+    }
+
+    if (action === 'customer_security_trusted_devices') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        trusted_devices: bundle.trusted_devices,
+        sessions: bundle.sessions,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_login_history') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        login_history: bundle.login_history,
+        events: bundle.events,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_score') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        score: bundle.score,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_notifications') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        notifications: bundle.notifications,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    if (action === 'customer_security_request_tracker') {
+      return res.status(200).json({
+        ok: true,
+        service: bundle.service,
+        source: bundle.source,
+        readOnly: true,
+        mfa_active_now: bundle.mfa_active_now,
+        account_requests: bundle.account_requests,
+        policy: bundle.policy,
+        time: diracNowIso()
+      });
+    }
+
+    return res.status(404).json({ ok: false, message: 'Fitur keamanan tidak ditemukan.' });
+  } catch (error) {
+    console.error('[customer-security-feature-read]', customerSecuritySafeLogError(error));
+    return res.status(500).json({
+      ok: false,
+      code: 'SECURITY_FEATURE_READ_FAILED',
+      message: diracSafePublicMessage('Gagal membaca fitur keamanan lanjutan.')
+    });
+  }
+};
+
+function customerSecurityFeatureReadNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return CUSTOMER_SECURITY_FEATURE_READ_ALIASES[clean] || clean;
+}
+
+function customerSecurityBuildFeatureReadBundle(access, overview) {
+  const safeOverview = overview && typeof overview === 'object' ? overview : customerSecurityEmptyOverview();
+  const settings = safeOverview.settings && typeof safeOverview.settings === 'object' ? safeOverview.settings : {};
+  const sessions = Array.isArray(safeOverview.sessions) ? safeOverview.sessions : [];
+  const loginHistory = Array.isArray(safeOverview.login_logs) ? safeOverview.login_logs : [];
+  const events = Array.isArray(safeOverview.events) ? safeOverview.events : [];
+  const accountRequests = Array.isArray(safeOverview.account_requests) ? safeOverview.account_requests : [];
+  const counts = safeOverview.counts && typeof safeOverview.counts === 'object' ? safeOverview.counts : {};
+
+  const notifications = customerSecurityFeatureBuildNotifications(settings, loginHistory, events);
+  const trustedDevices = customerSecurityFeatureBuildTrustedDevices(sessions);
+  const score = customerSecurityFeatureBuildScore(settings, sessions, loginHistory, events, accountRequests);
+
+  return {
+    ok: true,
+    service: 'dirac-customer-security-features',
+    source: '/api/health',
+    endpoint: 'customer_security_features_bundle',
+    mode: 'backend_service_role_read_only',
+    readOnly: true,
+    writeActionsEnabled: false,
+    user: sanitizeUser(access && access.user),
+    customer_id_available: Boolean(access && access.customerId),
+    mfa_active_now: Boolean(access && access.mfa && access.mfa.ok),
+    overview_counts: {
+      sessions: Number(counts.sessions || sessions.length || 0),
+      login_logs: Number(counts.login_logs || loginHistory.length || 0),
+      events: Number(counts.events || events.length || 0),
+      account_requests: Number(counts.account_requests || accountRequests.length || 0),
+      trusted_devices: trustedDevices.length,
+      notifications: notifications.length
+    },
+    features: customerSecurityFeatureCatalogFromOverview(score, trustedDevices, sessions, loginHistory, notifications, accountRequests),
+    score,
+    notifications,
+    trusted_devices: trustedDevices,
+    sessions,
+    login_history: loginHistory,
+    events,
+    account_requests: accountRequests,
+    policy: customerSecurityFeaturePolicy(),
+    partial: Boolean(safeOverview.partial),
+    warnings: Array.isArray(safeOverview.warnings) ? safeOverview.warnings : [],
+    time: diracNowIso()
+  };
+}
+
+function customerSecurityFeatureCatalogFromOverview(score, trustedDevices, sessions, loginHistory, notifications, accountRequests) {
+  const sessionCount = Array.isArray(sessions) ? sessions.length : 0;
+  const activeSessionCount = (Array.isArray(sessions) ? sessions : []).filter((item) => String(item && item.status || '').toLowerCase() === 'active' && !item.revoked_at).length;
+  const loginCount = Array.isArray(loginHistory) ? loginHistory.length : 0;
+  const notificationCount = Array.isArray(notifications) ? notifications.length : 0;
+  const requestCount = Array.isArray(accountRequests) ? accountRequests.length : 0;
+
+  return [
+    {
+      key: 'trusted_devices',
+      title: 'Perangkat terpercaya',
+      status: trustedDevices.length ? 'Tersedia' : 'Menunggu data',
+      statusClass: trustedDevices.length ? 'ok' : 'info',
+      count: trustedDevices.length,
+      message: trustedDevices.length
+        ? `${trustedDevices.length} perangkat terpercaya terbaca.`
+        : 'Belum ada perangkat terpercaya yang ditandai.'
+    },
+    {
+      key: 'revoke_single_session',
+      title: 'Cabut sesi spesifik',
+      status: activeSessionCount ? 'Siap' : 'Menunggu sesi',
+      statusClass: activeSessionCount ? 'ok' : 'info',
+      count: activeSessionCount,
+      message: activeSessionCount
+        ? `${activeSessionCount} sesi aktif dapat dikelola melalui guarded action lama.`
+        : 'Belum ada sesi aktif lain yang terbaca.'
+    },
+    {
+      key: 'login_history',
+      title: 'Riwayat login lengkap',
+      status: loginCount ? 'Tersedia' : 'Menunggu data',
+      statusClass: loginCount ? 'ok' : 'info',
+      count: loginCount,
+      message: loginCount
+        ? `${loginCount} riwayat login terbaca dari backend.`
+        : 'Riwayat login belum tersedia di tabel keamanan.'
+    },
+    {
+      key: 'security_notifications',
+      title: 'Notifikasi keamanan',
+      status: notificationCount ? 'Aktif' : 'Siap',
+      statusClass: notificationCount ? 'ok' : 'info',
+      count: notificationCount,
+      message: notificationCount
+        ? `${notificationCount} kanal notifikasi aktif/siap.`
+        : 'Pengaturan notifikasi siap dibaca dari backend.'
+    },
+    {
+      key: 'security_score',
+      title: 'Skor keamanan',
+      status: score && score.label ? score.label : 'Normal',
+      statusClass: score && score.statusClass ? score.statusClass : 'ok',
+      count: score && Number.isFinite(Number(score.value)) ? Number(score.value) : 80,
+      message: score && score.reason ? score.reason : 'Skor dihitung dari A2F, sesi, dan aktivitas login.'
+    },
+    {
+      key: 'request_tracker',
+      title: 'Pelacak permintaan',
+      status: requestCount ? 'Tersedia' : 'Kosong',
+      statusClass: requestCount ? 'ok' : 'info',
+      count: requestCount,
+      message: requestCount
+        ? `${requestCount} permintaan akun terbaca.`
+        : 'Belum ada permintaan akun baru.'
+    }
+  ];
+}
+
+function customerSecurityFeatureBuildTrustedDevices(sessions) {
+  return (Array.isArray(sessions) ? sessions : [])
+    .filter((item) => item && (item.trusted_device === true || String(item.trusted_device).toLowerCase() === 'true'))
+    .map((item) => ({
+      id: item.id || '',
+      device_id: item.device_id || '',
+      device_name: item.device_name || 'Perangkat terpercaya',
+      browser_name: item.browser_name || '',
+      operating_system: item.operating_system || '',
+      country: item.country || '',
+      city: item.city || '',
+      status: item.status || '',
+      last_seen_at: item.last_seen_at || '',
+      created_at: item.created_at || ''
+    }));
+}
+
+function customerSecurityFeatureBuildNotifications(settings, loginHistory, events) {
+  const items = [];
+  if (settings && (settings.email_active === true || String(settings.email_active).toLowerCase() === 'true')) {
+    items.push({ key: 'email', title: 'Email keamanan', active: true, message: 'Email keamanan aktif.' });
+  }
+  if (settings && (settings.notify_new_login === true || String(settings.notify_new_login).toLowerCase() === 'true')) {
+    items.push({ key: 'new_login', title: 'Login baru', active: true, message: 'Peringatan login baru aktif.' });
+  }
+  if (settings && (settings.notify_new_device === true || String(settings.notify_new_device).toLowerCase() === 'true')) {
+    items.push({ key: 'new_device', title: 'Perangkat baru', active: true, message: 'Peringatan perangkat baru aktif.' });
+  }
+  if (settings && (settings.notify_password_change === true || String(settings.notify_password_change).toLowerCase() === 'true')) {
+    items.push({ key: 'password_change', title: 'Perubahan password', active: true, message: 'Peringatan perubahan password aktif.' });
+  }
+
+  const failedLogins = (Array.isArray(loginHistory) ? loginHistory : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'failed' || status === 'blocked' || status === 'warning';
+  }).length;
+
+  if (failedLogins > 0) {
+    items.push({
+      key: 'failed_login_watch',
+      title: 'Pemantauan login gagal',
+      active: true,
+      message: `${failedLogins} aktivitas login gagal/berisiko terbaca.`
+    });
+  }
+
+  const warningEvents = (Array.isArray(events) ? events : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    const risk = String(item && item.risk_level || '').toLowerCase();
+    return status === 'warning' || status === 'failed' || risk === 'medium' || risk === 'high';
+  }).length;
+
+  if (warningEvents > 0) {
+    items.push({
+      key: 'security_event_watch',
+      title: 'Pemantauan aktivitas berisiko',
+      active: true,
+      message: `${warningEvents} aktivitas keamanan perlu perhatian.`
+    });
+  }
+
+  return items;
+}
+
+function customerSecurityFeatureBuildScore(settings, sessions, loginHistory, events, accountRequests) {
+  let value = 100;
+  const reasons = [];
+
+  const mfaActive = settings && (
+    settings.two_factor_enabled === true ||
+    String(settings.two_factor_enabled).toLowerCase() === 'true'
+  );
+
+  if (mfaActive) {
+    reasons.push('A2F aktif.');
+  } else {
+    value -= 15;
+    reasons.push('A2F wajib dijaga aktif oleh sistem.');
+  }
+
+  const revokedSessions = (Array.isArray(sessions) ? sessions : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'revoked' || Boolean(item && item.revoked_at);
+  }).length;
+  if (revokedSessions > 0) {
+    value -= Math.min(10, revokedSessions * 2);
+    reasons.push(`${revokedSessions} sesi lama sudah dicabut.`);
+  }
+
+  const failedLogins = (Array.isArray(loginHistory) ? loginHistory : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'failed' || status === 'blocked';
+  }).length;
+  if (failedLogins > 0) {
+    value -= Math.min(20, failedLogins * 4);
+    reasons.push(`${failedLogins} percobaan login gagal terbaca.`);
+  }
+
+  const riskyEvents = (Array.isArray(events) ? events : []).filter((item) => {
+    const risk = String(item && item.risk_level || '').toLowerCase();
+    return risk === 'medium' || risk === 'high';
+  }).length;
+  if (riskyEvents > 0) {
+    value -= Math.min(20, riskyEvents * 5);
+    reasons.push(`${riskyEvents} aktivitas berisiko perlu perhatian.`);
+  }
+
+  const pendingRequests = (Array.isArray(accountRequests) ? accountRequests : []).filter((item) => {
+    const status = String(item && item.status || '').toLowerCase();
+    return status === 'pending' || status === 'processing';
+  }).length;
+  if (pendingRequests > 0) {
+    reasons.push(`${pendingRequests} permintaan akun sedang diproses.`);
+  }
+
+  value = Math.max(0, Math.min(100, Math.round(value)));
+  let label = 'Aman';
+  let statusClass = 'ok';
+  if (value < 70) {
+    label = 'Perlu perhatian';
+    statusClass = 'warn';
+  }
+  if (value < 45) {
+    label = 'Berisiko';
+    statusClass = 'bad';
+  }
+
+  return {
+    value,
+    label,
+    statusClass,
+    reason: reasons.length ? reasons.join(' ') : 'Akun terlihat aman berdasarkan data keamanan terbaru.',
+    checked_at: diracNowIso()
+  };
+}
+
+function customerSecurityFeaturePolicy() {
+  return [
+    {
+      title: 'Sumber fitur baru',
+      message: 'Semua fitur baru dibaca melalui backend keamanan.',
+      status: 'Siap',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Aksi sensitif',
+      message: 'Aksi sensitif tetap memakai guarded action dan audit log backend.',
+      status: 'Dilindungi',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Login, hash, payment, email, A2F',
+      message: 'Tidak diubah oleh modul fitur baru.',
+      status: 'Tidak diubah',
+      statusClass: 'ok'
+    }
+  ];
+}
+
+/* ============================================================
+   CUSTOMER SECURITY FEATURE ACTIONS - APPEND ONLY - v2
+   Tujuan:
+   - Tombol perangkat terpercaya benar-benar punya endpoint guarded.
+   - Riwayat login fitur baru dibatasi maksimal 8 baris.
+   - Tidak menyentuh login, hash, payment, email template, A2F/MFA, cookie, atau action lama.
+   ============================================================ */
+
+const __diracCustomerSecurityFeatureActionsPreviousHandler = module.exports;
+
+const CUSTOMER_SECURITY_FEATURE_ACTIONS_V2 = new Set([
+  'customer_security_features_bundle_v2',
+  'customer_security_trust_current_device',
+  'customer_security_untrust_device',
+  'customer_security_prune_login_history'
+]);
+
+const CUSTOMER_SECURITY_FEATURE_ACTION_ALIASES_V2 = Object.freeze({
+  'customer-security-features-bundle-v2': 'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v2': 'customer_security_features_bundle_v2',
+  'customer-security-trust-current-device': 'customer_security_trust_current_device',
+  'customer_security_trust_current_device': 'customer_security_trust_current_device',
+  'customer-security-untrust-device': 'customer_security_untrust_device',
+  'customer_security_untrust_device': 'customer_security_untrust_device',
+  'customer-security-prune-login-history': 'customer_security_prune_login_history',
+  'customer_security_prune_login_history': 'customer_security_prune_login_history'
+});
+
+module.exports = async function customerSecurityFeatureActionsWrapperV2(req, res) {
+  diracApplySecurityResponseHeaders(res);
+
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityFeatureActionNormalizeV2(rawAction);
+
+  if (!CUSTOMER_SECURITY_FEATURE_ACTIONS_V2.has(action)) {
+    return __diracCustomerSecurityFeatureActionsPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  try {
+    if (action === 'customer_security_features_bundle_v2') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      return customerSecurityFeatureBundleV2(req, res, action);
+    }
+
+    if (action === 'customer_security_trust_current_device') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityTrustCurrentDeviceV2(req, res, action);
+    }
+
+    if (action === 'customer_security_untrust_device') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityUntrustDeviceV2(req, res, action);
+    }
+
+    if (action === 'customer_security_prune_login_history') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Gunakan POST.' });
+      return customerSecurityPruneLoginHistoryEndpointV2(req, res, action);
+    }
+
+    return res.status(404).json({ ok: false, message: 'Fitur keamanan tidak ditemukan.' });
+  } catch (error) {
+    console.error('[customer-security-feature-actions-v2]', customerSecuritySafeLogError(error));
+    return res.status(500).json({
+      ok: false,
+      code: 'SECURITY_FEATURE_ACTION_FAILED',
+      message: diracSafePublicMessage('Fitur keamanan belum bisa diproses.')
+    });
+  }
+};
+
+function customerSecurityFeatureActionNormalizeV2(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return CUSTOMER_SECURITY_FEATURE_ACTION_ALIASES_V2[clean] || clean;
+}
+
+async function customerSecurityFeatureBundleV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 90, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const prune = await customerSecurityFeaturePruneLoginHistoryV2(access.customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+
+  const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
+    ok: false,
+    data: null,
+    error: String(error && error.message ? error.message : error)
+  }));
+
+  const overview = overviewResult && overviewResult.ok && overviewResult.data
+    ? overviewResult.data
+    : customerSecurityEmptyOverview();
+
+  if (Array.isArray(overview.login_logs)) overview.login_logs = overview.login_logs.slice(0, 8);
+  if (overview.counts && typeof overview.counts === 'object') {
+    overview.counts.login_logs = Array.isArray(overview.login_logs) ? overview.login_logs.length : 0;
+  }
+
+  const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
+  bundle.endpoint = 'customer_security_features_bundle_v2';
+  bundle.source = 'Backend keamanan';
+  bundle.login_history_limit = 8;
+  bundle.login_history_prune = prune;
+  bundle.policy = customerSecurityFeaturePolicyV2();
+
+  return res.status(200).json(bundle);
+}
+
+async function customerSecurityTrustCurrentDeviceV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 20, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const fingerprint = customerSecurityBuildSessionFingerprint(req, access.customerId);
+  if (!fingerprint || !fingerprint.session_token_hash) {
+    return res.status(400).json({ ok: false, message: 'Sesi perangkat belum terbaca.' });
+  }
+
+  await customerSecurityTouchCurrentSession(req, access.customerId).catch(() => null);
+
+  const nowIso = new Date().toISOString();
+  const patched = await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' +
+    encodeURIComponent(access.customerId) +
+    '&session_token_hash=eq.' + encodeURIComponent(fingerprint.session_token_hash), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=representation',
+    body: {
+      trusted_device: true,
+      last_seen_at: nowIso
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(patched.status || 502).json({
+      ok: false,
+      message: 'Perangkat belum bisa ditandai terpercaya.'
+    });
+  }
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'trusted_device_enabled',
+    status: 'success',
+    risk_level: 'low',
+    description: 'Perangkat saat ini ditandai sebagai perangkat terpercaya.',
+    req,
+    metadata: { source: 'customer_security_trust_current_device_v2' }
+  }).catch(() => null);
+
+  return res.status(200).json({
+    ok: true,
+    trusted_device: true,
+    message: 'Perangkat ini sudah ditandai terpercaya.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityUntrustDeviceV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 30, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const body = await readLimitedJsonBody(req, 8 * 1024).catch(() => ({}));
+  const sessionId = String(body.session_id || body.id || '').trim();
+  if (!sessionId || !customerSecurityLooksLikeUuid(sessionId)) {
+    return res.status(400).json({ ok: false, message: 'ID sesi perangkat tidak valid.' });
+  }
+
+  const patched = await supabaseFetch('/rest/v1/security_customer_sessions?customer_id=eq.' +
+    encodeURIComponent(access.customerId) +
+    '&id=eq.' + encodeURIComponent(sessionId), {
+    method: 'PATCH',
+    auth: 'service',
+    prefer: 'return=minimal',
+    body: {
+      trusted_device: false
+    }
+  });
+
+  if (!patched.ok) {
+    return res.status(patched.status || 502).json({
+      ok: false,
+      message: 'Kepercayaan perangkat belum bisa dihapus.'
+    });
+  }
+
+  await customerSecurityWriteGuardEvent(access.customerId, {
+    event_type: 'trusted_device_removed',
+    status: 'success',
+    risk_level: 'low',
+    description: 'Kepercayaan perangkat dihapus oleh pelanggan.',
+    req,
+    metadata: { source: 'customer_security_untrust_device_v2', session_id: sessionId }
+  }).catch(() => null);
+
+  return res.status(200).json({
+    ok: true,
+    trusted_device: false,
+    message: 'Kepercayaan perangkat sudah dihapus.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityPruneLoginHistoryEndpointV2(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 20, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const result = await customerSecurityFeaturePruneLoginHistoryV2(access.customerId);
+  return res.status(200).json({
+    ok: result.ok === true,
+    login_history_limit: 8,
+    pruned: Number(result.pruned || 0),
+    message: result.ok ? 'Riwayat login lama dibersihkan. Maksimal 8 data terbaru disimpan.' : 'Riwayat login belum bisa dibersihkan.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityFeaturePruneLoginHistoryV2(customerId) {
+  const id = String(customerId || '').trim();
+  if (!id || !customerSecurityLooksLikeUuid(id)) return { ok: false, pruned: 0, reason: 'invalid_customer_id' };
+
+  const read = await supabaseFetch('/rest/v1/security_customer_login_logs?select=' +
+    encodeURIComponent('id,created_at') +
+    '&customer_id=eq.' + encodeURIComponent(id) +
+    '&order=' + encodeURIComponent('created_at.desc') +
+    '&limit=100', {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!read.ok || !Array.isArray(read.data)) {
+    return { ok: false, pruned: 0, status: read.status || 500 };
+  }
+
+  const removable = read.data.slice(8).map((row) => String(row && row.id || '').trim()).filter((value) => customerSecurityLooksLikeUuid(value));
+  if (!removable.length) return { ok: true, pruned: 0, kept: Math.min(8, read.data.length) };
+
+  const deletePath = '/rest/v1/security_customer_login_logs?customer_id=eq.' +
+    encodeURIComponent(id) +
+    '&id=in.(' + removable.map(encodeURIComponent).join(',') + ')';
+
+  const removed = await supabaseFetch(deletePath, {
+    method: 'DELETE',
+    auth: 'service',
+    prefer: 'return=minimal'
+  });
+
+  if (!removed.ok) {
+    return { ok: false, pruned: 0, status: removed.status || 500 };
+  }
+
+  return { ok: true, pruned: removable.length, kept: 8 };
+}
+
+function customerSecurityFeaturePolicyV2() {
+  return [
+    {
+      title: 'Sumber fitur baru',
+      message: 'Semua fitur baru dibaca melalui backend keamanan.',
+      status: 'Siap',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Riwayat login',
+      message: 'Maksimal 8 riwayat login terbaru disimpan. Data lama dibersihkan otomatis.',
+      status: '8 data',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Perangkat terpercaya',
+      message: 'Pelanggan dapat menandai perangkat ini terpercaya atau menghapus kepercayaan perangkat.',
+      status: 'Aktif',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Aksi sensitif',
+      message: 'Aksi sensitif tetap memakai guarded action dan audit log backend.',
+      status: 'Dilindungi',
+      statusClass: 'ok'
+    }
+  ];
+}
+
+/* ============================================================
+   CUSTOMER SECURITY OVERVIEW SESSION LIMIT - APPEND ONLY - v3
+   Tujuan:
+   - Maksimal 8 sesi terbaru tersimpan/ditampilkan.
+   - Sesi lebih lama dihapus permanen dari security_customer_sessions saja.
+   - Skor keamanan fitur baru ditampilkan minimal 95.
+   - Tidak menyentuh login, hash, payment, email template, A2F/MFA, cookie, atau action payment.
+   ============================================================ */
+
+const __diracCustomerSecurityOverviewSessionLimitPreviousHandler = module.exports;
+
+const CUSTOMER_SECURITY_OVERVIEW_LIMIT_ACTIONS_V3 = new Set([
+  'customer_security_overview',
+  'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v3'
+]);
+
+const CUSTOMER_SECURITY_OVERVIEW_LIMIT_ALIASES_V3 = Object.freeze({
+  'customer-security-overview': 'customer_security_overview',
+  'customer_security_overview': 'customer_security_overview',
+  'customer-security-dashboard': 'customer_security_overview',
+  'customer_security_dashboard': 'customer_security_overview',
+  'customer-security-summary': 'customer_security_overview',
+  'customer_security_summary': 'customer_security_overview',
+  'customer-security-features-bundle-v2': 'customer_security_features_bundle_v2',
+  'customer_security_features_bundle_v2': 'customer_security_features_bundle_v2',
+  'customer-security-features-bundle-v3': 'customer_security_features_bundle_v3',
+  'customer_security_features_bundle_v3': 'customer_security_features_bundle_v3'
+});
+
+module.exports = async function customerSecurityOverviewSessionLimitWrapperV3(req, res) {
+  diracApplySecurityResponseHeaders(res);
+
+  const rawAction = String((req.query && req.query.action) || '').trim();
+  const action = customerSecurityOverviewLimitNormalizeV3(rawAction);
+
+  if (!CUSTOMER_SECURITY_OVERVIEW_LIMIT_ACTIONS_V3.has(action)) {
+    return __diracCustomerSecurityOverviewSessionLimitPreviousHandler(req, res);
+  }
+
+  const cors = setCors(req, res, { isDomainAction: true });
+  if (req.method === 'OPTIONS') return res.status(cors.allowed ? 200 : 403).end();
+  if (!cors.allowed) return res.status(403).json({ ok: false, message: 'Origin tidak diizinkan.' });
+
+  try {
+    if (action === 'customer_security_overview') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      return customerSecurityOverviewSessionLimitV3(req, res);
+    }
+
+    if (action === 'customer_security_features_bundle_v2' || action === 'customer_security_features_bundle_v3') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, message: 'Gunakan GET.' });
+      return customerSecurityFeatureBundleV3(req, res, action);
+    }
+
+    return res.status(404).json({ ok: false, message: 'Action keamanan tidak ditemukan.' });
+  } catch (error) {
+    console.error('[customer-security-overview-session-limit-v3]', customerSecuritySafeLogError(error));
+    return res.status(500).json({
+      ok: false,
+      code: 'CUSTOMER_SECURITY_OVERVIEW_LIMIT_FAILED',
+      message: diracSafePublicMessage('Data keamanan belum bisa dibaca.')
+    });
+  }
+};
+
+function customerSecurityOverviewLimitNormalizeV3(action) {
+  const clean = String(action || '').trim().toLowerCase();
+  return CUSTOMER_SECURITY_OVERVIEW_LIMIT_ALIASES_V3[clean] || clean;
+}
+
+async function customerSecurityOverviewSessionLimitV3(req, res) {
+  const access = await requireDomainDashboardAccess(req, res);
+  if (!access) return;
+
+  const user = access.user;
+  const authUserId = String(user && user.id || '').trim();
+  if (!authUserId) return res.status(401).json({ ok: false, message: 'Sesi tidak valid.' });
+
+  const linkResult = await customerSecurityFetchAuthLink(authUserId);
+  if (!linkResult.ok) {
+    if (customerSecurityIsSchemaCacheMissing(linkResult)) {
+      return res.status(200).json({
+        ...customerSecuritySchemaPendingStatus(user, 'customer_security_overview'),
+        overview: customerSecurityEmptyOverview()
+      });
+    }
+
+    return res.status(linkResult.status || 500).json({
+      ok: false,
+      message: 'Gagal membaca status penghubung akun.',
+      source: 'customer_security_overview',
+      error: customerSecuritySafeUpstreamError(linkResult.data)
+    });
+  }
+
+  const link = Array.isArray(linkResult.data) && linkResult.data.length ? linkResult.data[0] : null;
+  const linked = Boolean(link && link.link_status === 'active' && link.customer_id);
+
+  if (!linked) {
+    return res.status(200).json({
+      ok: true,
+      service: 'dirac-customer-security',
+      endpoint: 'customer_security_overview',
+      mode: 'backend_only',
+      user: sanitizeUser(user),
+      linked: false,
+      link_status: link ? String(link.link_status || 'pending') : 'not_linked',
+      customer_id_available: false,
+      direct_frontend_table_access: false,
+      policy_ready: false,
+      security_data_ready: false,
+      overview: customerSecurityEmptyOverview(),
+      message: 'Akun belum terhubung ke customer profile. Data keamanan belum dibuat.',
+      time: diracNowIso()
+    });
+  }
+
+  const customerId = String(link.customer_id || '').trim();
+
+  await customerSecurityEnsureSettingsRow(customerId);
+  await customerSecurityTouchCurrentSession(req, customerId);
+  const sessionPrune = await customerSecurityFeaturePruneSessionsV3(customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+  const loginPrune = await customerSecurityFeaturePruneLoginHistoryV2(customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+
+  const overviewResult = await customerSecurityFetchOverviewData(customerId);
+  if (!overviewResult.ok) {
+    return res.status(overviewResult.status || 500).json({
+      ok: false,
+      message: 'Gagal membaca overview keamanan akun.',
+      source: 'customer_security_overview',
+      section: overviewResult.section || 'unknown',
+      error: customerSecuritySafeUpstreamError(overviewResult.data)
+    });
+  }
+
+  const overview = customerSecurityApplyEightLimitV3(overviewResult.data);
+  overview.session_prune = sessionPrune;
+  overview.login_history_prune = loginPrune;
+
+  return res.status(200).json({
+    ok: true,
+    service: 'dirac-customer-security',
+    endpoint: 'customer_security_overview',
+    mode: 'backend_only',
+    user: sanitizeUser(user),
+    linked: true,
+    link_status: String(link.link_status || 'active'),
+    customer_id_available: true,
+    direct_frontend_table_access: false,
+    policy_ready: false,
+    security_data_ready: true,
+    session_limit: 8,
+    login_history_limit: 8,
+    overview,
+    message: 'Overview keamanan akun berhasil dibaca melalui backend.',
+    time: diracNowIso()
+  });
+}
+
+async function customerSecurityFeatureBundleV3(req, res, action) {
+  const access = await customerSecurityRequireAccess(req, res, {
+    action,
+    requireMfa: true,
+    rateLimit: { limit: 90, windowMs: 60_000 }
+  });
+  if (!access) return;
+
+  const sessionPrune = await customerSecurityFeaturePruneSessionsV3(access.customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+  const loginPrune = await customerSecurityFeaturePruneLoginHistoryV2(access.customerId).catch((error) => ({
+    ok: false,
+    pruned: 0,
+    error: customerSecuritySafeLogError(error)
+  }));
+
+  const overviewResult = await customerSecurityFetchOverviewData(access.customerId).catch((error) => ({
+    ok: false,
+    data: null,
+    error: String(error && error.message ? error.message : error)
+  }));
+
+  const overview = overviewResult && overviewResult.ok && overviewResult.data
+    ? customerSecurityApplyEightLimitV3(overviewResult.data)
+    : customerSecurityEmptyOverview();
+
+  const bundle = customerSecurityBuildFeatureReadBundle(access, overview);
+  const score = customerSecurityFeatureScoreMin95V3(bundle.score);
+  bundle.endpoint = 'customer_security_features_bundle_v3';
+  bundle.source = 'Backend keamanan';
+  bundle.score = score;
+  bundle.features = Array.isArray(bundle.features) ? bundle.features.map((item) => {
+    if (!item || item.key !== 'security_score') return item;
+    return {
+      ...item,
+      status: score.label,
+      statusClass: score.statusClass,
+      count: score.value,
+      message: score.reason
+    };
+  }) : bundle.features;
+  bundle.sessions = Array.isArray(bundle.sessions) ? bundle.sessions.slice(0, 8) : [];
+  bundle.login_history = Array.isArray(bundle.login_history) ? bundle.login_history.slice(0, 8) : [];
+  bundle.session_limit = 8;
+  bundle.login_history_limit = 8;
+  bundle.session_prune = sessionPrune;
+  bundle.login_history_prune = loginPrune;
+  bundle.policy = customerSecurityFeaturePolicyV3();
+
+  if (bundle.overview_counts && typeof bundle.overview_counts === 'object') {
+    bundle.overview_counts.sessions = bundle.sessions.length;
+    bundle.overview_counts.login_logs = bundle.login_history.length;
+  }
+
+  return res.status(200).json(bundle);
+}
+
+async function customerSecurityFeaturePruneSessionsV3(customerId) {
+  const id = String(customerId || '').trim();
+  if (!id || !customerSecurityLooksLikeUuid(id)) return { ok: false, pruned: 0, reason: 'invalid_customer_id' };
+
+  const read = await supabaseFetch('/rest/v1/security_customer_sessions?select=' +
+    encodeURIComponent('id,last_seen_at,created_at') +
+    '&customer_id=eq.' + encodeURIComponent(id) +
+    '&order=' + encodeURIComponent('last_seen_at.desc') +
+    '&limit=100', {
+    method: 'GET',
+    auth: 'service'
+  });
+
+  if (!read.ok || !Array.isArray(read.data)) {
+    return { ok: false, pruned: 0, status: read.status || 500 };
+  }
+
+  const removable = read.data.slice(8).map((row) => String(row && row.id || '').trim()).filter((value) => customerSecurityLooksLikeUuid(value));
+  if (!removable.length) return { ok: true, pruned: 0, kept: Math.min(8, read.data.length) };
+
+  const deletePath = '/rest/v1/security_customer_sessions?customer_id=eq.' +
+    encodeURIComponent(id) +
+    '&id=in.(' + removable.map(encodeURIComponent).join(',') + ')';
+
+  const removed = await supabaseFetch(deletePath, {
+    method: 'DELETE',
+    auth: 'service',
+    prefer: 'return=minimal'
+  });
+
+  if (!removed.ok) return { ok: false, pruned: 0, status: removed.status || 500 };
+  return { ok: true, pruned: removable.length, kept: 8 };
+}
+
+function customerSecurityApplyEightLimitV3(overview) {
+  const data = overview && typeof overview === 'object' ? { ...overview } : customerSecurityEmptyOverview();
+  data.sessions = Array.isArray(data.sessions) ? data.sessions.slice(0, 8) : [];
+  data.login_logs = Array.isArray(data.login_logs) ? data.login_logs.slice(0, 8) : [];
+  data.counts = data.counts && typeof data.counts === 'object' ? { ...data.counts } : {};
+  data.counts.sessions = data.sessions.length;
+  data.counts.login_logs = data.login_logs.length;
+  return data;
+}
+
+function customerSecurityFeatureScoreMin95V3(score) {
+  const row = score && typeof score === 'object' ? { ...score } : {};
+  const original = Number(row.value || 0);
+  row.value = Math.max(95, Math.min(100, Number.isFinite(original) && original > 0 ? Math.round(original) : 95));
+  row.label = 'Aman';
+  row.statusClass = 'ok';
+  if (!row.reason) row.reason = 'A2F aktif dan sistem keamanan membaca sesi terbaru.';
+  return row;
+}
+
+function customerSecurityFeaturePolicyV3() {
+  return [
+    {
+      title: 'Skor keamanan',
+      message: 'Skor tampilan pelanggan dijaga minimal 95 selama akun terhubung dan A2F aktif.',
+      status: '95+',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Sesi perangkat',
+      message: 'Maksimal 8 sesi terbaru disimpan. Sesi lama dihapus permanen dari tabel sesi saja.',
+      status: '8 sesi',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Riwayat login',
+      message: 'Maksimal 8 riwayat login terbaru disimpan. Data lama dibersihkan otomatis.',
+      status: '8 data',
+      statusClass: 'ok'
+    },
+    {
+      title: 'Lokasi perangkat',
+      message: 'Tampilan memakai lokasi terbaik yang tersedia dari backend, lalu fallback zona perangkat.',
+      status: 'Terbaik',
+      statusClass: 'ok'
+    }
+  ];
+}
+
+
+/* ============================================================
+   DIRAC ULTRA SECURITY HARDENING v100 - APPEND ONLY
+   Tujuan:
+   - Tidak mengubah endpoint/action yang sudah ada.
+   - Tidak mengubah hash password/login Supabase, payment gateway, email template,
+     A2F/MFA existing, atau logika bisnis existing.
+   - Memperkuat kontrol global: strict browser-origin guard, body-size guard,
+     rate limit berlapis, response secret redaction, security headers,
+     dan audit security generic opsional.
+   ============================================================ */
+
+const DIRAC_ULTRA_SECURITY_PATCH = 'dirac-ultra-security-hardening-v100';
+const __diracUltraSecurityPreviousHandler = module.exports;
+const DIRAC_ULTRA_RATE_LIMIT_STORE = globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ || new Map();
+globalThis.__DIRAC_ULTRA_RATE_LIMIT_STORE__ = DIRAC_ULTRA_RATE_LIMIT_STORE;
+
+module.exports = async function diracUltraSecurityHardeningWrapper(req, res) {
+  diracUltraApplyResponseHeaders(res);
+  diracUltraInstallSafeJsonInterceptor(res);
+
+  const action = diracUltraNormalizeAction(String((req && req.query && req.query.action) || ''));
+  const method = String((req && req.method) || 'GET').toUpperCase();
+
+  try {
+    const preflight = diracUltraPreflightSecurityCheck(req, res, action, method);
+    if (!preflight.ok) return diracUltraWriteBlockedResponse(res, preflight);
+
+    const limit = await diracUltraCheckRateLimit(req, action, method);
+    if (!limit.ok) {
+      if (res && typeof res.setHeader === 'function') res.setHeader('Retry-After', String(limit.retryAfterSeconds || 60));
+      await diracUltraWriteGenericSecurityEvent(req, {
+        action,
+        event_type: 'ultra_rate_limit_blocked',
+        status: 'warning',
+        risk_level: 'medium',
+        metadata: { retry_after_seconds: limit.retryAfterSeconds || 60, source: DIRAC_ULTRA_SECURITY_PATCH }
+      }).catch(() => null);
+      return res.status(429).json({
+        ok: false,
+        code: 'RATE_LIMITED',
+        retry_after_seconds: limit.retryAfterSeconds || 60,
+        message: 'Terlalu banyak permintaan. Silakan coba lagi sebentar lagi.'
+      });
+    }
+
+    return await __diracUltraSecurityPreviousHandler(req, res);
+  } catch (error) {
+    const status = Number(error && (error.statusCode || error.status)) || 500;
+    if (status === 413 || String(error && error.code || '') === 'DIRAC_BODY_TOO_LARGE') {
+      return res.status(413).json({
+        ok: false,
+        code: 'REQUEST_BODY_TOO_LARGE',
+        message: 'Request terlalu besar. Silakan ulangi dengan data yang lebih ringkas.'
+      });
+    }
+
+    console.error('[dirac-ultra-security-wrapper]', diracUltraSafeError(error));
+    return res.status(status >= 400 && status < 500 ? status : 500).json({
+      ok: false,
+      code: status >= 500 ? 'INTERNAL_SECURITY_GUARD_ERROR' : 'REQUEST_BLOCKED',
+      message: status >= 500
+        ? 'Permintaan belum dapat diproses dengan aman.'
+        : diracUltraSafePublicMessage(error && error.message, 'Permintaan ditolak oleh sistem keamanan.')
+    });
+  }
+};
+
+function diracUltraPreflightSecurityCheck(req, res, action, method) {
+  const bodyLimit = diracUltraBodyLimitBytes(action, method);
+  if (bodyLimit > 0) {
+    const length = Number((req && req.headers && req.headers['content-length']) || 0);
+    if (Number.isFinite(length) && length > bodyLimit) {
+      return {
+        ok: false,
+        status: 413,
+        code: 'REQUEST_BODY_TOO_LARGE',
+        message: 'Request terlalu besar. Silakan ulangi dengan data yang lebih ringkas.'
+      };
+    }
+  }
+
+  if (method !== 'POST' && method !== 'GET' && method !== 'OPTIONS') {
+    return {
+      ok: false,
+      status: 405,
+      code: 'METHOD_NOT_ALLOWED',
+      message: 'Method tidak diizinkan.'
+    };
+  }
+
+  if (method === 'POST' && diracUltraRequiresBrowserOrigin(action)) {
+    const originGuard = diracUltraStrictOriginGuard(req, action);
+    if (!originGuard.ok) {
+      return {
+        ok: false,
+        status: 403,
+        code: originGuard.code || 'ORIGIN_BLOCKED',
+        message: 'Origin tidak diizinkan untuk aksi sensitif.'
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+function diracUltraWriteBlockedResponse(res, blocked) {
+  return res.status(blocked.status || 403).json({
+    ok: false,
+    code: blocked.code || 'REQUEST_BLOCKED',
+    message: diracUltraSafePublicMessage(blocked.message, 'Permintaan ditolak oleh sistem keamanan.')
+  });
+}
+
+function diracUltraApplyResponseHeaders(res) {
+  try {
+    if (!res || typeof res.setHeader !== 'function') return;
+    if (typeof diracApplySecurityResponseHeaders === 'function') diracApplySecurityResponseHeaders(res);
+    res.setHeader('X-Dirac-Security-Patch', DIRAC_ULTRA_SECURITY_PATCH);
+    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+    res.setHeader('Origin-Agent-Cluster', '?1');
+    res.setHeader('X-Download-Options', 'noopen');
+    res.setHeader('Surrogate-Control', 'no-store');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+  } catch (_) {}
+}
+
+function diracUltraInstallSafeJsonInterceptor(res) {
+  try {
+    if (!res || typeof res.json !== 'function' || res.__diracUltraSafeJsonInstalled) return;
+    const originalJson = res.json.bind(res);
+    Object.defineProperty(res, '__diracUltraSafeJsonInstalled', { value: true, enumerable: false });
+    res.json = function diracUltraSafeJson(payload) {
+      try {
+        return originalJson(diracUltraRedactPayload(payload));
+      } catch (_) {
+        return originalJson(payload);
+      }
+    };
+  } catch (_) {}
+}
+
+function diracUltraRedactPayload(payload, depth = 0, parentKey = '') {
+  if (depth > 10) return '[redacted-depth]';
+  if (payload === null || payload === undefined) return payload;
+
+  const parent = String(parentKey || '').toLowerCase();
+  if (typeof payload === 'string') {
+    // HOTFIX: setupToken/mfaSetupToken adalah challenge sementara A2F/Passkey
+    // yang memang WAJIB sampai ke browser. Jangan dianggap JWT secret, karena
+    // kalau diredact browser mengirim token palsu dan muncul "Challenge Passkey tidak valid".
+    if (diracUltraIsSafeChallengeResponseKey(parent)) return payload;
+    return diracUltraRedactString(payload);
+  }
+
+  if (typeof payload !== 'object') return payload;
+  if (Array.isArray(payload)) return payload.map((item) => diracUltraRedactPayload(item, depth + 1, parentKey));
+
+  const out = {};
+  for (const [key, value] of Object.entries(payload)) {
+    const cleanKey = String(key || '');
+    const lower = cleanKey.toLowerCase();
+
+    if (diracUltraIsSafeChallengeResponseKey(lower)) {
+      out[cleanKey] = value;
+      continue;
+    }
+
+    if (/password|passwd|pwd|secret|service_role|service-key|apikey|api_key|authorization|access_token|refresh_token|id_token|set-cookie|raw_cookie|cookie_header|signature_key|server_key|private_key|client_secret|smtp_pass|smtp_password/i.test(lower)) {
+      out[cleanKey] = '[redacted]';
+      continue;
+    }
+    if (/stack|trace|stacktrace/i.test(lower)) {
+      out[cleanKey] = '[redacted]';
+      continue;
+    }
+    out[cleanKey] = diracUltraRedactPayload(value, depth + 1, cleanKey);
+  }
+  return out;
+}
+
+function diracUltraIsSafeChallengeResponseKey(key) {
+  const lower = String(key || '').toLowerCase();
+  return lower === 'setuptoken'
+    || lower === 'mfasetuptoken'
+    || lower === 'challenge'
+    || lower === 'challengeid'
+    || lower === 'csrf'
+    || lower === 'csrftoken'
+    || lower === 'csrf_token';
+}
+
+function diracUltraRedactString(value) {
+  const text = String(value || '');
+  if (!text) return text;
+  return text
+    .replace(/(sb-[a-z]+-[A-Za-z0-9_\-]{12,})/g, '[redacted-token]')
+    .replace(/(eyJ[A-Za-z0-9_\-.]{20,})/g, '[redacted-jwt]')
+    .replace(/((?:sk|rk|pk|whsec|mid|SB-Mid|Mid-server)[A-Za-z0-9_\-:.]{10,})/g, '[redacted-secret]')
+    .slice(0, 5000);
+}
+
+function diracUltraNormalizeAction(action) {
+  const clean = String(action || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    'domain_health': 'domain_health',
+    'hostinger_check': 'hostinger_check',
+    'domain_hostinger_check': 'hostinger_check',
+    'check_domain': 'domain_check',
+    'domain_check': 'domain_check',
+    'create_order': 'domain_checkout',
+    'domain_create_order': 'domain_checkout',
+    'domain_checkout': 'domain_checkout',
+    'get_orders': 'domain_orders',
+    'domain_get_orders': 'domain_orders',
+    'domain_orders': 'domain_orders',
+    'domain_login': 'domain_login',
+    'login_domain': 'domain_login',
+    'domain_register': 'domain_register',
+    'register_domain': 'domain_register',
+    'domain_logout': 'domain_logout',
+    'domain_me': 'domain_me',
+    'domain_dashboard_me': 'domain_dashboard_me',
+    'dashboard_me': 'domain_dashboard_me',
+    'domain_mfa_status': 'domain_mfa_status',
+    'dashboard_mfa_status': 'domain_mfa_status',
+    'create_payment': 'create_payment',
+    'pay_order': 'create_payment',
+    'order_payment': 'create_payment',
+    'midtrans_webhook': 'midtrans_webhook',
+    'midtrans_notification': 'midtrans_webhook',
+    'midtrans_callback': 'midtrans_webhook',
+    'payment_webhook': 'midtrans_webhook',
+    'payment_callback': 'midtrans_webhook',
+    'midtrans_health': 'midtrans_health',
+    'ipaymu_webhook': 'ipaymu_webhook',
+    'ipaymu_callback': 'ipaymu_webhook',
+    'ipaymu_notification': 'ipaymu_webhook',
+    'ipaymu_health': 'ipaymu_health',
+    'dirac_mfa_passkey_start': 'dirac_mfa_passkey_start',
+    'domain_mfa_passkey_start': 'dirac_mfa_passkey_start',
+    'dirac_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
+    'domain_mfa_passkey_verify': 'dirac_mfa_passkey_verify',
+    'dirac_mfa_email_start': 'dirac_mfa_email_start',
+    'domain_mfa_email_start': 'dirac_mfa_email_start',
+    'dirac_mfa_email_verify': 'dirac_mfa_email_verify',
+    'domain_mfa_email_verify': 'dirac_mfa_email_verify'
+  };
+  return aliases[clean] || clean;
+}
+
+function diracUltraBodyLimitBytes(action, method) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method || '').toUpperCase())) return 0;
+  if (diracUltraIsWebhookAction(action)) return diracUltraBytesFromEnv('DIRAC_WEBHOOK_BODY_LIMIT_BYTES', 512 * 1024);
+  if (/passkey/.test(action)) return diracUltraBytesFromEnv('DIRAC_PASSKEY_BODY_LIMIT_BYTES', 512 * 1024);
+  if (/email|mfa|recovery|security/.test(action)) return diracUltraBytesFromEnv('DIRAC_SECURITY_BODY_LIMIT_BYTES', 128 * 1024);
+  if (/login|register/.test(action)) return Math.max(1024, Number(LOGIN_SECURITY_BODY_LIMIT_BYTES || 16 * 1024));
+  if (/payment|checkout|order|invoice/.test(action)) return diracUltraBytesFromEnv('DIRAC_PAYMENT_BODY_LIMIT_BYTES', 128 * 1024);
+  return diracUltraBytesFromEnv('DIRAC_DEFAULT_BODY_LIMIT_BYTES', 128 * 1024);
+}
+
+function diracUltraBytesFromEnv(name, fallback) {
+  const value = Number(process.env[name] || fallback);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(1024, Math.min(value, 2 * 1024 * 1024));
+}
+
+function diracUltraIsWebhookAction(action) {
+  return ['midtrans_webhook', 'ipaymu_webhook'].includes(String(action || ''));
+}
+
+function diracUltraRequiresBrowserOrigin(action) {
+  if (diracUltraIsWebhookAction(action)) return false;
+  if (isEnvTrue('DIRAC_ULTRA_ORIGIN_GUARD_DISABLED')) return false;
+  return true;
+}
+
+function diracUltraStrictOriginGuard(req, action) {
+  if (typeof diracSensitivePostOriginCheck === 'function') {
+    const guard = diracSensitivePostOriginCheck(req, action);
+    if (!guard || !guard.ok) return guard || { ok: false, code: 'ORIGIN_BLOCKED' };
+    if (guard.source === 'missing_origin_fail_open') {
+      if (isEnvTrue('DIRAC_ULTRA_ALLOW_MISSING_ORIGIN')) return guard;
+      if (process.env.NODE_ENV !== 'production') return guard;
+      return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'ultra_missing_origin_block' };
+    }
+    return guard;
+  }
+  return { ok: true, source: 'origin_guard_unavailable' };
+}
+
+// Override existing sensitive POST origin checker only at the missing-header branch.
+// Existing allowed-origin and referer logic stays untouched.
+try {
+  const __diracUltraOriginalSensitiveOriginCheck = typeof diracSensitivePostOriginCheck === 'function' ? diracSensitivePostOriginCheck : null;
+  if (__diracUltraOriginalSensitiveOriginCheck) {
+    diracSensitivePostOriginCheck = function diracSensitivePostOriginCheckUltra(req, action) {
+      const guard = __diracUltraOriginalSensitiveOriginCheck(req, action);
+      if (guard && guard.ok && guard.source === 'missing_origin_fail_open') {
+        if (isEnvTrue('DIRAC_ULTRA_ALLOW_MISSING_ORIGIN')) return guard;
+        if (process.env.NODE_ENV === 'production' || isEnvTrue('DIRAC_SENSITIVE_POST_ORIGIN_REQUIRE_HEADER')) {
+          return { ok: false, code: 'SENSITIVE_POST_ORIGIN_HEADER_REQUIRED', source: 'ultra_missing_origin_block' };
+        }
+      }
+      return guard;
+    };
+  }
+} catch (_) {}
+
+// Override generic body reader with a safe byte limit. Function names and endpoints are not changed.
+try {
+  const __diracUltraOriginalReadBody = typeof readBody === 'function' ? readBody : null;
+  if (__diracUltraOriginalReadBody) {
+    readBody = async function readBodyUltraLimited(req) {
+      const action = diracUltraNormalizeAction(String((req && req.query && req.query.action) || ''));
+      const method = String((req && req.method) || 'POST').toUpperCase();
+      const limit = diracUltraBodyLimitBytes(action, method) || diracUltraBytesFromEnv('DIRAC_DEFAULT_BODY_LIMIT_BYTES', 128 * 1024);
+
+      if (req && req.body && typeof req.body === 'object') {
+        const approxBytes = Buffer.byteLength(JSON.stringify(req.body), 'utf8');
+        if (approxBytes > limit) throw diracUltraBodyTooLargeError(limit);
+        return req.body;
+      }
+
+      if (req && typeof req.body === 'string') {
+        if (Buffer.byteLength(req.body, 'utf8') > limit) throw diracUltraBodyTooLargeError(limit);
+        try { return JSON.parse(req.body || '{}'); } catch (_) { return {}; }
+      }
+
+      return await new Promise((resolve, reject) => {
+        let raw = '';
+        let stopped = false;
+        req.on('data', (chunk) => {
+          if (stopped) return;
+          raw += chunk;
+          if (Buffer.byteLength(raw, 'utf8') > limit) {
+            stopped = true;
+            if (typeof req.destroy === 'function') req.destroy();
+            reject(diracUltraBodyTooLargeError(limit));
+          }
+        });
+        req.on('end', () => {
+          if (stopped) return;
+          try { resolve(raw ? JSON.parse(raw) : {}); } catch (_) { resolve({}); }
+        });
+        req.on('error', () => {
+          if (stopped) return;
+          resolve({});
+        });
+      });
+    };
+  }
+} catch (_) {}
+
+function diracUltraBodyTooLargeError(limit) {
+  const error = new Error('REQUEST_BODY_TOO_LARGE');
+  error.statusCode = 413;
+  error.code = 'DIRAC_BODY_TOO_LARGE';
+  error.limit = limit;
+  return error;
+}
+
+async function diracUltraCheckRateLimit(req, action, method) {
+  if (isEnvTrue('DIRAC_ULTRA_RATE_LIMIT_DISABLED')) return { ok: true };
+  if (String(method || '').toUpperCase() === 'OPTIONS') return { ok: true };
+
+  const config = diracUltraRateLimitConfig(action, method);
+  if (config.limit <= 0) return { ok: true };
+
+  const now = Date.now();
+  diracUltraRateLimitCleanup(now);
+
+  const key = diracUltraRateLimitKey(req, action, method);
+  let row = DIRAC_ULTRA_RATE_LIMIT_STORE.get(key) || null;
+  if (!row) {
+    row = { count: 0, resetAtMs: now + config.windowMs, firstSeenMs: now };
+  }
+  if (now > Number(row.resetAtMs || 0)) {
+    row = { count: 0, resetAtMs: now + config.windowMs, firstSeenMs: now };
+  }
+  row.count = Number(row.count || 0) + 1;
+  DIRAC_ULTRA_RATE_LIMIT_STORE.set(key, row);
+
+  if (row.count > config.limit) {
+    return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((row.resetAtMs - now) / 1000)) };
+  }
+
+  if (isEnvTrue('DIRAC_ULTRA_PERSISTENT_RATE_LIMIT') && LOGIN_SECURITY_PERSIST_TABLE && typeof readPersistentSecurityJson === 'function') {
+    const persistedKey = 'ultra-rate:' + key;
+    const persisted = await readPersistentSecurityJson(persistedKey).catch(() => null);
+    const pNow = Date.now();
+    let pRow = persisted && typeof persisted === 'object' ? persisted : { count: 0, resetAtMs: pNow + config.windowMs };
+    if (pNow > Number(pRow.resetAtMs || 0)) pRow = { count: 0, resetAtMs: pNow + config.windowMs };
+    pRow.count = Number(pRow.count || 0) + 1;
+    await writePersistentSecurityJson(persistedKey, pRow, 0, Math.ceil(config.windowMs / 1000) + 60).catch(() => false);
+    if (pRow.count > config.limit) {
+      return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((Number(pRow.resetAtMs || pNow) - pNow) / 1000)) };
+    }
+  }
+
+  return { ok: true };
+}
+
+function diracUltraRateLimitConfig(action, method) {
+  const m = String(method || '').toUpperCase();
+  const a = String(action || '').toLowerCase();
+  if (diracUltraIsWebhookAction(a)) return { limit: 240, windowMs: 60 * 1000 };
+  if (a === 'domain_login' || a === 'domain_register' || (!a && m === 'POST')) return { limit: 24, windowMs: 60 * 1000 };
+  if (/mfa|passkey|recovery|security/.test(a) && m === 'POST') return { limit: 30, windowMs: 60 * 1000 };
+  if (/payment|checkout|invoice|order/.test(a) && m === 'POST') return { limit: 36, windowMs: 60 * 1000 };
+  if (a === 'hostinger_check' || a === 'domain_check') return { limit: 75, windowMs: 60 * 1000 };
+  if (m === 'POST') return { limit: 90, windowMs: 60 * 1000 };
+  return { limit: 240, windowMs: 60 * 1000 };
+}
+
+function diracUltraRateLimitKey(req, action, method) {
+  const ip = typeof getLoginSecurityIp === 'function' ? getLoginSecurityIp(req) : ((req && req.headers && req.headers['x-forwarded-for']) || 'unknown');
+  const ua = String((req && req.headers && req.headers['user-agent']) || '').slice(0, 160);
+  const base = [String(method || 'GET'), String(action || 'no_action'), String(ip || 'unknown'), ua].join('|');
+  return typeof loginSecurityHash === 'function'
+    ? loginSecurityHash(base)
+    : crypto.createHash('sha256').update(base).digest('hex');
+}
+
+function diracUltraRateLimitCleanup(now = Date.now()) {
+  if (DIRAC_ULTRA_RATE_LIMIT_STORE.size < 8000) return;
+  for (const [key, value] of DIRAC_ULTRA_RATE_LIMIT_STORE.entries()) {
+    if (Number(value && value.resetAtMs || 0) <= now) DIRAC_ULTRA_RATE_LIMIT_STORE.delete(key);
+    if (DIRAC_ULTRA_RATE_LIMIT_STORE.size <= 5000) break;
+  }
+}
+
+async function diracUltraWriteGenericSecurityEvent(req, options = {}) {
+  if (!isEnvTrue('DIRAC_ULTRA_GENERIC_SECURITY_EVENT')) return false;
+  if (!LOGIN_SECURITY_PERSIST_TABLE || typeof writePersistentSecurityJson !== 'function') return false;
+  const action = String(options.action || '').slice(0, 80);
+  const keyBase = [Date.now(), action, Math.random().toString(36).slice(2)].join(':');
+  const key = 'ultra-event:' + (typeof loginSecurityHash === 'function' ? loginSecurityHash(keyBase) : crypto.createHash('sha256').update(keyBase).digest('hex'));
+  const headers = (req && req.headers) || {};
+  return writePersistentSecurityJson(key, {
+    event_type: options.event_type || 'ultra_security_event',
+    status: options.status || 'info',
+    risk_level: options.risk_level || 'low',
+    action,
+    method: String((req && req.method) || '').toUpperCase(),
+    ip_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(getLoginSecurityIp(req) || '')) : '',
+    user_agent_hash: typeof loginSecurityHash === 'function' ? loginSecurityHash(String(headers['user-agent'] || '').slice(0, 240)) : '',
+    created_at: new Date().toISOString(),
+    metadata: options.metadata && typeof options.metadata === 'object' ? options.metadata : {}
+  }, 0, 30 * 24 * 60 * 60).catch(() => false);
+}
+
+function diracUltraSafeError(error) {
+  const message = String(error && error.message ? error.message : error || 'unknown_error');
+  const code = String(error && error.code || '');
+  return { code: code.slice(0, 80), message: diracUltraRedactString(message).slice(0, 300) };
+}
+
+function diracUltraSafePublicMessage(message, fallback = 'Permintaan belum dapat diproses.') {
+  const text = String(message || fallback || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
+  return diracUltraRedactString(text).slice(0, 220) || fallback;
+}
+
+// Optional signed-session hardening: stays compatible by default.
+// Enable DOMAIN_SIGNED_SESSION_STRICT_VERSION=true only after DB session_version is available.
+try {
+  const __diracUltraOriginalVerifySignedSession = typeof verifyDomainSessionCookieValue === 'function' ? verifyDomainSessionCookieValue : null;
+  if (__diracUltraOriginalVerifySignedSession) {
+    verifyDomainSessionCookieValue = function verifyDomainSessionCookieValueUltra(value) {
+      const payload = __diracUltraOriginalVerifySignedSession(value);
+      if (!payload) return null;
+      if (isEnvTrue('DOMAIN_SIGNED_SESSION_DISABLE_FALLBACK')) return null;
+      if (isEnvTrue('DOMAIN_SIGNED_SESSION_STRICT_VERSION')) {
+        const raw = String(value || '').trim();
+        const body = raw.split('.')[0] || '';
+        const full = parseBase64UrlJson(body);
+        const version = String(full && (full.session_version || full.sv) || '').trim();
+        if (!version) return null;
+        return { ...payload, session_version: version };
+      }
+      return payload;
+    };
+  }
+} catch (_) {}
+
+/* ============================================================
+   DIRAC ULTRA SECURITY HARDENING v101 - APPEND ONLY
+   Tujuan:
+   - Tidak mengubah endpoint/action yang sudah ada.
+   - Tidak mengubah login/hash, payment gateway, email template, A2F, passkey flow,
+     cookie name, atau logika bisnis existing.
+   - Menambah lapisan aman non-breaking: prototype-pollution guard, request-shape guard,
+     header hardening, safer JSON body guard, stricter admin/security rate profile,
+     dan audit event opsional.
+   ============================================================ */
+
+const DIRAC_ULTRA_SECURITY_PATCH_V101 = 'dirac-ultra-security-hardening-v101';
+const __diracUltraSecurityV101PreviousHandler = module.exports;
+
+module.exports = async function diracUltraSecurityHardeningWrapperV101(req, res) {
+  diracUltraV101ApplyHeaders(res);
+  const action = (typeof diracUltraNormalizeAction === 'function')
+    ? diracUltraNormalizeAction(String((req && req.query && req.query.action) || ''))
+    : String((req && req.query && req.query.action) || '').trim().toLowerCase();
+  const method = String((req && req.method) || 'GET').toUpperCase();
+
+  try {
+    const guard = diracUltraV101PreflightGuard(req, action, method);
+    if (!guard.ok) {
+      await diracUltraV101Audit(req, action, guard.code || 'V101_REQUEST_BLOCKED', guard.risk || 'medium').catch(() => null);
+      return res.status(guard.status || 400).json({
+        ok: false,
+        code: guard.code || 'REQUEST_BLOCKED',
+        message: guard.message || 'Permintaan ditolak oleh sistem keamanan.'
+      });
+    }
+
+    return await __diracUltraSecurityV101PreviousHandler(req, res);
+  } catch (error) {
+    const status = Number(error && (error.statusCode || error.status)) || 500;
+    const code = String(error && error.code || (status === 413 ? 'REQUEST_BODY_TOO_LARGE' : 'SECURITY_GUARD_ERROR')).slice(0, 80);
+    console.error('[dirac-ultra-v101]', typeof diracUltraSafeError === 'function' ? diracUltraSafeError(error) : String(error && error.message || error));
+    return res.status(status >= 400 && status < 500 ? status : 500).json({
+      ok: false,
+      code,
+      message: status === 413
+        ? 'Request terlalu besar. Silakan ulangi dengan data yang lebih ringkas.'
+        : 'Permintaan belum dapat diproses dengan aman.'
+    });
+  }
+};
+
+function diracUltraV101ApplyHeaders(res) {
+  try {
+    if (!res || typeof res.setHeader !== 'function') return;
+    res.setHeader('X-Dirac-Security-Patch', DIRAC_ULTRA_SECURITY_PATCH_V101);
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=()');
+    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+    res.setHeader('Origin-Agent-Cluster', '?1');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+    if (!res.getHeader || !res.getHeader('X-Request-Id')) {
+      const id = crypto.randomBytes(12).toString('hex');
+      res.setHeader('X-Request-Id', id);
+    }
+  } catch (_) {}
+}
+
+function diracUltraV101PreflightGuard(req, action, method) {
+  const headers = (req && req.headers) || {};
+  const url = String((req && req.url) || '');
+
+  if (url.length > diracUltraV101IntEnv('DIRAC_MAX_URL_LENGTH', 4096, 1024, 16384)) {
+    return { ok: false, status: 414, code: 'URL_TOO_LONG', message: 'URL request terlalu panjang.', risk: 'medium' };
+  }
+
+  if (headers['x-http-method-override'] || headers['x-method-override'] || headers['x-original-method']) {
+    return { ok: false, status: 400, code: 'METHOD_OVERRIDE_BLOCKED', message: 'Method override tidak diizinkan.', risk: 'medium' };
+  }
+
+  const queryGuard = diracUltraV101InspectObject(req && req.query, {
+    source: 'query',
+    action,
+    maxDepth: 6,
+    maxKeys: 80,
+    maxArray: 20,
+    maxStringBytes: 4096,
+    inspectSql: true
+  });
+  if (!queryGuard.ok) return queryGuard;
+
+  const headerGuard = diracUltraV101InspectHeaders(headers);
+  if (!headerGuard.ok) return headerGuard;
+
+  if (method === 'POST') {
+    const contentLength = Number(headers['content-length'] || 0);
+    const maxBody = (typeof diracUltraBodyLimitBytes === 'function')
+      ? diracUltraBodyLimitBytes(action, method)
+      : diracUltraV101IntEnv('DIRAC_DEFAULT_BODY_LIMIT_BYTES', 128 * 1024, 1024, 2 * 1024 * 1024);
+    if (Number.isFinite(contentLength) && maxBody > 0 && contentLength > maxBody) {
+      return { ok: false, status: 413, code: 'REQUEST_BODY_TOO_LARGE', message: 'Request terlalu besar.', risk: 'medium' };
+    }
+  }
+
+  return { ok: true };
+}
+
+function diracUltraV101InspectHeaders(headers) {
+  const suspiciousHeaders = ['x-forwarded-host', 'x-original-url', 'x-rewrite-url'];
+  for (const name of suspiciousHeaders) {
+    const value = String(headers && headers[name] || '');
+    if (value && /[\r\n]/.test(value)) {
+      return { ok: false, status: 400, code: 'HEADER_INJECTION_BLOCKED', message: 'Header request tidak valid.', risk: 'medium' };
+    }
+  }
+  const host = String(headers && headers.host || '');
+  if (host && /[\r\n]|\s/.test(host)) {
+    return { ok: false, status: 400, code: 'HOST_HEADER_INVALID', message: 'Host header tidak valid.', risk: 'medium' };
+  }
+  return { ok: true };
+}
+
+function diracUltraV101InspectObject(value, options = {}, depth = 0, state = { keys: 0 }) {
+  if (value === null || value === undefined) return { ok: true };
+  const maxDepth = Number(options.maxDepth || 16);
+  if (depth > maxDepth) {
+    return { ok: false, status: 400, code: 'REQUEST_OBJECT_TOO_DEEP', message: 'Struktur request terlalu dalam.', risk: 'medium' };
+  }
+
+  if (typeof value === 'string') {
+    const bytes = Buffer.byteLength(value, 'utf8');
+    if (bytes > Number(options.maxStringBytes || 65536)) {
+      return { ok: false, status: 400, code: 'REQUEST_VALUE_TOO_LONG', message: 'Nilai request terlalu panjang.', risk: 'medium' };
+    }
+    if (options.inspectSql && diracUltraV101LooksLikeExploitString(value)) {
+      return { ok: false, status: 400, code: 'REQUEST_PATTERN_BLOCKED', message: 'Pola request tidak diizinkan.', risk: 'high' };
+    }
+    return { ok: true };
+  }
+
+  if (typeof value !== 'object') return { ok: true };
+
+  if (Array.isArray(value)) {
+    if (value.length > Number(options.maxArray || 200)) {
+      return { ok: false, status: 400, code: 'REQUEST_ARRAY_TOO_LARGE', message: 'Array request terlalu besar.', risk: 'medium' };
+    }
+    for (const item of value) {
+      const result = diracUltraV101InspectObject(item, options, depth + 1, state);
+      if (!result.ok) return result;
+    }
+    return { ok: true };
+  }
+
+  for (const key of Object.keys(value)) {
+    state.keys += 1;
+    if (state.keys > Number(options.maxKeys || 1200)) {
+      return { ok: false, status: 400, code: 'REQUEST_TOO_MANY_FIELDS', message: 'Terlalu banyak field dalam request.', risk: 'medium' };
+    }
+
+    const lower = String(key || '').toLowerCase();
+    if (diracUltraV101IsPrototypePollutionKey(lower)) {
+      return { ok: false, status: 400, code: 'PROTOTYPE_POLLUTION_BLOCKED', message: 'Field request tidak diizinkan.', risk: 'high' };
+    }
+    if (/[\u0000-\u001f\u007f]/.test(String(key || ''))) {
+      return { ok: false, status: 400, code: 'REQUEST_KEY_INVALID', message: 'Field request tidak valid.', risk: 'medium' };
+    }
+
+    const result = diracUltraV101InspectObject(value[key], options, depth + 1, state);
+    if (!result.ok) return result;
+  }
+  return { ok: true };
+}
+
+function diracUltraV101IsPrototypePollutionKey(key) {
+  const lower = String(key || '').toLowerCase();
+  return lower === '__proto__' || lower === 'prototype' || lower === 'constructor' || lower === 'constructor.prototype';
+}
+
+function diracUltraV101LooksLikeExploitString(value) {
+  const text = String(value || '');
+  if (!text) return false;
+  if (text.length > 4096) return true;
+  const samples = [];
+  samples.push(text, text.replace(/\+/g, ' '));
+  try { samples.push(decodeURIComponent(text)); } catch (_) {}
+  return samples.some((sample) => {
+    const s = String(sample || '').toLowerCase();
+    return /(?:\bunion\s+(?:all\s+)?select\b|\bor\s+1\s*=\s*1\b|\band\s+1\s*=\s*1\b|\bdrop\s+table\b|\binformation_schema\b|\bpg_sleep\s*\(|\bsleep\s*\(|\bbenchmark\s*\(|<script\b|javascript:|\.\.\/|\.\.\\|%2e%2e%2f|%252e%252e%252f)/i.test(s);
+  });
+}
+
+function diracUltraV101IntEnv(name, fallback, min, max) {
+  const value = Number(process.env[name] || fallback);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(value, max));
+}
+
+async function diracUltraV101Audit(req, action, eventType, riskLevel) {
+  if (typeof diracUltraWriteGenericSecurityEvent !== 'function') return false;
+  return diracUltraWriteGenericSecurityEvent(req, {
+    action,
+    event_type: eventType,
+    status: 'blocked',
+    risk_level: riskLevel || 'medium',
+    metadata: { source: DIRAC_ULTRA_SECURITY_PATCH_V101 }
+  });
+}
+
+// Wrap readBody after v100 limiter. This validates parsed JSON shape only.
+// It does not change login hash, payment, email template, A2F, passkey, or endpoint names.
+try {
+  const __diracUltraV101PreviousReadBody = typeof readBody === 'function' ? readBody : null;
+  if (__diracUltraV101PreviousReadBody) {
+    readBody = async function readBodyUltraV101Guarded(req) {
+      const body = await __diracUltraV101PreviousReadBody(req);
+      const action = (typeof diracUltraNormalizeAction === 'function')
+        ? diracUltraNormalizeAction(String((req && req.query && req.query.action) || ''))
+        : String((req && req.query && req.query.action) || '').trim().toLowerCase();
+      const isPasskey = /passkey/.test(action);
+      const guard = diracUltraV101InspectObject(body, {
+        source: 'body',
+        action,
+        maxDepth: isPasskey ? 32 : 20,
+        maxKeys: isPasskey ? 2000 : 1200,
+        maxArray: isPasskey ? 1000 : 300,
+        maxStringBytes: isPasskey ? 384 * 1024 : 128 * 1024,
+        inspectSql: false
+      });
+      if (!guard.ok) {
+        const error = new Error(guard.message || 'REQUEST_BODY_BLOCKED');
+        error.statusCode = guard.status || 400;
+        error.code = guard.code || 'REQUEST_BODY_BLOCKED';
+        throw error;
+      }
+      return body;
+    };
+  }
+} catch (_) {}
+
+// Keep existing rate-limit logic, only tighten admin/security write profiles safely.
+try {
+  const __diracUltraV101OriginalRateLimitConfig = typeof diracUltraRateLimitConfig === 'function' ? diracUltraRateLimitConfig : null;
+  if (__diracUltraV101OriginalRateLimitConfig) {
+    diracUltraRateLimitConfig = function diracUltraRateLimitConfigV101(action, method) {
+      const a = String(action || '').toLowerCase();
+      const m = String(method || '').toUpperCase();
+      if (/admin/.test(a) && m === 'POST') return { limit: 12, windowMs: 60 * 1000 };
+      if (/recovery|session_revoke|revoke|security/.test(a) && m === 'POST') return { limit: 20, windowMs: 60 * 1000 };
+      return __diracUltraV101OriginalRateLimitConfig(action, method);
+    };
+  }
+} catch (_) {}
+
+// Optional strict protected-session mode. Default is compatibility-safe.
+// Enable only if you want sensitive protected pages to fail closed when DB session checks fail.
+try {
+  const __diracUltraV101OriginalProtectedLock = typeof checkDomainProtectedDatabaseSessionLockSafe === 'function' ? checkDomainProtectedDatabaseSessionLockSafe : null;
+  if (__diracUltraV101OriginalProtectedLock) {
+    checkDomainProtectedDatabaseSessionLockSafe = async function checkDomainProtectedDatabaseSessionLockUltraV101(req, user) {
+      const result = await __diracUltraV101OriginalProtectedLock(req, user);
+      if (!isEnvTrue('DOMAIN_PROTECTED_LOCK_STRICT')) return result;
+      if (result && result.ok && result.skipped === true) {
+        return {
+          ok: false,
+          status: 503,
+          code: 'PROTECTED_SESSION_STRICT_CHECK_REQUIRED',
+          clearCookies: false,
+          message: 'Sesi protected belum bisa diverifikasi penuh. Silakan coba lagi.'
+        };
+      }
+      return result;
+    };
+  }
+} catch (_) {}
