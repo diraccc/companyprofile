@@ -3795,7 +3795,7 @@
     function getFanCards() {
       return products.slice(0, 10).map((product, index) => ({
         ...product,
-        imgUrl: productToFanImage(product, index),
+        imgUrl: `tng${index + 1}.webp`,
       }));
     }
 
@@ -3817,7 +3817,6 @@
       fanCarouselLayout.innerHTML = fanCards.map((card, index) => `
         <button class="fan-card-html" type="button" data-fan-index="${index}" data-fan-id="${card.id}" aria-label="Pilih ${card.name}">
           <img src="${card.imgUrl}" alt="${card.name}" loading="lazy" />
-          <span class="fan-product-name"><strong>${card.name}</strong><span>Mulai ${formatRupiah(card.basePrice)}</span></span>
         </button>
       `).join("");
       fanDots.innerHTML = fanCards.map((_, index) => `<span class="fan-dot-html" data-fan-dot="${index}"></span>`).join("");
@@ -10269,6 +10268,57 @@
   })();
 </script>
 <!-- End V23 compact 360 dynamic patch -->
+
+
+
+<!-- ==========================================================
+     V24 FAN CARDS TO WEBP + REMOVE LOWER CAROUSEL
+     Visual/UI-only. Fan carousel now uses local tng1.webp ... tng10.webp.
+     Lower duplicated carousel is hidden. Backend/checkout/login unchanged.
+     ========================================================== -->
+<style id="v24-tng-webp-cleanup-style">
+  /* Hapus tampilan yang dilingkari di gambar 1 tanpa merusak JS lama. */
+  #carouselWrap {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Kartu fan yang dilingkari di gambar 2 sekarang memakai file WEBP lokal. */
+  .fan-card-html img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    image-rendering: auto !important;
+  }
+
+  .fan-card-html .fan-product-name {
+    display: none !important;
+  }
+
+  .fan-card-html {
+    background: rgba(255,255,255,0.055) !important;
+  }
+
+  html.v24-tng-webp .fan-carousel-shell {
+    margin-bottom: 0 !important;
+  }
+</style>
+<script id="v24-tng-webp-cleanup-script">
+  (function () {
+    "use strict";
+    document.documentElement.classList.add("v24-tng-webp");
+    window.__topupverseV24Notice = "V24: lower duplicate carousel is hidden; fan carousel images use local files tng1.webp through tng10.webp. Core checkout, login, hash, API and backend remain unchanged.";
+  })();
+</script>
+<!-- End V24 fan cards to WEBP cleanup -->
 
 </body>
 </html>
