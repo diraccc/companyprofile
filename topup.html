@@ -4947,7 +4947,11 @@
 
   <script type="module" id="threejs-upgrade-script">
     (async function () {
-      const THREE_CDN = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+      const THREE_CDNS = [
+        "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "https://esm.sh/three@0.160.0"
+      ];
       const status = {
         loaded: false,
         version: "three@0.160.0",
@@ -4959,22 +4963,22 @@
       window.__TopUpVerse3JSStatus = status;
 
       let THREE;
-      try {
-        THREE = await import(THREE_CDN);
-      } catch (error) {
+      let lastThreeError = null;
+      for (const url of THREE_CDNS) {
+        try {
+          THREE = await import(url);
+          status.source = url;
+          break;
+        } catch (error) {
+          lastThreeError = error;
+        }
+      }
+      if (!THREE) {
         status.loaded = false;
         status.fallback = true;
         status.reason = "threejs-cdn-unavailable";
         document.documentElement.classList.add("threejs-fallback-active");
-        document.querySelectorAll(".scene-zone, .real-3d-stage-wrap").forEach(function (target) {
-          if (!target.querySelector(".threejs-fallback-note")) {
-            const note = document.createElement("div");
-            note.className = "threejs-fallback-note";
-            note.textContent = "Fallback CSS 3D aktif";
-            target.appendChild(note);
-          }
-        });
-        console.warn("Three.js CDN tidak tersedia. Website tetap berjalan memakai fallback CSS 3D lama.");
+        console.warn("Three.js CDN tidak tersedia. Website tetap berjalan memakai CSS 3D stabil.", lastThreeError);
         return;
       }
 
@@ -5556,6 +5560,13 @@
        Login, hash, checkout, localStorage, and original product logic are untouched.
        ========================================================== -->
   <style id="mobile-3d-stability-fix-style">
+    .threejs-fallback-note {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
     @media (max-width: 720px) {
       .threejs-fallback-note {
         display: none !important;
@@ -5571,7 +5582,7 @@
       }
 
       .real-3d-stage.is-touching {
-        --real-z: 8px !important;
+        --real-z: 0px !important;
         --real-scale: 1 !important;
         transform: rotateX(var(--real-rx)) rotateY(var(--real-ry)) translateZ(var(--real-z)) scale(1) !important;
         filter: saturate(1.12) brightness(1.04) !important;
@@ -5616,7 +5627,7 @@
         if (!oldStage || oldStage.dataset.stabilityFix === "1") return oldStage;
         var clone = oldStage.cloneNode(true);
         clone.dataset.stabilityFix = "1";
-        clone.dataset.ready = "stable";
+        clone.dataset.ready = "1";
         oldStage.parentNode.replaceChild(clone, oldStage);
         return clone;
       }
@@ -5629,6 +5640,7 @@
 
         var dragging = false;
         var hasMoved = false;
+        var rippleAdded = false;
         var startX = 0;
         var startY = 0;
         var lastX = 0;
@@ -5656,14 +5668,18 @@
         stage.addEventListener("pointerdown", function (event) {
           dragging = true;
           hasMoved = false;
+          rippleAdded = false;
           rect = stage.getBoundingClientRect();
           startX = lastX = event.clientX;
           startY = lastY = event.clientY;
           velocityX = 0;
           velocityY = 0;
-          stage.classList.add("is-touching");
+          targetX = 10;
+          targetY = -14;
+          stage.classList.remove("is-touching");
+          stage.style.setProperty("--real-scale", "1");
+          stage.style.setProperty("--real-z", "0px");
           if (stage.setPointerCapture) stage.setPointerCapture(event.pointerId);
-          addRipple(event.clientX, event.clientY);
         }, { passive: true });
 
         stage.addEventListener("pointermove", function (event) {
@@ -5675,8 +5691,13 @@
           lastX = event.clientX;
           lastY = event.clientY;
 
-          if (Math.abs(totalDx) + Math.abs(totalDy) < 7) return;
+          if (Math.abs(totalDx) + Math.abs(totalDy) < 10) return;
           hasMoved = true;
+          if (!rippleAdded) {
+            rippleAdded = true;
+            stage.classList.add("is-touching");
+            addRipple(event.clientX, event.clientY);
+          }
           event.preventDefault();
 
           velocityX = stepDx * 0.045;
@@ -5729,6 +5750,96 @@
       document.addEventListener("DOMContentLoaded", setupStableMobile3D);
       window.addEventListener("resize", setupStableMobile3D, { passive: true });
       window.addEventListener("orientationchange", setupStableMobile3D, { passive: true });
+
+      function removeFallbackNotesForever() {
+        document.querySelectorAll(".threejs-fallback-note").forEach(function (node) {
+          node.remove();
+        });
+      }
+      removeFallbackNotesForever();
+      new MutationObserver(removeFallbackNotesForever).observe(document.documentElement, { childList: true, subtree: true });
+
+    })();
+  </script>
+
+
+
+  <!-- ==========================================================
+       FINAL MOBILE TAP GUARD V2
+       Blocks old mobile pointer handlers from making the 3D scene jump/mengecil.
+       ========================================================== -->
+  <script id="mobile-tap-guard-v2">
+    (function () {
+      function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+      function installGuard() {
+        if (window.innerWidth > 720) return;
+        var stage = document.getElementById("realMobile3DStage");
+        if (!stage || stage.dataset.tapGuardV2 === "1") return;
+        stage.dataset.tapGuardV2 = "1";
+        stage.dataset.ready = "1";
+        stage.style.setProperty("--real-scale", "1");
+        stage.style.setProperty("--real-z", "0px");
+        var dragging = false;
+        var moving = false;
+        var sx = 0, sy = 0, tx = 10, ty = -14, cx = 10, cy = -14;
+        function paint() {
+          cx += (tx - cx) * 0.16;
+          cy += (ty - cy) * 0.16;
+          stage.style.setProperty("--real-rx", cx.toFixed(3) + "deg");
+          stage.style.setProperty("--real-ry", cy.toFixed(3) + "deg");
+          stage.style.setProperty("--real-scale", "1");
+          stage.style.setProperty("--real-z", "0px");
+          requestAnimationFrame(paint);
+        }
+        paint();
+        function kill(event) {
+          event.stopImmediatePropagation();
+        }
+        stage.addEventListener("pointerdown", function (event) {
+          kill(event);
+          dragging = true;
+          moving = false;
+          sx = event.clientX;
+          sy = event.clientY;
+          tx = 10;
+          ty = -14;
+          stage.classList.remove("is-touching");
+          if (stage.setPointerCapture) {
+            try { stage.setPointerCapture(event.pointerId); } catch (e) {}
+          }
+        }, true);
+        stage.addEventListener("pointermove", function (event) {
+          if (!dragging) return kill(event);
+          var dx = event.clientX - sx;
+          var dy = event.clientY - sy;
+          if (Math.abs(dx) + Math.abs(dy) < 10) return kill(event);
+          moving = true;
+          event.preventDefault();
+          kill(event);
+          stage.classList.add("is-touching");
+          ty = clamp(-14 + dx * 0.08, -24, 10);
+          tx = clamp(10 - dy * 0.075, -8, 22);
+        }, true);
+        function end(event) {
+          kill(event);
+          dragging = false;
+          moving = false;
+          stage.classList.remove("is-touching");
+          tx = 10;
+          ty = -14;
+          if (event && stage.hasPointerCapture && stage.hasPointerCapture(event.pointerId)) {
+            try { stage.releasePointerCapture(event.pointerId); } catch (e) {}
+          }
+        }
+        stage.addEventListener("pointerup", end, true);
+        stage.addEventListener("pointercancel", end, true);
+        document.querySelectorAll(".threejs-fallback-note").forEach(function (node) { node.remove(); });
+      }
+      installGuard();
+      document.addEventListener("DOMContentLoaded", installGuard);
+      window.addEventListener("load", installGuard);
+      window.addEventListener("resize", installGuard, { passive: true });
+      window.addEventListener("orientationchange", installGuard, { passive: true });
     })();
   </script>
 
