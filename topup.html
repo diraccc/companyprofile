@@ -8149,5 +8149,401 @@
   })();
 </script>
 
+
+<!-- ==========================================================
+     V16 PRODUCTION 3D MOTION POLISH
+     Scope: only visual 3D depth, motion, and mobile composition polish.
+     Protected: API endpoint, login, hash, payment gateway, email template,
+     A2F, backend security, localStorage invoice logic, and checkout logic are not modified.
+     ========================================================== -->
+<style id="v16-production-3d-polish-style">
+  html.v16-production-3d .premium3d-stage {
+    isolation: isolate !important;
+    contain: layout paint style !important;
+    background:
+      radial-gradient(circle at var(--glowx, 50%) var(--glowy, 44%), rgba(103,232,249,.24), transparent 30%),
+      radial-gradient(circle at 18% 73%, rgba(168,85,247,.23), transparent 42%),
+      radial-gradient(circle at 83% 38%, rgba(236,72,153,.12), transparent 36%),
+      linear-gradient(180deg, rgba(5,8,22,0) 0%, rgba(5,8,22,.10) 100%) !important;
+  }
+
+  html.v16-production-3d .premium3d-stage.v16-enhanced::after {
+    bottom: 30px !important;
+    width: min(82%, 650px) !important;
+    height: 132px !important;
+    opacity: .72 !important;
+    filter: blur(18px) !important;
+  }
+
+  html.v16-production-3d .premium3d-world {
+    transform-style: preserve-3d !important;
+    filter: saturate(1.06) contrast(1.04) !important;
+  }
+
+  html.v16-production-3d .premium-phone {
+    animation: v16PhoneFloat 8.2s cubic-bezier(.42,0,.22,1) infinite !important;
+    background:
+      linear-gradient(150deg, rgba(255,255,255,.26), rgba(255,255,255,.055) 22%, rgba(4,8,22,.96) 70%),
+      linear-gradient(160deg, #111a33 0%, #030712 55%, #0f172a 100%) !important;
+    border-color: rgba(255,255,255,.32) !important;
+    box-shadow:
+      0 64px 145px rgba(0,0,0,.58),
+      0 0 84px rgba(56,189,248,.26),
+      -18px 16px 42px rgba(168,85,247,.13),
+      inset 0 0 0 2px rgba(255,255,255,.065),
+      inset -18px -28px 54px rgba(2,6,23,.76),
+      inset 18px 18px 34px rgba(255,255,255,.035) !important;
+  }
+
+  html.v16-production-3d .premium-phone .v16-phone-depth {
+    position: absolute !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    opacity: .98 !important;
+    transform-style: preserve-3d !important;
+  }
+
+  html.v16-production-3d .premium-phone .v16-phone-depth.left {
+    left: 8px !important;
+    top: 58px !important;
+    bottom: 58px !important;
+    width: 18px !important;
+    border-radius: 18px 8px 8px 18px !important;
+    background: linear-gradient(90deg, rgba(2,6,23,.94), rgba(30,41,59,.70), rgba(103,232,249,.13)) !important;
+    box-shadow: inset 3px 0 10px rgba(255,255,255,.06) !important;
+    transform: translateZ(6px) rotateY(-18deg) !important;
+  }
+
+  html.v16-production-3d .premium-phone .v16-phone-depth.right {
+    right: 8px !important;
+    top: 58px !important;
+    bottom: 58px !important;
+    width: 18px !important;
+    border-radius: 8px 18px 18px 8px !important;
+    background: linear-gradient(90deg, rgba(103,232,249,.10), rgba(15,23,42,.76), rgba(2,6,23,.96)) !important;
+    box-shadow: inset -3px 0 10px rgba(0,0,0,.28) !important;
+    transform: translateZ(6px) rotateY(18deg) !important;
+  }
+
+  html.v16-production-3d .premium-phone .v16-phone-depth.bottom {
+    left: 54px !important;
+    right: 54px !important;
+    bottom: 9px !important;
+    height: 18px !important;
+    border-radius: 8px 8px 18px 18px !important;
+    background: linear-gradient(180deg, rgba(103,232,249,.10), rgba(2,6,23,.94)) !important;
+    box-shadow: inset 0 -4px 12px rgba(0,0,0,.34) !important;
+    transform: translateZ(7px) rotateX(-20deg) !important;
+  }
+
+  html.v16-production-3d .premium-screen {
+    z-index: 4 !important;
+    box-shadow:
+      inset 0 0 35px rgba(56,189,248,.08),
+      inset 0 -35px 55px rgba(2,6,23,.72),
+      0 16px 34px rgba(0,0,0,.18) !important;
+  }
+
+  html.v16-production-3d .premium-balance,
+  html.v16-production-3d .premium-mini,
+  html.v16-production-3d .premium-checkout {
+    transform-style: preserve-3d !important;
+    backface-visibility: hidden !important;
+  }
+
+  html.v16-production-3d .premium-balance {
+    box-shadow: 0 22px 52px rgba(0,0,0,.25), 0 0 30px rgba(56,189,248,.12), inset 0 0 28px rgba(255,255,255,.05) !important;
+  }
+
+  html.v16-production-3d .premium-card3d {
+    animation: v16CardFloat 8.8s cubic-bezier(.42,0,.22,1) infinite !important;
+    transform-style: preserve-3d !important;
+    box-shadow:
+      0 34px 76px rgba(0,0,0,.34),
+      0 0 34px rgba(56,189,248,.13),
+      inset 0 1px 0 rgba(255,255,255,.26),
+      inset 0 -18px 28px rgba(2,6,23,.28) !important;
+  }
+
+  html.v16-production-3d .premium-card3d .v16-card-rim {
+    position: absolute !important;
+    inset: 7px !important;
+    border-radius: 19px !important;
+    pointer-events: none !important;
+    border: 1px solid rgba(255,255,255,.13) !important;
+    box-shadow: inset -10px -10px 18px rgba(2,6,23,.24), inset 8px 8px 18px rgba(255,255,255,.05) !important;
+    transform: translateZ(12px) !important;
+  }
+
+  html.v16-production-3d .premium-card3d .v16-card-glint {
+    position: absolute !important;
+    left: -45% !important;
+    top: -30% !important;
+    width: 70% !important;
+    height: 150% !important;
+    pointer-events: none !important;
+    opacity: .28 !important;
+    background: linear-gradient(108deg, transparent, rgba(255,255,255,.44), transparent) !important;
+    transform: rotate(12deg) translateX(-80%) translateZ(18px) !important;
+    animation: v16CardGlint 6.8s ease-in-out infinite !important;
+  }
+
+  html.v16-production-3d .premium-card3d.wallet { animation-delay: -2.2s !important; }
+  html.v16-production-3d .premium-card3d.toll { animation-delay: -4.1s !important; }
+
+  html.v16-production-3d .premium-coin {
+    animation: v16CoinFloat 7.2s cubic-bezier(.42,0,.22,1) infinite !important;
+    background:
+      radial-gradient(circle at 30% 22%, #fff8c7 0%, #ffe979 18%, #facc15 38%, #ca8a04 70%, #713f12 100%) !important;
+    box-shadow:
+      0 0 48px rgba(250,204,21,.40),
+      0 24px 42px rgba(0,0,0,.28),
+      inset -14px -16px 26px rgba(0,0,0,.24),
+      inset 9px 9px 16px rgba(255,255,255,.44) !important;
+  }
+
+  html.v16-production-3d .premium-coin .v16-coin-edge {
+    position: absolute !important;
+    inset: -7px !important;
+    z-index: -1 !important;
+    border-radius: 999px !important;
+    pointer-events: none !important;
+    background: conic-gradient(from 20deg, #7c4a03, #facc15, #fff7b8, #b45309, #facc15, #7c4a03) !important;
+    filter: brightness(.88) saturate(1.08) !important;
+    transform: translateZ(-16px) scale(.98) !important;
+    box-shadow: 0 0 22px rgba(250,204,21,.22) !important;
+  }
+
+  html.v16-production-3d .premium-coin .v16-coin-shine {
+    position: absolute !important;
+    inset: 12px !important;
+    border-radius: 999px !important;
+    pointer-events: none !important;
+    background: linear-gradient(120deg, transparent 32%, rgba(255,255,255,.48) 44%, transparent 58%) !important;
+    opacity: 0 !important;
+    animation: v16CoinShine 5.6s ease-in-out infinite !important;
+  }
+
+  html.v16-production-3d .premium-diamond {
+    animation: v16DiamondFloat 8s cubic-bezier(.42,0,.22,1) infinite !important;
+    box-shadow: 0 0 58px rgba(56,189,248,.56), 0 22px 38px rgba(0,0,0,.24), inset 0 0 30px rgba(255,255,255,.40) !important;
+  }
+
+  html.v16-production-3d .premium-diamond .v16-facet {
+    position: absolute !important;
+    pointer-events: none !important;
+    border: 1px solid rgba(255,255,255,.28) !important;
+    background: linear-gradient(135deg, rgba(255,255,255,.32), rgba(56,189,248,.05)) !important;
+    transform: translateZ(18px) !important;
+  }
+
+  html.v16-production-3d .premium-diamond .v16-facet.f1 { left: 13px; top: 13px; width: 30px; height: 30px; border-radius: 8px; }
+  html.v16-production-3d .premium-diamond .v16-facet.f2 { right: 13px; top: 22px; width: 27px; height: 27px; border-radius: 8px; }
+  html.v16-production-3d .premium-diamond .v16-facet.f3 { left: 36px; bottom: 13px; width: 28px; height: 28px; border-radius: 999px; opacity: .75; }
+
+  html.v16-production-3d .premium3d-orbit {
+    opacity: .86 !important;
+    animation-duration: 19s !important;
+    box-shadow: 0 0 34px rgba(56,189,248,.16), inset 0 0 28px rgba(168,85,247,.10) !important;
+  }
+
+  html.v16-production-3d .premium3d-orbit.o2 { animation-duration: 27s !important; }
+  html.v16-production-3d .premium3d-orbit.o3 { animation-duration: 34s !important; }
+
+  html.v16-production-3d .premium-glow-dot {
+    opacity: .64 !important;
+    animation-duration: 6.4s !important;
+  }
+
+  html.v16-production-3d .v16-depth-shadow {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: min(390px, 72vw) !important;
+    height: min(120px, 20vw) !important;
+    border-radius: 999px !important;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,.42), rgba(56,189,248,.08) 42%, transparent 75%) !important;
+    filter: blur(18px) !important;
+    opacity: .72 !important;
+    transform: translate3d(-50%, 204px, -160px) rotateX(72deg) !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+  }
+
+  html.v16-production-3d .v16-mobile-headline {
+    display: none !important;
+  }
+
+  @media (max-width: 720px) {
+    html.v16-production-3d.premium-final-3d-active #real-mobile-3d {
+      padding-top: 10px !important;
+    }
+
+    html.v16-production-3d .v16-mobile-headline {
+      display: block !important;
+      position: relative !important;
+      z-index: 8 !important;
+      margin: 14px 5% 0 !important;
+      padding: 10px 12px !important;
+      border-radius: 18px !important;
+      color: #eafaff !important;
+      background: rgba(2,6,23,.42) !important;
+      border: 1px solid rgba(103,232,249,.14) !important;
+      text-align: center !important;
+      font-weight: 900 !important;
+      letter-spacing: -.2px !important;
+      font-size: clamp(18px, 5.6vw, 24px) !important;
+      line-height: 1.16 !important;
+      backdrop-filter: blur(12px) !important;
+    }
+
+    html.v16-production-3d .v16-mobile-headline span {
+      color: #38bdf8 !important;
+      text-shadow: 0 0 18px rgba(56,189,248,.38) !important;
+    }
+
+    html.v16-production-3d.v13-light-balanced.premium-final-3d-active .real-3d-stage-wrap {
+      min-height: min(520px, 61svh) !important;
+      margin-top: 8px !important;
+    }
+
+    html.v16-production-3d .premium3d-world {
+      width: min(430px, 100vw) !important;
+      height: min(640px, 67svh) !important;
+      top: 50% !important;
+    }
+
+    html.v16-production-3d .premium-phone {
+      width: min(72vw, 292px) !important;
+      height: min(112vw, 472px) !important;
+      animation-duration: 9.8s !important;
+    }
+
+    html.v16-production-3d .premium-card3d,
+    html.v16-production-3d .premium-coin,
+    html.v16-production-3d .premium-diamond {
+      animation-duration: 10.2s !important;
+    }
+  }
+
+  @media (max-width: 380px) {
+    html.v16-production-3d .v16-mobile-headline {
+      font-size: 18px !important;
+      margin-top: 12px !important;
+      padding: 9px 10px !important;
+    }
+  }
+
+  @keyframes v16PhoneFloat {
+    0%, 100% { margin-top: 0; filter: brightness(1) saturate(1.02); }
+    32% { margin-top: -9px; filter: brightness(1.035) saturate(1.08); }
+    66% { margin-top: -17px; filter: brightness(1.055) saturate(1.10); }
+  }
+
+  @keyframes v16CardFloat {
+    0%, 100% { margin-top: 0; filter: brightness(1) saturate(1.02); }
+    36% { margin-top: -10px; filter: brightness(1.05) saturate(1.08); }
+    68% { margin-top: -5px; filter: brightness(1.025) saturate(1.04); }
+  }
+
+  @keyframes v16CardGlint {
+    0%, 58%, 100% { opacity: 0; transform: rotate(12deg) translateX(-90%) translateZ(18px); }
+    68% { opacity: .32; }
+    82% { opacity: 0; transform: rotate(12deg) translateX(235%) translateZ(18px); }
+  }
+
+  @keyframes v16CoinFloat {
+    0%, 100% { margin-top: 0; filter: brightness(1) saturate(1.04); }
+    40% { margin-top: -11px; filter: brightness(1.08) saturate(1.15); }
+    72% { margin-top: -5px; filter: brightness(1.03) saturate(1.08); }
+  }
+
+  @keyframes v16CoinShine {
+    0%, 52%, 100% { opacity: 0; transform: rotate(0deg) translateX(-22%); }
+    64% { opacity: .42; }
+    76% { opacity: 0; transform: rotate(16deg) translateX(34%); }
+  }
+
+  @keyframes v16DiamondFloat {
+    0%, 100% { margin-top: 0; filter: brightness(1) saturate(1.04); }
+    42% { margin-top: -12px; filter: brightness(1.10) saturate(1.16); }
+    73% { margin-top: -5px; filter: brightness(1.04) saturate(1.08); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.v16-production-3d .premium-phone,
+    html.v16-production-3d .premium-card3d,
+    html.v16-production-3d .premium-coin,
+    html.v16-production-3d .premium-diamond,
+    html.v16-production-3d .v16-card-glint,
+    html.v16-production-3d .v16-coin-shine {
+      animation: none !important;
+    }
+  }
+</style>
+<script id="v16-production-3d-polish-script">
+  (function () {
+    "use strict";
+    var root = document.documentElement;
+    root.classList.add("v16-production-3d");
+    window.__topupverseV16Notice = "V16 only improves visual 3D depth, motion, and mobile composition. Login, hash, API endpoint, payment gateway, backend security, localStorage invoice logic, and checkout logic are not changed.";
+
+    function qa(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+    function addOnce(parent, className, html) {
+      if (!parent || parent.querySelector('.' + className)) return;
+      var wrap = document.createElement('div');
+      wrap.innerHTML = html;
+      while (wrap.firstChild) parent.appendChild(wrap.firstChild);
+    }
+
+    function enhanceStage(stage) {
+      if (!stage || stage.__v16Enhanced) return;
+      stage.__v16Enhanced = true;
+      stage.classList.add('v16-enhanced');
+      var world = stage.querySelector('.premium3d-world');
+      if (world && !world.querySelector('.v16-depth-shadow')) {
+        var shadow = document.createElement('div');
+        shadow.className = 'v16-depth-shadow';
+        shadow.setAttribute('aria-hidden', 'true');
+        world.insertBefore(shadow, world.firstChild);
+      }
+      qa('.premium-phone', stage).forEach(function (phone) {
+        addOnce(phone, 'v16-phone-depth', '<i class="v16-phone-depth left" aria-hidden="true"></i><i class="v16-phone-depth right" aria-hidden="true"></i><i class="v16-phone-depth bottom" aria-hidden="true"></i>');
+      });
+      qa('.premium-card3d', stage).forEach(function (card) {
+        addOnce(card, 'v16-card-rim', '<i class="v16-card-rim" aria-hidden="true"></i><i class="v16-card-glint" aria-hidden="true"></i>');
+      });
+      qa('.premium-coin', stage).forEach(function (coin) {
+        addOnce(coin, 'v16-coin-edge', '<i class="v16-coin-edge" aria-hidden="true"></i><i class="v16-coin-shine" aria-hidden="true"></i>');
+      });
+      qa('.premium-diamond', stage).forEach(function (diamond) {
+        addOnce(diamond, 'v16-facet', '<i class="v16-facet f1" aria-hidden="true"></i><i class="v16-facet f2" aria-hidden="true"></i><i class="v16-facet f3" aria-hidden="true"></i>');
+      });
+    }
+
+    function ensureMobileHeadline() {
+      var copy = document.querySelector('#real-mobile-3d .real-mobile-copy');
+      if (!copy || copy.querySelector('.v16-mobile-headline')) return;
+      var node = document.createElement('div');
+      node.className = 'v16-mobile-headline';
+      node.innerHTML = 'Top Up <span>3D Premium</span> yang Ringan di HP';
+      var actions = copy.querySelector('.real-mobile-actions');
+      if (actions) copy.insertBefore(node, actions);
+      else copy.appendChild(node);
+    }
+
+    function boot() {
+      qa('.premium3d-stage').forEach(enhanceStage);
+      ensureMobileHeadline();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+    else boot();
+    window.addEventListener('load', boot, { passive: true });
+    setTimeout(boot, 200);
+    setTimeout(boot, 900);
+  })();
+</script>
+
 </body>
 </html>
