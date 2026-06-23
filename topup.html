@@ -4817,9 +4817,11 @@
     })();
   </script>
 
+
+
   <!-- ==========================================================
        THREE.JS INTERACTIVE 3D UPGRADE
-       Area ini hanya menambah layer 3JS. Script dan form lama tidak diubah.
+       Area ini hanya menambah layer 3JS. Script/form/login/hash lama tidak diubah.
        Fallback CSS 3D lama tetap tersedia jika CDN Three.js gagal dimuat.
        ========================================================== -->
   <style id="threejs-upgrade-style">
@@ -5543,6 +5545,190 @@
       }
 
       renderLoop();
+    })();
+  </script>
+
+
+
+  <!-- ==========================================================
+       MOBILE 3D STABILITY FIX
+       Fix: tap on the 3D area must not make the scene look kecil/mengecil.
+       Login, hash, checkout, localStorage, and original product logic are untouched.
+       ========================================================== -->
+  <style id="mobile-3d-stability-fix-style">
+    @media (max-width: 720px) {
+      .threejs-fallback-note {
+        display: none !important;
+      }
+
+      .real-3d-stage {
+        --real-rx: 10deg;
+        --real-ry: -14deg;
+        --real-z: 0px;
+        --real-scale: 1;
+        transform: rotateX(var(--real-rx)) rotateY(var(--real-ry)) translateZ(var(--real-z)) scale(1) !important;
+        transform-origin: center center !important;
+      }
+
+      .real-3d-stage.is-touching {
+        --real-z: 8px !important;
+        --real-scale: 1 !important;
+        transform: rotateX(var(--real-rx)) rotateY(var(--real-ry)) translateZ(var(--real-z)) scale(1) !important;
+        filter: saturate(1.12) brightness(1.04) !important;
+      }
+
+      .real-3d-stage.is-touching .real-phone,
+      .real-3d-stage.is-touching .real-card-3d,
+      .real-3d-stage.is-touching .real-cube {
+        transform-origin: center center !important;
+      }
+
+      .real-touch-ripple {
+        width: 18px !important;
+        height: 18px !important;
+        transform: translate(-50%, -50%) translateZ(240px) scale(0.2) !important;
+      }
+
+      @keyframes touchBurst3D {
+        0% {
+          opacity: 0.78;
+          transform: translate(-50%, -50%) translateZ(240px) scale(0.2);
+        }
+        72% {
+          opacity: 0.28;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) translateZ(240px) scale(2.15);
+        }
+      }
+    }
+  </style>
+
+  <script id="mobile-3d-stability-fix-script">
+    (function () {
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function replaceStageWithoutOldTouchHandlers() {
+        var oldStage = document.getElementById("realMobile3DStage");
+        if (!oldStage || oldStage.dataset.stabilityFix === "1") return oldStage;
+        var clone = oldStage.cloneNode(true);
+        clone.dataset.stabilityFix = "1";
+        clone.dataset.ready = "stable";
+        oldStage.parentNode.replaceChild(clone, oldStage);
+        return clone;
+      }
+
+      function setupStableMobile3D() {
+        if (window.innerWidth > 720) return;
+        var stage = replaceStageWithoutOldTouchHandlers();
+        if (!stage || stage.dataset.stableReady === "1") return;
+        stage.dataset.stableReady = "1";
+
+        var dragging = false;
+        var hasMoved = false;
+        var startX = 0;
+        var startY = 0;
+        var lastX = 0;
+        var lastY = 0;
+        var targetX = 10;
+        var targetY = -14;
+        var currentX = 10;
+        var currentY = -14;
+        var velocityX = 0;
+        var velocityY = 0;
+        var rect = null;
+
+        function addRipple(clientX, clientY) {
+          rect = rect || stage.getBoundingClientRect();
+          var ripple = document.createElement("span");
+          ripple.className = "real-touch-ripple";
+          ripple.style.left = (clientX - rect.left) + "px";
+          ripple.style.top = (clientY - rect.top) + "px";
+          stage.appendChild(ripple);
+          setTimeout(function () {
+            if (ripple && ripple.parentNode) ripple.parentNode.removeChild(ripple);
+          }, 620);
+        }
+
+        stage.addEventListener("pointerdown", function (event) {
+          dragging = true;
+          hasMoved = false;
+          rect = stage.getBoundingClientRect();
+          startX = lastX = event.clientX;
+          startY = lastY = event.clientY;
+          velocityX = 0;
+          velocityY = 0;
+          stage.classList.add("is-touching");
+          if (stage.setPointerCapture) stage.setPointerCapture(event.pointerId);
+          addRipple(event.clientX, event.clientY);
+        }, { passive: true });
+
+        stage.addEventListener("pointermove", function (event) {
+          if (!dragging) return;
+          var totalDx = event.clientX - startX;
+          var totalDy = event.clientY - startY;
+          var stepDx = event.clientX - lastX;
+          var stepDy = event.clientY - lastY;
+          lastX = event.clientX;
+          lastY = event.clientY;
+
+          if (Math.abs(totalDx) + Math.abs(totalDy) < 7) return;
+          hasMoved = true;
+          event.preventDefault();
+
+          velocityX = stepDx * 0.045;
+          velocityY = stepDy * -0.04;
+          targetY = clamp(-14 + totalDx * 0.105 + velocityX, -26, 12);
+          targetX = clamp(10 - totalDy * 0.095 + velocityY, -10, 24);
+        }, { passive: false });
+
+        function stop(event) {
+          if (!dragging) return;
+          dragging = false;
+          rect = null;
+          stage.classList.remove("is-touching");
+          if (event && stage.hasPointerCapture && stage.hasPointerCapture(event.pointerId)) {
+            stage.releasePointerCapture(event.pointerId);
+          }
+          if (!hasMoved) {
+            targetX = 10;
+            targetY = -14;
+            velocityX = 0;
+            velocityY = 0;
+            return;
+          }
+          targetX = clamp(targetX + velocityY * 2.2, -10, 24);
+          targetY = clamp(targetY + velocityX * 2.2, -26, 12);
+        }
+
+        stage.addEventListener("pointerup", stop, { passive: true });
+        stage.addEventListener("pointercancel", stop, { passive: true });
+        stage.addEventListener("lostpointercapture", stop, { passive: true });
+
+        function tick() {
+          if (!dragging) {
+            targetX += (10 + Math.sin(Date.now() * 0.0009) * 1.3 - targetX) * 0.035;
+            targetY += (-14 + Math.cos(Date.now() * 0.0010) * 1.8 - targetY) * 0.035;
+            velocityX *= 0.92;
+            velocityY *= 0.92;
+          }
+          currentX += (targetX - currentX) * 0.14;
+          currentY += (targetY - currentY) * 0.14;
+          stage.style.setProperty("--real-rx", currentX.toFixed(3) + "deg");
+          stage.style.setProperty("--real-ry", currentY.toFixed(3) + "deg");
+          stage.style.setProperty("--real-scale", "1");
+          requestAnimationFrame(tick);
+        }
+        tick();
+      }
+
+      setupStableMobile3D();
+      document.addEventListener("DOMContentLoaded", setupStableMobile3D);
+      window.addEventListener("resize", setupStableMobile3D, { passive: true });
+      window.addEventListener("orientationchange", setupStableMobile3D, { passive: true });
     })();
   </script>
 
