@@ -3269,16 +3269,6 @@
           </div>
         </div>
       </section>
-      <section class="topupid-banner-separator" aria-label="Banner TopupID">
-        <div class="topupid-banner-inner">
-          <div class="topupid-banner-saw top" aria-hidden="true"></div>
-          <div class="topupid-banner-glow" aria-hidden="true"></div>
-          <img src="dnnn.webp" alt="TopupID" class="topupid-banner-logo" />
-          <div class="topupid-banner-saw bottom" aria-hidden="true"></div>
-        </div>
-      </section>
-
-
       <section class="section reveal" id="cara">
         <div class="section-head">
           <div class="kicker">FLOW ORDER</div>
@@ -3535,6 +3525,12 @@
             <span>Estimasi Omzet</span>
             <strong id="adminLocalRevenue">Rp0</strong>
           </article>
+        </div>
+      </section>
+
+      <section class="topupid-banner-separator bottom-full-visual" aria-label="Banner visual TopupID">
+        <div class="topupid-banner-inner">
+          <img src="tls1.webp" alt="Banner layanan TopupID" class="topupid-banner-full-image" loading="lazy" decoding="async" />
         </div>
       </section>
 
@@ -10678,6 +10674,107 @@
     window.__topupidV42Notice = 'V42: added only the requested decorative banner/separator in HTML/CSS. Protected systems unchanged.';
   })();
 </script>
+
+
+
+<!-- V43 precision layout fix: contained 3D rotator + bottom full-width visual banner. No JS/function/endpoints changed. -->
+<style id="v43-topupid-precision-layout-fix">
+  /* Rapikan animasi 3D showcase agar tidak keluar dari frame website, terutama di layar HP. */
+  #showcase {
+    overflow: hidden !important;
+    padding-top: 34px !important;
+    padding-bottom: 58px !important;
+  }
+
+  #showcase .tls-visual-shell {
+    overflow: hidden !important;
+    width: min(100%, 940px) !important;
+    min-height: clamp(330px, 54vw, 500px) !important;
+    padding: 0 !important;
+    isolation: isolate !important;
+  }
+
+  #showcase .tls-rotator {
+    width: min(390px, 78vw) !important;
+    height: clamp(220px, 42vw, 300px) !important;
+    transform-origin: center center !important;
+  }
+
+  #showcase .tls-card {
+    width: min(330px, 70vw) !important;
+    border-radius: 24px !important;
+  }
+
+  #showcase .tls-card-1 { transform: translate(-50%, -50%) rotateY(0deg) translateZ(155px) !important; }
+  #showcase .tls-card-2 { transform: translate(-50%, -50%) rotateY(90deg) translateZ(155px) !important; }
+  #showcase .tls-card-3 { transform: translate(-50%, -50%) rotateY(180deg) translateZ(155px) !important; }
+  #showcase .tls-card-4 { transform: translate(-50%, -50%) rotateY(270deg) translateZ(155px) !important; }
+
+  /* Banner dipindahkan ke bagian bawah konten dan dibuat penuh gambar tanpa logo tengah. */
+  .topupid-banner-separator.bottom-full-visual {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100vw !important;
+    margin: 22px calc(50% - 50vw) 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .topupid-banner-separator.bottom-full-visual .topupid-banner-inner {
+    width: 100vw !important;
+    max-width: none !important;
+    height: clamp(190px, 28vw, 360px) !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #020617 !important;
+    overflow: hidden !important;
+  }
+
+  .topupid-banner-separator.bottom-full-visual .topupid-banner-inner::before,
+  .topupid-banner-separator.bottom-full-visual .topupid-banner-inner::after,
+  .topupid-banner-separator.bottom-full-visual .topupid-banner-saw,
+  .topupid-banner-separator.bottom-full-visual .topupid-banner-glow,
+  .topupid-banner-separator.bottom-full-visual .topupid-banner-logo {
+    display: none !important;
+  }
+
+  .topupid-banner-full-image {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    border: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  @media (max-width: 780px) {
+    #showcase { padding: 26px 4.5% 50px !important; }
+    #showcase .tls-visual-shell { min-height: 360px !important; border-radius: 28px !important; }
+    #showcase .tls-rotator { width: min(310px, 74vw) !important; height: 218px !important; }
+    #showcase .tls-card { width: min(250px, 62vw) !important; border-radius: 20px !important; }
+    #showcase .tls-card-1 { transform: translate(-50%, -50%) rotateY(0deg) translateZ(112px) !important; }
+    #showcase .tls-card-2 { transform: translate(-50%, -50%) rotateY(90deg) translateZ(112px) !important; }
+    #showcase .tls-card-3 { transform: translate(-50%, -50%) rotateY(180deg) translateZ(112px) !important; }
+    #showcase .tls-card-4 { transform: translate(-50%, -50%) rotateY(270deg) translateZ(112px) !important; }
+    .topupid-banner-separator.bottom-full-visual { margin-top: 12px !important; }
+    .topupid-banner-separator.bottom-full-visual .topupid-banner-inner { height: 210px !important; }
+  }
+
+  @media (max-width: 430px) {
+    #showcase .tls-visual-shell { min-height: 330px !important; }
+    #showcase .tls-rotator { width: min(270px, 72vw) !important; height: 198px !important; }
+    #showcase .tls-card { width: min(218px, 60vw) !important; }
+    #showcase .tls-card-1 { transform: translate(-50%, -50%) rotateY(0deg) translateZ(92px) !important; }
+    #showcase .tls-card-2 { transform: translate(-50%, -50%) rotateY(90deg) translateZ(92px) !important; }
+    #showcase .tls-card-3 { transform: translate(-50%, -50%) rotateY(180deg) translateZ(92px) !important; }
+    #showcase .tls-card-4 { transform: translate(-50%, -50%) rotateY(270deg) translateZ(92px) !important; }
+    .topupid-banner-separator.bottom-full-visual .topupid-banner-inner { height: 180px !important; }
+  }
+</style>
 
 </body>
 </html>
