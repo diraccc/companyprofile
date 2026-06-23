@@ -3017,15 +3017,15 @@
   <div class="page">
     <header class="navbar">
       <a href="#home" class="brand" aria-label="TopupID">
-        <span class="brand-mark"><span>◆</span></span>
+        <span class="brand-mark image-brand"><img src="dnnn.webp" alt="" /></span>
         <b>Topup<span>ID</span></b>
       </a>
 
       <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="#premium">Layanan</a>
-        <a href="#produk">Produk</a>
-        <a href="#showcase">Keunggulan</a>
-        <a href="#cara">Cara Order</a>
+        <a href="#premium">Premium</a>
+        <a href="#premium">Produk</a>
+        <a href="#showcase">Animasi</a>
+        <a href="#cara">Flow</a>
         <a href="#checkout">Top Up</a>
         
         <a href="#checkout" class="nav-cta">Mulai</a>
@@ -3035,10 +3035,10 @@
     </header>
 
     <div class="mobile-menu" id="mobileMenu">
-      <a href="#premium">Layanan</a>
-      <a href="#produk">Produk</a>
-      <a href="#showcase">Keunggulan</a>
-      <a href="#cara">Cara Order</a>
+      <a href="#premium">Premium</a>
+      <a href="#premium">Produk</a>
+      <a href="#showcase">Animasi</a>
+      <a href="#cara">Flow</a>
       <a href="#checkout">Top Up</a>
       
     </div>
@@ -3047,13 +3047,13 @@
     <section class="mobile-cinematic-home" id="mobile-home" aria-label="Mobile cinematic homepage">
       <div class="mobile-cinematic-inner">
         <div class="mobile-cinematic-kicker"><span></span> Top Up Aman</div>
-        <h1 class="mobile-cinematic-title">Top Up Digital <span>Aman</span> dan Praktis</h1>
+        <h1 class="mobile-cinematic-title">Top Up Digital <span>Premium</span> Aman Buat HP</h1>
         <p class="mobile-cinematic-copy">
           Nikmati layanan top up game, e-wallet, e-toll, pulsa, paket data, dan token PLN dengan tampilan ringan di HP.
         </p>
         <div class="mobile-cinematic-actions">
           <a class="mobile-cinematic-primary" href="#checkout">Mulai Top Up</a>
-          <a class="mobile-cinematic-secondary" href="#produk">Lihat Produk</a>
+          <a class="mobile-cinematic-secondary" href="#premium">Lihat Produk</a>
         </div>
         <div class="mobile-device-stage">
           <div class="mobile-float-card a">E-WALLET</div>
@@ -3090,7 +3090,7 @@
 
         <div class="real-mobile-actions">
           <a class="real-mobile-primary" href="#checkout">Mulai Top Up</a>
-          <a class="real-mobile-secondary" href="#produk">Produk</a>
+          <a class="real-mobile-secondary" href="#premium">Produk</a>
         </div>
       </div>
 
@@ -3105,7 +3105,7 @@
           <div class="real-card-3d real-card-toll"><b>E-TOLL</b><span></span></div>
 
           <div class="real-cube" aria-hidden="true">
-            <span class="front">PAY</span>
+            <span class="front">3D</span>
             <span class="back">PAY</span>
             <span class="right">ID</span>
             <span class="left">TOP</span>
@@ -3148,7 +3148,7 @@
 
           <div class="hero-actions">
             <a href="#checkout" class="btn btn-primary">Mulai Top Up</a>
-            <a href="#premium" class="btn btn-ghost">Lihat 3D Premium</a>
+            <a href="#premium" class="btn btn-ghost">Lihat Layanan</a>
           </div>
 
           <div class="hero-metrics">
@@ -3269,7 +3269,7 @@
 
       <section class="section reveal" id="showcase">
         <div class="section-head">
-          <div class="kicker">KEUNGGULAN</div>
+          <div class="kicker">MOTION STORY</div>
           <h2>Tampilan Modern untuk Pengalaman Belanja yang Nyaman</h2>
           <p class="section-sub">
             Desain dibuat rapi agar pengguna dapat melihat layanan, memilih produk, dan melanjutkan pembayaran tanpa bingung.
@@ -3566,9 +3566,9 @@
 
     <footer class="dirac-footer">
       <div class="footer-links">
-        <a href="#premium">Layanan</a>
-        <a href="#produk">Produk</a>
-        <a href="#showcase">Keunggulan</a>
+        <a href="#premium">Premium</a>
+        <a href="#premium">Produk</a>
+        <a href="#showcase">Animasi</a>
         <a href="#checkout">Top Up</a>
       </div>
       <p>© 2026 TopupID. Copyright by Dirac Group.</p>
@@ -3598,7 +3598,7 @@
       BACKEND/API CONFIG
       ==========================================================
       GitHub Pages hanya menjalankan frontend statis.
-      Kalau API backend sudah siap, isi contoh ini:
+      Konfigurasi koneksi sistem utama berada di bagian ini:
 
       const API_BASE_URL = "https://domain-backend-kamu.com/api";
 
@@ -5092,7 +5092,7 @@
         font-size: 0 !important;
       }
       html.threejs-only-active .real-mobile-badge::after {
-        content: "Three.js Mobile Aktif" !important;
+        content: "Layanan Mobile Aktif" !important;
         font-size: 12px !important;
       }
       html.threejs-only-active .real-mobile-title {
@@ -5181,7 +5181,7 @@
         var mount = document.createElement("div");
         mount.className = "threejs-only-mount " + className;
         mount.setAttribute("aria-label", label);
-        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat animasi Three.js...</span></div><div class="threejs-only-badge">Three.js aktif • Geser pelan, tap objek</div>';
+        mount.innerHTML = '<div class="threejs-only-loader"><span>Memuat tampilan layanan...</span></div><div class="threejs-only-badge">Tampilan aktif • Geser pelan, tap objek</div>';
         parent.insertBefore(mount, parent.firstChild);
         return mount;
       }
@@ -5852,8 +5852,8 @@
       function init() {
         var desktopParent = document.querySelector(".scene-zone");
         var mobileParent = document.querySelector("#real-mobile-3d .real-3d-stage-wrap");
-        var desktopMount = makeMount(desktopParent, "threejs-only-desktop", "Animasi Three.js desktop");
-        var mobileMount = makeMount(mobileParent, "threejs-only-mobile", "Animasi Three.js mobile");
+        var desktopMount = makeMount(desktopParent, "threejs-only-desktop", "Animasi layanan desktop");
+        var mobileMount = makeMount(mobileParent, "threejs-only-mobile", "Animasi layanan mobile");
 
         loadThree().then(function (THREE) {
           createScene(THREE, desktopMount, { mobile: false });
@@ -5863,7 +5863,7 @@
             if (!mount) return;
             mount.classList.add("is-error");
             var span = mount.querySelector(".threejs-only-loader span");
-            if (span) span.textContent = "Three.js belum termuat. Cek koneksi internet/CDN hosting.";
+            if (span) span.textContent = "Tampilan belum termuat. Cek koneksi internet.";
           });
         });
       }
@@ -10194,13 +10194,13 @@
     }
 
     function dynamicTotal() {
-      var label = "Total checkout dipilih";
+      var label = "Total pesanan";
       var amountText = "Rp0";
       var summaryText = textValue(q("#sumTotal"));
       var productText = textValue(q("#sumProduct"));
       if (summaryText && summaryText !== "-" && summaryText !== "Rp0") {
         amountText = summaryText;
-        label = productText && productText !== "-" ? "Total checkout dipilih" : "Estimasi checkout";
+        label = productText && productText !== "-" ? "Total pesanan" : "Estimasi pesanan";
       }
 
       qa(".v22-balance small").forEach(function (node) { node.textContent = label; });
@@ -10573,5 +10573,43 @@
 
 
 <!-- V28 correction: file is named topup.html only. Existing brand name is preserved; only lower check/history/admin sections remain hidden and footer copyright remains Dirac Group. -->
+
+<style id="v32-topupid-dnnn-cleanup">
+  .brand-mark.image-brand {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+    overflow: visible !important;
+    border-radius: 16px !important;
+  }
+  .brand-mark.image-brand::before { display: none !important; }
+  .brand-mark.image-brand img {
+    width: 44px !important;
+    height: 44px !important;
+    display: block !important;
+    object-fit: contain !important;
+    border-radius: 16px !important;
+    filter: drop-shadow(0 0 22px rgba(56,189,248,.34));
+  }
+  #produk,
+  .sticky-mobile-checkout {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+</style>
+<script id="v32-topupid-dnnn-cleanup-script">
+  (function(){
+    document.documentElement.classList.add('v32-topupid-dnnn-cleanup');
+    window.__topupidV32Notice = 'V32: brand mark uses dnnn.webp, product grid section and mobile sticky checkout are hidden. Endpoints, login, hash, A2F, payment gateway, email template and security are unchanged.';
+  })();
+</script>
+
 </body>
 </html>
